@@ -1,0 +1,171 @@
+/* Based on: https://github.com/R167/lezer-lua */
+@precedence {
+  call,
+  power @right,
+  prefix,
+  times @left,
+  plus @left,
+  concat @right,
+  shift @left,
+  bitand @left,
+  xor @left,
+  bitor @left,
+  compare @left,
+  and @left,
+  or @left
+}
+
+@top Chunk { Block }
+
+Block { statement* ReturnStatement? }
+
+ReturnStatement { kw<"return"> exp? ";"?}
+
+@skip { newline | space | Comment }
+
+statement[@isGroup=Statement] {
+  ";" |
+  Label |
+  kw<"break"> |
+  Goto{ kw<"goto"> Name } |
+  Scope { kw<"do"> Block kw<"end"> } |
+  WhileStatement { kw<"while"> exp kw<"do"> Block kw<"end"> } |
+  RepeatStatement { kw<"repeat"> Block kw<"until"> exp } |
+  IfStatement |
+  ForStatement |
+  Function { kw<"function"> FuncName FuncBody } |
+  LocalFunction { kw<"local"> kw<"function"> Name FuncBody } |
+  Assign { VarList "=" ExpList } |
+  Local { kw<"local"> AttNameList ("=" ExpList)? } |
+  FunctionCall ~fcall
+}
+
+IfStatement {
+  kw<"if"> exp kw<"then"> Block
+  (kw<"elseif"> exp kw<"then"> Block)*
+  (kw<"else"> Block)
+  kw<"end">
+}
+
+ForNumeric { Name "=" exp "," exp ("," exp)? }
+
+ForGeneric { NameList kw<"in"> ExpList }
+
+ForStatement {
+  kw<"for"> (ForNumeric | ForGeneric) kw<"do"> Block kw<"end">
+}
+
+FuncName { Name ("." Name)* (":" Name)? }
+FuncBody { "(" ArgList ")" Block kw<"end"> }
+
+list<term> { term ("," term)* }
+
+NameList { list<Name> }
+ExpList { list<exp> }
+VarList { list<var> }
+ArgList { list<var | "..."> }
+
+AttNameList { list<Name Attrib> }
+Attrib { ( "<" Name ">" )? }
+
+exp {
+  kw<"nil"> | kw<"true"> | kw<"false"> | "..." |
+  Number |
+  LiteralString |
+  prefixexp |
+  BinaryExpression |
+  UnaryExpression |
+  TableConstructor |
+  FunctionDef { kw<"function"> FuncBody }
+}
+
+field[@isGroup=Field] {
+  FieldDynamic { "[" exp "]" "=" exp } |
+  FieldProp { Name "=" exp } |
+  FieldExp { exp }
+}
+
+prefixexp {
+  var |
+  Parens { "(" exp ")" ~parens } |
+  FunctionCall ~fcall
+}
+FunctionCall { prefixexp (":" Name)? !call args }
+args {
+  LiteralString |
+  TableConstructor |
+  funcParams[@dynamicPrecedence=1] { "(" list<exp>? ")" ~parens }
+}
+
+var {
+  Name | Property { (prefixexp "." Name) } | MemberExpression { (prefixexp "[" exp "]") }
+}
+
+kw<term> { @specialize[@name={term}]<identifier, term> }
+
+Name { identifier }
+Label { "::" Name "::" }
+LiteralString { simpleString }
+
+BinaryExpression {
+  exp !or kw<"or"> exp |
+  exp !and kw<"and"> exp |
+  exp !compare CompareOp exp |
+  exp !bitor BitOp{"|"} exp |
+  exp !bitand BitOp{"&"} exp |
+  exp !xor BitOp{"~"} exp |
+  exp !shift BitOp{"<<" | ">>"} exp |
+  exp !concat ".." exp |
+  exp !plus ArithOp{"+" | minus} exp |
+  exp !times ArithOp{"*" | "/" | "%" | "//"} exp |
+  exp !power ArithOp{"^"} exp
+}
+
+UnaryExpression {
+  !prefix kw<"not"> exp |
+  !prefix (ArithOp{"+" | minus} | BitOp{"~"}) exp
+}
+
+TableConstructor { "{" (field (fieldsep field)* fieldsep?)? "}" }
+
+@tokens {
+  CompareOp { "<" | ">" | $[<>=~/] "=" }
+
+  word { std.asciiLetter (std.digit | std.asciiLetter)* }
+
+  identifier { word }
+
+  stringEscape {
+    "\\" ($[abfnz"'\\] | digit digit? digit?) |
+    "\\x" hex hex |
+    // NOTE: this should really be /[0-7]hex{5}/ at max, but that's annoying to write
+    "\\u{" hex+ "}"
+  }
+
+  simpleString { "'" (stringEscape | ![\r\n\\'])+ "'" | '"' (stringEscape | ![\r\n\\"])+ '"'}
+
+  hex { $[0-9a-fA-F] }
+  digit { std.digit }
+
+  Number {
+    digit+ ("." digit+)? ($[eE] $[+\-] digit+)? |
+    "0" $[xX] hex+ ("." hex+)? ($[pP] $[+/-] digit+)?
+  }
+
+  Comment { "--" ![\n\r]* }
+
+  space { ($[ \t\f] | "\\" $[\n\r])+ }
+  newline { $[\n\r] | "\n\r" | "\r\n" }
+
+  "..."[@name=Ellipsis]
+  ".."[@name=Concat]
+
+  @precedence { Comment, minus }
+
+  minus {"-"}
+  fieldsep { $[,;] }
+
+  "(" ")" "[" "]" "{" "}"
+
+  "." "," ";" ":" "::"
+}
