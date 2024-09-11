@@ -34,45 +34,32 @@ export class HttpSpacePrimitives implements SpacePrimitives {
 
     try {
       options.signal = AbortSignal.timeout(fetchTimeout);
-      options.redirect = "manual";
       const result = await fetch(url, options);
       if (result.status === 503) {
         throw new Error("Offline");
       }
-      const redirectHeader = result.headers.get("location");
-
-      // console.log("Got response", result.status, result.statusText, result.url);
-
       // Attempting to handle various authentication proxies
-      if (result.status >= 300 && result.status < 400) {
-        if (redirectHeader) {
-          // Got a redirect
-          alert("Received a redirect, redirecting to URL: " + redirectHeader);
-          location.href = redirectHeader;
-          throw new Error("Redirected");
-        } else {
-          console.error("Got a redirect status but no location header", result);
-        }
-      }
-      // Check for unauthorized status
-      if (result.status === 401 || result.status === 403) {
-        // If it came with a redirect header, we'll redirect to that URL
-        if (redirectHeader) {
+      if (result.redirected) {
+        if (result.status === 401 || result.status === 403) {
           console.log(
             "Received unauthorized status and got a redirect via the API so will redirect to URL",
             result.url,
           );
-          alert("You are not authenticated, redirecting to: " + redirectHeader);
-          location.href = redirectHeader;
+          alert("You are not authenticated, redirecting to: " + result.url);
+          location.href = result.url;
           throw new Error("Not authenticated");
         } else {
-          // If not, let's reload
-          alert(
-            "You are not authenticated, going to reload and hope that that kicks off authentication",
-          );
-          location.reload();
-          throw new Error("Not authenticated, got 401");
+          alert("Received a redirect, redirecting to URL: " + result.url);
+          location.href = result.url;
+          throw new Error("Redirected");
         }
+      }
+      if (result.status === 401 || result.status === 403) {
+        alert(
+          "You are not authenticated, going to reload and hope that that kicks off authentication",
+        );
+        location.reload();
+        throw new Error("Not authenticated, got 401");
       }
       return result;
     } catch (e: any) {

@@ -370,7 +370,7 @@ export class HttpServer {
           return c.redirect(typeof from === "string" ? from : "/");
         } else {
           console.error("Authentication failed, redirecting to auth page.");
-          return c.redirect("/.auth?error=1", 401);
+          return c.redirect("/.auth?error=1");
         }
       },
     ).all((c) => {
@@ -389,9 +389,9 @@ export class HttpServer {
       const redirectToAuth = () => {
         // Try filtering api paths
         if (req.path.startsWith("/.") || req.path.endsWith(".md")) {
-          return c.redirect("/.auth", 401);
+          return c.redirect("/.auth");
         } else {
-          return c.redirect(`/.auth?from=${req.path}`, 401);
+          return c.redirect(`/.auth?from=${req.path}`);
         }
       };
       if (!excludedPaths.includes(url.pathname)) {
