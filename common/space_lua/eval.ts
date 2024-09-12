@@ -52,7 +52,7 @@ export class LuaFunction implements ILuaFunction {
     constructor(readonly body: LuaFunctionBody) {
     }
 
-    call(...args: any[]): Promise<LuaMultiRes> | LuaMultiRes {
+    call(..._args: any[]): Promise<LuaMultiRes> | LuaMultiRes {
         throw new Error("Not yet implemented funciton call");
     }
 }
@@ -84,7 +84,7 @@ export class LuaTable {
     }
 }
 
-function luaSet(obj: any, key: any, value: any) {
+export function luaSet(obj: any, key: any, value: any) {
     if (obj instanceof LuaTable) {
         obj.set(key, value);
     } else {
