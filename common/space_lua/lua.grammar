@@ -43,7 +43,7 @@ statement[@isGroup=Statement] {
 IfStatement {
   kw<"if"> exp kw<"then"> Block
   (kw<"elseif"> exp kw<"then"> Block)*
-  (kw<"else"> Block)
+  (kw<"else"> Block)?
   kw<"end">
 }
 
@@ -63,9 +63,11 @@ list<term> { term ("," term)* }
 NameList { list<Name> }
 ExpList { list<exp> }
 VarList { list<var> }
-ArgList { list<var | "..."> }
+ArgList { (list<var | "...">)? }
 
-AttNameList { list<Name Attrib> }
+
+AttNameList { list<AttName> }
+AttName { Name Attrib }
 Attrib { ( "<" Name ">" )? }
 
 exp {
