@@ -32,6 +32,8 @@ export function editorSyscalls(client: Client): SysCallMapping {
         changes: allChanges,
         annotations: isolateHistory.of("full"),
       });
+      client.ui.viewDispatch({ type: "page-changed" });
+      client.save();
     },
     "editor.getCursor": (): number => {
       return client.editorView.state.selection.main.from;
