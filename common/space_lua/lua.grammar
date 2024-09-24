@@ -125,13 +125,13 @@ BinaryExpression {
 
 UnaryExpression {
   !prefix kw<"not"> exp |
-  !prefix (ArithOp{"+" | minus} | BitOp{"~"}) exp
+  !prefix (ArithOp{"+" | minus} | BitOp{"~"} | LenOp{"#"}) exp
 }
 
 TableConstructor { "{" (field (fieldsep field)* fieldsep?)? "}" }
 
 @tokens {
-  CompareOp { "<" | ">" | $[<>=~/] "=" }
+  CompareOp { "<" | ">" | $[<>=~/!] "=" }
 
   word { std.asciiLetter (std.digit | std.asciiLetter)* }
 

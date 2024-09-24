@@ -10,8 +10,9 @@ Deno.test("Test Lua parser", () => {
     parse("");
     // Expression tests
     parse(
-        `e(1, 1.2, -3.8, +4, true, false, nil, "string", "Hello there \x00", ...)`,
+        `e(1, 1.2, -3.8, +4, #lst, true, false, nil, "string", "Hello there \x00", ...)`,
     );
+
     parse(`e(10 << 10, 10 >> 10, 10 & 10, 10 | 10, 10 ~ 10)`);
 
     assertEquals(
