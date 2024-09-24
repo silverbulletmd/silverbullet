@@ -659,7 +659,7 @@ export class Client implements ConfigContainer {
           if (this.currentPage) {
             if (
               !this.ui.viewState.unsavedChanges ||
-              this.ui.viewState.uiOptions.forcedROMode
+              this.ui.viewState.uiOptions.forcedROMode || this.readOnlyMode
             ) {
               // No unsaved changes, or read-only mode, not gonna save
               return resolve();
@@ -1143,7 +1143,7 @@ export class Client implements ConfigContainer {
       this.space.watchPage(pageName);
     } else {
       // Just apply minimal patches so that the cursor is preserved
-      await editor.setText(doc.text);
+      await editor.setText(doc.text, true);
     }
 
     // Note: these events are dispatched asynchronously deliberately (not waiting for results)

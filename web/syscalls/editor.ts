@@ -25,12 +25,14 @@ export function editorSyscalls(client: Client): SysCallMapping {
     "editor.getText": () => {
       return client.editorView.state.sliceDoc();
     },
-    "editor.setText": (_ctx, newText: string) => {
+    "editor.setText": (_ctx, newText: string, shouldIsolateHistory = false) => {
       const currentText = client.editorView.state.sliceDoc();
       const allChanges = diffAndPrepareChanges(currentText, newText);
       client.editorView.dispatch({
         changes: allChanges,
-        annotations: isolateHistory.of("full"),
+        annotations: shouldIsolateHistory
+          ? isolateHistory.of("full")
+          : undefined,
       });
     },
     "editor.getCursor": (): number => {
