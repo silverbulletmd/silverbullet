@@ -1,6 +1,9 @@
 import type { SpacePrimitives } from "./space_primitives.ts";
 import type { FileMeta } from "../../plug-api/types.ts";
-import { flushCachesAndUnregisterServiceWorker } from "../sw_util.ts";
+import {
+  flushCachesAndUnregisterServiceWorker,
+  unregisterServiceWorkers,
+} from "../sw_util.ts";
 import { encodePageURI } from "@silverbulletmd/silverbullet/lib/page_ref";
 
 const defaultFetchTimeout = 30000; // 30 seconds
@@ -41,13 +44,29 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       }
       const redirectHeader = result.headers.get("location");
 
+      if (result.type === "opaqueredirect" && !redirectHeader) {
+        // This is a scenario where the server sent a redirect, but this redirect is not visible to the client, likely due to CORS
+        // The best we can do is to reload the page and hope that the server will redirect us to the correct location
+        alert(
+          "You are not authenticated, reloading to reauthenticate",
+        );
+        console.log("Unregistering service workers", redirectHeader);
+        await unregisterServiceWorkers();
+        location.reload();
+        // Let's throw to avoid any further processing
+        throw Error("Not authenticated");
+      }
+
       // console.log("Got response", result.status, result.statusText, result.url);
 
       // Attempting to handle various authentication proxies
       if (result.status >= 300 && result.status < 400) {
         if (redirectHeader) {
           // Got a redirect
-          alert("Received a redirect, redirecting to URL: " + redirectHeader);
+          alert(
+            "Received an authentication redirect, redirecting to URL: " +
+              redirectHeader,
+          );
           location.href = redirectHeader;
           throw new Error("Redirected");
         } else {

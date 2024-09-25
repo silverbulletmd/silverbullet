@@ -1,3 +1,16 @@
+export async function unregisterServiceWorkers() {
+  if (navigator.serviceWorker) {
+    const registrations = await navigator.serviceWorker
+      .getRegistrations();
+    for (const registration of registrations) {
+      await registration.unregister();
+      console.log("Service worker unregistered");
+    }
+  } else {
+    console.error("No service worker found to unregister");
+  }
+}
+
 export function flushCachesAndUnregisterServiceWorker() {
   return new Promise<void>((resolve) => {
     if (!navigator.serviceWorker) {
