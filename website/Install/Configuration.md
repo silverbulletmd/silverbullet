@@ -61,7 +61,11 @@ SilverBullet requires a database backend to (potentially) keep various types of 
 Currently, only two databases are supported: [Deno KV](https://deno.com/kv) and a dummy in-memory database.
 
 ## Deno KV database
-When self-hosting SilverBullet (that is, on any server other than on [[Install/Deno Deploy]]), KV uses a local SQLite file to keep data. This is efficient and performant.
+When self-hosting SilverBullet (that is, on any server other than on [[Install/Deno Deploy]]), KV uses a local SQLite file to keep data. This is efficient and performant, at least if your disk is.
+
+If you are hosting your space on a NAS, you may consider storing the database somewhere else. You can do this by setting the `SB_KV_DB` path to a path outside your space, e.g. `SB_KV_DB=/var/lib/silverbullet/silverbullet.db` 
+
+If you use [[Install/Docker]], and set `SB_KV_DB`, make sure you bind mount an external folder into your container for this data to be persistent, e.g. by passing `-v /var/lib/space_db:/var/lib/silverbullet` to your `docker run` command.
 
 KV can be configured as follows:
 
