@@ -185,4 +185,17 @@ Deno.test("Statement evaluation", async () => {
         env7,
     );
     assertEquals(env7.get("c"), 3);
+
+    // Function definition and calling
+    const env8 = new LuaEnv();
+    env8.set("print", new LuaNativeJSFunction(console.log));
+    await evalBlock(
+        `
+        function test(a)
+            return a + 1
+        end
+        print("3 + 1 = " .. test(3))
+    `,
+        env8,
+    );
 });

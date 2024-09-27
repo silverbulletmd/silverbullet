@@ -6,11 +6,15 @@ import type {
 import { evalPromiseValues } from "$common/space_lua/util.ts";
 import {
     type ILuaFunction,
+    type ILuaGettable,
+    type ILuaSettable,
     LuaBreak,
     LuaEnv,
+    LuaFunction,
     luaGet,
     luaLen,
     type LuaLValueContainer,
+    LuaReturn,
     LuaTable,
     luaTruthy,
     type LuaValue,
@@ -355,6 +359,39 @@ export async function evalStatement(
             throw new LuaBreak();
         case "FunctionCallStatement": {
             return evalExpression(s.call, env);
+        }
+        case "Function": {
+            let body = s.body;
+            let propNames = s.name.propNames;
+            if (s.name.colonName) {
+                // function hello:there() -> function hello.there(self) transformation
+                body = {
+                    ...s.body,
+                    parameters: ["self", ...s.body.parameters],
+                };
+                propNames = [...s.name.propNames, s.name.colonName];
+            }
+            let settable: ILuaSettable & ILuaGettable = env;
+            for (let i = 0; i < propNames.length - 1; i++) {
+                settable = settable.get(propNames[i]);
+                if (!settable) {
+                    throw new Error(
+                        `Cannot find property ${propNames[i]}`,
+                    );
+                }
+            }
+            settable.set(
+                propNames[propNames.length - 1],
+                new LuaFunction(body, env),
+            );
+            break;
+        }
+        case "Return": {
+            throw new LuaReturn(
+                await evalPromiseValues(
+                    s.expressions.map((value) => evalExpression(value, env)),
+                ),
+            );
         }
         default:
             throw new Error(`Unknown statement type ${s.type}`);

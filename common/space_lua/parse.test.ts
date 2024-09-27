@@ -81,4 +81,9 @@ Deno.test("Test Lua parser", () => {
     parse(`a(1, 2, 3)`);
     parse(`print "Sup"`);
     parse(`e(1 + print "8")`);
+
+    // Return statements
+    parse(`return`);
+    parse(`return 1`);
+    parse(`return 1, 2, 3`);
 });

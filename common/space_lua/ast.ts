@@ -93,7 +93,7 @@ export type LuaLocalFunctionStatement = {
 
 export type LuaFunctionName = {
     type: "FunctionName";
-    propNames?: string[];
+    propNames: string[];
     colonName?: string;
 };
 

@@ -19,7 +19,7 @@
 
 Block { statement* ReturnStatement? }
 
-ReturnStatement { kw<"return"> exp? ";"?}
+ReturnStatement { kw<"return"> ExpList? ";"?}
 
 @skip { newline | space | Comment }
 

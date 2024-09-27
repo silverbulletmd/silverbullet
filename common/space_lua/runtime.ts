@@ -1,6 +1,7 @@
 import type { LuaFunctionBody } from "./ast.ts";
+import { evalStatement } from "$common/space_lua/eval.ts";
 
-export class LuaEnv implements ILuaSettable {
+export class LuaEnv implements ILuaSettable, ILuaGettable {
     variables = new Map<string, LuaValue>();
 
     constructor(readonly parent?: LuaEnv) {
@@ -18,7 +19,7 @@ export class LuaEnv implements ILuaSettable {
         }
     }
 
-    get(name: string): LuaValue {
+    get(name: string): LuaValue | undefined {
         if (this.variables.has(name)) {
             return this.variables.get(name);
         }
@@ -61,6 +62,10 @@ export interface ILuaSettable {
     set(key: LuaValue, value: LuaValue): void;
 }
 
+export interface ILuaGettable {
+    get(key: LuaValue): LuaValue | undefined;
+}
+
 export class LuaFunction implements ILuaFunction {
     constructor(private body: LuaFunctionBody, private closure: LuaEnv) {
     }
@@ -76,7 +81,19 @@ export class LuaFunction implements ILuaFunction {
             }
             env.set(this.body.parameters[i], arg);
         }
-        throw new Error("Not yet implemented funciton call");
+        return evalStatement(this.body.block, env).catch((e: any) => {
+            if (e instanceof LuaReturn) {
+                if (e.values.length === 0) {
+                    return;
+                } else if (e.values.length === 1) {
+                    return e.values[0];
+                } else {
+                    return new LuaMultiRes(e.values);
+                }
+            } else {
+                throw e;
+            }
+        });
     }
 }
 
@@ -94,7 +111,7 @@ export class LuaNativeJSFunction implements ILuaFunction {
     }
 }
 
-export class LuaTable implements ILuaSettable {
+export class LuaTable implements ILuaSettable, ILuaGettable {
     // To optimize the table implementation we use a combination of different data structures
     // When tables are used as maps, the common case is that they are string keys, so we use a simple object for that
     private stringKeys: Record<string, any>;
@@ -131,7 +148,7 @@ export class LuaTable implements ILuaSettable {
         }
     }
 
-    get(key: LuaValue): LuaValue {
+    get(key: LuaValue): LuaValue | undefined {
         if (typeof key === "string") {
             return this.stringKeys[key];
         } else if (Number.isInteger(key) && key >= 1) {
@@ -200,6 +217,12 @@ export function luaLen(obj: any): number {
 }
 
 export class LuaBreak extends Error {
+}
+
+export class LuaReturn extends Error {
+    constructor(readonly values: LuaValue[]) {
+        super();
+    }
 }
 
 export function luaTruthy(value: any): boolean {

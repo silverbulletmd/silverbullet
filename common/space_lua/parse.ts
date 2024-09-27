@@ -165,6 +165,10 @@ function parseStatement(n: CrudeAST): LuaStatement {
                 names: parseAttNames(t[2]),
                 expressions: t[4] ? parseExpList(t[4]) : [],
             };
+        case "ReturnStatement": {
+            const expressions = t[2] ? parseExpList(t[2]) : [];
+            return { type: "Return", expressions };
+        }
         case "break":
             return { type: "Break" };
         default:
