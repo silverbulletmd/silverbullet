@@ -165,6 +165,8 @@ function parseStatement(n: CrudeAST): LuaStatement {
                 names: parseAttNames(t[2]),
                 expressions: t[4] ? parseExpList(t[4]) : [],
             };
+        case "break":
+            return { type: "Break" };
         default:
             console.error(t);
             throw new Error(`Unknown statement type: ${t[0]}`);
@@ -358,6 +360,12 @@ function parsePrefixExpression(n: CrudeAST): LuaPrefixExpression {
                 type: "PropertyAccess",
                 object: parsePrefixExpression(t[1]),
                 property: t[3][1] as string,
+            };
+        case "MemberExpression":
+            return {
+                type: "TableAccess",
+                object: parsePrefixExpression(t[1]),
+                key: parseExpression(t[3]),
             };
         case "Parens":
             return { type: "Parenthesized", expression: parseExpression(t[2]) };

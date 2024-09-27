@@ -1,18 +1,26 @@
-import type { LuaExpression } from "$common/space_lua/ast.ts";
+import type {
+    LuaExpression,
+    LuaLValue,
+    LuaStatement,
+} from "$common/space_lua/ast.ts";
 import { evalPromiseValues } from "$common/space_lua/util.ts";
 import {
     type ILuaFunction,
-    type LuaEnv,
+    LuaBreak,
+    LuaEnv,
     luaGet,
     luaLen,
+    type LuaLValueContainer,
     LuaTable,
+    luaTruthy,
+    type LuaValue,
     singleResult,
 } from "./runtime.ts";
 
 export function evalExpression(
     e: LuaExpression,
     env: LuaEnv,
-): Promise<any> | any {
+): Promise<LuaValue> | LuaValue {
     switch (e.type) {
         case "String":
             // TODO: Deal with escape sequences
@@ -101,13 +109,13 @@ export function evalExpression(
                         const value = evalExpression(field.value, env);
                         if (value instanceof Promise) {
                             promises.push(value.then((value) => {
-                                table.entries.set(
+                                table.set(
                                     field.key,
                                     singleResult(value),
                                 );
                             }));
                         } else {
-                            table.entries.set(field.key, singleResult(value));
+                            table.set(field.key, singleResult(value));
                         }
                         break;
                     }
@@ -126,14 +134,14 @@ export function evalExpression(
                                         ? value
                                         : Promise.resolve(value),
                                 ]).then(([key, value]) => {
-                                    table.entries.set(
+                                    table.set(
                                         singleResult(key),
                                         singleResult(value),
                                     );
                                 }),
                             );
                         } else {
-                            table.entries.set(
+                            table.set(
                                 singleResult(key),
                                 singleResult(value),
                             );
@@ -145,15 +153,15 @@ export function evalExpression(
                         if (value instanceof Promise) {
                             promises.push(value.then((value) => {
                                 // +1 because Lua tables are 1-indexed
-                                table.entries.set(
-                                    table.entries.size + 1,
+                                table.set(
+                                    table.length + 1,
                                     singleResult(value),
                                 );
                             }));
                         } else {
                             // +1 because Lua tables are 1-indexed
-                            table.entries.set(
-                                table.entries.size + 1,
+                            table.set(
+                                table.length + 1,
                                 singleResult(value),
                             );
                         }
@@ -175,7 +183,7 @@ export function evalExpression(
 function evalPrefixExpression(
     e: LuaExpression,
     env: LuaEnv,
-): Promise<any> | any {
+): Promise<LuaValue> | LuaValue {
     switch (e.type) {
         case "Variable": {
             const value = env.get(e.name);
@@ -260,5 +268,162 @@ function luaOp(op: string, left: any, right: any): any {
             return left || right;
         default:
             throw new Error(`Unknown operator ${op}`);
+    }
+}
+
+export async function evalStatement(
+    s: LuaStatement,
+    env: LuaEnv,
+): Promise<void> {
+    switch (s.type) {
+        case "Assignment": {
+            const values = await evalPromiseValues(
+                s.expressions.map((value) => evalExpression(value, env)),
+            );
+            const lvalues = await evalPromiseValues(s.variables
+                .map((lval) => evalLValue(lval, env)));
+
+            for (let i = 0; i < lvalues.length; i++) {
+                lvalues[i].env.set(lvalues[i].key, values[i]);
+            }
+
+            break;
+        }
+        case "Local": {
+            for (let i = 0; i < s.names.length; i++) {
+                if (!s.expressions || s.expressions[i] === undefined) {
+                    env.setLocal(s.names[i].name, null);
+                } else {
+                    const value = await evalExpression(s.expressions[i], env);
+                    env.setLocal(s.names[i].name, value);
+                }
+            }
+            break;
+        }
+        case "Semicolon":
+            break;
+        case "Label":
+        case "Goto":
+            throw new Error("Labels and gotos are not supported yet");
+        case "Block": {
+            const newEnv = new LuaEnv(env);
+            for (const statement of s.statements) {
+                await evalStatement(statement, newEnv);
+            }
+            break;
+        }
+        case "If": {
+            for (const cond of s.conditions) {
+                if (luaTruthy(await evalExpression(cond.condition, env))) {
+                    return evalStatement(cond.block, env);
+                }
+            }
+            if (s.elseBlock) {
+                return evalStatement(s.elseBlock, env);
+            }
+            break;
+        }
+        case "While": {
+            while (luaTruthy(await evalExpression(s.condition, env))) {
+                try {
+                    await evalStatement(s.block, env);
+                } catch (e: any) {
+                    if (e instanceof LuaBreak) {
+                        break;
+                    } else {
+                        throw e;
+                    }
+                }
+            }
+            break;
+        }
+        case "Repeat": {
+            do {
+                try {
+                    await evalStatement(s.block, env);
+                } catch (e: any) {
+                    if (e instanceof LuaBreak) {
+                        break;
+                    } else {
+                        throw e;
+                    }
+                }
+            } while (!luaTruthy(await evalExpression(s.condition, env)));
+            break;
+        }
+        case "Break":
+            throw new LuaBreak();
+        case "FunctionCallStatement": {
+            return evalExpression(s.call, env);
+        }
+        default:
+            throw new Error(`Unknown statement type ${s.type}`);
+    }
+}
+
+function evalLValue(
+    lval: LuaLValue,
+    env: LuaEnv,
+): LuaLValueContainer | Promise<LuaLValueContainer> {
+    switch (lval.type) {
+        case "Variable":
+            return { env, key: lval.name };
+        case "TableAccess": {
+            const objValue = evalExpression(
+                lval.object,
+                env,
+            );
+            const keyValue = evalExpression(lval.key, env);
+            if (
+                objValue instanceof Promise ||
+                keyValue instanceof Promise
+            ) {
+                return Promise.all([
+                    objValue instanceof Promise
+                        ? objValue
+                        : Promise.resolve(objValue),
+                    keyValue instanceof Promise
+                        ? keyValue
+                        : Promise.resolve(keyValue),
+                ]).then(([objValue, keyValue]) => ({
+                    env: singleResult(objValue),
+                    key: singleResult(keyValue),
+                }));
+            } else {
+                return {
+                    env: singleResult(objValue),
+                    key: singleResult(keyValue),
+                };
+            }
+        }
+        case "PropertyAccess": {
+            const objValue = evalExpression(
+                lval.object,
+                env,
+            );
+            if (objValue instanceof Promise) {
+                return objValue.then((objValue) => {
+                    if (!objValue.set) {
+                        throw new Error(
+                            `Not a settable object: ${objValue}`,
+                        );
+                    }
+                    return {
+                        env: objValue,
+                        key: lval.property,
+                    };
+                });
+            } else {
+                if (!objValue.set) {
+                    throw new Error(
+                        `Not a settable object: ${objValue}`,
+                    );
+                }
+                return {
+                    env: objValue,
+                    key: lval.property,
+                };
+            }
+        }
     }
 }

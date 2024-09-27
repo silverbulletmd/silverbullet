@@ -1,15 +1,24 @@
 import type { LuaFunctionBody } from "./ast.ts";
 
-export class LuaEnv {
-    variables = new Map<string, any>();
+export class LuaEnv implements ILuaSettable {
+    variables = new Map<string, LuaValue>();
+
     constructor(readonly parent?: LuaEnv) {
     }
 
-    set(name: string, value: any) {
+    setLocal(name: string, value: LuaValue) {
         this.variables.set(name, value);
     }
 
-    get(name: string): any {
+    set(key: string, value: LuaValue): void {
+        if (this.variables.has(key) || !this.parent) {
+            this.variables.set(key, value);
+        } else {
+            this.parent.set(key, value);
+        }
+    }
+
+    get(name: string): LuaValue {
         if (this.variables.has(name)) {
             return this.variables.get(name);
         }
@@ -40,70 +49,129 @@ export function singleResult(value: any): any {
     }
 }
 
+// These types are for documentation only
+export type LuaValue = any;
+export type JSValue = any;
+
 export interface ILuaFunction {
-    call(...args: any[]): Promise<LuaMultiRes> | LuaMultiRes;
+    call(...args: LuaValue[]): Promise<LuaValue> | LuaValue;
+}
+
+export interface ILuaSettable {
+    set(key: LuaValue, value: LuaValue): void;
 }
 
 export class LuaFunction implements ILuaFunction {
     constructor(private body: LuaFunctionBody, private closure: LuaEnv) {
     }
 
-    call(..._args: any[]): Promise<LuaMultiRes> | LuaMultiRes {
+    call(...args: LuaValue[]): Promise<LuaValue> | LuaValue {
+        // Create a new environment for this function call
+        const env = new LuaEnv(this.closure);
+        // Assign the passed arguments to the parameters
+        for (let i = 0; i < this.body.parameters.length; i++) {
+            let arg = args[i];
+            if (arg === undefined) {
+                arg = null;
+            }
+            env.set(this.body.parameters[i], arg);
+        }
         throw new Error("Not yet implemented funciton call");
     }
 }
 
 export class LuaNativeJSFunction implements ILuaFunction {
-    constructor(readonly fn: (...args: any[]) => any) {
+    constructor(readonly fn: (...args: JSValue[]) => JSValue) {
     }
 
-    call(...args: any[]): Promise<LuaMultiRes> | LuaMultiRes {
-        const result = this.fn(...args);
+    call(...args: LuaValue[]): Promise<LuaValue> | LuaValue {
+        const result = this.fn(...args.map(luaValueToJS));
         if (result instanceof Promise) {
-            return result.then((result) => new LuaMultiRes([result]));
+            return result.then(jsToLuaValue);
         } else {
-            return new LuaMultiRes([result]);
+            return jsToLuaValue(result);
         }
     }
 }
 
-export class LuaTable {
-    constructor(readonly entries: Map<any, any> = new Map()) {
+export class LuaTable implements ILuaSettable {
+    // To optimize the table implementation we use a combination of different data structures
+    // When tables are used as maps, the common case is that they are string keys, so we use a simple object for that
+    private stringKeys: Record<string, any>;
+    // Other keys we can support using a Map as a fallback
+    private otherKeys: Map<any, any> | null;
+    // When tables are used as arrays, we use a native JavaScript array for that
+    private arrayPart: any[];
+
+    // TODO: Actually implement metatables
+    private metatable: LuaTable | null;
+
+    constructor() {
+        // For efficiency and performance reasons we pre-allocate these (modern JS engines are very good at optimizing this)
+        this.stringKeys = {};
+        this.arrayPart = [];
+        this.otherKeys = null; // Only create this when needed
+        this.metatable = null;
     }
 
-    get(key: any): any {
-        return this.entries.get(key);
+    get length(): number {
+        return this.arrayPart.length;
     }
 
-    set(key: any, value: any) {
-        this.entries.set(key, value);
+    set(key: LuaValue, value: LuaValue) {
+        if (typeof key === "string") {
+            this.stringKeys[key] = value;
+        } else if (Number.isInteger(key) && key >= 1) {
+            this.arrayPart[key - 1] = value;
+        } else {
+            if (!this.otherKeys) {
+                this.otherKeys = new Map();
+            }
+            this.otherKeys.set(key, value);
+        }
     }
 
-    /**
-     * Convert the table to a a JavaScript array, assuming it uses integer keys
-     * @returns
-     */
-    toArray(): any[] {
-        const result = [];
-        const keys = Array.from(this.entries.keys()).sort();
-        for (const key of keys) {
-            result.push(this.entries.get(key));
+    get(key: LuaValue): LuaValue {
+        if (typeof key === "string") {
+            return this.stringKeys[key];
+        } else if (Number.isInteger(key) && key >= 1) {
+            return this.arrayPart[key - 1];
+        } else if (this.otherKeys) {
+            return this.otherKeys.get(key);
+        }
+        return undefined;
+    }
+
+    toArray(): JSValue[] {
+        return this.arrayPart;
+    }
+
+    toObject(): Record<string, JSValue> {
+        const result = { ...this.stringKeys };
+        for (const i in this.arrayPart) {
+            result[parseInt(i) + 1] = this.arrayPart[i];
         }
         return result;
     }
 
-    /**
-     * Convert the table to a JavaScript object, assuming it uses string keys
-     * @returns
-     */
-    toObject(): Record<string, any> {
-        const result: Record<string, any> = {};
-        for (const [key, value] of this.entries.entries()) {
-            result[key] = value;
+    static fromArray(arr: JSValue[]): LuaTable {
+        const table = new LuaTable();
+        for (let i = 0; i < arr.length; i++) {
+            table.set(i + 1, arr[i]);
         }
-        return result;
+        return table;
+    }
+
+    static fromObject(obj: Record<string, JSValue>): LuaTable {
+        const table = new LuaTable();
+        for (const key in obj) {
+            table.set(key, obj[key]);
+        }
+        return table;
     }
 }
+
+export type LuaLValueContainer = { env: ILuaSettable; key: LuaValue };
 
 export function luaSet(obj: any, key: any, value: any) {
     if (obj instanceof LuaTable) {
@@ -128,5 +196,43 @@ export function luaLen(obj: any): number {
         return obj.length;
     } else {
         return 0;
+    }
+}
+
+export class LuaBreak extends Error {
+}
+
+export function luaTruthy(value: any): boolean {
+    if (value === undefined || value === null || value === false) {
+        return false;
+    }
+    if (value instanceof LuaTable) {
+        return value.length > 0;
+    }
+    return true;
+}
+
+export function jsToLuaValue(value: any): any {
+    if (value instanceof LuaTable) {
+        return value;
+    } else if (Array.isArray(value)) {
+        return LuaTable.fromArray(value.map(jsToLuaValue));
+    } else if (typeof value === "object") {
+        return LuaTable.fromObject(value);
+    } else {
+        return value;
+    }
+}
+
+export function luaValueToJS(value: any): any {
+    if (value instanceof LuaTable) {
+        // This is a heuristic: if this table is used as an array, we return an array
+        if (value.length > 0) {
+            return value.toArray();
+        } else {
+            return value.toObject();
+        }
+    } else {
+        return value;
     }
 }

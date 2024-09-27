@@ -226,7 +226,7 @@ export function parseTreeToAST(tree: ParseTree, omitTrimmable = true): AST {
   }
   const ast: AST = [tree.type!];
   for (const node of tree.children!) {
-    if (node.type && !node.type.endsWith("Mark")) {
+    if (node.type && !node.type.endsWith("Mark") && node.type !== "Comment") {
       ast.push(parseTreeToAST(node, omitTrimmable));
     }
     if (node.text && (omitTrimmable && node.text.trim() || !omitTrimmable)) {
