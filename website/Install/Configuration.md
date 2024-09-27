@@ -63,7 +63,7 @@ Currently, only two databases are supported: [Deno KV](https://deno.com/kv) and 
 ## Deno KV database
 When self-hosting SilverBullet (that is, on any server other than on [[Install/Deno Deploy]]), KV uses a local SQLite file to keep data. This is efficient and performant, at least if your disk is.
 
-If you are hosting your space on a NAS, you may consider storing the database somewhere else. You can do this by setting the `SB_KV_DB` path to a path outside your space, e.g. `SB_KV_DB=/var/lib/silverbullet/silverbullet.db` 
+If you are hosting your space on magnetic drives (e.g. on a NAS), which are slower, you may consider storing the database somewhere else. You can do this by setting the `SB_KV_DB` path to a path outside your space, e.g. `SB_KV_DB=/var/lib/silverbullet/silverbullet.db` . Alternatively, you can use `SB_SYNC_ONLY` or even [[#Memory database]].
 
 If you use [[Install/Docker]], and set `SB_KV_DB`, make sure you bind mount an external folder into your container for this data to be persistent, e.g. by passing `-v /var/lib/space_db:/var/lib/silverbullet` to your `docker run` command.
 
@@ -75,12 +75,17 @@ KV can be configured as follows:
 When SilverBullet runs on [[Install/Deno Deploy]] it automatically uses its cloud implementation of KV.
 
 ## Memory database
-The in-memory database is only useful for testing. 
+The in-memory database is primarily useful for testing. It can be useful to reduce I/O on slow drives, with the following caveats:
+
+* On restart, it'll have to rebuild the cache
+* If `SB_USER` authentication is in use, you will be logged out.
+
+To use this, configure like so:
 
 * `SB_DB_BACKEND`: `memory`
 
 # Run mode
-* `SB_SYNC_ONLY`: If you want to run SilverBullet in a mode where the server purely functions as a simple file store and doesn’t index or process content on the server, you can do so by setting this environment variable to `true`. As a result, the client will always run in the Sync [[Client Modes|client mode]].
+* `SB_SYNC_ONLY`: If you want to run SilverBullet in a mode where the server purely functions as a simple file store and doesn’t index or process content on the server, you can do so by setting this environment variable to `true`. As a result, the client will always run in the Sync [[Client Modes|client mode]]. This can also be useful for slow drives, as the server will not perform indexing I/O.
 * `SB_READ_ONLY` (==Experimental==): If you want to run the SilverBullet client and server in read-only mode (you get the full SilverBullet client, but all edit functionality and commands are disabled), you can do this by setting this environment variable to `true`. Upon the server start a full space index will happen, after which all write operations will be disabled.
 
 # Security
