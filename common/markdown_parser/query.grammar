@@ -32,8 +32,12 @@ RenderClause { kw<"render"> ( kw<"each"> | kw<"all"> )? PageRef }
 
 Select { Identifier | Expression kw<"as"> Identifier }
 
+Order {
+  kw<"order"> kw<"by">
+}
+
 OrderDirection {
- OrderKW
+  kw<"asc"> | kw<"desc">
 }
 
 Value { Number | String | Bool | Regex | kw<"null"> | List }
@@ -78,7 +82,7 @@ QueryExpression {
 }
 
 UnaryExpression {
-    !unaryop NotKW Expression
+    !unaryop kw<"not"> Expression
   | !unaryop "!" Expression
   | !unaryop "-" Expression
 }
@@ -92,7 +96,7 @@ BinExpression {
 | Expression !binop ">" Expression
 | Expression !binop "=~" Expression
 | Expression !binop "!=~" Expression
-| Expression !binop InKW Expression
+| Expression !binop kw<"in"> Expression
 
 | Expression !mulop "*" Expression
 | Expression !mulop "/" Expression
@@ -116,9 +120,8 @@ KeyVal {
 Object { "{" commaSep<KeyVal> "}" | "{" "}" }
 
 Bool {
-  BooleanKW
+  kw<"true"> | kw<"false">
 }
-
 
 @tokens {
   space { std.whitespace+ }
@@ -138,18 +141,9 @@ Bool {
   PageRef {
     "[[" ![\]]* "]]"
   }
-  Order { "order by" }
   Regex { "/" ( ![/\\\n\r] | "\\" _ )+ "/" }
 
   Number { std.digit+ | std.digit+ "." std.digit+ }
 
-  BooleanKW { "true" | "false" }
-
-  InKW { "in" }
-
-  NotKW { "not" }
-
-  OrderKW { "asc" | "desc" }
-
-  @precedence { Order, BooleanKW, InKW, OrderKW, NotKW, Identifier, Number }
+  @precedence { Identifier, Number }
 }
