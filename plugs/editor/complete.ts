@@ -130,10 +130,14 @@ export async function pageComplete(completeEvent: CompleteEvent) {
         // A [[wikilink]]
         if (pageMeta.displayName) {
           const decoratedName = namePrefix + pageMeta.displayName;
+          let boost = new Date(pageMeta.lastModified).getTime();
+          if (pageMeta._isAspiring) {
+            boost = -Infinity;
+          }
           completions.push({
             label: pageMeta.displayName,
             displayLabel: decoratedName,
-            boost: new Date(pageMeta.lastModified).getTime(),
+            boost,
             apply: pageMeta.tag === "template"
               ? pageMeta.name
               : `${pageMeta.name}|${pageMeta.displayName}`,

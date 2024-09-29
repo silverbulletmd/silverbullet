@@ -41,7 +41,7 @@ export function PageNavigator({
       orderId = -pageMeta.lastOpened;
     }
     // Or it's the currently open page
-    if (currentPage && currentPage === pageMeta.name) {
+    if (currentPage && currentPage === pageMeta.name || pageMeta._isAspiring) {
       // ... then we put it all the way to the end
       orderId = Infinity;
     }
