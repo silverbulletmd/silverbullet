@@ -178,13 +178,13 @@ export function previewTaskToggle(eventString: string) {
   }
 }
 
-async function convertListItemToTask(node: ParseTree){
+async function convertListItemToTask(node: ParseTree) {
   const listMark = node.children![0];
   await editor.dispatch({
     changes: {
       from: listMark.from,
       to: listMark.to,
-      insert: "- [ ]",
+      insert: "* [ ]",
     },
   });
 }
@@ -334,17 +334,16 @@ export async function taskCycleCommand() {
     return;
   }
   console.log("Node", node);
-  const taskNode =
-    node.type === "Task"
-      ? node
-      : findParentMatching(node!, (n) => n.type === "Task");
+  const taskNode = node.type === "Task"
+    ? node
+    : findParentMatching(node!, (n) => n.type === "Task");
 
   if (taskNode) {
     const taskState = findNodeOfType(taskNode!, "TaskState");
     if (taskState) {
       await cycleTaskState(taskState);
     }
-    return
+    return;
   }
 
   // Convert a bullet point to a task
