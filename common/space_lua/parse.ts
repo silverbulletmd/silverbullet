@@ -1,7 +1,7 @@
 import { lezerToParseTree } from "$common/markdown_parser/parse_tree.ts";
 import {
-    type AST as CrudeAST,
-    parseTreeToAST,
+    cleanTree,
+    type ParseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { parser } from "./parse-lua.js";
 import { styleTags } from "@lezer/highlight";
@@ -38,381 +38,482 @@ export const highlightingQueryParser = parser.configure({
     ],
 });
 
-function parseChunk(n: CrudeAST): LuaBlock {
-    const t = n as [string, ...CrudeAST[]];
-    if (t[0] !== "Chunk") {
-        throw new Error(`Expected Chunk, got ${t[0]}`);
+function parseChunk(t: ParseTree): LuaBlock {
+    if (t.type !== "Chunk") {
+        throw new Error(`Expected Chunk, got ${t.type}`);
     }
-    return parseBlock(t[1]);
+    return parseBlock(t.children![0]);
 }
 
-function parseBlock(n: CrudeAST): LuaBlock {
-    const t = n as [string, ...CrudeAST[]];
-    if (t[0] !== "Block") {
-        throw new Error(`Expected Block, got ${t[0]}`);
+function parseBlock(t: ParseTree): LuaBlock {
+    if (t.type !== "Block") {
+        throw new Error(`Expected Block, got ${t.type}`);
     }
-    const statements = t.slice(1).map(parseStatement);
-    return { type: "Block", statements };
+    const statements = t.children!.map(parseStatement);
+    return { type: "Block", statements, from: t.from, to: t.to };
 }
 
-function parseStatement(n: CrudeAST): LuaStatement {
-    const t = n as [string, ...CrudeAST[]];
-    switch (t[0]) {
+function parseStatement(t: ParseTree): LuaStatement {
+    switch (t.type) {
         case "Block":
-            return parseChunk(t[1]);
+            return parseChunk(t.children![0]);
         case "Semicolon":
-            return { type: "Semicolon" };
+            return { type: "Semicolon", from: t.from, to: t.to };
         case "Label":
-            return { type: "Label", name: t[2][1] as string };
+            return {
+                type: "Label",
+                name: t.children![1].children![0].text!,
+                from: t.from,
+                to: t.to,
+            };
         case "Break":
-            return { type: "Break" };
+            return { type: "Break", from: t.from, to: t.to };
         case "Goto":
-            return { type: "Goto", name: t[2][1] as string };
+            return {
+                type: "Goto",
+                name: t.children![1].children![0].text!,
+                from: t.from,
+                to: t.to,
+            };
         case "Scope":
-            return parseBlock(t[2]);
+            return parseBlock(t.children![1]);
         case ";":
-            return { type: "Semicolon" };
+            return { type: "Semicolon", from: t.from, to: t.to };
         case "WhileStatement":
             return {
                 type: "While",
-                condition: parseExpression(t[2]),
-                block: parseBlock(t[4]),
+                condition: parseExpression(t.children![1]),
+                block: parseBlock(t.children![3]),
             };
         case "RepeatStatement":
             return {
                 type: "Repeat",
-                block: parseBlock(t[2]),
-                condition: parseExpression(t[4]),
+                block: parseBlock(t.children![1]),
+                condition: parseExpression(t.children![3]),
             };
         case "IfStatement": {
-            const conditions: { condition: LuaExpression; block: LuaBlock }[] =
-                [];
+            const conditions: {
+                condition: LuaExpression;
+                block: LuaBlock;
+                from?: number;
+                to?: number;
+            }[] = [];
             let elseBlock: LuaBlock | undefined = undefined;
-            for (let i = 1; i < t.length; i += 4) {
-                console.log("Looking at", t[i]);
-                if (t[i][0] === "if" || t[i][0] === "elseif") {
+            for (let i = 0; i < t.children!.length; i += 4) {
+                console.log("Looking at", t.children![i]);
+                const child = t.children![i];
+                if (
+                    child.children![0].text === "if" ||
+                    child.children![0].text === "elseif"
+                ) {
                     conditions.push({
-                        condition: parseExpression(t[i + 1]),
-                        block: parseBlock(t[i + 3]),
+                        condition: parseExpression(t.children![i + 1]),
+                        block: parseBlock(t.children![i + 3]),
+                        from: child.from,
+                        to: child.to,
                     });
-                } else if (t[i][0] === "else") {
-                    elseBlock = parseBlock(t[i + 1]);
-                } else if (t[i][0] === "end") {
+                } else if (child.children![0].text === "else") {
+                    elseBlock = parseBlock(t.children![i + 1]);
+                } else if (child.children![0].text === "end") {
                     break;
                 } else {
-                    throw new Error(`Unknown if clause type: ${t[i][0]}`);
+                    throw new Error(
+                        `Unknown if clause type: ${child.children![0].text}`,
+                    );
                 }
             }
             return {
                 type: "If",
                 conditions,
                 elseBlock,
+                from: t.from,
+                to: t.to,
             };
         }
         case "ForStatement":
-            if (t[2][0] === "ForNumeric") {
-                const forNumeric = t[2] as [string, ...CrudeAST[]];
+            if (t.children![1].type === "ForNumeric") {
+                const forNumeric = t.children![1];
                 return {
                     type: "For",
-                    name: forNumeric[1][1] as string,
-                    start: parseExpression(forNumeric[3]),
-                    end: parseExpression(forNumeric[5]),
-                    step: forNumeric[6]
-                        ? parseExpression(forNumeric[7])
+                    name: forNumeric.children![0].children![0].text!,
+                    start: parseExpression(forNumeric.children![2]),
+                    end: parseExpression(forNumeric.children![4]),
+                    step: forNumeric.children![5]
+                        ? parseExpression(forNumeric.children![6])
                         : undefined,
-                    block: parseBlock(t[4]),
+                    block: parseBlock(t.children![3]),
+                    from: t.from,
+                    to: t.to,
                 };
             } else {
-                const forGeneric = t[2] as [string, ...CrudeAST[]];
+                const forGeneric = t.children![1];
                 return {
                     type: "ForIn",
-                    names: parseNameList(forGeneric[1]),
-                    expressions: parseExpList(forGeneric[3]),
-                    block: parseBlock(t[4]),
+                    names: parseNameList(forGeneric.children![0]),
+                    expressions: parseExpList(forGeneric.children![2]),
+                    block: parseBlock(t.children![3]),
+                    from: t.from,
+                    to: t.to,
                 };
             }
         case "Function":
             return {
                 type: "Function",
-                name: parseFunctionName(t[2]),
-                body: parseFunctionBody(t[3]),
+                name: parseFunctionName(t.children![1]),
+                body: parseFunctionBody(t.children![2]),
+                from: t.from,
+                to: t.to,
             };
         case "LocalFunction":
             return {
                 type: "LocalFunction",
-                name: t[3][1] as string,
-                body: parseFunctionBody(t[4]),
+                name: t.children![2].children![0].text!,
+                body: parseFunctionBody(t.children![3]),
             };
         case "FunctionCall":
             return {
                 type: "FunctionCallStatement",
-                call: parseExpression([
-                    "FunctionCall",
-                    ...t.slice(1),
-                ]) as LuaFunctionCallExpression,
+                call: parseExpression(
+                    {
+                        type: "FunctionCall",
+                        children: t.children!,
+                        from: t.from,
+                        to: t.to,
+                    },
+                ) as LuaFunctionCallExpression,
             };
         case "Assign":
             return {
                 type: "Assignment",
-                variables: (t[1].slice(1) as CrudeAST[]).filter((t) =>
-                    t[0] != ","
-                ).map(parseLValue),
-                expressions: parseExpList(t[3]),
+                variables: t.children![0].children!.filter((t) =>
+                    t.type !== ","
+                ).map(
+                    parseLValue,
+                ),
+                expressions: parseExpList(t.children![2]),
+                from: t.from,
+                to: t.to,
             };
         case "Local":
             return {
                 type: "Local",
-                names: parseAttNames(t[2]),
-                expressions: t[4] ? parseExpList(t[4]) : [],
+                names: parseAttNames(t.children![1]),
+                expressions: t.children![3] ? parseExpList(t.children![3]) : [],
+                from: t.from,
+                to: t.to,
             };
         case "ReturnStatement": {
-            const expressions = t[2] ? parseExpList(t[2]) : [];
-            return { type: "Return", expressions };
+            const expressions = t.children![1]
+                ? parseExpList(t.children![1])
+                : [];
+            return { type: "Return", expressions, from: t.from, to: t.to };
         }
         case "break":
-            return { type: "Break" };
+            return { type: "Break", from: t.from, to: t.to };
         default:
             console.error(t);
-            throw new Error(`Unknown statement type: ${t[0]}`);
+            throw new Error(`Unknown statement type: ${t.children![0].text}`);
     }
 }
 
-function parseAttNames(n: CrudeAST): LuaAttName[] {
-    const t = n as [string, ...CrudeAST[]];
-    if (t[0] !== "AttNameList") {
-        throw new Error(`Expected AttNameList, got ${t[0]}`);
+function parseAttNames(t: ParseTree): LuaAttName[] {
+    if (t.type !== "AttNameList") {
+        throw new Error(`Expected AttNameList, got ${t.type}`);
     }
-    return t.slice(1).filter((t) => t[0] !== ",").map(parseAttName);
+    return t.children!.filter((t) => t.type !== ",").map(parseAttName);
 }
 
-function parseAttName(n: CrudeAST): LuaAttName {
-    const t = n as [string, ...CrudeAST[]];
-    if (t[0] !== "AttName") {
-        throw new Error(`Expected AttName, got ${t[0]}`);
+function parseAttName(t: ParseTree): LuaAttName {
+    if (t.type !== "AttName") {
+        throw new Error(`Expected AttName, got ${t.type}`);
     }
     return {
         type: "AttName",
-        name: t[1][1] as string,
-        attribute: t[2][2] ? t[2][2][1] as string : undefined,
+        name: t.children![0].children![0].text!,
+        attribute: t.children![1].children![1]
+            ? t.children![1].children![1].children![0].text!
+            : undefined,
+        from: t.from,
+        to: t.to,
     };
 }
 
-function parseLValue(n: CrudeAST): LuaLValue {
-    const t = n as [string, ...CrudeAST[]];
-    switch (t[0]) {
+function parseLValue(t: ParseTree): LuaLValue {
+    switch (t.type) {
         case "Name":
-            return { type: "Variable", name: t[1] as string };
+            return {
+                type: "Variable",
+                name: t.children![0].text!,
+                from: t.from,
+                to: t.to,
+            };
         case "Property":
             return {
                 type: "PropertyAccess",
-                object: parsePrefixExpression(t[1]),
-                property: t[3][1] as string,
+                object: parsePrefixExpression(t.children![0]),
+                property: t.children![2].children![0].text!,
+                from: t.from,
+                to: t.to,
             };
         case "MemberExpression":
             return {
                 type: "TableAccess",
-                object: parsePrefixExpression(t[1]),
-                key: parseExpression(t[3]),
+                object: parsePrefixExpression(t.children![0]),
+                key: parseExpression(t.children![2]),
+                from: t.from,
+                to: t.to,
             };
         default:
             console.error(t);
-            throw new Error(`Unknown lvalue type: ${t[0]}`);
+            throw new Error(`Unknown lvalue type: ${t.type}`);
     }
 }
 
-function parseFunctionName(n: CrudeAST): LuaFunctionName {
-    const t = n as [string, ...CrudeAST[]];
-    if (t[0] !== "FuncName") {
-        throw new Error(`Expected FunctionName, got ${t[0]}`);
+function parseFunctionName(t: ParseTree): LuaFunctionName {
+    if (t.type !== "FuncName") {
+        throw new Error(`Expected FunctionName, got ${t.type}`);
     }
     const propNames: string[] = [];
     let colonName: string | undefined = undefined;
-    for (let i = 1; i < t.length; i += 2) {
-        propNames.push(t[i][1] as string);
-        if (t[i + 1] && t[i + 1][0] === ":") {
-            colonName = t[i + 2][1] as string;
+    for (let i = 0; i < t.children!.length; i += 2) {
+        const prop = t.children![i];
+        propNames.push(prop.children![0].text!);
+        if (t.children![i + 1] && t.children![i + 1].type === ":") {
+            colonName = t.children![i + 2].children![0].text!;
             break;
         }
     }
-    return { type: "FunctionName", propNames, colonName };
+    return {
+        type: "FunctionName",
+        propNames,
+        colonName,
+        from: t.from,
+        to: t.to,
+    };
 }
 
-function parseNameList(n: CrudeAST): string[] {
-    const t = n as [string, ...CrudeAST[]];
-    if (t[0] !== "NameList") {
-        throw new Error(`Expected NameList, got ${t[0]}`);
+function parseNameList(t: ParseTree): string[] {
+    if (t.type !== "NameList") {
+        throw new Error(`Expected NameList, got ${t.type}`);
     }
-    return t.slice(1).filter((t) => t[0] === "Name").map((t) => t[1] as string);
+    return t.children!.filter((t) => t.type === "Name").map((t) =>
+        t.children![0].text!
+    );
 }
 
-function parseExpList(n: CrudeAST): LuaExpression[] {
-    const t = n as [string, ...CrudeAST[]];
-    if (t[0] !== "ExpList") {
-        throw new Error(`Expected ExpList, got ${t[0]}`);
+function parseExpList(t: ParseTree): LuaExpression[] {
+    if (t.type !== "ExpList") {
+        throw new Error(`Expected ExpList, got ${t.type}`);
     }
-    return t.slice(1).filter((t) => t[0] !== ",").map(parseExpression);
+    return t.children!.filter((t) => t.type !== ",").map(parseExpression);
 }
 
-function parseExpression(n: CrudeAST): LuaExpression {
-    const t = n as [string, ...CrudeAST[]];
-    switch (t[0]) {
+function parseExpression(t: ParseTree): LuaExpression {
+    switch (t.type) {
         case "LiteralString": {
-            let cleanString = t[1] as string;
+            let cleanString = t.children![0].text!;
             // Remove quotes etc
             cleanString = cleanString.slice(1, -1);
-            return { type: "String", value: cleanString };
+            return {
+                type: "String",
+                value: cleanString,
+                from: t.from,
+                to: t.to,
+            };
         }
         case "Number":
-            return { type: "Number", value: parseFloat(t[1] as string) };
+            return {
+                type: "Number",
+                value: parseFloat(t.children![0].text!),
+                from: t.from,
+                to: t.to,
+            };
         case "BinaryExpression":
             return {
                 type: "Binary",
-                operator: t[2][1] as string,
-                left: parseExpression(t[1]),
-                right: parseExpression(t[3]),
+                operator: t.children![1].children![0].text!,
+                left: parseExpression(t.children![0]),
+                right: parseExpression(t.children![2]),
+                from: t.from,
+                to: t.to,
             };
         case "UnaryExpression":
             return {
                 type: "Unary",
-                operator: t[1][1] as string,
-                argument: parseExpression(t[2]),
+                operator: t.children![0].children![0].text!,
+                argument: parseExpression(t.children![1]),
+                from: t.from,
+                to: t.to,
             };
         case "Property":
             return {
                 type: "PropertyAccess",
-                object: parsePrefixExpression(t[1]),
-                property: t[3][1] as string,
+                object: parsePrefixExpression(t.children![0]),
+                property: t.children![2].children![0].text!,
+                from: t.from,
+                to: t.to,
             };
 
         case "Parens":
-            return parseExpression(t[2]);
+            return parseExpression(t.children![1]);
         case "FunctionCall": {
-            if (t[2][0] === ":") {
+            if (t.children![1].type === ":") {
                 return {
                     type: "FunctionCall",
-                    prefix: parsePrefixExpression(t[1]),
-                    name: t[3][1] as string,
-                    args: parseFunctionArgs(t.slice(4)),
+                    prefix: parsePrefixExpression(t.children![0]),
+                    name: t.children![2].children![0].text!,
+                    args: parseFunctionArgs(t.children!.slice(3)),
+                    from: t.from,
+                    to: t.to,
                 };
             }
             return {
                 type: "FunctionCall",
-                prefix: parsePrefixExpression(t[1]),
-                args: parseFunctionArgs(t.slice(2)),
+                prefix: parsePrefixExpression(t.children![0]),
+                args: parseFunctionArgs(t.children!.slice(1)),
+                from: t.from,
+                to: t.to,
             };
         }
         case "FunctionDef": {
-            const body = parseFunctionBody(t[2]);
+            const body = parseFunctionBody(t.children![1]);
             return {
                 type: "FunctionDefinition",
                 body,
+                from: t.from,
+                to: t.to,
             };
         }
         case "Name":
-            return { type: "Variable", name: t[1] as string };
+            return {
+                type: "Variable",
+                name: t.children![0].text!,
+                from: t.from,
+                to: t.to,
+            };
         case "Ellipsis":
-            return { type: "Variable", name: "..." };
+            return { type: "Variable", name: "...", from: t.from, to: t.to };
         case "true":
-            return { type: "Boolean", value: true };
+            return { type: "Boolean", value: true, from: t.from, to: t.to };
         case "false":
-            return { type: "Boolean", value: false };
+            return { type: "Boolean", value: false, from: t.from, to: t.to };
         case "TableConstructor":
             return {
                 type: "TableConstructor",
-                fields: t.slice(2, -1).filter((t) =>
-                    !(typeof t === "string" ||
-                        ["{", "}"].includes(t[1] as string))
+                fields: t.children!.slice(1, -1).filter((t) =>
+                    ["FieldExp", "FieldProp", "FieldDynamic"].includes(t.type!)
                 ).map(parseTableField),
+                from: t.from,
+                to: t.to,
             };
         case "nil":
-            return { type: "Nil" };
+            return { type: "Nil", from: t.from, to: t.to };
         default:
             console.error(t);
-            throw new Error(`Unknown expression type: ${t[0]}`);
+            throw new Error(`Unknown expression type: ${t.type}`);
     }
 }
 
-function parseFunctionArgs(n: CrudeAST[]): LuaExpression[] {
-    console.log("Parsing function args", n);
-    return n.filter((t) => ![",", "(", ")"].includes(t[0])).map(
+function parseFunctionArgs(ts: ParseTree[]): LuaExpression[] {
+    console.log("Parsing function args", JSON.stringify(ts, null, 2));
+    return ts.filter((t) => ![",", "(", ")"].includes(t.type!)).map(
         parseExpression,
     );
 }
 
-function parseFunctionBody(n: CrudeAST): LuaFunctionBody {
-    const t = n as [string, ...CrudeAST[]];
-    if (t[0] !== "FuncBody") {
-        throw new Error(`Expected FunctionBody, got ${t[0]}`);
+function parseFunctionBody(t: ParseTree): LuaFunctionBody {
+    if (t.type !== "FuncBody") {
+        throw new Error(`Expected FunctionBody, got ${t.type}`);
     }
     return {
         type: "FunctionBody",
-        parameters: (t[2] as CrudeAST[]).slice(1).filter((t) =>
-            ["Name", "Ellipsis"].includes(t[0])
+        parameters: t.children![1].children!.filter((t) =>
+            ["Name", "Ellipsis"].includes(t.type!)
         )
-            .map((t) => t[1] as string),
-        block: parseBlock(t[4]),
+            .map((t) => t.children![0].text!),
+        block: parseBlock(t.children![3]),
+        from: t.from,
+        to: t.to,
     };
 }
 
-function parsePrefixExpression(n: CrudeAST): LuaPrefixExpression {
-    const t = n as [string, ...CrudeAST[]];
-    switch (t[0]) {
+function parsePrefixExpression(t: ParseTree): LuaPrefixExpression {
+    switch (t.type) {
         case "Name":
-            return { type: "Variable", name: t[1] as string };
+            return {
+                type: "Variable",
+                name: t.children![0].text!,
+                from: t.from,
+                to: t.to,
+            };
         case "Property":
             return {
                 type: "PropertyAccess",
-                object: parsePrefixExpression(t[1]),
-                property: t[3][1] as string,
+                object: parsePrefixExpression(t.children![0]),
+                property: t.children![2].children![0].text!,
+                from: t.from,
+                to: t.to,
             };
         case "MemberExpression":
             return {
                 type: "TableAccess",
-                object: parsePrefixExpression(t[1]),
-                key: parseExpression(t[3]),
+                object: parsePrefixExpression(t.children![0]),
+                key: parseExpression(t.children![2]),
+                from: t.from,
+                to: t.to,
             };
         case "Parens":
-            return { type: "Parenthesized", expression: parseExpression(t[2]) };
+            return {
+                type: "Parenthesized",
+                expression: parseExpression(t.children![1]),
+                from: t.from,
+                to: t.to,
+            };
         default:
             console.error(t);
-            throw new Error(`Unknown prefix expression type: ${t[0]}`);
+            throw new Error(`Unknown prefix expression type: ${t.type}`);
     }
 }
 
-function parseTableField(n: CrudeAST): LuaTableField {
-    const t = n as [string, ...CrudeAST[]];
-    switch (t[0]) {
+function parseTableField(t: ParseTree): LuaTableField {
+    switch (t.type) {
         case "FieldExp":
             return {
                 type: "ExpressionField",
-                value: parseExpression(t[1]),
+                value: parseExpression(t.children![0]),
+                from: t.from,
+                to: t.to,
             };
         case "FieldProp":
             return {
                 type: "PropField",
-                key: t[1][1] as string,
-                value: parseExpression(t[3]),
+                key: t.children![0].children![0].text!,
+                value: parseExpression(t.children![2]),
+                from: t.from,
+                to: t.to,
             };
         case "FieldDynamic":
             return {
                 type: "DynamicField",
-                key: parseExpression(t[2]),
-                value: parseExpression(t[5]),
+                key: parseExpression(t.children![1]),
+                value: parseExpression(t.children![4]),
+                from: t.from,
+                to: t.to,
             };
         default:
             console.error(t);
-            throw new Error(`Unknown table field type: ${t[0]}`);
+            throw new Error(`Unknown table field type: ${t.type}`);
     }
 }
 
-export function parse(t: string): LuaBlock {
-    const crudeAst = parseToCrudeAST(t);
-    console.log("Crude AST", JSON.stringify(crudeAst, null, 2));
-    const result = parseChunk(crudeAst);
+export function parse(s: string): LuaBlock {
+    const t = parseToCrudeAST(s);
+    console.log("Clean tree", JSON.stringify(t, null, 2));
+    const result = parseChunk(t);
     console.log("Parsed AST", JSON.stringify(result, null, 2));
     return result;
 }
 
-export function parseToCrudeAST(t: string): CrudeAST {
-    return parseTreeToAST(lezerToParseTree(t, parser.parse(t).topNode), true);
+export function parseToCrudeAST(t: string): ParseTree {
+    return cleanTree(lezerToParseTree(t, parser.parse(t).topNode), true);
 }

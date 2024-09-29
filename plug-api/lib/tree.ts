@@ -235,3 +235,30 @@ export function parseTreeToAST(tree: ParseTree, omitTrimmable = true): AST {
   }
   return ast;
 }
+
+export function cleanTree(tree: ParseTree, omitTrimmable = true): ParseTree {
+  const parseErrorNodes = collectNodesOfType(tree, "⚠");
+  if (parseErrorNodes.length > 0) {
+    throw new Error(
+      `Parse error in: ${renderToText(tree)}`,
+    );
+  }
+  if (tree.text !== undefined) {
+    return tree;
+  }
+  const ast: ParseTree = {
+    type: tree.type,
+    children: [],
+    from: tree.from,
+    to: tree.to,
+  };
+  for (const node of tree.children!) {
+    if (node.type && !node.type.endsWith("Mark") && node.type !== "Comment") {
+      ast.children!.push(cleanTree(node, omitTrimmable));
+    }
+    if (node.text && (omitTrimmable && node.text.trim() || !omitTrimmable)) {
+      ast.children!.push(node);
+    }
+  }
+  return ast;
+}

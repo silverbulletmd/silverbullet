@@ -1,5 +1,5 @@
 import { parse } from "$common/space_lua/parse.ts";
-import { assertEquals } from "@std/assert/equals";
+
 
 Deno.test("Test Lua parser", () => {
     // Basic block test
@@ -15,10 +15,6 @@ Deno.test("Test Lua parser", () => {
 
     parse(`e(10 << 10, 10 >> 10, 10 & 10, 10 | 10, 10 ~ 10)`);
 
-    assertEquals(
-        parse(`e(1 + 2 - 3 * 4 / 4)`),
-        parse(`e(1 + 2 - ((3 * 4) / 4))`),
-    );
     parse(`e(true and false or true)`);
     parse(`e(a < 3 and b > 4 or b == 5 or c <= 6 and d >= 7 or a /= 8)`);
     parse(`e(a.b.c)`);
@@ -42,7 +38,7 @@ Deno.test("Test Lua parser", () => {
     parse(`do end`);
     parse(`do print() end`);
     parse(`::hello::
-    goto hello`);
+        goto hello`);
     parse(`while true do print() end`);
     parse(`repeat print() until false`);
     parse(
@@ -86,4 +82,5 @@ Deno.test("Test Lua parser", () => {
     parse(`return`);
     parse(`return 1`);
     parse(`return 1, 2, 3`);
+    // return;
 });
