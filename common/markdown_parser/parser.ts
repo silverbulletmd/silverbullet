@@ -348,7 +348,7 @@ const expressionStyleTags = styleTags({
   BinExpression: t.operator,
   TernaryExpression: t.operator,
   Regex: t.regexp,
-  "where limit select render Order OrderKW and or null as InKW NotKW BooleanKW each all":
+  "where limit select render desc asc and or null as in true false not each all Order/...":
     t.keyword,
 });
 

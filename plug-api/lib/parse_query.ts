@@ -149,7 +149,7 @@ export function expressionToKvQueryExpression(node: AST): QueryExpression {
     }
     case "BinExpression": {
       const lval = expressionToKvQueryExpression(node[1]);
-      const binOp = node[2][0] === "InKW" ? "in" : (node[2] as string).trim();
+      const binOp = node[2][0] === "in" ? "in" : (node[2] as string).trim();
       const val = expressionToKvQueryExpression(node[3]);
       return [binOp as any, lval, val];
     }
@@ -175,7 +175,7 @@ export function expressionToKvQueryExpression(node: AST): QueryExpression {
     }
     case "UnaryExpression": {
       // console.log("UnaryExpression", node);
-      if (node[1][0] === "NotKW" || node[1][0] === "!") {
+      if (node[1][0] === "not" || node[1][0] === "!") {
         return ["not", expressionToKvQueryExpression(node[2])];
       } else if (node[1][0] === "-") {
         return ["-", expressionToKvQueryExpression(node[2])];
