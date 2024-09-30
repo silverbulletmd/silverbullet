@@ -10,24 +10,24 @@ const itemsMd = `
 `;
 
 Deno.test("Test item extraction", async () => {
-    const t = parseMarkdown(itemsMd);
-    const items = await extractItems("test", t);
+  const t = parseMarkdown(itemsMd);
+  const items = await extractItems("test", t);
 
-    assertEquals(items[0].name, "Item 1");
-    assertEquals(items[0].age, 100);
-    assertEquals(items[0].page, "test");
-    assertEquals(items[0].parent, undefined);
-    assertEquals(items[0].text, "Item 1 #tag1 #tag2 [age: 100]");
-    assertEquals(new Set(items[0].tags), new Set(["tag1", "tag2"]));
-    assertEquals(new Set(items[0].itags), new Set(["item", "tag1", "tag2"]));
+  assertEquals(items[0].name, "Item 1");
+  assertEquals(items[0].age, 100);
+  assertEquals(items[0].page, "test");
+  assertEquals(items[0].parent, undefined);
+  assertEquals(items[0].text, "Item 1 #tag1 #tag2 [age: 100]");
+  assertEquals(new Set(items[0].tags), new Set(["tag1", "tag2"]));
+  assertEquals(new Set(items[0].itags), new Set(["item", "tag1", "tag2"]));
 
-    assertEquals(items[1].name, "Item 1.1");
-    assertEquals(new Set(items[1].tags), new Set(["tag3", "tag1"]));
-    assertEquals(
-        new Set(items[1].itags),
-        new Set(["tag3", "tag2", "tag1", "item"]),
-    );
-    assertEquals(items[1].parent, items[0].ref);
+  assertEquals(items[1].name, "Item 1.1");
+  assertEquals(new Set(items[1].tags), new Set(["tag3", "tag1"]));
+  assertEquals(
+    new Set(items[1].itags),
+    new Set(["tag3", "tag2", "tag1", "item"]),
+  );
+  assertEquals(items[1].parent, items[0].ref);
 
-    assertEquals(items[2].parent, items[1].ref);
+  assertEquals(items[2].parent, items[1].ref);
 });
