@@ -3,6 +3,7 @@ import { LuaEnv, LuaNativeJSFunction, singleResult } from "./runtime.ts";
 import { parse } from "./parse.ts";
 import type { LuaBlock, LuaFunctionCallStatement } from "./ast.ts";
 import { evalExpression, evalStatement } from "./eval.ts";
+import { luaBuildStandardEnv } from "$common/space_lua/stdlib.ts";
 
 function evalExpr(s: string, e = new LuaEnv()): any {
   return evalExpression(
@@ -39,22 +40,22 @@ Deno.test("Evaluator test", async () => {
   assertEquals(tbl.get(1), 3);
   assertEquals(tbl.get(2), 1);
   assertEquals(tbl.get(3), 2);
-  assertEquals(tbl.toArray(), [3, 1, 2]);
+  assertEquals(tbl.toJSArray(), [3, 1, 2]);
 
-  assertEquals(evalExpr(`{name=test("Zef"), age=100}`, env).toObject(), {
+  assertEquals(evalExpr(`{name=test("Zef"), age=100}`, env).toJSObject(), {
     name: "Zef",
     age: 100,
   });
 
   assertEquals(
-    (await evalExpr(`{name="Zef", age=asyncTest(100)}`, env)).toObject(),
+    (await evalExpr(`{name="Zef", age=asyncTest(100)}`, env)).toJSObject(),
     {
       name: "Zef",
       age: 100,
     },
   );
 
-  assertEquals(evalExpr(`{[3+2]=1, ["a".."b"]=2}`).toObject(), {
+  assertEquals(evalExpr(`{[3+2]=1, ["a".."b"]=2}`).toJSObject(), {
     5: 1,
     ab: 2,
   });
@@ -68,6 +69,10 @@ Deno.test("Evaluator test", async () => {
   // Function calls
   assertEquals(singleResult(evalExpr(`test(3)`, env)), 3);
   assertEquals(singleResult(await evalExpr(`asyncTest(3) + 1`, env)), 4);
+
+  // Function definitions
+  const fn = evalExpr(`function(a, b) return a + b end`);
+  assertEquals(fn.body.parameters, ["a", "b"]);
 });
 
 Deno.test("Statement evaluation", async () => {
@@ -93,7 +98,7 @@ Deno.test("Statement evaluation", async () => {
   const env3 = new LuaEnv();
   await evalBlock(`tbl = {1, 2, 3}`, env3);
   await evalBlock(`tbl[1] = 3`, env3);
-  assertEquals(env3.get("tbl").toArray(), [3, 2, 3]);
+  assertEquals(env3.get("tbl").toJSArray(), [3, 2, 3]);
   await evalBlock("tbl.name = 'Zef'", env3);
   assertEquals(env3.get("tbl").get("name"), "Zef");
   await evalBlock(`tbl[2] = {age=10}`, env3);
@@ -105,7 +110,7 @@ Deno.test("Statement evaluation", async () => {
   env4.set("print", new LuaNativeJSFunction(console.log));
   await evalBlock(
     `
-    a = 1    
+    a = 1
     do
         -- sets global a to 3
         a = 3
@@ -197,5 +202,63 @@ Deno.test("Statement evaluation", async () => {
         print("3 + 1 = " .. test(3))
     `,
     env8,
+  );
+
+  // Local fucntion definition
+  const env9 = new LuaEnv();
+  env9.set("print", new LuaNativeJSFunction(console.log));
+  await evalBlock(
+    `
+        local function test(a)
+            return a + 1
+        end
+        print("3 + 1 = " .. test(3))
+    `,
+    env9,
+  );
+
+  // For loop over range
+  const env10 = new LuaEnv();
+  await evalBlock(
+    `
+        c = 0
+        for i = 1, 3 do
+            c = c + i
+        end
+    `,
+    env10,
+  );
+  assertEquals(env10.get("c"), 6);
+
+  // For loop over iterator
+  const env11 = new LuaEnv(luaBuildStandardEnv());
+  await evalBlock(
+    `
+      function fruits()
+        local list = { "apple", "banana", "cherry" }
+        -- Track index internally
+        local index = 0
+
+        return function()
+            index = index + 1
+            if list[index] then
+                return list[index]
+            end
+        end
+      end
+
+      for fruit in fruits() do
+        print("Fruit: " .. fruit)
+      end
+    `,
+    env11,
+  );
+
+  await evalBlock(
+    `
+    for _, f in ipairs({ "apple", "banana", "cherry" }) do
+      print("Fruit: " .. f)
+    end`,
+    luaBuildStandardEnv(),
   );
 });

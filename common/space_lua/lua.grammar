@@ -133,7 +133,7 @@ TableConstructor { "{" (field (fieldsep field)* fieldsep?)? "}" }
 @tokens {
   CompareOp { "<" | ">" | $[<>=~/!] "=" }
 
-  word { std.asciiLetter (std.digit | std.asciiLetter)* }
+  word { (std.asciiLetter | "_") (std.digit | std.asciiLetter | "_")* }
 
   identifier { word }
 

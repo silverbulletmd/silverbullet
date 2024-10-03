@@ -46,6 +46,7 @@ import {
 } from "./markdown_parser/parser.ts";
 import { cssLanguage } from "@codemirror/lang-css";
 import { nixLanguage } from "@replit/codemirror-lang-nix";
+import { luaLanguage } from "$common/space_lua/parse.ts";
 
 const yamlStreamLanguage = StreamLanguage.define(yamlLanguage);
 
@@ -120,6 +121,7 @@ export const builtinLanguages: Record<string, Language> = {
     name: "query",
     parser: highlightingQueryParser,
   }),
+  "space-lua": luaLanguage,
   "template": extendedMarkdownLanguage,
   "expression": LRLanguage.define({
     name: "expression",

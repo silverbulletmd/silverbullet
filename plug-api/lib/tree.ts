@@ -253,7 +253,7 @@ export function cleanTree(tree: ParseTree, omitTrimmable = true): ParseTree {
     to: tree.to,
   };
   for (const node of tree.children!) {
-    if (node.type && !node.type.endsWith("Mark") && node.type !== "Comment") {
+    if (node.type && node.type !== "Comment") {
       ast.children!.push(cleanTree(node, omitTrimmable));
     }
     if (node.text && (omitTrimmable && node.text.trim() || !omitTrimmable)) {

@@ -25,6 +25,8 @@ Deno.test("Test Lua parser", () => {
   parse(`e({1 ; 2 ; 3})`);
   parse(`e({a = 1, b = 2, c = 3})`);
   parse(`e({[3] = 1, [10 * 10] = "sup"})`);
+  parse(`e(tbl.name)`);
+  parse(`e(tbl["name" + 10])`);
 
   // Function calls
   parse(`e(func(), func(1, 2, 3), a.b(), a.b.c:hello(), (a.b)(7))`);
@@ -81,5 +83,13 @@ Deno.test("Test Lua parser", () => {
   parse(`return`);
   parse(`return 1`);
   parse(`return 1, 2, 3`);
-  // return;
+});
+
+Deno.test("Test comment handling", () => {
+  parse(`
+        -- Single line comment
+        --[[ Multi
+        line
+        comment ]]
+        f()`);
 });

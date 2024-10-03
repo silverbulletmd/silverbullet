@@ -129,6 +129,10 @@ functions:
     path: script.ts:indexSpaceScript
     events:
       - page:index
+  indexSpaceLua:
+    path: script.ts:indexSpaceLua
+    events:
+      - page:index
 
   # Style
   indexSpaceStyle:
@@ -201,6 +205,11 @@ functions:
 
   lintYAML:
     path: lint.ts:lintYAML
+    events:
+      - editor:lint
+
+  lintLua:
+    path: lint.ts:lintLua
     events:
       - editor:lint
 

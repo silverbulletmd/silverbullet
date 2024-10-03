@@ -5,6 +5,7 @@ import {
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { parser } from "./parse-lua.js";
 import { styleTags } from "@lezer/highlight";
+import { indentNodeProp, LRLanguage } from "@codemirror/language";
 import type {
   LuaAttName,
   LuaBlock,
@@ -17,25 +18,36 @@ import type {
   LuaStatement,
   LuaTableField,
 } from "./ast.ts";
+import { tags as t } from "@lezer/highlight";
 
 const luaStyleTags = styleTags({
-  // Identifier: t.variableName,
-  // TagIdentifier: t.variableName,
-  // GlobalIdentifier: t.variableName,
-  // String: t.string,
-  // Number: t.number,
-  // PageRef: ct.WikiLinkTag,
-  // BinExpression: t.operator,
-  // TernaryExpression: t.operator,
-  // Regex: t.regexp,
-  // "where limit select render Order OrderKW and or null as InKW NotKW BooleanKW each all":
-  //     t.keyword,
+  Name: t.variableName,
+  LiteralString: t.string,
+  Number: t.number,
+  CompareOp: t.operator,
+  "true false": t.bool,
+  Comment: t.lineComment,
+  "return break goto do end while repeat until function local if then else elseif in for nil or and not":
+    t.keyword,
 });
 
-export const highlightingQueryParser = parser.configure({
-  props: [
-    luaStyleTags,
-  ],
+const customIndent = indentNodeProp.add({
+  "IfStatement FuncBody WhileStatement ForStatement TableConstructor": (
+    context,
+  ) => {
+    return context.lineIndent(context.node.from) + context.unit;
+  },
+});
+
+// Use the customIndent in your language support
+export const luaLanguage = LRLanguage.define({
+  name: "space-lua",
+  parser: parser.configure({
+    props: [
+      luaStyleTags,
+      customIndent,
+    ],
+  }),
 });
 
 function parseChunk(t: ParseTree): LuaBlock {
@@ -100,7 +112,6 @@ function parseStatement(t: ParseTree): LuaStatement {
       }[] = [];
       let elseBlock: LuaBlock | undefined = undefined;
       for (let i = 0; i < t.children!.length; i += 4) {
-        console.log("Looking at", t.children![i]);
         const child = t.children![i];
         if (
           child.children![0].text === "if" ||
@@ -350,6 +361,15 @@ function parseExpression(t: ParseTree): LuaExpression {
         to: t.to,
       };
 
+    case "MemberExpression":
+      return {
+        type: "TableAccess",
+        object: parsePrefixExpression(t.children![0]),
+        key: parseExpression(t.children![2]),
+        from: t.from,
+        to: t.to,
+      };
+
     case "Parens":
       return parseExpression(t.children![1]);
     case "FunctionCall": {
@@ -411,7 +431,6 @@ function parseExpression(t: ParseTree): LuaExpression {
 }
 
 function parseFunctionArgs(ts: ParseTree[]): LuaExpression[] {
-  console.log("Parsing function args", JSON.stringify(ts, null, 2));
   return ts.filter((t) => ![",", "(", ")"].includes(t.type!)).map(
     parseExpression,
   );
@@ -502,11 +521,61 @@ function parseTableField(t: ParseTree): LuaTableField {
   }
 }
 
+function stripLuaComments(s: string): string {
+  // Strips Lua comments (single-line and multi-line) and replaces them with equivalent length whitespace
+  let result = "";
+  let inString = false;
+  let inComment = false;
+  let inMultilineComment = false;
+
+  for (let i = 0; i < s.length; i++) {
+    // Handle string detection (to avoid stripping comments inside strings)
+    if (s[i] === '"' && !inComment && !inMultilineComment) {
+      inString = !inString;
+    }
+
+    // Handle single-line comments (starting with "--")
+    if (!inString && !inMultilineComment && s[i] === "-" && s[i + 1] === "-") {
+      if (s[i + 2] === "[" && s[i + 3] === "[") {
+        // Detect multi-line comment start "--[["
+        inMultilineComment = true;
+        i += 3; // Skip over "--[["
+        result += "    "; // Add equivalent length spaces for "--[["
+        continue;
+      } else {
+        inComment = true;
+      }
+    }
+
+    // Handle end of single-line comment
+    if (inComment && s[i] === "\n") {
+      inComment = false;
+    }
+
+    // Handle multi-line comment ending "]]"
+    if (inMultilineComment && s[i] === "]" && s[i + 1] === "]") {
+      inMultilineComment = false;
+      i += 1; // Skip over "]]"
+      result += "  "; // Add equivalent length spaces for "]]"
+      continue;
+    }
+
+    // Replace comment content with spaces, or copy original content if not in comment
+    if (inComment || inMultilineComment) {
+      result += " "; // Replace comment characters with a space
+    } else {
+      result += s[i];
+    }
+  }
+
+  return result;
+}
+
 export function parse(s: string): LuaBlock {
-  const t = parseToCrudeAST(s);
-  console.log("Clean tree", JSON.stringify(t, null, 2));
+  const t = parseToCrudeAST(stripLuaComments(s));
+  // console.log("Clean tree", JSON.stringify(t, null, 2));
   const result = parseChunk(t);
-  console.log("Parsed AST", JSON.stringify(result, null, 2));
+  // console.log("Parsed AST", JSON.stringify(result, null, 2));
   return result;
 }
 

@@ -43,6 +43,7 @@ import { CommonSystem } from "$common/common_system.ts";
 import type { DataStoreMQ } from "$lib/data/mq.datastore.ts";
 import { plugPrefix } from "$common/spaces/constants.ts";
 import { jsonschemaSyscalls } from "$common/syscalls/jsonschema.ts";
+import { luaSyscalls } from "$common/syscalls/lua.ts";
 
 const plugNameExtractRegex = /\/(.+)\.plug\.js$/;
 
@@ -161,6 +162,7 @@ export class ClientSystem extends CommonSystem {
       clientCodeWidgetSyscalls(),
       languageSyscalls(),
       jsonschemaSyscalls(),
+      luaSyscalls(),
       this.client.syncMode
         // In sync mode handle locally
         ? mqSyscalls(this.mq)

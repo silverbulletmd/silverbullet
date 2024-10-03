@@ -1,5 +1,6 @@
 import {
   jsonschema,
+  lua,
   system,
   YAML,
 } from "@silverbulletmd/silverbullet/syscalls";
@@ -210,4 +211,40 @@ async function lintYaml(
       };
     }
   }
+}
+
+export async function lintLua({ tree }: LintEvent): Promise<LintDiagnostic[]> {
+  const diagnostics: LintDiagnostic[] = [];
+  await traverseTreeAsync(tree, async (node) => {
+    if (node.type === "FencedCode") {
+      const codeInfo = findNodeOfType(node, "CodeInfo")!;
+      if (!codeInfo) {
+        return true;
+      }
+      const codeLang = codeInfo.children![0].text!;
+      if (codeLang !== "space-lua") {
+        return true;
+      }
+      const codeText = findNodeOfType(node, "CodeText");
+      if (!codeText) {
+        return true;
+      }
+      const luaCode = renderToText(codeText);
+      try {
+        await lua.parse(luaCode);
+      } catch (e: any) {
+        diagnostics.push({
+          from: codeText.from!,
+          to: codeText.to!,
+          severity: "error",
+          message: e.message,
+        });
+        console.log("Lua error", e);
+      }
+      return true;
+    }
+
+    return false;
+  });
+  return diagnostics;
 }

@@ -15,5 +15,6 @@ export * as YAML from "./syscalls/yaml.ts";
 export * as mq from "./syscalls/mq.ts";
 export * as datastore from "./syscalls/datastore.ts";
 export * as jsonschema from "./syscalls/jsonschema.ts";
+export * as lua from "./syscalls/lua.ts";
 
 export * from "./syscall.ts";

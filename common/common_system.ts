@@ -76,6 +76,7 @@ export abstract class CommonSystem {
 
       this.commandHook.throttledBuildAllCommands();
     }
+
     // Swap in the expanded function map
     this.ds.functionMap = functions;
   }

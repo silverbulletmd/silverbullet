@@ -8,6 +8,7 @@ import type { EventHook } from "../common/hooks/event.ts";
 import { MQHook } from "../lib/plugos/hooks/mq.ts";
 import assetSyscalls from "../lib/plugos/syscalls/asset.ts";
 import { eventSyscalls } from "../lib/plugos/syscalls/event.ts";
+import { luaSyscalls } from "$common/syscalls/lua.ts";
 import { mqSyscalls } from "../lib/plugos/syscalls/mq.ts";
 import { System } from "../lib/plugos/system.ts";
 import { Space } from "../common/space.ts";
@@ -132,6 +133,7 @@ export class ServerSystem extends CommonSystem {
       mqSyscalls(this.mq),
       languageSyscalls(),
       jsonschemaSyscalls(),
+      luaSyscalls(),
       templateSyscalls(this.ds),
       dataStoreReadSyscalls(this.ds),
       codeWidgetSyscalls(codeWidgetHook),
