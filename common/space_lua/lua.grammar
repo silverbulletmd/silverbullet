@@ -144,7 +144,7 @@ TableConstructor { "{" (field (fieldsep field)* fieldsep?)? "}" }
     "\\u{" hex+ "}"
   }
 
-  simpleString { "'" (stringEscape | ![\r\n\\'])+ "'" | '"' (stringEscape | ![\r\n\\"])+ '"'}
+  simpleString { "'" (stringEscape | ![\r\n\\'])* "'" | '"' (stringEscape | ![\r\n\\"])* '"'}
 
   hex { $[0-9a-fA-F] }
   digit { std.digit }
