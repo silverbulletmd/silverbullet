@@ -70,6 +70,12 @@ Deno.test("Evaluator test", async () => {
   assertEquals(singleResult(evalExpr(`test(3)`, env)), 3);
   assertEquals(singleResult(await evalExpr(`asyncTest(3) + 1`, env)), 4);
 
+  // Function expressions and table access
+  assertEquals(
+    await evalExpr(`(function() return {name="John"} end)().name`),
+    "John",
+  );
+
   // Function definitions
   const fn = evalExpr(`function(a, b) return a + b end`);
   assertEquals(fn.body.parameters, ["a", "b"]);

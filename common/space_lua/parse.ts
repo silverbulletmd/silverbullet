@@ -184,14 +184,7 @@ function parseStatement(t: ParseTree): LuaStatement {
     case "FunctionCall":
       return {
         type: "FunctionCallStatement",
-        call: parseExpression(
-          {
-            type: "FunctionCall",
-            children: t.children!,
-            from: t.from,
-            to: t.to,
-          },
-        ) as LuaFunctionCallExpression,
+        call: parseFunctionCall(t),
       };
     case "Assign":
       return {
@@ -221,6 +214,26 @@ function parseStatement(t: ParseTree): LuaStatement {
       console.error(t);
       throw new Error(`Unknown statement type: ${t.children![0].text}`);
   }
+}
+
+function parseFunctionCall(t: ParseTree): LuaFunctionCallExpression {
+  if (t.children![1].type === ":") {
+    return {
+      type: "FunctionCall",
+      prefix: parsePrefixExpression(t.children![0]),
+      name: t.children![2].children![0].text!,
+      args: parseFunctionArgs(t.children!.slice(3)),
+      from: t.from,
+      to: t.to,
+    };
+  }
+  return {
+    type: "FunctionCall",
+    prefix: parsePrefixExpression(t.children![0]),
+    args: parseFunctionArgs(t.children!.slice(1)),
+    from: t.from,
+    to: t.to,
+  };
 }
 
 function parseAttNames(t: ParseTree): LuaAttName[] {
@@ -373,23 +386,7 @@ function parseExpression(t: ParseTree): LuaExpression {
     case "Parens":
       return parseExpression(t.children![1]);
     case "FunctionCall": {
-      if (t.children![1].type === ":") {
-        return {
-          type: "FunctionCall",
-          prefix: parsePrefixExpression(t.children![0]),
-          name: t.children![2].children![0].text!,
-          args: parseFunctionArgs(t.children!.slice(3)),
-          from: t.from,
-          to: t.to,
-        };
-      }
-      return {
-        type: "FunctionCall",
-        prefix: parsePrefixExpression(t.children![0]),
-        args: parseFunctionArgs(t.children!.slice(1)),
-        from: t.from,
-        to: t.to,
-      };
+      return parseFunctionCall(t);
     }
     case "FunctionDef": {
       const body = parseFunctionBody(t.children![1]);
@@ -484,6 +481,9 @@ function parsePrefixExpression(t: ParseTree): LuaPrefixExpression {
         from: t.from,
         to: t.to,
       };
+    case "FunctionCall": {
+      return parseFunctionCall(t);
+    }
     default:
       console.error(t);
       throw new Error(`Unknown prefix expression type: ${t.type}`);

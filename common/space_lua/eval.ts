@@ -104,6 +104,26 @@ export function evalExpression(
         return luaGet(singleResult(values[0]), singleResult(values[1]));
       }
     }
+    case "PropertyAccess": {
+      const obj = evalPrefixExpression(e.object, env);
+      if (obj instanceof Promise) {
+        return obj.then((obj) => {
+          if (!obj.get) {
+            throw new Error(
+              `Not a gettable object: ${obj}`,
+            );
+          }
+          return obj.get(e.property);
+        });
+      } else {
+        if (!obj.get) {
+          throw new Error(
+            `Not a gettable object: ${obj}`,
+          );
+        }
+        return obj.get(e.property);
+      }
+    }
     case "Variable":
     case "FunctionCall":
       return evalPrefixExpression(e, env);

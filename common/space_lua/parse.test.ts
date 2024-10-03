@@ -27,6 +27,7 @@ Deno.test("Test Lua parser", () => {
   parse(`e({[3] = 1, [10 * 10] = "sup"})`);
   parse(`e(tbl.name)`);
   parse(`e(tbl["name" + 10])`);
+  parse(`e(test().bla)`);
 
   // Function calls
   parse(`e(func(), func(1, 2, 3), a.b(), a.b.c:hello(), (a.b)(7))`);
