@@ -5,6 +5,7 @@ import {
     LuaNativeJSFunction,
     type LuaTable,
     luaTypeOf,
+    type LuaValue,
 } from "$common/space_lua/runtime.ts";
 
 const printFunction = new LuaNativeJSFunction((...args) => {
@@ -45,7 +46,11 @@ const pairsFunction = new LuaBuiltinFunction((t: LuaTable) => {
     };
 });
 
-const typeFunction = new LuaNativeJSFunction((value: any) => {
+const unpackFunction = new LuaBuiltinFunction((t: LuaTable) => {
+    return new LuaMultiRes(t.toJSArray());
+});
+
+const typeFunction = new LuaBuiltinFunction((value: LuaValue): string => {
     return luaTypeOf(value);
 });
 
@@ -61,6 +66,24 @@ const errorFunction = new LuaNativeJSFunction((message: string) => {
     throw new Error(message);
 });
 
+const setmetatableFunction = new LuaBuiltinFunction(
+    (table: LuaTable, metatable: LuaTable) => {
+        table.metatable = metatable;
+        return table;
+    },
+);
+
+const rawsetFunction = new LuaBuiltinFunction(
+    (table: LuaTable, key: LuaValue, value: LuaValue) => {
+        table.rawSet(key, value);
+        return table;
+    },
+);
+
+const getmetatableFunction = new LuaBuiltinFunction((table: LuaTable) => {
+    return table.metatable;
+});
+
 export function luaBuildStandardEnv() {
     const env = new LuaEnv();
     env.set("print", printFunction);
@@ -71,5 +94,9 @@ export function luaBuildStandardEnv() {
     env.set("tostring", tostringFunction);
     env.set("tonumber", tonumberFunction);
     env.set("error", errorFunction);
+    env.set("unpack", unpackFunction);
+    env.set("setmetatable", setmetatableFunction);
+    env.set("getmetatable", getmetatableFunction);
+    env.set("rawset", rawsetFunction);
     return env;
 }

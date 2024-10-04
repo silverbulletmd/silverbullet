@@ -79,7 +79,28 @@ exp {
   UnaryExpression |
   TableConstructor |
   FunctionDef { kw<"function"> FuncBody }
+  /*|  Query*/
 }
+
+Query {
+  "[" exp QueryClause* "]" 
+}
+
+QueryClause {
+  WhereClause |
+  OrderByClause |
+  SelectClause |
+  RenderClause |
+  LimitClause
+}
+
+WhereClause { kw<"where"> exp }
+LimitClause { kw<"limit"> exp }
+OrderByClause { kw<"order"> kw<"by"> exp kw<"desc">? }
+SelectClause { kw<"select"> list<Select> }
+RenderClause { kw<"render"> ( kw<"each"> | kw<"all"> )? simpleString }
+
+Select { Name | exp kw<"as"> Name }
 
 field[@isGroup=Field] {
   FieldDynamic { "[" exp "]" "=" exp } |
@@ -132,6 +153,10 @@ TableConstructor { "{" (field (fieldsep field)* fieldsep?)? "}" }
 
 @tokens {
   CompareOp { "<" | ">" | $[<>=~/!] "=" }
+
+
+  TagIdentifier { @asciiLetter (@asciiLetter | @digit | "-" | "_" | "/" )* }
+
 
   word { (std.asciiLetter | "_") (std.digit | std.asciiLetter | "_")* }
 

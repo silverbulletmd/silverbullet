@@ -1,18 +1,22 @@
-type ASTPosition = {
+type ASTContext = {
+  ctx: ASTCtx;
+};
+
+export type ASTCtx = {
   from?: number;
   to?: number;
-};
+} & Record<string, any>;
 
 export type LuaBlock = {
   type: "Block";
   statements: LuaStatement[];
-} & ASTPosition;
+} & ASTContext;
 
 // STATEMENTS
 export type LuaReturnStatement = {
   type: "Return";
   expressions: LuaExpression[];
-} & ASTPosition;
+} & ASTContext;
 
 export type LuaStatement =
   | LuaSemicolonStatement
@@ -34,39 +38,39 @@ export type LuaStatement =
 
 export type LuaSemicolonStatement = {
   type: "Semicolon";
-} & ASTPosition;
+} & ASTContext;
 
 export type LuaLabelStatement = {
   type: "Label";
   name: string;
-} & ASTPosition;
+} & ASTContext;
 
 export type LuaBreakStatement = {
   type: "Break";
-} & ASTPosition;
+} & ASTContext;
 
 export type LuaGotoStatement = {
   type: "Goto";
   name: string;
-} & ASTPosition;
+} & ASTContext;
 
 export type LuaWhileStatement = {
   type: "While";
   condition: LuaExpression;
   block: LuaBlock;
-} & ASTPosition;
+} & ASTContext;
 
 export type LuaRepeatStatement = {
   type: "Repeat";
   block: LuaBlock;
   condition: LuaExpression;
-} & ASTPosition;
+} & ASTContext;
 
 export type LuaIfStatement = {
   type: "If";
   conditions: { condition: LuaExpression; block: LuaBlock }[];
   elseBlock?: LuaBlock;
-} & ASTPosition;
+} & ASTContext;
 
 export type LuaForStatement = {
   type: "For";
@@ -75,44 +79,44 @@ export type LuaForStatement = {
   end: LuaExpression;
   step?: LuaExpression;
   block: LuaBlock;
-} & ASTPosition;
+} & ASTContext;
 
 export type LuaForInStatement = {
   type: "ForIn";
   names: string[];
   expressions: LuaExpression[];
   block: LuaBlock;
-} & ASTPosition;
+} & ASTContext;
 
 export type LuaFunctionStatement = {
   type: "Function";
   name: LuaFunctionName;
   body: LuaFunctionBody;
-} & ASTPosition;
+} & ASTContext;
 
 export type LuaLocalFunctionStatement = {
   type: "LocalFunction";
   name: string;
   body: LuaFunctionBody;
-} & ASTPosition;
+} & ASTContext;
 
 export type LuaFunctionName = {
   type: "FunctionName";
   propNames: string[];
   colonName?: string;
-} & ASTPosition;
+} & ASTContext;
 
 export type LuaFunctionBody = {
   type: "FunctionBody";
   parameters: string[];
   block: LuaBlock;
-} & ASTPosition;
+} & ASTContext;
 
 export type LuaAssignmentStatement = {
   type: "Assignment";
   variables: LuaLValue[];
   expressions: LuaExpression[];
-} & ASTPosition;
+} & ASTContext;
 
 export type LuaLValue =
   | LuaVariable
@@ -123,18 +127,18 @@ export type LuaLocalStatement = {
   type: "Local";
   names: LuaAttName[];
   expressions?: LuaExpression[];
-} & ASTPosition;
+} & ASTContext;
 
 export type LuaAttName = {
   type: "AttName";
   name: string;
   attribute?: string;
-} & ASTPosition;
+} & ASTContext;
 
 export type LuaFunctionCallStatement = {
   type: "FunctionCallStatement";
   call: LuaFunctionCallExpression;
-} & ASTPosition;
+} & ASTContext;
 
 // EXPRESSIONS
 export type LuaExpression =
@@ -150,22 +154,22 @@ export type LuaExpression =
 
 export type LuaNilLiteral = {
   type: "Nil";
-} & ASTPosition;
+} & ASTContext;
 
 export type LuaBooleanLiteral = {
   type: "Boolean";
   value: boolean;
-} & ASTPosition;
+} & ASTContext;
 
 export type LuaNumberLiteral = {
   type: "Number";
   value: number;
-} & ASTPosition;
+} & ASTContext;
 
 export type LuaStringLiteral = {
   type: "String";
   value: string;
-} & ASTPosition;
+} & ASTContext;
 
 export type LuaPrefixExpression =
   | LuaVariableExpression
@@ -175,7 +179,7 @@ export type LuaPrefixExpression =
 export type LuaParenthesizedExpression = {
   type: "Parenthesized";
   expression: LuaExpression;
-} & ASTPosition;
+} & ASTContext;
 
 export type LuaVariableExpression =
   | LuaVariable
@@ -185,44 +189,44 @@ export type LuaVariableExpression =
 export type LuaVariable = {
   type: "Variable";
   name: string;
-} & ASTPosition;
+} & ASTContext;
 
 export type LuaPropertyAccessExpression = {
   type: "PropertyAccess";
   object: LuaPrefixExpression;
   property: string;
-} & ASTPosition;
+} & ASTContext;
 
 export type LuaTableAccessExpression = {
   type: "TableAccess";
   object: LuaPrefixExpression;
   key: LuaExpression;
-} & ASTPosition;
+} & ASTContext;
 
 export type LuaFunctionCallExpression = {
   type: "FunctionCall";
   prefix: LuaPrefixExpression;
   name?: string;
   args: LuaExpression[];
-} & ASTPosition;
+} & ASTContext;
 
 export type LuaBinaryExpression = {
   type: "Binary";
   operator: string;
   left: LuaExpression;
   right: LuaExpression;
-} & ASTPosition;
+} & ASTContext;
 
 export type LuaUnaryExpression = {
   type: "Unary";
   operator: string;
   argument: LuaExpression;
-} & ASTPosition;
+} & ASTContext;
 
 export type LuaTableConstructor = {
   type: "TableConstructor";
   fields: LuaTableField[];
-} & ASTPosition;
+} & ASTContext;
 
 export type LuaTableField =
   | LuaDynamicField
@@ -233,20 +237,20 @@ export type LuaDynamicField = {
   type: "DynamicField";
   key: LuaExpression;
   value: LuaExpression;
-} & ASTPosition;
+} & ASTContext;
 
 export type LuaPropField = {
   type: "PropField";
   key: string;
   value: LuaExpression;
-} & ASTPosition;
+} & ASTContext;
 
 export type LuaExpressionField = {
   type: "ExpressionField";
   value: LuaExpression;
-} & ASTPosition;
+} & ASTContext;
 
 export type LuaFunctionDefinition = {
   type: "FunctionDefinition";
   body: LuaFunctionBody;
-} & ASTPosition;
+} & ASTContext;

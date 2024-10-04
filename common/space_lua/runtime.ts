@@ -1,4 +1,4 @@
-import type { LuaFunctionBody } from "./ast.ts";
+import type { ASTCtx, LuaFunctionBody } from "./ast.ts";
 import { evalStatement } from "$common/space_lua/eval.ts";
 
 export type LuaType =
@@ -109,7 +109,7 @@ export class LuaFunction implements ILuaFunction {
       if (arg === undefined) {
         arg = null;
       }
-      env.set(this.body.parameters[i], arg);
+      env.setLocal(this.body.parameters[i], arg);
     }
     return evalStatement(this.body.block, env).catch((e: any) => {
       if (e instanceof LuaReturn) {
@@ -160,8 +160,7 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
   // When tables are used as arrays, we use a native JavaScript array for that
   private arrayPart: any[];
 
-  // TODO: Actually implement metatables
-  private metatable: LuaTable | null;
+  public metatable: LuaTable | null;
 
   constructor() {
     // For efficiency and performance reasons we pre-allocate these (modern JS engines are very good at optimizing this)
@@ -191,7 +190,7 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     return keys;
   }
 
-  set(key: LuaValue, value: LuaValue) {
+  rawSet(key: LuaValue, value: LuaValue) {
     if (typeof key === "string") {
       this.stringKeys[key] = value;
     } else if (Number.isInteger(key) && key >= 1) {
@@ -204,15 +203,53 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     }
   }
 
-  get(key: LuaValue): LuaValue | undefined {
+  has(key: LuaValue) {
     if (typeof key === "string") {
-      return this.stringKeys[key];
+      return this.stringKeys[key] !== undefined;
     } else if (Number.isInteger(key) && key >= 1) {
-      return this.arrayPart[key - 1];
+      return this.arrayPart[key - 1] !== undefined;
     } else if (this.otherKeys) {
-      return this.otherKeys.get(key);
+      return this.otherKeys.has(key);
     }
-    return undefined;
+    return false;
+  }
+
+  set(key: LuaValue, value: LuaValue): void {
+    // New index handling for metatables
+    if (this.metatable && this.metatable.has("__newindex") && !this.has(key)) {
+      const metaValue = this.metatable.get("__newindex");
+      if (metaValue.call) {
+        metaValue.call(this, key, value);
+        return;
+      }
+    }
+
+    this.rawSet(key, value);
+  }
+
+  get(key: LuaValue): LuaValue | undefined {
+    let value = null;
+    if (typeof key === "string") {
+      value = this.stringKeys[key];
+    } else if (Number.isInteger(key) && key >= 1) {
+      value = this.arrayPart[key - 1];
+    } else if (this.otherKeys) {
+      value = this.otherKeys.get(key);
+    }
+    if (value === undefined || value === null) {
+      // Invoke the meta table
+      if (this.metatable) {
+        const metaValue = this.metatable.get("__index");
+        if (metaValue.call) {
+          value = metaValue.call(this, key);
+        } else if (metaValue instanceof LuaTable) {
+          value = metaValue.get(key);
+        } else {
+          throw new Error("Meta table __index must be a function or table");
+        }
+      }
+    }
+    return value;
   }
 
   toJSArray(): JSValue[] {
@@ -305,13 +342,14 @@ export class LuaReturn extends Error {
 export class LuaRuntimeError extends Error {
   constructor(
     readonly message: string,
-    readonly astNode: { from?: number; to?: number },
+    public context: ASTCtx,
+    cause?: Error,
   ) {
-    super(message);
+    super(message, cause);
   }
 
   toString() {
-    return `LuaRuntimeErrorr: ${this.message} at ${this.astNode.from}, ${this.astNode.to}`;
+    return `LuaRuntimeError: ${this.message} at ${this.context.from}, ${this.context.to}`;
   }
 }
 

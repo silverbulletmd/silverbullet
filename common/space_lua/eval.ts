@@ -28,37 +28,54 @@ export function evalExpression(
   e: LuaExpression,
   env: LuaEnv,
 ): Promise<LuaValue> | LuaValue {
-  switch (e.type) {
-    case "String":
-      // TODO: Deal with escape sequences
-      return e.value;
-    case "Number":
-      return e.value;
-    case "Boolean":
-      return e.value;
-    case "Nil":
-      return null;
-    case "Binary": {
-      const values = evalPromiseValues([
-        evalExpression(e.left, env),
-        evalExpression(e.right, env),
-      ]);
-      if (values instanceof Promise) {
-        return values.then(([left, right]) =>
-          luaOp(e.operator, singleResult(left), singleResult(right))
-        );
-      } else {
-        return luaOp(
-          e.operator,
-          singleResult(values[0]),
-          singleResult(values[1]),
-        );
+  try {
+    switch (e.type) {
+      case "String":
+        // TODO: Deal with escape sequences
+        return e.value;
+      case "Number":
+        return e.value;
+      case "Boolean":
+        return e.value;
+      case "Nil":
+        return null;
+      case "Binary": {
+        const values = evalPromiseValues([
+          evalExpression(e.left, env),
+          evalExpression(e.right, env),
+        ]);
+        if (values instanceof Promise) {
+          return values.then(([left, right]) =>
+            luaOp(e.operator, singleResult(left), singleResult(right))
+          );
+        } else {
+          return luaOp(
+            e.operator,
+            singleResult(values[0]),
+            singleResult(values[1]),
+          );
+        }
       }
-    }
-    case "Unary": {
-      const value = evalExpression(e.argument, env);
-      if (value instanceof Promise) {
-        return value.then((value) => {
+      case "Unary": {
+        const value = evalExpression(e.argument, env);
+        if (value instanceof Promise) {
+          return value.then((value) => {
+            switch (e.operator) {
+              case "-":
+                return -singleResult(value);
+              case "+":
+                return +singleResult(value);
+              case "not":
+                return !singleResult(value);
+              case "#":
+                return luaLen(singleResult(value));
+              default:
+                throw new Error(
+                  `Unknown unary operator ${e.operator}`,
+                );
+            }
+          });
+        } else {
           switch (e.operator) {
             case "-":
               return -singleResult(value);
@@ -73,136 +90,128 @@ export function evalExpression(
                 `Unknown unary operator ${e.operator}`,
               );
           }
-        });
-      } else {
-        switch (e.operator) {
-          case "-":
-            return -singleResult(value);
-          case "+":
-            return +singleResult(value);
-          case "not":
-            return !singleResult(value);
-          case "#":
-            return luaLen(singleResult(value));
-          default:
-            throw new Error(
-              `Unknown unary operator ${e.operator}`,
-            );
         }
       }
-    }
-    case "TableAccess": {
-      const values = evalPromiseValues([
-        evalPrefixExpression(e.object, env),
-        evalExpression(e.key, env),
-      ]);
-      if (values instanceof Promise) {
-        return values.then(([table, key]) =>
-          luaGet(singleResult(table), singleResult(key))
-        );
-      } else {
-        return luaGet(singleResult(values[0]), singleResult(values[1]));
+      case "TableAccess": {
+        const values = evalPromiseValues([
+          evalPrefixExpression(e.object, env),
+          evalExpression(e.key, env),
+        ]);
+        if (values instanceof Promise) {
+          return values.then(([table, key]) =>
+            luaGet(singleResult(table), singleResult(key))
+          );
+        } else {
+          return luaGet(singleResult(values[0]), singleResult(values[1]));
+        }
       }
-    }
-    case "PropertyAccess": {
-      const obj = evalPrefixExpression(e.object, env);
-      if (obj instanceof Promise) {
-        return obj.then((obj) => {
+      case "PropertyAccess": {
+        const obj = evalPrefixExpression(e.object, env);
+        if (obj instanceof Promise) {
+          return obj.then((obj) => {
+            if (!obj.get) {
+              throw new Error(
+                `Not a gettable object: ${obj}`,
+              );
+            }
+            return obj.get(e.property);
+          });
+        } else {
           if (!obj.get) {
             throw new Error(
               `Not a gettable object: ${obj}`,
             );
           }
           return obj.get(e.property);
-        });
-      } else {
-        if (!obj.get) {
-          throw new Error(
-            `Not a gettable object: ${obj}`,
-          );
         }
-        return obj.get(e.property);
       }
-    }
-    case "Variable":
-    case "FunctionCall":
-      return evalPrefixExpression(e, env);
-    case "TableConstructor": {
-      const table = new LuaTable();
-      const promises: Promise<void>[] = [];
-      for (const field of e.fields) {
-        switch (field.type) {
-          case "PropField": {
-            const value = evalExpression(field.value, env);
-            if (value instanceof Promise) {
-              promises.push(value.then((value) => {
-                table.set(
-                  field.key,
-                  singleResult(value),
-                );
-              }));
-            } else {
-              table.set(field.key, singleResult(value));
-            }
-            break;
-          }
-          case "DynamicField": {
-            const key = evalExpression(field.key, env);
-            const value = evalExpression(field.value, env);
-            if (
-              key instanceof Promise || value instanceof Promise
-            ) {
-              promises.push(
-                Promise.all([
-                  key instanceof Promise ? key : Promise.resolve(key),
-                  value instanceof Promise ? value : Promise.resolve(value),
-                ]).then(([key, value]) => {
+      case "Variable":
+      case "FunctionCall":
+        return evalPrefixExpression(e, env);
+      case "TableConstructor": {
+        const table = new LuaTable();
+        const promises: Promise<void>[] = [];
+        for (const field of e.fields) {
+          switch (field.type) {
+            case "PropField": {
+              const value = evalExpression(field.value, env);
+              if (value instanceof Promise) {
+                promises.push(value.then((value) => {
                   table.set(
-                    singleResult(key),
+                    field.key,
                     singleResult(value),
                   );
-                }),
-              );
-            } else {
-              table.set(
-                singleResult(key),
-                singleResult(value),
-              );
+                }));
+              } else {
+                table.set(field.key, singleResult(value));
+              }
+              break;
             }
-            break;
-          }
-          case "ExpressionField": {
-            const value = evalExpression(field.value, env);
-            if (value instanceof Promise) {
-              promises.push(value.then((value) => {
+            case "DynamicField": {
+              const key = evalExpression(field.key, env);
+              const value = evalExpression(field.value, env);
+              if (
+                key instanceof Promise || value instanceof Promise
+              ) {
+                promises.push(
+                  Promise.all([
+                    key instanceof Promise ? key : Promise.resolve(key),
+                    value instanceof Promise ? value : Promise.resolve(value),
+                  ]).then(([key, value]) => {
+                    table.set(
+                      singleResult(key),
+                      singleResult(value),
+                    );
+                  }),
+                );
+              } else {
+                table.set(
+                  singleResult(key),
+                  singleResult(value),
+                );
+              }
+              break;
+            }
+            case "ExpressionField": {
+              const value = evalExpression(field.value, env);
+              if (value instanceof Promise) {
+                promises.push(value.then((value) => {
+                  // +1 because Lua tables are 1-indexed
+                  table.set(
+                    table.length + 1,
+                    singleResult(value),
+                  );
+                }));
+              } else {
                 // +1 because Lua tables are 1-indexed
                 table.set(
                   table.length + 1,
                   singleResult(value),
                 );
-              }));
-            } else {
-              // +1 because Lua tables are 1-indexed
-              table.set(
-                table.length + 1,
-                singleResult(value),
-              );
+              }
+              break;
             }
-            break;
           }
         }
+        if (promises.length > 0) {
+          return Promise.all(promises).then(() => table);
+        } else {
+          return table;
+        }
       }
-      if (promises.length > 0) {
-        return Promise.all(promises).then(() => table);
-      } else {
-        return table;
+      case "FunctionDefinition": {
+        return new LuaFunction(e.body, env);
       }
+      default:
+        throw new Error(`Unknown expression type ${e.type}`);
     }
-    case "FunctionDefinition": {
-      return new LuaFunction(e.body, env);
+  } catch (err: any) {
+    // Repackage any non Lua-specific exceptions with some position information
+    if (!err.constructor.name.startsWith("Lua")) {
+      throw new LuaRuntimeError(err.message, e.ctx, err);
+    } else {
+      throw err;
     }
-    default:
-      throw new Error(`Unknown expression type ${e.type}`);
   }
 }
 
@@ -214,7 +223,7 @@ function evalPrefixExpression(
     case "Variable": {
       const value = env.get(e.name);
       if (value === undefined) {
-        throw new Error(`Undefined variable ${e.name}`);
+        throw new LuaRuntimeError(`Undefined variable ${e.name}`, e.ctx);
       } else {
         return value;
       }
@@ -242,32 +251,65 @@ function evalPrefixExpression(
       }
     }
     case "FunctionCall": {
-      const fn = evalPrefixExpression(e.prefix, env);
-      if (fn instanceof Promise) {
-        return fn.then((fn: ILuaFunction) => {
-          if (!fn.call) {
-            throw new Error(`Not a function: ${fn}`);
+      let prefixValue = evalPrefixExpression(e.prefix, env);
+      if (!prefixValue) {
+        throw new LuaRuntimeError(`Calling nil function`, e.prefix.ctx);
+      }
+      if (prefixValue instanceof Promise) {
+        return prefixValue.then((prefixValue) => {
+          if (!prefixValue) {
+            throw new LuaRuntimeError(`Calling nil function`, e.prefix.ctx);
+          }
+          let selfArgs: LuaValue[] = [];
+          // Handling a:b() syntax (b is kept in .name)
+          if (e.name && !prefixValue.get) {
+            throw new LuaRuntimeError(
+              `Not a table: ${prefixValue}`,
+              e.prefix.ctx,
+            );
+          } else if (e.name) {
+            // Two things need to happen: the actual function be called needs to be looked up in the table, and the table itself needs to be passed as the first argument
+            selfArgs = [prefixValue];
+            prefixValue = prefixValue.get(e.name);
+          }
+          if (!prefixValue.call) {
+            throw new Error(`Not a function: ${prefixValue}`);
           }
           const args = evalPromiseValues(
             e.args.map((arg) => evalExpression(arg, env)),
           );
           if (args instanceof Promise) {
-            return args.then((args) => fn.call(...args));
+            return args.then((args) => prefixValue.call(...selfArgs, ...args));
           } else {
-            return fn.call(...args);
+            return prefixValue.call(...selfArgs, ...args);
           }
         });
       } else {
-        if (!fn.call) {
-          throw new Error(`Not a function: ${fn}`);
+        let selfArgs: LuaValue[] = [];
+        // Handling a:b() syntax (b is kept in .name)
+        if (e.name && !prefixValue.get) {
+          throw new LuaRuntimeError(
+            `Not a table: ${prefixValue}`,
+            e.prefix.ctx,
+          );
+        } else if (e.name) {
+          // Two things need to happen: the actual function be called needs to be looked up in the table, and the table itself needs to be passed as the first argument
+          selfArgs = [prefixValue];
+          prefixValue = prefixValue.get(e.name);
+        }
+        if (!prefixValue.call) {
+          throw new LuaRuntimeError(
+            `Not a function: ${prefixValue}`,
+            e.prefix.ctx,
+          );
         }
         const args = evalPromiseValues(
           e.args.map((arg) => evalExpression(arg, env)),
         );
         if (args instanceof Promise) {
-          return args.then((args) => fn.call(...args));
+          return args.then((args) => prefixValue.call(...selfArgs, ...args));
         } else {
-          return fn.call(...args);
+          return prefixValue.call(...selfArgs, ...args);
         }
       }
     }
@@ -276,46 +318,118 @@ function evalPrefixExpression(
   }
 }
 
-// TODO: Handle metatables and possibly do type checking
+// Mapping table of operators meta-methods to their corresponding operator
+
+type LuaMetaMethod = Record<string, {
+  metaMethod?: string;
+  nativeImplementation: (a: LuaValue, b: LuaValue) => LuaValue;
+}>;
+
+const operatorsMetaMethods: LuaMetaMethod = {
+  "+": {
+    metaMethod: "__add",
+    nativeImplementation: (a, b) => a + b,
+  },
+  "-": {
+    metaMethod: "__sub",
+    nativeImplementation: (a, b) => a - b,
+  },
+  "*": {
+    metaMethod: "__mul",
+    nativeImplementation: (a, b) => a * b,
+  },
+  "/": {
+    metaMethod: "__div",
+    nativeImplementation: (a, b) => a / b,
+  },
+  "//": {
+    metaMethod: "__idiv",
+    nativeImplementation: (a, b) => Math.floor(a / b),
+  },
+  "%": {
+    metaMethod: "__mod",
+    nativeImplementation: (a, b) => a % b,
+  },
+  "^": {
+    metaMethod: "__pow",
+    nativeImplementation: (a, b) => a ** b,
+  },
+  "..": {
+    metaMethod: "__concat",
+    nativeImplementation: (a, b) => luaToString(a) + luaToString(b),
+  },
+  "==": {
+    metaMethod: "__eq",
+    nativeImplementation: (a, b) => a === b,
+  },
+  "~=": {
+    metaMethod: "__ne",
+    nativeImplementation: (a, b) => a !== b,
+  },
+  "!=": {
+    metaMethod: "__ne",
+    nativeImplementation: (a, b) => a !== b,
+  },
+  "<": {
+    metaMethod: "__lt",
+    nativeImplementation: (a, b) => a < b,
+  },
+  "<=": {
+    metaMethod: "__le",
+    nativeImplementation: (a, b) => a <= b,
+  },
+  ">": {
+    nativeImplementation: (a, b) => !luaOp("<=", a, b),
+  },
+  ">=": {
+    nativeImplementation: (a, b) => !luaOp("<", a, b),
+  },
+  and: {
+    metaMethod: "__and",
+    nativeImplementation: (a, b) => a && b,
+  },
+  or: {
+    metaMethod: "__or",
+    nativeImplementation: (a, b) => a || b,
+  },
+};
+
 function luaOp(op: string, left: any, right: any): any {
-  switch (op) {
-    case "+":
-      return left + right;
-    case "-":
-      return left - right;
-    case "*":
-      return left * right;
-    case "/":
-      return left / right;
-    case "//":
-      return Math.floor(left / right);
-    case "%":
-      return left % right;
-    case "^":
-      return left ** right;
-    case "..":
-      return luaToString(left) + luaToString(right);
-    case "==":
-      return left === right;
-    case "~=":
-    case "!=":
-    case "/=":
-      return left !== right;
-    case "<":
-      return left < right;
-    case "<=":
-      return left <= right;
-    case ">":
-      return left > right;
-    case ">=":
-      return left >= right;
-    case "and":
-      return left && right;
-    case "or":
-      return left || right;
-    default:
-      throw new Error(`Unknown operator ${op}`);
+  const operatorHandler = operatorsMetaMethods[op];
+  if (!operatorHandler) {
+    throw new Error(`Unknown operator ${op}`);
   }
+  if (operatorHandler.metaMethod) {
+    if (left?.metatable?.has(operatorHandler.metaMethod)) {
+      const fn = left.metatable.get(operatorHandler.metaMethod);
+      if (!fn.call) {
+        throw new Error(
+          `Meta method ${operatorHandler.metaMethod} is not callable`,
+        );
+      } else {
+        return fn.call(left, right);
+      }
+    } else if (right?.metatable?.has(operatorHandler.metaMethod)) {
+      const fn = right.metatable.get(operatorHandler.metaMethod);
+      if (!fn.call) {
+        throw new Error(
+          `Meta method ${operatorHandler.metaMethod} is not callable`,
+        );
+      } else {
+        return fn.call(right, left);
+      }
+    }
+  }
+  return operatorHandler.nativeImplementation(left, right);
+}
+
+async function evalExpressions(
+  es: LuaExpression[],
+  env: LuaEnv,
+): Promise<LuaValue[]> {
+  return new LuaMultiRes(
+    await Promise.all(es.map((e) => evalExpression(e, env))),
+  ).flatten().values;
 }
 
 export async function evalStatement(
@@ -324,9 +438,7 @@ export async function evalStatement(
 ): Promise<void> {
   switch (s.type) {
     case "Assignment": {
-      const values = await evalPromiseValues(
-        s.expressions.map((value) => evalExpression(value, env)),
-      );
+      const values = await evalExpressions(s.expressions, env);
       const lvalues = await evalPromiseValues(s.variables
         .map((lval) => evalLValue(lval, env)));
 
@@ -337,12 +449,14 @@ export async function evalStatement(
       break;
     }
     case "Local": {
-      for (let i = 0; i < s.names.length; i++) {
-        if (!s.expressions || s.expressions[i] === undefined) {
+      if (s.expressions) {
+        const values = await evalExpressions(s.expressions, env);
+        for (let i = 0; i < s.names.length; i++) {
+          env.setLocal(s.names[i].name, values[i]);
+        }
+      } else {
+        for (let i = 0; i < s.names.length; i++) {
           env.setLocal(s.names[i].name, null);
-        } else {
-          const value = await evalExpression(s.expressions[i], env);
-          env.setLocal(s.names[i].name, value);
         }
       }
       break;
@@ -480,7 +594,7 @@ export async function evalStatement(
         console.error("Cannot iterate over", iteratorMultiRes.values[0]);
         throw new LuaRuntimeError(
           `Cannot iterate over ${iteratorMultiRes.values[0]}`,
-          s,
+          s.ctx,
         );
       }
 
@@ -512,8 +626,6 @@ export async function evalStatement(
       }
       break;
     }
-      // default:
-      //   throw new Error(`Unknown statement type ${s.type}`);
   }
 }
 

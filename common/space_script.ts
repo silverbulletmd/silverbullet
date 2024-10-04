@@ -11,6 +11,7 @@ import { evalStatement } from "$common/space_lua/eval.ts";
 import { jsToLuaValue } from "$common/space_lua/runtime.ts";
 import { LuaBuiltinFunction } from "$common/space_lua/runtime.ts";
 import { LuaTable } from "$common/space_lua/runtime.ts";
+import { parsePageRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 
 // @ts-ignore: Temporal polyfill
 Date.prototype.toTemporalInstant = toTemporalInstant;
@@ -153,16 +154,19 @@ export class ScriptEnvironment {
       ["space-lua", {}],
     );
     const env = new LuaEnv(luaBuildStandardEnv());
-    env.set(
-      "flash",
-      new LuaNativeJSFunction((...args) => {
-        if (system.registeredSyscalls.has("editor.flashNotification")) {
-          return system.localSyscall("editor.flashNotification", args);
-        } else {
-          console.log("[Flash]", ...args);
-        }
-      }),
-    );
+    // Expose all syscalls to Lua
+    for (const [tl, value] of system.registeredSyscalls.entries()) {
+      const [ns, fn] = tl.split(".");
+      if (!env.get(ns)) {
+        env.set(ns, new LuaTable());
+      }
+      env.get(ns).set(
+        fn,
+        new LuaNativeJSFunction((...args) => {
+          return value.callback({}, ...args);
+        }),
+      );
+    }
     const sbApi = new LuaTable();
     sbApi.set(
       "register_command",
@@ -173,8 +177,30 @@ export class ScriptEnvironment {
           }
           this.registerCommand(
             def.toJSObject() as any,
-            (...args: any[]) => {
-              return def.get(1).call(...args.map(jsToLuaValue));
+            async (...args: any[]) => {
+              try {
+                return await def.get(1).call(...args.map(jsToLuaValue));
+              } catch (e: any) {
+                console.error("Lua eval exception", e.message, e.context);
+                if (e.context && e.context.ref) {
+                  const pageRef = parsePageRef(e.context.ref);
+                  await system.localSyscall("editor.flashNotification", [
+                    `Lua error: ${e.message}`,
+                    "error",
+                  ]);
+                  await system.localSyscall("editor.flashNotification", [
+                    `Navigating to the place in the code where this error occurred in ${pageRef.page}`,
+                    "info",
+                  ]);
+                  await system.localSyscall("editor.navigate", [
+                    {
+                      page: pageRef.page,
+                      pos: pageRef.pos + e.context.from +
+                        "```space-lua\n".length,
+                    },
+                  ]);
+                }
+              }
             },
           );
         },
@@ -197,7 +223,7 @@ export class ScriptEnvironment {
     env.set("silverbullet", sbApi);
     for (const script of allScripts) {
       try {
-        const ast = parseLua(script.script);
+        const ast = parseLua(script.script, { ref: script.ref });
         await evalStatement(ast, env);
       } catch (e: any) {
         console.error(
