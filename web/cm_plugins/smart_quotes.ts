@@ -12,6 +12,7 @@ const straightQuoteContexts = [
   "Attribute",
   "CommandLink",
   "TemplateDirective",
+  "LuaDirective",
 ];
 
 // TODO: Add support for selection (put quotes around or create blockquote block?)

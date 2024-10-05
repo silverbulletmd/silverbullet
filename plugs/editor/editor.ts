@@ -77,6 +77,7 @@ export async function customFlashMessage(_def: any, message: string) {
 }
 
 export async function reloadSystem() {
+  await editor.save();
   await editor.reloadConfigAndCommands();
   await editor.flashNotification("Reloaded system");
 }

@@ -223,7 +223,7 @@ function evalPrefixExpression(
     case "Variable": {
       const value = env.get(e.name);
       if (value === undefined) {
-        throw new LuaRuntimeError(`Undefined variable ${e.name}`, e.ctx);
+        return null;
       } else {
         return value;
       }
@@ -234,17 +234,17 @@ function evalPrefixExpression(
       const obj = evalPrefixExpression(e.object, env);
       if (obj instanceof Promise) {
         return obj.then((obj) => {
-          if (!obj.get) {
+          if (!obj?.get) {
             throw new Error(
-              `Not a gettable object: ${obj}`,
+              `Attempting to index non-indexable object: ${obj}`,
             );
           }
           return obj.get(e.property);
         });
       } else {
-        if (!obj.get) {
+        if (!obj?.get) {
           throw new Error(
-            `Not a gettable object: ${obj}`,
+            `Attempting to index non-indexable object: ${obj}`,
           );
         }
         return obj.get(e.property);
@@ -253,18 +253,24 @@ function evalPrefixExpression(
     case "FunctionCall": {
       let prefixValue = evalPrefixExpression(e.prefix, env);
       if (!prefixValue) {
-        throw new LuaRuntimeError(`Calling nil function`, e.prefix.ctx);
+        throw new LuaRuntimeError(
+          `Attempting to call nil as a function`,
+          e.prefix.ctx,
+        );
       }
       if (prefixValue instanceof Promise) {
         return prefixValue.then((prefixValue) => {
           if (!prefixValue) {
-            throw new LuaRuntimeError(`Calling nil function`, e.prefix.ctx);
+            throw new LuaRuntimeError(
+              `Attempting to call a nil value`,
+              e.prefix.ctx,
+            );
           }
           let selfArgs: LuaValue[] = [];
           // Handling a:b() syntax (b is kept in .name)
           if (e.name && !prefixValue.get) {
             throw new LuaRuntimeError(
-              `Not a table: ${prefixValue}`,
+              `Attempting to index a non-table: ${prefixValue}`,
               e.prefix.ctx,
             );
           } else if (e.name) {
@@ -273,7 +279,10 @@ function evalPrefixExpression(
             prefixValue = prefixValue.get(e.name);
           }
           if (!prefixValue.call) {
-            throw new Error(`Not a function: ${prefixValue}`);
+            throw new LuaRuntimeError(
+              `Attempting to call ${prefixValue} as a function`,
+              prefixValue.ctx,
+            );
           }
           const args = evalPromiseValues(
             e.args.map((arg) => evalExpression(arg, env)),
@@ -289,7 +298,7 @@ function evalPrefixExpression(
         // Handling a:b() syntax (b is kept in .name)
         if (e.name && !prefixValue.get) {
           throw new LuaRuntimeError(
-            `Not a table: ${prefixValue}`,
+            `Attempting to index a non-table: ${prefixValue}`,
             e.prefix.ctx,
           );
         } else if (e.name) {
@@ -299,7 +308,7 @@ function evalPrefixExpression(
         }
         if (!prefixValue.call) {
           throw new LuaRuntimeError(
-            `Not a function: ${prefixValue}`,
+            `Attempting to call ${prefixValue} as a function`,
             e.prefix.ctx,
           );
         }

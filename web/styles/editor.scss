@@ -330,6 +330,14 @@
     cursor: pointer;
   }
 
+  .sb-lua-directive {
+    background-color: rgba(151, 151, 151, 0.1);
+    border: 1px solid #dfdcdc;
+    border-radius: 5px;
+    padding: 2px;
+  }
+
+
   a.sb-wiki-link-page-missing,
   .sb-wiki-link-page-missing>.sb-wiki-link-page {
     border-radius: 5px;

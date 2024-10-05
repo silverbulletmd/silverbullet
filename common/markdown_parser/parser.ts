@@ -311,6 +311,78 @@ const TemplateDirective: MarkdownConfig = {
   ],
 };
 
+const LuaDirectives: MarkdownConfig = {
+  defineNodes: [
+    { name: "LuaDirective" },
+    { name: "LuaExpressionDirective" },
+    { name: "LuaDirectiveMark", style: ct.DirectiveMarkTag },
+  ],
+  parseInline: [
+    {
+      name: "LuaDirective",
+      parse(cx, next, pos) {
+        const textFromPos = cx.slice(pos, cx.end);
+        if (
+          next !== 36 /* '$' */ ||
+          cx.slice(pos, pos + 2) !== "${"
+        ) {
+          return -1;
+        }
+
+        let bracketNestingDepth = 0;
+        let valueLength = 0;
+        // We need to ensure balanced { and } pairs
+        loopLabel:
+        for (; valueLength < textFromPos.length; valueLength++) {
+          switch (textFromPos[valueLength]) {
+            case "{":
+              bracketNestingDepth++;
+              break;
+            case "}":
+              bracketNestingDepth--;
+              if (bracketNestingDepth === 0) {
+                // Done!
+                break loopLabel;
+              }
+              break;
+          }
+        }
+        if (bracketNestingDepth !== 0) {
+          return -1;
+        }
+
+        const bodyText = textFromPos.slice(2, valueLength);
+        const endPos = pos + valueLength + 1;
+
+        // Let's parse as an expression
+        const parsedExpression = luaLanguage.parser.parse(`_(${bodyText})`);
+
+        const node = parsedExpression.resolveInner(2, 0).firstChild?.nextSibling
+          ?.nextSibling;
+
+        if (!node) {
+          return -1;
+        }
+        const bodyEl = cx.elt(
+          "LuaExpressionDirective",
+          pos + 2,
+          endPos - 1,
+          [cx.elt(node.toTree()!, pos + 2)],
+        );
+
+        return cx.addElement(
+          cx.elt("LuaDirective", pos, endPos, [
+            cx.elt("LuaDirectiveMark", pos, pos + 2),
+            bodyEl,
+            cx.elt("LuaDirectiveMark", endPos - 1, endPos),
+          ]),
+        );
+      },
+      after: "Emphasis",
+    },
+  ],
+};
+
 const HighlightDelim = { resolve: "Highlight", mark: "HighlightMark" };
 
 export const Highlight: MarkdownConfig = {
@@ -543,6 +615,7 @@ import { foldNodeProp } from "@codemirror/language";
 import { pWikiLinkRegex, tagRegex } from "$common/markdown_parser/constants.ts";
 import { parse } from "$common/markdown_parser/parse_tree.ts";
 import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
+import { luaLanguage } from "$common/space_lua/parse.ts";
 
 // FrontMatter parser
 
@@ -617,6 +690,7 @@ export const extendedMarkdownLanguage = markdown({
     Comment,
     Highlight,
     TemplateDirective,
+    LuaDirectives,
     Strikethrough,
     Table,
     NakedURL,

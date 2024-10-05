@@ -157,3 +157,8 @@ Deno.test("Test directive parser", () => {
   tree = parseMarkdown(letExample);
   assertEquals(renderToText(tree), letExample);
 });
+
+Deno.test("Test lua directive parser", () => {
+  const simpleExample = `Simple \${{a=}}`;
+  console.log(JSON.stringify(parseMarkdown(simpleExample), null, 2));
+});

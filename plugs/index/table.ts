@@ -35,7 +35,10 @@ function concatChildrenTexts(nodes: ParseTree[]): string {
 export async function indexTables({ name: pageName, tree }: IndexTreeEvent) {
   const result: ObjectValue<TableRowObject>[] = [];
 
-  collectNodesMatching(tree, (t) => !!t.type?.startsWith("Table")).forEach(
+  collectNodesMatching(
+    tree,
+    (t) => !!t.type?.startsWith("Table") && t.type !== "TableConstructor",
+  ).forEach(
     (table) => {
       const rows = collectNodesOfType(table, "TableRow");
       const header = collectNodesOfType(table, "TableHeader")[0]; //Use first header. As per markdown spec there can only be exactly one

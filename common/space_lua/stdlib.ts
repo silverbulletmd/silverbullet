@@ -4,12 +4,13 @@ import {
     LuaMultiRes,
     LuaNativeJSFunction,
     type LuaTable,
+    luaToString,
     luaTypeOf,
     type LuaValue,
 } from "$common/space_lua/runtime.ts";
 
-const printFunction = new LuaNativeJSFunction((...args) => {
-    console.log("[Lua]", ...args);
+const printFunction = new LuaBuiltinFunction((...args) => {
+    console.log("[Lua]", ...args.map(luaToString));
 });
 
 const assertFunction = new LuaNativeJSFunction(
@@ -54,8 +55,8 @@ const typeFunction = new LuaBuiltinFunction((value: LuaValue): string => {
     return luaTypeOf(value);
 });
 
-const tostringFunction = new LuaNativeJSFunction((value: any) => {
-    return String(value);
+const tostringFunction = new LuaBuiltinFunction((value: any) => {
+    return luaToString(value);
 });
 
 const tonumberFunction = new LuaNativeJSFunction((value: any) => {

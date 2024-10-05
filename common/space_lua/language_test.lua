@@ -197,3 +197,7 @@ assert(not deepCompare(
     { a = { 1, 2, 3 }, b = { 4, 5, 6 } },
     { a = { 1, 2, 3 }, b = { 4, 5, 7 } }
 ))
+
+-- String serialization
+assert(tostring({ 1, 2, 3 }) == "{1, 2, 3}")
+assert(tostring({ a = 1, b = 2 }) == "{a = 1, b = 2}")

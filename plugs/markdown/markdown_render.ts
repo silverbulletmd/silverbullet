@@ -518,6 +518,14 @@ function render(
         name: "sub",
         body: cleanTags(mapRender(t.children!)),
       };
+    case "LuaDirective":
+      return {
+        name: "span",
+        attrs: {
+          class: "sb-lua-directive",
+        },
+        body: renderToText(t),
+      };
 
     // Text
     case undefined:

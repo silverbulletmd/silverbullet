@@ -14,6 +14,7 @@ import { cleanCommandLinkPlugin } from "./command_link.ts";
 import { fencedCodePlugin } from "./fenced_code.ts";
 import { frontmatterPlugin } from "./frontmatter.ts";
 import { cleanEscapePlugin } from "./escapes.ts";
+import { luaDirectivePlugin } from "./lua_directive.ts";
 
 export function cleanModePlugins(client: Client) {
   return [
@@ -44,5 +45,6 @@ export function cleanModePlugins(client: Client) {
     cleanWikiLinkPlugin(client),
     cleanCommandLinkPlugin(client),
     cleanEscapePlugin(),
+    luaDirectivePlugin(client),
   ] as Extension[];
 }

@@ -54,6 +54,17 @@ export class LuaEnv implements ILuaSettable, ILuaGettable {
     }
     return undefined;
   }
+
+  /**
+   * Lists all keys in the environment including its parents
+   */
+  keys(): string[] {
+    const keys = Array.from(this.variables.keys());
+    if (this.parent) {
+      return keys.concat(this.parent.keys());
+    }
+    return keys;
+  }
 }
 
 export class LuaMultiRes {
@@ -179,15 +190,23 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     for (let i = 0; i < this.arrayPart.length; i++) {
       keys.push(i + 1);
     }
-    for (const key of Object.keys(this.stringKeys)) {
-      keys.push(key);
-    }
     if (this.otherKeys) {
       for (const key of this.otherKeys.keys()) {
         keys.push(key);
       }
     }
     return keys;
+  }
+
+  has(key: LuaValue) {
+    if (typeof key === "string") {
+      return this.stringKeys[key] !== undefined;
+    } else if (Number.isInteger(key) && key >= 1) {
+      return this.arrayPart[key - 1] !== undefined;
+    } else if (this.otherKeys) {
+      return this.otherKeys.has(key);
+    }
+    return false;
   }
 
   rawSet(key: LuaValue, value: LuaValue) {
@@ -203,17 +222,6 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     }
   }
 
-  has(key: LuaValue) {
-    if (typeof key === "string") {
-      return this.stringKeys[key] !== undefined;
-    } else if (Number.isInteger(key) && key >= 1) {
-      return this.arrayPart[key - 1] !== undefined;
-    } else if (this.otherKeys) {
-      return this.otherKeys.has(key);
-    }
-    return false;
-  }
-
   set(key: LuaValue, value: LuaValue): void {
     // New index handling for metatables
     if (this.metatable && this.metatable.has("__newindex") && !this.has(key)) {
@@ -227,23 +235,26 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     this.rawSet(key, value);
   }
 
-  get(key: LuaValue): LuaValue | undefined {
-    let value = null;
+  rawGet(key: LuaValue): LuaValue | null {
     if (typeof key === "string") {
-      value = this.stringKeys[key];
+      return this.stringKeys[key];
     } else if (Number.isInteger(key) && key >= 1) {
-      value = this.arrayPart[key - 1];
+      return this.arrayPart[key - 1];
     } else if (this.otherKeys) {
-      value = this.otherKeys.get(key);
+      return this.otherKeys.get(key);
     }
+  }
+
+  get(key: LuaValue): LuaValue | null {
+    const value = this.rawGet(key);
     if (value === undefined || value === null) {
       // Invoke the meta table
       if (this.metatable) {
         const metaValue = this.metatable.get("__index");
         if (metaValue.call) {
-          value = metaValue.call(this, key);
+          return metaValue.call(this, key);
         } else if (metaValue instanceof LuaTable) {
-          value = metaValue.get(key);
+          return metaValue.get(key);
         } else {
           throw new Error("Meta table __index must be a function or table");
         }
@@ -261,6 +272,38 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     for (const i in this.arrayPart) {
       result[parseInt(i) + 1] = this.arrayPart[i];
     }
+    return result;
+  }
+
+  toString(): string {
+    if (this.metatable?.has("__tostring")) {
+      const metaValue = this.metatable.get("__tostring");
+      if (metaValue.call) {
+        return metaValue.call(this);
+      } else {
+        throw new Error("Meta table __tostring must be a function");
+      }
+    }
+    let result = "{";
+    let first = true;
+    for (const key of this.keys()) {
+      if (first) {
+        first = false;
+      } else {
+        result += ", ";
+      }
+      if (typeof key === "number") {
+        result += luaToString(this.get(key));
+        continue;
+      }
+      if (typeof key === "string") {
+        result += key;
+      } else {
+        result += "[" + key + "]";
+      }
+      result += " = " + luaToString(this.get(key));
+    }
+    result += "}";
     return result;
   }
 
@@ -364,11 +407,19 @@ export function luaTruthy(value: any): boolean {
 }
 
 export function luaToString(value: any): string {
-  // Implementation to be refined
+  if (value === null || value === undefined) {
+    return "nil";
+  }
+  if (value.toString) {
+    return value.toString();
+  }
   return String(value);
 }
 
 export function jsToLuaValue(value: any): any {
+  if (value instanceof Promise) {
+    return value.then(luaValueToJS);
+  }
   if (value instanceof LuaTable) {
     return value;
   } else if (Array.isArray(value)) {
@@ -381,6 +432,9 @@ export function jsToLuaValue(value: any): any {
 }
 
 export function luaValueToJS(value: any): any {
+  if (value instanceof Promise) {
+    return value.then(luaValueToJS);
+  }
   if (value instanceof LuaTable) {
     // This is a heuristic: if this table is used as an array, we return an array
     if (value.length > 0) {
