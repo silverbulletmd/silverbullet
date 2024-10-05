@@ -9,7 +9,10 @@ import {
 } from "./util.ts";
 import type { Client } from "../client.ts";
 import { parse } from "$common/space_lua/parse.ts";
-import { LuaBlock, LuaFunctionCallStatement } from "$common/space_lua/ast.ts";
+import type {
+  LuaBlock,
+  LuaFunctionCallStatement,
+} from "$common/space_lua/ast.ts";
 import { evalExpression } from "$common/space_lua/eval.ts";
 import { luaToString } from "$common/space_lua/runtime.ts";
 
