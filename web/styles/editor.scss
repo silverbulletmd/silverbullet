@@ -331,12 +331,12 @@
   }
 
   .sb-lua-directive {
-    background-color: rgba(151, 151, 151, 0.1);
-    border: 1px solid #dfdcdc;
-    border-radius: 5px;
+    background-color: rgb(233, 232, 232, 35%);
+    border: 1px #d3d3d373 solid;
+    /* box-shadow: #d1d1d1 0 0 4px; */
+    border-radius: 8px;
     padding: 2px;
   }
-
 
   a.sb-wiki-link-page-missing,
   .sb-wiki-link-page-missing>.sb-wiki-link-page {

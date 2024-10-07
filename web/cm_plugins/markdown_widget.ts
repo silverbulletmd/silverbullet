@@ -27,6 +27,7 @@ export class MarkdownWidget extends WidgetType {
     readonly bodyText: string,
     readonly codeWidgetCallback: CodeWidgetCallback,
     readonly className: string,
+    private tryInline = false,
   ) {
     super();
   }
@@ -91,6 +92,15 @@ export class MarkdownWidget extends WidgetType {
       return;
     }
 
+    if (this.tryInline) {
+      if (trimmedMarkdown.includes("\n")) {
+        // Heuristic that this is going to be a multi-line output and we should render this as a HTML block
+        div.style.display = "block";
+      } else {
+        div.style.display = "inline";
+      }
+    }
+
     // Parse the markdown again after trimming
     mdTree = parse(
       extendedMarkdownLanguage,
@@ -152,11 +162,15 @@ export class MarkdownWidget extends WidgetType {
     if (!html) {
       return "";
     }
-    return `<div class="button-bar">${
-      buttons.filter((button) => !button.widgetTarget).map((button, idx) =>
-        `<button data-button="${idx}" title="${button.description}">${button.svg}</button> `
-      ).join("")
-    }</div><div class="content">${html}</div>`;
+    if (buttons.length === 0) {
+      return html;
+    } else {
+      return `<div class="button-bar">${
+        buttons.filter((button) => !button.widgetTarget).map((button, idx) =>
+          `<button data-button="${idx}" title="${button.description}">${button.svg}</button> `
+        ).join("")
+      }</div><div class="content">${html}</div>`;
+    }
   }
 
   private attachListeners(div: HTMLElement, buttons?: CodeWidgetButton[]) {
