@@ -331,12 +331,56 @@ function parseExpList(t: ParseTree, ctx: ASTCtx): LuaExpression[] {
   );
 }
 
+// In case of quoted strings, remove the quotes and unescape the string
+// In case of a [[ type ]] literal string, remove the brackets
+function parseString(s: string): string {
+  if (s.startsWith("[[") && s.endsWith("]]")) {
+    return s.slice(2, -2);
+  }
+  return s.slice(1, -1).replace(
+    /\\(x[0-9a-fA-F]{2}|u\{[0-9a-fA-F]+\}|[abfnrtv\\'"n])/g,
+    (match, capture) => {
+      switch (capture) {
+        case "a":
+          return "\x07"; // Bell
+        case "b":
+          return "\b"; // Backspace
+        case "f":
+          return "\f"; // Form feed
+        case "n":
+          return "\n"; // Newline
+        case "r":
+          return "\r"; // Carriage return
+        case "t":
+          return "\t"; // Horizontal tab
+        case "v":
+          return "\v"; // Vertical tab
+        case "\\":
+          return "\\"; // Backslash
+        case '"':
+          return '"'; // Double quote
+        case "'":
+          return "'"; // Single quote
+        default:
+          // Handle hexadecimal \x00
+          if (capture.startsWith("x")) {
+            return String.fromCharCode(parseInt(capture.slice(1), 16));
+          }
+          // Handle unicode \u{XXXX}
+          if (capture.startsWith("u{")) {
+            const codePoint = parseInt(capture.slice(2, -1), 16);
+            return String.fromCodePoint(codePoint);
+          }
+          return match; // return the original match if nothing fits
+      }
+    },
+  );
+}
+
 function parseExpression(t: ParseTree, ctx: ASTCtx): LuaExpression {
   switch (t.type) {
     case "LiteralString": {
-      let cleanString = t.children![0].text!;
-      // Remove quotes etc
-      cleanString = cleanString.slice(1, -1);
+      const cleanString = parseString(t.children![0].text!);
       return {
         type: "String",
         value: cleanString,
@@ -506,22 +550,46 @@ function parseTableField(t: ParseTree, ctx: ASTCtx): LuaTableField {
       throw new Error(`Unknown table field type: ${t.type}`);
   }
 }
-
 function stripLuaComments(s: string): string {
   // Strips Lua comments (single-line and multi-line) and replaces them with equivalent length whitespace
   let result = "";
   let inString = false;
+  let inMultilineString = false;
   let inComment = false;
   let inMultilineComment = false;
 
   for (let i = 0; i < s.length; i++) {
-    // Handle string detection (to avoid stripping comments inside strings)
-    if (s[i] === '"' && !inComment && !inMultilineComment) {
+    // Handle string detection for single-line strings (to avoid stripping comments inside strings)
+    if (
+      s[i] === '"' && !inComment && !inMultilineComment && !inMultilineString
+    ) {
       inString = !inString;
     }
 
+    // Handle multi-line string literals (starting with "[[")
+    if (
+      !inString && !inComment && !inMultilineComment && s[i] === "[" &&
+      s[i + 1] === "["
+    ) {
+      inMultilineString = true;
+      result += "[["; // Copy "[[" into result
+      i += 1; // Skip over "[["
+      continue;
+    }
+
+    // Handle end of multi-line string literals (ending with "]]")
+    if (inMultilineString && s[i] === "]" && s[i + 1] === "]") {
+      inMultilineString = false;
+      result += "]]"; // Copy "]]" into result
+      i += 1; // Skip over "]]"
+      continue;
+    }
+
     // Handle single-line comments (starting with "--")
-    if (!inString && !inMultilineComment && s[i] === "-" && s[i + 1] === "-") {
+    if (
+      !inString && !inMultilineString && !inMultilineComment && s[i] === "-" &&
+      s[i + 1] === "-"
+    ) {
       if (s[i + 2] === "[" && s[i + 3] === "[") {
         // Detect multi-line comment start "--[["
         inMultilineComment = true;
@@ -546,9 +614,9 @@ function stripLuaComments(s: string): string {
       continue;
     }
 
-    // Replace comment content with spaces, or copy original content if not in comment
+    // Replace comment content with spaces, or copy original content if not in comment or multi-line string
     if (inComment || inMultilineComment) {
-      result += " "; // Replace comment characters with a space
+      result += " "; // Replace comment characters with spaces
     } else {
       result += s[i];
     }

@@ -31,7 +31,6 @@ export function evalExpression(
   try {
     switch (e.type) {
       case "String":
-        // TODO: Deal with escape sequences
         return e.value;
       case "Number":
         return e.value;

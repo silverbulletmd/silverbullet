@@ -240,7 +240,9 @@ export function cleanTree(tree: ParseTree, omitTrimmable = true): ParseTree {
   const parseErrorNodes = collectNodesOfType(tree, "⚠");
   if (parseErrorNodes.length > 0) {
     throw new Error(
-      `Parse error in: ${renderToText(tree)}`,
+      `Parse error (${parseErrorNodes[0].from}:${parseErrorNodes[0].to}): ${
+        renderToText(tree)
+      }`,
     );
   }
   if (tree.text !== undefined) {

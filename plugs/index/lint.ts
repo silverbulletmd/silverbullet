@@ -233,9 +233,19 @@ export async function lintLua({ tree }: LintEvent): Promise<LintDiagnostic[]> {
       try {
         await lua.parse(luaCode);
       } catch (e: any) {
+        const offset = codeText.from!;
+        let from = codeText.from!;
+        let to = codeText.to!;
+        if (e.message.includes("Parse error (")) {
+          const errorMatch = errorRegex.exec(e.message);
+          if (errorMatch) {
+            from = offset + parseInt(errorMatch[1], 10);
+            to = offset + parseInt(errorMatch[2], 10);
+          }
+        }
         diagnostics.push({
-          from: codeText.from!,
-          to: codeText.to!,
+          from,
+          to,
           severity: "error",
           message: e.message,
         });

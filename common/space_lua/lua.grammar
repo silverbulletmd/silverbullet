@@ -79,7 +79,7 @@ exp {
   UnaryExpression |
   TableConstructor |
   FunctionDef { kw<"function"> FuncBody }
-  /*|  Query*/
+  // |  Query
 }
 
 Query {
@@ -154,9 +154,7 @@ TableConstructor { "{" (field (fieldsep field)* fieldsep?)? "}" }
 @tokens {
   CompareOp { "<" | ">" | $[<>=~/!] "=" }
 
-
   TagIdentifier { @asciiLetter (@asciiLetter | @digit | "-" | "_" | "/" )* }
-
 
   word { (std.asciiLetter | "_") (std.digit | std.asciiLetter | "_")* }
 
@@ -165,11 +163,17 @@ TableConstructor { "{" (field (fieldsep field)* fieldsep?)? "}" }
   stringEscape {
     "\\" ($[abfnz"'\\] | digit digit? digit?) |
     "\\x" hex hex |
-    // NOTE: this should really be /[0-7]hex{5}/ at max, but that's annoying to write
     "\\u{" hex+ "}"
   }
 
-  simpleString { "'" (stringEscape | ![\r\n\\'])* "'" | '"' (stringEscape | ![\r\n\\"])* '"'}
+  // Any sequence of characters except two consecutive ]]
+  longStringContent { (![\]] | $[\]] ![\]])* }
+
+  simpleString {
+    "'" (stringEscape | ![\r\n\\'])* "'" |
+   '"' (stringEscape | ![\r\n\\"])* '"' |
+   '[[' longStringContent ']]'
+  }
 
   hex { $[0-9a-fA-F] }
   digit { std.digit }

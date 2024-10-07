@@ -11,6 +11,7 @@ Deno.test("Test Lua parser", () => {
   parse(
     `e(1, 1.2, -3.8, +4, #lst, true, false, nil, "string", "", "Hello there \x00", ...)`,
   );
+  parse(`e([[hel]lo]], "Grinny face\\u{1F600}")`);
 
   parse(`e(10 << 10, 10 >> 10, 10 & 10, 10 | 10, 10 ~ 10)`);
 
@@ -92,5 +93,8 @@ Deno.test("Test comment handling", () => {
         --[[ Multi
         line
         comment ]]
-        f()`);
+        f([[
+        hello
+        -- yo
+      ]])`);
 });

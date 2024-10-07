@@ -8,17 +8,25 @@ import {
   shouldRenderWidgets,
 } from "./util.ts";
 import type { Client } from "../client.ts";
-import { parse } from "$common/space_lua/parse.ts";
+import { parse as parseLua } from "$common/space_lua/parse.ts";
 import type {
   LuaBlock,
   LuaFunctionCallStatement,
 } from "$common/space_lua/ast.ts";
 import { evalExpression } from "$common/space_lua/eval.ts";
 import { luaToString } from "$common/space_lua/runtime.ts";
+import { parse as parseMarkdown } from "$common/markdown_parser/parse_tree.ts";
+import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
+import { renderMarkdownToHtml } from "../../plugs/markdown/markdown_render.ts";
+import {
+  isLocalPath,
+  resolvePath,
+} from "@silverbulletmd/silverbullet/lib/resolve";
 
 class LuaDirectiveWidget extends WidgetType {
   constructor(
     readonly code: string,
+    private client: Client,
   ) {
     super();
   }
@@ -38,13 +46,34 @@ class LuaDirectiveWidget extends WidgetType {
     const span = document.createElement("span");
     span.className = "sb-lua-directive";
     try {
-      const parsedLua = parse(`_(${this.code})`) as LuaBlock;
+      const parsedLua = parseLua(`_(${this.code})`) as LuaBlock;
       const expr =
         (parsedLua.statements[0] as LuaFunctionCallStatement).call.args[0];
 
       Promise.resolve(evalExpression(expr, client.clientSystem.spaceLuaEnv.env))
         .then((result) => {
-          span.innerText = luaToString(result);
+          const mdTree = parseMarkdown(
+            extendedMarkdownLanguage,
+            luaToString(result),
+          );
+
+          const html = renderMarkdownToHtml(mdTree, {
+            // Annotate every element with its position so we can use it to put
+            // the cursor there when the user clicks on the table.
+            annotationPositions: true,
+            translateUrls: (url) => {
+              if (isLocalPath(url)) {
+                url = resolvePath(
+                  this.client.currentPage,
+                  decodeURI(url),
+                );
+              }
+
+              return url;
+            },
+            preserveAttributes: true,
+          }, this.client.ui.viewState.allPages);
+          span.innerHTML = html;
         }).catch((e) => {
           console.error("Lua eval error", e);
           span.innerText = `Lua error: ${e.message}`;
@@ -81,7 +110,7 @@ export function luaDirectivePlugin(client: Client) {
 
         widgets.push(
           Decoration.widget({
-            widget: new LuaDirectiveWidget(text),
+            widget: new LuaDirectiveWidget(text, client),
           }).range(node.to),
         );
         widgets.push(invisibleDecoration.range(node.from, node.to));
