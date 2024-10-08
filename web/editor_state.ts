@@ -100,7 +100,9 @@ export function createEditorState(
         addKeymap: true,
       }),
       extendedMarkdownLanguage.data.of({
-        closeBrackets: { brackets: ["(", "{", "[", "`"] },
+        closeBrackets: {
+          brackets: client.config?.autoCloseBrackets.split(""),
+        },
       }),
       syntaxHighlighting(customMarkdownStyle()),
       autocompletion({
