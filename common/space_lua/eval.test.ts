@@ -1,5 +1,10 @@
 import { assertEquals } from "@std/assert/equals";
-import { LuaEnv, LuaNativeJSFunction, singleResult } from "./runtime.ts";
+import {
+  LuaEnv,
+  LuaNativeJSFunction,
+  luaValueToJS,
+  singleResult,
+} from "./runtime.ts";
 import { parse } from "./parse.ts";
 import type { LuaBlock, LuaFunctionCallStatement } from "./ast.ts";
 import { evalExpression, evalStatement } from "./eval.ts";
@@ -40,25 +45,24 @@ Deno.test("Evaluator test", async () => {
   assertEquals(tbl.get(1), 3);
   assertEquals(tbl.get(2), 1);
   assertEquals(tbl.get(3), 2);
-  assertEquals(tbl.toJSArray(), [3, 1, 2]);
+  assertEquals(luaValueToJS(tbl), [3, 1, 2]);
 
-  assertEquals(evalExpr(`{name=test("Zef"), age=100}`, env).toJSObject(), {
+  assertEquals(luaValueToJS(evalExpr(`{name=test("Zef"), age=100}`, env)), {
     name: "Zef",
     age: 100,
   });
 
   assertEquals(
-    (await evalExpr(`{name="Zef", age=asyncTest(100)}`, env)).toJSObject(),
+    luaValueToJS(await evalExpr(`{name="Zef", age=asyncTest(100)}`, env)),
     {
       name: "Zef",
       age: 100,
     },
   );
 
-  assertEquals(evalExpr(`{[3+2]=1, ["a".."b"]=2}`).toJSObject(), {
-    5: 1,
-    ab: 2,
-  });
+  const result = evalExpr(`{[3+2]=1, ["a".."b"]=2}`);
+  assertEquals(result.get(5), 1);
+  assertEquals(result.get("ab"), 2);
 
   assertEquals(evalExpr(`#{}`), 0);
   assertEquals(evalExpr(`#{1, 2, 3}`), 3);
@@ -104,7 +108,7 @@ Deno.test("Statement evaluation", async () => {
   const env3 = new LuaEnv();
   await evalBlock(`tbl = {1, 2, 3}`, env3);
   await evalBlock(`tbl[1] = 3`, env3);
-  assertEquals(env3.get("tbl").toJSArray(), [3, 2, 3]);
+  assertEquals(luaValueToJS(env3.get("tbl")), [3, 2, 3]);
   await evalBlock("tbl.name = 'Zef'", env3);
   assertEquals(env3.get("tbl").get("name"), "Zef");
   await evalBlock(`tbl[2] = {age=10}`, env3);

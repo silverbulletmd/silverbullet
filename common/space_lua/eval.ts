@@ -91,41 +91,11 @@ export function evalExpression(
           }
         }
       }
-      case "TableAccess": {
-        const values = evalPromiseValues([
-          evalPrefixExpression(e.object, env),
-          evalExpression(e.key, env),
-        ]);
-        if (values instanceof Promise) {
-          return values.then(([table, key]) =>
-            luaGet(singleResult(table), singleResult(key))
-          );
-        } else {
-          return luaGet(singleResult(values[0]), singleResult(values[1]));
-        }
-      }
-      case "PropertyAccess": {
-        const obj = evalPrefixExpression(e.object, env);
-        if (obj instanceof Promise) {
-          return obj.then((obj) => {
-            if (!obj.get) {
-              throw new Error(
-                `Not a gettable object: ${obj}`,
-              );
-            }
-            return obj.get(e.property);
-          });
-        } else {
-          if (!obj.get) {
-            throw new Error(
-              `Not a gettable object: ${obj}`,
-            );
-          }
-          return obj.get(e.property);
-        }
-      }
+
       case "Variable":
       case "FunctionCall":
+      case "TableAccess":
+      case "PropertyAccess":
         return evalPrefixExpression(e, env);
       case "TableConstructor": {
         const table = new LuaTable();
@@ -229,21 +199,66 @@ function evalPrefixExpression(
     }
     case "Parenthesized":
       return evalExpression(e.expression, env);
+    // <<expr>>[<<expr>>]
+    case "TableAccess": {
+      const values = evalPromiseValues([
+        evalPrefixExpression(e.object, env),
+        evalExpression(e.key, env),
+      ]);
+      if (values instanceof Promise) {
+        return values.then(([table, key]) => {
+          table = singleResult(table);
+          key = singleResult(key);
+          if (!table) {
+            throw new LuaRuntimeError(
+              `Attempting to index a nil value`,
+              e.object.ctx,
+            );
+          }
+          if (key === null || key === undefined) {
+            throw new LuaRuntimeError(
+              `Attempting to index with a nil key`,
+              e.key.ctx,
+            );
+          }
+          return luaGet(table, key);
+        });
+      } else {
+        const table = singleResult(values[0]);
+        const key = singleResult(values[1]);
+        if (!table) {
+          throw new LuaRuntimeError(
+            `Attempting to index a nil value`,
+            e.object.ctx,
+          );
+        }
+        if (key === null || key === undefined) {
+          throw new LuaRuntimeError(
+            `Attempting to index with a nil key`,
+            e.key.ctx,
+          );
+        }
+        return luaGet(table, singleResult(key));
+      }
+    }
+    // <expr>.property
     case "PropertyAccess": {
       const obj = evalPrefixExpression(e.object, env);
       if (obj instanceof Promise) {
         return obj.then((obj) => {
           if (!obj?.get) {
-            throw new Error(
-              `Attempting to index non-indexable object: ${obj}`,
+            throw new LuaRuntimeError(
+              `Attempting to index a nil value`,
+              e.object.ctx,
             );
           }
           return obj.get(e.property);
         });
       } else {
         if (!obj?.get) {
-          throw new Error(
-            `Attempting to index non-indexable object: ${obj}`,
+          throw new LuaRuntimeError(
+            `Attempting to index a nil value`,
+            e.object.ctx,
           );
         }
         return obj.get(e.property);
@@ -540,8 +555,9 @@ export async function evalStatement(
       for (let i = 0; i < propNames.length - 1; i++) {
         settable = settable.get(propNames[i]);
         if (!settable) {
-          throw new Error(
+          throw new LuaRuntimeError(
             `Cannot find property ${propNames[i]}`,
+            s.name.ctx,
           );
         }
       }
@@ -676,8 +692,9 @@ function evalLValue(
       if (objValue instanceof Promise) {
         return objValue.then((objValue) => {
           if (!objValue.set) {
-            throw new Error(
+            throw new LuaRuntimeError(
               `Not a settable object: ${objValue}`,
+              lval.object.ctx,
             );
           }
           return {
@@ -687,8 +704,9 @@ function evalLValue(
         });
       } else {
         if (!objValue.set) {
-          throw new Error(
+          throw new LuaRuntimeError(
             `Not a settable object: ${objValue}`,
+            lval.object.ctx,
           );
         }
         return {

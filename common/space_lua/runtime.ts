@@ -1,5 +1,6 @@
 import type { ASTCtx, LuaFunctionBody } from "./ast.ts";
 import { evalStatement } from "$common/space_lua/eval.ts";
+import { asyncQuickSort } from "$common/space_lua/util.ts";
 
 export type LuaType =
   | "nil"
@@ -17,6 +18,7 @@ export type JSValue = any;
 
 export interface ILuaFunction {
   call(...args: LuaValue[]): Promise<LuaValue> | LuaValue;
+  toString(): string;
 }
 
 export interface ILuaSettable {
@@ -79,8 +81,8 @@ export class LuaMultiRes {
   }
 
   unwrap(): any {
-    if (this.values.length !== 1) {
-      throw new Error("Cannot unwrap multiple values");
+    if (this.values.length === 0) {
+      return null;
     }
     return this.values[0];
   }
@@ -136,6 +138,10 @@ export class LuaFunction implements ILuaFunction {
       }
     });
   }
+
+  toString(): string {
+    return `<lua function(${this.body.parameters.join(", ")})>`;
+  }
 }
 
 export class LuaNativeJSFunction implements ILuaFunction {
@@ -151,6 +157,10 @@ export class LuaNativeJSFunction implements ILuaFunction {
       return jsToLuaValue(result);
     }
   }
+
+  toString(): string {
+    return `<native js function: ${this.fn.name}>`;
+  }
 }
 
 export class LuaBuiltinFunction implements ILuaFunction {
@@ -159,6 +169,10 @@ export class LuaBuiltinFunction implements ILuaFunction {
 
   call(...args: LuaValue[]): Promise<LuaValue> | LuaValue {
     return this.fn(...args);
+  }
+
+  toString(): string {
+    return `<builtin lua function>`;
   }
 }
 
@@ -173,10 +187,10 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
 
   public metatable: LuaTable | null;
 
-  constructor() {
+  constructor(init?: any[] | Record<string, any>) {
     // For efficiency and performance reasons we pre-allocate these (modern JS engines are very good at optimizing this)
-    this.stringKeys = {};
-    this.arrayPart = [];
+    this.arrayPart = Array.isArray(init) ? init : [];
+    this.stringKeys = init && !Array.isArray(init) ? init : {};
     this.otherKeys = null; // Only create this when needed
     this.metatable = null;
   }
@@ -263,16 +277,22 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     return value;
   }
 
-  toJSArray(): JSValue[] {
-    return this.arrayPart;
+  insert(value: LuaValue, pos: number) {
+    this.arrayPart.splice(pos - 1, 0, value);
   }
 
-  toJSObject(): Record<string, JSValue> {
-    const result = { ...this.stringKeys };
-    for (const i in this.arrayPart) {
-      result[parseInt(i) + 1] = this.arrayPart[i];
+  remove(pos: number) {
+    this.arrayPart.splice(pos - 1, 1);
+  }
+
+  async sort(fn?: ILuaFunction) {
+    if (fn) {
+      this.arrayPart = await asyncQuickSort(this.arrayPart, async (a, b) => {
+        return (await fn.call(a, b)) ? -1 : 1;
+      });
+    } else {
+      this.arrayPart.sort();
     }
-    return result;
   }
 
   toString(): string {
@@ -306,22 +326,6 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     result += "}";
     return result;
   }
-
-  static fromJSArray(arr: JSValue[]): LuaTable {
-    const table = new LuaTable();
-    for (let i = 0; i < arr.length; i++) {
-      table.set(i + 1, arr[i]);
-    }
-    return table;
-  }
-
-  static fromJSObject(obj: Record<string, JSValue>): LuaTable {
-    const table = new LuaTable();
-    for (const key in obj) {
-      table.set(key, obj[key]);
-    }
-    return table;
-  }
 }
 
 export type LuaLValueContainer = { env: ILuaSettable; key: LuaValue };
@@ -344,7 +348,7 @@ export function luaGet(obj: any, key: any): any {
 
 export function luaLen(obj: any): number {
   if (obj instanceof LuaTable) {
-    return obj.toJSArray().length;
+    return obj.length;
   } else if (Array.isArray(obj)) {
     return obj.length;
   } else {
@@ -365,7 +369,7 @@ export function luaTypeOf(val: any): LuaType {
     return "table";
   } else if (Array.isArray(val)) {
     return "table";
-  } else if (typeof val === "function") {
+  } else if (typeof val === "function" || val.call) {
     return "function";
   } else {
     return "userdata";
@@ -423,25 +427,50 @@ export function jsToLuaValue(value: any): any {
   if (value instanceof LuaTable) {
     return value;
   } else if (Array.isArray(value)) {
-    return LuaTable.fromJSArray(value.map(jsToLuaValue));
+    const table = new LuaTable();
+    for (let i = 0; i < value.length; i++) {
+      table.set(i + 1, jsToLuaValue(value[i]));
+    }
+    return table;
   } else if (typeof value === "object") {
-    return LuaTable.fromJSObject(value);
+    const table = new LuaTable();
+    for (const key in value) {
+      table.set(key, jsToLuaValue(value[key]));
+    }
+    return table;
+  } else if (typeof value === "function") {
+    return new LuaNativeJSFunction(value);
   } else {
     return value;
   }
 }
 
+// Inverse of jsToLuaValue
 export function luaValueToJS(value: any): any {
   if (value instanceof Promise) {
     return value.then(luaValueToJS);
   }
   if (value instanceof LuaTable) {
-    // This is a heuristic: if this table is used as an array, we return an array
+    // We'll go a bit on heuristics here
+    // If the table has a length > 0 we'll assume it's a pure array
+    // Otherwise we'll assume it's a pure object
     if (value.length > 0) {
-      return value.toJSArray();
+      const result = [];
+      for (let i = 0; i < value.length; i++) {
+        result.push(luaValueToJS(value.get(i + 1)));
+      }
+      return result;
     } else {
-      return value.toJSObject();
+      const result: Record<string, any> = {};
+      for (const key of value.keys()) {
+        result[key] = luaValueToJS(value.get(key));
+      }
+      return result;
     }
+  } else if (value instanceof LuaNativeJSFunction) {
+    return (...args: any[]) => {
+      return jsToLuaValue(value.fn(...args.map(luaValueToJS)));
+    };
   } else {
     return value;
   }

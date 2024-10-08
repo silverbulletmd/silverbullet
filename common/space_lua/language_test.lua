@@ -1,3 +1,9 @@
+local function assert_equal(a, b)
+    if a ~= b then
+        error("Assertion failed: " .. a .. " is not equal to " .. b)
+    end
+end
+
 -- Basic checks
 assert(true, "True is true")
 
@@ -17,6 +23,7 @@ assert("Hello " .. "world" == "Hello world")
 function f1()
     return 1
 end
+
 assert(f1() == 1)
 
 function sqr(a)
@@ -42,6 +49,7 @@ assert(apply(sqr, 3) == 9)
 function multi_return()
     return 1, 2
 end
+
 local a, b = multi_return()
 assert(a == 1 and b == 2)
 
@@ -201,3 +209,97 @@ assert(not deepCompare(
 -- String serialization
 assert(tostring({ 1, 2, 3 }) == "{1, 2, 3}")
 assert(tostring({ a = 1, b = 2 }) == "{a = 1, b = 2}")
+
+-- Error handling
+local status, err = pcall(function()
+    error("This is an error")
+end)
+
+assert(not status)
+assert(err == "This is an error")
+
+local status, err = xpcall(function()
+    error("This is an error")
+end, function(err)
+    return "Caught error: " .. err
+end)
+
+assert(not status)
+assert_equal(err, "Caught error: This is an error")
+
+-- ipairs
+local p = ipairs({ 3, 2, 1 })
+local idx, value = p()
+assert(idx == 1 and value == 3)
+idx, value = p()
+assert(idx == 2 and value == 2)
+idx, value = p()
+assert(idx == 3 and value == 1)
+idx, value = p()
+assert(idx == nil and value == nil)
+
+for index, value in ipairs({ 1, 2, 3 }) do
+    assert(index == value)
+end
+
+-- pairs
+local p = pairs({ a = 1, b = 2, c = 3 })
+local key, value = p()
+assert(key == "a" and value == 1)
+key, value = p()
+assert(key == "b" and value == 2)
+key, value = p()
+assert(key == "c" and value == 3)
+key, value = p()
+assert(key == nil and value == nil)
+for key, value in pairs({ a = "a", b = "b" }) do
+    assert_equal(key, value)
+end
+
+-- type
+assert(type(1) == "number")
+assert(type("Hello") == "string")
+assert(type({}) == "table")
+assert(type(nil) == "nil")
+assert(type(true) == "boolean")
+assert_equal(type(function() end), "function")
+
+-- string functions
+assert(string.len("Hello") == 5)
+assert(string.byte("Hello", 1) == 72)
+assert(string.char(72) == "H")
+assert(string.find("Hello", "l") == 3)
+assert(string.format("Hello %s", "world") == "Hello world")
+assert(string.rep("Hello", 3) == "HelloHelloHello")
+assert(string.sub("Hello", 2, 4) == "ell")
+assert(string.upper("Hello") == "HELLO")
+assert(string.lower("Hello") == "hello")
+
+-- table functions
+local t = { 1, 2, 3 }
+table.insert(t, 4)
+assert_equal(t[4], 4)
+table.remove(t, 1)
+assert_equal(t[1], 2)
+table.insert(t, 1, 1)
+assert_equal(t[1], 1)
+assert_equal(table.concat({ "Hello", "world" }, " "), "Hello world")
+
+local t = { 3, 1, 2 }
+table.sort(t)
+assert_equal(t[1], 1)
+assert_equal(t[2], 2)
+assert_equal(t[3], 3)
+table.sort(t, function(a, b)
+    return a > b
+end)
+assert_equal(t[1], 3)
+assert_equal(t[2], 2)
+assert_equal(t[3], 1)
+
+local data = { { name = "John", age = 30 }, { name = "Jane", age = 25 } }
+table.sort(data, function(a, b)
+    return a.age < b.age
+end)
+assert_equal(data[1].name, "Jane")
+assert_equal(data[2].name, "John")

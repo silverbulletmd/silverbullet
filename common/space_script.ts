@@ -4,14 +4,6 @@ import type { ScriptObject } from "../plugs/index/script.ts";
 import type { AppCommand, CommandDef } from "$lib/command.ts";
 import { Intl, Temporal, toTemporalInstant } from "@js-temporal/polyfill";
 import * as syscalls from "@silverbulletmd/silverbullet/syscalls";
-import { LuaEnv, LuaNativeJSFunction } from "$common/space_lua/runtime.ts";
-import { luaBuildStandardEnv } from "$common/space_lua/stdlib.ts";
-import { parse as parseLua } from "$common/space_lua/parse.ts";
-import { evalStatement } from "$common/space_lua/eval.ts";
-import { jsToLuaValue } from "$common/space_lua/runtime.ts";
-import { LuaBuiltinFunction } from "$common/space_lua/runtime.ts";
-import { LuaTable } from "$common/space_lua/runtime.ts";
-import { parsePageRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 
 // @ts-ignore: Temporal polyfill
 Date.prototype.toTemporalInstant = toTemporalInstant;
@@ -145,92 +137,5 @@ export class ScriptEnvironment {
     for (const script of allScripts) {
       this.evalScript(script.script, system);
     }
-    return this.loadLuaFromSystem(system);
-  }
-
-  async loadLuaFromSystem(system: System<any>) {
-    const allScripts: ScriptObject[] = await system.invokeFunction(
-      "index.queryObjects",
-      ["space-lua", {}],
-    );
-    const env = new LuaEnv(luaBuildStandardEnv());
-    // Expose all syscalls to Lua
-    for (const [tl, value] of system.registeredSyscalls.entries()) {
-      const [ns, fn] = tl.split(".");
-      if (!env.get(ns)) {
-        env.set(ns, new LuaTable());
-      }
-      env.get(ns).set(
-        fn,
-        new LuaNativeJSFunction((...args) => {
-          return value.callback({}, ...args);
-        }),
-      );
-    }
-    const sbApi = new LuaTable();
-    sbApi.set(
-      "register_command",
-      new LuaBuiltinFunction(
-        (def: LuaTable) => {
-          if (def.get(1) === undefined) {
-            throw new Error("Callback is required");
-          }
-          this.registerCommand(
-            def.toJSObject() as any,
-            async (...args: any[]) => {
-              try {
-                return await def.get(1).call(...args.map(jsToLuaValue));
-              } catch (e: any) {
-                console.error("Lua eval exception", e.message, e.context);
-                if (e.context && e.context.ref) {
-                  const pageRef = parsePageRef(e.context.ref);
-                  await system.localSyscall("editor.flashNotification", [
-                    `Lua error: ${e.message}`,
-                    "error",
-                  ]);
-                  await system.localSyscall("editor.flashNotification", [
-                    `Navigating to the place in the code where this error occurred in ${pageRef.page}`,
-                    "info",
-                  ]);
-                  await system.localSyscall("editor.navigate", [
-                    {
-                      page: pageRef.page,
-                      pos: pageRef.pos + e.context.from +
-                        "```space-lua\n".length,
-                    },
-                  ]);
-                }
-              }
-            },
-          );
-        },
-      ),
-    );
-    sbApi.set(
-      "register_function",
-      new LuaBuiltinFunction((def: LuaTable) => {
-        if (def.get(1) === undefined) {
-          throw new Error("Callback is required");
-        }
-        this.registerFunction(
-          def.toJSObject() as any,
-          (...args: any[]) => {
-            return def.get(1).call(...args.map(jsToLuaValue));
-          },
-        );
-      }),
-    );
-    env.set("silverbullet", sbApi);
-    for (const script of allScripts) {
-      try {
-        const ast = parseLua(script.script, { ref: script.ref });
-        await evalStatement(ast, env);
-      } catch (e: any) {
-        console.error(
-          `Error evaluating script: ${e.message} for script: ${script.script}`,
-        );
-      }
-    }
-    console.log("Loaded", allScripts.length, "Lua scripts");
   }
 }

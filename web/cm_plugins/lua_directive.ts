@@ -15,6 +15,9 @@ import type {
 } from "$common/space_lua/ast.ts";
 import { evalExpression } from "$common/space_lua/eval.ts";
 import { MarkdownWidget } from "./markdown_widget.ts";
+import { LuaRuntimeError } from "$common/space_lua/runtime.ts";
+import { encodePageRef } from "@silverbulletmd/silverbullet/lib/page_ref";
+import { resolveASTReference } from "$common/space_lua.ts";
 
 export function luaDirectivePlugin(client: Client) {
   return decoratorStateField((state: EditorState) => {
@@ -58,7 +61,19 @@ export function luaDirectivePlugin(client: Client) {
                     markdown: "" + result,
                   };
                 } catch (e: any) {
-                  console.error("Lua eval error", e);
+                  if (e instanceof LuaRuntimeError) {
+                    if (e.context.ref) {
+                      const source = resolveASTReference(e.context);
+                      if (source) {
+                        // We know the origin node of the error, let's reference it
+                        return {
+                          markdown: `**Lua error:** ${e.message} (Origin: [[${
+                            encodePageRef(source)
+                          }]])`,
+                        };
+                      }
+                    }
+                  }
                   return {
                     markdown: `**Lua error:** ${e.message}`,
                   };

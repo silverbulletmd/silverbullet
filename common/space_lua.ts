@@ -4,6 +4,7 @@ import {
   LuaEnv,
   LuaFunction,
   LuaNativeJSFunction,
+  LuaRuntimeError,
 } from "$common/space_lua/runtime.ts";
 import { luaBuildStandardEnv } from "$common/space_lua/stdlib.ts";
 import { parse as parseLua } from "$common/space_lua/parse.ts";
@@ -11,9 +12,13 @@ import { evalStatement } from "$common/space_lua/eval.ts";
 import { jsToLuaValue } from "$common/space_lua/runtime.ts";
 import { LuaBuiltinFunction } from "$common/space_lua/runtime.ts";
 import { LuaTable } from "$common/space_lua/runtime.ts";
-import { parsePageRef } from "@silverbulletmd/silverbullet/lib/page_ref";
+import {
+  type PageRef,
+  parsePageRef,
+} from "@silverbulletmd/silverbullet/lib/page_ref";
 import type { ScriptEnvironment } from "$common/space_script.ts";
 import { luaValueToJS } from "$common/space_lua/runtime.ts";
+import type { ASTCtx } from "$common/space_lua/ast.ts";
 
 export class SpaceLuaEnvironment {
   env: LuaEnv = new LuaEnv();
@@ -53,7 +58,7 @@ export class SpaceLuaEnvironment {
             throw new Error("Callback is required");
           }
           scriptEnv.registerCommand(
-            def.toJSObject() as any,
+            luaValueToJS(def) as any,
             async (...args: any[]) => {
               try {
                 return await def.get(1).call(...args.map(jsToLuaValue));
@@ -93,6 +98,15 @@ export class SpaceLuaEnvironment {
         const scriptEnv = new LuaEnv(env);
         await evalStatement(ast, scriptEnv);
       } catch (e: any) {
+        if (e instanceof LuaRuntimeError) {
+          const origin = resolveASTReference(e.context);
+          if (origin) {
+            console.error(
+              `Error evaluating script: ${e.message} at [[${origin.page}@${origin.pos}]]`,
+            );
+            continue;
+          }
+        }
         console.error(
           `Error evaluating script: ${e.message} for script: ${script.script}`,
         );
@@ -110,4 +124,15 @@ export class SpaceLuaEnvironment {
     }
     console.log("Loaded", allScripts.length, "Lua scripts");
   }
+}
+
+export function resolveASTReference(ctx?: ASTCtx): PageRef | null {
+  if (!ctx?.ref) {
+    return null;
+  }
+  const pageRef = parsePageRef(ctx.ref);
+  return {
+    page: pageRef.page,
+    pos: (pageRef.pos as number) + "```space-lua\n".length + ctx.from!,
+  };
 }
