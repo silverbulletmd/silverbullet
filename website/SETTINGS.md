@@ -58,6 +58,8 @@ shortcuts:
 
 # Toggles between “smart” ‘quotes’ (left and right) and "simple" 'quotes' (good ol' ASCII)
 useSmartQuotes: true
+# Choose which characters to auto-close
+autoCloseBrackets: "([{`"
 
 # Defines files to ignore in a format compatible with .gitignore
 spaceIgnore: |

@@ -43,6 +43,7 @@ export type Config = {
   // Format: compatible with docker ignore
   spaceIgnore?: string;
   emoji?: EmojiConfig;
+  autoCloseBrackets: string;
 
   schema: SchemaConfig;
 
@@ -64,6 +65,7 @@ export const defaultConfig: Config = {
   maximumAttachmentSize: 10, // MiB
   defaultLinkStyle: "wikilink", // wikilink [[]] or markdown []()
   actionButtons: [], // Actually defaults to defaultActionButtons
+  autoCloseBrackets: "([{`",
 
   schema: {
     config: {
