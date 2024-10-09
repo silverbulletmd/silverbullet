@@ -331,11 +331,15 @@ function parseExpList(t: ParseTree, ctx: ASTCtx): LuaExpression[] {
   );
 }
 
+const delimiterRegex = /^(\[=*\[)([\s\S]*)(\]=*\])$/;
+
 // In case of quoted strings, remove the quotes and unescape the string
 // In case of a [[ type ]] literal string, remove the brackets
 function parseString(s: string): string {
-  if (s.startsWith("[[") && s.endsWith("]]")) {
-    return s.slice(2, -2);
+  // Handle long strings with delimiters
+  const delimiterMatch = s.match(delimiterRegex);
+  if (delimiterMatch) {
+    return delimiterMatch[2];
   }
   return s.slice(1, -1).replace(
     /\\(x[0-9a-fA-F]{2}|u\{[0-9a-fA-F]+\}|[abfnrtv\\'"n])/g,

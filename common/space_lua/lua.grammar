@@ -168,11 +168,16 @@ TableConstructor { "{" (field (fieldsep field)* fieldsep?)? "}" }
 
   // Any sequence of characters except two consecutive ]]
   longStringContent { (![\]] | $[\]] ![\]])* }
+  
+  longDelimStringContent {
+    (![\]] | $[\]] ![=]+ ![\]])*
+  }
 
   simpleString {
     "'" (stringEscape | ![\r\n\\'])* "'" |
    '"' (stringEscape | ![\r\n\\"])* '"' |
-   '[[' longStringContent ']]'
+   '[[' longStringContent ']]' |
+   '[' '='+ '[' longDelimStringContent ']' '='+ ']'
   }
 
   hex { $[0-9a-fA-F] }

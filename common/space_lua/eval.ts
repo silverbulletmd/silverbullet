@@ -4,6 +4,7 @@ import type {
   LuaStatement,
 } from "$common/space_lua/ast.ts";
 import { evalPromiseValues } from "$common/space_lua/util.ts";
+import { luaCall, luaSet } from "$common/space_lua/runtime.ts";
 import {
   type ILuaFunction,
   type ILuaGettable,
@@ -209,36 +210,13 @@ function evalPrefixExpression(
         return values.then(([table, key]) => {
           table = singleResult(table);
           key = singleResult(key);
-          if (!table) {
-            throw new LuaRuntimeError(
-              `Attempting to index a nil value`,
-              e.object.ctx,
-            );
-          }
-          if (key === null || key === undefined) {
-            throw new LuaRuntimeError(
-              `Attempting to index with a nil key`,
-              e.key.ctx,
-            );
-          }
-          return luaGet(table, key);
+
+          return luaGet(table, key, e.ctx);
         });
       } else {
         const table = singleResult(values[0]);
         const key = singleResult(values[1]);
-        if (!table) {
-          throw new LuaRuntimeError(
-            `Attempting to index a nil value`,
-            e.object.ctx,
-          );
-        }
-        if (key === null || key === undefined) {
-          throw new LuaRuntimeError(
-            `Attempting to index with a nil key`,
-            e.key.ctx,
-          );
-        }
-        return luaGet(table, singleResult(key));
+        return luaGet(table, singleResult(key), e.ctx);
       }
     }
     // <expr>.property
@@ -246,22 +224,10 @@ function evalPrefixExpression(
       const obj = evalPrefixExpression(e.object, env);
       if (obj instanceof Promise) {
         return obj.then((obj) => {
-          if (!obj?.get) {
-            throw new LuaRuntimeError(
-              `Attempting to index a nil value`,
-              e.object.ctx,
-            );
-          }
-          return obj.get(e.property);
+          return luaGet(obj, e.property, e.ctx);
         });
       } else {
-        if (!obj?.get) {
-          throw new LuaRuntimeError(
-            `Attempting to index a nil value`,
-            e.object.ctx,
-          );
-        }
-        return obj.get(e.property);
+        return luaGet(obj, e.property, e.ctx);
       }
     }
     case "FunctionCall": {
@@ -295,16 +261,18 @@ function evalPrefixExpression(
           if (!prefixValue.call) {
             throw new LuaRuntimeError(
               `Attempting to call ${prefixValue} as a function`,
-              prefixValue.ctx,
+              e.prefix.ctx,
             );
           }
           const args = evalPromiseValues(
             e.args.map((arg) => evalExpression(arg, env)),
           );
           if (args instanceof Promise) {
-            return args.then((args) => prefixValue.call(...selfArgs, ...args));
+            return args.then((args) =>
+              luaCall(prefixValue, [...selfArgs, ...args], e.ctx)
+            );
           } else {
-            return prefixValue.call(...selfArgs, ...args);
+            return luaCall(prefixValue, [...selfArgs, ...args], e.ctx);
           }
         });
       } else {
@@ -330,9 +298,11 @@ function evalPrefixExpression(
           e.args.map((arg) => evalExpression(arg, env)),
         );
         if (args instanceof Promise) {
-          return args.then((args) => prefixValue.call(...selfArgs, ...args));
+          return args.then((args) =>
+            luaCall(prefixValue, [...selfArgs, ...args], e.ctx)
+          );
         } else {
-          return prefixValue.call(...selfArgs, ...args);
+          return luaCall(prefixValue, [...selfArgs, ...args], e.ctx);
         }
       }
     }
@@ -466,7 +436,7 @@ export async function evalStatement(
         .map((lval) => evalLValue(lval, env)));
 
       for (let i = 0; i < lvalues.length; i++) {
-        lvalues[i].env.set(lvalues[i].key, values[i]);
+        luaSet(lvalues[i].env, lvalues[i].key, values[i], s.ctx);
       }
 
       break;
@@ -691,24 +661,12 @@ function evalLValue(
       );
       if (objValue instanceof Promise) {
         return objValue.then((objValue) => {
-          if (!objValue.set) {
-            throw new LuaRuntimeError(
-              `Not a settable object: ${objValue}`,
-              lval.object.ctx,
-            );
-          }
           return {
             env: objValue,
             key: lval.property,
           };
         });
       } else {
-        if (!objValue.set) {
-          throw new LuaRuntimeError(
-            `Not a settable object: ${objValue}`,
-            lval.object.ctx,
-          );
-        }
         return {
           env: objValue,
           key: lval.property,

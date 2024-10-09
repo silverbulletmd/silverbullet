@@ -49,16 +49,16 @@ export class SpaceLuaEnvironment {
         }),
       );
     }
-    const sbApi = new LuaTable();
-    sbApi.set(
-      "register_command",
+    env.set(
+      "command",
       new LuaBuiltinFunction(
         (def: LuaTable) => {
           if (def.get(1) === undefined) {
             throw new Error("Callback is required");
           }
+          console.log("Registering Lua command", def.get("name"));
           scriptEnv.registerCommand(
-            luaValueToJS(def) as any,
+            def.toJSObject() as any,
             async (...args: any[]) => {
               try {
                 return await def.get(1).call(...args.map(jsToLuaValue));
@@ -90,7 +90,6 @@ export class SpaceLuaEnvironment {
       ),
     );
 
-    env.set("silverbullet", sbApi);
     for (const script of allScripts) {
       try {
         const ast = parseLua(script.script, { ref: script.ref });

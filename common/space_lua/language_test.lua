@@ -16,8 +16,10 @@ local a = 1
 local b = 2
 assert(a + b == 3)
 
--- Basic string concatenation
+-- Basic string stuff
 assert("Hello " .. "world" == "Hello world")
+assert_equal([[Hello world]], "Hello world")
+assert_equal([==[Hello [[world]]!]==], "Hello [[world]]!")
 
 -- Various forms of function definitions
 function f1()
@@ -303,3 +305,7 @@ table.sort(data, function(a, b)
 end)
 assert_equal(data[1].name, "Jane")
 assert_equal(data[2].name, "John")
+
+-- os functions
+assert(os.time() > 0)
+assert(os.date("%Y-%m-%d", os.time({ year = 2020, month = 1, day = 1 })) == "2020-01-01")

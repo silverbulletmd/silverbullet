@@ -295,6 +295,14 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     }
   }
 
+  toJSObject(): Record<string, any> {
+    const result: Record<string, any> = {};
+    for (const key of this.keys()) {
+      result[key] = luaValueToJS(this.get(key));
+    }
+    return result;
+  }
+
   toString(): string {
     if (this.metatable?.has("__tostring")) {
       const metaValue = this.metatable.get("__tostring");
@@ -330,17 +338,39 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
 
 export type LuaLValueContainer = { env: ILuaSettable; key: LuaValue };
 
-export function luaSet(obj: any, key: any, value: any) {
-  if (obj instanceof LuaTable) {
+export function luaSet(obj: any, key: any, value: any, ctx: ASTCtx) {
+  if (!obj) {
+    throw new LuaRuntimeError(
+      `Not a settable object: nil`,
+      ctx,
+    );
+  }
+
+  if (obj instanceof LuaTable || obj instanceof LuaEnv) {
     obj.set(key, value);
   } else {
     obj[key] = value;
   }
 }
 
-export function luaGet(obj: any, key: any): any {
-  if (obj instanceof LuaTable) {
+export function luaGet(obj: any, key: any, ctx: ASTCtx): any {
+  if (!obj) {
+    throw new LuaRuntimeError(
+      `Attempting to index a nil value`,
+      ctx,
+    );
+  }
+  if (key === null || key === undefined) {
+    throw new LuaRuntimeError(
+      `Attempting to index with a nil key`,
+      ctx,
+    );
+  }
+
+  if (obj instanceof LuaTable || obj instanceof LuaEnv) {
     return obj.get(key);
+  } else if (typeof key === "number") {
+    return obj[key - 1];
   } else {
     return obj[key];
   }
@@ -354,6 +384,21 @@ export function luaLen(obj: any): number {
   } else {
     return 0;
   }
+}
+
+export function luaCall(fn: any, args: any[], ctx: ASTCtx): any {
+  if (!fn) {
+    throw new LuaRuntimeError(
+      `Attempting to call a nil value`,
+      ctx,
+    );
+  }
+  if (typeof fn === "function") {
+    const jsArgs = args.map(luaValueToJS);
+    // Native JS function
+    return fn(...jsArgs);
+  }
+  return fn.call(...args);
 }
 
 export function luaTypeOf(val: any): LuaType {

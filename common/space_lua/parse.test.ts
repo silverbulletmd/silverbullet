@@ -12,6 +12,7 @@ Deno.test("Test Lua parser", () => {
     `e(1, 1.2, -3.8, +4, #lst, true, false, nil, "string", "", "Hello there \x00", ...)`,
   );
   parse(`e([[hel]lo]], "Grinny face\\u{1F600}")`);
+  parse(`e([=[Hello page [[index]] end scene]=], [[yo]])`);
 
   parse(`e(10 << 10, 10 >> 10, 10 & 10, 10 | 10, 10 ~ 10)`);
 

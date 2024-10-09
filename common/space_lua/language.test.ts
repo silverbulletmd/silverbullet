@@ -21,7 +21,7 @@ Deno.test("Lua language tests", async () => {
 });
 
 function toPrettyString(err: LuaRuntimeError, code: string): string {
-    if (!err.context.from || !err.context.to) {
+    if (!err.context || !err.context.from || !err.context.to) {
         return err.toString();
     }
     const from = err.context.from;
