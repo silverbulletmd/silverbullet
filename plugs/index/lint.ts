@@ -191,7 +191,7 @@ async function lintYaml(
         };
       }
     }
-  } catch (e) {
+  } catch (e: any) {
     const errorMatch = errorRegex.exec(e.message);
     if (errorMatch) {
       console.log("YAML error", e.message);

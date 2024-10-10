@@ -91,7 +91,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
       );
     },
     "editor.goHistory": (_ctx, delta: number) => {
-      window.history.go(delta);
+      globalThis.history.go(delta);
     },
     "editor.downloadFile": (_ctx, filename: string, dataUrl: string) => {
       const link = document.createElement("a");

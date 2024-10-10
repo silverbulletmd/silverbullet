@@ -52,7 +52,7 @@ export async function syncCommand(
       snapshot = new Map(
         Object.entries(JSON.parse(await Deno.readTextFile(options.snapshot))),
       );
-    } catch (e) {
+    } catch (e: any) {
       console.warn(
         "Failed to read snapshot file",
         e.message,

@@ -32,12 +32,12 @@ class InlineContentWidget extends WidgetType {
     super();
   }
 
-  eq(other: InlineContentWidget) {
+  override eq(other: InlineContentWidget) {
     return other.url === this.url && other.title === this.title &&
       JSON.stringify(other.dim) === JSON.stringify(this.dim);
   }
 
-  get estimatedHeight(): number {
+  override get estimatedHeight(): number {
     const cachedHeight = this.client.getCachedWidgetHeight(
       `content:${this.url}`,
     );

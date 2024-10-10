@@ -21,7 +21,7 @@ export class FallbackSpacePrimitives implements SpacePrimitives {
   async readFile(name: string): Promise<{ data: Uint8Array; meta: FileMeta }> {
     try {
       return await this.primary.readFile(name);
-    } catch (e) {
+    } catch (e: any) {
       if (e.message === "Not found") {
         console.info("Reading file content from fallback for", name);
       } else {
@@ -58,7 +58,7 @@ export class FallbackSpacePrimitives implements SpacePrimitives {
       try {
         const meta = await this.fallback.getFileMeta(name);
         return { ...meta, noSync: true };
-      } catch (fallbackError) {
+      } catch (fallbackError: any) {
         console.error(
           "Error during getFileMeta fallback",
           fallbackError.message,

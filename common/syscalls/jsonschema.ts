@@ -35,7 +35,7 @@ export function jsonschemaSyscalls(): SysCallMapping {
           text = text.replace(/^data[\.\s]/, "");
           return text;
         }
-      } catch (e) {
+      } catch (e: any) {
         return e.message;
       }
     },

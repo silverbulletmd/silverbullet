@@ -433,14 +433,14 @@ export class LuaReturn extends Error {
 
 export class LuaRuntimeError extends Error {
   constructor(
-    readonly message: string,
+    override readonly message: string,
     public context: ASTCtx,
     cause?: Error,
   ) {
     super(message, cause);
   }
 
-  toString() {
+  override toString() {
     return `LuaRuntimeError: ${this.message} at ${this.context.from}, ${this.context.to}`;
   }
 }

@@ -58,18 +58,18 @@ export class PathPageNavigator {
     const cleanState = { ...currentState, pos: undefined, anchor: undefined };
     this.openPages.set(currentState.page || this.indexPage, cleanState);
     if (!replaceState) {
-      window.history.replaceState(
+      globalThis.history.replaceState(
         cleanState,
         "",
         `/${encodePageURI(currentState.page)}`,
       );
-      window.history.pushState(
+      globalThis.history.pushState(
         pageRef,
         "",
         `/${encodePageURI(pageRef.page)}`,
       );
     } else {
-      window.history.replaceState(
+      globalThis.history.replaceState(
         pageRef,
         "",
         `/${encodePageURI(pageRef.page)}`,

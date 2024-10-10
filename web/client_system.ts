@@ -63,7 +63,7 @@ export class ClientSystem extends CommonSystem {
       ds,
       eventHook,
       readOnlyMode,
-      window.silverBulletConfig.enableSpaceScript,
+      globalThis.silverBulletConfig.enableSpaceScript,
     );
     // Only set environment to "client" when running in thin client mode, otherwise we run everything locally (hybrid)
     this.system = new System(

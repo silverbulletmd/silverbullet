@@ -295,12 +295,12 @@ export class MarkdownWidget extends WidgetType {
     }
   }
 
-  get estimatedHeight(): number {
+  override get estimatedHeight(): number {
     const cacheItem = this.client.getWidgetCache(this.cacheKey);
     return cacheItem ? cacheItem.height : -1;
   }
 
-  eq(other: WidgetType): boolean {
+  override eq(other: WidgetType): boolean {
     return (
       other instanceof MarkdownWidget &&
       other.bodyText === this.bodyText && other.cacheKey === this.cacheKey

@@ -243,7 +243,7 @@ async function* walkPreserveSymlinks(
     if (dirEntry.isSymlink) {
       try {
         entry = await Deno.stat(fullPath);
-      } catch (e) {
+      } catch (e: any) {
         console.error("Error reading symlink", fullPath, e.message);
       }
     }

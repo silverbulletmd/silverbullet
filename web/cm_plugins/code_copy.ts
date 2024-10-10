@@ -20,7 +20,7 @@ class CodeCopyWidget extends WidgetType {
     super();
   }
 
-  eq(other: CodeCopyWidget) {
+  override eq(other: CodeCopyWidget) {
     return other.value == this.value;
   }
 
@@ -53,7 +53,7 @@ class CodeCopyWidget extends WidgetType {
     return wrap;
   }
 
-  ignoreEvent() {
+  override ignoreEvent() {
     return true;
   }
 }

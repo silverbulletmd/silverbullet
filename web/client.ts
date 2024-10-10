@@ -147,7 +147,7 @@ export class Client implements ConfigContainer {
       this.fullSyncCompleted = true;
     }
     // Generate a semi-unique prefix for the database so not to reuse databases for different space paths
-    this.dbPrefix = "" + simpleHash(window.silverBulletConfig.spaceFolderPath);
+    this.dbPrefix = "" + simpleHash(globalThis.silverBulletConfig.spaceFolderPath);
     this.onLoadPageRef = parsePageRefFromURI();
   }
 
@@ -503,7 +503,7 @@ export class Client implements ConfigContainer {
   async initSpace(): Promise<SpacePrimitives> {
     this.httpSpacePrimitives = new HttpSpacePrimitives(
       location.origin,
-      window.silverBulletConfig.spaceFolderPath,
+      globalThis.silverBulletConfig.spaceFolderPath,
     );
 
     let remoteSpacePrimitives: SpacePrimitives = this.httpSpacePrimitives;

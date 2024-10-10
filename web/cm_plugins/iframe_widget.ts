@@ -67,13 +67,13 @@ export class IFrameWidget extends WidgetType {
     return iframe;
   }
 
-  get estimatedHeight(): number {
+  override get estimatedHeight(): number {
     const cachedHeight = this.client.getCachedWidgetHeight(this.bodyText);
     // console.log("Calling estimated height", this.bodyText, cachedHeight);
     return cachedHeight > 0 ? cachedHeight : 150;
   }
 
-  eq(other: WidgetType): boolean {
+  override eq(other: WidgetType): boolean {
     return (
       other instanceof IFrameWidget &&
       other.bodyText === this.bodyText

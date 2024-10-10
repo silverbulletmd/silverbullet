@@ -6,6 +6,10 @@ declare global {
   function syscall(name: string, ...args: any[]): Promise<any>;
 }
 
+let workerPostMessage = (_msg: ControllerMessage): void => {
+  throw new Error("Not initialized yet");
+};
+
 // Are we running in a (web) worker?
 
 // Determines if we're running in a web worker environment (Deno or browser)
@@ -17,8 +21,6 @@ declare global {
 const runningAsWebWorker = typeof window === "undefined" &&
   // @ts-ignore: globalThis
   typeof globalThis.WebSocketPair === "undefined";
-
-// console.log("Running as web worker:", runningAsWebWorker);
 
 if (typeof Deno === "undefined") {
   // @ts-ignore: Deno hack
@@ -46,10 +48,6 @@ const pendingRequests = new Map<
 
 let syscallReqId = 0;
 
-function workerPostMessage(msg: ControllerMessage) {
-  self.postMessage(msg);
-}
-
 if (runningAsWebWorker) {
   globalThis.syscall = async (name: string, ...args: any[]) => {
     return await new Promise((resolve, reject) => {
@@ -69,12 +67,14 @@ export function setupMessageListener(
   // deno-lint-ignore ban-types
   functionMapping: Record<string, Function>,
   manifest: any,
+  postMessageFn: (msg: ControllerMessage) => void,
 ) {
   if (!runningAsWebWorker) {
     // Don't do any of this stuff if this is not a web worker
     // This caters to the NoSandbox run mode
     return;
   }
+  workerPostMessage = postMessageFn;
   self.addEventListener("message", (event: { data: WorkerMessage }) => {
     (async () => {
       const data = event.data;

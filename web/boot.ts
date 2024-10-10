@@ -10,14 +10,14 @@ safeRun(async () => {
     syncMode ? "in Sync Mode" : "in Online Mode",
   );
 
-  if (window.silverBulletConfig.readOnly) {
+  if (globalThis.silverBulletConfig.readOnly) {
     console.log("Running in read-only mode");
   }
 
   const client = new Client(
     document.getElementById("sb-root")!,
     syncMode,
-    window.silverBulletConfig.readOnly,
+    globalThis.silverBulletConfig.readOnly,
   );
   // @ts-ignore: on purpose
   globalThis.client = client;

@@ -78,7 +78,7 @@ export class JWTIssuer {
     const data = encoder.encode(message);
 
     // Generate the hash
-    const hashBuffer = await window.crypto.subtle.digest("SHA-256", data);
+    const hashBuffer = await globalThis.crypto.subtle.digest("SHA-256", data);
 
     // Transform the hash into a hex string
     return Array.from(new Uint8Array(hashBuffer)).map((b) =>

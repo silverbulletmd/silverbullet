@@ -228,7 +228,7 @@ export class MainUI {
           }}
           actionButtons={[
             // Sync button
-            ...(!window.silverBulletConfig.syncOnly &&
+            ...(!globalThis.silverBulletConfig.syncOnly &&
                 !viewState.config.hideSyncButton)
               // If we support syncOnly, don't show this toggle button
               ? [{

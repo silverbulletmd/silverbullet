@@ -62,7 +62,7 @@ export class LinkWidget extends WidgetType {
     return anchor;
   }
 
-  eq(other: WidgetType): boolean {
+  override eq(other: WidgetType): boolean {
     return other instanceof LinkWidget &&
       this.options.from === other.options.from &&
       this.options.text === other.options.text &&

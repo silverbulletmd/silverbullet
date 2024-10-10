@@ -65,7 +65,7 @@ class TableViewWidget extends WidgetType {
     return dom;
   }
 
-  get estimatedHeight(): number {
+  override get estimatedHeight(): number {
     const height = this.client.getCachedWidgetHeight(
       `table:${this.tableBodyText}`,
     );
@@ -73,7 +73,7 @@ class TableViewWidget extends WidgetType {
     return height;
   }
 
-  eq(other: WidgetType): boolean {
+  override eq(other: WidgetType): boolean {
     return (
       other instanceof TableViewWidget &&
       other.tableBodyText === this.tableBodyText

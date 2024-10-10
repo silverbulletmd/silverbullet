@@ -155,7 +155,7 @@ async function lintYaml(
 ): Promise<LintDiagnostic | undefined> {
   try {
     await YAML.parse(yamlText);
-  } catch (e) {
+  } catch (e: any) {
     const errorMatch = errorRegex.exec(e.message);
     if (errorMatch) {
       console.log("YAML error", e.message);
