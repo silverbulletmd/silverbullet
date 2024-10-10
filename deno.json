@@ -137,6 +137,7 @@
     "@std/io/read-all": "jsr:@std/io@^0.224.3/read-all",
     "@std/path": "jsr:@std/path@^1.0.2",
     "@std/testing": "jsr:@std/testing@^0.225.3",
+    "@std/yaml": "jsr:@std/yaml@^1.0.5",
     "cliffy/": "https://deno.land/x/cliffy@v1.0.0-rc.4/",
     "crelt": "https://esm.sh/crelt@1.0.6",
     "denosass": "https://deno.land/x/denosass@1.0.6/mod.ts",

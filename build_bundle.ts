@@ -14,6 +14,9 @@ await esbuild.build({
   sourcemap: false,
   logLevel: "error",
   minify: true,
+  external: [
+    "https://deno.land/std@*",
+  ],
   plugins: denoPlugins({
     configPath: new URL("./deno.json", import.meta.url).pathname,
   }),

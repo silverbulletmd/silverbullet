@@ -46,6 +46,9 @@ ENV SB_FOLDER /space
 
 # Copy the bundled version of silverbullet into the container
 ADD ./dist/silverbullet.js /silverbullet.js
+# Precache any remaining dependencies
+RUN deno cache /silverbullet.js
+
 # As well as the docker-entrypoint.sh script
 ADD ./docker-entrypoint.sh /docker-entrypoint.sh
 
