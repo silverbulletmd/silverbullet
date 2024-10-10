@@ -35,4 +35,4 @@ jobs:
         run: deno task bench
 
       - name: Run tests
-        run: deno task test --trace-ops
+        run: deno task test
