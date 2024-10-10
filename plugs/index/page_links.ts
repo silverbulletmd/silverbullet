@@ -1,4 +1,5 @@
 import {
+  collectNodesOfType,
   findNodeOfType,
   renderToText,
   traverseTree,
@@ -192,6 +193,42 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
             snippet: extractSnippetAroundIndex(pageText, pos),
             pos: pos,
             asTemplate: true,
+          };
+          if (looksLikePathWithExtension(url)) {
+            link.toFile = resolvePath(name, url);
+          } else {
+            link.toPage = resolvePath(name, parsePageRef(url).page);
+          }
+          if (alias) {
+            link.alias = alias;
+          }
+          updateITags(link, frontmatter);
+          links.push(link);
+        }
+      }
+    }
+
+    // Also index links used inside quoted frontmatter strings like "[[Page]]"
+    // must match the full string node, only allowing for quotes and whitespace around it
+    if (n.type === "FrontMatter") {
+      // The YAML in frontmatter is parsed by CodeMirror itself
+      for (const textNode of collectNodesOfType(n, "string")) {
+        const text = textNode.children![0].text!;
+        const trimmed = text.replace(/^["'\s]*/, "").replace(/["'\s]*$/, "");
+        // Make sure we search from the beginning, when reusing a Regex object with global flag
+        wikiLinkRegex.lastIndex = 0;
+        const match = wikiLinkRegex.exec(text);
+        // Search in entire node text to get correct position, but check for full match against trimmed
+        if (match && match[0] === trimmed) {
+          const [_fullMatch, firstMark, url, alias, _lastMark] = match;
+          const pos = textNode.from! + match.index! + firstMark.length;
+          const link: any = {
+            ref: `${name}@${pos}`,
+            tag: "link",
+            page: name,
+            snippet: extractSnippetAroundIndex(pageText, pos),
+            pos: pos,
+            asTemplate: false,
           };
           if (looksLikePathWithExtension(url)) {
             link.toFile = resolvePath(name, url);
