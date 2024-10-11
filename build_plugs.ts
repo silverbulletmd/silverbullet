@@ -1,4 +1,4 @@
-import { path } from "./lib/deps_server.ts";
+import * as path from "@std/path";
 import * as esbuild from "esbuild";
 import { compileManifests } from "./cmd/compile.ts";
 import { builtinPlugNames } from "./plugs/builtin_plugs.ts";

@@ -1,11 +1,13 @@
 import type { SysCallMapping } from "../system.ts";
-import { mime, path, walk } from "../../deps_server.ts";
 import type { FileMeta } from "../../../plug-api/types.ts";
 import { base64DecodeDataUrl, base64Encode } from "../../crypto.ts";
+import { dirname, resolve } from "@std/path";
+import { mime } from "mimetypes";
+import { walk } from "@std/fs";
 
 export default function fileSystemSyscalls(root = "/"): SysCallMapping {
   function resolvedPath(p: string): string {
-    p = path.resolve(root, p);
+    p = resolve(root, p);
     if (!p.startsWith(root)) {
       throw Error("Path outside root, not allowed");
     }
@@ -48,7 +50,7 @@ export default function fileSystemSyscalls(root = "/"): SysCallMapping {
       encoding: "utf8" | "dataurl" = "utf8",
     ): Promise<FileMeta> => {
       const p = resolvedPath(filePath);
-      await Deno.mkdir(path.dirname(p), { recursive: true });
+      await Deno.mkdir(dirname(p), { recursive: true });
       if (encoding === "utf8") {
         await Deno.writeTextFile(p, text);
       } else {

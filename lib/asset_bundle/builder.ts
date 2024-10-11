@@ -1,5 +1,8 @@
-import { globToRegExp, mime, path, walk } from "../deps_server.ts";
+// import { globToRegExp, mime, path, walk } from "../deps_server.ts";
+import { dirname, globToRegExp } from "@std/path";
 import { AssetBundle } from "./bundle.ts";
+import { walk } from "@std/fs";
+import { mime } from "mimetypes";
 
 export async function bundleAssets(
   rootPath: string,
@@ -39,7 +42,7 @@ export async function bundleFolder(
 ) {
   const bundle = new AssetBundle();
 
-  await Deno.mkdir(path.dirname(bundlePath), { recursive: true });
+  await Deno.mkdir(dirname(bundlePath), { recursive: true });
   for await (
     const { path: filePath } of walk(rootPath, { includeDirs: false })
   ) {

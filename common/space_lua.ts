@@ -3,14 +3,11 @@ import type { ScriptObject } from "../plugs/index/script.ts";
 import {
   LuaEnv,
   LuaFunction,
-  LuaNativeJSFunction,
   LuaRuntimeError,
 } from "$common/space_lua/runtime.ts";
 import { parse as parseLua } from "$common/space_lua/parse.ts";
 import { evalStatement } from "$common/space_lua/eval.ts";
 import { jsToLuaValue } from "$common/space_lua/runtime.ts";
-import { LuaBuiltinFunction } from "$common/space_lua/runtime.ts";
-import { LuaTable } from "$common/space_lua/runtime.ts";
 import {
   type PageRef,
   parsePageRef,
@@ -18,7 +15,6 @@ import {
 import type { ScriptEnvironment } from "$common/space_script.ts";
 import { luaValueToJS } from "$common/space_lua/runtime.ts";
 import type { ASTCtx } from "$common/space_lua/ast.ts";
-import { lua } from "@silverbulletmd/silverbullet/syscalls";
 import type { ObjectQuery } from "@silverbulletmd/silverbullet/types";
 import { buildLuaEnv } from "$common/space_lua_api.ts";
 

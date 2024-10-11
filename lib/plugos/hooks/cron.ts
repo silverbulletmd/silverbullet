@@ -1,5 +1,5 @@
 import type { Hook, Manifest } from "../types.ts";
-import { Cron } from "../../deps_server.ts";
+import { Cron } from "https://deno.land/x/croner@4.4.1/src/croner.js";
 import type { System } from "../system.ts";
 import type { CronHookT } from "$lib/manifest.ts";
 
