@@ -1,4 +1,3 @@
-
 image:
   file: .gitpod.Dockerfile
 
@@ -20,7 +19,7 @@ tasks:
       deno task install
       gp sync-done setup
   - name: Server watcher
-    init: |      
+    init: |
       gp sync-await setup
       mkdir pages
     command: deno task watch-server pages

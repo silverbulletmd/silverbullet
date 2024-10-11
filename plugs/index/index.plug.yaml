@@ -44,7 +44,7 @@ functions:
     command:
       name: "Space: Reindex"
       requireMode: rw
-      
+
   processIndexQueue:
     path: ./command.ts:processIndexQueue
     mqSubscriptions:
@@ -242,7 +242,7 @@ functions:
     events:
       - query:command
 config:
-   # Schema for the built-in tags indexed by this plug
+  # Schema for the built-in tags indexed by this plug
   schema.tag:
     page:
       type: object

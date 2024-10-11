@@ -264,7 +264,7 @@
     text-indent: -7ch;
   }
 
-  .sb-checkbox>input[type="checkbox"] {
+  .sb-checkbox > input[type="checkbox"] {
     width: 3ch;
   }
 
@@ -339,7 +339,7 @@
   }
 
   a.sb-wiki-link-page-missing,
-  .sb-wiki-link-page-missing>.sb-wiki-link-page {
+  .sb-wiki-link-page-missing > .sb-wiki-link-page {
     border-radius: 5px;
     padding: 0 5px;
     // white-space: nowrap;
@@ -360,7 +360,7 @@
   }
 
   .sb-task-deadline {
-    background-color: rgba(22, 22, 22, 0.07)
+    background-color: rgba(22, 22, 22, 0.07);
   }
 
   .sb-line-frontmatter-outside,
@@ -420,7 +420,6 @@
     white-space: nowrap;
   }
 
-
   // dont apply background color twice for (fenced) code blocks
   .sb-line-code .sb-code {
     background-color: transparent;
@@ -439,7 +438,7 @@
     margin: 0 3px;
   }
 
-  .sb-code-copy-button>svg {
+  .sb-code-copy-button > svg {
     height: 1rem;
     width: 1rem;
   }
@@ -592,7 +591,6 @@
       button:last-of-type {
         margin-right: 2px;
       }
-
     }
   }
 
@@ -614,7 +612,7 @@
     }
   }
 
-  .sb-line-blockquote.sb-line-ul.sb-line-li>.sb-quote.sb-meta:first-child {
+  .sb-line-blockquote.sb-line-ul.sb-line-li > .sb-quote.sb-meta:first-child {
     margin-left: -1ch;
   }
 

@@ -147,7 +147,8 @@ export class Client implements ConfigContainer {
       this.fullSyncCompleted = true;
     }
     // Generate a semi-unique prefix for the database so not to reuse databases for different space paths
-    this.dbPrefix = "" + simpleHash(globalThis.silverBulletConfig.spaceFolderPath);
+    this.dbPrefix = "" +
+      simpleHash(globalThis.silverBulletConfig.spaceFolderPath);
     this.onLoadPageRef = parsePageRefFromURI();
   }
 

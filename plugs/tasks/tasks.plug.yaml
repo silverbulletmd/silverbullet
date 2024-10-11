@@ -7,7 +7,7 @@ functions:
   indexTasks:
     path: "./task.ts:indexTasks"
     events:
-    - page:index
+      - page:index
   taskToggle:
     path: "./task.ts:taskToggle"
     events:
@@ -34,7 +34,7 @@ functions:
   taskComplete:
     path: ./complete.ts:completeTaskState
     events:
-    - editor:complete
+      - editor:complete
 
   removeCompletedTasksCommand:
     path: task.ts:removeCompletedTasksCommand

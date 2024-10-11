@@ -1,6 +1,6 @@
 name: test
 requiredPermissions:
-- shell
+  - shell
 functions:
-    run:
-        path: plug_test.ts:run
+  run:
+    path: plug_test.ts:run

@@ -84,15 +84,13 @@ body {
           font-size: 15px;
           z-index: 100;
 
-          >div {
+          > div {
             padding: 3px;
             margin-bottom: 3px;
             border-radius: 5px;
           }
         }
-
       }
-
     }
 
     #sb-current-page {
@@ -168,7 +166,6 @@ body {
   border: 1px solid var(--editor-widget-background-color);
   border-radius: 5px;
 }
-
 
 #sb-main {
   display: flex;

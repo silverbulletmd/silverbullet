@@ -1,9 +1,9 @@
 name: search
 functions:
   indexPage:
-   path: search.ts:indexPage
-   events:
-   - page:index
+    path: search.ts:indexPage
+    events:
+      - page:index
 
   searchQueryProvider:
     path: ./search.ts:queryProvider

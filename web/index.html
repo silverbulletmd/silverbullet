@@ -1,82 +1,89 @@
 <!DOCTYPE html>
 <html lang="en" prefix="og: https://ogp.me/ns#">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <base href="/" />
+    <link rel="apple-touch-icon" href="/.client/logo.png" />
+    <meta
+      name="theme-color"
+      content="#e1e1e1"
+      media="(prefers-color-scheme: light)"
+    />
+    <meta
+      name="theme-color"
+      content="#262626"
+      media="(prefers-color-scheme: dark)"
+    />
+    <meta name="referrer" content="no-referrer" />
 
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport"
-    content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <base href="/" />
-  <link rel="apple-touch-icon" href="/.client/logo.png">
-  <meta name="theme-color" content="#e1e1e1" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#262626" media="(prefers-color-scheme: dark)">
-  <meta name="referrer" content="no-referrer" />
+    <title>{{TITLE}}</title>
+    <meta property="og:image" content="/.client/logo.png" />
+    <meta property="og:description" content="{{DESCRIPTION}}" />
 
-  <title>{{TITLE}}</title>
-  <meta property="og:image" content="/.client/logo.png">
-  <meta property="og:description" content={{DESCRIPTION}}>
-
-  <script>
-    // Some global variables we need to make this work
-    Deno = {
-      args: [],
-      build: {
-        arch: "x86_64",
-        os: "browser",
-      },
-      core: {
-        runMicrotasks() {
-          // console.log("Not supported");
+    <script>
+      // Some global variables we need to make this work
+      Deno = {
+        args: [],
+        build: {
+          arch: "x86_64",
+          os: "browser",
         },
-        setHasTickScheduled() {
-          // console.log("Not supported");
-        }
-      },
-      env: {
-        get(key) {
-          // return undefined;
+        core: {
+          runMicrotasks() {
+            // console.log("Not supported");
+          },
+          setHasTickScheduled() {
+            // console.log("Not supported");
+          },
         },
-      },
-      errors: {
-        AlreadyExists: class extends Error { },
-      }
-    };
-    window.silverBulletConfig = {
-      // These {{VARIABLES}} are replaced by http_server.ts
-      spaceFolderPath: "{{SPACE_PATH}}",
-      syncOnly: "{{SYNC_ONLY}}" === "true",
-      enableSpaceScript: "{{ENABLE_SPACE_SCRIPT}}" === "true",
-      readOnly: "{{READ_ONLY}}" === "true",
-    };
-    // But in case these variables aren't replaced by the server, fall back sync only mode
-    if (window.silverBulletConfig.spaceFolderPath.includes("{{")) {
-      window.silverBulletConfig = {
-        spaceFolderPath: "",
-        syncOnly: true,
-        readOnly: false,
-        enableSpaceScripts: false,
+        env: {
+          get(key) {
+            // return undefined;
+          },
+        },
+        errors: {
+          AlreadyExists: class extends Error {},
+        },
       };
-    }
-  </script>
-  <link rel="stylesheet" href="/.client/main.css" />
-  <style id="custom-styles"></style>
-  <script type="module" src="/.client/client.js"></script>
-  <link rel="manifest" href="/.client/manifest.json" />
-  <link rel="icon" type="image/x-icon" href="/.client/favicon.png" />
-</head>
+      window.silverBulletConfig = {
+        // These {{VARIABLES}} are replaced by http_server.ts
+        spaceFolderPath: "{{SPACE_PATH}}",
+        syncOnly: "{{SYNC_ONLY}}" === "true",
+        enableSpaceScript: "{{ENABLE_SPACE_SCRIPT}}" === "true",
+        readOnly: "{{READ_ONLY}}" === "true",
+      };
+      // But in case these variables aren't replaced by the server, fall back sync only mode
+      if (window.silverBulletConfig.spaceFolderPath.includes("{{")) {
+        window.silverBulletConfig = {
+          spaceFolderPath: "",
+          syncOnly: true,
+          readOnly: false,
+          enableSpaceScripts: false,
+        };
+      }
+    </script>
+    <link rel="stylesheet" href="/.client/main.css" />
+    <style id="custom-styles"></style>
+    <script type="module" src="/.client/client.js"></script>
+    <link rel="manifest" href="/.client/manifest.json" />
+    <link rel="icon" type="image/x-icon" href="/.client/favicon.png" />
+  </head>
 
-<body>
-  <div id="sb-root">
-
-    <div id="sb-main">
-      <div id="sb-editor">
-        <div class="cm-editor">
-          <div class="cm-content">
-            {{CONTENT}}
+  <body>
+    <div id="sb-root">
+      <div id="sb-main">
+        <div id="sb-editor">
+          <div class="cm-editor">
+            <div class="cm-content">
+              {{CONTENT}}
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
-</body>
-
+  </body>
 </html>

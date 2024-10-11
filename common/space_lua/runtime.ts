@@ -295,12 +295,16 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     }
   }
 
-  toJSObject(): Record<string, any> {
+  asJSObject(): Record<string, any> {
     const result: Record<string, any> = {};
     for (const key of this.keys()) {
       result[key] = luaValueToJS(this.get(key));
     }
     return result;
+  }
+
+  asJSArray(): any[] {
+    return this.arrayPart.map(luaValueToJS);
   }
 
   toString(): string {

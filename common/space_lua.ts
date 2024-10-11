@@ -6,7 +6,6 @@ import {
   LuaNativeJSFunction,
   LuaRuntimeError,
 } from "$common/space_lua/runtime.ts";
-import { luaBuildStandardEnv } from "$common/space_lua/stdlib.ts";
 import { parse as parseLua } from "$common/space_lua/parse.ts";
 import { evalStatement } from "$common/space_lua/eval.ts";
 import { jsToLuaValue } from "$common/space_lua/runtime.ts";
@@ -19,6 +18,9 @@ import {
 import type { ScriptEnvironment } from "$common/space_script.ts";
 import { luaValueToJS } from "$common/space_lua/runtime.ts";
 import type { ASTCtx } from "$common/space_lua/ast.ts";
+import { lua } from "@silverbulletmd/silverbullet/syscalls";
+import type { ObjectQuery } from "@silverbulletmd/silverbullet/types";
+import { buildLuaEnv } from "$common/space_lua_api.ts";
 
 export class SpaceLuaEnvironment {
   env: LuaEnv = new LuaEnv();
@@ -30,71 +32,17 @@ export class SpaceLuaEnvironment {
   async reload(system: System<any>, scriptEnv: ScriptEnvironment) {
     const allScripts: ScriptObject[] = await system.invokeFunction(
       "index.queryObjects",
-      ["space-lua", {}],
+      ["space-lua", {
+        // This is a bit silly, but at least makes the order deterministic
+        orderBy: [{ expr: ["attr", "ref"] }],
+      } as ObjectQuery],
     );
-    // We start from scratch
-    this.env = new LuaEnv(luaBuildStandardEnv());
-    const env = this.env;
-
-    // Expose all syscalls to Lua
-    for (const syscallName of system.registeredSyscalls.keys()) {
-      const [ns, fn] = syscallName.split(".");
-      if (!env.get(ns)) {
-        env.set(ns, new LuaTable());
-      }
-      env.get(ns).set(
-        fn,
-        new LuaNativeJSFunction((...args) => {
-          return system.localSyscall(syscallName, args);
-        }),
-      );
-    }
-    env.set(
-      "command",
-      new LuaBuiltinFunction(
-        (def: LuaTable) => {
-          if (def.get(1) === undefined) {
-            throw new Error("Callback is required");
-          }
-          console.log("Registering Lua command", def.get("name"));
-          scriptEnv.registerCommand(
-            def.toJSObject() as any,
-            async (...args: any[]) => {
-              try {
-                return await def.get(1).call(...args.map(jsToLuaValue));
-              } catch (e: any) {
-                console.error("Lua eval exception", e.message, e.context);
-                if (e.context && e.context.ref) {
-                  // We got an error and actually know where it came from, let's navigate there to help debugging
-                  const pageRef = parsePageRef(e.context.ref);
-                  await system.localSyscall("editor.flashNotification", [
-                    `Lua error: ${e.message}`,
-                    "error",
-                  ]);
-                  await system.localSyscall("editor.flashNotification", [
-                    `Navigating to the place in the code where this error occurred in ${pageRef.page}`,
-                    "info",
-                  ]);
-                  await system.localSyscall("editor.navigate", [
-                    {
-                      page: pageRef.page,
-                      pos: pageRef.pos + e.context.from +
-                        "```space-lua\n".length,
-                    },
-                  ]);
-                }
-              }
-            },
-          );
-        },
-      ),
-    );
-
+    this.env = buildLuaEnv(system, scriptEnv);
     for (const script of allScripts) {
       try {
         const ast = parseLua(script.script, { ref: script.ref });
         // We create a local scope for each script
-        const scriptEnv = new LuaEnv(env);
+        const scriptEnv = new LuaEnv(this.env);
         await evalStatement(ast, scriptEnv);
       } catch (e: any) {
         if (e instanceof LuaRuntimeError) {
@@ -111,9 +59,10 @@ export class SpaceLuaEnvironment {
         );
       }
     }
+
     // Find all functions and register them
-    for (const globalName of env.keys()) {
-      const value = env.get(globalName);
+    for (const globalName of this.env.keys()) {
+      const value = this.env.get(globalName);
       if (value instanceof LuaFunction) {
         console.log("Now registering Lua function", globalName);
         scriptEnv.registerFunction({ name: globalName }, (...args: any[]) => {

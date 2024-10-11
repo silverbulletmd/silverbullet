@@ -1,36 +1,36 @@
 import {
-    type ILuaFunction,
-    LuaBuiltinFunction,
-    LuaTable,
+  type ILuaFunction,
+  LuaBuiltinFunction,
+  LuaTable,
 } from "$common/space_lua/runtime.ts";
 
 export const tableApi = new LuaTable({
-    concat: new LuaBuiltinFunction(
-        (tbl: LuaTable, sep?: string, i?: number, j?: number) => {
-            sep = sep ?? "";
-            i = i ?? 1;
-            j = j ?? tbl.length;
-            const result = [];
-            for (let k = i; k <= j; k++) {
-                result.push(tbl.get(k));
-            }
-            return result.join(sep);
-        },
-    ),
-    insert: new LuaBuiltinFunction(
-        (tbl: LuaTable, posOrValue: number | any, value?: any) => {
-            if (value === undefined) {
-                value = posOrValue;
-                posOrValue = tbl.length + 1;
-            }
-            tbl.insert(posOrValue, value);
-        },
-    ),
-    remove: new LuaBuiltinFunction((tbl: LuaTable, pos?: number) => {
-        pos = pos ?? tbl.length;
-        tbl.remove(pos);
-    }),
-    sort: new LuaBuiltinFunction((tbl: LuaTable, comp?: ILuaFunction) => {
-        return tbl.sort(comp);
-    }),
+  concat: new LuaBuiltinFunction(
+    (tbl: LuaTable, sep?: string, i?: number, j?: number) => {
+      sep = sep ?? "";
+      i = i ?? 1;
+      j = j ?? tbl.length;
+      const result = [];
+      for (let k = i; k <= j; k++) {
+        result.push(tbl.get(k));
+      }
+      return result.join(sep);
+    },
+  ),
+  insert: new LuaBuiltinFunction(
+    (tbl: LuaTable, posOrValue: number | any, value?: any) => {
+      if (value === undefined) {
+        value = posOrValue;
+        posOrValue = tbl.length + 1;
+      }
+      tbl.insert(posOrValue, value);
+    },
+  ),
+  remove: new LuaBuiltinFunction((tbl: LuaTable, pos?: number) => {
+    pos = pos ?? tbl.length;
+    tbl.remove(pos);
+  }),
+  sort: new LuaBuiltinFunction((tbl: LuaTable, comp?: ILuaFunction) => {
+    return tbl.sort(comp);
+  }),
 });

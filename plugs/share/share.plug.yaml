@@ -10,24 +10,24 @@ functions:
   clipboardShareOptions:
     path: share.ts:clipboardShareOptions
     events:
-    - share:options
+      - share:options
 
   clipboardMarkdownShare:
     path: share.ts:clipboardMarkdownShare
     events:
-    - share:clean-markdown
+      - share:clean-markdown
 
   clipboardRichTextShare:
     path: share.ts:clipboardRichTextShare
     events:
-    - share:rich-text
+      - share:rich-text
 
   publishShareOptions:
     path: publish.ts:publishShareOptions
     events:
-    - share:options
+      - share:options
 
   publishShare:
     path: publish.ts:publishShare
     events:
-    - share:publish
+      - share:publish

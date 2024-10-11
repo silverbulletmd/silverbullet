@@ -60,7 +60,7 @@
   font-family: var(--editor-font);
 }
 
-.sb-notifications>div {
+.sb-notifications > div {
   border: var(--notifications-border-color) 1px solid;
 }
 
@@ -361,7 +361,11 @@ tbody tr:nth-of-type(even) {
 }
 
 .sb-admonition-title {
-  background-color: color-mix(in srgb, var(--admonition-color), transparent 90%)
+  background-color: color-mix(
+    in srgb,
+    var(--admonition-color),
+    transparent 90%
+  );
 }
 
 .sb-admonition-type::before {
@@ -424,7 +428,7 @@ a,
 }
 
 a.sb-wiki-link-page-missing,
-.sb-wiki-link-page-missing>.sb-wiki-link-page {
+.sb-wiki-link-page-missing > .sb-wiki-link-page {
   color: var(--editor-wiki-link-page-missing-color);
   background-color: var(--editor-wiki-link-page-background-color);
 }
