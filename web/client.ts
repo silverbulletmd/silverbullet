@@ -1256,7 +1256,6 @@ export class Client implements ConfigContainer {
       .catch(
         console.error,
       );
-    // console.log("Flushed widget height cache to store");
   }, 2000);
 
   setCachedWidgetHeight(bodyText: string, height: number) {
@@ -1272,7 +1271,6 @@ export class Client implements ConfigContainer {
       .catch(
         console.error,
       );
-    console.log("Flushed widget cache to store");
   }, 2000);
 
   setWidgetCache(key: string, cacheItem: WidgetCacheItem) {
