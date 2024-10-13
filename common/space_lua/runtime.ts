@@ -376,7 +376,14 @@ export function luaGet(obj: any, key: any, ctx: ASTCtx): any {
   } else if (typeof key === "number") {
     return obj[key - 1];
   } else {
-    return obj[key];
+    // Native JS object
+    const val = obj[key];
+    if (typeof val === "function") {
+      // Automatically bind the function to the object
+      return val.bind(obj);
+    } else {
+      return val;
+    }
   }
 }
 

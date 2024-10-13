@@ -14,10 +14,11 @@ import type {
   LuaFunctionCallStatement,
 } from "$common/space_lua/ast.ts";
 import { evalExpression } from "$common/space_lua/eval.ts";
-import { MarkdownWidget } from "./markdown_widget.ts";
+import { luaValueToJS } from "$common/space_lua/runtime.ts";
 import { LuaRuntimeError } from "$common/space_lua/runtime.ts";
 import { encodePageRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { resolveASTReference } from "$common/space_lua.ts";
+import { LuaWidget } from "./lua_widget.ts";
 
 export function luaDirectivePlugin(client: Client) {
   return decoratorStateField((state: EditorState) => {
@@ -41,7 +42,7 @@ export function luaDirectivePlugin(client: Client) {
 
         widgets.push(
           Decoration.widget({
-            widget: new MarkdownWidget(
+            widget: new LuaWidget(
               node.from,
               client,
               `lua:${text}`,
@@ -53,13 +54,12 @@ export function luaDirectivePlugin(client: Client) {
                     (parsedLua.statements[0] as LuaFunctionCallStatement).call
                       .args[0];
 
-                  const result = await evalExpression(
-                    expr,
-                    client.clientSystem.spaceLuaEnv.env,
+                  return luaValueToJS(
+                    await evalExpression(
+                      expr,
+                      client.clientSystem.spaceLuaEnv.env,
+                    ),
                   );
-                  return {
-                    markdown: "" + result,
-                  };
                 } catch (e: any) {
                   if (e instanceof LuaRuntimeError) {
                     if (e.context.ref) {
@@ -79,8 +79,6 @@ export function luaDirectivePlugin(client: Client) {
                   };
                 }
               },
-              "sb-lua-directive",
-              true,
             ),
           }).range(node.to),
         );

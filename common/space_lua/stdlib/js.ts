@@ -16,12 +16,7 @@ export const jsApi = new LuaTable({
   importModule: new LuaBuiltinFunction((url) => {
     return import(url);
   }),
-  /**
-   * Binds a function to an object, so that the function can be called with the object as `this`. Some JS APIs require this.
-   */
-  bind: new LuaBuiltinFunction((fn: any, obj: any, ...args: any[]) => {
-    return fn.bind(obj, ...args);
-  }),
+
   tolua: new LuaBuiltinFunction(jsToLuaValue),
   tojs: new LuaBuiltinFunction(luaValueToJS),
   log: new LuaBuiltinFunction((...args) => {

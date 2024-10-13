@@ -14,6 +14,15 @@ export function buildLuaEnv(system: System<any>, scriptEnv: ScriptEnvironment) {
   const env = new LuaEnv(luaBuildStandardEnv());
 
   // Expose all syscalls to Lua
+  exposeSyscalls(env, system);
+  // Support defining commands and subscriptions from Lua
+  exposeDefinitions(env, system, scriptEnv);
+
+  return env;
+}
+
+function exposeSyscalls(env: LuaEnv, system: System<any>) {
+  // Expose all syscalls to Lua
   for (const syscallName of system.registeredSyscalls.keys()) {
     const [ns, fn] = syscallName.split(".");
     if (!env.get(ns)) {
@@ -26,9 +35,17 @@ export function buildLuaEnv(system: System<any>, scriptEnv: ScriptEnvironment) {
     env.get(ns).set(fn, luaFn);
     env.get(ns).set(snakeCase(fn), luaFn);
   }
+}
 
-  // Expose the command registration function to Lua
-  env.set(
+function exposeDefinitions(
+  env: LuaEnv,
+  system: System<any>,
+  scriptEnv: ScriptEnvironment,
+) {
+  const defApi = new LuaTable();
+  env.set("def", defApi);
+  // Expose the command registration function to Lua via def.command({name="foo", function() ... end})
+  defApi.set(
     "command",
     new LuaBuiltinFunction(
       (def: LuaTable) => {
@@ -47,43 +64,70 @@ export function buildLuaEnv(system: System<any>, scriptEnv: ScriptEnvironment) {
                 ...args.map(jsToLuaValue),
               );
             } catch (e: any) {
-              console.error(
-                "Lua eval exception",
-                e.message,
-                e.context,
-              );
-              if (e.context && e.context.ref) {
-                // We got an error and actually know where it came from, let's navigate there to help debugging
-                const pageRef = parsePageRef(e.context.ref);
-                await system.localSyscall(
-                  "editor.flashNotification",
-                  [
-                    `Lua error: ${e.message}`,
-                    "error",
-                  ],
-                );
-                await system.localSyscall(
-                  "editor.flashNotification",
-                  [
-                    `Navigating to the place in the code where this error occurred in ${pageRef.page}`,
-                    "info",
-                  ],
-                );
-                await system.localSyscall("editor.navigate", [
-                  {
-                    page: pageRef.page,
-                    pos: pageRef.pos + e.context.from +
-                      "```space-lua\n".length,
-                  },
-                ]);
-              }
+              await handleLuaError(e, system);
             }
           },
         );
       },
     ),
   );
-  return env;
+  defApi.set(
+    "event_listener",
+    new LuaBuiltinFunction((def: LuaTable) => {
+      if (def.get(1) === undefined) {
+        throw new Error("Callback is required");
+      }
+      if (!def.get("event")) {
+        throw new Error("Event is required");
+      }
+      console.log("Subscribing to Lua event", def.get("event"));
+      scriptEnv.registerEventListener(
+        { name: def.get("event") },
+        async (...args: any[]) => {
+          try {
+            return await def.get(1).call(
+              ...args.map(jsToLuaValue),
+            );
+          } catch (e: any) {
+            await handleLuaError(e, system);
+          }
+        },
+      );
+    }),
+  );
+}
+
+async function handleLuaError(e: any, system: System<any>) {
+  console.error(
+    "Lua eval exception",
+    e.message,
+    e.context,
+  );
+  if (e.context && e.context.ref) {
+    // We got an error and actually know where it came from, let's navigate there to help debugging
+    const pageRef = parsePageRef(e.context.ref);
+    await system.localSyscall(
+      "editor.flashNotification",
+      [
+        `Lua error: ${e.message}`,
+        "error",
+      ],
+    );
+    await system.localSyscall(
+      "editor.flashNotification",
+      [
+        `Navigating to the place in the code where this error occurred in ${pageRef.page}`,
+        "info",
+      ],
+    );
+    await system.localSyscall("editor.navigate", [
+      {
+        page: pageRef.page,
+        pos: pageRef.pos + e.context.from +
+          "```space-lua\n".length,
+      },
+    ]);
+  }
 }
 
 function snakeCase(s: string) {
