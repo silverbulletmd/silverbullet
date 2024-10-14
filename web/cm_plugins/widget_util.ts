@@ -8,6 +8,7 @@ export function attachWidgetEventHandlers(div: HTMLElement, client: Client) {
     // That's nice, but not for markdown widgets, so let's not propagate the event to CodeMirror here.
     e.stopPropagation();
   });
+
   // Override wiki links with local navigate (faster)
   div.querySelectorAll("a[data-ref]").forEach((el_) => {
     const el = el_ as HTMLElement;

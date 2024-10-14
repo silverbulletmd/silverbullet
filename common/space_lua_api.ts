@@ -9,6 +9,7 @@ import {
 } from "$common/space_lua/runtime.ts";
 import type { System } from "$lib/plugos/system.ts";
 import type { ScriptEnvironment } from "$common/space_script.ts";
+import type { CommandDef } from "$lib/command.ts";
 
 export function buildLuaEnv(system: System<any>, scriptEnv: ScriptEnvironment) {
   const env = new LuaEnv(luaBuildStandardEnv());
@@ -57,7 +58,14 @@ function exposeDefinitions(
         }
         console.log("Registering Lua command", def.get("name"));
         scriptEnv.registerCommand(
-          def.asJSObject() as any,
+          {
+            name: def.get("name"),
+            key: def.get("key"),
+            mac: def.get("mac"),
+            priority: def.get("priority"),
+            requireMode: def.get("require_mode"),
+            hide: def.get("hide"),
+          } as CommandDef,
           async (...args: any[]) => {
             try {
               return await def.get(1).call(

@@ -117,10 +117,10 @@ export class LuaWidget extends WidgetType {
         return;
       }
 
-      if ((widgetContent as any)?.display === "inline") {
-        div.style.display = "inline";
-      } else {
+      if ((widgetContent as any)?.display === "block") {
         div.style.display = "block";
+      } else {
+        div.style.display = "inline";
       }
 
       // Parse the markdown again after trimming
