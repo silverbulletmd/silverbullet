@@ -87,6 +87,11 @@ export class LuaWidget extends WidgetType {
     if (widgetContent.html) {
       html = widgetContent.html;
       div.innerHTML = html;
+      if ((widgetContent as any)?.display === "block") {
+        div.style.display = "block";
+      } else {
+        div.style.display = "inline";
+      }
       attachWidgetEventHandlers(div, this.client);
       this.client.setWidgetCache(
         this.cacheKey,
