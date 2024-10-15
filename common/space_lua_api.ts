@@ -43,11 +43,9 @@ function exposeDefinitions(
   system: System<any>,
   scriptEnv: ScriptEnvironment,
 ) {
-  const defApi = new LuaTable();
-  env.set("def", defApi);
-  // Expose the command registration function to Lua via def.command({name="foo", function() ... end})
-  defApi.set(
-    "command",
+  // Expose the command registration function to Lua via define_command({name="foo", function() ... end})
+  env.set(
+    "define_command",
     new LuaBuiltinFunction(
       (def: LuaTable) => {
         if (def.get(1) === undefined) {
@@ -79,8 +77,8 @@ function exposeDefinitions(
       },
     ),
   );
-  defApi.set(
-    "event_listener",
+  env.set(
+    "define_event_listener",
     new LuaBuiltinFunction((def: LuaTable) => {
       if (def.get(1) === undefined) {
         throw new Error("Callback is required");

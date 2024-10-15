@@ -57,13 +57,13 @@ And some [[Space Style]] to style it:
 
 Now, let’s use it (put your cursor in there to see the code):
 ${marquee "Finally, marqeeeeeeee!"}
-Hell yeah!
+Oh boy, the times we live in!
 
 ## Commands
-Custom commands can be defined using `def.command`:
+Custom commands can be defined using `define_command`:
 
 ```space-lua
-def.command {
+define_command {
   name = "Hello World";
   function()
     editor.flash_notification "Hello world!"
@@ -75,10 +75,10 @@ def.command {
 Try it: {[Hello World]}
 
 ## Event listeners
-You can listen to events using `def.event_listener`:
+You can listen to events using `define_event_listener`:
 
 ```space-lua
-def.event_listener {
+define_event_listener {
   event = "my-custom-event";
   function(e)
     editor.flash_notification("Custom triggered: " .. e.data.name)
@@ -104,6 +104,63 @@ end
 Template:
 ```template
 Here's a greeting: {{greet_me("Pete")}}
+```
+
+# API
+Lua APIs, which should be (roughly) implemented according to the Lua standard.
+* `print`
+* `assert`
+* `ipairs`
+* `pairs`
+* `unpack`
+* `type`
+* `tostring`
+* `tonumber`
+* `error`
+* `pcall`
+* `xpcall`
+* `setmetatable`
+* `getmetatable`
+* `rawset`
+* `string`:
+  * `byte`
+  * `char`
+  * `find`
+  * `format`
+  * `gmatch`
+  * `gsub`
+  * `len`
+  * `lower`
+  * `upper`
+  * `match`
+  * `rep`
+  * `reverse`
+  * `sub`
+  * `split`
+* `table`
+  * `concat`
+  * `insert`
+  * `remove`
+  * `sort`
+* `os`
+  * `time`
+  * `date`
+* `js` (Warning: this will be revised): JavaScript interop functions
+  * `new`: instantiate a JavaScript constructor
+  * `importModule`: import a JavaScript from a URL (`import` equivalent)
+  * `tolua`: convert a JS value to a Lua value
+  * `tojs`: convert a Lua value to a JS value
+  * `log`: console.log
+
+In addition, [all SilverBullet syscalls](https://jsr.io/@silverbulletmd/silverbullet/doc/syscalls) are exposed. However since the Lua naming convention prefers using `snake_case` it is recommended you call them that way. For instance: `editor.flash_notification` is more Lua’y than `editor.flashNotification` (although both are supported at this time -- again, subject to change).
+
+While in [[Space Script]] all syscalls are asynchronous and need to be called with `await`, this is happens transparently in Space Lua leading to cleaner code:
+
+```space-lua
+local function call_some_things()
+  local text = space.read_page(editor.get_current_page())
+  print("Current page text", text)
+end
 ```
 
 # Lua implementation notes
