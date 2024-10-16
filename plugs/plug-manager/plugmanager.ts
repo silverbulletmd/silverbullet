@@ -14,30 +14,52 @@ export async function updatePlugsCommand() {
   await editor.save();
   await editor.flashNotification("Updating plugs...");
   try {
-    let plugList: string[] = [];
-    try {
-      const plugListRead: any[] = await readYamlPage("PLUGS");
-      if (!Array.isArray(plugListRead)) {
-        await editor.flashNotification(
-          "PLUGS YAML does not contain a plug list, not loading anything",
+    const plugList: string[] = [];
+    const configPlugs: any[] = await system.getSpaceConfig("plugs", []);
+    if (!Array.isArray(configPlugs)) {
+      throw new Error("Expected 'plugs' in Space Config to be an array");
+    }
+    const stringPlugs = configPlugs.filter((plug) => typeof plug === "string");
+    if (stringPlugs.length !== configPlugs.length) {
+      throw new Error(
+        `${
+          configPlugs.length - stringPlugs.length
+        } plugs in Space Config aren't set as strings`,
+      );
+    }
+    plugList.push(...stringPlugs);
+    if (await space.fileExists("PLUGS.md")) {
+      // This is not primary mode of managing plugs anymore, only here for backwards compatibility.
+      try {
+        const pagePlugs: any[] = await readYamlPage("PLUGS");
+        if (Array.isArray(pagePlugs)) {
+          // It's possible that the user is using it for something else, but if it has yaml with an array, assume it's plugs
+          const pageStringPlugs = pagePlugs.filter((plug) =>
+            typeof plug === "string"
+          );
+          if (pageStringPlugs.length !== pagePlugs.length) {
+            throw new Error(
+              `${
+                pagePlugs.length - pageStringPlugs.length
+              } plugs from PLUG page were not in a yaml list format`,
+            );
+          }
+          plugList.push(...pageStringPlugs);
+          if (pageStringPlugs.length > 0) {
+            editor.flashNotification(
+              `${pageStringPlugs.length} plugs in PLUGS page can be moved to Space Config for better editor support`,
+            );
+          }
+        }
+      } catch (e: any) {
+        editor.flashNotification(
+          `Error processing PLUGS page: ${e.message}`,
           "error",
         );
         return;
       }
-      plugList = plugListRead.filter((plug) => typeof plug === "string");
-      if (plugList.length !== plugListRead.length) {
-        throw new Error(
-          `Some of the plugs were not in a yaml list format, they were ignored`,
-        );
-      }
-    } catch (e: any) {
-      if (e.message.includes("Not found")) {
-        console.warn("No PLUGS page found, not loading anything");
-        return;
-      }
-      throw new Error(`Error processing PLUGS: ${e.message}`);
     }
-    console.log("Plug YAML", plugList);
+    console.log("Found Plug URIs:", plugList);
     const allCustomPlugNames: string[] = [];
     for (const plugUri of plugList) {
       const [protocol, ...rest] = plugUri.split(":");
@@ -100,13 +122,13 @@ export async function updatePlugsCommand() {
 }
 
 export async function addPlugCommand() {
-  let name = await editor.prompt("Plug URI:");
-  if (!name) {
+  let uri = await editor.prompt("Plug URI:");
+  if (!uri) {
     return;
   }
   // Support people copy & pasting the YAML version
-  if (name.startsWith("-")) {
-    name = name.replace(/^\-\s*/, "");
+  if (uri.startsWith("-")) {
+    uri = uri.replace(/^\-\s*/, "");
   }
   let plugList: string[] = [];
   try {
@@ -114,11 +136,11 @@ export async function addPlugCommand() {
   } catch (e: any) {
     console.error("ERROR", e);
   }
-  if (plugList.includes(name)) {
+  if (plugList.includes(uri)) {
     await editor.flashNotification("Plug already installed", "error");
     return;
   }
-  plugList.push(name);
+  plugList.push(uri);
   // await writeYamlPage("PLUGS", plugList, plugsPrelude);
   await space.writePage(
     "PLUGS",
@@ -129,6 +151,23 @@ export async function addPlugCommand() {
   await updatePlugsCommand();
   await editor.flashNotification("Plug added!");
   system.reloadPlugs();
+}
+
+/** Add the plug to the end of the plugs list in Space Config inside the page content
+ * Returns an array for `editor.replaceRange` syscalls.
+ *
+ * Appends the `space-config` block if needed.
+ * Appends the `plugs` key on root level if needed.
+ * Rewrites the `yaml` block if it's on PLUGS page for new syntax.
+ *
+ * It's exported only to allow testing.
+ */
+export function insertPlugIntoPage(
+  uri: string,
+  pageContent: string,
+  isPlugsPage: boolean = false,
+): Array<{ from: number; to: number; text: string }> {
+  return [];
 }
 
 export async function getPlugHTTPS(url: string): Promise<string> {
