@@ -121,8 +121,8 @@ export async function updatePlugsCommand() {
   }
 }
 
-export async function addPlugCommand() {
-  let uri = await editor.prompt("Plug URI:");
+export async function addPlugCommand(_cmdDef: any, uriSuggestion: string = "") {
+  let uri = await editor.prompt("Plug URI:", uriSuggestion);
   if (!uri) {
     return;
   }
