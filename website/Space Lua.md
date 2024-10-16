@@ -1,4 +1,4 @@
-> **warning** Warning
+> **warning** Experimental
 > This is a **highly experimental** feature still under active development. It is documented here primarily for the real early adopters as this feature develops.
 
 Space Lua is a custom implementation of the [Lua programming language](https://lua.org/) embedded in SilverBullet.
@@ -25,7 +25,7 @@ Each `space-lua` block has its own local scope, however when functions and varia
 
 A new syntax introduced with Space Lua is the `${lua expression}` syntax that you can use in your pages, this syntax will [[Live Preview]] to the evaluation of that expression.
 
-Example: 10 + 2 = ${adder(10, 2)} (move into this value to see the expression using the just defined `adder` function to calculate this).
+Example: 10 + 2 = ${adder(10, 2)} (Alt-click on this value to see the expression using the just defined `adder` function to calculate this).
 
 ## Widgets
 The `${lua expression}` syntax can be used to implement simple widgets. If the lua expression evaluates to a simple string, it will live preview as that string rendered as simple markdown. However, if the expression returns a Lua table with specific keys, you can do some cooler stuff. The following keys are supported:

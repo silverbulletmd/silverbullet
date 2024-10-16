@@ -181,7 +181,7 @@ export class MarkdownWidget extends WidgetType {
   }
 
   private attachListeners(div: HTMLElement, buttons?: CodeWidgetButton[]) {
-    attachWidgetEventHandlers(div, this.client);
+    attachWidgetEventHandlers(div, this.client, this.from);
 
     if (!buttons) {
       buttons = [];
@@ -225,7 +225,8 @@ export class MarkdownWidget extends WidgetType {
   override eq(other: WidgetType): boolean {
     return (
       other instanceof MarkdownWidget &&
-      other.bodyText === this.bodyText && other.cacheKey === this.cacheKey
+      other.bodyText === this.bodyText && other.cacheKey === this.cacheKey &&
+      this.from === other.from
     );
   }
 }

@@ -49,7 +49,7 @@ export class LuaWidget extends WidgetType {
     if (cacheItem) {
       div.innerHTML = cacheItem.html;
       if (cacheItem.html) {
-        attachWidgetEventHandlers(div, this.client);
+        attachWidgetEventHandlers(div, this.client, this.from);
       }
     }
 
@@ -92,7 +92,7 @@ export class LuaWidget extends WidgetType {
       } else {
         div.style.display = "inline";
       }
-      attachWidgetEventHandlers(div, this.client);
+      attachWidgetEventHandlers(div, this.client, this.from);
       this.client.setWidgetCache(
         this.cacheKey,
         { height: div.clientHeight, html },
@@ -157,7 +157,7 @@ export class LuaWidget extends WidgetType {
       }
       div.innerHTML = html;
       if (html) {
-        attachWidgetEventHandlers(div, this.client);
+        attachWidgetEventHandlers(div, this.client, this.from);
       }
     }
 
@@ -187,7 +187,8 @@ export class LuaWidget extends WidgetType {
   override eq(other: WidgetType): boolean {
     return (
       other instanceof LuaWidget &&
-      other.bodyText === this.bodyText && other.cacheKey === this.cacheKey
+      other.bodyText === this.bodyText && other.cacheKey === this.cacheKey &&
+      this.from === other.from
     );
   }
 }

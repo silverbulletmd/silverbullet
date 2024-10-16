@@ -2,8 +2,18 @@ import { parsePageRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import type { Client } from "../client.ts";
 import { tagPrefix } from "../../plugs/index/constants.ts";
 
-export function attachWidgetEventHandlers(div: HTMLElement, client: Client) {
+export function attachWidgetEventHandlers(
+  div: HTMLElement,
+  client: Client,
+  pos?: number,
+) {
   div.addEventListener("mousedown", (e) => {
+    if (e.altKey) {
+      // Move cursor there
+      client.editorView.dispatch({ selection: { anchor: pos! } });
+      client.editorView.focus();
+      e.preventDefault();
+    }
     // CodeMirror overrides mousedown on parent elements to implement its own selection highlighting.
     // That's nice, but not for markdown widgets, so let's not propagate the event to CodeMirror here.
     e.stopPropagation();
