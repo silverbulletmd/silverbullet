@@ -1,4 +1,5 @@
 import type { ClickEvent } from "../../plug-api/types.ts";
+import { extractHashtag } from "../../plug-api/lib/tags.ts";
 import {
   editor,
   markdown,
@@ -123,7 +124,7 @@ async function actionClickOrActionEnter(
       break;
     }
     case "Hashtag": {
-      const hashtag = mdTree.children![0].text!.slice(1);
+      const hashtag = extractHashtag(mdTree.children![0].text!);
       await editor.navigate(
         { page: `${tagPrefix}${hashtag}`, pos: 0 },
         false,

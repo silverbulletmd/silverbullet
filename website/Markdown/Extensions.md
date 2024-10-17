@@ -10,7 +10,7 @@ In addition to supporting [[Markdown/Basics|markdown basics]] as standardized by
 * [[Transclusions]] syntax
 * [[Markdown/Anchors]]
 * [[Markdown/Admonitions]]
-* Hashtags, e.g. `#mytag`.
+* [[Markdown/Hashtags]]
 * [[Markdown/Command links]] syntax
 * [Tables](https://www.markdownguide.org/extended-syntax/#tables)
 * [Task lists](https://www.markdownguide.org/extended-syntax/#task-lists)

@@ -1,4 +1,5 @@
 import type { FileMeta } from "../../plug-api/types.ts";
+import { renderHashtag } from "../../plug-api/lib/tags.ts";
 import { markdown, system } from "@silverbulletmd/silverbullet/syscalls";
 import { renderToText } from "@silverbulletmd/silverbullet/lib/tree";
 import { tagPrefix } from "./constants.ts";
@@ -10,7 +11,7 @@ export async function readFileTag(
     tagPrefix.length,
     name.length - ".md".length,
   );
-  const text = `All objects in your space tagged with #${tagName}:
+  const text = `All objects in your space tagged with ${renderHashtag(tagName)}:
 \`\`\`template
 template: |
     {{#if .}}

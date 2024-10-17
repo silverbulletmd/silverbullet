@@ -10,6 +10,7 @@ import { extractAttributes } from "@silverbulletmd/silverbullet/lib/attribute";
 import type { ObjectValue } from "../../plug-api/types.ts";
 import { updateITags } from "@silverbulletmd/silverbullet/lib/tags";
 import { extractFrontmatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
+import { extractHashtag } from "../../plug-api/lib/tags.ts";
 
 /** ParagraphObject  An index object for the top level text nodes */
 export type ParagraphObject = ObjectValue<
@@ -40,7 +41,7 @@ export async function indexParagraphs({ name: page, tree }: IndexTreeEvent) {
     // Collect tags and remove from the tree
     const tags = new Set<string>();
     collectNodesOfType(p, "Hashtag").forEach((tagNode) => {
-      tags.add(tagNode.children![0].text!.substring(1));
+      tags.add(extractHashtag(tagNode.children![0].text!));
       // Hacky way to remove the hashtag
       tagNode.children = [];
     });
