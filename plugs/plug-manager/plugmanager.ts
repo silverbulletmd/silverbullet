@@ -7,8 +7,9 @@ import {
 import { readYamlPage } from "@silverbulletmd/silverbullet/lib/yaml_page";
 import { builtinPlugNames } from "../builtin_plugs.ts";
 
+const plugsPage = "PLUGS";
 const plugsPrelude =
-  "This file lists all plugs that SilverBullet will load. Run the {[Plugs: Update]} command to update and reload this list of plugs.\n\n";
+  "#meta\n\nThis file lists all plugs added with the {[Plugs: Add]} command. Run the {[Plugs: Update]} command to update all Plugs defined anywhere using Space Config.\n\n";
 
 export async function updatePlugsCommand() {
   await editor.save();
@@ -59,6 +60,14 @@ export async function updatePlugsCommand() {
         return;
       }
     }
+
+    // De-duplicate URIs, this is safe because by definition they point to the same plug
+    plugList.forEach((uri, index) => {
+      if (plugList.indexOf(uri) !== index) {
+        plugList.splice(index, 1);
+      }
+    });
+
     console.log("Found Plug URIs:", plugList);
     const allCustomPlugNames: string[] = [];
     for (const plugUri of plugList) {
@@ -85,6 +94,18 @@ export async function updatePlugsCommand() {
         }
 
         plugName = plugNameMatch[1];
+      }
+
+      // Validate the extracted name
+      if (builtinPlugNames.includes(plugName)) {
+        throw new Error(
+          `Plug name '${plugName}' is conflicting with a built-in plug`,
+        );
+      }
+      if (allCustomPlugNames.includes(plugName)) {
+        throw new Error(
+          `Plug name '${plugName}' defined by more than one URI`,
+        );
       }
 
       const manifests = await events.dispatchEvent(
@@ -130,42 +151,35 @@ export async function addPlugCommand(_cmdDef: any, uriSuggestion: string = "") {
   if (uri.startsWith("-")) {
     uri = uri.replace(/^\-\s*/, "");
   }
-  let plugList: string[] = [];
-  try {
-    plugList = await readYamlPage("PLUGS");
-  } catch (e: any) {
-    console.error("ERROR", e);
+
+  let plugPageContent = plugsPrelude;
+  if (await space.fileExists(plugsPage + ".md")) {
+    plugPageContent = await space.readPage(plugsPage);
+  } else {
+    space.writePage(plugsPage, plugPageContent);
   }
-  if (plugList.includes(uri)) {
-    await editor.flashNotification("Plug already installed", "error");
-    return;
+  await editor.navigate({ page: plugsPage });
+  // Here we are on the PLUGS page, if it didn't exist before it's filled with prelude
+  const changeList = insertIntoPlugPage(uri, plugPageContent);
+  for (const { from, to, text } of changeList) {
+    editor.replaceRange(from, to, text);
   }
-  plugList.push(uri);
-  // await writeYamlPage("PLUGS", plugList, plugsPrelude);
-  await space.writePage(
-    "PLUGS",
-    plugsPrelude + "```yaml\n" + plugList.map((p) => `- ${p}`).join("\n") +
-      "\n```",
-  );
-  await editor.navigate({ page: "PLUGS" });
-  await updatePlugsCommand();
   await editor.flashNotification("Plug added!");
   system.reloadPlugs();
 }
 
-/** Add the plug to the end of the plugs list in Space Config inside the page content
+/** Add the plug to the end of the plugs list in Space Config inside the PLUGS page content
  * Returns an array for `editor.replaceRange` syscalls.
  *
+ * Rewrites the `yaml` block to `space-config` if present
  * Appends the `space-config` block if needed.
  * Appends the `plugs` key on root level if needed.
- * Rewrites the `yaml` block if it's on PLUGS page for new syntax.
  *
  * It's exported only to allow testing.
  */
-export function insertPlugIntoPage(
+export function insertIntoPlugPage(
   uri: string,
   pageContent: string,
-  isPlugsPage: boolean = false,
 ): Array<{ from: number; to: number; text: string }> {
   return [];
 }
