@@ -6,7 +6,7 @@ hooks.top:
   where: 'true'
   order: 1
 ---
-{{#let @linkedTasks = {task where not done and contains(name, "[[" + @page.name + "]]")}}}
+{{#let @linkedTasks = {task where not done and (contains(name, "[[" + @page.name + "]]") or contains(name, "[[" + @page.name + "|"))}}}
 {{#if @linkedTasks}}
 # Linked Tasks
 {{#each @linkedTasks}}
