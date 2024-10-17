@@ -81,12 +81,36 @@ function keyBindingForQuote(
 }
 
 export function createSmartQuoteKeyBindings(client: Client): KeyBinding[] {
-  if (client.config?.useSmartQuotes === false) {
+  // Also check the deprecated useSmartQuotes, default is true so either can disable
+  if (
+    client.config?.useSmartQuotes === false ||
+    client.config?.smartQuotes?.enabled === false
+  ) {
     return [];
   }
 
+  let doubleLeft = "“";
+  let doubleRight = "”";
+  let singleLeft = "‘";
+  let singleRight = "’";
+  const config = client.config?.smartQuotes;
+  if (config) {
+    if (typeof config.double?.left === "string") {
+      doubleLeft = config.double!.left;
+    }
+    if (typeof config.double?.right === "string") {
+      doubleRight = config.double!.right;
+    }
+    if (typeof config.single?.left === "string") {
+      singleLeft = config.single!.left;
+    }
+    if (typeof config.single?.right === "string") {
+      singleRight = config.single!.right;
+    }
+  }
+
   return [
-    keyBindingForQuote('"', "“", "”"),
-    keyBindingForQuote("'", "‘", "’"),
+    keyBindingForQuote('"', doubleLeft, doubleRight),
+    keyBindingForQuote("'", singleLeft, singleRight),
   ];
 }

@@ -1,4 +1,9 @@
-import type { ActionButton, EmojiConfig, Shortcut } from "./client.ts";
+import type {
+  ActionButton,
+  EmojiConfig,
+  Shortcut,
+  SmartQuotesConfig,
+} from "./client.ts";
 
 export interface ConfigContainer {
   config: Config;
@@ -30,6 +35,7 @@ export type LibraryDef = {
 export type Config = {
   indexPage: string;
   shortcuts?: Shortcut[];
+  // DEPRECATED: Use smartQuotes instead
   useSmartQuotes?: boolean;
   maximumAttachmentSize?: number;
   libraries?: LibraryDef[];
@@ -44,6 +50,7 @@ export type Config = {
   spaceIgnore?: string;
   emoji?: EmojiConfig;
   autoCloseBrackets: string;
+  smartQuotes?: SmartQuotesConfig;
 
   schema: SchemaConfig;
 

@@ -56,10 +56,17 @@ shortcuts:
 - command: "{[Upload: File]}"
   priority: 1
 
-# Toggles between “smart” ‘quotes’ (left and right) and "simple" 'quotes' (good ol' ASCII)
-useSmartQuotes: true
 # Choose which characters to auto-close
 autoCloseBrackets: "([{`"
+# Options for “smart” ‘quotes’ (left and right) used outside of code fragments, these are the defaults:
+smartQuotes:
+  enabled: true # Set to false for "simple" 'quotes' (good ol' ASCII)
+  double:
+    left: '“'
+    right: '”'
+  single:
+    left: "‘"
+    right: "’"
 
 # Defines files to ignore in a format compatible with .gitignore
 spaceIgnore: |

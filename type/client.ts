@@ -39,3 +39,9 @@ export type ActionButton = {
 export type EmojiConfig = {
   aliases: string[][];
 };
+
+export type SmartQuotesConfig = {
+  enabled?: boolean;
+  double?: { left?: string; right?: string };
+  single?: { left?: string; right?: string };
+};
