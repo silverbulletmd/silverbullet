@@ -5,6 +5,7 @@ import {
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { assert, assertEquals, assertNotEquals } from "@std/assert";
 import { parseMarkdown } from "./parser.ts";
+import { extractHashtag, renderHashtag } from "../../plug-api/lib/tags.ts";
 
 const sample1 = `---
 type: page
@@ -161,4 +162,57 @@ Deno.test("Test directive parser", () => {
 Deno.test("Test lua directive parser", () => {
   const simpleExample = `Simple \${{a=}}`;
   console.log(JSON.stringify(parseMarkdown(simpleExample), null, 2));
+});
+
+const hashtagSample = `
+Hashtags, e.g. #mytag but ignore in code \`#mytag\`.
+They can contain slashes like #level/beginner, single quotes, and dashes: #Mike's-idea.
+Can be just #a single letter.
+But no other #interpunction: #exclamation! #question?
+There is a way to write #<tag with spaces>
+These cannot span #<multiple
+lines>
+#no#spacing also works.
+Hashtags can start with number if there's something after it: #3dprint #15-52_Trip-to-NYC.
+But magazine issue #1 or #123 are not hashtags.
+Should support other languages, like #żółć or #井号
+`;
+
+Deno.test("Test hashtag parser", () => {
+  const tree = parseMarkdown(hashtagSample);
+  const hashtags = collectNodesOfType(tree, "Hashtag");
+  assertEquals(hashtags.length, 14);
+
+  assertEquals(hashtags[0].children![0].text, "#mytag");
+  assertEquals(hashtags[1].children![0].text, "#level/beginner");
+  assertEquals(hashtags[2].children![0].text, "#Mike's-idea");
+  assertEquals(hashtags[3].children![0].text, "#a");
+  assertEquals(hashtags[4].children![0].text, "#interpunction");
+  assertEquals(hashtags[5].children![0].text, "#exclamation");
+  assertEquals(hashtags[6].children![0].text, "#question");
+  assertEquals(hashtags[7].children![0].text, "#<tag with spaces>");
+  // multiple lines not allowed
+  assertEquals(hashtags[8].children![0].text, "#no");
+  assertEquals(hashtags[9].children![0].text, "#spacing");
+  assertEquals(hashtags[10].children![0].text, "#3dprint");
+  assertEquals(hashtags[11].children![0].text, "#15-52_Trip-to-NYC");
+  assertEquals(hashtags[12].children![0].text, "#żółć");
+  assertEquals(hashtags[13].children![0].text, "#井号");
+});
+
+Deno.test("Test hashtag helper functions", () => {
+  assertEquals(extractHashtag("#name"), "name");
+  assertEquals(extractHashtag("#123-content"), "123-content");
+  assertEquals(extractHashtag("#<escaped tag>"), "escaped tag");
+  assertEquals(
+    extractHashtag("#<allow < and # inside>"),
+    "allow < and # inside",
+  );
+
+  assertEquals(renderHashtag("simple"), "#simple");
+  assertEquals(renderHashtag("123-content"), "#123-content");
+  assertEquals(renderHashtag("with spaces"), "#<with spaces>");
+  assertEquals(renderHashtag("single'quote"), "#single'quote");
+  // should behave like this for all characters in tagRegex
+  assertEquals(renderHashtag("exclamation!"), "#<exclamation!>");
 });

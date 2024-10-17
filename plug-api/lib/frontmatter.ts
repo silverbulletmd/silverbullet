@@ -7,6 +7,7 @@ import {
 } from "./tree.ts";
 import { cleanupJSON } from "./json.ts";
 import { YAML } from "../syscalls.ts";
+import { extractHashtag } from "./tags.ts";
 
 export type FrontMatter = { tags?: string[] } & Record<string, any>;
 
@@ -48,7 +49,7 @@ export async function extractFrontmatter(
             break;
           }
         } else if (child.type === "Hashtag") {
-          const tagname = child.children![0].text!.substring(1);
+          const tagname = extractHashtag(child.children![0].text!);
           collectedTags.add(tagname);
 
           if (

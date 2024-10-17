@@ -11,6 +11,7 @@ import type {
 import { indexObjects, queryObjects } from "./api.ts";
 import { parsePageRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { extractAttributes } from "@silverbulletmd/silverbullet/lib/attribute";
+import { extractHashtag } from "../../plug-api/lib/tags.ts";
 
 type HeaderObject = ObjectValue<
   {
@@ -35,7 +36,7 @@ export async function indexHeaders({ name: pageName, tree }: IndexTreeEvent) {
 
     collectNodesOfType(n, "Hashtag").forEach((h) => {
       // Push tag to the list, removing the initial #
-      tags.add(h.children![0].text!.substring(1));
+      tags.add(extractHashtag(h.children![0].text!));
       h.children = [];
     });
 
