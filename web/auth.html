@@ -76,6 +76,9 @@
     <form action="/.auth" method="POST" id="login">
       <div class="error-message"></div>
       <div>
+        <label for="username">
+          Username
+        </label>
         <input
           type="text"
           name="username"
@@ -84,15 +87,16 @@
           autocorrect="off"
           autocapitalize="off"
           autofocus
-          placeholder="Username"
         />
       </div>
       <div>
+        <label for="password">
+          Password
+        </label>
         <input
           type="password"
           name="password"
           id="password"
-          placeholder="Password"
         />
       </div>
       <div>
