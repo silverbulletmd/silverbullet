@@ -9,8 +9,18 @@
     <link rel="icon" type="image/x-icon" href="/favicon.png" />
     <title>Login to SilverBullet</title>
     <style>
-      html,
-      body {
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      * {
+        padding: 0;
+        margin: 0;
+      }
+
+      html {
         font-family:
           -apple-system,
           BlinkMacSystemFont,
@@ -24,88 +34,147 @@
           "Segoe UI Emoji",
           "Segoe UI Symbol",
           "Noto Color Emoji";
-        border: 0;
-        margin: 0;
+        background-color: #fefefe;
+        --primary-button-color: #eee;
+        --primary-button-background-color: #464cfc;
+        --primary-button-hover-background-color: color-mix(
+          in srgb,
+          var(--primary-button-background-color),
+          black 35%
+        );
+        --primary-button-border-color: transparent;
+        --modal-border-color: #6c6c6c;
+        }
+
+      header {
+        position: absolute;
+        padding: 1rem;
+        font-size: 1.2rem;
       }
 
       footer {
-        margin-top: 10px;
-      }
-
-      header {
-        background-color: #e1e1e1;
-        border-bottom: #cacaca 1px solid;
+        text-align: center;
       }
 
       h1 {
-        margin: 0;
-        margin: 0 auto;
-        max-width: 800px;
-        padding: 8px;
-        font-size: 28px;
+        font-size: 1.5rem;
         font-weight: normal;
       }
 
-      form {
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 10px;
-      }
-
       input {
-        font-size: 18px;
+        font-family: inherit;
+        font-size: inherit;
+        padding: 0.5em;
       }
 
       form > div {
-        margin-bottom: 5px;
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+      }
+
+      button {
+        background: var(--primary-button-background-color);
+        color: var(--primary-button-color);
+        box-shadow: 0 0 0.2em rgba(0, 0, 0, 0.05);
+        border: 1px solid var(--border-color);
+        padding: 0.7em;
+        border-radius: 0.5em;
+
+        &:hover {
+          background-color: var(--primary-button-hover-background-color);
+        }
+
+        &:focus {
+          outline: 2px solid var(--primary-button-color);
+          outline-offset: -3px;
+        }
       }
 
       .error-message {
         color: red;
       }
+
+      .center {
+        height: 100vh;
+        display: grid;
+        place-items: center;
+      }
+
+      @media (min-width: 28em) {
+        html {
+          --top-color:  #66A3BB;
+          --bottom-color:  #0B3A69;
+          background: linear-gradient(var(--top-color), var(--bottom-color));
+        }
+
+        .floating-island {
+          padding: 3em;
+          border-radius: 8px;
+          box-shadow: rgba(0, 0, 0, 0.35) 0px 20px 20px;
+          background-color: white;
+          border: var(--modal-border-color) 1px solid;      }
+        }
+      }
+
+      .flow {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+      }
+
+      .flow > * {
+        margin-block: 0;
+      }
+
+      .flow > * + * {
+        margin-block-start: var(--space, 1rem);
+      }
     </style>
   </head>
 
   <body>
-    <header>
+    <div class="center">
+      <div class="flow floating-island">
       <h1>
         Login to <img src="/.client/logo.png" style="height: 1ch" />
         SilverBullet
-      </h1>
-    </header>
-    <form action="/.auth" method="POST" id="login">
-      <div class="error-message"></div>
-      <div>
-        <label for="username">
-          Username
-        </label>
-        <input
-          type="text"
-          name="username"
-          id="username"
-          autocomplete="off"
-          autocorrect="off"
-          autocapitalize="off"
-          autofocus
-        />
+      </h1>  
+        <form action="/.auth" method="POST" id="login" class="flow">
+          <div class="error-message"></div>
+          <div>
+            <label for="username">
+              Username
+            </label>
+            <input
+              type="text"
+              name="username"
+              id="username"
+              autocomplete="off"
+              autocorrect="off"
+              autocapitalize="off"
+              autofocus
+            />
+          </div>
+          <div>
+            <label for="password">
+              Password
+            </label>
+            <input
+              type="password"
+              name="password"
+              id="password"
+            />
+          </div>
+          <div style="--space: 1.8rem">
+            <button>Login</button>
+          </div>
+        </form>
+        <footer>
+          <a href="https://silverbullet.md">What is SilverBullet?</a>
+        </footer>
       </div>
-      <div>
-        <label for="password">
-          Password
-        </label>
-        <input
-          type="password"
-          name="password"
-          id="password"
-        />
-      </div>
-      <div>
-        <input type="submit" value="Login" />
-      </div>
-      <footer>
-        <a href="https://silverbullet.md">What is SilverBullet?</a>
-      </footer>
-    </form>
+    </div>
 
     <script>
       const params = new URLSearchParams(window.location.search);
