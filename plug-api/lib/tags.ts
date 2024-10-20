@@ -4,7 +4,7 @@ import {
   type ParseTree,
   traverseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import { tagRegex } from "$common/markdown_parser/constants.ts";
+import { tagRegex } from "../../common/markdown_parser/constants.ts";
 
 export function updateITags<T>(obj: ObjectValue<T>, frontmatter: FrontMatter) {
   const itags = [obj.tag, ...frontmatter.tags || []];
