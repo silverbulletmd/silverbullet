@@ -5,6 +5,7 @@ import {
   LuaBuiltinFunction,
   LuaEnv,
   LuaNativeJSFunction,
+  LuaStackFrame,
   LuaTable,
 } from "$common/space_lua/runtime.ts";
 import type { System } from "$lib/plugos/system.ts";
@@ -24,17 +25,18 @@ export function buildLuaEnv(system: System<any>, scriptEnv: ScriptEnvironment) {
 
 function exposeSyscalls(env: LuaEnv, system: System<any>) {
   // Expose all syscalls to Lua
+  const nativeFs = new LuaStackFrame(env, null);
   for (const syscallName of system.registeredSyscalls.keys()) {
     const [ns, fn] = syscallName.split(".");
-    if (!env.get(ns)) {
-      env.set(ns, new LuaTable());
+    if (!env.has(ns)) {
+      env.set(ns, new LuaTable(), nativeFs);
     }
     const luaFn = new LuaNativeJSFunction((...args) => {
       return system.localSyscall(syscallName, args);
     });
     // Register the function with the same name as the syscall both in regular and snake_case
-    env.get(ns).set(fn, luaFn);
-    env.get(ns).set(snakeCase(fn), luaFn);
+    env.get(ns, nativeFs).set(fn, luaFn, nativeFs);
+    env.get(ns, nativeFs).set(snakeCase(fn), luaFn, nativeFs);
   }
 }
 
@@ -47,7 +49,7 @@ function exposeDefinitions(
   env.set(
     "define_command",
     new LuaBuiltinFunction(
-      (def: LuaTable) => {
+      (_sf, def: LuaTable) => {
         if (def.get(1) === undefined) {
           throw new Error("Callback is required");
         }
@@ -65,10 +67,9 @@ function exposeDefinitions(
             hide: def.get("hide"),
           } as CommandDef,
           async (...args: any[]) => {
+            const sf = new LuaStackFrame(new LuaEnv(), null);
             try {
-              return await def.get(1).call(
-                ...args.map(jsToLuaValue),
-              );
+              return await def.get(1).call(sf, ...args.map(jsToLuaValue));
             } catch (e: any) {
               await handleLuaError(e, system);
             }
@@ -79,7 +80,7 @@ function exposeDefinitions(
   );
   env.set(
     "define_event_listener",
-    new LuaBuiltinFunction((def: LuaTable) => {
+    new LuaBuiltinFunction((_sf, def: LuaTable) => {
       if (def.get(1) === undefined) {
         throw new Error("Callback is required");
       }
@@ -90,10 +91,9 @@ function exposeDefinitions(
       scriptEnv.registerEventListener(
         { name: def.get("event") },
         async (...args: any[]) => {
+          const sf = new LuaStackFrame(new LuaEnv(), null);
           try {
-            return await def.get(1).call(
-              ...args.map(jsToLuaValue),
-            );
+            return await def.get(1).call(sf, ...args.map(jsToLuaValue));
           } catch (e: any) {
             await handleLuaError(e, system);
           }

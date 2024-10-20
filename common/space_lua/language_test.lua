@@ -125,7 +125,7 @@ mt = {
 t = setmetatable({}, mt)
 t.bar = "bar"
 assert(t.bar == "bar")
-assert(t.foo == "Key not found: foo")
+assert_equal(t.foo, "Key not found: foo")
 
 -- Test the __newindex metamethod
 t = setmetatable(

@@ -3,6 +3,7 @@ import {
   jsToLuaValue,
   luaLen,
   LuaMultiRes,
+  LuaStackFrame,
 } from "$common/space_lua/runtime.ts";
 
 Deno.test("Test Lua Rutime", () => {
@@ -40,5 +41,5 @@ Deno.test("Test Lua Rutime", () => {
   assertEquals(luaVal.get(2).get("name"), "John");
   // Functions in objects
   luaVal = jsToLuaValue({ name: "Pete", first: (l: any[]) => l[0] });
-  assertEquals(luaVal.get("first").call([1, 2, 3]), 1);
+  assertEquals(luaVal.get("first").call(LuaStackFrame.lostFrame, [1, 2, 3]), 1);
 });

@@ -2,6 +2,7 @@ import { assertEquals } from "@std/assert/equals";
 import {
   LuaEnv,
   LuaNativeJSFunction,
+  LuaStackFrame,
   luaValueToJS,
   singleResult,
 } from "./runtime.ts";
@@ -11,15 +12,19 @@ import { evalExpression, evalStatement } from "./eval.ts";
 import { luaBuildStandardEnv } from "$common/space_lua/stdlib.ts";
 
 function evalExpr(s: string, e = new LuaEnv()): any {
+  const node = parse(`e(${s})`).statements[0] as LuaFunctionCallStatement;
+  const sf = new LuaStackFrame(e, node.ctx);
   return evalExpression(
-    (parse(`e(${s})`).statements[0] as LuaFunctionCallStatement).call
-      .args[0],
+    node.call.args[0],
     e,
+    sf,
   );
 }
 
 function evalBlock(s: string, e = new LuaEnv()): Promise<void> {
-  return evalStatement(parse(s) as LuaBlock, e);
+  const node = parse(s) as LuaBlock;
+  const sf = new LuaStackFrame(e, node.ctx);
+  return evalStatement(node, e, sf);
 }
 
 Deno.test("Evaluator test", async () => {

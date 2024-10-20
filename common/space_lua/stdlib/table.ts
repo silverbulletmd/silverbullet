@@ -6,7 +6,7 @@ import {
 
 export const tableApi = new LuaTable({
   concat: new LuaBuiltinFunction(
-    (tbl: LuaTable, sep?: string, i?: number, j?: number) => {
+    (_sf, tbl: LuaTable, sep?: string, i?: number, j?: number) => {
       sep = sep ?? "";
       i = i ?? 1;
       j = j ?? tbl.length;
@@ -18,7 +18,7 @@ export const tableApi = new LuaTable({
     },
   ),
   insert: new LuaBuiltinFunction(
-    (tbl: LuaTable, posOrValue: number | any, value?: any) => {
+    (_sf, tbl: LuaTable, posOrValue: number | any, value?: any) => {
       if (value === undefined) {
         value = posOrValue;
         posOrValue = tbl.length + 1;
@@ -26,11 +26,11 @@ export const tableApi = new LuaTable({
       tbl.insert(posOrValue, value);
     },
   ),
-  remove: new LuaBuiltinFunction((tbl: LuaTable, pos?: number) => {
+  remove: new LuaBuiltinFunction((_sf, tbl: LuaTable, pos?: number) => {
     pos = pos ?? tbl.length;
     tbl.remove(pos);
   }),
-  sort: new LuaBuiltinFunction((tbl: LuaTable, comp?: ILuaFunction) => {
-    return tbl.sort(comp);
+  sort: new LuaBuiltinFunction((sf, tbl: LuaTable, comp?: ILuaFunction) => {
+    return tbl.sort(comp, sf);
   }),
 });

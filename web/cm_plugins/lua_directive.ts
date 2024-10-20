@@ -14,7 +14,11 @@ import type {
   LuaFunctionCallStatement,
 } from "$common/space_lua/ast.ts";
 import { evalExpression } from "$common/space_lua/eval.ts";
-import { luaValueToJS } from "$common/space_lua/runtime.ts";
+import {
+  LuaEnv,
+  LuaStackFrame,
+  luaValueToJS,
+} from "$common/space_lua/runtime.ts";
 import { LuaRuntimeError } from "$common/space_lua/runtime.ts";
 import { encodePageRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { resolveASTReference } from "$common/space_lua.ts";
@@ -54,16 +58,18 @@ export function luaDirectivePlugin(client: Client) {
                     (parsedLua.statements[0] as LuaFunctionCallStatement).call
                       .args[0];
 
+                  const sf = new LuaStackFrame(new LuaEnv(), expr.ctx);
                   return luaValueToJS(
                     await evalExpression(
                       expr,
                       client.clientSystem.spaceLuaEnv.env,
+                      sf,
                     ),
                   );
                 } catch (e: any) {
                   if (e instanceof LuaRuntimeError) {
-                    if (e.context.ref) {
-                      const source = resolveASTReference(e.context);
+                    if (e.sf.astCtx) {
+                      const source = resolveASTReference(e.sf.astCtx);
                       if (source) {
                         // We know the origin node of the error, let's reference it
                         return {

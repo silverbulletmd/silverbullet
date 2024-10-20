@@ -1,7 +1,7 @@
 import { LuaBuiltinFunction, LuaTable } from "$common/space_lua/runtime.ts";
 
 export const osApi = new LuaTable({
-  time: new LuaBuiltinFunction((tbl?: LuaTable) => {
+  time: new LuaBuiltinFunction((_sf, tbl?: LuaTable) => {
     if (tbl) {
       // Build a date object from the table
       const date = new Date();
@@ -32,7 +32,7 @@ export const osApi = new LuaTable({
    * If format is not "*t", then date returns the date as a string, formatted according to the same rules as the ISO C function strftime.
    * If format is absent, it defaults to "%c", which gives a human-readable date and time representation using the current locale.
    */
-  date: new LuaBuiltinFunction((format: string, timestamp?: number) => {
+  date: new LuaBuiltinFunction((_sf, format: string, timestamp?: number) => {
     const date = timestamp ? new Date(timestamp * 1000) : new Date();
 
     // Default Lua-like format when no format string is provided

@@ -13,13 +13,13 @@ export const jsApi = new LuaTable({
       );
     },
   ),
-  importModule: new LuaBuiltinFunction((url) => {
+  importModule: new LuaBuiltinFunction((_sf, url) => {
     return import(url);
   }),
 
-  tolua: new LuaBuiltinFunction(jsToLuaValue),
-  tojs: new LuaBuiltinFunction(luaValueToJS),
-  log: new LuaBuiltinFunction((...args) => {
+  tolua: new LuaBuiltinFunction((_sf, val) => jsToLuaValue(val)),
+  tojs: new LuaBuiltinFunction((_sf, val) => luaValueToJS(val)),
+  log: new LuaBuiltinFunction((_sf, ...args) => {
     console.log(...args);
   }),
   // assignGlobal: new LuaBuiltinFunction((name: string, value: any) => {

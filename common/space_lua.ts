@@ -4,6 +4,7 @@ import {
   LuaEnv,
   LuaFunction,
   LuaRuntimeError,
+  LuaStackFrame,
 } from "$common/space_lua/runtime.ts";
 import { parse as parseLua } from "$common/space_lua/parse.ts";
 import { evalStatement } from "$common/space_lua/eval.ts";
@@ -39,10 +40,11 @@ export class SpaceLuaEnvironment {
         const ast = parseLua(script.script, { ref: script.ref });
         // We create a local scope for each script
         const scriptEnv = new LuaEnv(this.env);
-        await evalStatement(ast, scriptEnv);
+        const sf = new LuaStackFrame(new LuaEnv(), ast.ctx);
+        await evalStatement(ast, scriptEnv, sf);
       } catch (e: any) {
         if (e instanceof LuaRuntimeError) {
-          const origin = resolveASTReference(e.context);
+          const origin = resolveASTReference(e.sf.astCtx!);
           if (origin) {
             console.error(
               `Error evaluating script: ${e.message} at [[${origin.page}@${origin.pos}]]`,
@@ -62,7 +64,8 @@ export class SpaceLuaEnvironment {
       if (value instanceof LuaFunction) {
         console.log("Now registering Lua function", globalName);
         scriptEnv.registerFunction({ name: globalName }, (...args: any[]) => {
-          return luaValueToJS(value.call(...args.map(jsToLuaValue)));
+          const sf = new LuaStackFrame(new LuaEnv(), value.body.ctx);
+          return luaValueToJS(value.call(sf, ...args.map(jsToLuaValue)));
         });
       }
     }
