@@ -94,7 +94,8 @@ function loadJsByUrl(url,integrity=null) {
   const script = document.createElement("script");
   script.src = url;
   if(integrity){
-    script.integrity=integrity
+    script.integrity=integrity;
+    script.crossorigin="anonymous";
   }
   
 
