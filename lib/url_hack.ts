@@ -1,4 +1,4 @@
-export const urlPrefix = Deno.env.get('SB_URL_PREFIX') ?? (globalThis.silverBulletConfig ? globalThis.silverBulletConfig.urlPrefix : null) ?? '';
+export const urlPrefix : string = Deno.env.get('SB_URL_PREFIX') ?? (globalThis.silverBulletConfig ? globalThis.silverBulletConfig.urlPrefix : null) ?? '';
 
 export const toRealUrl = <T extends (string | URL)>(url : T) : T => {
     if (typeof url === 'string') {
@@ -36,13 +36,14 @@ export const toInternalUrl = (url : string) => {
             return parsedUrl.href;
         }
         else {
+            console.log("Don't know how to deal with non-prefix: ", url);
             return url;
         }
     } else if (url.startsWith(urlPrefix)) {
         return url.substr(urlPrefix.length);
     }
     else {
-        console.log("Don't know how to deal with relative path: ", url);
+        console.log("Don't know how to deal with non-prefix: ", url);
         return url;
     }
 };

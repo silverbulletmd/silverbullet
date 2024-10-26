@@ -20,7 +20,7 @@ import {
   parsePageRef,
 } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { base64Encode } from "$lib/crypto.ts";
-import { urlPrefix, toRealUrl } from "$lib/url_hack.ts";
+import { urlPrefix, toRealUrl, toInternalUrl } from "$lib/url_hack.ts";
 
 const authenticationExpirySeconds = 60 * 60 * 24 * 7; // 1 week
 
@@ -59,7 +59,7 @@ export class HttpServer {
   baseKvPrimitives: KvPrimitives;
 
   constructor(private options: ServerOptions) {
-    this.app = new Hono();
+    this.app = new Hono().basePath(urlPrefix);
     this.clientAssetBundle = options.clientAssetBundle;
     this.plugAssetBundle = options.plugAssetBundle;
     this.hostname = options.hostname;
@@ -153,7 +153,7 @@ export class HttpServer {
 
     // Fallback, serve the UI index.html
     this.app.use("*", (c) => {
-      const url = new URL(c.req.url);
+      const url = new URL(toInternalUrl(c.req.url));
       const pageName = decodePageURI(url.pathname.slice(1));
       return this.renderHtmlPage(this.spaceServer, pageName, c);
     });
@@ -186,7 +186,7 @@ export class HttpServer {
   serveCustomEndpoints() {
     this.app.use("/_/*", async (ctx) => {
       const req = ctx.req;
-      const url = new URL(req.url);
+      const url = new URL(toInternalUrl(req.url));
       if (!this.spaceServer.serverSystem) {
         return ctx.text("No server system available", 500);
       }
@@ -244,7 +244,7 @@ export class HttpServer {
   serveStatic() {
     this.app.use("*", (c, next): Promise<void | Response> => {
       const req = c.req;
-      const url = new URL(req.url);
+      const url = new URL(toInternalUrl(req.url));
       // console.log("URL", url);
       if (
         url.pathname === "/"
@@ -327,7 +327,7 @@ export class HttpServer {
 
     // TODO: This should probably be a POST request
     this.app.get("/.logout", (c) => {
-      const url = new URL(c.req.url);
+      const url = new URL(toInternalUrl(c.req.url));
       deleteCookie(c, authCookieName(url.host));
 
       return c.redirect(toRealUrl("/.auth"));
@@ -357,7 +357,7 @@ export class HttpServer {
       }),
       async (c) => {
         const req = c.req;
-        const url = new URL(c.req.url);
+        const url = new URL(toInternalUrl(c.req.url));
         const { username, password } = req.valid("form");
 
         const {
@@ -400,7 +400,7 @@ export class HttpServer {
         // Auth disabled in this config, skip
         return next();
       }
-      const url = new URL(req.url);
+      const url = new URL(toInternalUrl(req.url));
       const host = url.host;
       const redirectToAuth = () => {
         // Try filtering api paths
