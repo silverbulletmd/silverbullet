@@ -374,7 +374,17 @@ const operatorsMetaMethods: LuaMetaMethod = {
   },
   "..": {
     metaMethod: "__concat",
-    nativeImplementation: (a, b) => luaToString(a) + luaToString(b),
+    nativeImplementation: (a, b) => {
+      const aString = luaToString(a);
+      const bString = luaToString(b);
+      if (aString instanceof Promise || bString instanceof Promise) {
+        return Promise.all([aString, bString]).then(([aString, bString]) =>
+          aString + bString
+        );
+      } else {
+        return aString + bString;
+      }
+    },
   },
   "==": {
     metaMethod: "__eq",
