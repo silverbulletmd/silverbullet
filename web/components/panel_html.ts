@@ -90,9 +90,14 @@ function updateHeight() {
   }
 }
 
-function loadJsByUrl(url) {
+function loadJsByUrl(url,integrity=null) {
   const script = document.createElement("script");
   script.src = url;
+  if(integrity){
+    script.integrity=integrity;
+    script.crossorigin="anonymous";
+  }
+  
 
   return new Promise((resolve) => {
     script.onload = resolve;

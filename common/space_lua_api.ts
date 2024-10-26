@@ -67,7 +67,8 @@ function exposeDefinitions(
             hide: def.get("hide"),
           } as CommandDef,
           async (...args: any[]) => {
-            const sf = new LuaStackFrame(new LuaEnv(), null);
+            const tl = new LuaEnv();
+            const sf = new LuaStackFrame(tl, null);
             try {
               return await def.get(1).call(sf, ...args.map(jsToLuaValue));
             } catch (e: any) {

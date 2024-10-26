@@ -32,18 +32,6 @@ export const stringApi = new LuaTable({
       ]);
     },
   ),
-  format: new LuaBuiltinFunction((_sf, format: string, ...args: any[]) => {
-    return format.replace(/%./g, (match) => {
-      switch (match) {
-        case "%s":
-          return luaToString(args.shift());
-        case "%d":
-          return String(args.shift());
-        default:
-          return match;
-      }
-    });
-  }),
   gmatch: new LuaBuiltinFunction((_sf, s: string, pattern: string) => {
     const regex = new RegExp(pattern, "g");
     return () => {
