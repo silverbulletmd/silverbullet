@@ -20,6 +20,7 @@ import {
   parsePageRef,
 } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { base64Encode } from "$lib/crypto.ts";
+import { urlPrefix, toRealUrl } from "$lib/url_hack.ts";
 
 const authenticationExpirySeconds = 60 * 60 * 24 * 7; // 1 week
 
@@ -102,6 +103,9 @@ export class HttpServer {
       .replace(
         "{{SPACE_PATH}}",
         spaceServer.pagesPath.replaceAll("\\", "\\\\"),
+      ).replaceAll(
+        "{{URL_PREFIX}}",
+        urlPrefix
       )
       .replace(
         "{{DESCRIPTION}}",
@@ -283,7 +287,7 @@ export class HttpServer {
         if (req.method === "GET") {
           if (assetName === "service_worker.js") {
             c.header("Cache-Control", "no-cache");
-            const textData = new TextDecoder().decode(data);
+            const textData = new TextDecoder().decode(data as Uint8Array);
             // console.log(
             //   "Swapping out config hash in service worker",
             // );
@@ -297,6 +301,12 @@ export class HttpServer {
                 ]),
               ),
             );
+          }
+          if (assetName.endsWith(".css")) {
+            const textData = new TextDecoder().decode(data as Uint8Array);
+            data = textData.replaceAll(
+              "{{URL_PREFIX}}",
+              urlPrefix);
           }
           return Promise.resolve(c.body(data));
         } // else e.g. HEAD, OPTIONS, don't send body
@@ -320,11 +330,15 @@ export class HttpServer {
       const url = new URL(c.req.url);
       deleteCookie(c, authCookieName(url.host));
 
-      return c.redirect("/.auth");
+      return c.redirect(toRealUrl("/.auth"));
     });
 
     this.app.get("/.auth", (c) => {
-      const html = this.clientAssetBundle.readTextFileSync(".client/auth.html");
+      const html = this.clientAssetBundle.readTextFileSync(".client/auth.html")
+      .replaceAll(
+        "{{URL_PREFIX}}",
+        urlPrefix
+      );
 
       return c.html(html);
     }).post(
@@ -336,7 +350,7 @@ export class HttpServer {
           !username || typeof username !== "string" ||
           !password || typeof password !== "string"
         ) {
-          return c.redirect("/.auth?error=0");
+          return c.redirect(toRealUrl("/.auth?error=0"));
         }
 
         return { username, password };
@@ -367,14 +381,16 @@ export class HttpServer {
           });
           const values = await c.req.parseBody();
           const from = values["from"];
-          return c.redirect(typeof from === "string" ? from : "/");
+          const result = toRealUrl(typeof from === "string" ? from : "/");
+          console.log(result);
+          return c.redirect(result);
         } else {
           console.error("Authentication failed, redirecting to auth page.");
-          return c.redirect("/.auth?error=1", 401);
+          return c.redirect(toRealUrl("/.auth?error=1"), 401);
         }
       },
     ).all((c) => {
-      return c.redirect("/.auth");
+      return c.redirect(toRealUrl("/.auth"));
     });
 
     // Check auth
@@ -389,9 +405,9 @@ export class HttpServer {
       const redirectToAuth = () => {
         // Try filtering api paths
         if (req.path.startsWith("/.") || req.path.endsWith(".md")) {
-          return c.redirect("/.auth", 401);
+          return c.redirect(toRealUrl("/.auth"), 401);
         } else {
-          return c.redirect(`/.auth?from=${req.path}`, 401);
+          return c.redirect(toRealUrl(`/.auth?from=${req.path}`), 401);
         }
       };
       if (!excludedPaths.includes(url.pathname)) {
@@ -462,7 +478,7 @@ export class HttpServer {
       } else {
         // Otherwise, redirect to the UI
         // The reason to do this is to handle authentication systems like Authelia nicely
-        return c.redirect("/");
+        return c.redirect(toRealUrl("/"));
       }
     });
 
@@ -541,7 +557,7 @@ export class HttpServer {
         console.warn(
           "Request was without X-Sync-Mode nor a CORS request, redirecting to page",
         );
-        return c.redirect(`/${name.slice(0, -mdExt.length)}`);
+        return c.redirect(toRealUrl(`/${name.slice(0, -mdExt.length)}`));
       }
       if (name.startsWith(".")) {
         // Don't expose hidden files
