@@ -30,7 +30,7 @@ export const toRealUrl = <T extends (string | URL)>(url : T) : T => {
 
 export const toInternalUrl = (url : string) => {
     if (url.startsWith('http://') || url.startsWith('https://')) {
-        var parsedUrl = new URL(url);
+        const parsedUrl = new URL(url);
         if (parsedUrl.pathname.startsWith(urlPrefix)) {
             parsedUrl.pathname = parsedUrl.pathname.substr(urlPrefix.length);
             return parsedUrl.href;

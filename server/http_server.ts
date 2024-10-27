@@ -287,7 +287,7 @@ export class HttpServer {
         if (req.method === "GET") {
           if (assetName === "service_worker.js") {
             c.header("Cache-Control", "no-cache");
-            const textData = new TextDecoder().decode(data as Uint8Array);
+            const textData = new TextDecoder().decode(data);
             // console.log(
             //   "Swapping out config hash in service worker",
             // );
@@ -301,12 +301,6 @@ export class HttpServer {
                 ]),
               ),
             );
-          }
-          if (assetName.endsWith(".css")) {
-            const textData = new TextDecoder().decode(data as Uint8Array);
-            data = textData.replaceAll(
-              "{{URL_PREFIX}}",
-              urlPrefix);
           }
           return Promise.resolve(c.body(data));
         } // else e.g. HEAD, OPTIONS, don't send body
