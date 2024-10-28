@@ -62,10 +62,10 @@ export abstract class CommonSystem {
           Object.keys(this.scriptEnv.eventHandlers).length,
           "event handlers from space-script",
         );
+        await this.spaceLuaEnv.reload(this.system, this.scriptEnv);
       } catch (e: any) {
         console.error("Error loading space-script:", e.message);
       }
-      await this.spaceLuaEnv.reload(this.system, this.scriptEnv);
       functions = { ...functions, ...this.scriptEnv.functions };
 
       // Reset the space script commands
