@@ -60,12 +60,13 @@ export class JWTIssuer {
 
   createJWT(
     payload: Record<string, unknown>,
-    expirySeconds: number,
+    expirySeconds?: number,
   ): Promise<string> {
-    return create({ alg: "HS512", typ: "JWT" }, {
-      ...payload,
-      exp: getNumericDate(expirySeconds),
-    }, this.key);
+    const jwtPayload = { ...payload };
+    if (expirySeconds) {
+      jwtPayload.exp = getNumericDate(expirySeconds);
+    }
+    return create({ alg: "HS512", typ: "JWT" }, jwtPayload, this.key);
   }
 
   verifyAndDecodeJWT(jwt: string): Promise<Record<string, unknown>> {
