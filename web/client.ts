@@ -88,7 +88,7 @@ declare global {
     syncOnly: boolean;
     readOnly: boolean;
     enableSpaceScript: boolean;
-    urlPrefix : string;
+    urlPrefix: string;
   };
   // deno-lint-ignore no-var
   var client: Client;

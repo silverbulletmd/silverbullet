@@ -16,7 +16,7 @@ import type { UploadFile } from "../../plug-api/types.ts";
 import type { PageRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { openSearchPanel } from "@codemirror/search";
 import { diffAndPrepareChanges } from "../cm_util.ts";
-import { toRealUrl, toInternalUrl } from "../../lib/url_hack.ts";
+import { toInternalUrl, toRealUrl } from "../../lib/url_hack.ts";
 
 export function editorSyscalls(client: Client): SysCallMapping {
   const syscalls: SysCallMapping = {

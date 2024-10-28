@@ -20,7 +20,7 @@ import {
   parsePageRef,
 } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { base64Encode } from "$lib/crypto.ts";
-import { urlPrefix, toRealUrl, toInternalUrl } from "$lib/url_hack.ts";
+import { toInternalUrl, toRealUrl, urlPrefix } from "$lib/url_hack.ts";
 
 const authenticationExpirySeconds = 60 * 60 * 24 * 7; // 1 week
 
@@ -105,7 +105,7 @@ export class HttpServer {
         spaceServer.pagesPath.replaceAll("\\", "\\\\"),
       ).replaceAll(
         "{{URL_PREFIX}}",
-        urlPrefix
+        urlPrefix,
       )
       .replace(
         "{{DESCRIPTION}}",
@@ -323,36 +323,39 @@ export class HttpServer {
     this.app.get("/.logout", (c) => {
       const url = new URL(toInternalUrl(c.req.url));
       deleteCookie(c, authCookieName(url.host));
+      deleteCookie(c, "refreshLogin");
 
       return c.redirect(toRealUrl("/.auth"));
     });
 
     this.app.get("/.auth", (c) => {
       const html = this.clientAssetBundle.readTextFileSync(".client/auth.html")
-      .replaceAll(
-        "{{URL_PREFIX}}",
-        urlPrefix
-      );
+        .replaceAll(
+          "{{URL_PREFIX}}",
+          urlPrefix,
+        );
 
       return c.html(html);
     }).post(
       validator("form", (value, c) => {
         const username = value["username"];
         const password = value["password"];
+        const rememberMe = value["rememberMe"];
 
         if (
           !username || typeof username !== "string" ||
-          !password || typeof password !== "string"
+          !password || typeof password !== "string" ||
+          (rememberMe && typeof rememberMe !== "string")
         ) {
           return c.redirect(toRealUrl("/.auth?error=0"));
         }
 
-        return { username, password };
+        return { username, password, rememberMe };
       }),
       async (c) => {
         const req = c.req;
-        const url = new URL(toInternalUrl(c.req.url));
-        const { username, password } = req.valid("form");
+        const url = new URL(c.req.url);
+        const { username, password, rememberMe } = req.valid("form");
 
         const {
           user: expectedUser,
@@ -361,18 +364,24 @@ export class HttpServer {
 
         if (username === expectedUser && password === expectedPassword) {
           // Generate a JWT and set it as a cookie
-          const jwt = await this.spaceServer.jwtIssuer.createJWT(
-            { username },
-            authenticationExpirySeconds,
-          );
+          const jwt = rememberMe
+            ? await this.spaceServer.jwtIssuer.createJWT({ username })
+            : await this.spaceServer.jwtIssuer.createJWT(
+              { username },
+              authenticationExpirySeconds,
+            );
           console.log("Successful auth");
+          const inAWeek = new Date(
+            Date.now() + authenticationExpirySeconds * 1000,
+          );
           setCookie(c, authCookieName(url.host), jwt, {
-            expires: new Date(
-              Date.now() + authenticationExpirySeconds * 1000,
-            ), // in a week
+            expires: inAWeek,
             // sameSite: "Strict",
             // httpOnly: true,
           });
+          if (rememberMe) {
+            setCookie(c, "refreshLogin", "true", { expires: inAWeek });
+          }
           const values = await c.req.parseBody();
           const from = values["from"];
           const result = toRealUrl(typeof from === "string" ? from : "/");
@@ -380,7 +389,7 @@ export class HttpServer {
           return c.redirect(result);
         } else {
           console.error("Authentication failed, redirecting to auth page.");
-          return c.redirect(toRealUrl("/.auth?error=1"), 401);
+          return c.redirect("/.auth?error=1", 401);
         }
       },
     ).all((c) => {
@@ -414,6 +423,7 @@ export class HttpServer {
             const authToken = authHeader.slice("Bearer ".length);
             if (authToken === this.spaceServer.authToken) {
               // All good, let's proceed
+              this.refreshLogin(c, host);
               return next();
             } else {
               console.log(
@@ -445,8 +455,26 @@ export class HttpServer {
           return redirectToAuth();
         }
       }
+      this.refreshLogin(c, host);
       return next();
     });
+  }
+
+  private refreshLogin(c: Context, host: string) {
+    if (getCookie(c, "refreshLogin")) {
+      const inAWeek = new Date(
+        Date.now() + authenticationExpirySeconds * 1000,
+      );
+      const jwt = getCookie(c, authCookieName(host));
+      if (jwt) {
+        setCookie(c, authCookieName(host), jwt, {
+          expires: inAWeek,
+          // sameSite: "Strict",
+          // httpOnly: true,
+        });
+        setCookie(c, "refreshLogin", "true", { expires: inAWeek });
+      }
+    }
   }
 
   private addFsRoutes() {

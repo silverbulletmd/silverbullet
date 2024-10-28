@@ -7,7 +7,7 @@ import type { Client } from "./client.ts";
 import { cleanPageRef } from "@silverbulletmd/silverbullet/lib/resolve";
 import { renderTheTemplate } from "$common/syscalls/template.ts";
 import { safeRun } from "../lib/async.ts";
-import { toRealUrl, toInternalUrl } from "../lib/url_hack.ts";
+import { toInternalUrl, toRealUrl } from "../lib/url_hack.ts";
 
 export type PageState = PageRef & {
   scrollTop?: number;
