@@ -379,7 +379,7 @@ export class HttpServer {
           return c.redirect(typeof from === "string" ? from : "/");
         } else {
           console.error("Authentication failed, redirecting to auth page.");
-          return c.redirect("/.auth?error=1", 401);
+          return c.redirect("/.auth?error=1");
         }
       },
     ).all((c) => {
