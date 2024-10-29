@@ -112,6 +112,7 @@ body {
 
         .cm-line {
           padding: 0;
+          caret-color: var(--editor-caret-color);
         }
       }
     }
