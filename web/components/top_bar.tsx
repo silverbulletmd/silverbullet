@@ -68,8 +68,8 @@ export function TopBar({
               className={(isLoading
                 ? "sb-loading"
                 : unsavedChanges
-                  ? "sb-unsaved"
-                  : "sb-saved") +
+                ? "sb-unsaved"
+                : "sb-saved") +
                 (cssClass ? " sb-decorated-object " + cssClass : "")}
             >
               <MiniEditor
@@ -103,7 +103,7 @@ export function TopBar({
             )}
             <div className="sb-actions">
               {progressPerc !== undefined &&
-                  (
+                (
                   <div className="progress-wrapper" title={`Sync Progress: ${progressPerc}%`}>
                     <div
                       className="progress-bar"
@@ -112,7 +112,7 @@ export function TopBar({
                       {progressPerc}
                     </div>
                   </div>
-              )}
+                )}
               {actionButtons.map((actionButton) => {
                 const button = (
                   <button
