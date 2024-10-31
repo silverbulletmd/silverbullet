@@ -404,13 +404,14 @@ export class HttpServer {
         return next();
       }
       const url = new URL(toInternalUrl(req.url));
+      const path = toInternalUrl(req.path);
       const host = url.host;
       const redirectToAuth = () => {
         // Try filtering api paths
-        if (req.path.startsWith("/.") || req.path.endsWith(".md")) {
+        if (path.startsWith("/.") || path.endsWith(".md")) {
           return c.redirect(toRealUrl("/.auth"), 401);
         } else {
-          return c.redirect(toRealUrl(`/.auth?from=${req.path}`), 401);
+          return c.redirect(toRealUrl(`/.auth?from=${path}`), 401);
         }
       };
       if (!excludedPaths.includes(url.pathname)) {
