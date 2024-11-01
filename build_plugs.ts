@@ -27,7 +27,7 @@ if (import.meta.main) {
       debug: args.debug,
       reload: args.reload,
       info: args.info,
-      configPath: new URL("deno.json", import.meta.url).pathname,
+      configPath: path.resolve("./deno.json"),
     },
   );
   esbuild.stop();
