@@ -4,6 +4,7 @@ import { assertEquals } from "@std/assert";
 import { compileManifest } from "../compile.ts";
 import * as esbuild from "esbuild";
 import type { SysCallMapping } from "../../lib/plugos/system.ts";
+import { fileURLToPath } from "node:url";
 
 Deno.test("Run a deno sandbox", {
   sanitizeResources: false,
@@ -32,10 +33,10 @@ Deno.test("Run a deno sandbox", {
   const tempDir = await Deno.makeTempDir();
 
   const workerPath = await compileManifest(
-    new URL("test_runtime.plug.yaml", import.meta.url).pathname,
+    fileURLToPath(new URL("test_runtime.plug.yaml", import.meta.url)),
     tempDir,
     {
-      configPath: new URL("../../deno.json", import.meta.url).pathname,
+      configPath: fileURLToPath(new URL("../../deno.json", import.meta.url)),
     },
   );
 

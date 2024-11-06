@@ -6,6 +6,7 @@ import { assertEquals } from "@std/assert";
 import { dirname, join } from "@std/path";
 import { MemoryKvPrimitives } from "$lib/data/memory_kv_primitives.ts";
 import { runPlug } from "../plug_run.ts";
+import { fileURLToPath } from "node:url";
 
 Deno.test("Test plug run", {
   sanitizeResources: false,
@@ -13,7 +14,7 @@ Deno.test("Test plug run", {
 }, async () => {
   const assetBundle = new AssetBundle(assets);
 
-  const testFolder = dirname(new URL(import.meta.url).pathname);
+  const testFolder = dirname(fileURLToPath(new URL(import.meta.url)));
   const testSpaceFolder = join(testFolder, "test_space");
 
   const plugFolder = join(testSpaceFolder, "_plug");
@@ -27,7 +28,7 @@ Deno.test("Test plug run", {
     join(testFolder, "test_plug_run.plug.yaml"),
     plugFolder,
     {
-      configPath: new URL("../../deno.json", import.meta.url).pathname,
+      configPath: fileURLToPath(new URL("../../deno.json", import.meta.url)),
     },
   );
   assertEquals(
