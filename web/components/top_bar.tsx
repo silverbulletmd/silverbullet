@@ -104,12 +104,12 @@ export function TopBar({
             <div className="sb-actions">
               {progressPerc !== undefined &&
                 (
-                  <div className="progress-wrapper" title={`${progressPerc}%`}>
+                  <div className="progress-wrapper" title={`Sync Progress: ${progressPerc}%`}>
                     <div
                       className="progress-bar"
-                      style={`background: radial-gradient(closest-side, white 79%, transparent 80% 100%), conic-gradient(#282828 ${progressPerc}%, #adadad 0);`}
+                      style={`background: radial-gradient(closest-side, var(--top-background-color) 79%, transparent 80% 100%), conic-gradient(var(--button-color) ${progressPerc}%, var(--button-background-color) 0);`}
                     >
-                      {progressPerc}%
+                      {progressPerc}
                     </div>
                   </div>
                 )}
