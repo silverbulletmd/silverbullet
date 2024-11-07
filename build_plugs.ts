@@ -3,6 +3,7 @@ import * as esbuild from "esbuild";
 import { compileManifests } from "./cmd/compile.ts";
 import { builtinPlugNames } from "./plugs/builtin_plugs.ts";
 import { parseArgs } from "@std/cli/parse-args";
+import { fileURLToPath } from "node:url";
 
 if (import.meta.main) {
   const args = parseArgs(Deno.args, {
@@ -27,7 +28,7 @@ if (import.meta.main) {
       debug: args.debug,
       reload: args.reload,
       info: args.info,
-      configPath: new URL("deno.json", import.meta.url).pathname,
+      configPath: fileURLToPath(new URL("deno.json", import.meta.url)),
     },
   );
   esbuild.stop();

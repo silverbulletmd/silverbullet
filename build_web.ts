@@ -1,4 +1,5 @@
 import { copy } from "@std/fs";
+import { fileURLToPath } from "node:url";
 
 import sass from "denosass";
 import { bundleFolder } from "./lib/asset_bundle/builder.ts";
@@ -105,7 +106,7 @@ async function buildCopyBundleAssets() {
     jsxFragment: "Fragment",
     jsxImportSource: "https://esm.sh/preact@10.23.1",
     plugins: denoPlugins({
-      configPath: new URL("./deno.json", import.meta.url).pathname,
+      configPath: fileURLToPath(new URL("./deno.json", import.meta.url)),
     }),
   });
 
