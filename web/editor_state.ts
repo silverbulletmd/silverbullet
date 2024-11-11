@@ -367,7 +367,7 @@ export function createKeyBindings(client: Client): Extension {
     ...createCommandKeyBindings(client),
     ...createSmartQuoteKeyBindings(client),
     ...closeBracketsKeymap,
-    ...standardKeymap,
+    ...client.ui.viewState.uiOptions.vimMode ? [] : standardKeymap,
     ...completionKeymap,
     indentWithTab,
   ]);
