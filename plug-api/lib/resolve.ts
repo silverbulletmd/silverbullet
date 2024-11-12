@@ -52,7 +52,9 @@ export function isFederationPath(path: string): boolean {
 }
 
 export function isLocalPath(path: string): boolean {
-  return !path.includes("://") && !path.startsWith("mailto:");
+  return !path.includes("://") &&
+    !path.startsWith("mailto:") &&
+    !path.startsWith("tel:");
 }
 
 export function rewritePageRefs(tree: ParseTree, containerPageName: string) {

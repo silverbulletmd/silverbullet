@@ -73,8 +73,11 @@
 }
 
 .sb-actions button {
+  width: 28px;
+  height: 28px;
   border: 0;
-  margin: 3px;
+  margin: 2px;
+  margin-top: 6px;
   padding: 5px;
   background-color: var(--action-button-background-color);
   color: var(--action-button-color);
@@ -308,7 +311,7 @@ tbody tr:nth-of-type(even) {
 }
 
 .sb-directive-mark {
-  color: var(--editor-directive-color);
+  color: var(--editor-directive-mark-color);
   font-weight: bold;
 }
 
