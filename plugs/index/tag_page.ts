@@ -28,7 +28,7 @@ template: |
     {{#if .}}
     # Tasks
     {{#each .}}
-    * [{{state}}] [[{{ref}}]] {{name}}
+    * [{{state}}] [[{{ref}}]] {{text}}
     {{/each}}
     {{/if}}
 query: |
@@ -39,7 +39,7 @@ template: |
     {{#if .}}
     # Items
     {{#each .}}
-    * [[{{ref}}]] {{name}}
+    * [[{{ref}}]] {{text}}
     {{/each}}
     {{/if}}
 query: |
