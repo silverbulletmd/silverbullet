@@ -7,6 +7,7 @@ import {
   standardKeymap,
 } from "@codemirror/commands";
 import {
+  acceptCompletion,
   autocompletion,
   closeBrackets,
   closeBracketsKeymap,
@@ -381,6 +382,7 @@ export function createKeyBindings(client: Client): Extension {
       ]
       : standardKeymap,
     ...completionKeymap,
+    { key: "Tab", run: acceptCompletion },
     indentWithTab,
   ]);
 }
