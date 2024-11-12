@@ -20,6 +20,7 @@ import {
   parsePageRef,
 } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { base64Encode } from "$lib/crypto.ts";
+import { LockoutTimer } from "./lockout.ts";
 
 const authenticationExpirySeconds = 60 * 60 * 24 * 7; // 1 week
 
@@ -314,6 +315,7 @@ export class HttpServer {
       "/logo.png",
       "/.auth",
     ];
+    const lockoutTimer = new LockoutTimer();
 
     // TODO: This should probably be a POST request
     this.app.get("/.logout", (c) => {
@@ -354,6 +356,11 @@ export class HttpServer {
           pass: expectedPassword,
         } = this.spaceServer.auth!;
 
+        if (lockoutTimer.isLocked()) {
+          console.error("Authentication locked out, redirecting to auth page.");
+          return c.redirect("/.auth?error=2");
+        }
+
         if (username === expectedUser && password === expectedPassword) {
           // Generate a JWT and set it as a cookie
           const jwt = rememberMe
@@ -379,6 +386,7 @@ export class HttpServer {
           return c.redirect(typeof from === "string" ? from : "/");
         } else {
           console.error("Authentication failed, redirecting to auth page.");
+          lockoutTimer.addCount();
           return c.redirect("/.auth?error=1");
         }
       },
