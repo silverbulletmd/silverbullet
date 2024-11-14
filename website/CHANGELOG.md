@@ -8,7 +8,7 @@ _These features are not yet properly released, you need to use [the edge builds]
 
     [[CHANGELOG]]
 
-## 0.10.0
+## 0.10.1
 This is a “major” release primarily because of the underlying migration to rely on Deno 2 and a bunch of foundational work that’s not really leveraged yet. Stay tuned for more.
 
 * Migrated underlying system to Deno 2.0, please upgrade to a recent Deno 2 build!
