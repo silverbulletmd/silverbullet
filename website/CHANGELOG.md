@@ -4,7 +4,29 @@ An attempt at documenting the changes/new features introduced in each release.
 
 ## Edge
 _These features are not yet properly released, you need to use [the edge builds](https://community.silverbullet.md/t/living-on-the-edge-builds/27) to try them._
-* Nothing yet since 0.9.3. Stay tuned!
+* Nothing yet since 0.10.0. Stay tuned!
+
+    [[CHANGELOG]]
+
+## 0.10.0
+This is a “major” release primarily because of the underlying migration to rely on Deno 2 and a bunch of foundational work that’s not really leveraged yet. Stay tuned for more.
+
+* Migrated underlying system to Deno 2.0, please upgrade to a recent Deno 2 build!
+* Another attempt at supporting authentication proxies better
+* {[Editor: New Window]} command (bound to Ctrl-n/Cmd-n) which should make creating new windows work better on non-mac OSes
+* Fixes for automatic page reload
+* Automatically convert item into task when using {[Task: Cycle State]} (by [Abin Simon](https://github.com/silverbulletmd/silverbullet/pull/1099))
+* Reduce ranking of non-existing pages in completion and picker (by [Abin Simon](https://github.com/silverbulletmd/silverbullet/issues/1100))
+* Better configurability of automatic bracket closing in [[^SETTINGS]] (`autoCloseBrackets` setting) (by [Fernando Serboncini](https://github.com/silverbulletmd/silverbullet/pull/1110))
+* Smart quote configuration (by [Marek](https://github.com/silverbulletmd/silverbullet/pull/1121))
+* Index page links in [[Frontmatter]] (by [Marek S. Łukasiewicz](https://github.com/silverbulletmd/silverbullet/pull/1066))
+* Template parser fixes (by [MrMugame](https://github.com/silverbulletmd/silverbullet/pull/1102))
+* You can now hit `Tab` to accept the current auto complete option (by [Vighnesh Shenoy](https://github.com/silverbulletmd/silverbullet/pull/1150))
+* Some dark mode fixes and top bar improvements (by [Mufeed Ali](https://github.com/silverbulletmd/silverbullet/pull/1137))
+* A few Vim mode fixes (by [Ohad](https://github.com/silverbulletmd/silverbullet/pull/1146) [Lutzky](https://github.com/silverbulletmd/silverbullet/pull/1145))
+* Support for [tel: links](tel:12345) (by [Peter Weston](https://github.com/silverbulletmd/silverbullet/pull/1139))
+* “Remember me” functionality for [[Authentication]] (by [aekaisato](https://github.com/silverbulletmd/silverbullet/pull/1132))
+* (Highly experimental) work started on [[Space Lua]] (you can observe, but don’t use just yet)
 
 ## 0.9.4
 * Slashes in page names are no no longer URL encoded (in the URL)

@@ -6,12 +6,12 @@ import { bundleAssets } from "../lib/asset_bundle/builder.ts";
 import type { Manifest } from "../lib/plugos/types.ts";
 // import { version } from "../version.ts";
 
-const workerRuntimeUrl = new URL(
-  "../lib/plugos/worker_runtime.ts",
-  import.meta.url,
-);
-// const workerRuntimeUrl =
-//   `https://deno.land/x/silverbullet@${version}/lib/plugos/worker_runtime.ts`;
+// const workerRuntimeUrl = new URL(
+//   "../lib/plugos/worker_runtime.ts",
+//   import.meta.url,
+// );
+const workerRuntimeUrl =
+  `https://deno.land/x/silverbullet@${version}/lib/plugos/worker_runtime.ts`;
 
 export type CompileOptions = {
   debug?: boolean;
