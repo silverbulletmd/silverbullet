@@ -117,6 +117,9 @@
       } else if (error === "1") {
         document.querySelector(".error-message").innerText =
           "Invalid username or password";
+      } else if (error === "2") {
+        document.querySelector(".error-message").innerText =
+          "Too many invalid logins. Try again later";
       }
 
       const from = params.get("from");
