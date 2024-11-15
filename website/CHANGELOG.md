@@ -4,9 +4,8 @@ An attempt at documenting the changes/new features introduced in each release.
 
 ## Edge
 _These features are not yet properly released, you need to use [the edge builds](https://community.silverbullet.md/t/living-on-the-edge-builds/27) to try them._
-* Nothing yet since 0.10.0. Stay tuned!
 
-    [[CHANGELOG]]
+* (Security) Implemented a lockout mechanism after a number of failed login attempts for [[Authentication]] (configured via [[Install/Configuration#Authentication]]) (by [Peter Weston](https://github.com/silverbulletmd/silverbullet/pull/1152))
 
 ## 0.10.1
 This is a “major” release primarily because of the underlying migration to rely on Deno 2 and a bunch of foundational work that’s not really leveraged yet. Stay tuned for more.

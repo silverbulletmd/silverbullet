@@ -21,6 +21,7 @@ import {
 } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { base64Encode } from "$lib/crypto.ts";
 import { LockoutTimer } from "./lockout.ts";
+import type { AuthOptions } from "../cmd/server.ts";
 
 const authenticationExpirySeconds = 60 * 60 * 24 * 7; // 1 week
 
@@ -32,11 +33,8 @@ export type ServerOptions = {
   baseKvPrimitives: KvPrimitives;
   certFile?: string;
   keyFile?: string;
-
-  // Enable username/password auth
-  auth?: { user: string; pass: string };
-  // Additional API auth token
-  authToken?: string;
+  // Enable username/password/token auth
+  auth?: AuthOptions;
   pagesPath: string;
   shellBackend: string;
   syncOnly: boolean;
@@ -315,7 +313,15 @@ export class HttpServer {
       "/logo.png",
       "/.auth",
     ];
-    const lockoutTimer = new LockoutTimer();
+
+    // Since we're a single user app, we can use a single lockout timer to prevent brute force attacks
+    const lockoutTimer = this.options.auth?.lockoutLimit
+      ? new LockoutTimer(
+        // Turn into ms
+        this.options.auth.lockoutTime * 1000,
+        this.options.auth.lockoutLimit!,
+      )
+      : new LockoutTimer(0, 0); // disabled
 
     // TODO: This should probably be a POST request
     this.app.get("/.logout", (c) => {
@@ -397,7 +403,7 @@ export class HttpServer {
     // Check auth
     this.app.use("*", async (c, next) => {
       const req = c.req;
-      if (!this.spaceServer.auth && !this.spaceServer.authToken) {
+      if (!this.spaceServer.auth) {
         // Auth disabled in this config, skip
         return next();
       }
@@ -414,12 +420,12 @@ export class HttpServer {
       if (!excludedPaths.includes(url.pathname)) {
         const authCookie = getCookie(c, authCookieName(host));
 
-        if (!authCookie && this.spaceServer.authToken) {
+        if (!authCookie && this.spaceServer.auth?.authToken) {
           // Attempt Bearer Authorization based authentication
           const authHeader = req.header("Authorization");
           if (authHeader && authHeader.startsWith("Bearer ")) {
             const authToken = authHeader.slice("Bearer ".length);
-            if (authToken === this.spaceServer.authToken) {
+            if (authToken === this.spaceServer.auth.authToken) {
               // All good, let's proceed
               this.refreshLogin(c, host);
               return next();

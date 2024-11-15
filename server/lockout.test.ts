@@ -5,35 +5,14 @@ import { FakeTime } from "@std/testing/time";
 const lockoutTime = 60000;
 const lockoutLimit = 10;
 
-Deno.test("Lockout - failed login rate limiter", async () => {
-  const envLockoutTime = Deno.env.get("SB_LOCKOUT_TIME_MS") || "";
-  const envLockoutLimit = Deno.env.get("SB_LOCKOUT_LIMIT") || "";
-
+Deno.test("Lockout - failed login rate limiter", () => {
   using time = new FakeTime();
 
   testDisabled(new LockoutTimer(NaN, lockoutLimit), "by period");
   testDisabled(new LockoutTimer(lockoutTime, NaN), "by limit");
 
-  Deno.env.set("SB_LOCKOUT_TIME_MS", String(lockoutTime));
-  Deno.env.set("SB_LOCKOUT_LIMIT", "");
-  testDisabled(new LockoutTimer(lockoutTime, NaN), "by env period");
-
-  Deno.env.set("SB_LOCKOUT_TIME_MS", "");
-  Deno.env.set("SB_LOCKOUT_LIMIT", String(lockoutLimit));
-  testDisabled(new LockoutTimer(lockoutTime, NaN), "by env limit");
-
-  Deno.env.set("SB_LOCKOUT_TIME_MS", "");
-  Deno.env.set("SB_LOCKOUT_LIMIT", "");
-  await testLockout(new LockoutTimer(lockoutTime, 10), "explicit params");
-  await testLockoutPerMS(new LockoutTimer(lockoutTime, 10), "explicit params");
-
-  Deno.env.set("SB_LOCKOUT_TIME_MS", String(lockoutTime));
-  Deno.env.set("SB_LOCKOUT_LIMIT", String(lockoutLimit));
-  await testLockout(new LockoutTimer(), "params from env");
-  await testLockoutPerMS(new LockoutTimer(), "params from env");
-
-  Deno.env.set("SB_LOCKOUT_TIME_MS", envLockoutTime);
-  Deno.env.set("SB_LOCKOUT_LIMIT", envLockoutLimit);
+  testLockout(new LockoutTimer(lockoutTime, 10), "explicit params");
+  testLockoutPerMS(new LockoutTimer(lockoutTime, 10), "explicit params");
 
   function testDisabled(timer: LockoutTimer, txt: string) {
     for (let i = 0; i < 100; i++) {

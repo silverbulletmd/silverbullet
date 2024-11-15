@@ -11,8 +11,8 @@ export class LockoutTimer {
   disabled: boolean;
 
   constructor(
-    countPeriodMs: number = Number(Deno.env.get("SB_LOCKOUT_TIME_MS")) || NaN,
-    limit: number = Number(Deno.env.get("SB_LOCKOUT_LIMIT")) || NaN,
+    countPeriodMs: number,
+    limit: number,
   ) {
     this.disabled = isNaN(countPeriodMs) || isNaN(limit) || countPeriodMs < 1 ||
       limit < 1;

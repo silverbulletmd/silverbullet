@@ -25,12 +25,12 @@ import {
   defaultConfig,
 } from "../type/config.ts";
 import type { ServerOptions } from "./http_server.ts";
+import type { AuthOptions } from "../cmd/server.ts";
 
 // Equivalent of Client on the server
 export class SpaceServer implements ConfigContainer {
   public pagesPath: string;
-  auth?: { user: string; pass: string };
-  authToken?: string;
+  auth?: AuthOptions;
   hostname: string;
 
   config: Config;
@@ -54,7 +54,6 @@ export class SpaceServer implements ConfigContainer {
     this.pagesPath = options.pagesPath;
     this.hostname = options.hostname;
     this.auth = options.auth;
-    this.authToken = options.authToken;
     this.syncOnly = options.syncOnly;
     this.readOnly = options.readOnly;
     this.config = defaultConfig;
@@ -115,7 +114,7 @@ export class SpaceServer implements ConfigContainer {
     if (this.auth) {
       // Initialize JWT issuer
       await this.jwtIssuer.init(
-        JSON.stringify({ auth: this.auth, authToken: this.authToken }),
+        JSON.stringify({ auth: this.auth }),
       );
     }
 

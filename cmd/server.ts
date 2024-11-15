@@ -12,6 +12,14 @@ import { runPlug } from "../cmd/plug_run.ts";
 import { PrefixedKvPrimitives } from "$lib/data/prefixed_kv_primitives.ts";
 import { sleep } from "$lib/async.ts";
 
+export type AuthOptions = {
+  authToken?: string;
+  user: string;
+  pass: string;
+  lockoutTime: number;
+  lockoutLimit: number;
+};
+
 export async function serveCommand(
   options: {
     hostname?: string;
@@ -63,10 +71,29 @@ export async function serveCommand(
 
   const userAuth = options.user ?? Deno.env.get("SB_USER");
 
-  let userCredentials: { user: string; pass: string } | undefined;
+  let userCredentials: AuthOptions | undefined;
   if (userAuth) {
     const [user, pass] = userAuth.split(":");
-    userCredentials = { user, pass };
+    userCredentials = {
+      user,
+      pass,
+      // 10 failed login attempts in 1 minute
+      lockoutLimit: 10,
+      lockoutTime: 60,
+    };
+    // Override lockout settings if they are set in the environment
+    if (Deno.env.get("SB_LOCKOUT_LIMIT")) {
+      userCredentials.lockoutLimit = Number(Deno.env.get("SB_LOCKOUT_LIMIT"));
+    }
+    if (Deno.env.get("SB_LOCKOUT_TIME")) {
+      userCredentials.lockoutTime = Number(Deno.env.get("SB_LOCKOUT_TIME"));
+    }
+    if (Deno.env.get("SB_AUTH_TOKEN")) {
+      userCredentials.authToken = Deno.env.get("SB_AUTH_TOKEN");
+    }
+    console.log(
+      `User authentication enabled for user "${user}" with lockout limit ${userCredentials.lockoutLimit} and lockout time ${userCredentials.lockoutTime}s`,
+    );
   }
 
   const backendConfig = Deno.env.get("SB_SHELL_BACKEND") || "local";
@@ -125,7 +152,6 @@ export async function serveCommand(
     certFile: options.cert,
 
     auth: userCredentials,
-    authToken: Deno.env.get("SB_AUTH_TOKEN"),
     syncOnly,
     readOnly,
     shellBackend: backendConfig,
