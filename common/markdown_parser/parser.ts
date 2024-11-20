@@ -577,7 +577,7 @@ const NakedURL = regexParser(
   {
     firstCharCode: 104, // h
     regex:
-      /^https?:\/\/[-a-zA-Z0-9@:%._\+~#=]{1,256}([-a-zA-Z0-9()@:%_\+.~#?&=\/]*)/,
+      /^https?:\/\/[-a-zA-Z0-9@:%._\+~#=,;]{1,256}([-a-zA-Z0-9()@:%_\+.,;~#?&=\/]*)/,
     nodeType: "NakedURL",
     className: "sb-naked-url",
     tag: NakedURLTag,
