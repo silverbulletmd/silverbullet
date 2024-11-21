@@ -34,6 +34,8 @@ Check out the [instructions](https://silverbullet.md/Install).
 
 [![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/silverbulletmd/silverbullet)
 
+[![Open in Codeanywhere](https://codeanywhere.com/img/open-in-codeanywhere-btn.svg)](https://app.codeanywhere.com/#https://github.com/silverbulletmd/silverbullet)
+
 SilverBullet is written in [TypeScript](https://www.typescriptlang.org/) and
 built on top of the excellent [CodeMirror 6](https://codemirror.net/) editor
 component. Additional UI is built using [Preact](https://preactjs.com).
