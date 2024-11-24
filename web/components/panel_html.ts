@@ -95,7 +95,7 @@ function loadJsByUrl(url,integrity=null) {
   script.src = url;
   if(integrity){
     script.integrity=integrity;
-    script.crossorigin="anonymous";
+    script.crossOrigin="anonymous"; //for some weird reason this attribute is case sensitive when used in JS
   }
   
 
