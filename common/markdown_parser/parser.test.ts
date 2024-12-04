@@ -216,3 +216,26 @@ Deno.test("Test hashtag helper functions", () => {
   // should behave like this for all characters in tagRegex
   assertEquals(renderHashtag("exclamation!"), "#<exclamation!>");
 });
+
+const nakedURLSample = `
+http://abc.com is a URL
+Also http://no-trailing-period.com. That's a URL. It ends with m, not '.'.
+http://no-trailing-comma.com, that same a URL, ends with m (and not ',').
+http://trailing-slash.com/. That ends with '/' (still not '.').
+http://abc.com?e=2.71,pi=3.14 is a URL too.
+http://abc.com?e=2.71. That is a URL, which ends with 1 (and not '.').
+`;
+
+Deno.test("Test NakedURL parser", () => {
+  const tree = parseMarkdown(nakedURLSample);
+  const urls = collectNodesOfType(tree, "NakedURL");
+
+  assertEquals(urls.map((x) => x.children![0].text), [
+    "http://abc.com",
+    "http://no-trailing-period.com",
+    "http://no-trailing-comma.com",
+    "http://trailing-slash.com/",
+    "http://abc.com?e=2.71,pi=3.14",
+    "http://abc.com?e=2.71",
+  ]);
+});
