@@ -38,7 +38,7 @@ SilverBullet is written in [TypeScript](https://www.typescriptlang.org/) and
 built on top of the excellent [CodeMirror 6](https://codemirror.net/) editor
 component. Additional UI is built using [Preact](https://preactjs.com).
 [ESBuild]([https://parceljs.org/](https://esbuild.github.io)) is used to build both the front-end and
-back-end bundles. The server backend runs as a HTTP server on Deno using and is written using [Oak](https://oakserver.github.io/oak/).
+back-end bundles. The server backend runs as a HTTP server on Deno using and is written using [Hono](https://hono.dev).
 
 To prepare the initial web and plug build run:
 
