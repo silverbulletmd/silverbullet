@@ -695,7 +695,11 @@ export class HttpServer {
         if (this.spaceServer.readOnly) {
           return c.text("Read only mode, no federation proxy allowed", 405);
         }
-        let url = req.param("uri")!.slice(1);
+
+        // Get the full URL including query parameters
+        const originalUrl = new URL(req.url);
+        let url = req.param("uri")!.slice(1) + originalUrl.search;
+
         if (!req.header("X-Proxy-Request")) {
           // Direct browser request, not explicity fetch proxy request
           if (!looksLikePathWithExtension(url)) {
