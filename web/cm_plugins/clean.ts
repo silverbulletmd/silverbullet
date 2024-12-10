@@ -15,6 +15,7 @@ import { fencedCodePlugin } from "./fenced_code.ts";
 import { frontmatterPlugin } from "./frontmatter.ts";
 import { cleanEscapePlugin } from "./escapes.ts";
 import { luaDirectivePlugin } from "./lua_directive.ts";
+import { hashtagPlugin } from "./hashtag.ts";
 
 export function cleanModePlugins(client: Client) {
   return [
@@ -46,5 +47,6 @@ export function cleanModePlugins(client: Client) {
     cleanCommandLinkPlugin(client),
     cleanEscapePlugin(),
     luaDirectivePlugin(client),
+    hashtagPlugin(),
   ] as Extension[];
 }
