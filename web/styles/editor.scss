@@ -57,7 +57,7 @@
   }
 
   // If a header only contains a tag, it's likely a line containging "#" which may turn into a hashtag, so style it as such instead of a header
-  .sb-line-h1:has(> span.sb-hashtag:only-child) {
+  .sb-line-h1:has(> a.sb-hashtag:only-child) {
     font-size: 1em;
     padding: 0;
     font-weight: normal;
@@ -274,6 +274,10 @@
     padding: 0 3px;
     margin: 0 1px 0 0;
     font-size: 0.9em;
+  }
+
+  a.sb-hashtag {
+    text-decoration: none;
   }
 
   .sb-strikethrough {
