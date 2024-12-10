@@ -69,6 +69,26 @@ button {
 button:hover {
   /* box-shadow: #121212 0 0 0 3px, transparent 0 0 0 0; */
 }
+
+/* Add custom styling to a specific tag 
+--> Example Tag: #my-cool-tag */
+.sb-hashtag[data-tag-name="my-cool-tag"] {
+  background: purple;
+  color: limegreen;
+  font-weight: bolder;
+}
+/* --> Example Tag with angle brackets: #<my cool tag> */
+.sb-hashtag[data-tag-name="my cool tag"] {
+  background: purple;
+  color: limegreen;
+  font-weight: bolder;
+}
+/* Custom Styling to all tags
+.sb-hashtag[data-tag-name] {
+  background: yellow;
+  color: goldenrod;
+  border: 2px dashed goldenrod; */
+}
 ```
 
 Another example can be found in [[Page Decorations#Use case: pimp my page]]

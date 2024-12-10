@@ -22,9 +22,32 @@ Beside these, any number of additional tag-specific and custom [[Attributes]] ca
 # Tags
 Every object has a main `tag`, which signifies the type of object being described. In addition, any number of additional tags can be assigned as well via the `tags` attribute. You can use either the main `tag` or any of the `tags` as query sources in [[Live Queries]] — examples below.
 
-Here are the currently built-in tags:
+## Styling
+You can add custom styles to a tag by leveraging the `data-tag-name` attribute, [CSS Attribute Selectors](https://developer.mozilla.org/en-US/docs/Web/CSS/Attribute_selectors) and custom [[Speace Style]]'s. Every tag gets an attribute added to it called `data-tag-name` that is set to the tag name with the `#` symbol stripped out. So given the tag #my-cool-tag the `data-tag-name` attribute would look like: 
+  `data-tag-name="my-cool-tag"`. 
+This allows us to do things like change the color of the #my-cool-tag to have a purple background, limegreen text and bold font by adding the following [[Space Style]]:
+```css
+.sb-hashtag[data-tag-name="my-cool-tag"] {
+  background: purple;
+  color: limegreen;
+  font-weight: bolder;
+}
+```
+Additionally tags written using angle brackets, such as...
+  #<my cool tag> 
+...can be styled via [[Space Style]] like this:
+```css
+.sb-hashtag[data-tag-name="my cool tag"] {
+  background: purple;
+  color: limegreen;
+  font-weight: bolder;
+}
+```
 
-## page
+
+## Built-in tags
+
+### page
 Every page in your space is available via the `page` tag. You can attach _additional_ tags to a page, by either specifying them in the `tags` attribute [[Frontmatter]], or by putting additional [[Tags]] in a stand alone paragraph with no other (textual) content in them, for instance check the very first line of this page that says `#level/intermediate`.
 
 In addition to `ref` and `tags`, the `page` tag defines a bunch of additional attributes as can be seen in this example query:
@@ -39,7 +62,7 @@ Note that you can also query this page using the `level/intermediate` directly:
 level/intermediate
 ```
 
-## aspiring-page
+### aspiring-page
 [[Aspiring Pages]] are pages that are linked to, but not yet created.
 
 ```query
@@ -47,7 +70,7 @@ aspiring-page
 ```
 
 
-## table
+### table
 Markdown table rows are indexed using the `table` tag, any additional tags can be added using [[Tags]] in any of its cells.
 
 | Title | Description Text |
@@ -62,7 +85,7 @@ table
 
 Table headers will be normalized by converting them to lowercase and replacing all non alphanumeric characters with `_`.
 
-## item
+### item
 List items (both bullet point and numbered items) are indexed with the `item` tag, and additional tags can be added using [[Tags]].
 
 Here is an example of a #quote item using a custom [[Attributes|attribute]]:
@@ -108,7 +131,7 @@ upnext render [[Library/Core/Query/Task]]
 Similar to [[#item]], `task` objects have a `parent` attribute when nested (pointing to their parent `item`), and inherit their ancestor’s tags in `itags`.
 
 
-## taskstate
+### taskstate
 [[Plugs/Tasks]] support the default `x` and ` ` states (done and not done), but custom states as well. Custom states used across your space are kept in `taskstate`:
 
 * [NOT STARTED] Task 1
@@ -150,7 +173,7 @@ Which then becomes queriable via the `person` tag:
 person 
 ```
 
-## link
+### link
 All page _links_ are tagged with `link`. You cannot attach additional tags to links. The main two attributes of a link are:
 
 * `toPage` the page the link is linking _to_
@@ -166,7 +189,7 @@ Here is a query that shows some links that appear in this particular page:
 link where page = @page.name limit 5
 ```
 
-## anchor
+### anchor
 [[Markdown/Anchors]] use the $myanchor notation to allow deeplinking into a page and are also indexed and queryable. It is not possible to attach additional tags to an anchor.
 
 Here is an example query:
@@ -175,7 +198,7 @@ Here is an example query:
 anchor where page = @page.name
 ```
 
-## header
+### header
 Headers (lines starting with `#`, `##` etc.) are indexed as well and queriable.
 
 ```query
@@ -183,7 +206,7 @@ header where page = @page.name limit 3
 ```
 
 
-## tag
+### tag
 The ultimate meta tag is _tag_ itself, which indexes for all tags used, in which page they appear and what their “parent tag” is (the context of the tag: either `page`, `item` or `task`).
 
 Here are the tags used/defined in this page:
@@ -192,7 +215,7 @@ Here are the tags used/defined in this page:
 tag where page = @page.name select name, parent
 ```
 
-## space-config
+### space-config
 This stores all configuration picked up as part of [[Space Config]]
 
 ```query
@@ -200,16 +223,16 @@ space-config select key
 ```
 
 
-# System tags
+## System tags
 The following tags are technically implemented a bit differently than the rest, but they are still available to be queried.
 
-## command
+### command
 Enables querying of all [[Commands]] available in SilverBullet as well as their assigned keyboard shortcuts.
 ```query
 command order by name limit 5
 ```
 
-## syscall
+### syscall
 Enables querying of all [[PlugOS]] syscalls enabled in your space. Mostly useful in the context of [[Plugs]] and [[Space Script]] development.
 
 ```query
