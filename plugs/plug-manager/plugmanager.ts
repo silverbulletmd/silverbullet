@@ -20,6 +20,7 @@ const plugsPrelude =
 export async function updatePlugsCommand() {
   await editor.save();
   await editor.flashNotification("Updating plugs...");
+  await system.reloadConfig();
   try {
     const plugList: string[] = [];
     const configPlugs: any[] = await system.getSpaceConfig("plugs", []);
