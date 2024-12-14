@@ -584,15 +584,13 @@ const NakedURL = regexParser(
   },
 );
 
-const Hashtag = regexParser(
-  {
-    firstCharCode: 35, // #
-    regex: new RegExp(`^${tagRegex.source}`),
-    nodeType: "Hashtag",
-    className: "sb-hashtag",
-    tag: ct.HashtagTag,
-  },
-);
+const Hashtag = regexParser({
+  firstCharCode: 35, // #
+  regex: new RegExp(`^${tagRegex.source}`),
+  nodeType: "Hashtag",
+  className: "sb-hashtag-text",
+  tag: ct.HashtagTag,
+});
 
 const TaskDeadline = regexParser({
   firstCharCode: 55357, // 📅

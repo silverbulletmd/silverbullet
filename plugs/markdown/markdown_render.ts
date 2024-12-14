@@ -14,6 +14,7 @@ import {
 import { Fragment, renderHtml, type Tag } from "./html_render.ts";
 import { isLocalPath } from "@silverbulletmd/silverbullet/lib/resolve";
 import type { PageMeta } from "@silverbulletmd/silverbullet/types";
+import * as TagConstants from "../../plugs/index/constants.ts";
 
 export type MarkdownRenderOptions = {
   failOnUnknown?: true;
@@ -335,15 +336,18 @@ function render(
         body: url,
       };
     }
-    case "Hashtag":
+    case "Hashtag": {
+      const tagText: string = t.children![0].text!;
       return {
-        name: "span",
+        name: "a",
         attrs: {
-          class: "hashtag",
+          class: "hashtag sb-hashtag",
+          "data-tag-name": tagText.replace("#", ""),
+          href: `/${TagConstants.tagPrefix}${tagText.replace("#", "")}`,
         },
-        body: t.children![0].text!,
+        body: tagText,
       };
-
+    }
     case "Task": {
       let externalTaskRef = "";
       collectNodesOfType(t, "WikiLinkPage").forEach((wikilink) => {

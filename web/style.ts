@@ -49,7 +49,7 @@ export default function highlightStyles() {
     { tag: t.processingInstruction, class: "sb-meta" },
     { tag: t.punctuation, class: "sb-punctuation" },
     { tag: ct.HorizontalRuleTag, class: "sb-hr" },
-    { tag: ct.HashtagTag, class: "sb-hashtag" },
+    { tag: ct.HashtagTag, class: "sb-hashtag-text" },
     { tag: ct.NakedURLTag, class: "sb-naked-url" },
     { tag: ct.TaskDeadlineTag, class: "sb-task-deadline" },
     { tag: ct.NamedAnchorTag, class: "sb-named-anchor" },

@@ -97,7 +97,7 @@ export function hideHeaderMarkPlugin() {
           widgets.push(
             Decoration.mark({
               tagName: "span",
-              class: "sb-hashtag",
+              class: "sb-hashtag-text",
             }).range(from, from + 1),
           );
 
