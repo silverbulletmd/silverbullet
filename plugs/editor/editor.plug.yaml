@@ -63,6 +63,10 @@ config:
     defaultLinkStyle:
       type: string
       nullable: true
+    plugs:
+      type: array
+      items:
+        type: string
 functions:
   setEditorMode:
     path: "./editor.ts:setEditorMode"
