@@ -8,6 +8,7 @@ import { rust as rustLanguage } from "@codemirror/legacy-modes/mode/rust?externa
 import { python as pythonLanguage } from "@codemirror/legacy-modes/mode/python?external=@codemirror/language&target=es2022";
 import { protobuf as protobufLanguage } from "@codemirror/legacy-modes/mode/protobuf?external=@codemirror/language&target=es2022";
 import { shell as shellLanguage } from "@codemirror/legacy-modes/mode/shell?external=@codemirror/language&target=es2022";
+import { swift as swiftLanguage } from "@codemirror/legacy-modes/mode/swift?external=@codemirror/language&target=es2022";
 import { toml as tomlLanguage } from "@codemirror/legacy-modes/mode/toml?external=@codemirror/language&target=es2022";
 import { xml as xmlLanguage } from "@codemirror/legacy-modes/mode/xml?external=@codemirror/language&target=es2022";
 import { json as jsonLanguage } from "@codemirror/legacy-modes/mode/javascript?external=@codemirror/language&target=es2022";
@@ -81,7 +82,7 @@ export const builtinLanguages: Record<string, Language> = {
   "bash": StreamLanguage.define(shellLanguage),
   "zsh": StreamLanguage.define(shellLanguage),
   "fish": StreamLanguage.define(shellLanguage),
-  "swift": StreamLanguage.define(rustLanguage),
+  "swift": StreamLanguage.define(swiftLanguage),
   "toml": StreamLanguage.define(tomlLanguage),
   "json": StreamLanguage.define(jsonLanguage),
   "xml": StreamLanguage.define(xmlLanguage),

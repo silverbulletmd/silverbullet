@@ -34,8 +34,8 @@ fn main() {
 ```
 
 ```swift
-fn myFun() {
-   
+func myFunc() {
+   print("Hello World!")
 }
 ```
 
