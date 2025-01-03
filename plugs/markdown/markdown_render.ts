@@ -15,6 +15,7 @@ import { Fragment, renderHtml, type Tag } from "./html_render.ts";
 import { isLocalPath } from "@silverbulletmd/silverbullet/lib/resolve";
 import type { PageMeta } from "@silverbulletmd/silverbullet/types";
 import * as TagConstants from "../../plugs/index/constants.ts";
+import { extractHashtag } from "../../plug-api/lib/tags.ts";
 
 export type MarkdownRenderOptions = {
   failOnUnknown?: true;
@@ -342,8 +343,8 @@ function render(
         name: "a",
         attrs: {
           class: "hashtag sb-hashtag",
-          "data-tag-name": tagText.replace("#", ""),
-          href: `/${TagConstants.tagPrefix}${tagText.replace("#", "")}`,
+          "data-tag-name": extractHashtag(tagText),
+          href: `/${TagConstants.tagPrefix}${extractHashtag(tagText)}`,
         },
         body: tagText,
       };

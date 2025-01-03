@@ -6,6 +6,7 @@ import type {
 } from "@codemirror/autocomplete";
 import type { PageMeta } from "../../plug-api/types.ts";
 import { tagRegex as mdTagRegex } from "$common/markdown_parser/constants.ts";
+import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 
 const tagRegex = new RegExp(mdTagRegex.source, "g");
 
@@ -151,7 +152,7 @@ export function PageNavigator({
           const allTags = phrase.match(tagRegex);
           if (allTags) {
             // Search phrase contains hash tags, let's pre-filter the results based on this
-            const filterTags = allTags.map((t) => t.slice(1));
+            const filterTags = allTags.map((t) => extractHashtag(t));
             options = options.filter((pageMeta) => {
               if (!pageMeta.tags) {
                 return false;
