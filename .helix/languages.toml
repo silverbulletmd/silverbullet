@@ -1,0 +1,43 @@
+# This file configures the Helix editor to use Deno for language support,
+# instead of user defaults for JavaScript and TypeScript. Reproduced from:
+# https://github.com/helix-editor/helix/wiki/Language-Server-Configurations#deno
+
+[[language]]
+name = "javascript"
+shebangs = ["deno"]
+roots = ["deno.json", "deno.jsonc"]
+file-types = ["js"]
+language-servers = ["deno-lsp"]
+auto-format = true
+[[language]]
+name = "typescript"
+shebangs = ["deno"]
+roots = ["deno.json", "deno.jsonc"]
+file-types = ["ts"]
+language-servers = ["deno-lsp"]
+auto-format = true
+[[language]]
+name = "jsx"
+shebangs = ["deno"]
+roots = ["deno.json", "deno.jsonc"]
+file-types = ["jsx"]
+language-servers = ["deno-lsp"]
+auto-format = true
+[[language]]
+name = "tsx"
+shebangs = ["deno"]
+roots = ["deno.json", "deno.jsonc"]
+file-types = ["tsx"]
+language-servers = ["deno-lsp"]
+auto-format = true
+
+
+
+[language-server.deno-lsp]
+command = "deno"
+args = ["lsp"]
+environment = { NO_COLOR = "1" }
+
+[language-server.deno-lsp.config.deno]
+enable = true
+suggest = { completeFunctionCalls = false, imports = { hosts = { "https://deno.land" = true } } }
