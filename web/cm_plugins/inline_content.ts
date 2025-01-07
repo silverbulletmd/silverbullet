@@ -56,15 +56,17 @@ class InlineContentWidget extends WidgetType {
       return div;
     }
 
+    const url = encodeURIComponent(this.url)
+
     if (mimeType.startsWith("image/")) {
       const img = document.createElement("img");
-      img.src = this.url;
+      img.src = url;
       img.alt = this.title;
       this.setDim(img, "load");
       div.appendChild(img);
     } else if (mimeType.startsWith("video/")) {
       const video = document.createElement("video");
-      video.src = this.url;
+      video.src = url;
       video.title = this.title;
       video.controls = true;
       video.autoplay = false;
@@ -72,7 +74,7 @@ class InlineContentWidget extends WidgetType {
       div.appendChild(video);
     } else if (mimeType.startsWith("audio/")) {
       const audio = document.createElement("audio");
-      audio.src = this.url;
+      audio.src = url;
       audio.title = this.title;
       audio.controls = true;
       audio.autoplay = false;
@@ -81,7 +83,7 @@ class InlineContentWidget extends WidgetType {
     } else if (mimeType === "application/pdf") {
       const embed = document.createElement("object");
       embed.type = mimeType;
-      embed.data = this.url;
+      embed.data = url;
       embed.style.width = "100%";
       embed.style.height = "20em";
       this.setDim(embed, "load");
