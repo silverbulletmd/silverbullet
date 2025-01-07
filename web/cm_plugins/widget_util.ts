@@ -1,6 +1,7 @@
 import { parsePageRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import type { Client } from "../client.ts";
 import { tagPrefix } from "../../plugs/index/constants.ts";
+import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 
 export function attachWidgetEventHandlers(
   div: HTMLElement,
@@ -45,7 +46,7 @@ export function attachWidgetEventHandlers(
         return;
       }
       client.navigate({
-        page: `${tagPrefix}${el.innerText.slice(1)}`,
+        page: `${tagPrefix}${extractHashtag(el.innerText)}`,
         pos: 0,
       });
     });
