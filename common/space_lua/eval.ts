@@ -376,9 +376,25 @@ function evalPrefixExpression(
   }
 }
 
-// Mapping table of operators meta-methods to their corresponding operator
+// Helper functions to reduce duplication
+function evalMetamethod(
+  left: any,
+  right: any,
+  metaMethod: string,
+  ctx: ASTCtx,
+  sf: LuaStackFrame,
+): LuaValue | undefined {
+  if (left?.metatable?.has(metaMethod)) {
+    const fn = left.metatable.get(metaMethod);
+    return luaCall(fn, [left, right], ctx, sf);
+  } else if (right?.metatable?.has(metaMethod)) {
+    const fn = right.metatable.get(metaMethod);
+    return luaCall(fn, [left, right], ctx, sf);
+  }
+}
 
-type LuaMetaMethod = Record<string, {
+// Simplified operator definitions
+const operatorsMetaMethods: Record<string, {
   metaMethod?: string;
   nativeImplementation: (
     a: LuaValue,
@@ -386,46 +402,24 @@ type LuaMetaMethod = Record<string, {
     ctx: ASTCtx,
     sf: LuaStackFrame,
   ) => LuaValue;
-}>;
-
-const operatorsMetaMethods: LuaMetaMethod = {
-  "+": {
-    metaMethod: "__add",
-    nativeImplementation: (a, b) => a + b,
-  },
-  "-": {
-    metaMethod: "__sub",
-    nativeImplementation: (a, b) => a - b,
-  },
-  "*": {
-    metaMethod: "__mul",
-    nativeImplementation: (a, b) => a * b,
-  },
-  "/": {
-    metaMethod: "__div",
-    nativeImplementation: (a, b) => a / b,
-  },
+}> = {
+  "+": { metaMethod: "__add", nativeImplementation: (a, b) => a + b },
+  "-": { metaMethod: "__sub", nativeImplementation: (a, b) => a - b },
+  "*": { metaMethod: "__mul", nativeImplementation: (a, b) => a * b },
+  "/": { metaMethod: "__div", nativeImplementation: (a, b) => a / b },
   "//": {
     metaMethod: "__idiv",
-    nativeImplementation: (a, b) => Math.floor(a / b),
+    nativeImplementation: (a, b, ctx, sf) => Math.floor(a / b),
   },
-  "%": {
-    metaMethod: "__mod",
-    nativeImplementation: (a, b) => a % b,
-  },
-  "^": {
-    metaMethod: "__pow",
-    nativeImplementation: (a, b) => a ** b,
-  },
+  "%": { metaMethod: "__mod", nativeImplementation: (a, b) => a % b },
+  "^": { metaMethod: "__pow", nativeImplementation: (a, b) => a ** b },
   "..": {
     metaMethod: "__concat",
     nativeImplementation: (a, b) => {
       const aString = luaToString(a);
       const bString = luaToString(b);
       if (aString instanceof Promise || bString instanceof Promise) {
-        return Promise.all([aString, bString]).then(([aString, bString]) =>
-          aString + bString
-        );
+        return Promise.all([aString, bString]).then(([a, b]) => a + b);
       } else {
         return aString + bString;
       }
@@ -443,28 +437,15 @@ const operatorsMetaMethods: LuaMetaMethod = {
     metaMethod: "__ne",
     nativeImplementation: (a, b) => a !== b,
   },
-  "<": {
-    metaMethod: "__lt",
-    nativeImplementation: (a, b) => a < b,
-  },
-  "<=": {
-    metaMethod: "__le",
-    nativeImplementation: (a, b) => a <= b,
-  },
-  ">": {
-    nativeImplementation: (a, b, ctx, sf) => !luaOp("<=", a, b, ctx, sf),
-  },
-  ">=": {
-    nativeImplementation: (a, b, ctx, cf) => !luaOp("<", a, b, ctx, cf),
-  },
-  and: {
+  "<": { metaMethod: "__lt", nativeImplementation: (a, b) => a < b },
+  "<=": { metaMethod: "__le", nativeImplementation: (a, b) => a <= b },
+  ">": { nativeImplementation: (a, b, ctx, sf) => !luaOp("<=", a, b, ctx, sf) },
+  ">=": { nativeImplementation: (a, b, ctx, sf) => !luaOp("<", a, b, ctx, sf) },
+  "and": {
     metaMethod: "__and",
     nativeImplementation: (a, b) => a && b,
   },
-  or: {
-    metaMethod: "__or",
-    nativeImplementation: (a, b) => a || b,
-  },
+  "or": { metaMethod: "__or", nativeImplementation: (a, b) => a || b },
 };
 
 function luaOp(
@@ -478,15 +459,20 @@ function luaOp(
   if (!operatorHandler) {
     throw new LuaRuntimeError(`Unknown operator ${op}`, sf.withCtx(ctx));
   }
+
   if (operatorHandler.metaMethod) {
-    if (left?.metatable?.has(operatorHandler.metaMethod)) {
-      const fn = left.metatable.get(operatorHandler.metaMethod);
-      return luaCall(fn, [left, right], ctx, sf);
-    } else if (right?.metatable?.has(operatorHandler.metaMethod)) {
-      const fn = right.metatable.get(operatorHandler.metaMethod);
-      return luaCall(fn, [left, right], ctx, sf);
+    const result = evalMetamethod(
+      left,
+      right,
+      operatorHandler.metaMethod,
+      ctx,
+      sf,
+    );
+    if (result !== undefined) {
+      return result;
     }
   }
+
   return operatorHandler.nativeImplementation(left, right, ctx, sf);
 }
 
