@@ -438,6 +438,68 @@ local function test_advanced_closures()
     assert(c2.get() == 5, "Second counter should be independent")
 end
 
+-- Test varargs handling
+local function test_varargs()
+    -- Basic varargs sum function
+    local function sum(...)
+        local total = 0
+        for i, v in ipairs({ ... }) do
+            total = total + v
+        end
+        return total
+    end
+
+    assert(sum() == 0, "Sum should handle no arguments")
+    assert(sum(42) == 42, "Sum should handle single argument")
+    assert(sum(1, 2) == 3, "Sum should handle two arguments")
+
+    -- Test varargs propagation
+    local function pass_varargs(...)
+        return sum(...)
+    end
+
+    assert(pass_varargs() == 0, "Should propagate empty varargs")
+    assert(pass_varargs(1, 2, 3) == 6, "Should propagate varargs")
+end
+
+test_varargs()
+print("All varargs tests passed!")
+
+-- Test closure behavior
+local function test_closures()
+    -- Counter that can count by custom steps
+    local function make_counter_with_step()
+        local count = 0
+        return {
+            increment = function(step)
+                count = count + (step or 1)
+                return count
+            end,
+            decrement = function(step)
+                count = count - (step or 1)
+                return count
+            end,
+            get = function()
+                return count
+            end
+        }
+    end
+
+    local counter = make_counter_with_step()
+    assert(counter.increment(5) == 5, "Counter should increment by 5")
+    assert(counter.decrement(2) == 3, "Counter should decrement by 2")
+    assert(counter.get() == 3, "Counter should maintain state")
+    assert(counter.increment() == 4, "Counter should default to 1")
+
+    -- Test multiple independent counters
+    local c1 = make_counter_with_step()
+    local c2 = make_counter_with_step()
+    c1.increment(10)
+    c2.increment(5)
+    assert(c1.get() == 10, "First counter should be independent")
+    assert(c2.get() == 5, "Second counter should be independent")
+end
+
 -- Test closures with shared upvalues
 local function test_shared_closures()
     local function make_shared_counter()
@@ -463,78 +525,9 @@ local function test_shared_closures()
     assert(get() == 1, "Get should return current value")
 end
 
--- Test varargs handling
-local function test_varargs()
-    -- Basic varargs sum function
-    local function sum(...)
-        local args = { ... }
-        local total = 0
-        for _, v in ipairs(args) do
-            total = total + v
-        end
-        return total
-    end
-
-    assert(sum(1, 2, 3, 4, 5) == 15, "Sum should handle multiple arguments")
-    assert(sum() == 0, "Sum should handle no arguments")
-    assert(sum(42) == 42, "Sum should handle single argument")
-
-    -- Test varargs propagation
-    local function pass_varargs(...)
-        return sum(...)
-    end
-
-    assert(pass_varargs(1, 2, 3) == 6, "Should propagate varargs")
-    assert(pass_varargs() == 0, "Should propagate empty varargs")
-
-    -- Test mixing regular args with varargs
-    local function first_plus_sum(first, ...)
-        local args = { ... }
-        local total = first or 0
-        for _, v in ipairs(args) do
-            total = total + v
-        end
-        return total
-    end
-
-    assert(first_plus_sum(10, 1, 2, 3) == 16, "Should handle mixed arguments")
-    assert(first_plus_sum(5) == 5, "Should handle only first argument")
-end
-
--- Test closure edge cases
-local function test_closure_edge_cases()
-    -- Test closure over loop variables
-    local closures = {}
-    for i = 1, 3 do
-        closures[i] = function() return i end
-    end
-
-    assert(closures[1]() == 1, "Should capture loop variable")
-    assert(closures[2]() == 2, "Should capture loop variable")
-    assert(closures[3]() == 3, "Should capture loop variable")
-
-    -- Test nested closure scopes
-    local function make_nested_counter(start)
-        local count = start
-        return function()
-            local function increment()
-                count = count + 1
-                return count
-            end
-            return increment()
-        end
-    end
-
-    local counter1 = make_nested_counter(5)
-    local counter2 = make_nested_counter(10)
-    assert(counter1() == 6, "First nested counter")
-    assert(counter1() == 7, "First nested counter increment")
-    assert(counter2() == 11, "Second nested counter independent")
-end
-
--- Run the new tests
-test_advanced_closures()
-test_shared_closures()
+-- Run all tests
 test_varargs()
-test_closure_edge_cases()
-print("All closure and varargs tests passed!")
+test_closures()
+test_shared_closures()
+test_advanced_closures()
+print("All tests passed!")

@@ -1,6 +1,6 @@
 import type { ASTCtx, LuaFunctionBody } from "./ast.ts";
 import { evalStatement } from "$common/space_lua/eval.ts";
-import { asyncQuickSort } from "$common/space_lua/util.ts";
+import { asyncQuickSort, evalPromiseValues } from "$common/space_lua/util.ts";
 
 export type LuaType =
   | "nil"
@@ -141,26 +141,95 @@ export class LuaFunction implements ILuaFunction {
   private capturedEnv: LuaEnv;
 
   constructor(readonly body: LuaFunctionBody, closure: LuaEnv) {
-    // Don't create a new environment, just store the reference to the closure environment
     this.capturedEnv = closure;
   }
 
-  call(sf: LuaStackFrame, ...args: LuaValue[]): Promise<LuaValue> | LuaValue {
+  call(sf: LuaStackFrame, ...args: LuaValue[]): Promise<LuaValue> {
     // Create a new environment that chains to the captured environment
     const env = new LuaEnv(this.capturedEnv);
     if (!sf) {
       console.trace(sf);
     }
     env.setLocal("_CTX", sf.threadLocal);
+
     // Assign the passed arguments to the parameters
     for (let i = 0; i < this.body.parameters.length; i++) {
+      const paramName = this.body.parameters[i];
+      if (paramName === "...") {
+        // Handle varargs by creating a table with all remaining arguments
+        const varargs = new LuaTable();
+        // Include all remaining arguments (might be none)
+        for (let j = i; j < args.length; j++) {
+          varargs.set(j - i + 1, args[j], sf);
+        }
+        env.setLocal("...", varargs);
+        break;
+      }
       let arg = args[i];
       if (arg === undefined) {
         arg = null;
       }
       env.setLocal(this.body.parameters[i], arg);
     }
-    return evalStatement(this.body.block, env, sf).catch((e: any) => {
+
+    // If the function has varargs parameter but it wasn't set above, set an empty varargs table
+    if (this.body.parameters.includes("...") && !env.has("...")) {
+      env.setLocal("...", new LuaTable());
+    }
+
+    const resolvedArgs = evalPromiseValues(args);
+    if (resolvedArgs instanceof Promise) {
+      return resolvedArgs.then((args) => this.callWithArgs(args, env, sf));
+    }
+    return this.callWithArgs(resolvedArgs, env, sf);
+  }
+
+  toString(): string {
+    return `<lua function(${this.body.parameters.join(", ")})>`;
+  }
+
+  private callWithArgs(
+    args: LuaValue[],
+    env: LuaEnv,
+    sf: LuaStackFrame,
+  ): Promise<LuaValue> {
+    // Set up parameters and varargs
+    for (let i = 0; i < this.body.parameters.length; i++) {
+      const paramName = this.body.parameters[i];
+      if (paramName === "...") {
+        const varargs = new LuaTable();
+        for (let j = i; j < args.length; j++) {
+          if (args[j] instanceof Promise) {
+            return Promise.all(args.slice(i)).then((resolvedArgs) => {
+              const varargs = new LuaTable();
+              resolvedArgs.forEach((val, idx) => varargs.set(idx + 1, val, sf));
+              env.setLocal("...", varargs);
+              return this.evalBody(env, sf);
+            });
+          }
+          varargs.set(j - i + 1, args[j], sf);
+        }
+        env.setLocal("...", varargs);
+        break;
+      }
+      env.setLocal(paramName, args[i] ?? null);
+    }
+
+    // Ensure empty varargs table exists if needed
+    if (this.body.parameters.includes("...") && !env.has("...")) {
+      env.setLocal("...", new LuaTable());
+    }
+
+    return this.evalBody(env, sf);
+  }
+
+  private async evalBody(
+    env: LuaEnv,
+    sf: LuaStackFrame,
+  ): Promise<LuaValue> {
+    try {
+      await evalStatement(this.body.block, env, sf);
+    } catch (e: any) {
       if (e instanceof LuaReturn) {
         if (e.values.length === 0) {
           return;
@@ -172,11 +241,7 @@ export class LuaFunction implements ILuaFunction {
       } else {
         throw e;
       }
-    });
-  }
-
-  toString(): string {
-    return `<lua function(${this.body.parameters.join(", ")})>`;
+    }
   }
 }
 
