@@ -138,12 +138,16 @@ export function singleResult(value: any): any {
 }
 
 export class LuaFunction implements ILuaFunction {
-  constructor(readonly body: LuaFunctionBody, private closure: LuaEnv) {
+  private capturedEnv: LuaEnv;
+
+  constructor(readonly body: LuaFunctionBody, closure: LuaEnv) {
+    // Don't create a new environment, just store the reference to the closure environment
+    this.capturedEnv = closure;
   }
 
   call(sf: LuaStackFrame, ...args: LuaValue[]): Promise<LuaValue> | LuaValue {
-    // Create a new environment for this function call
-    const env = new LuaEnv(this.closure);
+    // Create a new environment that chains to the captured environment
+    const env = new LuaEnv(this.capturedEnv);
     if (!sf) {
       console.trace(sf);
     }

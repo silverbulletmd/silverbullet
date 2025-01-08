@@ -588,12 +588,12 @@ export async function evalStatement(
       const start = await evalExpression(s.start, env, sf);
       const end = await evalExpression(s.end, env, sf);
       const step = s.step ? await evalExpression(s.step, env, sf) : 1;
-      const localEnv = new LuaEnv(env);
       for (
         let i = start;
         step > 0 ? i <= end : i >= end;
         i += step
       ) {
+        const localEnv = new LuaEnv(env);
         localEnv.setLocal(s.name, i);
         try {
           await evalStatement(s.block, localEnv, sf);
