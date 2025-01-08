@@ -56,7 +56,12 @@ function exposeDefinitions(
         if (!def.get("name")) {
           throw new Error("Name is required");
         }
-        console.log("Registering Lua command", def.get("name"));
+        const fn = def.get(1);
+        console.log(
+          `[Lua] Registering command '${
+            def.get("name")
+          }' (source: ${fn.body.ctx.ref})`,
+        );
         scriptEnv.registerCommand(
           {
             name: def.get("name"),
@@ -67,10 +72,10 @@ function exposeDefinitions(
             hide: def.get("hide"),
           } as CommandDef,
           async (...args: any[]) => {
-            const tl = new LuaEnv();
+            const tl = await buildThreadLocalEnv(system);
             const sf = new LuaStackFrame(tl, null);
             try {
-              return await def.get(1).call(sf, ...args.map(jsToLuaValue));
+              return await fn.call(sf, ...args.map(jsToLuaValue));
             } catch (e: any) {
               await handleLuaError(e, system);
             }
@@ -88,13 +93,19 @@ function exposeDefinitions(
       if (!def.get("event")) {
         throw new Error("Event is required");
       }
-      console.log("Subscribing to Lua event", def.get("event"));
+      const fn = def.get(1);
+      console.log(
+        `[Lua] Subscribing to event '${
+          def.get("event")
+        }' (source: ${fn.body.ctx.ref})`,
+      );
       scriptEnv.registerEventListener(
         { name: def.get("event") },
         async (...args: any[]) => {
-          const sf = new LuaStackFrame(new LuaEnv(), null);
+          const tl = await buildThreadLocalEnv(system);
+          const sf = new LuaStackFrame(tl, null);
           try {
-            return await def.get(1).call(sf, ...args.map(jsToLuaValue));
+            return await fn.call(sf, ...args.map(jsToLuaValue));
           } catch (e: any) {
             await handleLuaError(e, system);
           }
@@ -102,6 +113,16 @@ function exposeDefinitions(
       );
     }),
   );
+}
+
+async function buildThreadLocalEnv(system: System<any>) {
+  const tl = new LuaEnv();
+  const currentPageMeta = await system.localSyscall(
+    "editor.getCurrentPageMeta",
+    [],
+  );
+  tl.setLocal("pageMeta", currentPageMeta);
+  return tl;
 }
 
 async function handleLuaError(e: any, system: System<any>) {

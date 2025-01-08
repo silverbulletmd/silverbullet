@@ -22,6 +22,7 @@ export const jsApi = new LuaTable({
   log: new LuaBuiltinFunction((_sf, ...args) => {
     console.log(...args);
   }),
+  stringify: new LuaBuiltinFunction((_sf, val) => JSON.stringify(val)),
   // assignGlobal: new LuaBuiltinFunction((name: string, value: any) => {
   //     (globalThis as any)[name] = value;
   // }),

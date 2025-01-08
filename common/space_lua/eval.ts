@@ -334,11 +334,11 @@ function evalPrefixExpression(
         if (prefixValue instanceof Promise) {
           return prefixValue.then(async (resolvedPrefix) => {
             const args = await resolveVarargs();
-            return luaCall(resolvedPrefix, args, e.ctx, sf);
+            return luaCall(resolvedPrefix, args, e.ctx, sf.withCtx(e.ctx));
           });
         } else {
           return resolveVarargs().then((args) =>
-            luaCall(prefixValue, args, e.ctx, sf)
+            luaCall(prefixValue, args, e.ctx, sf.withCtx(e.ctx))
           );
         }
       }
@@ -409,7 +409,7 @@ const operatorsMetaMethods: Record<string, {
   "/": { metaMethod: "__div", nativeImplementation: (a, b) => a / b },
   "//": {
     metaMethod: "__idiv",
-    nativeImplementation: (a, b, ctx, sf) => Math.floor(a / b),
+    nativeImplementation: (a, b) => Math.floor(a / b),
   },
   "%": { metaMethod: "__mod", nativeImplementation: (a, b) => a % b },
   "^": { metaMethod: "__pow", nativeImplementation: (a, b) => a ** b },

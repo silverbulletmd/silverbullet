@@ -72,8 +72,8 @@ const tonumberFunction = new LuaBuiltinFunction((_sf, value: LuaValue) => {
   return Number(value);
 });
 
-const errorFunction = new LuaBuiltinFunction((_sf, message: string) => {
-  throw new Error(message);
+const errorFunction = new LuaBuiltinFunction((sf, message: string) => {
+  throw new LuaRuntimeError(message, sf);
 });
 
 const pcallFunction = new LuaBuiltinFunction(
@@ -81,6 +81,9 @@ const pcallFunction = new LuaBuiltinFunction(
     try {
       return new LuaMultiRes([true, await luaCall(fn, args, sf.astCtx!, sf)]);
     } catch (e: any) {
+      if (e instanceof LuaRuntimeError) {
+        return new LuaMultiRes([false, e.message]);
+      }
       return new LuaMultiRes([false, e.message]);
     }
   },
@@ -91,9 +94,10 @@ const xpcallFunction = new LuaBuiltinFunction(
     try {
       return new LuaMultiRes([true, await fn.call(sf, ...args)]);
     } catch (e: any) {
+      const errorMsg = e instanceof LuaRuntimeError ? e.message : e.message;
       return new LuaMultiRes([
         false,
-        await luaCall(errorHandler, [e.message], sf.astCtx!, sf),
+        await luaCall(errorHandler, [errorMsg], sf.astCtx!, sf),
       ]);
     }
   },

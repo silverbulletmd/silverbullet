@@ -62,14 +62,16 @@ export class SpaceLuaEnvironment {
     for (const globalName of this.env.keys()) {
       const value = this.env.get(globalName);
       if (value instanceof LuaFunction) {
-        console.log("Now registering Lua function", globalName);
+        console.log(
+          `[Lua] Registering global function '${globalName}' (source: ${value.body.ctx.ref})`,
+        );
         scriptEnv.registerFunction({ name: globalName }, (...args: any[]) => {
           const sf = new LuaStackFrame(new LuaEnv(), value.body.ctx);
           return luaValueToJS(value.call(sf, ...args.map(jsToLuaValue)));
         });
       }
     }
-    console.log("Loaded", allScripts.length, "Lua scripts");
+    console.log("[Lua] Loaded", allScripts.length, "scripts");
   }
 }
 

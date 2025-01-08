@@ -43,13 +43,13 @@ export function luaDirectivePlugin(client: Client) {
         }
 
         const text = state.sliceDoc(node.from + 2, node.to - 1);
-
+        const currentPageMeta = client.ui.viewState.currentPageMeta;
         widgets.push(
           Decoration.widget({
             widget: new LuaWidget(
               node.from,
               client,
-              `lua:${text}`,
+              `lua:${text}:${currentPageMeta?.name}`,
               text,
               async (bodyText) => {
                 try {
@@ -58,14 +58,22 @@ export function luaDirectivePlugin(client: Client) {
                     (parsedLua.statements[0] as LuaFunctionCallStatement).call
                       .args[0];
 
-                  const sf = new LuaStackFrame(new LuaEnv(), expr.ctx);
-                  return luaValueToJS(
+                  const tl = new LuaEnv();
+                  tl.setLocal("pageMeta", currentPageMeta);
+                  const sf = new LuaStackFrame(tl, expr.ctx);
+                  const threadLocalizedEnv = new LuaEnv(
+                    client.clientSystem.spaceLuaEnv.env,
+                  );
+                  threadLocalizedEnv.setLocal("_CTX", tl);
+                  const result = luaValueToJS(
                     await evalExpression(
                       expr,
-                      client.clientSystem.spaceLuaEnv.env,
+                      threadLocalizedEnv,
                       sf,
                     ),
                   );
+                  // console.log("Result:", result);
+                  return result;
                 } catch (e: any) {
                   if (e instanceof LuaRuntimeError) {
                     if (e.sf.astCtx) {

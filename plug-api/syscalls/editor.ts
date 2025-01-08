@@ -1,4 +1,4 @@
-import type { UploadFile } from "../types.ts";
+import type { PageMeta, UploadFile } from "../types.ts";
 import { syscall } from "../syscall.ts";
 import type { PageRef } from "../lib/page_ref.ts";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
@@ -15,6 +15,14 @@ import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
  */
 export function getCurrentPage(): Promise<string> {
   return syscall("editor.getCurrentPage");
+}
+
+/**
+ * Returns the meta data of the page currently open in the editor.
+ * @returns the current page meta data
+ */
+export function getCurrentPageMeta(): Promise<PageMeta | undefined> {
+  return syscall("editor.getCurrentPageMeta");
 }
 
 /**

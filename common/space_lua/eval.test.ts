@@ -3,6 +3,7 @@ import {
   LuaEnv,
   LuaNativeJSFunction,
   LuaStackFrame,
+  LuaTable,
   luaValueToJS,
   singleResult,
 } from "./runtime.ts";
@@ -11,9 +12,9 @@ import type { LuaBlock, LuaFunctionCallStatement } from "./ast.ts";
 import { evalExpression, evalStatement } from "./eval.ts";
 import { luaBuildStandardEnv } from "$common/space_lua/stdlib.ts";
 
-function evalExpr(s: string, e = new LuaEnv()): any {
+function evalExpr(s: string, e = new LuaEnv(), sf?: LuaStackFrame): any {
   const node = parse(`e(${s})`).statements[0] as LuaFunctionCallStatement;
-  const sf = new LuaStackFrame(e, node.ctx);
+  sf = sf || new LuaStackFrame(e, node.ctx);
   return evalExpression(
     node.call.args[0],
     e,
@@ -276,4 +277,150 @@ Deno.test("Statement evaluation", async () => {
     end`,
     luaBuildStandardEnv(),
   );
+});
+
+Deno.test("Thread local _CTX", async () => {
+  const env = new LuaEnv();
+  const threadLocal = new LuaEnv();
+  threadLocal.setLocal("threadValue", "test123");
+
+  const sf = new LuaStackFrame(threadLocal, null);
+
+  await evalBlock(
+    `
+    function test()
+      return _CTX.threadValue
+    end
+  `,
+    env,
+  );
+
+  const result = await evalExpr("test()", env, sf);
+  assertEquals(singleResult(result), "test123");
+});
+
+Deno.test("Thread local _CTX - advanced cases", async () => {
+  // Create environment with standard library
+  const env = new LuaEnv(luaBuildStandardEnv());
+  const threadLocal = new LuaEnv();
+
+  // Set up some thread local values
+  threadLocal.setLocal("user", "alice");
+  threadLocal.setLocal("permissions", new LuaTable());
+  threadLocal.get("permissions").set("admin", true);
+  threadLocal.setLocal("data", {
+    id: 123,
+    settings: { theme: "dark" },
+  });
+
+  const sf = new LuaStackFrame(threadLocal, null);
+
+  // Test 1: Nested function access
+  await evalBlock(
+    `
+    function outer()
+      local function inner()
+        return _CTX.user
+      end
+      return inner()
+    end
+  `,
+    env,
+  );
+  assertEquals(await evalExpr("outer()", env, sf), "alice");
+
+  // Test 2: Table access and modification
+  await evalBlock(
+    `
+    function checkAdmin()
+      return _CTX.permissions.admin
+    end
+
+    function revokeAdmin()
+      _CTX.permissions.admin = false
+      return _CTX.permissions.admin
+    end
+  `,
+    env,
+  );
+  assertEquals(await evalExpr("checkAdmin()", env, sf), true);
+  assertEquals(await evalExpr("revokeAdmin()", env, sf), false);
+  assertEquals(threadLocal.get("permissions").get("admin"), false);
+
+  // Test 3: Complex data structures
+  await evalBlock(
+    `
+    function getNestedData()
+      return _CTX.data.settings.theme
+    end
+    
+    function updateTheme(newTheme)
+      _CTX.data.settings.theme = newTheme
+      return _CTX.data.settings.theme
+    end
+    `,
+    env,
+  );
+  assertEquals(await evalExpr("getNestedData()", env, sf), "dark");
+  assertEquals(await evalExpr("updateTheme('light')", env, sf), "light");
+
+  // Test 4: Multiple thread locals
+  const threadLocal2 = new LuaEnv();
+  threadLocal2.setLocal("user", "bob");
+  const sf2 = new LuaStackFrame(threadLocal2, null);
+
+  await evalBlock(
+    `
+    function getUser()
+      return _CTX.user
+    end
+  `,
+    env,
+  );
+
+  // Same function, different thread contexts
+  assertEquals(await evalExpr("getUser()", env, sf), "alice");
+  assertEquals(await evalExpr("getUser()", env, sf2), "bob");
+
+  // Test 5: Async operations with _CTX
+  env.set(
+    "asyncOperation",
+    new LuaNativeJSFunction(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      return "done";
+    }),
+  );
+
+  await evalBlock(
+    `
+    function asyncTest()
+      _CTX.status = "starting"
+      local result = asyncOperation()
+      _CTX.status = "completed"
+      return _CTX.status
+    end
+  `,
+    env,
+  );
+
+  assertEquals(await evalExpr("asyncTest()", env, sf), "completed");
+  assertEquals(threadLocal.get("status"), "completed");
+
+  // Test 6: Error handling with _CTX
+  await evalBlock(
+    `
+    function errorTest()
+      _CTX.error = nil
+      local status, err = pcall(function()
+        error("test error")
+      end)
+      _CTX.error = "caught"
+      return _CTX.error
+    end
+  `,
+    env,
+  );
+
+  assertEquals(await evalExpr("errorTest()", env, sf), "caught");
+  assertEquals(threadLocal.get("error"), "caught");
 });

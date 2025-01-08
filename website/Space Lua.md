@@ -81,7 +81,9 @@ You can listen to events using `define_event_listener`:
 define_event_listener {
   event = "my-custom-event";
   function(e)
-    editor.flash_notification("Custom triggered: " .. e.data.name)
+    editor.flash_notification("Custom triggered: "
+       .. e.data.name
+       .. " on page " .. _CTX.pageMeta.name)
   end
 }
 ```
@@ -105,6 +107,11 @@ Template:
 ```template
 Here's a greeting: {{greet_me("Pete")}}
 ```
+
+# Thread locals
+There’s a magic `_CTX` global variable available from which you can access useful context-specific value. Currently the following keys are available:
+
+* `_CTX.pageMeta` contains a reference to the loaded page metadata (can be `nil` when not yet loaded)
 
 # API
 Lua APIs, which should be (roughly) implemented according to the Lua standard.

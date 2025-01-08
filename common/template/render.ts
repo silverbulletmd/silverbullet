@@ -79,7 +79,10 @@ async function renderExpressionDirective(
     variables,
     functionMap,
   );
+  return renderExpressionResult(result);
+}
 
+export function renderExpressionResult(result: any): string {
   if (
     Array.isArray(result) && result.length > 0 && typeof result[0] === "object"
   ) {

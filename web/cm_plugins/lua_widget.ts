@@ -11,6 +11,7 @@ import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
 import { renderToText } from "@silverbulletmd/silverbullet/lib/tree";
 import { activeWidgets } from "./markdown_widget.ts";
 import { attachWidgetEventHandlers } from "./widget_util.ts";
+import { renderExpressionResult } from "$common/template/render.ts";
 
 export type LuaWidgetCallback = (
   bodyText: string,
@@ -97,10 +98,15 @@ export class LuaWidget extends WidgetType {
         this.cacheKey,
         { height: div.clientHeight, html },
       );
-    } else if (widgetContent.markdown) {
+    } else {
+      // If there is a markdown key, use it, otherwise render the objects as a markdown table
+      let mdContent = widgetContent.markdown;
+      if (!mdContent) {
+        mdContent = renderExpressionResult(widgetContent);
+      }
       let mdTree = parse(
         extendedMarkdownLanguage,
-        widgetContent.markdown!,
+        mdContent,
       );
       mdTree = await this.client.clientSystem.localSyscall(
         "system.invokeFunction",
@@ -187,8 +193,8 @@ export class LuaWidget extends WidgetType {
   override eq(other: WidgetType): boolean {
     return (
       other instanceof LuaWidget &&
-      other.bodyText === this.bodyText && other.cacheKey === this.cacheKey &&
-      this.from === other.from
+      other.bodyText === this.bodyText && other.cacheKey === this.cacheKey
+      // &&  this.from === other.from
     );
   }
 }

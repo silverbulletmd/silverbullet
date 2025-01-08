@@ -150,6 +150,7 @@ export class LuaFunction implements ILuaFunction {
     if (!sf) {
       console.trace(sf);
     }
+    // Set _CTX to the thread local environment from the stack frame
     env.setLocal("_CTX", sf.threadLocal);
 
     // Assign the passed arguments to the parameters
@@ -271,6 +272,7 @@ export class LuaBuiltinFunction implements ILuaFunction {
   }
 
   call(sf: LuaStackFrame, ...args: LuaValue[]): Promise<LuaValue> | LuaValue {
+    // _CTX is already available via the stack frame
     return this.fn(sf, ...args);
   }
 
@@ -608,21 +610,35 @@ export class LuaRuntimeError extends Error {
       // Find the line and column
       let line = 1;
       let column = 0;
+      let lastNewline = -1;
       for (let i = 0; i < ctx.from; i++) {
         if (code[i] === "\n") {
           line++;
+          lastNewline = i;
           column = 0;
         } else {
           column++;
         }
       }
-      traceStr += `* ${
-        ctx.ref || "(unknown source)"
-      } @ ${line}:${column}:\n   ${code.substring(ctx.from, ctx.to)}\n`;
+
+      // Get the full line of code for context
+      const lineStart = lastNewline + 1;
+      const lineEnd = code.indexOf("\n", ctx.from);
+      const codeLine = code.substring(
+        lineStart,
+        lineEnd === -1 ? undefined : lineEnd,
+      );
+
+      // Add position indicator
+      const pointer = " ".repeat(column) + "^";
+
+      traceStr += `* ${ctx.ref || "(unknown source)"} @ ${line}:${column}:\n` +
+        `   ${codeLine}\n` +
+        `   ${pointer}\n`;
       current = current.parent;
     }
 
-    return `LuaRuntimeError: ${this.message} ${traceStr}`;
+    return `LuaRuntimeError: ${this.message}\nStack trace:\n${traceStr}`;
   }
 
   override toString() {
