@@ -1,5 +1,5 @@
 import.meta.main = false;
-import { Command } from "cliffy/command/command.ts";
+import { Command } from "@cliffy/command";
 
 import { version } from "./version.ts";
 
@@ -20,14 +20,12 @@ await new Command()
   .name("silverbullet")
   .description("Note taking for knowledge hackers")
   .version(version)
-  .help({
-    colors: false,
-  })
+  .helpOption(false)
   .usage("<options> <folder> | <command> (see below)")
   // Main command
   .arguments("[folder:string]")
   .option(
-    "--hostname, -L <hostname:string>",
+    "-L, --hostname <hostname:string>",
     "Hostname or address to listen on",
   )
   .option("-p, --port <port:number>", "Port to listen on")
@@ -57,7 +55,8 @@ await new Command()
   )
   .action(serveCommand)
   // plug:compile
-  .command("plug:compile", "Bundle (compile) one or more plug manifests")
+  .command("plug:compile")
+  .description("Bundle (compile) one or more plug manifests")
   .arguments("<...name.plug.yaml:string>")
   .option("--debug", "Do not minifiy code", { default: false })
   .option("--info", "Print out size info per function", {
@@ -76,19 +75,22 @@ await new Command()
   .option("--runtimeUrl <url:string>", "URL to worker_runtime.ts to use")
   .action(plugCompileCommand)
   // plug:run
-  .command("plug:run", "Run a PlugOS function from the CLI")
+  .command("plug:run")
+  .description("Run a PlugOS function from the CLI")
   .arguments("<spacePath> [function] [...args:string]")
   .option(
-    "--hostname, -L <hostname:string>",
+    "-L, --hostname <hostname:string>",
     "Hostname or address to listen on",
   )
   .option("-p, --port <port:number>", "Port to listen on")
   .action(plugRunCommand)
   // upgrade
-  .command("upgrade", "Upgrade SilverBullet")
+  .command("upgrade")
+  .description("Upgrade SilverBullet")
   .action(upgradeCommand)
   // sync
-  .command("sync", "Synchronize two spaces")
+  .command("sync")
+  .description("Synchronize two spaces")
   .option(
     "--snapshot <snapshot:string>",
     "Path to state file to use",
@@ -100,7 +102,8 @@ await new Command()
   .arguments("<primary:string> <secondary:string>")
   .action(syncCommand)
   // version
-  .command("version", "Get current version")
+  .command("version")
+  .description("Get current version")
   .action(versionCommand)
   .parse(Deno.args);
 
