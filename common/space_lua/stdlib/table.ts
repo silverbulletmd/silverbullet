@@ -20,10 +20,14 @@ export const tableApi = new LuaTable({
   insert: new LuaBuiltinFunction(
     (_sf, tbl: LuaTable, posOrValue: number | any, value?: any) => {
       if (value === undefined) {
-        value = posOrValue;
-        posOrValue = tbl.length + 1;
+        let pos = 1;
+        while (tbl.get(pos) !== null) {
+          pos++;
+        }
+        tbl.set(pos, posOrValue);
+      } else {
+        tbl.insert(posOrValue, value);
       }
-      tbl.insert(posOrValue, value);
     },
   ),
   remove: new LuaBuiltinFunction((_sf, tbl: LuaTable, pos?: number) => {
