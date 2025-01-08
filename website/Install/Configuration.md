@@ -45,14 +45,6 @@ This mode is configured as follows:
 
 The database configured via [[#Database]] will be used.
 
-## HTTP storage
-While not particularly useful stand-alone (primarily for [[Sync]]), it is possible to store space content on _another_ SilverBullet installation via its [[API]].
-
-This mode is configured as follows:
-
-* `SB_FOLDER`: set to the URL of the other SilverBullet server, e.g. `https://mynotes.mydomain.com`
-* `SB_AUTH_TOKEN`: matching the authorization token (configured via [[#Authentication]] on the other end) to use for authorization.
-
 # Database
 SilverBullet requires a database backend to (potentially) keep various types of data:
 
