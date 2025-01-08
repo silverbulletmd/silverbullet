@@ -401,247 +401,224 @@ local final = counter.reset()
 assert(final == 2, "Reset should return last value")
 assert(counter.increment() == 0, "Counter should start fresh after reset")
 
-print("All closure tests passed!")
 
 -- Advanced closure tests with multiple functions sharing state
-local function test_advanced_closures()
-    -- Counter that can count by custom steps
-    local function make_counter_with_step()
-        local count = 0
-        return {
-            increment = function(step)
-                count = count + (step or 1)
-                return count
-            end,
-            decrement = function(step)
-                count = count - (step or 1)
-                return count
-            end,
-            get = function()
-                return count
-            end
-        }
-    end
-
-    local counter = make_counter_with_step()
-    assert(counter.increment(5) == 5, "Counter should increment by 5")
-    assert(counter.decrement(2) == 3, "Counter should decrement by 2")
-    assert(counter.get() == 3, "Counter should maintain state")
-    assert(counter.increment() == 4, "Counter should default to 1")
-
-    -- Test multiple independent counters
-    local c1 = make_counter_with_step()
-    local c2 = make_counter_with_step()
-    c1.increment(10)
-    c2.increment(5)
-    assert(c1.get() == 10, "First counter should be independent")
-    assert(c2.get() == 5, "Second counter should be independent")
+-- Counter that can count by custom steps
+local function make_counter_with_step()
+    local count = 0
+    return {
+        increment = function(step)
+            count = count + (step or 1)
+            return count
+        end,
+        decrement = function(step)
+            count = count - (step or 1)
+            return count
+        end,
+        get = function()
+            return count
+        end
+    }
 end
+
+local counter = make_counter_with_step()
+assert(counter.increment(5) == 5, "Counter should increment by 5")
+assert(counter.decrement(2) == 3, "Counter should decrement by 2")
+assert(counter.get() == 3, "Counter should maintain state")
+assert(counter.increment() == 4, "Counter should default to 1")
+
+-- Test multiple independent counters
+local c1 = make_counter_with_step()
+local c2 = make_counter_with_step()
+c1.increment(10)
+c2.increment(5)
+assert(c1.get() == 10, "First counter should be independent")
+assert(c2.get() == 5, "Second counter should be independent")
 
 -- Test varargs handling
-local function test_varargs()
-    -- Basic varargs sum function
-    local function sum(...)
-        local total = 0
-        for i, v in ipairs({ ... }) do
-            total = total + v
-        end
-        return total
+-- Basic varargs sum function
+local function sum(...)
+    local total = 0
+    for i, v in ipairs({ ... }) do
+        total = total + v
     end
-
-    assert(sum() == 0, "Sum should handle no arguments")
-    assert(sum(42) == 42, "Sum should handle single argument")
-    assert(sum(1, 2) == 3, "Sum should handle two arguments")
-
-    -- Test varargs propagation
-    local function pass_varargs(...)
-        return sum(...)
-    end
-
-    assert(pass_varargs() == 0, "Should propagate empty varargs")
-    assert(pass_varargs(1, 2, 3) == 6, "Should propagate varargs")
+    return total
 end
 
-test_varargs()
-print("All varargs tests passed!")
+assert(sum() == 0, "Sum should handle no arguments")
+assert(sum(42) == 42, "Sum should handle single argument")
+assert(sum(1, 2) == 3, "Sum should handle two arguments")
+
+-- Test varargs propagation
+local function pass_varargs(...)
+    return sum(...)
+end
+
+assert(pass_varargs() == 0, "Should propagate empty varargs")
+assert(pass_varargs(1, 2, 3) == 6, "Should propagate varargs")
 
 -- Test closure behavior
-local function test_closures()
-    -- Counter that can count by custom steps
-    local function make_counter_with_step()
-        local count = 0
-        return {
-            increment = function(step)
-                count = count + (step or 1)
-                return count
-            end,
-            decrement = function(step)
-                count = count - (step or 1)
-                return count
-            end,
-            get = function()
-                return count
-            end
-        }
-    end
-
-    local counter = make_counter_with_step()
-    assert(counter.increment(5) == 5, "Counter should increment by 5")
-    assert(counter.decrement(2) == 3, "Counter should decrement by 2")
-    assert(counter.get() == 3, "Counter should maintain state")
-    assert(counter.increment() == 4, "Counter should default to 1")
-
-    -- Test multiple independent counters
-    local c1 = make_counter_with_step()
-    local c2 = make_counter_with_step()
-    c1.increment(10)
-    c2.increment(5)
-    assert(c1.get() == 10, "First counter should be independent")
-    assert(c2.get() == 5, "Second counter should be independent")
+-- Counter that can count by custom steps
+local function make_counter_with_step()
+    local count = 0
+    return {
+        increment = function(step)
+            count = count + (step or 1)
+            return count
+        end,
+        decrement = function(step)
+            count = count - (step or 1)
+            return count
+        end,
+        get = function()
+            return count
+        end
+    }
 end
+
+local counter = make_counter_with_step()
+assert(counter.increment(5) == 5, "Counter should increment by 5")
+assert(counter.decrement(2) == 3, "Counter should decrement by 2")
+assert(counter.get() == 3, "Counter should maintain state")
+assert(counter.increment() == 4, "Counter should default to 1")
+
+-- Test multiple independent counters
+local c1 = make_counter_with_step()
+local c2 = make_counter_with_step()
+c1.increment(10)
+c2.increment(5)
+assert(c1.get() == 10, "First counter should be independent")
+assert(c2.get() == 5, "Second counter should be independent")
 
 -- Test closures with shared upvalues
-local function test_shared_closures()
-    local function make_shared_counter()
-        local count = 0
-        local function inc()
-            count = count + 1
-            return count
-        end
-        local function dec()
-            count = count - 1
-            return count
-        end
-        local function get()
-            return count
-        end
-        return inc, dec, get
+local function make_shared_counter()
+    local count = 0
+    local function inc()
+        count = count + 1
+        return count
     end
-
-    local inc, dec, get = make_shared_counter()
-    assert(inc() == 1, "First increment")
-    assert(inc() == 2, "Second increment")
-    assert(dec() == 1, "First decrement")
-    assert(get() == 1, "Get should return current value")
+    local function dec()
+        count = count - 1
+        return count
+    end
+    local function get()
+        return count
+    end
+    return inc, dec, get
 end
 
--- Run all tests
-test_varargs()
-test_closures()
-test_shared_closures()
-test_advanced_closures()
-print("All tests passed!")
+local inc, dec, get = make_shared_counter()
+assert(inc() == 1, "First increment")
+assert(inc() == 2, "Second increment")
+assert(dec() == 1, "First decrement")
+assert(get() == 1, "Get should return current value")
+
 
 -- Test custom iterators
-local function test_custom_iterators()
-    -- Basic iterator that counts down from n to 1
-    local function countdown(n)
-        local count = n
-        return function()
-            if count > 0 then
-                local current = count
-                count = count - 1
-                return current
-            end
+-- Basic iterator that counts down from n to 1
+local function countdown(n)
+    local count = n
+    return function()
+        if count > 0 then
+            local current = count
+            count = count - 1
+            return current
         end
     end
-
-    -- Test basic iterator usage
-    local sum = 0
-    for num in countdown(3) do
-        sum = sum + num
-    end
-    assert(sum == 6, "Countdown iterator should sum to 6 (3+2+1)")
-
-    -- Iterator that returns even numbers from an array
-    local function even_values(arr)
-        local index = 0
-        return function()
-            repeat
-                index = index + 1
-                if index > #arr then return nil end
-                if arr[index] % 2 == 0 then
-                    return index, arr[index]
-                end
-            until false
-        end
-    end
-
-    -- Test array iterator
-    local arr = { 1, 2, 3, 4, 6, 7, 8 }
-    local count = 0
-    local sum = 0
-    for i, v in even_values(arr) do
-        count = count + 1
-        sum = sum + v
-    end
-    assert(count == 4, "Should find 4 even numbers")
-    assert(sum == 20, "Sum of even numbers should be 20 (2+4+6+8)")
-
-    -- Range iterator with step
-    local function range(from, to, step)
-        step = step or 1
-        local current = from
-        return function()
-            if current > to then
-                return nil
-            end
-            local value = current
-            current = current + step
-            return value
-        end
-    end
-
-    -- Test range iterator with different steps
-    local function collect_range(from, to, step)
-        local values = {}
-        for v in range(from, to, step) do
-            table.insert(values, v)
-        end
-        return values
-    end
-
-    local values1 = collect_range(1, 5, 2)
-    assert(#values1 == 3, "Range with step 2 should return 3 values")
-    assert(values1[1] == 1 and values1[2] == 3 and values1[3] == 5, "Range values with step 2 should be correct")
-
-    local values2 = collect_range(10, 15)
-    assert(#values2 == 6, "Range with default step should return 6 values")
-    assert(values2[1] == 10 and values2[6] == 15, "Range values with default step should be correct")
-
-    local values3 = collect_range(1, 10, 3)
-    assert(#values3 == 4, "Range with step 3 should return 4 values")
-    assert(values3[1] == 1 and values3[2] == 4 and values3[3] == 7 and values3[4] == 10,
-        "Range values with step 3 should be correct")
-
-    -- Test nested iterators
-    local function grid(rows, cols)
-        local row = 0
-        return function()
-            row = row + 1
-            if row <= rows then
-                local col = 0
-                return function()
-                    col = col + 1
-                    if col <= cols then
-                        return row, col
-                    end
-                end
-            end
-        end
-    end
-
-    local points = {}
-    for row_iter in grid(2, 3) do
-        for r, c in row_iter do
-            table.insert(points, { r, c })
-        end
-    end
-
-    assert(#points == 6, "Grid should generate 6 points")
-    assert(points[1][1] == 1 and points[1][2] == 1, "First point should be (1,1)")
-    assert(points[6][1] == 2 and points[6][2] == 3, "Last point should be (2,3)")
 end
 
-test_custom_iterators()
-print("All iterator tests passed!")
+-- Test basic iterator usage
+local sum = 0
+for num in countdown(3) do
+    sum = sum + num
+end
+assert(sum == 6, "Countdown iterator should sum to 6 (3+2+1)")
+
+-- Iterator that returns even numbers from an array
+local function even_values(arr)
+    local index = 0
+    return function()
+        repeat
+            index = index + 1
+            if index > #arr then return nil end
+            if arr[index] % 2 == 0 then
+                return index, arr[index]
+            end
+        until false
+    end
+end
+
+-- Test array iterator
+local arr = { 1, 2, 3, 4, 6, 7, 8 }
+local count = 0
+local sum = 0
+for i, v in even_values(arr) do
+    count = count + 1
+    sum = sum + v
+end
+assert(count == 4, "Should find 4 even numbers")
+assert(sum == 20, "Sum of even numbers should be 20 (2+4+6+8)")
+
+-- Range iterator with step
+local function range(from, to, step)
+    step = step or 1
+    local current = from
+    return function()
+        if current > to then
+            return nil
+        end
+        local value = current
+        current = current + step
+        return value
+    end
+end
+
+-- Test range iterator with different steps
+local function collect_range(from, to, step)
+    local values = {}
+    for v in range(from, to, step) do
+        table.insert(values, v)
+    end
+    return values
+end
+
+local values1 = collect_range(1, 5, 2)
+assert(#values1 == 3, "Range with step 2 should return 3 values")
+assert(values1[1] == 1 and values1[2] == 3 and values1[3] == 5, "Range values with step 2 should be correct")
+
+local values2 = collect_range(10, 15)
+assert(#values2 == 6, "Range with default step should return 6 values")
+assert(values2[1] == 10 and values2[6] == 15, "Range values with default step should be correct")
+
+local values3 = collect_range(1, 10, 3)
+assert(#values3 == 4, "Range with step 3 should return 4 values")
+assert(values3[1] == 1 and values3[2] == 4 and values3[3] == 7 and values3[4] == 10,
+    "Range values with step 3 should be correct")
+
+-- Test nested iterators
+local function grid(rows, cols)
+    local row = 0
+    return function()
+        row = row + 1
+        if row <= rows then
+            local col = 0
+            return function()
+                col = col + 1
+                if col <= cols then
+                    return row, col
+                end
+            end
+        end
+    end
+end
+
+local points = {}
+for row_iter in grid(2, 3) do
+    for r, c in row_iter do
+        table.insert(points, { r, c })
+    end
+end
+
+assert(#points == 6, "Grid should generate 6 points")
+assert(points[1][1] == 1 and points[1][2] == 1, "First point should be (1,1)")
+assert(points[6][1] == 2 and points[6][2] == 3, "Last point should be (2,3)")
