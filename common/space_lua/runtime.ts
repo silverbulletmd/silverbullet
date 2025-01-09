@@ -557,6 +557,16 @@ export function luaCall(
   return fn.call((sf || LuaStackFrame.lostFrame).withCtx(ctx), ...args);
 }
 
+export function luaKeys(val: any): any[] {
+  if (val instanceof LuaTable) {
+    return val.keys();
+  } else if (Array.isArray(val)) {
+    return val.map((_, i) => i + 1);
+  } else {
+    return Object.keys(val);
+  }
+}
+
 export function luaTypeOf(val: any): LuaType {
   if (val === null || val === undefined) {
     return "nil";

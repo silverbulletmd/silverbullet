@@ -1,7 +1,6 @@
 import {
   LuaBuiltinFunction,
   luaCall,
-  LuaFunction,
   LuaMultiRes,
   LuaTable,
   luaToString,

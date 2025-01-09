@@ -304,7 +304,7 @@ function evalPrefixExpression(
       }
     }
     case "FunctionCall": {
-      let prefixValue = evalPrefixExpression(e.prefix, env, sf);
+      const prefixValue = evalPrefixExpression(e.prefix, env, sf);
       if (!prefixValue) {
         throw new LuaRuntimeError(
           `Attempting to call nil as a function`,

@@ -690,3 +690,13 @@ end
 assert(#points == 6, "Grid should generate 6 points")
 assert(points[1][1] == 1 and points[1][2] == 1, "First point should be (1,1)")
 assert(points[6][1] == 2 and points[6][2] == 3, "Last point should be (2,3)")
+
+-- Test space_lua stuff
+local parsedExpr = space_lua.parse_expression("1 + 1")
+local evalResult = space_lua.eval_expression(parsedExpr)
+assert(evalResult == 2, "Eval should return 2")
+
+-- Slightly more advanced example with augmented environment
+local parsedExpr = space_lua.parse_expression("tostring(a + 1)")
+local evalResult = space_lua.eval_expression(parsedExpr, { a = 1 })
+assert(evalResult == "2", "Eval should return 2 as a string")

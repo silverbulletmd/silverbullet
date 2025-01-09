@@ -13,6 +13,7 @@ import type {
   LuaExpression,
   LuaFunctionBody,
   LuaFunctionCallExpression,
+  LuaFunctionCallStatement,
   LuaFunctionName,
   LuaLValue,
   LuaPrefixExpression,
@@ -639,4 +640,14 @@ export function parse(s: string, ctx: ASTCtx = {}): LuaBlock {
 
 export function parseToCrudeAST(t: string): ParseTree {
   return cleanTree(lezerToParseTree(t, parser.parse(t).topNode), true);
+}
+
+/**
+ * Helper function to parse a Lua expression string
+ */
+export function parseExpressionString(
+  expr: string,
+): LuaExpression {
+  const parsedLua = parse(`_(${expr})`) as LuaBlock;
+  return (parsedLua.statements[0] as LuaFunctionCallStatement).call.args[0];
 }
