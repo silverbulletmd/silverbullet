@@ -1,5 +1,7 @@
 import {
   LuaBuiltinFunction,
+  luaCall,
+  LuaFunction,
   LuaMultiRes,
   LuaTable,
   luaToString,
@@ -43,19 +45,84 @@ export const stringApi = new LuaTable({
     };
   }),
   gsub: new LuaBuiltinFunction(
-    (_sf, s: string, pattern: string, repl: string, n?: number) => {
+    async (
+      sf,
+      s: string,
+      pattern: string,
+      repl: any, // string or LuaFunction
+      n?: number,
+    ) => {
       n = n ?? Infinity;
-      const regex = new RegExp(pattern, "g");
+
+      // Convert Lua patterns to JavaScript regex
+      // This handles:
+      // - %.: Match literal dot
+      // - %%: Match literal %
+      // - %d: Match digit
+      // - %s: Match whitespace
+      // - %w: Match word character
+      const jsPattern = pattern
+        .replace(/%(.)/g, (_, char) => {
+          switch (char) {
+            case ".":
+              return "[.]"; // Match literal dot using character class
+            case "%":
+              return "%"; // Match literal %
+            case "d":
+              return "\\d"; // Match digit
+            case "s":
+              return "\\s"; // Match whitespace
+            case "w":
+              return "\\w"; // Match word character
+            default:
+              return char; // Match literal character
+          }
+        });
+
+      const regex = new RegExp(jsPattern, "g");
       let result = s;
+      let count = 0;
+
+      // Collect all matches first to handle replacements properly
+      const positions: Array<[number, number, string, string[]]> = [];
       let match: RegExpExecArray | null;
-      for (let i = 0; i < n; i++) {
-        match = regex.exec(result);
-        if (!match) {
-          break;
+      let lastIndex = 0;
+
+      while ((match = regex.exec(result)) !== null && count < n) {
+        if (match.index >= lastIndex) {
+          positions.push([
+            match.index,
+            match[0].length,
+            match[0],
+            match.slice(1),
+          ]);
+          count++;
+          lastIndex = match.index + 1;
         }
-        result = result.replace(match[0], repl);
+        regex.lastIndex = match.index + 1;
       }
-      return result;
+
+      // Process replacements in reverse order to maintain string indices
+      for (let i = positions.length - 1; i >= 0; i--) {
+        const [index, length, fullMatch, captures] = positions[i];
+
+        let replacement: any;
+        if (repl.call) {
+          const args = captures.length > 0 ? captures : [fullMatch];
+          replacement = await luaCall(repl, args, sf.astCtx!, sf);
+          replacement = (replacement === null || replacement === undefined)
+            ? fullMatch
+            : replacement;
+        } else {
+          replacement = repl;
+        }
+
+        result = result.slice(0, index) +
+          replacement +
+          result.slice(index + length);
+      }
+
+      return new LuaMultiRes([result, count]);
     },
   ),
   len: new LuaBuiltinFunction((_sf, s: string) => {
