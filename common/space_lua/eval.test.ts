@@ -304,6 +304,8 @@ Deno.test("Thread local _CTX - advanced cases", async () => {
   const env = new LuaEnv(luaBuildStandardEnv());
   const threadLocal = new LuaEnv();
 
+  env.setLocal("globalEnv", "GLOBAL");
+
   // Set up some thread local values
   threadLocal.setLocal("user", "alice");
   threadLocal.setLocal("permissions", new LuaTable());
@@ -423,4 +425,25 @@ Deno.test("Thread local _CTX - advanced cases", async () => {
 
   assertEquals(await evalExpr("errorTest()", env, sf), "caught");
   assertEquals(threadLocal.get("error"), "caught");
+
+  // Test string interpolation
+  sf.threadLocal.setLocal("_GLOBAL", env);
+  assertEquals(
+    await evalExpr(
+      "interpolate('Hello, ${globalEnv} and ${loc}!', {loc='local'})",
+      env,
+      sf,
+    ),
+    "Hello, GLOBAL and local!",
+  );
+
+  // Some more complex string interpolation with more complex lua expressions, with nested {}
+  assertEquals(
+    await evalExpr(
+      `interpolate('Some JSON \${js.stringify(js.tojs({name="Pete"}))}!')`,
+      env,
+      sf,
+    ),
+    `Some JSON {"name":"Pete"}!`,
+  );
 });

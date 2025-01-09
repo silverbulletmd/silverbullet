@@ -75,6 +75,17 @@ do
 end
 assert(a == 1)
 
+-- Async function calling
+function multiplier(a)
+    -- Anything will be async in practice
+    return function(b)
+        return a * b
+    end
+end
+
+local multiplier = multiplier(2)
+assert(multiplier(3) == 6)
+
 -- Function definitions in tables
 ns = { name = "Pete" }
 function ns.returnOne()
@@ -308,12 +319,10 @@ assert(result == "Hi world", "Function replacement with single capture failed")
 
 -- Function replacement with multiple captures
 result = string.gsub("hello world", "(h)(e)(l)(l)o", function(h, e, l1, l2)
-    print("Captures:", h, e, l1, l2) -- Debug what captures we're getting
     assert(h == "h" and e == "e" and l1 == "l" and l2 == "l",
         "Function received incorrect captures: " .. h .. ", " .. e .. ", " .. l1 .. ", " .. l2)
     return string.upper(h) .. string.upper(e) .. l1 .. l2 .. "o"
 end)
-print("Result:", result) -- Debug the actual result
 assert(result == "HEllo world", "Function replacement with multiple captures failed")
 
 -- Function returning nil (should keep original match)

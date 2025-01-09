@@ -72,7 +72,7 @@ function exposeDefinitions(
             hide: def.get("hide"),
           } as CommandDef,
           async (...args: any[]) => {
-            const tl = await buildThreadLocalEnv(system);
+            const tl = await buildThreadLocalEnv(system, env);
             const sf = new LuaStackFrame(tl, null);
             try {
               return await fn.call(sf, ...args.map(jsToLuaValue));
@@ -102,7 +102,7 @@ function exposeDefinitions(
       scriptEnv.registerEventListener(
         { name: def.get("event") },
         async (...args: any[]) => {
-          const tl = await buildThreadLocalEnv(system);
+          const tl = await buildThreadLocalEnv(system, env);
           const sf = new LuaStackFrame(tl, null);
           try {
             return await fn.call(sf, ...args.map(jsToLuaValue));
@@ -115,13 +115,14 @@ function exposeDefinitions(
   );
 }
 
-async function buildThreadLocalEnv(system: System<any>) {
+async function buildThreadLocalEnv(system: System<any>, globalEnv: LuaEnv) {
   const tl = new LuaEnv();
   const currentPageMeta = await system.localSyscall(
     "editor.getCurrentPageMeta",
     [],
   );
   tl.setLocal("pageMeta", currentPageMeta);
+  tl.setLocal("_GLOBAL", globalEnv);
   return tl;
 }
 
