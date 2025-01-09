@@ -312,63 +312,70 @@ function evalPrefixExpression(
         );
       }
 
-      // Special handling for f(...) - propagate varargs
-      if (
-        e.args.length === 1 && e.args[0].type === "Variable" &&
-        e.args[0].name === "..."
-      ) {
-        const varargs = env.get("...");
-        const resolveVarargs = async () => {
-          const resolvedVarargs = await Promise.resolve(varargs);
-          if (resolvedVarargs instanceof LuaTable) {
-            const args = [];
-            for (let i = 1; i <= resolvedVarargs.length; i++) {
-              const val = await Promise.resolve(resolvedVarargs.get(i));
-              args.push(val);
+      const handleFunctionCall = (prefixValue: LuaValue) => {
+        // Special handling for f(...) - propagate varargs
+        if (
+          e.args.length === 1 && e.args[0].type === "Variable" &&
+          e.args[0].name === "..."
+        ) {
+          const varargs = env.get("...");
+          const resolveVarargs = async () => {
+            const resolvedVarargs = await Promise.resolve(varargs);
+            if (resolvedVarargs instanceof LuaTable) {
+              const args = [];
+              for (let i = 1; i <= resolvedVarargs.length; i++) {
+                const val = await Promise.resolve(resolvedVarargs.get(i));
+                args.push(val);
+              }
+              return args;
             }
-            return args;
-          }
-          return [];
-        };
+            return [];
+          };
 
-        if (prefixValue instanceof Promise) {
-          return prefixValue.then(async (resolvedPrefix) => {
-            const args = await resolveVarargs();
-            return luaCall(resolvedPrefix, args, e.ctx, sf.withCtx(e.ctx));
-          });
-        } else {
-          return resolveVarargs().then((args) =>
-            luaCall(prefixValue, args, e.ctx, sf.withCtx(e.ctx))
+          if (prefixValue instanceof Promise) {
+            return prefixValue.then(async (resolvedPrefix) => {
+              const args = await resolveVarargs();
+              return luaCall(resolvedPrefix, args, e.ctx, sf.withCtx(e.ctx));
+            });
+          } else {
+            return resolveVarargs().then((args) =>
+              luaCall(prefixValue, args, e.ctx, sf.withCtx(e.ctx))
+            );
+          }
+        }
+
+        // Normal argument handling
+        let selfArgs: LuaValue[] = [];
+        if (e.name && !prefixValue.get) {
+          throw new LuaRuntimeError(
+            `Attempting to index a non-table: ${prefixValue}`,
+            sf.withCtx(e.prefix.ctx),
+          );
+        } else if (e.name) {
+          selfArgs = [prefixValue];
+          prefixValue = prefixValue.get(e.name);
+        }
+        if (!prefixValue.call) {
+          throw new LuaRuntimeError(
+            `Attempting to call ${prefixValue} as a function`,
+            sf.withCtx(e.prefix.ctx),
           );
         }
-      }
-
-      // Normal argument handling
-      let selfArgs: LuaValue[] = [];
-      if (e.name && !prefixValue.get) {
-        throw new LuaRuntimeError(
-          `Attempting to index a non-table: ${prefixValue}`,
-          sf.withCtx(e.prefix.ctx),
+        const args = evalPromiseValues(
+          e.args.map((arg) => evalExpression(arg, env, sf)),
         );
-      } else if (e.name) {
-        selfArgs = [prefixValue];
-        prefixValue = prefixValue.get(e.name);
-      }
-      if (!prefixValue.call) {
-        throw new LuaRuntimeError(
-          `Attempting to call ${prefixValue} as a function`,
-          sf.withCtx(e.prefix.ctx),
-        );
-      }
-      const args = evalPromiseValues(
-        e.args.map((arg) => evalExpression(arg, env, sf)),
-      );
-      if (args instanceof Promise) {
-        return args.then((args) =>
-          luaCall(prefixValue, [...selfArgs, ...args], e.ctx, sf)
-        );
+        if (args instanceof Promise) {
+          return args.then((args) =>
+            luaCall(prefixValue, [...selfArgs, ...args], e.ctx, sf)
+          );
+        } else {
+          return luaCall(prefixValue, [...selfArgs, ...args], e.ctx, sf);
+        }
+      };
+      if (prefixValue instanceof Promise) {
+        return prefixValue.then(handleFunctionCall);
       } else {
-        return luaCall(prefixValue, [...selfArgs, ...args], e.ctx, sf);
+        return handleFunctionCall(prefixValue);
       }
     }
     default:

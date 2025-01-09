@@ -160,7 +160,8 @@ Deno.test("Test directive parser", () => {
 });
 
 Deno.test("Test lua directive parser", () => {
-  const simpleExample = `Simple \${{a=}}`;
+  const simpleExample = `Simple \${query_coll("page limit 3", template[==[
+    * Hello there {name}]==])}`;
   console.log(JSON.stringify(parseMarkdown(simpleExample), null, 2));
 });
 

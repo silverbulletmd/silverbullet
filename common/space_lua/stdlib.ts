@@ -3,9 +3,10 @@ import {
   LuaBuiltinFunction,
   luaCall,
   LuaEnv,
+  luaGet,
   LuaMultiRes,
   LuaRuntimeError,
-  type LuaTable,
+  LuaTable,
   luaToString,
   luaTypeOf,
   type LuaValue,
@@ -15,8 +16,8 @@ import { tableApi } from "$common/space_lua/stdlib/table.ts";
 import { osApi } from "$common/space_lua/stdlib/os.ts";
 import { jsApi } from "$common/space_lua/stdlib/js.ts";
 
-const printFunction = new LuaBuiltinFunction((_sf, ...args) => {
-  console.log("[Lua]", ...args.map(luaToString));
+const printFunction = new LuaBuiltinFunction(async (_sf, ...args) => {
+  console.log("[Lua]", ...(await Promise.all(args.map(luaToString))));
 });
 
 const assertFunction = new LuaBuiltinFunction(
@@ -27,35 +28,35 @@ const assertFunction = new LuaBuiltinFunction(
   },
 );
 
-const ipairsFunction = new LuaBuiltinFunction((_sf, ar: LuaTable) => {
+const ipairsFunction = new LuaBuiltinFunction((sf, ar: LuaTable) => {
   let i = 1;
-  return () => {
+  return async () => {
     if (i > ar.length) {
       return;
     }
-    const result = new LuaMultiRes([i, ar.get(i)]);
+    const result = new LuaMultiRes([i, await luaGet(ar, i, sf)]);
     i++;
     return result;
   };
 });
 
-const pairsFunction = new LuaBuiltinFunction((_sf, t: LuaTable) => {
+const pairsFunction = new LuaBuiltinFunction((sf, t: LuaTable) => {
   const keys = t.keys();
   let i = 0;
-  return () => {
+  return async () => {
     if (i >= keys.length) {
       return;
     }
     const key = keys[i];
     i++;
-    return new LuaMultiRes([key, t.get(key)]);
+    return new LuaMultiRes([key, await luaGet(t, key, sf)]);
   };
 });
 
-const unpackFunction = new LuaBuiltinFunction((_sf, t: LuaTable) => {
+const unpackFunction = new LuaBuiltinFunction(async (sf, t: LuaTable) => {
   const values: LuaValue[] = [];
   for (let i = 1; i <= t.length; i++) {
-    values.push(t.get(i));
+    values.push(await luaGet(t, i, sf));
   }
   return new LuaMultiRes(values);
 });
