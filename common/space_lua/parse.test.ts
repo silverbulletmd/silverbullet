@@ -99,3 +99,8 @@ Deno.test("Test comment handling", () => {
         -- yo
       ]])`);
 });
+
+Deno.test("Test query parsing", () => {
+  const r = parse(`_(query[[page where name == "John" limit 10]])`);
+  console.log(JSON.stringify(r, null, 2));
+});

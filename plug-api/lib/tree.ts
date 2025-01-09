@@ -239,6 +239,7 @@ export function parseTreeToAST(tree: ParseTree, omitTrimmable = true): AST {
 export function cleanTree(tree: ParseTree, omitTrimmable = true): ParseTree {
   const parseErrorNodes = collectNodesOfType(tree, "⚠");
   if (parseErrorNodes.length > 0) {
+    console.error("Parse error", JSON.stringify(parseErrorNodes, null, 2));
     throw new Error(
       `Parse error (${parseErrorNodes[0].from}:${parseErrorNodes[0].to}): ${
         renderToText(tree)

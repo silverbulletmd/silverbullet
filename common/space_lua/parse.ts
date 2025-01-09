@@ -464,6 +464,12 @@ function parseExpression(t: ParseTree, ctx: ASTCtx): LuaExpression {
       };
     case "nil":
       return { type: "Nil", ctx: context(t, ctx) };
+    case "Query":
+      return {
+        type: "Query",
+        query: parseExpression(t.children![1], ctx),
+        ctx: context(t, ctx),
+      };
     default:
       console.error(t);
       throw new Error(`Unknown expression type: ${t.type}`);

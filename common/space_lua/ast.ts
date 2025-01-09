@@ -150,7 +150,8 @@ export type LuaExpression =
   | LuaBinaryExpression
   | LuaUnaryExpression
   | LuaTableConstructor
-  | LuaFunctionDefinition;
+  | LuaFunctionDefinition
+  | LuaQueryExpression;
 
 export type LuaNilLiteral = {
   type: "Nil";
@@ -253,4 +254,37 @@ export type LuaExpressionField = {
 export type LuaFunctionDefinition = {
   type: "FunctionDefinition";
   body: LuaFunctionBody;
+} & ASTContext;
+
+// Query stuff
+export type LuaQueryExpression = {
+  type: "Query";
+  expression: LuaExpression;
+  clauses: LuaQueryClause[];
+} & ASTContext;
+
+export type LuaQueryClause =
+  | LuaWhereClause
+  | LuaLimitClause
+  | LuaOrderByClause
+  | LuaSelectClause;
+
+export type LuaWhereClause = {
+  type: "Where";
+  expression: LuaExpression;
+} & ASTContext;
+
+export type LuaLimitClause = {
+  type: "Limit";
+  expression: LuaExpression;
+} & ASTContext;
+
+export type LuaOrderByClause = {
+  type: "OrderBy";
+  expression: LuaExpression;
+} & ASTContext;
+
+export type LuaSelectClause = {
+  type: "Select";
+  expression: LuaExpression;
 } & ASTContext;
