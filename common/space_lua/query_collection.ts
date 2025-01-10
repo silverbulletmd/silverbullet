@@ -7,6 +7,7 @@ import {
 } from "$common/space_lua/runtime.ts";
 import { evalExpression } from "$common/space_lua/eval.ts";
 import { asyncQuickSort } from "$common/space_lua/util.ts";
+import type { DataStore } from "$lib/data/datastore.ts";
 
 function buildItemEnv(item: any, env: LuaEnv, sf: LuaStackFrame): LuaEnv {
   const itemEnv = new LuaEnv(env);
@@ -61,7 +62,7 @@ export class ArrayQueryCollection<T> implements LuaQueryCollection {
     env: LuaEnv,
     sf: LuaStackFrame,
   ): Promise<any[]> {
-    let result: any[] = [];
+    const result: any[] = [];
 
     // Filter the array
     for (const item of this.array) {
@@ -72,60 +73,95 @@ export class ArrayQueryCollection<T> implements LuaQueryCollection {
       result.push(item);
     }
 
-    // Apply the select
-    if (query.select) {
-      const newResult = [];
-      for (const item of result) {
-        const itemEnv = buildItemEnv(item, env, sf);
-        const newItem: Record<string, any> = {};
-        for (const select of query.select) {
-          if (select.expr) {
-            newItem[select.name] = await evalExpression(
-              select.expr,
-              itemEnv,
-              sf,
-            );
-          } else {
-            newItem[select.name] = item[select.name];
-          }
+    return applyTransforms(result, query, env, sf);
+  }
+}
+
+async function applyTransforms(
+  result: any[],
+  query: LuaCollectionQuery,
+  env: LuaEnv,
+  sf: LuaStackFrame,
+): Promise<any[]> {
+  // Apply the select
+  if (query.select) {
+    const newResult = [];
+    for (const item of result) {
+      const itemEnv = buildItemEnv(item, env, sf);
+      const newItem: Record<string, any> = {};
+      for (const select of query.select) {
+        if (select.expr) {
+          newItem[select.name] = await evalExpression(
+            select.expr,
+            itemEnv,
+            sf,
+          );
+        } else {
+          newItem[select.name] = item[select.name];
         }
-        newResult.push(newItem);
       }
-      result = newResult;
+      newResult.push(newItem);
     }
+    result = newResult;
+  }
 
-    // Apply the order by
-    if (query.orderBy) {
-      result = await asyncQuickSort(result, async (a, b) => {
-        // Compare each orderBy clause until we find a difference
-        for (const { expr, desc } of query.orderBy!) {
-          const aEnv = buildItemEnv(a, env, sf);
-          const bEnv = buildItemEnv(b, env, sf);
+  // Apply the order by
+  if (query.orderBy) {
+    result = await asyncQuickSort(result, async (a, b) => {
+      // Compare each orderBy clause until we find a difference
+      for (const { expr, desc } of query.orderBy!) {
+        const aEnv = buildItemEnv(a, env, sf);
+        const bEnv = buildItemEnv(b, env, sf);
 
-          const aVal = await evalExpression(expr, aEnv, sf);
-          const bVal = await evalExpression(expr, bEnv, sf);
+        const aVal = await evalExpression(expr, aEnv, sf);
+        const bVal = await evalExpression(expr, bEnv, sf);
 
-          if (aVal < bVal) {
-            return desc ? 1 : -1;
-          }
-          if (aVal > bVal) {
-            return desc ? -1 : 1;
-          }
-          // If equal, continue to next orderBy clause
+        if (aVal < bVal) {
+          return desc ? 1 : -1;
         }
-        return 0; // All orderBy clauses were equal
-      });
-    }
+        if (aVal > bVal) {
+          return desc ? -1 : 1;
+        }
+        // If equal, continue to next orderBy clause
+      }
+      return 0; // All orderBy clauses were equal
+    });
+  }
 
-    // Apply the limit and offset
-    if (query.limit !== undefined && query.offset !== undefined) {
-      result = result.slice(query.offset, query.offset + query.limit);
-    } else if (query.limit !== undefined) {
-      result = result.slice(0, query.limit);
-    } else if (query.offset !== undefined) {
-      result = result.slice(query.offset);
-    }
+  // Apply the limit and offset
+  if (query.limit !== undefined && query.offset !== undefined) {
+    result = result.slice(query.offset, query.offset + query.limit);
+  } else if (query.limit !== undefined) {
+    result = result.slice(0, query.limit);
+  } else if (query.offset !== undefined) {
+    result = result.slice(query.offset);
+  }
 
-    return Promise.resolve(result);
+  return result;
+}
+
+export class DataStoreQueryCollection implements LuaQueryCollection {
+  constructor(
+    private readonly dataStore: DataStore,
+    readonly prefix: string[],
+  ) {}
+
+  async query(
+    query: LuaCollectionQuery,
+    env: LuaEnv,
+    sf: LuaStackFrame,
+  ): Promise<any[]> {
+    const result: any[] = [];
+    for await (const item of this.dataStore.kv.query({ prefix: this.prefix })) {
+      this.dataStore.enrichObject(item);
+      const itemEnv = buildItemEnv(item, env, sf);
+      // Enrich
+
+      if (query.where && !await evalExpression(query.where, itemEnv, sf)) {
+        continue;
+      }
+      result.push(item);
+    }
+    return applyTransforms(result, query, env, sf);
   }
 }

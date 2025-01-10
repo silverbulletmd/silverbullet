@@ -1,6 +1,10 @@
 import { parse } from "$common/space_lua/parse.ts";
 import { luaBuildStandardEnv } from "$common/space_lua/stdlib.ts";
-import { LuaEnv, LuaStackFrame } from "$common/space_lua/runtime.ts";
+import {
+  LuaEnv,
+  LuaRuntimeError,
+  LuaStackFrame,
+} from "$common/space_lua/runtime.ts";
 import { evalStatement } from "$common/space_lua/eval.ts";
 import { assert } from "@std/assert/assert";
 import { fileURLToPath } from "node:url";
@@ -18,7 +22,11 @@ Deno.test("Lua language tests", async () => {
   try {
     await evalStatement(chunk, env, sf);
   } catch (e: any) {
-    console.error(`Error evaluating script:`, e.toPrettyString(luaFile));
+    if (e instanceof LuaRuntimeError) {
+      console.error(`Error evaluating script:`, e.toPrettyString(luaFile));
+    } else {
+      console.error(`Error evaluating script:`, e);
+    }
     assert(false);
   }
 });

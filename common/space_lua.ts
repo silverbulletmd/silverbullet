@@ -26,7 +26,10 @@ export class SpaceLuaEnvironment {
    * Loads all Lua scripts from the database and evaluates them in a new environment
    * @param system
    */
-  async reload(system: System<any>, scriptEnv: ScriptEnvironment) {
+  async reload(
+    system: System<any>,
+    scriptEnv: ScriptEnvironment,
+  ) {
     const allScripts: ScriptObject[] = await system.invokeFunction(
       "index.queryObjects",
       ["space-lua", {
@@ -35,12 +38,13 @@ export class SpaceLuaEnvironment {
       } as ObjectQuery],
     );
     this.env = buildLuaEnv(system, scriptEnv);
+    const tl = new LuaEnv();
     for (const script of allScripts) {
       try {
         const ast = parseLua(script.script, { ref: script.ref });
         // We create a local scope for each script
         const scriptEnv = new LuaEnv(this.env);
-        const sf = new LuaStackFrame(new LuaEnv(), ast.ctx);
+        const sf = new LuaStackFrame(tl, ast.ctx);
         await evalStatement(ast, scriptEnv, sf);
       } catch (e: any) {
         if (e instanceof LuaRuntimeError) {
@@ -66,7 +70,7 @@ export class SpaceLuaEnvironment {
           `[Lua] Registering global function '${globalName}' (source: ${value.body.ctx.ref})`,
         );
         scriptEnv.registerFunction({ name: globalName }, (...args: any[]) => {
-          const sf = new LuaStackFrame(new LuaEnv(), value.body.ctx);
+          const sf = new LuaStackFrame(tl, value.body.ctx);
           return luaValueToJS(value.call(sf, ...args.map(jsToLuaValue)));
         });
       }

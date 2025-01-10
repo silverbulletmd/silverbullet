@@ -29,6 +29,9 @@ import {
   type LuaValue,
   singleResult,
 } from "./runtime.ts";
+import { ArrayQueryCollection } from "$common/space_lua/query_collection.ts";
+import { luaValueToJS } from "$common/space_lua/runtime.ts";
+import { jsToLuaValue } from "$common/space_lua/runtime.ts";
 
 export function evalExpression(
   e: LuaExpression,
@@ -244,6 +247,80 @@ export function evalExpression(
       case "FunctionDefinition": {
         return new LuaFunction(e.body, env);
       }
+      case "Query":
+        return Promise.resolve(evalExpression(e.expression, env, sf)).then(
+          async (collection: LuaValue) => {
+            // Check if collection is a queryable collection
+            if (!collection.query) {
+              // If not, try to convert it to JS and see if it's an array
+              collection = await luaValueToJS(collection);
+              if (!Array.isArray(collection)) {
+                throw new LuaRuntimeError(
+                  "Collection does not support query",
+                  sf.withCtx(e.ctx),
+                );
+              }
+              collection = new ArrayQueryCollection(collection);
+            }
+            // Build up query object
+            const query: LuaCollectionQuery = {};
+
+            // Map clauses to query parameters
+            for (const clause of e.clauses) {
+              switch (clause.type) {
+                case "Where": {
+                  query.where = clause.expression;
+                  break;
+                }
+                case "OrderBy": {
+                  query.orderBy = clause.orderBy.map((o) => ({
+                    expr: o.expression,
+                    desc: o.direction === "desc",
+                  }));
+                  break;
+                }
+                case "Select": {
+                  if (clause.fields) {
+                    query.select = clause.fields.map((f) => ({
+                      name: f,
+                    }));
+                  } else if (clause.tableConstructor) {
+                    query.select = clause.tableConstructor.fields.map((f) => {
+                      if (f.type === "PropField") {
+                        return {
+                          name: f.key,
+                          expr: f.value,
+                        };
+                      } else {
+                        throw new LuaRuntimeError(
+                          "Select fields must be named",
+                          sf.withCtx(f.ctx),
+                        );
+                      }
+                    });
+                  }
+                  break;
+                }
+                case "Limit": {
+                  const limitVal = await evalExpression(clause.limit, env, sf);
+                  query.limit = Number(limitVal);
+                  if (clause.offset) {
+                    const offsetVal = await evalExpression(
+                      clause.offset,
+                      env,
+                      sf,
+                    );
+                    query.offset = Number(offsetVal);
+                  }
+                  break;
+                }
+              }
+            }
+
+            return collection.query(query, env, sf).then(jsToLuaValue);
+          },
+        );
+
       default:
         throw new Error(`Unknown expression type ${e.type}`);
     }

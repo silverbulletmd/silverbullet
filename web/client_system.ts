@@ -169,7 +169,10 @@ export class ClientSystem extends CommonSystem {
         // In non-sync mode proxy to server
         : mqProxySyscalls(this.client),
       ...this.client.syncMode
-        ? [dataStoreReadSyscalls(this.ds), dataStoreWriteSyscalls(this.ds)]
+        ? [
+          dataStoreReadSyscalls(this.ds, this),
+          dataStoreWriteSyscalls(this.ds),
+        ]
         : [dataStoreProxySyscalls(this.client)],
       debugSyscalls(this.client),
       syncSyscalls(this.client),

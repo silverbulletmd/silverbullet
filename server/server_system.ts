@@ -135,7 +135,7 @@ export class ServerSystem extends CommonSystem {
       jsonschemaSyscalls(),
       luaSyscalls(),
       templateSyscalls(this.ds),
-      dataStoreReadSyscalls(this.ds),
+      dataStoreReadSyscalls(this.ds, this),
       codeWidgetSyscalls(codeWidgetHook),
       markdownSyscalls(),
     );
