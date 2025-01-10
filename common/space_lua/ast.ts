@@ -276,15 +276,23 @@ export type LuaWhereClause = {
 
 export type LuaLimitClause = {
   type: "Limit";
-  expression: LuaExpression;
+  limit: LuaExpression;
+  offset?: LuaExpression;
 } & ASTContext;
 
 export type LuaOrderByClause = {
   type: "OrderBy";
+  orderBy: LuaOrderBy[];
+} & ASTContext;
+
+export type LuaOrderBy = {
+  type: "Order";
   expression: LuaExpression;
+  direction: "asc" | "desc";
 } & ASTContext;
 
 export type LuaSelectClause = {
   type: "Select";
-  expression: LuaExpression;
+  fields?: string[];
+  tableConstructor?: LuaTableConstructor;
 } & ASTContext;
