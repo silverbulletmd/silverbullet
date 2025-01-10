@@ -29,7 +29,10 @@ import {
   type LuaValue,
   singleResult,
 } from "./runtime.ts";
-import { ArrayQueryCollection } from "$common/space_lua/query_collection.ts";
+import {
+  ArrayQueryCollection,
+  type LuaCollectionQuery,
+} from "$common/space_lua/query_collection.ts";
 import { luaValueToJS } from "$common/space_lua/runtime.ts";
 import { jsToLuaValue } from "$common/space_lua/runtime.ts";
 
