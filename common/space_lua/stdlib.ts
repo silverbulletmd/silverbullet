@@ -20,6 +20,7 @@ import type {
   LuaCollectionQuery,
   LuaQueryCollection,
 } from "$common/space_lua/query_collection.ts";
+import { KV } from "@silverbulletmd/silverbullet/types";
 
 const printFunction = new LuaBuiltinFunction(async (_sf, ...args) => {
   console.log("[Lua]", ...(await Promise.all(args)));
@@ -134,11 +135,17 @@ const tagFunction = new LuaBuiltinFunction(
       throw new LuaRuntimeError("Global not found", sf);
     }
     return {
-      query: (query: LuaCollectionQuery): any => {
-        return global.get("datastore").get("query_lua").call(sf, [
-          "idx",
-          tagName,
-        ], query);
+      query: async (query: LuaCollectionQuery): Promise<any[]> => {
+        const kvs: KV[] = (await global.get("datastore").get("query_lua").call(
+          sf,
+          [
+            "idx",
+            tagName,
+          ],
+          query,
+        )).asJSArray();
+        console.log("Got kvs", kvs);
+        return kvs.map((kv) => kv.value);
       },
     };
   },

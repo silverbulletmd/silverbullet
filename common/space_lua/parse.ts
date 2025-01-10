@@ -32,7 +32,7 @@ const luaStyleTags = styleTags({
   CompareOp: t.operator,
   "true false": t.bool,
   Comment: t.lineComment,
-  "return break goto do end while repeat until function local if then else elseif in for nil or and not query where limit select order":
+  "return break goto do end while repeat until function local if then else elseif in for nil or and not query where limit select order by desc":
     t.keyword,
 });
 
