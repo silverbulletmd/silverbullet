@@ -259,15 +259,21 @@ export type LuaFunctionDefinition = {
 // Query stuff
 export type LuaQueryExpression = {
   type: "Query";
-  expression: LuaExpression;
   clauses: LuaQueryClause[];
 } & ASTContext;
 
 export type LuaQueryClause =
+  | LuaFromClause
   | LuaWhereClause
   | LuaLimitClause
   | LuaOrderByClause
   | LuaSelectClause;
+
+export type LuaFromClause = {
+  type: "From";
+  name: string;
+  expression: LuaExpression;
+} & ASTContext;
 
 export type LuaWhereClause = {
   type: "Where";
@@ -293,6 +299,5 @@ export type LuaOrderBy = {
 
 export type LuaSelectClause = {
   type: "Select";
-  fields?: string[];
-  tableConstructor?: LuaTableConstructor;
+  tableConstructor: LuaTableConstructor;
 } & ASTContext;

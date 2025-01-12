@@ -239,7 +239,6 @@ export function parseTreeToAST(tree: ParseTree, omitTrimmable = true): AST {
 export function cleanTree(tree: ParseTree, omitTrimmable = true): ParseTree {
   if (tree.type === "⚠") {
     console.info("Parse error", JSON.stringify(tree, null, 2));
-    console.trace();
     throw new Error(
       `Parse error in: ${renderToText(tree)}`,
     );

@@ -104,8 +104,10 @@ Deno.test("Test comment handling", () => {
 });
 
 Deno.test("Test query parsing", () => {
-  parse(`_(query[[page where name == "John" limit 10, 3]])`);
-  parse(`_(query[[page select name]])`);
-  parse(`_(query[[page select {name="hello", age=10}]])`);
-  parse(`_(query[[page order by lastModified desc, name]])`);
+  parse(`_(query[[from p = tag("page") where p.name == "John" limit 10, 3]])`);
+  parse(`_(query[[from p = tag("page") select {name="hello", age=10}]])`);
+  parse(
+    `_(query[[from p = tag("page") order by p.lastModified desc, p.name]])`,
+  );
+  parse(`_(query[[from p = tag("page") order by p.lastModified]])`);
 });

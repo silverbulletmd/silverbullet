@@ -32,7 +32,7 @@ const luaStyleTags = styleTags({
   CompareOp: t.operator,
   "true false": t.bool,
   Comment: t.lineComment,
-  "return break goto do end while repeat until function local if then else elseif in for nil or and not query where limit select order by desc":
+  "return break goto do end while repeat until function local if then else elseif in for nil or and not query from where limit select order by desc":
     t.keyword,
 });
 
@@ -470,9 +470,7 @@ function parseExpression(t: ParseTree, ctx: ASTCtx): LuaExpression {
     case "Query":
       return {
         type: "Query",
-
-        expression: parseExpression(t.children![2], ctx),
-        clauses: t.children!.slice(3, -1).map((c) => parseQueryClause(c, ctx)),
+        clauses: t.children!.slice(2, -1).map((c) => parseQueryClause(c, ctx)),
         ctx: context(t, ctx),
       };
     default:
@@ -487,6 +485,14 @@ function parseQueryClause(t: ParseTree, ctx: ASTCtx): LuaQueryClause {
   }
   t = t.children![0];
   switch (t.type) {
+    case "FromClause": {
+      return {
+        type: "From",
+        name: t.children![1].children![0].text!,
+        expression: parseExpression(t.children![3], ctx),
+        ctx: context(t, ctx),
+      };
+    }
     case "WhereClause":
       return {
         type: "Where",
@@ -524,22 +530,14 @@ function parseQueryClause(t: ParseTree, ctx: ASTCtx): LuaQueryClause {
       };
     }
     case "SelectClause": {
-      if (t.children![1].type === "TableConstructor") {
-        return {
-          type: "Select",
-          tableConstructor: parseExpression(
-            t.children![1],
-            ctx,
-          ) as LuaTableConstructor,
-          ctx: context(t, ctx),
-        };
-      } else {
-        return {
-          type: "Select",
-          fields: t.children!.slice(1).map((f) => f.children![0].text!),
-          ctx: context(t, ctx),
-        };
-      }
+      return {
+        type: "Select",
+        tableConstructor: parseExpression(
+          t.children![1],
+          ctx,
+        ) as LuaTableConstructor,
+        ctx: context(t, ctx),
+      };
     }
     default:
       console.error(t);

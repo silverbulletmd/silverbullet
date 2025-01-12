@@ -1,19 +1,12 @@
 import type { LuaExpression } from "$common/space_lua/ast.ts";
-import {
-  LuaEnv,
-  luaGet,
-  luaKeys,
-  type LuaStackFrame,
-} from "$common/space_lua/runtime.ts";
+import { LuaEnv, type LuaStackFrame } from "$common/space_lua/runtime.ts";
 import { evalExpression } from "$common/space_lua/eval.ts";
 import { asyncQuickSort } from "$common/space_lua/util.ts";
 import type { DataStore } from "$lib/data/datastore.ts";
 
-function buildItemEnv(item: any, env: LuaEnv, sf: LuaStackFrame): LuaEnv {
+function buildItemEnv(objectVariable: string, item: any, env: LuaEnv): LuaEnv {
   const itemEnv = new LuaEnv(env);
-  for (const key of luaKeys(item)) {
-    itemEnv.setLocal(key, luaGet(item, key, sf));
-  }
+  itemEnv.setLocal(objectVariable, item);
   return itemEnv;
 }
 
@@ -31,6 +24,7 @@ export type LuaSelect = {
  * Represents a query for a collection
  */
 export type LuaCollectionQuery = {
+  objectVariable: string;
   // The filter expression evaluated with Lua
   where?: LuaExpression;
   // The order by expression evaluated with Lua
@@ -66,7 +60,7 @@ export class ArrayQueryCollection<T> implements LuaQueryCollection {
 
     // Filter the array
     for (const item of this.array) {
-      const itemEnv = buildItemEnv(item, env, sf);
+      const itemEnv = buildItemEnv(query.objectVariable, item, env);
       if (query.where && !await evalExpression(query.where, itemEnv, sf)) {
         continue;
       }
@@ -87,7 +81,7 @@ async function applyTransforms(
   if (query.select) {
     const newResult = [];
     for (const item of result) {
-      const itemEnv = buildItemEnv(item, env, sf);
+      const itemEnv = buildItemEnv(query.objectVariable, item, env);
       const newItem: Record<string, any> = {};
       for (const select of query.select) {
         if (select.expr) {
@@ -110,8 +104,8 @@ async function applyTransforms(
     result = await asyncQuickSort(result, async (a, b) => {
       // Compare each orderBy clause until we find a difference
       for (const { expr, desc } of query.orderBy!) {
-        const aEnv = buildItemEnv(a, env, sf);
-        const bEnv = buildItemEnv(b, env, sf);
+        const aEnv = buildItemEnv(query.objectVariable, a, env);
+        const bEnv = buildItemEnv(query.objectVariable, b, env);
 
         const aVal = await evalExpression(expr, aEnv, sf);
         const bVal = await evalExpression(expr, bEnv, sf);
@@ -153,12 +147,11 @@ export class DataStoreQueryCollection implements LuaQueryCollection {
   ): Promise<any[]> {
     const result: any[] = [];
     for await (
-      const { key, value } of this.dataStore.kv.query({ prefix: this.prefix })
+      const { value } of this.dataStore.kv.query({ prefix: this.prefix })
     ) {
-      this.dataStore.enrichObject(value);
-      const itemEnv = buildItemEnv(value, env, sf);
       // Enrich
-
+      this.dataStore.enrichObject(value);
+      const itemEnv = buildItemEnv(query.objectVariable, value, env);
       if (query.where && !await evalExpression(query.where, itemEnv, sf)) {
         continue;
       }

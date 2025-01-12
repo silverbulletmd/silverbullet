@@ -16,7 +16,6 @@ import {
 import type { ScriptEnvironment } from "$common/space_script.ts";
 import { luaValueToJS } from "$common/space_lua/runtime.ts";
 import type { ASTCtx } from "$common/space_lua/ast.ts";
-import type { ObjectQuery } from "@silverbulletmd/silverbullet/types";
 import { buildLuaEnv } from "$common/space_lua_api.ts";
 
 export class SpaceLuaEnvironment {
@@ -38,6 +37,7 @@ export class SpaceLuaEnvironment {
     const tl = new LuaEnv();
     for (const script of allScripts) {
       try {
+        console.log("Now evaluating", script.ref);
         const ast = parseLua(script.script, { ref: script.ref });
         // We create a local scope for each script
         const scriptEnv = new LuaEnv(this.env);

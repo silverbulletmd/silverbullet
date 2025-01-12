@@ -86,21 +86,23 @@ exp {
 }
 
 Query {
-  kw<"query"> "[[" exp QueryClause* "]]" 
+  kw<"query"> "[[" QueryClause* "]]" 
 }
 
 QueryClause {
+  FromClause |
   WhereClause |
   OrderByClause |
   SelectClause |
   LimitClause
 }
 
+FromClause { ckw<"from"> Name "=" exp }
 WhereClause { ckw<"where"> exp }
 LimitClause { ckw<"limit"> exp ("," exp)? }
 OrderByClause { ckw<"order">  ckw<"by"> list<OrderBy> }
 OrderBy { exp ckw<"desc">? }
-SelectClause { ckw<"select"> (list<Name> | TableConstructor) }
+SelectClause { ckw<"select"> TableConstructor }
 
 
 field[@isGroup=Field] {
@@ -153,8 +155,6 @@ TableConstructor { "{" (field (fieldsep field)* fieldsep?)? "}" }
 
 @tokens {
   CompareOp { "<" | ">" | $[<>=~/!] "=" }
-
-  TagIdentifier { @asciiLetter (@asciiLetter | @digit | "-" | "_" | "/" )* }
 
   identifier { (std.asciiLetter | "_") (std.digit | std.asciiLetter | "_")* }
 

@@ -250,9 +250,15 @@ export function evalExpression(
       case "FunctionDefinition": {
         return new LuaFunction(e.body, env);
       }
-      case "Query":
+      case "Query": {
         // console.log("Query", e);
-        return Promise.resolve(evalExpression(e.expression, env, sf)).then(
+        const findFromClause = e.clauses.find((c) => c.type === "From");
+        if (!findFromClause) {
+          throw new LuaRuntimeError("No from clause found", sf.withCtx(e.ctx));
+        }
+        const objectVariable = findFromClause.name;
+        const objectExpression = findFromClause.expression;
+        return Promise.resolve(evalExpression(objectExpression, env, sf)).then(
           async (collection: LuaValue) => {
             if (!collection) {
               throw new LuaRuntimeError(
@@ -273,7 +279,9 @@ export function evalExpression(
               collection = new ArrayQueryCollection(collection);
             }
             // Build up query object
-            const query: LuaCollectionQuery = {};
+            const query: LuaCollectionQuery = {
+              objectVariable,
+            };
 
             // Map clauses to query parameters
             for (const clause of e.clauses) {
@@ -290,25 +298,20 @@ export function evalExpression(
                   break;
                 }
                 case "Select": {
-                  if (clause.fields) {
-                    query.select = clause.fields.map((f) => ({
-                      name: f,
-                    }));
-                  } else if (clause.tableConstructor) {
-                    query.select = clause.tableConstructor.fields.map((f) => {
-                      if (f.type === "PropField") {
-                        return {
-                          name: f.key,
-                          expr: f.value,
-                        };
-                      } else {
-                        throw new LuaRuntimeError(
-                          "Select fields must be named",
-                          sf.withCtx(f.ctx),
-                        );
-                      }
-                    });
-                  }
+                  query.select = clause.tableConstructor.fields.map((f) => {
+                    if (f.type === "PropField") {
+                      return {
+                        name: f.key,
+                        expr: f.value,
+                      };
+                    } else {
+                      throw new LuaRuntimeError(
+                        "Select fields must be named",
+                        sf.withCtx(f.ctx),
+                      );
+                    }
+                  });
+
                   break;
                 }
                 case "Limit": {
@@ -330,7 +333,7 @@ export function evalExpression(
             return collection.query(query, env, sf).then(jsToLuaValue);
           },
         );
-
+      }
       default:
         throw new Error(`Unknown expression type ${e.type}`);
     }

@@ -703,26 +703,26 @@ assert(evalResult == "2", "Eval should return 2 as a string")
 
 -- Test query
 local data = { { name = "John", lastModified = 1, age = 20 }, { name = "Jane", lastModified = 2, age = 21 } }
-local r = query [[data limit 1]]
+local r = query [[from p = data limit 1]]
 assert_equal(#r, 1)
 assert_equal(r[1].name, "John")
 assert_equal(r[1].lastModified, 1)
 
-local r = query [[data order by lastModified desc]]
+local r = query [[from p = data order by p.lastModified desc]]
 assert_equal(#r, 2)
 assert_equal(r[1].name, "Jane")
 assert_equal(r[1].lastModified, 2)
 assert_equal(r[2].name, "John")
 assert_equal(r[2].lastModified, 1)
 
-local r = query [[data order by lastModified]]
+local r = query [[from p = data order by p.lastModified]]
 assert_equal(#r, 2)
 assert_equal(r[1].name, "John")
 assert_equal(r[1].lastModified, 1)
 assert_equal(r[2].name, "Jane")
 assert_equal(r[2].lastModified, 2)
 
-local r = query [[data order by age select name, age]]
+local r = query [[from p = data order by p.age select {name=p.name, age=p.age}]]
 assert_equal(#r, 2)
 assert_equal(r[1].name, "John")
 assert_equal(r[1].age, 20)
