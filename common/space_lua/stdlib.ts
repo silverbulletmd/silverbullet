@@ -136,7 +136,7 @@ const tagFunction = new LuaBuiltinFunction(
     }
     return {
       query: async (query: LuaCollectionQuery): Promise<any[]> => {
-        const kvs: KV[] = (await global.get("datastore").get("query_lua").call(
+        return (await global.get("datastore").get("query_lua").call(
           sf,
           [
             "idx",
@@ -144,8 +144,6 @@ const tagFunction = new LuaBuiltinFunction(
           ],
           query,
         )).asJSArray();
-        console.log("Got kvs", kvs);
-        return kvs.map((kv) => kv.value);
       },
     };
   },

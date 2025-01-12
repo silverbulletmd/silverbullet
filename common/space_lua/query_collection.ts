@@ -152,15 +152,17 @@ export class DataStoreQueryCollection implements LuaQueryCollection {
     sf: LuaStackFrame,
   ): Promise<any[]> {
     const result: any[] = [];
-    for await (const item of this.dataStore.kv.query({ prefix: this.prefix })) {
-      this.dataStore.enrichObject(item);
-      const itemEnv = buildItemEnv(item, env, sf);
+    for await (
+      const { key, value } of this.dataStore.kv.query({ prefix: this.prefix })
+    ) {
+      this.dataStore.enrichObject(value);
+      const itemEnv = buildItemEnv(value, env, sf);
       // Enrich
 
       if (query.where && !await evalExpression(query.where, itemEnv, sf)) {
         continue;
       }
-      result.push(item);
+      result.push(value);
     }
     return applyTransforms(result, query, env, sf);
   }

@@ -32,10 +32,7 @@ export class SpaceLuaEnvironment {
   ) {
     const allScripts: ScriptObject[] = await system.invokeFunction(
       "index.queryObjects",
-      ["space-lua", {
-        // This is a bit silly, but at least makes the order deterministic
-        orderBy: [{ expr: ["attr", "ref"] }],
-      } as ObjectQuery],
+      ["space-lua", {}],
     );
     this.env = buildLuaEnv(system, scriptEnv);
     const tl = new LuaEnv();

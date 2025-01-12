@@ -251,8 +251,15 @@ export function evalExpression(
         return new LuaFunction(e.body, env);
       }
       case "Query":
+        // console.log("Query", e);
         return Promise.resolve(evalExpression(e.expression, env, sf)).then(
           async (collection: LuaValue) => {
+            if (!collection) {
+              throw new LuaRuntimeError(
+                "Collection is nil",
+                sf.withCtx(e.ctx),
+              );
+            }
             // Check if collection is a queryable collection
             if (!collection.query) {
               // If not, try to convert it to JS and see if it's an array
