@@ -20,7 +20,6 @@ import type {
   LuaCollectionQuery,
   LuaQueryCollection,
 } from "$common/space_lua/query_collection.ts";
-import { KV } from "@silverbulletmd/silverbullet/types";
 
 const printFunction = new LuaBuiltinFunction(async (_sf, ...args) => {
   console.log("[Lua]", ...(await Promise.all(args)));
