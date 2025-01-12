@@ -16,9 +16,13 @@ import { tableApi } from "$common/space_lua/stdlib/table.ts";
 import { osApi } from "$common/space_lua/stdlib/os.ts";
 import { jsApi } from "$common/space_lua/stdlib/js.ts";
 import { spaceLuaApi } from "$common/space_lua/stdlib/space_lua.ts";
+import type {
+  LuaCollectionQuery,
+  LuaQueryCollection,
+} from "$common/space_lua/query_collection.ts";
 
 const printFunction = new LuaBuiltinFunction(async (_sf, ...args) => {
-  console.log("[Lua]", ...(await Promise.all(args.map(luaToString))));
+  console.log("[Lua]", ...(await Promise.all(args)));
 });
 
 const assertFunction = new LuaBuiltinFunction(
@@ -123,6 +127,27 @@ const getmetatableFunction = new LuaBuiltinFunction((_sf, table: LuaTable) => {
   return table.metatable;
 });
 
+const tagFunction = new LuaBuiltinFunction(
+  (sf, tagName: LuaValue): LuaQueryCollection => {
+    const global = sf.threadLocal.get("_GLOBAL");
+    if (!global) {
+      throw new LuaRuntimeError("Global not found", sf);
+    }
+    return {
+      query: async (query: LuaCollectionQuery): Promise<any[]> => {
+        return (await global.get("datastore").get("query_lua").call(
+          sf,
+          [
+            "idx",
+            tagName,
+          ],
+          query,
+        )).asJSArray();
+      },
+    };
+  },
+);
+
 export function luaBuildStandardEnv() {
   const env = new LuaEnv();
   // Top-level builtins
@@ -143,7 +168,7 @@ export function luaBuildStandardEnv() {
   env.set("error", errorFunction);
   env.set("pcall", pcallFunction);
   env.set("xpcall", xpcallFunction);
-
+  env.set("tag", tagFunction);
   // APIs
   env.set("string", stringApi);
   env.set("table", tableApi);

@@ -37,4 +37,7 @@ export const tableApi = new LuaTable({
   sort: new LuaBuiltinFunction((sf, tbl: LuaTable, comp?: ILuaFunction) => {
     return tbl.sort(comp, sf);
   }),
+  keys: new LuaBuiltinFunction((_sf, tbl: LuaTable) => {
+    return tbl.keys();
+  }),
 });

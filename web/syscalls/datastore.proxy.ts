@@ -10,6 +10,7 @@ export function dataStoreProxySyscalls(client: Client): SysCallMapping {
     "datastore.batchDelete",
     "datastore.batchGet",
     "datastore.query",
+    "datastore.queryLua",
     "datastore.get",
     "datastore.listFunctions",
   ]);

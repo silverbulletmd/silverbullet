@@ -21,6 +21,9 @@ Deno.test("Test Lua parser", () => {
   parse(`e(a.b.c)`);
   parse(`e((1+2))`);
 
+  // Use keywordy variables
+  parse(`e(order, limit, where)`);
+
   // Table expressions
   parse(`e({})`);
   parse(`e({1, 2, 3, })`);
@@ -98,4 +101,13 @@ Deno.test("Test comment handling", () => {
         hello
         -- yo
       ]])`);
+});
+
+Deno.test("Test query parsing", () => {
+  parse(`_(query[[from p = tag("page") where p.name == "John" limit 10, 3]])`);
+  parse(`_(query[[from p = tag("page") select {name="hello", age=10}]])`);
+  parse(
+    `_(query[[from p = tag("page") order by p.lastModified desc, p.name]])`,
+  );
+  parse(`_(query[[from p = tag("page") order by p.lastModified]])`);
 });

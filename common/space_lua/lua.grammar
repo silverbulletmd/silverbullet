@@ -17,6 +17,10 @@
 
 @top Chunk { Block }
 
+kw<term> { @specialize[@name={term}]<identifier, term> }
+ckw<term> { @extend[@name={term}]<identifier, term> }
+list<term> { term ("," term)* }
+
 Block { statement* ReturnStatement? }
 
 ReturnStatement { kw<"return"> ExpList? ";"?}
@@ -58,7 +62,6 @@ ForStatement {
 FuncName { Name ("." Name)* (":" Name)? }
 FuncBody { "(" ArgList ")" Block kw<"end"> }
 
-list<term> { term ("," term)* }
 
 NameList { list<Name> }
 ExpList { list<exp> }
@@ -78,29 +81,29 @@ exp {
   BinaryExpression |
   UnaryExpression |
   TableConstructor |
-  FunctionDef { kw<"function"> FuncBody }
-  // |  Query
+  FunctionDef { kw<"function"> FuncBody } |
+  Query
 }
 
 Query {
-  "[" exp QueryClause* "]" 
+  kw<"query"> "[[" QueryClause* "]]" 
 }
 
 QueryClause {
+  FromClause |
   WhereClause |
   OrderByClause |
   SelectClause |
-  RenderClause |
   LimitClause
 }
 
-WhereClause { kw<"where"> exp }
-LimitClause { kw<"limit"> exp }
-OrderByClause { kw<"order"> kw<"by"> exp kw<"desc">? }
-SelectClause { kw<"select"> list<Select> }
-RenderClause { kw<"render"> ( kw<"each"> | kw<"all"> )? simpleString }
+FromClause { ckw<"from"> Name "=" exp }
+WhereClause { ckw<"where"> exp }
+LimitClause { ckw<"limit"> exp ("," exp)? }
+OrderByClause { ckw<"order">  ckw<"by"> list<OrderBy> }
+OrderBy { exp ckw<"desc">? }
+SelectClause { ckw<"select"> TableConstructor }
 
-Select { Name | exp kw<"as"> Name }
 
 field[@isGroup=Field] {
   FieldDynamic { "[" exp "]" "=" exp } |
@@ -113,6 +116,7 @@ prefixexp {
   Parens { "(" exp ")" ~parens } |
   FunctionCall ~fcall
 }
+
 FunctionCall { prefixexp (":" Name)? !call args }
 args {
   LiteralString |
@@ -123,8 +127,6 @@ args {
 var {
   Name | Property { (prefixexp "." Name) } | MemberExpression { (prefixexp "[" exp "]") }
 }
-
-kw<term> { @specialize[@name={term}]<identifier, term> }
 
 Name { identifier }
 Label { "::" Name "::" }
@@ -154,11 +156,7 @@ TableConstructor { "{" (field (fieldsep field)* fieldsep?)? "}" }
 @tokens {
   CompareOp { "<" | ">" | $[<>=~/!] "=" }
 
-  TagIdentifier { @asciiLetter (@asciiLetter | @digit | "-" | "_" | "/" )* }
-
-  word { (std.asciiLetter | "_") (std.digit | std.asciiLetter | "_")* }
-
-  identifier { word }
+  identifier { (std.asciiLetter | "_") (std.digit | std.asciiLetter | "_")* }
 
   stringEscape {
     "\\" ($[abfnz"'\\] | digit digit? digit?) |

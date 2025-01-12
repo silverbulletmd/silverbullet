@@ -700,3 +700,33 @@ assert(evalResult == 2, "Eval should return 2")
 local parsedExpr = space_lua.parse_expression("tostring(a + 1)")
 local evalResult = space_lua.eval_expression(parsedExpr, { a = 1 })
 assert(evalResult == "2", "Eval should return 2 as a string")
+
+-- Test query
+local data = { { name = "John", lastModified = 1, age = 20 }, { name = "Jane", lastModified = 2, age = 21 } }
+local r = query [[from p = data limit 1]]
+assert_equal(#r, 1)
+assert_equal(r[1].name, "John")
+assert_equal(r[1].lastModified, 1)
+
+local r = query [[from p = data order by p.lastModified desc]]
+assert_equal(#r, 2)
+assert_equal(r[1].name, "Jane")
+assert_equal(r[1].lastModified, 2)
+assert_equal(r[2].name, "John")
+assert_equal(r[2].lastModified, 1)
+
+local r = query [[from p = data order by p.lastModified]]
+assert_equal(#r, 2)
+assert_equal(r[1].name, "John")
+assert_equal(r[1].lastModified, 1)
+assert_equal(r[2].name, "Jane")
+assert_equal(r[2].lastModified, 2)
+
+local r = query [[from p = data order by p.age select {name=p.name, age=p.age}]]
+assert_equal(#r, 2)
+assert_equal(r[1].name, "John")
+assert_equal(r[1].age, 20)
+assert_equal(r[2].name, "Jane")
+assert_equal(r[2].age, 21)
+assert_equal(r[1].lastModified, nil)
+assert_equal(r[2].lastModified, nil)

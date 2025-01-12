@@ -22,7 +22,8 @@ Deno.test("ArrayQueryCollection", async () => {
   }]);
   const result = await collection.query(
     {
-      where: parseExpressionString("x >= 2"),
+      objectVariable: "p",
+      where: parseExpressionString("p.x >= 2"),
     },
     rootEnv,
     LuaStackFrame.lostFrame,
@@ -33,6 +34,7 @@ Deno.test("ArrayQueryCollection", async () => {
   // Test limit
   const result2 = await collection.query(
     {
+      objectVariable: "p",
       limit: 1,
     },
     rootEnv,
@@ -44,6 +46,7 @@ Deno.test("ArrayQueryCollection", async () => {
   // Test offset
   const result3 = await collection.query(
     {
+      objectVariable: "p",
       offset: 1,
     },
     rootEnv,
@@ -55,7 +58,8 @@ Deno.test("ArrayQueryCollection", async () => {
   // Test order by
   const result4 = await collection.query(
     {
-      orderBy: [{ expr: parseExpressionString("x"), desc: false }],
+      objectVariable: "p",
+      orderBy: [{ expr: parseExpressionString("p.x"), desc: false }],
     },
     rootEnv,
     LuaStackFrame.lostFrame,
@@ -68,7 +72,8 @@ Deno.test("ArrayQueryCollection", async () => {
   // Test order by desc
   const result5 = await collection.query(
     {
-      orderBy: [{ expr: parseExpressionString("x"), desc: true }],
+      objectVariable: "p",
+      orderBy: [{ expr: parseExpressionString("p.x"), desc: true }],
     },
     rootEnv,
     LuaStackFrame.lostFrame,
@@ -87,9 +92,10 @@ Deno.test("ArrayQueryCollection", async () => {
   ]);
   const result6 = await collection2.query(
     {
+      objectVariable: "p",
       orderBy: [
-        { expr: parseExpressionString("lastName"), desc: false },
-        { expr: parseExpressionString("firstName"), desc: true },
+        { expr: parseExpressionString("p.lastName"), desc: false },
+        { expr: parseExpressionString("p.firstName"), desc: true },
       ],
     },
     rootEnv,
@@ -104,23 +110,13 @@ Deno.test("ArrayQueryCollection", async () => {
   assertEquals(result6[3].firstName, "Alice");
   assertEquals(result6[3].lastName, "Johnson");
 
-  // Test select
-  const result7 = await collection2.query(
-    {
-      select: [{ name: "firstName" }],
-    },
-    rootEnv,
-    LuaStackFrame.lostFrame,
-  );
-  assertEquals(result7[0].firstName, "John");
-  assertEquals(result7[0].lastName, undefined);
-
   // Test select with expression
   const result8 = await collection2.query(
     {
+      objectVariable: "p",
       select: [{
         name: "fullName",
-        expr: parseExpressionString("firstName .. ' ' .. lastName"),
+        expr: parseExpressionString("p.firstName .. ' ' .. p.lastName"),
       }],
     },
     rootEnv,
@@ -134,9 +130,10 @@ Deno.test("ArrayQueryCollection", async () => {
   // Test select with native function
   const result9 = await collection2.query(
     {
+      objectVariable: "p",
       select: [{
         name: "fullName",
-        expr: parseExpressionString("build_name(firstName, lastName)"),
+        expr: parseExpressionString("build_name(p.firstName, p.lastName)"),
       }],
     },
     rootEnv,

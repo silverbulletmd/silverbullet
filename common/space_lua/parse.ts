@@ -16,8 +16,11 @@ import type {
   LuaFunctionCallStatement,
   LuaFunctionName,
   LuaLValue,
+  LuaOrderBy,
   LuaPrefixExpression,
+  LuaQueryClause,
   LuaStatement,
+  LuaTableConstructor,
   LuaTableField,
 } from "./ast.ts";
 import { tags as t } from "@lezer/highlight";
@@ -29,7 +32,7 @@ const luaStyleTags = styleTags({
   CompareOp: t.operator,
   "true false": t.bool,
   Comment: t.lineComment,
-  "return break goto do end while repeat until function local if then else elseif in for nil or and not":
+  "return break goto do end while repeat until function local if then else elseif in for nil or and not query from where limit select order by desc":
     t.keyword,
 });
 
@@ -464,9 +467,81 @@ function parseExpression(t: ParseTree, ctx: ASTCtx): LuaExpression {
       };
     case "nil":
       return { type: "Nil", ctx: context(t, ctx) };
+    case "Query":
+      return {
+        type: "Query",
+        clauses: t.children!.slice(2, -1).map((c) => parseQueryClause(c, ctx)),
+        ctx: context(t, ctx),
+      };
     default:
       console.error(t);
       throw new Error(`Unknown expression type: ${t.type}`);
+  }
+}
+
+function parseQueryClause(t: ParseTree, ctx: ASTCtx): LuaQueryClause {
+  if (t.type !== "QueryClause") {
+    throw new Error(`Expected QueryClause, got ${t.type}`);
+  }
+  t = t.children![0];
+  switch (t.type) {
+    case "FromClause": {
+      return {
+        type: "From",
+        name: t.children![1].children![0].text!,
+        expression: parseExpression(t.children![3], ctx),
+        ctx: context(t, ctx),
+      };
+    }
+    case "WhereClause":
+      return {
+        type: "Where",
+        expression: parseExpression(t.children![1], ctx),
+        ctx: context(t, ctx),
+      };
+    case "LimitClause": {
+      const limit = parseExpression(t.children![1], ctx);
+      const offset = t.children![2]
+        ? parseExpression(t.children![3], ctx)
+        : undefined;
+      return {
+        type: "Limit",
+        limit,
+        offset,
+        ctx: context(t, ctx),
+      };
+    }
+    case "OrderByClause": {
+      const orderBy: LuaOrderBy[] = [];
+      for (const child of t.children!) {
+        if (child.type === "OrderBy") {
+          orderBy.push({
+            type: "Order",
+            expression: parseExpression(child.children![0], ctx),
+            direction: child.children![1]?.type === "desc" ? "desc" : "asc",
+            ctx: context(child, ctx),
+          });
+        }
+      }
+      return {
+        type: "OrderBy",
+        orderBy,
+        ctx: context(t, ctx),
+      };
+    }
+    case "SelectClause": {
+      return {
+        type: "Select",
+        tableConstructor: parseExpression(
+          t.children![1],
+          ctx,
+        ) as LuaTableConstructor,
+        ctx: context(t, ctx),
+      };
+    }
+    default:
+      console.error(t);
+      throw new Error(`Unknown query clause type: ${t.type}`);
   }
 }
 
@@ -639,7 +714,8 @@ export function parse(s: string, ctx: ASTCtx = {}): LuaBlock {
 }
 
 export function parseToCrudeAST(t: string): ParseTree {
-  return cleanTree(lezerToParseTree(t, parser.parse(t).topNode), true);
+  const n = lezerToParseTree(t, parser.parse(t).topNode);
+  return cleanTree(n, true);
 }
 
 /**

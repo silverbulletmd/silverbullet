@@ -1,3 +1,4 @@
+import type { LuaCollectionQuery } from "$common/space_lua/query_collection.ts";
 import { syscall } from "../syscall.ts";
 import type { KV, KvKey, KvQuery } from "../types.ts";
 
@@ -68,6 +69,13 @@ export function query(
   variables: Record<string, any> = {},
 ): Promise<KV[]> {
   return syscall("datastore.query", query, variables);
+}
+
+export function queryLua(
+  prefix: string[],
+  query: LuaCollectionQuery,
+): Promise<KV[]> {
+  return syscall("datastore.queryLua", prefix, query);
 }
 
 /**

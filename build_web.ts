@@ -16,7 +16,7 @@ export async function bundleAll(
   await buildCopyBundleAssets();
   let timer;
   if (watch) {
-    const watcher = Deno.watchFs(["web", "dist_plug_bundle"]);
+    const watcher = Deno.watchFs(["web", "common", "dist_plug_bundle"]);
     for await (const _event of watcher) {
       if (timer) {
         clearTimeout(timer);
