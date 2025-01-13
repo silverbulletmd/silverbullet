@@ -124,11 +124,10 @@ Deno.test("ArrayQueryCollection", async () => {
   assertEquals(result8[2], "Jane Doe");
   assertEquals(result8[3], "Bob Johnson");
 
-  // Test select with native function
+  // Test select with native function and implicit object variable
   const result9 = await collection2.query(
     {
-      objectVariable: "p",
-      select: parseExpressionString("build_name(p.firstName, p.lastName)"),
+      select: parseExpressionString("build_name(firstName, lastName)"),
     },
     rootEnv,
     LuaStackFrame.lostFrame,

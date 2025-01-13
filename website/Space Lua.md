@@ -61,8 +61,8 @@ Space Lua has a feature called [[Space Lua/Lua Integrated Query]], which integra
 
 ${query[[
   from tag "page"
-  order by _.lastModified desc
-  select _.name
+  order by lastModified desc
+  select name
   limit 3
 ]]}
 

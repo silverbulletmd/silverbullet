@@ -257,7 +257,7 @@ export function evalExpression(
         if (!findFromClause) {
           throw new LuaRuntimeError("No from clause found", sf.withCtx(e.ctx));
         }
-        const objectVariable = findFromClause.name || "_";
+        const objectVariable = findFromClause.name;
         const objectExpression = findFromClause.expression;
         return Promise.resolve(evalExpression(objectExpression, env, sf)).then(
           async (collection: LuaValue) => {

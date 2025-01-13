@@ -44,7 +44,7 @@ And the shorter:
 
     from <<expression>>
 
-implicitly binding each item to the variable `_`.
+implicitly binding each item to the variable `_` as well as making all attributes directly available as variables.
 
 Example without variable binding:
 ${query[[from {1, 2, 3} select _]]}
@@ -52,8 +52,8 @@ ${query[[from {1, 2, 3} select _]]}
 With variable binding:
 ${query[[from n = {1, 2, 3} select n]]}
 
-A more realist example using `tag`:
-${query[[from t = tag "page" limit 3 select t.name]]}
+A more realistic example using `tag`:
+${query[[from tag "page" order by lastModified select name limit 3]]}
 
 ## `where <expression>`
 The `where` clause allows you to filter data. When the expression evaluated to a truthy value, the item is included in the result.
@@ -64,7 +64,7 @@ ${query[[from {1, 2, 3, 4, 5} where _ > 2]]}
 
 Or to select all pages tagged with `#meta`:
 
-${query[[from tag "page" where table.includes(_.tags, "meta")]]}
+${query[[from tag "page" where table.includes(tags, "meta")]]}
 
 ## `order by <expression> [desc]`
 The `order by` clause allows you to sort data, when `desc` is specified it reverts the sort order.
@@ -72,8 +72,8 @@ The `order by` clause allows you to sort data, when `desc` is specified it rever
 As an example, the last 3 modified pages:
 ${query[[
   from tag "page"
-  order by _.lastModified desc
-  select _.name
+  order by lastModified desc
+  select name
   limit 3
 ]]}
 
@@ -101,10 +101,10 @@ ${query[[from tag "page" select _.name limit 3]]}
 
 You can also return tables or other complex values:
 ${query[[
-  from tag "page" 
+  from p = tag "page" 
   select {
-    name = _.name,
-    modified = _.lastModified
+    name = p.name,
+    modified = p.lastModified
   }
   limit 3
 ]]}
