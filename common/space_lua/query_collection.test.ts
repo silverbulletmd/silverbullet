@@ -114,33 +114,27 @@ Deno.test("ArrayQueryCollection", async () => {
   const result8 = await collection2.query(
     {
       objectVariable: "p",
-      select: [{
-        name: "fullName",
-        expr: parseExpressionString("p.firstName .. ' ' .. p.lastName"),
-      }],
+      select: parseExpressionString("p.firstName .. ' ' .. p.lastName"),
     },
     rootEnv,
     LuaStackFrame.lostFrame,
   );
-  assertEquals(result8[0].fullName, "John Doe");
-  assertEquals(result8[1].fullName, "Alice Johnson");
-  assertEquals(result8[2].fullName, "Jane Doe");
-  assertEquals(result8[3].fullName, "Bob Johnson");
+  assertEquals(result8[0], "John Doe");
+  assertEquals(result8[1], "Alice Johnson");
+  assertEquals(result8[2], "Jane Doe");
+  assertEquals(result8[3], "Bob Johnson");
 
   // Test select with native function
   const result9 = await collection2.query(
     {
       objectVariable: "p",
-      select: [{
-        name: "fullName",
-        expr: parseExpressionString("build_name(p.firstName, p.lastName)"),
-      }],
+      select: parseExpressionString("build_name(p.firstName, p.lastName)"),
     },
     rootEnv,
     LuaStackFrame.lostFrame,
   );
-  assertEquals(result9[0].fullName, "John Doe");
-  assertEquals(result9[1].fullName, "Alice Johnson");
-  assertEquals(result9[2].fullName, "Jane Doe");
-  assertEquals(result9[3].fullName, "Bob Johnson");
+  assertEquals(result9[0], "John Doe");
+  assertEquals(result9[1], "Alice Johnson");
+  assertEquals(result9[2], "Jane Doe");
+  assertEquals(result9[3], "Bob Johnson");
 });

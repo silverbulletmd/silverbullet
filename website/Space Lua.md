@@ -1,18 +1,32 @@
 > **warning** Experimental
 > This is a **highly experimental** feature still under active development. It is documented here primarily for the real early adopters as this feature develops.
+> 
+> If you want to experiment, be sure to use the [edge builds](https://community.silverbullet.md/t/living-on-the-edge-builds/27/5).
 
-Space Lua is a custom implementation of the [Lua programming language](https://lua.org/) embedded in SilverBullet.
+Space Lua is a custom implementation of the [Lua programming language](https://lua.org/), embedded in SilverBullet. It aims to be a largely complete Lua implementation, and adds a few non-standard features while remaining syntactically compatible with “real” Lua.
 
 # Goals
-These are current, long term goals that are subject to change.
+The introduction of Lua aims to unify and simplify a few SilverBullet features, specifically:
 
-* Provide a safe, integrated, productive way to extend SilverBullet’s feature set with a low barrier to entry
-* Ultimately succeed [[Space Script]] (for most, if not all) use cases
-* Ultimately replace [[Expression Language]] with Lua’s expression language, also in [[Query Language]].
-* Ultimately replace [[Template Language]] with a variant using Lua’s control flows (`for`, `if` etc.)
+* Scripting: replace [[Space Script]] (JavaScript) with a more controlled, simple and extensible language.
+* Replace [[Expression Language]], [[Template Language]] and [[Query Language]] with Lua-based equivalents.
+* (Potentially) provide an alternative way to specify [[Space Config]]
 
-# Use
-Space Lua functions analogously to [[Space Script]], [[Space Style]] and [[Space Config]] in that it is defined in fenced code blocks, in this case with the `space-lua` language. As follows:
+# Introduction approach
+This is a big effort. During its development, Space Lua will be offered as a kind of “alternative universe” to the things mentioned above. Existing [[Live Templates]], [[Live Queries]] and [[Space Script]] will continue to work as before, unaltered.
+
+Once these features stabilize and best practices are ironed out, old mechanisms will likely be deprecated and possibly removed at some point.
+
+We’re not there yet, though.
+
+# Basics
+In its essence, Space Lua adds two features to its [[Markdown]] language:
+
+* **Definitions**: Code written in `space-lua` code blocks are enabled across your entire space.
+* **Expressions**: The `${expression}` syntax will [[Live Preview]] to its evaluated value.
+
+## Definitions
+Space Lua definitions are defined in fenced code blocks, in this case with the `space-lua` language. As follows:
 
 ```space-lua
 -- adds two numbers
@@ -21,14 +35,41 @@ function adder(a, b)
 end
 ```
 
-Each `space-lua` block has its own local scope, however when functions and variables are not explicitly defined as `local` they will be available from anywhere (following regular Lua scoping rule).
+Each `space-lua` block has its own local scope. However, following Lua semantics, when functions and variables are not explicitly defined as `local` they will be available globally across your space. This means that the `adder` function above can be used in any other page.
 
-A new syntax introduced with Space Lua is the `${lua expression}` syntax that you can use in your pages, this syntax will [[Live Preview]] to the evaluation of that expression.
+Since there is a single global namespace, it is good practice to manually namespace things using the following pattern:
 
-Example: 10 + 2 = ${adder(10, 2)} (Alt-click on this value to see the expression using the just defined `adder` function to calculate this).
+```space-lua
+-- This initializes the stuff variable with an empty table if it's not already defined
+stuff = stuff or {}
+
+function stuff.adder(a, b)
+  return a + b
+end
+```
+
+> **note** Tip
+> All your space-lua scripts are loaded on boot, to reload them without reloading the page, simply run the {[System: Reload]} command.
+
+## Expressions
+A new syntax introduced with Space Lua is the `${lua expression}` syntax that you can use in your pages. This syntax will [[Live Preview]] to the evaluation of that expression.
+
+For example: 10 + 2 = ${adder(10, 2)} (Alt-click, or select to see the expression) is using the just defined `adder` function to this rather impressive calculation. Yes, this may as well be written as `${10 + 2}` (${10 + 2}), but... you know.
+
+## Queries
+Space Lua has a feature called [[Space Lua/Lua Integrated Query]], which integrate SQL-like queries into Lua. By using this feature, you can easily replicate [[Live Queries]]. More detail in [[Space Lua/Lua Integrated Query]], but here’s a small example querying the last 3 modifies pages:
+
+${query[[
+  from tag "page"
+  order by _.lastModified desc
+  select _.name
+  limit 3
+]]}
 
 ## Widgets
-The `${lua expression}` syntax can be used to implement simple widgets. If the lua expression evaluates to a simple string, it will live preview as that string rendered as simple markdown. However, if the expression returns a Lua table with specific keys, you can do some cooler stuff. The following keys are supported:
+The `${lua expression}` syntax can be used to implement simple widgets. If the Lua expression evaluates to a simple string, it will live preview as that string rendered as markdown. However, if the expression returns a Lua table with specific keys, you can do some cooler stuff.
+
+The following keys are supported:
 
 * `markdown`: Renders the value as markdown
 * `html`: Renders the value as HTML
@@ -55,7 +96,7 @@ And some [[Space Style]] to style it:
 }
 ```
 
-Now, let’s use it (put your cursor in there to see the code):
+Now, let’s use it:
 ${marquee "Finally, marqeeeeeeee!"}
 Oh boy, the times we live in!
 
@@ -88,30 +129,17 @@ define_event_listener {
 }
 ```
 
-## Custom functions
-Any global function (so not marked with `local`) is automatically exposed to be used in [[Live Queries]] and [[Live Templates]]:
+# Space Lua Extensions
+Space Lua currently introduces a few new features on top core Lua:
 
-```space-lua
--- This is a global function, therefore automatically exposed
-function greet_me(name)
-  return "Hello, " .. name
-end
+1. [[Space Lua/Lua Integrated Query]], embedding a [[Query Language]]-like language into Lua itself
+2. Thread locals
 
--- Whereas this one is not
-local function greet_you(name)
-  error("This is not exposed")
-end
-```
-
-Template:
-```template
-Here's a greeting: {{greet_me("Pete")}}
-```
-
-# Thread locals
-There’s a magic `_CTX` global variable available from which you can access useful context-specific value. Currently the following keys are available:
+## Thread locals
+There’s a magic `_CTX` global variable available from which you can access useful context-specific values. Currently the following keys are available:
 
 * `_CTX.pageMeta` contains a reference to the loaded page metadata (can be `nil` when not yet loaded)
+* `_CTX.GLOBAL` providing access to the global scope
 
 # API
 Lua APIs, which should be (roughly) implemented according to the Lua standard.

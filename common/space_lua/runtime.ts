@@ -437,6 +437,14 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     return this.arrayPart.map(luaValueToJS);
   }
 
+  asJS(): Record<string, any> | any[] {
+    if (this.length > 0) {
+      return this.asJSArray();
+    } else {
+      return this.asJSObject();
+    }
+  }
+
   async toStringAsync(): Promise<string> {
     if (this.metatable?.has("__tostring")) {
       const metaValue = await this.metatable.get("__tostring");
@@ -555,6 +563,10 @@ export function luaCall(
     );
   }
   return fn.call((sf || LuaStackFrame.lostFrame).withCtx(ctx), ...args);
+}
+
+export function luaEquals(a: any, b: any): boolean {
+  return a === b;
 }
 
 export function luaKeys(val: any): any[] {

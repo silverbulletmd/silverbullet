@@ -2,19 +2,16 @@ import type { System } from "../lib/plugos/system.ts";
 import type { ScriptObject } from "../plugs/index/script.ts";
 import {
   LuaEnv,
-  LuaFunction,
   LuaRuntimeError,
   LuaStackFrame,
 } from "$common/space_lua/runtime.ts";
 import { parse as parseLua } from "$common/space_lua/parse.ts";
 import { evalStatement } from "$common/space_lua/eval.ts";
-import { jsToLuaValue } from "$common/space_lua/runtime.ts";
 import {
   type PageRef,
   parsePageRef,
 } from "@silverbulletmd/silverbullet/lib/page_ref";
 import type { ScriptEnvironment } from "$common/space_script.ts";
-import { luaValueToJS } from "$common/space_lua/runtime.ts";
 import type { ASTCtx } from "$common/space_lua/ast.ts";
 import { buildLuaEnv } from "$common/space_lua_api.ts";
 
@@ -59,19 +56,6 @@ export class SpaceLuaEnvironment {
       }
     }
 
-    // Find all functions and register them
-    for (const globalName of this.env.keys()) {
-      const value = this.env.get(globalName);
-      if (value instanceof LuaFunction) {
-        console.log(
-          `[Lua] Registering global function '${globalName}' (source: ${value.body.ctx.ref})`,
-        );
-        scriptEnv.registerFunction({ name: globalName }, (...args: any[]) => {
-          const sf = new LuaStackFrame(tl, value.body.ctx);
-          return luaValueToJS(value.call(sf, ...args.map(jsToLuaValue)));
-        });
-      }
-    }
     console.log("[Lua] Loaded", allScripts.length, "scripts");
   }
 }

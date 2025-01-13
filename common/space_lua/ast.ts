@@ -271,7 +271,7 @@ export type LuaQueryClause =
 
 export type LuaFromClause = {
   type: "From";
-  name: string;
+  name?: string;
   expression: LuaExpression;
 } & ASTContext;
 
@@ -299,5 +299,5 @@ export type LuaOrderBy = {
 
 export type LuaSelectClause = {
   type: "Select";
-  tableConstructor: LuaTableConstructor;
+  expression: LuaExpression;
 } & ASTContext;

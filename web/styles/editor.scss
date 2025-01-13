@@ -334,12 +334,20 @@
     cursor: pointer;
   }
 
-  .sb-lua-directive {
-    background-color: rgb(233, 232, 232, 35%);
-    border: 1px #d3d3d373 solid;
-    /* box-shadow: #d1d1d1 0 0 4px; */
+  .sb-lua-directive-inline {
+    display: inline;
+    border: 1px var(--editor-widget-background-color) solid;
     border-radius: 8px;
     padding: 2px;
+  }
+
+  .sb-lua-directive-block {
+    display: block;
+    border: 1px var(--editor-widget-background-color) solid;
+    border-radius: 8px;
+    padding: 5px;
+    margin: -1em 0;
+    overflow: auto;
   }
 
   a.sb-wiki-link-page-missing,

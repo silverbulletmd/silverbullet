@@ -1,7 +1,10 @@
 import {
   type ILuaFunction,
   LuaBuiltinFunction,
+  luaEquals,
+  LuaRuntimeError,
   LuaTable,
+  type LuaValue,
 } from "$common/space_lua/runtime.ts";
 
 export const tableApi = new LuaTable({
@@ -40,4 +43,24 @@ export const tableApi = new LuaTable({
   keys: new LuaBuiltinFunction((_sf, tbl: LuaTable) => {
     return tbl.keys();
   }),
+  includes: new LuaBuiltinFunction(
+    (sf, tbl: LuaTable | Record<string, any>, value: LuaValue) => {
+      if (tbl instanceof LuaTable) {
+        // Iterate over the table
+        for (const key of tbl.keys()) {
+          if (luaEquals(tbl.get(key), value)) {
+            return true;
+          }
+        }
+        return false;
+      } else if (Array.isArray(tbl)) {
+        return !!tbl.find((item) => luaEquals(item, value));
+      } else {
+        throw new LuaRuntimeError(
+          `Cannot use includes on a non-table or non-array value`,
+          sf,
+        );
+      }
+    },
+  ),
 });

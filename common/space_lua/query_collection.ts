@@ -15,11 +15,6 @@ export type LuaOrderBy = {
   desc: boolean;
 };
 
-export type LuaSelect = {
-  name: string;
-  expr?: LuaExpression;
-};
-
 /**
  * Represents a query for a collection
  */
@@ -30,7 +25,7 @@ export type LuaCollectionQuery = {
   // The order by expression evaluated with Lua
   orderBy?: LuaOrderBy[];
   // The select expression evaluated with Lua
-  select?: LuaSelect[];
+  select?: LuaExpression;
   // The limit of the query
   limit?: number;
   // The offset of the query
@@ -77,28 +72,6 @@ async function applyTransforms(
   env: LuaEnv,
   sf: LuaStackFrame,
 ): Promise<any[]> {
-  // Apply the select
-  if (query.select) {
-    const newResult = [];
-    for (const item of result) {
-      const itemEnv = buildItemEnv(query.objectVariable, item, env);
-      const newItem: Record<string, any> = {};
-      for (const select of query.select) {
-        if (select.expr) {
-          newItem[select.name] = await evalExpression(
-            select.expr,
-            itemEnv,
-            sf,
-          );
-        } else {
-          newItem[select.name] = item[select.name];
-        }
-      }
-      newResult.push(newItem);
-    }
-    result = newResult;
-  }
-
   // Apply the order by
   if (query.orderBy) {
     result = await asyncQuickSort(result, async (a, b) => {
@@ -120,6 +93,16 @@ async function applyTransforms(
       }
       return 0; // All orderBy clauses were equal
     });
+  }
+
+  // Apply the select
+  if (query.select) {
+    const newResult = [];
+    for (const item of result) {
+      const itemEnv = buildItemEnv(query.objectVariable, item, env);
+      newResult.push(await evalExpression(query.select, itemEnv, sf));
+    }
+    result = newResult;
   }
 
   // Apply the limit and offset

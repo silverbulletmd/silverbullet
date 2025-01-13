@@ -730,3 +730,10 @@ assert_equal(r[2].name, "Jane")
 assert_equal(r[2].age, 21)
 assert_equal(r[1].lastModified, nil)
 assert_equal(r[2].lastModified, nil)
+
+-- Random select test
+local r = query [[from {1, 2, 3} select _ + 1]]
+assert_equal(#r, 3)
+assert_equal(r[1], 2)
+assert_equal(r[2], 3)
+assert_equal(r[3], 4)

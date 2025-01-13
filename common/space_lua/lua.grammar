@@ -97,12 +97,12 @@ QueryClause {
   LimitClause
 }
 
-FromClause { ckw<"from"> Name "=" exp }
+FromClause { ckw<"from"> (Name "=")? exp }
 WhereClause { ckw<"where"> exp }
 LimitClause { ckw<"limit"> exp ("," exp)? }
 OrderByClause { ckw<"order">  ckw<"by"> list<OrderBy> }
 OrderBy { exp ckw<"desc">? }
-SelectClause { ckw<"select"> TableConstructor }
+SelectClause { ckw<"select"> exp }
 
 
 field[@isGroup=Field] {

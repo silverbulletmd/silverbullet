@@ -6,6 +6,7 @@ import type { Client } from "../client.ts";
 const straightQuoteContexts = [
   "CommentBlock",
   "CodeBlock",
+  "CodeText",
   "FencedCode",
   "InlineCode",
   "FrontMatterCode",

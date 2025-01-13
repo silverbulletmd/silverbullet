@@ -45,7 +45,7 @@ export class LuaWidget extends WidgetType {
 
   toDOM(): HTMLElement {
     const div = document.createElement("div");
-    div.className = "sb-lua-directive";
+    // div.className = "sb-lua-directive-inline";
     const cacheItem = this.client.getWidgetCache(this.cacheKey);
     if (cacheItem) {
       div.innerHTML = cacheItem.html;
@@ -89,9 +89,9 @@ export class LuaWidget extends WidgetType {
       html = widgetContent.html;
       div.innerHTML = html;
       if ((widgetContent as any)?.display === "block") {
-        div.style.display = "block";
+        div.className = "sb-lua-directive-block";
       } else {
-        div.style.display = "inline";
+        div.className = "sb-lua-directive-inline";
       }
       attachWidgetEventHandlers(div, this.client, this.from);
       this.client.setWidgetCache(
@@ -128,10 +128,13 @@ export class LuaWidget extends WidgetType {
         return;
       }
 
-      if ((widgetContent as any)?.display === "block") {
-        div.style.display = "block";
+      if (
+        (widgetContent as any)?.display === "block" ||
+        trimmedMarkdown.includes("\n")
+      ) {
+        div.className = "sb-lua-directive-block";
       } else {
-        div.style.display = "inline";
+        div.className = "sb-lua-directive-inline";
       }
 
       // Parse the markdown again after trimming

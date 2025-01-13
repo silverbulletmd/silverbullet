@@ -20,7 +20,6 @@ import type {
   LuaPrefixExpression,
   LuaQueryClause,
   LuaStatement,
-  LuaTableConstructor,
   LuaTableField,
 } from "./ast.ts";
 import { tags as t } from "@lezer/highlight";
@@ -486,12 +485,21 @@ function parseQueryClause(t: ParseTree, ctx: ASTCtx): LuaQueryClause {
   t = t.children![0];
   switch (t.type) {
     case "FromClause": {
-      return {
-        type: "From",
-        name: t.children![1].children![0].text!,
-        expression: parseExpression(t.children![3], ctx),
-        ctx: context(t, ctx),
-      };
+      if (t.children!.length === 4) {
+        // From clause with a name
+        return {
+          type: "From",
+          name: t.children![1].children![0].text!,
+          expression: parseExpression(t.children![3], ctx),
+          ctx: context(t, ctx),
+        };
+      } else {
+        return {
+          type: "From",
+          expression: parseExpression(t.children![1], ctx),
+          ctx: context(t, ctx),
+        };
+      }
     }
     case "WhereClause":
       return {
@@ -532,10 +540,7 @@ function parseQueryClause(t: ParseTree, ctx: ASTCtx): LuaQueryClause {
     case "SelectClause": {
       return {
         type: "Select",
-        tableConstructor: parseExpression(
-          t.children![1],
-          ctx,
-        ) as LuaTableConstructor,
+        expression: parseExpression(t.children![1], ctx),
         ctx: context(t, ctx),
       };
     }

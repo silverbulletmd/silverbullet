@@ -6,7 +6,7 @@ import type { CommonSystem } from "$common/common_system.ts";
 import type { KV, KvKey, KvQuery } from "../../../plug-api/types.ts";
 import type { DataStore } from "../../data/datastore.ts";
 import type { SysCallMapping } from "../system.ts";
-import { LuaStackFrame } from "$common/space_lua/runtime.ts";
+import { LuaStackFrame, luaValueToJS } from "$common/space_lua/runtime.ts";
 
 /**
  * Exposes the datastore API to plugs, but scoping everything to a prefix based on the plug's name
@@ -37,17 +37,17 @@ export function dataStoreReadSyscalls(
       return ds.query(query, variables);
     },
 
-    "datastore.queryLua": (
+    "datastore.queryLua": async (
       _ctx,
       prefix: string[],
       query: LuaCollectionQuery,
     ): Promise<KV[]> => {
       const dsQueryCollection = new DataStoreQueryCollection(ds, prefix);
-      return dsQueryCollection.query(
+      return (await dsQueryCollection.query(
         query,
         commonSystem.spaceLuaEnv.env,
         LuaStackFrame.lostFrame,
-      );
+      )).map((item) => luaValueToJS(item));
     },
 
     "datastore.listFunctions": (): string[] => {
