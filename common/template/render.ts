@@ -3,6 +3,7 @@ import { evalQueryExpression } from "@silverbulletmd/silverbullet/lib/query_expr
 import { expressionToKvQueryExpression } from "../../plug-api/lib/parse_query.ts";
 import type { FunctionMap } from "../../plug-api/types.ts";
 import { jsonToMDTable } from "../../plugs/template/util.ts";
+import { LuaTable } from "$common/space_lua/runtime.ts";
 
 export async function renderTemplate(
   ast: AST,
@@ -83,6 +84,9 @@ async function renderExpressionDirective(
 }
 
 export function renderExpressionResult(result: any): string {
+  if (result instanceof LuaTable) {
+    result = result.asJS();
+  }
   if (
     Array.isArray(result) && result.length > 0 && typeof result[0] === "object"
   ) {
@@ -101,8 +105,8 @@ export function renderExpressionResult(result: any): string {
     // if result is a plain object, render as a markdown table
     return jsonToMDTable([result]);
   } else if (Array.isArray(result)) {
-    // Not-object array
-    return JSON.stringify(result);
+    // Not-object array, let's render it as a markdown list
+    return result.map((item) => `- ${item}`).join("\n");
   } else {
     return "" + result;
   }
