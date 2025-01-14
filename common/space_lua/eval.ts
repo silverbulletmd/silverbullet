@@ -729,9 +729,11 @@ export async function evalStatement(
           s.expressions.map((e) => evalExpression(e, env, sf)),
         ),
       ).flatten();
-      const iteratorFunction: ILuaFunction | undefined =
-        iteratorMultiRes.values[0];
-      if (!iteratorFunction?.call) {
+      let iteratorValue: ILuaFunction | any = iteratorMultiRes.values[0];
+      if (Array.isArray(iteratorValue) || iteratorValue instanceof LuaTable) {
+        iteratorValue = env.get("each").call(sf, iteratorValue);
+      }
+      if (!iteratorValue?.call) {
         console.error("Cannot iterate over", iteratorMultiRes.values[0]);
         throw new LuaRuntimeError(
           `Cannot iterate over ${iteratorMultiRes.values[0]}`,
@@ -744,7 +746,7 @@ export async function evalStatement(
 
       while (true) {
         const iterResult = new LuaMultiRes(
-          await luaCall(iteratorFunction, [state, control], s.ctx, sf),
+          await luaCall(iteratorValue, [state, control], s.ctx, sf),
         ).flatten();
         if (
           iterResult.values[0] === null || iterResult.values[0] === undefined

@@ -30,33 +30,37 @@ export class SpaceLuaEnvironment {
       "index.queryObjects",
       ["space-lua", {}],
     );
-    this.env = buildLuaEnv(system, scriptEnv);
-    const tl = new LuaEnv();
-    for (const script of allScripts) {
-      try {
-        console.log("Now evaluating", script.ref);
-        const ast = parseLua(script.script, { ref: script.ref });
-        // We create a local scope for each script
-        const scriptEnv = new LuaEnv(this.env);
-        const sf = new LuaStackFrame(tl, ast.ctx);
-        await evalStatement(ast, scriptEnv, sf);
-      } catch (e: any) {
-        if (e instanceof LuaRuntimeError) {
-          const origin = resolveASTReference(e.sf.astCtx!);
-          if (origin) {
-            console.error(
-              `Error evaluating script: ${e.message} at [[${origin.page}@${origin.pos}]]`,
-            );
-            continue;
+    try {
+      this.env = buildLuaEnv(system, scriptEnv);
+      const tl = new LuaEnv();
+      for (const script of allScripts) {
+        try {
+          console.log("Now evaluating", script.ref);
+          const ast = parseLua(script.script, { ref: script.ref });
+          // We create a local scope for each script
+          const scriptEnv = new LuaEnv(this.env);
+          const sf = new LuaStackFrame(tl, ast.ctx);
+          await evalStatement(ast, scriptEnv, sf);
+        } catch (e: any) {
+          if (e instanceof LuaRuntimeError) {
+            const origin = resolveASTReference(e.sf.astCtx!);
+            if (origin) {
+              console.error(
+                `Error evaluating script: ${e.message} at [[${origin.page}@${origin.pos}]]`,
+              );
+              continue;
+            }
           }
+          console.error(
+            `Error evaluating script: ${e.message} for script: ${script.script}`,
+          );
         }
-        console.error(
-          `Error evaluating script: ${e.message} for script: ${script.script}`,
-        );
       }
-    }
 
-    console.log("[Lua] Loaded", allScripts.length, "scripts");
+      console.log("[Lua] Loaded", allScripts.length, "scripts");
+    } catch (e: any) {
+      console.error("Error reloading Lua scripts:", e.message);
+    }
   }
 }
 

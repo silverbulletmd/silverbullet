@@ -1,6 +1,6 @@
 import type { ASTCtx, LuaFunctionBody } from "./ast.ts";
-import { evalStatement } from "$common/space_lua/eval.ts";
-import { asyncQuickSort, evalPromiseValues } from "$common/space_lua/util.ts";
+import { evalStatement } from "./eval.ts";
+import { asyncQuickSort, evalPromiseValues } from "./util.ts";
 
 export type LuaType =
   | "nil"
@@ -425,7 +425,7 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     }
   }
 
-  asJSObject(): Record<string, any> {
+  toJSObject(): Record<string, any> {
     const result: Record<string, any> = {};
     for (const key of this.keys()) {
       result[key] = luaValueToJS(this.get(key));
@@ -433,15 +433,15 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     return result;
   }
 
-  asJSArray(): any[] {
+  toJSArray(): any[] {
     return this.arrayPart.map(luaValueToJS);
   }
 
-  asJS(): Record<string, any> | any[] {
+  toJS(): Record<string, any> | any[] {
     if (this.length > 0) {
-      return this.asJSArray();
+      return this.toJSArray();
     } else {
-      return this.asJSObject();
+      return this.toJSObject();
     }
   }
 
@@ -722,22 +722,7 @@ export function luaValueToJS(value: any): any {
     return value.then(luaValueToJS);
   }
   if (value instanceof LuaTable) {
-    // We'll go a bit on heuristics here
-    // If the table has a length > 0 we'll assume it's a pure array
-    // Otherwise we'll assume it's a pure object
-    if (value.length > 0) {
-      const result = [];
-      for (let i = 0; i < value.length; i++) {
-        result.push(luaValueToJS(value.get(i + 1)));
-      }
-      return result;
-    } else {
-      const result: Record<string, any> = {};
-      for (const key of value.keys()) {
-        result[key] = luaValueToJS(value.get(key));
-      }
-      return result;
-    }
+    return value.toJS();
   } else if (value instanceof LuaNativeJSFunction) {
     return (...args: any[]) => {
       return jsToLuaValue(value.fn(...args.map(luaValueToJS)));

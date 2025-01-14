@@ -85,7 +85,7 @@ async function renderExpressionDirective(
 
 export function renderExpressionResult(result: any): string {
   if (result instanceof LuaTable) {
-    result = result.asJS();
+    result = result.toJS();
   }
   if (
     Array.isArray(result) && result.length > 0 && typeof result[0] === "object"

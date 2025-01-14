@@ -10,9 +10,12 @@ import { assert } from "@std/assert/assert";
 import { fileURLToPath } from "node:url";
 
 Deno.test("Lua language tests", async () => {
-  // Read the Lua file
+  await runLuaTest("./language_test.lua");
+});
+
+async function runLuaTest(luaPath: string) {
   const luaFile = await Deno.readTextFile(
-    fileURLToPath(new URL("./language_test.lua", import.meta.url)),
+    fileURLToPath(new URL(luaPath, import.meta.url)),
   );
   const chunk = parse(luaFile, {});
   const env = new LuaEnv(luaBuildStandardEnv());
@@ -29,4 +32,4 @@ Deno.test("Lua language tests", async () => {
     }
     assert(false);
   }
-});
+}

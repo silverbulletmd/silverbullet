@@ -19,7 +19,7 @@ Unlike [[Query Language]] which operates on [[Objects]] only, LIQ can operate on
 For instance, to sort a list of numbers in descending order:
 ${query[[from n = {1, 2, 3} order by n desc]]}
 
-However, in most cases you’ll use it in conjunction with [[Space Lua/stdlib#tag(name)]]. Here’s an example querying the 3 pages that were last modified:
+However, in most cases you’ll use it in conjunction with [[../API/global#tag(name)]]. Here’s an example querying the 3 pages that were last modified:
 
 ${query[[
   from p = tag "page"

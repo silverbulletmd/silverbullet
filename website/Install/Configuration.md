@@ -10,7 +10,7 @@ Note: these options are primarily useful for [[Install/Deno]] deployments, not s
 SilverBullet supports basic authentication for a single user.
 
 * `SB_USER`: Sets single-user credentials, e.g. `SB_USER=pete:1234` allows you to login with username “pete” and password “1234”.
-* `SB_AUTH_TOKEN`: Enables `Authorization: Bearer <token>` style authentication on the [[API]] (useful for [[Sync]] and remote HTTP storage backends).
+* `SB_AUTH_TOKEN`: Enables `Authorization: Bearer <token>` style authentication on the [[HTTP API]] (useful for [[Sync]] and remote HTTP storage backends).
 * `SB_LOCKOUT_LIMIT`: Specifies the number of failed login attempt before locking the user out (for a `SB_LOCKOUT_TIME` specified amount of seconds), defaults to `10`
 * `SB_LOCKOUT_TIME`: Specifies the amount of time (in seconds) a client will be blocked until attempting to log back in.
 

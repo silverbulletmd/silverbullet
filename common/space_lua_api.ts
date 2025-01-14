@@ -25,8 +25,13 @@ export function buildLuaEnv(system: System<any>, scriptEnv: ScriptEnvironment) {
 
 function exposeSyscalls(env: LuaEnv, system: System<any>) {
   // Expose all syscalls to Lua
+  // Except...
+  const exclude = ["template"];
   const nativeFs = new LuaStackFrame(env, null);
   for (const syscallName of system.registeredSyscalls.keys()) {
+    if (exclude.includes(syscallName)) {
+      continue;
+    }
     const [ns, fn] = syscallName.split(".");
     if (!env.has(ns)) {
       env.set(ns, new LuaTable(), nativeFs);

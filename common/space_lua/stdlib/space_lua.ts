@@ -28,11 +28,76 @@ function createAugmentedEnv(
   }
   const env = new LuaEnv(globalEnv);
   if (envAugmentation) {
+    env.setLocal("_", envAugmentation);
     for (const key of envAugmentation.keys()) {
       env.setLocal(key, envAugmentation.rawGet(key));
     }
   }
   return env;
+}
+
+/**
+ * Interpolates a string with lua expressions and returns the result.
+ *
+ * @param sf - The current space_lua state.
+ * @param template - The template string to interpolate.
+ * @param envAugmentation - An optional environment to augment the global environment with.
+ * @returns The interpolated string.
+ */
+export async function interpolateLuaString(
+  sf: LuaStackFrame,
+  template: string,
+  envAugmentation?: LuaTable,
+): Promise<string> {
+  let result = "";
+  let currentIndex = 0;
+
+  while (true) {
+    const startIndex = template.indexOf("${", currentIndex);
+    if (startIndex === -1) {
+      result += template.slice(currentIndex);
+      break;
+    }
+
+    result += template.slice(currentIndex, startIndex);
+
+    // Find matching closing brace by counting nesting
+    let nestLevel = 1;
+    let endIndex = startIndex + 2;
+    while (nestLevel > 0 && endIndex < template.length) {
+      if (template[endIndex] === "{") {
+        nestLevel++;
+      } else if (template[endIndex] === "}") {
+        nestLevel--;
+      }
+      if (nestLevel > 0) {
+        endIndex++;
+      }
+    }
+
+    if (nestLevel > 0) {
+      throw new LuaRuntimeError("Unclosed interpolation expression", sf);
+    }
+
+    const expr = template.slice(startIndex + 2, endIndex);
+    try {
+      const parsedExpr = parseExpressionString(expr);
+      const env = createAugmentedEnv(sf, envAugmentation);
+      const luaResult = luaValueToJS(
+        await evalExpression(parsedExpr, env, sf),
+      );
+      result += luaToString(luaResult);
+    } catch (e: any) {
+      throw new LuaRuntimeError(
+        `Error evaluating "${expr}": ${e.message}`,
+        sf,
+      );
+    }
+
+    currentIndex = endIndex + 1;
+  }
+
+  return result;
 }
 
 export const spaceLuaApi = new LuaTable({
@@ -64,63 +129,10 @@ export const spaceLuaApi = new LuaTable({
   ),
   /**
    * Interpolates a string with lua expressions and returns the result.
-   *
-   * @param sf - The current space_lua state.
-   * @param template - The template string to interpolate.
-   * @param envAugmentation - An optional environment to augment the global environment with.
-   * @returns The interpolated string.
    */
   interpolate: new LuaBuiltinFunction(
-    async (sf, template: string, envAugmentation?: LuaTable) => {
-      let result = "";
-      let currentIndex = 0;
-
-      while (true) {
-        const startIndex = template.indexOf("${", currentIndex);
-        if (startIndex === -1) {
-          result += template.slice(currentIndex);
-          break;
-        }
-
-        result += template.slice(currentIndex, startIndex);
-
-        // Find matching closing brace by counting nesting
-        let nestLevel = 1;
-        let endIndex = startIndex + 2;
-        while (nestLevel > 0 && endIndex < template.length) {
-          if (template[endIndex] === "{") {
-            nestLevel++;
-          } else if (template[endIndex] === "}") {
-            nestLevel--;
-          }
-          if (nestLevel > 0) {
-            endIndex++;
-          }
-        }
-
-        if (nestLevel > 0) {
-          throw new LuaRuntimeError("Unclosed interpolation expression", sf);
-        }
-
-        const expr = template.slice(startIndex + 2, endIndex);
-        try {
-          const parsedExpr = parseExpressionString(expr);
-          const env = createAugmentedEnv(sf, envAugmentation);
-          const luaResult = luaValueToJS(
-            await evalExpression(parsedExpr, env, sf),
-          );
-          result += luaToString(luaResult);
-        } catch (e: any) {
-          throw new LuaRuntimeError(
-            `Error evaluating "${expr}": ${e.message}`,
-            sf,
-          );
-        }
-
-        currentIndex = endIndex + 1;
-      }
-
-      return result;
+    (sf, template: string, envAugmentation?: LuaTable) => {
+      return interpolateLuaString(sf, template, envAugmentation);
     },
   ),
 });

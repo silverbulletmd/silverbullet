@@ -2,7 +2,7 @@ Federation enables _browsing_ content from spaces _outside_ the user’s space, 
 
 This enables a few things:
 
-* **Browsing** other publicly hosted SilverBullet spaces (or websites adhering to its [[API]]) within the comfort of your own SilverBullet client. One use case of this is [[Transclusions|transcluding]] the [[Getting Started]] page in the user’s automatically generated index page when setting up a fresh space.
+* **Browsing** other publicly hosted SilverBullet spaces (or websites adhering to its [[HTTP API]]) within the comfort of your own SilverBullet client. One use case of this is [[Transclusions|transcluding]] the [[Getting Started]] page in the user’s automatically generated index page when setting up a fresh space.
 * **Referencing** other spaces for other purposes, which is leveraged in [[Libraries]].
 
 # How it works
@@ -17,7 +17,7 @@ For example: `https://raw.githubusercontent.com/silverbulletmd/silverbullet/main
 Can be written to federation syntax as follows: `!raw.githubusercontent.com/silverbulletmd/silverbullet/main/README`
 And used as a link: [[!raw.githubusercontent.com/silverbulletmd/silverbullet/main/README]]
 
-If the target server supports the SilverBullet [[API]] (specifically its `/index.json` endpoint), page completion will be provided as well.
+If the target server supports the SilverBullet [[HTTP API]] (specifically its `/index.json` endpoint), page completion will be provided as well.
 
 Upon fetching of the page content, a best effort attempt will be made to rewrite any local page links in the page to the appropriate federated paths.
 

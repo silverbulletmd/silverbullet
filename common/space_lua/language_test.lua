@@ -269,6 +269,22 @@ for key, value in pairs({ a = "a", b = "b" }) do
     assert_equal(key, value)
 end
 
+-- for in over tables directly
+local cnt = 1
+for val in { 1, 2, 3 } do
+    assert_equal(val, cnt)
+    cnt = cnt + 1
+end
+assert_equal(cnt, 4)
+
+local cnt = 1
+for val in js.tojs({ 1, 2, 3 }) do
+    assert_equal(val, cnt)
+    cnt = cnt + 1
+end
+assert_equal(cnt, 4)
+
+
 -- type
 assert(type(1) == "number")
 assert(type("Hello") == "string")

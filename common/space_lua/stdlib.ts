@@ -1,12 +1,13 @@
 import {
   type ILuaFunction,
+  jsToLuaValue,
   LuaBuiltinFunction,
   luaCall,
   LuaEnv,
   luaGet,
   LuaMultiRes,
   LuaRuntimeError,
-  type LuaTable,
+  LuaTable,
   luaToString,
   luaTypeOf,
   type LuaValue,
@@ -15,11 +16,15 @@ import { stringApi } from "$common/space_lua/stdlib/string.ts";
 import { tableApi } from "$common/space_lua/stdlib/table.ts";
 import { osApi } from "$common/space_lua/stdlib/os.ts";
 import { jsApi } from "$common/space_lua/stdlib/js.ts";
-import { spaceLuaApi } from "$common/space_lua/stdlib/space_lua.ts";
+import {
+  interpolateLuaString,
+  spaceLuaApi,
+} from "$common/space_lua/stdlib/space_lua.ts";
 import type {
   LuaCollectionQuery,
   LuaQueryCollection,
 } from "$common/space_lua/query_collection.ts";
+import { templateApi } from "$common/space_lua/stdlib/template.ts";
 
 const printFunction = new LuaBuiltinFunction(async (_sf, ...args) => {
   console.log("[Lua]", ...(await Promise.all(args)));
@@ -55,6 +60,18 @@ const pairsFunction = new LuaBuiltinFunction((sf, t: LuaTable) => {
     const key = keys[i];
     i++;
     return new LuaMultiRes([key, await luaGet(t, key, sf)]);
+  };
+});
+
+export const eachFunction = new LuaBuiltinFunction((sf, ar: LuaTable) => {
+  let i = 1;
+  return async () => {
+    if (i > ar.length) {
+      return;
+    }
+    const result = await luaGet(ar, i, sf);
+    i++;
+    return result;
   };
 });
 
@@ -127,6 +144,7 @@ const getmetatableFunction = new LuaBuiltinFunction((_sf, table: LuaTable) => {
   return table.metatable;
 });
 
+// Non-standard
 const tagFunction = new LuaBuiltinFunction(
   (sf, tagName: LuaValue): LuaQueryCollection => {
     const global = sf.threadLocal.get("_GLOBAL");
@@ -142,9 +160,26 @@ const tagFunction = new LuaBuiltinFunction(
             tagName,
           ],
           query,
-        )).asJSArray();
+        )).toJSArray();
       },
     };
+  },
+);
+
+const tplFunction = new LuaBuiltinFunction(
+  (_sf, template: string): ILuaFunction => {
+    const lines = template.split("\n").map((line) =>
+      line.replace(/^\s{4}/, "")
+    );
+    const processed = lines.join("\n");
+    return new LuaBuiltinFunction(
+      async (sf, env: LuaTable | any) => {
+        if (!(env instanceof LuaTable)) {
+          env = jsToLuaValue(env);
+        }
+        return await interpolateLuaString(sf, processed, env);
+      },
+    );
   },
 );
 
@@ -168,12 +203,17 @@ export function luaBuildStandardEnv() {
   env.set("error", errorFunction);
   env.set("pcall", pcallFunction);
   env.set("xpcall", xpcallFunction);
+  // Non-standard
   env.set("tag", tagFunction);
+  env.set("tpl", tplFunction);
   // APIs
   env.set("string", stringApi);
   env.set("table", tableApi);
   env.set("os", osApi);
   env.set("js", jsApi);
+  // Non-standard
+  env.set("each", eachFunction);
   env.set("space_lua", spaceLuaApi);
+  env.set("template", templateApi);
   return env;
 }
