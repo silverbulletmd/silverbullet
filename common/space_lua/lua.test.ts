@@ -9,8 +9,28 @@ import { evalStatement } from "$common/space_lua/eval.ts";
 import { assert } from "@std/assert/assert";
 import { fileURLToPath } from "node:url";
 
-Deno.test("Lua language tests", async () => {
-  await runLuaTest("./language_test.lua");
+Deno.test("[Lua] Core language", async () => {
+  await runLuaTest("./language_core_test.lua");
+});
+
+Deno.test("[Lua] Table tests", async () => {
+  await runLuaTest("./stdlib/table_test.lua");
+});
+
+Deno.test("[Lua] String tests", async () => {
+  await runLuaTest("./stdlib/string_test.lua");
+});
+
+Deno.test("[Lua] Space Lua tests", async () => {
+  await runLuaTest("./stdlib/space_lua_test.lua");
+});
+
+Deno.test("[Lua] OS tests", async () => {
+  await runLuaTest("./stdlib/os_test.lua");
+});
+
+Deno.test("[Lua] JS tests", async () => {
+  await runLuaTest("./stdlib/js_test.lua");
 });
 
 async function runLuaTest(luaPath: string) {
