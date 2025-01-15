@@ -95,7 +95,7 @@ Here is an example of a #quote item using a custom [[Attributes|attribute]]:
 And then queried via the #quote tag:
 
 ```query 
-quote where page = @page.name and tag = "item" select name, by
+quote where page = @page.name and tag = "item" select name, `by`
 ```
 
 When items are nested, they will contain a `parent` attrite with a reference to their parent. In addition, `itags` will also inherit their ancestors’ tags. For instance:
