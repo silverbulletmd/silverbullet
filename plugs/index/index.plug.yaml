@@ -60,6 +60,11 @@ functions:
     events:
       - attachment:index
 
+  indexSpaceLuaFile:
+    path: "./script.ts:indexSpaceLuaFile"
+    events:
+      - attachment:index
+
   indexPage:
     path: page.ts:indexPage
     events:
