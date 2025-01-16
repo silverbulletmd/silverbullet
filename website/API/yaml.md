@@ -1,8 +1,4 @@
-# YAML API
-
 The YAML API provides functions for parsing and stringifying YAML content.
-
-## YAML Operations
 
 ### yaml.parse(text)
 Parses a YAML string into a Lua table.

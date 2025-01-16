@@ -1,6 +1,4 @@
-# Editor API
-
-The Editor API provides functions for interacting with the editor interface, including text manipulation, cursor control, and UI operations.
+The `editor` API provides functions for interacting with the editor interface, including text manipulation, cursor control, and UI operations.
 
 ## Page Operations
 
