@@ -123,6 +123,7 @@ export const builtinLanguages: Record<string, Language> = {
     parser: highlightingQueryParser,
   }),
   "space-lua": luaLanguage,
+  "lua": luaLanguage,
   "template": extendedMarkdownLanguage,
   "expression": LRLanguage.define({
     name: "expression",
