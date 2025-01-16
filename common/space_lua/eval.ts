@@ -730,9 +730,11 @@ export async function evalStatement(
         ),
       ).flatten();
       let iteratorValue: ILuaFunction | any = iteratorMultiRes.values[0];
+      // Handle the case where the iterator is a table and we need to call the each function
       if (Array.isArray(iteratorValue) || iteratorValue instanceof LuaTable) {
         iteratorValue = env.get("each").call(sf, iteratorValue);
       }
+
       if (!iteratorValue?.call) {
         console.error("Cannot iterate over", iteratorMultiRes.values[0]);
         throw new LuaRuntimeError(

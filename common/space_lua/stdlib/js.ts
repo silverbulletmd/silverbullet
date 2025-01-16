@@ -14,7 +14,6 @@ export const jsApi = new LuaTable({
    */
   new: new LuaBuiltinFunction(
     (_sf, constructorFn: any, ...args) => {
-      console.log("New", constructorFn, args);
       return new constructorFn(
         ...args.map(luaValueToJS),
       );
@@ -32,6 +31,16 @@ export const jsApi = new LuaTable({
       m = m.default;
     }
     return m;
+  }),
+  each_iterable: new LuaBuiltinFunction((_sf, val) => {
+    let iterator = val[Symbol.asyncIterator]();
+    return async () => {
+      const result = await iterator.next();
+      if (result.done) {
+        return;
+      }
+      return result.value;
+    };
   }),
   /**
    * Converts a JavaScript value to a Lua value.
