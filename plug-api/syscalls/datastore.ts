@@ -74,8 +74,9 @@ export function query(
 export function queryLua(
   prefix: string[],
   query: LuaCollectionQuery,
+  scopeVariables: Record<string, any>,
 ): Promise<KV[]> {
-  return syscall("datastore.queryLua", prefix, query);
+  return syscall("datastore.queryLua", prefix, query, scopeVariables);
 }
 
 /**

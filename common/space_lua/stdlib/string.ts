@@ -6,6 +6,43 @@ import {
   luaToString,
 } from "$common/space_lua/runtime.ts";
 
+function createLuaMatcher(pattern: string, global = false) {
+  const jsPattern = pattern
+    .replace(/%(.)/g, (_, char) => {
+      switch (char) {
+        case ".":
+          return "[.]";
+        case "%":
+          return "%";
+        case "d":
+          return "\\d";
+        case "D":
+          return "\\D";
+        case "s":
+          return "\\s";
+        case "S":
+          return "\\S";
+        case "w":
+          return "\\w";
+        case "a":
+          return "[A-Za-z]";
+        case "l":
+          return "[a-z]";
+        case "u":
+          return "[A-Z]";
+        case "p":
+          return "[\\p{P}]";
+        default:
+          return char;
+      }
+    });
+
+  const regex = new RegExp(jsPattern, global ? "g" : undefined);
+  return (s: string) => {
+    return regex.exec(s);
+  };
+}
+
 export const stringApi = new LuaTable({
   byte: new LuaBuiltinFunction((_sf, s: string, i?: number, j?: number) => {
     i = i ?? 1;
@@ -34,27 +71,9 @@ export const stringApi = new LuaTable({
     },
   ),
   gmatch: new LuaBuiltinFunction((_sf, s: string, pattern: string) => {
-    const jsPattern = pattern
-      .replace(/%(.)/g, (_, char) => {
-        switch (char) {
-          case ".":
-            return "[.]";
-          case "%":
-            return "%";
-          case "d":
-            return "\\d";
-          case "s":
-            return "\\s";
-          case "w":
-            return "\\w";
-          default:
-            return char;
-        }
-      });
-
-    const regex = new RegExp(jsPattern, "g");
+    const matcher = createLuaMatcher(pattern, true);
     return () => {
-      const result = regex.exec(s);
+      const result = matcher(s);
       if (!result) {
         return;
       }
@@ -155,11 +174,12 @@ export const stringApi = new LuaTable({
   match: new LuaBuiltinFunction(
     (_sf, s: string, pattern: string, init?: number) => {
       init = init ?? 1;
-      const result = s.slice(init - 1).match(pattern);
+      const result = createLuaMatcher(pattern)(s.slice(init - 1));
       if (!result) {
         return new LuaMultiRes([]);
       }
-      return new LuaMultiRes(result.slice(1));
+      const captures = result.slice(1);
+      return new LuaMultiRes(captures.length > 0 ? captures : [result[0]]);
     },
   ),
   rep: new LuaBuiltinFunction((_sf, s: string, n: number, sep?: string) => {

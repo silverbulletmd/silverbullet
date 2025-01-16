@@ -583,7 +583,12 @@ export async function evalStatement(
         .map((lval) => evalLValue(lval, env, sf)));
 
       for (let i = 0; i < lvalues.length; i++) {
-        luaSet(lvalues[i].env, lvalues[i].key, values[i], sf.withCtx(s.ctx));
+        await luaSet(
+          lvalues[i].env,
+          lvalues[i].key,
+          values[i],
+          sf.withCtx(s.ctx),
+        );
       }
 
       break;

@@ -11,6 +11,7 @@ import {
   luaToString,
   luaTypeOf,
   type LuaValue,
+  luaValueToJS,
 } from "$common/space_lua/runtime.ts";
 import { stringApi } from "$common/space_lua/stdlib/string.ts";
 import { tableApi } from "$common/space_lua/stdlib/table.ts";
@@ -20,11 +21,13 @@ import {
   interpolateLuaString,
   spaceLuaApi,
 } from "$common/space_lua/stdlib/space_lua.ts";
-import type {
-  LuaCollectionQuery,
-  LuaQueryCollection,
+import {
+  findAllQueryVariables,
+  type LuaCollectionQuery,
+  type LuaQueryCollection,
 } from "$common/space_lua/query_collection.ts";
 import { templateApi } from "$common/space_lua/stdlib/template.ts";
+import { json } from "@codemirror/legacy-modes/X-ZUBjb2RlbWlycm9yL2xhbmd1YWdl/mode/javascript.d.ts";
 
 const printFunction = new LuaBuiltinFunction(async (_sf, ...args) => {
   console.log("[Lua]", ...(await Promise.all(args.map(luaToString))));
@@ -135,8 +138,7 @@ const setmetatableFunction = new LuaBuiltinFunction(
 
 const rawsetFunction = new LuaBuiltinFunction(
   (_sf, table: LuaTable, key: LuaValue, value: LuaValue) => {
-    table.rawSet(key, value);
-    return table;
+    return table.rawSet(key, value);
   },
 );
 
@@ -152,7 +154,28 @@ const tagFunction = new LuaBuiltinFunction(
       throw new LuaRuntimeError("Global not found", sf);
     }
     return {
-      query: async (query: LuaCollectionQuery): Promise<any[]> => {
+      query: async (query: LuaCollectionQuery, env: LuaEnv): Promise<any[]> => {
+        const localVars = findAllQueryVariables(query).filter((v) =>
+          !global.has(v) && v !== "_"
+        );
+        const scopedVariables: Record<string, any> = {};
+        for (const v of localVars) {
+          try {
+            const jsonValue = await luaValueToJS(env.get(v));
+            // Ensure this is JSON serializable
+            JSON.stringify(jsonValue);
+            scopedVariables[v] = jsonValue;
+          } catch (e: any) {
+            console.error(
+              "Failed to JSON serialize variable",
+              v,
+            );
+            throw new LuaRuntimeError(
+              `Failed to JSON serialize variable ${v} in query`,
+              sf,
+            );
+          }
+        }
         return (await global.get("datastore").get("query_lua").call(
           sf,
           [
@@ -160,6 +183,7 @@ const tagFunction = new LuaBuiltinFunction(
             tagName,
           ],
           query,
+          scopedVariables,
         )).toJSArray();
       },
     };

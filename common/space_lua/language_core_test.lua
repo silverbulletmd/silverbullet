@@ -142,7 +142,9 @@ assert_equal(t.foo, "Key not found: foo")
 t = setmetatable(
     {}, {
         __newindex = function(table, key, value)
+            print("Raw set", key, value)
             rawset(table, key, "Value: " .. value)
+            print("Raw set done")
         end
     }
 )
@@ -150,8 +152,8 @@ t = setmetatable(
 t.name = "John"
 -- rawset ignores the metamethod
 rawset(t, "age", 100)
-assert(t.name == "Value: John")
-assert(t.age == 100)
+assert_equal(t.name, "Value: John")
+assert_equal(t.age, 100)
 
 -- Test some of the operator metamethods
 t = setmetatable(

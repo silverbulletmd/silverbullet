@@ -106,4 +106,38 @@ assert_equal(string.startswith("hello world", "world"), false)
 assert_equal(string.endswith("hello world", "world"), true)
 assert_equal(string.endswith("hello world", "hello"), false)
 
- 
+-- Extended string.match tests
+-- Basic pattern matching
+assert_equal(string.match("hello", "h"), "h")
+assert_equal(string.match("hello", "hello"), "hello")
+
+-- Test with no matches
+assert_equal(string.match("hello", "x"), nil)
+
+-- Test with captures
+local m1, m2 = string.match("hello", "(h)(ello)")
+assert_equal(m1, "h")
+assert_equal(m2, "ello")
+
+-- Test with init position
+local init_match = string.match("hello world", "(world)", 7)
+assert_equal(init_match, "world")
+
+-- Test init position with no match
+assert_equal(string.match("hello world", "hello", 7), nil)
+
+-- Test pattern characters
+assert_equal(string.match("123", "%d+"), "123")
+assert_equal(string.match("abc123", "%a+"), "abc")
+assert_equal(string.match("   abc", "%s+"), "   ")
+
+-- Test multiple captures
+local day, month, year = string.match("2024-03-14", "(%d+)-(%d+)-(%d+)")
+assert_equal(day, "2024")
+assert_equal(month, "03")
+assert_equal(year, "14")
+
+-- Test optional captures
+local word = string.match("The quick brown fox", "%s*(%w+)%s*")
+assert_equal(word, "The")
+

@@ -64,7 +64,7 @@ export class ServerSystem extends CommonSystem {
   }
 
   // Always needs to be invoked right after construction
-  async init(awaitIndex = false) {
+  async init(awaitIndex = false, performIndex = true) {
     this.system = new System(
       "server",
       {
@@ -219,10 +219,12 @@ export class ServerSystem extends CommonSystem {
 
     space.updatePageList().catch(console.error);
 
-    // Ensure a valid index
-    const indexPromise = ensureSpaceIndex(this.ds, this.system);
-    if (awaitIndex) {
-      await indexPromise;
+    if (performIndex) {
+      // Ensure a valid index
+      const indexPromise = ensureSpaceIndex(this.ds, this.system);
+      if (awaitIndex) {
+        await indexPromise;
+      }
     }
 
     await this.eventHook.dispatchEvent("system:ready");

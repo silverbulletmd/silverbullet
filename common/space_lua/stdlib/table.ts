@@ -81,6 +81,9 @@ export const tableApi = new LuaTable({
    */
   includes: new LuaBuiltinFunction(
     (sf, tbl: LuaTable | Record<string, any>, value: LuaValue) => {
+      if (!tbl) {
+        return false;
+      }
       if (tbl instanceof LuaTable) {
         // Iterate over the table
         for (const key of tbl.keys()) {

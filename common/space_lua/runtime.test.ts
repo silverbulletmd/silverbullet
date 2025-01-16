@@ -48,4 +48,6 @@ Deno.test("Test Lua Rutime", async () => {
   assertEquals(await luaToString(new Promise((resolve) => resolve(1))), "1");
   assertEquals(await luaToString({ a: 1 }), "{a = 1}");
   assertEquals(await luaToString([{ a: 1 }]), "{{a = 1}}");
+  // Ensure simple cases are not returning promises
+  assertEquals(luaToString(10), "10");
 });

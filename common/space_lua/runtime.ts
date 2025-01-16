@@ -328,7 +328,13 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     return false;
   }
 
-  rawSet(key: LuaValue, value: LuaValue) {
+  rawSet(key: LuaValue, value: LuaValue): void | Promise<void> {
+    if (key instanceof Promise) {
+      return key.then((key) => this.rawSet(key, value));
+    }
+    if (value instanceof Promise) {
+      return value.then(() => this.rawSet(key, value));
+    }
     if (typeof key === "string") {
       this.stringKeys[key] = value;
     } else if (Number.isInteger(key) && key >= 1) {
@@ -360,7 +366,7 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     }
 
     // Just set the value
-    this.rawSet(key, value);
+    return this.rawSet(key, value);
   }
 
   rawGet(key: LuaValue): LuaValue | null {
@@ -480,7 +486,12 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
 
 export type LuaLValueContainer = { env: ILuaSettable; key: LuaValue };
 
-export function luaSet(obj: any, key: any, value: any, sf: LuaStackFrame) {
+export async function luaSet(
+  obj: any,
+  key: any,
+  value: any,
+  sf: LuaStackFrame,
+): Promise<void> {
   if (!obj) {
     throw new LuaRuntimeError(
       `Not a settable object: nil`,
@@ -489,7 +500,7 @@ export function luaSet(obj: any, key: any, value: any, sf: LuaStackFrame) {
   }
 
   if (obj instanceof LuaTable || obj instanceof LuaEnv) {
-    obj.set(key, value, sf);
+    await obj.set(key, value, sf);
   } else {
     obj[key] = value;
   }
@@ -678,54 +689,56 @@ export function luaTruthy(value: any): boolean {
   return true;
 }
 
-export async function luaToString(value: any): Promise<string> {
+export function luaToString(value: any): string | Promise<string> {
   if (value === null || value === undefined) {
     return "nil";
   }
   if (value instanceof Promise) {
-    return luaToString(await value);
+    return value.then(luaToString);
   }
   if (value.toStringAsync) {
     return value.toStringAsync();
   }
   // Handle plain JavaScript objects in a Lua-like format
   if (typeof value === "object") {
-    let result = "{";
-    let first = true;
+    return (async () => {
+      let result = "{";
+      let first = true;
 
-    // Handle arrays
-    if (Array.isArray(value)) {
-      for (const val of value) {
+      // Handle arrays
+      if (Array.isArray(value)) {
+        for (const val of value) {
+          if (first) {
+            first = false;
+          } else {
+            result += ", ";
+          }
+          // Recursively stringify the value
+          const strVal = await luaToString(val);
+          result += strVal;
+        }
+        return result + "}";
+      }
+
+      // Handle objects
+      for (const [key, val] of Object.entries(value)) {
         if (first) {
           first = false;
         } else {
           result += ", ";
         }
+        if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key)) {
+          result += `${key} = `;
+        } else {
+          result += `["${key}"] = `;
+        }
         // Recursively stringify the value
         const strVal = await luaToString(val);
         result += strVal;
       }
-      return result + "}";
-    }
-
-    // Handle objects
-    for (const [key, val] of Object.entries(value)) {
-      if (first) {
-        first = false;
-      } else {
-        result += ", ";
-      }
-      if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key)) {
-        result += `${key} = `;
-      } else {
-        result += `["${key}"] = `;
-      }
-      // Recursively stringify the value
-      const strVal = await luaToString(val);
-      result += strVal;
-    }
-    result += "}";
-    return result;
+      result += "}";
+      return result;
+    })();
   }
   return String(value);
 }
