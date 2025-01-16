@@ -9,6 +9,7 @@ import { serveCommand } from "./cmd/server.ts";
 import { plugCompileCommand } from "./cmd/plug_compile.ts";
 import { plugRunCommand } from "./cmd/plug_run.ts";
 import { syncCommand } from "./cmd/sync.ts";
+import { luaRunCommand } from "./cmd/lua_run.ts";
 
 // Unhandled rejection, let's not crash
 globalThis.addEventListener("unhandledrejection", (event) => {
@@ -84,6 +85,11 @@ await new Command()
   )
   .option("-p, --port <port:number>", "Port to listen on")
   .action(plugRunCommand)
+  // lua:run
+  .command("lua:run")
+  .description("Run a Lua script")
+  .arguments("<spacePath> <scriptPath:string>")
+  .action(luaRunCommand)
   // upgrade
   .command("upgrade")
   .description("Upgrade SilverBullet")
