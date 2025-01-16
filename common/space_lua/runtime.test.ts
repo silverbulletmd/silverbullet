@@ -4,9 +4,10 @@ import {
   luaLen,
   LuaMultiRes,
   LuaStackFrame,
+  luaToString,
 } from "$common/space_lua/runtime.ts";
 
-Deno.test("Test Lua Rutime", () => {
+Deno.test("Test Lua Rutime", async () => {
   // Test LuaMultires
   assertEquals(new LuaMultiRes([]).flatten().values, []);
   assertEquals(new LuaMultiRes([1, 2, 3]).flatten().values, [1, 2, 3]);
@@ -42,4 +43,9 @@ Deno.test("Test Lua Rutime", () => {
   // Functions in objects
   luaVal = jsToLuaValue({ name: "Pete", first: (l: any[]) => l[0] });
   assertEquals(luaVal.get("first").call(LuaStackFrame.lostFrame, [1, 2, 3]), 1);
+
+  // Test luaToString
+  assertEquals(await luaToString(new Promise((resolve) => resolve(1))), "1");
+  assertEquals(await luaToString({ a: 1 }), "{a = 1}");
+  assertEquals(await luaToString([{ a: 1 }]), "{{a = 1}}");
 });

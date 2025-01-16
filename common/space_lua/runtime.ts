@@ -678,15 +678,54 @@ export function luaTruthy(value: any): boolean {
   return true;
 }
 
-export function luaToString(value: any): string | Promise<string> {
+export async function luaToString(value: any): Promise<string> {
   if (value === null || value === undefined) {
     return "nil";
+  }
+  if (value instanceof Promise) {
+    return luaToString(await value);
   }
   if (value.toStringAsync) {
     return value.toStringAsync();
   }
-  if (value.toString) {
-    return value.toString();
+  // Handle plain JavaScript objects in a Lua-like format
+  if (typeof value === "object") {
+    let result = "{";
+    let first = true;
+
+    // Handle arrays
+    if (Array.isArray(value)) {
+      for (const val of value) {
+        if (first) {
+          first = false;
+        } else {
+          result += ", ";
+        }
+        // Recursively stringify the value
+        const strVal = await luaToString(val);
+        result += strVal;
+      }
+      return result + "}";
+    }
+
+    // Handle objects
+    for (const [key, val] of Object.entries(value)) {
+      if (first) {
+        first = false;
+      } else {
+        result += ", ";
+      }
+      if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key)) {
+        result += `${key} = `;
+      } else {
+        result += `["${key}"] = `;
+      }
+      // Recursively stringify the value
+      const strVal = await luaToString(val);
+      result += strVal;
+    }
+    result += "}";
+    return result;
   }
   return String(value);
 }
