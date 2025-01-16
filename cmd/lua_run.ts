@@ -22,7 +22,6 @@ import {
 } from "$common/space_lua/runtime.ts";
 
 import { evalStatement } from "$common/space_lua/eval.ts";
-import { luaBuildStandardEnv } from "$common/space_lua/stdlib.ts";
 
 export async function luaRunCommand(
   _options: any,

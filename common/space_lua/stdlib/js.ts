@@ -33,7 +33,7 @@ export const jsApi = new LuaTable({
     return m;
   }),
   each_iterable: new LuaBuiltinFunction((_sf, val) => {
-    let iterator = val[Symbol.asyncIterator]();
+    const iterator = val[Symbol.asyncIterator]();
     return async () => {
       const result = await iterator.next();
       if (result.done) {

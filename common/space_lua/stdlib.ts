@@ -27,7 +27,6 @@ import {
   type LuaQueryCollection,
 } from "$common/space_lua/query_collection.ts";
 import { templateApi } from "$common/space_lua/stdlib/template.ts";
-import { json } from "@codemirror/legacy-modes/X-ZUBjb2RlbWlycm9yL2xhbmd1YWdl/mode/javascript.d.ts";
 
 const printFunction = new LuaBuiltinFunction(async (_sf, ...args) => {
   console.log("[Lua]", ...(await Promise.all(args.map(luaToString))));
@@ -169,6 +168,7 @@ const tagFunction = new LuaBuiltinFunction(
             console.error(
               "Failed to JSON serialize variable",
               v,
+              e,
             );
             throw new LuaRuntimeError(
               `Failed to JSON serialize variable ${v} in query`,
