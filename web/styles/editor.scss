@@ -91,25 +91,39 @@
 
   // Indentation of follow-up lines
   @mixin lineOverflow($baseIndent, $bulletIndent: 0) {
-    text-indent: -1 * ($baseIndent + 2ch);
-    padding-left: $baseIndent + 2ch;
+    text-indent: calc(
+      -1 * (#{$baseIndent}ch * var(--editor-indent-multiplier) + 2ch)
+    );
+    padding-left: calc(
+      #{$baseIndent}ch * var(--editor-indent-multiplier) + 2ch
+    );
 
     &.sb-line-task {
-      text-indent: -1 * ($baseIndent + 5ch);
-      padding-left: $baseIndent + 5ch;
+      text-indent: calc(
+        -1 * (#{$baseIndent}ch * var(--editor-indent-multiplier) + 5ch)
+      );
+      padding-left: calc(
+        #{$baseIndent}ch * var(--editor-indent-multiplier) + 5ch
+      );
 
       .cm-list-bullet::after {
-        left: ($baseIndent + 5ch);
+        left: calc(#{$baseIndent}ch * var(--editor-indent-multiplier) + 5ch);
       }
     }
 
     &.sb-line-blockquote {
-      text-indent: -1 * ($baseIndent + 4ch);
-      padding-left: $baseIndent + 4ch;
+      text-indent: calc(
+        -1 * (#{$baseIndent}ch * var(--editor-indent-multiplier) + 4ch)
+      );
+      padding-left: calc(
+        #{$baseIndent}ch * var(--editor-indent-multiplier) + 4ch
+      );
     }
 
     .cm-list-bullet::after {
-      left: ($baseIndent + $bulletIndent + 2ch);
+      left: calc(
+        #{$baseIndent}ch * var(--editor-indent-multiplier) + #{$bulletIndent}ch + 2ch
+      );
     }
   }
 

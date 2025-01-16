@@ -51,6 +51,7 @@ export type Config = {
   emoji?: EmojiConfig;
   autoCloseBrackets: string;
   smartQuotes?: SmartQuotesConfig;
+  indentMultiplier?: number;
 
   schema: SchemaConfig;
 
@@ -73,6 +74,7 @@ export const defaultConfig: Config = {
   defaultLinkStyle: "wikilink", // wikilink [[]] or markdown []()
   actionButtons: [], // Actually defaults to defaultActionButtons
   autoCloseBrackets: "([{`",
+  indentMultiplier: 1,
 
   schema: {
     config: {
