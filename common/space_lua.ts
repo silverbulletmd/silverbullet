@@ -33,6 +33,7 @@ export class SpaceLuaEnvironment {
     try {
       this.env = buildLuaEnv(system, scriptEnv);
       const tl = new LuaEnv();
+      tl.setLocal("_GLOBAL", this.env);
       for (const script of allScripts) {
         try {
           console.log("Now evaluating", script.ref);

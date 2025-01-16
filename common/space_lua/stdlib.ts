@@ -27,7 +27,7 @@ import type {
 import { templateApi } from "$common/space_lua/stdlib/template.ts";
 
 const printFunction = new LuaBuiltinFunction(async (_sf, ...args) => {
-  console.log("[Lua]", ...(await Promise.all(args)));
+  console.log("[Lua]", ...(await Promise.all(args.map(luaToString))));
 });
 
 const assertFunction = new LuaBuiltinFunction(
