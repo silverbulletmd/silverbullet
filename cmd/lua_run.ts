@@ -64,12 +64,11 @@ export async function luaRunCommand(
       true,
       configContainer,
     );
-    await serverSystem.init(false);
-    console.log("Ok ready");
+    await serverSystem.init(false, false);
     // Then evaluate it
     const luaFile = await Deno.readTextFile(scriptPath);
     const chunk = parse(luaFile, {});
-    const env = new LuaEnv(luaBuildStandardEnv());
+    const env = serverSystem.spaceLuaEnv.env;
     const sf = new LuaStackFrame(new LuaEnv(), chunk.ctx);
     sf.threadLocal.setLocal("_GLOBAL", env);
 
