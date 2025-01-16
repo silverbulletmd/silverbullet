@@ -47,7 +47,7 @@ Deno.test("Run a deno sandbox", {
 
   assertEquals({
     addedNumbers: 3,
-    yamlMessage: "hello: world\n",
+    jsonMessage: JSON.stringify({ hello: "world" }),
   }, await plug.invoke("boot", []));
 
   await system.unloadAll();
