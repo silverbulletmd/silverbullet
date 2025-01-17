@@ -30,7 +30,10 @@ import { templateApi } from "$common/space_lua/stdlib/template.ts";
 import { mathApi } from "$common/space_lua/stdlib/math.ts";
 
 const printFunction = new LuaBuiltinFunction(async (_sf, ...args) => {
-  console.log("[Lua]", ...(await Promise.all(args.map(luaToString))));
+  console.log(
+    "[Lua]",
+    ...(await Promise.all(args.map((v) => luaToString(v)))),
+  );
 });
 
 const assertFunction = new LuaBuiltinFunction(

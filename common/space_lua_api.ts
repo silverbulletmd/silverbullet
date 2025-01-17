@@ -120,15 +120,15 @@ function exposeDefinitions(
   );
 }
 
-async function buildThreadLocalEnv(system: System<any>, globalEnv: LuaEnv) {
+function buildThreadLocalEnv(_system: System<any>, globalEnv: LuaEnv) {
   const tl = new LuaEnv();
-  const currentPageMeta = await system.localSyscall(
-    "editor.getCurrentPageMeta",
-    [],
-  );
-  tl.setLocal("pageMeta", currentPageMeta);
+  // const currentPageMeta = await system.localSyscall(
+  //   "editor.getCurrentPageMeta",
+  //   [],
+  // );
+  // tl.setLocal("pageMeta", currentPageMeta);
   tl.setLocal("_GLOBAL", globalEnv);
-  return tl;
+  return Promise.resolve(tl);
 }
 
 async function handleLuaError(e: any, system: System<any>) {
