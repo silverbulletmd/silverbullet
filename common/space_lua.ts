@@ -28,7 +28,12 @@ export class SpaceLuaEnvironment {
   ) {
     const allScripts: ScriptObject[] = await system.invokeFunction(
       "index.queryObjects",
-      ["space-lua", {}],
+      ["space-lua", {
+        orderBy: [{
+          expr: ["attr", "priority"],
+          desc: true,
+        }],
+      }],
     );
     try {
       this.env = buildLuaEnv(system, scriptEnv);
