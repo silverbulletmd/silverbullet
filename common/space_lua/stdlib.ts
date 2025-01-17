@@ -27,6 +27,7 @@ import {
   type LuaQueryCollection,
 } from "$common/space_lua/query_collection.ts";
 import { templateApi } from "$common/space_lua/stdlib/template.ts";
+import { mathApi } from "$common/space_lua/stdlib/math.ts";
 
 const printFunction = new LuaBuiltinFunction(async (_sf, ...args) => {
   console.log("[Lua]", ...(await Promise.all(args.map(luaToString))));
@@ -235,6 +236,7 @@ export function luaBuildStandardEnv() {
   env.set("table", tableApi);
   env.set("os", osApi);
   env.set("js", jsApi);
+  env.set("math", mathApi);
   // Non-standard
   env.set("each", eachFunction);
   env.set("space_lua", spaceLuaApi);
