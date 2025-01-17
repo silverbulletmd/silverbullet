@@ -73,7 +73,15 @@ export const mathApi = new LuaTable({
 
   // Keep the cosine_similarity utility function
   cosine_similarity: new LuaBuiltinFunction(
-    (sf, vecA: number[], vecB: number[]) => {
+    (sf, vecA: LuaTable | number[], vecB: LuaTable | number[]) => {
+      // Convert LuaTable to number[]
+      if (vecA instanceof LuaTable) {
+        vecA = vecA.toJSArray();
+      }
+      if (vecB instanceof LuaTable) {
+        vecB = vecB.toJSArray();
+      }
+
       if (vecA.length !== vecB.length) {
         throw new LuaRuntimeError("Vectors must be of the same length", sf);
       }
