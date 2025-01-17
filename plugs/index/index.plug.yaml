@@ -12,6 +12,9 @@ functions:
   queryObjects:
     path: api.ts:queryObjects
     # Note: not setting env: server to allow for client-side datastore query caching
+  queryLuaObjects:
+    path: api.ts:queryLuaObjects
+    # Note: not setting env: server to allow for client-side datastore query caching
   getObjectByRef:
     path: api.ts:getObjectByRef
     env: server

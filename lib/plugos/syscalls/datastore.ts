@@ -47,7 +47,7 @@ export function dataStoreReadSyscalls(
       prefix: string[],
       query: LuaCollectionQuery,
       scopeVariables: Record<string, any> = {},
-    ): Promise<KV[]> => {
+    ): Promise<any[]> => {
       const dsQueryCollection = new DataStoreQueryCollection(ds, prefix);
       const env = new LuaEnv(commonSystem.spaceLuaEnv.env);
       for (const [key, value] of Object.entries(scopeVariables)) {

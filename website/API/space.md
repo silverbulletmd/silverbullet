@@ -1,10 +1,8 @@
-# Space API
-
 The Space API provides functions for interacting with pages, attachments, and files in the space.
 
-## Page Operations
+# Page Operations
 
-### space.list_pages()
+## space.list_pages()
 Returns a list of all pages in the space.
 
 Example:
@@ -15,7 +13,7 @@ for page in each(pages) do
 end
 ```
 
-### space.read_page(name)
+## space.read_page(name)
 Reads the content of a page.
 
 Example:
@@ -24,7 +22,7 @@ local content = space.read_page("welcome")
 print(content)  -- prints the content of the "welcome" page
 ```
 
-### space.get_page_meta(name)
+## space.get_page_meta(name)
 Gets metadata for a specific page.
 
 Example:
@@ -33,7 +31,7 @@ local meta = space.get_page_meta("welcome")
 print(meta.name, meta.lastModified)  -- prints page name and last modified date
 ```
 
-### space.write_page(name, text)
+## space.write_page(name, text)
 Writes content to a page.
 
 Example:
@@ -42,7 +40,7 @@ local meta = space.write_page("notes", "My new note content")
 print("Page updated at: " .. meta.lastModified)
 ```
 
-### space.delete_page(name)
+## space.delete_page(name)
 Deletes a page from the space.
 
 Example:
@@ -50,9 +48,9 @@ Example:
 space.delete_page("old-notes")
 ```
 
-## Attachment Operations
+# Attachment Operations
 
-### space.list_attachments()
+## space.list_attachments()
 Returns a list of all attachments in the space.
 
 Example:
@@ -63,7 +61,7 @@ for att in each(attachments) do
 end
 ```
 
-### space.read_attachment(name)
+## space.read_attachment(name)
 Reads the content of an attachment.
 
 Example:
@@ -72,7 +70,7 @@ local data = space.read_attachment("image.png")
 print("Attachment size: " .. #data .. " bytes")
 ```
 
-### space.write_attachment(name, data)
+## space.write_attachment(name, data)
 Writes binary data to an attachment.
 
 Example:
@@ -82,7 +80,7 @@ local meta = space.write_attachment("test.bin", binary_data)
 print("Attachment saved with size: " .. meta.size)
 ```
 
-### space.delete_attachment(name)
+## space.delete_attachment(name)
 Deletes an attachment from the space.
 
 Example:
@@ -90,9 +88,9 @@ Example:
 space.delete_attachment("old-image.png")
 ```
 
-## File Operations
+# File Operations
 
-### space.list_files()
+## space.list_files()
 Returns a list of all files in the space.
 
 Example:
@@ -103,7 +101,7 @@ for _, file in ipairs(files) do
 end
 ```
 
-### space.get_file_meta(name)
+## space.get_file_meta(name)
 Gets metadata for a specific file.
 
 Example:
@@ -112,7 +110,7 @@ local meta = space.get_file_meta("document.txt")
 print(meta.name, meta.modified, meta.size)
 ```
 
-### space.read_file(name)
+## space.read_file(name)
 Reads the content of a file.
 
 Example:
@@ -121,7 +119,7 @@ local content = space.read_file("document.txt")
 print("File size: " .. #content .. " bytes")
 ```
 
-### space.write_file(name, data)
+## space.write_file(name, data)
 Writes binary data to a file.
 
 Example:
@@ -131,7 +129,7 @@ local meta = space.write_file("greeting.txt", text)
 print("File written with size: " .. meta.size)
 ```
 
-### space.delete_file(name)
+## space.delete_file(name)
 Deletes a file from the space.
 
 Example:
@@ -139,7 +137,7 @@ Example:
 space.delete_file("old-document.txt")
 ```
 
-### space.file_exists(name)
+## space.file_exists(name)
 Checks if a file exists in the space.
 
 Example:

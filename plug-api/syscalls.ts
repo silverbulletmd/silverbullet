@@ -17,4 +17,7 @@ export * as datastore from "./syscalls/datastore.ts";
 export * as jsonschema from "./syscalls/jsonschema.ts";
 export * as lua from "./syscalls/lua.ts";
 
+// Not technically syscalls, but we want to export them for convenience
+export * as index from "./syscalls/index.ts";
+
 export * from "./syscall.ts";

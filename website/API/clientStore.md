@@ -1,6 +1,5 @@
 The Client Store API provides a simple key-value store for client-specific states and preferences.
 
-# Client Store API
 
 ## clientStore.set(key, value)
 Sets a value in the client store.
