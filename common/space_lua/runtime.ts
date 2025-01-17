@@ -689,18 +689,29 @@ export function luaTruthy(value: any): boolean {
   return true;
 }
 
-export function luaToString(value: any): string | Promise<string> {
+export function luaToString(
+  value: any,
+  visited: Set<any> = new Set(),
+): string | Promise<string> {
   if (value === null || value === undefined) {
     return "nil";
   }
   if (value instanceof Promise) {
-    return value.then(luaToString);
+    return value.then((v) => luaToString(v, visited));
+  }
+  // Check for circular references
+  if (typeof value === "object" && visited.has(value)) {
+    return "<circular reference>";
   }
   if (value.toStringAsync) {
+    // Add to visited before recursing
+    visited.add(value);
     return value.toStringAsync();
   }
   // Handle plain JavaScript objects in a Lua-like format
   if (typeof value === "object") {
+    // Add to visited before recursing
+    visited.add(value);
     return (async () => {
       let result = "{";
       let first = true;
@@ -713,8 +724,8 @@ export function luaToString(value: any): string | Promise<string> {
           } else {
             result += ", ";
           }
-          // Recursively stringify the value
-          const strVal = await luaToString(val);
+          // Recursively stringify the value, passing the visited set
+          const strVal = await luaToString(val, visited);
           result += strVal;
         }
         return result + "}";
@@ -732,8 +743,8 @@ export function luaToString(value: any): string | Promise<string> {
         } else {
           result += `["${key}"] = `;
         }
-        // Recursively stringify the value
-        const strVal = await luaToString(val);
+        // Recursively stringify the value, passing the visited set
+        const strVal = await luaToString(val, visited);
         result += strVal;
       }
       result += "}";

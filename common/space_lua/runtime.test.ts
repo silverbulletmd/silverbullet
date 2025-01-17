@@ -50,4 +50,8 @@ Deno.test("Test Lua Rutime", async () => {
   assertEquals(await luaToString([{ a: 1 }]), "{{a = 1}}");
   // Ensure simple cases are not returning promises
   assertEquals(luaToString(10), "10");
+  // Test circular references
+  const circular: any = {};
+  circular.self = circular;
+  assertEquals(await luaToString(circular), "{self = <circular reference>}");
 });
