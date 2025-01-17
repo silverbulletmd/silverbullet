@@ -10,40 +10,60 @@ import type { LuaCollectionQuery } from "$common/space_lua/query_collection.ts";
 
 export function indexSyscalls(system: System<any>): SysCallMapping {
   return {
-    "index.indexObjects": (_ctx, page: string, objects: ObjectValue<any>[]) => {
-      return system.invokeFunction("index.indexObjects", [page, objects]);
+    "index.indexObjects": (ctx, page: string, objects: ObjectValue<any>[]) => {
+      return system.syscall(ctx, "system.invokeFunction", [
+        "index.indexObjects",
+        page,
+        objects,
+      ]);
     },
     "index.queryObjects": (
-      _ctx,
+      ctx,
       tag: string,
       query: ObjectQuery,
       ttlSecs?: number,
     ) => {
-      return system.invokeFunction("index.queryObjects", [
+      return system.syscall(ctx, "system.invokeFunction", [
+        "index.queryObjects",
         tag,
         query,
         ttlSecs,
       ]);
     },
     "index.queryLuaObjects": (
-      _ctx,
+      ctx,
       tag: string,
       query: LuaCollectionQuery,
       scopedVariables?: Record<string, any>,
     ) => {
-      return system.invokeFunction(
+      return system.syscall(ctx, "system.invokeFunction", [
         "index.queryLuaObjects",
-        [tag, query, scopedVariables],
-      );
+        tag,
+        query,
+        scopedVariables,
+      ]);
     },
-    "index.queryDeleteObjects": (_ctx, tag: string, query: ObjectQuery) => {
-      return system.invokeFunction("index.queryDeleteObjects", [tag, query]);
+    "index.queryDeleteObjects": (ctx, tag: string, query: ObjectQuery) => {
+      return system.syscall(ctx, "system.invokeFunction", [
+        "index.queryDeleteObjects",
+        tag,
+        query,
+      ]);
     },
-    "index.query": (_ctx, query: KvQuery, variables?: Record<string, any>) => {
-      return system.invokeFunction("index.query", [query, variables]);
+    "index.query": (ctx, query: KvQuery, variables?: Record<string, any>) => {
+      return system.syscall(ctx, "system.invokeFunction", [
+        "index.query",
+        query,
+        variables,
+      ]);
     },
-    "index.getObjectByRef": (_ctx, page: string, tag: string, ref: string) => {
-      return system.invokeFunction("index.getObjectByRef", [page, tag, ref]);
+    "index.getObjectByRef": (ctx, page: string, tag: string, ref: string) => {
+      return system.syscall(ctx, "system.invokeFunction", [
+        "index.getObjectByRef",
+        page,
+        tag,
+        ref,
+      ]);
     },
   };
 }
