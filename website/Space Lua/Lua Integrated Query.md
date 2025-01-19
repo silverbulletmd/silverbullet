@@ -19,10 +19,10 @@ Unlike [[Query Language]] which operates on [[Objects]] only, LIQ can operate on
 For instance, to sort a list of numbers in descending order:
 ${query[[from n = {1, 2, 3} order by n desc]]}
 
-However, in most cases you’ll use it in conjunction with [[../API/global#tag(name)]]. Here’s an example querying the 3 pages that were last modified:
+However, in most cases you’ll use it in conjunction with [[API/index#index.tag(name)]]. Here’s an example querying the 3 pages that were last modified:
 
 ${query[[
-  from p = tag "page"
+  from p = index.tag "page"
   order by p.lastModified desc
   select p.name
   limit 3
@@ -52,8 +52,8 @@ ${query[[from {1, 2, 3} select _]]}
 With variable binding:
 ${query[[from n = {1, 2, 3} select n]]}
 
-A more realistic example using `tag`:
-${query[[from tag "page" order by lastModified select name limit 3]]}
+A more realistic example using `index.tag`:
+${query[[from index.tag "page" order by lastModified select name limit 3]]}
 
 ## `where <expression>`
 The `where` clause allows you to filter data. When the expression evaluated to a truthy value, the item is included in the result.
@@ -64,14 +64,14 @@ ${query[[from {1, 2, 3, 4, 5} where _ > 2]]}
 
 Or to select all pages tagged with `#meta`:
 
-${query[[from tag "page" where table.includes(tags, "meta")]]}
+${query[[from index.tag "page" where table.includes(tags, "meta")]]}
 
 ## `order by <expression> [desc]`
 The `order by` clause allows you to sort data, when `desc` is specified it reverts the sort order.
 
 As an example, the last 3 modified pages:
 ${query[[
-  from tag "page"
+  from index.tag "page"
   order by lastModified desc
   select name
   limit 3
@@ -97,11 +97,11 @@ Double each number:
 ${query[[from {1, 2, 3} select _ * 2]]}
 
 Extract just the name from pages:
-${query[[from tag "page" select _.name limit 3]]}
+${query[[from index.tag "page" select _.name limit 3]]}
 
 You can also return tables or other complex values:
 ${query[[
-  from p = tag "page" 
+  from p = index.tag "page" 
   select {
     name = p.name,
     modified = p.lastModified

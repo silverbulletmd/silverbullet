@@ -2,7 +2,14 @@ The `index` API provides functions for interacting with SilverBullet's [[Objects
 
 ## Object Operations
 
-### index.index_objects(page, objects)
+## index.tag(name)
+Returns a given [[Objects#Tags]] as a query collection, to be queried using [[Space Lua/Lua Integrated Query]].
+
+Example:
+
+${query[[from index.tag("page") limit 1]]}
+
+## index.index_objects(page, objects)
 Indexes an array of objects for a specific page.
 
 Example:
@@ -14,7 +21,7 @@ local objects = {
 index.index_objects("my page", objects)
 ```
 
-### index.query_lua_objects(tag, query, scoped_variables?)
+## index.query_lua_objects(tag, query, scoped_variables?)
 Queries objects using a Lua-based collection query.
 
 Example:
@@ -22,7 +29,7 @@ Example:
 local tasks = index.query_lua_objects("mytask", {limit=3})
 ```
 
-### index.get_object_by_ref(page, tag, ref)
+## index.get_object_by_ref(page, tag, ref)
 Retrieves a specific object by its reference.
 
 Example:

@@ -42,6 +42,8 @@ import { plugPrefix } from "$common/spaces/constants.ts";
 import { base64EncodedDataUrl } from "$lib/crypto.ts";
 import type { ConfigContainer } from "../type/config.ts";
 import { indexSyscalls } from "$common/syscalls/index.ts";
+import { commandSyscalls } from "$common/syscalls/command.ts";
+import { eventListenerSyscalls } from "$common/syscalls/event.ts";
 
 const fileListInterval = 30 * 1000; // 30s
 
@@ -122,6 +124,7 @@ export class ServerSystem extends CommonSystem {
     this.system.registerSyscalls(
       [],
       eventSyscalls(this.eventHook),
+      eventListenerSyscalls(this),
       spaceReadSyscalls(space, this.allKnownFiles),
       assetSyscalls(this.system),
       yamlSyscalls(),
@@ -134,7 +137,8 @@ export class ServerSystem extends CommonSystem {
       mqSyscalls(this.mq),
       languageSyscalls(),
       jsonschemaSyscalls(),
-      indexSyscalls(this.system),
+      indexSyscalls(this),
+      commandSyscalls(this),
       luaSyscalls(),
       templateSyscalls(this.ds),
       dataStoreReadSyscalls(this.ds, this),

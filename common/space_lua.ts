@@ -11,7 +11,6 @@ import {
   type PageRef,
   parsePageRef,
 } from "@silverbulletmd/silverbullet/lib/page_ref";
-import type { ScriptEnvironment } from "$common/space_script.ts";
 import type { ASTCtx } from "$common/space_lua/ast.ts";
 import { buildLuaEnv } from "$common/space_lua_api.ts";
 
@@ -24,7 +23,6 @@ export class SpaceLuaEnvironment {
    */
   async reload(
     system: System<any>,
-    scriptEnv: ScriptEnvironment,
   ) {
     const allScripts: ScriptObject[] = await system.invokeFunction(
       "index.queryObjects",
@@ -36,7 +34,7 @@ export class SpaceLuaEnvironment {
       }],
     );
     try {
-      this.env = buildLuaEnv(system, scriptEnv);
+      this.env = buildLuaEnv(system);
       const tl = new LuaEnv();
       tl.setLocal("_GLOBAL", this.env);
       for (const script of allScripts) {

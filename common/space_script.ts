@@ -20,7 +20,7 @@ type AttributeExtractorDef = {
   tags: string[];
 };
 
-type EventListenerDef = {
+export type EventListenerDef = {
   name: string;
 };
 

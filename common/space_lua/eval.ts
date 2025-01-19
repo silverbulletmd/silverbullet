@@ -267,6 +267,7 @@ export function evalExpression(
                 sf.withCtx(e.ctx),
               );
             }
+            collection = luaValueToJS(collection);
             // Check if collection is a queryable collection
             if (!collection.query) {
               // If not, try to convert it to JS and see if it's an array
