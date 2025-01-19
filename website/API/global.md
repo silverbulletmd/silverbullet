@@ -201,3 +201,5 @@ rawset(t, "foo", "bar")  -- bypasses the metamethod
 print(t.foo)  -- prints: "bar"
 ```
 
+## dofile(path)
+Loads a Lua file from a path in your space, e.g. if you uploaded a `test.lua` file, you can load it with `dofile("test.lua")`.

@@ -760,6 +760,8 @@ export function jsToLuaValue(value: any): any {
   }
   if (value instanceof LuaTable) {
     return value;
+  } else if (value instanceof Uint8Array || value instanceof ArrayBuffer) {
+    return value;
   } else if (Array.isArray(value)) {
     const table = new LuaTable();
     for (let i = 0; i < value.length; i++) {

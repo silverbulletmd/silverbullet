@@ -18,6 +18,8 @@ import { jsApi } from "$common/space_lua/stdlib/js.ts";
 import { spaceLuaApi } from "$common/space_lua/stdlib/space_lua.ts";
 import { templateApi } from "$common/space_lua/stdlib/template.ts";
 import { mathApi } from "$common/space_lua/stdlib/math.ts";
+import { parse } from "$common/space_lua/parse.ts";
+import { evalStatement } from "$common/space_lua/eval.ts";
 
 const printFunction = new LuaBuiltinFunction(async (_sf, ...args) => {
   console.log(
@@ -139,6 +141,27 @@ const getmetatableFunction = new LuaBuiltinFunction((_sf, table: LuaTable) => {
   return table.metatable;
 });
 
+const dofileFunction = new LuaBuiltinFunction(async (sf, filename: string) => {
+  const global = sf.threadLocal.get("_GLOBAL");
+  const file = await luaCall(
+    global.get("space").get("read_file"),
+    [filename],
+    sf.astCtx!,
+    sf,
+  ) as Uint8Array;
+  const code = new TextDecoder().decode(file);
+  try {
+    const parsedExpr = parse(code);
+    const env = new LuaEnv(global);
+    await evalStatement(parsedExpr, env, sf.withCtx(parsedExpr.ctx));
+  } catch (e: any) {
+    throw new LuaRuntimeError(
+      `Error evaluating "${filename}": ${e.message}`,
+      sf,
+    );
+  }
+});
+
 export function luaBuildStandardEnv() {
   const env = new LuaEnv();
   // Top-level builtins
@@ -155,6 +178,7 @@ export function luaBuildStandardEnv() {
   env.set("setmetatable", setmetatableFunction);
   env.set("getmetatable", getmetatableFunction);
   env.set("rawset", rawsetFunction);
+  env.set("dofile", dofileFunction);
   // Error handling
   env.set("error", errorFunction);
   env.set("pcall", pcallFunction);
