@@ -9,6 +9,7 @@ import type {
 import type { QueryProviderEvent } from "../../plug-api/types.ts";
 import { determineType, type SimpleJSONType } from "./attributes.ts";
 import { ttlCache } from "$lib/memory_cache.ts";
+import type { LuaCollectionQuery } from "$common/space_lua/query_collection.ts";
 
 const indexKey = "idx";
 const pageKey = "ridx";
@@ -176,6 +177,17 @@ export function queryObjects<T>(
       prefix: [indexKey, tag],
       distinct: true,
     })).map(({ value }) => value);
+  }, ttlSecs);
+}
+
+export function queryLuaObjects<T>(
+  tag: string,
+  query: LuaCollectionQuery,
+  scopedVariables: Record<string, any> = {},
+  ttlSecs?: number,
+): Promise<ObjectValue<T>[]> {
+  return ttlCache(query, () => {
+    return datastore.queryLua([indexKey, tag], query, scopedVariables);
   }, ttlSecs);
 }
 

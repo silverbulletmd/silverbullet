@@ -29,6 +29,10 @@ Deno.test("[Lua] OS tests", async () => {
   await runLuaTest("./stdlib/os_test.lua");
 });
 
+Deno.test("[Lua] Math tests", async () => {
+  await runLuaTest("./stdlib/math_test.lua");
+});
+
 Deno.test("[Lua] JS tests", async () => {
   await runLuaTest("./stdlib/js_test.lua");
 });

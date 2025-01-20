@@ -204,4 +204,13 @@ export const stringApi = new LuaTable({
   endswith: new LuaBuiltinFunction((_sf, s: string, suffix: string) => {
     return s.endsWith(suffix);
   }),
+  trim: new LuaBuiltinFunction((_sf, s: string) => {
+    return s.trim();
+  }),
+  trim_start: new LuaBuiltinFunction((_sf, s: string) => {
+    return s.trimStart();
+  }),
+  trim_end: new LuaBuiltinFunction((_sf, s: string) => {
+    return s.trimEnd();
+  }),
 });

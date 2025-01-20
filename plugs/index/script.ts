@@ -5,6 +5,7 @@ import { indexObjects } from "./api.ts";
 import { space } from "@silverbulletmd/silverbullet/syscalls";
 export type ScriptObject = ObjectValue<{
   script: string;
+  priority?: number;
 }>;
 
 export async function indexSpaceScript({ name, tree }: IndexTreeEvent) {
@@ -50,10 +51,14 @@ export async function indexSpaceLua({ name, tree }: IndexTreeEvent) {
       return;
     }
     const codeText = codeTextNode.children![0].text!;
+    // Parse out "-- priority: <number>"
+    const priority = codeText.match(/--\s*priority:\s*(-?\d+)/)?.[1];
+
     allScripts.push({
       ref: `${name}@${t.from!}`,
       tag: "space-lua",
       script: codeText,
+      priority: priority !== undefined ? +priority : undefined,
     });
   });
   await indexObjects<ScriptObject>(name, allScripts);
@@ -65,9 +70,13 @@ export async function indexSpaceLuaFile(name: string) {
   }
   console.log("Indexing space lua file", name);
   const data = await space.readFile(name);
+  const code = new TextDecoder().decode(data);
+  // Parse out "-- priority: <number>"
+  const priority = code.match(/--\s*priority:\s*(-?\d+)/)?.[1];
   await indexObjects<ScriptObject>(name, [{
     ref: `${name}`,
     tag: "space-lua",
-    script: new TextDecoder().decode(data),
+    script: code,
+    priority: priority !== undefined ? +priority : undefined,
   }]);
 }
