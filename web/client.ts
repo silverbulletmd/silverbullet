@@ -197,7 +197,7 @@ export class Client implements ConfigContainer {
     this.ui.render(this.parent);
 
     this.editorView = new EditorView({
-      state: createEditorState(this, "", "", false),
+      state: createEditorState(this, "", "", true),
       parent: document.getElementById("sb-editor")!,
     });
 
@@ -499,6 +499,10 @@ export class Client implements ConfigContainer {
         await this.navigate({ page: lastPage });
       }
     }
+    setTimeout(() => {
+      console.log("Focusing editor");
+      this.focus();
+    }, 100);
   }
 
   async initSpace(): Promise<SpacePrimitives> {
@@ -861,7 +865,6 @@ export class Client implements ConfigContainer {
 
   rebuildEditorState() {
     const editorView = this.editorView;
-    console.log("Rebuilding editor state");
 
     if (this.currentPage) {
       editorView.setState(
