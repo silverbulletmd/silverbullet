@@ -9,6 +9,7 @@ html {
   --meta-subtle-color: #959595;
   --subtle-color: #676767;
   --subtle-background-color: rgba(72, 72, 72, 0.1);
+  --editor-indent-multiplier: 1;
 
   --root-background-color: #fff;
   --root-color: inherit;
@@ -124,10 +125,9 @@ html {
   --editor-directive-color: #696969;
   --editor-directive-background-color: #ebebeb7d;
 
-  --ui-font:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
-    Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
-    "Segoe UI Symbol", "Noto Color Emoji";
+  --ui-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --editor-font: "iA-Mono", "Menlo";
   --editor-width: 800px;
 }

@@ -67,6 +67,9 @@ config:
       type: array
       items:
         type: string
+    indentMultiplier:
+      type: number
+      nullable: true
 functions:
   setEditorMode:
     path: "./editor.ts:setEditorMode"
