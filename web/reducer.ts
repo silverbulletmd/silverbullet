@@ -80,11 +80,14 @@ export default function reducer(
           currPageMeta = pageMeta;
         }
       }
-      return {
+      const newState = {
         ...state,
         allPages: action.allPages,
-        currentPageMeta: currPageMeta,
       };
+      if (currPageMeta) {
+        newState.currentPageMeta = currPageMeta;
+      }
+      return newState;
     }
     case "start-navigate": {
       return {

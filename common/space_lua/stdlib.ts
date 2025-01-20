@@ -16,7 +16,6 @@ import { tableApi } from "$common/space_lua/stdlib/table.ts";
 import { osApi } from "$common/space_lua/stdlib/os.ts";
 import { jsApi } from "$common/space_lua/stdlib/js.ts";
 import { spaceLuaApi } from "$common/space_lua/stdlib/space_lua.ts";
-import { templateApi } from "$common/space_lua/stdlib/template.ts";
 import { mathApi } from "$common/space_lua/stdlib/math.ts";
 import { parse } from "$common/space_lua/parse.ts";
 import { evalStatement } from "$common/space_lua/eval.ts";
@@ -192,6 +191,6 @@ export function luaBuildStandardEnv() {
   // Non-standard
   env.set("each", eachFunction);
   env.set("space_lua", spaceLuaApi);
-  env.set("template", templateApi);
+  // env.set("template", templateApi);
   return env;
 }
