@@ -29,7 +29,7 @@ Widgets can either be automatically attached to the top or bottom of pages (matc
 ```query
 template
 where hooks.top
-order by order
+order by `order`
 render [[Library/Core/Query/Template]]
 ```
 
@@ -37,7 +37,7 @@ render [[Library/Core/Query/Template]]
 ```query
 template
 where hooks.bottom
-order by order
+order by `order`
 render [[Library/Core/Query/Template]]
 ```
 
@@ -47,6 +47,6 @@ Use with [[!silverbullet.md/Live Templates#Include]] to render useful things in 
 ```query
 template
 where name =~ /\/Widget\// and not hooks.top and not hooks.bottom
-order by order
+order by `order`
 render [[Library/Core/Query/Template]]
 ```
