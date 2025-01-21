@@ -14,6 +14,22 @@ Deno.test("Test Lua parser", () => {
   parse(`e([[hel]lo]], "Grinny face\\u{1F600}")`);
   parse(`e([=[Hello page [[index]] end scene]=], [[yo]])`);
 
+  // console.log(
+  //   JSON.stringify(
+  parse(`e([==[Hello page [[index]] end scene]==], [==[yo]==])`),
+    // null,
+    // 2,
+    //   ),
+    // );
+    console.log(
+      JSON.stringify(
+        parse(`e([==[Hello page [[bla]]
+]==])`),
+        null,
+        2,
+      ),
+    );
+
   parse(`e(10 << 10, 10 >> 10, 10 & 10, 10 | 10, 10 ~ 10)`);
 
   parse(`e(true and false or true)`);
