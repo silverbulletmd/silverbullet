@@ -22,7 +22,7 @@ export abstract class CommonSystem {
 
   // Hooks
   commandHook!: CommandHook;
-  slashCommandHook!: SlashCommandHook;
+  slashCommandHook?: SlashCommandHook;
   namespaceHook!: PlugNamespaceHook;
   codeWidgetHook!: CodeWidgetHook;
   panelWidgetHook!: PanelWidgetHook;
@@ -78,6 +78,10 @@ export abstract class CommonSystem {
       this.eventHook.scriptEnvironment = this.scriptEnv;
 
       this.commandHook.throttledBuildAllCommands();
+      if (this.slashCommandHook) {
+        // Only on client
+        this.slashCommandHook.throttledBuildAllCommands();
+      }
     }
 
     // Swap in the expanded function map

@@ -11,9 +11,10 @@ import type {
   SlashCompletionOption,
   SlashCompletions,
 } from "../../plug-api/types.ts";
-import { safeRun } from "$lib/async.ts";
+import { safeRun, throttle } from "$lib/async.ts";
 import type { SlashCommandDef, SlashCommandHookT } from "$lib/manifest.ts";
 import { parseCommand } from "$common/command.ts";
+import type { CommonSystem } from "$common/common_system.ts";
 
 export type AppSlashCommand = {
   slashCommand: SlashCommandDef;
@@ -26,11 +27,17 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
   slashCommands = new Map<string, AppSlashCommand>();
   private editor: Client;
 
-  constructor(editor: Client) {
+  constructor(editor: Client, private commonSystem: CommonSystem) {
     this.editor = editor;
   }
 
-  buildAllCommands(system: System<SlashCommandHookT>) {
+  throttledBuildAllCommands = throttle(() => {
+    this.buildAllCommands();
+  }, 200);
+
+  buildAllCommands() {
+    const system = this.commonSystem.system;
+
     this.slashCommands.clear();
     for (const plug of system.loadedPlugs.values()) {
       for (
@@ -50,6 +57,15 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
         });
       }
     }
+    // Iterate over script defined slash commands
+    for (
+      const [name, command] of Object.entries(
+        this.commonSystem.scriptEnv.slashCommands,
+      )
+    ) {
+      this.slashCommands.set(name, command);
+    }
+    // Iterate over all shortcuts
     if (this.editor.config?.shortcuts) {
       // Add slash commands for shortcuts that configure them
       for (const shortcut of this.editor.config.shortcuts) {
@@ -161,10 +177,10 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
   }
 
   apply(system: System<SlashCommandHookT>): void {
-    this.buildAllCommands(system);
+    this.buildAllCommands();
     system.on({
       plugLoaded: () => {
-        this.buildAllCommands(system);
+        this.buildAllCommands();
       },
     });
   }

@@ -635,76 +635,103 @@ function parseTableField(t: ParseTree, ctx: ASTCtx): LuaTableField {
       throw new Error(`Unknown table field type: ${t.type}`);
   }
 }
-function stripLuaComments(s: string): string {
-  // Strips Lua comments (single-line and multi-line) and replaces them with equivalent length whitespace
+
+export function stripLuaComments(s: string): string {
   let result = "";
-  let inString = false;
-  let inMultilineString = false;
-  let inComment = false;
-  let inMultilineComment = false;
+  let i = 0;
 
-  for (let i = 0; i < s.length; i++) {
-    // Handle string detection for single-line strings (to avoid stripping comments inside strings)
-    if (
-      s[i] === '"' && !inComment && !inMultilineComment && !inMultilineString
-    ) {
-      inString = !inString;
-    }
+  while (i < s.length) {
+    // Check for long string
+    if (s[i] === "[") {
+      let j = i + 1;
+      let equalsCount = 0;
+      while (s[j] === "=") {
+        equalsCount++;
+        j++;
+      }
+      if (s[j] === "[") {
+        // Found long string start
+        const openBracket = s.substring(i, j + 1);
+        const closeBracket = "]" + "=".repeat(equalsCount) + "]";
+        result += openBracket;
+        i = j + 1;
 
-    // Handle multi-line string literals (starting with "[[")
-    if (
-      !inString && !inComment && !inMultilineComment && s[i] === "[" &&
-      s[i + 1] === "["
-    ) {
-      inMultilineString = true;
-      result += "[["; // Copy "[[" into result
-      i += 1; // Skip over "[["
-      continue;
-    }
-
-    // Handle end of multi-line string literals (ending with "]]")
-    if (inMultilineString && s[i] === "]" && s[i + 1] === "]") {
-      inMultilineString = false;
-      result += "]]"; // Copy "]]" into result
-      i += 1; // Skip over "]]"
-      continue;
-    }
-
-    // Handle single-line comments (starting with "--")
-    if (
-      !inString && !inMultilineString && !inMultilineComment && s[i] === "-" &&
-      s[i + 1] === "-"
-    ) {
-      if (s[i + 2] === "[" && s[i + 3] === "[") {
-        // Detect multi-line comment start "--[["
-        inMultilineComment = true;
-        i += 3; // Skip over "--[["
-        result += "    "; // Add equivalent length spaces for "--[["
-        continue;
-      } else {
-        inComment = true;
+        // Find matching closing bracket
+        const content = s.substring(i);
+        const closeIndex = content.indexOf(closeBracket);
+        if (closeIndex !== -1) {
+          // Copy string content verbatim, including any comment-like sequences
+          result += content.substring(0, closeIndex) + closeBracket;
+          i += closeIndex + closeBracket.length;
+          continue;
+        }
       }
     }
 
-    // Handle end of single-line comment
-    if (inComment && s[i] === "\n") {
-      inComment = false;
-    }
-
-    // Handle multi-line comment ending "]]"
-    if (inMultilineComment && s[i] === "]" && s[i + 1] === "]") {
-      inMultilineComment = false;
-      i += 1; // Skip over "]]"
-      result += "  "; // Add equivalent length spaces for "]]"
+    // Check for single quoted string
+    if (s[i] === '"' || s[i] === "'") {
+      const quote = s[i];
+      result += quote;
+      i++;
+      while (i < s.length && s[i] !== quote) {
+        if (s[i] === "\\") {
+          result += s[i] + s[i + 1];
+          i += 2;
+        } else {
+          result += s[i];
+          i++;
+        }
+      }
+      if (i < s.length) {
+        result += s[i]; // closing quote
+        i++;
+      }
       continue;
     }
 
-    // Replace comment content with spaces, or copy original content if not in comment or multi-line string
-    if (inComment || inMultilineComment) {
-      result += " "; // Replace comment characters with spaces
-    } else {
-      result += s[i];
+    // Check for comments
+    if (s[i] === "-" && s[i + 1] === "-") {
+      // Replace the -- with spaces
+      result += "  ";
+      i += 2;
+
+      // Check for long comment
+      if (s[i] === "[") {
+        let j = i + 1;
+        let equalsCount = 0;
+        while (s[j] === "=") {
+          equalsCount++;
+          j++;
+        }
+        if (s[j] === "[") {
+          // Found long comment start
+          const closeBracket = "]" + "=".repeat(equalsCount) + "]";
+          // Replace opening bracket with spaces
+          result += " ".repeat(j - i + 1);
+          i = j + 1;
+
+          // Find matching closing bracket
+          const content = s.substring(i);
+          const closeIndex = content.indexOf(closeBracket);
+          if (closeIndex !== -1) {
+            // Replace comment content and closing bracket with spaces
+            result += " ".repeat(closeIndex) + " ".repeat(closeBracket.length);
+            i += closeIndex + closeBracket.length;
+            continue;
+          }
+        }
+      }
+
+      // Single line comment - replace rest of line with spaces
+      while (i < s.length && s[i] !== "\n") {
+        result += " ";
+        i++;
+      }
+      continue;
     }
+
+    result += s[i];
+    i++;
   }
 
   return result;

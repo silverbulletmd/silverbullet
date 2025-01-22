@@ -46,5 +46,27 @@ export function commandSyscalls(
         },
       );
     },
+    "slash_command.define": (
+      _ctx,
+      def: CallbackCommandDef,
+    ) => {
+      commonSystem.scriptEnv.registerSlashCommand(
+        def,
+        async (...args: any[]) => {
+          const tl = await buildThreadLocalEnv(
+            commonSystem.system,
+            commonSystem.spaceLuaEnv.env,
+          );
+          const sf = new LuaStackFrame(tl, null);
+          try {
+            return luaValueToJS(
+              await luaCall(def.run, args.map(jsToLuaValue), sf),
+            );
+          } catch (e: any) {
+            await handleLuaError(e, commonSystem.system);
+          }
+        },
+      );
+    },
   };
 }

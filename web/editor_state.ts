@@ -110,7 +110,7 @@ export function createEditorState(
       autocompletion({
         override: [
           client.editorComplete.bind(client),
-          client.clientSystem.slashCommandHook.slashCommandCompleter.bind(
+          client.clientSystem.slashCommandHook!.slashCommandCompleter.bind(
             client.clientSystem.slashCommandHook,
           ),
         ],

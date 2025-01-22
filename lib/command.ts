@@ -1,3 +1,5 @@
+import type { SlashCommandDef } from "$lib/manifest.ts";
+
 export type CommandDef = {
   name: string;
 
@@ -16,6 +18,11 @@ export type CommandDef = {
 
 export type AppCommand = {
   command: CommandDef;
+  run: (args?: any[]) => Promise<void>;
+};
+
+export type SlashCommand = {
+  slashCommand: SlashCommandDef;
   run: (args?: any[]) => Promise<void>;
 };
 

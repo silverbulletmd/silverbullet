@@ -56,7 +56,7 @@ class InlineContentWidget extends WidgetType {
       return div;
     }
 
-    const url = encodeURIComponent(this.url)
+    const url = encodeURIComponent(this.url);
 
     if (mimeType.startsWith("image/")) {
       const img = document.createElement("img");

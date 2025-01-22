@@ -3,7 +3,7 @@
 Config library for defining and getting config values
 
 ```space-lua
--- priority: 100
+-- priority: 10
 config = {}
 
 local config_values = {}

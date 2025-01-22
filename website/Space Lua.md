@@ -137,7 +137,8 @@ Space Lua currently introduces a few new features on top core Lua:
 ## Thread locals
 There’s a magic `_CTX` global variable available from which you can access useful context-specific values. Currently the following keys are available:
 
-* `_CTX.GLOBAL` providing access to the global scope
+* `_CTX.currentPage` providing access (in the client only) to the currently open page (PageMeta object)
+* `_CTX._GLOBAL` providing access to the global scope
 
 # API
 Lua APIs, which should be (roughly) implemented according to the Lua standard.

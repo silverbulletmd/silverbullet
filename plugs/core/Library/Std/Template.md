@@ -3,9 +3,11 @@
 Implements useful template functions
 
 ```space-lua
--- priority: 100
--- Template library for working with templates and iterables
+-- priority: 10
+-- Template API root table
 template = {}
+-- Template storage table
+templates = {}
 
 -- Iterates over a table/array and applies a function to each element,
 -- concatenating the results
@@ -31,8 +33,4 @@ function template.new(template_str)
     return space_lua.interpolate(template_str, obj)
   end
 end
-
-print("template loaded!!")
-
-
 ```

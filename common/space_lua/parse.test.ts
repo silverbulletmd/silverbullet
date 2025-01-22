@@ -1,4 +1,5 @@
-import { parse } from "$common/space_lua/parse.ts";
+import { parse, stripLuaComments } from "$common/space_lua/parse.ts";
+import { assertEquals } from "@std/assert/equals";
 
 Deno.test("Test Lua parser", () => {
   // Basic block test
@@ -108,15 +109,21 @@ Deno.test("Test Lua parser", () => {
 });
 
 Deno.test("Test comment handling", () => {
-  parse(`
-        -- Single line comment
-        --[[ Multi
-        line
-        comment ]]
-        f([[
-        hello
-        -- yo
-      ]])`);
+  const code = `
+-- Single line comment
+--[[ Multi
+line
+comment ]]
+f([[
+hello
+-- yo
+]])`;
+  const code2 = stripLuaComments(code);
+  assertEquals(code2.length, code.length);
+  console.log(code2);
+  console.log(stripLuaComments(`e([==[
+    --- Hello
+  ]==])`));
 });
 
 Deno.test("Test query parsing", () => {

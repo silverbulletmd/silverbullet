@@ -39,13 +39,24 @@ function exposeSyscalls(env: LuaEnv, system: System<any>) {
   }
 }
 
-export function buildThreadLocalEnv(_system: System<any>, globalEnv: LuaEnv) {
+export async function buildThreadLocalEnv(
+  system: System<any>,
+  globalEnv: LuaEnv,
+) {
   const tl = new LuaEnv();
-  // const currentPageMeta = await system.localSyscall(
-  //   "editor.getCurrentPageMeta",
-  //   [],
-  // );
-  // tl.setLocal("pageMeta", currentPageMeta);
+  if (system.registeredSyscalls.has("editor.getCurrentPageMeta")) {
+    const currentPageMeta = await system.localSyscall(
+      "editor.getCurrentPageMeta",
+      [],
+    );
+    if (currentPageMeta) {
+      tl.setLocal("currentPage", currentPageMeta);
+    } else {
+      tl.setLocal("currentPage", {
+        name: await system.localSyscall("editor.getCurrentPage", []),
+      });
+    }
+  }
   tl.setLocal("_GLOBAL", globalEnv);
   return Promise.resolve(tl);
 }

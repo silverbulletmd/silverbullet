@@ -125,7 +125,7 @@ export class ClientSystem extends CommonSystem {
     this.system.addHook(this.commandHook);
 
     // Slash command hook
-    this.slashCommandHook = new SlashCommandHook(this.client);
+    this.slashCommandHook = new SlashCommandHook(this.client, this);
     this.system.addHook(this.slashCommandHook);
 
     this.eventHook.addLocalListener(
@@ -147,7 +147,7 @@ export class ClientSystem extends CommonSystem {
 
   init() {
     // Slash command hook
-    this.slashCommandHook = new SlashCommandHook(this.client);
+    this.slashCommandHook = new SlashCommandHook(this.client, this);
     this.system.addHook(this.slashCommandHook);
 
     // Syscalls available to all plugs

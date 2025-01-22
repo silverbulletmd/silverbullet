@@ -80,6 +80,17 @@ export class LuaEnv implements ILuaSettable, ILuaGettable {
     }
     return keys;
   }
+
+  toJSON(omitKeys: string[] = []): Record<string, any> {
+    const result: Record<string, any> = {};
+    for (const key of this.keys()) {
+      if (omitKeys.includes(key)) {
+        continue;
+      }
+      result[key] = luaValueToJS(this.get(key));
+    }
+    return result;
+  }
 }
 
 export class LuaStackFrame {

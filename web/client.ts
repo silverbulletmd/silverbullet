@@ -273,9 +273,7 @@ export class Client implements ConfigContainer {
       type: "config-loaded",
       config: this.config,
     });
-    this.clientSystem.slashCommandHook.buildAllCommands(
-      this.clientSystem.system,
-    );
+    this.clientSystem.slashCommandHook!.buildAllCommands();
     this.eventHook.dispatchEvent("config:loaded", this.config);
   }
 

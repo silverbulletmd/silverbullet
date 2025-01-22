@@ -2,7 +2,6 @@ import type { IndexTreeEvent } from "../../plug-api/types.ts";
 import { collectNodesOfType, findNodeOfType } from "../../plug-api/lib/tree.ts";
 import type { ObjectValue } from "../../plug-api/types.ts";
 import { indexObjects } from "./api.ts";
-import { space } from "@silverbulletmd/silverbullet/syscalls";
 export type ScriptObject = ObjectValue<{
   script: string;
   priority?: number;

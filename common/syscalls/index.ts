@@ -10,7 +10,7 @@ import {
   type LuaQueryCollection,
 } from "$common/space_lua/query_collection.ts";
 import {
-  type LuaEnv,
+  LuaEnv,
   LuaRuntimeError,
   type LuaStackFrame,
   luaValueToJS,
@@ -90,7 +90,12 @@ export function indexSyscalls(commonSystem: CommonSystem): SysCallMapping {
           const scopedVariables: Record<string, any> = {};
           for (const v of localVars) {
             try {
-              const jsonValue = await luaValueToJS(env.get(v));
+              let value = env.get(v);
+              if (value instanceof LuaEnv) {
+                // We don't want to include the global environment in the serialized value
+                value = value.toJSON(["_GLOBAL"]);
+              }
+              const jsonValue = await luaValueToJS(value);
               // Ensure this is JSON serializable
               JSON.stringify(jsonValue);
               scopedVariables[v] = jsonValue;
