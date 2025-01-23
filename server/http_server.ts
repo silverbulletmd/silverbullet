@@ -1,6 +1,7 @@
-import { deleteCookie, getCookie, setCookie } from "hono/helper.ts";
-import { cors } from "hono/middleware.ts";
-import { type Context, Hono, validator } from "hono/mod.ts";
+import { deleteCookie, getCookie, setCookie } from "@hono/hono/cookie";
+import { cors } from "@hono/hono/cors";
+import { type Context, Hono } from "@hono/hono";
+import { validator } from "@hono/hono/validator";
 import type { AssetBundle } from "$lib/asset_bundle/bundle.ts";
 import type {
   EndpointRequest,
