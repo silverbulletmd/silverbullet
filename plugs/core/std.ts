@@ -37,6 +37,10 @@ const stdLibCacheKey = ["stdLibCache"];
 type StdLibCache = Record<string, number>; // page name -> last modified time
 
 export async function init() {
+  // Check if in read-only mode
+  if (await system.getMode() === "ro") {
+    return;
+  }
   let stdLibCache: StdLibCache | undefined = await datastore.get(
     stdLibCacheKey,
   );
