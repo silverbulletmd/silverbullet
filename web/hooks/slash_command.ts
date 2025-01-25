@@ -108,7 +108,17 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
       return null;
     }
 
+    // Check if the slash command is available in the current context
+    const parentNodes = this.editor.extractParentNodes(ctx.state, currentNode);
+    // console.log("Parent nodes", parentNodes);
     for (const def of this.slashCommands.values()) {
+      if (
+        def.slashCommand.contexts && !def.slashCommand.contexts.some(
+          (context) => parentNodes.some((node) => node.startsWith(context)),
+        )
+      ) {
+        continue;
+      }
       options.push({
         label: def.slashCommand.name,
         detail: def.slashCommand.description,

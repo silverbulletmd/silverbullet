@@ -19,7 +19,7 @@ function config.set(key, value)
     error("Config key not defined: " .. key)
   end
   if schema != true then
-    result = jsonschema.validate_object(schema, value)
+    local result = jsonschema.validate_object(schema, value)
     if result != nil then
       error("Validation error (" .. key .. "): " .. result)
     end

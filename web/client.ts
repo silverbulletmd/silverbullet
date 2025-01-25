@@ -2,7 +2,7 @@ import type {
   CompletionContext,
   CompletionResult,
 } from "@codemirror/autocomplete";
-import type { Compartment } from "@codemirror/state";
+import type { Compartment, EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
 import { compile as gitIgnoreCompiler } from "gitignore-parser";
@@ -892,21 +892,13 @@ export class Client implements ConfigContainer {
     const linePrefix = line.text.slice(0, selection.from - line.from);
 
     // Build up list of parent nodes, some completions need this
-    const parentNodes: string[] = [];
     const sTree = syntaxTree(editorState);
-    const currentNode = sTree.resolveInner(selection.from);
-    if (currentNode) {
-      let node: SyntaxNode | null = currentNode;
-      do {
-        if (node.name === "FencedCode" || node.name === "FrontMatter") {
-          const body = editorState.sliceDoc(node.from + 3, node.to - 3);
-          parentNodes.push(`${node.name}:${body}`);
-        } else {
-          parentNodes.push(node.name);
-        }
-        node = node.parent;
-      } while (node);
-    }
+    const currentNode = sTree.resolveInner(editorState.selection.main.from);
+
+    const parentNodes: string[] = this.extractParentNodes(
+      editorState,
+      currentNode,
+    );
 
     // Dispatch the event
     const results = await this.dispatchAppEvent(eventName, {
@@ -947,6 +939,23 @@ export class Client implements ConfigContainer {
       }
     }
     return currentResult;
+  }
+
+  public extractParentNodes(editorState: EditorState, currentNode: SyntaxNode) {
+    const parentNodes: string[] = [];
+    if (currentNode) {
+      let node: SyntaxNode | null = currentNode;
+      do {
+        if (node.name === "FencedCode" || node.name === "FrontMatter") {
+          const body = editorState.sliceDoc(node.from + 3, node.to - 3);
+          parentNodes.push(`${node.name}:${body}`);
+        } else {
+          parentNodes.push(node.name);
+        }
+        node = node.parent;
+      } while (node);
+    }
+    return parentNodes;
   }
 
   editorComplete(

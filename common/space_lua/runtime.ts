@@ -315,6 +315,11 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     return this.arrayPart.length;
   }
 
+  hasKeys(): boolean {
+    return !!(Object.keys(this.stringKeys).length > 0 ||
+      this.arrayPart.length > 0 || (this.otherKeys && this.otherKeys.size > 0));
+  }
+
   keys(): any[] {
     const keys: any[] = Object.keys(this.stringKeys);
     for (let i = 0; i < this.arrayPart.length; i++) {
@@ -695,7 +700,7 @@ export function luaTruthy(value: any): boolean {
     return false;
   }
   if (value instanceof LuaTable) {
-    return value.length > 0;
+    return value.hasKeys();
   }
   return true;
 }
@@ -773,6 +778,17 @@ export function jsToLuaValue(value: any): any {
     return value;
   } else if (value instanceof Uint8Array || value instanceof ArrayBuffer) {
     return value;
+  } else if (Array.isArray(value) && "index" in value && "input" in value) {
+    // This is a RegExpMatchArray
+    const regexMatch = value as RegExpMatchArray;
+    const regexMatchTable = new LuaTable();
+    for (let i = 0; i < regexMatch.length; i++) {
+      regexMatchTable.set(i + 1, regexMatch[i]);
+    }
+    regexMatchTable.set("index", regexMatch.index);
+    regexMatchTable.set("input", regexMatch.input);
+    regexMatchTable.set("groups", regexMatch.groups);
+    return regexMatchTable;
   } else if (Array.isArray(value)) {
     const table = new LuaTable();
     for (let i = 0; i < value.length; i++) {

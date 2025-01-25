@@ -1,4 +1,5 @@
 import {
+  jsToLuaValue,
   LuaBuiltinFunction,
   luaCall,
   LuaMultiRes,
@@ -212,5 +213,14 @@ export const stringApi = new LuaTable({
   }),
   trim_end: new LuaBuiltinFunction((_sf, s: string) => {
     return s.trimEnd();
+  }),
+  match_regex: new LuaBuiltinFunction((_sf, s: string, pattern: string) => {
+    const regex = new RegExp(pattern);
+    const result = s.match(regex);
+    return jsToLuaValue(result);
+    // if (!result) {
+    //   return new LuaMultiRes([]);
+    // }
+    // return new LuaMultiRes(result.slice(1));
   }),
 });

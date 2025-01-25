@@ -38,7 +38,7 @@ export function commandSyscalls(
           const sf = new LuaStackFrame(tl, null);
           try {
             return luaValueToJS(
-              await luaCall(def.run, args.map(jsToLuaValue), sf),
+              await luaCall(def.run, args.map(jsToLuaValue), {}, sf),
             );
           } catch (e: any) {
             await handleLuaError(e, commonSystem.system);
@@ -60,7 +60,7 @@ export function commandSyscalls(
           const sf = new LuaStackFrame(tl, null);
           try {
             return luaValueToJS(
-              await luaCall(def.run, args.map(jsToLuaValue), sf),
+              await luaCall(def.run, args.map(jsToLuaValue), {}, sf),
             );
           } catch (e: any) {
             await handleLuaError(e, commonSystem.system);

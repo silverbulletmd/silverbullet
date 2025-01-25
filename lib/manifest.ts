@@ -53,6 +53,8 @@ export type SlashCommandDef = {
   name: string;
   description?: string;
   boost?: number;
+  // Parent AST nodes in which this slash command is available
+  contexts?: string[];
 };
 export type SlashCommandHookT = {
   slashCommand?: SlashCommandDef;
