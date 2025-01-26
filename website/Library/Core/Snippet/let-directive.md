@@ -4,6 +4,8 @@ tags: template
 hooks.snippet:
   slashCommand: "#let"
   order: 10
+  onlyContexts:
+  - FencedCode:template
 ---
 {{escapeDirective("#let @|^| = ")}}
 

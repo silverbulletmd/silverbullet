@@ -53,8 +53,10 @@ export type SlashCommandDef = {
   name: string;
   description?: string;
   boost?: number;
-  // Parent AST nodes in which this slash command is available
-  contexts?: string[];
+  // Parent AST nodes in which this slash command is available, defaults to everywhere
+  onlyContexts?: string[];
+  // Parent AST nodes in which this slash command is not available
+  exceptContexts?: string[];
 };
 export type SlashCommandHookT = {
   slashCommand?: SlashCommandDef;

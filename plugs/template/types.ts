@@ -31,6 +31,8 @@ export type SnippetConfig = CommandConfig & {
   // Deprecated: use matchRegex instead (for backwards compatibility)
   match?: string;
   insertAt?: "cursor" | "line-start" | "line-end" | "page-start" | "page-end"; // defaults to cursor
+  onlyContexts?: string[];
+  exceptContexts?: string[];
 };
 
 export type WidgetConfig = {
@@ -97,6 +99,12 @@ export const SnippetConfigSchema: JSONSchemaType<SnippetConfig> = {
     order: { type: "number", nullable: true },
     matchRegex: { type: "string", nullable: true },
     match: { type: "string", nullable: true },
+    onlyContexts: { type: "array", items: { type: "string" }, nullable: true },
+    exceptContexts: {
+      type: "array",
+      items: { type: "string" },
+      nullable: true,
+    },
     insertAt: {
       type: "string",
       enum: [

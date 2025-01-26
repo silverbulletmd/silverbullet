@@ -29,20 +29,37 @@ export async function snippetSlashComplete(
     // where hooks.snippet.slashCommand exists
     filter: ["attr", ["attr", ["attr", "hooks"], "snippet"], "slashCommand"],
   }, 5);
-  return {
-    options: allTemplates.map((template) => {
-      const snippetTemplate = template.hooks!.snippet!;
+  const options: SlashCompletionOption[] = [];
+  for (const template of allTemplates) {
+    const snippetTemplate = template.hooks!.snippet!;
 
-      return {
-        label: snippetTemplate.slashCommand,
-        detail: template.description,
-        order: snippetTemplate.order || 0,
-        templatePage: template.ref,
-        pageName: completeEvent.pageName,
-        invoke: "template.insertSnippetTemplate",
-      };
-    }),
-  };
+    if (
+      snippetTemplate.onlyContexts && !snippetTemplate.onlyContexts.some(
+        (context) =>
+          completeEvent.parentNodes.some((node) => node.startsWith(context)),
+      )
+    ) {
+      continue;
+    }
+    if (
+      snippetTemplate.exceptContexts && snippetTemplate.exceptContexts.some(
+        (context) =>
+          completeEvent.parentNodes.some((node) => node.startsWith(context)),
+      )
+    ) {
+      continue;
+    }
+
+    options.push({
+      label: snippetTemplate.slashCommand,
+      detail: template.description,
+      order: snippetTemplate.order || 0,
+      templatePage: template.ref,
+      pageName: completeEvent.pageName,
+      invoke: "template.insertSnippetTemplate",
+    });
+  }
+  return { options };
 }
 
 export async function insertSnippetTemplate(

@@ -6,5 +6,7 @@ hooks.snippet:
   matchRegex: "^(\\s*)[\\-\\*]?\\s*"
   command: "Text: Turn into a bullet item"
   key: "Ctrl-q i"
+  exceptContexts:
+  - FencedCode
 ---
 $1* 
