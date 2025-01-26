@@ -24,7 +24,7 @@ export type AppSlashCommand = {
 const slashCommandRegexp = /([^\w:]|^)\/[\w#\-]*/;
 
 export class SlashCommandHook implements Hook<SlashCommandHookT> {
-  slashCommands = new Map<string, AppSlashCommand>();
+  slashCommands: AppSlashCommand[] = [];
   private editor: Client;
 
   constructor(editor: Client, private commonSystem: CommonSystem) {
@@ -38,7 +38,7 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
   buildAllCommands() {
     const system = this.commonSystem.system;
 
-    this.slashCommands.clear();
+    this.slashCommands = [];
     for (const plug of system.loadedPlugs.values()) {
       for (
         const [name, functionDef] of Object.entries(
@@ -49,7 +49,7 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
           continue;
         }
         const cmd = functionDef.slashCommand;
-        this.slashCommands.set(cmd.name, {
+        this.slashCommands.push({
           slashCommand: cmd,
           run: () => {
             return plug.invoke(name, [cmd]);
@@ -59,11 +59,11 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
     }
     // Iterate over script defined slash commands
     for (
-      const [name, command] of Object.entries(
+      const command of Object.values(
         this.commonSystem.scriptEnv.slashCommands,
       )
     ) {
-      this.slashCommands.set(name, command);
+      this.slashCommands.push(command);
     }
     // Iterate over all shortcuts
     if (this.editor.config?.shortcuts) {
@@ -71,7 +71,7 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
       for (const shortcut of this.editor.config.shortcuts) {
         if (shortcut.slashCommand) {
           const parsedCommand = parseCommand(shortcut.command);
-          this.slashCommands.set(shortcut.slashCommand, {
+          this.slashCommands.push({
             slashCommand: {
               name: shortcut.slashCommand,
               description: parsedCommand.alias || parsedCommand.name,
@@ -110,7 +110,7 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
 
     // Check if the slash command is available in the current context
     const parentNodes = this.editor.extractParentNodes(ctx.state, currentNode);
-    for (const def of this.slashCommands.values()) {
+    for (const def of this.slashCommands) {
       if (
         def.slashCommand.onlyContexts && !def.slashCommand.onlyContexts.some(
           (context) => parentNodes.some((node) => node.startsWith(context)),
