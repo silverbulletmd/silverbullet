@@ -703,7 +703,7 @@ export function luaTruthy(value: any): boolean {
     return false;
   }
   if (value instanceof LuaTable) {
-    return value.empty();
+    return !value.empty();
   }
   if (value instanceof LuaMultiRes) {
     return value.values.length > 0;
