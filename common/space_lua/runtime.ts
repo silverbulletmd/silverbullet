@@ -315,9 +315,12 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     return this.arrayPart.length;
   }
 
-  hasKeys(): boolean {
-    return !!(Object.keys(this.stringKeys).length > 0 ||
-      this.arrayPart.length > 0 || (this.otherKeys && this.otherKeys.size > 0));
+  empty(): boolean {
+    return (
+      Object.keys(this.stringKeys).length === 0 &&
+      this.arrayPart.length === 0 &&
+      (this.otherKeys === null || this.otherKeys.size === 0)
+    );
   }
 
   keys(): any[] {
@@ -700,7 +703,10 @@ export function luaTruthy(value: any): boolean {
     return false;
   }
   if (value instanceof LuaTable) {
-    return value.hasKeys();
+    return value.empty();
+  }
+  if (value instanceof LuaMultiRes) {
+    return value.values.length > 0;
   }
   return true;
 }
