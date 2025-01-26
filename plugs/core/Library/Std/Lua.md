@@ -68,46 +68,47 @@ event.listen {
         failed = true
       end
     end
+    if failed then
+      return
+    end
     local last_prop = prop_parts[#prop_parts]
     if table.includes(LUA_KEYWORDS, last_prop) then
       return
     end
-    if not failed then
-      local options = {}
-      for key, val in pairs(current_value) do
-        if string.startswith(key, last_prop) and val then
-          if val.call then
-            -- We got a function
-            if val.body then
-              -- Function defined in Lua
-              table.insert(options, {
-                label = key .. "(" .. table.concat(val.body.parameters, ", ") ..")",
-                apply = key .. "(",
-                detail = "Lua function"
-              })
-            else
-              -- Builtin
-              table.insert(options, {
-                label = key .. "()",
-                apply = key .. "(",
-                detail = "Lua built-in"
-              })
-            end
-          else
-            -- Table
+    local options = {}
+    for key, val in pairs(current_value) do
+      if string.startswith(key, last_prop) and val then
+        if val.call then
+          -- We got a function
+          if val.body then
+            -- Function defined in Lua
             table.insert(options, {
-              label = key,
-              detail = "Lua table"
+              label = key .. "(" .. table.concat(val.body.parameters, ", ") ..")",
+              apply = key .. "(",
+              detail = "Lua function"
+            })
+          else
+            -- Builtin
+            table.insert(options, {
+              label = key .. "()",
+              apply = key .. "(",
+              detail = "Lua built-in"
             })
           end
+        else
+          -- Table
+          table.insert(options, {
+            label = key,
+            detail = "Lua table"
+          })
         end
       end
-      if #options > 0 then
-        return {
-          from = pos - string.len(last_prop),
-          options = options
-        }
-      end
+    end
+    if #options > 0 then
+      return {
+        from = pos - string.len(last_prop),
+        options = options
+      }
     end
   end
 }
@@ -138,6 +139,7 @@ template.define_slash_command {
   only_contexts = {"FencedCode:space-lua", "LuaDirective"},
   template = template.new 'query[[from index.tag "|^|"]]'
 }
+
 
 -- A query embedded in ${}
 template.define_slash_command {
