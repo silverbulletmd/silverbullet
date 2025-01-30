@@ -77,7 +77,12 @@ export function createEditorState(
 
       // Enable vim mode, or not
       [
-        ...client.ui.viewState.uiOptions.vimMode ? [vim({ status: true })] : [],
+        ...client.ui.viewState.uiOptions.vimMode
+          ? [
+            vim({ status: true }),
+            EditorState.allowMultipleSelections.of(true),
+          ]
+          : [],
       ],
       [
         ...(readOnly || client.ui.viewState.uiOptions.forcedROMode)
