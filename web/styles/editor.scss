@@ -218,7 +218,8 @@
     /* U+2022 BULLET */
   }
 
-  .cm-task-checked {
+  .cm-task-checked,
+  .sb-line-task:has(.cm-task-checked) .sb-wiki-link-page {
     text-decoration: line-through !important;
   }
 
