@@ -1,10 +1,13 @@
 import {
   asset,
+  codeWidget,
   datastore,
+  editor,
   mq,
   system,
 } from "@silverbulletmd/silverbullet/syscalls";
 import type { FileMeta } from "@silverbulletmd/silverbullet/types";
+import { sleep } from "$lib/async.ts";
 
 export async function listFiles(): Promise<FileMeta[]> {
   return await asset.listFiles("core");
@@ -49,9 +52,11 @@ export async function init() {
   }
   // Iterate over the current file listing, check if any new files have been added, removed or modified
   const newListing = await listFiles();
+  let anythingChanged = false;
   // First check for files that were removed
   for (const cachedFile of Object.keys(stdLibCache)) {
     if (!newListing.find((f) => f.name === cachedFile)) {
+      anythingChanged = true;
       console.log(`Clearing index for removed file ${cachedFile}`);
       await system.invokeFunction("index.clearDSIndex", cachedFile);
       delete stdLibCache[cachedFile];
@@ -64,7 +69,7 @@ export async function init() {
 
     // Check if file is new or modified compared to cache
     if (!stdLibCache[file.name] || stdLibCache[file.name] !== lastModified) {
-      // console.log(`Queuing for indexing ${file.name}`);
+      anythingChanged = true;
       await system.invokeFunction("index.clearDSIndex", file.name);
       await mq.send("indexQueue", file.name);
       stdLibCache[file.name] = lastModified;
@@ -73,4 +78,21 @@ export async function init() {
 
   // Save updated cache
   await datastore.set(stdLibCacheKey, stdLibCache);
+
+  // If anything changed and we're in sync mode, we can auto trigger reloading of the system after the index queue is processed
+  if (anythingChanged && !await system.getEnv()) {
+    // We're in sync mode
+    console.log("Waiting for index queue to be processed");
+    let queueProcessed = false;
+    while (!queueProcessed) {
+      const stats = await mq.getQueueStats("indexQueue");
+      if (stats.queued === 0 && stats.processing === 0) {
+        queueProcessed = true;
+      }
+      await sleep(100);
+    }
+    console.log("Index queue processed, reloading system");
+    await editor.reloadConfigAndCommands();
+    await codeWidget.refreshAll();
+  }
 }

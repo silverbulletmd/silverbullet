@@ -84,14 +84,14 @@ event.listen {
             -- Function defined in Lua
             table.insert(options, {
               label = key .. "(" .. table.concat(val.body.parameters, ", ") ..")",
-              apply = key .. "(",
+              apply = key,
               detail = "Lua function"
             })
           else
             -- Builtin
             table.insert(options, {
               label = key .. "()",
-              apply = key .. "(",
+              apply = key,
               detail = "Lua built-in"
             })
           end

@@ -188,7 +188,9 @@ export class Client implements ConfigContainer {
           // Exclude all plug space primitives paths
           return !this.plugSpaceRemotePrimitives.isLikelyHandled(path) ||
             // Except federated ones
-            path.startsWith("!");
+            path.startsWith("!") ||
+            // Also exclude Library/Std
+            path.startsWith("Library/Std");
         },
       )
       : new NoSyncSyncService(this.space);
@@ -565,6 +567,7 @@ export class Client implements ConfigContainer {
         },
       );
     } else {
+      // Not in sync mode
       localSpacePrimitives = new EventedSpacePrimitives(
         this.plugSpaceRemotePrimitives,
         this.eventHook,
