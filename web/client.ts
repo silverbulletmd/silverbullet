@@ -305,6 +305,8 @@ export class Client implements ConfigContainer {
         } else { // initialSync
           // Let's load space scripts again, which probably weren't loaded before
           await this.clientSystem.loadSpaceScripts();
+          await this.loadCustomStyles();
+          this.rebuildEditorState();
           console.log(
             "Initial sync completed, now need to do a full space index to ensure all pages are indexed using any custom space script indexers",
           );
