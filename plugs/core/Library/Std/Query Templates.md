@@ -1,3 +1,5 @@
+#meta
+
 A work-in-progress library of generally useful templates for rendering queries.
 
 ```space-lua
