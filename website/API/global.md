@@ -201,23 +201,5 @@ rawset(t, "foo", "bar")  -- bypasses the metamethod
 print(t.foo)  -- prints: "bar"
 ```
 
-# Space Lua specific
-## tag(name)
-Returns a given [[Objects#Tags]] as a query collection, to be queried using [[Space Lua/Lua Integrated Query]].
-
-Example:
-
-${query[[from tag("page") limit 1]]}
-
-## tpl(template)
-Returns a template function that can be used to render a template. Conventionally, a template string is put between `[==[` and `]==]` as string delimiters.
-
-Example:
-
-```space-lua
-examples = examples or {}
-
-examples.say_hello = tpl[==[Hello ${name}!]==]
-```
-
-And its use: ${examples.say_hello {name="Pete"}}
+## dofile(path)
+Loads a Lua file from a path in your space, e.g. if you uploaded a `test.lua` file, you can load it with `dofile("test.lua")`.

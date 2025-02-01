@@ -80,6 +80,17 @@ export class LuaEnv implements ILuaSettable, ILuaGettable {
     }
     return keys;
   }
+
+  toJSON(omitKeys: string[] = []): Record<string, any> {
+    const result: Record<string, any> = {};
+    for (const key of this.keys()) {
+      if (omitKeys.includes(key)) {
+        continue;
+      }
+      result[key] = luaValueToJS(this.get(key));
+    }
+    return result;
+  }
 }
 
 export class LuaStackFrame {
@@ -302,6 +313,14 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
 
   get length(): number {
     return this.arrayPart.length;
+  }
+
+  empty(): boolean {
+    return (
+      Object.keys(this.stringKeys).length === 0 &&
+      this.arrayPart.length === 0 &&
+      (this.otherKeys === null || this.otherKeys.size === 0)
+    );
   }
 
   keys(): any[] {
@@ -684,7 +703,10 @@ export function luaTruthy(value: any): boolean {
     return false;
   }
   if (value instanceof LuaTable) {
-    return value.length > 0;
+    return !value.empty();
+  }
+  if (value instanceof LuaMultiRes) {
+    return value.values.length > 0;
   }
   return true;
 }
@@ -760,6 +782,19 @@ export function jsToLuaValue(value: any): any {
   }
   if (value instanceof LuaTable) {
     return value;
+  } else if (value instanceof Uint8Array || value instanceof ArrayBuffer) {
+    return value;
+  } else if (Array.isArray(value) && "index" in value && "input" in value) {
+    // This is a RegExpMatchArray
+    const regexMatch = value as RegExpMatchArray;
+    const regexMatchTable = new LuaTable();
+    for (let i = 0; i < regexMatch.length; i++) {
+      regexMatchTable.set(i + 1, regexMatch[i]);
+    }
+    regexMatchTable.set("index", regexMatch.index);
+    regexMatchTable.set("input", regexMatch.input);
+    regexMatchTable.set("groups", regexMatch.groups);
+    return regexMatchTable;
   } else if (Array.isArray(value)) {
     const table = new LuaTable();
     for (let i = 0; i < value.length; i++) {

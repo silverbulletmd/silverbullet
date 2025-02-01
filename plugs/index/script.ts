@@ -2,7 +2,6 @@ import type { IndexTreeEvent } from "../../plug-api/types.ts";
 import { collectNodesOfType, findNodeOfType } from "../../plug-api/lib/tree.ts";
 import type { ObjectValue } from "../../plug-api/types.ts";
 import { indexObjects } from "./api.ts";
-import { space } from "@silverbulletmd/silverbullet/syscalls";
 export type ScriptObject = ObjectValue<{
   script: string;
   priority?: number;
@@ -62,21 +61,4 @@ export async function indexSpaceLua({ name, tree }: IndexTreeEvent) {
     });
   });
   await indexObjects<ScriptObject>(name, allScripts);
-}
-
-export async function indexSpaceLuaFile(name: string) {
-  if (!name.endsWith(".lua")) {
-    return;
-  }
-  console.log("Indexing space lua file", name);
-  const data = await space.readFile(name);
-  const code = new TextDecoder().decode(data);
-  // Parse out "-- priority: <number>"
-  const priority = code.match(/--\s*priority:\s*(-?\d+)/)?.[1];
-  await indexObjects<ScriptObject>(name, [{
-    ref: `${name}`,
-    tag: "space-lua",
-    script: code,
-    priority: priority !== undefined ? +priority : undefined,
-  }]);
 }

@@ -1,9 +1,10 @@
 import type { System } from "../lib/plugos/system.ts";
 import type { ParseTree } from "../plug-api/lib/tree.ts";
 import type { ScriptObject } from "../plugs/index/script.ts";
-import type { AppCommand, CommandDef } from "$lib/command.ts";
+import type { AppCommand, CommandDef, SlashCommand } from "$lib/command.ts";
 import { Intl, Temporal, toTemporalInstant } from "@js-temporal/polyfill";
 import * as syscalls from "@silverbulletmd/silverbullet/syscalls";
+import type { SlashCommandDef } from "$lib/manifest.ts";
 
 // @ts-ignore: Temporal polyfill
 Date.prototype.toTemporalInstant = toTemporalInstant;
@@ -20,7 +21,7 @@ type AttributeExtractorDef = {
   tags: string[];
 };
 
-type EventListenerDef = {
+export type EventListenerDef = {
   name: string;
 };
 
@@ -32,6 +33,7 @@ type AttributeExtractorCallback = (
 export class ScriptEnvironment {
   functions: Record<string, (...args: any[]) => any> = {};
   commands: Record<string, AppCommand> = {};
+  slashCommands: Record<string, SlashCommand> = {};
   attributeExtractors: Record<string, AttributeExtractorCallback[]> = {};
   eventHandlers: Record<string, ((...args: any[]) => any)[]> = {};
 
@@ -68,6 +70,16 @@ export class ScriptEnvironment {
           });
         });
       },
+    };
+  }
+
+  registerSlashCommand(
+    def: SlashCommandDef,
+    fn: (...args: any[]) => any,
+  ) {
+    this.slashCommands[def.name] = {
+      slashCommand: def,
+      run: fn,
     };
   }
 

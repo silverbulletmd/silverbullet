@@ -85,6 +85,7 @@ exp {
   Query
 }
 
+
 Query {
   kw<"query"> "[[" QueryClause* "]]" 
 }
@@ -166,16 +167,21 @@ TableConstructor { "{" (field (fieldsep field)* fieldsep?)? "}" }
 
   // Any sequence of characters except two consecutive ]]
   longStringContent { (![\]] | $[\]] ![\]])* }
-  
-  longDelimStringContent {
-    (![\]] | $[\]] ![=]+ ![\]])*
+
+  singleEqualStringContent {
+    (![\]] | $[\]] ![=] ![\]])* $[\]]* ![\]]* 
+  }
+
+  doubleEqualStringContent {
+    (![\]] | $[\]] ![=] ![=] ![\]])* $[\]]* ![\]]* 
   }
 
   simpleString {
     "'" (stringEscape | ![\r\n\\'])* "'" |
    '"' (stringEscape | ![\r\n\\"])* '"' |
    '[[' longStringContent ']]' |
-   '[' '='+ '[' longDelimStringContent ']' '='+ ']'
+   '[=[' singleEqualStringContent ']=]' |
+   '[==[' doubleEqualStringContent ']==]'
   }
 
   hex { $[0-9a-fA-F] }

@@ -22,7 +22,7 @@ export abstract class CommonSystem {
 
   // Hooks
   commandHook!: CommandHook;
-  slashCommandHook!: SlashCommandHook;
+  slashCommandHook?: SlashCommandHook;
   namespaceHook!: PlugNamespaceHook;
   codeWidgetHook!: CodeWidgetHook;
   panelWidgetHook!: PanelWidgetHook;
@@ -62,7 +62,7 @@ export abstract class CommonSystem {
           Object.keys(this.scriptEnv.eventHandlers).length,
           "event handlers from space-script",
         );
-        await this.spaceLuaEnv.reload(this.system, this.scriptEnv);
+        await this.spaceLuaEnv.reload(this.system);
       } catch (e: any) {
         console.error("Error loading space-script:", e.message);
       }
@@ -78,6 +78,10 @@ export abstract class CommonSystem {
       this.eventHook.scriptEnvironment = this.scriptEnv;
 
       this.commandHook.throttledBuildAllCommands();
+      if (this.slashCommandHook) {
+        // Only on client
+        this.slashCommandHook.throttledBuildAllCommands();
+      }
     }
 
     // Swap in the expanded function map

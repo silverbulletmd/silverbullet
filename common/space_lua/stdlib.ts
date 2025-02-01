@@ -1,33 +1,24 @@
 import {
   type ILuaFunction,
-  jsToLuaValue,
   LuaBuiltinFunction,
   luaCall,
   LuaEnv,
   luaGet,
   LuaMultiRes,
   LuaRuntimeError,
-  LuaTable,
+  type LuaTable,
   luaToString,
   luaTypeOf,
   type LuaValue,
-  luaValueToJS,
 } from "$common/space_lua/runtime.ts";
 import { stringApi } from "$common/space_lua/stdlib/string.ts";
 import { tableApi } from "$common/space_lua/stdlib/table.ts";
 import { osApi } from "$common/space_lua/stdlib/os.ts";
 import { jsApi } from "$common/space_lua/stdlib/js.ts";
-import {
-  interpolateLuaString,
-  spaceLuaApi,
-} from "$common/space_lua/stdlib/space_lua.ts";
-import {
-  findAllQueryVariables,
-  type LuaCollectionQuery,
-  type LuaQueryCollection,
-} from "$common/space_lua/query_collection.ts";
-import { templateApi } from "$common/space_lua/stdlib/template.ts";
+import { spaceLuaApi } from "$common/space_lua/stdlib/space_lua.ts";
 import { mathApi } from "$common/space_lua/stdlib/math.ts";
+import { parse } from "$common/space_lua/parse.ts";
+import { evalStatement } from "$common/space_lua/eval.ts";
 
 const printFunction = new LuaBuiltinFunction(async (_sf, ...args) => {
   console.log(
@@ -149,67 +140,26 @@ const getmetatableFunction = new LuaBuiltinFunction((_sf, table: LuaTable) => {
   return table.metatable;
 });
 
-// Non-standard
-const tagFunction = new LuaBuiltinFunction(
-  (sf, tagName: LuaValue): LuaQueryCollection => {
-    const global = sf.threadLocal.get("_GLOBAL");
-    if (!global) {
-      throw new LuaRuntimeError("Global not found", sf);
-    }
-    return {
-      query: async (query: LuaCollectionQuery, env: LuaEnv): Promise<any[]> => {
-        const localVars = findAllQueryVariables(query).filter((v) =>
-          !global.has(v) && v !== "_"
-        );
-        const scopedVariables: Record<string, any> = {};
-        for (const v of localVars) {
-          try {
-            const jsonValue = await luaValueToJS(env.get(v));
-            // Ensure this is JSON serializable
-            JSON.stringify(jsonValue);
-            scopedVariables[v] = jsonValue;
-          } catch (e: any) {
-            console.error(
-              "Failed to JSON serialize variable",
-              v,
-              e,
-            );
-            throw new LuaRuntimeError(
-              `Failed to JSON serialize variable ${v} in query`,
-              sf,
-            );
-          }
-        }
-        return (await global.get("datastore").get("query_lua").call(
-          sf,
-          [
-            "idx",
-            tagName,
-          ],
-          query,
-          scopedVariables,
-        )).toJSArray();
-      },
-    };
-  },
-);
-
-const tplFunction = new LuaBuiltinFunction(
-  (_sf, template: string): ILuaFunction => {
-    const lines = template.split("\n").map((line) =>
-      line.replace(/^\s{4}/, "")
+const dofileFunction = new LuaBuiltinFunction(async (sf, filename: string) => {
+  const global = sf.threadLocal.get("_GLOBAL");
+  const file = await luaCall(
+    global.get("space").get("read_file"),
+    [filename],
+    sf.astCtx!,
+    sf,
+  ) as Uint8Array;
+  const code = new TextDecoder().decode(file);
+  try {
+    const parsedExpr = parse(code);
+    const env = new LuaEnv(global);
+    await evalStatement(parsedExpr, env, sf.withCtx(parsedExpr.ctx));
+  } catch (e: any) {
+    throw new LuaRuntimeError(
+      `Error evaluating "${filename}": ${e.message}`,
+      sf,
     );
-    const processed = lines.join("\n");
-    return new LuaBuiltinFunction(
-      async (sf, env: LuaTable | any) => {
-        if (!(env instanceof LuaTable)) {
-          env = jsToLuaValue(env);
-        }
-        return await interpolateLuaString(sf, processed, env);
-      },
-    );
-  },
-);
+  }
+});
 
 export function luaBuildStandardEnv() {
   const env = new LuaEnv();
@@ -227,13 +177,11 @@ export function luaBuildStandardEnv() {
   env.set("setmetatable", setmetatableFunction);
   env.set("getmetatable", getmetatableFunction);
   env.set("rawset", rawsetFunction);
+  env.set("dofile", dofileFunction);
   // Error handling
   env.set("error", errorFunction);
   env.set("pcall", pcallFunction);
   env.set("xpcall", xpcallFunction);
-  // Non-standard
-  env.set("tag", tagFunction);
-  env.set("tpl", tplFunction);
   // APIs
   env.set("string", stringApi);
   env.set("table", tableApi);
@@ -243,6 +191,6 @@ export function luaBuildStandardEnv() {
   // Non-standard
   env.set("each", eachFunction);
   env.set("space_lua", spaceLuaApi);
-  env.set("template", templateApi);
+  // env.set("template", templateApi);
   return env;
 }

@@ -11,9 +11,10 @@ import type {
   SlashCompletionOption,
   SlashCompletions,
 } from "../../plug-api/types.ts";
-import { safeRun } from "$lib/async.ts";
+import { safeRun, throttle } from "$lib/async.ts";
 import type { SlashCommandDef, SlashCommandHookT } from "$lib/manifest.ts";
 import { parseCommand } from "$common/command.ts";
+import type { CommonSystem } from "$common/common_system.ts";
 
 export type AppSlashCommand = {
   slashCommand: SlashCommandDef;
@@ -23,15 +24,21 @@ export type AppSlashCommand = {
 const slashCommandRegexp = /([^\w:]|^)\/[\w#\-]*/;
 
 export class SlashCommandHook implements Hook<SlashCommandHookT> {
-  slashCommands = new Map<string, AppSlashCommand>();
+  slashCommands: AppSlashCommand[] = [];
   private editor: Client;
 
-  constructor(editor: Client) {
+  constructor(editor: Client, private commonSystem: CommonSystem) {
     this.editor = editor;
   }
 
-  buildAllCommands(system: System<SlashCommandHookT>) {
-    this.slashCommands.clear();
+  throttledBuildAllCommands = throttle(() => {
+    this.buildAllCommands();
+  }, 200);
+
+  buildAllCommands() {
+    const system = this.commonSystem.system;
+
+    this.slashCommands = [];
     for (const plug of system.loadedPlugs.values()) {
       for (
         const [name, functionDef] of Object.entries(
@@ -42,7 +49,7 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
           continue;
         }
         const cmd = functionDef.slashCommand;
-        this.slashCommands.set(cmd.name, {
+        this.slashCommands.push({
           slashCommand: cmd,
           run: () => {
             return plug.invoke(name, [cmd]);
@@ -50,12 +57,21 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
         });
       }
     }
+    // Iterate over script defined slash commands
+    for (
+      const command of Object.values(
+        this.commonSystem.scriptEnv.slashCommands,
+      )
+    ) {
+      this.slashCommands.push(command);
+    }
+    // Iterate over all shortcuts
     if (this.editor.config?.shortcuts) {
       // Add slash commands for shortcuts that configure them
       for (const shortcut of this.editor.config.shortcuts) {
         if (shortcut.slashCommand) {
           const parsedCommand = parseCommand(shortcut.command);
-          this.slashCommands.set(shortcut.slashCommand, {
+          this.slashCommands.push({
             slashCommand: {
               name: shortcut.slashCommand,
               description: parsedCommand.alias || parsedCommand.name,
@@ -92,7 +108,23 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
       return null;
     }
 
-    for (const def of this.slashCommands.values()) {
+    // Check if the slash command is available in the current context
+    const parentNodes = this.editor.extractParentNodes(ctx.state, currentNode);
+    for (const def of this.slashCommands) {
+      if (
+        def.slashCommand.onlyContexts && !def.slashCommand.onlyContexts.some(
+          (context) => parentNodes.some((node) => node.startsWith(context)),
+        )
+      ) {
+        continue;
+      }
+      if (
+        def.slashCommand.exceptContexts && def.slashCommand.exceptContexts.some(
+          (context) => parentNodes.some((node) => node.startsWith(context)),
+        )
+      ) {
+        continue;
+      }
       options.push({
         label: def.slashCommand.name,
         detail: def.slashCommand.description,
@@ -161,10 +193,10 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
   }
 
   apply(system: System<SlashCommandHookT>): void {
-    this.buildAllCommands(system);
+    this.buildAllCommands();
     system.on({
       plugLoaded: () => {
-        this.buildAllCommands(system);
+        this.buildAllCommands();
       },
     });
   }

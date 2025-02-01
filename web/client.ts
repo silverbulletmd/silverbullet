@@ -2,7 +2,7 @@ import type {
   CompletionContext,
   CompletionResult,
 } from "@codemirror/autocomplete";
-import type { Compartment } from "@codemirror/state";
+import type { Compartment, EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { indentUnit, syntaxTree } from "@codemirror/language";
 import { compile as gitIgnoreCompiler } from "gitignore-parser";
@@ -189,7 +189,9 @@ export class Client implements ConfigContainer {
           // Exclude all plug space primitives paths
           return !this.plugSpaceRemotePrimitives.isLikelyHandled(path) ||
             // Except federated ones
-            path.startsWith("!");
+            path.startsWith("!") ||
+            // Also exclude Library/Std
+            path.startsWith("Library/Std");
         },
       )
       : new NoSyncSyncService(this.space);
@@ -198,7 +200,7 @@ export class Client implements ConfigContainer {
     this.ui.render(this.parent);
 
     this.editorView = new EditorView({
-      state: createEditorState(this, "", "", false),
+      state: createEditorState(this, "", "", true),
       parent: document.getElementById("sb-editor")!,
     });
 
@@ -274,9 +276,7 @@ export class Client implements ConfigContainer {
       type: "config-loaded",
       config: this.config,
     });
-    this.clientSystem.slashCommandHook.buildAllCommands(
-      this.clientSystem.system,
-    );
+    this.clientSystem.slashCommandHook!.buildAllCommands();
     this.eventHook.dispatchEvent("config:loaded", this.config);
   }
 
@@ -306,6 +306,8 @@ export class Client implements ConfigContainer {
         } else { // initialSync
           // Let's load space scripts again, which probably weren't loaded before
           await this.clientSystem.loadSpaceScripts();
+          await this.loadCustomStyles();
+          this.rebuildEditorState();
           console.log(
             "Initial sync completed, now need to do a full space index to ensure all pages are indexed using any custom space script indexers",
           );
@@ -500,6 +502,10 @@ export class Client implements ConfigContainer {
         await this.navigate({ page: lastPage });
       }
     }
+    setTimeout(() => {
+      console.log("Focusing editor");
+      this.focus();
+    }, 100);
   }
 
   async initSpace(): Promise<SpacePrimitives> {
@@ -564,6 +570,7 @@ export class Client implements ConfigContainer {
         },
       );
     } else {
+      // Not in sync mode
       localSpacePrimitives = new EventedSpacePrimitives(
         this.plugSpaceRemotePrimitives,
         this.eventHook,
@@ -862,7 +869,6 @@ export class Client implements ConfigContainer {
 
   rebuildEditorState() {
     const editorView = this.editorView;
-    console.log("Rebuilding editor state");
 
     if (this.currentPage) {
       editorView.setState(
@@ -892,21 +898,13 @@ export class Client implements ConfigContainer {
     const linePrefix = line.text.slice(0, selection.from - line.from);
 
     // Build up list of parent nodes, some completions need this
-    const parentNodes: string[] = [];
     const sTree = syntaxTree(editorState);
-    const currentNode = sTree.resolveInner(selection.from);
-    if (currentNode) {
-      let node: SyntaxNode | null = currentNode;
-      do {
-        if (node.name === "FencedCode" || node.name === "FrontMatter") {
-          const body = editorState.sliceDoc(node.from + 3, node.to - 3);
-          parentNodes.push(`${node.name}:${body}`);
-        } else {
-          parentNodes.push(node.name);
-        }
-        node = node.parent;
-      } while (node);
-    }
+    const currentNode = sTree.resolveInner(editorState.selection.main.from);
+
+    const parentNodes: string[] = this.extractParentNodes(
+      editorState,
+      currentNode,
+    );
 
     // Dispatch the event
     const results = await this.dispatchAppEvent(eventName, {
@@ -947,6 +945,23 @@ export class Client implements ConfigContainer {
       }
     }
     return currentResult;
+  }
+
+  public extractParentNodes(editorState: EditorState, currentNode: SyntaxNode) {
+    const parentNodes: string[] = [];
+    if (currentNode) {
+      let node: SyntaxNode | null = currentNode;
+      do {
+        if (node.name === "FencedCode" || node.name === "FrontMatter") {
+          const body = editorState.sliceDoc(node.from + 3, node.to - 3);
+          parentNodes.push(`${node.name}:${body}`);
+        } else {
+          parentNodes.push(node.name);
+        }
+        node = node.parent;
+      } while (node);
+    }
+    return parentNodes;
   }
 
   editorComplete(

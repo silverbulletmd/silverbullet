@@ -4,6 +4,8 @@ tags: template
 hooks.snippet:
   slashCommand: "#if-else"
   order: 10
+  onlyContexts:
+  - FencedCode:template
 ---
 {{escapeDirective("#if |^|")}}
 

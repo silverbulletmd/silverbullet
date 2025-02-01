@@ -85,7 +85,15 @@ export function systemSyscalls(
       const commandHook = commonSystem!.commandHook;
       const allCommands: { [key: string]: CommandDef } = {};
       for (const [cmd, def] of commandHook.editorCommands) {
-        allCommands[cmd] = def.command;
+        allCommands[cmd] = {
+          name: def.command.name,
+          contexts: def.command.contexts,
+          priority: def.command.priority,
+          key: def.command.key,
+          mac: def.command.mac,
+          hide: def.command.hide,
+          requireMode: def.command.requireMode,
+        };
       }
       return allCommands;
     },

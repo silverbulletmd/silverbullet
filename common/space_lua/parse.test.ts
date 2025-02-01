@@ -1,4 +1,5 @@
-import { parse } from "$common/space_lua/parse.ts";
+import { parse, stripLuaComments } from "$common/space_lua/parse.ts";
+import { assertEquals } from "@std/assert/equals";
 
 Deno.test("Test Lua parser", () => {
   // Basic block test
@@ -13,6 +14,22 @@ Deno.test("Test Lua parser", () => {
   );
   parse(`e([[hel]lo]], "Grinny face\\u{1F600}")`);
   parse(`e([=[Hello page [[index]] end scene]=], [[yo]])`);
+
+  // console.log(
+  //   JSON.stringify(
+  parse(`e([==[Hello page [[index]] end scene]==], [==[yo]==])`),
+    // null,
+    // 2,
+    //   ),
+    // );
+    console.log(
+      JSON.stringify(
+        parse(`e([==[Hello page [[bla]]
+]==])`),
+        null,
+        2,
+      ),
+    );
 
   parse(`e(10 << 10, 10 >> 10, 10 & 10, 10 | 10, 10 ~ 10)`);
 
@@ -92,22 +109,30 @@ Deno.test("Test Lua parser", () => {
 });
 
 Deno.test("Test comment handling", () => {
-  parse(`
-        -- Single line comment
-        --[[ Multi
-        line
-        comment ]]
-        f([[
-        hello
-        -- yo
-      ]])`);
+  const code = `
+-- Single line comment
+--[[ Multi
+line
+comment ]]
+f([[
+hello
+-- yo
+]])`;
+  const code2 = stripLuaComments(code);
+  assertEquals(code2.length, code.length);
+  console.log(code2);
+  console.log(stripLuaComments(`e([==[
+    --- Hello
+  ]==])`));
 });
 
 Deno.test("Test query parsing", () => {
-  parse(`_(query[[from p = tag("page") where p.name == "John" limit 10, 3]])`);
-  parse(`_(query[[from tag("page") select {name="hello", age=10}]])`);
   parse(
-    `_(query[[from p = tag("page") order by p.lastModified desc, p.name]])`,
+    `_(query[[from p = index.tag("page") where p.name == "John" limit 10, 3]])`,
   );
-  parse(`_(query[[from p = tag("page") order by p.lastModified]])`);
+  parse(`_(query[[from index.tag("page") select {name="hello", age=10}]])`);
+  parse(
+    `_(query[[from p = index.tag("page") order by p.lastModified desc, p.name]])`,
+  );
+  parse(`_(query[[from p = index.tag("page") order by p.lastModified]])`);
 });

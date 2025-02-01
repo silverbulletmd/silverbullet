@@ -45,7 +45,13 @@ Deno.test("Evaluator test", async () => {
   assertEquals(evalExpr(`true and false`), false);
   assertEquals(evalExpr(`true or false`), true);
   assertEquals(evalExpr(`not true`), false);
-
+  // Test eager evaluation of left operand
+  assertEquals(
+    evalExpr(
+      `true or (function() error("this should not be evaluated") end)()`,
+    ),
+    true,
+  );
   // Tables
   const tbl = evalExpr(`{3, 1, 2}`);
   assertEquals(tbl.get(1), 3);

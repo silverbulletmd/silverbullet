@@ -11,6 +11,10 @@ functions:
   instantiatePageTemplate:
     path: page.ts:instantiatePageTemplate
 
+  applySnippetTemplate:
+    path: snippet.ts:applySnippetTemplate
+    env: client
+
   # Indexing
   indexTemplate:
     path: index.ts:indexTemplate

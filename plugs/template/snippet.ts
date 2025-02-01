@@ -29,20 +29,37 @@ export async function snippetSlashComplete(
     // where hooks.snippet.slashCommand exists
     filter: ["attr", ["attr", ["attr", "hooks"], "snippet"], "slashCommand"],
   }, 5);
-  return {
-    options: allTemplates.map((template) => {
-      const snippetTemplate = template.hooks!.snippet!;
+  const options: SlashCompletionOption[] = [];
+  for (const template of allTemplates) {
+    const snippetTemplate = template.hooks!.snippet!;
 
-      return {
-        label: snippetTemplate.slashCommand,
-        detail: template.description,
-        order: snippetTemplate.order || 0,
-        templatePage: template.ref,
-        pageName: completeEvent.pageName,
-        invoke: "template.insertSnippetTemplate",
-      };
-    }),
-  };
+    if (
+      snippetTemplate.onlyContexts && !snippetTemplate.onlyContexts.some(
+        (context) =>
+          completeEvent.parentNodes.some((node) => node.startsWith(context)),
+      )
+    ) {
+      continue;
+    }
+    if (
+      snippetTemplate.exceptContexts && snippetTemplate.exceptContexts.some(
+        (context) =>
+          completeEvent.parentNodes.some((node) => node.startsWith(context)),
+      )
+    ) {
+      continue;
+    }
+
+    options.push({
+      label: snippetTemplate.slashCommand,
+      detail: template.description,
+      order: snippetTemplate.order || 0,
+      templatePage: template.ref,
+      pageName: completeEvent.pageName,
+      invoke: "template.insertSnippetTemplate",
+    });
+  }
+  return { options };
 }
 
 export async function insertSnippetTemplate(
@@ -55,14 +72,13 @@ export async function insertSnippetTemplate(
   const config = await system.getSpaceConfig();
 
   const templateText = await space.readPage(slashCompletion.templatePage);
-  let { renderedFrontmatter, text: replacementText, frontmatter } =
+  const { renderedFrontmatter, text: replacementText, frontmatter } =
     await renderTemplate(
       templateText,
       pageObject,
       { page: pageObject, config },
     );
   const snippetTemplate: SnippetConfig = frontmatter.hooks.snippet;
-
   let cursorPos = await editor.getCursor();
 
   if (renderedFrontmatter) {
@@ -108,8 +124,21 @@ export async function insertSnippetTemplate(
     cursorPos = await editor.getCursor();
   }
 
-  if (snippetTemplate.insertAt) {
-    switch (snippetTemplate.insertAt) {
+  await applySnippetTemplate(replacementText, snippetTemplate);
+}
+
+export async function applySnippetTemplate(
+  templateText: string,
+  config: {
+    insertAt?: string;
+    match?: string;
+    matchRegex?: string;
+  },
+) {
+  let cursorPos = await editor.getCursor();
+
+  if (config.insertAt) {
+    switch (config.insertAt) {
       case "page-start":
         await editor.moveCursor(0);
         break;
@@ -141,12 +170,12 @@ export async function insertSnippetTemplate(
 
   cursorPos = await editor.getCursor();
 
-  if (snippetTemplate.match || snippetTemplate.matchRegex) {
+  if (config.match || config.matchRegex) {
     const pageText = await editor.getText();
 
     // Regex matching mode
     const matchRegex = new RegExp(
-      (snippetTemplate.match || snippetTemplate.matchRegex)!,
+      (config.match || config.matchRegex)!,
     );
 
     let startOfLine = cursorPos;
@@ -158,7 +187,7 @@ export async function insertSnippetTemplate(
       endOfLine++;
     }
     let currentLine = pageText.slice(startOfLine, endOfLine);
-    const caretParts = replacementText.split("|^|");
+    const caretParts = templateText.split("|^|");
     const emptyLine = !currentLine;
     currentLine = currentLine.replace(matchRegex, caretParts[0]);
 
@@ -190,9 +219,9 @@ export async function insertSnippetTemplate(
       selection: newSelection,
     });
   } else {
-    const carretPos = replacementText.indexOf("|^|");
-    replacementText = replacementText.replace("|^|", "");
-    await editor.insertAtCursor(replacementText);
+    const carretPos = templateText.indexOf("|^|");
+    templateText = templateText.replace("|^|", "");
+    await editor.insertAtCursor(templateText);
     if (carretPos !== -1) {
       await editor.moveCursor(cursorPos + carretPos);
     }

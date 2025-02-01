@@ -1,4 +1,37 @@
 name: core
+assets:
+  - "Library/Std/*"
+functions:
+  init:
+    path: ./std.ts:init
+    env: server
+    events:
+      - system:ready
+  readFile:
+    path: ./std.ts:readFile
+    pageNamespace:
+      pattern: "^Library/Std/.+"
+      operation: readFile
+  writeFile:
+    path: ./std.ts:writeFile
+    pageNamespace:
+      pattern: "^Library/Std/.+"
+      operation: writeFile
+  deleteFile:
+    path: ./std.ts:deleteFile
+    pageNamespace:
+      pattern: "^Library/Std/.+"
+      operation: deleteFile
+  getFileMeta:
+    path: ./std.ts:getFileMeta
+    pageNamespace:
+      pattern: "^Library/Std/.+"
+      operation: getFileMeta
+  listFiles:
+    path: ./std.ts:listFiles
+    pageNamespace:
+      pattern: "^Library/Std/.+"
+      operation: listFiles
 config:
   # Built-in schemas
   schema.tag:

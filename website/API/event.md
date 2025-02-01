@@ -4,13 +4,25 @@ The Event API provides functions for working with SilverBullet's event bus syste
 
 ## Event Operations
 
-### event.dispatch_event(event_name, data, timeout)
+### event.listen(listener_def)
+Register an event listener.
+
+```lua
+event.listen {
+  name = "my-event",
+  run = function(e)
+    print("Data", e.data)
+  end
+}
+```
+
+### event.dispatch(event_name, data, timeout)
 Triggers an event on the SilverBullet event bus. Event handlers can return values, which are accumulated and returned to the caller.
 
 Example:
 ```lua
 -- Simple event dispatch
-event.dispatch_event("custom.event", {message = "Hello"})
+event.dispatch("custom.event", {message = "Hello"})
 
 -- Event dispatch with timeout and response handling
 local responses = event.dispatch_event("data.request", {id = 123}, 5000)

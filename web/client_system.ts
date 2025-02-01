@@ -45,6 +45,8 @@ import { plugPrefix } from "$common/spaces/constants.ts";
 import { jsonschemaSyscalls } from "$common/syscalls/jsonschema.ts";
 import { luaSyscalls } from "$common/syscalls/lua.ts";
 import { indexSyscalls } from "$common/syscalls/index.ts";
+import { commandSyscalls } from "$common/syscalls/command.ts";
+import { eventListenerSyscalls } from "$common/syscalls/event.ts";
 
 const plugNameExtractRegex = /\/(.+)\.plug\.js$/;
 
@@ -123,7 +125,7 @@ export class ClientSystem extends CommonSystem {
     this.system.addHook(this.commandHook);
 
     // Slash command hook
-    this.slashCommandHook = new SlashCommandHook(this.client);
+    this.slashCommandHook = new SlashCommandHook(this.client, this);
     this.system.addHook(this.slashCommandHook);
 
     this.eventHook.addLocalListener(
@@ -145,13 +147,14 @@ export class ClientSystem extends CommonSystem {
 
   init() {
     // Slash command hook
-    this.slashCommandHook = new SlashCommandHook(this.client);
+    this.slashCommandHook = new SlashCommandHook(this.client, this);
     this.system.addHook(this.slashCommandHook);
 
     // Syscalls available to all plugs
     this.system.registerSyscalls(
       [],
       eventSyscalls(this.eventHook),
+      eventListenerSyscalls(this),
       editorSyscalls(this.client),
       spaceReadSyscalls(this.client),
       systemSyscalls(this.system, false, this, this.client, this.client),
@@ -163,7 +166,8 @@ export class ClientSystem extends CommonSystem {
       clientCodeWidgetSyscalls(),
       languageSyscalls(),
       jsonschemaSyscalls(),
-      indexSyscalls(this.system),
+      indexSyscalls(this),
+      commandSyscalls(this),
       luaSyscalls(),
       this.client.syncMode
         // In sync mode handle locally

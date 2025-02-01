@@ -1,7 +1,10 @@
 ---
 description: Insert a fenced code block
 tags: template
-hooks.snippet.slashCommand: code
+hooks.snippet:
+  slashCommand: code
+  exceptContexts:
+  - FencedCode
 ---
 ```|^|
 

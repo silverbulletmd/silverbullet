@@ -1,6 +1,7 @@
 import {
   type ILuaFunction,
   LuaBuiltinFunction,
+  type LuaEnv,
   luaEquals,
   LuaRuntimeError,
   LuaTable,
@@ -17,7 +18,10 @@ export const tableApi = new LuaTable({
    * @returns The concatenated string.
    */
   concat: new LuaBuiltinFunction(
-    (_sf, tbl: LuaTable, sep?: string, i?: number, j?: number) => {
+    (_sf, tbl: LuaTable | any[], sep?: string, i?: number, j?: number) => {
+      if (Array.isArray(tbl)) {
+        return tbl.join(sep);
+      }
       sep = sep ?? "";
       i = i ?? 1;
       j = j ?? tbl.length;
@@ -70,7 +74,8 @@ export const tableApi = new LuaTable({
    * @param tbl - The table to get the keys from.
    * @returns The keys of the table.
    */
-  keys: new LuaBuiltinFunction((_sf, tbl: LuaTable) => {
+  keys: new LuaBuiltinFunction((_sf, tbl: LuaTable | LuaEnv) => {
+    console.log("Keys", tbl);
     return tbl.keys();
   }),
   /**

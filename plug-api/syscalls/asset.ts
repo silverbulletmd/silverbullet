@@ -1,5 +1,6 @@
 import { base64DecodeDataUrl } from "../../lib/crypto.ts";
 import { syscall } from "../syscall.ts";
+import type { FileMeta } from "@silverbulletmd/silverbullet/types";
 
 /**
  * Reads an asset embedded in a plug (via the `assets` field in the plug manifest).
@@ -20,4 +21,15 @@ export async function readAsset(
     case "dataurl":
       return dataUrl;
   }
+}
+
+export async function listFiles(plugName: string): Promise<FileMeta[]> {
+  return await syscall("asset.listFiles", plugName);
+}
+
+export async function getFileMeta(
+  plugName: string,
+  name: string,
+): Promise<FileMeta> {
+  return await syscall("asset.getFileMeta", plugName, name);
 }

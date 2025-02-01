@@ -1,24 +1,18 @@
 import { luaBuildStandardEnv } from "$common/space_lua/stdlib.ts";
 import { parsePageRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import {
-  jsToLuaValue,
-  LuaBuiltinFunction,
   LuaEnv,
   LuaNativeJSFunction,
   LuaStackFrame,
   LuaTable,
 } from "$common/space_lua/runtime.ts";
 import type { System } from "$lib/plugos/system.ts";
-import type { ScriptEnvironment } from "$common/space_script.ts";
-import type { CommandDef } from "$lib/command.ts";
 
-export function buildLuaEnv(system: System<any>, scriptEnv: ScriptEnvironment) {
+export function buildLuaEnv(system: System<any>) {
   const env = new LuaEnv(luaBuildStandardEnv());
 
   // Expose all syscalls to Lua
   exposeSyscalls(env, system);
-  // Support defining commands and subscriptions from Lua
-  exposeDefinitions(env, system, scriptEnv);
 
   return env;
 }
@@ -26,10 +20,10 @@ export function buildLuaEnv(system: System<any>, scriptEnv: ScriptEnvironment) {
 function exposeSyscalls(env: LuaEnv, system: System<any>) {
   // Expose all syscalls to Lua
   // Except...
-  const exclude = ["template"];
+  const blacklist = ["template", "shell"];
   const nativeFs = new LuaStackFrame(env, null);
   for (const syscallName of system.registeredSyscalls.keys()) {
-    if (exclude.includes(syscallName)) {
+    if (blacklist.includes(syscallName)) {
       continue;
     }
     const [ns, fn] = syscallName.split(".");
@@ -45,93 +39,29 @@ function exposeSyscalls(env: LuaEnv, system: System<any>) {
   }
 }
 
-function exposeDefinitions(
-  env: LuaEnv,
+export async function buildThreadLocalEnv(
   system: System<any>,
-  scriptEnv: ScriptEnvironment,
+  globalEnv: LuaEnv,
 ) {
-  // Expose the command registration function to Lua via define_command({name="foo", function() ... end})
-  env.set(
-    "define_command",
-    new LuaBuiltinFunction(
-      (_sf, def: LuaTable) => {
-        if (def.get(1) === undefined) {
-          throw new Error("Callback is required");
-        }
-        if (!def.get("name")) {
-          throw new Error("Name is required");
-        }
-        const fn = def.get(1);
-        console.log(
-          `[Lua] Registering command '${
-            def.get("name")
-          }' (source: ${fn.body.ctx.ref})`,
-        );
-        scriptEnv.registerCommand(
-          {
-            name: def.get("name"),
-            key: def.get("key"),
-            mac: def.get("mac"),
-            priority: def.get("priority"),
-            requireMode: def.get("require_mode"),
-            hide: def.get("hide"),
-          } as CommandDef,
-          async (...args: any[]) => {
-            const tl = await buildThreadLocalEnv(system, env);
-            const sf = new LuaStackFrame(tl, null);
-            try {
-              return await fn.call(sf, ...args.map(jsToLuaValue));
-            } catch (e: any) {
-              await handleLuaError(e, system);
-            }
-          },
-        );
-      },
-    ),
-  );
-  env.set(
-    "define_event_listener",
-    new LuaBuiltinFunction((_sf, def: LuaTable) => {
-      if (def.get(1) === undefined) {
-        throw new Error("Callback is required");
-      }
-      if (!def.get("event")) {
-        throw new Error("Event is required");
-      }
-      const fn = def.get(1);
-      console.log(
-        `[Lua] Subscribing to event '${
-          def.get("event")
-        }' (source: ${fn.body.ctx.ref})`,
-      );
-      scriptEnv.registerEventListener(
-        { name: def.get("event") },
-        async (...args: any[]) => {
-          const tl = await buildThreadLocalEnv(system, env);
-          const sf = new LuaStackFrame(tl, null);
-          try {
-            return await fn.call(sf, ...args.map(jsToLuaValue));
-          } catch (e: any) {
-            await handleLuaError(e, system);
-          }
-        },
-      );
-    }),
-  );
-}
-
-function buildThreadLocalEnv(_system: System<any>, globalEnv: LuaEnv) {
   const tl = new LuaEnv();
-  // const currentPageMeta = await system.localSyscall(
-  //   "editor.getCurrentPageMeta",
-  //   [],
-  // );
-  // tl.setLocal("pageMeta", currentPageMeta);
+  if (system.registeredSyscalls.has("editor.getCurrentPageMeta")) {
+    const currentPageMeta = await system.localSyscall(
+      "editor.getCurrentPageMeta",
+      [],
+    );
+    if (currentPageMeta) {
+      tl.setLocal("currentPage", currentPageMeta);
+    } else {
+      tl.setLocal("currentPage", {
+        name: await system.localSyscall("editor.getCurrentPage", []),
+      });
+    }
+  }
   tl.setLocal("_GLOBAL", globalEnv);
   return Promise.resolve(tl);
 }
 
-async function handleLuaError(e: any, system: System<any>) {
+export async function handleLuaError(e: any, system: System<any>) {
   console.error(
     "Lua eval exception",
     e.message,

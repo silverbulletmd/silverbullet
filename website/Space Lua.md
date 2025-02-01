@@ -60,7 +60,7 @@ For example: 10 + 2 = ${adder(10, 2)} (Alt-click, or select to see the expressio
 Space Lua has a feature called [[Space Lua/Lua Integrated Query]], which integrate SQL-like queries into Lua. By using this feature, you can easily replicate [[Live Queries]]. More detail in [[Space Lua/Lua Integrated Query]], but here’s a small example querying the last 3 modifies pages:
 
 ${query[[
-  from tag "page"
+  from index.tag "page"
   order by lastModified desc
   select name
   limit 3
@@ -101,12 +101,12 @@ ${marquee "Finally, marqeeeeeeee!"}
 Oh boy, the times we live in!
 
 ## Commands
-Custom commands can be defined using `define_command`:
+Custom commands can be defined using `command.define`:
 
 ```space-lua
-define_command {
-  name = "Hello World";
-  function()
+command.define {
+  name = "Hello World",
+  run = function()
     editor.flash_notification "Hello world!"
     event.dispatch("my-custom-event", {name="Pete"})
   end
@@ -116,15 +116,14 @@ define_command {
 Try it: {[Hello World]}
 
 ## Event listeners
-You can listen to events using `define_event_listener`:
+You can listen to events using `event.listen`:
 
 ```space-lua
-define_event_listener {
-  event = "my-custom-event";
-  function(e)
+event.listen {
+  name = "my-custom-event";
+  run = function(e)
     editor.flash_notification("Custom triggered: "
-       .. e.data.name
-       .. " on page " .. _CTX.pageMeta.name)
+       .. e.data.name)
   end
 }
 ```
@@ -138,8 +137,8 @@ Space Lua currently introduces a few new features on top core Lua:
 ## Thread locals
 There’s a magic `_CTX` global variable available from which you can access useful context-specific values. Currently the following keys are available:
 
-* `_CTX.pageMeta` contains a reference to the loaded page metadata (can be `nil` when not yet loaded)
-* `_CTX.GLOBAL` providing access to the global scope
+* `_CTX.currentPage` providing access (in the client only) to the currently open page (PageMeta object)
+* `_CTX._GLOBAL` providing access to the global scope
 
 # API
 Lua APIs, which should be (roughly) implemented according to the Lua standard.
