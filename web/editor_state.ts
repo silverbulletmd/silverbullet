@@ -16,6 +16,7 @@ import {
 import {
   codeFolding,
   indentOnInput,
+  indentUnit,
   LanguageDescription,
   LanguageSupport,
   syntaxHighlighting,
@@ -65,6 +66,11 @@ export function createEditorState(
   client.keyHandlerCompartment = new Compartment();
   const keyBindings = client.keyHandlerCompartment.of(
     createKeyBindings(client),
+  );
+
+  client.indentUnitCompartment = new Compartment();
+  const indentUnits = client.indentUnitCompartment.of(
+    indentUnit.of("  "),
   );
 
   return EditorState.create({
@@ -135,6 +141,7 @@ export function createEditorState(
       codeFolding({
         placeholderText: "…",
       }),
+      indentUnits,
       indentOnInput(),
       ...cleanModePlugins(client),
       EditorView.lineWrapping,

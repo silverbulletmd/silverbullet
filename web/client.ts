@@ -4,7 +4,7 @@ import type {
 } from "@codemirror/autocomplete";
 import type { Compartment, EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { syntaxTree } from "@codemirror/language";
+import { indentUnit, syntaxTree } from "@codemirror/language";
 import { compile as gitIgnoreCompiler } from "gitignore-parser";
 import type { SyntaxNode } from "@lezer/common";
 import { Space } from "../common/space.ts";
@@ -119,6 +119,7 @@ export class Client implements ConfigContainer {
   // CodeMirror editor
   editorView!: EditorView;
   keyHandlerCompartment?: Compartment;
+  indentUnitCompartment?: Compartment;
 
   private pageNavigator!: PathPageNavigator;
 
@@ -1173,6 +1174,17 @@ export class Client implements ConfigContainer {
         console.error,
       );
     }
+
+    const indentMultiplier = this.config.indentMultiplier ?? 1;
+    this.editorView.dispatch({
+      effects: this.indentUnitCompartment?.reconfigure(
+        indentUnit.of("  ".repeat(indentMultiplier)),
+      ), // Change the indentation unit to 2 spaces
+    });
+    document.documentElement.style.setProperty(
+      "--editor-indent-multiplier",
+      indentMultiplier.toString(),
+    );
   }
 
   tweakEditorDOM(contentDOM: HTMLElement) {
