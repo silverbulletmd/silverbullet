@@ -233,6 +233,7 @@ function render(
         name: "a",
         attrs: {
           href: url,
+          target: "_blank",
         },
         body: cleanTags(mapRender(linkTextChildren)),
       };
@@ -255,6 +256,7 @@ function render(
         name: "a",
         attrs: {
           href: url,
+          target: "_blank",
         },
         body: url,
       };
@@ -333,6 +335,7 @@ function render(
         name: "a",
         attrs: {
           href: url,
+          target: "_blank",
         },
         body: url,
       };
