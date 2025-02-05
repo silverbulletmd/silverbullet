@@ -32,7 +32,8 @@ export class MainUI {
           closeSearchPanel(client.editorView);
           return;
         } else if (
-          target.className === "cm-textfield" || target.closest(".cm-content")
+          target.className === "cm-textfield" ||
+          target.closest(".cm-content") || target.closest(".cm-vim-panel")
         ) {
           // In some cm element, let's back out
           return;
