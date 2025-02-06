@@ -11,7 +11,7 @@ import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
 import { renderToText } from "@silverbulletmd/silverbullet/lib/tree";
 import { activeWidgets } from "./markdown_widget.ts";
 import { attachWidgetEventHandlers } from "./widget_util.ts";
-import { renderExpressionResult } from "$common/template/render.ts";
+import { renderExpressionResult } from "../../plugs/template/util.ts";
 
 export type LuaWidgetCallback = (
   bodyText: string,

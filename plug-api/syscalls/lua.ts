@@ -6,3 +6,9 @@ export function parse(
 ): Promise<ParseTree> {
   return syscall("lua.parse", code);
 }
+
+export function evalExpression(
+  expression: string,
+): Promise<any> {
+  return syscall("lua.evalExpression", expression);
+}

@@ -168,7 +168,7 @@ export class ClientSystem extends CommonSystem {
       jsonschemaSyscalls(),
       indexSyscalls(this),
       commandSyscalls(this),
-      luaSyscalls(),
+      luaSyscalls(this),
       this.client.syncMode
         // In sync mode handle locally
         ? mqSyscalls(this.mq)

@@ -2,8 +2,7 @@ import type { AST } from "../../plug-api/lib/tree.ts";
 import { evalQueryExpression } from "@silverbulletmd/silverbullet/lib/query_expression";
 import { expressionToKvQueryExpression } from "../../plug-api/lib/parse_query.ts";
 import type { FunctionMap } from "../../plug-api/types.ts";
-import { jsonToMDTable } from "../../plugs/template/util.ts";
-import { LuaTable } from "$common/space_lua/runtime.ts";
+import { renderExpressionResult } from "../../plugs/template/util.ts";
 
 export async function renderTemplate(
   ast: AST,
@@ -81,35 +80,6 @@ async function renderExpressionDirective(
     functionMap,
   );
   return renderExpressionResult(result);
-}
-
-export function renderExpressionResult(result: any): string {
-  if (result instanceof LuaTable) {
-    result = result.toJS();
-  }
-  if (
-    Array.isArray(result) && result.length > 0 && typeof result[0] === "object"
-  ) {
-    // If result is an array of objects, render as a markdown table
-    try {
-      return jsonToMDTable(result);
-    } catch (e: any) {
-      console.error(
-        `Error rendering expression directive: ${e.message} for value ${
-          JSON.stringify(result)
-        }`,
-      );
-      return JSON.stringify(result);
-    }
-  } else if (typeof result === "object" && result.constructor === Object) {
-    // if result is a plain object, render as a markdown table
-    return jsonToMDTable([result]);
-  } else if (Array.isArray(result)) {
-    // Not-object array, let's render it as a markdown list
-    return result.map((item) => `- ${item}`).join("\n");
-  } else {
-    return "" + result;
-  }
 }
 
 async function renderEachVarDirective(

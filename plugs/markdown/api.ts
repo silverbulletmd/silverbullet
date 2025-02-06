@@ -4,7 +4,7 @@ import {
   renderToText,
   replaceNodesMatchingAsync,
 } from "../../plug-api/lib/tree.ts";
-import { codeWidget } from "@silverbulletmd/silverbullet/syscalls";
+import { codeWidget, lua } from "@silverbulletmd/silverbullet/syscalls";
 import { parseMarkdown } from "../../plug-api/syscalls/markdown.ts";
 import {
   type MarkdownRenderOptions,
@@ -12,6 +12,8 @@ import {
 } from "./markdown_render.ts";
 import { validatePageName } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { parsePageRef } from "@silverbulletmd/silverbullet/lib/page_ref";
+import type { LuaExpression } from "$common/space_lua/ast.ts";
+import { renderExpressionResult } from "../template/util.ts";
 
 /**
  * Finds code widgets, runs their plug code to render and inlines their content in the parse tree
@@ -102,6 +104,26 @@ export async function expandCodeWidgets(
           page,
         );
       }
+    } else if (n.type === "LuaDirective") {
+      const expr: LuaExpression | null = findNodeOfType(
+        n,
+        "LuaExpressionDirective",
+      ) as LuaExpression | null;
+      if (!expr) {
+        return;
+      }
+      const exprText = renderToText(expr);
+
+      let result = await lua.evalExpression(exprText);
+
+      if (result.markdown) {
+        result = result.markdown;
+      }
+
+      const markdown = renderExpressionResult(result);
+
+      console.log("Expanding LuaDirective", exprText, result, markdown);
+      return await parseMarkdown(markdown);
     }
   });
   return mdTree;
