@@ -69,7 +69,7 @@ assert(result == "XXllo", "Empty capture replacement failed")
 
 -- Patterns with magic characters
 result = string.gsub("hello.world", "%.", "-")
-assert(result == "hello-world", "Magic character replacement failed") 
+assert(result == "hello-world", "Magic character replacement failed")
 
 -- Test string.match
 local m1, m2 = string.match("hello world", "(h)(ello)")
@@ -141,3 +141,12 @@ assert_equal(year, "14")
 local word = string.match("The quick brown fox", "%s*(%w+)%s*")
 assert_equal(word, "The")
 
+-- Test match_regex_all
+local matches = {}
+for match in string.match_regex_all("hellolllbl", "(l+)") do
+    table.insert(matches, match)
+end
+assert_equal(#matches, 3)
+assert_equal(matches[1][1], "ll")
+assert_equal(matches[2][1], "lll")
+assert_equal(matches[3][1], "l")
