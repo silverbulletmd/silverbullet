@@ -57,7 +57,7 @@ export async function buildThreadLocalEnv(
     }
   }
   tl.setLocal("_GLOBAL", globalEnv);
-  return Promise.resolve(tl);
+  return tl;
 }
 
 export async function handleLuaError(e: LuaRuntimeError, system: System<any>) {

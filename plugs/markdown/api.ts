@@ -116,13 +116,11 @@ export async function expandCodeWidgets(
 
       let result = await lua.evalExpression(exprText);
 
-      if (result.markdown) {
+      if (result?.markdown) {
         result = result.markdown;
       }
 
       const markdown = renderExpressionResult(result);
-
-      console.log("Expanding LuaDirective", exprText, result, markdown);
       return await parseMarkdown(markdown);
     }
   });

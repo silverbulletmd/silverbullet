@@ -141,9 +141,7 @@ There's a magic `_CTX` global variable available from which you can access usefu
 * `_CTX._GLOBAL` providing access to the global scope
 
 # API
-All of these are available via the global namespace:
-${template.each(query[[from index.tag "page" where string.startswith(name, "API/")]], templates.pageItem)}
-
+![[API]]
 While in [[Space Script]] all syscalls are asynchronous and need to be called with `await`, this is happens transparently in Space Lua leading to cleaner code:
 
 ```space-lua
