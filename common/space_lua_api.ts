@@ -3,6 +3,7 @@ import { parsePageRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import {
   LuaEnv,
   LuaNativeJSFunction,
+  type LuaRuntimeError,
   LuaStackFrame,
   LuaTable,
 } from "$common/space_lua/runtime.ts";
@@ -61,15 +62,15 @@ export async function buildThreadLocalEnv(
   return Promise.resolve(tl);
 }
 
-export async function handleLuaError(e: any, system: System<any>) {
+export async function handleLuaError(e: LuaRuntimeError, system: System<any>) {
   console.error(
     "Lua eval exception",
     e.message,
-    e.context,
+    e.sf.astCtx,
   );
-  if (e.context && e.context.ref) {
+  if (e.sf.astCtx && e.sf.astCtx.ref) {
     // We got an error and actually know where it came from, let's navigate there to help debugging
-    const pageRef = parsePageRef(e.context.ref);
+    const pageRef = parsePageRef(e.sf.astCtx.ref);
     await system.localSyscall(
       "editor.flashNotification",
       [
@@ -87,7 +88,8 @@ export async function handleLuaError(e: any, system: System<any>) {
     await system.localSyscall("editor.navigate", [
       {
         page: pageRef.page,
-        pos: pageRef.pos + e.context.from +
+        pos: (typeof pageRef.pos === "number" ? pageRef.pos : 0) +
+          (e.sf.astCtx?.from ?? 0) +
           "```space-lua\n".length,
       },
     ]);
