@@ -700,7 +700,7 @@ export class HttpServer {
         const originalUrl = new URL(req.url);
         let url = req.param("uri")!.slice(1) + originalUrl.search;
 
-        if (!req.header("X-Proxy-Request")) {
+        if (!req.header("X-Proxy-Request") && req.method === "GET") {
           // Direct browser request, not explicity fetch proxy request
           if (!looksLikePathWithExtension(url)) {
             console.log("Directly loading federation page via URL:", url);
@@ -713,6 +713,7 @@ export class HttpServer {
         } else {
           url = `https://${url}`;
         }
+        console.log("Proxying to", url);
         try {
           const safeRequestHeaders = new Headers();
           for (
