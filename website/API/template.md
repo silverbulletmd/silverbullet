@@ -8,10 +8,10 @@ Example:
 ```space-lua
 examples = examples or {}
 
-examples.say_hello = template.new[==[Hello ${name}!]==]
+examples.sayHello = template.new[==[Hello ${name}!]==]
 ```
 
-And its use: ${examples.say_hello {name="Pete"}}
+And its use: ${examples.sayHello {name="Pete"}}
 
 ## template.each(collection, template)
 Iterates over a collection and renders a template for each item.

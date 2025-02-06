@@ -100,7 +100,7 @@ export async function interpolateLuaString(
   return result;
 }
 
-export const spaceLuaApi = new LuaTable({
+export const spaceluaApi = new LuaTable({
   /**
    * Parses a lua expression and returns the parsed expression.
    *
@@ -108,7 +108,7 @@ export const spaceLuaApi = new LuaTable({
    * @param luaExpression - The lua expression to parse.
    * @returns The parsed expression.
    */
-  parse_expression: new LuaBuiltinFunction(
+  parseExpression: new LuaBuiltinFunction(
     (_sf, luaExpression: string) => {
       return parseExpressionString(luaExpression);
     },
@@ -121,7 +121,7 @@ export const spaceLuaApi = new LuaTable({
    * @param envAugmentation - An optional environment to augment the global environment with.
    * @returns The result of the evaluated expression.
    */
-  eval_expression: new LuaBuiltinFunction(
+  evalExpression: new LuaBuiltinFunction(
     async (sf, parsedExpr: LuaExpression, envAugmentation?: LuaTable) => {
       const env = createAugmentedEnv(sf, envAugmentation);
       return luaValueToJS(await evalExpression(parsedExpr, env, sf));
@@ -138,7 +138,7 @@ export const spaceLuaApi = new LuaTable({
   /**
    * Returns your SilverBullet instance's base URL, or `undefined` when run on the server
    */
-  base_url: new LuaBuiltinFunction(
+  baseUrl: new LuaBuiltinFunction(
     () => {
       // Deal with Deno
       if (typeof location === "undefined") {

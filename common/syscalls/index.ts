@@ -111,7 +111,7 @@ export function indexSyscalls(commonSystem: CommonSystem): SysCallMapping {
               );
             }
           }
-          return (await global.get("datastore").get("query_lua").call(
+          return (await global.get("datastore").get("queryLua").call(
             sf,
             [
               "idx",

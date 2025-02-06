@@ -4,7 +4,7 @@ The Event API provides functions for working with SilverBullet's event bus syste
 
 ## Event Operations
 
-### event.listen(listener_def)
+### event.listen(listenerDef)
 Register an event listener.
 
 ```lua
@@ -16,7 +16,7 @@ event.listen {
 }
 ```
 
-### event.dispatch(event_name, data, timeout)
+### event.dispatch(eventName, data, timeout)
 Triggers an event on the SilverBullet event bus. Event handlers can return values, which are accumulated and returned to the caller.
 
 Example:
@@ -25,19 +25,18 @@ Example:
 event.dispatch("custom.event", {message = "Hello"})
 
 -- Event dispatch with timeout and response handling
-local responses = event.dispatch_event("data.request", {id = 123}, 5000)
+local responses = event.dispatchEvent("data.request", {id = 123}, 5000)
 for _, response in ipairs(responses) do
     print(response)
 end
 ```
 
-### event.list_events()
+### event.listEvents()
 Lists all events currently registered (listened to) on the SilverBullet event bus.
 
 Example:
 ```lua
-local events = event.list_events()
-for _, event_name in ipairs(events) do
-    print("Registered event: " .. event_name)
+local events = event.listEvents()
+for _, eventName in ipairs(events) do
+    print("Registered event: " .. eventName)
 end
-``` 

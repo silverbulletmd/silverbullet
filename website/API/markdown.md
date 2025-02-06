@@ -4,7 +4,7 @@ The Markdown API provides functions for parsing and rendering Markdown content.
 
 ## Markdown Operations
 
-### markdown.parse_markdown(text)
+### markdown.parseMarkdown(text)
 Parses a piece of markdown text into a ParseTree.
 
 Example:
@@ -15,18 +15,17 @@ local text = [[
 This is a **bold** statement.
 ]]
 
-local tree = markdown.parse_markdown(text)
+local tree = markdown.parseMarkdown(text)
 print("Parsed markdown tree:", tree)
 ```
 
-### markdown.render_parse_tree(tree)
+### markdown.renderParseTree(tree)
 Renders a ParseTree back to markdown text.
 
 Example:
 ```lua
 local text = "# Title\n\nSome text"
-local tree = markdown.parse_markdown(text)
+local tree = markdown.parseMarkdown(text)
 -- Modify tree if needed
-local rendered = markdown.render_parse_tree(tree)
+local rendered = markdown.renderParseTree(tree)
 print("Rendered markdown:", rendered)
-``` 

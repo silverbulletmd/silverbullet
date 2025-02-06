@@ -1,4 +1,3 @@
-
 The Datastore API provides functions for interacting with a key-value store that has query capabilities.
 
 # Key-Value Operations
@@ -30,7 +29,7 @@ datastore.del("user:123")
 
 # Batch Operations
 
-## datastore.batch_set(kvs)
+## datastore.batchSet(kvs)
 Sets multiple key-value pairs in a single operation.
 
 Example:
@@ -39,27 +38,25 @@ local kvs = {
     {key = "user:1", value = {name = "Alice"}},
     {key = "user:2", value = {name = "Bob"}}
 }
-datastore.batch_set(kvs)
+datastore.batchSet(kvs)
 ```
 
-## datastore.batch_get(keys)
+## datastore.batchGet(keys)
 Gets multiple values in a single operation.
 
 Example:
 ```lua
 local keys = {"user:1", "user:2"}
-local values = datastore.batch_get(keys)
+local values = datastore.batchGet(keys)
 for _, value in ipairs(values) do
     print(value.name)
 end
 ```
 
-## datastore.batch_del(keys)
+## datastore.batchDel(keys)
 Deletes multiple values in a single operation.
 
 Example:
 ```lua
 local keys = {"user:1", "user:2"}
-datastore.batch_del(keys)
-```
-
+datastore.batchDel(keys)

@@ -210,12 +210,12 @@ print(math.ult(2, 1))    -- prints: false
 ```
 
 # Non-standard Extensions
-## math.cosine_similarity(vecA, vecB)
+## math.cosineSimilarity(vecA, vecB)
 Returns the cosine similarity between two vectors.
 
 Example:
 ```lua
 local vec1 = {1, 2, 3}
 local vec2 = {4, 5, 6}
-print(math.cosine_similarity(vec1, vec2))    -- prints: 0.9746318461970762
+print(math.cosineSimilarity(vec1, vec2))    -- prints: 0.9746318461970762
 ```

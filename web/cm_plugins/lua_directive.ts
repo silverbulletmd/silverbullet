@@ -81,7 +81,7 @@ export function luaDirectivePlugin(client: Client) {
                   return result;
                 } catch (e: any) {
                   if (e instanceof LuaRuntimeError) {
-                    if (e.sf.astCtx) {
+                    if (e.sf?.astCtx) {
                       const source = resolveASTReference(e.sf.astCtx);
                       if (source) {
                         // We know the origin node of the error, let's reference it

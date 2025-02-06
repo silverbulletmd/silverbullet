@@ -5,6 +5,7 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 _These features are not yet properly released, you need to use [the edge builds](https://community.silverbullet.md/t/living-on-the-edge-builds/27) to try them._
 
+* **Lua Breaking change**: Converted all custom (non-standard) Lua APIs from snake_case to camelCase. This will likely result in a lot of `calling nil as function` style errors, but it's a necessary step to make the API more consistent and easier to use. Also, error reporting should now be better, and often directly navigate to the place in the code where the error occurred.
 * (Security) Implemented a lockout mechanism after a number of failed login attempts for [[Authentication]] (configured via [[Install/Configuration#Authentication]]) (by [Peter Weston](https://github.com/silverbulletmd/silverbullet/pull/1152))
 
 ## 0.10.1
@@ -405,4 +406,3 @@ Other notable changes:
   * [BLOCKED] A task that’s blocked
   [[Plugs/Tasks|Read more]]
 * Removed [[Cloud Links]] support in favor of [[Federation]]. If you still have legacy cloud links, simply replace the 🌩️ with a `!` and things should work as before.
-

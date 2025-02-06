@@ -9,7 +9,7 @@ Example:
 
 ${query[[from index.tag("page") limit 1]]}
 
-## index.index_objects(page, objects)
+## index.indexObjects(page, objects)
 Indexes an array of objects for a specific page.
 
 Example:
@@ -18,24 +18,23 @@ local objects = {
     {tag = "mytask", ref="task1", content = "Buy groceries"},
     {tag = "mytask", ref="task2", content = "Write docs"}
 }
-index.index_objects("my page", objects)
+index.indexObjects("my page", objects)
 ```
 
-## index.query_lua_objects(tag, query, scoped_variables?)
+## index.queryLuaObjects(tag, query, scopedVariables?)
 Queries objects using a Lua-based collection query.
 
 Example:
 ```lua
-local tasks = index.query_lua_objects("mytask", {limit=3})
+local tasks = index.queryLuaObjects("mytask", {limit=3})
 ```
 
-## index.get_object_by_ref(page, tag, ref)
+## index.getObjectByRef(page, tag, ref)
 Retrieves a specific object by its reference.
 
 Example:
 ```lua
-local task = index.get_object_by_ref("my page", "mytask", "task1")
+local task = index.getObjectByRef("my page", "mytask", "task1")
 if task then
     print("Found task: " .. task.content)
 end
-```

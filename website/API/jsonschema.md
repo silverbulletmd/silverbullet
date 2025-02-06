@@ -4,7 +4,7 @@ The JSON Schema API provides functions for validating JSON objects against JSON 
 
 ## Validation Operations
 
-### jsonschema.validate_object(schema, object)
+### jsonschema.validateObject(schema, object)
 Validates a JSON object against a JSON schema.
 
 Example:
@@ -19,7 +19,7 @@ local schema = {
 }
 
 local object = {name = "John", age = 30}
-local error = jsonschema.validate_object(schema, object)
+local error = jsonschema.validateObject(schema, object)
 if error then
     print("Validation error: " .. error)
 else
@@ -27,7 +27,7 @@ else
 end
 ```
 
-### jsonschema.validate_schema(schema)
+### jsonschema.validateSchema(schema)
 Validates a JSON schema itself to ensure it's well-formed.
 
 Example:
@@ -39,10 +39,9 @@ local schema = {
     }
 }
 
-local error = jsonschema.validate_schema(schema)
+local error = jsonschema.validateSchema(schema)
 if error then
     print("Schema error: " .. error)
 else
     print("Schema is valid")
 end
-``` 

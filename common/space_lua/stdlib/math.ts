@@ -71,8 +71,8 @@ export const mathApi = new LuaTable({
     return (m >>> 0) < (n >>> 0);
   }),
 
-  // Keep the cosine_similarity utility function
-  cosine_similarity: new LuaBuiltinFunction(
+  // Keep the cosineSimilarity utility function
+  cosineSimilarity: new LuaBuiltinFunction(
     (sf, vecA: LuaTable | number[], vecB: LuaTable | number[]) => {
       // Convert LuaTable to number[]
       if (vecA instanceof LuaTable) {

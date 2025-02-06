@@ -34,9 +34,7 @@ function exposeSyscalls(env: LuaEnv, system: System<any>) {
     const luaFn = new LuaNativeJSFunction((...args) => {
       return system.localSyscall(syscallName, args);
     });
-    // Register the function with the same name as the syscall both in regular and snake_case
     env.get(ns, nativeFs).set(fn, luaFn, nativeFs);
-    env.get(ns, nativeFs).set(snakeCase(fn), luaFn, nativeFs);
   }
 }
 
@@ -66,9 +64,9 @@ export async function handleLuaError(e: LuaRuntimeError, system: System<any>) {
   console.error(
     "Lua eval exception",
     e.message,
-    e.sf.astCtx,
+    e.sf?.astCtx,
   );
-  if (e.sf.astCtx && e.sf.astCtx.ref) {
+  if (e.sf?.astCtx && e.sf.astCtx.ref) {
     // We got an error and actually know where it came from, let's navigate there to help debugging
     const pageRef = parsePageRef(e.sf.astCtx.ref);
     await system.localSyscall(
@@ -94,8 +92,4 @@ export async function handleLuaError(e: LuaRuntimeError, system: System<any>) {
       },
     ]);
   }
-}
-
-function snakeCase(s: string) {
-  return s.replace(/([A-Z])/g, "_$1").toLowerCase();
 }

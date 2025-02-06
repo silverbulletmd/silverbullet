@@ -29,6 +29,6 @@ local data = {
     hobbies = {"reading", "hiking"}
 }
 
-local yaml_text = yaml.stringify(data)
-print(yaml_text)
-``` 
+local yamlText = yaml.stringify(data)
+print(yamlText)
+```

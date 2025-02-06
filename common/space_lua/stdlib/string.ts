@@ -207,18 +207,18 @@ export const stringApi = new LuaTable({
   trim: new LuaBuiltinFunction((_sf, s: string) => {
     return s.trim();
   }),
-  trim_start: new LuaBuiltinFunction((_sf, s: string) => {
+  trimStart: new LuaBuiltinFunction((_sf, s: string) => {
     return s.trimStart();
   }),
-  trim_end: new LuaBuiltinFunction((_sf, s: string) => {
+  trimEnd: new LuaBuiltinFunction((_sf, s: string) => {
     return s.trimEnd();
   }),
-  match_regex: new LuaBuiltinFunction((_sf, s: string, pattern: string) => {
+  matchRegex: new LuaBuiltinFunction((_sf, s: string, pattern: string) => {
     const regex = new RegExp(pattern);
     const result = s.match(regex);
     return jsToLuaValue(result);
   }),
-  match_regex_all: new LuaBuiltinFunction((_sf, s: string, pattern: string) => {
+  matchRegexAll: new LuaBuiltinFunction((_sf, s: string, pattern: string) => {
     const regex = new RegExp(pattern, "g");
     return () => {
       const match = regex.exec(s);

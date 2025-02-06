@@ -436,7 +436,7 @@ Deno.test("Thread local _CTX - advanced cases", async () => {
   sf.threadLocal.setLocal("_GLOBAL", env);
   assertEquals(
     await evalExpr(
-      "space_lua.interpolate('Hello, ${globalEnv} and ${loc}!', {loc='local'})",
+      "spacelua.interpolate('Hello, ${globalEnv} and ${loc}!', {loc='local'})",
       env,
       sf,
     ),
@@ -446,7 +446,7 @@ Deno.test("Thread local _CTX - advanced cases", async () => {
   // Some more complex string interpolation with more complex lua expressions, with nested {}
   assertEquals(
     await evalExpr(
-      `space_lua.interpolate('Some JSON \${js.stringify(js.tojs({name="Pete"}))}!')`,
+      `spacelua.interpolate('Some JSON \${js.stringify(js.tojs({name="Pete"}))}!')`,
       env,
       sf,
     ),

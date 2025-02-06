@@ -6,11 +6,11 @@ Config library for defining and getting config values
 -- priority: 10
 config = {}
 
-local config_values = {}
-local config_schema = {}
+local configValues = {}
+local configSchema = {}
 
 function config.define(key, schema)
-  config_schema[key] = schema or true
+  configSchema[key] = schema or true
 end
 
 function config.set(keyOrTable, value)
@@ -21,20 +21,19 @@ function config.set(keyOrTable, value)
     return
   end
   local key = keyOrTable
-  local schema = config_schema[key]
+  local schema = configSchema[key]
   if schema == nil then
     error("Config key not defined: " .. key)
   end
   if schema != true then
-    local result = jsonschema.validate_object(schema, value)
+    local result = jsonschema.validateObject(schema, value)
     if result != nil then
       error("Validation error (" .. key .. "): " .. result)
     end
   end
-  config_values[key] = value
+  configValues[key] = value
 end
 
 function config.get(key)
-  return config_values[key]
+  return configValues[key]
 end
-```

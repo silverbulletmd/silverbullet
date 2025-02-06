@@ -12,7 +12,7 @@ Example:
 mq.send("tasks", {type = "process", data = "sample"})
 ```
 
-### mq.batch_send(queue, bodies)
+### mq.batchSend(queue, bodies)
 Sends multiple messages to a queue in a single operation.
 
 Example:
@@ -21,7 +21,7 @@ local messages = {
     {type = "task1", data = "sample1"},
     {type = "task2", data = "sample2"}
 }
-mq.batch_send("tasks", messages)
+mq.batchSend("tasks", messages)
 ```
 
 ### mq.ack(queue, id)
@@ -32,23 +32,22 @@ Example:
 mq.ack("tasks", "message-123")
 ```
 
-### mq.batch_ack(queue, ids)
+### mq.batchAck(queue, ids)
 Acknowledges multiple messages from a queue in a single operation.
 
 Example:
 ```lua
 local messageIds = {"msg1", "msg2", "msg3"}
-mq.batch_ack("tasks", messageIds)
+mq.batchAck("tasks", messageIds)
 ```
 
 ## Queue Management
 
-### mq.get_queue_stats(queue)
+### mq.getQueueStats(queue)
 Retrieves statistics about a particular queue.
 
 Example:
 ```lua
-local stats = mq.get_queue_stats("tasks")
+local stats = mq.getQueueStats("tasks")
 print("Queue size: " .. stats.size)
 print("Processing: " .. stats.processing)
-``` 

@@ -46,7 +46,7 @@ export function commandSyscalls(
         },
       );
     },
-    "slash_command.define": (
+    "slashcommand.define": (
       _ctx,
       def: CallbackCommandDef,
     ) => {

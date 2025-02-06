@@ -4,41 +4,40 @@ The Sync API provides functions for interacting with the sync engine when the cl
 
 ## Sync Operations
 
-### sync.is_syncing()
+### sync.isSyncing()
 Checks if a sync is currently in progress.
 
 Example:
 ```lua
-if sync.is_syncing() then
+if sync.isSyncing() then
     print("Sync in progress...")
 end
 ```
 
-### sync.has_initial_sync_completed()
+### sync.hasInitialSyncCompleted()
 Checks if an initial sync has completed.
 
 Example:
 ```lua
-if sync.has_initial_sync_completed() then
+if sync.hasInitialSyncCompleted() then
     print("Initial sync completed")
 else
     print("Waiting for initial sync...")
 end
 ```
 
-### sync.schedule_file_sync(path)
+### sync.scheduleFileSync(path)
 Actively schedules a file to be synced. Sync will happen by default too, but this prioritizes the file.
 
 Example:
 ```lua
-sync.schedule_file_sync("notes/important.md")
+sync.scheduleFileSync("notes/important.md")
 ```
 
-### sync.schedule_space_sync()
+### sync.scheduleSpaceSync()
 Schedules a sync without waiting for the usual sync interval.
 
 Example:
 ```lua
-local changes = sync.schedule_space_sync()
+local changes = sync.scheduleSpaceSync()
 print("Number of changes synced: " .. changes)
-``` 

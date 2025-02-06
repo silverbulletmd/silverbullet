@@ -1,4 +1,4 @@
-local function assert_equal(a, b)
+local function assertEqual(a, b)
     if a ~= b then
         error("Assertion failed: " .. a .. " is not equal to " .. b)
     end
@@ -73,80 +73,80 @@ assert(result == "hello-world", "Magic character replacement failed")
 
 -- Test string.match
 local m1, m2 = string.match("hello world", "(h)(ello)")
-assert_equal(m1, "h")
-assert_equal(m2, "ello")
+assertEqual(m1, "h")
+assertEqual(m2, "ello")
 
 -- Test match with init position - need to capture the group
-local init_match = string.match("hello world", "(world)", 7)
-assert_equal(init_match, "world")
+local initMatch = string.match("hello world", "(world)", 7)
+assertEqual(initMatch, "world")
 
 -- Test string.gmatch
 local words = {}
 for word in string.gmatch("hello world lua", "%w+") do
     table.insert(words, word)
 end
-assert_equal(words[1], "hello")
-assert_equal(words[2], "world")
-assert_equal(words[3], "lua")
+assertEqual(words[1], "hello")
+assertEqual(words[2], "world")
+assertEqual(words[3], "lua")
 
 -- Test string.reverse
-assert_equal(string.reverse("hello"), "olleh")
-assert_equal(string.reverse(""), "")
+assertEqual(string.reverse("hello"), "olleh")
+assertEqual(string.reverse(""), "")
 
 -- Test string.split
 local parts = string.split("a,b,c", ",")
-assert_equal(parts[1], "a")
-assert_equal(parts[2], "b")
-assert_equal(parts[3], "c")
+assertEqual(parts[1], "a")
+assertEqual(parts[2], "b")
+assertEqual(parts[3], "c")
 
 -- Test non-standard string extensions
-assert_equal(string.startswith("hello world", "hello"), true)
-assert_equal(string.startswith("hello world", "world"), false)
+assertEqual(string.startswith("hello world", "hello"), true)
+assertEqual(string.startswith("hello world", "world"), false)
 
-assert_equal(string.endswith("hello world", "world"), true)
-assert_equal(string.endswith("hello world", "hello"), false)
+assertEqual(string.endswith("hello world", "world"), true)
+assertEqual(string.endswith("hello world", "hello"), false)
 
 -- Extended string.match tests
 -- Basic pattern matching
-assert_equal(string.match("hello", "h"), "h")
-assert_equal(string.match("hello", "hello"), "hello")
+assertEqual(string.match("hello", "h"), "h")
+assertEqual(string.match("hello", "hello"), "hello")
 
 -- Test with no matches
-assert_equal(string.match("hello", "x"), nil)
+assertEqual(string.match("hello", "x"), nil)
 
 -- Test with captures
 local m1, m2 = string.match("hello", "(h)(ello)")
-assert_equal(m1, "h")
-assert_equal(m2, "ello")
+assertEqual(m1, "h")
+assertEqual(m2, "ello")
 
 -- Test with init position
-local init_match = string.match("hello world", "(world)", 7)
-assert_equal(init_match, "world")
+local initMatch = string.match("hello world", "(world)", 7)
+assertEqual(initMatch, "world")
 
 -- Test init position with no match
-assert_equal(string.match("hello world", "hello", 7), nil)
+assertEqual(string.match("hello world", "hello", 7), nil)
 
 -- Test pattern characters
-assert_equal(string.match("123", "%d+"), "123")
-assert_equal(string.match("abc123", "%a+"), "abc")
-assert_equal(string.match("   abc", "%s+"), "   ")
+assertEqual(string.match("123", "%d+"), "123")
+assertEqual(string.match("abc123", "%a+"), "abc")
+assertEqual(string.match("   abc", "%s+"), "   ")
 
 -- Test multiple captures
 local day, month, year = string.match("2024-03-14", "(%d+)-(%d+)-(%d+)")
-assert_equal(day, "2024")
-assert_equal(month, "03")
-assert_equal(year, "14")
+assertEqual(day, "2024")
+assertEqual(month, "03")
+assertEqual(year, "14")
 
 -- Test optional captures
 local word = string.match("The quick brown fox", "%s*(%w+)%s*")
-assert_equal(word, "The")
+assertEqual(word, "The")
 
--- Test match_regex_all
+-- Test matchRegexAll
 local matches = {}
-for match in string.match_regex_all("hellolllbl", "(l+)") do
+for match in string.matchRegexAll("hellolllbl", "(l+)") do
     table.insert(matches, match)
 end
-assert_equal(#matches, 3)
-assert_equal(matches[1][1], "ll")
-assert_equal(matches[2][1], "lll")
-assert_equal(matches[3][1], "l")
+assertEqual(#matches, 3)
+assertEqual(matches[1][1], "ll")
+assertEqual(matches[2][1], "lll")
+assertEqual(matches[3][1], "l")

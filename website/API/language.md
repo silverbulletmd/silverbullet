@@ -2,7 +2,7 @@ The Language API provides functions for parsing code in various programming lang
 
 ## Language Operations
 
-### language.parse_language(language, code)
+### language.parseLanguage(language, code)
 Parses a piece of code using any of the supported SilverBullet languages.
 
 Example:
@@ -13,7 +13,7 @@ function hello() {
 }
 ]]
 
-local tree = language.parse_language("javascript", [[
+local tree = language.parseLanguage("javascript", [[
 function hello() {
     console.log("Hello, world!");
 }
@@ -21,8 +21,8 @@ function hello() {
 print("Parsed syntax tree:", tree)
 ```
 
-### language.list_languages()
+### language.listLanguages()
 Lists all supported languages in fenced code blocks.
 
 Example:
-${language.list_languages()}
+${language.listLanguages()}

@@ -7,28 +7,28 @@ Editor support for Lua, implemented in Lua. Of course.
 local LUA_KEYWORDS = {"do", "if", "then", "for", "else", "end", "function", "local", "return"}
 
 -- Are we in a comment?
-local function in_comment(line)
+local function inComment(line)
   return string.find(line, "--")
 end
 
 -- Are we in a string?
-local function in_string(line)
-  local single_quotes = 0
-  local double_quotes = 0
+local function inString(line)
+  local singleQuotes = 0
+  local doubleQuotes = 0
   local brackets = 0
   for i = 1, string.len(line) do
     local c = line[i]
     if c == "'" then
-      single_quotes = single_quotes + 1
+      singleQuotes = singleQuotes + 1
     elseif c == '"' then
-      double_quotes = double_quotes + 1
+      doubleQuotes = doubleQuotes + 1
     elseif c == "[" and line[i+1] == "[" then
       brackets = brackets + 1
     elseif c == "]" and line[i-1] == "]" then
       brackets = brackets - 1
     end
   end
-  return single_quotes % 2 == 1 or double_quotes % 2 == 1 or brackets > 0
+  return singleQuotes % 2 == 1 or doubleQuotes % 2 == 1 or brackets > 0
 end
 
 -- API code completion for Lua
@@ -37,33 +37,33 @@ event.listen {
   name = "editor:complete",
   run = function(e)
     local parents = e.data.parentNodes
-    local found_space_lua = false
+    local foundSpaceLua = false
     for _, parent in ipairs(parents) do
       if string.startswith(parent, "FencedCode:space-lua") then
-        found_space_lua = true
+        foundSpaceLua = true
       end
     end
-    if not found_space_lua then
+    if not foundSpaceLua then
       return
     end
-    local line_prefix = e.data.linePrefix
-    if in_comment(line_prefix) or in_string(line_prefix) then
+    local linePrefix = e.data.linePrefix
+    if inComment(linePrefix) or inString(linePrefix) then
       return
     end
     local pos = e.data.pos
-    local propaccess_prefix = string.match_regex(line_prefix, "([a-zA-Z_0-9]+\\.)*([a-zA-Z_0-9]*)$")
-    if not propaccess_prefix or not propaccess_prefix[1] then
+    local propaccessPrefix = string.matchRegex(linePrefix, "([a-zA-Z_0-9]+\\.)*([a-zA-Z_0-9]*)$")
+    if not propaccessPrefix or not propaccessPrefix[1] then
       -- No propaccess prefix, so we can't complete
       return
     end
     -- Split propaccess and traverse
-    local prop_parts = string.split(propaccess_prefix[1], ".")
-    local current_value = _CTX._GLOBAL
+    local propParts = string.split(propaccessPrefix[1], ".")
+    local currentValue = _CTX._GLOBAL
     local failed = false
-    for i = 1, #prop_parts-1 do
-      local prop = prop_parts[i]
-      if current_value then
-        current_value = current_value[prop]
+    for i = 1, #propParts-1 do
+      local prop = propParts[i]
+      if currentValue then
+        currentValue = currentValue[prop]
       else
         failed = true
       end
@@ -71,13 +71,13 @@ event.listen {
     if failed then
       return
     end
-    local last_prop = prop_parts[#prop_parts]
-    if table.includes(LUA_KEYWORDS, last_prop) then
+    local lastProp = propParts[#propParts]
+    if table.includes(LUA_KEYWORDS, lastProp) then
       return
     end
     local options = {}
-    for key, val in pairs(current_value) do
-      if string.startswith(key, last_prop) and val then
+    for key, val in pairs(currentValue) do
+      if string.startswith(key, lastProp) and val then
         if val.call then
           -- We got a function
           if val.body then
@@ -106,7 +106,7 @@ event.listen {
     end
     if #options > 0 then
       return {
-        from = pos - string.len(last_prop),
+        from = pos - string.len(lastProp),
         options = options
       }
     end
@@ -118,34 +118,33 @@ event.listen {
 Various useful slash templates.
 
 ```space-lua
-template.define_slash_command {
+template.defineSlashCommand {
   name = "function",
   description = "Lua function",
-  only_contexts = {"FencedCode:space-lua"},
+  onlyContexts = {"FencedCode:space-lua"},
   template = template.new [==[function |^|()
 end]==]
 }
 
-template.define_slash_command {
+template.defineSlashCommand {
   name = "tpl",
   description = "Lua template",
-  only_contexts = {"FencedCode:space-lua"},
+  onlyContexts = {"FencedCode:space-lua"},
   template = template.new "template.new[==[|^|]==]"
 }
 
-template.define_slash_command {
+template.defineSlashCommand {
   name = "lua-query",
   description = "Lua query",
-  only_contexts = {"FencedCode:space-lua", "LuaDirective"},
+  onlyContexts = {"FencedCode:space-lua", "LuaDirective"},
   template = template.new 'query[[from index.tag "|^|"]]'
 }
 
 
 -- A query embedded in ${}
-template.define_slash_command {
+template.defineSlashCommand {
   name = "query",
   description = "Lua query",
-  except_contexts = {"FencedCode:space-lua", "LuaDirective"},
+  exceptContexts = {"FencedCode:space-lua", "LuaDirective"},
   template = function() return '${query[[from index.tag "|^|"]]}' end
 }
-```

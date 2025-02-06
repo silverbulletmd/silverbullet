@@ -12,7 +12,7 @@ The introduction of Lua aims to unify and simplify a few SilverBullet features, 
 * Replace [[Expression Language]], [[Template Language]] and [[Query Language]] with Lua-based equivalents.
 * (Potentially) provide an alternative way to specify [[Space Config]]
 
-# Introduction approach
+# Strategy
 This is a big effort. During its development, Space Lua will be offered as a kind of “alternative universe” to the things mentioned above. Existing [[Live Templates]], [[Live Queries]] and [[Space Script]] will continue to work as before, unaltered.
 
 Once these features stabilize and best practices are ironed out, old mechanisms will likely be deprecated and possibly removed at some point.
@@ -101,13 +101,13 @@ ${marquee "Finally, marqeeeeeeee!"}
 Oh boy, the times we live in!
 
 ## Commands
-Custom commands can be defined using `command.define`:
+Custom commands can be defined using [[API/command#command.define(commandDef)]]:
 
 ```space-lua
 command.define {
   name = "Hello World",
   run = function()
-    editor.flash_notification "Hello world!"
+    editor.flashNotification "Hello world!"
     event.dispatch("my-custom-event", {name="Pete"})
   end
 }
@@ -116,13 +116,13 @@ command.define {
 Try it: {[Hello World]}
 
 ## Event listeners
-You can listen to events using `event.listen`:
+You can listen to events using [[API/event#event.listen(listenerDef)]]:
 
 ```space-lua
 event.listen {
   name = "my-custom-event";
   run = function(e)
-    editor.flash_notification("Custom triggered: "
+    editor.flashNotification("Custom triggered: "
        .. e.data.name)
   end
 }
@@ -135,64 +135,20 @@ Space Lua currently introduces a few new features on top core Lua:
 2. Thread locals
 
 ## Thread locals
-There’s a magic `_CTX` global variable available from which you can access useful context-specific values. Currently the following keys are available:
+There's a magic `_CTX` global variable available from which you can access useful context-specific values. Currently the following keys are available:
 
 * `_CTX.currentPage` providing access (in the client only) to the currently open page (PageMeta object)
 * `_CTX._GLOBAL` providing access to the global scope
 
 # API
-Lua APIs, which should be (roughly) implemented according to the Lua standard.
-* `print`
-* `assert`
-* `ipairs`
-* `pairs`
-* `unpack`
-* `type`
-* `tostring`
-* `tonumber`
-* `error`
-* `pcall`
-* `xpcall`
-* `setmetatable`
-* `getmetatable`
-* `rawset`
-* `string`:
-  * `byte`
-  * `char`
-  * `find`
-  * `format`
-  * `gmatch`
-  * `gsub`
-  * `len`
-  * `lower`
-  * `upper`
-  * `match`
-  * `rep`
-  * `reverse`
-  * `sub`
-  * `split`
-* `table`
-  * `concat`
-  * `insert`
-  * `remove`
-  * `sort`
-* `os`
-  * `time`
-  * `date`
-* `js` (Warning: this will be revised): JavaScript interop functions
-  * `new`: instantiate a JavaScript constructor
-  * `importModule`: import a JavaScript from a URL (`import` equivalent)
-  * `tolua`: convert a JS value to a Lua value
-  * `tojs`: convert a Lua value to a JS value
-  * `log`: console.log
-
-In addition, [all SilverBullet syscalls](https://jsr.io/@silverbulletmd/silverbullet/doc/syscalls) are exposed. However since the Lua naming convention prefers using `snake_case` it is recommended you call them that way. For instance: `editor.flash_notification` is more Lua’y than `editor.flashNotification` (although both are supported at this time -- again, subject to change).
+All of these are available via the global namespace:
+${template.each(query[[from index.tag "page" where string.startswith(name, "API/")]], templates.pageItem)}
 
 While in [[Space Script]] all syscalls are asynchronous and need to be called with `await`, this is happens transparently in Space Lua leading to cleaner code:
 
 ```space-lua
-local function call_some_things()
-  local text = space.read_page(editor.get_current_page())
+local function callSomeThings()
+  local text = space.readPage(editor.getCurrentPage())
   print("Current page text", text)
 end
 ```

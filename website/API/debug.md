@@ -2,12 +2,12 @@
 
 The Debug API provides functions for debugging and resetting the application state.
 
-## debug.reset_client()
+## debug.resetClient()
 Completely wipes the client state, including cached files and databases.
 
 Example:
 ```lua
-debug.reset_client()
+debug.resetClient()
 print("Client state has been reset")
 ```
 
@@ -18,4 +18,3 @@ Example:
 ```lua
 debug.cleanup()
 print("All KV stores have been wiped")
-``` 

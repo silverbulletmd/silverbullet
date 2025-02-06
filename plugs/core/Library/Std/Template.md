@@ -20,42 +20,41 @@ function template.each(tbl, fn)
 end
 
 -- Creates a new template function from a string template
-function template.new(template_str)
+function template.new(templateStr)
   -- Preprocess: strip indentation
   local lines = {}
-  local split_lines = string.split(template_str, "\n")
-  for _, line in ipairs(split_lines) do
+  local splitLines = string.split(templateStr, "\n")
+  for _, line in ipairs(splitLines) do
     line = string.gsub(line, "^    ", "")
     table.insert(lines, line)
   end
-  template_str = table.concat(lines, "\n")
+  templateStr = table.concat(lines, "\n")
   return function(obj)
-    return space_lua.interpolate(template_str, obj)
+    return spacelua.interpolate(templateStr, obj)
   end
 end
 
 -- Creates a template-based slash command, keys for def are:
 --   name: name of the slash command
 --   description: description of the slash command
---   only_contexts: parent AST nodes in which this slash command is available, defaults to everywhere
---   except_contexts: parent AST nodes in which this slash command is not available
+--   onlyContexts: parent AST nodes in which this slash command is available, defaults to everywhere
+--   exceptContexts: parent AST nodes in which this slash command is not available
 --   template: template function to apply
---   insert_at: position to insert the template into
+--   insertAt: position to insert the template into
 --   match: match string to apply the template to
---   match_regex: match regex to apply the template to
-function template.define_slash_command(def)
-  slash_command.define {
+--   matchRegex: match regex to apply the template to
+function template.defineSlashCommand(def)
+  slashcommand.define {
     name = def.name,
     description = def.description,
-    onlyContexts = def.only_contexts,
-    exceptContexts = def.except_contexts,
+    onlyContexts = def.onlyContexts,
+    exceptContexts = def.exceptContexts,
     run = function()
-      system.invoke_function("template.applySnippetTemplate", def.template(), {
-        insertAt = def.insert_at,
+      system.invokeFunction("template.applySnippetTemplate", def.template(), {
+        insertAt = def.insertAt,
         match = def.match,
-        matchRegex = def.match_regex
+        matchRegex = def.matchRegex
       })
     end
   }
 end
-```

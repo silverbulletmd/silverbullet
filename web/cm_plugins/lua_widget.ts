@@ -89,9 +89,9 @@ export class LuaWidget extends WidgetType {
       html = widgetContent.html;
       div.innerHTML = html;
       if ((widgetContent as any)?.display === "block") {
-        div.className = "sb-lua-directive-block";
+        div.className += " sb-lua-directive-block";
       } else {
-        div.className = "sb-lua-directive-inline";
+        div.className += " sb-lua-directive-inline";
       }
       attachWidgetEventHandlers(div, this.client, this.from);
       this.client.setWidgetCache(
