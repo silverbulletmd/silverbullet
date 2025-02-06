@@ -76,6 +76,9 @@ event.listen {
       return
     end
     local options = {}
+    if not currentValue then
+      return
+    end
     for key, val in pairs(currentValue) do
       if string.startswith(key, lastProp) and val then
         if val.call then
