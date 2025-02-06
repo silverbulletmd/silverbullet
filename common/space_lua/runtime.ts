@@ -730,6 +730,10 @@ export function luaToString(
     visited.add(value);
     return value.toStringAsync();
   }
+  if (value instanceof LuaFunction) {
+    // Don't recurse into the function body, just show the function signature
+    return `<lua-function (${value.body.parameters.join(", ")})>`;
+  }
   // Handle plain JavaScript objects in a Lua-like format
   if (typeof value === "object") {
     // Add to visited before recursing
