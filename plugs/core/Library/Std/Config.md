@@ -13,7 +13,14 @@ function config.define(key, schema)
   config_schema[key] = schema or true
 end
 
-function config.set(key, value)
+function config.set(keyOrTable, value)
+  if type(keyOrTable) == "table" then
+    for key, value in pairs(keyOrTable) do
+      config.set(key, value)
+    end
+    return
+  end
+  local key = keyOrTable
   local schema = config_schema[key]
   if schema == nil then
     error("Config key not defined: " .. key)
