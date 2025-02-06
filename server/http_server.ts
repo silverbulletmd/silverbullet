@@ -708,7 +708,9 @@ export class HttpServer {
             return next();
           }
         }
-        if (url.startsWith("localhost")) {
+        if (
+          url.startsWith("localhost") || url.match(/^\d+\./)
+        ) {
           url = `http://${url}`;
         } else {
           url = `https://${url}`;
