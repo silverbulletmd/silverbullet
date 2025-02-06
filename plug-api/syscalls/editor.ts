@@ -272,8 +272,11 @@ export function moveCursorToLine(
  * Insert text at the cursor position in the editor
  * @param text the text to insert
  */
-export function insertAtCursor(text: string): Promise<void> {
-  return syscall("editor.insertAtCursor", text);
+export function insertAtCursor(
+  text: string,
+  scrollIntoView = false,
+): Promise<void> {
+  return syscall("editor.insertAtCursor", text, scrollIntoView);
 }
 
 /**
