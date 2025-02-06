@@ -250,7 +250,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
       });
     },
 
-    "editor.insertAtCursor": (_ctx, text: string) => {
+    "editor.insertAtCursor": (_ctx, text: string, scrollIntoView = false) => {
       const editorView = client.editorView;
       const from = editorView.state.selection.main.from;
       editorView.dispatch({
@@ -261,6 +261,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
         selection: {
           anchor: from + text.length,
         },
+        scrollIntoView,
       });
     },
     "editor.dispatch": (_ctx, change: Transaction) => {
