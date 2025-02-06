@@ -124,7 +124,10 @@ const xpcallFunction = new LuaBuiltinFunction(
 );
 
 const setmetatableFunction = new LuaBuiltinFunction(
-  (_sf, table: LuaTable, metatable: LuaTable) => {
+  (sf, table: LuaTable, metatable: LuaTable) => {
+    if (!metatable) {
+      throw new LuaRuntimeError("metatable cannot be set to nil", sf);
+    }
     table.metatable = metatable;
     return table;
   },
