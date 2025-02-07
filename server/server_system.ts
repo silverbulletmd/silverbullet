@@ -37,6 +37,7 @@ import { ensureSpaceIndex } from "$common/space_index.ts";
 import type { FileMeta } from "../plug-api/types.ts";
 import { CommandHook } from "$common/hooks/command.ts";
 import { CommonSystem } from "$common/common_system.ts";
+import { SyscallHook } from "../web/hooks/syscall.ts";
 import type { DataStoreMQ } from "$lib/data/mq.datastore.ts";
 import { plugPrefix } from "$common/spaces/constants.ts";
 import { base64EncodedDataUrl } from "$lib/crypto.ts";
@@ -99,6 +100,9 @@ export class ServerSystem extends CommonSystem {
     this.system.addHook(plugNamespaceHook);
 
     this.system.addHook(new MQHook(this.system, this.mq));
+
+    // Syscall hook
+    this.system.addHook(new SyscallHook());
 
     const codeWidgetHook = new CodeWidgetHook();
 

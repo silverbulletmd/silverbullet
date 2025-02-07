@@ -11,6 +11,7 @@ import type { Client } from "./client.ts";
 import { CodeWidgetHook } from "./hooks/code_widget.ts";
 import { CommandHook } from "$common/hooks/command.ts";
 import { SlashCommandHook } from "./hooks/slash_command.ts";
+import { SyscallHook } from "./hooks/syscall.ts";
 import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
 import { debugSyscalls } from "./syscalls/debug.ts";
 import { editorSyscalls } from "./syscalls/editor.ts";
@@ -127,6 +128,9 @@ export class ClientSystem extends CommonSystem {
     // Slash command hook
     this.slashCommandHook = new SlashCommandHook(this.client, this);
     this.system.addHook(this.slashCommandHook);
+
+    // Syscall hook
+    this.system.addHook(new SyscallHook());
 
     this.eventHook.addLocalListener(
       "file:changed",
