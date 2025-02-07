@@ -62,6 +62,10 @@ export type SlashCommandHookT = {
   slashCommand?: SlashCommandDef;
 };
 
+export type SyscallHookT = {
+  syscall?: string;
+};
+
 /** Silverbullet hooks give plugs access to silverbullet core systems.
  *
  * Hooks are associated with typescript functions through a manifest file.
@@ -78,7 +82,8 @@ export type SilverBulletHooks =
   & CodeWidgetT
   & PanelWidgetT
   & EndpointHookT
-  & PlugNamespaceHookT;
+  & PlugNamespaceHookT
+  & SyscallHookT;
 
 /** A plug manifest configures hooks, declares syntax extensions, and describes plug metadata.
  *

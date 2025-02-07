@@ -1,8 +1,3 @@
-import type {
-  KvQuery,
-  ObjectQuery,
-  ObjectValue,
-} from "@silverbulletmd/silverbullet/types";
 import type { SysCallMapping } from "$lib/plugos/system.ts";
 import {
   findAllQueryVariables,
@@ -21,61 +16,6 @@ import type { CommonSystem } from "$common/common_system.ts";
 
 export function indexSyscalls(commonSystem: CommonSystem): SysCallMapping {
   return {
-    "index.indexObjects": (ctx, page: string, objects: ObjectValue<any>[]) => {
-      return commonSystem.system.syscall(ctx, "system.invokeFunction", [
-        "index.indexObjects",
-        page,
-        objects,
-      ]);
-    },
-    "index.queryObjects": (
-      ctx,
-      tag: string,
-      query: ObjectQuery,
-      ttlSecs?: number,
-    ) => {
-      return commonSystem.system.syscall(ctx, "system.invokeFunction", [
-        "index.queryObjects",
-        tag,
-        query,
-        ttlSecs,
-      ]);
-    },
-    "index.queryLuaObjects": (
-      ctx,
-      tag: string,
-      query: LuaCollectionQuery,
-      scopedVariables?: Record<string, any>,
-    ) => {
-      return commonSystem.system.syscall(ctx, "system.invokeFunction", [
-        "index.queryLuaObjects",
-        tag,
-        query,
-        scopedVariables,
-      ]);
-    },
-    "index.queryDeleteObjects": (ctx, tag: string, query: ObjectQuery) => {
-      return commonSystem.system.syscall(ctx, "system.invokeFunction", [
-        "index.queryDeleteObjects",
-        tag,
-        query,
-      ]);
-    },
-    "index.query": (ctx, query: KvQuery, variables?: Record<string, any>) => {
-      return commonSystem.system.syscall(ctx, "system.invokeFunction", [
-        "index.query",
-        query,
-        variables,
-      ]);
-    },
-    "index.getObjectByRef": (ctx, page: string, tag: string, ref: string) => {
-      return commonSystem.system.syscall(ctx, "system.invokeFunction", [
-        "index.getObjectByRef",
-        page,
-        tag,
-        ref,
-      ]);
-    },
     "index.tag": (_ctx, tagName: string): LuaQueryCollection => {
       return {
         query: async (

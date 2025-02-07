@@ -6,17 +6,22 @@ functions:
     env: server
   query:
     path: api.ts:query
+    syscall: index.query
   indexObjects:
     path: api.ts:indexObjects
+    syscall: index.indexObjects
     env: server
   queryObjects:
     path: api.ts:queryObjects
+    syscall: index.queryObjects
     # Note: not setting env: server to allow for client-side datastore query caching
   queryLuaObjects:
     path: api.ts:queryLuaObjects
+    syscall: index.queryLuaObjects
     # Note: not setting env: server to allow for client-side datastore query caching
   getObjectByRef:
     path: api.ts:getObjectByRef
+    syscall: index.getObjectByRef
     env: server
   objectSourceProvider:
     path: api.ts:objectSourceProvider
