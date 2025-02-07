@@ -67,7 +67,7 @@ export function CommandPalette({
       completer={completer}
       vimMode={vimMode}
       darkMode={darkMode}
-      helpText="Start typing the command name to filter results, press <code>Return</code> to run."
+      helpText="Start typing the command name to filter results, press <code>Enter</code> to run."
       onSelect={(opt) => {
         if (opt) {
           onTrigger(commands.get(opt.name));
