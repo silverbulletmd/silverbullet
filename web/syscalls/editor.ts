@@ -296,7 +296,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
     },
     "editor.openPageNavigator": (
       _ctx,
-      mode: "page" | "meta" | "all" = "page",
+      mode: "page" | "meta" | "attachment" | "all" = "page",
     ) => {
       client.startPageNavigate(mode);
     },
