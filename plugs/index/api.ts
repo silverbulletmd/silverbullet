@@ -1,4 +1,8 @@
-import { datastore, system } from "@silverbulletmd/silverbullet/syscalls";
+import {
+  datastore,
+  markdown,
+  system,
+} from "@silverbulletmd/silverbullet/syscalls";
 import type {
   KV,
   KvKey,
@@ -10,6 +14,12 @@ import type { QueryProviderEvent } from "../../plug-api/types.ts";
 import { determineType, type SimpleJSONType } from "./attributes.ts";
 import { ttlCache } from "$lib/memory_cache.ts";
 import type { LuaCollectionQuery } from "$common/space_lua/query_collection.ts";
+import {
+  extractFrontmatter as extractFrontmatterFromTree,
+  type FrontMatter,
+  type FrontmatterExtractOptions,
+} from "../../plug-api/lib/frontmatter.ts";
+import { renderToText } from "@silverbulletmd/silverbullet/lib/tree";
 
 const indexKey = "idx";
 const pageKey = "ridx";
@@ -244,4 +254,13 @@ export async function discoverSources() {
   ) => value.name)
     // And concatenate all the tags from the schema
     .concat(Object.keys(schema.tag));
+}
+
+export async function extractFrontmatter(
+  text: string,
+  extractOptions: FrontmatterExtractOptions = {},
+): Promise<{ frontmatter: FrontMatter; text: string }> {
+  const tree = await markdown.parseMarkdown(text);
+  const frontmatter = await extractFrontmatterFromTree(tree, extractOptions);
+  return { frontmatter, text: renderToText(tree) };
 }

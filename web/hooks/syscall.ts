@@ -32,7 +32,7 @@ export class SyscallHook implements Hook<SyscallHookT> {
         syscalls[syscallName] = (ctx, ...args) => {
           // Delegate to the system to invoke the function
           return system.syscall(ctx, "system.invokeFunction", [
-            name,
+            `${plug.manifest!.name}.${name}`,
             ...args,
           ]);
         };

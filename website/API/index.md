@@ -1,3 +1,9 @@
+---
+testattribute: 10
+---
+
+#apidoc
+
 The `index` API provides functions for interacting with SilverBullet's [[Objects]], allowing you to store and query page-associated data.
 
 ## Object Operations
@@ -38,3 +44,19 @@ local task = index.getObjectByRef("my page", "mytask", "task1")
 if task then
     print("Found task: " .. task.content)
 end
+```
+
+## index.extractFrontmatter(text, extractOptions)
+Extracts frontmatter from a markdown document (whose text is provided as argument), possibly cleaning it up. It also parses top-level tags consistent with SilverBullet's tag indexing system.
+
+It returns a table with two keys:
+- `frontmatter`: A table containing the parsed frontmatter.
+- `text`: The text of the document, with any changes applied requested with the `extractOptions`.
+
+The `extractOptions` is an optional table that can contain the following keys (which will affect the returned `text`):
+- `removeKeys`: An array of keys to remove from the frontmatter.
+- `removeTags`: A boolean or array of tags to remove from the frontmatter.
+- `removeFrontmatterSection`: A boolean to remove the frontmatter section from the document.
+
+Example applied to this page:
+${(index.extractFrontmatter(editor.getText())).frontmatter}
