@@ -1,6 +1,5 @@
 import { WidgetType } from "@codemirror/view";
 import type { Client } from "../client.ts";
-import type { ObjectValue } from "../../plug-api/types.ts";
 import { renderMarkdownToHtml } from "../../plugs/markdown/markdown_render.ts";
 import {
   isLocalPath,
