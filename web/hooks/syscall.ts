@@ -27,7 +27,6 @@ export class SyscallHook implements Hook<SyscallHookT> {
 
         const syscallName = functionDef.syscall;
 
-        console.log("Registering plug syscall", syscallName, "for", name);
         // Add the syscall to our mapping
         syscalls[syscallName] = (ctx, ...args) => {
           // Delegate to the system to invoke the function
