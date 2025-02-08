@@ -18,7 +18,7 @@ export type JSValue = any;
 
 export interface ILuaFunction {
   call(sf: LuaStackFrame, ...args: LuaValue[]): Promise<LuaValue> | LuaValue;
-  toString(): string;
+  asString(): string;
 }
 
 export interface ILuaSettable {
@@ -196,8 +196,12 @@ export class LuaFunction implements ILuaFunction {
     return this.callWithArgs(resolvedArgs, env, sf);
   }
 
-  toString(): string {
+  asString(): string {
     return `<lua function(${this.body.parameters.join(", ")})>`;
+  }
+
+  toString(): string {
+    return this.asString();
   }
 
   private callWithArgs(
@@ -271,8 +275,12 @@ export class LuaNativeJSFunction implements ILuaFunction {
     }
   }
 
-  toString(): string {
+  asString(): string {
     return `<native js function: ${this.fn.name}>`;
+  }
+
+  toString(): string {
+    return this.asString();
   }
 }
 
@@ -287,8 +295,12 @@ export class LuaBuiltinFunction implements ILuaFunction {
     return this.fn(sf, ...args);
   }
 
-  toString(): string {
+  asString(): string {
     return `<builtin lua function>`;
+  }
+
+  toString(): string {
+    return this.asString();
   }
 }
 
@@ -729,6 +741,10 @@ export function luaToString(
     // Add to visited before recursing
     visited.add(value);
     return value.toStringAsync();
+  }
+  if (value.asString) {
+    visited.add(value);
+    return value.asString();
   }
   if (value instanceof LuaFunction) {
     // Don't recurse into the function body, just show the function signature

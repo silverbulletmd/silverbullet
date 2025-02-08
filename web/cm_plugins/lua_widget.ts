@@ -25,8 +25,6 @@ export type LuaWidgetContent = {
   markdown?: string;
   // CSS classes for wrapper
   cssClasses?: string[];
-  // Index objects
-  objects?: ObjectValue<any>[];
   display?: "block" | "inline";
 } | string;
 

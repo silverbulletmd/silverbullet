@@ -105,10 +105,9 @@ export async function expandCodeWidgets(
         );
       }
     } else if (n.type === "LuaDirective") {
-      const expr: LuaExpression | null = findNodeOfType(
-        n,
-        "LuaExpressionDirective",
-      ) as LuaExpression | null;
+      const expr = findNodeOfType(n, "LuaExpressionDirective") as
+        | LuaExpression
+        | null;
       if (!expr) {
         return;
       }
