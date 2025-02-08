@@ -104,7 +104,8 @@ self.addEventListener("fetch", (event: any) => {
       if (
         pathname === "/.auth" ||
         pathname === "/.logout" ||
-        pathname === "/index.json"
+        pathname === "/index.json" ||
+        pathname.startsWith("!")
       ) {
         return fetch(request);
       } else if (looksLikePathWithExtension(pathname)) {
@@ -144,19 +145,8 @@ async function handleLocalFileRequest(
       },
     );
   } else if (path.startsWith("!")) {
-    // Federated URL handling
-    let url = path.slice(1);
-    if (url.startsWith("localhost")) {
-      url = `http://${url}`;
-    } else {
-      url = `https://${url}`;
-    }
-    console.info("Proxying federated URL", path, "to", url);
-    return fetch(url, {
-      method: request.method,
-      headers: request.headers,
-      body: request.body,
-    });
+    console.log("Passing on federated URL", path);
+    return fetch(request);
   } else {
     console.error(
       "Did not find file in locally synced space",
