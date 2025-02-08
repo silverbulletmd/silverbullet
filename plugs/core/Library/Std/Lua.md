@@ -39,7 +39,7 @@ event.listen {
     local parents = e.data.parentNodes
     local foundSpaceLua = false
     for _, parent in ipairs(parents) do
-      if string.startswith(parent, "FencedCode:space-lua") then
+      if string.startswith(parent, "FencedCode:space-lua") or parent == "LuaDirective" then
         foundSpaceLua = true
       end
     end
