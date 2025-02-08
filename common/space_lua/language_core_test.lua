@@ -1,4 +1,4 @@
-local function assert_equal(a, b)
+local function assertEqual(a, b)
     if a ~= b then
         error("Assertion failed: " .. a .. " is not equal to " .. b)
     end
@@ -18,8 +18,8 @@ assert(a + b == 3)
 
 -- Basic string stuff
 assert("Hello " .. "world" == "Hello world")
-assert_equal([[Hello world]], "Hello world")
-assert_equal([==[Hello [[world]]!]==], "Hello [[world]]!")
+assertEqual([[Hello world]], "Hello world")
+assertEqual([==[Hello [[world]]!]==], "Hello [[world]]!")
 
 -- Various forms of function definitions
 function f1()
@@ -136,7 +136,7 @@ mt = {
 t = setmetatable({}, mt)
 t.bar = "bar"
 assert(t.bar == "bar")
-assert_equal(t.foo, "Key not found: foo")
+assertEqual(t.foo, "Key not found: foo")
 
 -- Test the __newindex metamethod
 t = setmetatable(
@@ -152,8 +152,8 @@ t = setmetatable(
 t.name = "John"
 -- rawset ignores the metamethod
 rawset(t, "age", 100)
-assert_equal(t.name, "Value: John")
-assert_equal(t.age, 100)
+assertEqual(t.name, "Value: John")
+assertEqual(t.age, 100)
 
 -- Test some of the operator metamethods
 t = setmetatable(
@@ -420,4 +420,16 @@ end
 
 assert(#points == 6, "Grid should generate 6 points")
 assert(points[1][1] == 1 and points[1][2] == 1, "First point should be (1,1)")
-assert(points[6][1] == 2 and points[6][2] == 3, "Last point should be (2,3)") 
+assert(points[6][1] == 2 and points[6][2] == 3, "Last point should be (2,3)")
+
+-- Test for functions with variable number of arguments
+function sum(...)
+    local total = 0
+    for i, v in ipairs({ ... }) do
+        total = total + v
+    end
+    return total
+end
+
+assertEqual(sum(1, 2, 3), 6)
+assertEqual(sum(1, 2, 3, 4, 5), 15)

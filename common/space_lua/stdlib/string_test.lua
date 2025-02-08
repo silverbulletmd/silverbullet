@@ -76,6 +76,10 @@ local m1, m2 = string.match("hello world", "(h)(ello)")
 assertEqual(m1, "h")
 assertEqual(m2, "ello")
 
+-- Test with pattern with character class
+assertEqual(string.match("c", "[abc]"), "c")
+
+
 -- Test match with init position - need to capture the group
 local initMatch = string.match("hello world", "(world)", 7)
 assertEqual(initMatch, "world")
