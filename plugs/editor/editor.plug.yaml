@@ -351,14 +351,14 @@ functions:
   outlineMoveUp:
     path: ./outline.ts:moveItemUp
     command:
-      name: "Outline: Move Up"
+      name: "Move Outline Item or Line Up"
       key: "Alt-ArrowUp"
       requireMode: rw
 
   outlineMoveDown:
     path: ./outline.ts:moveItemDown
     command:
-      name: "Outline: Move Down"
+      name: "Move Outline Item or Line Down"
       key: "Alt-ArrowDown"
       requireMode: rw
 
