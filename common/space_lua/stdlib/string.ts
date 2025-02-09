@@ -198,10 +198,10 @@ export const stringApi = new LuaTable({
   }),
 
   // Non-standard
-  startswith: new LuaBuiltinFunction((_sf, s: string, prefix: string) => {
+  startsWith: new LuaBuiltinFunction((_sf, s: string, prefix: string) => {
     return s.startsWith(prefix);
   }),
-  endswith: new LuaBuiltinFunction((_sf, s: string, suffix: string) => {
+  endsWith: new LuaBuiltinFunction((_sf, s: string, suffix: string) => {
     return s.endsWith(suffix);
   }),
   trim: new LuaBuiltinFunction((_sf, s: string) => {

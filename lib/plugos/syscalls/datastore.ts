@@ -12,6 +12,7 @@ import {
   LuaStackFrame,
   luaValueToJS,
 } from "$common/space_lua/runtime.ts";
+import { luaBuildStandardEnv } from "$common/space_lua/stdlib.ts";
 
 /**
  * Exposes the datastore API to plugs, but scoping everything to a prefix based on the plug's name
@@ -49,6 +50,9 @@ export function dataStoreReadSyscalls(
       scopeVariables: Record<string, any> = {},
     ): Promise<any[]> => {
       const dsQueryCollection = new DataStoreQueryCollection(ds, prefix);
+      const tl = new LuaEnv();
+      tl.setLocal("_GLOBAL", commonSystem.spaceLuaEnv.env);
+      const sf = new LuaStackFrame(tl, null);
       const env = new LuaEnv(commonSystem.spaceLuaEnv.env);
       for (const [key, value] of Object.entries(scopeVariables)) {
         env.set(key, jsToLuaValue(value));
@@ -56,7 +60,7 @@ export function dataStoreReadSyscalls(
       return (await dsQueryCollection.query(
         query,
         env,
-        LuaStackFrame.lostFrame,
+        sf,
       )).map((item) => luaValueToJS(item));
     },
 

@@ -107,11 +107,11 @@ assertEqual(parts[2], "b")
 assertEqual(parts[3], "c")
 
 -- Test non-standard string extensions
-assertEqual(string.startswith("hello world", "hello"), true)
-assertEqual(string.startswith("hello world", "world"), false)
+assertEqual(string.startsWith("hello world", "hello"), true)
+assertEqual(string.startsWith("hello world", "world"), false)
 
-assertEqual(string.endswith("hello world", "world"), true)
-assertEqual(string.endswith("hello world", "hello"), false)
+assertEqual(string.endsWith("hello world", "world"), true)
+assertEqual(string.endsWith("hello world", "hello"), false)
 
 -- Extended string.match tests
 -- Basic pattern matching

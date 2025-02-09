@@ -39,7 +39,7 @@ event.listen {
     local parents = e.data.parentNodes
     local foundSpaceLua = false
     for _, parent in ipairs(parents) do
-      if string.startswith(parent, "FencedCode:space-lua") or parent == "LuaDirective" then
+      if string.startsWith(parent, "FencedCode:space-lua") or parent == "LuaDirective" then
         foundSpaceLua = true
       end
     end
@@ -80,7 +80,7 @@ event.listen {
       return
     end
     for key, val in pairs(currentValue) do
-      if string.startswith(key, lastProp) and val then
+      if string.startsWith(key, lastProp) and val then
         if val.call then
           -- We got a function
           if val.body then

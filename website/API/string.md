@@ -1,5 +1,7 @@
 API docs for Lua's `string` module.
 
+**Note:** since string values set `string` as their meta table, these APIs can also be called as method calls on strings directly. For instance: `someString:startsWith("h")` is equivalent to `string.startsWith(someString, "h")`.
+
 ## string.byte(s, i?, j?)
 Returns the numeric codes of characters in string `s` from position `i` to `j`. If `j` is not provided, defaults to `i`.
 
@@ -147,20 +149,20 @@ end
 ```
 
 # Non-standard Extensions
-## string.startswith(s, prefix)
+## string.startsWith(s, prefix)
 Returns true if string `s` starts with `prefix`.
 
 Example:
 ```lua
-print(string.startswith("hello world", "hello"))  -- prints: true
-print(string.startswith("hello world", "world"))  -- prints: false
+print(string.startsWith("hello world", "hello"))  -- prints: true
+print(string.startsWith("hello world", "world"))  -- prints: false
 ```
 
-## string.endswith(s, suffix)
+## string.endsWith(s, suffix)
 Returns true if string `s` ends with `suffix`.
 
 Example:
 ```lua
-print(string.endswith("hello world", "world"))  -- prints: true
-print(string.endswith("hello world", "hello"))  -- prints: false
+print(string.endsWith("hello world", "world"))  -- prints: true
+print(string.endsWith("hello world", "hello"))  -- prints: false
 ```

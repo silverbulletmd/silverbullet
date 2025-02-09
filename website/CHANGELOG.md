@@ -5,7 +5,22 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 _These features are not yet properly released, you need to use [the edge builds](https://community.silverbullet.md/t/living-on-the-edge-builds/27) to try them._
 
-* **Lua Breaking change**: Converted all custom (non-standard) Lua APIs from snake_case to camelCase. This will likely result in a lot of `calling nil as function` style errors, but it's a necessary step to make the API more consistent and easier to use. Also, error reporting should now be better, and often directly navigate to the place in the code where the error occurred.
+* **Lua**: _Tons_ of fixes, changes and enhancements, see [[Space Lua]] and related for up-to-date docs. Some notable things:
+  * [[Space Lua/Lua Integrated Query]] is now here
+  * Code completion of APIs in `space-lua` and Lua directive syntax
+  * [[API]] docs (not fully complete, but getting there). Implemented in Lua itself [[^Library/Std/Lua]].
+  * WIP Lua [[^Lua]], distributed with SilverBullet core.
+    * [[^Library/Std/Config]] (future Lua replacement for [[^SETTINGS]])
+    * [[^Library/Std/Template]] (Lua replacement of [[Templates]]) with a few samples here [[^Library/Std/Query Templates]].
+  * Breaking change: API convention changed moving from `snake_case` to `camelCase` everywhere.
+* `indentMultiplier` setting added (by [Mufeed Ali](https://github.com/silverbulletmd/silverbullet/pull/1212))
+* Open external links in new tab (by [Ohad Lutzky](https://github.com/silverbulletmd/silverbullet/pull/1229))
+* URL parse fixes (by [Ohad Lutzky](https://github.com/silverbulletmd/silverbullet/pull/1175))
+* [[Plugs]] are now ideally configured via [[Space Config]] (by [Marek S. Łukasiewicz](https://github.com/silverbulletmd/silverbullet/pull/1122))
+* Fixed styling for completed tasks with page links (by [Max Richter](https://github.com/silverbulletmd/silverbullet/pull/1225))
+* New design for [[Authentication]] page (by [majjejjam](https://github.com/silverbulletmd/silverbullet/pull/1124))
+* Tags are now easier to style (by [TR Staake](https://github.com/silverbulletmd/silverbullet/pull/1179))
+* Swift syntax highlighting now actually highlights Swift code (instead of Rust) (by [David Chiles](https://github.com/silverbulletmd/silverbullet/pull/1183))
 * (Security) Implemented a lockout mechanism after a number of failed login attempts for [[Authentication]] (configured via [[Install/Configuration#Authentication]]) (by [Peter Weston](https://github.com/silverbulletmd/silverbullet/pull/1152))
 
 ## 0.10.1
