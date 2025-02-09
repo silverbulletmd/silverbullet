@@ -14,6 +14,10 @@ assert(string.sub("Hello", 2, 4) == "ell")
 assert(string.upper("Hello") == "HELLO")
 assert(string.lower("Hello") == "hello")
 
+-- Invoke string metatable methods
+assertEqual(("hello"):len(), 5)
+assertEqual(("hello"):upper(), "HELLO")
+
 -- Test string.gsub with various replacement types
 -- Simple string replacement
 local result, count = string.gsub("hello world", "hello", "hi")
@@ -78,7 +82,6 @@ assertEqual(m2, "ello")
 
 -- Test with pattern with character class
 assertEqual(string.match("c", "[abc]"), "c")
-
 
 -- Test match with init position - need to capture the group
 local initMatch = string.match("hello world", "(world)", 7)

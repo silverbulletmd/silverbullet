@@ -1,5 +1,5 @@
 import type { ASTCtx, LuaFunctionBody } from "./ast.ts";
-import { evalStatement } from "./eval.ts";
+import { evalStatement, getMetatable } from "./eval.ts";
 import { asyncQuickSort, evalPromiseValues } from "./util.ts";
 
 export type LuaType =
@@ -383,9 +383,10 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     value: LuaValue,
     sf?: LuaStackFrame,
   ): Promise<void> | void {
-    if (this.metatable && this.metatable.has("__newindex") && !this.has(key)) {
+    const metatable = getMetatable(this, sf);
+    if (metatable && metatable.has("__newindex") && !this.has(key)) {
       // Invoke the meta table!
-      const metaValue = this.metatable.get("__newindex", sf);
+      const metaValue = metatable.get("__newindex", sf);
       if (metaValue.then) {
         // This is a promise, we need to wait for it
         return metaValue.then((metaValue: any) => {
@@ -411,37 +412,7 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
   }
 
   get(key: LuaValue, sf?: LuaStackFrame): LuaValue | Promise<LuaValue> | null {
-    const value = this.rawGet(key);
-    if (value === undefined || value === null) {
-      if (this.metatable && this.metatable.has("__index")) {
-        // Invoke the meta table
-        const metaValue = this.metatable.get("__index", sf);
-        if (metaValue.then) {
-          // Got a promise, we need to wait for it
-          return metaValue.then((metaValue: any) => {
-            if (metaValue.call) {
-              return metaValue.call(sf, this, key);
-            } else if (metaValue instanceof LuaTable) {
-              return metaValue.get(key, sf);
-            } else {
-              throw new Error("Meta table __index must be a function or table");
-            }
-          });
-        } else {
-          if (metaValue.call) {
-            return metaValue.call(sf, this, key);
-          } else if (metaValue instanceof LuaTable) {
-            return metaValue.get(key, sf);
-          } else {
-            throw new Error("Meta table __index must be a function or table");
-          }
-        }
-      } else {
-        return null;
-      }
-    } else {
-      return value;
-    }
+    return luaIndexValue(this, key, sf);
   }
 
   insert(value: LuaValue, pos: number) {
@@ -483,8 +454,9 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
   }
 
   async toStringAsync(): Promise<string> {
-    if (this.metatable?.has("__tostring")) {
-      const metaValue = await this.metatable.get("__tostring");
+    const metatable = getMetatable(this);
+    if (metatable && metatable.has("__tostring")) {
+      const metaValue = await metatable.get("__tostring");
       if (metaValue.call) {
         return metaValue.call(LuaStackFrame.lostFrame, this);
       } else {
@@ -512,6 +484,59 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     }
     result += "}";
     return result;
+  }
+}
+
+/**
+ * Lookup a key in a table or a metatable
+ */
+export function luaIndexValue(
+  value: LuaValue,
+  key: LuaValue,
+  sf?: LuaStackFrame,
+): LuaValue | Promise<LuaValue> | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  // The value is a table, so we can try to get the value directly
+  if (value instanceof LuaTable) {
+    const rawValue = value.rawGet(key);
+    if (rawValue !== undefined) {
+      return rawValue;
+    }
+  }
+  // If not, let's see if the value has a metatable and if it has a __index metamethod
+  const metatable = getMetatable(value, sf);
+  if (metatable && metatable.has("__index")) {
+    // Invoke the meta table
+    const metaValue = metatable.get("__index", sf);
+    if (metaValue.then) {
+      // Got a promise, we need to wait for it
+      return metaValue.then((metaValue: any) => {
+        if (metaValue.call) {
+          return metaValue.call(sf, value, key);
+        } else if (metaValue instanceof LuaTable) {
+          return metaValue.get(key, sf);
+        } else {
+          throw new Error("Meta table __index must be a function or table");
+        }
+      });
+    } else {
+      if (metaValue.call) {
+        return metaValue.call(sf, value, key);
+      } else if (metaValue instanceof LuaTable) {
+        return metaValue.get(key, sf);
+      } else {
+        throw new Error("Meta table __index must be a function or table");
+      }
+    }
+  }
+  // If not, perhaps let's assume this is a plain JavaScript object and we just index into it
+  const objValue = value[key];
+  if (objValue === undefined || objValue === null) {
+    return null;
+  } else {
+    return objValue;
   }
 }
 
@@ -575,6 +600,8 @@ export function luaLen(obj: any): number {
   if (obj instanceof LuaTable) {
     return obj.length;
   } else if (Array.isArray(obj)) {
+    return obj.length;
+  } else if (typeof obj === "string") {
     return obj.length;
   } else {
     return 0;

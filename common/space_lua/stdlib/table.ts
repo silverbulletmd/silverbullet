@@ -75,7 +75,6 @@ export const tableApi = new LuaTable({
    * @returns The keys of the table.
    */
   keys: new LuaBuiltinFunction((_sf, tbl: LuaTable | LuaEnv) => {
-    console.log("Keys", tbl);
     return tbl.keys();
   }),
   /**

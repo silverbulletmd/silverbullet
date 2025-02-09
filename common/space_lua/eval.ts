@@ -8,6 +8,7 @@ import { evalPromiseValues } from "$common/space_lua/util.ts";
 import {
   luaCall,
   luaEquals,
+  luaIndexValue,
   luaSet,
   type LuaStackFrame,
 } from "$common/space_lua/runtime.ts";
@@ -407,12 +408,17 @@ function evalPrefixExpression(
         );
       }
 
-      const handleFunctionCall = (prefixValue: LuaValue) => {
+      let selfArgs: LuaValue[] = [];
+
+      const handleFunctionCall = (
+        prefixValue: LuaValue,
+      ): LuaValue | Promise<LuaValue> => {
         // Special handling for f(...) - propagate varargs
         if (
           e.args.length === 1 && e.args[0].type === "Variable" &&
           e.args[0].name === "..."
         ) {
+          // TODO: Clean this up
           const varargs = env.get("...");
           const resolveVarargs = async () => {
             const resolvedVarargs = await Promise.resolve(varargs);
@@ -439,16 +445,19 @@ function evalPrefixExpression(
           }
         }
 
-        // Normal argument handling
-        let selfArgs: LuaValue[] = [];
-        if (e.name && !prefixValue.get) {
-          throw new LuaRuntimeError(
-            `Attempting to index a non-table: ${prefixValue}`,
-            sf.withCtx(e.prefix.ctx),
-          );
-        } else if (e.name) {
+        // Normal argument handling for hello:there(a, b, c) type calls
+        if (e.name) {
           selfArgs = [prefixValue];
-          prefixValue = prefixValue.get(e.name);
+          prefixValue = luaIndexValue(prefixValue, e.name, sf);
+          if (prefixValue === null) {
+            throw new LuaRuntimeError(
+              `Attempting to index a non-table: ${prefixValue}`,
+              sf.withCtx(e.prefix.ctx),
+            );
+          }
+          if (prefixValue instanceof Promise) {
+            return prefixValue.then(handleFunctionCall);
+          }
         }
         if (!prefixValue.call) {
           throw new LuaRuntimeError(
@@ -486,12 +495,46 @@ function evalMetamethod(
   ctx: ASTCtx,
   sf: LuaStackFrame,
 ): LuaValue | undefined {
-  if (left?.metatable?.has(metaMethod)) {
-    const fn = left.metatable.get(metaMethod);
+  const leftMetatable = getMetatable(left, sf);
+  const rightMetatable = getMetatable(right, sf);
+  if (leftMetatable?.has(metaMethod)) {
+    const fn = leftMetatable.get(metaMethod);
     return luaCall(fn, [left, right], ctx, sf);
-  } else if (right?.metatable?.has(metaMethod)) {
-    const fn = right.metatable.get(metaMethod);
+  } else if (rightMetatable?.has(metaMethod)) {
+    const fn = rightMetatable.get(metaMethod);
     return luaCall(fn, [left, right], ctx, sf);
+  }
+}
+
+export function getMetatable(
+  value: LuaValue,
+  sf?: LuaStackFrame,
+): LuaValue | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  if (typeof value === "string") {
+    // Add a metatable to the string value on the fly
+    if (!sf) {
+      console.warn(
+        "metatable lookup with string value but no stack frame, returning nil",
+      );
+      return null;
+    }
+    if (!sf.threadLocal.get("_GLOBAL")) {
+      console.warn(
+        "metatable lookup with string value but no _GLOBAL, returning nil",
+      );
+      return null;
+    }
+    const stringMetatable = new LuaTable();
+    stringMetatable.set("__index", sf.threadLocal.get("_GLOBAL").get("string"));
+    return stringMetatable;
+  }
+  if (value.metatable) {
+    return value.metatable;
+  } else {
+    return null;
   }
 }
 
