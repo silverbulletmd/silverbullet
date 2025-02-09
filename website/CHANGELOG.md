@@ -7,9 +7,9 @@ _These features are not yet properly released, you need to use [the edge builds]
 
 * **Lua**: _Tons_ of fixes, changes and enhancements, see [[Space Lua]] and related for up-to-date docs. Some notable things:
   * [[Space Lua/Lua Integrated Query]] is now here
-  * Code completion of APIs in `space-lua` and Lua directive syntax
-  * [[API]] docs (not fully complete, but getting there). Implemented in Lua itself [[^Library/Std/Lua]].
-  * WIP Lua [[^Lua]], distributed with SilverBullet core.
+  * Code completion of APIs in `space-lua` and Lua directive syntax, implemented in Lua itself: [[^Library/Std/Lua]].
+  * [[API]] docs (not fully complete, but getting there)
+  * WIP Lua [[^Library/Std]] [[Libraries]], distributed with SilverBullet core.
     * [[^Library/Std/Config]] (future Lua replacement for [[^SETTINGS]])
     * [[^Library/Std/Template]] (Lua replacement of [[Templates]]) with a few samples here [[^Library/Std/Query Templates]].
   * Breaking change: API convention changed moving from `snake_case` to `camelCase` everywhere.
