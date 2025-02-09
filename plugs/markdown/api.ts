@@ -119,7 +119,7 @@ export async function expandCodeWidgets(
         result = result.markdown;
       }
 
-      const markdown = renderExpressionResult(result);
+      const markdown = await renderExpressionResult(result);
       return await parseMarkdown(markdown);
     }
   });

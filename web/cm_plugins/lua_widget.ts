@@ -99,7 +99,7 @@ export class LuaWidget extends WidgetType {
       // If there is a markdown key, use it, otherwise render the objects as a markdown table
       let mdContent = widgetContent.markdown;
       if (!mdContent) {
-        mdContent = renderExpressionResult(widgetContent);
+        mdContent = await renderExpressionResult(widgetContent);
       }
       let mdTree = parse(
         extendedMarkdownLanguage,
