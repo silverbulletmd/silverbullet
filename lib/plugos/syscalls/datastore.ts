@@ -12,7 +12,6 @@ import {
   LuaStackFrame,
   luaValueToJS,
 } from "$common/space_lua/runtime.ts";
-import { luaBuildStandardEnv } from "$common/space_lua/stdlib.ts";
 
 /**
  * Exposes the datastore API to plugs, but scoping everything to a prefix based on the plug's name
