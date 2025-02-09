@@ -5,6 +5,11 @@
 
 Space Lua is a custom implementation of the [Lua programming language](https://lua.org/), embedded in SilverBullet. It aims to be a largely complete Lua implementation, and adds a few non-standard features while remaining syntactically compatible with “real” Lua.
 
+```embed
+url: https://youtu.be/t1oy_41bDAY
+```
+
+
 # Goals
 The introduction of Lua aims to unify and simplify a few SilverBullet features, specifically:
 
