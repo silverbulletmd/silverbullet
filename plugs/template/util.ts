@@ -3,25 +3,23 @@ import { space, system, template } from "@silverbulletmd/silverbullet/syscalls";
 import { cleanTemplate } from "./plug_api.ts";
 import { LuaTable, luaToString } from "$common/space_lua/runtime.ts";
 
-export async function defaultJsonTransformer(v: any): Promise<string> {
+export function defaultTransformer(v: any): Promise<string> {
   if (v === undefined) {
-    return "";
+    return Promise.resolve("");
   }
   if (typeof v === "string") {
-    return v.replaceAll("\n", " ").replaceAll("|", "\\|");
+    return Promise.resolve(v.replaceAll("\n", " ").replaceAll("|", "\\|"));
   }
-  if (Array.isArray(v)) {
-    return (await Promise.all(v.map(defaultJsonTransformer))).join(", ");
-  } else if (v && typeof v === "object") {
-    return luaToString(v);
+  if (v && typeof v === "object") {
+    return Promise.resolve(luaToString(v));
   }
-  return "" + v;
+  return Promise.resolve("" + v);
 }
 
 // Nicely format an array of JSON objects as a Markdown table
 export async function jsonToMDTable(
   jsonArray: any[],
-  valueTransformer: (v: any) => Promise<string> = defaultJsonTransformer,
+  valueTransformer: (v: any) => Promise<string> = defaultTransformer,
 ): Promise<string> {
   const headers = new Set<string>();
   for (const entry of jsonArray) {
