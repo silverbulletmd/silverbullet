@@ -4,6 +4,8 @@ An attempt at documenting the changes/new features introduced in each release.
 
 ## Edge
 _These features are not yet properly released, you need to use [the edge builds](https://community.silverbullet.md/t/living-on-the-edge-builds/27) to try them._
+* Native [[Share]] functionality, allowing you to use your OS'es native share functionality to share data with SilverBullet.
+  Target page can be configured as `shareTargetPage` in [[^SETTINGS]].
 
 * **Lua**: _Tons_ of fixes, changes and enhancements, see [[Space Lua]] and related for up-to-date docs. Some notable things:
   * [[Space Lua/Lua Integrated Query]] is now here
