@@ -357,6 +357,9 @@ const LuaDirectives: MarkdownConfig = {
         // Let's parse as an expression
         const parsedExpression = luaLanguage.parser.parse(`_(${bodyText})`);
 
+        // If bodyText starts with whitespace, we need to offset this later
+        const whiteSpaceOffset = bodyText.match(/^\s*/)?.[0].length ?? 0;
+
         const node = parsedExpression.resolveInner(2, 0).firstChild?.nextSibling
           ?.nextSibling;
 
@@ -367,7 +370,7 @@ const LuaDirectives: MarkdownConfig = {
           "LuaExpressionDirective",
           pos + 2,
           endPos - 1,
-          [cx.elt(node.toTree()!, pos + 2)],
+          [cx.elt(node.toTree()!, pos + 2 + whiteSpaceOffset)],
         );
 
         return cx.addElement(
