@@ -62,6 +62,10 @@ export type SlashCommandHookT = {
   slashCommand?: SlashCommandDef;
 };
 
+export type DedicatedEditorT = {
+  editor?: string | string[];
+};
+
 /** Silverbullet hooks give plugs access to silverbullet core systems.
  *
  * Hooks are associated with typescript functions through a manifest file.
@@ -76,6 +80,7 @@ export type SilverBulletHooks =
   & MQHookT
   & EventHookT
   & CodeWidgetT
+  & DedicatedEditorT
   & PanelWidgetT
   & EndpointHookT
   & PlugNamespaceHookT;
