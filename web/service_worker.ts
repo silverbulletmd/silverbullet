@@ -105,7 +105,7 @@ self.addEventListener("fetch", (event: any) => {
         pathname === "/.auth" ||
         pathname === "/.logout" ||
         pathname === "/index.json" ||
-        pathname.startsWith("!")
+        pathname.startsWith("/!")
       ) {
         return fetch(request);
       } else if (looksLikePathWithExtension(pathname)) {
