@@ -66,14 +66,10 @@ export class LuaWidget extends WidgetType {
       this.client.currentPage,
     );
     activeWidgets.add(this);
-    if (!widgetContent) {
-      div.innerHTML = "";
-      this.client.setWidgetCache(
-        this.cacheKey,
-        { height: div.clientHeight, html: "" },
-      );
-      return;
+    if (widgetContent === null || widgetContent === undefined) {
+      widgetContent = { markdown: "nil" };
     }
+
     let html = "";
     if (typeof widgetContent !== "object") {
       // Return as markdown string or number
@@ -98,7 +94,7 @@ export class LuaWidget extends WidgetType {
     } else {
       // If there is a markdown key, use it, otherwise render the objects as a markdown table
       let mdContent = widgetContent.markdown;
-      if (!mdContent) {
+      if (mdContent === undefined) {
         mdContent = await renderExpressionResult(widgetContent);
       }
       let mdTree = parse(

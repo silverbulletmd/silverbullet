@@ -2,5 +2,5 @@ This is the start of the standard library distributed as part of SilverBullet co
 
 ${template.each(query[[
   from index.tag "page"
-  where name:startsWith("Library/Std")
+  where name:startsWith("Library/Std/")
 ]], templates.pageItem)}
