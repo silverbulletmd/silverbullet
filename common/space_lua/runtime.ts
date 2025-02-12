@@ -106,6 +106,15 @@ export class LuaStackFrame {
   }
 
   static lostFrame = new LuaStackFrame(new LuaEnv(), null);
+
+  static createWithGlobalEnv(
+    globalEnv: any,
+    ctx: ASTCtx | null = null,
+  ): LuaStackFrame {
+    const env = new LuaEnv();
+    env.setLocal("_GLOBAL", globalEnv);
+    return new LuaStackFrame(env, ctx);
+  }
 }
 
 export class LuaMultiRes {

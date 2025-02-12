@@ -29,16 +29,21 @@ export function luaSyscalls(commonSystem: CommonSystem): SysCallMapping {
           commonSystem.spaceLuaEnv.env,
         );
         const sf = new LuaStackFrame(env, null);
-        const result = evalExpression(ast, commonSystem.spaceLuaEnv.env, sf);
-        if (isSendable(result)) {
-          return luaValueToJS(result);
+        const luaResult = await evalExpression(
+          ast,
+          commonSystem.spaceLuaEnv.env,
+          sf,
+        );
+        const jsResult = luaValueToJS(luaResult);
+        if (isSendable(jsResult)) {
+          return jsResult;
         } else {
           // This may evaluate to e.g. a function, which is not sendable, in this case we'll console.warn and return a stringified version of the result
           console.warn(
             "Lua eval result is not sendable, returning stringified version",
-            result,
+            jsResult,
           );
-          return luaToString(result);
+          return luaToString(luaResult);
         }
       } catch (e: any) {
         console.error("Lua eval error: ", e.message, e.sf?.astCtx);

@@ -11,6 +11,8 @@ import { renderToText } from "@silverbulletmd/silverbullet/lib/tree";
 import { activeWidgets } from "./markdown_widget.ts";
 import { attachWidgetEventHandlers } from "./widget_util.ts";
 import { renderExpressionResult } from "../../plugs/template/util.ts";
+import { expandCodeWidgets } from "$common/markdown.ts";
+import { LuaEnv, LuaStackFrame } from "$common/space_lua/runtime.ts";
 
 export type LuaWidgetCallback = (
   bodyText: string,
@@ -101,13 +103,16 @@ export class LuaWidget extends WidgetType {
         extendedMarkdownLanguage,
         mdContent,
       );
-      mdTree = await this.client.clientSystem.localSyscall(
-        "system.invokeFunction",
-        [
-          "markdown.expandCodeWidgets",
-          mdTree,
-          this.client.currentPage,
-        ],
+
+      const tl = new LuaEnv();
+      const sf = new LuaStackFrame(tl, null, LuaStackFrame.lostFrame);
+      tl.setLocal("_GLOBAL", client.clientSystem.spaceLuaEnv.env);
+      mdTree = await expandCodeWidgets(
+        client.clientSystem.codeWidgetHook,
+        mdTree,
+        this.client.currentPage,
+        client.clientSystem.spaceLuaEnv.env,
+        sf,
       );
       const trimmedMarkdown = renderToText(mdTree).trim();
 
