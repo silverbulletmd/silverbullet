@@ -15,11 +15,7 @@ import {
   defaultConfig,
 } from "@silverbulletmd/silverbullet/type/config";
 import { parse } from "$common/space_lua/parse.ts";
-import {
-  LuaEnv,
-  LuaRuntimeError,
-  LuaStackFrame,
-} from "$common/space_lua/runtime.ts";
+import { LuaRuntimeError, LuaStackFrame } from "$common/space_lua/runtime.ts";
 
 import { evalStatement } from "$common/space_lua/eval.ts";
 
@@ -68,8 +64,7 @@ export async function luaRunCommand(
     const luaFile = await Deno.readTextFile(scriptPath);
     const chunk = parse(luaFile, {});
     const env = serverSystem.spaceLuaEnv.env;
-    const sf = new LuaStackFrame(new LuaEnv(), chunk.ctx);
-    sf.threadLocal.setLocal("_GLOBAL", env);
+    const sf = LuaStackFrame.createWithGlobalEnv(env, chunk.ctx);
 
     try {
       await evalStatement(chunk, env, sf);

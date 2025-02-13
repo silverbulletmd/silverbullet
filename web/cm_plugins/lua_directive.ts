@@ -64,8 +64,10 @@ export function luaDirectivePlugin(client: Client) {
                     currentPageMeta ||
                       { name: client.ui.viewState.currentPage },
                   );
-                  tl.setLocal("_GLOBAL", client.clientSystem.spaceLuaEnv.env);
-                  const sf = new LuaStackFrame(tl, expr.ctx);
+                  const sf = LuaStackFrame.createWithGlobalEnv(
+                    client.clientSystem.spaceLuaEnv.env,
+                    expr.ctx,
+                  );
                   const threadLocalizedEnv = new LuaEnv(
                     client.clientSystem.spaceLuaEnv.env,
                   );

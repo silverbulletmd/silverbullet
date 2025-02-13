@@ -43,8 +43,7 @@ async function runLuaTest(luaPath: string) {
   );
   const chunk = parse(luaFile, {});
   const env = new LuaEnv(luaBuildStandardEnv());
-  const sf = new LuaStackFrame(new LuaEnv(), chunk.ctx);
-  sf.threadLocal.setLocal("_GLOBAL", env);
+  const sf = LuaStackFrame.createWithGlobalEnv(env, chunk.ctx);
 
   try {
     await evalStatement(chunk, env, sf);

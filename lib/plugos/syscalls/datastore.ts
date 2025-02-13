@@ -49,9 +49,9 @@ export function dataStoreReadSyscalls(
       scopeVariables: Record<string, any> = {},
     ): Promise<any[]> => {
       const dsQueryCollection = new DataStoreQueryCollection(ds, prefix);
-      const tl = new LuaEnv();
-      tl.setLocal("_GLOBAL", commonSystem.spaceLuaEnv.env);
-      const sf = new LuaStackFrame(tl, null);
+      const sf = LuaStackFrame.createWithGlobalEnv(
+        commonSystem.spaceLuaEnv.env,
+      );
       const env = new LuaEnv(commonSystem.spaceLuaEnv.env);
       for (const [key, value] of Object.entries(scopeVariables)) {
         env.set(key, jsToLuaValue(value));

@@ -12,7 +12,7 @@ import { activeWidgets } from "./markdown_widget.ts";
 import { attachWidgetEventHandlers } from "./widget_util.ts";
 import { renderExpressionResult } from "../../plugs/template/util.ts";
 import { expandCodeWidgets } from "$common/markdown.ts";
-import { LuaEnv, LuaStackFrame } from "$common/space_lua/runtime.ts";
+import { LuaStackFrame } from "$common/space_lua/runtime.ts";
 
 export type LuaWidgetCallback = (
   bodyText: string,
@@ -104,9 +104,9 @@ export class LuaWidget extends WidgetType {
         mdContent,
       );
 
-      const tl = new LuaEnv();
-      const sf = new LuaStackFrame(tl, null, LuaStackFrame.lostFrame);
-      tl.setLocal("_GLOBAL", client.clientSystem.spaceLuaEnv.env);
+      const sf = LuaStackFrame.createWithGlobalEnv(
+        client.clientSystem.spaceLuaEnv.env,
+      );
       mdTree = await expandCodeWidgets(
         client.clientSystem.codeWidgetHook,
         mdTree,

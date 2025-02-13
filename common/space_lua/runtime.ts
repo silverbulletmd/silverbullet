@@ -108,7 +108,7 @@ export class LuaStackFrame {
   static lostFrame = new LuaStackFrame(new LuaEnv(), null);
 
   static createWithGlobalEnv(
-    globalEnv: any,
+    globalEnv: LuaEnv,
     ctx: ASTCtx | null = null,
   ): LuaStackFrame {
     const env = new LuaEnv();
