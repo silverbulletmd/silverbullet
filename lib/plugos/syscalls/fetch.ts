@@ -1,7 +1,7 @@
 import type { SysCallMapping } from "../system.ts";
 import type {
-  ProxyFetchRequest,
-  ProxyFetchResponse,
+  ProxyFetchRequest64,
+  ProxyFetchResponse64,
 } from "../../proxy_fetch.ts";
 import { base64Encode } from "../../crypto.ts";
 
@@ -10,8 +10,8 @@ export function sandboxFetchSyscalls(): SysCallMapping {
     "sandboxFetch.fetch": async (
       _ctx,
       url: string,
-      options: ProxyFetchRequest,
-    ): Promise<ProxyFetchResponse> => {
+      options: ProxyFetchRequest64,
+    ): Promise<ProxyFetchResponse64> => {
       // console.log("Got sandbox fetch ", url);
       const resp = await fetch(url, options);
       return {

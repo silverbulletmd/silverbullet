@@ -718,6 +718,7 @@ export class HttpServer {
         console.log("Proxying to", url);
         try {
           const safeRequestHeaders = new Headers();
+          // List all headers
           for (
             const headerName of ["Authorization", "Accept", "Content-Type"]
           ) {
@@ -725,6 +726,15 @@ export class HttpServer {
               safeRequestHeaders.set(
                 headerName,
                 req.header(headerName)!,
+              );
+            }
+          }
+          // List all headers starting with X-Proxy-Header-, remove the prefix and add to the safe headers
+          for (const [key, value] of Object.entries(req.header())) {
+            if (key.startsWith("x-proxy-header-")) {
+              safeRequestHeaders.set(
+                key.slice("x-proxy-header-".length), // corrected casing of header prefix
+                value,
               );
             }
           }

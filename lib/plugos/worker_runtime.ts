@@ -1,6 +1,9 @@
 // This is the runtime imported from the compiled plug worker code
 import type { ControllerMessage, WorkerMessage } from "./protocol.ts";
-import type { ProxyFetchRequest, ProxyFetchResponse } from "../proxy_fetch.ts";
+import type {
+  ProxyFetchRequest64,
+  ProxyFetchResponse64,
+} from "../proxy_fetch.ts";
 
 declare global {
   function syscall(name: string, ...args: any[]): Promise<any>;
@@ -157,8 +160,8 @@ export function base64Encode(buffer: Uint8Array | string): string {
 
 export async function sandboxFetch(
   reqInfo: RequestInfo,
-  options?: ProxyFetchRequest,
-): Promise<ProxyFetchResponse> {
+  options?: ProxyFetchRequest64,
+): Promise<ProxyFetchResponse64> {
   if (typeof reqInfo !== "string") {
     const body = new Uint8Array(await reqInfo.arrayBuffer());
     const encodedBody = body.length > 0 ? base64Encode(body) : undefined;
