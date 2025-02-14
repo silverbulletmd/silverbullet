@@ -267,7 +267,7 @@ export class Client implements ConfigContainer {
     setInterval(() => {
       // TODO: Implement syncing for attachments
       try {
-        this.syncService.syncFile(`${this.currentPage}.md`).catch((e: any) => {
+        this.syncService.syncFile(this.currentPath(true)).catch((e: any) => {
           console.error("Interval sync error", e);
         });
       } catch (e: any) {
@@ -605,6 +605,7 @@ export class Client implements ConfigContainer {
 
     let lastSaveTimestamp: number | undefined;
 
+    // TODO: Fix this
     this.eventHook.addLocalListener("editor:pageSaving", () => {
       lastSaveTimestamp = Date.now();
     });
@@ -698,74 +699,77 @@ export class Client implements ConfigContainer {
       }
       this.saveTimeout = setTimeout(
         () => {
-          if (this.currentPage) {
-            if (
-              !this.ui.viewState.unsavedChanges ||
-              this.ui.viewState.uiOptions.forcedROMode || this.readOnlyMode
-            ) {
-              // No unsaved changes, or read-only mode, not gonna save
-              return resolve();
-            }
-
-            if (this.isDedicatedEditor()) {
-              // TODO Implement saving for dedicated Editors
-              // Should we send page Saving in this case
-              console.warn(
-                "Saving has not yet been implemented for attachments",
-              );
-
-              return resolve();
-            } else {
-              console.log("Saving page", this.currentPage);
-              // TODO: also need some kind of event here for attachment saving
-              this.dispatchAppEvent(
-                "editor:pageSaving",
-                this.currentPage,
-              );
-              this.space
-                .writePage(
-                  this.currentPage,
-                  this.editorView.state.sliceDoc(0),
-                  true,
-                )
-                .then(async (meta) => {
-                  // Also need to keep track of this for attachments
-                  this.ui.viewDispatch({ type: "page-saved" });
-                  await this.dispatchAppEvent(
-                    "editor:pageSaved",
-                    this.currentPage,
-                    meta,
-                  );
-
-                  // At this all the essential stuff is done, let's proceed
-                  resolve();
-
-                  // In the background we'll fetch any enriched meta data, if any
-                  const enrichedMeta = await this.clientSystem.getObjectByRef<
-                    PageMeta
-                  >(
-                    this.currentPage,
-                    "page",
-                    this.currentPage,
-                  );
-                  if (enrichedMeta) {
-                    this.ui.viewDispatch({
-                      type: "update-current-page-meta",
-                      meta: enrichedMeta,
-                    });
-                  }
-                })
-                .catch((e) => {
-                  this.flashNotification(
-                    "Could not save page, retrying again in 10 seconds",
-                    "error",
-                  );
-                  this.saveTimeout = setTimeout(this.save.bind(this), 10000);
-                  reject(e);
-                });
-            }
-          } else {
+          // Note: Is this case really necessary? The fallback path will always exist, right?
+          if (!this.currentPath()) {
             resolve();
+          }
+
+          if (
+            !this.ui.viewState.unsavedChanges ||
+            this.ui.viewState.uiOptions.forcedROMode || this.readOnlyMode
+          ) {
+            // No unsaved changes, or read-only mode, not gonna save
+            return resolve();
+          }
+
+          if (this.isDedicatedEditor()) {
+            console.log("Requesting save for attachment", this.currentPath());
+            this.dispatchAppEvent(
+              "editor:attachmentSaving",
+              this.currentPath(),
+            );
+
+            // Only thing we can really do is request a save
+            this.dedicatedEditor.requestSave();
+
+            return resolve();
+          } else {
+            console.log("Saving page", this.currentPage);
+            this.dispatchAppEvent(
+              "editor:pageSaving",
+              this.currentPage,
+            );
+            this.space
+              .writePage(
+                this.currentPage,
+                this.editorView.state.sliceDoc(0),
+                true,
+              )
+              .then(async (meta) => {
+                // Also need to keep track of this for attachments
+                this.ui.viewDispatch({ type: "page-saved" });
+                await this.dispatchAppEvent(
+                  "editor:pageSaved",
+                  this.currentPage,
+                  meta,
+                );
+
+                // At this all the essential stuff is done, let's proceed
+                resolve();
+
+                // In the background we'll fetch any enriched meta data, if any
+                const enrichedMeta = await this.clientSystem.getObjectByRef<
+                  PageMeta
+                >(
+                  this.currentPage,
+                  "page",
+                  this.currentPage,
+                );
+                if (enrichedMeta) {
+                  this.ui.viewDispatch({
+                    type: "update-current-page-meta",
+                    meta: enrichedMeta,
+                  });
+                }
+              })
+              .catch((e) => {
+                this.flashNotification(
+                  "Could not save page, retrying again in 10 seconds",
+                  "error",
+                );
+                this.saveTimeout = setTimeout(this.save.bind(this), 10000);
+                reject(e);
+              });
           }
         },
         immediate ? 0 : autoSaveInterval,
@@ -1120,7 +1124,15 @@ export class Client implements ConfigContainer {
   }
 
   async loadDedicatedEditor(path: string) {
+    const previousPath = this.currentPath();
+
     // TODO: Check if correct editor is already loaded and if so use this one
+
+    console.log(previousPath, path);
+    if (previousPath !== path) {
+      this.save(true);
+    }
+
     let doc;
 
     this.ui.viewDispatch({
@@ -1159,6 +1171,18 @@ export class Client implements ConfigContainer {
       return;
     }
 
+    this.eventHook.dispatchEvent("editor:attachmentLoaded", path, previousPath)
+      .catch(
+        console.error,
+      );
+
+    // TODO: There should be a reloaded event here
+    // } else {
+    //   this.eventHook.dispatchEvent("editor:pageReloaded", pageName).catch(
+    //     console.error,
+    //   );
+    // }
+
     this.dedicatedEditor.setContent(doc.data, doc.meta);
   }
 
@@ -1173,7 +1197,7 @@ export class Client implements ConfigContainer {
       // this.openPages.saveState(previousPage);
       // TODO: Is this important to me?
       this.space.unwatchPage(previousPage);
-      if (previousPage !== pageName) {
+      if (this.currentPath() !== `${pageName}.md`) {
         await this.save(true);
       }
     }
@@ -1285,6 +1309,7 @@ export class Client implements ConfigContainer {
 
     // Note: these events are dispatched asynchronously deliberately (not waiting for results)
     if (loadingDifferentPage) {
+      // TODO: isSynced is not added here
       this.eventHook.dispatchEvent("editor:pageLoaded", pageName, previousPage)
         .catch(
           console.error,
@@ -1333,6 +1358,29 @@ export class Client implements ConfigContainer {
 
     this.dedicatedEditor = new DedicatedEditor(
       document.getElementById("sb-editor")!,
+      this,
+      (path, content) => {
+        this.space
+          .writeAttachment(path, content, true)
+          .then(async (meta) => {
+            // Also need to keep track of this for attachments
+            this.ui.viewDispatch({ type: "dedicated-editor-saved" });
+
+            // TODO: Also create a corresponding event here
+            await this.dispatchAppEvent(
+              "editor:attachmentSaved",
+              path,
+              meta,
+            );
+          })
+          .catch(() => {
+            this.flashNotification(
+              "Could not save attachment, retrying again in 10 seconds",
+              "error",
+            );
+            this.saveTimeout = setTimeout(this.save.bind(this), 10000);
+          });
+      },
     );
 
     await this.dedicatedEditor.init(this, extension);
