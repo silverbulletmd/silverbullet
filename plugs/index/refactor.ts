@@ -69,6 +69,26 @@ export async function renamePageLinkCommand() {
 }
 
 /**
+ * Renames a single attachment.
+ * @param cmdDef Optional command arguments
+ * @param cmdDef.oldAttachment The current name of the attachment to rename.
+ * @param cmdDef.attachment The name to rename the attachment to. If not provided the
+ *   user will be prompted to enter a new name.
+ * @returns True if the rename succeeded; otherwise, false.
+ */
+export async function renameAttachmentCommand(cmdDef: any) {
+  const oldName: string = cmdDef.oldAttachment || await editor.getCurrentPath();
+  const newName: string = cmdDef.attachment ||
+    await editor.prompt(`Rename ${oldName} to:`, oldName);
+  if (!newName) {
+    return false;
+  }
+  const pageList: [string, string][] = [[oldName, newName]];
+  await batchRenameFiles(pageList);
+  return true;
+}
+
+/**
  * Renames any amount of files.
  * If renaming pages, names should be passed with a .md extension
  * @param fileList An array of tuples containing [FileToBeRenamed, NewFileName]
@@ -202,7 +222,7 @@ async function renamePage(oldName: string, newName: string) {
 
   // Navigate to new page if currently viewing old page
   if (await editor.getCurrentPage() === oldName) {
-    await editor.navigate({ page: newName, pos: 0 }, true);
+    await editor.navigate({ kind: "page", page: newName, pos: 0 }, true);
   }
   // Handling the edge case of a changing page name just in casing on a case insensitive FS
   const oldPageMeta = await space.getPageMeta(oldName);
@@ -232,6 +252,10 @@ async function renameAttachment(
   // Move the file
   const oldFile = await space.readAttachment(oldName);
   const newFileMeta = await space.writeAttachment(newName, oldFile);
+
+  if (await editor.getCurrentPath() === oldName) {
+    await editor.navigate({ kind: "attachment", page: newName }, true);
+  }
 
   // Handling the edge case of a changing file name just in casing on a case insensitive FS
   const oldFileMeta = await space.getAttachmentMeta(oldName);
@@ -335,7 +359,7 @@ export async function extractToPageCommand() {
   console.log("Writing new page to space");
   await space.writePage(newName, text);
   console.log("Navigating to new page");
-  await editor.navigate({ page: newName });
+  await editor.navigate({ kind: "page", page: newName });
 }
 
 /**

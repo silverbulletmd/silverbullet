@@ -10,10 +10,10 @@ import type { SyntaxNode } from "@lezer/common";
 import { Space } from "../common/space.ts";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 import { EventHook } from "../common/hooks/event.ts";
-import type { AppCommand } from "$lib/command.ts";
+import { type AppCommand, isValidEditor } from "$lib/command.ts";
 import {
-  type PageState,
-  parsePageRefFromURI,
+  type LocationState,
+  parseLocationRefFromURI,
   PathPageNavigator,
 } from "./navigator.ts";
 
@@ -21,6 +21,7 @@ import type { AppViewState } from "./type.ts";
 
 import type {
   AppEvent,
+  AttachmentMeta,
   CompleteEvent,
   SlashCompletions,
 } from "../plug-api/types.ts";
@@ -40,9 +41,9 @@ import { HttpSpacePrimitives } from "$common/spaces/http_space_primitives.ts";
 import { FallbackSpacePrimitives } from "$common/spaces/fallback_space_primitives.ts";
 import { FilteredSpacePrimitives } from "$common/spaces/filtered_space_primitives.ts";
 import {
-  encodePageRef,
+  encodeLocationRef,
   encodePageURI,
-  validatePageName,
+  parseLocationRef,
 } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { ClientSystem } from "./client_system.ts";
 import { createEditorState } from "./editor_state.ts";
@@ -61,7 +62,7 @@ import { DataStoreSpacePrimitives } from "$common/spaces/datastore_space_primiti
 
 import { ensureSpaceIndex } from "$common/space_index.ts";
 import { renderTheTemplate } from "$common/syscalls/template.ts";
-import type { PageRef } from "../plug-api/lib/page_ref.ts";
+import type { LocationRef } from "../plug-api/lib/page_ref.ts";
 import { ReadOnlySpacePrimitives } from "$common/spaces/ro_space_primitives.ts";
 import type { KvPrimitives } from "$lib/data/kv_primitives.ts";
 import { builtinFunctions } from "$lib/builtin_query_functions.ts";
@@ -76,6 +77,7 @@ import { findNodeMatching } from "@silverbulletmd/silverbullet/lib/tree";
 import type { AspiringPageObject } from "../plugs/index/page_links.ts";
 import type { Config, ConfigContainer } from "../type/config.ts";
 import { editor } from "@silverbulletmd/silverbullet/syscalls";
+import { DedicatedEditor } from "./dedicated_editor.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -121,6 +123,9 @@ export class Client implements ConfigContainer {
   keyHandlerCompartment?: Compartment;
   indentUnitCompartment?: Compartment;
 
+  // Dedicated editors
+  dedicatedEditor: DedicatedEditor | null = null;
+
   private pageNavigator!: PathPageNavigator;
 
   private dbPrefix: string;
@@ -137,7 +142,7 @@ export class Client implements ConfigContainer {
   fullSyncCompleted = false;
   syncService!: ISyncService;
 
-  private onLoadPageRef: PageRef;
+  private onLoadLocationRef: LocationRef;
 
   constructor(
     private parent: Element,
@@ -150,7 +155,7 @@ export class Client implements ConfigContainer {
     // Generate a semi-unique prefix for the database so not to reuse databases for different space paths
     this.dbPrefix = "" +
       simpleHash(globalThis.silverBulletConfig.spaceFolderPath);
-    this.onLoadPageRef = parsePageRefFromURI();
+    this.onLoadLocationRef = parseLocationRefFromURI();
   }
 
   /**
@@ -254,7 +259,7 @@ export class Client implements ConfigContainer {
     // Regularly sync the currently open file
     setInterval(() => {
       try {
-        this.syncService.syncFile(`${this.currentPage}.md`).catch((e: any) => {
+        this.syncService.syncFile(this.currentPath(true)).catch((e: any) => {
           console.error("Interval sync error", e);
         });
       } catch (e: any) {
@@ -264,6 +269,7 @@ export class Client implements ConfigContainer {
 
     // Let's update the local page list cache asynchronously
     this.updatePageListCache().catch(console.error);
+    this.updateAttachmentListCache().catch(console.error);
   }
 
   async loadConfig() {
@@ -345,15 +351,17 @@ export class Client implements ConfigContainer {
     this.eventHook.addLocalListener(
       "file:synced",
       (meta: FileMeta, direction: string) => {
-        if (meta.name.endsWith(".md") && direction === "secondary->primary") {
-          // We likely polled the currently open page which trigggered a local update, let's update the editor accordingly
-          this.space.getPageMeta(meta.name.slice(0, -3));
+        if (direction === "secondary->primary") {
+          // We likely polled the currently open page or attachment which trigggered a local update, let's update the editor accordingly
+          this.space.spacePrimitives.getFileMeta(meta.name);
         }
       },
     );
   }
 
-  private navigateWithinPage(pageState: PageState) {
+  private navigateWithinPage(pageState: LocationState) {
+    if (pageState.kind === "attachment") return;
+
     // Did we end up doing anything in terms of internal navigation?
     let adjustedPosition = false;
 
@@ -476,30 +484,34 @@ export class Client implements ConfigContainer {
 
     await this.pageNavigator.init();
 
-    this.pageNavigator.subscribe(async (pageState) => {
-      console.log("Now navigating to", pageState);
+    this.pageNavigator.subscribe(async (locationState) => {
+      console.log("Now navigating to", locationState.page);
 
-      await this.loadPage(pageState.page);
+      if (locationState.kind === "page") {
+        await this.loadPage(locationState.page);
+      } else {
+        await this.loadDedicatedEditor(locationState.page);
+      }
 
       // Setup scroll position, cursor position, etc
-      this.navigateWithinPage(pageState);
+      this.navigateWithinPage(locationState);
 
       // Persist this page as the last opened page, we'll use this for cold start PWA loads
       await this.stateDataStore.set(
-        ["client", "lastOpenedPage"],
-        pageState.page,
+        ["client", "lastOpenedPath"],
+        locationState.page,
       );
     });
 
     if (location.hash === "#boot" && this.config.pwaOpenLastPage !== false) {
       // Cold start PWA load
-      const lastPage = await this.stateDataStore.get([
+      const lastPath = await this.stateDataStore.get([
         "client",
-        "lastOpenedPage",
+        "lastOpenedPath",
       ]);
-      if (lastPage) {
-        console.log("Navigating to last opened page", lastPage);
-        await this.navigate({ page: lastPage });
+      if (lastPath) {
+        console.log("Navigating to last opened page", lastPath.path);
+        await this.navigate(parseLocationRef(lastPath));
       }
     }
     setTimeout(() => {
@@ -584,9 +596,19 @@ export class Client implements ConfigContainer {
 
     let lastSaveTimestamp: number | undefined;
 
-    this.eventHook.addLocalListener("editor:pageSaving", () => {
+    const updateLastSaveTimestamp = () => {
       lastSaveTimestamp = Date.now();
-    });
+    };
+
+    this.eventHook.addLocalListener(
+      "editor:pageSaving",
+      updateLastSaveTimestamp,
+    );
+
+    this.eventHook.addLocalListener(
+      "editor:attachmentSaving",
+      updateLastSaveTimestamp,
+    );
 
     this.eventHook.addLocalListener(
       "file:changed",
@@ -596,9 +618,9 @@ export class Client implements ConfigContainer {
         oldHash: number,
         newHash: number,
       ) => {
-        // Only reload when watching the current page (to avoid reloading when switching pages)
+        // Only reload when watching the current page or attachment (to avoid reloading when switching pages)
         if (
-          this.space.watchInterval && `${this.currentPage}.md` === path &&
+          this.space.watchInterval && this.currentPath(true) === path &&
           // Avoid reloading if the page was just saved (5s window)
           (!lastSaveTimestamp || (lastSaveTimestamp < Date.now() - 5000))
         ) {
@@ -614,8 +636,10 @@ export class Client implements ConfigContainer {
             "now",
             Date.now(),
           );
-          this.flashNotification("Page changed elsewhere, reloading");
-          this.reloadPage();
+          this.flashNotification(
+            "Page or attachment changed elsewhere, reloading",
+          );
+          this.reloadEditor();
         }
       },
     );
@@ -647,10 +671,21 @@ export class Client implements ConfigContainer {
     return localSpacePrimitives;
   }
 
+  // Note: This is a legacy method, which only makes sense when the current editor is a page editor
   get currentPage(): string {
-    return this.ui.viewState.currentPage !== undefined
-      ? this.ui.viewState.currentPage
-      : this.onLoadPageRef.page; // best effort
+    return this.ui.viewState.current !== undefined
+      ? this.ui.viewState.current.path
+      : this.onLoadLocationRef.page; // best effort
+  }
+
+  currentPath(extension: boolean = false): string {
+    if (this.ui.viewState.current !== undefined) {
+      return this.ui.viewState.current.path +
+        ((this.ui.viewState.current.kind === "page" && extension) ? ".md" : "");
+    } else {
+      return this.onLoadLocationRef.page +
+        ((this.onLoadLocationRef.kind === "page" && extension) ? ".md" : "");
+    }
   }
 
   dispatchAppEvent(name: AppEvent, ...args: any[]): Promise<any[]> {
@@ -665,14 +700,31 @@ export class Client implements ConfigContainer {
       }
       this.saveTimeout = setTimeout(
         () => {
-          if (this.currentPage) {
-            if (
-              !this.ui.viewState.unsavedChanges ||
-              this.ui.viewState.uiOptions.forcedROMode || this.readOnlyMode
-            ) {
-              // No unsaved changes, or read-only mode, not gonna save
-              return resolve();
-            }
+          // Note: Is this case really necessary? The fallback path will always exist, right?
+          if (!this.currentPath()) {
+            resolve();
+          }
+
+          if (
+            !this.ui.viewState.unsavedChanges ||
+            this.ui.viewState.uiOptions.forcedROMode || this.readOnlyMode
+          ) {
+            // No unsaved changes, or read-only mode, not gonna save
+            return resolve();
+          }
+
+          if (this.isDedicatedEditor()) {
+            console.log("Requesting save for attachment", this.currentPath());
+            this.dispatchAppEvent(
+              "editor:attachmentSaving",
+              this.currentPath(),
+            );
+
+            // Only thing we can really do is request a save
+            this.dedicatedEditor.requestSave();
+
+            return resolve();
+          } else {
             console.log("Saving page", this.currentPage);
             this.dispatchAppEvent(
               "editor:pageSaving",
@@ -685,6 +737,7 @@ export class Client implements ConfigContainer {
                 true,
               )
               .then(async (meta) => {
+                // Also need to keep track of this for attachments
                 this.ui.viewDispatch({ type: "page-saved" });
                 await this.dispatchAppEvent(
                   "editor:pageSaved",
@@ -718,8 +771,6 @@ export class Client implements ConfigContainer {
                 this.saveTimeout = setTimeout(this.save.bind(this), 10000);
                 reject(e);
               });
-          } else {
-            resolve();
           }
         },
         immediate ? 0 : autoSaveInterval,
@@ -749,11 +800,13 @@ export class Client implements ConfigContainer {
     );
   }
 
-  startPageNavigate(mode: "page" | "meta" | "all") {
+  startPageNavigate(mode: "page" | "meta" | "attachment" | "all") {
     // Then show the page navigator
     this.ui.viewDispatch({ type: "start-navigate", mode });
     // And update the page list cache asynchronously
     this.updatePageListCache().catch(console.error);
+
+    this.updateAttachmentListCache().catch(console.error);
   }
 
   async updatePageListCache() {
@@ -780,6 +833,20 @@ export class Client implements ConfigContainer {
     this.ui.viewDispatch({
       type: "update-page-list",
       allPages: allPages.concat(allAspiringPages),
+    });
+  }
+
+  async updateAttachmentListCache() {
+    console.log("Updating attachment list cache");
+
+    const allAttachments = await this.clientSystem.queryObjects<AttachmentMeta>(
+      "attachment",
+      {},
+    );
+
+    this.ui.viewDispatch({
+      type: "update-attachment-list",
+      allAttachments: allAttachments,
     });
   }
 
@@ -876,7 +943,7 @@ export class Client implements ConfigContainer {
           this,
           this.currentPage,
           editorView.state.sliceDoc(),
-          this.ui.viewState.currentPageMeta?.perm === "ro",
+          this.ui.viewState.current?.meta?.perm === "ro",
         ),
       );
       if (editorView.contentDOM) {
@@ -980,10 +1047,21 @@ export class Client implements ConfigContainer {
     >;
   }
 
+  async reloadEditor() {
+    if (this.isDedicatedEditor()) await this.reloadDedicatedEditor();
+    else await this.reloadPage();
+  }
+
   async reloadPage() {
     console.log("Reloading page");
     clearTimeout(this.saveTimeout);
     await this.loadPage(this.currentPage);
+  }
+
+  async reloadDedicatedEditor() {
+    console.log("Reloading dediacted editor");
+    clearTimeout(this.saveTimeout);
+    await this.loadDedicatedEditor(this.currentPath());
   }
 
   // Focus the editor
@@ -1002,16 +1080,22 @@ export class Client implements ConfigContainer {
       // Some other modal UI element is visible, don't focus editor now
       return;
     }
-    this.editorView.focus();
+
+    if (this.isDedicatedEditor()) {
+      this.dedicatedEditor.focus();
+    } else {
+      this.editorView.focus();
+    }
   }
 
   async navigate(
-    pageRef: PageRef,
+    locationRef: LocationRef,
     replaceState = false,
     newWindow = false,
   ) {
-    if (!pageRef.page) {
-      pageRef.page = cleanPageRef(
+    if (!locationRef.page) {
+      locationRef.kind = "page";
+      locationRef.page = cleanPageRef(
         await renderTheTemplate(
           this.config.indexPage,
           {},
@@ -1021,19 +1105,20 @@ export class Client implements ConfigContainer {
       );
     }
 
-    try {
-      validatePageName(pageRef.page);
-    } catch (e: any) {
-      return this.flashNotification(e.message, "error");
-    }
+    // TODO: Implement more generic validation
+    // try {
+    //   validatePageName(pageRef.path);
+    // } catch (e: any) {
+    //   return this.flashNotification(e.message, "error");
+    // }
 
     if (newWindow) {
       console.log(
         "Navigating to new page in new window",
-        `${location.origin}/${encodePageURI(encodePageRef(pageRef))}`,
+        `${location.origin}/${encodePageURI(encodeLocationRef(locationRef))}`,
       );
       const win = globalThis.open(
-        `${location.origin}/${encodePageURI(encodePageRef(pageRef))}`,
+        `${location.origin}/${encodePageURI(encodeLocationRef(locationRef))}`,
         "_blank",
       );
       if (win) {
@@ -1043,22 +1128,142 @@ export class Client implements ConfigContainer {
     }
 
     await this.pageNavigator!.navigate(
-      pageRef,
+      locationRef,
       replaceState,
     );
     this.focus();
   }
 
+  async loadDedicatedEditor(path: string) {
+    const previousPath = this.currentPath();
+    const previousRef = this.ui.viewState.current;
+    const initalLoad = !previousRef;
+    const loadingDifferentPath = !initalLoad
+      ? (previousPath !== path)
+      // Always load as different page if page is loaded from scratch
+      : true;
+
+    const revertPath = () => {
+      if (previousPath && previousRef) {
+        this.ui.viewDispatch(
+          previousRef.kind === "page"
+            ? { type: "page-loaded", meta: previousRef.meta }
+            : { type: "dedicated-editor-loaded", meta: previousRef.meta },
+        );
+      }
+    };
+
+    if (previousPath) {
+      this.space.unwatchFile(previousPath);
+
+      if (loadingDifferentPath) {
+        this.save(true);
+      }
+    }
+
+    let doc;
+
+    this.ui.viewDispatch({
+      type: "dedicated-editor-loading",
+      name: path,
+    });
+
+    try {
+      doc = await this.space.readAttachment(path);
+    } catch (e: any) {
+      revertPath();
+
+      if (e.message.includes("Not found")) {
+        console.log("This page doesn't exist, redirecting to the index page");
+
+        if (initalLoad) this.navigate({ kind: "page", page: "" });
+      } else {
+        this.flashNotification(
+          `Could not load dedicated editor ${path}: ${e.message}`,
+          "error",
+        );
+      }
+
+      return;
+    }
+
+    if (
+      loadingDifferentPath &&
+      !(this.isDedicatedEditor() &&
+        this.dedicatedEditor.extension === doc.meta.extension)
+    ) {
+      try {
+        await this.switchToDedicatedEditor(doc.meta.extension);
+
+        if (!this.dedicatedEditor) {
+          throw new Error("Problem setting up dedicated editor");
+        }
+      } catch (e: any) {
+        console.log(e.message);
+
+        revertPath();
+        // TODO: We won't always revert to a page editor
+        this.switchToPageEditor();
+
+        if (e.message.includes("Couldn't find")) {
+          editor.openUrl(path + "?raw=true", initalLoad);
+
+          // This is a hacky way to clean up the history here
+          globalThis.history.replaceState(
+            previousRef,
+            "",
+            `/${encodePageURI(previousPath)}`,
+          );
+        }
+        return;
+      }
+    }
+
+    this.ui.viewDispatch({
+      type: "dedicated-editor-loaded",
+      meta: doc.meta,
+    });
+
+    if (!loadingDifferentPath && this.isDedicatedEditor()) {
+      // We are loading the same page again so just send a file changed event
+      this.dedicatedEditor.changeContent(doc.data, doc.meta);
+    } else {
+      this.dedicatedEditor!.setContent(doc.data, doc.meta);
+      this.space.watchFile(path);
+    }
+
+    if (loadingDifferentPath) {
+      this.eventHook.dispatchEvent(
+        "editor:attachmentLoaded",
+        path,
+        previousPath,
+      )
+        .catch(
+          console.error,
+        );
+    } else {
+      this.eventHook.dispatchEvent(
+        "editor:attachmentReloaded",
+        path,
+        previousPath,
+      )
+        .catch(
+          console.error,
+        );
+    }
+  }
+
   async loadPage(pageName: string) {
     const loadingDifferentPage = pageName !== this.currentPage;
     const editorView = this.editorView;
-    const previousPage = this.currentPage;
+    const previousPath = this.currentPath();
+    const previousRef = this.ui.viewState.current;
 
     // Persist current page state and nicely close page
-    if (previousPage) {
+    if (previousPath) {
       // this.openPages.saveState(previousPage);
-      this.space.unwatchPage(previousPage);
-      if (previousPage !== pageName) {
+      this.space.unwatchFile(previousPath);
+      if (previousPath !== `${pageName}.md`) {
         await this.save(true);
       }
     }
@@ -1102,15 +1307,20 @@ export class Client implements ConfigContainer {
           `Could not load page ${pageName}: ${e.message}`,
           "error",
         );
-        if (previousPage) {
-          this.ui.viewDispatch({
-            type: "page-loading",
-            name: previousPage,
-          });
+        if (previousPath && previousRef) {
+          this.ui.viewDispatch(
+            previousRef.kind === "page"
+              ? { type: "page-loaded", meta: previousRef.meta }
+              : { type: "dedicated-editor-loaded", meta: previousRef.meta },
+          );
         }
 
-        return false;
+        return;
       }
+    }
+
+    if (this.isDedicatedEditor()) {
+      this.switchToPageEditor();
     }
 
     this.ui.viewDispatch({
@@ -1165,7 +1375,11 @@ export class Client implements ConfigContainer {
 
     // Note: these events are dispatched asynchronously deliberately (not waiting for results)
     if (loadingDifferentPage) {
-      this.eventHook.dispatchEvent("editor:pageLoaded", pageName, previousPage)
+      this.eventHook.dispatchEvent(
+        "editor:pageLoaded",
+        pageName,
+        previousPath.slice(0, -3),
+      )
         .catch(
           console.error,
         );
@@ -1185,6 +1399,64 @@ export class Client implements ConfigContainer {
       "--editor-indent-multiplier",
       indentMultiplier.toString(),
     );
+  }
+
+  isDedicatedEditor(): this is { dedicatedEditor: DedicatedEditor } & this {
+    return this.dedicatedEditor !== null;
+  }
+
+  switchToPageEditor() {
+    if (!this.isDedicatedEditor()) return;
+
+    this.dedicatedEditor.destroy();
+    // @ts-ignore: This is there the hacked type-guard from isDedicatedEditor fails
+    this.dedicatedEditor = null;
+
+    this.rebuildEditorState();
+
+    document.getElementById("sb-editor")!.classList.remove("hide-cm");
+  }
+
+  async switchToDedicatedEditor(extension: string) {
+    if (this.dedicatedEditor) {
+      this.dedicatedEditor.destroy();
+    }
+
+    // This is probably not the best way to hide the codemirror editor, but it works
+    document.getElementById("sb-editor")!.classList.add("hide-cm");
+
+    this.dedicatedEditor = new DedicatedEditor(
+      document.getElementById("sb-editor")!,
+      this,
+      (path, content) => {
+        this.space
+          .writeAttachment(path, content, true)
+          .then(async (meta) => {
+            // Also need to keep track of this for attachments
+            this.ui.viewDispatch({ type: "dedicated-editor-saved" });
+
+            await this.dispatchAppEvent(
+              "editor:attachmentSaved",
+              path,
+              meta,
+            );
+          })
+          .catch(() => {
+            this.flashNotification(
+              "Could not save attachment, retrying again in 10 seconds",
+              "error",
+            );
+            this.saveTimeout = setTimeout(this.save.bind(this), 10000);
+          });
+      },
+    );
+
+    await this.dedicatedEditor.init(this, extension);
+
+    // We have to rebuild the editor state here to update the keymap correctly
+    // This is a little hacky but any other solution would pose a larger rewrite
+    this.rebuildEditorState();
+    this.editorView.contentDOM.blur();
   }
 
   tweakEditorDOM(contentDOM: HTMLElement) {
@@ -1238,6 +1510,7 @@ export class Client implements ConfigContainer {
   getCommandsByContext(
     state: AppViewState,
   ): Map<string, AppCommand> {
+    const currentEditor = client.dedicatedEditor?.name;
     const commands = new Map(state.commands);
     for (const [k, v] of state.commands.entries()) {
       if (
@@ -1245,6 +1518,11 @@ export class Client implements ConfigContainer {
         (!state.showCommandPaletteContext ||
           !v.command.contexts.includes(state.showCommandPaletteContext))
       ) {
+        commands.delete(k);
+      }
+
+      const requiredEditor = v.command.requireEditor;
+      if (!isValidEditor(currentEditor, requiredEditor)) {
         commands.delete(k);
       }
     }

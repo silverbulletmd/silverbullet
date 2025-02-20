@@ -40,6 +40,7 @@ export type AttachmentMeta = ObjectValue<
     lastModified: string;
     size: number;
     perm: "ro" | "rw";
+    extension: string;
   } & Record<string, any>
 >;
 
@@ -176,6 +177,14 @@ export type CodeWidgetButton = {
   invokeFunction: string[];
 };
 
+// Dedicated editors stuff
+export type DedicatedEditorCallback = () => Promise<DedicatedEditorContent>;
+
+export type DedicatedEditorContent = {
+  html: string;
+  script?: string;
+};
+
 export type LintDiagnostic = {
   from: number;
   to: number;
@@ -201,6 +210,8 @@ export type AppEvent =
   | "editor:pageReloaded"
   | "editor:pageSaving"
   | "editor:pageSaved"
+  | "editor:attachmentSaving"
+  | "editor:attachmentSaved"
   | "editor:modeswitch"
   | "plugs:loaded"
   | "editor:pageModified";
