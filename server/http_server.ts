@@ -225,7 +225,7 @@ export class HttpServer {
         if (typeof response.body === "string") {
           return ctx.text(response.body);
         } else if (response.body instanceof Uint8Array) {
-          return ctx.body(response.body);
+          return ctx.body(response.body.buffer as ArrayBuffer);
         } else {
           return ctx.json(response.body);
         }
@@ -268,7 +268,7 @@ export class HttpServer {
         }
         c.status(200);
         c.header("Content-type", this.clientAssetBundle.getMimeType(assetName));
-        let data: Uint8Array | string = this.clientAssetBundle.readFileSync(
+        let data = this.clientAssetBundle.readFileSync(
           assetName,
         );
         c.header("Content-length", "" + data.length);
@@ -286,7 +286,7 @@ export class HttpServer {
             // console.log(
             //   "Swapping out config hash in service worker",
             // );
-            data = textData.replaceAll(
+            return Promise.resolve(c.body(textData.replaceAll(
               "{{CONFIG_HASH}}",
               base64Encode(
                 JSON.stringify([
@@ -295,9 +295,10 @@ export class HttpServer {
                   this.spaceServer.enableSpaceScript,
                 ]),
               ),
-            );
+            )));
+          } else {
+            return Promise.resolve(c.body(new Uint8Array(data).buffer));
           }
-          return Promise.resolve(c.body(data));
         } // else e.g. HEAD, OPTIONS, don't send body
       } catch {
         return next();
@@ -632,7 +633,7 @@ export class HttpServer {
         ) {
           return c.body(null, 304);
         }
-        return c.body(fileData.data, 200, {
+        return c.body(new Uint8Array(fileData.data).buffer, 200, {
           ...this.fileMetaToHeaders(fileData.meta),
           "Last-Modified": lastModifiedHeader,
         });
