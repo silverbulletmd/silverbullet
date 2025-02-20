@@ -38,6 +38,91 @@ import {
 import { luaValueToJS } from "$common/space_lua/runtime.ts";
 import { jsToLuaValue } from "$common/space_lua/runtime.ts";
 
+function handleVarargSync(env: LuaEnv): LuaValue[] | Promise<LuaValue[]> {
+  const varargs = env.get("...");
+  if (varargs instanceof Promise) {
+    return handleVarargAsync(varargs);
+  }
+  if (varargs instanceof LuaTable) {
+    const args = [];
+    for (let i = 1; i <= varargs.length; i++) {
+      const val = varargs.get(i);
+      if (val instanceof Promise) {
+        return handleVarargAsync(varargs);
+      }
+      args.push(val);
+    }
+    return args;
+  }
+  return [];
+}
+
+async function handleVarargAsync(
+  varargs: Promise<LuaValue> | LuaTable,
+): Promise<LuaValue[]> {
+  const resolvedVarargs = await varargs;
+  if (resolvedVarargs instanceof LuaTable) {
+    const args = [];
+    for (let i = 1; i <= resolvedVarargs.length; i++) {
+      args.push(await resolvedVarargs.get(i));
+    }
+    return args;
+  }
+  return [];
+}
+
+function handleTableFieldSync(
+  table: LuaTable,
+  field: any,
+  env: LuaEnv,
+  sf: LuaStackFrame,
+): void | Promise<void> {
+  switch (field.type) {
+    case "PropField": {
+      const value = evalExpression(field.value, env, sf);
+      if (value instanceof Promise) {
+        return value.then((v) => table.set(field.key, singleResult(v), sf));
+      }
+      table.set(field.key, singleResult(value), sf);
+      break;
+    }
+    case "DynamicField": {
+      const key = evalExpression(field.key, env, sf);
+      const value = evalExpression(field.value, env, sf);
+      if (key instanceof Promise || value instanceof Promise) {
+        return Promise.all([
+          key instanceof Promise ? key : Promise.resolve(key),
+          value instanceof Promise ? value : Promise.resolve(value),
+        ]).then(([k, v]) => {
+          table.set(singleResult(k), singleResult(v), sf);
+        });
+      }
+      table.set(singleResult(key), singleResult(value), sf);
+      break;
+    }
+    case "ExpressionField": {
+      if (field.value.type === "Variable" && field.value.name === "...") {
+        const varargs = handleVarargSync(env);
+        if (varargs instanceof Promise) {
+          return varargs.then((args) => {
+            args.forEach((val, i) => table.set(i + 1, val, sf));
+          });
+        }
+        varargs.forEach((val, i) => table.set(i + 1, val, sf));
+      } else {
+        const value = evalExpression(field.value, env, sf);
+        if (value instanceof Promise) {
+          return value.then((v) =>
+            table.set(table.length + 1, singleResult(v), sf)
+          );
+        }
+        table.set(table.length + 1, singleResult(value), sf);
+      }
+      break;
+    }
+  }
+}
+
 export function evalExpression(
   e: LuaExpression,
   env: LuaEnv,
@@ -138,132 +223,36 @@ export function evalExpression(
         return evalPrefixExpression(e, env, sf);
       case "TableConstructor": {
         const table = new LuaTable();
+
         if (
           e.fields.length === 1 &&
           e.fields[0].type === "ExpressionField" &&
           e.fields[0].value.type === "Variable" &&
           e.fields[0].value.name === "..."
         ) {
-          const varargs = env.get("...");
+          const varargs = handleVarargSync(env);
           if (varargs instanceof Promise) {
-            return varargs.then((resolvedVarargs) => {
-              if (resolvedVarargs instanceof LuaTable) {
-                const newTable = new LuaTable();
-                for (let i = 1; i <= resolvedVarargs.length; i++) {
-                  newTable.set(i, resolvedVarargs.get(i), sf);
-                }
-                return newTable;
-              }
+            return varargs.then((args) => {
+              args.forEach((val, i) => table.set(i + 1, val, sf));
               return table;
             });
-          } else if (varargs instanceof LuaTable) {
-            for (let i = 1; i <= varargs.length; i++) {
-              table.set(i, varargs.get(i), sf);
-            }
           }
+          varargs.forEach((val, i) => table.set(i + 1, val, sf));
           return table;
         }
+
         const promises: Promise<void>[] = [];
         for (const field of e.fields) {
-          switch (field.type) {
-            case "PropField": {
-              const value = evalExpression(field.value, env, sf);
-              if (value instanceof Promise) {
-                promises.push(value.then((value) => {
-                  table.set(
-                    field.key,
-                    singleResult(value),
-                    sf,
-                  );
-                }));
-              } else {
-                table.set(field.key, singleResult(value), sf);
-              }
-              break;
-            }
-            case "DynamicField": {
-              const key = evalExpression(field.key, env, sf);
-              const value = evalExpression(field.value, env, sf);
-              if (
-                key instanceof Promise || value instanceof Promise
-              ) {
-                promises.push(
-                  Promise.all([
-                    key instanceof Promise ? key : Promise.resolve(key),
-                    value instanceof Promise ? value : Promise.resolve(value),
-                  ]).then(([key, value]) => {
-                    table.set(
-                      singleResult(key),
-                      singleResult(value),
-                      sf,
-                    );
-                  }),
-                );
-              } else {
-                table.set(
-                  singleResult(key),
-                  singleResult(value),
-                  sf,
-                );
-              }
-              break;
-            }
-            case "ExpressionField": {
-              const value = evalExpression(field.value, env, sf);
-              if (value instanceof Promise) {
-                promises.push(value.then(async (value) => {
-                  if (
-                    field.value.type === "Variable" &&
-                    field.value.name === "..."
-                  ) {
-                    // Special handling for {...}
-                    const varargs = await Promise.resolve(env.get("..."));
-                    if (varargs instanceof LuaTable) {
-                      // Copy all values from varargs table
-                      for (let i = 1; i <= varargs.length; i++) {
-                        const val = await Promise.resolve(varargs.get(i));
-                        table.set(i, val, sf);
-                      }
-                    }
-                  } else {
-                    // Normal case
-                    table.set(table.length + 1, singleResult(value), sf);
-                  }
-                }));
-              } else {
-                if (
-                  field.value.type === "Variable" && field.value.name === "..."
-                ) {
-                  // Special handling for {...}
-                  const varargs = env.get("...");
-                  if (varargs instanceof LuaTable) {
-                    for (let i = 1; i <= varargs.length; i++) {
-                      const val = varargs.get(i);
-                      if (val instanceof Promise) {
-                        promises.push(
-                          Promise.resolve(val).then((val) => {
-                            table.set(i, val, sf);
-                          }),
-                        );
-                      } else {
-                        table.set(i, val, sf);
-                      }
-                    }
-                  }
-                } else {
-                  // Normal case
-                  table.set(table.length + 1, singleResult(value), sf);
-                }
-              }
-              break;
-            }
+          const result = handleTableFieldSync(table, field, env, sf);
+          if (result instanceof Promise) {
+            promises.push(result);
           }
         }
+
         if (promises.length > 0) {
           return Promise.all(promises).then(() => table);
-        } else {
-          return table;
         }
+        return table;
       }
       case "FunctionDefinition": {
         return new LuaFunction(e.body, env);
@@ -600,25 +589,19 @@ function luaOp(
   ctx: ASTCtx,
   sf: LuaStackFrame,
 ): any {
-  const operatorHandler = operatorsMetaMethods[op];
-  if (!operatorHandler) {
+  const handler = operatorsMetaMethods[op];
+  if (!handler) {
     throw new LuaRuntimeError(`Unknown operator ${op}`, sf.withCtx(ctx));
   }
 
-  if (operatorHandler.metaMethod) {
-    const result = evalMetamethod(
-      left,
-      right,
-      operatorHandler.metaMethod,
-      ctx,
-      sf,
-    );
-    if (result !== undefined) {
-      return result;
+  if (handler.metaMethod) {
+    const metaResult = evalMetamethod(left, right, handler.metaMethod, ctx, sf);
+    if (metaResult !== undefined) {
+      return metaResult;
     }
   }
 
-  return operatorHandler.nativeImplementation(left, right, ctx, sf);
+  return handler.nativeImplementation(left, right, ctx, sf);
 }
 
 async function evalExpressions(
