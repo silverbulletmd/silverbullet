@@ -1016,7 +1016,7 @@ export class Client implements ConfigContainer {
           this.config.indexPage,
           {},
           {},
-          builtinFunctions,
+          client.stateDataStore.functionMap,
         ),
       );
     }
