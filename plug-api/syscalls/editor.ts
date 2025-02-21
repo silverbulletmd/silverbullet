@@ -119,6 +119,13 @@ export function reloadUI(): Promise<void> {
 }
 
 /**
+ * Rebuilds the editor state to ensure the dispatch updates the state.
+ */
+export function rebuildEditorState() {
+  return syscall("editor.rebuildEditorState");
+}
+
+/**
  * Reloads the config and commands, also in the server
  */
 export function reloadConfigAndCommands(): Promise<void> {
