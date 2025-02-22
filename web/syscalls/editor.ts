@@ -64,6 +64,9 @@ export function editorSyscalls(client: Client): SysCallMapping {
     "editor.reloadUI": () => {
       location.reload();
     },
+    "editor.rebuildEditorState": () => {
+      client.rebuildEditorState();
+    },
     "editor.reloadConfigAndCommands": async () => {
       await client.loadConfig();
 
