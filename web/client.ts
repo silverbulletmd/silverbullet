@@ -64,7 +64,6 @@ import { renderTheTemplate } from "$common/syscalls/template.ts";
 import type { PageRef } from "../plug-api/lib/page_ref.ts";
 import { ReadOnlySpacePrimitives } from "$common/spaces/ro_space_primitives.ts";
 import type { KvPrimitives } from "$lib/data/kv_primitives.ts";
-import { builtinFunctions } from "$lib/builtin_query_functions.ts";
 import {
   ensureAndLoadSettingsAndIndex,
   updateObjectDecorators,
