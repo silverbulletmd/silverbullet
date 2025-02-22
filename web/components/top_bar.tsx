@@ -119,6 +119,7 @@ export function TopBar({
               {actionButtons.map((actionButton) => {
                 const button = (
                   <button
+                    type="button"
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();

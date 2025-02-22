@@ -130,6 +130,7 @@ export function Button({
   return (
     <button
       ref={buttonRef}
+      type="button"
       className={primary ? "sb-button-primary" : "sb-button"}
       onClick={(e) => {
         e.stopPropagation();

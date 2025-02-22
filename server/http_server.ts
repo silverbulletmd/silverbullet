@@ -268,7 +268,7 @@ export class HttpServer {
         }
         c.status(200);
         c.header("Content-type", this.clientAssetBundle.getMimeType(assetName));
-        let data = this.clientAssetBundle.readFileSync(
+        const data = this.clientAssetBundle.readFileSync(
           assetName,
         );
         c.header("Content-length", "" + data.length);
