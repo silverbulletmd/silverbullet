@@ -6,7 +6,14 @@ import {
   unfoldAll,
   unfoldCode,
 } from "@codemirror/language";
-import { deleteLine, isolateHistory, redo, undo } from "@codemirror/commands";
+import {
+  deleteLine,
+  isolateHistory,
+  moveLineDown,
+  moveLineUp,
+  redo,
+  undo,
+} from "@codemirror/commands";
 import type { Transaction } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { getCM as vimGetCm, Vim } from "@replit/codemirror-vim";
@@ -308,6 +315,18 @@ export function editorSyscalls(client: Client): SysCallMapping {
     },
     "editor.deleteLine": () => {
       deleteLine(client.editorView);
+    },
+    "editor.moveLineUp": () => {
+      return moveLineUp({
+        state: client.editorView.state,
+        dispatch: client.editorView.dispatch,
+      });
+    },
+    "editor.moveLineDown": () => {
+      return moveLineDown({
+        state: client.editorView.state,
+        dispatch: client.editorView.dispatch,
+      });
     },
     // Folding
     "editor.fold": () => {
