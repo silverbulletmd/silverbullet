@@ -54,7 +54,7 @@ export function dataStoreReadSyscalls(
       );
       const env = new LuaEnv(commonSystem.spaceLuaEnv.env);
       for (const [key, value] of Object.entries(scopeVariables)) {
-        env.set(key, jsToLuaValue(value));
+        env.setLocal(key, jsToLuaValue(value));
       }
       return (await dsQueryCollection.query(
         query,
