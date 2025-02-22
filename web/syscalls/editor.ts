@@ -289,6 +289,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
         key,
         value,
       });
+      client.reloadPage();
     },
     "editor.vimEx": (_ctx, exCommand: string) => {
       const cm = vimGetCm(client.editorView)!;
