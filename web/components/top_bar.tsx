@@ -132,7 +132,11 @@ export function TopBar({
                 );
 
                 return actionButton.href
-                  ? <a href={actionButton.href}>{button}</a>
+                  ? (
+                    <a href={actionButton.href} key={actionButton.href}>
+                      {button}
+                    </a>
+                  )
                   : button;
               })}
             </div>
