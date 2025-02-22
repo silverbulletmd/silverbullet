@@ -2,7 +2,7 @@
 
 cd $(realpath $(dirname $(dirname $0)))
 
-IMAGE_NAME="zefhemel/silverbullet:edge"
+IMAGE_NAME="ghcr.io/silverbulletmd/silverbullet:edge"
 WEBSITE_SPACE="./website"
 WEBSITE_PORT=3000
 

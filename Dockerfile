@@ -1,13 +1,13 @@
-FROM denoland/deno:debian-2.2.0
+FROM denoland/deno:debian-2.2.1
 
 # The volume that will keep the space data
 
 # Either create a volume:
 #   docker volume create myspace
 # Then bind-mount it when running the container with the -v flag, e.g.:
-#   docker run -v myspace:/space -p3000:3000 -it zefhemel/silverbullet
+#   docker run -v myspace:/space -p3000:3000 -it ghcr.io/silverbulletmd/silverbullet
 # Or simply mount an existing folder into the container:
-#   docker run -v /path/to/my/folder:/space -p3000:3000 -it zefhemel/silverbullet
+#   docker run -v /path/to/my/folder:/space -p3000:3000 -it ghcr.io/silverbulletmd/silverbullet
 
 VOLUME /space
 
@@ -53,5 +53,5 @@ RUN deno cache /silverbullet.js
 ADD ./docker-entrypoint.sh /docker-entrypoint.sh
 
 # Run the server, allowing to pass in additional argument at run time, e.g.
-#   docker run -p 3002:3000 -v myspace:/space -it zefhemel/silverbullet --user me:letmein
+#   docker run -p 3002:3000 -v myspace:/space -it ghcr.io/silverbulletmd/silverbullet --user me:letmein
 ENTRYPOINT ["/tini", "--", "/docker-entrypoint.sh"]
