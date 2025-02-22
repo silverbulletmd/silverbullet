@@ -433,3 +433,11 @@ end
 
 assertEqual(sum(1, 2, 3), 6)
 assertEqual(sum(1, 2, 3, 4, 5), 15)
+
+local data = { { name = "John", favorite = { color = "blue" } }, { name = "Jane" } }
+assertEqual(type(data[1].favorite), "table")
+assertEqual(data[1].favorite.color, "blue")
+
+local r = query [[from p = data where type(p.favorite) == "table" and p.favorite.color == "blue"]]
+assertEqual(#r, 1)
+assertEqual(r[1].name, "John")

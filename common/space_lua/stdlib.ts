@@ -80,9 +80,11 @@ const unpackFunction = new LuaBuiltinFunction(async (sf, t: LuaTable) => {
   return new LuaMultiRes(values);
 });
 
-const typeFunction = new LuaBuiltinFunction((_sf, value: LuaValue): string => {
-  return luaTypeOf(value);
-});
+const typeFunction = new LuaBuiltinFunction(
+  (_sf, value: LuaValue): string | Promise<string> => {
+    return luaTypeOf(value);
+  },
+);
 
 const tostringFunction = new LuaBuiltinFunction((_sf, value: any) => {
   return luaToString(value);

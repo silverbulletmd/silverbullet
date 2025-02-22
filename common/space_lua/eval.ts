@@ -154,6 +154,21 @@ export function evalExpression(
           } else {
             return evalExpression(e.right, env, sf);
           }
+        } else if (e.operator === "and") {
+          // Special case: eagerly evaluate left before even attempting right
+          const left = evalExpression(e.left, env, sf);
+          if (left instanceof Promise) {
+            return left.then((left) => {
+              if (!luaTruthy(left)) {
+                return left;
+              }
+              return evalExpression(e.right, env, sf);
+            });
+          } else if (!luaTruthy(left)) {
+            return left;
+          } else {
+            return evalExpression(e.right, env, sf);
+          }
         }
         const values = evalPromiseValues([
           evalExpression(e.left, env, sf),

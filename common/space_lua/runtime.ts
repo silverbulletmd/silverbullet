@@ -657,9 +657,12 @@ export function luaKeys(val: any): any[] {
   }
 }
 
-export function luaTypeOf(val: any): LuaType {
+export function luaTypeOf(val: any): LuaType | Promise<LuaType> {
   if (val === null || val === undefined) {
     return "nil";
+  }
+  if (val instanceof Promise) {
+    return val.then((v) => luaTypeOf(v));
   } else if (typeof val === "boolean") {
     return "boolean";
   } else if (typeof val === "number") {
@@ -672,6 +675,8 @@ export function luaTypeOf(val: any): LuaType {
     return "table";
   } else if (typeof val === "function" || val.call) {
     return "function";
+  } else if (typeof val === "object" && val.constructor === Object) {
+    return "table";
   } else {
     return "userdata";
   }
