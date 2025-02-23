@@ -1181,7 +1181,7 @@ export class Client implements ConfigContainer {
       revertPath();
 
       if (e.message.includes("Not found")) {
-        console.log("This page doesn't exist, redirecting to the index page");
+        console.log("This path doesn't exist, redirecting to the index page");
 
         if (initalLoad) this.navigate({ kind: "page", page: "" });
       } else {
@@ -1208,10 +1208,6 @@ export class Client implements ConfigContainer {
       } catch (e: any) {
         console.log(e.message);
 
-        revertPath();
-        // TODO: We won't always revert to a page editor
-        this.switchToPageEditor();
-
         if (e.message.includes("Couldn't find")) {
           editor.openUrl(path + "?raw=true", initalLoad);
 
@@ -1222,6 +1218,21 @@ export class Client implements ConfigContainer {
             `/${encodePageURI(previousPath)}`,
           );
         }
+
+        if (!initalLoad) {
+          revertPath();
+
+          // Unsure about this case. It is probably not handled correctly, but currently this case cannot fully happen
+          if (previousRef.kind === "page") {
+            this.loadPage(previousRef.path);
+          } else {
+            this.loadDedicatedEditor(previousRef.path);
+          }
+        } else {
+          // Navigate to index page if there was no previous page
+          this.navigate({ kind: "page", page: "" });
+        }
+
         return;
       }
     }
