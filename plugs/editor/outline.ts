@@ -1,5 +1,4 @@
 import { editor } from "@silverbulletmd/silverbullet/syscalls";
-import { moveLineDown, moveLineUp } from "../../plug-api/syscalls/editor.ts";
 
 export async function moveItemUp() {
   const cursorPos = await editor.getCursor();
@@ -10,7 +9,9 @@ export async function moveItemUp() {
     try {
       currentItemBounds = determineItemBounds(text, cursorPos);
     } catch {
-      moveLineUp();
+      // If `determineItemBounds()` throws, that likely means the cursor is NOT in a bullet list,
+      // so we fall back to `moveLineUp()`
+      editor.moveLineUp();
       return;
     }
     let previousItemBounds: ReturnType<typeof determineItemBounds> | undefined;
@@ -80,7 +81,9 @@ export async function moveItemDown() {
     try {
       currentItemBounds = determineItemBounds(text, cursorPos);
     } catch {
-      moveLineDown();
+      // If `determineItemBounds()` throws, that likely means the cursor is NOT in a bullet list,
+      // so we fall back to `moveLineDown()`
+      editor.moveLineDown();
       return;
     }
     let nextItemBounds: ReturnType<typeof determineItemBounds> | undefined;
