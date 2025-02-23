@@ -44,6 +44,7 @@ import {
   encodeLocationRef,
   encodePageURI,
   parseLocationRef,
+  validatePath,
 } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { ClientSystem } from "./client_system.ts";
 import { createEditorState } from "./editor_state.ts";
@@ -1104,12 +1105,11 @@ export class Client implements ConfigContainer {
       );
     }
 
-    // TODO: Implement more generic validation
-    // try {
-    //   validatePageName(pageRef.path);
-    // } catch (e: any) {
-    //   return this.flashNotification(e.message, "error");
-    // }
+    try {
+      validatePath(locationRef.page);
+    } catch (e: any) {
+      return this.flashNotification(e.message, "error");
+    }
 
     if (newWindow) {
       console.log(
