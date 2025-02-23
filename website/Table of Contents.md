@@ -19,6 +19,8 @@ In the body of the `toc` code widget you can configure a few options:
 * `headerText`: by default "# Table of Contents\n". Change it to change the rendering of this header
 * `minHeaders`: only renders a ToC if the number of headers in the current page exceeds this number, otherwise renders an empty widget
 * `maxHeaders`: only renders a ToC if the number of headers in the current page is below this number, otherwise renders an empty widget
+* `minLevel`: only renders a ToC for headers below that level (if you do not want to display e.g. the first header)
+* `maxLevel`: only renders a ToC down to this level (e.g. if you have too many sublevels.)
 
 Example:
 ```toc
