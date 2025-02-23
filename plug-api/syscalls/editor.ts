@@ -406,6 +406,14 @@ export function deleteLine(): Promise<void> {
   return syscall("editor.deleteLine");
 }
 
+export function moveLineUp(): Promise<void> {
+  return syscall("editor.moveLineUp");
+}
+
+export function moveLineDown(): Promise<void> {
+  return syscall("editor.moveLineDown");
+}
+
 // Vim-mode specific syscalls
 
 /**

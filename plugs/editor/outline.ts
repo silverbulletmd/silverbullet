@@ -5,7 +5,15 @@ export async function moveItemUp() {
   const text = await editor.getText();
 
   try {
-    const currentItemBounds = determineItemBounds(text, cursorPos);
+    let currentItemBounds: ReturnType<typeof determineItemBounds> | undefined;
+    try {
+      currentItemBounds = determineItemBounds(text, cursorPos);
+    } catch {
+      // If `determineItemBounds()` throws, that likely means the cursor is NOT in a bullet list,
+      // so we fall back to `moveLineUp()`
+      editor.moveLineUp();
+      return;
+    }
     let previousItemBounds: ReturnType<typeof determineItemBounds> | undefined;
 
     try {
@@ -69,7 +77,15 @@ export async function moveItemDown() {
   const text = await editor.getText();
 
   try {
-    const currentItemBounds = determineItemBounds(text, cursorPos);
+    let currentItemBounds: ReturnType<typeof determineItemBounds> | undefined;
+    try {
+      currentItemBounds = determineItemBounds(text, cursorPos);
+    } catch {
+      // If `determineItemBounds()` throws, that likely means the cursor is NOT in a bullet list,
+      // so we fall back to `moveLineDown()`
+      editor.moveLineDown();
+      return;
+    }
     let nextItemBounds: ReturnType<typeof determineItemBounds> | undefined;
     try {
       nextItemBounds = determineItemBounds(
