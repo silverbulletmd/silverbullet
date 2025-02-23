@@ -72,11 +72,15 @@ export async function widget(
     (min, header) => Math.min(min, header.level),
     6,
   );
-  if (config.minLevel && config.minLevel > minLevel) { minLevel = config.minLevel ;}
+  if (config.minLevel && config.minLevel > minLevel) minLevel = config.minLevel;
   let renderedMd = headerText + "\n";
   for (const header of headers) {
-	  if (config.maxLevel && header.level > config.maxLevel || (config.minLevel && header.level < config.minLevel)) { continue; }
-	  renderedMd = renderedMd + " ".repeat((header.level - minLevel) * 2)  + "[[" + page + "@" + header.pos + "|" + header.name + "]]\n";
+    if (
+      config.maxLevel && header.level > config.maxLevel ||
+      (config.minLevel && header.level < config.minLevel)
+    ) continue;
+    renderedMd = renderedMd + " ".repeat((header.level - minLevel) * 2) + "[[" +
+      page + "@" + header.pos + "|" + header.name + "]]\n";
   }
 
   // console.log("Markdown", renderedMd);

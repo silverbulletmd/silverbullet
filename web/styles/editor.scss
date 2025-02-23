@@ -122,7 +122,8 @@
 
     .cm-list-bullet::after {
       left: calc(
-        #{$baseIndent}ch * var(--editor-indent-multiplier) + #{$bulletIndent}ch + 2ch
+        #{$baseIndent}ch * var(--editor-indent-multiplier) + #{$bulletIndent}ch
+          + 2ch
       );
     }
   }
