@@ -1243,7 +1243,7 @@ export class Client implements ConfigContainer {
 
     if (!loadingDifferentPath && this.isDocumentEditor()) {
       // We are loading the same page again so just send a file changed event
-      this.documentEditor.changeContent(doc.data, doc.meta);
+      await this.documentEditor.changeContent(doc.data, doc.meta);
     } else {
       this.documentEditor!.setContent(doc.data, doc.meta);
       this.space.watchFile(path);
