@@ -58,6 +58,7 @@ functions:
     command:
       name: "Space: Reindex"
       requireMode: rw
+      requireEditor: page
 
   processIndexQueue:
     path: ./command.ts:processIndexQueue
@@ -69,10 +70,10 @@ functions:
     path: "./command.ts:reindexSpace"
     env: server
 
-  indexAttachment:
-    path: "./attachment.ts:indexAttachment"
+  indexDocument:
+    path: "./document.ts:indexDocument"
     events:
-      - attachment:index
+      - document:index
 
   indexPage:
     path: page.ts:indexPage
@@ -177,11 +178,13 @@ functions:
       mac: Cmd-Alt-r
       page: ""
       requireMode: rw
+      requireEditor: page
   renamePrefixCommand:
     path: "./refactor.ts:renamePrefixCommand"
     command:
       name: "Page: Batch Rename Prefix"
       requireMode: rw
+      requireEditor: page
   renamePageLinkCommand:
     path: "./refactor.ts:renamePageLinkCommand"
     command:
@@ -189,6 +192,14 @@ functions:
       mac: Cmd-Ctrl-Alt-r
       key: Ctrl-Shift-Alt-r
       requireMode: rw
+      requireEditor: page
+
+  renameDocumentCommand:
+    path: "./refactor.ts:renameDocumentCommand"
+    command:
+      name: "Document: Rename Document"
+      requireMode: rw
+      requireEditor: notpage
 
   # Refactoring Commands
   extractToPageCommand:
@@ -196,6 +207,7 @@ functions:
     command:
       name: "Page: Extract"
       requireMode: rw
+      requireEditor: page
 
   # TOC
   tocWidget:
@@ -350,7 +362,7 @@ config:
         pos:
           type: number
           readOnly: true
-    attachment:
+    document:
       type: object
       additionalProperties: true
       properties:
@@ -393,6 +405,9 @@ config:
           enum:
             - ro
             - rw
+        extension:
+          readOnly: true
+          type: string
     item:
       type: object
       additionalProperties: true
