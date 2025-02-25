@@ -7,7 +7,7 @@ _These features are not yet properly released, you need to use [the edge builds]
 
 * Nothing new yet since 0.10.2
 
-## 0.10.3
+## 0.10.4
 * **Lua**: _Tons_ of fixes, changes and enhancements, see [[Space Lua]] and related for up-to-date docs. Some notable things:
   * [[Space Lua/Lua Integrated Query]] is now here
   * Code completion of APIs in `space-lua` and Lua directive syntax, implemented in Lua itself: [[^Library/Std/Lua]].
