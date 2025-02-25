@@ -79,7 +79,6 @@ deno task test
 ```
 
 ## Feedback
-
 If you (hypothetically) find bugs or have feature requests, post them in
 [our issue tracker](https://github.com/silverbulletmd/silverbullet/issues).
 Would you like to contribute?
