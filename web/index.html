@@ -56,15 +56,6 @@
         enableSpaceScript: "{{ENABLE_SPACE_SCRIPT}}" === "true",
         readOnly: "{{READ_ONLY}}" === "true",
       };
-      // But in case these variables aren't replaced by the server, fall back sync only mode
-      if (window.silverBulletConfig.spaceFolderPath.includes("{{")) {
-        window.silverBulletConfig = {
-          spaceFolderPath: "",
-          syncOnly: true,
-          readOnly: false,
-          enableSpaceScripts: false,
-        };
-      }
     </script>
     <link rel="stylesheet" href="/.client/main.css" />
     <style id="custom-styles"></style>
