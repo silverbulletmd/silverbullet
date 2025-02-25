@@ -5,6 +5,9 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 _These features are not yet properly released, you need to use [the edge builds](https://community.silverbullet.md/t/living-on-the-edge-builds/27) to try them._
 
+* Nothing new yet since 0.10.2
+
+## 0.10.2
 * **Lua**: _Tons_ of fixes, changes and enhancements, see [[Space Lua]] and related for up-to-date docs. Some notable things:
   * [[Space Lua/Lua Integrated Query]] is now here
   * Code completion of APIs in `space-lua` and Lua directive syntax, implemented in Lua itself: [[^Library/Std/Lua]].
@@ -22,6 +25,9 @@ _These features are not yet properly released, you need to use [the edge builds]
 * Tags are now easier to style (by [TR Staake](https://github.com/silverbulletmd/silverbullet/pull/1179))
 * Swift syntax highlighting now actually highlights Swift code (instead of Rust) (by [David Chiles](https://github.com/silverbulletmd/silverbullet/pull/1183))
 * (Security) Implemented a lockout mechanism after a number of failed login attempts for [[Authentication]] (configured via [[Install/Configuration#Authentication]]) (by [Peter Weston](https://github.com/silverbulletmd/silverbullet/pull/1152))
+* Move lines up/down with {[Outline: Move Up]} and {[Outline: Move Down]} commands (by [Simon Cambier](https://github.com/silverbulletmd/silverbullet/pull/1232))
+* Added more options for [[Table of Contents]] rendering (by [Nico S.](https://github.com/silverbulletmd/silverbullet/pull/1258)).
+* Disable spellcheck for more code-like blocks (by [MrMugame](https://github.com/silverbulletmd/silverbullet/pull/1244))
 
 ## 0.10.1
 This is a “major” release primarily because of the underlying migration to rely on Deno 2 and a bunch of foundational work that’s not really leveraged yet. Stay tuned for more.
