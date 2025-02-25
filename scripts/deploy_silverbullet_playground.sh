@@ -2,7 +2,7 @@
 
 cd $(realpath $(dirname $(dirname $0)))
 
-IMAGE_NAME="zefhemel/silverbullet:edge"
+IMAGE_NAME="ghcr.io/silverbulletmd/silverbullet:edge"
 PLAYGROUND_SPACE="/tmp/silverbullet-playground"
 PLAYGROUND_PORT=3001
 SB_USER=silverbullet:silverbullet
