@@ -61,25 +61,26 @@ export async function widget(
     // Too many headers, not showing TOC
     return null;
   }
-  let headerText = config.headerText ?? "# Table of Contents\n";
+  let headerText = (config.headerText ?? "# Table of Contents") + "\n";
   if (config.header === false) {
     headerText = "";
   }
-  // console.log("Headers", headers);
   // Adjust level down if only sub-headers are used
-
   let minLevel = headers.reduce(
     (min, header) => Math.min(min, header.level),
     6,
   );
   if (config.minLevel && config.minLevel > minLevel) minLevel = config.minLevel;
-  let renderedMd = headerText + "\n";
+  let renderedMd = headerText;
   for (const header of headers) {
     if (
       config.maxLevel && header.level > config.maxLevel ||
       (config.minLevel && header.level < config.minLevel)
-    ) continue;
-    renderedMd = renderedMd + " ".repeat((header.level - minLevel) * 2) + "[[" +
+    ) {
+      continue;
+    }
+    renderedMd = renderedMd + " ".repeat((header.level - minLevel) * 2) +
+      "* [[" +
       page + "@" + header.pos + "|" + header.name + "]]\n";
   }
 
