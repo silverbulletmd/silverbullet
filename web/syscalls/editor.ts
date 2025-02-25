@@ -8,7 +8,6 @@ import {
 } from "@codemirror/language";
 import {
   deleteLine,
-  isolateHistory,
   moveLineDown,
   moveLineUp,
   redo,
@@ -22,7 +21,6 @@ import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 import type { PageMeta, UploadFile } from "../../plug-api/types.ts";
 import type { PageRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { openSearchPanel } from "@codemirror/search";
-import { diffAndPrepareChanges } from "../cm_util.ts";
 
 export function editorSyscalls(client: Client): SysCallMapping {
   const syscalls: SysCallMapping = {
@@ -36,14 +34,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
       return client.editorView.state.sliceDoc();
     },
     "editor.setText": (_ctx, newText: string, shouldIsolateHistory = false) => {
-      const currentText = client.editorView.state.sliceDoc();
-      const allChanges = diffAndPrepareChanges(currentText, newText);
-      client.editorView.dispatch({
-        changes: allChanges,
-        annotations: shouldIsolateHistory
-          ? isolateHistory.of("full")
-          : undefined,
-      });
+      client.setEditorText(newText, shouldIsolateHistory);
     },
     "editor.getCursor": (): number => {
       return client.editorView.state.selection.main.from;
