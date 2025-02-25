@@ -81,14 +81,12 @@ const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 const autoSaveInterval = 1000;
 
 declare global {
-  // deno-lint-ignore no-var
   var silverBulletConfig: {
     spaceFolderPath: string;
     syncOnly: boolean;
     readOnly: boolean;
     enableSpaceScript: boolean;
   };
-  // deno-lint-ignore no-var
   var client: Client;
 }
 

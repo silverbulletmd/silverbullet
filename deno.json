@@ -76,6 +76,7 @@
       "website_build",
       "test_space",
       "**/*.md",
+      "**/*.html",
       "**/*.js",
       "**/*.json"
     ]
