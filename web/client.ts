@@ -5,6 +5,7 @@ import type {
 import type { Compartment, EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { indentUnit, syntaxTree } from "@codemirror/language";
+import { isolateHistory } from "@codemirror/commands";
 import { compile as gitIgnoreCompiler } from "gitignore-parser";
 import type { SyntaxNode } from "@lezer/common";
 import { Space } from "../common/space.ts";
@@ -74,7 +75,7 @@ import { lezerToParseTree } from "$common/markdown_parser/parse_tree.ts";
 import { findNodeMatching } from "@silverbulletmd/silverbullet/lib/tree";
 import type { AspiringPageObject } from "../plugs/index/page_links.ts";
 import type { Config, ConfigContainer } from "../type/config.ts";
-import { editor } from "@silverbulletmd/silverbullet/syscalls";
+import { diffAndPrepareChanges } from "./cm_util.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -1157,7 +1158,7 @@ export class Client implements ConfigContainer {
       this.space.watchPage(pageName);
     } else {
       // Just apply minimal patches so that the cursor is preserved
-      await editor.setText(doc.text, true);
+      this.setEditorText(doc.text, true);
     }
 
     // Note: these events are dispatched asynchronously deliberately (not waiting for results)
@@ -1188,6 +1189,15 @@ export class Client implements ConfigContainer {
     contentDOM.spellcheck = true;
     contentDOM.setAttribute("autocorrect", "on");
     contentDOM.setAttribute("autocapitalize", "on");
+  }
+
+  setEditorText(newText: string, shouldIsolateHistory = false) {
+    const currentText = this.editorView.state.sliceDoc();
+    const allChanges = diffAndPrepareChanges(currentText, newText);
+    client.editorView.dispatch({
+      changes: allChanges,
+      annotations: shouldIsolateHistory ? isolateHistory.of("full") : undefined,
+    });
   }
 
   async loadCustomStyles() {
