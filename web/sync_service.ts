@@ -290,21 +290,8 @@ export class SyncService implements ISyncService {
     try {
       let localHash: number | undefined;
       let remoteHash: number | undefined;
-      try {
-        const localMeta = await this.localSpacePrimitives.getFileMeta(name);
-        if (localMeta.noSync) {
-          console.info(
-            "File marked as no sync, skipping sync in this cycle",
-            name,
-          );
-          await this.registerSyncStop(false);
-          // Jumping out, not saving snapshot nor triggering a sync event, because we did nothing
-          return;
-        }
-        localHash = localMeta.lastModified;
-      } catch {
-        // Not present
-      }
+
+      // Fetch remote first (potentially more laggy)
       try {
         remoteHash = (await this.remoteSpace!.getFileMeta(name)).lastModified;
         // HEAD
@@ -319,13 +306,29 @@ export class SyncService implements ISyncService {
           // Jumping out, not saving snapshot nor triggering a sync event, because we did nothing
           return;
         }
-        //main
       } catch (e: any) {
         if (e.message === "Not found") {
           // File doesn't exist remotely, that's ok
         } else {
           throw e;
         }
+      }
+
+      // Fetch local file meta
+      try {
+        const localMeta = await this.localSpacePrimitives.getFileMeta(name);
+        if (localMeta.noSync) {
+          console.info(
+            "File marked as no sync, skipping sync in this cycle",
+            name,
+          );
+          await this.registerSyncStop(false);
+          // Jumping out, not saving snapshot nor triggering a sync event, because we did nothing
+          return;
+        }
+        localHash = localMeta.lastModified;
+      } catch {
+        // Not present
       }
 
       await this.spaceSync.syncFile(snapshot, name, localHash, remoteHash);
