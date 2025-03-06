@@ -38,8 +38,9 @@ self.addEventListener("install", (event: any) => {
         Object.keys(precacheFiles).length,
         "client files cached",
       );
-      // @ts-ignore: No need to wait
-      self.skipWaiting();
+      // @ts-ignore: Force the waiting service worker to become the active service worker
+      await self.skipWaiting();
+      console.log("[Service worker]", "skipWaiting complete");
     })(),
   );
 });
@@ -57,8 +58,9 @@ self.addEventListener("activate", (event: any) => {
           }
         }),
       );
-      // @ts-ignore: No need to wait
-      return clients.claim();
+      // @ts-ignore: Take control of all clients as soon as the service worker activates
+      await clients.claim();
+      console.log("[Service worker]", "clients.claim complete");
     })(),
   );
 });
@@ -172,6 +174,14 @@ async function handleLocalFileRequest(
 }
 
 self.addEventListener("message", (event: any) => {
+  if (event.data.type === "skipWaiting") {
+    console.log(
+      "[Service worker]",
+      "Received skipWaiting message, activating immediately",
+    );
+    // @ts-ignore: Skip waiting to activate this service worker immediately
+    self.skipWaiting();
+  }
   if (event.data.type === "flushCache") {
     caches.delete(CACHE_NAME)
       .then(() => {
@@ -180,6 +190,7 @@ self.addEventListener("message", (event: any) => {
         event.source.postMessage({ type: "cacheFlushed" });
       });
   }
+
   if (event.data.type === "config") {
     const spaceFolderPath = event.data.config.spaceFolderPath;
     const dbPrefix = "" + simpleHash(spaceFolderPath);

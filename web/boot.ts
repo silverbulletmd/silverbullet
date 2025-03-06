@@ -25,13 +25,48 @@ safeRun(async () => {
 });
 
 if (navigator.serviceWorker) {
+  // Register service worker
   navigator.serviceWorker
     .register(new URL("/service_worker.js", location.href), {
       type: "module",
     })
-    .then(() => {
+    .then((registration) => {
       console.log("Service worker registered...");
+
+      // Set up update detection
+      registration.addEventListener("updatefound", () => {
+        const newWorker = registration.installing;
+        console.log("New service worker installing...");
+
+        if (newWorker) {
+          newWorker.addEventListener("statechange", () => {
+            if (
+              newWorker.state === "installed" &&
+              navigator.serviceWorker.controller
+            ) {
+              console.log(
+                "New service worker installed and ready to take over.",
+              );
+              // Force the new service worker to activate immediately
+              newWorker.postMessage({ type: "skipWaiting" });
+            }
+          });
+        }
+      });
     });
+
+  // Handle service worker controlled changes (when a new service worker takes over)
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!refreshing) {
+      refreshing = true;
+      console.log(
+        "New service worker activated, reloading page to apply updates...",
+      );
+      window.location.reload();
+    }
+  });
+
   if (syncMode) {
     navigator.serviceWorker.ready.then((registration) => {
       registration.active!.postMessage({
