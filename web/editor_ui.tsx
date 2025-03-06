@@ -113,7 +113,11 @@ export class MainUI {
           <PageNavigator
             allDocuments={viewState.allDocuments}
             allPages={viewState.allPages}
-            extensions={new Set(Array.from(client.clientSystem.documentEditorHook.documentEditors.values()).flatMap(({ extensions }) => extensions))}
+            extensions={new Set(
+              Array.from(
+                client.clientSystem.documentEditorHook.documentEditors.values(),
+              ).flatMap(({ extensions }) => extensions),
+            )}
             currentPath={client.currentPath()}
             mode={viewState.pageNavigatorMode}
             completer={client.miniEditorComplete.bind(client)}
@@ -133,17 +137,31 @@ export class MainUI {
               if (!name) return;
 
               safeRun(async () => {
-                const documentMeta = viewState.allDocuments.find((document) => document.name === name);
+                const documentMeta = viewState.allDocuments.find((document) =>
+                  document.name === name
+                );
 
-                if (type === "document" && !Array.from(client.clientSystem.documentEditorHook.documentEditors.values()).some(({extensions}) => extensions.includes(documentMeta!.extension))) {
-                  const options: string[] = ["Delete", "Rename"]
+                if (
+                  type === "document" &&
+                  !Array.from(
+                    client.clientSystem.documentEditorHook.documentEditors
+                      .values(),
+                  ).some(({ extensions }) =>
+                    extensions.includes(documentMeta!.extension)
+                  )
+                ) {
+                  const options: string[] = ["Delete", "Rename"];
 
-                  const option = await client.filterBox("Modify", options.map(x => ({name: x} as FilterOption)), "There is no editor for this file type. Modify the selected document");
+                  const option = await client.filterBox(
+                    "Modify",
+                    options.map((x) => ({ name: x } as FilterOption)),
+                    "There is no editor for this file type. Modify the selected document",
+                  );
                   if (!option) return;
 
                   switch (option.name) {
                     case "Delete": {
-                      client.space.deleteDocument(name)
+                      client.space.deleteDocument(name);
                       return;
                     }
                     case "Rename": {

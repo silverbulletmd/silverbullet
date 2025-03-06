@@ -4,7 +4,10 @@ import type {
   CompletionContext,
   CompletionResult,
 } from "@codemirror/autocomplete";
-import type { DocumentMeta, PageMeta } from "@silverbulletmd/silverbullet/types";
+import type {
+  DocumentMeta,
+  PageMeta,
+} from "@silverbulletmd/silverbullet/types";
 import { tagRegex as mdTagRegex } from "$common/markdown_parser/constants.ts";
 import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 
@@ -39,7 +42,9 @@ export function PageNavigator({
     for (const documentMeta of allDocuments) {
       const isViewable = extensions.has(documentMeta.extension);
 
-      let orderId = isViewable ? -new Date(documentMeta.lastModified).getTime() : (Number.MAX_VALUE - new Date(documentMeta.lastModified).getTime());
+      let orderId = isViewable
+        ? -new Date(documentMeta.lastModified).getTime()
+        : (Number.MAX_VALUE - new Date(documentMeta.lastModified).getTime());
 
       if (currentPath && currentPath === documentMeta.name) {
         orderId = 0;
@@ -49,7 +54,7 @@ export function PageNavigator({
       let description: string | undefined;
       if (documentMeta.tags) {
         description = (description || "") +
-        documentMeta.tags.map((tag) => `#${tag}`).join(" ");
+          documentMeta.tags.map((tag) => `#${tag}`).join(" ");
       }
 
       if (!isViewable && client.clientSystem.readOnlyMode) continue;
@@ -79,7 +84,9 @@ export function PageNavigator({
         orderId = -pageMeta.lastOpened;
       }
       // Or it's the currently open page
-      if (currentPath && currentPath === pageMeta.name || pageMeta._isAspiring) {
+      if (
+        currentPath && currentPath === pageMeta.name || pageMeta._isAspiring
+      ) {
         // ... then we put it all the way to the end
         orderId = Infinity;
       }
@@ -234,7 +241,10 @@ export function PageNavigator({
         return options;
       }}
       allowNew={allowNew}
-      helpText={`Press <code>Enter</code> to open the selected ${openablePageNoun}` + (allowNew ? `, or <code>Shift-Enter</code> to create a new ${creatablePageNoun} with this exact name.` : "")}
+      helpText={`Press <code>Enter</code> to open the selected ${openablePageNoun}` +
+        (allowNew
+          ? `, or <code>Shift-Enter</code> to create a new ${creatablePageNoun} with this exact name.`
+          : "")}
       newHint={`Create ${creatablePageNoun}`}
       completePrefix={completePrefix}
       onSelect={(opt) => {
