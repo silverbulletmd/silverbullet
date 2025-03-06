@@ -63,7 +63,7 @@ if (navigator.serviceWorker) {
       console.log(
         "New service worker activated, reloading page to apply updates...",
       );
-      window.location.reload();
+      globalThis.location.reload();
     }
   });
 
