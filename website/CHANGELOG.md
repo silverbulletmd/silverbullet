@@ -5,7 +5,9 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 _These features are not yet properly released, you need to use [the edge builds](https://community.silverbullet.md/t/living-on-the-edge-builds/27) to try them._
 
-* Nothing new yet since 0.10.2
+* **Breaking (configuration) changes:**
+  * `indexPage` and `spaceIgnore` have been removed from [[SETTINGS]] and are now server environment variables: [[Install/Configuration]]
+  
 
 ## 0.10.4
 * **Lua**: _Tons_ of fixes, changes and enhancements, see [[Space Lua]] and related for up-to-date docs. Some notable things:

@@ -35,6 +35,7 @@ export type ServerOptions = {
   keyFile?: string;
   // Enable username/password/token auth
   auth?: AuthOptions;
+  spaceIgnore?: string;
   pagesPath: string;
   shellBackend: string;
   syncOnly: boolean;

@@ -101,6 +101,8 @@ export async function serveCommand(
   const backendConfig = Deno.env.get("SB_SHELL_BACKEND") || "local";
   const enableSpaceScript = Deno.env.get("SB_SPACE_SCRIPT") !== "off";
 
+  const spaceIgnore = Deno.env.get("SB_SPACE_IGNORE");
+
   const plugAssets = new AssetBundle(plugAssetBundle as AssetJson);
 
   if (readOnly) {
@@ -153,7 +155,7 @@ export async function serveCommand(
     keyFile: options.key,
     certFile: options.cert,
     indexPage,
-
+    spaceIgnore,
     auth: userCredentials,
     syncOnly,
     readOnly,
