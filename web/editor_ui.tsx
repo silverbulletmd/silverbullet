@@ -161,7 +161,16 @@ export class MainUI {
 
                   switch (option.name) {
                     case "Delete": {
-                      client.space.deleteDocument(name);
+                      if (
+                        await client.confirm(
+                          `Are you sure you want to delete ${name}?`,
+                        )
+                      ) {
+                        await client.space.deleteDocument(name);
+                        client.flashNotification(
+                          `Document ${name} has been deleted`,
+                        );
+                      }
                       return;
                     }
                     case "Rename": {
