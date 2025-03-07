@@ -174,7 +174,7 @@ export function createEditorState(
           class: "sb-frontmatter",
         },
       ]),
-      disableSpellcheck(["InlineCode", "CodeText", "FrontMatter"]),
+      disableSpellcheck(["InlineCode", "CodeText", "CodeInfo", "FrontMatter"]),
       keyBindings,
       EditorView.domEventHandlers({
         // This may result in duplicated touch events on mobile devices
