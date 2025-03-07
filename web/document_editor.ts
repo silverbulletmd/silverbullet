@@ -99,6 +99,8 @@ export class DocumentEditor {
       data,
       meta,
     });
+
+    this.currentPath = meta.name;
   }
 
   requestSave() {
