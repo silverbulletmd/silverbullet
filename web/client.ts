@@ -553,8 +553,6 @@ export class Client implements ConfigContainer {
       this.clientConfig.readOnly ? undefined : "client",
     );
 
-    let fileFilterFn: (s: string) => boolean = () => true;
-
     let localSpacePrimitives: SpacePrimitives | undefined;
 
     if (this.clientConfig.syncMode) {
@@ -566,33 +564,18 @@ export class Client implements ConfigContainer {
 
       this.spaceKV = spaceKvPrimitives;
 
-      localSpacePrimitives = new FilteredSpacePrimitives(
-        new EventedSpacePrimitives(
-          // Using fallback space primitives here to allow (by default) local reads to "fall through" to HTTP when files aren't synced yet
-          new FallbackSpacePrimitives(
-            new DataStoreSpacePrimitives(
-              new DataStore(
-                spaceKvPrimitives,
-                {},
-              ),
+      localSpacePrimitives = new EventedSpacePrimitives(
+        // Using fallback space primitives here to allow (by default) local reads to "fall through" to HTTP when files aren't synced yet
+        new FallbackSpacePrimitives(
+          new DataStoreSpacePrimitives(
+            new DataStore(
+              spaceKvPrimitives,
+              {},
             ),
-            this.plugSpaceRemotePrimitives,
           ),
-          this.eventHook,
+          this.plugSpaceRemotePrimitives,
         ),
-        (meta) => fileFilterFn(meta.name),
-        // Run when a list of files has been retrieved
-        async () => {
-          if (!this.config) {
-            await this.loadConfig();
-          }
-
-          if (typeof this.config?.spaceIgnore === "string") {
-            fileFilterFn = gitIgnoreCompiler(this.config.spaceIgnore).accepts;
-          } else {
-            fileFilterFn = () => true;
-          }
-        },
+        this.eventHook,
       );
     } else {
       // Not in sync mode
