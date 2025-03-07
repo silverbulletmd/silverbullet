@@ -94,7 +94,7 @@ export async function indexObjects<T>(
   objects: ObjectValue<T>[],
 ): Promise<void> {
   const kvs: KV<T>[] = [];
-  const schema = await system.getSpaceConfig("schema");
+  const schema = await system.getSpaceConfig("schema", { tag: {} });
   const allAttributes = new Map<string, SimpleJSONType>();
   for (const obj of objects) {
     if (!obj.tag) {
