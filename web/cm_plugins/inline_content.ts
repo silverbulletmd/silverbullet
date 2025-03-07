@@ -14,7 +14,7 @@ import {
   isLocalPath,
   resolvePath,
 } from "@silverbulletmd/silverbullet/lib/resolve";
-import { parsePageRef } from "@silverbulletmd/silverbullet/lib/page_ref";
+import { parseRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { mime } from "mimetypes";
 
 type ContentDimensions = {
@@ -204,7 +204,7 @@ export function inlineContentPlugin(client: Client) {
             decodeURI(url),
             true,
           );
-          const pageRef = parsePageRef(url);
+          const pageRef = parseRef(url);
           if (
             isFederationPath(pageRef.page) ||
             client.clientSystem.allKnownFiles.has(pageRef.page + ".md")

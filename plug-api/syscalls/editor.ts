@@ -1,7 +1,7 @@
 import type { PageMeta, UploadFile } from "../types.ts";
 import { syscall } from "../syscall.ts";
-import type { LocationRef } from "../lib/page_ref.ts";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
+import type { Ref } from "@silverbulletmd/silverbullet/lib/page_ref";
 
 /**
  * Exposes various editor utilities.
@@ -97,11 +97,11 @@ export function save(): Promise<void> {
  * @param newWindow whether to open the page in a new window
  */
 export function navigate(
-  locationRef: LocationRef,
+  ref: Ref,
   replaceState = false,
   newWindow = false,
 ): Promise<void> {
-  return syscall("editor.navigate", locationRef, replaceState, newWindow);
+  return syscall("editor.navigate", ref, replaceState, newWindow);
 }
 
 /**

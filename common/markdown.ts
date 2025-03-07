@@ -5,7 +5,7 @@ import {
   replaceNodesMatchingAsync,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import {
-  parsePageRef,
+  parseRef,
   validatePageName,
 } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { renderExpressionResult } from "../plugs/template/util.ts";
@@ -89,7 +89,7 @@ export async function expandCodeWidgets(
 
       // Check if this is likely a page link (based on the path format, e.g. if it contains an extension, it's probably not a page link)
       try {
-        const ref = parsePageRef(page);
+        const ref = parseRef(page);
         validatePageName(ref.page);
       } catch {
         // Not a valid page name, so not a page reference

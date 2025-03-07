@@ -6,7 +6,7 @@ import type {
   QueryExpression,
 } from "@silverbulletmd/silverbullet/types";
 import { indexObjects, queryObjects } from "./api.ts";
-import { parsePageRef } from "@silverbulletmd/silverbullet/lib/page_ref";
+import { parseRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 
 type AnchorObject = ObjectValue<{
   name: string;
@@ -46,7 +46,7 @@ export async function anchorComplete(completeEvent: CompleteEvent) {
     return null;
   }
 
-  const pageRef = parsePageRef(match[1]).page;
+  const pageRef = parseRef(match[1]).page;
   let filter: QueryExpression | undefined = ["=", ["attr", "page"], [
     "string",
     pageRef,

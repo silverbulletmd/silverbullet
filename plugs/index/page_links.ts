@@ -17,7 +17,7 @@ import { extractFrontmatter } from "@silverbulletmd/silverbullet/lib/frontmatter
 import { updateITags } from "@silverbulletmd/silverbullet/lib/tags";
 import {
   looksLikePathWithExtension,
-  parsePageRef,
+  parseRef,
 } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { extractSnippetAroundIndex } from "./snippet_extractor.ts";
 import {
@@ -91,7 +91,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
       if (looksLikePathWithExtension(url)) {
         link.toFile = url;
       } else {
-        link.toPage = parsePageRef(url).page;
+        link.toPage = parseRef(url).page;
       }
       if (wikiLinkAlias) {
         link.alias = wikiLinkAlias.children![0].text!;
@@ -134,7 +134,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
       if (looksLikePathWithExtension(url)) {
         link.toFile = url;
       } else {
-        link.toPage = parsePageRef(url).page;
+        link.toPage = parseRef(url).page;
       }
       if (alias) {
         link.alias = alias;
@@ -174,7 +174,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
           if (looksLikePathWithExtension(url)) {
             link.toFile = resolvePath(name, "/" + url);
           } else {
-            link.toPage = resolvePath(name, "/" + parsePageRef(url).page);
+            link.toPage = resolvePath(name, "/" + parseRef(url).page);
           }
           if (alias) {
             link.alias = alias;
@@ -197,7 +197,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
           if (looksLikePathWithExtension(url)) {
             link.toFile = resolvePath(name, url);
           } else {
-            link.toPage = resolvePath(name, parsePageRef(url).page);
+            link.toPage = resolvePath(name, parseRef(url).page);
           }
           if (alias) {
             link.alias = alias;
@@ -233,7 +233,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
           if (looksLikePathWithExtension(url)) {
             link.toFile = resolvePath(name, "/" + url);
           } else {
-            link.toPage = resolvePath(name, "/" + parsePageRef(url).page);
+            link.toPage = resolvePath(name, "/" + parseRef(url).page);
           }
           if (alias) {
             link.alias = alias;

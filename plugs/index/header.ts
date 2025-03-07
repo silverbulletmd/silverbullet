@@ -9,7 +9,7 @@ import type {
   ObjectValue,
 } from "../../plug-api/types.ts";
 import { indexObjects, queryObjects } from "./api.ts";
-import { parsePageRef } from "@silverbulletmd/silverbullet/lib/page_ref";
+import { parseRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { extractAttributes } from "@silverbulletmd/silverbullet/lib/attribute";
 import { extractHashtag } from "../../plug-api/lib/tags.ts";
 
@@ -71,7 +71,7 @@ export async function headerComplete(completeEvent: CompleteEvent) {
     return null;
   }
 
-  const pageRef = parsePageRef(match[1]).page;
+  const pageRef = parseRef(match[1]).page;
   const allHeaders = await queryObjects<HeaderObject>("header", {
     filter: ["=", ["attr", "page"], [
       "string",

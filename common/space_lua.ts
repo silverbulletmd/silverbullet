@@ -7,10 +7,7 @@ import {
 } from "$common/space_lua/runtime.ts";
 import { parse as parseLua } from "$common/space_lua/parse.ts";
 import { evalStatement } from "$common/space_lua/eval.ts";
-import {
-  type PageRef,
-  parsePageRef,
-} from "@silverbulletmd/silverbullet/lib/page_ref";
+import { parseRef, type Ref } from "@silverbulletmd/silverbullet/lib/page_ref";
 import type { ASTCtx } from "$common/space_lua/ast.ts";
 import { buildLuaEnv } from "$common/space_lua_api.ts";
 
@@ -68,11 +65,11 @@ export class SpaceLuaEnvironment {
   }
 }
 
-export function resolveASTReference(ctx?: ASTCtx): PageRef | null {
+export function resolveASTReference(ctx?: ASTCtx): Ref | null {
   if (!ctx?.ref) {
     return null;
   }
-  const pageRef = parsePageRef(ctx.ref);
+  const pageRef = parseRef(ctx.ref);
   return {
     kind: "page",
     page: pageRef.page,

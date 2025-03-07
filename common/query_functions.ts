@@ -3,7 +3,7 @@ import { builtinFunctions } from "$lib/builtin_query_functions.ts";
 import type { System } from "$lib/plugos/system.ts";
 import { LimitedMap } from "$lib/limited_map.ts";
 import {
-  parsePageRef,
+  parseRef,
   positionOfLine,
 } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { parse } from "$common/markdown_parser/parse_tree.ts";
@@ -98,7 +98,7 @@ export function buildQueryFunctions(
       if (cachedPage) {
         return cachedPage;
       } else {
-        const pageRef = parsePageRef(name);
+        const pageRef = parseRef(name);
         try {
           let page: string = await system.localSyscall("space.readPage", [
             pageRef.page,

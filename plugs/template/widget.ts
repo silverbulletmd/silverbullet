@@ -17,7 +17,7 @@ import {
 } from "@silverbulletmd/silverbullet/lib/resolve";
 import { queryParsed } from "../query/api.ts";
 import { parseQuery } from "../../plug-api/lib/parse_query.ts";
-import { parsePageRef } from "@silverbulletmd/silverbullet/lib/page_ref";
+import { parseRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 
 type TemplateWidgetConfig = {
   // Pull the template from a page
@@ -253,6 +253,6 @@ export async function transclusionWidget(
 
 // Navigate to page in a transclusion widget
 export async function navigateButton(url: string) {
-  const pageRef = parsePageRef(url);
+  const pageRef = parseRef(url);
   await editor.navigate(pageRef, false, false);
 }

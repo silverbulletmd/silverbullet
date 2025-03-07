@@ -1,5 +1,5 @@
 import { luaBuildStandardEnv } from "$common/space_lua/stdlib.ts";
-import { parsePageRef } from "@silverbulletmd/silverbullet/lib/page_ref";
+import { parseRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import {
   LuaEnv,
   LuaNativeJSFunction,
@@ -68,7 +68,7 @@ export async function handleLuaError(e: LuaRuntimeError, system: System<any>) {
   );
   if (e.sf?.astCtx && e.sf.astCtx.ref) {
     // We got an error and actually know where it came from, let's navigate there to help debugging
-    const pageRef = parsePageRef(e.sf.astCtx.ref);
+    const pageRef = parseRef(e.sf.astCtx.ref);
     await system.localSyscall(
       "editor.flashNotification",
       [

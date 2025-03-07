@@ -1,6 +1,6 @@
 import { editor, space, system } from "@silverbulletmd/silverbullet/syscalls";
 import { listFilesCached, readFile } from "./federation.ts";
-import { parsePageRef } from "@silverbulletmd/silverbullet/lib/page_ref";
+import { parseRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { federatedPathToLocalPath, wildcardPathToRegex } from "./util.ts";
 import type { LibraryDef } from "@silverbulletmd/silverbullet/type/config";
 
@@ -40,7 +40,7 @@ export async function updateLibraries(): Promise<UpdateStats> {
       console.warn("Library source not set, skipping", lib);
       continue;
     }
-    const pageUri = parsePageRef(lib.import).page;
+    const pageUri = parseRef(lib.import).page;
 
     if (!pageUri.startsWith("!")) {
       console.warn(
@@ -69,7 +69,7 @@ export async function updateLibraries(): Promise<UpdateStats> {
     console.log("All pages", newPages.length);
     if (lib.exclude) {
       for (const exclude of lib.exclude) {
-        const excludeUri = parsePageRef(exclude).page;
+        const excludeUri = parseRef(exclude).page;
         const excludeRegex = wildcardPathToRegex(excludeUri + ".md");
         newPages = newPages.filter((p) => {
           if (excludeRegex.test(p.name)) {

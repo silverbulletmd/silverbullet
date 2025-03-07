@@ -35,7 +35,7 @@ import {
 } from "@silverbulletmd/silverbullet/lib/tags";
 import { extractFrontmatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
 import {
-  parsePageRef,
+  parseRef,
   positionOfLine,
 } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { enrichItemFromParents } from "../index/item.ts";
@@ -245,7 +245,7 @@ export async function updateTaskState(
   newState: string,
 ) {
   const currentPage = await editor.getCurrentPage();
-  const { page, pos } = parsePageRef(ref);
+  const { page, pos } = parseRef(ref);
   if (pos === undefined) {
     console.error("No position found in page ref, skipping", ref);
     return;

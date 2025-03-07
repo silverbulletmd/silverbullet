@@ -7,10 +7,7 @@ import {
   renderToText,
   traverseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import {
-  encodePageRef,
-  parsePageRef,
-} from "@silverbulletmd/silverbullet/lib/page_ref";
+import { encodeRef, parseRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { Fragment, renderHtml, type Tag } from "./html_render.ts";
 import { isLocalPath } from "@silverbulletmd/silverbullet/lib/resolve";
 import type { PageMeta } from "@silverbulletmd/silverbullet/types";
@@ -318,11 +315,11 @@ function render(
       if (aliasNode) {
         linkText = aliasNode.children![0].text!;
       }
-      const pageRef = parsePageRef(ref);
+      const pageRef = parseRef(ref);
       return {
         name: "a",
         attrs: {
-          href: `/${encodePageRef(pageRef)}`,
+          href: `/${encodeRef(pageRef)}`,
           class: "wiki-link",
           "data-ref": ref,
         },
@@ -355,7 +352,7 @@ function render(
     case "Task": {
       let externalTaskRef = "";
       collectNodesOfType(t, "WikiLinkPage").forEach((wikilink) => {
-        const pageRef = parsePageRef(wikilink.children![0].text!);
+        const pageRef = parseRef(wikilink.children![0].text!);
         if (!externalTaskRef && (pageRef.pos !== undefined || pageRef.anchor)) {
           externalTaskRef = wikilink.children![0].text!;
         }
@@ -592,7 +589,7 @@ export function renderMarkdownToHtml(
           t.attrs!.href = options.translateUrls!(t.attrs!.href, "link");
         }
         if (t.attrs!["data-ref"]?.length) {
-          const pageRef = parsePageRef(t.attrs!["data-ref"]!);
+          const pageRef = parseRef(t.attrs!["data-ref"]!);
           const pageMeta = allPages.find((p) => pageRef.page === p.name);
           if (pageMeta) {
             t.body = [(pageMeta.pageDecoration?.prefix ?? "") + t.body];

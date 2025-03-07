@@ -14,7 +14,7 @@ import { EventHook } from "../common/hooks/event.ts";
 import { type AppCommand, isValidEditor } from "$lib/command.ts";
 import {
   type LocationState,
-  parseLocationRefFromURI,
+  parseRefFromURI,
   PathPageNavigator,
 } from "./navigator.ts";
 
@@ -42,9 +42,10 @@ import { HttpSpacePrimitives } from "$common/spaces/http_space_primitives.ts";
 import { FallbackSpacePrimitives } from "$common/spaces/fallback_space_primitives.ts";
 import { FilteredSpacePrimitives } from "$common/spaces/filtered_space_primitives.ts";
 import {
-  encodeLocationRef,
   encodePageURI,
-  parseLocationRef,
+  encodeRef,
+  parseRef,
+  type Ref,
   validatePath,
 } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { ClientSystem } from "./client_system.ts";
@@ -64,7 +65,6 @@ import { DataStoreSpacePrimitives } from "$common/spaces/datastore_space_primiti
 
 import { ensureSpaceIndex } from "$common/space_index.ts";
 import { renderTheTemplate } from "$common/syscalls/template.ts";
-import type { LocationRef } from "../plug-api/lib/page_ref.ts";
 import { ReadOnlySpacePrimitives } from "$common/spaces/ro_space_primitives.ts";
 import type { KvPrimitives } from "$lib/data/kv_primitives.ts";
 import {
@@ -148,7 +148,7 @@ export class Client implements ConfigContainer {
   fullSyncCompleted = false;
   syncService!: ISyncService;
 
-  private onLoadLocationRef: LocationRef;
+  private onLoadRef: Ref;
 
   constructor(
     private parent: Element,
@@ -160,7 +160,7 @@ export class Client implements ConfigContainer {
     // Generate a semi-unique prefix for the database so not to reuse databases for different space paths
     this.dbPrefix = "" +
       simpleHash(clientConfig.spaceFolderPath);
-    this.onLoadLocationRef = parseLocationRefFromURI();
+    this.onLoadRef = parseRefFromURI();
   }
 
   /**
@@ -524,7 +524,7 @@ export class Client implements ConfigContainer {
       ]);
       if (lastPath) {
         console.log("Navigating to last opened page", lastPath.path);
-        await this.navigate(parseLocationRef(lastPath));
+        await this.navigate(parseRef(lastPath));
       }
     }
     setTimeout(() => {
@@ -688,7 +688,7 @@ export class Client implements ConfigContainer {
   get currentPage(): string {
     return this.ui.viewState.current !== undefined
       ? this.ui.viewState.current.path
-      : this.onLoadLocationRef.page; // best effort
+      : this.onLoadRef.page; // best effort
   }
 
   currentPath(extension: boolean = false): string {
@@ -696,8 +696,8 @@ export class Client implements ConfigContainer {
       return this.ui.viewState.current.path +
         ((this.ui.viewState.current.kind === "page" && extension) ? ".md" : "");
     } else {
-      return this.onLoadLocationRef.page +
-        ((this.onLoadLocationRef.kind === "page" && extension) ? ".md" : "");
+      return this.onLoadRef.page +
+        ((this.onLoadRef.kind === "page" && extension) ? ".md" : "");
     }
   }
 
@@ -1102,13 +1102,13 @@ export class Client implements ConfigContainer {
   }
 
   async navigate(
-    locationRef: LocationRef,
+    ref: Ref,
     replaceState = false,
     newWindow = false,
   ) {
-    if (!locationRef.page) {
-      locationRef.kind = "page";
-      locationRef.page = cleanPageRef(
+    if (!ref.page) {
+      ref.kind = "page";
+      ref.page = cleanPageRef(
         await renderTheTemplate(
           this.clientConfig.indexPage,
           {},
@@ -1119,7 +1119,7 @@ export class Client implements ConfigContainer {
     }
 
     try {
-      validatePath(locationRef.page);
+      validatePath(ref.page);
     } catch (e: any) {
       return this.flashNotification(e.message, "error");
     }
@@ -1127,10 +1127,10 @@ export class Client implements ConfigContainer {
     if (newWindow) {
       console.log(
         "Navigating to new page in new window",
-        `${location.origin}/${encodePageURI(encodeLocationRef(locationRef))}`,
+        `${location.origin}/${encodePageURI(encodeRef(ref))}`,
       );
       const win = globalThis.open(
-        `${location.origin}/${encodePageURI(encodeLocationRef(locationRef))}`,
+        `${location.origin}/${encodePageURI(encodeRef(ref))}`,
         "_blank",
       );
       if (win) {
@@ -1140,7 +1140,7 @@ export class Client implements ConfigContainer {
     }
 
     await this.pageNavigator!.navigate(
-      locationRef,
+      ref,
       replaceState,
     );
     this.focus();

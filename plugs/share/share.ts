@@ -9,7 +9,7 @@ import { replaceNodesMatching } from "../../plug-api/lib/tree.ts";
 import type { ParseTree } from "../../plug-api/lib/tree.ts";
 import {
   encodePageURI,
-  parsePageRef,
+  parseRef,
 } from "@silverbulletmd/silverbullet/lib/page_ref";
 
 type ShareOption = {
@@ -84,7 +84,7 @@ export function cleanMarkdown(tree: ParseTree): ParseTree {
         if (aliasNode) {
           linkText = aliasNode.children![0].text!;
         }
-        const pageRef = parsePageRef(ref);
+        const pageRef = parseRef(ref);
         return {
           text: `[${linkText}](${
             typeof location !== "undefined" ? location.origin : ""

@@ -1,25 +1,14 @@
 /**
- * Represents a reference to a page, with optional position, anchor and header.
+ * Represents a reference to a page or document, with optional position, anchor and header.
  */
-export type PageRef = {
-  kind: "page";
+export type Ref = {
+  kind: "page" | "document";
   page: string;
   pos?: number | { line: number; column: number };
   anchor?: string;
   header?: string;
   meta?: boolean;
 };
-
-/**
- * Represents a reference to an document.
- */
-export type DocumentRef = {
-  kind: "document";
-  // This isn't really referring to a page, but this saves us from a lot of name changing
-  page: string;
-};
-
-export type LocationRef = PageRef | DocumentRef;
 
 /**
  * Checks if a name looks like a full path (with a file extension), is not a conflicted file and not a search page.
@@ -59,12 +48,18 @@ const headerRegex = /#([^#]*)$/;
  * @param name the name of the page reference to parse
  * @returns the parsed PageRef object
  */
-export function parsePageRef(name: string): PageRef {
+export function parseRef(name: string): Ref {
   // Normalize the page name
   if (name.startsWith("[[") && name.endsWith("]]")) {
     name = name.slice(2, -2);
   }
-  const pageRef: PageRef = { kind: "page", page: name };
+
+  const pageRef: Ref = { kind: "page", page: name };
+
+  if (looksLikePathWithExtension(name)) {
+    pageRef.kind = "document";
+  }
+
   if (pageRef.page.startsWith("^")) {
     // A caret prefix means we're looking for a meta page, but that doesn't matter for most use cases
     pageRef.page = pageRef.page.slice(1);
@@ -98,22 +93,12 @@ export function parsePageRef(name: string): PageRef {
   return pageRef;
 }
 
-export function parseDocumentRef(name: string): DocumentRef {
-  return { kind: "document", page: name };
-}
-
-export function parseLocationRef(name: string): LocationRef {
-  return looksLikePathWithExtension(name)
-    ? parseDocumentRef(name)
-    : parsePageRef(name);
-}
-
 /**
  * The inverse of parsePageRef, encodes a PageRef object into a string.
  * @param pageRef the page reference to encode
  * @returns a string representation of the page reference
  */
-export function encodePageRef(pageRef: PageRef): string {
+export function encodeRef(pageRef: Ref): string {
   let name = pageRef.page;
   if (pageRef.pos) {
     if (pageRef.pos instanceof Object) {
@@ -132,16 +117,6 @@ export function encodePageRef(pageRef: PageRef): string {
     name += `#${pageRef.header}`;
   }
   return name;
-}
-
-export function encodeDocumentRef(documentRef: DocumentRef): string {
-  return documentRef.page;
-}
-
-export function encodeLocationRef(locationRef: LocationRef): string {
-  return locationRef.kind === "page"
-    ? encodePageRef(locationRef)
-    : encodeDocumentRef(locationRef);
 }
 
 /**

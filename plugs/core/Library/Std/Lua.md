@@ -22,7 +22,7 @@ local function inString(line)
       singleQuotes = singleQuotes + 1
     elseif c == '"' then
       doubleQuotes = doubleQuotes + 1
-    elseif c == "[" and line[i+1] == "[" then
+    elseif c == "[" and line[i+1] == "[" and line:sub(i-5, i) != "query[" then
       brackets = brackets + 1
     elseif c == "]" and line[i-1] == "]" then
       brackets = brackets - 1

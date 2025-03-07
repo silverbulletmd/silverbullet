@@ -17,7 +17,7 @@ import { renderMarkdownToHtml } from "../plugs/markdown/markdown_render.ts";
 import {
   decodePageURI,
   looksLikePathWithExtension,
-  parsePageRef,
+  parseRef,
 } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { LockoutTimer } from "./lockout.ts";
 import type { AuthOptions } from "../cmd/server.ts";
@@ -251,7 +251,7 @@ export class HttpServer {
         // Serve the UI (index.html)
         let indexPage = "index";
         try {
-          indexPage = parsePageRef(this.spaceServer.indexPage).page;
+          indexPage = parseRef(this.spaceServer.indexPage).page;
         } catch (e: any) {
           console.error("Error parsing index page from config", e);
         }

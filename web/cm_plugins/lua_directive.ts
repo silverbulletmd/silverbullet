@@ -20,7 +20,7 @@ import {
   luaValueToJS,
 } from "$common/space_lua/runtime.ts";
 import { LuaRuntimeError } from "$common/space_lua/runtime.ts";
-import { encodePageRef } from "@silverbulletmd/silverbullet/lib/page_ref";
+import { encodeRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { resolveASTReference } from "$common/space_lua.ts";
 import { LuaWidget } from "./lua_widget.ts";
 import type { PageMeta } from "@silverbulletmd/silverbullet/types";
@@ -90,7 +90,7 @@ export function luaDirectivePlugin(client: Client) {
                         // We know the origin node of the error, let's reference it
                         return {
                           markdown: `**Lua error:** ${e.message} (Origin: [[${
-                            encodePageRef(source)
+                            encodeRef(source)
                           }]])`,
                         };
                       }

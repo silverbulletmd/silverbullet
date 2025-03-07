@@ -16,10 +16,7 @@ import {
   isLocalPath,
   resolvePath,
 } from "@silverbulletmd/silverbullet/lib/resolve";
-import {
-  parseLocationRef,
-  parsePageRef,
-} from "@silverbulletmd/silverbullet/lib/page_ref";
+import { parseRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { tagPrefix } from "../index/constants.ts";
 
 async function actionClickOrActionEnter(
@@ -55,19 +52,19 @@ async function actionClickOrActionEnter(
     case "WikiLink": {
       const link = mdTree.children![1]!.children![0].text!;
       const currentPath = await editor.getCurrentPath();
-      const locationRef = parseLocationRef(link);
-      locationRef.page = resolvePath(currentPage, "/" + locationRef.page);
-      if (!locationRef.page) {
-        locationRef.page = currentPath;
+      const ref = parseRef(link);
+      ref.page = resolvePath(currentPage, "/" + ref.page);
+      if (!ref.page) {
+        ref.page = currentPath;
       }
       // This is an explicit navigate, move to the top
-      if (locationRef.kind === "page" && locationRef.pos === undefined) {
-        locationRef.pos = 0;
+      if (ref.kind === "page" && ref.pos === undefined) {
+        ref.pos = 0;
       }
-      return editor.navigate(locationRef, false, inNewWindow);
+      return editor.navigate(ref, false, inNewWindow);
     }
     case "PageRef": {
-      const pageName = parsePageRef(mdTree.children![0].text!).page;
+      const pageName = parseRef(mdTree.children![0].text!).page;
       return editor.navigate(
         { kind: "page", page: pageName, pos: 0 },
         false,
@@ -94,7 +91,7 @@ async function actionClickOrActionEnter(
           );
         } else {
           return editor.navigate(
-            parsePageRef(resolvePath(currentPage, decodeURI(url))),
+            parseRef(resolvePath(currentPage, decodeURI(url))),
             false,
             inNewWindow,
           );

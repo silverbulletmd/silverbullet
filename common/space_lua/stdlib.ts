@@ -19,6 +19,7 @@ import { spaceluaApi } from "$common/space_lua/stdlib/space_lua.ts";
 import { mathApi } from "$common/space_lua/stdlib/math.ts";
 import { parse } from "$common/space_lua/parse.ts";
 import { evalStatement } from "$common/space_lua/eval.ts";
+import { parseRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 
 const printFunction = new LuaBuiltinFunction(async (_sf, ...args) => {
   console.log(
@@ -196,6 +197,5 @@ export function luaBuildStandardEnv() {
   // Non-standard
   env.set("each", eachFunction);
   env.set("spacelua", spaceluaApi);
-  // env.set("template", templateApi);
   return env;
 }

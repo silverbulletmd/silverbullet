@@ -11,7 +11,7 @@ import {
   renderMarkdownToHtml,
 } from "./markdown_render.ts";
 import { validatePageName } from "@silverbulletmd/silverbullet/lib/page_ref";
-import { parsePageRef } from "@silverbulletmd/silverbullet/lib/page_ref";
+import { parseRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import type { LuaExpression } from "$common/space_lua/ast.ts";
 import { renderExpressionResult } from "../template/util.ts";
 
@@ -77,7 +77,7 @@ export async function expandCodeWidgets(
 
       // Check if this is likely a page link (based on the path format, e.g. if it contains an extension, it's probably not a page link)
       try {
-        const ref = parsePageRef(page);
+        const ref = parseRef(page);
         validatePageName(ref.page);
       } catch {
         // Not a valid page name, so not a page reference

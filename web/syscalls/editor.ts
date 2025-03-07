@@ -19,11 +19,8 @@ import { getCM as vimGetCm, Vim } from "@replit/codemirror-vim";
 import type { SysCallMapping } from "$lib/plugos/system.ts";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 import type { PageMeta, UploadFile } from "../../plug-api/types.ts";
-import {
-  type LocationRef,
-  parseLocationRef,
-} from "@silverbulletmd/silverbullet/lib/page_ref";
 import { openSearchPanel } from "@codemirror/search";
+import { parseRef, type Ref } from "@silverbulletmd/silverbullet/lib/page_ref";
 
 export function editorSyscalls(client: Client): SysCallMapping {
   const syscalls: SysCallMapping = {
@@ -56,17 +53,17 @@ export function editorSyscalls(client: Client): SysCallMapping {
     },
     "editor.navigate": async (
       _ctx,
-      locationRef: LocationRef | string,
+      ref: Ref | string,
       replaceState = false,
       newWindow = false,
     ) => {
-      if (typeof locationRef === "string") {
-        locationRef = parseLocationRef(locationRef);
-      } else if (locationRef.kind === undefined) {
+      if (typeof ref === "string") {
+        ref = parseRef(ref);
+      } else if (ref.kind === undefined) {
         // @ts-ignore: This is for legacy support
         locationRef.kind === "page";
       }
-      await client.navigate(locationRef, replaceState, newWindow);
+      await client.navigate(ref, replaceState, newWindow);
     },
     "editor.reloadPage": async () => {
       await client.reloadPage();

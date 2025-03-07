@@ -5,9 +5,9 @@ import type { Client } from "../client.ts";
 import { decoratorStateField, isCursorInRange, LinkWidget } from "./util.ts";
 import { resolvePath } from "@silverbulletmd/silverbullet/lib/resolve";
 import {
-  encodePageRef,
   encodePageURI,
-  parsePageRef,
+  encodeRef,
+  parseRef,
 } from "@silverbulletmd/silverbullet/lib/page_ref";
 
 /**
@@ -36,7 +36,7 @@ export function cleanWikiLinkPlugin(client: Client) {
 
         let fileExists = !client.fullSyncCompleted;
 
-        const pageRef = parsePageRef(url);
+        const pageRef = parseRef(url);
         pageRef.page = resolvePath(client.currentPage, "/" + pageRef.page);
         const lowerCasePageName = pageRef.page.toLowerCase();
 
@@ -100,9 +100,9 @@ export function cleanWikiLinkPlugin(client: Client) {
               {
                 text: linkText,
                 title: fileExists
-                  ? `Navigate to ${encodePageRef(pageRef)}`
+                  ? `Navigate to ${encodeRef(pageRef)}`
                   : `Create ${pageRef.page}`,
-                href: `/${encodePageURI(encodePageRef(pageRef))}`,
+                href: `/${encodePageURI(encodeRef(pageRef))}`,
                 cssClass,
                 from,
                 callback: (e) => {

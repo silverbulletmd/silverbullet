@@ -1,24 +1,20 @@
 import {
-  type DocumentRef,
   encodePageURI,
-  type LocationRef,
-  type PageRef,
-  parseLocationRef,
-} from "../plug-api/lib/page_ref.ts";
+  parseRef,
+  type Ref,
+} from "@silverbulletmd/silverbullet/lib/page_ref";
 import type { Client } from "./client.ts";
 import { cleanPageRef } from "@silverbulletmd/silverbullet/lib/resolve";
 import { renderTheTemplate } from "$common/syscalls/template.ts";
 import { safeRun } from "../lib/async.ts";
 
-export type LocationState =
-  | PageRef & {
-    scrollTop?: number;
-    selection?: {
-      anchor: number;
-      head?: number;
-    };
-  }
-  | DocumentRef;
+export type LocationState = Ref & {
+  scrollTop?: number;
+  selection?: {
+    anchor: number;
+    head?: number;
+  };
+};
 
 export class PathPageNavigator {
   navigationResolve?: () => void;
@@ -51,11 +47,11 @@ export class PathPageNavigator {
    * @param replaceState whether to update the state in place (rather than to push a new state)
    */
   async navigate(
-    pathRef: LocationRef,
+    ref: Ref,
     replaceState = false,
   ) {
-    if (pathRef.kind === "page" && pathRef.page === this.indexPage) {
-      pathRef.page = "";
+    if (ref.kind === "page" && ref.page === this.indexPage) {
+      ref.page = "";
     }
     const currentState = this.buildCurrentLocationState();
     // No need to keep pos and anchor if we already have scrollTop and selection
@@ -76,21 +72,21 @@ export class PathPageNavigator {
         `/${encodePageURI(currentState.page)}`,
       );
       globalThis.history.pushState(
-        pathRef,
+        ref,
         "",
-        `/${encodePageURI(pathRef.page)}`,
+        `/${encodePageURI(ref.page)}`,
       );
     } else {
       globalThis.history.replaceState(
-        pathRef,
+        ref,
         "",
-        `/${encodePageURI(pathRef.page)}`,
+        `/${encodePageURI(ref.page)}`,
       );
     }
 
     globalThis.dispatchEvent(
       new PopStateEvent("popstate", {
-        state: pathRef,
+        state: ref,
       }),
     );
 
@@ -101,7 +97,7 @@ export class PathPageNavigator {
   }
 
   buildCurrentLocationState(): LocationState {
-    const locationState: LocationState = parseLocationRefFromURI();
+    const locationState: LocationState = parseRefFromURI();
 
     if (
       locationState.kind === "page"
@@ -149,7 +145,7 @@ export class PathPageNavigator {
           await pageLoadCallback(popState);
         } else {
           // This occurs when the page is loaded completely fresh with no browser history around it
-          const pageRef = parseLocationRefFromURI();
+          const pageRef = parseRefFromURI();
           if (!pageRef.page) {
             pageRef.kind = "page";
             pageRef.page = this.indexPage;
@@ -171,8 +167,8 @@ export class PathPageNavigator {
   }
 }
 
-export function parseLocationRefFromURI(): LocationRef {
-  const locationRef = parseLocationRef(decodeURIComponent(
+export function parseRefFromURI(): Ref {
+  const locationRef = parseRef(decodeURIComponent(
     location.pathname.substring(1),
   ));
 
