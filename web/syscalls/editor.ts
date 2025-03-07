@@ -61,7 +61,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
         ref = parseRef(ref);
       } else if (ref.kind === undefined) {
         // @ts-ignore: This is for legacy support
-        locationRef.kind === "page";
+        ref.kind === "page";
       }
       await client.navigate(ref, replaceState, newWindow);
     },

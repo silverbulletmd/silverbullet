@@ -5,7 +5,6 @@ import {
   decoratorStateField,
   invisibleDecoration,
   isCursorInRange,
-  shouldRenderWidgets,
 } from "./util.ts";
 import type { Client } from "../client.ts";
 import { parse as parseLua } from "$common/space_lua/parse.ts";
@@ -24,17 +23,48 @@ import { encodeRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { resolveASTReference } from "$common/space_lua.ts";
 import { LuaWidget } from "./lua_widget.ts";
 import type { PageMeta } from "@silverbulletmd/silverbullet/types";
+import YAML from "js-yaml";
 
 export function luaDirectivePlugin(client: Client) {
   return decoratorStateField((state: EditorState) => {
     const widgets: Range<Decoration>[] = [];
-    if (!shouldRenderWidgets(client)) {
-      console.info("Not rendering widgets");
+
+    let shouldRender = true;
+
+    // Don't render Lua directives of federated pages (security)
+    if (client.currentPage.startsWith("!")) {
       return Decoration.set([]);
     }
 
     syntaxTree(state).iterate({
       enter: (node) => {
+        // Disable rendering of Lua directives in #meta/template pages
+        // Either in frontmatter
+        if (node.name === "FrontMatterCode") {
+          const text = state.sliceDoc(node.from, node.to);
+          try {
+            const parsedFrontmatter = YAML.load(text);
+            let tags = parsedFrontmatter.tags || [];
+            if (typeof tags === "string") {
+              tags = tags.split(/\s+|,\s*/);
+            }
+            if (tags.includes("meta/template")) {
+              shouldRender = false;
+              return;
+            }
+          } catch {
+            // Ignore
+          }
+        }
+        // Or with a hash tag
+        if (node.name === "Hashtag") {
+          const text = state.sliceDoc(node.from, node.to);
+          if (text === "#meta/template") {
+            shouldRender = false;
+            return;
+          }
+        }
+
         if (node.name !== "LuaDirective") {
           return;
         }
@@ -107,6 +137,10 @@ export function luaDirectivePlugin(client: Client) {
         widgets.push(invisibleDecoration.range(node.from, node.to));
       },
     });
+
+    if (!shouldRender) {
+      return Decoration.set([]);
+    }
 
     return Decoration.set(widgets, true);
   });

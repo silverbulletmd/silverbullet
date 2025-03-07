@@ -34,6 +34,15 @@ function template.new(templateStr)
   end
 end
 
+function template.fromPage(name)
+  local fm = index.extractFrontmatter(space.readPage(name),  {
+    removeFrontmatterSection = true,
+    removeTags = true
+  })
+
+  return template.new(fm.text)
+end
+
 -- Creates a template-based slash command, keys for def are:
 --   name: name of the slash command
 --   description: description of the slash command

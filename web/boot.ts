@@ -61,9 +61,8 @@ safeRun(async () => {
       if (!refreshing) {
         refreshing = true;
         console.log(
-          "New service worker activated, reloading page to apply updates...",
+          "New service worker activated, please reload to activate the new version.",
         );
-        globalThis.location.reload();
       }
     });
 
