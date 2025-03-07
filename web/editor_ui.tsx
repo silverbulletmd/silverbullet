@@ -130,6 +130,7 @@ export class MainUI {
               });
             }}
             onNavigate={(name, type) => {
+              type = type ?? "page";
               dispatch({ type: "stop-navigate" });
               setTimeout(() => {
                 client.focus();

@@ -496,7 +496,7 @@ export class Client implements ConfigContainer {
     await this.pageNavigator.init();
 
     this.pageNavigator.subscribe(async (locationState) => {
-      console.log("Now navigating to", locationState.page);
+      console.log("Now navigating to", locationState);
 
       if (locationState.kind === "page") {
         await this.loadPage(locationState.page);
