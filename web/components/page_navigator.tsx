@@ -220,16 +220,10 @@ export function PageNavigator({
             });
           }
           // Remove pages that are tagged as templates or meta
-          options = options.filter((pageMeta) => {
-            return !pageMeta.tags?.includes("template") &&
-              !pageMeta.tags?.includes("meta");
-          });
+          options = options.filter((pageMeta) => !isMetaPageOption(pageMeta));
         } else if (mode === "meta") {
-          // Filter on pages tagged with "template" or "meta"
-          options = options.filter((pageMeta) => {
-            return pageMeta.tags?.includes("template") ||
-              pageMeta.tags?.includes("meta");
-          });
+          // Filter on pages tagged with "template" or "meta" prefix
+          options = options.filter(isMetaPageOption);
         }
 
         if (mode !== "all") {
@@ -252,4 +246,9 @@ export function PageNavigator({
       }}
     />
   );
+}
+
+function isMetaPageOption(page: FilterOption) {
+  return page.tags?.includes("template") ||
+    page.tags?.find((tag: string) => tag.startsWith("meta"));
 }
