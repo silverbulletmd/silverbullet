@@ -20,7 +20,7 @@ export function emojiCompleter(
   // Check if we're not in a Lua directive or space-lua block
   if (
     parentNodes.find((node) =>
-      node === "LuaDirective" || node.startsWith("FencedCode:space-lua")
+      node === "LuaDirective" || node.startsWith("FencedCode")
     )
   ) {
     return;

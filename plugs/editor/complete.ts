@@ -50,6 +50,13 @@ export async function pageComplete(completeEvent: CompleteEvent) {
     }));
   } // Let's try to be smart about the types of completions we're offering based on the context
   else if (
+    completeEvent.parentNodes.find((node) =>
+      node === "LuaDirective" || node.startsWith("FencedCode:space-lua")
+    )
+  ) {
+    // Let's just disable page completion entirely in Lua directives and space-lua blocks
+    return;
+  } else if (
     completeEvent.parentNodes.find((node) => node.startsWith("FencedCode")) &&
     // either a render [[bla]] clause
     /(render\s+|template\()\[\[/.test(
