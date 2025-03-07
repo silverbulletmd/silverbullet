@@ -7,12 +7,23 @@ let emojiConfig: EmojiConfig = { aliases: [] };
 
 const emojis = emojiBlob.split("|").map((line) => line.split(" "));
 
-export function emojiCompleter({ linePrefix, pos }: CompleteEvent) {
+export function emojiCompleter(
+  { linePrefix, pos, parentNodes }: CompleteEvent,
+) {
   updateConfig(); // no need to await, will be ready for completion by next keystrokes
 
   const match = /:([\w]+)$/.exec(linePrefix);
   if (!match) {
     return null;
+  }
+
+  // Check if we're not in a Lua directive or space-lua block
+  if (
+    parentNodes.find((node) =>
+      node === "LuaDirective" || node.startsWith("FencedCode:space-lua")
+    )
+  ) {
+    return;
   }
 
   const [fullMatch, emojiName] = match;
