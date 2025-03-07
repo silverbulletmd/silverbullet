@@ -36,7 +36,7 @@ echo "Removing old databases"
 rm -f $WEBSITE_SPACE/.silverbullet.db*
 
 echo "Starting new silverbullet container"
-docker run -d --name silverbullet --restart unless-stopped -v $WEBSITE_SPACE:/space -e SB_READ_ONLY=1 -p $WEBSITE_PORT:3000 $IMAGE_NAME
+docker run -d --name silverbullet --restart unless-stopped -v $WEBSITE_SPACE:/space -e SB_INDEX_PAGE=SilverBullet -e SB_READ_ONLY=1 -p $WEBSITE_PORT:3000 $IMAGE_NAME
 
 
 echo "Waiting for the servers to start"
