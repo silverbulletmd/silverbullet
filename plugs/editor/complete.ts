@@ -15,10 +15,10 @@ import { localDateString } from "$lib/dates.ts";
 const isMetaPageFilter: QueryExpression = ["or", ["=", ["attr", "tags"], [
   "string",
   "template",
-]], ["=", [
+]], ["=~", [
   "attr",
   "tags",
-], ["string", "meta"]]];
+], ["regexp", "meta.+", ""]]];
 
 // Completion
 export async function pageComplete(completeEvent: CompleteEvent) {

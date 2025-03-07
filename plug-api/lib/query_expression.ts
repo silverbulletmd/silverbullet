@@ -256,6 +256,9 @@ function evalSimpleExpression(type: string, val1: any, val2: any, val3: any) {
         throw new Error(`Invalid regexp: ${val2}`);
       }
       const r = new RegExp(val2[0], val2[1]);
+      if (Array.isArray(val1)) {
+        return val1.some((v) => r.test(v));
+      }
       return r.test(val1);
     }
     case "!=~": {
