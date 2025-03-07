@@ -3,8 +3,6 @@
 This page contains configuration of SilverBullet and its plugs. Some of these changes will go into effect immediately, some require a page reload.
 
 ```space-config
-# Initial page to load when launching SB, can contain template variables
-indexPage: "[[SilverBullet]]"
 libraries:
 # The "Core" library is recommended for all users
 - import: "[[!silverbullet.md/Library/Core/*]]"
@@ -67,12 +65,6 @@ smartQuotes:
   single:
     left: "‘"
     right: "’"
-
-# Defines files to ignore in a format compatible with .gitignore
-spaceIgnore: |
-   dist
-   largefolder
-   *.mp4
 
 # Defines the maximum size of a file you can upload to the space (in MiB)
 maximumDocumentSize: 10

@@ -51,13 +51,16 @@ export class PlugSpacePrimitives implements SpacePrimitives {
 
   async fetchFileList(): Promise<FileMeta[]> {
     const allFiles: FileMeta[] = [];
+    const alreadySeenFiles = new Set<string>();
     for (const { plug, name, operation, env } of this.hook.spaceFunctions) {
       if (
-        operation === "listFiles" && (!this.env || (env && env === this.env))
+        operation === "listFiles" &&
+        (!this.env || !env || (env && env === this.env))
       ) {
         try {
           for (const pm of await plug.invoke(name, [])) {
             allFiles.push(pm);
+            alreadySeenFiles.add(pm.name);
           }
         } catch (e: any) {
           if (!e.message.includes("not available")) {
@@ -69,6 +72,10 @@ export class PlugSpacePrimitives implements SpacePrimitives {
     }
     const files = await this.wrapped.fetchFileList();
     for (const pm of files) {
+      // We'll use the files coming from the wrapped space only as a fallback
+      if (alreadySeenFiles.has(pm.name)) {
+        continue;
+      }
       allFiles.push(pm);
     }
     return allFiles;
