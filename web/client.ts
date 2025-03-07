@@ -6,7 +6,6 @@ import type { Compartment, EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { indentUnit, syntaxTree } from "@codemirror/language";
 import { history, isolateHistory } from "@codemirror/commands";
-import { compile as gitIgnoreCompiler } from "gitignore-parser";
 import type { SyntaxNode } from "@lezer/common";
 import { Space } from "../common/space.ts";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
@@ -40,7 +39,6 @@ import { simpleHash } from "$lib/crypto.ts";
 import type { SyncStatus } from "$common/spaces/sync.ts";
 import { HttpSpacePrimitives } from "$common/spaces/http_space_primitives.ts";
 import { FallbackSpacePrimitives } from "$common/spaces/fallback_space_primitives.ts";
-import { FilteredSpacePrimitives } from "$common/spaces/filtered_space_primitives.ts";
 import {
   encodePageURI,
   encodeRef,
