@@ -294,7 +294,9 @@ export class MainUI {
                 description: this.client.clientConfig.syncMode
                   ? "Currently in Sync mode, click to switch to Online mode"
                   : "Currently in Online mode, click to switch to Sync mode",
-                class: this.client.clientConfig.syncMode ? "sb-enabled" : undefined,
+                class: this.client.clientConfig.syncMode
+                  ? "sb-enabled"
+                  : undefined,
                 callback: () => {
                   (async () => {
                     const newValue = !this.client.clientConfig.syncMode;

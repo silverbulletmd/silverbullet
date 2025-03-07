@@ -120,7 +120,9 @@ export function FilterList({
           placeholderText={placeholder}
           onEnter={(_newText, shiftDown) => {
             onSelect(
-              shiftDown ? { name: text, type: "page" } : matchingOptions[selectedOption],
+              shiftDown
+                ? { name: text, type: "page" }
+                : matchingOptions[selectedOption],
             );
             return true;
           }}
