@@ -42,6 +42,8 @@ export async function serveCommand(
 
   const readOnly = !!Deno.env.get("SB_READ_ONLY");
 
+  const indexPage = Deno.env.get("SB_INDEX_PAGE") || "index";
+
   if (syncOnly) {
     console.log("Running in sync-only mode (no backend processing)");
   }
@@ -150,6 +152,7 @@ export async function serveCommand(
     baseKvPrimitives,
     keyFile: options.key,
     certFile: options.cert,
+    indexPage,
 
     auth: userCredentials,
     syncOnly,

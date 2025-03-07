@@ -134,11 +134,6 @@ export async function ensureAndLoadSettingsAndIndex(
     config = { ...defaultConfig, ...config };
     // console.log("Loaded settings from SETTINGS.md", config);
   }
-  // Some essential sanity checking
-  if (typeof config.indexPage !== "string") {
-    console.warn("indexPage is not a string, falling back to default");
-    config.indexPage = "index";
-  }
   return config;
 }
 

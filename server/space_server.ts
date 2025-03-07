@@ -45,6 +45,7 @@ export class SpaceServer implements ConfigContainer {
   readOnly: boolean;
   shellBackend: ShellBackend;
   enableSpaceScript: boolean;
+  indexPage: string;
 
   constructor(
     options: ServerOptions,
@@ -56,6 +57,7 @@ export class SpaceServer implements ConfigContainer {
     this.auth = options.auth;
     this.syncOnly = options.syncOnly;
     this.readOnly = options.readOnly;
+    this.indexPage = options.indexPage;
     this.config = defaultConfig;
     this.enableSpaceScript = options.enableSpaceScript;
 

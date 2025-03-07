@@ -33,7 +33,6 @@ export type LibraryDef = {
 };
 
 export type Config = {
-  indexPage: string;
   shortcuts?: Shortcut[];
   // DEPRECATED: Use smartQuotes instead
   useSmartQuotes?: boolean;
@@ -47,7 +46,6 @@ export type Config = {
   actionButtons: ActionButton[];
   objectDecorators?: ObjectDecorator[];
   // Format: compatible with docker ignore
-  spaceIgnore?: string;
   emoji?: EmojiConfig;
   autoCloseBrackets: string;
   smartQuotes?: SmartQuotesConfig;

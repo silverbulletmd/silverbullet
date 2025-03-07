@@ -84,13 +84,19 @@ const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 const autoSaveInterval = 1000;
 
+/**
+ * Client configuration that is set at boot time, doesn't change at runtime
+ */
+export type ClientConfig = {
+  spaceFolderPath: string;
+  indexPage: string;
+  syncMode?: boolean; // Set on the client based on localStorage
+  syncOnly: boolean; // Hide sync buttons etc
+  readOnly: boolean;
+  enableSpaceScript: boolean;
+};
+
 declare global {
-  var silverBulletConfig: {
-    spaceFolderPath: string;
-    syncOnly: boolean;
-    readOnly: boolean;
-    enableSpaceScript: boolean;
-  };
   var client: Client;
 }
 
@@ -146,15 +152,14 @@ export class Client implements ConfigContainer {
 
   constructor(
     private parent: Element,
-    public syncMode: boolean,
-    private readOnlyMode: boolean,
+    public clientConfig: ClientConfig,
   ) {
-    if (!syncMode) {
+    if (!clientConfig.syncMode) {
       this.fullSyncCompleted = true;
     }
     // Generate a semi-unique prefix for the database so not to reuse databases for different space paths
     this.dbPrefix = "" +
-      simpleHash(globalThis.silverBulletConfig.spaceFolderPath);
+      simpleHash(clientConfig.spaceFolderPath);
     this.onLoadLocationRef = parseLocationRefFromURI();
   }
 
@@ -179,12 +184,12 @@ export class Client implements ConfigContainer {
       this.mq,
       this.stateDataStore,
       this.eventHook,
-      this.readOnlyMode,
+      this.clientConfig.readOnly,
     );
 
     const localSpacePrimitives = await this.initSpace();
 
-    this.syncService = this.syncMode
+    this.syncService = this.clientConfig.syncMode
       ? new SyncService(
         localSpacePrimitives,
         this.plugSpaceRemotePrimitives,
@@ -223,7 +228,7 @@ export class Client implements ConfigContainer {
         console.warn("Not authenticated, redirecting to auth page");
         return;
       }
-      if (e.message.includes("Offline") && !this.syncMode) {
+      if (e.message.includes("Offline") && !this.clientConfig.syncMode) {
         // Offline and not in sync mode, this is not going to fly.
         this.flashNotification(
           "Could not reach remote server, going to reload in a few seconds",
@@ -531,12 +536,12 @@ export class Client implements ConfigContainer {
   async initSpace(): Promise<SpacePrimitives> {
     this.httpSpacePrimitives = new HttpSpacePrimitives(
       location.origin,
-      globalThis.silverBulletConfig.spaceFolderPath,
+      this.clientConfig.spaceFolderPath,
     );
 
     let remoteSpacePrimitives: SpacePrimitives = this.httpSpacePrimitives;
 
-    if (this.readOnlyMode) {
+    if (this.clientConfig.readOnly) {
       remoteSpacePrimitives = new ReadOnlySpacePrimitives(
         remoteSpacePrimitives,
       );
@@ -545,14 +550,14 @@ export class Client implements ConfigContainer {
     this.plugSpaceRemotePrimitives = new PlugSpacePrimitives(
       remoteSpacePrimitives,
       this.clientSystem.namespaceHook,
-      this.syncMode ? undefined : "client",
+      this.clientConfig.readOnly ? undefined : "client",
     );
 
     let fileFilterFn: (s: string) => boolean = () => true;
 
     let localSpacePrimitives: SpacePrimitives | undefined;
 
-    if (this.syncMode) {
+    if (this.clientConfig.syncMode) {
       // We'll store the space files in a separate data store
       const spaceKvPrimitives = new IndexedDBKvPrimitives(
         `${this.dbPrefix}_synced_space`,
@@ -715,7 +720,8 @@ export class Client implements ConfigContainer {
 
           if (
             !this.ui.viewState.unsavedChanges ||
-            this.ui.viewState.uiOptions.forcedROMode || this.readOnlyMode
+            this.ui.viewState.uiOptions.forcedROMode ||
+            this.clientConfig.readOnly
           ) {
             // No unsaved changes, or read-only mode, not gonna save
             return resolve();
@@ -1104,7 +1110,7 @@ export class Client implements ConfigContainer {
       locationRef.kind = "page";
       locationRef.page = cleanPageRef(
         await renderTheTemplate(
-          this.config.indexPage,
+          this.clientConfig.indexPage,
           {},
           {},
           client.stateDataStore.functionMap,

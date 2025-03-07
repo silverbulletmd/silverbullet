@@ -68,11 +68,11 @@ export class ClientSystem extends CommonSystem {
       ds,
       eventHook,
       readOnlyMode,
-      globalThis.silverBulletConfig.enableSpaceScript,
+      client.clientConfig.enableSpaceScript,
     );
     // Only set environment to "client" when running in thin client mode, otherwise we run everything locally (hybrid)
     this.system = new System(
-      client.syncMode ? undefined : "client",
+      client.clientConfig.syncMode ? undefined : "client",
       {
         manifestCache: new KVPrimitivesManifestCache<SilverBulletHooks>(
           ds.kv,
@@ -104,7 +104,7 @@ export class ClientSystem extends CommonSystem {
     this.system.addHook(this.documentEditorHook);
 
     // MQ hook
-    if (client.syncMode) {
+    if (client.clientConfig.syncMode) {
       // Process MQ messages locally
       this.system.addHook(new MQHook(this.system, this.mq));
     }
@@ -178,12 +178,12 @@ export class ClientSystem extends CommonSystem {
       indexSyscalls(this),
       commandSyscalls(this),
       luaSyscalls(this),
-      this.client.syncMode
+      this.client.clientConfig.syncMode
         // In sync mode handle locally
         ? mqSyscalls(this.mq)
         // In non-sync mode proxy to server
         : mqProxySyscalls(this.client),
-      ...this.client.syncMode
+      ...this.client.clientConfig.syncMode
         ? [
           dataStoreReadSyscalls(this.ds, this),
           dataStoreWriteSyscalls(this.ds),

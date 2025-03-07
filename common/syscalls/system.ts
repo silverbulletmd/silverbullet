@@ -121,7 +121,7 @@ export function systemSyscalls(
     "system.loadSpaceScripts": async () => {
       // Reload scripts locally
       await commonSystem.loadSpaceScripts();
-      if (client && !globalThis.silverBulletConfig.syncOnly) {
+      if (client && !client.clientConfig.syncOnly) {
         // Reload scripts remotely
         await proxySyscall(
           {},

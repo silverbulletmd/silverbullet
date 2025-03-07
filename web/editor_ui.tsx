@@ -286,18 +286,18 @@ export class MainUI {
           }}
           actionButtons={[
             // Sync button
-            ...(!globalThis.silverBulletConfig.syncOnly &&
+            ...(!this.client.clientConfig.syncOnly &&
                 !viewState.config.hideSyncButton)
               // If we support syncOnly, don't show this toggle button
               ? [{
                 icon: featherIcons.RefreshCw,
-                description: this.client.syncMode
+                description: this.client.clientConfig.syncMode
                   ? "Currently in Sync mode, click to switch to Online mode"
                   : "Currently in Online mode, click to switch to Sync mode",
-                class: this.client.syncMode ? "sb-enabled" : undefined,
+                class: this.client.clientConfig.syncMode ? "sb-enabled" : undefined,
                 callback: () => {
                   (async () => {
-                    const newValue = !this.client.syncMode;
+                    const newValue = !this.client.clientConfig.syncMode;
 
                     if (newValue) {
                       localStorage.setItem("syncMode", "true");

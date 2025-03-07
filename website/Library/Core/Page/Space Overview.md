@@ -16,6 +16,12 @@ This page compiles some useful things about your space and may also be useful fo
 {{/each}}
 ```
 
+# Active [[!silverbullet.md/Space Lua]]
+${template.each(query[[
+  from index.tag "space-lua"
+  select {name= ref}
+]], templates.pageItem)}
+
 # Active [[!silverbullet.md/Space Style]]
 ```template
 {{#each {space-style}}}

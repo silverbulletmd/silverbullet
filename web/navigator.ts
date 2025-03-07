@@ -34,7 +34,7 @@ export class PathPageNavigator {
   async init() {
     this.indexPage = cleanPageRef(
       await renderTheTemplate(
-        this.client.config.indexPage,
+        this.client.clientConfig.indexPage,
         {},
         {},
         this.client.stateDataStore.functionMap,

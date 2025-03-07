@@ -6,8 +6,9 @@ import {
   decodePageURI,
   looksLikePathWithExtension,
 } from "@silverbulletmd/silverbullet/lib/page_ref";
+import type { ClientConfig } from "./client.ts";
 
-const CACHE_NAME = "{{CACHE_NAME}}_{{CONFIG_HASH}}";
+const CACHE_NAME = "{{CACHE_NAME}}";
 
 const precacheFiles = Object.fromEntries([
   "/",
@@ -103,7 +104,38 @@ self.addEventListener("fetch", (event: any) => {
 
       const pathname = requestUrl.pathname;
 
-      if (
+      if (pathname === "/.config") {
+        try {
+          // Attempt fetch
+          const clientConfig: ClientConfig = await (await fetch(request))
+            .json();
+          await ds.set(["$clientConfig"], clientConfig);
+          console.log(
+            "[Service worker]",
+            "Serving and cached config",
+            clientConfig,
+          );
+          return new Response(JSON.stringify(clientConfig));
+        } catch {
+          // If fetch fails, try to get from cache
+          const clientConfig = await ds.get<ClientConfig>(["$clientConfig"]);
+          console.log(
+            "[Service worker]",
+            "Serving cached config",
+            clientConfig,
+          );
+          if (clientConfig) {
+            return new Response(JSON.stringify(clientConfig));
+          } else {
+            return new Response("{}", {
+              status: 404,
+              headers: {
+                "Content-Type": "application/json",
+              },
+            });
+          }
+        }
+      } else if (
         pathname === "/.auth" ||
         pathname === "/.logout" ||
         pathname === "/index.json" ||
