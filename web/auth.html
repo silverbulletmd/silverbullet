@@ -32,7 +32,6 @@
         "Segoe UI Emoji",
         "Segoe UI Symbol",
         "Noto Color Emoji";
-      background-color: #fefefe;
       --primary-button-color: #eee;
       --primary-button-background-color: #464cfc;
       --primary-button-hover-background-color: color-mix(in srgb,
@@ -40,6 +39,9 @@
           black 35%);
       --primary-button-border-color: transparent;
       --modal-border-color: #6c6c6c;
+      --top-color: #66A3BB;
+      --bottom-color: #0B3A69;
+      background: linear-gradient(var(--top-color), var(--bottom-color));
     }
 
     header {
@@ -87,6 +89,14 @@
       }
     }
 
+    .floating-island {
+      padding: 3em;
+      border-radius: 8px;
+      box-shadow: rgba(0, 0, 0, 0.35) 0px 20px 20px;
+      background-color: white;
+      border: var(--modal-border-color) 1px solid;
+    }
+
     .error-message {
       color: red;
     }
@@ -95,23 +105,6 @@
       height: 100vh;
       display: grid;
       place-items: center;
-    }
-
-    @media (min-width: 28em) {
-      html {
-        --top-color: #66A3BB;
-        --bottom-color: #0B3A69;
-        background: linear-gradient(var(--top-color), var(--bottom-color));
-      }
-
-      .floating-island {
-        padding: 3em;
-        border-radius: 8px;
-        box-shadow: rgba(0, 0, 0, 0.35) 0px 20px 20px;
-        background-color: white;
-        border: var(--modal-border-color) 1px solid;
-      }
-    }
     }
 
     .flow {
@@ -126,6 +119,18 @@
 
     .flow>*+* {
       margin-block-start: var(--space, 1rem);
+    }
+    
+    /* Add styles for checkbox alignment */
+    .checkbox-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-direction: row;
+    }
+
+    .checkbox-wrapper input[type="checkbox"] {
+      margin: 0;
     }
   </style>
 </head>
@@ -151,6 +156,10 @@
             Password
           </label>
           <input type="password" name="password" id="password" />
+        </div>
+        <div class="checkbox-wrapper">
+          <input type="checkbox" name="rememberMe" id="rememberMe" />
+          <label for="rememberMe">Remember me</label>
         </div>
         <div style="--space: 1.8rem">
           <button>Login</button>
