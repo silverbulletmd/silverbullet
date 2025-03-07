@@ -22,10 +22,10 @@ function evalExpr(s: string, e = new LuaEnv(), sf?: LuaStackFrame): any {
   );
 }
 
-function evalBlock(s: string, e = new LuaEnv()): Promise<void> {
+async function evalBlock(s: string, e = new LuaEnv()): Promise<void> {
   const node = parse(s) as LuaBlock;
   const sf = new LuaStackFrame(e, node.ctx);
-  return evalStatement(node, e, sf);
+  await evalStatement(node, e, sf);
 }
 
 Deno.test("Evaluator test", async () => {

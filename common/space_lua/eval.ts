@@ -629,11 +629,17 @@ async function evalExpressions(
   ).flatten().values;
 }
 
+/**
+ * Evaluates an expression in two possible modes:
+ * 1. with `returnOnReturn` set to `true` will return the value of a return statement
+ * 2. with `returnOnReturn` set to `false` will throw a LuaReturn exception if a return statement is encountered
+ */
 export async function evalStatement(
   s: LuaStatement,
   env: LuaEnv,
   sf: LuaStackFrame,
-): Promise<void> {
+  returnOnReturn = false,
+): Promise<void | LuaValue[]> {
   switch (s.type) {
     case "Assignment": {
       const values = await evalExpressions(s.expressions, env, sf);
@@ -668,11 +674,20 @@ export async function evalStatement(
       break;
     case "Label":
     case "Goto":
-      throw new Error("Labels and gotos are not supported yet");
+      throw new Error("Labels and gotos are not supported");
     case "Block": {
       const newEnv = new LuaEnv(env);
       for (const statement of s.statements) {
-        await evalStatement(statement, newEnv, sf);
+        const result = await evalStatement(
+          statement,
+          newEnv,
+          sf,
+          returnOnReturn,
+        );
+        // Will only happen with `return` statement
+        if (result !== undefined) {
+          return result;
+        }
       }
       break;
     }
@@ -755,13 +770,18 @@ export async function evalStatement(
       break;
     }
     case "Return": {
-      // A return statement for now is implemented by throwing the value as an exception, this should
-      // be optimized for the common case later
-      throw new LuaReturn(
-        await evalPromiseValues(
+      if (returnOnReturn) {
+        const val = await evalPromiseValues(
           s.expressions.map((value) => evalExpression(value, env, sf)),
-        ),
-      );
+        );
+        return val;
+      } else {
+        throw new LuaReturn(
+          await evalPromiseValues(
+            s.expressions.map((value) => evalExpression(value, env, sf)),
+          ),
+        );
+      }
     }
     case "For": {
       const start = await evalExpression(s.start, env, sf);

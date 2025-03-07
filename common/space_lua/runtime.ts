@@ -253,20 +253,28 @@ export class LuaFunction implements ILuaFunction {
     sf: LuaStackFrame,
   ): Promise<LuaValue> {
     try {
-      await evalStatement(this.body.block, env, sf);
+      // Evaluate the function body with returnOnReturn set to true
+      const result = await evalStatement(this.body.block, env, sf, true);
+      if (result !== undefined) {
+        return mapFunctionReturnValue(result);
+      }
     } catch (e: any) {
       if (e instanceof LuaReturn) {
-        if (e.values.length === 0) {
-          return;
-        } else if (e.values.length === 1) {
-          return e.values[0];
-        } else {
-          return new LuaMultiRes(e.values);
-        }
+        return mapFunctionReturnValue(e.values);
       } else {
         throw e;
       }
     }
+  }
+}
+
+function mapFunctionReturnValue(values: any[]): any {
+  if (values.length === 0) {
+    return;
+  } else if (values.length === 1) {
+    return values[0];
+  } else {
+    return new LuaMultiRes(values);
   }
 }
 
