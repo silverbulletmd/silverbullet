@@ -29,10 +29,12 @@ export async function reindexSpace(noClear = false) {
     await system.invokeFunction("index.clearIndex");
   }
   // Pre-index SETTINGS page to get useful settings
-  console.log("Indexing SETTINGS page");
-  await indexPage("SETTINGS");
-
   const files = await space.listFiles();
+  if (files.find((file) => file.name === "SETTINGS.md")) {
+    console.log("Indexing SETTINGS page");
+    await indexPage("SETTINGS");
+  }
+
   console.log("Queing", files.length, "pages to be indexed.");
 
   // Queue all file names to be indexed
