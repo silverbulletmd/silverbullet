@@ -260,7 +260,7 @@ export function createEditorState(
             // this may not be the case with locations that expand signifcantly based on live preview (such as links), we don't want any accidental clicks
             // Fixes #357
             if (distanceX <= view.defaultCharacterWidth) {
-              await client.dispatchAppEvent("page:click", potentialClickEvent);
+              await client.dispatchClickEvent(potentialClickEvent);
             }
           });
         },

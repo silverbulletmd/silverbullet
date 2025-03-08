@@ -122,7 +122,7 @@ export function cleanWikiLinkPlugin(client: Client) {
                     altKey: e.altKey,
                     pos: from,
                   };
-                  client.dispatchAppEvent("page:click", clickEvent).catch(
+                  client.dispatchClickEvent(clickEvent).catch(
                     console.error,
                   );
                 },

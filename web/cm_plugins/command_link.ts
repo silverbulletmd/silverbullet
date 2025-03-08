@@ -62,7 +62,7 @@ export function cleanCommandLinkPlugin(editor: Client) {
                   altKey: e.altKey,
                   pos: from,
                 };
-                editor.dispatchAppEvent("page:click", clickEvent).catch(
+                editor.dispatchClickEvent(clickEvent).catch(
                   console.error,
                 );
               },

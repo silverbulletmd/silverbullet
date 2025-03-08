@@ -229,6 +229,10 @@ export type ClickEvent = {
   altKey: boolean;
 };
 
+export type EnrichedClickEvent = ClickEvent & {
+  parentNodes: string[];
+};
+
 export type IndexEvent = {
   name: string;
   text: string;

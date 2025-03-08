@@ -38,7 +38,7 @@ export function cleanModePlugins(client: Client) {
           pos: pos,
         };
         // Propagate click event from checkbox
-        client.dispatchAppEvent("page:click", clickEvent);
+        client.dispatchClickEvent(clickEvent);
       },
     }),
     listBulletPlugin(),
