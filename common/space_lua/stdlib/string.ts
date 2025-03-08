@@ -6,6 +6,7 @@ import {
   LuaTable,
   luaToString,
 } from "$common/space_lua/runtime.ts";
+import printf from "./printf.ts";
 
 function createLuaMatcher(pattern: string, global = false) {
   const jsPattern = pattern
@@ -70,6 +71,9 @@ export const stringApi = new LuaTable({
       ]);
     },
   ),
+  format: new LuaBuiltinFunction((_sf, format: string, ...args: any[]) => {
+    return printf(format, ...args);
+  }),
   gmatch: new LuaBuiltinFunction((_sf, s: string, pattern: string) => {
     const matcher = createLuaMatcher(pattern, true);
     return () => {
