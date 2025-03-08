@@ -22,7 +22,7 @@ ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini-${TAR
 RUN mkdir -p -m 777 /space \
     && chmod +x /tini \
     && apt update \
-    && apt install -y git ssh-client pandoc \
+    && apt install -y git ssh-client pandoc texlive \
     && echo "**** cleanup ****" \
     && apt-get -y autoremove \
     && apt-get clean  \
