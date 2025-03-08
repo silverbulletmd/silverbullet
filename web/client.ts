@@ -633,7 +633,7 @@ export class Client implements ConfigContainer {
           this.flashNotification(
             "Page or document changed elsewhere, reloading",
           );
-          this.reloadEditor();
+          this.reloadPage();
         }
       },
     );
@@ -1041,21 +1041,15 @@ export class Client implements ConfigContainer {
     >;
   }
 
-  async reloadEditor() {
-    if (this.isDocumentEditor()) await this.reloadDocumentEditor();
-    else await this.reloadPage();
-  }
-
   async reloadPage() {
-    console.log("Reloading page");
-    clearTimeout(this.saveTimeout);
-    await this.loadPage(this.currentPage);
-  }
-
-  async reloadDocumentEditor() {
     console.log("Reloading dediacted editor");
     clearTimeout(this.saveTimeout);
-    await this.loadDocumentEditor(this.currentPath());
+
+    if (this.isDocumentEditor()) {
+      await this.loadDocumentEditor(this.currentPath());
+    } else {
+      await this.loadPage(this.currentPage);
+    }
   }
 
   // Focus the editor
