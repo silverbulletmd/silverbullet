@@ -537,7 +537,7 @@ class Formatter {
         null,
         token.alternative ? 2 : 0,
       );
-    } catch (e) {
+    } catch {
       // Fallback for circular references or other JSON.stringify errors
       token.arg = String(token.arg);
     }
