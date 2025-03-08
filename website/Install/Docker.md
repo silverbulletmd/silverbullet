@@ -13,6 +13,9 @@ A few key things to know about the SilverBullet container image:
 * The container uses whatever is volume-mapped to `/space` as the space root folder. You can connect a docker volume, or a host folder to this, e.g. `-v /home/myuser/space:/space`
 * SilverBullet will detect the UNIX owner (UID and GID) of the folder mapped into `/space` and run the server process with the same UID and GID so that permissions will just magically work. If you’d like to override this UID, set the `PUID` and `PGID` environment variables (see [[Install/Configuration]] for details).
 
+> **note** Note
+> The same docker images are currently both available from [GHCR](https://github.com/silverbulletmd/silverbullet/pkgs/container/silverbullet) and [Docker Hub](https://hub.docker.com/r/zefhemel/silverbullet), use whichever you prefer.
+
 # Setup
 For your first run, you can run the following:
 
