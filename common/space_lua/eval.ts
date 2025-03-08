@@ -733,7 +733,8 @@ export async function evalStatement(
     case "Break":
       throw new LuaBreak();
     case "FunctionCallStatement": {
-      return evalExpression(s.call, env, sf);
+      await evalExpression(s.call, env, sf);
+      return;
     }
     case "Function": {
       let body = s.body;
