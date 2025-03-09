@@ -3,6 +3,7 @@ import {
   LuaBuiltinFunction,
   type LuaEnv,
   luaEquals,
+  LuaMultiRes,
   LuaRuntimeError,
   LuaTable,
   type LuaValue,
@@ -104,6 +105,25 @@ export const tableApi = new LuaTable({
           sf,
         );
       }
+    },
+  ),
+  pack: new LuaBuiltinFunction((_sf, ...args: any[]) => {
+    const tbl = new LuaTable();
+    for (let i = 0; i < args.length; i++) {
+      tbl.set(i + 1, args[i]);
+    }
+    tbl.set("n", args.length);
+    return tbl;
+  }),
+  unpack: new LuaBuiltinFunction(
+    (_sf, tbl: LuaTable, i?: number, j?: number) => {
+      i = i ?? 1;
+      j = j ?? tbl.length;
+      const result = [];
+      for (let k = i; k <= j; k++) {
+        result.push(tbl.get(k));
+      }
+      return new LuaMultiRes(result);
     },
   ),
 });

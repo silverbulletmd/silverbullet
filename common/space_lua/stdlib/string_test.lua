@@ -14,6 +14,14 @@ assert(string.sub("Hello", 2, 4) == "ell")
 assert(string.upper("Hello") == "HELLO")
 assert(string.lower("Hello") == "hello")
 
+-- string.sub tests
+assertEqual(string.sub("hello", 1), "hello")
+assertEqual(string.sub("hello", 1, 1), "h")
+-- with negative indeses
+assertEqual(string.sub("hello", -1), "o")
+assertEqual(string.sub("hello", -2), "lo")
+assertEqual(string.sub("hello", -2, -1), "lo")
+
 -- Invoke string metatable methods
 assertEqual(("hello"):len(), 5)
 assertEqual(("hello"):upper(), "HELLO")

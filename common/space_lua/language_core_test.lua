@@ -52,8 +52,20 @@ function multi_return()
     return 1, 2
 end
 
+function addAll(...)
+    local total = 0
+    for i, v in ipairs({ ... }) do
+        total = total + v
+    end
+    return total
+end
+
 local a, b = multi_return()
 assert(a == 1 and b == 2)
+assert(addAll(1, 2, 3) == 6)
+-- Test multiple return values in expressions
+assertEqual(addAll(multi_return()), 3)
+assertEqual(#{multi_return()}, 2)
 
 local a, b, c = 0, multi_return()
 assert(a == 0 and b == 1 and c == 2)

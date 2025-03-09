@@ -19,6 +19,7 @@ Deno.test("[Lua] Table tests", async () => {
 
 Deno.test("[Lua] String tests", async () => {
   await runLuaTest("./stdlib/string_test.lua");
+  // await runLuaTest("./stdlib/string_test2.lua");
 });
 
 Deno.test("[Lua] Space Lua tests", async () => {

@@ -1,4 +1,4 @@
-local function assert_equal(a, b)
+local function assertEqual(a, b)
     if a ~= b then
         error("Assertion failed: " .. a .. " is not equal to " .. b)
     end
@@ -7,35 +7,35 @@ end
 -- Basic table operations
 local t = { 1, 2, 3 }
 table.insert(t, 4)
-assert_equal(t[4], 4)
+assertEqual(t[4], 4)
 table.remove(t, 1)
-assert_equal(t[1], 2)
+assertEqual(t[1], 2)
 table.insert(t, 1, 1)
-assert_equal(t[1], 1)
-assert_equal(table.concat({ "Hello", "world" }, " "), "Hello world")
+assertEqual(t[1], 1)
+assertEqual(table.concat({ "Hello", "world" }, " "), "Hello world")
 
 -- Table sorting
 local t = { 3, 1, 2 }
 table.sort(t)
-assert_equal(t[1], 1)
-assert_equal(t[2], 2)
-assert_equal(t[3], 3)
+assertEqual(t[1], 1)
+assertEqual(t[2], 2)
+assertEqual(t[3], 3)
 
 -- Table sorting with custom comparator
 table.sort(t, function(a, b)
     return a > b
 end)
-assert_equal(t[1], 3)
-assert_equal(t[2], 2)
-assert_equal(t[3], 1)
+assertEqual(t[1], 3)
+assertEqual(t[2], 2)
+assertEqual(t[3], 1)
 
 -- Table sorting with complex objects
 local data = { { name = "John", age = 30 }, { name = "Jane", age = 25 } }
 table.sort(data, function(a, b)
     return a.age < b.age
 end)
-assert_equal(data[1].name, "Jane")
-assert_equal(data[2].name, "John")
+assertEqual(data[1].name, "Jane")
+assertEqual(data[2].name, "John")
 
 -- ipairs tests
 local p = ipairs({ 3, 2, 1 })
@@ -64,23 +64,23 @@ key, value = p()
 assert(key == nil and value == nil)
 
 for key, value in pairs({ a = "a", b = "b" }) do
-    assert_equal(key, value)
+    assertEqual(key, value)
 end
 
 -- for in over tables directly
 local cnt = 1
 for val in { 1, 2, 3 } do
-    assert_equal(val, cnt)
+    assertEqual(val, cnt)
     cnt = cnt + 1
 end
-assert_equal(cnt, 4)
+assertEqual(cnt, 4)
 
 local cnt = 1
 for val in js.tojs({ 1, 2, 3 }) do
-    assert_equal(val, cnt)
+    assertEqual(val, cnt)
     cnt = cnt + 1
 end
-assert_equal(cnt, 4)
+assertEqual(cnt, 4)
 
 -- Table keys tests
 local t = { a = 1, b = 2, c = 3 }
@@ -103,3 +103,11 @@ local success, error = pcall(function()
 end)
 assert(not success)
 assert(string.find(error, "Cannot use includes")) 
+
+-- Test pack and unpack
+local t = { 1, 2, 3 }
+local packed = table.pack(table.unpack(t))
+assertEqual(packed[1], 1)
+assertEqual(packed[2], 2)
+assertEqual(packed[3], 3)   
+assertEqual(packed.n, 3)

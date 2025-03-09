@@ -91,7 +91,11 @@ const tostringFunction = new LuaBuiltinFunction((_sf, value: any) => {
 });
 
 const tonumberFunction = new LuaBuiltinFunction((_sf, value: LuaValue) => {
-  return Number(value);
+  const n = Number(value);
+  if (isNaN(n)) {
+    return null;
+  }
+  return n;
 });
 
 const errorFunction = new LuaBuiltinFunction((sf, message: string) => {

@@ -195,6 +195,12 @@ export const stringApi = new LuaTable({
   }),
   sub: new LuaBuiltinFunction((_sf, s: string, i: number, j?: number) => {
     j = j ?? s.length;
+    if (i < 0) {
+      i = s.length + i + 1;
+    }
+    if (j < 0) {
+      j = s.length + j + 1;
+    }
     return s.slice(i - 1, j);
   }),
   split: new LuaBuiltinFunction((_sf, s: string, sep: string) => {

@@ -112,11 +112,23 @@ function handleTableFieldSync(
       } else {
         const value = evalExpression(field.value, env, sf);
         if (value instanceof Promise) {
-          return value.then((v) =>
-            table.set(table.length + 1, singleResult(v), sf)
-          );
+          return value.then((v) => {
+            if (v instanceof LuaMultiRes) {
+              for (const val of v.values) {
+                table.set(table.length + 1, val, sf);
+              }
+            } else {
+              table.set(table.length + 1, singleResult(v), sf);
+            }
+          });
         }
-        table.set(table.length + 1, singleResult(value), sf);
+        if (value instanceof LuaMultiRes) {
+          for (const val of value.values) {
+            table.set(table.length + 1, val, sf);
+          }
+        } else {
+          table.set(table.length + 1, singleResult(value), sf);
+        }
       }
       break;
     }
@@ -469,9 +481,8 @@ function evalPrefixExpression(
             sf.withCtx(e.prefix.ctx),
           );
         }
-        const args = evalPromiseValues(
-          e.args.map((arg) => evalExpression(arg, env, sf)),
-        );
+        const args = evalExpressions(e.args, env, sf);
+
         if (args instanceof Promise) {
           return args.then((args) =>
             luaCall(prefixValue, [...selfArgs, ...args], e.ctx, sf)
@@ -619,14 +630,21 @@ function luaOp(
   return handler.nativeImplementation(left, right, ctx, sf);
 }
 
-async function evalExpressions(
+function evalExpressions(
   es: LuaExpression[],
   env: LuaEnv,
   sf: LuaStackFrame,
-): Promise<LuaValue[]> {
-  return new LuaMultiRes(
-    await Promise.all(es.map((e) => evalExpression(e, env, sf))),
-  ).flatten().values;
+): Promise<LuaValue[]> | LuaValue[] {
+  const argsVal = evalPromiseValues(
+    es.map((arg) => evalExpression(arg, env, sf)),
+  );
+  if (argsVal instanceof Promise) {
+    return argsVal.then((argsResolved) =>
+      new LuaMultiRes(argsResolved).flatten().values
+    );
+  } else {
+    return new LuaMultiRes(argsVal).flatten().values;
+  }
 }
 
 /**
@@ -694,11 +712,13 @@ export async function evalStatement(
     case "If": {
       for (const cond of s.conditions) {
         if (luaTruthy(await evalExpression(cond.condition, env, sf))) {
-          return evalStatement(cond.block, env, sf);
+          await evalStatement(cond.block, env, sf);
+          return;
         }
       }
       if (s.elseBlock) {
-        return evalStatement(s.elseBlock, env, sf);
+        await evalStatement(s.elseBlock, env, sf);
+        return;
       }
       break;
     }
