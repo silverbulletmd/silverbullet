@@ -56,7 +56,12 @@ class InlineContentWidget extends WidgetType {
       return div;
     }
 
-    const url = encodeURIComponent(this.url);
+    let url = this.url;
+
+    // If the URL is a local path, encode the : so that it's not interpreted as a protocol
+    if (isLocalPath(url)) {
+      url = url.replace(":", "%3A");
+    }
 
     if (mimeType.startsWith("image/")) {
       const img = document.createElement("img");
