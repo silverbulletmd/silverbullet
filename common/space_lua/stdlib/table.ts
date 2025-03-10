@@ -8,6 +8,7 @@ import {
   LuaTable,
   type LuaValue,
 } from "$common/space_lua/runtime.ts";
+import { asyncQuickSort } from "$common/space_lua/util.ts";
 
 export const tableApi = new LuaTable({
   /**
@@ -20,12 +21,12 @@ export const tableApi = new LuaTable({
    */
   concat: new LuaBuiltinFunction(
     (_sf, tbl: LuaTable | any[], sep?: string, i?: number, j?: number) => {
-      if (Array.isArray(tbl)) {
-        return tbl.join(sep);
-      }
       sep = sep ?? "";
       i = i ?? 1;
       j = j ?? tbl.length;
+      if (Array.isArray(tbl)) {
+        return tbl.slice(i - 1, j).join(sep);
+      }
       const result = [];
       for (let k = i; k <= j; k++) {
         result.push(tbl.get(k));
@@ -40,15 +41,19 @@ export const tableApi = new LuaTable({
    * @param value - The value to insert.
    */
   insert: new LuaBuiltinFunction(
-    (_sf, tbl: LuaTable, posOrValue: number | any, value?: any) => {
-      if (value === undefined) {
-        let pos = 1;
-        while (tbl.get(pos) !== null) {
-          pos++;
+    (_sf, tbl: LuaTable | any[], posOrValue: number | any, value?: any) => {
+      if (Array.isArray(tbl)) {
+        if (value === undefined) {
+          tbl.push(posOrValue);
+        } else {
+          tbl.splice(posOrValue - 1, 0, value);
         }
-        tbl.set(pos, posOrValue);
-      } else {
-        tbl.insert(posOrValue, value);
+      } else if (tbl instanceof LuaTable) {
+        if (value === undefined) {
+          value = posOrValue;
+          posOrValue = tbl.length + 1;
+        }
+        tbl.insert(value, posOrValue);
       }
     },
   ),
@@ -57,9 +62,13 @@ export const tableApi = new LuaTable({
    * @param tbl - The table to remove the element from.
    * @param pos - The position of the element to remove.
    */
-  remove: new LuaBuiltinFunction((_sf, tbl: LuaTable, pos?: number) => {
+  remove: new LuaBuiltinFunction((_sf, tbl: LuaTable | any[], pos?: number) => {
     pos = pos ?? tbl.length;
-    tbl.remove(pos);
+    if (Array.isArray(tbl)) {
+      tbl.splice(pos - 1, 1);
+    } else if (tbl instanceof LuaTable) {
+      tbl.remove(pos);
+    }
   }),
   /**
    * Sorts a table.
@@ -67,16 +76,33 @@ export const tableApi = new LuaTable({
    * @param comp - The comparison function.
    * @returns The sorted table.
    */
-  sort: new LuaBuiltinFunction((sf, tbl: LuaTable, comp?: ILuaFunction) => {
-    return tbl.sort(comp, sf);
-  }),
+  sort: new LuaBuiltinFunction(
+    async (sf, tbl: LuaTable | any[], comp?: ILuaFunction) => {
+      if (Array.isArray(tbl)) {
+        tbl = await asyncQuickSort(tbl, async (a, b) => {
+          if (comp) {
+            return (await comp.call(sf, a, b)) ?? 0;
+          } else {
+            return a - b;
+          }
+        });
+      } else {
+        await tbl.sort(comp, sf);
+      }
+      return tbl;
+    },
+  ),
   /**
    * Returns the keys of a table.
    * @param tbl - The table to get the keys from.
    * @returns The keys of the table.
    */
-  keys: new LuaBuiltinFunction((_sf, tbl: LuaTable | LuaEnv) => {
-    return tbl.keys();
+  keys: new LuaBuiltinFunction((_sf, tbl: LuaTable | LuaEnv | any) => {
+    if (tbl.keys) {
+      return tbl.keys();
+    } else {
+      return Object.keys(tbl);
+    }
   }),
   /**
    * Checks if a table (used as an array) contains a value.

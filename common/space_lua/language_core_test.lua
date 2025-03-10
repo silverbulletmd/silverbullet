@@ -65,7 +65,7 @@ assert(a == 1 and b == 2)
 assert(addAll(1, 2, 3) == 6)
 -- Test multiple return values in expressions
 assertEqual(addAll(multi_return()), 3)
-assertEqual(#{multi_return()}, 2)
+assertEqual(#{ multi_return() }, 2)
 
 local a, b, c = 0, multi_return()
 assert(a == 0 and b == 1 and c == 2)
@@ -392,6 +392,11 @@ local function collect_range(from, to, step)
     end
     return values
 end
+
+local tblNew = { 1, 2, 3 }
+table.insert(tblNew, 4)
+assertEqual(#tblNew, 4)
+assertEqual(tblNew[4], 4)
 
 local values1 = collect_range(1, 5, 2)
 assert(#values1 == 3, "Range with step 2 should return 3 values")

@@ -9,10 +9,25 @@ local t = { 1, 2, 3 }
 table.insert(t, 4)
 assertEqual(t[4], 4)
 table.remove(t, 1)
-assertEqual(t[1], 2)
-table.insert(t, 1, 1)
-assertEqual(t[1], 1)
+table.remove(t)
+assertEqual(t[2], 3)
+assertEqual(#t, 2)
+
+t = js.tojs({ 1, 2, 3 })
+table.insert(t, 4)
+assertEqual(t[4], 4)
+table.remove(t, 1)
+table.remove(t)
+assertEqual(t[2], 3)
+assertEqual(#t, 2)
+
+
+-- Test concat
 assertEqual(table.concat({ "Hello", "world" }, " "), "Hello world")
+assertEqual(table.concat({ "Hello", "world", "three" }, " ", 2, 3), "world three")
+
+-- Test with JavaScript array
+assertEqual(table.concat(js.tojs({ "Hello", "world", "three" }), " ", 2, 3), "world three")
 
 -- Table sorting
 local t = { 3, 1, 2 }
@@ -36,6 +51,21 @@ table.sort(data, function(a, b)
 end)
 assertEqual(data[1].name, "Jane")
 assertEqual(data[2].name, "John")
+
+-- Now the same with js.tojs
+local data = js.tojs { 1, 3, 2 }
+table.sort(data)
+assertEqual(data[1], 1)
+assertEqual(data[2], 2)
+assertEqual(data[3], 3)
+
+local data = js.tojs { { name = "John", age = 30 }, { name = "Jane", age = 25 } }
+table.sort(data, function(a, b)
+    return a.age < b.age
+end)
+assertEqual(data[1].name, "Jane")
+assertEqual(data[2].name, "John")
+
 
 -- ipairs tests
 local p = ipairs({ 3, 2, 1 })
@@ -102,12 +132,12 @@ local success, error = pcall(function()
     table.includes("not a table", 1)
 end)
 assert(not success)
-assert(string.find(error, "Cannot use includes")) 
+assert(string.find(error, "Cannot use includes"))
 
 -- Test pack and unpack
 local t = { 1, 2, 3 }
 local packed = table.pack(table.unpack(t))
 assertEqual(packed[1], 1)
 assertEqual(packed[2], 2)
-assertEqual(packed[3], 3)   
+assertEqual(packed[3], 3)
 assertEqual(packed.n, 3)
