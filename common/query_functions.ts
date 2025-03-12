@@ -135,10 +135,9 @@ export function buildQueryFunctions(
               `[^#]#{1,${headingLevel}} [^\n]*\n`,
               "g",
             );
-            const endPos = page.slice(headingLevel).search(headRegex) +
-              headingLevel;
-            if (endPos) {
-              page = page.slice(0, endPos);
+            const endPos = page.slice(headingLevel).search(headRegex);
+            if (endPos >= 0) {
+              page = page.slice(0, endPos + headingLevel);
             }
           }
 
