@@ -16,11 +16,11 @@ export class DocumentEditor {
     readonly saveMethod: (path: string, content: Uint8Array) => void,
   ) {}
 
-  async init(client: Client, extension: string) {
+  async init(extension: string) {
     this.extension = extension;
 
     const entry = Array.from(
-      client.clientSystem.documentEditorHook.documentEditors
+      this.client.clientSystem.documentEditorHook.documentEditors
         .entries(),
     ).find(([_, { extensions }]) => extensions.includes(this.extension));
 
@@ -44,8 +44,9 @@ export class DocumentEditor {
       type: "internal-init",
       html: content.html,
       script: content.script,
-      theme: document.getElementsByTagName("html")[0].dataset.theme,
     });
+
+    this.updateTheme();
   }
 
   async destroy() {
@@ -120,6 +121,13 @@ export class DocumentEditor {
   focus() {
     this.sendMessage({
       type: "focus",
+    });
+  }
+
+  updateTheme() {
+    this.sendMessage({
+      type: "internal-set-theme",
+      theme: client.ui.viewState.uiOptions.darkMode ? "dark" : "light",
     });
   }
 

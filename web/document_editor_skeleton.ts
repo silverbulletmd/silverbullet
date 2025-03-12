@@ -1,5 +1,5 @@
 export const html = `<!DOCTYPE html>
-<html lang="en">
+<html style="height: 100%; width: 100%;" lang="en">
 
 <head>
   <meta charset="UTF-8">
@@ -21,9 +21,6 @@ export const html = `<!DOCTYPE html>
         // { type: "init", html: string, script: string, theme: string }
         case "internal-init": {
           document.body.innerHTML = data.html;
-          if (data.theme) {
-            document.getElementsByTagName("html")[0].setAttribute("data-theme", data.theme);
-          }
 
           try {
             eval(data.script);
@@ -50,6 +47,10 @@ export const html = `<!DOCTYPE html>
             } else {
               lookup.resolve(data.result);
             }
+          } break;
+        case "internal-set-theme":
+          {
+            document.getElementsByTagName("html")[0].setAttribute("data-theme", data.theme);
           } break;
       }
     });
@@ -90,7 +91,7 @@ export const html = `<!DOCTYPE html>
   </script>
 </head>
 
-<body>
+<body style="margin: 0; width: 100%; height: 100%">
 </body>
 
 </html>`;

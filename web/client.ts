@@ -1468,7 +1468,7 @@ export class Client implements ConfigContainer {
       },
     );
 
-    await this.documentEditor.init(this, extension);
+    await this.documentEditor.init(extension);
 
     // We have to rebuild the editor state here to update the keymap correctly
     // This is a little hacky but any other solution would pose a larger rewrite

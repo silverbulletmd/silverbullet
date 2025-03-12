@@ -100,6 +100,9 @@ export class MainUI {
       document.documentElement.dataset.theme = viewState.uiOptions.darkMode
         ? "dark"
         : "light";
+      if (this.client.isDocumentEditor()) {
+        this.client.documentEditor.updateTheme();
+      }
     }, [viewState.uiOptions.darkMode]);
 
     useEffect(() => {
