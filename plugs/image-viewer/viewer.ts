@@ -21,7 +21,7 @@ html[data-theme="dark"] {
     background-color: var(--background-color);
 }
 #image {
-    width: 100%;
+    width: 100vw;
 }
 #toolbar {
     position: absolute;
