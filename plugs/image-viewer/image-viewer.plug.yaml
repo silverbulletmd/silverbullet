@@ -1,0 +1,5 @@
+name: image-viewer
+functions:
+  ImageViewer:
+    path: ./viewer.ts:viewer
+    editor: ["jpg", "jpeg", "png", "gif", "svg", "webp", "avif", "apng"]
