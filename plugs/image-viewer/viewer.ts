@@ -129,12 +129,12 @@ function updateRotation() {
 }
 
 document.getElementById("rotateLeft").addEventListener("click", () => {
-  imageRotation += 90;
+  imageRotation -= 90;
   updateRotation();
 });
 
 document.getElementById("rotateRight").addEventListener("click", () => {
-  imageRotation -= 90;
+  imageRotation += 90;
   updateRotation();
 });
 
