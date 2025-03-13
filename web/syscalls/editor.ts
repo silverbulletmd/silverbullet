@@ -353,6 +353,14 @@ export function editorSyscalls(client: Client): SysCallMapping {
         navigator.clipboard.write([new ClipboardItem({ [data.type]: data })]);
       }
     },
+    "editor.sendMessage": (_ctx, type: string, data: any) => {
+      if (!client.isDocumentEditor()) return;
+
+      client.documentEditor.sendPublicMessage({
+        type,
+        data,
+      });
+    }
   };
 
   return syscalls;

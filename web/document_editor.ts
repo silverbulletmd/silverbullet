@@ -88,6 +88,10 @@ export class DocumentEditor {
     this.iframe.contentWindow.postMessage(message);
   }
 
+  sendPublicMessage(message: { type: string; data?: any }) {
+    this.sendMessage(message);
+  }
+
   setContent(data: Uint8Array, meta: DocumentMeta) {
     this.sendMessage({
       type: "file-open",
