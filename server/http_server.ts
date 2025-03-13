@@ -483,7 +483,7 @@ export class HttpServer {
     // Only apply CORS middleware for OPTIONS, HEAD and GET requests
     this.app.use(
       "*",
-      async (c, next) => {
+      (c, next) => {
         const method = c.req.method;
         if (method === "OPTIONS" || method === "HEAD" || method === "GET") {
           return cors({
