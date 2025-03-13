@@ -113,7 +113,7 @@ function openFile(data, extension) {
 
   img.addEventListener("load", () => {
     info = {
-      type: extension,
+      type: FileToMime[extension],
       size: data.length,
       width: img.naturalWidth,
       height: img.naturalHeight
