@@ -3,3 +3,8 @@ functions:
   ImageViewer:
     path: ./viewer.ts:viewer
     editor: ["jpg", "jpeg", "png", "gif", "svg", "webp", "avif", "apng"]
+  showInfoMessage:
+    path: ./viewer.ts:showInfoMessage
+    command:
+      name: "Image Viewer: Show Info"
+      requireEditor: "ImageViewer"
