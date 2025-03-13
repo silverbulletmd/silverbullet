@@ -78,10 +78,12 @@ export const html = `<!DOCTYPE html>
         syscallReqId++;
         pendingRequests.set(syscallReqId, { resolve, reject });
         window.parent.postMessage({
-          type: "internal-syscall",
-          id: syscallReqId,
-          name,
-          args,
+          type: "syscall",
+          data: {
+            id: syscallReqId,
+            name,
+            args,
+          },
         }, "*");
       });
     };
