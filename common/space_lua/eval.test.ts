@@ -12,6 +12,8 @@ import type { LuaBlock, LuaFunctionCallStatement } from "./ast.ts";
 import { evalExpression, evalStatement } from "./eval.ts";
 import { luaBuildStandardEnv } from "$common/space_lua/stdlib.ts";
 
+const sf = LuaStackFrame.lostFrame;
+
 function evalExpr(s: string, e = new LuaEnv(), sf?: LuaStackFrame): any {
   const node = parse(`e(${s})`).statements[0] as LuaFunctionCallStatement;
   sf = sf || new LuaStackFrame(e, node.ctx);
@@ -57,15 +59,15 @@ Deno.test("Evaluator test", async () => {
   assertEquals(tbl.get(1), 3);
   assertEquals(tbl.get(2), 1);
   assertEquals(tbl.get(3), 2);
-  assertEquals(luaValueToJS(tbl), [3, 1, 2]);
+  assertEquals(luaValueToJS(tbl, sf), [3, 1, 2]);
 
-  assertEquals(luaValueToJS(evalExpr(`{name=test("Zef"), age=100}`, env)), {
+  assertEquals(luaValueToJS(evalExpr(`{name=test("Zef"), age=100}`, env), sf), {
     name: "Zef",
     age: 100,
   });
 
   assertEquals(
-    luaValueToJS(await evalExpr(`{name="Zef", age=asyncTest(100)}`, env)),
+    luaValueToJS(await evalExpr(`{name="Zef", age=asyncTest(100)}`, env), sf),
     {
       name: "Zef",
       age: 100,
@@ -120,7 +122,7 @@ Deno.test("Statement evaluation", async () => {
   const env3 = new LuaEnv();
   await evalBlock(`tbl = {1, 2, 3}`, env3);
   await evalBlock(`tbl[1] = 3`, env3);
-  assertEquals(luaValueToJS(env3.get("tbl")), [3, 2, 3]);
+  assertEquals(luaValueToJS(env3.get("tbl"), sf), [3, 2, 3]);
   await evalBlock("tbl.name = 'Zef'", env3);
   assertEquals(env3.get("tbl").get("name"), "Zef");
   await evalBlock(`tbl[2] = {age=10}`, env3);
@@ -282,6 +284,22 @@ Deno.test("Statement evaluation", async () => {
       print("Fruit: " .. f)
     end`,
     luaBuildStandardEnv(),
+  );
+
+  // Passing a Lua function as callback to a JS function
+  const env12 = new LuaEnv();
+  env12.set(
+    "runMe",
+    new LuaNativeJSFunction((fn) => {
+      return fn("Lua");
+    }),
+  );
+  assertEquals(
+    "Hello from Lua",
+    await evalExpr(
+      `runMe(function(name) return "Hello from " .. name end)`,
+      env12,
+    ),
   );
 });
 

@@ -300,11 +300,11 @@ export function evalExpression(
                 sf.withCtx(e.ctx),
               );
             }
-            collection = luaValueToJS(collection);
+            collection = luaValueToJS(collection, sf);
             // Check if collection is a queryable collection
             if (!collection.query) {
               // If not, try to convert it to JS and see if it's an array
-              collection = await luaValueToJS(collection);
+              collection = await luaValueToJS(collection, sf);
               if (!Array.isArray(collection)) {
                 throw new LuaRuntimeError(
                   "Collection does not support query",

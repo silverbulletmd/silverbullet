@@ -37,6 +37,7 @@ export function eventListenerSyscalls(
           try {
             const val = luaValueToJS(
               await luaCall(def.run, args.map(jsToLuaValue), {}, sf),
+              sf,
             );
             return val;
           } catch (e: any) {

@@ -34,7 +34,7 @@ export function luaSyscalls(commonSystem: CommonSystem): SysCallMapping {
           commonSystem.spaceLuaEnv.env,
           sf,
         );
-        const jsResult = luaValueToJS(luaResult);
+        const jsResult = luaValueToJS(luaResult, sf);
         if (isSendable(jsResult)) {
           return jsResult;
         } else {

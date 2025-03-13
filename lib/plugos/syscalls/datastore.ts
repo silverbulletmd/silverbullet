@@ -60,7 +60,7 @@ export function dataStoreReadSyscalls(
         query,
         env,
         sf,
-      )).map((item) => luaValueToJS(item));
+      )).map((item) => luaValueToJS(item, sf));
     },
 
     "datastore.listFunctions": (): string[] => {

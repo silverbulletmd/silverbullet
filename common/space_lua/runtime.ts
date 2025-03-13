@@ -87,7 +87,7 @@ export class LuaEnv implements ILuaSettable, ILuaGettable {
       if (omitKeys.includes(key)) {
         continue;
       }
-      result[key] = luaValueToJS(this.get(key));
+      result[key] = luaValueToJS(this.get(key), LuaStackFrame.lostFrame);
     }
     return result;
   }
@@ -283,8 +283,8 @@ export class LuaNativeJSFunction implements ILuaFunction {
   }
 
   // Performs automatic conversion between Lua and JS values
-  call(_sf: LuaStackFrame, ...args: LuaValue[]): Promise<LuaValue> | LuaValue {
-    const result = this.fn(...args.map(luaValueToJS));
+  call(sf: LuaStackFrame, ...args: LuaValue[]): Promise<LuaValue> | LuaValue {
+    const result = this.fn(...args.map((v) => luaValueToJS(v, sf)));
     if (result instanceof Promise) {
       return result.then(jsToLuaValue);
     } else {
@@ -453,13 +453,13 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
   toJSObject(): Record<string, any> {
     const result: Record<string, any> = {};
     for (const key of this.keys()) {
-      result[key] = luaValueToJS(this.get(key));
+      result[key] = luaValueToJS(this.get(key), LuaStackFrame.lostFrame);
     }
     return result;
   }
 
   toJSArray(): any[] {
-    return this.arrayPart.map(luaValueToJS);
+    return this.arrayPart.map((v) => luaValueToJS(v, LuaStackFrame.lostFrame));
   }
 
   toJS(): Record<string, any> | any[] {
@@ -638,7 +638,9 @@ export function luaCall(
     );
   }
   if (typeof fn === "function") {
-    const jsArgs = args.map(luaValueToJS);
+    const jsArgs = args.map((v) =>
+      luaValueToJS(v, sf || LuaStackFrame.lostFrame)
+    );
     // Native JS function
     return fn(...jsArgs);
   }
@@ -847,7 +849,7 @@ export function luaToString(
 
 export function jsToLuaValue(value: any): any {
   if (value instanceof Promise) {
-    return value.then(luaValueToJS);
+    return value.then(jsToLuaValue);
   }
   if (value instanceof LuaTable) {
     return value;
@@ -884,15 +886,20 @@ export function jsToLuaValue(value: any): any {
 }
 
 // Inverse of jsToLuaValue
-export function luaValueToJS(value: any): any {
+export function luaValueToJS(value: any, sf: LuaStackFrame): any {
   if (value instanceof Promise) {
-    return value.then(luaValueToJS);
+    return value.then((v) => luaValueToJS(v, sf));
   }
   if (value instanceof LuaTable) {
     return value.toJS();
-  } else if (value instanceof LuaNativeJSFunction) {
+  } else if (
+    value instanceof LuaNativeJSFunction || value instanceof LuaFunction ||
+    value instanceof LuaBuiltinFunction
+  ) {
     return (...args: any[]) => {
-      return jsToLuaValue(value.fn(...args.map(luaValueToJS)));
+      return jsToLuaValue(
+        value.call(sf, ...args.map((v) => luaValueToJS(v, sf))),
+      );
     };
   } else {
     return value;

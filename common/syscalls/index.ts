@@ -35,7 +35,7 @@ export function indexSyscalls(commonSystem: CommonSystem): SysCallMapping {
                 // We don't want to include the global environment in the serialized value
                 value = value.toJSON(["_GLOBAL"]);
               }
-              const jsonValue = await luaValueToJS(value);
+              const jsonValue = await luaValueToJS(value, sf);
               // Ensure this is JSON serializable
               JSON.stringify(jsonValue);
               scopedVariables[v] = jsonValue;

@@ -39,6 +39,7 @@ export function commandSyscalls(
           try {
             return luaValueToJS(
               await luaCall(def.run, args.map(jsToLuaValue), {}, sf),
+              sf,
             );
           } catch (e: any) {
             await handleLuaError(e, commonSystem.system);
@@ -61,6 +62,7 @@ export function commandSyscalls(
           try {
             return luaValueToJS(
               await luaCall(def.run, args.map(jsToLuaValue), {}, sf),
+              sf,
             );
           } catch (e: any) {
             await handleLuaError(e, commonSystem.system);

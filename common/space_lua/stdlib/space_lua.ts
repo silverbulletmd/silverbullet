@@ -85,6 +85,7 @@ export async function interpolateLuaString(
       const env = createAugmentedEnv(sf, envAugmentation);
       const luaResult = luaValueToJS(
         await evalExpression(parsedExpr, env, sf),
+        sf,
       );
       result += luaToString(luaResult);
     } catch (e: any) {
@@ -124,7 +125,7 @@ export const spaceluaApi = new LuaTable({
   evalExpression: new LuaBuiltinFunction(
     async (sf, parsedExpr: LuaExpression, envAugmentation?: LuaTable) => {
       const env = createAugmentedEnv(sf, envAugmentation);
-      return luaValueToJS(await evalExpression(parsedExpr, env, sf));
+      return luaValueToJS(await evalExpression(parsedExpr, env, sf), sf);
     },
   ),
   /**

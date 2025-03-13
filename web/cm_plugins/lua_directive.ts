@@ -111,6 +111,7 @@ export function luaDirectivePlugin(client: Client) {
                       threadLocalizedEnv,
                       sf,
                     ),
+                    sf,
                   );
                   // console.log("Result:", result);
                   return result;

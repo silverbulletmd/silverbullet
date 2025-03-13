@@ -13,9 +13,9 @@ export const jsApi = new LuaTable({
    * @returns The new instance.
    */
   new: new LuaBuiltinFunction(
-    (_sf, constructorFn: any, ...args) => {
+    (sf, constructorFn: any, ...args) => {
       return new constructorFn(
-        ...args.map(luaValueToJS),
+        ...args.map((v) => luaValueToJS(v, sf)),
       );
     },
   ),
@@ -53,7 +53,7 @@ export const jsApi = new LuaTable({
    * @param val - The Lua value to convert.
    * @returns The JavaScript value.
    */
-  tojs: new LuaBuiltinFunction((_sf, val) => luaValueToJS(val)),
+  tojs: new LuaBuiltinFunction((sf, val) => luaValueToJS(val, sf)),
   /**
    * Logs a message to the console.
    * @param args - The arguments to log.
