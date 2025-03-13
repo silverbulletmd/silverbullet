@@ -225,7 +225,7 @@ export class HttpServer {
             ctx.header(key, value);
           }
         }
-        ctx.status(response.status || 200);
+        ctx.status(response.status as any || 200);
         if (typeof response.body === "string") {
           return ctx.text(response.body);
         } else if (response.body instanceof Uint8Array) {
@@ -410,9 +410,9 @@ export class HttpServer {
       const redirectToAuth = () => {
         // Try filtering api paths
         if (req.path.startsWith("/.") || req.path.endsWith(".md")) {
-          return c.redirect("/.auth", 401);
+          return c.redirect("/.auth", 401 as any);
         } else {
-          return c.redirect(`/.auth?from=${req.path}`, 401);
+          return c.redirect(`/.auth?from=${req.path}`, 401 as any);
         }
       };
       if (!excludedPaths.includes(url.pathname)) {
@@ -761,7 +761,9 @@ export class HttpServer {
           for (const [key, value] of fetchReq.headers.entries()) {
             responseHeaders[key] = value;
           }
-          return c.body(fetchReq.body, fetchReq.status, responseHeaders);
+          // Set status before returning the body
+          c.status(fetchReq.status as any);
+          return c.body(fetchReq.body, responseHeaders);
         } catch (e: any) {
           console.error("Error fetching federated link", e);
           return c.text(e.message, 500);
