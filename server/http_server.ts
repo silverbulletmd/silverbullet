@@ -480,14 +480,21 @@ export class HttpServer {
   }
 
   private addFsRoutes() {
+    // Only apply CORS middleware for OPTIONS, HEAD and GET requests
     this.app.use(
       "*",
-      cors({
-        origin: "*",
-        allowHeaders: ["*"],
-        exposeHeaders: ["*"],
-        allowMethods: ["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"],
-      }),
+      async (c, next) => {
+        const method = c.req.method;
+        if (method === "OPTIONS" || method === "HEAD" || method === "GET") {
+          return cors({
+            origin: "*",
+            allowHeaders: ["*"],
+            exposeHeaders: ["*"],
+            allowMethods: ["GET", "HEAD", "OPTIONS"],
+          })(c, next);
+        }
+        return next();
+      },
     );
 
     // File list
