@@ -75,6 +75,13 @@ export function systemSyscalls(
         [fullName, ...args],
       );
     },
+    "system.serverSyscall": (_ctx, name: string, ...args: any[]) => {
+      if (!client) {
+        return system.localSyscall(name, args);
+      } else {
+        return proxySyscall({}, client!.httpSpacePrimitives, name, args);
+      }
+    },
     "system.invokeCommand": (_ctx, name: string, args?: string[]) => {
       if (!client) {
         throw new Error("Not supported");
