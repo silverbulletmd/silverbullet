@@ -1,76 +1,76 @@
 import { editor } from "@silverbulletmd/silverbullet/syscalls";
 
-export function viewer(): { html: string, script: string } {
-    return {
-        html: `
+export function viewer(): { html: string; script: string } {
+  return {
+    html: `
 <style>
 html {
-    --ui-button-background-color: #e1e1e1;
-    --ui-button-text-color: black;
-    --background-color: #fff;
+  --ui-button-background-color: #e1e1e1;
+  --ui-button-text-color: black;
+  --background-color: #fff;
 }
 html[data-theme="dark"] {
-    --ui-button-background-color: #262626;
-    --ui-button-text-color: white;
-    --background-color: #111;
+  --ui-button-background-color: #262626;
+  --ui-button-text-color: white;
+  --background-color: #111;
 }
 #container {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: var(--background-color);
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--background-color);
 }
 #image {
-    width: 100vw;
+  width: 100vw;
 }
 #toolbar {
-    position: absolute;
-    bottom: 1rem;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    flex-direction: row;
-    gap: 0.5rem;
+  position: absolute;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
 }
 .ui-button {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 2.5rem;
-    height: 2.5rem;
-    cursor: pointer;
-    outline: none;
-    padding: 5px;
-    border: 1px solid rgb(108, 108, 108);
-    background-color: var(--ui-button-background-color);
-    border-radius: 5px;
-    color: var(--ui-button-text-color);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  cursor: pointer;
+  outline: none;
+  padding: 5px;
+  border: 1px solid rgb(108, 108, 108);
+  background-color: var(--ui-button-background-color);
+  border-radius: 5px;
+  color: var(--ui-button-text-color);
 }
 </style>
 <div id="container">
-    <div id="panzoom">
-        <img id="image"></img>
-    </div>
+  <div id="panzoom">
+    <img id="image"></img>
+  </div>
 
-    <div id="toolbar">
-       <button class="ui-button" id="rotateLeft">
-           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
-       </button>
-       <button class="ui-button" id="rotateRight">
-           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
-       </button>
-       <button class="ui-button" id="zoomIn">
-           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-       </button>
-       <button class="ui-button" id="zoomOut">
-           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-       </button>
-    <div/>
+  <div id="toolbar">
+    <button class="ui-button" id="rotateLeft">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+    </button>
+    <button class="ui-button" id="rotateRight">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+    </button>
+    <button class="ui-button" id="zoomIn">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+    </button>
+    <button class="ui-button" id="zoomOut">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+    </button>
+  <div/>
 </div>
-        `,
-        script: `
+`,
+    script: `
 /**
 * Panzoom 4.6.0 for panning and zooming elements using CSS transforms
 * Copyright Timmy Willison and other contributors
@@ -85,76 +85,76 @@ const image = document.getElementById("image");
 const element = document.getElementById("panzoom");
 
 const panzoom = Panzoom(element, {
-    maxScale: 5,
-    startScale: 0.5,
+  maxScale: 5,
+  startScale: 0.5,
 });
 
 image.parentElement.addEventListener("wheel", panzoom.zoomWithWheel);
 
 function openFile(data, extension) {
-    imageRotation = 0;
+  imageRotation = 0;
 
-    const FileToMime = {
-        "jpg": "image/jpg",
-        "jpeg": "image/jpg",
-        "png": "image/png",
-        "gif": "image/gif",
-        "svg": "image/svg+xml",
-        "webp": "image/webp",
-        "avif": "image/avif",
-        "apng": "image/apng"
-    }
+  const FileToMime = {
+    "jpg": "image/jpg",
+    "jpeg": "image/jpg",
+    "png": "image/png",
+    "gif": "image/gif",
+    "svg": "image/svg+xml",
+    "webp": "image/webp",
+    "avif": "image/avif",
+    "apng": "image/apng"
+  }
 
-    const img = document.getElementById("image");
+  const img = document.getElementById("image");
 
-    img.src = URL.createObjectURL(
-        new Blob([data], { type: FileToMime[extension] })
-    );
+  img.src = URL.createObjectURL(
+    new Blob([data], { type: FileToMime[extension] })
+  );
 
-    img.addEventListener("load", () => {
-        info = {
-            type: extension,
-            size: data.length,
-            width: img.naturalWidth,
-            height: img.naturalHeight
-        };
-    });
+  img.addEventListener("load", () => {
+    info = {
+      type: extension,
+      size: data.length,
+      width: img.naturalWidth,
+      height: img.naturalHeight
+    };
+  });
 }
 
 globalThis.silverbullet.addEventListener("file-open", (event) => openFile(event.detail.data, event.detail.meta.extension));
 globalThis.silverbullet.addEventListener("file-update", (event) => openFile(event.detail.data, event.detail.meta.extension));
 
 function updateRotation() {
-    image.style.transform = "rotate(" + imageRotation + "deg)"
+  image.style.transform = "rotate(" + imageRotation + "deg)"
 }
 
 document.getElementById("rotateLeft").addEventListener("click", () => {
-    imageRotation += 90;
-    updateRotation();
+  imageRotation += 90;
+  updateRotation();
 });
 
 document.getElementById("rotateRight").addEventListener("click", () => {
-    imageRotation -= 90;
-    updateRotation();
+  imageRotation -= 90;
+  updateRotation();
 });
 
 document.getElementById("zoomIn").addEventListener("click", () => {
-    panzoom.zoomIn();
+  panzoom.zoomIn();
 });
 
 document.getElementById("zoomOut").addEventListener("click", () => {
-    panzoom.zoomOut();
+  panzoom.zoomOut();
 });
 
 globalThis.silverbullet.addEventListener("flash-info", () => {
-    if (!info) return;
+  if (!info) return;
 
-    globalThis.silverbullet.syscall("editor.flashNotification", \`Type: \${info.type}; Size: \${Math.round(info.size / 1000)}kB; Dimensions: \${info.width}x\${info.height}\`);
+  globalThis.silverbullet.syscall("editor.flashNotification", \`Type: \${info.type}; Size: \${Math.round(info.size / 1000)}kB; Dimensions: \${info.width}x\${info.height}\`);
 });
-`
-    }
+`,
+  };
 }
 
 export function showInfoMessage() {
-    editor.sendMessage("flash-info");
+  editor.sendMessage("flash-info");
 }
