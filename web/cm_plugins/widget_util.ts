@@ -2,7 +2,7 @@ import { parseRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import type { Client } from "../client.ts";
 import { tagPrefix } from "../../plugs/index/constants.ts";
 import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
-import { EventPayLoad } from "./lua_widget.ts";
+import type { EventPayLoad } from "./lua_widget.ts";
 
 export function attachWidgetEventHandlers(
   div: HTMLElement,
