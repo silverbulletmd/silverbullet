@@ -117,6 +117,76 @@ event.listen {
 }
 ```
 
+# Navigation
+Ctrl/Cmd-click navigation to Lua function definition.
+
+```space-lua
+local function inLuaContext(parentNodes)
+  for _, node in ipairs(parentNodes) do
+    if node == "LuaDirective"
+      or node:startsWith("FencedCode:space-lua") then
+      return true
+    end
+  end
+  return false
+end
+
+event.listen {
+  name = "page:click",
+  run = function(e)
+    if not e.data.metaKey or e.data.ctrlKey then
+      return
+    end
+    if not inLuaContext(e.data.parentNodes) then
+      return
+    end
+    local pos = e.data.pos
+    local text = editor.getText()
+    -- Find start pos
+    local startPos = pos
+    while string.match(text[startPos], "[a-zA-Z0-9._]") do
+      startPos = startPos - 1
+      if startPos <= 0 then
+        return
+      end
+    end
+    -- Find end pos
+    local endPos = pos
+    while string.match(text[endPos], "[a-zA-Z0-9_]") do
+      endPos = endPos + 1
+      if startPos >= #text then
+        return
+      end
+    end
+    local callText = text:sub(startPos+1, endPos-1)
+    print("Potential call text", callText, #callText)
+    local propParts = callText:split(".")
+    local currentValue = _CTX._GLOBAL
+    for i = 1, #propParts do
+      local prop = propParts[i]
+      if currentValue then
+        currentValue = currentValue[prop]
+      else
+        return
+      end
+    end
+    -- Check if this is a Lua-defined API
+    if currentValue and currentValue.body and currentValue.body.ctx then
+      local ctx = currentValue.body.ctx
+      -- Parse out the position in the doc
+      local refBits = ctx.ref:split("@")
+      -- Navigate there
+      editor.navigate({
+        kind="page",
+        page=refBits[1],
+        -- Has to be offset a bit
+        pos=tonumber(refBits[2]) + ctx.from + #"```space-lua\n"
+      })
+    end
+  end
+}
+```
+
 # Slash templates
 Various useful slash templates.
 
@@ -143,6 +213,14 @@ template.defineSlashCommand {
   template = template.new 'query[[from index.tag "|^|"]]'
 }
 
+template.defineSlashCommand {
+  name = "space-lua",
+  description = "Space Lua block",
+  exceptContexts = {"FencedCode:space-lua", "LuaDirective"},
+  template = template.new [==[```space-lua
+|^|
+```]==]
+}
 
 -- A query embedded in ${}
 template.defineSlashCommand {
