@@ -360,7 +360,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
         type,
         data,
       });
-    }
+    },
   };
 
   return syscalls;

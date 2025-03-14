@@ -216,7 +216,7 @@ export function cloneTree(tree: ParseTree): ParseTree {
 
 export function parseTreeToAST(tree: ParseTree, omitTrimmable = true): AST {
   if (tree.type === "⚠") {
-    console.info("Parse error", JSON.stringify(tree, null, 2));
+    // console.info("Parse error", JSON.stringify(tree, null, 2));
     throw new Error(
       `Parse error in: ${renderToText(tree)}`,
     );
@@ -238,7 +238,7 @@ export function parseTreeToAST(tree: ParseTree, omitTrimmable = true): AST {
 
 export function cleanTree(tree: ParseTree, omitTrimmable = true): ParseTree {
   if (tree.type === "⚠") {
-    console.info("Parse error", JSON.stringify(tree, null, 2));
+    // console.info("Parse error", JSON.stringify(tree, null, 2));
     throw new Error(
       `Parse error in: ${renderToText(tree)}`,
     );

@@ -441,7 +441,6 @@ export function vimEx(exCommand: string): Promise<any> {
   return syscall("editor.vimEx", exCommand);
 }
 
-
 // Document editor specific syscalls
 
 /**

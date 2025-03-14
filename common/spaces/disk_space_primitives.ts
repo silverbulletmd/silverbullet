@@ -154,9 +154,6 @@ export class DiskSpacePrimitives implements SpacePrimitives {
     // Otherwise get the file list and wait for it
     const allFiles: FileMeta[] = await this.getFileList();
 
-    const endTime = performance.now();
-    console.info("Fetched uncached file list in", endTime - startTime, "ms");
-
     this.fileListCache = allFiles;
     this.fileListCacheTime = startTime;
 
