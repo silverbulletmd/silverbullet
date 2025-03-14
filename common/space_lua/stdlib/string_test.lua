@@ -47,11 +47,11 @@ result = string.gsub("hello world", "hello", function(match)
     assert(match == "hello", "Function received incorrect match")
     return string.upper(match)
 end)
-assert(result == "HELLO world", "Function replacement without captures failed")
+assertEqual(result, "HELLO world", "Function replacement without captures failed")
 
 -- Function replacement with single capture
 result = string.gsub("hello world", "(h)ello", function(h)
-    assert(h == "h", "Function received incorrect capture")
+    assertEqual(h, "h", "Function received incorrect capture")
     return string.upper(h) .. "i"
 end)
 assert(result == "Hi world", "Function replacement with single capture failed")
@@ -104,6 +104,14 @@ assertEqual(words[1], "hello")
 assertEqual(words[2], "world")
 assertEqual(words[3], "lua")
 
+-- with capture
+local captures = {}
+for k, v in string.gmatch("from=world, to=Lua", "(%w+)=(%w+)") do
+    captures[k] = v
+end
+assertEqual(captures.from, "world")
+assertEqual(captures.to, "Lua")
+
 -- Test string.reverse
 assertEqual(string.reverse("hello"), "olleh")
 assertEqual(string.reverse(""), "")
@@ -147,7 +155,7 @@ assertEqual(string.match("abc123", "%a+"), "abc")
 assertEqual(string.match("   abc", "%s+"), "   ")
 
 -- Test multiple captures
-local day, month, year = string.match("2024-03-14", "(%d+)-(%d+)-(%d+)")
+local day, month, year = string.match("2024-03-14", "(%d+)%-(%d+)%-(%d+)")
 assertEqual(day, "2024")
 assertEqual(month, "03")
 assertEqual(year, "14")

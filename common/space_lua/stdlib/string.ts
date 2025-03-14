@@ -1,48 +1,75 @@
 import {
   jsToLuaValue,
   LuaBuiltinFunction,
-  luaCall,
   LuaMultiRes,
   LuaTable,
   luaToString,
 } from "$common/space_lua/runtime.ts";
 import printf from "./printf.ts";
 
-function createLuaMatcher(pattern: string, global = false) {
-  const jsPattern = pattern
-    .replace(/%(.)/g, (_, char) => {
-      switch (char) {
-        case ".":
-          return "[.]";
-        case "%":
-          return "%";
-        case "d":
-          return "\\d";
-        case "D":
-          return "\\D";
-        case "s":
-          return "\\s";
-        case "S":
-          return "\\S";
-        case "w":
-          return "\\w";
-        case "a":
-          return "[A-Za-z]";
-        case "l":
-          return "[a-z]";
-        case "u":
-          return "[A-Z]";
-        case "p":
-          return "[\\p{P}]";
-        default:
-          return char;
-      }
-    });
+// Bits and pieces borrowed from https://github.com/paulcuth/starlight/blob/master/src/runtime/lib/string.js
 
-  const regex = new RegExp(jsPattern, global ? "g" : undefined);
-  return (s: string) => {
-    return regex.exec(s);
-  };
+const ROSETTA_STONE = {
+  "([^a-zA-Z0-9%(])-": "$1*?",
+  "([^%])-([^a-zA-Z0-9?])": "$1*?$2",
+  "(.)-$": "$1*?",
+  "%a": "[a-zA-Z]",
+  "%A": "[^a-zA-Z]",
+  "%c": "[\x00-\x1f]",
+  "%C": "[^\x00-\x1f]",
+  "%d": "\\d",
+  "%D": "[^\d]",
+  "%l": "[a-z]",
+  "%L": "[^a-z]",
+  "%p": "[\.\,\"'\?\!\;\:\#\$\%\&\(\)\*\+\-\/\<\>\=\@\\[\\]\\\\^\_\{\}\|\~]",
+  "%P": "[^\.\,\"'\?\!\;\:\#\$\%\&\(\)\*\+\-\/\<\>\=\@\\[\\]\\\\^\_\{\}\|\~]",
+  "%s": "[ \\t\\n\\f\\v\\r]",
+  "%S": "[^ \t\n\f\v\r]",
+  "%u": "[A-Z]",
+  "%U": "[^A-Z]",
+  "%w": "[a-zA-Z0-9]",
+  "%W": "[^a-zA-Z0-9]",
+  "%x": "[a-fA-F0-9]",
+  "%X": "[^a-fA-F0-9]",
+  "%([^a-zA-Z])": "\\$1",
+};
+
+function translatePattern(pattern: string): string {
+  pattern = "" + pattern;
+
+  // Replace single backslash with double backslashes
+  pattern = pattern.replace(new RegExp("\\\\", "g"), "\\\\");
+
+  for (const [key, value] of Object.entries(ROSETTA_STONE)) {
+    pattern = pattern.replace(new RegExp(key, "g"), value);
+  }
+
+  let l = pattern.length;
+  let n = 0;
+
+  for (let i = 0; i < l; i++) {
+    const character = pattern.slice(i, 1);
+    if (i && pattern.slice(i - 1, 1) == "\\") {
+      continue;
+    }
+
+    let addSlash = false;
+
+    if (character == "[") {
+      if (n) addSlash = true;
+      n++;
+    } else if (character == "]" && pattern.slice(i - 1, 1) !== "\\") {
+      n--;
+      if (n) addSlash = true;
+    }
+
+    if (addSlash) {
+      pattern = pattern.slice(0, i) + pattern.slice(i++ + 1);
+      l++;
+    }
+  }
+
+  return pattern;
 }
 
 export const stringApi = new LuaTable({
@@ -59,30 +86,48 @@ export const stringApi = new LuaTable({
     return String.fromCharCode(...args);
   }),
   find: new LuaBuiltinFunction(
-    (_sf, s: string, pattern: string, init?: number) => {
-      init = init ?? 1;
-      const result = s.slice(init - 1).match(pattern);
-      if (!result) {
-        return new LuaMultiRes([]);
+    (_sf, s: string, pattern: string, init = 1, plain = false) => {
+      // Regex
+      if (!plain) {
+        pattern = translatePattern(pattern);
+        const reg = new RegExp(pattern);
+        const index = s.slice(init - 1).search(reg);
+
+        if (index < 0) return;
+
+        const match = s.slice(init - 1).match(reg);
+        const result = [index + init, index + init + match![0].length - 1];
+
+        match!.shift();
+        return new LuaMultiRes(result.concat(match));
       }
-      return new LuaMultiRes([
-        result.index! + init,
-        result.index! + init + result[0].length,
-      ]);
+
+      // Plain
+      const index = s.indexOf(pattern, init - 1);
+      return (index === -1)
+        ? new LuaMultiRes([])
+        : new LuaMultiRes([index + 1, index + pattern.length]);
     },
   ),
   format: new LuaBuiltinFunction((_sf, format: string, ...args: any[]) => {
     return printf(format, ...args);
   }),
   gmatch: new LuaBuiltinFunction((_sf, s: string, pattern: string) => {
-    const matcher = createLuaMatcher(pattern, true);
+    pattern = translatePattern(pattern);
+    const reg = new RegExp(pattern, "g"),
+      matches = s.match(reg);
     return () => {
-      const result = matcher(s);
-      if (!result) {
+      if (!matches) {
         return;
       }
-      const captures = result.slice(1);
-      return new LuaMultiRes(captures.length > 0 ? captures : [result[0]]);
+      const match = matches.shift();
+      if (!match) {
+        return;
+      }
+      const groups = new RegExp(pattern).exec(match) || [];
+
+      groups.shift();
+      return groups.length ? new LuaMultiRes(groups) : match;
     };
   }),
   gsub: new LuaBuiltinFunction(
@@ -91,79 +136,61 @@ export const stringApi = new LuaTable({
       s: string,
       pattern: string,
       repl: any, // string or LuaFunction
-      n?: number,
+      n = Infinity,
     ) => {
-      n = n ?? Infinity;
+      pattern = translatePattern("" + pattern);
+      const replIsFunction = repl.call;
 
-      // Convert Lua patterns to JavaScript regex
-      // This handles:
-      // - %.: Match literal dot
-      // - %%: Match literal %
-      // - %d: Match digit
-      // - %s: Match whitespace
-      // - %w: Match word character
-      const jsPattern = pattern
-        .replace(/%(.)/g, (_, char) => {
-          switch (char) {
-            case ".":
-              return "[.]"; // Match literal dot using character class
-            case "%":
-              return "%"; // Match literal %
-            case "d":
-              return "\\d"; // Match digit
-            case "s":
-              return "\\s"; // Match whitespace
-            case "w":
-              return "\\w"; // Match word character
-            default:
-              return char; // Match literal character
+      let count = 0,
+        result = "",
+        str,
+        prefix,
+        match: any,
+        lastMatch;
+
+      while (
+        count < n &&
+        s &&
+        (match = s.match(pattern))
+      ) {
+        if (replIsFunction) {
+          // If no captures, pass in the whole match
+          if (match[1] === undefined) {
+            str = await repl.call(sf, match[0]);
+          } else {
+            // Else pass in the captures
+            str = await repl.call(sf, ...match.slice(1));
           }
-        });
-
-      const regex = new RegExp(jsPattern, "g");
-      let result = s;
-      let count = 0;
-
-      // Collect all matches first to handle replacements properly
-      const positions: Array<[number, number, string, string[]]> = [];
-      let match: RegExpExecArray | null;
-      let lastIndex = 0;
-
-      while ((match = regex.exec(result)) !== null && count < n) {
-        if (match.index >= lastIndex) {
-          positions.push([
-            match.index,
-            match[0].length,
-            match[0],
-            match.slice(1),
-          ]);
-          count++;
-          lastIndex = match.index + 1;
-        }
-        regex.lastIndex = match.index + 1;
-      }
-
-      // Process replacements in reverse order to maintain string indices
-      for (let i = positions.length - 1; i >= 0; i--) {
-        const [index, length, fullMatch, captures] = positions[i];
-
-        let replacement: any;
-        if (repl.call) {
-          const args = captures.length > 0 ? captures : [fullMatch];
-          replacement = await luaCall(repl, args, sf.astCtx!, sf);
-          replacement = (replacement === null || replacement === undefined)
-            ? fullMatch
-            : replacement;
+          if (str instanceof LuaMultiRes) {
+            str = str.values[0];
+          }
+          if (str === undefined || str === null) {
+            str = match[0];
+          }
+        } else if (repl instanceof LuaTable) {
+          str = repl.get(match[0]);
         } else {
-          replacement = repl;
+          str = `${repl}`.replace(/%([0-9])/g, (_, i) => match[i]);
         }
 
-        result = result.slice(0, index) +
-          replacement +
-          result.slice(index + length);
+        if (match[0].length === 0) {
+          if (lastMatch === void 0) {
+            prefix = "";
+          } else {
+            prefix = s.slice(0, 1);
+          }
+        } else {
+          prefix = s.slice(0, match.index);
+        }
+
+        lastMatch = match[0];
+        result += `${prefix}${str}`;
+        s = s.slice(`${prefix}${lastMatch}`.length);
+
+        count++;
       }
 
-      return new LuaMultiRes([result, count]);
+      return new LuaMultiRes([`${result}${s}`, count]);
     },
   ),
   len: new LuaBuiltinFunction((_sf, s: string) => {
@@ -176,14 +203,19 @@ export const stringApi = new LuaTable({
     return luaToString(s.toUpperCase());
   }),
   match: new LuaBuiltinFunction(
-    (_sf, s: string, pattern: string, init?: number) => {
-      init = init ?? 1;
-      const result = createLuaMatcher(pattern)(s.slice(init - 1));
-      if (!result) {
-        return new LuaMultiRes([]);
+    (_sf, s: string, pattern: string, init = 1) => {
+      s = s.slice(init - 1);
+      const matches = s.match(new RegExp(translatePattern(pattern)));
+
+      if (!matches) {
+        return null;
+      } else if (!matches[1]) {
+        // No captures
+        return matches[0];
       }
-      const captures = result.slice(1);
-      return new LuaMultiRes(captures.length > 0 ? captures : [result[0]]);
+
+      matches.shift();
+      return new LuaMultiRes(matches);
     },
   ),
   rep: new LuaBuiltinFunction((_sf, s: string, n: number, sep?: string) => {
