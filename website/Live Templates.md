@@ -43,6 +43,3 @@ Look for yourself:
 ```template
 {{template([[internal-template/today]])}}
 ```
-
-
-
