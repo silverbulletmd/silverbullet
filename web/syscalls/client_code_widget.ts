@@ -6,7 +6,7 @@ export function clientCodeWidgetSyscalls(): SysCallMapping {
   return {
     "codeWidget.refreshAll": () => {
       broadcastReload();
-      reloadAllWidgets();
+      return reloadAllWidgets();
     },
   };
 }

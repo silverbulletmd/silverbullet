@@ -7,7 +7,9 @@ _These features are not yet properly released, you need to use [the edge builds]
 
 * **Breaking (configuration) changes:**
   * `indexPage` and `spaceIgnore` have been removed from [[SETTINGS]] and are now server environment variables: [[Install/Configuration]]
-  
+* **Breaking (Lua) changes:**
+  * You now need to use `widget.new` to create Lua widgets, see [[Space Lua#Widgets]]
+* [[Space Lua#Widgets]] now support events
 
 ## 0.10.4
 * **Lua**: _Tons_ of fixes, changes and enhancements, see [[Space Lua]] and related for up-to-date docs. Some notable things:

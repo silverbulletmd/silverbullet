@@ -62,7 +62,7 @@ export class IFrameWidget extends WidgetType {
     );
 
     const estimatedHeight = this.estimatedHeight;
-    iframe.height = `${estimatedHeight}px`;
+    iframe.style.height = `${estimatedHeight}px`;
 
     return iframe;
   }

@@ -40,28 +40,26 @@ export class MarkdownWidget extends WidgetType {
   }
 
   toDOM(): HTMLElement {
-    const div = document.createElement("div");
-    div.className = this.className;
+    const wrapperSpan = document.createElement("span");
+    wrapperSpan.className = "sb-markdown-wrapper";
+    const innerDiv = document.createElement("div");
+    wrapperSpan.appendChild(innerDiv);
     const cacheItem = this.client.getWidgetCache(this.cacheKey);
     if (cacheItem) {
-      div.innerHTML = this.wrapHtml(cacheItem.html, cacheItem.buttons);
-      if (cacheItem.html) {
-        this.attachListeners(div, cacheItem.buttons);
-      }
+      innerDiv.innerHTML = this.wrapHtml(cacheItem.html, cacheItem.buttons);
     }
 
     // Async kick-off of content renderer
-    this.renderContent(div, cacheItem?.html).catch(console.error);
-
-    this.dom = div;
-
-    return div;
+    this.renderContent(innerDiv, cacheItem?.html).catch(console.error);
+    this.dom = wrapperSpan;
+    return wrapperSpan;
   }
 
   async renderContent(
     div: HTMLElement,
     cachedHtml: string | undefined,
   ) {
+    div.className = this.className;
     const widgetContent = await this.codeWidgetCallback(
       this.bodyText,
       this.client.currentPage,
@@ -231,14 +229,18 @@ export class MarkdownWidget extends WidgetType {
   }
 }
 
-export function reloadAllWidgets() {
-  for (const widget of activeWidgets) {
-    // Garbage collect as we go
+export async function reloadAllWidgets() {
+  for (const widget of [...activeWidgets]) {
     if (!widget.dom || !widget.dom.parentNode) {
       activeWidgets.delete(widget);
       continue;
     }
-    widget.renderContent(widget.dom!, undefined).catch(console.error);
+    // Create an empty widget DIV node
+    const newEl = document.createElement("div");
+    await widget.renderContent(newEl, undefined);
+    // Replace the old widget with the new one
+    widget.dom.innerHTML = "";
+    widget.dom.appendChild(newEl);
   }
 }
 

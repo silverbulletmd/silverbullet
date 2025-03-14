@@ -149,7 +149,8 @@ export function mountIFrame(
             break;
           }
           case "setHeight":
-            iframe.height = data.height + "px";
+            // iframe.height = data.height + "px";
+            iframe.style.height = data.height + "px";
             if (widgetHeightCacheKey) {
               client.setCachedWidgetHeight(
                 widgetHeightCacheKey,
@@ -187,7 +188,7 @@ export function mountIFrame(
       } else if (resolvedContent.url) {
         iframe.contentWindow!.location.href = resolvedContent.url;
         if (resolvedContent.height) {
-          iframe.height = resolvedContent.height + "px";
+          iframe.style.height = resolvedContent.height + "px";
           if (widgetHeightCacheKey) {
             client.setCachedWidgetHeight(
               widgetHeightCacheKey!,

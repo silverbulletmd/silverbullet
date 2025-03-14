@@ -1,5 +1,5 @@
 > **warning** Experimental
-> This is a **highly experimental** feature still under active development. It is documented here primarily for the real early adopters as this feature develops.
+> This is an **experimental** feature still under active development. It is documented here primarily for the real early adopters as this feature develops.
 > 
 > If you want to experiment, be sure to use the [edge builds](https://community.silverbullet.md/t/living-on-the-edge-builds/27/5).
 
@@ -7,6 +7,7 @@ Space Lua is a custom implementation of the [Lua programming language](https://l
 
 ```embed
 url: https://youtu.be/t1oy_41bDAY
+height: 400
 ```
 
 
@@ -72,23 +73,29 @@ ${query[[
 ]]}
 
 ## Widgets
-The `${lua expression}` syntax can be used to implement simple widgets. If the Lua expression evaluates to a simple string, it will live preview as that string rendered as markdown. However, if the expression returns a Lua table with specific keys, you can do some cooler stuff.
+The `${lua expression}` syntax can be used to implement simple widgets. If the Lua expression evaluates to a simple string, it will live preview as that string rendered as markdown. However, if the expression returns a `widget.new`-generated result value, you can do some cooler stuff.
 
-The following keys are supported:
+To render a widget, call `widget.new` with any of the following keys:
 
 * `markdown`: Renders the value as markdown
 * `html`: Renders the value as HTML
 * `cssClasses`: Attach the specified CSS classes to this element (e.g. using CSS classes defined using [[Space Style]]).
 * `display`: Render the value either `inline` or as a `block` (defaults to `inline`)
+* `events`: a table mapping from the event name to a callback function
 
 An example combining a few of these features:
 
 ```space-lua
 function marquee(text)
-  return {
-    html= "<marquee>" .. text .. "</marquee>";
+  return widget.new {
+    html="<marquee>" .. text .. "</marquee>";
     display="block";
-    cssClasses={"my-marquee"}
+    cssClasses={"my-marquee"},
+    events={
+      click=function()
+        editor.flashNotification("You marquee-clicked: " .. text)
+      end
+    }
   }
 end
 ```
@@ -102,7 +109,7 @@ And some [[Space Style]] to style it:
 ```
 
 Now, let’s use it:
-${marquee "Finally, marqeeeeeeee!"}
+${marquee "Finally, marqeeeeeee!"}
 Oh boy, the times we live in!
 
 ## Commands

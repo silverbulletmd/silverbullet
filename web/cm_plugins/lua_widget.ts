@@ -25,6 +25,8 @@ export type EventPayLoad = {
 };
 
 export type LuaWidgetContent = {
+  // Magic marker
+  _isWidget?: true;
   // Render as HTML
   html?: string;
   // Render as markdown
@@ -50,20 +52,19 @@ export class LuaWidget extends WidgetType {
   }
 
   toDOM(): HTMLElement {
-    const div = document.createElement("div");
-    // div.className = "sb-lua-directive-inline";
+    const wrapperSpan = document.createElement("span");
+    wrapperSpan.className = "sb-lua-wrapper";
+    const innerDiv = document.createElement("div");
+    wrapperSpan.appendChild(innerDiv);
     const cacheItem = this.client.getWidgetCache(this.cacheKey);
     if (cacheItem) {
-      div.innerHTML = cacheItem.html;
-      if (cacheItem.html) {
-        attachWidgetEventHandlers(div, this.client, undefined, this.from);
-      }
+      innerDiv.innerHTML = cacheItem.html;
     }
 
     // Async kick-off of content renderer
-    this.renderContent(div, cacheItem?.html).catch(console.error);
-    this.dom = div;
-    return div;
+    this.renderContent(innerDiv, cacheItem?.html).catch(console.error);
+    this.dom = wrapperSpan;
+    return wrapperSpan;
   }
 
   async renderContent(
@@ -76,25 +77,27 @@ export class LuaWidget extends WidgetType {
     );
     activeWidgets.add(this);
     if (widgetContent === null || widgetContent === undefined) {
-      widgetContent = { markdown: "nil" };
+      widgetContent = { markdown: "nil", _isWidget: true };
     }
 
     let html = "";
     if (typeof widgetContent !== "object") {
       // Return as markdown string or number
-      widgetContent = { markdown: "" + widgetContent };
+      widgetContent = { markdown: "" + widgetContent, _isWidget: true };
     }
-    if (widgetContent.cssClasses) {
+    if (widgetContent._isWidget && widgetContent.cssClasses) {
       div.className = widgetContent.cssClasses.join(" ");
     }
-    if (widgetContent.html) {
+    if (widgetContent._isWidget && widgetContent.html) {
       html = widgetContent.html;
-      div.innerHTML = html;
+
       if ((widgetContent as any)?.display === "block") {
         div.className += " sb-lua-directive-block";
       } else {
         div.className += " sb-lua-directive-inline";
       }
+      div.innerHTML = html;
+
       attachWidgetEventHandlers(
         div,
         this.client,
@@ -106,14 +109,15 @@ export class LuaWidget extends WidgetType {
         { height: div.clientHeight, html },
       );
     } else {
-      // If there is a markdown key, use it, otherwise render the objects as a markdown table
-      let mdContent = widgetContent.markdown;
+      // If this is a widget with a markdown key, use it, otherwise render the objects as a markdown table
+      let mdContent = widgetContent._isWidget && widgetContent.markdown;
       if (mdContent === undefined) {
+        // Apply heuristic to render the object as a markdown table
         mdContent = await renderExpressionResult(widgetContent);
       }
       let mdTree = parse(
         extendedMarkdownLanguage,
-        mdContent,
+        mdContent || "",
       );
 
       const sf = LuaStackFrame.createWithGlobalEnv(
@@ -139,7 +143,7 @@ export class LuaWidget extends WidgetType {
       }
 
       if (
-        (widgetContent as any)?.display === "block" ||
+        widgetContent._isWidget && widgetContent.display === "block" ||
         trimmedMarkdown.includes("\n")
       ) {
         div.className = "sb-lua-directive-block";
@@ -170,16 +174,15 @@ export class LuaWidget extends WidgetType {
         preserveAttributes: true,
       }, this.client.ui.viewState.allPages);
 
-      if (cachedHtml === html) {
-        // HTML still same as in cache, no need to re-render
-        return;
+      if (cachedHtml !== html) {
+        // If the content has changed, update the DOM
+        div.innerHTML = html;
       }
-      div.innerHTML = html;
       if (html) {
         attachWidgetEventHandlers(
           div,
           this.client,
-          widgetContent.events,
+          widgetContent._isWidget && widgetContent.events,
           this.from,
         );
       }

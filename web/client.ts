@@ -261,6 +261,8 @@ export class Client implements ConfigContainer {
 
     await this.initNavigator();
     await this.initSync();
+    await this.eventHook.dispatchEvent("system:ready");
+    this.systemReady = true;
 
     // We can load custom styles async
     this.loadCustomStyles().catch(console.error);
@@ -948,8 +950,6 @@ export class Client implements ConfigContainer {
 
   async loadPlugs() {
     await this.clientSystem.reloadPlugsFromSpace(this.space);
-    await this.eventHook.dispatchEvent("system:ready");
-    this.systemReady = true;
     await this.dispatchAppEvent("plugs:loaded");
   }
 

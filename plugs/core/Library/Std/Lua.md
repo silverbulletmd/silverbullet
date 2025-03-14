@@ -8,7 +8,7 @@ local LUA_KEYWORDS = {"do", "if", "then", "for", "else", "end", "function", "loc
 
 -- Are we in a comment?
 local function inComment(line)
-  return string.find(line, "--")
+  return string.find(line, "%-%-")
 end
 
 -- Are we in a string?

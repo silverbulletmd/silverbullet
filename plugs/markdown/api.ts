@@ -113,10 +113,12 @@ export async function expandCodeWidgets(
       }
       const exprText = renderToText(expr);
 
-      let result = await lua.evalExpression(exprText);
+      const result = await lua.evalExpression(exprText);
 
-      if (result?.markdown) {
-        result = result.markdown;
+      if (result?._isWidget && result.markdown !== undefined) {
+        return await parseMarkdown(result.markdown);
+      } else if (result?._isWidget) {
+        return await parseMarkdown("**Widget did not return markdown**");
       }
 
       const markdown = await renderExpressionResult(result);

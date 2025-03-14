@@ -30,12 +30,8 @@ SilverBullet is open source **personal knowledge management system** implemented
 * SilverBullet is free, [**open source**, MIT licensed](https://github.com/silverbulletmd/silverbullet) software.
 
 To get a feel of what SilverBullet is capable of, have a look at this introduction video:
-
-```embed
-url: https://youtu.be/8btx9HeuZ4s
-```
+${embed.youtube "https://youtu.be/8btx9HeuZ4s"}
 If you want to dig deeper, there’s another video on [the template system](https://www.youtube.com/watch?v=ZiM1RM0DCgo).
-
 
 # Try it
 Here’s the kicker:

@@ -121,17 +121,13 @@ export function luaDirectivePlugin(client: Client) {
                       const source = resolveASTReference(e.sf.astCtx);
                       if (source) {
                         // We know the origin node of the error, let's reference it
-                        return {
-                          markdown: `**Lua error:** ${e.message} (Origin: [[${
-                            encodeRef(source)
-                          }]])`,
-                        };
+                        return `**Lua error:** ${e.message} (Origin: [[${
+                          encodeRef(source)
+                        }]])`;
                       }
                     }
                   }
-                  return {
-                    markdown: `**Lua error:** ${e.message}`,
-                  };
+                  return `**Lua error:** ${e.message}`;
                 }
               },
             ),
