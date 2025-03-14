@@ -16,11 +16,11 @@ export class DocumentEditor {
     readonly saveMethod: (path: string, content: Uint8Array) => void,
   ) {}
 
-  async init(client: Client, extension: string) {
+  async init(extension: string) {
     this.extension = extension;
 
     const entry = Array.from(
-      client.clientSystem.documentEditorHook.documentEditors
+      this.client.clientSystem.documentEditorHook.documentEditors
         .entries(),
     ).find(([_, { extensions }]) => extensions.includes(this.extension));
 
@@ -41,11 +41,15 @@ export class DocumentEditor {
     await finished;
 
     this.sendMessage({
-      type: "internal-init",
-      html: content.html,
-      script: content.script,
-      theme: document.getElementsByTagName("html")[0].dataset.theme,
+      type: "init",
+      internal: true,
+      data: {
+        html: content.html,
+        script: content.script,
+      },
     });
+
+    this.updateTheme();
   }
 
   async destroy() {
@@ -76,16 +80,25 @@ export class DocumentEditor {
     }
   }
 
-  private sendMessage(message: { type: string } & any) {
+  private sendMessage(
+    message: { type: string; internal?: boolean; data?: any },
+  ) {
     if (!this.iframe?.contentWindow) return;
+    message.internal ??= false;
     this.iframe.contentWindow.postMessage(message);
+  }
+
+  sendPublicMessage(message: { type: string; data?: any }) {
+    this.sendMessage(message);
   }
 
   setContent(data: Uint8Array, meta: DocumentMeta) {
     this.sendMessage({
       type: "file-open",
-      data,
-      meta,
+      data: {
+        data,
+        meta,
+      },
     });
 
     this.currentPath = meta.name;
@@ -96,8 +109,10 @@ export class DocumentEditor {
 
     this.sendMessage({
       type: "file-update",
-      data,
-      meta,
+      data: {
+        data,
+        meta,
+      },
     });
 
     this.currentPath = meta.name;
@@ -123,12 +138,24 @@ export class DocumentEditor {
     });
   }
 
+  updateTheme() {
+    this.sendMessage({
+      type: "set-theme",
+      internal: true,
+      data: {
+        theme: client.ui.viewState.uiOptions.darkMode ? "dark" : "light",
+      },
+    });
+  }
+
   private async messageHandler(event: any) {
     if (event.source !== this.iframe.contentWindow) return;
-    const data = event.data;
-    if (!data) return;
+    const response = event.data;
+    if (!response) return;
 
-    switch (data.type) {
+    const data = response.data;
+
+    switch (response.type) {
       case "file-changed":
         {
           this.client.ui.viewDispatch({
@@ -146,7 +173,7 @@ export class DocumentEditor {
           this.saveMethod(this.currentPath, data.data);
         }
         break;
-      case "internal-syscall":
+      case "syscall":
         {
           let result: any;
 
@@ -162,9 +189,12 @@ export class DocumentEditor {
           }
 
           this.sendMessage({
-            type: "internal-syscall-response",
-            id: data.id,
-            ...result,
+            type: "syscall-response",
+            internal: true,
+            data: {
+              id: data.id,
+              ...result,
+            },
           });
         }
         break;

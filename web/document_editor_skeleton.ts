@@ -1,5 +1,5 @@
 export const html = `<!DOCTYPE html>
-<html lang="en">
+<html style="height: 100%; width: 100%;" lang="en">
 
 <head>
   <meta charset="UTF-8">
@@ -10,28 +10,26 @@ export const html = `<!DOCTYPE html>
     let syscallReqId = 0;
 
     globalThis.addEventListener("message", (message) => {
-      const data = message.data;
+      const response = message.data, data = message.data.data;
 
       // Passthrough non internal events
-      if (!data.type.startsWith("internal-")) {
-        globalThis.silverbullet.dispatchEvent(new CustomEvent(data.type, { detail: data }))
+      if (!response.internal) {
+        globalThis.silverbullet.dispatchEvent(new CustomEvent(response.type, { detail: data }));
+        return;
       }
 
-      switch (data.type) {
-        // { type: "init", html: string, script: string, theme: string }
-        case "internal-init": {
-          document.body.innerHTML = data.html;
-          if (data.theme) {
-            document.getElementsByTagName("html")[0].setAttribute("data-theme", data.theme);
-          }
+      switch (response.type) {
+        case "init":
+          {
+            document.body.innerHTML = data.html;
 
-          try {
-            eval(data.script);
-          } catch (e) {
-            console.error("Error evaling script", e);
-          }
-        } break;
-        case "internal-syscall-response":
+            try {
+              eval(data.script);
+            } catch (e) {
+              console.error("Error evaling script", e);
+            }
+          } break;
+        case "syscall-response":
           {
             const syscallId = data.id;
             const lookup = pendingRequests.get(syscallId);
@@ -50,6 +48,10 @@ export const html = `<!DOCTYPE html>
             } else {
               lookup.resolve(data.result);
             }
+          } break;
+        case "set-theme":
+          {
+            document.getElementsByTagName("html")[0].setAttribute("data-theme", data.theme);
           } break;
       }
     });
@@ -76,10 +78,12 @@ export const html = `<!DOCTYPE html>
         syscallReqId++;
         pendingRequests.set(syscallReqId, { resolve, reject });
         window.parent.postMessage({
-          type: "internal-syscall",
-          id: syscallReqId,
-          name,
-          args,
+          type: "syscall",
+          data: {
+            id: syscallReqId,
+            name,
+            args,
+          },
         }, "*");
       });
     };
@@ -90,7 +94,7 @@ export const html = `<!DOCTYPE html>
   </script>
 </head>
 
-<body>
+<body style="margin: 0; width: 100%; height: 100%">
 </body>
 
 </html>`;

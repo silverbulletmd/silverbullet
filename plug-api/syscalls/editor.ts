@@ -440,3 +440,15 @@ export function moveLineDown(): Promise<void> {
 export function vimEx(exCommand: string): Promise<any> {
   return syscall("editor.vimEx", exCommand);
 }
+
+
+// Document editor specific syscalls
+
+/**
+ * Send a message - or event if you will - to the currently used document editor
+ * @param type the message type, which can be listend to
+ * @param data data attached to the message
+ */
+export function sendMessage(type: string, data?: any): Promise<void> {
+  return syscall("editor.sendMessage", type, data);
+}

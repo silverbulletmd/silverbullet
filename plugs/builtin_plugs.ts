@@ -13,4 +13,5 @@ export const builtinPlugNames = [
   "tasks",
   "search",
   "federation",
+  "image-viewer",
 ];
