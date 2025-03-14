@@ -179,7 +179,7 @@ export const invisibleDecoration = Decoration.replace({});
 
 export function shouldRenderWidgets(client: Client) {
   const currentPageMeta = client.ui.viewState.current?.meta as PageMeta;
-  return !currentPageMeta?.tags?.includes("template") &&
+  return client.systemReady && !currentPageMeta?.tags?.includes("template") &&
     currentPageMeta?.pageDecoration?.renderWidgets !== false &&
     !currentPageMeta?.name.startsWith("!");
 }
