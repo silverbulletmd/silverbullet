@@ -1,17 +1,22 @@
 import {
   editor,
   events,
+  language,
+  markdown,
   space,
   system,
 } from "@silverbulletmd/silverbullet/syscalls";
 import { readYamlPage } from "@silverbulletmd/silverbullet/lib/yaml_page";
 import { builtinPlugNames } from "../builtin_plugs.ts";
-import { findNodeMatching } from "@silverbulletmd/silverbullet/lib/tree";
-import { parseMarkdown } from "$common/markdown_parser/parser.ts";
-import { addParentPointers } from "@silverbulletmd/silverbullet/lib/tree";
-import { findNodeOfType } from "@silverbulletmd/silverbullet/lib/tree";
+import {
+  findNodeMatching,
+  traverseTree,
+} from "@silverbulletmd/silverbullet/lib/tree";
+import {
+  addParentPointers,
+  findNodeOfType,
+} from "@silverbulletmd/silverbullet/lib/tree";
 import { assert } from "@std/assert/assert";
-import { builtinLanguages } from "$common/languages.ts";
 
 const plugsPage = "PLUGS";
 const plugsPrelude =
@@ -163,11 +168,11 @@ export async function addPlugCommand(_cmdDef: any, uriSuggestion: string = "") {
   if (await space.fileExists(plugsPage + ".md")) {
     plugPageContent = await space.readPage(plugsPage);
   } else {
-    space.writePage(plugsPage, plugPageContent);
+    await space.writePage(plugsPage, plugPageContent);
   }
   await editor.navigate({ kind: "page", page: plugsPage });
   // Here we are on the PLUGS page, if it didn't exist before it's filled with prelude
-  const changeList = insertIntoPlugPage(uri, plugPageContent);
+  const changeList = await insertIntoPlugPage(uri, plugPageContent);
   for (const { from, to, text } of changeList) {
     editor.replaceRange(from, to, text);
   }
@@ -185,13 +190,13 @@ export async function addPlugCommand(_cmdDef: any, uriSuggestion: string = "") {
  * It's exported only to allow testing.
  * There are a bunch of asserts to please the type checker that will fail with a malformed page.
  */
-export function insertIntoPlugPage(
+export async function insertIntoPlugPage(
   uri: string,
   pageContent: string,
-): Array<{ from: number; to: number; text: string }> {
-  const edits: Array<{ from: number; to: number; text: string }> = [];
+): Promise<{ from: number; to: number; text: string }[]> {
+  const edits: { from: number; to: number; text: string }[] = [];
 
-  const tree = parseMarkdown(pageContent);
+  const tree = await markdown.parseMarkdown(pageContent);
   addParentPointers(tree);
 
   const yamlInfo = findNodeMatching(tree, (n) => {
@@ -225,37 +230,21 @@ export function insertIntoPlugPage(
     assert(configText.children?.length === 1 && configText.children[0].text);
 
     const config = configText.children[0].text;
-    const configTree = builtinLanguages["yaml"].parser.parse(config);
-    configTree.iterate({
-      enter: (n) => {
-        if (
-          n.name === "Document" &&
-          config.substring(n.from, n.to).startsWith("plugs:")
-        ) {
-          assert(configText.from);
-          if (
-            n.node.lastChild &&
-            config.substring(n.node.lastChild.from, n.node.lastChild.to) === "]"
-          ) {
-            // This is a list with square brackets
-            edits.push({
-              from: configText.from + n.node.lastChild.from,
-              to: configText.from + n.node.lastChild.from,
-              text: `, "${uri}" `,
-            });
-          } else {
-            edits.push({
-              from: configText.from + n.to,
-              to: configText.from + n.to,
-              text: `\n- ${uri}`,
-            });
-          }
-          return false; // Found the right node, no need to traverse any more
-        } else {
+    const configTree = await language.parseLanguage("yaml", config);
+    traverseTree(configTree, (n) => {
+      if (n.type === "atom") {
+        if (n.children![0].text === "plugs") {
+          edits.push({
+            from: configText.from! + n.to! + 1,
+            to: configText.from! + n.to! + 1,
+            text: `\n- ${uri}`,
+          });
           return true;
         }
-      },
+      }
+      return false;
     });
+
     if (edits.length === 0) {
       // No plugs in this block
       edits.push({
