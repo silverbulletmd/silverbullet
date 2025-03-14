@@ -1,6 +1,5 @@
 import type { FunctionMap } from "../plug-api/types.ts";
 import { niceDate, niceTime, safeTime } from "./dates.ts";
-import YAML from "js-yaml";
 
 export const builtinFunctions: FunctionMap = {
   // String functions
@@ -52,12 +51,6 @@ export const builtinFunctions: FunctionMap = {
   },
   json: (v: unknown) => {
     return JSON.stringify(v);
-  },
-  yaml: (v: unknown) => {
-    return YAML.dump(v, {
-      quotingType: '"',
-      noCompatMode: true,
-    });
   },
   niceDate: (ts: unknown) => {
     if (
