@@ -32,8 +32,10 @@ export function luaDirectivePlugin(client: Client) {
     let shouldRender = true;
 
     // Don't render Lua directives of federated pages (security)
-    if (client.currentPage.startsWith("!")) {
-      return Decoration.set([]);
+    if (
+      client.currentPage.startsWith("!") || !client.clientSystem.scriptsLoaded
+    ) {
+      return Decoration.none;
     }
 
     syntaxTree(state).iterate({

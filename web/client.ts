@@ -150,6 +150,9 @@ export class Client implements ConfigContainer {
 
   private onLoadRef: Ref;
 
+  // Set to true once the system is ready (plugs loaded)
+  public systemReady: boolean = false;
+
   constructor(
     private parent: Element,
     public clientConfig: ClientConfig,
@@ -251,7 +254,10 @@ export class Client implements ConfigContainer {
     // Load config (after the plugs, specifically the 'index' plug is loaded)
     await this.loadConfig();
 
-    await this.clientSystem.loadSpaceScripts();
+    // Asynchronously load the space scripts
+    this.clientSystem.loadSpaceScripts().catch((e) => {
+      console.error("Error loading space scripts", e);
+    });
 
     await this.initNavigator();
     await this.initSync();
@@ -280,7 +286,7 @@ export class Client implements ConfigContainer {
       }
     }, pageSyncInterval);
 
-    // Let's update the local page list cache asynchronously
+    // Asynchronously update caches
     this.updatePageListCache().catch(console.error);
     this.updateDocumentListCache().catch(console.error);
   }
@@ -943,6 +949,7 @@ export class Client implements ConfigContainer {
   async loadPlugs() {
     await this.clientSystem.reloadPlugsFromSpace(this.space);
     await this.eventHook.dispatchEvent("system:ready");
+    this.systemReady = true;
     await this.dispatchAppEvent("plugs:loaded");
   }
 

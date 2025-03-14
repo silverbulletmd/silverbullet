@@ -9,6 +9,10 @@ export function postScriptPrefacePlugin(
 ) {
   const panelWidgetHook = editor.clientSystem.panelWidgetHook;
   return decoratorStateField((state: EditorState) => {
+    if (!editor.systemReady) {
+      console.info("System not yet ready, not rendering panel widgets.");
+      return Decoration.none;
+    }
     const widgets: any[] = [];
     const topCallback = panelWidgetHook.callbacks.get("top");
     if (topCallback) {

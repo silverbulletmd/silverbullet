@@ -215,7 +215,6 @@ export class ClientSystem extends CommonSystem {
 
   async reloadPlugsFromSpace(space: Space) {
     console.log("Loading plugs");
-    // await space.updatePageList();
     await this.system.unloadAll();
     console.log("(Re)loading plugs");
     await Promise.all((await space.listPlugs()).map(async (plugMeta) => {
