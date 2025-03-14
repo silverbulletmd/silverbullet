@@ -19,6 +19,11 @@ export type LuaWidgetCallback = (
   pageName: string,
 ) => Promise<LuaWidgetContent | null>;
 
+export type EventPayLoad = {
+  name: string;
+  data: any;
+};
+
 export type LuaWidgetContent = {
   // Render as HTML
   html?: string;
@@ -27,6 +32,8 @@ export type LuaWidgetContent = {
   // CSS classes for wrapper
   cssClasses?: string[];
   display?: "block" | "inline";
+  // Event handlers
+  events?: Record<string, (event: EventPayLoad) => void>;
 } | string;
 
 export class LuaWidget extends WidgetType {
@@ -49,7 +56,7 @@ export class LuaWidget extends WidgetType {
     if (cacheItem) {
       div.innerHTML = cacheItem.html;
       if (cacheItem.html) {
-        attachWidgetEventHandlers(div, this.client, this.from);
+        attachWidgetEventHandlers(div, this.client, undefined, this.from);
       }
     }
 
@@ -88,7 +95,12 @@ export class LuaWidget extends WidgetType {
       } else {
         div.className += " sb-lua-directive-inline";
       }
-      attachWidgetEventHandlers(div, this.client, this.from);
+      attachWidgetEventHandlers(
+        div,
+        this.client,
+        widgetContent.events,
+        this.from,
+      );
       this.client.setWidgetCache(
         this.cacheKey,
         { height: div.clientHeight, html },
@@ -164,7 +176,12 @@ export class LuaWidget extends WidgetType {
       }
       div.innerHTML = html;
       if (html) {
-        attachWidgetEventHandlers(div, this.client, this.from);
+        attachWidgetEventHandlers(
+          div,
+          this.client,
+          widgetContent.events,
+          this.from,
+        );
       }
     }
 

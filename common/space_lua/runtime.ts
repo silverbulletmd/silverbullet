@@ -450,23 +450,23 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     }
   }
 
-  toJSObject(): Record<string, any> {
+  toJSObject(sf = LuaStackFrame.lostFrame): Record<string, any> {
     const result: Record<string, any> = {};
     for (const key of this.keys()) {
-      result[key] = luaValueToJS(this.get(key), LuaStackFrame.lostFrame);
+      result[key] = luaValueToJS(this.get(key, sf), sf);
     }
     return result;
   }
 
-  toJSArray(): any[] {
-    return this.arrayPart.map((v) => luaValueToJS(v, LuaStackFrame.lostFrame));
+  toJSArray(sf = LuaStackFrame.lostFrame): any[] {
+    return this.arrayPart.map((v) => luaValueToJS(v, sf));
   }
 
-  toJS(): Record<string, any> | any[] {
+  toJS(sf = LuaStackFrame.lostFrame): Record<string, any> | any[] {
     if (this.length > 0) {
-      return this.toJSArray();
+      return this.toJSArray(sf);
     } else {
-      return this.toJSObject();
+      return this.toJSObject(sf);
     }
   }
 
@@ -891,7 +891,7 @@ export function luaValueToJS(value: any, sf: LuaStackFrame): any {
     return value.then((v) => luaValueToJS(v, sf));
   }
   if (value instanceof LuaTable) {
-    return value.toJS();
+    return value.toJS(sf);
   } else if (
     value instanceof LuaNativeJSFunction || value instanceof LuaFunction ||
     value instanceof LuaBuiltinFunction

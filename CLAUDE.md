@@ -1,5 +1,9 @@
 # SilverBullet Development Guide
 
+## Good practices
+* After each significant change, run the typechecker, linter, and tests.
+* Write unit tests for new functionality.
+
 ## Commands
 - Build: `deno task build`
 - Test: `deno task test`

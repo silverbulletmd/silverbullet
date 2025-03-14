@@ -181,7 +181,7 @@ export class MarkdownWidget extends WidgetType {
   }
 
   private attachListeners(div: HTMLElement, buttons?: CodeWidgetButton[]) {
-    attachWidgetEventHandlers(div, this.client, this.from);
+    attachWidgetEventHandlers(div, this.client, undefined, this.from);
 
     if (!buttons) {
       buttons = [];

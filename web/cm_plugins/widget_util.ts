@@ -2,10 +2,12 @@ import { parseRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import type { Client } from "../client.ts";
 import { tagPrefix } from "../../plugs/index/constants.ts";
 import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
+import { EventPayLoad } from "./lua_widget.ts";
 
 export function attachWidgetEventHandlers(
   div: HTMLElement,
   client: Client,
+  events?: Record<string, (event: EventPayLoad) => void>,
   pos?: number,
 ) {
   div.addEventListener("mousedown", (e) => {
@@ -102,4 +104,12 @@ export function attachWidgetEventHandlers(
       },
     );
   });
+
+  if (events) {
+    for (const [eventName, event] of Object.entries(events)) {
+      div.addEventListener(eventName, (e) => {
+        event({ name: eventName, data: e });
+      });
+    }
+  }
 }

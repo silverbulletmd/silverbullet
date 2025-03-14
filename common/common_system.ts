@@ -33,6 +33,7 @@ export abstract class CommonSystem {
   readonly spaceScriptCommands = new Map<string, AppCommand>();
   scriptEnv: ScriptEnvironment = new ScriptEnvironment();
   spaceLuaEnv = new SpaceLuaEnvironment();
+  scriptsLoaded: boolean = false;
 
   constructor(
     protected mq: DataStoreMQ,
@@ -88,6 +89,7 @@ export abstract class CommonSystem {
 
     // Swap in the expanded function map
     this.ds.functionMap = functions;
+    this.scriptsLoaded = true;
   }
 
   invokeSpaceFunction(name: string, args: any[]) {
