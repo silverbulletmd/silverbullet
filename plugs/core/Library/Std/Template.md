@@ -5,7 +5,7 @@ Implements useful template functions
 ```space-lua
 -- priority: 10
 -- Template API root table
-template = {}
+template = template or {}
 -- Template storage table
 templates = {}
 
