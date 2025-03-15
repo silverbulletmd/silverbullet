@@ -8,12 +8,47 @@ export function defaultTransformer(v: any): Promise<string> {
     return Promise.resolve("");
   }
   if (typeof v === "string") {
-    return Promise.resolve(v.replaceAll("\n", " ").replaceAll("|", "\\|"));
+    return Promise.resolve(escapeRegularPipes(v.replaceAll("\n", " ")));
   }
   if (v && typeof v === "object") {
     return Promise.resolve(luaToString(v));
   }
   return Promise.resolve("" + v);
+}
+
+/**
+ * Escapes all pipes that would inadvertently delimit a markdown table column.
+ * Does not escape columns that are used for aliasing in WikiLinks or Commands:
+ * `[[WikiLink|Alias]]` and `{[Command: Name|Click Me!]("args")}`
+ * @param s The text to replace
+ * @returns The text where the pipes outside of silverbullet specific context is
+ *  replaced with an escaped pipe.
+ */
+function escapeRegularPipes(s: string) {
+  let result = "";
+  let isInWikiLink = false;
+  let isInCommandButton = false;
+
+  for (let i = 0; i < s.length; i++) {
+    if (s[i] == "[" && s[i + 1] == "[") {
+      isInWikiLink = true;
+    } else if (s[i] == "]" && s[i + 1] == "]" && isInWikiLink) {
+      isInWikiLink = false;
+    }
+    if (s[i] == "{" && s[i + 1] == "[") {
+      isInCommandButton = true;
+    } else if (
+      (s[i] == "]" || s[i] == ")") && s[i + 1] == "}" && isInCommandButton
+    ) {
+      isInCommandButton = false;
+    } else if (s[i] == "|" && !isInWikiLink && !isInCommandButton) {
+      result += "\\";
+    }
+
+    result += s[i];
+  }
+
+  return result;
 }
 
 // Nicely format an array of JSON objects as a Markdown table
