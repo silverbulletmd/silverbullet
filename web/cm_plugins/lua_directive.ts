@@ -50,7 +50,7 @@ export function luaDirectivePlugin(client: Client) {
             if (typeof tags === "string") {
               tags = tags.split(/\s+|,\s*/);
             }
-            if (tags.includes("meta/template")) {
+            if (tags.find((tag: string) => tag.startsWith("meta/template"))) {
               shouldRender = false;
               return;
             }
@@ -61,7 +61,7 @@ export function luaDirectivePlugin(client: Client) {
         // Or with a hash tag
         if (node.name === "Hashtag") {
           const text = state.sliceDoc(node.from, node.to);
-          if (text === "#meta/template") {
+          if (text.startsWith("#meta/template")) {
             shouldRender = false;
             return;
           }
