@@ -45,7 +45,7 @@ export type AppViewState = {
 
   uiOptions: {
     vimMode: boolean;
-    darkMode: boolean;
+    darkMode: boolean | undefined;
     forcedROMode: boolean;
     customStyles?: string;
   };
@@ -82,7 +82,7 @@ export const initialViewState: AppViewState = {
   syncFailures: 0,
   uiOptions: {
     vimMode: false,
-    darkMode: false,
+    darkMode: undefined,
     forcedROMode: false,
   },
   isMobile: false,
