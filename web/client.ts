@@ -104,6 +104,7 @@ type WidgetCacheItem = {
   height: number;
   html: string;
   buttons?: CodeWidgetButton[];
+  block?: boolean;
   banner?: string;
 };
 

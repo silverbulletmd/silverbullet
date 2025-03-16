@@ -352,18 +352,12 @@
 
   .sb-lua-directive-inline {
     display: inline;
-    border: 1px var(--editor-widget-background-color) solid;
-    border-radius: 8px;
     padding: 2px;
   }
 
   .sb-lua-directive-block {
     display: block;
-    border: 1px var(--editor-widget-background-color) solid;
-    border-radius: 8px;
-    padding: 5px;
     margin: -1em 0;
-    overflow: auto;
   }
 
   a.sb-wiki-link-page-missing,
@@ -500,6 +494,23 @@
     }
   }
 
+  .sb-lua-top-widget,
+  .sb-lua-bottom-widget {
+    margin: 0 0 10px 0;
+    border: 1px solid var(--editor-widget-background-color);
+    border-radius: 5px;
+    white-space: normal;
+    position: relative;
+    min-height: 48px;
+  }
+  .sb-lua-top-widget h1,
+  .sb-lua-bottom-widget h1 {
+    margin: -15px -15px 0 -15px !important;
+    padding: 15px 15px 10px 15px !important;
+    background-color: var(--editor-widget-background-color);
+    font-size: 1.2em;
+  }
+
   .sb-markdown-top-widget h1,
   .sb-markdown-bottom-widget h1 {
     margin: 0 0 5px 0;
@@ -516,6 +527,12 @@
     margin-top: 10px;
   }
 
+  .sb-lua-top-widget .content,
+  .sb-lua-bottom-widget .content {
+    max-height: 500px;
+    padding: 10px;
+  }
+
   .sb-markdown-top-widget:has(*) .content {
     max-height: 500px;
   }
@@ -527,6 +544,8 @@
   }
 
   .sb-markdown-widget,
+  .sb-lua-directive-block,
+  .sb-lua-directive-inline,
   .sb-markdown-top-widget:has(*),
   .sb-markdown-bottom-widget:has(*) {
     border: 1px solid var(--editor-widget-background-color);

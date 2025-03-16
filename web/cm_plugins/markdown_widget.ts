@@ -129,14 +129,13 @@ export class MarkdownWidget extends WidgetType {
       preserveAttributes: true,
     }, this.client.ui.viewState.allPages);
 
-    if (cachedHtml === html) {
-      // HTML still same as in cache, no need to re-render
-      return;
+    if (cachedHtml !== html) {
+      // Only update the DOM if the content has changed
+      div.innerHTML = this.wrapHtml(
+        html,
+        widgetContent.buttons,
+      );
     }
-    div.innerHTML = this.wrapHtml(
-      html,
-      widgetContent.buttons,
-    );
     if (html) {
       this.attachListeners(div, widgetContent.buttons);
     }
@@ -179,7 +178,7 @@ export class MarkdownWidget extends WidgetType {
   }
 
   private attachListeners(div: HTMLElement, buttons?: CodeWidgetButton[]) {
-    attachWidgetEventHandlers(div, this.client, undefined, this.from);
+    attachWidgetEventHandlers(div, this.client, this.bodyText);
 
     if (!buttons) {
       buttons = [];

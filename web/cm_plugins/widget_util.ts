@@ -4,17 +4,31 @@ import { tagPrefix } from "../../plugs/index/constants.ts";
 import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 import type { EventPayLoad } from "./lua_widget.ts";
 
+export function moveCursorIntoText(client: Client, textToFind: string) {
+  const allText = client.editorView.state.sliceDoc();
+  const pos = allText.indexOf(textToFind);
+  if (pos === -1) {
+    console.error("Could not find position of widget in text");
+    return;
+  }
+  client.editorView.dispatch({
+    selection: {
+      anchor: pos,
+    },
+  });
+  client.focus();
+}
+
 export function attachWidgetEventHandlers(
   div: HTMLElement,
   client: Client,
+  widgetText?: string,
   events?: Record<string, (event: EventPayLoad) => void>,
-  pos?: number,
 ) {
   div.addEventListener("mousedown", (e) => {
-    if (e.altKey) {
+    if (e.altKey && widgetText) {
       // Move cursor there
-      client.editorView.dispatch({ selection: { anchor: pos! } });
-      client.editorView.focus();
+      moveCursorIntoText(client, widgetText);
       e.preventDefault();
     }
     // CodeMirror overrides mousedown on parent elements to implement its own selection highlighting.

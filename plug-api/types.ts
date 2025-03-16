@@ -214,7 +214,9 @@ export type AppEvent =
   | "editor:documentSaved"
   | "editor:modeswitch"
   | "plugs:loaded"
-  | "editor:pageModified";
+  | "editor:pageModified"
+  | "hooks:renderTopWidgets"
+  | "hooks:renderBottomWidgets";
 
 export type QueryProviderEvent = {
   query: Query;

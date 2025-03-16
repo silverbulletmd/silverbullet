@@ -80,7 +80,6 @@ export function luaDirectivePlugin(client: Client) {
         widgets.push(
           Decoration.widget({
             widget: new LuaWidget(
-              node.from,
               client,
               `lua:${text}:${currentPageMeta?.name}`,
               text,
@@ -130,6 +129,8 @@ export function luaDirectivePlugin(client: Client) {
                   return `**Lua error:** ${e.message}`;
                 }
               },
+              true,
+              true,
             ),
           }).range(node.to),
         );
