@@ -209,7 +209,7 @@ export const stringApi = new LuaTable({
 
       if (!matches) {
         return null;
-      } else if (!matches[1]) {
+      } else if (matches[1] === undefined) {
         // No captures
         return matches[0];
       }

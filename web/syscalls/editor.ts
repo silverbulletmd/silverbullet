@@ -39,6 +39,20 @@ export function editorSyscalls(client: Client): SysCallMapping {
     "editor.getText": () => {
       return client.editorView.state.sliceDoc();
     },
+    "editor.getCurrentLine": (): {
+      from: number;
+      to: number;
+      text: string;
+      textWithCursor: string;
+    } => {
+      const pos = client.editorView.state.selection.main.from;
+      const line = client.editorView.state.doc.lineAt(pos);
+      return {
+        ...line,
+        textWithCursor: line.text.slice(0, pos - line.from) + "|^|" +
+          line.text.slice(pos - line.from),
+      };
+    },
     "editor.setText": (_ctx, newText: string, shouldIsolateHistory = false) => {
       client.setEditorText(newText, shouldIsolateHistory);
     },
@@ -193,15 +207,49 @@ export function editorSyscalls(client: Client): SysCallMapping {
         client.editorView.dispatch({});
       });
     },
-    "editor.insertAtPos": (_ctx, text: string, pos: number) => {
+    "editor.insertAtPos": (
+      _ctx,
+      text: string,
+      pos: number,
+      cursorPlaceHolder = false,
+    ) => {
+      let cursorPlaceholderPos = -1;
+      if (cursorPlaceHolder) {
+        cursorPlaceholderPos = text.indexOf("|^|");
+        text = text.slice(0, cursorPlaceholderPos) +
+          text.slice(cursorPlaceholderPos + 3);
+      }
       client.editorView.dispatch({
         changes: {
           insert: text,
           from: pos,
         },
       });
+      if (cursorPlaceHolder) {
+        const cursorPos = pos + cursorPlaceholderPos;
+        client.editorView.dispatch({
+          selection: {
+            anchor: cursorPos,
+          },
+          effects: [
+            EditorView.scrollIntoView(cursorPos),
+          ],
+        });
+      }
     },
-    "editor.replaceRange": (_ctx, from: number, to: number, text: string) => {
+    "editor.replaceRange": (
+      _ctx,
+      from: number,
+      to: number,
+      text: string,
+      cursorPlaceHolder = false,
+    ) => {
+      let cursorPlaceholderPos = -1;
+      if (cursorPlaceHolder) {
+        cursorPlaceholderPos = text.indexOf("|^|");
+        text = text.slice(0, cursorPlaceholderPos) +
+          text.slice(cursorPlaceholderPos + 3);
+      }
       client.editorView.dispatch({
         changes: {
           insert: text,
@@ -209,6 +257,17 @@ export function editorSyscalls(client: Client): SysCallMapping {
           to: to,
         },
       });
+      if (cursorPlaceHolder) {
+        const cursorPos = from + cursorPlaceholderPos;
+        client.editorView.dispatch({
+          selection: {
+            anchor: cursorPos,
+          },
+          effects: [
+            EditorView.scrollIntoView(cursorPos),
+          ],
+        });
+      }
     },
     "editor.moveCursor": (_ctx, pos: number, center = false) => {
       client.editorView.dispatch({
