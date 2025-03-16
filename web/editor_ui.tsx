@@ -14,6 +14,7 @@ import { runScopeHandlers } from "@codemirror/view";
 import type { Client } from "./client.ts";
 import { Panel } from "./components/panel.tsx";
 import { safeRun } from "../lib/async.ts";
+import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 
 export class MainUI {
@@ -95,12 +96,28 @@ export class MainUI {
     }, [viewState.uiOptions.vimMode]);
 
     useEffect(() => {
-      document.documentElement.dataset.theme = viewState.uiOptions.darkMode
-        ? "dark"
-        : "light";
-      if (this.client.isDocumentEditor()) {
-        this.client.documentEditor.updateTheme();
-      }
+      clientStoreSyscalls(client.ds)["clientStore.get"](
+        {},
+        "darkMode",
+      ).then((storedDarkModePreference: boolean | undefined) => {
+        let theme: "dark" | "light";
+        if (storedDarkModePreference === true) {
+          theme = "dark";
+        } else if (storedDarkModePreference === false) {
+          theme = "light";
+        } else {
+          theme = window.matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light";
+        }
+
+        viewState.uiOptions.darkMode = theme === "dark";
+        document.documentElement.dataset.theme = theme;
+
+        if (this.client.isDocumentEditor()) {
+          this.client.documentEditor.updateTheme();
+        }
+      });
     }, [viewState.uiOptions.darkMode]);
 
     useEffect(() => {
@@ -298,9 +315,10 @@ export class MainUI {
           actionButtons={[
             // Vertical menu button
             ...(viewState.isMobile &&
-                client.config.get<string>("mobileMenuStyle", "hamburger").includes(
-                  "hamburger",
-                ))
+                client.config.get<string>("mobileMenuStyle", "hamburger")
+                  .includes(
+                    "hamburger",
+                  ))
               ? [{
                 icon: featherIcons.MoreVertical,
                 description: "Open Menu",
@@ -358,7 +376,10 @@ export class MainUI {
             ? viewState.current?.meta?.pageDecoration?.cssClasses
               .join(" ").replaceAll(/[^a-zA-Z0-9-_ ]/g, "")
             : ""}
-          mobileMenuStyle={client.config.get<string>("mobileMenuStyle", "hamburger")}
+          mobileMenuStyle={client.config.get<string>(
+            "mobileMenuStyle",
+            "hamburger",
+          )}
         />
         <div id="sb-main">
           {!!viewState.panels.lhs.mode && (

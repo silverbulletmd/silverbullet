@@ -36,7 +36,7 @@ export function FilterList({
   preFilter?: (options: FilterOption[], phrase: string) => FilterOption[];
   phrasePreprocessor?: (phrase: string) => string;
   vimMode: boolean;
-  darkMode: boolean;
+  darkMode?: boolean;
   completer: (context: CompletionContext) => Promise<CompletionResult | null>;
   allowNew?: boolean;
   completePrefix?: string;

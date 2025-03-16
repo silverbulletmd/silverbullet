@@ -23,7 +23,7 @@ export function CommandPalette({
   commands: Map<string, AppCommand>;
   recentCommands: Map<string, Date>;
   vimMode: boolean;
-  darkMode: boolean;
+  darkMode?: boolean;
   completer: (context: CompletionContext) => Promise<CompletionResult | null>;
   config: Config;
   onTrigger: (command: AppCommand | undefined) => void;

@@ -41,7 +41,7 @@ export function TopBar({
   syncFailures: number;
   isLoading: boolean;
   notifications: Notification[];
-  darkMode: boolean;
+  darkMode?: boolean;
   vimMode: boolean;
   progressPerc?: number;
   onRename: (newName?: string) => Promise<void>;

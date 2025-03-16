@@ -47,7 +47,7 @@ export function MiniEditor(
     text: string;
     placeholderText?: string;
     vimMode: boolean;
-    darkMode: boolean;
+    darkMode?: boolean;
     vimStartInInsertMode?: boolean;
     focus?: boolean;
     completer?: (
