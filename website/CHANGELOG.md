@@ -11,7 +11,7 @@ _These features are not yet properly released, you need to use [the edge builds]
   * You now need to use `widget.new` to create Lua widgets, see [[Space Lua#Widgets]]
 * [[Space Lua#Widgets]] now support events
 
-## 0.10.4
+## 0.10.4 2025-02-25
 * **Lua**: _Tons_ of fixes, changes and enhancements, see [[Space Lua]] and related for up-to-date docs. Some notable things:
   * [[Space Lua/Lua Integrated Query]] is now here
   * Code completion of APIs in `space-lua` and Lua directive syntax, implemented in Lua itself: [[^Library/Std/Lua]].
@@ -33,7 +33,7 @@ _These features are not yet properly released, you need to use [the edge builds]
 * Added more options for [[Table of Contents]] rendering (by [Nico S.](https://github.com/silverbulletmd/silverbullet/pull/1258)).
 * Disable spellcheck for more code-like blocks (by [MrMugame](https://github.com/silverbulletmd/silverbullet/pull/1244))
 
-## 0.10.1
+## 0.10.1 2024-11-14
 This is a “major” release primarily because of the underlying migration to rely on Deno 2 and a bunch of foundational work that’s not really leveraged yet. Stay tuned for more.
 
 * Migrated underlying system to Deno 2.0, please upgrade to a recent Deno 2 build!
@@ -53,7 +53,7 @@ This is a “major” release primarily because of the underlying migration to r
 * “Remember me” functionality for [[Authentication]] (by [aekaisato](https://github.com/silverbulletmd/silverbullet/pull/1132))
 * (Highly experimental) work started on [[Space Lua]] (you can observe, but don’t use just yet)
 
-## 0.9.4
+## 0.9.4 2024-09-04
 * Slashes in page names are no no longer URL encoded (in the URL)
 * `task` and `item` [[Objects]] now have a `parent` attribute when nested, and inherit their ancestors’ tags in `itags` — see [[Objects#item]] for an example.
 * When a page changed on disk, it now does a diff-based reload, largely retaining local changes, edit history and cursor position  (by [jcgurango](https://github.com/silverbulletmd/silverbullet/pull/1056))
@@ -61,7 +61,7 @@ This is a “major” release primarily because of the underlying migration to r
 * Markdown preview now has a print button that appears on hover (by [Ruibin Xing](https://github.com/silverbulletmd/silverbullet/pull/1065))
 * Some more iterations on the [[Schema]] feature (still experimental)
 
-## 0.9.2
+## 0.9.2 2024-08-18
 * Widget buttons for [[Transclusions]] (by [onespaceman](https://github.com/silverbulletmd/silverbullet/pull/1013)) as well as some other transclusion-related fixes
 * At long last, date and time functions and attributes now return local time instead of UTC
   * _Local_ means the time of the place where code runs, so this may be your server or client depending on the [[Client Modes]]. Ideally you set the timezones the same on both.
@@ -74,7 +74,7 @@ This is a “major” release primarily because of the underlying migration to r
 * Internal refactor, and more leverage of [JSR](https://jsr.io/). The SilverBullet [plug API](https://jsr.io/@silverbulletmd/silverbullet) is now published on JSR as well, and soon this will be the preferred way of importing the plug APIs.
 * And these syscalls are now [fully documented](https://jsr.io/@silverbulletmd/silverbullet/doc/syscalls/~)
 
-## 0.9.0
+## 0.9.0 2024-08-04
 This is a more major version bump due to [[Space Config]], which is a bigger architectural change. It shouldn’t break anything for existing users — but you know — famous last words.
 
 * [[Space Config]] is here! We hear you like Space stuff ([[Space Script]] and [[Space Style]]) so we keep adding more! This allows you to distribute your [[^SETTINGS]] across pages. A few things of note:
@@ -88,7 +88,7 @@ This is a more major version bump due to [[Space Config]], which is a bigger arc
 * Support for adding CSS classes in [[Page Decorations]] (by [onespaceman](https://github.com/silverbulletmd/silverbullet/pull/945)). Check out [[Page Decorations#Use case: pimp my page]] 🤣
 * Added caching to file listings (useful for large spaces or slow disks) (by [Justyn Shull](https://github.com/silverbulletmd/silverbullet/pull/1012))
 
-## 0.8.5
+## 0.8.5 2024-07-30
 * New power-user feature: [[Object Decorators]]. Its primary use case is to apply [[Page Decorations]], but you may find other uses as well. Speaking of which...
 * **Breaking change:** The way [[Page Decorations]] are specified has changed. It has now been replaced with [[Object Decorators]](as just mentioned), which are a more generic mechanism. Your existing `pageDecorations` will stop working. You’ll have to rewrite based on the new format. See [[Page Decorations]] for examples.
 * New [[CHANGELOG@L20]] syntax (by [Marek S. Łukasiewicz](https://github.com/silverbulletmd/silverbullet/pull/988))
@@ -98,7 +98,7 @@ This is a more major version bump due to [[Space Config]], which is a bigger arc
 * **Fix:** Spellchecker correction was broken in Chrome
 * **Fix:** Markdown preview was broken
 
-## 0.8.4
+## 0.8.4 2024-07-27
 * [[Page Picker#Keyboard shortcuts]]: allow folder completion using Shift-Space (by [Marek S. Łukasiewicz](https://github.com/silverbulletmd/silverbullet/pull/961))
 * New [[Page Decorations]]: ability to hide pages from the page picker and auto complete (by [Marek S. Łukasiewicz](https://github.com/silverbulletmd/silverbullet/pull/962))
 * The [[Expression Language]] now supports decimal numbers 🤯 (e.g. `3.14`)
@@ -113,7 +113,7 @@ This is a more major version bump due to [[Space Config]], which is a bigger arc
 
 ---
 
-## 0.8.2
+## 0.8.2 2024-07-17
 * [[Page Decorations]] are here (initial implementation by [Deepak Narayan](https://github.com/silverbulletmd/silverbullet/pull/940), later refined by Zef)
 * New type of [[Shortcuts|shortcut]]: `slashCommand`
 * Naming is hard. Renamed the `source` attribute of [[Libraries]] to `import`. egacy references to `source` will keep working.
@@ -125,7 +125,7 @@ This is a more major version bump due to [[Space Config]], which is a bigger arc
 
 ---
 
-## 0.8.1
+## 0.8.1 2024-07-11
 * The old **Template Picker** has now been rebranded to [[Meta Picker]] and surfaces pages in your space tagged as `#template` or `#meta`. Read more about this in [[Meta Pages]].
 * [[Transclusions]] has now been implemented, allowing inline embedding of other pages as well as images (by onespaceman) using the convenient `![[link]]` syntax.
 * [[Libraries]] management has been rethought. You can now decoratively specify them in [[SETTINGS]] and keep them up to date with the {[Libraries: Update]} command.
@@ -145,7 +145,7 @@ This is a more major version bump due to [[Space Config]], which is a bigger arc
 * Numerous other bug fixes (thanks MrMugame and onespaceman)
 ---
 
-## 0.7.7
+## 0.7.7 2024-04-30
 * Added ability to configure PWA app name and description (web app manifest) via [[Install/Configuration]] variables (by [s1gnate-sync](https://github.com/silverbulletmd/silverbullet/pull/854))
 * Improved styling for modals (by [Daniel](https://github.com/silverbulletmd/silverbullet/pull/840))
 * Allow middle click to open links (by [Daniel](https://github.com/silverbulletmd/silverbullet/pull/841))
@@ -160,7 +160,7 @@ This is a more major version bump due to [[Space Config]], which is a bigger arc
 
 ---
 
-## 0.7.6
+## 0.7.6 2024-03-15
 * We now have [[Space Style]] in addition to [[Space Script]], enabling CSS tweaks to SilverBullet itself from any page (by [onespaceman](https://github.com/silverbulletmd/silverbullet/pull/796))
 * Added [[Functions#contains(str, substr)]] function
 * Properly report errors when calling non-existing [[Functions]] in queries
@@ -176,7 +176,7 @@ This is a more major version bump due to [[Space Config]], which is a bigger arc
 
 ---
 
-## 0.7.5
+## 0.7.5 2024-02-29
 * [[Plugs/Share]] using the {[Share: Page Or Selection]} command (bound to Ctrl-s/Cmd-s by default): allowing you to quickly share the current page (or selection) to the clipboard as:
   * Clean markdown (to paste into other markdown supporting tools)
   * Rich text (to paste into unenlightened rich text tools like Google Docs, Confluence, Word etc.)
@@ -187,7 +187,7 @@ This is a more major version bump due to [[Space Config]], which is a bigger arc
 
 ---
 
-## 0.7.3
+## 0.7.3 2024-02-24
 
 * We had a big influx of people and contributions from the community, which is amazing. Here are the highlights:
   * Ability to “bake” templates and query results (with the new “bake” button or {[Page: Bake live blocks]}), that is: replace these blocks with their rendered results, and therefore freeze them in time, by [Marek S. Łukasiewicz](https://github.com/silverbulletmd/silverbullet/pull/719)
@@ -216,7 +216,7 @@ This is a more major version bump due to [[Space Config]], which is a bigger arc
 
 ---
 
-## 0.7.1
+## 0.7.1 2024-02-08
 * Numerous bug fixes and significant performance improvements in template rendering (which now happen server-side), including code completion fixes.
 * New `{{#each @varname in <expression>}}` syntax in [[Template Language#each directive]].
 * **Experimental feature**: [[Space Script]], the ability to extend SilverBullet from within your SilverBullet space with JavaScript.
@@ -227,7 +227,7 @@ This is a more major version bump due to [[Space Config]], which is a bigger arc
 
 ---
 
-## 0.7.0
+## 0.7.0 2024-02-02
 I know what you’re thinking: another “major” minor release, so quickly?
 
 Yeah... we’re swapping out some of the guts of SilverBullet here, so this warrants the version bump. Honestly, this should have been 100.0, but you know...
@@ -259,7 +259,7 @@ So, what’s the fuss all about?
   * [[Expression Language]]
 * Ah yes, you can also still take notes with SilverBullet. That still works. I think.
 
-## 0.6.1
+## 0.6.1 2024-01-29
 * Tag pages: when you click on a `#tag` you will now be directed to a page that shows all pages, tasks, items and paragraphs tagged with that tag.
 * Action buttons (top right buttons) can now be configured; see [[SETTINGS]] for how to do this.
 * Headers are now indexed, meaning you can query them [[Objects#header]] and also reference them by name via page links using `#` that I just demonstrated 👈. See [[Links]] for more information on all the types of link formats that SilverBullet now supports.
@@ -278,7 +278,7 @@ So, what’s the fuss all about?
 
 ---
 
-## 0.6.0
+## 0.6.0 2024-01-22
 
 * **Templates 2.0**: templates are now turbocharged (that’s a technical term) and have replaced a lot of previously built-in (slash) commands. There’s more to this than will fit this CHANGELOG, have a look at [[Templates]]: and more specifically [[Page Templates]], [[Snippets]], [[Live Template Widgets]] and [[Libraries]], and read the items below.
 * **Upgrade instructions**: to get the best experience after upgrading to 0.6.0 as an existing user, do the following:
@@ -312,13 +312,13 @@ So, what’s the fuss all about?
 
 ---
 
-## 0.5.11
+## 0.5.11 2024-01-02
 * Keyboard shortcuts as well as priority (order in which they appear in the [[Command Palette]]) can now be configured for [[Commands]] in [[SETTINGS]]. The `priority` enables you to put frequently used commands at the top.
 * The rendering of [[Live Templates]], [[Live Queries]], [[Table of Contents]] and [[Linked Mentions]] has been re-implemented. Rendering should now be near-instant, and the “flappy” behavior should be largely gone, especially after an initial load (results are cached). There may still be some visual regressions. Please report them if you find them.
 
 ---
 
-## 0.5.10
+## 0.5.10 2023-12-22
 * **Breaking change**: Local attachment URLs (`[page](url)` syntax and `![alt](url)` image syntax) are now interpreted relative to the page's folder unless their URL starts with a `/`, then they're relative to the space root (as per [this issue](https://github.com/silverbulletmd/silverbullet/issues/363))
 * **Breaking change:** Revamped [[Templates]], specifically changed the format of [[Page Templates]]. The “Template: Instantiate Page” has been renamed to {[Page: From Template]}.
 * It is now even more recommended to tag your [[Templates]] with the “template” tag because completion in [[Live Queries]] and [[Live Templates]] will now only suggest `#template` tagged pages.
@@ -336,12 +336,12 @@ So, what’s the fuss all about?
 
 ---
 
-## 0.5.8
+## 0.5.8 2023-12-07
 * Various bugfixes, primarily related to the new way of running docker containers, which broke things for some people. Be sure to have a look at the new [[Install/Configuration]] configuration options
 
 ---
 
-## 0.5.7
+## 0.5.7 2023-11-28
 * New {[Upload: File]} command to upload files and pictures (particularly valuable for mobile use cases). Implemented by [prcrst](https://github.com/silverbulletmd/silverbullet/pull/571).
 * General support for highlighting errors (underlined) in the editor. Currently implemented for:
   * All YAML fenced code blocks (and [[Frontmatter]]): will now highlight YAML parse errors
@@ -354,7 +354,7 @@ So, what’s the fuss all about?
 * Various bug fixes
 
 ---
-## 0.5.6
+## 0.5.6 2023-11-19
 * Various optimization and bug fixes
 * Experimental idea: [[Libraries]]
 * The `Alt-Shift-n` key was previously bound to both {[Page: New]} and {[Quick Note]}. That won’t work, so now it’s just bound to {[Quick Note]}
@@ -364,12 +364,12 @@ So, what’s the fuss all about?
 
 
 ---
-## 0.5.5
+## 0.5.5 2023-11-13
 * Bugfix: on some filesystems that don't report file creation time (like some NASes), SilverBullet crash. This should now be fixed.
 * Performance improvements the loading of code widgets (e.g. Live Queries, Live Templates)
 
 ---
-## 0.5.4
+## 0.5.4 2023-11-11
 * We’re on a journey to rethink [[Templates]]:
   * It is now _recommended_ you tag all your templates with a `#template` tag, this will exclude them from [[Objects]] indexing and may in the future be used to do better template name completion (but not yet).
   * New feature: Introducing [[Snippets]], allowing you to create custom [[Slash Commands]]. This deprecates snippets and page templates, because [[Snippets]] are awesomer. 
@@ -382,7 +382,7 @@ So, what’s the fuss all about?
 * [[Page Name Rules]] are now documented
 
 ---
-## 0.5.3
+## 0.5.3 2023-10-13
 * Changes to [[Objects]]:
   * Paragraphs are now indexed, see [[Objects#paragraph]] (thanks to [Ian Shehadeh](https://github.com/silverbulletmd/silverbullet/pull/528))
   * For consistency, list items are now always indexed as well (whether they contain a [[Tags|tag]] or not) see [[Objects#item]].
@@ -395,7 +395,7 @@ So, what’s the fuss all about?
 
 ---
 
-## 0.5.1
+## 0.5.1 2023-10-05
 * Fixes to auto-sizing of [[Live Queries]] and [[Live Templates]] widgets
 * Fixed the combination of `limit` and `order by` not working well
 * Auto complete for queries now works for queries split across multiple lines
@@ -404,7 +404,7 @@ So, what’s the fuss all about?
 
 ---
 
-## 0.5.0
+## 0.5.0 2023-10-03
 Oh boy, this is a big one. This release brings you the following:
 
 * [[Objects]]: a more generic system for indexing and querying content in your space, including the ability to define your own custom object “types” (dubbed [[Tags]]). See the referenced pages for examples.
@@ -420,7 +420,7 @@ Due to significant changes in how data is stored, likely your space will be resy
 
 ---
 
-## 0.4.0
+## 0.4.0 2023-09-09
 The big change in this release is that SilverBullet now supports two [[Client Modes|client modes]]: _online_ mode and _sync_ mode. Read more about them here: [[Client Modes]].
 
 Other notable changes:
