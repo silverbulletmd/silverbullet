@@ -1,0 +1,161 @@
+#sb-top {
+  display: flex;
+  flex-direction: row;
+  z-index: 20;
+
+  height: 55px;
+
+  .main {
+    flex: 2;
+    max-width: 100%;
+
+    .inner {
+      // Hack to not have SCSS precompile this value but use proper CSS variables
+      max-width: var(--#{"editor-width"});
+      margin: auto;
+      font-size: 28px;
+      padding: 8px 0;
+      display: flex;
+      flex-direction: row;
+
+      .wrapper {
+        width: env(titlebar-area-width, 100%);
+        padding: 0 20px;
+        display: flex;
+        box-sizing: border-box;
+        position: relative;
+
+        .sb-notifications {
+          position: absolute;
+          right: 20px;
+          top: 50px;
+
+          font-size: 15px;
+          z-index: 100;
+
+          >div {
+            padding: 3px;
+            margin-bottom: 3px;
+            border-radius: 5px;
+          }
+        }
+      }
+    }
+
+    #sb-current-page {
+      flex: 1;
+
+      overflow: hidden;
+      white-space: nowrap;
+      text-align: left;
+      display: block;
+
+      -webkit-app-region: drag;
+
+      .cm-scroller {
+        font-family: var(--ui-font);
+      }
+
+      .cm-content {
+        padding: 0;
+
+        .cm-line {
+          padding: 0;
+          caret-color: var(--editor-caret-color);
+        }
+      }
+    }
+  }
+
+  .sb-actions {
+    display: flex;
+    flex: 0 0 auto;
+    text-align: right;
+
+    button:first-of-type {
+      display: none;
+    }
+  }
+
+  .progress-wrapper {
+    display: inline-block;
+    position: relative;
+    margin-top: 4px;
+    padding: 4px;
+    background-color: var(--top-background-color);
+  }
+
+  .progress-bar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-size: 8px;
+  }
+}
+
+@media only screen and (max-width: 600px) {
+  /* Position the menu relative to .cm-scroller */
+  #sb-top .cm-scroller {
+    position: relative;
+  }
+
+  #sb-top .sb-actions {
+    position: absolute;
+
+    top: 3px;
+    right: 20px;
+    border-radius: 5px;
+    border: 1px solid #444;
+    width: 2.8rem;
+    background: color-mix(in srgb, var(--top-background-color) 90%, transparent);
+    backdrop-filter: blur(20px);
+    overflow: hidden;
+    flex-direction: column;
+    align-items: center;
+    z-index: 10;
+    transition: max-height 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+
+    /* Initial collapsed height */
+    max-height: 2.2rem;
+
+    .progress-wrapper {
+      order: 2;
+    }
+
+    button {
+      &:first-of-type {
+        display: initial;
+      }
+
+      &:not(.sb-code-copy-button) {
+        display: block;
+        height: 1.8rem;
+        text-align: center;
+        margin: 4px 0;
+        padding: 4px 0;
+      }
+
+      &:not(:first-of-type) {
+        margin: 8px 0;
+        opacity: 0;
+        transform: translateY(-10px);
+        transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+      }
+    }
+
+    &:hover {
+      /* Expanded height limited to the viewport height minus some padding */
+      max-height: calc(100vh - 24px);
+      box-shadow: 0px 2px 15px rgba(0, 0, 0, 0.5);
+
+      button {
+        opacity: 1;
+        transform: translateY(0) translateX(0);
+      }
+    }
+  }
+}

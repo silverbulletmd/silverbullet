@@ -298,6 +298,15 @@ export class MainUI {
             }
           }}
           actionButtons={[
+            // Vertical menu button
+            ...(viewState.isMobile)
+              ? [{
+                icon: featherIcons.MoreVertical,
+                description: "Open Menu",
+                callback:
+                  () => {/* nothing to do, menu opens on hover/mobile click */},
+              }]
+              : [],
             // Sync button
             ...(!this.client.clientConfig.syncOnly &&
                 !viewState.config.hideSyncButton)
