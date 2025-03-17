@@ -666,6 +666,7 @@
   .sb-admonition {
     border-left-width: 4px !important;
     border-left-style: solid;
+    padding-left: 5px;
   }
 
   .sb-admonition-type::before {
@@ -674,11 +675,13 @@
     -webkit-mask: var(--admonition-icon) no-repeat;
     mask-size: cover;
     -webkit-mask-size: cover;
-    width: 1.1em;
+
+    /* used in (custom) admonition definitions */
+    --admonition-width: 1.1em;
+    width: 0em;
     height: 1.1em;
     display: inline-flex;
     vertical-align: middle;
-    margin-left: 5px;
   }
 
   .sb-frontmatter-marker {
