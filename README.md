@@ -78,6 +78,22 @@ To run unit tests:
 deno task test
 ```
 
+### Git Hooks
+
+SilverBullet uses Git hooks to ensure code quality. To set up the hooks, run:
+
+```shell
+./scripts/install_hooks.sh
+```
+
+This will set up pre-commit hooks that automatically run:
+- Type checking with `deno task check`
+- Linting with `deno task lint`
+- Tests with `deno task test`
+- Formatting with `deno task fmt`
+
+If any of these checks fail, the commit will be aborted. You can bypass the hooks with `git commit --no-verify` if needed.
+
 ## Feedback
 If you (hypothetically) find bugs or have feature requests, post them in
 [our issue tracker](https://github.com/silverbulletmd/silverbullet/issues).

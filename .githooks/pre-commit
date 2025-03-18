@@ -1,0 +1,61 @@
+#!/bin/sh
+#
+# Pre-commit hook that runs Deno tasks:
+# - deno task check (type checking)
+# - deno task lint (linting)
+# - deno task test (tests)
+# - deno task fmt (formatting)
+#
+# If any task fails, the commit is aborted.
+
+echo "Running pre-commit hooks..."
+
+# Store the stashed changes if any
+git stash -q --keep-index
+
+# Run deno task check
+echo "Running type checking..."
+deno task check
+CHECK_STATUS=$?
+
+# Run deno task lint
+echo "Running linting..."
+deno task lint 
+LINT_STATUS=$?
+
+# Run deno task test
+echo "Running tests..."
+deno task test
+TEST_STATUS=$?
+
+# Run deno task fmt
+echo "Running formatter..."
+deno task fmt
+FMT_STATUS=$?
+
+# Restore the stashed changes
+git stash pop -q
+
+# Check if any of the tasks failed
+if [ $CHECK_STATUS -ne 0 ]; then
+    echo "❌ Type checking failed. Commit aborted."
+    exit 1
+fi
+
+if [ $LINT_STATUS -ne 0 ]; then
+    echo "❌ Linting failed. Commit aborted."
+    exit 1
+fi
+
+if [ $TEST_STATUS -ne 0 ]; then
+    echo "❌ Tests failed. Commit aborted."
+    exit 1
+fi
+
+if [ $FMT_STATUS -ne 0 ]; then
+    echo "❌ Formatting failed. Commit aborted."
+    exit 1
+fi
+
+echo "✅ All pre-commit hooks passed!"
+exit 0
