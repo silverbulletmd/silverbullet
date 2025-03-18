@@ -72,7 +72,7 @@
     flex: 0 0 auto;
     text-align: right;
 
-    button:first-of-type {
+    &.mobile-vertical button:first-of-type {
       display: none;
     }
   }
@@ -99,11 +99,11 @@
 
 @media only screen and (max-width: 600px) {
   /* Position the menu relative to .cm-scroller */
-  #sb-top .cm-scroller {
+  #sb-top .cm-scroller:has(.mobile-vertical) {
     position: relative;
   }
 
-  #sb-top .sb-actions {
+  #sb-top .sb-actions.mobile-vertical {
     position: absolute;
 
     top: 3px;

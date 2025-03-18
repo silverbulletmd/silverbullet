@@ -34,6 +34,7 @@ export function TopBar({
   rhs,
   pageNamePrefix,
   cssClass,
+  menuClass,
 }: {
   pageName?: string;
   unsavedChanges: boolean;
@@ -51,6 +52,7 @@ export function TopBar({
   rhs?: ComponentChildren;
   pageNamePrefix?: string;
   cssClass?: string;
+  menuClass?: string;
 }) {
   return (
     <div
@@ -101,7 +103,7 @@ export function TopBar({
                 ))}
               </div>
             )}
-            <div className="sb-actions">
+            <div className={"sb-actions " + (menuClass ? menuClass : "")}>
               {progressPerc !== undefined &&
                 (
                   <div

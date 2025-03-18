@@ -37,6 +37,9 @@ config:
     hideSyncButton:
       type: boolean
       nullable: true
+    menuClass:
+      type: string
+      nullable: true
     actionButtons:
       type: array
       items:
