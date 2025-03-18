@@ -70,3 +70,27 @@ local fruits = {"apple", "banana", "orange"}
 print(table.includes(fruits, "banana"))  -- prints: true
 print(table.includes(fruits, "grape"))   -- prints: false
 ```
+
+## table.pack(...)
+Creates a new table with the given arguments. The resulting table has all arguments stored at integer keys starting with 1, and a field "n" with the total number of arguments.
+
+Example:
+```lua
+local args = table.pack("apple", "banana", "orange")
+print(args[1], args[2], args[3])  -- prints: apple banana orange
+print(args.n)  -- prints: 3
+```
+
+## table.unpack(table, i?, j?)
+Returns all elements from the table as separate values. The optional `i` and `j` parameters specify the range of elements to return (defaults to 1 and the table length).
+
+Example:
+```lua
+local fruits = {"apple", "banana", "orange"}
+local a, b, c = table.unpack(fruits)
+print(a, b, c)  -- prints: apple banana orange
+
+-- With range specification
+local x, y = table.unpack(fruits, 2, 3)
+print(x, y)  -- prints: banana orange
+```

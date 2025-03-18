@@ -27,6 +27,15 @@ local start, end_ = string.find("Hello", "l")
 print(start)  -- prints: 3 (first 'l' position)
 ```
 
+## string.format(format, ...)
+Returns a formatted string using C-style format specifiers.
+
+Example:
+```lua
+print(string.format("Name: %s, Age: %d", "John", 30))  -- prints: Name: John, Age: 30
+print(string.format("Pi: %.2f", 3.14159))             -- prints: Pi: 3.14
+```
+
 ## string.gsub(s, pattern, repl, n?)
 Returns a copy of `s` in which all (or the first `n`) occurrences of `pattern` have been replaced by `repl`.
 
@@ -165,4 +174,51 @@ Example:
 ```lua
 print(string.endsWith("hello world", "world"))  -- prints: true
 print(string.endsWith("hello world", "hello"))  -- prints: false
+```
+
+## string.trim(s)
+Returns a copy of string `s` with whitespace removed from both ends.
+
+Example:
+```lua
+print(string.trim("  hello  "))  -- prints: hello
+```
+
+## string.trimStart(s)
+Returns a copy of string `s` with whitespace removed from the beginning.
+
+Example:
+```lua
+print(string.trimStart("  hello  "))  -- prints: hello  
+```
+
+## string.trimEnd(s)
+Returns a copy of string `s` with whitespace removed from the end.
+
+Example:
+```lua
+print(string.trimEnd("  hello  "))  -- prints:   hello
+```
+
+## string.matchRegex(s, pattern)
+Matches string `s` against a JavaScript regular expression pattern and returns the result. This uses JavaScript's native regex capabilities rather than Lua patterns.
+
+Example:
+```lua
+local match = string.matchRegex("hello123", "([a-z]+)([0-9]+)")
+print(match[1], match[2])  -- prints: hello 123
+```
+
+## string.matchRegexAll(s, pattern)
+Returns an iterator that finds all matches of a JavaScript regular expression pattern in string `s`.
+
+Example:
+```lua
+for match in string.matchRegexAll("a1b2c3", "([a-z])([0-9])") do
+    print(match[0], match[1], match[2])  -- prints each full match and its capture groups
+end
+-- Output:
+-- a1 a 1
+-- b2 b 2
+-- c3 c 3
 ```
