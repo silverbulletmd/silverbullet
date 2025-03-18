@@ -300,7 +300,7 @@ export class MainUI {
           actionButtons={[
             // Vertical menu button
             ...(viewState.isMobile &&
-                viewState.config.menuClass.includes("mobile-vertical"))
+                viewState.config.mobileMenuStyle.includes("mobile-vertical"))
               ? [{
                 icon: featherIcons.MoreVertical,
                 description: "Open Menu",
@@ -414,8 +414,8 @@ export class MainUI {
             ? viewState.current?.meta?.pageDecoration?.cssClasses
               .join(" ").replaceAll(/[^a-zA-Z0-9-_ ]/g, "")
             : ""}
-          menuClass={viewState.config?.menuClass
-            ? viewState.config?.menuClass
+          mobileMenuStyle={viewState.config?.mobileMenuStyle
+            ? viewState.config?.mobileMenuStyle
             : ""}
         />
         <div id="sb-main">

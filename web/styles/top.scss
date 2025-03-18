@@ -98,7 +98,7 @@
 }
 
 @media only screen and (max-width: 600px) {
-  /* Position the menu relative to .cm-scroller */
+  /* Style the menu as a vertical fly-out */
   #sb-top .cm-scroller:has(.mobile-vertical) {
     position: relative;
   }
@@ -158,4 +158,27 @@
       }
     }
   }
-}
+
+  /* Style the menu as a bottom bar */
+  #sb-top .sb-actions.mobile-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    padding: 10px 0;
+    background: var(--top-background-color);
+    width: 100vw;
+    box-shadow: 0px 4px 8px black;
+    justify-content: space-around;
+    
+    button {
+      padding: 1em;
+      margin: 0;
+      height: unset;
+      width: unset;
+      
+      svg {
+        margin-bottom: -5px;
+      }
+    }
+  }
+}    
