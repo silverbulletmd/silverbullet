@@ -5,11 +5,15 @@ import {
   LuaRuntimeError,
   LuaStackFrame,
 } from "$common/space_lua/runtime.ts";
-import { parse as parseLua } from "$common/space_lua/parse.ts";
+import {
+  parse as parseLua,
+  parseExpressionString,
+} from "$common/space_lua/parse.ts";
 import { evalStatement } from "$common/space_lua/eval.ts";
 import { parseRef, type Ref } from "@silverbulletmd/silverbullet/lib/page_ref";
 import type { ASTCtx } from "$common/space_lua/ast.ts";
 import { buildLuaEnv } from "$common/space_lua_api.ts";
+import type { LuaCollectionQuery } from "$common/space_lua/query_collection.ts";
 
 export class SpaceLuaEnvironment {
   env: LuaEnv = new LuaEnv();
@@ -22,13 +26,14 @@ export class SpaceLuaEnvironment {
     system: System<any>,
   ) {
     const allScripts: ScriptObject[] = await system.invokeFunction(
-      "index.queryObjects",
+      "index.queryLuaObjects",
       ["space-lua", {
+        objectVariable: "script",
         orderBy: [{
-          expr: ["attr", "priority"],
+          expr: parseExpressionString("script.priority"),
           desc: true,
         }],
-      }],
+      } as LuaCollectionQuery],
     );
     try {
       this.env = buildLuaEnv(system);

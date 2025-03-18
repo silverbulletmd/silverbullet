@@ -67,7 +67,7 @@ export class LuaEnv implements ILuaSettable, ILuaGettable {
     if (this.parent) {
       return this.parent.get(name, sf);
     }
-    return undefined;
+    return null;
   }
 
   /**
@@ -607,6 +607,8 @@ export function luaGet(
     if (typeof val === "function") {
       // Automatically bind the function to the object
       return val.bind(obj);
+    } else if (val === undefined) {
+      return null;
     } else {
       return val;
     }

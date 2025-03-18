@@ -143,7 +143,7 @@ export class ScriptEnvironment {
       return;
     }
     const allScripts: ScriptObject[] = await system.invokeFunction(
-      "index.queryObjects",
+      "index.queryLuaObjects",
       ["space-script", {}],
     );
     for (const script of allScripts) {

@@ -9,11 +9,15 @@ import {
 } from "$common/space_lua/runtime.ts";
 import { buildThreadLocalEnv } from "$common/space_lua_api.ts";
 import { isSendable } from "$lib/plugos/util.ts";
+import type { LuaBlock, LuaExpression } from "$common/space_lua/ast.ts";
 
 export function luaSyscalls(commonSystem: CommonSystem): SysCallMapping {
   return {
-    "lua.parse": (_ctx, code: string) => {
+    "lua.parse": (_ctx, code: string): LuaBlock => {
       return parse(code);
+    },
+    "lua.parseExpression": (_ctx, expression: string): LuaExpression => {
+      return parseExpressionString(expression);
     },
     /**
      * Evaluates a Lua expression and returns the result as a JavaScript value

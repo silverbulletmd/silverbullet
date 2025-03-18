@@ -75,10 +75,10 @@ import { LimitedMap } from "$lib/limited_map.ts";
 import { plugPrefix } from "$common/spaces/constants.ts";
 import { lezerToParseTree } from "$common/markdown_parser/parse_tree.ts";
 import { findNodeMatching } from "@silverbulletmd/silverbullet/lib/tree";
-import type { AspiringPageObject } from "../plugs/index/page_links.ts";
 import type { Config, ConfigContainer } from "../type/config.ts";
 import { diffAndPrepareChanges } from "./cm_util.ts";
 import { DocumentEditor } from "./document_editor.ts";
+import { parseExpressionString } from "$common/space_lua/parse.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -836,20 +836,22 @@ export class Client implements ConfigContainer {
       console.warn("Index plug not loaded, cannot update page list cache");
       return;
     }
-    const allPages = await this.clientSystem.queryObjects<PageMeta>("page", {});
-    const allAspiringPages = (await this.clientSystem.queryObjects<
-      AspiringPageObject
-    >("aspiring-page", {
-      select: [{ name: "name" }],
-    })).map((aspiringPage): PageMeta => ({
-      ref: aspiringPage.name,
-      tag: "page",
-      _isAspiring: true,
-      name: aspiringPage.name,
-      created: "",
-      lastModified: "",
-      perm: "rw",
-    }));
+    const allPages = await this.clientSystem.queryLuaObjects<PageMeta>(
+      "page",
+      {},
+    );
+    const allAspiringPages =
+      (await this.clientSystem.queryLuaObjects<string>("aspiring-page", {
+        select: parseExpressionString("name"),
+      })).map((name): PageMeta => ({
+        ref: name,
+        tag: "page",
+        _isAspiring: true,
+        name: name,
+        created: "",
+        lastModified: "",
+        perm: "rw",
+      }));
 
     this.ui.viewDispatch({
       type: "update-page-list",
@@ -860,7 +862,7 @@ export class Client implements ConfigContainer {
   async updateDocumentListCache() {
     console.log("Updating document list cache");
 
-    const allDocuments = await this.clientSystem.queryObjects<DocumentMeta>(
+    const allDocuments = await this.clientSystem.queryLuaObjects<DocumentMeta>(
       "document",
       {},
     );
@@ -1511,7 +1513,7 @@ export class Client implements ConfigContainer {
   }
 
   async loadCustomStyles() {
-    const spaceStyles = await this.clientSystem.queryObjects<StyleObject>(
+    const spaceStyles = await this.clientSystem.queryLuaObjects<StyleObject>(
       "space-style",
       {},
     );

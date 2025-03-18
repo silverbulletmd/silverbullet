@@ -40,7 +40,7 @@ function template.fromPage(name)
     removeTags = true
   })
 
-  return template.new(fm.text)
+  return template.new(string.trimStart(fm.text))
 end
 
 -- Creates a template-based slash command, keys for def are:
