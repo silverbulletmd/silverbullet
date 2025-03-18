@@ -72,7 +72,7 @@
     flex: 0 0 auto;
     text-align: right;
 
-    &.mobile-vertical button:first-of-type {
+    &.hamburger button:first-of-type {
       display: none;
     }
   }
@@ -99,11 +99,11 @@
 
 @media only screen and (max-width: 600px) {
   /* Style the menu as a vertical fly-out */
-  #sb-top .cm-scroller:has(.mobile-vertical) {
+  #sb-top .cm-scroller:has(.hamburger) {
     position: relative;
   }
 
-  #sb-top .sb-actions.mobile-vertical {
+  #sb-top .sb-actions.hamburger {
     position: absolute;
 
     top: 3px;
@@ -160,7 +160,7 @@
   }
 
   /* Style the menu as a bottom bar */
-  #sb-top .sb-actions.mobile-bar {
+  #sb-top .sb-actions.bottom-bar {
     position: fixed;
     bottom: 0;
     left: 0;

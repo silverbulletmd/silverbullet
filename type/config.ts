@@ -74,7 +74,7 @@ export const defaultConfig: Config = {
   actionButtons: [], // Actually defaults to defaultActionButtons
   autoCloseBrackets: "([{`",
   indentMultiplier: 1,
-  mobileMenuStyle: "mobile-vertical",
+  mobileMenuStyle: "hamburger",
 
   schema: {
     config: {

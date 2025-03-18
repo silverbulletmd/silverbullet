@@ -300,7 +300,7 @@ export class MainUI {
           actionButtons={[
             // Vertical menu button
             ...(viewState.isMobile &&
-                viewState.config.mobileMenuStyle.includes("mobile-vertical"))
+                viewState.config.mobileMenuStyle.includes("hamburger"))
               ? [{
                 icon: featherIcons.MoreVertical,
                 description: "Open Menu",
