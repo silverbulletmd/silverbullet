@@ -61,7 +61,7 @@ export function PageNavigator({
 
       options.push({
         type: "document",
-        ...documentMeta,
+        meta: documentMeta,
         name: documentMeta.name,
         description,
         orderId: orderId,
@@ -112,7 +112,7 @@ export function PageNavigator({
         }
         options.push({
           type: "page",
-          ...pageMeta,
+          meta: pageMeta,
           name: (pageMeta.pageDecoration?.prefix ?? "") + pageMeta.name,
           description,
           orderId: orderId,
@@ -127,7 +127,7 @@ export function PageNavigator({
         }
         options.push({
           type: "page",
-          ...pageMeta,
+          meta: pageMeta,
           // Use the displayName or last bit of the path as the name
           name: pageMeta.displayName || pageMeta.name.split("/").pop()!,
           // And use the full path as the description
@@ -145,7 +145,7 @@ export function PageNavigator({
         }
         options.push({
           type: "page",
-          ...pageMeta,
+          meta: pageMeta,
           name: pageMeta.name,
           description,
           orderId: orderId,
@@ -210,17 +210,17 @@ export function PageNavigator({
           if (allTags) {
             // Search phrase contains hash tags, let's pre-filter the results based on this
             const filterTags = allTags.map((t) => extractHashtag(t));
-            options = options.filter((pageMeta) => {
-              if (!pageMeta.tags) {
+            options = options.filter((page) => {
+              if (!page.meta.tags) {
                 return false;
               }
               return filterTags.every((tag) =>
-                pageMeta.tags.find((itemTag: string) => itemTag.startsWith(tag))
+                page.meta.tags.find((itemTag: string) => itemTag.startsWith(tag))
               );
             });
           }
           // Remove pages that are tagged as templates or meta
-          options = options.filter((pageMeta) => !isMetaPageOption(pageMeta));
+          options = options.filter((page) => !isMetaPageOption(page));
         } else if (mode === "meta") {
           // Filter on pages tagged with "template" or "meta" prefix
           options = options.filter(isMetaPageOption);
@@ -229,7 +229,7 @@ export function PageNavigator({
         if (mode !== "all") {
           // Filter out hidden pages
           options = options.filter((page) =>
-            !(page.pageDecoration?.hide === true)
+            !(page.meta.pageDecoration?.hide === true)
           );
         }
         return options;
@@ -242,13 +242,13 @@ export function PageNavigator({
       newHint={`Create ${creatablePageNoun}`}
       completePrefix={completePrefix}
       onSelect={(opt) => {
-        onNavigate(opt?.ref || opt?.name, opt?.type);
+        onNavigate(opt?.meta.ref || opt?.name, opt?.type);
       }}
     />
   );
 }
 
 function isMetaPageOption(page: FilterOption) {
-  return page.tags?.includes("template") ||
-    page.tags?.find((tag: string) => tag.startsWith("meta"));
+  return page.meta.tags?.includes("template") ||
+    page.meta.tags?.find((tag: string) => tag.startsWith("meta"));
 }
