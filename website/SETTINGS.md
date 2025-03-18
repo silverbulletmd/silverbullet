@@ -17,6 +17,11 @@ hideSyncButton: false
 # Hide the edit button (available on mobile only)
 hideEditButton: true # defaults to 'false'
 
+# Style the menu as a vertical fly-out on smaller screens (default)
+# Use `mobileMenuStyle: "bottom-bar"` to style it as a bar on the bottom of the screen
+# Use `mobileMenuStyle: null` to prevent mobile-specific styling
+mobileMenuStyle: "hamburger"
+
 # In PWA mode, SilverBullet automatically reopens the last opened page on boot, this can be disabled
 pwaOpenLastPage: true
 

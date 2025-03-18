@@ -34,6 +34,7 @@ export function TopBar({
   rhs,
   pageNamePrefix,
   cssClass,
+  mobileMenuStyle,
 }: {
   pageName?: string;
   unsavedChanges: boolean;
@@ -51,6 +52,7 @@ export function TopBar({
   rhs?: ComponentChildren;
   pageNamePrefix?: string;
   cssClass?: string;
+  mobileMenuStyle?: string;
 }) {
   return (
     <div
@@ -101,7 +103,10 @@ export function TopBar({
                 ))}
               </div>
             )}
-            <div className="sb-actions">
+            <div
+              className={"sb-actions " +
+                (mobileMenuStyle ? mobileMenuStyle : "")}
+            >
               {progressPerc !== undefined &&
                 (
                   <div

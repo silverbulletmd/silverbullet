@@ -298,6 +298,16 @@ export class MainUI {
             }
           }}
           actionButtons={[
+            // Vertical menu button
+            ...(viewState.isMobile &&
+                viewState.config.mobileMenuStyle.includes("hamburger"))
+              ? [{
+                icon: featherIcons.MoreVertical,
+                description: "Open Menu",
+                callback:
+                  () => {/* nothing to do, menu opens on hover/mobile click */},
+              }]
+              : [],
             // Sync button
             ...(!this.client.clientConfig.syncOnly &&
                 !viewState.config.hideSyncButton)
@@ -403,6 +413,9 @@ export class MainUI {
           cssClass={viewState.current?.meta?.pageDecoration?.cssClasses
             ? viewState.current?.meta?.pageDecoration?.cssClasses
               .join(" ").replaceAll(/[^a-zA-Z0-9-_ ]/g, "")
+            : ""}
+          mobileMenuStyle={viewState.config?.mobileMenuStyle
+            ? viewState.config?.mobileMenuStyle
             : ""}
         />
         <div id="sb-main">

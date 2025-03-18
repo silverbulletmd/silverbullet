@@ -37,6 +37,9 @@ config:
     hideSyncButton:
       type: boolean
       nullable: true
+    mobileMenuStyle:
+      type: string
+      nullable: true
     actionButtons:
       type: array
       items:

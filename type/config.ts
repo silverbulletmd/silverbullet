@@ -50,6 +50,7 @@ export type Config = {
   autoCloseBrackets: string;
   smartQuotes?: SmartQuotesConfig;
   indentMultiplier?: number;
+  mobileMenuStyle: string;
 
   schema: SchemaConfig;
 
@@ -73,6 +74,7 @@ export const defaultConfig: Config = {
   actionButtons: [], // Actually defaults to defaultActionButtons
   autoCloseBrackets: "([{`",
   indentMultiplier: 1,
+  mobileMenuStyle: "hamburger",
 
   schema: {
     config: {
