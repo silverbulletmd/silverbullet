@@ -215,7 +215,9 @@ export function PageNavigator({
                 return false;
               }
               return filterTags.every((tag) =>
-                page.meta.tags.find((itemTag: string) => itemTag.startsWith(tag))
+                page.meta.tags.find((itemTag: string) =>
+                  itemTag.startsWith(tag)
+                )
               );
             });
           }
@@ -242,7 +244,7 @@ export function PageNavigator({
       newHint={`Create ${creatablePageNoun}`}
       completePrefix={completePrefix}
       onSelect={(opt) => {
-        onNavigate(opt?.meta.ref || opt?.name, opt?.type);
+        onNavigate(opt?.meta?.ref || opt?.name, opt?.type);
       }}
     />
   );
