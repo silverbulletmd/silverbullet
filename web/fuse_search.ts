@@ -22,6 +22,7 @@ export const fuzzySearchAndSort = (
       displayName: item?.meta?.displayName,
       aliases: item?.meta?.aliases?.join(" "),
       description: item.description,
+      meta: item.meta,
     };
   });
 
@@ -60,6 +61,5 @@ export const fuzzySearchAndSort = (
   });
 
   const results = fuse.search(searchPhrase);
-  // console.log("results", results);
   return results.map((r) => r.item);
 };
