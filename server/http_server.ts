@@ -227,7 +227,9 @@ export class HttpServer {
           }
         }
         ctx.status(response.status as any || 200);
-        if (typeof response.body === "string") {
+        if (response.headers["Content-Type"]) {
+          return ctx.body(response.body);
+        } else if (typeof response.body === "string") {
           return ctx.text(response.body);
         } else if (response.body instanceof Uint8Array) {
           return ctx.body(response.body.buffer as ArrayBuffer);
