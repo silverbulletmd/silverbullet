@@ -58,17 +58,8 @@ export function batchDel(keys: KvKey[]): Promise<void> {
   return syscall("datastore.batchDelete", keys);
 }
 
-/**
- * Queries the key value store.
- * @param query the query to run
- * @param variables the variables that can be referenced inside the query
- * @returns the results of the query
- */
-export function query(
-  query: KvQuery,
-  variables: Record<string, any> = {},
-): Promise<KV[]> {
-  return syscall("datastore.query", query, variables);
+export function query(options: KvQuery): Promise<KV[]> {
+  return syscall("datastore.query", options);
 }
 
 export function queryLua(
@@ -77,6 +68,10 @@ export function queryLua(
   scopeVariables: Record<string, any>,
 ): Promise<any[]> {
   return syscall("datastore.queryLua", prefix, query, scopeVariables);
+}
+
+export function batchDeletePrefix(prefix: KvKey): Promise<void> {
+  return syscall("datastore.batchDeletePrefix", prefix);
 }
 
 /**

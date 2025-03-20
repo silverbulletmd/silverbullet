@@ -14,12 +14,7 @@ safeRun(async () => {
     return;
   }
   console.log("Client config", clientConfig);
-  clientConfig!.syncMode = clientConfig!.syncOnly ||
-    !!localStorage.getItem("syncMode");
-  console.log(
-    "Booting SilverBullet client",
-    clientConfig!.syncMode ? "in Sync Mode" : "in Online Mode",
-  );
+  console.log("Booting SilverBullet client");
 
   if (clientConfig!.readOnly) {
     console.log("Running in read-only mode");
@@ -66,14 +61,12 @@ safeRun(async () => {
       }
     });
 
-    if (clientConfig!.syncMode) {
-      navigator.serviceWorker.ready.then((registration) => {
-        registration.active!.postMessage({
-          type: "config",
-          config: clientConfig,
-        });
+    navigator.serviceWorker.ready.then((registration) => {
+      registration.active!.postMessage({
+        type: "config",
+        config: clientConfig,
       });
-    }
+    });
   } else {
     console.warn(
       "Not launching service worker, likely because not running from localhost or over HTTPs. This means SilverBullet will not be available offline.",

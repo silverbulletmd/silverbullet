@@ -48,7 +48,6 @@ export class PathPageNavigator {
       ? {
         ...currentState,
         pos: undefined,
-        anchor: undefined,
       }
       : currentState;
 
@@ -120,7 +119,7 @@ export class PathPageNavigator {
           }
           if (
             popState.kind === "page" &&
-            popState.anchor === undefined && popState.pos === undefined &&
+            popState.pos === undefined &&
             popState.selection === undefined &&
             popState.scrollTop === undefined
           ) {

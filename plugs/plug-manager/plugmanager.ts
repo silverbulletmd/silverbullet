@@ -27,7 +27,7 @@ export async function updatePlugsCommand() {
   await editor.flashNotification("Updating plugs...");
   try {
     const plugList: string[] = [];
-    const configPlugs: any[] = await system.getSpaceConfig("plugs", []);
+    const configPlugs: any[] = await system.getConfig("plugs", []);
     if (!Array.isArray(configPlugs)) {
       throw new Error("Expected 'plugs' in Space Config to be an array");
     }

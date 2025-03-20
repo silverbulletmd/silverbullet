@@ -91,9 +91,6 @@ export function cleanMarkdown(tree: ParseTree): ParseTree {
           }/${encodePageURI(pageRef.page)})`,
         };
       }
-      case "NamedAnchor":
-        // Just remove these
-        return null;
       case "CommandLink": {
         // Child 0 is CommandLinkMark, child 1 is CommandLinkPage
         const command = node.children![1].children![0].text!;

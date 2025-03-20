@@ -59,8 +59,6 @@ And more custom stuff [[Page link]]
 
 https://community.mattermost.com
 
-$anchor
-
 [A link](https://silverbullet.md)
 
 ## Tables

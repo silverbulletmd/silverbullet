@@ -4,17 +4,10 @@ functions:
   batchSet:
     path: api.ts:batchSet
     env: server
-  query:
-    path: api.ts:query
-    syscall: index.query
   indexObjects:
     path: api.ts:indexObjects
     syscall: index.indexObjects
     env: server
-  queryObjects:
-    path: api.ts:queryObjects
-    syscall: index.queryObjects
-    # Note: not setting env: server to allow for client-side datastore query caching
   queryLuaObjects:
     path: api.ts:queryLuaObjects
     syscall: index.queryLuaObjects
@@ -29,14 +22,6 @@ functions:
     syscall: index.extractFrontmatter
 
   # Event handlers
-  objectSourceProvider:
-    path: api.ts:objectSourceProvider
-    events:
-      - query:*
-  discoverSources:
-    path: api.ts:discoverSources
-    events:
-      - query_
   clearIndex:
     path: api.ts:clearIndex
     env: server
@@ -90,31 +75,11 @@ functions:
     events:
       - page:index
 
-  attributeComplete:
-    path: "./attributes.ts:attributeComplete"
-    events:
-      - editor:complete
-
-  objectAttributeCompleter:
-    path: ./attributes.ts:objectAttributeCompleter
-    events:
-      - attribute:complete:*
-
   # Item indexing
   indexItem:
     path: "./item.ts:indexItems"
     events:
       - page:index
-
-  # Anchors
-  indexAnchors:
-    path: "./anchor.ts:indexAnchors"
-    events:
-      - page:index
-  anchorComplete:
-    path: "./anchor.ts:anchorComplete"
-    events:
-      - editor:complete
 
   # Tables
   indexTables:
@@ -456,30 +421,7 @@ config:
         context:
           type: string
           readOnly: true
-    anchor:
-      type: object
-      properties:
-        ref:
-          type: string
-          readOnly: true
-        tag:
-          type: string
-        tags:
-          type: array
-          items:
-            type: string
-          nullable: true
-        itags:
-          type: array
-          items:
-            type: string
-          nullable: true
-        name:
-          type: string
-        page:
-          type: string
-        pos:
-          type: number
+
     link:
       type: object
       properties:

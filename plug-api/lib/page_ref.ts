@@ -5,7 +5,6 @@ export type Ref = {
   kind: "page" | "document";
   page: string;
   pos?: number | { line: number; column: number };
-  anchor?: string;
   header?: string;
   meta?: boolean;
 };
@@ -40,7 +39,6 @@ export function validatePath(path: string) {
 
 const posRegex = /@(\d+)$/;
 const linePosRegex = /@[Ll](\d+)(?:[Cc](\d+))?$/; // column is optional, implicit 1
-const anchorRegex = /\$([a-zA-Z\.\-\/]+[\w\.\-\/]*)$/;
 const headerRegex = /#([^#]*)$/;
 
 /**
@@ -79,11 +77,6 @@ export function parseRef(name: string): Ref {
     pageRef.page = pageRef.page.replace(linePosRegex, "");
   }
 
-  const anchorMatch = pageRef.page.match(anchorRegex);
-  if (anchorMatch) {
-    pageRef.anchor = anchorMatch[1];
-    pageRef.page = pageRef.page.replace(anchorRegex, "");
-  }
   const headerMatch = pageRef.page.match(headerRegex);
   if (headerMatch) {
     pageRef.header = headerMatch[1];
@@ -109,9 +102,6 @@ export function encodeRef(pageRef: Ref): string {
     } else { // just a number
       name += `@${pageRef.pos}`;
     }
-  }
-  if (pageRef.anchor) {
-    name += `$${pageRef.anchor}`;
   }
   if (pageRef.header) {
     name += `#${pageRef.header}`;

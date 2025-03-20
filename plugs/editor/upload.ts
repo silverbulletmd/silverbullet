@@ -5,7 +5,7 @@ import { resolvePath } from "@silverbulletmd/silverbullet/lib/resolve";
 import { encodePageURI } from "@silverbulletmd/silverbullet/lib/page_ref";
 
 export async function saveFile(file: UploadFile) {
-  const maxSize = await system.getSpaceConfig(
+  const maxSize = await system.getConfig<number>(
     "maximumDocumentSize",
     maximumDocumentSize,
   );
@@ -39,7 +39,7 @@ export async function saveFile(file: UploadFile) {
 
     await space.writeDocument(documentPath, file.content);
 
-    const linkStyle = await system.getSpaceConfig(
+    const linkStyle = await system.getConfig(
       "defaultLinkStyle",
       defaultLinkStyle,
     );

@@ -13,7 +13,7 @@ import { closeSearchPanel } from "@codemirror/search";
 import { runScopeHandlers } from "@codemirror/view";
 import type { Client } from "./client.ts";
 import { Panel } from "./components/panel.tsx";
-import { safeRun, sleep } from "../lib/async.ts";
+import { safeRun } from "../lib/async.ts";
 import { parseCommand } from "$common/command.ts";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 
@@ -310,45 +310,14 @@ export class MainUI {
                   () => {/* nothing to do, menu opens on hover/mobile click */},
               }]
               : [],
-            // Sync button
-            ...[{
-              icon: featherIcons.RefreshCw,
-              description: this.client.clientConfig.syncMode
-                ? "Currently in Sync mode, click to switch to Online mode"
-                : "Currently in Online mode, click to switch to Sync mode",
-              class: this.client.clientConfig.syncMode
-                ? "sb-enabled"
-                : undefined,
-              callback: () => {
-                (async () => {
-                  const newValue = !this.client.clientConfig.syncMode;
-
-                  if (newValue) {
-                    localStorage.setItem("syncMode", "true");
-                    this.client.flashNotification(
-                      "Now switching to sync mode, one moment please...",
-                    );
-                    await sleep(1000);
-                    location.reload();
-                  } else {
-                    localStorage.removeItem("syncMode");
-                    this.client.flashNotification(
-                      "Now switching to online mode, one moment please...",
-                    );
-                    await sleep(1000);
-                    location.reload();
-                  }
-                })().catch(console.error);
-              },
-            }],
-
             // Custom action buttons
             ...client.config.get<ActionButton[]>(
               "actionButtons",
               defaultActionButtons,
             ).filter((
               button,
-            ) => (typeof button.mobile === "undefined") ||
+            ) =>
+              (typeof button.mobile === "undefined") ||
               (button.mobile === viewState.isMobile)
             )
               .map((button) => {

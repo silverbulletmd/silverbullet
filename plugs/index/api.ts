@@ -1,17 +1,5 @@
-import {
-  datastore,
-  markdown,
-  system,
-} from "@silverbulletmd/silverbullet/syscalls";
-import type {
-  KV,
-  KvKey,
-  KvQuery,
-  ObjectQuery,
-  ObjectValue,
-} from "../../plug-api/types.ts";
-import type { QueryProviderEvent } from "../../plug-api/types.ts";
-import { determineType, type SimpleJSONType } from "./attributes.ts";
+import { datastore, markdown } from "@silverbulletmd/silverbullet/syscalls";
+import type { KV, KvKey, ObjectValue } from "../../plug-api/types.ts";
 import { ttlCache } from "$lib/memory_cache.ts";
 import type { LuaCollectionQuery } from "$common/space_lua/query_collection.ts";
 import {
@@ -89,13 +77,11 @@ export async function clearIndex(): Promise<void> {
 /**
  * Indexes entities in the data store
  */
-export async function indexObjects<T>(
+export function indexObjects<T>(
   page: string,
   objects: ObjectValue<T>[],
 ): Promise<void> {
   const kvs: KV<T>[] = [];
-  const schema = await system.getSpaceConfig("schema", { tag: {} });
-  const allAttributes = new Map<string, SimpleJSONType>();
   for (const obj of objects) {
     if (!obj.tag) {
       console.error("Object has no tag", obj, "this shouldn't happen");
@@ -103,63 +89,13 @@ export async function indexObjects<T>(
     }
     // Index as all the tag + any additional tags specified
     const allTags = [obj.tag, ...obj.tags || []];
-    const tagSchemaProperties =
-      schema.tag[obj.tag] && schema.tag[obj.tag].properties || {};
     for (const tag of allTags) {
       // The object itself
       kvs.push({
         key: [tag, cleanKey(obj.ref, page)],
         value: obj,
       });
-      // Index attributes
-      const schemaAttributes = schema.tag[tag] && schema.tag[tag].properties;
-      if (!schemaAttributes) {
-        // There is no schema definition for this tag, so we index all attributes
-        for (
-          const [attrName, attrValue] of Object.entries(
-            obj as Record<string, any>,
-          )
-        ) {
-          if (attrName.startsWith("$") || tagSchemaProperties[attrName]) {
-            continue;
-          }
-
-          allAttributes.set(`${tag}:${attrName}`, determineType(attrValue));
-        }
-      } else {
-        // For tags with schemas, only index attributes that are not in the schema
-        for (
-          const [attrName, attrValue] of Object.entries(
-            obj as Record<string, any>,
-          )
-        ) {
-          // Skip schema-defined and internal attributes
-          if (
-            schemaAttributes[attrName] || tagSchemaProperties[attrName] ||
-            attrName.startsWith("$")
-          ) {
-            continue;
-          }
-          allAttributes.set(`${tag}:${attrName}`, determineType(attrValue));
-        }
-      }
     }
-  }
-  if (allAttributes.size > 0) {
-    [...allAttributes].forEach(([key, value]) => {
-      const [tagName, name] = key.split(":");
-      kvs.push({
-        key: ["ah-attr", cleanKey(key, page)],
-        value: {
-          ref: key,
-          tag: "ah-attr",
-          tagName,
-          name,
-          page,
-          schema: value,
-        } as T,
-      });
-    });
   }
   if (kvs.length > 0) {
     return batchSet(page, kvs);
@@ -176,20 +112,6 @@ function cleanKey(ref: string, page: string) {
   }
 }
 
-export function queryObjects<T>(
-  tag: string,
-  query: ObjectQuery,
-  ttlSecs?: number,
-): Promise<ObjectValue<T>[]> {
-  return ttlCache(query, async () => {
-    return (await datastore.query({
-      ...query,
-      prefix: [indexKey, tag],
-      distinct: true,
-    })).map(({ value }) => value);
-  }, ttlSecs);
-}
-
 export function queryLuaObjects<T>(
   tag: string,
   query: LuaCollectionQuery,
@@ -201,25 +123,22 @@ export function queryLuaObjects<T>(
   }, ttlSecs);
 }
 
-export function queryDeleteObjects<T>(
+export function deleteObject(
   tag: string,
-  query: ObjectQuery,
+  page: string,
+  object: ObjectValue<any>,
 ): Promise<void> {
-  return datastore.queryDelete({
-    ...query,
-    prefix: [indexKey, tag],
-  });
+  return datastore.del([tag, cleanKey(object.ref, page)]);
 }
 
-export async function query(
-  query: KvQuery,
-  variables?: Record<string, any>,
-): Promise<KV[]> {
-  return (await datastore.query({
-    ...query,
-    prefix: [indexKey, ...query.prefix ? query.prefix : []],
-  }, variables)).map(({ key, value }) => ({ key: key.slice(1), value }));
-}
+// export async function query(
+//   query: KvQuery,
+// ): Promise<KV[]> {
+//   return (await datastore.query({
+//     ...query,
+//     prefix: [indexKey, ...query.prefix ? query.prefix : []],
+//   })).map(({ key, value }) => ({ key: key.slice(1), value }));
+// }
 
 export function getObjectByRef<T>(
   page: string,
@@ -227,33 +146,6 @@ export function getObjectByRef<T>(
   ref: string,
 ): Promise<ObjectValue<T> | undefined> {
   return datastore.get([indexKey, tag, cleanKey(ref, page), page]);
-}
-
-export async function objectSourceProvider({
-  query,
-  variables,
-}: QueryProviderEvent): Promise<any[]> {
-  const tag = query.querySource!;
-  const results = await datastore.query({
-    ...query,
-    prefix: [indexKey, tag],
-    distinct: true,
-  }, variables);
-  return results.map((r) => r.value);
-}
-
-export async function discoverSources() {
-  const schema = await system.getSpaceConfig("schema");
-  // Query all tags we indexed
-  return (await datastore.query({
-    prefix: [indexKey, "tag"],
-    select: [{ name: "name" }],
-    distinct: true,
-  })).map((
-    { value },
-  ) => value.name)
-    // And concatenate all the tags from the schema
-    .concat(Object.keys(schema.tag));
 }
 
 export async function extractFrontmatter(

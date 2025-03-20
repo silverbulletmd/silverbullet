@@ -8,10 +8,11 @@ import type {
   IndexTreeEvent,
   ObjectValue,
 } from "../../plug-api/types.ts";
-import { indexObjects, queryObjects } from "./api.ts";
+import { indexObjects, queryLuaObjects } from "./api.ts";
 import { parseRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { extractAttributes } from "@silverbulletmd/silverbullet/lib/attribute";
 import { extractHashtag } from "../../plug-api/lib/tags.ts";
+import { lua } from "@silverbulletmd/silverbullet/syscalls";
 
 type HeaderObject = ObjectValue<
   {
@@ -41,10 +42,7 @@ export async function indexHeaders({ name: pageName, tree }: IndexTreeEvent) {
     });
 
     // Extract attributes and remove from tree
-    const extractedAttributes = await extractAttributes(
-      ["header", ...tags],
-      n,
-    );
+    const extractedAttributes = await extractAttributes(n);
     const name = n.children!.slice(1).map(renderToText).join("").trim();
 
     headers.push({
@@ -72,12 +70,15 @@ export async function headerComplete(completeEvent: CompleteEvent) {
   }
 
   const pageRef = parseRef(match[1]).page;
-  const allHeaders = await queryObjects<HeaderObject>("header", {
-    filter: ["=", ["attr", "page"], [
-      "string",
-      pageRef || completeEvent.pageName,
-    ]],
-  }, 5);
+  const allHeaders = await queryLuaObjects<HeaderObject>(
+    "header",
+    {
+      objectVariable: "_",
+      where: await lua.parseExpression(`_.page = pageName`),
+    },
+    { pageRef: pageRef || completeEvent.pageName },
+    5,
+  );
   return {
     from: completeEvent.pos - match[1].length,
     options: allHeaders.map((a) => ({

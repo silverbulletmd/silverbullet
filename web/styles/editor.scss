@@ -91,20 +91,12 @@
 
   // Indentation of follow-up lines
   @mixin lineOverflow($baseIndent, $bulletIndent: 0) {
-    text-indent: calc(
-      -1 * (#{$baseIndent}ch + 2ch)
-    );
-    padding-left: calc(
-      #{$baseIndent}ch + 2ch
-    );
+    text-indent: calc(-1 * (#{$baseIndent}ch + 2ch));
+    padding-left: calc(#{$baseIndent}ch + 2ch);
 
     &.sb-line-task {
-      text-indent: calc(
-        -1 * (#{$baseIndent}ch + 5ch)
-      );
-      padding-left: calc(
-        #{$baseIndent}ch + 5ch
-      );
+      text-indent: calc(-1 * (#{$baseIndent}ch + 5ch));
+      padding-left: calc(#{$baseIndent}ch + 5ch);
 
       .cm-list-bullet::after {
         left: calc(#{$baseIndent}ch + 5ch);
@@ -112,19 +104,12 @@
     }
 
     &.sb-line-blockquote {
-      text-indent: calc(
-        -1 * (#{$baseIndent}ch + 4ch)
-      );
-      padding-left: calc(
-        #{$baseIndent}ch + 4ch
-      );
+      text-indent: calc(-1 * (#{$baseIndent}ch + 4ch));
+      padding-left: calc(#{$baseIndent}ch + 4ch);
     }
 
     .cm-list-bullet::after {
-      left: calc(
-        #{$baseIndent}ch + #{$bulletIndent}ch
-          + 2ch
-      );
+      left: calc(#{$baseIndent}ch + #{$bulletIndent}ch + 2ch);
     }
   }
 

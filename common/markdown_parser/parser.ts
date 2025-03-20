@@ -372,14 +372,6 @@ const TaskDeadline = regexParser({
   tag: ct.TaskDeadlineTag,
 });
 
-const NamedAnchor = regexParser({
-  firstCharCode: 36, // $
-  regex: /^\$[a-zA-Z\.\-\/]+[\w\.\-\/]*/,
-  className: "sb-named-anchor",
-  nodeType: "NamedAnchor",
-  tag: ct.NamedAnchorTag,
-});
-
 import { Table } from "./table_parser.ts";
 import { foldNodeProp } from "@codemirror/language";
 import { pWikiLinkRegex, tagRegex } from "$common/markdown_parser/constants.ts";
@@ -464,7 +456,6 @@ export const extendedMarkdownLanguage = markdown({
     NakedURL,
     Hashtag,
     TaskDeadline,
-    NamedAnchor,
     Superscript,
     Subscript,
     {

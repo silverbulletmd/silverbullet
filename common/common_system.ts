@@ -2,7 +2,6 @@ import type { AppCommand } from "$lib/command.ts";
 import type { CommandHook } from "./hooks/command.ts";
 import type { PlugNamespaceHook } from "$common/hooks/plug_namespace.ts";
 import type { SilverBulletHooks } from "../lib/manifest.ts";
-import { buildQueryFunctions } from "./query_functions.ts";
 import { ScriptEnvironment } from "./space_script.ts";
 import type { EventHook } from "./hooks/event.ts";
 import type { DataStore } from "$lib/data/datastore.ts";
@@ -48,28 +47,13 @@ export abstract class CommonSystem {
   }
 
   async loadSpaceScripts() {
-    let functions = buildQueryFunctions(
-      this.allKnownFiles,
-      this.system,
-    );
     if (this.enableSpaceScript) {
       this.scriptEnv = new ScriptEnvironment();
       try {
-        await this.scriptEnv.loadFromSystem(this.system);
-        console.log(
-          "Loaded",
-          Object.keys(this.scriptEnv.functions).length,
-          "functions,",
-          Object.keys(this.scriptEnv.commands).length,
-          "commands,",
-          Object.keys(this.scriptEnv.eventHandlers).length,
-          "event handlers from space-script",
-        );
         await this.spaceLuaEnv.reload(this.system);
       } catch (e: any) {
         console.error("Error loading space-script:", e.message);
       }
-      functions = { ...functions, ...this.scriptEnv.functions };
 
       // Reset the space script commands
       this.spaceScriptCommands.clear();

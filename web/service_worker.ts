@@ -138,8 +138,7 @@ self.addEventListener("fetch", (event: any) => {
       } else if (
         pathname === "/.auth" ||
         pathname === "/.logout" ||
-        pathname === "/index.json" ||
-        pathname.startsWith("/!")
+        pathname === "/index.json"
       ) {
         return fetch(request);
       } else if (

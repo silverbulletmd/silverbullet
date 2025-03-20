@@ -353,7 +353,7 @@ function render(
       let externalTaskRef = "";
       collectNodesOfType(t, "WikiLinkPage").forEach((wikilink) => {
         const pageRef = parseRef(wikilink.children![0].text!);
-        if (!externalTaskRef && (pageRef.pos !== undefined || pageRef.anchor)) {
+        if (!externalTaskRef && (pageRef.pos !== undefined)) {
           externalTaskRef = wikilink.children![0].text!;
         }
       });
@@ -391,14 +391,6 @@ function render(
         };
       }
     }
-    case "NamedAnchor":
-      return {
-        name: "a",
-        attrs: {
-          name: t.children![0].text?.substring(1),
-        },
-        body: "",
-      };
     case "CommandLink": {
       // Child 0 is CommandLinkMark, child 1 is CommandLinkPage
       const command = t.children![1].children![0].text!;

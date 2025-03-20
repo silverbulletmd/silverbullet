@@ -1,14 +1,13 @@
 import {
   findNodeOfType,
   type ParseTree,
-  renderToText,
   replaceNodesMatching,
   traverseTreeAsync,
 } from "./tree.ts";
 
 import { cleanupJSON } from "@silverbulletmd/silverbullet/lib/json";
 
-import { system, YAML } from "../syscalls.ts";
+import { YAML } from "../syscalls.ts";
 
 /**
  * Extracts attributes from a tree
@@ -16,10 +15,9 @@ import { system, YAML } from "../syscalls.ts";
  * @returns mapping from attribute name to attribute value
  */
 export async function extractAttributes(
-  tags: string[],
   tree: ParseTree,
 ): Promise<Record<string, any>> {
-  let attributes: Record<string, any> = {};
+  const attributes: Record<string, any> = {};
   await traverseTreeAsync(tree, async (n) => {
     if (tree !== n && n.type === "ListItem") {
       // Find top-level only, no nested lists
@@ -42,16 +40,6 @@ export async function extractAttributes(
     // Go on...
     return false;
   });
-  const text = renderToText(tree);
-  const spaceScriptAttributes = await system.applyAttributeExtractors(
-    tags,
-    text,
-    tree,
-  );
-  attributes = {
-    ...attributes,
-    ...spaceScriptAttributes,
-  };
   return attributes;
 }
 

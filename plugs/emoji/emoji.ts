@@ -49,7 +49,7 @@ async function updateConfig() {
   // Update at most every 5 seconds
   if (Date.now() < lastConfigUpdate + 5000) return;
   lastConfigUpdate = Date.now();
-  const config = await system.getSpaceConfig("emoji");
+  const config = await system.getConfig("emoji");
   if (!config) {
     return;
   }

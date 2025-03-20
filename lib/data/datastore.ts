@@ -4,7 +4,7 @@ import {
 } from "$common/space_lua/query_collection.ts";
 import { LuaEnv, LuaStackFrame } from "$common/space_lua/runtime.ts";
 import type { KV, KvKey } from "../../plug-api/types.ts";
-import type { KvPrimitives } from "./kv_primitives.ts";
+import type { KvPrimitives, KvQueryOptions } from "./kv_primitives.ts";
 
 /**
  * This is the data store class you'll actually want to use, wrapping the primitives
@@ -58,6 +58,18 @@ export class DataStore {
       return Promise.resolve();
     }
     return this.kv.batchDelete(keys);
+  }
+
+  async batchDeletePrefix(prefix: KvKey): Promise<void> {
+    const keys: KvKey[] = [];
+    for await (const { key } of this.kv.query({ prefix })) {
+      keys.push(key);
+    }
+    return this.batchDelete(keys);
+  }
+
+  query(options: KvQueryOptions): AsyncIterableIterator<KV> {
+    return this.kv.query(options);
   }
 
   luaQuery<T = any>(

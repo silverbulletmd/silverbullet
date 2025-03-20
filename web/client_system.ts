@@ -25,8 +25,6 @@ import { yamlSyscalls } from "$common/syscalls/yaml.ts";
 import type { Space } from "../common/space.ts";
 import { MQHook } from "../lib/plugos/hooks/mq.ts";
 import { mqSyscalls } from "../lib/plugos/syscalls/mq.ts";
-import { mqProxySyscalls } from "./syscalls/mq.proxy.ts";
-import { dataStoreProxySyscalls } from "./syscalls/datastore.proxy.ts";
 import {
   dataStoreReadSyscalls,
   dataStoreWriteSyscalls,
@@ -69,16 +67,12 @@ export class ClientSystem extends CommonSystem {
       readOnlyMode,
       client.clientConfig.enableSpaceScript,
     );
-    // Only set environment to "client" when running in thin client mode, otherwise we run everything locally (hybrid)
-    this.system = new System(
-      client.clientConfig.syncMode ? undefined : "client",
-      {
-        manifestCache: new KVPrimitivesManifestCache<SilverBulletHooks>(
-          ds.kv,
-          "manifest",
-        ),
-      },
-    );
+    this.system = new System(undefined, {
+      manifestCache: new KVPrimitivesManifestCache<SilverBulletHooks>(
+        ds.kv,
+        "manifest",
+      ),
+    });
 
     this.system.addHook(this.eventHook);
 
@@ -103,10 +97,7 @@ export class ClientSystem extends CommonSystem {
     this.system.addHook(this.documentEditorHook);
 
     // MQ hook
-    if (client.clientConfig.syncMode) {
-      // Process MQ messages locally
-      this.system.addHook(new MQHook(this.system, this.mq));
-    }
+    this.system.addHook(new MQHook(this.system, this.mq));
 
     // Command hook
     this.commandHook = new CommandHook(
@@ -165,7 +156,7 @@ export class ClientSystem extends CommonSystem {
       eventListenerSyscalls(this),
       editorSyscalls(this.client),
       spaceReadSyscalls(this.client),
-      systemSyscalls(this.system, false, this, this.client),
+      systemSyscalls(client, false),
       markdownSyscalls(),
       assetSyscalls(this.system),
       yamlSyscalls(),
@@ -176,17 +167,9 @@ export class ClientSystem extends CommonSystem {
       indexSyscalls(this),
       commandSyscalls(this),
       luaSyscalls(this),
-      this.client.clientConfig.syncMode
-        // In sync mode handle locally
-        ? mqSyscalls(this.mq)
-        // In non-sync mode proxy to server
-        : mqProxySyscalls(this.client),
-      ...this.client.clientConfig.syncMode
-        ? [
-          dataStoreReadSyscalls(this.ds, this),
-          dataStoreWriteSyscalls(this.ds),
-        ]
-        : [dataStoreProxySyscalls(this.client)],
+      mqSyscalls(this.mq),
+      dataStoreReadSyscalls(this.ds, this),
+      dataStoreWriteSyscalls(this.ds),
       debugSyscalls(this.client),
       syncSyscalls(this.client),
       clientStoreSyscalls(this.ds),

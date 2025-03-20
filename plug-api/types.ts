@@ -77,70 +77,9 @@ export type KV<T = any> = {
   value: T;
 };
 
-export type OrderBy = {
-  expr: QueryExpression;
-  desc: boolean;
-};
-
-export type Select = {
-  name: string;
-  expr?: QueryExpression;
-};
-
-export type Query = {
-  querySource?: string;
-  filter?: QueryExpression;
-  orderBy?: OrderBy[];
-  select?: Select[];
-  limit?: QueryExpression;
-  render?: string;
-  renderAll?: boolean;
-  distinct?: boolean;
-};
-
-export type KvQuery = Omit<Query, "querySource"> & {
+export type KvQuery = {
   prefix?: KvKey;
 };
-
-export type QueryExpression =
-  | ["and", QueryExpression, QueryExpression]
-  | ["or", QueryExpression, QueryExpression]
-  | ["=", QueryExpression, QueryExpression]
-  | ["!=", QueryExpression, QueryExpression]
-  | ["=~", QueryExpression, QueryExpression]
-  | ["!=~", QueryExpression, QueryExpression]
-  | ["<", QueryExpression, QueryExpression]
-  | ["<=", QueryExpression, QueryExpression]
-  | [">", QueryExpression, QueryExpression]
-  | [">=", QueryExpression, QueryExpression]
-  | ["in", QueryExpression, QueryExpression]
-  | ["attr"] // .
-  | ["attr", string] // name
-  | ["attr", QueryExpression, string] // something.name
-  | ["global", string] // @name
-  | ["number", number]
-  | ["string", string]
-  | ["boolean", boolean]
-  | ["null"]
-  | ["not", QueryExpression]
-  | ["array", QueryExpression[]]
-  | ["object", [string, QueryExpression][]]
-  | ["regexp", string, string] // regex, modifier
-  | ["pageref", string]
-  | ["-", QueryExpression]
-  | ["+", QueryExpression, QueryExpression]
-  | ["-", QueryExpression, QueryExpression]
-  | ["*", QueryExpression, QueryExpression]
-  | ["%", QueryExpression, QueryExpression]
-  | ["/", QueryExpression, QueryExpression]
-  | ["?", QueryExpression, QueryExpression, QueryExpression]
-  | ["query", Query]
-  | ["call", string, QueryExpression[]];
-
-export type FunctionMap = Record<
-  string,
-  (...args: any[]) => any
->;
 
 /**
  * An ObjectValue that can be indexed by the `index` plug, needs to have a minimum of
@@ -154,8 +93,6 @@ export type ObjectValue<T> = {
   tags?: string[];
   itags?: string[]; // implicit or inherited tags (inherited from the page for instance)
 } & T;
-
-export type ObjectQuery = Omit<Query, "prefix">;
 
 // Code widget stuff
 export type CodeWidgetCallback = (
@@ -217,11 +154,6 @@ export type AppEvent =
   | "editor:pageModified"
   | "hooks:renderTopWidgets"
   | "hooks:renderBottomWidgets";
-
-export type QueryProviderEvent = {
-  query: Query;
-  variables?: Record<string, any>;
-};
 
 export type ClickEvent = {
   page: string;

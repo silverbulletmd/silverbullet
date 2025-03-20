@@ -1,9 +1,6 @@
-import type { System } from "../lib/plugos/system.ts";
 import type { ParseTree } from "../plug-api/lib/tree.ts";
-import type { ScriptObject } from "../plugs/index/script.ts";
 import type { AppCommand, CommandDef, SlashCommand } from "$lib/command.ts";
 import { Intl, Temporal, toTemporalInstant } from "@js-temporal/polyfill";
-import * as syscalls from "@silverbulletmd/silverbullet/syscalls";
 import type { SlashCommandDef } from "$lib/manifest.ts";
 
 // @ts-ignore: Temporal polyfill
@@ -103,51 +100,5 @@ export class ScriptEnvironment {
       this.eventHandlers[def.name] = [];
     }
     this.eventHandlers[def.name].push(callback);
-  }
-
-  // Internal API
-  evalScript(script: string, system: System<any>) {
-    try {
-      const syscallArgs = [];
-      const syscallValues = [];
-      for (const [tl, value] of Object.entries(syscalls)) {
-        syscallArgs.push(tl);
-        syscallValues.push(value);
-      }
-      const fn = Function(
-        "silverbullet",
-        "syscall",
-        ...syscallArgs,
-        script,
-      );
-      fn.call(
-        {},
-        this,
-        (name: string, ...args: any[]) => system.syscall({}, name, args),
-        ...syscallValues,
-      );
-    } catch (e: any) {
-      throw new Error(
-        `Error evaluating script: ${e.message} for script: ${script}`,
-      );
-    }
-  }
-
-  async loadFromSystem(system: System<any>) {
-    // Install global syscall function on globalThis
-    (globalThis as any).syscall = (name: string, ...args: any[]) =>
-      system.syscall({}, name, args);
-
-    if (!system.loadedPlugs.has("index")) {
-      console.warn("Index plug not found, skipping loading space scripts");
-      return;
-    }
-    const allScripts: ScriptObject[] = await system.invokeFunction(
-      "index.queryLuaObjects",
-      ["space-script", {}],
-    );
-    for (const script of allScripts) {
-      this.evalScript(script.script, system);
-    }
   }
 }

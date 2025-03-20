@@ -8,7 +8,6 @@ import {
 import { sleep } from "$lib/async.ts";
 import type { EventHook } from "../common/hooks/event.ts";
 import type { DataStore } from "$lib/data/datastore.ts";
-import type { Space } from "../common/space.ts";
 
 // Keeps the current sync snapshot
 const syncSnapshotKey = ["sync", "snapshot"];
@@ -33,21 +32,11 @@ const spaceSyncInterval = 17 * 1000; // Every 17s or so
 // Used from Client
 export const pageSyncInterval = 6000;
 
-export interface ISyncService {
-  start(): void;
-  isSyncing(): Promise<boolean>;
-  hasInitialSyncCompleted(): Promise<boolean>;
-  noOngoingSync(_timeout: number): Promise<void>;
-  syncFile(name: string): Promise<void>;
-  scheduleFileSync(_path: string): Promise<void>;
-  scheduleSpaceSync(): Promise<void>;
-}
-
 /**
  * The SyncService primarily wraps the SpaceSync engine but also coordinates sync between
  * different browser tabs. It is using the KVStore to keep track of sync state.
  */
-export class SyncService implements ISyncService {
+export class SyncService {
   spaceSync: SpaceSync;
   lastReportedSyncStatus = Date.now();
   // If this is set to anything other than undefined, a file is currently saving
@@ -393,48 +382,5 @@ export class SyncService implements ISyncService {
     ]);
 
     return 1;
-  }
-}
-
-/**
- * A no-op sync service that doesn't do anything used when running in thin client mode
- */
-export class NoSyncSyncService implements ISyncService {
-  constructor(private space: Space) {
-  }
-
-  isSyncing(): Promise<boolean> {
-    return Promise.resolve(false);
-  }
-
-  hasInitialSyncCompleted(): Promise<boolean> {
-    return Promise.resolve(true);
-  }
-
-  noOngoingSync(_timeout: number): Promise<void> {
-    return Promise.resolve();
-  }
-
-  scheduleFileSync(_path: string): Promise<void> {
-    return Promise.resolve();
-  }
-
-  scheduleSpaceSync(): Promise<void> {
-    return Promise.resolve();
-  }
-
-  start() {
-    setInterval(() => {
-      // Trigger a page upload for change events
-      this.space.updatePageList().catch(console.error);
-    }, spaceSyncInterval);
-  }
-
-  syncSpace(): Promise<number> {
-    return Promise.resolve(0);
-  }
-
-  syncFile(_name: string): Promise<void> {
-    return Promise.resolve();
   }
 }

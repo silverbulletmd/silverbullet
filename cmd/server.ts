@@ -134,7 +134,6 @@ export async function serveCommand(
     indexPage,
     spaceIgnore,
     auth: userCredentials,
-    syncOnly,
     readOnly,
     shellBackend: backendConfig,
     enableSpaceScript,

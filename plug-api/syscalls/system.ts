@@ -1,6 +1,5 @@
 import type { CommandDef } from "../../lib/command.ts";
 import type { SyscallMeta } from "../types.ts";
-import type { ParseTree } from "../lib/tree.ts";
 import { syscall } from "../syscall.ts";
 
 /**
@@ -48,55 +47,11 @@ export function listSyscalls(): Promise<SyscallMeta[]> {
 }
 
 /**
- * Invoke a space function by name
- * @param name a string representing the name of the function to invoke
- * @param args arguments to pass to the function
- * @returns the value returned by the function
- */
-export function invokeSpaceFunction(
-  name: string,
-  ...args: any[]
-): Promise<any> {
-  return syscall("system.invokeSpaceFunction", name, ...args);
-}
-
-/**
- * Applies attribute extractors to a ParseTree
- */
-export function applyAttributeExtractors(
-  tags: string[],
-  text: string,
-  tree: ParseTree,
-): Promise<Record<string, any>[]> {
-  return syscall("system.applyAttributeExtractors", tags, text, tree);
-}
-
-/**
- * Loads a particular space configuration key (or all of them when no key is spacified)
- * @param key the key to load, when not specified, all keys are loaded
- * @param defaultValue the default value to return when the key is not found
- * @returns either the value of the key or all keys as a Record<string, any>
- */
-export async function getSpaceConfig(
-  key?: string,
-  defaultValue?: any,
-): Promise<any> {
-  return (await syscall("system.getSpaceConfig", key)) ?? defaultValue;
-}
-
-/**
  * Trigger a reload of all plugs
  * @returns
  */
 export function reloadPlugs(): Promise<void> {
   return syscall("system.reloadPlugs");
-}
-
-/**
- * Returns what runtime environment this plug is run in, e.g. "server" or "client" can be undefined, which would mean a hybrid environment (such as mobile)
- */
-export function getEnv(): Promise<string | undefined> {
-  return syscall("system.getEnv");
 }
 
 /**
@@ -111,4 +66,11 @@ export function getMode(): Promise<"ro" | "rw"> {
  */
 export function getVersion(): Promise<string> {
   return syscall("system.getVersion");
+}
+
+export function getConfig<T = any>(
+  key: string,
+  defaultValue: any = undefined,
+): Promise<T> {
+  return syscall("system.getConfig", key, defaultValue);
 }

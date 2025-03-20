@@ -27,7 +27,7 @@ import {
 } from "@silverbulletmd/silverbullet/lib/attribute";
 import { rewritePageRefs } from "@silverbulletmd/silverbullet/lib/resolve";
 import type { ObjectValue } from "../../plug-api/types.ts";
-import { indexObjects, queryObjects } from "../index/plug_api.ts";
+import { indexObjects } from "../index/plug_api.ts";
 import {
   cleanHashTags,
   extractHashTags,
@@ -40,6 +40,7 @@ import {
 } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { enrichItemFromParents } from "../index/item.ts";
 import { deepClone } from "@silverbulletmd/silverbullet/lib/json";
+import { queryLuaObjects } from "../index/api.ts";
 
 export type TaskObject = ObjectValue<
   {
@@ -117,10 +118,7 @@ export async function extractTasks(
 
     // Extract tags and attributes
     task.tags = extractHashTags(n);
-    const extractedAttributes = await extractAttributes(
-      ["task", ...task.tags || []],
-      n,
-    );
+    const extractedAttributes = await extractAttributes(n);
 
     // Then clean them out
     const clonedNode = deepClone(n, ["parent"]);
@@ -198,7 +196,11 @@ async function cycleTaskState(node: ParseTree) {
     changeTo = "x";
   } else {
     // Not a checkbox, but a custom state
-    const allStates = await queryObjects<TaskStateObject>("taskstate", {});
+    const allStates = await queryLuaObjects<TaskStateObject>(
+      "taskstate",
+      {},
+      {},
+    );
     const states = [...new Set(allStates.map((s) => s.state))];
     states.sort();
     // Select a next state

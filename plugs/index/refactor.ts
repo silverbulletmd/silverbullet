@@ -1,7 +1,11 @@
-import { editor, markdown, space } from "@silverbulletmd/silverbullet/syscalls";
+import {
+  editor,
+  lua,
+  markdown,
+  space,
+} from "@silverbulletmd/silverbullet/syscalls";
 import { validatePageName } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { getBackLinks, type LinkObject } from "./page_links.ts";
-import { queryObjects } from "./api.ts";
 import {
   absoluteToRelativePath,
   folderName,
@@ -14,6 +18,7 @@ import {
 } from "@silverbulletmd/silverbullet/lib/tree";
 import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
 import { findNodeOfType } from "@silverbulletmd/silverbullet/lib/tree";
+import { queryLuaObjects } from "./api.ts";
 
 /**
  * Renames a single page.
@@ -164,8 +169,11 @@ async function renamePage(oldName: string, newName: string) {
   const documentsToMove = new Set<string>();
   // Links only need to be updated if the folder changes
   if (oldFolder !== newFolder) {
-    const linksInPage = await queryObjects<LinkObject>("link", {
-      filter: ["=", ["attr", "page"], ["string", oldName]],
+    const linksInPage = await queryLuaObjects<LinkObject>("link", {
+      objectVariable: "_",
+      where: await lua.parseExpression(`_.page == oldName`),
+    }, {
+      oldName,
     });
 
     const linksToUpdate: ObjectValue<LinkObject>[] = [];

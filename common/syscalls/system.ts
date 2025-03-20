@@ -1,21 +1,16 @@
 import type { SyscallMeta } from "../../plug-api/types.ts";
-import type { SysCallMapping, System } from "../../lib/plugos/system.ts";
+import type { SysCallMapping } from "../../lib/plugos/system.ts";
 import type { Client } from "../../web/client.ts";
 import type { CommandDef } from "$lib/command.ts";
-import { proxySyscall } from "../../web/syscalls/util.ts";
-import type { CommonSystem } from "../common_system.ts";
 import { version } from "../../version.ts";
-import type { ParseTree } from "../../plug-api/lib/tree.ts";
 
 export function systemSyscalls(
-  system: System<any>,
+  client: Client,
   readOnlyMode: boolean,
-  commonSystem: CommonSystem,
-  client?: Client,
 ): SysCallMapping {
   const api: SysCallMapping = {
     "system.invokeFunction": (
-      ctx,
+      _ctx,
       fullName: string, // plug.function
       ...args: any[]
     ) => {
@@ -23,62 +18,15 @@ export function systemSyscalls(
       if (!plugName || !functionName) {
         throw Error(`Invalid function name ${fullName}`);
       }
-      const plug = system.loadedPlugs.get(plugName);
+      const plug = client.clientSystem.system.loadedPlugs.get(plugName);
       if (!plug) {
         throw Error(`Plug ${plugName} not found`);
       }
       const functionDef = plug.manifest!.functions[functionName];
       if (!functionDef) {
         throw Error(`Function ${functionName} not found`);
-      }
-      if (
-        client && functionDef.env && system.env &&
-        functionDef.env !== system.env
-      ) {
-        // Proxy to another environment
-        return proxySyscall(
-          ctx,
-          client.httpSpacePrimitives,
-          "system.invokeFunction",
-          [fullName, ...args],
-        );
       }
       return plug.invoke(functionName, args);
-    },
-    "system.invokeFunctionOnServer": (
-      ctx,
-      fullName: string, // plug.function
-      ...args: any[]
-    ) => {
-      const [plugName, functionName] = fullName.split(".");
-      if (!plugName || !functionName) {
-        throw Error(`Invalid function name ${fullName}`);
-      }
-      const plug = system.loadedPlugs.get(plugName);
-      if (!plug) {
-        throw Error(`Plug ${plugName} not found`);
-      }
-      const functionDef = plug.manifest!.functions[functionName];
-      if (!functionDef) {
-        throw Error(`Function ${functionName} not found`);
-      }
-      if (!client) {
-        throw new Error("Not supported");
-      }
-      // Proxy to system env
-      return proxySyscall(
-        ctx,
-        client.httpSpacePrimitives,
-        "system.invokeFunction",
-        [fullName, ...args],
-      );
-    },
-    "system.serverSyscall": (_ctx, name: string, ...args: any[]) => {
-      if (!client) {
-        return system.localSyscall(name, args);
-      } else {
-        return proxySyscall({}, client!.httpSpacePrimitives, name, args);
-      }
     },
     "system.invokeCommand": (_ctx, name: string, args?: string[]) => {
       if (!client) {
@@ -87,7 +35,7 @@ export function systemSyscalls(
       return client.runCommandByName(name, args);
     },
     "system.listCommands": (): { [key: string]: CommandDef } => {
-      const commandHook = commonSystem!.commandHook;
+      const commandHook = client.clientSystem.commandHook;
       const allCommands: { [key: string]: CommandDef } = {};
       for (const [cmd, def] of commandHook.editorCommands) {
         allCommands[cmd] = {
@@ -104,7 +52,9 @@ export function systemSyscalls(
     },
     "system.listSyscalls": (): SyscallMeta[] => {
       const syscalls: SyscallMeta[] = [];
-      for (const [name, info] of system.registeredSyscalls) {
+      for (
+        const [name, info] of client.clientSystem.system.registeredSyscalls
+      ) {
         syscalls.push({
           name,
           requiredPermissions: info.requiredPermissions,
@@ -120,17 +70,7 @@ export function systemSyscalls(
       return client.loadPlugs();
     },
     "system.loadSpaceScripts": async () => {
-      // Reload scripts locally
-      await commonSystem.loadSpaceScripts();
-      if (client && !client.clientConfig.syncOnly) {
-        // Reload scripts remotely
-        await proxySyscall(
-          {},
-          client.httpSpacePrimitives,
-          "system.loadSpaceScripts",
-          [],
-        );
-      }
+      await client.clientSystem.loadSpaceScripts();
     },
     "system.loadSpaceStyles": async () => {
       if (!client) {
@@ -138,25 +78,14 @@ export function systemSyscalls(
       }
       await client.loadCustomStyles();
     },
-    "system.invokeSpaceFunction": (_ctx, name: string, ...args: any[]) => {
-      return commonSystem.invokeSpaceFunction(name, args);
-    },
-    "system.applyAttributeExtractors": (
-      _ctx,
-      tags: string[],
-      text: string,
-      tree: ParseTree,
-    ): Promise<Record<string, any>> => {
-      return commonSystem.applyAttributeExtractors(tags, text, tree);
-    },
-    "system.getEnv": () => {
-      return system.env;
-    },
     "system.getMode": () => {
       return readOnlyMode ? "ro" : "rw";
     },
     "system.getVersion": () => {
       return version;
+    },
+    "system.getConfig": (_ctx, key: string, defaultValue: any = undefined) => {
+      return client.config.get(key, defaultValue);
     },
   };
   return api;
