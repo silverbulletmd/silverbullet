@@ -297,42 +297,6 @@ functions:
       name: "Debug: Parse Document"
       requireEditor: page
 
-  # Link unfurl infrastructure
-  unfurlLink:
-    path: ./link.ts:unfurlCommand
-    command:
-      name: "Link: Unfurl"
-      key: "Ctrl-Shift-u"
-      mac: "Cmd-Shift-u"
-      requireMode: rw
-      requireEditor: page
-
-  # Title-based link unfurl
-  titleUnfurlOptions:
-    path: ./link.ts:titleUnfurlOptions
-    events:
-      - unfurl:options
-
-  titleUnfurl:
-    path: ./link.ts:titleUnfurl
-    events:
-      - unfurl:title-unfurl
-
-  # Title-based link unfurl
-  youtubeUnfurlOptions:
-    path: ./link.ts:youtubeUnfurlOptions
-    events:
-      - unfurl:options
-
-  youtubeUnfurl:
-    path: ./link.ts:youtubeUnfurl
-    events:
-      - unfurl:youtube-unfurl
-
-  embedWidget:
-    path: ./embed.ts:embedWidget
-    codeWidget: embed
-
   # Vim
   toggleVimMode:
     path: "./vim.ts:toggleVimMode"

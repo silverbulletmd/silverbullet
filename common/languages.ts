@@ -50,7 +50,6 @@ export const builtinLanguages: Record<string, Language> = {
   "yaml": yamlStreamLanguage,
   "include": yamlStreamLanguage,
   "space-config": yamlStreamLanguage,
-  "embed": yamlStreamLanguage,
   "data": yamlStreamLanguage,
   "toc": yamlStreamLanguage,
   "javascript": javascriptLanguage,
