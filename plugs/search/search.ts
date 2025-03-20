@@ -1,16 +1,8 @@
-import type {
-  IndexTreeEvent,
-  QueryProviderEvent,
-} from "../../plug-api/types.ts";
+import type { IndexTreeEvent } from "../../plug-api/types.ts";
 import { renderToText } from "@silverbulletmd/silverbullet/lib/tree";
-import {
-  applyQuery,
-  liftAttributeFilter,
-} from "@silverbulletmd/silverbullet/lib/query";
 import { editor } from "@silverbulletmd/silverbullet/syscalls";
 import type { FileMeta } from "../../plug-api/types.ts";
 import { ftsIndexPage, ftsSearch } from "./engine.ts";
-import { evalQueryExpression } from "@silverbulletmd/silverbullet/lib/query_expression";
 import { PromiseQueue } from "$lib/async.ts";
 
 const searchPrefix = "🔍 ";
@@ -25,27 +17,6 @@ export function indexPage({ name, tree }: IndexTreeEvent) {
     // await engine.deleteDocument(name);
     await ftsIndexPage(name, text);
   });
-}
-
-export async function queryProvider({
-  query,
-}: QueryProviderEvent): Promise<any[]> {
-  const phraseFilter = liftAttributeFilter(query.filter, "phrase");
-  if (!phraseFilter) {
-    throw Error("No 'phrase' filter specified, this is mandatory");
-  }
-  const phrase = await evalQueryExpression(phraseFilter, {}, {}, {});
-  // console.log("Phrase", phrase);
-  let results: any[] = await ftsSearch(phrase);
-
-  // Patch the object to a format that users expect (translate id to name)
-  for (const r of results) {
-    r.name = r.id;
-    delete r.id;
-  }
-
-  results = await applyQuery(query, results, {}, {});
-  return results;
 }
 
 export async function searchCommand() {

@@ -6,13 +6,11 @@ import { proxySyscall } from "../../web/syscalls/util.ts";
 import type { CommonSystem } from "../common_system.ts";
 import { version } from "../../version.ts";
 import type { ParseTree } from "../../plug-api/lib/tree.ts";
-import type { Config, ConfigContainer } from "../../type/config.ts";
 
 export function systemSyscalls(
   system: System<any>,
   readOnlyMode: boolean,
   commonSystem: CommonSystem,
-  configContainer: ConfigContainer,
   client?: Client,
 ): SysCallMapping {
   const api: SysCallMapping = {
@@ -121,10 +119,6 @@ export function systemSyscalls(
       }
       return client.loadPlugs();
     },
-    "system.reloadConfig": async (): Promise<Config> => {
-      await configContainer.loadConfig();
-      return configContainer.config;
-    },
     "system.loadSpaceScripts": async () => {
       // Reload scripts locally
       await commonSystem.loadSpaceScripts();
@@ -154,14 +148,6 @@ export function systemSyscalls(
       tree: ParseTree,
     ): Promise<Record<string, any>> => {
       return commonSystem.applyAttributeExtractors(tags, text, tree);
-    },
-    "system.getSpaceConfig": (_ctx, key?: string): any => {
-      const config: any = configContainer.config || {};
-      if (key) {
-        return config[key];
-      } else {
-        return config;
-      }
     },
     "system.getEnv": () => {
       return system.env;

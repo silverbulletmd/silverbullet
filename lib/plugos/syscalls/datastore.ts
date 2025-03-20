@@ -3,7 +3,7 @@ import {
   type LuaCollectionQuery,
 } from "$common/space_lua/query_collection.ts";
 import type { CommonSystem } from "$common/common_system.ts";
-import type { KV, KvKey, KvQuery } from "../../../plug-api/types.ts";
+import type { KV, KvKey } from "../../../plug-api/types.ts";
 import type { DataStore } from "../../data/datastore.ts";
 import type { SysCallMapping } from "../system.ts";
 import {
@@ -34,14 +34,6 @@ export function dataStoreReadSyscalls(
       return ds.get(key);
     },
 
-    "datastore.query": (
-      _ctx,
-      query: KvQuery,
-      variables?: Record<string, any>,
-    ): Promise<KV[]> => {
-      return ds.query(query, variables);
-    },
-
     "datastore.queryLua": async (
       _ctx,
       prefix: string[],
@@ -62,10 +54,6 @@ export function dataStoreReadSyscalls(
         sf,
       )).map((item) => luaValueToJS(item, sf));
     },
-
-    "datastore.listFunctions": (): string[] => {
-      return Object.keys(ds.functionMap);
-    },
   };
 }
 
@@ -85,14 +73,6 @@ export function dataStoreWriteSyscalls(ds: DataStore): SysCallMapping {
 
     "datastore.batchDelete": (_ctx, keys: KvKey[]) => {
       return ds.batchDelete(keys);
-    },
-
-    "datastore.queryDelete": (
-      _ctx,
-      query: KvQuery,
-      variables?: Record<string, any>,
-    ): Promise<void> => {
-      return ds.queryDelete(query, variables);
     },
   };
 }

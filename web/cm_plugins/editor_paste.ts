@@ -14,7 +14,7 @@ import {
   findParentMatching,
   nodeAtPos,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import { defaultLinkStyle, maximumDocumentSize } from "../constants.ts";
+import { maximumDocumentSize } from "../constants.ts";
 import { safeRun } from "$lib/async.ts";
 import { resolvePath } from "@silverbulletmd/silverbullet/lib/resolve";
 import { localDateString } from "$lib/dates.ts";
@@ -205,8 +205,7 @@ export function documentExtension(editor: Client) {
   }
 
   async function saveFile(file: UploadFile) {
-    const maxSize = editor.config.maximumDocumentSize ||
-      maximumDocumentSize;
+    const maxSize = maximumDocumentSize;
     if (file.content.length > maxSize * 1024 * 1024) {
       editor.flashNotification(
         `Document is too large, maximum is ${maxSize}MiB`,
@@ -224,14 +223,7 @@ export function documentExtension(editor: Client) {
     }
     const documentPath = resolvePath(editor.currentPage, finalFileName);
     await editor.space.writeDocument(documentPath, file.content);
-    const linkStyle = editor.config.defaultLinkStyle ||
-      defaultLinkStyle.toLowerCase();
-    let documentMarkdown = "";
-    if (linkStyle === "wikilink") {
-      documentMarkdown = `[[${documentPath}]]`;
-    } else {
-      documentMarkdown = `[${finalFileName}](${encodeURI(finalFileName)})`;
-    }
+    let documentMarkdown = `[[${documentPath}]]`;
     if (file.contentType.startsWith("image/")) {
       documentMarkdown = "!" + documentMarkdown;
     }

@@ -13,9 +13,9 @@ import {
   attachWidgetEventHandlers,
   moveCursorIntoText,
 } from "./widget_util.ts";
-import { renderExpressionResult } from "../../plugs/template/util.ts";
 import { expandCodeWidgets } from "$common/markdown.ts";
-import { LuaStackFrame } from "$common/space_lua/runtime.ts";
+import { LuaStackFrame, LuaTable } from "$common/space_lua/runtime.ts";
+import { jsonToMDTable } from "$common/markdown_util.ts";
 
 export type LuaWidgetCallback = (
   bodyText: string,
@@ -238,18 +238,6 @@ export class LuaWidget extends WidgetType {
       },
     );
 
-    // div.querySelector(`button[data-button="bake"]`)?.addEventListener(
-    //   "click",
-    //   (e) => {
-    //     e.stopPropagation();
-    //     console.log("Baking...");
-    //     this.client.clientSystem.localSyscall(
-    //       "system.invokeFunction",
-    //       ["query.bakeButton", this.bodyText],
-    //     ).catch(console.error);
-    //   },
-    // );
-
     div.querySelector(`button[data-button="edit"]`)?.addEventListener(
       "click",
       (e) => {
@@ -270,5 +258,34 @@ export class LuaWidget extends WidgetType {
       other.bodyText === this.bodyText && other.cacheKey === this.cacheKey
       // &&  this.from === other.from
     );
+  }
+}
+
+export function renderExpressionResult(result: any): Promise<string> {
+  if (result instanceof LuaTable) {
+    result = result.toJS();
+  }
+  if (
+    Array.isArray(result) && result.length > 0 && typeof result[0] === "object"
+  ) {
+    // If result is an array of objects, render as a markdown table
+    try {
+      return jsonToMDTable(result);
+    } catch (e: any) {
+      console.error(
+        `Error rendering expression directive: ${e.message} for value ${
+          JSON.stringify(result)
+        }`,
+      );
+      return Promise.resolve(JSON.stringify(result));
+    }
+  } else if (typeof result === "object" && result.constructor === Object) {
+    // if result is a plain object, render as a markdown table
+    return jsonToMDTable([result]);
+  } else if (Array.isArray(result)) {
+    // Not-object array, let's render it as a markdown list
+    return Promise.resolve(result.map((item) => `- ${item}`).join("\n"));
+  } else {
+    return Promise.resolve("" + result);
   }
 }

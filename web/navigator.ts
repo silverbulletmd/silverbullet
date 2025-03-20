@@ -5,7 +5,6 @@ import {
 } from "@silverbulletmd/silverbullet/lib/page_ref";
 import type { Client } from "./client.ts";
 import { cleanPageRef } from "@silverbulletmd/silverbullet/lib/resolve";
-import { renderTheTemplate } from "$common/syscalls/template.ts";
 import { safeRun } from "../lib/async.ts";
 
 export type LocationState = Ref & {
@@ -25,17 +24,7 @@ export class PathPageNavigator {
   constructor(
     private client: Client,
   ) {
-  }
-
-  async init() {
-    this.indexPage = cleanPageRef(
-      await renderTheTemplate(
-        this.client.clientConfig.indexPage,
-        {},
-        {},
-        this.client.stateDataStore.functionMap,
-      ),
-    );
+    this.indexPage = cleanPageRef(this.client.clientConfig.indexPage);
   }
 
   /**

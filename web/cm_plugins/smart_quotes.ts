@@ -2,6 +2,7 @@ import type { KeyBinding } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
 import { EditorSelection } from "@codemirror/state";
 import type { Client } from "../client.ts";
+import type { SmartQuotesConfig } from "@silverbulletmd/silverbullet/type/client";
 
 const straightQuoteContexts = [
   "CommentBlock",
@@ -82,10 +83,9 @@ function keyBindingForQuote(
 }
 
 export function createSmartQuoteKeyBindings(client: Client): KeyBinding[] {
-  // Also check the deprecated useSmartQuotes, default is true so either can disable
+  const smartQuotes = client.config.get<SmartQuotesConfig>("smartQuotes", {});
   if (
-    client.config?.useSmartQuotes === false ||
-    client.config?.smartQuotes?.enabled === false
+    smartQuotes.enabled === false
   ) {
     return [];
   }
@@ -94,20 +94,17 @@ export function createSmartQuoteKeyBindings(client: Client): KeyBinding[] {
   let doubleRight = "”";
   let singleLeft = "‘";
   let singleRight = "’";
-  const config = client.config?.smartQuotes;
-  if (config) {
-    if (typeof config.double?.left === "string") {
-      doubleLeft = config.double!.left;
-    }
-    if (typeof config.double?.right === "string") {
-      doubleRight = config.double!.right;
-    }
-    if (typeof config.single?.left === "string") {
-      singleLeft = config.single!.left;
-    }
-    if (typeof config.single?.right === "string") {
-      singleRight = config.single!.right;
-    }
+  if (typeof smartQuotes.double?.left === "string") {
+    doubleLeft = smartQuotes.double!.left;
+  }
+  if (typeof smartQuotes.double?.right === "string") {
+    doubleRight = smartQuotes.double!.right;
+  }
+  if (typeof smartQuotes.single?.left === "string") {
+    singleLeft = smartQuotes.single!.left;
+  }
+  if (typeof smartQuotes.single?.right === "string") {
+    singleRight = smartQuotes.single!.right;
   }
 
   return [

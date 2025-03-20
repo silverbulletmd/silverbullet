@@ -27,7 +27,6 @@ import {
   dataStoreWriteSyscalls,
 } from "../lib/plugos/syscalls/datastore.ts";
 import { languageSyscalls } from "$common/syscalls/language.ts";
-import { templateSyscalls } from "$common/syscalls/template.ts";
 import { codeWidgetSyscalls } from "../web/syscalls/code_widget.ts";
 import { CodeWidgetHook } from "../web/hooks/code_widget.ts";
 import { KVPrimitivesManifestCache } from "$lib/plugos/manifest_cache.ts";
@@ -41,7 +40,6 @@ import { SyscallHook } from "../web/hooks/syscall.ts";
 import type { DataStoreMQ } from "$lib/data/mq.datastore.ts";
 import { plugPrefix } from "$common/spaces/constants.ts";
 import { base64EncodedDataUrl } from "$lib/crypto.ts";
-import type { ConfigContainer } from "../type/config.ts";
 import { indexSyscalls } from "$common/syscalls/index.ts";
 import { commandSyscalls } from "$common/syscalls/command.ts";
 import { eventListenerSyscalls } from "$common/syscalls/event.ts";
@@ -62,7 +60,6 @@ export class ServerSystem extends CommonSystem {
     eventHook: EventHook,
     readOnlyMode: boolean,
     enableSpaceScript: boolean,
-    private configContainer: ConfigContainer,
   ) {
     super(mq, ds, eventHook, readOnlyMode, enableSpaceScript);
   }
@@ -136,7 +133,6 @@ export class ServerSystem extends CommonSystem {
         this.system,
         this.readOnlyMode,
         this,
-        this.configContainer,
       ),
       mqSyscalls(this.mq),
       languageSyscalls(),
@@ -144,7 +140,6 @@ export class ServerSystem extends CommonSystem {
       indexSyscalls(this),
       commandSyscalls(this),
       luaSyscalls(this),
-      templateSyscalls(this.ds),
       dataStoreReadSyscalls(this.ds, this),
       codeWidgetSyscalls(codeWidgetHook),
       markdownSyscalls(),

@@ -2,7 +2,6 @@ import type { CommandDef } from "../../lib/command.ts";
 import type { SyscallMeta } from "../types.ts";
 import type { ParseTree } from "../lib/tree.ts";
 import { syscall } from "../syscall.ts";
-import type { Config } from "../../type/config.ts";
 
 /**
  * System level syscalls
@@ -91,14 +90,6 @@ export async function getSpaceConfig(
  */
 export function reloadPlugs(): Promise<void> {
   return syscall("system.reloadPlugs");
-}
-
-/**
- * Trigger an explicit reload of the configuration
- * @returns the new configuration
- */
-export function reloadConfig(): Promise<Config> {
-  return syscall("system.reloadConfig");
 }
 
 /**

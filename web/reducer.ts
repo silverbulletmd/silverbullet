@@ -113,11 +113,6 @@ export default function reducer(
         ...state,
         syncFailures: action.syncSuccess ? 0 : state.syncFailures + 1,
       };
-    case "config-loaded":
-      return {
-        ...state,
-        config: action.config,
-      };
     case "update-page-list": {
       // Let's move over any "lastOpened" times to the "allPages" list
       const oldPageMeta = new Map(

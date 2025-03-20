@@ -33,7 +33,6 @@ import {
 } from "../lib/plugos/syscalls/datastore.ts";
 import type { DataStore } from "$lib/data/datastore.ts";
 import { languageSyscalls } from "$common/syscalls/language.ts";
-import { templateSyscalls } from "$common/syscalls/template.ts";
 import { codeWidgetSyscalls } from "./syscalls/code_widget.ts";
 import { clientCodeWidgetSyscalls } from "./syscalls/client_code_widget.ts";
 import { KVPrimitivesManifestCache } from "$lib/plugos/manifest_cache.ts";
@@ -166,11 +165,10 @@ export class ClientSystem extends CommonSystem {
       eventListenerSyscalls(this),
       editorSyscalls(this.client),
       spaceReadSyscalls(this.client),
-      systemSyscalls(this.system, false, this, this.client, this.client),
+      systemSyscalls(this.system, false, this, this.client),
       markdownSyscalls(),
       assetSyscalls(this.system),
       yamlSyscalls(),
-      templateSyscalls(this.ds),
       codeWidgetSyscalls(this.codeWidgetHook),
       clientCodeWidgetSyscalls(),
       languageSyscalls(),

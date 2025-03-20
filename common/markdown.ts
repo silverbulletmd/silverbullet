@@ -8,13 +8,13 @@ import {
   parseRef,
   validatePageName,
 } from "@silverbulletmd/silverbullet/lib/page_ref";
-import { renderExpressionResult } from "../plugs/template/util.ts";
 import { parseMarkdown } from "$common/markdown_parser/parser.ts";
 import type { LuaExpression } from "$common/space_lua/ast.ts";
 import { evalExpression } from "$common/space_lua/eval.ts";
 import type { LuaEnv, LuaStackFrame } from "$common/space_lua/runtime.ts";
 import { parseExpressionString } from "$common/space_lua/parse.ts";
 import type { CodeWidgetHook } from "../web/hooks/code_widget.ts";
+import { renderExpressionResult } from "$common/markdown_util.ts";
 
 /**
  * Finds code widgets, runs their plug code to render and inlines their content in the parse tree

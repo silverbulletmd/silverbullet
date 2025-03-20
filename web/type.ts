@@ -1,6 +1,5 @@
 import type { AppCommand } from "../lib/command.ts";
 import type { FilterOption, Notification, PanelMode } from "../type/client.ts";
-import { type Config, defaultConfig } from "../type/config.ts";
 import type {
   DocumentMeta,
   PageMeta,
@@ -40,8 +39,6 @@ export type AppViewState = {
   commands: Map<string, AppCommand>;
   notifications: Notification[];
   recentCommands: Map<string, Date>;
-
-  config: Config;
 
   uiOptions: {
     vimMode: boolean;
@@ -92,7 +89,6 @@ export const initialViewState: AppViewState = {
     bhs: {},
     modal: {},
   },
-  config: defaultConfig,
   allPages: [],
   allDocuments: [],
   commands: new Map(),
@@ -122,7 +118,6 @@ export type Action =
   | { type: "update-current-page-meta"; meta: PageMeta }
   | { type: "update-page-list"; allPages: PageMeta[] }
   | { type: "update-document-list"; allDocuments: DocumentMeta[] }
-  | { type: "config-loaded"; config: Config }
   | { type: "start-navigate"; mode: "page" | "meta" | "document" | "all" }
   | { type: "stop-navigate" }
   | {

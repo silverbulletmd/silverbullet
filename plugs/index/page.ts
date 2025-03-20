@@ -11,7 +11,7 @@ import {
 import type { LintDiagnostic, PageMeta } from "../../plug-api/types.ts";
 import { extractFrontmatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
 import { extractAttributes } from "@silverbulletmd/silverbullet/lib/attribute";
-import { indexObjects, queryDeleteObjects } from "./api.ts";
+import { getObjectByRef, indexObjects, queryDeleteObjects } from "./api.ts";
 import {
   findNodeOfType,
   renderToText,
@@ -168,4 +168,27 @@ async function lintYaml(
       };
     }
   }
+}
+
+export async function loadPageObject(pageName?: string): Promise<PageMeta> {
+  if (!pageName) {
+    return {
+      ref: "",
+      name: "",
+      tags: ["page"],
+      lastModified: "",
+      created: "",
+    } as PageMeta;
+  }
+  return (await getObjectByRef<PageMeta>(
+    pageName,
+    "page",
+    pageName,
+  )) || {
+    ref: pageName,
+    name: pageName,
+    tags: ["page"],
+    lastModified: "",
+    created: "",
+  } as PageMeta;
 }

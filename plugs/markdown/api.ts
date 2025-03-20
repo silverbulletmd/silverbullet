@@ -13,7 +13,7 @@ import {
 import { validatePageName } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { parseRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import type { LuaExpression } from "$common/space_lua/ast.ts";
-import { renderExpressionResult } from "../template/util.ts";
+import { renderExpressionResult } from "$common/markdown_util.ts";
 
 /**
  * Finds code widgets, runs their plug code to render and inlines their content in the parse tree

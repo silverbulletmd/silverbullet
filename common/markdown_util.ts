@@ -1,6 +1,3 @@
-import type { PageMeta } from "../../plug-api/types.ts";
-import { space, system, template } from "@silverbulletmd/silverbullet/syscalls";
-import { cleanTemplate } from "./plug_api.ts";
 import { LuaTable, luaToString } from "$common/space_lua/runtime.ts";
 
 export function defaultTransformer(v: any): Promise<string> {
@@ -90,25 +87,6 @@ export async function jsonToMDTable(
     lines.push("|" + el.join("|") + "|");
   }
   return lines.join("\n");
-}
-
-export async function renderQueryTemplate(
-  pageMeta: PageMeta,
-  templatePage: string,
-  data: any[],
-  renderAll: boolean,
-): Promise<string> {
-  const config = await system.getSpaceConfig();
-  let templateText = await space.readPage(templatePage);
-  templateText = await cleanTemplate(templateText);
-
-  if (!renderAll) {
-    templateText = `{{#each .}}\n${templateText}\n{{/each}}`;
-  }
-  return template.renderTemplate(templateText, data, {
-    page: pageMeta,
-    config,
-  });
 }
 
 export function renderExpressionResult(result: any): Promise<string> {

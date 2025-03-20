@@ -15,6 +15,7 @@ import { safeRun, throttle } from "$lib/async.ts";
 import type { SlashCommandDef, SlashCommandHookT } from "$lib/manifest.ts";
 import { parseCommand } from "$common/command.ts";
 import type { CommonSystem } from "$common/common_system.ts";
+import type { Shortcut } from "@silverbulletmd/silverbullet/type/client";
 
 export type AppSlashCommand = {
   slashCommand: SlashCommandDef;
@@ -66,24 +67,24 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
       this.slashCommands.push(command);
     }
     // Iterate over all shortcuts
-    if (this.editor.config?.shortcuts) {
-      // Add slash commands for shortcuts that configure them
-      for (const shortcut of this.editor.config.shortcuts) {
-        if (shortcut.slashCommand) {
-          const parsedCommand = parseCommand(shortcut.command);
-          this.slashCommands.push({
-            slashCommand: {
-              name: shortcut.slashCommand,
-              description: parsedCommand.alias || parsedCommand.name,
-            },
-            run: () => {
-              return this.editor.runCommandByName(
-                parsedCommand.name,
-                parsedCommand.args,
-              );
-            },
-          });
-        }
+    // Add slash commands for shortcuts that configure them
+    for (
+      const shortcut of this.editor.config.get<Shortcut[]>("shortcuts", [])
+    ) {
+      if (shortcut.slashCommand) {
+        const parsedCommand = parseCommand(shortcut.command);
+        this.slashCommands.push({
+          slashCommand: {
+            name: shortcut.slashCommand,
+            description: parsedCommand.alias || parsedCommand.name,
+          },
+          run: () => {
+            return this.editor.runCommandByName(
+              parsedCommand.name,
+              parsedCommand.args,
+            );
+          },
+        });
       }
     }
   }

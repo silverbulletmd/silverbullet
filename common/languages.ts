@@ -1,4 +1,3 @@
-import { LRLanguage } from "@codemirror/language";
 import { yaml as yamlLanguage } from "@codemirror/legacy-modes/mode/yaml?external=@codemirror/language&target=es2022";
 import {
   pgSQL as postgresqlLanguage,
@@ -40,11 +39,6 @@ import {
   javascriptLanguage,
   typescriptLanguage,
 } from "@codemirror/lang-javascript";
-import {
-  extendedMarkdownLanguage,
-  highlightingExpressionParser,
-  highlightingQueryParser,
-} from "./markdown_parser/parser.ts";
 import { cssLanguage } from "@codemirror/lang-css";
 import { nixLanguage } from "@replit/codemirror-lang-nix";
 import { luaLanguage } from "$common/space_lua/parse.ts";
@@ -118,17 +112,8 @@ export const builtinLanguages: Record<string, Language> = {
   "cmake": StreamLanguage.define(cmakeLanguage),
   "erlang": StreamLanguage.define(erlangLanguage),
   "nix": nixLanguage,
-  "query": LRLanguage.define({
-    name: "query",
-    parser: highlightingQueryParser,
-  }),
   "space-lua": luaLanguage,
   "lua": luaLanguage,
-  "template": extendedMarkdownLanguage,
-  "expression": LRLanguage.define({
-    name: "expression",
-    parser: highlightingExpressionParser,
-  }),
 };
 
 export function languageFor(name: string): Language | null {

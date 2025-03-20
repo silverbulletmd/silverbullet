@@ -5,10 +5,6 @@ functions:
     events:
       - page:index
 
-  searchQueryProvider:
-    path: ./search.ts:queryProvider
-    events:
-      - query:full-text
   searchCommand:
     path: ./search.ts:searchCommand
     command:

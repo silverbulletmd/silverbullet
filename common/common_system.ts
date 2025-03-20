@@ -87,8 +87,6 @@ export abstract class CommonSystem {
       }
     }
 
-    // Swap in the expanded function map
-    this.ds.functionMap = functions;
     this.scriptsLoaded = true;
   }
 

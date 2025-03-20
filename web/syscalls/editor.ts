@@ -88,8 +88,6 @@ export function editorSyscalls(client: Client): SysCallMapping {
       client.rebuildEditorState();
     },
     "editor.reloadConfigAndCommands": async () => {
-      await client.loadConfig();
-
       await client.clientSystem.system.localSyscall(
         "system.loadSpaceScripts",
         [],

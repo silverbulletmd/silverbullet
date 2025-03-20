@@ -4,7 +4,7 @@ import type {
 } from "@codemirror/autocomplete";
 import type { Compartment, EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { indentUnit, syntaxTree } from "@codemirror/language";
+import { syntaxTree } from "@codemirror/language";
 import { history, isolateHistory } from "@codemirror/commands";
 import type { SyntaxNode } from "@lezer/common";
 import { Space } from "../common/space.ts";
@@ -64,21 +64,16 @@ import { DataStoreMQ } from "$lib/data/mq.datastore.ts";
 import { DataStoreSpacePrimitives } from "$common/spaces/datastore_space_primitives.ts";
 
 import { ensureSpaceIndex } from "$common/space_index.ts";
-import { renderTheTemplate } from "$common/syscalls/template.ts";
 import { ReadOnlySpacePrimitives } from "$common/spaces/ro_space_primitives.ts";
 import type { KvPrimitives } from "$lib/data/kv_primitives.ts";
-import {
-  ensureAndLoadSettingsAndIndex,
-  updateObjectDecorators,
-} from "../common/config.ts";
 import { LimitedMap } from "$lib/limited_map.ts";
 import { plugPrefix } from "$common/spaces/constants.ts";
 import { lezerToParseTree } from "$common/markdown_parser/parse_tree.ts";
 import { findNodeMatching } from "@silverbulletmd/silverbullet/lib/tree";
-import type { Config, ConfigContainer } from "../type/config.ts";
 import { diffAndPrepareChanges } from "./cm_util.ts";
 import { DocumentEditor } from "./document_editor.ts";
 import { parseExpressionString } from "$common/space_lua/parse.ts";
+import { Config } from "$common/config.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -108,12 +103,11 @@ type WidgetCacheItem = {
   banner?: string;
 };
 
-export class Client implements ConfigContainer {
+export class Client {
   // Event bus used to communicate between components
   eventHook = new EventHook();
 
   space!: Space;
-  config!: Config;
 
   clientSystem!: ClientSystem;
   plugSpaceRemotePrimitives!: PlugSpacePrimitives;
@@ -123,6 +117,7 @@ export class Client implements ConfigContainer {
   stateDataStore!: DataStore;
   spaceKV?: KvPrimitives;
   mq!: DataStoreMQ;
+  config = new Config();
 
   // CodeMirror editor
   editorView!: EditorView;
@@ -252,9 +247,6 @@ export class Client implements ConfigContainer {
     // Load plugs
     await this.loadPlugs();
 
-    // Load config (after the plugs, specifically the 'index' plug is loaded)
-    await this.loadConfig();
-
     // Asynchronously load the space scripts
     this.clientSystem.loadSpaceScripts().catch((e) => {
       console.error("Error loading space scripts", e);
@@ -292,20 +284,6 @@ export class Client implements ConfigContainer {
     // Asynchronously update caches
     this.updatePageListCache().catch(console.error);
     this.updateDocumentListCache().catch(console.error);
-  }
-
-  async loadConfig() {
-    this.config = await ensureAndLoadSettingsAndIndex(
-      this.space.spacePrimitives,
-      this.clientSystem.system,
-    );
-    updateObjectDecorators(this.config, this.stateDataStore);
-    this.ui.viewDispatch({
-      type: "config-loaded",
-      config: this.config,
-    });
-    this.clientSystem.slashCommandHook!.buildAllCommands();
-    this.eventHook.dispatchEvent("config:loaded", this.config);
   }
 
   private async initSync() {
@@ -504,8 +482,6 @@ export class Client implements ConfigContainer {
   private async initNavigator() {
     this.pageNavigator = new PathPageNavigator(this);
 
-    await this.pageNavigator.init();
-
     this.pageNavigator.subscribe(async (locationState) => {
       console.log("Now navigating to", locationState);
 
@@ -525,7 +501,7 @@ export class Client implements ConfigContainer {
       );
     });
 
-    if (location.hash === "#boot" && this.config.pwaOpenLastPage !== false) {
+    if (location.hash === "#boot") {
       // Cold start PWA load
       const lastPath = await this.stateDataStore.get([
         "client",
@@ -579,7 +555,6 @@ export class Client implements ConfigContainer {
           new DataStoreSpacePrimitives(
             new DataStore(
               spaceKvPrimitives,
-              {},
             ),
           ),
           this.plugSpaceRemotePrimitives,
@@ -1111,14 +1086,7 @@ export class Client implements ConfigContainer {
   ) {
     if (!ref.page) {
       ref.kind = "page";
-      ref.page = cleanPageRef(
-        await renderTheTemplate(
-          this.clientConfig.indexPage,
-          {},
-          {},
-          client.stateDataStore.functionMap,
-        ),
-      );
+      ref.page = cleanPageRef(this.clientConfig.indexPage);
     }
 
     try {
@@ -1414,17 +1382,6 @@ export class Client implements ConfigContainer {
         console.error,
       );
     }
-
-    const indentMultiplier = this.config.indentMultiplier ?? 1;
-    this.editorView.dispatch({
-      effects: this.indentUnitCompartment?.reconfigure(
-        indentUnit.of("  ".repeat(indentMultiplier)),
-      ), // Change the indentation unit to 2 spaces
-    });
-    document.documentElement.style.setProperty(
-      "--editor-indent-multiplier",
-      indentMultiplier.toString(),
-    );
   }
 
   isDocumentEditor(): this is { documentEditor: DocumentEditor } & this {

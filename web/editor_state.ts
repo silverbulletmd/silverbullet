@@ -55,6 +55,7 @@ import { safeRun } from "$lib/async.ts";
 import { codeCopyPlugin } from "./cm_plugins/code_copy.ts";
 import { disableSpellcheck } from "./cm_plugins/spell_checking.ts";
 import { isValidEditor } from "$lib/command.ts";
+import type { Shortcut } from "@silverbulletmd/silverbullet/type/client";
 
 export function createEditorState(
   client: Client,
@@ -119,7 +120,9 @@ export function createEditorState(
       }),
       extendedMarkdownLanguage.data.of({
         closeBrackets: {
-          brackets: client.config?.autoCloseBrackets.split(""),
+          brackets: client.config.get<string>("autoCloseBrackets", "").split(
+            "",
+          ),
         },
       }),
       syntaxHighlighting(customMarkdownStyle()),
@@ -304,8 +307,8 @@ export function createCommandKeyBindings(client: Client): KeyBinding[] {
   // Track which keyboard shortcuts for which commands we've overridden, so we can skip them later
   const overriddenCommands = new Set<string>();
   // Keyboard shortcuts from SETTINGS take precedense
-  if (client.config?.shortcuts) {
-    for (const shortcut of client.config.shortcuts) {
+  if (client.config.has("shortcuts")) {
+    for (const shortcut of client.config.get<Shortcut[]>("shortcuts", [])) {
       // Figure out if we're using the command link syntax here, if so: parse it out
       const parsedCommand = parseCommand(shortcut.command);
       if (parsedCommand.args.length === 0) {

@@ -7,10 +7,7 @@ import { upgradeCommand } from "./cmd/upgrade.ts";
 import { versionCommand } from "./cmd/version.ts";
 import { serveCommand } from "./cmd/server.ts";
 import { plugCompileCommand } from "./cmd/plug_compile.ts";
-import { plugRunCommand } from "./cmd/plug_run.ts";
 import { syncCommand } from "./cmd/sync.ts";
-import { luaRunCommand } from "./cmd/lua_run.ts";
-import { luaReplCommand } from "./cmd/lua_repl.ts";
 
 // Unhandled rejection, let's not crash
 globalThis.addEventListener("unhandledrejection", (event) => {
@@ -76,26 +73,6 @@ await new Command()
   .option("-c, --config <path:string>", "Path to deno.json file to use")
   .option("--runtimeUrl <url:string>", "URL to worker_runtime.ts to use")
   .action(plugCompileCommand)
-  // plug:run
-  .command("plug:run")
-  .description("Run a PlugOS function from the CLI")
-  .arguments("<spacePath> [function] [...args:string]")
-  .option(
-    "-L, --hostname <hostname:string>",
-    "Hostname or address to listen on",
-  )
-  .option("-p, --port <port:number>", "Port to listen on")
-  .action(plugRunCommand)
-  // lua:run
-  .command("lua:run")
-  .description("Run a Lua script")
-  .arguments("<spacePath> <scriptPath:string>")
-  .action(luaRunCommand)
-  // shell
-  .command("lua:repl")
-  .description("Run a Lua REPL")
-  .arguments("<spacePath>")
-  .action(luaReplCommand)
   // upgrade
   .command("upgrade")
   .description("Upgrade SilverBullet")

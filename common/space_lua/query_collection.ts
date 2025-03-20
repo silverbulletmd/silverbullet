@@ -3,13 +3,15 @@ import {
   LuaEnv,
   luaGet,
   luaKeys,
-  type LuaStackFrame,
+  LuaStackFrame,
 } from "$common/space_lua/runtime.ts";
 import { evalExpression } from "$common/space_lua/eval.ts";
 import { asyncQuickSort } from "$common/space_lua/util.ts";
 import type { DataStore } from "$lib/data/datastore.ts";
+import type { KvKey } from "@silverbulletmd/silverbullet/types";
+import type { KvPrimitives } from "$lib/data/kv_primitives.ts";
 
-function buildItemEnv(
+export function buildItemEnv(
   objectVariable: string | undefined,
   item: any,
   env: LuaEnv,
@@ -156,7 +158,7 @@ export class ArrayQueryCollection<T> implements LuaQueryCollection {
   }
 }
 
-async function applyTransforms(
+export async function applyTransforms(
   result: any[],
   query: LuaCollectionQuery,
   env: LuaEnv,
@@ -227,29 +229,40 @@ async function applyTransforms(
   return result;
 }
 
+export async function queryLua<T>(
+  kv: KvPrimitives,
+  prefix: KvKey,
+  query: LuaCollectionQuery,
+  env: LuaEnv,
+  sf: LuaStackFrame = LuaStackFrame.lostFrame,
+): Promise<T[]> {
+  const result: T[] = [];
+  for await (
+    const { value } of kv.query({ prefix })
+  ) {
+    if (query.where) {
+      // Enrich
+      const itemEnv = buildItemEnv(query.objectVariable, value, env, sf);
+      if (!await evalExpression(query.where, itemEnv, sf)) {
+        continue;
+      }
+    }
+    result.push(value);
+  }
+  return applyTransforms(result, query, env, sf);
+}
+
 export class DataStoreQueryCollection implements LuaQueryCollection {
   constructor(
     private readonly dataStore: DataStore,
     readonly prefix: string[],
   ) {}
 
-  async query(
+  query(
     query: LuaCollectionQuery,
     env: LuaEnv,
     sf: LuaStackFrame,
   ): Promise<any[]> {
-    const result: any[] = [];
-    for await (
-      const { value } of this.dataStore.kv.query({ prefix: this.prefix })
-    ) {
-      // Enrich
-      this.dataStore.enrichObject(value);
-      const itemEnv = buildItemEnv(query.objectVariable, value, env, sf);
-      if (query.where && !await evalExpression(query.where, itemEnv, sf)) {
-        continue;
-      }
-      result.push(value);
-    }
-    return applyTransforms(result, query, env, sf);
+    return queryLua(this.dataStore.kv, this.prefix, query, env, sf);
   }
 }

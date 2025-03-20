@@ -3,7 +3,7 @@ import {
   findNodeOfType,
   renderToText,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import { assert, assertEquals, assertNotEquals } from "@std/assert";
+import { assertEquals, assertNotEquals } from "@std/assert";
 import { parseMarkdown } from "./parser.ts";
 import { extractHashtag, renderHashtag } from "../../plug-api/lib/tags.ts";
 
@@ -78,11 +78,6 @@ Deno.test("Test inline attribute syntax", () => {
   assertEquals(nameNode!.children![0].text, "array");
   valueNode = findNodeOfType(attributes[2], "AttributeValue");
   assertEquals(valueNode!.children![0].text, "[1, 2, 3]");
-});
-
-Deno.test("Test template directive parsing", () => {
-  const tree = parseMarkdown("Simple {{name}} and {{count({ page })}}");
-  assert(findNodeOfType(tree, "TemplateDirective"));
 });
 
 const multiStatusTaskExample = `

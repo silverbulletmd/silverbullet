@@ -1,13 +1,10 @@
 import type {
   CompleteEvent,
   DocumentMeta,
-  FileMeta,
   PageMeta,
 } from "@silverbulletmd/silverbullet/types";
-import { listFilesCached } from "../federation/federation.ts";
 import { folderName } from "@silverbulletmd/silverbullet/lib/resolve";
 import type { AspiringPageObject } from "../index/page_links.ts";
-import { localDateString } from "$lib/dates.ts";
 import type { LuaCollectionQuery } from "$common/space_lua/query_collection.ts";
 import { queryLuaObjects } from "../index/api.ts";
 import { lua } from "@silverbulletmd/silverbullet/syscalls";
@@ -121,22 +118,6 @@ export async function pageComplete(completeEvent: CompleteEvent) {
   // Don't complete hidden pages
   allPages = allPages.filter((page) => !(page.pageDecoration?.hide === true));
 
-  if (prefix.startsWith("!")) {
-    // Federation!
-    // Let's see if this URI is complete enough to try to fetch index.json
-    if (prefix.includes("/")) {
-      // Yep
-      const domain = prefix.split("/")[0];
-      // Cached listing
-      const federationPages = (await listFilesCached(domain)).filter((fm) =>
-        fm.name.endsWith(".md")
-      ).map(fileMetaToPageMeta);
-      if (federationPages.length > 0) {
-        allPages = allPages.concat(federationPages);
-      }
-    }
-  }
-
   const folder = folderName(completeEvent.pageName);
 
   return {
@@ -218,16 +199,4 @@ export async function pageComplete(completeEvent: CompleteEvent) {
       return completions;
     }).flat(),
   };
-}
-
-function fileMetaToPageMeta(fileMeta: FileMeta): PageMeta {
-  const name = fileMeta.name.substring(0, fileMeta.name.length - 3);
-  return {
-    ...fileMeta,
-    ref: fileMeta.name,
-    tag: "page",
-    name,
-    created: localDateString(new Date(fileMeta.created)),
-    lastModified: localDateString(new Date(fileMeta.lastModified)),
-  } as PageMeta;
 }

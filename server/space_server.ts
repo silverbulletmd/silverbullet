@@ -1,8 +1,4 @@
 import type { SilverBulletHooks } from "../lib/manifest.ts";
-import {
-  ensureAndLoadSettingsAndIndex,
-  updateObjectDecorators,
-} from "../common/config.ts";
 import { AssetBundlePlugSpacePrimitives } from "$common/spaces/asset_bundle_space_primitives.ts";
 import { FilteredSpacePrimitives } from "$common/spaces/filtered_space_primitives.ts";
 import { ReadOnlySpacePrimitives } from "$common/spaces/ro_space_primitives.ts";
@@ -19,21 +15,15 @@ import { ServerSystem } from "./server_system.ts";
 import { determineShellBackend, NotSupportedShell } from "./shell_backend.ts";
 import type { ShellBackend } from "./shell_backend.ts";
 import { determineStorageBackend } from "./storage_backend.ts";
-import {
-  type Config,
-  type ConfigContainer,
-  defaultConfig,
-} from "../type/config.ts";
 import type { ServerOptions } from "./http_server.ts";
 import type { AuthOptions } from "../cmd/server.ts";
 
 // Equivalent of Client on the server
-export class SpaceServer implements ConfigContainer {
+export class SpaceServer {
   public pagesPath: string;
   auth?: AuthOptions;
   hostname: string;
 
-  config: Config;
   spacePrimitives!: SpacePrimitives;
 
   jwtIssuer: JWTIssuer;
@@ -59,7 +49,6 @@ export class SpaceServer implements ConfigContainer {
     this.syncOnly = options.syncOnly;
     this.readOnly = options.readOnly;
     this.indexPage = options.indexPage;
-    this.config = defaultConfig;
     this.enableSpaceScript = options.enableSpaceScript;
     this.spaceIgnore = options.spaceIgnore;
 
@@ -105,7 +94,6 @@ export class SpaceServer implements ConfigContainer {
         eventHook,
         this.readOnly,
         this.enableSpaceScript,
-        this,
       );
       this.serverSystem = serverSystem;
     }
@@ -124,19 +112,6 @@ export class SpaceServer implements ConfigContainer {
       this.spacePrimitives = this.serverSystem.spacePrimitives;
     }
 
-    await this.loadConfig();
     console.log("Booted server with hostname", this.hostname);
-  }
-
-  async loadConfig() {
-    this.config = await ensureAndLoadSettingsAndIndex(
-      this.spacePrimitives,
-      this.system,
-    );
-
-    if (this.serverSystem) {
-      updateObjectDecorators(this.config, this.serverSystem.ds);
-      this.serverSystem.eventHook.dispatchEvent("config:loaded", this.config);
-    }
   }
 }

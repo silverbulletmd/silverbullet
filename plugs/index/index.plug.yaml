@@ -214,17 +214,6 @@ functions:
     codeWidget: toc
     renderMode: markdown
 
-  # Template Widgets
-  renderTemplateWidgetsTop:
-    path: widget.ts:renderTemplateWidgets
-    env: client
-    panelWidget: top
-
-  renderTemplateWidgetsBottom:
-    path: widget.ts:renderTemplateWidgets
-    env: client
-    panelWidget: bottom
-
   refreshWidgets:
     path: widget.ts:refreshWidgets
 
@@ -257,15 +246,6 @@ functions:
       pattern: "📌 .+"
       operation: getFileMeta
 
-  syscallSourceProvider:
-    path: builtins.ts:syscallSourceProvider
-    events:
-      - query:syscall
-
-  commandSourceProvider:
-    path: builtins.ts:commandSourceProvider
-    events:
-      - query:command
 config:
   # Schema for the built-in tags indexed by this plug
   schema.tag:

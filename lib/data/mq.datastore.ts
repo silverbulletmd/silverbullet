@@ -1,11 +1,14 @@
 import type {
   KV,
+  KvKey,
   MQMessage,
   MQStats,
   MQSubscribeOptions,
 } from "../../plug-api/types.ts";
 import type { MessageQueue } from "./mq.ts";
 import type { DataStore } from "./datastore.ts";
+import { parseExpressionString } from "$common/space_lua/parse.ts";
+import { LuaEnv } from "$common/space_lua/runtime.ts";
 
 export type ProcessingMessage = MQMessage & {
   ts: number;
@@ -58,28 +61,32 @@ export class DataStoreMQ implements MessageQueue {
   async poll(queue: string, maxItems: number): Promise<MQMessage[]> {
     // Note: this is not happening in a transactional way, so we may get duplicate message delivery
     // Retrieve a batch of messages
-    const messages = await this.ds.query<MQMessage>({
-      prefix: [...queuedPrefix, queue],
-      limit: ["number", maxItems],
-    });
+    const messages = await this.ds.luaQuery<MQMessage>(
+      [...queuedPrefix, queue],
+      {
+        limit: maxItems,
+      },
+    );
     if (messages.length === 0) {
       return [];
     }
     // Put them in the processing queue
     await this.ds.batchSet(
       messages.map((m) => ({
-        key: [...processingPrefix, queue, m.value.id],
+        key: [...processingPrefix, queue, m.id],
         value: {
-          ...m.value,
+          ...m,
           ts: Date.now(),
         },
       })),
     );
     // Delete them from the queued queue
-    await this.ds.batchDelete(messages.map((m) => m.key));
+    await this.ds.batchDelete(
+      messages.map((m) => [...queuedPrefix, queue, m.id]),
+    );
 
     // Return them
-    return messages.map((m) => m.value);
+    return messages;
   }
 
   /**
@@ -162,16 +169,24 @@ export class DataStoreMQ implements MessageQueue {
     disableDLQ?: boolean,
   ) {
     const now = Date.now();
-    const messages = await this.ds.query<ProcessingMessage>({
-      prefix: processingPrefix,
-      filter: ["<", ["attr", "ts"], ["number", now - timeout]],
-    });
+    const env = new LuaEnv();
+    env.setLocal("ts", now - timeout);
+    const messages = await this.ds.luaQuery<ProcessingMessage>(
+      processingPrefix,
+      {
+        objectVariable: "m",
+        where: parseExpressionString("m.ts < ts"),
+      },
+      env,
+    );
     if (messages.length === 0) {
       return;
     }
-    await this.ds.batchDelete(messages.map((m) => m.key));
+    await this.ds.batchDelete(
+      messages.map((m) => [...processingPrefix, m.queue, m.id]),
+    );
     const newMessages: KV<ProcessingMessage>[] = [];
-    for (const { value: m } of messages) {
+    for (const m of messages) {
       const retries = (m.retries || 0) + 1;
       if (maxRetries && retries > maxRetries) {
         if (disableDLQ) {
@@ -212,30 +227,27 @@ export class DataStoreMQ implements MessageQueue {
   }
 
   async fetchDLQMessages(): Promise<ProcessingMessage[]> {
-    return (await this.ds.query<ProcessingMessage>({ prefix: dlqPrefix })).map((
-      { value },
-    ) => value);
+    return (await this.ds.luaQuery<ProcessingMessage>(dlqPrefix, {}));
   }
 
   async fetchProcessingMessages(): Promise<ProcessingMessage[]> {
-    return (await this.ds.query<ProcessingMessage>({
-      prefix: processingPrefix,
-    })).map((
-      { value },
-    ) => value);
+    return (await this.ds.luaQuery<ProcessingMessage>(processingPrefix, {}));
   }
 
-  flushDLQ(): Promise<void> {
-    return this.ds.queryDelete({ prefix: dlqPrefix });
+  async flushDLQ(): Promise<void> {
+    const ids: KvKey[] = [];
+    for (const item of await this.ds.luaQuery<MQMessage>(dlqPrefix, {})) {
+      ids.push([...dlqPrefix, item.queue, item.id]);
+    }
+    await this.ds.batchDelete(ids);
   }
 
   async getQueueStats(queue: string): Promise<MQStats> {
     const queued =
-      (await (this.ds.query({ prefix: [...queuedPrefix, queue] }))).length;
+      (await (this.ds.luaQuery([...queuedPrefix, queue], {}))).length;
     const processing =
-      (await (this.ds.query({ prefix: [...processingPrefix, queue] }))).length;
-    const dlq =
-      (await (this.ds.query({ prefix: [...dlqPrefix, queue] }))).length;
+      (await (this.ds.luaQuery([...processingPrefix, queue], {}))).length;
+    const dlq = (await (this.ds.luaQuery([...dlqPrefix, queue], {}))).length;
     return {
       queued,
       processing,
@@ -246,9 +258,10 @@ export class DataStoreMQ implements MessageQueue {
   async getAllQueueStats(): Promise<Record<string, MQStats>> {
     const allStatus: Record<string, MQStats> = {};
     for (
-      const { value: message } of await this.ds.query<MQMessage>({
-        prefix: queuedPrefix,
-      })
+      const message of await this.ds.luaQuery<MQMessage>(
+        queuedPrefix,
+        {},
+      )
     ) {
       if (!allStatus[message.queue]) {
         allStatus[message.queue] = {
@@ -260,9 +273,10 @@ export class DataStoreMQ implements MessageQueue {
       allStatus[message.queue].queued++;
     }
     for (
-      const { value: message } of await this.ds.query<MQMessage>({
-        prefix: processingPrefix,
-      })
+      const message of await this.ds.luaQuery<MQMessage>(
+        processingPrefix,
+        {},
+      )
     ) {
       if (!allStatus[message.queue]) {
         allStatus[message.queue] = {
@@ -274,9 +288,10 @@ export class DataStoreMQ implements MessageQueue {
       allStatus[message.queue].processing++;
     }
     for (
-      const { value: message } of await this.ds.query<MQMessage>({
-        prefix: dlqPrefix,
-      })
+      const message of await this.ds.luaQuery<MQMessage>(
+        dlqPrefix,
+        {},
+      )
     ) {
       if (!allStatus[message.queue]) {
         allStatus[message.queue] = {
