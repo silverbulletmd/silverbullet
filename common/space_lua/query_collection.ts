@@ -199,18 +199,19 @@ async function applyTransforms(
   if (query.distinct) {
     const seen = new Set();
     const distinctResult = [];
-    
+
     for (const item of result) {
       // For non-primitive values, we use a JSON string as the key for comparison
-      const key = typeof item === 'object' && item !== null ? 
-        JSON.stringify(item) : item;
-        
+      const key = typeof item === "object" && item !== null
+        ? JSON.stringify(item)
+        : item;
+
       if (!seen.has(key)) {
         seen.add(key);
         distinctResult.push(item);
       }
     }
-    
+
     result = distinctResult;
   }
 

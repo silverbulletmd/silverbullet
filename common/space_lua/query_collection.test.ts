@@ -139,7 +139,7 @@ Deno.test("ArrayQueryCollection", async () => {
   assertEquals(result9[1], "Alice Johnson");
   assertEquals(result9[2], "Jane Doe");
   assertEquals(result9[3], "Bob Johnson");
-  
+
   // Test distinct
   const collectionWithDuplicates = new ArrayQueryCollection([
     { category: "fruit", name: "apple" },
@@ -149,7 +149,7 @@ Deno.test("ArrayQueryCollection", async () => {
     { category: "vegetable", name: "spinach" },
     { category: "fruit", name: "banana" }, // Duplicate
   ]);
-  
+
   // Test distinct with select
   const distinctResult = await collectionWithDuplicates.query(
     {
@@ -163,12 +163,14 @@ Deno.test("ArrayQueryCollection", async () => {
   assertEquals(distinctResult.length, 2);
   assertEquals(distinctResult.includes("fruit"), true);
   assertEquals(distinctResult.includes("vegetable"), true);
-  
+
   // Test distinct with objects
   const distinctObjectsResult = await collectionWithDuplicates.query(
     {
       objectVariable: "item",
-      select: parseExpressionString("{ category = item.category, name = item.name }"),
+      select: parseExpressionString(
+        "{ category = item.category, name = item.name }",
+      ),
       distinct: true,
     },
     rootEnv,
