@@ -184,8 +184,6 @@ export class Client {
       (path) => { // isSyncCandidate
         // Exclude all plug space primitives paths
         return !this.plugSpaceRemotePrimitives.isLikelyHandled(path) ||
-          // Except federated ones
-          path.startsWith("!") ||
           // Also exclude Library/Std
           path.startsWith("Library/Std");
       },

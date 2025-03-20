@@ -255,10 +255,6 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
   const aspiringPages: ObjectValue<AspiringPageObject>[] = [];
   for (const link of links) {
     if (link.toPage) {
-      // No federated links, nothing with template directives
-      if (link.toPage.startsWith("!") || link.toPage.includes("{{")) {
-        continue;
-      }
       if (!await space.fileExists(`${link.toPage}.md`)) {
         aspiringPages.push({
           ref: `${name}@${link.pos}`,

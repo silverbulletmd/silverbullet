@@ -153,7 +153,7 @@ self.addEventListener("fetch", (event: any) => {
         requestUrl.searchParams.get("raw") === "true"
       ) {
         // If this is a /*.* request, this can either be a plug worker load or an document load
-        return handleLocalFileRequest(request, pathname);
+        return handleLocalFileRequest(pathname);
       } else {
         // Must be a page URL, let's serve index.html which will handle it
         return (await caches.match(precacheFiles["/"])) || fetch(request);
@@ -168,7 +168,6 @@ self.addEventListener("fetch", (event: any) => {
 });
 
 async function handleLocalFileRequest(
-  request: Request,
   pathname: string,
 ): Promise<Response> {
   const path = decodePageURI(pathname.slice(1));
@@ -187,9 +186,6 @@ async function handleLocalFileRequest(
         },
       },
     );
-  } else if (path.startsWith("!")) {
-    console.log("Passing on federated URL", path);
-    return fetch(request);
   } else {
     console.error(
       "Did not find file in locally synced space",

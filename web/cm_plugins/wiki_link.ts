@@ -29,11 +29,6 @@ export function cleanWikiLinkPlugin(client: Client) {
         if (!match) return;
         const [_fullMatch, firstMark, url, alias, lastMark] = match;
 
-        if (firstMark.startsWith("!")) {
-          // Is inline image
-          return;
-        }
-
         let fileExists = !client.fullSyncCompleted;
 
         const pageRef = parseRef(url);

@@ -436,7 +436,6 @@ export class HttpServer {
     this.app.get("/index.json", async (c) => {
       const req = c.req;
       if (req.header("X-Sync-Mode")) {
-        console.log("Direct file list request");
         // Only handle direct requests for a JSON representation of the file list
         const files = await this.spaceServer.spacePrimitives.fetchFileList();
         return c.json(files, 200, {
@@ -506,32 +505,6 @@ export class HttpServer {
       if (name.startsWith(".")) {
         // Don't expose hidden files
         return c.notFound();
-      }
-      // Handle federated links through a simple redirect, only used for documents loads with service workers disabled
-      if (name.startsWith("!")) {
-        let url = name.slice(1);
-        console.log("Handling this as a federated link", url);
-        if (url.startsWith("localhost")) {
-          url = `http://${url}`;
-        } else {
-          url = `https://${url}`;
-        }
-        try {
-          const req = await fetch(url);
-          // Override X-Permssion header to always be "ro"
-          const newHeaders = new Headers();
-          for (const [key, value] of req.headers.entries()) {
-            newHeaders.set(key, value);
-          }
-          newHeaders.set("X-Permission", "ro");
-          return new Response(req.body, {
-            status: req.status,
-            headers: newHeaders,
-          });
-        } catch (e: any) {
-          console.error("Error fetching federated link", e);
-          return c.text(e.message, 500);
-        }
       }
 
       try {
