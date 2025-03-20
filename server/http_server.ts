@@ -227,7 +227,7 @@ export class HttpServer {
           }
         }
         ctx.status(response.status as any || 200);
-        if (response.headers["Content-Type"]) {
+        if (response.headers && response.headers["Content-Type"]) {
           return ctx.body(response.body);
         } else if (typeof response.body === "string") {
           return ctx.text(response.body);
