@@ -316,6 +316,7 @@ export function evalExpression(
             // Build up query object
             const query: LuaCollectionQuery = {
               objectVariable,
+              distinct: true,
             };
 
             // Map clauses to query parameters

@@ -3,24 +3,45 @@ import type {
   DocumentMeta,
   FileMeta,
   PageMeta,
-  QueryExpression,
 } from "@silverbulletmd/silverbullet/types";
 import { listFilesCached } from "../federation/federation.ts";
-import { queryObjects } from "../index/plug_api.ts";
 import { folderName } from "@silverbulletmd/silverbullet/lib/resolve";
 import type { AspiringPageObject } from "../index/page_links.ts";
 import { localDateString } from "$lib/dates.ts";
+import type { LuaCollectionQuery } from "$common/space_lua/query_collection.ts";
+import { queryLuaObjects } from "../index/api.ts";
+import { lua } from "@silverbulletmd/silverbullet/syscalls";
 
-// A meta page is a page tagged with either #template or #meta
-const isMetaPageFilter: QueryExpression = ["or", ["=", ["attr", "tags"], [
-  "string",
-  "template",
-]], ["=~", [
-  "attr",
-  "tags",
-], ["regexp", "meta.+", ""]]];
+// Queries all meta pages (#template tagged or #meta prefixed)
+let isMetaPageQuery: LuaCollectionQuery | undefined;
 
-// Completion
+// The inverse of the above query
+let isntMetaPageQuery: LuaCollectionQuery | undefined;
+
+// Queries all documents (not starting with _, those are system documents)
+let isDocumentQuery: LuaCollectionQuery | undefined;
+
+// Slight optimization to pre-parse the queries
+export async function initQueries() {
+  isDocumentQuery = {
+    objectVariable: "_",
+    where: await lua.parseExpression(`not string.startsWith(_.name, "_")`),
+  };
+  isMetaPageQuery = {
+    objectVariable: "_",
+    where: await lua.parseExpression(`table.find(_.tags, function(tag)
+           return tag == "template" or string.startsWith(tag, "meta")
+          end)`),
+  };
+  isntMetaPageQuery = {
+    objectVariable: "_",
+    where: await lua.parseExpression(`not table.find(_.tags, function(tag)
+           return tag == "template" or string.startsWith(tag, "meta")
+          end)`),
+  };
+}
+
+// Page completion
 export async function pageComplete(completeEvent: CompleteEvent) {
   // Try to match [[wikilink]]
   let isWikilink = true;
@@ -40,9 +61,7 @@ export async function pageComplete(completeEvent: CompleteEvent) {
 
   if (prefix.startsWith("^")) {
     // A carrot prefix means we're looking for a meta page
-    allPages = await queryObjects<PageMeta>("page", {
-      filter: isMetaPageFilter,
-    }, 5);
+    allPages = await queryLuaObjects<PageMeta>("page", isMetaPageQuery!, {}, 5);
     // Let's prefix the names with a caret to make them match
     allPages = allPages.map((page) => ({
       ...page,
@@ -62,7 +81,7 @@ export async function pageComplete(completeEvent: CompleteEvent) {
     )
   ) {
     // We're quite certainly in a template context, let's only complete templates
-    allPages = await queryObjects<PageMeta>("template", {}, 5);
+    allPages = await queryLuaObjects<PageMeta>("template", {}, {}, 5);
   } else if (
     completeEvent.parentNodes.find((node) =>
       node.startsWith("FencedCode:include") ||
@@ -70,24 +89,21 @@ export async function pageComplete(completeEvent: CompleteEvent) {
     )
   ) {
     // Include both pages and meta in page completion in ```include and ```template blocks
-    allPages = await queryObjects<PageMeta>("page", {}, 5);
+    allPages = await queryLuaObjects<PageMeta>("page", {}, {}, 5);
   } else {
     // This is the most common case, we're combining three types of completions here:
     allPages = (await Promise.all([
       // All non-meta pages
-      queryObjects<PageMeta>("page", {
-        filter: ["not", isMetaPageFilter],
-      }, 5),
+      queryLuaObjects<PageMeta>("page", isntMetaPageQuery!, {}, 5),
       // All documents
-      queryObjects<DocumentMeta>("document", {
-        // All documents that do not start with a _ (internal documents)
-        filter: ["!=~", ["attr", "name"], ["regexp", "^_", ""]],
-      }, 5),
+      queryLuaObjects<DocumentMeta>("document", isDocumentQuery!, {}, 5),
       // And all links to non-existing pages (to augment the existing ones)
-      queryObjects<AspiringPageObject>("aspiring-page", {
-        distinct: true,
-        select: [{ name: "name" }],
-      }, 5).then((aspiringPages) =>
+      queryLuaObjects<AspiringPageObject>(
+        "aspiring-page",
+        { distinct: true },
+        {},
+        5,
+      ).then((aspiringPages) =>
         // Rewrite them to PageMeta shaped objects
         aspiringPages.map((aspiringPage): PageMeta => ({
           ref: aspiringPage.name,

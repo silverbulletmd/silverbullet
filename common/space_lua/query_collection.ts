@@ -49,6 +49,8 @@ export type LuaCollectionQuery = {
   limit?: number;
   // The offset of the query
   offset?: number;
+  // Whether to return only distinct values
+  distinct?: boolean;
 };
 
 export function findAllQueryVariables(query: LuaCollectionQuery): string[] {
@@ -114,6 +116,8 @@ export function findAllQueryVariables(query: LuaCollectionQuery): string[] {
   if (query.select) {
     findVariables(query.select);
   }
+
+  // distinct doesn't introduce any new variables
 
   return Array.from(variables);
 }
@@ -189,6 +193,25 @@ async function applyTransforms(
       newResult.push(await evalExpression(query.select, itemEnv, sf));
     }
     result = newResult;
+  }
+
+  // Apply distinct filter (after select to filter on selected values)
+  if (query.distinct) {
+    const seen = new Set();
+    const distinctResult = [];
+    
+    for (const item of result) {
+      // For non-primitive values, we use a JSON string as the key for comparison
+      const key = typeof item === 'object' && item !== null ? 
+        JSON.stringify(item) : item;
+        
+      if (!seen.has(key)) {
+        seen.add(key);
+        distinctResult.push(item);
+      }
+    }
+    
+    result = distinctResult;
   }
 
   // Apply the limit and offset

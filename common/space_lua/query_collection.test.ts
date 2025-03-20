@@ -139,6 +139,42 @@ Deno.test("ArrayQueryCollection", async () => {
   assertEquals(result9[1], "Alice Johnson");
   assertEquals(result9[2], "Jane Doe");
   assertEquals(result9[3], "Bob Johnson");
+  
+  // Test distinct
+  const collectionWithDuplicates = new ArrayQueryCollection([
+    { category: "fruit", name: "apple" },
+    { category: "vegetable", name: "carrot" },
+    { category: "fruit", name: "banana" },
+    { category: "fruit", name: "apple" }, // Duplicate
+    { category: "vegetable", name: "spinach" },
+    { category: "fruit", name: "banana" }, // Duplicate
+  ]);
+  
+  // Test distinct with select
+  const distinctResult = await collectionWithDuplicates.query(
+    {
+      objectVariable: "item",
+      select: parseExpressionString("item.category"),
+      distinct: true,
+    },
+    rootEnv,
+    LuaStackFrame.lostFrame,
+  );
+  assertEquals(distinctResult.length, 2);
+  assertEquals(distinctResult.includes("fruit"), true);
+  assertEquals(distinctResult.includes("vegetable"), true);
+  
+  // Test distinct with objects
+  const distinctObjectsResult = await collectionWithDuplicates.query(
+    {
+      objectVariable: "item",
+      select: parseExpressionString("{ category = item.category, name = item.name }"),
+      distinct: true,
+    },
+    rootEnv,
+    LuaStackFrame.lostFrame,
+  );
+  assertEquals(distinctObjectsResult.length, 4);
 });
 
 Deno.test("findAllQueryVariables", () => {
@@ -146,6 +182,7 @@ Deno.test("findAllQueryVariables", () => {
     where: parseExpressionString("p.x >= 2 and b.x >= 2"),
     select: parseExpressionString("p.x + b.x"),
     orderBy: [{ expr: parseExpressionString("q.x"), desc: false }],
+    distinct: true,
   };
   const variables = findAllQueryVariables(query);
   assertEquals(variables, ["p", "b", "q"]);
