@@ -9,7 +9,6 @@ import type {
   FilterOption,
   Shortcut,
 } from "@silverbulletmd/silverbullet/type/client";
-import { parseCommand } from "$common/command.ts";
 import type { Config } from "$common/config.ts";
 
 export function CommandPalette({
@@ -40,13 +39,9 @@ export function CommandPalette({
     // Let's see if there's a shortcut override
     if (config.has("shortcuts")) {
       const shortcuts = config.get<Shortcut[]>("shortcuts", []);
-      const commandOverride = shortcuts.find((
-        shortcut,
-      ) => {
-        const parsedCommand = parseCommand(shortcut.command);
-        // If this is a command link, we want to match the command name but also make sure no arguments were set
-        return parsedCommand.name === name && parsedCommand.args.length === 0;
-      });
+      const commandOverride = shortcuts.find((shortcut) =>
+        shortcut.command === name
+      );
       if (commandOverride) {
         shortcut = commandOverride;
         // console.log(`Shortcut override for ${name}:`, shortcut);

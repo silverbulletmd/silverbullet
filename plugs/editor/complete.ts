@@ -27,13 +27,13 @@ export async function initQueries() {
   isMetaPageQuery = {
     objectVariable: "_",
     where: await lua.parseExpression(`table.find(_.tags, function(tag)
-           return tag == "template" or string.startsWith(tag, "meta")
+           return string.startsWith(tag, "meta")
           end)`),
   };
   isntMetaPageQuery = {
     objectVariable: "_",
     where: await lua.parseExpression(`not table.find(_.tags, function(tag)
-           return tag == "template" or string.startsWith(tag, "meta")
+           return string.startsWith(tag, "meta")
           end)`),
   };
 }
@@ -64,29 +64,6 @@ export async function pageComplete(completeEvent: CompleteEvent) {
       ...page,
       name: "^" + page.name,
     }));
-  } // Let's try to be smart about the types of completions we're offering based on the context
-  else if (
-    completeEvent.parentNodes.find((node) => node === "Query")
-  ) {
-    // Let's just disable page completion entirely in Lua directives and space-lua blocks
-    return;
-  } else if (
-    completeEvent.parentNodes.find((node) => node.startsWith("FencedCode")) &&
-    // either a render [[bla]] clause
-    /(render\s+|template\()\[\[/.test(
-      completeEvent.linePrefix,
-    )
-  ) {
-    // We're quite certainly in a template context, let's only complete templates
-    allPages = await queryLuaObjects<PageMeta>("template", {}, {}, 5);
-  } else if (
-    completeEvent.parentNodes.find((node) =>
-      node.startsWith("FencedCode:include") ||
-      node.startsWith("FencedCode:template")
-    )
-  ) {
-    // Include both pages and meta in page completion in ```include and ```template blocks
-    allPages = await queryLuaObjects<PageMeta>("page", {}, {}, 5);
   } else {
     // This is the most common case, we're combining three types of completions here:
     allPages = (await Promise.all([

@@ -127,7 +127,7 @@ export class LuaWidget extends WidgetType {
         client.clientSystem.spaceLuaEnv.env,
       );
       mdTree = await expandCodeWidgets(
-        client.clientSystem.codeWidgetHook,
+        client,
         mdTree,
         this.client.currentPage,
         client.clientSystem.spaceLuaEnv.env,

@@ -248,33 +248,6 @@
   color: var(--editor-naked-url-color);
 }
 
-.sb-command-button {
-  font-family: var(--editor-font);
-  color: var(--editor-command-button-color);
-  background-color: var(--editor-command-button-background-color);
-  border: 1px solid var(--editor-command-button-border-color);
-}
-
-.sb-command-button:hover {
-  background-color: var(--editor-command-button-hover-background-color);
-}
-
-.sb-command-link {
-  &.sb-meta {
-    color: var(--editor-command-button-meta-color);
-  }
-
-  &.sb-command-link-name {
-    background-color: var(--editor-command-button-color);
-    background-color: var(--editor-command-button-background-color);
-    border: 1px solid var(--editor-command-button-border-color);
-  }
-
-  &.sb-command-link-name:hover {
-    background-color: var(--editor-command-button-hover-background-color);
-  }
-}
-
 /* Color list items when the cursor is on it */
 .sb-li-cursor .sb-meta {
   color: var(--editor-line-meta-color);

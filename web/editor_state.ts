@@ -50,7 +50,6 @@ import { languageFor } from "$common/languages.ts";
 import { plugLinter } from "./cm_plugins/lint.ts";
 import { Compartment, type Extension } from "@codemirror/state";
 import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
-import { parseCommand } from "$common/command.ts";
 import { safeRun } from "$lib/async.ts";
 import { codeCopyPlugin } from "./cm_plugins/code_copy.ts";
 import { disableSpellcheck } from "./cm_plugins/spell_checking.ts";
@@ -312,17 +311,11 @@ export function createCommandKeyBindings(client: Client): KeyBinding[] {
   // Keyboard shortcuts from SETTINGS take precedense
   if (client.config.has("shortcuts")) {
     for (const shortcut of client.config.get<Shortcut[]>("shortcuts", [])) {
-      // Figure out if we're using the command link syntax here, if so: parse it out
-      const parsedCommand = parseCommand(shortcut.command);
-      if (parsedCommand.args.length === 0) {
-        // If there was no "specialization" of this command (that is, we effectively created a keybinding for an existing command but with arguments), let's add it to the overridden command set:
-        overriddenCommands.add(parsedCommand.name);
-      }
       commandKeyBindings.push({
         key: shortcut.key,
         mac: shortcut.mac,
         run: (): boolean => {
-          client.runCommandByName(parsedCommand.name, parsedCommand.args).catch(
+          client.runCommandByName(shortcut.command).catch(
             (e: any) => {
               console.error(e);
               client.flashNotification(

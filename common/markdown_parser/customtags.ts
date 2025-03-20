@@ -1,8 +1,5 @@
 import { Tag } from "@lezer/highlight";
 
-export const CommandLinkTag = Tag.define();
-export const CommandLinkNameTag = Tag.define();
-export const CommandLinkArgsTag = Tag.define();
 export const WikiLinkTag = Tag.define();
 export const WikiLinkPageTag = Tag.define();
 export const CodeInfoTag = Tag.define();

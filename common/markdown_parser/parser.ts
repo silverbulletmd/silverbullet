@@ -1,4 +1,3 @@
-import { commandLinkRegex } from "../command.ts";
 import { yaml as yamlLanguage } from "@codemirror/legacy-modes/mode/yaml?external=@codemirror/language&target=es2022";
 import { styleTags, type Tag, tags as t } from "@lezer/highlight";
 import {
@@ -67,70 +66,6 @@ const WikiLink: MarkdownConfig = {
         }
 
         return cx.addElement(allElts);
-      },
-      after: "Emphasis",
-    },
-  ],
-};
-
-const CommandLink: MarkdownConfig = {
-  defineNodes: [
-    { name: "CommandLink", style: { "CommandLink/...": ct.CommandLinkTag } },
-    { name: "CommandLinkName", style: ct.CommandLinkNameTag },
-    { name: "CommandLinkAlias", style: ct.CommandLinkNameTag },
-    { name: "CommandLinkArgs", style: ct.CommandLinkArgsTag },
-    { name: "CommandLinkMark", style: t.processingInstruction },
-  ],
-  parseInline: [
-    {
-      name: "CommandLink",
-      parse(cx, next, pos) {
-        let match: RegExpMatchArray | null;
-        if (
-          next != 123 /* '{' */ ||
-          !(match = commandLinkRegex.exec(cx.slice(pos, cx.end)))
-        ) {
-          return -1;
-        }
-        const [fullMatch, command, pipePart, label, argsPart, args] = match;
-        const endPos = pos + fullMatch.length;
-
-        let aliasElts: any[] = [];
-        if (pipePart) {
-          const pipeStartPos = pos + 2 + command.length;
-          aliasElts = [
-            cx.elt("CommandLinkMark", pipeStartPos, pipeStartPos + 1),
-            cx.elt(
-              "CommandLinkAlias",
-              pipeStartPos + 1,
-              pipeStartPos + 1 + label.length,
-            ),
-          ];
-        }
-
-        let argsElts: any[] = [];
-        if (argsPart) {
-          const argsStartPos = pos + 2 + command.length +
-            (pipePart?.length ?? 0);
-          argsElts = [
-            cx.elt("CommandLinkMark", argsStartPos, argsStartPos + 2),
-            cx.elt(
-              "CommandLinkArgs",
-              argsStartPos + 2,
-              argsStartPos + 2 + args.length,
-            ),
-          ];
-        }
-
-        return cx.addElement(
-          cx.elt("CommandLink", pos, endPos, [
-            cx.elt("CommandLinkMark", pos, pos + 2),
-            cx.elt("CommandLinkName", pos + 2, pos + 2 + command.length),
-            ...aliasElts,
-            ...argsElts,
-            cx.elt("CommandLinkMark", endPos - 2, endPos),
-          ]),
-        );
       },
       after: "Emphasis",
     },
@@ -445,7 +380,6 @@ export const FrontMatter: MarkdownConfig = {
 export const extendedMarkdownLanguage = markdown({
   extensions: [
     WikiLink,
-    CommandLink,
     Attribute,
     FrontMatter,
     TaskList,

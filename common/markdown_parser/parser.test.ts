@@ -97,66 +97,8 @@ Deno.test("Test multi-status tasks", () => {
   assertEquals(tasks[2].children![0].children![1].text, "TODO");
 });
 
-const commandLinkSample = `
-{[Some: Command]}
-{[Other: Command|Alias]}
-{[Command: Space | Spaces ]}
-`;
-
-Deno.test("Test command links", () => {
-  const tree = parseMarkdown(commandLinkSample);
-  const commands = collectNodesOfType(tree, "CommandLink");
-  // console.log("Command links parsed", JSON.stringify(commands, null, 2));
-  assertEquals(commands.length, 3);
-  assertEquals(commands[0].children![1].children![0].text, "Some: Command");
-  assertEquals(commands[1].children![1].children![0].text, "Other: Command");
-  assertEquals(commands[1].children![3].children![0].text, "Alias");
-  assertEquals(commands[2].children![1].children![0].text, "Command: Space ");
-  assertEquals(commands[2].children![3].children![0].text, " Spaces ");
-});
-
-const commandLinkArgsSample = `
-{[Args: Command]("with", "args")}
-{[Othargs: Command|Args alias]("other", "args", 123)}
-`;
-
-Deno.test("Test command link arguments", () => {
-  const tree = parseMarkdown(commandLinkArgsSample);
-  const commands = collectNodesOfType(tree, "CommandLink");
-  assertEquals(commands.length, 2);
-
-  const args1 = findNodeOfType(commands[0], "CommandLinkArgs");
-  assertEquals(args1!.children![0].text, '"with", "args"');
-
-  const args2 = findNodeOfType(commands[1], "CommandLinkArgs");
-  assertEquals(args2!.children![0].text, '"other", "args", 123');
-});
-
-Deno.test("Test directive parser", () => {
-  const simpleExample = `Simple {{.}}`;
-  let tree = parseMarkdown(simpleExample);
-  assertEquals(renderToText(tree), simpleExample);
-
-  const eachExample = `{{#each .}}Sup{{/each}}`;
-  tree = parseMarkdown(eachExample);
-
-  const ifExample = `{{#if true}}Sup{{/if}}`;
-  tree = parseMarkdown(ifExample);
-  assertEquals(renderToText(tree), ifExample);
-
-  const ifElseExample = `{{#if true}}Sup{{else}}Sup2{{/if}}`;
-  tree = parseMarkdown(ifElseExample);
-  assertEquals(renderToText(tree), ifElseExample);
-  // console.log("Final tree", JSON.stringify(tree, null, 2));
-
-  const letExample = `{{#let @p = true}}{{/let}}`;
-  tree = parseMarkdown(letExample);
-  assertEquals(renderToText(tree), letExample);
-});
-
 Deno.test("Test lua directive parser", () => {
-  const simpleExample = `Simple \${query_coll("page limit 3", template[==[
-    * Hello there {name}]==])}`;
+  const simpleExample = `Simple \${query_coll("something")}`;
   console.log(JSON.stringify(parseMarkdown(simpleExample), null, 2));
 });
 
@@ -241,7 +183,6 @@ const tableSample = `
 |----------|----------|
 | [[Wiki|Alias]] | 1B |
 | 2A             | 2B |
-| 3A | {[My: Command|Alias]("args", 1)} |
 `;
 
 Deno.test("Test table parser", () => {
@@ -255,8 +196,6 @@ Deno.test("Test table parser", () => {
     "1B",
     "2A",
     "2B",
-    "3A",
-    undefined,
   ]);
 
   // Check the Wiki Link - Make sure no backslash has been added (issue 943)
@@ -265,13 +204,4 @@ Deno.test("Test table parser", () => {
   const wikiAlias = findNodeOfType(cells[2], "WikiLinkAlias");
   assertEquals(wikiName!.children![0].text, "Wiki");
   assertEquals(wikiAlias!.children![0].text, "Alias");
-
-  // Check the Command Link - Make sure no backslash has been added (issue 1016)
-  assertEquals(cells[7].children![0].type, "CommandLink");
-  const commandName = findNodeOfType(cells[7], "CommandLinkName");
-  const commandArgs = findNodeOfType(cells[7], "CommandLinkArgs");
-  const commandAlias = findNodeOfType(cells[7], "CommandLinkAlias");
-  assertEquals(commandName!.children![0].text, "My: Command");
-  assertEquals(commandAlias!.children![0].text, "Alias");
-  assertEquals(commandArgs!.children![0].text, '"args", 1');
 });

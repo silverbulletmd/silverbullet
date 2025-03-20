@@ -4,13 +4,16 @@ import {
   renderToText,
   replaceNodesMatchingAsync,
 } from "../../plug-api/lib/tree.ts";
-import { codeWidget, lua } from "@silverbulletmd/silverbullet/syscalls";
+import { codeWidget, lua, space } from "@silverbulletmd/silverbullet/syscalls";
 import { parseMarkdown } from "../../plug-api/syscalls/markdown.ts";
 import {
   type MarkdownRenderOptions,
   renderMarkdownToHtml,
 } from "./markdown_render.ts";
-import { validatePageName } from "@silverbulletmd/silverbullet/lib/page_ref";
+import {
+  type Ref,
+  validatePageName,
+} from "@silverbulletmd/silverbullet/lib/page_ref";
 import { parseRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import type { LuaExpression } from "$common/space_lua/ast.ts";
 import { renderExpressionResult } from "$common/markdown_util.ts";
@@ -76,34 +79,22 @@ export async function expandCodeWidgets(
       const page = wikiLinkPage.children![0].text!;
 
       // Check if this is likely a page link (based on the path format, e.g. if it contains an extension, it's probably not a page link)
+      let ref: Ref | undefined;
       try {
-        const ref = parseRef(page);
+        ref = parseRef(page);
         validatePageName(ref.page);
       } catch {
         // Not a valid page name, so not a page reference
         return;
       }
 
-      // Internally translate this to a template that inlines a page, then render that
-      const result = await codeWidget.render(
-        "template",
-        `{{[[${page}]]}}`,
+      const pageContent = await space.readPage(ref.page);
+      const parsedBody = await parseMarkdown(pageContent);
+      // Recursively process
+      return expandCodeWidgets(
+        parsedBody,
         page,
       );
-      if (!result) {
-        return {
-          text: "",
-        };
-      }
-      // Only do this for "markdown" widgets, that is: that can render to markdown
-      if (result.markdown !== undefined) {
-        const parsedBody = await parseMarkdown(result.markdown);
-        // Recursively process
-        return expandCodeWidgets(
-          parsedBody,
-          page,
-        );
-      }
     } else if (n.type === "LuaDirective") {
       const expr = findNodeOfType(n, "LuaExpressionDirective") as
         | LuaExpression

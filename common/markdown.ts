@@ -6,6 +6,7 @@ import {
 } from "@silverbulletmd/silverbullet/lib/tree";
 import {
   parseRef,
+  type Ref,
   validatePageName,
 } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { parseMarkdown } from "$common/markdown_parser/parser.ts";
@@ -13,8 +14,8 @@ import type { LuaExpression } from "$common/space_lua/ast.ts";
 import { evalExpression } from "$common/space_lua/eval.ts";
 import type { LuaEnv, LuaStackFrame } from "$common/space_lua/runtime.ts";
 import { parseExpressionString } from "$common/space_lua/parse.ts";
-import type { CodeWidgetHook } from "../web/hooks/code_widget.ts";
 import { renderExpressionResult } from "$common/markdown_util.ts";
+import type { Client } from "../web/client.ts";
 
 /**
  * Finds code widgets, runs their plug code to render and inlines their content in the parse tree
@@ -23,7 +24,7 @@ import { renderExpressionResult } from "$common/markdown_util.ts";
  * @returns modified mdTree
  */
 export async function expandCodeWidgets(
-  codeWidgetHook: CodeWidgetHook,
+  client: Client,
   mdTree: ParseTree,
   pageName: string,
   env: LuaEnv,
@@ -39,7 +40,8 @@ export async function expandCodeWidgets(
       const codeTextNode = findNodeOfType(n, "CodeText");
       try {
         // This will error out if this is not a code wiget, which is fine
-        const langCallback = codeWidgetHook.codeWidgetCallbacks.get(codeType);
+        const langCallback = client.clientSystem.codeWidgetHook
+          .codeWidgetCallbacks.get(codeType);
         if (!langCallback) {
           return {
             text: "",
@@ -59,7 +61,7 @@ export async function expandCodeWidgets(
           const parsedBody = parseMarkdown(result.markdown);
           // Recursively process
           return expandCodeWidgets(
-            codeWidgetHook,
+            client,
             parsedBody,
             pageName,
             env,
@@ -88,34 +90,27 @@ export async function expandCodeWidgets(
       const page = wikiLinkPage.children![0].text!;
 
       // Check if this is likely a page link (based on the path format, e.g. if it contains an extension, it's probably not a page link)
+      let ref: Ref | undefined;
       try {
-        const ref = parseRef(page);
+        ref = parseRef(page);
         validatePageName(ref.page);
       } catch {
         // Not a valid page name, so not a page reference
         return;
       }
 
-      // Internally translate this to a template that inlines a page, then render that
-      const langCallback = codeWidgetHook.codeWidgetCallbacks.get("template")!;
-      const result = await langCallback(`{{[[${page}]]}}`, pageName);
-      if (!result) {
-        return {
-          text: "",
-        };
-      }
-      // Only do this for "markdown" widgets, that is: that can render to markdown
-      if (result.markdown !== undefined) {
-        const parsedBody = await parseMarkdown(result.markdown);
-        // Recursively process
-        return expandCodeWidgets(
-          codeWidgetHook,
-          parsedBody,
-          page,
-          env,
-          sf,
-        );
-      }
+      // Read the page
+
+      const { text } = await client.space.readPage(ref.page);
+      const parsedBody = parseMarkdown(text);
+      // Recursively process
+      return expandCodeWidgets(
+        client,
+        parsedBody,
+        page,
+        env,
+        sf,
+      );
     } else if (n.type === "LuaDirective") {
       const expr = findNodeOfType(n, "LuaExpressionDirective") as
         | LuaExpression

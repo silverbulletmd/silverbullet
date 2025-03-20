@@ -146,10 +146,6 @@ functions:
     path: "./complete.ts:pageComplete"
     events:
       - editor:complete
-  commandComplete:
-    path: "./command.ts:commandComplete"
-    events:
-      - editor:complete
 
   reloadSystem:
     path: editor.ts:reloadSystem

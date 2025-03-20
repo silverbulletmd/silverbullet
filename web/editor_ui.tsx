@@ -14,7 +14,6 @@ import { runScopeHandlers } from "@codemirror/view";
 import type { Client } from "./client.ts";
 import { Panel } from "./components/panel.tsx";
 import { safeRun } from "../lib/async.ts";
-import { parseCommand } from "$common/command.ts";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 
 export class MainUI {
@@ -321,7 +320,6 @@ export class MainUI {
               (button.mobile === viewState.isMobile)
             )
               .map((button) => {
-                const parsedCommand = parseCommand(button.command);
                 const mdiIcon = (mdi as any)[kebabToCamel(button.icon)];
                 let featherIcon =
                   (featherIcons as any)[kebabToCamel(button.icon)];
@@ -333,8 +331,7 @@ export class MainUI {
                   description: button.description || "",
                   callback: () => {
                     client.runCommandByName(
-                      parsedCommand.name,
-                      parsedCommand.args,
+                      button.command,
                     );
                   },
                   href: "",

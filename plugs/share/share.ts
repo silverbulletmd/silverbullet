@@ -91,21 +91,6 @@ export function cleanMarkdown(tree: ParseTree): ParseTree {
           }/${encodePageURI(pageRef.page)})`,
         };
       }
-      case "CommandLink": {
-        // Child 0 is CommandLinkMark, child 1 is CommandLinkPage
-        const command = node.children![1].children![0].text!;
-        let commandText = command;
-        const aliasNode = findNodeOfType(node, "CommandLinkAlias");
-
-        if (aliasNode) {
-          commandText = aliasNode.children![0].text!;
-        }
-
-        return {
-          text: "`" + commandText + "`",
-        };
-      }
-
       case "Attribute":
         // Just remove these
         return null;

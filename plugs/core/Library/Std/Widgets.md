@@ -1,6 +1,25 @@
 #meta
 
-This implements the TOC and Linked Mentions widgets.
+Some useful widgets.
+
+## Button
+A simple button.
+
+```space-lua
+widgets = widgets or {}
+function widgets.button(text, callback)
+  options = options or {}
+  return widget.new {
+    html = "<button>" .. text .. "</button>",
+    events = { click = callback }
+  }
+end
+```
+
+Example:
+${widgets.button("Hello", function()
+  editor.flashNotification "Hi there!"
+end)}
 
 ## Table of contents
 ```space-lua

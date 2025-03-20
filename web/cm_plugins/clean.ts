@@ -10,7 +10,6 @@ import { listBulletPlugin } from "./list.ts";
 import { tablePlugin } from "./table.ts";
 import { taskListPlugin } from "./task.ts";
 import { cleanWikiLinkPlugin } from "./wiki_link.ts";
-import { cleanCommandLinkPlugin } from "./command_link.ts";
 import { fencedCodePlugin } from "./fenced_code.ts";
 import { frontmatterPlugin } from "./frontmatter.ts";
 import { cleanEscapePlugin } from "./escapes.ts";
@@ -44,7 +43,6 @@ export function cleanModePlugins(client: Client) {
     listBulletPlugin(),
     tablePlugin(client),
     cleanWikiLinkPlugin(client),
-    cleanCommandLinkPlugin(client),
     cleanEscapePlugin(),
     luaDirectivePlugin(client),
     hashtagPlugin(),
