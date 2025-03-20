@@ -157,6 +157,18 @@ functions:
       name: "System: Reload"
       key: Ctrl-Alt-r
 
+  refreshAllWidgets:
+    path: editor.ts:refreshAllWidgets
+    command:
+      name: "Widgets: Refresh All"
+      key: "Alt-q"
+      requireEditor: page
+
+  languageComplete:
+    path: complete.ts:languageComplete
+    events:
+      - editor:complete
+
   # Navigation
   linkNavigate:
     path: "./navigate.ts:linkNavigate"
@@ -175,13 +187,6 @@ functions:
       name: "Navigate: Home"
       key: "Alt-h"
       page: ""
-  navigateToSettings:
-    path: "./navigate.ts:navigateCommand"
-    command:
-      name: "Navigate: Open SETTINGS"
-      key: "Ctrl-,"
-      mac: "Cmd-,"
-      page: "SETTINGS"
   moveToPos:
     path: "./editor.ts:moveToPosCommand"
     command:

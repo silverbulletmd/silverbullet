@@ -187,45 +187,87 @@ event.listen {
 }
 ```
 
-# Slash templates
-Various useful slash templates.
+# Slash commands
+Useful Lua slash commands for editing Lua files.
 
+## In-lua slash commands
 ```space-lua
-template.defineSlashCommand {
-  name = "function",
-  description = "Lua function",
-  onlyContexts = {"FencedCode:space-lua"},
-  template = template.new [==[function |^|()
-end]==]
-}
-
-template.defineSlashCommand {
-  name = "tpl",
-  description = "Lua template",
-  onlyContexts = {"FencedCode:space-lua"},
-  template = template.new "template.new[==[|^|]==]"
-}
-
-template.defineSlashCommand {
-  name = "lua-query",
-  description = "Lua query",
+slashcommand.define {
+  name = "func",
+  description = "Create a new function",
   onlyContexts = {"FencedCode:space-lua", "LuaDirective"},
-  template = template.new 'query[[from index.tag "|^|"]]'
+  run = function()
+    editor.insertAtCursor([==[function |^|()
+end]==], false, true)
+  end
 }
 
-template.defineSlashCommand {
+slashcommand.define {
+  name = "tpl",
+  description = "Create a new template",
+  onlyContexts = {"FencedCode:space-lua", "LuaDirective"},
+  run = function()
+    editor.insertAtCursor("template.new[==[|^|]==]", false, true)
+  end
+}
+
+slashcommand.define {
+  name = "lua-query",
+  description = "Perform a query",
+  onlyContexts = {"FencedCode:space-lua", "LuaDirective"},
+  run = function()
+    editor.insertAtCursor('query[[from index.tag "|^|"]]', false, true)
+  end
+}
+
+slashcommand.define {
+  name = "command",
+  description = "Define a command",
+  onlyContexts = {"FencedCode:space-lua", "LuaDirective"},
+  run = function()
+    editor.insertAtCursor([==[command.define {
+  name = "|^|",
+  run = function()
+    editor.flashNotification "Hello world!"
+  end
+}]==], false, true)
+  end
+}
+
+slashcommand.define {
+  name = "slash-command",
+  description = "Define a slash command",
+  onlyContexts = {"FencedCode:space-lua", "LuaDirective"},
+  run = function()
+    editor.insertAtCursor([==[slashcommand.define {
+  name = "|^|",
+  run = function()
+    editor.insertAtCursor("Hello |^| world!", false, true)
+  end
+}]==], false, true)
+  end
+}
+```
+
+## Lua slash commands
+```space-lua
+-- Outside Space Lua contexts
+slashcommand.define {
   name = "space-lua",
-  description = "Space Lua block",
   exceptContexts = {"FencedCode:space-lua", "LuaDirective"},
-  template = template.new [==[```space-lua
+  run = function()
+    editor.insertAtCursor([==[```space-lua
 |^|
-```]==]
+```]==], false, true)
+  end
 }
 
--- A query embedded in ${}
-template.defineSlashCommand {
+slashcommand.define {
   name = "query",
-  description = "Lua query",
   exceptContexts = {"FencedCode:space-lua", "LuaDirective"},
-  template = function() return '${query[[from index.tag "|^|"]]}' end
+  run = function()
+    editor.insertAtCursor('${query[[from index.tag "|^|"]]}', false, true)
+  end
 }
+```
+

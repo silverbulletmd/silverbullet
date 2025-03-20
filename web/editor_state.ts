@@ -120,7 +120,10 @@ export function createEditorState(
       }),
       extendedMarkdownLanguage.data.of({
         closeBrackets: {
-          brackets: client.config.get<string>("autoCloseBrackets", "").split(
+          brackets: client.config.get<string | undefined>(
+            "autoCloseBrackets",
+            undefined,
+          )?.split(
             "",
           ),
         },

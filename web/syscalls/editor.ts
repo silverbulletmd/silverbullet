@@ -309,16 +309,28 @@ export function editorSyscalls(client: Client): SysCallMapping {
       });
     },
 
-    "editor.insertAtCursor": (_ctx, text: string, scrollIntoView = false) => {
+    "editor.insertAtCursor": (
+      _ctx,
+      text: string,
+      scrollIntoView = false,
+      cursorPlaceHolder = false,
+    ) => {
       const editorView = client.editorView;
       const from = editorView.state.selection.main.from;
+      const cursorPlaceholderPos = text.indexOf("|^|");
+      if (cursorPlaceHolder) {
+        text = text.slice(0, cursorPlaceholderPos) +
+          text.slice(cursorPlaceholderPos + 3);
+      }
       editorView.dispatch({
         changes: {
           insert: text,
           from: from,
         },
         selection: {
-          anchor: from + text.length,
+          anchor: cursorPlaceHolder
+            ? from + cursorPlaceholderPos
+            : from + text.length,
         },
         scrollIntoView,
       });

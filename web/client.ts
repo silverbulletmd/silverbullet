@@ -1224,15 +1224,6 @@ export class Client {
             perm: "rw",
           } as PageMeta,
         };
-        // Create new page based on a template
-        this.clientSystem.system.invokeFunction("template.newPage", [pageName])
-          .then(
-            () => {
-              this.focus();
-            },
-          ).catch(
-            console.error,
-          );
       } else {
         this.flashNotification(
           `Could not load page ${pageName}: ${e.message}`,

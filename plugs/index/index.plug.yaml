@@ -8,10 +8,12 @@ functions:
     path: api.ts:indexObjects
     syscall: index.indexObjects
     env: server
+  query:
+    path: api.ts:query
+    syscall: index.query
   queryLuaObjects:
     path: api.ts:queryLuaObjects
     syscall: index.queryLuaObjects
-    # Note: not setting env: server to allow for client-side datastore query caching
   getObjectByRef:
     path: api.ts:getObjectByRef
     syscall: index.getObjectByRef
@@ -116,12 +118,6 @@ functions:
   # Style
   indexSpaceStyle:
     path: style.ts:indexSpaceStyle
-    events:
-      - page:index
-
-  # Config
-  indexSpaceConfig:
-    path: config.ts:indexSpaceConfig
     events:
       - page:index
 

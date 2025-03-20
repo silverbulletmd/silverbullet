@@ -7,7 +7,7 @@ import { folderName } from "@silverbulletmd/silverbullet/lib/resolve";
 import type { AspiringPageObject } from "../index/page_links.ts";
 import type { LuaCollectionQuery } from "$common/space_lua/query_collection.ts";
 import { queryLuaObjects } from "../index/api.ts";
-import { lua } from "@silverbulletmd/silverbullet/syscalls";
+import { language, lua } from "@silverbulletmd/silverbullet/syscalls";
 
 // Queries all meta pages (#template tagged or #meta prefixed)
 let isMetaPageQuery: LuaCollectionQuery | undefined;
@@ -198,5 +198,25 @@ export async function pageComplete(completeEvent: CompleteEvent) {
       }
       return completions;
     }).flat(),
+  };
+}
+
+export async function languageComplete(completeEvent: CompleteEvent) {
+  const languagePrefix = /^(?:```+|~~~+)(\w*)$/.exec(
+    completeEvent.linePrefix,
+  );
+  if (!languagePrefix) {
+    return null;
+  }
+
+  const allLanguages = await language.listLanguages();
+  return {
+    from: completeEvent.pos - languagePrefix[1].length,
+    options: allLanguages.map(
+      (lang) => ({
+        label: lang,
+        type: "language",
+      }),
+    ),
   };
 }

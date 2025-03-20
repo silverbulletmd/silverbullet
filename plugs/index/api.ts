@@ -1,5 +1,5 @@
 import { datastore, markdown } from "@silverbulletmd/silverbullet/syscalls";
-import type { KV, KvKey, ObjectValue } from "../../plug-api/types.ts";
+import type { KV, KvKey, KvQuery, ObjectValue } from "../../plug-api/types.ts";
 import { ttlCache } from "$lib/memory_cache.ts";
 import type { LuaCollectionQuery } from "$common/space_lua/query_collection.ts";
 import {
@@ -131,14 +131,14 @@ export function deleteObject(
   return datastore.del([tag, cleanKey(object.ref, page)]);
 }
 
-// export async function query(
-//   query: KvQuery,
-// ): Promise<KV[]> {
-//   return (await datastore.query({
-//     ...query,
-//     prefix: [indexKey, ...query.prefix ? query.prefix : []],
-//   })).map(({ key, value }) => ({ key: key.slice(1), value }));
-// }
+export async function query(
+  query: KvQuery,
+): Promise<KV[]> {
+  return (await datastore.query({
+    ...query,
+    prefix: [indexKey, ...query.prefix ? query.prefix : []],
+  })).map(({ key, value }) => ({ key: key.slice(1), value }));
+}
 
 export function getObjectByRef<T>(
   page: string,

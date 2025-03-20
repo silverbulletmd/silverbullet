@@ -9,13 +9,6 @@ This page compiles some useful things about your space and may also be useful fo
 **Total tags:** {{count({tag select name})}}
 ```
 
-# Active [[!silverbullet.md/Space Script]]
-```template
-{{#each {space-script}}}
-* [[{{ref}}]]
-{{/each}}
-```
-
 # Active [[!silverbullet.md/Space Lua]]
 ${template.each(query[[
   from index.tag "space-lua"
