@@ -160,7 +160,7 @@ export const tableApi = new LuaTable({
    * @param tbl - The table to search.
    * @param criteriaFn - The criteria function.
    * @param fromIndex - The index to start searching from.
-   * @returns The first matching element, or nil if no element is found.
+   * @returns Lua multi value of index, value, or nil if no element is found.
    */
   find: new LuaBuiltinFunction(
     async (
@@ -173,7 +173,7 @@ export const tableApi = new LuaTable({
       for (let i = startIndex; i <= tbl.length; i++) {
         const val = await luaGet(tbl, i, sf);
         if (await criteriaFn.call(sf, val)) {
-          return val;
+          return new LuaMultiRes([i, val]);
         }
       }
       return null;

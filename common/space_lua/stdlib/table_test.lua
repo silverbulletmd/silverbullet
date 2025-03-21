@@ -141,3 +141,10 @@ assertEqual(packed[1], 1)
 assertEqual(packed[2], 2)
 assertEqual(packed[3], 3)
 assertEqual(packed.n, 3)
+
+-- Test table.find
+local t = { 0, 1, 2, 3 }
+local idx, two = table.find(t, function(v) return v == 2 end)
+assertEqual(idx, 3)
+assertEqual(two, 2)
+assertEqual(table.find(t, function(v) return v == 4 end), nil)
