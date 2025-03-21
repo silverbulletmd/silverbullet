@@ -1,10 +1,6 @@
 import type { ClickEvent } from "../../plug-api/types.ts";
 import { extractHashtag } from "../../plug-api/lib/tags.ts";
-import {
-  editor,
-  markdown,
-  system,
-} from "@silverbulletmd/silverbullet/syscalls";
+import { editor, markdown } from "@silverbulletmd/silverbullet/syscalls";
 import {
   addParentPointers,
   findNodeOfType,
@@ -34,7 +30,6 @@ async function actionClickOrActionEnter(
       "URL",
       "NakedURL",
       "Link",
-      "CommandLink",
       "PageRef",
       "Hashtag",
     ]
@@ -99,22 +94,6 @@ async function actionClickOrActionEnter(
       } else {
         return editor.openUrl(url);
       }
-    }
-    case "CommandLink": {
-      const commandName = mdTree.children![1]!.children![0].text!;
-      const argsNode = findNodeOfType(mdTree, "CommandLinkArgs");
-      const argsText = argsNode?.children?.[0]?.text;
-      // Assume the arguments are can be parsed as the innards of a valid JSON list
-      try {
-        const args = argsText ? JSON.parse(`[${argsText}]`) : [];
-        await system.invokeCommand(commandName, args);
-      } catch (e: any) {
-        await editor.flashNotification(
-          `Error parsing command link arguments: ${e.message}`,
-          "error",
-        );
-      }
-      break;
     }
     case "Hashtag": {
       const hashtag = extractHashtag(mdTree.children![0].text!);

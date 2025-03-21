@@ -1,10 +1,6 @@
-import { commandLinkRegex } from "../command.ts";
 import { yaml as yamlLanguage } from "@codemirror/legacy-modes/mode/yaml?external=@codemirror/language&target=es2022";
 import { styleTags, type Tag, tags as t } from "@lezer/highlight";
 import {
-  type BlockContext,
-  type LeafBlock,
-  type LeafBlockParser,
   type Line,
   type MarkdownConfig,
   Strikethrough,
@@ -70,241 +66,6 @@ const WikiLink: MarkdownConfig = {
         }
 
         return cx.addElement(allElts);
-      },
-      after: "Emphasis",
-    },
-  ],
-};
-
-const CommandLink: MarkdownConfig = {
-  defineNodes: [
-    { name: "CommandLink", style: { "CommandLink/...": ct.CommandLinkTag } },
-    { name: "CommandLinkName", style: ct.CommandLinkNameTag },
-    { name: "CommandLinkAlias", style: ct.CommandLinkNameTag },
-    { name: "CommandLinkArgs", style: ct.CommandLinkArgsTag },
-    { name: "CommandLinkMark", style: t.processingInstruction },
-  ],
-  parseInline: [
-    {
-      name: "CommandLink",
-      parse(cx, next, pos) {
-        let match: RegExpMatchArray | null;
-        if (
-          next != 123 /* '{' */ ||
-          !(match = commandLinkRegex.exec(cx.slice(pos, cx.end)))
-        ) {
-          return -1;
-        }
-        const [fullMatch, command, pipePart, label, argsPart, args] = match;
-        const endPos = pos + fullMatch.length;
-
-        let aliasElts: any[] = [];
-        if (pipePart) {
-          const pipeStartPos = pos + 2 + command.length;
-          aliasElts = [
-            cx.elt("CommandLinkMark", pipeStartPos, pipeStartPos + 1),
-            cx.elt(
-              "CommandLinkAlias",
-              pipeStartPos + 1,
-              pipeStartPos + 1 + label.length,
-            ),
-          ];
-        }
-
-        let argsElts: any[] = [];
-        if (argsPart) {
-          const argsStartPos = pos + 2 + command.length +
-            (pipePart?.length ?? 0);
-          argsElts = [
-            cx.elt("CommandLinkMark", argsStartPos, argsStartPos + 2),
-            cx.elt(
-              "CommandLinkArgs",
-              argsStartPos + 2,
-              argsStartPos + 2 + args.length,
-            ),
-          ];
-        }
-
-        return cx.addElement(
-          cx.elt("CommandLink", pos, endPos, [
-            cx.elt("CommandLinkMark", pos, pos + 2),
-            cx.elt("CommandLinkName", pos + 2, pos + 2 + command.length),
-            ...aliasElts,
-            ...argsElts,
-            cx.elt("CommandLinkMark", endPos - 2, endPos),
-          ]),
-        );
-      },
-      after: "Emphasis",
-    },
-  ],
-};
-
-const TemplateDirective: MarkdownConfig = {
-  defineNodes: [
-    { name: "TemplateDirective" },
-    { name: "TemplateExpressionDirective" },
-    { name: "TemplateIfStartDirective", style: ct.DirectiveTag },
-    { name: "TemplateEachStartDirective", style: ct.DirectiveTag },
-    { name: "TemplateEachVarStartDirective", style: ct.DirectiveTag },
-    { name: "TemplateLetStartDirective", style: ct.DirectiveTag },
-    { name: "TemplateIfEndDirective", style: ct.DirectiveTag },
-    { name: "TemplateEachEndDirective", style: ct.DirectiveTag },
-    { name: "TemplateLetEndDirective", style: ct.DirectiveTag },
-    { name: "TemplateVar", style: t.variableName },
-    { name: "TemplateDirectiveMark", style: ct.DirectiveMarkTag },
-  ],
-  parseInline: [
-    {
-      name: "TemplateDirective",
-      parse(cx, next, pos) {
-        const textFromPos = cx.slice(pos, cx.end);
-        if (
-          next != 123 /* '{' */ ||
-          cx.slice(pos, pos + 2) !== "{{"
-        ) {
-          return -1;
-        }
-
-        let bracketNestingDepth = 0;
-        let valueLength = 0;
-        // We need to ensure balanced { and } pairs
-        loopLabel:
-        for (; valueLength < textFromPos.length; valueLength++) {
-          switch (textFromPos[valueLength]) {
-            case "{":
-              bracketNestingDepth++;
-              break;
-            case "}":
-              bracketNestingDepth--;
-              if (bracketNestingDepth === 0) {
-                // Done!
-                break loopLabel;
-              }
-              break;
-          }
-        }
-        if (bracketNestingDepth !== 0) {
-          return -1;
-        }
-
-        const bodyText = textFromPos.slice(2, valueLength - 1);
-        // console.log("Body text", bodyText);
-
-        const endPos = pos + valueLength + 1;
-        let bodyEl: any;
-
-        // Is this an let block directive?
-        const openLetBlockMatch = /^(\s*#let\s*)(@\w+)(\s*=\s*)(.+)$/s.exec(
-          bodyText,
-        );
-        if (openLetBlockMatch) {
-          const [_, directiveStart, varName, eq, expr] = openLetBlockMatch;
-          const parsedExpression = highlightingExpressionParser.parse(
-            expr,
-          );
-          bodyEl = cx.elt(
-            "TemplateLetStartDirective",
-            pos + 2,
-            endPos - 2,
-            [
-              cx.elt(
-                "TemplateVar",
-                pos + 2 + directiveStart.length,
-                pos + 2 + directiveStart.length + varName.length,
-              ),
-              cx.elt(
-                parsedExpression,
-                pos + 2 + directiveStart.length + varName.length + eq.length,
-              ),
-            ],
-          );
-        }
-
-        if (!bodyEl) {
-          // Is this an #each @p = block directive?
-          const openEachVariableBlockMatch =
-            /^(\s*#each\s*)(@\w+)(\s+in\s+)(.+)$/s.exec(
-              bodyText,
-            );
-          if (openEachVariableBlockMatch) {
-            const [_, directiveStart, varName, eq, expr] =
-              openEachVariableBlockMatch;
-            const parsedExpression = highlightingExpressionParser.parse(
-              expr,
-            );
-            bodyEl = cx.elt(
-              "TemplateEachVarStartDirective",
-              pos + 2,
-              endPos - 2,
-              [
-                cx.elt(
-                  "TemplateVar",
-                  pos + 2 + directiveStart.length,
-                  pos + 2 + directiveStart.length + varName.length,
-                ),
-                cx.elt(
-                  parsedExpression,
-                  pos + 2 + directiveStart.length + varName.length + eq.length,
-                ),
-              ],
-            );
-          }
-        }
-        if (!bodyEl) {
-          // Is this an open block directive?
-          const openBlockMatch = /^(\s*#(if|each)\s*)(.+)$/s.exec(bodyText);
-          if (openBlockMatch) {
-            const [_, directiveStart, directiveType, directiveBody] =
-              openBlockMatch;
-            const parsedExpression = highlightingExpressionParser.parse(
-              directiveBody,
-            );
-            bodyEl = cx.elt(
-              directiveType === "if"
-                ? "TemplateIfStartDirective"
-                : "TemplateEachStartDirective",
-              pos + 2,
-              endPos - 2,
-              [cx.elt(parsedExpression, pos + 2 + directiveStart.length)],
-            );
-          }
-        }
-
-        if (!bodyEl) {
-          // Is this a directive close?
-          const closeBlockMatch = /^\s*\/(if|each|let)/.exec(bodyText);
-
-          if (closeBlockMatch) {
-            const [_, directiveType] = closeBlockMatch;
-            const upCaseDirectiveType = directiveType[0].toUpperCase() +
-              directiveType.slice(1);
-            bodyEl = cx.elt(
-              `Template${upCaseDirectiveType}EndDirective`,
-              pos + 2,
-              endPos - 2,
-            );
-          }
-        }
-
-        if (!bodyEl) {
-          // Let's parse as an expression
-          const parsedExpression = highlightingExpressionParser.parse(bodyText);
-          bodyEl = cx.elt(
-            "TemplateExpressionDirective",
-            pos + 2,
-            endPos - 2,
-            [cx.elt(parsedExpression, pos + 2)],
-          );
-        }
-
-        return cx.addElement(
-          cx.elt("TemplateDirective", pos, endPos, [
-            cx.elt("TemplateDirectiveMark", pos, pos + 2),
-            bodyEl!,
-            cx.elt("TemplateDirectiveMark", endPos - 2, endPos),
-          ]),
-        );
       },
       after: "Emphasis",
     },
@@ -411,34 +172,6 @@ export const Highlight: MarkdownConfig = {
   ],
 };
 
-import { parser as queryParser } from "./parse-query.js";
-
-const expressionStyleTags = styleTags({
-  Identifier: t.variableName,
-  TagIdentifier: t.variableName,
-  GlobalIdentifier: t.variableName,
-  String: t.string,
-  Number: t.number,
-  PageRef: ct.WikiLinkTag,
-  BinExpression: t.operator,
-  TernaryExpression: t.operator,
-  Regex: t.regexp,
-  "where limit select render desc asc and or null as in true false not each all Order/...":
-    t.keyword,
-});
-
-export const highlightingQueryParser = queryParser.configure({
-  props: [
-    expressionStyleTags,
-  ],
-});
-
-import { parser as expressionParser } from "./parse-expression.js";
-
-export const highlightingExpressionParser = expressionParser.configure({
-  props: [expressionStyleTags],
-});
-
 export const attributeStartRegex = /^\[([\w\$]+)(::?\s*)/;
 
 export const Attribute: MarkdownConfig = {
@@ -513,35 +246,6 @@ export const Attribute: MarkdownConfig = {
   ],
 };
 
-class CommentParser implements LeafBlockParser {
-  nextLine() {
-    return false;
-  }
-
-  finish(cx: BlockContext, leaf: LeafBlock) {
-    cx.addLeafElement(
-      leaf,
-      cx.elt("Comment", leaf.start, leaf.start + leaf.content.length, [
-        // cx.elt("CommentMarker", leaf.start, leaf.start + 3),
-        ...cx.parser.parseInline(leaf.content.slice(3), leaf.start + 3),
-      ]),
-    );
-    return true;
-  }
-}
-export const Comment: MarkdownConfig = {
-  defineNodes: [{ name: "Comment", block: true }],
-  parseBlock: [
-    {
-      name: "Comment",
-      leaf(_cx, leaf) {
-        return /^%%\s/.test(leaf.content) ? new CommentParser() : null;
-      },
-      after: "SetextHeading",
-    },
-  ],
-};
-
 type RegexParserExtension = {
   // unicode char code for efficiency .charCodeAt(0)
   firstCharCode: number;
@@ -601,14 +305,6 @@ const TaskDeadline = regexParser({
   className: "sb-task-deadline",
   nodeType: "DeadlineDate",
   tag: ct.TaskDeadlineTag,
-});
-
-const NamedAnchor = regexParser({
-  firstCharCode: 36, // $
-  regex: /^\$[a-zA-Z\.\-\/]+[\w\.\-\/]*/,
-  className: "sb-named-anchor",
-  nodeType: "NamedAnchor",
-  tag: ct.NamedAnchorTag,
 });
 
 import { Table } from "./table_parser.ts";
@@ -684,20 +380,16 @@ export const FrontMatter: MarkdownConfig = {
 export const extendedMarkdownLanguage = markdown({
   extensions: [
     WikiLink,
-    CommandLink,
     Attribute,
     FrontMatter,
     TaskList,
-    Comment,
     Highlight,
-    TemplateDirective,
     LuaDirectives,
     Strikethrough,
     Table,
     NakedURL,
     Hashtag,
     TaskDeadline,
-    NamedAnchor,
     Superscript,
     Subscript,
     {

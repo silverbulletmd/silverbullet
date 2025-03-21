@@ -13,9 +13,7 @@ import { closeSearchPanel } from "@codemirror/search";
 import { runScopeHandlers } from "@codemirror/view";
 import type { Client } from "./client.ts";
 import { Panel } from "./components/panel.tsx";
-import { safeRun, sleep } from "../lib/async.ts";
-import { parseCommand } from "$common/command.ts";
-import { defaultActionButtons } from "@silverbulletmd/silverbullet/type/config";
+import { safeRun } from "../lib/async.ts";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 
 export class MainUI {
@@ -218,7 +216,7 @@ export class MainUI {
             darkMode={viewState.uiOptions.darkMode}
             completer={client.miniEditorComplete.bind(client)}
             recentCommands={viewState.recentCommands}
-            config={this.client.config}
+            config={client.config}
           />
         )}
         {viewState.showFilterBox && (
@@ -299,7 +297,10 @@ export class MainUI {
           }}
           actionButtons={[
             // Vertical menu button
-            ...(viewState.config.mobileMenuStyle.includes("hamburger"))
+            ...(viewState.isMobile &&
+                client.config.get<string>("mobileMenuStyle", "").includes(
+                  "hamburger",
+                ))
               ? [{
                 icon: featherIcons.MoreVertical,
                 description: "Open Menu",
@@ -308,74 +309,17 @@ export class MainUI {
                   () => {/* nothing to do, menu opens on hover/mobile click */},
               }]
               : [],
-            // Sync button
-            ...(!this.client.clientConfig.syncOnly &&
-                !viewState.config.hideSyncButton)
-              // If we support syncOnly, don't show this toggle button
-              ? [{
-                icon: featherIcons.RefreshCw,
-                description: this.client.clientConfig.syncMode
-                  ? "Currently in Sync mode, click to switch to Online mode"
-                  : "Currently in Online mode, click to switch to Sync mode",
-                class: this.client.clientConfig.syncMode
-                  ? "sb-enabled"
-                  : undefined,
-                callback: () => {
-                  (async () => {
-                    const newValue = !this.client.clientConfig.syncMode;
-
-                    if (newValue) {
-                      localStorage.setItem("syncMode", "true");
-                      this.client.flashNotification(
-                        "Now switching to sync mode, one moment please...",
-                      );
-                      await sleep(1000);
-                      location.reload();
-                    } else {
-                      localStorage.removeItem("syncMode");
-                      this.client.flashNotification(
-                        "Now switching to online mode, one moment please...",
-                      );
-                      await sleep(1000);
-                      location.reload();
-                    }
-                  })().catch(console.error);
-                },
-              }]
-              : [],
-            // Edit (reader/writer) button ONLY on mobile
-            ...(viewState.isMobile && !viewState.config.hideEditButton)
-              ? [{
-                icon: featherIcons.Edit3,
-                description: viewState.uiOptions.forcedROMode
-                  ? "Currently in reader mode, click to switch to writer mode"
-                  : "Currently in writer mode, click to switch to reader mode",
-                class: !viewState.uiOptions.forcedROMode
-                  ? "sb-enabled"
-                  : undefined,
-                callback: () => {
-                  dispatch({
-                    type: "set-ui-option",
-                    key: "forcedROMode",
-                    value: !viewState.uiOptions.forcedROMode,
-                  });
-                  // After a tick (to have the dispatch update the state), rebuild the editor
-                  setTimeout(() => {
-                    client.rebuildEditorState();
-                  });
-                },
-              }]
-              : [],
             // Custom action buttons
-            ...(viewState.config.actionButtons.length > 0
-              ? viewState.config.actionButtons
-              : defaultActionButtons)
-              .filter((button) =>
-                (typeof button.mobile === "undefined") ||
-                (button.mobile === viewState.isMobile)
-              )
+            ...client.config.get<ActionButton[]>(
+              "actionButtons",
+              defaultActionButtons,
+            ).filter((
+              button,
+            ) =>
+              (typeof button.mobile === "undefined") ||
+              (button.mobile === viewState.isMobile)
+            )
               .map((button) => {
-                const parsedCommand = parseCommand(button.command);
                 const mdiIcon = (mdi as any)[kebabToCamel(button.icon)];
                 let featherIcon =
                   (featherIcons as any)[kebabToCamel(button.icon)];
@@ -387,8 +331,7 @@ export class MainUI {
                   description: button.description || "",
                   callback: () => {
                     client.runCommandByName(
-                      parsedCommand.name,
-                      parsedCommand.args,
+                      button.command,
                     );
                   },
                   href: "",
@@ -414,9 +357,7 @@ export class MainUI {
             ? viewState.current?.meta?.pageDecoration?.cssClasses
               .join(" ").replaceAll(/[^a-zA-Z0-9-_ ]/g, "")
             : ""}
-          mobileMenuStyle={viewState.config?.mobileMenuStyle
-            ? viewState.config?.mobileMenuStyle
-            : ""}
+          mobileMenuStyle={client.config.get<string>("mobileMenuStyle", "")}
         />
         <div id="sb-main">
           {!!viewState.panels.lhs.mode && (
@@ -450,6 +391,34 @@ export class MainUI {
     preactRender(h(this.ViewComponent.bind(this), {}), container);
   }
 }
+
+// TODO: Parking this here for now
+
+type ActionButton = {
+  icon: string;
+  description?: string;
+  command: string;
+  args?: any[];
+  mobile?: boolean;
+};
+
+export const defaultActionButtons: ActionButton[] = [
+  {
+    icon: "Home",
+    description: "Go to the index page",
+    command: "Navigate: Home",
+  },
+  {
+    icon: "Book",
+    description: `Open page`,
+    command: "Navigate: Page Picker",
+  },
+  {
+    icon: "Terminal",
+    description: `Run command`,
+    command: "Open Command Palette",
+  },
+];
 
 function kebabToCamel(str: string) {
   return str.replace(/-([a-z])/g, (g) => g[1].toUpperCase()).replace(

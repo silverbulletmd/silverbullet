@@ -1,9 +1,9 @@
 import {
-  DataStoreQueryCollection,
   type LuaCollectionQuery,
+  queryLua,
 } from "$common/space_lua/query_collection.ts";
 import type { CommonSystem } from "$common/common_system.ts";
-import type { KV, KvKey, KvQuery } from "../../../plug-api/types.ts";
+import type { KV, KvKey } from "../../../plug-api/types.ts";
 import type { DataStore } from "../../data/datastore.ts";
 import type { SysCallMapping } from "../system.ts";
 import {
@@ -12,6 +12,7 @@ import {
   LuaStackFrame,
   luaValueToJS,
 } from "$common/space_lua/runtime.ts";
+import type { KvQueryOptions } from "$lib/data/kv_primitives.ts";
 
 /**
  * Exposes the datastore API to plugs, but scoping everything to a prefix based on the plug's name
@@ -34,12 +35,12 @@ export function dataStoreReadSyscalls(
       return ds.get(key);
     },
 
-    "datastore.query": (
-      _ctx,
-      query: KvQuery,
-      variables?: Record<string, any>,
-    ): Promise<KV[]> => {
-      return ds.query(query, variables);
+    "datastore.query": async (_ctx, options: KvQueryOptions): Promise<KV[]> => {
+      const results: KV[] = [];
+      for await (const item of ds.query(options)) {
+        results.push(item);
+      }
+      return results;
     },
 
     "datastore.queryLua": async (
@@ -48,7 +49,6 @@ export function dataStoreReadSyscalls(
       query: LuaCollectionQuery,
       scopeVariables: Record<string, any> = {},
     ): Promise<any[]> => {
-      const dsQueryCollection = new DataStoreQueryCollection(ds, prefix);
       const sf = LuaStackFrame.createWithGlobalEnv(
         commonSystem.spaceLuaEnv.env,
       );
@@ -56,15 +56,9 @@ export function dataStoreReadSyscalls(
       for (const [key, value] of Object.entries(scopeVariables)) {
         env.setLocal(key, jsToLuaValue(value));
       }
-      return (await dsQueryCollection.query(
-        query,
-        env,
-        sf,
-      )).map((item) => luaValueToJS(item, sf));
-    },
-
-    "datastore.listFunctions": (): string[] => {
-      return Object.keys(ds.functionMap);
+      return (await queryLua<any>(ds.kv, prefix, query, env, sf)).map((item) =>
+        luaValueToJS(item, sf)
+      );
     },
   };
 }
@@ -85,14 +79,6 @@ export function dataStoreWriteSyscalls(ds: DataStore): SysCallMapping {
 
     "datastore.batchDelete": (_ctx, keys: KvKey[]) => {
       return ds.batchDelete(keys);
-    },
-
-    "datastore.queryDelete": (
-      _ctx,
-      query: KvQuery,
-      variables?: Record<string, any>,
-    ): Promise<void> => {
-      return ds.queryDelete(query, variables);
     },
   };
 }

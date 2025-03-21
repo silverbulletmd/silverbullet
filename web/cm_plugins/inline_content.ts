@@ -10,7 +10,6 @@ import {
 } from "./util.ts";
 import type { Client } from "../client.ts";
 import {
-  isFederationPath,
   isLocalPath,
   resolvePath,
 } from "@silverbulletmd/silverbullet/lib/resolve";
@@ -184,9 +183,7 @@ export function inlineContentPlugin(client: Client) {
           (match = /(!?\[\[)([^\]\|]+)(?:\|([^\]]+))?(\]\])/g.exec(text))
         ) {
           [/* fullMatch */, /* firstMark */ , url, alias] = match;
-          if (!isFederationPath(url)) {
-            url = "/" + url;
-          }
+          url = "/" + url;
         }
         if (!url) {
           return;
@@ -207,11 +204,9 @@ export function inlineContentPlugin(client: Client) {
           url = resolvePath(
             client.currentPage,
             decodeURI(url),
-            true,
           );
           const pageRef = parseRef(url);
           if (
-            isFederationPath(pageRef.page) ||
             client.clientSystem.allKnownFiles.has(pageRef.page + ".md")
           ) {
             // This is a page reference, let's inline the content

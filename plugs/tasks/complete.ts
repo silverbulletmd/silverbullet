@@ -1,5 +1,5 @@
 import type { CompleteEvent } from "../../plug-api/types.ts";
-import { queryObjects } from "../index/plug_api.ts";
+import { queryLuaObjects } from "../index/api.ts";
 import type { TaskStateObject } from "./task.ts";
 
 export async function completeTaskState(completeEvent: CompleteEvent) {
@@ -9,7 +9,12 @@ export async function completeTaskState(completeEvent: CompleteEvent) {
   if (!taskMatch) {
     return null;
   }
-  const allStates = await queryObjects<TaskStateObject>("taskstate", {}, 5);
+  const allStates = await queryLuaObjects<TaskStateObject>(
+    "taskstate",
+    {},
+    {},
+    5,
+  );
   const states = [...new Set(allStates.map((s) => s.state))];
 
   return {

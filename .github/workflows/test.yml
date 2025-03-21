@@ -31,8 +31,5 @@ jobs:
       - name: Run lint
         run: deno task lint
 
-      - name: Run benchmarks
-        run: deno task bench
-
       - name: Run tests
         run: deno task test

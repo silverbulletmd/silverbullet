@@ -353,7 +353,7 @@ function render(
       let externalTaskRef = "";
       collectNodesOfType(t, "WikiLinkPage").forEach((wikilink) => {
         const pageRef = parseRef(wikilink.children![0].text!);
-        if (!externalTaskRef && (pageRef.pos !== undefined || pageRef.anchor)) {
+        if (!externalTaskRef && (pageRef.pos !== undefined)) {
           externalTaskRef = wikilink.children![0].text!;
         }
       });
@@ -390,38 +390,6 @@ function render(
           body: stateText,
         };
       }
-    }
-    case "NamedAnchor":
-      return {
-        name: "a",
-        attrs: {
-          name: t.children![0].text?.substring(1),
-        },
-        body: "",
-      };
-    case "CommandLink": {
-      // Child 0 is CommandLinkMark, child 1 is CommandLinkPage
-      const command = t.children![1].children![0].text!;
-      let commandText = command;
-      const aliasNode = findNodeOfType(t, "CommandLinkAlias");
-      const argsNode = findNodeOfType(t, "CommandLinkArgs");
-      let args: any = [];
-
-      if (argsNode) {
-        args = JSON.parse(`[${argsNode.children![0].text!}]`);
-      }
-
-      if (aliasNode) {
-        commandText = aliasNode.children![0].text!;
-      }
-
-      return {
-        name: "button",
-        attrs: {
-          "data-onclick": JSON.stringify(["command", command, args]),
-        },
-        body: commandText,
-      };
     }
 
     case "DeadlineDate":

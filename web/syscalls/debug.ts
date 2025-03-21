@@ -58,7 +58,13 @@ export function debugSyscalls(client: Client): SysCallMapping {
       }
       localStorage.clear();
       console.log("Wiping the entire state KV store");
-      await client.stateDataStore.queryDelete({});
+      const allKeys: KvKey[] = [];
+      for await (
+        const { key } of await client.stateDataStore.luaQuery([], {})
+      ) {
+        allKeys.push(key);
+      }
+      await client.stateDataStore.batchDelete(allKeys);
       console.log("Done");
     },
   };

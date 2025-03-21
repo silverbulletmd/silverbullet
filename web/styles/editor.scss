@@ -91,40 +91,25 @@
 
   // Indentation of follow-up lines
   @mixin lineOverflow($baseIndent, $bulletIndent: 0) {
-    text-indent: calc(
-      -1 * (#{$baseIndent}ch * var(--editor-indent-multiplier) + 2ch)
-    );
-    padding-left: calc(
-      #{$baseIndent}ch * var(--editor-indent-multiplier) + 2ch
-    );
+    text-indent: calc(-1 * (#{$baseIndent}ch + 2ch));
+    padding-left: calc(#{$baseIndent}ch + 2ch);
 
     &.sb-line-task {
-      text-indent: calc(
-        -1 * (#{$baseIndent}ch * var(--editor-indent-multiplier) + 5ch)
-      );
-      padding-left: calc(
-        #{$baseIndent}ch * var(--editor-indent-multiplier) + 5ch
-      );
+      text-indent: calc(-1 * (#{$baseIndent}ch + 5ch));
+      padding-left: calc(#{$baseIndent}ch + 5ch);
 
       .cm-list-bullet::after {
-        left: calc(#{$baseIndent}ch * var(--editor-indent-multiplier) + 5ch);
+        left: calc(#{$baseIndent}ch + 5ch);
       }
     }
 
     &.sb-line-blockquote {
-      text-indent: calc(
-        -1 * (#{$baseIndent}ch * var(--editor-indent-multiplier) + 4ch)
-      );
-      padding-left: calc(
-        #{$baseIndent}ch * var(--editor-indent-multiplier) + 4ch
-      );
+      text-indent: calc(-1 * (#{$baseIndent}ch + 4ch));
+      padding-left: calc(#{$baseIndent}ch + 4ch);
     }
 
     .cm-list-bullet::after {
-      left: calc(
-        #{$baseIndent}ch * var(--editor-indent-multiplier) + #{$bulletIndent}ch
-          + 2ch
-      );
+      left: calc(#{$baseIndent}ch + #{$bulletIndent}ch + 2ch);
     }
   }
 
@@ -317,18 +302,6 @@
     cursor: pointer;
   }
 
-  .sb-command-button {
-    cursor: pointer;
-    font-size: 1em;
-    border-radius: 4px;
-  }
-
-  .sb-command-link-name {
-    cursor: pointer;
-    border-radius: 4px;
-    padding: 0 4px;
-  }
-
   .sb-link:not(.sb-url) {
     cursor: pointer;
   }
@@ -367,10 +340,6 @@
     // white-space: nowrap;
     text-decoration: none;
     cursor: pointer;
-  }
-
-  .sb-wiki-link {
-    // cursor: pointer;
   }
 
   .sb-task-mark {

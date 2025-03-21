@@ -3,11 +3,7 @@ import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { cors } from "hono/cors";
 import { validator } from "hono/validator";
 import type { AssetBundle } from "$lib/asset_bundle/bundle.ts";
-import type {
-  EndpointRequest,
-  EndpointResponse,
-  FileMeta,
-} from "@silverbulletmd/silverbullet/types";
+import type { FileMeta } from "@silverbulletmd/silverbullet/types";
 import type { ShellRequest } from "@silverbulletmd/silverbullet/type/rpc";
 import { SpaceServer } from "./space_server.ts";
 import type { KvPrimitives } from "$lib/data/kv_primitives.ts";
@@ -39,7 +35,6 @@ export type ServerOptions = {
   spaceIgnore?: string;
   pagesPath: string;
   shellBackend: string;
-  syncOnly: boolean;
   readOnly: boolean;
   indexPage: string;
   enableSpaceScript: boolean;
@@ -139,7 +134,6 @@ export class HttpServer {
   async start() {
     // Serve static files (javascript, css, html)
     this.serveStatic();
-    this.serveCustomEndpoints();
     this.addAuth();
     this.addFsRoutes();
 
@@ -180,67 +174,6 @@ export class HttpServer {
     console.log(
       `SilverBullet is now running: http://${visibleHostname}:${this.port}`,
     );
-  }
-
-  // Custom endpoints can be defined in the server
-  serveCustomEndpoints() {
-    this.app.use("/_/*", async (ctx) => {
-      const req = ctx.req;
-      const url = new URL(req.url);
-      if (!this.spaceServer.serverSystem) {
-        return ctx.text("No server system available", 500);
-      }
-
-      try {
-        const path = url.pathname.slice(2); // Remove the /_
-        const responses: EndpointResponse[] = await this.spaceServer
-          .serverSystem
-          .eventHook.dispatchEvent(`http:request:${path}`, {
-            fullPath: url.pathname,
-            path,
-            method: req.method,
-            body: await req.text(),
-            query: Object.fromEntries(
-              url.searchParams.entries(),
-            ),
-            headers: req.header(),
-          } as EndpointRequest);
-        if (responses.length === 0) {
-          return ctx.text(
-            "No custom endpoint handler is handling this path",
-            404,
-          );
-        } else if (responses.length > 1) {
-          return ctx.text(
-            "Multiple endpoint handlers are handling this path, this is not supported",
-            500,
-          );
-        }
-        const response = responses[0];
-        if (response.headers) {
-          for (
-            const [key, value] of Object.entries(
-              response.headers,
-            )
-          ) {
-            ctx.header(key, value);
-          }
-        }
-        ctx.status(response.status as any || 200);
-        if (response.headers && response.headers["Content-Type"]) {
-          return ctx.body(response.body);
-        } else if (typeof response.body === "string") {
-          return ctx.text(response.body);
-        } else if (response.body instanceof Uint8Array) {
-          return ctx.body(response.body.buffer as ArrayBuffer);
-        } else {
-          return ctx.json(response.body);
-        }
-      } catch (e: any) {
-        console.error("HTTP endpoint error", e);
-        return ctx.text(e.message, 500);
-      }
-    });
   }
 
   serveStatic() {
@@ -322,7 +255,6 @@ export class HttpServer {
     // Fetch config
     this.app.get("/.config", (c) => {
       const clientConfig: ClientConfig = {
-        syncOnly: this.spaceServer.syncOnly,
         readOnly: this.spaceServer.readOnly,
         enableSpaceScript: this.spaceServer.enableSpaceScript,
         spaceFolderPath: this.spaceServer.pagesPath,
@@ -539,37 +471,6 @@ export class HttpServer {
       }
     });
 
-    // RPC syscall
-    this.app.post("/.rpc/:plugName/:syscall", async (c) => {
-      const req = c.req;
-      const syscall = req.param("syscall")!;
-      const plugName = req.param("plugName")!;
-      const body = await req.json();
-      try {
-        if (this.spaceServer.syncOnly) {
-          return c.text("Sync only mode, no syscalls allowed", 400);
-        }
-        const args: string[] = body;
-        try {
-          const result = await this.spaceServer.system!.syscall(
-            { plug: plugName === "_" ? undefined : plugName },
-            syscall,
-            args,
-          );
-          return c.json({
-            result: result,
-          });
-        } catch (e: any) {
-          return c.json({
-            error: e.message,
-          }, 500);
-        }
-      } catch (e: any) {
-        console.log("Error", e);
-        return c.text(e.message, 500);
-      }
-    });
-
     const filePathRegex = "/:path{[^!].*\\.[a-zA-Z0-9]+}";
     const mdExt = ".md";
 
@@ -604,32 +505,6 @@ export class HttpServer {
       if (name.startsWith(".")) {
         // Don't expose hidden files
         return c.notFound();
-      }
-      // Handle federated links through a simple redirect, only used for documents loads with service workers disabled
-      if (name.startsWith("!")) {
-        let url = name.slice(1);
-        console.log("Handling this as a federated link", url);
-        if (url.startsWith("localhost")) {
-          url = `http://${url}`;
-        } else {
-          url = `https://${url}`;
-        }
-        try {
-          const req = await fetch(url);
-          // Override X-Permssion header to always be "ro"
-          const newHeaders = new Headers();
-          for (const [key, value] of req.headers.entries()) {
-            newHeaders.set(key, value);
-          }
-          newHeaders.set("X-Permission", "ro");
-          return new Response(req.body, {
-            status: req.status,
-            headers: newHeaders,
-          });
-        } catch (e: any) {
-          console.error("Error fetching federated link", e);
-          return c.text(e.message, 500);
-        }
       }
 
       try {

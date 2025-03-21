@@ -12,7 +12,7 @@ import {
   isLocalPath,
   resolvePath,
 } from "@silverbulletmd/silverbullet/lib/resolve";
-import { indexObjects, queryObjects } from "./api.ts";
+import { indexObjects, queryLuaObjects } from "./api.ts";
 import { extractFrontmatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
 import { updateITags } from "@silverbulletmd/silverbullet/lib/tags";
 import {
@@ -24,7 +24,7 @@ import {
   mdLinkRegex,
   wikiLinkRegex,
 } from "$common/markdown_parser/constants.ts";
-import { space } from "@silverbulletmd/silverbullet/syscalls";
+import { lua, space } from "@silverbulletmd/silverbullet/syscalls";
 
 export type LinkObject = ObjectValue<
   {
@@ -255,10 +255,6 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
   const aspiringPages: ObjectValue<AspiringPageObject>[] = [];
   for (const link of links) {
     if (link.toPage) {
-      // No federated links, nothing with template directives
-      if (link.toPage.startsWith("!") || link.toPage.includes("{{")) {
-        continue;
-      }
       if (!await space.fileExists(`${link.toPage}.md`)) {
         aspiringPages.push({
           ref: `${name}@${link.pos}`,
@@ -279,10 +275,10 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
 export async function getBackLinks(
   name: string,
 ): Promise<LinkObject[]> {
-  return (await queryObjects<LinkObject>("link", {
-    filter: ["or", ["=", ["attr", "toPage"], ["string", name]], ["=", [
-      "attr",
-      "toFile",
-    ], ["string", name]]],
+  return (await queryLuaObjects<LinkObject>("link", {
+    objectVariable: "_",
+    where: await lua.parseExpression(`_.toPage == name or _.toFile == name`),
+  }, {
+    name,
   }));
 }

@@ -1,5 +1,4 @@
 import { editor, space } from "@silverbulletmd/silverbullet/syscalls";
-import { isFederationPath } from "@silverbulletmd/silverbullet/lib/resolve";
 
 export async function deletePage() {
   const pageName = await editor.getCurrentPage();
@@ -21,12 +20,8 @@ export async function copyPage(
 ) {
   const currentPage = await editor.getCurrentPage();
   const fromName = sourcePage || currentPage;
-  let suggestedName = toName || fromName;
+  const suggestedName = toName || fromName;
 
-  if (isFederationPath(fromName)) {
-    const pieces = fromName.split("/");
-    suggestedName = pieces.slice(1).join("/");
-  }
   const newName = await editor.prompt(`Copy to page:`, suggestedName);
 
   if (!newName) {

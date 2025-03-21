@@ -33,7 +33,7 @@ export function luaDirectivePlugin(client: Client) {
 
     // Don't render Lua directives of federated pages (security)
     if (
-      client.currentPage.startsWith("!") || !client.clientSystem.scriptsLoaded
+      !client.clientSystem.scriptsLoaded
     ) {
       return Decoration.none;
     }

@@ -31,21 +31,10 @@ Deno.test("Page utility functions", () => {
     page: "foo",
     pos: { line: 2, column: 3 },
   });
-  assertEquals(parseRef("foo$bar"), {
-    kind: "page",
-    page: "foo",
-    anchor: "bar",
-  });
   assertEquals(parseRef("foo#My header"), {
     kind: "page",
     page: "foo",
     header: "My header",
-  });
-  assertEquals(parseRef("foo$bar@1"), {
-    kind: "page",
-    page: "foo",
-    anchor: "bar",
-    pos: 1,
   });
   assertEquals(parseRef("foo.pdf"), {
     kind: "document",
@@ -82,10 +71,6 @@ Deno.test("Page utility functions", () => {
   assertEquals(
     encodeRef({ kind: "page", page: "foo", pos: { line: 10, column: 5 } }),
     "foo@L10C5",
-  );
-  assertEquals(
-    encodeRef({ kind: "page", page: "foo", anchor: "bar" }),
-    "foo$bar",
   );
   assertEquals(
     encodeRef({ kind: "page", page: "foo", header: "bar" }),

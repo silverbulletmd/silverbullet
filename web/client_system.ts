@@ -1,6 +1,5 @@
 import { PlugNamespaceHook } from "$common/hooks/plug_namespace.ts";
 import type { SilverBulletHooks } from "../lib/manifest.ts";
-import { CronHook } from "../lib/plugos/hooks/cron.ts";
 import type { EventHook } from "../common/hooks/event.ts";
 import { createSandbox } from "../lib/plugos/sandboxes/web_worker_sandbox.ts";
 
@@ -25,15 +24,12 @@ import { yamlSyscalls } from "$common/syscalls/yaml.ts";
 import type { Space } from "../common/space.ts";
 import { MQHook } from "../lib/plugos/hooks/mq.ts";
 import { mqSyscalls } from "../lib/plugos/syscalls/mq.ts";
-import { mqProxySyscalls } from "./syscalls/mq.proxy.ts";
-import { dataStoreProxySyscalls } from "./syscalls/datastore.proxy.ts";
 import {
   dataStoreReadSyscalls,
   dataStoreWriteSyscalls,
 } from "../lib/plugos/syscalls/datastore.ts";
 import type { DataStore } from "$lib/data/datastore.ts";
 import { languageSyscalls } from "$common/syscalls/language.ts";
-import { templateSyscalls } from "$common/syscalls/template.ts";
 import { codeWidgetSyscalls } from "./syscalls/code_widget.ts";
 import { clientCodeWidgetSyscalls } from "./syscalls/client_code_widget.ts";
 import { KVPrimitivesManifestCache } from "$lib/plugos/manifest_cache.ts";
@@ -70,26 +66,18 @@ export class ClientSystem extends CommonSystem {
       readOnlyMode,
       client.clientConfig.enableSpaceScript,
     );
-    // Only set environment to "client" when running in thin client mode, otherwise we run everything locally (hybrid)
-    this.system = new System(
-      client.clientConfig.syncMode ? undefined : "client",
-      {
-        manifestCache: new KVPrimitivesManifestCache<SilverBulletHooks>(
-          ds.kv,
-          "manifest",
-        ),
-      },
-    );
+    this.system = new System(undefined, {
+      manifestCache: new KVPrimitivesManifestCache<SilverBulletHooks>(
+        ds.kv,
+        "manifest",
+      ),
+    });
 
     this.system.addHook(this.eventHook);
 
     // Plug page namespace hook
     this.namespaceHook = new PlugNamespaceHook();
     this.system.addHook(this.namespaceHook);
-
-    // Cron hook
-    const cronHook = new CronHook(this.system);
-    this.system.addHook(cronHook);
 
     // Code widget hook
     this.codeWidgetHook = new CodeWidgetHook();
@@ -104,10 +92,7 @@ export class ClientSystem extends CommonSystem {
     this.system.addHook(this.documentEditorHook);
 
     // MQ hook
-    if (client.clientConfig.syncMode) {
-      // Process MQ messages locally
-      this.system.addHook(new MQHook(this.system, this.mq));
-    }
+    this.system.addHook(new MQHook(this.system, this.mq));
 
     // Command hook
     this.commandHook = new CommandHook(
@@ -166,11 +151,10 @@ export class ClientSystem extends CommonSystem {
       eventListenerSyscalls(this),
       editorSyscalls(this.client),
       spaceReadSyscalls(this.client),
-      systemSyscalls(this.system, false, this, this.client, this.client),
+      systemSyscalls(client, false),
       markdownSyscalls(),
       assetSyscalls(this.system),
       yamlSyscalls(),
-      templateSyscalls(this.ds),
       codeWidgetSyscalls(this.codeWidgetHook),
       clientCodeWidgetSyscalls(),
       languageSyscalls(),
@@ -178,17 +162,9 @@ export class ClientSystem extends CommonSystem {
       indexSyscalls(this),
       commandSyscalls(this),
       luaSyscalls(this),
-      this.client.clientConfig.syncMode
-        // In sync mode handle locally
-        ? mqSyscalls(this.mq)
-        // In non-sync mode proxy to server
-        : mqProxySyscalls(this.client),
-      ...this.client.clientConfig.syncMode
-        ? [
-          dataStoreReadSyscalls(this.ds, this),
-          dataStoreWriteSyscalls(this.ds),
-        ]
-        : [dataStoreProxySyscalls(this.client)],
+      mqSyscalls(this.mq),
+      dataStoreReadSyscalls(this.ds, this),
+      dataStoreWriteSyscalls(this.ds),
       debugSyscalls(this.client),
       syncSyscalls(this.client),
       clientStoreSyscalls(this.ds),

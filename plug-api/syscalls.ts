@@ -6,7 +6,6 @@ export * as clientStore from "./syscalls/clientStore.ts";
 export * as sync from "./syscalls/sync.ts";
 export * as debug from "./syscalls/debug.ts";
 export * as language from "./syscalls/language.ts";
-export * as template from "./syscalls/template.ts";
 export * as codeWidget from "./syscalls/code_widget.ts";
 export * as asset from "./syscalls/asset.ts";
 export * as events from "./syscalls/event.ts";

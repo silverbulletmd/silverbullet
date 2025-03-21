@@ -8,8 +8,6 @@ import plugAssetBundle from "../dist/plug_asset_bundle.json" with {
 import { AssetBundle, type AssetJson } from "../lib/asset_bundle/bundle.ts";
 
 import { determineDatabaseBackend } from "../server/db_backend.ts";
-import { runPlug } from "../cmd/plug_run.ts";
-import { PrefixedKvPrimitives } from "$lib/data/prefixed_kv_primitives.ts";
 import { sleep } from "$lib/async.ts";
 
 export type AuthOptions = {
@@ -105,27 +103,6 @@ export async function serveCommand(
 
   const plugAssets = new AssetBundle(plugAssetBundle as AssetJson);
 
-  if (readOnly) {
-    console.log("Performing initial space indexing...");
-    await runPlug(
-      folder,
-      "index.reindexSpace",
-      [],
-      plugAssets,
-      new PrefixedKvPrimitives(baseKvPrimitives, ["*"]),
-    );
-    console.log(
-      "Now indexing again to make sure any additional space script indexers are run...",
-    );
-    await runPlug(
-      folder,
-      "index.reindexSpace",
-      [true], // noClear
-      plugAssets,
-      new PrefixedKvPrimitives(baseKvPrimitives, ["*"]),
-    );
-  }
-
   const clientAssets = new AssetBundle(clientAssetBundle as AssetJson);
   const manifestName = Deno.env.get("SB_NAME");
   const manifestDescription = Deno.env.get("SB_DESCRIPTION");
@@ -157,7 +134,6 @@ export async function serveCommand(
     indexPage,
     spaceIgnore,
     auth: userCredentials,
-    syncOnly,
     readOnly,
     shellBackend: backendConfig,
     enableSpaceScript,

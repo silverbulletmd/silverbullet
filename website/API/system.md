@@ -83,21 +83,6 @@ print("SilverBullet version: " .. version)
 
 ## Configuration
 
-### system.getSpaceConfig(key, defaultValue)
-Loads space configuration values.
-
-Example:
-```lua
--- Get specific config value
-local value = system.getSpaceConfig("theme", "light")
-
--- Get all config values
-local config = system.getSpaceConfig()
-for key, value in pairs(config) do
-    print(key .. ": " .. value)
-end
-```
-
 ### system.reloadConfig()
 Triggers an explicit reload of the configuration.
 

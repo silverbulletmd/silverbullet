@@ -30,7 +30,7 @@ Top level attributes:
 
 Deno.test("Test attribute extraction", async () => {
   const tree = parse(extendedMarkdownLanguage, inlineAttributeSample);
-  const toplevelAttributes = await extractAttributes(["test"], tree);
+  const toplevelAttributes = await extractAttributes(tree);
   // console.log("All attributes", toplevelAttributes);
   assertEquals(toplevelAttributes.name, "sup");
   assertEquals(toplevelAttributes.age, 42);

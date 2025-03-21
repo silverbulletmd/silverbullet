@@ -4,7 +4,7 @@ import type {
   ObjectValue,
 } from "../../plug-api/types.ts";
 import { extractFrontmatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
-import { indexObjects, queryObjects } from "./api.ts";
+import { indexObjects, queryLuaObjects } from "./api.ts";
 import {
   addParentPointers,
   collectNodesOfType,
@@ -68,10 +68,14 @@ export async function tagComplete(completeEvent: CompleteEvent) {
   }
 
   // Query all tags with a matching parent
-  const allTags: any[] = await queryObjects<TagObject>("tag", {
-    select: [{ name: "name" }],
-    distinct: true,
-  }, 5);
+  const allTags: TagObject[] = await queryLuaObjects<TagObject>(
+    "tag",
+    {
+      distinct: true,
+    },
+    {},
+    5,
+  );
 
   return {
     from: completeEvent.pos - match[0].length,

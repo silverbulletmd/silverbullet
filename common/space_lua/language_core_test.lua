@@ -20,6 +20,9 @@ assert(a + b == 3)
 assert("Hello " .. "world" == "Hello world")
 assertEqual([[Hello world]], "Hello world")
 assertEqual([==[Hello [[world]]!]==], "Hello [[world]]!")
+-- First newline should be eliminated if present
+assertEqual([==[
+Hello world]==], "Hello world")
 
 -- Various forms of function definitions
 function f1()

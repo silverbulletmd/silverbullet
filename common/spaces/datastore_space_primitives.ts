@@ -22,8 +22,8 @@ export class DataStoreSpacePrimitives implements SpacePrimitives {
   }
 
   async fetchFileList(): Promise<FileMeta[]> {
-    return (await this.ds.query<FileMeta>({ prefix: filesMetaPrefix }))
-      .map((kv) => this.ensureFileMeta(kv.value));
+    return (await this.ds.luaQuery<FileMeta>(filesMetaPrefix, {}))
+      .map((meta) => this.ensureFileMeta(meta));
   }
 
   async readFile(

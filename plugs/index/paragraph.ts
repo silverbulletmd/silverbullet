@@ -47,7 +47,7 @@ export async function indexParagraphs({ name: page, tree }: IndexTreeEvent) {
     });
 
     // Extract attributes and remove from tree
-    const attrs = await extractAttributes(["paragraph", ...tags], p);
+    const attrs = await extractAttributes(p);
     const text = renderToText(p);
 
     if (!text.trim()) {

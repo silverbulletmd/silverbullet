@@ -91,6 +91,10 @@ export async function reloadSystem() {
   await editor.flashNotification("System and widgets reloaded!");
 }
 
+export function refreshAllWidgets() {
+  codeWidget.refreshAll();
+}
+
 export async function findInPageCommand() {
   await editor.openSearchPanel();
   return false;

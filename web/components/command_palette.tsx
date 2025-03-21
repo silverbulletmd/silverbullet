@@ -5,9 +5,11 @@ import type {
 } from "@codemirror/autocomplete";
 import { Terminal } from "preact-feather";
 import type { AppCommand } from "../../lib/command.ts";
-import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
-import { parseCommand } from "$common/command.ts";
-import type { Config } from "../../type/config.ts";
+import type {
+  FilterOption,
+  Shortcut,
+} from "@silverbulletmd/silverbullet/type/client";
+import type { Config } from "$common/config.ts";
 
 export function CommandPalette({
   commands,
@@ -15,16 +17,16 @@ export function CommandPalette({
   onTrigger,
   vimMode,
   darkMode,
-  completer,
   config,
+  completer,
 }: {
   commands: Map<string, AppCommand>;
   recentCommands: Map<string, Date>;
   vimMode: boolean;
   darkMode: boolean;
   completer: (context: CompletionContext) => Promise<CompletionResult | null>;
-  onTrigger: (command: AppCommand | undefined) => void;
   config: Config;
+  onTrigger: (command: AppCommand | undefined) => void;
 }) {
   const options: FilterOption[] = [];
   const isMac = isMacLike();
@@ -35,14 +37,11 @@ export function CommandPalette({
     let shortcut: { key?: string; mac?: string; priority?: number } =
       def.command;
     // Let's see if there's a shortcut override
-    if (config.shortcuts) {
-      const commandOverride = config.shortcuts.find((
-        shortcut,
-      ) => {
-        const parsedCommand = parseCommand(shortcut.command);
-        // If this is a command link, we want to match the command name but also make sure no arguments were set
-        return parsedCommand.name === name && parsedCommand.args.length === 0;
-      });
+    if (config.has("shortcuts")) {
+      const shortcuts = config.get<Shortcut[]>("shortcuts", []);
+      const commandOverride = shortcuts.find((shortcut) =>
+        shortcut.command === name
+      );
       if (commandOverride) {
         shortcut = commandOverride;
         // console.log(`Shortcut override for ${name}:`, shortcut);

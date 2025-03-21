@@ -94,3 +94,22 @@ print(a, b, c)  -- prints: apple banana orange
 local x, y = table.unpack(fruits, 2, 3)
 print(x, y)  -- prints: banana orange
 ```
+
+# Non-standard functions
+## table.find(table, criteriaFn, fromIndex?)
+Finds an element in a table that matches a criteria function. Returns a Lua multi value of index and first element or nil if no element is found.
+
+Example:
+```lua
+local numbers = {1, 2, 3, 4, 5}
+local _, firstEven = table.find(numbers, function(n) return n % 2 == 0 end)
+print(firstEven)  -- prints: 2
+
+-- With fromIndex parameter
+local _, firstEvenAfter3 = table.find(numbers, function(n) return n % 2 == 0 end, 3)
+print(firstEvenAfter3)  -- prints: 4
+
+-- No match case
+local result = table.find(numbers, function(n) return n > 10 end)
+print(result)  -- prints: nil
+```

@@ -42,28 +42,3 @@ function template.fromPage(name)
 
   return template.new(string.trimStart(fm.text))
 end
-
--- Creates a template-based slash command, keys for def are:
---   name: name of the slash command
---   description: description of the slash command
---   onlyContexts: parent AST nodes in which this slash command is available, defaults to everywhere
---   exceptContexts: parent AST nodes in which this slash command is not available
---   template: template function to apply
---   insertAt: position to insert the template into
---   match: match string to apply the template to
---   matchRegex: match regex to apply the template to
-function template.defineSlashCommand(def)
-  slashcommand.define {
-    name = def.name,
-    description = def.description,
-    onlyContexts = def.onlyContexts,
-    exceptContexts = def.exceptContexts,
-    run = function()
-      system.invokeFunction("template.applySnippetTemplate", def.template(), {
-        insertAt = def.insertAt,
-        match = def.match,
-        matchRegex = def.matchRegex
-      })
-    end
-  }
-end

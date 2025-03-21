@@ -3,6 +3,7 @@ import {
   LuaBuiltinFunction,
   type LuaEnv,
   luaEquals,
+  luaGet,
   LuaMultiRes,
   LuaRuntimeError,
   LuaTable,
@@ -150,6 +151,32 @@ export const tableApi = new LuaTable({
         result.push(tbl.get(k));
       }
       return new LuaMultiRes(result);
+    },
+  ),
+
+  // Non-standard Lua functions
+  /**
+   * Finds an element in a table that matches a criteria function. Returns the first matching element.
+   * @param tbl - The table to search.
+   * @param criteriaFn - The criteria function.
+   * @param fromIndex - The index to start searching from.
+   * @returns Lua multi value of index, value, or nil if no element is found.
+   */
+  find: new LuaBuiltinFunction(
+    async (
+      sf,
+      tbl: LuaTable | any[],
+      criteriaFn: ILuaFunction,
+      fromIndex = 1,
+    ) => {
+      const startIndex = fromIndex < 1 ? 1 : fromIndex;
+      for (let i = startIndex; i <= tbl.length; i++) {
+        const val = await luaGet(tbl, i, sf);
+        if (await criteriaFn.call(sf, val)) {
+          return new LuaMultiRes([i, val]);
+        }
+      }
+      return null;
     },
   ),
 });

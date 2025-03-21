@@ -80,8 +80,7 @@ export async function init() {
   await datastore.set(stdLibCacheKey, stdLibCache);
 
   // If anything changed and we're in sync mode, we can auto trigger reloading of the system after the index queue is processed
-  if (anythingChanged && !await system.getEnv()) {
-    // We're in sync mode
+  if (anythingChanged) {
     console.log("Waiting for index queue to be processed");
     let queueProcessed = false;
     while (!queueProcessed) {

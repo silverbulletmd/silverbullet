@@ -90,19 +90,6 @@ export function stripMarkdown(
       return url;
     }
 
-    case "CommandLink": {
-      const aliasNode = findNodeOfType(tree, "CommandLinkAlias");
-
-      let command;
-      if (aliasNode) {
-        command = aliasNode.children![0].text!;
-      } else {
-        command = tree.children![1].children![0].text!;
-      }
-
-      return command;
-    }
-
     case "TaskState": {
       return tree.children![1].text!;
     }

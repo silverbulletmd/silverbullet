@@ -1,10 +1,4 @@
-import type {
-  KV,
-  KvQuery,
-  ObjectQuery,
-  ObjectValue,
-} from "../../plug-api/types.ts";
-import { ttlCache } from "$lib/memory_cache.ts";
+import type { KV, KvQuery, ObjectValue } from "../../plug-api/types.ts";
 import { system } from "@silverbulletmd/silverbullet/syscalls";
 
 export function indexObjects<T>(
@@ -22,18 +16,6 @@ export function query(
   query: KvQuery,
 ): Promise<KV[]> {
   return system.invokeFunction("index.query", query);
-}
-
-export function queryObjects<T>(
-  tag: string,
-  query: ObjectQuery,
-  ttlSecs?: number,
-): Promise<ObjectValue<T>[]> {
-  return ttlCache(
-    query,
-    () => system.invokeFunction("index.queryObjects", tag, query),
-    ttlSecs, // no-op when undefined
-  );
 }
 
 export function getObjectByRef<T>(

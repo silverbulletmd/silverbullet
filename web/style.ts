@@ -15,8 +15,6 @@ export default function highlightStyles() {
     { tag: t.url, class: "sb-url" },
     { tag: ct.WikiLinkTag, class: "sb-wiki-link" },
     { tag: ct.WikiLinkPageTag, class: "sb-wiki-link-page" },
-    { tag: ct.CommandLinkTag, class: "sb-command-link" },
-    { tag: ct.CommandLinkNameTag, class: "sb-command-link-name" },
     { tag: ct.AttributeTag, class: "sb-frontmatter" },
     { tag: ct.AttributeNameTag, class: "sb-atom" },
     { tag: ct.TaskTag, class: "sb-task" },
@@ -52,7 +50,6 @@ export default function highlightStyles() {
     { tag: ct.HashtagTag, class: "sb-hashtag-text" },
     { tag: ct.NakedURLTag, class: "sb-naked-url" },
     { tag: ct.TaskDeadlineTag, class: "sb-task-deadline" },
-    { tag: ct.NamedAnchorTag, class: "sb-named-anchor" },
     { tag: ct.SubscriptTag, class: "sb-sub" },
     { tag: ct.SuperscriptTag, class: "sb-sup" },
 

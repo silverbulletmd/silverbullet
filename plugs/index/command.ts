@@ -7,7 +7,6 @@ import {
   system,
 } from "@silverbulletmd/silverbullet/syscalls";
 import type { IndexEvent, MQMessage } from "@silverbulletmd/silverbullet/types";
-import { isTemplate } from "$lib/cheap_yaml.ts";
 import { sleep } from "$lib/async.ts";
 import { indexDocument } from "./document.ts";
 import { clearFileIndex } from "./api.ts";
@@ -69,17 +68,10 @@ export async function processIndexQueue(messages: MQMessage[]) {
 async function indexPage(name: string) {
   const text = await space.readPage(name);
   const parsed = await markdown.parseMarkdown(text);
-  if (isTemplate(text)) {
-    await events.dispatchEvent("page:indexTemplate", {
-      name,
-      tree: parsed,
-    });
-  } else {
-    await events.dispatchEvent("page:index", {
-      name,
-      tree: parsed,
-    });
-  }
+  await events.dispatchEvent("page:index", {
+    name,
+    tree: parsed,
+  });
 }
 
 export async function parseIndexTextRepublish({ name, text }: IndexEvent) {
@@ -92,17 +84,8 @@ export async function parseIndexTextRepublish({ name, text }: IndexEvent) {
   // First clear the old file index entries
   await clearFileIndex(name);
 
-  if (isTemplate(text)) {
-    // console.log("Indexing", name, "as template");
-    await events.dispatchEvent("page:indexTemplate", {
-      name,
-      tree: parsed,
-    });
-  } else {
-    // console.log("Indexing", name, "as page");
-    await events.dispatchEvent("page:index", {
-      name,
-      tree: parsed,
-    });
-  }
+  await events.dispatchEvent("page:index", {
+    name,
+    tree: parsed,
+  });
 }

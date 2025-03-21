@@ -88,10 +88,7 @@ export async function extractItemFromNode(
 
   // Now let's extract tags and attributes
   const tags = extractHashTags(itemNode);
-  const extractedAttributes = await extractAttributes(
-    ["item", ...tags],
-    itemNode,
-  );
+  const extractedAttributes = await extractAttributes(itemNode);
 
   const clonedTextNodes: ParseTree[] = [];
 
