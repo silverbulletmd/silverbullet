@@ -14,18 +14,5 @@ functions:
 
   readPageSearch:
     path: ./search.ts:readFileSearch
-    pageNamespace:
-      pattern: "🔍 .+"
-      operation: readFile
-
-  writePageSearch:
-    path: ./search.ts:writeFileSearch
-    pageNamespace:
-      pattern: "🔍 .+"
-      operation: readFile
-
-  getPageMetaSearch:
-    path: ./search.ts:getFileMetaSearch
-    pageNamespace:
-      pattern: "🔍 .+"
-      operation: getFileMeta
+    events:
+      - editor:pageCreating

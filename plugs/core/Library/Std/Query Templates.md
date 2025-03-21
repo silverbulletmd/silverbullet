@@ -12,6 +12,15 @@ templates.pageItem = template.new([==[
 templates.taskItem = template.new([==[
 * [${state}] [[${ref}]] ${name}
 ]==])
+
+-- Renders a task object as a togglable task
+templates.itemItem = template.new([==[
+* ${name}
+]==])
+
+templates.paragraphItem = template.new([==[
+* ${name}
+]==])
 ```
 
 

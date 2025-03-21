@@ -188,25 +188,6 @@ functions:
     events:
       - editor:lint
 
-  # Tag file system
-  readFileTag:
-    path: tag_page.ts:readFileTag
-    pageNamespace:
-      pattern: "📌 .+"
-      operation: readFile
-
-  writePageTag:
-    path: tag_page.ts:writeFileTag
-    pageNamespace:
-      pattern: "📌 .+"
-      operation: readFile
-
-  getPageMetaTag:
-    path: tag_page.ts:getFileMetaTag
-    pageNamespace:
-      pattern: "📌 .+"
-      operation: getFileMeta
-
 config:
   # Schema for the built-in tags indexed by this plug
   schema.tag:

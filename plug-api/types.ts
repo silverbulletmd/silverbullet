@@ -147,11 +147,12 @@ export type AppEvent =
   | "editor:pageReloaded"
   | "editor:pageSaving"
   | "editor:pageSaved"
+  | "editor:pageCreating"
+  | "editor:pageModified"
   | "editor:documentSaving"
   | "editor:documentSaved"
   | "editor:modeswitch"
   | "plugs:loaded"
-  | "editor:pageModified"
   | "hooks:renderTopWidgets"
   | "hooks:renderBottomWidgets";
 
@@ -193,6 +194,15 @@ export type CompleteEvent = {
   linePrefix: string;
   pos: number;
   parentNodes: string[];
+};
+
+export type PageCreatingEvent = {
+  name: string;
+};
+
+export type PageCreatingContent = {
+  text: string;
+  perm: "ro" | "rw";
 };
 
 export type SlashCompletionOption = {

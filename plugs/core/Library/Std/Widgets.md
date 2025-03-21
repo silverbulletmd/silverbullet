@@ -86,7 +86,7 @@ function widgets.linkedMentions()
   ]]
   if #linkedMentions > 0 then
     return widget.new {
-      markdown = "# Linked Mentions"
+      markdown = "# Linked Mentions\n"
         .. template.each(linkedMentions, mentionTemplate)
     }
   end

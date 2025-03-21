@@ -1,11 +1,14 @@
-import type { IndexTreeEvent } from "../../plug-api/types.ts";
+import type {
+  IndexTreeEvent,
+  PageCreatingContent,
+  PageCreatingEvent,
+} from "../../plug-api/types.ts";
 import { renderToText } from "@silverbulletmd/silverbullet/lib/tree";
 import { editor } from "@silverbulletmd/silverbullet/syscalls";
-import type { FileMeta } from "../../plug-api/types.ts";
 import { ftsIndexPage, ftsSearch } from "./engine.ts";
 import { PromiseQueue } from "$lib/async.ts";
 
-const searchPrefix = "🔍 ";
+const searchPrefix = "search:";
 
 // Search indexing is prone to concurrency issues, so we queue all write operations
 const promiseQueue = new PromiseQueue();
@@ -27,12 +30,12 @@ export async function searchCommand() {
 }
 
 export async function readFileSearch(
-  name: string,
-): Promise<{ data: Uint8Array; meta: FileMeta }> {
-  const phrase = name.substring(
-    searchPrefix.length,
-    name.length - ".md".length,
-  );
+  { name }: PageCreatingEvent,
+): Promise<PageCreatingContent | undefined> {
+  if (!name.startsWith(searchPrefix)) {
+    return;
+  }
+  const phrase = name.substring(searchPrefix.length);
   const results = await ftsSearch(phrase);
   const text = `# Search results for "${phrase}"\n${
     results
@@ -42,32 +45,7 @@ export async function readFileSearch(
     `;
 
   return {
-    data: new TextEncoder().encode(text),
-    meta: {
-      name,
-      contentType: "text/markdown",
-      size: text.length,
-      created: 0,
-      lastModified: 0,
-      perm: "ro",
-    },
-  };
-}
-
-export function writeFileSearch(
-  name: string,
-): FileMeta {
-  // Never actually writing this
-  return getFileMetaSearch(name);
-}
-
-export function getFileMetaSearch(name: string): FileMeta {
-  return {
-    name,
-    contentType: "text/markdown",
-    size: -1,
-    created: 0,
-    lastModified: 0,
+    text,
     perm: "ro",
   };
 }

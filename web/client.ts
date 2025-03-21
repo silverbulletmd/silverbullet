@@ -25,6 +25,8 @@ import type {
   CompleteEvent,
   DocumentMeta,
   EnrichedClickEvent,
+  PageCreatingContent,
+  PageCreatingEvent,
   SlashCompletions,
 } from "../plug-api/types.ts";
 import type { StyleObject } from "../plugs/index/style.ts";
@@ -220,11 +222,7 @@ export class Client {
     // Load plugs
     await this.loadPlugs();
 
-    // Asynchronously load the space scripts
-    this.clientSystem.loadSpaceScripts().catch((e) => {
-      console.error("Error loading space scripts", e);
-    });
-
+    await this.clientSystem.loadSpaceScripts();
     await this.initNavigator();
     await this.initSync();
     await this.eventHook.dispatchEvent("system:ready");
@@ -1222,6 +1220,20 @@ export class Client {
             perm: "rw",
           } as PageMeta,
         };
+
+        // Let's dispatch a editor:pageCreating event to see if anybody wants to do something before the page is created
+        const results = await this.dispatchAppEvent(
+          "editor:pageCreating",
+          { name: pageName } as PageCreatingEvent,
+        ) as PageCreatingContent[];
+        if (results.length === 1) {
+          doc.text = results[0].text;
+          doc.meta.perm = results[0].perm;
+        } else if (results.length > 1) {
+          console.error(
+            "Multiple responses for editor:pageCreating event, this is not supported",
+          );
+        }
       } else {
         this.flashNotification(
           `Could not load page ${pageName}: ${e.message}`,

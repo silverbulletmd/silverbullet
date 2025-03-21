@@ -1,1 +1,1 @@
-export const tagPrefix = "📌 ";
+export const tagPrefix = "tag:";

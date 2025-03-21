@@ -342,7 +342,12 @@ function parseString(s: string): string {
   // Handle long strings with delimiters
   const delimiterMatch = s.match(delimiterRegex);
   if (delimiterMatch) {
-    return delimiterMatch[2];
+    let text = delimiterMatch[2];
+    // According to Lua semantics, whenever a [[ formatted string starts with a newline, that newline should be skipped
+    if (text[0] === "\n") {
+      text = text.slice(1);
+    }
+    return text;
   }
   return s.slice(1, -1).replace(
     /\\(x[0-9a-fA-F]{2}|u\{[0-9a-fA-F]+\}|[abfnrtv\\'"n])/g,

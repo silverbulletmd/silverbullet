@@ -90,6 +90,9 @@ export async function jsonToMDTable(
 }
 
 export function renderExpressionResult(result: any): Promise<string> {
+  if (result === undefined || result === null) {
+    return Promise.resolve("nil");
+  }
   if (result instanceof LuaTable) {
     result = result.toJS();
   }
