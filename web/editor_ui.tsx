@@ -299,11 +299,11 @@ export class MainUI {
           }}
           actionButtons={[
             // Vertical menu button
-            ...(viewState.isMobile &&
-                viewState.config.mobileMenuStyle.includes("hamburger"))
+            ...(viewState.config.mobileMenuStyle.includes("hamburger"))
               ? [{
                 icon: featherIcons.MoreVertical,
                 description: "Open Menu",
+                class: "expander",
                 callback:
                   () => {/* nothing to do, menu opens on hover/mobile click */},
               }]

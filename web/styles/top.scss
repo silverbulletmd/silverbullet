@@ -72,7 +72,7 @@
     flex: 0 0 auto;
     text-align: right;
 
-    &.hamburger button:first-of-type {
+    &.hamburger button.expander {
       display: none;
     }
   }
@@ -131,7 +131,7 @@
     }
 
     button {
-      &:first-of-type {
+      &.expander {
         display: initial;
       }
 
