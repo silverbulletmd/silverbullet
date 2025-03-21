@@ -9,7 +9,7 @@ import type { LuaCollectionQuery } from "$common/space_lua/query_collection.ts";
 import { queryLuaObjects } from "../index/api.ts";
 import { language, lua } from "@silverbulletmd/silverbullet/syscalls";
 
-// Queries all meta pages (#template tagged or #meta prefixed)
+// Queries all meta pages (#meta prefixed)
 let isMetaPageQuery: LuaCollectionQuery | undefined;
 
 // The inverse of the above query

@@ -120,7 +120,7 @@ export function PageNavigator({
           cssClass,
         });
       } else if (mode === "meta") {
-        // Special behavior for #template and #meta pages
+        // Special behavior for #meta pages
         if (pageMeta._isAspiring) {
           // Skip over broken links
           continue;
@@ -172,7 +172,7 @@ export function PageNavigator({
       placeholder={mode === "page"
         ? "Page"
         : (mode === "meta"
-          ? "#template or #meta page"
+          ? "#meta page"
           : (mode === "document"
             ? "Document"
             : "Any page or Document, also hidden"))}
