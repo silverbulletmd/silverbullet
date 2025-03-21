@@ -13,14 +13,11 @@ templates.taskItem = template.new([==[
 * [${state}] [[${ref}]] ${name}
 ]==])
 
--- Renders a task object as a togglable task
+-- Renders an item object
 templates.itemItem = template.new([==[
 * ${name}
 ]==])
 
-templates.paragraphItem = template.new([==[
-* ${name}
-]==])
 ```
 
 
@@ -33,3 +30,9 @@ ${template.each(query[[from index.tag "page" limit 3]], templates.pageItem)}
 * [ ] Task 2
 
 ${template.each(query[[from index.tag "task" where page == _CTX.currentPage.name]], templates.taskItem)}
+
+`template.itemItem`:
+* Item 1
+* Item 2
+
+${template.each(query[[from index.tag "item" where page == _CTX.currentPage.name]], templates.itemItem)}
