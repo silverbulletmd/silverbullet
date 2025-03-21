@@ -768,8 +768,8 @@ export class HttpServer {
           c.status(fetchReq.status as any);
           // Handle null body case
           return fetchReq.body
-            ? c.body(fetchReq.body, responseHeaders)
-            : c.body(null, responseHeaders);
+            ? c.body(fetchReq.body, { headers: responseHeaders })
+            : c.body(null, { headers: responseHeaders });
         } catch (e: any) {
           console.error("Error fetching federated link", e);
           return c.text(e.message, 500);
