@@ -1,5 +1,8 @@
-import type { IndexTreeEvent, ObjectValue } from "../../plug-api/types.ts";
-import { extractHashtag } from "../../plug-api/lib/tags.ts";
+import type {
+  IndexTreeEvent,
+  ObjectValue,
+} from "@silverbulletmd/silverbullet/types";
+import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 import {
   collectNodesMatching,
   collectNodesOfType,
@@ -33,7 +36,17 @@ function concatChildrenTexts(nodes: ParseTree[]): string {
   return nodes.map((c) => c.text).join("").trim();
 }
 
-export async function indexTables({ name: pageName, tree }: IndexTreeEvent) {
+export async function indexTables(event: IndexTreeEvent) {
+  await indexObjects(event.name, extractObjects(event));
+}
+
+/**
+ * Extract indexable objects for IndexTreeEvent.
+ * This is the side-effect free part of `indexTables`
+ */
+export function extractObjects(
+  { name: pageName, tree }: IndexTreeEvent,
+): ObjectValue<TableRowObject>[] {
   const result: ObjectValue<TableRowObject>[] = [];
 
   collectNodesMatching(
@@ -55,8 +68,6 @@ export async function indexTables({ name: pageName, tree }: IndexTreeEvent) {
           tags.add(extractHashtag(h.children![0].text!));
         });
 
-        const cells = collectNodesOfType(row, "TableCell");
-
         const tableRow: TableRowObject = {
           tableref: `${pageName}@${table.from}`,
           ref: `${pageName}@${row.from}`,
@@ -65,15 +76,33 @@ export async function indexTables({ name: pageName, tree }: IndexTreeEvent) {
           page: pageName,
           pos: row.from!,
         };
-        cells.forEach((c, i) => {
-          const content = concatChildrenTexts(c.children!);
-          const label = headerLabels[i];
-          tableRow[label!] = content;
-        });
+
+        // Manually iterate through children to handle empty cells
+        {
+          let columnIndex = 0;
+          for (
+            let childIndex = 0;
+            childIndex < row.children!.length &&
+            columnIndex < headerLabels.length;
+            childIndex++
+          ) {
+            // Go until the next column
+            if (row.children![childIndex].type !== "TableDelimiter") continue;
+
+            const next = row.children![childIndex + 1];
+            // If the cell is empty TableDelimiter is followed by a text node, no TableCell
+            if (next.type === "TableCell") {
+              const content = concatChildrenTexts(next.children!);
+              const label = headerLabels[columnIndex];
+              tableRow[label!] = content;
+            }
+            columnIndex++;
+          }
+        }
         result.push(tableRow);
       }
     },
   );
 
-  await indexObjects(pageName, result);
+  return result;
 }
