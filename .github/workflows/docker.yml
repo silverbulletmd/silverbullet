@@ -72,7 +72,7 @@ jobs:
             # When pushing to main branch, release as :edge
             type=edge,branch=main
             # When pushing to v2 branch, release as :v2
-            type=edge,branch=v2
+            type=ref,event=branch,prefix=,enable=${{ github.ref == 'refs/heads/v2' }}
       - name: Build and push main docker images
         uses: docker/build-push-action@v4.0.0
         with:
