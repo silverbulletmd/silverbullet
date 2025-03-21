@@ -2,6 +2,21 @@
 
 The Event API provides functions for working with SilverBullet's event bus system, allowing communication between different parts of the application.
 
+## Notable events to listen to:
+
+* `page:click` - Fired when a user clicks somehwere in the page.
+* `editor:complete` - Fired when the editor requests code completion.
+* `editor:pageSaving` - Fired when the editor is saving a page.
+* `editor:pageSaved` - Fired when the editor has saved a page.
+* `editor:pageCreating` - Fired when the editor is creating a new page.
+* `editor:pageModified` - Fired when the editor modifies a page.
+* `editor:documentSaving` - Fired when the editor is saving a document.
+* `editor:documentSaved` - Fired when the editor has saved a document.
+* `cron:secondPassed` - Fired every second.
+* `hooks:renderTopWidgets` - Fired when rendering top widgets.
+* `hooks:renderBottomWidgets` - Fired when rendering bottom widgets.
+* `system:ready` - Fired when all plugs are loaded.
+
 ## Event Operations
 
 ### event.listen(listenerDef)

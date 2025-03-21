@@ -1,6 +1,5 @@
 import { PlugNamespaceHook } from "$common/hooks/plug_namespace.ts";
 import type { SilverBulletHooks } from "../lib/manifest.ts";
-import { CronHook } from "../lib/plugos/hooks/cron.ts";
 import type { EventHook } from "../common/hooks/event.ts";
 import { createSandbox } from "../lib/plugos/sandboxes/web_worker_sandbox.ts";
 
@@ -79,10 +78,6 @@ export class ClientSystem extends CommonSystem {
     // Plug page namespace hook
     this.namespaceHook = new PlugNamespaceHook();
     this.system.addHook(this.namespaceHook);
-
-    // Cron hook
-    const cronHook = new CronHook(this.system);
-    this.system.addHook(cronHook);
 
     // Code widget hook
     this.codeWidgetHook = new CodeWidgetHook();

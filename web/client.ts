@@ -228,6 +228,11 @@ export class Client {
     await this.eventHook.dispatchEvent("system:ready");
     this.systemReady = true;
 
+    // Kick off a cron event interval
+    setInterval(() => {
+      this.dispatchAppEvent("cron:secondPassed");
+    }, 1000);
+
     // We can load custom styles async
     this.loadCustomStyles().catch(console.error);
 

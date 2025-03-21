@@ -153,6 +153,7 @@ export type AppEvent =
   | "editor:documentSaved"
   | "editor:modeswitch"
   | "plugs:loaded"
+  | "cron:secondPassed"
   | "hooks:renderTopWidgets"
   | "hooks:renderBottomWidgets";
 
