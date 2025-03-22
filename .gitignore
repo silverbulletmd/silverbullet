@@ -5,8 +5,6 @@ dist_plug_bundle
 dist
 *.js.map
 website_build
-/index.json
-.idea
 deno.lock
 fly.toml
 env.sh

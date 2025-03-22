@@ -1,6 +1,5 @@
 import { type Context, Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
-import { cors } from "hono/cors";
 import { validator } from "hono/validator";
 import type { AssetBundle } from "$lib/asset_bundle/bundle.ts";
 import type { FileMeta } from "@silverbulletmd/silverbullet/types";
@@ -14,7 +13,6 @@ import { renderMarkdownToHtml } from "../plugs/markdown/markdown_render.ts";
 import {
   decodePageURI,
   looksLikePathWithExtension,
-  parseRef,
 } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { LockoutTimer } from "./lockout.ts";
 import type { AuthOptions } from "../cmd/server.ts";
@@ -185,12 +183,7 @@ export class HttpServer {
         url.pathname === "/"
       ) {
         // Serve the UI (index.html)
-        let indexPage = "index";
-        try {
-          indexPage = parseRef(this.spaceServer.indexPage).page;
-        } catch (e: any) {
-          console.error("Error parsing index page from config", e);
-        }
+        const indexPage = this.spaceServer.indexPage ?? "index";
         return this.renderHtmlPage(this.spaceServer, indexPage, c);
       }
       try {
@@ -265,6 +258,7 @@ export class HttpServer {
       });
     });
 
+    // Authentication endpoints
     this.app.get("/.auth", (c) => {
       const html = this.clientAssetBundle.readTextFileSync(".client/auth.html");
 
@@ -395,6 +389,88 @@ export class HttpServer {
       this.refreshLogin(c, host);
       return next();
     });
+
+    // Simple ping health endpoint
+    this.app.get("/.ping", (c) => {
+      return c.text("OK", 200, {
+        "Cache-Control": "no-cache",
+      });
+    });
+
+    // Shell command endpoint
+    this.app.post("/.shell", async (c) => {
+      const req = c.req;
+      const body = await req.json();
+      try {
+        const shellCommand: ShellRequest = body;
+        // Note: in read-only this is set to NoShellSupport, so don't worry
+        const shellResponse = await this.spaceServer.shellBackend.handle(
+          shellCommand,
+        );
+        return c.json(shellResponse);
+      } catch (e: any) {
+        console.log("Shell error", e);
+        return c.text(e.message, 500);
+      }
+    });
+
+    // HTTP Proxy endpoint
+    const proxyPathRegex = "/.proxy/:uri{.+}";
+    this.app.all(
+      proxyPathRegex,
+      async (c) => {
+        const req = c.req;
+        if (this.spaceServer.readOnly) {
+          return c.text("Read only mode, no proxy allowed", 405);
+        }
+
+        // Get the full URL including query parameters
+        const originalUrl = new URL(req.url);
+        let url = req.param("uri")! + originalUrl.search;
+
+        // Assume https unless this is localhost or an IP address
+        if (
+          url.startsWith("localhost") || url.match(/^\d+\./)
+        ) {
+          url = `http://${url}`;
+        } else {
+          url = `https://${url}`;
+        }
+        console.log("Proxying to", url);
+        try {
+          const safeRequestHeaders = new Headers();
+          // List all headers
+          for (
+            const headerName of ["Authorization", "Accept", "Content-Type"]
+          ) {
+            if (req.header(headerName)) {
+              safeRequestHeaders.set(
+                headerName,
+                req.header(headerName)!,
+              );
+            }
+          }
+          // List all headers starting with X-Proxy-Header-, remove the prefix and add to the safe headers
+          for (const [key, value] of Object.entries(req.header())) {
+            if (key.startsWith("x-proxy-header-")) {
+              safeRequestHeaders.set(
+                key.slice("x-proxy-header-".length), // corrected casing of header prefix
+                value,
+              );
+            }
+          }
+          const body = await req.arrayBuffer();
+          return fetch(url, {
+            method: req.method,
+            headers: safeRequestHeaders,
+            body: body.byteLength > 0 ? body : undefined,
+          });
+        } catch (e: any) {
+          console.error("Error fetching federated link", e);
+          return c.text(e.message, 500);
+        }
+      },
+    );
   }
 
   private refreshLogin(c: Context, host: string) {
@@ -415,23 +491,6 @@ export class HttpServer {
   }
 
   private addFsRoutes() {
-    // Only apply CORS middleware for OPTIONS, HEAD and GET requests
-    this.app.use(
-      "*",
-      (c, next) => {
-        const method = c.req.method;
-        if (method === "OPTIONS" || method === "HEAD" || method === "GET") {
-          return cors({
-            origin: "*",
-            allowHeaders: ["*"],
-            exposeHeaders: ["*"],
-            allowMethods: ["GET", "HEAD", "OPTIONS"],
-          })(c, next);
-        }
-        return next();
-      },
-    );
-
     // File list
     this.app.get("/index.json", async (c) => {
       const req = c.req;
@@ -448,29 +507,6 @@ export class HttpServer {
       }
     });
 
-    // Simple ping health endpoint
-    this.app.get("/.ping", (c) => {
-      return c.text("OK", 200, {
-        "Cache-Control": "no-cache",
-      });
-    });
-
-    // RPC shell
-    this.app.post("/.rpc/shell", async (c) => {
-      const req = c.req;
-      const body = await req.json();
-      try {
-        const shellCommand: ShellRequest = body;
-        const shellResponse = await this.spaceServer.shellBackend.handle(
-          shellCommand,
-        );
-        return c.json(shellResponse);
-      } catch (e: any) {
-        console.log("Shell error", e);
-        return c.text(e.message, 500);
-      }
-    });
-
     const filePathRegex = "/:path{[^!].*\\.[a-zA-Z0-9]+}";
     const mdExt = ".md";
 
@@ -483,9 +519,6 @@ export class HttpServer {
         name.endsWith(mdExt) &&
         // This header signififies the requests comes directly from the http_space_primitives client (not the browser)
         !req.header("X-Sync-Mode") &&
-        // This Accept header is used by federation to still work with CORS
-        req.header("Accept") !==
-          "application/octet-stream" &&
         req.header("sec-fetch-mode") !== "cors"
       ) {
         // It can happen that during a sync, authentication expires, this may result in a redirect to the login page and then back to this particular file. This particular file may be an .md file, which isn't great to show so we're redirecting to the associated SB UI page.
@@ -576,81 +609,6 @@ export class HttpServer {
         return c.text(e.message, 500);
       }
     }).options();
-
-    // Federation proxy
-    const proxyPathRegex = "/:uri{!.+}";
-    this.app.all(
-      proxyPathRegex,
-      async (c, next) => {
-        const req = c.req;
-        if (this.spaceServer.readOnly) {
-          return c.text("Read only mode, no federation proxy allowed", 405);
-        }
-
-        // Get the full URL including query parameters
-        const originalUrl = new URL(req.url);
-        let url = req.param("uri")!.slice(1) + originalUrl.search;
-
-        if (!req.header("X-Proxy-Request") && req.method === "GET") {
-          // Direct browser request, not explicity fetch proxy request
-          if (!looksLikePathWithExtension(url)) {
-            console.log("Directly loading federation page via URL:", url);
-            // This is not a direct file reference so LIKELY a page request, fall through and load the SB UI
-            return next();
-          }
-        }
-        if (
-          url.startsWith("localhost") || url.match(/^\d+\./)
-        ) {
-          url = `http://${url}`;
-        } else {
-          url = `https://${url}`;
-        }
-        console.log("Proxying to", url);
-        try {
-          const safeRequestHeaders = new Headers();
-          // List all headers
-          for (
-            const headerName of ["Authorization", "Accept", "Content-Type"]
-          ) {
-            if (req.header(headerName)) {
-              safeRequestHeaders.set(
-                headerName,
-                req.header(headerName)!,
-              );
-            }
-          }
-          // List all headers starting with X-Proxy-Header-, remove the prefix and add to the safe headers
-          for (const [key, value] of Object.entries(req.header())) {
-            if (key.startsWith("x-proxy-header-")) {
-              safeRequestHeaders.set(
-                key.slice("x-proxy-header-".length), // corrected casing of header prefix
-                value,
-              );
-            }
-          }
-          const body = await req.arrayBuffer();
-          const fetchReq = await fetch(url, {
-            method: req.method,
-            headers: safeRequestHeaders,
-            body: body.byteLength > 0 ? body : undefined,
-          });
-          const responseHeaders: Record<string, any> = {};
-          for (const [key, value] of fetchReq.headers.entries()) {
-            responseHeaders[key] = value;
-          }
-          // Set status before returning the body
-          c.status(fetchReq.status as any);
-          // Handle null body case
-          return fetchReq.body
-            ? c.body(fetchReq.body, responseHeaders)
-            : c.body(null, responseHeaders);
-        } catch (e: any) {
-          console.error("Error fetching federated link", e);
-          return c.text(e.message, 500);
-        }
-      },
-    );
   }
 
   private fileMetaToHeaders(fileMeta: FileMeta) {

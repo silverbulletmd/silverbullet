@@ -158,7 +158,6 @@
     "hono": "jsr:@hono/hono@4.7.4",
     "hono/cookie": "jsr:@hono/hono@4.7.4/cookie",
     "hono/validator": "jsr:@hono/hono@4.7.4/validator",
-    "hono/cors": "jsr:@hono/hono@4.7.4/cors",
     "js-yaml": "npm:js-yaml@4.1.0",
     "mimetypes": "https://deno.land/x/mimetypes@v1.0.0/mod.ts",
     "porter-stemmer": "https://esm.sh/porter-stemmer@0.9.1",

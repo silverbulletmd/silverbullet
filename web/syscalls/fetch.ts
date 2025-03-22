@@ -42,7 +42,7 @@ export function sandboxFetchSyscalls(
         }
       }
       const resp = await client.httpSpacePrimitives.authenticatedFetch(
-        `${client.httpSpacePrimitives.url}/!${url}`,
+        `${client.httpSpacePrimitives.url}/.proxy/${url}`,
         fetchOptions,
       );
       // Do sensible things with the body based on the content type
@@ -66,8 +66,8 @@ export function sandboxFetchSyscalls(
       url: string,
       options?: ProxyFetchRequest64,
     ): Promise<ProxyFetchResponse64> => {
-      // console.log("Got sandbox fetch ", url, op);
       url = url.replace(/^https?:\/\//, "");
+      // console.log("Got sandbox fetch ", url, op);
       const fetchOptions = options
         ? {
           method: options.method,
@@ -79,11 +79,9 @@ export function sandboxFetchSyscalls(
         // No SB server to proxy the fetch available so let's execute the request directly
         return performLocalFetch(url, fetchOptions);
       }
-      fetchOptions.headers = fetchOptions.headers
-        ? { ...fetchOptions.headers, "X-Proxy-Request": "true" }
-        : { "X-Proxy-Request": "true" };
+      fetchOptions.headers = fetchOptions.headers ?? {};
       const resp = await client.httpSpacePrimitives.authenticatedFetch(
-        `${client.httpSpacePrimitives.url}/!${url}`,
+        `${client.httpSpacePrimitives.url}/.proxy/${url}`,
         fetchOptions,
       );
       const body = await resp.arrayBuffer();
