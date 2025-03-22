@@ -11,18 +11,6 @@ export type CommandHookT = {
   command?: CommandDef;
 };
 
-export type CronHookT = {
-  cron?: string | string[];
-};
-
-type EndPointDef = {
-  method?: "GET" | "POST" | "PUT" | "DELETE" | "HEAD" | "OPTIONS" | "ANY";
-  path: string;
-};
-export type EndpointHookT = {
-  http?: EndPointDef | EndPointDef[];
-};
-
 export type EventHookT = {
   events?: string[];
 };
@@ -76,11 +64,9 @@ export type DocumentEditorT = {
 export type SilverBulletHooks =
   & CommandHookT
   & SlashCommandHookT
-  & CronHookT
   & MQHookT
   & EventHookT
   & CodeWidgetT
-  & EndpointHookT
   & PlugNamespaceHookT
   & DocumentEditorT
   & SyscallHookT;
