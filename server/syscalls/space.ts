@@ -35,6 +35,20 @@ export function spaceReadSyscalls(
       return await space.getDocumentMeta(name);
     },
 
+    // Deprecated, please use document versions instead
+    "space.listAttachments": async (): Promise<DocumentMeta[]> => {
+      return await space.fetchDocumentList();
+    },
+    "space.readAttachment": async (_ctx, name: string): Promise<Uint8Array> => {
+      return (await space.readDocument(name)).data;
+    },
+    "space.readAttachmentMeta": async (
+      _ctx,
+      name: string,
+    ): Promise<DocumentMeta> => {
+      return await space.getDocumentMeta(name);
+    },
+
     // FS
     "space.listFiles": (): Promise<FileMeta[]> => {
       return space.spacePrimitives.fetchFileList();
