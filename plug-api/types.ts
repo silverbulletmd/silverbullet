@@ -101,8 +101,7 @@ export type CodeWidgetCallback = (
 ) => Promise<CodeWidgetContent | null>;
 
 export type CodeWidgetContent = {
-  html?: string;
-  markdown?: string;
+  html: string;
   script?: string;
   buttons?: CodeWidgetButton[];
 };

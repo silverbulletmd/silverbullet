@@ -7,7 +7,6 @@ import type { EventHook } from "./hooks/event.ts";
 import type { DataStore } from "$lib/data/datastore.ts";
 import type { System } from "$lib/plugos/system.ts";
 import type { CodeWidgetHook } from "../web/hooks/code_widget.ts";
-import type { PanelWidgetHook } from "../web/hooks/panel_widget.ts";
 import type { SlashCommandHook } from "../web/hooks/slash_command.ts";
 import type { DataStoreMQ } from "$lib/data/mq.datastore.ts";
 import type { ParseTree } from "../plug-api/lib/tree.ts";
@@ -25,7 +24,6 @@ export abstract class CommonSystem {
   slashCommandHook?: SlashCommandHook;
   namespaceHook!: PlugNamespaceHook;
   codeWidgetHook!: CodeWidgetHook;
-  panelWidgetHook!: PanelWidgetHook;
   documentEditorHook!: DocumentEditorHook;
 
   readonly allKnownFiles = new Set<string>();

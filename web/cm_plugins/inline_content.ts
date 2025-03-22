@@ -1,7 +1,6 @@
 import type { EditorState, Range } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
 import { Decoration, WidgetType } from "@codemirror/view";
-import { MarkdownWidget } from "./markdown_widget.ts";
 import {
   decoratorStateField,
   invisibleDecoration,
@@ -15,6 +14,7 @@ import {
 } from "@silverbulletmd/silverbullet/lib/resolve";
 import { parseRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { mime } from "mimetypes";
+import { LuaWidget } from "./lua_widget.ts";
 
 type ContentDimensions = {
   width?: number;
@@ -209,23 +209,21 @@ export function inlineContentPlugin(client: Client) {
           if (
             client.clientSystem.allKnownFiles.has(pageRef.page + ".md")
           ) {
-            // This is a page reference, let's inline the content
-            const codeWidgetCallback = client.clientSystem.codeWidgetHook
-              .codeWidgetCallbacks.get("transclusion");
-
-            if (!codeWidgetCallback) {
-              return;
-            }
-
             widgets.push(
               Decoration.widget({
-                widget: new MarkdownWidget(
-                  node.from,
+                widget: new LuaWidget(
                   client,
-                  `widget:${client.currentPage}:${text}`,
-                  text,
-                  codeWidgetCallback,
-                  "sb-markdown-widget sb-markdown-widget-inline",
+                  `widget:${client.currentPage}:${pageRef.page}`,
+                  pageRef.page,
+                  async (pageName) => {
+                    const { text } = await client.space.readPage(pageName);
+                    return {
+                      _isWidget: true,
+                      markdown: text,
+                    };
+                  },
+                  true,
+                  true,
                 ),
                 block: true,
               }).range(node.to),

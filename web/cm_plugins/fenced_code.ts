@@ -8,7 +8,6 @@ import {
   isCursorInRange,
   shouldRenderWidgets,
 } from "./util.ts";
-import { MarkdownWidget } from "./markdown_widget.ts";
 import { IFrameWidget } from "./iframe_widget.ts";
 
 export function fencedCodePlugin(client: Client) {
@@ -26,10 +25,6 @@ export function fencedCodePlugin(client: Client) {
           const codeWidgetCallback = client.clientSystem.codeWidgetHook
             .codeWidgetCallbacks
             .get(lang);
-          const renderMode = client.clientSystem.codeWidgetHook.codeWidgetModes
-            .get(
-              lang,
-            );
           // Only custom render when we have a custom renderer, and the current page is not a template
           if (codeWidgetCallback && shouldRenderWidgets(client)) {
             // We got a custom renderer!
@@ -75,25 +70,13 @@ export function fencedCodePlugin(client: Client) {
               );
             });
 
-            const bodyText = lineStrings.slice(1, lineStrings.length - 1).join(
-              "\n",
+            const widget = new IFrameWidget(
+              from + lineStrings[0].length + 1,
+              to - lineStrings[lineStrings.length - 1].length - 1,
+              client,
+              lineStrings.slice(1, lineStrings.length - 1).join("\n"),
+              codeWidgetCallback,
             );
-            const widget = renderMode === "markdown"
-              ? new MarkdownWidget(
-                from + lineStrings[0].length + 1,
-                client,
-                `widget:${client.currentPage}:${bodyText}`,
-                bodyText,
-                codeWidgetCallback,
-                "sb-markdown-widget",
-              )
-              : new IFrameWidget(
-                from + lineStrings[0].length + 1,
-                to - lineStrings[lineStrings.length - 1].length - 1,
-                client,
-                lineStrings.slice(1, lineStrings.length - 1).join("\n"),
-                codeWidgetCallback,
-              );
             widgets.push(
               Decoration.widget({
                 widget: widget,

@@ -33,7 +33,6 @@ import { languageSyscalls } from "$common/syscalls/language.ts";
 import { codeWidgetSyscalls } from "./syscalls/code_widget.ts";
 import { clientCodeWidgetSyscalls } from "./syscalls/client_code_widget.ts";
 import { KVPrimitivesManifestCache } from "$lib/plugos/manifest_cache.ts";
-import { PanelWidgetHook } from "./hooks/panel_widget.ts";
 import { createKeyBindings } from "./editor_state.ts";
 import { CommonSystem } from "$common/common_system.ts";
 import type { DataStoreMQ } from "$lib/data/mq.datastore.ts";
@@ -82,10 +81,6 @@ export class ClientSystem extends CommonSystem {
     // Code widget hook
     this.codeWidgetHook = new CodeWidgetHook();
     this.system.addHook(this.codeWidgetHook);
-
-    // Panel widget hook
-    this.panelWidgetHook = new PanelWidgetHook();
-    this.system.addHook(this.panelWidgetHook);
 
     // Document editor hook
     this.documentEditorHook = new DocumentEditorHook();
@@ -152,7 +147,7 @@ export class ClientSystem extends CommonSystem {
       editorSyscalls(this.client),
       spaceReadSyscalls(this.client),
       systemSyscalls(client, false),
-      markdownSyscalls(),
+      markdownSyscalls(client),
       assetSyscalls(this.system),
       yamlSyscalls(),
       codeWidgetSyscalls(this.codeWidgetHook),

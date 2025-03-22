@@ -169,12 +169,6 @@ functions:
       requireMode: rw
       requireEditor: page
 
-  # TOC
-  tocWidget:
-    path: toc.ts:widget
-    codeWidget: toc
-    renderMode: markdown
-
   refreshWidgets:
     path: widget.ts:refreshWidgets
 

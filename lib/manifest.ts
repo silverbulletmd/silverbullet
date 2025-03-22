@@ -4,7 +4,7 @@ import type { NamespaceOperation } from "./plugos/namespace.ts";
 
 export type CodeWidgetT = {
   codeWidget?: string;
-  renderMode?: "markdown" | "iframe";
+  renderMode?: "iframe";
 };
 
 export type CommandHookT = {
@@ -35,10 +35,6 @@ type MQSubscription = {
 };
 export type MQHookT = {
   mqSubscriptions?: MQSubscription[];
-};
-
-export type PanelWidgetT = {
-  panelWidget?: "top" | "bottom";
 };
 
 export type PlugNamespaceDef = {
@@ -84,7 +80,6 @@ export type SilverBulletHooks =
   & MQHookT
   & EventHookT
   & CodeWidgetT
-  & PanelWidgetT
   & EndpointHookT
   & PlugNamespaceHookT
   & DocumentEditorT

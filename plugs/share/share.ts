@@ -60,13 +60,8 @@ export function clipboardShareOptions() {
 }
 
 export async function clipboardMarkdownShare(text: string) {
-  const pageName = await editor.getCurrentPage();
   const tree = await markdown.parseMarkdown(text);
-  let rendered = await system.invokeFunction(
-    "markdown.expandCodeWidgets",
-    tree,
-    pageName,
-  );
+  let rendered = await markdown.expandMarkdown(tree);
   rendered = cleanMarkdown(rendered);
   await editor.copyToClipboard(renderToText(rendered).trim());
   await editor.flashNotification("Copied to clipboard!");
@@ -100,13 +95,8 @@ export function cleanMarkdown(tree: ParseTree): ParseTree {
 }
 
 export async function clipboardRichTextShare(text: string) {
-  const pageName = await editor.getCurrentPage();
   const tree = await markdown.parseMarkdown(text);
-  let rendered = await system.invokeFunction(
-    "markdown.expandCodeWidgets",
-    tree,
-    pageName,
-  );
+  let rendered = await markdown.expandMarkdown(tree);
   rendered = cleanMarkdown(rendered);
   const html = await system.invokeFunction(
     "markdown.markdownToHtml",

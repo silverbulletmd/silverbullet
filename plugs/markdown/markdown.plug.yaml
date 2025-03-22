@@ -3,9 +3,6 @@ assets:
   - "assets/*"
 functions:
   # API
-  expandCodeWidgets:
-    path: api.ts:expandCodeWidgets
-    syscall: markdown.expandCodeWidgets
   markdownToHtml:
     path: api.ts:markdownToHtml
     syscall: markdown.markdownToHtml

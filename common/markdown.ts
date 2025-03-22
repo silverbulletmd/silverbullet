@@ -18,65 +18,18 @@ import { renderExpressionResult } from "$common/markdown_util.ts";
 import type { Client } from "../web/client.ts";
 
 /**
- * Finds code widgets, runs their plug code to render and inlines their content in the parse tree
+ * Expands custom markdown Lua directives and transclusions into plain markdown
  * @param mdTree parsed markdown tree
- * @param pageName name of the current page
  * @returns modified mdTree
  */
-export async function expandCodeWidgets(
+export async function expandMarkdown(
   client: Client,
   mdTree: ParseTree,
-  pageName: string,
   env: LuaEnv,
   sf: LuaStackFrame,
 ): Promise<ParseTree> {
   await replaceNodesMatchingAsync(mdTree, async (n) => {
-    if (n.type === "FencedCode") {
-      const codeInfo = findNodeOfType(n, "CodeInfo");
-      if (!codeInfo) {
-        return;
-      }
-      const codeType = codeInfo.children![0].text!;
-      const codeTextNode = findNodeOfType(n, "CodeText");
-      try {
-        // This will error out if this is not a code wiget, which is fine
-        const langCallback = client.clientSystem.codeWidgetHook
-          .codeWidgetCallbacks.get(codeType);
-        if (!langCallback) {
-          return {
-            text: "",
-          };
-        }
-        const result = await langCallback(
-          renderToText(codeTextNode!),
-          pageName,
-        );
-        if (!result) {
-          return {
-            text: "",
-          };
-        }
-        // Only do this for "markdown" widgets, that is: that can render to markdown
-        if (result.markdown !== undefined) {
-          const parsedBody = parseMarkdown(result.markdown);
-          // Recursively process
-          return expandCodeWidgets(
-            client,
-            parsedBody,
-            pageName,
-            env,
-            sf,
-          );
-        }
-      } catch (e: any) {
-        // 'not found' is to be expected (no code widget configured for this language)
-        // Every other error should probably be reported
-        if (!e.message.includes("not found")) {
-          console.trace();
-          console.error("Error rendering code", e.message);
-        }
-      }
-    } else if (n.type === "Image") {
+    if (n.type === "Image") {
       // Let's scan for ![[embeds]] that are codified as Images, confusingly
       const wikiLinkMark = findNodeOfType(n, "WikiLinkMark");
       if (!wikiLinkMark) {
@@ -104,10 +57,9 @@ export async function expandCodeWidgets(
       const { text } = await client.space.readPage(ref.page);
       const parsedBody = parseMarkdown(text);
       // Recursively process
-      return expandCodeWidgets(
+      return expandMarkdown(
         client,
         parsedBody,
-        page,
         env,
         sf,
       );

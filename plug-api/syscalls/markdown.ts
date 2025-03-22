@@ -18,3 +18,7 @@ export function parseMarkdown(text: string): Promise<ParseTree> {
 export function renderParseTree(tree: ParseTree): Promise<string> {
   return syscall("markdown.renderParseTree", tree);
 }
+
+export function expandMarkdown(tree: ParseTree): Promise<ParseTree> {
+  return syscall("markdown.expandMarkdown", tree);
+}

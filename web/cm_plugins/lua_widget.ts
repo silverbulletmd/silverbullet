@@ -8,14 +8,14 @@ import {
 import { parse } from "$common/markdown_parser/parse_tree.ts";
 import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
 import { renderToText } from "@silverbulletmd/silverbullet/lib/tree";
-import { activeWidgets } from "./markdown_widget.ts";
 import {
   attachWidgetEventHandlers,
   moveCursorIntoText,
 } from "./widget_util.ts";
-import { expandCodeWidgets } from "$common/markdown.ts";
+import { expandMarkdown } from "$common/markdown.ts";
 import { LuaStackFrame, LuaTable } from "$common/space_lua/runtime.ts";
 import { jsonToMDTable } from "$common/markdown_util.ts";
+import { activeWidgets } from "./code_widget.ts";
 
 export type LuaWidgetCallback = (
   bodyText: string,
@@ -126,10 +126,9 @@ export class LuaWidget extends WidgetType {
       const sf = LuaStackFrame.createWithGlobalEnv(
         client.clientSystem.spaceLuaEnv.env,
       );
-      mdTree = await expandCodeWidgets(
+      mdTree = await expandMarkdown(
         client,
         mdTree,
-        this.client.currentPage,
         client.clientSystem.spaceLuaEnv.env,
         sf,
       );

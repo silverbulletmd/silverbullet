@@ -10,7 +10,6 @@ import {
   isLocalPath,
   resolvePath,
 } from "@silverbulletmd/silverbullet/lib/resolve";
-import { expandCodeWidgets } from "./api.ts";
 
 export async function updateMarkdownPreview() {
   if (!(await clientStore.get("enableMarkdownPreview"))) {
@@ -18,12 +17,12 @@ export async function updateMarkdownPreview() {
   }
   const currentPage = await editor.getCurrentPage();
   const text = await editor.getText();
-  const mdTree = await markdown.parseMarkdown(text);
+  let mdTree = await markdown.parseMarkdown(text);
   // const cleanMd = await cleanMarkdown(text);
   const css = await asset.readAsset("markdown", "assets/preview.css");
   const js = await asset.readAsset("markdown", "assets/preview.js");
 
-  await expandCodeWidgets(mdTree, currentPage);
+  mdTree = await markdown.expandMarkdown(mdTree);
   const html = renderMarkdownToHtml(mdTree, {
     smartHardBreak: true,
     annotationPositions: true,
