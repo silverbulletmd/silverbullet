@@ -78,6 +78,10 @@ export function systemSyscalls(
       }
       await client.loadCustomStyles();
     },
+    // DEPRECATED
+    "system.getSpaceConfig": (_ctx, key, defaultValue?) => {
+      return client.config.get(key, defaultValue);
+    },
     "system.getMode": () => {
       return readOnlyMode ? "ro" : "rw";
     },
