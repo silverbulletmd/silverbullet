@@ -115,7 +115,7 @@ function cleanKey(ref: string, page: string) {
 export function queryLuaObjects<T>(
   tag: string,
   query: LuaCollectionQuery,
-  scopedVariables: Record<string, any> = {},
+  scopedVariables?: Record<string, any>,
   ttlSecs?: number,
 ): Promise<ObjectValue<T>[]> {
   return ttlCache(query, () => {

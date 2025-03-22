@@ -1,8 +1,5 @@
 import { parseExpressionString } from "$common/space_lua/parse.ts";
-import {
-  ArrayQueryCollection,
-  findAllQueryVariables,
-} from "./query_collection.ts";
+import { ArrayQueryCollection } from "./query_collection.ts";
 import {
   LuaEnv,
   LuaNativeJSFunction,
@@ -177,15 +174,4 @@ Deno.test("ArrayQueryCollection", async () => {
     LuaStackFrame.lostFrame,
   );
   assertEquals(distinctObjectsResult.length, 4);
-});
-
-Deno.test("findAllQueryVariables", () => {
-  const query = {
-    where: parseExpressionString("p.x >= 2 and b.x >= 2"),
-    select: parseExpressionString("p.x + b.x"),
-    orderBy: [{ expr: parseExpressionString("q.x"), desc: false }],
-    distinct: true,
-  };
-  const variables = findAllQueryVariables(query);
-  assertEquals(variables, ["p", "b", "q"]);
 });

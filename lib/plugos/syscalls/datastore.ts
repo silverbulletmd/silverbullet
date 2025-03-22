@@ -47,14 +47,17 @@ export function dataStoreReadSyscalls(
       _ctx,
       prefix: string[],
       query: LuaCollectionQuery,
-      scopeVariables: Record<string, any> = {},
+      scopeVariables?: Record<string, any>,
     ): Promise<any[]> => {
       const sf = LuaStackFrame.createWithGlobalEnv(
         commonSystem.spaceLuaEnv.env,
       );
-      const env = new LuaEnv(commonSystem.spaceLuaEnv.env);
-      for (const [key, value] of Object.entries(scopeVariables)) {
-        env.setLocal(key, jsToLuaValue(value));
+      let env = commonSystem.spaceLuaEnv.env;
+      if (scopeVariables) {
+        env = new LuaEnv(commonSystem.spaceLuaEnv.env);
+        for (const [key, value] of Object.entries(scopeVariables)) {
+          env.setLocal(key, jsToLuaValue(value));
+        }
       }
       return (await queryLua<any>(ds.kv, prefix, query, env, sf)).map((item) =>
         luaValueToJS(item, sf)

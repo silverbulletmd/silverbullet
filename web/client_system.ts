@@ -159,7 +159,7 @@ export class ClientSystem extends CommonSystem {
       clientCodeWidgetSyscalls(),
       languageSyscalls(),
       jsonschemaSyscalls(),
-      indexSyscalls(this),
+      indexSyscalls(this.ds.kv),
       commandSyscalls(this),
       luaSyscalls(this),
       mqSyscalls(this.mq),

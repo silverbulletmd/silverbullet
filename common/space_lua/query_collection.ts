@@ -55,75 +55,6 @@ export type LuaCollectionQuery = {
   distinct?: boolean;
 };
 
-export function findAllQueryVariables(query: LuaCollectionQuery): string[] {
-  const variables = new Set<string>();
-
-  // Helper to traverse an expression and collect variables
-  function findVariables(expr: LuaExpression) {
-    if (!expr) return;
-
-    switch (expr.type) {
-      case "Variable":
-        variables.add(expr.name);
-        break;
-      case "Binary":
-        findVariables(expr.left);
-        findVariables(expr.right);
-        break;
-      case "Unary":
-        findVariables(expr.argument);
-        break;
-      case "TableAccess":
-        findVariables(expr.object);
-        findVariables(expr.key);
-        break;
-      case "FunctionCall":
-        findVariables(expr.prefix);
-        expr.args.forEach(findVariables);
-        break;
-      case "TableConstructor":
-        expr.fields.forEach((field) => {
-          switch (field.type) {
-            case "DynamicField":
-              findVariables(field.key);
-              findVariables(field.value);
-              break;
-            case "PropField":
-              findVariables(field.value);
-              break;
-            case "ExpressionField":
-              findVariables(field.value);
-              break;
-          }
-        });
-        break;
-      case "PropertyAccess":
-        findVariables(expr.object);
-        break;
-      case "Parenthesized":
-        findVariables(expr.expression);
-        break;
-    }
-  }
-
-  // Check all parts of the query that can contain expressions
-  if (query.where) {
-    findVariables(query.where);
-  }
-
-  if (query.orderBy) {
-    query.orderBy.forEach((ob) => findVariables(ob.expr));
-  }
-
-  if (query.select) {
-    findVariables(query.select);
-  }
-
-  // distinct doesn't introduce any new variables
-
-  return Array.from(variables);
-}
-
 export interface LuaQueryCollection {
   query(
     query: LuaCollectionQuery,
@@ -229,7 +160,7 @@ export async function applyTransforms(
   return result;
 }
 
-export async function queryLua<T>(
+export async function queryLua<T = any>(
   kv: KvPrimitives,
   prefix: KvKey,
   query: LuaCollectionQuery,

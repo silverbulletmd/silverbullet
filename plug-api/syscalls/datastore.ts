@@ -65,7 +65,7 @@ export function query(options: KvQuery): Promise<KV[]> {
 export function queryLua(
   prefix: string[],
   query: LuaCollectionQuery,
-  scopeVariables: Record<string, any>,
+  scopeVariables?: Record<string, any>,
 ): Promise<any[]> {
   return syscall("datastore.queryLua", prefix, query, scopeVariables);
 }
