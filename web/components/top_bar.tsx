@@ -103,10 +103,7 @@ export function TopBar({
                 ))}
               </div>
             )}
-            <div
-              className={"sb-actions " +
-                (mobileMenuStyle ? mobileMenuStyle : "")}
-            >
+            <div className="sb-sync-progress">
               {progressPerc !== undefined &&
                 (
                   <div
@@ -121,6 +118,11 @@ export function TopBar({
                     </div>
                   </div>
                 )}
+            </div>
+            <div
+              className={"sb-actions " +
+                (mobileMenuStyle ? mobileMenuStyle : "")}
+            >
               {actionButtons.map((actionButton) => {
                 const button = (
                   <button
