@@ -2,9 +2,9 @@
 
 cd $(realpath $(dirname $(dirname $0)))
 
-IMAGE_NAME="ghcr.io/silverbulletmd/silverbullet:edge"
+IMAGE_NAME="ghcr.io/silverbulletmd/silverbullet:v2"
 WEBSITE_SPACE="./website"
-WEBSITE_PORT=3000
+WEBSITE_PORT=3002
 
 # Get the current image ID
 BEFORE_PULL=$(docker images -q $IMAGE_NAME)
@@ -25,10 +25,10 @@ echo "The Docker image has been updated, let's update the website content."
 git pull
 
 # Check if a silverbullet container is running already
-if [ "$(docker ps -q -f name=silverbullet)" ]; then
+if [ "$(docker ps -q -f name=silverbullet-v2)" ]; then
     echo "A silverbullet container is running, let's stop it."
-    docker kill silverbullet
-    docker rm silverbullet
+    docker kill silverbullet-v2
+    docker rm silverbullet-v2
 fi
 
 # Remove the old database
@@ -36,7 +36,7 @@ echo "Removing old databases"
 rm -f $WEBSITE_SPACE/.silverbullet.db*
 
 echo "Starting new silverbullet container"
-docker run -d --name silverbullet --restart unless-stopped -v $WEBSITE_SPACE:/space -e SB_INDEX_PAGE=SilverBullet -e SB_READ_ONLY=1 -p $WEBSITE_PORT:3000 $IMAGE_NAME
+docker run -d --name silverbullet-v2 --restart unless-stopped -v $WEBSITE_SPACE:/space -e SB_INDEX_PAGE=SilverBullet -e SB_READ_ONLY=1 -p $WEBSITE_PORT:3000 $IMAGE_NAME
 
 
 echo "Waiting for the servers to start"
