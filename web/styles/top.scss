@@ -78,9 +78,9 @@
   }
 
   .progress-wrapper {
-    display: inline-block;
     position: relative;
     margin-top: 4px;
+    margin-right: 6px;
     padding: 4px;
     background-color: var(--top-background-color);
   }
@@ -101,6 +101,10 @@
   /* Style the menu as a vertical fly-out */
   #sb-top .cm-scroller:has(.hamburger) {
     position: relative;
+  }
+
+  #sb-top .sb-sync-progress:has(~ .hamburger) {
+    margin-right: 1.8em;
   }
 
   #sb-top .sb-actions.hamburger {
@@ -125,10 +129,6 @@
 
     /* Initial collapsed height */
     max-height: 2.2rem;
-
-    .progress-wrapper {
-      order: 2;
-    }
 
     button {
       &.expander {
