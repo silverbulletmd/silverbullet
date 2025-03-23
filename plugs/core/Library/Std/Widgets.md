@@ -2,7 +2,7 @@
 
 Some useful widgets.
 
-## Button
+# Button
 A simple button.
 
 ```space-lua
@@ -21,7 +21,7 @@ ${widgets.button("Hello", function()
   editor.flashNotification "Hi there!"
 end)}
 
-## Table of contents
+# Table of contents
 ```space-lua
 widgets = widgets or {}
 

@@ -69,11 +69,13 @@ export async function indexPage({ name, tree }: IndexTreeEvent) {
     "aspiring-page",
     {
       objectVariable: "_",
-      where: await lua.parseExpression(`_.name == "${name}"`),
+      where: await lua.parseExpression(`_.name == pageRef`),
     },
+    { pageRef: name },
   );
   for (const aspiringPage of aspiringPages) {
-    await deleteObject("aspiring-page", aspiringPage.page, aspiringPage);
+    console.log("Deleting aspiring page", aspiringPage);
+    await deleteObject("aspiring-page", aspiringPage.page, aspiringPage.ref);
   }
 
   // console.log("Page object", combinedPageMeta);

@@ -189,6 +189,13 @@ export class Client {
       },
     );
 
+    if (!await this.hasInitialSyncCompleted()) {
+      console.info(
+        "Initial sync has not yet been completed, disabling page and document indexing to speed this up",
+      );
+      this.space.spacePrimitives.enablePageEvents = false;
+    }
+
     this.ui = new MainUI(this);
     this.ui.render(this.parent);
 
@@ -291,6 +298,8 @@ export class Client {
           console.log(
             "Initial sync completed, now need to do a full space index to ensure all pages are indexed using any custom indexers",
           );
+          console.log("Enabling eventing on space primitives");
+          this.space.spacePrimitives.enablePageEvents = true;
           this.clientSystem.ensureSpaceIndex().catch(
             console.error,
           );

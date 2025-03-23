@@ -1,10 +1,10 @@
-import type { SpacePrimitives } from "$common/spaces/space_primitives.ts";
 import { plugPrefix } from "$common/spaces/constants.ts";
 
 import type { DocumentMeta, FileMeta, PageMeta } from "../plug-api/types.ts";
 import type { EventHook } from "./hooks/event.ts";
 import { safeRun } from "../lib/async.ts";
 import { localDateString } from "$lib/dates.ts";
+import type { EventedSpacePrimitives } from "$common/spaces/evented_space_primitives.ts";
 
 const pageWatchInterval = 5000;
 
@@ -18,7 +18,7 @@ export class Space {
   private saving = false;
 
   constructor(
-    readonly spacePrimitives: SpacePrimitives,
+    readonly spacePrimitives: EventedSpacePrimitives,
     eventHook: EventHook,
   ) {
     eventHook.addLocalListener("file:deleted", (fileName: string) => {

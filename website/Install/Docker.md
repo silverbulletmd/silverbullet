@@ -23,7 +23,7 @@ For your first run, you can run the following:
 # Create a local folder "space" to keep files in
 mkdir -p space
 # Run the SilverBullet docker container in the foreground
-sudo docker run -it -p 3000:3000 -v ./space:/space ghcr.io/silverbulletmd/silverbullet
+sudo docker run -it -p 3000:3000 -v ./space:/space ghcr.io/silverbulletmd/silverbullet:v2
 ```
 
 This will run SilverBullet in the foreground, interactively, so you can see the logs and instructions. 
@@ -33,7 +33,7 @@ If this all works fine, just kill the thing with `Ctrl-c` (don’t worry, it’s
 Now you probably want to run the container in daemon (background) mode, give it a name, and automatically have it restart after you e.g. reboot your machine:
 
 ```shell
-docker run -d --restart unless-stopped --name silverbullet -p 3000:3000 -v ./space:/space ghcr.io/silverbulletmd/silverbullet
+docker run -d --restart unless-stopped --name silverbullet -p 3000:3000 -v ./space:/space ghcr.io/silverbulletmd/silverbullet:v2
 ```
 
 There you go!
@@ -41,14 +41,14 @@ There you go!
 Note that to get offline mode to work you need to serve SilverBullet with HTTPS, via for example a reverse proxy.
 
 # Versions
-The `ghcr.io/silverbulletmd/silverbullet` image will give you the latest released version. This is equivalent to `ghcr.io/silverbulletmd/silverbullet:latest`. If you prefer, you can also pin to a specific release, e.g. `ghcr.io/silverbulletmd/silverbullet:0.10.1`. If you prefer to live on the bleeding edge, you can use the `ghcr.io/silverbulletmd/silverbullet:edge` image, which is updated on every commit to the `main` brain. This is the YOLO option.
+As we’re working on SilverBullet v2, your only real option is to use the “edge” versions with the `:v2` tag.
 
 ## Upgrade
 You can upgrade SilverBullet as follows:
 
 ```shell
 # Pull the latest version of the image
-docker pull ghcr.io/silverbulletmd/silverbullet
+docker pull ghcr.io/silverbulletmd/silverbullet:v2
 # Kill the running container
 docker kill silverbullet
 # Remove the old container
@@ -72,7 +72,7 @@ Instructions:
 ```yaml
 services:
   silverbullet:
-    image: ghcr.io/silverbulletmd/silverbullet
+    image: ghcr.io/silverbulletmd/silverbullet:v2
     restart: unless-stopped
     environment:
     - SB_USER=admin:admin

@@ -4,42 +4,27 @@ import type {
   PageMeta,
 } from "@silverbulletmd/silverbullet/types";
 import { folderName } from "@silverbulletmd/silverbullet/lib/resolve";
-import type { AspiringPageObject } from "../index/page_links.ts";
-import type { LuaCollectionQuery } from "$common/space_lua/query_collection.ts";
 import { queryLuaObjects } from "../index/api.ts";
 import { language, lua } from "@silverbulletmd/silverbullet/syscalls";
 
-// Queries all meta pages (#meta prefixed)
-let isMetaPageQuery: LuaCollectionQuery | undefined;
-
-// The inverse of the above query
-let isntMetaPageQuery: LuaCollectionQuery | undefined;
-
-// Queries all documents (not starting with _, those are system documents)
-let isDocumentQuery: LuaCollectionQuery | undefined;
-
-// Slight optimization to pre-parse the queries
-export async function initQueries() {
-  isDocumentQuery = {
+// Page completion
+export async function pageComplete(completeEvent: CompleteEvent) {
+  const isDocumentQuery = {
     objectVariable: "_",
     where: await lua.parseExpression(`not string.startsWith(_.name, "_")`),
   };
-  isMetaPageQuery = {
+  const isMetaPageQuery = {
     objectVariable: "_",
     where: await lua.parseExpression(`table.find(_.tags, function(tag)
            return string.startsWith(tag, "meta")
           end)`),
   };
-  isntMetaPageQuery = {
+  const isntMetaPageQuery = {
     objectVariable: "_",
     where: await lua.parseExpression(`not table.find(_.tags, function(tag)
            return string.startsWith(tag, "meta")
           end)`),
   };
-}
-
-// Page completion
-export async function pageComplete(completeEvent: CompleteEvent) {
   // Try to match [[wikilink]]
   let isWikilink = true;
   let match = /\[\[([^\]@$#:\{}]*)$/.exec(completeEvent.linePrefix);
@@ -72,18 +57,21 @@ export async function pageComplete(completeEvent: CompleteEvent) {
       // All documents
       queryLuaObjects<DocumentMeta>("document", isDocumentQuery!, {}, 5),
       // And all links to non-existing pages (to augment the existing ones)
-      queryLuaObjects<AspiringPageObject>(
+      queryLuaObjects<string>(
         "aspiring-page",
-        { distinct: true },
+        {
+          select: { type: "Variable", name: "name", ctx: {} as any },
+          distinct: true,
+        },
         {},
         5,
       ).then((aspiringPages) =>
         // Rewrite them to PageMeta shaped objects
-        aspiringPages.map((aspiringPage): PageMeta => ({
-          ref: aspiringPage.name,
+        aspiringPages.map((aspiringPage: string): PageMeta => ({
+          ref: aspiringPage,
           tag: "page",
           tags: ["non-existing"], // Picked up later in completion
-          name: aspiringPage.name,
+          name: aspiringPage,
           created: "",
           lastModified: "",
           perm: "rw",

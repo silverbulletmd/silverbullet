@@ -20,7 +20,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
 
   initialFileListLoad: boolean;
 
-  public enabled = true;
+  public enablePageEvents = true;
   private spaceSnapshot: Record<string, number> = {};
 
   constructor(
@@ -48,9 +48,6 @@ export class EventedSpacePrimitives implements SpacePrimitives {
   }
 
   async fetchFileList(): Promise<FileMeta[]> {
-    if (!this.enabled) {
-      return this.wrapped.fetchFileList();
-    }
     if (this.operationInProgress) {
       // Some other operation (read, write, list, meta) is already going on
       // this will likely trigger events, so let's not worry about any of that and avoid race condition and inconsistent data.
@@ -112,7 +109,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
         delete this.spaceSnapshot[deletedFile];
         await this.dispatchEvent("file:deleted", deletedFile);
 
-        if (deletedFile.endsWith(".md")) {
+        if (deletedFile.endsWith(".md") && this.enablePageEvents) {
           const pageName = deletedFile.substring(0, deletedFile.length - 3);
           await this.dispatchEvent("page:deleted", pageName);
         }
@@ -129,9 +126,6 @@ export class EventedSpacePrimitives implements SpacePrimitives {
   async readFile(
     name: string,
   ): Promise<{ data: Uint8Array; meta: FileMeta }> {
-    if (!this.enabled) {
-      return this.wrapped.readFile(name);
-    }
     try {
       // Fetching mutex
       const wasFetching = this.operationInProgress;
@@ -155,9 +149,6 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     selfUpdate?: boolean,
     meta?: FileMeta,
   ): Promise<FileMeta> {
-    if (!this.enabled) {
-      return this.wrapped.writeFile(name, data, selfUpdate, meta);
-    }
     try {
       this.operationInProgress = true;
       const newMeta = await this.wrapped.writeFile(
@@ -175,7 +166,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       );
       this.spaceSnapshot[name] = newMeta.lastModified;
 
-      if (name.endsWith(".md")) {
+      if (name.endsWith(".md") && this.enablePageEvents) {
         // Let's trigger some page-specific events
         const pageName = name.substring(0, name.length - 3);
         let text = "";
@@ -205,7 +196,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
   }
 
   async getFileMeta(name: string): Promise<FileMeta> {
-    if (!this.enabled) {
+    if (!this.enablePageEvents) {
       return this.wrapped.getFileMeta(name);
     }
     try {
@@ -220,7 +211,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       // console.log("Checking error", e, name);
       if (e.message === "Not found") {
         await this.dispatchEvent("file:deleted", name);
-        if (name.endsWith(".md")) {
+        if (name.endsWith(".md") && this.enablePageEvents) {
           const pageName = name.substring(0, name.length - 3);
           await this.dispatchEvent("page:deleted", pageName);
         }
@@ -232,12 +223,9 @@ export class EventedSpacePrimitives implements SpacePrimitives {
   }
 
   async deleteFile(name: string): Promise<void> {
-    if (!this.enabled) {
-      return this.wrapped.deleteFile(name);
-    }
     try {
       this.operationInProgress = true;
-      if (name.endsWith(".md")) {
+      if (name.endsWith(".md") && this.enablePageEvents) {
         const pageName = name.substring(0, name.length - 3);
         await this.dispatchEvent("page:deleted", pageName);
       }

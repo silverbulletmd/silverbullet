@@ -69,6 +69,7 @@ export function dataStoreReadSyscalls(
 export function dataStoreWriteSyscalls(ds: DataStore): SysCallMapping {
   return {
     "datastore.delete": (_ctx, key: KvKey) => {
+      console.log("Deleting key", key);
       return ds.delete(key);
     },
 

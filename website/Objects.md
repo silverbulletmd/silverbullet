@@ -1,8 +1,6 @@
-#level/intermediate
+SilverBullet automatically builds and maintains an index of _objects_ extracted from all markdown pages in your space. It subsequently allows you to use [[Space Lua/Lua Integrated Query]] to query this database in (potentially) useful ways.
 
-SilverBullet automatically builds and maintains an index of _objects_ extracted from all markdown pages in your space. It subsequently allows you to [[Live Queries|query]] this database in (potentially) useful ways.
-
-By design, the truth remains in the markdown: all data indexed as objects will have a representation in markdown text as well. This index can be flushed at any time and be rebuilt from its source markdown files kept in your space (and you can do so on demand if you like using the {[Space: Reindex]} command).
+By design, the truth remains in the markdown: all data indexed as objects will have a representation in markdown text as well. This index can be flushed at any time and be rebuilt from its source markdown files kept in your space (and you can do so on demand if you like using the `Space: Reindex` command).
 
 # Object representation
 Every object has a set of [[Attributes]], some predefined, but you can add any additional custom attributes that you like.
@@ -52,23 +50,15 @@ Every page in your space is available via the `page` tag. You can attach _additi
 
 In addition to `ref` and `tags`, the `page` tag defines a bunch of additional attributes as can be seen in this example query:
 
-```query
-page where name = @page.name
-```
+${query[[from index.tag "page" where name == _CTX.currentPage.name]]}
 
 Note that you can also query this page using the `level/intermediate` directly:
-
-```query
-level/intermediate
-```
+${query[[from index.tag "level/intermediate"]]}
 
 ### aspiring-page
 [[Aspiring Pages]] are pages that are linked to, but not yet created.
 
-```query
-aspiring-page
-```
-
+${query[[from index.tag "aspiring-page"]]}
 
 ### table
 Markdown table rows are indexed using the `table` tag, any additional tags can be added using [[Tags]] in any of its cells.
@@ -79,9 +69,7 @@ Markdown table rows are indexed using the `table` tag, any additional tags can b
 | Some Row | This is an example row in between two others |
 | Another key | This time without a tag |
 
-```query
-table
-```
+${query[[from index.tag "table" where page == _CTX.currentPage.name]]}
 
 Table headers will be normalized by converting them to lowercase and replacing all non alphanumeric characters with `_`.
 
@@ -93,10 +81,10 @@ Here is an example of a #quote item using a custom [[Attributes|attribute]]:
 * “If you don’t know where you’re going you may not get there.” [by: Yogi Berra] #quote
 
 And then queried via the #quote tag:
-
-```query 
-quote where page = @page.name and tag = "item" select name, `by`
-```
+${query[[
+  from index.tag "quote"
+  where table.includes(itags, "item")
+]]}
 
 When items are nested, they will contain a `parent` attrite with a reference to their parent. In addition, `itags` will also inherit their ancestors’ tags. For instance:
 
@@ -105,9 +93,12 @@ When items are nested, they will contain a `parent` attrite with a reference to 
     * Leaf item
 
 The `Leaf item` will be indexed as follows:
-```query
-item where page = @page.name and name = "Leaf item" select name, parent, itags
-```
+${query[[
+  from index.tag "item"
+  where page == _CTX.currentPage.name
+  and name == "Leaf item"
+  select {name=name, parent=parent, itags=itags}
+]]}
 
 ## task
 Every task in your space is tagged with the `task` tag by default. You tag it with additional tags by using [[Tags]] in the task name, e.g.
@@ -118,18 +109,13 @@ And can then be queried via either `task` or `upnext`.
 
 The following query shows all attributes available for tasks:
 
-```query
-upnext
-```
+${query[[from index.tag "upnext"]]}
 
-Although you may want to render it using a template such as [[Library/Core/Query/Task]] instead:
+Although you may want to render it using a template instead:
 
-```query
-upnext render [[Library/Core/Query/Task]]
-```
+${template.each(query[[from index.tag "upnext"]], templates.taskItem)}
 
 Similar to [[#item]], `task` objects have a `parent` attribute when nested (pointing to their parent `item`), and inherit their ancestor’s tags in `itags`.
-
 
 ### taskstate
 [[Plugs/Tasks]] support the default `x` and ` ` states (done and not done), but custom states as well. Custom states used across your space are kept in `taskstate`:
@@ -138,40 +124,25 @@ Similar to [[#item]], `task` objects have a `parent` attribute when nested (poin
 * [IN PROGRESS] Task 2
 
 And can be queried as follows:
-
-```query
-taskstate where page = @page.name
-```
-
-## template
-Indexes all pages tagged with `#template`. See [[Templates]] for more information on templates.
-
-```query
-template select name limit 5
-```
+${query[[from index.tag "taskstate" where page == _CTX.currentPage.name]]}
 
 ## paragraph
 Top-level paragraphs (that is: paragraphs not embedded in a list) are indexed using the `paragraph` tag, any additional tags can be added using [[Tags]].
 
 A paragraph with a #paragraph-tag.
 
-```query
-paragraph-tag
-```
+${query[[from index.tag "paragraph-tag"]]}
 
 ## data
 You can also embed arbitrary YAML data blocks in pages via fenced code blocks and use a tag as a coding language, e.g.
 
-```#person
+```#contact
 name: Pete
 age: 55
 ```
 
-Which then becomes queriable via the `person` tag:
-
-```query
-person 
-```
+Which then becomes queriable via the `contact` tag:
+${query[[from index.tag "contact"]]}
 
 ### link
 All page _links_ are tagged with `link`. You cannot attach additional tags to links. The main two attributes of a link are:
@@ -184,58 +155,16 @@ In addition, the `snippet` attribute attempts to capture a little bit of context
 _Note_: this is the data source used for the {[Mentions: Toggle]} feature as well page {[Page: Rename]}.
 
 Here is a query that shows some links that appear in this particular page:
-
-```query
-link where page = @page.name limit 5
-```
-
-### anchor
-[[Markdown/Anchors]] use the $myanchor notation to allow deeplinking into a page and are also indexed and queryable. It is not possible to attach additional tags to an anchor.
-
-Here is an example query:
-
-```query
-anchor where page = @page.name
-```
+${query[[from index.tag "link" where page == _CTX.currentPage.name limit 5]]}
 
 ### header
 Headers (lines starting with `#`, `##` etc.) are indexed as well and queriable.
 
-```query
-header where page = @page.name limit 3
-```
-
+${query[[from index.tag "header" where page == _CTX.currentPage.name limit 3]]}
 
 ### tag
 The ultimate meta tag is _tag_ itself, which indexes for all tags used, in which page they appear and what their “parent tag” is (the context of the tag: either `page`, `item` or `task`).
 
 Here are the tags used/defined in this page:
 
-```query
-tag where page = @page.name select name, parent
-```
-
-### space-config
-This stores all configuration picked up as part of [[Space Config]]
-
-```query
-space-config select key
-```
-
-
-## System tags
-The following tags are technically implemented a bit differently than the rest, but they are still available to be queried.
-
-### command
-Enables querying of all [[Commands]] available in SilverBullet as well as their assigned keyboard shortcuts.
-```query
-command order by name limit 5
-```
-
-### syscall
-Enables querying of all [[PlugOS]] syscalls enabled in your space. Mostly useful in the context of [[Plugs]] and [[Space Script]] development.
-
-```query
-syscall limit 5
-```
-
+${query[[from index.tag "tag" where page == _CTX.currentPage.name select {name=name, parent=parent}]]}

@@ -27,8 +27,6 @@ export async function reindexSpace() {
 
   const files = await space.listFiles();
 
-  console.log("All files to reindex", files.map((f) => f.name));
-
   console.log("Queing", files.length, "pages to be indexed.");
   // Queue all file names to be indexed
   await mq.batchSend("indexQueue", files.map((file) => file.name));

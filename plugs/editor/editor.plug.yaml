@@ -74,11 +74,6 @@ config:
       type: number
       nullable: true
 functions:
-  initQueries:
-    path: ./complete.ts:initQueries
-    events:
-      - system:ready
-
   setEditorMode:
     path: "./editor.ts:setEditorMode"
     events:

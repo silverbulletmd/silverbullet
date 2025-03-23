@@ -74,11 +74,12 @@ export async function headerComplete(completeEvent: CompleteEvent) {
     "header",
     {
       objectVariable: "_",
-      where: await lua.parseExpression(`_.page = pageName`),
+      where: await lua.parseExpression(`_.page == pageRef`),
     },
     { pageRef: pageRef || completeEvent.pageName },
     5,
   );
+  console.log("Matching ehaders", allHeaders);
   return {
     from: completeEvent.pos - match[1].length,
     options: allHeaders.map((a) => ({

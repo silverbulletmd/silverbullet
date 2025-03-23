@@ -33,6 +33,14 @@ export function batchSet(page: string, kvs: KV[]): Promise<void> {
   return datastore.batchSet(finalBatch);
 }
 
+export function batchDelete(page: string, keys: KvKey[]): Promise<void> {
+  const finalBatch: KvKey[] = [];
+  for (const key of keys) {
+    finalBatch.push([indexKey, ...key, page]);
+  }
+  return datastore.batchDel(finalBatch);
+}
+
 /**
  * Clears all keys for a given file
  * @param file
@@ -127,9 +135,9 @@ export function queryLuaObjects<T>(
 export function deleteObject(
   tag: string,
   page: string,
-  object: ObjectValue<any>,
+  ref: string,
 ): Promise<void> {
-  return datastore.del([tag, cleanKey(object.ref, page)]);
+  return batchDelete(page, [[tag, cleanKey(ref, page)]]);
 }
 
 export async function query(
