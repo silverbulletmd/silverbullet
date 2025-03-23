@@ -131,6 +131,7 @@ export class HttpServer {
       html,
       200,
       {
+        "Cache-Control": "no-store",
         "Last-Modified": lastModified,
       },
     );
