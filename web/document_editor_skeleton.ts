@@ -88,8 +88,8 @@ export const html = `<!DOCTYPE html>
       });
     };
 
-    globalThis.silverbullet.sendMessage = (type, obj) => {
-      window.parent.postMessage({ type, ...obj }, "*");
+    globalThis.silverbullet.sendMessage = (type, data) => {
+      window.parent.postMessage({ type, data }, "*");
     }
   </script>
 </head>
