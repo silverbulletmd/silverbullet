@@ -1220,6 +1220,19 @@ export class Client implements ConfigContainer {
       } catch (e: any) {
         console.log(e.message);
 
+        // If the space is syncing, while we open the page and it fails it's very likely related to something not yet synced.
+        // So let's try again when the sync is finished
+        if (await this.syncService.isSyncing()) {
+          this.eventHook.addLocalListener(
+            "sync:success",
+            (operations) => {
+              if (operations === undefined) return;
+              location.reload();
+            },
+          );
+          return;
+        }
+
         if (e.message.includes("Couldn't find")) {
           this.openUrl(path + "?raw=true", initialLoad);
 
