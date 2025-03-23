@@ -861,6 +861,10 @@ export class Client implements ConfigContainer {
 
   async updateDocumentListCache() {
     console.log("Updating document list cache");
+    if (!this.clientSystem.system.loadedPlugs.has("index")) {
+      console.warn("Index plug not loaded, cannot update document list cache");
+      return;
+    }
 
     const allDocuments = await this.clientSystem.queryLuaObjects<DocumentMeta>(
       "document",
