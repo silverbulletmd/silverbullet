@@ -8,14 +8,14 @@ import {
   LuaStackFrame,
   luaValueToJS,
 } from "$common/space_lua/runtime.ts";
-import type { CommonSystem } from "$common/common_system.ts";
+import type { ClientSystem } from "../../web/client_system.ts";
 
 export type CallbackEventListener = EventListenerDef & {
   run: ILuaFunction;
 };
 
 export function eventListenerSyscalls(
-  commonSystem: CommonSystem,
+  clientSystem: ClientSystem,
 ): SysCallMapping {
   return {
     /**
@@ -26,12 +26,12 @@ export function eventListenerSyscalls(
       def: CallbackEventListener,
     ) => {
       console.log("Registering Lua event listener: ", def.name);
-      commonSystem.scriptEnv.registerEventListener(
+      clientSystem.scriptEnv.registerEventListener(
         def,
         async (...args: any[]) => {
           const tl = await buildThreadLocalEnv(
-            commonSystem.system,
-            commonSystem.spaceLuaEnv.env,
+            clientSystem.system,
+            clientSystem.spaceLuaEnv.env,
           );
           const sf = new LuaStackFrame(tl, null);
           try {
@@ -41,7 +41,7 @@ export function eventListenerSyscalls(
             );
             return val;
           } catch (e: any) {
-            await handleLuaError(e, commonSystem.system);
+            await handleLuaError(e, clientSystem.system);
           }
         },
       );

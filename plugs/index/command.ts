@@ -17,25 +17,19 @@ export async function reindexCommand() {
   await editor.flashNotification("Done with page index!");
 }
 
-export async function reindexSpace(noClear = false) {
+export async function reindexSpace() {
   if (await system.getMode() === "ro") {
     console.info("Not reindexing because we're in read-only mode");
     return;
   }
-  if (!noClear) {
-    console.log("Clearing page index...");
-    // Executed this way to not have to embed the search plug code here
-    await system.invokeFunction("index.clearIndex");
-  }
-  // Pre-index SETTINGS page to get useful settings
+  console.log("Clearing page index...");
+  await system.invokeFunction("index.clearIndex");
+
   const files = await space.listFiles();
-  if (files.find((file) => file.name === "SETTINGS.md")) {
-    console.log("Indexing SETTINGS page");
-    await indexPage("SETTINGS");
-  }
+
+  console.log("All files to reindex", files.map((f) => f.name));
 
   console.log("Queing", files.length, "pages to be indexed.");
-
   // Queue all file names to be indexed
   await mq.batchSend("indexQueue", files.map((file) => file.name));
 
@@ -84,6 +78,7 @@ export async function parseIndexTextRepublish({ name, text }: IndexEvent) {
   // First clear the old file index entries
   await clearFileIndex(name);
 
+  // console.log("Indexing page", name);
   await events.dispatchEvent("page:index", {
     name,
     tree: parsed,

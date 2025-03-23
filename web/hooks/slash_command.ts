@@ -13,7 +13,6 @@ import type {
 } from "../../plug-api/types.ts";
 import { safeRun, throttle } from "$lib/async.ts";
 import type { SlashCommandDef, SlashCommandHookT } from "$lib/manifest.ts";
-import type { CommonSystem } from "$common/common_system.ts";
 import type { Shortcut } from "@silverbulletmd/silverbullet/type/client";
 
 export type AppSlashCommand = {
@@ -25,10 +24,8 @@ const slashCommandRegexp = /([^\w:]|^)\/[\w#\-]*/;
 
 export class SlashCommandHook implements Hook<SlashCommandHookT> {
   slashCommands: AppSlashCommand[] = [];
-  private editor: Client;
 
-  constructor(editor: Client, private commonSystem: CommonSystem) {
-    this.editor = editor;
+  constructor(private client: Client) {
   }
 
   throttledBuildAllCommands = throttle(() => {
@@ -36,7 +33,8 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
   }, 200);
 
   buildAllCommands() {
-    const system = this.commonSystem.system;
+    const clientSystem = this.client.clientSystem;
+    const system = clientSystem.system;
 
     this.slashCommands = [];
     for (const plug of system.loadedPlugs.values()) {
@@ -60,7 +58,7 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
     // Iterate over script defined slash commands
     for (
       const command of Object.values(
-        this.commonSystem.scriptEnv.slashCommands,
+        clientSystem.scriptEnv.slashCommands,
       )
     ) {
       this.slashCommands.push(command);
@@ -68,7 +66,7 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
     // Iterate over all shortcuts
     // Add slash commands for shortcuts that configure them
     for (
-      const shortcut of this.editor.config.get<Shortcut[]>("shortcuts", [])
+      const shortcut of this.client.config.get<Shortcut[]>("shortcuts", [])
     ) {
       if (shortcut.slashCommand) {
         this.slashCommands.push({
@@ -76,7 +74,7 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
             name: shortcut.slashCommand,
             description: shortcut.command,
           },
-          run: () => this.editor.runCommandByName(shortcut.command),
+          run: () => this.client.runCommandByName(shortcut.command),
         });
       }
     }
@@ -103,7 +101,7 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
     }
 
     // Check if the slash command is available in the current context
-    const parentNodes = this.editor.extractParentNodes(ctx.state, currentNode);
+    const parentNodes = this.client.extractParentNodes(ctx.state, currentNode);
     for (const def of this.slashCommands) {
       if (
         def.slashCommand.onlyContexts && !def.slashCommand.onlyContexts.some(
@@ -125,7 +123,7 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
         boost: def.slashCommand.boost,
         apply: () => {
           // Delete slash command part
-          this.editor.editorView.dispatch({
+          this.client.editorView.dispatch({
             changes: {
               from: prefix!.from + prefixText.indexOf("/"),
               to: ctx.pos,
@@ -135,14 +133,14 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
           // Replace with whatever the completion is
           safeRun(async () => {
             await def.run();
-            this.editor.focus();
+            this.client.focus();
           });
         },
       });
     }
 
     const slashCompletions: CompletionResult | SlashCompletions | null =
-      await this.editor
+      await this.client
         .completeWithEvent(
           ctx,
           "slash:complete",
@@ -159,7 +157,7 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
           boost: slashCompletion.order && -slashCompletion.order,
           apply: () => {
             // Delete slash command part
-            this.editor.editorView.dispatch({
+            this.client.editorView.dispatch({
               changes: {
                 from: prefix!.from + prefixText.indexOf("/"),
                 to: ctx.pos,
@@ -168,11 +166,11 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
             });
             // Replace with whatever the completion is
             safeRun(async () => {
-              await this.editor.clientSystem.system.invokeFunction(
+              await this.client.clientSystem.system.invokeFunction(
                 slashCompletion.invoke,
                 [slashCompletion],
               );
-              this.editor.focus();
+              this.client.focus();
             });
           },
         });

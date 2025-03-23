@@ -153,7 +153,7 @@ self.addEventListener("fetch", (event: any) => {
         requestUrl.searchParams.get("raw") === "true"
       ) {
         // If this is a /*.* request, this can either be a plug worker load or an document load
-        return handleLocalFileRequest(pathname);
+        return handleLocalFileRequest(pathname, request);
       } else {
         // Must be a page URL, let's serve index.html which will handle it
         return (await caches.match(precacheFiles["/"])) || fetch(request);
@@ -169,6 +169,7 @@ self.addEventListener("fetch", (event: any) => {
 
 async function handleLocalFileRequest(
   pathname: string,
+  request: Request,
 ): Promise<Response> {
   const path = decodePageURI(pathname.slice(1));
   const data = await ds?.get<FileContent>([...filesContentPrefix, path]);
@@ -187,10 +188,16 @@ async function handleLocalFileRequest(
       },
     );
   } else {
-    console.error(
+    console.warn(
       "Did not find file in locally synced space",
       path,
     );
+    // If this is a _plug request and we don't have it, we may not have performed an initial sync yet
+    if (path.startsWith("_plug/")) {
+      console.info("Proxying _plug fetch to server", path);
+      return fetch(request);
+    }
+
     return new Response("Not found", {
       status: 404,
       headers: {

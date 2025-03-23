@@ -17,6 +17,7 @@ import {
   LuaEnv,
   LuaStackFrame,
   luaValueToJS,
+  singleResult,
 } from "$common/space_lua/runtime.ts";
 import { LuaRuntimeError } from "$common/space_lua/runtime.ts";
 import { encodeRef } from "@silverbulletmd/silverbullet/lib/page_ref";
@@ -105,10 +106,12 @@ export function luaDirectivePlugin(client: Client) {
                   );
                   threadLocalizedEnv.setLocal("_CTX", tl);
                   const result = luaValueToJS(
-                    await evalExpression(
-                      expr,
-                      threadLocalizedEnv,
-                      sf,
+                    singleResult(
+                      await evalExpression(
+                        expr,
+                        threadLocalizedEnv,
+                        sf,
+                      ),
                     ),
                     sf,
                   );

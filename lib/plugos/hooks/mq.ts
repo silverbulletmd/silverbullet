@@ -1,14 +1,14 @@
 import type { Hook, Manifest } from "../types.ts";
 import type { System } from "../system.ts";
 import type { MQMessage } from "../../../plug-api/types.ts";
-import type { MessageQueue } from "../../data/mq.ts";
 import { throttle } from "../../async.ts";
 import type { MQHookT } from "$lib/manifest.ts";
+import type { DataStoreMQ } from "$lib/data/mq.datastore.ts";
 
 export class MQHook implements Hook<MQHookT> {
   subscriptions: (() => void)[] = [];
 
-  constructor(private system: System<MQHookT>, readonly mq: MessageQueue) {
+  constructor(private system: System<MQHookT>, readonly mq: DataStoreMQ) {
   }
 
   apply(system: System<MQHookT>): void {
@@ -26,7 +26,6 @@ export class MQHook implements Hook<MQHookT> {
   }
 
   stop() {
-    // console.log("Unsubscribing from all queues");
     this.subscriptions.forEach((sub) => sub());
     this.subscriptions = [];
   }
@@ -52,7 +51,6 @@ export class MQHook implements Hook<MQHookT> {
         const subscriptions = functionDef.mqSubscriptions;
         for (const subscriptionDef of subscriptions) {
           const queue = subscriptionDef.queue;
-          // console.log("Subscribing to queue", queue, subscriptionDef);
           this.subscriptions.push(
             this.mq.subscribe(
               queue,

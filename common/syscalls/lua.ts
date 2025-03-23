@@ -1,7 +1,6 @@
 import type { SysCallMapping } from "$lib/plugos/system.ts";
 import { evalExpression } from "$common/space_lua/eval.ts";
 import { parse, parseExpressionString } from "../space_lua/parse.ts";
-import type { CommonSystem } from "$common/common_system.ts";
 import {
   LuaStackFrame,
   luaToString,
@@ -10,8 +9,9 @@ import {
 import { buildThreadLocalEnv } from "$common/space_lua_api.ts";
 import { isSendable } from "$lib/plugos/util.ts";
 import type { LuaBlock, LuaExpression } from "$common/space_lua/ast.ts";
+import type { ClientSystem } from "../../web/client_system.ts";
 
-export function luaSyscalls(commonSystem: CommonSystem): SysCallMapping {
+export function luaSyscalls(clientSystem: ClientSystem): SysCallMapping {
   return {
     "lua.parse": (_ctx, code: string): LuaBlock => {
       return parse(code);
@@ -29,13 +29,13 @@ export function luaSyscalls(commonSystem: CommonSystem): SysCallMapping {
       try {
         const ast = parseExpressionString(expression);
         const env = await buildThreadLocalEnv(
-          commonSystem.system,
-          commonSystem.spaceLuaEnv.env,
+          clientSystem.system,
+          clientSystem.spaceLuaEnv.env,
         );
         const sf = new LuaStackFrame(env, null);
         const luaResult = await evalExpression(
           ast,
-          commonSystem.spaceLuaEnv.env,
+          clientSystem.spaceLuaEnv.env,
           sf,
         );
         const jsResult = luaValueToJS(luaResult, sf);

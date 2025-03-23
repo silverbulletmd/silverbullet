@@ -25,6 +25,14 @@ export function batchSend(queue: string, bodies: any[]): Promise<void> {
 }
 
 /**
+ * Flushes all messages from a queue.
+ * @param queue the name of the queue to subscribe to
+ */
+export function flushQueue(queue: string): Promise<void> {
+  return syscall("mq.flushQueue", queue);
+}
+
+/**
  * Acknowledges a message from a queue, in case it needs to be explicitly acknowledged.
  * @param queue the name of the queue the message came from
  * @param id the id of the message to acknowledge

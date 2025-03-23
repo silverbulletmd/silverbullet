@@ -16,13 +16,11 @@ export const fuzzySearchAndSort = (
 
   const enrichedArr: FuseOption[] = arr.map((item) => {
     return {
-      name: item.name,
+      ...item,
       // Only relevant for pages and or documents and not commands
       baseName: item.name.split("/").pop()!,
       displayName: item?.meta?.displayName,
       aliases: item?.meta?.aliases?.join(" "),
-      description: item.description,
-      meta: item.meta,
     };
   });
 

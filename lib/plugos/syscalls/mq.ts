@@ -1,8 +1,8 @@
+import type { DataStoreMQ } from "$lib/data/mq.datastore.ts";
 import type { SysCallMapping } from "../system.ts";
-import type { MessageQueue } from "../../data/mq.ts";
 
 export function mqSyscalls(
-  mq: MessageQueue,
+  mq: DataStoreMQ,
 ): SysCallMapping {
   return {
     "mq.send": (_ctx, queue: string, body: any) => {
@@ -16,6 +16,9 @@ export function mqSyscalls(
     },
     "mq.batchAck": (_ctx, queue: string, ids: string[]) => {
       return mq.batchAck(queue, ids);
+    },
+    "mq.flushQueue": (_ctx, queue: string) => {
+      return mq.flushQueue(queue);
     },
     "mq.getQueueStats": (_ctx, queue: string) => {
       return mq.getQueueStats(queue);

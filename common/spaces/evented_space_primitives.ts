@@ -21,11 +21,12 @@ export class EventedSpacePrimitives implements SpacePrimitives {
   initialFileListLoad: boolean;
 
   public enabled = true;
+  private spaceSnapshot: Record<string, number> = {};
 
   constructor(
     private wrapped: SpacePrimitives,
     private eventHook: EventHook,
-    private spaceSnapshot: Record<string, number> = {},
+    private ignorePathPrefixes: string[] = [],
   ) {
     // Translate file change events for documents into document:index events
     this.eventHook.addLocalListener(
@@ -79,10 +80,13 @@ export class EventedSpacePrimitives implements SpacePrimitives {
             // New file scenario
             !oldHash && !this.initialFileListLoad
           ) || (
-            // Changed file scenario
-            oldHash &&
-            oldHash !== newHash
-          )
+              // Changed file scenario
+              oldHash &&
+              oldHash !== newHash
+            ) &&
+            !this.ignorePathPrefixes.some((prefix) =>
+              meta.name.startsWith(prefix)
+            )
         ) {
           console.log("Detected file change", meta.name, oldHash, newHash);
           await this.dispatchEvent(
@@ -98,6 +102,13 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       }
 
       for (const deletedFile of deletedFiles) {
+        if (
+          this.ignorePathPrefixes.some((prefix) =>
+            deletedFile.startsWith(prefix)
+          )
+        ) {
+          continue;
+        }
         delete this.spaceSnapshot[deletedFile];
         await this.dispatchEvent("file:deleted", deletedFile);
 

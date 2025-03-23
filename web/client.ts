@@ -60,7 +60,6 @@ import { IndexedDBKvPrimitives } from "$lib/data/indexeddb_kv_primitives.ts";
 import { DataStoreMQ } from "$lib/data/mq.datastore.ts";
 import { DataStoreSpacePrimitives } from "$common/spaces/datastore_space_primitives.ts";
 
-import { ensureSpaceIndex } from "$common/space_index.ts";
 import { ReadOnlySpacePrimitives } from "$common/spaces/ro_space_primitives.ts";
 import type { KvPrimitives } from "$lib/data/kv_primitives.ts";
 import { LimitedMap } from "$lib/limited_map.ts";
@@ -185,9 +184,8 @@ export class Client {
       this.eventHook,
       (path) => { // isSyncCandidate
         // Exclude all plug space primitives paths
-        return !this.plugSpaceRemotePrimitives.isLikelyHandled(path) ||
-          // Also exclude Library/Std
-          path.startsWith("Library/Std");
+        return !this.plugSpaceRemotePrimitives.isLikelyHandled(path) &&
+          !path.startsWith("Library/Std/");
       },
     );
 
@@ -262,11 +260,15 @@ export class Client {
     this.updateDocumentListCache().catch(console.error);
   }
 
+  public hasInitialSyncCompleted(): Promise<boolean> {
+    return this.syncService.hasInitialSyncCompleted();
+  }
+
   private async initSync() {
     this.syncService.start();
 
     // We're still booting, if a initial sync has already been completed we know this is the initial sync
-    let initialSync = !await this.syncService.hasInitialSyncCompleted();
+    let initialSync = !await this.hasInitialSyncCompleted();
 
     this.eventHook.addLocalListener("sync:success", async (operations) => {
       if (operations > 0) {
@@ -282,18 +284,14 @@ export class Client {
         // A full sync just completed
         if (!initialSync) {
           // If this was NOT the initial sync let's check if we need to perform a space reindex
-          ensureSpaceIndex(this.stateDataStore, this.clientSystem.system).catch(
+          this.clientSystem.ensureSpaceIndex().catch(
             console.error,
           );
         } else { // initialSync
-          // Let's load space scripts again, which probably weren't loaded before
-          await this.clientSystem.loadSpaceScripts();
-          await this.loadCustomStyles();
-          this.rebuildEditorState();
           console.log(
-            "Initial sync completed, now need to do a full space index to ensure all pages are indexed using any custom space script indexers",
+            "Initial sync completed, now need to do a full space index to ensure all pages are indexed using any custom indexers",
           );
-          ensureSpaceIndex(this.stateDataStore, this.clientSystem.system).catch(
+          this.clientSystem.ensureSpaceIndex().catch(
             console.error,
           );
           initialSync = false;
@@ -503,6 +501,8 @@ export class Client {
         this.plugSpaceRemotePrimitives,
       ),
       this.eventHook,
+      // Don't trigger events for these paths, they're handled in a custom way
+      ["Library/Std/"],
     );
 
     this.spaceKV = spaceKvPrimitives;
@@ -540,7 +540,9 @@ export class Client {
         if (
           this.space.watchInterval && this.currentPath(true) === path &&
           // Avoid reloading if the page was just saved (5s window)
-          (!lastSaveTimestamp || (lastSaveTimestamp < Date.now() - 5000))
+          (!lastSaveTimestamp || (lastSaveTimestamp < Date.now() - 5000)) &&
+          // Avoid reloading if the previous hash was undefined (first load)
+          (oldHash !== undefined)
         ) {
           console.log(
             "Page changed elsewhere, reloading. Old hash",
@@ -756,6 +758,7 @@ export class Client {
     const allAspiringPages =
       (await this.clientSystem.queryLuaObjects<string>("aspiring-page", {
         select: parseExpressionString("name"),
+        distinct: true,
       })).map((name): PageMeta => ({
         ref: name,
         tag: "page",
@@ -774,6 +777,10 @@ export class Client {
 
   async updateDocumentListCache() {
     console.log("Updating document list cache");
+    if (!this.clientSystem.system.loadedPlugs.has("index")) {
+      console.warn("Index plug not loaded, won't update document list cache");
+      return;
+    }
 
     const allDocuments = await this.clientSystem.queryLuaObjects<DocumentMeta>(
       "document",
@@ -1266,31 +1273,33 @@ export class Client {
     });
 
     // Fetch (possibly) enriched meta data asynchronously
-    this.clientSystem.getObjectByRef<
-      PageMeta
-    >(
-      this.currentPage,
-      "page",
-      this.currentPage,
-    ).then((enrichedMeta) => {
-      if (!enrichedMeta) {
-        // Nothing in the store, revert to default
-        enrichedMeta = doc.meta;
-      }
-
-      const bodyEl = this.parent.parentElement;
-      if (bodyEl) {
-        bodyEl.removeAttribute("class");
-        if (enrichedMeta.pageDecoration?.cssClasses) {
-          bodyEl.className = enrichedMeta.pageDecoration.cssClasses.join(" ")
-            .replaceAll(/[^a-zA-Z0-9-_ ]/g, "");
+    if (await this.hasInitialSyncCompleted()) {
+      this.clientSystem.getObjectByRef<
+        PageMeta
+      >(
+        this.currentPage,
+        "page",
+        this.currentPage,
+      ).then((enrichedMeta) => {
+        if (!enrichedMeta) {
+          // Nothing in the store, revert to default
+          enrichedMeta = doc.meta;
         }
-      }
-      this.ui.viewDispatch({
-        type: "update-current-page-meta",
-        meta: enrichedMeta,
-      });
-    }).catch(console.error);
+
+        const bodyEl = this.parent.parentElement;
+        if (bodyEl) {
+          bodyEl.removeAttribute("class");
+          if (enrichedMeta.pageDecoration?.cssClasses) {
+            bodyEl.className = enrichedMeta.pageDecoration.cssClasses.join(" ")
+              .replaceAll(/[^a-zA-Z0-9-_ ]/g, "");
+          }
+        }
+        this.ui.viewDispatch({
+          type: "update-current-page-meta",
+          meta: enrichedMeta,
+        });
+      }).catch(console.error);
+    }
 
     // When loading a different page OR if the page is read-only (in which case we don't want to apply local patches, because there's no point)
     if (loadingDifferentPage || doc.meta.perm === "ro") {
@@ -1413,6 +1422,13 @@ export class Client {
   }
 
   async loadCustomStyles() {
+    if (!await this.hasInitialSyncCompleted()) {
+      console.info(
+        "Not loading custom styles yet, since initial synca has not completed yet",
+      );
+      return;
+    }
+
     const spaceStyles = await this.clientSystem.queryLuaObjects<StyleObject>(
       "space-style",
       {},

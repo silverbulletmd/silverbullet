@@ -5,7 +5,6 @@ import type {
   MQStats,
   MQSubscribeOptions,
 } from "../../plug-api/types.ts";
-import type { MessageQueue } from "./mq.ts";
 import type { DataStore } from "./datastore.ts";
 import { parseExpressionString } from "$common/space_lua/parse.ts";
 import { LuaEnv } from "$common/space_lua/runtime.ts";
@@ -18,7 +17,7 @@ const queuedPrefix = ["mq", "queued"];
 const processingPrefix = ["mq", "processing"];
 const dlqPrefix = ["mq", "dlq"];
 
-export class DataStoreMQ implements MessageQueue {
+export class DataStoreMQ {
   // queue -> set of run() functions
   localSubscriptions = new Map<string, Set<() => void>>();
 
@@ -105,6 +104,10 @@ export class DataStoreMQ implements MessageQueue {
     const batchSize = options.batchSize || 1;
     const run = async () => {
       try {
+        // We're running, so let's make sure we're not running multiple times
+        if (timeout) {
+          clearTimeout(timeout);
+        }
         if (!running) {
           return;
         }
@@ -115,9 +118,6 @@ export class DataStoreMQ implements MessageQueue {
         // If we got exactly the batch size, there might be more messages
         if (messages.length === batchSize) {
           await run();
-        }
-        if (timeout) {
-          clearTimeout(timeout);
         }
         timeout = setTimeout(run, options.pollInterval || 5000);
       } catch (e: any) {
@@ -238,6 +238,39 @@ export class DataStoreMQ implements MessageQueue {
     const ids: KvKey[] = [];
     for (const item of await this.ds.luaQuery<MQMessage>(dlqPrefix, {})) {
       ids.push([...dlqPrefix, item.queue, item.id]);
+    }
+    await this.ds.batchDelete(ids);
+  }
+
+  /**
+   * Flushes a queue, including all queued, processing and DLQ messages
+   * @param queue
+   */
+  async flushQueue(queue: string): Promise<void> {
+    const ids: KvKey[] = [];
+    for (
+      const item of await this.ds.luaQuery<MQMessage>(
+        [...queuedPrefix, queue],
+        {},
+      )
+    ) {
+      ids.push([...queuedPrefix, item.id]);
+    }
+    for (
+      const item of await this.ds.luaQuery<ProcessingMessage>([
+        ...processingPrefix,
+        queue,
+      ], {})
+    ) {
+      ids.push([...processingPrefix, item.id]);
+    }
+    for (
+      const item of await this.ds.luaQuery<ProcessingMessage>([
+        ...dlqPrefix,
+        queue,
+      ], {})
+    ) {
+      ids.push([...dlqPrefix, item.id]);
     }
     await this.ds.batchDelete(ids);
   }

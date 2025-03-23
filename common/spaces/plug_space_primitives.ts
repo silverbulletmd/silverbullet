@@ -52,14 +52,12 @@ export class PlugSpacePrimitives implements SpacePrimitives {
   async fetchFileList(): Promise<FileMeta[]> {
     const allFiles: FileMeta[] = [];
     const alreadySeenFiles = new Set<string>();
-    for (const { plug, name, operation, env } of this.hook.spaceFunctions) {
-      if (
-        operation === "listFiles" &&
-        (!this.env || !env || (env && env === this.env))
-      ) {
+    for (const { plug, name, operation } of this.hook.spaceFunctions) {
+      if (operation === "listFiles") {
         try {
           for (const pm of await plug.invoke(name, [])) {
             allFiles.push(pm);
+            // console.log("Adding file from plug space", pm.name);
             alreadySeenFiles.add(pm.name);
           }
         } catch (e: any) {

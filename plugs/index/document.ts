@@ -7,7 +7,7 @@ export async function indexDocument(name: string) {
   if (await system.getMode() === "ro") {
     return;
   }
-  console.log("Indexing document", name);
+  // console.log("Indexing document", name);
   const fileMeta = await space.getDocumentMeta(name);
   await indexObjects<DocumentMeta>(fileMeta.name, [fileMeta]);
 }

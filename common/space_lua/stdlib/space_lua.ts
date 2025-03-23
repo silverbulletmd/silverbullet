@@ -9,6 +9,7 @@ import {
   LuaTable,
   luaToString,
   luaValueToJS,
+  singleResult,
 } from "$common/space_lua/runtime.ts";
 
 /**
@@ -83,11 +84,11 @@ export async function interpolateLuaString(
     try {
       const parsedExpr = parseExpressionString(expr);
       const env = createAugmentedEnv(sf, envAugmentation);
-      const luaResult = luaValueToJS(
-        await evalExpression(parsedExpr, env, sf),
+      const luaResult = await luaValueToJS(
+        singleResult(await evalExpression(parsedExpr, env, sf)),
         sf,
       );
-      result += luaToString(luaResult);
+      result += await luaToString(luaResult);
     } catch (e: any) {
       throw new LuaRuntimeError(
         `Error evaluating "${expr}": ${e.message}`,

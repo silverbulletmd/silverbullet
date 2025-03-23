@@ -44,9 +44,9 @@ function widgets.toc(options)
   local lines = string.split(text, "\n")
   local tocTexts = {}
   for _, line in ipairs(lines) do
-    local headerStart, headerEnd = string.find(line, "^(%#)+")
+    local headerStart, headerEnd = string.find(line, "^(%#+%s+)")
     if headerStart then
-      local headerText = line:sub(headerEnd+2)
+      local headerText = line:sub(headerEnd + 1)
       table.insert(tocTexts, string.rep(" ", (headerEnd-1) * 2)
         .. "* [[" .. pageName .. "#" .. headerText .. "|" .. headerText .. "]]")
     end

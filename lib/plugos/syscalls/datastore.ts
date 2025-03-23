@@ -2,7 +2,6 @@ import {
   type LuaCollectionQuery,
   queryLua,
 } from "$common/space_lua/query_collection.ts";
-import type { CommonSystem } from "$common/common_system.ts";
 import type { KV, KvKey } from "../../../plug-api/types.ts";
 import type { DataStore } from "../../data/datastore.ts";
 import type { SysCallMapping } from "../system.ts";
@@ -13,6 +12,7 @@ import {
   luaValueToJS,
 } from "$common/space_lua/runtime.ts";
 import type { KvQueryOptions } from "$lib/data/kv_primitives.ts";
+import type { ClientSystem } from "../../../web/client_system.ts";
 
 /**
  * Exposes the datastore API to plugs, but scoping everything to a prefix based on the plug's name
@@ -21,7 +21,7 @@ import type { KvQueryOptions } from "$lib/data/kv_primitives.ts";
  */
 export function dataStoreReadSyscalls(
   ds: DataStore,
-  commonSystem: CommonSystem,
+  clientSystem: ClientSystem,
 ): SysCallMapping {
   return {
     "datastore.batchGet": (
@@ -50,11 +50,11 @@ export function dataStoreReadSyscalls(
       scopeVariables?: Record<string, any>,
     ): Promise<any[]> => {
       const sf = LuaStackFrame.createWithGlobalEnv(
-        commonSystem.spaceLuaEnv.env,
+        clientSystem.spaceLuaEnv.env,
       );
-      let env = commonSystem.spaceLuaEnv.env;
+      let env = clientSystem.spaceLuaEnv.env;
       if (scopeVariables) {
-        env = new LuaEnv(commonSystem.spaceLuaEnv.env);
+        env = new LuaEnv(clientSystem.spaceLuaEnv.env);
         for (const [key, value] of Object.entries(scopeVariables)) {
           env.setLocal(key, jsToLuaValue(value));
         }

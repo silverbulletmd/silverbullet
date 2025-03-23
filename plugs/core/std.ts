@@ -39,15 +39,23 @@ const stdLibCacheKey = ["stdLibCache"];
 
 type StdLibCache = Record<string, number>; // page name -> last modified time
 
-export async function init() {
+/**
+ * Ensure indexing all Library/Std files
+ * @param initialSync set to true when this is triggered after the initial sync
+ * @returns
+ */
+export async function init(initialSync = false) {
   // Check if in read-only mode
   if (await system.getMode() === "ro") {
     return;
   }
+
+  console.log("Doing stdlib init");
+
   let stdLibCache: StdLibCache | undefined = await datastore.get(
     stdLibCacheKey,
   );
-  if (!stdLibCache) {
+  if (!stdLibCache || initialSync) {
     stdLibCache = {};
   }
   // Iterate over the current file listing, check if any new files have been added, removed or modified
@@ -79,7 +87,6 @@ export async function init() {
   // Save updated cache
   await datastore.set(stdLibCacheKey, stdLibCache);
 
-  // If anything changed and we're in sync mode, we can auto trigger reloading of the system after the index queue is processed
   if (anythingChanged) {
     console.log("Waiting for index queue to be processed");
     let queueProcessed = false;
@@ -90,8 +97,11 @@ export async function init() {
       }
       await sleep(100);
     }
-    console.log("Index queue processed, reloading system");
-    await editor.reloadConfigAndCommands();
-    await codeWidget.refreshAll();
+    if (!initialSync) {
+      // If this is not a
+      console.log("Index queue processed, reloading system");
+      await editor.reloadConfigAndCommands();
+      await codeWidget.refreshAll();
+    }
   }
 }

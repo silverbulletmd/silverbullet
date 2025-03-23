@@ -8,14 +8,14 @@ import {
   LuaStackFrame,
   luaValueToJS,
 } from "$common/space_lua/runtime.ts";
-import type { CommonSystem } from "$common/common_system.ts";
+import type { ClientSystem } from "../../web/client_system.ts";
 
 export type CallbackCommandDef = CommandDef & {
   run: ILuaFunction;
 };
 
 export function commandSyscalls(
-  commonSystem: CommonSystem,
+  clientSystem: ClientSystem,
 ): SysCallMapping {
   return {
     /**
@@ -28,12 +28,12 @@ export function commandSyscalls(
       def: CallbackCommandDef,
     ) => {
       console.log("Registering Lua command: ", def.name);
-      commonSystem.scriptEnv.registerCommand(
+      clientSystem.scriptEnv.registerCommand(
         def,
         async (...args: any[]) => {
           const tl = await buildThreadLocalEnv(
-            commonSystem.system,
-            commonSystem.spaceLuaEnv.env,
+            clientSystem.system,
+            clientSystem.spaceLuaEnv.env,
           );
           const sf = new LuaStackFrame(tl, null);
           try {
@@ -42,7 +42,7 @@ export function commandSyscalls(
               sf,
             );
           } catch (e: any) {
-            await handleLuaError(e, commonSystem.system);
+            await handleLuaError(e, clientSystem.system);
           }
         },
       );
@@ -51,12 +51,12 @@ export function commandSyscalls(
       _ctx,
       def: CallbackCommandDef,
     ) => {
-      commonSystem.scriptEnv.registerSlashCommand(
+      clientSystem.scriptEnv.registerSlashCommand(
         def,
         async (...args: any[]) => {
           const tl = await buildThreadLocalEnv(
-            commonSystem.system,
-            commonSystem.spaceLuaEnv.env,
+            clientSystem.system,
+            clientSystem.spaceLuaEnv.env,
           );
           const sf = new LuaStackFrame(tl, null);
           try {
@@ -65,7 +65,7 @@ export function commandSyscalls(
               sf,
             );
           } catch (e: any) {
-            await handleLuaError(e, commonSystem.system);
+            await handleLuaError(e, clientSystem.system);
           }
         },
       );

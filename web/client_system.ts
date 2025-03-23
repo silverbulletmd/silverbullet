@@ -34,7 +34,6 @@ import { codeWidgetSyscalls } from "./syscalls/code_widget.ts";
 import { clientCodeWidgetSyscalls } from "./syscalls/client_code_widget.ts";
 import { KVPrimitivesManifestCache } from "$lib/plugos/manifest_cache.ts";
 import { createKeyBindings } from "./editor_state.ts";
-import { CommonSystem } from "$common/common_system.ts";
 import type { DataStoreMQ } from "$lib/data/mq.datastore.ts";
 import { plugPrefix } from "$common/spaces/constants.ts";
 import { jsonschemaSyscalls } from "$common/syscalls/jsonschema.ts";
@@ -44,33 +43,54 @@ import { commandSyscalls } from "$common/syscalls/command.ts";
 import { eventListenerSyscalls } from "$common/syscalls/event.ts";
 import { DocumentEditorHook } from "./hooks/document_editor.ts";
 import type { LuaCollectionQuery } from "$common/space_lua/query_collection.ts";
+import type { AppCommand } from "$lib/command.ts";
+import { ScriptEnvironment } from "$common/space_script.ts";
+import { SpaceLuaEnvironment } from "$common/space_lua.ts";
+import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
 
 const plugNameExtractRegex = /\/(.+)\.plug\.js$/;
+const indexVersionKey = ["$indexVersion"];
+// Bump this one every time a full reindex is needed
+const desiredIndexVersion = 7;
+const mqTimeout = 10000; // 10s
+const mqTimeoutRetry = 3;
 
 /**
- * Wrapper around a System, used by the client
+ * Wrapper around a System
  */
-export class ClientSystem extends CommonSystem {
+export class ClientSystem {
+  system!: System<SilverBulletHooks>;
+
+  // Hooks
+  commandHook!: CommandHook;
+  slashCommandHook!: SlashCommandHook;
+  namespaceHook!: PlugNamespaceHook;
+  codeWidgetHook!: CodeWidgetHook;
+  documentEditorHook!: DocumentEditorHook;
+
+  readonly allKnownFiles = new Set<string>();
+  readonly spaceScriptCommands = new Map<string, AppCommand>();
+  scriptEnv: ScriptEnvironment = new ScriptEnvironment();
+  spaceLuaEnv = new SpaceLuaEnvironment();
+  scriptsLoaded: boolean = false;
+
   constructor(
     private client: Client,
-    mq: DataStoreMQ,
-    ds: DataStore,
-    eventHook: EventHook,
-    readOnlyMode: boolean,
+    protected mq: DataStoreMQ,
+    public ds: DataStore,
+    public eventHook: EventHook,
+    public readOnlyMode: boolean,
   ) {
-    super(
-      mq,
-      ds,
-      eventHook,
-      readOnlyMode,
-      client.clientConfig.enableSpaceScript,
-    );
     this.system = new System(undefined, {
       manifestCache: new KVPrimitivesManifestCache<SilverBulletHooks>(
         ds.kv,
         "manifest",
       ),
     });
+
+    setInterval(() => {
+      mq.requeueTimeouts(mqTimeout, mqTimeoutRetry, true).catch(console.error);
+    }, 20000); // Look to requeue every 20s
 
     this.system.addHook(this.eventHook);
 
@@ -85,9 +105,6 @@ export class ClientSystem extends CommonSystem {
     // Document editor hook
     this.documentEditorHook = new DocumentEditorHook();
     this.system.addHook(this.documentEditorHook);
-
-    // MQ hook
-    this.system.addHook(new MQHook(this.system, this.mq));
 
     // Command hook
     this.commandHook = new CommandHook(
@@ -108,11 +125,11 @@ export class ClientSystem extends CommonSystem {
         });
       },
     });
-    this.system.addHook(this.commandHook);
 
-    // Slash command hook
-    this.slashCommandHook = new SlashCommandHook(this.client, this);
-    this.system.addHook(this.slashCommandHook);
+    this.slashCommandHook = new SlashCommandHook(this.client);
+
+    // MQ hook
+    this.system.addHook(new MQHook(this.system, this.mq));
 
     // Syscall hook
     this.system.addHook(new SyscallHook());
@@ -135,8 +152,8 @@ export class ClientSystem extends CommonSystem {
   }
 
   init() {
-    // Slash command hook
-    this.slashCommandHook = new SlashCommandHook(this.client, this);
+    // Init is called after the editor is initialized, so we can safely add the command hook
+    this.system.addHook(this.commandHook);
     this.system.addHook(this.slashCommandHook);
 
     // Syscalls available to all plugs
@@ -184,11 +201,75 @@ export class ClientSystem extends CommonSystem {
     }
   }
 
+  async loadSpaceScripts() {
+    if (!await this.client.hasInitialSyncCompleted()) {
+      console.info(
+        "Not loading space scripts, since initial synca has not completed yet",
+      );
+      return;
+    }
+    this.scriptEnv = new ScriptEnvironment();
+    try {
+      await this.spaceLuaEnv.reload(this.system);
+    } catch (e: any) {
+      console.error("Error loading space-script:", e.message);
+    }
+
+    // Reset the space script commands
+    this.spaceScriptCommands.clear();
+    for (const [name, command] of Object.entries(this.scriptEnv.commands)) {
+      this.spaceScriptCommands.set(name, command);
+    }
+
+    // Inject the registered events in the event hook
+    this.eventHook.scriptEnvironment = this.scriptEnv;
+
+    this.commandHook.throttledBuildAllCommands();
+    this.slashCommandHook.throttledBuildAllCommands();
+
+    this.scriptsLoaded = true;
+  }
+
+  invokeSpaceFunction(name: string, args: any[]) {
+    const fn = this.scriptEnv.functions[name];
+    if (!fn) {
+      throw new Error(`Function ${name} not found`);
+    }
+    return fn(...args);
+  }
+
+  async applyAttributeExtractors(
+    tags: string[],
+    text: string,
+    tree: ParseTree,
+  ): Promise<Record<string, any>> {
+    let resultingAttributes: Record<string, any> = {};
+    for (const tag of tags) {
+      const extractors = this.scriptEnv.attributeExtractors[tag];
+      if (!extractors) {
+        continue;
+      }
+      for (const fn of extractors) {
+        const extractorResult = await fn(text, tree);
+        if (extractorResult) {
+          // Merge the attributes in
+          resultingAttributes = {
+            ...resultingAttributes,
+            ...extractorResult,
+          };
+        }
+      }
+    }
+
+    return resultingAttributes;
+  }
+
   async reloadPlugsFromSpace(space: Space) {
     console.log("Loading plugs");
     await this.system.unloadAll();
     console.log("(Re)loading plugs");
-    await Promise.all((await space.listPlugs()).map(async (plugMeta) => {
+    const allPlugs = await space.listPlugs();
+    await Promise.all(allPlugs.map(async (plugMeta) => {
       try {
         const plugName = plugNameExtractRegex.exec(plugMeta.name)![1];
         await this.system.load(
@@ -220,5 +301,38 @@ export class ClientSystem extends CommonSystem {
       "system.invokeFunction",
       ["index.getObjectByRef", page, tag, ref],
     );
+  }
+
+  private indexOngoing = false;
+
+  async ensureSpaceIndex() {
+    const currentIndexVersion = await this.ds.get(indexVersionKey);
+
+    console.info("Current space index version", currentIndexVersion);
+
+    if (currentIndexVersion !== desiredIndexVersion && !this.indexOngoing) {
+      console.info(
+        "Performing a full space reindex, this could take a while...",
+      );
+      // First let's fetch all pages to make sure we have a cache of known pages
+      // await this.client.space.fetchPageList();
+      this.indexOngoing = true;
+      await this.system.invokeFunction("index.reindexSpace", []);
+      await this.system.invokeFunction("core.init", [true]); // initialSync = true
+      console.info("Full space index complete.");
+      await this.markFullSpaceIndexComplete(this.ds);
+      this.indexOngoing = false;
+      // Let's load space scripts again, which probably weren't loaded before
+      console.log(
+        "Now loading space scripts, custom styles and rebuilding editor state",
+      );
+      await this.loadSpaceScripts();
+      await this.client.loadCustomStyles();
+      this.client.rebuildEditorState();
+    }
+  }
+
+  async markFullSpaceIndexComplete(ds: DataStore) {
+    await ds.set(indexVersionKey, desiredIndexVersion);
   }
 }

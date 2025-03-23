@@ -41,6 +41,7 @@ export async function clearFileIndex(file: string): Promise<void> {
   if (file.endsWith(".md")) {
     file = file.replace(/\.md$/, "");
   }
+  // console.log("Clearing index for", file);
   const allKeys: KvKey[] = [];
   for (
     const { key } of await datastore.query({

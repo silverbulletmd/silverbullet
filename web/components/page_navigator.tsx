@@ -88,6 +88,7 @@ export function PageNavigator({
         currentPath && currentPath === pageMeta.name || pageMeta._isAspiring
       ) {
         // ... then we put it all the way to the end
+        console.log("Got an aspiring page", pageMeta.name);
         orderId = Infinity;
       }
       const cssClass = (pageMeta.pageDecoration?.cssClasses || []).join(" ")
