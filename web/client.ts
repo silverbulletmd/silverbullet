@@ -1152,8 +1152,8 @@ export class Client implements ConfigContainer {
   async loadDocumentEditor(path: string) {
     const previousPath = this.currentPath();
     const previousRef = this.ui.viewState.current;
-    const initalLoad = !previousRef;
-    const loadingDifferentPath = !initalLoad
+    const initialLoad = !previousRef;
+    const loadingDifferentPath = !initialLoad
       ? (previousPath !== path)
       // Always load as different page if page is loaded from scratch
       : true;
@@ -1191,7 +1191,7 @@ export class Client implements ConfigContainer {
       if (e.message.includes("Not found")) {
         console.log("This path doesn't exist, redirecting to the index page");
 
-        if (initalLoad) this.navigate({ kind: "page", page: "" });
+        if (initialLoad) this.navigate({ kind: "page", page: "" });
       } else {
         this.flashNotification(
           `Could not load document editor ${path}: ${e.message}`,
@@ -1217,7 +1217,7 @@ export class Client implements ConfigContainer {
         console.log(e.message);
 
         if (e.message.includes("Couldn't find")) {
-          this.openUrl(path + "?raw=true", initalLoad);
+          this.openUrl(path + "?raw=true", initialLoad);
 
           // This is a hacky way to clean up the history here
           globalThis.history.replaceState(
@@ -1227,7 +1227,7 @@ export class Client implements ConfigContainer {
           );
         }
 
-        if (!initalLoad) {
+        if (!initialLoad) {
           revertPath();
 
           // Unsure about this case. It is probably not handled correctly, but currently this case cannot fully happen
