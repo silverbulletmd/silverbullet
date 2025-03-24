@@ -47,25 +47,22 @@ export function debugSyscalls(client: Client): SysCallMapping {
       location.reload();
     },
     "debug.cleanup": async () => {
-      if (client.spaceKV) {
-        console.log("Wiping the entire space KV store");
-        // In sync mode, we can just delete the whole space
-        const allKeys: KvKey[] = [];
-        for await (const { key } of client.spaceKV.query({})) {
-          allKeys.push(key);
-        }
-        await client.spaceKV.batchDelete(allKeys);
+      console.log("Wiping the entire space KV store");
+      // In sync mode, we can just delete the whole space
+      let allKeys: KvKey[] = [];
+      for await (const { key } of client.spaceKV.query({})) {
+        allKeys.push(key);
       }
+      await client.spaceKV.batchDelete(allKeys);
       localStorage.clear();
       console.log("Wiping the entire state KV store");
-      const allKeys: KvKey[] = [];
+      allKeys = [];
       for await (
-        const { key } of await client.stateDataStore.luaQuery([], {})
+        const { key } of client.stateDataStore.kv.query({})
       ) {
         allKeys.push(key);
       }
       await client.stateDataStore.batchDelete(allKeys);
-      console.log("Done");
     },
   };
 }

@@ -335,6 +335,17 @@ export function confirm(
 }
 
 /**
+ * Prompt the user for confirmation
+ * @param message the message to show in the confirmation dialog
+ * @returns
+ */
+export function alert(
+  message: string,
+): Promise<boolean> {
+  return syscall("editor.alert", message);
+}
+
+/**
  * Get the value of a UI option
  * @param key the key of the UI option to get
  * @returns

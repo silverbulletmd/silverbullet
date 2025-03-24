@@ -348,6 +348,9 @@ export function editorSyscalls(client: Client): SysCallMapping {
     "editor.confirm": (_ctx, message: string): Promise<boolean> => {
       return client.confirm(message);
     },
+    "editor.alert": (_ctx, message: string) => {
+      alert(message);
+    },
     "editor.getUiOption": (_ctx, key: string): any => {
       return (client.ui.viewState.uiOptions as any)[key];
     },

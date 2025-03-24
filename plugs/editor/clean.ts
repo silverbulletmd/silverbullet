@@ -10,5 +10,5 @@ export async function cleanCommand() {
   }
   await editor.flashNotification("Now wiping all state and logging out...");
   await debug.cleanup();
-  await editor.openUrl("/.logout", true);
+  await editor.alert("Cleanup done. Please close this window.");
 }
