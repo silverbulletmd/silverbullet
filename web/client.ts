@@ -509,8 +509,6 @@ export class Client {
         this.plugSpaceRemotePrimitives,
       ),
       this.eventHook,
-      // Don't trigger events for these paths, they're handled in a custom way
-      // ["Library/Std/"],
     );
 
     this.spaceKV = spaceKvPrimitives;

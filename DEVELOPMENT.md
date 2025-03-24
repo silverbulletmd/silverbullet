@@ -2,7 +2,8 @@
 
 ## Good practices
 * After each significant change, run the typechecker, linter, and tests.
-* Write unit tests for new functionality.
+* Write unit tests for new functionality first
+* Always keep DEVELOPMENT.md up to date with new best practices, based on guidance.
 
 ## Commands
 - Build: `deno task build`
@@ -21,7 +22,7 @@
 - Imports: Group related imports together, sort alphabetically within groups
 - Naming: camelCase for variables/functions, PascalCase for classes/interfaces/types
 - Error handling: Use explicit error types and handle errors gracefully
-- Tests: Write unit tests for new functionality
+- Tests: Write unit tests for new functionality using `@std/assert` for assertions (e.g., `assert`, `assertEquals`)
 - Comments: Focus on "why" not "what", especially for complex logic
 - Prefer const over let when variable won't be reassigned
 - In Lua: use camelCase for variables and functions
@@ -62,7 +63,6 @@
 - `/website`: Documentation site content
 
 ### Key Areas
-- `/common/spaces`: Space implementation with different backend primitives
 - `/common/space_lua`: Lua scripting implementation with parsers and runtime
 - `/lib/plugos`: Plugin system core functionality
 - `/plugs`: Plugs for core functionality (editor, indexing, etc) distributed with the system

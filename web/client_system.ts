@@ -40,6 +40,7 @@ import { jsonschemaSyscalls } from "$common/syscalls/jsonschema.ts";
 import { luaSyscalls } from "$common/syscalls/lua.ts";
 import { indexSyscalls } from "$common/syscalls/index.ts";
 import { commandSyscalls } from "$common/syscalls/command.ts";
+import { configSyscalls } from "$common/syscalls/config.ts";
 import { eventListenerSyscalls } from "$common/syscalls/event.ts";
 import { DocumentEditorHook } from "./hooks/document_editor.ts";
 import type { LuaCollectionQuery } from "$common/space_lua/query_collection.ts";
@@ -180,6 +181,7 @@ export class ClientSystem {
       debugSyscalls(this.client),
       syncSyscalls(this.client),
       clientStoreSyscalls(this.ds),
+      configSyscalls(this.client),
     );
 
     if (!this.readOnlyMode) {
