@@ -1,5 +1,4 @@
 import { SpaceSync, type SyncStatusItem } from "$common/spaces/sync.ts";
-import { MemoryKvPrimitives } from "$lib/data/memory_kv_primitives.ts";
 import { determineStorageBackend } from "../server/storage_backend.ts";
 
 export async function syncCommand(
@@ -10,15 +9,12 @@ export async function syncCommand(
   primary: string,
   secondary: string,
 ) {
-  const memoryKv = new MemoryKvPrimitives();
   console.log("Going to synchronize", primary, "and", secondary);
 
-  const primarySpacePrimitives = await determineStorageBackend(
-    memoryKv,
+  const primarySpacePrimitives = determineStorageBackend(
     primary,
   );
-  const secondarySpacePrimitives = await determineStorageBackend(
-    memoryKv,
+  const secondarySpacePrimitives = determineStorageBackend(
     secondary,
   );
 

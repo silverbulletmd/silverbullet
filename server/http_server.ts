@@ -6,7 +6,6 @@ import type { FileMeta } from "@silverbulletmd/silverbullet/types";
 import type { ShellRequest } from "@silverbulletmd/silverbullet/type/rpc";
 import { SpaceServer } from "./space_server.ts";
 import type { KvPrimitives } from "$lib/data/kv_primitives.ts";
-import { PrefixedKvPrimitives } from "$lib/data/prefixed_kv_primitives.ts";
 import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
 import { parse } from "$common/markdown_parser/parse_tree.ts";
 import { renderMarkdownToHtml } from "../plugs/markdown/markdown_render.ts";
@@ -139,7 +138,7 @@ export class HttpServer {
     this.spaceServer = new SpaceServer(
       this.options,
       this.plugAssetBundle,
-      new PrefixedKvPrimitives(this.baseKvPrimitives, ["*"]), // * for backwards compatibility reasons
+      this.baseKvPrimitives,
     );
     await this.spaceServer.init();
 

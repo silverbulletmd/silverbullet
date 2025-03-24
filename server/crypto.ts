@@ -17,7 +17,7 @@ export class JWTIssuer {
       return this.generateNewKey();
     } else {
       this.key = await crypto.subtle.importKey(
-        "raw",
+        "jwk",
         secret,
         { name: "HMAC", hash: "SHA-512" },
         true,
@@ -54,7 +54,7 @@ export class JWTIssuer {
     );
     await this.kv.batchSet([{
       key: [jwtSecretKey],
-      value: await crypto.subtle.exportKey("raw", this.key),
+      value: await crypto.subtle.exportKey("jwk", this.key),
     }]);
   }
 

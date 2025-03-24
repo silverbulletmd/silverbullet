@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { IndexedDBKvPrimitives } from "../data/indexeddb_kv_primitives.ts";
-import { DenoKvPrimitives } from "../data/deno_kv_primitives.ts";
+import { MemoryKvPrimitives } from "../data/memory_kv_primitives.ts";
 import type { KvPrimitives } from "../data/kv_primitives.ts";
 import { assertEquals } from "@std/assert";
 import { PrefixedKvPrimitives } from "../data/prefixed_kv_primitives.ts";
@@ -28,12 +28,10 @@ async function test(db: KvPrimitives) {
   assertEquals(results, [{ name: "Peter" }]);
 }
 
-Deno.test("Test Deno KV DataStore", async () => {
-  const tmpFile = await Deno.makeTempFile();
-  const db = new DenoKvPrimitives(await Deno.openKv(tmpFile));
+Deno.test("Test Memory KV DataStore", async () => {
+  const db = new MemoryKvPrimitives(); // In-memory only, no persistence
   await test(db);
-  db.close();
-  await Deno.remove(tmpFile);
+  await db.close();
 });
 
 Deno.test("Test IndexDB DataStore", {

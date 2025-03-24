@@ -27,28 +27,6 @@ This is the default and simplest backend to use: a folder on disk. It is configu
 
 * `SB_FOLDER`: Sets the folder to expose. In the docker container, this defaults to `/space`.
 
-## AWS S3 bucket storage
-It is also possible to use an S3 bucket as storage. For this, you need to create a bucket, create an IAM user and configure access to it appropriately.
-
-Since S3 doesn’t support an efficient way to store custom metadata, this mode does require a [[#Database]] configuration (see below) to keep all file metadata.
-
-S3 is configured as follows:
-
-* `SB_FOLDER`: Set to `s3://prefix`. `prefix` can be empty, but if set, this will prefix all files with `prefix/` to support multiple spaces being connected to a single bucket.
-* `AWS_ACCESS_KEY_ID`: an AWS access key with read/write permissions to the S3 bucket
-* `AWS_SECRET_ACCESS_KEY`: an AWS secret access key with read/write permissions to the S3 bucket
-* `AWS_BUCKET`: the name of the S3 bucket to use (e.g `my-sb-bucket`)
-* `AWS_ENDPOINT`: e.g. `s3.eu-central-1.amazonaws.com`
-* `AWS_REGION`: e.g. `eu-central-1`
-
-## Database storage
-It is also possible to store space content in the [[#Database]]. While not necessarily recommended, it is a viable way to set up a simple deployment of SilverBullet on e.g. [[Install/Deno Deploy]]. Large files will automatically be chunked to avoid limits the used database may have on value size.
-
-This mode is configured as follows:
-
-* `SB_FOLDER`: set to `db://`
-
-The database configured via [[#Database]] will be used.
 
 # Database
 SilverBullet requires a database backend to (potentially) keep various types of data:
@@ -105,4 +83,3 @@ Configure aspects of web app appearance:
 
 * `SB_NAME`: Sets `name` and `short_name` members of web app manifest to whatever specified in `SB_NAME`
 * `SB_DESCRIPTION`: Sets `description` member of web app manifest to whatever specified in `SB_DESCRIPTION`
-

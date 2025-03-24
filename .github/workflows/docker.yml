@@ -34,7 +34,7 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v1
         with:
-          deno-version: v2.2.4
+          deno-version: v2.2.5
 
       - name: Run bundle build
         run: |

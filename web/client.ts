@@ -107,7 +107,7 @@ export class Client {
 
   ui!: MainUI;
   stateDataStore!: DataStore;
-  spaceKV?: KvPrimitives;
+  spaceKV!: KvPrimitives;
   mq!: DataStoreMQ;
   config = new Config();
 

@@ -56,7 +56,7 @@ export class SpaceServer {
 
     this.spacePrimitives = new FilteredSpacePrimitives(
       new AssetBundlePlugSpacePrimitives(
-        await determineStorageBackend(this.kvPrimitives, this.pagesPath),
+        determineStorageBackend(this.pagesPath),
         this.plugAssetBundle,
       ),
       (meta) => fileFilterFn(meta.name),
