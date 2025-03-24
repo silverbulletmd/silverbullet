@@ -184,8 +184,7 @@ export class Client {
       this.eventHook,
       (path) => { // isSyncCandidate
         // Exclude all plug space primitives paths
-        return !this.plugSpaceRemotePrimitives.isLikelyHandled(path) &&
-          !path.startsWith("Library/Std/");
+        return !this.plugSpaceRemotePrimitives.isLikelyHandled(path);
       },
     );
 
@@ -511,7 +510,7 @@ export class Client {
       ),
       this.eventHook,
       // Don't trigger events for these paths, they're handled in a custom way
-      ["Library/Std/"],
+      // ["Library/Std/"],
     );
 
     this.spaceKV = spaceKvPrimitives;

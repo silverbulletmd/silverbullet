@@ -318,7 +318,6 @@ export class ClientSystem {
       // await this.client.space.fetchPageList();
       this.indexOngoing = true;
       await this.system.invokeFunction("index.reindexSpace", []);
-      await this.system.invokeFunction("core.init", [true]); // initialSync = true
       console.info("Full space index complete.");
       await this.markFullSpaceIndexComplete(this.ds);
       this.indexOngoing = false;

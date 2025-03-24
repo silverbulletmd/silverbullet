@@ -15,7 +15,8 @@ if (import.meta.main) {
     `./plugs/${name}/${name}.plug.yaml`
   );
 
-  const targetDir = path.join("dist_plug_bundle", "_plug");
+  const plugBundlePath = "dist_plug_bundle";
+  const targetDir = path.join(plugBundlePath, "_plug");
   Deno.mkdirSync(targetDir, { recursive: true });
   Deno.mkdirSync("dist", { recursive: true });
 

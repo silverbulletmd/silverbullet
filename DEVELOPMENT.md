@@ -25,14 +25,9 @@
 - Comments: Focus on "why" not "what", especially for complex logic
 - Prefer const over let when variable won't be reassigned
 - In Lua: use camelCase for variables and functions
+- Tests end with .test.ts
 
 ## Architecture Overview
-
-### Server and Client Architecture
-- **ServerSystem**: Manages server-side operations, file system, and plugin management
-- **ClientSystem**: Handles client UI, editor interactions, and supports both online and offline-synced modes
-- **Space**: Core abstraction for document storage, reading/writing pages and managing metadata
-- **SpacePrimitives**: Storage backend interface supporting multiple implementations (disk, HTTP, S3)
 
 ### Plugin System (Plugs)
 - **PlugOS**: Extension framework with System, Plug, Sandbox, and Syscalls components
@@ -56,6 +51,7 @@
 ## Directory Structure
 
 ### Top-level Directories
+- `/Library`: Standard library shipped with SilverBullet
 - `/cmd`: Command-line interfaces and entry points
 - `/common`: Shared core functionality for both server and client
 - `/lib`: Utility libraries and internal modules
@@ -68,7 +64,6 @@
 ### Key Areas
 - `/common/spaces`: Space implementation with different backend primitives
 - `/common/space_lua`: Lua scripting implementation with parsers and runtime
-- `/common/template`: Template language implementation
 - `/lib/plugos`: Plugin system core functionality
 - `/plugs`: Plugs for core functionality (editor, indexing, etc) distributed with the system
 - `/web`: Client implementation

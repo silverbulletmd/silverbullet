@@ -16,7 +16,12 @@ export async function bundleAll(
   await buildCopyBundleAssets();
   let timer;
   if (watch) {
-    const watcher = Deno.watchFs(["web", "common", "dist_plug_bundle"]);
+    const watcher = Deno.watchFs([
+      "web",
+      "common",
+      "dist_plug_bundle/_plug",
+      "Library",
+    ]);
     for await (const _event of watcher) {
       if (timer) {
         clearTimeout(timer);
@@ -76,6 +81,11 @@ async function buildCopyBundleAssets() {
   await Deno.mkdir("dist_client_bundle", { recursive: true });
   await Deno.mkdir("dist_plug_bundle", { recursive: true });
 
+  // Copy Library files
+  await copy("Library", "dist_plug_bundle/Library", {
+    overwrite: true,
+  });
+
   await bundleFolder(
     "dist_plug_bundle",
     "dist/plug_asset_bundle.json",
@@ -121,6 +131,7 @@ async function buildCopyBundleAssets() {
   await Deno.writeTextFile("dist_client_bundle/service_worker.js", swCode);
 
   await copyAssets("dist_client_bundle/.client");
+
   await bundleFolder("dist_client_bundle", "dist/client_asset_bundle.json");
 
   console.log("Built!");
