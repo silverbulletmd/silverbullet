@@ -1,14 +1,6 @@
 import type { ParseTree } from "../plug-api/lib/tree.ts";
 import type { AppCommand, CommandDef, SlashCommand } from "$lib/command.ts";
-import { Intl, Temporal, toTemporalInstant } from "@js-temporal/polyfill";
 import type { SlashCommandDef } from "$lib/manifest.ts";
-
-// @ts-ignore: Temporal polyfill
-Date.prototype.toTemporalInstant = toTemporalInstant;
-// @ts-ignore: Temporal polyfill
-globalThis.Temporal = Temporal;
-// @ts-ignore: Intl polyfill
-Object.apply(globalThis.Intl, Intl);
 
 type FunctionDef = {
   name: string;
