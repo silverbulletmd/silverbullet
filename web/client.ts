@@ -536,7 +536,7 @@ export class Client {
 
     this.eventHook.addLocalListener(
       "file:changed",
-      (
+      async (
         path: string,
         _localChange: boolean,
         oldHash: number,
@@ -548,19 +548,14 @@ export class Client {
           // Avoid reloading if the page was just saved (5s window)
           (!lastSaveTimestamp || (lastSaveTimestamp < Date.now() - 5000)) &&
           // Avoid reloading if the previous hash was undefined (first load)
-          (oldHash !== undefined)
+          // Only trigger this after an initial sync has happened
+          await this.hasInitialSyncCompleted()
         ) {
           console.log(
             "Page changed elsewhere, reloading. Old hash",
             oldHash,
             "new hash",
             newHash,
-          );
-          console.log(
-            "Last save timestamp",
-            lastSaveTimestamp,
-            "now",
-            Date.now(),
           );
           this.flashNotification(
             "Page or document changed elsewhere, reloading",

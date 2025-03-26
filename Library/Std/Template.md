@@ -42,3 +42,4 @@ function template.fromPage(name)
 
   return template.new(string.trimStart(fm.text))
 end
+```

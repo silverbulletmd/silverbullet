@@ -27,7 +27,6 @@ export async function serveCommand(
     cert?: string;
     key?: string;
     reindex?: boolean;
-    syncOnly?: boolean;
   },
   folder?: string,
 ) {
@@ -36,15 +35,9 @@ export async function serveCommand(
   const port = options.port ||
     (Deno.env.get("SB_PORT") && +Deno.env.get("SB_PORT")!) || 3000;
 
-  const syncOnly = options.syncOnly || !!Deno.env.get("SB_SYNC_ONLY");
-
   const readOnly = !!Deno.env.get("SB_READ_ONLY");
 
   const indexPage = Deno.env.get("SB_INDEX_PAGE") || "index";
-
-  if (syncOnly) {
-    console.log("Running in sync-only mode (no backend processing)");
-  }
 
   if (!folder) {
     // Didn't get a folder as an argument, check if we got it as an environment variable
