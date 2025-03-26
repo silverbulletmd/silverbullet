@@ -121,7 +121,10 @@ export class DiskSpacePrimitives implements SpacePrimitives {
         lastModified: s.mtime?.getTime() || 0,
         perm: "rw",
       };
-    } catch {
+    } catch (e: any) {
+      if (e instanceof Deno.errors.NotFound) {
+        throw Error("Not found");
+      }
       // console.error("Error while getting page meta", pageName, e);
       throw Error(`Could not get meta for ${name}`);
     }

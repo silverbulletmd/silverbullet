@@ -1,1 +1,1 @@
-Moved to [[SilverBullet]]
+You want to be here, trust me: [[SilverBullet]]

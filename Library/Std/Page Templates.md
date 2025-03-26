@@ -1,3 +1,5 @@
+#meta
+
 # Quick Note
 ```space-lua
 command.define {

@@ -332,6 +332,7 @@ export class MainUI {
                   callback: () => {
                     client.runCommandByName(
                       button.command,
+                      button.args || [],
                     );
                   },
                   href: "",

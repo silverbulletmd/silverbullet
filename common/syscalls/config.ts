@@ -23,5 +23,11 @@ export function configSyscalls(client: Client): SysCallMapping {
     "config.define": (_ctx, key: string, schema: any) => {
       client.config.define(key, schema);
     },
+    "config.getValues": () => {
+      return client.config.values;
+    },
+    "config.getSchemas": () => {
+      return client.config.schemas;
+    },
   };
 }

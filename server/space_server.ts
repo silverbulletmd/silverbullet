@@ -11,6 +11,7 @@ import type { ShellBackend } from "./shell_backend.ts";
 import { determineStorageBackend } from "./storage_backend.ts";
 import type { ServerOptions } from "./http_server.ts";
 import type { AuthOptions } from "../cmd/server.ts";
+import { CONFIG_TEMPLATE, INDEX_TEMPLATE } from "$common/PAGE_TEMPLATES.ts";
 
 // Equivalent of Client on the server
 export class SpaceServer {
@@ -73,6 +74,30 @@ export class SpaceServer {
       );
     }
 
+    await this.ensureBasicPages();
+
     console.log("Booted server with hostname", this.hostname);
+  }
+
+  async ensureBasicPages() {
+    await this.ensurePageWithContent("index.md", INDEX_TEMPLATE);
+    await this.ensurePageWithContent("CONFIG.md", CONFIG_TEMPLATE);
+  }
+
+  private async ensurePageWithContent(path: string, content: string) {
+    try {
+      // This will blow up if the page doesn't exist
+      await this.spacePrimitives.getFileMeta(path);
+    } catch (e: any) {
+      if (e.message === "Not found") {
+        console.info(path, "page not found, creating...");
+        await this.spacePrimitives.writeFile(
+          path,
+          new TextEncoder().encode(content),
+        );
+      } else {
+        throw e;
+      }
+    }
   }
 }

@@ -1,10 +1,10 @@
 import Ajv from "ajv";
 
 export class Config {
-  private schemas: Record<string, any> = {};
+  public schemas: Record<string, any> = {};
   private ajv = new Ajv();
 
-  constructor(private values: Record<string, any> = {}) {
+  constructor(public values: Record<string, any> = {}) {
     // Add the same formats as in jsonschema.ts
     this.ajv.addFormat("email", {
       validate: (data: string) => {
@@ -146,5 +146,13 @@ export class Config {
     }
 
     return resolved.key in resolved.obj;
+  }
+
+  /**
+   * Lists all configuration keys in the config
+   * @returns An array of keys
+   */
+  keys(): string[] {
+    return Object.keys(this.values);
   }
 }
