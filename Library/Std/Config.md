@@ -3,6 +3,19 @@
 This defines the [JSON schema](https://json-schema.org/) for built-in settings.
 
 ```space-lua
+config.define("plugs", {
+  description = "List of plugs to enable",
+  oneOf = {
+    {
+      type = "array",
+      items = { type = "string" }
+    },
+    { -- only as a fallback for an empty table in Lua
+      type = "object",
+    }
+  },
+})
+
 config.define("autoCloseBrackets", {
   description = "List of brackets to auto close",
   type = "string",

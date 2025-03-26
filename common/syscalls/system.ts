@@ -28,6 +28,22 @@ export function systemSyscalls(
       }
       return plug.invoke(functionName, args);
     },
+    "system.invokeFunctionOnServer": (
+      ctx,
+      fullName: string, // plug.function
+      ...args: any[]
+    ) => {
+      console.warn(
+        "Calling deprecated system.invokeFunctionOnServer, use system.invokeFunction instead",
+      );
+      return api["system.invokeFunction"](ctx, fullName, ...args);
+    },
+    "system.serverSyscall": (_ctx, name: string, ...args: any[]) => {
+      console.warn(
+        "Calling deprecated system.serverSyscall, use syscall instead",
+      );
+      return client.clientSystem.localSyscall(name, args);
+    },
     "system.invokeCommand": (_ctx, name: string, args?: string[]) => {
       if (!client) {
         throw new Error("Not supported");
@@ -69,6 +85,10 @@ export function systemSyscalls(
       }
       return client.loadPlugs();
     },
+    "system.reloadConfig": (): Record<string, any> => {
+      console.warn("system.reloadConfig is deprecated, it's now a no-op");
+      return client.config.values;
+    },
     "system.loadSpaceScripts": async () => {
       await client.clientSystem.loadSpaceScripts();
     },
@@ -79,7 +99,16 @@ export function systemSyscalls(
       await client.loadCustomStyles();
     },
     // DEPRECATED
+    "system.getEnv": () => {
+      console.warn(
+        "system.getEnv is deprecated, you can assume the env to always be the client",
+      );
+      return null;
+    },
     "system.getSpaceConfig": (_ctx, key, defaultValue?) => {
+      console.warn(
+        "system.getSpaceConfig is deprecated, use system.getConfig instead",
+      );
       return client.config.get(key, defaultValue);
     },
     "system.getMode": () => {

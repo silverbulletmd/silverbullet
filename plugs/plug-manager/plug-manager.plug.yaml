@@ -21,8 +21,3 @@ functions:
     path: "./plugmanager.ts:getPlugGithubRelease"
     events:
       - get-plug:ghr
-  addPlugCommand:
-    path: ./plugmanager.ts:addPlugCommand
-    command:
-      name: "Plugs: Add"
-      requireMode: rw

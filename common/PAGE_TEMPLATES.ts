@@ -36,23 +36,10 @@ This is where you configure SilverBullet to your liking. See [[^Library/Std/Conf
 
 \`\`\`space-lua
 config.set {
-  actionButtons = {
-    {
-      icon = "home",
-      command = "Navigate: Home",
-      description = "Go to the index page"
-    },
-    {
-      icon = "book",
-      command = "Navigate: Page Picker",
-      description = "Open page"
-    },
-    {
-      icon = "terminal",
-      command = "Open Command Palette",
-      description = "Run command"
-    }
-  },
+  plugs = {
+    -- Add your plugs here (https://silverbullet.md/Plugs)
+    -- Then run the \`Plugs: Update\` command to update them
+  }
 }
 \`\`\`
 `;
