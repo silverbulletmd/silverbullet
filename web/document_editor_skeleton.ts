@@ -68,8 +68,9 @@ export const html = `<!DOCTYPE html>
 
       if (keyEvent.defaultPrevented) {
         event.preventDefault();
+        event.stopPropagation();
       }
-    });
+    }, true);
 
     globalThis.silverbullet = document.createDocumentFragment();
 
