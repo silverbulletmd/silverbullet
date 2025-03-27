@@ -49,7 +49,7 @@ export function sandboxFetchSyscalls(
       let body: any;
       if (resp.headers.get("Content-Type")?.startsWith("application/json")) {
         body = await resp.json();
-      } else if (resp.headers.get("Content-Type")?.startsWith("text/")) {
+      } else if (resp.headers.get("Content-Type")?.startsWith("application/xml") || resp.headers.get("Content-Type")?.startsWith("text/")) {
         body = await resp.text();
       } else {
         body = new Uint8Array(await resp.arrayBuffer());
