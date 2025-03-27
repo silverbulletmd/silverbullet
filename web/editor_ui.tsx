@@ -15,6 +15,7 @@ import type { Client } from "./client.ts";
 import { Panel } from "./components/panel.tsx";
 import { safeRun, sleep } from "../lib/async.ts";
 import { parseCommand } from "$common/command.ts";
+import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
 import { defaultActionButtons } from "@silverbulletmd/silverbullet/type/config";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 
@@ -97,12 +98,23 @@ export class MainUI {
     }, [viewState.uiOptions.vimMode]);
 
     useEffect(() => {
-      document.documentElement.dataset.theme = viewState.uiOptions.darkMode
-        ? "dark"
-        : "light";
-      if (this.client.isDocumentEditor()) {
-        this.client.documentEditor.updateTheme();
-      }
+      clientStoreSyscalls(client.stateDataStore)["clientStore.get"]({}, "darkMode").then((storedDarkModePreference: boolean | undefined) => {
+        let theme: "dark" | "light";
+        if (storedDarkModePreference === true) {
+          theme = "dark";
+        } else if (storedDarkModePreference === false) {
+          theme = "light";
+        } else {
+          theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        }
+
+        viewState.uiOptions.darkMode = theme === "dark";
+        document.documentElement.dataset.theme = theme
+
+        if (this.client.isDocumentEditor()) {
+          this.client.documentEditor.updateTheme();
+        }
+      });
     }, [viewState.uiOptions.darkMode]);
 
     useEffect(() => {

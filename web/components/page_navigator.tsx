@@ -29,7 +29,7 @@ export function PageNavigator({
   allPages: PageMeta[];
   extensions: Set<string>;
   vimMode: boolean;
-  darkMode: boolean;
+  darkMode: boolean | undefined;
   mode: "page" | "meta" | "document" | "all";
   onNavigate: (page: string | undefined, type: "document" | "page") => void;
   onModeSwitch: (mode: "page" | "meta" | "document" | "all") => void;
