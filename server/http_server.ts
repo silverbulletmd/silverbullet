@@ -3,7 +3,10 @@ import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { validator } from "hono/validator";
 import type { AssetBundle } from "$lib/asset_bundle/bundle.ts";
 import type { FileMeta } from "@silverbulletmd/silverbullet/types";
-import type { ShellRequest } from "@silverbulletmd/silverbullet/type/rpc";
+import {
+  handleShellEndpoint,
+  handleShellStreamEndpoint,
+} from "./shell_endpoints.ts";
 import { SpaceServer } from "./space_server.ts";
 import type { KvPrimitives } from "$lib/data/kv_primitives.ts";
 import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
@@ -397,20 +400,21 @@ export class HttpServer {
     });
 
     // Shell command endpoint
-    this.app.post("/.shell", async (c) => {
-      const req = c.req;
-      const body = await req.json();
-      try {
-        const shellCommand: ShellRequest = body;
-        // Note: in read-only this is set to NoShellSupport, so don't worry
-        const shellResponse = await this.spaceServer.shellBackend.handle(
-          shellCommand,
-        );
-        return c.json(shellResponse);
-      } catch (e: any) {
-        console.log("Shell error", e);
-        return c.text(e.message, 500);
-      }
+    this.app.post("/.shell", (c) => {
+      return handleShellEndpoint(
+        c,
+        this.spaceServer.shellBackend,
+        this.spaceServer.readOnly,
+      );
+    });
+
+    // Shell WebSocket endpoint
+    this.app.get("/.shell/stream", (c) => {
+      return handleShellStreamEndpoint(
+        c,
+        this.spaceServer.pagesPath,
+        this.spaceServer.readOnly,
+      );
     });
 
     // HTTP Proxy endpoint

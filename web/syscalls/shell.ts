@@ -1,5 +1,26 @@
 import type { SysCallMapping } from "../../lib/plugos/system.ts";
 import type { Client } from "../client.ts";
+import { ShellStreamClient } from "../../common/shell_stream_client.ts";
+
+/**
+ * Interface for the shell stream client
+ */
+export interface ShellStream {
+  /**
+   * Send data to the process stdin
+   */
+  send(data: string): void;
+
+  /**
+   * Send a signal to the process
+   */
+  kill(signal: string): void;
+
+  /**
+   * Close the connection
+   */
+  close(): void;
+}
 
 export function shellSyscalls(
   client: Client,
@@ -28,6 +49,22 @@ export function shellSyscalls(
         throw new Error(stderr);
       }
       return { code, stderr, stdout };
+    },
+    "shell.spawn": (
+      _ctx,
+      cmd: string,
+      args: string[],
+    ): ShellStreamClient => {
+      if (!client.httpSpacePrimitives) {
+        throw new Error("Not supported in fully local mode");
+      }
+
+      // Create a shell stream client
+      return new ShellStreamClient({
+        httpSpacePrimitives: client.httpSpacePrimitives,
+        cmd,
+        args: args || [],
+      });
     },
   };
 }
