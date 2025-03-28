@@ -287,7 +287,7 @@ functions:
 
   # Debug commands
   parseCommand:
-    path: ./debug.ts:parsePageCommand
+    path: ./system.ts:parsePageCommand
     command:
       name: "Debug: Parse Document"
       requireEditor: page
@@ -312,15 +312,16 @@ functions:
     command:
       name: "Stats: Show"
       requireEditor: page
-  reloadUICommand:
-    path: ./debug.ts:reloadUICommand
-    command:
-      name: "Debug: Reload UI"
 
-  resetClientCommand:
-    path: ./debug.ts:resetClientCommand
+  reloadUICommand:
+    path: ./system.ts:reloadUICommand
     command:
-      name: "Debug: Reset Client"
+      name: "System: Reload UI"
+
+  wipeClientCommand:
+    path: ./system.ts:wipeClientCommand
+    command:
+      name: "System: Wipe Client"
 
   versionCommand:
     path: ./help.ts:versionCommand
@@ -330,11 +331,6 @@ functions:
     path: ./help.ts:gettingStartedCommand
     command:
       name: "Help: Getting Started"
-
-  accountLogoutCommand:
-    path: clean.ts:cleanCommand
-    command:
-      name: "Clear Local Storage & Logout"
 
   uploadFileCommand:
     path: ./upload.ts:uploadFile

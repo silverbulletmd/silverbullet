@@ -3,6 +3,7 @@ import type { SysCallMapping } from "../../lib/plugos/system.ts";
 import type { Client } from "../../web/client.ts";
 import type { CommandDef } from "$lib/command.ts";
 import { version } from "../../version.ts";
+import { deleteDB } from "idb";
 
 export function systemSyscalls(
   client: Client,
@@ -97,6 +98,66 @@ export function systemSyscalls(
         throw new Error("Not supported on server");
       }
       await client.loadCustomStyles();
+    },
+    "system.wipeClient": async () => {
+      // Two tracks:
+      // 1. Service worker unregister
+      // 2. IndexedDB cleaning
+      if (navigator.serviceWorker) {
+        const registration = await navigator.serviceWorker.ready;
+
+        if (registration?.active) {
+          // Disconnect the datastore in the service worker first
+          registration.active.postMessage({ type: "shutdown" });
+          // Then flush the cache
+          registration.active.postMessage({ type: "flushCache" });
+          await new Promise<void>((resolve) => {
+            navigator.serviceWorker.addEventListener("message", (event) => {
+              if (event.data.type === "cacheFlushed") {
+                console.log("Cache flushed");
+                navigator.serviceWorker.getRegistrations().then(
+                  async (registrations) => {
+                    for (const registration of registrations) {
+                      await registration.unregister();
+                    }
+                    resolve();
+                  },
+                );
+              }
+            });
+          });
+        } else {
+          console.info("No service worker active, so not unregistering");
+        }
+      } else {
+        console.info("Service workers not supported, so not unregistering");
+      }
+      console.log("Stop all the systems");
+      client.space.unwatch();
+      client.syncService.close();
+      client.ds.kv.close();
+      if (indexedDB.databases) {
+        // get a list of all existing IndexedDB databases
+        const databases = await indexedDB.databases();
+        // loop through the list and delete each database
+        for (const database of databases) {
+          console.log("Deleting database", database.name);
+          await deleteDB(database.name!);
+        }
+      } else {
+        // Firefox doesn't support indexedDB.databases :(
+        console.info(
+          "Cannot delete local database, so go to empty them instead",
+        );
+        const allKeys = [];
+        for await (
+          const { key } of client.ds.kv.query({})
+        ) {
+          allKeys.push(key);
+        }
+        await client.ds.batchDelete(allKeys);
+      }
+      alert("Client wiped, feel free to navigate elsewhere");
     },
     // DEPRECATED
     "system.getEnv": () => {

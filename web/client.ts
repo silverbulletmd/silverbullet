@@ -61,7 +61,6 @@ import { DataStoreMQ } from "$lib/data/mq.datastore.ts";
 import { DataStoreSpacePrimitives } from "$common/spaces/datastore_space_primitives.ts";
 
 import { ReadOnlySpacePrimitives } from "$common/spaces/ro_space_primitives.ts";
-import type { KvPrimitives } from "$lib/data/kv_primitives.ts";
 import { LimitedMap } from "$lib/limited_map.ts";
 import { plugPrefix } from "$common/spaces/constants.ts";
 import { diffAndPrepareChanges } from "./cm_util.ts";
@@ -106,8 +105,7 @@ export class Client {
   httpSpacePrimitives!: HttpSpacePrimitives;
 
   ui!: MainUI;
-  stateDataStore!: DataStore;
-  spaceKV!: KvPrimitives;
+  ds!: DataStore;
   mq!: DataStoreMQ;
   config = new Config();
 
@@ -156,31 +154,31 @@ export class Client {
    * This is a separated from the constructor to allow for async initialization
    */
   async init() {
-    // Setup the state data store
-    const stateKvPrimitives = new IndexedDBKvPrimitives(
-      `${this.dbPrefix}_state`,
+    // Setup the data store
+    const kvPrimitives = new IndexedDBKvPrimitives(
+      `${this.dbPrefix}`,
     );
-    await stateKvPrimitives.init();
-    this.stateDataStore = new DataStore(stateKvPrimitives);
+    await kvPrimitives.init();
+    this.ds = new DataStore(kvPrimitives);
 
     // Setup message queue
-    this.mq = new DataStoreMQ(this.stateDataStore);
+    this.mq = new DataStoreMQ(this.ds);
 
     // Instantiate a PlugOS system
     this.clientSystem = new ClientSystem(
       this,
       this.mq,
-      this.stateDataStore,
+      this.ds,
       this.eventHook,
       this.clientConfig.readOnly,
     );
 
-    const localSpacePrimitives = await this.initSpace();
+    const localSpacePrimitives = this.initSpace();
 
     this.syncService = new SyncService(
       localSpacePrimitives,
       this.plugSpaceRemotePrimitives,
-      this.stateDataStore,
+      this.ds,
       this.eventHook,
       (path) => { // isSyncCandidate
         // Exclude all plug space primitives paths
@@ -449,7 +447,7 @@ export class Client {
       this.navigateWithinPage(locationState);
 
       // Persist this page as the last opened page, we'll use this for cold start PWA loads
-      await this.stateDataStore.set(
+      await this.ds.set(
         ["client", "lastOpenedPath"],
         locationState.page,
       );
@@ -457,7 +455,7 @@ export class Client {
 
     if (location.hash === "#boot") {
       // Cold start PWA load
-      const lastPath = await this.stateDataStore.get([
+      const lastPath = await this.ds.get([
         "client",
         "lastOpenedPath",
       ]);
@@ -472,7 +470,7 @@ export class Client {
     }, 100);
   }
 
-  async initSpace(): Promise<SpacePrimitives> {
+  initSpace(): SpacePrimitives {
     this.httpSpacePrimitives = new HttpSpacePrimitives(
       location.origin,
       this.clientConfig.spaceFolderPath,
@@ -492,26 +490,18 @@ export class Client {
       this.clientConfig.readOnly ? undefined : "client",
     );
 
-    // We'll store the space files in a separate data store
-    const spaceKvPrimitives = new IndexedDBKvPrimitives(
-      `${this.dbPrefix}_synced_space`,
-    );
-    await spaceKvPrimitives.init();
-
     const localSpacePrimitives = new EventedSpacePrimitives(
       // Using fallback space primitives here to allow (by default) local reads to "fall through" to HTTP when files aren't synced yet
       new FallbackSpacePrimitives(
         new DataStoreSpacePrimitives(
           new DataStore(
-            spaceKvPrimitives,
+            this.ds.kv,
           ),
         ),
         this.plugSpaceRemotePrimitives,
       ),
       this.eventHook,
     );
-
-    this.spaceKV = spaceKvPrimitives;
 
     this.space = new Space(
       localSpacePrimitives,
@@ -1509,7 +1499,7 @@ export class Client {
 
   async loadCaches() {
     const [widgetHeightCache, widgetCache] = await this
-      .stateDataStore.batchGet([[
+      .ds.batchGet([[
         "cache",
         "widgetHeight",
       ], ["cache", "widgets"]]);
@@ -1518,7 +1508,7 @@ export class Client {
   }
 
   debouncedWidgetHeightCacheFlush = throttle(() => {
-    this.stateDataStore.set(
+    this.ds.set(
       ["cache", "widgetHeight"],
       this.widgetHeightCache.toJSON(),
     )
@@ -1536,7 +1526,7 @@ export class Client {
   }
 
   debouncedWidgetCacheFlush = throttle(() => {
-    this.stateDataStore.set(["cache", "widgets"], this.widgetCache.toJSON())
+    this.ds.set(["cache", "widgets"], this.widgetCache.toJSON())
       .catch(
         console.error,
       );

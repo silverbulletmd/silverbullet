@@ -12,7 +12,6 @@ import { CommandHook } from "$common/hooks/command.ts";
 import { SlashCommandHook } from "./hooks/slash_command.ts";
 import { SyscallHook } from "./hooks/syscall.ts";
 import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
-import { debugSyscalls } from "./syscalls/debug.ts";
 import { editorSyscalls } from "./syscalls/editor.ts";
 import { sandboxFetchSyscalls } from "./syscalls/fetch.ts";
 import { markdownSyscalls } from "$common/syscalls/markdown.ts";
@@ -178,7 +177,6 @@ export class ClientSystem {
       mqSyscalls(this.mq),
       dataStoreReadSyscalls(this.ds, this),
       dataStoreWriteSyscalls(this.ds),
-      debugSyscalls(this.client),
       syncSyscalls(this.client),
       clientStoreSyscalls(this.ds),
       configSyscalls(this.client),

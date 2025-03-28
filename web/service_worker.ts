@@ -208,32 +208,44 @@ async function handleLocalFileRequest(
 }
 
 self.addEventListener("message", (event: any) => {
-  if (event.data.type === "skipWaiting") {
-    console.log(
-      "[Service worker]",
-      "Received skipWaiting message, activating immediately",
-    );
-    // @ts-ignore: Skip waiting to activate this service worker immediately
-    self.skipWaiting();
-  }
-  if (event.data.type === "flushCache") {
-    caches.delete(CACHE_NAME)
-      .then(() => {
-        console.log("[Service worker]", "Cache deleted");
-        // ds?.close();
-        event.source.postMessage({ type: "cacheFlushed" });
+  switch (event.data.type) {
+    case "skipWaiting": {
+      console.log(
+        "[Service worker]",
+        "Received skipWaiting message, activating immediately",
+      );
+      // @ts-ignore: Skip waiting to activate this service worker immediately
+      self.skipWaiting();
+      break;
+    }
+    case "flushCache": {
+      caches.delete(CACHE_NAME)
+        .then(() => {
+          console.log("[Service worker]", "Cache deleted");
+          // ds?.close();
+          event.source.postMessage({ type: "cacheFlushed" });
+        });
+      break;
+    }
+    case "config": {
+      const spaceFolderPath = event.data.config.spaceFolderPath;
+      const dbPrefix = "" + simpleHash(spaceFolderPath);
+
+      // Setup space
+      const kv = new IndexedDBKvPrimitives(`${dbPrefix}`);
+      kv.init().then(() => {
+        ds = new DataStore(kv);
+        console.log("Datastore in service worker initialized...");
       });
-  }
-
-  if (event.data.type === "config") {
-    const spaceFolderPath = event.data.config.spaceFolderPath;
-    const dbPrefix = "" + simpleHash(spaceFolderPath);
-
-    // Setup space
-    const kv = new IndexedDBKvPrimitives(`${dbPrefix}_synced_space`);
-    kv.init().then(() => {
-      ds = new DataStore(kv);
-      console.log("Datastore in service worker initialized...");
-    });
+      break;
+    }
+    case "shutdown": {
+      if (ds) {
+        console.log("[Service worker]", "Disconnecting datastore");
+        ds.kv.close();
+        ds = undefined;
+      }
+      break;
+    }
   }
 });
