@@ -214,33 +214,10 @@ export function cloneTree(tree: ParseTree): ParseTree {
   return newTree;
 }
 
-export function parseTreeToAST(tree: ParseTree, omitTrimmable = true): AST {
-  if (tree.type === "⚠") {
-    // console.info("Parse error", JSON.stringify(tree, null, 2));
-    throw new Error(
-      `Parse error in: ${renderToText(tree)}`,
-    );
-  }
-  if (tree.text !== undefined) {
-    return tree.text;
-  }
-  const ast: AST = [tree.type!];
-  for (const node of tree.children!) {
-    if (node.type && !node.type.endsWith("Mark") && node.type !== "Comment") {
-      ast.push(parseTreeToAST(node, omitTrimmable));
-    }
-    if (node.text && (omitTrimmable && node.text.trim() || !omitTrimmable)) {
-      ast.push(node.text);
-    }
-  }
-  return ast;
-}
-
 export function cleanTree(tree: ParseTree, omitTrimmable = true): ParseTree {
   if (tree.type === "⚠") {
-    // console.info("Parse error", JSON.stringify(tree, null, 2));
     throw new Error(
-      `Parse error in: ${renderToText(tree)}`,
+      `Parse error at pos ${tree.from}`,
     );
   }
   if (tree.text !== undefined) {
