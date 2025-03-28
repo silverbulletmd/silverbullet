@@ -75,6 +75,6 @@ export function getConfig<T = any>(
   return syscall("system.getConfig", key, defaultValue);
 }
 
-export function wipeClient(): Promise<void> {
-  return syscall("system.wipeClient");
+export function wipeClient(logout = false): Promise<void> {
+  return syscall("system.wipeClient", logout);
 }

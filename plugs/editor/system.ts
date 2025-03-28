@@ -26,6 +26,10 @@ export async function wipeClientCommand() {
   await system.wipeClient();
 }
 
+export async function wipeAndLogoutCommand() {
+  await system.wipeClient(true);
+}
+
 export async function reloadUICommand() {
   await editor.reloadUI();
 }

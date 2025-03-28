@@ -323,6 +323,11 @@ functions:
     command:
       name: "System: Wipe Client"
 
+  wipeAndLogoutCommand:
+    path: ./system.ts:wipeAndLogoutCommand
+    command:
+      name: "Clear Local Storage & Logout"
+
   versionCommand:
     path: ./help.ts:versionCommand
     command:

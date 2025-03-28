@@ -99,7 +99,7 @@ export function systemSyscalls(
       }
       await client.loadCustomStyles();
     },
-    "system.wipeClient": async () => {
+    "system.wipeClient": async (_ctx, logout = false) => {
       // Two tracks:
       // 1. Service worker unregister
       // 2. IndexedDB cleaning
@@ -157,7 +157,11 @@ export function systemSyscalls(
         }
         await client.ds.batchDelete(allKeys);
       }
-      alert("Client wiped, feel free to navigate elsewhere");
+      if (logout) {
+        location.href = "/.logout";
+      } else {
+        alert("Client wiped, feel free to navigate elsewhere");
+      }
     },
     // DEPRECATED
     "system.getEnv": () => {
