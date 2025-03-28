@@ -72,4 +72,7 @@ export const jsApi = new LuaTable({
   createElement: new LuaBuiltinFunction((_sf, tag) =>
     document.createElement(tag)
   ),
+  createTextNode: new LuaBuiltinFunction((_sf, text) =>
+    document.createTextNode(text)
+  ),
 });
