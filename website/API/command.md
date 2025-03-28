@@ -22,3 +22,4 @@ command.define {
     editor.flashNotification "Triggered my custom command"
   end
 }
+```

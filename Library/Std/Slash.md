@@ -3,6 +3,8 @@
 Some convenient slash commands for editing Markdown files.
 
 ```space-lua
+-- priority: 10
+
 local function headerSlashCommand(level)
   local line = editor.getCurrentLine()
   local cleanText = string.gsub(line.textWithCursor, "^#+%s*", "")

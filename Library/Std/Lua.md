@@ -4,6 +4,7 @@ Editor support for Lua, implemented in Lua. Of course.
 
 # Code complete support
 ```space-lua
+-- priority: 10
 local LUA_KEYWORDS = {"do", "if", "then", "for", "else", "end", "function", "local", "return"}
 
 -- Are we in a comment?
@@ -121,6 +122,7 @@ event.listen {
 Ctrl/Cmd-click navigation to Lua function definition.
 
 ```space-lua
+-- priority: 10
 local function inLuaContext(parentNodes)
   for _, node in ipairs(parentNodes) do
     if node == "LuaDirective"
@@ -192,6 +194,8 @@ Useful Lua slash commands for editing Lua files.
 
 ## In-lua slash commands
 ```space-lua
+-- priority: 10
+
 slashcommand.define {
   name = "func",
   description = "Create a new function",
@@ -251,6 +255,7 @@ slashcommand.define {
 
 ## Lua slash commands
 ```space-lua
+-- priority: 10
 -- Outside Space Lua contexts
 slashcommand.define {
   name = "space-lua",

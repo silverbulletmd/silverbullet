@@ -3,6 +3,7 @@
 This defines the [JSON schema](https://json-schema.org/) for built-in settings.
 
 ```space-lua
+-- priority: 100
 config.define("plugs", {
   description = "List of plugs to enable",
   oneOf = {

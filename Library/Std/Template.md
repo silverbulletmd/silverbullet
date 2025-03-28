@@ -3,7 +3,7 @@
 Implements useful template functions
 
 ```space-lua
--- priority: 10
+-- priority: 50
 -- Template API root table
 template = template or {}
 -- Template storage table

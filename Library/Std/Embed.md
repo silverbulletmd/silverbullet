@@ -60,6 +60,6 @@ end
 
 # General implementation
 ```space-lua
--- priority: 5
+-- priority: 50
 embed = {}
 ```
