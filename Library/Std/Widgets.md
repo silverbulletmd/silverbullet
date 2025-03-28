@@ -2,24 +2,46 @@
 
 Some useful widgets.
 
-# Button
-A simple button.
+# Buttons
+Types of button widgets:
+
+* `widgets.button(text, callback)` renders a simple button running the callback when clicked
+* `widgets.commandButton(commandName)` renders a button for a particular command (where the button text is the command name itself)
+* `widgets.commandButton(text, commandName)` renders a button for a particular command with a custom button text
+* `widgets.commandButton(text, commandName, args)` renders a button for a particular command and arguments (specified as a table list) with a custom button text
 
 ```space-lua
-widgets = widgets or {}
+-- priority: 10
 function widgets.button(text, callback)
-  options = options or {}
   return widget.new {
     html = "<button>" .. text .. "</button>",
     events = { click = callback }
   }
 end
+
+function widgets.commandButton(text, commandName, args)
+  if not commandName then
+    -- When only passed one argument, then let's assume it's a command name
+    commandName = text
+  end
+  return widget.new {
+    html = "<button>" .. text .. "</button>",
+    events = {
+      click = function()
+        system.invokeCommand(commandName, args)
+      end
+    }
+  }
+end
 ```
 
-Example:
+Examples:
+
 ${widgets.button("Hello", function()
   editor.flashNotification "Hi there!"
 end)}
+
+${widgets.commandButton("System: Reload")}
 
 # Table of contents
 ```space-lua
@@ -42,23 +64,42 @@ function widgets.toc(options)
   local text = editor.getText()
   local pageName = editor.getCurrentPage()
   local lines = string.split(text, "\n")
-  local tocTexts = {}
+  local pos = 0
+  -- Collect all headers
+  local headers = {}
   for _, line in ipairs(lines) do
-    local headerStart, headerEnd = string.find(line, "^(%#+%s+)")
-    if headerStart then
-      local headerText = line:sub(headerEnd + 1)
-      table.insert(tocTexts, string.rep(" ", (headerEnd-1) * 2)
-        .. "* [[" .. pageName .. "#" .. headerText .. "|" .. headerText .. "]]")
+    local headerSign, text = string.match(line, "^(%#+)%s+(.+)$")
+    if headerSign then
+      table.insert(headers, {
+        name = text,
+        pos = pos,
+        level = #headerSign,
+      })
+    end
+    pos = pos + #line + 1
+  end
+  if options.minHeaders and options.minHeaders > #headers then
+    return widget.new{}
+  end
+  -- Find min level
+  local minLevel = 6
+  for _, header in ipairs(headers) do
+    if header.level < minLevel then
+      minLevel = header.level
     end
   end
-  if #tocTexts >= options.minHeaders then
-    local fullText = "# Table of Contents\n" .. table.concat(tocTexts, "\n")
-    return widget.new {
-      markdown = fullText
-    }
-  else
-    return ""
+  -- Build up markdown
+  local md = (options.header or "# Table of Contents") .. "\n"
+  for _, header in ipairs(headers) do
+    if not(options.maxHeader and header.level > options.maxHeader or
+           options.minLevel and header.level < options.minLevel) then
+      md = md .. string.rep(" ", (header.level - minLevel) * 2) +
+         "* [[" .. pageName .. "@" .. header.pos .. "|" .. header.name .. "]]\n"
+    end
   end
+  return widget.new {
+    markdown = md
+  }
 end
 
 event.listen {
