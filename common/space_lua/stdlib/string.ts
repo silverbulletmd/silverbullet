@@ -105,7 +105,7 @@ export const stringApi = new LuaTable({
       // Plain
       const index = s.indexOf(pattern, init - 1);
       return (index === -1)
-        ? new LuaMultiRes([])
+        ? null
         : new LuaMultiRes([index + 1, index + pattern.length]);
     },
   ),
