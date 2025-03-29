@@ -246,19 +246,6 @@ export class HttpServer {
       return c.redirect("/.auth");
     });
 
-    // Fetch config
-    this.app.get("/.config", (c) => {
-      const clientConfig: ClientConfig = {
-        readOnly: this.spaceServer.readOnly,
-        enableSpaceScript: this.spaceServer.enableSpaceScript,
-        spaceFolderPath: this.spaceServer.pagesPath,
-        indexPage: this.spaceServer.indexPage,
-      };
-      return c.json(clientConfig, 200, {
-        "Cache-Control": "no-cache",
-      });
-    });
-
     // Authentication endpoints
     this.app.get("/.auth", (c) => {
       const html = this.clientAssetBundle.readTextFileSync(".client/auth.html");
@@ -389,6 +376,19 @@ export class HttpServer {
       }
       this.refreshLogin(c, host);
       return next();
+    });
+
+    // Fetch config
+    this.app.get("/.config", (c) => {
+      const clientConfig: ClientConfig = {
+        readOnly: this.spaceServer.readOnly,
+        enableSpaceScript: this.spaceServer.enableSpaceScript,
+        spaceFolderPath: this.spaceServer.pagesPath,
+        indexPage: this.spaceServer.indexPage,
+      };
+      return c.json(clientConfig, 200, {
+        "Cache-Control": "no-cache",
+      });
     });
 
     // Simple ping health endpoint

@@ -5,9 +5,24 @@ safeRun(async () => {
   // First we fetch the client config from the server (or cached via service worker)
   let clientConfig: ClientConfig | undefined;
   try {
-    clientConfig = await (await fetch("/.config")).json();
-  } catch (e) {
-    console.error("Failed to fetch client config", e);
+    const configResponse = await fetch("/.config", {
+      // We don't want to follow redirects, we want to get the redirect header in case of auth issues
+      redirect: "manual",
+    });
+    const redirectHeader = configResponse.headers.get("location");
+    if (
+      configResponse.status === 401 && redirectHeader
+    ) {
+      alert(
+        "Received an authentication redirect, redirecting to URL: " +
+          redirectHeader,
+      );
+      location.href = redirectHeader;
+      return;
+    }
+    clientConfig = await configResponse.json();
+  } catch (e: any) {
+    console.error("Failed to fetch client config", e.message);
     alert(
       "Could not fetch configuration from server. Make sure you have an internet connection.",
     );
