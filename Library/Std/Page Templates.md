@@ -2,6 +2,7 @@
 
 # Quick Note
 ```space-lua
+-- priority: 10
 command.define {
   name = "Quick Note",
   key = "Alt-Shift-n",

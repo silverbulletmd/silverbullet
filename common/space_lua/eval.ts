@@ -71,57 +71,31 @@ async function handleVarargAsync(
   return [];
 }
 
-function handleTableFieldSync(
+async function handleTableFieldSync(
   table: LuaTable,
   field: any,
   env: LuaEnv,
   sf: LuaStackFrame,
-): void | Promise<void> {
+): Promise<void> {
   switch (field.type) {
     case "PropField": {
-      const value = evalExpression(field.value, env, sf);
-      if (value instanceof Promise) {
-        return value.then((v) => table.set(field.key, singleResult(v), sf));
-      }
+      const value = await evalExpression(field.value, env, sf);
       table.set(field.key, singleResult(value), sf);
       break;
     }
     case "DynamicField": {
-      const key = evalExpression(field.key, env, sf);
-      const value = evalExpression(field.value, env, sf);
-      if (key instanceof Promise || value instanceof Promise) {
-        return Promise.all([
-          key instanceof Promise ? key : Promise.resolve(key),
-          value instanceof Promise ? value : Promise.resolve(value),
-        ]).then(([k, v]) => {
-          table.set(singleResult(k), singleResult(v), sf);
-        });
-      }
+      const key = await evalExpression(field.key, env, sf);
+      const value = await evalExpression(field.value, env, sf);
+
       table.set(singleResult(key), singleResult(value), sf);
       break;
     }
     case "ExpressionField": {
       if (field.value.type === "Variable" && field.value.name === "...") {
-        const varargs = handleVarargSync(env);
-        if (varargs instanceof Promise) {
-          return varargs.then((args) => {
-            args.forEach((val, i) => table.set(i + 1, val, sf));
-          });
-        }
+        const varargs = await handleVarargSync(env);
         varargs.forEach((val, i) => table.set(i + 1, val, sf));
       } else {
-        const value = evalExpression(field.value, env, sf);
-        if (value instanceof Promise) {
-          return value.then((v) => {
-            if (v instanceof LuaMultiRes) {
-              for (const val of v.values) {
-                table.set(table.length + 1, val, sf);
-              }
-            } else {
-              table.set(table.length + 1, singleResult(v), sf);
-            }
-          });
-        }
+        const value = await evalExpression(field.value, env, sf);
         if (value instanceof LuaMultiRes) {
           for (const val of value.values) {
             table.set(table.length + 1, val, sf);
@@ -249,37 +223,25 @@ export function evalExpression(
       case "PropertyAccess":
         return evalPrefixExpression(e, env, sf);
       case "TableConstructor": {
-        const table = new LuaTable();
-
-        if (
-          e.fields.length === 1 &&
-          e.fields[0].type === "ExpressionField" &&
-          e.fields[0].value.type === "Variable" &&
-          e.fields[0].value.name === "..."
-        ) {
-          const varargs = handleVarargSync(env);
-          if (varargs instanceof Promise) {
-            return varargs.then((args) => {
-              args.forEach((val, i) => table.set(i + 1, val, sf));
-              return table;
-            });
+        return Promise.resolve().then(async () => {
+          const table = new LuaTable();
+          if (
+            e.fields.length === 1 &&
+            e.fields[0].type === "ExpressionField" &&
+            e.fields[0].value.type === "Variable" &&
+            e.fields[0].value.name === "..."
+          ) {
+            const varargs = await handleVarargSync(env);
+            varargs.forEach((val, i) => table.set(i + 1, val, sf));
+            return table;
           }
-          varargs.forEach((val, i) => table.set(i + 1, val, sf));
+
+          for (const field of e.fields) {
+            await handleTableFieldSync(table, field, env, sf);
+          }
+
           return table;
-        }
-
-        const promises: Promise<void>[] = [];
-        for (const field of e.fields) {
-          const result = handleTableFieldSync(table, field, env, sf);
-          if (result instanceof Promise) {
-            promises.push(result);
-          }
-        }
-
-        if (promises.length > 0) {
-          return Promise.all(promises).then(() => table);
-        }
-        return table;
+        });
       }
       case "FunctionDefinition": {
         return new LuaFunction(e.body, env);

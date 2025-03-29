@@ -99,3 +99,13 @@ Example:
 ```lua
 system.reloadPlugs()
 print("All plugs reloaded")
+
+
+## system.wipeClient()
+Completely wipes the client state, including cached files, service worker and databases.
+
+Example:
+```lua
+system.wipeClient()
+print("Client state has been reset")
+```

@@ -41,6 +41,7 @@ export class SyncService {
   lastReportedSyncStatus = Date.now();
   // If this is set to anything other than undefined, a file is currently saving
   savingTimeout: number | undefined;
+  enabled = true;
 
   constructor(
     readonly localSpacePrimitives: SpacePrimitives,
@@ -64,6 +65,9 @@ export class SyncService {
     eventHook.addLocalListener(
       "editor:pageLoaded",
       (name, _prevPage, isSynced) => {
+        if (!this.enabled) {
+          return;
+        }
         if (!isSynced) {
           this.scheduleFileSync(`${name}.md`).catch(console.error);
         }
@@ -71,6 +75,9 @@ export class SyncService {
     );
 
     eventHook.addLocalListener("editor:documentLoaded", (name, _prevPage) => {
+      if (!this.enabled) {
+        return;
+      }
       this.scheduleFileSync(name).catch(console.error);
     });
 
@@ -85,6 +92,9 @@ export class SyncService {
     eventHook.addLocalListener("editor:documentSaving", setSavingTimeout);
 
     eventHook.addLocalListener("editor:pageSaved", (name) => {
+      if (!this.enabled) {
+        return;
+      }
       if (this.savingTimeout) {
         clearTimeout(this.savingTimeout);
         this.savingTimeout = undefined;
@@ -96,6 +106,9 @@ export class SyncService {
     });
 
     eventHook.addLocalListener("editor:documentSaved", (name) => {
+      if (!this.enabled) {
+        return;
+      }
       if (this.savingTimeout) {
         clearTimeout(this.savingTimeout);
         this.savingTimeout = undefined;
@@ -201,6 +214,7 @@ export class SyncService {
   }
 
   filesScheduledForSync = new Set<string>();
+
   async scheduleFileSync(path: string): Promise<void> {
     if (this.filesScheduledForSync.has(path)) {
       // Already scheduled, no need to duplicate
@@ -222,6 +236,9 @@ export class SyncService {
     this.syncSpace().catch(console.error);
 
     setInterval(async () => {
+      if (!this.enabled) {
+        return;
+      }
       try {
         if (!await this.isSyncing()) {
           const lastFullCycle = (await this.ds.get(syncLastFullCycleKey)) || 0;
@@ -237,6 +254,9 @@ export class SyncService {
   }
 
   async syncSpace(): Promise<number> {
+    if (!this.enabled) {
+      return 0;
+    }
     if (await this.isSyncing()) {
       console.log("Aborting space sync: already syncing");
       return 0;
@@ -264,6 +284,9 @@ export class SyncService {
 
   // Syncs a single file
   async syncFile(name: string) {
+    if (!this.enabled) {
+      return;
+    }
     // console.log("Checking if we can sync file", name);
     if (!this.isSyncCandidate(name)) {
       console.info("Requested sync, but not a sync candidate", name);
@@ -335,6 +358,10 @@ export class SyncService {
 
   async saveSnapshot(snapshot: Map<string, SyncStatusItem>) {
     await this.ds.set(syncSnapshotKey, Object.fromEntries(snapshot));
+  }
+
+  close() {
+    this.enabled = false;
   }
 
   public async plugAwareConflictResolver(

@@ -55,16 +55,19 @@ Deno.test("Evaluator test", async () => {
     true,
   );
   // Tables
-  const tbl = evalExpr(`{3, 1, 2}`);
+  const tbl = await evalExpr(`{3, 1, 2}`);
   assertEquals(tbl.get(1), 3);
   assertEquals(tbl.get(2), 1);
   assertEquals(tbl.get(3), 2);
   assertEquals(luaValueToJS(tbl, sf), [3, 1, 2]);
 
-  assertEquals(luaValueToJS(evalExpr(`{name=test("Zef"), age=100}`, env), sf), {
-    name: "Zef",
-    age: 100,
-  });
+  assertEquals(
+    luaValueToJS(await evalExpr(`{name=test("Zef"), age=100}`, env), sf),
+    {
+      name: "Zef",
+      age: 100,
+    },
+  );
 
   assertEquals(
     luaValueToJS(await evalExpr(`{name="Zef", age=asyncTest(100)}`, env), sf),
@@ -74,12 +77,12 @@ Deno.test("Evaluator test", async () => {
     },
   );
 
-  const result = evalExpr(`{[3+2]=1, ["a".."b"]=2}`);
+  const result = await evalExpr(`{[3+2]=1, ["a".."b"]=2}`);
   assertEquals(result.get(5), 1);
   assertEquals(result.get("ab"), 2);
 
-  assertEquals(evalExpr(`#{}`), 0);
-  assertEquals(evalExpr(`#{1, 2, 3}`), 3);
+  assertEquals(await evalExpr(`#{}`), 0);
+  assertEquals(await evalExpr(`#{1, 2, 3}`), 3);
 
   // Unary operators
   assertEquals(await evalExpr(`-asyncTest(3)`, env), -3);

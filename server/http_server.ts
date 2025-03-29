@@ -238,7 +238,6 @@ export class HttpServer {
       )
       : new LockoutTimer(0, 0); // disabled
 
-    // TODO: This should probably be a POST request
     this.app.get("/.logout", (c) => {
       const url = new URL(c.req.url);
       deleteCookie(c, authCookieName(url.host));

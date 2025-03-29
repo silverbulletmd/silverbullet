@@ -8,20 +8,31 @@ Supported types of shortcuts:
 * Priority shortcuts to tweak the ordering of commands in the [[Command Palette]]
 
 # Configuration
-In [[SETTINGS]]:
+Using Space Lua:
 
-```yaml
-shortcuts:
-# Keyboard shortcuts:
-- command: "{[Navigate: Center Cursor]}"
-  key: "Alt-x" # for Linux/Windows
-  mac: "Alt-x" # for macOS (and other Apple devices with keyboards)
-# Slash command shortcuts:
-- command: "{[Outline: Move Right]}"
-  slashCommand: "indent"
-- command: "{[Outline: Move Left]}"
-  slashCommand: "outdent"
-# Priority shortcut
-- command: "{[Upload: File]}"
-  priority: 1
+```lua
+config.set {
+  shortcuts = {
+    -- Keyboard shortcuts:
+    {
+      command = "Navigate: Center Cursor",
+      key = "Alt-x", -- for Linux/Windows
+      mac = "Alt-x", -- for macOS (and other Apple devices with keyboards)
+    },
+    -- Slash command shortcuts:
+    {
+      command = "Outline: Move Right",
+      slashCommand = "indent",
+    },
+    {
+      command = "Outline: Move Left",
+      slashCommand = "outdent",
+    },
+    -- Priority shortcut
+    {
+        command = "Upload: File",
+        priority = 1,
+    }
+  }
+}
 ```

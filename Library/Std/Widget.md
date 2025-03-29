@@ -3,12 +3,12 @@
 This implements the widget API. For a Lua Directive to be rendered as a widget, you need to return it via `widget.new`.
 
 ```space-lua
--- priority: 5
+-- priority: 50
 
 -- Widget APIs
 widget = {}
 
--- Reusable set of widgets
+-- Container for widgets
 widgets = {}
 
 -- Widget schema for validation
@@ -16,7 +16,12 @@ local widgetSchema = {
   type = "object",
   properties = {
     markdown = { type = "string"},
-    html = { type = "string"},
+    html = {
+      anyOf = {
+        { type = "object"},
+        { type =  "string" }
+      }
+    },
     cssClasses = {
       type = "array",
       items = { type = "string" },

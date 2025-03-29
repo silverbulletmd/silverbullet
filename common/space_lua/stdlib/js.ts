@@ -67,4 +67,12 @@ export const jsApi = new LuaTable({
    * @returns The JSON string.
    */
   stringify: new LuaBuiltinFunction((_sf, val) => JSON.stringify(val)),
+
+  // Exposing DOM functions
+  createElement: new LuaBuiltinFunction((_sf, tag) =>
+    document.createElement(tag)
+  ),
+  createTextNode: new LuaBuiltinFunction((_sf, text) =>
+    document.createTextNode(text)
+  ),
 });

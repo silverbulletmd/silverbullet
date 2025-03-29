@@ -1,29 +1,4 @@
-> **warning** Experimental
-> This is an **experimental** feature still under active development. It is documented here primarily for the real early adopters as this feature develops.
-> 
-> If you want to experiment, be sure to use the [edge builds](https://community.silverbullet.md/t/living-on-the-edge-builds/27/5).
-
 Space Lua is a custom implementation of the [Lua programming language](https://lua.org/), embedded in SilverBullet. It aims to be a largely complete Lua implementation, and adds a few non-standard features while remaining syntactically compatible with “real” Lua.
-
-```embed
-url: https://youtu.be/t1oy_41bDAY
-height: 400
-```
-
-
-# Goals
-The introduction of Lua aims to unify and simplify a few SilverBullet features, specifically:
-
-* Scripting: replace [[Space Script]] (JavaScript) with a more controlled, simple and extensible language.
-* Replace [[Expression Language]], [[Template Language]] and [[Query Language]] with Lua-based equivalents.
-* (Potentially) provide an alternative way to specify [[Space Config]]
-
-# Strategy
-This is a big effort. During its development, Space Lua will be offered as a kind of “alternative universe” to the things mentioned above. Existing [[Live Templates]], [[Live Queries]] and [[Space Script]] will continue to work as before, unaltered.
-
-Once these features stabilize and best practices are ironed out, old mechanisms will likely be deprecated and possibly removed at some point.
-
-We’re not there yet, though.
 
 # Basics
 In its essence, Space Lua adds two features to its [[Markdown]] language:
@@ -54,16 +29,36 @@ function stuff.adder(a, b)
 end
 ```
 
-> **note** Tip
-> All your space-lua scripts are loaded on boot, to reload them without reloading the page, simply run the {[System: Reload]} command.
+## Load order
+It is possible to control load order of space lua scripts using a special `-- priority: <number>` comment in the Lua code.
 
-## Expressions
+Scripts are loaded in _reverse priority_ order. When you set no priority (the default) your scripts will be run last.
+
+The order used is determined by this [[Space Lua/Lua Integrated Query|query]] (also helpfully part of your [[^Library/Std/Space Overview]]) page: 
+
+    query[[
+      from index.tag "space-lua"
+      order by priority desc
+    ]]
+
+This means that the higher the priority, the earlier the script is loaded. That also means that if you want to override previously defined definitions you need to a set a _lower_ priority (or in most cases: simply omit the priority comment).
+
+Here are the conventions used by the [[Library/Std]] library:
+
+  * `priority: 100` for config definitions (schemas)
+  * `priority: 50` for setting really core and root variables (like `template.*` APIs) that will be used by other scripts
+  * `priority: 10`: for standard library definitions that may be overriden (by scripts with lower priority)
+
+> **note** Tip
+> All your space-lua scripts are loaded on boot, to reload them without reloading the page, simply run the ${widgets.commandButton("System: Reload")} command.
+
+# Expressions
 A new syntax introduced with Space Lua is the `${lua expression}` syntax that you can use in your pages. This syntax will [[Live Preview]] to the evaluation of that expression.
 
 For example: 10 + 2 = ${adder(10, 2)} (Alt-click, or select to see the expression) is using the just defined `adder` function to this rather impressive calculation. Yes, this may as well be written as `${10 + 2}` (${10 + 2}), but... you know.
 
 ## Queries
-Space Lua has a feature called [[Space Lua/Lua Integrated Query]], which integrate SQL-like queries into Lua. By using this feature, you can easily replicate [[Live Queries]]. More detail in [[Space Lua/Lua Integrated Query]], but here’s a small example querying the last 3 modifies pages:
+Space Lua has a feature called [[Space Lua/Lua Integrated Query]], which integrate SQL-like queries into Lua. Here’s a small example querying the last 3 modifies pages:
 
 ${query[[
   from index.tag "page"
@@ -73,7 +68,7 @@ ${query[[
 ]]}
 
 ## Widgets
-The `${lua expression}` syntax can be used to implement simple widgets. If the Lua expression evaluates to a simple string, it will live preview as that string rendered as markdown. However, if the expression returns a `widget.new`-generated result value, you can do some cooler stuff.
+The `${lua expression}` syntax can be used to implement custom widgets. If the Lua expression evaluates to a simple string, it will live preview as that string rendered as markdown. However, if the expression returns a `widget.new`-generated result value, you can do some cooler stuff.
 
 To render a widget, call `widget.new` with any of the following keys:
 
@@ -125,7 +120,7 @@ command.define {
 }
 ```
 
-Try it: {[Hello World]}
+Try it: ${widgets.commandButton("Hello World")}
 
 ## Event listeners
 You can listen to events using [[API/event#event.listen(listenerDef)]]:
@@ -143,7 +138,7 @@ event.listen {
 # Space Lua Extensions
 Space Lua currently introduces a few new features on top core Lua:
 
-1. [[Space Lua/Lua Integrated Query]], embedding a [[Query Language]]-like language into Lua itself
+1. [[Space Lua/Lua Integrated Query]], embedding a query language into Lua itself
 2. Thread locals
 
 ## Thread locals
@@ -154,14 +149,6 @@ There's a magic `_CTX` global variable available from which you can access usefu
 
 # API
 ![[API]]
-While in [[Space Script]] all syscalls are asynchronous and need to be called with `await`, this is happens transparently in Space Lua leading to cleaner code:
-
-```space-lua
-local function callSomeThings()
-  local text = space.readPage(editor.getCurrentPage())
-  print("Current page text", text)
-end
-```
 
 # Lua implementation notes
 Space Lua is intended to be a more or less complete implementation of [Lua 5.4](https://www.lua.org/manual/5.4/). However, a few features are (still) missing:
