@@ -107,8 +107,12 @@ self.addEventListener("fetch", (event: any) => {
       if (pathname === "/.config") {
         try {
           // Attempt fetch
-          const clientConfig: ClientConfig = await (await fetch(request))
-            .json();
+          const response = await fetch(request);
+          if (response.status === 401) {
+            // Pass on the 401 to the client
+            return response;
+          }
+          const clientConfig: ClientConfig = await response.json();
           await ds.set(["$clientConfig"], clientConfig);
           console.log(
             "[Service worker]",
@@ -116,7 +120,8 @@ self.addEventListener("fetch", (event: any) => {
             clientConfig,
           );
           return new Response(JSON.stringify(clientConfig));
-        } catch {
+        } catch (e: any) {
+          console.error("Failed to fetch client config", e.message);
           // If fetch fails, try to get from cache
           const clientConfig = await ds.get<ClientConfig>(["$clientConfig"]);
           console.log(
