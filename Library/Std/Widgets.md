@@ -64,6 +64,11 @@ end
 event.listen {
   name = "hooks:renderTopWidgets",
   run = function(e)
+    local pageText = editor.getText()
+    local fm = index.extractFrontmatter(pageText)
+    if fm.frontmatter.pageDecoration and fm.frontmatter.pageDecoration.disableTOC then
+      return
+    end
     return widgets.toc()
   end
 }
