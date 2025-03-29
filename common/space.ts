@@ -195,6 +195,7 @@ export function fileMetaToPageMeta(fileMeta: FileMeta): PageMeta {
       ...fileMeta,
       ref: name,
       tag: "page",
+      tags: [],
       name,
       created: localDateString(new Date(fileMeta.created)),
       lastModified: localDateString(new Date(fileMeta.lastModified)),

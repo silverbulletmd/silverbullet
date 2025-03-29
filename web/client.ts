@@ -738,31 +738,76 @@ export class Client {
 
   async updatePageListCache() {
     console.log("Updating page list cache");
-    if (!this.clientSystem.system.loadedPlugs.has("index")) {
-      console.warn("Index plug not loaded, cannot update page list cache");
-      return;
+    // **** Check if the initial sync has been completed ****
+    const initialSyncCompleted = await this.hasInitialSyncCompleted();
+
+    let allPages: PageMeta[] = [];
+
+    if (
+      initialSyncCompleted && this.clientSystem.system.loadedPlugs.has("index")
+    ) {
+      // **** Logic when initial sync IS completed AND index plug is loaded ****
+      console.log(
+        "Initial sync complete and index plug loaded, loading full page list via index.",
+      );
+      // Fetch actual indexed pages
+      allPages = await this.clientSystem.queryLuaObjects<PageMeta>(
+        "page",
+        {},
+      );
+      // Fetch aspiring pages only when using the index
+      const aspiringPageNames = await this.clientSystem.queryLuaObjects<
+        string
+      >(
+        "aspiring-page",
+        {
+          select: parseExpressionString("name"),
+          distinct: true,
+        },
+      );
+      // Map and push aspiring pages directly into allPages
+      allPages.push(
+        ...aspiringPageNames.map((name): PageMeta => ({
+          ref: name,
+          tag: "page",
+          _isAspiring: true,
+          name: name,
+          created: "", // Aspiring pages don't have timestamps yet
+          lastModified: "", // Aspiring pages don't have timestamps yet
+          perm: "rw",
+        })),
+      );
+    } else {
+      // **** Logic when initial sync is NOT YET completed OR index plug isn't ready ****
+      // Use space.fetchPageList() directly
+      console.log(
+        "Initial sync not complete or index plug not loaded. Fetching page list directly using space.fetchPageList().",
+      );
+      try {
+        // Call fetchPageList directly
+        allPages = await this.space.fetchPageList();
+
+        // Let's do some heuristic based post processing
+        for (const page of allPages) {
+          // These are _mostly_ meta pages, let's add a tag for them
+          if (page.name.startsWith("Library/")) {
+            page.tags = ["meta"];
+          }
+        }
+      } catch (e) {
+        console.error("Failed to list pages directly from space:", e);
+        // Handle error, maybe show notification or leave list empty
+        this.flashNotification(
+          "Could not fetch page list directly.",
+          "error",
+        );
+      }
+      // Note: Aspiring pages are not available through fetchPageList()
     }
-    const allPages = await this.clientSystem.queryLuaObjects<PageMeta>(
-      "page",
-      {},
-    );
-    const allAspiringPages =
-      (await this.clientSystem.queryLuaObjects<string>("aspiring-page", {
-        select: parseExpressionString("name"),
-        distinct: true,
-      })).map((name): PageMeta => ({
-        ref: name,
-        tag: "page",
-        _isAspiring: true,
-        name: name,
-        created: "",
-        lastModified: "",
-        perm: "rw",
-      }));
 
     this.ui.viewDispatch({
       type: "update-page-list",
-      allPages: allPages.concat(allAspiringPages),
+      allPages: allPages,
     });
   }
 
