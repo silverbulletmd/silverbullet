@@ -8,6 +8,11 @@ templates.pageItem = template.new([==[
 * [[${name}]]
 ]==])
 
+-- Renders a page object as a linked list item with full path
+templates.fullPageItem = template.new([==[
+* [[${name}|${name}]]
+]==])
+
 -- Renders a task object as a togglable task
 templates.taskItem = template.new([==[
 * [${state}] [[${ref}]] ${name}

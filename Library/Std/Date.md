@@ -27,6 +27,27 @@ end
 function date.time()
   return os.date(date.time_format)
 end
+
+slashcommand.define {
+  name = "today",
+  run = function()
+    editor.insertAtCursor(date.today())
+  end
+}
+
+slashcommand.define {
+  name = "yesterday",
+  run = function()
+    editor.insertAtCursor(date.yesterday())
+  end
+}
+
+slashcommand.define {
+  name = "tomorrow",
+  run = function()
+    editor.insertAtCursor(date.tomorrow())
+  end
+}
 ```
 
 # Examples

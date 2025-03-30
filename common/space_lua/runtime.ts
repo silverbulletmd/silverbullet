@@ -282,13 +282,15 @@ export class LuaNativeJSFunction implements ILuaFunction {
   constructor(readonly fn: (...args: JSValue[]) => JSValue) {
   }
 
-  // Performs automatic conversion between Lua and JS values
+  // Performs automatic conversion between Lua and JS values for arguments, but not for return values
   call(sf: LuaStackFrame, ...args: LuaValue[]): Promise<LuaValue> | LuaValue {
-    const result = this.fn(...args.map((v) => luaValueToJS(v, sf)));
-    if (result instanceof Promise) {
-      return result.then(jsToLuaValue);
+    const evaluatedArgs = evalPromiseValues(
+      args.map((v) => luaValueToJS(v, sf)),
+    );
+    if (evaluatedArgs instanceof Promise) {
+      return evaluatedArgs.then((args) => this.fn(...args));
     } else {
-      return jsToLuaValue(result);
+      return this.fn(...evaluatedArgs);
     }
   }
 

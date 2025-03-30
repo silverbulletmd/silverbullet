@@ -59,8 +59,17 @@ export function editorSyscalls(client: Client): SysCallMapping {
     "editor.getCursor": (): number => {
       return client.editorView.state.selection.main.from;
     },
-    "editor.getSelection": (): { from: number; to: number } => {
-      return client.editorView.state.selection.main;
+    "editor.getSelection": (): { from: number; to: number; text: string } => {
+      const selection = client.editorView.state.selection.main;
+      const text = client.editorView.state.sliceDoc(
+        selection.from,
+        selection.to,
+      );
+      return {
+        from: selection.from,
+        to: selection.to,
+        text,
+      };
     },
     "editor.save": () => {
       return client.save(true);

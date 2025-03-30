@@ -58,4 +58,44 @@ slashcommand.define {
     editor.replaceRange(line.from, line.to, ws .. "* [ ] " .. rest, true)
   end
 }
+
+slashcommand.define {
+  name = "hr",
+  run = function()
+    editor.insertAtCursor("---\n")
+  end
+}
+
+slashcommand.define {
+  name = "note-admonition",
+  run = function()
+    editor.insertAtCursor([==[
+> **note** Note
+> |^|
+]==], false, true)
+  end
+}
+
+slashcommand.define {
+  name = "warning-admonition",
+  run = function()
+    editor.insertAtCursor([==[
+> **warning** Warning
+> |^|
+]==], false, true)
+  end
+}
+
+slashcommand.define {
+  name = "table",
+  exceptContexts = {"FencedCode"},
+  run = function()
+    editor.insertAtCursor([==[
+| Header A | Header B |
+|----------|----------|
+| Cell A|^| | Cell B |
+]==], false, true)
+  end
+}
+
 ```

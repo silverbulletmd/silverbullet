@@ -1,6 +1,7 @@
 import {
   jsToLuaValue,
   LuaBuiltinFunction,
+  LuaNativeJSFunction,
   LuaTable,
   luaValueToJS,
 } from "$common/space_lua/runtime.ts";
@@ -75,4 +76,10 @@ export const jsApi = new LuaTable({
   createTextNode: new LuaBuiltinFunction((_sf, text) =>
     document.createTextNode(text)
   ),
+  Blob: new LuaNativeJSFunction((
+    blobParts: any[],
+    options: BlobPropertyBag,
+  ) => {
+    return new Blob(blobParts, options);
+  }),
 });

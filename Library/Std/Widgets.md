@@ -123,8 +123,8 @@ local mentionTemplate = template.new [==[
 * [[${_.ref}]]: “${_.snippet}”
 ]==]
 
-function widgets.linkedMentions()
-  local pageName = editor.getCurrentPage()
+function widgets.linkedMentions(pageName)
+  pageName = pageName or editor.getCurrentPage()
   local linkedMentions = query[[
     from index.tag "link"
     where _.page != pageName and _.toPage == pageName
@@ -142,6 +142,36 @@ event.listen {
   name = "hooks:renderBottomWidgets",
   run = function(e)
     return widgets.linkedMentions()
+  end
+}
+```
+
+# Linked tasks
+```space-lua
+function widgets.linkedTasks(pageName)
+  pageName = pageName or editor.getCurrentPage()
+  local tasks = query[[
+    from index.tag "task"
+    where not _.done
+      and string.find(_.name, "[[" .. pageName .. "]]", 1, true)
+  ]]
+  local md = ""
+  if #tasks > 0 then
+    md = "# Linked Tasks\n"
+       .. template.each(tasks, templates.taskItem)
+  else
+    md = ""
+  end
+  return widget.new {
+    markdown = md
+  }
+end
+
+event.listen {
+  name = "hooks:renderTopWidgets",
+  run = function(e)
+    print("Linked tasks")
+    return widgets.linkedTasks()
   end
 }
 ```

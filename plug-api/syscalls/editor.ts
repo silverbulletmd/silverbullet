@@ -70,7 +70,9 @@ export function getCursor(): Promise<number> {
 /**
  * Returns the line number and column number of the cursor in the editor
  */
-export function getSelection(): Promise<{ from: number; to: number }> {
+export function getSelection(): Promise<
+  { from: number; to: number; text: string }
+> {
   return syscall("editor.getSelection");
 }
 
@@ -299,8 +301,14 @@ export function moveCursorToLine(
 export function insertAtCursor(
   text: string,
   scrollIntoView = false,
+  cursorPlaceHolder = false,
 ): Promise<void> {
-  return syscall("editor.insertAtCursor", text, scrollIntoView);
+  return syscall(
+    "editor.insertAtCursor",
+    text,
+    scrollIntoView,
+    cursorPlaceHolder,
+  );
 }
 
 /**

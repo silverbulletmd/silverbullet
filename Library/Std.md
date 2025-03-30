@@ -1,3 +1,5 @@
+#meta
+
 This is the start of the standard library distributed as part of SilverBullet core. All pages under this prefix are read-only.
 
 ${template.each(query[[
