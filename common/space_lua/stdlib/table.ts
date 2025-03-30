@@ -112,7 +112,7 @@ export const tableApi = new LuaTable({
    * @returns True if the value is in the table, false otherwise.
    */
   includes: new LuaBuiltinFunction(
-    (sf, tbl: LuaTable | Record<string, any>, value: LuaValue) => {
+    (sf, tbl: LuaTable | any[], value: LuaValue) => {
       if (!tbl) {
         return false;
       }

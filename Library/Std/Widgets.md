@@ -170,7 +170,6 @@ end
 event.listen {
   name = "hooks:renderTopWidgets",
   run = function(e)
-    print("Linked tasks")
     return widgets.linkedTasks()
   end
 }

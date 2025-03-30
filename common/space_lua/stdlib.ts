@@ -6,7 +6,7 @@ import {
   luaGet,
   LuaMultiRes,
   LuaRuntimeError,
-  LuaTable,
+  type LuaTable,
   luaToString,
   luaTypeOf,
   type LuaValue,
@@ -52,7 +52,7 @@ const pairsFunction = new LuaBuiltinFunction(
     let keys: any[];
     if (Array.isArray(t)) {
       keys = Array.from({ length: t.length }, (_, i) => i + 1); // For arrays, generate 1-based indices
-    } else if (t instanceof LuaTable) {
+    } else if (t.keys) {
       keys = t.keys();
     } else {
       keys = Object.keys(t); // For plain JavaScript objects
