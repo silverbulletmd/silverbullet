@@ -298,7 +298,7 @@ export class MainUI {
           actionButtons={[
             // Vertical menu button
             ...(viewState.isMobile &&
-                client.config.get<string>("mobileMenuStyle", "").includes(
+                client.config.get<string>("mobileMenuStyle", "hamburger").includes(
                   "hamburger",
                 ))
               ? [{
@@ -358,7 +358,7 @@ export class MainUI {
             ? viewState.current?.meta?.pageDecoration?.cssClasses
               .join(" ").replaceAll(/[^a-zA-Z0-9-_ ]/g, "")
             : ""}
-          mobileMenuStyle={client.config.get<string>("mobileMenuStyle", "")}
+          mobileMenuStyle={client.config.get<string>("mobileMenuStyle", "hamburger")}
         />
         <div id="sb-main">
           {!!viewState.panels.lhs.mode && (
