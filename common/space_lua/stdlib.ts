@@ -6,7 +6,7 @@ import {
   luaGet,
   LuaMultiRes,
   LuaRuntimeError,
-  type LuaTable,
+  LuaTable,
   luaToString,
   luaTypeOf,
   type LuaValue,
@@ -35,7 +35,7 @@ const assertFunction = new LuaBuiltinFunction(
   },
 );
 
-const ipairsFunction = new LuaBuiltinFunction((sf, ar: LuaTable) => {
+const ipairsFunction = new LuaBuiltinFunction((sf, ar: LuaTable | any[]) => {
   let i = 1;
   return async () => {
     if (i > ar.length) {
@@ -47,30 +47,44 @@ const ipairsFunction = new LuaBuiltinFunction((sf, ar: LuaTable) => {
   };
 });
 
-const pairsFunction = new LuaBuiltinFunction((sf, t: LuaTable) => {
-  const keys = t.keys();
-  let i = 0;
-  return async () => {
-    if (i >= keys.length) {
-      return;
+const pairsFunction = new LuaBuiltinFunction(
+  (sf, t: LuaTable | any[] | Record<string, any>) => {
+    let keys: any[];
+    if (Array.isArray(t)) {
+      keys = Array.from({ length: t.length }, (_, i) => i + 1); // For arrays, generate 1-based indices
+    } else if (t instanceof LuaTable) {
+      keys = t.keys();
+    } else {
+      keys = Object.keys(t); // For plain JavaScript objects
     }
-    const key = keys[i];
-    i++;
-    return new LuaMultiRes([key, await luaGet(t, key, sf)]);
-  };
-});
 
-export const eachFunction = new LuaBuiltinFunction((sf, ar: LuaTable) => {
-  let i = 1;
-  return async () => {
-    if (i > ar.length) {
-      return;
-    }
-    const result = await luaGet(ar, i, sf);
-    i++;
-    return result;
-  };
-});
+    let i = 0;
+    return async () => {
+      if (i >= keys.length) {
+        return;
+      }
+      const key = keys[i];
+      i++;
+      const value = await luaGet(t, key, sf);
+      return new LuaMultiRes([key, value]);
+    };
+  },
+);
+
+export const eachFunction = new LuaBuiltinFunction(
+  (sf, ar: LuaTable | any[]) => {
+    let i = 1;
+    const length = ar.length;
+    return async () => {
+      if (i > length) {
+        return;
+      }
+      const result = await luaGet(ar, i, sf);
+      i++;
+      return result;
+    };
+  },
+);
 
 const unpackFunction = new LuaBuiltinFunction(async (sf, t: LuaTable) => {
   const values: LuaValue[] = [];
