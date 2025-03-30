@@ -70,7 +70,7 @@ function serializeToYamlValue(
   }
 }
 
-export function applyMinimalSetKeyPatches(
+export function applyPatches(
   yamlString: string,
   patches: SetKeyPatch[],
 ): string {
@@ -89,86 +89,93 @@ export function applyMinimalSetKeyPatches(
 
     const key = patch.path;
 
-    // Regex to find the key at the beginning of a line, optionally indented,
-    // capturing the value and any trailing comment separately
-    const regex = new RegExp(
-      `^(\\s*)(${key}):\\s*([^#\\n]*?)\\s*(#.*)?\\s*$`,
-      "m",
-    );
-    const match = currentYaml.match(regex);
+    // Split the YAML into lines for easier processing
+    const lines = currentYaml.split("\n");
+    let keyLineIndex = -1;
+    let commentBlock = "";
+    let trailingComments = "";
+    let inlineComment = "";
 
-    if (match) {
-      // Key found: Replace the existing line/block
-      const [fullMatch, indentation, _keyMatch, _oldValue, inlineComment = ""] =
-        match;
-      const originalLine = fullMatch;
-
-      // Serialize the new value. Pass the key's indentation for list/object formatting.
-      const serializedNewValue = serializeToYamlValue(patch.value, indentation);
-
-      let replacementString: string;
-      // Check if the new value requires multi-line formatting (list/object starting with newline)
-      if (serializedNewValue.startsWith("\n")) {
-        // For lists/objects, the key line ends with just ':' plus any comment
-        replacementString =
-          `${indentation}${key}:${inlineComment}${serializedNewValue}`;
-      } else {
-        // For scalars, format as key: value plus any comment
-        // Ensure proper spacing around the inline comment
-        replacementString = `${indentation}${key}: ${serializedNewValue}${
-          inlineComment ? " " + inlineComment : ""
-        }`;
-      }
-
-      // Find any standalone comments before this key and preserve them
-      const lines = currentYaml.split("\n");
-      const keyLineIndex = lines.findIndex((line) =>
-        line.trim() === originalLine.trim()
-      );
-      let commentBlock = "";
-
-      // Look backwards from the key line to collect any standalone comments
-      for (let i = keyLineIndex - 1; i >= 0; i--) {
-        const line = lines[i].trim();
-        if (line.startsWith("#")) {
-          commentBlock = lines[i] + "\n" + commentBlock;
-        } else if (line !== "") {
-          break;
+    // Find the key line and collect comments
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmedLine = line.trim();
+      if (trimmedLine.startsWith(key + ":")) {
+        keyLineIndex = i;
+        // Extract inline comment if present
+        const commentMatch = line.match(/#.*$/);
+        if (commentMatch) {
+          inlineComment = commentMatch[0];
         }
+        // Look backwards for comments
+        for (let j = i - 1; j >= 0; j--) {
+          const prevLine = lines[j].trim();
+          if (prevLine.startsWith("#")) {
+            commentBlock = lines[j] + "\n" + commentBlock;
+          } else if (prevLine !== "") {
+            break;
+          }
+        }
+        // Look forwards for comments
+        for (let j = i + 1; j < lines.length; j++) {
+          const nextLine = lines[j].trim();
+          if (nextLine.startsWith("#")) {
+            trailingComments += lines[j] + "\n";
+          } else if (nextLine !== "") {
+            break;
+          }
+        }
+        break;
       }
+    }
 
-      // Replace the original line while preserving comments
-      if (commentBlock) {
-        currentYaml = currentYaml.replace(
-          commentBlock + originalLine,
-          commentBlock + replacementString,
-        );
-      } else {
-        currentYaml = currentYaml.replace(originalLine, replacementString);
-      }
+    // Serialize the new value
+    const serializedNewValue = serializeToYamlValue(patch.value);
+
+    // Create the replacement line
+    let replacementLine: string;
+    if (serializedNewValue.startsWith("\n")) {
+      // For lists/objects, the key line ends with just ':'
+      replacementLine = `${key}:${inlineComment}${serializedNewValue}`;
+    } else {
+      // For scalars, format as key: value
+      replacementLine = `${key}: ${serializedNewValue}${
+        inlineComment ? " " + inlineComment : ""
+      }`;
+    }
+
+    if (keyLineIndex !== -1) {
+      // Replace the existing line while preserving comments
+      const beforeKey = lines.slice(
+        0,
+        keyLineIndex - commentBlock.split("\n").filter(Boolean).length,
+      );
+      const afterKey = lines.slice(
+        keyLineIndex + 1 + trailingComments.split("\n").filter(Boolean).length,
+      );
+
+      // Build the new content
+      const newContent = [
+        ...beforeKey,
+        ...commentBlock.split("\n").filter(Boolean),
+        replacementLine,
+        ...trailingComments.split("\n").filter(Boolean),
+        ...afterKey,
+      ];
+
+      // Join lines and ensure proper newlines
+      currentYaml = newContent.join("\n").replace(/\n*$/, "\n") + "\n";
     } else {
       // Key not found: Add the new key-value pair to the end
-      const indentation = ""; // No indentation for new top-level keys
-      const serializedNewValue = serializeToYamlValue(patch.value, indentation);
-
-      let newLineBlock: string;
-      // Check if the new value requires multi-line formatting
-      if (serializedNewValue.startsWith("\n")) {
-        newLineBlock = `${key}:${serializedNewValue}`; // Key, colon, then newline and indented items/properties
-      } else {
-        newLineBlock = `${key}: ${serializedNewValue}`; // Key, colon, space, scalar value
-      }
-
-      // Append the new line/block, ensuring proper spacing
+      const newLineBlock = replacementLine;
       if (currentYaml.trim() === "") {
-        currentYaml = newLineBlock; // If yaml was empty, just set it
+        currentYaml = newLineBlock + "\n";
       } else {
-        // Add a newline before appending if needed
-        currentYaml = currentYaml.replace(/\n*$/, "\n"); // Ensure single trailing newline
-        currentYaml += newLineBlock + "\n"; // Append and add trailing newline
+        currentYaml = currentYaml.replace(/\n*$/, "\n") + newLineBlock + "\n";
       }
     }
   }
 
-  return currentYaml;
+  // Ensure the result ends with a newline
+  return currentYaml.replace(/\n*$/, "\n");
 }

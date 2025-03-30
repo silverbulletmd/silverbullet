@@ -23,6 +23,10 @@ functions:
     path: api.ts:extractFrontmatter
     syscall: index.extractFrontmatter
 
+  patchFrontmatter:
+    path: api.ts:patchFrontmatter
+    syscall: index.patchFrontmatter
+
   # Event handlers
   clearIndex:
     path: api.ts:clearIndex

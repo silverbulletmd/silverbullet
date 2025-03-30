@@ -7,7 +7,11 @@ import {
   type FrontMatter,
   type FrontmatterExtractOptions,
 } from "../../plug-api/lib/frontmatter.ts";
-import { renderToText } from "@silverbulletmd/silverbullet/lib/tree";
+import {
+  collectNodesOfType,
+  renderToText,
+} from "@silverbulletmd/silverbullet/lib/tree";
+import { applyPatches, type SetKeyPatch } from "$lib/yaml.ts";
 
 const indexKey = "idx";
 const pageKey = "ridx";
@@ -164,4 +168,26 @@ export async function extractFrontmatter(
   const tree = await markdown.parseMarkdown(text);
   const frontmatter = await extractFrontmatterFromTree(tree, extractOptions);
   return { frontmatter, text: renderToText(tree) };
+}
+
+export async function patchFrontmatter(
+  text: string,
+  patches: SetKeyPatch[],
+): Promise<string> {
+  const tree = await markdown.parseMarkdown(text);
+  const frontmatter = collectNodesOfType(tree, "FrontMatterCode");
+
+  if (frontmatter.length === 0) {
+    // No frontmatter found, create from the patches
+    const patchedFrontmatter = applyPatches("", patches);
+    return "---\n" + patchedFrontmatter + "---\n\n" + text;
+  } else {
+    // Existing frontmatter found, patch it
+    const frontmatterText = renderToText(frontmatter[0]);
+    const patchedFrontmatter = applyPatches(frontmatterText, patches);
+
+    // Replace the frontmatter with the patched frontmatter in the original string
+    return text.slice(0, frontmatter[0].from) + patchedFrontmatter +
+      text.slice(frontmatter[0].to);
+  }
 }
