@@ -1,5 +1,5 @@
 import { assertEquals, assertExists } from "@std/assert";
-import { applyMinimalSetKeyPatches, SetKeyPatch } from "./yaml.ts";
+import { applyMinimalSetKeyPatches, type SetKeyPatch } from "./yaml.ts";
 
 Deno.test("YAML patching - basic scalar operations", () => {
   const initialYaml = `

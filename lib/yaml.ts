@@ -99,7 +99,7 @@ export function applyMinimalSetKeyPatches(
 
     if (match) {
       // Key found: Replace the existing line/block
-      const [fullMatch, indentation, keyMatch, oldValue, inlineComment = ""] =
+      const [fullMatch, indentation, _keyMatch, _oldValue, inlineComment = ""] =
         match;
       const originalLine = fullMatch;
 
