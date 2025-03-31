@@ -6,7 +6,7 @@ export type Tag = {
   body: Tag[] | string;
 } | string;
 
-function htmlEscape(s: string): string {
+export function htmlEscape(s: string): string {
   if (typeof s !== "string") {
     return s;
   }

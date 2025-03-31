@@ -19,6 +19,7 @@ import {
 import { LockoutTimer } from "./lockout.ts";
 import type { AuthOptions } from "../cmd/server.ts";
 import type { ClientConfig } from "../web/client.ts";
+import { htmlEscape } from "../plugs/markdown/html_render.ts";
 
 const authenticationExpirySeconds = 60 * 60 * 24 * 7; // 1 week
 
@@ -119,7 +120,7 @@ export class HttpServer {
       const placeholder = `{{${key}}}`;
       const stringValue = typeof value === "boolean"
         ? (value ? "true" : "false")
-        : (key === "DESCRIPTION" ? JSON.stringify(value) : String(value));
+        : (key === "DESCRIPTION" ? htmlEscape(value) : String(value));
       html = html.replace(placeholder, stringValue);
     }
     return c.html(
