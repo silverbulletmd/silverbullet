@@ -17,7 +17,7 @@ export function Prompt({
   message: string;
   defaultValue?: string;
   vimMode: boolean;
-  darkMode: boolean;
+  darkMode: boolean | undefined;
   completer: (context: CompletionContext) => Promise<CompletionResult | null>;
   callback: (value?: string) => void;
 }) {
