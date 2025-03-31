@@ -55,7 +55,11 @@ const pairsFunction = new LuaBuiltinFunction(
     } else if (t.keys) {
       keys = t.keys();
     } else {
-      keys = Object.keys(t); // For plain JavaScript objects
+      // For plain JavaScript objects case, note: this will also includes keys from the prototype
+      keys = [];
+      for (const key in t) {
+        keys.push(key);
+      }
     }
 
     let i = 0;

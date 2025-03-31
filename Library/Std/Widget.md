@@ -18,8 +18,10 @@ local widgetSchema = {
     markdown = { type = "string"},
     html = {
       anyOf = {
+        -- HTMLElement
         { type = "object"},
-        { type =  "string" }
+        -- Plain HTML code
+        { type = "string" }
       }
     },
     cssClasses = {
@@ -47,5 +49,12 @@ function widget.new(spec)
   -- Mark as a widget
   spec._isWidget = true
   return spec
+end
+
+-- Convenience function for HTML widgets
+function widget.html(html)
+  return widget.new {
+    html = html
+  }
 end
 ```

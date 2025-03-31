@@ -69,17 +69,6 @@ export const jsApi = new LuaTable({
    */
   stringify: new LuaBuiltinFunction((_sf, val) => JSON.stringify(val)),
 
-  // Exposing DOM functions
-  createElement: new LuaBuiltinFunction((_sf, tag) =>
-    document.createElement(tag)
-  ),
-  createTextNode: new LuaBuiltinFunction((_sf, text) =>
-    document.createTextNode(text)
-  ),
-  Blob: new LuaNativeJSFunction((
-    blobParts: any[],
-    options: BlobPropertyBag,
-  ) => {
-    return new Blob(blobParts, options);
-  }),
+  // Expose the global window object
+  window: window,
 });

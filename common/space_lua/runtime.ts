@@ -586,7 +586,7 @@ export function luaGet(
   key: any,
   sf: LuaStackFrame,
 ): Promise<any> | any {
-  if (!obj) {
+  if (obj === null || obj === undefined) {
     throw new LuaRuntimeError(
       `Attempting to index a nil value`,
       sf,
