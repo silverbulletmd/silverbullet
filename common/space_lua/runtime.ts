@@ -642,11 +642,14 @@ export function luaCall(
     );
   }
   if (typeof fn === "function") {
-    const jsArgs = args.map((v) =>
-      luaValueToJS(v, sf || LuaStackFrame.lostFrame)
+    const jsArgs = evalPromiseValues(
+      args.map((v) => luaValueToJS(v, sf || LuaStackFrame.lostFrame)),
     );
-    // Native JS function
-    return fn(...jsArgs);
+    if (jsArgs instanceof Promise) {
+      return jsArgs.then((jsArgs) => fn(...jsArgs));
+    } else {
+      return fn(...jsArgs);
+    }
   }
   if (!fn.call) {
     throw new LuaRuntimeError(
@@ -901,9 +904,14 @@ export function luaValueToJS(value: any, sf: LuaStackFrame): any {
     value instanceof LuaBuiltinFunction
   ) {
     return (...args: any[]) => {
-      return jsToLuaValue(
-        value.call(sf, ...args.map((v) => luaValueToJS(v, sf))),
+      const jsArgs = evalPromiseValues(
+        args.map((v) => luaValueToJS(v, sf)),
       );
+      if (jsArgs instanceof Promise) {
+        return jsArgs.then((jsArgs) => value.call(sf, ...jsArgs));
+      } else {
+        return value.call(sf, ...jsArgs);
+      }
     };
   } else {
     return value;

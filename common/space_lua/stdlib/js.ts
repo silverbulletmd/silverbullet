@@ -70,5 +70,5 @@ export const jsApi = new LuaTable({
   stringify: new LuaBuiltinFunction((_sf, val) => JSON.stringify(val)),
 
   // Expose the global window object
-  window: window,
+  window: globalThis,
 });
