@@ -9,6 +9,8 @@ import { AssetBundle, type AssetJson } from "../lib/asset_bundle/bundle.ts";
 
 import { determineDatabaseBackend } from "../server/db_backend.ts";
 import { sleep } from "$lib/async.ts";
+import { LuaStackFrame } from "$common/space_lua/runtime.ts";
+import { luaBuildStandardEnv } from "$common/space_lua/stdlib.ts";
 
 export type AuthOptions = {
   authToken?: string;
@@ -37,7 +39,23 @@ export async function serveCommand(
 
   const readOnly = !!Deno.env.get("SB_READ_ONLY");
 
-  const indexPage = Deno.env.get("SB_INDEX_PAGE") || "index";
+  // Support template syntax in SB_INDEX_PAGE
+  let indexPage = Deno.env.get("SB_INDEX_PAGE") || "index";
+  if (indexPage.includes("${")) {
+    // Create a Lua environment with standard library to evaluate the template
+    const env = luaBuildStandardEnv();
+    const sf = new LuaStackFrame(env, null);
+    sf.threadLocal.set("_GLOBAL", env);
+    try {
+      indexPage = await env.get("spacelua").get("interpolate").call(
+        sf,
+        indexPage,
+      );
+    } catch (e) {
+      console.error("Error evaluating SB_INDEX_PAGE template:", e);
+      indexPage = "index";
+    }
+  }
 
   if (!folder) {
     // Didn't get a folder as an argument, check if we got it as an environment variable
