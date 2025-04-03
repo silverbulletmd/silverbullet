@@ -11,6 +11,27 @@ Returns the meta data of the page currently open in the editor.
 Example:
 ${editor.getCurrentPageMeta()}
 
+### editor.getCurrentPath(extension?)
+Returns the name of the page or document currently open in the editor.
+
+Parameters:
+- `extension`: If true, returns page paths with their `.md` extension
+
+Example:
+```lua
+local path = editor.getCurrentPath(true)
+print(path)  -- prints: page.md
+```
+
+### editor.getCurrentEditor()
+Returns the name of the currently open editor.
+
+Example:
+```lua
+local editorName = editor.getCurrentEditor()
+print(editorName)
+```
+
 ### editor.getText()
 Returns the full text of the currently open page.
 
@@ -95,6 +116,27 @@ Example:
 editor.moveCursorToLine(1, 1, true)  -- Move to start of first line
 ```
 
+### editor.save()
+Force saves the current page.
+
+Example:
+```lua
+editor.save()
+```
+
+### editor.navigate(ref, replaceState?, newWindow?)
+Navigates to the specified page reference.
+
+Parameters:
+- `ref`: The page reference to navigate to
+- `replaceState`: Whether to replace the current history state
+- `newWindow`: Whether to open in a new window
+
+Example:
+```lua
+editor.navigate({ page: "other-page" })
+```
+
 ### editor.openPageNavigator(mode)
 Opens the page navigator.
 
@@ -109,6 +151,62 @@ Opens the command palette.
 Example:
 ```lua
 editor.openCommandPalette()
+```
+
+### editor.reloadPage()
+Force reloads the current page.
+
+Example:
+```lua
+editor.reloadPage()
+```
+
+### editor.reloadUI()
+Force reloads the browser UI.
+
+Example:
+```lua
+editor.reloadUI()
+```
+
+### editor.rebuildEditorState()
+Rebuilds the editor state to ensure the dispatch updates the state.
+
+Example:
+```lua
+editor.rebuildEditorState()
+```
+
+### editor.reloadConfigAndCommands()
+Reloads the config and commands, also in the server.
+
+Example:
+```lua
+editor.reloadConfigAndCommands()
+```
+
+### editor.openUrl(url, existingWindow?)
+Opens the specified URL in the browser.
+
+Example:
+```lua
+editor.openUrl("https://example.com")
+```
+
+### editor.newWindow()
+Opens a new window.
+
+Example:
+```lua
+editor.newWindow()
+```
+
+### editor.goHistory(delta)
+Moves in the browser history.
+
+Example:
+```lua
+editor.goHistory(-1)  -- Go back
 ```
 
 ### editor.showPanel(id, mode, html, script)
@@ -160,6 +258,17 @@ Example:
 editor.copyToClipboard("Copied text")
 ```
 
+### editor.filterBox(label, options, helpText?, placeHolder?)
+Shows a filter box UI.
+
+Example:
+```lua
+local result = editor.filterBox("Select:", {
+    { name: "Option 1", value: "1" },
+    { name: "Option 2", value: "2" }
+})
+```
+
 ### editor.toggleFold()
 Toggles code folding at the current position.
 
@@ -184,9 +293,106 @@ Example:
 editor.unfoldAll()
 ```
 
+### editor.undo()
+Undoes the last change.
+
+Example:
+```lua
+editor.undo()
+```
+
+### editor.redo()
+Redoes the last undone change.
+
+Example:
+```lua
+editor.redo()
+```
+
 ### editor.openSearchPanel()
 Opens the editor's search panel.
 
 Example:
 ```lua
 editor.openSearchPanel()
+```
+
+### editor.deleteLine()
+Deletes the current line.
+
+Example:
+```lua
+editor.deleteLine()
+```
+
+### editor.moveLineUp()
+Moves the current line up.
+
+Example:
+```lua
+editor.moveLineUp()
+```
+
+### editor.moveLineDown()
+Moves the current line down.
+
+Example:
+```lua
+editor.moveLineDown()
+```
+
+### editor.vimEx(exCommand)
+Executes a Vim ex command.
+
+Example:
+```lua
+editor.vimEx(":w")
+```
+
+### editor.sendMessage(type, data?)
+Sends a message to the editor.
+
+Example:
+```lua
+editor.sendMessage("custom-event", { data: "value" })
+```
+
+### editor.prompt(message, defaultValue?)
+Shows a prompt dialog.
+
+Example:
+```lua
+local result = editor.prompt("Enter your name:", "John")
+```
+
+### editor.confirm(message)
+Shows a confirmation dialog.
+
+Example:
+```lua
+local confirmed = editor.confirm("Are you sure?")
+```
+
+### editor.alert(message)
+Shows an alert dialog.
+
+Example:
+```lua
+editor.alert("Operation completed")
+```
+
+### editor.getUiOption(key)
+Gets a UI option value.
+
+Example:
+```lua
+local theme = editor.getUiOption("theme")
+```
+
+### editor.setUiOption(key, value)
+Sets a UI option value.
+
+Example:
+```lua
+editor.setUiOption("theme", "dark")
+```
