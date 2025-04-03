@@ -20,6 +20,8 @@ import { LockoutTimer } from "./lockout.ts";
 import type { AuthOptions } from "../cmd/server.ts";
 import type { ClientConfig } from "../web/client.ts";
 import { htmlEscape } from "../plugs/markdown/html_render.ts";
+import { luaBuildStandardEnv } from "../common/space_lua/stdlib.ts";
+import { LuaStackFrame } from "../common/space_lua/runtime.ts";
 
 const authenticationExpirySeconds = 60 * 60 * 24 * 7; // 1 week
 
@@ -93,6 +95,54 @@ export class HttpServer {
         } catch (e: any) {
           if (e.message !== "Not found") {
             console.error("Error server-side rendering page", e);
+          } else if (pageName === spaceServer.indexPage && spaceServer.indexPage.includes("${")) {
+            // For dynamic index pages, evaluate the template and render content directly
+            const env = luaBuildStandardEnv();
+            const sf = new LuaStackFrame(env, null);
+            sf.threadLocal.set("_GLOBAL", env);
+            try {
+              const result = await env.get("spacelua").get("interpolate").call(
+                sf,
+                spaceServer.indexPage,
+              );
+              // Render the evaluated content directly without creating a file
+              html = renderMarkdownToHtml(parse(extendedMarkdownLanguage, `# ${result}`));
+            } catch (e) {
+              console.error("Error evaluating dynamic index page:", e);
+              html = renderMarkdownToHtml(parse(extendedMarkdownLanguage, "# Error evaluating index page"));
+            }
+          } else if (pageName === "") {
+            // If we're at the root URL and the index page contains a template, evaluate it
+            if (spaceServer.indexPage.includes("${")) {
+              const env = luaBuildStandardEnv();
+              const sf = new LuaStackFrame(env, null);
+              sf.threadLocal.set("_GLOBAL", env);
+              try {
+                const result = await env.get("spacelua").get("interpolate").call(
+                  sf,
+                  spaceServer.indexPage,
+                );
+                // Render the evaluated content directly without creating a file
+                html = renderMarkdownToHtml(parse(extendedMarkdownLanguage, `# ${result}`));
+              } catch (e) {
+                console.error("Error evaluating dynamic index page:", e);
+                html = renderMarkdownToHtml(parse(extendedMarkdownLanguage, "# Error evaluating index page"));
+              }
+            } else {
+              // If no template, try to load the index page directly
+              try {
+                const { data, meta } = await spaceServer.spacePrimitives.readFile(
+                  `${spaceServer.indexPage}.md`,
+                );
+                lastModified = utcDateString(meta.lastModified);
+                const text = new TextDecoder().decode(data);
+                const tree = parse(extendedMarkdownLanguage, text);
+                html = renderMarkdownToHtml(tree);
+              } catch (e) {
+                console.error("Error loading index page:", e);
+                html = renderMarkdownToHtml(parse(extendedMarkdownLanguage, "# Error loading index page"));
+              }
+            }
           }
         }
       } else {
@@ -123,13 +173,18 @@ export class HttpServer {
         : (key === "DESCRIPTION" ? htmlEscape(value) : String(value));
       html = html.replace(placeholder, stringValue);
     }
-    return c.html(
-      html,
-      200,
-      {
-        "Last-Modified": lastModified,
-      },
-    );
+
+    // If this is the index page and it contains a template, prevent caching
+    const headers: Record<string, string> = {
+      "Last-Modified": lastModified,
+    };
+    if (pageName === spaceServer.indexPage && spaceServer.indexPage.includes("${")) {
+      headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate";
+      headers["Pragma"] = "no-cache";
+      headers["Expires"] = "0";
+    }
+
+    return c.html(html, 200, headers);
   }
 
   async start() {
@@ -146,7 +201,7 @@ export class HttpServer {
     );
     await this.spaceServer.init();
 
-    // Fallback, serve the UI index.html
+    // Handle all other paths
     this.app.use("*", (c) => {
       const url = new URL(c.req.url);
       const pageName = decodePageURI(url.pathname.slice(1));
@@ -178,15 +233,30 @@ export class HttpServer {
   }
 
   serveStatic() {
-    this.app.use("*", (c, next): Promise<void | Response> => {
+    this.app.use("*", async (c, next): Promise<void | Response> => {
       const req = c.req;
       const url = new URL(req.url);
       // console.log("URL", url);
-      if (
-        url.pathname === "/"
-      ) {
+      if (url.pathname === "/") {
         // Serve the UI (index.html)
         const indexPage = this.spaceServer.indexPage ?? "index";
+        // Evaluate the template on each request
+        if (indexPage.includes("${")) {
+          const env = luaBuildStandardEnv();
+          const sf = new LuaStackFrame(env, null);
+          sf.threadLocal.set("_GLOBAL", env);
+          try {
+            const result = await env.get("spacelua").get("interpolate").call(
+              sf,
+              indexPage,
+            );
+            // Use the evaluated result directly without creating a file
+            return this.renderHtmlPage(this.spaceServer, result, c);
+          } catch (e) {
+            console.error("Error evaluating SB_INDEX_PAGE template:", e);
+            return this.renderHtmlPage(this.spaceServer, "index", c);
+          }
+        }
         return this.renderHtmlPage(this.spaceServer, indexPage, c);
       }
       try {

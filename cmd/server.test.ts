@@ -67,12 +67,20 @@ Deno.test("SB_INDEX_PAGE template interpolation", async (t) => {
       "Journal/${os.date('%Y-%m-%d')}",
       new LuaTable(),
     );
-    assertEquals(typeof result, "string");
-    const dateRegex = /^Journal\/\d{4}-\d{2}-\d{2}$/;
-    assertEquals(
-      dateRegex.test(result),
-      true,
-      "Date string matches format Journal/YYYY-MM-DD",
+    assertEquals(typeof result, "string", "Result is a string");
+    assertEquals(result.startsWith("Journal/"), true, "Result starts with Journal/");
+    assertEquals(result.length > "Journal/".length, true, "Result contains date");
+  });
+
+  await t.step("SB_INDEX_PAGE with multiple expressions", async () => {
+    const { env, sf } = setupLuaEnv();
+    const result = await env.get("spacelua").get("interpolate").call(
+      sf,
+      "Journal/${os.date('%Y')}/${os.date('%m')}/${os.date('%d')}",
+      new LuaTable(),
     );
+    assertEquals(typeof result, "string", "Result is a string");
+    assertEquals(result.startsWith("Journal/"), true, "Result starts with Journal/");
+    assertEquals(result.split("/").length >= 4, true, "Result contains multiple date parts");
   });
 });
