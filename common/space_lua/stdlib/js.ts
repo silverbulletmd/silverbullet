@@ -1,7 +1,6 @@
 import {
   jsToLuaValue,
   LuaBuiltinFunction,
-  LuaNativeJSFunction,
   LuaTable,
   luaValueToJS,
 } from "$common/space_lua/runtime.ts";

@@ -49,13 +49,13 @@ const ipairsFunction = new LuaBuiltinFunction((sf, ar: LuaTable | any[]) => {
 
 const pairsFunction = new LuaBuiltinFunction(
   (sf, t: LuaTable | any[] | Record<string, any>) => {
-    let keys: any[];
+    let keys: (string | number)[];
     if (Array.isArray(t)) {
       keys = Array.from({ length: t.length }, (_, i) => i + 1); // For arrays, generate 1-based indices
     } else if (t.keys) {
       keys = t.keys();
     } else {
-      // For plain JavaScript objects case, note: this will also includes keys from the prototype
+      // For plain JavaScript objects case, note: this will also include keys from the prototype
       keys = [];
       for (const key in t) {
         keys.push(key);
