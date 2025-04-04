@@ -1,6 +1,8 @@
 import type { ParseTree } from "../plug-api/lib/tree.ts";
 import type { AppCommand, CommandDef, SlashCommand } from "$lib/command.ts";
 import type { SlashCommandDef } from "$lib/manifest.ts";
+import type { JSONSchemaType } from "ajv";
+import { jsToLuaValue, type LuaTable } from "$common/space_lua/runtime.ts";
 
 type FunctionDef = {
   name: string;
@@ -14,6 +16,12 @@ export type EventListenerDef = {
   name: string;
 };
 
+export type TagDef = {
+  name: string;
+  schema?: JSONSchemaType<any>;
+  metatable?: LuaTable;
+};
+
 type AttributeExtractorCallback = (
   text: string,
   tree: ParseTree,
@@ -23,10 +31,11 @@ export class ScriptEnvironment {
   functions: Record<string, (...args: any[]) => any> = {};
   commands: Record<string, AppCommand> = {};
   slashCommands: Record<string, SlashCommand> = {};
-  attributeExtractors: Record<string, AttributeExtractorCallback[]> = {};
   eventHandlers: Record<string, ((...args: any[]) => any)[]> = {};
+  tagDefs: Record<string, TagDef> = {};
 
-  // Public API
+  // DEPRECATED: To remove?
+  attributeExtractors: Record<string, AttributeExtractorCallback[]> = {};
 
   // Register function
   registerFunction(def: FunctionDef, fn: (...args: any[]) => any): void;
@@ -69,6 +78,13 @@ export class ScriptEnvironment {
     this.slashCommands[def.name] = {
       slashCommand: def,
       run: fn,
+    };
+  }
+
+  registerTag(def: TagDef) {
+    this.tagDefs[def.name] = {
+      ...def,
+      metatable: def.metatable ? jsToLuaValue(def.metatable) : undefined,
     };
   }
 

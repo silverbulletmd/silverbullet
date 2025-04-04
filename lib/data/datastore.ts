@@ -77,7 +77,8 @@ export class DataStore {
     query: LuaCollectionQuery,
     env: LuaEnv = new LuaEnv(),
     sf: LuaStackFrame = LuaStackFrame.lostFrame,
+    enricher?: (key: KvKey, item: any) => any,
   ): Promise<T[]> {
-    return queryLua(this.kv, prefix, query, env, sf);
+    return queryLua(this.kv, prefix, query, env, sf, enricher);
   }
 }

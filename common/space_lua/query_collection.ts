@@ -166,11 +166,15 @@ export async function queryLua<T = any>(
   query: LuaCollectionQuery,
   env: LuaEnv,
   sf: LuaStackFrame = LuaStackFrame.lostFrame,
+  enricher?: (key: KvKey, item: any) => any,
 ): Promise<T[]> {
   const result: T[] = [];
   for await (
-    const { value } of kv.query({ prefix })
+    let { key, value } of kv.query({ prefix })
   ) {
+    if (enricher) {
+      value = enricher(key, value);
+    }
     if (query.where) {
       // Enrich
       const itemEnv = buildItemEnv(query.objectVariable, value, env, sf);

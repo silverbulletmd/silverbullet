@@ -171,7 +171,7 @@ export class ClientSystem {
       clientCodeWidgetSyscalls(),
       languageSyscalls(),
       jsonschemaSyscalls(),
-      indexSyscalls(this.ds.kv),
+      indexSyscalls(client),
       commandSyscalls(this),
       luaSyscalls(this),
       mqSyscalls(this.mq),
