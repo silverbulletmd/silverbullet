@@ -108,13 +108,28 @@ const tostringFunction = new LuaBuiltinFunction((_sf, value: any) => {
   return luaToString(value);
 });
 
-const tonumberFunction = new LuaBuiltinFunction((_sf, value: LuaValue) => {
-  const n = Number(value);
-  if (isNaN(n)) {
-    return null;
-  }
-  return n;
-});
+const tonumberFunction = new LuaBuiltinFunction(
+  (_sf, value: LuaValue, base?: number) => {
+    if (typeof value === "string" && value.trim() === "") {
+      return null;
+    }
+    if (base !== undefined) {
+      if (base < 2 || base > 36) {
+        return null;
+      }
+      const n = parseInt(String(value), base);
+      if (isNaN(n)) {
+        return null;
+      }
+      return n;
+    }
+    const n = Number(value);
+    if (isNaN(n)) {
+      return null;
+    }
+    return n;
+  },
+);
 
 const errorFunction = new LuaBuiltinFunction((sf, message: string) => {
   throw new LuaRuntimeError(message, sf);
