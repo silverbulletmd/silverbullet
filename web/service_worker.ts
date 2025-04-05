@@ -106,39 +106,67 @@ self.addEventListener("fetch", (event: any) => {
 
       if (pathname === "/.config") {
         try {
-          // Attempt fetch
-          const response = await fetch(request);
-          if (response.status === 401) {
-            // Pass on the 401 to the client
-            return response;
-          }
-          const clientConfig: ClientConfig = await response.json();
-          await ds.set(["$clientConfig"], clientConfig);
-          console.log(
-            "[Service worker]",
-            "Serving and cached config",
-            clientConfig,
-          );
-          return new Response(JSON.stringify(clientConfig));
-        } catch (e: any) {
-          console.error("Failed to fetch client config", e.message);
-          // If fetch fails, try to get from cache
-          const clientConfig = await ds.get<ClientConfig>(["$clientConfig"]);
-          console.log(
-            "[Service worker]",
-            "Serving cached config",
-            clientConfig,
-          );
-          if (clientConfig) {
-            return new Response(JSON.stringify(clientConfig));
+          // First check if we have a cached config in ds
+          const cachedConfig = await ds?.get<ClientConfig>(["$clientConfig"]);
+
+          if (cachedConfig) {
+            // If we have a cached config, try to fetch fresh config with a timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 1000);
+
+            try {
+              const response = await fetch(request, {
+                signal: controller.signal,
+              });
+              clearTimeout(timeoutId);
+
+              if (response.status === 401) {
+                // Pass on the 401 to the client
+                return response;
+              }
+              const clientConfig = await response.json();
+              await ds.set(["$clientConfig"], clientConfig);
+              console.log(
+                "[Service worker]",
+                "Serving and cached fresh config",
+              );
+              return new Response(JSON.stringify(clientConfig));
+            } catch (e) {
+              clearTimeout(timeoutId);
+              // If timeout or other error occurs, use cached config
+              console.log(
+                "[Service worker]",
+                "Using cached config due to timeout or error:",
+                e instanceof Error ? e.message : String(e),
+              );
+              return new Response(JSON.stringify(cachedConfig));
+            }
           } else {
-            return new Response("{}", {
-              status: 404,
-              headers: {
-                "Content-Type": "application/json",
-              },
-            });
+            // No cached config, fetch without timeout
+            const response = await fetch(request);
+            if (response.status === 401) {
+              return response;
+            }
+            const clientConfig = await response.json();
+            await ds.set(["$clientConfig"], clientConfig);
+            console.log(
+              "[Service worker]",
+              "Serving and cached initial config",
+            );
+            return new Response(JSON.stringify(clientConfig));
           }
+        } catch (e: any) {
+          console.error(
+            "[Service worker]",
+            "Failed to fetch client config",
+            e.message,
+          );
+          return new Response("{}", {
+            status: 404,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
         }
       } else if (
         pathname === "/.auth" ||
