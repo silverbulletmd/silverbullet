@@ -67,6 +67,8 @@ import { diffAndPrepareChanges } from "./cm_util.ts";
 import { DocumentEditor } from "./document_editor.ts";
 import { parseExpressionString } from "$common/space_lua/parse.ts";
 import { Config } from "$common/config.ts";
+import { luaBuildStandardEnv } from "../common/space_lua/stdlib.ts";
+import { LuaStackFrame } from "../common/space_lua/runtime.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -262,6 +264,8 @@ export class Client {
     // Asynchronously update caches
     this.updatePageListCache().catch(console.error);
     this.updateDocumentListCache().catch(console.error);
+
+    // Don't evaluate the template at initialization, let it be evaluated on each navigation
   }
 
   public hasInitialSyncCompleted(): Promise<boolean> {
@@ -1067,7 +1071,25 @@ export class Client {
   ) {
     if (!ref.page) {
       ref.kind = "page";
-      ref.page = cleanPageRef(this.clientConfig.indexPage);
+      // Evaluate the template if it contains interpolation
+      const indexPage = this.clientConfig.indexPage;
+      if (indexPage.includes("${")) {
+        try {
+          const env = luaBuildStandardEnv();
+          const sf = new LuaStackFrame(env, null);
+          sf.threadLocal.set("_GLOBAL", env);
+          const result = await env.get("spacelua").get("interpolate").call(
+            sf,
+            indexPage,
+          );
+          ref.page = cleanPageRef(result);
+        } catch (e) {
+          console.error("Error evaluating index page template:", e);
+          ref.page = cleanPageRef("index");
+        }
+      } else {
+        ref.page = cleanPageRef(indexPage);
+      }
     }
 
     try {

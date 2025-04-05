@@ -2,10 +2,12 @@ import {
   encodePageURI,
   parseRef,
   type Ref,
-} from "@silverbulletmd/silverbullet/lib/page_ref";
+} from "../plug-api/lib/page_ref.ts";
 import type { Client } from "./client.ts";
-import { cleanPageRef } from "@silverbulletmd/silverbullet/lib/resolve";
+import { cleanPageRef } from "../plug-api/lib/resolve.ts";
 import { safeRun } from "../lib/async.ts";
+import { luaBuildStandardEnv } from "../common/space_lua/stdlib.ts";
+import { LuaStackFrame } from "../common/space_lua/runtime.ts";
 
 export type LocationState = Ref & {
   scrollTop?: number;
@@ -17,15 +19,12 @@ export type LocationState = Ref & {
 
 export class PathPageNavigator {
   navigationResolve?: () => void;
-  indexPage!: string;
 
   openLocations = new Map<string, LocationState>();
 
   constructor(
     private client: Client,
-  ) {
-    this.indexPage = cleanPageRef(this.client.clientConfig.indexPage);
-  }
+  ) {}
 
   /**
    * Navigates the client to the given page, this involves:
@@ -39,9 +38,6 @@ export class PathPageNavigator {
     ref: Ref,
     replaceState = false,
   ) {
-    if (ref.kind === "page" && ref.page === this.indexPage) {
-      ref.page = "";
-    }
     const currentState = this.buildCurrentLocationState();
     // No need to keep pos and anchor if we already have scrollTop and selection
     const cleanState: LocationState = currentState.kind === "page"
@@ -51,7 +47,8 @@ export class PathPageNavigator {
       }
       : currentState;
 
-    this.openLocations.set(currentState.page || this.indexPage, cleanState);
+    // Store the state with the original page name, not the evaluated one
+    this.openLocations.set(currentState.page || "", cleanState);
 
     if (!replaceState) {
       globalThis.history.replaceState(
@@ -115,7 +112,25 @@ export class PathPageNavigator {
           // This is the usual case
           if (!popState.page) {
             popState.kind = "page";
-            popState.page = this.indexPage;
+            // Evaluate the template if it contains interpolation
+            const indexPage = this.client.clientConfig.indexPage;
+            if (indexPage.includes("${")) {
+              try {
+                const env = luaBuildStandardEnv();
+                const sf = new LuaStackFrame(env, null);
+                sf.threadLocal.set("_GLOBAL", env);
+                const result = await env.get("spacelua").get("interpolate").call(
+                  sf,
+                  indexPage,
+                );
+                popState.page = cleanPageRef(result);
+              } catch (e) {
+                console.error("Error evaluating index page template:", e);
+                popState.page = cleanPageRef("index");
+              }
+            } else {
+              popState.page = cleanPageRef(indexPage);
+            }
           }
           if (
             popState.kind === "page" &&
@@ -124,7 +139,7 @@ export class PathPageNavigator {
             popState.scrollTop === undefined
           ) {
             // Pretty low-context popstate, so let's leverage openPages
-            const openPage = this.openLocations.get(popState.page);
+            const openPage = this.openLocations.get(popState.page || "");
             if (openPage && openPage.kind === "page") {
               popState.selection = openPage.selection;
               popState.scrollTop = openPage.scrollTop;
@@ -136,7 +151,25 @@ export class PathPageNavigator {
           const pageRef = parseRefFromURI();
           if (!pageRef.page) {
             pageRef.kind = "page";
-            pageRef.page = this.indexPage;
+            // Evaluate the template if it contains interpolation
+            const indexPage = this.client.clientConfig.indexPage;
+            if (indexPage.includes("${")) {
+              try {
+                const env = luaBuildStandardEnv();
+                const sf = new LuaStackFrame(env, null);
+                sf.threadLocal.set("_GLOBAL", env);
+                const result = await env.get("spacelua").get("interpolate").call(
+                  sf,
+                  indexPage,
+                );
+                pageRef.page = cleanPageRef(result);
+              } catch (e) {
+                console.error("Error evaluating index page template:", e);
+                pageRef.page = cleanPageRef("index");
+              }
+            } else {
+              pageRef.page = cleanPageRef(indexPage);
+            }
           }
           await pageLoadCallback(pageRef);
         }

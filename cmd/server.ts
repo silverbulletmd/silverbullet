@@ -9,6 +9,8 @@ import { AssetBundle, type AssetJson } from "../lib/asset_bundle/bundle.ts";
 
 import { determineDatabaseBackend } from "../server/db_backend.ts";
 import { sleep } from "$lib/async.ts";
+import { LuaStackFrame } from "$common/space_lua/runtime.ts";
+import { luaBuildStandardEnv } from "$common/space_lua/stdlib.ts";
 
 export type AuthOptions = {
   authToken?: string;
@@ -37,6 +39,7 @@ export async function serveCommand(
 
   const readOnly = !!Deno.env.get("SB_READ_ONLY");
 
+  // Get the index page template without evaluating it
   const indexPage = Deno.env.get("SB_INDEX_PAGE") || "index";
 
   if (!folder) {
