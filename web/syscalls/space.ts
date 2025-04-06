@@ -28,6 +28,19 @@ export function spaceReadSyscalls(editor: Client): SysCallMapping {
     ): Promise<DocumentMeta> => {
       return await editor.space.getDocumentMeta(name);
     },
+    // DEPRECATED, please use document versions instead, left here for backwards compatibility
+    "space.listAttachments": async (): Promise<DocumentMeta[]> => {
+      return await editor.space.fetchDocumentList();
+    },
+    "space.readAttachment": async (_ctx, name: string): Promise<Uint8Array> => {
+      return (await editor.space.readDocument(name)).data;
+    },
+    "space.getAttachmentMeta": async (
+      _ctx,
+      name: string,
+    ): Promise<DocumentMeta> => {
+      return await editor.space.getDocumentMeta(name);
+    },
     // FS
     "space.listFiles": (): Promise<FileMeta[]> => {
       return editor.space.spacePrimitives.fetchFileList();
