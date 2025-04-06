@@ -10,6 +10,9 @@ export function spaceReadSyscalls(editor: Client): SysCallMapping {
     "space.readPage": async (_ctx, name: string): Promise<string> => {
       return (await editor.space.readPage(name)).text;
     },
+    "space.pageExists": (_ctx, name: string): boolean => {
+      return editor.clientSystem.allKnownFiles.has(name + ".md");
+    },
     "space.getPageMeta": (_ctx, name: string): Promise<PageMeta> => {
       return editor.space.getPageMeta(name);
     },

@@ -25,6 +25,15 @@ export function getPageMeta(name: string): Promise<PageMeta> {
 }
 
 /**
+ * Check if a page exists in the space.
+ * @param name the name of the page to check
+ * @returns true if the page exists, false otherwise
+ */
+export function pageExists(name: string): Promise<boolean> {
+  return syscall("space.pageExists", name);
+}
+
+/**
  * Read a page from the space as text.
  * @param name the name of the page to read
  * @returns the text of the page

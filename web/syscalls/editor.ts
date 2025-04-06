@@ -223,8 +223,12 @@ export function editorSyscalls(client: Client): SysCallMapping {
       let cursorPlaceholderPos = -1;
       if (cursorPlaceHolder) {
         cursorPlaceholderPos = text.indexOf("|^|");
-        text = text.slice(0, cursorPlaceholderPos) +
-          text.slice(cursorPlaceholderPos + 3);
+        if (cursorPlaceholderPos !== -1) {
+          text = text.slice(0, cursorPlaceholderPos) +
+            text.slice(cursorPlaceholderPos + 3);
+        } else {
+          cursorPlaceHolder = false;
+        }
       }
       client.editorView.dispatch({
         changes: {
@@ -327,9 +331,11 @@ export function editorSyscalls(client: Client): SysCallMapping {
       const editorView = client.editorView;
       const from = editorView.state.selection.main.from;
       const cursorPlaceholderPos = text.indexOf("|^|");
-      if (cursorPlaceHolder) {
+      if (cursorPlaceHolder && cursorPlaceholderPos !== -1) {
         text = text.slice(0, cursorPlaceholderPos) +
           text.slice(cursorPlaceholderPos + 3);
+      } else {
+        cursorPlaceHolder = false;
       }
       editorView.dispatch({
         changes: {
