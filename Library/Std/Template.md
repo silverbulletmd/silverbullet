@@ -34,12 +34,16 @@ function template.new(templateStr)
   end
 end
 
+-- Reads a template from a page
+-- Return value:
+-- * The template itself
+-- * The extracted frontmatter
 function template.fromPage(name)
   local fm = index.extractFrontmatter(space.readPage(name),  {
     removeFrontmatterSection = true,
     removeTags = true
   })
 
-  return template.new(string.trimStart(fm.text))
+  return template.new(string.trimStart(fm.text)), fm.frontmatter
 end
 ```
