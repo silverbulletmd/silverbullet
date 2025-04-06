@@ -79,7 +79,7 @@ end
 -- Create commands for all page templates with a command key in frontmatter
 for pt in query[[
     from index.tag "meta/template/page"
-    where _.command
+    where _.tag == "page" and _.command
     order by _.priority desc
   ]] do
   command.define {
@@ -109,12 +109,16 @@ end
 command.define {
   name = "Page: From Template",
   run = function()
-    local pageTemplates = query[[from index.tag "meta/template/page"]]
+    local pageTemplates = query[[from index.tag "meta/template/page" where _.tag == "page"]]
     local selected = editor.filterBox("Page template", pageTemplates, "Pick the template you would like to instantiate")
     if not selected then
       return
     end
-    local pageName = editor.prompt("Page name", selected.suggestedName)
+    local pageName
+    if selected.suggestedName then
+      pageName = (template.new(selected.suggestedName))()
+    end
+    pageName = editor.prompt("Page name", pageName)
     if not pageName then
       return
     end

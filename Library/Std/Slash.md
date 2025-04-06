@@ -60,41 +60,12 @@ slashcommand.define {
 }
 
 slashcommand.define {
-  name = "hr",
+  name = "space-lua",
+  description = "Insert Space Lua script",
   run = function()
-    editor.insertAtCursor("---\n")
-  end
-}
-
-slashcommand.define {
-  name = "note-admonition",
-  run = function()
-    editor.insertAtCursor([==[
-> **note** Note
-> |^|
-]==], false, true)
-  end
-}
-
-slashcommand.define {
-  name = "warning-admonition",
-  run = function()
-    editor.insertAtCursor([==[
-> **warning** Warning
-> |^|
-]==], false, true)
-  end
-}
-
-slashcommand.define {
-  name = "table",
-  exceptContexts = {"FencedCode"},
-  run = function()
-    editor.insertAtCursor([==[
-| Header A | Header B |
-|----------|----------|
-| Cell A|^| | Cell B |
-]==], false, true)
+    editor.insertAtCursor([==[```space-lua
+|^|
+```]==], false, true)
   end
 }
 
