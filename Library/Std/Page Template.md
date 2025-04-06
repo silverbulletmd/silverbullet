@@ -122,7 +122,6 @@ command.define {
     if not pageName then
       return
     end
-    print("Selected page", selected)
     createPageFromTemplate(selected.name, pageName)
   end
 }
