@@ -17,11 +17,10 @@ SilverBullet’s UI is minimalist by design. Let’s look at the few UI elements
 
 * The [[Top Bar]] contains:
   * [[Page Namer]]
-  * [[Client Modes]] (the 🔄 button)
   * [[Index Page]] (the 🏠 button)
   * [[Page Picker]]
   * [[Command Palette]]
-* The main [[Editor]] component contains your page’s text
+* The main [[Editor]] component contains your currently selected page’s text
 
 # Core Concepts
 These are the core concepts used in SilverBullet:

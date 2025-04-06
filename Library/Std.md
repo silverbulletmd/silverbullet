@@ -1,6 +1,6 @@
 #meta
 
-This is the start of the standard library distributed as part of SilverBullet core. All pages under this prefix are read-only.
+This is the standard library distributed as part of SilverBullet core. All pages under this prefix are read-only and cannot be modified directly.
 
 ${template.each(query[[
   from index.tag "page"

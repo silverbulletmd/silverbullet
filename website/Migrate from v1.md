@@ -31,20 +31,9 @@ event.listen {
 
 See [[^Library/Std/Widgets]] for some examples.
 
-_Snippets_ can be implemented using the `slashcommand.define` API:
+_Snippets_ can be implemented as follows: [[^Library/Std/Slash Template]].
 
-```space-lua
-slashcommand.define {
-  name = "my-snippet",
-  run = function()
-    editor.insertAtCursor("Hello world!")
-  end
-}
-```
-
-See [[^Library/Std/Slash]] for more examples.
-
-_Page templates_ still need to be figured out, you can [chime in here](https://community.silverbullet.md/t/page-templates-in-v2/2037).
+_Page templates_ now work slightly differently: [[^Library/Std/Page Template]].
 
 # Plugs
 Many existing plugs _should_ keep working, but some may need updating.

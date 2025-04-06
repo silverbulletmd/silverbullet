@@ -115,7 +115,6 @@ export function luaDirectivePlugin(client: Client) {
                     ),
                     sf,
                   );
-                  // console.log("Result:", result);
                   return result;
                 } catch (e: any) {
                   if (e instanceof LuaRuntimeError) {

@@ -1,7 +1,7 @@
-Space Lua is a custom implementation of the [Lua programming language](https://lua.org/), embedded in SilverBullet. It aims to be a largely complete Lua implementation, and adds a few non-standard features while remaining syntactically compatible with “real” Lua.
+Space Lua is a custom dialect and implementation of the [Lua programming language](https://lua.org/), embedded in SilverBullet. It aims to be a largely complete Lua implementation, but adds a few non-standard features while remaining syntactically compatible with “real” Lua.
 
 # Basics
-In its essence, Space Lua adds two features to its [[Markdown]] language:
+In its essence, Space Lua adds two features to SilverBullet’s [[Markdown]] language:
 
 * **Definitions**: Code written in `space-lua` code blocks are enabled across your entire space.
 * **Expressions**: The `${expression}` syntax will [[Live Preview]] to its evaluated value.
@@ -16,9 +16,9 @@ function adder(a, b)
 end
 ```
 
-Each `space-lua` block has its own local scope. However, following Lua semantics, when functions and variables are not explicitly defined as `local` they will be available globally across your space. This means that the `adder` function above can be used in any other page.
+Each `space-lua` block has its own local scope. However, following Lua semantics, when functions and variables are not explicitly defined as `local` they will be available globally across your [[Spaces|space]]. This means that the `adder` function above can be used in any other page.
 
-Since there is a single global namespace, it is good practice to manually namespace things using the following pattern:
+Since there is a single global namespace, it is good practice to manually namespace functions using the following pattern:
 
 ```space-lua
 -- This initializes the stuff variable with an empty table if it's not already defined
@@ -30,11 +30,11 @@ end
 ```
 
 ## Load order
-It is possible to control load order of space lua scripts using a special `-- priority: <number>` comment in the Lua code.
+It is possible to control load order of space lua scripts using the special `-- priority: <number>` comment in Lua code.
 
 Scripts are loaded in _reverse priority_ order. When you set no priority (the default) your scripts will be run last.
 
-The order used is determined by this [[Space Lua/Lua Integrated Query|query]] (also helpfully part of your [[^Library/Std/Space Overview]]) page: 
+The order used is determined by this [[Space Lua/Lua Integrated Query|query]] (also part of your [[^Library/Std/Space Overview]]) page: 
 
     query[[
       from index.tag "space-lua"
@@ -50,12 +50,12 @@ Here are the conventions used by the [[Library/Std]] library:
   * `priority: 10`: for standard library definitions that may be overriden (by scripts with lower priority)
 
 > **note** Tip
-> All your space-lua scripts are loaded on boot, to reload them without reloading the page, simply run the ${widgets.commandButton("System: Reload")} command.
+> All your space-lua scripts are loaded on boot, to reload them without reloading the page, simply run the ${widgets.commandButton("System: Reload")} (Ctrl-Alt-r) command.
 
 # Expressions
 A new syntax introduced with Space Lua is the `${lua expression}` syntax that you can use in your pages. This syntax will [[Live Preview]] to the evaluation of that expression.
 
-For example: 10 + 2 = ${adder(10, 2)} (Alt-click, or select to see the expression) is using the just defined `adder` function to this rather impressive calculation. Yes, this may as well be written as `${10 + 2}` (${10 + 2}), but... you know.
+For example: 10 + 2 = ${adder(10, 2)} (Alt-click, or select to see the expression) is using the just defined `adder` function to this rather impressive calculation.
 
 ## Queries
 Space Lua has a feature called [[Space Lua/Lua Integrated Query]], which integrate SQL-like queries into Lua. Here’s a small example querying the last 3 modifies pages:
@@ -73,29 +73,24 @@ The `${lua expression}` syntax can be used to implement custom widgets. If the L
 To render a widget, call `widget.new` with any of the following keys:
 
 * `markdown`: Renders the value as markdown
-* `html`: Renders the value as HTML
-* `cssClasses`: Attach the specified CSS classes to this element (e.g. using CSS classes defined using [[Space Style]]).
+* `html`: Renders a HTML string as a widget. This is somewhat brittle. Therefore, it’s preferred to use the [[^Library/Std/DOM]] API (see an example below).
 * `display`: Render the value either `inline` or as a `block` (defaults to `inline`)
-* `events`: a table mapping from the event name to a callback function
 
-An example combining a few of these features:
+To render a custom HTML-based widget, use the [[^Library/Std/DOM]] API:
 
 ```space-lua
 function marquee(text)
-  return widget.new {
-    html="<marquee>" .. text .. "</marquee>";
-    display="block";
-    cssClasses={"my-marquee"},
-    events={
-      click=function()
-        editor.flashNotification("You marquee-clicked: " .. text)
-      end
-    }
+  return dom.marquee {
+    class = "my-marquee",
+    onclick = function()
+      editor.flashNotification "You clicked me"
+    end,
+    text
   }
 end
 ```
 
-And some [[Space Style]] to style it:
+We can combine this with some [[Space Style]] to style it:
 
 ```space-style
 .my-marquee {
@@ -103,7 +98,7 @@ And some [[Space Style]] to style it:
 }
 ```
 
-Now, let’s use it:
+Now, let’s use it (try clicking):
 ${marquee "Finally, marqeeeeeee!"}
 Oh boy, the times we live in!
 
@@ -122,6 +117,18 @@ command.define {
 
 Try it: ${widgets.commandButton("Hello World")}
 
+## Slash commands
+Custom slash commands can be defined using [[API/slashcommand#slashcommand.define(spec)]]:
+
+```space-lua
+slashcommand.define {
+  name = "hello",
+  run = function()
+editor.insertAtCursor("Hello |^| world!", false, true)
+  end
+}
+```
+
 ## Event listeners
 You can listen to events using [[API/event#event.listen(listenerDef)]]:
 
@@ -136,7 +143,7 @@ event.listen {
 ```
 
 # Space Lua Extensions
-Space Lua currently introduces a few new features on top core Lua:
+Space Lua introduces a few new features on top core Lua:
 
 1. [[Space Lua/Lua Integrated Query]], embedding a query language into Lua itself
 2. Thread locals

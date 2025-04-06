@@ -35,8 +35,6 @@ This is the default and simplest backend to use: a folder on disk. It is configu
 SilverBullet enables plugs to run shell commands. This is used by e.g. the [[Plugs/Git]] plug to perform git commands. This is potentially unsafe. If you don’t need this, you can disable this functionality:
 
 * `SB_SHELL_BACKEND`: Enable/disable running of shell commands from plugs, defaults to `local` (enabled), set to `off` to disable. It is only enabled when using a local folder for [[#Storage]].
-* `SB_SPACE_SCRIPT`: Enable/disables [[Space Script]]. Defaults to `on`, set to `off` to disable this feature altogether.
-
 
 # Docker
 Configuration only relevant to docker deployments:

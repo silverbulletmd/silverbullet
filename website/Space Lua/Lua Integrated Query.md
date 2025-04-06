@@ -14,7 +14,7 @@ General syntax:
       select <expression>
     ]]
 
-Unlike [[Query Language]] which operates on [[Objects]] only, LIQ can operate on any Lua collection.
+LIQ can operate on any Lua collection.
 
 For instance, to sort a list of numbers in descending order:
 ${query[[from n = {1, 2, 3} order by n desc]]}
@@ -31,7 +31,7 @@ ${query[[
 # Clauses
 Here are the clauses that are currently supported:
 
-## `from <expression>`
+## from <expression>
 The `from` clause specifies the source of your data. There are two syntactic variants:
 
 With explicit variable binding:
@@ -55,7 +55,7 @@ ${query[[from n = {1, 2, 3} select n]]}
 A more realistic example using `index.tag`:
 ${query[[from index.tag "page" order by lastModified select name limit 3]]}
 
-## `where <expression>`
+## where <expression>
 The `where` clause allows you to filter data. When the expression evaluated to a truthy value, the item is included in the result.
 
 Example:
@@ -66,7 +66,7 @@ Or to select all pages tagged with `#meta`:
 
 ${query[[from index.tag "page" where table.includes(tags, "meta")]]}
 
-## `order by <expression> [desc]`
+## order by <expression> [desc]
 The `order by` clause allows you to sort data, when `desc` is specified it reverts the sort order.
 
 As an example, the last 3 modified pages:
@@ -77,7 +77,7 @@ ${query[[
   limit 3
 ]]}
 
-## `limit <expression>[, <expression>]`
+## limit <expression>[, <expression>]
 The `limit` clause allows you to limit the number of results, optionally with an offset.
 
 Example:
@@ -88,7 +88,7 @@ You can also specify an offset to skip some results:
 
 ${query[[from {1, 2, 3, 4, 5} limit 3, 2]]}
 
-## `select <expression>`
+## select <expression>
 The `select` clause allows you to transform each item in the result set. If omitted, it defaults to returning the item itself.
 
 Some examples:

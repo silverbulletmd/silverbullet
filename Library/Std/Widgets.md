@@ -13,9 +13,9 @@ Types of button widgets:
 ```space-lua
 -- priority: 10
 function widgets.button(text, callback)
-  return widget.new {
-    html = "<button>" .. text .. "</button>",
-    events = { click = callback }
+  return dom.button {
+    onclick=callback,
+    text
   }
 end
 
@@ -24,13 +24,11 @@ function widgets.commandButton(text, commandName, args)
     -- When only passed one argument, then let's assume it's a command name
     commandName = text
   end
-  return widget.new {
-    html = "<button>" .. text .. "</button>",
-    events = {
-      click = function()
-        system.invokeCommand(commandName, args)
-      end
-    }
+  return dom.button {
+    onclick = function()
+      system.invokeCommand(commandName, args)
+    end,
+    text
   }
 end
 ```

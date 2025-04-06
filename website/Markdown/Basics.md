@@ -1,9 +1,6 @@
-#level/beginner
-
 The idea of markdown is that you write plain text with some additional markup that even without further processing (like rendering it to HTML, or [[Live Preview]]) you could just read and understand. It was inspired by conventions used in plain-text e-mails, before e-mail supported rich formatting.
 
 # Basic markup
-
 To write markdown, you just write text. But then to emphasize something you can add `_underscores_` around a phrase to make look _italic_, or `**asterisks**` to make it **bold**. You can also use `~~tildes~~` for ~~strikethrough~~ and `==double equals==` for ==highlighting==.
 
 # Links

@@ -1,6 +1,4 @@
-#level/beginner
-
-Slash commands are quick ways to perform repetitive tasks. 99% of the time this will mean inserting a [[Snippets|snippet]], but they can also be configured to trigger commands (see [[Shortcuts]]).
+Slash commands are quick ways to perform repetitive tasks. 99% of the time this will mean using a [[^Library/Std/Slash Template]], but you can also create them more manually using [[Space Lua#Slash commands]].
 
 # Invoking a slash command
 You can trigger a slash command by typing a `/` in your text (after some white space) followed by its name (this will auto complete).

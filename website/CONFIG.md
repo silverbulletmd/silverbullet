@@ -1,4 +1,5 @@
-# SilverBullet Configuration
+#meta
+
 ```space-lua
 config.set {
   actionButtons = {

@@ -1,12 +1,11 @@
 ---
 status: Complete
-tags: level/beginner
 ---
-Frontmatter is a common format to attach additional metadata (data about data) to markdown documents.
+Frontmatter is a common format to attach additional metadata (data about data) to markdown documents. Many tools support it as a markdown [[Markdown/Extensions|extension]].
 
-In SilverBullet, there are multiple ways to attach [[Metadata]] to a page; frontmatter is one of them.
+In SilverBullet, there are multiple ways to attach [[Metadata]] to a page; frontmatter is the most popular one.
 
-You create it by starting your markdown document with `---` followed by [[YAML]] encoded attributes and then ending with `---` again. Followed by the regular body of your document. This very page contains some frontmatter, click on it to see the underlying code.
+You create frontmatter by starting your markdown document with `---` followed by [[YAML]] encoded attributes and then ending with `---` again. Followed by the regular body of your document. This very page contains some frontmatter, click on it to see the underlying code.
 
 Here is another example:
 
@@ -51,4 +50,4 @@ While SilverBullet allows arbitrary metadata to be added to pages, there are a f
   - "#tag2"
   ```
 
-In addition, in the context of [[Templates]] frontmatter has a very specific interpretation.
+For specific use cases, like [[^Library/Std/Page Template]] or [[^Library/Std/Slash Template]], frontmatter may have specific meaning.
