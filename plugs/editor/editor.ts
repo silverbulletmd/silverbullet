@@ -35,7 +35,7 @@ export async function openAllNavigator() {
 }
 
 export async function toggleDarkMode() {
-  let darkMode = await clientStore.get("darkMode");
+  let darkMode = await editor.getUiOption("darkMode");
   darkMode = !darkMode;
   await clientStore.set("darkMode", darkMode);
   await editor.reloadUI();
