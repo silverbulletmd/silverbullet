@@ -1,4 +1,4 @@
-import { plugPrefix } from "$common/spaces/constants.ts";
+import { plugPrefix, stdLibPrefix } from "$common/spaces/constants.ts";
 import type { SpacePrimitives } from "$common/spaces/space_primitives.ts";
 import {
   SpaceSync,
@@ -370,7 +370,7 @@ export class SyncService {
     primary: SpacePrimitives,
     secondary: SpacePrimitives,
   ): Promise<number> {
-    if (!name.startsWith(plugPrefix)) {
+    if (!name.startsWith(plugPrefix) && !name.startsWith(stdLibPrefix)) {
       const operations = await SpaceSync.primaryConflictResolver(
         name,
         snapshot,
