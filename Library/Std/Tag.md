@@ -36,6 +36,15 @@ event.listen {
       text = text .. "## Items\n"
         .. template.each(taggedItems, templates.itemItem)
     end
+    local taggedParagraphs = query[[
+      from index.tag "paragraph"
+      order by ref
+      where table.includes(_.tags, tagName)
+    ]]
+    if #taggedParagraphs > 0 then
+      text = text .. "## Paragraphs\n"
+        .. template.each(taggedParagraphs, templates.itemItem)
+    end
     return {
       text = text,
       -- Read only page
