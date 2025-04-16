@@ -14,6 +14,7 @@ event.listen {
     local text = "# Objects tagged with " .. tagName .. "\n"
     local taggedPages = query[[
       from index.tag "page"
+      order by ref
       where table.includes(_.tags, tagName)
     ]]
     if #taggedPages > 0 then
@@ -22,6 +23,7 @@ event.listen {
     end
     local taggedTasks = query[[
       from index.tag "task"
+      order by ref
       where table.includes(_.tags, tagName)
     ]]
     if #taggedTasks > 0 then
@@ -30,6 +32,7 @@ event.listen {
     end
     local taggedItems = query[[
       from index.tag "item"
+      order by ref
       where table.includes(_.tags, tagName)
     ]]
     if #taggedItems > 0 then
