@@ -1,7 +1,7 @@
 SilverBullet enables you to configure some custom shortcuts in [[^Library/Std/Config]] via the `shortcuts` attribute that trigger [[Commands]] in various ways.
 
 Supported types of shortcuts:
-* [[Keyboard Shortcuts]] that create keyboard bindings for a given command
+* Keyboard Shortcuts that create keyboard bindings for a given command
 * [[Slash Commands]] shortcuts that enable triggering a command via a slash command
 * Priority shortcuts to tweak the ordering of commands in the [[Command Palette]]
 

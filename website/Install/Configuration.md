@@ -6,8 +6,6 @@ SilverBullet is primarily configured via environment variables. This page gives 
 * `SB_SPACE_IGNORE`: Ignore certain path patterns based on a .gitignore style format, e.g. `SB_SPACE_IGNORE="IgnoreMe/*"`.
 
 # Network
-Note: these options are primarily useful for [[Install/Deno]] deployments, not so much for [[Install/Docker]].
-
 * `SB_HOSTNAME`: Set to the hostname to bind to (defaults to `127.0.0.0`, set to `0.0.0.0` to accept outside connections for the local deno setup, defaults to `0.0.0.0` for docker)
 * `SB_PORT`: Sets the port to listen to, e.g. `SB_PORT=1234`, default is `3000`
 
@@ -15,7 +13,7 @@ Note: these options are primarily useful for [[Install/Deno]] deployments, not s
 SilverBullet supports basic authentication for a single user.
 
 * `SB_USER`: Sets single-user credentials, e.g. `SB_USER=pete:1234` allows you to login with username “pete” and password “1234”.
-* `SB_AUTH_TOKEN`: Enables `Authorization: Bearer <token>` style authentication on the [[HTTP API]] (useful for [[Sync]] and remote HTTP storage backends).
+* `SB_AUTH_TOKEN`: Enables `Authorization: Bearer <token>` style authentication on the [[HTTP API]].
 * `SB_LOCKOUT_LIMIT`: Specifies the number of failed login attempt before locking the user out (for a `SB_LOCKOUT_TIME` specified amount of seconds), defaults to `10`
 * `SB_LOCKOUT_TIME`: Specifies the amount of time (in seconds) a client will be blocked until attempting to log back in.
 
@@ -32,7 +30,7 @@ This is the default and simplest backend to use: a folder on disk. It is configu
 * `SB_READ_ONLY` (==Experimental==): If you want to run the SilverBullet client and server in read-only mode (you get the full SilverBullet client, but all edit functionality and commands are disabled), you can do this by setting this environment variable to `true`. Upon the server start a full space index will happen, after which all write operations will be disabled.
 
 # Security
-SilverBullet enables plugs to run shell commands. This is used by e.g. the [[Plugs/Git]] plug to perform git commands. This is potentially unsafe. If you don’t need this, you can disable this functionality:
+SilverBullet enables plugs to run shell commands. This is potentially unsafe. If you don’t need this, you can disable this functionality:
 
 * `SB_SHELL_BACKEND`: Enable/disable running of shell commands from plugs, defaults to `local` (enabled), set to `off` to disable. It is only enabled when using a local folder for [[#Storage]].
 

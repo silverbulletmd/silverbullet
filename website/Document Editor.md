@@ -10,7 +10,7 @@ Currently only small demos are available
 - [PDF viewer](https://github.com/MrMugame/silverbullet-pdf/)
 
 # Internals
-Internally document editors work similarly to [[Markdown/Code Widgets]]. First the editor is defined inside the plug manifest. The `editor` field is used to specify the file extensions this editor can handle.
+Internally document editors work similarly to [[Markdown/Fenced Code Blocks]]. First the editor is defined inside the plug manifest. The `editor` field is used to specify the file extensions this editor can handle.
 
 ```yaml
 name: txteditor

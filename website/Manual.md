@@ -39,7 +39,7 @@ These are the core concepts used in SilverBullet:
     * [[Markdown/Admonitions]]
     * [[Tasks]]
     * [[Markdown/Syntax Highlighting]]
-    * [[Markdown/Code Widgets]]
+    * [[Markdown/Fenced Code Blocks]]
 * [[Slash Commands]]
 * [[Outlines]]
 
@@ -66,7 +66,7 @@ The main ways to roam your space, beside following page links, are:
 # Extending SilverBullet
 SilverBullet’s implementation is built on three things:
 * The core is implemented as a TypeScript-based web app
-* A lot of core functionality is implemented in [[Plugs]] using the [[PlugOS]] extension mechanism.
+* A lot of core functionality is implemented in [[Plugs]].
 * An increasing amount of additional functionality is now being implemented in “native” [[Space Lua]].
 
 # Contributing

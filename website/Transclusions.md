@@ -13,8 +13,3 @@ Syntax:
 * `![[page name#header]]` embed only a section (guarded by the given header)
 * `![[page$anchor]]` embed a page _from_ the given anchor until the end of the page
 * `![[page@pos]]` embed a page _from_ the given character position until the end of the page
-
-For example, to embed a full page:
-![[internal/test page]]
-And just a header:
-![[internal/test page#This is a header]]

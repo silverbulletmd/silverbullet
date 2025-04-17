@@ -16,7 +16,7 @@ In addition, many objects will also contain:
 Beside these, any number of additional tag-specific and custom [[Attributes]] can be defined (see below).
 
 # Tags
-Every object has a main `tag`, which signifies the type of object being described. In addition, any number of additional tags can be assigned as well via the `tags` attribute. You can use either the main `tag` or any of the `tags` as query sources in [[Live Queries]] — examples below.
+Every object has a main `tag`, which signifies the type of object being described. In addition, any number of additional tags can be assigned as well via the `tags` attribute. You can use either the main `tag` or any of the `tags` as query sources in [[Space Lua/Lua Integrated Query]] — examples below.
 
 ## Styling
 You can add custom styles to a tag by leveraging the `data-tag-name` attribute, [CSS Attribute Selectors](https://developer.mozilla.org/en-US/docs/Web/CSS/Attribute_selectors) and custom [[Space Style]]'s. Every tag gets an attribute added to it called `data-tag-name` that is set to the tag name with the `#` symbol stripped out. So given the tag #my-cool-tag the `data-tag-name` attribute would look like: 
@@ -122,7 +122,7 @@ ${template.each(query[[from index.tag "upnext"]], templates.taskItem)}
 Similar to [[#item]], `task` objects have a `parent` attribute when nested (pointing to their parent `item`), and inherit their ancestor’s tags in `itags`.
 
 ### taskstate
-[[Plugs/Tasks]] support the default `x` and ` ` states (done and not done), but custom states as well. Custom states used across your space are kept in `taskstate`:
+[[Tasks]] support the default `x` and ` ` states (done and not done), but custom states as well. Custom states used across your space are kept in `taskstate`:
 
 * [NOT STARTED] Task 1
 * [IN PROGRESS] Task 2

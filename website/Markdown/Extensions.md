@@ -2,8 +2,7 @@ In addition to supporting [[Markdown/Basics|markdown basics]] as standardized by
 
 * [[Links]]
 * [[Frontmatter]] and [[Attributes]]
-* [Fenced code blocks](https://www.markdownguide.org/extended-syntax/#fenced-code-blocks), and in addition, assigning new meanings to specific fenced code block languages:
-    * Generically via [[Markdown/Code Widgets]]
+* [[Markdown/Fenced Code Blocks]]
 * [[Transclusions]] syntax
 * [[Markdown/Admonitions]]
 * [[Markdown/Hashtags]]

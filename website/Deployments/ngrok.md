@@ -1,6 +1,7 @@
 If you would like to expose your local SilverBullet instance running on your laptop to the wider Internet (so you can access it from other machines, or even outside your home) using [ngrok](https://ngrok.com/) is a simple and free solution.
 
-**Note:** this will require you to keep the machine you’re running SilverBullet **switched on at all times** (or at least when you want access to SB). When you shut it down (or clause the lid), SilverBullet will become inaccessible (unless you use the sync [[Client Modes|client mode]] of course, but then content will only sync when the machine is on).
+> **warning** Warning
+> This setup will require you to keep the machine you’re running SilverBullet on switched on at all times if you expect sync to happen continuously.
 
 ## Setup
 Generally this setup involves a few steps:
