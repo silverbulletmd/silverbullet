@@ -1,6 +1,6 @@
 Meta pages are pages not core to your content, but function as a way to configure, or extend your [[Spaces|space]]. You can think of them as “tooling” pages. 
 
-The most obvious example is [[CONFIG]], which is not really a page that you care about day-to-day, but only want to tweak when you’re working on your space as a tool. 
+The most obvious examples are part of SilverBullet’s [[^Library/Std]] library and include generally useful [[Library/Std/Slash Templatese]]s. 
 
 [[Templates]] are other examples. If you use [[Space Script]] or [[Space Style]], you may want to put those on separate pages and tag them as `#meta` as well, so they don’t mingle with your main content.
 

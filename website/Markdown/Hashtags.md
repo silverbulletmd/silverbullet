@@ -1,5 +1,3 @@
-#level/beginner
-
 These can be used in text to assign an [[Objects#tag]]. If hashtags are the only content of first paragraph, they are applied to the entire page.
 
 Hashtags can contain letters, dashes, underscores and other characters, but not:

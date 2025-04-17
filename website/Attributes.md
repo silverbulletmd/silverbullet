@@ -1,5 +1,3 @@
-#level/intermediate
-
 Attribute syntax can contribute additional [[Metadata]] to various [[Objects]], including:
 
 * Pages
@@ -34,9 +32,11 @@ However, usually, [[Frontmatter]] is used for this purpose instead.
 
 Example query:
 
-```query
-page where name = @page.name select name, pageAttribute 
-```
+${query[[
+  from index.tag "page"
+  where _.name == editor.getCurrentPage()
+  select {name=_.name, pageAttribute=_.pageAttribute}
+]]}
 
 This attaches an attribute to an item:
 
@@ -44,9 +44,14 @@ This attaches an attribute to an item:
 
 Example query:
 
-```query
-specialitem where itemAttribute = "hello" select name, itemAttribute 
-```
+${query[[
+  from index.tag "specialitem"
+  where itemAttribute == "hello"
+  select {
+    name = _.name,
+    itemAttribute = _.itemAttribute
+  }
+]]}
 
 This attaches an attribute to a task:
 
@@ -54,6 +59,11 @@ This attaches an attribute to a task:
 
 Example query:
 
-```query
-task where page = "Attributes" and taskAttribute = "hello" select name, taskAttribute 
-```
+${query[[
+  from index.tag "task"
+  where taskAttribute == "hello"
+  select {
+    name = _.name,
+    taskAttribute = _.taskAttribute
+  }
+]]}

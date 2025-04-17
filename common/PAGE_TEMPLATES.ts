@@ -31,9 +31,8 @@ Then we’ll talk.
 # What next?
 You find more information on SilverBullet’s feature set on its [official website](https://v2.silverbullet.md/). Also be sure to join the [SilverBullet community](https://community.silverbullet.md/) to interact with fellow SilverBullet explorers.`;
 
-export const CONFIG_TEMPLATE = `#meta
-
-This is where you configure SilverBullet to your liking. See [[^Library/Std/Config]] for a full list of configuration options.
+export const CONFIG_TEMPLATE =
+  `This is where you configure SilverBullet to your liking. See [[^Library/Std/Config]] for a full list of configuration options.
 
 \`\`\`space-lua
 config.set {

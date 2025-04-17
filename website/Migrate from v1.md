@@ -31,9 +31,9 @@ event.listen {
 
 See [[^Library/Std/Widgets]] for some examples.
 
-_Snippets_ can be implemented as follows: [[^Library/Std/Slash Template]].
+_Snippets_ can be implemented as follows: [[Library/Std/Slash Templatese]].
 
-_Page templates_ now work slightly differently: [[^Library/Std/Page Template]].
+_Page templates_ now work slightly differently: [[^Library/Std/Page Templates]].
 
 # Plugs
 Many existing plugs _should_ keep working, but some may need updating.

@@ -20,7 +20,7 @@ SilverBullet supports basic authentication for a single user.
 * `SB_LOCKOUT_TIME`: Specifies the amount of time (in seconds) a client will be blocked until attempting to log back in.
 
 # Storage
-SilverBullet supports multiple storage backends for keeping your [[Spaces]] content.
+SilverBullet supports storage backends for keeping your [[Spaces]] content. Right now the only supported backend is to use your local disk.
 
 ## Disk storage
 This is the default and simplest backend to use: a folder on disk. It is configured as follows:

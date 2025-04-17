@@ -1,4 +1,4 @@
-APIs to create [[Slash Commands]]. For simple cases it is recommended to use [[^Library/Std/Slash Template]] instead.
+APIs to create [[Slash Commands]]. For simple cases it is recommended to use [[Library/Std/Slash Templatese]] instead.
 
 ## slashcommand.define(spec)
 Define a custom slash command.

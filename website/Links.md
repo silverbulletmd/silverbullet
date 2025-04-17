@@ -1,5 +1,3 @@
-#level/beginner
-
 You can create three types of links in SilverBullet:
 
 * External links, using the `[title](URL)` syntax, for instance: [SilverBullet community](https://community.silverbullet.md).
@@ -11,7 +9,6 @@ Internal links can have various formats:
 
 * `[[CHANGELOG]]`: a simple link to another page that appears like this: [[CHANGELOG]].
 * `[[CHANGELOG|The Change Log]]`: a link with an alias that appears like this: [[CHANGELOG|The Change Log]].
-* `[[CHANGELOG$edge]]`: a link referencing a particular [[Markdown/Anchors|anchor]]: [[CHANGELOG$edge]]. When the page name is omitted, the anchor is expected to be local to the current page.
 * `[[CHANGELOG#Edge]]`: a link referencing a particular header: [[CHANGELOG#Edge]]. When the page name is omitted, the header is expected to be local to the current page.
 * `[[CHANGELOG@...]]`: a link referencing a particular position in a page. This notation is generally automatically generated through templates.
   * `[[CHANGELOG@1234]]`: character in text (starting from 0): [[CHANGELOG@1234]]

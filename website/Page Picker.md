@@ -12,9 +12,10 @@ The main input is the **filter phrase** and can be used to narrow down the list 
 If the filter phrase contains `#tags` the results will be filtered based on matching those tags.
 
 > **note** Note
-> [[Templates]], even though technically regular pages, do not appear in the page picker. To navigate to them, use the [[Meta Picker]] instead.
+> Any page tagged with a tag starting with `#meta`, even though technically regular pages, will **not** appear in the page picker. To navigate to them, use the [[Meta Picker]] instead.
 
-#ProTip To cycle between the three pickers [[Page Picker]], [[Meta Picker]] and [[All Pages Picker]], type `^` in the filter phrase box.
+> **note** Pro-tip
+> To cycle between the three pickers [[Page Picker]], [[Meta Picker]] and [[All Pages Picker]], type `^` in the filter phrase box.
 
 Pressing the `Enter` key will open/create the selected page.
 Pressing `Shift-Enter` will always open or create (if it doesn't already exist) the page _exactly matching_ the filter phrase.
@@ -33,9 +34,6 @@ When entering a filter phrase, the best matches should appear closer to the top,
   * If the currently opened page is nested in a [[Folders|folder]], it will auto complete the current folder name in its place.
   * If the currently opened page name starts with an emoji, it will complete that emoji in its place.
   * Otherwise, it will complete the full page name of the currently open page.
-* `Shift-Space`: auto complete folder from the highlighted page:
-  * If the currently highlighted page is nested in a [[Folders|folder]], it will auto complete its folder name
-  * Otherwise, it will auto complete that page name with a `/` added at the end
 * `ArrowUp`/`ArrowDown`: move up and down the highlighted page list
 * `PageUp`/`PageDown`: move up and down 5 entries in the page list in one go
 * `Home`: moves to the start of the list

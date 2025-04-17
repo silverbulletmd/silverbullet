@@ -30,7 +30,6 @@ These are the core concepts used in SilverBullet:
   * [[Page Name Rules]]
 * [[Folders]]
 * [[Documents]]
-* [[Templates]]
 
 # Editing and Formatting
 * Content is written using [[Markdown]] and rendered using [[Live Preview]]
@@ -38,7 +37,7 @@ These are the core concepts used in SilverBullet:
   * Markdown [[Markdown/Extensions]]
     * [[Links]]
     * [[Markdown/Admonitions]]
-    * [[Plugs/Tasks]]
+    * [[Tasks]]
     * [[Markdown/Syntax Highlighting]]
     * [[Markdown/Code Widgets]]
 * [[Slash Commands]]
@@ -54,20 +53,21 @@ The main ways to roam your space, beside following page links, are:
 * [[Objects]]
   * [[Frontmatter]]
   * [[Attributes]]
-* [[Live Queries]]
-* [[Templates]]
+* [[Space Lua]]
 * [[Libraries]]
-* [[Federation]]
-* [[Space Script]] & [[Space Style]]
+* [[Space Style]]
 
 # Customization
-* [[SETTINGS]] and [[Space Config]]
+* [[^Library/Std/Config]]
 * [[Shortcuts]]
 * [[Page Decorations]]
 * [[Space Style]]
 
 # Extending SilverBullet
-A lot of SilverBullet’s functionality is built as [[Plugs]] using the robust [[PlugOS]] extension mechanism. If you are adventurous you can try to build [[Plugs/Development|such plugs yourself]]. A lighter, but also powerful way to extend SilverBullet is through [[Space Script]].
+SilverBullet’s implementation is built on three things:
+* The core is implemented as a TypeScript-based web app
+* A lot of core functionality is implemented in [[Plugs]] using the [[PlugOS]] extension mechanism.
+* An increasing amount of additional functionality is now being implemented in “native” [[Space Lua]].
 
 # Contributing
 SilverBullet is free and open-source software. You can contribute to it [via Github](https://github.com/silverbulletmd/silverbullet). For some details on how to do this, have a look at [[Development]].

@@ -11,4 +11,4 @@ Below are two tasks that mention this very page (this is not the general pattern
 * [ ] [[Linked Tasks]] This is a task
 * [x] [[Linked Tasks]] This is a completed task
 
-**Implementation:** [[Library/Core/Widget/Linked Tasks]]
+**Implementation:** [[^Library/Std/Widgets]]

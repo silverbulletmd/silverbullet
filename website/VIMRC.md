@@ -4,4 +4,4 @@ As part of SilverBullet’s [[Vim]] support, the [[VIMRC]] page allows you to ru
 imap jj <Esc>
 ```
 
-To manually reload your [[VIMRC]] you can use the {[Editor: Vim: Load VIMRC]} command.
+To manually reload your [[VIMRC]] you can use the ${widgets.commandButton("Editor: Vim: Load VIMRC")} command.

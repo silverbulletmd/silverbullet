@@ -13,8 +13,6 @@ In addition, many objects will also contain:
 * `tags`: an optional set of additional, explicitly assigned tags.
 * `itags`: a set of _implicit_ or _inherited_ tags: including the object’s `tag`, `tags` as well as any tags _assigned to its containing page_. This is useful to answer queries like, “give me all tasks on pages where that page is tagged with `person`“, which would be expressed as `task where itags = "person"` (although technically that would also match any tags that have the `#person` explicitly assigned).
 
-In addition, an object’s attribute set can be dynamically extended using [[Object Decorators]].
-
 Beside these, any number of additional tag-specific and custom [[Attributes]] can be defined (see below).
 
 # Tags
@@ -22,8 +20,12 @@ Every object has a main `tag`, which signifies the type of object being describe
 
 ## Styling
 You can add custom styles to a tag by leveraging the `data-tag-name` attribute, [CSS Attribute Selectors](https://developer.mozilla.org/en-US/docs/Web/CSS/Attribute_selectors) and custom [[Space Style]]'s. Every tag gets an attribute added to it called `data-tag-name` that is set to the tag name with the `#` symbol stripped out. So given the tag #my-cool-tag the `data-tag-name` attribute would look like: 
-  `data-tag-name="my-cool-tag"`. 
-This allows us to do things like change the color of the #my-cool-tag to have a purple background, limegreen text and bold font by adding the following [[Space Style]]:
+
+    data-tag-name="my-cool-tag"
+
+This allows us to do things like change the color of the #my-cool-tag 
+to have a purple background, limegreen text and bold font by adding the following [[Space Style]]:
+
 ```css
 .sb-hashtag[data-tag-name="my-cool-tag"] {
   background: purple;
@@ -31,8 +33,11 @@ This allows us to do things like change the color of the #my-cool-tag to have a 
   font-weight: bolder;
 }
 ```
+
 Additionally tags written using angle brackets, such as...
-  #<my cool tag> 
+
+    #<my cool tag> 
+
 ...can be styled via [[Space Style]] like this:
 ```css
 .sb-hashtag[data-tag-name="my cool tag"] {
@@ -41,7 +46,6 @@ Additionally tags written using angle brackets, such as...
   font-weight: bolder;
 }
 ```
-
 
 ## Built-in tags
 

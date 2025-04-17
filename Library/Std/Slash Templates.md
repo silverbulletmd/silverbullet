@@ -14,9 +14,11 @@ Optional keys:
 * `onlyContexts` (advanced): To only make the slash command appear in certain (AST node based) contexts
 * `exceptContexts` (advanced): To make the slash command appear everywhere _except_ in these (AST node) contexts
 
-# Examples
-* [[^Library/Std/Slash Templates/hr]]
-* [[^Library/Std/Slash Templates/space-lua]]
+# Currently active slash templates
+${template.each(query[[
+  from index.tag "meta/template/slash"
+  where _.tag == "page"
+]], templates.fullPageItem)}
 
 # Implementation
 ```space-lua

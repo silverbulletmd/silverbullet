@@ -36,6 +36,12 @@ tags: meta/template/page
 * |^|
 ~~~
 
+# Currently active page templates
+${template.each(query[[
+  from index.tag "meta/template/page"
+  where _.tag == "page"
+]], templates.fullPageItem)}
+
 # Instantiating page templates
 You can create a page based on a page template via the ${widgets.commandButton("Page: From Template")} command, or via the command name that you defined in your template’s frontmatter.
 

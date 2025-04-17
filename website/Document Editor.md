@@ -2,7 +2,7 @@ Document editors allow users to not only view but also edit documents. This mean
 
 # Usage
 Document editors are provided by [[Plugs]]. To install a document editor just install the plug. The editor will then be available for documents with certain file extensions which are specified by the plug, e.g. an image viewer would be available for `jpg`, `jpeg` and `png`.
-To edit or view a document, use `Ctrl-o` to open the document navigator. Files for which a document editor is available will have their extension highlighted in blue.
+To edit or view a document, use `Cmd-o` (Mac) or `Ctrl-o` (Windows, Linux) to open the document navigator. Files for which a document editor is available will have their extension highlighted in blue.
 
 # Available editors
 Currently only small demos are available

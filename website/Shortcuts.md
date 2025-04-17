@@ -1,6 +1,4 @@
-#level/intermediate
-
-SilverBullet enables you to configure some custom shortcuts in [[SETTINGS]] via the `shortcuts` attribute that trigger [[Commands]] in various ways.
+SilverBullet enables you to configure some custom shortcuts in [[^Library/Std/Config]] via the `shortcuts` attribute that trigger [[Commands]] in various ways.
 
 Supported types of shortcuts:
 * [[Keyboard Shortcuts]] that create keyboard bindings for a given command
