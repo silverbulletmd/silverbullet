@@ -57,4 +57,11 @@ function widget.html(html)
     html = html
   }
 end
+
+-- Convenience function for markdown widgets
+function widget.markdown(markdown)
+  return widget.new {
+    markdown = markdown
+  }
+end
 ```

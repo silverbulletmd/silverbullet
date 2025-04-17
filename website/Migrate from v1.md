@@ -1,5 +1,7 @@
 Some pointers on how to migrate from v1 to v2:
 
+First of all, you can delete any `.silverbullet.db` file from your space, this isn’t used anymore.
+
 # Queries
 v2 does not have support for old-style [queries](https://v1.silverbullet.md/Query%20Language) (live queries) anymore. They have been replaced with [[Space Lua/Lua Integrated Query]]. Give the linked page a read, but generally there’s a few differences:
 

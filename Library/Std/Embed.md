@@ -40,13 +40,11 @@ function embed.youtube(specOrUrl)
   
   local width = specOrUrl.width or "100%"
   local height = specOrUrl.height or "400px"
-  return widget.new {
-    html = "<iframe src='https://www.youtube.com/embed/"
-      .. videoId
-      .. "' style='width: " .. width
-      .. "; height: " .. height .. "'></iframe>",
-    cssClasses = {"sb-youtube-embed"}
-  }
+  return widget.html(dom.iframe {
+    src="https://www.youtube.com/embed/" .. videoId,
+    style="width: " .. width .. "; height: " .. height,
+    class = "sb-youtube-embed"
+  })
 end
 ```
 
@@ -54,7 +52,7 @@ end
 
 ```space-style
 .sb-youtube-embed {
-  border: 0;
+  border: 0 !important;
 }
 ```
 

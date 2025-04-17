@@ -1,3 +1,4 @@
+
 > **warning** Warning
 > You are looking at the documentation of SilverBullet **v2**, which is still a work in progress. If you like less _edgy_ stuff, you can have a look at [v1](https://v1.silverbullet.md/) instead. All active development happens here, on v2, though. Migrating? Check out the [[Migrate from v1]] docs.
 

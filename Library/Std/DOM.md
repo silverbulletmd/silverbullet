@@ -1,6 +1,6 @@
 #meta
 
-A library to easily build DOM-based Lua widgets with the magic of Lua meta tables.
+A library to easily build DOM objects through the magic of Lua meta tables.
 
 # Usage
 
@@ -18,13 +18,13 @@ dom.span {
 ```
 
 # Examples
-${dom.marquee{
+${widget.html(dom.marquee{
   "I'm in a ",
   dom.span {
     style="color:red;",
     "marquee"
   }
-}}
+})}
 
 # Implementation
 ```space-lua
@@ -43,15 +43,12 @@ dom =  setmetatable({}, {
         elseif type(val) == "string" then
           -- Text body
           node.appendChild(js.window.document.createTextNode(val))
-        elseif val._isWidget and val.html then
-          -- Implicit assumption: .html is a DOM node
-          node.appendChild(val.html)
         else
-          js.log("Don't know what to do with", val)
-          error("Invalid node, see JS console")
+          -- Implicit assumption: this is a DOM node
+          node.appendChild(val)
         end
       end
-      return widget.html(node)
+      return node
     end
   end
 })

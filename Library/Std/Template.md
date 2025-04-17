@@ -12,11 +12,11 @@ templates = {}
 -- Iterates over a table/array and applies a function to each element,
 -- concatenating the results
 function template.each(tbl, fn)
-    local result = {}
-    for _, item in ipairs(tbl) do
-        table.insert(result, fn(item))
-    end
-    return table.concat(result)
+  local result = {}
+  for _, item in ipairs(tbl) do
+      table.insert(result, fn(item))
+  end
+  return table.concat(result)
 end
 
 -- Creates a new template function from a string template
