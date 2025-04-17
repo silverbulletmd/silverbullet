@@ -1,6 +1,6 @@
 
 > **warning** Warning
-> You are looking at the documentation of SilverBullet **v2**, which is still a work in progress. If you like less _edgy_ stuff, you can have a look at [v1](https://v1.silverbullet.md/) instead. All active development happens here, on v2, though. Migrating? Check out the [[Migrate from v1]] docs.
+> You are looking at the documentation of SilverBullet **v2**. If you are still a (legacy) user of v0.x versions of SilverBullet and would like to stick with them, you can have a look at [v1](https://v1.silverbullet.md/) instead. All active development happens here, on v2, though. Migrating? Check out the [[Migrate from v1]] docs.
 
 # Introduction
 SilverBullet is an open source **personal productivity platform** built on [[Markdown]], turbo charged with the scripting power of [[Space Lua|Lua]]. You [[Install|self host]] it on your server, access it via any modern browser on any device (desktop, laptop, mobile). Since SilverBullet is built as a [[Local First]] [[PWA]], it is fully offline capable. Temporarily don’t have network access? No problem, SilverBullet will sync your content when you get back online.
