@@ -2,7 +2,7 @@
 
 cd $(realpath $(dirname $(dirname $0)))
 
-IMAGE_NAME="ghcr.io/silverbulletmd/silverbullet:edge"
+IMAGE_NAME="ghcr.io/silverbulletmd/silverbullet:v2"
 PLAYGROUND_SPACE="/tmp/silverbullet-playground"
 PLAYGROUND_PORT=3001
 SB_USER=silverbullet:silverbullet
@@ -24,8 +24,6 @@ rm -rf $PLAYGROUND_SPACE
 echo "Creating fresh playground space"
 mkdir -p $PLAYGROUND_SPACE
 cp -r scripts/playground_space/* $PLAYGROUND_SPACE/
-# Let's copy in the default libraries
-cp -r website/Library $PLAYGROUND_SPACE/
 
 echo "Starting new playground container"
 docker run -d --name silverbullet-playground --restart unless-stopped -v $PLAYGROUND_SPACE:/space -e SB_SHELL_BACKEND=off -e SB_USER=$SB_USER -p $PLAYGROUND_PORT:3000 $IMAGE_NAME
