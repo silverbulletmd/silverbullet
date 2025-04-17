@@ -35,6 +35,14 @@ export function getCurrentPath(extension: boolean = false): Promise<string> {
 }
 
 /**
+ * Returns the names of the pages that have been recently opened
+ * @returns the names of the recently opened pages
+ */
+export function getRecentlyOpenedPages(): Promise<PageMeta[]> {
+  return syscall("editor.getRecentlyOpenedPages");
+}
+
+/**
  * Returns the name of the currently open editor.
  * @returns the name of the current editor
  */

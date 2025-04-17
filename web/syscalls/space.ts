@@ -70,12 +70,6 @@ export function spaceWriteSyscalls(editor: Client): SysCallMapping {
       return editor.space.writePage(name, text);
     },
     "space.deletePage": async (_ctx, name: string) => {
-      // If we're deleting the current page, navigate to the index page
-      if (editor.currentPage === name) {
-        await editor.navigate({ kind: "page", page: "" });
-      }
-      // Remove page from open pages in editor
-      // editor.openPages.openPages.delete(name);
       console.log("Deleting page");
       await editor.space.deletePage(name);
     },

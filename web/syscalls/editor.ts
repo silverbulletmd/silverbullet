@@ -36,6 +36,11 @@ export function editorSyscalls(client: Client): SysCallMapping {
     "editor.getCurrentEditor": (): string => {
       return client.documentEditor?.name || "page";
     },
+    "editor.getRecentlyOpenedPages": (): PageMeta[] => {
+      return client.ui.viewState.allPages.sort((a, b) =>
+        (b.lastOpened || 0) - (a.lastOpened || 0)
+      );
+    },
     "editor.getText": () => {
       return client.editorView.state.sliceDoc();
     },

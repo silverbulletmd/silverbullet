@@ -7,10 +7,18 @@ export async function deletePage() {
   ) {
     return;
   }
-  console.log("Navigating to index page");
-  await editor.navigate({ kind: "page", page: "" });
-  console.log("Deleting page from space");
+  // Query for last
+  const recentlyOpenedPages = await editor.getRecentlyOpenedPages();
+  // Find the the first page that is not the current page
+  const firstRecentlyOpenedPage = recentlyOpenedPages.find(
+    (page) => page.name !== pageName,
+  );
   await space.deletePage(pageName);
+  console.log("Navigating to previous page");
+  await editor.navigate({
+    kind: "page",
+    page: firstRecentlyOpenedPage?.name || "",
+  });
 }
 
 export async function copyPage(
