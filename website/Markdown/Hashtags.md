@@ -6,7 +6,3 @@ Hashtags can contain letters, dashes, underscores and other characters, but not:
 - Consist of digits only like #123
 
 If you need your tags to contain these characters, you have to surround the tag content with angle brackets like this: #<my tag>
-
-```query
-tag where page = @page.name
-```
