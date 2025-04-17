@@ -1,6 +1,6 @@
-local function assertEqual(a, b)
+local function assertEqual(a, b, message)
     if a ~= b then
-        error("Assertion failed: " .. a .. " is not equal to " .. b)
+        error("Assertion failed: " .. a .. " is not equal to " .. b .. " " .. message)
     end
 end
 
@@ -90,6 +90,64 @@ do
 end
 assert(a == 1)
 
+
+-- Comprehensive pairs and ipairs tests
+-- Test empty table behavior
+local empty = {}
+local count = 0
+for _ in pairs(empty) do
+    count = count + 1
+end
+assertEqual(count, 0, "pairs should not iterate over empty table")
+
+count = 0
+for _ in ipairs(empty) do
+    count = count + 1
+end
+assertEqual(count, 0, "ipairs should not iterate over empty table")
+
+-- Test ipairs with js arrays
+local emptyJS = js.window.JSON.parse("[]")
+for i, v in ipairs(emptyJS) do
+    assert(false, "ipairs should not iterate over empty js array")
+end
+
+for i, v in ipairs(js.window.JSON.parse("null") or {}) do
+    assert(false, "ipairs should not iterate over empty js array")
+end
+
+
+-- Test mixed key types
+local mixed = {
+    [1] = "one",
+    [2] = "two",
+    ["a"] = "alpha",
+    ["b"] = "beta",
+    [3] = "three"
+}
+
+-- Test pairs iteration order (should include all keys)
+local pairs_keys = {}
+local pairs_values = {}
+for k, v in pairs(mixed) do
+    table.insert(pairs_keys, k)
+    table.insert(pairs_values, v)
+end
+assertEqual(#pairs_keys, 5, "pairs should iterate over all keys")
+assertEqual(#pairs_values, 5, "pairs should iterate over all values")
+
+-- Test ipairs behavior (should only iterate over numeric indices)
+local ipairs_keys = {}
+local ipairs_values = {}
+for k, v in ipairs(mixed) do
+    table.insert(ipairs_keys, k)
+    table.insert(ipairs_values, v)
+end
+assertEqual(#ipairs_keys, 3, "ipairs should only iterate over numeric indices")
+assertEqual(ipairs_values[1], "one", "first ipairs value should be 'one'")
+assertEqual(ipairs_values[2], "two", "second ipairs value should be 'two'")
+assertEqual(ipairs_values[3], "three", "third ipairs value should be 'three'")
+
 -- Async function calling
 function multiplier(a)
     -- Anything will be async in practice
@@ -100,6 +158,9 @@ end
 
 local multiplier = multiplier(2)
 assert(multiplier(3) == 6)
+
+-- Checking of pairs and ipairs
+
 
 -- Function definitions in tables
 ns = { name = "Pete" }
