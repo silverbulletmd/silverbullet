@@ -8,6 +8,9 @@ In case you were wondering: yes, you are looking at a (read-only) instance of Si
 
 Let’s dig in.
 
+If you prefer a video intro, give this a watch:
+${embed.youtube "https://www.youtube.com/watch?v=mik1EbTshX4"}
+
 # A Typical Journey
 You may start your SilverBullet journey by simply thinking of it as a note taking app.
 
