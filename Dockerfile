@@ -1,4 +1,4 @@
-FROM denoland/deno:debian-2.2.5
+FROM denoland/deno:debian-2.2.10
 
 # The volume that will keep the space data
 
