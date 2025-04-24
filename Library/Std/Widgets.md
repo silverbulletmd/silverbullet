@@ -115,6 +115,7 @@ event.listen {
 
 # Linked mentions
 ```space-lua
+-- priority: 10
 widgets = widgets or {}
 
 local mentionTemplate = template.new [==[
@@ -146,6 +147,7 @@ event.listen {
 
 # Linked tasks
 ```space-lua
+-- priority: 10
 function widgets.linkedTasks(pageName)
   pageName = pageName or editor.getCurrentPage()
   local tasks = query[[
