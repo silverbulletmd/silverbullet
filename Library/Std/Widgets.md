@@ -43,6 +43,7 @@ ${widgets.commandButton("System: Reload")}
 
 # Table of contents
 ```space-lua
+-- priority: 10
 widgets = widgets or {}
 
 local tocSchema = {
@@ -61,20 +62,29 @@ function widgets.toc(options)
   options.minHeaders = options.minHeaders or 3
   local text = editor.getText()
   local pageName = editor.getCurrentPage()
-  local lines = string.split(text, "\n")
-  local pos = 0
+  local parsedMarkdown = markdown.parseMarkdown(text)
+  
   -- Collect all headers
   local headers = {}
-  for _, line in ipairs(lines) do
-    local headerSign, text = string.match(line, "^(%#+)%s+(.+)$")
-    if headerSign then
-      table.insert(headers, {
-        name = text,
-        pos = pos,
-        level = #headerSign,
-      })
+  for topLevelChild in parsedMarkdown.children do
+    if topLevelChild.type then
+      local headerLevel = string.match(topLevelChild.type, "^ATXHeading(%d+)")
+      if headerLevel then
+        local text = ""
+        table.remove(topLevelChild.children, 1)
+        for child in topLevelChild.children do
+          text = text .. markdown.renderParseTree(child)
+        end
+
+        if text != "" then
+          table.insert(headers, {
+            name = text,
+            pos = topLevelChild.from,
+            level = headerLevel
+          })
+        end
+      end
     end
-    pos = pos + #line + 1
   end
   if options.minHeaders and options.minHeaders > #headers then
     return widget.new{}
