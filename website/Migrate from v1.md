@@ -1,7 +1,5 @@
 Some pointers on how to migrate from v1 to v2:
 
-First of all, you can delete any `.silverbullet.db` file from your space, this isn’t used anymore.
-
 # Queries
 v2 does not have support for old-style [queries](https://v1.silverbullet.md/Query%20Language) (live queries) anymore. They have been replaced with [[Space Lua/Lua Integrated Query]]. Give the linked page a read, but generally there’s a few differences:
 
@@ -48,6 +46,10 @@ config.set("plugs", {
 ```
 
 After which you run the `Plugs: Update` to download and/or update them. `Plugs: Add` has not been (re)implemented, so you have to do this in code.
+
+# Other changes
+* Since no database is kept on the server, you can safely delete any `.silverbullet.db` file from your space — this isn’t used anymore.
+* Since space config is no longer a thing, `SETTINGS`  is now gone. Instead the [[CONFIG]] page is now the preferred place to configure things. However, this is just a convention. You can use the `config.set` [[Space Lua]] API in any [[Space Lua]] block.
 
 # Removed features
 Certain features have been removed:
