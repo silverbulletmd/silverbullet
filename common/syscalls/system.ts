@@ -158,7 +158,7 @@ export function systemSyscalls(
         await client.ds.batchDelete(allKeys);
       }
       if (logout) {
-        location.href = "/.logout";
+        location.href = ".logout";
       } else {
         alert("Client wiped, feel free to navigate elsewhere");
       }

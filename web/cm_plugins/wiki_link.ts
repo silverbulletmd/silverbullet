@@ -97,7 +97,7 @@ export function cleanWikiLinkPlugin(client: Client) {
                 title: fileExists
                   ? `Navigate to ${encodeRef(pageRef)}`
                   : `Create ${pageRef.page}`,
-                href: `/${encodePageURI(encodeRef(pageRef))}`,
+                href: `${encodePageURI(encodeRef(pageRef))}`,
                 cssClass,
                 from,
                 callback: (e) => {

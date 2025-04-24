@@ -2,6 +2,7 @@ import type { Context } from "hono";
 import type { ShellRequest } from "@silverbulletmd/silverbullet/type/rpc";
 import type { ShellBackend } from "./shell_backend.ts";
 import { StreamingShell } from "./shell_backend.ts";
+import { removeUrlPrefix } from "$lib/url_prefix.ts";
 
 /**
  * Handles the /.shell endpoint for non-streaming shell commands
@@ -34,9 +35,10 @@ export function handleShellStreamEndpoint(
   c: Context,
   cwd: string,
   readOnly: boolean,
+  hostUrlPrefix?: string,
 ): Response {
   const req = c.req;
-  const url = new URL(req.url);
+  const url = new URL(removeUrlPrefix(req.url, hostUrlPrefix));
 
   // Check if read-only mode is enabled
   if (readOnly) {

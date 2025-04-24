@@ -5,7 +5,7 @@ safeRun(async () => {
   // First we fetch the client config from the server (or cached via service worker)
   let clientConfig: ClientConfig | undefined;
   try {
-    const configResponse = await fetch("/.config", {
+    const configResponse = await fetch(".config", {
       // We don't want to follow redirects, we want to get the redirect header in case of auth issues
       redirect: "manual",
     });
@@ -37,7 +37,7 @@ safeRun(async () => {
   if (navigator.serviceWorker) {
     // Register service worker
     navigator.serviceWorker
-      .register(new URL("/service_worker.js", location.href), {
+      .register(new URL("service_worker.js", document.baseURI), {
         type: "module",
       })
       .then((registration) => {

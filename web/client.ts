@@ -472,7 +472,7 @@ export class Client {
 
   initSpace(): SpacePrimitives {
     this.httpSpacePrimitives = new HttpSpacePrimitives(
-      location.origin,
+      document.baseURI.replace(/\/*$/, ""),
       this.clientConfig.spaceFolderPath,
     );
 
@@ -1079,10 +1079,10 @@ export class Client {
     if (newWindow) {
       console.log(
         "Navigating to new page in new window",
-        `${location.origin}/${encodePageURI(encodeRef(ref))}`,
+        `${document.baseURI}${encodePageURI(encodeRef(ref))}`,
       );
       const win = globalThis.open(
-        `${location.origin}/${encodePageURI(encodeRef(ref))}`,
+        `${document.baseURI}${encodePageURI(encodeRef(ref))}`,
         "_blank",
       );
       if (win) {

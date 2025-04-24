@@ -143,7 +143,7 @@ export class ClientSystem {
           this.system.unload(path);
           await this.system.load(
             plugName,
-            createSandbox(new URL(`/${path}`, location.href)),
+            createSandbox(new URL(`${path}`, document.baseURI)),
             newHash,
           );
         }
@@ -274,7 +274,12 @@ export class ClientSystem {
         const plugName = plugNameExtractRegex.exec(plugMeta.name)![1];
         await this.system.load(
           plugName,
-          createSandbox(new URL(plugMeta.name, location.origin)),
+          createSandbox(
+            new URL(
+              plugMeta.name,
+              document.baseURI, // We're NOT striping trailing '/', this used to be `location.origin`
+            ),
+          ),
           plugMeta.lastModified,
         );
       } catch (e: any) {

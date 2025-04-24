@@ -62,6 +62,22 @@ export async function serveCommand(
     );
   }
 
+  let hostUrlPrefix = Deno.env.get("SB_URL_PREFIX");
+  if (hostUrlPrefix) {
+    if (!hostUrlPrefix.startsWith("/")) {
+      hostUrlPrefix = "/" + hostUrlPrefix;
+    }
+    if (hostUrlPrefix.endsWith("/")) {
+      hostUrlPrefix = hostUrlPrefix.replace(/\/*$/, "");
+    }
+
+    if (hostUrlPrefix !== "") {
+      console.log(`Host URL Prefix: ${hostUrlPrefix}`);
+    } else {
+      hostUrlPrefix = undefined;
+    }
+  }
+
   const userAuth = options.user ?? Deno.env.get("SB_USER");
 
   let userCredentials: AuthOptions | undefined;
@@ -131,6 +147,7 @@ export async function serveCommand(
     shellBackend: backendConfig,
     enableSpaceScript,
     pagesPath: folder,
+    hostUrlPrefix,
   });
   await httpServer.start();
 
