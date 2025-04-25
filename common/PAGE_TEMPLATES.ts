@@ -22,7 +22,7 @@ While SilverBullet implements (most) of [CommonMark](https://commonmark.org/), i
 
 Using SilverBullet’s Lua APIs, you can do all kinds of cool stuff. For instance, query your space for the last 3 modified pages. _Exciting!_
 
-\${query[[from index.tag "page" order by lastModified limit 3]]}
+\${query[[from index.tag "page" order by lastModified desc limit 3]]}
 
 There’s a whole world out there to explore, but let’s not get ahead of ourselves. First, have some fun and add some content to your fresh space.
 
