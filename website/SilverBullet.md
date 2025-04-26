@@ -1,7 +1,3 @@
-
-> **warning** Warning
-> You are looking at the documentation of SilverBullet **v2**. If you are still a (legacy) user of v0.x versions of SilverBullet and would like to stick with them, you can have a look at [v1](https://v1.silverbullet.md/) instead. All active development happens here, on v2, though. Migrating? Check out the [[Migrate from v1]] docs.
-
 # Introduction
 SilverBullet is an open source **personal productivity platform** built on [[Markdown]], turbo charged with the scripting power of [[Space Lua|Lua]]. You [[Install|self host]] it on your server, access it via any modern browser on any device (desktop, laptop, mobile). Since SilverBullet is built as a [[Local First]] [[PWA]], it is fully offline capable. Temporarily don’t have network access? No problem, SilverBullet will sync your content when you get back online.
 
@@ -11,6 +7,9 @@ Let’s dig in.
 
 If you prefer a video intro, give this a watch:
 ${embed.youtube "https://www.youtube.com/watch?v=mik1EbTshX4"}
+
+> **warning** Attention
+> You are looking at the documentation of SilverBullet **v2**. Migrating from v1? Check out the [[Migrate from v1]] docs. There is also the [v1 website](https://v1.silverbullet.md).
 
 # A Typical Journey
 You may start your SilverBullet journey by simply thinking of it as a note taking app.
