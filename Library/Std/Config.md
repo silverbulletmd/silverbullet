@@ -118,7 +118,7 @@ config.define("actionButtons", {
     properties = {
       icon = {
         type = "string",
-        description = "Icon representing the action button"
+        description = "Icon for the action button, from https://feathericons.com"
       },
       description = {
         type = "string",
