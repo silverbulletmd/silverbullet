@@ -66,6 +66,10 @@ Or to select all pages tagged with `#meta`:
 
 ${query[[from index.tag "page" where table.includes(tags, "meta")]]}
 
+Or select based on name (including folder) and a [[API/string|string function]]
+
+${query[[from index.tag "page" where name:startsWith("Person")]]}
+
 ## order by <expression> [desc]
 The `order by` clause allows you to sort data, when `desc` is specified it reverts the sort order.
 
