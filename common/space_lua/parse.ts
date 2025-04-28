@@ -399,12 +399,15 @@ function parseExpression(t: ParseTree, ctx: ASTCtx): LuaExpression {
         ctx: context(t, ctx),
       };
     }
-    case "Number":
+    case "Number": {
+      const text = t.children![0].text!.toLowerCase();
       return {
         type: "Number",
-        value: parseFloat(t.children![0].text!),
+        // Use the integer parser fox 0x literals
+        value: text.includes("x") ? parseInt(text) : parseFloat(text),
         ctx: context(t, ctx),
       };
+    }
     case "BinaryExpression":
       return {
         type: "Binary",

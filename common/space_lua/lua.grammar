@@ -188,8 +188,8 @@ TableConstructor { "{" (field (fieldsep field)* fieldsep?)? "}" }
   digit { std.digit }
 
   Number {
-    digit+ ("." digit+)? ($[eE] $[+\-] digit+)? |
-    "0" $[xX] hex+ ("." hex+)? ($[pP] $[+/-] digit+)?
+    digit+ ("." digit+)? ($[eE] $[+\-]? digit+)? |
+    "0" $[xX] hex+ ("." hex+)? ($[pP] $[+\-]? digit+)?
   }
 
   Comment { "--" ![\n\r]* }
