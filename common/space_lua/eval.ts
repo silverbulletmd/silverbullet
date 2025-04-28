@@ -191,6 +191,8 @@ export function evalExpression(
                 return +singleResult(value);
               case "not":
                 return !singleResult(value);
+              case "~":
+                return ~exactInt(singleResult(value), e.ctx, sf);
               case "#":
                 return luaLen(singleResult(value));
               default:
@@ -207,6 +209,8 @@ export function evalExpression(
               return +singleResult(value);
             case "not":
               return !singleResult(value);
+            case "~":
+              return ~exactInt(singleResult(value), e.ctx, sf);
             case "#":
               return luaLen(singleResult(value));
             default:
@@ -533,6 +537,31 @@ const operatorsMetaMethods: Record<string, {
   "//": {
     metaMethod: "__idiv",
     nativeImplementation: (a, b) => Math.floor(a / b),
+  },
+  "&": {
+    metaMethod: "__band",
+    nativeImplementation: (a, b, ctx, sf) =>
+      exactInt(a, ctx, sf) & exactInt(b, ctx, sf),
+  },
+  "|": {
+    metaMethod: "__bor",
+    nativeImplementation: (a, b, ctx, sf) =>
+      exactInt(a, ctx, sf) | exactInt(b, ctx, sf),
+  },
+  "~": {
+    metaMethod: "__bxor",
+    nativeImplementation: (a, b, ctx, sf) =>
+      exactInt(a, ctx, sf) ^ exactInt(b, ctx, sf),
+  },
+  "<<": {
+    metaMethod: "__shl",
+    nativeImplementation: (a, b, ctx, sf) =>
+      exactInt(a, ctx, sf) << exactInt(b, ctx, sf),
+  },
+  ">>": {
+    metaMethod: "__shr",
+    nativeImplementation: (a, b, ctx, sf) =>
+      exactInt(a, ctx, sf) >> exactInt(b, ctx, sf),
   },
   "%": { metaMethod: "__mod", nativeImplementation: (a, b) => a % b },
   "^": { metaMethod: "__pow", nativeImplementation: (a, b) => a ** b },
@@ -895,4 +924,19 @@ function evalLValue(
       }
     }
   }
+}
+
+function exactInt(
+  num: number,
+  ctx: ASTCtx,
+  sf: LuaStackFrame,
+): number {
+  // See conversion from float to integer https://www.lua.org/manual/5.4/manual.html#3.4.3
+  if (!Number.isInteger(num)) {
+    throw new LuaRuntimeError(
+      `Number ${num} has no integer representation (consider math.floor or math.ceil)`,
+      sf.withCtx(ctx),
+    );
+  }
+  return num;
 }

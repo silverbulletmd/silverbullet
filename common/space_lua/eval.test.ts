@@ -40,6 +40,14 @@ Deno.test("Evaluator test", async () => {
   assertEquals(evalExpr(`4 // 3`), 1);
   assertEquals(evalExpr(`4 % 3`), 1);
 
+  // Bitwise arithmetic
+  assertEquals(evalExpr(`~171`), -172); // signed two's complement
+  assertEquals(evalExpr(`5 & 3`), 1); // 101 & 011 = 001
+  assertEquals(evalExpr(`5 | 3`), 7); // 101 | 011 = 111
+  assertEquals(evalExpr(`5 ~ 3`), 6); // 101 ^ 011 = 110
+  assertEquals(evalExpr(`5 << 3`), 40); // 101 << 3 = 101000
+  assertEquals(evalExpr(`5 >> 2`), 1); // 101 >> 2 = 1
+
   // Strings
   assertEquals(evalExpr(`"a" .. "b"`), "ab");
 
