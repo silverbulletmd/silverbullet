@@ -185,7 +185,7 @@ const getmetatableFunction = new LuaBuiltinFunction((_sf, table: LuaTable) => {
 const dofileFunction = new LuaBuiltinFunction(async (sf, filename: string) => {
   const global = sf.threadLocal.get("_GLOBAL");
   const file = await luaCall(
-    global.get("space").get("read_file"),
+    global.get("space").get("readFile"),
     [filename],
     sf.astCtx!,
     sf,
