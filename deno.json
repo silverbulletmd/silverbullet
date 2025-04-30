@@ -133,7 +133,7 @@
     "@lezer/markdown": "https://esm.sh/@lezer/markdown@1.4.2?external=@lezer/common,@codemirror/language,@lezer/highlight,@lezer/lr&target=es2022",
     "@luca/esbuild-deno-loader": "jsr:@luca/esbuild-deno-loader@^0.11.1",
     "@replit/codemirror-lang-nix": "https://esm.sh/@replit/codemirror-lang-nix@6.0.1?external=@codemirror/language,@codemirror/autocomplete,@codemirror/state,@lezer/highlight,@lezer/lr&target=es2022",
-    "@replit/codemirror-vim": "https://esm.sh/@replit/codemirror-vim@6.2.1?external=@codemirror/state,@codemirror/language,@codemirror/view,@codemirror/search,@codemirror/commands",
+    "@replit/codemirror-vim": "https://esm.sh/@replit/codemirror-vim@6.3.0?external=@codemirror/state,@codemirror/language,@codemirror/view,@codemirror/search,@codemirror/commands",
     "@std/assert": "jsr:@std/assert@^1.0.1",
     "@std/cli": "jsr:@std/cli@^1.0.1",
     "@std/fs": "jsr:@std/fs@^1.0.0",

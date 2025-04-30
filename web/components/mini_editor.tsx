@@ -146,7 +146,7 @@ export function MiniEditor(
           vimModeRef.current = mode;
         });
         if (vimStartInInsertMode) {
-          Vim.handleKey(cm, "i");
+          Vim.handleKey(cm, "i", "+input");
         }
       });
     }

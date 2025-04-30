@@ -383,8 +383,12 @@ export function editorSyscalls(client: Client): SysCallMapping {
       client.reloadPage();
     },
     "editor.vimEx": (_ctx, exCommand: string) => {
-      const cm = vimGetCm(client.editorView)!;
-      return Vim.handleEx(cm, exCommand);
+      const cm = vimGetCm(client.editorView);
+      if (cm && cm.state.vim) {
+        return Vim.handleEx(cm as any, exCommand);
+      } else {
+        throw new Error("Vim mode not active or not initialized.");
+      }
     },
     "editor.openPageNavigator": (
       _ctx,
