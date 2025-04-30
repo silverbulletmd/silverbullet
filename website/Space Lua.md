@@ -131,6 +131,7 @@ Space Lua is intended to be a more or less complete implementation of [Lua 5.4](
 * coroutines (not planned, not useful in the SilverBullet context)
 * _ENV (planned)
 * Full metatable support (only partial now, planned)
+* Hexadecimal numeric constants with a fractional part, or binary exponents (not supported by JavaScript number parser either)
 
 # Frequently Asked Questions
 ## Why Lua?

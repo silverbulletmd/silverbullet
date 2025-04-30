@@ -40,6 +40,8 @@ print(math.floor(4.8))   -- prints: 4
 print(math.floor(-4.8))  -- prints: -5
 ```
 
+Note: `math.floor(x + 0.5)` rounds to closest integer, similar to `round(x)` function from other languages
+
 ## math.max(...)
 Returns the maximum value among its arguments.
 

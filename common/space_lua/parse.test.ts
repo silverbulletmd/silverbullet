@@ -1,4 +1,9 @@
-import { parse, stripLuaComments } from "$common/space_lua/parse.ts";
+import {
+  parse,
+  parseExpressionString,
+  stripLuaComments,
+} from "$common/space_lua/parse.ts";
+import type { LuaNumberLiteral } from "$common/space_lua/ast.ts";
 import { assertEquals } from "@std/assert/equals";
 
 Deno.test("Test Lua parser", () => {
@@ -135,4 +140,32 @@ Deno.test("Test query parsing", () => {
     `_(query[[from p = index.tag("page") order by p.lastModified desc, p.name]])`,
   );
   parse(`_(query[[from p = index.tag("page") order by p.lastModified]])`);
+});
+
+Deno.test("Test numeric constant parsing", () => {
+  // Examples from Lua 5.4 Reference Manual, except hexadecimal constants with fractional part
+  assertEquals((parseExpressionString(`3`) as LuaNumberLiteral).value, 3);
+  assertEquals((parseExpressionString(`345`) as LuaNumberLiteral).value, 345);
+  assertEquals((parseExpressionString(`0xff`) as LuaNumberLiteral).value, 0xff);
+  assertEquals(
+    (parseExpressionString(`0xBEBADA`) as LuaNumberLiteral).value,
+    0xBEBADA,
+  );
+  assertEquals((parseExpressionString(`3.0`) as LuaNumberLiteral).value, 3.0);
+  assertEquals(
+    (parseExpressionString(`3.1416`) as LuaNumberLiteral).value,
+    3.1416,
+  );
+  assertEquals(
+    (parseExpressionString(`314.16e-2`) as LuaNumberLiteral).value,
+    314.16e-2,
+  );
+  assertEquals(
+    (parseExpressionString(`0.31416E1`) as LuaNumberLiteral).value,
+    0.31416E1,
+  );
+  assertEquals(
+    (parseExpressionString(`34e1`) as LuaNumberLiteral).value,
+    34e1,
+  );
 });
