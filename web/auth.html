@@ -195,6 +195,28 @@
 
       document.getElementById("login").appendChild(input);
     }
+
+    // Fetch the app name from the manifest file
+    fetch('/.client/manifest.json')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to load manifest');
+        }
+        return response.json();
+      })
+      .then(manifest => {
+        const appName = manifest.name || 'SilverBullet';
+        // Update the title
+        document.title = `Login to ${appName}`;
+        // Update the header text
+        const header = document.querySelector('h1');
+        if (header) {
+          header.innerHTML = `Login to <img src="/.client/logo.png" style="height: 1ch" /> ${appName}`;
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching manifest:', error);
+      });
   </script>
 </body>
 
