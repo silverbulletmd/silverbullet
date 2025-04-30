@@ -1,31 +1,33 @@
 # SilverBullet
-SilverBullet is a note-taking application optimized for people with a [hacker mindset](https://en.wikipedia.org/wiki/Hacker). We all take notes. There’s a million note taking applications out there. [Literally](https://www.noteapps.ca/). Wouldn’t it be nice to have one where your notes are _more_ than plain text files? Where your notes essentially become a _database_ that you can query; that you can build custom knowledge applications on top of? A _hackable notebook_, if you will?
+SilverBullet is an open source **personal productivity platform** built on Markdown, turbo charged with the scripting power of Lua. You self host it on your server, access it via any modern browser on any device (desktop, laptop, mobile). Since SilverBullet is built as a Local First PWA, it is fully offline capable. Temporarily don't have network access? No problem, SilverBullet will sync your content when you get back online.
 
-This is what SilverBullet aims to be.
+You may start your SilverBullet journey by simply thinking of it as a note taking app. Because, well, it is. You write notes in Markdown and get Live Preview. It looks WYSIWYG while still easily accessing the markdown that lies underneath. You can create Links to other pages, via the `[[other page]]` syntax. As you navigate your Space (that's what we call a SilverBullet instance) by clicking these links, you will see Linked Mentions to get a feel of how your pages are inter-linked.
 
-Absolutely. You use SilverBullet to quickly jot things down. It’s a notes app after all. However, this is just the beginning. Gradually, you start to annotate your notes using [Frontmatter](https://silverbullet.md/Frontmatter). You realize: “Hey, this note represents a _person_, let me [tag](https://silverbullet.md/Tags) it as such.” Before you know it, you’re turning your notes into [Objects](https://silverbullet.md/Objects). Then you learn that in SilverBullet you can [Live Query](https://silverbullet.md/Live%20Queries) these objects. Your queries grow into reusable [Templates](https://silverbullet.md/Templates) written using a powerful [Template Language](https://silverbullet.md/Template%20Language). You find more and more uses of these templates, for instance to create [new pages](https://silverbullet.md/Page%20Templates), or [widgets](https://silverbullet.md/Live%20Template%20Widgets) automatically added to your pages.
+Then you learn that in SilverBullet, you can embed Space Lua (SilverBullet's Lua dialect) right into your pages, using the special `${lua expression}` syntax. You try something simple, like `${10 + 2}`. Ok, that's cool. As you learn more, you start tagging pages and adding Frontmatter. As it turns out, pages (and other things) are indexed as Objects. You realize you can query these objects like a database.
 
-And then, before you know it — you realize you’re effectively building applications in your notes app. [End-User Programming](https://silverbullet.md/End-User%20Programming), y’all. It’s cool.
+Imagine the possibilities. Before you know it — you realize you're effectively building applications in your notes app. End-User Programming, y'all. It's cool.
 
 You may have been told there is _no such thing_ as a [silver bullet](https://en.wikipedia.org/wiki/Silver_bullet).
 
 You were told wrong.
 
-[![Introduction to SilverBullet](http://img.youtube.com/vi/8btx9HeuZ4s/0.jpg)](https://www.youtube.com/watch?v=8btx9HeuZ4s)
+[![Introduction to SilverBullet](http://img.youtube.com/vi/mik1EbTshX4/0.jpg)](https://www.youtube.com/watch?v=mik1EbTshX4)
 
 ## Features
 SilverBullet...
-* Runs in any modern browser (including on mobile) as a PWA in two Client Modes (_online_ and _synced_ mode), where the _synced mode_ enables **100% offline operation**, keeping a copy of content in the browser, syncing back to the server when a network connection is available.
-* Provides an enjoyable markdown writing experience with a clean UI, rendering text using Live Preview, further **reducing visual noise** while still providing direct access to the underlying markdown syntax.
-* Supports wiki-style **page linking** using the `[[page link]]` syntax. Incoming links are indexed and appear as “Linked Mentions” at the bottom of the pages linked to thereby providing _bi-directional linking_.
-* Optimized for **keyboard-based operation**:
+* At its core is a **note taking** application, a kind of personal wiki, storing its notes in the universal Markdown format in a folder on your server.
+* Is a **web application** and therefore accessible from wherever a (modern) web browser is available.
+* Is built as a Local First PWA keeping a copy of your content in your browser's local database, syncing back to the server when a network connection is available, enabling **100% offline operation**.
+* Provides an enjoyable Markdown writing experience with a clean UI, rendering text using Live Preview, further **reducing visual noise** while still providing direct access to the underlying markdown syntax.
+* Supports wiki-style **page linking** using the `[[page link]]` syntax. Incoming links are indexed and appear as Linked Mentions at the bottom of the pages linked to thereby providing _bi-directional linking_.
+* Is optimized for **keyboard-based operation**:
   * Quickly navigate between pages using the **page switcher** (triggered with `Cmd-k` on Mac or `Ctrl-k` on Linux and Windows).
   * Run commands via their keyboard shortcuts or the **command palette** (triggered with `Cmd-/` or `Ctrl-/` on Linux and Windows).
   * Use Slash Commands to perform common text editing operations.
-* Provides a platform for [end-user programming](https://www.inkandswitch.com/end-user-programming/) through its support for Objects, Live Queries and Live Templates.
-* Robust extension mechanism using [plugs](https://silverbullet.md/Plugs).
-* **Self-hosted**: you own your data. All content is stored as plain files in a folder on disk. Back up, sync, edit, publish, script with any additional tools you like.
-* SilverBullet is [open source, MIT licensed](https://opensource.org/license/MIT) software.
+* Is a platform for End-User Programming through its support for Objects and Space Lua.
+* Can be extended using Space Lua and Plugs, and a lot of core functionality is built that way.
+* Is **self-hosted**: _you own your data_. Your space is stored as plain files in a folder on disk on your server. Back it up, sync, edit, publish, script it with any additional tools you like.
+* Is free, [**open source**, MIT licensed](https://github.com/silverbulletmd/silverbullet) software.
 
 ## Installing SilverBullet
 Check out the [instructions](https://silverbullet.md/Install).
@@ -52,7 +54,7 @@ To symlink `silverbullet` to your locally checked-out version, run:
 deno task install
 ```
 
-You can then run the server in “watch mode” (automatically restarting when you
+You can then run the server in "watch mode" (automatically restarting when you
 change source files) with:
 
 ```shell
@@ -72,32 +74,3 @@ To typecheck the entire codebase (recommended before submitting PR):
 ```shell
 deno task check
 ```
-
-To run unit tests:
-```shell
-deno task test
-```
-
-### Git Hooks
-
-SilverBullet uses Git hooks to ensure code quality. To set up the hooks, run:
-
-```shell
-./scripts/install_hooks.sh
-```
-
-This will set up pre-commit hooks that automatically run:
-- Type checking with `deno task check`
-- Linting with `deno task lint`
-- Tests with `deno task test`
-- Formatting with `deno task fmt`
-
-If any of these checks fail, the commit will be aborted. You can bypass the hooks with `git commit --no-verify` if needed.
-
-## Feedback
-If you (hypothetically) find bugs or have feature requests, post them in
-[our issue tracker](https://github.com/silverbulletmd/silverbullet/issues).
-Would you like to contribute?
-[Check out the code](https://github.com/silverbulletmd/silverbullet), and the
-issue tracker as well for ideas on what to work on.
-Also be sure to check out our [Discourse community](https://community.silverbullet.md).
