@@ -76,6 +76,14 @@
     padding: 0 20px;
     max-width: var(--editor-width);
     margin: auto;
+    font-family: var(--editor-font);
+    height: 1.5em;
+    line-height: 1.5em;
+
+    input {
+      font-family: var(--editor-font);
+      font-size: 1em;
+    }
   }
 
   // Gutter styling
