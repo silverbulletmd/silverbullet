@@ -264,8 +264,8 @@ Shows a filter box UI.
 Example:
 ```lua
 local result = editor.filterBox("Select:", {
-    { name: "Option 1", value: "1" },
-    { name: "Option 2", value: "2" }
+    { name="Option 1", value="1" },
+    { name="Option 2", value="2", description="More details about 2" }
 })
 ```
 
