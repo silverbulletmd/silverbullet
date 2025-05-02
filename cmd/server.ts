@@ -116,7 +116,7 @@ export async function serveCommand(
   const manifestName = Deno.env.get("SB_NAME");
   const manifestDescription = Deno.env.get("SB_DESCRIPTION");
 
-  if (manifestName || manifestDescription) {
+  if (manifestName || manifestDescription || hostUrlPrefix) {
     const manifestData = JSON.parse(
       clientAssets.readTextFileSync(".client/manifest.json"),
     );
@@ -125,6 +125,13 @@ export async function serveCommand(
     }
     if (manifestDescription) {
       manifestData.description = manifestDescription;
+    }
+    if (hostUrlPrefix) {
+      for (const icon of manifestData.icons) {
+        if (icon.src) icon.src = hostUrlPrefix + icon.src;
+      }
+      manifestData.start_url = hostUrlPrefix + manifestData.start_url;
+      manifestData.scope = hostUrlPrefix + manifestData.scope;
     }
     clientAssets.writeTextFileSync(
       ".client/manifest.json",
