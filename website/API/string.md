@@ -1,8 +1,40 @@
-API docs for Lua's `string` module.
+# String API
+
+API docs for Space Lua's `string` module.
 
 **Note:** since string values set `string` as their meta table, these APIs can also be called as method calls on strings directly. For instance: `someString:startsWith("h")` is equivalent to `string.startsWith(someString, "h")`.
 
-## string.byte(s, i?, j?)
+## Lua Pattern Matching
+
+Lua patterns are not regular expressions. Space Lua makes a good effort at translating Lua patterns to regex to run in a Javascript environment, but there are two main differences:
+
+1. Magic characters `^$()%.[]*+-?` must be escaped to represent their character. Standard Lua patterns do not require escaping magic characters when they are not contextually magic (e.g. `%d--` is a valid Lua pattern where the second hyphen is not magic). Space Lua may have unexpected results when expecting an un-escaped magic character to behave like a character.
+2. In Space Lua, the repetition magic characters (`?`, `*`, `+`, and `-`) will apply to captures in patterns. They do not in standard Lua.
+
+Additionally, the patterns for the *n*th captured string (`%*n*`), balanced match (`%b*xy*`), and frontier pattern (`%f[set]`) in [Lua](https://www.lua.org/manual/5.4/manual.html#6.4.1) will likely not be supported.
+
+As noted below, the operations `string.matchRegex` and `string.matchRegexAll`
+leverage regex in Javascript--not Space Lua patterns.
+
+Here are some valid Lua patterns with different matches (or outright errors) in Space Lua:
+
+```lua
+print(string.match("1234", "(%d)+"))
+-- prints "4" in Space Lua (last match of the captures)
+-- prints "nil" in Lua (repetition magic does not work on captures)
+
+print(string.match("*", "*"))
+-- invalid regex in Space Lua ("*" is not escaped)
+-- prints "*" in Lua
+
+print(string.match("2024-03-14", "%d+-(%d+)-%d+"))
+-- invalid regex in Space Lua (the "-"s are not escaped")
+-- prints "03" in Lua
+```
+
+## String Operations
+
+### string.byte(s, i?, j?)
 Returns the numeric codes of characters in string `s` from position `i` to `j`. If `j` is not provided, defaults to `i`.
 
 Example:
@@ -10,7 +42,7 @@ Example:
 print(string.byte("Hello", 1))  -- prints: 72 (ASCII code for 'H')
 ```
 
-## string.char(...)
+### string.char(...)
 Returns a string from given ASCII codes.
 
 Example:
@@ -18,7 +50,7 @@ Example:
 print(string.char(72))  -- prints: H
 ```
 
-## string.find(s, pattern, init?, plain?)
+### string.find(s, pattern, init?, plain?)
 Looks for the first match of `pattern` in string `s`. Returns start and end indices of match.
 
 Example:
@@ -27,7 +59,7 @@ local start, end_ = string.find("Hello", "l")
 print(start)  -- prints: 3 (first 'l' position)
 ```
 
-## string.format(format, ...)
+### string.format(format, ...)
 Returns a formatted string using C-style format specifiers.
 
 Example:
@@ -36,7 +68,7 @@ print(string.format("Name: %s, Age: %d", "John", 30))  -- prints: Name: John, Ag
 print(string.format("Pi: %.2f", 3.14159))             -- prints: Pi: 3.14
 ```
 
-## string.gsub(s, pattern, repl, n?)
+### string.gsub(s, pattern, repl, n?)
 Returns a copy of `s` in which all (or the first `n`) occurrences of `pattern` have been replaced by `repl`.
 
 Example:
@@ -60,7 +92,7 @@ result = string.gsub("hello.world", "%.", "-")
 print(result)  -- prints: hello-world
 ```
 
-## string.match(s, pattern, init?)
+### string.match(s, pattern, init?)
 Returns the captures from the first match of `pattern` in string `s`.
 
 Example:
@@ -69,8 +101,8 @@ Example:
 print(string.match("hello", "h"))  -- prints: h
 
 -- Multiple captures
-local day, month, year = string.match("2024-03-14", "(%d+)-(%d+)-(%d+)")
-print(day, month, year)  -- prints: 2024 03 14
+local year, month, day = string.match("2024-03-14", "(%d+)%-(%d+)%-(%d+)")
+print(year, month, day)  -- prints: 2024 03 14
 
 -- With init position
 print(string.match("hello world", "(world)", 7))  -- prints: world
@@ -81,7 +113,7 @@ print(string.match("abc123", "%a+"))   -- prints: abc
 print(string.match("   abc", "%s+"))   -- prints: "   "
 ```
 
-## string.gmatch(s, pattern)
+### string.gmatch(s, pattern)
 Returns an iterator function that returns successive captures from pattern matches in string `s`.
 
 Example:
@@ -93,7 +125,7 @@ end
 print(words[1], words[2], words[3])  -- prints: hello world lua
 ```
 
-## string.len(s)
+### string.len(s)
 Returns the length of string `s`.
 
 Example:
@@ -101,7 +133,7 @@ Example:
 print(string.len("Hello"))  -- prints: 5
 ```
 
-## string.lower(s)
+### string.lower(s)
 Returns a copy of `s` with all characters converted to lowercase.
 
 Example:
@@ -109,7 +141,7 @@ Example:
 print(string.lower("Hello"))  -- prints: hello
 ```
 
-## string.upper(s)
+### string.upper(s)
 Returns a copy of `s` with all characters converted to uppercase.
 
 Example:
@@ -117,7 +149,7 @@ Example:
 print(string.upper("Hello"))  -- prints: HELLO
 ```
 
-## string.rep(s, n, sep?)
+### string.rep(s, n, sep?)
 Returns a string that is the concatenation of `n` copies of string `s`.
 
 Example:
@@ -125,7 +157,7 @@ Example:
 print(string.rep("Hello", 3))  -- prints: HelloHelloHello
 ```
 
-## string.reverse(s)
+### string.reverse(s)
 Returns a string with the characters of `s` in reverse order.
 
 Example:
@@ -134,7 +166,7 @@ print(string.reverse("hello"))  -- prints: olleh
 print(string.reverse(""))       -- prints: "" (empty string)
 ```
 
-## string.sub(s, i, j?)
+### string.sub(s, i, j?)
 Returns the substring of `s` from position `i` to `j`.
 
 Example:
@@ -142,7 +174,7 @@ Example:
 print(string.sub("Hello", 2, 4))  -- prints: ell
 ```
 
-## string.split(s, sep)
+### string.split(s, sep)
 Splits string `s` using separator `sep` and returns a table of substrings.
 
 Example:
@@ -158,7 +190,7 @@ end
 ```
 
 # Non-standard Extensions
-## string.startsWith(s, prefix)
+### string.startsWith(s, prefix)
 Returns true if string `s` starts with `prefix`.
 
 Example:
@@ -167,7 +199,7 @@ print(string.startsWith("hello world", "hello"))  -- prints: true
 print(string.startsWith("hello world", "world"))  -- prints: false
 ```
 
-## string.endsWith(s, suffix)
+### string.endsWith(s, suffix)
 Returns true if string `s` ends with `suffix`.
 
 Example:
@@ -176,7 +208,7 @@ print(string.endsWith("hello world", "world"))  -- prints: true
 print(string.endsWith("hello world", "hello"))  -- prints: false
 ```
 
-## string.trim(s)
+### string.trim(s)
 Returns a copy of string `s` with whitespace removed from both ends.
 
 Example:
@@ -184,7 +216,7 @@ Example:
 print(string.trim("  hello  "))  -- prints: hello
 ```
 
-## string.trimStart(s)
+### string.trimStart(s)
 Returns a copy of string `s` with whitespace removed from the beginning.
 
 Example:
@@ -192,7 +224,7 @@ Example:
 print(string.trimStart("  hello  "))  -- prints: hello  
 ```
 
-## string.trimEnd(s)
+### string.trimEnd(s)
 Returns a copy of string `s` with whitespace removed from the end.
 
 Example:
@@ -200,7 +232,7 @@ Example:
 print(string.trimEnd("  hello  "))  -- prints:   hello
 ```
 
-## string.matchRegex(s, pattern)
+### string.matchRegex(s, pattern)
 Matches string `s` against a JavaScript regular expression pattern and returns the result. This uses JavaScript's native regex capabilities rather than Lua patterns.
 
 Example:
@@ -209,7 +241,7 @@ local match = string.matchRegex("hello123", "([a-z]+)([0-9]+)")
 print(match[1], match[2])  -- prints: hello 123
 ```
 
-## string.matchRegexAll(s, pattern)
+### string.matchRegexAll(s, pattern)
 Returns an iterator that finds all matches of a JavaScript regular expression pattern in string `s`.
 
 Example:
