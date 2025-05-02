@@ -155,10 +155,13 @@ assertEqual(string.match("abc123", "%a+"), "abc")
 assertEqual(string.match("   abc", "%s+"), "   ")
 
 -- Test multiple captures
-local day, month, year = string.match("2024-03-14", "(%d+)%-(%d+)%-(%d+)")
-assertEqual(day, "2024")
+local year, month, day = string.match("2024-03-14", "(%d+)%-(%d+)%-(%d+)")
+assertEqual(year, "2024")
 assertEqual(month, "03")
-assertEqual(year, "14")
+assertEqual(day, "14")
+
+-- Test escaped hyphen at the end of a pattern
+assertEqual(string.match("4-", "%d%-"), "4-")
 
 -- Test optional captures
 local word = string.match("The quick brown fox", "%s*(%w+)%s*")
