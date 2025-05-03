@@ -32,3 +32,18 @@ export async function loadVimRc() {
     // No VIMRC page found
   }
 }
+
+export async function loadVimConfig() {
+  const vimMode = await editor.getUiOption("vimMode");
+  if (!vimMode) {
+    console.log("Not in vim mode");
+    return;
+  }
+  try {
+    await editor.save();
+    await editor.reloadConfigAndCommands();
+    await editor.vimConfig();
+  } catch (e: any) {
+    await editor.flashNotification(e.message, "error");
+  }
+}
