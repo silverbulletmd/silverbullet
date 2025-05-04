@@ -68,6 +68,14 @@ export const osApi = new LuaTable({
     }
   }),
   /**
+   * Returns the difference, in seconds, from time t1 to time t2
+   * (where the times are values returned by os.time). In POSIX,
+   * Windows, and some other systems, this value is exactly t2-t1.
+   */
+  difftime: new LuaBuiltinFunction((_sf, t2: number, t1: number): number => {
+    return t2 - t1;
+  }),
+  /**
    * Returns a string or a table containing date and time, formatted according to the given string format.
    * If the time argument is present, this is the time to be formatted (see the os.time function for a description of this value). Otherwise, date formats the current time.
    * If format starts with '!', then the date is formatted in Coordinated Universal Time. After this optional character, if format is the string "*t", then date returns a table with the following fields: year, month (1–12), day (1–31), hour (0–23), min (0–59), sec (0–61, due to leap seconds), wday (weekday, 1–7, Sunday is 1), yday (day of the year, 1–366), and isdst (daylight saving flag, a boolean). This last field may be absent if the information is not available.
