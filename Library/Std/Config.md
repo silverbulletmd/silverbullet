@@ -142,4 +142,79 @@ config.define("actionButtons", {
   }
 })
 
+config.define("vim", {
+  description = "Vim mode configuration",
+  type = "object",
+  properties = {
+    unmap = {
+      description = "Keys to unmap",
+      type = "array",
+      items = {
+        oneOf = {
+          { type = "string" },
+          {
+            type = "object",
+            properties = {
+              key = { type = "string" },
+              mode = {
+                type = "string",
+                enum = {"normal", "insert", "visual"}
+              }
+            },
+            required = { "key" },
+            additionalProperties = false
+          }
+        }
+      }
+    },
+    map = {
+      description = "Custom mappings",
+      type = "array",
+      items = {
+        type = "object",
+        properties = {
+          map = { type = "string" },
+          to = { type = "string" },
+          mode = {
+            type = "string",
+            enum = {"normal", "insert", "visual"}
+          }
+        },
+        required = { "map", "to" },
+        additionalProperties = false
+      }
+    },
+    noremap = {
+      description = "Non-recursive custom mappings",
+      type = "array",
+      items = {
+        type = "object",
+        properties = {
+          map = { type = "string" },
+          to = { type = "string" },
+          mode = {
+            type = "string",
+            enum = {"normal", "insert", "visual"}
+          }
+        },
+        required = { "map", "to" },
+        additionalProperties = false
+      }
+    },
+    commands = {
+      description = "Custom Ex commands",
+      type = "array",
+      items = {
+        type = "object",
+        properties = {
+          command = { type = "string" },
+          ex = { type = "string" }
+        },
+        required = { "command", "ex" },
+        additionalProperties = false
+      }
+    },
+  },
+  additionalProperties = false
+})
 ```
