@@ -17,7 +17,10 @@ import type { Transaction } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { getCM as vimGetCm, Vim } from "@replit/codemirror-vim";
 import type { SysCallMapping } from "$lib/plugos/system.ts";
-import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
+import type {
+  FilterOption,
+  VimConfig,
+} from "@silverbulletmd/silverbullet/type/client";
 import type { PageMeta, UploadFile } from "../../plug-api/types.ts";
 import { openSearchPanel } from "@codemirror/search";
 import { parseRef, type Ref } from "@silverbulletmd/silverbullet/lib/page_ref";
@@ -388,6 +391,41 @@ export function editorSyscalls(client: Client): SysCallMapping {
         return Vim.handleEx(cm as any, exCommand);
       } else {
         throw new Error("Vim mode not active or not initialized.");
+      }
+    },
+    "editor.vimConfig": () => {
+      const config = client.config.get<VimConfig>("vim", {});
+      if (config) {
+        config.unmap?.forEach((binding) => {
+          if (typeof binding === "string") {
+            console.log("Unmapping " + binding);
+            // @ts-ignore: unmap expects a string for the mode, this is problematic with Ex mappings which requires undefined or false
+            Vim.unmap(binding, undefined);
+          } else if (binding.key) {
+            console.log(
+              "Unmapping " + binding.key + " in " + (binding.mode ?? "normal"),
+            );
+            Vim.unmap(binding.key, binding.mode ?? "normal");
+          }
+        });
+        config.map?.forEach(({ map, to, mode }) => {
+          console.log(
+            "Mapping " + map + " to " + to + " for " + (mode ?? "normal"),
+          );
+          Vim.map(map, to, mode ?? "normal");
+        });
+        config.noremap?.forEach(({ map, to, mode }) => {
+          console.log(
+            "Noremapping " + map + " to " + to + " for " + (mode ?? "normal"),
+          );
+          Vim.noremap(map, to, mode ?? "normal");
+        });
+        config.commands?.forEach(({ ex, command }) => {
+          console.log("Mapping command '" + command + "' to Ex " + ex);
+          Vim.defineEx(ex, "", () => client.runCommandByName(command));
+        });
+      } else {
+        console.log("No vim config found");
       }
     },
     "editor.openPageNavigator": (

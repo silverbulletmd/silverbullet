@@ -12,7 +12,7 @@ import printf from "./printf.ts";
 const ROSETTA_STONE = {
   "([^a-zA-Z0-9%(])-": "$1*?",
   "([^%])-([^a-zA-Z0-9?])": "$1*?$2",
-  "(.)-$": "$1*?",
+  "([^%])-$": "$1*?",
   "%a": "[a-zA-Z]",
   "%A": "[^a-zA-Z]",
   "%c": "[\x00-\x1f]",
@@ -39,6 +39,7 @@ function translatePattern(pattern: string): string {
 
   // Replace single backslash with double backslashes
   pattern = pattern.replace(new RegExp("\\\\", "g"), "\\\\");
+  pattern = pattern.replace(new RegExp("\\|", "g"), "\\|");
 
   for (const [key, value] of Object.entries(ROSETTA_STONE)) {
     pattern = pattern.replace(new RegExp(key, "g"), value);
@@ -138,7 +139,7 @@ export const stringApi = new LuaTable({
       repl: any, // string or LuaFunction
       n = Infinity,
     ) => {
-      pattern = translatePattern("" + pattern);
+      pattern = translatePattern(pattern);
       const replIsFunction = repl.call;
 
       let count = 0,

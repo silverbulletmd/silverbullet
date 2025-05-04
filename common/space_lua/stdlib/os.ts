@@ -1,29 +1,45 @@
 import { LuaBuiltinFunction, LuaTable } from "$common/space_lua/runtime.ts";
 
 const ONE_DAY = 1000 * 60 * 60 * 24;
+const ONE_WEEK = ONE_DAY * 7;
 
 // weekStartDay: 0 for Sunday, 1 for Monday
 // iso: if true, week 01 contains Jan. 4th and prior week is week 52 or 53 of year prior
 //      if false, week 01 starts on first weekStartDay of the year and prior week is week 00
 function weekNumber(inDate: Date, weekStartDay: number, iso: boolean): number {
-  const year = inDate.getFullYear();
-  const jan1 = new Date(year, 0, 1);
+  const date = new Date(
+    Date.UTC(inDate.getFullYear(), inDate.getMonth(), inDate.getDate()),
+  );
 
-  let jan1Week: number;
   if (iso) {
-    jan1Week = (jan1.getDay() - weekStartDay + 7) % 7 < 3 ? 1 : 0;
-  } else jan1Week = jan1.getDay() == weekStartDay ? 1 : 0;
+    // ISO week: Week 1 contains January 4th, weeks start on Monday
+    // Adjust to nearest Thursday
+    const target = new Date(date);
+    target.setUTCDate(target.getUTCDate() + 3 - ((target.getUTCDay() + 6) % 7)); // Nearest Thursday
 
-  const week = Math.floor(
-    ((inDate.getTime() - jan1.getTime() + ONE_DAY) / ONE_DAY) / 7,
-  ) + jan1Week;
+    const yearStart = new Date(Date.UTC(target.getUTCFullYear(), 0, 4)); // Jan 4
+    const weekStart = new Date(yearStart);
+    weekStart.setUTCDate(
+      yearStart.getUTCDate() - ((yearStart.getUTCDay() + 6) % 7),
+    ); // Monday of that week
 
-  if (iso && week == 0) {
-    const dec31 = new Date(inDate.getFullYear() - 1, 11, 31);
-    return weekNumber(dec31, weekStartDay, iso);
+    const diff = target.getTime() - weekStart.getTime();
+    return 1 + Math.floor(diff / (ONE_WEEK));
+  } else {
+    // Non-ISO week: Week 1 starts on the first weekStartDay of the year
+    const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+    const startDay = yearStart.getUTCDay();
+    const offset = (7 + (startDay - weekStartDay)) % 7;
+    const firstWeekStart = new Date(yearStart);
+    firstWeekStart.setUTCDate(yearStart.getUTCDate() + (7 - offset) % 7);
+
+    if (date < firstWeekStart) {
+      return 0;
+    }
+
+    const diff = date.getTime() - firstWeekStart.getTime();
+    return 1 + Math.floor(diff / (ONE_WEEK));
   }
-
-  return week;
 }
 
 export const osApi = new LuaTable({

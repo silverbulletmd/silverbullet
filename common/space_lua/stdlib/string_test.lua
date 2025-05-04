@@ -32,6 +32,15 @@ local result, count = string.gsub("hello world", "hello", "hi")
 assert(result == "hi world", "Basic string replacement failed")
 assert(count == 1, "Basic replacement count failed")
 
+-- https://github.com/silverbulletmd/silverbullet/issues/1326
+result, count = ("abc|de"):gsub("|", "-")
+assert(result == "abc-de", "replacements failed [got: " .. result .. ", expected: abc-de]")
+assert(count == 1, "replacement count failed")
+
+result, count = ("abc\\|de|"):gsub("|", "-")
+assert(result == "abc\\-de-", "replacements failed [got: " .. result .. ", expected: abc\\-de-]")
+assert(count == 2, "replacement count failed")
+
 -- Multiple replacements
 result, count = string.gsub("hello hello hello", "hello", "hi")
 assert(result == "hi hi hi", "Multiple replacements failed")
@@ -155,10 +164,13 @@ assertEqual(string.match("abc123", "%a+"), "abc")
 assertEqual(string.match("   abc", "%s+"), "   ")
 
 -- Test multiple captures
-local day, month, year = string.match("2024-03-14", "(%d+)%-(%d+)%-(%d+)")
-assertEqual(day, "2024")
+local year, month, day = string.match("2024-03-14", "(%d+)%-(%d+)%-(%d+)")
+assertEqual(year, "2024")
 assertEqual(month, "03")
-assertEqual(year, "14")
+assertEqual(day, "14")
+
+-- Test escaped hyphen at the end of a pattern
+assertEqual(string.match("4-", "%d%-"), "4-")
 
 -- Test optional captures
 local word = string.match("The quick brown fox", "%s*(%w+)%s*")

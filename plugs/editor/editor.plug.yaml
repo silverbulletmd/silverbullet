@@ -305,6 +305,13 @@ functions:
       requireEditor: page
     events:
       - editor:modeswitch
+  loadVimConfig:
+    path: "./vim.ts:loadVimConfig"
+    command:
+      name: "Editor: Vim: Load Vim Config"
+      requireEditor: page
+    events:
+      - editor:modeswitch
 
   # Random stuff
   statsCommand:

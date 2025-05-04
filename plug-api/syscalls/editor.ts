@@ -468,6 +468,13 @@ export function vimEx(exCommand: string): Promise<any> {
   return syscall("editor.vimEx", exCommand);
 }
 
+/**
+ * Execute a vim config using the CodeMirror Vim Mode API
+ */
+export function vimConfig(): Promise<any> {
+  return syscall("editor.vimConfig");
+}
+
 // Document editor specific syscalls
 
 /**
