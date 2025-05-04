@@ -32,6 +32,15 @@ local result, count = string.gsub("hello world", "hello", "hi")
 assert(result == "hi world", "Basic string replacement failed")
 assert(count == 1, "Basic replacement count failed")
 
+-- https://github.com/silverbulletmd/silverbullet/issues/1326
+result, count = ("abc|de"):gsub("|", "-")
+assert(result == "abc-de", "replacements failed [got: " .. result .. ", expected: abc-de]")
+assert(count == 1, "replacement count failed")
+
+result, count = ("abc\\|de|"):gsub("|", "-")
+assert(result == "abc\\-de-", "replacements failed [got: " .. result .. ", expected: abc\\-de-]")
+assert(count == 2, "replacement count failed")
+
 -- Multiple replacements
 result, count = string.gsub("hello hello hello", "hello", "hi")
 assert(result == "hi hi hi", "Multiple replacements failed")
