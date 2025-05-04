@@ -80,7 +80,7 @@ export class SpaceServer {
   }
 
   async ensureBasicPages() {
-    await this.ensurePageWithContent("index.md", INDEX_TEMPLATE);
+    await this.ensurePageWithContent(`${this.indexPage}.md`, INDEX_TEMPLATE);
     await this.ensurePageWithContent("CONFIG.md", CONFIG_TEMPLATE);
   }
 
