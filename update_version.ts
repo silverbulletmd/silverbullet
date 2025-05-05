@@ -10,7 +10,7 @@ export async function updateVersionFile() {
   process.close();
 
   const versionFilePath = "./version.ts";
-  const versionContent = `export const version = \"${commitHash}\";\n`;
+  const versionContent = `export const version = \"2.0-beta (${commitHash})\";\n`;
 
   await Deno.writeTextFile(versionFilePath, versionContent);
   console.log(`Updated version.ts with version information: ${commitHash}`);
