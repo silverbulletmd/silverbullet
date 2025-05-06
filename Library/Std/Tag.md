@@ -46,7 +46,7 @@ event.listen {
     ]]
     if #taggedParagraphs > 0 then
       text = text .. "## Paragraphs\n"
-        .. template.each(taggedParagraphs, templates.itemItem)
+        .. template.each(taggedParagraphs, templates.paragraphItem)
     end
     return {
       text = text,
