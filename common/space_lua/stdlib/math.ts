@@ -5,18 +5,68 @@ import {
 } from "$common/space_lua/runtime.ts";
 
 export const mathApi = new LuaTable({
-  // Random number generation
+  /**
+   * When called without arguments, returns a pseudo-random float with
+   * uniform distribution in the range [0,1). When called with two
+   * integers m and n, math.random returns a pseudo-random integer
+   * with uniform distribution in the range [m, n]. The call
+   * math.random(n), for a positive n, is equivalent to
+   * math.random(1,n). The call math.random(0) produces an integer
+   * with all bits (pseudo)random.
+   */
   random: new LuaBuiltinFunction((_sf, m?: number, n?: number) => {
     if (m === undefined && n === undefined) {
       // random() returns [0,1)
       return Math.random();
-    } else if (n === undefined) {
-      // random(m) returns [1,m]
-      return Math.floor(Math.random() * m!) + 1;
-    } else {
-      // random(m,n) returns [m,n]
-      return Math.floor(Math.random() * (n - m! + 1)) + m!;
     }
+
+    if (!Number.isInteger(m)) {
+      throw new LuaRuntimeError(
+        "bad argument #1 to 'math.random' (integer expected)",
+        _sf,
+      );
+    }
+
+    if (n === undefined) {
+      if (m! == 0) {
+        // random(0) returns a random integer
+        const high = Math.floor(Math.random() * 0x100000000);
+        const low = Math.floor(Math.random() * 0x100000000);
+
+        let result = (BigInt(high) << 32n) | BigInt(low);
+
+        if (result & (1n << 63n)) {
+          result -= 1n << 64n;
+        }
+
+        return result;
+      } else {
+        // random(m) returns [1,m]
+        if (m! < 1) {
+          throw new LuaRuntimeError(
+            "bad argument #1 to 'math.random' (interval is empty)",
+            _sf,
+          );
+        }
+        return Math.floor(Math.random() * m!) + 1;
+      }
+    }
+
+    if (!Number.isInteger(n!)) {
+      throw new LuaRuntimeError(
+        "bad argument #2 to 'math.random' (integer expected)",
+        _sf,
+      );
+    }
+
+    // random(m,n) returns [m,n]
+    if (n! < m!) {
+      throw new LuaRuntimeError(
+        "bad argument #1 to 'math.random' (interval is empty)",
+        _sf,
+      );
+    }
+    return Math.floor(Math.random() * (n! - m! + 1)) + m!;
   }),
 
   // Basic functions
