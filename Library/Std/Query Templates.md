@@ -23,6 +23,10 @@ templates.itemItem = template.new([==[
 * ${name}
 ]==])
 
+-- Renders a paragraph object
+templates.paragraphItem = template.new([==[
+* [[${ref}]]
+]==])
 ```
 
 
