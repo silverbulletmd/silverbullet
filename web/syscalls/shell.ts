@@ -45,9 +45,6 @@ export function shellSyscalls(
         },
       );
       const { code, stderr, stdout } = await (await resp).json();
-      if (code !== 0) {
-        throw new Error(stderr);
-      }
       return { code, stderr, stdout };
     },
     "shell.spawn": (
