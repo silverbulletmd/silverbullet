@@ -29,7 +29,7 @@ Deno.test("Test URL resolver", () => {
   );
   assertEquals(
     resolvePath("!v1.silverbullet.md", "/test/image.png", true),
-    "https://silverbullet.md/test/image.png",
+    "https://v1.silverbullet.md/test/image.png",
   );
 
   // Relative paths
@@ -49,17 +49,17 @@ Deno.test("Test URL resolver", () => {
   );
   assertEquals(
     resolvePath("!v1.silverbullet.md", "test/image.png", true),
-    "https://silverbullet.md/test/image.png",
+    "https://v1.silverbullet.md/test/image.png",
   );
   // Federated pages
   assertEquals(resolvePath("!bla/bla", "!bla/bla2"), "!bla/bla2");
   assertEquals(
     federatedPathToUrl("!v1.silverbullet.md"),
-    "https://silverbullet.md",
+    "https://v1.silverbullet.md",
   );
   assertEquals(
     federatedPathToUrl("!v1.silverbullet.md/index"),
-    "https://silverbullet.md/index",
+    "https://v1.silverbullet.md/index",
   );
 
   assertEquals(cleanPageRef("hello"), "hello");
