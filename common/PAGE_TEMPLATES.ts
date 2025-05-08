@@ -1,13 +1,13 @@
 export const SETTINGS_TEMPLATE = `#meta
 
-This page contains some configuration overrides for SilverBullet. A list of configs and their documentation [[!silverbullet.md/SETTINGS|can be found here]].
+This page contains some configuration overrides for SilverBullet. A list of configs and their documentation [[!v1.silverbullet.md/SETTINGS|can be found here]].
 
-To update the [[!silverbullet.md/Libraries|libraries]] specified below, run {[Libraries: Update]}
+To update the [[!v1.silverbullet.md/Libraries|libraries]] specified below, run {[Libraries: Update]}
 
 \`\`\`yaml
 indexPage: "[[index]]"
 libraries:
-- import: "[[!silverbullet.md/Library/Core/*]]"
+- import: "[[!v1.silverbullet.md/Library/Core/*]]"
 \`\`\`
 `;
 
@@ -16,5 +16,5 @@ export const INDEX_TEMPLATE =
 
 For your convenience we're embedding some on-boarding info below. Feel free to delete it once you're done reading it.
 
-![[!silverbullet.md/Getting Started]]
+![[!v1.silverbullet.md/Getting Started]]
 `;

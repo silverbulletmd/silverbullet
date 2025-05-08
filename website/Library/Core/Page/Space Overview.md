@@ -9,21 +9,27 @@ This page compiles some useful things about your space and may also be useful fo
 **Total tags:** {{count({tag select name})}}
 ```
 
-# Active [[!silverbullet.md/Space Script]]
+# Active [[!v1.silverbullet.md/Space Script]]
 ```template
 {{#each {space-script}}}
 * [[{{ref}}]]
 {{/each}}
 ```
 
-# Active [[!silverbullet.md/Space Style]]
+# Active [[!v1.silverbullet.md/Space Lua]]
+${template.each(query[[
+  from index.tag "space-lua"
+  select {name= ref}
+]], templates.pageItem)}
+
+# Active [[!v1.silverbullet.md/Space Style]]
 ```template
 {{#each {space-style}}}
 * [[{{ref}}]]
 {{/each}}
 ```
 
-# Active [[!silverbullet.md/Space Config]]
+# Active [[!v1.silverbullet.md/Space Config]]
 You have space config defined on the following pages:
 ```template
 {{#each {space-config select replace(ref, /@.+/, "") as page}}}

@@ -12,9 +12,9 @@ Deno.test("Test wildcardPathToRegex", () => {
 });
 
 Deno.test("Test federatedPathToLocalPath", () => {
-  assertEquals(federatedPathToLocalPath("!silverbullet.md"), "");
+  assertEquals(federatedPathToLocalPath("!v1.silverbullet.md"), "");
   assertEquals(
-    federatedPathToLocalPath("!silverbullet.md/Library/Core/test"),
+    federatedPathToLocalPath("!v1.silverbullet.md/Library/Core/test"),
     "Library/Core/test",
   );
 });

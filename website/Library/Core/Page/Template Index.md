@@ -1,16 +1,16 @@
 #meta
 
-This page lists all templates currently available in your space. You can also navigate to them via the {[Navigate: Meta Picker]}. More information on templates can be found [[!silverbullet.md/Templates]]
+This page lists all templates currently available in your space. You can also navigate to them via the {[Navigate: Meta Picker]}. More information on templates can be found [[!v1.silverbullet.md/Templates]]
 
 # New Page
-These [[!silverbullet.md/Page Templates]] are available through the {[Page: From Template]} command:
+These [[!v1.silverbullet.md/Page Templates]] are available through the {[Page: From Template]} command:
 
 ```query
 template where hooks.newPage render [[Library/Core/Query/Template]]
 ```
 
 # Snippets
-These can be used as [[!silverbullet.md/Snippets]] via [[!silverbullet.md/Slash Commands]]:
+These can be used as [[!v1.silverbullet.md/Snippets]] via [[!v1.silverbullet.md/Slash Commands]]:
 
 ```template
 {{#each {
@@ -23,7 +23,7 @@ These can be used as [[!silverbullet.md/Snippets]] via [[!silverbullet.md/Slash 
 ```
 
 # Widgets
-Widgets can either be automatically attached to the top or bottom of pages (matching certain criteria) or used inline via [[!silverbullet.md/Live Templates]].
+Widgets can either be automatically attached to the top or bottom of pages (matching certain criteria) or used inline via [[!v1.silverbullet.md/Live Templates]].
 
 ## Top
 ```query
@@ -42,7 +42,7 @@ render [[Library/Core/Query/Template]]
 ```
 
 ## Inline
-Use with [[!silverbullet.md/Live Templates#Include]] to render useful things in your pages:
+Use with [[!v1.silverbullet.md/Live Templates#Include]] to render useful things in your pages:
 
 ```query
 template

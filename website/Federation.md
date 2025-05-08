@@ -1,4 +1,4 @@
-Federation enables _browsing_ content from spaces _outside_ the user’s space, specified by quasi-URLs in the shape of `!domain.tld/path`. An example would be: [[!silverbullet.md/CHANGELOG]].
+Federation enables _browsing_ content from spaces _outside_ the user’s space, specified by quasi-URLs in the shape of `!domain.tld/path`. An example would be: [[!v1.silverbullet.md/CHANGELOG]].
 
 This enables a few things:
 

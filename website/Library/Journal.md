@@ -4,7 +4,7 @@ This [[Libraries|library]] contains some useful page templates for journalers. W
 In your [[SETTINGS]] list the following under `libraries:`
 ```yaml
 libraries:
-- import: "[[!silverbullet.md/Library/Journal/*]]"
+- import: "[[!v1.silverbullet.md/Library/Journal/*]]"
 ```
 Then run the {[Libraries: Update]} command to install it.
 

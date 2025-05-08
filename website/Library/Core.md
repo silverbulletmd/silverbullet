@@ -11,7 +11,7 @@ Some examples:
 In your [[SETTINGS]] list the following under `libraries:`
 ```yaml
 libraries:
-- import: "[[!silverbullet.md/Library/Core/*]]"
+- import: "[[!v1.silverbullet.md/Library/Core/*]]"
 ```
 Then run the {[Libraries: Update]} command to install it.
 
