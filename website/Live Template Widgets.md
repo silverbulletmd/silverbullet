@@ -20,7 +20,7 @@ The following widget template applies to all pages tagged with `person` (see the
     ---
     ## Incoming tasks
     ```template
-    page: "[[!silverbullet.md/Library/Core/Widget/Linked Tasks]]"
+    page: "[[!v1.silverbullet.md/Library/Core/Widget/Linked Tasks]]"
     ```
 
 More examples can be found [[Library/Core/Page/Template Index$widgets|here]].

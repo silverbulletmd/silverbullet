@@ -1,6 +1,6 @@
 While SilverBullet tries to set sensible defaults, you may want to tweak a few things here and there.
 
-This is where [[Space Config]] comes in. You can put fenced code blocks anywhere in your space (but the convention is to use [[^SETTINGS]]) with `space-config` as a language, and override the default configurations [[!silverbullet.md/SETTINGS|specified here]].
+This is where [[Space Config]] comes in. You can put fenced code blocks anywhere in your space (but the convention is to use [[^SETTINGS]]) with `space-config` as a language, and override the default configurations [[!v1.silverbullet.md/SETTINGS|specified here]].
 
 You can reload the configuration on demand using {[System: Reload]}, for some configurations a client (page) reload (Ctrl-r/Cmd-r in your browser) may be required.
 
