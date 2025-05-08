@@ -57,6 +57,8 @@ A new syntax introduced with Space Lua is the `${lua expression}` syntax that yo
 
 For example: 10 + 2 = ${adder(10, 2)} (Alt-click, or select to see the expression) is using the just defined `adder` function to this rather impressive calculation.
 
+Note that you can have the text {lua expression} in your page and it won't be evaluated. So writing `${"$"}{lua expression}` can be used to “delay” evaluation by one pass, for example to escape expressions in templated content.
+
 ## Queries
 Space Lua has a feature called [[Space Lua/Lua Integrated Query]], which integrate SQL-like queries into Lua. Here’s a small example querying the last 3 modifies pages:
 
@@ -127,10 +129,17 @@ There's a magic `_CTX` global variable available from which you can access usefu
 # Lua implementation notes
 Space Lua is intended to be a more or less complete implementation of [Lua 5.4](https://www.lua.org/manual/5.4/). However, a few features are (still) missing:
 
-* `goto` and labels (not planned, goto considered harmful)
-* coroutines (not planned, not useful in the SilverBullet context)
-* _ENV (planned)
-* Full metatable support (only partial now, planned)
+## Differences
+* empty table `{}` tests false, while in [Lua 5.4](https://www.lua.org/manual/5.4/manual.html#3.3.4) "All values different from **nil** nad **false** test true". However this has a really nice interaction with empty [[Space Lua/Lua Integrated Query|query]] results
+
+## Planned
+* _ENV
+* Full [metatable](https://www.lua.org/manual/5.4/manual.html#2.4) support (only partial now)
+* Complete [[API/string]] API (some patterns in `gmatch` don’t work correctly)
+
+## Not planned
+* `goto` and labels (goto considered harmful)
+* coroutines (not useful in the SilverBullet context)
 * Hexadecimal numeric constants with a fractional part, or binary exponents (not supported by JavaScript number parser either)
 
 # Frequently Asked Questions
