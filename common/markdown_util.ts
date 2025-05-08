@@ -60,6 +60,11 @@ export async function jsonToMDTable(
     }
   }
 
+  // Handle empty case manually, instead of three lines of ||
+  if (headers.size == 0) {
+    return "*(empty table)*";
+  }
+
   const headerList = [...headers];
   const lines = [];
   lines.push(
