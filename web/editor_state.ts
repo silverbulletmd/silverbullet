@@ -311,6 +311,7 @@ export function createCommandKeyBindings(client: Client): KeyBinding[] {
   // Keyboard shortcuts from SETTINGS take precedense
   if (client.config.has("shortcuts")) {
     for (const shortcut of client.config.get<Shortcut[]>("shortcuts", [])) {
+      overriddenCommands.add(shortcut.command)
       commandKeyBindings.push({
         key: shortcut.key,
         mac: shortcut.mac,
