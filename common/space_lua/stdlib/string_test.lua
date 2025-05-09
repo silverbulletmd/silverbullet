@@ -185,3 +185,9 @@ assertEqual(#matches, 3)
 assertEqual(matches[1][1], "ll")
 assertEqual(matches[2][1], "lll")
 assertEqual(matches[3][1], "l")
+
+-- https://community.silverbullet.md/t/test-if-string-find-outputs-nil-not-working-as-expected/2342
+assert(string.find("a", "b") == nil)
+assert(not (string.find("a", "b") ~= nil))
+assert(string.match("a", "b") == nil)
+assert(not (string.match("a", "b") ~= nil))
