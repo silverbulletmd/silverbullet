@@ -28,6 +28,13 @@ ${query[[
   limit 3
 ]]}
 
+Due to SilverBullet’s [[Space Lua#Differences|handling of empty tables]] you can easily write a message to show when results are empty:
+
+${query[[
+  from p = index.tag "page"
+  limit 0
+]] or "No results"}
+
 # Clauses
 Here are the clauses that are currently supported:
 
