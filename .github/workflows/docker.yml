@@ -19,6 +19,9 @@ jobs:
     steps:
       - name: Setup repo
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Set up QEMU for multi-arch builds with buildx
         uses: docker/setup-qemu-action@v2
