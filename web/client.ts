@@ -1279,12 +1279,11 @@ export class Client {
           const highestPriority = Math.max(
             ...results.map((r) => r.priority ?? 0),
           );
-          // check that there is only one result with lowest priority
           const highestResults = results.filter(
             (r) => (r.priority ?? 0) === highestPriority,
           );
           if (highestResults.length > 1) {
-            // multiple results with lowest priority, show error
+            // multiple results with highest priority, show error
             this.flashNotification(
               `Multiple responses for editor:pageCreating event, this is not supported`,
               "error",
