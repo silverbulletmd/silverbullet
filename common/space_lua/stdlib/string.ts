@@ -94,7 +94,7 @@ export const stringApi = new LuaTable({
         const reg = new RegExp(pattern);
         const index = s.slice(init - 1).search(reg);
 
-        if (index < 0) return;
+        if (index < 0) return null;
 
         const match = s.slice(init - 1).match(reg);
         const result = [index + init, index + init + match![0].length - 1];
