@@ -1302,11 +1302,8 @@ export class Client {
 
             return;
           }
-          const highestResult = results.find(
-            (r) => (r.priority ?? 0) === highestPriority,
-          );
-          doc.text = highestResult!.text;
-          doc.meta.perm = highestResult!.perm;
+          doc.text = highestResults[0].text;
+          doc.meta.perm = highestResults[0].perm;
         }
       } else {
         this.flashNotification(
