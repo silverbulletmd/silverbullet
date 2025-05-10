@@ -203,6 +203,8 @@ export type PageCreatingEvent = {
 export type PageCreatingContent = {
   text: string;
   perm: "ro" | "rw";
+  // Default 0, higher is higher priority
+  priority?: number;
 };
 
 export type SlashCompletionOption = {
