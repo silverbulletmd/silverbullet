@@ -57,6 +57,8 @@ A new syntax introduced with Space Lua is the `${lua expression}` syntax that yo
 
 For example: 10 + 2 = ${adder(10, 2)} (Alt-click, or select to see the expression) is using the just defined `adder` function to this rather impressive calculation.
 
+Note that you can have the text {lua expression} in your page and it won't be evaluated. So writing `${"$"}{lua expression}` can be used to “delay” evaluation by one pass, for example to escape expressions in templated content.
+
 ## Queries
 Space Lua has a feature called [[Space Lua/Lua Integrated Query]], which integrate SQL-like queries into Lua. Here’s a small example querying the last 3 modifies pages:
 
