@@ -81,6 +81,8 @@ ${query[[
   limit 3
 ]]}
 
+Sorting of strings can be adjusted with `queryCollation` in [[^Library/Std/Config]]
+
 ## limit <expression>[, <expression>]
 The `limit` clause allows you to limit the number of results, optionally with an offset.
 
