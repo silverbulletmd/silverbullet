@@ -217,4 +217,25 @@ config.define("vim", {
   },
   additionalProperties = false
 })
+
+config.define("queryCollation", {
+  description = "Configure string ordering in queries",
+  type = "object",
+  properties = {
+    enabled = {
+      type = "boolean",
+      description = "Indicates whether string collation should be used instead of simple codepoint ordering"
+    },
+    locale = {
+      type = "string",
+      description = "Language tag to specify sorting rules (from BCP 47)"
+    },
+    options = {
+      type = "object",
+      description = "Additional options passed to Intl.Collator constructor"
+      -- See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Collator/Collator#options
+    },
+  },
+  additionalProperties = false
+})
 ```

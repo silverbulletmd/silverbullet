@@ -55,3 +55,9 @@ export type VimConfig = {
   noremap?: { map: string; to: string; mode?: vimMode }[];
   commands?: { ex: string; command: string }[];
 };
+
+export type QueryCollationConfig = {
+  enabled?: boolean;
+  locale?: string;
+  options?: object;
+};
