@@ -10,6 +10,7 @@ import { asyncQuickSort } from "$common/space_lua/util.ts";
 import type { DataStore } from "$lib/data/datastore.ts";
 import type { KvKey } from "@silverbulletmd/silverbullet/types";
 import type { KvPrimitives } from "$lib/data/kv_primitives.ts";
+import type { QueryCollationConfig } from "@silverbulletmd/silverbullet/type/client";
 
 export function buildItemEnv(
   objectVariable: string | undefined,
@@ -73,6 +74,7 @@ export class ArrayQueryCollection<T> implements LuaQueryCollection {
     query: LuaCollectionQuery,
     env: LuaEnv,
     sf: LuaStackFrame,
+    collation?: QueryCollationConfig,
   ): Promise<any[]> {
     const result: any[] = [];
 
@@ -85,7 +87,7 @@ export class ArrayQueryCollection<T> implements LuaQueryCollection {
       result.push(item);
     }
 
-    return applyTransforms(result, query, env, sf);
+    return applyTransforms(result, query, env, sf, collation);
   }
 }
 
@@ -94,9 +96,20 @@ export async function applyTransforms(
   query: LuaCollectionQuery,
   env: LuaEnv,
   sf: LuaStackFrame,
+  collation?: QueryCollationConfig,
 ): Promise<any[]> {
   // Apply the order by
   if (query.orderBy) {
+    // Retrieve from config API if not passed
+    if (collation === undefined) {
+      // const config = sf.threadLocal.get("_GLOBAL").get("config"); // FIXME: Somehow _GLOBAL is empty here
+      const config = client.config; // HACK: Shouldn't be using client here directly
+
+      collation = config.get("queryCollation", {});
+    }
+    // Both arguments are optional, so passing undefined is fine
+    const collator = Intl.Collator(collation?.locale, collation?.options);
+
     result = await asyncQuickSort(result, async (a, b) => {
       // Compare each orderBy clause until we find a difference
       for (const { expr, desc } of query.orderBy!) {
@@ -106,10 +119,18 @@ export async function applyTransforms(
         const aVal = await evalExpression(expr, aEnv, sf);
         const bVal = await evalExpression(expr, bEnv, sf);
 
-        if (aVal < bVal) {
+        if (
+          collation?.enabled &&
+          typeof aVal === "string" &&
+          typeof bVal === "string"
+        ) {
+          const order = collator.compare(aVal, bVal);
+          if (order != 0) {
+            return desc ? -order : order;
+          }
+        } else if (aVal < bVal) {
           return desc ? 1 : -1;
-        }
-        if (aVal > bVal) {
+        } else if (aVal > bVal) {
           return desc ? -1 : 1;
         }
         // If equal, continue to next orderBy clause

@@ -43,6 +43,13 @@ config.set {
       key = "Ctrl-Shift-s",
       slashCommand = "stats"
     }
+  },
+  queryCollate = {
+    enabled = true,
+    locale = "en",
+    options = {
+      caseFirst = "upper"
+    }
   }
 }
 ```

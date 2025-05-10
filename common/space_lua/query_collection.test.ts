@@ -27,6 +27,7 @@ Deno.test("ArrayQueryCollection", async () => {
     },
     rootEnv,
     LuaStackFrame.lostFrame,
+    {}, // Default collation configuration, since the config API is unavailable
   );
   // console.log(result);
   assert(result.length === 2);
@@ -51,6 +52,7 @@ Deno.test("ArrayQueryCollection", async () => {
     },
     rootEnv,
     LuaStackFrame.lostFrame,
+    {},
   );
   assert(result3.length === 2);
   assert(result3[0].x === 2);
@@ -63,6 +65,7 @@ Deno.test("ArrayQueryCollection", async () => {
     },
     rootEnv,
     LuaStackFrame.lostFrame,
+    {},
   );
   assert(result4.length === 3);
   assert(result4[0].x === 1);
@@ -77,6 +80,7 @@ Deno.test("ArrayQueryCollection", async () => {
     },
     rootEnv,
     LuaStackFrame.lostFrame,
+    {},
   );
   assert(result5.length === 3);
   assert(result5[0].x === 3);
@@ -100,6 +104,7 @@ Deno.test("ArrayQueryCollection", async () => {
     },
     rootEnv,
     LuaStackFrame.lostFrame,
+    {},
   );
   assertEquals(result6[0].firstName, "John");
   assertEquals(result6[0].lastName, "Doe");
@@ -118,6 +123,7 @@ Deno.test("ArrayQueryCollection", async () => {
     },
     rootEnv,
     LuaStackFrame.lostFrame,
+    {},
   );
   assertEquals(result8[0], "John Doe");
   assertEquals(result8[1], "Alice Johnson");
@@ -131,6 +137,7 @@ Deno.test("ArrayQueryCollection", async () => {
     },
     rootEnv,
     LuaStackFrame.lostFrame,
+    {},
   );
   assertEquals(result9[0], "John Doe");
   assertEquals(result9[1], "Alice Johnson");
@@ -156,6 +163,7 @@ Deno.test("ArrayQueryCollection", async () => {
     },
     rootEnv,
     LuaStackFrame.lostFrame,
+    {},
   );
   assertEquals(distinctResult.length, 2);
   assertEquals(distinctResult.includes("fruit"), true);
@@ -172,6 +180,75 @@ Deno.test("ArrayQueryCollection", async () => {
     },
     rootEnv,
     LuaStackFrame.lostFrame,
+    {},
   );
   assertEquals(distinctObjectsResult.length, 4);
+
+  // Test string sorting (collation) with example from MDN
+  const letterCollection = new ArrayQueryCollection([
+    { letter: "Z" },
+    { letter: "z" },
+    { letter: "ä" },
+    { letter: "a" },
+  ]);
+
+  // Default ordering by codepoint
+  const resultCodepoint = await letterCollection.query(
+    {
+      objectVariable: "item",
+      orderBy: [{ expr: parseExpressionString("item.letter"), desc: false }],
+    },
+    rootEnv,
+    LuaStackFrame.lostFrame,
+    { enabled: false },
+  );
+  assertEquals(resultCodepoint[0].letter, "Z");
+  assertEquals(resultCodepoint[1].letter, "a");
+  assertEquals(resultCodepoint[2].letter, "z");
+  assertEquals(resultCodepoint[3].letter, "ä");
+
+  // Defaults for German
+  const resultGerman = await letterCollection.query(
+    {
+      objectVariable: "item",
+      orderBy: [{ expr: parseExpressionString("item.letter"), desc: false }],
+    },
+    rootEnv,
+    LuaStackFrame.lostFrame,
+    { enabled: true, locale: "de" },
+  );
+  assertEquals(resultGerman[0].letter, "a");
+  assertEquals(resultGerman[1].letter, "ä");
+  assertEquals(resultGerman[2].letter, "z");
+  assertEquals(resultGerman[3].letter, "Z");
+
+  // Defaults for Swedish
+  const resultSwedish = await letterCollection.query(
+    {
+      objectVariable: "item",
+      orderBy: [{ expr: parseExpressionString("item.letter"), desc: false }],
+    },
+    rootEnv,
+    LuaStackFrame.lostFrame,
+    { enabled: true, locale: "sv" },
+  );
+  assertEquals(resultSwedish[0].letter, "a");
+  assertEquals(resultSwedish[1].letter, "z");
+  assertEquals(resultSwedish[2].letter, "Z");
+  assertEquals(resultSwedish[3].letter, "ä");
+
+  // Uppercase first
+  const resultUpper = await letterCollection.query(
+    {
+      objectVariable: "item",
+      orderBy: [{ expr: parseExpressionString("item.letter"), desc: false }],
+    },
+    rootEnv,
+    LuaStackFrame.lostFrame,
+    { enabled: true, locale: "de", options: { caseFirst: "upper" } },
+  );
+  assertEquals(resultUpper[0].letter, "a");
+  assertEquals(resultUpper[1].letter, "ä");
+  assertEquals(resultUpper[2].letter, "Z");
+  assertEquals(resultUpper[3].letter, "z");
 });
