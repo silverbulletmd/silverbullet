@@ -10,7 +10,7 @@ ${template.each(query[[
   limit 20
 ]], template.new[==[
     * [[${ref}]]: broken link to [[${name}]]
-]==], "No aspiring pages, all good!")}
+]==])}
 
 # Conflicting copies
 These are pages that have conflicting copies (as a result of sync). Have a look at them as well as their original (non-conflicting) versions and decide which one to keep.
@@ -19,4 +19,4 @@ ${template.each(query[[
   from index.tag "page" where name:find("%.conflicted%.")
 ]], template.new[==[
     * [[${name:gsub("%.conflicted%..+$", "")}]]: conflict copy [[${name}]]
-]==], "No conflicting pages!")}
+]==])}

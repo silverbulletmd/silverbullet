@@ -13,8 +13,8 @@ examples.sayHello = template.new[==[Hello ${name}!]==]
 
 And its use: ${examples.sayHello {name="Pete"}}
 
-## template.each(collection, template, empty="")
-Iterates over a collection and renders a template for each item. Optionally specify output for an empty collection.
+## template.each(collection, template)
+Iterates over a collection and renders a template for each item.
 
 Example:
 
