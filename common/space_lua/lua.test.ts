@@ -38,6 +38,10 @@ Deno.test("[Lua] JS tests", async () => {
   await runLuaTest("./stdlib/js_test.lua");
 });
 
+Deno.test("[Lua] Global functions tests", async () => {
+  await runLuaTest("./stdlib/global_test.lua");
+});
+
 async function runLuaTest(luaPath: string) {
   const luaFile = await Deno.readTextFile(
     fileURLToPath(new URL(luaPath, import.meta.url)),

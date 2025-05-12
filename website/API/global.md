@@ -49,21 +49,6 @@ end
 -- city New York
 ```
 
-## each
-Returns an iterator for array-like tables that iterates over values only (without indices).
-
-Example:
-```lua
-local fruits = {"apple", "banana", "orange"}
-for fruit in each(fruits) do
-    print(fruit)
-end
--- Output:
--- apple
--- banana
--- orange
-```
-
 ## unpack
 Unpacks a table into individual values.
 
@@ -203,3 +188,34 @@ print(t.foo)  -- prints: "bar"
 
 ## dofile(path)
 Loads a Lua file from a path in your space, e.g. if you uploaded a `test.lua` file, you can load it with `dofile("test.lua")`.
+
+# Non-standard Extensions
+## each
+Returns an iterator for array-like tables that iterates over values only (without indices).
+
+Example:
+```lua
+local fruits = {"apple", "banana", "orange"}
+for fruit in each(fruits) do
+    print(fruit)
+end
+-- Output:
+-- apple
+-- banana
+-- orange
+```
+
+## some
+Returns nil if the value is empty, otherwise returns the value unchanged. Empty tables, strings containing only whitespace, `inf` and `nan` numeric value are considered empty.
+
+Example:
+```lua
+print(some("hello"))    -- hello
+print(some(""))         -- nil
+print(some("  "))       -- nil
+print(some({}))         -- nil
+print(some(0))          -- 0
+print(some(1/0))        -- nil
+
+print(some({}) or "empty") -- empty
+```

@@ -4,6 +4,7 @@ import {
   luaCall,
   LuaEnv,
   luaGet,
+  luaKeys,
   LuaMultiRes,
   LuaRuntimeError,
   type LuaTable,
@@ -203,6 +204,20 @@ const dofileFunction = new LuaBuiltinFunction(async (sf, filename: string) => {
   }
 });
 
+const someFunction = new LuaBuiltinFunction(async (_sf, value: any) => {
+  switch (await luaTypeOf(value)) {
+    case "number":
+      if (!isFinite(value)) return null;
+      break;
+    case "string":
+      if (value.trim() === "") return null;
+      break;
+    case "table":
+      if (luaKeys(value).length === 0) return null;
+  }
+  return value;
+});
+
 export function luaBuildStandardEnv() {
   const env = new LuaEnv();
   // Top-level builtins
@@ -233,5 +248,6 @@ export function luaBuildStandardEnv() {
   // Non-standard
   env.set("each", eachFunction);
   env.set("spacelua", spaceluaApi);
+  env.set("some", someFunction);
   return env;
 }
