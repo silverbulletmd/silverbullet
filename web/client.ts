@@ -1274,35 +1274,13 @@ export class Client {
           "editor:pageCreating",
           { name: pageName } as PageCreatingEvent,
         ) as PageCreatingContent[];
-        if (results.length > 0) {
-          // find the result with highest priority
-          const highestPriority = Math.max(
-            ...results.map((r) => r.priority ?? 0),
+        if (results.length === 1) {
+          doc.text = results[0].text;
+          doc.meta.perm = results[0].perm;
+        } else if (results.length > 1) {
+          console.error(
+            "Multiple responses for editor:pageCreating event, this is not supported",
           );
-          const highestResults = results.filter(
-            (r) => (r.priority ?? 0) === highestPriority,
-          );
-          if (highestResults.length > 1) {
-            // multiple results with highest priority, show error
-            this.flashNotification(
-              `Multiple responses for editor:pageCreating event, this is not supported`,
-              "error",
-            );
-            console.error(
-              "Multiple responses for editor:pageCreating event, this is not supported",
-            );
-            if (previousPath && previousRef) {
-              this.ui.viewDispatch(
-                previousRef.kind === "page"
-                  ? { type: "page-loaded", meta: previousRef.meta }
-                  : { type: "document-editor-loaded", meta: previousRef.meta },
-              );
-            }
-
-            return;
-          }
-          doc.text = highestResults[0].text;
-          doc.meta.perm = highestResults[0].perm;
         }
       } else {
         this.flashNotification(
