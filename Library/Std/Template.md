@@ -10,20 +10,13 @@ template = template or {}
 templates = {}
 
 -- Iterates over a table/array and applies a function to each element,
--- concatenating the results. The last, optional argument is output for empty table
-function template.each(tbl, fn, empty)
-  local empty = empty or ""
-  
+-- concatenating the results
+function template.each(tbl, fn)
   local result = {}
   for _, item in ipairs(tbl) do
       table.insert(result, fn(item))
   end
-
-  if #result == 0 then
-    return empty
-  else
-    return table.concat(result)
-  end
+  return table.concat(result)
 end
 
 -- Creates a new template function from a string template
