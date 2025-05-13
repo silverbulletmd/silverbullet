@@ -81,7 +81,14 @@ export class SpaceServer {
 
   async ensureBasicPages() {
     await this.ensurePageWithContent(`${this.indexPage}.md`, INDEX_TEMPLATE);
-    await this.ensurePageWithContent("CONFIG.md", CONFIG_TEMPLATE);
+
+    const files = await this.spacePrimitives.fetchFileList();
+    const hasConfig = files.some(
+      (f) => f.name === "CONFIG.md" || f.name.endsWith("/CONFIG.md"),
+    );
+    if (!hasConfig) {
+      await this.ensurePageWithContent("CONFIG.md", CONFIG_TEMPLATE);
+    }
   }
 
   private async ensurePageWithContent(path: string, content: string) {
