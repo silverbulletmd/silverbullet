@@ -43,5 +43,5 @@ export function dispatchEvent(
  * @returns an array of event names
  */
 export function listEvents(): Promise<string[]> {
-  return syscall("event.list");
+  return syscall("event.listEvents");
 }
