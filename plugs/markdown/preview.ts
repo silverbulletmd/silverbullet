@@ -39,7 +39,7 @@ export async function updateMarkdownPreview() {
     "rhs",
     2,
     `
-      <link rel="stylesheet" href="/.client/main.css" />
+      <link rel="stylesheet" href=".client/main.css" />
       <style>
         ${css}
         ${customStyles ?? ""}

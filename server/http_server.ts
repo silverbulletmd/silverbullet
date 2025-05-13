@@ -20,6 +20,7 @@ import { LockoutTimer } from "./lockout.ts";
 import type { AuthOptions } from "../cmd/server.ts";
 import type { ClientConfig } from "../web/client.ts";
 import { htmlEscape } from "../plugs/markdown/html_render.ts";
+import { applyUrlPrefix, removeUrlPrefix } from "$lib/url_prefix.ts";
 
 const authenticationExpirySeconds = 60 * 60 * 24 * 7; // 1 week
 
@@ -39,6 +40,7 @@ export type ServerOptions = {
   readOnly: boolean;
   indexPage: string;
   enableSpaceScript: boolean;
+  hostUrlPrefix: string | undefined;
 };
 
 export class HttpServer {
@@ -56,7 +58,7 @@ export class HttpServer {
   baseKvPrimitives: KvPrimitives;
 
   constructor(private options: ServerOptions) {
-    this.app = new Hono();
+    this.app = new Hono().basePath(options.hostUrlPrefix ?? "");
     this.clientAssetBundle = options.clientAssetBundle;
     this.plugAssetBundle = options.plugAssetBundle;
     this.hostname = options.hostname;
@@ -111,6 +113,7 @@ export class HttpServer {
       TITLE: pageName,
       DESCRIPTION: stripHtml(html).substring(0, 255),
       CONTENT: html,
+      HOST_URL_PREFIX: this.options.hostUrlPrefix ?? "",
     };
 
     html = this.clientAssetBundle.readTextFileSync(".client/index.html");
@@ -148,7 +151,7 @@ export class HttpServer {
 
     // Fallback, serve the UI index.html
     this.app.use("*", (c) => {
-      const url = new URL(c.req.url);
+      const url = new URL(this.unprefixedUrl(c.req.url));
       const pageName = decodePageURI(url.pathname.slice(1));
       return this.renderHtmlPage(this.spaceServer, pageName, c);
     });
@@ -180,7 +183,7 @@ export class HttpServer {
   serveStatic() {
     this.app.use("*", (c, next): Promise<void | Response> => {
       const req = c.req;
-      const url = new URL(req.url);
+      const url = new URL(this.unprefixedUrl(req.url));
       // console.log("URL", url);
       if (
         url.pathname === "/"
@@ -240,16 +243,21 @@ export class HttpServer {
       : new LockoutTimer(0, 0); // disabled
 
     this.app.get("/.logout", (c) => {
-      const url = new URL(c.req.url);
-      deleteCookie(c, authCookieName(url.host));
-      deleteCookie(c, "refreshLogin");
+      const url = new URL(this.unprefixedUrl(c.req.url));
+      deleteCookie(c, authCookieName(url.host), {
+        path: `${this.options.hostUrlPrefix ?? ""}/`,
+      });
+      deleteCookie(c, "refreshLogin", {
+        path: `${this.options.hostUrlPrefix ?? ""}/`,
+      });
 
-      return c.redirect("/.auth");
+      return c.redirect(this.prefixedUrl("/.auth"));
     });
 
     // Authentication endpoints
     this.app.get("/.auth", (c) => {
-      const html = this.clientAssetBundle.readTextFileSync(".client/auth.html");
+      const html = this.clientAssetBundle.readTextFileSync(".client/auth.html")
+        .replaceAll("{{HOST_URL_PREFIX}}", this.options.hostUrlPrefix ?? "");
 
       return c.html(html);
     }).post(
@@ -263,14 +271,14 @@ export class HttpServer {
           !password || typeof password !== "string" ||
           (rememberMe && typeof rememberMe !== "string")
         ) {
-          return c.redirect("/.auth?error=0");
+          return c.redirect(this.prefixedUrl("/.auth?error=0"));
         }
 
         return { username, password, rememberMe };
       }),
       async (c) => {
         const req = c.req;
-        const url = new URL(req.url);
+        const url = new URL(this.unprefixedUrl(req.url));
         const { username, password, rememberMe } = req.valid("form");
 
         const {
@@ -280,7 +288,7 @@ export class HttpServer {
 
         if (lockoutTimer.isLocked()) {
           console.error("Authentication locked out, redirecting to auth page.");
-          return c.redirect("/.auth?error=2");
+          return c.redirect(this.prefixedUrl("/.auth?error=2"));
         }
 
         if (username === expectedUser && password === expectedPassword) {
@@ -296,24 +304,30 @@ export class HttpServer {
             Date.now() + authenticationExpirySeconds * 1000,
           );
           setCookie(c, authCookieName(url.host), jwt, {
+            path: `${this.options.hostUrlPrefix ?? ""}/`,
             expires: inAWeek,
             // sameSite: "Strict",
             // httpOnly: true,
           });
           if (rememberMe) {
-            setCookie(c, "refreshLogin", "true", { expires: inAWeek });
+            setCookie(c, "refreshLogin", "true", {
+              path: `${this.options.hostUrlPrefix ?? ""}/`,
+              expires: inAWeek,
+            });
           }
           const values = await req.parseBody();
           const from = values["from"];
-          return c.redirect(typeof from === "string" ? from : "/");
+          return c.redirect(
+            this.prefixedUrl(typeof from === "string" ? from : "/"),
+          );
         } else {
           console.error("Authentication failed, redirecting to auth page.");
           lockoutTimer.addCount();
-          return c.redirect("/.auth?error=1");
+          return c.redirect(this.prefixedUrl("/.auth?error=1"));
         }
       },
     ).all((c) => {
-      return c.redirect("/.auth");
+      return c.redirect(this.prefixedUrl("/.auth"));
     });
 
     // Check auth
@@ -323,14 +337,18 @@ export class HttpServer {
         // Auth disabled in this config, skip
         return next();
       }
-      const url = new URL(req.url);
+      const url = new URL(this.unprefixedUrl(req.url));
+      const path = this.unprefixedUrl(req.path);
       const host = url.host;
       const redirectToAuth = () => {
         // Try filtering api paths
-        if (req.path.startsWith("/.") || req.path.endsWith(".md")) {
-          return c.redirect("/.auth", 401 as any);
+        if (path.startsWith("/.") || path.endsWith(".md")) {
+          return c.redirect(this.prefixedUrl("/.auth"), 401 as any);
         } else {
-          return c.redirect(`/.auth?from=${req.path}`, 401 as any);
+          return c.redirect(
+            this.prefixedUrl(`/.auth?from=${path}`),
+            302 as any,
+          );
         }
       };
       if (!excludedPaths.includes(url.pathname)) {
@@ -414,6 +432,7 @@ export class HttpServer {
         c,
         this.spaceServer.pagesPath,
         this.spaceServer.readOnly,
+        this.options.hostUrlPrefix,
       );
     });
 
@@ -484,11 +503,15 @@ export class HttpServer {
       const jwt = getCookie(c, authCookieName(host));
       if (jwt) {
         setCookie(c, authCookieName(host), jwt, {
+          path: `${this.options.hostUrlPrefix ?? ""}/`,
           expires: inAWeek,
           // sameSite: "Strict",
           // httpOnly: true,
         });
-        setCookie(c, "refreshLogin", "true", { expires: inAWeek });
+        setCookie(c, "refreshLogin", "true", {
+          path: `${this.options.hostUrlPrefix ?? ""}/`,
+          expires: inAWeek,
+        });
       }
     }
   }
@@ -506,7 +529,7 @@ export class HttpServer {
       } else {
         // Otherwise, redirect to the UI
         // The reason to do this is to handle authentication systems like Authelia nicely
-        return c.redirect("/");
+        return c.redirect(this.prefixedUrl("/"));
       }
     });
 
@@ -528,7 +551,7 @@ export class HttpServer {
         console.warn(
           "Request was without X-Sync-Mode nor a CORS request, redirecting to page",
         );
-        return c.redirect(`/${name.slice(0, -mdExt.length)}`);
+        return c.redirect(this.prefixedUrl(`/${name.slice(0, -mdExt.length)}`));
       }
       // This is a good guess that the request comes directly from a user
       if (
@@ -623,6 +646,14 @@ export class HttpServer {
       "X-Permission": fileMeta.perm,
       "X-Content-Length": "" + fileMeta.size,
     };
+  }
+
+  private prefixedUrl(url: string): string {
+    return applyUrlPrefix(url, this.options.hostUrlPrefix);
+  }
+
+  private unprefixedUrl(url: string): string {
+    return removeUrlPrefix(url, this.options.hostUrlPrefix);
   }
 
   stop() {
