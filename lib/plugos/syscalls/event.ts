@@ -6,7 +6,7 @@ export function eventSyscalls(eventHook: EventHookI): SysCallMapping {
     "event.dispatch": (_ctx, eventName: string, data: any) => {
       return eventHook.dispatchEvent(eventName, data);
     },
-    "event.list": () => {
+    "event.listEvents": () => {
       return eventHook.listEvents();
     },
   };
