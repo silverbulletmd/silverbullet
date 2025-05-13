@@ -3,9 +3,9 @@
 Implements a tag page, that renders when navigating to a hashtag: #meta based on the `tag:` prefix, by piggy backing on the `editor:pageCreating` event that triggers for non-existing pages.
 
 ```space-lua
-event.listen {
-  name = "editor:pageCreating",
-  run = function(e)
+-- priority: 10
+pageEventHandlers = pageEventHandlers or {}
+pageEventHandlers.tagPage = function(e)
     if not e.data.name:startsWith("tag:") then
       return
     end
@@ -54,5 +54,9 @@ event.listen {
       perm = "ro"
     }
   end
+
+event.listen {
+  name = "editor:pageCreating",
+  run = function(e) return pageEventHandlers.tagPage(e) end,
 }
 ```
