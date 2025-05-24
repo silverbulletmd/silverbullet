@@ -12,7 +12,7 @@ Custom admonitions can be added in a [[Space Style]] using the following format:
 
 ```space-style
 /* Replace the keyword with a word or phrase of your choice */
-.sb-admonition[admonition="keyword"] {
+.sb-admonition[admonition="keyword" i] {
   .sb-admonition-type * { display: none; }
   .sb-admonition-type::before { 
     width: var(--admonition-width) !important;

@@ -265,7 +265,7 @@ html[data-theme="dark"] {
   --editor-directive-background-color: #4c4c4c7d;
 }
 
-.sb-admonition[admonition="note"] {
+.sb-admonition[admonition="note" i] {
   .sb-admonition-type {
     &::before {
       width: var(--admonition-width) !important;
@@ -280,7 +280,7 @@ html[data-theme="dark"] {
   --admonition-color: #00b8d4;
 }
 
-.sb-admonition[admonition="warning"] {
+.sb-admonition[admonition="warning" i] {
   .sb-admonition-type {
     &::before {
       width: var(--admonition-width) !important;
