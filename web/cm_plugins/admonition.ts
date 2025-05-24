@@ -37,7 +37,7 @@ function extractAdmonitionFields(rawText: string): AdmonitionFields | null {
 
   if (regexResults) {
     const preSpaces = regexResults[1] || "";
-    const admonitionType = regexResults[2];
+    const admonitionType = regexResults[2].toLowerCase();
     const postSyntax = regexResults[3];
     const postSpaces = regexResults[4] || "";
     const admonitionTitle: string = regexResults[5] || "";
