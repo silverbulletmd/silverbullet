@@ -19,4 +19,4 @@ ${some(template.each(query[[
   from index.tag "page" where name:find("%.conflicted%.")
 ]], template.new[==[
     * [[${name:gsub("%.conflicted%..+$", "")}]]: conflict copy [[${name}]]
-]==]) or "No conflicting pages!"}
+]==])) or "No conflicting pages!"}
