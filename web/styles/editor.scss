@@ -480,10 +480,11 @@
     position: relative;
     min-height: 48px;
   }
+
   .sb-lua-top-widget h1,
   .sb-lua-bottom-widget h1 {
-    margin: -15px -15px 0 -15px !important;
-    padding: 15px 15px 10px 15px !important;
+    margin: -10px -10px 10px -10px !important;
+    padding: 15px 10px !important;
     background-color: var(--editor-widget-background-color);
     font-size: 1.2em;
   }
