@@ -3,7 +3,7 @@ Welcome to the wondrous world of SilverBullet. A world that once you discover an
 
 _One of us!_
 
-You can go ahead delete this placeholder content in a second, but before you do, let me quickly show you around.
+You can go ahead and delete this placeholder content in a second, but before you do, let me quickly show you around.
 
 We’ll do this through a list of **silver bullets**. _Ah, so that explains the name!_ Well, [partially](https://en.wikipedia.org/wiki/Silver_bullet).
 
@@ -15,10 +15,10 @@ We’ll do this through a list of **silver bullets**. _Ah, so that explains the 
 * You can create links to pages using the \`[[other page]]\` syntax, for instance: [[aspiring page]]. When you link to a non-existent page it will initially show up in orange (to indicate it does not yet exist), but once you click it — you will create the page automatically (only for real when you actually enter some text).
 * Start typing \`:party\` to trigger the emoji picker 🎉
 * Type \`/\` somewhere in the text to invoke a **slash command**.
-* If this is matching your personality type, there is also a \`Editor: Toggle Vim Mode\` command to switch to Vim mode. If you cannot figure out how to exit it (classic vim issue), just run that same command again. _Phew!_
+* If this matches your personality type, there is also an \`Editor: Toggle Vim Mode\` command to switch to Vim mode. If you cannot figure out how to exit it (classic vim issue), just run that same command again. _Phew!_
 * As you may have noticed, while SilverBullet uses [markdown](https://www.markdownguide.org/) underneath, it also “live previews” it to give a bit more of a WYSIWYG feel. You can always move your cursor “into” the underlying code by \`Alt-clicking\` it (even links and widgets, which we’ll get to later).
 
-While SilverBullet implements (most) of [CommonMark](https://commonmark.org/), it also adds a few extensions that are SilverBullet specific. Most notably, it adds the \`\${Lua expression}\` syntax, to render Lua expression inline.
+While SilverBullet implements (most) of [CommonMark](https://commonmark.org/), it also adds a few extensions that are SilverBullet-specific. Most notably, it adds the \`\${Lua expression}\` syntax to render Lua expressions inline.
 
 Using SilverBullet’s Lua APIs, you can do all kinds of cool stuff. For instance, query your space for the last 3 modified pages. _Exciting!_
 
@@ -29,7 +29,7 @@ There’s a whole world out there to explore, but let’s not get ahead of ourse
 Then we’ll talk.
 
 # What next?
-You find more information on SilverBullet’s feature set on its [official website](https://v2.silverbullet.md/). Also be sure to join the [SilverBullet community](https://community.silverbullet.md/) to interact with fellow SilverBullet explorers.`;
+You can find more information on SilverBullet’s feature set on its [official website](https://v2.silverbullet.md/). Also, be sure to join the [SilverBullet community](https://community.silverbullet.md/) to interact with fellow SilverBullet explorers.`;
 
 export const CONFIG_TEMPLATE =
   `This is where you configure SilverBullet to your liking. See [[^Library/Std/Config]] for a full list of configuration options.
