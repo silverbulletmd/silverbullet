@@ -23,7 +23,7 @@ const basePathName = location.pathname.substring(
   location.pathname.length - workerFilename.length - 1,
 );
 console.log(
-  `[Service Worker] Established baseURI=[${baseURI}]; baePathName=[${basePathName}]`,
+  `[Service Worker] Established baseURI=[${baseURI}]; basePathName=[${basePathName}]`,
 );
 
 const precacheFiles = Object.fromEntries([

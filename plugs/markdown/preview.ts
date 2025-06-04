@@ -3,7 +3,6 @@ import {
   clientStore,
   editor,
   markdown,
-  system,
 } from "@silverbulletmd/silverbullet/syscalls";
 import { renderMarkdownToHtml } from "./markdown_render.ts";
 import {
