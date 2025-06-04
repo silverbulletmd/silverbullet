@@ -125,3 +125,18 @@ export function renderExpressionResult(result: any): Promise<string> {
     return Promise.resolve("" + result);
   }
 }
+
+/**
+ * Applies some heuristics to figure out if a string should be rendered as a markdown block or inline markdown
+ * @param s markdown string
+ */
+export function isBlockMarkdown(s: string) {
+  if (s.includes("\n")) {
+    return true;
+  }
+  // If it contains something resembling a list
+  if (s.match(/[\-\*]\s+/)) {
+    return true;
+  }
+  return false;
+}
