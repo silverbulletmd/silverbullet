@@ -18,5 +18,6 @@ ${template.each(query[[
 # Active Space Style
 ${template.each(query[[
   from index.tag "space-style"
+  order by _.priority desc
   select {name=ref}
 ]], templates.pageItem)}

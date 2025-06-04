@@ -5,7 +5,7 @@ import { indexObjects } from "./api.ts";
 
 export type StyleObject = ObjectValue<{
   style: string;
-  origin: string;
+  priority?: number;
 }>;
 
 export async function indexSpaceStyle({ name, tree }: IndexTreeEvent) {
@@ -29,18 +29,15 @@ export async function indexSpaceStyle({ name, tree }: IndexTreeEvent) {
       return;
     }
     const codeText = codeTextNode.children![0].text!;
-    let codeOrigin = "";
-    if (name.startsWith("Library/")) {
-      codeOrigin = "library";
-    } else {
-      codeOrigin = "user";
-    }
+
+    // Parse out /* priority: */
+    const priority = codeText.match(/\/\*+\s*priority:\s*(-?\d+)/)?.[1];
 
     allStyles.push({
       ref: `${name}@${t.from!}`,
       tag: "space-style",
       style: codeText,
-      origin: codeOrigin,
+      priority: priority !== undefined ? +priority : undefined,
     });
   });
 
