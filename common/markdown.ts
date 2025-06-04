@@ -72,18 +72,23 @@ export async function expandMarkdown(
       }
       const exprText = renderToText(expr);
 
-      let result = await evalExpression(
-        parseExpressionString(exprText),
-        env,
-        sf,
-      );
+      try {
+        let result = await evalExpression(
+          parseExpressionString(exprText),
+          env,
+          sf,
+        );
 
-      if (result?.markdown) {
-        result = result.markdown;
+        if (result?.markdown) {
+          result = result.markdown;
+        }
+        const markdown = await renderExpressionResult(result);
+        return parseMarkdown(markdown);
+      } catch (e: any) {
+        // Reduce blast radius and give useful error message
+        console.error("Error evaluating Lua directive", exprText, e);
+        return parseMarkdown(`**Error:** ${e.message}`);
       }
-
-      const markdown = await renderExpressionResult(result);
-      return parseMarkdown(markdown);
     }
   });
   return mdTree;
