@@ -14,7 +14,7 @@ import {
 } from "./widget_util.ts";
 import { expandMarkdown } from "../markdown.ts";
 import { LuaStackFrame, LuaTable } from "../space_lua/runtime.ts";
-import { jsonToMDTable } from "../markdown_util.ts";
+import { isBlockMarkdown, jsonToMDTable } from "../markdown_util.ts";
 import { activeWidgets } from "./code_widget.ts";
 
 export type LuaWidgetCallback = (
@@ -149,7 +149,7 @@ export class LuaWidget extends WidgetType {
       }
 
       block = widgetContent._isWidget && widgetContent.display === "block" ||
-        trimmedMarkdown.includes("\n");
+        isBlockMarkdown(trimmedMarkdown);
       if (block) {
         div.className += " sb-lua-directive-block";
       } else {
