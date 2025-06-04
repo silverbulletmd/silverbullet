@@ -23,7 +23,7 @@ import { extractSnippetAroundIndex } from "./snippet_extractor.ts";
 import {
   mdLinkRegex,
   wikiLinkRegex,
-} from "$common/markdown_parser/constants.ts";
+} from "../../web/markdown_parser/constants.ts";
 import { lua, space } from "@silverbulletmd/silverbullet/syscalls";
 
 export type LinkObject = ObjectValue<

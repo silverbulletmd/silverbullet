@@ -1,4 +1,4 @@
-import type { ShellStreamClient } from "$common/shell_stream_client.ts";
+import type { ShellStreamClient } from "../../web/shell_stream_client.ts";
 import { syscall } from "../syscall.ts";
 
 /**

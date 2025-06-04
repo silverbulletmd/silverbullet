@@ -7,9 +7,9 @@ import { EditorView } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
 import { history, isolateHistory } from "@codemirror/commands";
 import type { SyntaxNode } from "@lezer/common";
-import { Space } from "../common/space.ts";
+import { Space } from "./space.ts";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
-import { EventHook } from "../common/hooks/event.ts";
+import { EventHook } from "./hooks/event.ts";
 import { type AppCommand, isValidEditor } from "$lib/command.ts";
 import {
   type LocationState,
@@ -31,13 +31,13 @@ import type {
 } from "../plug-api/types.ts";
 import type { StyleObject } from "../plugs/index/style.ts";
 import { throttle } from "$lib/async.ts";
-import { PlugSpacePrimitives } from "$common/spaces/plug_space_primitives.ts";
-import { EventedSpacePrimitives } from "$common/spaces/evented_space_primitives.ts";
+import { PlugSpacePrimitives } from "./spaces/plug_space_primitives.ts";
+import { EventedSpacePrimitives } from "./spaces/evented_space_primitives.ts";
 import { pageSyncInterval, SyncService } from "./sync_service.ts";
 import { simpleHash } from "$lib/crypto.ts";
-import type { SyncStatus } from "$common/spaces/sync.ts";
-import { HttpSpacePrimitives } from "$common/spaces/http_space_primitives.ts";
-import { FallbackSpacePrimitives } from "$common/spaces/fallback_space_primitives.ts";
+import type { SyncStatus } from "./spaces/sync.ts";
+import { HttpSpacePrimitives } from "./spaces/http_space_primitives.ts";
+import { FallbackSpacePrimitives } from "./spaces/fallback_space_primitives.ts";
 import {
   encodePageURI,
   encodeRef,
@@ -49,7 +49,7 @@ import { ClientSystem } from "./client_system.ts";
 import { createEditorState } from "./editor_state.ts";
 import { MainUI } from "./editor_ui.tsx";
 import { cleanPageRef } from "@silverbulletmd/silverbullet/lib/resolve";
-import type { SpacePrimitives } from "$common/spaces/space_primitives.ts";
+import type { SpacePrimitives } from "./spaces/space_primitives.ts";
 import type {
   CodeWidgetButton,
   FileMeta,
@@ -58,15 +58,15 @@ import type {
 import { DataStore } from "$lib/data/datastore.ts";
 import { IndexedDBKvPrimitives } from "$lib/data/indexeddb_kv_primitives.ts";
 import { DataStoreMQ } from "$lib/data/mq.datastore.ts";
-import { DataStoreSpacePrimitives } from "$common/spaces/datastore_space_primitives.ts";
+import { DataStoreSpacePrimitives } from "./spaces/datastore_space_primitives.ts";
 
-import { ReadOnlySpacePrimitives } from "$common/spaces/ro_space_primitives.ts";
+import { ReadOnlySpacePrimitives } from "./spaces/ro_space_primitives.ts";
 import { LimitedMap } from "$lib/limited_map.ts";
-import { plugPrefix } from "$common/spaces/constants.ts";
+import { plugPrefix } from "./spaces/constants.ts";
 import { diffAndPrepareChanges } from "./cm_util.ts";
 import { DocumentEditor } from "./document_editor.ts";
-import { parseExpressionString } from "$common/space_lua/parse.ts";
-import { Config } from "$common/config.ts";
+import { parseExpressionString } from "./space_lua/parse.ts";
+import { Config } from "./config.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -1479,8 +1479,7 @@ export class Client {
       return;
     }
 
-    const customStylesContent = spaceStyles.map(s => s.style).join("\n\n");
-    console.info("Accumulated styles", customStylesContent)
+    const customStylesContent = spaceStyles.map((s) => s.style).join("\n\n");
     this.ui.viewDispatch({
       type: "set-ui-option",
       key: "customStyles",

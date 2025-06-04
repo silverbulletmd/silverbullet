@@ -9,7 +9,7 @@ import {
 
 import { renderMarkdownToHtml } from "../../plugs/markdown/markdown_render.ts";
 import { type ParseTree, renderToText } from "../../plug-api/lib/tree.ts";
-import { lezerToParseTree } from "$common/markdown_parser/parse_tree.ts";
+import { lezerToParseTree } from "../markdown_parser/parse_tree.ts";
 import type { Client } from "../client.ts";
 import {
   isLocalPath,

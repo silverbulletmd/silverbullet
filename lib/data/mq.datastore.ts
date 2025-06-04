@@ -6,8 +6,8 @@ import type {
   MQSubscribeOptions,
 } from "../../plug-api/types.ts";
 import type { DataStore } from "./datastore.ts";
-import { parseExpressionString } from "$common/space_lua/parse.ts";
-import { LuaEnv } from "$common/space_lua/runtime.ts";
+import { parseExpressionString } from "../../web/space_lua/parse.ts";
+import { LuaEnv } from "../../web/space_lua/runtime.ts";
 
 export type ProcessingMessage = MQMessage & {
   ts: number;

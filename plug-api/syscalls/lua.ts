@@ -1,5 +1,5 @@
 import { syscall } from "../syscall.ts";
-import type { LuaBlock, LuaExpression } from "$common/space_lua/ast.ts";
+import type { LuaBlock, LuaExpression } from "../../web/space_lua/ast.ts";
 
 export function parse(
   code: string,

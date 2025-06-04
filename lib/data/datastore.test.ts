@@ -5,8 +5,8 @@ import type { KvPrimitives } from "../data/kv_primitives.ts";
 import { assertEquals } from "@std/assert";
 import { PrefixedKvPrimitives } from "../data/prefixed_kv_primitives.ts";
 import { DataStore } from "$lib/data/datastore.ts";
-import { LuaEnv, LuaStackFrame } from "$common/space_lua/runtime.ts";
-import { parseExpressionString } from "$common/space_lua/parse.ts";
+import { LuaEnv, LuaStackFrame } from "../../web/space_lua/runtime.ts";
+import { parseExpressionString } from "../../web/space_lua/parse.ts";
 
 async function test(db: KvPrimitives) {
   const datastore = new DataStore(new PrefixedKvPrimitives(db, ["ds"]));

@@ -1,5 +1,5 @@
 import "../../plug-api/lib/syscall_mock.ts";
-import { parseMarkdown } from "$common/markdown_parser/parser.ts";
+import { parseMarkdown } from "../../web/markdown_parser/parser.ts";
 import { extractTasks } from "./task.ts";
 import { assertEquals } from "@std/assert";
 
