@@ -6,7 +6,6 @@ import {
   decodePageURI,
   looksLikePathWithExtension,
 } from "@silverbulletmd/silverbullet/lib/page_ref";
-import type { ClientConfig } from "./client.ts";
 
 const CACHE_NAME = "{{CACHE_NAME}}";
 
