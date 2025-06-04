@@ -145,7 +145,11 @@ export class Client {
   ) {
     // Generate a semi-unique prefix for the database so not to reuse databases for different space paths
     this.dbPrefix = "" +
-      simpleHash(clientConfig.spaceFolderPath);
+      simpleHash(
+        `${clientConfig.spaceFolderPath}:${
+          document.baseURI.replace(/\/*$/, "")
+        }`,
+      );
     this.onLoadRef = parseRefFromURI();
   }
 

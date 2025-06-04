@@ -1,7 +1,7 @@
 import { safeRun } from "$lib/async.ts";
 import { Client, type ClientConfig } from "./client.ts";
 
-const configCacheKey = "config";
+const configCacheKey = `silverbullet.${document.baseURI}.config`;
 
 safeRun(async () => {
   // First we attempt to fetch the config from the server
@@ -50,9 +50,15 @@ safeRun(async () => {
   }
   if (navigator.serviceWorker) {
     // Register service worker
+    const workerURL = new URL("service_worker.js", document.baseURI);
     navigator.serviceWorker
-      .register(new URL("service_worker.js", document.baseURI), {
+      .register(workerURL, {
         type: "module",
+        //limit the scope of the service worker to any potential URL prefix
+        scope: workerURL.pathname.substring(
+          0,
+          workerURL.pathname.lastIndexOf("/") + 1,
+        ),
       })
       .then((registration) => {
         console.log("Service worker registered...");
