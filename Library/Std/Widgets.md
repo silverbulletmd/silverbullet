@@ -73,7 +73,7 @@ function widgets.toc(options)
         local text = ""
         table.remove(topLevelChild.children, 1)
         for child in topLevelChild.children do
-          text = text .. markdown.renderParseTree(child)
+          text = text .. string.trim(markdown.renderParseTree(child))
         end
 
         if text != "" then
