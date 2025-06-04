@@ -163,9 +163,6 @@ export class LuaWidget extends WidgetType {
       );
 
       html = parseHtmlString(renderMarkdownToHtml(mdTree, {
-        // Annotate every element with its position so we can use it to put
-        // the cursor there when the user clicks on the table.
-        annotationPositions: true,
         translateUrls: (url) => {
           if (isLocalPath(url)) {
             url = resolvePath(

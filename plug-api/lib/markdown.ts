@@ -103,7 +103,6 @@ export function stripMarkdown(
       return tree.children![0].text!;
     }
 
-    case "TemplateDirective":
     case "DeadlineDate": {
       return renderToText(tree);
     }

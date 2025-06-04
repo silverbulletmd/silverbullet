@@ -18,7 +18,6 @@ export async function updateMarkdownPreview() {
   const currentPage = await editor.getCurrentPage();
   const text = await editor.getText();
   let mdTree = await markdown.parseMarkdown(text);
-  // const cleanMd = await cleanMarkdown(text);
   const css = await asset.readAsset("markdown", "assets/preview.css");
   const js = await asset.readAsset("markdown", "assets/preview.js");
 
@@ -68,14 +67,10 @@ function renderToolbar(): string {
 
 export async function previewClickHandler(e: any) {
   const [eventName, arg] = JSON.parse(e);
-  // console.log("Got click", eventName, arg);
   switch (eventName) {
     case "pos":
       // console.log("Moving cursor to", +arg);
       await editor.moveCursor(+arg, true);
-      break;
-    case "command":
-      await system.invokeCommand(arg);
       break;
   }
 }
