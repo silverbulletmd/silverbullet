@@ -217,7 +217,8 @@ self.addEventListener("message", (event: any) => {
     }
     case "config": {
       const spaceFolderPath = event.data.config.spaceFolderPath;
-      const dbPrefix = "" + simpleHash(spaceFolderPath);
+      const dbPrefix = "" +
+        simpleHash(`${spaceFolderPath}:${baseURI.replace(/\/*$/, "")}`);
 
       // Setup space
       const kv = new IndexedDBKvPrimitives(dbPrefix);
