@@ -15,6 +15,8 @@ import {
   isLocalPath,
   resolvePath,
 } from "@silverbulletmd/silverbullet/lib/resolve";
+import { expandMarkdown } from "../markdown.ts";
+import { LuaStackFrame } from "../space_lua/runtime.ts";
 
 class TableViewWidget extends WidgetType {
   tableBodyText: string;
@@ -41,25 +43,35 @@ class TableViewWidget extends WidgetType {
       });
     });
 
-    dom.innerHTML = renderMarkdownToHtml(this.t, {
-      // Annotate every element with its position so we can use it to put
-      // the cursor there when the user clicks on the table.
-      annotationPositions: true,
-      translateUrls: (url) => {
-        if (isLocalPath(url)) {
-          url = resolvePath(this.client.currentPage, decodeURI(url));
-        }
+    const sf = LuaStackFrame.createWithGlobalEnv(
+      client.clientSystem.spaceLuaEnv.env,
+    );
+    expandMarkdown(
+      client,
+      this.t,
+      client.clientSystem.spaceLuaEnv.env,
+      sf,
+    ).then((t) => {
+      dom.innerHTML = renderMarkdownToHtml(t, {
+        // Annotate every element with its position so we can use it to put
+        // the cursor there when the user clicks on the table.
+        annotationPositions: true,
+        translateUrls: (url) => {
+          if (isLocalPath(url)) {
+            url = resolvePath(this.client.currentPage, decodeURI(url));
+          }
 
-        return url;
-      },
-      preserveAttributes: true,
-    });
-
-    setTimeout(() => {
-      this.client.setCachedWidgetHeight(
-        `table:${this.tableBodyText}`,
-        dom.clientHeight,
-      );
+          return url;
+        },
+        preserveAttributes: true,
+      });
+      setTimeout(() => {
+        // Give it a tick to render
+        this.client.setCachedWidgetHeight(
+          `table:${this.tableBodyText}`,
+          dom.clientHeight,
+        );
+      });
     });
     return dom;
   }
