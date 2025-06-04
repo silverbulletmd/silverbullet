@@ -28,7 +28,7 @@ export function resolvePath(
 function strippableSlashPrefix(p: string) {
   return p.startsWith("/") &&
     // Don't remove prefix / for built-in prefixes
-    !builtinPrefixes.some((p) => p.startsWith(p));
+    !builtinPrefixes.some((prefix) => p.startsWith(prefix));
 }
 
 export function isLocalPath(path: string): boolean {
@@ -88,7 +88,6 @@ export function relativeToAbsolutePath(page: string, linkTo: string): string {
   linkTo = strippableSlashPrefix(linkTo) ? linkTo.slice(1) : linkTo;
 
   const splitPage = page.split("/").slice(0, -1);
-
   const splitLink = linkTo.split("/");
 
   while (splitLink && splitLink[0] === "..") {
