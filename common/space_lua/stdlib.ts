@@ -204,6 +204,27 @@ const dofileFunction = new LuaBuiltinFunction(async (sf, filename: string) => {
   }
 });
 
+/**
+ * From the Lua docs:
+ * If index is a number, returns all arguments after argument number index; a negative number indexes
+ * from the end (-1 is the last argument). Otherwise, index must be the string "#", and select returns
+ * the total number of extra arguments it received.
+ */
+const selectFunction = new LuaBuiltinFunction(
+  (_sf, index: number | "#", ...args: LuaValue[]) => {
+    if (index === "#") {
+      return args.length;
+    } else if (typeof index === "number") {
+      if (index >= 0) {
+        return new LuaMultiRes(args.slice(index - 1));
+      } else {
+        return new LuaMultiRes(args.slice(args.length + index));
+      }
+    }
+  },
+);
+
+// Non-standard, but useful
 const someFunction = new LuaBuiltinFunction(async (_sf, value: any) => {
   switch (await luaTypeOf(value)) {
     case "number":
@@ -227,6 +248,7 @@ export function luaBuildStandardEnv() {
   env.set("tostring", tostringFunction);
   env.set("tonumber", tonumberFunction);
   env.set("unpack", unpackFunction);
+  env.set("select", selectFunction);
   // Iterators
   env.set("pairs", pairsFunction);
   env.set("ipairs", ipairsFunction);
