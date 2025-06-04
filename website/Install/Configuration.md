@@ -8,6 +8,7 @@ SilverBullet is primarily configured via environment variables. This page gives 
 # Network
 * `SB_HOSTNAME`: Set to the hostname to bind to (defaults to `127.0.0.0`, set to `0.0.0.0` to accept outside connections for the local deno setup, defaults to `0.0.0.0` for docker)
 * `SB_PORT`: Sets the port to listen to, e.g. `SB_PORT=1234`, default is `3000`
+* `SB_URL_PREFIX`: Host SilverBullet on a particular URL prefix, e.g. `SB_URL_PREFIX=/notes`
 
 # Authentication
 SilverBullet supports basic authentication for a single user.

@@ -146,7 +146,8 @@ export const spaceluaApi = new LuaTable({
       if (typeof location === "undefined") {
         return null;
       } else {
-        return location.protocol + "//" + location.host;
+        //NOTE: Removing trailing slash to stay compatible with original code: `location.protocol + "//" + location.host;`
+        return document.baseURI.replace(/\/*$/, "");
       }
     },
   ),

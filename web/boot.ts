@@ -7,7 +7,7 @@ safeRun(async () => {
   // First we attempt to fetch the config from the server
   let clientConfig: ClientConfig | undefined;
   try {
-    const configResponse = await fetch("/.config", {
+    const configResponse = await fetch(".config", {
       // We don't want to follow redirects, we want to get the redirect header in case of auth issues
       redirect: "manual",
       // Add short timeout in case of a bad internet connection, this would block loading of the UI
@@ -51,7 +51,7 @@ safeRun(async () => {
   if (navigator.serviceWorker) {
     // Register service worker
     navigator.serviceWorker
-      .register(new URL("/service_worker.js", location.href), {
+      .register(new URL("service_worker.js", document.baseURI), {
         type: "module",
       })
       .then((registration) => {

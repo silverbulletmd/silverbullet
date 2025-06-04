@@ -9,6 +9,23 @@ import {
 
 const CACHE_NAME = "{{CACHE_NAME}}";
 
+//`location.href` minus this worker's filename will be our base URL, including any URL prefix
+//(-1 is to remove the trailing '/')
+const workerFilename = location.pathname.substring(
+  location.pathname.lastIndexOf("/") + 1,
+);
+const baseURI = location.href.substring(
+  0,
+  location.href.length - workerFilename.length - 1,
+);
+const basePathName = location.pathname.substring(
+  0,
+  location.pathname.length - workerFilename.length - 1,
+);
+console.log(
+  `[Service Worker] Established baseURI=[${baseURI}]; basePathName=[${basePathName}]`,
+);
+
 const precacheFiles = Object.fromEntries([
   "/",
   "/.client/client.js",
@@ -21,7 +38,7 @@ const precacheFiles = Object.fromEntries([
   "/.client/logo-dock.png",
   "/.client/main.css",
   "/.client/manifest.json",
-].map((path) => [path, path + "?v=" + CACHE_NAME, path])); // Cache busting
+].map((path) => [path, `${baseURI}${path}?v=${CACHE_NAME}`, path])); // Cache busting
 
 self.addEventListener("install", (event: any) => {
   console.log("[Service worker]", "Installing service worker...");
@@ -71,8 +88,10 @@ const filesContentPrefix = ["file", "content"];
 self.addEventListener("fetch", (event: any) => {
   const url = new URL(event.request.url);
 
+  const pathname = url.pathname.substring(basePathName.length); //url.pathname with any URL prefix removed
+
   // Use the custom cache key if available, otherwise use the request URL
-  const cacheKey = precacheFiles[url.pathname] || event.request.url;
+  const cacheKey = precacheFiles[pathname] || event.request.url;
 
   event.respondWith(
     (async () => {
@@ -80,7 +99,7 @@ self.addEventListener("fetch", (event: any) => {
       const requestUrl = new URL(request.url);
 
       // Are we fetching a URL from the same origin as the app? If not, we don't handle it and pass it on
-      if (location.host !== requestUrl.host) {
+      if (!requestUrl.href.startsWith(baseURI)) {
         return fetch(request);
       }
 
@@ -101,7 +120,7 @@ self.addEventListener("fetch", (event: any) => {
         return fetch(request);
       }
 
-      const pathname = requestUrl.pathname;
+      const pathname = requestUrl.pathname.substring(basePathName.length); //requestUrl.pathname without with any URL prefix removed
 
       if (
         pathname === "/.auth" ||

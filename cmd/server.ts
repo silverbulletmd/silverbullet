@@ -62,6 +62,22 @@ export async function serveCommand(
     );
   }
 
+  let hostUrlPrefix = Deno.env.get("SB_URL_PREFIX");
+  if (hostUrlPrefix) {
+    if (!hostUrlPrefix.startsWith("/")) {
+      hostUrlPrefix = "/" + hostUrlPrefix;
+    }
+    if (hostUrlPrefix.endsWith("/")) {
+      hostUrlPrefix = hostUrlPrefix.replace(/\/*$/, "");
+    }
+
+    if (hostUrlPrefix !== "") {
+      console.log(`Host URL Prefix: ${hostUrlPrefix}`);
+    } else {
+      hostUrlPrefix = undefined;
+    }
+  }
+
   const userAuth = options.user ?? Deno.env.get("SB_USER");
 
   let userCredentials: AuthOptions | undefined;
@@ -100,7 +116,7 @@ export async function serveCommand(
   const manifestName = Deno.env.get("SB_NAME");
   const manifestDescription = Deno.env.get("SB_DESCRIPTION");
 
-  if (manifestName || manifestDescription) {
+  if (manifestName || manifestDescription || hostUrlPrefix) {
     const manifestData = JSON.parse(
       clientAssets.readTextFileSync(".client/manifest.json"),
     );
@@ -109,6 +125,13 @@ export async function serveCommand(
     }
     if (manifestDescription) {
       manifestData.description = manifestDescription;
+    }
+    if (hostUrlPrefix) {
+      for (const icon of manifestData.icons) {
+        if (icon.src) icon.src = hostUrlPrefix + icon.src;
+      }
+      manifestData.start_url = hostUrlPrefix + manifestData.start_url;
+      manifestData.scope = hostUrlPrefix + manifestData.scope;
     }
     clientAssets.writeTextFileSync(
       ".client/manifest.json",
@@ -131,6 +154,7 @@ export async function serveCommand(
     shellBackend: backendConfig,
     enableSpaceScript,
     pagesPath: folder,
+    hostUrlPrefix,
   });
   await httpServer.start();
 

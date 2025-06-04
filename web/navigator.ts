@@ -57,18 +57,18 @@ export class PathPageNavigator {
       globalThis.history.replaceState(
         cleanState,
         "",
-        `/${encodePageURI(currentState.page)}`,
+        `${document.baseURI}${encodePageURI(currentState.page)}`,
       );
       globalThis.history.pushState(
         ref,
         "",
-        `/${encodePageURI(ref.page)}`,
+        `${document.baseURI}${encodePageURI(ref.page)}`,
       );
     } else {
       globalThis.history.replaceState(
         ref,
         "",
-        `/${encodePageURI(ref.page)}`,
+        `${document.baseURI}${encodePageURI(ref.page)}`,
       );
     }
 
@@ -157,7 +157,7 @@ export class PathPageNavigator {
 
 export function parseRefFromURI(): Ref {
   const locationRef = parseRef(decodeURIComponent(
-    location.pathname.substring(1),
+    location.href.substring(document.baseURI.length), //this essentially returns location with prefix and leading slash removed (equivalent to location.pathname.substring(prefix.length).substring(1)),
   ));
 
   if (location.hash && locationRef.kind === "page") {

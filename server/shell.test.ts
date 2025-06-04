@@ -93,6 +93,7 @@ async function setupTestServer(
     readOnly: false,
     indexPage: "index",
     enableSpaceScript: false,
+    hostUrlPrefix: undefined,
   };
 
   // Create and start the server

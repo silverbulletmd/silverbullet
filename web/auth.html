@@ -4,7 +4,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-  <link rel="icon" type="image/x-icon" href="/favicon.png" />
+  <base href="{{HOST_URL_PREFIX}}/" />
+  <link rel="icon" type="image/x-icon" href="favicon.png" />
   <title>Login to SilverBullet</title>
   <style>
     *,
@@ -139,10 +140,10 @@
   <div class="center">
     <div class="flow floating-island">
       <h1>
-        Login to <img src="/.client/logo.png" style="height: 1ch" />
+        Login to <img src=".client/logo.png" style="height: 1ch" />
         SilverBullet
       </h1>
-      <form action="/.auth" method="POST" id="login" class="flow">
+      <form action=".auth" method="POST" id="login" class="flow">
         <div class="error-message"></div>
         <div>
           <label for="username">
@@ -197,7 +198,7 @@
     }
 
     // Fetch the app name from the manifest file
-    fetch('/.client/manifest.json')
+    fetch('.client/manifest.json')
       .then(response => {
         if (!response.ok) {
           throw new Error('Failed to load manifest');
@@ -211,7 +212,7 @@
         // Update the header text
         const header = document.querySelector('h1');
         if (header) {
-          header.innerHTML = `Login to <img src="/.client/logo.png" style="height: 1ch" /> ${appName}`;
+          header.innerHTML = `Login to <img src=".client/logo.png" style="height: 1ch" /> ${appName}`;
         }
       })
       .catch(error => {

@@ -3,7 +3,6 @@ import {
   clientStore,
   editor,
   markdown,
-  system,
 } from "@silverbulletmd/silverbullet/syscalls";
 import { renderMarkdownToHtml } from "./markdown_render.ts";
 import {
@@ -38,7 +37,7 @@ export async function updateMarkdownPreview() {
     "rhs",
     2,
     `
-      <link rel="stylesheet" href="/.client/main.css" />
+      <link rel="stylesheet" href=".client/main.css" />
       <style>
         ${css}
         ${customStyles ?? ""}
