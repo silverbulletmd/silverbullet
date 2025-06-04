@@ -542,3 +542,21 @@ assertEqual(tonumber("1010", 1), nil)   -- Invalid base
 assertEqual(tonumber("1010", 37), nil)  -- Invalid base
 assertEqual(tonumber("FF", 10), nil)    -- Invalid hex in decimal
 assertEqual(tonumber("8", 8), nil)      -- Invalid octal digit
+
+
+-- select tests
+-- Base case
+local a, b, c = select(1, 1, 2, 3)
+assertEqual(a, 1)
+assertEqual(b, 2)
+assertEqual(c, 3)
+-- One index later
+local b, c = select(2, 1, 2, 3)
+assertEqual(b, 2)
+assertEqual(c, 3)
+-- Negative index
+local b, c = select(-2, 1, 2, 3)
+assertEqual(b, 2)
+assertEqual(c, 3)
+-- Special "#" case
+assertEqual(select("#", 1, 2, 3), 3)

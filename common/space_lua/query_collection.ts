@@ -102,8 +102,8 @@ export async function applyTransforms(
   if (query.orderBy) {
     // Retrieve from config API if not passed
     if (collation === undefined) {
-      // const config = sf.threadLocal.get("_GLOBAL").get("config"); // FIXME: Somehow _GLOBAL is empty here
-      const config = client.config; // HACK: Shouldn't be using client here directly
+      // @ts-ignore: Hack to access client via the browser
+      const config = globalThis.client.config; // HACK: Shouldn't be using client here directly
 
       collation = config.get("queryCollation", {});
     }
