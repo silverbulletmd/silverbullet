@@ -1,7 +1,7 @@
-import { AssetBundlePlugSpacePrimitives } from "$common/spaces/asset_bundle_space_primitives.ts";
-import { FilteredSpacePrimitives } from "$common/spaces/filtered_space_primitives.ts";
-import { ReadOnlySpacePrimitives } from "$common/spaces/ro_space_primitives.ts";
-import type { SpacePrimitives } from "$common/spaces/space_primitives.ts";
+import { AssetBundlePlugSpacePrimitives } from "../web/spaces/asset_bundle_space_primitives.ts";
+import { FilteredSpacePrimitives } from "../web/spaces/filtered_space_primitives.ts";
+import { ReadOnlySpacePrimitives } from "../web/spaces/ro_space_primitives.ts";
+import type { SpacePrimitives } from "../web/spaces/space_primitives.ts";
 import type { AssetBundle } from "../lib/asset_bundle/bundle.ts";
 import type { KvPrimitives } from "$lib/data/kv_primitives.ts";
 import { JWTIssuer } from "./crypto.ts";
@@ -11,7 +11,7 @@ import type { ShellBackend } from "./shell_backend.ts";
 import { determineStorageBackend } from "./storage_backend.ts";
 import type { ServerOptions } from "./http_server.ts";
 import type { AuthOptions } from "../cmd/server.ts";
-import { CONFIG_TEMPLATE, INDEX_TEMPLATE } from "$common/PAGE_TEMPLATES.ts";
+import { CONFIG_TEMPLATE, INDEX_TEMPLATE } from "../web/PAGE_TEMPLATES.ts";
 
 // Equivalent of Client on the server
 export class SpaceServer {

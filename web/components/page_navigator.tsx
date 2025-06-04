@@ -8,7 +8,7 @@ import type {
   DocumentMeta,
   PageMeta,
 } from "@silverbulletmd/silverbullet/types";
-import { tagRegex as mdTagRegex } from "$common/markdown_parser/constants.ts";
+import { tagRegex as mdTagRegex } from "../markdown_parser/constants.ts";
 import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 
 const tagRegex = new RegExp(mdTagRegex.source, "g");

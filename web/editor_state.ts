@@ -46,10 +46,10 @@ import {
 } from "./cm_plugins/editor_paste.ts";
 import type { TextChange } from "./change.ts";
 import { postScriptPrefacePlugin } from "./cm_plugins/top_bottom_panels.ts";
-import { languageFor } from "$common/languages.ts";
+import { languageFor } from "./languages.ts";
 import { plugLinter } from "./cm_plugins/lint.ts";
 import { Compartment, type Extension } from "@codemirror/state";
-import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
+import { extendedMarkdownLanguage } from "./markdown_parser/parser.ts";
 import { safeRun } from "$lib/async.ts";
 import { codeCopyPlugin } from "./cm_plugins/code_copy.ts";
 import { disableSpellcheck } from "./cm_plugins/spell_checking.ts";
@@ -311,7 +311,7 @@ export function createCommandKeyBindings(client: Client): KeyBinding[] {
   // Keyboard shortcuts from SETTINGS take precedense
   if (client.config.has("shortcuts")) {
     for (const shortcut of client.config.get<Shortcut[]>("shortcuts", [])) {
-      overriddenCommands.add(shortcut.command)
+      overriddenCommands.add(shortcut.command);
       commandKeyBindings.push({
         key: shortcut.key,
         mac: shortcut.mac,

@@ -6,8 +6,8 @@ import { sleep } from "../lib/async.ts";
 import {
   ShellStreamClient,
   type ShellStreamEvent,
-} from "../common/shell_stream_client.ts";
-import { HttpSpacePrimitives } from "../common/spaces/http_space_primitives.ts";
+} from "../web/shell_stream_client.ts";
+import { HttpSpacePrimitives } from "../web/spaces/http_space_primitives.ts";
 
 // Create a test script
 async function createTestScript(dir: string): Promise<string> {

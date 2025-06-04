@@ -1,12 +1,12 @@
 import "./syscall_mock.ts";
-import { parse } from "$common/markdown_parser/parse_tree.ts";
+import { parse } from "../../web/markdown_parser/parse_tree.ts";
 import {
   cleanAttributes,
   extractAttributes,
 } from "@silverbulletmd/silverbullet/lib/attribute";
 import { assertEquals } from "@std/assert";
 import { renderToText } from "./tree.ts";
-import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
+import { extendedMarkdownLanguage } from "../../web/markdown_parser/parser.ts";
 
 const inlineAttributeSample = `
 # My document

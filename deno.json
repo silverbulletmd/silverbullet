@@ -110,7 +110,6 @@
     "@silverbulletmd/silverbullet/type/config": "./type/config.ts",
     "@silverbulletmd/silverbullet/type/rpc": "./type/rpc.ts",
     "@silverbulletmd/silverbullet/type/client": "./type/client.ts",
-    "$common/": "./common/",
     "$lib/": "./lib/",
     "@codemirror/autocomplete": "https://esm.sh/@codemirror/autocomplete@6.18.1?external=@codemirror/state,@codemirror/commands,@lezer/common,@codemirror/view,@codemirror/language&target=es2022",
     "@codemirror/commands": "https://esm.sh/@codemirror/commands@6.7.0?external=@codemirror/state,@codemirror/view,@codemirror/language,@lezer/common&target=es2022",

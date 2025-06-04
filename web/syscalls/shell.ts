@@ -1,6 +1,6 @@
 import type { SysCallMapping } from "../../lib/plugos/system.ts";
 import type { Client } from "../client.ts";
-import { ShellStreamClient } from "../../common/shell_stream_client.ts";
+import { ShellStreamClient } from "../shell_stream_client.ts";
 
 /**
  * Interface for the shell stream client

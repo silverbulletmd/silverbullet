@@ -1,7 +1,7 @@
 import { datastore, markdown } from "@silverbulletmd/silverbullet/syscalls";
 import type { KV, KvKey, KvQuery, ObjectValue } from "../../plug-api/types.ts";
 import { ttlCache } from "$lib/memory_cache.ts";
-import type { LuaCollectionQuery } from "$common/space_lua/query_collection.ts";
+import type { LuaCollectionQuery } from "../../web/space_lua/query_collection.ts";
 import {
   extractFrontmatter as extractFrontmatterFromTree,
   type FrontMatter,

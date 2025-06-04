@@ -1,4 +1,4 @@
-import { SpaceSync, type SyncStatusItem } from "$common/spaces/sync.ts";
+import { SpaceSync, type SyncStatusItem } from "../web/spaces/sync.ts";
 import { determineStorageBackend } from "../server/storage_backend.ts";
 
 export async function syncCommand(

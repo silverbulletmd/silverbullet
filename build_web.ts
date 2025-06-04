@@ -21,7 +21,6 @@ export async function bundleAll(
   if (watch) {
     const watcher = Deno.watchFs([
       "web",
-      "common",
       "dist_plug_bundle/_plug",
       "Library",
     ]);

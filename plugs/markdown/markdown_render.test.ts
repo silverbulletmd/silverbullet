@@ -1,9 +1,9 @@
-import { parse } from "$common/markdown_parser/parse_tree.ts";
+import { parse } from "../../web/markdown_parser/parse_tree.ts";
 import { System } from "../../lib/plugos/system.ts";
 
 import { createSandbox } from "../../lib/plugos/sandboxes/deno_worker_sandbox.ts";
 import { renderMarkdownToHtml } from "./markdown_render.ts";
-import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
+import { extendedMarkdownLanguage } from "../../web/markdown_parser/parser.ts";
 import { assertEquals } from "@std/assert";
 import { fileURLToPath } from "node:url";
 

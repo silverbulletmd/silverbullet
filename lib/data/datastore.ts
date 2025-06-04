@@ -1,8 +1,8 @@
 import {
   type LuaCollectionQuery,
   queryLua,
-} from "$common/space_lua/query_collection.ts";
-import { LuaEnv, LuaStackFrame } from "$common/space_lua/runtime.ts";
+} from "../../web/space_lua/query_collection.ts";
+import { LuaEnv, LuaStackFrame } from "../../web/space_lua/runtime.ts";
 import type { KV, KvKey } from "../../plug-api/types.ts";
 import type { KvPrimitives, KvQueryOptions } from "./kv_primitives.ts";
 

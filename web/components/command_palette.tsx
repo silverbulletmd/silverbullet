@@ -9,7 +9,7 @@ import type {
   FilterOption,
   Shortcut,
 } from "@silverbulletmd/silverbullet/type/client";
-import type { Config } from "$common/config.ts";
+import type { Config } from "../config.ts";
 
 export function CommandPalette({
   commands,

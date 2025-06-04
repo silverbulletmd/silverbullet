@@ -5,16 +5,16 @@ import {
   isLocalPath,
   resolvePath,
 } from "@silverbulletmd/silverbullet/lib/resolve";
-import { parse } from "$common/markdown_parser/parse_tree.ts";
-import { extendedMarkdownLanguage } from "$common/markdown_parser/parser.ts";
+import { parse } from "../markdown_parser/parse_tree.ts";
+import { extendedMarkdownLanguage } from "../markdown_parser/parser.ts";
 import { renderToText } from "@silverbulletmd/silverbullet/lib/tree";
 import {
   attachWidgetEventHandlers,
   moveCursorIntoText,
 } from "./widget_util.ts";
-import { expandMarkdown } from "$common/markdown.ts";
-import { LuaStackFrame, LuaTable } from "$common/space_lua/runtime.ts";
-import { jsonToMDTable } from "$common/markdown_util.ts";
+import { expandMarkdown } from "../markdown.ts";
+import { LuaStackFrame, LuaTable } from "../space_lua/runtime.ts";
+import { jsonToMDTable } from "../markdown_util.ts";
 import { activeWidgets } from "./code_widget.ts";
 
 export type LuaWidgetCallback = (
