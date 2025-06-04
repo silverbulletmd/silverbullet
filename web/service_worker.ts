@@ -117,79 +117,16 @@ self.addEventListener("fetch", (event: any) => {
       }
 
       if (!ds) {
-        // Not initialzed yet, or in thin client mode, let's just proxy
+        // Not initialzed yet
         return fetch(request);
       }
 
       const pathname = requestUrl.pathname.substring(basePathName.length); //requestUrl.pathname without with any URL prefix removed
 
-      if (pathname === "/.config") {
-        try {
-          // First check if we have a cached config in ds
-          const cachedConfig = await ds?.get<ClientConfig>(["$clientConfig"]);
-
-          if (cachedConfig) {
-            // If we have a cached config, try to fetch fresh config with a timeout
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 1000);
-
-            try {
-              const response = await fetch(request, {
-                signal: controller.signal,
-              });
-              clearTimeout(timeoutId);
-
-              if (response.status === 401) {
-                // Pass on the 401 to the client
-                return response;
-              }
-              const clientConfig = await response.json();
-              await ds.set(["$clientConfig"], clientConfig);
-              console.log(
-                "[Service worker]",
-                "Serving and cached fresh config",
-              );
-              return new Response(JSON.stringify(clientConfig));
-            } catch (e) {
-              clearTimeout(timeoutId);
-              // If timeout or other error occurs, use cached config
-              console.log(
-                "[Service worker]",
-                "Using cached config due to timeout or error:",
-                e instanceof Error ? e.message : String(e),
-              );
-              return new Response(JSON.stringify(cachedConfig));
-            }
-          } else {
-            // No cached config, fetch without timeout
-            const response = await fetch(request);
-            if (response.status === 401) {
-              return response;
-            }
-            const clientConfig = await response.json();
-            await ds.set(["$clientConfig"], clientConfig);
-            console.log(
-              "[Service worker]",
-              "Serving and cached initial config",
-            );
-            return new Response(JSON.stringify(clientConfig));
-          }
-        } catch (e: any) {
-          console.error(
-            "[Service worker]",
-            "Failed to fetch client config",
-            e.message,
-          );
-          return new Response("{}", {
-            status: 404,
-            headers: {
-              "Content-Type": "application/json",
-            },
-          });
-        }
-      } else if (
+      if (
         pathname === "/.auth" ||
         pathname === "/.logout" ||
+        pathname === "/.config" ||
         pathname === "/index.json"
       ) {
         return fetch(request);
@@ -284,7 +221,7 @@ self.addEventListener("message", (event: any) => {
       const dbPrefix = "" + simpleHash(spaceFolderPath);
 
       // Setup space
-      const kv = new IndexedDBKvPrimitives(`${dbPrefix}`);
+      const kv = new IndexedDBKvPrimitives(dbPrefix);
       kv.init().then(() => {
         ds = new DataStore(kv);
         console.log("Datastore in service worker initialized...");

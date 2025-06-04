@@ -1,13 +1,17 @@
 import { safeRun } from "$lib/async.ts";
 import { Client, type ClientConfig } from "./client.ts";
 
+const configCacheKey = "config";
+
 safeRun(async () => {
-  // First we fetch the client config from the server (or cached via service worker)
+  // First we attempt to fetch the config from the server
   let clientConfig: ClientConfig | undefined;
   try {
     const configResponse = await fetch(".config", {
       // We don't want to follow redirects, we want to get the redirect header in case of auth issues
       redirect: "manual",
+      // Add short timeout in case of a bad internet connection, this would block loading of the UI
+      signal: AbortSignal.timeout(1000),
     });
     const redirectHeader = configResponse.headers.get("location");
     if (
@@ -21,12 +25,22 @@ safeRun(async () => {
       return;
     }
     clientConfig = await configResponse.json();
+    // Persist to localStorage
+    localStorage.setItem(configCacheKey, JSON.stringify(clientConfig));
   } catch (e: any) {
-    console.error("Failed to fetch client config", e.message);
-    alert(
-      "Could not fetch configuration from server. Make sure you have an internet connection.",
-    );
-    return;
+    console.error("Failed to fetch client config from server", e.message);
+    // We may be offline, let's see if we have a cached config
+    const configString = localStorage.getItem(configCacheKey);
+    if (configString) {
+      // Yep! Let's use it
+      clientConfig = JSON.parse(configString);
+    } else {
+      alert(
+        "Could not fetch configuration from server. Make sure you have an internet connection.",
+      );
+      // Returning here because there's no way to recover from this
+      return;
+    }
   }
   console.log("Client config", clientConfig);
   console.log("Booting SilverBullet client");
