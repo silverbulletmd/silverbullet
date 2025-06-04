@@ -1467,24 +1467,20 @@ export class Client {
 
     const spaceStyles = await this.clientSystem.queryLuaObjects<StyleObject>(
       "space-style",
-      {},
+      {
+        objectVariable: "_",
+        orderBy: [{
+          expr: parseExpressionString("_.priority"),
+          desc: true,
+        }],
+      },
     );
     if (!spaceStyles) {
       return;
     }
 
-    // Sort stylesheets (last declared styles take precedence)
-    // Order is 1: Imported styles, 2: Other styles, 3: customStyles from Settings
-    const sortOrder = ["library", "user", "config"];
-    spaceStyles.sort((a, b) =>
-      sortOrder.indexOf(a.origin) - sortOrder.indexOf(b.origin)
-    );
-
-    const accumulatedCSS: string[] = [];
-    for (const s of spaceStyles) {
-      accumulatedCSS.push(s.style);
-    }
-    const customStylesContent = accumulatedCSS.join("\n\n");
+    const customStylesContent = spaceStyles.map(s => s.style).join("\n\n");
+    console.info("Accumulated styles", customStylesContent)
     this.ui.viewDispatch({
       type: "set-ui-option",
       key: "customStyles",
