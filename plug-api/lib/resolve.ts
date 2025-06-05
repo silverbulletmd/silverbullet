@@ -1,8 +1,8 @@
 import { type ParseTree, traverseTree } from "./tree.ts";
 
 const builtinPrefixes = [
-  "/tag:",
-  "/search:",
+  "tag:",
+  "search:",
 ];
 
 // [[Wikilinks]] use absolute paths and should pass pathToResolve with a leading / to this function
@@ -26,9 +26,7 @@ export function resolvePath(
 }
 
 function strippableSlashPrefix(p: string) {
-  return p.startsWith("/") &&
-    // Don't remove prefix / for built-in prefixes
-    !builtinPrefixes.some((prefix) => p.startsWith(prefix));
+  return p.startsWith("/");
 }
 
 export function isLocalPath(path: string): boolean {
@@ -96,4 +94,8 @@ export function relativeToAbsolutePath(page: string, linkTo: string): string {
   }
 
   return [...splitPage, ...splitLink].join("/");
+}
+
+export function isBuiltinPath(path: string): boolean {
+  return builtinPrefixes.some((prefix) => path.startsWith(prefix));
 }
