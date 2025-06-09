@@ -3,7 +3,7 @@ import { Command } from "@cliffy/command";
 
 import { version } from "./version.ts";
 
-import { upgradeCommand } from "./cmd/upgrade.ts";
+import { upgradeCommand, upgradeEdgeCommand } from "./cmd/upgrade.ts";
 import { versionCommand } from "./cmd/version.ts";
 import { serveCommand } from "./cmd/server.ts";
 import { plugCompileCommand } from "./cmd/plug_compile.ts";
@@ -77,6 +77,10 @@ await new Command()
   .command("upgrade")
   .description("Upgrade SilverBullet")
   .action(upgradeCommand)
+  // upgrade-edge
+  .command("upgrade-edge")
+  .description("Upgrade SilverBullet to the latest Edge build")
+  .action(upgradeEdgeCommand)
   // sync
   .command("sync")
   .description("Synchronize two spaces")

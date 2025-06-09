@@ -16,11 +16,8 @@ esac
 
 echo "Installing for $target"
 
-if [ $# -eq 0 ]; then
-	sb_uri="https://github.com/silverbulletmd/silverbullet/releases/latest/download/silverbullet-server-${target}.zip"
-else
-	sb_uri="https://github.com/silverbulletmd/silverbullet/releases/download/${1}/silverbullet-server-${target}.zip"
-fi
+sb_uri="https://github.com/silverbulletmd/silverbullet/releases/download/edge/silverbullet-server-${target}.zip"
+
 exe=silverbullet
 bin_dir=.
 
@@ -29,4 +26,4 @@ unzip -d "$bin_dir" -o "$exe.zip"
 chmod +x "$exe"
 rm "$exe.zip"
 
-echo "SilverBullet server was installed successfully to $bin, run it directly via ./$exe or move it to a more convenient place."
+echo "SilverBullet server was installed successfully to $bin_dir, run it directly via ./$exe or move it to a more convenient place."

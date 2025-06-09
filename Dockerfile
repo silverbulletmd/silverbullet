@@ -1,6 +1,9 @@
-FROM denoland/deno:alpine-2.3.5
+# Note: we don't actually need a Deno image, since we use a single-binary distribution of SilverBullet
+# However, since those binaries still depend on a bunch of GLIBC stuff included in the deno image —— we'll just go with that anyway
+FROM denoland/deno:alpine
 
 # The volume that will keep the space data
+VOLUME /space
 
 # Either create a volume:
 #   docker volume create myspace
@@ -8,8 +11,6 @@ FROM denoland/deno:alpine-2.3.5
 #   docker run -v myspace:/space -p3000:3000 -it ghcr.io/silverbulletmd/silverbullet
 # Or simply mount an existing folder into the container:
 #   docker run -v /path/to/my/folder:/space -p3000:3000 -it ghcr.io/silverbulletmd/silverbullet
-
-VOLUME /space
 
 # Accept TARGETARCH as argument
 ARG TARGETARCH
@@ -21,6 +22,7 @@ ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini-${TAR
 # Make sure the deno user has access to the space volume
 RUN mkdir -p -m 777 /space \
     && chmod +x /tini \
+    # We will just include bash and git 
     && apk add bash git
 
 # Expose port 3000

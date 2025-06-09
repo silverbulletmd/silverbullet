@@ -7,11 +7,10 @@ Installing SilverBullet as a (local) web server is pretty straightforward if you
 
 The basic setup is simple: you run the SilverBullet server process on your machine, then connect to it locally from your browser via `localhost`.
 
-You have currently one option here:
+You have two options:
 
 1. Installation via [[Install/Docker]] (the awesome container runtime): recommended if you already have Docker installed
-
-Later we’ll bring back the Deno option.
+2. Installation of the single [[Install/Binary]] distribution (available for all major platforms)
 
 # Non-local access
 Once you got a comfortable set running locally, you may want to look at options to expose your setup to your [[Install/Network and Internet]].
