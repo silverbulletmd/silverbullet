@@ -34,4 +34,3 @@ jobs:
           draft: false
           files: |
             website/CHANGELOG.md
-            dist/silverbullet.js

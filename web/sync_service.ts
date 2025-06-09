@@ -1,10 +1,10 @@
-import { plugPrefix, stdLibPrefix } from "./spaces/constants.ts";
-import type { SpacePrimitives } from "./spaces/space_primitives.ts";
+import { plugPrefix, stdLibPrefix } from "../lib/spaces/constants.ts";
+import type { SpacePrimitives } from "../lib/spaces/space_primitives.ts";
 import {
   SpaceSync,
   type SyncStatus,
   type SyncStatusItem,
-} from "./spaces/sync.ts";
+} from "../lib/spaces/sync.ts";
 import { sleep } from "$lib/async.ts";
 import type { EventHook } from "./hooks/event.ts";
 import type { DataStore } from "$lib/data/datastore.ts";

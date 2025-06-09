@@ -1,4 +1,4 @@
-import type { FileContent } from "./spaces/datastore_space_primitives.ts";
+import type { FileContent } from "$lib/spaces/datastore_space_primitives.ts";
 import { simpleHash } from "$lib/crypto.ts";
 import { DataStore } from "$lib/data/datastore.ts";
 import { IndexedDBKvPrimitives } from "$lib/data/indexeddb_kv_primitives.ts";

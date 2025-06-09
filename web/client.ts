@@ -31,13 +31,13 @@ import type {
 } from "../plug-api/types.ts";
 import type { StyleObject } from "../plugs/index/style.ts";
 import { throttle } from "$lib/async.ts";
-import { PlugSpacePrimitives } from "./spaces/plug_space_primitives.ts";
-import { EventedSpacePrimitives } from "./spaces/evented_space_primitives.ts";
+import { PlugSpacePrimitives } from "../lib/spaces/plug_space_primitives.ts";
+import { EventedSpacePrimitives } from "../lib/spaces/evented_space_primitives.ts";
 import { pageSyncInterval, SyncService } from "./sync_service.ts";
 import { simpleHash } from "$lib/crypto.ts";
-import type { SyncStatus } from "./spaces/sync.ts";
-import { HttpSpacePrimitives } from "./spaces/http_space_primitives.ts";
-import { FallbackSpacePrimitives } from "./spaces/fallback_space_primitives.ts";
+import type { SyncStatus } from "../lib/spaces/sync.ts";
+import { HttpSpacePrimitives } from "../lib/spaces/http_space_primitives.ts";
+import { FallbackSpacePrimitives } from "../lib/spaces/fallback_space_primitives.ts";
 import {
   encodePageURI,
   encodeRef,
@@ -49,7 +49,7 @@ import { ClientSystem } from "./client_system.ts";
 import { createEditorState } from "./editor_state.ts";
 import { MainUI } from "./editor_ui.tsx";
 import { cleanPageRef } from "@silverbulletmd/silverbullet/lib/resolve";
-import type { SpacePrimitives } from "./spaces/space_primitives.ts";
+import type { SpacePrimitives } from "../lib/spaces/space_primitives.ts";
 import type {
   CodeWidgetButton,
   FileMeta,
@@ -58,11 +58,11 @@ import type {
 import { DataStore } from "$lib/data/datastore.ts";
 import { IndexedDBKvPrimitives } from "$lib/data/indexeddb_kv_primitives.ts";
 import { DataStoreMQ } from "$lib/data/mq.datastore.ts";
-import { DataStoreSpacePrimitives } from "./spaces/datastore_space_primitives.ts";
+import { DataStoreSpacePrimitives } from "../lib/spaces/datastore_space_primitives.ts";
 
-import { ReadOnlySpacePrimitives } from "./spaces/ro_space_primitives.ts";
+import { ReadOnlySpacePrimitives } from "../lib/spaces/ro_space_primitives.ts";
 import { LimitedMap } from "$lib/limited_map.ts";
-import { plugPrefix } from "./spaces/constants.ts";
+import { plugPrefix } from "../lib/spaces/constants.ts";
 import { diffAndPrepareChanges } from "./cm_util.ts";
 import { DocumentEditor } from "./document_editor.ts";
 import { parseExpressionString } from "./space_lua/parse.ts";

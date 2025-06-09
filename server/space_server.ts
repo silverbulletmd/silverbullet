@@ -1,7 +1,7 @@
-import { AssetBundlePlugSpacePrimitives } from "../web/spaces/asset_bundle_space_primitives.ts";
-import { FilteredSpacePrimitives } from "../web/spaces/filtered_space_primitives.ts";
-import { ReadOnlySpacePrimitives } from "../web/spaces/ro_space_primitives.ts";
-import type { SpacePrimitives } from "../web/spaces/space_primitives.ts";
+import { AssetBundlePlugSpacePrimitives } from "../lib/spaces/asset_bundle_space_primitives.ts";
+import { FilteredSpacePrimitives } from "../lib/spaces/filtered_space_primitives.ts";
+import { ReadOnlySpacePrimitives } from "../lib/spaces/ro_space_primitives.ts";
+import type { SpacePrimitives } from "../lib/spaces/space_primitives.ts";
 import type { AssetBundle } from "../lib/asset_bundle/bundle.ts";
 import type { KvPrimitives } from "$lib/data/kv_primitives.ts";
 import { JWTIssuer } from "./crypto.ts";
