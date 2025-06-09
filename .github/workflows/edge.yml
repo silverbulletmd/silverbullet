@@ -16,6 +16,7 @@ jobs:
           deno-version: v2.3.5
       - name: Compile for all platforms
         run: |
+          deno task build
           deno task server:zip:linux-x86_64
           deno task server:zip:linux-aarch64
           deno task server:zip:darwin-x86_64
