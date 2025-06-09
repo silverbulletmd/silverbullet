@@ -30,8 +30,7 @@ jobs:
           draft: false
           tag_name: edge
           body: Automated build from commit ${{ github.sha }}
-          prerelease: false
+          prerelease: true
           files: |
             website/CHANGELOG.md
-            dist/silverbullet.js
             silverbullet-*.zip
