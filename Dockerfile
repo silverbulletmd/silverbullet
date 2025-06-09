@@ -21,7 +21,7 @@ ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini-${TAR
 # Make sure the deno user has access to the space volume
 RUN mkdir -p -m 777 /space \
     && chmod +x /tini \
-    && apk add bash
+    && apk add bash git
 
 # Expose port 3000
 # Port map this when running, e.g. with -p 3002:3000 (where 3002 is the host port)
