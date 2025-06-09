@@ -1,4 +1,4 @@
-import type { HttpSpacePrimitives } from "./spaces/http_space_primitives.ts";
+import type { HttpSpacePrimitives } from "../lib/spaces/http_space_primitives.ts";
 
 /**
  * Event types emitted by the ShellStreamClient
