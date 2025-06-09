@@ -1,30 +1,19 @@
-name: Server
+name: Build & Release Edge
 
 on:
   push:
-    tags:
-      - "*"
-
+    branches:
+      - "main"
 jobs:
-  build:
+  release:
     runs-on: ubuntu-latest
-
     steps:
       - name: Setup repo
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          fetch-tags: true
-
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
           deno-version: v2.3.5
-
-      - name: Build bundles
-        run: |
-          deno task build
-
       - name: Compile for all platforms
         run: |
           deno task server:zip:linux-x86_64
@@ -32,12 +21,16 @@ jobs:
           deno task server:zip:darwin-x86_64
           deno task server:zip:darwin-aarch64
           deno task server:zip:windows-x86_64
-
-      - name: Release
+      - name: Update edge release
         uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          draft: true
+          draft: false
+          tag_name: edge
+          body: Automated build from commit ${{ github.sha }}
+          prerelease: false
           files: |
+            website/CHANGELOG.md
+            dist/silverbullet.js
             silverbullet-*.zip

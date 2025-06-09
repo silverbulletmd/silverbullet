@@ -33,7 +33,6 @@
     "deep-clean-mac": "rm -f deno.lock && rm -rf $HOME/Library/Caches/deno && deno task clean",
 
     "install": "deno install -g -f -A --import-map deno.json silverbullet.ts",
-    "install-hooks": "./scripts/install_hooks.sh",
 
     "check": "find . -name '*.ts*' | xargs deno check",
     "lint": "deno lint",
@@ -41,10 +40,11 @@
     "test": "deno test -A",
     "bench": "deno bench",
 
-    "build": "rm -rf dist dist_client_bundle dist_plug_bundle && deno run -A build_plugs.ts && deno run -A build_web.ts",
+    "build": "rm -rf dist dist_client_bundle dist_plug_bundle && deno run -A build_plugs.ts && deno run -A build_web.ts && deno task compile",
     "plugs": "deno run -A build_plugs.ts",
     "server": "deno run -A  --check silverbullet.ts",
     "generate": "./scripts/generate.sh",
+    "docker": "./scripts/build_docker.sh",
 
     "watch-web": "deno run -A --check build_web.ts --watch",
     "watch-server": "deno run -A --check --watch silverbullet.ts",
@@ -54,11 +54,17 @@
     "bundle": "deno run -A build_bundle.ts",
 
     "compile": "deno task bundle && deno compile -A -o silverbullet dist/silverbullet.js",
-    "server:dist:linux-x86_64": "deno task bundle && deno compile -A --target x86_64-unknown-linux-gnu -o silverbullet dist/silverbullet.js && zip silverbullet-server-linux-x86_64.zip silverbullet",
-    "server:dist:linux-aarch64": "deno task bundle && deno compile -A --target aarch64-unknown-linux-gnu -o silverbullet dist/silverbullet.js && zip silverbullet-server-linux-aarch64 silverbullet",
-    "server:dist:darwin-x86_64": "deno task bundle && deno compile -A --target x86_64-apple-darwin -o silverbullet dist/silverbullet.js && zip silverbullet-server-darwin-x86_64.zip silverbullet",
-    "server:dist:darwin-aarch64": "deno task bundle && deno compile -A --target aarch64-apple-darwin -o silverbullet dist/silverbullet.js  && zip silverbullet-server-darwin-aarch64.zip silverbullet",
-    "server:dist:windows-x86_64": "deno task bundle && deno compile -A  --target x86_64-pc-windows-msvc -o silverbullet.exe dist/silverbullet.js && zip silverbullet-server-windows-x86_64.zip silverbullet.exe"
+
+    "server:dist:linux-x86_64": "deno task bundle && deno compile -A --target x86_64-unknown-linux-gnu -o silverbullet dist/silverbullet.js",
+    "server:zip:linux-x86_64": "deno task server:dist:linux-x86_64 && zip silverbullet-server-linux-x86_64.zip silverbullet",
+    "server:dist:linux-aarch64": "deno task bundle && deno compile -A --target aarch64-unknown-linux-gnu -o silverbullet dist/silverbullet.js",
+    "server:zip:linux-aarch64": "deno task server:dist:linux-aarch64 && zip silverbullet-server-linux-aarch64.zip silverbullet",
+    "server:dist:darwin-x86_64": "deno task bundle && deno compile -A --target x86_64-apple-darwin -o silverbullet dist/silverbullet.js",
+    "server:zip:darwin-x86_64": "deno task server:dist:darwin-x86_64 && zip silverbullet-server-darwin-x86_64.zip silverbullet",
+    "server:dist:darwin-aarch64": "deno task bundle && deno compile -A --target aarch64-apple-darwin -o silverbullet dist/silverbullet.js",
+    "server:zip:darwin-aarch64": "deno task server:dist:darwin-aarch64 && zip silverbullet-server-darwin-aarch64.zip silverbullet",
+    "server:dist:windows-x86_64": "deno task bundle && deno compile -A  --target x86_64-pc-windows-msvc -o silverbullet.exe dist/silverbullet.js",
+    "server:zip:windows-x86_64": "deno task server:dist:windows-x86_64 && zip silverbullet-server-windows-x86_64.zip silverbullet.exe"
   },
   "lint": {
     "exclude": [
