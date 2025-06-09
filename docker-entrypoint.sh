@@ -16,8 +16,8 @@ if [ "$PUID" == "0" ] || [ "$UID" != "0" ]; then
     /silverbullet $@
 else
     # Create silverbullet user and group ad-hoc mapped to PUID and PGID
-    getent group $PGID &> /dev/null || groupadd -g $PGID silverbullet
-    getent passwd $PUID &> /dev/null || useradd -M -u $PUID -g $PGID silverbullet
+    getent group $PGID &> /dev/null || addgroup -g $PGID silverbullet
+    getent passwd $PUID &> /dev/null || adduser -D -H -u $PUID -g $PGID silverbullet
     # And make sure /deno-dir (Deno cache) is accessible
     chown -R $PUID:$PGID /deno-dir
     args="$@"
