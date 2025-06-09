@@ -21,6 +21,11 @@ mkdir sb
 
 There are a bunch of [[Install/Configuration]] options you can pass, usually as environment variables.
 
+# MacOS security
+SilverBullet binaries are not signed, therefore when you run `silverbullet` on macOS, it will likely refuse to run it.
+
+To work around this, go into your Mac’s System Settings. In the Privacy & Security section, make sure you allow applications from App Store & Known Developers. If you’ve run silverbullet from the CLI already and failed, you’ll see it listed here with an option to override. Select that option and run it again from the CLI, you should now have an addition “Run anyway” button. Click it, authenticate and from this point all should be good.
+
 # Upgrading
 You can upgrade your SilverBullet install to the latest edge build using:
 
