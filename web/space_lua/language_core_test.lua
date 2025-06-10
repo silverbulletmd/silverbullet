@@ -560,3 +560,15 @@ assertEqual(b, 2)
 assertEqual(c, 3)
 -- Special "#" case
 assertEqual(select("#", 1, 2, 3), 3)
+
+
+-- Some more vararg verification
+function varArgTest(a0, ...)
+    -- ... gets the multi arg treatment
+    local a1, a2 = ...
+    assertEqual(a0, 1)
+    assertEqual(a1, 2)
+    assertEqual(a2, 3)
+end
+
+varArgTest(1, 2, 3, 4)

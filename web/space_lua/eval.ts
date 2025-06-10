@@ -38,39 +38,6 @@ import {
 import { luaValueToJS } from "../space_lua/runtime.ts";
 import { jsToLuaValue } from "../space_lua/runtime.ts";
 
-function handleVarargSync(env: LuaEnv): LuaValue[] | Promise<LuaValue[]> {
-  const varargs = env.get("...");
-  if (varargs instanceof Promise) {
-    return handleVarargAsync(varargs);
-  }
-  if (varargs instanceof LuaTable) {
-    const args = [];
-    for (let i = 1; i <= varargs.length; i++) {
-      const val = varargs.get(i);
-      if (val instanceof Promise) {
-        return handleVarargAsync(varargs);
-      }
-      args.push(val);
-    }
-    return args;
-  }
-  return [];
-}
-
-async function handleVarargAsync(
-  varargs: Promise<LuaValue> | LuaTable,
-): Promise<LuaValue[]> {
-  const resolvedVarargs = await varargs;
-  if (resolvedVarargs instanceof LuaTable) {
-    const args = [];
-    for (let i = 1; i <= resolvedVarargs.length; i++) {
-      args.push(await resolvedVarargs.get(i));
-    }
-    return args;
-  }
-  return [];
-}
-
 async function handleTableFieldSync(
   table: LuaTable,
   field: any,
@@ -91,18 +58,13 @@ async function handleTableFieldSync(
       break;
     }
     case "ExpressionField": {
-      if (field.value.type === "Variable" && field.value.name === "...") {
-        const varargs = await handleVarargSync(env);
-        varargs.forEach((val, i) => table.set(i + 1, val, sf));
-      } else {
-        const value = await evalExpression(field.value, env, sf);
-        if (value instanceof LuaMultiRes) {
-          for (const val of value.values) {
-            table.set(table.length + 1, val, sf);
-          }
-        } else {
-          table.set(table.length + 1, singleResult(value), sf);
+      const value = await evalExpression(field.value, env, sf);
+      if (value instanceof LuaMultiRes) {
+        for (const val of value.values) {
+          table.set(table.length + 1, val, sf);
         }
+      } else {
+        table.set(table.length + 1, singleResult(value), sf);
       }
       break;
     }
@@ -229,16 +191,6 @@ export function evalExpression(
       case "TableConstructor": {
         return Promise.resolve().then(async () => {
           const table = new LuaTable();
-          if (
-            e.fields.length === 1 &&
-            e.fields[0].type === "ExpressionField" &&
-            e.fields[0].value.type === "Variable" &&
-            e.fields[0].value.name === "..."
-          ) {
-            const varargs = await handleVarargSync(env);
-            varargs.forEach((val, i) => table.set(i + 1, val, sf));
-            return table;
-          }
 
           for (const field of e.fields) {
             await handleTableFieldSync(table, field, env, sf);
@@ -396,38 +348,6 @@ function evalPrefixExpression(
       const handleFunctionCall = (
         prefixValue: LuaValue,
       ): LuaValue | Promise<LuaValue> => {
-        // Special handling for f(...) - propagate varargs
-        if (
-          e.args.length === 1 && e.args[0].type === "Variable" &&
-          e.args[0].name === "..."
-        ) {
-          // TODO: Clean this up
-          const varargs = env.get("...");
-          const resolveVarargs = async () => {
-            const resolvedVarargs = await Promise.resolve(varargs);
-            if (resolvedVarargs instanceof LuaTable) {
-              const args = [];
-              for (let i = 1; i <= resolvedVarargs.length; i++) {
-                const val = await Promise.resolve(resolvedVarargs.get(i));
-                args.push(val);
-              }
-              return args;
-            }
-            return [];
-          };
-
-          if (prefixValue instanceof Promise) {
-            return prefixValue.then(async (resolvedPrefix) => {
-              const args = await resolveVarargs();
-              return luaCall(resolvedPrefix, args, e.ctx, sf.withCtx(e.ctx));
-            });
-          } else {
-            return resolveVarargs().then((args) =>
-              luaCall(prefixValue, args, e.ctx, sf.withCtx(e.ctx))
-            );
-          }
-        }
-
         // Normal argument handling for hello:there(a, b, c) type calls
         if (e.name) {
           selfArgs = [prefixValue];
