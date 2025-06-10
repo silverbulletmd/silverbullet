@@ -145,7 +145,6 @@ export class HttpServer {
     this.spaceServer = new SpaceServer(
       this.options,
       this.plugAssetBundle,
-      this.baseKvPrimitives,
     );
     await this.spaceServer.init();
 
