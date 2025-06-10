@@ -1,4 +1,3 @@
-import { secureHeapUsed } from "node:crypto";
 import { LuaBuiltinFunction, LuaTable } from "../runtime.ts";
 
 const ONE_DAY = 1000 * 60 * 60 * 24;

@@ -106,7 +106,7 @@ export class MainUI {
         } else if (storedDarkModePreference === false) {
           theme = "light";
         } else {
-          theme = window.matchMedia("(prefers-color-scheme: dark)").matches
+          theme = globalThis.matchMedia("(prefers-color-scheme: dark)").matches
             ? "dark"
             : "light";
         }
