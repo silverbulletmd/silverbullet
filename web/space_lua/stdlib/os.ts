@@ -1,3 +1,4 @@
+import { secureHeapUsed } from "node:crypto";
 import { LuaBuiltinFunction, LuaTable } from "../runtime.ts";
 
 const ONE_DAY = 1000 * 60 * 60 * 24;
@@ -90,6 +91,28 @@ export const osApi = new LuaTable({
       return date.toDateString() + " " + date.toLocaleTimeString();
     }
 
+    if (format === "*t") {
+      /*
+      To produce a date table, we use the format string "*t". For instance, the following code
+
+    temp = os.date("*t", 906000490)
+produces the table
+    {year = 1998, month = 9, day = 16, yday = 259, wday = 4,
+     hour = 23, min = 48, sec = 10, isdst = false}
+     */
+      return new LuaTable({
+        year: date.getFullYear(),
+        month: date.getMonth() + 1,
+        day: date.getDate(),
+        yday: dayOfYear(date),
+        wday: date.getDay() + 1,
+        hour: date.getHours(),
+        min: date.getMinutes(),
+        sec: date.getSeconds(),
+        // TODO: Add isdst
+      });
+    }
+
     // Define mappings for Lua-style placeholders
     const formatMap: { [key: string]: () => string } = {
       // Year
@@ -114,13 +137,10 @@ export const osApi = new LuaTable({
       // Day of the week
       "%A": () => date.toLocaleString("en-US", { weekday: "long" }),
       "%a": () => date.toLocaleString("en-US", { weekday: "short" }),
-      "%w": () => date.getDay().toString(),
+      "%w": () => "" + (date.getDay() + 1),
       // Day of the year
       "%j": () => {
-        const start = new Date(date.getFullYear(), 0, 0);
-        const diff = date.getTime() - start.getTime();
-        const dayOfYear = Math.floor(diff / ONE_DAY);
-        return dayOfYear.toString().padStart(3, "0");
+        return dayOfYear(date).toString().padStart(3, "0");
       },
       // Week
       "%U": () => weekNumber(date, 0, false).toString().padStart(2, "0"),
@@ -153,3 +173,10 @@ export const osApi = new LuaTable({
     });
   }),
 });
+
+function dayOfYear(date: Date) {
+  const start = new Date(date.getFullYear(), 0, 0);
+  const diff = date.getTime() - start.getTime();
+  const dayOfYear = Math.floor(diff / ONE_DAY);
+  return dayOfYear;
+}
