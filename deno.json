@@ -97,6 +97,7 @@
     "jsxImportSource": "https://esm.sh/preact@10.26.4"
   },
   "imports": {
+    "$lib/": "./lib/",
     "@cliffy/command": "jsr:@cliffy/command@^1.0.0-rc.7",
     "@cliffy/prompt": "jsr:@cliffy/prompt@^1.0.0-rc.7",
     "@silverbulletmd/silverbullet/syscall": "./plug-api/syscall.ts",
@@ -118,7 +119,6 @@
     "@silverbulletmd/silverbullet/type/config": "./type/config.ts",
     "@silverbulletmd/silverbullet/type/rpc": "./type/rpc.ts",
     "@silverbulletmd/silverbullet/type/client": "./type/client.ts",
-    "$lib/": "./lib/",
     "@codemirror/autocomplete": "https://esm.sh/@codemirror/autocomplete@6.18.1?external=@codemirror/state,@codemirror/commands,@lezer/common,@codemirror/view,@codemirror/language&target=es2022",
     "@codemirror/commands": "https://esm.sh/@codemirror/commands@6.7.0?external=@codemirror/state,@codemirror/view,@codemirror/language,@lezer/common&target=es2022",
     "@codemirror/lang-css": "https://esm.sh/@codemirror/lang-css@6.3.0?external=@codemirror/language,@codemirror/autocomplete,@codemirror/state,@lezer/common,@lezer/css&target=es2022",

@@ -1,19 +1,19 @@
-import type { System } from "../lib/plugos/system.ts";
+import type { System } from "$lib/plugos/system.ts";
 import type { ScriptObject } from "../plugs/index/script.ts";
 import {
   LuaEnv,
   LuaRuntimeError,
   LuaStackFrame,
-} from "../lib/space_lua/runtime.ts";
+} from "$lib/space_lua/runtime.ts";
 import {
   parse as parseLua,
   parseExpressionString,
-} from "../lib/space_lua/parse.ts";
-import { evalStatement } from "../lib/space_lua/eval.ts";
+} from "$lib/space_lua/parse.ts";
+import { evalStatement } from "$lib/space_lua/eval.ts";
 import { parseRef, type Ref } from "@silverbulletmd/silverbullet/lib/page_ref";
-import type { ASTCtx } from "../lib/space_lua/ast.ts";
+import type { ASTCtx } from "$lib/space_lua/ast.ts";
 import { buildLuaEnv } from "./space_lua_api.ts";
-import type { LuaCollectionQuery } from "../lib/space_lua/query_collection.ts";
+import type { LuaCollectionQuery } from "$lib/space_lua/query_collection.ts";
 
 export class SpaceLuaEnvironment {
   env: LuaEnv = new LuaEnv();
