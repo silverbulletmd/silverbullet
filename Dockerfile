@@ -17,7 +17,7 @@ ARG TARGETARCH
 ENV TINI_VERSION=v0.19.0
 ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini-${TARGETARCH} /tini
 
-RUN mkdir -p -m 777 /space \
+RUN mkdir -p -m 777 /space /deno-dir \
     && chmod +x /tini \
     && apt update \
     && apt install -y git \
