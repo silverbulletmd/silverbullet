@@ -14,7 +14,9 @@ type SpaceFunction = {
 
 export class PlugNamespaceHook implements Hook<PlugNamespaceHookT> {
   spaceFunctions: SpaceFunction[] = [];
-  constructor() {}
+
+  constructor() {
+  }
 
   apply(system: System<PlugNamespaceHookT>): void {
     system.on({

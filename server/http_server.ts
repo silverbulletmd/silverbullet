@@ -224,6 +224,13 @@ export class HttpServer {
     });
   }
 
+  stop() {
+    if (this.abortController) {
+      this.abortController.abort();
+      console.log("stopped server");
+    }
+  }
+
   private addAuth() {
     const excludedPaths = [
       "/manifest.json",
@@ -653,13 +660,6 @@ export class HttpServer {
 
   private unprefixedUrl(url: string): string {
     return removeUrlPrefix(url, this.options.hostUrlPrefix);
-  }
-
-  stop() {
-    if (this.abortController) {
-      this.abortController.abort();
-      console.log("stopped server");
-    }
   }
 }
 

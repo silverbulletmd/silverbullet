@@ -101,7 +101,8 @@ export const initialViewState: AppViewState = {
   showFilterBox: false,
   filterBoxHelpText: "",
   filterBoxLabel: "",
-  filterBoxOnSelect: () => {},
+  filterBoxOnSelect: () => {
+  },
   filterBoxOptions: [],
   filterBoxPlaceHolder: "",
 

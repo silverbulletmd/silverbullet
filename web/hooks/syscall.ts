@@ -1,7 +1,6 @@
 import type { Hook, Manifest } from "$lib/plugos/types.ts";
-import type { System } from "$lib/plugos/system.ts";
+import type { SysCallMapping, System } from "$lib/plugos/system.ts";
 import type { SyscallHookT } from "$lib/manifest.ts";
-import type { SysCallMapping } from "$lib/plugos/system.ts";
 
 export class SyscallHook implements Hook<SyscallHookT> {
   apply(system: System<SyscallHookT>): void {

@@ -74,6 +74,7 @@ interface TokenInfo {
   setArg?: (token: TokenInfo) => void;
   setMaxWidth?: (token: TokenInfo) => void;
   extend?: string[];
+
   [key: string]: any; // Allow dynamic property access
 }
 
@@ -88,6 +89,7 @@ interface SpecifierInfo {
   isDouble?: boolean;
   doubleNotation?: string;
   isObject?: boolean;
+
   [key: string]: any; // Allow dynamic property access
 }
 
@@ -180,29 +182,6 @@ class Formatter {
   // The old regexp `/\%(?:\(([\w_.]+)\)|([1-9]\d*)\$)?([0 +\-\#]*)(\*|\d+)?(\.)?(\*|\d+)?[hlL]?([\%bscdeEfFgGioOuxX])/` has a cubic worst-case time complexity behavior due to overlapping capture groups `([0 +\-\#]*)(\*|\d+)?(\.)?(\*|\d+)?`. And a pump string of 0 can be consumed by `([0 +\-\#]*), (\*|\d+)?, or (\*|\d+)?`.
   // The solution replace the sub-regexp (\*|\d+)?(\.)?(\*|\d+)? with the sub-regexp `(\*|\d+)?(?:(\.)(\*|\d+)?)?`, see the figure in [#32](https://github.com/adaltas/node-printf/pull/32)
   // There are also performance improvement, see in [#31](https://github.com/adaltas/node-printf/issues/31#issuecomment-776731490)
-
-  private _parseDelim(
-    mapping?: string,
-    intmapping?: string,
-    flags?: string,
-    minWidth?: string,
-    period?: string,
-    precision?: string,
-    specifier?: string,
-  ): TokenInfo {
-    if (mapping) {
-      this._mapped = true;
-    }
-    return {
-      mapping,
-      intmapping,
-      flags: flags || "",
-      _minWidth: minWidth,
-      period,
-      _precision: precision,
-      specifier: specifier || "",
-    };
-  }
 
   format(...args: any[]): string {
     if (this._mapped && typeof args[0] !== "object") {
@@ -543,38 +522,6 @@ class Formatter {
     }
   }
 
-  // Helper method to limit object depth for formatObject
-  private limitObjectDepth(obj: any, maxDepth: number, currentDepth = 0): any {
-    if (currentDepth >= maxDepth) {
-      if (Array.isArray(obj)) {
-        return "[Array]";
-      } else if (typeof obj === "object" && obj !== null) {
-        return "[Object]";
-      }
-      return obj;
-    }
-
-    if (Array.isArray(obj)) {
-      return obj.map((item) =>
-        this.limitObjectDepth(item, maxDepth, currentDepth + 1)
-      );
-    } else if (typeof obj === "object" && obj !== null) {
-      const result: Record<string, any> = {};
-      for (const key in obj) {
-        if (Object.prototype.hasOwnProperty.call(obj, key)) {
-          result[key] = this.limitObjectDepth(
-            obj[key],
-            maxDepth,
-            currentDepth + 1,
-          );
-        }
-      }
-      return result;
-    }
-
-    return obj;
-  }
-
   zeroPad(token: TokenInfo, length?: number): void {
     length = (arguments.length === 2) ? length : token.precision;
     let negative = false;
@@ -628,6 +575,61 @@ class Formatter {
     token.arg = (token.rightJustify)
       ? token.arg + this._spaces10.substring(0, pad)
       : this._spaces10.substring(0, pad) + token.arg;
+  }
+
+  private _parseDelim(
+    mapping?: string,
+    intmapping?: string,
+    flags?: string,
+    minWidth?: string,
+    period?: string,
+    precision?: string,
+    specifier?: string,
+  ): TokenInfo {
+    if (mapping) {
+      this._mapped = true;
+    }
+    return {
+      mapping,
+      intmapping,
+      flags: flags || "",
+      _minWidth: minWidth,
+      period,
+      _precision: precision,
+      specifier: specifier || "",
+    };
+  }
+
+  // Helper method to limit object depth for formatObject
+  private limitObjectDepth(obj: any, maxDepth: number, currentDepth = 0): any {
+    if (currentDepth >= maxDepth) {
+      if (Array.isArray(obj)) {
+        return "[Array]";
+      } else if (typeof obj === "object" && obj !== null) {
+        return "[Object]";
+      }
+      return obj;
+    }
+
+    if (Array.isArray(obj)) {
+      return obj.map((item) =>
+        this.limitObjectDepth(item, maxDepth, currentDepth + 1)
+      );
+    } else if (typeof obj === "object" && obj !== null) {
+      const result: Record<string, any> = {};
+      for (const key in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+          result[key] = this.limitObjectDepth(
+            obj[key],
+            maxDepth,
+            currentDepth + 1,
+          );
+        }
+      }
+      return result;
+    }
+
+    return obj;
   }
 }
 

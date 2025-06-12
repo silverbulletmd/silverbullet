@@ -26,6 +26,7 @@ export class LinkWidget extends WidgetType {
   ) {
     super();
   }
+
   toDOM(): HTMLElement {
     const anchor = document.createElement("a");
     anchor.className = this.options.cssClass;
@@ -80,6 +81,7 @@ export class HtmlWidget extends WidgetType {
   ) {
     super();
   }
+
   toDOM(): HTMLElement {
     const el = document.createElement("span");
     if (this.className) {
@@ -119,6 +121,7 @@ export class ButtonWidget extends WidgetType {
   ) {
     super();
   }
+
   toDOM(): HTMLElement {
     const anchor = document.createElement("button");
     anchor.className = this.cssClass;

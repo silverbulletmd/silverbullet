@@ -42,7 +42,7 @@ import { commandSyscalls } from "./syscalls/command.ts";
 import { configSyscalls } from "./syscalls/config.ts";
 import { eventListenerSyscalls } from "./syscalls/event.ts";
 import { DocumentEditorHook } from "./hooks/document_editor.ts";
-import type { LuaCollectionQuery } from "./space_lua/query_collection.ts";
+import type { LuaCollectionQuery } from "../lib/space_lua/query_collection.ts";
 import type { AppCommand } from "$lib/command.ts";
 import { ScriptEnvironment } from "./space_script.ts";
 import { SpaceLuaEnvironment } from "./space_lua.ts";
@@ -72,6 +72,7 @@ export class ClientSystem {
   scriptEnv: ScriptEnvironment = new ScriptEnvironment();
   spaceLuaEnv = new SpaceLuaEnvironment();
   scriptsLoaded: boolean = false;
+  private indexOngoing = false;
 
   constructor(
     private client: Client,
@@ -273,8 +274,6 @@ export class ClientSystem {
     );
   }
 
-  private indexOngoing = false;
-
   async ensureFullIndex() {
     const currentIndexVersion = await this.getCurrentIndexVersion();
 
@@ -306,15 +305,15 @@ export class ClientSystem {
     }
   }
 
+  public async hasFullIndexCompleted() {
+    return (await this.ds.get(indexVersionKey)) === desiredIndexVersion;
+  }
+
   private getCurrentIndexVersion() {
     return this.ds.get(indexVersionKey);
   }
 
   private async markFullSpaceIndexComplete() {
     await this.ds.set(indexVersionKey, desiredIndexVersion);
-  }
-
-  public async hasFullIndexCompleted() {
-    return (await this.ds.get(indexVersionKey)) === desiredIndexVersion;
   }
 }

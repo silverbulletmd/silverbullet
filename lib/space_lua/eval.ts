@@ -1,42 +1,35 @@
-import type {
-  ASTCtx,
-  LuaExpression,
-  LuaLValue,
-  LuaStatement,
-} from "../space_lua/ast.ts";
-import { evalPromiseValues } from "../space_lua/util.ts";
-import {
-  luaCall,
-  luaEquals,
-  luaIndexValue,
-  luaSet,
-  type LuaStackFrame,
-} from "../space_lua/runtime.ts";
+import type { ASTCtx, LuaExpression, LuaLValue, LuaStatement } from "./ast.ts";
+import { evalPromiseValues } from "./util.ts";
 import {
   type ILuaFunction,
   type ILuaGettable,
   type ILuaSettable,
+  jsToLuaValue,
   LuaBreak,
+  luaCall,
   LuaEnv,
+  luaEquals,
   LuaFunction,
   luaGet,
+  luaIndexValue,
   luaLen,
   type LuaLValueContainer,
   LuaMultiRes,
   LuaReturn,
   LuaRuntimeError,
+  luaSet,
+  type LuaStackFrame,
   LuaTable,
   luaToString,
   luaTruthy,
   type LuaValue,
+  luaValueToJS,
   singleResult,
 } from "./runtime.ts";
 import {
   ArrayQueryCollection,
   type LuaCollectionQuery,
-} from "../space_lua/query_collection.ts";
-import { luaValueToJS } from "../space_lua/runtime.ts";
-import { jsToLuaValue } from "../space_lua/runtime.ts";
+} from "./query_collection.ts";
 
 async function handleTableFieldSync(
   table: LuaTable,

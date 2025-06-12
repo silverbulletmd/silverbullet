@@ -42,6 +42,7 @@ export class SyncService {
   // If this is set to anything other than undefined, a file is currently saving
   savingTimeout: number | undefined;
   enabled = true;
+  filesScheduledForSync = new Set<string>();
 
   constructor(
     readonly localSpacePrimitives: SpacePrimitives,
@@ -212,8 +213,6 @@ export class SyncService {
       }
     }
   }
-
-  filesScheduledForSync = new Set<string>();
 
   async scheduleFileSync(path: string): Promise<void> {
     if (this.filesScheduledForSync.has(path)) {

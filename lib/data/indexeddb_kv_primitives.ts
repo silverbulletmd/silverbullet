@@ -75,6 +75,10 @@ export class IndexedDBKvPrimitives implements KvPrimitives {
     }
   }
 
+  close() {
+    this.db.close();
+  }
+
   private buildKey(key: KvKey): string {
     for (const k of key) {
       if (k.includes(sep)) {
@@ -86,9 +90,5 @@ export class IndexedDBKvPrimitives implements KvPrimitives {
 
   private extractKey(key: string): KvKey {
     return key.split(sep);
-  }
-
-  close() {
-    this.db.close();
   }
 }

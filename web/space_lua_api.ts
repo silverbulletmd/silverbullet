@@ -1,4 +1,4 @@
-import { luaBuildStandardEnv } from "./space_lua/stdlib.ts";
+import { luaBuildStandardEnv } from "../lib/space_lua/stdlib.ts";
 import { parseRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import {
   LuaEnv,
@@ -6,7 +6,7 @@ import {
   type LuaRuntimeError,
   LuaStackFrame,
   LuaTable,
-} from "./space_lua/runtime.ts";
+} from "../lib/space_lua/runtime.ts";
 import type { System } from "$lib/plugos/system.ts";
 
 export function buildLuaEnv(system: System<any>) {

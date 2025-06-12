@@ -1,9 +1,9 @@
 import {
   EditorSelection,
   type StateCommand,
+  Text,
   Transaction,
 } from "@codemirror/state";
-import { Text } from "@codemirror/state";
 
 export function insertMarker(marker: string): StateCommand {
   return ({ state, dispatch }) => {

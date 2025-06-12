@@ -1,4 +1,4 @@
-import type { IndexTreeEvent } from "../../plug-api/types.ts";
+import type { IndexTreeEvent, ObjectValue } from "../../plug-api/types.ts";
 import { indexObjects } from "./api.ts";
 import {
   collectNodesOfType,
@@ -7,7 +7,6 @@ import {
   traverseTreeAsync,
 } from "../../plug-api/lib/tree.ts";
 import { extractAttributes } from "@silverbulletmd/silverbullet/lib/attribute";
-import type { ObjectValue } from "../../plug-api/types.ts";
 import { updateITags } from "@silverbulletmd/silverbullet/lib/tags";
 import { extractFrontmatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
 import { extractHashtag } from "../../plug-api/lib/tags.ts";

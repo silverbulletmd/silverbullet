@@ -9,7 +9,8 @@ export class DocumentEditorHook implements Hook<DocumentEditorT> {
     { extensions: string[]; callback: DocumentEditorCallback }
   >();
 
-  constructor() {}
+  constructor() {
+  }
 
   collectAllDocumentEditors(system: System<DocumentEditorT>) {
     this.documentEditors.clear();

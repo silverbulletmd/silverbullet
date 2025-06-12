@@ -33,7 +33,7 @@
           font-size: 15px;
           z-index: 100;
 
-          >div {
+          > div {
             padding: 3px;
             margin-bottom: 3px;
             border-radius: 5px;
@@ -98,7 +98,6 @@
 }
 
 @media only screen and (max-width: 600px) {
-
   /* Style the menu as a vertical fly-out */
   #sb-top .cm-scroller:has(.hamburger) {
     position: relative;
@@ -116,9 +115,11 @@
     border-radius: 5px;
     border: 1px solid #444;
     width: 2.8rem;
-    background: color-mix(in srgb,
-        var(--top-background-color) 90%,
-        transparent);
+    background: color-mix(
+      in srgb,
+      var(--top-background-color) 90%,
+      transparent
+    );
     backdrop-filter: blur(20px);
     overflow: hidden;
     flex-direction: column;

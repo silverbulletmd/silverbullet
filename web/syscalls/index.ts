@@ -2,12 +2,12 @@ import type { SysCallMapping } from "$lib/plugos/system.ts";
 import type {
   LuaCollectionQuery,
   LuaQueryCollection,
-} from "../space_lua/query_collection.ts";
+} from "../../lib/space_lua/query_collection.ts";
 import {
   jsToLuaValue,
   type LuaEnv,
   type LuaStackFrame,
-} from "../space_lua/runtime.ts";
+} from "../../lib/space_lua/runtime.ts";
 
 import type { Client } from "../client.ts";
 import type { TagDef } from "../space_script.ts";

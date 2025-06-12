@@ -19,7 +19,6 @@ import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 
 export class MainUI {
   viewState: AppViewState = initialViewState;
-  viewDispatch: (action: Action) => void = () => {};
 
   constructor(private client: Client) {
     // Make keyboard shortcuts work even when the editor is in read only mode or not focused
@@ -68,6 +67,9 @@ export class MainUI {
       });
     });
   }
+
+  viewDispatch: (action: Action) => void = () => {
+  };
 
   ViewComponent() {
     const [viewState, dispatch] = useReducer(reducer, initialViewState);
@@ -324,8 +326,9 @@ export class MainUI {
                 icon: featherIcons.MoreVertical,
                 description: "Open Menu",
                 class: "expander",
-                callback:
-                  () => {/* nothing to do, menu opens on hover/mobile click */},
+                callback: () => {
+                  /* nothing to do, menu opens on hover/mobile click */
+                },
               }]
               : [],
             // Custom action buttons

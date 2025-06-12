@@ -1,12 +1,7 @@
-import type { LuaExpression } from "../space_lua/ast.ts";
-import {
-  LuaEnv,
-  luaGet,
-  luaKeys,
-  LuaStackFrame,
-} from "../space_lua/runtime.ts";
-import { evalExpression } from "../space_lua/eval.ts";
-import { asyncQuickSort } from "../space_lua/util.ts";
+import type { LuaExpression } from "./ast.ts";
+import { LuaEnv, luaGet, luaKeys, LuaStackFrame } from "./runtime.ts";
+import { evalExpression } from "./eval.ts";
+import { asyncQuickSort } from "./util.ts";
 import type { DataStore } from "$lib/data/datastore.ts";
 import type { KvKey } from "@silverbulletmd/silverbullet/types";
 import type { KvPrimitives } from "$lib/data/kv_primitives.ts";
@@ -68,7 +63,8 @@ export interface LuaQueryCollection {
  * Implements a query collection for a regular JavaScript array
  */
 export class ArrayQueryCollection<T> implements LuaQueryCollection {
-  constructor(private readonly array: T[]) {}
+  constructor(private readonly array: T[]) {
+  }
 
   async query(
     query: LuaCollectionQuery,
@@ -212,7 +208,8 @@ export class DataStoreQueryCollection implements LuaQueryCollection {
   constructor(
     private readonly dataStore: DataStore,
     readonly prefix: string[],
-  ) {}
+  ) {
+  }
 
   query(
     query: LuaCollectionQuery,

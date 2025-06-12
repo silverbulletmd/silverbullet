@@ -177,6 +177,7 @@ export async function sandboxFetch(
 
 // @ts-ignore: monkey patching fetch
 globalThis.nativeFetch = globalThis.fetch;
+
 // Monkey patch fetch()
 export function monkeyPatchFetch() {
   // @ts-ignore: monkey patching fetch

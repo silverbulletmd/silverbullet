@@ -19,6 +19,12 @@ export class IFrameWidget extends WidgetType {
     super();
   }
 
+  override get estimatedHeight(): number {
+    const cachedHeight = this.client.getCachedWidgetHeight(this.bodyText);
+    // console.log("Calling estimated height", this.bodyText, cachedHeight);
+    return cachedHeight > 0 ? cachedHeight : 150;
+  }
+
   toDOM(): HTMLElement {
     const from = this.from;
     const iframe = createWidgetSandboxIFrame(
@@ -65,12 +71,6 @@ export class IFrameWidget extends WidgetType {
     iframe.style.height = `${estimatedHeight}px`;
 
     return iframe;
-  }
-
-  override get estimatedHeight(): number {
-    const cachedHeight = this.client.getCachedWidgetHeight(this.bodyText);
-    // console.log("Calling estimated height", this.bodyText, cachedHeight);
-    return cachedHeight > 0 ? cachedHeight : 150;
   }
 
   override eq(other: WidgetType): boolean {

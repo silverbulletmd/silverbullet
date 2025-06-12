@@ -1,4 +1,4 @@
-import { evalPromiseValues } from "../space_lua/util.ts";
+import { evalPromiseValues } from "./util.ts";
 import { assertEquals } from "@std/assert/equals";
 import { assert } from "@std/assert";
 

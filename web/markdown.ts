@@ -10,10 +10,10 @@ import {
   validatePageName,
 } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { parseMarkdown } from "./markdown_parser/parser.ts";
-import type { LuaExpression } from "./space_lua/ast.ts";
-import { evalExpression } from "./space_lua/eval.ts";
-import type { LuaEnv, LuaStackFrame } from "./space_lua/runtime.ts";
-import { parseExpressionString } from "./space_lua/parse.ts";
+import type { LuaExpression } from "../lib/space_lua/ast.ts";
+import { evalExpression } from "../lib/space_lua/eval.ts";
+import type { LuaEnv, LuaStackFrame } from "../lib/space_lua/runtime.ts";
+import { parseExpressionString } from "../lib/space_lua/parse.ts";
 import { renderExpressionResult } from "./markdown_util.ts";
 import type { Client } from "../web/client.ts";
 

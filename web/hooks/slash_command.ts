@@ -24,13 +24,12 @@ const slashCommandRegexp = /([^\w:]|^)\/[\w#\-]*/;
 
 export class SlashCommandHook implements Hook<SlashCommandHookT> {
   slashCommands: AppSlashCommand[] = [];
-
-  constructor(private client: Client) {
-  }
-
   throttledBuildAllCommands = throttle(() => {
     this.buildAllCommands();
   }, 200);
+
+  constructor(private client: Client) {
+  }
 
   buildAllCommands() {
     const clientSystem = this.client.clientSystem;

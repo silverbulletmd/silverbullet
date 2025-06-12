@@ -10,7 +10,7 @@ import {
 import { parse } from "./parse.ts";
 import type { LuaBlock, LuaFunctionCallStatement } from "./ast.ts";
 import { evalExpression, evalStatement } from "./eval.ts";
-import { luaBuildStandardEnv } from "../space_lua/stdlib.ts";
+import { luaBuildStandardEnv } from "./stdlib.ts";
 
 const sf = LuaStackFrame.lostFrame;
 

@@ -18,6 +18,7 @@ export type JSValue = any;
 
 export interface ILuaFunction {
   call(sf: LuaStackFrame, ...args: LuaValue[]): Promise<LuaValue> | LuaValue;
+
   asString(): string;
 }
 
@@ -94,18 +95,14 @@ export class LuaEnv implements ILuaSettable, ILuaGettable {
 }
 
 export class LuaStackFrame {
+  static lostFrame = new LuaStackFrame(new LuaEnv(), null);
+
   constructor(
     readonly threadLocal: LuaEnv,
     readonly astCtx: ASTCtx | null,
     readonly parent?: LuaStackFrame,
   ) {
   }
-
-  withCtx(ctx: ASTCtx): LuaStackFrame {
-    return new LuaStackFrame(this.threadLocal, ctx, this);
-  }
-
-  static lostFrame = new LuaStackFrame(new LuaEnv(), null);
 
   static createWithGlobalEnv(
     globalEnv: LuaEnv,
@@ -114,6 +111,10 @@ export class LuaStackFrame {
     const env = new LuaEnv();
     env.setLocal("_GLOBAL", globalEnv);
     return new LuaStackFrame(env, ctx);
+  }
+
+  withCtx(ctx: ASTCtx): LuaStackFrame {
+    return new LuaStackFrame(this.threadLocal, ctx, this);
   }
 }
 
@@ -279,14 +280,13 @@ export class LuaBuiltinFunction implements ILuaFunction {
 
 export class LuaTable implements ILuaSettable, ILuaGettable {
   // To optimize the table implementation we use a combination of different data structures
+  public metatable: LuaTable | null;
   // When tables are used as maps, the common case is that they are string keys, so we use a simple object for that
   private stringKeys: Record<string, any>;
   // Other keys we can support using a Map as a fallback
   private otherKeys: Map<any, any> | null;
   // When tables are used as arrays, we use a native JavaScript array for that
   private arrayPart: any[];
-
-  public metatable: LuaTable | null;
 
   constructor(init?: any[] | Record<string, any>) {
     // For efficiency and performance reasons we pre-allocate these (modern JS engines are very good at optimizing this)

@@ -31,30 +31,23 @@
   "tasks": {
     "clean": "rm -rf dist dist_client_bundle dist_plug_bundle",
     "deep-clean-mac": "rm -f deno.lock && rm -rf $HOME/Library/Caches/deno && deno task clean",
-
     "install": "deno install -g -f -A --import-map deno.json silverbullet.ts",
-
     "check": "find . -name '*.ts*' | xargs deno check",
     "lint": "deno lint",
     "fmt": "deno fmt",
     "test": "deno test -A",
     "bench": "deno bench",
-
     "build": "rm -rf dist dist_client_bundle dist_plug_bundle && deno run -A build_plugs.ts && deno run -A build_web.ts && deno task compile",
     "plugs": "deno run -A build_plugs.ts",
     "server": "deno run -A  --check silverbullet.ts",
     "generate": "./scripts/generate.sh",
     "docker": "./scripts/build_docker.sh",
-
     "watch-web": "deno run -A --check build_web.ts --watch",
     "watch-server": "deno run -A --check --watch silverbullet.ts",
     "watch-plugs": "deno run -A --check build_plugs.ts -w",
     "watch-all": "deno task watch-web & deno task watch-plugs & deno task watch-server",
-
     "bundle": "deno run -A build_bundle.ts",
-
     "compile": "deno task bundle && deno compile -A -o silverbullet dist/silverbullet.js",
-
     "server:dist:linux-x86_64": "deno task bundle && deno compile -A --target x86_64-unknown-linux-gnu -o silverbullet dist/silverbullet.js",
     "server:zip:linux-x86_64": "deno task server:dist:linux-x86_64 && zip silverbullet-server-linux-x86_64.zip silverbullet",
     "server:dist:linux-aarch64": "deno task bundle && deno compile -A --target aarch64-unknown-linux-gnu -o silverbullet dist/silverbullet.js",
@@ -75,7 +68,11 @@
       "cmd/test/test_space"
     ],
     "rules": {
-      "exclude": ["no-explicit-any", "no-slow-types", "jsx-boolean-value"]
+      "exclude": [
+        "no-explicit-any",
+        "no-slow-types",
+        "jsx-boolean-value"
+      ]
     }
   },
   "fmt": {
@@ -90,7 +87,12 @@
     ]
   },
   "compilerOptions": {
-    "lib": ["dom", "dom.iterable", "dom.asynciterable", "deno.ns"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "dom.asynciterable",
+      "deno.ns"
+    ],
     "jsx": "react-jsx",
     "jsxImportSource": "https://esm.sh/preact@10.26.4"
   },

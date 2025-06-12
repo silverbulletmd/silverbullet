@@ -15,12 +15,15 @@ export class FilteredSpacePrimitives implements SpacePrimitives {
     }
     return (await this.wrapped.fetchFileList()).filter(this.filterFn);
   }
+
   readFile(name: string): Promise<{ data: Uint8Array; meta: FileMeta }> {
     return this.wrapped.readFile(name);
   }
+
   getFileMeta(name: string): Promise<FileMeta> {
     return this.wrapped.getFileMeta(name);
   }
+
   writeFile(
     name: string,
     data: Uint8Array,
@@ -29,6 +32,7 @@ export class FilteredSpacePrimitives implements SpacePrimitives {
   ): Promise<FileMeta> {
     return this.wrapped.writeFile(name, data, selfUpdate, meta);
   }
+
   deleteFile(name: string): Promise<void> {
     return this.wrapped.deleteFile(name);
   }

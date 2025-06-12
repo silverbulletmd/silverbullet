@@ -7,7 +7,7 @@ import {
   luaCall,
   LuaStackFrame,
   luaValueToJS,
-} from "../space_lua/runtime.ts";
+} from "../../lib/space_lua/runtime.ts";
 import type { ClientSystem } from "../client_system.ts";
 
 export type CallbackEventListener = EventListenerDef & {

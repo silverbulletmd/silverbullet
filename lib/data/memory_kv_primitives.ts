@@ -28,6 +28,27 @@ export class MemoryKvPrimitives implements KvPrimitives {
       }
     }
   }
+
+  static fromJSON(json: Record<string, any>): MemoryKvPrimitives {
+    const result = new MemoryKvPrimitives();
+    for (const key of Object.keys(json)) {
+      result.store.set(key, json[key]);
+    }
+    return result;
+  }
+
+  /**
+   * Create a new MemoryKvPrimitives instance from a file and initialize it
+   */
+  static async fromFile(
+    filePath: string,
+    options: { throttleMs?: number } = {},
+  ): Promise<MemoryKvPrimitives> {
+    const instance = new MemoryKvPrimitives(filePath, options);
+    await instance.init();
+    return instance;
+  }
+
   clear(): Promise<void> {
     this.store.clear();
     return Promise.resolve();
@@ -59,23 +80,6 @@ export class MemoryKvPrimitives implements KvPrimitives {
 
       // Other errors (like invalid JSON) should be logged
       console.warn(`Failed to load KV store from ${this.filePath}:`, error);
-    }
-  }
-
-  /**
-   * Persist the current state to disk
-   */
-  private async persistToDisk(): Promise<void> {
-    if (!this.filePath) return;
-
-    try {
-      const jsonData = this.toJSON();
-      await Deno.writeTextFile(
-        this.filePath,
-        JSON.stringify(jsonData, null, 2),
-      );
-    } catch (error) {
-      console.error(`Failed to persist KV store to ${this.filePath}:`, error);
     }
   }
 
@@ -125,14 +129,6 @@ export class MemoryKvPrimitives implements KvPrimitives {
     return result;
   }
 
-  static fromJSON(json: Record<string, any>): MemoryKvPrimitives {
-    const result = new MemoryKvPrimitives();
-    for (const key of Object.keys(json)) {
-      result.store.set(key, json[key]);
-    }
-    return result;
-  }
-
   async *query(options: KvQueryOptions): AsyncIterableIterator<KV> {
     const prefix = options.prefix?.join(memoryKeySeparator);
     const sortedKeys = [...this.store.keys()].sort();
@@ -155,14 +151,19 @@ export class MemoryKvPrimitives implements KvPrimitives {
   }
 
   /**
-   * Create a new MemoryKvPrimitives instance from a file and initialize it
+   * Persist the current state to disk
    */
-  static async fromFile(
-    filePath: string,
-    options: { throttleMs?: number } = {},
-  ): Promise<MemoryKvPrimitives> {
-    const instance = new MemoryKvPrimitives(filePath, options);
-    await instance.init();
-    return instance;
+  private async persistToDisk(): Promise<void> {
+    if (!this.filePath) return;
+
+    try {
+      const jsonData = this.toJSON();
+      await Deno.writeTextFile(
+        this.filePath,
+        JSON.stringify(jsonData, null, 2),
+      );
+    } catch (error) {
+      console.error(`Failed to persist KV store to ${this.filePath}:`, error);
+    }
   }
 }

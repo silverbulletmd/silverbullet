@@ -5,7 +5,7 @@ import {
   LuaMultiRes,
   LuaStackFrame,
   luaToString,
-} from "../space_lua/runtime.ts";
+} from "./runtime.ts";
 
 Deno.test("Test Lua Rutime", async () => {
   // Test LuaMultires

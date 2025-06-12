@@ -1,9 +1,9 @@
 import { createSandbox } from "../../lib/plugos/sandboxes/deno_worker_sandbox.ts";
+import type { SysCallMapping } from "../../lib/plugos/system.ts";
 import { System } from "../../lib/plugos/system.ts";
 import { assertEquals } from "@std/assert";
 import { compileManifest } from "../compile.ts";
 import * as esbuild from "esbuild";
-import type { SysCallMapping } from "../../lib/plugos/system.ts";
 import { fileURLToPath } from "node:url";
 
 Deno.test("Run a deno sandbox", {

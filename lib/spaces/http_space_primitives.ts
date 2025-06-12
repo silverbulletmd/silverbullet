@@ -221,21 +221,6 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     return this.responseToMeta(name, res);
   }
 
-  private responseToMeta(name: string, res: Response): FileMeta {
-    return {
-      name,
-      // The server may set a custom X-Content-Length header in case a GET request was sent with X-Get-Meta, in which case the body may be omitted
-      size: res.headers.has("X-Content-Length")
-        ? +res.headers.get("X-Content-Length")!
-        : +res.headers.get("Content-Length")!,
-      contentType: res.headers.get("Content-type")!,
-      created: +(res.headers.get("X-Created") || "0"),
-      lastModified: +(res.headers.get("X-Last-Modified") || "0"),
-      perm: (res.headers.get("X-Permission") as "rw" | "ro") || "ro",
-    };
-  }
-
-  // Used to check if the server is reachable and the user is authenticated
   // If not: throws an error or invokes a redirect
   async ping() {
     const response = await this.authenticatedFetch(`${this.url}/.ping`, {
@@ -248,6 +233,8 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     // Consume the response body to avoid leaks
     await response.text();
   }
+
+  // Used to check if the server is reachable and the user is authenticated
 
   /**
    * Create an authenticated WebSocket connection
@@ -276,5 +263,19 @@ export class HttpSpacePrimitives implements SpacePrimitives {
 
     // Create and return the WebSocket
     return new WebSocket(wsUrl);
+  }
+
+  private responseToMeta(name: string, res: Response): FileMeta {
+    return {
+      name,
+      // The server may set a custom X-Content-Length header in case a GET request was sent with X-Get-Meta, in which case the body may be omitted
+      size: res.headers.has("X-Content-Length")
+        ? +res.headers.get("X-Content-Length")!
+        : +res.headers.get("Content-Length")!,
+      contentType: res.headers.get("Content-type")!,
+      created: +(res.headers.get("X-Created") || "0"),
+      lastModified: +(res.headers.get("X-Last-Modified") || "0"),
+      perm: (res.headers.get("X-Permission") as "rw" | "ro") || "ro",
+    };
   }
 }

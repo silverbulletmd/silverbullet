@@ -11,15 +11,15 @@ import {
   luaToString,
   luaTypeOf,
   type LuaValue,
-} from "../space_lua/runtime.ts";
-import { stringApi } from "../space_lua/stdlib/string.ts";
-import { tableApi } from "../space_lua/stdlib/table.ts";
-import { osApi } from "../space_lua/stdlib/os.ts";
-import { jsApi } from "../space_lua/stdlib/js.ts";
-import { spaceluaApi } from "../space_lua/stdlib/space_lua.ts";
-import { mathApi } from "../space_lua/stdlib/math.ts";
-import { parse } from "../space_lua/parse.ts";
-import { evalStatement } from "../space_lua/eval.ts";
+} from "./runtime.ts";
+import { stringApi } from "./stdlib/string.ts";
+import { tableApi } from "./stdlib/table.ts";
+import { osApi } from "./stdlib/os.ts";
+import { jsApi } from "./stdlib/js.ts";
+import { spaceluaApi } from "./stdlib/space_lua.ts";
+import { mathApi } from "./stdlib/math.ts";
+import { parse } from "./parse.ts";
+import { evalStatement } from "./eval.ts";
 
 const printFunction = new LuaBuiltinFunction(async (_sf, ...args) => {
   console.log(

@@ -42,6 +42,86 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
     super();
   }
 
+  // Strategy: Primary wins
+  public static async primaryConflictResolver(
+    name: string,
+    snapshot: Map<string, SyncStatusItem>,
+    primary: SpacePrimitives,
+    secondary: SpacePrimitives,
+  ): Promise<number> {
+    console.log("[sync]", "Starting conflict resolution for", name);
+    const filePieces = name.split(".");
+    const fileNameBase = filePieces.slice(0, -1).join(".");
+    const fileNameExt = filePieces[filePieces.length - 1];
+    const pageData1 = await primary.readFile(name);
+    const pageData2 = await secondary.readFile(name);
+
+    let byteWiseMatch = true;
+    const arrayBuffer1 = pageData1.data;
+    const arrayBuffer2 = pageData2.data;
+    if (arrayBuffer1.byteLength !== arrayBuffer2.byteLength) {
+      byteWiseMatch = false;
+    }
+    if (byteWiseMatch) {
+      // Byte-wise comparison
+      for (let i = 0; i < arrayBuffer1.byteLength; i++) {
+        if (arrayBuffer1[i] !== arrayBuffer2[i]) {
+          byteWiseMatch = false;
+          break;
+        }
+      }
+      // Byte wise they're still the same, so no confict
+      if (byteWiseMatch) {
+        console.log("[sync]", "Files are the same, no conflict");
+
+        snapshot.set(name, [
+          pageData1.meta.lastModified,
+          pageData2.meta.lastModified,
+        ]);
+        return 0;
+      }
+    }
+
+    let operations = 0;
+    const revisionFileName = filePieces.length === 1
+      ? `${name}.conflicted.${pageData2.meta.lastModified}`
+      : `${fileNameBase}.conflicted.${pageData2.meta.lastModified}.${fileNameExt}`;
+    console.log(
+      "[sync]",
+      "Going to create conflicting copy",
+      revisionFileName,
+    );
+
+    // Copy secondary to conflict copy
+    const localConflictMeta = await primary.writeFile(
+      revisionFileName,
+      pageData2.data,
+    );
+    operations++;
+    const remoteConflictMeta = await secondary.writeFile(
+      revisionFileName,
+      pageData2.data,
+    );
+    operations++;
+
+    // Write replacement on top
+    const writeMeta = await secondary.writeFile(
+      name,
+      pageData1.data,
+      true,
+    );
+    operations++;
+
+    // Updating snapshot
+    snapshot.set(revisionFileName, [
+      localConflictMeta.lastModified,
+      remoteConflictMeta.lastModified,
+    ]);
+
+    snapshot.set(name, [pageData1.meta.lastModified, writeMeta.lastModified]);
+    return operations;
+  }
+
   async syncFiles(
     snapshot: Map<string, SyncStatusItem>,
     isSyncCandidate = this.options.isSyncCandidate,
@@ -286,86 +366,6 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
     } else {
       // Nothing needs to happen
     }
-    return operations;
-  }
-
-  // Strategy: Primary wins
-  public static async primaryConflictResolver(
-    name: string,
-    snapshot: Map<string, SyncStatusItem>,
-    primary: SpacePrimitives,
-    secondary: SpacePrimitives,
-  ): Promise<number> {
-    console.log("[sync]", "Starting conflict resolution for", name);
-    const filePieces = name.split(".");
-    const fileNameBase = filePieces.slice(0, -1).join(".");
-    const fileNameExt = filePieces[filePieces.length - 1];
-    const pageData1 = await primary.readFile(name);
-    const pageData2 = await secondary.readFile(name);
-
-    let byteWiseMatch = true;
-    const arrayBuffer1 = pageData1.data;
-    const arrayBuffer2 = pageData2.data;
-    if (arrayBuffer1.byteLength !== arrayBuffer2.byteLength) {
-      byteWiseMatch = false;
-    }
-    if (byteWiseMatch) {
-      // Byte-wise comparison
-      for (let i = 0; i < arrayBuffer1.byteLength; i++) {
-        if (arrayBuffer1[i] !== arrayBuffer2[i]) {
-          byteWiseMatch = false;
-          break;
-        }
-      }
-      // Byte wise they're still the same, so no confict
-      if (byteWiseMatch) {
-        console.log("[sync]", "Files are the same, no conflict");
-
-        snapshot.set(name, [
-          pageData1.meta.lastModified,
-          pageData2.meta.lastModified,
-        ]);
-        return 0;
-      }
-    }
-
-    let operations = 0;
-    const revisionFileName = filePieces.length === 1
-      ? `${name}.conflicted.${pageData2.meta.lastModified}`
-      : `${fileNameBase}.conflicted.${pageData2.meta.lastModified}.${fileNameExt}`;
-    console.log(
-      "[sync]",
-      "Going to create conflicting copy",
-      revisionFileName,
-    );
-
-    // Copy secondary to conflict copy
-    const localConflictMeta = await primary.writeFile(
-      revisionFileName,
-      pageData2.data,
-    );
-    operations++;
-    const remoteConflictMeta = await secondary.writeFile(
-      revisionFileName,
-      pageData2.data,
-    );
-    operations++;
-
-    // Write replacement on top
-    const writeMeta = await secondary.writeFile(
-      name,
-      pageData1.data,
-      true,
-    );
-    operations++;
-
-    // Updating snapshot
-    snapshot.set(revisionFileName, [
-      localConflictMeta.lastModified,
-      remoteConflictMeta.lastModified,
-    ]);
-
-    snapshot.set(name, [pageData1.meta.lastModified, writeMeta.lastModified]);
     return operations;
   }
 

@@ -1,7 +1,7 @@
 import {
   type LuaCollectionQuery,
   queryLua,
-} from "../space_lua/query_collection.ts";
+} from "../../lib/space_lua/query_collection.ts";
 import type { KV, KvKey } from "../../plug-api/types.ts";
 import type { DataStore } from "../../lib/data/datastore.ts";
 import type { SysCallMapping } from "../../lib/plugos/system.ts";
@@ -10,7 +10,7 @@ import {
   LuaEnv,
   LuaStackFrame,
   luaValueToJS,
-} from "../space_lua/runtime.ts";
+} from "../../lib/space_lua/runtime.ts";
 import type { KvQueryOptions } from "$lib/data/kv_primitives.ts";
 import type { ClientSystem } from "../client_system.ts";
 

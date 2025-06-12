@@ -2,6 +2,7 @@ export const activeWidgets = new Set<DomWidget>();
 
 export interface DomWidget {
   dom?: HTMLElement;
+
   renderContent(
     div: HTMLElement,
     cachedHtml: string | undefined,

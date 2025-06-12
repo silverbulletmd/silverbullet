@@ -1,1 +1,2 @@
-This folder contains library functions that is generally reusable, not specific to SilverBullet. This code can be used from within plugs or the core code base. It may move out of this repo at some point.
+This folder contains library functions that is generally reusable, not specific to SilverBullet. This code can be used
+from within plugs or the core code base. It may move out of this repo at some point.

@@ -35,6 +35,7 @@ export class PrefixedKvPrimitives implements KvPrimitives {
       yield { key: this.stripPrefix(result.key), value: result.value };
     }
   }
+
   close(): void {
     this.wrapped.close();
   }

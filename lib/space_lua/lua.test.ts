@@ -1,11 +1,7 @@
-import { parse } from "../space_lua/parse.ts";
-import { luaBuildStandardEnv } from "../space_lua/stdlib.ts";
-import {
-  LuaEnv,
-  LuaRuntimeError,
-  LuaStackFrame,
-} from "../space_lua/runtime.ts";
-import { evalStatement } from "../space_lua/eval.ts";
+import { parse } from "./parse.ts";
+import { luaBuildStandardEnv } from "./stdlib.ts";
+import { LuaEnv, LuaRuntimeError, LuaStackFrame } from "./runtime.ts";
+import { evalStatement } from "./eval.ts";
 import { assert } from "@std/assert/assert";
 import { fileURLToPath } from "node:url";
 

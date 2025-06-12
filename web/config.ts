@@ -39,47 +39,6 @@ export class Config {
   }
 
   /**
-   * Resolves a dot-notation path to the containing object and final key
-   * @param path The path to resolve (e.g. "foo.bar.baz")
-   * @param create Whether to create objects along the path if they don't exist
-   * @returns The containing object and the final key, or null if the path cannot be resolved
-   */
-  private resolvePath(
-    path: string,
-    create = false,
-  ): { obj: any; key: string } | null {
-    if (!path.includes(".")) {
-      return { obj: this.values, key: path };
-    }
-
-    const parts = path.split(".");
-    const lastKey = parts.pop()!;
-
-    let current = this.values;
-
-    for (const part of parts) {
-      if (current[part] === undefined) {
-        if (create) {
-          current[part] = {};
-        } else {
-          return null;
-        }
-      } else if (typeof current[part] !== "object" || current[part] === null) {
-        if (create) {
-          // Convert primitive to object if we're creating the path
-          current[part] = {};
-        } else {
-          return null;
-        }
-      }
-
-      current = current[part];
-    }
-
-    return { obj: current, key: lastKey };
-  }
-
-  /**
    * Gets a value from the config
    * @param path The path to get, supports dot notation (e.g. "foo.bar.baz")
    * @param defaultValue The default value to return if the path doesn't exist
@@ -154,5 +113,46 @@ export class Config {
    */
   keys(): string[] {
     return Object.keys(this.values);
+  }
+
+  /**
+   * Resolves a dot-notation path to the containing object and final key
+   * @param path The path to resolve (e.g. "foo.bar.baz")
+   * @param create Whether to create objects along the path if they don't exist
+   * @returns The containing object and the final key, or null if the path cannot be resolved
+   */
+  private resolvePath(
+    path: string,
+    create = false,
+  ): { obj: any; key: string } | null {
+    if (!path.includes(".")) {
+      return { obj: this.values, key: path };
+    }
+
+    const parts = path.split(".");
+    const lastKey = parts.pop()!;
+
+    let current = this.values;
+
+    for (const part of parts) {
+      if (current[part] === undefined) {
+        if (create) {
+          current[part] = {};
+        } else {
+          return null;
+        }
+      } else if (typeof current[part] !== "object" || current[part] === null) {
+        if (create) {
+          // Convert primitive to object if we're creating the path
+          current[part] = {};
+        } else {
+          return null;
+        }
+      }
+
+      current = current[part];
+    }
+
+    return { obj: current, key: lastKey };
   }
 }

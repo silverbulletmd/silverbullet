@@ -1,11 +1,10 @@
 import { lua, YAML } from "@silverbulletmd/silverbullet/syscalls";
-import type { LintDiagnostic } from "../../plug-api/types.ts";
+import type { LintDiagnostic, LintEvent } from "../../plug-api/types.ts";
 import {
   findNodeOfType,
   renderToText,
   traverseTreeAsync,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import type { LintEvent } from "../../plug-api/types.ts";
 
 export async function lintYAML({ tree }: LintEvent): Promise<LintDiagnostic[]> {
   const diagnostics: LintDiagnostic[] = [];

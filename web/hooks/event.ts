@@ -8,9 +8,9 @@ import type { EventHookT } from "$lib/manifest.ts";
 // - plug:load (plugName: string)
 
 export class EventHook implements EventHookI {
+  public scriptEnvironment?: ScriptEnvironment;
   private system?: System<EventHookT>;
   private localListeners: Map<string, ((...args: any[]) => any)[]> = new Map();
-  public scriptEnvironment?: ScriptEnvironment;
 
   addLocalListener(eventName: string, callback: (...args: any[]) => any) {
     if (!this.localListeners.has(eventName)) {

@@ -14,6 +14,7 @@ class CheckboxWidget extends WidgetType {
   ) {
     super();
   }
+
   toDOM(): HTMLElement {
     const wrap = document.createElement("span");
     wrap.classList.add("sb-checkbox");

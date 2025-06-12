@@ -44,7 +44,8 @@ export class StreamingShell {
   private textDecoder = new TextDecoder();
   private textEncoder = new TextEncoder();
 
-  constructor(private cwd: string) {}
+  constructor(private cwd: string) {
+  }
 
   start(cmd: string, args: string[]): void {
     console.log("Starting streaming shell:", cmd, args);
@@ -76,33 +77,6 @@ export class StreamingShell {
     });
   }
 
-  private async readStream(
-    stream: ReadableStream<Uint8Array>,
-    type: string,
-  ): Promise<void> {
-    const reader = stream.getReader();
-
-    try {
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-
-        // Handle as text data (UTF-8)
-        const text = this.textDecoder.decode(value, { stream: true });
-        if (text.trim()) {
-          console.log(`${type.toUpperCase()}: ${text}`);
-          this.notifyOutput(type, "text", text);
-        }
-      }
-    } catch (e) {
-      const error = e as Error;
-      console.error(`Error reading ${type}:`, error);
-      this.notifyOutput("error", "text", `Stream error: ${error.message}`);
-    } finally {
-      reader.releaseLock();
-    }
-  }
-
   async writeToStdin(data: string): Promise<void> {
     if (!this.process || !this.process.stdin) {
       throw new Error("Process not started or stdin not available");
@@ -121,12 +95,6 @@ export class StreamingShell {
     handler: (type: string, data: string) => void,
   ): void {
     this.outputHandlers.push(handler);
-  }
-
-  private notifyOutput(type: string, _format: string, data: string): void {
-    for (const handler of this.outputHandlers) {
-      handler(type, data);
-    }
   }
 
   /**
@@ -240,6 +208,39 @@ export class StreamingShell {
 
       // Always set process to null to avoid memory leaks
       this.process = null;
+    }
+  }
+
+  private async readStream(
+    stream: ReadableStream<Uint8Array>,
+    type: string,
+  ): Promise<void> {
+    const reader = stream.getReader();
+
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        // Handle as text data (UTF-8)
+        const text = this.textDecoder.decode(value, { stream: true });
+        if (text.trim()) {
+          console.log(`${type.toUpperCase()}: ${text}`);
+          this.notifyOutput(type, "text", text);
+        }
+      }
+    } catch (e) {
+      const error = e as Error;
+      console.error(`Error reading ${type}:`, error);
+      this.notifyOutput("error", "text", `Stream error: ${error.message}`);
+    } finally {
+      reader.releaseLock();
+    }
+  }
+
+  private notifyOutput(type: string, _format: string, data: string): void {
+    for (const handler of this.outputHandlers) {
+      handler(type, data);
     }
   }
 }

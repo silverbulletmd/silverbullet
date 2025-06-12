@@ -1,10 +1,6 @@
-import { parseExpressionString } from "../space_lua/parse.ts";
+import { parseExpressionString } from "./parse.ts";
 import { ArrayQueryCollection } from "./query_collection.ts";
-import {
-  LuaEnv,
-  LuaNativeJSFunction,
-  LuaStackFrame,
-} from "../space_lua/runtime.ts";
+import { LuaEnv, LuaNativeJSFunction, LuaStackFrame } from "./runtime.ts";
 import { assert, assertEquals } from "@std/assert";
 
 Deno.test("ArrayQueryCollection", async () => {

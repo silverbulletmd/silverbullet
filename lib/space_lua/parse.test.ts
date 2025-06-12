@@ -1,9 +1,5 @@
-import {
-  parse,
-  parseExpressionString,
-  stripLuaComments,
-} from "../space_lua/parse.ts";
-import type { LuaNumberLiteral } from "../space_lua/ast.ts";
+import { parse, parseExpressionString, stripLuaComments } from "./parse.ts";
+import type { LuaNumberLiteral } from "./ast.ts";
 import { assertEquals } from "@std/assert/equals";
 
 Deno.test("Test Lua parser", () => {

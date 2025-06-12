@@ -145,6 +145,7 @@ export async function compileManifests(
 ) {
   let building = false;
   dist = path.resolve(dist);
+
   async function buildAll() {
     if (building) {
       return;

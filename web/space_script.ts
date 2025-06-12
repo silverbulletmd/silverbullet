@@ -2,7 +2,7 @@ import type { ParseTree } from "../plug-api/lib/tree.ts";
 import type { AppCommand, CommandDef, SlashCommand } from "$lib/command.ts";
 import type { SlashCommandDef } from "$lib/manifest.ts";
 import type { JSONSchemaType } from "ajv";
-import { jsToLuaValue, type LuaTable } from "./space_lua/runtime.ts";
+import { jsToLuaValue, type LuaTable } from "../lib/space_lua/runtime.ts";
 
 type FunctionDef = {
   name: string;

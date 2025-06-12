@@ -8,7 +8,8 @@ export class PlugSpacePrimitives implements SpacePrimitives {
     private wrapped: SpacePrimitives,
     private hook: PlugNamespaceHook,
     private env?: string,
-  ) {}
+  ) {
+  }
 
   // Used e.g. by the sync engine to see if it should sync a certain path (likely not the case when we have a plug space override)
   public isLikelyHandled(path: string): boolean {

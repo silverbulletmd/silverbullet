@@ -92,13 +92,13 @@ export const osApi = new LuaTable({
 
     if (format === "*t") {
       /*
-      To produce a date table, we use the format string "*t". For instance, the following code
+            To produce a date table, we use the format string "*t". For instance, the following code
 
-    temp = os.date("*t", 906000490)
-produces the table
-    {year = 1998, month = 9, day = 16, yday = 259, wday = 4,
-     hour = 23, min = 48, sec = 10, isdst = false}
-     */
+          temp = os.date("*t", 906000490)
+      produces the table
+          {year = 1998, month = 9, day = 16, yday = 259, wday = 4,
+           hour = 23, min = 48, sec = 10, isdst = false}
+           */
       return new LuaTable({
         year: date.getFullYear(),
         month: date.getMonth() + 1,

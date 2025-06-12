@@ -7,6 +7,9 @@ import type { DataStoreMQ } from "$lib/data/mq.datastore.ts";
 
 export class MQHook implements Hook<MQHookT> {
   subscriptions: (() => void)[] = [];
+  throttledReloadQueues = throttle(() => {
+    this.reloadQueues();
+  }, 1000);
 
   constructor(private system: System<MQHookT>, readonly mq: DataStoreMQ) {
   }
@@ -29,10 +32,6 @@ export class MQHook implements Hook<MQHookT> {
     this.subscriptions.forEach((sub) => sub());
     this.subscriptions = [];
   }
-
-  throttledReloadQueues = throttle(() => {
-    this.reloadQueues();
-  }, 1000);
 
   reloadQueues() {
     this.stop();

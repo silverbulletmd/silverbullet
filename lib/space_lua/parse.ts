@@ -1,10 +1,10 @@
-import { lezerToParseTree } from "../markdown_parser/parse_tree.ts";
+import { lezerToParseTree } from "../../web/markdown_parser/parse_tree.ts";
 import {
   cleanTree,
   type ParseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { parser } from "./parse-lua.js";
-import { styleTags } from "@lezer/highlight";
+import { styleTags, tags as t } from "@lezer/highlight";
 import { indentNodeProp, LRLanguage } from "@codemirror/language";
 import type {
   ASTCtx,
@@ -22,7 +22,6 @@ import type {
   LuaStatement,
   LuaTableField,
 } from "./ast.ts";
-import { tags as t } from "@lezer/highlight";
 
 const luaStyleTags = styleTags({
   Name: t.variableName,

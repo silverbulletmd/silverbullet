@@ -4,7 +4,7 @@ import { type ParseTree, renderToText } from "../../plug-api/lib/tree.ts";
 import { extendedMarkdownLanguage } from "../markdown_parser/parser.ts";
 import { expandMarkdown } from "../markdown.ts";
 import type { Client } from "../client.ts";
-import { LuaStackFrame } from "../space_lua/runtime.ts";
+import { LuaStackFrame } from "../../lib/space_lua/runtime.ts";
 
 export function markdownSyscalls(client: Client): SysCallMapping {
   return {

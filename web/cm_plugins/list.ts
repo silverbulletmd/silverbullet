@@ -52,6 +52,7 @@ class ListBulletWidget extends WidgetType {
   constructor(readonly bullet: string) {
     super();
   }
+
   toDOM(): HTMLElement {
     const listBullet = document.createElement("span");
     listBullet.textContent = this.bullet;

@@ -228,7 +228,8 @@ export default function reducer(
         showCommandPalette: false,
         showPageNavigator: false,
         showFilterBox: false,
-        filterBoxOnSelect: () => {},
+        filterBoxOnSelect: () => {
+        },
         filterBoxPlaceHolder: "",
         filterBoxOptions: [],
         filterBoxHelpText: "",

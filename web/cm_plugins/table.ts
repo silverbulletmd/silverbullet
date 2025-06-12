@@ -16,10 +16,11 @@ import {
   resolvePath,
 } from "@silverbulletmd/silverbullet/lib/resolve";
 import { expandMarkdown } from "../markdown.ts";
-import { LuaStackFrame } from "../space_lua/runtime.ts";
+import { LuaStackFrame } from "../../lib/space_lua/runtime.ts";
 
 class TableViewWidget extends WidgetType {
   tableBodyText: string;
+
   constructor(
     readonly pos: number,
     readonly client: Client,
@@ -27,6 +28,14 @@ class TableViewWidget extends WidgetType {
   ) {
     super();
     this.tableBodyText = renderToText(t);
+  }
+
+  override get estimatedHeight(): number {
+    const height = this.client.getCachedWidgetHeight(
+      `table:${this.tableBodyText}`,
+    );
+    // console.log("Calling estimated height for table", height);
+    return height;
   }
 
   toDOM(): HTMLElement {
@@ -74,14 +83,6 @@ class TableViewWidget extends WidgetType {
       });
     });
     return dom;
-  }
-
-  override get estimatedHeight(): number {
-    const height = this.client.getCachedWidgetHeight(
-      `table:${this.tableBodyText}`,
-    );
-    // console.log("Calling estimated height for table", height);
-    return height;
   }
 
   override eq(other: WidgetType): boolean {

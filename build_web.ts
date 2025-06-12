@@ -79,6 +79,7 @@ export async function copyAssets(dist: string) {
   bundleJs = patchDenoLibJS(bundleJs);
   await Deno.writeTextFile(`${dist}/client.js`, bundleJs);
 }
+
 async function buildCopyBundleAssets() {
   await Deno.mkdir("dist_client_bundle", { recursive: true });
   await Deno.mkdir("dist_plug_bundle", { recursive: true });

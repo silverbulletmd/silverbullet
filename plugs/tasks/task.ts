@@ -1,4 +1,8 @@
-import type { ClickEvent, IndexTreeEvent } from "../../plug-api/types.ts";
+import type {
+  ClickEvent,
+  IndexTreeEvent,
+  ObjectValue,
+} from "../../plug-api/types.ts";
 
 import {
   editor,
@@ -26,7 +30,6 @@ import {
   extractAttributes,
 } from "@silverbulletmd/silverbullet/lib/attribute";
 import { rewritePageRefs } from "@silverbulletmd/silverbullet/lib/resolve";
-import type { ObjectValue } from "../../plug-api/types.ts";
 import { indexObjects } from "../index/plug_api.ts";
 import {
   cleanHashTags,

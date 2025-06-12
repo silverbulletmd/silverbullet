@@ -9,6 +9,9 @@ export class CommandHook extends EventEmitter<CommandHookEvents>
   implements Hook<CommandHookT> {
   editorCommands = new Map<string, AppCommand>();
   system!: System<CommandHookT>;
+  throttledBuildAllCommands = throttle(() => {
+    this.buildAllCommands();
+  }, 200);
 
   constructor(
     private readOnly: boolean,
@@ -16,10 +19,6 @@ export class CommandHook extends EventEmitter<CommandHookEvents>
   ) {
     super();
   }
-
-  throttledBuildAllCommands = throttle(() => {
-    this.buildAllCommands();
-  }, 200);
 
   buildAllCommands() {
     this.editorCommands.clear();

@@ -100,74 +100,6 @@ export class ShellStreamClient {
   }
 
   /**
-   * Set up WebSocket event handlers
-   * @private
-   */
-  private setupEventHandlers(): void {
-    if (!this.ws) return;
-
-    // Set up event handlers
-    this.ws.onopen = () => {
-      this.emitEvent({ type: "open", data: "Connected" });
-    };
-
-    this.ws.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data);
-        // Special handling for exit events
-        if (message.type === "exit") {
-          // Parse the exit code from the JSON string if needed
-          let exitData = message.data;
-          if (typeof exitData === "string" && typeof exitData === "string") {
-            try {
-              // Try to parse as JSON in case it's a stringified object
-              const parsedData = JSON.parse(exitData);
-              if (
-                typeof parsedData === "object" && parsedData !== null &&
-                "code" in parsedData
-              ) {
-                exitData = parsedData;
-              }
-            } catch (e) {
-              // If it's not valid JSON, just use it as is
-              console.error("Failed to parse exit data:", e);
-            }
-          }
-
-          this.emitEvent({
-            type: message.type,
-            data: exitData,
-          });
-        } else {
-          // Regular event
-          this.emitEvent({
-            type: message.type,
-            data: message.data,
-          });
-        }
-      } catch (e) {
-        const error = e as Error;
-        this.emitEvent({
-          type: "error",
-          data: `Error parsing message: ${error.message}`,
-        });
-      }
-    };
-
-    this.ws.onclose = () => {
-      this.ws = null;
-      this.emitEvent({ type: "close", data: "Disconnected" });
-    };
-
-    this.ws.onerror = (error) => {
-      this.emitEvent({
-        type: "error",
-        data: `WebSocket error: ${error}`,
-      });
-    };
-  }
-
-  /**
    * Close the WebSocket connection
    */
   public close(): void {
@@ -238,6 +170,74 @@ export class ShellStreamClient {
     if (index !== -1) {
       handlers.splice(index, 1);
     }
+  }
+
+  /**
+   * Set up WebSocket event handlers
+   * @private
+   */
+  private setupEventHandlers(): void {
+    if (!this.ws) return;
+
+    // Set up event handlers
+    this.ws.onopen = () => {
+      this.emitEvent({ type: "open", data: "Connected" });
+    };
+
+    this.ws.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        // Special handling for exit events
+        if (message.type === "exit") {
+          // Parse the exit code from the JSON string if needed
+          let exitData = message.data;
+          if (typeof exitData === "string" && typeof exitData === "string") {
+            try {
+              // Try to parse as JSON in case it's a stringified object
+              const parsedData = JSON.parse(exitData);
+              if (
+                typeof parsedData === "object" && parsedData !== null &&
+                "code" in parsedData
+              ) {
+                exitData = parsedData;
+              }
+            } catch (e) {
+              // If it's not valid JSON, just use it as is
+              console.error("Failed to parse exit data:", e);
+            }
+          }
+
+          this.emitEvent({
+            type: message.type,
+            data: exitData,
+          });
+        } else {
+          // Regular event
+          this.emitEvent({
+            type: message.type,
+            data: message.data,
+          });
+        }
+      } catch (e) {
+        const error = e as Error;
+        this.emitEvent({
+          type: "error",
+          data: `Error parsing message: ${error.message}`,
+        });
+      }
+    };
+
+    this.ws.onclose = () => {
+      this.ws = null;
+      this.emitEvent({ type: "close", data: "Disconnected" });
+    };
+
+    this.ws.onerror = (error) => {
+      this.emitEvent({
+        type: "error",
+        data: `WebSocket error: ${error}`,
+      });
+    };
   }
 
   /**

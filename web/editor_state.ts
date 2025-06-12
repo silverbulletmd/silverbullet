@@ -21,7 +21,7 @@ import {
   LanguageSupport,
   syntaxHighlighting,
 } from "@codemirror/language";
-import { EditorState } from "@codemirror/state";
+import { Compartment, EditorState, type Extension } from "@codemirror/state";
 import {
   drawSelection,
   dropCursor,
@@ -48,7 +48,6 @@ import type { TextChange } from "./change.ts";
 import { postScriptPrefacePlugin } from "./cm_plugins/top_bottom_panels.ts";
 import { languageFor } from "./languages.ts";
 import { plugLinter } from "./cm_plugins/lint.ts";
-import { Compartment, type Extension } from "@codemirror/state";
 import { extendedMarkdownLanguage } from "./markdown_parser/parser.ts";
 import { safeRun } from "$lib/async.ts";
 import { codeCopyPlugin } from "./cm_plugins/code_copy.ts";

@@ -55,5 +55,6 @@ export type FunctionDef<HookT> = {
 
 export interface Hook<HookT> {
   validateManifest(manifest: Manifest<HookT>): string[];
+
   apply(system: System<HookT>): void;
 }

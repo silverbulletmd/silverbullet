@@ -9,15 +9,13 @@ import type { Sandbox } from "./sandbox.ts";
  * Effectively this wraps a web worker, the reason to have this split from Plugs is to allow plugs to manage multiple sandboxes, e.g. for performance in the future
  */
 export class WorkerSandbox<HookT> implements Sandbox<HookT> {
+  public manifest?: Manifest<HookT>;
   private worker?: Worker;
   private reqId = 0;
   private outstandingInvocations = new Map<
     number,
     { resolve: (result: any) => void; reject: (e: any) => void }
   >();
-
-  // public ready: Promise<void>;
-  public manifest?: Manifest<HookT>;
 
   constructor(
     readonly plug: Plug<HookT>,

@@ -14,6 +14,7 @@ export class FallbackSpacePrimitives implements SpacePrimitives {
     private fallback: SpacePrimitives,
   ) {
   }
+
   fetchFileList(): Promise<FileMeta[]> {
     return this.primary.fetchFileList();
   }
@@ -43,6 +44,7 @@ export class FallbackSpacePrimitives implements SpacePrimitives {
       }
     }
   }
+
   async getFileMeta(name: string): Promise<FileMeta> {
     try {
       return await this.primary.getFileMeta(name);
@@ -68,6 +70,7 @@ export class FallbackSpacePrimitives implements SpacePrimitives {
       }
     }
   }
+
   writeFile(
     name: string,
     data: Uint8Array,
@@ -76,6 +79,7 @@ export class FallbackSpacePrimitives implements SpacePrimitives {
   ): Promise<FileMeta> {
     return this.primary.writeFile(name, data, selfUpdate, meta);
   }
+
   deleteFile(name: string): Promise<void> {
     return this.primary.deleteFile(name);
   }

@@ -13,7 +13,7 @@ import {
   moveCursorIntoText,
 } from "./widget_util.ts";
 import { expandMarkdown } from "../markdown.ts";
-import { LuaStackFrame, LuaTable } from "../space_lua/runtime.ts";
+import { LuaStackFrame, LuaTable } from "../../lib/space_lua/runtime.ts";
 import { isBlockMarkdown, jsonToMDTable } from "../markdown_util.ts";
 import { activeWidgets } from "./code_widget.ts";
 
@@ -53,6 +53,11 @@ export class LuaWidget extends WidgetType {
     readonly inPage: boolean,
   ) {
     super();
+  }
+
+  override get estimatedHeight(): number {
+    const cacheItem = this.client.getWidgetCache(this.cacheKey);
+    return cacheItem ? cacheItem.height : -1;
   }
 
   toDOM(): HTMLElement {
@@ -258,11 +263,6 @@ export class LuaWidget extends WidgetType {
     container.appendChild(content);
 
     return container;
-  }
-
-  override get estimatedHeight(): number {
-    const cacheItem = this.client.getWidgetCache(this.cacheKey);
-    return cacheItem ? cacheItem.height : -1;
   }
 
   override eq(other: WidgetType): boolean {
