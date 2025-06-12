@@ -27,7 +27,8 @@ export function TopBar({
   actionButtons,
   darkMode,
   vimMode,
-  progressPerc,
+  progressPercentage,
+  progressType,
   completer,
   lhs,
   onClick,
@@ -43,7 +44,8 @@ export function TopBar({
   notifications: Notification[];
   darkMode?: boolean;
   vimMode: boolean;
-  progressPerc?: number;
+  progressPercentage?: number;
+  progressType?: string;
   onRename: (newName?: string) => Promise<void>;
   onClick: () => void;
   completer: (context: CompletionContext) => Promise<CompletionResult | null>;
@@ -104,17 +106,17 @@ export function TopBar({
               </div>
             )}
             <div className="sb-sync-progress">
-              {progressPerc !== undefined &&
+              {progressPercentage !== undefined &&
                 (
                   <div
                     className="progress-wrapper"
-                    title={`Sync Progress: ${progressPerc}%`}
+                    title={`${progressType} progress: ${progressPercentage}%`}
                   >
                     <div
                       className="progress-bar"
-                      style={`background: radial-gradient(closest-side, var(--top-background-color) 79%, transparent 80% 100%), conic-gradient(var(--button-color) ${progressPerc}%, var(--button-background-color) 0);`}
+                      style={`background: radial-gradient(closest-side, var(--top-background-color) 79%, transparent 80% 100%), conic-gradient(var(--progress-${progressType}-color) ${progressPercentage}%, var(--progress-background-color) 0);`}
                     >
-                      {progressPerc}
+                      {progressPercentage}
                     </div>
                   </div>
                 )}

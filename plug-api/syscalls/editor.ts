@@ -256,6 +256,13 @@ export function hidePanel(
   return syscall("editor.hidePanel", id);
 }
 
+export function showProgress(
+  progressPercentage?: number,
+  progressType?: string,
+) {
+  return syscall("editor.showProgress", progressPercentage, progressType);
+}
+
 /**
  * Insert text at the specified position into the editor
  * @param text the text to insert

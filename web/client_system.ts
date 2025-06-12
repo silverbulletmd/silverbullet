@@ -279,19 +279,21 @@ export class ClientSystem {
     const currentIndexVersion = await this.getCurrentIndexVersion();
 
     console.info(
+      "[index]",
       "Current space index version",
       currentIndexVersion,
-      "index ongoing",
+      "index ongoing?",
       this.indexOngoing,
     );
 
     if (currentIndexVersion !== desiredIndexVersion && !this.indexOngoing) {
       console.info(
+        "[index]",
         "Performing a full space reindex, this could take a while...",
       );
       this.indexOngoing = true;
       await this.system.invokeFunction("index.reindexSpace", []);
-      console.info("Full space index complete.");
+      console.info("[index]", "Full space index complete.");
       await this.markFullSpaceIndexComplete();
       this.indexOngoing = false;
       // Let's load space scripts again, which probably weren't loaded before

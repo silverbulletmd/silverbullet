@@ -279,7 +279,8 @@ export class MainUI {
           isLoading={viewState.isLoading}
           vimMode={viewState.uiOptions.vimMode}
           darkMode={viewState.uiOptions.darkMode}
-          progressPerc={viewState.progressPerc}
+          progressPercentage={viewState.progressPercentage}
+          progressType={viewState.progressType}
           completer={client.miniEditorComplete.bind(client)}
           onClick={() => {
             if (!client.isDocumentEditor()) {

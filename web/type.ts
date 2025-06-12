@@ -34,7 +34,11 @@ export type AppViewState = {
   showCommandPaletteContext?: string;
   unsavedChanges: boolean;
   syncFailures: number; // Reset everytime a sync succeeds
-  progressPerc?: number;
+
+  // Progress tracker
+  progressPercentage?: number; // Used to show progress circle
+  progressType?: string; // Used for styling
+
   panels: { [key: string]: PanelConfig };
   commands: Map<string, AppCommand>;
   notifications: Notification[];
@@ -158,4 +162,8 @@ export type Action =
   }
   | { type: "hide-confirm" }
   | { type: "set-ui-option"; key: string; value: any }
-  | { type: "set-progress"; progressPerc?: number };
+  | {
+    type: "set-progress";
+    progressPercentage?: number;
+    progressType?: string;
+  };

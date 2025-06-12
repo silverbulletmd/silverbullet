@@ -287,7 +287,7 @@ export class Client {
         // "sync:success" is called with a number of operations only from syncSpace(), not from syncing individual pages
         this.fullSyncCompleted = true;
 
-        console.log("Full sync completed");
+        console.log("[sync]", "Full sync completed");
 
         // A full sync just completed
         if (!initialSync) {
@@ -297,9 +297,9 @@ export class Client {
           );
         } else { // initialSync
           console.log(
+            "[sync]",
             "Initial sync completed, now need to do a full space index to ensure all pages are indexed using any custom indexers",
           );
-          console.log("Enabling eventing on space primitives");
           this.space.spacePrimitives.enablePageEvents = true;
           this.clientSystem.ensureFullIndex().catch(
             console.error,
@@ -309,7 +309,7 @@ export class Client {
       }
       if (operations) {
         // Likely initial sync so let's show visually that we're synced now
-        this.showProgress(100);
+        this.showProgress(100, "sync");
       }
 
       this.ui.viewDispatch({ type: "sync-change", syncSuccess: true });
@@ -329,6 +329,7 @@ export class Client {
     this.eventHook.addLocalListener("sync:progress", (status: SyncStatus) => {
       this.showProgress(
         Math.round(status.filesProcessed / status.totalFiles * 100),
+        "sync",
       );
     });
 
@@ -825,10 +826,11 @@ export class Client {
   // Progress circle handling
   private progressTimeout?: number;
 
-  showProgress(progressPerc: number) {
+  showProgress(progressPercentage?: number, progressType?: "sync" | "index") {
     this.ui.viewDispatch({
       type: "set-progress",
-      progressPerc,
+      progressPercentage,
+      progressType,
     });
     if (this.progressTimeout) {
       clearTimeout(this.progressTimeout);
@@ -839,7 +841,7 @@ export class Client {
           type: "set-progress",
         });
       },
-      10000,
+      5000,
     );
   }
 

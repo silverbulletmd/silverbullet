@@ -222,6 +222,13 @@ export function editorSyscalls(client: Client): SysCallMapping {
         client.editorView.dispatch({});
       });
     },
+    "editor.showProgress": (
+      _ctx,
+      progressPercentage?: number,
+      progressType?: "sync" | "index",
+    ) => {
+      client.showProgress(progressPercentage, progressType);
+    },
     "editor.insertAtPos": (
       _ctx,
       text: string,

@@ -30,15 +30,21 @@ export async function reindexSpace() {
   console.log("Queing", files.length, "pages to be indexed.");
   // Queue all file names to be indexed
   await mq.batchSend("indexQueue", files.map((file) => file.name));
+  await editor.showProgress(0, "index");
 
   // Now let's wait for the processing to finish
   let queueStats = await mq.getQueueStats("indexQueue");
   while (queueStats.queued > 0 || queueStats.processing > 0) {
     await sleep(500);
     queueStats = await mq.getQueueStats("indexQueue");
+    await editor.showProgress(
+      100 - Math.round(queueStats.queued / files.length * 100),
+      "index",
+    );
   }
   // And notify the user
   console.log("Indexing completed!");
+  await editor.showProgress();
 }
 
 export async function processIndexQueue(messages: MQMessage[]) {

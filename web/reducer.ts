@@ -274,7 +274,8 @@ export default function reducer(
     case "set-progress":
       return {
         ...state,
-        progressPerc: action.progressPerc,
+        progressPercentage: action.progressPercentage,
+        progressType: action.progressType,
       };
   }
 }
