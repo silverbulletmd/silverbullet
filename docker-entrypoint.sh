@@ -32,8 +32,6 @@ else
     # Create silverbullet user and group ad-hoc mapped to PUID and PGID
     getent group $PGID &> /dev/null || addgroup -g $PGID silverbullet
     getent passwd $PUID &> /dev/null || adduser -D -H -u $PUID -g $PGID silverbullet
-    # And make sure /deno-dir (Deno cache) is accessible
-    chown -R $PUID:$PGID /deno-dir
     args="$@"
     # And run via su as requested PUID, usually this will be 'silverbullet' but if a user with this idea already exists, we will use that
     USERNAME=$(getent passwd $PUID | cut -d ":" -f 1)
