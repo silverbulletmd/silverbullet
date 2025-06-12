@@ -13,10 +13,10 @@ import * as ct from "./customtags.ts";
 import { NakedURLTag } from "./customtags.ts";
 import { TaskList } from "./extended_task.ts";
 import { Table } from "./table_parser.ts";
-import { pWikiLinkRegex, tagRegex } from "../markdown_parser/constants.ts";
-import { parse } from "../markdown_parser/parse_tree.ts";
+import { pWikiLinkRegex, tagRegex } from "./constants.ts";
+import { parse } from "./parse_tree.ts";
 import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
-import { luaLanguage } from "../../lib/space_lua/parse.ts";
+import { luaLanguage } from "$lib/space_lua/parse.ts";
 
 const WikiLink: MarkdownConfig = {
   defineNodes: [

@@ -184,8 +184,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
         body: data,
       },
     );
-    const newMeta = this.responseToMeta(name, res);
-    return newMeta;
+    return this.responseToMeta(name, res);
   }
 
   async deleteFile(name: string): Promise<void> {

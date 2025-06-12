@@ -18,11 +18,6 @@ export function commandSyscalls(
   clientSystem: ClientSystem,
 ): SysCallMapping {
   return {
-    /**
-     * Define a Lua command
-     * @param def - The command definition
-     * @param luaCallback - The Lua callback
-     */
     "command.define": (
       _ctx,
       def: CallbackCommandDef,

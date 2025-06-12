@@ -105,7 +105,7 @@ export function luaDirectivePlugin(client: Client) {
                     client.clientSystem.spaceLuaEnv.env,
                   );
                   threadLocalizedEnv.setLocal("_CTX", tl);
-                  const result = luaValueToJS(
+                  return luaValueToJS(
                     singleResult(
                       await evalExpression(
                         expr,
@@ -115,7 +115,6 @@ export function luaDirectivePlugin(client: Client) {
                     ),
                     sf,
                   );
-                  return result;
                 } catch (e: any) {
                   if (e instanceof LuaRuntimeError) {
                     if (e.sf?.astCtx) {

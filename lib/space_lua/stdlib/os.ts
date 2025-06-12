@@ -176,6 +176,5 @@ export const osApi = new LuaTable({
 function dayOfYear(date: Date) {
   const start = new Date(date.getFullYear(), 0, 0);
   const diff = date.getTime() - start.getTime();
-  const dayOfYear = Math.floor(diff / ONE_DAY);
-  return dayOfYear;
+  return Math.floor(diff / ONE_DAY);
 }

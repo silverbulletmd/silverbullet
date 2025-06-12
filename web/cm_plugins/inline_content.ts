@@ -32,10 +32,9 @@ class InlineContentWidget extends WidgetType {
   }
 
   override get estimatedHeight(): number {
-    const cachedHeight = this.client.getCachedWidgetHeight(
+    return this.client.getCachedWidgetHeight(
       `content:${this.url}`,
     );
-    return cachedHeight;
   }
 
   override eq(other: InlineContentWidget) {

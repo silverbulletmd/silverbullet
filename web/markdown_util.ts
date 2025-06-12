@@ -135,8 +135,5 @@ export function isBlockMarkdown(s: string) {
     return true;
   }
   // If it contains something resembling a list
-  if (s.match(/[\-\*]\s+/)) {
-    return true;
-  }
-  return false;
+  return !!s.match(/[\-\*]\s+/);
 }

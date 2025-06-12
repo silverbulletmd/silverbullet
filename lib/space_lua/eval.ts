@@ -697,10 +697,9 @@ export async function evalStatement(
     }
     case "Return": {
       if (returnOnReturn) {
-        const val = await evalPromiseValues(
+        return await evalPromiseValues(
           s.expressions.map((value) => evalExpression(value, env, sf)),
         );
-        return val;
       } else {
         throw new LuaReturn(
           await evalPromiseValues(

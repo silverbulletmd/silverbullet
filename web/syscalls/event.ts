@@ -35,11 +35,10 @@ export function eventListenerSyscalls(
           );
           const sf = new LuaStackFrame(tl, null);
           try {
-            const val = luaValueToJS(
+            return luaValueToJS(
               await luaCall(def.run, args.map(jsToLuaValue), {}, sf),
               sf,
             );
-            return val;
           } catch (e: any) {
             await handleLuaError(e, clientSystem.system);
           }

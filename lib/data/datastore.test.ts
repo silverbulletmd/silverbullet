@@ -1,9 +1,9 @@
 import "fake-indexeddb/auto";
-import { IndexedDBKvPrimitives } from "../data/indexeddb_kv_primitives.ts";
-import { MemoryKvPrimitives } from "../data/memory_kv_primitives.ts";
-import type { KvPrimitives } from "../data/kv_primitives.ts";
+import { IndexedDBKvPrimitives } from "./indexeddb_kv_primitives.ts";
+import { MemoryKvPrimitives } from "./memory_kv_primitives.ts";
+import type { KvPrimitives } from "./kv_primitives.ts";
 import { assertEquals } from "@std/assert";
-import { PrefixedKvPrimitives } from "../data/prefixed_kv_primitives.ts";
+import { PrefixedKvPrimitives } from "./prefixed_kv_primitives.ts";
 import { DataStore } from "$lib/data/datastore.ts";
 import { LuaEnv, LuaStackFrame } from "../space_lua/runtime.ts";
 import { parseExpressionString } from "../space_lua/parse.ts";
