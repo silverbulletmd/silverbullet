@@ -46,7 +46,6 @@ import type { LuaCollectionQuery } from "./space_lua/query_collection.ts";
 import type { AppCommand } from "$lib/command.ts";
 import { ScriptEnvironment } from "./space_script.ts";
 import { SpaceLuaEnvironment } from "./space_lua.ts";
-import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
 
 const plugNameExtractRegex = /\/(.+)\.plug\.js$/;
 const indexVersionKey = ["$indexVersion"];
@@ -69,7 +68,7 @@ export class ClientSystem {
   documentEditorHook!: DocumentEditorHook;
 
   readonly allKnownFiles = new Set<string>();
-  readonly spaceScriptCommands = new Map<string, AppCommand>();
+  readonly scriptCommands = new Map<string, AppCommand>();
   scriptEnv: ScriptEnvironment = new ScriptEnvironment();
   spaceLuaEnv = new SpaceLuaEnvironment();
   scriptsLoaded: boolean = false;
@@ -109,7 +108,7 @@ export class ClientSystem {
     // Command hook
     this.commandHook = new CommandHook(
       this.readOnlyMode,
-      this.spaceScriptCommands,
+      this.scriptCommands,
     );
     this.commandHook.on({
       commandsUpdated: (commandMap) => {
@@ -201,10 +200,10 @@ export class ClientSystem {
     }
   }
 
-  async loadSpaceScripts() {
-    if (!await this.client.hasInitialSyncCompleted()) {
+  async loadScripts() {
+    if (!await this.hasFullIndexCompleted()) {
       console.info(
-        "Not loading space scripts, since initial synca has not completed yet",
+        "Not loading space scripts, since initial indexing has not completed yet",
       );
       return;
     }
@@ -212,60 +211,26 @@ export class ClientSystem {
     try {
       await this.spaceLuaEnv.reload(this.system);
     } catch (e: any) {
-      console.error("Error loading space-script:", e.message);
+      console.error("Error loading Lua script:", e.message);
     }
 
     // Reset the space script commands
-    this.spaceScriptCommands.clear();
+    this.scriptCommands.clear();
     for (const [name, command] of Object.entries(this.scriptEnv.commands)) {
-      this.spaceScriptCommands.set(name, command);
+      this.scriptCommands.set(name, command);
     }
 
     // Inject the registered events in the event hook
     this.eventHook.scriptEnvironment = this.scriptEnv;
 
+    // Make scripted (slash) commands available
     this.commandHook.throttledBuildAllCommands();
     this.slashCommandHook.throttledBuildAllCommands();
 
     this.scriptsLoaded = true;
   }
 
-  invokeSpaceFunction(name: string, args: any[]) {
-    const fn = this.scriptEnv.functions[name];
-    if (!fn) {
-      throw new Error(`Function ${name} not found`);
-    }
-    return fn(...args);
-  }
-
-  async applyAttributeExtractors(
-    tags: string[],
-    text: string,
-    tree: ParseTree,
-  ): Promise<Record<string, any>> {
-    let resultingAttributes: Record<string, any> = {};
-    for (const tag of tags) {
-      const extractors = this.scriptEnv.attributeExtractors[tag];
-      if (!extractors) {
-        continue;
-      }
-      for (const fn of extractors) {
-        const extractorResult = await fn(text, tree);
-        if (extractorResult) {
-          // Merge the attributes in
-          resultingAttributes = {
-            ...resultingAttributes,
-            ...extractorResult,
-          };
-        }
-      }
-    }
-
-    return resultingAttributes;
-  }
-
   async reloadPlugsFromSpace(space: Space) {
-    console.log("Loading plugs");
     await this.system.unloadAll();
     console.log("(Re)loading plugs");
     const allPlugs = await space.listPlugs();
@@ -310,33 +275,44 @@ export class ClientSystem {
 
   private indexOngoing = false;
 
-  async ensureSpaceIndex() {
-    const currentIndexVersion = await this.ds.get(indexVersionKey);
+  async ensureFullIndex() {
+    const currentIndexVersion = await this.getCurrentIndexVersion();
 
-    console.info("Current space index version", currentIndexVersion);
+    console.info(
+      "Current space index version",
+      currentIndexVersion,
+      "index ongoing",
+      this.indexOngoing,
+    );
 
     if (currentIndexVersion !== desiredIndexVersion && !this.indexOngoing) {
       console.info(
         "Performing a full space reindex, this could take a while...",
       );
-      // First let's fetch all pages to make sure we have a cache of known pages
-      // await this.client.space.fetchPageList();
       this.indexOngoing = true;
       await this.system.invokeFunction("index.reindexSpace", []);
       console.info("Full space index complete.");
-      await this.markFullSpaceIndexComplete(this.ds);
+      await this.markFullSpaceIndexComplete();
       this.indexOngoing = false;
       // Let's load space scripts again, which probably weren't loaded before
       console.log(
         "Now loading space scripts, custom styles and rebuilding editor state",
       );
-      await this.loadSpaceScripts();
+      await this.loadScripts();
       await this.client.loadCustomStyles();
       this.client.rebuildEditorState();
     }
   }
 
-  async markFullSpaceIndexComplete(ds: DataStore) {
-    await ds.set(indexVersionKey, desiredIndexVersion);
+  private getCurrentIndexVersion() {
+    return this.ds.get(indexVersionKey);
+  }
+
+  private async markFullSpaceIndexComplete() {
+    await this.ds.set(indexVersionKey, desiredIndexVersion);
+  }
+
+  public async hasFullIndexCompleted() {
+    return (await this.ds.get(indexVersionKey)) === desiredIndexVersion;
   }
 }

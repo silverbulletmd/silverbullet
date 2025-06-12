@@ -228,7 +228,7 @@ export class Client {
     // Load plugs
     await this.loadPlugs();
 
-    await this.clientSystem.loadSpaceScripts();
+    await this.clientSystem.loadScripts();
     await this.initNavigator();
     await this.initSync();
     await this.eventHook.dispatchEvent("system:ready");
@@ -292,7 +292,7 @@ export class Client {
         // A full sync just completed
         if (!initialSync) {
           // If this was NOT the initial sync let's check if we need to perform a space reindex
-          this.clientSystem.ensureSpaceIndex().catch(
+          this.clientSystem.ensureFullIndex().catch(
             console.error,
           );
         } else { // initialSync
@@ -301,7 +301,7 @@ export class Client {
           );
           console.log("Enabling eventing on space primitives");
           this.space.spacePrimitives.enablePageEvents = true;
-          this.clientSystem.ensureSpaceIndex().catch(
+          this.clientSystem.ensureFullIndex().catch(
             console.error,
           );
           initialSync = false;
@@ -742,32 +742,24 @@ export class Client {
 
   async updatePageListCache() {
     console.log("Updating page list cache");
-    // **** Check if the initial sync has been completed ****
-    const initialSyncCompleted = await this.hasInitialSyncCompleted();
+    // Check if the initial sync has been completed
+    const initialIndexCompleted = await this.clientSystem
+      .hasFullIndexCompleted();
 
     let allPages: PageMeta[] = [];
 
     if (
-      initialSyncCompleted && this.clientSystem.system.loadedPlugs.has("index")
+      initialIndexCompleted && this.clientSystem.system.loadedPlugs.has("index")
     ) {
-      // **** Logic when initial sync IS completed AND index plug is loaded ****
       console.log(
         "Initial sync complete and index plug loaded, loading full page list via index.",
       );
       // Fetch actual indexed pages
-      allPages = await this.clientSystem.queryLuaObjects<PageMeta>(
-        "page",
-        {},
-      );
+      allPages = await this.clientSystem.queryLuaObjects<PageMeta>("page", {});
       // Fetch aspiring pages only when using the index
-      const aspiringPageNames = await this.clientSystem.queryLuaObjects<
-        string
-      >(
+      const aspiringPageNames = await this.clientSystem.queryLuaObjects<string>(
         "aspiring-page",
-        {
-          select: parseExpressionString("name"),
-          distinct: true,
-        },
+        { select: parseExpressionString("name"), distinct: true },
       );
       // Map and push aspiring pages directly into allPages
       allPages.push(
@@ -782,8 +774,6 @@ export class Client {
         })),
       );
     } else {
-      // **** Logic when initial sync is NOT YET completed OR index plug isn't ready ****
-      // Use space.fetchPageList() directly
       console.log(
         "Initial sync not complete or index plug not loaded. Fetching page list directly using space.fetchPageList().",
       );
@@ -791,7 +781,7 @@ export class Client {
         // Call fetchPageList directly
         allPages = await this.space.fetchPageList();
 
-        // Let's do some heuristic based post processing
+        // Let's do some heuristic-based post processing
         for (const page of allPages) {
           // These are _mostly_ meta pages, let's add a tag for them
           if (page.name.startsWith("Library/")) {
@@ -806,7 +796,6 @@ export class Client {
           "error",
         );
       }
-      // Note: Aspiring pages are not available through fetchPageList()
     }
 
     this.ui.viewDispatch({

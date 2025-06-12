@@ -90,7 +90,11 @@ export function systemSyscalls(
       return client.config.values;
     },
     "system.loadSpaceScripts": async () => {
-      await client.clientSystem.loadSpaceScripts();
+      console.warn("DEPRECATED: used system.loadScripts instead");
+      await client.clientSystem.loadScripts();
+    },
+    "system.loadScripts": async () => {
+      await client.clientSystem.loadScripts();
     },
     "system.loadSpaceStyles": async () => {
       if (!client) {
