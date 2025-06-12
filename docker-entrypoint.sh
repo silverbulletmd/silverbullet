@@ -1,5 +1,15 @@
 #!/bin/bash -e
 
+# Run last-minute package installs
+if [ -n "$SB_APT_PACKAGES" ]; then
+    if [ "$UID" == "0" ]; then
+        apt update -y
+        apt install -y $SB_APT_PACKAGES
+    else
+        echo "Cannot install packages selected via SB_APT_PACKAGES unless run as root"
+    fi
+fi
+
 # Check if UID and GID are passed as environment variables, if not, extract from the space folder owner
 if [ -z "$PUID" ] && [ "$UID" == "0" ] ; then
     # Get the UID of the folder owner

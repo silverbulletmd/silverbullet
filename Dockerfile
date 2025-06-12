@@ -1,6 +1,4 @@
-# Note: we don't actually need a Deno image, since we use a single-binary distribution of SilverBullet
-# However, since those binaries still depend on a bunch of GLIBC stuff included in the deno image —— we'll just go with that anyway
-FROM denoland/deno:alpine
+FROM ubuntu:noble
 
 # The volume that will keep the space data
 VOLUME /space
@@ -19,11 +17,13 @@ ARG TARGETARCH
 ENV TINI_VERSION=v0.19.0
 ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini-${TARGETARCH} /tini
 
-# Make sure the deno user has access to the space volume
 RUN mkdir -p -m 777 /space \
     && chmod +x /tini \
-    # We will just include bash and git 
-    && apk add bash git
+    && apt update \
+    && apt install -y git \
+    && apt-get -y autoremove \
+    && apt-get clean  \
+    && rm -rf /tmp/* /var/tmp/* /var/log/* /usr/share/man /var/lib/apt/lists/*
 
 # Expose port 3000
 # Port map this when running, e.g. with -p 3002:3000 (where 3002 is the host port)

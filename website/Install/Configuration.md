@@ -39,7 +39,9 @@ SilverBullet enables plugs to run shell commands. This is potentially unsafe. If
 Configuration only relevant to docker deployments:
 
 * `PUID`: Runs the server process with the specified UID (default: whatever user owns the `/space` mapped folder)
-* `GUID`: Runs the server process with the specified GID (default: whatever group owns the `/space` mapped folder)
+* `GUID`: Runs the server process with the specified GID (default: whatever group owns the `/space` mapped folder)\
+* `SB_APT_PACKAGES`: will install additional (ubuntu) packages inside the container upon boot. Example: `SB_APT_PACKAGES="ripgrep pandoc"`
+  **Warning:** this will (probably) significantly increase the boot time of your container.
 
 # Web app manifest
 Configure aspects of web app appearance:
