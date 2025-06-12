@@ -28,6 +28,10 @@ export class MemoryKvPrimitives implements KvPrimitives {
       }
     }
   }
+  clear(): Promise<void> {
+    this.store.clear();
+    return Promise.resolve();
+  }
 
   /**
    * Initialize the store by loading data from disk if a file path was provided

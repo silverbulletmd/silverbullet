@@ -333,7 +333,7 @@ functions:
   wipeAndLogoutCommand:
     path: ./system.ts:wipeAndLogoutCommand
     command:
-      name: "Clear Local Storage & Logout"
+      name: "System: Logout"
 
   versionCommand:
     path: ./help.ts:versionCommand

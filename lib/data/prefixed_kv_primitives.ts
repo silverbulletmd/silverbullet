@@ -8,6 +8,10 @@ export class PrefixedKvPrimitives implements KvPrimitives {
   constructor(private wrapped: KvPrimitives, private prefix: KvKey) {
   }
 
+  clear(): Promise<void> {
+    return this.wrapped.clear();
+  }
+
   batchGet(keys: KvKey[]): Promise<any[]> {
     return this.wrapped.batchGet(keys.map((key) => this.applyPrefix(key)));
   }

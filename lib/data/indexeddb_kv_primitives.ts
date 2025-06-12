@@ -21,6 +21,24 @@ export class IndexedDBKvPrimitives implements KvPrimitives {
     });
   }
 
+  async clear(): Promise<void> {
+    const objectStoreNames = this.db.objectStoreNames;
+
+    // Create a transaction that includes all object stores
+    const tx = this.db.transaction(objectStoreNames, "readwrite");
+
+    // Clear each object store in parallel
+    const clearPromises = Array.from(objectStoreNames).map((storeName) =>
+      tx.objectStore(storeName).clear()
+    );
+
+    // Wait for all clears to complete
+    await Promise.all(clearPromises);
+
+    // Complete the transaction
+    await tx.done;
+  }
+
   batchGet(keys: KvKey[]): Promise<any[]> {
     const tx = this.db.transaction(objectStoreName, "readonly");
     return Promise.all(keys.map((key) => tx.store.get(this.buildKey(key))));

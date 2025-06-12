@@ -7,6 +7,7 @@ import {
   looksLikePathWithExtension,
 } from "@silverbulletmd/silverbullet/lib/page_ref";
 
+// Note: the only thing cached here is SilverBullet client assets, files and databases are kept in IndexedDB
 const CACHE_NAME = "{{CACHE_NAME}}";
 
 //`location.href` minus this worker's filename will be our base URL, including any URL prefix
@@ -77,7 +78,6 @@ self.addEventListener("activate", (event: any) => {
       );
       // @ts-ignore: Take control of all clients as soon as the service worker activates
       await clients.claim();
-      console.log("[Service worker]", "clients.claim complete");
     })(),
   );
 });
@@ -206,15 +206,6 @@ self.addEventListener("message", (event: any) => {
       self.skipWaiting();
       break;
     }
-    case "flushCache": {
-      caches.delete(CACHE_NAME)
-        .then(() => {
-          console.log("[Service worker]", "Cache deleted");
-          // ds?.close();
-          event.source.postMessage({ type: "cacheFlushed" });
-        });
-      break;
-    }
     case "config": {
       const spaceFolderPath = event.data.config.spaceFolderPath;
       const dbPrefix = "" +
@@ -226,14 +217,6 @@ self.addEventListener("message", (event: any) => {
         ds = new DataStore(kv);
         console.log("Datastore in service worker initialized...");
       });
-      break;
-    }
-    case "shutdown": {
-      if (ds) {
-        console.log("[Service worker]", "Disconnecting datastore");
-        ds.kv.close();
-        ds = undefined;
-      }
       break;
     }
   }
