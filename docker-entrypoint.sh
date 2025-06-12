@@ -3,8 +3,12 @@
 # Run last-minute package installs
 if [ -n "$SB_APT_PACKAGES" ]; then
     if [ "$UID" == "0" ]; then
-        apt update -y
-        apt install -y $SB_APT_PACKAGES
+        if [ -n "$SB_APT_SYNC" ]; then
+            apt update -y
+            apt install -y $SB_APT_PACKAGES
+        else
+            (apt update -y && apt install -y $SB_APT_PACKAGES) &
+        fi
     else
         echo "Cannot install packages selected via SB_APT_PACKAGES unless run as root"
     fi

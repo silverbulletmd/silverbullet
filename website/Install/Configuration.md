@@ -7,8 +7,7 @@ SilverBullet is primarily configured via environment variables. This page gives 
 
 # Network
 * `SB_HOSTNAME`: Set to the hostname to bind to (defaults to `127.0.0.0`, set to `0.0.0.0` to accept outside connections for the local deno setup, defaults to `0.0.0.0` for docker)
-* `SB_PORT`: Sets the port to listen to, e.g. `SB_PORT=1234`, default is `3000`
-* `SB_URL_PREFIX`: Host SilverBullet on a particular URL prefix, e.g. `SB_URL_PREFIX=/notes`
+* `SB_PORT`: Sets the port to listen to, e.g. `SB_PORT=1234`, default is `3000` * `SB_URL_PREFIX`: Host SilverBullet on a particular URL prefix, e.g. `SB_URL_PREFIX=/notes`
 
 # Authentication
 SilverBullet supports basic authentication for a single user.
@@ -41,7 +40,8 @@ Configuration only relevant to docker deployments:
 * `PUID`: Runs the server process with the specified UID (default: whatever user owns the `/space` mapped folder)
 * `GUID`: Runs the server process with the specified GID (default: whatever group owns the `/space` mapped folder)\
 * `SB_APT_PACKAGES`: will install additional (ubuntu) packages inside the container upon boot. Example: `SB_APT_PACKAGES="ripgrep pandoc"`
-  **Warning:** this will (probably) significantly increase the boot time of your container.
+  **Note:** This installation happens asynchronously in the background (you can see it happen in the server output) unless `SB_APT_SYNC` is set (see bellow)
+* `SB_APT_SYNC`: when set, will _first_ install APT packages configured with `SB_APT_PACKAGES` before booting SilverBullet itself.
 
 # Web app manifest
 Configure aspects of web app appearance:
