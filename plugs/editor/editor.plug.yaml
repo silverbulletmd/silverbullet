@@ -320,25 +320,27 @@ functions:
       name: "Stats: Show"
       requireEditor: page
 
+  # Client commands
   reloadUICommand:
     path: ./system.ts:reloadUICommand
     command:
-      name: "System: Reload UI"
+      name: "Client: Reload UI"
 
   wipeClientCommand:
     path: ./system.ts:wipeClientCommand
     command:
-      name: "System: Wipe Client"
+      name: "Client: Wipe"
 
   wipeAndLogoutCommand:
     path: ./system.ts:wipeAndLogoutCommand
     command:
-      name: "System: Logout"
+      name: "Client: Logout"
 
   versionCommand:
     path: ./help.ts:versionCommand
     command:
-      name: "Help: Version"
+      name: "Client: Version"
+
   gettingStartedCommand:
     path: ./help.ts:gettingStartedCommand
     command:
