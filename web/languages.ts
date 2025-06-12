@@ -11,6 +11,7 @@ import { swift as swiftLanguage } from "@codemirror/legacy-modes/mode/swift?exte
 import { toml as tomlLanguage } from "@codemirror/legacy-modes/mode/toml?external=@codemirror/language&target=es2022";
 import { xml as xmlLanguage } from "@codemirror/legacy-modes/mode/xml?external=@codemirror/language&target=es2022";
 import { json as jsonLanguage } from "@codemirror/legacy-modes/mode/javascript?external=@codemirror/language&target=es2022";
+import { r as rLanguage } from "@codemirror/legacy-modes/mode/r?external=@codemirror/language&target=es2022";
 import { htmlLanguage } from "@codemirror/lang-html";
 import { go as goLanguage } from "@codemirror/legacy-modes/mode/go?external=@codemirror/language&target=es2022";
 import { diff as diffLanguage } from "@codemirror/legacy-modes/mode/diff?external=@codemirror/language&target=es2022";
@@ -63,6 +64,7 @@ export const builtinLanguages: Record<string, Language> = {
   "postgres": StreamLanguage.define(postgresqlLanguage),
   "rust": StreamLanguage.define(rustLanguage),
   "rs": StreamLanguage.define(rustLanguage),
+  "r": StreamLanguage.define(rLanguage),
   "css": cssLanguage,
   "space-style": cssLanguage,
   "html": htmlLanguage,
