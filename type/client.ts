@@ -20,6 +20,8 @@ export type PanelMode = number;
 export type Shortcut = {
   // Command we're creating the shortcut for
   command: string;
+  // Optional arguments to pass to the shortcut
+  args?: any[];
   // (Re)bind to keyboard shortcut
   key?: string;
   mac?: string;

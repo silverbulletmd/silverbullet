@@ -1,8 +1,10 @@
 #meta
 
-SilverBullet's configuration can be tweaked using the `config.set` Space Lua API. This page defines all built-in configurations available. Individual Plugs and Space Lua scripts may define their own.
+SilverBullet's configuration can be tweaked using the `config.set` Space Lua API. This page defines all built-in
+configurations available. Individual Plugs and Space Lua scripts may define their own.
 
 # Built-in options
+
 This defines the [JSON schema](https://json-schema.org/) for built-in configuration.
 
 ```space-lua
@@ -44,6 +46,10 @@ config.define("shortcuts", {
       command = {
         type = "string",
         description = "Command we're creating the shortcut for"
+      },
+      args = {
+        type = "array",
+        description = "Optional array of arguments for the command"
       },
       key = {
         type = "string",

@@ -315,7 +315,7 @@ export function createCommandKeyBindings(client: Client): KeyBinding[] {
         key: shortcut.key,
         mac: shortcut.mac,
         run: (): boolean => {
-          client.runCommandByName(shortcut.command).catch(
+          client.runCommandByName(shortcut.command, shortcut.args).catch(
             (e: any) => {
               console.error(e);
               client.flashNotification(

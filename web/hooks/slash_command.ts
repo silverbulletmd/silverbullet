@@ -73,7 +73,8 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
             name: shortcut.slashCommand,
             description: shortcut.command,
           },
-          run: () => this.client.runCommandByName(shortcut.command),
+          run: () =>
+            this.client.runCommandByName(shortcut.command, shortcut.args),
         });
       }
     }
