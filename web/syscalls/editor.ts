@@ -26,7 +26,6 @@ import type { PageMeta, UploadFile } from "../../plug-api/types.ts";
 import { openSearchPanel } from "@codemirror/search";
 import { parseRef, type Ref } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { insertNewlineContinueMarkup } from "@codemirror/lang-markdown";
-import { configureVimMode } from "../../plug-api/syscalls/editor.ts";
 
 export function editorSyscalls(client: Client): SysCallMapping {
   const syscalls: SysCallMapping = {
