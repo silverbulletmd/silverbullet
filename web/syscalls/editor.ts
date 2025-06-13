@@ -8,6 +8,7 @@ import {
 } from "@codemirror/language";
 import {
   deleteLine,
+  insertNewlineAndIndent,
   moveLineDown,
   moveLineUp,
   redo,
@@ -24,6 +25,8 @@ import type {
 import type { PageMeta, UploadFile } from "../../plug-api/types.ts";
 import { openSearchPanel } from "@codemirror/search";
 import { parseRef, type Ref } from "@silverbulletmd/silverbullet/lib/page_ref";
+import { insertNewlineContinueMarkup } from "@codemirror/lang-markdown";
+import { configureVimMode } from "../../plug-api/syscalls/editor.ts";
 
 export function editorSyscalls(client: Client): SysCallMapping {
   const syscalls: SysCallMapping = {
@@ -400,7 +403,16 @@ export function editorSyscalls(client: Client): SysCallMapping {
         throw new Error("Vim mode not active or not initialized.");
       }
     },
-    "editor.vimConfig": () => {
+    "editor.configureVimMode": () => {
+      // Override the default "o" binding to be more intelligent and follow the markdown editor's behavior
+      Vim.mapCommand("o", "action", "newline-continue-markup", {}, {});
+      Vim.defineAction("newline-continue-markup", (cm) => {
+        Vim.handleKey(cm, "A", "+input");
+        insertNewlineContinueMarkup(client.editorView) ||
+          insertNewlineAndIndent(client.editorView);
+      });
+
+      // Load the config if any
       const config = client.config.get<VimConfig>("vim", {});
       if (config) {
         config.unmap?.forEach((binding) => {

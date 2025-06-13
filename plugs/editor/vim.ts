@@ -42,7 +42,7 @@ export async function loadVimConfig() {
   try {
     await editor.save();
     await editor.reloadConfigAndCommands();
-    await editor.vimConfig();
+    await editor.configureVimMode();
   } catch (e: any) {
     await editor.flashNotification(e.message, "error");
   }

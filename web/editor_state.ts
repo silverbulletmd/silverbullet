@@ -307,7 +307,7 @@ export function createCommandKeyBindings(client: Client): KeyBinding[] {
 
   // Track which keyboard shortcuts for which commands we've overridden, so we can skip them later
   const overriddenCommands = new Set<string>();
-  // Keyboard shortcuts from SETTINGS take precedense
+  // Keyboard shortcuts from SETTINGS take precedence
   if (client.config.has("shortcuts")) {
     for (const shortcut of client.config.get<Shortcut[]>("shortcuts", [])) {
       overriddenCommands.add(shortcut.command);
