@@ -2,6 +2,7 @@ import {
   jsToLuaValue,
   LuaBuiltinFunction,
   LuaMultiRes,
+  LuaRuntimeError,
   LuaTable,
   luaToString,
 } from "../runtime.ts";
@@ -170,8 +171,13 @@ export const stringApi = new LuaTable({
           }
         } else if (repl instanceof LuaTable) {
           str = repl.get(match[0]);
+        } else if (typeof repl === "string") {
+          str = repl.replaceAll(/%([0-9]+)/g, (_, i) => match[i]);
         } else {
-          str = `${repl}`.replace(/%([0-9])/g, (_, i) => match[i]);
+          throw new LuaRuntimeError(
+            "string.gsub replacement argument should be a function, table or string",
+            sf,
+          );
         }
 
         if (match[0].length === 0) {

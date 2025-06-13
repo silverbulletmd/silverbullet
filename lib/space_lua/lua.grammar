@@ -160,7 +160,7 @@ TableConstructor { "{" (field (fieldsep field)* fieldsep?)? "}" }
   identifier { (std.asciiLetter | "_") (std.digit | std.asciiLetter | "_")* }
 
   stringEscape {
-    "\\" ($[abfnz"'\\] | digit digit? digit?) |
+    "\\" ($[abfnrz"'\\] | digit digit? digit?) |
     "\\x" hex hex |
     "\\u{" hex+ "}"
   }
