@@ -1,3 +1,4 @@
+// deno-lint-ignore-file ban-types
 import type { Manifest } from "$lib/plugos/types.ts";
 import type { System } from "$lib/plugos/system.ts";
 import type { EventHookI } from "$lib/plugos/eventhook.ts";

@@ -1,6 +1,5 @@
 import type { Manifest as PlugosManifest } from "./plugos/types.ts";
 import type { NamespaceOperation } from "./plugos/namespace.ts";
-import type { ILuaFunction } from "./space_lua/runtime.ts";
 
 export type CodeWidgetT = {
   codeWidget?: string;

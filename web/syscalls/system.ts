@@ -2,7 +2,7 @@ import type { SyscallMeta } from "../../plug-api/types.ts";
 import type { SysCallMapping } from "../../lib/plugos/system.ts";
 import type { Client } from "../client.ts";
 import { version } from "../../version.ts";
-import { CommandDef } from "../../lib/manifest.ts";
+import type { CommandDef } from "../../lib/manifest.ts";
 
 export function systemSyscalls(
   client: Client,

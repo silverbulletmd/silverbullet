@@ -17,28 +17,6 @@ export type Notification = {
 
 export type PanelMode = number;
 
-export type Shortcut = {
-  // Command we're creating the shortcut for
-  command: string;
-  // Optional arguments to pass to the shortcut
-  args?: any[];
-  // (Re)bind to keyboard shortcut
-  key?: string;
-  mac?: string;
-  // Bind to slash command
-  slashCommand?: string;
-  // Tweak priority in command palette
-  priority?: number;
-};
-
-export type ActionButton = {
-  icon: string;
-  description?: string;
-  command: string;
-  args?: any[];
-  mobile?: boolean;
-};
-
 export type EmojiConfig = {
   aliases: string[][];
 };

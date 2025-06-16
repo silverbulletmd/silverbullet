@@ -1,14 +1,8 @@
+// deno-lint-ignore-file ban-types
 import type { SysCallMapping } from "$lib/plugos/system.ts";
-import { buildThreadLocalEnv, handleLuaError } from "../space_lua_api.ts";
-import {
-  type ILuaFunction,
-  jsToLuaValue,
-  luaCall,
-  LuaStackFrame,
-  luaValueToJS,
-} from "../../lib/space_lua/runtime.ts";
-import { Client } from "../client.ts";
-import { EventSubscription } from "../../lib/event.ts";
+import { LuaStackFrame, luaValueToJS } from "../../lib/space_lua/runtime.ts";
+import type { Client } from "../client.ts";
+import type { EventSubscription } from "../../lib/event.ts";
 
 export function eventListenerSyscalls(
   client: Client,

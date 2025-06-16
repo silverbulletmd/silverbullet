@@ -5,11 +5,7 @@ import type {
 } from "@codemirror/autocomplete";
 import { Terminal } from "preact-feather";
 import type { Command } from "../../lib/command.ts";
-import type {
-  FilterOption,
-  Shortcut,
-} from "@silverbulletmd/silverbullet/type/client";
-import type { Config } from "../config.ts";
+import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 
 export function CommandPalette({
   commands,

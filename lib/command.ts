@@ -1,5 +1,5 @@
 import type { CommandDef, SlashCommandDef } from "$lib/manifest.ts";
-import { SlashCompletions } from "@silverbulletmd/silverbullet/types";
+import type { SlashCompletions } from "@silverbulletmd/silverbullet/types";
 
 export type RunnableCommand = {
   run?: (args?: any[]) => Promise<void>;

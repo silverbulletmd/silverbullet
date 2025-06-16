@@ -53,7 +53,6 @@ import { safeRun } from "$lib/async.ts";
 import { codeCopyPlugin } from "./cm_plugins/code_copy.ts";
 import { disableSpellcheck } from "./cm_plugins/spell_checking.ts";
 import { isValidEditor } from "$lib/command.ts";
-import type { Shortcut } from "@silverbulletmd/silverbullet/type/client";
 
 export function createEditorState(
   client: Client,

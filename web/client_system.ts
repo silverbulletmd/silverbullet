@@ -45,11 +45,11 @@ import type { LuaCollectionQuery } from "../lib/space_lua/query_collection.ts";
 import type { Command } from "$lib/command.ts";
 import { SpaceLuaEnvironment } from "./space_lua.ts";
 import {
-  ILuaFunction,
+  type ILuaFunction,
   jsToLuaValue,
   luaCall,
   LuaStackFrame,
-  LuaValue,
+  type LuaValue,
   luaValueToJS,
 } from "../lib/space_lua/runtime.ts";
 import { buildThreadLocalEnv, handleLuaError } from "./space_lua_api.ts";
