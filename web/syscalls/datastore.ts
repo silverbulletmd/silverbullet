@@ -11,7 +11,7 @@ import {
   LuaStackFrame,
   luaValueToJS,
 } from "../../lib/space_lua/runtime.ts";
-import type { KvQueryOptions } from "$lib/data/kv_primitives.ts";
+import type { KvQueryOptions } from "../../lib/data/kv_primitives.ts";
 import type { ClientSystem } from "../client_system.ts";
 
 /**

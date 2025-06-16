@@ -15,9 +15,9 @@ import {
   nodeAtPos,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { maximumDocumentSize } from "../constants.ts";
-import { safeRun } from "$lib/async.ts";
+import { safeRun } from "../../lib/async.ts";
 import { resolvePath } from "@silverbulletmd/silverbullet/lib/resolve";
-import { localDateString } from "$lib/dates.ts";
+import { localDateString } from "../../lib/dates.ts";
 
 const turndownService = new TurndownService({
   hr: "---",

@@ -1,5 +1,5 @@
-import type { NamespaceOperation } from "$lib/plugos/namespace.ts";
-import type { PlugNamespaceHookT } from "$lib/manifest.ts";
+import type { NamespaceOperation } from "../../lib/plugos/namespace.ts";
+import type { PlugNamespaceHookT } from "../../lib/manifest.ts";
 import type { Plug } from "../../lib/plugos/plug.ts";
 import type { System } from "../../lib/plugos/system.ts";
 import type { Hook, Manifest } from "../../lib/plugos/types.ts";

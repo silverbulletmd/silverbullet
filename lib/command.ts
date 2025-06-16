@@ -1,4 +1,4 @@
-import type { CommandDef, SlashCommandDef } from "$lib/manifest.ts";
+import type { CommandDef, SlashCommandDef } from "./manifest.ts";
 import type { SlashCompletions } from "@silverbulletmd/silverbullet/types";
 
 export type RunnableCommand = {

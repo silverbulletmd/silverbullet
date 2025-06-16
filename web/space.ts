@@ -3,7 +3,7 @@ import { plugPrefix } from "../lib/spaces/constants.ts";
 import type { DocumentMeta, FileMeta, PageMeta } from "../plug-api/types.ts";
 import type { EventHook } from "../web/hooks/event.ts";
 import { safeRun } from "../lib/async.ts";
-import { localDateString } from "$lib/dates.ts";
+import { localDateString } from "../lib/dates.ts";
 import type { EventedSpacePrimitives } from "../lib/spaces/evented_space_primitives.ts";
 
 const pageWatchInterval = 5000;

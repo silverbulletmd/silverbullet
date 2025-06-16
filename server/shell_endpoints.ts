@@ -2,7 +2,7 @@ import type { Context } from "hono";
 import type { ShellRequest } from "@silverbulletmd/silverbullet/type/rpc";
 import type { ShellBackend } from "./shell_backend.ts";
 import { StreamingShell } from "./shell_backend.ts";
-import { removeUrlPrefix } from "$lib/url_prefix.ts";
+import { removeUrlPrefix } from "../lib/url_prefix.ts";
 
 /**
  * Handles the /.shell endpoint for non-streaming shell commands

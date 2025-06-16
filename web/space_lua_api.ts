@@ -7,7 +7,7 @@ import {
   LuaStackFrame,
   LuaTable,
 } from "../lib/space_lua/runtime.ts";
-import type { System } from "$lib/plugos/system.ts";
+import type { System } from "../lib/plugos/system.ts";
 
 export function buildLuaEnv(system: System<any>) {
   const env = new LuaEnv(luaBuildStandardEnv());

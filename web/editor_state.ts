@@ -49,10 +49,10 @@ import { postScriptPrefacePlugin } from "./cm_plugins/top_bottom_panels.ts";
 import { languageFor } from "./languages.ts";
 import { plugLinter } from "./cm_plugins/lint.ts";
 import { extendedMarkdownLanguage } from "./markdown_parser/parser.ts";
-import { safeRun } from "$lib/async.ts";
+import { safeRun } from "../lib/async.ts";
 import { codeCopyPlugin } from "./cm_plugins/code_copy.ts";
 import { disableSpellcheck } from "./cm_plugins/spell_checking.ts";
-import { isValidEditor } from "$lib/command.ts";
+import { isValidEditor } from "../lib/command.ts";
 
 export function createEditorState(
   client: Client,

@@ -5,9 +5,9 @@ import {
   type SyncStatus,
   type SyncStatusItem,
 } from "../lib/spaces/sync.ts";
-import { sleep } from "$lib/async.ts";
+import { sleep } from "../lib/async.ts";
 import type { EventHook } from "./hooks/event.ts";
-import type { DataStore } from "$lib/data/datastore.ts";
+import type { DataStore } from "../lib/data/datastore.ts";
 
 // Keeps the current sync snapshot
 const syncSnapshotKey = ["sync", "snapshot"];

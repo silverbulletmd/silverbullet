@@ -1,5 +1,5 @@
-import { ttlCache } from "$lib/memory_cache.ts";
-import { sleep } from "$lib/async.ts";
+import { ttlCache } from "./memory_cache.ts";
+import { sleep } from "./async.ts";
 import { assertEquals } from "@std/assert";
 
 Deno.test("Memory cache", async () => {

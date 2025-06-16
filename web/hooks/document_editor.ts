@@ -1,7 +1,7 @@
-import type { Hook, Manifest } from "$lib/plugos/types.ts";
-import type { DocumentEditorT } from "$lib/manifest.ts";
+import type { Hook, Manifest } from "../../lib/plugos/types.ts";
+import type { DocumentEditorT } from "../../lib/manifest.ts";
 import type { DocumentEditorCallback } from "@silverbulletmd/silverbullet/types";
-import type { System } from "$lib/plugos/system.ts";
+import type { System } from "../../lib/plugos/system.ts";
 
 export class DocumentEditorHook implements Hook<DocumentEditorT> {
   documentEditors = new Map<

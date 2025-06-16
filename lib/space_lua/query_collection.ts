@@ -2,9 +2,9 @@ import type { LuaExpression } from "./ast.ts";
 import { LuaEnv, luaGet, luaKeys, LuaStackFrame } from "./runtime.ts";
 import { evalExpression } from "./eval.ts";
 import { asyncQuickSort } from "./util.ts";
-import type { DataStore } from "$lib/data/datastore.ts";
+import type { DataStore } from "../data/datastore.ts";
 import type { KvKey } from "@silverbulletmd/silverbullet/types";
-import type { KvPrimitives } from "$lib/data/kv_primitives.ts";
+import type { KvPrimitives } from "../data/kv_primitives.ts";
 import type { QueryCollationConfig } from "@silverbulletmd/silverbullet/type/client";
 
 export function buildItemEnv(

@@ -1,4 +1,4 @@
-import { localDateString } from "$lib/dates.ts";
+import { localDateString } from "./dates.ts";
 
 Deno.test("Dates", () => {
   console.log("Local date string", localDateString(new Date()));

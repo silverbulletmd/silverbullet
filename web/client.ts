@@ -10,7 +10,7 @@ import type { SyntaxNode } from "@lezer/common";
 import { Space } from "./space.ts";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 import { EventHook } from "./hooks/event.ts";
-import { type Command, isValidEditor } from "$lib/command.ts";
+import { type Command, isValidEditor } from "../lib/command.ts";
 import {
   type LocationState,
   parseRefFromURI,
@@ -30,14 +30,14 @@ import type {
   SlashCompletions,
 } from "@silverbulletmd/silverbullet/types";
 import type { StyleObject } from "../plugs/index/style.ts";
-import { throttle } from "$lib/async.ts";
-import { PlugSpacePrimitives } from "$lib/spaces/plug_space_primitives.ts";
-import { EventedSpacePrimitives } from "$lib/spaces/evented_space_primitives.ts";
+import { throttle } from "../lib/async.ts";
+import { PlugSpacePrimitives } from "../lib/spaces/plug_space_primitives.ts";
+import { EventedSpacePrimitives } from "../lib/spaces/evented_space_primitives.ts";
 import { pageSyncInterval, SyncService } from "./sync_service.ts";
-import { simpleHash } from "$lib/crypto.ts";
-import type { SyncStatus } from "$lib/spaces/sync.ts";
-import { HttpSpacePrimitives } from "$lib/spaces/http_space_primitives.ts";
-import { FallbackSpacePrimitives } from "$lib/spaces/fallback_space_primitives.ts";
+import { simpleHash } from "../lib/crypto.ts";
+import type { SyncStatus } from "../lib/spaces/sync.ts";
+import { HttpSpacePrimitives } from "../lib/spaces/http_space_primitives.ts";
+import { FallbackSpacePrimitives } from "../lib/spaces/fallback_space_primitives.ts";
 import {
   encodePageURI,
   encodeRef,
@@ -49,23 +49,23 @@ import { ClientSystem } from "./client_system.ts";
 import { createEditorState } from "./editor_state.ts";
 import { MainUI } from "./editor_ui.tsx";
 import { cleanPageRef } from "@silverbulletmd/silverbullet/lib/resolve";
-import type { SpacePrimitives } from "$lib/spaces/space_primitives.ts";
+import type { SpacePrimitives } from "../lib/spaces/space_primitives.ts";
 import type {
   CodeWidgetButton,
   FileMeta,
   PageMeta,
 } from "@silverbulletmd/silverbullet/types";
-import { DataStore } from "$lib/data/datastore.ts";
-import { IndexedDBKvPrimitives } from "$lib/data/indexeddb_kv_primitives.ts";
-import { DataStoreMQ } from "$lib/data/mq.datastore.ts";
-import { DataStoreSpacePrimitives } from "$lib/spaces/datastore_space_primitives.ts";
+import { DataStore } from "../lib/data/datastore.ts";
+import { IndexedDBKvPrimitives } from "../lib/data/indexeddb_kv_primitives.ts";
+import { DataStoreMQ } from "../lib/data/mq.datastore.ts";
+import { DataStoreSpacePrimitives } from "../lib/spaces/datastore_space_primitives.ts";
 
-import { ReadOnlySpacePrimitives } from "$lib/spaces/ro_space_primitives.ts";
-import { LimitedMap } from "$lib/limited_map.ts";
-import { plugPrefix } from "$lib/spaces/constants.ts";
+import { ReadOnlySpacePrimitives } from "../lib/spaces/ro_space_primitives.ts";
+import { LimitedMap } from "../lib/limited_map.ts";
+import { plugPrefix } from "../lib/spaces/constants.ts";
 import { diffAndPrepareChanges } from "./cm_util.ts";
 import { DocumentEditor } from "./document_editor.ts";
-import { parseExpressionString } from "$lib/space_lua/parse.ts";
+import { parseExpressionString } from "../lib/space_lua/parse.ts";
 import { Config } from "./config.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;

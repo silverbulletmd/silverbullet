@@ -1,6 +1,6 @@
 import type { FileMeta } from "../../plug-api/types.ts";
 import { mime } from "mimetypes";
-import type { KvPrimitives } from "$lib/data/kv_primitives.ts";
+import type { KvPrimitives } from "../data/kv_primitives.ts";
 import type { SpacePrimitives } from "./space_primitives.ts";
 
 export type KvMetaSpacePrimitivesCallbacks = {

@@ -1,13 +1,13 @@
 import { assert, assertEquals, assertExists } from "@std/assert";
 import { HttpServer, type ServerOptions } from "./http_server.ts";
-import { AssetBundle } from "$lib/asset_bundle/bundle.ts";
-import { MemoryKvPrimitives } from "$lib/data/memory_kv_primitives.ts";
+import { AssetBundle } from "../lib/asset_bundle/bundle.ts";
+import { MemoryKvPrimitives } from "../lib/data/memory_kv_primitives.ts";
 import { sleep } from "../lib/async.ts";
 import {
   ShellStreamClient,
   type ShellStreamEvent,
 } from "../web/shell_stream_client.ts";
-import { HttpSpacePrimitives } from "$lib/spaces/http_space_primitives.ts";
+import { HttpSpacePrimitives } from "../lib/spaces/http_space_primitives.ts";
 
 // Create a test script
 async function createTestScript(dir: string): Promise<string> {

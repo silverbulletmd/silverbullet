@@ -1,5 +1,5 @@
-import type { KvPrimitives } from "$lib/data/kv_primitives.ts";
-import { MemoryKvPrimitives } from "$lib/data/memory_kv_primitives.ts";
+import type { KvPrimitives } from "../lib/data/kv_primitives.ts";
+import { MemoryKvPrimitives } from "../lib/data/memory_kv_primitives.ts";
 import { resolve } from "@std/path";
 
 /**

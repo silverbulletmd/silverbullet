@@ -24,7 +24,7 @@ import {
   replaceNodesMatching,
   traverseTreeAsync,
 } from "../../plug-api/lib/tree.ts";
-import { niceDate } from "$lib/dates.ts";
+import { niceDate } from "../../lib/dates.ts";
 import {
   cleanAttributes,
   extractAttributes,

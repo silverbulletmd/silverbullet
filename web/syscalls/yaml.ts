@@ -1,6 +1,6 @@
 import type { SysCallMapping } from "../../lib/plugos/system.ts";
 import YAML from "js-yaml";
-import { applyPatches, type SetKeyPatch } from "$lib/yaml.ts";
+import { applyPatches, type SetKeyPatch } from "../../lib/yaml.ts";
 
 type YamlStringifyOptions = {
   /** indentation width to use (in spaces). */

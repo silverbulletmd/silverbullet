@@ -8,7 +8,7 @@ import plugAssetBundle from "../dist/plug_asset_bundle.json" with {
 import { AssetBundle, type AssetJson } from "../lib/asset_bundle/bundle.ts";
 
 import { determineDatabaseBackend } from "../server/db_backend.ts";
-import { sleep } from "$lib/async.ts";
+import { sleep } from "../lib/async.ts";
 
 export type AuthOptions = {
   authToken?: string;

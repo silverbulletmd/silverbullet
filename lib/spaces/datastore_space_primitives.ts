@@ -1,7 +1,7 @@
 import type { SpacePrimitives } from "./space_primitives.ts";
 import { mime } from "mimetypes";
 import type { FileMeta } from "../../plug-api/types.ts";
-import type { DataStore } from "$lib/data/datastore.ts";
+import type { DataStore } from "../data/datastore.ts";
 
 export type FileContent = {
   name: string;

@@ -1,14 +1,14 @@
 import { type Context, Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { validator } from "hono/validator";
-import type { AssetBundle } from "$lib/asset_bundle/bundle.ts";
+import type { AssetBundle } from "../lib/asset_bundle/bundle.ts";
 import type { FileMeta } from "@silverbulletmd/silverbullet/types";
 import {
   handleShellEndpoint,
   handleShellStreamEndpoint,
 } from "./shell_endpoints.ts";
 import { SpaceServer } from "./space_server.ts";
-import type { KvPrimitives } from "$lib/data/kv_primitives.ts";
+import type { KvPrimitives } from "../lib/data/kv_primitives.ts";
 import { extendedMarkdownLanguage } from "../web/markdown_parser/parser.ts";
 import { parse } from "../web/markdown_parser/parse_tree.ts";
 import { renderMarkdownToHtml } from "../plugs/markdown/markdown_render.ts";
@@ -20,7 +20,7 @@ import { LockoutTimer } from "./lockout.ts";
 import type { AuthOptions } from "../cmd/server.ts";
 import type { ClientConfig } from "../web/client.ts";
 import { htmlEscape } from "../plugs/markdown/html_render.ts";
-import { applyUrlPrefix, removeUrlPrefix } from "$lib/url_prefix.ts";
+import { applyUrlPrefix, removeUrlPrefix } from "../lib/url_prefix.ts";
 
 const authenticationExpirySeconds = 60 * 60 * 24 * 7; // 1 week
 

@@ -7,7 +7,7 @@ import {
   system,
 } from "@silverbulletmd/silverbullet/syscalls";
 import type { IndexEvent, MQMessage } from "@silverbulletmd/silverbullet/types";
-import { sleep } from "$lib/async.ts";
+import { sleep } from "../../lib/async.ts";
 import { indexDocument } from "./document.ts";
 import { clearFileIndex } from "./api.ts";
 

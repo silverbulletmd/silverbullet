@@ -1,5 +1,5 @@
-import type { Hook, Manifest } from "$lib/plugos/types.ts";
-import type { System } from "$lib/plugos/system.ts";
+import type { Hook, Manifest } from "../../lib/plugos/types.ts";
+import type { System } from "../../lib/plugos/system.ts";
 import type {
   Completion,
   CompletionContext,
@@ -11,8 +11,8 @@ import type {
   SlashCompletionOption,
   SlashCompletions,
 } from "../../plug-api/types.ts";
-import { safeRun, throttle } from "$lib/async.ts";
-import type { SlashCommandHookT } from "$lib/manifest.ts";
+import { safeRun, throttle } from "../../lib/async.ts";
+import type { SlashCommandHookT } from "../../lib/manifest.ts";
 import type { SlashCommand } from "../../lib/command.ts";
 
 const slashCommandRegexp = /([^\w:]|^)\/[\w#\-]*/;

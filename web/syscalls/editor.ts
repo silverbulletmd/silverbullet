@@ -17,7 +17,7 @@ import {
 import type { Transaction } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { getCM as vimGetCm, Vim } from "@replit/codemirror-vim";
-import type { SysCallMapping } from "$lib/plugos/system.ts";
+import type { SysCallMapping } from "../../lib/plugos/system.ts";
 import type {
   FilterOption,
   VimConfig,

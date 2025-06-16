@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { applyUrlPrefix, removeUrlPrefix } from "$lib/url_prefix.ts";
+import { applyUrlPrefix, removeUrlPrefix } from "./url_prefix.ts";
 
 Deno.test("url_prefix - removeUrlPrefix - with value", async (t) => {
   await t.step("Absolute URL, present, should be removed", () => {

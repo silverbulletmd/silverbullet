@@ -1,5 +1,5 @@
 import type { SpacePrimitives } from "./space_primitives.ts";
-import type { NamespaceOperation } from "$lib/plugos/namespace.ts";
+import type { NamespaceOperation } from "../plugos/namespace.ts";
 import type { FileMeta } from "@silverbulletmd/silverbullet/types";
 import type { PlugNamespaceHook } from "../../web/hooks/plug_namespace.ts";
 

@@ -1,6 +1,6 @@
-import { sleep } from "$lib/async.ts";
 import { assertEquals } from "@std/assert";
 import { LimitedMap } from "./limited_map.ts";
+import { sleep } from "./async.ts";
 
 Deno.test("limited map", async () => {
   const mp = new LimitedMap<string>(3);

@@ -1,13 +1,13 @@
-import type { SysCallMapping } from "$lib/plugos/system.ts";
+import type { SysCallMapping } from "../../lib/plugos/system.ts";
 import {
   performLocalFetch,
   type ProxyFetchRequest,
   type ProxyFetchRequest64,
   type ProxyFetchResponse,
   type ProxyFetchResponse64,
-} from "$lib/proxy_fetch.ts";
+} from "../../lib/proxy_fetch.ts";
 import type { Client } from "../client.ts";
-import { base64Decode, base64Encode } from "$lib/crypto.ts";
+import { base64Decode, base64Encode } from "../../lib/crypto.ts";
 
 export function sandboxFetchSyscalls(
   client: Client,

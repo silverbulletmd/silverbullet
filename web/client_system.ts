@@ -27,13 +27,13 @@ import {
   dataStoreReadSyscalls,
   dataStoreWriteSyscalls,
 } from "./syscalls/datastore.ts";
-import type { DataStore } from "$lib/data/datastore.ts";
+import type { DataStore } from "../lib/data/datastore.ts";
 import { languageSyscalls } from "./syscalls/language.ts";
 import { codeWidgetSyscalls } from "./syscalls/code_widget.ts";
 import { clientCodeWidgetSyscalls } from "./syscalls/client_code_widget.ts";
-import { KVPrimitivesManifestCache } from "$lib/plugos/manifest_cache.ts";
+import { KVPrimitivesManifestCache } from "../lib/plugos/manifest_cache.ts";
 import { createKeyBindings } from "./editor_state.ts";
-import type { DataStoreMQ } from "$lib/data/mq.datastore.ts";
+import type { DataStoreMQ } from "../lib/data/mq.datastore.ts";
 import { plugPrefix } from "../lib/spaces/constants.ts";
 import { jsonschemaSyscalls } from "./syscalls/jsonschema.ts";
 import { luaSyscalls } from "./syscalls/lua.ts";
@@ -42,7 +42,7 @@ import { configSyscalls } from "./syscalls/config.ts";
 import { eventListenerSyscalls } from "./syscalls/event.ts";
 import { DocumentEditorHook } from "./hooks/document_editor.ts";
 import type { LuaCollectionQuery } from "../lib/space_lua/query_collection.ts";
-import type { Command } from "$lib/command.ts";
+import type { Command } from "../lib/command.ts";
 import { SpaceLuaEnvironment } from "./space_lua.ts";
 import {
   type ILuaFunction,

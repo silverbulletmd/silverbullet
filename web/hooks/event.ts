@@ -1,8 +1,8 @@
 // deno-lint-ignore-file ban-types
-import type { Manifest } from "$lib/plugos/types.ts";
-import type { System } from "$lib/plugos/system.ts";
-import type { EventHookI } from "$lib/plugos/eventhook.ts";
-import type { EventHookT } from "$lib/manifest.ts";
+import type { Manifest } from "../../lib/plugos/types.ts";
+import type { System } from "../../lib/plugos/system.ts";
+import type { EventHookI } from "../../lib/plugos/eventhook.ts";
+import type { EventHookT } from "../../lib/manifest.ts";
 import type { Config } from "../config.ts";
 
 // System events:

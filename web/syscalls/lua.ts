@@ -1,4 +1,4 @@
-import type { SysCallMapping } from "$lib/plugos/system.ts";
+import type { SysCallMapping } from "../../lib/plugos/system.ts";
 import { evalExpression } from "../../lib/space_lua/eval.ts";
 import { parse, parseExpressionString } from "../../lib/space_lua/parse.ts";
 import {
@@ -7,7 +7,7 @@ import {
   luaValueToJS,
 } from "../../lib/space_lua/runtime.ts";
 import { buildThreadLocalEnv } from "../space_lua_api.ts";
-import { isSendable } from "$lib/plugos/util.ts";
+import { isSendable } from "../../lib/plugos/util.ts";
 import type { LuaBlock, LuaExpression } from "../../lib/space_lua/ast.ts";
 import type { ClientSystem } from "../client_system.ts";
 

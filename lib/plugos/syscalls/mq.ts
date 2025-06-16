@@ -1,4 +1,4 @@
-import type { DataStoreMQ } from "$lib/data/mq.datastore.ts";
+import type { DataStoreMQ } from "../../data/mq.datastore.ts";
 import type { SysCallMapping } from "../system.ts";
 
 export function mqSyscalls(

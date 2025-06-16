@@ -1,4 +1,4 @@
-import type { SysCallMapping } from "$lib/plugos/system.ts";
+import type { SysCallMapping } from "../../lib/plugos/system.ts";
 import type {
   LuaCollectionQuery,
   LuaQueryCollection,
