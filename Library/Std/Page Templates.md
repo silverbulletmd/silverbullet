@@ -8,22 +8,26 @@ To create a page template, create a page and tag it with `#meta/template/page`.
 The last component of the page name will be used as the template name.
 
 ## Cursor placement
-In the template’s body text, you can optionally use `|^|` as a placeholder for where the cursor should be after creating the page.
+In the template’s body text, you can optionally use `|^|` as a placeholder for where the cursor should be after creating
+the page.
 
 ## Configuration
 Optional keys you can set in the page’s frontmatter:
 
 * `suggestedName`: the proposed name for the new page, can use embedded Lua expressions, like `Daily/${date.today()}`.
 * `confirmName`: Confirm the suggested page name before creating it (defaults to `true`).
-* `openIfExists`: If a page with the `suggestedName` already exists, open it rather than attempting to create it anew. 
+* `openIfExists`: If a page with the `suggestedName` already exists, open it rather than attempting to create it anew.
 * `command`: expose the page template as a command with this name.
 * `key`: Bind the snippet to a keyboard shortcut (note: this requires to _also_ specify the `command` configuration).
 * `mac`: Bind the snippet to a Mac-specific keyboard shortcut.
 * `frontmatter`: Frontmatter (encoded as a string) to set in the resulting page.
-* `priority`: Similar to how space lua scripts are loaded, this controls the order in which page template _commands_ are created (see "overriding page templates" below)
+* `priority`: Similar to how space lua scripts are loaded, this controls the order in which page template _commands_ are
+  created (see "overriding page templates" below)
 
 ## Example: Daily note
-The following creates a page template that can be run using the `Journal: Daily Note` command, it automatically creates `Daily/today’s date` if it does not already exist with a bulleted list, putting the cursor at the first bullet. If the page already exists, it navigates there.
+The following creates a page template that can be run using the `Journal: Daily Note` command, it automatically creates
+`Daily/today’s date` if it does not already exist with a bulleted list, putting the cursor at the first bullet. If the
+page already exists, it navigates there.
 
 ~~~
 ---
@@ -37,18 +41,27 @@ tags: meta/template/page
 ~~~
 
 # Currently active page templates
+
 ${template.each(query[[
-  from index.tag "meta/template/page"
-  where _.tag == "page"
+from index.tag "meta/template/page"
+where _.tag == "page"
 ]], templates.fullPageItem)}
 
 # Instantiating page templates
-You can create a page based on a page template via the ${widgets.commandButton("Page: From Template")} command, or via the command name that you defined in your template’s frontmatter.
+
+You can create a page based on a page template via the ${widgets.commandButton("Page: From Template")} command, or via
+the command name that you defined in your template’s frontmatter.
 
 # Overriding page templates
-If you would like to override an existing page template (for instance the Quick Note) template with your own, you can take advantage of the load order determined by the `priority` frontmatter. Built in page templates will have a priority set that is higher than the default. Therefore, their commands and keybindings will be set early. Therefore, by simply defining your own version of the page template _with the same command name_ will let that version override the versions that are built in.
+
+If you would like to override an existing page template (for instance the Quick Note) template with your own, you can
+take advantage of the load order determined by the `priority` frontmatter. Built in page templates will have a priority
+set that is higher than the default. Therefore, their commands and keybindings will be set early. Therefore, by simply
+defining your own version of the page template _with the same command name_ will let that version override the versions
+that are built in.
 
 ## Example: overriding the Quick Note template
+
 ~~~
 ---
 command: Quick Note
@@ -110,6 +123,7 @@ for pt in query[[
       createPageFromTemplate(pt.name, pageName)
     end
   }
+  print("Registered", pt.command)
 end
 
 command.define {

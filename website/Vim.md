@@ -3,16 +3,13 @@ ${widgets.commandButton("Editor: Toggle Vim Mode")} command.
 
 In addition, it supports various ex commands that you can run as you would expect, for instance: `:imap jj <Esc>`.
 
-These commands can be configured in a [[VIMRC]] file placed in the root directory.
-Alternatively, the [[CONFIG]] file can also be used to define and extend these commands. It supports the following:
+The [[CONFIG]] file can also be used to define and extend these commands. It supports the following:
+
 - **Key unmapping** - disable existing keybindings
 - **Custom mappings** - using `map` and `noremap`
 - **Ex command definitions** - map custom ex commands to built-in or custom SilverBullet commands
 
-Both the [[VIMRC]] and [[CONFIG]] files will run on boot and work alongside each other.
-
-To manually reload the `vim` section of your [[CONFIG]], use the
-${widgets.commandButton("Editor: Vim: Load Vim Config")} command.
+To manually reload the `vim` section of your [[CONFIG]], use the ${widgets.commandButton("Editor: Vim: Load Vim Config")} command.
 
 # Configuration
 Using Space Lua:

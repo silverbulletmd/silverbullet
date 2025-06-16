@@ -10,7 +10,12 @@ import {
 } from "../../lib/space_lua/runtime.ts";
 
 import type { Client } from "../client.ts";
-import type { TagDef } from "../space_script.ts";
+
+type TagDef = {
+  name: string;
+  schema?: any;
+  metatable?: any;
+};
 
 export function indexSyscalls(client: Client): SysCallMapping {
   return {
@@ -28,11 +33,15 @@ export function indexSyscalls(client: Client): SysCallMapping {
             sf,
             (key, value: any) => {
               const tag = key[1];
-              const tagDef = client.clientSystem.scriptEnv.tagDefs[tag];
+              const tagDef = client.config.get<Record<string, TagDef>>(
+                "tagDefinitions",
+                {},
+              )[tag];
               if (!tagDef) {
                 // Return as is
                 return value;
               }
+              console.log("Found this tagDef", tagDef);
               // Convert to LuaTable
               value = jsToLuaValue(value);
               value.metatable = tagDef.metatable;
@@ -43,7 +52,7 @@ export function indexSyscalls(client: Client): SysCallMapping {
       };
     },
     "index.defineTag": (_ctx, tagDef: TagDef) => {
-      client.clientSystem.scriptEnv.registerTag(tagDef);
+      client.config.set(tagDef.name, tagDef);
     },
   };
 }

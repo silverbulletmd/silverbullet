@@ -21,6 +21,11 @@ export class Config {
     });
   }
 
+  public clear() {
+    this.schemas = {};
+    this.values = {};
+  }
+
   /**
    * Defines a JSON schema for a configuration key
    * @param key The configuration key to define a schema for
@@ -44,7 +49,10 @@ export class Config {
    * @param defaultValue The default value to return if the path doesn't exist
    * @returns The value at the path, or the default value
    */
-  get<T>(path: string, defaultValue: T): T {
+  get<T>(path: string | string[], defaultValue: T): T {
+    if (typeof path === "string") {
+      path = path.split(".");
+    }
     const resolved = this.resolvePath(path);
     if (!resolved) {
       return defaultValue;
@@ -59,6 +67,12 @@ export class Config {
    * @param value The value to set
    */
   set<T>(path: string, value: T): void;
+  /**
+   * Sets a value in the config
+   * @param path The path to set (one path element per array element)
+   * @param value The value to set
+   */
+  set<T>(path: string[], value: T): void;
 
   /**
    * Sets multiple values in the config
@@ -66,24 +80,38 @@ export class Config {
    */
   set(values: Record<string, any>): void;
 
-  set<T>(keyOrValues: string | Record<string, any>, value?: T): void {
+  set<T>(
+    keyOrValues: string | string[] | Record<string, any>,
+    value?: T,
+  ): void {
     if (typeof keyOrValues === "string") {
-      const key = keyOrValues;
+      // Normalize
+      keyOrValues = keyOrValues.split(".");
+    }
+    if (Array.isArray(keyOrValues)) {
+      const key = keyOrValues as string[];
 
-      // Check if there's a schema for this key
-      if (this.schemas[key]) {
-        const validate = this.ajv.compile(this.schemas[key]);
-        if (!validate(value)) {
-          let errorText = this.ajv.errorsText(validate.errors);
-          errorText = errorText.replaceAll("/", ".");
-          errorText = errorText.replace(/^data[\.\s]/, "");
-          throw new Error(`Validation error for ${key}: ${errorText}`);
-        }
-      }
+      const rootKey = key[0];
 
       const resolved = this.resolvePath(key, true);
       if (resolved) {
         resolved.obj[resolved.key] = value;
+      } else {
+        throw new Error(`Invalid key ${key}`);
+      }
+
+      // Check if there's a schema for this key
+      if (this.schemas[rootKey]) {
+        const validate = this.ajv.compile(this.schemas[rootKey]);
+        // Validate against the new injected value
+        if (!validate(this.values[rootKey])) {
+          let errorText = this.ajv.errorsText(validate.errors);
+          errorText = errorText.replaceAll("/", ".");
+          errorText = errorText.replace(/^data[\.\s]/, "");
+          throw new Error(
+            `Validation error for ${key.join(".")}:> ${errorText}`,
+          );
+        }
       }
     } else {
       // Handle object form
@@ -98,7 +126,10 @@ export class Config {
    * @param path The path to check, supports dot notation (e.g. "foo.bar.baz")
    * @returns True if the path exists, false otherwise
    */
-  has(path: string): boolean {
+  has(path: string | string[]): boolean {
+    if (typeof path === "string") {
+      path = path.split(".");
+    }
     const resolved = this.resolvePath(path);
     if (!resolved) {
       return false;
@@ -116,25 +147,22 @@ export class Config {
   }
 
   /**
-   * Resolves a dot-notation path to the containing object and final key
-   * @param path The path to resolve (e.g. "foo.bar.baz")
+   * Resolves a configuration path to the containing object and final key
+   * @param path The path to resolve (e.g. ["foo", "bar", "baz"])
    * @param create Whether to create objects along the path if they don't exist
    * @returns The containing object and the final key, or null if the path cannot be resolved
    */
   private resolvePath(
-    path: string,
+    path: string[],
     create = false,
   ): { obj: any; key: string } | null {
-    if (!path.includes(".")) {
-      return { obj: this.values, key: path };
-    }
+    // To avoid side effects, let's clone the path bits
+    path = [...path];
 
-    const parts = path.split(".");
-    const lastKey = parts.pop()!;
-
+    const lastKey = path.pop()!;
     let current = this.values;
 
-    for (const part of parts) {
+    for (const part of path) {
       if (current[part] === undefined) {
         if (create) {
           current[part] = {};

@@ -8,41 +8,44 @@ config.set {
   actionButtons = {
     {
       icon = "home",
-      command = "Navigate: Home",
-      description = "Go to the index page"
+      description = "Go to the index page",
+      run = function()
+        system.invokeCommand("Navigate: Home")
+      end
     },
     {
       icon = "activity",
       description = "What's new",
-      command = "Navigate: To Page",
-      args = {"CHANGELOG"}
+      run = function()
+        editor.navigate {
+          page = "CHANGELOG"
+        }
+      end
     },
     {
       icon = "message-circle",
       description = "Community",
-      command = "Navigate: To URL",
-      args = {"https://community.silverbullet.md"}
+      run = function()
+        editor.openUrl "https://community.silverbullet.md"
+      end
     },
     {
       icon = "book",
-      command = "Navigate: Page Picker",
-      description = "Open page"
+      description = "Open page",
+      run = function()
+        system.invokeCommand("Navigate: Page Picker")
+      end
     },
     {
       icon = "terminal",
-      command = "Open Command Palette",
-      description = "Run command"
+      description = "Run command",
+      run = function()
+        system.invokeCommand "Open Command Palette"
+      end,
     }
   },
   smartQuotes = {
     enabled = true,
-  },
-  shortcuts = {
-    {
-      command = "Stats: Show",
-      key = "Ctrl-Shift-s",
-      slashCommand = "stats"
-    }
   },
   queryCollate = {
     enabled = true,

@@ -1,16 +1,18 @@
 import type { Manifest } from "$lib/plugos/types.ts";
 import type { System } from "$lib/plugos/system.ts";
-import type { ScriptEnvironment } from "../space_script.ts";
 import type { EventHookI } from "$lib/plugos/eventhook.ts";
 import type { EventHookT } from "$lib/manifest.ts";
+import type { Config } from "../config.ts";
 
 // System events:
 // - plug:load (plugName: string)
 
 export class EventHook implements EventHookI {
-  public scriptEnvironment?: ScriptEnvironment;
   private system?: System<EventHookT>;
   private localListeners: Map<string, ((...args: any[]) => any)[]> = new Map();
+
+  constructor(readonly config?: Config) {
+  }
 
   addLocalListener(eventName: string, callback: (...args: any[]) => any) {
     if (!this.localListeners.has(eventName)) {
@@ -97,12 +99,12 @@ export class EventHook implements EventHookI {
     }
 
     // Space script listeners
-    if (this.scriptEnvironment) {
-      for (
-        const [name, listeners] of Object.entries(
-          this.scriptEnvironment.eventHandlers,
-        )
-      ) {
+    if (this.config) {
+      const configListeners: Record<string, Function[]> = this.config.get(
+        "eventListeners",
+        {},
+      );
+      for (const [name, listeners] of Object.entries(configListeners)) {
         if (eventNameToRegex(name).test(eventName)) {
           for (const listener of listeners) {
             promises.push((async () => {

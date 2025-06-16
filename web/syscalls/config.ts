@@ -8,10 +8,12 @@ export function configSyscalls(client: Client): SysCallMapping {
     },
     "config.set": (
       _ctx,
-      keyOrValues: string | Record<string, any>,
+      keyOrValues: string | string[] | Record<string, any>,
       value?: any,
     ) => {
       if (typeof keyOrValues === "string") {
+        client.config.set(keyOrValues, value);
+      } else if (Array.isArray(keyOrValues)) {
         client.config.set(keyOrValues, value);
       } else {
         client.config.set(keyOrValues);

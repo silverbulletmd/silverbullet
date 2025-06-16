@@ -4,7 +4,7 @@ import type {
   CompletionResult,
 } from "@codemirror/autocomplete";
 import { Terminal } from "preact-feather";
-import type { AppCommand } from "../../lib/command.ts";
+import type { Command } from "../../lib/command.ts";
 import type {
   FilterOption,
   Shortcut,
@@ -17,42 +17,27 @@ export function CommandPalette({
   onTrigger,
   vimMode,
   darkMode,
-  config,
   completer,
 }: {
-  commands: Map<string, AppCommand>;
+  commands: Map<string, Command>;
   recentCommands: Map<string, Date>;
   vimMode: boolean;
   darkMode?: boolean;
   completer: (context: CompletionContext) => Promise<CompletionResult | null>;
-  config: Config;
-  onTrigger: (command: AppCommand | undefined) => void;
+  onTrigger: (command: Command | undefined) => void;
 }) {
   const options: FilterOption[] = [];
   const isMac = isMacLike();
   for (const [name, def] of commands.entries()) {
-    if (def.command.hide) {
+    if (def.hide) {
       continue;
-    }
-    let shortcut: { key?: string; mac?: string; priority?: number } =
-      def.command;
-    // Let's see if there's a shortcut override
-    if (config.has("shortcuts")) {
-      const shortcuts = config.get<Shortcut[]>("shortcuts", []);
-      const commandOverride = shortcuts.find((shortcut) =>
-        shortcut.command === name
-      );
-      if (commandOverride) {
-        shortcut = commandOverride;
-        // console.log(`Shortcut override for ${name}:`, shortcut);
-      }
     }
     options.push({
       name: name,
-      hint: isMac && shortcut.mac ? shortcut.mac : shortcut.key,
+      hint: isMac && def.mac ? def.mac : def.key,
       orderId: recentCommands.has(name)
         ? -recentCommands.get(name)!.getTime()
-        : shortcut.priority || Infinity,
+        : def.priority || Infinity,
     });
     // console.log("Options", options);
   }

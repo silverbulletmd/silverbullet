@@ -1,8 +1,8 @@
 import type { SyscallMeta } from "../../plug-api/types.ts";
 import type { SysCallMapping } from "../../lib/plugos/system.ts";
 import type { Client } from "../client.ts";
-import type { CommandDef } from "$lib/command.ts";
 import { version } from "../../version.ts";
+import { CommandDef } from "../../lib/manifest.ts";
 
 export function systemSyscalls(
   client: Client,
@@ -53,15 +53,15 @@ export function systemSyscalls(
     "system.listCommands": (): { [key: string]: CommandDef } => {
       const commandHook = client.clientSystem.commandHook;
       const allCommands: { [key: string]: CommandDef } = {};
-      for (const [cmd, def] of commandHook.editorCommands) {
+      for (const [cmd, def] of commandHook.buildAllCommands()) {
         allCommands[cmd] = {
-          name: def.command.name,
-          contexts: def.command.contexts,
-          priority: def.command.priority,
-          key: def.command.key,
-          mac: def.command.mac,
-          hide: def.command.hide,
-          requireMode: def.command.requireMode,
+          name: def.name,
+          contexts: def.contexts,
+          priority: def.priority,
+          key: def.key,
+          mac: def.mac,
+          hide: def.hide,
+          requireMode: def.requireMode,
         };
       }
       return allCommands;

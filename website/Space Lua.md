@@ -34,7 +34,7 @@ It is possible to control load order of space lua scripts using the special `-- 
 
 Scripts are loaded in _reverse priority_ order. When you set no priority (the default) your scripts will be run last.
 
-The order used is determined by this [[Space Lua/Lua Integrated Query|query]] (also part of your [[^Library/Std/Space Overview]]) page: 
+The order used is determined by this [[Space Lua/Lua Integrated Query|query]] (also part of your [[^Library/Std/Space Overview]]) page:
 
     query[[
       from index.tag "space-lua"
@@ -45,9 +45,9 @@ This means that the higher the priority, the earlier the script is loaded. That 
 
 Here are the conventions used by the [[Library/Std]] library:
 
-  * `priority: 100` for config definitions (schemas)
-  * `priority: 50` for setting really core and root variables (like `template.*` APIs) that will be used by other scripts
-  * `priority: 10`: for standard library definitions that may be overriden (by scripts with lower priority)
+* `priority: 100` for config definitions (schemas)
+* `priority: 50` for setting really core and root variables (like `template.*` APIs) that will be used by other scripts
+* `priority: 10`: for standard library definitions that may be overriden (by scripts with lower priority)
 
 > **note** Tip
 > All your space-lua scripts are loaded on boot, to reload them without reloading the page, simply run the ${widgets.commandButton("System: Reload")} (Ctrl-Alt-r) command.
@@ -72,6 +72,7 @@ ${query[[
 [[Space Lua/Widgets]]
 
 ## Commands
+
 Custom commands can be defined using [[API/command#command.define(commandDef)]]:
 
 ```space-lua
@@ -87,10 +88,11 @@ command.define {
 Try it: ${widgets.commandButton("Hello World")}
 
 ## Slash commands
-Custom slash commands can be defined using [[API/slashcommand#slashcommand.define(spec)]]:
+
+Custom slash commands can be defined using [[API/slashcommand#slashCommand.define(spec)]]:
 
 ```space-lua
-slashcommand.define {
+slashCommand.define {
   name = "hello",
   run = function()
 editor.insertAtCursor("Hello |^| world!", false, true)
@@ -99,6 +101,7 @@ editor.insertAtCursor("Hello |^| world!", false, true)
 ```
 
 ## Event listeners
+
 You can listen to events using [[API/event#event.listen(listenerDef)]]:
 
 ```space-lua
@@ -112,21 +115,25 @@ event.listen {
 ```
 
 # Space Lua Extensions
+
 Space Lua introduces a few new features on top core Lua:
 
 1. [[Space Lua/Lua Integrated Query]], embedding a query language into Lua itself
 2. Thread locals
 
 ## Thread locals
+
 There's a magic `_CTX` global variable available from which you can access useful context-specific values. Currently the following keys are available:
 
 * `_CTX.currentPage` providing access (in the client only) to the currently open page (PageMeta object)
 * `_CTX._GLOBAL` providing access to the global scope
 
 # API
+
 ![[API]]
 
 # Lua implementation notes
+
 Space Lua is intended to be a more or less complete implementation of [Lua 5.4](https://www.lua.org/manual/5.4/). However, a few features are (still) missing:
 
 * `goto` and labels (not planned, goto considered harmful)
@@ -136,8 +143,11 @@ Space Lua is intended to be a more or less complete implementation of [Lua 5.4](
 * Hexadecimal numeric constants with a fractional part, or binary exponents (not supported by JavaScript number parser either)
 
 # Frequently Asked Questions
+
 ## Why Lua?
+
 Lua is purpose-designed to be a simple, [easy to learn](https://www.lua.org/manual/5.4/), yet powerful language for extending existing applications. It is commonly used in the gaming industry, but to extend many other applications. If you know any other programming language, you will be able to learn Lua within hours or less.
 
 ## Why a custom Lua runtime?
+
 Rather than using a WebAssembly or other implementation of Lua that could run in the browser and server, we have opted for a custom implementation. This is achievable because Lua is a relatively simple and small language to implement and allows for deep integration in the custom Lua runtime. The thing that triggered a custom implementation was the need to call asynchronous (JavaScipt) APIs from Lua, without having to resort to ugly asynchronous callback-style API design (Lua does not support async-await). In SilverBullet’s Lua implementation, the differences between asynchronous and synchronous APIs is fully abstracted away, which makes for a very clean development experience.

@@ -4,7 +4,11 @@ import { FilterList } from "./components/filter.tsx";
 import { PageNavigator } from "./components/page_navigator.tsx";
 import { TopBar } from "./components/top_bar.tsx";
 import reducer from "./reducer.ts";
-import { type Action, type AppViewState, initialViewState } from "./type.ts";
+import {
+  type Action,
+  type AppViewState,
+  initialViewState,
+} from "./ui_types.ts";
 import * as featherIcons from "preact-feather";
 import * as mdi from "./filtered_material_icons.ts";
 import { h, render as preactRender } from "preact";
@@ -214,9 +218,9 @@ export class MainUI {
             onTrigger={(cmd) => {
               dispatch({ type: "hide-palette" });
               if (cmd) {
-                dispatch({ type: "command-run", command: cmd.command.name });
+                dispatch({ type: "command-run", command: cmd.name });
                 cmd
-                  .run()
+                  .run!()
                   .catch((e: any) => {
                     console.error("Error running command", e.message);
                   })
@@ -235,7 +239,6 @@ export class MainUI {
             darkMode={viewState.uiOptions.darkMode}
             completer={client.miniEditorComplete.bind(client)}
             recentCommands={viewState.recentCommands}
-            config={client.config}
           />
         )}
         {viewState.showFilterBox && (
@@ -334,7 +337,7 @@ export class MainUI {
             // Custom action buttons
             ...client.config.get<ActionButton[]>(
               "actionButtons",
-              defaultActionButtons,
+              [],
             ).filter((
               button,
             ) =>
@@ -351,12 +354,7 @@ export class MainUI {
                 return {
                   icon: mdiIcon ? mdiIcon : featherIcon,
                   description: button.description || "",
-                  callback: () => {
-                    client.runCommandByName(
-                      button.command,
-                      button.args || [],
-                    );
-                  },
+                  callback: button.run,
                   href: "",
                 };
               }),
@@ -423,28 +421,9 @@ export class MainUI {
 type ActionButton = {
   icon: string;
   description?: string;
-  command: string;
-  args?: any[];
   mobile?: boolean;
+  run: () => void;
 };
-
-export const defaultActionButtons: ActionButton[] = [
-  {
-    icon: "Home",
-    description: "Go to the index page",
-    command: "Navigate: Home",
-  },
-  {
-    icon: "Book",
-    description: `Open page`,
-    command: "Navigate: Page Picker",
-  },
-  {
-    icon: "Terminal",
-    description: `Run command`,
-    command: "Open Command Palette",
-  },
-];
 
 function kebabToCamel(str: string) {
   return str.replace(/-([a-z])/g, (g) => g[1].toUpperCase()).replace(

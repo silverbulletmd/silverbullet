@@ -38,14 +38,21 @@ import { plugPrefix } from "../lib/spaces/constants.ts";
 import { jsonschemaSyscalls } from "./syscalls/jsonschema.ts";
 import { luaSyscalls } from "./syscalls/lua.ts";
 import { indexSyscalls } from "./syscalls/index.ts";
-import { commandSyscalls } from "./syscalls/command.ts";
 import { configSyscalls } from "./syscalls/config.ts";
 import { eventListenerSyscalls } from "./syscalls/event.ts";
 import { DocumentEditorHook } from "./hooks/document_editor.ts";
 import type { LuaCollectionQuery } from "../lib/space_lua/query_collection.ts";
-import type { AppCommand } from "$lib/command.ts";
-import { ScriptEnvironment } from "./space_script.ts";
+import type { Command } from "$lib/command.ts";
 import { SpaceLuaEnvironment } from "./space_lua.ts";
+import {
+  ILuaFunction,
+  jsToLuaValue,
+  luaCall,
+  LuaStackFrame,
+  LuaValue,
+  luaValueToJS,
+} from "../lib/space_lua/runtime.ts";
+import { buildThreadLocalEnv, handleLuaError } from "./space_lua_api.ts";
 
 const plugNameExtractRegex = /\/(.+)\.plug\.js$/;
 const indexVersionKey = ["$indexVersion"];
@@ -68,8 +75,7 @@ export class ClientSystem {
   documentEditorHook!: DocumentEditorHook;
 
   readonly allKnownFiles = new Set<string>();
-  readonly scriptCommands = new Map<string, AppCommand>();
-  scriptEnv: ScriptEnvironment = new ScriptEnvironment();
+  readonly scriptCommands = new Map<string, Command>();
   spaceLuaEnv = new SpaceLuaEnvironment();
   scriptsLoaded: boolean = false;
   private indexOngoing = false;
@@ -160,7 +166,7 @@ export class ClientSystem {
     this.system.registerSyscalls(
       [],
       eventSyscalls(this.eventHook),
-      eventListenerSyscalls(this),
+      eventListenerSyscalls(this.client),
       editorSyscalls(this.client),
       spaceReadSyscalls(this.client),
       systemSyscalls(client, false),
@@ -172,7 +178,7 @@ export class ClientSystem {
       languageSyscalls(),
       jsonschemaSyscalls(),
       indexSyscalls(client),
-      commandSyscalls(this),
+      //commandSyscalls(client),
       luaSyscalls(this),
       mqSyscalls(this.mq),
       dataStoreReadSyscalls(this.ds, this),
@@ -208,7 +214,7 @@ export class ClientSystem {
       );
       return;
     }
-    this.scriptEnv = new ScriptEnvironment();
+    this.client.config.clear();
     try {
       await this.spaceLuaEnv.reload(this.system);
     } catch (e: any) {
@@ -217,15 +223,16 @@ export class ClientSystem {
 
     // Reset the space script commands
     this.scriptCommands.clear();
-    for (const [name, command] of Object.entries(this.scriptEnv.commands)) {
+    for (
+      const [name, command] of Object.entries(
+        this.client.config.get<Record<string, Command>>("commands", {}),
+      )
+    ) {
       this.scriptCommands.set(name, command);
     }
 
-    // Inject the registered events in the event hook
-    this.eventHook.scriptEnvironment = this.scriptEnv;
-
     // Make scripted (slash) commands available
-    this.commandHook.throttledBuildAllCommands();
+    this.commandHook.throttledBuildAllCommandsAndEmit();
     this.slashCommandHook.throttledBuildAllCommands();
 
     this.scriptsLoaded = true;
@@ -302,6 +309,25 @@ export class ClientSystem {
       await this.loadScripts();
       await this.client.loadCustomStyles();
       this.client.rebuildEditorState();
+    }
+  }
+
+  public async evalLuaFunction(
+    luaFunction: ILuaFunction,
+    args: LuaValue[],
+  ): Promise<LuaValue> {
+    const tl = await buildThreadLocalEnv(
+      this.system,
+      this.spaceLuaEnv.env,
+    );
+    const sf = new LuaStackFrame(tl, null);
+    try {
+      return luaValueToJS(
+        await luaCall(luaFunction, args.map(jsToLuaValue), {}, sf),
+        sf,
+      );
+    } catch (e: any) {
+      await handleLuaError(e, this.system);
     }
   }
 

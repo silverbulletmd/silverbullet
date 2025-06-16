@@ -5,4 +5,3 @@ All special pages except [[CONFIG]] are optional: if they don’t exist, well, t
 Here are the current list of “special pages” known to humankind:
 
 * [[CONFIG]] for setting various settings
-* [[VIMRC]] for tweaking [[Vim]] mode

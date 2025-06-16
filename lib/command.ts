@@ -1,36 +1,20 @@
-import type { SlashCommandDef } from "$lib/manifest.ts";
+import type { CommandDef, SlashCommandDef } from "$lib/manifest.ts";
+import { SlashCompletions } from "@silverbulletmd/silverbullet/types";
 
-export type CommandDef = {
-  name: string;
-
-  contexts?: string[];
-
-  // Default 0, higher is higher priority = higher in the list
-  priority?: number;
-
-  // Bind to keyboard shortcut
-  key?: string;
-  mac?: string;
-
-  hide?: boolean;
-  requireMode?: "rw" | "ro";
-  requireEditor?: "any" | "page" | "notpage" | string;
+export type RunnableCommand = {
+  run?: (args?: any[]) => Promise<void>;
 };
 
-export type AppCommand = {
-  command: CommandDef;
-  run: (args?: any[]) => Promise<void>;
-};
-
-export type SlashCommand = {
-  slashCommand: SlashCommandDef;
-  run: (args?: any[]) => Promise<void>;
+export type Command = CommandDef & RunnableCommand;
+export type SlashCommand = SlashCommandDef & {
+  run: (...args: any[]) => Promise<SlashCompletions>;
 };
 
 export type CommandHookEvents = {
-  commandsUpdated(commandMap: Map<string, AppCommand>): void;
+  commandsUpdated(commands: Map<string, Command>): void;
 };
 
+// TODO: Move this elsewhere
 export function isValidEditor(
   currentEditor: string | undefined,
   requiredEditor: string | undefined,

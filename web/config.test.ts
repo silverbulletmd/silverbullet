@@ -6,7 +6,7 @@ Deno.test("Config - basic functionality", () => {
 
   // Test set and get
   config.set("testKey", "testValue");
-  assertEquals(config.get("testKey", null), "testValue");
+  assertEquals(config.get(["testKey"], null), "testValue");
 
   // Test default value
   assertEquals(config.get("nonExistentKey", "default"), "default");
@@ -31,7 +31,7 @@ Deno.test("Config - object-based setting", () => {
   assertEquals(config.get("key3", 0), 123);
 });
 
-Deno.test("Config - dot notation", () => {
+Deno.test("Config - paths", () => {
   const config = new Config();
 
   // Test setting with dot notation
@@ -42,17 +42,26 @@ Deno.test("Config - dot notation", () => {
   assertEquals(config.get("user.name", null), "John");
   assertEquals(config.get("user.profile.age", 0), 30);
 
+  config.set(["user", "name"], "Pete");
+  config.set(["user", "profile", "age"], 20);
+  assertEquals(config.get(["user", "name"], null), "Pete");
+  assertEquals(config.get(["user", "profile", "age"], 0), 20);
+
   // Test has with dot notation
   assert(config.has("user.name"));
   assert(config.has("user.profile"));
   assert(config.has("user.profile.age"));
   assert(!config.has("user.profile.nonExistent"));
 
+  // Test with path notation
+  assert(config.has(["user", "name"]));
+  assert(config.has(["user", "profile", "age"]));
+
   // Test getting the entire object
   assertEquals(config.get("user", {}), {
-    name: "John",
+    name: "Pete",
     profile: {
-      age: 30,
+      age: 20,
     },
   });
 });
@@ -137,6 +146,8 @@ Deno.test("Config - schema validation", () => {
     email: "john@example.com",
   });
 
+  config.set("user.name", "John");
+
   // Missing required field should throw
   assertThrows(
     () => {
@@ -155,6 +166,15 @@ Deno.test("Config - schema validation", () => {
         name: "John",
         age: "thirty", // Should be a number
       });
+    },
+    Error,
+    "Validation error for user",
+  );
+
+  // Wrong type should throw with path
+  assertThrows(
+    () => {
+      config.set(["user", "name"], 22);
     },
     Error,
     "Validation error for user",

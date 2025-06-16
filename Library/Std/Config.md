@@ -3,7 +3,7 @@
 SilverBullet's configuration can be tweaked using the `config.set` Space Lua API. This page defines all built-in
 configurations available. Individual Plugs and Space Lua scripts may define their own.
 
-# Built-in options
+# Built-in options (schema)
 
 This defines the [JSON schema](https://json-schema.org/) for built-in configuration.
 
@@ -12,10 +12,7 @@ This defines the [JSON schema](https://json-schema.org/) for built-in configurat
 config.define("plugs", {
   description = "List of plugs to enable",
   oneOf = {
-    {
-      type = "array",
-      items = { type = "string" }
-    },
+    schema.array "string",
     { -- only as a fallback for an empty table in Lua
       type = "object",
     }
@@ -33,44 +30,61 @@ config.define("emoji", {
   properties = {
     aliases = {
       type = "object",
-      additionalProperties = {  type = "string" }
+      additionalProperties = schema.string(),
     }
   }
 })
 
-config.define("shortcuts", {
-  type = "array",
-  items = {
+config.define("commands", {
+  type = "object",
+  additionalProperties = {
     type = "object",
     properties = {
-      command = {
-        type = "string",
-        description = "Command we're creating the shortcut for"
+      name = schema.string(),
+      contexts = schema.nullableArray "string",
+      priority = schema.nullable "number",
+      key = schema.nullable "string",
+      mac = schema.nullable "string",
+      hid = schema.nullable "boolean",
+      requireMode = schema.nullable {
+        type = "string", 
+        enum = {"rw", "ro"},
       },
-      args = {
-        type = "array",
-        description = "Optional array of arguments for the command"
-      },
-      key = {
-        type = "string",
-        description = "(Re)bind to keyboard shortcut"
-      },
-      mac = {
-        type = "string",
-        description = "Mac-specific keyboard shortcut"
-      },
-      slashCommand = {
-        type = "string",
-        description = "Bind to slash command"
-      },
-      priority = {
-        type = "number",
-        description = "Tweak priority in command palette"
-      }
+      requireEditor = schema.nullable("string"),
+      run = schema.func(),
     },
-    required = {"command"},
-    additionalProperties = false
-  }
+  },
+})
+
+config.define("slashCommands", {
+  type = "object",
+  additionalProperties = {
+    type = "object",
+    properties = {
+      name = schema.string(),
+      description = schema.nullable "string",
+      priority = schema.nullable "number",
+      onlyContexts = schema.nullableArray "string",
+      exceptContexts = schema.nullableArray "string",
+      run = schema.func(),
+    },
+  },
+})
+
+config.define("eventHandlers", {
+  type = "object",
+  additionalProperties = schema.array(schema.func()),
+})
+
+config.define("tagDefinitions", {
+  type = "object",
+  additionalProperties = {
+    type = "object",
+    properties = {
+      schema = { type = "object" },
+      metatable = { type = "object" },
+    },
+  },
 })
 
 config.define("smartQuotes", {
@@ -130,20 +144,13 @@ config.define("actionButtons", {
         type = "string",
         description = "Optional description of the action button"
       },
-      command = {
-        type = "string",
-        description = "Command the action button executes"
-      },
-      args = {
-        type = "array",
-        description = "Optional array of arguments for the command"
-      },
       mobile = {
         type = "boolean",
         description = "Optional boolean indicating if the action button is applicable for mobile"
-      }
+      },
+      run = schema.func(),
     },
-    required = {"icon", "command"},
+    required = {"icon", "run"},
     additionalProperties = false
   }
 })
@@ -244,4 +251,35 @@ config.define("queryCollation", {
   },
   additionalProperties = false
 })
+```
+
+Some default values
+
+```space-lua
+-- priority: 99
+config.set {
+  actionButtons = {
+    {
+      icon = "home",
+      description = "Go to the index page",
+      run = function()
+        system.invokeCommand("Navigate: Home")
+      end
+    },
+    {
+      icon = "book",
+      description = "Open page",
+      run = function()
+        system.invokeCommand("Navigate: Page Picker")
+      end
+    },
+    {
+      icon = "terminal",
+      description = "Run command",
+      run = function()
+        system.invokeCommand "Open Command Palette"
+      end,
+    }
+  },
+}
 ```

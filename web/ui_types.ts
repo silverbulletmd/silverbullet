@@ -1,4 +1,4 @@
-import type { AppCommand } from "../lib/command.ts";
+import type { Command } from "../lib/command.ts";
 import type { FilterOption, Notification, PanelMode } from "../type/client.ts";
 import type {
   DocumentMeta,
@@ -40,7 +40,7 @@ export type AppViewState = {
   progressType?: string; // Used for styling
 
   panels: { [key: string]: PanelConfig };
-  commands: Map<string, AppCommand>;
+  commands: Map<string, Command>;
   notifications: Notification[];
   recentCommands: Map<string, Date>;
 
@@ -127,7 +127,7 @@ export type Action =
   | { type: "stop-navigate" }
   | {
     type: "update-commands";
-    commands: Map<string, AppCommand>;
+    commands: Map<string, Command>;
   }
   | { type: "show-palette"; context?: string }
   | { type: "hide-palette" }

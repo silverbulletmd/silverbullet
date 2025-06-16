@@ -305,53 +305,21 @@ export function createEditorState(
 export function createCommandKeyBindings(client: Client): KeyBinding[] {
   const commandKeyBindings: KeyBinding[] = [];
 
-  // Track which keyboard shortcuts for which commands we've overridden, so we can skip them later
-  const overriddenCommands = new Set<string>();
-  // Keyboard shortcuts from SETTINGS take precedence
-  if (client.config.has("shortcuts")) {
-    for (const shortcut of client.config.get<Shortcut[]>("shortcuts", [])) {
-      overriddenCommands.add(shortcut.command);
-      commandKeyBindings.push({
-        key: shortcut.key,
-        mac: shortcut.mac,
-        run: (): boolean => {
-          client.runCommandByName(shortcut.command, shortcut.args).catch(
-            (e: any) => {
-              console.error(e);
-              client.flashNotification(
-                `Error running command: ${e.message}`,
-                "error",
-              );
-            },
-          ).then((returnValue: any) => {
-            // Always be focusing the editor after running a command
-            if (returnValue !== false) {
-              client.focus();
-            }
-          });
-          return true;
-        },
-      });
-    }
-  }
-
   // Then add bindings for plug commands
-  for (const def of client.clientSystem.commandHook.editorCommands.values()) {
+  for (
+    const def of client.clientSystem.commandHook.buildAllCommands().values()
+  ) {
     const currentEditor = client.documentEditor?.name;
-    const requiredEditor = def.command.requireEditor;
+    const requiredEditor = def.requireEditor;
 
-    if (def.command.key && isValidEditor(currentEditor, requiredEditor)) {
-      // If we've already overridden this command, skip it
-      if (overriddenCommands.has(def.command.name)) {
-        continue;
-      }
+    if (def.key && isValidEditor(currentEditor, requiredEditor)) {
       commandKeyBindings.push({
-        key: def.command.key,
-        mac: def.command.mac,
+        key: def.key,
+        mac: def.mac,
         run: (): boolean => {
-          if (def.command.contexts) {
+          if (def.contexts) {
             const context = client.getContext();
-            if (!context || !def.command.contexts.includes(context)) {
+            if (!context || !def.contexts.includes(context)) {
               return false;
             }
           }

@@ -10,14 +10,14 @@ import type { SyntaxNode } from "@lezer/common";
 import { Space } from "./space.ts";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 import { EventHook } from "./hooks/event.ts";
-import { type AppCommand, isValidEditor } from "$lib/command.ts";
+import { type Command, isValidEditor } from "$lib/command.ts";
 import {
   type LocationState,
   parseRefFromURI,
   PathPageNavigator,
 } from "./navigator.ts";
 
-import type { AppViewState } from "./type.ts";
+import type { AppViewState } from "./ui_types.ts";
 
 import type {
   AppEvent,
@@ -95,8 +95,9 @@ type WidgetCacheItem = {
 };
 
 export class Client {
+  readonly config = new Config();
   // Event bus used to communicate between components
-  eventHook = new EventHook();
+  eventHook = new EventHook(this.config);
 
   space!: Space;
 
@@ -107,7 +108,6 @@ export class Client {
   ui!: MainUI;
   ds!: DataStore;
   mq!: DataStoreMQ;
-  config = new Config();
 
   // CodeMirror editor
   editorView!: EditorView;
@@ -1296,9 +1296,9 @@ export class Client {
     const cmd = this.ui.viewState.commands.get(name);
     if (cmd) {
       if (args) {
-        await cmd.run(args);
+        await cmd.run!(args);
       } else {
-        await cmd.run();
+        await cmd.run!();
       }
     } else {
       throw new Error(`Command ${name} not found`);
@@ -1307,19 +1307,19 @@ export class Client {
 
   getCommandsByContext(
     state: AppViewState,
-  ): Map<string, AppCommand> {
+  ): Map<string, Command> {
     const currentEditor = client.documentEditor?.name;
     const commands = new Map(state.commands);
     for (const [k, v] of state.commands.entries()) {
       if (
-        v.command.contexts &&
+        v.contexts &&
         (!state.showCommandPaletteContext ||
-          !v.command.contexts.includes(state.showCommandPaletteContext))
+          !v.contexts.includes(state.showCommandPaletteContext))
       ) {
         commands.delete(k);
       }
 
-      const requiredEditor = v.command.requireEditor;
+      const requiredEditor = v.requireEditor;
       if (!isValidEditor(currentEditor, requiredEditor)) {
         commands.delete(k);
       }

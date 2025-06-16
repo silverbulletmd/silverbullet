@@ -1,78 +1,6 @@
 name: editor
 requiredPermissions:
   - fetch
-config:
-  schema.config.properties:
-    shortcuts:
-      type: array
-      items:
-        type: object
-        properties:
-          command:
-            type: string
-          key:
-            type: string
-            nullable: true
-          mac:
-            type: string
-            nullable: true
-          slashCommand:
-            type: string
-            nullable: true
-          priority:
-            type: number
-            nullable: true
-        required:
-          - command
-      nullable: true
-    useSmartQuotes:
-      type: boolean
-      nullable: true
-    pwaOpenLastPage:
-      type: boolean
-      nullable: true
-    hideEditButton:
-      type: boolean
-      nullable: true
-    hideSyncButton:
-      type: boolean
-      nullable: true
-    mobileMenuStyle:
-      type: string
-      nullable: true
-    actionButtons:
-      type: array
-      items:
-        type: object
-        properties:
-          icon:
-            type: string
-          description:
-            type: string
-            nullable: true
-          command:
-            type: string
-          args:
-            type: array
-            items:
-              type: object
-            nullable: true
-          mobile:
-            type: boolean
-            nullable: true
-        required:
-          - icon
-          - command
-    defaultLinkStyle:
-      type: string
-      nullable: true
-    plugs:
-      type: array
-      items:
-        type: string
-    indentMultiplier:
-      type: number
-      nullable: true
 functions:
   setEditorMode:
     path: "./editor.ts:setEditorMode"
@@ -298,13 +226,6 @@ functions:
     command:
       name: "Editor: Toggle Vim Mode"
       requireEditor: page
-  loadVimRc:
-    path: "./vim.ts:loadVimRc"
-    command:
-      name: "Editor: Vim: Load VIMRC"
-      requireEditor: page
-    events:
-      - editor:modeswitch
   loadVimConfig:
     path: "./vim.ts:loadVimConfig"
     command:

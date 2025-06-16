@@ -25,7 +25,6 @@ export function postScriptPrefacePlugin(
             const widgetResults = await client.dispatchAppEvent(
               "hooks:renderTopWidgets",
             );
-            // console.log("Widget results", widgetResults);
             const accumulatedWidget: LuaWidgetContent = {
               _isWidget: true,
               html: "",
