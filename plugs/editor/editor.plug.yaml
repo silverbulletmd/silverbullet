@@ -48,7 +48,7 @@ functions:
   openAllNavigator:
     path: editor.ts:openAllNavigator
     command:
-      name: "Navigate: All Pages Picker"
+      name: "Navigate: Anything Picker"
 
   # Page operations
   deletePage:
