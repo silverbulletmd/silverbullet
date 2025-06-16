@@ -8,6 +8,7 @@ import {
 } from "@codemirror/language";
 import {
   deleteLine,
+  insertNewline,
   insertNewlineAndIndent,
   moveLineDown,
   moveLineUp,
@@ -405,10 +406,38 @@ export function editorSyscalls(client: Client): SysCallMapping {
     "editor.configureVimMode": () => {
       // Override the default "o" binding to be more intelligent and follow the markdown editor's behavior
       Vim.mapCommand("o", "action", "newline-continue-markup", {}, {});
+      Vim.mapCommand("O", "action", "back-newline-continue-markup", {}, {});
       Vim.defineAction("newline-continue-markup", (cm) => {
+        // Append at end of line
         Vim.handleKey(cm, "A", "+input");
+        // Insert newline continuing markup where appropriate
         insertNewlineContinueMarkup(client.editorView) ||
           insertNewlineAndIndent(client.editorView);
+      });
+      Vim.defineAction("back-newline-continue-markup", (cm) => {
+        // Determine current line
+        const pos = client.editorView.state.selection.main.from;
+        const line = client.editorView.state.doc.lineAt(pos).number;
+        if (line === 1) {
+          // We're on the top line
+          // Go to 0:0
+          Vim.handleKey(cm, "0", "+input");
+          // Insert a newline
+          insertNewline(client.editorView);
+          // Go up to the new line
+          Vim.handleKey(cm, "k", "+input");
+          // Into insert mode
+          Vim.handleKey(cm, "i", "+input");
+        } else {
+          // We're elsewhere in the document
+          // Go up
+          Vim.handleKey(cm, "k", "+input");
+          // Append mode at the end of the line
+          Vim.handleKey(cm, "A", "+input");
+          // Insert a newline using the continue markup thing
+          insertNewlineContinueMarkup(client.editorView) ||
+            insertNewlineAndIndent(client.editorView);
+        }
       });
 
       // Load the config if any
