@@ -27,24 +27,8 @@ export class MainUI {
   viewState: AppViewState = initialViewState;
 
   constructor(private client: Client) {
-    // To track double shift taps
-    let lastShiftPressTime = 0;
-
     // Make keyboard shortcuts work even when the editor is in read only mode or not focused
     globalThis.addEventListener("keydown", (ev) => {
-      // Implements double tapping left shift to open the anything picker
-      if (ev.code === "ShiftLeft") {
-        const currentTime = new Date().getTime();
-        if (currentTime - lastShiftPressTime < doublePressThreshold) {
-          client.runCommandByName("Navigate: Anything Picker").catch(
-            console.error,
-          );
-          lastShiftPressTime = 0;
-        } else {
-          lastShiftPressTime = currentTime;
-        }
-      }
-
       if (!client.editorView.hasFocus) {
         const target = ev.target as HTMLElement;
         if (target.className === "cm-textfield" && ev.key === "Escape") {
