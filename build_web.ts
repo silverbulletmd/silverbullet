@@ -8,7 +8,7 @@ import { parseArgs } from "@std/cli/parse-args";
 import { patchDenoLibJS } from "./cmd/compile.ts";
 import { denoPlugins } from "@luca/esbuild-deno-loader";
 import * as esbuild from "esbuild";
-import { updateVersionFile } from "./update_version.ts";
+import { updateVersionFile } from "./cmd/update_version.ts";
 
 await updateVersionFile();
 

@@ -79,7 +79,6 @@ export type ClientConfig = {
   spaceFolderPath: string;
   indexPage: string;
   readOnly: boolean;
-  enableSpaceScript: boolean;
 };
 
 declare global {

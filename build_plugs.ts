@@ -4,7 +4,7 @@ import { compileManifests } from "./cmd/compile.ts";
 import { builtinPlugNames } from "./plugs/builtin_plugs.ts";
 import { parseArgs } from "@std/cli/parse-args";
 import { fileURLToPath } from "node:url";
-import { updateVersionFile } from "./update_version.ts";
+import { updateVersionFile } from "./cmd/update_version.ts";
 
 await updateVersionFile();
 

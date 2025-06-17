@@ -17,7 +17,7 @@ globalThis.addEventListener("unhandledrejection", (event) => {
 
 await new Command()
   .name("silverbullet")
-  .description("Note taking for knowledge hackers")
+  .description("Workshop for the mind")
   .version(version)
   .helpOption(false)
   .usage("<options> <folder> | <command> (see below)")
@@ -31,26 +31,6 @@ await new Command()
   .option(
     "--user <user:string>",
     "'username:password' combo for authentication",
-  )
-  .option(
-    "--cert <certFile:string>",
-    "Path to TLS certificate",
-  )
-  .option(
-    "--key <keyFile:string>",
-    "Path to TLS key",
-  )
-  .option(
-    "--sync-only",
-    "Run the server as a pure space (file) store only without any backend processing (this disables 'online mode' in the client)",
-  )
-  .option(
-    "--reindex",
-    "Reindex space on startup",
-  )
-  .option(
-    "--db <db:string>",
-    "Path to database file",
   )
   .action(serveCommand)
   // plug:compile
@@ -79,7 +59,7 @@ await new Command()
   .action(upgradeCommand)
   // upgrade-edge
   .command("upgrade-edge")
-  .description("Upgrade SilverBullet to the latest Edge build")
+  .description("Upgrade SilverBullet to the latest edge build")
   .action(upgradeEdgeCommand)
   // sync
   .command("sync")

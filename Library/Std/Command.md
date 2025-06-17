@@ -15,7 +15,7 @@ Available keys:
 * `priority`: Command priority (how high it appears in the list)
 * `key`: Windows/Linux key binding (and mac, if not separately defined)
 * `mac`: Mac-specific key binding
-* `hide`: Hide this command from the [[Command Palette]]
+* `hide`: Hide this command from the Command Palette
 * `requireMode`: `rw` or `ro` — only enable this command in a particular mode (read-write, or read-only)
 
 Example:

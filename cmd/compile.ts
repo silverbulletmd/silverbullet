@@ -69,7 +69,7 @@ ${
       filePath = path.join(rootPath, filePath);
 
       return `import {${jsFunctionName} as ${funcName}} from "file://${
-        // Replacaing \ with / for Windows
+        // Replacing \ with / for Windows
         path.resolve(filePath).replaceAll(
           "\\",
           "\\\\",
