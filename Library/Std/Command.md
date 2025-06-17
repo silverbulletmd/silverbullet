@@ -29,21 +29,21 @@ command.define {
 }
 ```
 
-## command.patch(commandDef)
-Equivalent to `command.define`, but can be used to patch (change) the definition of previously defined commands (including built-in ones)
+## command.update(commandDef)
+Equivalent to `command.define`, but can be used to update the definition of previously defined commands (including built-in ones).
 
 Example:
 
 ```lua
 -- To assign a new key binding and command priority to a built-in command
-command.patch {
+command.update {
   name = "Stats: Show",
   key = "Ctrl-Shift-t",
   priority = 100
 }
 
 -- To disable key bindings of an existing command
-command.patch {
+command.update {
   name = "Navigate: Document Picker",
   key = nil,
   mac = nil,
@@ -65,7 +65,7 @@ function command.define(def)
   config.set({"commands", def.name}, def)
 end
 
-function command.patch(newDef)
+function command.update(newDef)
   local def = config.get({"commands", newDef.name}, {})
   for k, v in pairs(newDef) do
     def[k] = v
