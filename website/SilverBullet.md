@@ -9,16 +9,7 @@ You [[Install|self host]] SilverBullet on a server under your control. It is dep
 
 The SilverBullet client is built as a [[Local First]], progressive web application, syncing all your content into your browser’s IndexedDB, enabling you **instant access** to your entire space no matter if you are **online or offline**.
 
----
-
-# Introduction
-SilverBullet is an open source **personal productivity platform** built on [[Markdown]], turbo charged with the scripting power of [[Space Lua|Lua]]. You [[Install|self host]] it on your server, access it via any modern browser on any device (desktop, laptop, mobile). Since SilverBullet is built as a [[Local First]] [[PWA]], it is fully offline capable. Temporarily don’t have network access? No problem, SilverBullet will sync your content when you get back online.
-
-In case you were wondering: yes, you are looking at a (read-only) instance of SilverBullet right now. Switch off your Internet connection, and this website will still be available for your reading pleasure.
-
-Let’s dig in.
-
-If you prefer a video intro, give this a watch:
+What does this look like in practice? Here’s an intro video:
 ${embed.youtube "https://www.youtube.com/watch?v=mik1EbTshX4"}
 
 > **warning** Attention
