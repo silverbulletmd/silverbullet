@@ -20,7 +20,7 @@ Every object has a main `tag`, which signifies the type of object being describe
 
 # Built-in tags
 ## page
-Every page in your space is available via the `page` tag. You can attach _additional_ tags to a page, by either specifying them in the `tags` attribute [[Frontmatter]], or by putting additional [[Tags]] in a stand alone paragraph with no other (textual) content in them, for instance check the very first line of this page that says `#level/intermediate`.
+Every page in your space is available via the `page` tag. You can attach _additional_ tags to a page, by either specifying them in the `tags` attribute [[Frontmatter]], or by putting additional [[Tags]] in a stand alone paragraph with no other (textual) content in them.
 
 In addition to `ref` and `tags`, the `page` tag defines a bunch of additional attributes as can be seen in this example query:
 
