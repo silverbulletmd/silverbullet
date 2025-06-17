@@ -1,6 +1,4 @@
-#level/intermediate
-
-While SilverBullet is not a “proper” outliner, it does offer a number of useful commands to manage outlines.
+While SilverBullet is not a “proper” outliner like e.g. [LogSeq](https://logseq.com), it does offer a useful commands to manage outlines.
 
 An outline is simply a (nested) bulleted list, for instance:
 

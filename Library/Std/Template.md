@@ -40,7 +40,7 @@ end
 -- * The extracted frontmatter
 function template.fromPage(name, raw)
   local fm = index.extractFrontmatter(space.readPage(name),  {
-    removeFrontmatterSection = true,
+    removeFrontMatterSection = true,
     removeTags = true
   })
 

@@ -56,7 +56,7 @@ It returns a table with two keys:
 The `extractOptions` is an optional table that can contain the following keys (which will affect the returned `text`):
 - `removeKeys`: An array of keys to remove from the frontmatter.
 - `removeTags`: A boolean or array of tags to remove from the frontmatter.
-- `removeFrontmatterSection`: A boolean to remove the frontmatter section from the document.
+- `removeFrontMatterSection`: A boolean to remove the frontmatter section from the document.
 
 Example applied to this page:
 ${(index.extractFrontmatter(editor.getText())).frontmatter}

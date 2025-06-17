@@ -22,7 +22,35 @@ The following [[Space Lua/Lua Integrated Query]] is used to determine the order 
 query[[from index.tag "space-style" order by _.priority desc]]
 ```
 
-# Examples
+# Tag Styling
+You can add custom styles to a tag by leveraging the `data-tag-name` attribute, [CSS Attribute Selectors](https://developer.mozilla.org/en-US/docs/Web/CSS/Attribute_selectors) and custom [[Space Style]]'s. Every tag gets an attribute added to it called `data-tag-name` that is set to the tag name with the `#` symbol stripped out. So given the tag #my-cool-tag the `data-tag-name` attribute would look like: 
+
+    data-tag-name="my-cool-tag"
+
+This allows us to do things like change the color of the #my-cool-tag 
+to have a purple background, limegreen text and bold font by adding the following [[Space Style]]:
+
+```css
+.sb-hashtag[data-tag-name="my-cool-tag"] {
+  background: purple;
+  color: limegreen;
+  font-weight: bolder;
+}
+```
+
+Additionally tags written using angle brackets, such as...
+
+    #<my cool tag> 
+
+...can be styled via [[Space Style]] like this:
+```css
+.sb-hashtag[data-tag-name="my cool tag"] {
+  background: purple;
+  color: limegreen;
+  font-weight: bolder;
+}
+```
+# More examples
 All the actual CSS in these examples is commented out as to not affect this very website. 
 ```space-style
 html {

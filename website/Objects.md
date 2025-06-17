@@ -1,4 +1,4 @@
-SilverBullet automatically builds and maintains an index of _objects_ extracted from all markdown pages in your space. It subsequently allows you to use [[Space Lua/Lua Integrated Query]] to query this database in (potentially) useful ways.
+SilverBullet automatically builds and maintains an index of _objects_ extracted from all [[Markdown]] [[Pages]] in your [[Spaces]]. It subsequently allows you to use [[Space Lua/Lua Integrated Query]] to query this database in (potentially) useful ways.
 
 By design, the truth remains in the markdown: all data indexed as objects will have a representation in markdown text as well. This index can be flushed at any time and be rebuilt from its source markdown files kept in your space (and you can do so on demand if you like using the `Space: Reindex` command).
 
@@ -7,49 +7,19 @@ Every object has a set of [[Attributes]], some predefined, but you can add any a
 
 The following attributes are predefined, and you can expect all objects to have them:
 * `ref`: a globally unique _identifier_, often represented as a pointer to the place (page, position) in your space where the object is defined. For instance, a _page_ object will use the page name as its `ref` attribute, and a `task` will use `page@pos` (where `pos` is the location the task appears in `page`).
-* `tag`: the main type, or “tag” of the page, usually a built-in type of the object (see below).
+* `tag`: the main type, or “tag” of the object, usually a built-in type (see below for a list).
 
 In addition, many objects will also contain:
 * `tags`: an optional set of additional, explicitly assigned tags.
-* `itags`: a set of _implicit_ or _inherited_ tags: including the object’s `tag`, `tags` as well as any tags _assigned to its containing page_. This is useful to answer queries like, “give me all tasks on pages where that page is tagged with `person`“, which would be expressed as `task where itags = "person"` (although technically that would also match any tags that have the `#person` explicitly assigned).
+* `itags`: a set of _implicit_ or _inherited_ tags: including the object’s `tag`, `tags` as well as any tags _assigned to its containing page_. This is useful to answer queries like, “give me all tasks on pages where that page is tagged with `person`“, which would be expressed as `query[[from index.tag "task" where table.includes(_.itags, "person")]]` (although technically that would also match any tags that have the `#person` explicitly assigned).
 
 Beside these, any number of additional tag-specific and custom [[Attributes]] can be defined (see below).
 
 # Tags
 Every object has a main `tag`, which signifies the type of object being described. In addition, any number of additional tags can be assigned as well via the `tags` attribute. You can use either the main `tag` or any of the `tags` as query sources in [[Space Lua/Lua Integrated Query]] — examples below.
 
-## Styling
-You can add custom styles to a tag by leveraging the `data-tag-name` attribute, [CSS Attribute Selectors](https://developer.mozilla.org/en-US/docs/Web/CSS/Attribute_selectors) and custom [[Space Style]]'s. Every tag gets an attribute added to it called `data-tag-name` that is set to the tag name with the `#` symbol stripped out. So given the tag #my-cool-tag the `data-tag-name` attribute would look like: 
-
-    data-tag-name="my-cool-tag"
-
-This allows us to do things like change the color of the #my-cool-tag 
-to have a purple background, limegreen text and bold font by adding the following [[Space Style]]:
-
-```css
-.sb-hashtag[data-tag-name="my-cool-tag"] {
-  background: purple;
-  color: limegreen;
-  font-weight: bolder;
-}
-```
-
-Additionally tags written using angle brackets, such as...
-
-    #<my cool tag> 
-
-...can be styled via [[Space Style]] like this:
-```css
-.sb-hashtag[data-tag-name="my cool tag"] {
-  background: purple;
-  color: limegreen;
-  font-weight: bolder;
-}
-```
-
-## Built-in tags
-
-### page
+# Built-in tags
+## page
 Every page in your space is available via the `page` tag. You can attach _additional_ tags to a page, by either specifying them in the `tags` attribute [[Frontmatter]], or by putting additional [[Tags]] in a stand alone paragraph with no other (textual) content in them, for instance check the very first line of this page that says `#level/intermediate`.
 
 In addition to `ref` and `tags`, the `page` tag defines a bunch of additional attributes as can be seen in this example query:
@@ -59,12 +29,12 @@ ${query[[from index.tag "page" where name == _CTX.currentPage.name]]}
 Note that you can also query this page using the `level/intermediate` directly:
 ${query[[from index.tag "level/intermediate"]]}
 
-### aspiring-page
+## aspiring-page
 [[Aspiring Pages]] are pages that are linked to, but not yet created.
 
 ${query[[from index.tag "aspiring-page"]]}
 
-### table
+## table
 Markdown table rows are indexed using the `table` tag, any additional tags can be added using [[Tags]] in any of its cells.
 
 | Title | Description Text |
@@ -77,7 +47,7 @@ ${query[[from index.tag "table" where page == _CTX.currentPage.name]]}
 
 Table headers will be normalized by converting them to lowercase and replacing all non alphanumeric characters with `_`.
 
-### item
+## item
 List items (both bullet point and numbered items) are indexed with the `item` tag, and additional tags can be added using [[Tags]].
 
 Here is an example of a #quote item using a custom [[Attributes|attribute]]:
@@ -121,7 +91,7 @@ ${template.each(query[[from index.tag "upnext"]], templates.taskItem)}
 
 Similar to [[#item]], `task` objects have a `parent` attribute when nested (pointing to their parent `item`), and inherit their ancestor’s tags in `itags`.
 
-### taskstate
+## taskstate
 [[Tasks]] support the default `x` and ` ` states (done and not done), but custom states as well. Custom states used across your space are kept in `taskstate`:
 
 * [NOT STARTED] Task 1
@@ -148,7 +118,7 @@ age: 55
 Which then becomes queriable via the `contact` tag:
 ${query[[from index.tag "contact"]]}
 
-### link
+## link
 All page _links_ are tagged with `link`. You cannot attach additional tags to links. The main two attributes of a link are:
 
 * `toPage` the page the link is linking _to_
@@ -156,17 +126,16 @@ All page _links_ are tagged with `link`. You cannot attach additional tags to li
 
 In addition, the `snippet` attribute attempts to capture a little bit of context on where the link appears.
 
-_Note_: this is the data source used for the {[Mentions: Toggle]} feature as well page {[Page: Rename]}.
-
 Here is a query that shows some links that appear in this particular page:
+
 ${query[[from index.tag "link" where page == _CTX.currentPage.name limit 5]]}
 
-### header
+## header
 Headers (lines starting with `#`, `##` etc.) are indexed as well and queriable.
 
 ${query[[from index.tag "header" where page == _CTX.currentPage.name limit 3]]}
 
-### tag
+## tag
 The ultimate meta tag is _tag_ itself, which indexes for all tags used, in which page they appear and what their “parent tag” is (the context of the tag: either `page`, `item` or `task`).
 
 Here are the tags used/defined in this page:
