@@ -95,7 +95,7 @@ Custom slash commands can be defined using [[API/slashcommand#slashCommand.defin
 slashCommand.define {
   name = "hello",
   run = function()
-editor.insertAtCursor("Hello |^| world!", false, true)
+    editor.insertAtCursor("Hello |^| world!", false, true)
   end
 }
 ```
