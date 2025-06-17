@@ -1,5 +1,5 @@
 import type { LuaExpression } from "./ast.ts";
-import { LuaEnv, luaGet, luaKeys, LuaStackFrame } from "./runtime.ts";
+import { LuaEnv, luaGet, luaKeys, LuaStackFrame, LuaTable } from "./runtime.ts";
 import { evalExpression } from "./eval.ts";
 import { asyncQuickSort } from "./util.ts";
 import type { DataStore } from "../data/datastore.ts";
@@ -154,9 +154,7 @@ export async function applyTransforms(
 
     for (const item of result) {
       // For non-primitive values, we use a JSON string as the key for comparison
-      const key = typeof item === "object" && item !== null
-        ? JSON.stringify(item)
-        : item;
+      const key = generateKey(item);
 
       if (!seen.has(key)) {
         seen.add(key);
@@ -206,6 +204,14 @@ export async function queryLua<T = any>(
   return applyTransforms(result, query, env, sf);
 }
 
+function generateKey(value: any) {
+  if (value instanceof LuaTable) {
+    return JSON.stringify(value.toJS());
+  }
+  return typeof value === "object" && value !== null
+    ? JSON.stringify(value)
+    : value;
+}
 export class DataStoreQueryCollection implements LuaQueryCollection {
   constructor(
     private readonly dataStore: DataStore,
