@@ -99,47 +99,6 @@ export function cleanupJSON(a: any): any {
   return expanded;
 }
 
-/**
- * Performs a deep merge of two objects, with b taking precedence over a
- * @param a
- * @param b
- * @returns
- */
-export function deepObjectMerge(a: any, b: any, reverseArrays = false): any {
-  if (typeof a !== typeof b) {
-    return b;
-  }
-  if (a === undefined || a === null) {
-    return b;
-  }
-  if (b === undefined || b === null) {
-    return a;
-  }
-
-  if (typeof a === "object") {
-    if (Array.isArray(a) && Array.isArray(b)) {
-      if (reverseArrays) {
-        return [...b, ...a];
-      } else {
-        return [...a, ...b];
-      }
-    } else {
-      const aKeys = Object.keys(a);
-      const bKeys = Object.keys(b);
-      const merged = { ...a };
-      for (const key of bKeys) {
-        if (aKeys.includes(key)) {
-          merged[key] = deepObjectMerge(a[key], b[key], reverseArrays);
-        } else {
-          merged[key] = b[key];
-        }
-      }
-      return merged;
-    }
-  }
-  return b;
-}
-
 export function deepClone<T>(obj: T, ignoreKeys: string[] = []): T {
   // Handle null, undefined, or primitive types (string, number, boolean, symbol, bigint)
   if (obj === null || typeof obj !== "object") {

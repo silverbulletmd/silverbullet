@@ -1,17 +1,19 @@
 import { datastore, markdown } from "@silverbulletmd/silverbullet/syscalls";
-import type { KV, KvKey, KvQuery, ObjectValue } from "../../plug-api/types.ts";
 import { ttlCache } from "../../lib/memory_cache.ts";
 import type { LuaCollectionQuery } from "../../lib/space_lua/query_collection.ts";
 import {
-  extractFrontmatter as extractFrontmatterFromTree,
+  extractFrontMatter as extractFrontmatterFromTree,
   type FrontMatter,
-  type FrontmatterExtractOptions,
+  type FrontMatterExtractOptions,
 } from "../../plug-api/lib/frontmatter.ts";
 import {
   collectNodesOfType,
   renderToText,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { applyPatches, type SetKeyPatch } from "../../lib/yaml.ts";
+import type { ObjectValue } from "../../type/index.ts";
+
+import type { KV, KvKey, KvQuery } from "../../type/datastore.ts";
 
 const indexKey = "idx";
 const pageKey = "ridx";
@@ -163,7 +165,7 @@ export function getObjectByRef<T>(
 
 export async function extractFrontmatter(
   text: string,
-  extractOptions: FrontmatterExtractOptions = {},
+  extractOptions: FrontMatterExtractOptions = {},
 ): Promise<{ frontmatter: FrontMatter; text: string }> {
   const tree = await markdown.parseMarkdown(text);
   const frontmatter = await extractFrontmatterFromTree(tree, extractOptions);

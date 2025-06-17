@@ -1,4 +1,4 @@
-import type { IndexTreeEvent, ObjectValue } from "../../plug-api/types.ts";
+import type { IndexTreeEvent } from "../../type/event.ts";
 import { indexObjects } from "./api.ts";
 import {
   collectNodesOfType,
@@ -8,8 +8,9 @@ import {
 } from "../../plug-api/lib/tree.ts";
 import { extractAttributes } from "@silverbulletmd/silverbullet/lib/attribute";
 import { updateITags } from "@silverbulletmd/silverbullet/lib/tags";
-import { extractFrontmatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
+import { extractFrontMatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
 import { extractHashtag } from "../../plug-api/lib/tags.ts";
+import type { ObjectValue } from "../../type/index.ts";
 
 /** ParagraphObject  An index object for the top level text nodes */
 export type ParagraphObject = ObjectValue<
@@ -23,7 +24,7 @@ export type ParagraphObject = ObjectValue<
 export async function indexParagraphs({ name: page, tree }: IndexTreeEvent) {
   const objects: ParagraphObject[] = [];
 
-  const frontmatter = await extractFrontmatter(tree);
+  const frontmatter = await extractFrontMatter(tree);
 
   await traverseTreeAsync(tree, async (p) => {
     if (p.type !== "Paragraph") {

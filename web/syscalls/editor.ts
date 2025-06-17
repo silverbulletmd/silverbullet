@@ -21,12 +21,13 @@ import { getCM as vimGetCm, Vim } from "@replit/codemirror-vim";
 import type { SysCallMapping } from "../../lib/plugos/system.ts";
 import type {
   FilterOption,
-  VimConfig,
+  UploadFile,
 } from "@silverbulletmd/silverbullet/type/client";
-import type { PageMeta, UploadFile } from "../../plug-api/types.ts";
 import { openSearchPanel } from "@codemirror/search";
 import { parseRef, type Ref } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { insertNewlineContinueMarkup } from "@codemirror/lang-markdown";
+import type { VimConfig } from "../../type/config.ts";
+import type { PageMeta } from "../../type/index.ts";
 
 export function editorSyscalls(client: Client): SysCallMapping {
   const syscalls: SysCallMapping = {

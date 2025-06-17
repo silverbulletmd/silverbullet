@@ -1,7 +1,6 @@
 import { syntaxTree } from "@codemirror/language";
 import { EditorView, ViewPlugin, type ViewUpdate } from "@codemirror/view";
 import type { Client } from "../client.ts";
-import type { UploadFile } from "@silverbulletmd/silverbullet/types";
 
 // We use turndown to convert HTML to Markdown
 import TurndownService from "turndown";
@@ -18,6 +17,7 @@ import { maximumDocumentSize } from "../constants.ts";
 import { safeRun } from "../../lib/async.ts";
 import { resolvePath } from "@silverbulletmd/silverbullet/lib/resolve";
 import { localDateString } from "../../lib/dates.ts";
+import type { UploadFile } from "@silverbulletmd/silverbullet/type/client";
 
 const turndownService = new TurndownService({
   hr: "---",

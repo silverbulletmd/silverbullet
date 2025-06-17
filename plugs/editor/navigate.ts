@@ -1,4 +1,3 @@
-import type { ClickEvent } from "../../plug-api/types.ts";
 import { extractHashtag } from "../../plug-api/lib/tags.ts";
 import { editor, markdown } from "@silverbulletmd/silverbullet/syscalls";
 import {
@@ -14,6 +13,7 @@ import {
 } from "@silverbulletmd/silverbullet/lib/resolve";
 import { parseRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { tagPrefix } from "../index/constants.ts";
+import type { ClickEvent } from "@silverbulletmd/silverbullet/type/client";
 
 async function actionClickOrActionEnter(
   mdTree: ParseTree | null,

@@ -8,9 +8,17 @@ import { syntaxTree } from "@codemirror/language";
 import { history, isolateHistory } from "@codemirror/commands";
 import type { SyntaxNode } from "@lezer/common";
 import { Space } from "./space.ts";
-import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
+import type {
+  AppEvent,
+  ClickEvent,
+  CodeWidgetButton,
+  CompleteEvent,
+  EnrichedClickEvent,
+  FilterOption,
+  SlashCompletions,
+} from "@silverbulletmd/silverbullet/type/client";
 import { EventHook } from "./hooks/event.ts";
-import { type Command, isValidEditor } from "../lib/command.ts";
+import type { Command } from "../type/command.ts";
 import {
   type LocationState,
   parseRefFromURI,
@@ -19,16 +27,7 @@ import {
 
 import type { AppViewState } from "./ui_types.ts";
 
-import type {
-  AppEvent,
-  ClickEvent,
-  CompleteEvent,
-  DocumentMeta,
-  EnrichedClickEvent,
-  PageCreatingContent,
-  PageCreatingEvent,
-  SlashCompletions,
-} from "@silverbulletmd/silverbullet/types";
+import type { PageCreatingContent, PageCreatingEvent } from "../type/event.ts";
 import type { StyleObject } from "../plugs/index/style.ts";
 import { throttle } from "../lib/async.ts";
 import { PlugSpacePrimitives } from "../lib/spaces/plug_space_primitives.ts";
@@ -46,15 +45,10 @@ import {
   validatePath,
 } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { ClientSystem } from "./client_system.ts";
-import { createEditorState } from "./editor_state.ts";
+import { createEditorState, isValidEditor } from "./editor_state.ts";
 import { MainUI } from "./editor_ui.tsx";
 import { cleanPageRef } from "@silverbulletmd/silverbullet/lib/resolve";
 import type { SpacePrimitives } from "../lib/spaces/space_primitives.ts";
-import type {
-  CodeWidgetButton,
-  FileMeta,
-  PageMeta,
-} from "@silverbulletmd/silverbullet/types";
 import { DataStore } from "../lib/data/datastore.ts";
 import { IndexedDBKvPrimitives } from "../lib/data/indexeddb_kv_primitives.ts";
 import { DataStoreMQ } from "../lib/data/mq.datastore.ts";
@@ -67,6 +61,7 @@ import { diffAndPrepareChanges } from "./cm_util.ts";
 import { DocumentEditor } from "./document_editor.ts";
 import { parseExpressionString } from "../lib/space_lua/parse.ts";
 import { Config } from "./config.ts";
+import type { DocumentMeta, FileMeta, PageMeta } from "../type/index.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 

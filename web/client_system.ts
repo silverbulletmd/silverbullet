@@ -42,7 +42,7 @@ import { configSyscalls } from "./syscalls/config.ts";
 import { eventListenerSyscalls } from "./syscalls/event.ts";
 import { DocumentEditorHook } from "./hooks/document_editor.ts";
 import type { LuaCollectionQuery } from "../lib/space_lua/query_collection.ts";
-import type { Command } from "../lib/command.ts";
+import type { Command } from "../type/command.ts";
 import { SpaceLuaEnvironment } from "./space_lua.ts";
 import {
   type ILuaFunction,

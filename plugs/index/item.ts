@@ -1,4 +1,4 @@
-import type { IndexTreeEvent, ObjectValue } from "../../plug-api/types.ts";
+import type { IndexTreeEvent } from "../../type/event.ts";
 
 import {
   findParentMatching,
@@ -18,10 +18,11 @@ import {
   updateITags,
 } from "@silverbulletmd/silverbullet/lib/tags";
 import {
-  extractFrontmatter,
+  extractFrontMatter,
   type FrontMatter,
 } from "@silverbulletmd/silverbullet/lib/frontmatter";
 import { deepClone } from "@silverbulletmd/silverbullet/lib/json";
+import type { ObjectValue } from "../../type/index.ts";
 
 export type ItemObject = ObjectValue<
   {
@@ -41,7 +42,7 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
 export async function extractItems(name: string, tree: ParseTree) {
   const items: ObjectValue<ItemObject>[] = [];
 
-  const frontmatter = await extractFrontmatter(tree);
+  const frontmatter = await extractFrontMatter(tree);
 
   await traverseTreeAsync(tree, async (n) => {
     if (n.type !== "ListItem") {

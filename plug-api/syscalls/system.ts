@@ -1,6 +1,6 @@
-import type { SyscallMeta } from "../types.ts";
 import { syscall } from "../syscall.ts";
 import type { CommandDef } from "../../lib/manifest.ts";
+import type { SyscallMeta } from "../../type/index.ts";
 
 /**
  * System level syscalls

@@ -3,16 +3,14 @@ import {
   collectNodesOfType,
   renderToText,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import type {
-  CompleteEvent,
-  IndexTreeEvent,
-  ObjectValue,
-} from "../../plug-api/types.ts";
+import type { IndexTreeEvent } from "../../type/event.ts";
 import { indexObjects, queryLuaObjects } from "./api.ts";
 import { parseRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { extractAttributes } from "@silverbulletmd/silverbullet/lib/attribute";
 import { extractHashtag } from "../../plug-api/lib/tags.ts";
 import { lua } from "@silverbulletmd/silverbullet/syscalls";
+import type { ObjectValue } from "../../type/index.ts";
+import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
 
 type HeaderObject = ObjectValue<
   {

@@ -39,7 +39,6 @@ import { inlineContentPlugin } from "./cm_plugins/inline_content.ts";
 import { cleanModePlugins } from "./cm_plugins/clean.ts";
 import { lineWrapper } from "./cm_plugins/line_wrapper.ts";
 import { createSmartQuoteKeyBindings } from "./cm_plugins/smart_quotes.ts";
-import type { ClickEvent } from "../plug-api/types.ts";
 import {
   documentExtension,
   pasteLinkExtension,
@@ -52,7 +51,7 @@ import { extendedMarkdownLanguage } from "./markdown_parser/parser.ts";
 import { safeRun } from "../lib/async.ts";
 import { codeCopyPlugin } from "./cm_plugins/code_copy.ts";
 import { disableSpellcheck } from "./cm_plugins/spell_checking.ts";
-import { isValidEditor } from "../lib/command.ts";
+import type { ClickEvent } from "@silverbulletmd/silverbullet/type/client";
 
 export function createEditorState(
   client: Client,
@@ -299,6 +298,19 @@ export function createEditorState(
       closeBrackets(),
     ],
   });
+}
+
+// TODO: Move this elsewhere
+export function isValidEditor(
+  currentEditor: string | undefined,
+  requiredEditor: string | undefined,
+): boolean {
+  return (requiredEditor === undefined) ||
+    (currentEditor === undefined &&
+      requiredEditor === "page") ||
+    (requiredEditor === "any") ||
+    (currentEditor === requiredEditor) ||
+    (currentEditor !== undefined && requiredEditor === "notpage");
 }
 
 export function createCommandKeyBindings(client: Client): KeyBinding[] {

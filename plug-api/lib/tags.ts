@@ -1,10 +1,10 @@
 import type { FrontMatter } from "./frontmatter.ts";
-import type { ObjectValue } from "../types.ts";
 import {
   type ParseTree,
   traverseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { tagRegex } from "../../web/markdown_parser/constants.ts";
+import type { ObjectValue } from "../../type/index.ts";
 
 export function updateITags<T>(obj: ObjectValue<T>, frontmatter: FrontMatter) {
   const itags = [obj.tag, ...frontmatter.tags || []];

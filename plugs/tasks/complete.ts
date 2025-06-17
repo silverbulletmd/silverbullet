@@ -1,6 +1,6 @@
-import type { CompleteEvent } from "../../plug-api/types.ts";
 import { queryLuaObjects } from "../index/api.ts";
 import type { TaskStateObject } from "./task.ts";
+import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
 
 export async function completeTaskState(completeEvent: CompleteEvent) {
   const taskMatch = /([\-\*]\s+\[)([^\[\]]+)$/.exec(

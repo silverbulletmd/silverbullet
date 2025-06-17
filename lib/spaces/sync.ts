@@ -1,7 +1,7 @@
 import type { SpacePrimitives } from "./space_primitives.ts";
 import { EventEmitter } from "../plugos/event.ts";
-import type { FileMeta } from "@silverbulletmd/silverbullet/types";
 import { plugPrefix } from "./constants.ts";
+import type { FileMeta } from "../../type/index.ts";
 
 type SyncHash = number;
 

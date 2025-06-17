@@ -1,4 +1,3 @@
-import type { ClickEvent } from "@silverbulletmd/silverbullet/types";
 import { syntaxTree } from "@codemirror/language";
 import { Decoration } from "@codemirror/view";
 import type { Client } from "../client.ts";
@@ -12,6 +11,7 @@ import {
   encodeRef,
   parseRef,
 } from "@silverbulletmd/silverbullet/lib/page_ref";
+import type { ClickEvent } from "@silverbulletmd/silverbullet/type/client";
 
 /**
  * Plugin to hide path prefix when the cursor is not inside.

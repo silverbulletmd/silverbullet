@@ -4,16 +4,13 @@ import {
   renderToText,
   traverseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import type {
-  IndexTreeEvent,
-  ObjectValue,
-} from "@silverbulletmd/silverbullet/types";
+import type { IndexTreeEvent } from "../../type/event.ts";
 import {
   isLocalPath,
   resolvePath,
 } from "@silverbulletmd/silverbullet/lib/resolve";
 import { indexObjects, queryLuaObjects } from "./api.ts";
-import { extractFrontmatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
+import { extractFrontMatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
 import { updateITags } from "@silverbulletmd/silverbullet/lib/tags";
 import {
   looksLikePathWithExtension,
@@ -25,6 +22,7 @@ import {
   wikiLinkRegex,
 } from "../../web/markdown_parser/constants.ts";
 import { lua, space } from "@silverbulletmd/silverbullet/syscalls";
+import type { ObjectValue } from "../../type/index.ts";
 
 export type LinkObject = ObjectValue<
   {
@@ -67,7 +65,7 @@ export type AspiringPageObject = ObjectValue<{
 
 export async function indexLinks({ name, tree }: IndexTreeEvent) {
   const links: ObjectValue<LinkObject>[] = [];
-  const frontmatter = await extractFrontmatter(tree);
+  const frontmatter = await extractFrontMatter(tree);
   const pageText = renderToText(tree);
 
   // If this is a meta template page, we don't want to index links

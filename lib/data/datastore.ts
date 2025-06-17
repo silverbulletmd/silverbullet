@@ -3,8 +3,9 @@ import {
   queryLua,
 } from "../space_lua/query_collection.ts";
 import { LuaEnv, LuaStackFrame } from "../space_lua/runtime.ts";
-import type { KV, KvKey } from "../../plug-api/types.ts";
 import type { KvPrimitives, KvQueryOptions } from "./kv_primitives.ts";
+
+import type { KV, KvKey } from "../../type/datastore.ts";
 
 /**
  * This is the data store class you'll actually want to use, wrapping the primitives

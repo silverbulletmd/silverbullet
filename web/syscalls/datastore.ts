@@ -2,7 +2,6 @@ import {
   type LuaCollectionQuery,
   queryLua,
 } from "../../lib/space_lua/query_collection.ts";
-import type { KV, KvKey } from "../../plug-api/types.ts";
 import type { DataStore } from "../../lib/data/datastore.ts";
 import type { SysCallMapping } from "../../lib/plugos/system.ts";
 import {
@@ -13,6 +12,8 @@ import {
 } from "../../lib/space_lua/runtime.ts";
 import type { KvQueryOptions } from "../../lib/data/kv_primitives.ts";
 import type { ClientSystem } from "../client_system.ts";
+
+import type { KV, KvKey } from "../../type/datastore.ts";
 
 /**
  * Exposes the datastore API to plugs, but scoping everything to a prefix based on the plug's name

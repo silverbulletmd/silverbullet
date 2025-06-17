@@ -2,7 +2,8 @@ import type { KeyBinding } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
 import { EditorSelection } from "@codemirror/state";
 import type { Client } from "../client.ts";
-import type { SmartQuotesConfig } from "@silverbulletmd/silverbullet/type/client";
+
+import type { SmartQuotesConfig } from "../../type/config.ts";
 
 const straightQuoteContexts = [
   "CommentBlock",

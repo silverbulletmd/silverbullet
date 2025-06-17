@@ -1,6 +1,7 @@
 import type { Client } from "../client.ts";
 import type { SysCallMapping } from "../../lib/plugos/system.ts";
-import type { DocumentMeta, FileMeta, PageMeta } from "../../plug-api/types.ts";
+
+import type { DocumentMeta, FileMeta, PageMeta } from "../../type/index.ts";
 
 export function spaceReadSyscalls(editor: Client): SysCallMapping {
   return {

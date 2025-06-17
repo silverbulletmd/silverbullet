@@ -1,6 +1,6 @@
-import type { WidgetContent } from "../../plug-api/types.ts";
 import type { Client } from "../client.ts";
 import { panelHtml } from "./panel_html.ts";
+import type { WidgetContent } from "@silverbulletmd/silverbullet/type/client";
 
 /**
  * Implements sandbox widgets using iframe with a pooling mechanism to speed up loading

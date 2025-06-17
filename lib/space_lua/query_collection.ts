@@ -3,9 +3,11 @@ import { LuaEnv, luaGet, luaKeys, LuaStackFrame } from "./runtime.ts";
 import { evalExpression } from "./eval.ts";
 import { asyncQuickSort } from "./util.ts";
 import type { DataStore } from "../data/datastore.ts";
-import type { KvKey } from "@silverbulletmd/silverbullet/types";
 import type { KvPrimitives } from "../data/kv_primitives.ts";
-import type { QueryCollationConfig } from "@silverbulletmd/silverbullet/type/client";
+
+import type { QueryCollationConfig } from "../../type/config.ts";
+
+import type { KvKey } from "../../type/datastore.ts";
 
 export function buildItemEnv(
   objectVariable: string | undefined,

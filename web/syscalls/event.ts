@@ -2,7 +2,8 @@
 import type { SysCallMapping } from "../../lib/plugos/system.ts";
 import { LuaStackFrame, luaValueToJS } from "../../lib/space_lua/runtime.ts";
 import type { Client } from "../client.ts";
-import type { EventSubscription } from "../../lib/event.ts";
+
+import type { EventSubscription } from "../../type/event.ts";
 
 export function eventListenerSyscalls(
   client: Client,

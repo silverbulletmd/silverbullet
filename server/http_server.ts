@@ -2,7 +2,6 @@ import { type Context, Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { validator } from "hono/validator";
 import type { AssetBundle } from "../lib/asset_bundle/bundle.ts";
-import type { FileMeta } from "@silverbulletmd/silverbullet/types";
 import { handleShellEndpoint } from "./shell_endpoint.ts";
 import type { KvPrimitives } from "../lib/data/kv_primitives.ts";
 import { compile as gitIgnoreCompiler } from "gitignore-parser";
@@ -25,6 +24,7 @@ import {
   type ShellBackend,
 } from "./shell_backend.ts";
 import { CONFIG_TEMPLATE, INDEX_TEMPLATE } from "../web/PAGE_TEMPLATES.ts";
+import type { FileMeta } from "../type/index.ts";
 
 const authenticationExpirySeconds = 60 * 60 * 24 * 7; // 1 week
 

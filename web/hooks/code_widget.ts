@@ -1,7 +1,7 @@
 import type { Hook, Manifest } from "../../lib/plugos/types.ts";
 import type { System } from "../../lib/plugos/system.ts";
-import type { CodeWidgetCallback } from "../../plug-api/types.ts";
 import type { CodeWidgetT } from "../../lib/manifest.ts";
+import type { CodeWidgetCallback } from "@silverbulletmd/silverbullet/type/client";
 
 export class CodeWidgetHook implements Hook<CodeWidgetT> {
   codeWidgetCallbacks = new Map<string, CodeWidgetCallback>();

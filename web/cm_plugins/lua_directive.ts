@@ -23,8 +23,8 @@ import {
 import { encodeRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { resolveASTReference } from "../space_lua.ts";
 import { LuaWidget } from "./lua_widget.ts";
-import type { PageMeta } from "@silverbulletmd/silverbullet/types";
 import YAML from "js-yaml";
+import type { PageMeta } from "../../type/index.ts";
 
 export function luaDirectivePlugin(client: Client) {
   return decoratorStateField((state: EditorState) => {

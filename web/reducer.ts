@@ -1,5 +1,5 @@
-import type { PageMeta } from "../plug-api/types.ts";
 import type { Action, AppViewState } from "./ui_types.ts";
+import type { PageMeta } from "../type/index.ts";
 
 export default function reducer(
   state: AppViewState,

@@ -1,8 +1,8 @@
-import type { FileMeta } from "../../../plug-api/types.ts";
 import { assert } from "@std/assert";
 import fileSystemSyscalls from "./fs.deno.ts";
 import { dirname, resolve } from "@std/path";
 import { fileURLToPath } from "node:url";
+import type { FileMeta } from "../../../type/index.ts";
 
 Deno.test("Test FS operations", async () => {
   const thisFolder = resolve(

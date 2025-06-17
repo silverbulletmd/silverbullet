@@ -7,13 +7,13 @@ import type {
 } from "@codemirror/autocomplete";
 import type { Client } from "../client.ts";
 import { syntaxTree } from "@codemirror/language";
+import { safeRun, throttle } from "../../lib/async.ts";
+import type { SlashCommandHookT } from "../../lib/manifest.ts";
+import type { SlashCommand } from "../../type/command.ts";
 import type {
   SlashCompletionOption,
   SlashCompletions,
-} from "../../plug-api/types.ts";
-import { safeRun, throttle } from "../../lib/async.ts";
-import type { SlashCommandHookT } from "../../lib/manifest.ts";
-import type { SlashCommand } from "../../lib/command.ts";
+} from "@silverbulletmd/silverbullet/type/client";
 
 const slashCommandRegexp = /([^\w:]|^)\/[\w#\-]*/;
 

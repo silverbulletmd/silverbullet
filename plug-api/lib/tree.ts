@@ -8,8 +8,6 @@ export type ParseTree = {
   parent?: ParseTree;
 };
 
-export type AST = [string, ...AST[]] | string;
-
 export function addParentPointers(tree: ParseTree) {
   if (!tree.children) {
     return;
@@ -203,15 +201,6 @@ export function renderToText(tree?: ParseTree): string {
     pieces.push(renderToText(child));
   }
   return pieces.join("");
-}
-
-export function cloneTree(tree: ParseTree): ParseTree {
-  const newTree = { ...tree };
-  if (tree.children) {
-    newTree.children = tree.children.map(cloneTree);
-  }
-  delete newTree.parent;
-  return newTree;
 }
 
 export function cleanTree(tree: ParseTree, omitTrimmable = true): ParseTree {

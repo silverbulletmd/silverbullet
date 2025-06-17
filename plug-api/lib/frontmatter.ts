@@ -3,7 +3,6 @@ import {
   type ParseTree,
   renderToText,
   replaceNodesMatchingAsync,
-  traverseTreeAsync,
 } from "./tree.ts";
 import { cleanupJSON } from "./json.ts";
 import { YAML } from "../syscalls.ts";
@@ -11,10 +10,10 @@ import { extractHashtag } from "./tags.ts";
 
 export type FrontMatter = { tags?: string[] } & Record<string, any>;
 
-export type FrontmatterExtractOptions = {
+export type FrontMatterExtractOptions = {
   removeKeys?: string[];
   removeTags?: string[] | true;
-  removeFrontmatterSection?: boolean;
+  removeFrontMatterSection?: boolean;
 };
 
 /**
@@ -22,9 +21,9 @@ export type FrontmatterExtractOptions = {
  * optionally removes certain keys from the front matter
  * Side effect: will add parent pointers
  */
-export async function extractFrontmatter(
+export async function extractFrontMatter(
   tree: ParseTree,
-  options: FrontmatterExtractOptions = {},
+  options: FrontMatterExtractOptions = {},
 ): Promise<FrontMatter> {
   let data: FrontMatter = {
     tags: [],
@@ -105,7 +104,7 @@ export async function extractFrontmatter(
         }
         // If nothing is left, let's just delete this whole block
         if (
-          Object.keys(newData).length === 0 || options.removeFrontmatterSection
+          Object.keys(newData).length === 0 || options.removeFrontMatterSection
         ) {
           return null;
         }
@@ -135,63 +134,4 @@ export async function extractFrontmatter(
   data = cleanupJSON(data);
 
   return data;
-}
-
-/**
- * Updates the front matter of a markdown document and returns the text as a rendered string
- */
-export async function prepareFrontmatterDispatch(
-  tree: ParseTree,
-  data: string | Record<string, any>,
-): Promise<any> {
-  let dispatchData: any = null;
-  await traverseTreeAsync(tree, async (t) => {
-    // Find FrontMatter and parse it
-    if (t.type === "FrontMatter") {
-      const bodyNode = t.children![1].children![0];
-      const yamlText = renderToText(bodyNode);
-
-      try {
-        let frontmatterText = "";
-        if (typeof data === "string") {
-          frontmatterText = yamlText + data + "\n";
-        } else {
-          const parsedYaml = await YAML.parse(yamlText) as any;
-          const newData = { ...parsedYaml, ...data };
-          frontmatterText = await YAML.stringify(newData);
-        }
-        // Patch inline
-        dispatchData = {
-          changes: {
-            from: bodyNode.from,
-            to: bodyNode.to,
-            insert: frontmatterText,
-          },
-        };
-      } catch (e: any) {
-        console.error("Error parsing YAML", e);
-      }
-      return true;
-    }
-    return false;
-  });
-  if (!dispatchData) {
-    // If we didn't find frontmatter, let's add it
-    let frontmatterText = "";
-    if (typeof data === "string") {
-      frontmatterText = data + "\n";
-    } else {
-      frontmatterText = await YAML.stringify(data);
-    }
-    const fullFrontmatterText = "---\n" + frontmatterText +
-      "---\n";
-    dispatchData = {
-      changes: {
-        from: 0,
-        to: 0,
-        insert: fullFrontmatterText,
-      },
-    };
-  }
-  return dispatchData;
 }

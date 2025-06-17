@@ -1,5 +1,6 @@
 import { syscall } from "../syscall.ts";
-import type { DocumentMeta, FileMeta, PageMeta } from "../types.ts";
+
+import type { DocumentMeta, FileMeta, PageMeta } from "../../type/index.ts";
 
 /**
  * Exposes the space with its pages, documents and plugs.

@@ -1,7 +1,7 @@
-import type { DocumentMeta } from "@silverbulletmd/silverbullet/types";
 import type { Client } from "./client.ts";
 import { html as skeleton } from "./document_editor_skeleton.ts";
 import { timeout } from "../lib/async.ts";
+import type { DocumentMeta } from "../type/index.ts";
 
 export class DocumentEditor {
   iframe!: HTMLIFrameElement;

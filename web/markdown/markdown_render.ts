@@ -10,9 +10,9 @@ import {
 import { encodeRef, parseRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { Fragment, renderHtml, type Tag } from "./html_render.ts";
 import { isLocalPath } from "@silverbulletmd/silverbullet/lib/resolve";
-import type { PageMeta } from "@silverbulletmd/silverbullet/types";
 import * as TagConstants from "../../plugs/index/constants.ts";
 import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
+import type { PageMeta } from "../../type/index.ts";
 
 export type MarkdownRenderOptions = {
   failOnUnknown?: true;

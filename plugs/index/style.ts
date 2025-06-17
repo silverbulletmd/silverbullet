@@ -1,6 +1,7 @@
-import type { IndexTreeEvent, ObjectValue } from "../../plug-api/types.ts";
+import type { IndexTreeEvent } from "../../type/event.ts";
 import { collectNodesOfType, findNodeOfType } from "../../plug-api/lib/tree.ts";
 import { indexObjects } from "./api.ts";
+import type { ObjectValue } from "../../type/index.ts";
 
 export type StyleObject = ObjectValue<{
   style: string;

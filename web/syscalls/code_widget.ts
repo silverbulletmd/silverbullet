@@ -1,6 +1,6 @@
-import type { CodeWidgetContent } from "../../plug-api/types.ts";
 import type { SysCallMapping } from "../../lib/plugos/system.ts";
 import type { CodeWidgetHook } from "../hooks/code_widget.ts";
+import type { CodeWidgetContent } from "@silverbulletmd/silverbullet/type/client";
 
 export function codeWidgetSyscalls(
   codeWidgetHook: CodeWidgetHook,

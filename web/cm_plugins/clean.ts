@@ -1,4 +1,3 @@
-import type { ClickEvent } from "../../plug-api/types.ts";
 import type { Extension } from "@codemirror/state";
 import type { Client } from "../client.ts";
 import { blockquotePlugin } from "./block_quote.ts";
@@ -15,6 +14,7 @@ import { frontmatterPlugin } from "./frontmatter.ts";
 import { cleanEscapePlugin } from "./escapes.ts";
 import { luaDirectivePlugin } from "./lua_directive.ts";
 import { hashtagPlugin } from "./hashtag.ts";
+import type { ClickEvent } from "@silverbulletmd/silverbullet/type/client";
 
 export function cleanModePlugins(client: Client) {
   return [

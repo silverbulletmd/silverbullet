@@ -2,7 +2,7 @@ import type { Hook, Manifest } from "../../lib/plugos/types.ts";
 import type { System } from "../../lib/plugos/system.ts";
 import { EventEmitter } from "../../lib/plugos/event.ts";
 import { throttle } from "../../lib/async.ts";
-import type { Command, CommandHookEvents } from "../../lib/command.ts";
+import type { Command, CommandHookEvents } from "../../type/command.ts";
 import type { CommandHookT } from "../../lib/manifest.ts";
 
 export class CommandHook extends EventEmitter<CommandHookEvents>

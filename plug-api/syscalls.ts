@@ -2,7 +2,7 @@ export * as editor from "./syscalls/editor.ts";
 export * as markdown from "./syscalls/markdown.ts";
 export * as space from "./syscalls/space.ts";
 export * as system from "./syscalls/system.ts";
-export * as clientStore from "./syscalls/clientStore.ts";
+export * as clientStore from "./syscalls/client_store.ts";
 export * as sync from "./syscalls/sync.ts";
 export * as language from "./syscalls/language.ts";
 export * as codeWidget from "./syscalls/code_widget.ts";

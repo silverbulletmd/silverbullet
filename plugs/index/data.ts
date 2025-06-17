@@ -3,11 +3,12 @@ import {
   collectNodesOfType,
   findNodeOfType,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import type { IndexTreeEvent, ObjectValue } from "../../plug-api/types.ts";
+import type { IndexTreeEvent } from "../../type/event.ts";
 import { indexObjects } from "./api.ts";
 import type { TagObject } from "./tags.ts";
-import { extractFrontmatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
+import { extractFrontMatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
 import { updateITags } from "@silverbulletmd/silverbullet/lib/tags";
+import type { ObjectValue } from "../../type/index.ts";
 
 type DataObject = ObjectValue<
   {
@@ -18,7 +19,7 @@ type DataObject = ObjectValue<
 
 export async function indexData({ name, tree }: IndexTreeEvent) {
   const dataObjects: ObjectValue<DataObject>[] = [];
-  const frontmatter = await extractFrontmatter(tree);
+  const frontmatter = await extractFrontMatter(tree);
 
   await Promise.all(
     collectNodesOfType(tree, "FencedCode").map(async (t) => {

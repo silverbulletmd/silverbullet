@@ -1,13 +1,13 @@
+import type { DataStore } from "./datastore.ts";
+import { parseExpressionString } from "../space_lua/parse.ts";
+import { LuaEnv } from "../space_lua/runtime.ts";
 import type {
   KV,
   KvKey,
   MQMessage,
   MQStats,
   MQSubscribeOptions,
-} from "../../plug-api/types.ts";
-import type { DataStore } from "./datastore.ts";
-import { parseExpressionString } from "../space_lua/parse.ts";
-import { LuaEnv } from "../space_lua/runtime.ts";
+} from "../../type/datastore.ts";
 
 export type ProcessingMessage = MQMessage & {
   ts: number;

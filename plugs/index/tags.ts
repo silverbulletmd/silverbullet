@@ -1,9 +1,5 @@
-import type {
-  CompleteEvent,
-  IndexTreeEvent,
-  ObjectValue,
-} from "../../plug-api/types.ts";
-import { extractFrontmatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
+import type { IndexTreeEvent } from "../../type/event.ts";
+import { extractFrontMatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
 import { indexObjects, queryLuaObjects } from "./api.ts";
 import {
   addParentPointers,
@@ -11,6 +7,8 @@ import {
   findParentMatching,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { extractHashtag, renderHashtag } from "../../plug-api/lib/tags.ts";
+import type { ObjectValue } from "../../type/index.ts";
+import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
 
 export type TagObject = ObjectValue<{
   name: string;
@@ -21,7 +19,7 @@ export type TagObject = ObjectValue<{
 export async function indexTags({ name, tree }: IndexTreeEvent) {
   const tags = new Set<string>(); // name:parent
   addParentPointers(tree);
-  const pageTags: string[] = (await extractFrontmatter(tree)).tags || [];
+  const pageTags: string[] = (await extractFrontMatter(tree)).tags || [];
   for (const pageTag of pageTags) {
     tags.add(`${pageTag}:page`);
   }

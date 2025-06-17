@@ -1,6 +1,7 @@
-import type { KV, KvKey } from "../../plug-api/types.ts";
 import type { KvPrimitives, KvQueryOptions } from "./kv_primitives.ts";
 import { type IDBPDatabase, openDB } from "idb";
+
+import type { KV, KvKey } from "../../type/datastore.ts";
 
 const sep = "\0";
 const objectStoreName = "data";

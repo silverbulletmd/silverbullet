@@ -1,7 +1,8 @@
 import { walk } from "@std/fs/walk";
 import { resolve } from "@std/path";
 import { mime } from "mimetypes";
-import type { FileMeta } from "../plug-api/types.ts";
+
+import type { FileMeta } from "../type/index.ts";
 
 const rootDir = resolve("website_build");
 

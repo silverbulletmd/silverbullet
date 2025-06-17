@@ -1,10 +1,10 @@
-import type {
-  CodeWidgetCallback,
-  WidgetContent,
-} from "../../plug-api/types.ts";
 import { WidgetType } from "@codemirror/view";
 import type { Client } from "../client.ts";
 import { createWidgetSandboxIFrame } from "../components/widget_sandbox_iframe.ts";
+import type {
+  CodeWidgetCallback,
+  WidgetContent,
+} from "@silverbulletmd/silverbullet/type/client";
 
 export class IFrameWidget extends WidgetType {
   iframe?: HTMLIFrameElement;

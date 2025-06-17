@@ -1,5 +1,5 @@
-import type { FileMeta } from "../../plug-api/types.ts";
 import type { SpacePrimitives } from "./space_primitives.ts";
+import type { FileMeta } from "../../type/index.ts";
 
 /**
  * FallbackSpacePrimitives is a SpacePrimitives implementation that will try to fall back to another SpacePrimitives implementation for two

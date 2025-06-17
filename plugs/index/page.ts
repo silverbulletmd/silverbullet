@@ -1,4 +1,4 @@
-import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/types";
+import type { IndexTreeEvent } from "../../type/event.ts";
 import {
   editor,
   lua,
@@ -7,8 +7,7 @@ import {
   YAML,
 } from "@silverbulletmd/silverbullet/syscalls";
 
-import type { LintDiagnostic, PageMeta } from "../../plug-api/types.ts";
-import { extractFrontmatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
+import { extractFrontMatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
 import { extractAttributes } from "@silverbulletmd/silverbullet/lib/attribute";
 import {
   deleteObject,
@@ -23,6 +22,8 @@ import {
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { updateITags } from "@silverbulletmd/silverbullet/lib/tags";
 import type { AspiringPageObject } from "./page_links.ts";
+import type { PageMeta } from "../../type/index.ts";
+import type { LintDiagnostic } from "@silverbulletmd/silverbullet/type/client";
 
 export async function indexPage({ name, tree }: IndexTreeEvent) {
   if (name.startsWith("_")) {
@@ -30,7 +31,7 @@ export async function indexPage({ name, tree }: IndexTreeEvent) {
     return;
   }
   const pageMeta = await space.getPageMeta(name);
-  const frontmatter = await extractFrontmatter(tree);
+  const frontmatter = await extractFrontMatter(tree);
   const toplevelAttributes = await extractAttributes(tree);
 
   // Push them all into the page object

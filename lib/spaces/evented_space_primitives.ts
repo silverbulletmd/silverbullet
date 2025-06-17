@@ -1,8 +1,8 @@
-import type { FileMeta } from "@silverbulletmd/silverbullet/types";
 import type { EventHook } from "../../web/hooks/event.ts";
 import { plugPrefix } from "../spaces/constants.ts";
 
 import type { SpacePrimitives } from "./space_primitives.ts";
+import type { FileMeta } from "../../type/index.ts";
 
 /**
  * Events exposed:

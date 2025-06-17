@@ -1,9 +1,9 @@
 import type { SysCallMapping } from "../system.ts";
-import type { FileMeta } from "../../../plug-api/types.ts";
 import { base64DecodeDataUrl, base64Encode } from "../../crypto.ts";
 import { dirname, resolve } from "@std/path";
 import { mime } from "mimetypes";
 import { walk } from "@std/fs";
+import type { FileMeta } from "../../../type/index.ts";
 
 export default function fileSystemSyscalls(root = "/"): SysCallMapping {
   function resolvedPath(p: string): string {

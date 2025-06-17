@@ -9,7 +9,8 @@ import {
 import type { DecorationSet } from "@codemirror/view";
 import { Decoration, EditorView, WidgetType } from "@codemirror/view";
 import type { Client } from "../client.ts";
-import type { PageMeta } from "@silverbulletmd/silverbullet/types";
+
+import type { PageMeta } from "../../type/index.ts";
 
 type LinkOptions = {
   text: string;

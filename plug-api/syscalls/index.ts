@@ -1,6 +1,6 @@
-import type { ObjectValue } from "@silverbulletmd/silverbullet/types";
 import type { LuaCollectionQuery } from "../../lib/space_lua/query_collection.ts";
 import { syscall } from "@silverbulletmd/silverbullet/syscall";
+import type { ObjectValue } from "../../type/index.ts";
 
 /**
  * Exposes the SilverBullet object indexing system

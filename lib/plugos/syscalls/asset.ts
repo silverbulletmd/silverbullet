@@ -1,5 +1,5 @@
-import type { FileMeta } from "@silverbulletmd/silverbullet/types";
 import type { SysCallMapping, System } from "../system.ts";
+import type { FileMeta } from "../../../type/index.ts";
 
 export default function assetSyscalls(system: System<any>): SysCallMapping {
   return {

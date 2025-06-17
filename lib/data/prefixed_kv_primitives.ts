@@ -1,5 +1,6 @@
-import type { KV, KvKey } from "../../plug-api/types.ts";
 import type { KvPrimitives, KvQueryOptions } from "./kv_primitives.ts";
+
+import type { KV, KvKey } from "../../type/datastore.ts";
 
 /**
  * Turns any KvPrimitives into a KvPrimitives that automatically prefixes all keys (and removes them again when reading)

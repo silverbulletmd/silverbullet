@@ -1,4 +1,4 @@
-import type { IndexTreeEvent, ObjectValue } from "../../plug-api/types.ts";
+import type { IndexTreeEvent } from "../../type/event.ts";
 import { extractHashtag } from "../../plug-api/lib/tags.ts";
 import {
   collectNodesMatching,
@@ -6,6 +6,7 @@ import {
   type ParseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { indexObjects } from "./api.ts";
+import type { ObjectValue } from "../../type/index.ts";
 
 type TableRowObject =
   & ObjectValue<{

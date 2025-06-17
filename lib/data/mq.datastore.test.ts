@@ -4,7 +4,8 @@ import { MemoryKvPrimitives } from "./memory_kv_primitives.ts";
 import { DataStore } from "./datastore.ts";
 import { PrefixedKvPrimitives } from "./prefixed_kv_primitives.ts";
 import { FakeTime } from "@std/testing/time";
-import type { MQMessage } from "../../plug-api/types.ts";
+
+import type { MQMessage } from "../../type/datastore.ts";
 
 Deno.test("DataStore MQ", async () => {
   const time = new FakeTime();

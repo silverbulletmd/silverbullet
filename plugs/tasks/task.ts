@@ -1,8 +1,4 @@
-import type {
-  ClickEvent,
-  IndexTreeEvent,
-  ObjectValue,
-} from "../../plug-api/types.ts";
+import type { IndexTreeEvent } from "../../type/event.ts";
 
 import {
   editor,
@@ -36,7 +32,7 @@ import {
   extractHashTags,
   updateITags,
 } from "@silverbulletmd/silverbullet/lib/tags";
-import { extractFrontmatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
+import { extractFrontMatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
 import {
   parseRef,
   positionOfLine,
@@ -44,6 +40,8 @@ import {
 import { enrichItemFromParents } from "../index/item.ts";
 import { deepClone } from "@silverbulletmd/silverbullet/lib/json";
 import { queryLuaObjects } from "../index/api.ts";
+import type { ObjectValue } from "../../type/index.ts";
+import type { ClickEvent } from "@silverbulletmd/silverbullet/type/client";
 
 export type TaskObject = ObjectValue<
   {
@@ -76,7 +74,7 @@ export async function extractTasks(
 ): Promise<TaskObject[]> {
   const tasks: ObjectValue<TaskObject>[] = [];
   const taskStates = new Map<string, { count: number; firstPos: number }>();
-  const frontmatter = await extractFrontmatter(tree);
+  const frontmatter = await extractFrontMatter(tree);
 
   await traverseTreeAsync(tree, async (n) => {
     if (n.type !== "Task") {

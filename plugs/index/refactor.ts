@@ -10,7 +10,6 @@ import {
   absoluteToRelativePath,
   folderName,
 } from "@silverbulletmd/silverbullet/lib/resolve";
-import type { ObjectValue } from "@silverbulletmd/silverbullet/types";
 import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
 import {
   addParentPointers,
@@ -19,6 +18,7 @@ import {
   nodeAtPos,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { queryLuaObjects } from "./api.ts";
+import type { ObjectValue } from "../../type/index.ts";
 
 /**
  * Renames a single page.

@@ -4,12 +4,9 @@ import type {
   CompletionContext,
   CompletionResult,
 } from "@codemirror/autocomplete";
-import type {
-  DocumentMeta,
-  PageMeta,
-} from "@silverbulletmd/silverbullet/types";
 import { tagRegex as mdTagRegex } from "../markdown_parser/constants.ts";
 import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
+import type { DocumentMeta, PageMeta } from "../../type/index.ts";
 
 const tagRegex = new RegExp(mdTagRegex.source, "g");
 
