@@ -1,4 +1,17 @@
 # Introduction
+SilverBullet is a tool to **keep, organize, and structure your personal knowledge** and to make it **universally accessible** across all your devices. 
+
+It stores your content as a collection of [[Pages]] (called a [[Spaces|Space]]) as [[Markdown]] files on disk. It enables [[Links|Linking]], [[Tags|Tagging]] and **annotating** with [[Metadata]] at various levels. These annotations let you treat your space as a [[Objects|database]], enabling you to [[Space Lua/Lua Integrated Query|Query]] it in interesting ways.
+
+SilverBullet is a deeply **programmable** and **personalizable** environment. Using [[Space Lua]] (its custom [[Lua]] implementation), you can dynamically generate part of your pages using [[Space Lua/Lua Integrated Query|Queries]] and other [[Space Lua|Expressions]], create custom [[Commands]] and [[Space Lua/Widgets]]. [[Space Style]] allows you to tweak your Space’s look and feel using CSS.
+
+You [[Install|self host]] SilverBullet on a server under your control. It is deployable as a single [[Install/Binary]] or [[Install/Docker]] container. _You_ decide if you run it locally, in your VPN, or on the cloud.
+
+The SilverBullet client is built as a [[Local First]], progressive web application, syncing all your content into your browser’s IndexedDB, enabling you **instant access** to your entire space no matter if you are **online or offline**.
+
+---
+
+# Introduction
 SilverBullet is an open source **personal productivity platform** built on [[Markdown]], turbo charged with the scripting power of [[Space Lua|Lua]]. You [[Install|self host]] it on your server, access it via any modern browser on any device (desktop, laptop, mobile). Since SilverBullet is built as a [[Local First]] [[PWA]], it is fully offline capable. Temporarily don’t have network access? No problem, SilverBullet will sync your content when you get back online.
 
 In case you were wondering: yes, you are looking at a (read-only) instance of SilverBullet right now. Switch off your Internet connection, and this website will still be available for your reading pleasure.

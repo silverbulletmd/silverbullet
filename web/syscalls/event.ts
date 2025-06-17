@@ -15,7 +15,7 @@ export function eventListenerSyscalls(
       _ctx,
       def: EventSubscription,
     ) => {
-      console.log("Registering Lua event listener: ", def.name);
+      // console.log("Registering Lua event listener: ", def.name);
       const listeners = client.config.get<Function[]>([
         "eventListeners",
         def.name,

@@ -82,7 +82,7 @@ config.define("tagDefinitions", {
     type = "object",
     properties = {
       schema = { type = "object" },
-      metatable = { type = "object" },
+      metatable = { },
     },
   },
 })
