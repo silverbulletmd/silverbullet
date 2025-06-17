@@ -116,6 +116,14 @@ Example:
 editor.moveCursorToLine(1, 1, true)  -- Move to start of first line
 ```
 
+### editor.invokeCommand(name, args?)
+Invokes a client command by name.
+
+Example:
+```lua
+editor.invokeCommand("Stats: Show")
+```
+
 ### editor.save()
 Force saves the current page.
 

@@ -263,21 +263,21 @@ config.set {
       icon = "home",
       description = "Go to the index page",
       run = function()
-        system.invokeCommand("Navigate: Home")
+        editor.invokeCommand("Navigate: Home")
       end
     },
     {
       icon = "book",
       description = "Open page",
       run = function()
-        system.invokeCommand("Navigate: Page Picker")
+        editor.invokeCommand("Navigate: Page Picker")
       end
     },
     {
       icon = "terminal",
       description = "Run command",
       run = function()
-        system.invokeCommand "Open Command Palette"
+        editor.invokeCommand "Open Command Palette"
       end,
     }
   },

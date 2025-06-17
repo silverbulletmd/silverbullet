@@ -45,9 +45,7 @@ export function systemSyscalls(
       return client.clientSystem.localSyscall(name, args);
     },
     "system.invokeCommand": (_ctx, name: string, args?: string[]) => {
-      if (!client) {
-        throw new Error("Not supported");
-      }
+      console.warn("Deprecated, use editor.invokeCommand instead");
       return client.runCommandByName(name, args);
     },
     "system.listCommands": (): { [key: string]: CommandDef } => {

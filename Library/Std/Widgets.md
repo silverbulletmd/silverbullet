@@ -26,7 +26,7 @@ function widgets.commandButton(text, commandName, args)
   end
   return widget.html(dom.button {
     onclick = function()
-      system.invokeCommand(commandName, args)
+      editor.invokeCommand(commandName, args)
     end,
     text
   })

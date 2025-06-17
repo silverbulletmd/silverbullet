@@ -117,6 +117,9 @@ export function editorSyscalls(client: Client): SysCallMapping {
         [],
       );
     },
+    "editor.invokeCommand": (_ctx, name: string, args?: string[]) => {
+      return client.runCommandByName(name, args);
+    },
     "editor.openUrl": (_ctx, url: string, existingWindow = false) => {
       client.openUrl(url, existingWindow);
     },

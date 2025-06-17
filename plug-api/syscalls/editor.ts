@@ -94,6 +94,16 @@ export function setSelection(from: number, to: number): Promise<void> {
 }
 
 /**
+ * Invoke a client command by name
+ * Note: only available on the client
+ * @param name name of the command
+ * @param args arguments to pass to the command
+ */
+export function invokeCommand(name: string, args?: string[]): Promise<any> {
+  return syscall("editor.invokeCommand", name, args);
+}
+
+/**
  * Forces a save of the current page
  */
 export function save(): Promise<void> {
