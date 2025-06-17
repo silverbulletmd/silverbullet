@@ -21,8 +21,6 @@ import { safeRun } from "../lib/async.ts";
 import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 
-const doublePressThreshold = 500;
-
 export class MainUI {
   viewState: AppViewState = initialViewState;
 
