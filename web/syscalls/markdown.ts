@@ -5,6 +5,10 @@ import { extendedMarkdownLanguage } from "../markdown_parser/parser.ts";
 import { expandMarkdown } from "../markdown.ts";
 import type { Client } from "../client.ts";
 import { LuaStackFrame } from "../../lib/space_lua/runtime.ts";
+import {
+  type MarkdownRenderOptions,
+  renderMarkdownToHtml,
+} from "../markdown/markdown_render.ts";
 
 export function markdownSyscalls(client: Client): SysCallMapping {
   return {
@@ -21,6 +25,14 @@ export function markdownSyscalls(client: Client): SysCallMapping {
         client.clientSystem.spaceLuaEnv.env,
         LuaStackFrame.lostFrame,
       );
+    },
+    "markdown.markdownToHtml": (
+      _ctx,
+      text: string,
+      options: MarkdownRenderOptions = {},
+    ) => {
+      const mdTree = parse(extendedMarkdownLanguage, text);
+      return renderMarkdownToHtml(mdTree, options);
     },
   };
 }
