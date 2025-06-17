@@ -1,6 +1,7 @@
 import { luaBuildStandardEnv } from "../lib/space_lua/stdlib.ts";
 import { parseRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import {
+  LuaBuiltinFunction,
   LuaEnv,
   LuaNativeJSFunction,
   type LuaRuntimeError,
@@ -18,17 +19,30 @@ export function buildLuaEnv(system: System<any>) {
   return env;
 }
 
+/**
+ * Exposes all registered syscalls to Lua, automatically converting Lua arguments to JS values
+ * If a syscall is prefixed with `lua:` it exposes the syscall as a native Lua function, skipping the argument conversion0
+ */
 function exposeSyscalls(env: LuaEnv, system: System<any>) {
   // Expose all syscalls to Lua
   const nativeFs = new LuaStackFrame(env, null);
   for (const syscallName of system.registeredSyscalls.keys()) {
-    const [ns, fn] = syscallName.split(".");
+    const isLuaNativeSyscall = syscallName.startsWith("lua:");
+    let cleanSyscallName = syscallName;
+    if (isLuaNativeSyscall) {
+      cleanSyscallName = syscallName.slice("lua:".length);
+    }
+    const [ns, fn] = cleanSyscallName.split(".");
     if (!env.has(ns)) {
       env.set(ns, new LuaTable(), nativeFs);
     }
-    const luaFn = new LuaNativeJSFunction((...args) => {
-      return system.localSyscall(syscallName, args);
-    });
+    const luaFn = isLuaNativeSyscall
+      ? new LuaBuiltinFunction((_sf, ...args) => {
+        return system.localSyscall(syscallName, args);
+      })
+      : new LuaNativeJSFunction((...args) => {
+        return system.localSyscall(syscallName, args);
+      });
     env.get(ns, nativeFs).set(fn, luaFn, nativeFs);
   }
 }
