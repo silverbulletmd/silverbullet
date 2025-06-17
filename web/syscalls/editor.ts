@@ -109,7 +109,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
     },
     "editor.reloadConfigAndCommands": async () => {
       await client.clientSystem.system.localSyscall(
-        "system.loadSpaceScripts",
+        "system.loadScripts",
         [],
       );
       await client.clientSystem.system.localSyscall(
@@ -407,6 +407,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
       // Override the default "o" binding to be more intelligent and follow the markdown editor's behavior
       Vim.mapCommand("o", "action", "newline-continue-markup", {}, {});
       Vim.mapCommand("O", "action", "back-newline-continue-markup", {}, {});
+      Vim.unmap("<C-q>", undefined as any);
       Vim.defineAction("newline-continue-markup", (cm) => {
         // Append at end of line
         Vim.handleKey(cm, "A", "+input");
