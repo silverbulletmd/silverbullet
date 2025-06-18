@@ -22,8 +22,6 @@ jobs:
           deno-version: v2.3.5
       - name: Run build
         run: deno task build
-      - name: Bundle
-        run: deno task bundle
       - name: Publish to JSR
         run: deno publish
       - name: Release

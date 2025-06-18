@@ -272,7 +272,7 @@ export function hidePanel(
 export function showProgress(
   progressPercentage?: number,
   progressType?: string,
-) {
+): Promise<void> {
   return syscall("editor.showProgress", progressPercentage, progressType);
 }
 
