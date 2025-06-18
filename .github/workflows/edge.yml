@@ -34,4 +34,5 @@ jobs:
           files: |
             website/CHANGELOG.md
             dist/plug-compile.js
+            dist/silverbullet.js
             silverbullet-*.zip
