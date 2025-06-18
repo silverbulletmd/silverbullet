@@ -354,7 +354,12 @@ export class MainUI {
                 return {
                   icon: mdiIcon ? mdiIcon : featherIcon,
                   description: button.description || "",
-                  callback: button.run,
+                  callback: button.run || (() => {
+                    client.flashNotification(
+                      "Legacy actionButton definition detected, please define a run() callback",
+                      "error",
+                    );
+                  }),
                   href: "",
                 };
               }),
