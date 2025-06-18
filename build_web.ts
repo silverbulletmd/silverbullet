@@ -117,9 +117,10 @@ async function buildCopyBundleAssets() {
     // metafile: true,
     jsx: "automatic",
     jsxFragment: "Fragment",
-    jsxImportSource: "https://esm.sh/preact@10.23.1",
+    jsxImportSource: "npm:preact@10.23.1",
     plugins: denoPlugins({
       configPath: fileURLToPath(new URL("./deno.json", import.meta.url)),
+      nodeModulesDir: "auto",
     }),
   });
 

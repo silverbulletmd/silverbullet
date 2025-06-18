@@ -117,7 +117,6 @@ setupMessageListener(functionMapping, manifest, self.postMessage);
       ...denoPlugins({
         configPath: options.configPath &&
           path.resolve(Deno.cwd(), options.configPath),
-        importMapURL: options.importMap,
         loader: "native",
       }),
     ],

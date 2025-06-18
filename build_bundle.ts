@@ -21,6 +21,7 @@ await esbuild.build({
   external: [],
   plugins: denoPlugins({
     configPath: new URL("./deno.json", import.meta.url).pathname,
+    nodeModulesDir: "auto",
   }),
 });
 const plugBundleJS = await Deno.readTextFile("dist/plug-compile.js");

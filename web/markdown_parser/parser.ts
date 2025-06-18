@@ -1,4 +1,4 @@
-import { yaml as yamlLanguage } from "@codemirror/legacy-modes/mode/yaml?external=@codemirror/language&target=es2022";
+import { yaml as yamlLanguage } from "@codemirror/legacy-modes/mode/yaml";
 import { styleTags, type Tag, tags as t } from "@lezer/highlight";
 import {
   type Line,

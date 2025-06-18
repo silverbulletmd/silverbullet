@@ -1,5 +1,5 @@
 import type { SysCallMapping } from "../../lib/plugos/system.ts";
-import Ajv from "ajv";
+import { Ajv } from "ajv";
 
 const ajv = new Ajv();
 
