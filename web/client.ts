@@ -445,7 +445,6 @@ export class Client {
 
           if (
             !this.ui.viewState.unsavedChanges ||
-            this.ui.viewState.uiOptions.forcedROMode ||
             this.clientConfig.readOnly
           ) {
             // No unsaved changes, or read-only mode, not gonna save

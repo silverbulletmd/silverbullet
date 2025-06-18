@@ -144,6 +144,10 @@ config.define("actionButtons", {
         type = "string",
         description = "Optional description of the action button"
       },
+      priority = {
+        type = "number",
+        description = "Optional priority: the higher the earlier the button will appear in the list"
+      },
       mobile = {
         type = "boolean",
         description = "Optional boolean indicating if the action button is applicable for mobile"
@@ -262,6 +266,7 @@ config.set {
     {
       icon = "home",
       description = "Go to the index page",
+      priority = 3,
       run = function()
         editor.invokeCommand("Navigate: Home")
       end
@@ -269,6 +274,7 @@ config.set {
     {
       icon = "book",
       description = "Open page",
+      priority = 2,
       run = function()
         editor.invokeCommand("Navigate: Page Picker")
       end
@@ -276,6 +282,7 @@ config.set {
     {
       icon = "terminal",
       description = "Run command",
+      priority = 1,
       run = function()
         editor.invokeCommand "Open Command Palette"
       end,

@@ -8,6 +8,7 @@ import {
   LuaRuntimeError,
   LuaTable,
   type LuaValue,
+  luaValueToJS,
 } from "../runtime.ts";
 import { asyncQuickSort } from "../util.ts";
 
@@ -42,12 +43,14 @@ export const tableApi = new LuaTable({
    * @param value - The value to insert.
    */
   insert: new LuaBuiltinFunction(
-    (_sf, tbl: LuaTable | any[], posOrValue: number | any, value?: any) => {
+    (sf, tbl: LuaTable | any[], posOrValue: number | any, value?: any) => {
       if (Array.isArray(tbl)) {
+        // Since we're inserting/appending to a native JS array, we'll also convert the value to a JS value on the fly
+        // this seems like a reasonable heuristic
         if (value === undefined) {
-          tbl.push(posOrValue);
+          tbl.push(luaValueToJS(posOrValue, sf));
         } else {
-          tbl.splice(posOrValue - 1, 0, value);
+          tbl.splice(posOrValue - 1, 0, luaValueToJS(value, sf));
         }
       } else if (tbl instanceof LuaTable) {
         if (value === undefined) {

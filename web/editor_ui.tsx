@@ -130,7 +130,10 @@ export class MainUI {
       // Need to dispatch a resize event so that the top_bar can pick it up
       globalThis.dispatchEvent(new Event("resize"));
     }, [viewState.panels]);
-
+    const actionButtons = client.config.get<ActionButton[]>(
+      "actionButtons",
+      [],
+    );
     return (
       <>
         {viewState.showPageNavigator && (
@@ -335,15 +338,20 @@ export class MainUI {
               }]
               : [],
             // Custom action buttons
-            ...client.config.get<ActionButton[]>(
-              "actionButtons",
-              [],
-            ).filter((
+            ...actionButtons.filter(( // Filter out buttons without icons (invalid) and mobile buttons when not in mobile mode
               button,
             ) =>
-              (typeof button.mobile === "undefined") ||
-              (button.mobile === viewState.isMobile)
+              button.icon && (
+                (typeof button.mobile === "undefined") ||
+                (button.mobile === viewState.isMobile)
+              )
             )
+              // Then ensure all buttons have a priority set (by default based on array index)
+              .map((button, index) => ({
+                ...button,
+                priority: button.priority ?? actionButtons.length - index,
+              }))
+              .sort((a, b) => b.priority - a.priority)
               .map((button) => {
                 const mdiIcon = (mdi as any)[kebabToCamel(button.icon)];
                 let featherIcon =
@@ -356,7 +364,7 @@ export class MainUI {
                   description: button.description || "",
                   callback: button.run || (() => {
                     client.flashNotification(
-                      "Legacy actionButton definition detected, please define a run() callback",
+                      "actionButton did not specify a run() callback",
                       "error",
                     );
                   }),
@@ -427,6 +435,7 @@ type ActionButton = {
   icon: string;
   description?: string;
   mobile?: boolean;
+  priority?: number;
   run: () => void;
 };
 
