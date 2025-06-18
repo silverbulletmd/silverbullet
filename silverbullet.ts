@@ -1,4 +1,3 @@
-import.meta.main = false;
 import { Command } from "@cliffy/command";
 
 import { version } from "./version.ts";
@@ -6,7 +5,6 @@ import { version } from "./version.ts";
 import { upgradeCommand, upgradeEdgeCommand } from "./cmd/upgrade.ts";
 import { versionCommand } from "./cmd/version.ts";
 import { serveCommand } from "./cmd/server.ts";
-import { plugCompileCommand } from "./cmd/plug_compile.ts";
 import { syncCommand } from "./cmd/sync.ts";
 
 // Unhandled rejection, let's not crash
@@ -33,26 +31,6 @@ await new Command()
     "'username:password' combo for authentication",
   )
   .action(serveCommand)
-  // plug:compile
-  .command("plug:compile")
-  .description("Bundle (compile) one or more plug manifests")
-  .arguments("<...name.plug.yaml:string>")
-  .option("--debug", "Do not minifiy code", { default: false })
-  .option("--info", "Print out size info per function", {
-    default: false,
-  })
-  .option("--watch, -w [type:boolean]", "Watch for changes and rebuild", {
-    default: false,
-  })
-  .option(
-    "--dist <path:string>",
-    "Folder to put the resulting .plug.json file into",
-    { default: "." },
-  )
-  .option("--importmap <path:string>", "Path to import map file to use")
-  .option("-c, --config <path:string>", "Path to deno.json file to use")
-  .option("--runtimeUrl <url:string>", "URL to worker_runtime.ts to use")
-  .action(plugCompileCommand)
   // upgrade
   .command("upgrade")
   .description("Upgrade SilverBullet")
@@ -79,5 +57,3 @@ await new Command()
   .description("Get current version")
   .action(versionCommand)
   .parse(Deno.args);
-
-Deno.exit(0);

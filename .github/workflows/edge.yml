@@ -33,4 +33,5 @@ jobs:
           prerelease: true
           files: |
             website/CHANGELOG.md
+            dist/plug-compile.js
             silverbullet-*.zip

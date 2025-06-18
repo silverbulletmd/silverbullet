@@ -8,6 +8,7 @@ await Deno.mkdir("dist", { recursive: true });
 await esbuild.build({
   entryPoints: {
     silverbullet: "silverbullet.ts",
+    "plug-compile": "plug-compile.ts",
   },
   outdir: "dist",
   format: "esm",
@@ -22,11 +23,11 @@ await esbuild.build({
     configPath: new URL("./deno.json", import.meta.url).pathname,
   }),
 });
-const bundleJs = await Deno.readTextFile("dist/silverbullet.js");
+const plugBundleJS = await Deno.readTextFile("dist/plug-compile.js");
 // Patch output JS with import.meta.main override to avoid ESBuild CLI handling
 await Deno.writeTextFile(
-  "dist/silverbullet.js",
-  "import.meta.main = false;\n" + bundleJs,
+  "dist/plug-compile.js",
+  "import.meta.main = false;\n" + plugBundleJS,
 );
-console.log("Output in dist/silverbullet.js");
+console.log("Output in dist");
 esbuild.stop();
