@@ -16,4 +16,4 @@ Internal links can have various formats:
   * `[[CHANGELOG@L1C3]]`: line and column: [[CHANGELOG@L1C3]]. This also starts from 1 for the start of line. The cursor will be placed at the end of line if the passed number is larger than the line
 
 # Caret page links
-[[Meta Pages]] are excluded from link auto complete in many contexts. However, you may still want to reference a meta page outside of a “meta context.” To make it easier to reference, you can use the caret syntax: `[[^SETTINGS]]`. Semantically this has the same meaning as `[[SETTINGS]]`. The only difference is that auto complete will _only_ complete meta pages.
+[[Meta Pages]] are excluded from link auto complete in many contexts. However, you may still want to reference a meta page outside of a “meta context.” To make it easier to reference, you can use the caret syntax: `[[^Library/Std]]`. Semantically this has the same meaning as `[[LIbrary/Std]]`. The only difference is that auto complete will _only_ complete meta pages.

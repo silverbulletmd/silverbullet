@@ -55,8 +55,6 @@ async function updateConfig() {
     return;
   }
 
-  // This is simpler to write in SETTINGS and prevents duplicates,
-  // which could be supported but probably aren't user's intent
   const errorMsg =
     "Emoji aliases in space config should be a map with entries 'name: 😀'";
 
