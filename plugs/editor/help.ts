@@ -1,12 +1,8 @@
 import { editor } from "@silverbulletmd/silverbullet/syscalls";
-import { version } from "../../version.ts";
+import { publicVersion } from "../../version.ts";
 
 export async function versionCommand() {
   await editor.flashNotification(
-    `You are currently running SilverBullet ${version}`,
+    `You are currently running SilverBullet ${publicVersion}`,
   );
-}
-
-export async function gettingStartedCommand() {
-  await editor.openUrl("https://silverbullet.md/Getting%20Started");
 }

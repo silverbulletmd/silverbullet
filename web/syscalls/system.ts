@@ -1,6 +1,6 @@
 import type { SysCallMapping } from "../../lib/plugos/system.ts";
 import type { Client } from "../client.ts";
-import { version } from "../../version.ts";
+import { publicVersion } from "../../version.ts";
 import type { CommandDef } from "../../lib/manifest.ts";
 import type { SyscallMeta } from "../../type/index.ts";
 
@@ -147,7 +147,7 @@ export function systemSyscalls(
       return readOnlyMode ? "ro" : "rw";
     },
     "system.getVersion": () => {
-      return version;
+      return publicVersion;
     },
     "system.getConfig": (_ctx, key: string, defaultValue: any = undefined) => {
       return client.config.get(key, defaultValue);

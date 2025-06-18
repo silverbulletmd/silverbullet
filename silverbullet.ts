@@ -1,6 +1,6 @@
 import { Command } from "@cliffy/command";
 
-import { version } from "./version.ts";
+import { publicVersion } from "./version.ts";
 
 import { upgradeCommand, upgradeEdgeCommand } from "./cmd/upgrade.ts";
 import { versionCommand } from "./cmd/version.ts";
@@ -16,7 +16,7 @@ globalThis.addEventListener("unhandledrejection", (event) => {
 await new Command()
   .name("silverbullet")
   .description("Workshop for the mind")
-  .version(version)
+  .version(publicVersion)
   .helpOption(false)
   .usage("<options> <folder> | <command> (see below)")
   // Main command

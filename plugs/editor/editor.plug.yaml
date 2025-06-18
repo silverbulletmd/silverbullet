@@ -262,11 +262,6 @@ functions:
     command:
       name: "Client: Version"
 
-  gettingStartedCommand:
-    path: ./help.ts:gettingStartedCommand
-    command:
-      name: "Help: Getting Started"
-
   uploadFileCommand:
     path: ./upload.ts:uploadFile
     command:
