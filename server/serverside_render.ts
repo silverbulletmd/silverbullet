@@ -19,8 +19,8 @@ export async function renderHtmlPage(
 ): Promise<Response> {
   let html = "";
   let lastModified = utcDateString(Date.now());
-  if (!options.auth) {
-    // Only attempt server-side rendering when this site is not protected by auth
+  if (!options.auth && options.readOnly) {
+    // Only attempt server-side rendering when this site is not protected by auth and running in read-only mode
     if (!looksLikePathWithExtension(pageName)) {
       try {
         const { data, meta } = await spacePrimitives.readFile(
