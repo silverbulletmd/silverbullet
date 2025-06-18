@@ -3,35 +3,15 @@
 
 The easiest way to get started is to click the “Use this template” on the [silverbullet-plug-template](https://github.com/silverbulletmd/silverbullet-plug-template) repo.
 
-Generally, every plug consists of a YAML manifest file named `yourplugname.plug.yaml`. This file defines all functions that form your plug. To be loadable by SilverBullet (or any PlugOS-based system for that matter), it needs to be compiled into a bundle (ending with `.plug.js`).
+Generally, every plug consists of a YAML manifest file named `yourplugname.plug.yaml`. This file defines all functions that form your plug. To be loadable by SilverBullet, it needs to be compiled into a bundle (ending with `.plug.js`).
 
-Generally, the way to do this is to run `silverbullet plug:compile` as follows:
-
-```shell
-silverbullet plug:compile yourplugname.plug.yaml
-```
-
-During development, you may want to compile plugs in debug mode, which will not minify them and generate source maps:
-
-```shell
-silverbullet plug:compile --debug yourplugname.plug.yaml
-```
-
-If you use the plug template, this command is wrapped in your `deno.jsonc` file, so you can just run either:
+For this you need to have [Deno](https://deno.com) installed, after which you can run the `deno task build` command specified in the plug template repo:
 
 ```shell
 deno task build
 ```
 
-to build it once, or
-
-```shell
-deno task watch
-```
-
-to build it and rebuild it when files are changed. This will write a `yourplugname.plug.js` file into the same folder. 
-
-For development it’s easiest to simply copy the `.plug.js` file into your space’s `_plug/` folder:
+For development it’s easiest to simply copy the `.plug.js` file into your space’s `_plug/` folder after it’s built:
 
 ```shell
 cp myplug.plug.js ~/myspace/_plug/
