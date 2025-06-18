@@ -5,7 +5,7 @@ import { updateVersionFile } from "./cmd/update_version.ts";
 
 await updateVersionFile();
 await Deno.mkdir("dist", { recursive: true });
-await esbuild.build({
+const result = await esbuild.build({
   entryPoints: {
     silverbullet: "silverbullet.ts",
     "plug-compile": "plug-compile.ts",
@@ -14,8 +14,8 @@ await esbuild.build({
   format: "esm",
   absWorkingDir: Deno.cwd(),
   bundle: true,
+  //metafile: true,
   treeShaking: true,
-  sourcemap: false,
   logLevel: "error",
   minify: true,
   external: [],
@@ -24,6 +24,10 @@ await esbuild.build({
     nodeModulesDir: "auto",
   }),
 });
+if (result.metafile) {
+  const text = await esbuild.analyzeMetafile(result.metafile!);
+  console.log("Bundle info", text);
+}
 const plugBundleJS = await Deno.readTextFile("dist/plug-compile.js");
 // Patch output JS with import.meta.main override to avoid ESBuild CLI handling
 await Deno.writeTextFile(

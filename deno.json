@@ -35,7 +35,7 @@
     "fmt": "deno fmt",
     "test": "deno test -A",
     "bench": "deno bench",
-    "build": "rm -rf dist dist_client_bundle dist_plug_bundle && deno run -A build_plugs.ts && deno run -A build_web.ts && deno task compile",
+    "build": "rm -rf dist dist_client_bundle dist_plug_bundle && deno run -A build_plugs.ts && deno run -A build_web.ts --production && deno task compile",
     "plugs": "deno run -A build_plugs.ts",
     "server": "deno run -A  --check silverbullet.ts",
     "generate": "./scripts/generate.sh",
