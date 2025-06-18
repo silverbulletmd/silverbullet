@@ -1,5 +1,5 @@
 import { editor } from "@silverbulletmd/silverbullet/syscalls";
-import { publicVersion } from "../../version.ts";
+import { publicVersion } from "../../public_version.ts";
 
 export async function versionCommand() {
   await editor.flashNotification(

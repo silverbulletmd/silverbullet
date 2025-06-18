@@ -1,6 +1,6 @@
 import type { SysCallMapping } from "../../lib/plugos/system.ts";
 import type { Client } from "../client.ts";
-import { publicVersion } from "../../version.ts";
+import { publicVersion } from "../../public_version.ts";
 import type { CommandDef } from "../../lib/manifest.ts";
 import type { SyscallMeta } from "../../type/index.ts";
 

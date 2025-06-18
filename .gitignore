@@ -16,4 +16,4 @@ silverbullet-*
 deploy.json
 *.generated
 tmp_playground
-/version.ts
+/public_version.ts
