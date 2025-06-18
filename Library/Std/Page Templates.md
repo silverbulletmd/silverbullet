@@ -75,6 +75,8 @@ This is my quick note version
 
 # Implementation
 ```space-lua
+-- priority: 10
+
 local function createPageFromTemplate(templatePage, pageName)
   -- Won't override an existing page
   if space.pageExists(pageName) then
