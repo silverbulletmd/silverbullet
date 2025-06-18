@@ -1,43 +1,37 @@
-import { yaml as yamlLanguage } from "@codemirror/legacy-modes/mode/yaml?external=@codemirror/language&target=es2022";
+import { yaml as yamlLanguage } from "@codemirror/legacy-modes/mode/yaml";
 import {
   pgSQL as postgresqlLanguage,
   standardSQL as sqlLanguage,
-} from "@codemirror/legacy-modes/mode/sql?external=@codemirror/language&target=es2022";
-import { rust as rustLanguage } from "@codemirror/legacy-modes/mode/rust?external=@codemirror/language&target=es2022";
-import {
-  python as pythonLanguage,
-} from "@codemirror/legacy-modes/mode/python?external=@codemirror/language&target=es2022";
+} from "@codemirror/legacy-modes/mode/sql";
+import { rust as rustLanguage } from "@codemirror/legacy-modes/mode/rust";
+import { python as pythonLanguage } from "@codemirror/legacy-modes/mode/python";
 import {
   protobuf as protobufLanguage,
-} from "@codemirror/legacy-modes/mode/protobuf?external=@codemirror/language&target=es2022";
-import { shell as shellLanguage } from "@codemirror/legacy-modes/mode/shell?external=@codemirror/language&target=es2022";
-import { swift as swiftLanguage } from "@codemirror/legacy-modes/mode/swift?external=@codemirror/language&target=es2022";
-import { toml as tomlLanguage } from "@codemirror/legacy-modes/mode/toml?external=@codemirror/language&target=es2022";
-import { xml as xmlLanguage } from "@codemirror/legacy-modes/mode/xml?external=@codemirror/language&target=es2022";
-import {
-  json as jsonLanguage,
-} from "@codemirror/legacy-modes/mode/javascript?external=@codemirror/language&target=es2022";
-import { r as rLanguage } from "@codemirror/legacy-modes/mode/r?external=@codemirror/language&target=es2022";
+} from "@codemirror/legacy-modes/mode/protobuf";
+import { shell as shellLanguage } from "@codemirror/legacy-modes/mode/shell";
+import { swift as swiftLanguage } from "@codemirror/legacy-modes/mode/swift";
+import { toml as tomlLanguage } from "@codemirror/legacy-modes/mode/toml";
+import { xml as xmlLanguage } from "@codemirror/legacy-modes/mode/xml";
+import { json as jsonLanguage } from "@codemirror/legacy-modes/mode/javascript";
+import { r as rLanguage } from "@codemirror/legacy-modes/mode/r";
 import { htmlLanguage } from "@codemirror/lang-html";
-import { go as goLanguage } from "@codemirror/legacy-modes/mode/go?external=@codemirror/language&target=es2022";
-import { diff as diffLanguage } from "@codemirror/legacy-modes/mode/diff?external=@codemirror/language&target=es2022";
+import { go as goLanguage } from "@codemirror/legacy-modes/mode/go";
+import { diff as diffLanguage } from "@codemirror/legacy-modes/mode/diff";
 import {
   powerShell as powerShellLanguage,
-} from "@codemirror/legacy-modes/mode/powershell?external=@codemirror/language&target=es2022";
-import { perl as perlLanguage } from "@codemirror/legacy-modes/mode/perl?external=@codemirror/language&target=es2022";
-import { ruby as rubyLanguage } from "@codemirror/legacy-modes/mode/ruby?external=@codemirror/language&target=es2022";
-import { tcl as tclLanguage } from "@codemirror/legacy-modes/mode/tcl?external=@codemirror/language&target=es2022";
+} from "@codemirror/legacy-modes/mode/powershell";
+import { perl as perlLanguage } from "@codemirror/legacy-modes/mode/perl";
+import { ruby as rubyLanguage } from "@codemirror/legacy-modes/mode/ruby";
+import { tcl as tclLanguage } from "@codemirror/legacy-modes/mode/tcl";
 import {
   verilog as verilogLanguage,
-} from "@codemirror/legacy-modes/mode/verilog?external=@codemirror/language&target=es2022";
-import { vhdl as vhdlLanguage } from "@codemirror/legacy-modes/mode/vhdl?external=@codemirror/language&target=es2022";
+} from "@codemirror/legacy-modes/mode/verilog";
+import { vhdl as vhdlLanguage } from "@codemirror/legacy-modes/mode/vhdl";
 import {
   dockerFile as dockerfileLanguage,
-} from "@codemirror/legacy-modes/mode/dockerfile?external=@codemirror/language&target=es2022";
-import { cmake as cmakeLanguage } from "@codemirror/legacy-modes/mode/cmake?external=@codemirror/language&target=es2022";
-import {
-  erlang as erlangLanguage,
-} from "@codemirror/legacy-modes/mode/erlang?external=@codemirror/language&target=es2022";
+} from "@codemirror/legacy-modes/mode/dockerfile";
+import { cmake as cmakeLanguage } from "@codemirror/legacy-modes/mode/cmake";
+import { erlang as erlangLanguage } from "@codemirror/legacy-modes/mode/erlang";
 import {
   c as cLanguage,
   cpp as cppLanguage,

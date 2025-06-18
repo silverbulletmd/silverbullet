@@ -123,6 +123,7 @@
     "@codemirror/lang-markdown": "npm:@codemirror/lang-markdown@6.3.3",
     "@codemirror/language": "npm:@codemirror/language@6.11.1",
     "@codemirror/legacy-modes": "npm:@codemirror/legacy-modes@6.5.1",
+    "@codemirror/legacy-modes/mode/yaml": "npm:@codemirror/legacy-modes@6.5.1/mode/yaml",
     "@codemirror/lint": "npm:@codemirror/lint@6.8.5",
     "@codemirror/search": "npm:@codemirror/search@6.5.11",
     "@codemirror/state": "npm:@codemirror/state@6.5.2",
