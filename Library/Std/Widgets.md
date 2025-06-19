@@ -63,7 +63,7 @@ function widgets.toc(options)
   local text = editor.getText()
   local pageName = editor.getCurrentPage()
   local parsedMarkdown = markdown.parseMarkdown(text)
-  
+
   -- Collect all headers
   local headers = {}
   for topLevelChild in parsedMarkdown.children do
@@ -128,10 +128,6 @@ event.listen {
 -- priority: 10
 widgets = widgets or {}
 
-local mentionTemplate = template.new [==[
-* [[${_.ref}]]: “${_.snippet}”
-]==]
-
 function widgets.linkedMentions(pageName)
   pageName = pageName or editor.getCurrentPage()
   local linkedMentions = query[[
@@ -140,9 +136,22 @@ function widgets.linkedMentions(pageName)
     order by page
   ]]
   if #linkedMentions > 0 then
+    local html = "<h1>Linked Mentions</h1><ul>"
+    for _, mention in ipairs(linkedMentions) do
+      local hasMoreBtn = ""
+      if mention.hasMore then
+        hasMoreBtn = " <button class=\"sb-more-btn\" onclick=\"toggleSnippet(this)\">[more]</button>"
+      end
+      html = html .. "<li><a href=\"" .. mention.ref .. "\">" .. mention.ref .. "</a>: " ..
+        "<span class=\"sb-snippet\" data-snippet=\"" .. (mention.snippet or "") .. 
+        "\" data-full-snippet=\"" .. (mention.fullSnippet or "") .. 
+        "\" data-has-more=\"" .. (mention.hasMore and "true" or "false") .. "\">" ..
+        (mention.snippet or "") .. "</span>" .. hasMoreBtn .. "</li>"
+    end
+    html = html .. "</ul>"
+    
     return widget.new {
-      markdown = "# Linked Mentions\n"
-        .. template.each(linkedMentions, mentionTemplate)
+      html = html
     }
   end
 end

@@ -113,6 +113,30 @@ safeRun(async () => {
   );
   // @ts-ignore: on purpose
   globalThis.client = client;
+
+  // Expandable snippets for linked mentions
+  // @ts-ignore: on purpose
+  globalThis.toggleSnippet = function(button: HTMLButtonElement) {
+    const snippetSpan = button.previousElementSibling as HTMLElement;
+    if (!snippetSpan || !snippetSpan.classList.contains('sb-snippet')) {
+      console.error('Invalid snippet span found');
+      return;
+    }
+
+    const fullSnippet = snippetSpan.dataset.fullSnippet;
+    const shortSnippet = snippetSpan.dataset.snippet;
+
+    if (button.textContent === '[more]') {
+      // Expand to show full snippet
+      snippetSpan.textContent = fullSnippet || shortSnippet || '';
+      button.textContent = '[less]';
+    } else {
+      // Collapse to show short snippet
+      snippetSpan.textContent = shortSnippet || '';
+      button.textContent = '[more]';
+    }
+  };
+
   await client.init();
 });
 
