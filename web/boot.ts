@@ -1,5 +1,7 @@
 import { safeRun } from "../lib/async.ts";
 import { Client, type ClientConfig } from "./client.ts";
+import { parseMarkdown } from "./markdown_parser/parser.ts";
+import { renderMarkdownToHtml } from "./markdown/markdown_render.ts";
 
 const configCacheKey = `silverbullet.${document.baseURI}.config`;
 
@@ -123,21 +125,81 @@ safeRun(async () => {
       return;
     }
 
-    const fullSnippet = snippetSpan.dataset.fullSnippet;
-    const shortSnippet = snippetSpan.dataset.snippet;
+    const fullSnippet = snippetSpan.dataset.fullSnippetHtml;
+    const shortSnippet = snippetSpan.dataset.snippetHtml;
 
     if (button.textContent === '[more]') {
-      // Expand to show full snippet
-      snippetSpan.textContent = fullSnippet || shortSnippet || '';
+      snippetSpan.innerHTML = fullSnippet || shortSnippet || '';
       button.textContent = '[less]';
     } else {
-      // Collapse to show short snippet
-      snippetSpan.textContent = shortSnippet || '';
+      snippetSpan.innerHTML = shortSnippet || '';
       button.textContent = '[more]';
     }
   };
 
+  // Renders single snippet element
+  function renderSnippet(span: Element): void {
+    const snippetText = span.getAttribute('data-snippet') || '';
+    const fullSnippetText = span.getAttribute('data-full-snippet') || '';
+
+    if (span.hasAttribute('data-processed')) {
+      return;
+    }
+
+    try {
+      const snippetHtml = snippetText ? renderMarkdownToHtml(parseMarkdown(snippetText)) : '';
+      const fullSnippetHtml = fullSnippetText ? renderMarkdownToHtml(parseMarkdown(fullSnippetText)) : '';
+
+      (span as HTMLElement).dataset.snippetHtml = snippetHtml;
+      (span as HTMLElement).dataset.fullSnippetHtml = fullSnippetHtml;
+
+      span.setAttribute('data-processed', 'true');
+
+      (span as HTMLElement).innerHTML = snippetHtml;
+    } catch (e) {
+      console.error('Failed to render snippet markdown for element:', span, 'Error:', e);
+      // Fallback to plain text
+      (span as HTMLElement).textContent = snippetText;
+      // Mark as processed to avoid retry loops
+      span.setAttribute('data-processed', 'true');
+    }
+  }
+
+  // Renders markdown snippets as HTML
+  function renderSnippets(): void {
+    const snippetSpans = document.querySelectorAll('.sb-snippet:not([data-processed])');
+    snippetSpans.forEach(renderSnippet);
+  }
+
+  // Watch for new snippets added to DOM
+  const observer = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      if (mutation.type === 'childList') {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            const element = node as Element;
+            if (element.classList?.contains('sb-snippet')) {
+              renderSnippet(element);
+            } else if (element.querySelector?.('.sb-snippet')) {
+              const newSnippets = element.querySelectorAll('.sb-snippet:not([data-processed])');
+              newSnippets.forEach(renderSnippet);
+            }
+          }
+        });
+      }
+    }
+  });
+
+  // Observe document for changes
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+
   await client.init();
+
+  // Initial render of any existing snippets
+  renderSnippets();
 });
 
 if (!globalThis.indexedDB) {
