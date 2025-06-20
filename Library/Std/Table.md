@@ -45,92 +45,174 @@ end
 
 ```space-lua
 function formatMarkdownTable(tree)
-  -- First find the desired length for each column
-  columnLengths = {}
-  columnAlignments = {}
-  for _, child in ipairs(tree.children) do
-    if child.type == "TableDelimiter" then
-      column = 1
-      for _, spec in ipairs(string.split(child.children[1].text, "|")) do
-        if #spec > 0 then
-          minLength = 1
-          if #spec >= 2 and string.endsWith(spec, ":") then
-            if string.startsWith(spec, ":") then
-              columnAlignments[column] = "center"
-              minLength = 3
-            else
-              columnAlignments[column] = "right"
-              minLength = 2
-            end
-          else
-            columnAlignments[column] = "left"
-          end
 
-          if minLength > (columnLengths[column] or 0) then
-            columnLengths[column] = minLength
-          end
-          column = column + 1
+  -- First find the desired length for each column
+  local columnLengths = {}
+  local columnAlignments = {}
+  local tableHeader = nil
+  local tableDelimiter = nil
+  local tableRows = {}
+
+  -- Separate parsing from output generation and identify table parts
+  for childIdx, child in ipairs(tree.children) do
+    if child.type == "TableDelimiter" then
+      tableDelimiter = child
+      local column = 1
+
+      -- Extract delimiter text from children
+      local delimiterText = ""
+      for _, delimChild in ipairs(child.children or {}) do
+        if delimChild.text and string.find(delimChild.text, "-") then
+          delimiterText = delimChild.text
+          break
         end
       end
-    elseif child.type == "TableHeader" or child.type == "TableRow" then
-      column = 1
+      -- Split by | and process only non-empty parts, but skip first/last if empty
+      local parts = string.split(delimiterText, "|")
+      local startIdx = (parts[1] == "") and 2 or 1
+      local endIdx = (parts[#parts] == "") and (#parts - 1) or #parts
+
+      for i = startIdx, endIdx do
+        local spec = string.trim(parts[i])
+        local minLength = 1
+        if #spec >= 2 and string.endsWith(spec, ":") then
+          if string.startsWith(spec, ":") then
+            columnAlignments[column] = "center"
+            minLength = 3
+          else
+            columnAlignments[column] = "right"
+            minLength = 2
+          end
+        elseif string.startsWith(spec, ":") then
+          columnAlignments[column] = "left_explicit"
+          minLength = 2
+        else
+          columnAlignments[column] = "left"
+        end
+
+        if minLength > (columnLengths[column] or 0) then
+          columnLengths[column] = minLength
+        end
+        column = column + 1
+      end
+    elseif child.type == "TableHeader" then
+      tableHeader = child
+      local column = 1
+      local isFirstCell = true
+
       for i, cell in ipairs(child.children) do
-        if cell.type == "TableDelimiter" then
-          next = child.children[i + 1]
-          if next and next.type == "TableCell" then
-            len = next.to - next.from
+        local cellType = cell and cell.type or "nil"
+        if cell and cell.type == "TableCell" then
+          -- Found a TableCell directly - get its content
+          local cellContent = ""
+          for _, next_child in ipairs(cell.children) do
+            cellContent = cellContent .. next_child.text
+          end
+          local trimmedContent = string.trim(cellContent)
+
+          -- Skip empty first cell only
+          if trimmedContent ~= "" or not isFirstCell then
+            isFirstCell = false
+            local len = #trimmedContent
+
             if len > (columnLengths[column] or 0) then
               columnLengths[column] = len
             end
+            column = column + 1
           end
-          
-          column = column + 1
         end
       end
-    end
-  end
-  print(columnAlignments)
-
-  -- Then print the table using these column lengths
-  output = ""
-  for _, child in ipairs(tree.children) do
-    if child.type == "TableDelimiter" then
-      output = output .. "\n|"
-      for column, len in ipairs(columnLengths) do
-        align = columnAlignments[column]
-        if align == "left" then
-          -- This is separate case because could be shorter than 2 characters
-          output = output .. string.rep("-", len)
-        else
-          output = output .. (align == "center" and ":" or "-") .. string.rep("-", len - 2) .. ":"
-        end
-        output = output .. "|"
-      end
-    elseif child.type == "TableHeader" or child.type == "TableRow" then
-      if child.type ~= "TableHeader" then
-        output = output .. "\n"
-      end
-      output = output .. "|"
-      column = 1
+      -- columnLengths now contains width of each header column
+    elseif child.type == "TableRow" then
+      table.insert(tableRows, child)
+      local column = 1
+      local isFirstCell = true
       for i, cell in ipairs(child.children) do
-        if cell.type == "TableDelimiter" then
-          next = child.children[i + 1]
-          if next and next.type == "TableCell" then
-            len = next.to - next.from
-            
-            -- Similar to plugs/index/table.ts:concatChildrenTexts
-            for _, next_child in ipairs(next.children) do
-              output = output .. next_child.text
-            end
-            
-            output = output .. string.rep(" ", columnLengths[column] - len) .. "|"
+        if cell and cell.type == "TableCell" then
+          -- Get actual content length after trimming
+          local cellContent = ""
+          for _, next_child in ipairs(cell.children) do
+            cellContent = cellContent .. next_child.text
           end
-          
-          column = column + 1
+          local trimmedContent = string.trim(cellContent)
+
+          -- Skip empty first cell only
+          if trimmedContent ~= "" or not isFirstCell then
+            isFirstCell = false
+            local len = #trimmedContent
+
+            if len > (columnLengths[column] or 0) then
+              columnLengths[column] = len
+            end
+            column = column + 1
+          end
         end
       end
     end
   end
+
+  -- Helper function to format table row (one)
+  local function formatTableRow(child)
+    local rowOutput = "|"
+    local column = 1
+    local isFirstCell = true
+    for i, cell in ipairs(child.children) do
+      if cell and cell.type == "TableCell" then
+        -- Get cell content
+        local cellContent = ""
+        for _, next_child in ipairs(cell.children) do
+          cellContent = cellContent .. next_child.text
+        end
+
+        cellContent = string.trim(cellContent)
+
+        -- Skip empty first cell only
+        if cellContent ~= "" or not isFirstCell then
+          isFirstCell = false
+          local len = #cellContent
+
+          -- Add exactly 1 space on each side (ignore alignment for content rows)
+          rowOutput = rowOutput .. " " .. cellContent .. " |"
+
+          column = column + 1
+        end
+      end
+    end
+    return rowOutput
+  end
+
+
+  -- Output in order: Header -> Delimiter -> Rows
+  local output = ""
+
+  if tableHeader then
+    output = formatTableRow(tableHeader)
+  end
+
+  if tableDelimiter then
+    if #output > 0 then
+      output = output .. "\n"
+    end
+    output = output .. "|"
+    for column, len in ipairs(columnLengths) do
+      local align = columnAlignments[column]
+      if align == "left" then
+        output = output .. " " .. string.rep("-", len) .. " |"
+      elseif align == "left_explicit" then
+        output = output .. " :" .. string.rep("-", len - 1) .. " |"
+      else
+        output = output .. " " .. (align == "center" and ":" or "-") .. string.rep("-", len - 2) .. ": |"
+      end
+    end
+  end
+
+  for _, row in ipairs(tableRows) do
+    if #output > 0 then
+      output = output .. "\n"
+    end
+    output = output .. formatTableRow(row)
+  end
+
 
   -- Replace the table node with the formatted content
   editor.replaceRange(tree.from, tree.to, output)
