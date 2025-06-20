@@ -419,6 +419,19 @@
     white-space: nowrap;
   }
 
+  // Table alignment classes for justified tables
+  .sb-table-align-left {
+    text-align: left;
+  }
+
+  .sb-table-align-right {
+    text-align: right;
+  }
+
+  .sb-table-align-center {
+    text-align: center;
+  }
+
   // dont apply background color twice for (fenced) code blocks
   .sb-line-code .sb-code {
     background-color: transparent;
