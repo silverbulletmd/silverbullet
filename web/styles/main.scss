@@ -155,3 +155,23 @@ body {
 .sb-markdown-toolbar:hover {
   opacity: 1;
 }
+
+// Expandable snippets for linked mentions
+.sb-snippet {
+  transition: all 0.2s ease;
+}
+
+.sb-more-btn {
+  background: none;
+  border: none;
+  color: #007acc;
+  cursor: pointer;
+  font-size: 0.9em;
+  text-decoration: underline;
+  padding: 0;
+  margin-left: 4px;
+}
+
+.sb-more-btn:hover {
+  color: #005a9e;
+}

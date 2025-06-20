@@ -104,6 +104,29 @@ function loadJsByUrl(url,integrity=null) {
     document.documentElement.firstChild.appendChild(script);
   });
 }
+
+// Expandable snippets functionality
+function toggleSnippet(button) {
+  const snippetSpan = button.previousElementSibling;
+  if (!snippetSpan || !snippetSpan.classList.contains('sb-snippet')) {
+    console.error('Invalid snippet span found');
+    return;
+  }
+
+  const fullSnippet = snippetSpan.dataset.fullSnippet;
+  const shortSnippet = snippetSpan.dataset.snippet;
+  
+  if (button.textContent === '[more]') {
+    // Expand to show full snippet
+    snippetSpan.textContent = fullSnippet || shortSnippet || '';
+    button.textContent = '[less]';
+  } else {
+    // Collapse to show short snippet
+    snippetSpan.textContent = shortSnippet || '';
+    button.textContent = '[more]';
+  }
+}
+
 </script>
 </head>
 <body>
