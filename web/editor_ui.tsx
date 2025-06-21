@@ -397,15 +397,15 @@ export class MainUI {
           )}
         />
         <div id="sb-main">
-          {!!viewState.panels.lhs.mode && (
+          {(viewState.panels.lhs.mode !== undefined) && (
             <Panel config={viewState.panels.lhs} editor={client} />
           )}
           <div id="sb-editor" />
-          {!!viewState.panels.rhs.mode && (
+          {(viewState.panels.rhs.mode !== undefined) && (
             <Panel config={viewState.panels.rhs} editor={client} />
           )}
         </div>
-        {!!viewState.panels.modal.mode && (
+        {(viewState.panels.modal.mode !== undefined) && (
           <div
             className="sb-modal"
             style={{ inset: `${viewState.panels.modal.mode}px` }}
@@ -413,7 +413,7 @@ export class MainUI {
             <Panel config={viewState.panels.modal} editor={client} />
           </div>
         )}
-        {!!viewState.panels.bhs.mode && (
+        {(viewState.panels.bhs.mode !== undefined) && (
           <div className="sb-bhs">
             <Panel config={viewState.panels.bhs} editor={client} />
           </div>
