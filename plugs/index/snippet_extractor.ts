@@ -152,14 +152,20 @@ export function extractSnippetAroundIndex(
     hasMore = untruncatedFull.length > untruncatedShort.length + 50;
   }
 
-  // If snippet is still too long, truncate while centering around the reference
-  if (snippet.length > maxSnippetLength) {
-    // Calculate the position of the index within the multi-line snippet
-    let snippetStartPos = 0;
-    for (let i = 0; i < startLine; i++) {
-      snippetStartPos += lines[i].length + (i < lines.length - 1 ? 1 : 0); // +1 for newline except last line
-    }
-    const indexInSnippet = index - snippetStartPos;
+  // Calculate the position of the index within the multi-line snippet for centering logic
+  let snippetStartPos = 0;
+  for (let i = 0; i < startLine; i++) {
+    snippetStartPos += lines[i].length + (i < lines.length - 1 ? 1 : 0); // +1 for newline except last line
+  }
+  const indexInSnippet = index - snippetStartPos;
+
+  // Check if reference is too far from center, even if snippet is under length limit
+  const snippetCenter = snippet.length / 2;
+  const referenceDistance = Math.abs(indexInSnippet - snippetCenter);
+  const shouldCenterReference = referenceDistance > (snippet.length * 0.3); // Reference is >30% away from center
+
+  // If snippet is too long OR reference is poorly centered, truncate while centering around the reference
+  if (snippet.length > maxSnippetLength || shouldCenterReference) {
 
     // Center the truncation around the reference
     const halfLength = Math.floor(maxSnippetLength / 2);
