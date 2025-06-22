@@ -152,12 +152,14 @@ safeRun(async () => {
     const fullSnippet = snippetSpan.dataset.fullSnippetHtml;
     const shortSnippet = snippetSpan.dataset.snippetHtml;
 
-    if (button.textContent === '+ more') {
+    if (button.textContent?.trim() === 'more') {
       snippetSpan.innerHTML = fullSnippet || shortSnippet || '';
-      button.textContent = '- less';
+      button.textContent = 'less';
+      button.classList.add('expanded');
     } else {
       snippetSpan.innerHTML = shortSnippet || '';
-      button.textContent = '+ more';
+      button.textContent = 'more';
+      button.classList.remove('expanded');
     }
   };
 

@@ -116,14 +116,16 @@ function toggleSnippet(button) {
   const fullSnippet = snippetSpan.dataset.fullSnippet;
   const shortSnippet = snippetSpan.dataset.snippet;
 
-  if (button.textContent === '+ more') {
+  if (button.textContent && button.textContent.trim() === 'more') {
     // Expand to show full snippet
     snippetSpan.textContent = fullSnippet || shortSnippet || '';
-    button.textContent = '- less';
+    button.textContent = 'less';
+    button.classList.add('expanded');
   } else {
     // Collapse to show short snippet
     snippetSpan.textContent = shortSnippet || '';
-    button.textContent = '+ more';
+    button.textContent = 'more';
+    button.classList.remove('expanded');
   }
 }
 

@@ -143,7 +143,7 @@ function widgets.linkedMentions(pageName)
     for _, mention in ipairs(linkedMentions) do
       local hasMoreBtn = ""
       if mention.hasMore then
-        hasMoreBtn = " <button class=\"sb-more-btn\" onclick=\"toggleSnippet(this)\">+ more</button>"
+        hasMoreBtn = " <button class=\"sb-more-btn\" onclick=\"toggleSnippet(this)\">more</button>"
       end
       html = html .. "<li><a href=\"" .. mention.ref .. "\">" .. mention.ref .. "</a>" ..
         "<span class=\"sb-snippet\" data-snippet=\"" .. (mention.snippet or "") ..
