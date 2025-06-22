@@ -140,9 +140,16 @@ function widgets.linkedMentions(pageName)
     order by page
   ]]
   if #linkedMentions > 0 then
+    local htmlMentionTemplate = template.new [==[
+<li><a href="${_.ref}">${_.ref}</a>: "${_.snippet}"</li>
+]==]
+    
     return widget.new {
-      markdown = "# Linked Mentions\n"
-        .. template.each(linkedMentions, mentionTemplate)
+      html = "<div class=\"collapsible-linked-mentions collapsed\">" ..
+             "<h1 onclick=\"sbWidgets.toggleLinkedMentions(this)\" role=\"button\" aria-expanded=\"false\" tabindex=\"0\" onkeydown=\"if(event.key==='Enter'||event.key===' ') sbWidgets.toggleLinkedMentions(this)\">▶ Linked Mentions (" .. #linkedMentions .. ")</h1>" ..
+             "<div class=\"linked-mentions-content\" role=\"region\" aria-label=\"Linked mentions list\"><ul>" ..
+             template.each(linkedMentions, htmlMentionTemplate) ..
+             "</ul></div></div>"
     }
   end
 end

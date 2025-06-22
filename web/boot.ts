@@ -113,6 +113,31 @@ safeRun(async () => {
   );
   // @ts-ignore: on purpose
   globalThis.client = client;
+
+  // Toggle function for collapsible linked mentions
+  // @ts-ignore: on purpose
+  globalThis.sbWidgets = globalThis.sbWidgets || {};
+  // @ts-ignore: on purpose
+  globalThis.sbWidgets.toggleLinkedMentions = function(header: HTMLElement) {
+    try {
+      const widget = header.closest('.collapsible-linked-mentions') as HTMLElement;
+      if (!widget) return;
+      
+      const isCollapsed = widget.classList.contains('collapsed');
+      if (isCollapsed) {
+        widget.classList.remove('collapsed');
+        header.textContent = header.textContent?.replace('▶', '▼') || '';
+        header.setAttribute('aria-expanded', 'true');
+      } else {
+        widget.classList.add('collapsed');
+        header.textContent = header.textContent?.replace('▼', '▶') || '';
+        header.setAttribute('aria-expanded', 'false');
+      }
+    } catch (error) {
+      console.error('Error toggling linked mentions:', error);
+    }
+  };
+
   await client.init();
 });
 
