@@ -508,6 +508,10 @@
     border: 1px solid var(--editor-widget-background-color);
     border-radius: 5px;
     background: var(--editor-background-color);
+    position: relative;
+    max-height: 500px;
+    display: flex;
+    flex-direction: column;
 
     h1 {
       cursor: pointer;
@@ -519,6 +523,10 @@
       font-weight: bold;
       font-size: 1.2em;
       border-radius: 5px 5px 0 0;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      border-bottom: 1px solid var(--editor-widget-background-color);
     }
 
     h1:hover {
@@ -527,7 +535,8 @@
 
     .linked-mentions-content {
       padding: 15px;
-      border-top: 1px solid var(--editor-widget-background-color);
+      overflow-y: auto;
+      flex: 1;
 	  ul {
 		margin: 0;
 		padding-left: 20px;
@@ -588,12 +597,17 @@
 	  }
     }
 
-    &.collapsed .linked-mentions-content {
-      display: none;
-    }
+    &.collapsed {
+      max-height: auto;
+      
+      .linked-mentions-content {
+        display: none;
+      }
 
-    &.collapsed h1 {
-      border-radius: 5px;
+      h1 {
+        border-radius: 5px;
+        border-bottom: none;
+      }
     }
   }
 
