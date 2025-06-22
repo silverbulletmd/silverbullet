@@ -97,7 +97,7 @@ function loadJsByUrl(url,integrity=null) {
     script.integrity=integrity;
     script.crossOrigin="anonymous"; //for some weird reason this attribute is case sensitive when used in JS
   }
-  
+
 
   return new Promise((resolve) => {
     script.onload = resolve;
@@ -115,15 +115,15 @@ function toggleSnippet(button) {
 
   const fullSnippet = snippetSpan.dataset.fullSnippet;
   const shortSnippet = snippetSpan.dataset.snippet;
-  
-  if (button.textContent === '[more]') {
+
+  if (button.textContent === '+ more') {
     // Expand to show full snippet
     snippetSpan.textContent = fullSnippet || shortSnippet || '';
-    button.textContent = '[less]';
+    button.textContent = '- less';
   } else {
     // Collapse to show short snippet
     snippetSpan.textContent = shortSnippet || '';
-    button.textContent = '[more]';
+    button.textContent = '+ more';
   }
 }
 

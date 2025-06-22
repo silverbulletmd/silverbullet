@@ -124,7 +124,7 @@ safeRun(async () => {
     try {
       const widget = header.closest('.collapsible-linked-mentions') as HTMLElement;
       if (!widget) return;
-      
+
       const isCollapsed = widget.classList.contains('collapsed');
       if (isCollapsed) {
         widget.classList.remove('collapsed');
@@ -152,12 +152,12 @@ safeRun(async () => {
     const fullSnippet = snippetSpan.dataset.fullSnippetHtml;
     const shortSnippet = snippetSpan.dataset.snippetHtml;
 
-    if (button.textContent === '[more]') {
+    if (button.textContent === '+ more') {
       snippetSpan.innerHTML = fullSnippet || shortSnippet || '';
-      button.textContent = '[less]';
+      button.textContent = '- less';
     } else {
       snippetSpan.innerHTML = shortSnippet || '';
-      button.textContent = '[more]';
+      button.textContent = '+ more';
     }
   };
 
