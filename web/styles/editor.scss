@@ -528,6 +528,64 @@
     .linked-mentions-content {
       padding: 15px;
       border-top: 1px solid var(--editor-widget-background-color);
+	  ul {
+		margin: 0;
+		padding-left: 20px;
+
+		li {
+			margin: 10px 0;
+			list-style: none;
+			background-color: var(--editor-widget-background-color);
+			border: 1px solid var(--editor-widget-background-color);
+			border-radius: 8px;
+			padding: 12px;
+
+			a {
+			  font-weight: 600;
+			  color: var(--editor-wiki-link-page-color);
+			  text-decoration: none;
+			  background-color: var(--editor-wiki-link-page-background-color);
+			  padding: 2px 6px;
+			  border-radius: 5px;
+			  display: inline-block;
+			  margin-bottom: 8px;
+			}
+
+			a:hover {
+			  background-color: var(--editor-selection-background-color);
+			}
+
+			.sb-snippet {
+			  display: block;
+			  margin-top: 8px;
+			  padding: 8px 12px;
+			  background-color: var(--editor-background-color);
+			  border-left: 3px solid var(--editor-wiki-link-page-background-color);
+			  border-radius: 4px;
+			  color: var(--editor-text-color);
+			}
+
+			.sb-more-btn {
+			  margin-left: 8px;
+			  padding: 2px 8px;
+			  background-color: var(--editor-widget-background-color);
+			  border: 1px solid var(--editor-selection-background-color);
+			  border-radius: 4px;
+			  cursor: pointer;
+			  font-size: 0.9em;
+			  color: var(--editor-text-color);
+			  text-decoration: none;
+			}
+
+			.sb-more-btn:hover {
+			  background-color: var(--editor-selection-background-color);
+			}
+		  }
+	  }
+
+	  ul li:before {
+			content: '';
+	  }
     }
 
     &.collapsed .linked-mentions-content {
@@ -536,61 +594,6 @@
 
     &.collapsed h1 {
       border-radius: 5px;
-    }
-
-    ul {
-      margin: 0;
-      padding-left: 20px;
-    }
-
-    li {
-      margin: 10px 0;
-      list-style: none;
-      background-color: var(--editor-widget-background-color);
-      border: 1px solid var(--editor-widget-background-color);
-      border-radius: 8px;
-      padding: 12px;
-
-      a {
-        font-weight: 600;
-        color: var(--editor-wiki-link-page-color);
-        text-decoration: none;
-        background-color: var(--editor-wiki-link-page-background-color);
-        padding: 2px 6px;
-        border-radius: 5px;
-        display: inline-block;
-        margin-bottom: 8px;
-      }
-
-      a:hover {
-        background-color: var(--editor-selection-background-color);
-      }
-
-      .sb-snippet {
-        display: block;
-        margin-top: 8px;
-        padding: 8px 12px;
-        background-color: var(--editor-background-color);
-        border-left: 3px solid var(--editor-wiki-link-page-background-color);
-        border-radius: 4px;
-        color: var(--editor-text-color);
-      }
-
-      .sb-more-btn {
-        margin-left: 8px;
-        padding: 2px 8px;
-        background-color: var(--editor-widget-background-color);
-        border: 1px solid var(--editor-selection-background-color);
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 0.9em;
-        color: var(--editor-text-color);
-		text-decoration: none;
-      }
-
-      .sb-more-btn:hover {
-        background-color: var(--editor-selection-background-color);
-      }
     }
   }
 
