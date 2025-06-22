@@ -137,7 +137,7 @@ function widgets.linkedMentions(pageName)
   ]]
   if #linkedMentions > 0 then
     local html = "<div class=\"collapsible-linked-mentions collapsed\">" ..
-             "<h1 onclick=\"sbWidgets.toggleLinkedMentions(this)\" role=\"button\" aria-expanded=\"false\" tabindex=\"0\" onkeydown=\"if(event.key==='Enter'||event.key===' ') sbWidgets.toggleLinkedMentions(this)\">▶ Linked Mentions (" .. #linkedMentions .. ")</h1>" ..
+             "<h1 onclick=\"sbWidgets.toggleLinkedMentions(this)\" role=\"button\" aria-expanded=\"false\" tabindex=\"0\" onkeydown=\"if(event.key==='Enter'||event.key===' ') sbWidgets.toggleLinkedMentions(this)\"><span class=\"chevron-icon\"></span> Linked Mentions (" .. #linkedMentions .. ")</h1>" ..
              "<div class=\"linked-mentions-content\" role=\"region\" aria-label=\"Linked mentions list\"><ul>"
 
     for _, mention in ipairs(linkedMentions) do

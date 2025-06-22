@@ -526,6 +526,19 @@
       top: 0;
       z-index: 10;
       border-bottom: 1px solid var(--editor-widget-background-color);
+
+      .chevron-icon {
+        display: inline-block;
+        width: 32px;
+        height: 32px;
+        margin-right: 8px;
+        vertical-align: text-bottom;
+        background-color: currentColor;
+        -webkit-mask: var(--chevron-right-icon) no-repeat center;
+        mask: var(--chevron-right-icon) no-repeat center;
+        -webkit-mask-size: 70%;
+        mask-size: 70%;
+      }
     }
 
     h1:hover {
@@ -604,6 +617,15 @@
       h1 {
         border-radius: 5px;
         border-bottom: none;
+      }
+    }
+
+    &:not(.collapsed) {
+      h1 .chevron-icon {
+        -webkit-mask: var(--chevron-down-icon) no-repeat center;
+        mask: var(--chevron-down-icon) no-repeat center;
+		-webkit-mask-size: 70%;
+        mask-size: 70%;
       }
     }
   }

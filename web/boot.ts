@@ -128,11 +128,9 @@ safeRun(async () => {
       const isCollapsed = widget.classList.contains('collapsed');
       if (isCollapsed) {
         widget.classList.remove('collapsed');
-        header.textContent = header.textContent?.replace('▶', '▼') || '';
         header.setAttribute('aria-expanded', 'true');
       } else {
         widget.classList.add('collapsed');
-        header.textContent = header.textContent?.replace('▼', '▶') || '';
         header.setAttribute('aria-expanded', 'false');
       }
     } catch (error) {
