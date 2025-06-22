@@ -486,7 +486,7 @@
 
   .sb-lua-top-widget,
   .sb-lua-bottom-widget {
-    margin: 0 0 10px 0;
+    margin: 20px 0 10px 0;
     border: 1px solid var(--editor-widget-background-color);
     border-radius: 5px;
     white-space: normal;
@@ -505,11 +505,9 @@
   // Collapsible Linked Mentions
   .collapsible-linked-mentions {
     margin: 10px 0;
-    border: 1px solid var(--editor-widget-background-color);
     border-radius: 5px;
     background: var(--editor-background-color);
     position: relative;
-    max-height: 500px;
     display: flex;
     flex-direction: column;
 
@@ -523,6 +521,7 @@
       font-weight: bold;
       font-size: 1.2em;
       border-radius: 5px 5px 0 0;
+      position: -webkit-sticky;
       position: sticky;
       top: 0;
       z-index: 10;
@@ -534,18 +533,16 @@
     }
 
     .linked-mentions-content {
-      padding: 15px;
-      overflow-y: auto;
-      flex: 1;
+      padding-top: 15px;
+      padding-bottom: 15px;
 	  ul {
 		margin: 0;
-		padding-left: 20px;
+		padding-left: 0px;
 
 		li {
 			margin: 10px 0;
 			list-style: none;
 			background-color: var(--editor-widget-background-color);
-			border: 1px solid var(--editor-widget-background-color);
 			border-radius: 8px;
 			padding: 12px;
 
@@ -599,7 +596,7 @@
 
     &.collapsed {
       max-height: auto;
-      
+
       .linked-mentions-content {
         display: none;
       }
@@ -629,7 +626,7 @@
 
   .sb-lua-top-widget .content,
   .sb-lua-bottom-widget .content {
-    max-height: 500px;
+    // max-height: 500px;
     padding: 10px;
   }
 
@@ -675,6 +672,10 @@
 
     .content {
       overflow-y: auto;
+    }
+
+    &:has(.collapsible-linked-mentions) .content {
+      overflow-y: visible;
     }
 
     ul,
