@@ -504,7 +504,7 @@
 
   // Collapsible Linked Mentions
   .collapsible-linked-mentions {
-    margin: 10px 0;
+    margin: 0;
     border-radius: 5px;
     background: var(--editor-background-color);
     position: relative;
@@ -548,6 +548,7 @@
     .linked-mentions-content {
       padding-top: 15px;
       padding-bottom: 15px;
+	  padding: 15px;
 	  ul {
 		margin: 0;
 		padding-left: 0px;
@@ -646,11 +647,11 @@
     margin-top: 10px;
   }
 
-  .sb-lua-top-widget .content,
-  .sb-lua-bottom-widget .content {
+//   .sb-lua-top-widget .content,
+//   .sb-lua-bottom-widget .content {
     // max-height: 500px;
-    padding: 10px;
-  }
+    // padding: 10px;
+//   }
 
   .sb-lua-bottom-widget p strong {
     display: block;
