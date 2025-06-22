@@ -419,6 +419,19 @@
     white-space: nowrap;
   }
 
+  // Table alignment classes for justified tables
+  .sb-table-align-left {
+    text-align: left;
+  }
+
+  .sb-table-align-right {
+    text-align: right;
+  }
+
+  .sb-table-align-center {
+    text-align: center;
+  }
+
   // dont apply background color twice for (fenced) code blocks
   .sb-line-code .sb-code {
     background-color: transparent;
@@ -555,6 +568,25 @@
   .sb-lua-bottom-widget .content {
     max-height: 500px;
     padding: 10px;
+  }
+
+  .sb-lua-bottom-widget p strong {
+    display: block;
+    padding: 10px 12px;
+    background-color: var(--editor-widget-background-color);
+    border: 1px solid var(--editor-widget-background-color);
+    border-radius: 8px 8px 0 0;
+    font-weight: 600;
+  }
+
+  .sb-lua-bottom-widget blockquote {
+    margin: 0 5px;
+    padding: 12px;
+    border: 1px solid var(--editor-widget-background-color);
+    border-radius: 8px;
+    background-color: var(--editor-widget-background-color);
+    color: var(--editor-text-color);
+    border-top: 1px solid var(--editor-widget-background-color);
   }
 
   .sb-markdown-top-widget:has(*) .content {

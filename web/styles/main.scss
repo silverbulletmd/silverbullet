@@ -114,6 +114,10 @@ body {
 
   .sb-panel {
     height: 100%;
+
+    iframe {
+      background-color: initial;
+    }
   }
 }
 

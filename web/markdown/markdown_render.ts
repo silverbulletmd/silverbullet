@@ -12,6 +12,7 @@ import { Fragment, renderHtml, type Tag } from "./html_render.ts";
 import { isLocalPath } from "@silverbulletmd/silverbullet/lib/resolve";
 import * as TagConstants from "../../plugs/index/constants.ts";
 import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
+import { justifiedTableRender } from "./justified_tables.ts";
 import type { PageMeta } from "../../type/index.ts";
 
 export type MarkdownRenderOptions = {
@@ -405,7 +406,7 @@ function render(
     case "Table":
       return {
         name: "table",
-        body: cleanTags(mapRender(t.children!)),
+        body: justifiedTableRender(cleanTags(mapRender(t.children!)), t),
       };
     case "TableHeader":
       return {

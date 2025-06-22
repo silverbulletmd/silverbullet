@@ -63,7 +63,7 @@ function widgets.toc(options)
   local text = editor.getText()
   local pageName = editor.getCurrentPage()
   local parsedMarkdown = markdown.parseMarkdown(text)
-  
+
   -- Collect all headers
   local headers = {}
   for topLevelChild in parsedMarkdown.children do
@@ -129,7 +129,9 @@ event.listen {
 widgets = widgets or {}
 
 local mentionTemplate = template.new [==[
-* [[${_.ref}]]: “${_.snippet}”
+**[[${_.ref}]]**
+> ${_.snippet}
+
 ]==]
 
 function widgets.linkedMentions(pageName)
