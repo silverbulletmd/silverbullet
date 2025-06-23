@@ -321,6 +321,18 @@ body {
     &:hover {
       transform: translateX(0px);
     }
+
+	&.floating-toc-always-visible,
+    &:not(.floating-toc-always-visible) {
+      width: 45px;
+      height: 45px;
+      right: 12px;
+
+      &:has(.toc-toggle:checked) {
+        width: calc(100vw - 24px);
+        max-width: 280px;
+      }
+    }
   }
 
   // Mobile collapsible for both always-visible and default ToC
@@ -395,20 +407,6 @@ body {
         .toc-close-btn {
           display: inline-flex;
         }
-      }
-    }
-  }
-
-  @media (max-width: 480px) {
-    &.floating-toc-always-visible,
-    &:not(.floating-toc-always-visible) {
-      width: 45px;
-      height: 45px;
-      right: 12px;
-
-      &:has(.toc-toggle:checked) {
-        width: calc(100vw - 24px);
-        max-width: 280px;
       }
     }
   }
