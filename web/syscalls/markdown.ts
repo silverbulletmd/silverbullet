@@ -26,10 +26,13 @@ export function markdownSyscalls(client: Client): SysCallMapping {
         LuaStackFrame.lostFrame,
       );
     },
-    "markdown.markdownToHtml": (_ctx, markdownText: string): string => {
-      // Parse the markdown text to ParseTree first, then render to HTML
-      const tree = parse(extendedMarkdownLanguage, markdownText);
-      return renderMarkdownToHtml(tree);
+    "markdown.markdownToHtml": (
+      _ctx,
+      text: string,
+      options: MarkdownRenderOptions = {},
+    ) => {
+      const mdTree = parse(extendedMarkdownLanguage, text);
+      return renderMarkdownToHtml(mdTree, options);
     },
   };
 }
