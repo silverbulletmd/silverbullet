@@ -136,7 +136,7 @@ export const osApi = new LuaTable({
       // Day of the week
       "%A": () => date.toLocaleString("en-US", { weekday: "long" }),
       "%a": () => date.toLocaleString("en-US", { weekday: "short" }),
-      "%w": () => "" + (date.getDay() + 1),
+      "%w": () => "" + date.getDay(),
       // Day of the year
       "%j": () => {
         return dayOfYear(date).toString().padStart(3, "0");

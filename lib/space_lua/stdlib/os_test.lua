@@ -20,3 +20,5 @@ assert(os.date("%U %V %W", os.time({ year = 2025, month = 1, day = 5 })) == "01 
 assert(os.date("%U %V %W", os.time({ year = 2025, month = 1, day = 6 })) == "01 02 01")
 assert(os.date("%U %V %W", os.time({ year = 2025, month = 1, day = 7 })) == "01 02 01")
 assert(os.date("%U %V %W", os.time({ year = 2025, month = 5, day = 3 })) == "17 18 17")
+
+assert(os.date("%w", 1750672800) == "1")
