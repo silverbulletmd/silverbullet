@@ -90,7 +90,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
             "You are not authenticated, going to reload and hope that that kicks off authentication",
           );
           location.reload();
-          throw new Error("Not authenticated, got 401");
+          throw new Error("Not authenticated");
         }
       }
       return result;
