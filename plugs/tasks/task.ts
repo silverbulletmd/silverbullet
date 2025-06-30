@@ -179,11 +179,23 @@ export function previewTaskToggle(eventString: string) {
 
 async function convertListItemToTask(node: ParseTree) {
   const listMark = node.children![0];
+  const originalMark = renderToText(listMark);
+  
+  // Determine the task marker based on the original list type
+  let taskMarker: string;
+  if (originalMark.match(/^\d+\./)) {
+    // Numbered list: preserve the number
+    taskMarker = originalMark + " [ ]";
+  } else {
+    // Bullet list: use standard bullet
+    taskMarker = "* [ ]";
+  }
+  
   await editor.dispatch({
     changes: {
       from: listMark.from,
       to: listMark.to,
-      insert: "* [ ]",
+      insert: taskMarker,
     },
   });
 }
