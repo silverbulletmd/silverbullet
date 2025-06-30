@@ -390,6 +390,16 @@ export async function taskCycleCommand() {
     return;
   }
 
+  // Check if this ListItem already contains a Task (cursor might be at beginning of line)
+  const existingTask = findNodeOfType(listItem, "Task");
+  if (existingTask) {
+    const taskState = findNodeOfType(existingTask, "TaskState");
+    if (taskState) {
+      await cycleTaskState(taskState, true);
+    }
+    return;
+  }
+
   convertListItemToTask(listItem);
 }
 
