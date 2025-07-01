@@ -21,6 +21,7 @@ export const fuzzySearchAndSort = (
       baseName: item.name.split("/").pop()!,
       displayName: item?.meta?.displayName,
       aliases: item?.meta?.aliases?.join(" "),
+      category: item.category,
     };
   });
 
@@ -40,6 +41,9 @@ export const fuzzySearchAndSort = (
     }, {
       name: "description",
       weight: 0.3,
+    }, {
+      name: "category",
+      weight: 0.8,
     }],
     includeScore: true,
     shouldSort: true,
@@ -47,9 +51,25 @@ export const fuzzySearchAndSort = (
     ignoreLocation: true,
     threshold: 0.6,
     sortFn: (a, b): number => {
+      const aItem = enrichedArr[a.idx];
+      const bItem = enrichedArr[b.idx];
+      
+      // Check for exact category matches first
+      const searchLower = searchPhrase.toLowerCase();
+      const aExactCategoryMatch = aItem.category?.toLowerCase() === searchLower;
+      const bExactCategoryMatch = bItem.category?.toLowerCase() === searchLower;
+      
+      if (aExactCategoryMatch && !bExactCategoryMatch) {
+        return -1; // a comes first
+      }
+      if (!aExactCategoryMatch && bExactCategoryMatch) {
+        return 1; // b comes first
+      }
+      
+      // If both or neither have exact category matches, use normal scoring
       if (a.score === b.score) {
-        const aOrder = enrichedArr[a.idx].orderId || 0;
-        const bOrder = enrichedArr[b.idx].orderId || 0;
+        const aOrder = aItem.orderId || 0;
+        const bOrder = bItem.orderId || 0;
         if (aOrder !== bOrder) {
           return aOrder - bOrder;
         }
@@ -59,5 +79,8 @@ export const fuzzySearchAndSort = (
   });
 
   const results = fuse.search(searchPhrase);
-  return results.map((r) => r.item);
+  return results.map((r) => ({
+    ...r.item,
+    fuseScore: r.score,
+  }));
 };
