@@ -72,6 +72,23 @@
     }
   }
 
+  .sb-category-header {
+    padding: 12px 8px 8px 8px;
+    font-weight: 600;
+    font-size: 70%;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: inherit;
+    background-color: var(--modal-background-color);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .sb-category-header + .sb-option {
+    margin-top: 4px;
+  }
+
   .sb-option,
   .sb-selected-option {
     padding: 8px;
