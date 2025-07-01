@@ -216,7 +216,7 @@ export function FilterList({
             const groupedItems = groupOptionsByCategory(matchingOptions);
             let optionIndex = 0;
 
-            return groupedItems.map((item, idx) => {
+            return groupedItems.map((item) => {
               if (item.type === 'category') {
                 return (
                   <div key={`category-${item.name}`} className="sb-category-header">
