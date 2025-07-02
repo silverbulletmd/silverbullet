@@ -162,7 +162,7 @@ function widgets.pageHierarchy(pageName)
   if #hierarchyItems > 0 then
     -- HTML instead of Markdown to make it collapsible
     local html = "<div class=\"collapsible-hierarchy collapsed\">" ..
-             "<h1 onclick=\"sbWidgets.toggleHierarchy(this)\" role=\"button\" aria-expanded=\"false\" tabindex=\"0\" onkeydown=\"if(event.key==='Enter'||event.key===' ') sbWidgets.toggleHierarchy(this)\"><span class=\"chevron-icon\"></span> Hierarchy (" .. #hierarchyItems .. ")</h1>" ..
+             "<h1 onclick=\"sbWidgets.toggleHierarchy(this)\" role=\"button\" aria-expanded=\"false\" tabindex=\"0\" onkeydown=\"if(event.key==='Enter'||event.key===' ') sbWidgets.toggleHierarchy(this)\"><span class=\"chevron-icon\"></span> Hierarchy</h1>" ..
              "<div class=\"hierarchy-content\" role=\"region\" aria-label=\"Page hierarchy list\"><ul>"
 
     for _, item in ipairs(hierarchyItems) do
