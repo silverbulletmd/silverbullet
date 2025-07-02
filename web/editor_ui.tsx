@@ -290,6 +290,7 @@ export class MainUI {
           progressPercentage={viewState.progressPercentage}
           progressType={viewState.progressType}
           completer={client.miniEditorComplete.bind(client)}
+          commands={client.getCommandsByContext(viewState)}
           onClick={() => {
             if (!client.isDocumentEditor()) {
               client.editorView.scrollDOM.scrollTop = 0;
@@ -359,6 +360,9 @@ export class MainUI {
                 if (!featherIcon) {
                   featherIcon = featherIcons.HelpCircle;
                 }
+                // Get command name from button configuration if explicitly provided
+                const commandName: string | undefined = (button as any).commandName;
+
                 return {
                   icon: mdiIcon ? mdiIcon : featherIcon,
                   description: button.description || "",
@@ -369,6 +373,7 @@ export class MainUI {
                     );
                   }),
                   href: "",
+                  commandName,
                 };
               }),
           ]}
