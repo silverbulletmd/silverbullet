@@ -162,8 +162,8 @@ body {
 
 /* Collapsible hierarchy widget styles */
 .collapsible-hierarchy {
-  margin: 1rem 0;
-  
+  margin: 1rem 0 2rem;
+
   h1 {
     margin: 0;
     padding: 0.5rem 0;
@@ -173,17 +173,17 @@ body {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    
+
     &:hover {
       background-color: var(--ui-background-color);
     }
-    
+
     &:focus {
       outline: 2px solid var(--accent-color);
       outline-offset: 2px;
     }
   }
-  
+
   .chevron-icon {
     display: inline-block;
     width: 32px;
@@ -196,13 +196,13 @@ body {
     -webkit-mask-size: 70%;
     mask-size: 70%;
   }
-  
+
   .hierarchy-content {
     overflow: hidden;
     transition: max-height 0.3s ease-in-out;
     max-height: 1000px;
   }
-  
+
   &:not(.collapsed) {
     .chevron-icon {
       -webkit-mask: var(--chevron-down-icon) no-repeat center;
@@ -211,9 +211,9 @@ body {
       mask-size: 70%;
     }
   }
-  
+
   &.collapsed {
-    
+
     .hierarchy-content {
       max-height: 0;
     }
