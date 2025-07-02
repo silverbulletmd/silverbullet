@@ -113,6 +113,31 @@ safeRun(async () => {
   );
   // @ts-ignore: on purpose
   globalThis.client = client;
+
+  // Widget utilities for collapsible sections
+  // @ts-ignore: on purpose
+  globalThis.sbWidgets = globalThis.sbWidgets || {};
+  
+  // Toggle function for collapsible hierarchy
+  // @ts-ignore: on purpose
+  globalThis.sbWidgets.toggleHierarchy = function(header: HTMLElement) {
+    try {
+      const widget = header.closest('.collapsible-hierarchy') as HTMLElement;
+      if (!widget) return;
+
+      const isCollapsed = widget.classList.contains('collapsed');
+      if (isCollapsed) {
+        widget.classList.remove('collapsed');
+        header.setAttribute('aria-expanded', 'true');
+      } else {
+        widget.classList.add('collapsed');
+        header.setAttribute('aria-expanded', 'false');
+      }
+    } catch (error) {
+      console.error('Error toggling hierarchy:', error);
+    }
+  };
+
   await client.init();
 });
 

@@ -114,8 +114,11 @@ export class LuaWidget extends WidgetType {
     if (widgetContent.cssClasses) {
       div.className = widgetContent.cssClasses.join(" ");
     }
+    let htmlFromHtml: HTMLElement | undefined;
+    let htmlFromMarkdown: HTMLElement | undefined;
+
     if (widgetContent.html) {
-      html = typeof widgetContent.html === "string"
+      htmlFromHtml = typeof widgetContent.html === "string"
         ? parseHtmlString(widgetContent.html)
         : widgetContent.html;
 
@@ -167,7 +170,7 @@ export class LuaWidget extends WidgetType {
         trimmedMarkdown,
       );
 
-      html = parseHtmlString(renderMarkdownToHtml(mdTree, {
+      htmlFromMarkdown = parseHtmlString(renderMarkdownToHtml(mdTree, {
         translateUrls: (url) => {
           if (isLocalPath(url)) {
             url = resolvePath(
@@ -181,7 +184,18 @@ export class LuaWidget extends WidgetType {
         preserveAttributes: true,
       }, this.client.ui.viewState.allPages));
     }
-    if (html) {
+
+    // Combine HTML from both sources: Markdown and HTML
+    if (htmlFromHtml || htmlFromMarkdown) {
+      if (htmlFromHtml && htmlFromMarkdown) {
+        const combinedWrapper = document.createElement("div");
+        combinedWrapper.appendChild(htmlFromHtml);
+        combinedWrapper.appendChild(htmlFromMarkdown);
+        html = combinedWrapper;
+      } else {
+        // Only one type of content
+        html = htmlFromHtml || htmlFromMarkdown!;
+      }
       div.replaceChildren(this.wrapHtml(block, html));
       attachWidgetEventHandlers(
         div,

@@ -142,7 +142,7 @@ function widgets.pageHierarchy(pageName)
   if parentPath then
     -- Always add the immediate parent as the first item
     local parentDisplayName = parentPath:gsub("/", " > ")
-    table.insert(hierarchyItems, "○ [[" .. parentPath .. "|" .. parentDisplayName .. "]]")
+    table.insert(hierarchyItems, "[[" .. parentPath .. "|" .. parentDisplayName .. "]]")
   end
 
   -- Query for all descendant pages that start with current page name + "/"
@@ -156,12 +156,45 @@ function widgets.pageHierarchy(pageName)
   -- Add descendant pages
   for _, page in ipairs(descendantPages) do
     local displayName = page.name:gsub("/", " > ")
-    table.insert(hierarchyItems, "○ [[" .. page.name .. "|" .. displayName .. "]]")
+    table.insert(hierarchyItems, "[[" .. page.name .. "|" .. displayName .. "]]")
   end
 
   if #hierarchyItems > 0 then
+    -- HTML instead of Markdown to make it collapsible
+    local html = "<div class=\"collapsible-hierarchy collapsed\">" ..
+             "<h1 onclick=\"sbWidgets.toggleHierarchy(this)\" role=\"button\" aria-expanded=\"false\" tabindex=\"0\" onkeydown=\"if(event.key==='Enter'||event.key===' ') sbWidgets.toggleHierarchy(this)\"><span class=\"chevron-icon\"></span> Hierarchy (" .. #hierarchyItems .. ")</h1>" ..
+             "<div class=\"hierarchy-content\" role=\"region\" aria-label=\"Page hierarchy list\"><ul>"
+
+    for _, item in ipairs(hierarchyItems) do
+      -- Markdown link to HTML link
+      local pageName, displayName = item:match("%[%[([^|]+)|([^%]]+)%]%]")
+      if pageName and displayName then
+        -- Split path into clickable segments
+        local pathSegments = {}
+        for segment in string.gmatch(pageName, "([^/]+)") do
+          table.insert(pathSegments, segment)
+        end
+
+        local linkParts = {}
+        local currentPath = ""
+
+        for i, segment in ipairs(pathSegments) do
+          if i > 1 then
+            currentPath = currentPath .. "/"
+          end
+          currentPath = currentPath .. segment
+
+          table.insert(linkParts, "<a href=\"" .. currentPath .. "\" data-ref=\"" .. currentPath .. "\">" .. segment .. "</a>")
+        end
+
+        html = html .. "<li>" .. table.concat(linkParts, " > ") .. "</li>"
+      end
+    end
+
+    html = html .. "</ul></div></div>"
+
     return widget.new {
-      markdown = "# Hierarchy\n" .. table.concat(hierarchyItems, "\n")
+      html = html
     }
   end
 
