@@ -29,3 +29,26 @@ local tree = markdown.parseMarkdown(text)
 -- Modify tree if needed
 local rendered = markdown.renderParseTree(tree)
 print("Rendered markdown:", rendered)
+```
+
+### markdown.markdownToHtml(text)
+Renders a piece of markdown text into HTML
+
+Example:
+```lua
+local text = "# Title\n\nSome text"
+local html = markdown.markdownToHtml(text)
+print("Rendered html:", html)
+```
+
+### markdown.expandMarkdown(tree)
+Expands custom markdown Lua directives and transclusions into plain markdown inside a ParseTree
+
+Example:
+```lua
+local text = "This is a some lua ${os.time()}"
+local tree = markdown.parseMarkdown(text)
+local expandedTree = markdown.expandMarkdown(tree)
+local rendered = markdown.renderParseTree(expandedTree)
+print("Rendered markdown:", rendered)
+```
