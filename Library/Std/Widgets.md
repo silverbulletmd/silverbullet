@@ -141,7 +141,7 @@ function widgets.pageHierarchy(pageName)
   local parentPath = string.match(pageName, "^(.+)/[^/]+$")
   if parentPath then
     -- Always add the immediate parent as the first item
-    local parentDisplayName = parentPath:gsub("/", " > ")
+    local parentDisplayName = parentPath:gsub("/", " / ")
     table.insert(hierarchyItems, "[[" .. parentPath .. "|" .. parentDisplayName .. "]]")
   end
 
