@@ -123,6 +123,92 @@ event.listen {
 }
 ```
 
+# Page Hierarchy
+```space-lua
+-- priority: 10
+widgets = widgets or {}
+
+function widgets.pageHierarchy(pageName)
+  pageName = pageName or editor.getCurrentPage()
+
+  if not string.find(pageName, "/") then
+    return nil
+  end
+
+  local hierarchyItems = {}
+
+  -- Extract parent path (everything before the last "/")
+  local parentPath = string.match(pageName, "^(.+)/[^/]+$")
+  if parentPath then
+    -- Always add the immediate parent as the first item
+    local parentDisplayName = parentPath:gsub("/", " / ")
+    table.insert(hierarchyItems, "[[" .. parentPath .. "|" .. parentDisplayName .. "]]")
+  end
+
+  -- Query for all descendant pages that start with current page name + "/"
+  local descendantPages = query[[
+    from index.tag "page"
+    where string.startsWith(_.name, pageName .. "/")
+      and not string.startsWith(_.name, "_")
+    order by name
+  ]]
+
+  -- Add descendant pages
+  for _, page in ipairs(descendantPages) do
+    local displayName = page.name:gsub("/", " / ")
+    table.insert(hierarchyItems, "[[" .. page.name .. "|" .. displayName .. "]]")
+  end
+
+  if #hierarchyItems > 0 then
+    -- HTML instead of Markdown to make it collapsible
+    local html = "<div class=\"collapsible-hierarchy collapsed\">" ..
+             "<h1 onclick=\"sbWidgets.toggleHierarchy(this)\" role=\"button\" aria-expanded=\"false\" tabindex=\"0\" onkeydown=\"if(event.key==='Enter'||event.key===' ') sbWidgets.toggleHierarchy(this)\"><span class=\"chevron-icon\"></span> Hierarchy</h1>" ..
+             "<div class=\"hierarchy-content\" role=\"region\" aria-label=\"Page hierarchy list\"><ul>"
+
+    for _, item in ipairs(hierarchyItems) do
+      -- Markdown link to HTML link
+      local pageName, displayName = item:match("%[%[([^|]+)|([^%]]+)%]%]")
+      if pageName and displayName then
+        -- Split path into clickable segments
+        local pathSegments = {}
+        for segment in string.gmatch(pageName, "([^/]+)") do
+          table.insert(pathSegments, segment)
+        end
+
+        local linkParts = {}
+        local currentPath = ""
+
+        for i, segment in ipairs(pathSegments) do
+          if i > 1 then
+            currentPath = currentPath .. "/"
+          end
+          currentPath = currentPath .. segment
+
+          table.insert(linkParts, "<a href=\"" .. currentPath .. "\" data-ref=\"" .. currentPath .. "\">" .. segment .. "</a>")
+        end
+
+        html = html .. "<li>" .. table.concat(linkParts, " / ") .. "</li>"
+      end
+    end
+
+    html = html .. "</ul></div></div>"
+
+    return widget.new {
+      html = html
+    }
+  end
+
+  return nil
+end
+
+event.listen {
+  name = "hooks:renderBottomWidgets",
+  run = function(e)
+    return widgets.pageHierarchy()
+  end
+}
+```
+
 # Linked mentions
 ```space-lua
 -- priority: 10
