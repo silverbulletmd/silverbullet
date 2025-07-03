@@ -187,7 +187,7 @@ function widgets.pageHierarchy(pageName)
           table.insert(linkParts, "<a href=\"" .. currentPath .. "\" data-ref=\"" .. currentPath .. "\">" .. segment .. "</a>")
         end
 
-        html = html .. "<li>" .. table.concat(linkParts, " > ") .. "</li>"
+        html = html .. "<li>" .. table.concat(linkParts, " / ") .. "</li>"
       end
     end
 
