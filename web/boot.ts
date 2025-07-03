@@ -5,7 +5,6 @@ const configCacheKey = `silverbullet.${document.baseURI}.config`;
 
 // Type declarations for global properties
 declare global {
-  var sbIndexedDBAvailable: boolean;
   var pendingServiceWorkerUpdate: boolean | undefined;
   var client: Client;
 }
@@ -15,17 +14,12 @@ if (!globalThis.indexedDB) {
   console.error(
     "IndexedDB not available - app will have limited functionality",
   );
-  // Set a flag that client can check
-  globalThis.sbIndexedDBAvailable = false;
-
   // Still show alert but don't block execution
   setTimeout(() => {
     alert(
       "SilverBullet requires IndexedDB for full functionality. Some features may not work correctly. Please use a recent version of Chrome, Firefox (not in private mode) or Safari.",
     );
   }, 1000);
-} else {
-  globalThis.sbIndexedDBAvailable = true;
 }
 
 // Helper function for config fetch with timeout
