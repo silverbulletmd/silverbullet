@@ -128,7 +128,7 @@ export function PageNavigator({
           // Use the displayName or last bit of the path as the name
           name: pageMeta.displayName || pageMeta.name.split("/").pop()!,
           // And use the full path as the description
-          description: pageMeta.name.replaceAll("/", " > "),
+          description: pageMeta.name.replaceAll("/", " / "),
           hint: pageMeta.tags![0],
           orderId: orderId,
           cssClass,
@@ -143,7 +143,7 @@ export function PageNavigator({
         options.push({
           type: "page",
           meta: pageMeta,
-          name: pageMeta.name.replaceAll("/", " > "),
+          name: pageMeta.name.replaceAll("/", " / "),
           description,
           orderId: orderId,
           cssClass,
