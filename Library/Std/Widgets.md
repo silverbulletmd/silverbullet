@@ -155,7 +155,7 @@ function widgets.pageHierarchy(pageName)
 
   -- Add descendant pages
   for _, page in ipairs(descendantPages) do
-    local displayName = page.name:gsub("/", " > ")
+    local displayName = page.name:gsub("/", " / ")
     table.insert(hierarchyItems, "[[" .. page.name .. "|" .. displayName .. "]]")
   end
 
