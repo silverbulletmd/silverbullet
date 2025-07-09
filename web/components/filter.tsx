@@ -53,6 +53,24 @@ export function FilterList({
   );
   const [selectedOption, setSelectionOption] = useState(0);
 
+  // Group options by category while preserving Fuse.js order
+  function groupOptionsByCategory(options: FilterOption[]): Array<{type: 'category', name: string} | {type: 'option', option: FilterOption, originalIndex: number}> {
+    const grouped: Array<{type: 'category', name: string} | {type: 'option', option: FilterOption, originalIndex: number}> = [];
+    const seenCategories = new Set<string>();
+
+    let originalIndex = 0;
+    for (const option of options) {
+      if (option.category && !seenCategories.has(option.category)) {
+        seenCategories.add(option.category);
+        grouped.push({type: 'category', name: option.category});
+      }
+      grouped.push({type: 'option', option, originalIndex});
+      originalIndex++;
+    }
+
+    return grouped;
+  }
+
   const selectedElementRef = useRef<HTMLDivElement>(null);
 
   function updateFilter(originalPhrase: string) {
@@ -194,45 +212,70 @@ export function FilterList({
       </div>
       <div className="sb-result-list" tabIndex={-1}>
         {matchingOptions && matchingOptions.length > 0
-          ? matchingOptions.map((option, idx) => (
-            <div
-              key={"" + idx}
-              ref={selectedOption === idx ? selectedElementRef : undefined}
-              className={(selectedOption === idx
-                ? "sb-option sb-selected-option"
-                : "sb-option") +
-                (option.cssClass
-                  ? " sb-decorated-object " + option.cssClass
-                  : "")}
-              onMouseMove={() => {
-                if (selectedOption !== idx) {
-                  setSelectionOption(idx);
-                }
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelect(option);
-              }}
-            >
-              {Icon && (
-                <span className="sb-icon">
-                  <Icon width={16} height={16} />
-                </span>
-              )}
-              <span className="sb-name">
-                {option.name}
-              </span>
-              {option.hint && (
-                <span
-                  className={"sb-hint" +
-                    (option.hintInactive ? " sb-hint-inactive" : "")}
-                >
-                  {option.hint}
-                </span>
-              )}
-              <div className="sb-description">{option.description}</div>
-            </div>
-          ))
+          ? (() => {
+            const groupedItems = groupOptionsByCategory(matchingOptions);
+            let optionIndex = 0;
+
+            return groupedItems.map((item) => {
+              if (item.type === 'category') {
+                return (
+                  <div key={`category-${item.name}`} className="sb-category-header">
+                    {item.name}
+                  </div>
+                );
+              } else {
+                const currentOptionIndex = optionIndex;
+                optionIndex++;
+
+                return (
+                  <div
+                    key={`option-${currentOptionIndex}`}
+                    ref={selectedOption === currentOptionIndex ? selectedElementRef : undefined}
+                    className={(selectedOption === currentOptionIndex
+                      ? "sb-option sb-selected-option"
+                      : "sb-option") +
+                      (item.option.cssClass
+                        ? " sb-decorated-object " + item.option.cssClass
+                        : "")}
+                    onMouseMove={() => {
+                      if (selectedOption !== currentOptionIndex) {
+                        setSelectionOption(currentOptionIndex);
+                      }
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelect(item.option);
+                    }}
+                  >
+                    {Icon && (
+                      <span className="sb-icon">
+                        <Icon width={16} height={16} />
+                      </span>
+                    )}
+                    <span className="sb-name">
+                      {(() => {
+                        let displayName = item.option.name;
+                        // Remove category prefix for display (e.g., "Block: Close Sidebar" -> "Close Sidebar")
+                        if (item.option.category && displayName.startsWith(item.option.category + ': ')) {
+                          displayName = displayName.substring(item.option.category.length + 2);
+                        }
+                        return displayName;
+                      })()}
+                    </span>
+                    {item.option.hint && (
+                      <span
+                        className={"sb-hint" +
+                          (item.option.hintInactive ? " sb-hint-inactive" : "")}
+                      >
+                        {item.option.hint}
+                      </span>
+                    )}
+                    <div className="sb-description">{item.option.description}</div>
+                  </div>
+                );
+              }
+            });
+          })()
           : null}
       </div>
     </AlwaysShownModal>

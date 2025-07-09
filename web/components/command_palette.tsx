@@ -28,12 +28,18 @@ export function CommandPalette({
     if (def.hide) {
       continue;
     }
+    
+    // Extract category from command name (e.g., "Block: Toggle" -> "Block")
+    const colonIndex = name.indexOf(': ');
+    const category = colonIndex > 0 ? name.substring(0, colonIndex) : undefined;
+    
     options.push({
       name: name,
       hint: isMac && def.mac ? def.mac : def.key,
       orderId: recentCommands.has(name)
         ? -recentCommands.get(name)!.getTime()
         : def.priority || Infinity,
+      category: category,
     });
     // console.log("Options", options);
   }
