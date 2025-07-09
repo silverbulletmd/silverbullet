@@ -179,17 +179,62 @@ export function previewTaskToggle(eventString: string) {
 
 async function convertListItemToTask(node: ParseTree) {
   const listMark = node.children![0];
+  const originalMark = renderToText(listMark);
+  
+  // Determine the task marker based on the original list type
+  let taskMarker: string;
+  if (originalMark.match(/^\d+\./)) {
+    // Numbered list: preserve the number
+    taskMarker = originalMark + " [ ]";
+  } else {
+    // Bullet list: use standard bullet
+    taskMarker = "* [ ]";
+  }
+  
   await editor.dispatch({
     changes: {
       from: listMark.from,
       to: listMark.to,
-      insert: "* [ ]",
+      insert: taskMarker,
     },
   });
 }
 
-async function cycleTaskState(node: ParseTree) {
+async function removeTaskCheckbox(listItemNode: ParseTree) {
+  const taskNode = findNodeOfType(listItemNode, "Task");
+  if (!taskNode) {
+    console.error("No task node found in list item");
+    return;
+  }
+
+  //  Task node contains: TaskMark, TaskState, and text content. Keep just list marker and content after the checkbox
+  const listMark = listItemNode.children![0];
+  const contentAfterCheckbox = taskNode.children!.slice(1); // Skip TaskMark which contains [ ]
+
+  const textContent = contentAfterCheckbox.map(renderToText).join("");
+
+  // Replace entire list item content
+  await editor.dispatch({
+    changes: {
+      from: listItemNode.from!,
+      to: listItemNode.to!,
+      insert: renderToText(listMark) + textContent,
+    },
+  });
+}
+
+async function cycleTaskState(node: ParseTree, removeCheckbox: boolean = false) {
   const stateText = node.children![1].text!;
+
+  // If removeCheckbox is true and task is complete, remove checkbox entirely
+  if (removeCheckbox && completeStates.includes(stateText)) {
+    // Convert back to regular list item
+    const taskNode = node.parent!;
+    const listItemNode = taskNode.parent!;
+    await removeTaskCheckbox(listItemNode);
+    return;
+  }
+
   let changeTo: string | undefined;
   if (completeStates.includes(stateText)) {
     changeTo = " ";
@@ -312,7 +357,7 @@ export async function taskCycleAtPos(pos: number) {
       node = node.parent!;
     }
     if (node.type === "TaskState") {
-      await cycleTaskState(node);
+      await cycleTaskState(node, false);
     }
   }
 }
@@ -344,7 +389,8 @@ export async function taskCycleCommand() {
   if (taskNode) {
     const taskState = findNodeOfType(taskNode!, "TaskState");
     if (taskState) {
-      await cycleTaskState(taskState);
+      // Cycle states: [ ] -> [x] -> (remove checkbox) -> [ ]
+      await cycleTaskState(taskState, true);
     }
     return;
   }
@@ -353,6 +399,16 @@ export async function taskCycleCommand() {
   const listItem = findParentMatching(node!, (n) => n.type === "ListItem");
   if (!listItem) {
     await editor.flashNotification("No task at cursor");
+    return;
+  }
+
+  // Check if this ListItem already contains a Task (cursor might be at beginning of line)
+  const existingTask = findNodeOfType(listItem, "Task");
+  if (existingTask) {
+    const taskState = findNodeOfType(existingTask, "TaskState");
+    if (taskState) {
+      await cycleTaskState(taskState, true);
+    }
     return;
   }
 
