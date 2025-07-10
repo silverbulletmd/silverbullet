@@ -47,7 +47,7 @@ Line 5`;
   // ... should also contain some context around it
   assertEquals(result.includes("create them"), true);
   // ... should not start with the very beginning of the long repeated text
-  assertEquals(result.startsWith("..."), true);
+  assertEquals(result.startsWith("…"), true);
 
   // Edge case: index beyond text bounds (triggers fallback)
   const testText5 = "Hello\nWorld\nTest";

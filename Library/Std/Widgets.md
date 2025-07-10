@@ -128,12 +128,6 @@ event.listen {
 -- priority: 10
 widgets = widgets or {}
 
-local mentionTemplate = template.new [==[
-**[[${_.ref}]]**
-> ${_.snippet}
-
-]==]
-
 function widgets.linkedMentions(pageName)
   pageName = pageName or editor.getCurrentPage()
   local linkedMentions = query[[
@@ -142,9 +136,26 @@ function widgets.linkedMentions(pageName)
     order by page
   ]]
   if #linkedMentions > 0 then
+    local html = "<div class=\"collapsible-linked-mentions collapsed\">" ..
+             "<h1 onclick=\"sbWidgets.toggleLinkedMentions(this)\" role=\"button\" aria-expanded=\"false\" tabindex=\"0\" onkeydown=\"if(event.key==='Enter'||event.key===' ') sbWidgets.toggleLinkedMentions(this)\"><span class=\"chevron-icon\"></span> Linked Mentions (" .. #linkedMentions .. ")</h1>" ..
+             "<div class=\"linked-mentions-content\" role=\"region\" aria-label=\"Linked mentions list\"><ul>"
+
+    for _, mention in ipairs(linkedMentions) do
+      local hasMoreBtn = ""
+      if mention.hasMore then
+        hasMoreBtn = " <button class=\"sb-more-btn\" onclick=\"toggleSnippet(this)\">more</button>"
+      end
+      html = html .. "<li><a href=\"" .. mention.ref .. "\">" .. mention.ref .. "</a>" ..
+        "<span class=\"sb-snippet\" data-snippet=\"" .. (mention.snippet or "") ..
+        "\" data-full-snippet=\"" .. (mention.fullSnippet or "") ..
+        "\" data-has-more=\"" .. (mention.hasMore and "true" or "false") .. "\">" ..
+        (mention.snippet or "") .. "</span>" .. hasMoreBtn .. "</li>"
+    end
+
+    html = html .. "</ul></div></div>"
+
     return widget.new {
-      markdown = "# Linked Mentions\n"
-        .. template.each(linkedMentions, mentionTemplate)
+      html = html
     }
   end
 end
