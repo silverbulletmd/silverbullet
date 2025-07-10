@@ -151,11 +151,6 @@
     color: var(--modal-help-color);
   }
 
-  .sb-selected-option {
-    background-color: var(--modal-selected-option-background-color);
-    color: var(--modal-selected-option-color);
-  }
-
   .sb-result-list {
     .sb-hint:not(.sb-hint-inactive) {
       color: var(--modal-hint-color);
@@ -169,6 +164,15 @@
 
     .sb-description {
       color: var(--modal-description-color);
+    }
+
+    .sb-selected-option {
+      background-color: var(--modal-selected-option-background-color);
+      color: var(--modal-selected-option-color);
+
+      .sb-description {
+        color: var(--modal-selected-option-description-color);
+      }
     }
   }
 }
