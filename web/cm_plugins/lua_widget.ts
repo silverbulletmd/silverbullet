@@ -116,11 +116,13 @@ export class LuaWidget extends WidgetType {
       div.className = widgetContent.cssClasses.join(" ");
     }
     if (widgetContent.html) {
-      html = typeof widgetContent.html === "string"
-        ? parseHtmlString(widgetContent.html)
-        : widgetContent.html;
-
-      copyContent = html.outerHTML;
+      if (typeof widgetContent.html === "string") {
+        html = parseHtmlString(widgetContent.html);
+        copyContent = widgetContent.html;
+      } else {
+        html = widgetContent.html;
+        copyContent = widgetContent.html.outerHTML;
+      }
 
       block = widgetContent.display === "block";
       if (block) {
