@@ -166,6 +166,7 @@ function widgets.linkedTasks(pageName)
     from index.tag "task"
     where not _.done
       and string.find(_.name, "[[" .. pageName .. "]]", 1, true)
+    order by page
   ]]
   local md = ""
   if #tasks > 0 then
