@@ -86,6 +86,7 @@ type WidgetCacheItem = {
   buttons?: CodeWidgetButton[];
   block?: boolean;
   banner?: string;
+  copyContent?: string;
 };
 
 export class Client {
