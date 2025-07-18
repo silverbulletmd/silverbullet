@@ -20,16 +20,11 @@ export type Notification = {
 export type PanelMode = number;
 
 export type CodeWidgetContent = {
-  html: string;
+  html?: string;
   script?: string;
-  buttons?: CodeWidgetButton[];
-};
-
-export type CodeWidgetButton = {
-  widgetTarget?: boolean;
-  description: string;
-  svg: string;
-  invokeFunction: string[];
+  width?: number;
+  height?: number;
+  url?: string;
 };
 
 // Document editors stuff
@@ -110,15 +105,6 @@ export type SlashCompletions = {
   from?: number;
   // The actual completions
   options: SlashCompletionOption[];
-};
-
-export type WidgetContent = {
-  html?: string;
-  script?: string;
-  markdown?: string;
-  url?: string;
-  height?: number;
-  width?: number;
 };
 
 // Code widget stuff
