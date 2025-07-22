@@ -42,6 +42,14 @@ html {
   --modal-hint-inactive-color: #111;
   --modal-description-color: #aaa;
 
+  --tooltip-background: var(--modal-background-color);
+  --tooltip-color: var(--modal-color);
+  --tooltip-border: var(--modal-border-color);
+  --tooltip-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  --tooltip-shortcut-bg: var(--button-background-color);
+  --tooltip-shortcut-color: var(--subtle-color);
+  --tooltip-shortcut-border: var(--subtle-background-color);
+
   --notifications-background-color: inherit;
   --notifications-border-color: rgb(41, 41, 41);
   --notification-info-background-color: rgb(187, 221, 247);

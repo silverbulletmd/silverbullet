@@ -3,10 +3,12 @@ import type {
   CompletionResult,
 } from "@codemirror/autocomplete";
 import type { ComponentChildren, FunctionalComponent } from "preact";
-import type { Notification } from "@silverbulletmd/silverbullet/type/client";
+import type { Notification } from "../../type/client.ts";
 import type { FeatherProps } from "preact-feather/types";
 import type { IconBaseProps } from "react-icons/types";
+import type { Command } from "../../type/command.ts";
 import { MiniEditor } from "./mini_editor.tsx";
+import { Tooltip } from "./tooltip.tsx";
 
 export type ActionButton = {
   icon: FunctionalComponent<FeatherProps | IconBaseProps>;
@@ -15,6 +17,9 @@ export type ActionButton = {
   callback: () => void;
   href?: string;
   mobile?: boolean;
+  shortcut?: string;
+  macShortcut?: string;
+  commandName?: string;
 };
 
 export function TopBar({
@@ -25,6 +30,7 @@ export function TopBar({
   notifications,
   onRename,
   actionButtons,
+  commands,
   darkMode,
   vimMode,
   progressPercentage,
@@ -50,6 +56,7 @@ export function TopBar({
   onClick: () => void;
   completer: (context: CompletionContext) => Promise<CompletionResult | null>;
   actionButtons: ActionButton[];
+  commands?: Map<string, Command>;
   lhs?: ComponentChildren;
   rhs?: ComponentChildren;
   pageNamePrefix?: string;
@@ -125,29 +132,37 @@ export function TopBar({
               className={"sb-actions " +
                 (mobileMenuStyle ? mobileMenuStyle : "")}
             >
-              {actionButtons.map((actionButton) => {
+              {actionButtons.map((actionButton, index) => {
                 const button = (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      actionButton.callback();
-                    }}
-                    title={actionButton.description}
-                    className={actionButton.class}
+                  <Tooltip
+                    text={actionButton.description}
+                    shortcut={actionButton.shortcut}
+                    macShortcut={actionButton.macShortcut}
+                    commandName={actionButton.commandName}
+                    commands={commands}
+                    position="bottom"
                   >
-                    <actionButton.icon size={18} />
-                  </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        actionButton.callback();
+                      }}
+                      className={actionButton.class}
+                    >
+                      <actionButton.icon size={18} />
+                    </button>
+                  </Tooltip>
                 );
 
                 return actionButton.href
                   ? (
-                    <a href={actionButton.href} key={actionButton.href}>
+                    <a href={actionButton.href} key={actionButton.href || index}>
                       {button}
                     </a>
                   )
-                  : button;
+                  : <div key={index}>{button}</div>;
               })}
             </div>
           </div>
