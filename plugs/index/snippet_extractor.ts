@@ -1,9 +1,29 @@
+export interface SnippetResult {
+  snippet: string;
+  fullSnippet?: string;
+  hasMore: boolean;
+}
+
+export function extractSnippetAroundIndex(
+  text: string,
+  index: number,
+  maxSnippetLength?: number,
+  maxLines?: number,
+): string;
+export function extractSnippetAroundIndex(
+  text: string,
+  index: number,
+  maxSnippetLength: number,
+  maxLines: number,
+  expandable: true,
+): SnippetResult;
 export function extractSnippetAroundIndex(
   text: string,
   index: number,
   maxSnippetLength: number = 300,
   maxLines: number = 3,
-): string {
+  expandable?: boolean,
+): string | SnippetResult {
   if (index < 0 || index >= text.length) {
     return "";
   }
@@ -58,7 +78,7 @@ export function extractSnippetAroundIndex(
       // After target line - check if it's a new bullet point or list item
       const trimmedLine = line.trim();
       if (trimmedLine.match(/^[*+-]\s/) || trimmedLine.match(/^\d+\.\s/)) {
-        // New bullt point or numbered list item
+        // New bullet point or numbered list item
         break;
       }
       processedLines.push(line);
@@ -67,14 +87,85 @@ export function extractSnippetAroundIndex(
 
   let snippet = processedLines.join(" ").replace(/\s+/g, " ").trim();
 
-  // If snippet is still too long, truncate while centering around the reference
-  if (snippet.length > maxSnippetLength) {
-    // Calculate the position of the index within the multi-line snippet
-    let snippetStartPos = 0;
-    for (let i = 0; i < startLine; i++) {
-      snippetStartPos += lines[i].length + (i < lines.length - 1 ? 1 : 0); // +1 for newline except last line
+  // For expandable snippets, also generate a longer version
+  let fullSnippet: string | undefined;
+  let hasMore = false;
+
+  if (expandable) {
+    // Generate full snippet with more lines (up to 10 lines or 800 chars)
+    const fullMaxLines = Math.min(10, lines.length);
+    const fullLinesAbove = Math.floor((fullMaxLines - 1) / 2);
+    const fullLinesBelow = fullMaxLines - 1 - fullLinesAbove;
+
+    const fullStartLine = Math.max(0, targetLineIndex - fullLinesAbove);
+    const fullEndLine = Math.min(lines.length - 1, targetLineIndex + fullLinesBelow);
+
+    const fullSelectedLines = lines.slice(fullStartLine, fullEndLine + 1);
+
+    // For full snippet, be more permissive - allow some context from next sections
+    const fullProcessedLines: string[] = [];
+    let foundFullTargetLine = false;
+    let bulletPointsAfterTarget = 0;
+
+    for (let i = 0; i < fullSelectedLines.length; i++) {
+      const line = fullSelectedLines[i];
+      const isCurrentTargetLine = (fullStartLine + i) === targetLineIndex;
+
+      if (isCurrentTargetLine) {
+        foundFullTargetLine = true;
+        fullProcessedLines.push(line);
+      } else if (!foundFullTargetLine) {
+        fullProcessedLines.push(line);
+      } else {
+        const trimmedLine = line.trim();
+        if (trimmedLine.match(/^[*+-]\s/) || trimmedLine.match(/^\d+\.\s/)) {
+          bulletPointsAfterTarget++;
+          // For full snippet, allow one additional bullet point for context
+          if (bulletPointsAfterTarget > 1) {
+            break;
+          }
+        }
+        fullProcessedLines.push(line);
+      }
     }
-    const indexInSnippet = index - snippetStartPos;
+
+    fullSnippet = fullProcessedLines.join(" ").replace(/\s+/g, " ").trim();
+
+    // Truncate full snippet if too long but allow more space
+    if (fullSnippet.length > 800) {
+      const fullHalfLength = Math.floor(800 / 2);
+      let fullSnippetStartPos = 0;
+      for (let i = 0; i < fullStartLine; i++) {
+        fullSnippetStartPos += lines[i].length + (i < lines.length - 1 ? 1 : 0);
+      }
+      const fullIndexInSnippet = index - fullSnippetStartPos;
+
+      const fullIdealStart = Math.max(0, fullIndexInSnippet - fullHalfLength);
+      const fullIdealEnd = Math.min(fullSnippet.length, fullIndexInSnippet + fullHalfLength);
+
+      fullSnippet = "…" + fullSnippet.substring(fullIdealStart, fullIdealEnd).trim() + "…";
+    }
+
+    // Check if we have more content by comparing before any truncation happens
+    const untruncatedFull = fullProcessedLines.join(" ").replace(/\s+/g, " ").trim();
+    const untruncatedShort = processedLines.join(" ").replace(/\s+/g, " ").trim();
+    hasMore = untruncatedFull.length > untruncatedShort.length + 50;
+  }
+
+  // Calculate the position of the index within the multi-line snippet for centering logic
+  let snippetStartPos = 0;
+  for (let i = 0; i < startLine; i++) {
+    snippetStartPos += lines[i].length + (i < lines.length - 1 ? 1 : 0); // +1 for newline except last line
+  }
+  const indexInSnippet = index - snippetStartPos;
+
+  // Check if reference is too far from center, even if snippet is under length limit
+  const snippetCenter = snippet.length / 2;
+  const referenceDistance = Math.abs(indexInSnippet - snippetCenter);
+  const shouldCenterReference = referenceDistance > (snippet.length * 0.3); // Reference is >30% away from center
+
+  // If snippet is too long OR reference is poorly centered, truncate while centering around the reference
+  if (snippet.length > maxSnippetLength || shouldCenterReference) {
 
     // Center the truncation around the reference
     const halfLength = Math.floor(maxSnippetLength / 2);
@@ -134,13 +225,21 @@ export function extractSnippetAroundIndex(
     let truncated = snippet.substring(truncateStart, truncateEnd).trim();
 
     if (needsStartEllipsis) {
-      truncated = "..." + truncated;
+      truncated = "…" + truncated;
     }
     if (needsEndEllipsis) {
-      truncated = truncated + "...";
+      truncated = truncated + "…";
     }
 
     snippet = truncated;
+  }
+
+  if (expandable) {
+    return {
+      snippet,
+      fullSnippet: hasMore ? fullSnippet : undefined,
+      hasMore,
+    };
   }
 
   return snippet;
@@ -216,6 +315,6 @@ function extractSnippetAroundIndexLegacy(
   snippetEndIndex = Math.min(snippetEndIndex, targetSentence.length);
 
   // Extract and return the refined snippet
-  return "..." +
-    targetSentence.substring(snippetStartIndex, snippetEndIndex).trim() + "...";
+  return "…" +
+    targetSentence.substring(snippetStartIndex, snippetEndIndex).trim() + "…";
 }

@@ -486,7 +486,7 @@
 
   .sb-lua-top-widget,
   .sb-lua-bottom-widget {
-    margin: 0 0 10px 0;
+    margin: 20px 0 10px 0;
     border: 1px solid var(--editor-widget-background-color);
     border-radius: 5px;
     white-space: normal;
@@ -500,6 +500,135 @@
     padding: 15px 10px !important;
     background-color: var(--editor-widget-background-color);
     font-size: 1.2em;
+  }
+
+  // Collapsible Linked Mentions
+  .collapsible-linked-mentions {
+    margin: 0;
+    border-radius: 5px;
+    background: var(--editor-background-color);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+
+    h1 {
+      cursor: pointer;
+      -webkit-user-select: none;
+      user-select: none;
+      margin: 0 !important;
+      padding: 15px !important;
+      background-color: var(--editor-widget-background-color);
+      font-weight: bold;
+      font-size: 1.2em;
+      border-radius: 5px 5px 0 0;
+      position: -webkit-sticky;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      border-bottom: 1px solid var(--editor-widget-background-color);
+
+      .chevron-icon {
+        display: inline-block;
+        width: 32px;
+        height: 32px;
+        margin-right: 8px;
+        vertical-align: text-bottom;
+        background-color: currentColor;
+        -webkit-mask: var(--chevron-right-icon) no-repeat center;
+        mask: var(--chevron-right-icon) no-repeat center;
+        -webkit-mask-size: 70%;
+        mask-size: 70%;
+      }
+    }
+
+    h1:hover {
+      background-color: var(--editor-selection-background-color);
+    }
+
+    .linked-mentions-content {
+      padding-top: 15px;
+      padding-bottom: 15px;
+	  padding: 15px;
+	  ul {
+		margin: 0;
+		padding-left: 0px;
+
+		li {
+			margin: 10px 0;
+			list-style: none;
+			background-color: var(--editor-widget-background-color);
+			border-radius: 8px;
+			padding: 12px;
+
+			a {
+			  font-weight: 600;
+			  color: var(--editor-wiki-link-page-color);
+			  text-decoration: none;
+			  background-color: var(--editor-wiki-link-page-background-color);
+			  padding: 2px 6px;
+			  border-radius: 5px;
+			  display: inline-block;
+			  margin-bottom: 8px;
+			}
+
+			a:hover {
+			  background-color: var(--editor-selection-background-color);
+			}
+
+			.sb-snippet {
+			  display: block;
+			  margin-top: 8px;
+			  padding: 8px 12px;
+			  background-color: var(--editor-background-color);
+			  border-left: 3px solid var(--editor-wiki-link-page-background-color);
+			  border-radius: 4px;
+			  color: var(--editor-text-color);
+			}
+
+			.sb-more-btn {
+			  margin-left: 8px;
+			  padding: 2px 8px;
+			  background-color: var(--editor-widget-background-color);
+			  border: 1px solid var(--editor-selection-background-color);
+			  border-radius: 4px;
+			  cursor: pointer;
+			  font-size: 0.9em;
+			  color: var(--editor-text-color);
+			  text-decoration: none;
+			}
+
+			.sb-more-btn:hover {
+			  background-color: var(--editor-selection-background-color);
+			}
+		  }
+	  }
+
+	  ul li:before {
+			content: '';
+	  }
+    }
+
+    &.collapsed {
+      max-height: auto;
+
+      .linked-mentions-content {
+        display: none;
+      }
+
+      h1 {
+        border-radius: 5px;
+        border-bottom: none;
+      }
+    }
+
+    &:not(.collapsed) {
+      h1 .chevron-icon {
+        -webkit-mask: var(--chevron-down-icon) no-repeat center;
+        mask: var(--chevron-down-icon) no-repeat center;
+		-webkit-mask-size: 70%;
+        mask-size: 70%;
+      }
+    }
   }
 
   .sb-markdown-top-widget h1,
@@ -518,11 +647,11 @@
     margin-top: 10px;
   }
 
-  .sb-lua-top-widget .content,
-  .sb-lua-bottom-widget .content {
-    max-height: 500px;
-    padding: 10px;
-  }
+//   .sb-lua-top-widget .content,
+//   .sb-lua-bottom-widget .content {
+    // max-height: 500px;
+    // padding: 10px;
+//   }
 
   .sb-lua-bottom-widget p strong {
     display: block;
@@ -566,6 +695,10 @@
 
     .content {
       overflow-y: auto;
+    }
+
+    &:has(.collapsible-linked-mentions) .content {
+      overflow-y: visible;
     }
 
     ul,

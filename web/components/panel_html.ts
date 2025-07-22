@@ -97,13 +97,38 @@ function loadJsByUrl(url,integrity=null) {
     script.integrity=integrity;
     script.crossOrigin="anonymous"; //for some weird reason this attribute is case sensitive when used in JS
   }
-  
+
 
   return new Promise((resolve) => {
     script.onload = resolve;
     document.documentElement.firstChild.appendChild(script);
   });
 }
+
+// Expandable snippets functionality
+function toggleSnippet(button) {
+  const snippetSpan = button.previousElementSibling;
+  if (!snippetSpan || !snippetSpan.classList.contains('sb-snippet')) {
+    console.error('Invalid snippet span found');
+    return;
+  }
+
+  const fullSnippet = snippetSpan.dataset.fullSnippet;
+  const shortSnippet = snippetSpan.dataset.snippet;
+
+  if (button.textContent && button.textContent.trim() === 'more') {
+    // Expand to show full snippet
+    snippetSpan.textContent = fullSnippet || shortSnippet || '';
+    button.textContent = 'less';
+    button.classList.add('expanded');
+  } else {
+    // Collapse to show short snippet
+    snippetSpan.textContent = shortSnippet || '';
+    button.textContent = 'more';
+    button.classList.remove('expanded');
+  }
+}
+
 </script>
 </head>
 <body>
