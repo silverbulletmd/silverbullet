@@ -524,6 +524,22 @@
     padding: 10px;
   }
 
+  /* Hide border and chrome for ToC-only widgets (Floating ToC) */
+  .sb-lua-top-widget:has(.toc-hidden-container) {
+    border: none;
+    margin: 0;
+    min-height: auto;
+    background: transparent;
+  }
+
+  .sb-lua-top-widget:has(.toc-hidden-container) .content {
+    padding: 0;
+  }
+
+  .sb-lua-top-widget:has(.toc-hidden-container) .button-bar {
+    display: none !important;
+  }
+
   .sb-lua-bottom-widget p strong {
     display: block;
     padding: 10px 12px;
