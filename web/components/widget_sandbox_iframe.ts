@@ -1,6 +1,6 @@
 import type { Client } from "../client.ts";
 import { panelHtml } from "./panel_html.ts";
-import type { WidgetContent } from "@silverbulletmd/silverbullet/type/client";
+import type { CodeWidgetContent } from "@silverbulletmd/silverbullet/type/client";
 
 /**
  * Implements sandbox widgets using iframe with a pooling mechanism to speed up loading
@@ -106,7 +106,7 @@ export function mountIFrame(
   preloadedIFrame: PreloadedIFrame,
   client: Client,
   widgetHeightCacheKey: string | null,
-  content: WidgetContent | null | Promise<WidgetContent | null>,
+  content: CodeWidgetContent | null | Promise<CodeWidgetContent | null>,
   onMessage?: (message: any) => void,
 ) {
   const iframe = preloadedIFrame.iframe;
@@ -207,7 +207,7 @@ export function mountIFrame(
 export function createWidgetSandboxIFrame(
   client: Client,
   widgetHeightCacheKey: string | null,
-  content: WidgetContent | null | Promise<WidgetContent | null>,
+  content: CodeWidgetContent | null | Promise<CodeWidgetContent | null>,
   onMessage?: (message: any) => void,
 ) {
   // console.log("Claiming iframe");
