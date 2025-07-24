@@ -258,6 +258,23 @@ assert(added[1] == 5 and added[2] == 7 and added[3] == 9)
 local muliplied = t * 2
 assert(muliplied[1] == 2 and muliplied[2] == 4 and muliplied[3] == 6)
 
+-- __call Metamethod
+
+local ts = {
+    foo = "ARG 2"
+}
+local mt = {}
+
+function mt.__call(table, arg1)
+    assert(arg1 == "ARG 1")
+    assert(table.foo == "ARG 2")
+    return "return from metatable"
+end
+
+setmetatable(ts, mt)
+
+assert(ts("ARG 1") == "return from metatable")
+
 -- Let's try somethings lightly more complicated, like a deep comparison function implemented in Lua
 function deepCompare(t1, t2)
     if t1 == t2 then return true end
