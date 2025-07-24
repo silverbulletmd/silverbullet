@@ -158,50 +158,39 @@ export function FilterList({
             return false;
           }}
           onKeyDown={(view, e) => {
-            switch (e.key) {
-              case "ArrowUp":
-                setSelectionOption(Math.max(0, selectedOption - 1));
-                return true;
-              case "ArrowDown":
-                setSelectionOption(
-                  Math.min(matchingOptions.length - 1, selectedOption + 1),
-                );
-                return true;
-              case "PageUp":
-                setSelectionOption(Math.max(0, selectedOption - 5));
-                return true;
-              case "PageDown":
-                setSelectionOption(
-                  Math.min(matchingOptions.length - 1, selectedOption + 5),
-                );
-                return true;
-              case "Home":
-                setSelectionOption(0);
-                return true;
-              case "End":
-                setSelectionOption(matchingOptions.length - 1);
-                return true;
-              case " ": {
-                const text = view.state.sliceDoc();
-                if (completePrefix && text === "") {
-                  setText(completePrefix);
-                  // updateFilter(completePrefix);
-                  return true;
-                }
-                break;
-              }
-            }
-            if (e.ctrlKey && e.key === "n") {
-              setSelectionOption(
-                Math.min(matchingOptions.length - 1, selectedOption + 1),
-              );
-              return true;
-            }
-            if (e.ctrlKey && e.key === "p") {
+            if (
+              e.key === "ArrowUp" ||
+              e.ctrlKey && e.key === "p"
+            ) {
               setSelectionOption(Math.max(0, selectedOption - 1));
-              return true;
+            } else if (
+              e.key === "ArrowDown" ||
+              e.ctrlKey && e.key === "n"
+            ) {
+              setSelectionOption(Math.min(matchingOptions.length - 1, selectedOption + 1));
+            } else if (e.key === "PageUp") {
+              setSelectionOption(Math.max(0, selectedOption - 5));
+            } else if (e.key === "PageDown") {
+              setSelectionOption(Math.min(matchingOptions.length - 1, selectedOption + 5));
+            } else if (e.key === "Home") {
+              setSelectionOption(0);
+            } else if (e.key === "End") {
+              setSelectionOption(matchingOptions.length - 1);
+            } else if (
+              (e.key === " ") && completePrefix && (view.state.sliceDoc() === "")
+            ) {
+              setText(completePrefix);
+            } else {
+              return false;
             }
-            return false;
+
+            setTimeout(() => {
+              selectedElementRef.current?.scrollIntoView({
+                block: "nearest",
+              });
+            });
+
+            return true;
           }}
         />
       </div>
@@ -280,12 +269,6 @@ export function FilterList({
       </div>
     </AlwaysShownModal>
   );
-
-  useEffect(() => {
-    selectedElementRef.current?.scrollIntoView({
-      block: "nearest",
-    });
-  });
 
   return returnEl;
 }
