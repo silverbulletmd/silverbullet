@@ -355,12 +355,9 @@ function evalPrefixExpression(
             return prefixValue.then(handleFunctionCall);
           }
         }
-        if (!prefixValue.call) {
-          throw new LuaRuntimeError(
-            `Attempting to call ${prefixValue} as a function`,
-            sf.withCtx(e.prefix.ctx),
-          );
-        }
+
+        // Unsure if part of the spec, but it seems to be common for lua implementations
+        // to evaluate all args before evaluating the callee
         const args = evalExpressions(e.args, env, sf);
 
         if (args instanceof Promise) {
