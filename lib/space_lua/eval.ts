@@ -345,12 +345,7 @@ function evalPrefixExpression(
         if (e.name) {
           selfArgs = [prefixValue];
           prefixValue = luaIndexValue(prefixValue, e.name, sf);
-          if (prefixValue === null) {
-            throw new LuaRuntimeError(
-              `Attempting to index a non-table: ${prefixValue}`,
-              sf.withCtx(e.prefix.ctx),
-            );
-          }
+
           if (prefixValue instanceof Promise) {
             return prefixValue.then(handleFunctionCall);
           }
