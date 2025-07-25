@@ -1,7 +1,8 @@
 Template functions that use the [[API/template#template.new(template)]] function.
 
-## template.new(template)
+## template.new(template, stripIndent)
 Returns a template function that can be used to render a template. Conventionally, a template string is put between `[==[` and `]==]` as string delimiters.
+If `stripIndent` is set to true or omitted, the function will try to remove indentation at the start of the line. This can be useful for multiline strings.
 
 Example:
 

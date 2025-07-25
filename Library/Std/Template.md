@@ -20,15 +20,17 @@ function template.each(tbl, fn)
 end
 
 -- Creates a new template function from a string template
-function template.new(templateStr)
+function template.new(templateStr, stripIndent)
   -- Preprocess: strip indentation
-  local lines = {}
-  local splitLines = string.split(templateStr, "\n")
-  for _, line in ipairs(splitLines) do
-    line = string.gsub(line, "^    ", "")
-    table.insert(lines, line)
+  if stripIndent == nil or strpIndent == true then
+    local lines = {}
+    local splitLines = string.split(templateStr, "\n")
+    for _, line in ipairs(splitLines) do
+      line = string.gsub(line, "^    ", "")
+      table.insert(lines, line)
+    end
+    templateStr = table.concat(lines, "\n")
   end
-  templateStr = table.concat(lines, "\n")
   return function(obj)
     return spacelua.interpolate(templateStr, obj)
   end
@@ -51,6 +53,6 @@ function template.fromPage(name, raw)
       return templateText
     end, fm.frontmatter
   end
-  return template.new(templateText), fm.frontmatter
+  return template.new(templateText, false), fm.frontmatter
 end
 ```
