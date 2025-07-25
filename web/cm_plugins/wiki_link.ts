@@ -12,6 +12,7 @@ import {
   parseRef,
 } from "@silverbulletmd/silverbullet/lib/page_ref";
 import type { ClickEvent } from "@silverbulletmd/silverbullet/type/client";
+import { wikiLinkRegex } from "../markdown_parser/constants.ts";
 
 /**
  * Plugin to hide path prefix when the cursor is not inside.
@@ -27,7 +28,8 @@ export function cleanWikiLinkPlugin(client: Client) {
           return;
         }
         const text = state.sliceDoc(from, to);
-        const match = /(!?\[\[)([^\]\|]+)(?:\|([^\]]+))?(\]\])/g.exec(text);
+        wikiLinkRegex.lastIndex = 0;
+        const match = wikiLinkRegex.exec(text);
 
         if (!match) return;
         const [_fullMatch, firstMark, url, alias, lastMark] = match;
