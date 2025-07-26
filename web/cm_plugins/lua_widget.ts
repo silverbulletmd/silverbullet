@@ -69,7 +69,7 @@ export class LuaWidget extends WidgetType {
     if (cacheItem) {
       // This is to make the initial render faster, will later be replaced by the actual content
       innerDiv.replaceChildren(
-        this.wrapHtml(!!cacheItem.block, cacheItem.html),
+        this.wrapHtml(!!cacheItem.block, cacheItem.html, cacheItem.copyContent),
       );
     }
 
@@ -101,6 +101,7 @@ export class LuaWidget extends WidgetType {
 
     let html: HTMLElement | undefined;
     let block = false;
+    let copyContent: string | undefined = undefined;
 
     // Normalization
     if (typeof widgetContent === "string" || !widgetContent._isWidget) {
@@ -115,9 +116,13 @@ export class LuaWidget extends WidgetType {
       div.className = widgetContent.cssClasses.join(" ");
     }
     if (widgetContent.html) {
-      html = typeof widgetContent.html === "string"
-        ? parseHtmlString(widgetContent.html)
-        : widgetContent.html;
+      if (typeof widgetContent.html === "string") {
+        html = parseHtmlString(widgetContent.html);
+        copyContent = widgetContent.html;
+      } else {
+        html = widgetContent.html;
+        copyContent = widgetContent.html.outerHTML;
+      }
 
       block = widgetContent.display === "block";
       if (block) {
@@ -142,6 +147,8 @@ export class LuaWidget extends WidgetType {
         sf,
       );
       const trimmedMarkdown = renderToText(mdTree).trim();
+
+      copyContent = trimmedMarkdown;
 
       if (!trimmedMarkdown) {
         // Net empty result after expansion
@@ -182,7 +189,7 @@ export class LuaWidget extends WidgetType {
       }, this.client.ui.viewState.allPages));
     }
     if (html) {
-      div.replaceChildren(this.wrapHtml(block, html));
+      div.replaceChildren(this.wrapHtml(block, html, copyContent));
       attachWidgetEventHandlers(
         div,
         this.client,
@@ -199,6 +206,7 @@ export class LuaWidget extends WidgetType {
           height: div.offsetHeight,
           html: html?.outerHTML || "",
           block,
+          copyContent: copyContent,
         },
       );
       // Because of the rejiggering of the DOM, we need to do a no-op cursor move to make sure it's positioned correctly
@@ -210,7 +218,11 @@ export class LuaWidget extends WidgetType {
     });
   }
 
-  wrapHtml(isBlock: boolean, html: string | HTMLElement): HTMLElement {
+  wrapHtml(
+    isBlock: boolean,
+    html: string | HTMLElement,
+    copyContent: string | undefined,
+  ): HTMLElement {
     if (typeof html === "string") {
       html = parseHtmlString(html);
     }
@@ -221,38 +233,66 @@ export class LuaWidget extends WidgetType {
     const buttonBar = document.createElement("div");
     buttonBar.className = "button-bar";
 
-    const reloadButton = document.createElement("button");
-    reloadButton.setAttribute("data-button", "reload");
-    reloadButton.setAttribute("title", "Reload");
-    reloadButton.innerHTML =
-      '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-refresh-cw"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>';
-    reloadButton.addEventListener(
-      "click",
-      (e) => {
-        e.stopPropagation();
-        this.client.clientSystem.localSyscall(
-          "system.invokeFunction",
-          ["index.refreshWidgets"],
-        ).catch(console.error);
+    const createButton = (
+      { title, icon, listener }: {
+        title: string;
+        icon: string;
+        listener: (event: MouseEvent) => void;
       },
-    );
-    buttonBar.appendChild(reloadButton);
+    ) => {
+      const button = document.createElement("button");
+      button.setAttribute("data-button", title.toLowerCase());
+      button.setAttribute("title", title);
+      button.innerHTML = icon;
+      button.addEventListener("click", listener);
+
+      return button;
+    };
+
+    buttonBar.appendChild(createButton(
+      {
+        title: "Reload",
+        icon:
+          '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-refresh-cw"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>',
+        listener: (e) => {
+          e.stopPropagation();
+          this.client.clientSystem.localSyscall(
+            "system.invokeFunction",
+            ["index.refreshWidgets"],
+          ).catch(console.error);
+        },
+      },
+    ));
+
+    if (copyContent) {
+      buttonBar.appendChild(createButton(
+        {
+          title: "Copy",
+          icon:
+            `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-copy"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`,
+          listener: (e) => {
+            e.stopPropagation();
+            this.client.clientSystem.localSyscall(
+              "editor.copyToClipboard",
+              [copyContent],
+            ).catch(console.error);
+          },
+        },
+      ));
+    }
 
     if (this.inPage) {
-      const editButton = document.createElement("button");
-      editButton.setAttribute("data-button", "edit");
-      editButton.setAttribute("title", "Edit");
-      editButton.innerHTML =
-        '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>';
-      editButton.addEventListener(
-        "click",
-        (e) => {
-          e.stopPropagation();
-          console.log("EDIT");
-          moveCursorIntoText(this.client, "${" + this.bodyText + "}");
+      buttonBar.appendChild(createButton(
+        {
+          title: "Edit",
+          icon:
+            '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>',
+          listener: (e) => {
+            e.stopPropagation();
+            moveCursorIntoText(this.client, "${" + this.bodyText + "}");
+          },
         },
-      );
-      buttonBar.appendChild(editButton);
+      ));
     }
 
     const content = document.createElement("div");

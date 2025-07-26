@@ -3,7 +3,7 @@ import type { Client } from "../client.ts";
 import { createWidgetSandboxIFrame } from "../components/widget_sandbox_iframe.ts";
 import type {
   CodeWidgetCallback,
-  WidgetContent,
+  CodeWidgetContent,
 } from "@silverbulletmd/silverbullet/type/client";
 
 export class IFrameWidget extends WidgetType {
@@ -43,7 +43,7 @@ export class IFrameWidget extends WidgetType {
           case "reload":
             this.codeWidgetCallback(this.bodyText, this.client.currentPage)
               .then(
-                (widgetContent: WidgetContent | null) => {
+                (widgetContent: CodeWidgetContent | null) => {
                   if (widgetContent === null) {
                     iframe.contentWindow!.postMessage({
                       type: "html",

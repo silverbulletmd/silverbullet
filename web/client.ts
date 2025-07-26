@@ -11,7 +11,6 @@ import { Space } from "./space.ts";
 import type {
   AppEvent,
   ClickEvent,
-  CodeWidgetButton,
   CompleteEvent,
   EnrichedClickEvent,
   FilterOption,
@@ -83,9 +82,8 @@ declare global {
 type WidgetCacheItem = {
   height: number;
   html: string;
-  buttons?: CodeWidgetButton[];
   block?: boolean;
-  banner?: string;
+  copyContent?: string;
 };
 
 export class Client {
