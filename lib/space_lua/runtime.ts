@@ -584,34 +584,60 @@ export function luaLen(obj: any): number {
 }
 
 export function luaCall(
-  fn: any,
+  callee: any,
   args: any[],
   ctx: ASTCtx,
   sf?: LuaStackFrame,
 ): any {
-  if (!fn) {
+  if (!callee) {
     throw new LuaRuntimeError(
       `Attempting to call a nil value`,
       (sf || LuaStackFrame.lostFrame).withCtx(ctx),
     );
   }
-  if (typeof fn === "function") {
+
+  if (typeof callee === "function") {
     const jsArgs = evalPromiseValues(
       args.map((v) => luaValueToJS(v, sf || LuaStackFrame.lostFrame)),
     );
+
     if (jsArgs instanceof Promise) {
-      return jsArgs.then((jsArgs) => fn(...jsArgs));
+      return jsArgs.then((jsArgs) => callee(...jsArgs));
     } else {
-      return fn(...jsArgs);
+      return callee(...jsArgs);
     }
-  }
-  if (!fn.call) {
+  } else if (callee instanceof LuaTable) {
+    const metatable = getMetatable(callee, sf);
+
+    if (metatable && metatable.has("__call")) {
+      // Invoke the meta table
+      const metaValue = metatable.get("__call", sf);
+
+      const callMetaValue = (value: any) => {
+        if (metaValue.call) {
+          return luaCall(value, [callee, ...args], ctx, sf);
+        } else {
+          throw new Error("Meta table __call must be a function");
+        }
+      };
+
+      if (metaValue.then) {
+        // Got a promise, we need to wait for it
+        return metaValue.then((value: any) => {
+          callMetaValue(value);
+        });
+      } else {
+        return callMetaValue(metaValue);
+      }
+    }
+  } else if (callee.call) {
+    return callee.call((sf || LuaStackFrame.lostFrame).withCtx(ctx), ...args);
+  } else {
     throw new LuaRuntimeError(
-      `Attempting to call a non-callable value`,
+      `Attempting to call a non-callable value of type: ${luaTypeOf(callee)}`,
       (sf || LuaStackFrame.lostFrame).withCtx(ctx),
     );
   }
-  return fn.call((sf || LuaStackFrame.lostFrame).withCtx(ctx), ...args);
 }
 
 export function luaEquals(a: any, b: any): boolean {

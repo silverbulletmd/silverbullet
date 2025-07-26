@@ -345,22 +345,14 @@ function evalPrefixExpression(
         if (e.name) {
           selfArgs = [prefixValue];
           prefixValue = luaIndexValue(prefixValue, e.name, sf);
-          if (prefixValue === null) {
-            throw new LuaRuntimeError(
-              `Attempting to index a non-table: ${prefixValue}`,
-              sf.withCtx(e.prefix.ctx),
-            );
-          }
+
           if (prefixValue instanceof Promise) {
             return prefixValue.then(handleFunctionCall);
           }
         }
-        if (!prefixValue.call) {
-          throw new LuaRuntimeError(
-            `Attempting to call ${prefixValue} as a function`,
-            sf.withCtx(e.prefix.ctx),
-          );
-        }
+
+        // Unsure if part of the spec, but it seems to be common for lua implementations
+        // to evaluate all args before evaluating the callee
         const args = evalExpressions(e.args, env, sf);
 
         if (args instanceof Promise) {
