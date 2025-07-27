@@ -174,7 +174,7 @@ export class LuaWidget extends WidgetType {
         trimmedMarkdown,
       );
 
-      html = parseHtmlString(renderMarkdownToHtml(mdTree, {
+      const mdHtml = parseHtmlString(renderMarkdownToHtml(mdTree, {
         translateUrls: (url) => {
           if (isLocalPath(url)) {
             url = resolvePath(
@@ -187,6 +187,16 @@ export class LuaWidget extends WidgetType {
         },
         preserveAttributes: true,
       }, this.client.ui.viewState.allPages));
+
+      if (html) {
+        // If html is already defined from the html case, extend it by appending mdHtml
+        const container = document.createElement("div");
+        container.appendChild(typeof html === "string" ? parseHtmlString(html) : html);
+        container.appendChild(mdHtml);
+        html = container;
+      } else {
+        html = mdHtml;
+      }
     }
     if (html) {
       div.replaceChildren(this.wrapHtml(block, html, copyContent));
