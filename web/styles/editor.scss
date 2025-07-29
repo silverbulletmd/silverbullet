@@ -341,6 +341,11 @@
     margin: -1em 0;
   }
 
+  .sb-widget-array {
+    display: flex;
+    flex-direction: column;
+  }
+
   a.sb-wiki-link-page-missing,
   .sb-wiki-link-page-missing > .sb-wiki-link-page {
     border-radius: 5px;
