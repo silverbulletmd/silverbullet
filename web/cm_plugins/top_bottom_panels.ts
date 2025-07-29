@@ -3,8 +3,11 @@ import { Decoration, WidgetType } from "@codemirror/view";
 import type { Client } from "../client.ts";
 import { decoratorStateField } from "./util.ts";
 import { LuaWidget, type LuaWidgetContent } from "./lua_widget.ts";
+import { activeWidgets } from "./code_widget.ts";
 
 class ArrayWidget extends WidgetType {
+  public dom?: HTMLElement;
+
   constructor(
     readonly client: Client,
     readonly cacheKey: string,
@@ -22,6 +25,8 @@ class ArrayWidget extends WidgetType {
   }
 
   toDOM(): HTMLElement {
+    activeWidgets.add(this);
+
     const div = document.createElement("div");
     div.className = "sb-widget-array";
 
@@ -33,6 +38,7 @@ class ArrayWidget extends WidgetType {
 
     // Async kick-off of content renderer
     this.renderContent(div).catch(console.error);
+    this.dom = div;
     return div;
   }
 
