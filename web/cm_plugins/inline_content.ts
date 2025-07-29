@@ -226,7 +226,7 @@ export function inlineContentPlugin(client: Client) {
                   true,
                 ),
                 block: true,
-              }).range(node.to),
+              }).range(node.to + 1),
             );
 
             if (!isCursorInRange(state, [node.from, node.to])) {
@@ -246,7 +246,7 @@ export function inlineContentPlugin(client: Client) {
               client,
             ),
             block: true,
-          }).range(node.to),
+          }).range(node.to + 1),
         );
 
         if (!isCursorInRange(state, [node.from, node.to])) {
