@@ -218,6 +218,7 @@ export function inlineContentPlugin(client: Client) {
                     const { text } = await client.space.readPage(pageName);
                     return {
                       _isWidget: true,
+                      cssClasses: ["sb-markdown-widget-inline"],
                       markdown: text,
                     };
                   },
