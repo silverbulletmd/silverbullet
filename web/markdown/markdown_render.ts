@@ -551,7 +551,7 @@ export function renderMarkdownToHtml(
         if (t.attrs!["data-ref"]?.length) {
           const pageRef = parseRef(t.attrs!["data-ref"]!);
           const pageMeta = allPages.find((p) => pageRef.page === p.name);
-          if (pageMeta) {
+          if (pageMeta && !("pos" in pageRef)) {
             t.body = [(pageMeta.pageDecoration?.prefix ?? "") + t.body];
             if (pageMeta.pageDecoration?.cssClasses) {
               t.attrs!.class += " sb-decorated-object " +
