@@ -22,3 +22,6 @@ assert(os.date("%U %V %W", os.time({ year = 2025, month = 1, day = 7 })) == "01 
 assert(os.date("%U %V %W", os.time({ year = 2025, month = 5, day = 3 })) == "17 18 17")
 
 assert(os.date("%w", 1750672800) == "1")
+
+-- https://community.silverbullet.md/t/incorrect-timestamp-returned-by-os-time/2682
+assert_equal(os.time({year=2025, month=9, day=30}), 1759226400)

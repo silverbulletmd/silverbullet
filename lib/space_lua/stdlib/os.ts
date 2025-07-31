@@ -46,22 +46,23 @@ export const osApi = new LuaTable({
   time: new LuaBuiltinFunction((_sf, tbl?: LuaTable) => {
     if (tbl) {
       // Build a date object from the table
-      const date = new Date();
       if (!tbl.has("year")) {
         throw new Error("time(): year is required");
       }
-      date.setFullYear(tbl.get("year"));
       if (!tbl.has("month")) {
         throw new Error("time(): month is required");
       }
-      date.setMonth(tbl.get("month") - 1);
       if (!tbl.has("day")) {
         throw new Error("time(): day is required");
       }
-      date.setDate(tbl.get("day"));
-      date.setHours(tbl.get("hour") ?? 12);
-      date.setMinutes(tbl.get("min") ?? 0);
-      date.setSeconds(tbl.get("sec") ?? 0);
+      const year = tbl.get("year");
+      const month = tbl.get("month");
+      const day = tbl.get("day");
+      const hour = tbl.get("hour") ?? 12;
+      const min = tbl.get("min") ?? 0;
+      const sec = tbl.get("sec") ?? 0;
+      // JS Date: months are 0-based
+      const date = new Date(year, month - 1, day, hour, min, sec);
       return Math.floor(date.getTime() / 1000);
     } else {
       return Math.floor(Date.now() / 1000);
