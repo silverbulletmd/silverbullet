@@ -1,4 +1,4 @@
-import { HttpServer } from "../server/http_server.ts";
+import { HttpServer, type McpServerOptions } from "../server/http_server.ts";
 
 // To ship silverbullet as a single binary, we're importing all assets (client and plugs) as JSON blobs
 import clientAssetBundle from "../dist/client_asset_bundle.json" with {
@@ -107,6 +107,21 @@ export async function serveCommand(
   const shellBackend = Deno.env.get("SB_SHELL_BACKEND") || "local";
   const spaceIgnore = Deno.env.get("SB_SPACE_IGNORE");
 
+  // MCP server configuration
+  const mcpEnabled = Deno.env.get("SB_MCP_ENABLED") === "true";
+  const mcpAuthMode = (Deno.env.get("SB_MCP_AUTH_MODE") as "inherit" | "separate" | "none") || "inherit";
+  const mcpAuthToken = Deno.env.get("SB_MCP_AUTH_TOKEN");
+
+  let mcpOptions: McpServerOptions | undefined;
+  if (mcpEnabled) {
+    mcpOptions = {
+      enabled: true,
+      authMode: mcpAuthMode,
+      authToken: mcpAuthToken,
+    };
+    console.log(`MCP server enabled with auth mode: ${mcpAuthMode}`);
+  }
+
   // All plug code bundled into a JSON blob
   const plugAssets = new AssetBundle(plugAssetBundle as AssetJson);
   // All client files bundled into a JSON blob
@@ -127,6 +142,7 @@ export async function serveCommand(
       readOnly,
       shellBackend,
       pagesPath: folder,
+      mcp: mcpOptions,
     },
     clientAssets,
     plugAssets,
@@ -135,6 +151,17 @@ export async function serveCommand(
 
   // And kick it off
   await httpServer.start();
+
+  // Handle graceful shutdown
+  const shutdown = async () => {
+    console.log("Shutting down SilverBullet...");
+    await httpServer.stop();
+    Deno.exit(0);
+  };
+
+  // Set up signal handlers for graceful shutdown
+  Deno.addSignalListener("SIGINT", shutdown);
+  Deno.addSignalListener("SIGTERM", shutdown);
 
   // Wait in an infinite loop (to keep the HTTP server running, only cancelable via Ctrl+C or other signal)
   while (true) {

@@ -527,6 +527,7 @@
       "jsr:@cliffy/prompt@^1.0.0-rc.7",
       "jsr:@hono/hono@4.8.0",
       "jsr:@luca/esbuild-deno-loader@~0.11.1",
+      "jsr:@phughesmcr/deno-mcp-template@0.1",
       "jsr:@std/assert@^1.0.1",
       "jsr:@std/cli@^1.0.1",
       "jsr:@std/fs@^1.0.18",
