@@ -218,6 +218,7 @@ export function inlineContentPlugin(client: Client) {
                     const { text } = await client.space.readPage(pageName);
                     return {
                       _isWidget: true,
+                      cssClasses: ["sb-markdown-widget-inline"],
                       markdown: text,
                     };
                   },
@@ -225,7 +226,7 @@ export function inlineContentPlugin(client: Client) {
                   true,
                 ),
                 block: true,
-              }).range(node.to),
+              }).range(node.to + 1),
             );
 
             if (!isCursorInRange(state, [node.from, node.to])) {
@@ -245,7 +246,7 @@ export function inlineContentPlugin(client: Client) {
               client,
             ),
             block: true,
-          }).range(node.to),
+          }).range(node.to + 1),
         );
 
         if (!isCursorInRange(state, [node.from, node.to])) {
