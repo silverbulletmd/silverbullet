@@ -135,10 +135,40 @@ export class DiskSpacePrimitives implements SpacePrimitives {
     const localPath = this.filenameToPath(name);
     await Deno.remove(localPath);
 
+    // Recursively remove empty parent directories up to rootPath
+    await this.cleanOrphaned(localPath);
+
     // Invalidate cache and trigger an update
     this.fileListCache = [];
     this.fileListCacheTime = 0;
     this.updateCacheInBackground();
+  }
+
+  private async cleanOrphaned(pathToDeletedFile: string){
+    let current = path.dirname(pathToDeletedFile);
+
+    while( current.startsWith(this.rootPath) && current != this.rootPath ){
+      try {
+        // Attempt to remove the current directory
+        await Deno.remove(current);
+        current = path.dirname(current);
+      } catch (e: any) {
+        if (
+          e.code === "ENOTEMPTY" ||
+          e instanceof Deno.errors.PermissionDenied
+        ) {
+          break;
+        }
+
+        if (e instanceof Deno.errors.NotFound) {
+          current = path.dirname(current); // continue upwards
+          continue;
+        }
+
+        console.warn("Error cleaning orphaned folder", current, e);
+        break;
+      }
+    }
   }
 
   async fetchFileList(): Promise<FileMeta[]> {
