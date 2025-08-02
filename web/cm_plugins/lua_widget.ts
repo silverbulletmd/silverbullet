@@ -211,9 +211,7 @@ export class LuaWidget extends WidgetType {
       );
       // Because of the rejiggering of the DOM, we need to do a no-op cursor move to make sure it's positioned correctly
       this.client.editorView.dispatch({
-        selection: {
-          anchor: this.client.editorView.state.selection.main.anchor,
-        },
+        selection: this.client.editorView.state.selection,
       });
     });
   }

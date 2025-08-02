@@ -48,8 +48,7 @@ export class EventHook implements EventHookI {
     if (!this.system) {
       throw new Error("Event hook is not initialized");
     }
-    const responses: any[] = [];
-    const promises: Promise<void>[] = [];
+    const promises: Promise<any>[] = [];
     for (const plug of this.system.loadedPlugs.values()) {
       const manifest = plug.manifest;
       for (
@@ -69,7 +68,7 @@ export class EventHook implements EventHookI {
                   try {
                     const result = await plug.invoke(name, args);
                     if (result !== undefined) {
-                      responses.push(result);
+                      return result;
                     }
                   } catch (e: any) {
                     console.error(
@@ -93,7 +92,7 @@ export class EventHook implements EventHookI {
         promises.push((async () => {
           const result = await Promise.resolve(localListener(...args));
           if (result) {
-            responses.push(result);
+            return result;
           }
         })());
       }
@@ -117,7 +116,7 @@ export class EventHook implements EventHookI {
                 }),
               );
               if (result) {
-                responses.push(result);
+                return result;
               }
             })());
           }
@@ -126,9 +125,9 @@ export class EventHook implements EventHookI {
     }
 
     // Wait for all promises to resolve
-    await Promise.all(promises);
-
-    return responses;
+    return (await Promise.allSettled(promises))
+      .filter((result) => result.status === "fulfilled")
+      .map((result) => result.value);
   }
 
   apply(system: System<EventHookT>): void {

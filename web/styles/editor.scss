@@ -341,6 +341,11 @@
     margin: -1em 0;
   }
 
+  .sb-widget-array {
+    display: flex;
+    flex-direction: column;
+  }
+
   a.sb-wiki-link-page-missing,
   .sb-wiki-link-page-missing > .sb-wiki-link-page {
     border-radius: 5px;
@@ -486,12 +491,19 @@
 
   .sb-lua-top-widget,
   .sb-lua-bottom-widget {
-    margin: 0 0 10px 0;
     border: 1px solid var(--editor-widget-background-color);
     border-radius: 5px;
     white-space: normal;
     position: relative;
     min-height: 48px;
+  }
+
+  .sb-lua-top-widget {
+    margin: 0 0 10px 0;
+  }
+
+  .sb-lua-bottom-widget {
+    margin: 10px 0 0 0;
   }
 
   .sb-lua-top-widget h1,
