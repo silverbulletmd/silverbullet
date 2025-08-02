@@ -53,19 +53,19 @@ export const fuzzySearchAndSort = (
     sortFn: (a, b): number => {
       const aItem = enrichedArr[a.idx];
       const bItem = enrichedArr[b.idx];
-      
+
       // Check for exact category matches first
       const searchLower = searchPhrase.toLowerCase();
       const aExactCategoryMatch = aItem.category?.toLowerCase() === searchLower;
       const bExactCategoryMatch = bItem.category?.toLowerCase() === searchLower;
-      
+
       if (aExactCategoryMatch && !bExactCategoryMatch) {
         return -1; // a comes first
       }
       if (!aExactCategoryMatch && bExactCategoryMatch) {
         return 1; // b comes first
       }
-      
+
       // If both or neither have exact category matches, use normal scoring
       if (a.score === b.score) {
         const aOrder = aItem.orderId || 0;

@@ -144,10 +144,10 @@ export class DiskSpacePrimitives implements SpacePrimitives {
     this.updateCacheInBackground();
   }
 
-  private async cleanOrphaned(pathToDeletedFile: string){
+  private async cleanOrphaned(pathToDeletedFile: string) {
     let current = path.dirname(pathToDeletedFile);
 
-    while( current.startsWith(this.rootPath) && current != this.rootPath ){
+    while (current.startsWith(this.rootPath) && current != this.rootPath) {
       try {
         // Attempt to remove the current directory
         await Deno.remove(current);

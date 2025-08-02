@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DenoSettings">
-    <option name="denoInit" value="{&#10;  &quot;enable&quot;: true,&#10;  &quot;lint&quot;: true,&#10;  &quot;unstable&quot;: false,&#10;  &quot;config&quot;: &quot;deno.json&quot;&#10;}" />
+    <option
+      name="denoInit"
+      value="{&#10;  &quot;enable&quot;: true,&#10;  &quot;lint&quot;: true,&#10;  &quot;unstable&quot;: false,&#10;  &quot;config&quot;: &quot;deno.json&quot;&#10;}"
+    />
     <option name="useDenoValue" value="ENABLE" />
   </component>
 </project>

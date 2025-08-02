@@ -180,7 +180,7 @@ export function previewTaskToggle(eventString: string) {
 async function convertListItemToTask(node: ParseTree) {
   const listMark = node.children![0];
   const originalMark = renderToText(listMark);
-  
+
   // Determine the task marker based on the original list type
   let taskMarker: string;
   if (originalMark.match(/^\d+\./)) {
@@ -190,7 +190,7 @@ async function convertListItemToTask(node: ParseTree) {
     // Bullet list: use standard bullet
     taskMarker = "* [ ]";
   }
-  
+
   await editor.dispatch({
     changes: {
       from: listMark.from,
@@ -223,7 +223,10 @@ async function removeTaskCheckbox(listItemNode: ParseTree) {
   });
 }
 
-async function cycleTaskState(node: ParseTree, removeCheckbox: boolean = false) {
+async function cycleTaskState(
+  node: ParseTree,
+  removeCheckbox: boolean = false,
+) {
   const stateText = node.children![1].text!;
 
   // If removeCheckbox is true and task is complete, remove checkbox entirely

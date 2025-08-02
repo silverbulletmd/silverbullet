@@ -54,17 +54,31 @@ export function FilterList({
   const [selectedOption, setSelectionOption] = useState(0);
 
   // Group options by category while preserving Fuse.js order
-  function groupOptionsByCategory(options: FilterOption[]): Array<{type: 'category', name: string} | {type: 'option', option: FilterOption, originalIndex: number}> {
-    const grouped: Array<{type: 'category', name: string} | {type: 'option', option: FilterOption, originalIndex: number}> = [];
+  function groupOptionsByCategory(
+    options: FilterOption[],
+  ): Array<
+    { type: "category"; name: string } | {
+      type: "option";
+      option: FilterOption;
+      originalIndex: number;
+    }
+  > {
+    const grouped: Array<
+      { type: "category"; name: string } | {
+        type: "option";
+        option: FilterOption;
+        originalIndex: number;
+      }
+    > = [];
     const seenCategories = new Set<string>();
 
     let originalIndex = 0;
     for (const option of options) {
       if (option.category && !seenCategories.has(option.category)) {
         seenCategories.add(option.category);
-        grouped.push({type: 'category', name: option.category});
+        grouped.push({ type: "category", name: option.category });
       }
-      grouped.push({type: 'option', option, originalIndex});
+      grouped.push({ type: "option", option, originalIndex });
       originalIndex++;
     }
 
@@ -167,17 +181,22 @@ export function FilterList({
               e.key === "ArrowDown" ||
               e.ctrlKey && e.key === "n"
             ) {
-              setSelectionOption(Math.min(matchingOptions.length - 1, selectedOption + 1));
+              setSelectionOption(
+                Math.min(matchingOptions.length - 1, selectedOption + 1),
+              );
             } else if (e.key === "PageUp") {
               setSelectionOption(Math.max(0, selectedOption - 5));
             } else if (e.key === "PageDown") {
-              setSelectionOption(Math.min(matchingOptions.length - 1, selectedOption + 5));
+              setSelectionOption(
+                Math.min(matchingOptions.length - 1, selectedOption + 5),
+              );
             } else if (e.key === "Home") {
               setSelectionOption(0);
             } else if (e.key === "End") {
               setSelectionOption(matchingOptions.length - 1);
             } else if (
-              (e.key === " ") && completePrefix && (view.state.sliceDoc() === "")
+              (e.key === " ") && completePrefix &&
+              (view.state.sliceDoc() === "")
             ) {
               setText(completePrefix);
             } else {
@@ -206,9 +225,12 @@ export function FilterList({
             let optionIndex = 0;
 
             return groupedItems.map((item) => {
-              if (item.type === 'category') {
+              if (item.type === "category") {
                 return (
-                  <div key={`category-${item.name}`} className="sb-category-header">
+                  <div
+                    key={`category-${item.name}`}
+                    className="sb-category-header"
+                  >
                     {item.name}
                   </div>
                 );
@@ -219,7 +241,9 @@ export function FilterList({
                 return (
                   <div
                     key={`option-${currentOptionIndex}`}
-                    ref={selectedOption === currentOptionIndex ? selectedElementRef : undefined}
+                    ref={selectedOption === currentOptionIndex
+                      ? selectedElementRef
+                      : undefined}
                     className={(selectedOption === currentOptionIndex
                       ? "sb-option sb-selected-option"
                       : "sb-option") +
@@ -245,8 +269,13 @@ export function FilterList({
                       {(() => {
                         let displayName = item.option.name;
                         // Remove category prefix for display (e.g., "Block: Close Sidebar" -> "Close Sidebar")
-                        if (item.option.category && displayName.startsWith(item.option.category + ': ')) {
-                          displayName = displayName.substring(item.option.category.length + 2);
+                        if (
+                          item.option.category &&
+                          displayName.startsWith(item.option.category + ": ")
+                        ) {
+                          displayName = displayName.substring(
+                            item.option.category.length + 2,
+                          );
                         }
                         return displayName;
                       })()}
@@ -259,7 +288,9 @@ export function FilterList({
                         {item.option.hint}
                       </span>
                     )}
-                    <div className="sb-description">{item.option.description}</div>
+                    <div className="sb-description">
+                      {item.option.description}
+                    </div>
                   </div>
                 );
               }

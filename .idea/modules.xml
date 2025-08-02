@@ -2,7 +2,10 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/silverbullet.iml" filepath="$PROJECT_DIR$/.idea/silverbullet.iml" />
+      <module
+        fileurl="file://$PROJECT_DIR$/.idea/silverbullet.iml"
+        filepath="$PROJECT_DIR$/.idea/silverbullet.iml"
+      />
     </modules>
   </component>
 </project>

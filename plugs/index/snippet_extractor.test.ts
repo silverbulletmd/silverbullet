@@ -52,7 +52,10 @@ Line 5`;
   // Edge case: index beyond text bounds (triggers fallback)
   const testText5 = "Hello\nWorld\nTest";
   const beyondBoundsIndex = testText5.length + 10;
-  const fallbackResult = extractSnippetAroundIndex(testText5, beyondBoundsIndex);
+  const fallbackResult = extractSnippetAroundIndex(
+    testText5,
+    beyondBoundsIndex,
+  );
   // Fallback should return something, not break
   assertEquals(typeof fallbackResult, "string");
 });
