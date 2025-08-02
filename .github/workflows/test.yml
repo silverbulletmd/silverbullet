@@ -2,9 +2,9 @@ name: Test
 
 on:
   push:
-    branches: ["main"]
+    branches: [ "main" ]
   pull_request:
-    branches: ["main"]
+    branches: [ "main" ]
 
 permissions:
   contents: read
@@ -23,7 +23,7 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
-          deno-version: v2.3.6
+          deno-version: v2.4.3
 
       - name: Run build
         run: deno task build

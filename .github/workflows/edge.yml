@@ -13,7 +13,7 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
-          deno-version: v2.3.6
+          deno-version: v2.4.3
       - name: Compile for all platforms
         run: |
           deno task build
