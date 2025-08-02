@@ -82,10 +82,13 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
       const url = resolvePath(name, "/" + wikiLinkPage.children![0].text!);
       const pos = wikiLinkPage.from!;
 
+      const snippetData = extractSnippetAroundIndex(pageText, pos, 300, 3, true);
       const link: any = {
         ref: `${name}@${pos}`,
         tag: "link",
-        snippet: extractSnippetAroundIndex(pageText, pos),
+        snippet: snippetData.snippet,
+        fullSnippet: snippetData.fullSnippet,
+        hasMore: snippetData.hasMore,
         pos,
         page: name,
         asTemplate: false,
@@ -125,10 +128,13 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
       const pos = linkNode.from!;
       url = resolvePath(name, decodeURI(url));
 
+      const snippetData = extractSnippetAroundIndex(pageText, pos, 300, 3, true);
       const link: any = {
         ref: `${name}@${pos}`,
         tag: "link",
-        snippet: extractSnippetAroundIndex(pageText, pos),
+        snippet: snippetData.snippet,
+        fullSnippet: snippetData.fullSnippet,
+        hasMore: snippetData.hasMore,
         pos,
         page: name,
         asTemplate: false,
@@ -165,11 +171,14 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
         for (const match of wikiLinkMatches) {
           const [_fullMatch, firstMark, url, alias, _lastMark] = match;
           const pos = codeText.from! + match.index! + firstMark.length;
+          const snippetData = extractSnippetAroundIndex(pageText, pos, 300, 3, true);
           const link: any = {
             ref: `${name}@${pos}`,
             tag: "link",
             page: name,
-            snippet: extractSnippetAroundIndex(pageText, pos),
+            snippet: snippetData.snippet,
+            fullSnippet: snippetData.fullSnippet,
+            hasMore: snippetData.hasMore,
             pos: pos,
             asTemplate: true,
           };
@@ -190,11 +199,14 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
         for (const match of mdLinkMatches) {
           const [_fullMatch, alias, url] = match;
           const pos = codeText.from! + match.index! + 1;
+          const snippetData = extractSnippetAroundIndex(pageText, pos, 300, 3, true);
           const link: any = {
             ref: `${name}@${pos}`,
             tag: "link",
             page: name,
-            snippet: extractSnippetAroundIndex(pageText, pos),
+            snippet: snippetData.snippet,
+            fullSnippet: snippetData.fullSnippet,
+            hasMore: snippetData.hasMore,
             pos: pos,
             asTemplate: true,
           };
@@ -226,11 +238,14 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
         if (match && match[0] === trimmed) {
           const [_fullMatch, firstMark, url, alias, _lastMark] = match;
           const pos = textNode.from! + match.index! + firstMark.length;
+          const snippetData = extractSnippetAroundIndex(pageText, pos, 300, 3, true);
           const link: any = {
             ref: `${name}@${pos}`,
             tag: "link",
             page: name,
-            snippet: extractSnippetAroundIndex(pageText, pos),
+            snippet: snippetData.snippet,
+            fullSnippet: snippetData.fullSnippet,
+            hasMore: snippetData.hasMore,
             pos: pos,
             asTemplate: false,
           };
