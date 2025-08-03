@@ -66,10 +66,7 @@ export class EventHook implements EventHookI {
                 // Queue the promise
                 promises.push((async () => {
                   try {
-                    const result = await plug.invoke(name, args);
-                    if (result !== undefined) {
-                      return result;
-                    }
+                    return await plug.invoke(name, args);
                   } catch (e: any) {
                     console.error(
                       `Error dispatching event ${eventName} to ${plug.name}.${name}: ${e.message}`,
@@ -90,10 +87,7 @@ export class EventHook implements EventHookI {
       for (const localListener of localListeners) {
         // Queue the promise
         promises.push((async () => {
-          const result = await Promise.resolve(localListener(...args));
-          if (result) {
-            return result;
-          }
+          return await Promise.resolve(localListener(...args));
         })());
       }
     }
@@ -108,16 +102,13 @@ export class EventHook implements EventHookI {
         if (eventNameToRegex(name).test(eventName)) {
           for (const listener of listeners) {
             promises.push((async () => {
-              const result = await Promise.resolve(
+              return await Promise.resolve(
                 listener({
                   name: eventName,
                   // Most events have a single argument, so let's optimize for that, otherwise pass all arguments as an array
                   data: args.length === 1 ? args[0] : args,
                 }),
               );
-              if (result) {
-                return result;
-              }
             })());
           }
         }
@@ -127,7 +118,8 @@ export class EventHook implements EventHookI {
     // Wait for all promises to resolve
     return (await Promise.allSettled(promises))
       .filter((result) => result.status === "fulfilled")
-      .map((result) => result.value);
+      .map((result) => result.value)
+      .filter((result) => result == undefined); // Deliberate `==` to only filter null or undefined
   }
 
   apply(system: System<EventHookT>): void {
