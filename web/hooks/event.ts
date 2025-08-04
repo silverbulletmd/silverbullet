@@ -119,7 +119,7 @@ export class EventHook implements EventHookI {
     return (await Promise.allSettled(promises))
       .filter((result) => result.status === "fulfilled")
       .map((result) => result.value)
-      .filter((result) => result == undefined); // Deliberate `==` to only filter null or undefined
+      .filter((result) => result != null); // This keeps non-null/undefined results
   }
 
   apply(system: System<EventHookT>): void {
