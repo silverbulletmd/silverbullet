@@ -1,27 +1,21 @@
 The Editor API provides functions for interacting with the editor interface.
 
 ### editor.getCurrentPage()
-Returns the name of the page currently open in the editor.
+Returns the name of the page (or document) currently open in the editor.
 
 Example: ${editor.getCurrentPage()}
 
 ### editor.getCurrentPageMeta()
-Returns the meta data of the page currently open in the editor.
+Returns the meta data of the page (or document) currently open in the editor.
 
 Example:
 ${editor.getCurrentPageMeta()}
 
-### editor.getCurrentPath(extension?)
-Returns the name of the page or document currently open in the editor.
-
-Parameters:
-- `extension`: If true, returns page paths with their `.md` extension
+### editor.getCurrentPath()
+Returns the path of the page or document currently open in the editor.
 
 Example:
-```lua
-local path = editor.getCurrentPath(true)
-print(path)  -- prints: page.md
-```
+${editor.getCurrentPath()}
 
 ### editor.getCurrentEditor()
 Returns the name of the currently open editor.

@@ -13,7 +13,7 @@ import type { PageMeta } from "../../type/index.ts";
  */
 
 /**
- * Returns the name of the page currently open in the editor.
+ * Returns the name of the page or document currently open in the editor.
  * @returns the current page name
  */
 export function getCurrentPage(): Promise<string> {
@@ -21,7 +21,7 @@ export function getCurrentPage(): Promise<string> {
 }
 
 /**
- * Returns the meta data of the page currently open in the editor.
+ * Returns the meta data of the page or document currently open in the editor.
  * @returns the current page meta data
  */
 export function getCurrentPageMeta(): Promise<PageMeta | undefined> {
@@ -29,12 +29,11 @@ export function getCurrentPageMeta(): Promise<PageMeta | undefined> {
 }
 
 /**
- * Returns the name of the page or document currently open in the editor.
- * @param extension If true returns page paths with the their `.md` extension
+ * Returns the path of the page or document currently open in the editor.
  * @returns the current page path
  */
-export function getCurrentPath(extension: boolean = false): Promise<Path> {
-  return syscall("editor.getCurrentPath", extension);
+export function getCurrentPath(): Promise<Path> {
+  return syscall("editor.getCurrentPath");
 }
 
 /**

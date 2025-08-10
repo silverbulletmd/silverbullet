@@ -24,7 +24,11 @@ import type {
   UploadFile,
 } from "@silverbulletmd/silverbullet/type/client";
 import { openSearchPanel } from "@codemirror/search";
-import { parseRef, type Ref } from "@silverbulletmd/silverbullet/lib/page_ref";
+import {
+  isValidPathOrName,
+  parseToRef,
+  type Ref,
+} from "@silverbulletmd/silverbullet/lib/ref";
 import { insertNewlineContinueMarkup } from "@codemirror/lang-markdown";
 import type { VimConfig } from "../../type/config.ts";
 import type { PageMeta } from "../../type/index.ts";
@@ -32,13 +36,13 @@ import type { PageMeta } from "../../type/index.ts";
 export function editorSyscalls(client: Client): SysCallMapping {
   const syscalls: SysCallMapping = {
     "editor.getCurrentPage": (): string => {
-      return client.currentPage;
+      return client.currentName();
     },
     "editor.getCurrentPageMeta": (): PageMeta | undefined => {
       return client.ui.viewState.current?.meta;
     },
-    "editor.getCurrentPath": (_ctx, extension: boolean): string => {
-      return client.currentPath(extension);
+    "editor.getCurrentPath": (_ctx): string => {
+      return client.currentPath();
     },
     "editor.getCurrentEditor": (): string => {
       return client.documentEditor?.name || "page";
@@ -93,10 +97,23 @@ export function editorSyscalls(client: Client): SysCallMapping {
       newWindow = false,
     ) => {
       if (typeof ref === "string") {
-        ref = parseRef(ref);
-      } else if (ref.kind === undefined) {
-        ref.kind = "page";
+        const parsedRef = parseToRef(ref);
+        if (!parsedRef) {
+          throw new Error(
+            "Unable to parse string provided to `editor.navigate` as ref",
+          );
+        }
+        ref = parsedRef;
       }
+
+      // TODO: Use schema here for validation
+
+      if (!isValidPathOrName(ref.path) && ref.path !== "") {
+        throw new Error(
+          "Path passed in ref to `editor.navigate` is invalid",
+        );
+      }
+
       await client.navigate(ref, replaceState, newWindow);
     },
     "editor.reloadPage": async () => {
