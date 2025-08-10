@@ -10,7 +10,7 @@ export async function deleteDocument() {
     return;
   }
   console.log("Navigating to index page");
-  await editor.navigate({ kind: "page", page: "" });
+  await editor.navigate("");
   console.log("Deleting document from space");
   await space.deleteDocument(documentName);
 }
