@@ -1,3 +1,4 @@
+import type { Path } from "@silverbulletmd/silverbullet/lib/ref";
 import { type ParseTree, traverseTree } from "./tree.ts";
 
 const builtinPrefixes = [
@@ -96,6 +97,6 @@ export function relativeToAbsolutePath(page: string, linkTo: string): string {
   return [...splitPage, ...splitLink].join("/");
 }
 
-export function isBuiltinPath(path: string): boolean {
+export function isBuiltinPath(path: Path): boolean {
   return builtinPrefixes.some((prefix) => path.startsWith(prefix));
 }
