@@ -7,7 +7,7 @@ import {
   renderToText,
   traverseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import { encodeRef, parseRef } from "@silverbulletmd/silverbullet/lib/page_ref";
+import { encodeRef, parseToRef } from "@silverbulletmd/silverbullet/lib/ref";
 import { Fragment, renderHtml, type Tag } from "./html_render.ts";
 import { isLocalPath } from "@silverbulletmd/silverbullet/lib/resolve";
 import * as TagConstants from "../../plugs/index/constants.ts";
@@ -310,19 +310,27 @@ function render(
 
     // Custom stuff
     case "WikiLink": {
-      const ref = findNodeOfType(t, "WikiLinkPage")!.children![0].text!;
-      let linkText = ref.split("/").pop()!;
+      const link = findNodeOfType(t, "WikiLinkPage")!.children![0].text!;
+      let linkText = link.split("/").pop()!;
       const aliasNode = findNodeOfType(t, "WikiLinkAlias");
       if (aliasNode) {
         linkText = aliasNode.children![0].text!;
       }
-      const pageRef = parseRef(ref);
+
+      // For invalid refs the link just won't link
+      let href: string = `#`;
+
+      const ref = parseToRef(link);
+      if (ref) {
+        href = `/${encodeRef(ref)}`;
+      }
+
       return {
         name: "a",
         attrs: {
-          href: `/${encodeRef(pageRef)}`,
+          href,
           class: "wiki-link",
-          "data-ref": ref,
+          "data-ref": link,
         },
         body: linkText,
       };
@@ -353,8 +361,9 @@ function render(
     case "Task": {
       let externalTaskRef = "";
       collectNodesOfType(t, "WikiLinkPage").forEach((wikilink) => {
-        const pageRef = parseRef(wikilink.children![0].text!);
-        if (!externalTaskRef && (pageRef.pos !== undefined)) {
+        const ref = parseToRef(wikilink.children![0].text!);
+
+        if (!externalTaskRef && ref && (ref.details?.type === "position")) {
           externalTaskRef = wikilink.children![0].text!;
         }
       });
@@ -549,9 +558,19 @@ export function renderMarkdownToHtml(
           t.attrs!.href = options.translateUrls!(t.attrs!.href, "link");
         }
         if (t.attrs!["data-ref"]?.length) {
-          const pageRef = parseRef(t.attrs!["data-ref"]!);
-          const pageMeta = allPages.find((p) => pageRef.page === p.name);
-          if (pageMeta && !("pos" in pageRef)) {
+          const ref = parseToRef(t.attrs!["data-ref"]!);
+          if (!ref) {
+            return;
+          }
+
+          const pageMeta = allPages.find((p) =>
+            ref.path === parseToRef(p.ref)?.path
+          );
+          if (
+            pageMeta &&
+            !(ref.details?.type !== "position" ||
+              ref.details?.type !== "linecolumn")
+          ) {
             t.body = [(pageMeta.pageDecoration?.prefix ?? "") + t.body];
             if (pageMeta.pageDecoration?.cssClasses) {
               t.attrs!.class += " sb-decorated-object " +
