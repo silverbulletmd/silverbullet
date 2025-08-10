@@ -20,6 +20,13 @@ import { Panel } from "./components/panel.tsx";
 import { safeRun } from "../lib/async.ts";
 import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
+import {
+  getNameFromPath,
+  getPathExtension,
+  isMarkdownPath,
+  isValidPathOrName,
+  parseToRef,
+} from "@silverbulletmd/silverbullet/lib/ref";
 
 export class MainUI {
   viewState: AppViewState = initialViewState;
@@ -84,9 +91,8 @@ export class MainUI {
 
     useEffect(() => {
       if (viewState.current) {
-        document.title =
-          (viewState.current.meta?.pageDecoration?.prefix ?? "") +
-          viewState.current.path;
+        document.title = (viewState.current.meta.pageDecoration?.prefix ?? "") +
+          getNameFromPath(viewState.current.path);
       }
     }, [viewState.current]);
 
@@ -156,26 +162,37 @@ export class MainUI {
                 dispatch({ type: "start-navigate", mode });
               });
             }}
-            onNavigate={(name, type) => {
-              type = type ?? "page";
+            onNavigate={(path) => {
               dispatch({ type: "stop-navigate" });
               setTimeout(() => {
                 client.focus();
               });
-              if (!name) return;
+
+              if (!path) {
+                return;
+              }
 
               safeRun(async () => {
-                const documentMeta = viewState.allDocuments.find((document) =>
-                  document.name === name
-                );
+                const ref = parseToRef(path);
+
+                // Check beforhand, because we don't want to allow any link
+                // stuff like #header here. The `!ref` check is just for
+                // Typescript
+                if (!isValidPathOrName(path) || !ref) {
+                  // Realistically this should only happen when creating a new page
+                  client.flashNotification(
+                    `Couldn't create page ${path}, name is invalid`,
+                  );
+                  return;
+                }
 
                 if (
-                  type === "document" &&
+                  !isMarkdownPath(ref.path) &&
                   !Array.from(
                     client.clientSystem.documentEditorHook.documentEditors
                       .values(),
                   ).some(({ extensions }) =>
-                    extensions.includes(documentMeta!.extension)
+                    extensions.includes(getPathExtension(ref.path))
                   )
                 ) {
                   const options: string[] = ["Delete", "Rename"];
@@ -191,26 +208,24 @@ export class MainUI {
                     case "Delete": {
                       if (
                         await client.confirm(
-                          `Are you sure you want to delete ${name}?`,
+                          `Are you sure you would like delete ${path}?`,
                         )
                       ) {
-                        await client.space.deleteDocument(name);
-                        client.flashNotification(
-                          `Document ${name} has been deleted`,
-                        );
+                        await client.space.deleteDocument(path);
+                        console.log(`Document ${path} has been deleted`);
                       }
                       return;
                     }
                     case "Rename": {
                       await client.clientSystem.system.invokeFunction(
                         "index.renameDocumentCommand",
-                        [{ oldDocument: name }],
+                        [{ oldDocument: path }],
                       );
                       return;
                     }
                   }
                 } else {
-                  await client.navigate({ kind: type, page: name });
+                  client.navigate(ref);
                 }
               });
             }}
@@ -280,7 +295,9 @@ export class MainUI {
           />
         )}
         <TopBar
-          pageName={viewState.current?.path || ""}
+          pageName={!viewState.current
+            ? ""
+            : getNameFromPath(viewState.current.path)}
           notifications={viewState.notifications}
           syncFailures={viewState.syncFailures}
           unsavedChanges={viewState.unsavedChanges}
@@ -384,11 +401,9 @@ export class MainUI {
               style={{ flex: viewState.panels.lhs.mode }}
             />
           )}
-          pageNamePrefix={viewState.current?.meta?.pageDecoration
-            ?.prefix ??
-            ""}
-          cssClass={viewState.current?.meta?.pageDecoration?.cssClasses
-            ? viewState.current?.meta?.pageDecoration?.cssClasses
+          pageNamePrefix={viewState.current?.meta.pageDecoration?.prefix ?? ""}
+          cssClass={viewState.current?.meta.pageDecoration?.cssClasses
+            ? viewState.current?.meta.pageDecoration?.cssClasses
               .join(" ").replaceAll(/[^a-zA-Z0-9-_ ]/g, "")
             : ""}
           mobileMenuStyle={client.config.get<string>(

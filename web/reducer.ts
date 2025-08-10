@@ -1,5 +1,10 @@
 import type { Action, AppViewState } from "./ui_types.ts";
 import type { PageMeta } from "../type/index.ts";
+import {
+  getNameFromPath,
+  isMarkdownPath,
+  parseToRef,
+} from "@silverbulletmd/silverbullet/lib/ref";
 
 export default function reducer(
   state: AppViewState,
@@ -12,13 +17,12 @@ export default function reducer(
         ...state,
         isLoading: false,
         current: {
-          kind: "document",
-          path: action.name,
+          path: action.path,
           // Do a best effort job of filling in the meta data, as the page is not loaded yet
           meta: {
-            ref: action.name,
+            ref: action.path,
             tag: "document",
-            name: action.name,
+            name: action.path,
             contentType: "",
             created: "",
             lastModified: "",
@@ -33,8 +37,7 @@ export default function reducer(
         ...state,
         isLoading: false,
         current: {
-          kind: "document",
-          path: action.meta.name,
+          path: action.path,
           meta: action.meta,
         },
       };
@@ -43,19 +46,18 @@ export default function reducer(
         ...state,
         isLoading: true,
         current: {
-          kind: "page",
-          path: action.name,
-          // Do a best effort job of filling in the meta data
+          path: action.path,
+          // Do a best effort job of filling in the meta data, doesn't have to be perfect
           meta: {
-            ref: action.name,
+            ref: getNameFromPath(action.path),
             tag: "page",
-            name: action.name,
+            name: getNameFromPath(action.path),
             lastModified: "",
             created: "",
             perm: "rw",
           },
         },
-        panels: state.current?.path === action.name ? state.panels : {
+        panels: state.current?.path === action.path ? state.panels : {
           ...state.panels,
           // Hide these by default to avoid flickering
           top: {},
@@ -74,8 +76,7 @@ export default function reducer(
             : pageMeta
         ),
         current: {
-          kind: "page",
-          path: action.meta.name,
+          path: action.path,
           meta: action.meta as PageMeta,
         },
       };
@@ -101,7 +102,9 @@ export default function reducer(
           : pageMeta
       );
       // Can't update page meta if not on a page
-      if (state.current?.kind !== "page") return state;
+      if (!state.current || !isMarkdownPath(state.current.path)) {
+        return state;
+      }
       return {
         ...state,
         current: {
@@ -126,7 +129,7 @@ export default function reducer(
         if (oldPageMetaItem && oldPageMetaItem.lastOpened) {
           pageMeta.lastOpened = oldPageMetaItem.lastOpened;
         }
-        if (pageMeta.name === state.current?.path) {
+        if (parseToRef(pageMeta.name)?.path === state.current?.path) {
           currPageMeta = pageMeta;
         }
       }
