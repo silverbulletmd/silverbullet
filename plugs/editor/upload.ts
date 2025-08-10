@@ -1,7 +1,7 @@
 import { editor, space, system } from "@silverbulletmd/silverbullet/syscalls";
 import { defaultLinkStyle, maximumDocumentSize } from "../../web/constants.ts";
 import { resolvePath } from "@silverbulletmd/silverbullet/lib/resolve";
-import { encodePageURI } from "@silverbulletmd/silverbullet/lib/page_ref";
+import { encodePageURI } from "@silverbulletmd/silverbullet/lib/ref";
 import type { UploadFile } from "@silverbulletmd/silverbullet/type/client";
 
 export async function saveFile(file: UploadFile) {
