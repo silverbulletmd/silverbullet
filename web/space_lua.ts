@@ -10,7 +10,11 @@ import {
   parseExpressionString,
 } from "../lib/space_lua/parse.ts";
 import { evalStatement } from "../lib/space_lua/eval.ts";
-import { parseRef, type Ref } from "@silverbulletmd/silverbullet/lib/page_ref";
+import {
+  encodeRef,
+  parseToRef,
+  type Ref,
+} from "@silverbulletmd/silverbullet/lib/ref";
 import type { ASTCtx } from "../lib/space_lua/ast.ts";
 import { buildLuaEnv } from "./space_lua_api.ts";
 import type { LuaCollectionQuery } from "../lib/space_lua/query_collection.ts";
@@ -52,7 +56,9 @@ export class SpaceLuaEnvironment {
             const origin = resolveASTReference(e.sf.astCtx!);
             if (origin) {
               console.error(
-                `Error evaluating script: ${e.message} at [[${origin.page}@${origin.pos}]]`,
+                `Error evaluating script: ${e.message} at [[${
+                  encodeRef(origin)
+                }]]`,
               );
               continue;
             }
@@ -74,10 +80,16 @@ export function resolveASTReference(ctx?: ASTCtx): Ref | null {
   if (!ctx?.ref) {
     return null;
   }
-  const pageRef = parseRef(ctx.ref);
-  return {
-    kind: "page",
-    page: pageRef.page,
-    pos: (pageRef.pos as number) + "```space-lua\n".length + ctx.from!,
-  };
+  const ref = parseToRef(ctx.ref);
+  if (!ref) {
+    return null;
+  }
+
+  if (ref.details?.type === "position") {
+    ref.details.pos = (ref.details.pos as number) +
+      "```space-lua\n".length +
+      ctx.from!;
+  }
+
+  return ref;
 }

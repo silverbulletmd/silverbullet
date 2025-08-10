@@ -122,7 +122,7 @@ export function postScriptPrefacePlugin(
       Decoration.widget({
         widget: new ArrayWidget(
           editor,
-          `top:lua:${editor.currentPage}`,
+          `top:lua:${editor.currentPath()}`,
           async () =>
             await client.dispatchAppEvent(
               "hooks:renderTopWidgets",
@@ -138,7 +138,7 @@ export function postScriptPrefacePlugin(
       Decoration.widget({
         widget: new ArrayWidget(
           editor,
-          `bottom:lua:${editor.currentPage}`,
+          `bottom:lua:${editor.currentPath()}`,
           async () =>
             await client.dispatchAppEvent(
               "hooks:renderBottomWidgets",

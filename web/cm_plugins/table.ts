@@ -65,7 +65,10 @@ class TableViewWidget extends WidgetType {
         annotationPositions: true,
         translateUrls: (url) => {
           if (isLocalPath(url)) {
-            url = resolvePath(this.client.currentPage, decodeURI(url));
+            url = resolvePath(
+              this.client.currentName(),
+              decodeURI(url),
+            );
           }
 
           return url;

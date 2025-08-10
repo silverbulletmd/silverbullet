@@ -12,7 +12,10 @@ import {
   isLocalPath,
   resolvePath,
 } from "@silverbulletmd/silverbullet/lib/resolve";
-import { parseRef } from "@silverbulletmd/silverbullet/lib/page_ref";
+import {
+  isMarkdownPath,
+  parseToRef,
+} from "@silverbulletmd/silverbullet/lib/ref";
 import { mime } from "mimetypes";
 import { LuaWidget } from "./lua_widget.ts";
 
@@ -201,19 +204,21 @@ export function inlineContentPlugin(client: Client) {
 
         if (isLocalPath(url)) {
           url = resolvePath(
-            client.currentPage,
+            client.currentName(),
             decodeURI(url),
           );
-          const pageRef = parseRef(url);
+          const ref = parseToRef(url);
           if (
-            client.clientSystem.allKnownFiles.has(pageRef.page + ".md")
+            ref &&
+            isMarkdownPath(ref.path) &&
+            client.clientSystem.allKnownFiles.has(ref.path)
           ) {
             widgets.push(
               Decoration.widget({
                 widget: new LuaWidget(
                   client,
-                  `widget:${client.currentPage}:${pageRef.page}`,
-                  pageRef.page,
+                  `widget:${client.currentPath()}:${ref.path}`,
+                  ref.path,
                   async (pageName) => {
                     const { text } = await client.space.readPage(pageName);
                     return {
