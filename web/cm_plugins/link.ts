@@ -10,6 +10,7 @@ import {
   invisibleDecoration,
   isCursorInRange,
 } from "./util.ts";
+import { mdLinkRegex } from "../markdown_parser/constants.ts";
 
 export function linkPlugin(client: Client) {
   return decoratorStateField((state) => {
@@ -20,29 +21,31 @@ export function linkPlugin(client: Client) {
         if (type.name !== "Link") {
           return;
         }
-        // Adding 2 on each side due to [[ and ]] that are outside the WikiLinkPage node
         if (isCursorInRange(state, [from, to])) {
           return;
         }
 
         const text = state.sliceDoc(from, to);
-        // Links are of the form [hell](https://example.com)
-        const [anchorPart, linkPart] = text.split("]("); // Not pretty
-        if (anchorPart.substring(1).trim() === "") {
+
+        mdLinkRegex.lastIndex = 0;
+        const match = mdLinkRegex.exec(text);
+        if (!match || !match.groups) {
+          return;
+        }
+
+        const groups = match.groups;
+
+        if (groups.title === "") {
           // Empty link text, let's not do live preview (because it would make it disappear)
           return;
         }
-        if (!linkPart) {
-          // Invalid link
-          return;
-        }
-        const cleanAnchor = anchorPart.substring(1); // cut off the initial [
-        let cleanLink = linkPart.substring(0, linkPart.length - 1); // cut off the final )
 
-        if (isLocalPath(cleanLink)) {
-          cleanLink = resolvePath(
-            client.currentPage,
-            decodeURI(cleanLink),
+        let url = groups.url;
+
+        if (isLocalPath(url)) {
+          url = resolvePath(
+            client.currentName(),
+            decodeURI(url),
           );
         }
 
@@ -59,15 +62,15 @@ export function linkPlugin(client: Client) {
             tagName: "a",
             class: "sb-link",
             attributes: {
-              href: cleanLink,
-              title: `Click to visit ${cleanLink}`,
+              href: url,
+              title: `Click to visit ${url}`,
             },
-          }).range(from + 1, from + cleanAnchor.length + 1),
+          }).range(from + 1, from + 1 + groups.title.length),
         );
         // Hide the tail end of the link
         widgets.push(
           invisibleDecoration.range(
-            from + cleanAnchor.length + 1,
+            from + 1 + groups.title.length,
             to,
           ),
         );
