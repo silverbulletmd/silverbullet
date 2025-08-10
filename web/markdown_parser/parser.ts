@@ -20,10 +20,10 @@ import { luaLanguage } from "../../lib/space_lua/parse.ts";
 
 const WikiLink: MarkdownConfig = {
   defineNodes: [
-    { name: "WikiLink", style: ct.WikiLinkTag },
-    { name: "WikiLinkPage", style: ct.WikiLinkPageTag },
-    { name: "WikiLinkAlias", style: ct.WikiLinkPageTag },
-    { name: "WikiLinkDimensions", style: ct.WikiLinkPageTag },
+    { name: "WikiLink" },
+    { name: "WikiLinkPage", style: ct.WikiLinkPartTag },
+    { name: "WikiLinkAlias", style: ct.WikiLinkPartTag },
+    { name: "WikiLinkDimensions", style: ct.WikiLinkPartTag },
     { name: "WikiLinkMark", style: t.processingInstruction },
   ],
   parseInline: [

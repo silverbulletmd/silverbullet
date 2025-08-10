@@ -5,6 +5,7 @@ html {
   --highlight-color: rgba(255, 255, 0, 0.5);
   --link-color: #0330cb;
   --link-missing-color: #9e4705;
+  --link-invalid-color: #BB08E7;
   --meta-color: #650007;
   --meta-subtle-color: #959595;
   --subtle-color: #676767;
@@ -94,6 +95,7 @@ html {
   --editor-wiki-link-page-background-color: rgba(77, 141, 255, 0.07);
   --editor-wiki-link-page-color: var(--link-color);
   --editor-wiki-link-page-missing-color: var(--link-missing-color);
+  --editor-wiki-link-page-invalid-color: var(--link-invalid-color);
   --editor-wiki-link-color: #8f96c2;
   --editor-command-button-color: inherit;
   --editor-command-button-background-color: #e3dfdf;
@@ -151,6 +153,7 @@ html[data-theme="dark"] {
   --highlight-color: rgba(255, 255, 0, 0.5);
   --link-color: #7e99fc;
   --link-missing-color: #9e4705;
+  --link-invalid-color: #D444F8;
   --meta-color: #d6222e;
   --meta-subtle-color: #959595;
   --subtle-color: #959595;
@@ -239,6 +242,7 @@ html[data-theme="dark"] {
   --editor-wiki-link-page-background-color: #a3bce712;
   --editor-wiki-link-page-color: var(--link-color);
   --editor-wiki-link-page-missing-color: var(--link-missing-color);
+  --editor-wiki-link-page-invalid-color: var(--link-invalid-color);
   --editor-wiki-link-color: #8f96c2;
   --editor-command-button-color: #fff;
   --editor-command-button-background-color: #555;
