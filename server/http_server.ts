@@ -5,7 +5,7 @@ import type { AssetBundle } from "../lib/asset_bundle/bundle.ts";
 import { handleShellEndpoint } from "./shell_endpoint.ts";
 import type { KvPrimitives } from "../lib/data/kv_primitives.ts";
 import { compile as gitIgnoreCompiler } from "gitignore-parser";
-import { decodePageURI } from "@silverbulletmd/silverbullet/lib/page_ref";
+import { decodePageURI } from "@silverbulletmd/silverbullet/lib/ref";
 import { LockoutTimer } from "./lockout.ts";
 import type { AuthOptions } from "../cmd/server.ts";
 import type { ClientConfig } from "../web/client.ts";
