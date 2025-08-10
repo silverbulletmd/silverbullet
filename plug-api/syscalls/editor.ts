@@ -3,7 +3,7 @@ import type {
   FilterOption,
   UploadFile,
 } from "@silverbulletmd/silverbullet/type/client";
-import type { Ref } from "@silverbulletmd/silverbullet/lib/page_ref";
+import type { Path, Ref } from "../lib/ref.ts";
 import type { PageMeta } from "../../type/index.ts";
 
 /**
@@ -33,7 +33,7 @@ export function getCurrentPageMeta(): Promise<PageMeta | undefined> {
  * @param extension If true returns page paths with the their `.md` extension
  * @returns the current page path
  */
-export function getCurrentPath(extension: boolean = false): Promise<string> {
+export function getCurrentPath(extension: boolean = false): Promise<Path> {
   return syscall("editor.getCurrentPath", extension);
 }
 
@@ -120,7 +120,7 @@ export function save(): Promise<void> {
  * @param newWindow whether to open the page in a new window
  */
 export function navigate(
-  ref: Ref,
+  ref: Ref | string,
   replaceState = false,
   newWindow = false,
 ): Promise<void> {
