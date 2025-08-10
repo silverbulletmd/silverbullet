@@ -7,6 +7,7 @@ import type {
 import { tagRegex as mdTagRegex } from "../markdown_parser/constants.ts";
 import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 import type { DocumentMeta, PageMeta } from "../../type/index.ts";
+import { parseToRef, type Path } from "@silverbulletmd/silverbullet/lib/ref";
 
 const tagRegex = new RegExp(mdTagRegex.source, "g");
 
@@ -28,7 +29,7 @@ export function PageNavigator({
   vimMode: boolean;
   darkMode?: boolean;
   mode: "page" | "meta" | "document" | "all";
-  onNavigate: (page: string | undefined, type: "document" | "page") => void;
+  onNavigate: (path: Path | null) => void;
   onModeSwitch: (mode: "page" | "meta" | "document" | "all") => void;
   completer: (context: CompletionContext) => Promise<CompletionResult | null>;
   currentPath?: string;
@@ -241,7 +242,12 @@ export function PageNavigator({
       newHint={`Create ${creatablePageNoun}`}
       completePrefix={completePrefix}
       onSelect={(opt) => {
-        onNavigate(opt?.meta?.ref || opt?.name, opt?.type);
+        if (!opt) {
+          return null;
+        }
+
+        const ref: string | undefined = opt.meta?.ref;
+        onNavigate(ref ? (parseToRef(ref)?.path ?? null) : `${opt.name}.md`);
       }}
     />
   );
