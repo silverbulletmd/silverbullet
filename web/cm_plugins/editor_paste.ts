@@ -221,7 +221,10 @@ export function documentExtension(editor: Client) {
     if (!finalFileName) {
       return;
     }
-    const documentPath = resolvePath(editor.currentPage, finalFileName);
+    const documentPath = resolvePath(
+      editor.currentName(),
+      finalFileName,
+    );
     await editor.space.writeDocument(documentPath, file.content);
     let documentMarkdown = `[[${documentPath}]]`;
     if (file.contentType.startsWith("image/")) {

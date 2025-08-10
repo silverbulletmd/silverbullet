@@ -11,7 +11,7 @@ export function plugLinter(client: Client) {
       view.state.sliceDoc(),
     );
     const results = (await client.dispatchAppEvent("editor:lint", {
-      name: client.currentPage,
+      name: client.currentName(),
       tree: tree,
     } as LintEvent)).flat();
     return results;

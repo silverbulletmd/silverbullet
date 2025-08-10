@@ -84,7 +84,7 @@ export class LuaWidget extends WidgetType {
   ) {
     let widgetContent = await this.callback(
       this.bodyText,
-      this.client.currentPage,
+      this.client.currentName(),
     );
     activeWidgets.add(this);
     if (widgetContent === null || widgetContent === undefined) {
@@ -178,7 +178,7 @@ export class LuaWidget extends WidgetType {
         translateUrls: (url) => {
           if (isLocalPath(url)) {
             url = resolvePath(
-              this.client.currentPage,
+              this.client.currentName(),
               decodeURI(url),
             );
           }
