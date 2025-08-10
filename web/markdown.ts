@@ -5,10 +5,10 @@ import {
   replaceNodesMatchingAsync,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import {
-  parseRef,
-  type Ref,
-  validatePageName,
-} from "@silverbulletmd/silverbullet/lib/page_ref";
+  getNameFromPath,
+  isMarkdownPath,
+  parseToRef,
+} from "../plug-api/lib/ref.ts";
 import { parseMarkdown } from "./markdown_parser/parser.ts";
 import type { LuaExpression } from "../lib/space_lua/ast.ts";
 import { evalExpression } from "../lib/space_lua/eval.ts";
@@ -42,19 +42,14 @@ export async function expandMarkdown(
 
       const page = wikiLinkPage.children![0].text!;
 
-      // Check if this is likely a page link (based on the path format, e.g. if it contains an extension, it's probably not a page link)
-      let ref: Ref | undefined;
-      try {
-        ref = parseRef(page);
-        validatePageName(ref.page);
-      } catch {
-        // Not a valid page name, so not a page reference
+      const ref = parseToRef(page);
+
+      if (!ref || !isMarkdownPath(ref.path)) {
         return;
       }
 
       // Read the page
-
-      const { text } = await client.space.readPage(ref.page);
+      const { text } = await client.space.readPage(getNameFromPath(ref.path));
       const parsedBody = parseMarkdown(text);
       // Recursively process
       return expandMarkdown(
