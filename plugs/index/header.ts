@@ -5,7 +5,7 @@ import {
 } from "@silverbulletmd/silverbullet/lib/tree";
 import type { IndexTreeEvent } from "../../type/event.ts";
 import { indexObjects, queryLuaObjects } from "./api.ts";
-import { parseRef } from "@silverbulletmd/silverbullet/lib/page_ref";
+import { getNameFromPath, parseToRef } from "../../plug-api/lib/ref.ts";
 import { extractAttributes } from "@silverbulletmd/silverbullet/lib/attribute";
 import { extractHashtag } from "../../plug-api/lib/tags.ts";
 import { lua } from "@silverbulletmd/silverbullet/syscalls";
@@ -60,30 +60,40 @@ export async function indexHeaders({ name: pageName, tree }: IndexTreeEvent) {
 }
 
 export async function headerComplete(completeEvent: CompleteEvent) {
-  const match = /(?:\[\[|\[.*?\]\()([^\]$:#]*#[^\]\)]*)$/.exec(
+  const match = /(?:\[\[|\[.*?\]\()(?<path>.*)$/.exec(
     completeEvent.linePrefix,
   );
-  if (!match) {
-    return null;
+  if (!match || !match.groups?.path) {
+    return;
   }
 
-  const pageRef = parseRef(match[1]).page;
-  const allHeaders = await queryLuaObjects<HeaderObject>(
+  const ref = parseToRef(match.groups.path);
+  // `parseToRef` doesn't actually return a header if the header is an empty
+  // string, so we have to do the little hacky check for the`#`
+  if (
+    !ref ||
+    ref.details?.type !== "header" && !completeEvent.linePrefix.endsWith("#")
+  ) {
+    return;
+  }
+
+  const headers = await queryLuaObjects<HeaderObject>(
     "header",
     {
       objectVariable: "_",
-      where: await lua.parseExpression(`_.page == pageRef`),
+      where: await lua.parseExpression(`_.page == name`),
     },
-    { pageRef: pageRef || completeEvent.pageName },
+    { name: getNameFromPath(ref.path) || completeEvent.pageName },
     5,
   );
-  console.log("Matching ehaders", allHeaders);
+
+  // TODO: Fix header indexing (i.e. remove the @)
   return {
-    from: completeEvent.pos - match[1].length,
-    options: allHeaders.map((a) => ({
-      label: a.page === completeEvent.pageName
-        ? `#${a.name}`
-        : a.ref.split("@")[0],
+    from: completeEvent.pos - match.groups.path.length,
+    options: headers.map((header) => ({
+      label: header.page === completeEvent.pageName
+        ? `#${header.name}`
+        : header.ref.split("@")[0],
       type: "header",
     })),
   };
