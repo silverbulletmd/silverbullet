@@ -93,8 +93,10 @@ export function createEditorState(
           : [],
       ],
       [
-        ...(readOnly || client.ui.viewState.uiOptions.forcedROMode)
-          ? [EditorView.editable.of(false)]
+        ...(readOnly ||
+            client.ui.viewState.uiOptions.forcedROMode ||
+            client.clientConfig.readOnly)
+          ? [EditorView.editable.of(false), EditorState.readOnly.of(true)]
           : [],
       ],
 
