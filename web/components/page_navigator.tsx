@@ -243,7 +243,8 @@ export function PageNavigator({
       completePrefix={completePrefix}
       onSelect={(opt) => {
         if (!opt) {
-          return null;
+          onNavigate(null);
+          return;
         }
 
         const ref: string | undefined = opt.meta?.ref;
