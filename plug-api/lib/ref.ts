@@ -156,11 +156,13 @@ export function encodeRef(ref: Ref): string {
  * Uses a parseTree and a ref pointing to a position inside it to determine the
  * offset from the start inside it, using {@link getOffsetFromHeader} and
  * {@link getOffsetFromLineColumn}
+ * @param text If provided the parseTree won't be rendered back to text
  * @returns The offset in the file if it's able to determine it, otherwise -1
  */
 export function getOffsetFromRef(
   parseTree: ParseTree,
   ref: Ref,
+  text?: string,
 ): number {
   if (!ref.details) {
     return -1;
@@ -172,7 +174,7 @@ export function getOffsetFromRef(
     case "linecolumn":
       // TODO: Should we really render the tree here? Maybe just take in the string
       return getOffsetFromLineColumn(
-        renderToText(parseTree),
+        text ?? renderToText(parseTree),
         ref.details.line,
         ref.details.column,
       );
@@ -221,7 +223,8 @@ export function getOffsetFromHeader(
 }
 
 /**
- * Calculates the character offset from a line and column position
+ * Calculates the character offset from a line and column position. If the
+ * position is out of bounds, it does a best-effort job returning a position.
  * @param text The text which is used to determine the offset. Only `\n` are
  * considered line breaks.
  * @param line The line number of the described position. Starts at 1
@@ -241,7 +244,7 @@ export function getOffsetFromLineColumn(
 
   const columnPos = Math.max(
     0,
-    Math.min(lines[line - 1].length, column - 1),
+    Math.min(lines[line - 1]?.length ?? 0, column - 1),
   );
 
   return linePos + columnPos;

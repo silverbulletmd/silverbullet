@@ -117,7 +117,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
       await client.navigate(ref, replaceState, newWindow);
     },
     "editor.reloadPage": async () => {
-      await client.reloadPage();
+      await client.reloadEditor();
     },
     "editor.reloadUI": () => {
       location.reload();
@@ -414,7 +414,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
         key,
         value,
       });
-      client.reloadPage();
+      client.reloadEditor();
     },
     "editor.vimEx": (_ctx, exCommand: string) => {
       const cm = vimGetCm(client.editorView);

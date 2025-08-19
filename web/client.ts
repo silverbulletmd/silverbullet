@@ -41,6 +41,7 @@ import {
   encodeRef,
   getNameFromPath,
   getOffsetFromHeader,
+  getOffsetFromLineColumn,
   isMarkdownPath,
   parseToRef,
   type Path,
@@ -381,7 +382,7 @@ export class Client {
           this.flashNotification(
             "Page or document changed elsewhere, reloading",
           );
-          this.reloadPage();
+          this.reloadEditor();
         }
       },
     );
@@ -823,14 +824,21 @@ export class Client {
     >;
   }
 
-  async reloadPage() {
+  async reloadEditor() {
+    if (!this.systemReady) return;
+
     console.log("Reloading editor");
     clearTimeout(this.saveTimeout);
 
-    if (this.isDocumentEditor()) {
-      await this.loadDocumentEditor(this.currentPath());
-    } else {
-      await this.loadPage(this.currentPath());
+    try {
+      if (isMarkdownPath(this.currentPath())) {
+        await this.loadPage(this.currentPath());
+      } else {
+        await this.loadDocumentEditor(this.currentPath());
+      }
+    } catch {
+      console.log(this.currentPath());
+      console.error("There was an error during reload");
     }
   }
 
@@ -1337,6 +1345,7 @@ export class Client {
     // We can't use getOffsetFromRef here, because it is asyncronous.
     let pos: number | undefined = undefined;
 
+    // Don't use getOffsetFromRef, so we can show error messages
     if (pageState.details?.type === "header") {
       const pageText = this.editorView.state.sliceDoc();
 
@@ -1352,23 +1361,24 @@ export class Client {
         );
       }
     } else if (pageState.details?.type === "position") {
-      pos = pageState.details.pos;
-    } else if (pageState.details?.type === "linecolumn") {
-      // CodeMirror already keeps information about lines
-      const cmLine = this.editorView.state.doc.line(pageState.details.line);
-      // How much to move inside the line, column number starts from 1
-      const offset = Math.max(
+      pos = Math.max(
         0,
-        Math.min(cmLine.length, pageState.details.column - 1),
+        Math.min(pageState.details.pos, this.editorView.state.doc.length),
       );
+    } else if (pageState.details?.type === "linecolumn") {
+      const pageText = this.editorView.state.sliceDoc();
 
-      pos = cmLine.from + offset;
+      pos = getOffsetFromLineColumn(
+        pageText,
+        pageState.details.line,
+        pageState.details.column,
+      );
     }
 
     if (pos !== undefined) {
       this.editorView.dispatch({
-        selection: { anchor: pos! },
-        effects: EditorView.scrollIntoView(pos!, {
+        selection: { anchor: pos },
+        effects: EditorView.scrollIntoView(pos, {
           y: "start",
           yMargin: 5,
         }),
@@ -1421,7 +1431,7 @@ export class Client {
   private async initNavigator() {
     this.pageNavigator = new PathPageNavigator(this);
 
-    this.pageNavigator.subscribe(async (locationState) => {
+    await this.pageNavigator.subscribe(async (locationState) => {
       console.log(`Now navigating to ${encodeRef(locationState)}`);
 
       if (isMarkdownPath(locationState.path)) {

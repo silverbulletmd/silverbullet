@@ -18,7 +18,7 @@ export type LocationState = Ref & {
 };
 
 export class PathPageNavigator {
-  navigationPromise: PromiseWithResolvers<void> | null = null;
+  navigationPromise: PromiseWithResolvers<boolean> | null = null;
   indexRef!: Ref;
 
   openLocations = new Map<string, LocationState>();
@@ -78,36 +78,34 @@ export class PathPageNavigator {
       }),
     );
 
-    try {
-      await this.navigationPromise.promise;
-    } catch {
+    const succesful = await this.navigationPromise.promise;
+
+    if (!succesful) {
       // The navigation failed, let's revert everything we've done (This could
       // e.g. be a document editor which doesn't exist)
       if (!replaceState) {
         history.go(-1);
       } else {
-        if (currentState.path === ref.path) {
-          // This can e.g. happen on the first navigate. We obviously can't fall back to the same path, so fallback to the indexpage
-          globalThis.history.replaceState(
-            this.indexRef,
-            "",
-            `${document.baseURI}${
-              encodePageURI(getNameFromPath(this.indexRef.path))
-            }`,
-          );
-        } else {
-          globalThis.history.replaceState(
-            currentState,
-            "",
-            `${document.baseURI}${
-              encodePageURI(getNameFromPath(currentState.path))
-            }`,
-          );
-        }
+        // This can e.g. happen on the first navigate. We obviously can't fall back to the same path, so fallback to the indexpage
 
-        // This is a reload and realistically the easiest option to recover
-        // TODO: Maybe manually recover by doing a dispatch popstate
-        history.go(0);
+        const newState: LocationState = currentState.path === ref.path
+          ? this.indexRef
+          : currentState;
+
+        globalThis.history.replaceState(
+          newState,
+          "",
+          `${document.baseURI}${encodePageURI(getNameFromPath(newState.path))}`,
+        );
+
+        globalThis.dispatchEvent(
+          new PopStateEvent("popstate", {
+            state: newState,
+          }),
+        );
+
+        // This is should never fail, because we already navigated here before.
+        await this.navigationPromise.promise;
       }
     }
 
@@ -131,11 +129,11 @@ export class PathPageNavigator {
     return locationState;
   }
 
-  subscribe(
+  async subscribe(
     pageLoadCallback: (
       locationState: LocationState,
     ) => Promise<void>,
-  ): void {
+  ): Promise<void> {
     globalThis.addEventListener("popstate", async (event: PopStateEvent) => {
       const state = event.state as LocationState;
 
@@ -152,14 +150,14 @@ export class PathPageNavigator {
 
       await pageLoadCallback(state)
         .then(
-          this.navigationPromise?.resolve,
-          this.navigationPromise?.reject,
+          () => this.navigationPromise?.resolve(true),
+          () => this.navigationPromise?.resolve(false),
         );
     });
 
     // Do the inital navigation
     const ref = this.buildCurrentLocationState();
-    this.navigate(ref, true);
+    await this.navigate(ref, true);
   }
 }
 
