@@ -52,6 +52,7 @@ async function actionClickOrActionEnter(
       if (!ref) {
         return editor.flashNotification(
           `Couldn't navigate to ${link}, WikiLink is invalid`,
+          "error",
         );
       }
 
@@ -90,6 +91,7 @@ async function actionClickOrActionEnter(
         if (!ref) {
           return editor.flashNotification(
             `Couldn't navigate to ${link}, Link is invalid`,
+            "error",
           );
         }
 
