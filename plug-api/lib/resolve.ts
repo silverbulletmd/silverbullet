@@ -50,14 +50,6 @@ export function rewritePageRefs(tree: ParseTree, containerPageName: string) {
   });
 }
 
-export function cleanPageRef(pageRef: string): string {
-  if (pageRef.startsWith("[[") && pageRef.endsWith("]]")) {
-    return pageRef.slice(2, -2);
-  } else {
-    return pageRef;
-  }
-}
-
 export function folderName(path: string): string {
   return path.split("/").slice(0, -1).join("/");
 }

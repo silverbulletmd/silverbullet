@@ -18,9 +18,6 @@ Deno.test("Test URL resolver", () => {
   // Relative paths
   assertEquals("test.jpg", resolvePath("test", "test.jpg"));
   assertEquals("folder/test.jpg", resolvePath("folder/test", "test.jpg"));
-
-  assertEquals(cleanPageRef("hello"), "hello");
-  assertEquals(cleanPageRef("[[hello]]"), "hello");
 });
 
 Deno.test("Test rewritePageRefs", () => {
