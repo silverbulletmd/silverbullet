@@ -224,6 +224,47 @@ const selectFunction = new LuaBuiltinFunction(
   },
 );
 
+/**
+ * From the Lua docs:
+ * Allows a program to traverse all fields of a table. Its first argument is a table and its second argument is an index in this table. A call to next returns the next index of the table and its associated value. When called with nil as its second argument, next returns an initial index and its associated value. When called with the last index, or with nil in an empty table, next returns nil. If the second argument is absent, then it is interpreted as nil. In particular, you can use next(t) to check whether a table is empty.
+ *
+ * The order in which the indices are enumerated is not specified, even for numeric indices. (To traverse a table in numerical order, use a numerical for.)
+ *
+ * You should not assign any value to a non-existent field in a table during its traversal. You may however modify existing fields. In particular, you may set existing fields to nil.
+ */
+const nextFunction = new LuaBuiltinFunction(
+  (sf, table: LuaTable | Record<string, any>, index: number | null = null) => {
+    if (!table) {
+      // When nil value
+      return null;
+    }
+    const keys = luaKeys(table);
+
+    // Empty table -> null return value
+    if (keys.length === 0) {
+      return null;
+    }
+
+    if (index === null) {
+      // Return the first key, value
+      const key = keys[0];
+      return new LuaMultiRes([key, luaGet(table, key, sf)]);
+    } else {
+      // Find index in the key list
+      const idx = keys.indexOf(index);
+      if (idx === -1) { // Not found
+        throw new LuaRuntimeError("invalid key to 'next': key not found", sf);
+      }
+      const key = keys[idx + 1];
+      if (key === undefined) {
+        // When called with the last key, should return nil
+        return null;
+      }
+      return new LuaMultiRes([key, luaGet(table, key, sf)]);
+    }
+  },
+);
+
 // Non-standard, but useful
 const someFunction = new LuaBuiltinFunction(async (_sf, value: any) => {
   switch (await luaTypeOf(value)) {
@@ -249,6 +290,7 @@ export function luaBuildStandardEnv() {
   env.set("tonumber", tonumberFunction);
   env.set("unpack", unpackFunction);
   env.set("select", selectFunction);
+  env.set("next", nextFunction);
   // Iterators
   env.set("pairs", pairsFunction);
   env.set("ipairs", ipairsFunction);

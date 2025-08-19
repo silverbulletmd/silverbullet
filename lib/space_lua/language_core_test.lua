@@ -578,6 +578,21 @@ assertEqual(c, 3)
 -- Special "#" case
 assertEqual(select("#", 1, 2, 3), 3)
 
+-- next tests
+local tbl = {a = "a value", b = "b value"}
+-- base cases
+assertEqual(next(nil), nil, "nil table case")
+assertEqual(next({}), nil, "nil table case")
+-- find first key (although this is not specified, we know this will be "a" in space lua)
+local k, v = next(tbl)
+assertEqual(k, "a")
+assertEqual(v, "a value")
+-- find the second key
+local k, v = next(tbl, k)
+assertEqual(k, "b")
+assertEqual(v, "b value")
+-- and now we should be done
+assertEqual(next(tbl, k), nil)
 
 -- Some more vararg verification
 function varArgTest(a0, ...)
