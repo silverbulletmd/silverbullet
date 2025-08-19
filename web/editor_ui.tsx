@@ -24,7 +24,7 @@ import {
   getNameFromPath,
   getPathExtension,
   isMarkdownPath,
-  isValidPath,
+  isValidName,
   parseToRef,
 } from "@silverbulletmd/silverbullet/lib/ref";
 
@@ -156,26 +156,26 @@ export class MainUI {
                 dispatch({ type: "start-navigate", mode });
               });
             }}
-            onNavigate={(path) => {
+            onNavigate={(name) => {
               dispatch({ type: "stop-navigate" });
               setTimeout(() => {
                 client.focus();
               });
 
-              if (!path) {
+              if (!name) {
                 return;
               }
 
               safeRun(async () => {
-                const ref = parseToRef(path);
+                const ref = parseToRef(name);
 
                 // Check beforhand, because we don't want to allow any link
                 // stuff like #header here. The `!ref` check is just for
                 // Typescript
-                if (!isValidPath(path) || !ref) {
+                if (!isValidName(name) || !ref) {
                   // Realistically this should only happen when creating a new page
                   client.flashNotification(
-                    `Couldn't create page ${path}, name is invalid`,
+                    `Couldn't create page ${name}, name is invalid`,
                   );
                   return;
                 }
@@ -202,18 +202,18 @@ export class MainUI {
                     case "Delete": {
                       if (
                         await client.confirm(
-                          `Are you sure you would like delete ${path}?`,
+                          `Are you sure you would like delete ${name}?`,
                         )
                       ) {
-                        await client.space.deleteDocument(path);
-                        console.log(`Document ${path} has been deleted`);
+                        await client.space.deleteDocument(name);
+                        console.log(`Document ${name} has been deleted`);
                       }
                       return;
                     }
                     case "Rename": {
                       await client.clientSystem.system.invokeFunction(
                         "index.renameDocumentCommand",
-                        [{ oldDocument: path }],
+                        [{ oldDocument: name }],
                       );
                       return;
                     }
