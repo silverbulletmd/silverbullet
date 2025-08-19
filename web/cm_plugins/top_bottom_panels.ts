@@ -45,7 +45,7 @@ class ArrayWidget extends WidgetType {
   async renderContent(
     div: HTMLElement,
   ) {
-    const content = await this.callback(this.client.currentPage);
+    const content = await this.callback(this.client.currentName());
     if (!content) return;
 
     const renderedWidgets: HTMLElement[] = [];
