@@ -568,8 +568,8 @@ export function renderMarkdownToHtml(
           );
           if (
             pageMeta &&
-            !(ref.details?.type == "position" ||
-              ref.details?.type == "linecolumn")
+            !(ref.details?.type === "position" ||
+              ref.details?.type === "linecolumn")
           ) {
             t.body = [(pageMeta.pageDecoration?.prefix ?? "") + t.body];
             if (pageMeta.pageDecoration?.cssClasses) {

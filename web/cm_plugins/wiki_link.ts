@@ -94,9 +94,12 @@ export function cleanWikiLinkPlugin(client: Client) {
           // TODO: Move this into a function, maybe?
           renderedRef.path = renderedRef.path.split("/").pop() as Path;
 
-          // TODO: Only prepend this if it doesn't link to to current page
-          linkText = alias ||
-            ((meta?.pageDecoration?.prefix ?? "") + encodeRef(renderedRef));
+          const prefix = (ref.details?.type === "position" ||
+              ref.details?.type === "linecolumn")
+            ? ""
+            : (meta?.pageDecoration?.prefix ?? "");
+
+          linkText = alias || (prefix + encodeRef(renderedRef));
 
           if (meta?.pageDecoration?.cssClasses) {
             css += " sb-decorated-object " +
