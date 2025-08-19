@@ -90,6 +90,8 @@ Deno.test("isValidPath() and isValidName()", () => {
   assert(isValidName("foo.md"));
   assert(isValidName("foo"));
   assert(!isValidName("foo@123"));
+  assert(!isValidName("^foo@123"));
+  assert(!isValidName("foo[bar"));
 });
 
 Deno.test("Page URI encoding", () => {
