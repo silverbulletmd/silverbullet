@@ -60,7 +60,7 @@ async function actionClickOrActionEnter(
         ref.path = currentPath;
       }
 
-      // TOOD: Navigate behind frontmatter?
+      // TODO: Navigate behind frontmatter?
       // This is an explicit navigate, move to the top
       if (!ref.details) {
         ref.details = {

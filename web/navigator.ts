@@ -83,7 +83,7 @@ export class PathPageNavigator {
     if (error !== null) {
       // The navigation failed, let's revert everything we've done (This could
       // e.g. be a document editor which doesn't exist)
-      this.client.flashNotification(`Failed no navigate: ${error}`, "error");
+      this.client.flashNotification(`Failed to navigate: ${error}`, "error");
 
       if (!replaceState) {
         history.go(-1);
