@@ -83,7 +83,7 @@ export function cleanWikiLinkPlugin(client: Client) {
         // The `&& ref` is only there to make typescript happy
         if (linkStatus === "default" && ref) {
           const meta = client.ui.viewState.allPages.find((p) =>
-            p.ref === ref.path
+            parseToRef(p.ref)?.path === ref.path
           );
 
           const renderedRef = structuredClone(ref);
