@@ -14,6 +14,7 @@ Tasks support the default `x` and ` ` states (done and not done), but custom sta
 Example:
 
 * [NOT STARTED] Task 1
+  Fix having global variables work in markdown.expandMarkdown
 * [IN PROGRESS] Task 2
 
 Restrictions:
