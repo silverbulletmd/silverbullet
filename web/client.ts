@@ -223,6 +223,14 @@ export class Client {
 
     this.clientSystem.init();
 
+    // Check if we need to perform a client wipe
+    globalThis.onhashchange = () => {
+      this.checkForWipeClient();
+    };
+    if (await this.checkForWipeClient()) {
+      return;
+    }
+
     await this.loadCaches();
 
     // Let's ping the remote space to ensure we're authenticated properly, if not will result in a redirect to auth page
@@ -280,6 +288,16 @@ export class Client {
     // Asynchronously update caches
     this.updatePageListCache().catch(console.error);
     this.updateDocumentListCache().catch(console.error);
+  }
+
+  private async checkForWipeClient(): Promise<boolean> {
+    if (location.hash === "#--wipe-client") {
+      console.log("Performing full client wipe");
+      await this.clientSystem.localSyscall("system.wipeClient", []);
+      return true;
+    } else {
+      return false;
+    }
   }
 
   public hasInitialSyncCompleted(): Promise<boolean> {

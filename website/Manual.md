@@ -63,6 +63,7 @@ The main ways to roam your space, beside following page links, are:
 * [[Space Lua]]
 * [[Libraries]]
 * [[Space Style]]
+* [[Troubleshooting]]
 
 # Customization
 * [[^Library/Std/Config]]
