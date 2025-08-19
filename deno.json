@@ -7,7 +7,7 @@
     "./lib/json": "./plug-api/lib/json.ts",
     "./lib/tree": "./plug-api/lib/tree.ts",
     "./lib/attribute": "./plug-api/lib/attribute.ts",
-    "./lib/page_ref": "./plug-api/lib/page_ref.ts",
+    "./lib/ref": "./plug-api/lib/ref.ts",
     "./lib/resolve": "./plug-api/lib/resolve.ts",
     "./lib/frontmatter": "./plug-api/lib/frontmatter.ts",
     "./type/client": "./type/client.ts",
