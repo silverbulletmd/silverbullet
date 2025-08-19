@@ -728,11 +728,6 @@ export class Client {
         this.ui.viewState.current?.meta.perm === "ro",
       ),
     );
-    if (editorView.contentDOM) {
-      this.tweakEditorDOM(
-        editorView.contentDOM,
-      );
-    }
   }
 
   // Code completion support
@@ -1166,9 +1161,6 @@ export class Client {
         doc.meta.perm === "ro",
       );
       editorView.setState(editorState);
-      if (editorView.contentDOM) {
-        this.tweakEditorDOM(editorView.contentDOM);
-      }
       this.space.watchFile(path);
     } else {
       // Just apply minimal patches so that the cursor is preserved
@@ -1252,12 +1244,6 @@ export class Client {
     // This is a little hacky but any other solution would pose a larger rewrite
     this.rebuildEditorState();
     this.editorView.contentDOM.blur();
-  }
-
-  tweakEditorDOM(contentDOM: HTMLElement) {
-    contentDOM.spellcheck = true;
-    contentDOM.setAttribute("autocorrect", "on");
-    contentDOM.setAttribute("autocapitalize", "on");
   }
 
   setEditorText(newText: string, shouldIsolateHistory = false) {

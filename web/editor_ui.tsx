@@ -97,12 +97,6 @@ export class MainUI {
     }, [viewState.current]);
 
     useEffect(() => {
-      client.tweakEditorDOM(
-        client.editorView.contentDOM,
-      );
-    }, [viewState.uiOptions.forcedROMode]);
-
-    useEffect(() => {
       this.client.rebuildEditorState();
       this.client.dispatchAppEvent("editor:modeswitch");
     }, [viewState.uiOptions.vimMode]);
