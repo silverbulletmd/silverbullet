@@ -29,8 +29,6 @@ async function actionClickOrActionEnter(
       "Image",
       "URL",
       "NakedURL",
-      "Link",
-      "PageRef",
       "Hashtag",
     ]
       .includes(
