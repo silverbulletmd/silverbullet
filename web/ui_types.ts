@@ -104,11 +104,9 @@ export const initialViewState: AppViewState = {
 
 export type Action =
   | { type: "page-loaded"; path: Path; meta: PageMeta }
-  | { type: "page-loading"; path: Path }
   | { type: "page-changed" }
   | { type: "page-saved" }
   | { type: "document-editor-loaded"; path: Path; meta: DocumentMeta }
-  | { type: "document-editor-loading"; path: Path }
   | { type: "document-editor-changed" }
   | { type: "document-editor-saved" }
   | { type: "sync-change"; syncSuccess: boolean }

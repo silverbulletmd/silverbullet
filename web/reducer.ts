@@ -1,7 +1,6 @@
 import type { Action, AppViewState } from "./ui_types.ts";
 import type { PageMeta } from "../type/index.ts";
 import {
-  getNameFromPath,
   isMarkdownPath,
   parseToRef,
 } from "@silverbulletmd/silverbullet/lib/ref";
@@ -12,26 +11,6 @@ export default function reducer(
 ): AppViewState {
   // console.log("Got action", action);
   switch (action.type) {
-    case "document-editor-loading":
-      return {
-        ...state,
-        isLoading: false,
-        current: {
-          path: action.path,
-          // Do a best effort job of filling in the meta data, as the page is not loaded yet
-          meta: {
-            ref: action.path,
-            tag: "document",
-            name: action.path,
-            contentType: "",
-            created: "",
-            lastModified: "",
-            size: 0,
-            perm: "rw",
-            extension: "",
-          },
-        },
-      };
     case "document-editor-loaded":
       return {
         ...state,
@@ -39,29 +18,6 @@ export default function reducer(
         current: {
           path: action.path,
           meta: action.meta,
-        },
-      };
-    case "page-loading":
-      return {
-        ...state,
-        isLoading: true,
-        current: {
-          path: action.path,
-          // Do a best effort job of filling in the meta data, doesn't have to be perfect
-          meta: {
-            ref: getNameFromPath(action.path),
-            tag: "page",
-            name: getNameFromPath(action.path),
-            lastModified: "",
-            created: "",
-            perm: "rw",
-          },
-        },
-        panels: state.current?.path === action.path ? state.panels : {
-          ...state.panels,
-          // Hide these by default to avoid flickering
-          top: {},
-          bottom: {},
         },
       };
     case "page-loaded": {

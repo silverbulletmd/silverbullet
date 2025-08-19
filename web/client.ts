@@ -892,109 +892,52 @@ export class Client {
   }
 
   async loadDocumentEditor(path: Path) {
-    // const previousPath = this.currentPath();
-    const previousViewState = this.ui.viewState.current;
-    const initalLoad = !previousViewState;
-    const loadingDifferentPath = !initalLoad
-      ? (previousViewState.path !== path)
-      // Always load as different page if page is loaded from scratch
+    if (isMarkdownPath(path)) throw Error("This is a markdown path");
+
+    const previousPath = this.ui.viewState.current?.path;
+    const loadingDifferentPath = previousPath
+      ? (previousPath !== path)
+      // Always load as different editor if editor is loaded from scratch
       : true;
 
-    const revertPath = () => {
-      if (previousViewState) {
-        this.ui.viewDispatch(
-          isMarkdownPath(previousViewState.path)
-            ? {
-              type: "page-loaded",
-              meta: previousViewState.meta as PageMeta,
-              path: previousViewState.path,
-            }
-            : {
-              type: "document-editor-loaded",
-              meta: previousViewState.meta as DocumentMeta,
-              path: previousViewState.path,
-            },
-        );
-      }
-    };
-
-    if (previousViewState) {
-      this.space.unwatchFile(previousViewState.path);
-
+    if (previousPath) {
+      this.space.unwatchFile(previousPath);
       await this.save(true);
     }
 
-    let doc;
+    // This can throw, but that will be catched and handled upstream.
+    const doc = await this.space.readDocument(path);
 
-    this.ui.viewDispatch({
-      type: "document-editor-loading",
-      path,
-    });
-
-    try {
-      doc = await this.space.readDocument(path);
-    } catch (e: any) {
-      revertPath();
-
-      if (e.message.includes("Not found")) {
-        console.log("This path doesn't exist, redirecting to the index page");
-      } else {
-        console.log(
-          `There has been an error loading the document: ${e.message}`,
-        );
-      }
-
-      if (initalLoad) this.navigate(null);
-
-      return;
-    }
-
+    // Create the document editor if it doesn't already exist
     if (
-      loadingDifferentPath &&
-      !(this.isDocumentEditor() &&
-        this.documentEditor.extension === doc.meta.extension)
+      !this.isDocumentEditor() ||
+      this.documentEditor.extension !== doc.meta.extension
     ) {
       try {
         await this.switchToDocumentEditor(doc.meta.extension);
-
-        if (!this.documentEditor) {
-          throw new Error("Problem setting up document editor");
-        }
       } catch (e: any) {
-        console.log(e.message);
-
+        // If there is no document editor we will open the file raw
         if (e.message.includes("Couldn't find")) {
-          this.openUrl(path + "?raw=true", initalLoad);
-
-          // This is a hacky way to clean up the history here
-          if (!initalLoad) {
-            globalThis.history.replaceState(
-              previousViewState.path,
-              "",
-              `/${encodePageURI(previousViewState.path)}`,
-            );
-          }
-
-          return;
+          this.openUrl(path + "?raw=true", !previousPath);
         }
 
-        if (!initalLoad) {
-          revertPath();
+        throw e;
+      }
 
-          // Unsure about this case. It is probably not handled correctly, but currently this case cannot fully happen
-          if (isMarkdownPath(previousViewState.path)) {
-            this.loadPage(previousViewState.path);
-          } else {
-            this.loadDocumentEditor(previousViewState.path);
-          }
-        } else {
-          // Navigate to index page if there was no previous page
-          this.navigate(null);
-        }
-
-        return;
+      if (!this.isDocumentEditor()) {
+        throw new Error("Problem setting up document editor");
       }
     }
+
+    if (!loadingDifferentPath) {
+      // We are loading the same page again so just send a file changed event.
+      // This can e.g. after a sync found changes elsewhere
+      await this.documentEditor.changeContent(doc.data, doc.meta);
+    } else {
+      this.documentEditor!.setContent(doc.data, doc.meta);
+    }
+
+    this.space.watchFile(path);
 
     this.ui.viewDispatch({
       type: "document-editor-loaded",
@@ -1002,120 +945,73 @@ export class Client {
       path: path,
     });
 
-    if (!loadingDifferentPath && this.isDocumentEditor()) {
-      // We are loading the same page again so just send a file changed event
-      await this.documentEditor.changeContent(doc.data, doc.meta);
-    } else {
-      this.documentEditor!.setContent(doc.data, doc.meta);
-      this.space.watchFile(path);
-    }
-
-    if (loadingDifferentPath) {
-      this.eventHook.dispatchEvent(
-        "editor:documentLoaded",
-        path,
-        previousViewState?.path,
-      )
-        .catch(
-          console.error,
-        );
-    } else {
-      this.eventHook.dispatchEvent(
-        "editor:documentReloaded",
-        path,
-        previousViewState?.path,
-      )
-        .catch(
-          console.error,
-        );
-    }
+    this.eventHook.dispatchEvent(
+      loadingDifferentPath
+        ? "editor:documentLoaded"
+        : "editor:documentReloaded",
+      path,
+      previousPath,
+    ).catch(console.error);
   }
 
   async loadPage(path: Path) {
-    const loadingDifferentPage = path !== this.currentPath();
-    const editorView = this.editorView;
-    const previousViewState = this.ui.viewState.current;
+    if (!isMarkdownPath(path)) throw Error("This is not a markdown path");
+
+    const previousPath = this.ui.viewState.current?.path;
+    const loadingDifferentPath = previousPath
+      ? (previousPath !== path)
+      // Always load as different page if page is loaded from scratch
+      : true;
     const pageName = getNameFromPath(path);
 
-    // Persist current page state and nicely close page
-    if (previousViewState) {
-      // this.openPages.saveState(previousPage);
-      this.space.unwatchFile(previousViewState.path);
-
+    if (previousPath) {
+      this.space.unwatchFile(previousPath);
       await this.save(true);
     }
-
-    this.ui.viewDispatch({
-      type: "page-loading",
-      path,
-    });
 
     // Fetch next page to open
     let doc;
     try {
       doc = await this.space.readPage(pageName);
     } catch (e: any) {
-      if (e.message.includes("Not found")) {
-        // Not found, new page
-        console.log(
-          "Page doesn't exist, creating new page:",
-          pageName,
+      if (!e.message.includes("Not found")) {
+        throw e;
+      }
+
+      console.log(`Page doesn't exist, creating new page: ${pageName}`);
+
+      // Mock up the page. We won't yet safe it, because the user may not even
+      // want to create that page
+      doc = {
+        text: "",
+        meta: {
+          ref: pageName,
+          tags: ["page"],
+          name: pageName,
+          lastModified: "",
+          created: "",
+          perm: "rw",
+        } as PageMeta,
+      };
+
+      // Let's dispatch a editor:pageCreating event to see if anybody wants to do something before the page is created
+      const results = await this.dispatchAppEvent(
+        "editor:pageCreating",
+        { name: pageName } as PageCreatingEvent,
+      ) as PageCreatingContent[];
+
+      if (results.length === 1) {
+        doc.text = results[0].text;
+        doc.meta.perm = results[0].perm;
+      } else if (results.length > 1) {
+        console.error(
+          "Multiple responses for editor:pageCreating event, this is not supported",
         );
-        // Initialize page
-        doc = {
-          text: "",
-          meta: {
-            ref: pageName,
-            tags: ["page"],
-            name: pageName,
-            lastModified: "",
-            created: "",
-            perm: "rw",
-          } as PageMeta,
-        };
-
-        // Let's dispatch a editor:pageCreating event to see if anybody wants to do something before the page is created
-        const results = await this.dispatchAppEvent(
-          "editor:pageCreating",
-          { name: pageName } as PageCreatingEvent,
-        ) as PageCreatingContent[];
-
-        if (results.length === 1) {
-          doc.text = results[0].text;
-          doc.meta.perm = results[0].perm;
-        } else if (results.length > 1) {
-          console.error(
-            "Multiple responses for editor:pageCreating event, this is not supported",
-          );
-        }
-      } else {
-        this.flashNotification(
-          `Could not load page ${pageName}: ${e.message}`,
-          "error",
-        );
-        if (previousViewState) {
-          this.ui.viewDispatch(
-            isMarkdownPath(previousViewState.path)
-              ? {
-                type: "page-loaded",
-                meta: previousViewState.meta as PageMeta,
-                path: previousViewState.path,
-              }
-              : {
-                type: "document-editor-loaded",
-                meta: previousViewState.meta as DocumentMeta,
-                path: previousViewState.path,
-              },
-          );
-        }
-
-        return;
       }
     }
 
-    if (this.isDocumentEditor()) {
-      this.switchToPageEditor();
-    }
+    // This could create an invalid editor state, but that doesn't matter, we'll update it later
+    this.switchToPageEditor();
 
     this.ui.viewDispatch({
       type: "page-loaded",
@@ -1123,68 +1019,58 @@ export class Client {
       path: path,
     });
 
-    // Fetch (possibly) enriched meta data asynchronously
+    // Fetch the meta which includes the possibly indexed stuff, like page
+    // decorations
     if (await this.hasInitialSyncCompleted()) {
-      this.clientSystem.getObjectByRef<
-        PageMeta
-      >(
-        pageName,
-        "page",
-        pageName,
-      ).then((enrichedMeta) => {
-        if (!enrichedMeta) {
-          // Nothing in the store, revert to default
-          enrichedMeta = doc.meta;
+      try {
+        const enrichedMeta = await this.clientSystem.getObjectByRef<PageMeta>(
+          pageName,
+          "page",
+          pageName,
+        ) ?? doc.meta;
+
+        const body = document.body;
+        body.removeAttribute("class");
+
+        if (enrichedMeta.pageDecoration?.cssClasses) {
+          body.className = enrichedMeta.pageDecoration.cssClasses
+            .join(" ")
+            .replaceAll(/[^a-zA-Z0-9-_ ]/g, "");
         }
 
-        const bodyEl = this.parent.parentElement;
-        if (bodyEl) {
-          bodyEl.removeAttribute("class");
-          if (enrichedMeta.pageDecoration?.cssClasses) {
-            bodyEl.className = enrichedMeta.pageDecoration.cssClasses.join(" ")
-              .replaceAll(/[^a-zA-Z0-9-_ ]/g, "");
-          }
-        }
         this.ui.viewDispatch({
           type: "update-current-page-meta",
           meta: enrichedMeta,
         });
-      }).catch(console.error);
+      } catch (e: any) {
+        console.log(
+          `There was an error trying to fetch enriched metadata: ${e.message}`,
+        );
+      }
     }
 
     // When loading a different page OR if the page is read-only (in which case we don't want to apply local patches, because there's no point)
-    if (loadingDifferentPage || doc.meta.perm === "ro") {
+    if (loadingDifferentPath || doc.meta.perm === "ro") {
       const editorState = createEditorState(
         this,
         pageName,
         doc.text,
         doc.meta.perm === "ro",
       );
-      editorView.setState(editorState);
-      this.space.watchFile(path);
+      this.editorView.setState(editorState);
     } else {
       // Just apply minimal patches so that the cursor is preserved
       this.setEditorText(doc.text, true);
     }
 
+    this.space.watchFile(path);
+
     // Note: these events are dispatched asynchronously deliberately (not waiting for results)
-    if (loadingDifferentPage) {
-      this.eventHook.dispatchEvent(
-        "editor:pageLoaded",
-        pageName,
-        previousViewState
-          ? getNameFromPath(previousViewState?.path)
-          : undefined,
-      )
-        .catch(
-          console.error,
-        );
-    } else {
-      this.eventHook.dispatchEvent("editor:pageReloaded", pageName)
-        .catch(
-          console.error,
-        );
-    }
+    this.eventHook.dispatchEvent(
+      loadingDifferentPath ? "editor:pageLoaded" : "editor:pageReloaded",
+      pageName,
+      previousPath ? getNameFromPath(previousPath) : undefined,
+    ).catch(console.error);
   }
 
   isDocumentEditor(): this is { documentEditor: DocumentEditor } & this {
@@ -1536,7 +1422,7 @@ export class Client {
     this.pageNavigator = new PathPageNavigator(this);
 
     this.pageNavigator.subscribe(async (locationState) => {
-      console.log("Now navigating to ", encodeRef(locationState));
+      console.log(`Now navigating to ${encodeRef(locationState)}`);
 
       if (isMarkdownPath(locationState.path)) {
         await this.loadPage(locationState.path);
