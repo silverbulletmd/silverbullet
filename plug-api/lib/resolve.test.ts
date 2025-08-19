@@ -1,5 +1,4 @@
 import {
-  cleanPageRef,
   resolvePath,
   rewritePageRefs,
 } from "@silverbulletmd/silverbullet/lib/resolve";

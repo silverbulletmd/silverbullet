@@ -82,7 +82,7 @@ export function isValidName(name: string): boolean {
 /**
  * Determines wether a path conforms to all the requirments.
  */
-export function isValidPath(path: string): boolean {
+export function isValidPath(path: string): path is Path {
   const ref = parseToRef(path);
 
   return !!ref && ref.path === path;
@@ -93,7 +93,7 @@ export function isValidPath(path: string): boolean {
  * TO THE INNER WORKINGS OF SILVERBULLET AND CHANGES COULD INTRODUCE MAJOR BUGS
  */
 const refRegex =
-  /^(?<meta>\^)?(?!\.)(?<path>[^@#\[\]\(\)]*)(@(?<pos>\d+)|@[Ll](?<line>\d+)(?:[Cc](?<col>\d+))?|#(?<header>.*))?$/;
+  /^(?<meta>\^)?(?!\.)(?<path>[^@#\[\]\(\)\|]*)(@(?<pos>\d+)|@[Ll](?<line>\d+)(?:[Cc](?<col>\d+))?|#\s*(?<header>.*))?$/;
 
 /**
  * Parses a reference string into a ref object.
