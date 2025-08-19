@@ -4,7 +4,7 @@ import { type ParseTree, renderToText } from "../../plug-api/lib/tree.ts";
 import { extendedMarkdownLanguage } from "../markdown_parser/parser.ts";
 import { expandMarkdown } from "../markdown.ts";
 import type { Client } from "../client.ts";
-import { LuaStackFrame } from "../../lib/space_lua/runtime.ts";
+import { LuaEnv, LuaStackFrame } from "../../lib/space_lua/runtime.ts";
 import {
   type MarkdownRenderOptions,
   renderMarkdownToHtml,
@@ -19,11 +19,15 @@ export function markdownSyscalls(client: Client): SysCallMapping {
       return renderToText(tree);
     },
     "markdown.expandMarkdown": (_ctx, tree: ParseTree): Promise<ParseTree> => {
+      const globalEnv = client.clientSystem.spaceLuaEnv.env;
+      const tl = new LuaEnv();
+      tl.setLocal("_GLOBAL", globalEnv);
+      const sf = new LuaStackFrame(tl, null);
       return expandMarkdown(
         client,
         tree,
-        client.clientSystem.spaceLuaEnv.env,
-        LuaStackFrame.lostFrame,
+        globalEnv,
+        sf,
       );
     },
     "markdown.markdownToHtml": (
