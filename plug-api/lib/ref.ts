@@ -217,7 +217,7 @@ export function getOffsetFromHeader(
     return -1;
   }
 
-  return findNodeOfType(node, "HeaderMark")?.to ?? -1;
+  return node.to ?? -1;
 }
 
 /**
