@@ -18,7 +18,7 @@ export type LocationState = Ref & {
 };
 
 export class PathPageNavigator {
-  navigationPromise: PromiseWithResolvers<boolean> | null = null;
+  navigationPromise: PromiseWithResolvers<string | null> | null = null;
   indexRef!: Ref;
 
   openLocations = new Map<string, LocationState>();
@@ -78,11 +78,13 @@ export class PathPageNavigator {
       }),
     );
 
-    const succesful = await this.navigationPromise.promise;
+    const error = await this.navigationPromise.promise;
 
-    if (!succesful) {
+    if (error !== null) {
       // The navigation failed, let's revert everything we've done (This could
       // e.g. be a document editor which doesn't exist)
+      this.client.flashNotification(`Failed no navigate: ${error}`, "error");
+
       if (!replaceState) {
         history.go(-1);
       } else {
@@ -150,8 +152,8 @@ export class PathPageNavigator {
 
       await pageLoadCallback(state)
         .then(
-          () => this.navigationPromise?.resolve(true),
-          () => this.navigationPromise?.resolve(false),
+          () => this.navigationPromise?.resolve(null),
+          (e) => this.navigationPromise?.resolve(e.message),
         );
     });
 
