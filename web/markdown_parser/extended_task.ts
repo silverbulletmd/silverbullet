@@ -49,7 +49,8 @@ export const TaskList: MarkdownConfig = {
   parseBlock: [{
     name: "TaskList",
     leaf(cx, leaf) {
-      const match = /^\[([^\]]+)\][ \t]/.exec(leaf.content);
+      // Note: task states cannot contain : to avoid ambiguity with attribute syntax
+      const match = /^\[([^\]:]+)\][ \t]/.exec(leaf.content);
       return match &&
           cx.parentType().name == "ListItem"
         ? new MultiStatusTaskParser(match[1])
