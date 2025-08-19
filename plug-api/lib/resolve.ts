@@ -1,94 +1,84 @@
 import type { Path } from "@silverbulletmd/silverbullet/lib/ref";
-import { type ParseTree, traverseTree } from "./tree.ts";
+
+/**
+ * Determines wether a url points into the world wide web or to the local SB instance
+ */
+export function isLocalURL(url: string): boolean {
+  return !url.includes("://") &&
+    !url.startsWith("mailto:") &&
+    !url.startsWith("tel:");
+}
+
+/**
+ * Extracts the folder name from a page or document name or a path
+ */
+export function folderName(name: string | Path): string {
+  return name.split("/").slice(0, -1).join("/");
+}
 
 const builtinPrefixes = [
   "tag:",
   "search:",
 ];
 
-// [[Wikilinks]] use absolute paths and should pass pathToResolve with a leading / to this function
-// [Markdown links]() are relative unless it has a leading /
-export function resolvePath(
-  currentPage: string,
-  pathToResolve: string,
-): string {
-  // [Markdown links]() with spaces in the url need to be uri encoded or wrapped in <>
-  if (pathToResolve.startsWith("<") && pathToResolve.endsWith(">")) {
-    pathToResolve = pathToResolve.slice(1, -1);
-  }
-  if (
-    strippableSlashPrefix(pathToResolve)
-  ) {
-    pathToResolve = pathToResolve.slice(1);
-  } else {
-    pathToResolve = relativeToAbsolutePath(currentPage, pathToResolve);
-  }
-  return pathToResolve;
-}
-
-function strippableSlashPrefix(p: string) {
-  return p.startsWith("/");
-}
-
-export function isLocalPath(path: string): boolean {
-  return !path.includes("://") &&
-    !path.startsWith("mailto:") &&
-    !path.startsWith("tel:");
-}
-
-export function rewritePageRefs(tree: ParseTree, containerPageName: string) {
-  traverseTree(tree, (n): boolean => {
-    if (n.type === "WikiLinkPage") {
-      n.children![0].text = resolvePath(
-        containerPageName,
-        "/" + n.children![0].text!,
-      );
-      return true;
-    }
-
-    return false;
-  });
-}
-
-export function folderName(path: string): string {
-  return path.split("/").slice(0, -1).join("/");
-}
-
-export function absoluteToRelativePath(page: string, linkTo: string): string {
-  // Remove leading /
-  page = page.startsWith("/") ? page.slice(1) : page;
-  linkTo = linkTo.startsWith("/") ? linkTo.slice(1) : linkTo;
-
-  const splitLink = linkTo.split("/");
-  const splitPage = page.split("/");
-  splitPage.pop();
-
-  while (splitPage && splitPage[0] === splitLink[0]) {
-    splitPage.shift();
-    splitLink.shift();
-  }
-
-  splitPage.fill("..");
-
-  return [...splitPage, ...splitLink].join("/");
-}
-
-export function relativeToAbsolutePath(page: string, linkTo: string): string {
-  // Remove leading /
-  page = strippableSlashPrefix(page) ? page.slice(1) : page;
-  linkTo = strippableSlashPrefix(linkTo) ? linkTo.slice(1) : linkTo;
-
-  const splitPage = page.split("/").slice(0, -1);
-  const splitLink = linkTo.split("/");
-
-  while (splitLink && splitLink[0] === "..") {
-    splitPage.pop();
-    splitLink.shift();
-  }
-
-  return [...splitPage, ...splitLink].join("/");
-}
-
+/**
+ * Builtin pages are pages which SB should automatically consider as existing
+ */
 export function isBuiltinPath(path: Path): boolean {
   return builtinPrefixes.some((prefix) => path.startsWith(prefix));
+}
+
+/**
+ * Resolves a markdown link url relative to an absolute url.
+ */
+export function resolveMarkdownLink(
+  absolute: string,
+  relative: string,
+): string {
+  // These are part of the commonmark spec for urls with spaces inbetween.
+  if (relative.startsWith("<") && relative.endsWith(">")) {
+    relative = relative.slice(1, -1);
+  }
+
+  if (relative.startsWith("/")) {
+    return relative.slice(1);
+  } else {
+    const splitAbsolute = absolute
+      .split("/")
+      .slice(0, -1)
+      .filter((p) => p);
+    const splitRelative = relative
+      .split("/")
+      .filter((p) => p);
+
+    while (splitRelative && splitRelative[0] === "..") {
+      splitAbsolute.pop();
+      splitRelative.shift();
+    }
+
+    return [...splitAbsolute, ...splitRelative].join("/") as Path;
+  }
+}
+
+/**
+ * Turns an absolute path into a relative path, relative to some base directory. USE WITH CAUTION, definitely buggy
+ */
+export function absoluteToRelativePath(base: string, absolute: string): string {
+  // Remove leading /
+  base = base.startsWith("/") ? base.slice(1) : base;
+  absolute = absolute.startsWith("/") ? absolute.slice(1) : absolute;
+
+  const splitAbsolute = absolute.split("/");
+  const splitBase = base.split("/");
+  splitBase.pop();
+
+  // TODO: This is definitely not robust
+  while (splitBase && splitBase[0] === splitAbsolute[0]) {
+    splitBase.shift();
+    splitAbsolute.shift();
+  }
+
+  splitBase.fill("..");
+
+  return [...splitBase, ...splitAbsolute].join("/");
 }

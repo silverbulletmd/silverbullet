@@ -9,7 +9,7 @@ import {
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { encodeRef, parseToRef } from "@silverbulletmd/silverbullet/lib/ref";
 import { Fragment, renderHtml, type Tag } from "./html_render.ts";
-import { isLocalPath } from "@silverbulletmd/silverbullet/lib/resolve";
+import { isLocalURL } from "@silverbulletmd/silverbullet/lib/resolve";
 import * as TagConstants from "../../plugs/index/constants.ts";
 import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 import { justifiedTableRender } from "./justified_tables.ts";
@@ -219,7 +219,7 @@ function render(
         return renderToText(t);
       }
       let url = urlNode.children![0].text!;
-      if (isLocalPath(url)) {
+      if (isLocalURL(url)) {
         if (
           options.documentUrlPrefix &&
           !url.startsWith(options.documentUrlPrefix)
@@ -242,7 +242,7 @@ function render(
         return renderToText(t);
       }
       let url = urlNode.children![0].text!;
-      if (isLocalPath(url)) {
+      if (isLocalURL(url)) {
         if (
           options.documentUrlPrefix &&
           !url.startsWith(options.documentUrlPrefix)
@@ -290,7 +290,7 @@ function render(
       }
 
       if (
-        isLocalPath(url) &&
+        isLocalURL(url) &&
         options.documentUrlPrefix &&
         !url.startsWith(options.documentUrlPrefix)
       ) {

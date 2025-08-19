@@ -25,7 +25,6 @@ import {
   cleanAttributes,
   extractAttributes,
 } from "@silverbulletmd/silverbullet/lib/attribute";
-import { rewritePageRefs } from "@silverbulletmd/silverbullet/lib/resolve";
 import { indexObjects } from "../index/plug_api.ts";
 import {
   cleanHashTags,
@@ -104,8 +103,6 @@ export async function extractTasks(
       pos: n.from!,
       state,
     };
-
-    rewritePageRefs(n, name);
 
     // The task text is everything after the task marker
     task.text = n.children!.slice(1).map(renderToText).join("").trim();

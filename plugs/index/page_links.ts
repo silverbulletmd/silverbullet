@@ -6,8 +6,8 @@ import {
 } from "@silverbulletmd/silverbullet/lib/tree";
 import type { IndexTreeEvent } from "../../type/event.ts";
 import {
-  isLocalPath,
-  resolvePath,
+  isLocalURL,
+  resolveMarkdownLink,
 } from "@silverbulletmd/silverbullet/lib/resolve";
 import { indexObjects, queryLuaObjects } from "./api.ts";
 import { extractFrontMatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
@@ -123,14 +123,12 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
       }
       let { title: alias, url } = text.groups as { url: string; title: string };
 
-      // TODO: We should probably not resolve before checking the links validitiy?
-
       // Check if local link
-      if (!isLocalPath(url)) {
+      if (!isLocalURL(url)) {
         return false;
       }
       const pos = linkNode.from!;
-      url = resolvePath(name, decodeURI(url));
+      url = resolveMarkdownLink(name, decodeURI(url));
 
       const link: any = {
         ref: `${name}@${pos}`,

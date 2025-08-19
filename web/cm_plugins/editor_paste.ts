@@ -15,9 +15,10 @@ import {
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { maximumDocumentSize } from "../constants.ts";
 import { safeRun } from "../../lib/async.ts";
-import { resolvePath } from "@silverbulletmd/silverbullet/lib/resolve";
+import { resolveMarkdownLink } from "@silverbulletmd/silverbullet/lib/resolve";
 import { localDateString } from "../../lib/dates.ts";
 import type { UploadFile } from "@silverbulletmd/silverbullet/type/client";
+import { isValidName, isValidPath } from "@silverbulletmd/silverbullet/lib/ref";
 
 const turndownService = new TurndownService({
   hr: "---",
@@ -214,19 +215,19 @@ export function documentExtension(editor: Client) {
       return;
     }
 
-    const finalFileName = await editor.prompt(
+    const finalFilePath = await editor.prompt(
       "File name for pasted document",
-      file.name,
+      resolveMarkdownLink(
+        client.currentPath(),
+        isValidPath(file.name) ? file.name : "file.txt",
+      ),
     );
-    if (!finalFileName) {
+    if (!finalFilePath || !isValidName(finalFilePath)) {
       return;
     }
-    const documentPath = resolvePath(
-      editor.currentName(),
-      finalFileName,
-    );
-    await editor.space.writeDocument(documentPath, file.content);
-    let documentMarkdown = `[[${documentPath}]]`;
+
+    await editor.space.writeDocument(finalFilePath, file.content);
+    let documentMarkdown = `[[${finalFilePath}]]`;
     if (file.contentType.startsWith("image/")) {
       documentMarkdown = "!" + documentMarkdown;
     }

@@ -8,8 +8,8 @@ import {
   type ParseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import {
-  isLocalPath,
-  resolvePath,
+  isLocalURL,
+  resolveMarkdownLink,
 } from "@silverbulletmd/silverbullet/lib/resolve";
 import { parseToRef } from "@silverbulletmd/silverbullet/lib/ref";
 import { tagPrefix } from "../index/constants.ts";
@@ -81,8 +81,8 @@ async function actionClickOrActionEnter(
       if (url.length <= 1) {
         return editor.flashNotification("Empty link, ignoring", "error");
       }
-      if (isLocalPath(url)) {
-        const link = resolvePath(currentPage, decodeURI(url));
+      if (isLocalURL(url)) {
+        const link = resolveMarkdownLink(currentPage, decodeURI(url));
         // Parse the ref explicitly to throw a nice error message
         const ref = parseToRef(link);
 

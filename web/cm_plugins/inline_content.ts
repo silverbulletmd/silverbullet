@@ -9,8 +9,8 @@ import {
 } from "./util.ts";
 import type { Client } from "../client.ts";
 import {
-  isLocalPath,
-  resolvePath,
+  isLocalURL,
+  resolveMarkdownLink,
 } from "@silverbulletmd/silverbullet/lib/resolve";
 import {
   isMarkdownPath,
@@ -60,7 +60,7 @@ class InlineContentWidget extends WidgetType {
     let url = this.url;
 
     // If the URL is a local path, encode the : so that it's not interpreted as a protocol
-    if (isLocalPath(url)) {
+    if (isLocalURL(url)) {
       url = url.replace(":", "%3A");
     }
 
@@ -202,8 +202,8 @@ export function inlineContentPlugin(client: Client) {
           alias = "";
         }
 
-        if (isLocalPath(url)) {
-          url = resolvePath(
+        if (isLocalURL(url)) {
+          url = resolveMarkdownLink(
             client.currentName(),
             decodeURI(url),
           );

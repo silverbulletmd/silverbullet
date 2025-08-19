@@ -12,8 +12,8 @@ import { type ParseTree, renderToText } from "../../plug-api/lib/tree.ts";
 import { lezerToParseTree } from "../markdown_parser/parse_tree.ts";
 import type { Client } from "../client.ts";
 import {
-  isLocalPath,
-  resolvePath,
+  isLocalURL,
+  resolveMarkdownLink,
 } from "@silverbulletmd/silverbullet/lib/resolve";
 import { expandMarkdown } from "../markdown.ts";
 import { LuaStackFrame } from "../../lib/space_lua/runtime.ts";
@@ -64,8 +64,8 @@ class TableViewWidget extends WidgetType {
         // the cursor there when the user clicks on the table.
         annotationPositions: true,
         translateUrls: (url) => {
-          if (isLocalPath(url)) {
-            url = resolvePath(
+          if (isLocalURL(url)) {
+            url = resolveMarkdownLink(
               this.client.currentName(),
               decodeURI(url),
             );

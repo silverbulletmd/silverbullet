@@ -1,6 +1,6 @@
 import {
-  isLocalPath,
-  resolvePath,
+  isLocalURL,
+  resolveMarkdownLink,
 } from "@silverbulletmd/silverbullet/lib/resolve";
 import type { Client } from "../client.ts";
 import { syntaxTree } from "@codemirror/language";
@@ -42,8 +42,8 @@ export function linkPlugin(client: Client) {
 
         let url = groups.url;
 
-        if (isLocalPath(url)) {
-          url = resolvePath(
+        if (isLocalURL(url)) {
+          url = resolveMarkdownLink(
             client.currentName(),
             decodeURI(url),
           );
