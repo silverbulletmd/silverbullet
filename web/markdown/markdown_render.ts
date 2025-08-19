@@ -363,7 +363,11 @@ function render(
       collectNodesOfType(t, "WikiLinkPage").forEach((wikilink) => {
         const ref = parseToRef(wikilink.children![0].text!);
 
-        if (!externalTaskRef && ref && (ref.details?.type === "position")) {
+        if (
+          !externalTaskRef && ref &&
+          (ref.details?.type === "position" ||
+            ref.details?.type === "linecolumn")
+        ) {
           externalTaskRef = wikilink.children![0].text!;
         }
       });
