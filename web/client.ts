@@ -1355,10 +1355,12 @@ export class Client {
       );
 
       if (pos === -1) {
-        return this.flashNotification(
+        this.flashNotification(
           `Could not find header "${pageState.details.header}"`,
           "error",
         );
+
+        pos = undefined;
       }
     } else if (pageState.details?.type === "position") {
       pos = Math.max(
