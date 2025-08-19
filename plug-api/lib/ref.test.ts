@@ -10,10 +10,15 @@ import { assert, assertEquals } from "@std/assert";
 
 Deno.test("parseToRef() default cases", () => {
   assertEquals(parseToRef("foo"), { path: "foo.md" });
+  assertEquals(parseToRef("/foo"), { path: "/foo.md" });
   assertEquals(parseToRef("foo/bar"), { path: "foo/bar.md" });
   assertEquals(parseToRef("foo.md"), { path: "foo.md" });
   assertEquals(parseToRef("foo.md.md"), { path: "foo.md.md" });
+  assertEquals(parseToRef("foo."), { path: "foo..md" });
+  assertEquals(parseToRef("foo.."), { path: "foo...md" });
+  assertEquals(parseToRef(" .foo"), { path: " .foo" });
 
+  assertEquals(parseToRef("^.foo"), null);
   assertEquals(parseToRef(".foobar"), null);
   assertEquals(parseToRef("foo[bar"), null);
   assertEquals(parseToRef("foo]bar"), null);
@@ -23,6 +28,8 @@ Deno.test("parseToRef() default cases", () => {
   assertEquals(parseToRef("foo@bar"), null);
 
   assertEquals(parseToRef(""), { path: "" });
+  assertEquals(parseToRef("/"), null);
+  assertEquals(parseToRef("/@132"), null);
 });
 
 Deno.test("parseToRef() link cases", () => {
