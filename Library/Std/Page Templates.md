@@ -92,7 +92,7 @@ local function createPageFromTemplate(templatePage, pageName)
   end
   -- Write an empty page to start
   space.writePage(pageName, initialText)
-  editor.navigate({kind = "page", page = pageName})
+  editor.navigate(pageName)
   -- Insert there, supporting |^| cursor placeholder
   editor.insertAtPos(tpl(), #initialText, true)
 end
@@ -119,7 +119,7 @@ for pt in query[[
         return
       end
       if pt.openIfExists and space.pageExists(pageName) then
-        editor.navigate({kind = "page", page = pageName})
+        editor.navigate(pageName)
         return
       end
       createPageFromTemplate(pt.name, pageName)

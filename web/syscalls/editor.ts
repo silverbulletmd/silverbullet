@@ -25,8 +25,9 @@ import type {
 } from "@silverbulletmd/silverbullet/type/client";
 import { openSearchPanel } from "@codemirror/search";
 import {
-  isValidPathOrName,
+  isValidPath,
   parseToRef,
+  type Path,
   type Ref,
 } from "@silverbulletmd/silverbullet/lib/ref";
 import { insertNewlineContinueMarkup } from "@codemirror/lang-markdown";
@@ -106,11 +107,92 @@ export function editorSyscalls(client: Client): SysCallMapping {
         ref = parsedRef;
       }
 
-      // TODO: Use schema here for validation
+      // @ts-ignore: Legacy support
+      if (ref.kind === "page" || ref.kind === "document") {
+        console.warn(
+          "You are using legacy navigation syntax with `editor.navigate()`, this will be phased out in the future",
+        );
 
-      if (!isValidPathOrName(ref.path) && ref.path !== "") {
+        const legacyRef = ref as unknown as {
+          kind: "page" | "document";
+          page: string;
+          pos?: number | { line: number; column: number };
+          header?: string;
+          meta?: boolean;
+        };
+
+        let details: Ref["details"] = undefined;
+
+        if (typeof legacyRef.pos === "number") {
+          details = {
+            type: "position",
+            pos: legacyRef.pos,
+          };
+        } else if (legacyRef.pos) {
+          details = {
+            type: "linecolumn",
+            line: legacyRef.pos.line,
+            column: legacyRef.pos.column,
+          };
+        } else if (legacyRef.header) {
+          details = {
+            type: "header",
+            header: legacyRef.header,
+          };
+        }
+
+        ref = {
+          path: (legacyRef.kind === "page"
+            ? `${legacyRef.page}.md`
+            : legacyRef.page) as Path,
+          details,
+          meta: legacyRef.meta,
+        };
+      }
+
+      // This validation code should be connected to the Ref type. Ideally using
+      // some validation library. Didn't want to use jsonschemas here tho.
+      // Ideally this would be moved into a function too
+      if (!isValidPath(ref.path) && ref.path !== "") {
         throw new Error(
           "Path passed in ref to `editor.navigate` is invalid",
+        );
+      } else if (typeof ref.meta !== "boolean" && ref.meta !== undefined) {
+        throw new Error(
+          "ref.meta has to be of type `boolean`",
+        );
+      } else if (ref.details !== undefined && typeof ref.details !== "object") {
+        throw new Error(
+          "ref.details has to be of type `object` or `undefined`",
+        );
+      } else if (
+        ref.details &&
+        !["position", "linecolumn", "header"].includes(ref.details.type)
+      ) {
+        throw new Error(
+          "ref.details.type has to be 'position', 'linecolumn' or 'header'",
+        );
+      }
+
+      if (
+        ref.details?.type === "position" && typeof ref.details.pos !== "number"
+      ) {
+        throw new Error(
+          "ref.details.pos has to be of type `number`",
+        );
+      } else if (
+        ref.details?.type === "header" && typeof ref.details.header !== "string"
+      ) {
+        throw new Error(
+          "ref.details.header has to be of type `string`",
+        );
+      } else if (
+        ref.details?.type === "linecolumn" &&
+        typeof ref.details.line !== "number" &&
+        typeof ref.details.column !== "number"
+      ) {
+        throw new Error(
+          "ref.details.line and ref.details.column has to be of type `number`",
         );
       }
 

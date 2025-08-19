@@ -68,16 +68,24 @@ function normalizePath(path: string): Path {
 }
 
 /**
- * Determines wether a path conforms to all the requirments. It doesn't matter
- * if the pages end in `.md`
+ * Determines wether a name conforms to all the requirments.
  */
-export function isValidPathOrName(name: string): boolean {
+export function isValidName(name: string): boolean {
   const ref = parseToRef(name);
 
   // If the name, parses as a link and doesn't provide any other info we can be
   // sure it was only parsed as a path and that the path then conforms to all
   // the requirements
   return !!ref && !ref.details && !ref.meta && name !== "";
+}
+
+/**
+ * Determines wether a path conforms to all the requirments.
+ */
+export function isValidPath(path: string): boolean {
+  const ref = parseToRef(path);
+
+  return !!ref && ref.path === path;
 }
 
 /**

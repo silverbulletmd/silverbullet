@@ -24,7 +24,7 @@ import {
   getNameFromPath,
   getPathExtension,
   isMarkdownPath,
-  isValidPathOrName,
+  isValidPath,
   parseToRef,
 } from "@silverbulletmd/silverbullet/lib/ref";
 
@@ -172,7 +172,7 @@ export class MainUI {
                 // Check beforhand, because we don't want to allow any link
                 // stuff like #header here. The `!ref` check is just for
                 // Typescript
-                if (!isValidPathOrName(path) || !ref) {
+                if (!isValidPath(path) || !ref) {
                   // Realistically this should only happen when creating a new page
                   client.flashNotification(
                     `Couldn't create page ${path}, name is invalid`,

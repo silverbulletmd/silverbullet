@@ -18,7 +18,7 @@ import {
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { queryLuaObjects } from "./api.ts";
 import type { ObjectValue } from "../../type/index.ts";
-import { isValidPathOrName } from "@silverbulletmd/silverbullet/lib/ref";
+import { isValidPath } from "@silverbulletmd/silverbullet/lib/ref";
 
 /**
  * Renames a single page.
@@ -115,7 +115,8 @@ export async function batchRenameFiles(fileList: [string, string][]) {
     // Pre-flight checks
     await Promise.all(fileList.map(async ([_oldName, newName]) => {
       try {
-        if (!isValidPathOrName(newName)) {
+        // It's a FILEname not a PAGEname.
+        if (!isValidPath(newName)) {
           throw new Error(`Name invalid: ${newName}`);
         }
         // Check if target file already exists
