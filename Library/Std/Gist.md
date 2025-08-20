@@ -31,7 +31,7 @@ event.listen {
       return {
         {
           id = "github-gist",
-          name = "Gist"
+          name = "Github: Gist"
         },
       }
     end
@@ -44,11 +44,7 @@ event.listen {
   run = function(event)
     local url = event.data.url
     local gistUrl = githubGist.extractGistId(url)
-    local resp = http.request("https://api.github.com/gists/" .. gistUrl, {
-      headers = {
-        Accept = "application/vnd.github.v3+json"
-      }
-    })
+    local resp = http.request("https://api.github.com/gists/" .. gistUrl)
     if not resp.ok then
       editor.flashNotification("Failed, see console for error")
       js.log("Error", resp)
@@ -121,7 +117,7 @@ event.listen {
     return {
       {
         id = "github-gist",
-        name = "Gist"
+        name = "Github: Gist"
       },
     }
   end
