@@ -477,7 +477,7 @@ export class HttpServer {
       }
     });
 
-    const filePathRegex = "/:path{[^!].*\\.[a-zA-Z0-9]+}";
+    const filePathRegex = "/:path{.*\\.[a-zA-Z0-9]+}";
     const mdExt = ".md";
 
     this.app.get(filePathRegex, async (c, next) => {
