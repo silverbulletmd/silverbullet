@@ -18,10 +18,14 @@ export async function renderHtmlPage(
   clientAssetBundle: AssetBundle,
 ): Promise<Response> {
   let html = "";
+  let title = "SilverBullet"; // Default to simply SilverBullet initially
   let lastModified = utcDateString(Date.now());
   if (!options.auth && options.readOnly) {
     // Only attempt server-side rendering when this site is not protected by auth and running in read-only mode
     if (!looksLikePathWithExtension(pageName)) {
+      // Update title to page name
+      title = pageName;
+      // Fetch page content and render it
       try {
         const { data, meta } = await spacePrimitives.readFile(
           `${pageName}.md`,
@@ -53,7 +57,7 @@ export async function renderHtmlPage(
   }
 
   const templateData = {
-    TITLE: pageName,
+    TITLE: title,
     DESCRIPTION: stripHtml(html).substring(0, 255),
     CONTENT: html,
     HOST_URL_PREFIX: options.hostUrlPrefix ?? "",
