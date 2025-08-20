@@ -17,6 +17,9 @@ Deno.test("parseToRef() default cases", () => {
   assertEquals(parseToRef("foo."), { path: "foo..md" });
   assertEquals(parseToRef("foo.."), { path: "foo...md" });
   assertEquals(parseToRef(" .foo"), { path: " .foo" });
+  assertEquals(parseToRef("foo."), { path: "foo..md" });
+  assertEquals(parseToRef("/.md"), { path: "/.md" });
+  assertEquals(parseToRef("/foo/.bar.md"), { path: "/foo/.bar.md" });
 
   assertEquals(parseToRef("^.foo"), null);
   assertEquals(parseToRef(".foobar"), null);
@@ -28,8 +31,11 @@ Deno.test("parseToRef() default cases", () => {
   assertEquals(parseToRef("foo@bar"), null);
 
   assertEquals(parseToRef(""), { path: "" });
-  assertEquals(parseToRef("/"), null);
-  assertEquals(parseToRef("/@132"), null);
+  assertEquals(parseToRef("/"), { path: "/.md" });
+  assertEquals(parseToRef("/@132"), {
+    path: "/.md",
+    details: { type: "position", pos: 132 },
+  });
 });
 
 Deno.test("parseToRef() link cases", () => {
