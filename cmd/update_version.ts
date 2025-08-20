@@ -1,3 +1,5 @@
+import { version } from "../version.ts";
+
 export async function updateVersionFile() {
   const command = new Deno.Command("git", {
     args: ["describe", "--tags", "--long"],
@@ -6,7 +8,12 @@ export async function updateVersionFile() {
   });
 
   const { stdout } = await command.output();
-  const commitVersion = new TextDecoder().decode(stdout).trim();
+  let commitVersion = new TextDecoder().decode(stdout).trim();
+
+  if (!commitVersion) {
+    // Probably in CI, let's pull from Github environment variables instead
+    commitVersion = `${version}-${Deno.env.get("GITHUB_SHA")}`;
+  }
 
   const versionFilePath = "./public_version.ts";
   const versionContent = `

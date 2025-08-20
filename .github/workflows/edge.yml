@@ -17,7 +17,6 @@ jobs:
       - name: Compile for all platforms
         run: |
           deno task build
-          deno task bundle
           deno task server:zip:linux-x86_64
           deno task server:zip:linux-aarch64
           deno task server:zip:darwin-x86_64

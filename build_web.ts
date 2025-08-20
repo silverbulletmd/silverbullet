@@ -10,8 +10,6 @@ import { denoPlugins } from "@luca/esbuild-deno-loader";
 import * as esbuild from "esbuild";
 import { updateVersionFile } from "./cmd/update_version.ts";
 
-await updateVersionFile();
-
 export async function bundleAll(
   watch: boolean,
 ): Promise<void> {
@@ -149,6 +147,7 @@ if (import.meta.main) {
       watch: false,
     },
   });
+  await updateVersionFile();
   await bundleAll(args.watch);
   if (!args.watch) {
     esbuild.stop();
