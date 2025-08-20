@@ -46,7 +46,6 @@ export function cleanWikiLinkPlugin(client: Client) {
         if (!ref) {
           linkStatus = "invalid";
         } else if (ref.path === "" || isBuiltinPath(ref.path)) {
-          // TODO: Check if header or maybe even if pos exists
           linkStatus = "default";
         } else if (
           Array.from(client.clientSystem.allKnownFiles)

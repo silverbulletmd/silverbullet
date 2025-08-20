@@ -21,11 +21,7 @@ export async function renderHtmlPage(
   options: ServerOptions,
   clientAssetBundle: AssetBundle,
 ): Promise<Response> {
-  const ref = parseToRef(path);
-  if (!ref) {
-    // TODO
-    return c.notFound();
-  }
+  const ref = parseToRef(path) ?? parseToRef(options.indexPage)!;
 
   let html = "";
   let title = "SilverBullet"; // Default to simply SilverBullet initially
