@@ -20,13 +20,15 @@ Deno.test("parseToRef() default cases", () => {
   assertEquals(parseToRef("foo."), { path: "foo..md" });
   assertEquals(parseToRef("/.md"), { path: "/.md" });
   assertEquals(parseToRef("/foo/.bar.md"), { path: "/foo/.bar.md" });
+  assertEquals(parseToRef("foo[bar"), { path: "foo[bar.md" });
+  assertEquals(parseToRef("foo]bar"), { path: "foo]bar.md" });
+  assertEquals(parseToRef("foo(bar"), { path: "foo(bar.md" });
+  assertEquals(parseToRef("foo)bar"), { path: "foo)bar.md" });
 
   assertEquals(parseToRef("^.foo"), null);
   assertEquals(parseToRef(".foobar"), null);
-  assertEquals(parseToRef("foo[bar"), null);
-  assertEquals(parseToRef("foo]bar"), null);
-  assertEquals(parseToRef("foo(bar"), null);
-  assertEquals(parseToRef("foo)bar"), null);
+  assertEquals(parseToRef("foo[[bar"), null);
+  assertEquals(parseToRef("foo]]bar"), null);
   assertEquals(parseToRef("foo|bar"), null);
   assertEquals(parseToRef("foo@bar"), null);
 
@@ -104,7 +106,7 @@ Deno.test("isValidPath() and isValidName()", () => {
   assert(isValidName("foo"));
   assert(!isValidName("foo@123"));
   assert(!isValidName("^foo@123"));
-  assert(!isValidName("foo[bar"));
+  assert(!isValidName("foo[[bar"));
 });
 
 Deno.test("Page URI encoding", () => {
