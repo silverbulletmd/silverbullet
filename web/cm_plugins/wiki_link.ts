@@ -32,11 +32,14 @@ export function cleanWikiLinkPlugin(client: Client) {
 
         wikiLinkRegex.lastIndex = 0;
         const match = wikiLinkRegex.exec(text);
-        if (!match) return;
+        if (!match || !match.groups) {
+          return;
+        }
 
-        const [/* Full match */, firstMark, url, alias, lastMark] = match;
+        const { leadingTrivia, stringRef, alias, trailingTrivia } =
+          match.groups;
 
-        const ref = parseToRef(url);
+        const ref = parseToRef(stringRef);
 
         let linkStatus: "file-missing" | "default" | "invalid" = "default";
 
@@ -66,21 +69,21 @@ export function cleanWikiLinkPlugin(client: Client) {
             widgets.push(
               Decoration.mark({
                 class: css,
-              }).range(from + firstMark.length, to - lastMark.length),
+              }).range(from + leadingTrivia.length, to - trailingTrivia.length),
             );
           }
 
           return;
         }
 
-        const cleanedPath = ref ? getNameFromPath(ref.path) : url;
+        const cleanedPath = ref ? getNameFromPath(ref.path) : stringRef;
         const helpText = {
           "default": `Navigate to ${cleanedPath}`,
           "file-missing": `Create ${cleanedPath}`,
           "invalid": `Cannot create invalid file ${cleanedPath}`,
         }[linkStatus];
 
-        let linkText = alias || url;
+        let linkText = alias || stringRef;
 
         // The `&& ref` is only there to make typescript happy
         if (linkStatus === "default" && ref) {
@@ -123,7 +126,7 @@ export function cleanWikiLinkPlugin(client: Client) {
                 if (e.altKey) {
                   // Move cursor into the link
                   client.editorView.dispatch({
-                    selection: { anchor: from + firstMark.length },
+                    selection: { anchor: from + leadingTrivia.length },
                   });
                   client.focus();
                   return;

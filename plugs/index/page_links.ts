@@ -171,9 +171,9 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
         wikiLinkRegex.lastIndex = 0;
         const match = wikiLinkRegex.exec(text);
         // Search in entire node text to get correct position, but check for full match against trimmed
-        if (match && match[0] === trimmed) {
-          const [_fullMatch, firstMark, url, alias, _lastMark] = match;
-          const pos = textNode.from! + match.index! + firstMark.length;
+        if (match && match.groups && match[0] === trimmed) {
+          const { leadingTrivia, stringRef, alias } = match.groups;
+          const pos = textNode.from! + match.index! + leadingTrivia.length;
           const link: any = {
             ref: `${name}@${pos}`,
             tag: "link",
@@ -183,7 +183,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
             asTemplate: false,
           };
 
-          const ref = parseToRef(url);
+          const ref = parseToRef(stringRef);
           if (!ref) {
             // Invalid links aren't indexed
             return true;

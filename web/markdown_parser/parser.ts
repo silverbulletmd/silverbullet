@@ -30,20 +30,23 @@ const WikiLink: MarkdownConfig = {
     {
       name: "WikiLink",
       parse(cx, next, pos) {
-        let match: RegExpMatchArray | null;
-        if (
-          next != 91 /* '[' */ &&
-            next != 33 /* '!' */ ||
-          !(match = pWikiLinkRegex.exec(cx.slice(pos, cx.end)))
-        ) {
+        // Do a preliminary check for performance
+        if (next != 91 /* '[' */ && next != 33 /* '!' */) {
           return -1;
         }
 
-        const [fullMatch, firstMark, page, alias, _lastMark] = match;
-        const endPos = pos + fullMatch.length;
+        pWikiLinkRegex.lastIndex = 0;
+        const match = pWikiLinkRegex.exec(cx.slice(pos, cx.end));
+        if (!match || !match.groups) {
+          return -1;
+        }
+
+        //const [fullMatch, firstMark, page, alias, _lastMark] = match;
+        const { leadingTrivia, stringRef, alias } = match.groups;
+        const endPos = pos + match[0].length;
         let aliasElts: any[] = [];
         if (alias) {
-          const pipeStartPos = pos + firstMark.length + page.length;
+          const pipeStartPos = pos + leadingTrivia.length + stringRef.length;
           aliasElts = [
             cx.elt("WikiLinkMark", pipeStartPos, pipeStartPos + 1),
             cx.elt(
@@ -55,11 +58,11 @@ const WikiLink: MarkdownConfig = {
         }
 
         let allElts = cx.elt("WikiLink", pos, endPos, [
-          cx.elt("WikiLinkMark", pos, pos + firstMark.length),
+          cx.elt("WikiLinkMark", pos, pos + leadingTrivia.length),
           cx.elt(
             "WikiLinkPage",
-            pos + firstMark.length,
-            pos + firstMark.length + page.length,
+            pos + leadingTrivia.length,
+            pos + leadingTrivia.length + stringRef.length,
           ),
           ...aliasElts,
           cx.elt("WikiLinkMark", endPos - 2, endPos),
