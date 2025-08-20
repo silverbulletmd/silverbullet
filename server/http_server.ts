@@ -483,7 +483,6 @@ export class HttpServer {
     this.app.get(filePathRegex, async (c, next) => {
       const req = c.req;
       const name = req.param("path")!;
-      console.log("Requested file", name);
 
       if (
         name.endsWith(mdExt) &&
