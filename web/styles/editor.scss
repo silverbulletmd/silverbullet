@@ -67,11 +67,6 @@
     }
   }
 
-  .sb-inline-content * {
-    max-width: 100%;
-    display: block;
-  }
-
   .cm-panels-bottom .cm-vim-panel {
     padding: 0 20px;
     max-width: var(--editor-width);
@@ -654,8 +649,14 @@
     }
   }
 
-  .sb-markdown-widget-inline {
+  .sb-inline-content > div > .content > * {
+    max-width: 100%;
+    display: block;
+  }
+
+  .sb-inline-content {
     margin: 0;
+    overflow: hidden;
   }
 
   .sb-fenced-code-iframe {
