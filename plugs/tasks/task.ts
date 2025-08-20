@@ -345,7 +345,7 @@ export async function updateTaskState(
     taskStateNode.children![1].text = newState;
     text = renderToText(referenceMdTree);
     await space.writePage(page, text);
-    sync.scheduleFileSync(`${page}.md`);
+    sync.performFileSync(`${page}.md`);
   }
 }
 
