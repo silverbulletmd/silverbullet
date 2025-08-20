@@ -3,6 +3,7 @@ import type { ControllerMessage, WorkerMessage } from "../protocol.ts";
 import type { Plug } from "../plug.ts";
 import { AssetBundle, type AssetJson } from "../../asset_bundle/bundle.ts";
 import type { Sandbox } from "./sandbox.ts";
+import { race, timeout } from "../../async.ts";
 
 /**
  * Represents a "safe" execution environment for plug code
@@ -39,24 +40,28 @@ export class WorkerSandbox<HookT> implements Sandbox<HookT> {
       type: "module",
     });
 
-    return new Promise((resolve) => {
-      this.worker!.onmessage = (ev) => {
-        if (ev.data.type === "manifest") {
-          this.manifest = ev.data.manifest;
-          // Set manifest in the plug
-          this.plug.manifest = this.manifest;
+    return race([
+      // We're adding a timeout of 5s here to handle the case where a plug blows up during initialization
+      timeout(5000),
+      new Promise((resolve) => {
+        this.worker!.onmessage = (ev) => {
+          if (ev.data.type === "manifest") {
+            this.manifest = ev.data.manifest;
+            // Set manifest in the plug
+            this.plug.manifest = this.manifest;
 
-          // Set assets in the plug
-          this.plug.assets = new AssetBundle(
-            this.manifest?.assets ? this.manifest.assets as AssetJson : {},
-          );
+            // Set assets in the plug
+            this.plug.assets = new AssetBundle(
+              this.manifest?.assets ? this.manifest.assets as AssetJson : {},
+            );
 
-          return resolve();
-        }
+            return resolve();
+          }
 
-        this.onMessage(ev.data);
-      };
-    });
+          this.onMessage(ev.data);
+        };
+      }),
+    ]);
   }
 
   async onMessage(data: ControllerMessage) {
