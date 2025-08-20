@@ -65,6 +65,7 @@ import { parseExpressionString } from "../lib/space_lua/parse.ts";
 import { Config } from "./config.ts";
 import type { DocumentMeta, FileMeta, PageMeta } from "../type/index.ts";
 import { parseMarkdown } from "./markdown_parser/parser.ts";
+import { CheckPathSpacePrimitives } from "../lib/spaces/checked_space_primitives.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -99,6 +100,7 @@ export class Client {
 
   clientSystem!: ClientSystem;
   plugSpaceRemotePrimitives!: PlugSpacePrimitives;
+  eventedSpacePrimitives!: EventedSpacePrimitives;
   httpSpacePrimitives!: HttpSpacePrimitives;
 
   ui!: MainUI;
@@ -206,7 +208,7 @@ export class Client {
       console.info(
         "Initial sync has not yet been completed, disabling page and document indexing to speed this up",
       );
-      this.space.spacePrimitives.enablePageEvents = false;
+      this.eventedSpacePrimitives.enablePageEvents = false;
     }
 
     this.ui = new MainUI(this);
@@ -322,7 +324,7 @@ export class Client {
       this.clientConfig.readOnly ? undefined : "client",
     );
 
-    const localSpacePrimitives = new EventedSpacePrimitives(
+    this.eventedSpacePrimitives = new EventedSpacePrimitives(
       // Using fallback space primitives here to allow (by default) local reads to "fall through" to HTTP when files aren't synced yet
       new FallbackSpacePrimitives(
         new DataStoreSpacePrimitives(
@@ -333,6 +335,10 @@ export class Client {
         this.plugSpaceRemotePrimitives,
       ),
       this.eventHook,
+    );
+
+    const localSpacePrimitives = new CheckPathSpacePrimitives(
+      this.eventedSpacePrimitives,
     );
 
     this.space = new Space(
@@ -1295,7 +1301,7 @@ export class Client {
             "[sync]",
             "Initial sync completed, now need to do a full space index to ensure all pages are indexed using any custom indexers",
           );
-          this.space.spacePrimitives.enablePageEvents = true;
+          this.eventedSpacePrimitives.enablePageEvents = true;
           this.clientSystem.ensureFullIndex().catch(
             console.error,
           );
