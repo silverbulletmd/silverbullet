@@ -16,9 +16,6 @@ export class Plug<HookT> {
   public manifest?: Manifest<HookT>;
   public assets?: AssetBundle;
 
-  // Time of last function invocation
-  unloadTimeout?: number;
-
   constructor(
     private system: System<HookT>,
     readonly name: string,
@@ -26,8 +23,6 @@ export class Plug<HookT> {
     private sandboxFactory: SandboxFactory<HookT>,
   ) {
     this.runtimeEnv = system.env;
-
-    this.scheduleUnloadTimeout();
 
     this.sandbox = this.sandboxFactory(this);
     // Retrieve the manifest asynchonously, which may either come from a cache or be loaded from the worker
@@ -58,25 +53,10 @@ export class Plug<HookT> {
     return !funDef.env || !this.runtimeEnv || funDef.env === this.runtimeEnv;
   }
 
-  scheduleUnloadTimeout() {
-    if (!this.system.options.plugFlushTimeout) {
-      return;
-    }
-    // Reset the unload timeout, if set
-    if (this.unloadTimeout) {
-      clearTimeout(this.unloadTimeout);
-    }
-    this.unloadTimeout = setTimeout(() => {
-      this.stop();
-    }, this.system.options.plugFlushTimeout);
-  }
-
   // Invoke a function
   async invoke(name: string, args: any[]): Promise<any> {
     // Ensure the worker is fully up and running
     await this.ready;
-
-    this.scheduleUnloadTimeout();
 
     // Before we access the manifest
     const funDef = this.manifest!.functions[name];
