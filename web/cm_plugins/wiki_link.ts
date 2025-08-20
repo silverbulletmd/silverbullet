@@ -2,13 +2,15 @@ import { syntaxTree } from "@codemirror/language";
 import { Decoration } from "@codemirror/view";
 import type { Client } from "../client.ts";
 import { decoratorStateField, isCursorInRange, LinkWidget } from "./util.ts";
-import { isBuiltinPath } from "@silverbulletmd/silverbullet/lib/resolve";
+import {
+  fileName,
+  isBuiltinPath,
+} from "@silverbulletmd/silverbullet/lib/resolve";
 import {
   encodePageURI,
   encodeRef,
   getNameFromPath,
   parseToRef,
-  type Path,
 } from "@silverbulletmd/silverbullet/lib/ref";
 import type { ClickEvent } from "@silverbulletmd/silverbullet/type/client";
 import { wikiLinkRegex } from "../markdown_parser/constants.ts";
@@ -91,8 +93,7 @@ export function cleanWikiLinkPlugin(client: Client) {
           // We don't want to render the meta
           renderedRef.meta = false;
           // We also don't want to rendered the prefix of the path
-          // TODO: Move this into a function, maybe?
-          renderedRef.path = renderedRef.path.split("/").pop() as Path;
+          renderedRef.path = fileName(renderedRef.path);
 
           const prefix = (ref.details?.type === "position" ||
               ref.details?.type === "linecolumn")

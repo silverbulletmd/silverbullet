@@ -180,7 +180,6 @@ export function getOffsetFromRef(
     case "position":
       return ref.details.pos;
     case "linecolumn":
-      // TODO: Should we really render the tree here? Maybe just take in the string
       return getOffsetFromLineColumn(
         text ?? renderToText(parseTree),
         ref.details.line,

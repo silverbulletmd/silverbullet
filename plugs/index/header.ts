@@ -87,7 +87,6 @@ export async function headerComplete(completeEvent: CompleteEvent) {
     5,
   );
 
-  // TODO: Fix header indexing (i.e. remove the @)
   return {
     from: completeEvent.pos - match.groups.path.length,
     options: headers.map((header) => ({

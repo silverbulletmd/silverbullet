@@ -16,6 +16,12 @@ export function folderName(name: string | Path): string {
   return name.split("/").slice(0, -1).join("/");
 }
 
+export function fileName(path: Path): Path;
+export function fileName(name: string): string;
+export function fileName(name: string | Path): string | Path {
+  return name.split("/").pop()!;
+}
+
 const builtinPrefixes = [
   "tag:",
   "search:",
