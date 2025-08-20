@@ -5,10 +5,7 @@ import type { AssetBundle } from "../lib/asset_bundle/bundle.ts";
 import { handleShellEndpoint } from "./shell_endpoint.ts";
 import type { KvPrimitives } from "../lib/data/kv_primitives.ts";
 import { compile as gitIgnoreCompiler } from "gitignore-parser";
-import {
-  decodePageURI,
-  isValidPath,
-} from "@silverbulletmd/silverbullet/lib/ref";
+import { decodePageURI } from "@silverbulletmd/silverbullet/lib/ref";
 import { LockoutTimer } from "./lockout.ts";
 import type { AuthOptions } from "../cmd/server.ts";
 import type { ClientConfig } from "../web/client.ts";
@@ -548,8 +545,7 @@ export class HttpServer {
         if (this.options.readOnly) {
           return c.text("Read only mode, no writes allowed", 405);
         }
-        // TODO: Necessary?
-        if (!isValidPath(path)) {
+        if (path.startsWith(".")) {
           return c.text("Forbidden", 403);
         }
         console.log("Writing file", path);
