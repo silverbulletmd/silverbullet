@@ -44,7 +44,7 @@ export async function indexHeaders({ name: pageName, tree }: IndexTreeEvent) {
     const name = n.children!.slice(1).map(renderToText).join("").trim();
 
     headers.push({
-      ref: `${pageName}#${name}`,
+      ref: `${pageName}@${n.from}`,
       tag: "header",
       tags: [...tags],
       level,
@@ -92,7 +92,7 @@ export async function headerComplete(completeEvent: CompleteEvent) {
     options: headers.map((header) => ({
       label: header.page === completeEvent.pageName
         ? `#${header.name}`
-        : header.ref,
+        : `${header.page}#${header.name}`,
       type: "header",
     })),
   };
