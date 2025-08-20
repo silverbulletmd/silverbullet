@@ -117,11 +117,14 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
         return false;
       }
       mdLinkRegex.lastIndex = 0;
-      const text = mdLinkRegex.exec(renderToText(linkNode.parent));
-      if (!text) {
+      const match = mdLinkRegex.exec(renderToText(linkNode.parent));
+      if (!match) {
         return false;
       }
-      let { title: alias, url } = text.groups as { url: string; title: string };
+      let { title: alias, url } = match.groups as {
+        url: string;
+        title: string;
+      };
 
       // Check if local link
       if (!isLocalURL(url)) {
