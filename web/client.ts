@@ -1292,7 +1292,10 @@ export class Client {
       return;
     }
 
-    const customStylesContent = spaceStyles.map((s) => s.style).join("\n\n");
+    // Prepare separate <style> tag per custom style (for robustness)
+    const customStylesContent = spaceStyles.map((s) =>
+      "<style>" + s.style + "</style>"
+    ).join("\n\n");
     this.ui.viewDispatch({
       type: "set-ui-option",
       key: "customStyles",
