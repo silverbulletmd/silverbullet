@@ -20,6 +20,7 @@ import { spaceluaApi } from "./stdlib/space_lua.ts";
 import { mathApi } from "./stdlib/math.ts";
 import { parse } from "./parse.ts";
 import { evalStatement } from "./eval.ts";
+import { encodingApi } from "./stdlib/encoding.ts";
 
 const printFunction = new LuaBuiltinFunction(async (_sf, ...args) => {
   console.log(
@@ -312,6 +313,7 @@ export function luaBuildStandardEnv() {
   // Non-standard
   env.set("each", eachFunction);
   env.set("spacelua", spaceluaApi);
+  env.set("encoding", encodingApi);
   env.set("some", someFunction);
   return env;
 }
