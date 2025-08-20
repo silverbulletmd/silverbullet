@@ -44,3 +44,22 @@ export function base64DecodeDataUrl(dataUrl: string): Uint8Array {
   const b64Encoded = dataUrl.split(",", 2)[1];
   return base64Decode(b64Encoded);
 }
+
+/**
+ * Perform sha256 hash using the browser's crypto APIs
+ * Note: this will only work over HTTPS
+ * @param message
+ */
+export async function hashSHA256(message: string): Promise<string> {
+  // Transform the string into an ArrayBuffer
+  const encoder = new TextEncoder();
+  const data = encoder.encode(message);
+
+  // Generate the hash
+  const hashBuffer = await globalThis.crypto.subtle.digest("SHA-256", data);
+
+  // Transform the hash into a hex string
+  return Array.from(new Uint8Array(hashBuffer)).map((b) =>
+    b.toString(16).padStart(2, "0")
+  ).join("");
+}

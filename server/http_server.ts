@@ -42,8 +42,8 @@ export type ServerOptions = {
 
 export class HttpServer {
   private abortController?: AbortController;
-  private hostname: string;
-  private port: number;
+  private readonly hostname: string;
+  private readonly port: number;
   private app: Hono;
   private readonly spacePrimitives: SpacePrimitives;
   private jwtIssuer: JWTIssuer;

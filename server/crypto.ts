@@ -2,6 +2,7 @@ import { create, getNumericDate, verify } from "djwt";
 import type { KvPrimitives } from "../lib/data/kv_primitives.ts";
 
 import type { KvKey } from "../type/datastore.ts";
+import { hashSHA256 } from "../lib/crypto.ts";
 
 const jwtSecretKey: KvKey = ["jwtSecretKey"];
 
@@ -31,7 +32,7 @@ export class JWTIssuer {
     const [currentAuthHash] = await this.kv.batchGet([[
       "authHash",
     ]]);
-    const newAuthHash = await this.hashSHA256(authString);
+    const newAuthHash = await hashSHA256(authString);
     if (currentAuthHash && currentAuthHash !== newAuthHash) {
       console.log(
         "Authentication has changed since last run, so invalidating all existing tokens",
@@ -73,19 +74,5 @@ export class JWTIssuer {
 
   verifyAndDecodeJWT(jwt: string): Promise<Record<string, unknown>> {
     return verify(jwt, this.key);
-  }
-
-  async hashSHA256(message: string): Promise<string> {
-    // Transform the string into an ArrayBuffer
-    const encoder = new TextEncoder();
-    const data = encoder.encode(message);
-
-    // Generate the hash
-    const hashBuffer = await globalThis.crypto.subtle.digest("SHA-256", data);
-
-    // Transform the hash into a hex string
-    return Array.from(new Uint8Array(hashBuffer)).map((b) =>
-      b.toString(16).padStart(2, "0")
-    ).join("");
   }
 }

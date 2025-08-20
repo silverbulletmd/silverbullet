@@ -55,7 +55,11 @@ export async function serveCommand(
   console.info(
     `Storing database in ${dbFile}.`,
   );
-  const baseKvPrimitives = new MemoryKvPrimitives(dbFile);
+
+  // The only use case of this KV is to store auth-related stuff (keys, hashes)
+  const baseKvPrimitives = new MemoryKvPrimitives(dbFile, {
+    throttleMs: 100,
+  });
   await baseKvPrimitives.init();
 
   console.info("Starting SilverBullet binding to", `${hostname}:${port}`);
