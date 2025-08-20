@@ -90,9 +90,7 @@ export async function headerComplete(completeEvent: CompleteEvent) {
   return {
     from: completeEvent.pos - match.groups.path.length,
     options: headers.map((header) => ({
-      label: header.page === completeEvent.pageName
-        ? `#${header.name}`
-        : `${header.page}#${header.name}`,
+      label: `${getNameFromPath(ref.path)}#${header.name}`,
       type: "header",
     })),
   };
