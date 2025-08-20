@@ -26,18 +26,19 @@ else
 end
 ```
 
-### sync.scheduleFileSync(path)
-Actively schedules a file to be synced. Sync will happen by default too, but this prioritizes the file.
+### sync.performFileSync(path)
+Immediately synchronizes a file with the server. Returns once the synchronization has completed.
 
 Example:
 ```lua
-sync.scheduleFileSync("notes/important.md")
+sync.performFileSync("notes/important.md")
 ```
 
-### sync.scheduleSpaceSync()
-Schedules a sync without waiting for the usual sync interval.
+### sync.performSpaceSync()
+Immediately triggers a full space sync. Returns `-1` if a sync was already ongoing, or the number of sync operations performed.
 
 Example:
 ```lua
 local changes = sync.scheduleSpaceSync()
 print("Number of changes synced: " .. changes)
+```

@@ -70,7 +70,7 @@ export class SyncService {
           return;
         }
         if (!isSynced) {
-          this.scheduleFileSync(`${name}.md`).catch(console.error);
+          this.performFileSync(`${name}.md`).catch(console.error);
         }
       },
     );
@@ -79,7 +79,7 @@ export class SyncService {
       if (!this.enabled) {
         return;
       }
-      this.scheduleFileSync(name).catch(console.error);
+      this.performFileSync(name).catch(console.error);
     });
 
     const setSavingTimeout = () => {
@@ -103,7 +103,7 @@ export class SyncService {
         console.warn("This should not happen, savingTimeout was not set");
       }
       const path = `${name}.md`;
-      this.scheduleFileSync(path).catch(console.error);
+      this.performFileSync(path).catch(console.error);
     });
 
     eventHook.addLocalListener("editor:documentSaved", (name) => {
@@ -118,7 +118,7 @@ export class SyncService {
           "This should not happen, savingTimeout was not set. This could be a slow document editor",
         );
       }
-      this.scheduleFileSync(name).catch(console.error);
+      this.performFileSync(name).catch(console.error);
     });
 
     this.spaceSync.on({
@@ -214,7 +214,11 @@ export class SyncService {
     }
   }
 
-  async scheduleFileSync(path: string): Promise<void> {
+  /**
+   * Performs a file sync for a single file, returns once sync has completed.
+   * @param path path of file to sync
+   */
+  async performFileSync(path: string): Promise<void> {
     if (this.filesScheduledForSync.has(path)) {
       // Already scheduled, no need to duplicate
       console.info(`File ${path} already scheduled for sync`);
@@ -226,9 +230,9 @@ export class SyncService {
     this.filesScheduledForSync.delete(path);
   }
 
-  async scheduleSpaceSync(): Promise<void> {
+  async performSpaceSync(): Promise<number> {
     await this.noOngoingSync(5000);
-    await this.syncSpace();
+    return this.syncSpace();
   }
 
   start() {
@@ -252,13 +256,17 @@ export class SyncService {
     }, spaceSyncInterval / 2); // check every half the sync cycle because actually running the sync takes some time therefore we don't want to wait for the full cycle
   }
 
+  /**
+   * Performs a full space sync
+   * @return the number of sync operations performed, or -1 when a sync was already in progress
+   */
   async syncSpace(): Promise<number> {
     if (!this.enabled) {
       return 0;
     }
     if (await this.isSyncing()) {
       console.log("Aborting space sync: already syncing");
-      return 0;
+      return -1;
     }
     await this.registerSyncStart(true);
     let operations = 0;

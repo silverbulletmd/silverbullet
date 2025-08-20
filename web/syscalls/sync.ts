@@ -9,11 +9,11 @@ export function syncSyscalls(editor: Client): SysCallMapping {
     "sync.hasInitialSyncCompleted": (): Promise<boolean> => {
       return editor.syncService.hasInitialSyncCompleted();
     },
-    "sync.scheduleFileSync": (_ctx, path: string): Promise<void> => {
-      return editor.syncService.scheduleFileSync(path);
+    "sync.performFileSync": (_ctx, path: string): Promise<void> => {
+      return editor.syncService.performFileSync(path);
     },
-    "sync.scheduleSpaceSync": () => {
-      return editor.syncService.scheduleSpaceSync();
+    "sync.performSpaceSync": (): Promise<number> => {
+      return editor.syncService.performSpaceSync();
     },
   };
 }

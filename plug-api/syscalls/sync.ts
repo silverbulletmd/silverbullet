@@ -20,16 +20,16 @@ export function hasInitialSyncCompleted(): Promise<boolean> {
 }
 
 /**
- * Actively schedules a file to be synced. Sync will happen by default too, but this prioritizes the file.
+ * Syncs a file immediately. Sync would happen automatically, but this prioritizes the file.
  * @param path the path to the file to sync
  */
-export function scheduleFileSync(path: string): Promise<void> {
-  return syscall("sync.scheduleFileSync", path);
+export function performFileSync(path: string): Promise<void> {
+  return syscall("sync.performFileSync", path);
 }
 
 /**
- * Schedules a sync of without waiting for the usual sync interval.
+ * Performs an immediate full sync.
  */
-export function scheduleSpaceSync(): Promise<number> {
-  return syscall("sync.scheduleSpaceSync");
+export function performSpaceSync(): Promise<number> {
+  return syscall("sync.performSpaceSync");
 }
