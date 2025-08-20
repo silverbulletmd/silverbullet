@@ -10,7 +10,9 @@ import type { DocumentMeta, PageMeta } from "../../type/index.ts";
 import {
   getNameFromPath,
   parseToRef,
+  type Path,
 } from "@silverbulletmd/silverbullet/lib/ref";
+import { folderName } from "@silverbulletmd/silverbullet/lib/resolve";
 
 const tagRegex = new RegExp(mdTagRegex.source, "g");
 
@@ -35,7 +37,7 @@ export function PageNavigator({
   onNavigate: (name: string | null) => void;
   onModeSwitch: (mode: "page" | "meta" | "document" | "all") => void;
   completer: (context: CompletionContext) => Promise<CompletionResult | null>;
-  currentPath?: string;
+  currentPath: Path;
 }) {
   const options: FilterOption[] = [];
 
@@ -156,13 +158,8 @@ export function PageNavigator({
     }
   }
 
-  let completePrefix = currentPath + "/";
-  if (currentPath && currentPath.includes("/")) {
-    const pieces = currentPath.split("/");
-    completePrefix = pieces.slice(0, pieces.length - 1).join("/") + "/";
-  } else if (currentPath && currentPath.includes(" ")) {
-    completePrefix = currentPath.split(" ")[0] + " ";
-  }
+  const completePrefix =
+    (folderName(currentPath) || getNameFromPath(currentPath)) + "/";
 
   const allowNew = mode !== "document";
   const creatablePageNoun = mode !== "all" ? mode : "page";
