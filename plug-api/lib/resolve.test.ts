@@ -4,37 +4,49 @@ import { assertEquals } from "@std/assert";
 Deno.test("Test URL resolver", () => {
   // Absolute paths
   assertEquals(
-    "bar",
     resolveMarkdownLink("foo", "/bar"),
+    "bar",
   );
   assertEquals(
-    "qux",
     resolveMarkdownLink("/foo/bar/baz", "/qux"),
+    "qux",
   );
   assertEquals(
-    "bar@123#456",
     resolveMarkdownLink("foo", "/bar@123#456"),
+    "bar@123#456",
   );
   assertEquals(
-    "baz.jpg",
     resolveMarkdownLink("foo/bar", "/baz.jpg"),
+    "baz.jpg",
   );
 
   // Relative paths
   assertEquals(
-    "foo.jpg",
-    resolveMarkdownLink("bar", "foo.jpg"),
+    resolveMarkdownLink("bar", "foo"),
+    "foo",
   );
   assertEquals(
-    "foo/baz.jpg",
-    resolveMarkdownLink("foo/bar", "baz.jpg"),
+    resolveMarkdownLink("foo/bar.jpg", "baz"),
+    "foo/baz",
   );
   assertEquals(
-    "foo/baz.jpg",
-    resolveMarkdownLink("/foo/bar", "baz.jpg"),
+    resolveMarkdownLink("/foo/bar", "baz"),
+    "/foo/baz",
   );
   assertEquals(
-    "foo/baz.jpg",
-    resolveMarkdownLink("foo///bar", "baz.jpg"),
+    resolveMarkdownLink("foo///bar", "baz"),
+    "foo///baz",
+  );
+  assertEquals(
+    resolveMarkdownLink("bar", "../foo/baz"),
+    "foo/baz",
+  );
+  assertEquals(
+    resolveMarkdownLink("bar", "../../foo/baz"),
+    "foo/baz",
+  );
+  assertEquals(
+    resolveMarkdownLink("bar/qux", "foo/../baz"),
+    "bar/foo/../baz",
   );
 });

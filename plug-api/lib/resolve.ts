@@ -35,7 +35,9 @@ export function isBuiltinPath(path: Path): boolean {
 }
 
 /**
- * Resolves a markdown link url relative to an absolute url.
+ * Resolves a markdown link url relative to an absolute url. It won't resolve
+ * above the base of the absolute path in the file tree. This means excess `..`
+ * will be dropped. It will also only resolve leading `..`
  */
 export function resolveMarkdownLink(
   absolute: string,
@@ -51,11 +53,9 @@ export function resolveMarkdownLink(
   } else {
     const splitAbsolute = absolute
       .split("/")
-      .slice(0, -1)
-      .filter((p) => p);
+      .slice(0, -1);
     const splitRelative = relative
-      .split("/")
-      .filter((p) => p);
+      .split("/");
 
     while (splitRelative && splitRelative[0] === "..") {
       splitAbsolute.pop();
