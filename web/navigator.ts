@@ -3,6 +3,7 @@ import {
   getNameFromPath,
   isMarkdownPath,
   parseToRef,
+  type Path,
   type Ref,
 } from "@silverbulletmd/silverbullet/lib/ref";
 import type { Client } from "./client.ts";
@@ -53,20 +54,18 @@ export class PathPageNavigator {
       globalThis.history.replaceState(
         currentState,
         "",
-        `${document.baseURI}${
-          encodePageURI(getNameFromPath(currentState.path))
-        }`,
+        `${document.baseURI}${this.pathToURI(currentState.path)}`,
       );
       globalThis.history.pushState(
         ref,
         "",
-        `${document.baseURI}${encodePageURI(getNameFromPath(ref.path))}`,
+        `${document.baseURI}${this.pathToURI(ref.path)}`,
       );
     } else {
       globalThis.history.replaceState(
         ref,
         "",
-        `${document.baseURI}${encodePageURI(getNameFromPath(ref.path))}`,
+        `${document.baseURI}${this.pathToURI(ref.path)}`,
       );
     }
 
@@ -97,7 +96,7 @@ export class PathPageNavigator {
         globalThis.history.replaceState(
           newState,
           "",
-          `${document.baseURI}${encodePageURI(getNameFromPath(newState.path))}`,
+          `${document.baseURI}${this.pathToURI(newState.path)}`,
         );
 
         globalThis.dispatchEvent(
@@ -112,6 +111,12 @@ export class PathPageNavigator {
     }
 
     this.navigationPromise = null;
+  }
+
+  private pathToURI(path: Path): string {
+    return path !== this.indexRef.path
+      ? encodePageURI(getNameFromPath(path))
+      : "";
   }
 
   buildCurrentLocationState(): LocationState {
@@ -150,6 +155,9 @@ export class PathPageNavigator {
         }
       }
 
+      // For some (propably smart) reason the reject() function on a
+      // Promise.withResolvers, also throws. This is hugely annoying here, so
+      // let's resolve for both cases
       await pageLoadCallback(state)
         .then(
           () => this.navigationPromise?.resolve(null),
