@@ -17,7 +17,6 @@ Deno.test("parseToRef() default cases", () => {
   assertEquals(parseToRef("foo."), { path: "foo..md" });
   assertEquals(parseToRef("foo.."), { path: "foo...md" });
   assertEquals(parseToRef(" .foo"), { path: " .foo" });
-  assertEquals(parseToRef("foo."), { path: "foo..md" });
   assertEquals(parseToRef("/.md"), { path: "/.md" });
   assertEquals(parseToRef("/foo/.bar.md"), { path: "/foo/.bar.md" });
   assertEquals(parseToRef("foo[bar"), { path: "foo[bar.md" });
