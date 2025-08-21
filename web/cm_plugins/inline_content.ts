@@ -17,10 +17,12 @@ import {
   getPathExtension,
   isMarkdownPath,
   parseToRef,
+  type Ref,
 } from "@silverbulletmd/silverbullet/lib/ref";
 import { LuaWidget } from "./lua_widget.ts";
 import { mdLinkRegex, wikiLinkRegex } from "../markdown_parser/constants.ts";
 import { mime } from "mimetypes";
+import { extractTransclusion } from "../markdown.ts";
 
 type ContentDimensions = {
   width?: number;
@@ -32,9 +34,10 @@ async function inlineHtmlFromURL(
   url: string,
   alias: string,
   dimensions: ContentDimensions | undefined,
+  allowExternal: boolean = true,
 ): Promise<HTMLElement | string> {
   let mimeType: string | null | undefined;
-  if (!isLocalURL(url)) {
+  if (!isLocalURL(url) && allowExternal) {
     const response = await fetch(url, { method: "HEAD" });
     if (!response.ok) {
       return `Failed to fetch resource, server responded with status code: ${response.status}`;
@@ -117,14 +120,24 @@ async function inlineHtmlFromURL(
     setDimension(embed, "load");
     result = embed;
   } else if (mimeType === "text/markdown") {
-    if (!isLocalURL(url)) {
+    let details: Ref["details"], markdown: string;
+
+    if (!isLocalURL(url) && allowExternal) {
       const response = await fetch(url);
       if (!response.ok) {
         // This shouldn't really happen, but let's check anyways
         return `Couldn't transclude markdown from external source. Server responded with: ${response.status}`;
       }
 
-      result = await response.text();
+      markdown = await response.text();
+
+      const parsedURL = new URL(url);
+      if (parsedURL.hash) {
+        details = {
+          type: "header",
+          header: parsedURL.hash,
+        };
+      }
     } else {
       const ref = parseToRef(url);
 
@@ -133,14 +146,25 @@ async function inlineHtmlFromURL(
         return `Couldn't transclude markdown, invalid path`;
       }
 
-      try {
-        ({ text: result } = await client.space.readPage(
-          getNameFromPath(ref.path),
-        ));
-      } catch {
-        result = `Couldn't transclude markdown, page doesn't exist`;
+      details = ref.details;
+
+      // Do a pre-check, because `readPage` is quiete heavy
+      if (!client.clientSystem.allKnownFiles.has(ref.path)) {
+        return `Couldn't transclude markdown, page doesn't exist`;
       }
+
+      // Don't try catch, we just checked the existence
+      ({ text: markdown } = await client.space.readPage(
+        getNameFromPath(ref.path),
+      ));
     }
+
+    const transclusion = extractTransclusion(markdown, details);
+    if (!transclusion) {
+      return `Couldn't extract translcusion from markdown, try removing any headers '\\#' or positions '@' from your link`;
+    }
+
+    result = transclusion;
   } else {
     result = `Server responded with unsupported mimeType: ${mimeType}`;
   }
@@ -200,6 +224,7 @@ export function inlineContentPlugin(client: Client) {
         const text = state.sliceDoc(from, to);
 
         let url, alias = undefined;
+        let isWikilink = false;
 
         mdLinkRegex.lastIndex = 0;
         wikiLinkRegex.lastIndex = 0;
@@ -215,6 +240,7 @@ export function inlineContentPlugin(client: Client) {
           }
         } else if ((match = wikiLinkRegex.exec(text)) && match.groups) {
           ({ stringRef: url, alias } = match.groups);
+          isWikilink = true;
         } else {
           // We found no match
           return;
@@ -243,6 +269,7 @@ export function inlineContentPlugin(client: Client) {
                   url,
                   alias,
                   dimension,
+                  !isWikilink,
                 );
                 const content = typeof result === "string"
                   ? { markdown: result }
