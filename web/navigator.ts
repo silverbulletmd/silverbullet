@@ -121,6 +121,9 @@ export class PathPageNavigator {
 
   buildCurrentLocationState(): LocationState {
     const locationState: LocationState = parseRefFromURI() || this.indexRef;
+    if (locationState.path === "") {
+      locationState.path = this.indexRef.path;
+    }
 
     if (isMarkdownPath(locationState.path)) {
       const editorView = this.client.editorView;
