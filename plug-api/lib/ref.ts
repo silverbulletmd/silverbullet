@@ -113,18 +113,18 @@ export function parseToRef(stringRef: string): Ref | null {
     ref.meta = true;
   }
 
-  if (groups.pos) {
+  if (groups.pos !== undefined) {
     ref.details = {
       type: "position",
       pos: parseInt(groups.pos),
     };
-  } else if (groups.line) {
+  } else if (groups.line !== undefined) {
     ref.details = {
       type: "linecolumn",
       line: parseInt(groups.line),
-      column: parseInt(groups.col) || 1,
+      column: parseInt(groups.col) ?? 1,
     };
-  } else if (groups.header) {
+  } else if (groups.header !== undefined) {
     ref.details = {
       type: "header",
       header: groups.header,

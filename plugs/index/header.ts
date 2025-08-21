@@ -68,12 +68,7 @@ export async function headerComplete(completeEvent: CompleteEvent) {
   }
 
   const ref = parseToRef(match.groups.path);
-  // `parseToRef` doesn't actually return a header if the header is an empty
-  // string, so we have to do the little hacky check for the`#`
-  if (
-    !ref ||
-    ref.details?.type !== "header" && !completeEvent.linePrefix.endsWith("#")
-  ) {
+  if (!ref || ref.details?.type !== "header") {
     return;
   }
 
