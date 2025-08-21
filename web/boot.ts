@@ -42,12 +42,38 @@ safeRun(async () => {
       return;
     }
   }
-  console.log("Client config", clientConfig);
-  console.log("Booting SilverBullet client");
-
-  if (clientConfig!.readOnly) {
-    console.log("Running in read-only mode");
+  // Then we augment the config based on the URL arguments
+  const urlParams = new URLSearchParams(location.search);
+  if (urlParams.has("readOnly")) {
+    clientConfig!.readOnly = true;
   }
+  if (urlParams.has("disableSpaceLua")) {
+    clientConfig!.disableSpaceLua = true;
+  }
+  if (urlParams.has("disableSync")) {
+    clientConfig!.disableSync = true;
+  }
+  if (urlParams.has("disablePlugs")) {
+    clientConfig!.disablePlugs = true;
+  }
+  if (urlParams.has("disableSpaceStyle")) {
+    clientConfig!.disableSpaceStyle = true;
+  }
+  if (urlParams.has("wipeClient")) {
+    clientConfig!.performWipe = true;
+  }
+  if (urlParams.has("resetClient")) {
+    clientConfig!.performReset = true;
+  }
+  // Update the browser URL to no longer contain the query parameters using pushState
+  if (location.search) {
+    const newURL = new URL(location.href);
+    newURL.search = "";
+    history.pushState({}, "", newURL.toString());
+  }
+  console.log("Booting SilverBullet client");
+  console.log("Client config", clientConfig);
+
   if (navigator.serviceWorker) {
     // Register service worker
     const workerURL = new URL("service_worker.js", document.baseURI);

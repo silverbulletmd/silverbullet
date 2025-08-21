@@ -53,6 +53,7 @@ import {
   luaValueToJS,
 } from "../lib/space_lua/runtime.ts";
 import { buildThreadLocalEnv, handleLuaError } from "./space_lua_api.ts";
+import { builtinPlugNames } from "../plugs/builtin_plugs.ts";
 
 const plugNameExtractRegex = /\/(.+)\.plug\.js$/;
 const indexVersionKey = ["$indexVersion"];
@@ -208,6 +209,10 @@ export class ClientSystem {
   }
 
   async loadScripts() {
+    if (this.client.clientConfig.disableSpaceLua) {
+      console.info("Space Lua scripts are disabled, skipping loading scripts");
+      return;
+    }
     if (!await this.hasFullIndexCompleted()) {
       console.info(
         "Not loading space scripts, since initial indexing has not completed yet",
@@ -245,6 +250,17 @@ export class ClientSystem {
     await Promise.all(allPlugs.map(async (plugMeta) => {
       try {
         const plugName = plugNameExtractRegex.exec(plugMeta.name)![1];
+        if (
+          this.client.clientConfig.disablePlugs &&
+          !builtinPlugNames.includes(plugName)
+        ) {
+          console.warn(
+            "Skipping loading of plug",
+            plugMeta.name,
+            "because client config disables plugs",
+          );
+          return;
+        }
         await this.system.load(
           plugName,
           createSandbox(

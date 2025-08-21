@@ -101,29 +101,7 @@ export function systemSyscalls(
       await client.loadCustomStyles();
     },
     "system.wipeClient": async (_ctx, logout = false) => {
-      if (navigator.serviceWorker) {
-        // We will attempt to unregister the service worker, best effort
-        console.log("Getting service worker registrations");
-        navigator.serviceWorker.getRegistrations().then(
-          async (registrations) => {
-            for (const registration of registrations) {
-              await registration.unregister();
-            }
-            console.log("Unregistered all service workers");
-          },
-        );
-      } else {
-        console.info(
-          "Service workers not enabled (no HTTPS?), so not unregistering.",
-        );
-      }
-      console.log("Stopping all systems");
-      client.space.unwatch();
-      client.syncService.close();
-
-      console.log("Clearing data store");
-      await client.ds.kv.clear();
-      console.log("Clearing complete. All done.");
+      await client.wipeClient();
       if (logout) {
         location.href = ".logout";
       } else {

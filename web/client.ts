@@ -73,6 +73,13 @@ export type ClientConfig = {
   spaceFolderPath: string;
   indexPage: string;
   readOnly: boolean;
+  // These are all configured via ?query parameters, e.g. ?disableSpaceLua=1
+  disableSpaceLua?: boolean;
+  disableSpaceStyle?: boolean;
+  disablePlugs?: boolean;
+  disableSync?: boolean;
+  performWipe?: boolean;
+  performReset?: boolean;
 };
 
 declare global {
@@ -204,6 +211,10 @@ export class Client {
       },
     );
 
+    if (this.clientConfig.disableSync) {
+      this.syncService.enabled = false;
+    }
+
     if (!await this.hasInitialSyncCompleted()) {
       console.info(
         "Initial sync has not yet been completed, disabling page and document indexing to speed this up",
@@ -223,12 +234,23 @@ export class Client {
 
     this.clientSystem.init();
 
-    // Check if we need to perform a client wipe
-    globalThis.onhashchange = () => {
-      this.checkForWipeClient();
-    };
-    if (await this.checkForWipeClient()) {
-      return;
+    if (this.clientConfig.performWipe) {
+      if (confirm("Are you sure you want to wipe the client?")) {
+        await this.wipeClient();
+        alert("Wipe done. Please reload the page or navigate away.");
+        return;
+      }
+    }
+    if (this.clientConfig.performReset) {
+      if (
+        confirm(
+          "Are you sure you want to reset the client? This will wipe all local data and re-sync everything.",
+        )
+      ) {
+        await this.wipeClient();
+        location.reload();
+        return;
+      }
     }
 
     await this.loadCaches();
@@ -288,16 +310,6 @@ export class Client {
     // Asynchronously update caches
     this.updatePageListCache().catch(console.error);
     this.updateDocumentListCache().catch(console.error);
-  }
-
-  private async checkForWipeClient(): Promise<boolean> {
-    if (location.hash === "#--wipe-client") {
-      console.log("Performing full client wipe");
-      await this.clientSystem.localSyscall("system.wipeClient", []);
-      return true;
-    } else {
-      return false;
-    }
   }
 
   public hasInitialSyncCompleted(): Promise<boolean> {
@@ -1271,6 +1283,10 @@ export class Client {
   }
 
   async loadCustomStyles() {
+    if (this.clientConfig.disableSpaceStyle) {
+      console.warn("Not loading custom styles, since space style is disabled");
+      return;
+    }
     if (!await this.hasInitialSyncCompleted()) {
       console.info(
         "Not loading custom styles yet, since initial synca has not completed yet",
@@ -1578,5 +1594,31 @@ export class Client {
       console.log("Focusing editor");
       this.focus();
     }, 100);
+  }
+
+  async wipeClient() {
+    if (navigator.serviceWorker) {
+      // We will attempt to unregister the service worker, best effort
+      console.log("Getting service worker registrations");
+      navigator.serviceWorker.getRegistrations().then(
+        async (registrations) => {
+          for (const registration of registrations) {
+            await registration.unregister();
+          }
+          console.log("Unregistered all service workers");
+        },
+      );
+    } else {
+      console.info(
+        "Service workers not enabled (no HTTPS?), so not unregistering.",
+      );
+    }
+    console.log("Stopping all systems");
+    this.space.unwatch();
+    this.syncService.close();
+
+    console.log("Clearing data store");
+    await this.ds.kv.clear();
+    console.log("Clearing complete.");
   }
 }
