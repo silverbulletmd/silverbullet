@@ -122,7 +122,7 @@ export function parseToRef(stringRef: string): Ref | null {
     ref.details = {
       type: "linecolumn",
       line: parseInt(groups.line),
-      column: parseInt(groups.col) ?? 1,
+      column: groups.col !== undefined ? parseInt(groups.col) : 1,
     };
   } else if (groups.header !== undefined) {
     ref.details = {
