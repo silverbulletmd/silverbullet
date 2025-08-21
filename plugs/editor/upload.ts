@@ -30,7 +30,11 @@ export async function saveFile(file: UploadFile) {
     "File name for pasted document",
     resolveMarkdownLink(
       await editor.getCurrentPath(),
-      isValidPath(file.name) ? file.name : "file.txt",
+      isValidPath(file.name)
+        ? file.name
+        : `file.${
+          file.name.indexOf(".") !== -1 ? file.name.split(".").pop() : "txt"
+        }`,
     ),
   );
   if (!finalFilePath || !isValidPath(finalFilePath)) {
