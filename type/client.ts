@@ -8,6 +8,7 @@ export type FilterOption = {
   hintInactive?: boolean;
   classes?: string;
   category?: string;
+  prefix?: string;
 } & Record<string, any>;
 
 export type Notification = {

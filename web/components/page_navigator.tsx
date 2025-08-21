@@ -116,7 +116,8 @@ export function PageNavigator({
         options.push({
           type: "page",
           meta: pageMeta,
-          name: (pageMeta.pageDecoration?.prefix ?? "") + pageMeta.name,
+          name: pageMeta.name,
+          prefix: pageMeta.pageDecoration?.prefix,
           description,
           orderId: orderId,
           hint: pageMeta._isAspiring ? "Create page" : undefined,
