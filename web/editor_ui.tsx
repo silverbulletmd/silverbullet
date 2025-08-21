@@ -176,6 +176,7 @@ export class MainUI {
                   // Realistically this should only happen when creating a new page
                   client.flashNotification(
                     `Couldn't create page ${name}, name is invalid`,
+                    "error",
                   );
                   return;
                 }
