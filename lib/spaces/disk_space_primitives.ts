@@ -265,10 +265,6 @@ async function* walkPreserveSymlinks(
 ): AsyncIterableIterator<{ path: string; entry: Deno.DirEntry }> {
   for await (const dirEntry of Deno.readDir(dirPath)) {
     const fullPath = `${dirPath}/${dirEntry.name}`;
-    if (dirEntry.name.startsWith(".")) {
-      // Skip hidden files and folders
-      continue;
-    }
 
     let entry: Deno.DirEntry | Deno.FileInfo = dirEntry;
 

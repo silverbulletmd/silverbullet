@@ -509,11 +509,6 @@ export class HttpServer {
         return next();
       }
 
-      if (name.startsWith(".")) {
-        // Don't expose hidden files
-        return c.notFound();
-      }
-
       try {
         if (req.header("X-Get-Meta")) {
           // Getting meta via GET request
@@ -545,9 +540,6 @@ export class HttpServer {
         if (this.options.readOnly) {
           return c.text("Read only mode, no writes allowed", 405);
         }
-        if (path.startsWith(".")) {
-          return c.text("Forbidden", 403);
-        }
         console.log("Writing file", path);
 
         const body = await req.arrayBuffer();
@@ -570,10 +562,6 @@ export class HttpServer {
         return c.text("Read only mode, no writes allowed", 405);
       }
       console.log("Deleting file", name);
-      if (name.startsWith(".")) {
-        // Don't expose hidden files
-        return c.text("Forbidden", 403);
-      }
       try {
         await this.spacePrimitives.deleteFile(name);
         return c.text("OK");

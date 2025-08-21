@@ -9,14 +9,22 @@ export class CheckPathSpacePrimitives implements SpacePrimitives {
   }
 
   async fetchFileList(): Promise<FileMeta[]> {
-    return await this.wrapped.fetchFileList();
+    return (await this.wrapped.fetchFileList()).filter(({ name }) =>
+      this.isReadable(name)
+    );
   }
 
   readFile(name: string): Promise<{ data: Uint8Array; meta: FileMeta }> {
+    if (!this.isReadable(name)) {
+      throw new Error("Couldn't write file, path isn't writable");
+    }
     return this.wrapped.readFile(name);
   }
 
   getFileMeta(name: string): Promise<FileMeta> {
+    if (!this.isReadable(name)) {
+      throw new Error("Couldn't get file meta, path isn't writable");
+    }
     return this.wrapped.getFileMeta(name);
   }
 
@@ -26,17 +34,24 @@ export class CheckPathSpacePrimitives implements SpacePrimitives {
     selfUpdate?: boolean | undefined,
     meta?: FileMeta,
   ): Promise<FileMeta> {
-    if (!this.checkPath(name)) {
+    if (!this.isWritable(name)) {
       throw new Error("Couldn't write file, path is invalid");
     }
     return this.wrapped.writeFile(name, data, selfUpdate, meta);
   }
 
   deleteFile(name: string): Promise<void> {
+    if (!this.isWritable(name)) {
+      throw new Error("Couldn't delete file, path isn't writable");
+    }
     return this.wrapped.deleteFile(name);
   }
 
-  private checkPath(path: string): boolean {
-    return isValidPath(path);
+  private isReadable(path: string): boolean {
+    return !path.startsWith(".");
+  }
+
+  private isWritable(path: string): boolean {
+    return this.isReadable(path) && isValidPath(path);
   }
 }
