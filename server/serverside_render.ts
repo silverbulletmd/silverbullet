@@ -29,6 +29,7 @@ export async function renderHtmlPage(
   if (!options.auth && options.readOnly) {
     // Only attempt server-side rendering when this site is not protected by auth and running in read-only mode
     if (isMarkdownPath(ref.path)) {
+      title = getNameFromPath(ref.path);
       try {
         const { data, meta } = await spacePrimitives.readFile(
           ref.path,
@@ -60,7 +61,7 @@ export async function renderHtmlPage(
   }
 
   const templateData = {
-    TITLE: getNameFromPath(ref.path),
+    TITLE: title,
     DESCRIPTION: stripHtml(html).substring(0, 255),
     CONTENT: html,
     HOST_URL_PREFIX: options.hostUrlPrefix ?? "",
