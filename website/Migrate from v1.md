@@ -1,4 +1,6 @@
-Some pointers on how to migrate from v1 to v2:
+[[2|SilverBullet v2]] removed a slew of features that were still present in the 0.x series (also known as “v1”). Sadly, we just had to rip the bandaid on this one.
+
+Here are some pointers on what was removed and how to adapt.
 
 # Queries
 v2 does not have support for old-style [queries](https://v1.silverbullet.md/Query%20Language) (live queries) anymore. They have been replaced with [[Space Lua/Lua Integrated Query]]. Give the linked page a read, but generally there’s a few differences:
@@ -57,7 +59,6 @@ Certain features have been removed:
 * Online mode: v2 is sync mode only, meaning all your content will be synced into your browser. A simpler Online mode may be added back later. If you like to wipe your local content at any time, use the `System: Wipe Client` command.
 * [Federation](https://v1.silverbullet.md/Federation)
 * [Share](https://v1.silverbullet.md/Plugs/Share) replaced by [[^Library/Std/Export]]
-* [Libraries](https://v1.silverbullet.md/Libraries): will likely be replaced by [[^Library/Std/Import]].
 * Space Script: replaced by [[Space Lua]]
 * Space Config: replaced by the [[API/config]] APIs.
 * Command link syntax (`{[...]})`) replaced by the `${widgets.commandButton(...)}` API.

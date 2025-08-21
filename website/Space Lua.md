@@ -129,11 +129,9 @@ There's a magic `_CTX` global variable available from which you can access usefu
 * `_CTX._GLOBAL` providing access to the global scope
 
 # API
-
 ![[API]]
 
 # Lua implementation notes
-
 Space Lua is intended to be a more or less complete implementation of [Lua 5.4](https://www.lua.org/manual/5.4/). However, a few features are (still) missing:
 
 * `goto` and labels (not planned, goto considered harmful)
@@ -143,11 +141,8 @@ Space Lua is intended to be a more or less complete implementation of [Lua 5.4](
 * Hexadecimal numeric constants with a fractional part, or binary exponents (not supported by JavaScript number parser either)
 
 # Frequently Asked Questions
-
 ## Why Lua?
-
 Lua is purpose-designed to be a simple, [easy to learn](https://www.lua.org/manual/5.4/), yet powerful language for extending existing applications. It is commonly used in the gaming industry, but to extend many other applications. If you know any other programming language, you will be able to learn Lua within hours or less.
 
 ## Why a custom Lua runtime?
-
 Rather than using a WebAssembly or other implementation of Lua that could run in the browser and server, we have opted for a custom implementation. This is achievable because Lua is a relatively simple and small language to implement and allows for deep integration in the custom Lua runtime. The thing that triggered a custom implementation was the need to call asynchronous (JavaScipt) APIs from Lua, without having to resort to ugly asynchronous callback-style API design (Lua does not support async-await). In SilverBullet’s Lua implementation, the differences between asynchronous and synchronous APIs is fully abstracted away, which makes for a very clean development experience.
