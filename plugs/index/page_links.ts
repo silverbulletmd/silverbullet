@@ -111,7 +111,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
     }
 
     // Also index [Markdown style]() links
-    if (n.type === "URL") {
+    if (n.type === "Link") {
       const linkNode = findNodeOfType(n, "URL")!;
       if (!linkNode) {
         return false;

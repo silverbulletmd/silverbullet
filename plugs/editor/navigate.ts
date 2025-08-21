@@ -69,7 +69,6 @@ async function actionClickOrActionEnter(
       return editor.navigate(ref, false, inNewWindow);
     }
     case "NakedURL":
-    case "URL":
       return editor.openUrl(mdTree.children![0].text!);
     case "Image":
     case "Link": {
