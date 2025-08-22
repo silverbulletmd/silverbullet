@@ -57,6 +57,10 @@ export function isMarkdownPath(path: Path): boolean {
  * addons
  */
 function normalizePath(path: string): Path {
+  if (path.startsWith("/")) {
+    path = path.slice(1);
+  }
+
   if (
     /.+\.[a-zA-Z0-9]+$/.test(path) && !path.endsWith(".conflicted") ||
     path === ""
@@ -76,7 +80,8 @@ export function isValidName(name: string): boolean {
   // If the name, parses as a link and doesn't provide any other info we can be
   // sure it was only parsed as a path and that the path then conforms to all
   // the requirements
-  return !!ref && !ref.details && !ref.meta && name !== "";
+  return !!ref && !ref.details && !ref.meta && name !== "" &&
+    encodeRef(ref) === name;
 }
 
 /**
@@ -93,7 +98,7 @@ export function isValidPath(path: string): path is Path {
  * TO THE INNER WORKINGS OF SILVERBULLET AND CHANGES COULD INTRODUCE MAJOR BUGS
  */
 const refRegex =
-  /^(?<meta>\^)?(?<path>(?!\.|\^)(?!.*(?:\]\]|\[\[))[^@#\|]*)(@(?<pos>\d+)|@[Ll](?<line>\d+)(?:[Cc](?<col>\d+))?|#\s*(?<header>.*))?$/;
+  /^(?<meta>\^)?(?<path>(?!.*\.[a-zA-Z0-9]+\.md$)(?!\/?(\.|\^))(?!(?:\/|^)\.{1,2}(?:\/|$)|\/{2})(?!.*(?:\]\]|\[\[))[^@#\|]*)(@(?<pos>\d+)|@[Ll](?<line>\d+)(?:[Cc](?<col>\d+))?|#\s*(?<header>.*))?$/;
 
 /**
  * Parses a reference string into a ref object.

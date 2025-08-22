@@ -10,31 +10,36 @@ import { assert, assertEquals } from "@std/assert";
 
 Deno.test("parseToRef() default cases", () => {
   assertEquals(parseToRef("foo"), { path: "foo.md" });
-  assertEquals(parseToRef("/foo"), { path: "/foo.md" });
+  assertEquals(parseToRef("/foo"), { path: "foo.md" });
   assertEquals(parseToRef("foo/bar"), { path: "foo/bar.md" });
+  assertEquals(parseToRef("foo.png"), { path: "foo.png" });
   assertEquals(parseToRef("foo.md"), { path: "foo.md" });
-  assertEquals(parseToRef("foo.md.md"), { path: "foo.md.md" });
   assertEquals(parseToRef("foo."), { path: "foo..md" });
   assertEquals(parseToRef("foo.."), { path: "foo...md" });
   assertEquals(parseToRef(" .foo"), { path: " .foo" });
-  assertEquals(parseToRef("/.md"), { path: "/.md" });
-  assertEquals(parseToRef("/foo/.bar.md"), { path: "/foo/.bar.md" });
   assertEquals(parseToRef("foo[bar"), { path: "foo[bar.md" });
   assertEquals(parseToRef("foo]bar"), { path: "foo]bar.md" });
   assertEquals(parseToRef("foo(bar"), { path: "foo(bar.md" });
   assertEquals(parseToRef("foo)bar"), { path: "foo)bar.md" });
+  assertEquals(parseToRef("/bar/.../foo"), { path: "bar/.../foo.md" });
 
+  assertEquals(parseToRef("/foo/.bar.md"), null);
+  assertEquals(parseToRef("foo.md.md"), null);
+  assertEquals(parseToRef("/.../foo"), null);
   assertEquals(parseToRef("^.foo"), null);
   assertEquals(parseToRef(".foobar"), null);
   assertEquals(parseToRef("foo[[bar"), null);
   assertEquals(parseToRef("foo]]bar"), null);
   assertEquals(parseToRef("foo|bar"), null);
   assertEquals(parseToRef("foo@bar"), null);
+  assertEquals(parseToRef("/../foo"), null);
 
   assertEquals(parseToRef(""), { path: "" });
-  assertEquals(parseToRef("/"), { path: "/.md" });
+  assertEquals(parseToRef("/"), { path: "" });
+  assertEquals(parseToRef("/.md"), null);
+  assertEquals(parseToRef("/.foo"), null);
   assertEquals(parseToRef("/@132"), {
-    path: "/.md",
+    path: "",
     details: { type: "position", pos: 132 },
   });
 });
@@ -101,8 +106,8 @@ Deno.test("isValidPath() and isValidName()", () => {
   assert(!isValidPath("foo"));
   assert(!isValidPath("foo.md@123"));
 
-  assert(isValidName("foo.md"));
   assert(isValidName("foo"));
+  assert(!isValidName("foo.md"));
   assert(!isValidName("foo@123"));
   assert(!isValidName("^foo@123"));
   assert(!isValidName("foo[[bar"));
