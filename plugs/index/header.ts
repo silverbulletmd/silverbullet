@@ -60,7 +60,7 @@ export async function indexHeaders({ name: pageName, tree }: IndexTreeEvent) {
 }
 
 export async function headerComplete(completeEvent: CompleteEvent) {
-  const match = /(?:\[\[|\[.*?\]\()(?<path>.*)$/.exec(
+  const match = /(?:\[\[|\[.*?\]\()(?<path>[^\[]*)$/.exec(
     completeEvent.linePrefix,
   );
   if (!match || !match.groups?.path) {
