@@ -33,7 +33,7 @@ These are the core concepts used in SilverBullet:
 * [[Spaces]]
 * [[Pages]] (and [[Meta Pages]])
   * [[Frontmatter]]
-  * [[Page Name Rules]]
+  * [[Names]]
 * [[Folders]]
 * [[Documents]]
 

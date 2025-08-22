@@ -1,7 +1,7 @@
 The Editor API provides functions for interacting with the editor interface.
 
 ### editor.getCurrentPage()
-Returns the name of the page (or document) currently open in the editor.
+Returns the [[Names|name]] of the page (or document) currently open in the editor.
 
 Example: ${editor.getCurrentPage()}
 
@@ -12,7 +12,7 @@ Example:
 ${editor.getCurrentPageMeta()}
 
 ### editor.getCurrentPath()
-Returns the path of the page or document currently open in the editor.
+Returns the [[Paths|path]] of the page or document currently open in the editor.
 
 Example:
 ${editor.getCurrentPath()}
@@ -130,13 +130,13 @@ editor.save()
 Navigates to the specified page reference.
 
 Parameters:
-- `ref`: The page reference to navigate to
+- `ref`: The (string) reference to navigate to, see [[Links#Link syntax (String refs)|string refs]]
 - `replaceState`: Whether to replace the current history state
 - `newWindow`: Whether to open in a new window
 
 Example:
 ```lua
-editor.navigate({ page: "other-page" })
+editor.navigate("CHANGELOG@123")
 ```
 
 ### editor.openPageNavigator(mode)
