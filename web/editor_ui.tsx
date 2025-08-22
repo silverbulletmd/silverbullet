@@ -26,6 +26,7 @@ import {
   isMarkdownPath,
   isValidName,
   parseToRef,
+  type Path,
 } from "@silverbulletmd/silverbullet/lib/ref";
 
 export class MainUI {
@@ -173,11 +174,32 @@ export class MainUI {
                 // stuff like #header here. The `!ref` check is just for
                 // Typescript
                 if (!isValidName(name) || !ref) {
-                  // Realistically this should only happen when creating a new page
-                  client.flashNotification(
-                    `Couldn't create page ${name}, name is invalid`,
-                    "error",
-                  );
+                  // It's not a valid name so either, the user tried to create a
+                  // page or we have an invalid file in the space. Names are
+                  // only unique for files which follow our rules, so we are
+                  // kind of in unknown territory now.
+
+                  if (client.clientSystem.allKnownFiles.has(name)) {
+                    // Try it as a document name === path
+                    await askForModification(
+                      name as Path,
+                      `'${name}' has an invalid name. You can now modify it`,
+                    );
+                  } else if (
+                    client.clientSystem.allKnownFiles.has(`${name}.md`)
+                  ) {
+                    // Try it as a page
+                    await askForModification(
+                      `${name}.md`,
+                      `'${name}.md' has an invalid name. You can now modify it`,
+                    );
+                  } else {
+                    client.flashNotification(
+                      `Couldn't create page ${name}, name is invalid`,
+                      "error",
+                    );
+                  }
+
                   return;
                 }
 
@@ -190,35 +212,10 @@ export class MainUI {
                     extensions.includes(getPathExtension(ref.path))
                   )
                 ) {
-                  const options: string[] = ["Delete", "Rename"];
-
-                  const option = await client.filterBox(
-                    "Modify",
-                    options.map((x) => ({ name: x } as FilterOption)),
+                  await askForModification(
+                    ref.path,
                     "There is no editor for this file type. Modify the selected document",
                   );
-                  if (!option) return;
-
-                  switch (option.name) {
-                    case "Delete": {
-                      if (
-                        await client.confirm(
-                          `Are you sure you would like delete ${name}?`,
-                        )
-                      ) {
-                        await client.space.deleteDocument(name);
-                        console.log(`Document ${name} has been deleted`);
-                      }
-                      return;
-                    }
-                    case "Rename": {
-                      await client.clientSystem.system.invokeFunction(
-                        "index.renameDocumentCommand",
-                        [{ oldDocument: name }],
-                      );
-                      return;
-                    }
-                  }
                 } else {
                   client.navigate(ref);
                 }
@@ -454,4 +451,46 @@ function kebabToCamel(str: string) {
     /^./,
     (g) => g.toUpperCase(),
   );
+}
+
+async function askForModification(path: Path, msg: string) {
+  const options: string[] = ["Delete", "Rename"];
+
+  const option = await client.filterBox(
+    "Modify",
+    options.map((x) => ({ name: x } as FilterOption)),
+    msg,
+  );
+  if (!option) return;
+
+  switch (option.name) {
+    case "Delete": {
+      if (
+        await client.confirm(
+          `Are you sure you would like delete ${getNameFromPath(path)}?`,
+        )
+      ) {
+        if (isMarkdownPath(path)) {
+          await client.space.deletePage(getNameFromPath(path));
+        } else {
+          await client.space.deleteDocument(getNameFromPath(path));
+        }
+      }
+      break;
+    }
+    case "Rename": {
+      if (isMarkdownPath(path)) {
+        await client.clientSystem.system.invokeFunction(
+          "index.renamePageCommand",
+          [{ oldPage: getNameFromPath(path) }],
+        );
+      } else {
+        await client.clientSystem.system.invokeFunction(
+          "index.renameDocumentCommand",
+          [{ oldDocument: getNameFromPath(path) }],
+        );
+      }
+      break;
+    }
+  }
 }

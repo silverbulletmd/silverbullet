@@ -138,7 +138,7 @@ export async function batchRenameFiles(fileList: [string, string][]) {
     for (const [oldName, newName] of fileList) {
       console.log("Renaming", oldName, "to", newName);
       try {
-        if (newName.endsWith(".md")) {
+        if (newName.endsWith(".md") && oldName.endsWith(".md")) {
           await renamePage(oldName.slice(0, -3), newName.slice(0, -3));
         } else {
           await renameDocument(oldName, newName);

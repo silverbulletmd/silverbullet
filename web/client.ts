@@ -191,10 +191,11 @@ export class Client {
       this.clientConfig.readOnly,
     );
 
-    const localSpacePrimitives = this.initSpace();
+    this.initSpace();
 
+    // The sync service gets priveleged primitives, so it can sync files with invalid names
     this.syncService = new SyncService(
-      localSpacePrimitives,
+      this.eventedSpacePrimitives,
       this.plugSpaceRemotePrimitives,
       this.ds,
       this.eventHook,
@@ -304,7 +305,7 @@ export class Client {
     return this.syncService.hasInitialSyncCompleted();
   }
 
-  initSpace(): SpacePrimitives {
+  initSpace() {
     this.httpSpacePrimitives = new HttpSpacePrimitives(
       document.baseURI.replace(/\/*$/, ""),
       this.clientConfig.spaceFolderPath,
@@ -416,8 +417,6 @@ export class Client {
     );
 
     this.space.watch();
-
-    return localSpacePrimitives;
   }
 
   currentPath(): Path {
