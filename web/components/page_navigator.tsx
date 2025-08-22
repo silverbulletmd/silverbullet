@@ -49,8 +49,8 @@ export function PageNavigator({
         ? -new Date(documentMeta.lastModified).getTime()
         : (Number.MAX_VALUE - new Date(documentMeta.lastModified).getTime());
 
-      if (currentPath && currentPath === documentMeta.name) {
-        orderId = 0;
+      if (currentPath === documentMeta.name) {
+        orderId = Infinity;
       }
 
       // Can't really add tags to document as of right now, but maybe in the future
@@ -88,7 +88,7 @@ export function PageNavigator({
       }
       // Or it's the currently open page
       if (
-        currentPath && currentPath === pageMeta.name || pageMeta._isAspiring
+        currentPath === `${pageMeta.name}.md` || pageMeta._isAspiring
       ) {
         // ... then we put it all the way to the end
         orderId = Infinity;
