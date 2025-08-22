@@ -95,7 +95,7 @@ export function isValidPath(path: string): path is Path {
  * TO THE INNER WORKINGS OF SILVERBULLET AND CHANGES COULD INTRODUCE MAJOR BUGS
  */
 const refRegex =
-  /^(?<meta>\^)?(?<path>(?!.*\.[a-zA-Z0-9]+\.md$)(?!\/?(\.|\^))(?!(?:\/|^)\.{1,2}(?:\/|$)|\/{2})(?!.*(?:\]\]|\[\[))[^@#\|]*)(@(?<pos>\d+)|@[Ll](?<line>\d+)(?:[Cc](?<col>\d+))?|#\s*(?<header>.*))?$/;
+  /^(?<meta>\^)?(?<path>(?!.*\.[a-zA-Z0-9]+\.md$)(?!\/?(\.|\^))(?!.*(?:\/|^)\.{1,2}(?:\/|$)|.*\/{2})(?!.*(?:\]\]|\[\[))[^@#\|]*)(@(?<pos>\d+)|@[Ll](?<line>\d+)(?:[Cc](?<col>\d+))?|#\s*(?<header>.*))?$/;
 
 /**
  * Parses a reference string into a ref object.

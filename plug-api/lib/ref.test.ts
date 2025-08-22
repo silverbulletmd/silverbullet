@@ -33,6 +33,9 @@ Deno.test("parseToRef() default cases", () => {
   assertEquals(parseToRef("foo|bar"), null);
   assertEquals(parseToRef("foo@bar"), null);
   assertEquals(parseToRef("/../foo"), null);
+  assertEquals(parseToRef("/./foo"), null);
+  assertEquals(parseToRef("/bar/../foo"), null);
+  assertEquals(parseToRef("/bar/./foo"), null);
 
   assertEquals(parseToRef(""), { path: "" });
   assertEquals(parseToRef("/"), { path: "" });
