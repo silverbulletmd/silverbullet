@@ -61,10 +61,7 @@ function normalizePath(path: string): Path {
     path = path.slice(1);
   }
 
-  if (
-    /.+\.[a-zA-Z0-9]+$/.test(path) && !path.endsWith(".conflicted") ||
-    path === ""
-  ) {
+  if (/.+\.[a-zA-Z0-9]+$/.test(path) || path === "") {
     return path as Path;
   }
 
