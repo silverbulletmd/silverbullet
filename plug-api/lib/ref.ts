@@ -192,8 +192,8 @@ export function getOffsetFromRef(
 }
 
 /**
- * Find the header inside a {@link ParseTree} and returns the position of the
- * first character, which is not a hash symbol or a space
+ * Find the header inside a {@link ParseTree} and returns the position the end
+ * of the header
  * @param parseTree The parse tree. Can e.g. be generate using
  * `markdown.parseMarkdown`
  * @param header The header, spaces at the start or end are ignored
