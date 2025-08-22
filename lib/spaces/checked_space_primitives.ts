@@ -41,7 +41,10 @@ export class CheckPathSpacePrimitives implements SpacePrimitives {
   }
 
   deleteFile(name: string): Promise<void> {
-    if (!this.isWritable(name)) {
+    // We allow deletion of paths we can't write to. This is for the case when
+    // the user has an invalidly named file in their space and they need to
+    // remove it/rename it
+    if (!this.isReadable(name)) {
       throw new Error("Couldn't delete file, path isn't writable");
     }
     return this.wrapped.deleteFile(name);
