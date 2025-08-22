@@ -84,8 +84,8 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
 
     let operations = 0;
     const revisionFileName = filePieces.length === 1
-      ? `${name}.conflicted.${pageData2.meta.lastModified}`
-      : `${fileNameBase}.conflicted.${pageData2.meta.lastModified}.${fileNameExt}`;
+      ? `${name}.conflicted:${pageData2.meta.lastModified}`
+      : `${fileNameBase}.conflicted:${pageData2.meta.lastModified}.${fileNameExt}`;
     console.log(
       "[sync]",
       "Going to create conflicting copy",
