@@ -1448,7 +1448,11 @@ export class Client {
       }
 
       // Setup scroll position, cursor position, etc
-      this.navigateWithinPage(locationState);
+      try {
+        this.navigateWithinPage(locationState);
+      } catch {
+        // We don't really care if this fails.
+      }
 
       // Persist this page as the last opened page, we'll use this for cold start PWA loads
       await this.ds.set(
