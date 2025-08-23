@@ -19,6 +19,8 @@ import { wikiLinkRegex } from "../markdown_parser/constants.ts";
  * Plugin to hide path prefix when the cursor is not inside.
  */
 export function cleanWikiLinkPlugin(client: Client) {
+  const cleanModeEnabled = client.ui.viewState.uiOptions.cleanMode;
+
   return decoratorStateField((state) => {
     const widgets: any[] = [];
     // let parentRange: [number, number];
@@ -38,6 +40,11 @@ export function cleanWikiLinkPlugin(client: Client) {
 
         const { leadingTrivia, stringRef, alias, trailingTrivia } =
           match.groups;
+
+        const textWithoutMarks = text.slice(
+          leadingTrivia.length,
+          -trailingTrivia.length,
+        );
 
         const ref = parseToRef(stringRef);
 
@@ -116,7 +123,7 @@ export function cleanWikiLinkPlugin(client: Client) {
         widgets.push(
           Decoration.replace({
             widget: new LinkWidget({
-              text: linkText,
+              text: cleanModeEnabled ? linkText : textWithoutMarks,
               title: helpText,
               href: ref ? encodePageURI(encodeRef(ref)) : undefined,
               cssClass: "sb-wiki-link " + css,
@@ -143,7 +150,11 @@ export function cleanWikiLinkPlugin(client: Client) {
                 );
               },
             }),
-          }).range(from, to),
+          }).range(
+            // If clean mode is disabled, don't replace the marks
+            cleanModeEnabled ? from : from + leadingTrivia.length,
+            cleanModeEnabled ? to : to - trailingTrivia.length,
+          ),
         );
       },
     });
