@@ -12,11 +12,12 @@ import { type ParseTree, renderToText } from "../../plug-api/lib/tree.ts";
 import { lezerToParseTree } from "../markdown_parser/parse_tree.ts";
 import type { Client } from "../client.ts";
 import {
-  isLocalPath,
-  resolvePath,
+  isLocalURL,
+  resolveMarkdownLink,
 } from "@silverbulletmd/silverbullet/lib/resolve";
 import { expandMarkdown } from "../markdown.ts";
 import { LuaStackFrame } from "../../lib/space_lua/runtime.ts";
+import { attachWidgetEventHandlers } from "./widget_util.ts";
 
 class TableViewWidget extends WidgetType {
   tableBodyText: string;
@@ -64,8 +65,11 @@ class TableViewWidget extends WidgetType {
         // the cursor there when the user clicks on the table.
         annotationPositions: true,
         translateUrls: (url) => {
-          if (isLocalPath(url)) {
-            url = resolvePath(this.client.currentPage, decodeURI(url));
+          if (isLocalURL(url)) {
+            url = resolveMarkdownLink(
+              this.client.currentName(),
+              decodeURI(url),
+            );
           }
 
           return url;
@@ -74,6 +78,8 @@ class TableViewWidget extends WidgetType {
       });
       setTimeout(() => {
         // Give it a tick to render
+        attachWidgetEventHandlers(dom, this.client, this.tableBodyText);
+
         this.client.setCachedWidgetHeight(
           `table:${this.tableBodyText}`,
           dom.clientHeight,

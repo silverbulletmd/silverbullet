@@ -117,7 +117,7 @@ export function MiniEditor(
   return (
     <div
       class="sb-mini-editor"
-      onKeyDown={(e) => {
+      onKeyDownCapture={(e) => {
         let stopPropagation = false;
         if (callbacksRef.current!.onKeyDown) {
           stopPropagation = callbacksRef.current!.onKeyDown(

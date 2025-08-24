@@ -30,7 +30,7 @@ export function cleanModePlugins(client: Client) {
       // TODO: Move this logic elsewhere?
       onCheckboxClick: (pos) => {
         const clickEvent: ClickEvent = {
-          page: client.currentPage,
+          page: client.currentName(),
           altKey: false,
           ctrlKey: false,
           metaKey: false,

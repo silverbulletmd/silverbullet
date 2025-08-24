@@ -25,7 +25,7 @@ export function indexPage({ name, tree }: IndexTreeEvent) {
 export async function searchCommand() {
   const phrase = await editor.prompt("Search for: ");
   if (phrase) {
-    await editor.navigate({ kind: "page", page: `${searchPrefix}${phrase}` });
+    await editor.navigate(`${searchPrefix}${phrase}`);
   }
 }
 

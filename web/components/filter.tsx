@@ -277,7 +277,7 @@ export function FilterList({
                             item.option.category.length + 2,
                           );
                         }
-                        return displayName;
+                        return (item.option.prefix ?? "") + displayName;
                       })()}
                     </span>
                     {item.option.hint && (

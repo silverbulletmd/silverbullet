@@ -15,10 +15,7 @@ export async function deletePage() {
   );
   await space.deletePage(pageName);
   console.log("Navigating to previous page");
-  await editor.navigate({
-    kind: "page",
-    page: firstRecentlyOpenedPage?.name || "",
-  });
+  await editor.navigate(firstRecentlyOpenedPage?.name || "");
 }
 
 export async function copyPage(
@@ -60,7 +57,7 @@ export async function copyPage(
   if (currentPage === fromName) {
     // If we're copying the current page, navigate there
     console.log("Navigating to new page");
-    await editor.navigate({ kind: "page", page: newName });
+    await editor.navigate(newName);
   } else {
     // Otherwise just notify of success
     await editor.flashNotification("Page copied successfully");

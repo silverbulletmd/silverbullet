@@ -142,6 +142,11 @@ export function createEditorState(
           }
         },
       }),
+      EditorView.contentAttributes.of({
+        spellcheck: "true",
+        autocorrect: "on",
+        autocapitalize: "on",
+      }),
       inlineContentPlugin(client),
       codeCopyPlugin(client),
       highlightSpecialChars(),

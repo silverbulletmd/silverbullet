@@ -1,7 +1,7 @@
 import { Tag } from "@lezer/highlight";
 
 export const WikiLinkTag = Tag.define();
-export const WikiLinkPageTag = Tag.define();
+export const WikiLinkPartTag = Tag.define();
 export const CodeInfoTag = Tag.define();
 export const CommentTag = Tag.define();
 export const CommentMarkerTag = Tag.define();

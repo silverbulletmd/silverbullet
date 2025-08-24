@@ -2,8 +2,8 @@ import { WidgetType } from "@codemirror/view";
 import type { Client } from "../client.ts";
 import { renderMarkdownToHtml } from "../markdown/markdown_render.ts";
 import {
-  isLocalPath,
-  resolvePath,
+  isLocalURL,
+  resolveMarkdownLink,
 } from "@silverbulletmd/silverbullet/lib/resolve";
 import { parse } from "../markdown_parser/parse_tree.ts";
 import { extendedMarkdownLanguage } from "../markdown_parser/parser.ts";
@@ -84,7 +84,7 @@ export class LuaWidget extends WidgetType {
   ) {
     let widgetContent = await this.callback(
       this.bodyText,
-      this.client.currentPage,
+      this.client.currentName(),
     );
     activeWidgets.add(this);
     if (widgetContent === null || widgetContent === undefined) {
@@ -176,9 +176,9 @@ export class LuaWidget extends WidgetType {
 
       html = parseHtmlString(renderMarkdownToHtml(mdTree, {
         translateUrls: (url) => {
-          if (isLocalPath(url)) {
-            url = resolvePath(
-              this.client.currentPage,
+          if (isLocalURL(url)) {
+            url = resolveMarkdownLink(
+              this.client.currentName(),
               decodeURI(url),
             );
           }

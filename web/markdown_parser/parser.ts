@@ -20,30 +20,33 @@ import { luaLanguage } from "../../lib/space_lua/parse.ts";
 
 const WikiLink: MarkdownConfig = {
   defineNodes: [
-    { name: "WikiLink", style: ct.WikiLinkTag },
-    { name: "WikiLinkPage", style: ct.WikiLinkPageTag },
-    { name: "WikiLinkAlias", style: ct.WikiLinkPageTag },
-    { name: "WikiLinkDimensions", style: ct.WikiLinkPageTag },
+    { name: "WikiLink" },
+    { name: "WikiLinkPage", style: ct.WikiLinkPartTag },
+    { name: "WikiLinkAlias", style: ct.WikiLinkPartTag },
+    { name: "WikiLinkDimensions", style: ct.WikiLinkPartTag },
     { name: "WikiLinkMark", style: t.processingInstruction },
   ],
   parseInline: [
     {
       name: "WikiLink",
       parse(cx, next, pos) {
-        let match: RegExpMatchArray | null;
-        if (
-          next != 91 /* '[' */ &&
-            next != 33 /* '!' */ ||
-          !(match = pWikiLinkRegex.exec(cx.slice(pos, cx.end)))
-        ) {
+        // Do a preliminary check for performance
+        if (next != 91 /* '[' */ && next != 33 /* '!' */) {
           return -1;
         }
 
-        const [fullMatch, firstMark, page, alias, _lastMark] = match;
-        const endPos = pos + fullMatch.length;
+        pWikiLinkRegex.lastIndex = 0;
+        const match = pWikiLinkRegex.exec(cx.slice(pos, cx.end));
+        if (!match || !match.groups) {
+          return -1;
+        }
+
+        //const [fullMatch, firstMark, page, alias, _lastMark] = match;
+        const { leadingTrivia, stringRef, alias } = match.groups;
+        const endPos = pos + match[0].length;
         let aliasElts: any[] = [];
         if (alias) {
-          const pipeStartPos = pos + firstMark.length + page.length;
+          const pipeStartPos = pos + leadingTrivia.length + stringRef.length;
           aliasElts = [
             cx.elt("WikiLinkMark", pipeStartPos, pipeStartPos + 1),
             cx.elt(
@@ -55,11 +58,11 @@ const WikiLink: MarkdownConfig = {
         }
 
         let allElts = cx.elt("WikiLink", pos, endPos, [
-          cx.elt("WikiLinkMark", pos, pos + firstMark.length),
+          cx.elt("WikiLinkMark", pos, pos + leadingTrivia.length),
           cx.elt(
             "WikiLinkPage",
-            pos + firstMark.length,
-            pos + firstMark.length + page.length,
+            pos + leadingTrivia.length,
+            pos + leadingTrivia.length + stringRef.length,
           ),
           ...aliasElts,
           cx.elt("WikiLinkMark", endPos - 2, endPos),

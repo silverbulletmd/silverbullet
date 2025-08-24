@@ -10,7 +10,6 @@ import {
   cleanAttributes,
   extractAttributes,
 } from "@silverbulletmd/silverbullet/lib/attribute";
-import { rewritePageRefs } from "@silverbulletmd/silverbullet/lib/resolve";
 import { indexObjects } from "./api.ts";
 import {
   cleanHashTags,
@@ -94,8 +93,6 @@ export async function extractItemFromNode(
   const clonedTextNodes: ParseTree[] = [];
 
   for (const child of itemNode.children!.slice(1)) {
-    rewritePageRefs(child, name);
-
     if (child.type === "OrderedList" || child.type === "BulletList") {
       break;
     }

@@ -1,6 +1,7 @@
 // @deno-types="https://deno.land/x/fuse@v6.4.1/dist/fuse.d.ts"
 import Fuse from "fuse";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
+import { fileName } from "@silverbulletmd/silverbullet/lib/resolve";
 
 type FuseOption = FilterOption & {
   baseName: string;
@@ -18,7 +19,7 @@ export const fuzzySearchAndSort = (
     return {
       ...item,
       // Only relevant for pages and or documents and not commands
-      baseName: item.name.split("/").pop()!,
+      baseName: fileName(item.name),
       displayName: item?.meta?.displayName,
       aliases: item?.meta?.aliases?.join(" "),
       category: item.category,

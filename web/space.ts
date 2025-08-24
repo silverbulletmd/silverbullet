@@ -3,8 +3,12 @@ import { plugPrefix } from "../lib/spaces/constants.ts";
 import type { EventHook } from "../web/hooks/event.ts";
 import { safeRun } from "../lib/async.ts";
 import { localDateString } from "../lib/dates.ts";
-import type { EventedSpacePrimitives } from "../lib/spaces/evented_space_primitives.ts";
 import type { DocumentMeta, FileMeta, PageMeta } from "../type/index.ts";
+import type { SpacePrimitives } from "../lib/spaces/space_primitives.ts";
+import {
+  getPathExtension,
+  type Path,
+} from "@silverbulletmd/silverbullet/lib/ref";
 
 const pageWatchInterval = 5000;
 
@@ -18,7 +22,7 @@ export class Space {
   private saving = false;
 
   constructor(
-    readonly spacePrimitives: EventedSpacePrimitives,
+    readonly spacePrimitives: SpacePrimitives,
     eventHook: EventHook,
   ) {
     eventHook.addLocalListener("file:deleted", (fileName: string) => {
@@ -216,7 +220,8 @@ export function fileMetaToDocumentMeta(
       tag: "document",
       created: localDateString(new Date(fileMeta.created)),
       lastModified: localDateString(new Date(fileMeta.lastModified)),
-      extension: fileMeta.name.split(".").pop()?.toLowerCase(),
+      // Name is always equal to the path for documents
+      extension: getPathExtension(fileMeta.name as Path),
     } as DocumentMeta;
   } catch (e) {
     console.error("Failed to convert fileMeta to documentMeta", fileMeta, e);

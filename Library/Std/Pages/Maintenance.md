@@ -16,7 +16,7 @@ ${some(template.each(query[[
 These are pages that have conflicting copies (as a result of sync). Have a look at them as well as their original (non-conflicting) versions and decide which one to keep.
 
 ${some(template.each(query[[
-  from index.tag "page" where name:find("%.conflicted%.")
+  from index.tag "page" where name:find("%.conflicted:")
 ]], template.new[==[
-    * [[${name:gsub("%.conflicted%..+$", "")}]]: conflict copy [[${name}]]
+    * [[${name:gsub("%.conflicted:.+$", "")}]]: conflict copy [[${name}]]
 ]==])) or "No conflicting pages!"}

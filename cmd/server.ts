@@ -13,6 +13,7 @@ import { AssetBundle, type AssetJson } from "../lib/asset_bundle/bundle.ts";
 import { resolve } from "@std/path";
 import { sleep } from "../lib/async.ts";
 import { MemoryKvPrimitives } from "../lib/data/memory_kv_primitives.ts";
+import { isValidName } from "@silverbulletmd/silverbullet/lib/ref";
 
 export type AuthOptions = {
   authToken?: string;
@@ -39,6 +40,12 @@ export async function serveCommand(
   const readOnly = !!Deno.env.get("SB_READ_ONLY");
 
   const indexPage = Deno.env.get("SB_INDEX_PAGE") || "index";
+  if (!isValidName(indexPage)) {
+    console.error(
+      "SB_INDEX_PAGE has to be a valid page name.",
+    );
+    Deno.exit(1);
+  }
 
   folder = folder || Deno.env.get("SB_FOLDER");
   if (!folder) {

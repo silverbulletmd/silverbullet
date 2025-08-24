@@ -1,6 +1,10 @@
 import type { Context } from "hono";
 import { utcDateString } from "./util.ts";
-import { looksLikePathWithExtension } from "@silverbulletmd/silverbullet/lib/page_ref";
+import {
+  getNameFromPath,
+  isMarkdownPath,
+  parseToRef,
+} from "@silverbulletmd/silverbullet/lib/ref";
 import { parse } from "../web/markdown_parser/parse_tree.ts";
 import { extendedMarkdownLanguage } from "../web/markdown_parser/parser.ts";
 import { renderMarkdownToHtml } from "../web/markdown/markdown_render.ts";
@@ -12,23 +16,23 @@ import type { SpacePrimitives } from "../lib/spaces/space_primitives.ts";
 // Server-side renders a markdown file to HTML
 export async function renderHtmlPage(
   spacePrimitives: SpacePrimitives,
-  pageName: string,
+  path: string,
   c: Context,
   options: ServerOptions,
   clientAssetBundle: AssetBundle,
 ): Promise<Response> {
+  const ref = parseToRef(path) ?? parseToRef(options.indexPage)!;
+
   let html = "";
   let title = "SilverBullet"; // Default to simply SilverBullet initially
   let lastModified = utcDateString(Date.now());
   if (!options.auth && options.readOnly) {
     // Only attempt server-side rendering when this site is not protected by auth and running in read-only mode
-    if (!looksLikePathWithExtension(pageName)) {
-      // Update title to page name
-      title = pageName;
-      // Fetch page content and render it
+    if (isMarkdownPath(ref.path)) {
+      title = getNameFromPath(ref.path);
       try {
         const { data, meta } = await spacePrimitives.readFile(
-          `${pageName}.md`,
+          ref.path,
         );
         lastModified = utcDateString(meta.lastModified);
 
@@ -47,7 +51,7 @@ export async function renderHtmlPage(
     } else {
       // If it it's a file with an extension and it doesn't exist we can't really create a new one/recover
       try {
-        await spacePrimitives.getFileMeta(`${pageName}`);
+        await spacePrimitives.getFileMeta(ref.path);
       } catch (e: any) {
         if (e.message !== "Not found") {
           return c.notFound();

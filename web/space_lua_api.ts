@@ -1,5 +1,4 @@
 import { luaBuildStandardEnv } from "../lib/space_lua/stdlib.ts";
-import { parseRef } from "@silverbulletmd/silverbullet/lib/page_ref";
 import {
   LuaBuiltinFunction,
   LuaEnv,
@@ -9,6 +8,7 @@ import {
   LuaTable,
 } from "../lib/space_lua/runtime.ts";
 import type { System } from "../lib/plugos/system.ts";
+import { resolveASTReference } from "./space_lua.ts";
 
 export function buildLuaEnv(system: System<any>) {
   const env = new LuaEnv(luaBuildStandardEnv());
@@ -77,7 +77,6 @@ export async function handleLuaError(e: LuaRuntimeError, system: System<any>) {
   );
   if (e.sf?.astCtx && e.sf.astCtx.ref) {
     // We got an error and actually know where it came from, let's navigate there to help debugging
-    const pageRef = parseRef(e.sf.astCtx.ref);
     await system.localSyscall(
       "editor.flashNotification",
       [
@@ -85,20 +84,17 @@ export async function handleLuaError(e: LuaRuntimeError, system: System<any>) {
         "error",
       ],
     );
+
+    const ref = resolveASTReference(e.sf.astCtx);
+    if (!ref) return;
+
     await system.localSyscall(
       "editor.flashNotification",
       [
-        `Navigating to the place in the code where this error occurred in ${pageRef.page}`,
+        `Navigating to the place in the code where this error occurred in ${ref.path}`,
         "info",
       ],
     );
-    await system.localSyscall("editor.navigate", [
-      {
-        page: pageRef.page,
-        pos: (typeof pageRef.pos === "number" ? pageRef.pos : 0) +
-          (e.sf.astCtx?.from ?? 0) +
-          "```space-lua\n".length,
-      },
-    ]);
+    await system.localSyscall("editor.navigate", [ref]);
   }
 }

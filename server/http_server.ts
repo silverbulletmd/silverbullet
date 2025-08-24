@@ -5,7 +5,7 @@ import type { AssetBundle } from "../lib/asset_bundle/bundle.ts";
 import { handleShellEndpoint } from "./shell_endpoint.ts";
 import type { KvPrimitives } from "../lib/data/kv_primitives.ts";
 import { compile as gitIgnoreCompiler } from "gitignore-parser";
-import { decodePageURI } from "@silverbulletmd/silverbullet/lib/page_ref";
+import { decodePageURI } from "@silverbulletmd/silverbullet/lib/ref";
 import { LockoutTimer } from "./lockout.ts";
 import type { AuthOptions } from "../cmd/server.ts";
 import type { ClientConfig } from "../web/client.ts";
@@ -25,6 +25,9 @@ import {
 } from "./shell_backend.ts";
 import { CONFIG_TEMPLATE, INDEX_TEMPLATE } from "../web/PAGE_TEMPLATES.ts";
 import type { FileMeta } from "../type/index.ts";
+import {
+  CheckPathSpacePrimitives,
+} from "../lib/spaces/checked_space_primitives.ts";
 
 const authenticationExpirySeconds = 60 * 60 * 24 * 7; // 1 week
 
@@ -64,12 +67,14 @@ export class HttpServer {
       fileFilterFn = gitIgnoreCompiler(options.spaceIgnore).accepts;
     }
 
-    this.spacePrimitives = new FilteredSpacePrimitives(
-      new AssetBundlePlugSpacePrimitives(
-        determineStorageBackend(options.pagesPath),
-        this.plugAssetBundle,
+    this.spacePrimitives = new CheckPathSpacePrimitives(
+      new FilteredSpacePrimitives(
+        new AssetBundlePlugSpacePrimitives(
+          determineStorageBackend(options.pagesPath),
+          this.plugAssetBundle,
+        ),
+        (meta) => fileFilterFn(meta.name),
       ),
-      (meta) => fileFilterFn(meta.name),
     );
 
     if (options.readOnly) {
@@ -477,7 +482,7 @@ export class HttpServer {
       }
     });
 
-    const filePathRegex = "/:path{[^!].*\\.[a-zA-Z0-9]+}";
+    const filePathRegex = "/:path{.*\\.[a-zA-Z0-9]+}";
     const mdExt = ".md";
 
     this.app.get(filePathRegex, async (c, next) => {
@@ -502,11 +507,6 @@ export class HttpServer {
         req.query("raw") !== "true"
       ) {
         return next();
-      }
-
-      if (name.startsWith(".")) {
-        // Don't expose hidden files
-        return c.notFound();
       }
 
       try {
@@ -536,21 +536,17 @@ export class HttpServer {
     }).put(
       async (c) => {
         const req = c.req;
-        const name = req.param("path")!;
+        const path = req.param("path")!;
         if (this.options.readOnly) {
           return c.text("Read only mode, no writes allowed", 405);
         }
-        console.log("Writing file", name);
-        if (name.startsWith(".")) {
-          // Don't expose hidden files
-          return c.text("Forbidden", 403);
-        }
+        console.log("Writing file", path);
 
         const body = await req.arrayBuffer();
 
         try {
           const meta = await this.spacePrimitives.writeFile(
-            name,
+            path,
             new Uint8Array(body),
           );
           return c.text("OK", 200, this.fileMetaToHeaders(meta));
@@ -566,10 +562,6 @@ export class HttpServer {
         return c.text("Read only mode, no writes allowed", 405);
       }
       console.log("Deleting file", name);
-      if (name.startsWith(".")) {
-        // Don't expose hidden files
-        return c.text("Forbidden", 403);
-      }
       try {
         await this.spacePrimitives.deleteFile(name);
         return c.text("OK");

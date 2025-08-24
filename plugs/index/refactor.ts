@@ -4,7 +4,6 @@ import {
   markdown,
   space,
 } from "@silverbulletmd/silverbullet/syscalls";
-import { validatePageName } from "@silverbulletmd/silverbullet/lib/page_ref";
 import { getBackLinks, type LinkObject } from "./page_links.ts";
 import {
   absoluteToRelativePath,
@@ -19,6 +18,7 @@ import {
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { queryLuaObjects } from "./api.ts";
 import type { ObjectValue } from "../../type/index.ts";
+import { isValidPath } from "@silverbulletmd/silverbullet/lib/ref";
 
 /**
  * Renames a single page.
@@ -115,9 +115,9 @@ export async function batchRenameFiles(fileList: [string, string][]) {
     // Pre-flight checks
     await Promise.all(fileList.map(async ([_oldName, newName]) => {
       try {
-        if (newName.endsWith(".md")) {
-          validatePageName(newName.slice(0, -3));
-          // New name is valid
+        // It's a FILEname not a PAGEname.
+        if (!isValidPath(newName)) {
+          throw new Error(`Name invalid: ${newName}`);
         }
         // Check if target file already exists
         await space.getFileMeta(newName);
@@ -138,7 +138,7 @@ export async function batchRenameFiles(fileList: [string, string][]) {
     for (const [oldName, newName] of fileList) {
       console.log("Renaming", oldName, "to", newName);
       try {
-        if (newName.endsWith(".md")) {
+        if (newName.endsWith(".md") && oldName.endsWith(".md")) {
           await renamePage(oldName.slice(0, -3), newName.slice(0, -3));
         } else {
           await renameDocument(oldName, newName);
@@ -230,7 +230,7 @@ async function renamePage(oldName: string, newName: string) {
 
   // Navigate to new page if currently viewing old page
   if (await editor.getCurrentPage() === oldName) {
-    await editor.navigate({ kind: "page", page: newName, pos: 0 }, true);
+    await editor.navigate(newName, true);
   }
   // Handling the edge case of a changing page name just in casing on a case insensitive FS
   const oldPageMeta = await space.getPageMeta(oldName);
@@ -254,27 +254,27 @@ async function renamePage(oldName: string, newName: string) {
 
 // Rename a document and update any backlinks
 async function renameDocument(
-  oldName: string,
-  newName: string,
+  oldPath: string,
+  newPath: string,
 ) {
   // Move the file
-  const oldFile = await space.readDocument(oldName);
-  const newFileMeta = await space.writeDocument(newName, oldFile);
+  const oldFile = await space.readDocument(oldPath);
+  const newFileMeta = await space.writeDocument(newPath, oldFile);
 
-  if (await editor.getCurrentPath() === oldName) {
-    await editor.navigate({ kind: "document", page: newName }, true);
+  if (await editor.getCurrentPath() === oldPath) {
+    await editor.navigate(newPath, true);
   }
 
   // Handling the edge case of a changing file name just in casing on a case insensitive FS
-  const oldFileMeta = await space.getDocumentMeta(oldName);
+  const oldFileMeta = await space.getDocumentMeta(oldPath);
   if (oldFileMeta.lastModified !== newFileMeta.lastModified) {
     // If they're the same, let's assume it's the same file (case insensitive FS) and not delete, otherwise...
-    await space.deleteDocument(oldName);
+    await space.deleteDocument(oldPath);
   }
 
   // Update any backlinks
-  const updatedRefences = await updateBacklinks(oldName, newName);
-  let message = `Renamed ${oldName} to ${newName}`;
+  const updatedRefences = await updateBacklinks(oldPath, newPath);
+  let message = `Renamed ${oldPath} to ${newPath}`;
   if (updatedRefences > 0) {
     message = `${message}, updated ${updatedRefences} backlinks`;
   }
@@ -367,7 +367,7 @@ export async function extractToPageCommand() {
   console.log("Writing new page to space");
   await space.writePage(newName, text);
   console.log("Navigating to new page");
-  await editor.navigate({ kind: "page", page: newName });
+  await editor.navigate(newName);
 }
 
 /**

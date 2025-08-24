@@ -20,6 +20,14 @@ import { Panel } from "./components/panel.tsx";
 import { safeRun } from "../lib/async.ts";
 import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
+import {
+  getNameFromPath,
+  getPathExtension,
+  isMarkdownPath,
+  isValidName,
+  parseToRef,
+  type Path,
+} from "@silverbulletmd/silverbullet/lib/ref";
 
 export class MainUI {
   viewState: AppViewState = initialViewState;
@@ -84,17 +92,10 @@ export class MainUI {
 
     useEffect(() => {
       if (viewState.current) {
-        document.title =
-          (viewState.current.meta?.pageDecoration?.prefix ?? "") +
-          viewState.current.path;
+        document.title = (viewState.current.meta.pageDecoration?.prefix ?? "") +
+          getNameFromPath(viewState.current.path);
       }
     }, [viewState.current]);
-
-    useEffect(() => {
-      client.tweakEditorDOM(
-        client.editorView.contentDOM,
-      );
-    }, [viewState.uiOptions.forcedROMode]);
 
     useEffect(() => {
       this.client.rebuildEditorState();
@@ -156,61 +157,67 @@ export class MainUI {
                 dispatch({ type: "start-navigate", mode });
               });
             }}
-            onNavigate={(name, type) => {
-              type = type ?? "page";
+            onNavigate={(name) => {
               dispatch({ type: "stop-navigate" });
               setTimeout(() => {
                 client.focus();
               });
-              if (!name) return;
+
+              if (!name) {
+                return;
+              }
 
               safeRun(async () => {
-                const documentMeta = viewState.allDocuments.find((document) =>
-                  document.name === name
-                );
+                const ref = parseToRef(name);
+
+                // Check beforhand, because we don't want to allow any link
+                // stuff like #header here. The `!ref` check is just for
+                // Typescript
+                if (!isValidName(name) || !ref) {
+                  // It's not a valid name so either, the user tried to create a
+                  // page or we have an invalid file in the space. Names are
+                  // only unique for files which follow our rules, so we are
+                  // kind of in unknown territory now.
+
+                  if (client.clientSystem.allKnownFiles.has(name)) {
+                    // Try it as a document name === path
+                    await askForModification(
+                      name as Path,
+                      `'${name}' has an invalid name. You can now modify it`,
+                    );
+                  } else if (
+                    client.clientSystem.allKnownFiles.has(`${name}.md`)
+                  ) {
+                    // Try it as a page
+                    await askForModification(
+                      `${name}.md`,
+                      `'${name}.md' has an invalid name. You can now modify it`,
+                    );
+                  } else {
+                    client.flashNotification(
+                      `Couldn't create page ${name}, name is invalid`,
+                      "error",
+                    );
+                  }
+
+                  return;
+                }
 
                 if (
-                  type === "document" &&
+                  !isMarkdownPath(ref.path) &&
                   !Array.from(
                     client.clientSystem.documentEditorHook.documentEditors
                       .values(),
                   ).some(({ extensions }) =>
-                    extensions.includes(documentMeta!.extension)
+                    extensions.includes(getPathExtension(ref.path))
                   )
                 ) {
-                  const options: string[] = ["Delete", "Rename"];
-
-                  const option = await client.filterBox(
-                    "Modify",
-                    options.map((x) => ({ name: x } as FilterOption)),
+                  await askForModification(
+                    ref.path,
                     "There is no editor for this file type. Modify the selected document",
                   );
-                  if (!option) return;
-
-                  switch (option.name) {
-                    case "Delete": {
-                      if (
-                        await client.confirm(
-                          `Are you sure you want to delete ${name}?`,
-                        )
-                      ) {
-                        await client.space.deleteDocument(name);
-                        client.flashNotification(
-                          `Document ${name} has been deleted`,
-                        );
-                      }
-                      return;
-                    }
-                    case "Rename": {
-                      await client.clientSystem.system.invokeFunction(
-                        "index.renameDocumentCommand",
-                        [{ oldDocument: name }],
-                      );
-                      return;
-                    }
-                  }
                 } else {
-                  await client.navigate({ kind: type, page: name });
+                  client.navigate(ref);
                 }
               });
             }}
@@ -280,7 +287,9 @@ export class MainUI {
           />
         )}
         <TopBar
-          pageName={viewState.current?.path || ""}
+          pageName={!viewState.current
+            ? ""
+            : getNameFromPath(viewState.current.path)}
           notifications={viewState.notifications}
           syncFailures={viewState.syncFailures}
           unsavedChanges={viewState.unsavedChanges}
@@ -384,11 +393,9 @@ export class MainUI {
               style={{ flex: viewState.panels.lhs.mode }}
             />
           )}
-          pageNamePrefix={viewState.current?.meta?.pageDecoration
-            ?.prefix ??
-            ""}
-          cssClass={viewState.current?.meta?.pageDecoration?.cssClasses
-            ? viewState.current?.meta?.pageDecoration?.cssClasses
+          pageNamePrefix={viewState.current?.meta.pageDecoration?.prefix ?? ""}
+          cssClass={viewState.current?.meta.pageDecoration?.cssClasses
+            ? viewState.current?.meta.pageDecoration?.cssClasses
               .join(" ").replaceAll(/[^a-zA-Z0-9-_ ]/g, "")
             : ""}
           mobileMenuStyle={client.config.get<string>(
@@ -444,4 +451,46 @@ function kebabToCamel(str: string) {
     /^./,
     (g) => g.toUpperCase(),
   );
+}
+
+async function askForModification(path: Path, msg: string) {
+  const options: string[] = ["Delete", "Rename"];
+
+  const option = await client.filterBox(
+    "Modify",
+    options.map((x) => ({ name: x } as FilterOption)),
+    msg,
+  );
+  if (!option) return;
+
+  switch (option.name) {
+    case "Delete": {
+      if (
+        await client.confirm(
+          `Are you sure you would like delete ${getNameFromPath(path)}?`,
+        )
+      ) {
+        if (isMarkdownPath(path)) {
+          await client.space.deletePage(getNameFromPath(path));
+        } else {
+          await client.space.deleteDocument(getNameFromPath(path));
+        }
+      }
+      break;
+    }
+    case "Rename": {
+      if (isMarkdownPath(path)) {
+        await client.clientSystem.system.invokeFunction(
+          "index.renamePageCommand",
+          [{ oldPage: getNameFromPath(path) }],
+        );
+      } else {
+        await client.clientSystem.system.invokeFunction(
+          "index.renameDocumentCommand",
+          [{ oldDocument: getNameFromPath(path) }],
+        );
+      }
+      break;
+    }
+  }
 }

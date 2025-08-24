@@ -67,11 +67,6 @@
     }
   }
 
-  .sb-inline-content * {
-    max-width: 100%;
-    display: block;
-  }
-
   .cm-panels-bottom .cm-vim-panel {
     padding: 0 20px;
     max-width: var(--editor-width);
@@ -227,7 +222,7 @@
   }
 
   .cm-task-checked,
-  .sb-line-task:has(.cm-task-checked) .sb-wiki-link-page {
+  .sb-line-task:has(.cm-task-checked) .sb-wiki-link {
     text-decoration: line-through !important;
   }
 
@@ -323,7 +318,7 @@
     cursor: pointer;
   }
 
-  .sb-wiki-link-page {
+  .sb-wiki-link {
     border-radius: 5px;
     padding: 0 5px;
     // white-space: nowrap;
@@ -344,15 +339,6 @@
   .sb-widget-array {
     display: flex;
     flex-direction: column;
-  }
-
-  a.sb-wiki-link-page-missing,
-  .sb-wiki-link-page-missing > .sb-wiki-link-page {
-    border-radius: 5px;
-    padding: 0 5px;
-    // white-space: nowrap;
-    text-decoration: none;
-    cursor: pointer;
   }
 
   .sb-task-mark {
@@ -663,8 +649,14 @@
     }
   }
 
-  .sb-markdown-widget-inline {
+  .sb-inline-content > div > .content > * {
+    max-width: 100%;
+    display: block;
+  }
+
+  .sb-inline-content {
     margin: 0;
+    overflow: hidden;
   }
 
   .sb-fenced-code-iframe {

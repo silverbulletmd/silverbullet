@@ -1,4 +1,4 @@
-import { parseRef } from "@silverbulletmd/silverbullet/lib/page_ref";
+import { parseToRef } from "@silverbulletmd/silverbullet/lib/ref";
 import type { Client } from "../client.ts";
 import { tagPrefix } from "../../plugs/index/constants.ts";
 import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
@@ -47,8 +47,11 @@ export function attachWidgetEventHandlers(
       }
       e.preventDefault();
       e.stopPropagation();
-      const pageRef = parseRef(el.dataset.ref!);
-      client.navigate(pageRef, false, e.ctrlKey || e.metaKey);
+      client.navigate(
+        parseToRef(el.dataset.ref!),
+        false,
+        e.ctrlKey || e.metaKey,
+      );
     });
   });
 
@@ -61,11 +64,9 @@ export function attachWidgetEventHandlers(
         // Don't do anything special for ctrl/meta clicks
         return;
       }
-      client.navigate({
-        kind: "page",
-        page: `${tagPrefix}${extractHashtag(el.innerText)}`,
-        pos: 0,
-      });
+      client.navigate(
+        parseToRef(`${tagPrefix}${extractHashtag(el.innerText)}@0`),
+      );
     });
   });
 

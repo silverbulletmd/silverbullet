@@ -1,5 +1,5 @@
 import type { SpacePrimitives } from "./space_primitives.ts";
-import { encodePageURI } from "@silverbulletmd/silverbullet/lib/page_ref";
+import { encodePageURI } from "@silverbulletmd/silverbullet/lib/ref";
 import {
   flushCachesAndUnregisterServiceWorker,
   unregisterServiceWorkers,

@@ -2,6 +2,7 @@ import type { Command } from "../type/command.ts";
 import type { FilterOption, Notification, PanelMode } from "../type/client.ts";
 
 import type { DocumentMeta, PageMeta } from "../type/index.ts";
+import type { Path } from "@silverbulletmd/silverbullet/lib/ref";
 
 export type PanelConfig = {
   mode?: PanelMode;
@@ -10,17 +11,10 @@ export type PanelConfig = {
 };
 
 export type AppViewState = {
-  current?:
-    | {
-      kind: "page";
-      meta: PageMeta;
-      path: string;
-    }
-    | {
-      kind: "document";
-      meta: DocumentMeta;
-      path: string;
-    };
+  current?: {
+    path: Path;
+    meta: PageMeta | DocumentMeta;
+  };
 
   allPages: PageMeta[];
   allDocuments: DocumentMeta[];
@@ -109,12 +103,10 @@ export const initialViewState: AppViewState = {
 };
 
 export type Action =
-  | { type: "page-loaded"; meta: PageMeta }
-  | { type: "page-loading"; name: string }
+  | { type: "page-loaded"; path: Path; meta: PageMeta }
   | { type: "page-changed" }
   | { type: "page-saved" }
-  | { type: "document-editor-loaded"; meta: DocumentMeta }
-  | { type: "document-editor-loading"; name: string }
+  | { type: "document-editor-loaded"; path: Path; meta: DocumentMeta }
   | { type: "document-editor-changed" }
   | { type: "document-editor-saved" }
   | { type: "sync-change"; syncSuccess: boolean }

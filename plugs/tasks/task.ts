@@ -25,7 +25,6 @@ import {
   cleanAttributes,
   extractAttributes,
 } from "@silverbulletmd/silverbullet/lib/attribute";
-import { rewritePageRefs } from "@silverbulletmd/silverbullet/lib/resolve";
 import { indexObjects } from "../index/plug_api.ts";
 import {
   cleanHashTags,
@@ -34,9 +33,11 @@ import {
 } from "@silverbulletmd/silverbullet/lib/tags";
 import { extractFrontMatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
 import {
-  parseRef,
-  positionOfLine,
-} from "@silverbulletmd/silverbullet/lib/page_ref";
+  getNameFromPath,
+  getOffsetFromLineColumn,
+  isMarkdownPath,
+  parseToRef,
+} from "@silverbulletmd/silverbullet/lib/ref";
 import { enrichItemFromParents } from "../index/item.ts";
 import { deepClone } from "@silverbulletmd/silverbullet/lib/json";
 import { queryLuaObjects } from "../index/api.ts";
@@ -102,8 +103,6 @@ export async function extractTasks(
       pos: n.from!,
       state,
     };
-
-    rewritePageRefs(n, name);
 
     // The task text is everything after the task marker
     task.text = n.children!.slice(1).map(renderToText).join("").trim();
@@ -291,22 +290,33 @@ async function cycleTaskState(
 }
 
 export async function updateTaskState(
-  ref: string,
+  path: string,
   oldState: string,
   newState: string,
 ) {
-  const currentPage = await editor.getCurrentPage();
-  const { page, pos } = parseRef(ref);
-  if (pos === undefined) {
-    console.error("No position found in page ref, skipping", ref);
+  const currentPath = await editor.getCurrentPath();
+  const ref = parseToRef(path);
+
+  if (
+    !ref || !ref.details || !isMarkdownPath(ref.path) ||
+    (ref.details.type !== "linecolumn" && ref.details.type !== "position")
+  ) {
+    console.log("No position found in page ref, skipping", ref);
     return;
   }
-  if (page === currentPage) {
+
+  if (ref.path === currentPath) {
     // In current page, just update the task marker with dispatch
     const editorText = await editor.getText();
-    const targetPos = pos instanceof Object
-      ? positionOfLine(editorText, pos.line, pos.column)
-      : pos;
+
+    const targetPos = ref.details.type === "position"
+      ? ref.details.pos
+      : getOffsetFromLineColumn(
+        editorText,
+        ref.details.line,
+        ref.details.column,
+      );
+
     // Check if the task state marker is still there
     const targetText = editorText.substring(
       targetPos + 1,
@@ -327,12 +337,18 @@ export async function updateTaskState(
       },
     });
   } else {
-    let text = await space.readPage(page);
+    const pageName = getNameFromPath(ref.path);
+    let text = await space.readPage(pageName);
 
     const referenceMdTree = await markdown.parseMarkdown(text);
-    const targetPos = pos instanceof Object
-      ? positionOfLine(text, pos.line, pos.column)
-      : pos;
+    const targetPos = ref.details.type === "position"
+      ? ref.details.pos
+      : getOffsetFromLineColumn(
+        text,
+        ref.details.line,
+        ref.details.column,
+      );
+
     // Adding +1 to immediately hit the task state node
     const taskStateNode = nodeAtPos(referenceMdTree, targetPos + 1);
     if (!taskStateNode || taskStateNode.type !== "TaskState") {
@@ -344,8 +360,8 @@ export async function updateTaskState(
     }
     taskStateNode.children![1].text = newState;
     text = renderToText(referenceMdTree);
-    await space.writePage(page, text);
-    sync.performFileSync(`${page}.md`);
+    await space.writePage(pageName, text);
+    sync.performFileSync(`${pageName}.md`);
   }
 }
 

@@ -6,16 +6,17 @@ import {
 } from "@silverbulletmd/silverbullet/lib/tree";
 import type { IndexTreeEvent } from "../../type/event.ts";
 import {
-  isLocalPath,
-  resolvePath,
+  isLocalURL,
+  resolveMarkdownLink,
 } from "@silverbulletmd/silverbullet/lib/resolve";
 import { indexObjects, queryLuaObjects } from "./api.ts";
 import { extractFrontMatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
 import { updateITags } from "@silverbulletmd/silverbullet/lib/tags";
 import {
-  looksLikePathWithExtension,
-  parseRef,
-} from "@silverbulletmd/silverbullet/lib/page_ref";
+  getNameFromPath,
+  isMarkdownPath,
+  parseToRef,
+} from "@silverbulletmd/silverbullet/lib/ref";
 import { extractSnippetAroundIndex } from "./snippet_extractor.ts";
 import {
   mdLinkRegex,
@@ -79,7 +80,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
     if (n.type === "WikiLink") {
       const wikiLinkPage = findNodeOfType(n, "WikiLinkPage")!;
       const wikiLinkAlias = findNodeOfType(n, "WikiLinkAlias");
-      const url = resolvePath(name, "/" + wikiLinkPage.children![0].text!);
+      const url = wikiLinkPage.children![0].text!;
       const pos = wikiLinkPage.from!;
 
       const link: any = {
@@ -90,13 +91,17 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
         page: name,
         asTemplate: false,
       };
-      // Assume link is to a document if it has
-      // an extension, to a page otherwise
-      if (looksLikePathWithExtension(url)) {
-        link.toFile = url;
+
+      const ref = parseToRef(url);
+      if (!ref) {
+        // Invalid links aren't indexed
+        return true;
+      } else if (isMarkdownPath(ref.path)) {
+        link.toPage = getNameFromPath(ref.path);
       } else {
-        link.toPage = parseRef(url).page;
+        link.toFile = ref.path;
       }
+
       if (wikiLinkAlias) {
         link.alias = wikiLinkAlias.children![0].text!;
       }
@@ -106,24 +111,27 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
     }
 
     // Also index [Markdown style]() links
-    if (n.type === "URL") {
+    if (n.type === "Link") {
       const linkNode = findNodeOfType(n, "URL")!;
       if (!linkNode) {
         return false;
       }
-      const text = /\[(?<title>[^\]]*)\]\((?<url>.+)\)/
-        .exec(renderToText(linkNode.parent));
-      if (!text) {
+      mdLinkRegex.lastIndex = 0;
+      const match = mdLinkRegex.exec(renderToText(linkNode.parent));
+      if (!match) {
         return false;
       }
-      let [/* fullMatch */, alias, url] = text;
+      let { title: alias, url } = match.groups as {
+        url: string;
+        title: string;
+      };
 
       // Check if local link
-      if (!isLocalPath(url)) {
+      if (!isLocalURL(url)) {
         return false;
       }
       const pos = linkNode.from!;
-      url = resolvePath(name, decodeURI(url));
+      url = resolveMarkdownLink(name, decodeURI(url));
 
       const link: any = {
         ref: `${name}@${pos}`,
@@ -133,83 +141,23 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
         page: name,
         asTemplate: false,
       };
-      // Assume link is to a document if it has
-      // an extension, to a page otherwise
-      if (looksLikePathWithExtension(url)) {
-        link.toFile = url;
+
+      const ref = parseToRef(url);
+      if (!ref) {
+        // Invalid links aren't indexed
+        return true;
+      } else if (isMarkdownPath(ref.path)) {
+        link.toPage = getNameFromPath(ref.path);
       } else {
-        link.toPage = parseRef(url).page;
+        link.toFile = ref.path;
       }
+
       if (alias) {
         link.alias = alias;
       }
       updateITags(link, frontmatter);
       links.push(link);
       return true;
-    }
-
-    // Also index links used inside query and template fenced code blocks
-    if (n.type === "FencedCode") {
-      const codeInfo = findNodeOfType(n, "CodeInfo")!;
-      if (!codeInfo) {
-        return false;
-      }
-      const codeLang = codeInfo.children![0].text!;
-      if (codeLang === "template" || codeLang === "query") {
-        const codeText = findNodeOfType(n, "CodeText");
-        if (!codeText) {
-          return false;
-        }
-        const code = codeText.children![0].text!;
-        const wikiLinkMatches = code.matchAll(wikiLinkRegex);
-        for (const match of wikiLinkMatches) {
-          const [_fullMatch, firstMark, url, alias, _lastMark] = match;
-          const pos = codeText.from! + match.index! + firstMark.length;
-          const link: any = {
-            ref: `${name}@${pos}`,
-            tag: "link",
-            page: name,
-            snippet: extractSnippetAroundIndex(pageText, pos),
-            pos: pos,
-            asTemplate: true,
-          };
-          // Assume link is to a document if it has
-          // an extension, to a page otherwise
-          if (looksLikePathWithExtension(url)) {
-            link.toFile = resolvePath(name, "/" + url);
-          } else {
-            link.toPage = resolvePath(name, "/" + parseRef(url).page);
-          }
-          if (alias) {
-            link.alias = alias;
-          }
-          updateITags(link, frontmatter);
-          links.push(link);
-        }
-        const mdLinkMatches = code.matchAll(mdLinkRegex);
-        for (const match of mdLinkMatches) {
-          const [_fullMatch, alias, url] = match;
-          const pos = codeText.from! + match.index! + 1;
-          const link: any = {
-            ref: `${name}@${pos}`,
-            tag: "link",
-            page: name,
-            snippet: extractSnippetAroundIndex(pageText, pos),
-            pos: pos,
-            asTemplate: true,
-          };
-          if (looksLikePathWithExtension(url)) {
-            link.toFile = resolvePath(name, url);
-          } else {
-            link.toPage = resolvePath(name, parseRef(url).page);
-          }
-          if (alias) {
-            link.alias = alias;
-          }
-          updateITags(link, frontmatter);
-          links.push(link);
-        }
-      }
     }
 
     // Also index links used inside quoted frontmatter strings like "[[Page]]"
@@ -223,9 +171,9 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
         wikiLinkRegex.lastIndex = 0;
         const match = wikiLinkRegex.exec(text);
         // Search in entire node text to get correct position, but check for full match against trimmed
-        if (match && match[0] === trimmed) {
-          const [_fullMatch, firstMark, url, alias, _lastMark] = match;
-          const pos = textNode.from! + match.index! + firstMark.length;
+        if (match && match.groups && match[0] === trimmed) {
+          const { leadingTrivia, stringRef, alias } = match.groups;
+          const pos = textNode.from! + match.index! + leadingTrivia.length;
           const link: any = {
             ref: `${name}@${pos}`,
             tag: "link",
@@ -234,11 +182,17 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
             pos: pos,
             asTemplate: false,
           };
-          if (looksLikePathWithExtension(url)) {
-            link.toFile = resolvePath(name, "/" + url);
+
+          const ref = parseToRef(stringRef);
+          if (!ref) {
+            // Invalid links aren't indexed
+            return true;
+          } else if (isMarkdownPath(ref.path)) {
+            link.toPage = getNameFromPath(ref.path);
           } else {
-            link.toPage = resolvePath(name, "/" + parseRef(url).page);
+            link.toFile = ref.path;
           }
+
           if (alias) {
             link.alias = alias;
           }

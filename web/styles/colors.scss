@@ -398,19 +398,19 @@ a,
   color: var(--editor-code-atom-color);
 }
 
-.sb-wiki-link-page {
+.sb-wiki-link {
   color: var(--editor-wiki-link-page-color);
   background-color: var(--editor-wiki-link-page-background-color);
 }
 
-a.sb-wiki-link-page-missing,
-.sb-wiki-link-page-missing > .sb-wiki-link-page {
+a.sb-wiki-link-missing,
+.sb-wiki-link-missing > .sb-wiki-link {
   color: var(--editor-wiki-link-page-missing-color);
-  background-color: var(--editor-wiki-link-page-background-color);
 }
 
-.sb-wiki-link {
-  color: var(--editor-wiki-link-page-color); // #8f96c2;
+a.sb-wiki-link-invalid,
+.sb-wiki-link-invalid > .sb-wiki-link {
+  color: var(--editor-wiki-link-page-invalid-color);
 }
 
 .sb-task-mark {

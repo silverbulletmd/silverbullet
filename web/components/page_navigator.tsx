@@ -7,6 +7,12 @@ import type {
 import { tagRegex as mdTagRegex } from "../markdown_parser/constants.ts";
 import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 import type { DocumentMeta, PageMeta } from "../../type/index.ts";
+import {
+  getNameFromPath,
+  parseToRef,
+  type Path,
+} from "@silverbulletmd/silverbullet/lib/ref";
+import { folderName } from "@silverbulletmd/silverbullet/lib/resolve";
 
 const tagRegex = new RegExp(mdTagRegex.source, "g");
 
@@ -28,10 +34,10 @@ export function PageNavigator({
   vimMode: boolean;
   darkMode?: boolean;
   mode: "page" | "meta" | "document" | "all";
-  onNavigate: (page: string | undefined, type: "document" | "page") => void;
+  onNavigate: (name: string | null) => void;
   onModeSwitch: (mode: "page" | "meta" | "document" | "all") => void;
   completer: (context: CompletionContext) => Promise<CompletionResult | null>;
-  currentPath?: string;
+  currentPath: Path;
 }) {
   const options: FilterOption[] = [];
 
@@ -43,8 +49,8 @@ export function PageNavigator({
         ? -new Date(documentMeta.lastModified).getTime()
         : (Number.MAX_VALUE - new Date(documentMeta.lastModified).getTime());
 
-      if (currentPath && currentPath === documentMeta.name) {
-        orderId = 0;
+      if (currentPath === documentMeta.name) {
+        orderId = Infinity;
       }
 
       // Can't really add tags to document as of right now, but maybe in the future
@@ -82,7 +88,7 @@ export function PageNavigator({
       }
       // Or it's the currently open page
       if (
-        currentPath && currentPath === pageMeta.name || pageMeta._isAspiring
+        currentPath === `${pageMeta.name}.md` || pageMeta._isAspiring
       ) {
         // ... then we put it all the way to the end
         orderId = Infinity;
@@ -110,7 +116,8 @@ export function PageNavigator({
         options.push({
           type: "page",
           meta: pageMeta,
-          name: (pageMeta.pageDecoration?.prefix ?? "") + pageMeta.name,
+          name: pageMeta.name,
+          prefix: pageMeta.pageDecoration?.prefix,
           description,
           orderId: orderId,
           hint: pageMeta._isAspiring ? "Create page" : undefined,
@@ -152,13 +159,8 @@ export function PageNavigator({
     }
   }
 
-  let completePrefix = currentPath + "/";
-  if (currentPath && currentPath.includes("/")) {
-    const pieces = currentPath.split("/");
-    completePrefix = pieces.slice(0, pieces.length - 1).join("/") + "/";
-  } else if (currentPath && currentPath.includes(" ")) {
-    completePrefix = currentPath.split(" ")[0] + " ";
-  }
+  const completePrefix =
+    (folderName(currentPath) || getNameFromPath(currentPath)) + "/";
 
   const allowNew = mode !== "document";
   const creatablePageNoun = mode !== "all" ? mode : "page";
@@ -241,7 +243,15 @@ export function PageNavigator({
       newHint={`Create ${creatablePageNoun}`}
       completePrefix={completePrefix}
       onSelect={(opt) => {
-        onNavigate(opt?.meta?.ref || opt?.name, opt?.type);
+        if (!opt) {
+          onNavigate(null);
+          return;
+        }
+
+        const ref: string | undefined = opt.meta?.ref;
+        const path = ref ? parseToRef(ref)?.path : null;
+        const name = path ? getNameFromPath(path) : opt.name;
+        onNavigate(name);
       }}
     />
   );

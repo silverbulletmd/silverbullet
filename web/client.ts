@@ -39,14 +39,17 @@ import { FallbackSpacePrimitives } from "../lib/spaces/fallback_space_primitives
 import {
   encodePageURI,
   encodeRef,
-  parseRef,
+  getNameFromPath,
+  getOffsetFromHeader,
+  getOffsetFromLineColumn,
+  isMarkdownPath,
+  parseToRef,
+  type Path,
   type Ref,
-  validatePath,
-} from "@silverbulletmd/silverbullet/lib/page_ref";
+} from "@silverbulletmd/silverbullet/lib/ref";
 import { ClientSystem } from "./client_system.ts";
 import { createEditorState, isValidEditor } from "./editor_state.ts";
 import { MainUI } from "./editor_ui.tsx";
-import { cleanPageRef } from "@silverbulletmd/silverbullet/lib/resolve";
 import type { SpacePrimitives } from "../lib/spaces/space_primitives.ts";
 import { DataStore } from "../lib/data/datastore.ts";
 import { IndexedDBKvPrimitives } from "../lib/data/indexeddb_kv_primitives.ts";
@@ -61,6 +64,8 @@ import { DocumentEditor } from "./document_editor.ts";
 import { parseExpressionString } from "../lib/space_lua/parse.ts";
 import { Config } from "./config.ts";
 import type { DocumentMeta, FileMeta, PageMeta } from "../type/index.ts";
+import { parseMarkdown } from "./markdown_parser/parser.ts";
+import { CheckPathSpacePrimitives } from "../lib/spaces/checked_space_primitives.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -102,6 +107,7 @@ export class Client {
 
   clientSystem!: ClientSystem;
   plugSpaceRemotePrimitives!: PlugSpacePrimitives;
+  eventedSpacePrimitives!: EventedSpacePrimitives;
   httpSpacePrimitives!: HttpSpacePrimitives;
 
   ui!: MainUI;
@@ -164,14 +170,8 @@ export class Client {
           document.baseURI.replace(/\/*$/, "")
         }`,
       );
-    this.onLoadRef = parseRefFromURI();
-  }
-
-  // Note: This is a legacy method, which only makes sense when the current editor is a page editor
-  get currentPage(): string {
-    return this.ui.viewState.current !== undefined
-      ? this.ui.viewState.current.path
-      : this.onLoadRef.page; // best effort
+    // The third case should only ever happen when the user provides an invalid index env variable
+    this.onLoadRef = parseRefFromURI() || this.getIndexRef();
   }
 
   /**
@@ -198,10 +198,11 @@ export class Client {
       this.clientConfig.readOnly,
     );
 
-    const localSpacePrimitives = this.initSpace();
+    this.initSpace();
 
+    // The sync service gets priveleged primitives, so it can sync files with invalid names
     this.syncService = new SyncService(
-      localSpacePrimitives,
+      this.eventedSpacePrimitives,
       this.plugSpaceRemotePrimitives,
       this.ds,
       this.eventHook,
@@ -219,7 +220,7 @@ export class Client {
       console.info(
         "Initial sync has not yet been completed, disabling page and document indexing to speed this up",
       );
-      this.space.spacePrimitives.enablePageEvents = false;
+      this.eventedSpacePrimitives.enablePageEvents = false;
     }
 
     this.ui = new MainUI(this);
@@ -299,7 +300,7 @@ export class Client {
     // Regularly sync the currently open file
     setInterval(() => {
       try {
-        this.syncService.syncFile(this.currentPath(true)).catch((e: any) => {
+        this.syncService.syncFile(this.currentPath()).catch((e: any) => {
           console.error("Interval sync error", e);
         });
       } catch (e: any) {
@@ -316,7 +317,7 @@ export class Client {
     return this.syncService.hasInitialSyncCompleted();
   }
 
-  initSpace(): SpacePrimitives {
+  initSpace() {
     this.httpSpacePrimitives = new HttpSpacePrimitives(
       document.baseURI.replace(/\/*$/, ""),
       this.clientConfig.spaceFolderPath,
@@ -336,7 +337,7 @@ export class Client {
       this.clientConfig.readOnly ? undefined : "client",
     );
 
-    const localSpacePrimitives = new EventedSpacePrimitives(
+    this.eventedSpacePrimitives = new EventedSpacePrimitives(
       // Using fallback space primitives here to allow (by default) local reads to "fall through" to HTTP when files aren't synced yet
       new FallbackSpacePrimitives(
         new DataStoreSpacePrimitives(
@@ -347,6 +348,10 @@ export class Client {
         this.plugSpaceRemotePrimitives,
       ),
       this.eventHook,
+    );
+
+    const localSpacePrimitives = new CheckPathSpacePrimitives(
+      this.eventedSpacePrimitives,
     );
 
     this.space = new Space(
@@ -380,7 +385,7 @@ export class Client {
       ) => {
         // Only reload when watching the current page or document (to avoid reloading when switching pages)
         if (
-          this.space.watchInterval && this.currentPath(true) === path &&
+          this.space.watchInterval && this.currentPath() === path &&
           // Avoid reloading if the page was just saved (5s window)
           (!lastSaveTimestamp || (lastSaveTimestamp < Date.now() - 5000)) &&
           // Avoid reloading if the previous hash was undefined (first load)
@@ -396,7 +401,7 @@ export class Client {
           this.flashNotification(
             "Page or document changed elsewhere, reloading",
           );
-          this.reloadPage();
+          this.reloadEditor();
         }
       },
     );
@@ -424,18 +429,16 @@ export class Client {
     );
 
     this.space.watch();
-
-    return localSpacePrimitives;
   }
 
-  currentPath(extension: boolean = false): string {
-    if (this.ui.viewState.current !== undefined) {
-      return this.ui.viewState.current.path +
-        ((this.ui.viewState.current.kind === "page" && extension) ? ".md" : "");
-    } else {
-      return this.onLoadRef.page +
-        ((this.onLoadRef.kind === "page" && extension) ? ".md" : "");
-    }
+  currentPath(): Path {
+    return this.ui.viewState.current?.path || this.onLoadRef.path;
+  }
+
+  currentName(): string {
+    return getNameFromPath(
+      this.ui.viewState.current?.path || this.onLoadRef.path,
+    );
   }
 
   dispatchAppEvent(name: AppEvent, ...args: any[]): Promise<any[]> {
@@ -466,11 +469,6 @@ export class Client {
       }
       this.saveTimeout = setTimeout(
         () => {
-          // Note: Is this case really necessary? The fallback path will always exist, right?
-          if (!this.currentPath()) {
-            resolve();
-          }
-
           if (
             !this.ui.viewState.unsavedChanges ||
             this.clientConfig.readOnly
@@ -491,14 +489,14 @@ export class Client {
 
             return resolve();
           } else {
-            console.log("Saving page", this.currentPage);
+            console.log("Saving page", this.currentPath());
             this.dispatchAppEvent(
               "editor:pageSaving",
-              this.currentPage,
+              this.currentName(),
             );
             this.space
               .writePage(
-                this.currentPage,
+                this.currentName(),
                 this.editorView.state.sliceDoc(0),
                 true,
               )
@@ -506,7 +504,7 @@ export class Client {
                 this.ui.viewDispatch({ type: "page-saved" });
                 await this.dispatchAppEvent(
                   "editor:pageSaved",
-                  this.currentPage,
+                  this.currentName(),
                   meta,
                 );
 
@@ -517,9 +515,9 @@ export class Client {
                 const enrichedMeta = await this.clientSystem.getObjectByRef<
                   PageMeta
                 >(
-                  this.currentPage,
+                  this.currentName(),
                   "page",
-                  this.currentPage,
+                  this.currentName(),
                 );
                 if (enrichedMeta) {
                   this.ui.viewDispatch({
@@ -740,21 +738,14 @@ export class Client {
   rebuildEditorState() {
     const editorView = this.editorView;
 
-    if (this.currentPage) {
-      editorView.setState(
-        createEditorState(
-          this,
-          this.currentPage,
-          editorView.state.sliceDoc(),
-          this.ui.viewState.current?.meta?.perm === "ro",
-        ),
-      );
-      if (editorView.contentDOM) {
-        this.tweakEditorDOM(
-          editorView.contentDOM,
-        );
-      }
-    }
+    editorView.setState(
+      createEditorState(
+        this,
+        this.currentName(),
+        editorView.state.sliceDoc(),
+        this.ui.viewState.current?.meta.perm === "ro",
+      ),
+    );
   }
 
   // Code completion support
@@ -778,7 +769,7 @@ export class Client {
 
     // Dispatch the event
     const results = await this.dispatchAppEvent(eventName, {
-      pageName: this.currentPage,
+      pageName: this.currentName(),
       linePrefix,
       pos: selection.from,
       parentNodes,
@@ -850,14 +841,21 @@ export class Client {
     >;
   }
 
-  async reloadPage() {
-    console.log("Reloading dediacted editor");
+  async reloadEditor() {
+    if (!this.systemReady) return;
+
+    console.log("Reloading editor");
     clearTimeout(this.saveTimeout);
 
-    if (this.isDocumentEditor()) {
-      await this.loadDocumentEditor(this.currentPath());
-    } else {
-      await this.loadPage(this.currentPage);
+    try {
+      if (isMarkdownPath(this.currentPath())) {
+        await this.loadPage(this.currentPath());
+      } else {
+        await this.loadDocumentEditor(this.currentPath());
+      }
+    } catch {
+      console.log(this.currentPath());
+      console.error("There was an error during reload");
     }
   }
 
@@ -885,21 +883,16 @@ export class Client {
     }
   }
 
+  getIndexRef(): Ref {
+    return parseToRef(this.clientConfig.indexPage) || { path: "index.md" };
+  }
+
   async navigate(
-    ref: Ref,
+    ref: Ref | null,
     replaceState = false,
     newWindow = false,
   ) {
-    if (!ref.page) {
-      ref.kind = "page";
-      ref.page = cleanPageRef(this.clientConfig.indexPage);
-    }
-
-    try {
-      validatePath(ref.page);
-    } catch (e: any) {
-      return this.flashNotification(e.message, "error");
-    }
+    ref ??= this.getIndexRef();
 
     if (newWindow) {
       console.log(
@@ -923,278 +916,186 @@ export class Client {
     this.focus();
   }
 
-  async loadDocumentEditor(path: string) {
-    const previousPath = this.currentPath();
-    const previousRef = this.ui.viewState.current;
-    const initalLoad = !previousRef;
-    const loadingDifferentPath = !initalLoad
-      ? (previousPath !== path)
-      // Always load as different page if page is loaded from scratch
-      : true;
+  async loadDocumentEditor(path: Path) {
+    if (isMarkdownPath(path)) throw Error("This is a markdown path");
 
-    const revertPath = () => {
-      if (previousPath && previousRef) {
-        this.ui.viewDispatch(
-          previousRef.kind === "page"
-            ? { type: "page-loaded", meta: previousRef.meta }
-            : { type: "document-editor-loaded", meta: previousRef.meta },
-        );
-      }
-    };
+    const previousPath = this.ui.viewState.current?.path;
+    const loadingDifferentPath = previousPath
+      ? (previousPath !== path)
+      // Always load as different editor if editor is loaded from scratch
+      : true;
 
     if (previousPath) {
       this.space.unwatchFile(previousPath);
-
-      if (loadingDifferentPath) {
-        this.save(true);
-      }
+      await this.save(true);
     }
 
-    let doc;
+    // This can throw, but that will be catched and handled upstream.
+    const doc = await this.space.readDocument(path);
 
-    this.ui.viewDispatch({
-      type: "document-editor-loading",
-      name: path,
-    });
-
-    try {
-      doc = await this.space.readDocument(path);
-    } catch (e: any) {
-      revertPath();
-
-      if (e.message.includes("Not found")) {
-        console.log("This path doesn't exist, redirecting to the index page");
-
-        if (initalLoad) this.navigate({ kind: "page", page: "" });
-      } else {
-        this.flashNotification(
-          `Could not load document editor ${path}: ${e.message}`,
-          "error",
-        );
-      }
-
-      return;
-    }
-
+    // Create the document editor if it doesn't already exist
     if (
-      loadingDifferentPath &&
-      !(this.isDocumentEditor() &&
-        this.documentEditor.extension === doc.meta.extension)
+      !this.isDocumentEditor() ||
+      this.documentEditor.extension !== doc.meta.extension
     ) {
       try {
         await this.switchToDocumentEditor(doc.meta.extension);
-
-        if (!this.documentEditor) {
-          throw new Error("Problem setting up document editor");
-        }
       } catch (e: any) {
-        console.log(e.message);
-
+        // If there is no document editor we will open the file raw
         if (e.message.includes("Couldn't find")) {
-          this.openUrl(path + "?raw=true", initalLoad);
-
-          // This is a hacky way to clean up the history here
-          globalThis.history.replaceState(
-            previousRef,
-            "",
-            `/${encodePageURI(previousPath)}`,
-          );
+          this.openUrl(path + "?raw=true", !previousPath);
         }
 
-        if (!initalLoad) {
-          revertPath();
+        throw e;
+      }
 
-          // Unsure about this case. It is probably not handled correctly, but currently this case cannot fully happen
-          if (previousRef.kind === "page") {
-            this.loadPage(previousRef.path);
-          } else {
-            this.loadDocumentEditor(previousRef.path);
-          }
-        } else {
-          // Navigate to index page if there was no previous page
-          this.navigate({ kind: "page", page: "" });
-        }
-
-        return;
+      if (!this.isDocumentEditor()) {
+        throw new Error("Problem setting up document editor");
       }
     }
+
+    if (!loadingDifferentPath) {
+      // We are loading the same page again so just send a file changed event.
+      // This can e.g. after a sync found changes elsewhere
+      await this.documentEditor.changeContent(doc.data, doc.meta);
+    } else {
+      this.documentEditor!.setContent(doc.data, doc.meta);
+    }
+
+    this.space.watchFile(path);
 
     this.ui.viewDispatch({
       type: "document-editor-loaded",
       meta: doc.meta,
+      path: path,
     });
 
-    if (!loadingDifferentPath && this.isDocumentEditor()) {
-      // We are loading the same page again so just send a file changed event
-      await this.documentEditor.changeContent(doc.data, doc.meta);
-    } else {
-      this.documentEditor!.setContent(doc.data, doc.meta);
-      this.space.watchFile(path);
-    }
-
-    if (loadingDifferentPath) {
-      this.eventHook.dispatchEvent(
-        "editor:documentLoaded",
-        path,
-        previousPath,
-      )
-        .catch(
-          console.error,
-        );
-    } else {
-      this.eventHook.dispatchEvent(
-        "editor:documentReloaded",
-        path,
-        previousPath,
-      )
-        .catch(
-          console.error,
-        );
-    }
+    this.eventHook.dispatchEvent(
+      loadingDifferentPath
+        ? "editor:documentLoaded"
+        : "editor:documentReloaded",
+      path,
+      previousPath,
+    ).catch(console.error);
   }
 
-  async loadPage(pageName: string) {
-    const loadingDifferentPage = pageName !== this.currentPage;
-    const editorView = this.editorView;
-    const previousPath = this.currentPath();
-    const previousRef = this.ui.viewState.current;
+  async loadPage(path: Path) {
+    if (!isMarkdownPath(path)) throw Error("This is not a markdown path");
 
-    // Persist current page state and nicely close page
+    const previousPath = this.ui.viewState.current?.path;
+    const loadingDifferentPath = previousPath
+      ? (previousPath !== path)
+      // Always load as different page if page is loaded from scratch
+      : true;
+    const pageName = getNameFromPath(path);
+
     if (previousPath) {
-      // this.openPages.saveState(previousPage);
       this.space.unwatchFile(previousPath);
-      if (previousPath !== `${pageName}.md`) {
-        await this.save(true);
-      }
+      await this.save(true);
     }
-
-    this.ui.viewDispatch({
-      type: "page-loading",
-      name: pageName,
-    });
 
     // Fetch next page to open
     let doc;
     try {
       doc = await this.space.readPage(pageName);
     } catch (e: any) {
-      if (e.message.includes("Not found")) {
-        // Not found, new page
-        console.log("Page doesn't exist, creating new page:", pageName);
-        // Initialize page
-        doc = {
-          text: "",
-          meta: {
-            ref: pageName,
-            tags: ["page"],
-            name: pageName,
-            lastModified: "",
-            created: "",
-            perm: "rw",
-          } as PageMeta,
-        };
+      if (!e.message.includes("Not found")) {
+        throw e;
+      }
 
-        // Let's dispatch a editor:pageCreating event to see if anybody wants to do something before the page is created
-        const results = await this.dispatchAppEvent(
-          "editor:pageCreating",
-          { name: pageName } as PageCreatingEvent,
-        ) as PageCreatingContent[];
-        if (results.length === 1) {
-          doc.text = results[0].text;
-          doc.meta.perm = results[0].perm;
-        } else if (results.length > 1) {
-          console.error(
-            "Multiple responses for editor:pageCreating event, this is not supported",
-          );
-        }
-      } else {
-        this.flashNotification(
-          `Could not load page ${pageName}: ${e.message}`,
-          "error",
+      console.log(`Page doesn't exist, creating new page: ${pageName}`);
+
+      // Mock up the page. We won't yet safe it, because the user may not even
+      // want to create that page
+      doc = {
+        text: "",
+        meta: {
+          ref: pageName,
+          tags: ["page"],
+          name: pageName,
+          lastModified: "",
+          created: "",
+          perm: "rw",
+        } as PageMeta,
+      };
+
+      // Let's dispatch a editor:pageCreating event to see if anybody wants to do something before the page is created
+      const results = await this.dispatchAppEvent(
+        "editor:pageCreating",
+        { name: pageName } as PageCreatingEvent,
+      ) as PageCreatingContent[];
+
+      if (results.length === 1) {
+        doc.text = results[0].text;
+        doc.meta.perm = results[0].perm;
+      } else if (results.length > 1) {
+        console.error(
+          "Multiple responses for editor:pageCreating event, this is not supported",
         );
-        if (previousPath && previousRef) {
-          this.ui.viewDispatch(
-            previousRef.kind === "page"
-              ? { type: "page-loaded", meta: previousRef.meta }
-              : { type: "document-editor-loaded", meta: previousRef.meta },
-          );
-        }
-
-        return;
       }
     }
 
-    if (this.isDocumentEditor()) {
-      this.switchToPageEditor();
-    }
+    // This could create an invalid editor state, but that doesn't matter, we'll update it later
+    this.switchToPageEditor();
 
     this.ui.viewDispatch({
       type: "page-loaded",
       meta: doc.meta,
+      path: path,
     });
 
-    // Fetch (possibly) enriched meta data asynchronously
+    // Fetch the meta which includes the possibly indexed stuff, like page
+    // decorations
     if (await this.hasInitialSyncCompleted()) {
-      this.clientSystem.getObjectByRef<
-        PageMeta
-      >(
-        this.currentPage,
-        "page",
-        this.currentPage,
-      ).then((enrichedMeta) => {
-        if (!enrichedMeta) {
-          // Nothing in the store, revert to default
-          enrichedMeta = doc.meta;
+      try {
+        const enrichedMeta = await this.clientSystem.getObjectByRef<PageMeta>(
+          pageName,
+          "page",
+          pageName,
+        ) ?? doc.meta;
+
+        const body = document.body;
+        body.removeAttribute("class");
+
+        if (enrichedMeta.pageDecoration?.cssClasses) {
+          body.className = enrichedMeta.pageDecoration.cssClasses
+            .join(" ")
+            .replaceAll(/[^a-zA-Z0-9-_ ]/g, "");
         }
 
-        const bodyEl = this.parent.parentElement;
-        if (bodyEl) {
-          bodyEl.removeAttribute("class");
-          if (enrichedMeta.pageDecoration?.cssClasses) {
-            bodyEl.className = enrichedMeta.pageDecoration.cssClasses.join(" ")
-              .replaceAll(/[^a-zA-Z0-9-_ ]/g, "");
-          }
-        }
         this.ui.viewDispatch({
           type: "update-current-page-meta",
           meta: enrichedMeta,
         });
-      }).catch(console.error);
+      } catch (e: any) {
+        console.log(
+          `There was an error trying to fetch enriched metadata: ${e.message}`,
+        );
+      }
     }
 
     // When loading a different page OR if the page is read-only (in which case we don't want to apply local patches, because there's no point)
-    if (loadingDifferentPage || doc.meta.perm === "ro") {
+    if (loadingDifferentPath || doc.meta.perm === "ro") {
       const editorState = createEditorState(
         this,
         pageName,
         doc.text,
         doc.meta.perm === "ro",
       );
-      editorView.setState(editorState);
-      if (editorView.contentDOM) {
-        this.tweakEditorDOM(editorView.contentDOM);
-      }
-      this.space.watchFile(`${pageName}.md`);
+      this.editorView.setState(editorState);
     } else {
       // Just apply minimal patches so that the cursor is preserved
       this.setEditorText(doc.text, true);
     }
 
+    this.space.watchFile(path);
+
     // Note: these events are dispatched asynchronously deliberately (not waiting for results)
-    if (loadingDifferentPage) {
-      this.eventHook.dispatchEvent(
-        "editor:pageLoaded",
-        pageName,
-        previousPath.slice(0, -3),
-      )
-        .catch(
-          console.error,
-        );
-    } else {
-      this.eventHook.dispatchEvent("editor:pageReloaded", pageName).catch(
-        console.error,
-      );
-    }
+    this.eventHook.dispatchEvent(
+      loadingDifferentPath ? "editor:pageLoaded" : "editor:pageReloaded",
+      pageName,
+      previousPath ? getNameFromPath(previousPath) : undefined,
+    ).catch(console.error);
   }
 
   isDocumentEditor(): this is { documentEditor: DocumentEditor } & this {
@@ -1254,12 +1155,6 @@ export class Client {
     // This is a little hacky but any other solution would pose a larger rewrite
     this.rebuildEditorState();
     this.editorView.contentDOM.blur();
-  }
-
-  tweakEditorDOM(contentDOM: HTMLElement) {
-    contentDOM.spellcheck = true;
-    contentDOM.setAttribute("autocorrect", "on");
-    contentDOM.setAttribute("autocapitalize", "on");
   }
 
   setEditorText(newText: string, shouldIsolateHistory = false) {
@@ -1421,7 +1316,7 @@ export class Client {
             "[sync]",
             "Initial sync completed, now need to do a full space index to ensure all pages are indexed using any custom indexers",
           );
-          this.space.spacePrimitives.enablePageEvents = true;
+          this.eventedSpacePrimitives.enablePageEvents = true;
           this.clientSystem.ensureFullIndex().catch(
             console.error,
           );
@@ -1466,17 +1361,60 @@ export class Client {
   }
 
   private navigateWithinPage(pageState: LocationState) {
-    if (pageState.kind === "document") return;
+    if (!isMarkdownPath(pageState.path)) return;
 
-    // Did we end up doing anything in terms of internal navigation?
+    // We can't use getOffsetFromRef here, because it is asyncronous.
+    let pos: number | undefined = undefined;
+
+    // Don't use getOffsetFromRef, so we can show error messages
+    if (pageState.details?.type === "header") {
+      const pageText = this.editorView.state.sliceDoc();
+
+      pos = getOffsetFromHeader(
+        parseMarkdown(pageText),
+        pageState.details.header,
+      );
+
+      if (pos === -1) {
+        this.flashNotification(
+          `Could not find header "${pageState.details.header}"`,
+          "error",
+        );
+
+        pos = undefined;
+      }
+    } else if (pageState.details?.type === "position") {
+      pos = Math.max(
+        0,
+        Math.min(pageState.details.pos, this.editorView.state.doc.length),
+      );
+    } else if (pageState.details?.type === "linecolumn") {
+      const pageText = this.editorView.state.sliceDoc();
+
+      pos = getOffsetFromLineColumn(
+        pageText,
+        pageState.details.line,
+        pageState.details.column,
+      );
+    }
+
+    if (pos !== undefined) {
+      this.editorView.dispatch({
+        selection: { anchor: pos },
+        effects: EditorView.scrollIntoView(pos, {
+          y: "start",
+          yMargin: 5,
+        }),
+      });
+
+      // If a position was specified, we bail out and ignore any cached state
+      return;
+    }
+
     let adjustedPosition = false;
 
     // Was a particular scroll position persisted?
-    if (
-      pageState.scrollTop !== undefined &&
-      !(pageState.scrollTop === 0 &&
-        (pageState.pos !== undefined || pageState.header !== undefined))
-    ) {
+    if (pageState.scrollTop && pageState.scrollTop > 0) {
       setTimeout(() => {
         this.editorView.scrollDOM.scrollTop = pageState.scrollTop!;
       });
@@ -1484,53 +1422,9 @@ export class Client {
     }
 
     // Was a particular cursor/selection set?
-    if (
-      pageState.selection?.anchor && !pageState.pos &&
-      !pageState.header
-    ) { // Only do this if we got a specific cursor position
-      console.log("Changing cursor position to", pageState.selection);
+    if (pageState.selection?.anchor) {
       this.editorView.dispatch({
         selection: pageState.selection,
-      });
-      adjustedPosition = true;
-    }
-
-    // Was there a pos set?
-    let pos: number | { line: number; column: number } | undefined =
-      pageState.pos;
-
-    if (pageState.header) {
-      console.log("Navigating to header", pageState.header);
-      const pageText = this.editorView.state.sliceDoc();
-
-      // This is somewhat of a simplistic way to find the header, but it works for now
-      pos = pageText.indexOf(`# ${pageState.header}\n`) + 2;
-
-      if (pos === -1) {
-        return this.flashNotification(
-          `Could not find header "${pageState.header}"`,
-          "error",
-        );
-      }
-
-      adjustedPosition = true;
-    }
-    if (pos !== undefined) {
-      // Translate line and column number to position in text
-      if (pos instanceof Object) {
-        // CodeMirror already keeps information about lines
-        const cmLine = this.editorView.state.doc.line(pos.line);
-        // How much to move inside the line, column number starts from 1
-        const offset = Math.max(0, Math.min(cmLine.length, pos.column - 1));
-        pos = cmLine.from + offset;
-      }
-
-      this.editorView.dispatch({
-        selection: { anchor: pos! },
-        effects: EditorView.scrollIntoView(pos!, {
-          y: "start",
-          yMargin: 5,
-        }),
       });
       adjustedPosition = true;
     }
@@ -1560,22 +1454,26 @@ export class Client {
   private async initNavigator() {
     this.pageNavigator = new PathPageNavigator(this);
 
-    this.pageNavigator.subscribe(async (locationState) => {
-      console.log("Now navigating to", locationState);
+    await this.pageNavigator.subscribe(async (locationState) => {
+      console.log(`Now navigating to ${encodeRef(locationState)}`);
 
-      if (locationState.kind === "page") {
-        await this.loadPage(locationState.page);
+      if (isMarkdownPath(locationState.path)) {
+        await this.loadPage(locationState.path);
       } else {
-        await this.loadDocumentEditor(locationState.page);
+        await this.loadDocumentEditor(locationState.path);
       }
 
       // Setup scroll position, cursor position, etc
-      this.navigateWithinPage(locationState);
+      try {
+        this.navigateWithinPage(locationState);
+      } catch {
+        // We don't really care if this fails.
+      }
 
       // Persist this page as the last opened page, we'll use this for cold start PWA loads
       await this.ds.set(
         ["client", "lastOpenedPath"],
-        locationState.page,
+        locationState.path,
       );
     });
 
@@ -1587,7 +1485,7 @@ export class Client {
       ]);
       if (lastPath) {
         console.log("Navigating to last opened page", lastPath.path);
-        await this.navigate(parseRef(lastPath));
+        await this.navigate(parseToRef(lastPath));
       }
     }
     setTimeout(() => {

@@ -20,7 +20,10 @@ import {
   luaValueToJS,
   singleResult,
 } from "../../lib/space_lua/runtime.ts";
-import { encodeRef } from "@silverbulletmd/silverbullet/lib/page_ref";
+import {
+  encodeRef,
+  getNameFromPath,
+} from "@silverbulletmd/silverbullet/lib/ref";
 import { resolveASTReference } from "../space_lua.ts";
 import { LuaWidget } from "./lua_widget.ts";
 import YAML from "js-yaml";
@@ -94,8 +97,13 @@ export function luaDirectivePlugin(client: Client) {
                   const tl = new LuaEnv();
                   tl.setLocal(
                     "currentPage",
-                    currentPageMeta ||
-                      { name: client.ui.viewState.current?.path },
+                    currentPageMeta || (client.ui.viewState.current
+                      ? {
+                        name: getNameFromPath(
+                          client.ui.viewState.current.path,
+                        ),
+                      }
+                      : undefined),
                   );
                   const sf = LuaStackFrame.createWithGlobalEnv(
                     client.clientSystem.spaceLuaEnv.env,

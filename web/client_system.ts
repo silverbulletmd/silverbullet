@@ -58,7 +58,7 @@ import { builtinPlugNames } from "../plugs/builtin_plugs.ts";
 const plugNameExtractRegex = /\/(.+)\.plug\.js$/;
 const indexVersionKey = ["$indexVersion"];
 // Bump this one every time a full reindex is needed
-const desiredIndexVersion = 7;
+const desiredIndexVersion = 8;
 const mqTimeout = 10000; // 10s
 const mqTimeoutRetry = 3;
 

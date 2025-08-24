@@ -2,10 +2,7 @@ import type { FileContent } from "../lib/spaces/datastore_space_primitives.ts";
 import { simpleHash } from "../lib/crypto.ts";
 import { DataStore } from "../lib/data/datastore.ts";
 import { IndexedDBKvPrimitives } from "../lib/data/indexeddb_kv_primitives.ts";
-import {
-  decodePageURI,
-  looksLikePathWithExtension,
-} from "@silverbulletmd/silverbullet/lib/page_ref";
+import { decodePageURI } from "@silverbulletmd/silverbullet/lib/ref";
 
 // Note: the only thing cached here is SilverBullet client assets, files and databases are kept in IndexedDB
 const CACHE_NAME = "{{CACHE_NAME}}";
@@ -136,8 +133,7 @@ self.addEventListener("fetch", (event: any) => {
       ) {
         return Response.redirect(`${pathname.slice(0, -3)}`);
       } else if (
-        (looksLikePathWithExtension(pathname) &&
-          !request.headers.get("accept").includes("text/html")) ||
+        !request.headers.get("accept").includes("text/html") ||
         requestUrl.searchParams.get("raw") === "true"
       ) {
         // If this is a /*.* request, this can either be a plug worker load or an document load
