@@ -40,6 +40,11 @@ export class PathPageNavigator {
     ref: Ref,
     replaceState = false,
   ) {
+    // We are already navigating, let's wait
+    if (this.navigationPromise) {
+      await this.navigationPromise.promise;
+    }
+
     const currentState = this.buildCurrentLocationState();
     // Remove details as we prefer to actually keep the scrollTop
     currentState.details = undefined;
