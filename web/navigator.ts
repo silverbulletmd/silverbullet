@@ -40,6 +40,11 @@ export class PathPageNavigator {
     ref: Ref,
     replaceState = false,
   ) {
+    // We are already navigating, let's wait
+    if (this.navigationPromise) {
+      await this.navigationPromise.promise;
+    }
+
     const currentState = this.buildCurrentLocationState();
     // Remove details as we prefer to actually keep the scrollTop
     currentState.details = undefined;
@@ -119,7 +124,7 @@ export class PathPageNavigator {
       : "";
   }
 
-  buildCurrentLocationState(): LocationState {
+  private buildCurrentLocationState(): LocationState {
     const locationState: LocationState = parseRefFromURI() || this.indexRef;
     if (locationState.path === "") {
       locationState.path = this.indexRef.path;
@@ -139,13 +144,17 @@ export class PathPageNavigator {
     return locationState;
   }
 
-  async subscribe(
+  subscribe(
     pageLoadCallback: (
       locationState: LocationState,
     ) => Promise<void>,
-  ): Promise<void> {
+  ) {
     globalThis.addEventListener("popstate", async (event: PopStateEvent) => {
-      const state = event.state as LocationState;
+      const state: LocationState = event.state
+        ? event.state
+        // The popstate event can be fired in a whole list of weird situations
+        // (see MDN). Try to do our best if it's fired without the state
+        : parseRefFromURI() || this.indexRef;
 
       // Try filling in the ref using the openLocation cache
       if (
@@ -167,10 +176,6 @@ export class PathPageNavigator {
           (e) => this.navigationPromise?.resolve(e.message),
         );
     });
-
-    // Do the inital navigation
-    const ref = this.buildCurrentLocationState();
-    await this.navigate(ref, true);
   }
 }
 
