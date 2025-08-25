@@ -12,200 +12,13 @@ import {
   isLocalURL,
   resolveMarkdownLink,
 } from "@silverbulletmd/silverbullet/lib/resolve";
-import {
-  getNameFromPath,
-  getPathExtension,
-  isMarkdownPath,
-  parseToRef,
-  type Ref,
-} from "@silverbulletmd/silverbullet/lib/ref";
 import { LuaWidget } from "./lua_widget.ts";
 import { mdLinkRegex, wikiLinkRegex } from "../markdown_parser/constants.ts";
-import { mime } from "mimetypes";
-import { extractTransclusion } from "../markdown.ts";
-
-type ContentDimensions = {
-  width?: number;
-  height?: number;
-};
-
-async function inlineHtmlFromURL(
-  client: Client,
-  url: string,
-  alias: string,
-  dimensions: ContentDimensions | undefined,
-  allowExternal: boolean = true,
-): Promise<HTMLElement | string> {
-  let mimeType: string | null | undefined;
-  if (!isLocalURL(url) && allowExternal) {
-    const response = await fetch(url, { method: "HEAD" });
-    if (!response.ok) {
-      return `Failed to fetch resource, server responded with status code: ${response.status}`;
-    }
-
-    mimeType = response.headers.get("Content-Type");
-  } else {
-    const ref = parseToRef(url);
-    if (!ref) {
-      return `Failed to parse url`;
-    }
-
-    mimeType = mime.getType(getPathExtension(ref.path));
-  }
-
-  if (!mimeType) {
-    return `Failed to determine mime type`;
-  }
-
-  const setDimension = (element: HTMLElement, event: string) => {
-    const cachedContentHeight = client.getCachedWidgetHeight(
-      `content:${url}`,
-    );
-
-    element.addEventListener(event, () => {
-      if (element.clientHeight !== cachedContentHeight) {
-        client.setCachedWidgetHeight(
-          `content:${url}`,
-          element.clientHeight,
-        );
-      }
-    });
-
-    element.style.maxWidth = "100%";
-
-    if (dimensions) {
-      if (dimensions.height) {
-        element.style.height = `${dimensions.height}px`;
-      }
-      if (dimensions.width) {
-        element.style.width = `${dimensions.width}px`;
-      }
-    } else if (cachedContentHeight > 0) {
-      element.style.height = cachedContentHeight.toString();
-    }
-  };
-
-  // If the URL is a local, encode the : so that it's not interpreted as a protocol
-  const sanitizedURL = isLocalURL(url) ? url.replace(":", "%3A") : url;
-
-  let result: HTMLElement | string;
-  if (mimeType.startsWith("image/")) {
-    const img = document.createElement("img");
-    img.src = sanitizedURL;
-    img.alt = alias;
-    setDimension(img, "load");
-    result = img;
-  } else if (mimeType.startsWith("video/")) {
-    const video = document.createElement("video");
-    video.src = sanitizedURL;
-    video.title = alias;
-    video.controls = true;
-    video.autoplay = false;
-    setDimension(video, "loadeddata");
-    result = video;
-  } else if (mimeType.startsWith("audio/")) {
-    const audio = document.createElement("audio");
-    audio.src = sanitizedURL;
-    audio.title = alias;
-    audio.controls = true;
-    audio.autoplay = false;
-    setDimension(audio, "loadeddata");
-    result = audio;
-  } else if (mimeType === "application/pdf") {
-    const embed = document.createElement("object");
-    embed.type = mimeType;
-    embed.data = sanitizedURL;
-    embed.style.width = "100%";
-    embed.style.height = "20em";
-    setDimension(embed, "load");
-    result = embed;
-  } else if (mimeType === "text/markdown") {
-    let details: Ref["details"], markdown: string;
-
-    if (!isLocalURL(url) && allowExternal) {
-      const response = await fetch(url);
-      if (!response.ok) {
-        // This shouldn't really happen, but let's check anyways
-        return `Couldn't transclude markdown from external source. Server responded with: ${response.status}`;
-      }
-
-      markdown = await response.text();
-
-      const parsedURL = new URL(url);
-      if (parsedURL.hash) {
-        details = {
-          type: "header",
-          header: parsedURL.hash,
-        };
-      }
-    } else {
-      const ref = parseToRef(url);
-
-      if (!ref || !isMarkdownPath(ref.path)) {
-        // We can be fairly sure this can't happen, but just be sure
-        return `Couldn't transclude markdown, invalid path`;
-      }
-
-      details = ref.details;
-
-      // Do a pre-check, because `readPage` is quiete heavy
-      if (!client.clientSystem.allKnownFiles.has(ref.path)) {
-        return `Couldn't transclude markdown, page doesn't exist`;
-      }
-
-      // Don't try catch, we just checked the existence
-      ({ text: markdown } = await client.space.readPage(
-        getNameFromPath(ref.path),
-      ));
-    }
-
-    const transclusion = extractTransclusion(markdown, details);
-    if (!transclusion) {
-      return `Couldn't extract translcusion from markdown, try removing any headers '\\#' or positions '@' from your link`;
-    }
-
-    result = transclusion;
-  } else {
-    result = `Server responded with unsupported mimeType: ${mimeType}`;
-  }
-
-  return result;
-}
-
-// Parse an alias, possibly containing dimensions into an object
-// Formats supported: "alias", "alias|100", "alias|100x200", "100", "100x200"
-function parseAlias(
-  text: string,
-): { alias: string; dim?: ContentDimensions } {
-  let alias: string;
-  let dim: ContentDimensions | undefined;
-  if (text.includes("|")) {
-    const [aliasPart, dimPart] = text.split("|");
-    alias = aliasPart;
-    const [width, height] = dimPart.split("x");
-    dim = {};
-    if (width) {
-      dim.width = parseInt(width);
-    }
-    if (height) {
-      dim.height = parseInt(height);
-    }
-  } else if (/^[x\d]/.test(text)) {
-    const [width, height] = text.split("x");
-    dim = {};
-    if (width) {
-      dim.width = parseInt(width);
-    }
-    if (height) {
-      dim.height = parseInt(height);
-    }
-    alias = "";
-  } else {
-    alias = text;
-  }
-
-  return { alias, dim };
-}
+import {
+  type ContentDimensions,
+  inlineHtmlFromURL,
+  parseDimensionFromAlias,
+} from "../markdown/inline.ts";
 
 export function inlineContentPlugin(client: Client) {
   return decoratorStateField((state: EditorState) => {
@@ -248,7 +61,7 @@ export function inlineContentPlugin(client: Client) {
 
         let dimension: ContentDimensions | undefined;
         if (alias) {
-          ({ alias, dim: dimension } = parseAlias(alias));
+          ({ alias, dimension: dimension } = parseDimensionFromAlias(alias));
         } else {
           alias = "";
         }
