@@ -202,8 +202,8 @@ export function inlineContentFromURL(
     // 4. It can be pretty heavy. If your internet connection is bad you will
     //    have to wait for all HEAD request, for your `markdownToHtml` to
     //    complete. This could take a noticeable amount of time.
-    // For this reason we will stick to doing to the `dumb` way of just getting
-    // it from the URL
+    // For this reason we will stick to doing it the `dumb` way by just getting
+    // it from the URL extension
     const extension = URL.parse(url)?.pathname.split(".").pop();
     if (extension) {
       mimeType = mime.getType(extension);
