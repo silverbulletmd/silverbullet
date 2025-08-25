@@ -24,7 +24,7 @@ For your first run, you can run the following:
 # Create a local folder "space" to keep files in
 mkdir -p space
 # Run the SilverBullet docker container in the foreground
-sudo docker run -it -p 3000:3000 -v ./space:/space ghcr.io/silverbulletmd/silverbullet:v2
+sudo docker run -it -p 3000:3000 -v ./space:/space ghcr.io/silverbulletmd/silverbullet
 ```
 
 This will run SilverBullet in the foreground, interactively, so you can see the logs and instructions. 
@@ -34,7 +34,7 @@ If this all works fine, just kill the thing with `Ctrl-c` (don’t worry, it’s
 Now you probably want to run the container in daemon (background) mode, give it a name, and automatically have it restart after you e.g. reboot your machine:
 
 ```shell
-docker run -d --restart unless-stopped --name silverbullet -p 3000:3000 -v ./space:/space ghcr.io/silverbulletmd/silverbullet:v2
+docker run -d --restart unless-stopped --name silverbullet -p 3000:3000 -v ./space:/space ghcr.io/silverbulletmd/silverbullet
 ```
 
 There you go!
@@ -42,23 +42,29 @@ There you go!
 Note that to get offline mode to work you need to serve SilverBullet with HTTPS, via for example a reverse proxy.
 
 # Versions
-As we’re working on SilverBullet v2, your only real option is to use the “edge” versions with the `:v2` tag.
+There are two release channels:
+* Stable: for this use the `:latest` images
+* Edge: for this use the `:v2` tag (e.g. `ghcr.io/silverbulletmd/silverbullet:v2`) — these images are always in sync with the `main` development branch.
 
-## Upgrade
+To check the version you’re running, use the ${widgets.commandButton("Client: Version")} command.
+
+# Upgrade
 You can upgrade SilverBullet as follows:
 
 ```shell
 # Pull the latest version of the image
-docker pull ghcr.io/silverbulletmd/silverbullet:v2
+docker pull ghcr.io/silverbulletmd/silverbullet
 # Kill the running container
 docker kill silverbullet
 # Remove the old container
 docker rm silverbullet
 # Start a fresh one (same command as before)
-docker run -d --restart unless-stopped --name silverbullet -p 3000:3000 -v $PWD/space:/space ghcr.io/silverbulletmd/silverbullet:v2
+docker run -d --restart unless-stopped --name silverbullet -p 3000:3000 -v $PWD/space:/space ghcr.io/silverbulletmd/silverbullet
 ```
 
 Since this is somewhat burdensome, it is recommended you use a tool like [watchtower](https://github.com/containrrr/watchtower) to automatically update your docker images and restart them. However, if we go there — we may as well use a tool like _docker compose_ to manage your containers, no?
+
+To upgrade your client, be sure to refresh your page _twice_ somewhat slowly.
 
 # Docker compose
 [Docker compose](https://docs.docker.com/compose/) is a simple tool to manage running of multiple containers on a server you control. It’s like Kubernetes, but you know, not insanely complex.
@@ -73,7 +79,7 @@ Instructions:
 ```yaml
 services:
   silverbullet:
-    image: ghcr.io/silverbulletmd/silverbullet:v2
+    image: ghcr.io/silverbulletmd/silverbullet
     restart: unless-stopped
     environment:
     - SB_USER=admin:admin

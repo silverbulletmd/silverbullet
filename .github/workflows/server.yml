@@ -24,7 +24,6 @@ jobs:
       - name: Build bundles
         run: |
           deno task build
-          deno task bundle
 
       - name: Compile for all platforms
         run: |
