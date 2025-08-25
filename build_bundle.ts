@@ -18,7 +18,7 @@ const result = await esbuild.build({
   treeShaking: true,
   logLevel: "error",
   minify: true,
-  external: [],
+  external: ["./server/mcp_server.ts"],
   plugins: denoPlugins({
     configPath: new URL("./deno.json", import.meta.url).pathname,
     nodeModulesDir: "auto",

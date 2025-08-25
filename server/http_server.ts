@@ -29,6 +29,13 @@ import {
   CheckPathSpacePrimitives,
 } from "../lib/spaces/checked_space_primitives.ts";
 
+// Conditionally import MCP types only (not implementation)
+export type McpServerOptions = {
+  enabled: boolean;
+  authMode: "inherit" | "separate" | "none";
+  authToken?: string;
+};
+
 const authenticationExpirySeconds = 60 * 60 * 24 * 7; // 1 week
 
 export type ServerOptions = {
@@ -41,6 +48,7 @@ export type ServerOptions = {
   shellBackend: string;
   readOnly: boolean;
   indexPage: string;
+  mcp?: McpServerOptions;
 };
 
 export class HttpServer {
@@ -51,6 +59,7 @@ export class HttpServer {
   private readonly spacePrimitives: SpacePrimitives;
   private jwtIssuer: JWTIssuer;
   private readonly shellBackend: ShellBackend;
+  private mcpServerManager?: any;
 
   constructor(
     readonly options: ServerOptions,
@@ -84,6 +93,19 @@ export class HttpServer {
       ? new NotSupportedShell() // No shell for read only mode
       : determineShellBackend(options);
     this.jwtIssuer = new JWTIssuer(baseKvPrimitives);
+
+    // MCP server will be initialized in start() method
+  }
+
+  private async initializeMcpServer() {
+    try {
+      // Dynamic import to avoid bundling MCP dependencies
+      const { McpServerManager } = await import("./mcp_server.ts");
+      this.mcpServerManager = new McpServerManager(this.spacePrimitives, this.options.mcp!);
+    } catch (error) {
+      console.error("Failed to initialize MCP server:", error);
+      console.error("MCP functionality will not be available");
+    }
   }
 
   async start() {
@@ -93,10 +115,17 @@ export class HttpServer {
         JSON.stringify({ auth: this.options.auth }),
       );
     }
+    
+    // Initialize MCP server if enabled
+    if (this.options.mcp?.enabled) {
+      await this.initializeMcpServer();
+    }
+    
     await this.ensureBasicPages();
     // Serve static files (javascript, css, html)
     this.serveStatic();
     this.addAuth();
+    this.addMcpRoutes();
     this.addFsRoutes();
 
     // Fallback, serve the UI index.html
@@ -180,7 +209,10 @@ export class HttpServer {
     });
   }
 
-  stop() {
+  async stop() {
+    if (this.mcpServerManager) {
+      await this.mcpServerManager.shutdown();
+    }
     if (this.abortController) {
       this.abortController.abort();
       console.log("stopped server");
@@ -442,6 +474,38 @@ export class HttpServer {
         }
       },
     );
+  }
+
+  private addMcpRoutes() {
+    if (!this.mcpServerManager) {
+      return;
+    }
+
+    // MCP endpoint - handles all MCP communication
+    this.app.all("/mcp", async (c) => {
+      return await this.mcpServerManager!.handleMcpRequest(c);
+    });
+
+    // MCP info endpoint (no auth required for basic info)
+    this.app.get("/.mcp", (c) => {
+      if (!this.options.mcp?.enabled) {
+        return c.json({ 
+          mcp: { 
+            enabled: false,
+            message: "MCP server is disabled" 
+          } 
+        });
+      }
+
+      return c.json({
+        mcp: {
+          enabled: true,
+          authMode: this.options.mcp.authMode,
+          endpoint: "/mcp",
+          version: "2.0.0",
+        },
+      });
+    });
   }
 
   private refreshLogin(c: Context, host: string) {
