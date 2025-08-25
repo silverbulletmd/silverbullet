@@ -8,17 +8,8 @@ import {
   shouldRenderWidgets,
 } from "./util.ts";
 import type { Client } from "../client.ts";
-import {
-  isLocalURL,
-  resolveMarkdownLink,
-} from "@silverbulletmd/silverbullet/lib/resolve";
 import { LuaWidget } from "./lua_widget.ts";
-import { mdLinkRegex, wikiLinkRegex } from "../markdown_parser/constants.ts";
-import {
-  type ContentDimensions,
-  inlineHtmlFromURL,
-  parseDimensionFromAlias,
-} from "../markdown/inline.ts";
+import { inlineHtmlFromURL, parseTransclusion } from "../markdown/inline.ts";
 
 export function inlineContentPlugin(client: Client) {
   return decoratorStateField((state: EditorState) => {
@@ -36,34 +27,9 @@ export function inlineContentPlugin(client: Client) {
 
         const text = state.sliceDoc(from, to);
 
-        let url, alias = undefined;
-        let isWikilink = false;
-
-        mdLinkRegex.lastIndex = 0;
-        wikiLinkRegex.lastIndex = 0;
-        let match: RegExpMatchArray | null = null;
-        if ((match = mdLinkRegex.exec(text)) && match.groups) {
-          ({ url, title: alias } = match.groups);
-
-          if (isLocalURL(url)) {
-            url = resolveMarkdownLink(
-              client.currentName(),
-              decodeURI(url),
-            );
-          }
-        } else if ((match = wikiLinkRegex.exec(text)) && match.groups) {
-          ({ stringRef: url, alias } = match.groups);
-          isWikilink = true;
-        } else {
-          // We found no match
+        const transclusion = parseTransclusion(text);
+        if (!transclusion) {
           return;
-        }
-
-        let dimension: ContentDimensions | undefined;
-        if (alias) {
-          ({ alias, dimension: dimension } = parseDimensionFromAlias(alias));
-        } else {
-          alias = "";
         }
 
         if (!isCursorInRange(state, [from, to])) {
@@ -79,10 +45,10 @@ export function inlineContentPlugin(client: Client) {
               async () => {
                 const result = await inlineHtmlFromURL(
                   client,
-                  url,
-                  alias,
-                  dimension,
-                  !isWikilink,
+                  transclusion.url,
+                  transclusion.alias,
+                  transclusion.dimension,
+                  transclusion.linktype !== "wikilink",
                 );
                 const content = typeof result === "string"
                   ? { markdown: result }

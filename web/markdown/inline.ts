@@ -12,7 +12,10 @@ import {
   parseToRef,
   type Ref,
 } from "@silverbulletmd/silverbullet/lib/ref";
-import { isLocalURL } from "@silverbulletmd/silverbullet/lib/resolve";
+import {
+  isLocalURL,
+  resolveMarkdownLink,
+} from "@silverbulletmd/silverbullet/lib/resolve";
 import { mime } from "mimetypes";
 import type { Client } from "../client.ts";
 import type { LuaEnv, LuaStackFrame } from "../../lib/space_lua/runtime.ts";
@@ -21,6 +24,7 @@ import { renderExpressionResult } from "./result_render.ts";
 import { parseExpressionString } from "../../lib/space_lua/parse.ts";
 import { evalExpression } from "../../lib/space_lua/eval.ts";
 import type { LuaExpression } from "../../lib/space_lua/ast.ts";
+import { mdLinkRegex, wikiLinkRegex } from "../markdown_parser/constants.ts";
 
 /**
  * Describes the dimensions of a transclusion, if provided through the alias.
@@ -167,6 +171,8 @@ export function extractTransclusion(
 
 /**
  * Function to generate HTML or markdown for a ![[<link>]] type transclusion
+ * @param allowExternal In SB currently, wikilinks don't allow external links
+ * and markdown links do
  * @returns a string for a markdown transclusion or html for everything else
  */
 export async function inlineHtmlFromURL(
@@ -345,4 +351,51 @@ export function parseDimensionFromAlias(
   }
 
   return { alias, dimension: dim };
+}
+
+export function parseTransclusion(
+  text: string,
+): {
+  url: string;
+  alias: string;
+  dimension?: ContentDimensions;
+  linktype: "wikilink" | "markdown";
+} | null {
+  let url, alias = undefined;
+  let linktype: "wikilink" | "markdown" = "markdown";
+
+  mdLinkRegex.lastIndex = 0;
+  wikiLinkRegex.lastIndex = 0;
+  let match: RegExpMatchArray | null = null;
+  if ((match = mdLinkRegex.exec(text)) && match.groups) {
+    ({ url, title: alias } = match.groups);
+
+    if (isLocalURL(url)) {
+      url = resolveMarkdownLink(
+        client.currentName(),
+        decodeURI(url),
+      );
+    }
+    linktype = "markdown";
+  } else if ((match = wikiLinkRegex.exec(text)) && match.groups) {
+    ({ stringRef: url, alias } = match.groups);
+    linktype = "wikilink";
+  } else {
+    // We found no match
+    return null;
+  }
+
+  let dimension: ContentDimensions | undefined;
+  if (alias) {
+    ({ alias, dimension: dimension } = parseDimensionFromAlias(alias));
+  } else {
+    alias = "";
+  }
+
+  return {
+    url,
+    alias,
+    dimension,
+    linktype,
+  };
 }
