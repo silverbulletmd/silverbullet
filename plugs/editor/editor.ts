@@ -12,6 +12,9 @@ export async function setEditorMode() {
   if (await clientStore.get("darkMode")) {
     await editor.setUiOption("darkMode", true);
   }
+  if (await clientStore.get("cleanMode")) {
+    await editor.setUiOption("cleanMode", true);
+  }
 }
 
 export function openCommandPalette() {
@@ -38,6 +41,13 @@ export async function toggleDarkMode() {
   let darkMode = await editor.getUiOption("darkMode");
   darkMode = !darkMode;
   await clientStore.set("darkMode", darkMode);
+  await editor.reloadUI();
+}
+
+export async function toggleCleanMode() {
+  let cleanMode = await editor.getUiOption("cleanMode");
+  cleanMode = !cleanMode;
+  await clientStore.set("cleanMode", cleanMode);
   await editor.reloadUI();
 }
 

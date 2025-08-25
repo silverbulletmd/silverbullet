@@ -10,6 +10,10 @@ functions:
     path: "./editor.ts:toggleDarkMode"
     command:
       name: "Editor: Toggle Dark Mode"
+  toggleCleanMode:
+    path: "./editor.ts:toggleCleanMode"
+    command:
+      name: "Editor: Toggle Clean Mode"
   newWindow:
     path: editor.ts:newWindowCommand
     command:
