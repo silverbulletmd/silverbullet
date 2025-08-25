@@ -1454,7 +1454,7 @@ export class Client {
   private async initNavigator() {
     this.pageNavigator = new PathPageNavigator(this);
 
-    await this.pageNavigator.subscribe(async (locationState) => {
+    this.pageNavigator.subscribe(async (locationState) => {
       console.log(`Now navigating to ${encodeRef(locationState)}`);
 
       if (isMarkdownPath(locationState.path)) {
@@ -1477,21 +1477,22 @@ export class Client {
       );
     });
 
-    if (location.hash === "#boot") {
-      // Cold start PWA load
-      const lastPath = await this.ds.get([
-        "client",
-        "lastOpenedPath",
-      ]);
-      if (lastPath) {
-        console.log("Navigating to last opened page", lastPath.path);
-        await this.navigate(parseToRef(lastPath));
-      }
+    // Initial navigation
+    let ref = this.onLoadRef;
+
+    if (ref.details?.type === "header" && ref.details.header === "boot") {
+      const path = await this.ds.get(
+        ["client", "lastOpenedPath"],
+      ) as Path;
+
+      console.log("Navigating to last opened page", getNameFromPath(path));
+      ref = { path };
     }
-    setTimeout(() => {
-      console.log("Focusing editor");
-      this.focus();
-    }, 100);
+
+    await this.navigate(ref, true);
+
+    console.log("Focusing editor");
+    this.focus();
   }
 
   async wipeClient() {
