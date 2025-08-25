@@ -13,6 +13,7 @@ import * as TagConstants from "../../plugs/index/constants.ts";
 import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 import { justifiedTableRender } from "./justified_tables.ts";
 import type { PageMeta } from "../../type/index.ts";
+import { inlineContentFromURL, parseTransclusion } from "./inline.ts";
 
 export type MarkdownRenderOptions = {
   failOnUnknown?: true;
@@ -241,41 +242,33 @@ function render(
       };
     }
     case "Image": {
-      const altTextNode = findNodeOfType(t, "WikiLinkAlias") ||
-        t.children![1];
-      let altText = altTextNode && altTextNode.type !== "LinkMark"
-        ? renderToText(altTextNode)
-        : "";
-      const dimReg = /\d*[^\|\s]*?[xX]\d*[^\|\s]*/.exec(altText);
-      let style = "";
-      if (dimReg) {
-        const [, width, widthUnit = "px", height, heightUnit = "px"] =
-          dimReg[0].match(/(\d*)(\S*?x?)??[xX](\d*)(.*)?/) ?? [];
-        if (width) {
-          style += `width: ${width}${widthUnit};`;
-        }
-        if (height) {
-          style += `height: ${height}${heightUnit};`;
-        }
-        altText = altText.replace(dimReg[0], "").replace("|", "");
+      const text = renderToText(t);
+
+      const transclusion = parseTransclusion(text);
+      if (!transclusion) {
+        return text;
       }
 
-      const urlNode = findNodeOfType(t, "WikiLinkPage") ||
-        findNodeOfType(t, "URL");
-      if (!urlNode) {
-        return renderToText(t);
+      const result = inlineContentFromURL(
+        client,
+        transclusion.url,
+        transclusion.alias,
+        transclusion.dimension,
+        transclusion.linktype !== "wikilink",
+      );
+      if (!(result instanceof HTMLElement)) {
+        return text;
       }
-      let url = renderToText(urlNode);
-      if (urlNode.type === "WikiLinkPage") {
-        url = "/" + url;
-      }
+
       return {
-        name: "img",
-        attrs: {
-          src: url,
-          alt: altText,
-          style: style,
-        },
+        name: result.tagName,
+        attrs: Array.from(result.attributes).reduce(
+          (obj, attr) => {
+            obj[attr.name] = attr.value;
+            return obj;
+          },
+          {} as Record<string, string>,
+        ),
         body: "",
       };
     }

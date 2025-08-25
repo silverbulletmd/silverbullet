@@ -9,7 +9,7 @@ import {
 } from "./util.ts";
 import type { Client } from "../client.ts";
 import { LuaWidget } from "./lua_widget.ts";
-import { inlineHtmlFromURL, parseTransclusion } from "../markdown/inline.ts";
+import { inlineContentFromURL, parseTransclusion } from "../markdown/inline.ts";
 
 export function inlineContentPlugin(client: Client) {
   return decoratorStateField((state: EditorState) => {
@@ -43,7 +43,7 @@ export function inlineContentPlugin(client: Client) {
               `widget:${client.currentPath()}:${text}`,
               text,
               async () => {
-                const result = await inlineHtmlFromURL(
+                const result = await inlineContentFromURL(
                   client,
                   transclusion.url,
                   transclusion.alias,

@@ -45,36 +45,44 @@ export async function expandMarkdown(
   mdTree: ParseTree,
   env: LuaEnv,
   sf: LuaStackFrame,
+  forbiddenPages: Set<string> = new Set(),
 ): Promise<ParseTree> {
   await replaceNodesMatchingAsync(mdTree, async (n) => {
     if (n.type === "Image") {
       // Let's scan for ![[embeds]] that are codified as Images, confusingly
-      const wikiLinkMark = findNodeOfType(n, "WikiLinkMark");
-      if (!wikiLinkMark) {
-        return;
-      }
-      const wikiLinkPage = findNodeOfType(n, "WikiLinkPage");
-      if (!wikiLinkPage) {
-        return;
+      const text = renderToText(n);
+
+      const transclusion = parseTransclusion(text);
+      if (!transclusion || forbiddenPages.has(transclusion.url)) {
+        return n;
       }
 
-      const page = wikiLinkPage.children![0].text!;
+      const result = await inlineContentFromURL(
+        client,
+        transclusion.url,
+        transclusion.alias,
+        transclusion.dimension,
+        transclusion.linktype !== "wikilink",
+      );
 
-      const ref = parseToRef(page);
-
-      if (!ref || !isMarkdownPath(ref.path)) {
-        return;
+      // We don't transclude anything that's not markdown
+      if (typeof result !== "string") {
+        return n;
       }
 
-      // Read the page
-      const { text } = await client.space.readPage(getNameFromPath(ref.path));
-      const parsedBody = parseMarkdown(text);
+      // We know it's a markdown page and we know we are transcluding it. "Mark"
+      // it so we won't touch it down the line and cause endless recursion
+      forbiddenPages.add(transclusion.url);
+
+      const tree = parseMarkdown(result);
+
       // Recursively process
       return expandMarkdown(
         client,
-        parsedBody,
+        tree,
         env,
         sf,
+        forbiddenPages,
       );
     } else if (n.type === "LuaDirective") {
       const expr = findNodeOfType(n, "LuaExpressionDirective") as
@@ -170,26 +178,36 @@ export function extractTransclusion(
 }
 
 /**
- * Function to generate HTML or markdown for a ![[<link>]] type transclusion
+ * Function to generate HTML or markdown for a ![[<link>]] type transclusion.
  * @param allowExternal In SB currently, wikilinks don't allow external links
  * and markdown links do
  * @returns a string for a markdown transclusion or html for everything else
  */
-export async function inlineHtmlFromURL(
+export function inlineContentFromURL(
   client: Client,
   url: string,
   alias: string,
-  dimensions: ContentDimensions | undefined,
+  dimension: ContentDimensions | undefined,
   allowExternal: boolean = true,
-): Promise<HTMLElement | string> {
+): string | HTMLElement | Promise<HTMLElement | string> {
   let mimeType: string | null | undefined;
   if (!isLocalURL(url) && allowExternal) {
-    const response = await fetch(url, { method: "HEAD" });
-    if (!response.ok) {
-      return `Failed to fetch resource, server responded with status code: ${response.status}`;
+    // TODO
+    // Realistically we should dertermine the mine type by sending a HEAD
+    // request, this poses multiple problems
+    // 1. This makes `async` a hard requirement here
+    // 2. We would need to proxy the request (because of CORS)
+    // 3. It won't work "offline" (i.e. away from the SB instance, because it
+    //    can't proxy the request anymore)
+    // 4. It can be pretty heavy. If your internet connection is bad you will
+    //    have to wait for all HEAD request, for your `markdownToHtml` to
+    //    complete. This could take a noticeable amount of time.
+    // For this reason we will stick to doing to the `dumb` way of just getting
+    // it from the URL
+    const extension = URL.parse(url)?.pathname.split(".").pop();
+    if (extension) {
+      mimeType = mime.getType(extension);
     }
-
-    mimeType = response.headers.get("Content-Type");
   } else {
     const ref = parseToRef(url);
     if (!ref) {
@@ -203,43 +221,19 @@ export async function inlineHtmlFromURL(
     return `Failed to determine mime type`;
   }
 
-  const setDimension = (element: HTMLElement, event: string) => {
-    const cachedContentHeight = client.getCachedWidgetHeight(
-      `content:${url}`,
-    );
-
-    element.addEventListener(event, () => {
-      if (element.clientHeight !== cachedContentHeight) {
-        client.setCachedWidgetHeight(
-          `content:${url}`,
-          element.clientHeight,
-        );
-      }
-    });
-
-    element.style.maxWidth = "100%";
-
-    if (dimensions) {
-      if (dimensions.height) {
-        element.style.height = `${dimensions.height}px`;
-      }
-      if (dimensions.width) {
-        element.style.width = `${dimensions.width}px`;
-      }
-    } else if (cachedContentHeight > 0) {
-      element.style.height = cachedContentHeight.toString();
-    }
-  };
+  const style = `max-width: 100%;` +
+    (dimension?.width ? `width: ${dimension.width}px;` : "") +
+    (dimension?.height ? `height: ${dimension.height}px;` : "");
 
   // If the URL is a local, encode the : so that it's not interpreted as a protocol
   const sanitizedURL = isLocalURL(url) ? url.replace(":", "%3A") : url;
 
-  let result: HTMLElement | string;
+  let result: HTMLElement | string | Promise<string | HTMLElement>;
   if (mimeType.startsWith("image/")) {
     const img = document.createElement("img");
     img.src = sanitizedURL;
     img.alt = alias;
-    setDimension(img, "load");
+    img.style = style;
     result = img;
   } else if (mimeType.startsWith("video/")) {
     const video = document.createElement("video");
@@ -247,7 +241,7 @@ export async function inlineHtmlFromURL(
     video.title = alias;
     video.controls = true;
     video.autoplay = false;
-    setDimension(video, "loadeddata");
+    video.style = style;
     result = video;
   } else if (mimeType.startsWith("audio/")) {
     const audio = document.createElement("audio");
@@ -255,7 +249,7 @@ export async function inlineHtmlFromURL(
     audio.title = alias;
     audio.controls = true;
     audio.autoplay = false;
-    setDimension(audio, "loadeddata");
+    audio.style = style;
     result = audio;
   } else if (mimeType === "application/pdf") {
     const embed = document.createElement("object");
@@ -263,63 +257,49 @@ export async function inlineHtmlFromURL(
     embed.data = sanitizedURL;
     embed.style.width = "100%";
     embed.style.height = "20em";
-    setDimension(embed, "load");
+    embed.style = style;
     result = embed;
   } else if (mimeType === "text/markdown") {
-    let details: Ref["details"], markdown: string;
-
     if (!isLocalURL(url) && allowExternal) {
-      const response = await fetch(url);
-      if (!response.ok) {
-        // This shouldn't really happen, but let's check anyways
-        return `Couldn't transclude markdown from external source. Server responded with: ${response.status}`;
-      }
+      return `Transcluding markdown from external sources is not supported`;
+    }
 
-      markdown = await response.text();
+    const ref = parseToRef(url);
 
-      const parsedURL = new URL(url);
-      if (parsedURL.hash) {
-        details = {
-          type: "header",
-          header: parsedURL.hash,
-        };
-      }
-    } else {
-      const ref = parseToRef(url);
+    if (!ref || !isMarkdownPath(ref.path)) {
+      // We can be fairly sure this can't happen, but just be sure
+      return `Couldn't transclude markdown, invalid path`;
+    }
 
-      if (!ref || !isMarkdownPath(ref.path)) {
-        // We can be fairly sure this can't happen, but just be sure
-        return `Couldn't transclude markdown, invalid path`;
-      }
+    // Do a pre-check, because `readPage` is quiete heavy
+    if (!client.clientSystem.allKnownFiles.has(ref.path)) {
+      return `Couldn't transclude markdown, page doesn't exist`;
+    }
 
-      details = ref.details;
-
-      // Do a pre-check, because `readPage` is quiete heavy
-      if (!client.clientSystem.allKnownFiles.has(ref.path)) {
-        return `Couldn't transclude markdown, page doesn't exist`;
-      }
-
+    result = (async () => {
       // Don't try catch, we just checked the existence
-      ({ text: markdown } = await client.space.readPage(
+      const { text: markdown } = await client.space.readPage(
         getNameFromPath(ref.path),
-      ));
-    }
+      );
 
-    const transclusion = extractTransclusion(markdown, details);
-    if (!transclusion) {
-      return `Couldn't extract translcusion from markdown, try removing any headers '\\#' or positions '@' from your link`;
-    }
+      const transclusion = extractTransclusion(markdown, ref.details);
+      if (!transclusion) {
+        return `Couldn't extract transclusion from markdown, try removing any headers '\\#' or positions '@' from your link`;
+      }
 
-    result = transclusion;
+      return transclusion;
+    })();
   } else {
-    result = `Server responded with unsupported mimeType: ${mimeType}`;
+    result = `File has unsupported mimeType: ${mimeType}`;
   }
 
   return result;
 }
 
-// Parse an alias, possibly containing dimensions into an object
-// Formats supported: "alias", "alias|100", "alias|100x200", "100", "100x200"
+/**
+ * Parse an alias, possibly containing dimensions into an object
+ * @example "alias", "alias|100", "alias|100x200", "100", "100x200"
+ */
 export function parseDimensionFromAlias(
   text: string,
 ): { alias: string; dimension?: ContentDimensions } {
@@ -353,6 +333,10 @@ export function parseDimensionFromAlias(
   return { alias, dimension: dim };
 }
 
+/**
+ * Parses a transclusion of the type `![[]]` or `![]()`
+ * @param text
+ */
 export function parseTransclusion(
   text: string,
 ): {
@@ -363,7 +347,7 @@ export function parseTransclusion(
 } | null {
   let url, alias = undefined;
   let linktype: "wikilink" | "markdown" = "markdown";
-
+  // TODO: Take in the tree and use tree nodes to get url and alias (Applies to all regex uses)
   mdLinkRegex.lastIndex = 0;
   wikiLinkRegex.lastIndex = 0;
   let match: RegExpMatchArray | null = null;
