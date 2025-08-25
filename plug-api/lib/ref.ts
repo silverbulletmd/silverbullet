@@ -214,7 +214,7 @@ export function getOffsetFromHeader(
       }
 
       const mark = findNodeOfType(subTree, "HeaderMark");
-      if (!mark || !mark.from || !mark.to) {
+      if (!mark || mark.from === undefined || mark.to === undefined) {
         return false;
       }
 

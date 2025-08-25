@@ -112,7 +112,7 @@ export function extractTransclusion(
   let from: undefined | number = undefined, to: undefined | number = undefined;
   traverseTree(parseTree, (subTree) => {
     // We are done, but we can't properly cancel the traversal
-    if (from && to) {
+    if (from !== undefined && to !== undefined) {
       return true;
     }
 
@@ -121,13 +121,13 @@ export function extractTransclusion(
     }
 
     // We already found the first header
-    if (from) {
+    if (from !== undefined) {
       to = subTree.from;
       return true;
     }
 
     const mark = findNodeOfType(subTree, "HeaderMark");
-    if (!mark || !mark.from || !mark.to) {
+    if (!mark || mark.from === undefined || mark.to === undefined) {
       return true;
     }
 
@@ -146,7 +146,7 @@ export function extractTransclusion(
   // Go till end of file if we can't find a second header
   to ??= parseTree.to;
 
-  if (!from) {
+  if (from === undefined) {
     return null;
   }
 
