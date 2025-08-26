@@ -12,9 +12,9 @@ import {
   attachWidgetEventHandlers,
   moveCursorIntoText,
 } from "./widget_util.ts";
-import { expandMarkdown } from "../markdown.ts";
+import { expandMarkdown } from "../markdown/inline.ts";
 import { LuaStackFrame, LuaTable } from "../../lib/space_lua/runtime.ts";
-import { isBlockMarkdown, jsonToMDTable } from "../markdown_util.ts";
+import { isBlockMarkdown, jsonToMDTable } from "../markdown/result_render.ts";
 import { activeWidgets } from "./code_widget.ts";
 
 export type LuaWidgetCallback = (
