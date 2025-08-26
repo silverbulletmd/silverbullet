@@ -1,4 +1,4 @@
-import { type Context, Hono } from "hono";
+import { type Context, Hono, type Next } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { validator } from "hono/validator";
 import type { AssetBundle } from "../lib/asset_bundle/bundle.ts";
@@ -483,95 +483,101 @@ export class HttpServer {
       }
     });
 
-    const mdExt = ".md";
-
-    fsRoutes.get("/:path{.*}", async (c, next) => {
-      const req = c.req;
-      const name = req.param("path")!;
-
-      if (
-        name.endsWith(mdExt) &&
-        // This header signififies the requests comes directly from the http_space_primitives client (not the browser)
-        !req.header("X-Sync-Mode") &&
-        req.header("sec-fetch-mode") !== "cors"
-      ) {
-        // It can happen that during a sync, authentication expires, this may result in a redirect to the login page and then back to this particular file. This particular file may be an .md file, which isn't great to show so we're redirecting to the associated SB UI page.
-        console.warn(
-          "Request was without X-Sync-Mode nor a CORS request, redirecting to page",
-        );
-        return c.redirect(this.prefixedUrl(`/${name.slice(0, -mdExt.length)}`));
-      }
-      // This is a good guess that the request comes directly from a user
-      if (
-        req.header("Accept")?.includes("text/html") &&
-        req.query("raw") !== "true"
-      ) {
-        return next();
-      }
-
-      try {
-        if (req.header("X-Get-Meta")) {
-          // Getting meta via GET request
-          const fileData = await this.spacePrimitives.getFileMeta(
-            name,
-          );
-          return c.text("", 200, this.fileMetaToHeaders(fileData));
-        }
-        const fileData = await this.spacePrimitives.readFile(name);
-        const lastModifiedHeader = new Date(fileData.meta.lastModified)
-          .toUTCString();
-        if (
-          req.header("If-Modified-Since") === lastModifiedHeader
-        ) {
-          return c.body(null, 304);
-        }
-        return c.body(new Uint8Array(fileData.data).buffer, 200, {
-          ...this.fileMetaToHeaders(fileData.meta),
-          "Last-Modified": lastModifiedHeader,
-        });
-      } catch (e: any) {
-        console.error("Error GETting file", name, e.message);
-        return c.notFound();
-      }
-    }).put(
-      async (c) => {
-        const req = c.req;
-        const path = req.param("path")!;
-        if (this.options.readOnly) {
-          return c.text("Read only mode, no writes allowed", 405);
-        }
-        console.log("Writing file", path);
-
-        const body = await req.arrayBuffer();
-
-        try {
-          const meta = await this.spacePrimitives.writeFile(
-            path,
-            new Uint8Array(body),
-          );
-          return c.text("OK", 200, this.fileMetaToHeaders(meta));
-        } catch (err) {
-          console.error("Write failed", err);
-          return c.text("Write failed", 500);
-        }
-      },
-    ).delete(async (c) => {
-      const req = c.req;
-      const name = req.param("path")!;
-      if (this.options.readOnly) {
-        return c.text("Read only mode, no writes allowed", 405);
-      }
-      console.log("Deleting file", name);
-      try {
-        await this.spacePrimitives.deleteFile(name);
-        return c.text("OK");
-      } catch (e: any) {
-        console.error("Error deleting document", e);
-        return c.text(e.message, 500);
-      }
-    }).options();
+    fsRoutes.get("/:path{.*}", this.handleGet.bind(this)).put(
+      this.handlePut.bind(this),
+    ).delete(this.handleDelete.bind(this)).options();
 
     return fsRoutes;
+  }
+
+  private async handleDelete(c: Context<any>) {
+    const req = c.req;
+    const name = req.param("path")!;
+    if (this.options.readOnly) {
+      return c.text("Read only mode, no writes allowed", 405);
+    }
+    console.log("Deleting file", name);
+    try {
+      await this.spacePrimitives.deleteFile(name);
+      return c.text("OK");
+    } catch (e: any) {
+      console.error("Error deleting document", e);
+      return c.text(e.message, 500);
+    }
+  }
+
+  private async handlePut(c: Context<any>) {
+    const req = c.req;
+    const path = req.param("path")!;
+    if (this.options.readOnly) {
+      return c.text("Read only mode, no writes allowed", 405);
+    }
+    console.log("Writing file", path);
+
+    const body = await req.arrayBuffer();
+
+    try {
+      const meta = await this.spacePrimitives.writeFile(
+        path,
+        new Uint8Array(body),
+      );
+      return c.text("OK", 200, this.fileMetaToHeaders(meta));
+    } catch (err) {
+      console.error("Write failed", err);
+      return c.text("Write failed", 500);
+    }
+  }
+
+  async handleGet(c: Context<any>, next: Next) {
+    const req = c.req;
+    const name = req.param("path")!;
+    const mdExt = ".md";
+
+    if (
+      name.endsWith(mdExt) &&
+      // This header signififies the requests comes directly from the http_space_primitives client (not the browser)
+      !req.header("X-Sync-Mode") &&
+      req.header("sec-fetch-mode") !== "cors"
+    ) {
+      // It can happen that during a sync, authentication expires, this may result in a redirect to the login page and then back to this particular file. This particular file may be an .md file, which isn't great to show so we're redirecting to the associated SB UI page.
+      console.warn(
+        "Request was without X-Sync-Mode nor a CORS request, redirecting to page",
+      );
+      return c.redirect(this.prefixedUrl(`/${name.slice(0, -mdExt.length)}`));
+    }
+
+    // This is a good guess that the request comes directly from a user
+    if (
+      req.header("Accept")?.includes("text/html") &&
+      req.query("raw") !== "true"
+    ) {
+      return next();
+    }
+
+    try {
+      if (req.header("X-Get-Meta")) {
+        // Getting meta via GET request
+        const fileData = await this.spacePrimitives.getFileMeta(
+          name,
+        );
+        return c.text("", 200, this.fileMetaToHeaders(fileData));
+      }
+      const fileData = await this.spacePrimitives.readFile(name);
+      const lastModifiedHeader = new Date(fileData.meta.lastModified)
+        .toUTCString();
+      if (
+        req.header("If-Modified-Since") === lastModifiedHeader
+      ) {
+        return c.body(null, 304);
+      }
+      return c.body(new Uint8Array(fileData.data).buffer, 200, {
+        ...this.fileMetaToHeaders(fileData.meta),
+        "Last-Modified": lastModifiedHeader,
+      });
+    } catch (e: any) {
+      console.error("Error GETting file", name, e.message);
+      return c.notFound();
+    }
   }
 
   private fileMetaToHeaders(fileMeta: FileMeta) {

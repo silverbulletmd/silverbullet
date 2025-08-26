@@ -944,7 +944,7 @@ export class Client {
       } catch (e: any) {
         // If there is no document editor we will open the file raw
         if (e.message.includes("Couldn't find")) {
-          this.openUrl(path + "?raw=true", !previousPath);
+          this.openUrl(fsEndpoint + "/" + path + "?raw=true", !previousPath);
         }
 
         throw e;

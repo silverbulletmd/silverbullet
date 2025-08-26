@@ -126,22 +126,26 @@ self.addEventListener("fetch", (event: any) => {
         pathname === "/.config" ||
         pathname === "/.fs"
       ) {
+        // Always proxy auth, config and fs listing requests to the server
         return fetch(request);
       } else if (
+        pathname.startsWith(fsEndpoint) &&
         pathname.endsWith(".md") &&
         request.headers.get("accept") !== "application/octet-stream" &&
         request.headers.get("sec-fetch-mode") !== "cors"
       ) {
-        return Response.redirect(`${pathname.slice(0, -3)}`);
+        // This handles the case of ending up with a .md URL in the browser address bar (likely due to a auth proxy redirect)
+        return Response.redirect(`${pathname.slice(fsEndpoint.length, -3)}`);
       } else if (
-        // /.fs request
-        pathname.startsWith(fsEndpoint) &&
-        (!request.headers.get("accept").includes("text/html") ||
-          requestUrl.searchParams.get("raw") === "true")
+        // /.fs file system APIs: handled locally
+        pathname.startsWith(fsEndpoint)
+        // But only if the request doesn't explicitly ask for HTML (browser address bar navigation) or a ?raw=true param is set
+        // (!request.headers.get("accept").includes("text/html") ||
+        //   requestUrl.searchParams.get("raw") === "true")
       ) {
         return handleLocalFileRequest(pathname, request);
       } else {
-        // Must be a page URL, let's serve index.html which will handle it
+        // Fallback to the SB app shell for all other requests (SPA)
         return (await caches.match(precacheFiles["/"])) || fetch(request);
       }
     })().catch((e) => {

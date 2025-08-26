@@ -257,7 +257,7 @@ export function inlineContentFromURL(
   } else if (mimeType === "application/pdf") {
     const embed = document.createElement("object");
     embed.type = mimeType;
-    embed.data = sanitizedFsUrl;
+    embed.data = sanitizedFsUrl + "?raw=true";
     embed.style.width = "100%";
     embed.style.height = "20em";
     embed.style = style;
