@@ -25,7 +25,8 @@ import { parseExpressionString } from "../../lib/space_lua/parse.ts";
 import { evalExpression } from "../../lib/space_lua/eval.ts";
 import type { LuaExpression } from "../../lib/space_lua/ast.ts";
 import { mdLinkRegex, wikiLinkRegex } from "../markdown_parser/constants.ts";
-import { fsEndpoint } from "../constants.ts";
+
+import { fsEndpoint } from "../../lib/spaces/constants.ts";
 
 /**
  * Describes the dimensions of a transclusion, if provided through the alias.

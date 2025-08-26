@@ -58,7 +58,7 @@ import { DataStoreSpacePrimitives } from "../lib/spaces/datastore_space_primitiv
 
 import { ReadOnlySpacePrimitives } from "../lib/spaces/ro_space_primitives.ts";
 import { LimitedMap } from "../lib/limited_map.ts";
-import { plugPrefix } from "../lib/spaces/constants.ts";
+import { fsEndpoint, plugPrefix } from "../lib/spaces/constants.ts";
 import { diffAndPrepareChanges } from "./cm_util.ts";
 import { DocumentEditor } from "./document_editor.ts";
 import { parseExpressionString } from "../lib/space_lua/parse.ts";
@@ -66,7 +66,6 @@ import { Config } from "./config.ts";
 import type { DocumentMeta, FileMeta, PageMeta } from "../type/index.ts";
 import { parseMarkdown } from "./markdown_parser/parser.ts";
 import { CheckPathSpacePrimitives } from "../lib/spaces/checked_space_primitives.ts";
-import { fsEndpoint } from "./constants.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 

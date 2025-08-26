@@ -3,7 +3,8 @@ import { simpleHash } from "../lib/crypto.ts";
 import { DataStore } from "../lib/data/datastore.ts";
 import { IndexedDBKvPrimitives } from "../lib/data/indexeddb_kv_primitives.ts";
 import { decodePageURI } from "@silverbulletmd/silverbullet/lib/ref";
-import { fsEndpoint } from "./constants.ts";
+
+import { fsEndpoint } from "../lib/spaces/constants.ts";
 
 // Note: the only thing cached here is SilverBullet client assets, files and databases are kept in IndexedDB
 const CACHE_NAME = "{{CACHE_NAME}}";

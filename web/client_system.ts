@@ -34,7 +34,7 @@ import { clientCodeWidgetSyscalls } from "./syscalls/client_code_widget.ts";
 import { KVPrimitivesManifestCache } from "../lib/plugos/manifest_cache.ts";
 import { createKeyBindings } from "./editor_state.ts";
 import type { DataStoreMQ } from "../lib/data/mq.datastore.ts";
-import { plugPrefix } from "../lib/spaces/constants.ts";
+import { fsEndpoint, plugPrefix } from "../lib/spaces/constants.ts";
 import { jsonschemaSyscalls } from "./syscalls/jsonschema.ts";
 import { luaSyscalls } from "./syscalls/lua.ts";
 import { indexSyscalls } from "./syscalls/index.ts";
@@ -54,7 +54,6 @@ import {
 } from "../lib/space_lua/runtime.ts";
 import { buildThreadLocalEnv, handleLuaError } from "./space_lua_api.ts";
 import { builtinPlugNames } from "../plugs/builtin_plugs.ts";
-import { fsEndpoint } from "./constants.ts";
 
 const plugNameExtractRegex = /\/(.+)\.plug\.js$/;
 const indexVersionKey = ["$indexVersion"];
