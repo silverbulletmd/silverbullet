@@ -109,7 +109,7 @@
     "@silverbulletmd/silverbullet/lib/json": "./plug-api/lib/json.ts",
     "@silverbulletmd/silverbullet/lib/tree": "./plug-api/lib/tree.ts",
     "@silverbulletmd/silverbullet/lib/attribute": "./plug-api/lib/attribute.ts",
-    "@silverbulletmd/silverbullet/lib/page_ref": "./plug-api/lib/page_ref.ts",
+    "@silverbulletmd/silverbullet/lib/ref": "./plug-api/lib/ref.ts",
     "@silverbulletmd/silverbullet/lib/resolve": "./plug-api/lib/resolve.ts",
     "@silverbulletmd/silverbullet/lib/query_expression": "./plug-api/lib/query_expression.ts",
     "@silverbulletmd/silverbullet/lib/native_fetch": "./plug-api/lib/native_fetch.ts",
