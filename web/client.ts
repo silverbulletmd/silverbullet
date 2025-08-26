@@ -66,6 +66,7 @@ import { Config } from "./config.ts";
 import type { DocumentMeta, FileMeta, PageMeta } from "../type/index.ts";
 import { parseMarkdown } from "./markdown_parser/parser.ts";
 import { CheckPathSpacePrimitives } from "../lib/spaces/checked_space_primitives.ts";
+import { fsEndpoint } from "./constants.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -319,7 +320,7 @@ export class Client {
 
   initSpace() {
     this.httpSpacePrimitives = new HttpSpacePrimitives(
-      document.baseURI.replace(/\/*$/, ""),
+      document.baseURI.replace(/\/*$/, "") + fsEndpoint,
       this.clientConfig.spaceFolderPath,
     );
 

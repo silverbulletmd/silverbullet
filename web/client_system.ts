@@ -54,6 +54,7 @@ import {
 } from "../lib/space_lua/runtime.ts";
 import { buildThreadLocalEnv, handleLuaError } from "./space_lua_api.ts";
 import { builtinPlugNames } from "../plugs/builtin_plugs.ts";
+import { fsEndpoint } from "./constants.ts";
 
 const plugNameExtractRegex = /\/(.+)\.plug\.js$/;
 const indexVersionKey = ["$indexVersion"];
@@ -150,7 +151,12 @@ export class ClientSystem {
           this.system.unload(path);
           await this.system.load(
             plugName,
-            createSandbox(new URL(`${path}`, document.baseURI)),
+            createSandbox(
+              new URL(
+                `${path}`,
+                document.baseURI.slice(0, -1) + fsEndpoint + "/",
+              ),
+            ),
             newHash,
           );
         }
@@ -266,7 +272,7 @@ export class ClientSystem {
           createSandbox(
             new URL(
               plugMeta.name,
-              document.baseURI, // We're NOT striping trailing '/', this used to be `location.origin`
+              document.baseURI.slice(0, -1) + fsEndpoint + "/", // We're NOT striping trailing '/', this used to be `location.origin`
             ),
           ),
           plugMeta.lastModified,

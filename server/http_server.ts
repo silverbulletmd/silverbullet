@@ -97,7 +97,7 @@ export class HttpServer {
     // Serve static files (javascript, css, html)
     this.serveStatic();
     this.addAuth();
-    this.addFsRoutes();
+    this.app.route("/.fs", this.buildFsRoutes());
 
     // Fallback, serve the UI index.html
     this.app.use("*", (c) => {
@@ -369,13 +369,6 @@ export class HttpServer {
       });
     });
 
-    // Simple ping health endpoint
-    this.app.get("/.ping", (c) => {
-      return c.text("OK", 200, {
-        "Cache-Control": "no-cache",
-      });
-    });
-
     // Shell command endpoint
     this.app.post("/.shell", (c) => {
       return handleShellEndpoint(
@@ -383,6 +376,13 @@ export class HttpServer {
         this.shellBackend,
         this.options.readOnly,
       );
+    });
+
+    // Simple ping health endpoint
+    this.app.get("/.ping", (c) => {
+      return c.text("OK", 200, {
+        "Cache-Control": "no-cache",
+      });
     });
 
     // HTTP Proxy endpoint
@@ -465,9 +465,10 @@ export class HttpServer {
     }
   }
 
-  private addFsRoutes() {
+  private buildFsRoutes(): Hono {
+    const fsRoutes = new Hono();
     // File list
-    this.app.get("/index.json", async (c) => {
+    fsRoutes.get("/", async (c) => {
       const req = c.req;
       if (req.header("X-Sync-Mode")) {
         // Only handle direct requests for a JSON representation of the file list
@@ -482,10 +483,9 @@ export class HttpServer {
       }
     });
 
-    const filePathRegex = "/:path{.*\\.[a-zA-Z0-9]+}";
     const mdExt = ".md";
 
-    this.app.get(filePathRegex, async (c, next) => {
+    fsRoutes.get("/:path{.*}", async (c, next) => {
       const req = c.req;
       const name = req.param("path")!;
 
@@ -570,6 +570,8 @@ export class HttpServer {
         return c.text(e.message, 500);
       }
     }).options();
+
+    return fsRoutes;
   }
 
   private fileMetaToHeaders(fileMeta: FileMeta) {
