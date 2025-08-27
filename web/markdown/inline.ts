@@ -186,12 +186,15 @@ export function extractTransclusion(
  * @returns a string for a markdown transclusion or html for everything else
  */
 export function inlineContentFromURL(
-  client: Client,
+  client: Client | undefined,
   url: string,
   alias: string,
   dimension: ContentDimensions | undefined,
   allowExternal: boolean = true,
 ): string | HTMLElement | Promise<HTMLElement | string> {
+  if (!client) {
+    return "";
+  }
   let mimeType: string | null | undefined;
   if (!isLocalURL(url) && allowExternal) {
     // TODO
@@ -275,7 +278,7 @@ export function inlineContentFromURL(
       return `Couldn't transclude markdown, invalid path`;
     }
 
-    // Do a pre-check, because `readPage` is quiete heavy
+    // Do a pre-check, because `readPage` is quite heavy
     if (!client.clientSystem.allKnownFiles.has(ref.path)) {
       return `Couldn't transclude markdown, page doesn't exist`;
     }

@@ -17,9 +17,7 @@ config.set {
       icon = "activity",
       description = "What's new",
       run = function()
-        editor.navigate {
-          page = "CHANGELOG"
-        }
+        editor.navigate "CHANGELOG"
       end
     },
     {

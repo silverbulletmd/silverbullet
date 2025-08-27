@@ -250,13 +250,13 @@ function render(
       }
 
       const result = inlineContentFromURL(
-        client,
+        globalThis.client,
         transclusion.url,
         transclusion.alias,
         transclusion.dimension,
         transclusion.linktype !== "wikilink",
       );
-      if (!(result instanceof HTMLElement)) {
+      if (!globalThis.HTMLElement || !(result instanceof HTMLElement)) {
         return text;
       }
 

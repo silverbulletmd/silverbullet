@@ -39,6 +39,10 @@ export async function serveCommand(
 
   const readOnly = !!Deno.env.get("SB_READ_ONLY");
 
+  if (readOnly) {
+    console.info("Starting in read-only mode.");
+  }
+
   const indexPage = Deno.env.get("SB_INDEX_PAGE") || "index";
   if (!isValidName(indexPage)) {
     console.error(
