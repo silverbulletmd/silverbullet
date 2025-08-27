@@ -11,10 +11,21 @@ export function determineShellBackend(
   const backendConfig = Deno.env.get("SB_SHELL_BACKEND") || "local";
   switch (backendConfig) {
     case "local":
-      return new LocalShell(serverOptions.pagesPath);
+      if (serverOptions.shellCommandWhiteList) {
+        console.info(
+          "Running with the following shell commands enabled:",
+          serverOptions.shellCommandWhiteList,
+        );
+      } else {
+        console.info("Running with ALL shell commands enabled.");
+      }
+      return new LocalShell(
+        serverOptions.pagesPath,
+        serverOptions.shellCommandWhiteList,
+      );
     default:
       console.info(
-        "Running in shellless mode, meaning shell commands are disabled",
+        "Running in shell-less mode, meaning shell commands are disabled",
       );
       return new NotSupportedShell();
   }
@@ -35,10 +46,21 @@ export class NotSupportedShell implements ShellBackend {
 }
 
 export class LocalShell implements ShellBackend {
-  constructor(private cwd: string) {
+  constructor(private cwd: string, private cmdWhiteList?: string[]) {
   }
 
   async handle(shellRequest: ShellRequest): Promise<ShellResponse> {
+    if (this.cmdWhiteList && !this.cmdWhiteList.includes(shellRequest.cmd)) {
+      console.error(
+        "Not running shell command because not in whitelist",
+        shellRequest,
+      );
+      return {
+        code: -1,
+        stdout: "",
+        stderr: "Not allowed, command not in whitelist",
+      };
+    }
     console.log(
       "Running shell command:",
       shellRequest.cmd,
@@ -47,20 +69,43 @@ export class LocalShell implements ShellBackend {
     const p = new Deno.Command(shellRequest.cmd, {
       cwd: this.cwd,
       args: shellRequest.args,
+      stdin: "piped",
       stdout: "piped",
       stderr: "piped",
-    });
-    const output = await p.output();
-    const stdout = new TextDecoder().decode(output.stdout);
-    const stderr = new TextDecoder().decode(output.stderr);
-    if (output.code !== 0) {
-      console.error("Error running shell command", stdout, stderr);
+    }).spawn();
+    if (shellRequest.stdin) {
+      // Write a string to stdin
+      const encoder = new TextEncoder();
+      const writer = p.stdin.getWriter();
+      await writer.write(encoder.encode(shellRequest.stdin));
+      writer.releaseLock();
     }
+    await p.stdin.close();
+
+    // Capture stdout and stderr
+    const [stdout, stderr] = await Promise.all([
+      readAll(p.stdout.getReader()),
+      readAll(p.stderr.getReader()),
+    ]);
+
+    // Get the exit status
+    const status = await p.status;
 
     return {
       stderr,
       stdout,
-      code: output.code,
+      code: status.code,
     };
   }
+}
+
+async function readAll(r: ReadableStreamDefaultReader) {
+  const chunks: string[] = [];
+  const decoder = new TextDecoder();
+  while (true) {
+    const { value, done } = await r.read();
+    if (done) break;
+    chunks.push(decoder.decode(value));
+  }
+  return chunks.join();
 }

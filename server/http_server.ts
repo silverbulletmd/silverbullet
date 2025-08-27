@@ -39,6 +39,7 @@ export type ServerOptions = {
   spaceIgnore?: string;
   pagesPath: string;
   shellBackend: string;
+  shellCommandWhiteList?: string[];
   readOnly: boolean;
   indexPage: string;
 };

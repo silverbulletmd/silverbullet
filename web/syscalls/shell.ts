@@ -10,6 +10,7 @@ export function shellSyscalls(
       _ctx,
       cmd: string,
       args: string[],
+      stdin?: string,
     ): Promise<{ stdout: string; stderr: string; code: number }> => {
       if (!client.httpSpacePrimitives) {
         throw new Error("Not supported in fully local mode");
@@ -21,6 +22,7 @@ export function shellSyscalls(
           body: JSON.stringify({
             cmd,
             args,
+            stdin,
           }),
         },
       );

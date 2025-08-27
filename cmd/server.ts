@@ -116,6 +116,8 @@ export async function serveCommand(
   }
 
   const shellBackend = Deno.env.get("SB_SHELL_BACKEND") || "local";
+  const shellCommandWhiteList = Deno.env.get("SB_SHELL_WHITELIST")?.split(" ");
+
   const spaceIgnore = Deno.env.get("SB_SPACE_IGNORE");
 
   // All plug code bundled into a JSON blob
@@ -138,6 +140,7 @@ export async function serveCommand(
       readOnly,
       shellBackend,
       pagesPath: folder,
+      shellCommandWhiteList,
     },
     clientAssets,
     plugAssets,
