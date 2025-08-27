@@ -41,6 +41,14 @@ There you go!
 
 Note that to get offline mode to work you need to serve SilverBullet with HTTPS, via for example a reverse proxy.
 
+# Installing additional packages
+
+If you would like to install additional packages into your docker container (e.g. to call via [[API/shell]]), you can do so by creating a [[CONTAINER_BOOT]] page in your space.
+
+In this page, put `apt` commands install the (ubuntu) packages you would like to install.
+
+This page will be run as a bash script upon container boot (hence its name). You can monitor its progress by checking your server’s logs.
+
 # Versions
 As we’re working on SilverBullet v2, your only real option is to use the “edge” versions with the `:v2` tag.
 
