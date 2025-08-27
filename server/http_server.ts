@@ -533,27 +533,6 @@ export class HttpServer {
     const name = req.param("path")!;
     const mdExt = ".md";
 
-    if (
-      name.endsWith(mdExt) &&
-      // This header signififies the requests comes directly from the http_space_primitives client (not the browser)
-      !req.header("X-Sync-Mode") &&
-      req.header("sec-fetch-mode") !== "cors"
-    ) {
-      // It can happen that during a sync, authentication expires, this may result in a redirect to the login page and then back to this particular file. This particular file may be an .md file, which isn't great to show so we're redirecting to the associated SB UI page.
-      console.warn(
-        "Request was without X-Sync-Mode nor a CORS request, redirecting to page",
-      );
-      return c.redirect(this.prefixedUrl(`/${name.slice(0, -mdExt.length)}`));
-    }
-
-    // This is a good guess that the request comes directly from a user
-    if (
-      req.header("Accept")?.includes("text/html") &&
-      req.query("raw") !== "true"
-    ) {
-      return next();
-    }
-
     try {
       if (req.header("X-Get-Meta")) {
         // Getting meta via GET request

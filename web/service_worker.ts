@@ -140,9 +140,6 @@ self.addEventListener("fetch", (event: any) => {
       } else if (
         // /.fs file system APIs: handled locally
         pathname.startsWith(fsEndpoint)
-        // But only if the request doesn't explicitly ask for HTML (browser address bar navigation) or a ?raw=true param is set
-        // (!request.headers.get("accept").includes("text/html") ||
-        //   requestUrl.searchParams.get("raw") === "true")
       ) {
         return handleLocalFileRequest(pathname, request);
       } else {
