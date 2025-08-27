@@ -1,8 +1,0 @@
-/*
-  X-Last-Modified: 12345
-  X-Created: 12345
-  X-Permission: rw
-  access-control-allow-headers: *
-  access-control-allow-methods: GET,POST,PUT,DELETE,OPTIONS,HEAD
-  access-control-allow-origin: *
-  access-control-expose-headers: *

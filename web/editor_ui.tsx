@@ -181,7 +181,7 @@ export class MainUI {
 
                   if (client.clientSystem.allKnownFiles.has(name)) {
                     // Try it as a document name === path
-                    await askForModification(
+                    await this.promptDocumentOperation(
                       name as Path,
                       `'${name}' has an invalid name. You can now modify it`,
                     );
@@ -189,7 +189,7 @@ export class MainUI {
                     client.clientSystem.allKnownFiles.has(`${name}.md`)
                   ) {
                     // Try it as a page
-                    await askForModification(
+                    await this.promptDocumentOperation(
                       `${name}.md`,
                       `'${name}.md' has an invalid name. You can now modify it`,
                     );
@@ -212,9 +212,9 @@ export class MainUI {
                     extensions.includes(getPathExtension(ref.path))
                   )
                 ) {
-                  await askForModification(
+                  await this.promptDocumentOperation(
                     ref.path,
-                    "There is no editor for this file type. Modify the selected document",
+                    "This file cannot be edited, select your desired action.",
                   );
                 } else {
                   client.navigate(ref);
@@ -434,9 +434,55 @@ export class MainUI {
     container.innerHTML = "";
     preactRender(h(this.ViewComponent.bind(this), {}), container);
   }
+
+  async promptDocumentOperation(path: Path, msg: string) {
+    const options: string[] = ["View", "Delete", "Rename"];
+
+    const option = await client.filterBox(
+      "Modify",
+      options.map((x) => ({ name: x } as FilterOption)),
+      msg,
+    );
+    if (!option) return;
+
+    switch (option.name) {
+      case "View": {
+        await client.navigate({ path: path });
+        break;
+      }
+      case "Delete": {
+        if (
+          await client.confirm(
+            `Are you sure you would like delete ${getNameFromPath(path)}?`,
+          )
+        ) {
+          if (isMarkdownPath(path)) {
+            await client.space.deletePage(getNameFromPath(path));
+          } else {
+            await client.space.deleteDocument(getNameFromPath(path));
+          }
+        }
+        break;
+      }
+      case "Rename": {
+        if (isMarkdownPath(path)) {
+          await client.clientSystem.system.invokeFunction(
+            "index.renamePageCommand",
+            [{ oldPage: getNameFromPath(path) }],
+          );
+        } else {
+          await client.clientSystem.system.invokeFunction(
+            "index.renameDocumentCommand",
+            [{ oldDocument: getNameFromPath(path) }],
+          );
+        }
+        break;
+      }
+    }
+  }
 }
 
-// TODO: Parking this here for now
+// TODO: Parking this here for now, this is very similar to the definition in top_bar.tsx
 
 type ActionButton = {
   icon: string;
@@ -451,46 +497,4 @@ function kebabToCamel(str: string) {
     /^./,
     (g) => g.toUpperCase(),
   );
-}
-
-async function askForModification(path: Path, msg: string) {
-  const options: string[] = ["Delete", "Rename"];
-
-  const option = await client.filterBox(
-    "Modify",
-    options.map((x) => ({ name: x } as FilterOption)),
-    msg,
-  );
-  if (!option) return;
-
-  switch (option.name) {
-    case "Delete": {
-      if (
-        await client.confirm(
-          `Are you sure you would like delete ${getNameFromPath(path)}?`,
-        )
-      ) {
-        if (isMarkdownPath(path)) {
-          await client.space.deletePage(getNameFromPath(path));
-        } else {
-          await client.space.deleteDocument(getNameFromPath(path));
-        }
-      }
-      break;
-    }
-    case "Rename": {
-      if (isMarkdownPath(path)) {
-        await client.clientSystem.system.invokeFunction(
-          "index.renamePageCommand",
-          [{ oldPage: getNameFromPath(path) }],
-        );
-      } else {
-        await client.clientSystem.system.invokeFunction(
-          "index.renameDocumentCommand",
-          [{ oldDocument: getNameFromPath(path) }],
-        );
-      }
-      break;
-    }
-  }
 }

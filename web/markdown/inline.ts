@@ -26,6 +26,8 @@ import { evalExpression } from "../../lib/space_lua/eval.ts";
 import type { LuaExpression } from "../../lib/space_lua/ast.ts";
 import { mdLinkRegex, wikiLinkRegex } from "../markdown_parser/constants.ts";
 
+import { fsEndpoint } from "../../lib/spaces/constants.ts";
+
 /**
  * Describes the dimensions of a transclusion, if provided through the alias.
  * Can be parsed from the alias using {@link parseDimensionFromAlias}
@@ -225,19 +227,21 @@ export function inlineContentFromURL(
     (dimension?.width ? `width: ${dimension.width}px;` : "") +
     (dimension?.height ? `height: ${dimension.height}px;` : "");
 
-  // If the URL is a local, encode the : so that it's not interpreted as a protocol
-  const sanitizedURL = isLocalURL(url) ? url.replace(":", "%3A") : url;
+  // If the URL is a local, prefix it with /.fs and encode the : so that it's not interpreted as a protocol
+  const sanitizedFsUrl = isLocalURL(url)
+    ? fsEndpoint.slice(1) + "/" + url.replace(":", "%3A")
+    : url;
 
   let result: HTMLElement | string | Promise<string | HTMLElement>;
   if (mimeType.startsWith("image/")) {
     const img = document.createElement("img");
-    img.src = sanitizedURL;
+    img.src = sanitizedFsUrl;
     img.alt = alias;
     img.style = style;
     result = img;
   } else if (mimeType.startsWith("video/")) {
     const video = document.createElement("video");
-    video.src = sanitizedURL;
+    video.src = sanitizedFsUrl;
     video.title = alias;
     video.controls = true;
     video.autoplay = false;
@@ -245,7 +249,7 @@ export function inlineContentFromURL(
     result = video;
   } else if (mimeType.startsWith("audio/")) {
     const audio = document.createElement("audio");
-    audio.src = sanitizedURL;
+    audio.src = sanitizedFsUrl;
     audio.title = alias;
     audio.controls = true;
     audio.autoplay = false;
@@ -254,7 +258,7 @@ export function inlineContentFromURL(
   } else if (mimeType === "application/pdf") {
     const embed = document.createElement("object");
     embed.type = mimeType;
-    embed.data = sanitizedURL;
+    embed.data = sanitizedFsUrl;
     embed.style.width = "100%";
     embed.style.height = "20em";
     embed.style = style;
