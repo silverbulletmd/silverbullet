@@ -1,4 +1,4 @@
-import { type Context, Hono, type Next } from "hono";
+import { type Context, Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { validator } from "hono/validator";
 import type { AssetBundle } from "../lib/asset_bundle/bundle.ts";
@@ -528,10 +528,9 @@ export class HttpServer {
     }
   }
 
-  async handleGet(c: Context<any>, next: Next) {
+  async handleGet(c: Context<any>) {
     const req = c.req;
     const name = req.param("path")!;
-    const mdExt = ".md";
 
     try {
       if (req.header("X-Get-Meta")) {
