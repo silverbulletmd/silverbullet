@@ -208,8 +208,6 @@ function parseAlias(
 }
 
 export function inlineContentPlugin(client: Client) {
-  const cleanModeEnabled = client.ui.viewState.uiOptions.cleanMode;
-
   return decoratorStateField((state: EditorState) => {
     const widgets: Range<Decoration>[] = [];
     if (!shouldRenderWidgets(client)) {
@@ -254,7 +252,7 @@ export function inlineContentPlugin(client: Client) {
         } else {
           alias = "";
         }
-
+        const cleanModeEnabled = client.ui.viewState.uiOptions.cleanMode;
         const cursorIsInRange = isCursorInRange(state, [from, to]);
         if (cleanModeEnabled && !cursorIsInRange) {
           widgets.push(invisibleDecoration.range(from, to));
