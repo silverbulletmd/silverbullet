@@ -12,8 +12,10 @@ export async function setEditorMode() {
   if (await clientStore.get("darkMode")) {
     await editor.setUiOption("darkMode", true);
   }
-  if (await clientStore.get("cleanMode")) {
-    await editor.setUiOption("cleanMode", true);
+  const cleanMode = await clientStore.get("cleanMode");
+  if (cleanMode != null) {
+    await editor.setUiOption("cleanMode", cleanMode);
+    await editor.rebuildEditorState();
   }
 }
 
