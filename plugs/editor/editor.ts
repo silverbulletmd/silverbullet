@@ -48,7 +48,8 @@ export async function toggleCleanMode() {
   let cleanMode = await editor.getUiOption("cleanMode");
   cleanMode = !cleanMode;
   await clientStore.set("cleanMode", cleanMode);
-  await editor.reloadUI();
+  await editor.setUiOption("cleanMode", cleanMode);
+  await editor.rebuildEditorState();
 }
 
 export async function centerCursorCommand() {
