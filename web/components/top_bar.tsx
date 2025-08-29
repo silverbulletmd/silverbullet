@@ -91,6 +91,8 @@ export function TopBar({
                 onEnter={(newName) => {
                   onRename(newName);
                 }}
+                editable={!client.ui.viewState.uiOptions.forcedROMode &&
+                  !client.clientConfig.readOnly}
               />
             </span>
             {notifications.length > 0 && (

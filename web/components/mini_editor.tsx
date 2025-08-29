@@ -43,6 +43,7 @@ export function MiniEditor(
     onChange,
     focus,
     completer,
+    editable,
   }: {
     text: string;
     placeholderText?: string;
@@ -53,6 +54,7 @@ export function MiniEditor(
     completer?: (
       context: CompletionContext,
     ) => Promise<CompletionResult | null>;
+    editable: boolean;
   } & MiniEditorEvents,
 ) {
   const editorDiv = useRef<HTMLDivElement>(null);
@@ -156,6 +158,11 @@ export function MiniEditor(
         EditorView.theme({}, { dark: darkMode }),
         // Enable vim mode, or not
         [...vimMode ? [vim()] : []],
+        [
+          ...editable
+            ? []
+            : [EditorView.editable.of(false), EditorState.readOnly.of(true)],
+        ],
 
         autocompletion({
           override: completer ? [completer] : [],
