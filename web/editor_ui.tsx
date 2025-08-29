@@ -128,6 +128,12 @@ export class MainUI {
     }, [viewState.uiOptions.darkMode]);
 
     useEffect(() => {
+      document.documentElement.dataset.cleanMode = (
+        viewState.uiOptions.cleanMode ? "on" : "off"
+      );
+	  }, [viewState.uiOptions.cleanMode]);
+
+    useEffect(() => {
       // Need to dispatch a resize event so that the top_bar can pick it up
       globalThis.dispatchEvent(new Event("resize"));
     }, [viewState.panels]);
