@@ -23,7 +23,7 @@ jobs:
       - name: Run build
         run: deno task build
       - name: Publish to JSR
-        run: deno publish
+        run: deno publish --allow-dirty
       - name: Release
         uses: softprops/action-gh-release@v1
         env:
