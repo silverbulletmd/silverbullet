@@ -28,6 +28,20 @@ config.set {
       end
     },
     {
+      icon = "github",
+      description = "Github",
+      run = function()
+        editor.openUrl "https://github.com/silverbulletmd/silverbullet"
+      end
+    },
+    {
+      icon = "heart",
+      description = "Sponsor",
+      run = function()
+        editor.openUrl "https://github.com/sponsors/silverbulletmd"
+      end
+    },
+    {
       icon = "book",
       description = "Open page",
       run = function()
