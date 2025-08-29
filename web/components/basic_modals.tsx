@@ -47,6 +47,7 @@ export function Prompt({
           onChange={(text) => {
             setText(text);
           }}
+          editable={true}
         />
         <div className="sb-prompt-buttons">
           <Button

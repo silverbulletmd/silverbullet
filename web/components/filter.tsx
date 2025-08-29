@@ -211,6 +211,7 @@ export function FilterList({
 
             return true;
           }}
+          editable={true}
         />
       </div>
       <div
