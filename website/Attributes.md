@@ -55,7 +55,7 @@ ${query[[
 
 This attaches an attribute to a task:
 
-* [ ] Task [taskAttribute: hello]
+* [ ] Task with an attribute, I’m so cool [taskAttribute: hello]
 
 Example query:
 

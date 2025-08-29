@@ -1,13 +1,15 @@
 # Introduction
-SilverBullet is a tool to **develop**, **organize**, and **structure** your personal knowledge and to make it **universally accessible** across all your devices. 
+SilverBullet is a tool to **develop**, **organize**, and **structure** your personal knowledge and to make it **universally accessible** across your devices. 
 
 In SilverBullet you keep your content as a collection of [[Markdown]] [[Pages]] (called a [[Spaces|Space]]). You navigate your space using the [[Page Picker]] like a traditional notes app, or through [[Links]] like a wiki (except they are [[Linked Mentions|bi-directional]]). 
 
 If you are the **writer** type, you’ll appreciate SilverBullet as a clean [[Markdown]] editor with [[Live Preview]]. If you have more of an **outliner** personality, SilverBullet has [[Outlines|Outlining]] tools for you. Productivity freak? Have a look at [[Tasks]]. More of a **database** person? You will appreciate [[Objects]] and [[Space Lua/Lua Integrated Query|Queries]]. 
 
-And if you are comfortable writing (or learning) some **code**, you will love dynamically generating content with [[Space Lua]] (SilverBullet’s [[Lua]] dialect), and use it to create custom [[Commands]] and [[Space Lua/Widgets]], and possibly use [[Space Style]] to personalize your Space’s look and feel.
+And if you are comfortable writing (or learning) some **code**, you will love _dynamically generating content_ with [[Space Lua]] (SilverBullet’s [[Lua]] dialect), and use it to create custom [[Commands]] and [[Space Lua/Widgets]].
 
-For instance, want to insert a list of your last 5 modified pages? Just write a little query and render it as a list of page links (`Alt-click` to see the underlying code):
+Err, _whut_?! Dynamically generating content, what does that mean?
+
+Let’s say you want to a list of your 5 modified pages on your space’s index page. We can do that (`Alt-click` to see the underlying code):
 
 ${template.each(query[[
   from index.tag "page"
@@ -15,24 +17,22 @@ ${template.each(query[[
   limit 5
 ]], templates.pageItem)}
 
-Want to collect all [[Tasks]] that you have not yet completed from across your space? No problem:
+Want to collect all [[Tasks]] that you have not yet completed from across your space? No problem!
 
 ${template.each(query[[
-  from index.tag "task" where not _.done
+  from index.tag "task"
+  where not _.done
   limit 3
 ]], templates.taskItem)}
 
-And all of this is free and **open source** 🤯
+That all sounds nice, but what does that look like in practice? Well, if you’re wondering purely about _looks_: have a look around — this very website is hosted as a _read-only_ SilverBullet instance.
 
-That all sounds nice, but what does that look like in practice?
+If you’d like a bit of a tour and demo, give this a watch:
 ${embed.youtube "https://www.youtube.com/watch?v=mik1EbTshX4"}
-> **warning** Attention
-> You are looking at the documentation of SilverBullet **v2**. Migrating from v1? Check out the [[Migrate from v1]] docs. There is also the [v1 website](https://v1.silverbullet.md).
-
 # Installing
 SilverBullet is a **self-hosted web application**. You need to install it on a server. Perhaps you do this on a Raspberry Pi you didn’t have a use for, or a VPS somewhere in the cloud. SilverBullet is distributed as a single self-contained server [[Install/Binary]] or [[Install/Docker]] container. While this is a bit more complicated to set up than simply downloading a desktop or mobile app, since your space is centrally stored on a server under your control, you can now access it from anywhere you can access your server. And it may well be your gateway to [[Self Hosting]] more interesting applications.
 
-The SilverBullet client is built as a [[Local First]], [[PWA|progressive web application]], syncing all your content into your browser’s local storage, enabling **instant access** to your entire space whether you are **online** or **offline**. Simply opt to “Install SilverBullet” from your browser (in any Chrome-based browser), add it to your Dock or home screen (Safari and Android), and voila: SilverBullet becomes indistinguishable from a regular desktop or mobile app. You can try it right here — in case you hadn’t figured out: this very website runs as a (read-only) SilverBullet instance!
+The SilverBullet client is built as a [[Local First]], [[PWA|progressive web application]], syncing all your content into your browser’s local storage, enabling **instant access** to your entire space whether you are **online** or **offline**. Simply opt to “Install SilverBullet” from your browser (in any Chrome-based browser), add it to your Dock or home screen (Safari and Android), and voila: SilverBullet becomes indistinguishable from a regular desktop or mobile app. You can try it right here on silverbullet.md.
 ![[pwa-screenshot.png]]
 
 Unplug your (hypothetical) network cable, and everything still works!

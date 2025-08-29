@@ -1,4 +1,4 @@
-SilverBullet automatically builds and maintains an index of _objects_ extracted from all [[Markdown]] [[Pages]] in your [[Spaces]]. It subsequently allows you to use [[Space Lua/Lua Integrated Query]] to query this database in (potentially) useful ways.
+SilverBullet automatically builds and maintains an index of _objects_ extracted from all [[Markdown]] [[Pages]] in your [[Spaces|Space]]. It subsequently allows you to use [[Space Lua/Lua Integrated Query]] to query this database in (potentially) useful ways.
 
 By design, the truth remains in the markdown: all data indexed as objects will have a representation in markdown text as well. This index can be flushed at any time and be rebuilt from its source markdown files kept in your space (and you can do so on demand if you like using the `Space: Reindex` command).
 

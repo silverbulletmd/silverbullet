@@ -2,11 +2,11 @@ The task notation syntax is a [[Markdown]] extension to write down tasks.
 
 Its most basic form is:
 
-    * [ ] My task name
+    * [ ] This is my first task
 
 which renders as follows:
 
-* [ ] My task name
+* [ ] This is my first task
 
 # Custom states
 Tasks support the default `x` and ` ` states (done and not done), but custom states as well. Custom states used across your space are kept in [[Objects#taskstate]].

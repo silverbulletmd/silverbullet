@@ -81,7 +81,7 @@ Here is a simple `compose.yml` that runs SilverBullet as well as [watchtower](ht
 
 Instructions:
 * Please replace the password defined in `SB_USER` with something sensible such as `admin:b3stp4ssword3vah`
-* This volume uses the `./space` directory (that presumably exists) in the same directory as the `compose.yml` file as the place where SB will keep its space.
+* This volume uses the `./space` directory (which you should create) in the same directory as the `compose.yml` file as the place where SB will keep its space.
 * Check out [[Install/Configuration]] for more interesting `environment` variables you can set.
 
 ```yaml
