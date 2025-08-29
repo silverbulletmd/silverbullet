@@ -282,6 +282,10 @@ html[data-theme="dark"] {
 html[data-clean-mode="off"] {
   --editor-meta-color: unset;
   --editor-directive-mark-color: unset;
+
+  #sb-main .cm-editor .sb-lua-directive-block {
+    margin-top: 0.5em;
+  }
 }
 
 .sb-admonition[admonition="note" i] {
