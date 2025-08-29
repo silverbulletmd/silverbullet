@@ -279,6 +279,11 @@ html[data-theme="dark"] {
   --editor-directive-background-color: #4c4c4c7d;
 }
 
+html[data-clean-mode="off"] {
+  --editor-meta-color: unset;
+  --editor-directive-mark-color: unset;
+}
+
 .sb-admonition[admonition="note" i] {
   .sb-admonition-type {
     &::before {
