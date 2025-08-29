@@ -1,4 +1,4 @@
-[[2|SilverBullet v2]] removed a slew of features that were still present in the 0.x series (also known as “v1”). Sadly, we just had to rip the bandaid on this one.
+SilverBullet v2 removed a slew of features that were still present in the 0.x series (also known as “v1”). Sadly, we just had to rip the bandaid on this one.
 
 Here are some pointers on what was removed and how to adapt.
 

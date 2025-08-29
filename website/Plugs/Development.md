@@ -1,6 +1,3 @@
-> **warning** Unstable APIs
-> The plug APIs are still unstable and tend to change. You’re welcome to experiment and build stuff, but do take into account that things tend to change. Also note that all this is horrifically under documented.
-
 The easiest way to get started is to click the “Use this template” on the [silverbullet-plug-template](https://github.com/silverbulletmd/silverbullet-plug-template) repo.
 
 Generally, every plug consists of a YAML manifest file named `yourplugname.plug.yaml`. This file defines all functions that form your plug. To be loadable by SilverBullet, it needs to be compiled into a bundle (ending with `.plug.js`).
