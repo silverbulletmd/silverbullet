@@ -62,7 +62,8 @@ export function cleanWikiLinkPlugin(client: Client) {
           "default": "",
         }[linkStatus];
 
-        if (isCursorInRange(state, [from, to])) {
+        const cleanModeEnabled = client.ui.viewState.uiOptions.cleanMode;
+        if (isCursorInRange(state, [from, to]) || !cleanModeEnabled) {
           // Only attach a CSS class, then get out
           if (linkStatus !== "default") {
             widgets.push(
