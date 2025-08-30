@@ -34,7 +34,7 @@ import { clientCodeWidgetSyscalls } from "./syscalls/client_code_widget.ts";
 import { KVPrimitivesManifestCache } from "../lib/plugos/manifest_cache.ts";
 import { createKeyBindings } from "./editor_state.ts";
 import type { DataStoreMQ } from "../lib/data/mq.datastore.ts";
-import { plugPrefix } from "../lib/spaces/constants.ts";
+import { fsEndpoint, plugPrefix } from "../lib/spaces/constants.ts";
 import { jsonschemaSyscalls } from "./syscalls/jsonschema.ts";
 import { luaSyscalls } from "./syscalls/lua.ts";
 import { indexSyscalls } from "./syscalls/index.ts";
@@ -150,7 +150,12 @@ export class ClientSystem {
           this.system.unload(path);
           await this.system.load(
             plugName,
-            createSandbox(new URL(`${path}`, document.baseURI)),
+            createSandbox(
+              new URL(
+                `${path}`,
+                document.baseURI.slice(0, -1) + fsEndpoint + "/",
+              ),
+            ),
             newHash,
           );
         }
@@ -266,7 +271,7 @@ export class ClientSystem {
           createSandbox(
             new URL(
               plugMeta.name,
-              document.baseURI, // We're NOT striping trailing '/', this used to be `location.origin`
+              document.baseURI.slice(0, -1) + fsEndpoint + "/", // We're NOT striping trailing '/', this used to be `location.origin`
             ),
           ),
           plugMeta.lastModified,

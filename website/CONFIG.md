@@ -17,9 +17,7 @@ config.set {
       icon = "activity",
       description = "What's new",
       run = function()
-        editor.navigate {
-          page = "CHANGELOG"
-        }
+        editor.navigate "CHANGELOG"
       end
     },
     {
@@ -27,6 +25,20 @@ config.set {
       description = "Community",
       run = function()
         editor.openUrl "https://community.silverbullet.md"
+      end
+    },
+    {
+      icon = "github",
+      description = "Github",
+      run = function()
+        editor.openUrl "https://github.com/silverbulletmd/silverbullet"
+      end
+    },
+    {
+      icon = "heart",
+      description = "Sponsor",
+      run = function()
+        editor.openUrl "https://github.com/sponsors/silverbulletmd"
       end
     },
     {

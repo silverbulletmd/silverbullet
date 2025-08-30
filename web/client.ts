@@ -58,7 +58,7 @@ import { DataStoreSpacePrimitives } from "../lib/spaces/datastore_space_primitiv
 
 import { ReadOnlySpacePrimitives } from "../lib/spaces/ro_space_primitives.ts";
 import { LimitedMap } from "../lib/limited_map.ts";
-import { plugPrefix } from "../lib/spaces/constants.ts";
+import { fsEndpoint, plugPrefix } from "../lib/spaces/constants.ts";
 import { diffAndPrepareChanges } from "./cm_util.ts";
 import { DocumentEditor } from "./document_editor.ts";
 import { parseExpressionString } from "../lib/space_lua/parse.ts";
@@ -319,7 +319,7 @@ export class Client {
 
   initSpace() {
     this.httpSpacePrimitives = new HttpSpacePrimitives(
-      document.baseURI.replace(/\/*$/, ""),
+      document.baseURI.replace(/\/*$/, "") + fsEndpoint,
       this.clientConfig.spaceFolderPath,
     );
 
@@ -943,7 +943,7 @@ export class Client {
       } catch (e: any) {
         // If there is no document editor we will open the file raw
         if (e.message.includes("Couldn't find")) {
-          this.openUrl(path + "?raw=true", !previousPath);
+          this.openUrl(fsEndpoint + "/" + path, !previousPath);
         }
 
         throw e;
@@ -1454,7 +1454,7 @@ export class Client {
   private async initNavigator() {
     this.pageNavigator = new PathPageNavigator(this);
 
-    await this.pageNavigator.subscribe(async (locationState) => {
+    this.pageNavigator.subscribe(async (locationState) => {
       console.log(`Now navigating to ${encodeRef(locationState)}`);
 
       if (isMarkdownPath(locationState.path)) {
@@ -1477,21 +1477,22 @@ export class Client {
       );
     });
 
-    if (location.hash === "#boot") {
-      // Cold start PWA load
-      const lastPath = await this.ds.get([
-        "client",
-        "lastOpenedPath",
-      ]);
-      if (lastPath) {
-        console.log("Navigating to last opened page", lastPath.path);
-        await this.navigate(parseToRef(lastPath));
-      }
+    // Initial navigation
+    let ref = this.onLoadRef;
+
+    if (ref.details?.type === "header" && ref.details.header === "boot") {
+      const path = await this.ds.get(
+        ["client", "lastOpenedPath"],
+      ) as Path;
+
+      console.log("Navigating to last opened page", getNameFromPath(path));
+      ref = { path };
     }
-    setTimeout(() => {
-      console.log("Focusing editor");
-      this.focus();
-    }, 100);
+
+    await this.navigate(ref, true);
+
+    console.log("Focusing editor");
+    this.focus();
   }
 
   async wipeClient() {

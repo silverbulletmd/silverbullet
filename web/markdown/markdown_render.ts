@@ -9,17 +9,16 @@ import {
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { encodeRef, parseToRef } from "@silverbulletmd/silverbullet/lib/ref";
 import { Fragment, renderHtml, type Tag } from "./html_render.ts";
-import { isLocalURL } from "@silverbulletmd/silverbullet/lib/resolve";
 import * as TagConstants from "../../plugs/index/constants.ts";
 import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 import { justifiedTableRender } from "./justified_tables.ts";
 import type { PageMeta } from "../../type/index.ts";
+import { inlineContentFromURL, parseTransclusion } from "./inline.ts";
 
 export type MarkdownRenderOptions = {
   failOnUnknown?: true;
   smartHardBreak?: true;
   annotationPositions?: true;
-  documentUrlPrefix?: string;
   preserveAttributes?: true;
   // When defined, use to inline images as data: urls
   translateUrls?: (url: string, type: "link" | "image") => string;
@@ -218,19 +217,10 @@ function render(
       if (!urlNode) {
         return renderToText(t);
       }
-      let url = urlNode.children![0].text!;
-      if (isLocalURL(url)) {
-        if (
-          options.documentUrlPrefix &&
-          !url.startsWith(options.documentUrlPrefix)
-        ) {
-          url = `${options.documentUrlPrefix}${url}`;
-        }
-      }
       return {
         name: "a",
         attrs: {
-          href: url,
+          href: urlNode.children![0].text!,
           target: "_blank",
         },
         body: cleanTags(mapRender(linkTextChildren)),
@@ -241,15 +231,7 @@ function render(
       if (!urlNode) {
         return renderToText(t);
       }
-      let url = urlNode.children![0].text!;
-      if (isLocalURL(url)) {
-        if (
-          options.documentUrlPrefix &&
-          !url.startsWith(options.documentUrlPrefix)
-        ) {
-          url = `${options.documentUrlPrefix}${url}`;
-        }
-      }
+      const url = urlNode.children![0].text!;
       return {
         name: "a",
         attrs: {
@@ -260,50 +242,33 @@ function render(
       };
     }
     case "Image": {
-      const altTextNode = findNodeOfType(t, "WikiLinkAlias") ||
-        t.children![1];
-      let altText = altTextNode && altTextNode.type !== "LinkMark"
-        ? renderToText(altTextNode)
-        : "";
-      const dimReg = /\d*[^\|\s]*?[xX]\d*[^\|\s]*/.exec(altText);
-      let style = "";
-      if (dimReg) {
-        const [, width, widthUnit = "px", height, heightUnit = "px"] =
-          dimReg[0].match(/(\d*)(\S*?x?)??[xX](\d*)(.*)?/) ?? [];
-        if (width) {
-          style += `width: ${width}${widthUnit};`;
-        }
-        if (height) {
-          style += `height: ${height}${heightUnit};`;
-        }
-        altText = altText.replace(dimReg[0], "").replace("|", "");
+      const text = renderToText(t);
+
+      const transclusion = parseTransclusion(text);
+      if (!transclusion) {
+        return text;
       }
 
-      const urlNode = findNodeOfType(t, "WikiLinkPage") ||
-        findNodeOfType(t, "URL");
-      if (!urlNode) {
-        return renderToText(t);
-      }
-      let url = renderToText(urlNode);
-      if (urlNode.type === "WikiLinkPage") {
-        url = "/" + url;
-      }
-
-      if (
-        isLocalURL(url) &&
-        options.documentUrlPrefix &&
-        !url.startsWith(options.documentUrlPrefix)
-      ) {
-        url = `${options.documentUrlPrefix}${url}`;
+      const result = inlineContentFromURL(
+        globalThis.client,
+        transclusion.url,
+        transclusion.alias,
+        transclusion.dimension,
+        transclusion.linktype !== "wikilink",
+      );
+      if (!globalThis.HTMLElement || !(result instanceof HTMLElement)) {
+        return text;
       }
 
       return {
-        name: "img",
-        attrs: {
-          src: url,
-          alt: altText,
-          style: style,
-        },
+        name: result.tagName,
+        attrs: Array.from(result.attributes).reduce(
+          (obj, attr) => {
+            obj[attr.name] = attr.value;
+            return obj;
+          },
+          {} as Record<string, string>,
+        ),
         body: "",
       };
     }

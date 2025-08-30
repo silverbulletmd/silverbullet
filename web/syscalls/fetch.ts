@@ -1,13 +1,13 @@
 import type { SysCallMapping } from "../../lib/plugos/system.ts";
-import {
-  performLocalFetch,
-  type ProxyFetchRequest,
-  type ProxyFetchRequest64,
-  type ProxyFetchResponse,
-  type ProxyFetchResponse64,
+import type {
+  ProxyFetchRequest,
+  ProxyFetchRequest64,
+  ProxyFetchResponse,
+  ProxyFetchResponse64,
 } from "../../lib/proxy_fetch.ts";
 import type { Client } from "../client.ts";
 import { base64Decode, base64Encode } from "../../lib/crypto.ts";
+import { fsEndpoint } from "../../lib/spaces/constants.ts";
 
 export function sandboxFetchSyscalls(
   client: Client,
@@ -19,7 +19,6 @@ export function sandboxFetchSyscalls(
       url: string,
       options: ProxyFetchRequest = {},
     ): Promise<ProxyFetchResponse> => {
-      url = url.replace(/^https?:\/\//, "");
       // JSONify any non-serializable body
       if (
         options?.body && typeof options.body !== "string" &&
@@ -42,7 +41,7 @@ export function sandboxFetchSyscalls(
         }
       }
       const resp = await client.httpSpacePrimitives.authenticatedFetch(
-        `${client.httpSpacePrimitives.url}/.proxy/${url}`,
+        buildProxyUrl(client, url),
         fetchOptions,
       );
       // Do sensible things with the body based on the content type
@@ -69,7 +68,6 @@ export function sandboxFetchSyscalls(
       url: string,
       options?: ProxyFetchRequest64,
     ): Promise<ProxyFetchResponse64> => {
-      url = url.replace(/^https?:\/\//, "");
       // console.log("Got sandbox fetch ", url, op);
       const fetchOptions = options
         ? {
@@ -78,13 +76,9 @@ export function sandboxFetchSyscalls(
           body: options.base64Body && base64Decode(options.base64Body),
         }
         : {};
-      if (!client.httpSpacePrimitives) {
-        // No SB server to proxy the fetch available so let's execute the request directly
-        return performLocalFetch(url, fetchOptions);
-      }
       fetchOptions.headers = fetchOptions.headers ?? {};
       const resp = await client.httpSpacePrimitives.authenticatedFetch(
-        `${client.httpSpacePrimitives.url}/.proxy/${url}`,
+        buildProxyUrl(client, url),
         fetchOptions,
       );
       const body = await resp.arrayBuffer();
@@ -96,4 +90,11 @@ export function sandboxFetchSyscalls(
       };
     },
   };
+}
+
+function buildProxyUrl(client: Client, url: string) {
+  url = url.replace(/^https?:\/\//, "");
+  // Strip off the /.fs and replace with /.proxy
+  return client.httpSpacePrimitives.url.slice(0, -fsEndpoint.length) +
+    "/.proxy/" + url;
 }

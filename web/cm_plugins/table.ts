@@ -15,7 +15,7 @@ import {
   isLocalURL,
   resolveMarkdownLink,
 } from "@silverbulletmd/silverbullet/lib/resolve";
-import { expandMarkdown } from "../markdown.ts";
+import { expandMarkdown } from "../markdown/inline.ts";
 import { LuaStackFrame } from "../../lib/space_lua/runtime.ts";
 import { attachWidgetEventHandlers } from "./widget_util.ts";
 

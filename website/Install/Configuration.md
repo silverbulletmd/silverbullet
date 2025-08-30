@@ -34,15 +34,13 @@ This is the default and simplest backend to use: a folder on disk. It is configu
 SilverBullet enables plugs to run shell commands. This is potentially unsafe. If you don’t need this, you can disable this functionality:
 
 * `SB_SHELL_BACKEND`: Enable/disable running of shell commands from plugs, defaults to `local` (enabled), set to `off` to disable. It is only enabled when using a local folder for [[#Storage]].
+* `SB_SHELL_WHITELIST`: Allow only a specific list of shell commands (just the first command name, not arguments). When not set, allows all shell commands. Example: `SB_SHELL_WHITELIST="git pandoc"`
 
 # Docker
 Configuration only relevant to docker deployments:
 
 * `PUID`: Runs the server process with the specified UID (default: whatever user owns the `/space` mapped folder)
 * `PGID`: Runs the server process with the specified GID (default: whatever group owns the `/space` mapped folder)\
-* `SB_APT_PACKAGES`: will install additional (ubuntu) packages inside the container upon boot. Example: `SB_APT_PACKAGES="ripgrep pandoc"`
-  **Note:** This installation happens asynchronously in the background (you can see it happen in the server output) unless `SB_APT_SYNC` is set (see bellow)
-* `SB_APT_SYNC`: when set, will _first_ install APT packages configured with `SB_APT_PACKAGES` before booting SilverBullet itself.
 
 # Web app manifest
 Configure aspects of web app appearance:

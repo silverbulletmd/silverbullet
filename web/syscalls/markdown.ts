@@ -2,7 +2,7 @@ import type { SysCallMapping } from "../../lib/plugos/system.ts";
 import { parse } from "../markdown_parser/parse_tree.ts";
 import { type ParseTree, renderToText } from "../../plug-api/lib/tree.ts";
 import { extendedMarkdownLanguage } from "../markdown_parser/parser.ts";
-import { expandMarkdown } from "../markdown.ts";
+import { expandMarkdown } from "../markdown/inline.ts";
 import type { Client } from "../client.ts";
 import { LuaEnv, LuaStackFrame } from "../../lib/space_lua/runtime.ts";
 import {

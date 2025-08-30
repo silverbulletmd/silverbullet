@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-# Run last-minute package installs
+# Run last-minute package installs, DEPRECATED
 if [ -n "$SB_APT_PACKAGES" ]; then
     if [ "$UID" == "0" ]; then
         if [ -n "$SB_APT_SYNC" ]; then
@@ -12,6 +12,12 @@ if [ -n "$SB_APT_PACKAGES" ]; then
     else
         echo "Cannot install packages selected via SB_APT_PACKAGES unless run as root"
     fi
+fi
+
+# If a /space/CONTAINER_BOOT.md file exists, execute it as a bash script upon boot
+if [ -f "/space/CONTAINER_BOOT.md" ]; then
+    echo "Executing CONTAINER_BOOT.md script"
+    bash /space/CONTAINER_BOOT.md &
 fi
 
 # Check if UID and GID are passed as environment variables, if not, extract from the space folder owner

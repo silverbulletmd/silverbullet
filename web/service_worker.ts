@@ -4,6 +4,8 @@ import { DataStore } from "../lib/data/datastore.ts";
 import { IndexedDBKvPrimitives } from "../lib/data/indexeddb_kv_primitives.ts";
 import { decodePageURI } from "@silverbulletmd/silverbullet/lib/ref";
 
+import { fsEndpoint } from "../lib/spaces/constants.ts";
+
 // Note: the only thing cached here is SilverBullet client assets, files and databases are kept in IndexedDB
 const CACHE_NAME = "{{CACHE_NAME}}";
 
@@ -123,23 +125,25 @@ self.addEventListener("fetch", (event: any) => {
         pathname === "/.auth" ||
         pathname === "/.logout" ||
         pathname === "/.config" ||
-        pathname === "/index.json"
+        pathname === "/.fs"
       ) {
+        // Always proxy auth, config and fs listing requests to the server
         return fetch(request);
       } else if (
+        pathname.startsWith(fsEndpoint) &&
         pathname.endsWith(".md") &&
         request.headers.get("accept") !== "application/octet-stream" &&
         request.headers.get("sec-fetch-mode") !== "cors"
       ) {
-        return Response.redirect(`${pathname.slice(0, -3)}`);
+        // This handles the case of ending up with a .md URL in the browser address bar (likely due to a auth proxy redirect)
+        return Response.redirect(`${pathname.slice(fsEndpoint.length, -3)}`);
       } else if (
-        !request.headers.get("accept").includes("text/html") ||
-        requestUrl.searchParams.get("raw") === "true"
+        // /.fs file system APIs: handled locally
+        pathname.startsWith(fsEndpoint)
       ) {
-        // If this is a /*.* request, this can either be a plug worker load or an document load
         return handleLocalFileRequest(pathname, request);
       } else {
-        // Must be a page URL, let's serve index.html which will handle it
+        // Fallback to the SB app shell for all other requests (SPA)
         return (await caches.match(precacheFiles["/"])) || fetch(request);
       }
     })().catch((e) => {
@@ -155,7 +159,7 @@ async function handleLocalFileRequest(
   pathname: string,
   request: Request,
 ): Promise<Response> {
-  const path = decodePageURI(pathname.slice(1));
+  const path = decodePageURI(pathname.slice(fsEndpoint.length + 1));
   const data = await ds?.get<FileContent>([...filesContentPrefix, path]);
   if (data) {
     // console.log("Serving from space", path);

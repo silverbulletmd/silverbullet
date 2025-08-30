@@ -39,6 +39,10 @@ export async function serveCommand(
 
   const readOnly = !!Deno.env.get("SB_READ_ONLY");
 
+  if (readOnly) {
+    console.info("Starting in read-only mode.");
+  }
+
   const indexPage = Deno.env.get("SB_INDEX_PAGE") || "index";
   if (!isValidName(indexPage)) {
     console.error(
@@ -116,6 +120,8 @@ export async function serveCommand(
   }
 
   const shellBackend = Deno.env.get("SB_SHELL_BACKEND") || "local";
+  const shellCommandWhiteList = Deno.env.get("SB_SHELL_WHITELIST")?.split(" ");
+
   const spaceIgnore = Deno.env.get("SB_SPACE_IGNORE");
 
   // All plug code bundled into a JSON blob
@@ -138,6 +144,7 @@ export async function serveCommand(
       readOnly,
       shellBackend,
       pagesPath: folder,
+      shellCommandWhiteList,
     },
     clientAssets,
     plugAssets,

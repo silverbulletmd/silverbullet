@@ -36,7 +36,7 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
-          deno-version: v2.4.3
+          deno-version: v2.4.5
 
       - name: Run build
         run: |
@@ -56,9 +56,6 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      #
-      # MetaData Extract Docu: <https://github.com/docker/metadata-action>
-      #
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v4.4.0
