@@ -20,12 +20,12 @@ templates.taskItem = template.new([==[
 
 -- Renders an item object
 templates.itemItem = template.new([==[
-* ${name}
+* [[${ref}]] ${name}
 ]==])
 
 -- Renders a paragraph object
 templates.paragraphItem = template.new([==[
-* [[${ref}]]
+* [[${ref}]] ${text}
 ]==])
 ```
 
