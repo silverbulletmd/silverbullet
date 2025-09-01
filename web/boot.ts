@@ -50,9 +50,6 @@ safeRun(async () => {
   if (urlParams.has("disableSpaceLua")) {
     clientConfig!.disableSpaceLua = true;
   }
-  if (urlParams.has("disableSync")) {
-    clientConfig!.disableSync = true;
-  }
   if (urlParams.has("disablePlugs")) {
     clientConfig!.disablePlugs = true;
   }
@@ -65,6 +62,10 @@ safeRun(async () => {
   if (urlParams.has("resetClient")) {
     clientConfig!.performReset = true;
   }
+  if (urlParams.has("enableSW")) {
+    localStorage.setItem("enableSW", urlParams.get("enableSW")!);
+  }
+
   // Update the browser URL to no longer contain the query parameters using pushState
   if (location.search) {
     const newURL = new URL(location.href);
@@ -75,7 +76,7 @@ safeRun(async () => {
   console.log("Client config", clientConfig);
 
   // TODO: Re-enable service worker again
-  if (false && navigator.serviceWorker) {
+  if (localStorage.getItem("enableSW") !== "0" && navigator.serviceWorker) {
     // Register service worker
     const workerURL = new URL("service_worker.js", document.baseURI);
     navigator.serviceWorker
@@ -130,9 +131,7 @@ safeRun(async () => {
       });
     });
   } else {
-    console.warn(
-      "Not launching service worker, likely because not running from localhost or over HTTPs. This means SilverBullet will not be available offline.",
-    );
+    console.info("Service worker disabled.");
   }
   const client = new Client(
     document.getElementById("sb-root")!,
