@@ -53,7 +53,6 @@ import type { SpacePrimitives } from "../lib/spaces/space_primitives.ts";
 import { DataStore } from "../lib/data/datastore.ts";
 import { IndexedDBKvPrimitives } from "../lib/data/indexeddb_kv_primitives.ts";
 import { DataStoreMQ } from "../lib/data/mq.datastore.ts";
-import { DataStoreSpacePrimitives } from "../lib/spaces/datastore_space_primitives.ts";
 
 import { ReadOnlySpacePrimitives } from "../lib/spaces/ro_space_primitives.ts";
 import { LimitedMap } from "../lib/limited_map.ts";
@@ -65,7 +64,6 @@ import { Config } from "./config.ts";
 import type { DocumentMeta, FileMeta, PageMeta } from "../type/index.ts";
 import { parseMarkdown } from "./markdown_parser/parser.ts";
 import { CheckPathSpacePrimitives } from "../lib/spaces/checked_space_primitives.ts";
-import { SyncService } from "./sync_service.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -82,7 +80,6 @@ export type ClientConfig = {
   disableSpaceLua?: boolean;
   disableSpaceStyle?: boolean;
   disablePlugs?: boolean;
-  disableSync?: boolean;
   performWipe?: boolean;
   performReset?: boolean;
 };
@@ -130,8 +127,6 @@ export class Client {
   }, 1000);
   // Track if plugs have been updated since sync cycle
   fullSyncCompleted = false;
-
-  // syncService!: SyncService;
 
   // Set to true once the system is ready (plugs loaded)
   public systemReady: boolean = false;
@@ -199,29 +194,6 @@ export class Client {
     );
 
     this.initSpace();
-
-    // // The sync service gets priveleged primitives, so it can sync files with invalid names
-    // this.syncService = new SyncService(
-    //   this.eventedSpacePrimitives,
-    //   this.plugSpaceRemotePrimitives,
-    //   this.ds,
-    //   this.eventHook,
-    //   (path) => { // isSyncCandidate
-    //     // Exclude all plug space primitives paths
-    //     return !this.plugSpaceRemotePrimitives.isLikelyHandled(path);
-    //   },
-    // );
-
-    // if (this.clientConfig.disableSync) {
-    //   this.syncService.enabled = false;
-    // }
-    //
-    // if (!await this.hasInitialSyncCompleted()) {
-    //   console.info(
-    //     "Initial sync has not yet been completed, disabling page and document indexing to speed this up",
-    //   );
-    //   this.eventedSpacePrimitives.enablePageEvents = false;
-    // }
 
     this.ui = new MainUI(this);
     this.ui.render(this.parent);
@@ -305,10 +277,6 @@ export class Client {
     this.updateDocumentListCache().catch(console.error);
   }
 
-  // public hasInitialSyncCompleted(): Promise<boolean> {
-  //   return this.syncService.hasInitialSyncCompleted();
-  // }
-
   initSpace() {
     this.httpSpacePrimitives = new HttpSpacePrimitives(
       document.baseURI.replace(/\/*$/, "") + fsEndpoint,
@@ -336,6 +304,11 @@ export class Client {
       this.eventHook,
       this.ds,
     );
+
+    // Kick off a regular file listing request to trigger events
+    setInterval(() => {
+      this.eventedSpacePrimitives.fetchFileList();
+    }, 20000);
 
     // Translate file change events for documents into document:index events
     this.eventHook.addLocalListener(
@@ -598,7 +571,7 @@ export class Client {
       initialIndexCompleted && this.clientSystem.system.loadedPlugs.has("index")
     ) {
       console.log(
-        "Initial sync complete and index plug loaded, loading full page list via index.",
+        "Initial index complete and index plug loaded, loading full page list via index.",
       );
       // Fetch actual indexed pages
       allPages = await this.clientSystem.queryLuaObjects<PageMeta>("page", {});
@@ -648,6 +621,9 @@ export class Client {
       type: "update-page-list",
       allPages: allPages,
     });
+
+    // Async kick-off file listing to bring listing up to date
+    this.space.spacePrimitives.fetchFileList();
   }
 
   async updateDocumentListCache() {

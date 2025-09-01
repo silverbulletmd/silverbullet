@@ -3,7 +3,7 @@ import { encodePageURI } from "@silverbulletmd/silverbullet/lib/ref";
 import {
   flushCachesAndUnregisterServiceWorker,
   unregisterServiceWorkers,
-} from "../../web/sw_util.ts";
+} from "../../web/service_worker/util.ts";
 import type { FileMeta } from "../../type/index.ts";
 
 const defaultFetchTimeout = 30000; // 30 seconds
