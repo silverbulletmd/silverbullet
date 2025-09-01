@@ -56,7 +56,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     if (!this.enabled) {
       return Promise.resolve([]);
     }
-    console.log("Evented space, dispatching", name, args);
+    // console.log("Evented space, dispatching", name, args);
     return this.eventHook.dispatchEvent(name, ...args);
   }
 

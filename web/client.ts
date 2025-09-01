@@ -131,7 +131,7 @@ export class Client {
   // Track if plugs have been updated since sync cycle
   fullSyncCompleted = false;
 
-  syncService!: SyncService;
+  // syncService!: SyncService;
 
   // Set to true once the system is ready (plugs loaded)
   public systemReady: boolean = false;
@@ -200,17 +200,17 @@ export class Client {
 
     this.initSpace();
 
-    // The sync service gets priveleged primitives, so it can sync files with invalid names
-    this.syncService = new SyncService(
-      this.eventedSpacePrimitives,
-      this.plugSpaceRemotePrimitives,
-      this.ds,
-      this.eventHook,
-      (path) => { // isSyncCandidate
-        // Exclude all plug space primitives paths
-        return !this.plugSpaceRemotePrimitives.isLikelyHandled(path);
-      },
-    );
+    // // The sync service gets priveleged primitives, so it can sync files with invalid names
+    // this.syncService = new SyncService(
+    //   this.eventedSpacePrimitives,
+    //   this.plugSpaceRemotePrimitives,
+    //   this.ds,
+    //   this.eventHook,
+    //   (path) => { // isSyncCandidate
+    //     // Exclude all plug space primitives paths
+    //     return !this.plugSpaceRemotePrimitives.isLikelyHandled(path);
+    //   },
+    // );
 
     // if (this.clientConfig.disableSync) {
     //   this.syncService.enabled = false;
@@ -305,9 +305,9 @@ export class Client {
     this.updateDocumentListCache().catch(console.error);
   }
 
-  public hasInitialSyncCompleted(): Promise<boolean> {
-    return this.syncService.hasInitialSyncCompleted();
-  }
+  // public hasInitialSyncCompleted(): Promise<boolean> {
+  //   return this.syncService.hasInitialSyncCompleted();
+  // }
 
   initSpace() {
     this.httpSpacePrimitives = new HttpSpacePrimitives(
@@ -401,10 +401,10 @@ export class Client {
         if (
           this.space.watchInterval && this.currentPath() === path &&
           // Avoid reloading if the page was just saved (5s window)
-          (!lastSaveTimestamp || (lastSaveTimestamp < Date.now() - 5000)) &&
+          (!lastSaveTimestamp || (lastSaveTimestamp < Date.now() - 5000))
           // Avoid reloading if the previous hash was undefined (first load)
           // Only trigger this after an initial sync has happened
-          await this.hasInitialSyncCompleted()
+          // await this.hasInitialSyncCompleted()
         ) {
           console.log(
             "Page changed elsewhere, reloading. Old hash",
@@ -1060,7 +1060,7 @@ export class Client {
 
     // Fetch the meta which includes the possibly indexed stuff, like page
     // decorations
-    if (await this.hasInitialSyncCompleted()) {
+    if (await this.clientSystem.hasFullIndexCompleted()) {
       try {
         const enrichedMeta = await this.clientSystem.getObjectByRef<PageMeta>(
           pageName,
@@ -1196,7 +1196,7 @@ export class Client {
       console.warn("Not loading custom styles, since space style is disabled");
       return;
     }
-    if (!await this.hasInitialSyncCompleted()) {
+    if (!await this.clientSystem.hasFullIndexCompleted()) {
       console.info(
         "Not loading custom styles yet, since initial synca has not completed yet",
       );
@@ -1302,76 +1302,76 @@ export class Client {
     return this.widgetCache.get(key);
   }
 
-  private async initSync() {
-    this.syncService.start();
-
-    // We're still booting, if a initial sync has already been completed we know this is the initial sync
-    let initialSync = !await this.hasInitialSyncCompleted();
-
-    // this.eventHook.addLocalListener("sync:success", async (operations) => {
-    //   if (operations > 0) {
-    //     // Update the page list
-    //     await this.space.updatePageList();
-    //   }
-    //   if (operations !== undefined) {
-    //     // "sync:success" is called with a number of operations only from syncSpace(), not from syncing individual pages
-    //     this.fullSyncCompleted = true;
-    //
-    //     console.log("[sync]", "Full sync completed");
-    //
-    //     // A full sync just completed
-    //     if (!initialSync) {
-    //       // If this was NOT the initial sync let's check if we need to perform a space reindex
-    //       this.clientSystem.ensureFullIndex().catch(
-    //         console.error,
-    //       );
-    //     } else { // initialSync
-    //       console.log(
-    //         "[sync]",
-    //         "Initial sync completed, now need to do a full space index to ensure all pages are indexed using any custom indexers",
-    //       );
-    //       this.clientSystem.ensureFullIndex().catch(
-    //         console.error,
-    //       );
-    //       initialSync = false;
-    //     }
-    //   }
-    //   if (operations) {
-    //     // Likely initial sync so let's show visually that we're synced now
-    //     this.showProgress(100, "sync");
-    //   }
-    //
-    //   this.ui.viewDispatch({ type: "sync-change", syncSuccess: true });
-    // });
-
-    this.eventHook.addLocalListener("sync:error", (_name) => {
-      this.ui.viewDispatch({ type: "sync-change", syncSuccess: false });
-    });
-
-    this.eventHook.addLocalListener("sync:conflict", (name) => {
-      this.flashNotification(
-        `Sync: conflict detected for ${name} - conflict copy created`,
-        "error",
-      );
-    });
-
-    this.eventHook.addLocalListener("sync:progress", (status: SyncStatus) => {
-      this.showProgress(
-        Math.round(status.filesProcessed / status.totalFiles * 100),
-        "sync",
-      );
-    });
-
-    this.eventHook.addLocalListener(
-      "file:synced",
-      (meta: FileMeta, direction: string) => {
-        if (direction === "secondary->primary") {
-          // We likely polled the currently open page or document which triggered a local update, let's update the editor accordingly
-          this.space.spacePrimitives.getFileMeta(meta.name);
-        }
-      },
-    );
-  }
+  // private async initSync() {
+  //   this.syncService.start();
+  //
+  //   // We're still booting, if a initial sync has already been completed we know this is the initial sync
+  //   let initialSync = !await this.hasInitialSyncCompleted();
+  //
+  //   this.eventHook.addLocalListener("sync:success", async (operations) => {
+  //     if (operations > 0) {
+  //       // Update the page list
+  //       await this.space.updatePageList();
+  //     }
+  //     if (operations !== undefined) {
+  //       // "sync:success" is called with a number of operations only from syncSpace(), not from syncing individual pages
+  //       this.fullSyncCompleted = true;
+  //
+  //       console.log("[sync]", "Full sync completed");
+  //
+  //       // A full sync just completed
+  //       if (!initialSync) {
+  //         // If this was NOT the initial sync let's check if we need to perform a space reindex
+  //         this.clientSystem.ensureFullIndex().catch(
+  //           console.error,
+  //         );
+  //       } else { // initialSync
+  //         console.log(
+  //           "[sync]",
+  //           "Initial sync completed, now need to do a full space index to ensure all pages are indexed using any custom indexers",
+  //         );
+  //         this.clientSystem.ensureFullIndex().catch(
+  //           console.error,
+  //         );
+  //         initialSync = false;
+  //       }
+  //     }
+  //     if (operations) {
+  //       // Likely initial sync so let's show visually that we're synced now
+  //       this.showProgress(100, "sync");
+  //     }
+  //
+  //     this.ui.viewDispatch({ type: "sync-change", syncSuccess: true });
+  //   });
+  //
+  //   this.eventHook.addLocalListener("sync:error", (_name) => {
+  //     this.ui.viewDispatch({ type: "sync-change", syncSuccess: false });
+  //   });
+  //
+  //   this.eventHook.addLocalListener("sync:conflict", (name) => {
+  //     this.flashNotification(
+  //       `Sync: conflict detected for ${name} - conflict copy created`,
+  //       "error",
+  //     );
+  //   });
+  //
+  //   this.eventHook.addLocalListener("sync:progress", (status: SyncStatus) => {
+  //     this.showProgress(
+  //       Math.round(status.filesProcessed / status.totalFiles * 100),
+  //       "sync",
+  //     );
+  //   });
+  //
+  //   this.eventHook.addLocalListener(
+  //     "file:synced",
+  //     (meta: FileMeta, direction: string) => {
+  //       if (direction === "secondary->primary") {
+  //         // We likely polled the currently open page or document which triggered a local update, let's update the editor accordingly
+  //         this.space.spacePrimitives.getFileMeta(meta.name);
+  //       }
+  //     },
+  //   );
+  // }
 
   private navigateWithinPage(pageState: LocationState) {
     if (!isMarkdownPath(pageState.path)) return;
@@ -1527,7 +1527,7 @@ export class Client {
     }
     console.log("Stopping all systems");
     this.space.unwatch();
-    this.syncService.close();
+    // this.syncService.close();
 
     console.log("Clearing data store");
     await this.ds.kv.clear();
