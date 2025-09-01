@@ -1,14 +1,14 @@
+
+# Stage 1: Build the silverbullet binary
 FROM denoland/deno:2.4.5 AS builder
-
-RUN apt update && apt install -y curl git
-
+RUN apt update && apt install -y git
 WORKDIR /app
-
 ADD . /app
 
+# This will produce the `silverbullet` self-contained binary in /app/silverbullet
 RUN deno task build
 
-
+# Stage 2: Create the runtime from the build
 FROM ubuntu:noble
 
 # The volume that will keep the space data
