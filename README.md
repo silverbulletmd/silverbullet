@@ -74,3 +74,15 @@ To typecheck the entire codebase (recommended before submitting PR):
 ```shell
 deno task check
 ```
+
+To build it in a docker container:
+
+```shell
+docker build -t silverbullet .
+```
+
+and to then run it:
+
+```shell
+docker run -p 3000:3000 -v <PATH-TO-YOUR-SPACE>:/space silverbullet
+```
