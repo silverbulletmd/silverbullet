@@ -291,6 +291,13 @@ export class HttpServer {
       return c.redirect(this.prefixedUrl("/.auth"));
     });
 
+    // Simple ping health endpoint
+    this.app.get("/.ping", (c) => {
+      return c.text("OK", 200, {
+        "Cache-Control": "no-cache",
+      });
+    });
+
     // Check auth on every other request
     this.app.use("*", async (c, next) => {
       if (!this.options.auth) {
@@ -377,13 +384,6 @@ export class HttpServer {
         this.shellBackend,
         this.options.readOnly,
       );
-    });
-
-    // Simple ping health endpoint
-    this.app.get("/.ping", (c) => {
-      return c.text("OK", 200, {
-        "Cache-Control": "no-cache",
-      });
     });
 
     // HTTP Proxy endpoint
