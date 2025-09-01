@@ -3,11 +3,9 @@ functions:
   # Public API
   batchSet:
     path: api.ts:batchSet
-    env: server
   indexObjects:
     path: api.ts:indexObjects
     syscall: index.indexObjects
-    env: server
   query:
     path: api.ts:query
     syscall: index.query
@@ -56,6 +54,7 @@ functions:
       - queue: indexQueue
         batchSize: 3
         autoAck: true
+
   reindexSpace:
     path: "./command.ts:reindexSpace"
     env: server

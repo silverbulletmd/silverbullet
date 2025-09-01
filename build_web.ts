@@ -20,6 +20,7 @@ export async function bundleAll(
     const watcher = Deno.watchFs([
       "web",
       "dist_plug_bundle/_plug",
+      "lib",
       "Library",
     ]);
     for await (const _event of watcher) {

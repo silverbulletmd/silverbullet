@@ -28,10 +28,9 @@ import type { AppViewState } from "./ui_types.ts";
 
 import type { PageCreatingContent, PageCreatingEvent } from "../type/event.ts";
 import type { StyleObject } from "../plugs/index/style.ts";
-import { throttle } from "../lib/async.ts";
+import { sleep, throttle } from "../lib/async.ts";
 import { PlugSpacePrimitives } from "../lib/spaces/plug_space_primitives.ts";
 import { EventedSpacePrimitives } from "../lib/spaces/evented_space_primitives.ts";
-import { pageSyncInterval, SyncService } from "./sync_service.ts";
 import { simpleHash } from "../lib/crypto.ts";
 import type { SyncStatus } from "../lib/spaces/sync.ts";
 import { HttpSpacePrimitives } from "../lib/spaces/http_space_primitives.ts";
@@ -66,6 +65,7 @@ import { Config } from "./config.ts";
 import type { DocumentMeta, FileMeta, PageMeta } from "../type/index.ts";
 import { parseMarkdown } from "./markdown_parser/parser.ts";
 import { CheckPathSpacePrimitives } from "../lib/spaces/checked_space_primitives.ts";
+import { SyncService } from "./sync_service.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -130,9 +130,9 @@ export class Client {
   }, 1000);
   // Track if plugs have been updated since sync cycle
   fullSyncCompleted = false;
+
   syncService!: SyncService;
 
-  // Sync related stuff
   // Set to true once the system is ready (plugs loaded)
   public systemReady: boolean = false;
   private pageNavigator!: PathPageNavigator;
@@ -212,16 +212,16 @@ export class Client {
       },
     );
 
-    if (this.clientConfig.disableSync) {
-      this.syncService.enabled = false;
-    }
-
-    if (!await this.hasInitialSyncCompleted()) {
-      console.info(
-        "Initial sync has not yet been completed, disabling page and document indexing to speed this up",
-      );
-      this.eventedSpacePrimitives.enablePageEvents = false;
-    }
+    // if (this.clientConfig.disableSync) {
+    //   this.syncService.enabled = false;
+    // }
+    //
+    // if (!await this.hasInitialSyncCompleted()) {
+    //   console.info(
+    //     "Initial sync has not yet been completed, disabling page and document indexing to speed this up",
+    //   );
+    //   this.eventedSpacePrimitives.enablePageEvents = false;
+    // }
 
     this.ui = new MainUI(this);
     this.ui.render(this.parent);
@@ -275,9 +275,12 @@ export class Client {
 
     await this.clientSystem.loadScripts();
     await this.initNavigator();
-    await this.initSync();
+    // await this.initSync();
     await this.eventHook.dispatchEvent("system:ready");
     this.systemReady = true;
+
+    // Load space snapshot and enable events
+    await this.eventedSpacePrimitives.enable();
 
     // Kick off a cron event interval
     setInterval(() => {
@@ -297,17 +300,6 @@ export class Client {
       effects: client.undoHistoryCompartment?.reconfigure([history()]),
     });
 
-    // Regularly sync the currently open file
-    setInterval(() => {
-      try {
-        this.syncService.syncFile(this.currentPath()).catch((e: any) => {
-          console.error("Interval sync error", e);
-        });
-      } catch (e: any) {
-        console.error("Interval sync error", e);
-      }
-    }, pageSyncInterval);
-
     // Asynchronously update caches
     this.updatePageListCache().catch(console.error);
     this.updateDocumentListCache().catch(console.error);
@@ -323,11 +315,13 @@ export class Client {
       this.clientConfig.spaceFolderPath,
     );
 
-    let remoteSpacePrimitives: SpacePrimitives = this.httpSpacePrimitives;
+    let remoteSpacePrimitives: SpacePrimitives = new CheckPathSpacePrimitives(
+      this.httpSpacePrimitives,
+    );
 
     if (this.clientConfig.readOnly) {
       remoteSpacePrimitives = new ReadOnlySpacePrimitives(
-        remoteSpacePrimitives,
+        this.httpSpacePrimitives,
       );
     }
 
@@ -338,24 +332,44 @@ export class Client {
     );
 
     this.eventedSpacePrimitives = new EventedSpacePrimitives(
-      // Using fallback space primitives here to allow (by default) local reads to "fall through" to HTTP when files aren't synced yet
-      new FallbackSpacePrimitives(
-        new DataStoreSpacePrimitives(
-          new DataStore(
-            this.ds.kv,
-          ),
-        ),
-        this.plugSpaceRemotePrimitives,
-      ),
+      this.httpSpacePrimitives,
       this.eventHook,
+      this.ds,
     );
 
-    const localSpacePrimitives = new CheckPathSpacePrimitives(
-      this.eventedSpacePrimitives,
+    // Translate file change events for documents into document:index events
+    this.eventHook.addLocalListener(
+      "file:changed",
+      async (
+        name: string,
+        _localChange,
+        oldHash,
+        newHash,
+      ) => {
+        if (!name.startsWith(plugPrefix)) {
+          console.log("Queueing index for", name);
+          await this.mq.send("indexQueue", name);
+        }
+      },
     );
+
+    this.eventHook.addLocalListener("file:initial", async () => {
+      while (true) {
+        const stats = await this.mq.getQueueStats("indexQueue");
+        if (stats.queued > 0 || stats.processing > 0) {
+          console.info("Still indexing...");
+        } else {
+          console.info("Indexing complete, reloading state");
+          await this.clientSystem.markFullSpaceIndexComplete();
+          await this.clientSystem.reloadState();
+          break;
+        }
+        await sleep(200);
+      }
+    });
 
     this.space = new Space(
-      localSpacePrimitives,
+      this.eventedSpacePrimitives,
       this.eventHook,
     );
 
@@ -1294,42 +1308,41 @@ export class Client {
     // We're still booting, if a initial sync has already been completed we know this is the initial sync
     let initialSync = !await this.hasInitialSyncCompleted();
 
-    this.eventHook.addLocalListener("sync:success", async (operations) => {
-      if (operations > 0) {
-        // Update the page list
-        await this.space.updatePageList();
-      }
-      if (operations !== undefined) {
-        // "sync:success" is called with a number of operations only from syncSpace(), not from syncing individual pages
-        this.fullSyncCompleted = true;
-
-        console.log("[sync]", "Full sync completed");
-
-        // A full sync just completed
-        if (!initialSync) {
-          // If this was NOT the initial sync let's check if we need to perform a space reindex
-          this.clientSystem.ensureFullIndex().catch(
-            console.error,
-          );
-        } else { // initialSync
-          console.log(
-            "[sync]",
-            "Initial sync completed, now need to do a full space index to ensure all pages are indexed using any custom indexers",
-          );
-          this.eventedSpacePrimitives.enablePageEvents = true;
-          this.clientSystem.ensureFullIndex().catch(
-            console.error,
-          );
-          initialSync = false;
-        }
-      }
-      if (operations) {
-        // Likely initial sync so let's show visually that we're synced now
-        this.showProgress(100, "sync");
-      }
-
-      this.ui.viewDispatch({ type: "sync-change", syncSuccess: true });
-    });
+    // this.eventHook.addLocalListener("sync:success", async (operations) => {
+    //   if (operations > 0) {
+    //     // Update the page list
+    //     await this.space.updatePageList();
+    //   }
+    //   if (operations !== undefined) {
+    //     // "sync:success" is called with a number of operations only from syncSpace(), not from syncing individual pages
+    //     this.fullSyncCompleted = true;
+    //
+    //     console.log("[sync]", "Full sync completed");
+    //
+    //     // A full sync just completed
+    //     if (!initialSync) {
+    //       // If this was NOT the initial sync let's check if we need to perform a space reindex
+    //       this.clientSystem.ensureFullIndex().catch(
+    //         console.error,
+    //       );
+    //     } else { // initialSync
+    //       console.log(
+    //         "[sync]",
+    //         "Initial sync completed, now need to do a full space index to ensure all pages are indexed using any custom indexers",
+    //       );
+    //       this.clientSystem.ensureFullIndex().catch(
+    //         console.error,
+    //       );
+    //       initialSync = false;
+    //     }
+    //   }
+    //   if (operations) {
+    //     // Likely initial sync so let's show visually that we're synced now
+    //     this.showProgress(100, "sync");
+    //   }
+    //
+    //   this.ui.viewDispatch({ type: "sync-change", syncSuccess: true });
+    // });
 
     this.eventHook.addLocalListener("sync:error", (_name) => {
       this.ui.viewDispatch({ type: "sync-change", syncSuccess: false });
