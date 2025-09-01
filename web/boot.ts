@@ -74,7 +74,8 @@ safeRun(async () => {
   console.log("Booting SilverBullet client");
   console.log("Client config", clientConfig);
 
-  if (navigator.serviceWorker) {
+  // TODO: Re-enable service worker again
+  if (false && navigator.serviceWorker) {
     // Register service worker
     const workerURL = new URL("service_worker.js", document.baseURI);
     navigator.serviceWorker

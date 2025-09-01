@@ -1,5 +1,8 @@
 An attempt at documenting the changes/new features introduced in each release.
 
+# Edge
+* `page:saved` event removed (nobody was using it?)
+
 ## v2
 * We’re now live!
 

@@ -37,7 +37,6 @@ export const pageSyncInterval = 6000;
  * different browser tabs. It is using the KVStore to keep track of sync state.
  */
 export class SyncService {
-  spaceSync: SpaceSync;
   lastReportedSyncStatus = Date.now();
   // If this is set to anything other than undefined, a file is currently saving
   savingTimeout: number | undefined;
@@ -51,17 +50,17 @@ export class SyncService {
     private eventHook: EventHook,
     private isSyncCandidate: (path: string) => boolean,
   ) {
-    this.spaceSync = new SpaceSync(
-      this.localSpacePrimitives,
-      this.remoteSpace!,
-      {
-        conflictResolver: this.plugAwareConflictResolver.bind(this),
-        isSyncCandidate: this.isSyncCandidate,
-        onSyncProgress: (status) => {
-          this.registerSyncProgress(status).catch(console.error);
-        },
-      },
-    );
+    // this.spaceSync = new SpaceSync(
+    //   this.localSpacePrimitives,
+    //   this.remoteSpace!,
+    //   {
+    //     conflictResolver: this.plugAwareConflictResolver.bind(this),
+    //     isSyncCandidate: this.isSyncCandidate,
+    //     onSyncProgress: (status) => {
+    //       this.registerSyncProgress(status).catch(console.error);
+    //     },
+    //   },
+    // );
 
     eventHook.addLocalListener(
       "editor:pageLoaded",
@@ -121,11 +120,11 @@ export class SyncService {
       this.performFileSync(name).catch(console.error);
     });
 
-    this.spaceSync.on({
-      fileSynced: (meta, direction) => {
-        eventHook.dispatchEvent("file:synced", meta, direction);
-      },
-    });
+    // this.spaceSync.on({
+    //   fileSynced: (meta, direction) => {
+    //     eventHook.dispatchEvent("file:synced", meta, direction);
+    //   },
+    // });
   }
 
   async isSyncing(): Promise<boolean> {
@@ -261,32 +260,33 @@ export class SyncService {
    * @return the number of sync operations performed, or -1 when a sync was already in progress
    */
   async syncSpace(): Promise<number> {
-    if (!this.enabled) {
-      return 0;
-    }
-    if (await this.isSyncing()) {
-      console.log("Aborting space sync: already syncing");
-      return -1;
-    }
-    await this.registerSyncStart(true);
-    let operations = 0;
-    const snapshot = await this.getSnapshot();
-    // console.log("Excluded from sync", excludedFromSync);
-    try {
-      operations = await this.spaceSync!.syncFiles(
-        snapshot,
-        (path) => this.isSyncCandidate(path),
-      );
-      await this.saveSnapshot(snapshot);
-      await this.registerSyncStop(true);
-      await this.eventHook.dispatchEvent("sync:success", operations);
-    } catch (e: any) {
-      await this.saveSnapshot(snapshot);
-      await this.registerSyncStop(false);
-      await this.eventHook.dispatchEvent("sync:error", e.message);
-      console.error("Sync error", e.message);
-    }
-    return operations;
+    // if (!this.enabled) {
+    //   return 0;
+    // }
+    // if (await this.isSyncing()) {
+    //   console.log("Aborting space sync: already syncing");
+    //   return -1;
+    // }
+    // await this.registerSyncStart(true);
+    // let operations = 0;
+    // const snapshot = await this.getSnapshot();
+    // // console.log("Excluded from sync", excludedFromSync);
+    // try {
+    //   operations = await this.spaceSync!.syncFiles(
+    //     snapshot,
+    //     (path) => this.isSyncCandidate(path),
+    //   );
+    //   await this.saveSnapshot(snapshot);
+    //   await this.registerSyncStop(true);
+    //   await this.eventHook.dispatchEvent("sync:success", operations);
+    // } catch (e: any) {
+    //   await this.saveSnapshot(snapshot);
+    //   await this.registerSyncStop(false);
+    //   await this.eventHook.dispatchEvent("sync:error", e.message);
+    //   console.error("Sync error", e.message);
+    // }
+    // return operations;
+    return -1;
   }
 
   // Syncs a single file
@@ -350,7 +350,7 @@ export class SyncService {
         // Not present
       }
 
-      await this.spaceSync.syncFile(snapshot, name, localHash, remoteHash);
+      // await this.spaceSync.syncFile(snapshot, name, localHash, remoteHash);
       this.eventHook.dispatchEvent("sync:success").catch(console.error);
       // console.log("File successfully synced", name);
     } catch (e: any) {

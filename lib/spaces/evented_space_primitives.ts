@@ -3,46 +3,60 @@ import { plugPrefix } from "../spaces/constants.ts";
 
 import type { SpacePrimitives } from "./space_primitives.ts";
 import type { FileMeta } from "../../type/index.ts";
+import { DataStore } from "../data/datastore.ts";
 
 /**
  * Events exposed:
- * - file:changed (string, localUpdate: boolean)
+ * - file:changed (string, localUpdate: boolean, oldHash, newHash)
  * - file:deleted (string)
  * - file:listed (FileMeta[])
- * - page:saved (string, FileMeta)
+ * - file:initial: triggered in case of an initially empty snapshot, after the first set of events has gone out
  * - page:deleted (string)
  */
 export class EventedSpacePrimitives implements SpacePrimitives {
   // Various operations may be going on at the same time, and we don't want to trigger events unnessarily.
-  // Therefore we use this variable to track if any operation is in flight, and if so, we skip event triggering.
+  // Therefore, we use this variable to track if any operation is in flight, and if so, we skip event triggering.
   // This is ok, because any event will be picked up in a following iteration.
   operationInProgress = false;
 
-  initialFileListLoad: boolean;
-
-  public enablePageEvents = true;
   private spaceSnapshot: Record<string, number> = {};
+
+  private enabled = false;
 
   constructor(
     private wrapped: SpacePrimitives,
     private eventHook: EventHook,
+    private ds: DataStore,
+    private snapshotKey = ["$spaceSnapshot"],
   ) {
-    // Translate file change events for documents into document:index events
-    this.eventHook.addLocalListener(
-      "file:changed",
-      async (
-        name: string,
-      ) => {
-        if (!name.endsWith(".md") && !name.startsWith(plugPrefix)) {
-          // Not a page nor plug, so a document!
-          await this.dispatchEvent("document:index", name);
-        }
-      },
-    );
-    this.initialFileListLoad = Object.keys(this.spaceSnapshot).length === 0;
+  }
+
+  async enable() {
+    console.log("Loading snapshot and enabling events");
+    this.spaceSnapshot = (await this.ds.get(this.snapshotKey)) || {};
+    const isFreshSnapshot = Object.keys(this.spaceSnapshot).length === 0;
+    this.enabled = true;
+    // trigger loading and eventing
+    this.fetchFileList().then(async () => {
+      if (isFreshSnapshot) {
+        // Trigger event to signal that an intial batch of events has been triggere
+        await this.dispatchEvent("file:initial");
+      }
+    });
+  }
+
+  private async saveSnapshot() {
+    if (this.enabled) {
+      console.log("Saving snapshot");
+      this.ds.set(this.snapshotKey, this.spaceSnapshot);
+    }
   }
 
   dispatchEvent(name: string, ...args: any[]): Promise<any[]> {
+    if (!this.enabled) {
+      return Promise.resolve([]);
+    }
+    console.log("Evented space, dispatching", name, args);
     return this.eventHook.dispatchEvent(name, ...args);
   }
 
@@ -53,6 +67,9 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       console.info(
         "alreadyFetching is on, skipping even triggering for fetchFileList.",
       );
+      return this.wrapped.fetchFileList();
+    }
+    if (!this.enabled) {
       return this.wrapped.fetchFileList();
     }
     // console.log("Fetching file list");
@@ -74,7 +91,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
         if (
           (
             // New file scenario
-            !oldHash && !this.initialFileListLoad
+            !oldHash
           ) || (
             // Changed file scenario
             oldHash &&
@@ -98,16 +115,17 @@ export class EventedSpacePrimitives implements SpacePrimitives {
         delete this.spaceSnapshot[deletedFile];
         await this.dispatchEvent("file:deleted", deletedFile);
 
-        if (deletedFile.endsWith(".md") && this.enablePageEvents) {
+        if (deletedFile.endsWith(".md")) {
           const pageName = deletedFile.substring(0, deletedFile.length - 3);
           await this.dispatchEvent("page:deleted", pageName);
         }
       }
 
       await this.dispatchEvent("file:listed", newFileList);
-      this.initialFileListLoad = false;
+      // this.initialFileListLoad = false;
       return newFileList;
     } finally {
+      await this.saveSnapshot();
       this.operationInProgress = false;
     }
   }
@@ -115,6 +133,9 @@ export class EventedSpacePrimitives implements SpacePrimitives {
   async readFile(
     name: string,
   ): Promise<{ data: Uint8Array; meta: FileMeta }> {
+    if (!this.enabled) {
+      return this.wrapped.readFile(name);
+    }
     try {
       // Fetching mutex
       const wasFetching = this.operationInProgress;
@@ -123,7 +144,10 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       // Fetch file
       const data = await this.wrapped.readFile(name);
       if (!wasFetching) {
-        this.triggerEventsAndCache(name, data.meta.lastModified);
+        if (this.triggerEventsAndCache(name, data.meta.lastModified)) {
+          // Something changed, so persist snapshot
+          await this.saveSnapshot();
+        }
       }
       return data;
     } finally {
@@ -138,6 +162,10 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     selfUpdate?: boolean,
     meta?: FileMeta,
   ): Promise<FileMeta> {
+    if (!this.enabled) {
+      return this.wrapped.writeFile(name, data, selfUpdate, meta);
+    }
+
     try {
       this.operationInProgress = true;
       const newMeta = await this.wrapped.writeFile(
@@ -155,52 +183,48 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       );
       this.spaceSnapshot[name] = newMeta.lastModified;
 
-      if (name.endsWith(".md") && this.enablePageEvents) {
-        // Let's trigger some page-specific events
-        const pageName = name.substring(0, name.length - 3);
-        let text = "";
-        const decoder = new TextDecoder("utf-8");
-        text = decoder.decode(data);
-
-        await this.dispatchEvent("page:saved", pageName, newMeta);
-        await this.dispatchEvent("page:index_text", {
-          name: pageName,
-          text,
-        });
-      }
       return newMeta;
     } finally {
+      await this.saveSnapshot();
       this.operationInProgress = false;
     }
   }
 
-  triggerEventsAndCache(name: string, newHash: number) {
+  /**
+   * @param name
+   * @param newHash
+   * @return whether something changed in the snapshot
+   */
+  triggerEventsAndCache(name: string, newHash: number): boolean {
     const oldHash = this.spaceSnapshot[name];
     if (oldHash && newHash && oldHash !== newHash) {
       // Page changed since last cached metadata, trigger event
       this.dispatchEvent("file:changed", name, false, oldHash, newHash);
     }
     this.spaceSnapshot[name] = newHash;
-    return;
+    return oldHash !== newHash;
   }
 
   async getFileMeta(name: string): Promise<FileMeta> {
-    if (!this.enablePageEvents) {
+    if (!this.enabled) {
       return this.wrapped.getFileMeta(name);
     }
+
     try {
       const wasFetching = this.operationInProgress;
       this.operationInProgress = true;
       const newMeta = await this.wrapped.getFileMeta(name);
       if (!wasFetching) {
-        this.triggerEventsAndCache(name, newMeta.lastModified);
+        if (this.triggerEventsAndCache(name, newMeta.lastModified)) {
+          await this.saveSnapshot();
+        }
       }
       return newMeta;
     } catch (e: any) {
       // console.log("Checking error", e, name);
       if (e.message === "Not found") {
         await this.dispatchEvent("file:deleted", name);
-        if (name.endsWith(".md") && this.enablePageEvents) {
+        if (name.endsWith(".md")) {
           const pageName = name.substring(0, name.length - 3);
           await this.dispatchEvent("page:deleted", pageName);
         }
@@ -212,9 +236,13 @@ export class EventedSpacePrimitives implements SpacePrimitives {
   }
 
   async deleteFile(name: string): Promise<void> {
+    if (!this.enabled) {
+      return this.wrapped.deleteFile(name);
+    }
+
     try {
       this.operationInProgress = true;
-      if (name.endsWith(".md") && this.enablePageEvents) {
+      if (name.endsWith(".md")) {
         const pageName = name.substring(0, name.length - 3);
         await this.dispatchEvent("page:deleted", pageName);
       }
@@ -223,6 +251,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       delete this.spaceSnapshot[name];
       await this.dispatchEvent("file:deleted", name);
     } finally {
+      await this.saveSnapshot();
       this.operationInProgress = false;
     }
   }

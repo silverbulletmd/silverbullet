@@ -324,13 +324,17 @@ export class ClientSystem {
       await this.markFullSpaceIndexComplete();
       this.indexOngoing = false;
       // Let's load space scripts again, which probably weren't loaded before
-      console.log(
-        "Now loading space scripts, custom styles and rebuilding editor state",
-      );
-      await this.loadScripts();
-      await this.client.loadCustomStyles();
-      this.client.rebuildEditorState();
+      await this.reloadState();
     }
+  }
+
+  public async reloadState() {
+    console.log(
+      "Now loading space scripts, custom styles and rebuilding editor state",
+    );
+    await this.loadScripts();
+    await this.client.loadCustomStyles();
+    this.client.rebuildEditorState();
   }
 
   public async evalLuaFunction(
@@ -360,7 +364,7 @@ export class ClientSystem {
     return this.ds.get(indexVersionKey);
   }
 
-  private async markFullSpaceIndexComplete() {
+  async markFullSpaceIndexComplete() {
     await this.ds.set(indexVersionKey, desiredIndexVersion);
   }
 }
