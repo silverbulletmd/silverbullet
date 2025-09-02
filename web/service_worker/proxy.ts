@@ -3,6 +3,8 @@ import { decodePageURI } from "@silverbulletmd/silverbullet/lib/ref";
 import type { SpacePrimitives } from "../../lib/spaces/space_primitives.ts";
 import { fileMetaToHeaders } from "../../server/util.ts";
 import { notFoundError } from "../../lib/constants.ts";
+import type { SyncEngine } from "./sync.ts";
+import { EventEmitter } from "../../lib/plugos/event.ts";
 
 const alwaysProxy = [
   "/.auth",
@@ -13,16 +15,38 @@ const alwaysProxy = [
 const pingTimeout = 2000;
 const pingInterval = 5000;
 
-export class ProxyRouter {
+export type ProxyRouterEvents = {
+  // Use case: sync engine may more pro-actively sync this one file back to the server
+  fileWritten: (path: string) => void;
+  // Use case: the user likely has this file open in the editor, so it's good to prioritize syncing it
+  fileMetaRequested: (path: string) => void;
+};
+
+/**
+ * Implements a service worker level HTTP proxy (fetch requests) that serves /.fs calls locally for synced spaces
+ */
+export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
   fullSyncConfirmed = false;
   online = true;
 
   constructor(
     private spacePrimitives: SpacePrimitives,
+    syncEngine: SyncEngine,
     private basePathName: string,
     private baseURI: string,
     private precacheFiles: Record<string, string>,
   ) {
+    super();
+    syncEngine.on({
+      spaceSyncComplete: () => {
+        if (!this.fullSyncConfirmed) {
+          this.fullSyncConfirmed = true;
+          console.log(
+            "First full sync confirmed, will now start serving requests locally",
+          );
+        }
+      },
+    });
     // Actively check if we're online by pinging the server
     this.checkOnline();
     setInterval(() => {
@@ -38,11 +62,6 @@ export class ProxyRouter {
       });
       // If the ping is successful, we are online
       this.online = true;
-      globalThis.clients.matchAll().then((clients) => {
-        clients.forEach((client) => {
-          client.postMessage({ type: "sync", status: "online" });
-        });
-      });
     } catch {
       // Otherwise we're not
       this.online = false;
@@ -50,18 +69,6 @@ export class ProxyRouter {
       if (oldOnline !== this.online) {
         console.info("Online status changed to", this.online);
       }
-    }
-  }
-
-  /**
-   * Called when a full space sync is complete, this will enable local request handling.
-   */
-  public handleSyncComplete() {
-    if (!this.fullSyncConfirmed) {
-      this.fullSyncConfirmed = true;
-      console.log(
-        "First full sync confirmed, will now start serving requests locally",
-      );
     }
   }
 
@@ -176,6 +183,7 @@ export class ProxyRouter {
         // Requesting only file meta
         console.log("Serving file meta", path);
         const meta = await this.spacePrimitives.getFileMeta(path);
+        this.emit("fileMetaRequested", path);
         return new Response(null, {
           headers: fileMetaToHeaders(meta),
         });
@@ -212,6 +220,7 @@ export class ProxyRouter {
         path,
         new Uint8Array(body),
       );
+      this.emit("fileWritten", path);
       return new Response("OK", {
         status: 200,
         headers: fileMetaToHeaders(meta),

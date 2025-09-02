@@ -1,6 +1,6 @@
 // Side effect imports
 import { initLogger } from "../lib/logger.ts";
-import { ProxyRouter } from "./service_worker/fetch.ts";
+import { ProxyRouter } from "./service_worker/proxy.ts";
 import { MessageHandler } from "./service_worker/message.ts";
 import type { SyncEngine } from "./service_worker/sync.ts";
 
@@ -79,18 +79,50 @@ new MessageHandler(
   self,
   baseURI,
   basePathName,
-  (engine: SyncEngine) => {
+  (syncEngine: SyncEngine) => {
+    // Ok, we're configured, let's get this thing goin'
     proxyRouter = new ProxyRouter(
-      engine.local,
+      syncEngine.local,
+      syncEngine,
       basePathName,
       baseURI,
       precacheFiles,
     );
-    engine.on({
-      spaceSyncComplete: proxyRouter.handleSyncComplete.bind(proxyRouter),
+    // Let's wire up some events
+    proxyRouter.on({
+      fileWritten: (path) => {
+        syncEngine.syncFile(path);
+      },
+      fileMetaRequested: (path) => {
+        syncEngine.syncFile(path);
+      },
+    });
+    syncEngine.on({
+      syncConflict: (path) => {
+        console.warn("Sync conflict detected:", path);
+      },
+      syncError: (error) => {
+        console.error("Sync error detected:", error);
+      },
+      fileSyncComplete: (path) => {
+        console.log("File sync complete:", path);
+      },
     });
   },
 );
+
+function broadcastMessage(message: any) {
+  // @ts-ignore: service worker API
+  const clients: any = self.clients;
+  // Find all windows attached to this service worker
+  clients.matchAll({
+    type: "window",
+  }).then((clients: any[]) => {
+    clients.forEach((client) => {
+      client.postMessage(message);
+    });
+  });
+}
 
 self.addEventListener("fetch", (event: any) => {
   if (proxyRouter) {
