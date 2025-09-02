@@ -170,6 +170,7 @@
     "style-mod": "npm:style-mod@4.1.2",
     "turndown": "npm:turndown@7.2.0",
     "ajv": "npm:ajv@8.17.1",
-    "turndown-plugin-gfm": "npm:@joplin/turndown-plugin-gfm@1.0.62"
+    "turndown-plugin-gfm": "npm:@joplin/turndown-plugin-gfm@1.0.62",
+    "googleapis-storage": "https://googleapis.deno.dev/v1/storage:v1.ts"
   }
 }
