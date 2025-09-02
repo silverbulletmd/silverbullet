@@ -19,6 +19,7 @@ import {
 import { queryLuaObjects } from "./api.ts";
 import type { ObjectValue } from "../../type/index.ts";
 import { isValidPath } from "@silverbulletmd/silverbullet/lib/ref";
+import { notFoundError } from "../../lib/constants.ts";
 
 /**
  * Renames a single page.
@@ -126,7 +127,7 @@ export async function batchRenameFiles(fileList: [string, string][]) {
           `${newName} already exists, cannot rename to existing file.`,
         );
       } catch (e: any) {
-        if (e.message === "Not found") {
+        if (e.message === notFoundError.message) {
           // Expected not found error, so we can continue
         } else {
           throw e;
@@ -144,7 +145,7 @@ export async function batchRenameFiles(fileList: [string, string][]) {
           await renameDocument(oldName, newName);
         }
       } catch (e: any) {
-        if (e.message === "Not found") {
+        if (e.message === notFoundError.message) {
           console.log(`${oldName} does not exist, skipping`);
         } else {
           throw e;
@@ -356,7 +357,7 @@ export async function extractToPageCommand() {
       `Page ${newName} already exists, cannot rename to existing page.`,
     );
   } catch (e: any) {
-    if (e.message === "Not found") {
+    if (e.message === notFoundError.message) {
       // Expected not found error, so we can continue
     } else {
       await editor.flashNotification(e.message, "error");

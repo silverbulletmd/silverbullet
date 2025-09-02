@@ -4,6 +4,7 @@ import {
   flushCachesAndUnregisterServiceWorker,
 } from "../../web/service_worker/util.ts";
 import type { FileMeta } from "../../type/index.ts";
+import { notFoundError, offlineError } from "../constants.ts";
 
 const defaultFetchTimeout = 30000; // 30 seconds
 
@@ -40,7 +41,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       options.redirect = "manual";
       const result = await fetch(url, options);
       if (result.status === 503) {
-        throw new Error("Offline");
+        throw offlineError;
       }
       const redirectHeader = result.headers.get("location");
 
@@ -114,7 +115,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
           url,
           e,
         );
-        throw new Error("Offline");
+        throw offlineError;
       }
       throw e;
     }
@@ -158,7 +159,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       },
     );
     if (res.status === 404) {
-      throw new Error(`Not found`);
+      throw notFoundError;
     }
     return {
       data: new Uint8Array(await res.arrayBuffer()),
@@ -217,7 +218,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       },
     );
     if (res.status === 404) {
-      throw new Error(`Not found`);
+      throw notFoundError;
     }
     if (!res.ok) {
       throw new Error(`Failed to get file meta: ${res.statusText}`);

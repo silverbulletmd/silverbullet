@@ -1,9 +1,8 @@
 // Side effect imports
-import { DataStore } from "../lib/data/datastore.ts";
 import { initLogger } from "../lib/logger.ts";
 import { ProxyRouter } from "./service_worker/fetch.ts";
 import { MessageHandler } from "./service_worker/message.ts";
-import { SyncEngine } from "./service_worker/sync.ts";
+import type { SyncEngine } from "./service_worker/sync.ts";
 
 // Note: the only thing cached here is SilverBullet client assets, files and databases are kept in IndexedDB
 const CACHE_NAME = "{{CACHE_NAME}}";

@@ -1,5 +1,5 @@
 import { editor, space, system } from "@silverbulletmd/silverbullet/syscalls";
-import { defaultLinkStyle, maximumDocumentSize } from "../../web/constants.ts";
+import { defaultLinkStyle, maximumDocumentSize } from "../../lib/constants.ts";
 import { resolveMarkdownLink } from "@silverbulletmd/silverbullet/lib/resolve";
 import {
   encodePageURI,

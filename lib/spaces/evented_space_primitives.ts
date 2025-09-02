@@ -1,9 +1,9 @@
 import type { EventHook } from "../../web/hooks/event.ts";
-import { plugPrefix } from "../spaces/constants.ts";
 
 import type { SpacePrimitives } from "./space_primitives.ts";
 import type { FileMeta } from "../../type/index.ts";
-import { DataStore } from "../data/datastore.ts";
+import type { DataStore } from "../data/datastore.ts";
+import { notFoundError } from "../constants.ts";
 
 /**
  * Events exposed:
@@ -48,7 +48,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
   private async saveSnapshot() {
     if (this.enabled) {
       console.log("Saving snapshot");
-      this.ds.set(this.snapshotKey, this.spaceSnapshot);
+      await this.ds.set(this.snapshotKey, this.spaceSnapshot);
     }
   }
 
@@ -222,7 +222,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       return newMeta;
     } catch (e: any) {
       // console.log("Checking error", e, name);
-      if (e.message === "Not found") {
+      if (e.message === notFoundError.message) {
         await this.dispatchEvent("file:deleted", name);
         if (name.endsWith(".md")) {
           const pageName = name.substring(0, name.length - 3);

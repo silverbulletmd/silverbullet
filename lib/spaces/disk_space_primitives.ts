@@ -4,6 +4,7 @@ import type { SpacePrimitives } from "./space_primitives.ts";
 import { mime } from "mimetypes";
 
 import type { FileMeta } from "../../type/index.ts";
+import { notFoundError } from "../constants.ts";
 
 function lookupContentType(path: string): string {
   return mime.getType(path) || "application/octet-stream";
@@ -66,7 +67,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
       };
     } catch {
       // console.error("Error while reading file", name, e);
-      throw Error("Not found");
+      throw notFoundError;
     }
   }
 
@@ -124,7 +125,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
       };
     } catch (e: any) {
       if (e instanceof Deno.errors.NotFound) {
-        throw Error("Not found");
+        throw notFoundError;
       }
       // console.error("Error while getting page meta", pageName, e);
       throw Error(`Could not get meta for ${name}`);

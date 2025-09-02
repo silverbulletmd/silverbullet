@@ -12,6 +12,7 @@ import type { ServerOptions } from "./http_server.ts";
 import type { AssetBundle } from "../lib/asset_bundle/bundle.ts";
 import { htmlEscape } from "../web/markdown/html_render.ts";
 import type { SpacePrimitives } from "../lib/spaces/space_primitives.ts";
+import { notFoundError } from "../lib/constants.ts";
 
 // Server-side renders a markdown file to HTML
 export async function renderHtmlPage(
@@ -44,7 +45,7 @@ export async function renderHtmlPage(
         const tree = parse(extendedMarkdownLanguage, text);
         html = renderMarkdownToHtml(tree);
       } catch (e: any) {
-        if (e.message !== "Not found") {
+        if (e.message !== notFoundError.message) {
           console.error("Error server-side rendering page", e);
         }
       }
@@ -53,7 +54,7 @@ export async function renderHtmlPage(
       try {
         await spacePrimitives.getFileMeta(ref.path);
       } catch (e: any) {
-        if (e.message !== "Not found") {
+        if (e.message !== notFoundError.message) {
           return c.notFound();
         }
       }

@@ -32,9 +32,7 @@ import { sleep, throttle } from "../lib/async.ts";
 import { PlugSpacePrimitives } from "../lib/spaces/plug_space_primitives.ts";
 import { EventedSpacePrimitives } from "../lib/spaces/evented_space_primitives.ts";
 import { simpleHash } from "../lib/crypto.ts";
-import type { SyncStatus } from "../lib/spaces/sync.ts";
 import { HttpSpacePrimitives } from "../lib/spaces/http_space_primitives.ts";
-import { FallbackSpacePrimitives } from "../lib/spaces/fallback_space_primitives.ts";
 import {
   encodePageURI,
   encodeRef,
@@ -64,6 +62,7 @@ import { Config } from "./config.ts";
 import type { DocumentMeta, FileMeta, PageMeta } from "../type/index.ts";
 import { parseMarkdown } from "./markdown_parser/parser.ts";
 import { CheckPathSpacePrimitives } from "../lib/spaces/checked_space_primitives.ts";
+import { notFoundError, offlineError } from "../lib/constants.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -325,7 +324,8 @@ export class Client {
         _selfUpdate,
       ) => {
         // TODO: Optimization opportunity here: dispatch the page:index here directly rather than sending it off to a queue which will refetch the file
-        console.log("Queueing index for", name);
+        // console.log("Queueing index for", name);
+
         await this.mq.send("indexQueue", name);
       },
     );
@@ -368,7 +368,7 @@ export class Client {
 
     this.eventHook.addLocalListener(
       "file:changed",
-      async (
+      (
         path: string,
         _localChange: boolean,
         oldHash: number,
@@ -993,9 +993,18 @@ export class Client {
     try {
       doc = await this.space.readPage(pageName);
     } catch (e: any) {
-      if (!e.message.includes("Not found")) {
+      if (
+        e.message !== notFoundError.message &&
+        e.message !== offlineError.message
+      ) {
+        // If the error is not a "not found" error nor "offline", rethrow it
         throw e;
       }
+
+      // Scenarios:
+      // 1. We got a not found error -> Create an empty page
+      // 2. We got a offline error (which meant that the service worker didn't locally retrieve the page either so likely it doesn't exist) -> Create a new page
+      // Either way... we create an empty page!
 
       console.log(`Page doesn't exist, creating new page: ${pageName}`);
 
