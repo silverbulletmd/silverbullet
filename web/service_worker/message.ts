@@ -4,7 +4,6 @@ import { IndexedDBKvPrimitives } from "../../lib/data/indexeddb_kv_primitives.ts
 import { fsEndpoint } from "../../lib/spaces/constants.ts";
 import { DataStoreSpacePrimitives } from "../../lib/spaces/datastore_space_primitives.ts";
 import { HttpSpacePrimitives } from "../../lib/spaces/http_space_primitives.ts";
-import { ProxyRouter } from "./fetch.ts";
 import { SyncEngine } from "./sync.ts";
 
 export class MessageHandler {
@@ -14,15 +13,11 @@ export class MessageHandler {
     self: any,
     baseURI: string,
     basePathName: string,
-    configureCallback: (ds: DataStore) => void,
+    configureCallback: (engine: SyncEngine) => void,
   ) {
     self.addEventListener("message", (event: any) => {
       switch (event.data.type) {
         case "skipWaiting": {
-          console.log(
-            "[Service worker]",
-            "Received skipWaiting message, activating immediately",
-          );
           // @ts-ignore: Skip waiting to activate this service worker immediately
           self.skipWaiting();
           break;
@@ -41,11 +36,23 @@ export class MessageHandler {
             const remote = new HttpSpacePrimitives(
               basePathName + fsEndpoint,
               spaceFolderPath,
+              (message, actionOrRedirectHeader) => {
+                console.error(
+                  "[service proxy error]",
+                  message,
+                  actionOrRedirectHeader,
+                );
+                // if (actionOrRedirectHeader === "reload") {
+                //   location.reload();
+                // } else {
+                //   location.href = actionOrRedirectHeader;
+                // }
+              },
             );
             const local = new DataStoreSpacePrimitives(ds);
             const engine = new SyncEngine(ds, local, remote);
             engine.start();
-            configureCallback(ds);
+            configureCallback(engine);
           });
           break;
         }
