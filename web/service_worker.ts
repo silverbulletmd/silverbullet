@@ -1,7 +1,9 @@
 // Side effect imports
 import { DataStore } from "../lib/data/datastore.ts";
+import { initLogger } from "../lib/logger.ts";
 import { ProxyRouter } from "./service_worker/fetch.ts";
 import { MessageHandler } from "./service_worker/message.ts";
+import { SyncEngine } from "./service_worker/sync.ts";
 
 // Note: the only thing cached here is SilverBullet client assets, files and databases are kept in IndexedDB
 const CACHE_NAME = "{{CACHE_NAME}}";
@@ -35,36 +37,33 @@ const precacheFiles = Object.fromEntries([
 ].map((path) => [path, `${baseURI}${path}?v=${CACHE_NAME}`, path])); // Cache busting
 
 self.addEventListener("install", (event: any) => {
-  console.log("[Service worker]", "Installing service worker...");
+  console.log("Installing service worker...");
   event.waitUntil(
     (async () => {
       const cache = await caches.open(CACHE_NAME);
       console.log(
-        "[Service worker]",
         "Now pre-caching client files",
       );
       await cache.addAll(Object.values(precacheFiles));
       console.log(
-        "[Service worker]",
         Object.keys(precacheFiles).length,
         "client files cached",
       );
       // @ts-ignore: Force the waiting service worker to become the active service worker
       await self.skipWaiting();
-      console.log("[Service worker]", "skipWaiting complete");
     })(),
   );
 });
 
 self.addEventListener("activate", (event: any) => {
-  console.log("[Service worker]", "Activating new service worker!");
+  console.log("Activating new service worker!");
   event.waitUntil(
     (async () => {
       const cacheNames = await caches.keys();
       await Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
-            console.log("[Service worker]", "Removing old cache", cacheName);
+            console.log("Removing old cache", cacheName);
             return caches.delete(cacheName);
           }
         }),
@@ -77,14 +76,22 @@ self.addEventListener("activate", (event: any) => {
 
 let proxyRouter: ProxyRouter | undefined;
 
-new MessageHandler(self, baseURI, basePathName, (ds: DataStore) => {
-  proxyRouter = new ProxyRouter(
-    ds,
-    basePathName,
-    baseURI,
-    precacheFiles,
-  );
-});
+new MessageHandler(
+  self,
+  baseURI,
+  basePathName,
+  (engine: SyncEngine) => {
+    proxyRouter = new ProxyRouter(
+      engine.local,
+      basePathName,
+      baseURI,
+      precacheFiles,
+    );
+    engine.on({
+      spaceSyncComplete: proxyRouter.handleSyncComplete.bind(proxyRouter),
+    });
+  },
+);
 
 self.addEventListener("fetch", (event: any) => {
   if (proxyRouter) {
@@ -93,3 +100,5 @@ self.addEventListener("fetch", (event: any) => {
     event.respondWith(fetch(event.request));
   }
 });
+
+initLogger("[Service Worker]");
