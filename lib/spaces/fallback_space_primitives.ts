@@ -1,5 +1,6 @@
 import type { SpacePrimitives } from "./space_primitives.ts";
 import type { FileMeta } from "../../type/index.ts";
+import { notFoundError } from "../constants.ts";
 
 /**
  * FallbackSpacePrimitives is a SpacePrimitives implementation that will try to fall back to another SpacePrimitives implementation for two
@@ -23,7 +24,7 @@ export class FallbackSpacePrimitives implements SpacePrimitives {
     try {
       return await this.primary.readFile(name);
     } catch (e: any) {
-      if (e.message === "Not found") {
+      if (e.message === notFoundError.message) {
         console.info("Reading file content from fallback for", name);
       } else {
         console.warn(
@@ -49,7 +50,7 @@ export class FallbackSpacePrimitives implements SpacePrimitives {
     try {
       return await this.primary.getFileMeta(name);
     } catch (e: any) {
-      if (e.message === "Not found") {
+      if (e.message === notFoundError.message) {
         console.info("Fetching file meta from fallback for", name);
       } else {
         console.warn(

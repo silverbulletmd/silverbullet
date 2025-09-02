@@ -1,16 +1,4 @@
-import {
-  editor,
-  events,
-  markdown,
-  mq,
-  space,
-  system,
-} from "@silverbulletmd/silverbullet/syscalls";
-import type { IndexEvent } from "../../type/event.ts";
-import { sleep } from "../../lib/async.ts";
-import { indexDocument } from "./document.ts";
-import { clearFileIndex } from "./api.ts";
-import type { MQMessage } from "../../type/datastore.ts";
+import { editor } from "@silverbulletmd/silverbullet/syscalls";
 import { reindexSpace } from "./queue.ts";
 
 export async function reindexCommand() {

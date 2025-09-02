@@ -24,10 +24,10 @@ import {
   type ShellBackend,
 } from "./shell_backend.ts";
 import { CONFIG_TEMPLATE, INDEX_TEMPLATE } from "../web/PAGE_TEMPLATES.ts";
-import type { FileMeta } from "../type/index.ts";
 import {
   CheckPathSpacePrimitives,
 } from "../lib/spaces/checked_space_primitives.ts";
+import { notFoundError } from "../lib/constants.ts";
 
 const authenticationExpirySeconds = 60 * 60 * 24 * 7; // 1 week
 
@@ -587,7 +587,7 @@ export class HttpServer {
       // This will blow up if the page doesn't exist
       await this.spacePrimitives.getFileMeta(path);
     } catch (e: any) {
-      if (e.message === "Not found") {
+      if (e.message === notFoundError.message) {
         console.info(path, "page not found, creating...");
         await this.spacePrimitives.writeFile(
           path,

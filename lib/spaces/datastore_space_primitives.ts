@@ -2,6 +2,7 @@ import type { SpacePrimitives } from "./space_primitives.ts";
 import { mime } from "mimetypes";
 import type { DataStore } from "../data/datastore.ts";
 import type { FileMeta } from "../../type/index.ts";
+import { notFoundError } from "../constants.ts";
 
 export type FileContent = {
   name: string;
@@ -34,7 +35,7 @@ export class DataStoreSpacePrimitives implements SpacePrimitives {
       name,
     ]);
     if (!fileContent) {
-      throw new Error("Not found");
+      throw notFoundError;
     }
 
     return {
@@ -89,7 +90,7 @@ export class DataStoreSpacePrimitives implements SpacePrimitives {
       name,
     ]);
     if (!fileMeta) {
-      throw new Error("Not found");
+      throw notFoundError;
     }
     return this.ds.batchDelete([
       [...filesMetaPrefix, name],
@@ -100,7 +101,7 @@ export class DataStoreSpacePrimitives implements SpacePrimitives {
   async getFileMeta(name: string): Promise<FileMeta> {
     const fileMeta = await this.ds.get([...filesMetaPrefix, name]);
     if (!fileMeta) {
-      throw new Error("Not found");
+      throw notFoundError;
     }
     return this.ensureFileMeta(fileMeta);
   }

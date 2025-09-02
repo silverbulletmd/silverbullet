@@ -1,5 +1,6 @@
 import { assert, assertEquals } from "@std/assert";
 import type { SpacePrimitives } from "./space_primitives.ts";
+import { notFoundError } from "../constants.ts";
 
 export async function testSpacePrimitives(spacePrimitives: SpacePrimitives) {
   const files = await spacePrimitives.fetchFileList();
@@ -60,7 +61,7 @@ export async function testSpacePrimitives(spacePrimitives: SpacePrimitives) {
     await spacePrimitives.getFileMeta("test+'s.txt");
     assert(false);
   } catch (e: any) {
-    assertEquals(e.message, "Not found");
+    assertEquals(e, notFoundError);
   }
 }
 

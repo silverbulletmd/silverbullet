@@ -2,6 +2,7 @@ import { fsEndpoint } from "../../lib/spaces/constants.ts";
 import { decodePageURI } from "@silverbulletmd/silverbullet/lib/ref";
 import type { SpacePrimitives } from "../../lib/spaces/space_primitives.ts";
 import { fileMetaToHeaders } from "../../server/util.ts";
+import { notFoundError } from "../../lib/constants.ts";
 
 const alwaysProxy = [
   "/.auth",
@@ -9,8 +10,12 @@ const alwaysProxy = [
   "/.config",
 ];
 
+const pingTimeout = 2000;
+const pingInterval = 5000;
+
 export class ProxyRouter {
   fullSyncConfirmed = false;
+  online = true;
 
   constructor(
     private spacePrimitives: SpacePrimitives,
@@ -18,7 +23,34 @@ export class ProxyRouter {
     private baseURI: string,
     private precacheFiles: Record<string, string>,
   ) {
-    console.log("Proxy router initialized");
+    // Actively check if we're online by pinging the server
+    this.checkOnline();
+    setInterval(() => {
+      this.checkOnline();
+    }, pingInterval);
+  }
+
+  async checkOnline() {
+    const oldOnline = this.online;
+    try {
+      await fetch(this.baseURI + "/.ping", {
+        signal: AbortSignal.timeout(pingTimeout),
+      });
+      // If the ping is successful, we are online
+      this.online = true;
+      globalThis.clients.matchAll().then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({ type: "sync", status: "online" });
+        });
+      });
+    } catch {
+      // Otherwise we're not
+      this.online = false;
+    } finally {
+      if (oldOnline !== this.online) {
+        console.info("Online status changed to", this.online);
+      }
+    }
   }
 
   /**
@@ -62,12 +94,8 @@ export class ProxyRouter {
           return cachedResponse;
         }
 
-        if (!this.fullSyncConfirmed) {
-          // Not fully synced yet, falling back to proxying to the server
-          console.info(
-            "Not fully synced, falling back to proxying to server for",
-            requestUrl.pathname,
-          );
+        if (!this.fullSyncConfirmed && this.online) {
+          // Not fully synced yet, falling back to proxying to the server if we're online
           return fetch(request);
         }
 
@@ -96,6 +124,7 @@ export class ProxyRouter {
         }
       })().catch((e) => {
         console.warn("Fetch failed:", e);
+        this.online = false;
         return new Response("Offline", {
           status: 503, // Service Unavailable
         });
@@ -143,22 +172,35 @@ export class ProxyRouter {
 
   async handleGet(path: string, request: Request): Promise<Response> {
     try {
-      console.log("Serving file read", path);
-      const { meta, data } = await this.spacePrimitives.readFile(path);
-      return new Response(
-        data,
-        {
+      if (request.headers.has("x-get-meta")) {
+        // Requesting only file meta
+        console.log("Serving file meta", path);
+        const meta = await this.spacePrimitives.getFileMeta(path);
+        return new Response(null, {
           headers: fileMetaToHeaders(meta),
-        },
-      );
+        });
+      } else {
+        console.log("Serving file read", path);
+        const { meta, data } = await this.spacePrimitives.readFile(path);
+        return new Response(data, {
+          headers: fileMetaToHeaders(meta),
+        });
+      }
     } catch (err: any) {
-      console.warn(
-        "Did not find file in locally synced space",
-        path,
-        "passing on to server",
-        err,
-      );
-      return fetch(request);
+      console.warn("Error reading/file meta'ing", path, err.message);
+      if (err.message === notFoundError.message && this.online) {
+        // Not found locally, but we're online, so let's try the server
+        return fetch(request);
+      } else if (err.message === notFoundError.message) {
+        // We're not online so let's assume the file indeed doesn't exist
+        return new Response(notFoundError.message, {
+          status: 404,
+        });
+      }
+      console.error("Got error reading", path, err.message);
+      return new Response(err.message, {
+        status: 500,
+      });
     }
   }
 
@@ -191,8 +233,8 @@ export class ProxyRouter {
       });
     } catch (e: any) {
       console.error("Got error deleting", path, e.message);
-      if (e.message === "Not found") {
-        return new Response("Not found", {
+      if (e.message === notFoundError.message) {
+        return new Response(notFoundError.message, {
           status: 404,
         });
       }
