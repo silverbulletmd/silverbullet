@@ -2,7 +2,6 @@ import type { SpacePrimitives } from "./space_primitives.ts";
 import { encodePageURI } from "@silverbulletmd/silverbullet/lib/ref";
 import {
   flushCachesAndUnregisterServiceWorker,
-  unregisterServiceWorkers,
 } from "../../web/service_worker/util.ts";
 import type { FileMeta } from "../../type/index.ts";
 
@@ -11,7 +10,8 @@ const defaultFetchTimeout = 30000; // 30 seconds
 export class HttpSpacePrimitives implements SpacePrimitives {
   constructor(
     readonly url: string,
-    readonly expectedSpacePath?: string,
+    readonly expectedSpacePath: string,
+    private errorCallback: (message: string, ...args: any[]) => void,
     private bearerToken?: string,
   ) {
   }
@@ -45,14 +45,16 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       const redirectHeader = result.headers.get("location");
 
       if (result.type === "opaqueredirect" && !redirectHeader) {
+        console.log("Result", result, "for", url, JSON.stringify(options));
         // This is a scenario where the server sent a redirect, but this redirect is not visible to the client, likely due to CORS
         // The best we can do is to reload the page and hope that the server will redirect us to the correct location
-        alert(
+        this.errorCallback(
           "You are not authenticated, reloading to reauthenticate",
+          "reload",
         );
-        console.log("Unregistering service workers", redirectHeader);
-        await unregisterServiceWorkers();
-        location.reload();
+        // console.log("Unregistering service workers", redirectHeader);
+        // await unregisterServiceWorkers();
+        // location.reload();
         // Let's throw to avoid any further processing
         throw Error("Not authenticated");
       }
@@ -63,11 +65,11 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       if (result.status >= 300 && result.status < 400) {
         if (redirectHeader) {
           // Got a redirect
-          alert(
-            "Received an authentication redirect, redirecting to URL: " +
-              redirectHeader,
+          this.errorCallback(
+            "Received an authentication redirect",
+            redirectHeader,
           );
-          location.href = redirectHeader;
+          // location.href = redirectHeader;
           throw new Error("Redirected");
         } else {
           console.error("Got a redirect status but no location header", result);
@@ -81,15 +83,15 @@ export class HttpSpacePrimitives implements SpacePrimitives {
             "Received unauthorized status and got a redirect via the API so will redirect to URL",
             result.url,
           );
-          alert("You are not authenticated, redirecting to: " + redirectHeader);
-          location.href = redirectHeader;
+          this.errorCallback("You are not authenticated ", redirectHeader);
+          // location.href = redirectHeader;
           throw new Error("Not authenticated");
         } else {
           // If not, let's reload
-          alert(
+          this.errorCallback(
             "You are not authenticated, going to reload and hope that that kicks off authentication",
           );
-          location.reload();
+          // location.reload();
           throw new Error("Not authenticated");
         }
       }
@@ -132,8 +134,11 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       console.log("Expected space path", this.expectedSpacePath);
       console.log("Got space path", resp.headers.get("X-Space-Path"));
       await flushCachesAndUnregisterServiceWorker();
-      alert("Space folder path different on server, reloading the page");
-      location.reload();
+      this.errorCallback(
+        "Space folder path different on server, reloading the page",
+        "reload",
+      );
+      // location.reload();
     }
 
     return resp.json();

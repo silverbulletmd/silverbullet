@@ -281,6 +281,14 @@ export class Client {
     this.httpSpacePrimitives = new HttpSpacePrimitives(
       document.baseURI.replace(/\/*$/, "") + fsEndpoint,
       this.clientConfig.spaceFolderPath,
+      (message, actionOrRedirectHeader) => {
+        alert(message);
+        if (actionOrRedirectHeader === "reload") {
+          location.reload();
+        } else {
+          location.href = actionOrRedirectHeader;
+        }
+      },
     );
 
     let remoteSpacePrimitives: SpacePrimitives = new CheckPathSpacePrimitives(
@@ -310,19 +318,15 @@ export class Client {
       this.eventedSpacePrimitives.fetchFileList();
     }, 20000);
 
-    // Translate file change events for documents into document:index events
     this.eventHook.addLocalListener(
       "file:changed",
       async (
         name: string,
-        _localChange,
-        oldHash,
-        newHash,
+        _selfUpdate,
       ) => {
-        if (!name.startsWith(plugPrefix)) {
-          console.log("Queueing index for", name);
-          await this.mq.send("indexQueue", name);
-        }
+        // TODO: Optimization opportunity here: dispatch the page:index here directly rather than sending it off to a queue which will refetch the file
+        console.log("Queueing index for", name);
+        await this.mq.send("indexQueue", name);
       },
     );
 

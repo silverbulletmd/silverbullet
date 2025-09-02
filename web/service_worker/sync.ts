@@ -1,4 +1,5 @@
 import type { DataStore } from "../../lib/data/datastore.ts";
+import { EventEmitter } from "../../lib/plugos/event.ts";
 import { plugPrefix, stdLibPrefix } from "../../lib/spaces/constants.ts";
 import type { SpacePrimitives } from "../../lib/spaces/space_primitives.ts";
 import { SpaceSync, type SyncStatusItem } from "../../lib/spaces/sync.ts";
@@ -6,7 +7,11 @@ import { SpaceSync, type SyncStatusItem } from "../../lib/spaces/sync.ts";
 const syncSnapshotKey = ["$syncSnapshot"];
 const syncInterval = 10 * 1000;
 
-export class SyncEngine {
+type SyncEngineEvents = {
+  spaceSyncComplete: (operations: number) => void;
+};
+
+export class SyncEngine extends EventEmitter<SyncEngineEvents> {
   isSyncing = false;
 
   // Time of last sync start
@@ -15,9 +20,10 @@ export class SyncEngine {
 
   constructor(
     private ds: DataStore,
-    local: SpacePrimitives,
-    remote: SpacePrimitives,
+    readonly local: SpacePrimitives,
+    readonly remote: SpacePrimitives,
   ) {
+    super();
     this.spaceSync = new SpaceSync(local, remote, {
       conflictResolver: plugAwareConflictResolver,
       onSyncProgress: (status) => {
@@ -55,6 +61,7 @@ export class SyncEngine {
         this.isSyncCandidate.bind(this),
       );
       await this.saveSnapshot(snapshot);
+      this.emit("spaceSyncComplete", operations);
     } catch (e: any) {
       console.error("Sync error", e.message);
     } finally {
