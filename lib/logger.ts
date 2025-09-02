@@ -59,9 +59,17 @@ export class Logger {
     const entry: LogEntry = {
       level,
       timestamp: Date.now(),
-      message: args.map((arg) =>
-        typeof arg === "string" ? arg : JSON.stringify(arg)
-      ).join(" "),
+      message: args.map((arg) => {
+        if (typeof arg === "string") {
+          return arg;
+        }
+        try {
+          return JSON.stringify(arg);
+        } catch {
+          // Handle circular references or other JSON.stringify failures
+          return String(arg);
+        }
+      }).join(" "),
       args: args.map((arg) => {
         // Serialize complex objects for safe transmission
         try {
@@ -69,6 +77,7 @@ export class Logger {
             ? JSON.parse(JSON.stringify(arg))
             : arg;
         } catch {
+          // This may fail due to recursive structures, in that case just fall back to a best-effort string
           return String(arg);
         }
       }),
@@ -82,28 +91,15 @@ export class Logger {
     }
   }
 
-  /**
-   * Get captured log entries
-   */
   getCapturedLogs(): LogEntry[] {
     return [...this.logCapture];
   }
 }
 
 // Global logger instance
-let globalLogger: Logger | null = null;
+let globalLogger: Logger | undefined = undefined;
 
-/**
- * Initialize global logger with prefix
- */
 export function initLogger(prefix: string = ""): Logger {
   globalLogger = new Logger(prefix);
-  return globalLogger;
-}
-
-/**
- * Get the global logger instance
- */
-export function getLogger(): Logger | null {
   return globalLogger;
 }
