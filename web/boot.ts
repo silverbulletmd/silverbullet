@@ -1,7 +1,10 @@
 import { safeRun } from "../lib/async.ts";
+import { initLogger } from "../lib/logger.ts";
 import { Client, type ClientConfig } from "./client.ts";
 
 const configCacheKey = `silverbullet.${document.baseURI}.config`;
+
+initLogger("[Client]");
 
 safeRun(async () => {
   // First we attempt to fetch the config from the server
