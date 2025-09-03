@@ -75,7 +75,6 @@ jobs:
           platforms: ${{ env.ARCHITECTURES }}
           push: true
           file: Dockerfile
-          buildArgs: GITHUB_SHA=${{ env.GITHUB_SHA }}
           provenance: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

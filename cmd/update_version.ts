@@ -12,7 +12,7 @@ export async function updateVersionFile() {
 
   if (!commitVersion) {
     // Probably in CI, let's pull from the GITHUB_SHA file
-    commitVersion = `${version}-${Deno.readTextFileSync("GITHUB_SHA")}`;
+    commitVersion = `${version}-${Deno.readTextFileSync("GITHUB_SHA").trim()}`;
   }
 
   const versionFilePath = "./public_version.ts";
