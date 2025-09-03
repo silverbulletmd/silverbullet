@@ -7,13 +7,8 @@ export async function updateVersionFile() {
     stderr: "piped",
   });
 
-  const { stdout } = await command.output();
-  let commitVersion = new TextDecoder().decode(stdout).trim();
-
-  if (!commitVersion) {
-    // Probably in CI, let's pull from the GITHUB_SHA file
-    commitVersion = `${version}-${Deno.readTextFileSync("GITHUB_SHA").trim()}`;
-  }
+  const result = await command.output();
+  const commitVersion = new TextDecoder().decode(result.stdout).trim();
 
   const versionFilePath = "./public_version.ts";
   const versionContent = `

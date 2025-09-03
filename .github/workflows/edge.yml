@@ -16,7 +16,6 @@ jobs:
           deno-version: v2.4.3
       - name: Compile for all platforms
         run: |
-          echo $GITHUB_SHA > GITHUB_SHA
           deno task build
           deno task server:zip:linux-x86_64
           deno task server:zip:linux-aarch64

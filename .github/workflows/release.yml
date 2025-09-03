@@ -22,7 +22,6 @@ jobs:
           deno-version: v2.4.5
       - name: Run build
         run: |
-          echo $GITHUB_SHA > GITHUB_SHA
           deno task build
       - name: Publish to JSR
         run: deno publish --allow-dirty

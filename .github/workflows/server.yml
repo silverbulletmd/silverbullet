@@ -23,7 +23,6 @@ jobs:
 
       - name: Build bundles
         run: |
-          echo $GITHUB_SHA > GITHUB_SHA
           deno task build
 
       - name: Compile for all platforms
