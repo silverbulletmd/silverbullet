@@ -71,7 +71,6 @@ jobs:
           platforms: ${{ env.ARCHITECTURES }}
           push: true
           file: Dockerfile
-          # Disable to get rid of unknown architecture in ghcr
           provenance: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

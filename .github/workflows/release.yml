@@ -21,7 +21,8 @@ jobs:
         with:
           deno-version: v2.4.5
       - name: Run build
-        run: deno task build
+        run: |
+          deno task build
       - name: Publish to JSR
         run: deno publish --allow-dirty
       - name: Release
