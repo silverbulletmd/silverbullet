@@ -1,6 +1,6 @@
 APIs to create [[Slash Commands]]. For simple cases it is recommended to use [[Library/Std/Slash Templates]] instead.
 
-## slashcommand.define(spec)
+## slashCommand.define(spec)
 
 Define a custom slash command.
 
@@ -13,7 +13,7 @@ Supported keys in the spec:
 Example:
 
 ```lua
-slashcommand.define {
+slashCommand.define {
   name = "hello-world",
   run = function()
     editor.insertAtCursor("Hello |^| world!", false, true)
