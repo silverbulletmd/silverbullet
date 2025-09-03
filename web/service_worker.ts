@@ -3,6 +3,7 @@ import { initLogger } from "../lib/logger.ts";
 import { ProxyRouter } from "./service_worker/proxy.ts";
 import { MessageHandler } from "./service_worker/message.ts";
 import type { SyncEngine } from "./service_worker/sync.ts";
+import type { ServiceWorkerMessage } from "./ui_types.ts";
 
 // Note: the only thing cached here is SilverBullet client assets, files and databases are kept in IndexedDB
 const CACHE_NAME = "{{CACHE_NAME}}";
@@ -91,27 +92,46 @@ new MessageHandler(
     // Let's wire up some events
     proxyRouter.on({
       fileWritten: (path) => {
-        syncEngine.syncFile(path);
+        console.log("File written", path, "requesting sync");
+        syncEngine.syncSingleFile(path);
       },
       fileMetaRequested: (path) => {
-        syncEngine.syncFile(path);
+        console.log("File meta requested", path);
+        syncEngine.syncSingleFile(path);
+      },
+      onlineStatusChanged: (isOnline) => {
+        broadcastMessage({
+          type: "online-status",
+          isOnline,
+        });
       },
     });
     syncEngine.on({
+      syncProgress: (status) => {
+        broadcastMessage({
+          type: "sync-status",
+          status,
+        });
+      },
       syncConflict: (path) => {
         console.warn("Sync conflict detected:", path);
+        broadcastMessage({
+          type: "sync-conflict",
+          path,
+        });
       },
-      syncError: (error) => {
-        console.error("Sync error detected:", error);
-      },
-      fileSyncComplete: (path) => {
-        console.log("File sync complete:", path);
+      spaceSyncComplete: (operations) => {
+        console.log("Space sync complete:", operations);
+        broadcastMessage({
+          type: "sync-complete",
+          operations,
+        });
       },
     });
   },
 );
 
-function broadcastMessage(message: any) {
+function broadcastMessage(message: ServiceWorkerMessage) {
   // @ts-ignore: service worker API
   const clients: any = self.clients;
   // Find all windows attached to this service worker
@@ -119,6 +139,7 @@ function broadcastMessage(message: any) {
     type: "window",
   }).then((clients: any[]) => {
     clients.forEach((client) => {
+      // console.log("Sending message to client", client, message);
       client.postMessage(message);
     });
   });

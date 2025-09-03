@@ -69,10 +69,11 @@ export default function reducer(
         },
       };
     }
-    case "sync-change":
+    case "online-status-change":
+      console.log("Online status change reducer", action);
       return {
         ...state,
-        syncFailures: action.syncSuccess ? 0 : state.syncFailures + 1,
+        isOnline: action.isOnline,
       };
     case "update-page-list": {
       // Let's move over any "lastOpened" times to the "allPages" list

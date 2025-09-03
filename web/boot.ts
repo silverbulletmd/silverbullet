@@ -143,6 +143,11 @@ safeRun(async () => {
   // @ts-ignore: on purpose
   globalThis.client = client;
   await client.init();
+  if (navigator.serviceWorker) {
+    navigator.serviceWorker.addEventListener("message", (event) => {
+      client.handleServiceWorkerMessage(event.data);
+    });
+  }
 });
 
 if (!globalThis.indexedDB) {

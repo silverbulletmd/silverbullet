@@ -291,7 +291,7 @@ export class MainUI {
             ? ""
             : getNameFromPath(viewState.current.path)}
           notifications={viewState.notifications}
-          syncFailures={viewState.syncFailures}
+          isOnline={viewState.isOnline}
           unsavedChanges={viewState.unsavedChanges}
           isLoading={viewState.isLoading}
           vimMode={viewState.uiOptions.vimMode}

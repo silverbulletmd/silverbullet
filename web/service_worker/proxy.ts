@@ -20,6 +20,7 @@ export type ProxyRouterEvents = {
   fileWritten: (path: string) => void;
   // Use case: the user likely has this file open in the editor, so it's good to prioritize syncing it
   fileMetaRequested: (path: string) => void;
+  onlineStatusChanged: (isOnline: boolean) => void;
 };
 
 /**
@@ -67,7 +68,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
       this.online = false;
     } finally {
       if (oldOnline !== this.online) {
-        console.info("Online status changed to", this.online);
+        this.emit("onlineStatusChanged", this.online);
       }
     }
   }

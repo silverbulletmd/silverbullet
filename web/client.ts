@@ -24,7 +24,7 @@ import {
   PathPageNavigator,
 } from "./navigator.ts";
 
-import type { AppViewState } from "./ui_types.ts";
+import type { AppViewState, ServiceWorkerMessage } from "./ui_types.ts";
 
 import type { PageCreatingContent, PageCreatingEvent } from "../type/event.ts";
 import type { StyleObject } from "../plugs/index/style.ts";
@@ -1291,76 +1291,54 @@ export class Client {
     return this.widgetCache.get(key);
   }
 
-  // private async initSync() {
-  //   this.syncService.start();
-  //
-  //   // We're still booting, if a initial sync has already been completed we know this is the initial sync
-  //   let initialSync = !await this.hasInitialSyncCompleted();
-  //
-  //   this.eventHook.addLocalListener("sync:success", async (operations) => {
-  //     if (operations > 0) {
-  //       // Update the page list
-  //       await this.space.updatePageList();
-  //     }
-  //     if (operations !== undefined) {
-  //       // "sync:success" is called with a number of operations only from syncSpace(), not from syncing individual pages
-  //       this.fullSyncCompleted = true;
-  //
-  //       console.log("[sync]", "Full sync completed");
-  //
-  //       // A full sync just completed
-  //       if (!initialSync) {
-  //         // If this was NOT the initial sync let's check if we need to perform a space reindex
-  //         this.clientSystem.ensureFullIndex().catch(
-  //           console.error,
-  //         );
-  //       } else { // initialSync
-  //         console.log(
-  //           "[sync]",
-  //           "Initial sync completed, now need to do a full space index to ensure all pages are indexed using any custom indexers",
-  //         );
-  //         this.clientSystem.ensureFullIndex().catch(
-  //           console.error,
-  //         );
-  //         initialSync = false;
-  //       }
-  //     }
-  //     if (operations) {
-  //       // Likely initial sync so let's show visually that we're synced now
-  //       this.showProgress(100, "sync");
-  //     }
-  //
-  //     this.ui.viewDispatch({ type: "sync-change", syncSuccess: true });
-  //   });
-  //
-  //   this.eventHook.addLocalListener("sync:error", (_name) => {
-  //     this.ui.viewDispatch({ type: "sync-change", syncSuccess: false });
-  //   });
-  //
-  //   this.eventHook.addLocalListener("sync:conflict", (name) => {
-  //     this.flashNotification(
-  //       `Sync: conflict detected for ${name} - conflict copy created`,
-  //       "error",
-  //     );
-  //   });
-  //
-  //   this.eventHook.addLocalListener("sync:progress", (status: SyncStatus) => {
-  //     this.showProgress(
-  //       Math.round(status.filesProcessed / status.totalFiles * 100),
-  //       "sync",
-  //     );
-  //   });
-  //
-  //   this.eventHook.addLocalListener(
-  //     "file:synced",
-  //     (meta: FileMeta, direction: string) => {
-  //       if (direction === "secondary->primary") {
-  //         // We likely polled the currently open page or document which triggered a local update, let's update the editor accordingly
-  //         this.space.spacePrimitives.getFileMeta(meta.name);
-  //       }
-  //     },
-  //   );
-  // }
+  async handleServiceWorkerMessage(message: ServiceWorkerMessage) {
+    switch (message.type) {
+      case "sync-complete": {
+        if (message.operations > 0) {
+          // Update the page list
+          await this.space.updatePageList();
+        }
+        this.fullSyncCompleted = true;
+
+        console.log("Full sync completed");
+
+        this.clientSystem.ensureFullIndex().catch(
+          console.error,
+        );
+        // Likely initial sync so let's show visually that we're synced now
+        this.showProgress(100, "sync");
+
+        break;
+      }
+      case "sync-status": {
+        this.showProgress(
+          Math.round(
+            message.status.filesProcessed / message.status.totalFiles * 100,
+          ),
+          "sync",
+        );
+        break;
+      }
+      case "sync-conflict": {
+        this.flashNotification(
+          `Sync: conflict detected for ${message.path} - conflict copy created`,
+          "error",
+        );
+        break;
+      }
+      case "online-status": {
+        console.error("Online status changed:", message.isOnline);
+        this.ui.viewDispatch({
+          type: "online-status-change",
+          isOnline: message.isOnline,
+        });
+        break;
+      }
+      default: {
+        console.error("Unknown service worker message", message);
+      }
+    }
+  }
 
   private navigateWithinPage(pageState: LocationState) {
     if (!isMarkdownPath(pageState.path)) return;

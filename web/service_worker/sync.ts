@@ -1,9 +1,13 @@
-import { notFoundError } from "../../lib/constants.ts";
 import type { DataStore } from "../../lib/data/datastore.ts";
 import { EventEmitter } from "../../lib/plugos/event.ts";
 import { plugPrefix, stdLibPrefix } from "../../lib/spaces/constants.ts";
 import type { SpacePrimitives } from "../../lib/spaces/space_primitives.ts";
-import { SpaceSync, type SyncStatusItem } from "../../lib/spaces/sync.ts";
+import {
+  SpaceSync,
+  type SyncStatus,
+  type SyncStatusItem,
+} from "../../lib/spaces/sync.ts";
+import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
 
 const syncSnapshotKey = ["$syncSnapshot"];
 const syncInterval = 10 * 1000;
@@ -13,14 +17,12 @@ type SyncEngineEvents = {
   syncError: (error: Error) => void;
   syncConflict: (path: string) => void;
   fileSyncComplete: (path: string) => void;
+  syncProgress: (syncStatus: SyncStatus) => void | Promise<void>;
 };
 
 export class SyncEngine extends EventEmitter<SyncEngineEvents> {
-  isSyncing = false;
-
-  // Time of last sync start
-  syncStart: number | null = null;
-  spaceSync: SpaceSync;
+  spaceSync!: SpaceSync;
+  nonSyncedFiles = new Map<string, FileMeta>();
 
   constructor(
     private ds: DataStore,
@@ -28,15 +30,23 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
     readonly remote: SpacePrimitives,
   ) {
     super();
-    this.spaceSync = new SpaceSync(local, remote, {
-      conflictResolver: this.plugAwareConflictResolver.bind(this),
-      onSyncProgress: (status) => {
-        console.log("[Sync] Sync progress", status);
-      },
-    });
   }
 
-  start() {
+  async start() {
+    const initialSnapshot = await this.getSnapshot();
+
+    this.spaceSync = new SpaceSync(this.local, this.remote, initialSnapshot, {
+      conflictResolver: this.plugAwareConflictResolver.bind(this),
+      isSyncCandidate: this.isSyncCandidate.bind(this),
+    });
+
+    this.spaceSync.on({
+      syncProgress: (status) => {
+        // Propagate
+        this.emit("syncProgress", status);
+      },
+      snapshotUpdated: this.saveSnapshot.bind(this),
+    });
     setInterval(() => {
       this.syncSpace().catch((err) => {
         console.error("Sync error", err);
@@ -51,76 +61,15 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
     return true;
   }
 
-  async syncSpace() {
-    if (this.isSyncing) {
-      console.log("Aborting space sync: already syncing");
-      return -1;
-    }
-    this.syncStart = Date.now();
-    let operations = 0;
-    const snapshot = await this.getSnapshot();
-    try {
-      operations = await this.spaceSync.syncFiles(
-        snapshot,
-        this.isSyncCandidate.bind(this),
-      );
-      await this.saveSnapshot(snapshot);
-      this.emit("spaceSyncComplete", operations);
-    } catch (e: any) {
-      console.error("Sync error", e.message);
-    } finally {
-      await this.saveSnapshot(snapshot);
-      this.syncStart = null;
-    }
+  async syncSpace(): Promise<number> {
+    const { operations, nonSyncedFiles } = await this.spaceSync.syncFiles();
+    this.nonSyncedFiles = nonSyncedFiles;
+    this.emit("spaceSyncComplete", operations);
     return operations;
   }
 
-  async syncFile(path: string) {
-    if (this.isSyncing) {
-      console.log("Aborting file sync (already syncing)", path);
-      return;
-    }
-    this.isSyncing = true;
-    const snapshot = await this.getSnapshot();
-    try {
-      let localHash: number | undefined;
-      let remoteHash: number | undefined;
-
-      // Fetch remote first (potentially more laggy)
-      try {
-        remoteHash = (await this.remote.getFileMeta(path)).lastModified;
-        if (!remoteHash) {
-          console.info(
-            "Not syncing file, because remote didn't send X-Last-Modified header",
-          );
-          // This happens when the remote isn't a real SilverBullet server, specifically: it's not sending
-          // a X-Last-Modified header. In this case we'll just assume that the file is up to date.
-          return;
-        }
-      } catch (e: any) {
-        if (e.message === notFoundError.message) {
-          // File doesn't exist remotely, that's ok
-        } else {
-          throw e;
-        }
-      }
-
-      // Fetch local file meta
-      try {
-        const localMeta = await this.local.getFileMeta(path);
-        localHash = localMeta.lastModified;
-      } catch {
-        // Not present
-      }
-
-      await this.spaceSync.syncFile(snapshot, path, localHash, remoteHash);
-      this.emit("fileSyncComplete", path);
-    } catch (e: any) {
-      this.emit("syncError", e);
-      console.error("Sync error", e);
-    } finally {
-      this.isSyncing = false;
-    }
+  syncSingleFile(path: string) {
+    return this.spaceSync.syncSingleFile(path);
   }
 
   async getSnapshot() {

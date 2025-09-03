@@ -3,6 +3,7 @@ import type { FilterOption, Notification, PanelMode } from "../type/client.ts";
 
 import type { DocumentMeta, PageMeta } from "../type/index.ts";
 import type { Path } from "@silverbulletmd/silverbullet/lib/ref";
+import type { SyncStatus } from "../lib/spaces/sync.ts";
 
 export type PanelConfig = {
   mode?: PanelMode;
@@ -25,7 +26,7 @@ export type AppViewState = {
   showCommandPalette: boolean;
   showCommandPaletteContext?: string;
   unsavedChanges: boolean;
-  syncFailures: number; // Reset everytime a sync succeeds
+  isOnline: boolean;
 
   // Progress tracker
   progressPercentage?: number; // Used to show progress circle
@@ -72,7 +73,7 @@ export const initialViewState: AppViewState = {
   showCommandPalette: false,
   pageNavigatorMode: "page",
   unsavedChanges: false,
-  syncFailures: 0,
+  isOnline: true,
   uiOptions: {
     vimMode: false,
     darkMode: undefined,
@@ -109,7 +110,7 @@ export type Action =
   | { type: "document-editor-loaded"; path: Path; meta: DocumentMeta }
   | { type: "document-editor-changed" }
   | { type: "document-editor-saved" }
-  | { type: "sync-change"; syncSuccess: boolean }
+  | { type: "online-status-change"; isOnline: boolean }
   | { type: "update-current-page-meta"; meta: PageMeta }
   | { type: "update-page-list"; allPages: PageMeta[] }
   | { type: "update-document-list"; allDocuments: DocumentMeta[] }
@@ -158,3 +159,17 @@ export type Action =
     progressPercentage?: number;
     progressType?: string;
   };
+
+export type ServiceWorkerMessage = {
+  type: "sync-status";
+  status: Omit<SyncStatus, "snapshot">;
+} | {
+  type: "sync-conflict";
+  path: string;
+} | {
+  type: "online-status";
+  isOnline: boolean;
+} | {
+  type: "sync-complete";
+  operations: number;
+};
