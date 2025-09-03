@@ -11,8 +11,8 @@ export async function updateVersionFile() {
   let commitVersion = new TextDecoder().decode(stdout).trim();
 
   if (!commitVersion) {
-    // Probably in CI, let's pull from Github environment variables instead
-    commitVersion = `${version}-${Deno.env.get("GITHUB_SHA")}`;
+    // Probably in CI, let's pull from the GITHUB_SHA file
+    commitVersion = `${version}-${Deno.readTextFileSync("GITHUB_SHA")}`;
   }
 
   const versionFilePath = "./public_version.ts";

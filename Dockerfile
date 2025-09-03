@@ -5,11 +5,8 @@ RUN apt update && apt install -y git
 WORKDIR /app
 ADD . /app
 
-# Inject the github sha if available
-ARG GITHUB_SHA
-
 # This will produce the `silverbullet` self-contained binary in /app/silverbullet
-RUN GITHUB_SHA=${GITHUB_SHA} deno task build
+RUN deno task build
 
 # Stage 2: Create the runtime from the build
 FROM ubuntu:noble
