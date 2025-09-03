@@ -139,7 +139,6 @@ function broadcastMessage(message: ServiceWorkerMessage) {
     type: "window",
   }).then((clients: any[]) => {
     clients.forEach((client) => {
-      // console.log("Sending message to client", client, message);
       client.postMessage(message);
     });
   });
