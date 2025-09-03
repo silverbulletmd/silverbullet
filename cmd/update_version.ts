@@ -7,12 +7,12 @@ export async function updateVersionFile() {
     stderr: "piped",
   });
 
-  const result = await command.output();
-  const commitVersion = new TextDecoder().decode(result.stdout).trim();
+  const { stdout } = await command.output();
+  const commitVersion = new TextDecoder().decode(stdout).trim();
 
   const versionFilePath = "./public_version.ts";
   const versionContent = `
-export const publicVersion = "${commitVersion}";
+export const publicVersion = "${version}-${commitVersion}";
 `;
 
   await Deno.writeTextFile(versionFilePath, versionContent);
