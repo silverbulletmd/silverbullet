@@ -24,7 +24,11 @@ import {
   PathPageNavigator,
 } from "./navigator.ts";
 
-import type { AppViewState, ServiceWorkerMessage } from "./ui_types.ts";
+import type {
+  AppViewState,
+  ServiceWorkerSourceMessage,
+  ServiceWorkerTargetMessage,
+} from "./ui_types.ts";
 
 import type { PageCreatingContent, PageCreatingEvent } from "../type/event.ts";
 import type { StyleObject } from "../plugs/index/style.ts";
@@ -130,7 +134,7 @@ export class Client {
   // Set to true once the system is ready (plugs loaded)
   public systemReady: boolean = false;
   private pageNavigator!: PathPageNavigator;
-  private dbPrefix: string;
+  private dbName: string;
   private onLoadRef: Ref;
   // Progress circle handling
   private progressTimeout?: number;
@@ -158,12 +162,12 @@ export class Client {
     public clientConfig: ClientConfig,
   ) {
     // Generate a semi-unique prefix for the database so not to reuse databases for different space paths
-    this.dbPrefix = "" +
+    this.dbName = "" +
       simpleHash(
         `${clientConfig.spaceFolderPath}:${
           document.baseURI.replace(/\/*$/, "")
         }`,
-      );
+      ) + "_data";
     // The third case should only ever happen when the user provides an invalid index env variable
     this.onLoadRef = parseRefFromURI() || this.getIndexRef();
   }
@@ -173,14 +177,13 @@ export class Client {
    * This is a separated from the constructor to allow for async initialization
    */
   async init() {
-    // Setup the data store
-    const kvPrimitives = new IndexedDBKvPrimitives(
-      `${this.dbPrefix}`,
-    );
+    // Setup the KV (database)
+    const kvPrimitives = new IndexedDBKvPrimitives(this.dbName);
     await kvPrimitives.init();
+    // Wrap it in a datastore
     this.ds = new DataStore(kvPrimitives);
 
-    // Setup message queue
+    // Setup message queue on top of that
     this.mq = new DataStoreMQ(this.ds);
 
     // Instantiate a PlugOS system
@@ -220,6 +223,7 @@ export class Client {
         )
       ) {
         await this.wipeClient();
+        alert("Done, reloading...");
         location.reload();
         return;
       }
@@ -1291,7 +1295,7 @@ export class Client {
     return this.widgetCache.get(key);
   }
 
-  async handleServiceWorkerMessage(message: ServiceWorkerMessage) {
+  async handleServiceWorkerMessage(message: ServiceWorkerSourceMessage) {
     switch (message.type) {
       case "sync-complete": {
         if (message.operations > 0) {
@@ -1306,7 +1310,8 @@ export class Client {
           console.error,
         );
         // Likely initial sync so let's show visually that we're synced now
-        this.showProgress(100, "sync");
+        // this.showProgress(100, "sync");
+        this.showProgress();
 
         break;
       }
@@ -1476,17 +1481,35 @@ export class Client {
   }
 
   async wipeClient() {
-    if (navigator.serviceWorker) {
+    if (navigator.serviceWorker?.controller) {
       // We will attempt to unregister the service worker, best effort
-      console.log("Getting service worker registrations");
-      navigator.serviceWorker.getRegistrations().then(
-        async (registrations) => {
-          for (const registration of registrations) {
-            await registration.unregister();
+      await new Promise<void>((resolve) => {
+        navigator.serviceWorker.addEventListener("message", async (e: any) => {
+          const message: ServiceWorkerSourceMessage = e.data;
+          if (message.type == "dataWiped") {
+            console.log(
+              "Got data wipe confirm, uninstalling service worker now",
+            );
+            const registrations = await navigator.serviceWorker
+              .getRegistrations();
+            for (const registration of registrations) {
+              await registration.unregister();
+            }
+            console.log("Unregistered all service workers");
+            resolve();
           }
-          console.log("Unregistered all service workers");
-        },
-      );
+        });
+        // Send wipe request
+        navigator.serviceWorker.getRegistration().then((registration) => {
+          console.log(
+            "Sending data wipe request to service worker",
+            registration,
+          );
+          registration?.active?.postMessage(
+            { type: "wipeData" } as ServiceWorkerTargetMessage,
+          );
+        });
+      });
     } else {
       console.info(
         "Service workers not enabled (no HTTPS?), so not unregistering.",
@@ -1494,7 +1517,6 @@ export class Client {
     }
     console.log("Stopping all systems");
     this.space.unwatch();
-    // this.syncService.close();
 
     console.log("Clearing data store");
     await this.ds.kv.clear();

@@ -13,16 +13,25 @@ const syncSnapshotKey = ["$syncSnapshot"];
 const syncInterval = 10 * 1000;
 
 type SyncEngineEvents = {
-  spaceSyncComplete: (operations: number) => void;
-  syncError: (error: Error) => void;
-  syncConflict: (path: string) => void;
-  fileSyncComplete: (path: string) => void;
+  // Full sync cycle has completed
+  spaceSyncComplete: (operations: number) => void | Promise<void>;
+
+  // Sync conflict occurred
+  syncConflict: (path: string) => void | Promise<void>;
+
+  // Sync progress updated
   syncProgress: (syncStatus: SyncStatus) => void | Promise<void>;
 };
 
+/**
+ * Thin wrapper around SpaceSync, adds snapshot persistence and a few other things
+ */
 export class SyncEngine extends EventEmitter<SyncEngineEvents> {
   spaceSync!: SpaceSync;
-  nonSyncedFiles = new Map<string, FileMeta>();
+
+  // Snapshot of meta data on non-synced files to be used by the ProxyRouter
+  public nonSyncedFiles = new Map<string, FileMeta>();
+  syncInterval: number;
 
   constructor(
     private ds: DataStore,
@@ -33,7 +42,7 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
   }
 
   async start() {
-    const initialSnapshot = await this.getSnapshot();
+    const initialSnapshot = await this.loadSnapshot();
 
     this.spaceSync = new SpaceSync(this.local, this.remote, initialSnapshot, {
       conflictResolver: this.plugAwareConflictResolver.bind(this),
@@ -42,12 +51,11 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
 
     this.spaceSync.on({
       syncProgress: (status) => {
-        // Propagate
         this.emit("syncProgress", status);
       },
       snapshotUpdated: this.saveSnapshot.bind(this),
     });
-    setInterval(() => {
+    this.syncInterval = setInterval(() => {
       this.syncSpace().catch((err) => {
         console.error("Sync error", err);
       });
@@ -58,6 +66,8 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
   }
 
   isSyncCandidate(_path: string): boolean {
+    // TODO: Replace with actual filter
+    // Note: should always include everything starting with _plug/
     return true;
   }
 
@@ -72,16 +82,34 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
     return this.spaceSync.syncSingleFile(path);
   }
 
-  async getSnapshot() {
+  /**
+   * Loads the sync snapshot from the data store.
+   * @returns A map of sync status items.
+   */
+  async loadSnapshot() {
     return new Map<string, SyncStatusItem>(
       Object.entries(await this.ds.get(syncSnapshotKey) || {}),
     );
   }
 
+  /**
+   * Saves the sync snapshot to the data store.
+   * @param snapshot A map of sync status items.
+   */
   saveSnapshot(snapshot: Map<string, SyncStatusItem>) {
     return this.ds.set(syncSnapshotKey, Object.fromEntries(snapshot));
   }
 
+  async wipe() {
+    clearInterval(this.syncInterval);
+    console.log("Wiping sync database");
+    await this.ds.kv.clear();
+    console.log("Done wiping");
+  }
+
+  /**
+   * Delegates to the standard primary conflict resolver, but in case of any conflicts in plugs, it will always take the version from the secondary.
+   */
   async plugAwareConflictResolver(
     name: string,
     snapshot: Map<string, SyncStatusItem>,

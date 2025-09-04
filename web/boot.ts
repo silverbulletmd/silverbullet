@@ -1,6 +1,9 @@
 import { safeRun } from "../lib/async.ts";
 import { initLogger } from "../lib/logger.ts";
 import { Client, type ClientConfig } from "./client.ts";
+import {
+  flushCachesAndUnregisterServiceWorker,
+} from "./service_worker/util.ts";
 
 const configCacheKey = `silverbullet.${document.baseURI}.config`;
 
@@ -66,7 +69,12 @@ safeRun(async () => {
     clientConfig!.performReset = true;
   }
   if (urlParams.has("enableSW")) {
-    localStorage.setItem("enableSW", urlParams.get("enableSW")!);
+    const val = urlParams.get("enableSW")!;
+    console.log("Got this sw value", val, typeof val);
+    localStorage.setItem("enableSW", val);
+    if (val === "0") {
+      await flushCachesAndUnregisterServiceWorker();
+    }
   }
 
   // Update the browser URL to no longer contain the query parameters using pushState

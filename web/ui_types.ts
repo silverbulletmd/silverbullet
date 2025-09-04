@@ -4,6 +4,7 @@ import type { FilterOption, Notification, PanelMode } from "../type/client.ts";
 import type { DocumentMeta, PageMeta } from "../type/index.ts";
 import type { Path } from "@silverbulletmd/silverbullet/lib/ref";
 import type { SyncStatus } from "../lib/spaces/sync.ts";
+import { ClientConfig } from "./client.ts";
 
 export type PanelConfig = {
   mode?: PanelMode;
@@ -160,7 +161,18 @@ export type Action =
     progressType?: string;
   };
 
-export type ServiceWorkerMessage = {
+export type ServiceWorkerTargetMessage =
+  | {
+    type: "skipWaiting";
+  }
+  | { type: "config"; config: ClientConfig }
+  | { type: "flushCache" }
+  | { type: "wipeData" };
+
+/**
+ * The events that the service worker is sending to th client
+ */
+export type ServiceWorkerSourceMessage = {
   type: "sync-status";
   status: Omit<SyncStatus, "snapshot">;
 } | {
@@ -172,4 +184,12 @@ export type ServiceWorkerMessage = {
 } | {
   type: "sync-complete";
   operations: number;
+} | {
+  type: "auth-error";
+  message: string;
+  actionOrRedirectHeader: string;
+} | {
+  type: "cacheFlushed";
+} | {
+  type: "dataWiped";
 };

@@ -12,7 +12,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   constructor(
     readonly url: string,
     readonly expectedSpacePath: string,
-    private errorCallback: (message: string, ...args: any[]) => void,
+    private authErrorCallback: (message: string, ...args: any[]) => void,
     private bearerToken?: string,
   ) {
   }
@@ -49,7 +49,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
         console.log("Result", result, "for", url, JSON.stringify(options));
         // This is a scenario where the server sent a redirect, but this redirect is not visible to the client, likely due to CORS
         // The best we can do is to reload the page and hope that the server will redirect us to the correct location
-        this.errorCallback(
+        this.authErrorCallback(
           "You are not authenticated, reloading to reauthenticate",
           "reload",
         );
@@ -66,7 +66,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       if (result.status >= 300 && result.status < 400) {
         if (redirectHeader) {
           // Got a redirect
-          this.errorCallback(
+          this.authErrorCallback(
             "Received an authentication redirect",
             redirectHeader,
           );
@@ -84,12 +84,12 @@ export class HttpSpacePrimitives implements SpacePrimitives {
             "Received unauthorized status and got a redirect via the API so will redirect to URL",
             result.url,
           );
-          this.errorCallback("You are not authenticated ", redirectHeader);
+          this.authErrorCallback("You are not authenticated ", redirectHeader);
           // location.href = redirectHeader;
           throw new Error("Not authenticated");
         } else {
           // If not, let's reload
-          this.errorCallback(
+          this.authErrorCallback(
             "You are not authenticated, going to reload and hope that that kicks off authentication",
           );
           // location.reload();
@@ -135,7 +135,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       console.log("Expected space path", this.expectedSpacePath);
       console.log("Got space path", resp.headers.get("X-Space-Path"));
       await flushCachesAndUnregisterServiceWorker();
-      this.errorCallback(
+      this.authErrorCallback(
         "Space folder path different on server, reloading the page",
         "reload",
       );

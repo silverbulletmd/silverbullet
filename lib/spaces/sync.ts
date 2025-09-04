@@ -15,7 +15,6 @@ export type SyncSnapshot = Map<string, SyncStatusItem>;
 export type SyncStatus = {
   filesProcessed: number;
   totalFiles: number;
-  snapshot: Map<string, SyncStatusItem>;
 };
 
 export type SyncOptions = {
@@ -29,6 +28,7 @@ export type SyncOptions = {
 };
 
 type SyncDirection = "primary->secondary" | "secondary->primary";
+
 export type SyncEvents = {
   fileSynced: (
     meta: FileMeta,
@@ -38,7 +38,7 @@ export type SyncEvents = {
   snapshotUpdated: (snapshot: SyncSnapshot) => void | Promise<void>;
 };
 
-// Implementation of this algorithm https://unterwaditzer.net/2016/sync-algorithm.html
+// Implementation of this algorithm: https://unterwaditzer.net/2016/sync-algorithm.html
 export class SpaceSync extends EventEmitter<SyncEvents> {
   // Sync mutex (only one sync operation at a time)
   private isSyncing = false;

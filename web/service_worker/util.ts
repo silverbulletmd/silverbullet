@@ -12,8 +12,9 @@ export async function unregisterServiceWorkers() {
 }
 
 export function flushCachesAndUnregisterServiceWorker() {
+  console.log("Going to flush the caches and unregister the service worker");
   return new Promise<void>((resolve) => {
-    if (!navigator.serviceWorker) {
+    if (!navigator.serviceWorker?.controller) {
       console.log("No service worker active");
       return resolve();
     }
@@ -34,6 +35,7 @@ export function flushCachesAndUnregisterServiceWorker() {
 
     // First flush active cache
     navigator.serviceWorker.ready.then((registration) => {
+      console.log("Sending request to flush cache");
       registration.active!.postMessage({ type: "flushCache" });
     });
   });

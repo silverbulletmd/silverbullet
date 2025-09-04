@@ -2,8 +2,8 @@ import { fsEndpoint } from "../../lib/spaces/constants.ts";
 import { decodePageURI } from "@silverbulletmd/silverbullet/lib/ref";
 import type { SpacePrimitives } from "../../lib/spaces/space_primitives.ts";
 import { fileMetaToHeaders } from "../../server/util.ts";
-import { notFoundError } from "../../lib/constants.ts";
-import type { SyncEngine } from "./sync.ts";
+import { notFoundError, offlineError } from "../../lib/constants.ts";
+import type { SyncEngine } from "./sync_engine.ts";
 import { EventEmitter } from "../../lib/plugos/event.ts";
 
 const alwaysProxy = [
@@ -20,6 +20,7 @@ export type ProxyRouterEvents = {
   fileWritten: (path: string) => void;
   // Use case: the user likely has this file open in the editor, so it's good to prioritize syncing it
   fileMetaRequested: (path: string) => void;
+  // Use case: client showing the "yellow bar" indicating not being online
   onlineStatusChanged: (isOnline: boolean) => void;
 };
 
@@ -32,7 +33,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
 
   constructor(
     private spacePrimitives: SpacePrimitives,
-    syncEngine: SyncEngine,
+    public syncEngine: SyncEngine,
     private basePathName: string,
     private baseURI: string,
     private precacheFiles: Record<string, string>,
@@ -77,7 +78,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
    * Handles /.fs fetch events from the service worker.
    * @param event FetchEvent from the service worker
    */
-  public handleFetch(event: any) {
+  public onFetch(event: any) {
     const url = new URL(event.request.url);
 
     const pathname = url.pathname.substring(this.basePathName.length); //url.pathname with any URL prefix removed
@@ -103,13 +104,14 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
         }
 
         if (!this.fullSyncConfirmed && this.online) {
-          // Not fully synced yet, falling back to proxying to the server if we're online
+          // Not synced yet and we are online, falling back to proxying to the server if we're online
           return fetch(request);
         }
 
+        //requestUrl.pathname without with any URL prefix removed
         const pathname = requestUrl.pathname.substring(
           this.basePathName.length,
-        ); //requestUrl.pathname without with any URL prefix removed
+        );
 
         if (alwaysProxy.includes(pathname)) {
           return fetch(request);
@@ -132,8 +134,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
         }
       })().catch((e) => {
         console.warn("Fetch failed:", e);
-        this.online = false;
-        return new Response("Offline", {
+        return new Response(offlineError.message, {
           status: 503, // Service Unavailable
         });
       }),
@@ -157,7 +158,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
         return this.handlePut(path, request);
       }
       case "DELETE": {
-        return this.handleDelete(path);
+        return this.handleDelete(path, request);
       }
       default: {
         console.log("Unhandled method", request.method, "proxying to server");
@@ -168,6 +169,15 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
 
   async handleFileListing(): Promise<Response> {
     const files = await this.spacePrimitives.fetchFileList();
+    // Now augment this with non-synced file metadata
+    for (const nonSyncedFile of this.syncEngine.nonSyncedFiles.values()) {
+      const existingFile = files.find((file) =>
+        file.name === nonSyncedFile.name
+      );
+      if (!existingFile) {
+        files.push(nonSyncedFile);
+      }
+    }
     return new Response(
       JSON.stringify(files),
       {
@@ -202,11 +212,12 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
         return fetch(request);
       } else if (err.message === notFoundError.message) {
         // We're not online so let's assume the file indeed doesn't exist
+        // TODO: What could be nice here is to check if this is a nonSyncedFile and if so serve some sort of offline placeholder
         return new Response(notFoundError.message, {
           status: 404,
         });
       }
-      console.error("Got error reading", path, err.message);
+      console.error("Error reading", path, err.message);
       return new Response(err.message, {
         status: 500,
       });
@@ -215,6 +226,22 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
 
   async handlePut(path: string, request: Request): Promise<Response> {
     try {
+      if (!this.syncEngine.isSyncCandidate(path) && this.online) {
+        console.log("Handling file write for non-synced file", path);
+        // Writing a non-synced file while being online
+        // Proxy the request
+        const resp = await fetch(request);
+        // Put in a placeholder metadata in the nonSynced files
+        this.syncEngine.nonSyncedFiles.set(path, {
+          name: path,
+          lastModified: Date.now(),
+          created: Date.now(),
+          contentType: "application/octet-stream",
+          perm: "rw",
+          size: +(resp.headers.get("X-Content-Length") || 0),
+        });
+        return resp;
+      }
       const body = await request.arrayBuffer();
       console.log("Handling file write", path, body.byteLength);
       const meta = await this.spacePrimitives.writeFile(
@@ -227,22 +254,28 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
         headers: fileMetaToHeaders(meta),
       });
     } catch (e: any) {
-      console.error("Got error writing", path, e.message);
+      console.error("Error writing", path, e.message);
       return new Response(e.message, {
         status: 500,
       });
     }
   }
 
-  async handleDelete(path: string): Promise<Response> {
+  async handleDelete(path: string, request: Request): Promise<Response> {
     try {
+      if (!this.syncEngine.isSyncCandidate(path)) {
+        console.log("Handling file delete for non-synced file", path);
+        this.syncEngine.nonSyncedFiles.delete(path);
+        // Proxy the request
+        return fetch(request);
+      }
       console.log("Handling file delete", path);
       await this.spacePrimitives.deleteFile(path);
       return new Response("OK", {
         status: 200,
       });
     } catch (e: any) {
-      console.error("Got error deleting", path, e.message);
+      console.error("Error deleting", path, e.message);
       if (e.message === notFoundError.message) {
         return new Response(notFoundError.message, {
           status: 404,
