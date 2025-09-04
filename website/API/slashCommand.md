@@ -16,7 +16,7 @@ Example:
 slashCommand.define {
   name = "hello-world",
   run = function()
-editor.insertAtCursor("Hello |^| world!", false, true)
+    editor.insertAtCursor("Hello |^| world!", false, true)
   end
 }
 ```
