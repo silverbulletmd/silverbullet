@@ -23,23 +23,37 @@ export async function reindexSpace() {
 
   console.log("Queing", files.length, "pages to be indexed.");
   // Queue all file names to be indexed
-  await mq.batchSend("indexQueue", files.map((file) => file.name));
+  await mq.batchSend("indexQueue", files.map((file) => file.name), true);
   await editor.showProgress(0, "index");
+  await mq.awaitEmptyQueue("indexQueue");
 
-  // Now let's wait for the processing to finish
-  let queueStats = await mq.getQueueStats("indexQueue");
-  while (queueStats.queued > 0 || queueStats.processing > 0) {
-    await sleep(500);
-    queueStats = await mq.getQueueStats("indexQueue");
-    await editor.showProgress(
-      Math.round((files.length - queueStats.queued) / files.length * 100),
-      "index",
-    );
-  }
   // And notify the user
   console.log("Indexing completed!");
   await editor.showProgress();
 }
+
+async function updateIndexProgressInUI() {
+  // Let's see if there's anything in the index queue
+  let queueStats = await mq.getQueueStats("indexQueue");
+  if (queueStats.queued > 0 || queueStats.processing > 0) {
+    // Something's queued, likely it makes sense to compare this to the total number of files (progress wise)
+    const fileList = await space.listFiles();
+    while (queueStats.queued > 0 || queueStats.processing > 0) {
+      queueStats = await mq.getQueueStats("indexQueue");
+      await editor.showProgress(
+        Math.round(
+          (fileList.length - queueStats.queued) / fileList.length * 100,
+        ),
+        "index",
+      );
+      await sleep(500);
+    }
+  }
+  // Schedule again
+  setTimeout(updateIndexProgressInUI, 5000);
+}
+
+setTimeout(updateIndexProgressInUI, 2000);
 
 export async function processIndexQueue(messages: MQMessage[]) {
   for (const message of messages) {

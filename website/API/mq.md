@@ -51,3 +51,12 @@ Example:
 local stats = mq.getQueueStats("tasks")
 print("Queue size: " .. stats.size)
 print("Processing: " .. stats.processing)
+```
+
+### mq.awaitEmptyQueue(queue)
+Waits for a queue to become empty.
+
+Example:
+```lua
+mq.awaitEmptyQueue("tasks")
+```

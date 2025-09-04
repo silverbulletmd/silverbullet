@@ -51,8 +51,9 @@ Deno.test("DataStore MQ", async () => {
       await mq.ack("test123", messages[0].id);
     });
     await mq.send("test123", "Hello World");
+    // Wait for message to be processed by checking queue stats
     while ((await mq.getQueueStats("test123")).queued > 0) {
-      // Wait for send to be processed
+      await time.tickAsync(100);
     }
     assertEquals(receivedMessage, true);
     unsubscribe();
@@ -69,6 +70,6 @@ Deno.test("DataStore MQ", async () => {
     assertEquals(await mq.fetchProcessingMessages(), []);
   } finally {
     await db.close();
-    await time.restore();
+    time.restore();
   }
 });

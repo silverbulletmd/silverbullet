@@ -161,6 +161,9 @@ export type Action =
     progressType?: string;
   };
 
+/**
+ * Messages sent client -> service worker
+ */
 export type ServiceWorkerTargetMessage =
   | {
     type: "skipWaiting";
@@ -170,7 +173,7 @@ export type ServiceWorkerTargetMessage =
   | { type: "wipeData" };
 
 /**
- * The events that the service worker is sending to th client
+ * Events received from the service worker -> client
  */
 export type ServiceWorkerSourceMessage = {
   type: "sync-status";

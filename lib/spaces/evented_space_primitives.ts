@@ -98,7 +98,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
             oldHash !== newHash
           )
         ) {
-          console.log("Detected file change", meta.name, oldHash, newHash);
+          // console.log("Detected file change", meta.name, oldHash, newHash);
           await this.dispatchEvent(
             "file:changed",
             meta.name,

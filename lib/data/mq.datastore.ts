@@ -8,6 +8,7 @@ import type {
   MQStats,
   MQSubscribeOptions,
 } from "../../type/datastore.ts";
+import { sleep } from "../async.ts";
 
 export type ProcessingMessage = MQMessage & {
   ts: number;
@@ -28,10 +29,17 @@ export class DataStoreMQ {
   ) {
   }
 
+  /**
+   * Sends a batch of messages to a queue.
+   * @param queue the name of the queue
+   * @param bodies the bodies of the messages to send
+   * @returns
+   */
   async batchSend(queue: string, bodies: any[]): Promise<void> {
     if (bodies.length === 0) {
       return;
     }
+
     const messages: KV<MQMessage>[] = bodies.map((body) => {
       const id = `${Date.now()}-${String(++this.seq).padStart(6, "0")}`;
       const key = [...queuedPrefix, queue, id];
@@ -68,6 +76,7 @@ export class DataStoreMQ {
     if (messages.length === 0) {
       return [];
     }
+
     // Put them in the processing queue
     await this.ds.batchSet(
       messages.map((m) => ({
@@ -117,8 +126,9 @@ export class DataStoreMQ {
         // If we got exactly the batch size, there might be more messages
         if (messages.length === batchSize) {
           await run();
+        } else {
+          timeout = setTimeout(run, options.pollInterval || 5000);
         }
-        timeout = setTimeout(run, options.pollInterval || 5000);
       } catch (e: any) {
         console.error("Error in MQ subscription handler", e);
       }
@@ -253,7 +263,7 @@ export class DataStoreMQ {
         {},
       )
     ) {
-      ids.push([...queuedPrefix, item.id]);
+      ids.push([...queuedPrefix, queue, item.id]);
     }
     for (
       const item of await this.ds.luaQuery<ProcessingMessage>([
@@ -261,7 +271,7 @@ export class DataStoreMQ {
         queue,
       ], {})
     ) {
-      ids.push([...processingPrefix, item.id]);
+      ids.push([...processingPrefix, queue, item.id]);
     }
     for (
       const item of await this.ds.luaQuery<ProcessingMessage>([
@@ -269,7 +279,7 @@ export class DataStoreMQ {
         queue,
       ], {})
     ) {
-      ids.push([...dlqPrefix, item.id]);
+      ids.push([...dlqPrefix, queue, item.id]);
     }
     await this.ds.batchDelete(ids);
   }
@@ -285,6 +295,16 @@ export class DataStoreMQ {
       processing,
       dlq,
     };
+  }
+
+  async awaitEmptyQueue(queue: string): Promise<void> {
+    while (true) {
+      const stats = await this.getQueueStats(queue);
+      if (stats.queued === 0 && stats.processing === 0) {
+        break;
+      }
+      await sleep(200);
+    }
   }
 
   async getAllQueueStats(): Promise<Record<string, MQStats>> {

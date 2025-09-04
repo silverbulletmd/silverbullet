@@ -144,7 +144,7 @@ self.addEventListener("message", async (event: any) => {
           syncEngine.syncSingleFile(path);
         },
         observedRequest: (path) => {
-          console.log("Observed request", path);
+          // console.log("Observed request", path);
           syncEngine.syncSingleFile(path);
         },
         onlineStatusChanged: (isOnline) => {

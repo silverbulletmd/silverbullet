@@ -223,7 +223,6 @@ export class Client {
         )
       ) {
         await this.wipeClient();
-        alert("Done, reloading...");
         location.reload();
         return;
       }
@@ -335,18 +334,10 @@ export class Client {
     );
 
     this.eventHook.addLocalListener("file:initial", async () => {
-      while (true) {
-        const stats = await this.mq.getQueueStats("indexQueue");
-        if (stats.queued > 0 || stats.processing > 0) {
-          console.info("Still indexing...");
-        } else {
-          console.info("Indexing complete, reloading state");
-          await this.clientSystem.markFullSpaceIndexComplete();
-          await this.clientSystem.reloadState();
-          break;
-        }
-        await sleep(200);
-      }
+      await this.mq.awaitEmptyQueue("indexQueue");
+      console.info("Indexing complete, reloading state");
+      await this.clientSystem.markFullSpaceIndexComplete();
+      await this.clientSystem.reloadState();
     });
 
     this.space = new Space(
@@ -653,6 +644,7 @@ export class Client {
   }
 
   showProgress(progressPercentage?: number, progressType?: "sync" | "index") {
+    // console.log("Showing progress", progressPercentage, progressType);
     this.ui.viewDispatch({
       type: "set-progress",
       progressPercentage,
@@ -1190,9 +1182,9 @@ export class Client {
       return;
     }
     if (!await this.clientSystem.hasFullIndexCompleted()) {
-      console.info(
-        "Not loading custom styles yet, since initial synca has not completed yet",
-      );
+      // console.info(
+      //   "Not loading custom styles yet, since initial sync has not completed yet",
+      // );
       return;
     }
 

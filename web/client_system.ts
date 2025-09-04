@@ -57,6 +57,7 @@ import { builtinPlugNames } from "../plugs/builtin_plugs.ts";
 
 const plugNameExtractRegex = /\/(.+)\.plug\.js$/;
 const indexVersionKey = ["$indexVersion"];
+const indexQueuedKey = ["$indexQueued"];
 // Bump this one every time a full reindex is needed
 const desiredIndexVersion = 8;
 const mqTimeout = 10000; // 10s
@@ -79,7 +80,6 @@ export class ClientSystem {
   readonly scriptCommands = new Map<string, Command>();
   spaceLuaEnv = new SpaceLuaEnvironment();
   scriptsLoaded: boolean = false;
-  private indexOngoing = false;
 
   constructor(
     private client: Client,
@@ -302,27 +302,50 @@ export class ClientSystem {
     );
   }
 
+  async isIndexOngoing() {
+    return !!(await this.ds.get(indexQueuedKey));
+  }
+
+  async setIndexOngoing(val: boolean = true) {
+    await this.ds.set(indexQueuedKey, val);
+  }
+
   async ensureFullIndex() {
+    if (!this.client.fullSyncCompleted) {
+      console.info(
+        "Initial full sync not completed, skipping index check",
+      );
+      return;
+    }
     const currentIndexVersion = await this.getCurrentIndexVersion();
+
+    if (!currentIndexVersion) {
+      console.log("No index version found, assuming fresh install");
+      await this.markFullSpaceIndexComplete();
+      return;
+    }
 
     console.info(
       "[index]",
       "Current space index version",
       currentIndexVersion,
       "index ongoing?",
-      this.indexOngoing,
+      await this.isIndexOngoing(),
     );
 
-    if (currentIndexVersion !== desiredIndexVersion && !this.indexOngoing) {
+    if (
+      currentIndexVersion !== desiredIndexVersion &&
+      !await this.isIndexOngoing()
+    ) {
       console.info(
         "[index]",
         "Performing a full space reindex, this could take a while...",
       );
-      this.indexOngoing = true;
+      await this.setIndexOngoing();
       await this.system.invokeFunction("index.reindexSpace", []);
       console.info("[index]", "Full space index complete.");
       await this.markFullSpaceIndexComplete();
-      this.indexOngoing = false;
+      await this.setIndexOngoing(false);
       // Let's load space scripts again, which probably weren't loaded before
       await this.reloadState();
     }
