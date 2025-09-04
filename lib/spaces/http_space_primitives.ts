@@ -241,37 +241,6 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     await response.text();
   }
 
-  // Used to check if the server is reachable and the user is authenticated
-
-  /**
-   * Create an authenticated WebSocket connection
-   * @param path The path to connect to
-   * @param queryParams Optional query parameters
-   * @returns A WebSocket connection
-   */
-  async createAuthenticatedWebSocket(
-    path: string,
-    queryParams: Record<string, string> = {},
-  ): Promise<WebSocket> {
-    // First make an authenticated request to ensure we have valid cookies
-    await this.ping();
-
-    // Build the WebSocket URL with query parameters
-    const queryString = Object.entries(queryParams)
-      .map(([key, value]) =>
-        `${encodeURIComponent(key)}=${encodeURIComponent(value)}`
-      )
-      .join("&");
-
-    // Create the WebSocket URL
-    const wsUrl = `${this.url.replace(/^http/, "ws")}/${path}${
-      queryString ? `?${queryString}` : ""
-    }`;
-
-    // Create and return the WebSocket
-    return new WebSocket(wsUrl);
-  }
-
   private responseToMeta(name: string, res: Response): FileMeta {
     return {
       name,

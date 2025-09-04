@@ -124,7 +124,14 @@ export class DiskSpacePrimitives implements SpacePrimitives {
 
   async deleteFile(name: string): Promise<void> {
     const localPath = this.filenameToPath(name);
-    await Deno.remove(localPath);
+    try {
+      await Deno.remove(localPath);
+    } catch (e: any) {
+      if (e instanceof Deno.errors.NotFound) {
+        throw notFoundError;
+      }
+      throw e;
+    }
 
     // Recursively remove empty parent directories up to rootPath
     await this.cleanOrphaned(localPath);
