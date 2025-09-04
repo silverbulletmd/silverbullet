@@ -10,7 +10,7 @@ import {
 import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
 
 const syncSnapshotKey = ["$syncSnapshot"];
-const syncInterval = 10 * 1000;
+const syncInterval = 20 * 1000;
 
 type SyncEngineEvents = {
   // Full sync cycle has completed
@@ -31,7 +31,7 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
 
   // Snapshot of meta data on non-synced files to be used by the ProxyRouter
   public nonSyncedFiles = new Map<string, FileMeta>();
-  syncInterval: number;
+  syncInterval?: number;
 
   constructor(
     private ds: DataStore,

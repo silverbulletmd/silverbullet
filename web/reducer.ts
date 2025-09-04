@@ -70,7 +70,6 @@ export default function reducer(
       };
     }
     case "online-status-change":
-      console.log("Online status change reducer", action);
       return {
         ...state,
         isOnline: action.isOnline,
