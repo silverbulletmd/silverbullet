@@ -14,40 +14,40 @@ export class CheckPathSpacePrimitives implements SpacePrimitives {
     );
   }
 
-  readFile(name: string): Promise<{ data: Uint8Array; meta: FileMeta }> {
-    if (!this.isReadable(name)) {
+  readFile(path: string): Promise<{ data: Uint8Array; meta: FileMeta }> {
+    if (!this.isReadable(path)) {
       throw new Error("Couldn't write file, path isn't writable");
     }
-    return this.wrapped.readFile(name);
+    return this.wrapped.readFile(path);
   }
 
-  getFileMeta(name: string): Promise<FileMeta> {
-    if (!this.isReadable(name)) {
+  getFileMeta(path: string, observing?: boolean): Promise<FileMeta> {
+    if (!this.isReadable(path)) {
       throw new Error("Couldn't get file meta, path isn't writable");
     }
-    return this.wrapped.getFileMeta(name);
+    return this.wrapped.getFileMeta(path, observing);
   }
 
   writeFile(
-    name: string,
+    path: string,
     data: Uint8Array,
     selfUpdate?: boolean | undefined,
     meta?: FileMeta,
   ): Promise<FileMeta> {
-    if (!this.isWritable(name)) {
+    if (!this.isWritable(path)) {
       throw new Error("Couldn't write file, path is invalid");
     }
-    return this.wrapped.writeFile(name, data, selfUpdate, meta);
+    return this.wrapped.writeFile(path, data, selfUpdate, meta);
   }
 
-  deleteFile(name: string): Promise<void> {
+  deleteFile(path: string): Promise<void> {
     // We allow deletion of paths we can't write to. This is for the case when
     // the user has an invalidly named file in their space and they need to
     // remove it/rename it
-    if (!this.isReadable(name)) {
+    if (!this.isReadable(path)) {
       throw new Error("Couldn't delete file, path isn't writable");
     }
-    return this.wrapped.deleteFile(name);
+    return this.wrapped.deleteFile(path);
   }
 
   private isReadable(path: string): boolean {

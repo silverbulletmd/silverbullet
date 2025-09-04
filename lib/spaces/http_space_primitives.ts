@@ -146,10 +146,10 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   }
 
   async readFile(
-    name: string,
+    path: string,
   ): Promise<{ data: Uint8Array; meta: FileMeta }> {
     const res = await this.authenticatedFetch(
-      `${this.url}/${encodePageURI(name)}`,
+      `${this.url}/${encodePageURI(path)}`,
       {
         method: "GET",
         headers: {
@@ -163,12 +163,12 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     }
     return {
       data: new Uint8Array(await res.arrayBuffer()),
-      meta: this.responseToMeta(name, res),
+      meta: this.responseToMeta(path, res),
     };
   }
 
   async writeFile(
-    name: string,
+    path: string,
     data: Uint8Array,
     _selfUpdate?: boolean,
     meta?: FileMeta,
@@ -183,19 +183,19 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     }
 
     const res = await this.authenticatedFetch(
-      `${this.url}/${encodePageURI(name)}`,
+      `${this.url}/${encodePageURI(path)}`,
       {
         method: "PUT",
         headers,
         body: data,
       },
     );
-    return this.responseToMeta(name, res);
+    return this.responseToMeta(path, res);
   }
 
-  async deleteFile(name: string): Promise<void> {
+  async deleteFile(path: string): Promise<void> {
     const req = await this.authenticatedFetch(
-      `${this.url}/${encodePageURI(name)}`,
+      `${this.url}/${encodePageURI(path)}`,
       {
         method: "DELETE",
       },
@@ -205,15 +205,16 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     }
   }
 
-  async getFileMeta(name: string): Promise<FileMeta> {
+  async getFileMeta(path: string, observing?: boolean): Promise<FileMeta> {
     const res = await this.authenticatedFetch(
-      `${this.url}/${encodePageURI(name)}`,
+      `${this.url}/${encodePageURI(path)}`,
       // This used to use HEAD, but it seems that Safari on iOS is blocking cookies/credentials to be sent along with HEAD requests
       // so we'll use GET instead with a magic header which the server may or may not use to omit the body.
       {
         method: "GET",
         headers: {
           "X-Get-Meta": "true",
+          ...(observing ? { "X-Observing": "true" } : {}),
         },
       },
     );
@@ -223,7 +224,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     if (!res.ok) {
       throw new Error(`Failed to get file meta: ${res.statusText}`);
     }
-    return this.responseToMeta(name, res);
+    return this.responseToMeta(path, res);
   }
 
   // If not: throws an error or invokes a redirect

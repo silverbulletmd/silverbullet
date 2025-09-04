@@ -192,14 +192,14 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
     try {
       if (request.headers.has("x-get-meta")) {
         // Requesting only file meta
-        console.log("Serving file meta", path);
+        // console.log("Serving file meta", path);
         const meta = await this.spacePrimitives.getFileMeta(path);
         this.emit("fileMetaRequested", path);
         return new Response(null, {
           headers: fileMetaToHeaders(meta),
         });
       } else {
-        console.log("Serving file read", path);
+        // console.log("Serving file read", path);
         const { meta, data } = await this.spacePrimitives.readFile(path);
         return new Response(data, {
           headers: fileMetaToHeaders(meta),
@@ -243,7 +243,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
         return resp;
       }
       const body = await request.arrayBuffer();
-      console.log("Handling file write", path, body.byteLength);
+      // console.log("Handling file write", path, body.byteLength);
       const meta = await this.spacePrimitives.writeFile(
         path,
         new Uint8Array(body),
@@ -269,7 +269,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
         // Proxy the request
         return fetch(request);
       }
-      console.log("Handling file delete", path);
+      // console.log("Handling file delete", path);
       await this.spacePrimitives.deleteFile(path);
       return new Response("OK", {
         status: 200,

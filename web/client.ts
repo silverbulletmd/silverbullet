@@ -1309,16 +1309,13 @@ export class Client {
         this.clientSystem.ensureFullIndex().catch(
           console.error,
         );
-        // Likely initial sync so let's show visually that we're synced now
-        // this.showProgress(100, "sync");
-        this.showProgress();
 
         break;
       }
       case "sync-status": {
         this.showProgress(
           Math.round(
-            message.status.filesProcessed / message.status.totalFiles * 100,
+            (message.status.filesProcessed / message.status.totalFiles) * 100,
           ),
           "sync",
         );

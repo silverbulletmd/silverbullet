@@ -6,15 +6,19 @@ import type { FileMeta } from "../../type/index.ts";
 export interface SpacePrimitives {
   fetchFileList(): Promise<FileMeta[]>;
 
-  // The result of this should be consistent with the result of fetchFileList for this entry
-  getFileMeta(name: string): Promise<FileMeta>;
+  /**
+   * Retrieves metadata for a specific file.
+   * @param path The path of the file to retrieve metadata for.
+   * @param observing used to hint at the sync engine this file is under regular observation (and may sync more aggressively)
+   */
+  getFileMeta(path: string, observing?: boolean): Promise<FileMeta>;
 
   readFile(
-    name: string,
+    path: string,
   ): Promise<{ data: Uint8Array; meta: FileMeta }>;
 
   writeFile(
-    name: string,
+    path: string,
     data: Uint8Array,
     // Used to decide whether or not to emit change events
     selfUpdate?: boolean,
@@ -22,5 +26,5 @@ export interface SpacePrimitives {
     meta?: FileMeta,
   ): Promise<FileMeta>;
 
-  deleteFile(name: string): Promise<void>;
+  deleteFile(path: string): Promise<void>;
 }

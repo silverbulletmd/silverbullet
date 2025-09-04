@@ -4,7 +4,7 @@ import type { FilterOption, Notification, PanelMode } from "../type/client.ts";
 import type { DocumentMeta, PageMeta } from "../type/index.ts";
 import type { Path } from "@silverbulletmd/silverbullet/lib/ref";
 import type { SyncStatus } from "../lib/spaces/sync.ts";
-import { ClientConfig } from "./client.ts";
+import type { ClientConfig } from "./client.ts";
 
 export type PanelConfig = {
   mode?: PanelMode;

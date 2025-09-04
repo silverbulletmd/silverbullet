@@ -1,4 +1,4 @@
-import * as path from "@std/path";
+import * as pathUtils from "@std/path";
 import { readAll } from "@std/io/read-all";
 import type { SpacePrimitives } from "./space_primitives.ts";
 import { mime } from "mimetypes";
@@ -22,7 +22,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
   }
 
   safePath(p: string): string {
-    const realPath = path.resolve(p);
+    const realPath = pathUtils.resolve(p);
     if (!realPath.startsWith(this.rootPath)) {
       throw Error(`Path ${p} is not in the space`);
     }
@@ -30,7 +30,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
   }
 
   filenameToPath(pageName: string) {
-    return this.safePath(path.join(this.rootPath, pageName));
+    return this.safePath(pathUtils.join(this.rootPath, pageName));
   }
 
   pathToFilename(fullPath: string): string {
@@ -38,12 +38,12 @@ export class DiskSpacePrimitives implements SpacePrimitives {
   }
 
   async readFile(
-    name: string,
+    path: string,
   ): Promise<{ data: Uint8Array; meta: FileMeta }> {
-    const localPath = this.filenameToPath(name);
+    const localPath = this.filenameToPath(path);
     try {
       const s = await Deno.stat(localPath);
-      const contentType = lookupContentType(name);
+      const contentType = lookupContentType(path);
 
       const f = await Deno.open(localPath, { read: true });
       const data = await readAll(f);
@@ -52,7 +52,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
       return {
         data,
         meta: {
-          name: name,
+          name: path,
           created: s.birthtime?.getTime() || s.mtime?.getTime() || 0,
           lastModified: s.mtime?.getTime() || 0,
           perm: "rw",
@@ -61,21 +61,21 @@ export class DiskSpacePrimitives implements SpacePrimitives {
         },
       };
     } catch {
-      // console.error("Error while reading file", name, e);
+      // console.error("Error while reading file", path, e);
       throw notFoundError;
     }
   }
 
   async writeFile(
-    name: string,
+    path: string,
     data: Uint8Array,
     _selfUpdate?: boolean,
     meta?: FileMeta,
   ): Promise<FileMeta> {
-    const localPath = this.filenameToPath(name);
+    const localPath = this.filenameToPath(path);
     try {
       // Ensure parent folder exists
-      await Deno.mkdir(path.dirname(localPath), { recursive: true });
+      await Deno.mkdir(pathUtils.dirname(localPath), { recursive: true });
 
       const file = await Deno.open(localPath, {
         write: true,
@@ -94,21 +94,21 @@ export class DiskSpacePrimitives implements SpacePrimitives {
       await writer.close();
 
       // Fetch new metadata
-      return this.getFileMeta(name);
+      return this.getFileMeta(path);
     } catch (e) {
-      console.error("Error while writing file", name, e);
-      throw Error(`Could not write ${name}`);
+      console.error("Error while writing file", path, e);
+      throw Error(`Could not write ${path}`);
     }
   }
 
-  async getFileMeta(name: string): Promise<FileMeta> {
-    const localPath = this.filenameToPath(name);
+  async getFileMeta(path: string, _observing?: boolean): Promise<FileMeta> {
+    const localPath = this.filenameToPath(path);
     try {
       const s = await Deno.stat(localPath);
       return {
-        name: name,
+        name: path,
         size: s.size,
-        contentType: lookupContentType(name),
+        contentType: lookupContentType(path),
         created: s.birthtime?.getTime() || s.mtime?.getTime() || 0,
         lastModified: s.mtime?.getTime() || 0,
         perm: "rw",
@@ -118,12 +118,12 @@ export class DiskSpacePrimitives implements SpacePrimitives {
         throw notFoundError;
       }
       // console.error("Error while getting page meta", pageName, e);
-      throw Error(`Could not get meta for ${name}`);
+      throw Error(`Could not get meta for ${path}`);
     }
   }
 
-  async deleteFile(name: string): Promise<void> {
-    const localPath = this.filenameToPath(name);
+  async deleteFile(path: string): Promise<void> {
+    const localPath = this.filenameToPath(path);
     try {
       await Deno.remove(localPath);
     } catch (e: any) {
@@ -138,13 +138,13 @@ export class DiskSpacePrimitives implements SpacePrimitives {
   }
 
   private async cleanOrphaned(pathToDeletedFile: string) {
-    let current = path.dirname(pathToDeletedFile);
+    let current = pathUtils.dirname(pathToDeletedFile);
 
     while (current.startsWith(this.rootPath) && current != this.rootPath) {
       try {
         // Attempt to remove the current directory
         await Deno.remove(current);
-        current = path.dirname(current);
+        current = pathUtils.dirname(current);
       } catch (e: any) {
         if (
           e.code === "ENOTEMPTY" ||
@@ -154,7 +154,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
         }
 
         if (e instanceof Deno.errors.NotFound) {
-          current = path.dirname(current); // continue upwards
+          current = pathUtils.dirname(current); // continue upwards
           continue;
         }
 

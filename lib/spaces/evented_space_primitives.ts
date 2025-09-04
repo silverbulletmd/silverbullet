@@ -131,10 +131,10 @@ export class EventedSpacePrimitives implements SpacePrimitives {
   }
 
   async readFile(
-    name: string,
+    path: string,
   ): Promise<{ data: Uint8Array; meta: FileMeta }> {
     if (!this.enabled) {
-      return this.wrapped.readFile(name);
+      return this.wrapped.readFile(path);
     }
     try {
       // Fetching mutex
@@ -142,9 +142,9 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       this.operationInProgress = true;
 
       // Fetch file
-      const data = await this.wrapped.readFile(name);
+      const data = await this.wrapped.readFile(path);
       if (!wasFetching) {
-        if (this.triggerEventsAndCache(name, data.meta.lastModified)) {
+        if (this.triggerEventsAndCache(path, data.meta.lastModified)) {
           // Something changed, so persist snapshot
           await this.saveSnapshot();
         }
@@ -156,36 +156,32 @@ export class EventedSpacePrimitives implements SpacePrimitives {
   }
 
   async writeFile(
-    name: string,
+    path: string,
     data: Uint8Array,
     // TODO: Is self update still used or can it now be removed?
     selfUpdate?: boolean,
     meta?: FileMeta,
   ): Promise<FileMeta> {
     if (!this.enabled) {
-      return this.wrapped.writeFile(name, data, selfUpdate, meta);
+      return this.wrapped.writeFile(path, data, selfUpdate, meta);
     }
 
+    const wasFetching = this.operationInProgress;
+    this.operationInProgress = true;
     try {
-      this.operationInProgress = true;
       const newMeta = await this.wrapped.writeFile(
-        name,
+        path,
         data,
         selfUpdate,
         meta,
       );
-      await this.dispatchEvent(
-        "file:changed",
-        name,
-        true,
-        undefined,
-        newMeta.lastModified,
-      );
-      this.spaceSnapshot[name] = newMeta.lastModified;
-
+      if (!wasFetching) {
+        if (this.triggerEventsAndCache(path, newMeta.lastModified)) {
+          await this.saveSnapshot();
+        }
+      }
       return newMeta;
     } finally {
-      await this.saveSnapshot();
       this.operationInProgress = false;
     }
   }
@@ -205,27 +201,27 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     return oldHash !== newHash;
   }
 
-  async getFileMeta(name: string): Promise<FileMeta> {
+  async getFileMeta(path: string, observing?: boolean): Promise<FileMeta> {
     if (!this.enabled) {
-      return this.wrapped.getFileMeta(name);
+      return this.wrapped.getFileMeta(path, observing);
     }
 
     try {
       const wasFetching = this.operationInProgress;
       this.operationInProgress = true;
-      const newMeta = await this.wrapped.getFileMeta(name);
+      const newMeta = await this.wrapped.getFileMeta(path, observing);
       if (!wasFetching) {
-        if (this.triggerEventsAndCache(name, newMeta.lastModified)) {
+        if (this.triggerEventsAndCache(path, newMeta.lastModified)) {
           await this.saveSnapshot();
         }
       }
       return newMeta;
     } catch (e: any) {
-      // console.log("Checking error", e, name);
+      // console.log("Checking error", e, path);
       if (e.message === notFoundError.message) {
-        await this.dispatchEvent("file:deleted", name);
-        if (name.endsWith(".md")) {
-          const pageName = name.substring(0, name.length - 3);
+        await this.dispatchEvent("file:deleted", path);
+        if (path.endsWith(".md")) {
+          const pageName = path.substring(0, path.length - 3);
           await this.dispatchEvent("page:deleted", pageName);
         }
       }
@@ -235,21 +231,21 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     }
   }
 
-  async deleteFile(name: string): Promise<void> {
+  async deleteFile(path: string): Promise<void> {
     if (!this.enabled) {
-      return this.wrapped.deleteFile(name);
+      return this.wrapped.deleteFile(path);
     }
 
     try {
       this.operationInProgress = true;
-      if (name.endsWith(".md")) {
-        const pageName = name.substring(0, name.length - 3);
+      if (path.endsWith(".md")) {
+        const pageName = path.substring(0, path.length - 3);
         await this.dispatchEvent("page:deleted", pageName);
       }
-      // await this.getPageMeta(name); // Check if page exists, if not throws Error
-      await this.wrapped.deleteFile(name);
-      delete this.spaceSnapshot[name];
-      await this.dispatchEvent("file:deleted", name);
+      // await this.getPageMeta(path); // Check if page exists, if not throws Error
+      await this.wrapped.deleteFile(path);
+      delete this.spaceSnapshot[path];
+      await this.dispatchEvent("file:deleted", path);
     } finally {
       await this.saveSnapshot();
       this.operationInProgress = false;

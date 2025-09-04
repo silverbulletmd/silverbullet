@@ -2,7 +2,7 @@ import type { SpacePrimitives } from "./space_primitives.ts";
 import { mime } from "mimetypes";
 import type { FileMeta } from "../../type/index.ts";
 import { notFoundError } from "../constants.ts";
-import { KvPrimitives } from "../data/kv_primitives.ts";
+import type { KvPrimitives } from "../data/kv_primitives.ts";
 
 const filesMetaPrefix = ["m"];
 const filesContentPrefix = ["c"];
@@ -23,17 +23,17 @@ export class DataStoreSpacePrimitives implements SpacePrimitives {
   }
 
   async readFile(
-    name: string,
+    path: string,
   ): Promise<{ data: Uint8Array; meta: FileMeta }> {
     // Fetch content and metadata in parallel
     const [fileMeta, fileContent] = await this.kv.batchGet([
       [
         ...filesMetaPrefix,
-        name,
+        path,
       ],
       [
         ...filesContentPrefix,
-        name,
+        path,
       ],
     ]);
     if (!fileMeta) {
@@ -47,7 +47,7 @@ export class DataStoreSpacePrimitives implements SpacePrimitives {
   }
 
   async writeFile(
-    name: string,
+    path: string,
     data: Uint8Array,
     _selfUpdate?: boolean,
     suggestedMeta?: FileMeta,
@@ -55,16 +55,16 @@ export class DataStoreSpacePrimitives implements SpacePrimitives {
     let meta: FileMeta | undefined;
     try {
       // Build off of the existing file meta, if file exists
-      meta = await this.getFileMeta(name);
+      meta = await this.getFileMeta(path);
     } catch {
       // Not found, that's fine
     }
     if (!meta) {
       meta = {
-        name,
+        name: path,
         created: suggestedMeta?.lastModified || Date.now(),
         perm: suggestedMeta?.perm || "rw",
-        contentType: mime.getType(name) || "application/octet-stream",
+        contentType: mime.getType(path) || "application/octet-stream",
         // Overwritten in a sec
         lastModified: 0,
         size: 0,
@@ -76,32 +76,32 @@ export class DataStoreSpacePrimitives implements SpacePrimitives {
     // Write metadata and content in same transaction
     await this.kv.batchSet([
       {
-        key: [...filesMetaPrefix, name],
+        key: [...filesMetaPrefix, path],
         value: meta,
       },
       {
-        key: [...filesContentPrefix, name],
+        key: [...filesContentPrefix, path],
         value: data,
       },
     ]);
     return meta;
   }
 
-  async deleteFile(name: string): Promise<void> {
+  async deleteFile(path: string): Promise<void> {
     const [fileMeta] = await this.kv.batchGet([
-      [...filesMetaPrefix, name],
+      [...filesMetaPrefix, path],
     ]);
     if (!fileMeta) {
       throw notFoundError;
     }
     return this.kv.batchDelete([
-      [...filesMetaPrefix, name],
-      [...filesContentPrefix, name],
+      [...filesMetaPrefix, path],
+      [...filesContentPrefix, path],
     ]);
   }
 
-  async getFileMeta(name: string): Promise<FileMeta> {
-    const [fileMeta] = await this.kv.batchGet([[...filesMetaPrefix, name]]);
+  async getFileMeta(path: string, _observing?: boolean): Promise<FileMeta> {
+    const [fileMeta] = await this.kv.batchGet([[...filesMetaPrefix, path]]);
     if (!fileMeta) {
       throw notFoundError;
     }

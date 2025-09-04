@@ -9,6 +9,7 @@ import {
 import { sleep } from "../../lib/async.ts";
 import { indexDocument } from "./document.ts";
 import type { MQMessage } from "../../type/datastore.ts";
+import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
 
 export async function reindexSpace() {
   if (await system.getMode() === "ro") {
@@ -31,7 +32,7 @@ export async function reindexSpace() {
     await sleep(500);
     queueStats = await mq.getQueueStats("indexQueue");
     await editor.showProgress(
-      100 - Math.round(queueStats.queued / files.length * 100),
+      Math.round((files.length - queueStats.queued) / files.length * 100),
       "index",
     );
   }
@@ -62,5 +63,5 @@ async function indexPage(name: string) {
   await events.dispatchEvent("page:index", {
     name,
     tree: parsed,
-  });
+  } as IndexTreeEvent);
 }

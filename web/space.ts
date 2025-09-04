@@ -171,7 +171,8 @@ export class Space {
           return;
         }
         for (const fileName of this.watchedFiles) {
-          await this.spacePrimitives.getFileMeta(fileName);
+          // Setting observing to true here to hint that we may be interested in more active syncing
+          await this.spacePrimitives.getFileMeta(fileName, true);
         }
       });
     }, pageWatchInterval);
