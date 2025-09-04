@@ -143,8 +143,8 @@ self.addEventListener("message", async (event: any) => {
           console.log("File written", path, "requesting sync");
           syncEngine.syncSingleFile(path);
         },
-        fileMetaRequested: (path) => {
-          console.log("File meta requested", path);
+        observedRequest: (path) => {
+          console.log("Observed request", path);
           syncEngine.syncSingleFile(path);
         },
         onlineStatusChanged: (isOnline) => {

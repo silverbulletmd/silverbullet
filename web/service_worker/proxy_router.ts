@@ -19,7 +19,7 @@ export type ProxyRouterEvents = {
   // Use case: sync engine may more pro-actively sync this one file back to the server
   fileWritten: (path: string) => void;
   // Use case: the user likely has this file open in the editor, so it's good to prioritize syncing it
-  fileMetaRequested: (path: string) => void;
+  observedRequest: (path: string) => void;
   // Use case: client showing the "yellow bar" indicating not being online
   onlineStatusChanged: (isOnline: boolean) => void;
 };
@@ -194,7 +194,9 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
         // Requesting only file meta
         // console.log("Serving file meta", path);
         const meta = await this.spacePrimitives.getFileMeta(path);
-        this.emit("fileMetaRequested", path);
+        if (request.headers.has("x-observing")) {
+          this.emit("observedRequest", path);
+        }
         return new Response(null, {
           headers: fileMetaToHeaders(meta),
         });
