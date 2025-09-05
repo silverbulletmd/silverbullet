@@ -52,6 +52,24 @@ class AuthorizationHeadersCache {
   }
 }
 
+export class GCSSBMetadata {
+  public sbCreated: string;
+  public sbLastModified: string;
+
+  constructor(sbCreated: number, sbLastModified: number) {
+    this.sbCreated = String(sbCreated);
+    this.sbLastModified = String(sbLastModified);
+  }
+
+  static fromObjectMetadata(obj: Object): GCSSBMetadata {
+    // if the either metadata is missing, get the value from the object
+    return new GCSSBMetadata(
+      Number(obj.metadata?.sbCreated) || Number(obj.timeCreated),
+      Number(obj.metadata?.sbLastModified) || Number(obj.updated),
+    );
+  }
+}
+
 export async function deleteFile(
   bucketName: string,
   name: string,
@@ -92,10 +110,14 @@ export async function listFiles(
     const relativePath = prefix
       ? item.name!.substring(prefix.length + 1)
       : item.name!;
+    const metadata = GCSSBMetadata.fromObjectMetadata(item);
     return {
       name: relativePath,
       size: Number(item.size!),
-      lastModified: new Date(item.updated!).getTime(),
+      created: Number(metadata.sbCreated),
+      lastModified: Number(metadata.sbLastModified),
+      contentType: item.contentType!,
+      perm: "rw",
     } as FileMeta;
   });
 }
@@ -112,13 +134,14 @@ export async function readFileMetadata(
   const response = await fetch(`${baseUrl}?alt=json`, {
     headers: await AuthorizationHeadersCache.getHeadersWithCache(),
   });
-  const json = await response.json() as Object;
+  const object: Object = await response.json();
+  const metadata = GCSSBMetadata.fromObjectMetadata(object);
   return {
     name: name,
-    created: new Date(json.timeCreated!).getTime(),
-    lastModified: new Date(json.updated!).getTime(),
-    contentType: json.contentType!,
-    size: Number(json.size!),
+    created: Number(metadata.sbCreated),
+    lastModified: Number(metadata.sbLastModified),
+    contentType: object.contentType!,
+    size: Number(object.size!),
     perm: "rw",
   } as FileMeta;
 }
@@ -144,23 +167,17 @@ export async function uploadFile(
   bucketName: string,
   name: string,
   data: Uint8Array,
+  meta?: GCSSBMetadata,
 ): Promise<Object> {
-  const multipartString: string = `
---sb_boundary
-Content-Type: application/json; charset=UTF-8
-
-{"name":"${name}"}
-
---sb_boundary
-Content-Type: text/markdown
-
-${new TextDecoder().decode(data)}
---sb_boundary--
-`;
+  const multipartString = `--sb_boundary\r\n` +
+    `Content-Type: application/json; charset=UTF-8\r\n\r\n` +
+    `${JSON.stringify({ ...meta, name })}\r\n` +
+    `--sb_boundary\r\n` +
+    `Content-Type: text/markdown\r\n\r\n` +
+    `${new TextDecoder().decode(data)}\r\n` +
+    `--sb_boundary--\r\n`;
   const url =
     `https://storage.googleapis.com/upload/storage/v1/b/${bucketName}/o?uploadType=multipart`;
-
-  console.log("Uploading to GCS", { url, multipartString });
 
   const response = await fetch(
     url,
@@ -179,6 +196,6 @@ ${new TextDecoder().decode(data)}
     throw new Error(`Failed to upload file: ${response.statusText}`);
   }
 
-  const result: Object = await response.text() as Object;
+  const result: Object = await response.json();
   return result;
 }
