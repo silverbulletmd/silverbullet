@@ -37,6 +37,8 @@ export type ServerOptions = {
   hostUrlPrefix?: string;
   auth?: AuthOptions;
   spaceIgnore?: string;
+  syncIgnore?: string;
+  syncDocuments?: boolean;
   pagesPath: string;
   shellBackend: string;
   shellCommandWhiteList?: string[];
@@ -371,6 +373,8 @@ export class HttpServer {
         readOnly: this.options.readOnly,
         spaceFolderPath: this.options.pagesPath,
         indexPage: this.options.indexPage,
+        syncDocuments: this.options.syncDocuments ?? false,
+        syncIgnore: this.options.syncIgnore,
       };
       return c.json(clientConfig, 200, {
         "Cache-Control": "no-cache",

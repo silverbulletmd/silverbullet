@@ -79,6 +79,9 @@ export type ClientConfig = {
   spaceFolderPath: string;
   indexPage: string;
   readOnly: boolean;
+  // Sync configuration
+  syncDocuments: boolean;
+  syncIgnore?: string;
   // These are all configured via ?query parameters, e.g. ?disableSpaceLua=1
   disableSpaceLua?: boolean;
   disableSpaceStyle?: boolean;

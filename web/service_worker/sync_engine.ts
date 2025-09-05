@@ -1,3 +1,5 @@
+import { compile as gitIgnoreCompiler } from "gitignore-parser";
+import { sleep } from "../../lib/async.ts";
 import type { KvPrimitives } from "../../lib/data/kv_primitives.ts";
 import { EventEmitter } from "../../lib/plugos/event.ts";
 import { plugPrefix, stdLibPrefix } from "../../lib/spaces/constants.ts";
@@ -10,7 +12,7 @@ import {
 import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
 
 const syncSnapshotKey = ["$syncSnapshot"];
-const syncInterval = 20 * 1000;
+const syncInterval = 20;
 
 type SyncEngineEvents = {
   // Full sync cycle has completed
@@ -27,6 +29,11 @@ type SyncEngineEvents = {
   syncProgress: (syncStatus: SyncStatus) => void | Promise<void>;
 };
 
+export type SyncConfig = {
+  syncDocuments: boolean;
+  syncIgnore?: string;
+};
+
 /**
  * Thin wrapper around SpaceSync, adds snapshot persistence and a few other things
  */
@@ -35,7 +42,13 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
 
   // Snapshot of meta data on non-synced files to be used by the ProxyRouter
   public nonSyncedFiles = new Map<string, FileMeta>();
-  syncInterval?: number;
+
+  private syncConfig: SyncConfig = {
+    syncDocuments: true,
+  };
+
+  stopping = false;
+  syncAccepts: (path: string) => boolean = () => true;
 
   constructor(
     private kv: KvPrimitives,
@@ -59,20 +72,52 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
       },
       snapshotUpdated: this.saveSnapshot.bind(this),
     });
-    this.syncInterval = setInterval(() => {
-      this.syncSpace().catch((err) => {
-        console.error("Sync error", err);
-      });
-    }, syncInterval);
-    this.syncSpace().catch((err) => {
-      console.error("Sync error", err);
-    });
+
+    // Start the sync loop
+    this.run();
   }
 
-  isSyncCandidate(_path: string): boolean {
-    // TODO: Replace with actual filter
-    // Note: should always include everything starting with _plug/
-    return true;
+  async run() {
+    while (true) {
+      if (this.stopping) {
+        return;
+      }
+      try {
+        await this.syncSpace();
+      } catch {
+        // Error communication is happening in syncSpace
+      }
+      await sleep(syncInterval * 1000);
+    }
+  }
+
+  public setSyncConfig(config: SyncConfig) {
+    this.syncConfig = config;
+    this.syncAccepts = config.syncIgnore
+      ? gitIgnoreCompiler(config.syncIgnore).accepts
+      : () => true;
+    const test = this.syncAccepts;
+    console.log(
+      "[sync] Updated sync config, syncDocuments:",
+      "syncIgnore:",
+      this.syncConfig.syncIgnore,
+      test(".gitignore"),
+      test("foo.jpg"),
+      test("folder/bar.txt"),
+    );
+  }
+
+  isSyncCandidate(path: string): boolean {
+    // ALWAYS sync plugs
+    if (path.startsWith(plugPrefix)) {
+      return true;
+    }
+    // Follow SB_SYNC_IGNORE rules
+    if (!this.syncAccepts(path)) {
+      return false;
+    }
+    // Either sync all files, or only .md files if syncDocuments is false
+    return this.syncConfig.syncDocuments || path.endsWith(".md");
   }
 
   async syncSpace(): Promise<number> {
@@ -121,7 +166,7 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
   }
 
   async wipe() {
-    clearInterval(this.syncInterval);
+    this.stopping = true;
     console.log("Wiping sync database");
     await this.kv.clear();
     console.log("Done wiping");

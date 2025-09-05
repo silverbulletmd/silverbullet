@@ -1,5 +1,6 @@
 import { initLogger } from "../lib/logger.ts";
 import { ProxyRouter } from "./service_worker/proxy_router.ts";
+
 import { SyncEngine } from "./service_worker/sync_engine.ts";
 import type {
   ServiceWorkerSourceMessage,
@@ -105,12 +106,19 @@ self.addEventListener("message", async (event: any) => {
       break;
     }
     case "config": {
+      const config = message.config;
       // Configure the service worker if it hasn't been already
       if (proxyRouter) {
-        console.info("Service worker already configured");
+        console.info(
+          "Service worker already configured, just updating configs",
+        );
+        proxyRouter.syncEngine.setSyncConfig({
+          syncDocuments: config.syncDocuments,
+          syncIgnore: config.syncIgnore,
+        });
+
         return;
       }
-      const config = message.config;
       const spaceFolderPath = config.spaceFolderPath;
       // We're generating a simple hashed database name based on the space path in case people regularly switch between multiple space paths
       const spaceHash = "" +
