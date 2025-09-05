@@ -6,7 +6,6 @@ import type {
   ServiceWorkerTargetMessage,
 } from "./ui_types.ts";
 import { simpleHash } from "../lib/crypto.ts";
-import { DataStore } from "../lib/data/datastore.ts";
 import { IndexedDBKvPrimitives } from "../lib/data/indexeddb_kv_primitives.ts";
 import { fsEndpoint } from "../lib/spaces/constants.ts";
 import { DataStoreSpacePrimitives } from "../lib/spaces/datastore_space_primitives.ts";
@@ -53,12 +52,12 @@ let proxyRouter: ProxyRouter | undefined;
 self.addEventListener("message", async (event: any) => {
   const message: ServiceWorkerTargetMessage = event.data;
   switch (message.type) {
-    case "skipWaiting": {
+    case "skip-waiting": {
       // @ts-ignore: Skip waiting to activate this service worker immediately
       self.skipWaiting();
       break;
     }
-    case "flushCache": {
+    case "flush-cache": {
       const cacheNames = await caches.keys();
 
       await Promise.all(
@@ -74,13 +73,35 @@ self.addEventListener("message", async (event: any) => {
       });
       break;
     }
-    case "wipeData": {
+    case "wipe-data": {
       if (proxyRouter) {
         await proxyRouter.syncEngine.wipe();
       }
       broadcastMessage({
         type: "dataWiped",
       });
+      break;
+    }
+    case "perform-file-sync": {
+      if (proxyRouter) {
+        await proxyRouter.syncEngine.syncSingleFile(
+          message.path,
+        );
+      } else {
+        console.warn(
+          "Ignoring perform-file-sync request, proxy not configured yet",
+        );
+      }
+      break;
+    }
+    case "perform-space-sync": {
+      if (proxyRouter) {
+        await proxyRouter.syncEngine.syncSpace();
+      } else {
+        console.warn(
+          "Ignoring perform-space-sync request, proxy not configured yet",
+        );
+      }
       break;
     }
     case "config": {
@@ -101,10 +122,8 @@ self.addEventListener("message", async (event: any) => {
       const kv = new IndexedDBKvPrimitives(dbName);
       await kv.init();
 
-      // Then wrap that in a DataStore
-      const ds = new DataStore(kv);
       // And use that to power the IndexedDB backed local storage
-      const local = new DataStoreSpacePrimitives(ds);
+      const local = new DataStoreSpacePrimitives(kv);
 
       // Which we'll sync with the remote server
       const remote = new HttpSpacePrimitives(
@@ -126,7 +145,7 @@ self.addEventListener("message", async (event: any) => {
       );
 
       // Now let's setup sync
-      const syncEngine = new SyncEngine(ds, local, remote);
+      const syncEngine = new SyncEngine(kv, local, remote);
       await syncEngine.start();
 
       // Ok, we're ready to go, let's plug in the proxy router
@@ -141,11 +160,10 @@ self.addEventListener("message", async (event: any) => {
       // And wire up some events
       proxyRouter.on({
         fileWritten: (path) => {
-          console.log("File written", path, "requesting sync");
           syncEngine.syncSingleFile(path);
         },
         observedRequest: (path) => {
-          // console.log("Observed request", path);
+          // This is triggered for the currently open file, we want to proactively sync it to keep it up to date
           syncEngine.syncSingleFile(path);
         },
         onlineStatusChanged: (isOnline) => {
@@ -172,8 +190,21 @@ self.addEventListener("message", async (event: any) => {
         spaceSyncComplete: (operations) => {
           console.log("Space sync complete:", operations);
           broadcastMessage({
-            type: "sync-complete",
+            type: "space-sync-complete",
             operations,
+          });
+        },
+        fileSyncComplete: (path, operations) => {
+          broadcastMessage({
+            type: "file-sync-complete",
+            path,
+            operations,
+          });
+        },
+        syncError: (error) => {
+          broadcastMessage({
+            type: "sync-error",
+            message: error.message,
           });
         },
       });

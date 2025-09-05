@@ -125,14 +125,10 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
           console.log("error", "Error syncing file", name, e.message);
         }
       }
-    } catch (e: any) {
-      console.log("error", "General sync error:", e.message);
-      throw e;
     } finally {
       this.isSyncing = false;
       this.emit("snapshotUpdated", this.snapshot);
     }
-    console.log("[sync]", "Sync complete, operations performed", operations);
 
     return {
       operations,

@@ -36,7 +36,7 @@ export function flushCachesAndUnregisterServiceWorker() {
     // First flush active cache
     navigator.serviceWorker.ready.then((registration) => {
       console.log("Sending request to flush cache");
-      registration.active!.postMessage({ type: "flushCache" });
+      registration.active!.postMessage({ type: "flush-cache" });
     });
   });
 }

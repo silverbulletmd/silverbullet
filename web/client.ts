@@ -32,7 +32,7 @@ import type {
 
 import type { PageCreatingContent, PageCreatingEvent } from "../type/event.ts";
 import type { StyleObject } from "../plugs/index/style.ts";
-import { sleep, throttle } from "../lib/async.ts";
+import { throttle } from "../lib/async.ts";
 import { PlugSpacePrimitives } from "../lib/spaces/plug_space_primitives.ts";
 import { EventedSpacePrimitives } from "../lib/spaces/evented_space_primitives.ts";
 import { simpleHash } from "../lib/crypto.ts";
@@ -1290,49 +1290,24 @@ export class Client {
 
   async handleServiceWorkerMessage(message: ServiceWorkerSourceMessage) {
     switch (message.type) {
-      case "sync-complete": {
-        if (message.operations > 0) {
-          // Update the page list
-          await this.space.updatePageList();
-        }
+      case "space-sync-complete": {
         this.fullSyncCompleted = true;
-
-        console.log("Full sync completed");
-
-        this.clientSystem.ensureFullIndex().catch(
-          console.error,
-        );
-
-        break;
-      }
-      case "sync-status": {
-        this.showProgress(
-          Math.round(
-            (message.status.filesProcessed / message.status.totalFiles) * 100,
-          ),
-          "sync",
-        );
-        break;
-      }
-      case "sync-conflict": {
-        this.flashNotification(
-          `Sync: conflict detected for ${message.path} - conflict copy created`,
-          "error",
-        );
         break;
       }
       case "online-status": {
-        console.error("Online status changed:", message.isOnline);
         this.ui.viewDispatch({
           type: "online-status-change",
           isOnline: message.isOnline,
         });
         break;
       }
-      default: {
-        console.error("Unknown service worker message", message);
-      }
     }
+
+    // Also dispatch it on the event hook for any other listeners
+    await this.eventHook.dispatchEvent(
+      `service-worker:${message.type}`,
+      message,
+    );
   }
 
   private navigateWithinPage(pageState: LocationState) {
@@ -1496,7 +1471,7 @@ export class Client {
             registration,
           );
           registration?.active?.postMessage(
-            { type: "wipeData" } as ServiceWorkerTargetMessage,
+            { type: "wipe-data" } as ServiceWorkerTargetMessage,
           );
         });
       });
@@ -1511,5 +1486,13 @@ export class Client {
     console.log("Clearing data store");
     await this.ds.kv.clear();
     console.log("Clearing complete.");
+  }
+
+  public async postServiceWorkerMessage(message: ServiceWorkerTargetMessage) {
+    const registration = await navigator.serviceWorker.getRegistration();
+    if (!registration?.active) {
+      throw new Error("No active service worker to post message to");
+    }
+    registration?.active?.postMessage(message);
   }
 }

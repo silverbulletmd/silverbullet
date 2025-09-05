@@ -1,4 +1,4 @@
-import type { DataStore } from "../../lib/data/datastore.ts";
+import type { KvPrimitives } from "../../lib/data/kv_primitives.ts";
 import { EventEmitter } from "../../lib/plugos/event.ts";
 import { plugPrefix, stdLibPrefix } from "../../lib/spaces/constants.ts";
 import type { SpacePrimitives } from "../../lib/spaces/space_primitives.ts";
@@ -15,6 +15,10 @@ const syncInterval = 20 * 1000;
 type SyncEngineEvents = {
   // Full sync cycle has completed
   spaceSyncComplete: (operations: number) => void | Promise<void>;
+
+  fileSyncComplete: (path: string, operations: number) => void | Promise<void>;
+
+  syncError: (error: Error) => void | Promise<void>;
 
   // Sync conflict occurred
   syncConflict: (path: string) => void | Promise<void>;
@@ -34,7 +38,7 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
   syncInterval?: number;
 
   constructor(
-    private ds: DataStore,
+    private kv: KvPrimitives,
     readonly local: SpacePrimitives,
     readonly remote: SpacePrimitives,
   ) {
@@ -72,14 +76,26 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
   }
 
   async syncSpace(): Promise<number> {
-    const { operations, nonSyncedFiles } = await this.spaceSync.syncFiles();
-    this.nonSyncedFiles = nonSyncedFiles;
-    this.emit("spaceSyncComplete", operations);
-    return operations;
+    try {
+      const { operations, nonSyncedFiles } = await this.spaceSync.syncFiles();
+      this.nonSyncedFiles = nonSyncedFiles;
+      this.emit("spaceSyncComplete", operations);
+      return operations;
+    } catch (e) {
+      this.emit("syncError", e);
+      throw e;
+    }
   }
 
-  syncSingleFile(path: string) {
-    return this.spaceSync.syncSingleFile(path);
+  async syncSingleFile(path: string): Promise<number> {
+    try {
+      const operations = await this.spaceSync.syncSingleFile(path);
+      this.emit("fileSyncComplete", path, operations);
+      return operations;
+    } catch (e) {
+      this.emit("syncError", e);
+      throw e;
+    }
   }
 
   /**
@@ -87,8 +103,9 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
    * @returns A map of sync status items.
    */
   async loadSnapshot() {
+    const [snapshot] = await this.kv.batchGet([syncSnapshotKey]);
     return new Map<string, SyncStatusItem>(
-      Object.entries(await this.ds.get(syncSnapshotKey) || {}),
+      Object.entries(snapshot || {}),
     );
   }
 
@@ -97,13 +114,16 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
    * @param snapshot A map of sync status items.
    */
   saveSnapshot(snapshot: Map<string, SyncStatusItem>) {
-    return this.ds.set(syncSnapshotKey, Object.fromEntries(snapshot));
+    return this.kv.batchSet([{
+      key: syncSnapshotKey,
+      value: Object.fromEntries(snapshot),
+    }]);
   }
 
   async wipe() {
     clearInterval(this.syncInterval);
     console.log("Wiping sync database");
-    await this.ds.kv.clear();
+    await this.kv.clear();
     console.log("Done wiping");
   }
 

@@ -117,7 +117,7 @@ safeRun(async () => {
                   "New service worker installed and ready to take over.",
                 );
                 // Force the new service worker to activate immediately
-                newWorker.postMessage({ type: "skipWaiting" });
+                newWorker.postMessage({ type: "skip-waiting" });
               }
             });
           }

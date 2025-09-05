@@ -166,11 +166,13 @@ export type Action =
  */
 export type ServiceWorkerTargetMessage =
   | {
-    type: "skipWaiting";
+    type: "skip-waiting";
   }
   | { type: "config"; config: ClientConfig }
-  | { type: "flushCache" }
-  | { type: "wipeData" };
+  | { type: "flush-cache" }
+  | { type: "wipe-data" }
+  | { type: "perform-file-sync"; path: string }
+  | { type: "perform-space-sync" };
 
 /**
  * Events received from the service worker -> client
@@ -182,11 +184,18 @@ export type ServiceWorkerSourceMessage = {
   type: "sync-conflict";
   path: string;
 } | {
+  type: "space-sync-complete";
+  operations: number;
+} | {
+  type: "file-sync-complete";
+  path: string;
+  operations: number;
+} | {
+  type: "sync-error";
+  message: string;
+} | {
   type: "online-status";
   isOnline: boolean;
-} | {
-  type: "sync-complete";
-  operations: number;
 } | {
   type: "auth-error";
   message: string;

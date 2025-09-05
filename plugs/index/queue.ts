@@ -24,7 +24,7 @@ export async function reindexSpace() {
 
   console.log("Queing", files.length, "pages to be indexed.");
   // Queue all file names to be indexed
-  await mq.batchSend("indexQueue", files.map((file) => file.name), true);
+  await mq.batchSend("indexQueue", files.map((file) => file.name));
   await editor.showProgress(0, "index");
   await mq.awaitEmptyQueue("indexQueue");
 

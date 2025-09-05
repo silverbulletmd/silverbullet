@@ -19,6 +19,22 @@ config.define("plugs", {
   },
 })
 
+config.define("sync", {
+  description = "Sync configuration",
+  type = "object",
+  properties = {
+    interval = {
+      type = "number",
+      description = "Interval in seconds between automatic sync cycles"
+    },
+    syncDocuments = {
+      type = "boolean",
+      description = "Indicates whether documents should be synced"
+    },
+  },
+  additionalProperties = false
+})
+
 config.define("autoCloseBrackets", {
   description = "List of brackets to auto close",
   type = "string",
@@ -287,6 +303,10 @@ config.set {
         editor.invokeCommand "Open Command Palette"
       end,
     }
+  },
+  sync = {
+    interval = 20,
+    syncDocuments = true,
   },
 }
 ```
