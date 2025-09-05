@@ -32,7 +32,9 @@ export function inlineContentPlugin(client: Client) {
           return;
         }
 
-        if (!isCursorInRange(state, [from, to])) {
+        const cleanModeEnabled = client.ui.viewState.uiOptions.cleanMode;
+        const cursorIsInRange = isCursorInRange(state, [from, to]);
+        if (cleanModeEnabled && !cursorIsInRange) {
           widgets.push(invisibleDecoration.range(from, to));
         }
 

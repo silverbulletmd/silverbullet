@@ -12,6 +12,11 @@ export async function setEditorMode() {
   if (await clientStore.get("darkMode")) {
     await editor.setUiOption("darkMode", true);
   }
+  const cleanMode = await clientStore.get("cleanMode");
+  if (cleanMode != null) {
+    await editor.setUiOption("cleanMode", cleanMode);
+    await editor.rebuildEditorState();
+  }
 }
 
 export function openCommandPalette() {
@@ -39,6 +44,14 @@ export async function toggleDarkMode() {
   darkMode = !darkMode;
   await clientStore.set("darkMode", darkMode);
   await editor.reloadUI();
+}
+
+export async function toggleCleanMode() {
+  let cleanMode = await editor.getUiOption("cleanMode");
+  cleanMode = !cleanMode;
+  await clientStore.set("cleanMode", cleanMode);
+  await editor.setUiOption("cleanMode", cleanMode);
+  await editor.rebuildEditorState();
 }
 
 export async function centerCursorCommand() {
