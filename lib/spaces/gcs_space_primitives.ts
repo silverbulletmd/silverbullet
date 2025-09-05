@@ -1,39 +1,67 @@
-import * as gcs from "googleapis-storage";
-import {auth, ADCResponse, Storage } from "googleapis-storage";
-import {SpacePrimitives} from "./space_primitives.ts";
-import {FileMeta} from "@silverbulletmd/silverbullet/type/index";
-
+import type { Object } from "googleapis-storage";
+import type { SpacePrimitives } from "./space_primitives.ts";
+import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
+import * as gcsClient from "./gcs_client.ts";
 
 export class GCSSpacePrimitives implements SpacePrimitives {
-
-  private bucket: Bucket;
-  private storage: Storage;
+  private bucketName: string;
   private prefix: string;
 
-  constructor(bucket: string, prefix: string|undefined) {
-    this.bucket = bucket;
+  constructor(bucket: string, prefix: string | undefined) {
+    this.bucketName = bucket;
     this.prefix = (prefix || "").replace(/^\/+|\/+$/g, "");
-    const adc: ADCResponse = await auth.getApplicationDefault();
-    this.storage = new Storage(adc);
   }
 
-  deleteFile(name: string): Promise<void> {
-    return Promise.resolve(undefined);
+  async deleteFile(name: string): Promise<void> {
+    await gcsClient.deleteFile(
+      this.bucketName,
+      `${this.prefix}/${name}`,
+    );
   }
 
-  fetchFileList(): Promise<FileMeta[]> {
-    return Promise.resolve([]);
+  async fetchFileList(): Promise<FileMeta[]> {
+    const fileMetas: FileMeta[] = await gcsClient.listFiles(
+      this.bucketName,
+      this.prefix,
+    );
+    return fileMetas;
   }
 
-  getFileMeta(name: string): Promise<FileMeta> {
-    return Promise.resolve(undefined);
+  async getFileMeta(name: string): Promise<FileMeta> {
+    const meta = await gcsClient.readFileMetadata(
+      this.bucketName,
+      `${this.prefix}/${name}`,
+    );
+    return meta;
   }
 
-  readFile(name: string): Promise<{ data: Uint8Array; meta: FileMeta }> {
-    return Promise.resolve({data: undefined, meta: undefined});
+  async readFile(name: string): Promise<{ data: Uint8Array; meta: FileMeta }> {
+    const [meta, data] = await Promise.all([
+      gcsClient.readFileMetadata(this.bucketName, `${this.prefix}/${name}`),
+      gcsClient.readFileData(this.bucketName, `${this.prefix}/${name}`),
+    ]);
+    return { data, meta };
   }
 
-  writeFile(name: string, data: Uint8Array, selfUpdate?: boolean, meta?: FileMeta): Promise<FileMeta> {
-    return Promise.resolve(undefined);
+  async writeFile(
+    name: string,
+    data: Uint8Array,
+    _selfUpdate?: boolean,
+    meta?: FileMeta,
+  ): Promise<FileMeta> {
+    const object: Object = await gcsClient.uploadFile(
+      this.bucketName,
+      this.prefix ? `${this.prefix}/${name}` : name,
+      data,
+    );
+    return {
+      name: object.name!,
+      created: new Date(object.timeCreated!).getTime(),
+      lastModified: new Date(object.updated!).getTime(),
+      contentType: object.contentType!,
+      size: Number(object.size!),
+      perm: "rw",
+      noSync: meta?.noSync,
+    } as FileMeta;
   }
 }

@@ -2,7 +2,7 @@ import { DiskSpacePrimitives } from "../lib/spaces/disk_space_primitives.ts";
 import type { SpacePrimitives } from "../lib/spaces/space_primitives.ts";
 import { resolve } from "@std/path";
 import { HttpSpacePrimitives } from "../lib/spaces/http_space_primitives.ts";
-import { GcsSpacePrimitives } from "../lib/spaces/gcs_space_primitives.ts";
+import { GCSSpacePrimitives } from "../lib/spaces/gcs_space_primitives.ts";
 
 export function determineStorageBackend(
   folder: string,
@@ -23,7 +23,7 @@ export function determineStorageBackend(
         prefix ? `, prefix=${prefix}` : ""
       }`,
     );
-    return new GcsSpacePrimitives(bucket, prefix);
+    return new GCSSpacePrimitives(bucket, prefix);
   } else {
     // Local disk fallback
     folder = resolve(Deno.cwd(), folder);
