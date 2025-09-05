@@ -411,6 +411,7 @@ export class Client {
             this.clientSystem.allKnownFiles.add(f.name);
           }
         });
+        this.clientSystem.knownFilesLoaded = true;
       },
     );
 

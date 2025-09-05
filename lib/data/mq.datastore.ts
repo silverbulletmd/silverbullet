@@ -8,7 +8,7 @@ import type {
   MQStats,
   MQSubscribeOptions,
 } from "../../type/datastore.ts";
-import { sleep } from "../async.ts";
+import { race, sleep } from "../async.ts";
 
 export type ProcessingMessage = MQMessage & {
   ts: number;
@@ -18,15 +18,130 @@ const queuedPrefix = ["mq", "queued"];
 const processingPrefix = ["mq", "processing"];
 const dlqPrefix = ["mq", "dlq"];
 
+export class QueueWorker {
+  stopping = false;
+  private stopReject?: (e: any) => void;
+
+  constructor(
+    private mq: DataStoreMQ,
+    readonly queue: string,
+    readonly options: MQSubscribeOptions,
+    private callback: (messages: MQMessage[]) => Promise<void> | void,
+  ) {
+  }
+
+  /**
+   * This is the main loop of the worker, whenever it exits the loop it means the worker has stopped
+   */
+  async run() {
+    try {
+      while (true) {
+        if (this.stopping) {
+          break;
+        }
+        // Poll for messages
+        const messages = await this.mq.poll(
+          this.queue,
+          this.options.batchSize || 1,
+        );
+        if (messages.length > 0) {
+          // We have messages, process them, then immediately loop to poll again
+          await this.callback(messages);
+        } else {
+          // No messages, wait to be woken up or a timeout
+          try {
+            await race([
+              // Wait to be woken up explicitly
+              new Promise<void>((resolve, reject) => {
+                this.stopReject = reject;
+                this.mq.queueWorker(this.queue, resolve, reject);
+              }),
+              // Or a poll interval timeout
+              sleep(this.options.pollInterval || 1000).then(() => {
+                // Remove self from waiters
+                this.mq.removeQueuedWorker(this.queue, this.stopReject!);
+              }),
+            ]);
+          } catch (e: any) {
+            // Only scenario we should end up here is stop being called
+            console.info(e.message);
+            break;
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Error in queue worker", e);
+    }
+  }
+
+  stop() {
+    this.stopping = true;
+    if (this.stopReject) {
+      // Worker was in a waiting state, reject the promise to wake it up and remove from waiters
+      this.mq.removeQueuedWorker(this.queue, this.stopReject);
+      this.stopReject(new Error("Queue worker stopped"));
+    }
+  }
+}
+
 export class DataStoreMQ {
-  // queue -> set of run() functions
-  localSubscriptions = new Map<string, Set<() => void>>();
   // Internal sequencer for messages, only really necessary when batch sending tons of messages within a millisecond
   seq = 0;
+
+  queueWaiters = new Map<
+    string,
+    ({ resolve: () => void; reject: (e: any) => void })[]
+  >();
 
   constructor(
     private ds: DataStore,
   ) {
+  }
+
+  /// Worker management
+  public queueWorker(
+    queue: string,
+    resolve: () => void,
+    reject: (e: any) => void,
+  ) {
+    let waiters = this.queueWaiters.get(queue);
+    if (!waiters) {
+      waiters = [];
+      this.queueWaiters.set(queue, waiters);
+    }
+    // console.log("[mq]", "Queuing a worker for queue", queue);
+    waiters.push({ resolve, reject });
+  }
+
+  /**
+   * Wakes up a single worker waiting on the given queue, if any
+   * @param queue
+   */
+  wakeupWorker(queue: string) {
+    const waiters = this.queueWaiters.get(queue);
+    if (waiters && waiters.length > 0) {
+      // console.log("[mq]", "Waking up a worker for queue", queue);
+      const { resolve } = waiters.shift()!;
+      resolve();
+      if (waiters.length === 0) {
+        // Clean up empty arrays
+        this.queueWaiters.delete(queue);
+      }
+    }
+  }
+
+  removeQueuedWorker(queue: string, reject: (e: any) => void) {
+    const waiters = this.queueWaiters.get(queue);
+    if (waiters) {
+      const index = waiters.findIndex((w) => w.reject === reject);
+      if (index !== -1) {
+        waiters.splice(index, 1);
+      }
+      if (waiters.length === 0) {
+        // Let's not keep empty arrays around
+        this.queueWaiters.delete(queue);
+      }
+    }
   }
 
   /**
@@ -51,13 +166,7 @@ export class DataStoreMQ {
 
     await this.ds.batchSet(messages);
 
-    // See if we can immediately process the message with a local subscription
-    const localSubscriptions = this.localSubscriptions.get(queue);
-    if (localSubscriptions) {
-      for (const run of localSubscriptions) {
-        run();
-      }
-    }
+    this.wakeupWorker(queue);
   }
 
   send(queue: string, body: any): Promise<void> {
@@ -106,57 +215,11 @@ export class DataStoreMQ {
     queue: string,
     options: MQSubscribeOptions,
     callback: (messages: MQMessage[]) => Promise<void> | void,
-  ): () => void {
-    let running = true;
-    let timeout: number | undefined;
-    const batchSize = options.batchSize || 1;
-    const run = async () => {
-      try {
-        // We're running, so let's make sure we're not running multiple times
-        if (timeout) {
-          clearTimeout(timeout);
-        }
-        if (!running) {
-          return;
-        }
-        const messages = await this.poll(queue, batchSize);
-        if (messages.length > 0) {
-          await callback(messages);
-        }
-        // If we got exactly the batch size, there might be more messages
-        if (messages.length === batchSize) {
-          await run();
-        } else {
-          timeout = setTimeout(run, options.pollInterval || 5000);
-        }
-      } catch (e: any) {
-        console.error("Error in MQ subscription handler", e);
-      }
-    };
-
-    // Register as a local subscription handler
-    const localSubscriptions = this.localSubscriptions.get(queue);
-    if (!localSubscriptions) {
-      this.localSubscriptions.set(queue, new Set([run]));
-    } else {
-      localSubscriptions.add(run);
-    }
-
-    // Run the first time (which will schedule subsequent polling intervals)
-    run();
-
-    // And return an unsubscribe function
-    return () => {
-      running = false;
-      if (timeout) {
-        clearTimeout(timeout);
-      }
-      // Remove the subscription from localSubscriptions
-      const queueSubscriptions = this.localSubscriptions.get(queue);
-      if (queueSubscriptions) {
-        queueSubscriptions.delete(run);
-      }
-    };
+  ): QueueWorker {
+    const worker = new QueueWorker(this, queue, options, callback);
+    // Start the worker asynchronously
+    worker.run();
+    return worker;
   }
 
   ack(queue: string, id: string) {

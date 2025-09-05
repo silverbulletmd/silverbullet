@@ -60,6 +60,7 @@ self.addEventListener("message", async (event: any) => {
     }
     case "flushCache": {
       const cacheNames = await caches.keys();
+
       await Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {

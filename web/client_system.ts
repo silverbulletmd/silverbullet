@@ -76,7 +76,10 @@ export class ClientSystem {
   codeWidgetHook!: CodeWidgetHook;
   documentEditorHook!: DocumentEditorHook;
 
+  // Known files (for UI)
   readonly allKnownFiles = new Set<string>();
+  public knownFilesLoaded: boolean = false;
+
   readonly scriptCommands = new Map<string, Command>();
   spaceLuaEnv = new SpaceLuaEnvironment();
   scriptsLoaded: boolean = false;

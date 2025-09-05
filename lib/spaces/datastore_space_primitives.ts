@@ -4,8 +4,8 @@ import type { FileMeta } from "../../type/index.ts";
 import { notFoundError } from "../constants.ts";
 import type { KvPrimitives } from "../data/kv_primitives.ts";
 
-const filesMetaPrefix = ["m"];
-const filesContentPrefix = ["c"];
+const filesMetaPrefix = ["meta"];
+const filesContentPrefix = ["content"];
 
 export class DataStoreSpacePrimitives implements SpacePrimitives {
   constructor(

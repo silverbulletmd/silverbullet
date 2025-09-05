@@ -10,6 +10,7 @@ import { sleep } from "../../lib/async.ts";
 import { indexDocument } from "./document.ts";
 import type { MQMessage } from "../../type/datastore.ts";
 import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
+import { clearFileIndex } from "./api.ts";
 
 export async function reindexSpace() {
   if (await system.getMode() === "ro") {
@@ -72,8 +73,13 @@ export async function processIndexQueue(messages: MQMessage[]) {
 }
 
 async function indexPage(name: string) {
+  // Clear any previous index entries for this file
+  await clearFileIndex(name);
+  // Read and parse the file
   const text = await space.readPage(name);
   const parsed = await markdown.parseMarkdown(text);
+
+  // Emit the event which will be picked up by indexers
   await events.dispatchEvent("page:index", {
     name,
     tree: parsed,

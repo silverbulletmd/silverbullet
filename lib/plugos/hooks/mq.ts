@@ -2,11 +2,11 @@ import type { Hook, Manifest } from "../types.ts";
 import type { System } from "../system.ts";
 import { throttle } from "../../async.ts";
 import type { MQHookT } from "../../manifest.ts";
-import type { DataStoreMQ } from "../../data/mq.datastore.ts";
+import type { DataStoreMQ, QueueWorker } from "../../data/mq.datastore.ts";
 import type { MQMessage } from "../../../type/datastore.ts";
 
 export class MQHook implements Hook<MQHookT> {
-  subscriptions: (() => void)[] = [];
+  subscriptions: QueueWorker[] = [];
   throttledReloadQueues = throttle(() => {
     this.reloadQueues();
   }, 1000);
@@ -29,7 +29,7 @@ export class MQHook implements Hook<MQHookT> {
   }
 
   stop() {
-    this.subscriptions.forEach((sub) => sub());
+    this.subscriptions.forEach((worker) => worker.stop());
     this.subscriptions = [];
   }
 
