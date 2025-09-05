@@ -1,7 +1,13 @@
 import { safeRun } from "../lib/async.ts";
+import { initLogger } from "../lib/logger.ts";
 import { Client, type ClientConfig } from "./client.ts";
+import {
+  flushCachesAndUnregisterServiceWorker,
+} from "./service_worker/util.ts";
 
 const configCacheKey = `silverbullet.${document.baseURI}.config`;
+
+initLogger("[Client]");
 
 safeRun(async () => {
   // First we attempt to fetch the config from the server
@@ -50,9 +56,6 @@ safeRun(async () => {
   if (urlParams.has("disableSpaceLua")) {
     clientConfig!.disableSpaceLua = true;
   }
-  if (urlParams.has("disableSync")) {
-    clientConfig!.disableSync = true;
-  }
   if (urlParams.has("disablePlugs")) {
     clientConfig!.disablePlugs = true;
   }
@@ -65,6 +68,15 @@ safeRun(async () => {
   if (urlParams.has("resetClient")) {
     clientConfig!.performReset = true;
   }
+  if (urlParams.has("enableSW")) {
+    const val = urlParams.get("enableSW")!;
+    console.log("Got this sw value", val, typeof val);
+    localStorage.setItem("enableSW", val);
+    if (val === "0") {
+      await flushCachesAndUnregisterServiceWorker();
+    }
+  }
+
   // Update the browser URL to no longer contain the query parameters using pushState
   if (location.search) {
     const newURL = new URL(location.href);
@@ -74,7 +86,8 @@ safeRun(async () => {
   console.log("Booting SilverBullet client");
   console.log("Client config", clientConfig);
 
-  if (navigator.serviceWorker) {
+  // TODO: Re-enable service worker again
+  if (localStorage.getItem("enableSW") !== "0" && navigator.serviceWorker) {
     // Register service worker
     const workerURL = new URL("service_worker.js", document.baseURI);
     navigator.serviceWorker
@@ -104,7 +117,7 @@ safeRun(async () => {
                   "New service worker installed and ready to take over.",
                 );
                 // Force the new service worker to activate immediately
-                newWorker.postMessage({ type: "skipWaiting" });
+                newWorker.postMessage({ type: "skip-waiting" });
               }
             });
           }
@@ -129,9 +142,7 @@ safeRun(async () => {
       });
     });
   } else {
-    console.warn(
-      "Not launching service worker, likely because not running from localhost or over HTTPs. This means SilverBullet will not be available offline.",
-    );
+    console.info("Service worker disabled.");
   }
   const client = new Client(
     document.getElementById("sb-root")!,
@@ -140,6 +151,11 @@ safeRun(async () => {
   // @ts-ignore: on purpose
   globalThis.client = client;
   await client.init();
+  if (navigator.serviceWorker) {
+    navigator.serviceWorker.addEventListener("message", (event) => {
+      client.handleServiceWorkerMessage(event.data);
+    });
+  }
 });
 
 if (!globalThis.indexedDB) {

@@ -15,7 +15,7 @@ export function inlineContentPlugin(client: Client) {
   return decoratorStateField((state: EditorState) => {
     const widgets: Range<Decoration>[] = [];
     if (!shouldRenderWidgets(client)) {
-      console.info("Not rendering widgets");
+      // console.info("Not rendering widgets");
       return Decoration.set([]);
     }
 

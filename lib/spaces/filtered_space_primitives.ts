@@ -16,24 +16,24 @@ export class FilteredSpacePrimitives implements SpacePrimitives {
     return (await this.wrapped.fetchFileList()).filter(this.filterFn);
   }
 
-  readFile(name: string): Promise<{ data: Uint8Array; meta: FileMeta }> {
-    return this.wrapped.readFile(name);
+  readFile(path: string): Promise<{ data: Uint8Array; meta: FileMeta }> {
+    return this.wrapped.readFile(path);
   }
 
-  getFileMeta(name: string): Promise<FileMeta> {
-    return this.wrapped.getFileMeta(name);
+  getFileMeta(path: string, observing?: boolean): Promise<FileMeta> {
+    return this.wrapped.getFileMeta(path, observing);
   }
 
   writeFile(
-    name: string,
+    path: string,
     data: Uint8Array,
     selfUpdate?: boolean | undefined,
     meta?: FileMeta,
   ): Promise<FileMeta> {
-    return this.wrapped.writeFile(name, data, selfUpdate, meta);
+    return this.wrapped.writeFile(path, data, selfUpdate, meta);
   }
 
-  deleteFile(name: string): Promise<void> {
-    return this.wrapped.deleteFile(name);
+  deleteFile(path: string): Promise<void> {
+    return this.wrapped.deleteFile(path);
   }
 }

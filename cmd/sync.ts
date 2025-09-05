@@ -38,10 +38,6 @@ export async function syncCommand(
     console.log("Done wiping secondary storage.");
   }
 
-  const sync = new SpaceSync(primarySpacePrimitives, secondarySpacePrimitives, {
-    conflictResolver: SpaceSync.primaryConflictResolver,
-    isSyncCandidate: () => true,
-  });
   let snapshot = new Map<string, SyncStatusItem>();
   if (options.snapshot) {
     try {
@@ -56,13 +52,27 @@ export async function syncCommand(
       );
     }
   }
+  const sync = new SpaceSync(
+    primarySpacePrimitives,
+    secondarySpacePrimitives,
+    snapshot,
+    {
+      conflictResolver: SpaceSync.primaryConflictResolver,
+      isSyncCandidate: () => true,
+    },
+  );
 
-  const operations = await sync.syncFiles(snapshot);
-  console.log("Sync completed, operations:", operations);
   if (options.snapshot) {
-    await Deno.writeTextFile(
-      options.snapshot,
-      JSON.stringify(Object.fromEntries(snapshot.entries())),
-    );
+    sync.on({
+      snapshotUpdated: async (snapshot) => {
+        await Deno.writeTextFile(
+          options.snapshot!,
+          JSON.stringify(Object.fromEntries(snapshot.entries())),
+        );
+      },
+    });
   }
+
+  const operations = await sync.syncFiles();
+  console.log("Sync completed, operations:", operations);
 }

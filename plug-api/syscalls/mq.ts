@@ -21,7 +21,10 @@ export function send(queue: string, body: any): Promise<void> {
  * @param queue the name of the queue
  * @param bodies the bodies of the messages to send
  */
-export function batchSend(queue: string, bodies: any[]): Promise<void> {
+export function batchSend(
+  queue: string,
+  bodies: any[],
+): Promise<void> {
   return syscall("mq.batchSend", queue, bodies);
 }
 
@@ -57,4 +60,13 @@ export function batchAck(queue: string, ids: string[]): Promise<void> {
  */
 export function getQueueStats(queue: string): Promise<MQStats> {
   return syscall("mq.getQueueStats", queue);
+}
+
+/**
+ * Waits for a queue to become empty.
+ * @param queue the name of the queue
+ * @returns a promise that resolves when the queue is empty
+ */
+export function awaitEmptyQueue(queue: string): Promise<void> {
+  return syscall("mq.awaitEmptyQueue", queue);
 }

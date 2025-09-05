@@ -7,6 +7,7 @@
     "deep-clean-mac": "rm -f deno.lock && rm -rf $HOME/Library/Caches/deno && deno task clean",
     "install": "deno install -g -f -A --import-map deno.json silverbullet.ts",
     "check": "find . -name '*.ts*' -not -path \"*/node_modules/*\" | xargs deno check",
+    "checks": "deno task check && deno task lint && deno task test",
     "lint": "deno lint",
     "fmt": "deno fmt",
     "test": "deno test -A",

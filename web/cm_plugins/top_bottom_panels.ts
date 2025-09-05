@@ -113,7 +113,7 @@ export function postScriptPrefacePlugin(
 ) {
   return decoratorStateField((state: EditorState) => {
     if (!editor.clientSystem.scriptsLoaded) {
-      console.info("System not yet ready, not rendering panel widgets.");
+      // console.info("System not yet ready, not rendering panel widgets.");
       return Decoration.none;
     }
     const widgets: any[] = [];

@@ -23,5 +23,8 @@ export function mqSyscalls(
     "mq.getQueueStats": (_ctx, queue: string) => {
       return mq.getQueueStats(queue);
     },
+    "mq.awaitEmptyQueue": (_ctx, queue: string) => {
+      return mq.awaitEmptyQueue(queue);
+    },
   };
 }

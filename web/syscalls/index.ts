@@ -45,6 +45,9 @@ export function indexSyscalls(client: Client): SysCallMapping {
         },
       };
     },
+    "index.ensureFullIndex": (_ctx) => {
+      return client.clientSystem.ensureFullIndex();
+    },
     "lua:index.defineTag": (_ctx, tagDef: LuaTable) => {
       // Using 'lua:' prefix to _not_ convert tagDef to a JS version (but keep original LuaTable)
       if (!tagDef.has("name")) {

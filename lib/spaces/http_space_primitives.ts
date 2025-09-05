@@ -2,16 +2,17 @@ import type { SpacePrimitives } from "./space_primitives.ts";
 import { encodePageURI } from "@silverbulletmd/silverbullet/lib/ref";
 import {
   flushCachesAndUnregisterServiceWorker,
-  unregisterServiceWorkers,
-} from "../../web/sw_util.ts";
+} from "../../web/service_worker/util.ts";
 import type { FileMeta } from "../../type/index.ts";
+import { notFoundError, offlineError } from "../constants.ts";
 
 const defaultFetchTimeout = 30000; // 30 seconds
 
 export class HttpSpacePrimitives implements SpacePrimitives {
   constructor(
     readonly url: string,
-    readonly expectedSpacePath?: string,
+    readonly expectedSpacePath: string,
+    private authErrorCallback: (message: string, ...args: any[]) => void,
     private bearerToken?: string,
   ) {
   }
@@ -40,19 +41,21 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       options.redirect = "manual";
       const result = await fetch(url, options);
       if (result.status === 503) {
-        throw new Error("Offline");
+        throw offlineError;
       }
       const redirectHeader = result.headers.get("location");
 
       if (result.type === "opaqueredirect" && !redirectHeader) {
+        console.log("Result", result, "for", url, JSON.stringify(options));
         // This is a scenario where the server sent a redirect, but this redirect is not visible to the client, likely due to CORS
         // The best we can do is to reload the page and hope that the server will redirect us to the correct location
-        alert(
+        this.authErrorCallback(
           "You are not authenticated, reloading to reauthenticate",
+          "reload",
         );
-        console.log("Unregistering service workers", redirectHeader);
-        await unregisterServiceWorkers();
-        location.reload();
+        // console.log("Unregistering service workers", redirectHeader);
+        // await unregisterServiceWorkers();
+        // location.reload();
         // Let's throw to avoid any further processing
         throw Error("Not authenticated");
       }
@@ -63,11 +66,11 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       if (result.status >= 300 && result.status < 400) {
         if (redirectHeader) {
           // Got a redirect
-          alert(
-            "Received an authentication redirect, redirecting to URL: " +
-              redirectHeader,
+          this.authErrorCallback(
+            "Received an authentication redirect",
+            redirectHeader,
           );
-          location.href = redirectHeader;
+          // location.href = redirectHeader;
           throw new Error("Redirected");
         } else {
           console.error("Got a redirect status but no location header", result);
@@ -81,15 +84,15 @@ export class HttpSpacePrimitives implements SpacePrimitives {
             "Received unauthorized status and got a redirect via the API so will redirect to URL",
             result.url,
           );
-          alert("You are not authenticated, redirecting to: " + redirectHeader);
-          location.href = redirectHeader;
+          this.authErrorCallback("You are not authenticated ", redirectHeader);
+          // location.href = redirectHeader;
           throw new Error("Not authenticated");
         } else {
           // If not, let's reload
-          alert(
+          this.authErrorCallback(
             "You are not authenticated, going to reload and hope that that kicks off authentication",
           );
-          location.reload();
+          // location.reload();
           throw new Error("Not authenticated");
         }
       }
@@ -112,7 +115,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
           url,
           e,
         );
-        throw new Error("Offline");
+        throw offlineError;
       }
       throw e;
     }
@@ -132,18 +135,21 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       console.log("Expected space path", this.expectedSpacePath);
       console.log("Got space path", resp.headers.get("X-Space-Path"));
       await flushCachesAndUnregisterServiceWorker();
-      alert("Space folder path different on server, reloading the page");
-      location.reload();
+      this.authErrorCallback(
+        "Space folder path different on server, reloading the page",
+        "reload",
+      );
+      // location.reload();
     }
 
     return resp.json();
   }
 
   async readFile(
-    name: string,
+    path: string,
   ): Promise<{ data: Uint8Array; meta: FileMeta }> {
     const res = await this.authenticatedFetch(
-      `${this.url}/${encodePageURI(name)}`,
+      `${this.url}/${encodePageURI(path)}`,
       {
         method: "GET",
         headers: {
@@ -153,16 +159,16 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       },
     );
     if (res.status === 404) {
-      throw new Error(`Not found`);
+      throw notFoundError;
     }
     return {
       data: new Uint8Array(await res.arrayBuffer()),
-      meta: this.responseToMeta(name, res),
+      meta: this.responseToMeta(path, res),
     };
   }
 
   async writeFile(
-    name: string,
+    path: string,
     data: Uint8Array,
     _selfUpdate?: boolean,
     meta?: FileMeta,
@@ -177,19 +183,19 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     }
 
     const res = await this.authenticatedFetch(
-      `${this.url}/${encodePageURI(name)}`,
+      `${this.url}/${encodePageURI(path)}`,
       {
         method: "PUT",
         headers,
         body: data,
       },
     );
-    return this.responseToMeta(name, res);
+    return this.responseToMeta(path, res);
   }
 
-  async deleteFile(name: string): Promise<void> {
+  async deleteFile(path: string): Promise<void> {
     const req = await this.authenticatedFetch(
-      `${this.url}/${encodePageURI(name)}`,
+      `${this.url}/${encodePageURI(path)}`,
       {
         method: "DELETE",
       },
@@ -199,25 +205,26 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     }
   }
 
-  async getFileMeta(name: string): Promise<FileMeta> {
+  async getFileMeta(path: string, observing?: boolean): Promise<FileMeta> {
     const res = await this.authenticatedFetch(
-      `${this.url}/${encodePageURI(name)}`,
+      `${this.url}/${encodePageURI(path)}`,
       // This used to use HEAD, but it seems that Safari on iOS is blocking cookies/credentials to be sent along with HEAD requests
       // so we'll use GET instead with a magic header which the server may or may not use to omit the body.
       {
         method: "GET",
         headers: {
           "X-Get-Meta": "true",
+          ...(observing ? { "X-Observing": "true" } : {}),
         },
       },
     );
     if (res.status === 404) {
-      throw new Error(`Not found`);
+      throw notFoundError;
     }
     if (!res.ok) {
       throw new Error(`Failed to get file meta: ${res.statusText}`);
     }
-    return this.responseToMeta(name, res);
+    return this.responseToMeta(path, res);
   }
 
   // If not: throws an error or invokes a redirect
@@ -233,37 +240,6 @@ export class HttpSpacePrimitives implements SpacePrimitives {
 
     // Consume the response body to avoid leaks
     await response.text();
-  }
-
-  // Used to check if the server is reachable and the user is authenticated
-
-  /**
-   * Create an authenticated WebSocket connection
-   * @param path The path to connect to
-   * @param queryParams Optional query parameters
-   * @returns A WebSocket connection
-   */
-  async createAuthenticatedWebSocket(
-    path: string,
-    queryParams: Record<string, string> = {},
-  ): Promise<WebSocket> {
-    // First make an authenticated request to ensure we have valid cookies
-    await this.ping();
-
-    // Build the WebSocket URL with query parameters
-    const queryString = Object.entries(queryParams)
-      .map(([key, value]) =>
-        `${encodeURIComponent(key)}=${encodeURIComponent(value)}`
-      )
-      .join("&");
-
-    // Create the WebSocket URL
-    const wsUrl = `${this.url.replace(/^http/, "ws")}/${path}${
-      queryString ? `?${queryString}` : ""
-    }`;
-
-    // Create and return the WebSocket
-    return new WebSocket(wsUrl);
   }
 
   private responseToMeta(name: string, res: Response): FileMeta {

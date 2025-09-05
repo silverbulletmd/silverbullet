@@ -9,7 +9,10 @@ export function determineStorageBackend(
   if (folder.startsWith("http://") || folder.startsWith("https://")) {
     return new HttpSpacePrimitives(
       folder,
-      undefined,
+      "",
+      (err) => {
+        console.error("[HTTP space primitives error]", err);
+      },
       Deno.env.get("SB_AUTH_TOKEN"),
     );
   } else {

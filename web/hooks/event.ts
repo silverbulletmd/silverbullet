@@ -22,6 +22,20 @@ export class EventHook implements EventHookI {
     this.localListeners.get(eventName)!.push(callback);
   }
 
+  removeLocalListener(eventName: string, callback: (...args: any[]) => any) {
+    if (!this.localListeners.has(eventName)) {
+      return;
+    }
+    const listeners = this.localListeners.get(eventName)!;
+    const index = listeners.indexOf(callback);
+    if (index !== -1) {
+      listeners.splice(index, 1);
+    }
+    if (listeners.length === 0) {
+      this.localListeners.delete(eventName);
+    }
+  }
+
   // Pull all events listened to
   listEvents(): string[] {
     if (!this.system) {

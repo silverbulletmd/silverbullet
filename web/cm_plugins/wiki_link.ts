@@ -52,7 +52,7 @@ export function cleanWikiLinkPlugin(client: Client) {
             .some((file) => file === ref.path)
         ) {
           linkStatus = "default";
-        } else if (client.fullSyncCompleted) {
+        } else if (client.clientSystem.knownFilesLoaded) {
           linkStatus = "file-missing";
         }
 

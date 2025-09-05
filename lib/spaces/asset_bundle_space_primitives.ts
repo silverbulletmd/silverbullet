@@ -24,62 +24,62 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
   }
 
   readFile(
-    name: string,
+    path: string,
   ): Promise<{ data: Uint8Array; meta: FileMeta }> {
-    if (this.assetBundle.has(name)) {
-      const data = this.assetBundle.readFileSync(name);
+    if (this.assetBundle.has(path)) {
+      const data = this.assetBundle.readFileSync(path);
       // console.log("Requested encoding", encoding);
       return Promise.resolve({
         data,
         meta: {
-          contentType: this.assetBundle.getMimeType(name),
-          created: this.assetBundle.getMtime(name),
-          lastModified: this.assetBundle.getMtime(name),
+          contentType: this.assetBundle.getMimeType(path),
+          created: this.assetBundle.getMtime(path),
+          lastModified: this.assetBundle.getMtime(path),
           size: data.byteLength,
           perm: "ro",
         } as FileMeta,
       });
     }
-    return this.wrapped.readFile(name);
+    return this.wrapped.readFile(path);
   }
 
-  getFileMeta(name: string): Promise<FileMeta> {
-    if (this.assetBundle.has(name)) {
-      const data = this.assetBundle.readFileSync(name);
+  getFileMeta(path: string, observing?: boolean): Promise<FileMeta> {
+    if (this.assetBundle.has(path)) {
+      const data = this.assetBundle.readFileSync(path);
       return Promise.resolve({
-        contentType: this.assetBundle.getMimeType(name),
-        created: this.assetBundle.getMtime(name),
-        lastModified: this.assetBundle.getMtime(name),
+        contentType: this.assetBundle.getMimeType(path),
+        created: this.assetBundle.getMtime(path),
+        lastModified: this.assetBundle.getMtime(path),
         size: data.byteLength,
         perm: "ro",
       } as FileMeta);
     }
-    return this.wrapped.getFileMeta(name);
+    return this.wrapped.getFileMeta(path, observing);
   }
 
   writeFile(
-    name: string,
+    path: string,
     data: Uint8Array,
     selfUpdate?: boolean,
     meta?: FileMeta,
   ): Promise<FileMeta> {
-    if (this.assetBundle.has(name)) {
-      console.warn("Attempted to write to read-only asset file", name);
-      return this.getFileMeta(name);
+    if (this.assetBundle.has(path)) {
+      console.warn("Attempted to write to read-only asset file", path);
+      return this.getFileMeta(path);
     }
     return this.wrapped.writeFile(
-      name,
+      path,
       data,
       selfUpdate,
       meta,
     );
   }
 
-  deleteFile(name: string): Promise<void> {
-    if (this.assetBundle.has(name)) {
+  deleteFile(path: string): Promise<void> {
+    if (this.assetBundle.has(path)) {
       // Quietly ignore
       return Promise.resolve();
     }
-    return this.wrapped.deleteFile(name);
+    return this.wrapped.deleteFile(path);
   }
 }

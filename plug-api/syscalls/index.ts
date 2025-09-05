@@ -49,3 +49,10 @@ export function getObjectByRef<T>(
 ): Promise<ObjectValue<T> | undefined> {
   return syscall("index.getObjectByRef", page, tag, ref);
 }
+
+/**
+ * Ensures that the full index is built and up-to-date
+ */
+export function ensureFullIndex(): Promise<void> {
+  return syscall("index.ensureFullIndex");
+}

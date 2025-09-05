@@ -1,8 +1,28 @@
 name: sync
 functions:
+
+  # Commands
   syncSpaceCommand:
     path: "./sync.ts:syncSpaceCommand"
     command:
-      name: "Sync: Now"
+      name: "Sync: Space"
       key: "Alt-Shift-s"
       mac: "Cmd-Shift-s"
+
+  syncFileCommand:
+    path: "./sync.ts:syncFileCommand"
+    command:
+      name: "Sync: File"
+
+  spaceSyncComplete:
+    path: "./sync.ts:spaceSyncComplete"
+    events:
+      - "service-worker:space-sync-complete"
+  updateSyncStatus:
+    path: "./sync.ts:updateSyncStatus"
+    events:
+      - "service-worker:sync-status"
+  reportSyncConflict:
+    path: "./sync.ts:reportSyncConflict"
+    events:
+      - "service-worker:sync-conflict"

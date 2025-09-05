@@ -1,50 +1,53 @@
 import type { SpacePrimitives } from "./space_primitives.ts";
 import { mime } from "mimetypes";
-import type { DataStore } from "../data/datastore.ts";
 import type { FileMeta } from "../../type/index.ts";
+import { notFoundError } from "../constants.ts";
+import type { KvPrimitives } from "../data/kv_primitives.ts";
 
-export type FileContent = {
-  name: string;
-  meta: FileMeta;
-  data: Uint8Array;
-};
+const filesMetaPrefix = ["meta"];
+const filesContentPrefix = ["content"];
 
-const filesMetaPrefix = ["file", "meta"];
-const filesContentPrefix = ["file", "content"];
-
-/**
- * TODO: Replace this with ChunkedDatastoreSpacePrimitives
- */
 export class DataStoreSpacePrimitives implements SpacePrimitives {
   constructor(
-    private ds: DataStore,
+    private kv: KvPrimitives,
   ) {
   }
 
   async fetchFileList(): Promise<FileMeta[]> {
-    return (await this.ds.luaQuery<FileMeta>(filesMetaPrefix, {}))
-      .map((meta) => this.ensureFileMeta(meta));
+    const fileMetas: FileMeta[] = [];
+    // Iterate over all keys with the fileMetaPrefix
+    for await (const meta of this.kv.query({ prefix: filesMetaPrefix })) {
+      fileMetas.push(this.ensureFileMeta(meta.value as FileMeta));
+    }
+    return fileMetas;
   }
 
   async readFile(
-    name: string,
+    path: string,
   ): Promise<{ data: Uint8Array; meta: FileMeta }> {
-    const fileContent = await this.ds.get<FileContent>([
-      ...filesContentPrefix,
-      name,
+    // Fetch content and metadata in parallel
+    const [fileMeta, fileContent] = await this.kv.batchGet([
+      [
+        ...filesMetaPrefix,
+        path,
+      ],
+      [
+        ...filesContentPrefix,
+        path,
+      ],
     ]);
-    if (!fileContent) {
-      throw new Error("Not found");
+    if (!fileMeta) {
+      throw notFoundError;
     }
 
     return {
-      data: fileContent.data,
-      meta: this.ensureFileMeta(fileContent.meta),
+      meta: this.ensureFileMeta(fileMeta),
+      data: fileContent,
     };
   }
 
   async writeFile(
-    name: string,
+    path: string,
     data: Uint8Array,
     _selfUpdate?: boolean,
     suggestedMeta?: FileMeta,
@@ -52,16 +55,16 @@ export class DataStoreSpacePrimitives implements SpacePrimitives {
     let meta: FileMeta | undefined;
     try {
       // Build off of the existing file meta, if file exists
-      meta = await this.getFileMeta(name);
+      meta = await this.getFileMeta(path);
     } catch {
       // Not found, that's fine
     }
     if (!meta) {
       meta = {
-        name,
+        name: path,
         created: suggestedMeta?.lastModified || Date.now(),
         perm: suggestedMeta?.perm || "rw",
-        contentType: mime.getType(name) || "application/octet-stream",
+        contentType: mime.getType(path) || "application/octet-stream",
         // Overwritten in a sec
         lastModified: 0,
         size: 0,
@@ -70,37 +73,37 @@ export class DataStoreSpacePrimitives implements SpacePrimitives {
     meta.lastModified = suggestedMeta?.lastModified || Date.now();
     meta.size = data.byteLength;
 
-    await this.ds.batchSet<FileMeta | FileContent>([
+    // Write metadata and content in same transaction
+    await this.kv.batchSet([
       {
-        key: [...filesContentPrefix, name],
-        value: { name, data, meta },
+        key: [...filesMetaPrefix, path],
+        value: meta,
       },
       {
-        key: [...filesMetaPrefix, name],
-        value: meta,
+        key: [...filesContentPrefix, path],
+        value: data,
       },
     ]);
     return meta;
   }
 
-  async deleteFile(name: string): Promise<void> {
-    const fileMeta = await this.ds.get<FileMeta>([
-      ...filesMetaPrefix,
-      name,
+  async deleteFile(path: string): Promise<void> {
+    const [fileMeta] = await this.kv.batchGet([
+      [...filesMetaPrefix, path],
     ]);
     if (!fileMeta) {
-      throw new Error("Not found");
+      throw notFoundError;
     }
-    return this.ds.batchDelete([
-      [...filesMetaPrefix, name],
-      [...filesContentPrefix, name],
+    return this.kv.batchDelete([
+      [...filesMetaPrefix, path],
+      [...filesContentPrefix, path],
     ]);
   }
 
-  async getFileMeta(name: string): Promise<FileMeta> {
-    const fileMeta = await this.ds.get([...filesMetaPrefix, name]);
+  async getFileMeta(path: string, _observing?: boolean): Promise<FileMeta> {
+    const [fileMeta] = await this.kv.batchGet([[...filesMetaPrefix, path]]);
     if (!fileMeta) {
-      throw new Error("Not found");
+      throw notFoundError;
     }
     return this.ensureFileMeta(fileMeta);
   }

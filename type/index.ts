@@ -5,7 +5,6 @@ export type FileMeta = {
   contentType: string;
   size: number;
   perm: "ro" | "rw";
-  noSync?: boolean;
 };
 /**
  * Decorates a page when it matches certain criteria

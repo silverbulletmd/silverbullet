@@ -13,7 +13,7 @@ import {
   findParentMatching,
   nodeAtPos,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import { maximumDocumentSize } from "../constants.ts";
+import { maximumDocumentSize } from "../../lib/constants.ts";
 import { safeRun } from "../../lib/async.ts";
 import { resolveMarkdownLink } from "@silverbulletmd/silverbullet/lib/resolve";
 import { localDateString } from "../../lib/dates.ts";
