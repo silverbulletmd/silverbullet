@@ -18,6 +18,7 @@ The [SilverBullet ‘Plugs’ category has a list of third-party plugs you can t
 * [SilverSearch](https://github.com/MrMugame/silversearch): implements a better full text search
 * [TreeView](https://github.com/joekrill/silverbullet-treeview): adds a tree-view to your UI
 * [GraphView](https://github.com/deepkn/silverbullet-graphview): adds a graph view to your UI, similar to the one in Obsidian
+* [Mermaid](https://github.com/silverbulletmd/silverbullet-mermaid): adds mermaid diagram rendering
 
 # Development
 Want to develop your own plugs? Have a look at [[Plugs/Development]].
