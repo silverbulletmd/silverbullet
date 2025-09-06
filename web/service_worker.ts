@@ -174,7 +174,7 @@ self.addEventListener("message", async (event: any) => {
           // This is triggered for the currently open file, we want to proactively sync it to keep it up to date
           syncEngine.syncSingleFile(path);
         },
-        onlineStatusChanged: (isOnline) => {
+        onlineStatusUpdated: (isOnline) => {
           broadcastMessage({
             type: "online-status",
             isOnline,

@@ -21,7 +21,7 @@ export type ProxyRouterEvents = {
   // Use case: the user likely has this file open in the editor, so it's good to prioritize syncing it
   observedRequest: (path: string) => void;
   // Use case: client showing the "yellow bar" indicating not being online
-  onlineStatusChanged: (isOnline: boolean) => void;
+  onlineStatusUpdated: (isOnline: boolean) => void;
 };
 
 /**
@@ -68,9 +68,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
       // Otherwise we're not
       this.online = false;
     } finally {
-      if (oldOnline !== this.online) {
-        this.emit("onlineStatusChanged", this.online);
-      }
+      this.emit("onlineStatusUpdated", this.online);
     }
   }
 
