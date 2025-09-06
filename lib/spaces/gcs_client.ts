@@ -128,7 +128,7 @@ export async function readFileMetadata(
   name: string,
 ): Promise<FileMeta> {
   const baseUrl =
-    `https://storage.googleapis.com/download/storage/v1/b/${bucketName}/o/${
+    `https://storage.googleapis.com/storage/v1/b/${bucketName}/o/${
       encodeURIComponent(name)
     }`;
   const response = await fetch(`${baseUrl}?alt=json`, {
