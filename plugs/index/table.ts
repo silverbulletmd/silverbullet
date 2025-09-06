@@ -1,4 +1,5 @@
 import type { IndexTreeEvent } from "../../type/event.ts";
+import { renderToText, replaceNodesMatching } from "../../plug-api/lib/tree.ts";
 import { extractHashtag } from "../../plug-api/lib/tags.ts";
 import {
   collectNodesMatching,
@@ -28,10 +29,19 @@ function cleanHeaderFieldName(str: string): string {
 /**
  * Concat text properties of all child nodes
  * @param nodes
- * @returns
+ * @returns text of all child nodes
  */
 function concatChildrenTexts(nodes: ParseTree[]): string {
   return nodes.map((c) => c.text).join("").trim();
+}
+
+/**
+ * Concat text properties of all child nodes, preserving links
+ * @param nodes
+ * @returns text, preserving links, of all child nodes
+ */
+function concatChildrenTextsPreserveLinks(nodes: ParseTree[]): string {
+  return nodes.map((c) => renderToText(c)).join("").trim();
 }
 
 export async function indexTables({ name: pageName, tree }: IndexTreeEvent) {
@@ -67,7 +77,12 @@ export async function indexTables({ name: pageName, tree }: IndexTreeEvent) {
           pos: row.from!,
         };
         cells.forEach((c, i) => {
-          const content = concatChildrenTexts(c.children!);
+          replaceNodesMatching(c, (tree) => {
+            if (tree.type === "Hashtag") {
+              return null;
+            }
+          });
+          const content = concatChildrenTextsPreserveLinks(c.children!);
           const label = headerLabels[i];
           tableRow[label!] = content;
         });
