@@ -128,10 +128,9 @@ export class MainUI {
     }, [viewState.uiOptions.darkMode]);
 
     useEffect(() => {
-      document.documentElement.dataset.cleanMode = viewState.uiOptions.cleanMode
-        ? "on"
-        : "off";
-    }, [viewState.uiOptions.cleanMode]);
+      document.documentElement.dataset.markdownSyntaxRendering =
+        viewState.uiOptions.markdownSyntaxRendering ? "on" : "off";
+    }, [viewState.uiOptions.markdownSyntaxRendering]);
 
     useEffect(() => {
       // Need to dispatch a resize event so that the top_bar can pick it up

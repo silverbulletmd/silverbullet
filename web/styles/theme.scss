@@ -279,7 +279,7 @@ html[data-theme="dark"] {
   --editor-directive-background-color: #4c4c4c7d;
 }
 
-html[data-clean-mode="off"] {
+html[data-markdown-syntax-rendering="on"] {
   --editor-meta-color: unset;
   --editor-directive-mark-color: unset;
 

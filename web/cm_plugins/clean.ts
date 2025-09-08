@@ -17,17 +17,17 @@ import { hashtagPlugin } from "./hashtag.ts";
 import type { ClickEvent } from "@silverbulletmd/silverbullet/type/client";
 
 export function cleanModePlugins(client: Client) {
-  const pluginsNeededEvenWithoutCleanMode = [
+  const pluginsNeededEvenWhenRenderingSyntax = [
     luaDirectivePlugin(client),
     cleanWikiLinkPlugin(client),
   ];
 
-  if (!client.ui.viewState.uiOptions.cleanMode) {
-    return pluginsNeededEvenWithoutCleanMode;
+  if (client.ui.viewState.uiOptions.markdownSyntaxRendering) {
+    return pluginsNeededEvenWhenRenderingSyntax;
   }
 
   return [
-    ...pluginsNeededEvenWithoutCleanMode,
+    ...pluginsNeededEvenWhenRenderingSyntax,
     linkPlugin(client),
     blockquotePlugin(),
     admonitionPlugin(),

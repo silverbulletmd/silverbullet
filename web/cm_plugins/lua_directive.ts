@@ -144,7 +144,7 @@ export function luaDirectivePlugin(client: Client) {
           }).range(node.to),
         );
 
-        if (client.ui.viewState.uiOptions.cleanMode) {
+        if (!client.ui.viewState.uiOptions.markdownSyntaxRendering) {
           widgets.push(invisibleDecoration.range(node.from, node.to));
         }
       },

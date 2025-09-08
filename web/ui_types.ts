@@ -39,7 +39,7 @@ export type AppViewState = {
   uiOptions: {
     vimMode: boolean;
     darkMode?: boolean;
-    cleanMode: boolean;
+    markdownSyntaxRendering: boolean;
     forcedROMode: boolean;
     customStyles?: string;
   };
@@ -77,7 +77,7 @@ export const initialViewState: AppViewState = {
   uiOptions: {
     vimMode: false,
     darkMode: undefined,
-    cleanMode: true,
+    markdownSyntaxRendering: false,
     forcedROMode: false,
   },
   isMobile: false,
