@@ -327,7 +327,6 @@ export class Client {
       "file:changed",
       async (
         name: string,
-        _selfUpdate,
       ) => {
         // TODO: Optimization opportunity here: dispatch the page:index here directly rather than sending it off to a queue which will refetch the file
         // console.log("Queueing index for", name);
@@ -488,7 +487,6 @@ export class Client {
               .writePage(
                 this.currentName(),
                 this.editorView.state.sliceDoc(0),
-                true,
               )
               .then(async (meta) => {
                 this.ui.viewDispatch({ type: "page-saved" });
@@ -1132,7 +1130,7 @@ export class Client {
       this,
       (path, content) => {
         this.space
-          .writeDocument(path, content, true)
+          .writeDocument(path, content)
           .then(async (meta) => {
             this.ui.viewDispatch({ type: "document-editor-saved" });
 

@@ -69,7 +69,6 @@ export class DiskSpacePrimitives implements SpacePrimitives {
   async writeFile(
     path: string,
     data: Uint8Array,
-    _selfUpdate?: boolean,
     meta?: FileMeta,
   ): Promise<FileMeta> {
     const localPath = this.filenameToPath(path);

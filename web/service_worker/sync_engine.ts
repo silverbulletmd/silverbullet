@@ -210,7 +210,6 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
     const newMeta = await primary.writeFile(
       name,
       data,
-      false,
       meta,
     );
     // Update snapshot

@@ -158,12 +158,10 @@ export class EventedSpacePrimitives implements SpacePrimitives {
   async writeFile(
     path: string,
     data: Uint8Array,
-    // TODO: Is self update still used or can it now be removed?
-    selfUpdate?: boolean,
     meta?: FileMeta,
   ): Promise<FileMeta> {
     if (!this.enabled) {
-      return this.wrapped.writeFile(path, data, selfUpdate, meta);
+      return this.wrapped.writeFile(path, data, meta);
     }
 
     const wasFetching = this.operationInProgress;
@@ -172,7 +170,6 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       const newMeta = await this.wrapped.writeFile(
         path,
         data,
-        selfUpdate,
         meta,
       );
       if (!wasFetching) {

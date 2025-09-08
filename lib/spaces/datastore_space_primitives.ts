@@ -49,7 +49,6 @@ export class DataStoreSpacePrimitives implements SpacePrimitives {
   async writeFile(
     path: string,
     data: Uint8Array,
-    _selfUpdate?: boolean,
     suggestedMeta?: FileMeta,
   ): Promise<FileMeta> {
     let meta: FileMeta | undefined;

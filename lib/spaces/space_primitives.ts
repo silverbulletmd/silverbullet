@@ -20,8 +20,6 @@ export interface SpacePrimitives {
   writeFile(
     path: string,
     data: Uint8Array,
-    // Used to decide whether or not to emit change events
-    selfUpdate?: boolean,
     // May be ignored, but ideally should be used to set the lastModified time
     meta?: FileMeta,
   ): Promise<FileMeta>;

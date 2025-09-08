@@ -146,7 +146,7 @@ export class ClientSystem {
 
     this.eventHook.addLocalListener(
       "file:changed",
-      async (path: string, _selfUpdate, _oldHash, newHash) => {
+      async (path: string, _oldHash, newHash) => {
         if (path.startsWith(plugPrefix) && path.endsWith(".plug.js")) {
           const plugName = plugNameExtractRegex.exec(path)![1];
           console.log("Plug updated, reloading", plugName, "from", path);

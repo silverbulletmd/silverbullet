@@ -220,7 +220,6 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
       const writtenMeta = await this.secondary.writeFile(
         name,
         data,
-        false,
         meta,
       );
       this.snapshot.set(name, [
@@ -245,7 +244,6 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
         const writtenMeta = await this.primary.writeFile(
           name,
           data,
-          false,
           meta,
         );
         this.snapshot.set(name, [
@@ -338,7 +336,6 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
       const writtenMeta = await this.secondary.writeFile(
         name,
         data,
-        false,
         meta,
       );
       this.snapshot.set(name, [
@@ -365,7 +362,6 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
         const writtenMeta = await this.primary.writeFile(
           name,
           data,
-          false,
           meta,
         );
         this.snapshot.set(name, [
@@ -496,7 +492,6 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
     const writeMeta = await secondary.writeFile(
       name,
       pageData1.data,
-      true,
     );
     operations++;
 

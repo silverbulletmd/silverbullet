@@ -31,13 +31,12 @@ export class CheckPathSpacePrimitives implements SpacePrimitives {
   writeFile(
     path: string,
     data: Uint8Array,
-    selfUpdate?: boolean | undefined,
     meta?: FileMeta,
   ): Promise<FileMeta> {
     if (!this.isWritable(path)) {
       throw new Error("Couldn't write file, path is invalid");
     }
-    return this.wrapped.writeFile(path, data, selfUpdate, meta);
+    return this.wrapped.writeFile(path, data, meta);
   }
 
   deleteFile(path: string): Promise<void> {

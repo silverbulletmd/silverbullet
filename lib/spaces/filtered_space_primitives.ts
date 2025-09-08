@@ -27,10 +27,9 @@ export class FilteredSpacePrimitives implements SpacePrimitives {
   writeFile(
     path: string,
     data: Uint8Array,
-    selfUpdate?: boolean | undefined,
     meta?: FileMeta,
   ): Promise<FileMeta> {
-    return this.wrapped.writeFile(path, data, selfUpdate, meta);
+    return this.wrapped.writeFile(path, data, meta);
   }
 
   deleteFile(path: string): Promise<void> {

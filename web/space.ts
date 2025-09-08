@@ -73,7 +73,6 @@ export class Space {
   async writePage(
     name: string,
     text: string,
-    selfUpdate?: boolean,
   ): Promise<PageMeta> {
     try {
       this.saving = true;
@@ -81,7 +80,6 @@ export class Space {
         await this.spacePrimitives.writeFile(
           `${name}.md`,
           new TextEncoder().encode(text),
-          selfUpdate,
         ),
       );
       // Note: we don't do very elaborate cache invalidation work here, quite quickly the cache will be flushed anyway
@@ -148,10 +146,9 @@ export class Space {
   async writeDocument(
     name: string,
     data: Uint8Array,
-    selfUpdate?: boolean,
   ): Promise<DocumentMeta> {
     return fileMetaToDocumentMeta(
-      await this.spacePrimitives.writeFile(name, data, selfUpdate),
+      await this.spacePrimitives.writeFile(name, data),
     );
   }
 

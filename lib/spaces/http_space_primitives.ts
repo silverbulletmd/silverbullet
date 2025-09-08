@@ -170,7 +170,6 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   async writeFile(
     path: string,
     data: Uint8Array,
-    _selfUpdate?: boolean,
     meta?: FileMeta,
   ): Promise<FileMeta> {
     const headers: Record<string, string> = {

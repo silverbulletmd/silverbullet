@@ -60,7 +60,6 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
   writeFile(
     path: string,
     data: Uint8Array,
-    selfUpdate?: boolean,
     meta?: FileMeta,
   ): Promise<FileMeta> {
     if (this.assetBundle.has(path)) {
@@ -70,7 +69,6 @@ export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
     return this.wrapped.writeFile(
       path,
       data,
-      selfUpdate,
       meta,
     );
   }

@@ -12,7 +12,6 @@ export async function testSpacePrimitives(spacePrimitives: SpacePrimitives) {
   await testErrorHandling(spacePrimitives);
   await testLargeFiles(spacePrimitives);
   await testMetadataPreservation(spacePrimitives);
-  await testSelfUpdateFlag(spacePrimitives);
 
   // Ensure clean state at the end
   const finalFiles = await spacePrimitives.fetchFileList();
@@ -27,7 +26,6 @@ async function testBasicOperations(spacePrimitives: SpacePrimitives) {
   const fileMeta = await spacePrimitives.writeFile(
     "test.txt",
     stringToBytes("Hello World"),
-    false,
     {
       name: "test.txt",
       perm: "rw",
@@ -209,7 +207,6 @@ async function testMetadataPreservation(spacePrimitives: SpacePrimitives) {
   await spacePrimitives.writeFile(
     "meta-test.txt",
     testContent,
-    false,
     customMeta,
   );
   const metaFile = await spacePrimitives.readFile("meta-test.txt");
@@ -223,30 +220,6 @@ async function testMetadataPreservation(spacePrimitives: SpacePrimitives) {
   assertEquals(metaFile.meta.size, testContent.length);
 
   await spacePrimitives.deleteFile("meta-test.txt");
-}
-
-async function testSelfUpdateFlag(spacePrimitives: SpacePrimitives) {
-  // Test selfUpdate flag behavior (implementation-dependent)
-  await spacePrimitives.writeFile(
-    "self-update.txt",
-    stringToBytes("test"),
-    true,
-  );
-  await spacePrimitives.writeFile(
-    "no-self-update.txt",
-    stringToBytes("test"),
-    false,
-  );
-
-  // Both files should be readable regardless of selfUpdate flag
-  const selfUpdateFile = await spacePrimitives.readFile("self-update.txt");
-  const noSelfUpdateFile = await spacePrimitives.readFile("no-self-update.txt");
-
-  assertEquals(new TextDecoder().decode(selfUpdateFile.data), "test");
-  assertEquals(new TextDecoder().decode(noSelfUpdateFile.data), "test");
-
-  await spacePrimitives.deleteFile("self-update.txt");
-  await spacePrimitives.deleteFile("no-self-update.txt");
 }
 
 function stringToBytes(str: string): Uint8Array {
