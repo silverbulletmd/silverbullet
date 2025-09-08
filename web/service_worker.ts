@@ -47,7 +47,11 @@ const precacheFiles = Object.fromEntries([
 
 // Initially set to undefined, resulting in all "fetch" being proxied.
 // Once the service worker is configured, this will be set and the proxy will handle fetches.
-let proxyRouter: ProxyRouter | undefined;
+const proxyRouter = new ProxyRouter(
+  basePathName,
+  baseURI,
+  precacheFiles,
+);
 
 // Message received from client
 self.addEventListener("message", async (event: any) => {
@@ -76,7 +80,7 @@ self.addEventListener("message", async (event: any) => {
     }
     case "wipe-data": {
       if (proxyRouter) {
-        await proxyRouter.syncEngine.wipe();
+        await proxyRouter.syncEngine!.wipe();
       }
       broadcastMessage({
         type: "dataWiped",
@@ -85,7 +89,7 @@ self.addEventListener("message", async (event: any) => {
     }
     case "perform-file-sync": {
       if (proxyRouter) {
-        await proxyRouter.syncEngine.syncSingleFile(
+        await proxyRouter.syncEngine!.syncSingleFile(
           message.path,
         );
       } else {
@@ -97,7 +101,7 @@ self.addEventListener("message", async (event: any) => {
     }
     case "perform-space-sync": {
       if (proxyRouter) {
-        await proxyRouter.syncEngine.syncSpace();
+        await proxyRouter.syncEngine!.syncSpace();
       } else {
         console.warn(
           "Ignoring perform-space-sync request, proxy not configured yet",
@@ -108,7 +112,7 @@ self.addEventListener("message", async (event: any) => {
     case "config": {
       const config = message.config;
       // Configure the service worker if it hasn't been already
-      if (proxyRouter) {
+      if (proxyRouter.syncEngine) {
         console.info(
           "Service worker already configured, just updating configs",
         );
@@ -157,13 +161,7 @@ self.addEventListener("message", async (event: any) => {
       await syncEngine.start();
 
       // Ok, we're ready to go, let's plug in the proxy router
-      proxyRouter = new ProxyRouter(
-        syncEngine.local,
-        syncEngine,
-        basePathName,
-        baseURI,
-        precacheFiles,
-      );
+      proxyRouter.configure(syncEngine.local, syncEngine);
 
       // And wire up some events
       proxyRouter.on({
@@ -241,13 +239,8 @@ function broadcastMessage(message: ServiceWorkerSourceMessage) {
 }
 
 self.addEventListener("fetch", (event: any) => {
-  if (proxyRouter) {
-    // If the proxy router has been setup, relay messages to it
-    proxyRouter.onFetch(event);
-  } else {
-    // Otherwise, just fetch the request normally
-    event.respondWith(fetch(event.request));
-  }
+  // Always delegate to the proxy router
+  proxyRouter.onFetch(event);
 });
 
 // Service worker lifecycle management

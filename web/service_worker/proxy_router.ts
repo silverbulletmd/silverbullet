@@ -30,15 +30,28 @@ export type ProxyRouterEvents = {
 export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
   fullSyncConfirmed = false;
   online = true;
+  spacePrimitives?: SpacePrimitives;
+  syncEngine?: SyncEngine;
 
   constructor(
-    private spacePrimitives: SpacePrimitives,
-    public syncEngine: SyncEngine,
     private basePathName: string,
     private baseURI: string,
     private precacheFiles: Record<string, string>,
   ) {
     super();
+    // Actively check if we're online by pinging the server
+    this.checkOnline();
+    setInterval(() => {
+      this.checkOnline();
+    }, pingInterval);
+  }
+
+  /**
+   * Called as soon the service worker is configured, and the service worker is ready to start serving requests.
+   */
+  configure(spacePrimitives: SpacePrimitives, syncEngine: SyncEngine) {
+    this.spacePrimitives = spacePrimitives;
+    this.syncEngine = syncEngine;
     syncEngine.on({
       spaceSyncComplete: () => {
         if (!this.fullSyncConfirmed) {
@@ -49,15 +62,9 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
         }
       },
     });
-    // Actively check if we're online by pinging the server
-    this.checkOnline();
-    setInterval(() => {
-      this.checkOnline();
-    }, pingInterval);
   }
 
   async checkOnline() {
-    const oldOnline = this.online;
     try {
       await fetch(this.baseURI + "/.ping", {
         signal: AbortSignal.timeout(pingTimeout),
@@ -101,8 +108,13 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
           return cachedResponse;
         }
 
-        if (!this.fullSyncConfirmed && this.online) {
-          // Not synced yet and we are online, falling back to proxying to the server if we're online
+        if (
+          // Are we fully configured yet?
+          !this.spacePrimitives || !this.syncEngine ||
+          // Or are we configured, but not fully synced yet online
+          !this.fullSyncConfirmed && this.online
+        ) {
+          // Nope, so let's proxy
           return fetch(request);
         }
 
@@ -132,6 +144,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
         }
       })().catch((e) => {
         console.warn("Fetch failed:", e);
+        this.online = false;
         return new Response(offlineError.message, {
           status: 503, // Service Unavailable
         });
@@ -166,6 +179,10 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
   }
 
   async handleFileListing(): Promise<Response> {
+    if (!this.syncEngine || !this.spacePrimitives) {
+      throw new Error("This should not happen");
+    }
+
     const files = await this.spacePrimitives.fetchFileList();
     // Now augment this with non-synced file metadata
     for (const nonSyncedFile of this.syncEngine.nonSyncedFiles.values()) {
@@ -187,6 +204,10 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
   }
 
   async handleGet(path: string, request: Request): Promise<Response> {
+    if (!this.syncEngine || !this.spacePrimitives) {
+      throw new Error("This should not happen");
+    }
+
     try {
       if (request.headers.has("x-get-meta")) {
         // Requesting only file meta
@@ -225,6 +246,9 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
   }
 
   async handlePut(path: string, request: Request): Promise<Response> {
+    if (!this.syncEngine || !this.spacePrimitives) {
+      throw new Error("This should not happen");
+    }
     try {
       if (!this.syncEngine.isSyncCandidate(path) && this.online) {
         console.log("Handling file write for non-synced file", path);
@@ -262,6 +286,10 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
   }
 
   async handleDelete(path: string, request: Request): Promise<Response> {
+    if (!this.syncEngine || !this.spacePrimitives) {
+      throw new Error("This should not happen");
+    }
+
     try {
       if (!this.syncEngine.isSyncCandidate(path)) {
         console.log("Handling file delete for non-synced file", path);
