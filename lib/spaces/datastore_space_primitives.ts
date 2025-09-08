@@ -59,10 +59,11 @@ export class DataStoreSpacePrimitives implements SpacePrimitives {
       // Not found, that's fine
     }
     if (!meta) {
+      // No existing meta data, let's set some defaults
       meta = {
         name: path,
         created: suggestedMeta?.lastModified || Date.now(),
-        perm: suggestedMeta?.perm || "rw",
+        perm: "rw",
         contentType: mime.getType(path) || "application/octet-stream",
         // Overwritten in a sec
         lastModified: 0,
@@ -71,6 +72,9 @@ export class DataStoreSpacePrimitives implements SpacePrimitives {
     }
     meta.lastModified = suggestedMeta?.lastModified || Date.now();
     meta.size = data.byteLength;
+    if (suggestedMeta?.perm) {
+      meta.perm = suggestedMeta.perm;
+    }
 
     // Write metadata and content in same transaction
     await this.kv.batchSet([

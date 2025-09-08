@@ -79,17 +79,19 @@ self.addEventListener("message", async (event: any) => {
       break;
     }
     case "wipe-data": {
-      if (proxyRouter) {
-        await proxyRouter.syncEngine!.wipe();
+      if (proxyRouter.syncEngine) {
+        await proxyRouter.syncEngine.wipe();
+        broadcastMessage({
+          type: "dataWiped",
+        });
+      } else {
+        console.warn("Not performing sync data wipe, sync engine not started");
       }
-      broadcastMessage({
-        type: "dataWiped",
-      });
       break;
     }
     case "perform-file-sync": {
-      if (proxyRouter) {
-        await proxyRouter.syncEngine!.syncSingleFile(
+      if (proxyRouter.syncEngine) {
+        await proxyRouter.syncEngine.syncSingleFile(
           message.path,
         );
       } else {
@@ -100,8 +102,8 @@ self.addEventListener("message", async (event: any) => {
       break;
     }
     case "perform-space-sync": {
-      if (proxyRouter) {
-        await proxyRouter.syncEngine!.syncSpace();
+      if (proxyRouter.syncEngine) {
+        await proxyRouter.syncEngine.syncSpace();
       } else {
         console.warn(
           "Ignoring perform-space-sync request, proxy not configured yet",
