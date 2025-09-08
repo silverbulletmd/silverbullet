@@ -17,7 +17,7 @@ export class DataStoreSpacePrimitives implements SpacePrimitives {
     const fileMetas: FileMeta[] = [];
     // Iterate over all keys with the fileMetaPrefix
     for await (const meta of this.kv.query({ prefix: filesMetaPrefix })) {
-      fileMetas.push(this.ensureFileMeta(meta.value as FileMeta));
+      fileMetas.push(this.cleanFileMeta(meta.value as FileMeta));
     }
     return fileMetas;
   }
@@ -41,7 +41,7 @@ export class DataStoreSpacePrimitives implements SpacePrimitives {
     }
 
     return {
-      meta: this.ensureFileMeta(fileMeta),
+      meta: this.cleanFileMeta(fileMeta),
       data: fileContent,
     };
   }
@@ -104,10 +104,10 @@ export class DataStoreSpacePrimitives implements SpacePrimitives {
     if (!fileMeta) {
       throw notFoundError;
     }
-    return this.ensureFileMeta(fileMeta);
+    return this.cleanFileMeta(fileMeta);
   }
 
-  ensureFileMeta(fileMeta: FileMeta): FileMeta {
+  cleanFileMeta(fileMeta: FileMeta): FileMeta {
     if (!fileMeta.created) {
       fileMeta.created = fileMeta.lastModified;
     }

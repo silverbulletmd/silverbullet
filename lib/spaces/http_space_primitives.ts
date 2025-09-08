@@ -5,6 +5,7 @@ import {
 } from "../../web/service_worker/util.ts";
 import type { FileMeta } from "../../type/index.ts";
 import { notFoundError, offlineError } from "../constants.ts";
+import { headersToFileMeta } from "../../server/util.ts";
 
 const defaultFetchTimeout = 30000; // 30 seconds
 
@@ -163,7 +164,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     }
     return {
       data: new Uint8Array(await res.arrayBuffer()),
-      meta: this.responseToMeta(path, res),
+      meta: headersToFileMeta(path, res.headers),
     };
   }
 
@@ -189,7 +190,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
         body: data,
       },
     );
-    return this.responseToMeta(path, res);
+    return headersToFileMeta(path, res.headers);
   }
 
   async deleteFile(path: string): Promise<void> {
@@ -223,7 +224,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     if (!res.ok) {
       throw new Error(`Failed to get file meta: ${res.statusText}`);
     }
-    return this.responseToMeta(path, res);
+    return headersToFileMeta(path, res.headers);
   }
 
   // If not: throws an error or invokes a redirect
@@ -239,19 +240,5 @@ export class HttpSpacePrimitives implements SpacePrimitives {
 
     // Consume the response body to avoid leaks
     await response.text();
-  }
-
-  private responseToMeta(name: string, res: Response): FileMeta {
-    return {
-      name,
-      // The server may set a custom X-Content-Length header in case a GET request was sent with X-Get-Meta, in which case the body may be omitted
-      size: res.headers.has("X-Content-Length")
-        ? +res.headers.get("X-Content-Length")!
-        : +res.headers.get("Content-Length")!,
-      contentType: res.headers.get("Content-type")!,
-      created: +(res.headers.get("X-Created") || "0"),
-      lastModified: +(res.headers.get("X-Last-Modified") || "0"),
-      perm: (res.headers.get("X-Permission") as "rw" | "ro") || "ro",
-    };
   }
 }

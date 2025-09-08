@@ -1,10 +1,11 @@
 import { fsEndpoint } from "../../lib/spaces/constants.ts";
 import { decodePageURI } from "@silverbulletmd/silverbullet/lib/ref";
 import type { SpacePrimitives } from "../../lib/spaces/space_primitives.ts";
-import { fileMetaToHeaders } from "../../server/util.ts";
+import { fileMetaToHeaders, headersToFileMeta } from "../../server/util.ts";
 import { notFoundError, offlineError } from "../../lib/constants.ts";
 import type { SyncEngine } from "./sync_engine.ts";
 import { EventEmitter } from "../../lib/plugos/event.ts";
+import { responseToMeta } from "../../lib/spaces/http_space_primitives.ts";
 
 const alwaysProxy = [
   "/.auth",
@@ -271,6 +272,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
       const meta = await this.spacePrimitives.writeFile(
         path,
         new Uint8Array(body),
+        headersToFileMeta(path, request.headers),
       );
       this.emit("fileWritten", path);
       return new Response("OK", {

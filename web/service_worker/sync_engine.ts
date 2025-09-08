@@ -6,6 +6,7 @@ import { plugPrefix, stdLibPrefix } from "../../lib/spaces/constants.ts";
 import type { SpacePrimitives } from "../../lib/spaces/space_primitives.ts";
 import {
   SpaceSync,
+  SyncSnapshot,
   type SyncStatus,
   type SyncStatusItem,
 } from "../../lib/spaces/sync.ts";
@@ -177,7 +178,7 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
    */
   async plugAwareConflictResolver(
     name: string,
-    snapshot: Map<string, SyncStatusItem>,
+    snapshot: SyncSnapshot,
     primary: SpacePrimitives,
     secondary: SpacePrimitives,
   ): Promise<number> {
@@ -213,7 +214,7 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
       meta,
     );
     // Update snapshot
-    snapshot.set(name, [
+    snapshot.files.set(name, [
       newMeta.lastModified,
       meta.lastModified,
     ]);

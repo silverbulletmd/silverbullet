@@ -367,7 +367,6 @@ export class Client {
       "file:changed",
       (
         path: string,
-        _localChange: boolean,
         oldHash: number,
         newHash: number,
       ) => {
@@ -375,10 +374,9 @@ export class Client {
         if (
           this.space.watchInterval && this.currentPath() === path &&
           // Avoid reloading if the page was just saved (5s window)
-          (!lastSaveTimestamp || (lastSaveTimestamp < Date.now() - 5000))
+          (!lastSaveTimestamp || (lastSaveTimestamp < Date.now() - 5000)) &&
           // Avoid reloading if the previous hash was undefined (first load)
-          // Only trigger this after an initial sync has happened
-          // await this.hasInitialSyncCompleted()
+          oldHash !== undefined
         ) {
           console.log(
             "Page changed elsewhere, reloading. Old hash",

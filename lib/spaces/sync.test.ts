@@ -1,4 +1,4 @@
-import { SpaceSync } from "./sync.ts";
+import { SpaceSync, type SyncSnapshot } from "./sync.ts";
 import { DiskSpacePrimitives } from "./disk_space_primitives.ts";
 import { assertEquals } from "@std/assert";
 import { sleep } from "../async.ts";
@@ -11,7 +11,11 @@ Deno.test("Test sync with no filtering", async () => {
   console.log("Secondary", secondaryPath);
   const primary = new DiskSpacePrimitives(primaryPath);
   const secondary = new DiskSpacePrimitives(secondaryPath);
-  const sync = new SpaceSync(primary, secondary, new Map(), {
+  const snapshot: SyncSnapshot = {
+    files: new Map(),
+    nonSyncedFiles: new Map(),
+  };
+  const sync = new SpaceSync(primary, secondary, snapshot, {
     conflictResolver: SpaceSync.primaryConflictResolver,
     isSyncCandidate: () => true, // Sync everything always
   });
@@ -28,18 +32,18 @@ Deno.test("Test sync with no filtering", async () => {
   );
 
   // Should be a no-op
-  let r = await doSync();
-  assertEquals(r.operations, 0);
-  assertEquals(r.nonSyncedFiles.size, 0);
+  let ops = await doSync();
+  assertEquals(ops, 0);
+  assertEquals(snapshot.nonSyncedFiles.size, 0);
 
   // Now let's make a change on the secondary
   await secondary.writeFile("index.md", stringToBytes("Hello!!"));
   await secondary.writeFile("test.md", stringToBytes("Test page"));
 
   // And sync it
-  r = await doSync();
-  assertEquals(r.operations, 2);
-  assertEquals(r.nonSyncedFiles.size, 0);
+  ops = await doSync();
+  assertEquals(ops, 2);
+  assertEquals(snapshot.nonSyncedFiles.size, 0);
 
   assertEquals((await primary.fetchFileList()).length, 2);
   assertEquals((await secondary.fetchFileList()).length, 2);
@@ -59,8 +63,8 @@ Deno.test("Test sync with no filtering", async () => {
   assertEquals((await primary.fetchFileList()).length, 5);
   assertEquals((await secondary.fetchFileList()).length, 5);
 
-  r = await doSync();
-  assertEquals(r.operations, 0);
+  ops = await doSync();
+  assertEquals(ops, 0);
 
   console.log("Deleting pages");
   // Delete some pages
@@ -73,8 +77,8 @@ Deno.test("Test sync with no filtering", async () => {
   assertEquals((await secondary.fetchFileList()).length, 3);
 
   // No-op
-  r = await doSync();
-  assertEquals(r.operations, 0);
+  ops = await doSync();
+  assertEquals(ops, 0);
 
   await secondary.deleteFile("index4.md");
   await primary.deleteFile("index2.md");
@@ -86,8 +90,8 @@ Deno.test("Test sync with no filtering", async () => {
   assertEquals((await secondary.fetchFileList()).length, 1);
 
   // No-op
-  r = await doSync();
-  assertEquals(r.operations, 0);
+  ops = await doSync();
+  assertEquals(ops, 0);
 
   await secondary.writeFile("index.md", stringToBytes("I'm back"));
 
@@ -151,10 +155,14 @@ Deno.test("Test sync with filtering", async () => {
   const primary = new DiskSpacePrimitives(primaryPath);
   const secondary = new DiskSpacePrimitives(secondaryPath);
 
+  const snapshot: SyncSnapshot = {
+    files: new Map(),
+    nonSyncedFiles: new Map(),
+  };
   const sync = new SpaceSync(
     primary,
     secondary,
-    new Map(),
+    snapshot,
     {
       conflictResolver: SpaceSync.primaryConflictResolver,
       isSyncCandidate: (path) => path.endsWith(".md"), // Only sync .md files
@@ -166,10 +174,10 @@ Deno.test("Test sync with filtering", async () => {
   );
   await primary.writeFile("index.txt", stringToBytes("Hello"));
   assertEquals((await secondary.fetchFileList()).length, 0);
-  let r = await doSync();
-  assertEquals(r.operations, 1);
+  let ops = await doSync();
+  assertEquals(ops, 1);
   // Note: this number should be 0 because the file DOES have a local representation so it's not technically non-synced
-  assertEquals(r.nonSyncedFiles.size, 0);
+  assertEquals(snapshot.nonSyncedFiles.size, 0);
 
   assertEquals((await secondary.fetchFileList()).length, 1);
   assertEquals(
@@ -179,9 +187,9 @@ Deno.test("Test sync with filtering", async () => {
 
   console.log("Updating on secondary");
   await secondary.writeFile("index.txt", stringToBytes("Hello Updated"));
-  r = await doSync();
-  assertEquals(r.operations, 1);
-  assertEquals(r.nonSyncedFiles.size, 1);
+  ops = await doSync();
+  assertEquals(ops, 1);
+  assertEquals(snapshot.nonSyncedFiles.size, 1);
   try {
     await primary.getFileMeta("index.md");
     assert(
@@ -194,31 +202,31 @@ Deno.test("Test sync with filtering", async () => {
 
   console.log("Deleting remote files");
   await secondary.deleteFile("index.txt");
-  r = await doSync();
-  assertEquals(r.operations, 1);
-  assertEquals(r.nonSyncedFiles.size, 0);
+  ops = await doSync();
+  assertEquals(ops, 1);
+  assertEquals(snapshot.nonSyncedFiles.size, 0);
 
   console.log("Creating a remote non-synced file");
   await secondary.writeFile("index2.txt", stringToBytes("Hello 2"));
-  r = await doSync();
-  assertEquals(r.operations, 0); // No-op, metadata only
-  assertEquals(r.nonSyncedFiles.size, 1);
-  r = await doSync();
-  assertEquals(r.operations, 0); // No-op, metadata only
-  assertEquals(r.nonSyncedFiles.size, 1);
+  ops = await doSync();
+  assertEquals(ops, 0); // No-op, metadata only
+  assertEquals(snapshot.nonSyncedFiles.size, 1);
+  ops = await doSync();
+  assertEquals(ops, 0); // No-op, metadata only
+  assertEquals(snapshot.nonSyncedFiles.size, 1);
 
   await primary.writeFile("index2.txt", stringToBytes("Hello local"));
-  r = await doSync();
-  assertEquals(r.operations, 1);
-  assertEquals(r.nonSyncedFiles.size, 0);
+  ops = await doSync();
+  assertEquals(ops, 1);
+  assertEquals(snapshot.nonSyncedFiles.size, 0);
 
   console.log("Getting into a state with some synced and non-synced files");
   await secondary.writeFile("index.md", stringToBytes("This will sync"));
   await secondary.writeFile("index.txt", stringToBytes("This will not sync"));
   await secondary.writeFile("index2.txt", stringToBytes("This will not sync"));
-  r = await doSync();
-  assertEquals(r.operations, 2);
-  assertEquals(r.nonSyncedFiles.size, 2);
+  ops = await doSync();
+  assertEquals(ops, 2);
+  assertEquals(snapshot.nonSyncedFiles.size, 2);
 
   // Check file listings on both ends
   assertEquals((await secondary.fetchFileList()).length, 3);
@@ -241,7 +249,11 @@ Deno.test("Local push sync", async () => {
   console.log("Secondary", secondaryPath);
   const primary = new DiskSpacePrimitives(primaryPath);
   const secondary = new DiskSpacePrimitives(secondaryPath);
-  const sync = new SpaceSync(primary, secondary, new Map(), {
+  const snapshot: SyncSnapshot = {
+    files: new Map(),
+    nonSyncedFiles: new Map(),
+  };
+  const sync = new SpaceSync(primary, secondary, snapshot, {
     conflictResolver: SpaceSync.primaryConflictResolver,
     isSyncCandidate: (path) => path.endsWith(".md"), // Only sync .md files
   });
@@ -250,7 +262,7 @@ Deno.test("Local push sync", async () => {
     "Write one non-sync file on the primary, which SHOULD sync to the secondary",
   );
 
-  const { operations, nonSyncedFiles } = await sync.syncFiles();
+  const operations = await sync.syncFiles();
   assertEquals(operations, 0);
 
   await primary.writeFile("index.md", stringToBytes("Hello"));
@@ -264,7 +276,7 @@ Deno.test("Local push sync", async () => {
   console.log("Let's write a new file on primary that is not a sync candidate");
   await primary.writeFile("test.txt", stringToBytes("Hello"));
   assertEquals(1, await sync.syncSingleFile("test.txt"));
-  assertEquals(nonSyncedFiles.size, 0);
+  assertEquals(snapshot.nonSyncedFiles.size, 0);
 
   await Deno.remove(primaryPath, { recursive: true });
   await Deno.remove(secondaryPath, { recursive: true });

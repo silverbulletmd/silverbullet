@@ -7,7 +7,7 @@ import { notFoundError } from "../constants.ts";
 
 /**
  * Events exposed:
- * - file:changed (string, localUpdate: boolean, oldHash, newHash)
+ * - file:changed (string, oldHash, newHash)
  * - file:deleted (string)
  * - file:listed (FileMeta[])
  * - file:initial: triggered in case of an initially empty snapshot, after the first set of events has gone out
@@ -18,8 +18,6 @@ export class EventedSpacePrimitives implements SpacePrimitives {
   // Therefore, we use this variable to track if any operation is in flight, and if so, we skip event triggering.
   // This is ok, because any event will be picked up in a following iteration.
   operationInProgress = false;
-
-  private spaceSnapshot: Record<string, number> = {};
 
   private enabled = false;
 
@@ -34,21 +32,38 @@ export class EventedSpacePrimitives implements SpacePrimitives {
   async enable() {
     console.log("Loading snapshot and enabling events");
     this.spaceSnapshot = (await this.ds.get(this.snapshotKey)) || {};
+    this.snapshotChanged = false;
     const isFreshSnapshot = Object.keys(this.spaceSnapshot).length === 0;
     this.enabled = true;
     // trigger loading and eventing
     this.fetchFileList().then(async () => {
       if (isFreshSnapshot) {
-        // Trigger event to signal that an intial batch of events has been triggere
+        // Trigger event to signal that an intial batch of events has been triggered
         await this.dispatchEvent("file:initial");
       }
     });
   }
 
+  // Snapshot state management
+  private spaceSnapshot: Record<string, number> = {};
+  private snapshotChanged = false;
+
+  private updateInSnapshot(key: string, value: number) {
+    const oldValue = this.spaceSnapshot[key];
+    this.spaceSnapshot[key] = value;
+    this.snapshotChanged = this.snapshotChanged || oldValue !== value;
+  }
+
+  private deleteFromSnapshot(key: string) {
+    delete this.spaceSnapshot[key];
+    this.snapshotChanged = true;
+  }
+
   private async saveSnapshot() {
-    if (this.enabled) {
+    if (this.enabled && this.snapshotChanged) {
       console.log("Saving snapshot");
       await this.ds.set(this.snapshotKey, this.spaceSnapshot);
+      this.snapshotChanged = false;
     }
   }
 
@@ -85,7 +100,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
         const oldHash = this.spaceSnapshot[meta.name];
         const newHash = meta.lastModified;
         // Update in snapshot
-        this.spaceSnapshot[meta.name] = newHash;
+        this.updateInSnapshot(meta.name, newHash);
 
         // Check what happened to the file
         if (
@@ -98,11 +113,15 @@ export class EventedSpacePrimitives implements SpacePrimitives {
             oldHash !== newHash
           )
         ) {
-          // console.log("Detected file change", meta.name, oldHash, newHash);
+          console.log(
+            "Detected file change during listing",
+            meta.name,
+            oldHash,
+            newHash,
+          );
           await this.dispatchEvent(
             "file:changed",
             meta.name,
-            false,
             oldHash,
             newHash,
           );
@@ -112,7 +131,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       }
 
       for (const deletedFile of deletedFiles) {
-        delete this.spaceSnapshot[deletedFile];
+        this.deleteFromSnapshot(deletedFile);
         await this.dispatchEvent("file:deleted", deletedFile);
 
         if (deletedFile.endsWith(".md")) {
@@ -122,7 +141,6 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       }
 
       await this.dispatchEvent("file:listed", newFileList);
-      // this.initialFileListLoad = false;
       return newFileList;
     } finally {
       await this.saveSnapshot();
@@ -144,10 +162,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       // Fetch file
       const data = await this.wrapped.readFile(path);
       if (!wasFetching) {
-        if (this.triggerEventsAndCache(path, data.meta.lastModified)) {
-          // Something changed, so persist snapshot
-          await this.saveSnapshot();
-        }
+        await this.triggerEventsAndCache(path, data.meta.lastModified);
       }
       return data;
     } finally {
@@ -173,9 +188,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
         meta,
       );
       if (!wasFetching) {
-        if (this.triggerEventsAndCache(path, newMeta.lastModified)) {
-          await this.saveSnapshot();
-        }
+        await this.triggerEventsAndCache(path, newMeta.lastModified);
       }
       return newMeta;
     } finally {
@@ -188,14 +201,15 @@ export class EventedSpacePrimitives implements SpacePrimitives {
    * @param newHash
    * @return whether something changed in the snapshot
    */
-  triggerEventsAndCache(name: string, newHash: number): boolean {
+  async triggerEventsAndCache(name: string, newHash: number) {
     const oldHash = this.spaceSnapshot[name];
-    if (oldHash && newHash && oldHash !== newHash) {
+    // if (oldHash && newHash && oldHash !== newHash) {
+    if (oldHash !== newHash) {
       // Page changed since last cached metadata, trigger event
-      this.dispatchEvent("file:changed", name, false, oldHash, newHash);
+      this.dispatchEvent("file:changed", name, oldHash, newHash);
     }
-    this.spaceSnapshot[name] = newHash;
-    return oldHash !== newHash;
+    this.updateInSnapshot(name, newHash);
+    await this.saveSnapshot();
   }
 
   async getFileMeta(path: string, observing?: boolean): Promise<FileMeta> {
@@ -208,9 +222,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       this.operationInProgress = true;
       const newMeta = await this.wrapped.getFileMeta(path, observing);
       if (!wasFetching) {
-        if (this.triggerEventsAndCache(path, newMeta.lastModified)) {
-          await this.saveSnapshot();
-        }
+        await this.triggerEventsAndCache(path, newMeta.lastModified);
       }
       return newMeta;
     } catch (e: any) {
@@ -241,7 +253,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       }
       // await this.getPageMeta(path); // Check if page exists, if not throws Error
       await this.wrapped.deleteFile(path);
-      delete this.spaceSnapshot[path];
+      this.deleteFromSnapshot(path);
       await this.dispatchEvent("file:deleted", path);
     } finally {
       await this.saveSnapshot();

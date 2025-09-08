@@ -10,7 +10,10 @@ type SyncHash = number;
 // and the second item the lastModified value of the secondary space
 export type SyncStatusItem = [SyncHash, SyncHash];
 
-export type SyncSnapshot = Map<string, SyncStatusItem>;
+export type SyncSnapshot = {
+  files: Map<string, SyncStatusItem>;
+  nonSyncedFiles: Map<string, FileMeta>;
+};
 
 export type SyncStatus = {
   filesProcessed: number;
@@ -20,7 +23,7 @@ export type SyncStatus = {
 export type SyncOptions = {
   conflictResolver: (
     name: string,
-    snapshot: Map<string, SyncStatusItem>,
+    snapshot: SyncSnapshot,
     primarySpace: SpacePrimitives,
     secondarySpace: SpacePrimitives,
   ) => Promise<number>;
@@ -56,19 +59,14 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
    * Syncs all files in space.
    * @returns number of operations performed, or -1 when sync was already ongoing and nonSynced files
    */
-  async syncFiles(): Promise<
-    { nonSyncedFiles: Map<string, FileMeta>; operations: number }
-  > {
+  async syncFiles(): Promise<number> {
     let operations = 0;
-    const nonSyncedFiles: Map<string, FileMeta> = new Map();
+    const newNonSyncedFiles: Map<string, FileMeta> = new Map();
 
     // Mutex behavior, only sync can happen at a time
     if (this.isSyncing) {
       console.warn("Sync already in progress...");
-      return {
-        operations: -1,
-        nonSyncedFiles,
-      };
+      return -1;
     }
     this.isSyncing = true;
     console.log("[sync]", "Performing a full sync cycle...");
@@ -89,7 +87,7 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
       );
 
       const allFilesToProcess = new Set([
-        ...this.snapshot.keys(),
+        ...this.snapshot.files.keys(),
         ...primaryFileMap.keys(),
         ...secondaryFileMap.keys(),
       ]);
@@ -108,10 +106,11 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
         try {
           operations += await this.syncFile(
             name,
-            primaryFileMap.get(name),
+            // For the primary (local) pull from the local file list, falling back to nonSyncedFiles in case in a previous sync it was still non-synced
+            primaryFileMap.get(name) || this.snapshot.nonSyncedFiles.get(name),
             secondaryFileMap.get(name),
             !nonSyncCandidates.has(name),
-            nonSyncedFiles,
+            newNonSyncedFiles,
           );
           filesProcessed++;
           // Only report something significant
@@ -127,28 +126,28 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
       }
     } finally {
       this.isSyncing = false;
+      this.snapshot.nonSyncedFiles = newNonSyncedFiles;
       this.emit("snapshotUpdated", this.snapshot);
     }
 
-    return {
-      operations,
-      nonSyncedFiles: nonSyncedFiles,
-    };
+    return operations;
   }
 
   /**
    * Syncs a single file from primary to secondary if there's a need
    * @returns number of operations performed, or -1 when sync was already ongoing
    */
-  async syncSingleFile(
-    path: string,
-  ): Promise<number> {
+  async syncSingleFile(path: string): Promise<number> {
     let operations = 0;
 
     // Mutex behavior, only sync can happen at a time
     if (this.isSyncing) {
       console.warn("Sync already in progress...");
       return -1;
+    }
+    if (this.snapshot.nonSyncedFiles.has(path)) {
+      console.info("Was asked to sync marked as non-synced, skipping", path);
+      return 0;
     }
     this.isSyncing = true;
     console.log("[sync]", "Performing a single file sync", path);
@@ -157,7 +156,7 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
     const nonSyncedFilesDummy = new Map<string, FileMeta>();
 
     try {
-      const localHash = this.snapshot.get(path)?.[0];
+      const localHash = this.snapshot.files.get(path)?.[0];
       const primaryMeta = await this.primary.getFileMeta(path);
       if (primaryMeta.lastModified === localHash) {
         // No local changes, moving on
@@ -208,7 +207,7 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
 
     if (
       primaryMeta !== undefined && secondaryMeta === undefined &&
-      !this.snapshot.has(name)
+      !this.snapshot.files.has(name)
     ) {
       // New file, created on primary, copy from primary to secondary
       console.log(
@@ -222,7 +221,7 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
         data,
         meta,
       );
-      this.snapshot.set(name, [
+      this.snapshot.files.set(name, [
         meta.lastModified,
         writtenMeta.lastModified,
       ]);
@@ -230,7 +229,7 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
       await this.emit("fileSynced", writtenMeta, "primary->secondary");
     } else if (
       secondaryMeta !== undefined && primaryMeta === undefined &&
-      !this.snapshot.has(name)
+      !this.snapshot.files.has(name)
     ) {
       // New file, created on secondary
       if (syncBack) {
@@ -246,7 +245,7 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
           data,
           meta,
         );
-        this.snapshot.set(name, [
+        this.snapshot.files.set(name, [
           writtenMeta.lastModified,
           meta.lastModified,
         ]);
@@ -260,24 +259,34 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
           name,
         );
         nonSyncedFiles.set(name, secondaryMeta);
-        this.snapshot.set(name, [
+        this.snapshot.files.set(name, [
           secondaryMeta.lastModified,
           secondaryMeta.lastModified,
         ]);
       }
     } else if (
-      primaryMeta !== undefined && this.snapshot.has(name) &&
+      primaryMeta !== undefined && this.snapshot.files.has(name) &&
       secondaryMeta === undefined
     ) {
       // File deleted on secondary
       if (syncBack) {
-        console.log(
-          "[sync]",
-          "File deleted on secondary, deleting from primary",
-          name,
-        );
-        await this.primary.deleteFile(name);
-        this.snapshot.delete(name);
+        this.snapshot.files.delete(name);
+        if (this.snapshot.nonSyncedFiles.has(name)) {
+          // This is the scenario where in the previous sync this file was not synced while in this new one it is
+          console.log(
+            "[sync]",
+            "File deleted on secondary, but wasn't synced on primary, so skipping",
+            name,
+          );
+          // No-op
+        } else {
+          console.log(
+            "[sync]",
+            "File deleted on secondary, deleting from primary",
+            name,
+          );
+          await this.primary.deleteFile(name);
+        }
         operations++;
       } else { // !syncBack
         console.log(
@@ -293,10 +302,10 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
         } catch {
           // Fail silently, likely the file doesn't exist
         }
-        this.snapshot.delete(name);
+        this.snapshot.files.delete(name);
       }
     } else if (
-      secondaryMeta !== undefined && this.snapshot.has(name) &&
+      secondaryMeta !== undefined && this.snapshot.files.has(name) &&
       primaryMeta === undefined && syncBack
     ) {
       // File deleted on primary
@@ -306,10 +315,10 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
         name,
       );
       await this.secondary.deleteFile(name);
-      this.snapshot.delete(name);
+      this.snapshot.files.delete(name);
       operations++;
     } else if (
-      this.snapshot.has(name) && primaryMeta === undefined &&
+      this.snapshot.files.has(name) && primaryMeta === undefined &&
       secondaryMeta === undefined
     ) {
       // File deleted on both sides, :shrug:
@@ -318,13 +327,13 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
         "File deleted on both ends, deleting from snapshot",
         name,
       );
-      this.snapshot.delete(name);
+      this.snapshot.files.delete(name);
       operations++;
     } else if (
       primaryMeta !== undefined && secondaryMeta !== undefined &&
-      this.snapshot.get(name) &&
-      primaryMeta.lastModified !== this.snapshot.get(name)![0] &&
-      secondaryMeta.lastModified === this.snapshot.get(name)![1]
+      this.snapshot.files.get(name) &&
+      primaryMeta.lastModified !== this.snapshot.files.get(name)![0] &&
+      secondaryMeta.lastModified === this.snapshot.files.get(name)![1]
     ) {
       // File has changed on primary, but not secondary: copy from primary to secondary
       console.log(
@@ -338,7 +347,7 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
         data,
         meta,
       );
-      this.snapshot.set(name, [
+      this.snapshot.files.set(name, [
         meta.lastModified,
         writtenMeta.lastModified,
       ]);
@@ -346,9 +355,9 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
       await this.emit("fileSynced", writtenMeta, "primary->secondary");
     } else if (
       primaryMeta !== undefined && secondaryMeta !== undefined &&
-      this.snapshot.get(name) &&
-      secondaryMeta.lastModified !== this.snapshot.get(name)![1] &&
-      primaryMeta.lastModified === this.snapshot.get(name)![0]
+      this.snapshot.files.get(name) &&
+      secondaryMeta.lastModified !== this.snapshot.files.get(name)![1] &&
+      primaryMeta.lastModified === this.snapshot.files.get(name)![0]
     ) {
       // File has changed on secondary, but not primary
       if (syncBack) {
@@ -364,7 +373,7 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
           data,
           meta,
         );
-        this.snapshot.set(name, [
+        this.snapshot.files.set(name, [
           writtenMeta.lastModified,
           meta.lastModified,
         ]);
@@ -377,7 +386,7 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
           name,
         );
         nonSyncedFiles.set(name, secondaryMeta);
-        this.snapshot.set(name, [
+        this.snapshot.files.set(name, [
           secondaryMeta.lastModified,
           secondaryMeta.lastModified,
         ]);
@@ -397,13 +406,13 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
     } else if (
       ( // File changed on both ends, but we don't have any info in the snapshot (resync scenario?): have to run through conflict handling
         primaryMeta !== undefined && secondaryMeta !== undefined &&
-        !this.snapshot.has(name)
+        !this.snapshot.files.has(name)
       ) ||
       ( // File changed on both ends, CONFLICT!
         primaryMeta !== undefined && secondaryMeta !== undefined &&
-        this.snapshot.get(name) &&
-        secondaryMeta.lastModified !== this.snapshot.get(name)![1] &&
-        primaryMeta.lastModified !== this.snapshot.get(name)![0]
+        this.snapshot.files.get(name) &&
+        secondaryMeta.lastModified !== this.snapshot.files.get(name)![1] &&
+        primaryMeta.lastModified !== this.snapshot.files.get(name)![0]
       )
     ) {
       console.log(
@@ -429,7 +438,7 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
   // Strategy: Primary wins
   public static async primaryConflictResolver(
     name: string,
-    snapshot: Map<string, SyncStatusItem>,
+    snapshot: SyncSnapshot,
     primary: SpacePrimitives,
     secondary: SpacePrimitives,
   ): Promise<number> {
@@ -458,7 +467,7 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
       if (byteWiseMatch) {
         console.log("[sync]", "Files are the same, no conflict");
 
-        snapshot.set(name, [
+        snapshot.files.set(name, [
           pageData1.meta.lastModified,
           pageData2.meta.lastModified,
         ]);
@@ -496,12 +505,15 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
     operations++;
 
     // Updating snapshot
-    snapshot.set(revisionFileName, [
+    snapshot.files.set(revisionFileName, [
       localConflictMeta.lastModified,
       remoteConflictMeta.lastModified,
     ]);
 
-    snapshot.set(name, [pageData1.meta.lastModified, writeMeta.lastModified]);
+    snapshot.files.set(name, [
+      pageData1.meta.lastModified,
+      writeMeta.lastModified,
+    ]);
     return operations;
   }
 

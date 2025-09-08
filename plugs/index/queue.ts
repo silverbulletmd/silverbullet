@@ -11,6 +11,7 @@ import { indexDocument } from "./document.ts";
 import type { MQMessage } from "../../type/datastore.ts";
 import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
 import { clearFileIndex } from "./api.ts";
+import { Percent } from "preact-feather";
 
 export async function reindexSpace() {
   if (await system.getMode() === "ro") {
@@ -33,6 +34,8 @@ export async function reindexSpace() {
   await editor.showProgress();
 }
 
+setTimeout(updateIndexProgressInUI, 5000);
+
 async function updateIndexProgressInUI() {
   // Let's see if there's anything in the index queue
   let queueStats = await mq.getQueueStats("indexQueue");
@@ -41,20 +44,22 @@ async function updateIndexProgressInUI() {
     const fileList = await space.listFiles();
     while (queueStats.queued > 0 || queueStats.processing > 0) {
       queueStats = await mq.getQueueStats("indexQueue");
-      await editor.showProgress(
-        Math.round(
-          (fileList.length - queueStats.queued) / fileList.length * 100,
-        ),
-        "index",
+      const percentage = Math.round(
+        (fileList.length - queueStats.queued) / fileList.length * 100,
       );
-      await sleep(500);
+      if (percentage > 99) {
+        // Hide progress circle
+        await editor.showProgress();
+      } else {
+        await editor.showProgress(percentage, "index");
+      }
+      // Update UI every second
+      await sleep(1000);
     }
   }
   // Schedule again
   setTimeout(updateIndexProgressInUI, 5000);
 }
-
-setTimeout(updateIndexProgressInUI, 2000);
 
 export async function processIndexQueue(messages: MQMessage[]) {
   for (const message of messages) {
