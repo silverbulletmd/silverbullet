@@ -11,7 +11,6 @@ import { indexDocument } from "./document.ts";
 import type { MQMessage } from "../../type/datastore.ts";
 import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
 import { clearFileIndex } from "./api.ts";
-import { Percent } from "preact-feather";
 
 export async function reindexSpace() {
   if (await system.getMode() === "ro") {

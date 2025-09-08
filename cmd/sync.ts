@@ -1,4 +1,4 @@
-import { SpaceSync, type SyncStatusItem } from "../lib/spaces/sync.ts";
+import { SpaceSync, SyncSnapshot } from "../lib/spaces/sync.ts";
 import { determineStorageBackend } from "../server/storage_backend.ts";
 
 export async function syncCommand(
@@ -38,11 +38,11 @@ export async function syncCommand(
     console.log("Done wiping secondary storage.");
   }
 
-  let snapshot = new Map<string, SyncStatusItem>();
+  let snapshot = new SyncSnapshot();
   if (options.snapshot) {
     try {
-      snapshot = new Map(
-        Object.entries(JSON.parse(await Deno.readTextFile(options.snapshot))),
+      snapshot = SyncSnapshot.fromJSON(
+        JSON.parse(await Deno.readTextFile(options.snapshot)),
       );
     } catch (e: any) {
       console.warn(
@@ -67,7 +67,7 @@ export async function syncCommand(
       snapshotUpdated: async (snapshot) => {
         await Deno.writeTextFile(
           options.snapshot!,
-          JSON.stringify(Object.fromEntries(snapshot.entries())),
+          JSON.stringify(snapshot.toJSON()),
         );
       },
     });

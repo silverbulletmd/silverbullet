@@ -5,7 +5,6 @@ import { fileMetaToHeaders, headersToFileMeta } from "../../server/util.ts";
 import { notFoundError, offlineError } from "../../lib/constants.ts";
 import type { SyncEngine } from "./sync_engine.ts";
 import { EventEmitter } from "../../lib/plugos/event.ts";
-import { responseToMeta } from "../../lib/spaces/http_space_primitives.ts";
 
 const alwaysProxy = [
   "/.auth",
@@ -186,7 +185,10 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
 
     const files = await this.spacePrimitives.fetchFileList();
     // Now augment this with non-synced file metadata
-    for (const nonSyncedFile of this.syncEngine.nonSyncedFiles.values()) {
+    for (
+      const nonSyncedFile of this.syncEngine.spaceSync.snapshot.nonSyncedFiles
+        .values()
+    ) {
       const existingFile = files.find((file) =>
         file.name === nonSyncedFile.name
       );
@@ -228,11 +230,16 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
         });
       }
     } catch (err: any) {
-      console.warn("Error reading/file meta'ing", path, err.message);
       if (err.message === notFoundError.message && this.online) {
+        console.info("No local copy of", path, "proxying to server");
         // Not found locally, but we're online, so let's try the server
         return fetch(request);
       } else if (err.message === notFoundError.message) {
+        console.warn(
+          "No local copy of",
+          path,
+          "and offline, so will 404 on this one",
+        );
         // We're not online so let's assume the file indeed doesn't exist
         // TODO: What could be nice here is to check if this is a nonSyncedFile and if so serve some sort of offline placeholder
         return new Response(notFoundError.message, {
@@ -257,7 +264,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
         // Proxy the request
         const resp = await fetch(request);
         // Put in a placeholder metadata in the nonSynced files
-        this.syncEngine.nonSyncedFiles.set(path, {
+        this.syncEngine.spaceSync.snapshot.nonSyncedFiles.set(path, {
           name: path,
           lastModified: Date.now(),
           created: Date.now(),
@@ -295,7 +302,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
     try {
       if (!this.syncEngine.isSyncCandidate(path)) {
         console.log("Handling file delete for non-synced file", path);
-        this.syncEngine.nonSyncedFiles.delete(path);
+        this.syncEngine.spaceSync.snapshot.nonSyncedFiles.delete(path);
         // Proxy the request
         return fetch(request);
       }

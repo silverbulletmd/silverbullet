@@ -1,4 +1,4 @@
-import { SpaceSync, type SyncSnapshot } from "./sync.ts";
+import { SpaceSync, SyncSnapshot } from "./sync.ts";
 import { DiskSpacePrimitives } from "./disk_space_primitives.ts";
 import { assertEquals } from "@std/assert";
 import { sleep } from "../async.ts";
@@ -11,10 +11,7 @@ Deno.test("Test sync with no filtering", async () => {
   console.log("Secondary", secondaryPath);
   const primary = new DiskSpacePrimitives(primaryPath);
   const secondary = new DiskSpacePrimitives(secondaryPath);
-  const snapshot: SyncSnapshot = {
-    files: new Map(),
-    nonSyncedFiles: new Map(),
-  };
+  const snapshot = new SyncSnapshot();
   const sync = new SpaceSync(primary, secondary, snapshot, {
     conflictResolver: SpaceSync.primaryConflictResolver,
     isSyncCandidate: () => true, // Sync everything always
@@ -155,11 +152,8 @@ Deno.test("Test sync with filtering", async () => {
   const primary = new DiskSpacePrimitives(primaryPath);
   const secondary = new DiskSpacePrimitives(secondaryPath);
 
-  const snapshot: SyncSnapshot = {
-    files: new Map(),
-    nonSyncedFiles: new Map(),
-  };
-  const sync = new SpaceSync(
+  const snapshot = new SyncSnapshot();
+  let sync = new SpaceSync(
     primary,
     secondary,
     snapshot,
@@ -232,6 +226,44 @@ Deno.test("Test sync with filtering", async () => {
   assertEquals((await secondary.fetchFileList()).length, 3);
   assertEquals((await primary.fetchFileList()).length, 1);
 
+  ////////////
+  // Now let's start another sync session, but now wanting to sync everything
+  console.log("Going to switch to syncing everything now");
+  sync = new SpaceSync(
+    primary,
+    secondary,
+    snapshot,
+    {
+      conflictResolver: SpaceSync.primaryConflictResolver,
+      isSyncCandidate: () => true,
+    },
+  );
+
+  ops = await doSync();
+  // This should pull 2 files from remote to local
+  assertEquals(ops, 2);
+  assertEquals((await primary.fetchFileList()).length, 3);
+  assertEquals((await secondary.fetchFileList()).length, 3);
+
+  console.log("And now to syncing nothing");
+  sync = new SpaceSync(
+    primary,
+    secondary,
+    snapshot,
+    {
+      conflictResolver: SpaceSync.primaryConflictResolver,
+      isSyncCandidate: () => false,
+    },
+  );
+
+  ops = await doSync();
+  // This should delete 3 files from the primary
+  assertEquals(ops, 3);
+  // Leaving nothing on primary
+  assertEquals((await primary.fetchFileList()).length, 0);
+  // And everything unchanged on secondary
+  assertEquals((await secondary.fetchFileList()).length, 3);
+
   await Deno.remove(primaryPath, { recursive: true });
   await Deno.remove(secondaryPath, { recursive: true });
 
@@ -249,10 +281,7 @@ Deno.test("Local push sync", async () => {
   console.log("Secondary", secondaryPath);
   const primary = new DiskSpacePrimitives(primaryPath);
   const secondary = new DiskSpacePrimitives(secondaryPath);
-  const snapshot: SyncSnapshot = {
-    files: new Map(),
-    nonSyncedFiles: new Map(),
-  };
+  const snapshot = new SyncSnapshot();
   const sync = new SpaceSync(primary, secondary, snapshot, {
     conflictResolver: SpaceSync.primaryConflictResolver,
     isSyncCandidate: (path) => path.endsWith(".md"), // Only sync .md files

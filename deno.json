@@ -8,7 +8,7 @@
     "install": "deno install -g -f -A --import-map deno.json silverbullet.ts",
     "check": "find . -name '*.ts*' -not -path \"*/node_modules/*\" | xargs deno check",
     "checks": "deno task check && deno task lint && deno task test",
-    "lint": "deno lint",
+    "lint": "deno lint --fix",
     "fmt": "deno fmt",
     "test": "deno test -A",
     "bench": "deno bench",
@@ -33,11 +33,7 @@
     "server:zip:windows-x86_64": "deno task server:dist:windows-x86_64 && zip silverbullet-server-windows-x86_64.zip silverbullet.exe"
   },
   "publish": {
-    "exclude": [
-      "website",
-      "CHANGELOG.md",
-      "**/*.md"
-    ]
+    "exclude": ["website", "CHANGELOG.md", "**/*.md"]
   },
   "lint": {
     "exclude": [
@@ -48,11 +44,7 @@
       "cmd/test/test_space"
     ],
     "rules": {
-      "exclude": [
-        "no-explicit-any",
-        "no-slow-types",
-        "jsx-boolean-value"
-      ]
+      "exclude": ["no-explicit-any", "no-slow-types", "jsx-boolean-value"]
     }
   },
   "fmt": {
@@ -67,12 +59,7 @@
     ]
   },
   "compilerOptions": {
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "dom.asynciterable",
-      "deno.ns"
-    ],
+    "lib": ["dom", "dom.iterable", "dom.asynciterable", "deno.ns"],
     "jsx": "react-jsx",
     "jsxImportSource": "npm:preact@10.26.4"
   },

@@ -8,11 +8,9 @@ import {
   SpaceSync,
   SyncSnapshot,
   type SyncStatus,
-  type SyncStatusItem,
 } from "../../lib/spaces/sync.ts";
-import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
 
-const syncSnapshotKey = ["$syncSnapshot"];
+const syncSnapshotKey = ["$sync", "snapshot"];
 const syncInterval = 20;
 
 type SyncEngineEvents = {
@@ -40,9 +38,6 @@ export type SyncConfig = {
  */
 export class SyncEngine extends EventEmitter<SyncEngineEvents> {
   spaceSync!: SpaceSync;
-
-  // Snapshot of meta data on non-synced files to be used by the ProxyRouter
-  public nonSyncedFiles = new Map<string, FileMeta>();
 
   private syncConfig: SyncConfig = {
     syncDocuments: true,
@@ -97,14 +92,10 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
     this.syncAccepts = config.syncIgnore
       ? gitIgnoreCompiler(config.syncIgnore).accepts
       : () => true;
-    const test = this.syncAccepts;
     console.log(
       "[sync] Updated sync config, syncDocuments:",
       "syncIgnore:",
       this.syncConfig.syncIgnore,
-      test(".gitignore"),
-      test("foo.jpg"),
-      test("folder/bar.txt"),
     );
   }
 
@@ -123,8 +114,7 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
 
   async syncSpace(): Promise<number> {
     try {
-      const { operations, nonSyncedFiles } = await this.spaceSync.syncFiles();
-      this.nonSyncedFiles = nonSyncedFiles;
+      const operations = await this.spaceSync.syncFiles();
       this.emit("spaceSyncComplete", operations);
       return operations;
     } catch (e) {
@@ -148,21 +138,19 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
    * Loads the sync snapshot from the data store.
    * @returns A map of sync status items.
    */
-  async loadSnapshot() {
+  async loadSnapshot(): Promise<SyncSnapshot> {
     const [snapshot] = await this.kv.batchGet([syncSnapshotKey]);
-    return new Map<string, SyncStatusItem>(
-      Object.entries(snapshot || {}),
-    );
+    return SyncSnapshot.fromJSON(snapshot);
   }
 
   /**
    * Saves the sync snapshot to the data store.
    * @param snapshot A map of sync status items.
    */
-  saveSnapshot(snapshot: Map<string, SyncStatusItem>) {
+  saveSnapshot(snapshot: SyncSnapshot) {
     return this.kv.batchSet([{
       key: syncSnapshotKey,
-      value: Object.fromEntries(snapshot),
+      value: snapshot.toJSON(),
     }]);
   }
 

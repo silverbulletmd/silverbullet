@@ -10,10 +10,29 @@ type SyncHash = number;
 // and the second item the lastModified value of the secondary space
 export type SyncStatusItem = [SyncHash, SyncHash];
 
-export type SyncSnapshot = {
-  files: Map<string, SyncStatusItem>;
-  nonSyncedFiles: Map<string, FileMeta>;
-};
+export class SyncSnapshot {
+  constructor(
+    public files: Map<string, SyncStatusItem> = new Map(),
+    public nonSyncedFiles: Map<string, FileMeta> = new Map(),
+  ) {
+    this.files = files;
+    this.nonSyncedFiles = nonSyncedFiles;
+  }
+
+  toJSON(): any {
+    return {
+      files: Object.fromEntries(this.files),
+      nonSyncedFiles: Object.fromEntries(this.nonSyncedFiles),
+    };
+  }
+
+  static fromJSON(json: any | undefined): SyncSnapshot {
+    return new SyncSnapshot(
+      new Map(Object.entries(json?.files || {})),
+      new Map(Object.entries(json?.nonSyncedFiles || {})),
+    );
+  }
+}
 
 export type SyncStatus = {
   filesProcessed: number;
@@ -49,7 +68,7 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
   constructor(
     private primary: SpacePrimitives,
     private secondary: SpacePrimitives,
-    private snapshot: SyncSnapshot,
+    public snapshot: SyncSnapshot,
     readonly options: SyncOptions,
   ) {
     super();
@@ -107,7 +126,7 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
           operations += await this.syncFile(
             name,
             // For the primary (local) pull from the local file list, falling back to nonSyncedFiles in case in a previous sync it was still non-synced
-            primaryFileMap.get(name) || this.snapshot.nonSyncedFiles.get(name),
+            primaryFileMap.get(name),
             secondaryFileMap.get(name),
             !nonSyncCandidates.has(name),
             newNonSyncedFiles,
@@ -228,8 +247,16 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
       operations++;
       await this.emit("fileSynced", writtenMeta, "primary->secondary");
     } else if (
-      secondaryMeta !== undefined && primaryMeta === undefined &&
-      !this.snapshot.files.has(name)
+      secondaryMeta !== undefined && ((
+        // Scenario: a new file was created on the secondary
+        primaryMeta === undefined &&
+        !this.snapshot.files.has(name)
+      ) || (
+        // Scenario: a file that was previously unsynced, should now be synced
+        this.snapshot.nonSyncedFiles.has(name) && syncBack &&
+        // because we don't have it yet
+        primaryMeta === undefined
+      ))
     ) {
       // New file, created on secondary
       if (syncBack) {
@@ -426,6 +453,15 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
         this.primary,
         this.secondary,
       );
+    } else if (primaryMeta && secondaryMeta && !syncBack) {
+      console.log(
+        "[sync]",
+        "File present locally, but no longer synced, deleting",
+        name,
+      );
+      await this.primary.deleteFile(name);
+      nonSyncedFiles.set(name, secondaryMeta);
+      operations += 1;
     } else {
       // Nothing needs to happen
       if (!syncBack) {

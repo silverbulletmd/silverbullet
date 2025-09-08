@@ -158,6 +158,10 @@ self.addEventListener("message", async (event: any) => {
 
       // Now let's setup sync
       const syncEngine = new SyncEngine(kv, local, remote);
+      syncEngine.setSyncConfig({
+        syncDocuments: config.syncDocuments,
+        syncIgnore: config.syncIgnore,
+      });
       await syncEngine.start();
 
       // Ok, we're ready to go, let's plug in the proxy router
