@@ -11,14 +11,12 @@ export async function updateVersionFile() {
   let commitVersion = new TextDecoder().decode(stdout).trim();
 
   if (!commitVersion) {
-    // Probably in CI, let's pull from Github environment variables instead
-    commitVersion = `${version}-${Deno.env.get("GITHUB_SHA")}`;
+    // Probably no valid .git repo, fallback to GITHUB_SHA env var (used in CI)
+    commitVersion = `${version}-${Deno.env.get("GITHUB_SHA") || "unknown"}`;
   }
 
   const versionFilePath = "./public_version.ts";
-  const versionContent = `
-export const publicVersion = "${commitVersion}";
-`;
+  const versionContent = `export const publicVersion = "${commitVersion}";`;
 
   await Deno.writeTextFile(versionFilePath, versionContent);
   console.log(

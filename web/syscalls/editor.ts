@@ -107,8 +107,10 @@ export function editorSyscalls(client: Client): SysCallMapping {
         ref = parsedRef;
       }
 
-      // @ts-ignore: Legacy support
-      if (ref.kind === "page" || ref.kind === "document") {
+      if (
+        // @ts-ignore: Legacy support
+        ref.page !== undefined
+      ) {
         console.warn(
           "You are using legacy navigation syntax with `editor.navigate()`, this will be phased out in the future",
         );
@@ -120,6 +122,8 @@ export function editorSyscalls(client: Client): SysCallMapping {
           header?: string;
           meta?: boolean;
         };
+
+        legacyRef.kind ??= "page";
 
         let details: Ref["details"] = undefined;
 

@@ -16,7 +16,6 @@
     "jsr:@std/bytes@^1.0.5": "1.0.6",
     "jsr:@std/cli@^1.0.1": "1.0.20",
     "jsr:@std/data-structures@^1.0.9": "1.0.9",
-    "jsr:@std/data-structures@^1.0.9": "1.0.9",
     "jsr:@std/encoding@^1.0.5": "1.0.10",
     "jsr:@std/fmt@~1.0.2": "1.0.8",
     "jsr:@std/fs@^1.0.18": "1.0.19",
@@ -145,9 +144,6 @@
     },
     "@std/cli@1.0.20": {
       "integrity": "a8c384a2c98cec6ec6a2055c273a916e2772485eb784af0db004c5ab8ba52333"
-    },
-    "@std/data-structures@1.0.9": {
-      "integrity": "033d6e17e64bf1f84a614e647c1b015fa2576ae3312305821e1a4cb20674bb4d"
     },
     "@std/data-structures@1.0.9": {
       "integrity": "033d6e17e64bf1f84a614e647c1b015fa2576ae3312305821e1a4cb20674bb4d"
@@ -570,11 +566,21 @@
     "https://deno.land/x/silverbullet@2.0.0-pre4/lib/plugos/worker_runtime.ts": "6f16899c0a3d2525c4bf3f881463bce2d7f2b8b55f072fd74ae0f621ba74fea0",
     "https://deno.land/x/silverbullet@2.0.0-pre4/lib/proxy_fetch.ts": "831d98cf7f9ada653fc958f52ad367d8511e2634400c29e1fe9d6babd230c0bf",
     "https://deno.land/x/silverbullet@2.0.0-pre4/type/datastore.ts": "43ac83561844fc5224bd2d5c6c2a92a2cdda6688d29b798c624e3c90bca7ab9d",
-    "https://esm.sh/lodash@4.17.21": "c2f90ffd948b7a30f054986888bdc2667824115fa48ad583ca8b3a579ca4a5a8",
-    "https://esm.sh/lodash@4.17.21/denonext/lodash.mjs": "9d2a44e584d91008f61f974c6d0a32bf9afb1563761e60c366af0a293e8c759b",
-    "https://esm.sh/moment@2.30.1": "61eef31d73508961f2cf25fc2cb507832f7158cf8638e86d933534c9adfac753",
-    "https://esm.sh/moment@2.30.1/denonext/moment.mjs": "a4ffd4a02d47c93fb788acda0f2e8306dc25bbd10b28d7f2b036f4a75769d177",
-    "https://deno.land/x/silverbullet@2.0.0-pre4/type/datastore.ts": "43ac83561844fc5224bd2d5c6c2a92a2cdda6688d29b798c624e3c90bca7ab9d",
+    "https://deno.land/x/silverbullet@2.0.0/lib/asset_bundle/bundle.ts": "5cebb61d5ec523c9d2d8b222516ed3593d40601834c3c7d2aa2b48dad00986b1",
+    "https://deno.land/x/silverbullet@2.0.0/lib/crypto.ts": "b7485dfcc231cf03af0e5271b89970ba1f7ab6cb43ebfe555de0c48996313250",
+    "https://deno.land/x/silverbullet@2.0.0/lib/data/kv_primitives.ts": "d8e5759d241321885134ce4132bc61b33f0ba3bfe6ce271633a4bcc2f4e12270",
+    "https://deno.land/x/silverbullet@2.0.0/lib/manifest.ts": "2628716fffdff63e3aa8462c3b68928b70f686e2bbe8ff5bd41d057773875e63",
+    "https://deno.land/x/silverbullet@2.0.0/lib/plugos/event.ts": "da055088f3d1d93f31aadd7e16a97061033fdba5807609f3838280352dbbc15e",
+    "https://deno.land/x/silverbullet@2.0.0/lib/plugos/manifest_cache.ts": "c6eaed062ade506ed98a0fa3686f161f58ff839e939f0aa536a371dabd43ca8f",
+    "https://deno.land/x/silverbullet@2.0.0/lib/plugos/namespace.ts": "0a870e11ffefcf9c5fe9e8d11d5ed07dcd19bdd28c4289f96f8bcf95ec44baf2",
+    "https://deno.land/x/silverbullet@2.0.0/lib/plugos/plug.ts": "7cbcac21c865b69d678374eda936d5e1ac9422408c8115b84c16f9aef80671be",
+    "https://deno.land/x/silverbullet@2.0.0/lib/plugos/protocol.ts": "953341d218c74d662b549e328551033e303ae196a6b27f464b5b394fa7fb1940",
+    "https://deno.land/x/silverbullet@2.0.0/lib/plugos/sandboxes/sandbox.ts": "cc46432492871bf96279050449455b32cf435bef1abc0a1fccc1d87f34143e8e",
+    "https://deno.land/x/silverbullet@2.0.0/lib/plugos/system.ts": "5b99c8b793edc4de0039dbc8c0532119ec346150a8e129b1fe229361246d59a2",
+    "https://deno.land/x/silverbullet@2.0.0/lib/plugos/types.ts": "e4decd11d40797161b4fed67cc432f370ceb159b4680c57dde97e6300ea0abfb",
+    "https://deno.land/x/silverbullet@2.0.0/lib/plugos/worker_runtime.ts": "6f16899c0a3d2525c4bf3f881463bce2d7f2b8b55f072fd74ae0f621ba74fea0",
+    "https://deno.land/x/silverbullet@2.0.0/lib/proxy_fetch.ts": "831d98cf7f9ada653fc958f52ad367d8511e2634400c29e1fe9d6babd230c0bf",
+    "https://deno.land/x/silverbullet@2.0.0/type/datastore.ts": "43ac83561844fc5224bd2d5c6c2a92a2cdda6688d29b798c624e3c90bca7ab9d",
     "https://esm.sh/lodash@4.17.21": "c2f90ffd948b7a30f054986888bdc2667824115fa48ad583ca8b3a579ca4a5a8",
     "https://esm.sh/lodash@4.17.21/denonext/lodash.mjs": "9d2a44e584d91008f61f974c6d0a32bf9afb1563761e60c366af0a293e8c759b",
     "https://esm.sh/moment@2.30.1": "61eef31d73508961f2cf25fc2cb507832f7158cf8638e86d933534c9adfac753",

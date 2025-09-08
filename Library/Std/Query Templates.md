@@ -20,12 +20,17 @@ templates.taskItem = template.new([==[
 
 -- Renders an item object
 templates.itemItem = template.new([==[
-* ${name}
+* [[${ref}]] ${name}
 ]==])
 
 -- Renders a paragraph object
 templates.paragraphItem = template.new([==[
-* [[${ref}]]
+* [[${ref}]] ${text}
+]==])
+
+-- Renders a tag object
+templates.tagItem = template.new([==[
+* [[tag:${name}|#${name}]]
 ]==])
 ```
 
@@ -45,3 +50,10 @@ ${template.each(query[[from index.tag "task" where page == _CTX.currentPage.name
 * Item 2
 
 ${template.each(query[[from index.tag "item" where page == _CTX.currentPage.name]], templates.itemItem)}
+
+`template.tagItem`:
+* #tag1
+* #tag2
+* #tag3
+
+${template.each(query[[from index.tag "tag" where page == _CTX.currentPage.name]], templates.tagItem)}

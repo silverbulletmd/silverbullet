@@ -89,7 +89,7 @@ Try it: ${widgets.commandButton("Hello World")}
 
 ## Slash commands
 
-Custom slash commands can be defined using [[API/slashcommand#slashCommand.define(spec)]]:
+Custom slash commands can be defined using [[API/slashCommand#slashCommand.define(spec)]]:
 
 ```space-lua
 slashCommand.define {

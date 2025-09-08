@@ -1,3 +1,14 @@
+
+# Stage 1: Build the silverbullet binary
+FROM denoland/deno:2.4.5 AS builder
+RUN apt update && apt install -y git
+WORKDIR /app
+ADD . /app
+
+# This will produce the `silverbullet` self-contained binary in /app/silverbullet
+RUN deno task build
+
+# Stage 2: Create the runtime from the build
 FROM ubuntu:noble
 
 # The volume that will keep the space data
@@ -20,10 +31,12 @@ ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini-${TAR
 RUN mkdir -p -m 777 /space \
     && chmod +x /tini \
     && apt update \
-    && apt install -y git \
+    && apt install -y git curl \
     && apt-get -y autoremove \
     && apt-get clean  \
     && rm -rf /tmp/* /var/tmp/* /var/log/* /usr/share/man /var/lib/apt/lists/*
+
+HEALTHCHECK CMD curl --fail http://localhost:3000/.ping || exit 1
 
 # Expose port 3000
 # Port map this when running, e.g. with -p 3002:3000 (where 3002 is the host port)
@@ -37,7 +50,7 @@ ENV SB_FOLDER=/space
 ADD ./docker-entrypoint.sh /docker-entrypoint.sh
 
 # Copy the bundled version of silverbullet into the container
-ADD silverbullet-${TARGETARCH} /silverbullet
+COPY --from=builder /app/silverbullet /silverbullet
 
 # Run the server, allowing to pass in additional argument at run time, e.g.
 #   docker run -p 3002:3000 -v myspace:/space -it ghcr.io/silverbulletmd/silverbullet --user me:letmein
