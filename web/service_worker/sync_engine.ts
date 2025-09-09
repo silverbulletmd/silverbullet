@@ -17,6 +17,7 @@ type SyncEngineEvents = {
   // Full sync cycle has completed
   spaceSyncComplete: (operations: number) => void | Promise<void>;
 
+  // A single file syncle has completed
   fileSyncComplete: (path: string, operations: number) => void | Promise<void>;
 
   syncError: (error: Error) => void | Promise<void>;

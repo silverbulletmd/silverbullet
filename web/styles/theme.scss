@@ -66,7 +66,7 @@ html {
 
   --progress-background-color: #eee;
   --progress-sync-color: black;
-  --progress-index-color: rgb(176, 0, 59);
+  --progress-index-color: #0772be;
 
   --action-button-background-color: transparent;
   --action-button-color: #292929;
@@ -149,7 +149,11 @@ html[data-theme="dark"] {
 
   --ui-accent-color: #464cfc;
   --ui-accent-text-color: var(--ui-accent-color);
-  --ui-accent-text-color: color-mix(in srgb, var(--ui-accent-color), white 50%);
+  --ui-accent-text-color: color-mix(
+    in srgb,
+    var(--ui-accent-color),
+    white 50%
+  );
   --highlight-color: rgba(255, 255, 0, 0.5);
   --link-color: #7e99fc;
   --link-missing-color: #9e4705;
