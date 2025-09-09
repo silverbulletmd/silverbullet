@@ -1303,6 +1303,15 @@ export class Client {
         });
         break;
       }
+      case "auth-error": {
+        alert(message.message);
+        if (message.actionOrRedirectHeader) {
+          location.href = message.actionOrRedirectHeader;
+        } else {
+          location.reload();
+        }
+        break;
+      }
     }
 
     // Also dispatch it on the event hook for any other listeners
