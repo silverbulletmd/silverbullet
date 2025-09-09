@@ -23,8 +23,6 @@ export async function spaceSyncComplete(message: { operations: number }) {
     await space.listFiles();
   }
 
-  console.log("Full sync completed");
-
   index.ensureFullIndex();
 }
 

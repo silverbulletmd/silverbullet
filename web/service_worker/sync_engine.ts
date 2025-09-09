@@ -45,6 +45,7 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
 
   stopping = false;
   syncAccepts: (path: string) => boolean = () => true;
+  snapshot!: SyncSnapshot;
 
   constructor(
     private kv: KvPrimitives,
@@ -55,9 +56,9 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
   }
 
   async start() {
-    const initialSnapshot = await this.loadSnapshot();
+    this.snapshot = await this.loadSnapshot();
 
-    this.spaceSync = new SpaceSync(this.local, this.remote, initialSnapshot, {
+    this.spaceSync = new SpaceSync(this.local, this.remote, {
       conflictResolver: this.plugAwareConflictResolver.bind(this),
       isSyncCandidate: this.isSyncCandidate.bind(this),
     });
@@ -114,7 +115,7 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
 
   async syncSpace(): Promise<number> {
     try {
-      const operations = await this.spaceSync.syncFiles();
+      const operations = await this.spaceSync.syncFiles(this.snapshot);
       this.emit("spaceSyncComplete", operations);
       return operations;
     } catch (e) {
@@ -125,7 +126,10 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
 
   async syncSingleFile(path: string): Promise<number> {
     try {
-      const operations = await this.spaceSync.syncSingleFile(path);
+      const operations = await this.spaceSync.syncSingleFile(
+        path,
+        this.snapshot,
+      );
       this.emit("fileSyncComplete", path, operations);
       return operations;
     } catch (e) {

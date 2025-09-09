@@ -72,6 +72,9 @@ const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 const autoSaveInterval = 1000;
 
+// Fetch the file list ever so often, this will implicitly kick off a snapshot comparison resulting in the indexing of changed pages
+const fetchFileListInterval = 10000;
+
 /**
  * Client configuration that is set at boot time, doesn't change at runtime
  */
@@ -321,7 +324,7 @@ export class Client {
     // Kick off a regular file listing request to trigger events
     setInterval(() => {
       this.eventedSpacePrimitives.fetchFileList();
-    }, 20000);
+    }, fetchFileListInterval);
 
     this.eventHook.addLocalListener(
       "file:changed",

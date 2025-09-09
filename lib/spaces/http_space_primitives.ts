@@ -164,7 +164,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     }
     return {
       data: new Uint8Array(await res.arrayBuffer()),
-      meta: headersToFileMeta(path, res.headers),
+      meta: headersToFileMeta(path, res.headers)!,
     };
   }
 
@@ -190,7 +190,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
         body: data,
       },
     );
-    return headersToFileMeta(path, res.headers);
+    return headersToFileMeta(path, res.headers)!;
   }
 
   async deleteFile(path: string): Promise<void> {
@@ -224,7 +224,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     if (!res.ok) {
       throw new Error(`Failed to get file meta: ${res.statusText}`);
     }
-    return headersToFileMeta(path, res.headers);
+    return headersToFileMeta(path, res.headers)!;
   }
 
   // If not: throws an error or invokes a redirect

@@ -55,7 +55,6 @@ export async function syncCommand(
   const sync = new SpaceSync(
     primarySpacePrimitives,
     secondarySpacePrimitives,
-    snapshot,
     {
       conflictResolver: SpaceSync.primaryConflictResolver,
       isSyncCandidate: () => true,
@@ -73,6 +72,6 @@ export async function syncCommand(
     });
   }
 
-  const operations = await sync.syncFiles();
+  const operations = await sync.syncFiles(snapshot);
   console.log("Sync completed, operations:", operations);
 }

@@ -5,6 +5,7 @@ import { fileMetaToHeaders, headersToFileMeta } from "../../server/util.ts";
 import { notFoundError, offlineError } from "../../lib/constants.ts";
 import type { SyncEngine } from "./sync_engine.ts";
 import { EventEmitter } from "../../lib/plugos/event.ts";
+import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
 
 const alwaysProxy = [
   "/.auth",
@@ -178,6 +179,13 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
     }
   }
 
+  /**
+   * Shortcut to nonSyncedFiles kept in snapshot
+   */
+  get nonSyncedFiles() {
+    return this.syncEngine!.snapshot.nonSyncedFiles;
+  }
+
   async handleFileListing(): Promise<Response> {
     if (!this.syncEngine || !this.spacePrimitives) {
       throw new Error("This should not happen");
@@ -186,7 +194,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
     const files = await this.spacePrimitives.fetchFileList();
     // Now augment this with non-synced file metadata
     for (
-      const nonSyncedFile of this.syncEngine.spaceSync.snapshot.nonSyncedFiles
+      const nonSyncedFile of this.nonSyncedFiles
         .values()
     ) {
       const existingFile = files.find((file) =>
@@ -214,13 +222,19 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
     try {
       if (request.headers.has("x-get-meta")) {
         // Requesting only file meta
-        // console.log("Serving file meta", path);
-        const meta = await this.spacePrimitives.getFileMeta(path);
+        let meta: FileMeta | undefined;
+        if (this.nonSyncedFiles.has(path)) {
+          // Pull the file meta directly from nonSyncedFiles
+          meta = this.nonSyncedFiles.get(path);
+        } else {
+          // Otherwise fetch it from the local store
+          meta = await this.spacePrimitives.getFileMeta(path);
+        }
         if (request.headers.has("x-observing")) {
           this.emit("observedRequest", path);
         }
         return new Response(null, {
-          headers: fileMetaToHeaders(meta),
+          headers: fileMetaToHeaders(meta!),
         });
       } else {
         // console.log("Serving file read", path);
@@ -263,29 +277,25 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
         // Writing a non-synced file while being online
         // Proxy the request
         const resp = await fetch(request);
-        // Put in a placeholder metadata in the nonSynced files
-        this.syncEngine.spaceSync.snapshot.nonSyncedFiles.set(path, {
-          name: path,
-          lastModified: Date.now(),
-          created: Date.now(),
-          contentType: "application/octet-stream",
-          perm: "rw",
-          size: +(resp.headers.get("X-Content-Length") || 0),
-        });
+        // Update the nonSynced snapshot in place for later file listing consistency
+        this.nonSyncedFiles.set(path, headersToFileMeta(path, resp.headers)!);
         return resp;
+      } else {
+        // Synced file
+        const body = await request.arrayBuffer();
+        // console.log("Handling file write", path, body.byteLength);
+        const meta = await this.spacePrimitives.writeFile(
+          path,
+          new Uint8Array(body),
+          // Note: there are going to be many cases where no meta is supplied in the request, this is ok, in that case this argument will be undefined
+          headersToFileMeta(path, request.headers),
+        );
+        this.emit("fileWritten", path);
+        return new Response("OK", {
+          status: 200,
+          headers: fileMetaToHeaders(meta),
+        });
       }
-      const body = await request.arrayBuffer();
-      // console.log("Handling file write", path, body.byteLength);
-      const meta = await this.spacePrimitives.writeFile(
-        path,
-        new Uint8Array(body),
-        headersToFileMeta(path, request.headers),
-      );
-      this.emit("fileWritten", path);
-      return new Response("OK", {
-        status: 200,
-        headers: fileMetaToHeaders(meta),
-      });
     } catch (e: any) {
       console.error("Error writing", path, e.message);
       return new Response(e.message, {
@@ -302,7 +312,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
     try {
       if (!this.syncEngine.isSyncCandidate(path)) {
         console.log("Handling file delete for non-synced file", path);
-        this.syncEngine.spaceSync.snapshot.nonSyncedFiles.delete(path);
+        this.nonSyncedFiles.delete(path);
         // Proxy the request
         return fetch(request);
       }

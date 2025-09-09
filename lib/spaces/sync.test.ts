@@ -12,7 +12,7 @@ Deno.test("Test sync with no filtering", async () => {
   const primary = new DiskSpacePrimitives(primaryPath);
   const secondary = new DiskSpacePrimitives(secondaryPath);
   const snapshot = new SyncSnapshot();
-  const sync = new SpaceSync(primary, secondary, snapshot, {
+  const sync = new SpaceSync(primary, secondary, {
     conflictResolver: SpaceSync.primaryConflictResolver,
     isSyncCandidate: () => true, // Sync everything always
   });
@@ -138,7 +138,7 @@ Deno.test("Test sync with no filtering", async () => {
 
   async function doSync() {
     await sleep(10);
-    const r = await sync.syncFiles();
+    const r = await sync.syncFiles(snapshot);
     await sleep(10);
     return r;
   }
@@ -156,7 +156,6 @@ Deno.test("Test sync with filtering", async () => {
   let sync = new SpaceSync(
     primary,
     secondary,
-    snapshot,
     {
       conflictResolver: SpaceSync.primaryConflictResolver,
       isSyncCandidate: (path) => path.endsWith(".md"), // Only sync .md files
@@ -232,7 +231,6 @@ Deno.test("Test sync with filtering", async () => {
   sync = new SpaceSync(
     primary,
     secondary,
-    snapshot,
     {
       conflictResolver: SpaceSync.primaryConflictResolver,
       isSyncCandidate: () => true,
@@ -249,7 +247,6 @@ Deno.test("Test sync with filtering", async () => {
   sync = new SpaceSync(
     primary,
     secondary,
-    snapshot,
     {
       conflictResolver: SpaceSync.primaryConflictResolver,
       isSyncCandidate: () => false,
@@ -269,7 +266,7 @@ Deno.test("Test sync with filtering", async () => {
 
   async function doSync() {
     await sleep(10);
-    const r = await sync.syncFiles();
+    const r = await sync.syncFiles(snapshot);
     return r;
   }
 });
@@ -282,7 +279,7 @@ Deno.test("Local push sync", async () => {
   const primary = new DiskSpacePrimitives(primaryPath);
   const secondary = new DiskSpacePrimitives(secondaryPath);
   const snapshot = new SyncSnapshot();
-  const sync = new SpaceSync(primary, secondary, snapshot, {
+  const sync = new SpaceSync(primary, secondary, {
     conflictResolver: SpaceSync.primaryConflictResolver,
     isSyncCandidate: (path) => path.endsWith(".md"), // Only sync .md files
   });
@@ -291,11 +288,11 @@ Deno.test("Local push sync", async () => {
     "Write one non-sync file on the primary, which SHOULD sync to the secondary",
   );
 
-  const operations = await sync.syncFiles();
+  const operations = await sync.syncFiles(snapshot);
   assertEquals(operations, 0);
 
   await primary.writeFile("index.md", stringToBytes("Hello"));
-  assertEquals(1, await sync.syncSingleFile("index.md"));
+  assertEquals(1, await sync.syncSingleFile("index.md", snapshot));
 
   assertEquals(
     (await secondary.readFile("index.md")).data,
@@ -304,7 +301,7 @@ Deno.test("Local push sync", async () => {
 
   console.log("Let's write a new file on primary that is not a sync candidate");
   await primary.writeFile("test.txt", stringToBytes("Hello"));
-  assertEquals(1, await sync.syncSingleFile("test.txt"));
+  assertEquals(1, await sync.syncSingleFile("test.txt", snapshot));
   assertEquals(snapshot.nonSyncedFiles.size, 0);
 
   await Deno.remove(primaryPath, { recursive: true });

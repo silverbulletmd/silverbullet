@@ -17,7 +17,7 @@ import {
   nodeAtPos,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { queryLuaObjects } from "./api.ts";
-import type { ObjectValue } from "../../type/index.ts";
+import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 import { isValidPath } from "@silverbulletmd/silverbullet/lib/ref";
 import { notFoundError } from "../../lib/constants.ts";
 
