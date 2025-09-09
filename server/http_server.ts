@@ -8,7 +8,7 @@ import { compile as gitIgnoreCompiler } from "gitignore-parser";
 import { decodePageURI } from "@silverbulletmd/silverbullet/lib/ref";
 import { LockoutTimer } from "./lockout.ts";
 import type { AuthOptions } from "../cmd/server.ts";
-import type { ClientConfig } from "../web/client.ts";
+import type { BootConfig } from "../web/client.ts";
 import { applyUrlPrefix, removeUrlPrefix } from "../lib/url_prefix.ts";
 import { authCookieName, fileMetaToHeaders, utcDateString } from "./util.ts";
 import { renderHtmlPage } from "./serverside_render.ts";
@@ -369,7 +369,7 @@ export class HttpServer {
 
     // Fetch config
     this.app.get("/.config", (c) => {
-      const clientConfig: ClientConfig = {
+      const clientConfig: BootConfig = {
         readOnly: this.options.readOnly,
         spaceFolderPath: this.options.pagesPath,
         indexPage: this.options.indexPage,

@@ -62,7 +62,7 @@ import { fsEndpoint, plugPrefix } from "../lib/spaces/constants.ts";
 import { diffAndPrepareChanges } from "./cm_util.ts";
 import { DocumentEditor } from "./document_editor.ts";
 import { parseExpressionString } from "../lib/space_lua/parse.ts";
-import { Config } from "./config.ts";
+import type { Config } from "./config.ts";
 import type { DocumentMeta, FileMeta, PageMeta } from "../type/index.ts";
 import { parseMarkdown } from "./markdown_parser/parser.ts";
 import { CheckPathSpacePrimitives } from "../lib/spaces/checked_space_primitives.ts";
@@ -78,7 +78,7 @@ const fetchFileListInterval = 10000;
 /**
  * Client configuration that is set at boot time, doesn't change at runtime
  */
-export type ClientConfig = {
+export type BootConfig = {
   spaceFolderPath: string;
   indexPage: string;
   readOnly: boolean;
@@ -105,9 +105,8 @@ type WidgetCacheItem = {
 };
 
 export class Client {
-  readonly config = new Config();
   // Event bus used to communicate between components
-  eventHook = new EventHook(this.config);
+  eventHook: EventHook;
 
   space!: Space;
 
@@ -165,8 +164,10 @@ export class Client {
 
   constructor(
     private parent: Element,
-    public clientConfig: ClientConfig,
+    public clientConfig: BootConfig,
+    readonly config: Config,
   ) {
+    this.eventHook = new EventHook(this.config);
     // Generate a semi-unique prefix for the database so not to reuse databases for different space paths
     this.dbName = "" +
       simpleHash(

@@ -1,72 +1,62 @@
 import { safeRun } from "../lib/async.ts";
+import { notAuthenticatedError, offlineError } from "../lib/constants.ts";
 import { initLogger } from "../lib/logger.ts";
-import { Client, type ClientConfig } from "./client.ts";
+import { extractSpaceLuaFromPageText, loadConfig } from "./boot_config.ts";
+import { type BootConfig, Client } from "./client.ts";
+import type { Config } from "./config.ts";
 import {
   flushCachesAndUnregisterServiceWorker,
 } from "./service_worker/util.ts";
 
 const configCacheKey = `silverbullet.${document.baseURI}.config`;
+const configPageCacheKey = `silverbullet.${document.baseURI}.configPage`;
 
 initLogger("[Client]");
 
 safeRun(async () => {
   // First we attempt to fetch the config from the server
-  let clientConfig: ClientConfig | undefined;
+  let bootConfig: BootConfig | undefined;
   try {
-    const configResponse = await fetch(".config", {
-      // We don't want to follow redirects, we want to get the redirect header in case of auth issues
-      redirect: "manual",
-      // Add short timeout in case of a bad internet connection, this would block loading of the UI
-      signal: AbortSignal.timeout(1000),
-    });
-    const redirectHeader = configResponse.headers.get("location");
-    if (
-      configResponse.status === 401 && redirectHeader
-    ) {
-      alert(
-        "Received an authentication redirect, redirecting to URL: " +
-          redirectHeader,
-      );
-      location.href = redirectHeader;
-      return;
-    }
-    clientConfig = await configResponse.json();
-    // Persist to localStorage
-    localStorage.setItem(configCacheKey, JSON.stringify(clientConfig));
+    const configText = await cachedFetch(configCacheKey, ".config");
+    bootConfig = JSON.parse(configText);
   } catch (e: any) {
-    console.error("Failed to fetch client config from server", e.message);
-    // We may be offline, let's see if we have a cached config
-    const configString = localStorage.getItem(configCacheKey);
-    if (configString) {
-      // Yep! Let's use it
-      clientConfig = JSON.parse(configString);
-    } else {
-      alert(
-        "Could not fetch configuration from server. Make sure you have an internet connection.",
-      );
-      // Returning here because there's no way to recover from this
-      return;
-    }
+    console.error("Failed to fetch config", e.message);
+    alert(
+      "Could not fetch config and no cached copy, please connect to the Internet",
+    );
+    return;
+  }
+  let config: Config | undefined;
+  try {
+    const confPageText = await cachedFetch(configPageCacheKey, ".fs/CONFIG.md");
+    const luaConfigCode = extractSpaceLuaFromPageText(confPageText);
+    config = await loadConfig(luaConfigCode);
+  } catch (e: any) {
+    console.error("Failed to fetch config", e.message);
+    alert(
+      "Could not fetch config and no cached copy, please connect to the Internet",
+    );
+    return;
   }
   // Then we augment the config based on the URL arguments
   const urlParams = new URLSearchParams(location.search);
   if (urlParams.has("readOnly")) {
-    clientConfig!.readOnly = true;
+    bootConfig!.readOnly = true;
   }
   if (urlParams.has("disableSpaceLua")) {
-    clientConfig!.disableSpaceLua = true;
+    bootConfig!.disableSpaceLua = true;
   }
   if (urlParams.has("disablePlugs")) {
-    clientConfig!.disablePlugs = true;
+    bootConfig!.disablePlugs = true;
   }
   if (urlParams.has("disableSpaceStyle")) {
-    clientConfig!.disableSpaceStyle = true;
+    bootConfig!.disableSpaceStyle = true;
   }
   if (urlParams.has("wipeClient")) {
-    clientConfig!.performWipe = true;
+    bootConfig!.performWipe = true;
   }
   if (urlParams.has("resetClient")) {
-    clientConfig!.performReset = true;
+    bootConfig!.performReset = true;
   }
   if (urlParams.has("enableSW")) {
     const val = urlParams.get("enableSW")!;
@@ -84,7 +74,8 @@ safeRun(async () => {
     history.pushState({}, "", newURL.toString());
   }
   console.log("Booting SilverBullet client");
-  console.log("Client config", clientConfig);
+  console.log("Boot config", bootConfig);
+  console.log("Config", config.values);
 
   if (localStorage.getItem("enableSW") !== "0" && navigator.serviceWorker) {
     // Register service worker
@@ -137,7 +128,7 @@ safeRun(async () => {
     navigator.serviceWorker.ready.then((registration) => {
       registration.active!.postMessage({
         type: "config",
-        config: clientConfig,
+        config: bootConfig,
       });
     });
   } else {
@@ -145,7 +136,8 @@ safeRun(async () => {
   }
   const client = new Client(
     document.getElementById("sb-root")!,
-    clientConfig!,
+    bootConfig!,
+    config!,
   );
   // @ts-ignore: on purpose
   globalThis.client = client;
@@ -161,4 +153,53 @@ if (!globalThis.indexedDB) {
   alert(
     "SilverBullet requires IndexedDB to operate and it is not available in your browser. Please use a recent version of Chrome, Firefox (not in private mode) or Safari.",
   );
+}
+
+async function cachedFetch(cacheKey: string, path: string): Promise<string> {
+  try {
+    const response = await fetch(path, {
+      // We don't want to follow redirects, we want to get the redirect header in case of auth issues
+      redirect: "manual",
+      // Add short timeout in case of a bad internet connection, this would block loading of the UI
+      signal: AbortSignal.timeout(1000),
+      headers: {
+        "X-Sync-Mode": "1",
+      },
+    });
+    if (response.status === 503) {
+      // Offline
+      const text = localStorage.getItem(cacheKey);
+      if (text) {
+        console.info("Falling back to cache for", path);
+        return text;
+      } else {
+        throw offlineError;
+      }
+    }
+    const redirectHeader = response.headers.get("location");
+    if (
+      response.status === 401 && redirectHeader
+    ) {
+      alert(
+        "Received an authentication redirect, redirecting to URL: " +
+          redirectHeader,
+      );
+      location.href = redirectHeader;
+      throw notAuthenticatedError;
+    }
+    const text = await response.text();
+    // Persist to localStorage
+    localStorage.setItem(cacheKey, text);
+    return text;
+  } catch {
+    console.info("Falling back to cache for", path);
+    // We may be offline, let's see if we have a cached config
+    const text = localStorage.getItem(cacheKey);
+    if (text) {
+      // Yep! Let's use it
+      return text;
+    } else {
+      throw offlineError;
+    }
+  }
 }

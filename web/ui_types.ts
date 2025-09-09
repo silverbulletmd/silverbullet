@@ -4,7 +4,7 @@ import type { FilterOption, Notification, PanelMode } from "../type/client.ts";
 import type { DocumentMeta, PageMeta } from "../type/index.ts";
 import type { Path } from "@silverbulletmd/silverbullet/lib/ref";
 import type { SyncStatus } from "../lib/spaces/sync.ts";
-import type { ClientConfig } from "./client.ts";
+import type { BootConfig } from "./client.ts";
 
 export type PanelConfig = {
   mode?: PanelMode;
@@ -168,7 +168,7 @@ export type ServiceWorkerTargetMessage =
   | {
     type: "skip-waiting";
   }
-  | { type: "config"; config: ClientConfig }
+  | { type: "config"; config: BootConfig }
   | { type: "flush-cache" }
   | { type: "wipe-data" }
   | { type: "perform-file-sync"; path: string }

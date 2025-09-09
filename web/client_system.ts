@@ -195,7 +195,7 @@ export class ClientSystem {
       dataStoreWriteSyscalls(this.ds),
       syncSyscalls(this.client),
       clientStoreSyscalls(this.ds),
-      configSyscalls(this.client),
+      configSyscalls(this.client.config),
     );
 
     if (!this.readOnlyMode) {
