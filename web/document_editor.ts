@@ -1,7 +1,13 @@
 import type { Client } from "./client.ts";
-import { html as skeleton } from "./document_editor_skeleton.ts";
 import { timeout } from "../lib/async.ts";
 import type { DocumentMeta } from "../type/index.ts";
+
+type DocumentEditorIframeWindow = Window & {
+  silverbullet: EventTarget & {
+    syscall: (name: string, ...args: any[]) => any;
+    sendMessage: (type: string, data?: any) => void;
+  };
+};
 
 export class DocumentEditor {
   iframe!: HTMLIFrameElement;
@@ -34,21 +40,37 @@ export class DocumentEditor {
 
     const content = await callback();
 
-    const [iframe, finished] = this.createIframe();
+    const [iframe, ready] = DocumentEditor.createIframe(content.html);
+
+    // These two have to happen in quick succession
+    this.parent.appendChild(iframe);
+    this.setupIframe(iframe);
+
     this.iframe = iframe;
+    await ready;
 
-    this.parent.appendChild(this.iframe);
+    // This is only for legacy support
+    if ((content as any).script) {
+      console.warn(
+        "Providing a `script` property with your document editor is deprecated. Inline the script into your HTML instead.",
+      );
 
-    await finished;
+      if (this.iframe.contentDocument) {
+        // Load the legacy script
+        const script = this.iframe.contentDocument.createElement("script");
+        script.type = "text/javascript";
+        script.text = (content as any).script;
+        this.iframe.contentDocument.head.appendChild(script);
 
-    this.sendMessage({
-      type: "init",
-      internal: true,
-      data: {
-        html: content.html,
-        script: content.script,
-      },
-    });
+        // Because now an html and body tag will be auto created, it can happen
+        // that the content is not properly stretching those elements and the
+        // content will stay small, let's try to mitgate this
+        const style = this.iframe.contentDocument.createElement("style");
+        style.textContent =
+          "html, body { width: 100%; height: 100%; margin: 0; }";
+        this.iframe.contentDocument.head.appendChild(style);
+      }
+    }
 
     this.updateTheme();
   }
@@ -59,31 +81,16 @@ export class DocumentEditor {
 
     await this.waitForSave();
 
-    globalThis.removeEventListener("message", this.messageHandler);
     this.iframe.remove();
   }
 
   sendPublicMessage(message: { type: string; data?: any }) {
-    this.sendMessage(message);
+    this.dispatchEvent(message);
   }
 
   setContent(data: Uint8Array, meta: DocumentMeta) {
-    this.sendMessage({
+    this.dispatchEvent({
       type: "file-open",
-      data: {
-        data,
-        meta,
-      },
-    });
-
-    this.currentPath = meta.name;
-  }
-
-  async changeContent(data: Uint8Array, meta: DocumentMeta) {
-    await this.waitForSave();
-
-    this.sendMessage({
-      type: "file-update",
       data: {
         data,
         meta,
@@ -102,25 +109,28 @@ export class DocumentEditor {
       this.savePromise = Promise.withResolvers();
     }
 
-    this.sendMessage({
+    this.dispatchEvent({
       type: "request-save",
     });
   }
 
   focus() {
-    this.sendMessage({
+    this.dispatchEvent({
       type: "focus",
     });
   }
 
   updateTheme() {
-    this.sendMessage({
-      type: "set-theme",
-      internal: true,
-      data: {
-        theme: client.ui.viewState.uiOptions.darkMode ? "dark" : "light",
-      },
-    });
+    if (!this.iframe?.contentDocument) return;
+
+    const html = this.iframe.contentDocument.querySelector("html");
+    if (!html) return;
+
+    const theme = this.client.ui.viewState.uiOptions.darkMode
+      ? "dark"
+      : "light";
+
+    html.setAttribute("data-theme", theme);
   }
 
   private async waitForSave() {
@@ -141,22 +151,19 @@ export class DocumentEditor {
     }
   }
 
-  private sendMessage(
-    message: { type: string; internal?: boolean; data?: any },
-  ) {
-    if (!this.iframe?.contentWindow) return;
-    message.internal ??= false;
-    this.iframe.contentWindow.postMessage(message);
+  private dispatchEvent(message: { type: string; data?: any }) {
+    if (!this.iframe.contentWindow) return;
+
+    const iframeWindow = this.iframe
+      .contentWindow as DocumentEditorIframeWindow;
+
+    iframeWindow.silverbullet.dispatchEvent(
+      new CustomEvent(message.type, { detail: message.data }),
+    );
   }
 
-  private async messageHandler(event: any) {
-    if (event.source !== this.iframe.contentWindow) return;
-    const response = event.data;
-    if (!response) return;
-
-    const data = response.data;
-
-    switch (response.type) {
+  private handleMessage(type: string, data?: any) {
+    switch (type) {
       case "file-changed":
         {
           this.client.ui.viewDispatch({
@@ -174,66 +181,73 @@ export class DocumentEditor {
           this.saveMethod(this.currentPath, data.data);
         }
         break;
-      case "syscall":
-        {
-          let result: any;
-
-          try {
-            const response = await this.client.clientSystem.localSyscall(
-              data.name,
-              data.args,
-            );
-
-            result = { result: response };
-          } catch (e: any) {
-            result = { error: e.message };
-          }
-
-          this.sendMessage({
-            type: "syscall-response",
-            internal: true,
-            data: {
-              id: data.id,
-              ...result,
-            },
-          });
-        }
-        break;
       default:
-        console.warn("Unknown event sent from plug: ", data.type);
+        console.warn("Unknown event sent from document editor: ", type);
     }
   }
 
-  private createIframe(): [HTMLIFrameElement, Promise<void>] {
-    // Note: In the future we could maybe cache this iframe, for now it is not nearly necessary
-    const iframe = document.createElement("iframe");
+  private setupIframe(iframe: HTMLIFrameElement) {
+    if (!iframe.contentWindow || !iframe.contentDocument) {
+      // This will bubble up to the navigation and be catched there
+      throw new Error("Something went wrong while setting up the iframe");
+    }
 
-    iframe.src = "about:blank";
+    const iframeWindow = iframe.contentWindow as DocumentEditorIframeWindow;
+
+    iframeWindow.silverbullet =
+      new EventTarget() as DocumentEditorIframeWindow["silverbullet"];
+
+    iframeWindow.silverbullet.syscall = (name: string, ...args: any[]) => {
+      return this.client.clientSystem.localSyscall(name, args);
+    };
+
+    iframeWindow.silverbullet.sendMessage = (type: string, data?: any) => {
+      this.handleMessage(type, data);
+    };
+
+    // When an iframe is focused, all keyboard events will be captured by the
+    // iframe. This is bad because we obviously want stuff like the command
+    // picker to keep working. This is done by listening to the event **in the
+    // capture phase** (so we get it first), sending it to the actual SB DOM,
+    // and only if it doesn't have defaultPrevented set, we send it further
+    // down.
+    iframeWindow.addEventListener("keydown", (event) => {
+      const keyEvent = new KeyboardEvent("keydown", event);
+
+      Object.defineProperty(keyEvent, "target", {
+        value: globalThis.document.body,
+      });
+
+      globalThis.document.dispatchEvent(keyEvent);
+
+      if (keyEvent.defaultPrevented) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    }, true);
+  }
+
+  private static createIframe(
+    srcdoc: string,
+  ): [HTMLIFrameElement, Promise<void>] {
+    const iframe = document.createElement("iframe");
+    // This can be escaped, but we don't really care, it's only there to give a
+    // first barrier against accessing some apis like navigation
+    iframe.sandbox =
+      "allow-scripts allow-same-origin allow-downloads allow-forms allow-modals allow-presentation allow-orientation-lock";
+    iframe.srcdoc = srcdoc;
+
+    // Avoid possible loading artifcats
     iframe.style.visibility = "hidden";
 
     const ready = new Promise<void>((resolve) => {
-      iframe.onload = () => {
-        iframe.contentDocument!.write(skeleton);
-        iframe.style.visibility = "visible";
-        resolve();
-      };
-    });
-
-    const finished = new Promise<void>((resolve) => {
-      ready.then(() => {
-        globalThis.addEventListener("message", this.messageHandler.bind(this));
-
-        iframe.onload = null;
-
-        if (!iframe.contentWindow) {
-          console.warn("Iframe went away or content was not loaded");
-          return;
-        }
+      iframe.addEventListener("load", () => {
+        iframe.style.visibility = "";
 
         resolve();
-      });
+      }, { once: true });
     });
 
-    return [iframe, finished];
+    return [iframe, ready];
   }
 }
