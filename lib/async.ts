@@ -68,6 +68,13 @@ export class PromiseQueue {
   }
 }
 
+/**
+ * Batches up values, and processes in batches of batchSize in parallel
+ * then merges the results in the appropriate order.
+ * @param values - The values to batch.
+ * @param fn - The function to run on each batch.
+ * @param batchSize - The size of each batch.
+ */
 export async function batchRequests<I, O>(
   values: I[],
   fn: (batch: I[]) => Promise<O[]>,
