@@ -1479,8 +1479,10 @@ export class Client {
         ["client", "lastOpenedPath"],
       ) as Path;
 
-      console.log("Navigating to last opened page", getNameFromPath(path));
-      ref = { path };
+      if (path) {
+        console.log("Navigating to last opened page", getNameFromPath(path));
+        ref = { path };
+      }
     }
 
     await this.navigate(ref, true);
