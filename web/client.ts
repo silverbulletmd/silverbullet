@@ -954,13 +954,7 @@ export class Client {
       }
     }
 
-    if (!loadingDifferentPath) {
-      // We are loading the same page again so just send a file changed event.
-      // This can e.g. after a sync found changes elsewhere
-      await this.documentEditor.changeContent(doc.data, doc.meta);
-    } else {
-      this.documentEditor!.setContent(doc.data, doc.meta);
-    }
+    this.documentEditor!.setContent(doc.data, doc.meta);
 
     this.space.watchFile(path);
 

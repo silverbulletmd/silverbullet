@@ -1,8 +1,10 @@
 import { editor } from "@silverbulletmd/silverbullet/syscalls";
 
-export function viewer(): { html: string; script: string } {
+export function viewer(): { html: string } {
   return {
     html: `
+<html>
+<head>
 <style>
 html {
   --ui-button-background-color: #e1e1e1;
@@ -13,6 +15,10 @@ html[data-theme="dark"] {
   --ui-button-background-color: #262626;
   --ui-button-text-color: white;
   --background-color: #111;
+}
+html, body {
+  margin: 0;
+  height: 100%;
 }
 #container {
   width: 100%;
@@ -49,28 +55,7 @@ html[data-theme="dark"] {
   color: var(--ui-button-text-color);
 }
 </style>
-<div id="container">
-  <div id="panzoom">
-    <img id="image"></img>
-  </div>
-
-  <div id="toolbar">
-    <button class="ui-button" id="rotateLeft">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
-    </button>
-    <button class="ui-button" id="rotateRight">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
-    </button>
-    <button class="ui-button" id="zoomOut">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-    </button>
-    <button class="ui-button" id="zoomIn">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-    </button>
-  <div/>
-</div>
-`,
-    script: `
+<script type="module">
 /**
 * Panzoom 4.6.0 for panning and zooming elements using CSS transforms
 * Copyright Timmy Willison and other contributors
@@ -151,6 +136,31 @@ globalThis.silverbullet.addEventListener("flash-info", () => {
 
   globalThis.silverbullet.syscall("editor.flashNotification", \`Type: \${info.type}; Size: \${Math.round(info.size / 1000)}kB; Dimensions: \${info.width}x\${info.height}\`);
 });
+</script>
+</head>
+<body>
+<div id="container">
+  <div id="panzoom">
+    <img id="image"></img>
+  </div>
+
+  <div id="toolbar">
+    <button class="ui-button" id="rotateLeft">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+    </button>
+    <button class="ui-button" id="rotateRight">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+    </button>
+    <button class="ui-button" id="zoomOut">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+    </button>
+    <button class="ui-button" id="zoomIn">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+    </button>
+  <div/>
+</div>
+</body>
+</html>
 `,
   };
 }
