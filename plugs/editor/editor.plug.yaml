@@ -10,6 +10,10 @@ functions:
     path: "./editor.ts:toggleDarkMode"
     command:
       name: "Editor: Toggle Dark Mode"
+  toggleMarkdownSyntaxRendering:
+    path: "./editor.ts:toggleMarkdownSyntaxRendering"
+    command:
+      name: "Editor: Toggle Markdown Syntax Rendering"
   newWindow:
     path: editor.ts:newWindowCommand
     command:

@@ -32,7 +32,10 @@ export function inlineContentPlugin(client: Client) {
           return;
         }
 
-        if (!isCursorInRange(state, [from, to])) {
+        const renderingSyntax = client.ui.viewState.uiOptions
+          .markdownSyntaxRendering;
+        const cursorIsInRange = isCursorInRange(state, [from, to]);
+        if (!renderingSyntax && !cursorIsInRange) {
           widgets.push(invisibleDecoration.range(from, to));
         }
 

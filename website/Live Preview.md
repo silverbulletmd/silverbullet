@@ -2,4 +2,4 @@ SilverBullet uses a “live preview” markdown editor. This mechanism is heavil
 
 It reduces visual noise by not constantly showing [[Markdown]] codes such as `[SilverBullet website](https://silverbullet.md)`, only showing the underlying Markdown formatting code when the cursor is placed inside.
 
-In SilverBullet, you can always see the underlying format by moving your cursor “inside.” **Alt-clicking** on any piece of formatted text will move your cursor there and reveal the underlying (markdown) code.
+In SilverBullet, you can always see the underlying format by moving your cursor “inside.” **Alt-clicking** on any piece of formatted text will move your cursor there and reveal the underlying (markdown) code, or you can reveal it permanently with the `Toggle Markdown Syntax Rendering` command.

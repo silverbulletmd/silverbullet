@@ -128,6 +128,11 @@ export class MainUI {
     }, [viewState.uiOptions.darkMode]);
 
     useEffect(() => {
+      document.documentElement.dataset.markdownSyntaxRendering =
+        viewState.uiOptions.markdownSyntaxRendering ? "on" : "off";
+    }, [viewState.uiOptions.markdownSyntaxRendering]);
+
+    useEffect(() => {
       // Need to dispatch a resize event so that the top_bar can pick it up
       globalThis.dispatchEvent(new Event("resize"));
     }, [viewState.panels]);

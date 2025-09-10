@@ -18,7 +18,7 @@ _Ah, so that explains the name!_
 * Start typing \`:party\` to trigger the emoji picker 🎉
 * Type \`/\` somewhere in the text to invoke a **slash command**.
 * If this matches your personality type, there is also an \`Editor: Toggle Vim Mode\` command to switch to Vim mode. If you cannot figure out how to exit it (classic vim issue), just run that same command again. _Phew!_
-* As you may have noticed, while SilverBullet uses [markdown](https://www.markdownguide.org/) underneath, it also “live previews” it to give a bit more of a WYSIWYG feel. You can always move your cursor “into” the underlying code by \`Alt-clicking\` it (even links and widgets, which we’ll get to later).
+* As you may have noticed, while SilverBullet uses [markdown](https://www.markdownguide.org/) underneath, it also “live previews” it to give a bit more of a WYSIWYG feel. You can always move your cursor “into” the underlying code by \`Alt-clicking\` it (even links and widgets, which we’ll get to later), or reveal it permanently with the \`Toggle Markdown Syntax Rendering\` command.
 
 While SilverBullet implements (most) of [CommonMark](https://commonmark.org/), it also adds a few extensions that are SilverBullet-specific. Most notably, it adds the \`\${Lua expression}\` syntax to render Lua expressions inline.
 
