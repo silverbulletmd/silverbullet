@@ -17,7 +17,17 @@ import { hashtagPlugin } from "./hashtag.ts";
 import type { ClickEvent } from "@silverbulletmd/silverbullet/type/client";
 
 export function cleanModePlugins(client: Client) {
+  const pluginsNeededEvenWhenRenderingSyntax = [
+    luaDirectivePlugin(client),
+    cleanWikiLinkPlugin(client),
+  ];
+
+  if (client.ui.viewState.uiOptions.markdownSyntaxRendering) {
+    return pluginsNeededEvenWhenRenderingSyntax;
+  }
+
   return [
+    ...pluginsNeededEvenWhenRenderingSyntax,
     linkPlugin(client),
     blockquotePlugin(),
     admonitionPlugin(),
@@ -42,9 +52,7 @@ export function cleanModePlugins(client: Client) {
     }),
     listBulletPlugin(),
     tablePlugin(client),
-    cleanWikiLinkPlugin(client),
     cleanEscapePlugin(),
-    luaDirectivePlugin(client),
     hashtagPlugin(),
   ] as Extension[];
 }

@@ -279,6 +279,15 @@ html[data-theme="dark"] {
   --editor-directive-background-color: #4c4c4c7d;
 }
 
+html[data-markdown-syntax-rendering="on"] {
+  --editor-meta-color: unset;
+  --editor-directive-mark-color: unset;
+
+  #sb-main .cm-editor .sb-lua-directive-block {
+    margin-top: 0.5em;
+  }
+}
+
 .sb-admonition[admonition="note" i] {
   .sb-admonition-type {
     &::before {
