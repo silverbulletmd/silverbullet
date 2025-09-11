@@ -3,6 +3,7 @@ import { EventEmitter } from "../plugos/event.ts";
 import { plugPrefix } from "./constants.ts";
 import type { FileMeta } from "../../type/index.ts";
 import { notFoundError } from "../constants.ts";
+import { sleep } from "../async.ts";
 
 type SyncHash = number;
 
@@ -76,6 +77,7 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
 
   /**
    * Syncs all files in space.
+   * If this completes successfully (with operations >= 0), a full space sync completed successfully.
    * @param snapshot - The current snapshot of the space (will be updated in place)
    * @returns number of operations performed, or -1 when sync was already ongoing and nonSynced files
    */
@@ -122,25 +124,21 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
       // console.log("[sync]", "Iterating over all files");
       let filesProcessed = 0;
       for (const name of sortedFilenames) {
-        try {
-          operations += await this.syncFile(
-            name,
-            // For the primary (local) pull from the local file list, falling back to nonSyncedFiles in case in a previous sync it was still non-synced
-            primaryFileMap.get(name),
-            secondaryFileMap.get(name),
-            !nonSyncCandidates.has(name),
-            snapshot,
-          );
-          filesProcessed++;
-          // Only report something significant
-          if (operations > 1) {
-            this.emit("syncProgress", {
-              filesProcessed,
-              totalFiles: sortedFilenames.length,
-            });
-          }
-        } catch (e: any) {
-          console.log("error", "Error syncing file", name, e.message);
+        operations += await this.syncFile(
+          name,
+          // For the primary (local) pull from the local file list, falling back to nonSyncedFiles in case in a previous sync it was still non-synced
+          primaryFileMap.get(name),
+          secondaryFileMap.get(name),
+          !nonSyncCandidates.has(name),
+          snapshot,
+        );
+        filesProcessed++;
+        // Only report something significant
+        if (operations > 1) {
+          this.emit("syncProgress", {
+            filesProcessed,
+            totalFiles: sortedFilenames.length,
+          });
         }
       }
     } finally {

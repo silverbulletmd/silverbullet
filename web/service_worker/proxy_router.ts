@@ -29,6 +29,7 @@ export type ProxyRouterEvents = {
  * Implements a service worker level HTTP proxy (fetch requests) that serves /.fs calls locally for synced spaces
  */
 export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
+  // While this is false, will proxy all requests to the server UNLESS offline
   fullSyncConfirmed = false;
   online = true;
   spacePrimitives?: SpacePrimitives;
@@ -109,24 +110,25 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
           return cachedResponse;
         }
 
-        if (
-          // Are we fully configured yet?
-          !this.spacePrimitives || !this.syncEngine ||
-          // Or are we configured, but not fully synced yet online
-          !this.fullSyncConfirmed && this.online
-        ) {
-          // Nope, so let's proxy
-          return fetch(request);
-        }
-
         //requestUrl.pathname without with any URL prefix removed
         const pathname = requestUrl.pathname.substring(
           this.basePathName.length,
         );
 
-        if (alwaysProxy.includes(pathname) || pathname.startsWith("/.proxy")) {
+        if (
+          // Not yet configured -> Proxy
+          !this.spacePrimitives || !this.syncEngine ||
+          // Not fully synced but online -> Proxy
+          !this.fullSyncConfirmed && this.online ||
+          // A path we always need to proxy -> Proxy
+          (alwaysProxy.includes(pathname) || pathname.startsWith("/.proxy/"))
+        ) {
           return fetch(request);
-        } else if (
+        }
+
+        // We are now in a state we're configured and either a full sync cycle has complete (since boot) OR we're offline
+
+        if (
           pathname.startsWith(fsEndpoint) &&
           pathname.endsWith(".md") &&
           !request.headers.has("X-Sync-Mode")

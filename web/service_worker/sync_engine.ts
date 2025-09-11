@@ -116,7 +116,10 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
   async syncSpace(): Promise<number> {
     try {
       const operations = await this.spaceSync.syncFiles(this.snapshot);
-      this.emit("spaceSyncComplete", operations);
+      if (operations !== -1) {
+        // emit successful sync event (not when operations === -1, because that means another sync was ongoing)
+        this.emit("spaceSyncComplete", operations);
+      }
       return operations;
     } catch (e) {
       this.emit("syncError", e);
