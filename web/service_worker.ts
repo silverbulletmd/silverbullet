@@ -164,7 +164,8 @@ async function handleLocalFileRequest(
   if (data) {
     // console.log("Serving from space", path);
     return new Response(
-      data.data,
+      // Casting to any because of weird Deno typing
+      data.data as any,
       {
         headers: {
           "Content-type": data.meta.contentType,
