@@ -35,6 +35,15 @@ local text = editor.getText()
 print("Document length: " .. #text)
 ```
 
+### editor.getCurrentLine()
+Returns the current line range and text.
+
+Example:
+```lua
+local line = editor.getCurrentLine()
+print("from " .. line.from .. " to " .. line.to .. " text " .. line.text .. " text with cursor " .. line.textWithCursor)
+```
+
 ### editor.setText(text, isolateHistory)
 Updates the editor text while preserving cursor location.
 
