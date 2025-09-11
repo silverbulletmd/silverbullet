@@ -1,5 +1,6 @@
 import { safeRun } from "../lib/async.ts";
 import { Client, type ClientConfig } from "./client.ts";
+import "./polyfills.ts";
 
 const configCacheKey = `silverbullet.${document.baseURI}.config`;
 
