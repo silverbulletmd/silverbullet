@@ -239,7 +239,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
       } else {
         // console.log("Serving file read", path);
         const { meta, data } = await this.spacePrimitives.readFile(path);
-        return new Response(data, {
+        return new Response(data as any, {
           headers: fileMetaToHeaders(meta),
         });
       }
