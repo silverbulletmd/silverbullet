@@ -187,7 +187,8 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       {
         method: "PUT",
         headers,
-        body: data,
+        // Casting to any because of weird Deno typing
+        body: data as any,
       },
     );
     return headersToFileMeta(path, res.headers)!;

@@ -79,7 +79,8 @@ export function sandboxFetchSyscalls(
       fetchOptions.headers = fetchOptions.headers ?? {};
       const resp = await client.httpSpacePrimitives.authenticatedFetch(
         buildProxyUrl(client, url),
-        fetchOptions,
+        // Casting this to any because of weird Deno typing
+        fetchOptions as any,
       );
       const body = await resp.arrayBuffer();
       return {

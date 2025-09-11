@@ -7,6 +7,7 @@ import type { Config } from "./config.ts";
 import {
   flushCachesAndUnregisterServiceWorker,
 } from "./service_worker/util.ts";
+import "./polyfills.ts";
 
 const configCacheKey = `silverbullet.${document.baseURI}.config`;
 const configPageCacheKey = `silverbullet.${document.baseURI}.configPage`;

@@ -231,10 +231,6 @@ export class DocumentEditor {
     srcdoc: string,
   ): [HTMLIFrameElement, Promise<void>] {
     const iframe = document.createElement("iframe");
-    // This can be escaped, but we don't really care, it's only there to give a
-    // first barrier against accessing some apis like navigation
-    iframe.sandbox =
-      "allow-scripts allow-same-origin allow-downloads allow-forms allow-modals allow-presentation allow-orientation-lock";
     iframe.srcdoc = srcdoc;
 
     // Avoid possible loading artifcats
