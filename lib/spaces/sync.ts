@@ -3,7 +3,6 @@ import { EventEmitter } from "../plugos/event.ts";
 import { plugPrefix } from "./constants.ts";
 import type { FileMeta } from "../../type/index.ts";
 import { notFoundError } from "../constants.ts";
-import { sleep } from "../async.ts";
 
 type SyncHash = number;
 
