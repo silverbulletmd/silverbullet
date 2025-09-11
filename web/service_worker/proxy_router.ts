@@ -29,10 +29,9 @@ export type ProxyRouterEvents = {
  * Implements a service worker level HTTP proxy (fetch requests) that serves /.fs calls locally for synced spaces
  */
 export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
-  // While this is false, will proxy all requests to the server UNLESS offline
-  fullSyncConfirmed = false;
-  online = true;
-  spacePrimitives?: SpacePrimitives;
+  private fullSyncConfirmed = false;
+  online = false;
+  localSpacePrimitives?: SpacePrimitives;
   syncEngine?: SyncEngine;
 
   constructor(
@@ -52,7 +51,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
    * Called as soon the service worker is configured, and the service worker is ready to start serving requests.
    */
   configure(spacePrimitives: SpacePrimitives, syncEngine: SyncEngine) {
-    this.spacePrimitives = spacePrimitives;
+    this.localSpacePrimitives = spacePrimitives;
     this.syncEngine = syncEngine;
     syncEngine.on({
       spaceSyncComplete: () => {
@@ -117,9 +116,9 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
 
         if (
           // Not yet configured -> Proxy
-          !this.spacePrimitives || !this.syncEngine ||
+          !this.localSpacePrimitives || !this.syncEngine ||
           // Not fully synced but online -> Proxy
-          !this.fullSyncConfirmed && this.online ||
+          (!this.fullSyncConfirmed && this.online) ||
           // A path we always need to proxy -> Proxy
           (alwaysProxy.includes(pathname) || pathname.startsWith("/.proxy/"))
         ) {
@@ -189,11 +188,11 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
   }
 
   async handleFileListing(): Promise<Response> {
-    if (!this.syncEngine || !this.spacePrimitives) {
+    if (!this.syncEngine || !this.localSpacePrimitives) {
       throw new Error("This should not happen");
     }
 
-    const files = await this.spacePrimitives.fetchFileList();
+    const files = await this.localSpacePrimitives.fetchFileList();
     // Now augment this with non-synced file metadata
     for (
       const nonSyncedFile of this.nonSyncedFiles
@@ -217,7 +216,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
   }
 
   async handleGet(path: string, request: Request): Promise<Response> {
-    if (!this.syncEngine || !this.spacePrimitives) {
+    if (!this.syncEngine || !this.localSpacePrimitives) {
       throw new Error("This should not happen");
     }
 
@@ -230,7 +229,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
           meta = this.nonSyncedFiles.get(path);
         } else {
           // Otherwise fetch it from the local store
-          meta = await this.spacePrimitives.getFileMeta(path);
+          meta = await this.localSpacePrimitives.getFileMeta(path);
         }
         if (request.headers.has("x-observing")) {
           this.emit("observedRequest", path);
@@ -239,8 +238,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
           headers: fileMetaToHeaders(meta!),
         });
       } else {
-        // console.log("Serving file read", path);
-        const { meta, data } = await this.spacePrimitives.readFile(path);
+        const { meta, data } = await this.localSpacePrimitives.readFile(path);
         return new Response(data as any, {
           headers: fileMetaToHeaders(meta),
         });
@@ -270,7 +268,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
   }
 
   async handlePut(path: string, request: Request): Promise<Response> {
-    if (!this.syncEngine || !this.spacePrimitives) {
+    if (!this.syncEngine || !this.localSpacePrimitives) {
       throw new Error("This should not happen");
     }
     try {
@@ -286,7 +284,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
         // Synced file
         const body = await request.arrayBuffer();
         // console.log("Handling file write", path, body.byteLength);
-        const meta = await this.spacePrimitives.writeFile(
+        const meta = await this.localSpacePrimitives.writeFile(
           path,
           new Uint8Array(body),
           // Note: there are going to be many cases where no meta is supplied in the request, this is ok, in that case this argument will be undefined
@@ -307,7 +305,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
   }
 
   async handleDelete(path: string, request: Request): Promise<Response> {
-    if (!this.syncEngine || !this.spacePrimitives) {
+    if (!this.syncEngine || !this.localSpacePrimitives) {
       throw new Error("This should not happen");
     }
 
@@ -319,7 +317,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
         return fetch(request);
       }
       // console.log("Handling file delete", path);
-      await this.spacePrimitives.deleteFile(path);
+      await this.localSpacePrimitives.deleteFile(path);
       return new Response("OK", {
         status: 200,
       });

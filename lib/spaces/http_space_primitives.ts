@@ -109,12 +109,14 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       // Common substrings: "fetch" "load failed"
       const errorMessage = e.message.toLowerCase();
       if (
-        errorMessage.includes("fetch") || errorMessage.includes("load failed")
+        errorMessage.includes("fetch") ||
+        errorMessage.includes("load failed") ||
+        errorMessage.includes("unavailable")
       ) {
         console.error(
           "Got error fetching, throwing offline",
           url,
-          e,
+          e.message,
         );
         throw offlineError;
       }

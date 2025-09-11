@@ -10,33 +10,28 @@ import {
 import "./polyfills.ts";
 import type { BootConfig } from "./ui_types.ts";
 
-const configCacheKey = `silverbullet.${document.baseURI}.config`;
-const configPageCacheKey = `silverbullet.${document.baseURI}.configPage`;
-
 initLogger("[Client]");
 
 safeRun(async () => {
   // First we attempt to fetch the config from the server
   let bootConfig: BootConfig | undefined;
-  try {
-    const configText = await cachedFetch(configCacheKey, ".config");
-    bootConfig = JSON.parse(configText);
-  } catch (e: any) {
-    console.error("Failed to fetch config", e.message);
-    alert(
-      "Could not fetch config and no cached copy, please connect to the Internet",
-    );
-    return;
-  }
   let config: Config | undefined;
   try {
-    const confPageText = await cachedFetch(configPageCacheKey, ".fs/CONFIG.md");
-    const luaConfigCode = extractSpaceLuaFromPageText(confPageText);
-    config = await loadConfig(luaConfigCode);
+    const [configJSONText, customConfigText, defaultConfigText] = await Promise
+      .all([
+        cachedFetch(".config"),
+        cachedFetch(".fs/CONFIG.md"),
+        cachedFetch(".fs/Library/Std/Config.md"),
+      ]);
+    bootConfig = JSON.parse(configJSONText);
+    const luaDefaultConfig = extractSpaceLuaFromPageText(defaultConfigText);
+    const luaCustomConfig = extractSpaceLuaFromPageText(customConfigText);
+    // Append and evaluate
+    config = await loadConfig(luaDefaultConfig + "\n" + luaCustomConfig);
   } catch (e: any) {
-    console.error("Failed to fetch config", e.message);
+    console.error("Failed to process config", e.message);
     alert(
-      "Could not fetch config and no cached copy, please connect to the Internet",
+      "Could not process config and no cached copy, please connect to the Internet",
     );
     return;
   }
@@ -50,7 +45,7 @@ safeRun(async () => {
     history.pushState({}, "", newURL.toString());
   }
   console.log("Booting SilverBullet client");
-  console.log("Boot config", bootConfig);
+  console.log("Boot config", bootConfig, config.values);
 
   if (localStorage.getItem("enableSW") !== "0" && navigator.serviceWorker) {
     // Register service worker
@@ -172,7 +167,8 @@ if (!globalThis.indexedDB) {
   );
 }
 
-async function cachedFetch(cacheKey: string, path: string): Promise<string> {
+async function cachedFetch(path: string): Promise<string> {
+  const cacheKey = `silverbullet.${document.baseURI}.${path}`;
   try {
     const response = await fetch(path, {
       // We don't want to follow redirects, we want to get the redirect header in case of auth issues

@@ -972,8 +972,15 @@ export class Client {
         e.message !== notFoundError.message &&
         e.message !== offlineError.message
       ) {
-        // If the error is not a "not found" error nor "offline", rethrow it
+        // If the error is not a "not found" or "offline" error, rethrow it
         throw e;
+      }
+
+      if (e.message === offlineError.message) {
+        console.info(
+          "Currently offline, will assume page doesn't exist:",
+          pageName,
+        );
       }
 
       // Scenarios:

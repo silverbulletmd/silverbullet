@@ -53,6 +53,9 @@ const proxyRouter = new ProxyRouter(
   precacheFiles,
 );
 
+// @ts-ignore: debugging
+globalThis.proxyRouter = proxyRouter;
+
 // Message received from client
 self.addEventListener("message", async (event: any) => {
   const message: ServiceWorkerTargetMessage = event.data;
