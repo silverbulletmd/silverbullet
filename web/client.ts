@@ -26,6 +26,7 @@ import {
 
 import type {
   AppViewState,
+  BootConfig,
   ServiceWorkerSourceMessage,
   ServiceWorkerTargetMessage,
 } from "./ui_types.ts";
@@ -74,24 +75,6 @@ const autoSaveInterval = 1000;
 
 // Fetch the file list ever so often, this will implicitly kick off a snapshot comparison resulting in the indexing of changed pages
 const fetchFileListInterval = 10000;
-
-/**
- * Client configuration that is set at boot time, doesn't change at runtime
- */
-export type BootConfig = {
-  spaceFolderPath: string;
-  indexPage: string;
-  readOnly: boolean;
-  // Sync configuration
-  syncDocuments: boolean;
-  syncIgnore?: string;
-  // These are all configured via ?query parameters, e.g. ?disableSpaceLua=1
-  disableSpaceLua?: boolean;
-  disableSpaceStyle?: boolean;
-  disablePlugs?: boolean;
-  performWipe?: boolean;
-  performReset?: boolean;
-};
 
 declare global {
   var client: Client;
@@ -164,16 +147,14 @@ export class Client {
 
   constructor(
     private parent: Element,
-    public clientConfig: BootConfig,
+    public bootConfig: BootConfig,
     readonly config: Config,
   ) {
     this.eventHook = new EventHook(this.config);
     // Generate a semi-unique prefix for the database so not to reuse databases for different space paths
     this.dbName = "" +
       simpleHash(
-        `${clientConfig.spaceFolderPath}:${
-          document.baseURI.replace(/\/*$/, "")
-        }`,
+        `${bootConfig.spaceFolderPath}:${document.baseURI.replace(/\/*$/, "")}`,
       ) + "_data";
     // The third case should only ever happen when the user provides an invalid index env variable
     this.onLoadRef = parseRefFromURI() || this.getIndexRef();
@@ -199,7 +180,7 @@ export class Client {
       this.mq,
       this.ds,
       this.eventHook,
-      this.clientConfig.readOnly,
+      this.bootConfig.readOnly,
     );
 
     this.initSpace();
@@ -216,14 +197,14 @@ export class Client {
 
     this.clientSystem.init();
 
-    if (this.clientConfig.performWipe) {
+    if (this.bootConfig.performWipe) {
       if (confirm("Are you sure you want to wipe the client?")) {
         await this.wipeClient();
         alert("Wipe done. Please reload the page or navigate away.");
         return;
       }
     }
-    if (this.clientConfig.performReset) {
+    if (this.bootConfig.performReset) {
       if (
         confirm(
           "Are you sure you want to reset the client? This will wipe all local data and re-sync everything.",
@@ -289,7 +270,7 @@ export class Client {
   initSpace() {
     this.httpSpacePrimitives = new HttpSpacePrimitives(
       document.baseURI.replace(/\/*$/, "") + fsEndpoint,
-      this.clientConfig.spaceFolderPath,
+      this.bootConfig.spaceFolderPath,
       (message, actionOrRedirectHeader) => {
         alert(message);
         if (actionOrRedirectHeader === "reload") {
@@ -304,7 +285,7 @@ export class Client {
       this.httpSpacePrimitives,
     );
 
-    if (this.clientConfig.readOnly) {
+    if (this.bootConfig.readOnly) {
       remoteSpacePrimitives = new ReadOnlySpacePrimitives(
         this.httpSpacePrimitives,
       );
@@ -313,7 +294,7 @@ export class Client {
     this.plugSpaceRemotePrimitives = new PlugSpacePrimitives(
       remoteSpacePrimitives,
       this.clientSystem.namespaceHook,
-      this.clientConfig.readOnly ? undefined : "client",
+      this.bootConfig.readOnly ? undefined : "client",
     );
 
     this.eventedSpacePrimitives = new EventedSpacePrimitives(
@@ -462,7 +443,7 @@ export class Client {
         () => {
           if (
             !this.ui.viewState.unsavedChanges ||
-            this.clientConfig.readOnly
+            this.bootConfig.readOnly
           ) {
             // No unsaved changes, or read-only mode, not gonna save
             return resolve();
@@ -878,7 +859,7 @@ export class Client {
   }
 
   getIndexRef(): Ref {
-    return parseToRef(this.clientConfig.indexPage) || { path: "index.md" };
+    return parseToRef(this.bootConfig.indexPage) || { path: "index.md" };
   }
 
   async navigate(
@@ -1175,7 +1156,7 @@ export class Client {
   }
 
   async loadCustomStyles() {
-    if (this.clientConfig.disableSpaceStyle) {
+    if (this.bootConfig.disableSpaceStyle) {
       console.warn("Not loading custom styles, since space style is disabled");
       return;
     }

@@ -30,7 +30,7 @@ type SyncEngineEvents = {
 };
 
 export type SyncConfig = {
-  syncDocuments: boolean;
+  syncDocuments?: boolean;
   syncIgnore?: string;
 };
 
@@ -95,9 +95,8 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
       ? gitIgnoreCompiler(config.syncIgnore).accepts
       : () => true;
     console.log(
-      "[sync] Updated sync config, syncDocuments:",
-      "syncIgnore:",
-      this.syncConfig.syncIgnore,
+      "[sync] Updated sync config:",
+      this.syncConfig,
     );
   }
 

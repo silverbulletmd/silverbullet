@@ -9,6 +9,24 @@ This defines the [JSON schema](https://json-schema.org/) for built-in configurat
 
 ```space-lua
 -- priority: 100
+config.define("sync", {
+  description = "Configure sync",
+  type = "object",
+  properties = {
+    -- Defaults to false
+    documents = schema.boolean(),
+    -- In .gitignore format, either in a single string, or as a list of strings
+    ignore = {
+      oneOf = {
+        schema.array "string",
+        schema.string()
+      }
+    }
+  },
+  additionalProperties = false
+})
+
+
 config.define("plugs", {
   description = "List of plugs to enable",
   oneOf = {

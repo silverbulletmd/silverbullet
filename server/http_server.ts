@@ -8,7 +8,7 @@ import { compile as gitIgnoreCompiler } from "gitignore-parser";
 import { decodePageURI } from "@silverbulletmd/silverbullet/lib/ref";
 import { LockoutTimer } from "./lockout.ts";
 import type { AuthOptions } from "../cmd/server.ts";
-import type { BootConfig } from "../web/client.ts";
+import type { BootConfig } from "../web/ui_types.ts";
 import { applyUrlPrefix, removeUrlPrefix } from "../lib/url_prefix.ts";
 import { authCookieName, fileMetaToHeaders, utcDateString } from "./util.ts";
 import { renderHtmlPage } from "./serverside_render.ts";
@@ -37,8 +37,6 @@ export type ServerOptions = {
   hostUrlPrefix?: string;
   auth?: AuthOptions;
   spaceIgnore?: string;
-  syncIgnore?: string;
-  syncDocuments?: boolean;
   pagesPath: string;
   shellBackend: string;
   shellCommandWhiteList?: string[];
@@ -373,8 +371,6 @@ export class HttpServer {
         readOnly: this.options.readOnly,
         spaceFolderPath: this.options.pagesPath,
         indexPage: this.options.indexPage,
-        syncDocuments: this.options.syncDocuments ?? false,
-        syncIgnore: this.options.syncIgnore,
       };
       return c.json(clientConfig, 200, {
         "Cache-Control": "no-cache",

@@ -92,7 +92,7 @@ export function TopBar({
                   onRename(newName);
                 }}
                 editable={!client.ui.viewState.uiOptions.forcedROMode &&
-                  !client.clientConfig.readOnly}
+                  !client.bootConfig.readOnly}
               />
             </span>
             {notifications.length > 0 && (

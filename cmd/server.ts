@@ -126,16 +126,6 @@ export async function serveCommand(
   if (spaceIgnore) {
     console.log(`Ignoring files matching: ${spaceIgnore}`);
   }
-  const syncIgnore = Deno.env.get("SB_SYNC_IGNORE");
-  if (syncIgnore) {
-    console.log(`Sync ignoring files matching: ${syncIgnore}`);
-  }
-
-  const syncDocuments = Deno.env.get("SB_SYNC_DOCUMENTS") !== "0";
-
-  if (!syncDocuments) {
-    console.log("Document sync disabled");
-  }
 
   // All plug code bundled into a JSON blob
   const plugAssets = new AssetBundle(plugAssetBundle as AssetJson);
@@ -153,13 +143,11 @@ export async function serveCommand(
       hostUrlPrefix,
       indexPage,
       spaceIgnore,
-      syncIgnore,
       auth: userCredentials,
       readOnly,
       shellBackend,
       pagesPath: folder,
       shellCommandWhiteList,
-      syncDocuments,
     },
     clientAssets,
     plugAssets,

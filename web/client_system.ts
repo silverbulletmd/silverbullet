@@ -218,7 +218,7 @@ export class ClientSystem {
   }
 
   async loadScripts() {
-    if (this.client.clientConfig.disableSpaceLua) {
+    if (this.client.bootConfig.disableSpaceLua) {
       console.info("Space Lua scripts are disabled, skipping loading scripts");
       return;
     }
@@ -260,7 +260,7 @@ export class ClientSystem {
       try {
         const plugName = plugNameExtractRegex.exec(plugMeta.name)![1];
         if (
-          this.client.clientConfig.disablePlugs &&
+          this.client.bootConfig.disablePlugs &&
           !builtinPlugNames.includes(plugName)
         ) {
           console.warn(

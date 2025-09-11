@@ -2,12 +2,13 @@ import { safeRun } from "../lib/async.ts";
 import { notAuthenticatedError, offlineError } from "../lib/constants.ts";
 import { initLogger } from "../lib/logger.ts";
 import { extractSpaceLuaFromPageText, loadConfig } from "./boot_config.ts";
-import { type BootConfig, Client } from "./client.ts";
+import { Client } from "./client.ts";
 import type { Config } from "./config.ts";
 import {
   flushCachesAndUnregisterServiceWorker,
 } from "./service_worker/util.ts";
 import "./polyfills.ts";
+import type { BootConfig } from "./ui_types.ts";
 
 const configCacheKey = `silverbullet.${document.baseURI}.config`;
 const configPageCacheKey = `silverbullet.${document.baseURI}.configPage`;
@@ -39,34 +40,8 @@ safeRun(async () => {
     );
     return;
   }
-  // Then we augment the config based on the URL arguments
-  const urlParams = new URLSearchParams(location.search);
-  if (urlParams.has("readOnly")) {
-    bootConfig!.readOnly = true;
-  }
-  if (urlParams.has("disableSpaceLua")) {
-    bootConfig!.disableSpaceLua = true;
-  }
-  if (urlParams.has("disablePlugs")) {
-    bootConfig!.disablePlugs = true;
-  }
-  if (urlParams.has("disableSpaceStyle")) {
-    bootConfig!.disableSpaceStyle = true;
-  }
-  if (urlParams.has("wipeClient")) {
-    bootConfig!.performWipe = true;
-  }
-  if (urlParams.has("resetClient")) {
-    bootConfig!.performReset = true;
-  }
-  if (urlParams.has("enableSW")) {
-    const val = urlParams.get("enableSW")!;
-    console.log("Got this sw value", val, typeof val);
-    localStorage.setItem("enableSW", val);
-    if (val === "0") {
-      await flushCachesAndUnregisterServiceWorker();
-    }
-  }
+
+  await augmentBootConfig(bootConfig!, config!);
 
   // Update the browser URL to no longer contain the query parameters using pushState
   if (location.search) {
@@ -76,7 +51,6 @@ safeRun(async () => {
   }
   console.log("Booting SilverBullet client");
   console.log("Boot config", bootConfig);
-  console.log("Config", config.values);
 
   if (localStorage.getItem("enableSW") !== "0" && navigator.serviceWorker) {
     // Register service worker
@@ -149,6 +123,48 @@ safeRun(async () => {
     });
   }
 });
+
+/**
+ * Augments the boot config with values from the page's search params
+ * as well as well as Lua-based configuration from CONFIG
+ */
+async function augmentBootConfig(bootConfig: BootConfig, config: Config) {
+  // Pull out sync configuration
+  bootConfig.syncDocuments = config.get<boolean>(["sync", "documents"], false);
+  let syncIgnore = config!.get<string | string[]>(["sync", "ignore"], "");
+  if (Array.isArray(syncIgnore)) {
+    syncIgnore = syncIgnore.join("\n");
+  }
+  bootConfig.syncIgnore = syncIgnore;
+
+  // Then we augment the config based on the URL arguments
+  const urlParams = new URLSearchParams(location.search);
+  if (urlParams.has("readOnly")) {
+    bootConfig.readOnly = true;
+  }
+  if (urlParams.has("disableSpaceLua")) {
+    bootConfig.disableSpaceLua = true;
+  }
+  if (urlParams.has("disablePlugs")) {
+    bootConfig.disablePlugs = true;
+  }
+  if (urlParams.has("disableSpaceStyle")) {
+    bootConfig.disableSpaceStyle = true;
+  }
+  if (urlParams.has("wipeClient")) {
+    bootConfig.performWipe = true;
+  }
+  if (urlParams.has("resetClient")) {
+    bootConfig.performReset = true;
+  }
+  if (urlParams.has("enableSW")) {
+    const val = urlParams.get("enableSW")!;
+    localStorage.setItem("enableSW", val);
+    if (val === "0") {
+      await flushCachesAndUnregisterServiceWorker();
+    }
+  }
+}
 
 if (!globalThis.indexedDB) {
   alert(

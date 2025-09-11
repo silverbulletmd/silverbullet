@@ -124,7 +124,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
           this.basePathName.length,
         );
 
-        if (alwaysProxy.includes(pathname)) {
+        if (alwaysProxy.includes(pathname) || pathname.startsWith("/.proxy")) {
           return fetch(request);
         } else if (
           pathname.startsWith(fsEndpoint) &&

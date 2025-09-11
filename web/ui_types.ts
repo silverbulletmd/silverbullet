@@ -4,7 +4,6 @@ import type { FilterOption, Notification, PanelMode } from "../type/client.ts";
 import type { DocumentMeta, PageMeta } from "../type/index.ts";
 import type { Path } from "@silverbulletmd/silverbullet/lib/ref";
 import type { SyncStatus } from "../lib/spaces/sync.ts";
-import type { BootConfig } from "./client.ts";
 
 export type PanelConfig = {
   mode?: PanelMode;
@@ -162,6 +161,24 @@ export type Action =
     progressPercentage?: number;
     progressType?: string;
   };
+
+/**
+ * Client configuration that is set at boot time, doesn't change at runtime
+ */
+export type BootConfig = {
+  spaceFolderPath: string;
+  indexPage: string;
+  readOnly: boolean;
+  // Sync configuration
+  syncDocuments?: boolean;
+  syncIgnore?: string;
+  // These are all configured via ?query parameters, e.g. ?disableSpaceLua=1
+  disableSpaceLua?: boolean;
+  disableSpaceStyle?: boolean;
+  disablePlugs?: boolean;
+  performWipe?: boolean;
+  performReset?: boolean;
+};
 
 /**
  * Messages sent client -> service worker
