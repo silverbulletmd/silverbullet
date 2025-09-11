@@ -1,43 +1,43 @@
 name: Server
 
 on:
-  push:
-    tags:
-      - "*"
+    push:
+        tags:
+            - "*"
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+    build:
+        runs-on: ubuntu-latest
 
-    steps:
-      - name: Setup repo
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          fetch-tags: true
+        steps:
+            - name: Setup repo
+              uses: actions/checkout@v3
+              with:
+                  fetch-depth: 0
+                  fetch-tags: true
 
-      - name: Setup Deno
-        uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.4.5
+            - name: Setup Deno
+              uses: denoland/setup-deno@v2
+              with:
+                  deno-version: v2.5.0
 
-      - name: Build bundles
-        run: |
-          deno task build
+            - name: Build bundles
+              run: |
+                  deno task build
 
-      - name: Compile for all platforms
-        run: |
-          deno task server:zip:linux-x86_64
-          deno task server:zip:linux-aarch64
-          deno task server:zip:darwin-x86_64
-          deno task server:zip:darwin-aarch64
-          deno task server:zip:windows-x86_64
+            - name: Compile for all platforms
+              run: |
+                  deno task server:zip:linux-x86_64
+                  deno task server:zip:linux-aarch64
+                  deno task server:zip:darwin-x86_64
+                  deno task server:zip:darwin-aarch64
+                  deno task server:zip:windows-x86_64
 
-      - name: Release
-        uses: softprops/action-gh-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          draft: true
-          files: |
-            silverbullet-*.zip
+            - name: Release
+              uses: softprops/action-gh-release@v1
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              with:
+                  draft: true
+                  files: |
+                      silverbullet-*.zip

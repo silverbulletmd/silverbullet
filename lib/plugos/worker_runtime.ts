@@ -177,10 +177,14 @@ export function monkeyPatchFetch() {
         base64Body: encodedBody,
       },
     );
-    return new Response(r.base64Body ? base64Decode(r.base64Body) : null, {
-      status: r.status,
-      headers: r.headers,
-    });
+    // Casting the response to "any" for now, since of weird Deno typing
+    return new Response(
+      (r.base64Body ? base64Decode(r.base64Body) : null) as any,
+      {
+        status: r.status,
+        headers: r.headers,
+      },
+    );
   };
 }
 
