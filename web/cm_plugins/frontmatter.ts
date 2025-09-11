@@ -73,7 +73,7 @@ export function frontmatterPlugin() {
                     from: mFrom,
                     callback: () => {
                       try {
-                        window.open(url, "_blank" );
+                          globalThis.open(url, "_blank" );
                       } catch (err) {
                         console.error("Failed to open external link", err);
                       }
