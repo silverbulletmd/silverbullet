@@ -62,7 +62,9 @@ export function cleanWikiLinkPlugin(client: Client) {
           "default": "",
         }[linkStatus];
 
-        if (isCursorInRange(state, [from, to])) {
+        const renderingSyntax =
+          client.ui.viewState.uiOptions.markdownSyntaxRendering;
+        if (isCursorInRange(state, [from, to]) || renderingSyntax) {
           // Only attach a CSS class, then get out
           if (linkStatus !== "default") {
             widgets.push(

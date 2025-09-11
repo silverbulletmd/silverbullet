@@ -32,7 +32,6 @@ export type CodeWidgetContent = {
 export type DocumentEditorCallback = () => Promise<DocumentEditorContent>;
 export type DocumentEditorContent = {
   html: string;
-  script?: string;
 };
 
 export type LintDiagnostic = {

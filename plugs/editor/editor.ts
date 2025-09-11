@@ -12,6 +12,16 @@ export async function setEditorMode() {
   if (await clientStore.get("darkMode")) {
     await editor.setUiOption("darkMode", true);
   }
+  const markdownSyntaxRendering = await clientStore.get(
+    "markdownSyntaxRendering",
+  );
+  if (markdownSyntaxRendering != null) {
+    await editor.setUiOption(
+      "markdownSyntaxRendering",
+      markdownSyntaxRendering,
+    );
+    await editor.rebuildEditorState();
+  }
 }
 
 export function openCommandPalette() {
@@ -39,6 +49,16 @@ export async function toggleDarkMode() {
   darkMode = !darkMode;
   await clientStore.set("darkMode", darkMode);
   await editor.reloadUI();
+}
+
+export async function toggleMarkdownSyntaxRendering() {
+  let renderingSyntax = await editor.getUiOption(
+    "markdownSyntaxRendering",
+  );
+  renderingSyntax = !renderingSyntax;
+  await clientStore.set("markdownSyntaxRendering", renderingSyntax);
+  await editor.setUiOption("markdownSyntaxRendering", renderingSyntax);
+  await editor.rebuildEditorState();
 }
 
 export async function centerCursorCommand() {
