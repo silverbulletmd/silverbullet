@@ -15,15 +15,15 @@ You can configure some specifics about your slash template in its template pageâ
 Optional keys:
 
 * `description`: The description of the slash command
-* `boost`: To prioritize the slash command higher in the list
+* `priority`: To prioritize the slash command higher in the list
 * `onlyContexts` (advanced): To only make the slash command appear in certain (AST node based) contexts
 * `exceptContexts` (advanced): To make the slash command appear everywhere _except_ in these (AST node) contexts
 
 # Currently active slash templates
 
 ${template.each(query[[
-from index.tag "meta/template/slash"
-where _.tag == "page"
+  from index.tag "meta/template/slash"
+  where _.tag == "page"
 ]], templates.fullPageItem)}
 
 # Implementation
