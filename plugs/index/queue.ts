@@ -73,7 +73,7 @@ export async function processIndexQueue(messages: MQMessage[]) {
       name = name.slice(0, -3);
       await indexPage(name);
     } else {
-      await indexDocument(name);
+      await events.dispatchEvent("document:index", name);
     }
   }
 }
