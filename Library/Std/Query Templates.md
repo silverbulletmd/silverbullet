@@ -40,20 +40,23 @@ templates.tagItem = template.new([==[
 ${template.each(query[[from index.tag "page" limit 3]], templates.pageItem)}
 
 `template.taskItem`:
-* [ ] Task 1
-* [ ] Task 2
+
+    * [ ] Task 1
+    * [ ] Task 2
 
 ${template.each(query[[from index.tag "task" where page == _CTX.currentPage.name]], templates.taskItem)}
 
 `template.itemItem`:
-* Item 1
-* Item 2
+
+    * Item 1
+    * Item 2
 
 ${template.each(query[[from index.tag "item" where page == _CTX.currentPage.name]], templates.itemItem)}
 
 `template.tagItem`:
-* #tag1
-* #tag2
-* #tag3
+
+    * #tag1
+    * #tag2
+    * #tag3
 
 ${template.each(query[[from index.tag "tag" where page == _CTX.currentPage.name]], templates.tagItem)}
