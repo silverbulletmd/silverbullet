@@ -283,7 +283,15 @@ html[data-markdown-syntax-rendering="on"] {
   --editor-meta-color: unset;
   --editor-directive-mark-color: unset;
 
-  #sb-main .cm-editor .sb-lua-directive-block {
+  #sb-main
+    .cm-editor
+    .sb-lua-directive-block:not(
+      .sb-lua-top-widget
+    ):not(
+      .sb-lua-bottom-widget
+    ):not(
+      .sb-inline-content
+    ) {
     margin-top: 0.5em;
   }
 }
