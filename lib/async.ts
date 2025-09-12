@@ -10,6 +10,18 @@ export function throttle(func: () => void, limit: number) {
   };
 }
 
+export function throttleImmediately(func: () => void, limit: number) {
+  let timer: any = null;
+  return function () {
+    if (!timer) {
+      func();
+      timer = setTimeout(() => {
+        timer = null;
+      }, limit);
+    }
+  };
+}
+
 // race for promises returns first promise that resolves
 export function race<T>(promises: Promise<T>[]): Promise<T> {
   return new Promise((resolve, reject) => {

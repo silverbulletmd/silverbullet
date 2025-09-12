@@ -351,8 +351,11 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
         snapshot.nonSyncedFiles.delete(path);
       }
     } else if (
+      // The file is on the secondary, and not on the primary
       secondaryMeta !== undefined && snapshot.files.has(path) &&
-      primaryMeta === undefined && syncBack
+      primaryMeta === undefined &&
+      // And we're talking about a synced file
+      syncBack
     ) {
       // File deleted on primary
       console.log(

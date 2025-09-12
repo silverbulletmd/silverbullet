@@ -11,6 +11,7 @@ import { IndexedDBKvPrimitives } from "../lib/data/indexeddb_kv_primitives.ts";
 import { fsEndpoint } from "../lib/spaces/constants.ts";
 import { DataStoreSpacePrimitives } from "../lib/spaces/datastore_space_primitives.ts";
 import { HttpSpacePrimitives } from "../lib/spaces/http_space_primitives.ts";
+import { throttleImmediately } from "../lib/async.ts";
 
 initLogger("[Service Worker]");
 
@@ -117,16 +118,18 @@ self.addEventListener("message", async (event: any) => {
     case "config": {
       const config = message.config;
       // Configure the service worker if it hasn't been already
-      if (proxyRouter.syncEngine) {
+      if (isConfigured()) {
         console.info(
           "Service worker already configured, just updating configs",
         );
-        proxyRouter.syncEngine.setSyncConfig({
+        proxyRouter.syncEngine!.setSyncConfig({
           syncDocuments: config.syncDocuments,
           syncIgnore: config.syncIgnore,
         });
 
         return;
+      } else {
+        console.info("Service being configured with", config);
       }
       const spaceFolderPath = config.spaceFolderPath;
       // We're generating a simple hashed database name based on the space path in case people regularly switch between multiple space paths
@@ -247,7 +250,17 @@ function broadcastMessage(message: ServiceWorkerSourceMessage) {
   });
 }
 
+const throttledServiceWorkerStarted = throttleImmediately(() => {
+  broadcastMessage({
+    type: "service-worker-started",
+  });
+}, 100);
+
 self.addEventListener("fetch", (event: any) => {
+  if (!isConfigured()) {
+    throttledServiceWorkerStarted();
+  }
+
   // Always delegate to the proxy router
   proxyRouter.onFetch(event);
 });
@@ -274,6 +287,11 @@ self.addEventListener("install", (event: any) => {
 
 self.addEventListener("activate", (event: any) => {
   console.log("Activating new service worker!");
+
+  if (!isConfigured()) {
+    throttledServiceWorkerStarted();
+  }
+
   event.waitUntil(
     (async () => {
       const cacheNames = await caches.keys();
@@ -290,3 +308,9 @@ self.addEventListener("activate", (event: any) => {
     })(),
   );
 });
+
+console.log("Service worker loaded 4");
+
+function isConfigured() {
+  return !!proxyRouter.syncEngine;
+}

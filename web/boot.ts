@@ -56,6 +56,30 @@ safeRun(async () => {
   if (localStorage.getItem("enableSW") !== "0" && navigator.serviceWorker) {
     // Register service worker
     const workerURL = new URL("service_worker.js", document.baseURI);
+    let startNotificationCount = 0;
+    navigator.serviceWorker.addEventListener("message", (event) => {
+      if (event.data.type === "service-worker-started") {
+        startNotificationCount++;
+        // Service worker started, let's make sure it the current config
+        console.log(
+          "Got notified that service worker has just started, sending config",
+          bootConfig,
+        );
+        navigator.serviceWorker.ready.then((registration) => {
+          registration.active!.postMessage({
+            type: "config",
+            config: bootConfig,
+          });
+        });
+        if (startNotificationCount > 10) {
+          // This is not normal. Safari sometimes gets stuck on a database connection if the service worker is updated which means it cannot boot properly
+          // the only know fix is to quit the browser and restart it
+          alert(
+            "Something is wrong with the sync engine, please quit your browser and restart it.",
+          );
+        }
+      }
+    });
     navigator.serviceWorker
       .register(workerURL, {
         type: "module",
@@ -67,6 +91,12 @@ safeRun(async () => {
       })
       .then((registration) => {
         console.log("Service worker registered...");
+
+        // Send the config
+        registration.active?.postMessage({
+          type: "config",
+          config: bootConfig,
+        });
 
         // Set up update detection
         registration.addEventListener("updatefound", () => {
@@ -90,23 +120,12 @@ safeRun(async () => {
         });
       });
 
-    // Handle service worker controlled changes (when a new service worker takes over)
-    let refreshing = false;
-    navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if (!refreshing) {
-        refreshing = true;
-        console.log(
-          "New service worker activated, please reload to activate the new version.",
-        );
-      }
-    });
-
-    navigator.serviceWorker.ready.then((registration) => {
-      registration.active!.postMessage({
-        type: "config",
-        config: bootConfig,
-      });
-    });
+    // // Handle service worker controlled changes (when a new service worker takes over)
+    // navigator.serviceWorker.addEventListener("controllerchange", async () => {
+    //   console.log(
+    //     "New service worker activated!",
+    //   );
+    // });
   } else {
     console.info("Service worker disabled.");
   }

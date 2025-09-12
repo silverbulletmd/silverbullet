@@ -223,4 +223,6 @@ export type ServiceWorkerSourceMessage = {
   type: "cacheFlushed";
 } | {
   type: "dataWiped";
+} | {
+  type: "service-worker-started";
 };

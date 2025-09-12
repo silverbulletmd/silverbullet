@@ -261,6 +261,21 @@ Deno.test("Test sync with filtering", async () => {
   // And everything unchanged on secondary
   assertEquals((await secondary.fetchFileList()).length, 3);
 
+  // Ok, now we're going to sync everything again
+  sync = new SpaceSync(
+    primary,
+    secondary,
+    {
+      conflictResolver: SpaceSync.primaryConflictResolver,
+      isSyncCandidate: () => true,
+    },
+  );
+  // await secondary.
+  ops = await doSync();
+  assertEquals(ops, 3);
+  assertEquals((await primary.fetchFileList()).length, 3);
+  assertEquals((await secondary.fetchFileList()).length, 3);
+
   await Deno.remove(primaryPath, { recursive: true });
   await Deno.remove(secondaryPath, { recursive: true });
 
