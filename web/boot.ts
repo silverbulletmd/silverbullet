@@ -9,6 +9,7 @@ import {
 } from "./service_worker/util.ts";
 import "./polyfills.ts";
 import type { BootConfig } from "./ui_types.ts";
+import { BoxProxy } from "../lib/box_proxy.ts";
 
 initLogger("[Client]");
 
@@ -16,6 +17,8 @@ safeRun(async () => {
   // First we attempt to fetch the config from the server
   let bootConfig: BootConfig | undefined;
   let config: Config | undefined;
+  // Placeholder proxy for Client object to be swapped in later
+  const clientProxy = new BoxProxy({});
   try {
     const [configJSONText, customConfigText, defaultConfigText] = await Promise
       .all([
@@ -27,7 +30,10 @@ safeRun(async () => {
     const luaDefaultConfig = extractSpaceLuaFromPageText(defaultConfigText);
     const luaCustomConfig = extractSpaceLuaFromPageText(customConfigText);
     // Append and evaluate
-    config = await loadConfig(luaDefaultConfig + "\n" + luaCustomConfig);
+    config = await loadConfig(
+      luaDefaultConfig + "\n" + luaCustomConfig,
+      clientProxy.buildProxy(),
+    );
   } catch (e: any) {
     console.error("Failed to process config", e.message);
     alert(
@@ -111,6 +117,7 @@ safeRun(async () => {
   );
   // @ts-ignore: on purpose
   globalThis.client = client;
+  clientProxy.setTarget(client);
   await client.init();
   if (navigator.serviceWorker) {
     navigator.serviceWorker.addEventListener("message", (event) => {

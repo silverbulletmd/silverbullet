@@ -81,7 +81,7 @@ export class ClientSystem {
   public knownFilesLoaded: boolean = false;
 
   readonly scriptCommands = new Map<string, Command>();
-  spaceLuaEnv = new SpaceLuaEnvironment();
+  spaceLuaEnv: SpaceLuaEnvironment;
   scriptsLoaded: boolean = false;
 
   constructor(
@@ -97,6 +97,8 @@ export class ClientSystem {
         "manifest",
       ),
     });
+
+    this.spaceLuaEnv = new SpaceLuaEnvironment(this.system);
 
     setInterval(() => {
       mq.requeueTimeouts(mqTimeout, mqTimeoutRetry, true).catch(console.error);
@@ -230,7 +232,7 @@ export class ClientSystem {
     }
     this.client.config.clear();
     try {
-      await this.spaceLuaEnv.reload(this.system);
+      await this.spaceLuaEnv.reload();
     } catch (e: any) {
       console.error("Error loading Lua script:", e.message);
     }

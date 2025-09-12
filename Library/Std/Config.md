@@ -326,7 +326,7 @@ config.set {
       description = "Go to the index page",
       priority = 3,
       run = function()
-        editor.invokeCommand("Navigate: Home")
+        editor.invokeCommand "Navigate: Home"
       end
     },
     {
@@ -334,7 +334,7 @@ config.set {
       description = "Open page",
       priority = 2,
       run = function()
-        editor.invokeCommand("Navigate: Page Picker")
+        editor.invokeCommand "Navigate: Page Picker"
       end
     },
     {

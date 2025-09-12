@@ -98,6 +98,38 @@ export async function batchRequests<I, O>(
 }
 
 /**
+ * Processes items in parallel with a specified concurrency limit.
+ * @param items - The items to process.
+ * @param handler - The function to run on each item.
+ * @param concurrency - The maximum number of concurrent operations.
+ */
+export async function processWithConcurrency<I, O>(
+  items: I[],
+  handler: (item: I) => Promise<O>,
+  concurrency: number,
+): Promise<O[]> {
+  const results: O[] = [];
+  let idx = 0;
+
+  async function worker() {
+    while (idx < items.length) {
+      const currentIdx = idx++;
+      const item = items[currentIdx];
+      const result = await handler(item);
+      results[currentIdx] = result;
+    }
+  }
+
+  const workers = [];
+  for (let i = 0; i < Math.min(concurrency, items.length); i++) {
+    workers.push(worker());
+  }
+
+  await Promise.all(workers);
+  return results;
+}
+
+/**
  * Runs a function safely by catching any errors and logging them to the console.
  * @param fn - The function to run.
  */
