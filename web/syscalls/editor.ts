@@ -650,6 +650,11 @@ export function editorSyscalls(client: Client): SysCallMapping {
         data,
       });
     },
+
+    "editor.isMobile": () => {
+      const mouseDetected = globalThis.matchMedia("(pointer:fine)").matches;
+      return !mouseDetected;
+    },
   };
 
   return syscalls;

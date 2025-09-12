@@ -3,11 +3,9 @@ functions:
   # Public API
   batchSet:
     path: api.ts:batchSet
-    env: server
   indexObjects:
     path: api.ts:indexObjects
     syscall: index.indexObjects
-    env: server
   query:
     path: api.ts:query
     syscall: index.query
@@ -17,7 +15,6 @@ functions:
   getObjectByRef:
     path: api.ts:getObjectByRef
     syscall: index.getObjectByRef
-    env: server
 
   extractFrontmatter:
     path: api.ts:extractFrontmatter
@@ -27,22 +24,14 @@ functions:
     path: api.ts:patchFrontmatter
     syscall: index.patchFrontmatter
 
-  # Event handlers
+  # Index management
   clearIndex:
     path: api.ts:clearIndex
-    env: server
 
   clearDSIndex:
     path: api.ts:clearFileIndex
-    env: server
     events:
       - file:deleted
-
-  parseIndexTextRepublish:
-    path: "./command.ts:parseIndexTextRepublish"
-    env: server
-    events:
-      - page:index_text
 
   reindexSpaceCommand:
     path: "./command.ts:reindexCommand"
@@ -51,14 +40,14 @@ functions:
       requireMode: rw
 
   processIndexQueue:
-    path: ./command.ts:processIndexQueue
+    path: ./queue.ts:processIndexQueue
     mqSubscriptions:
       - queue: indexQueue
         batchSize: 3
         autoAck: true
+
   reindexSpace:
-    path: "./command.ts:reindexSpace"
-    env: server
+    path: "./queue.ts:reindexSpace"
 
   indexDocument:
     path: "./document.ts:indexDocument"

@@ -23,7 +23,7 @@ export function buildLuaEnv(system: System<any>) {
  * Exposes all registered syscalls to Lua, automatically converting Lua arguments to JS values
  * If a syscall is prefixed with `lua:` it exposes the syscall as a native Lua function, skipping the argument conversion0
  */
-function exposeSyscalls(env: LuaEnv, system: System<any>) {
+export function exposeSyscalls(env: LuaEnv, system: System<any>) {
   // Expose all syscalls to Lua
   const nativeFs = new LuaStackFrame(env, null);
   for (const syscallName of system.registeredSyscalls.keys()) {

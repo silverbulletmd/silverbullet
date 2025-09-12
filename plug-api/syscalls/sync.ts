@@ -6,13 +6,6 @@ import { syscall } from "../syscall.ts";
  */
 
 /**
- * Checks if a sync is currently in progress
- */
-export function isSyncing(): Promise<boolean> {
-  return syscall("sync.isSyncing");
-}
-
-/**
  * Checks if an initial sync has completed
  */
 export function hasInitialSyncCompleted(): Promise<boolean> {

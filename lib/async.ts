@@ -10,6 +10,18 @@ export function throttle(func: () => void, limit: number) {
   };
 }
 
+export function throttleImmediately(func: () => void, limit: number) {
+  let timer: any = null;
+  return function () {
+    if (!timer) {
+      func();
+      timer = setTimeout(() => {
+        timer = null;
+      }, limit);
+    }
+  };
+}
+
 // race for promises returns first promise that resolves
 export function race<T>(promises: Promise<T>[]): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -68,6 +80,13 @@ export class PromiseQueue {
   }
 }
 
+/**
+ * Batches up values, and processes in batches of batchSize in parallel
+ * then merges the results in the appropriate order.
+ * @param values - The values to batch.
+ * @param fn - The function to run on each batch.
+ * @param batchSize - The size of each batch.
+ */
 export async function batchRequests<I, O>(
   values: I[],
   fn: (batch: I[]) => Promise<O[]>,
@@ -87,6 +106,38 @@ export async function batchRequests<I, O>(
       results.push(...batchResult);
     }
   }
+  return results;
+}
+
+/**
+ * Processes items in parallel with a specified concurrency limit.
+ * @param items - The items to process.
+ * @param handler - The function to run on each item.
+ * @param concurrency - The maximum number of concurrent operations.
+ */
+export async function processWithConcurrency<I, O>(
+  items: I[],
+  handler: (item: I) => Promise<O>,
+  concurrency: number,
+): Promise<O[]> {
+  const results: O[] = [];
+  let idx = 0;
+
+  async function worker() {
+    while (idx < items.length) {
+      const currentIdx = idx++;
+      const item = items[currentIdx];
+      const result = await handler(item);
+      results[currentIdx] = result;
+    }
+  }
+
+  const workers = [];
+  for (let i = 0; i < Math.min(concurrency, items.length); i++) {
+    workers.push(worker());
+  }
+
+  await Promise.all(workers);
   return results;
 }
 

@@ -3,6 +3,7 @@ import type { FilterOption, Notification, PanelMode } from "../type/client.ts";
 
 import type { DocumentMeta, PageMeta } from "../type/index.ts";
 import type { Path } from "@silverbulletmd/silverbullet/lib/ref";
+import type { SyncStatus } from "../lib/spaces/sync.ts";
 
 export type PanelConfig = {
   mode?: PanelMode;
@@ -25,7 +26,7 @@ export type AppViewState = {
   showCommandPalette: boolean;
   showCommandPaletteContext?: string;
   unsavedChanges: boolean;
-  syncFailures: number; // Reset everytime a sync succeeds
+  isOnline: boolean;
 
   // Progress tracker
   progressPercentage?: number; // Used to show progress circle
@@ -73,7 +74,7 @@ export const initialViewState: AppViewState = {
   showCommandPalette: false,
   pageNavigatorMode: "page",
   unsavedChanges: false,
-  syncFailures: 0,
+  isOnline: true,
   uiOptions: {
     vimMode: false,
     darkMode: undefined,
@@ -111,7 +112,7 @@ export type Action =
   | { type: "document-editor-loaded"; path: Path; meta: DocumentMeta }
   | { type: "document-editor-changed" }
   | { type: "document-editor-saved" }
-  | { type: "sync-change"; syncSuccess: boolean }
+  | { type: "online-status-change"; isOnline: boolean }
   | { type: "update-current-page-meta"; meta: PageMeta }
   | { type: "update-page-list"; allPages: PageMeta[] }
   | { type: "update-document-list"; allDocuments: DocumentMeta[] }
@@ -160,3 +161,68 @@ export type Action =
     progressPercentage?: number;
     progressType?: string;
   };
+
+/**
+ * Client configuration that is set at boot time, doesn't change at runtime
+ */
+export type BootConfig = {
+  spaceFolderPath: string;
+  indexPage: string;
+  readOnly: boolean;
+  // Sync configuration
+  syncDocuments?: boolean;
+  syncIgnore?: string;
+  // These are all configured via ?query parameters, e.g. ?disableSpaceLua=1
+  disableSpaceLua?: boolean;
+  disableSpaceStyle?: boolean;
+  disablePlugs?: boolean;
+  performWipe?: boolean;
+  performReset?: boolean;
+};
+
+/**
+ * Messages sent client -> service worker
+ */
+export type ServiceWorkerTargetMessage =
+  | {
+    type: "skip-waiting";
+  }
+  | { type: "config"; config: BootConfig }
+  | { type: "flush-cache" }
+  | { type: "wipe-data" }
+  | { type: "perform-file-sync"; path: string }
+  | { type: "perform-space-sync" };
+
+/**
+ * Events received from the service worker -> client
+ */
+export type ServiceWorkerSourceMessage = {
+  type: "sync-status";
+  status: Omit<SyncStatus, "snapshot">;
+} | {
+  type: "sync-conflict";
+  path: string;
+} | {
+  type: "space-sync-complete";
+  operations: number;
+} | {
+  type: "file-sync-complete";
+  path: string;
+  operations: number;
+} | {
+  type: "sync-error";
+  message: string;
+} | {
+  type: "online-status";
+  isOnline: boolean;
+} | {
+  type: "auth-error";
+  message: string;
+  actionOrRedirectHeader: string;
+} | {
+  type: "cacheFlushed";
+} | {
+  type: "dataWiped";
+} | {
+  type: "service-worker-started";
+};

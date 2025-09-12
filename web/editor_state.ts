@@ -95,7 +95,7 @@ export function createEditorState(
       [
         ...(readOnly ||
             client.ui.viewState.uiOptions.forcedROMode ||
-            client.clientConfig.readOnly)
+            client.bootConfig.readOnly)
           ? [EditorView.editable.of(false), EditorState.readOnly.of(true)]
           : [],
       ],

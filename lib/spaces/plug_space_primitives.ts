@@ -81,38 +81,36 @@ export class PlugSpacePrimitives implements SpacePrimitives {
   }
 
   async readFile(
-    name: string,
+    path: string,
   ): Promise<{ data: Uint8Array; meta: FileMeta }> {
     const result: { data: Uint8Array; meta: FileMeta } | false = await this
       .performOperation(
         "readFile",
-        name,
+        path,
       );
     if (result) {
       return result;
     }
-    return this.wrapped.readFile(name);
+    return this.wrapped.readFile(path);
   }
 
-  getFileMeta(name: string): Promise<FileMeta> {
-    const result = this.performOperation("getFileMeta", name);
+  getFileMeta(path: string, observing?: boolean): Promise<FileMeta> {
+    const result = this.performOperation("getFileMeta", path, observing);
     if (result) {
       return result;
     }
-    return this.wrapped.getFileMeta(name);
+    return this.wrapped.getFileMeta(path, observing);
   }
 
   writeFile(
-    name: string,
+    path: string,
     data: Uint8Array,
-    selfUpdate?: boolean,
     meta?: FileMeta,
   ): Promise<FileMeta> {
     const result = this.performOperation(
       "writeFile",
-      name,
+      path,
       data,
-      selfUpdate,
       meta,
     );
     if (result) {
@@ -120,18 +118,17 @@ export class PlugSpacePrimitives implements SpacePrimitives {
     }
 
     return this.wrapped.writeFile(
-      name,
+      path,
       data,
-      selfUpdate,
       meta,
     );
   }
 
-  deleteFile(name: string): Promise<void> {
-    const result = this.performOperation("deleteFile", name);
+  deleteFile(path: string): Promise<void> {
+    const result = this.performOperation("deleteFile", path);
     if (result) {
       return result;
     }
-    return this.wrapped.deleteFile(name);
+    return this.wrapped.deleteFile(path);
   }
 }

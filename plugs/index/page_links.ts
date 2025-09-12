@@ -71,7 +71,6 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
 
   // If this is a meta template page, we don't want to index links
   if (frontmatter.tags?.find((t) => t.startsWith("meta/template"))) {
-    console.log("Skipping meta template page", name);
     return;
   }
 

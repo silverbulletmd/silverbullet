@@ -8,9 +8,9 @@ import { compile as gitIgnoreCompiler } from "gitignore-parser";
 import { decodePageURI } from "@silverbulletmd/silverbullet/lib/ref";
 import { LockoutTimer } from "./lockout.ts";
 import type { AuthOptions } from "../cmd/server.ts";
-import type { ClientConfig } from "../web/client.ts";
+import type { BootConfig } from "../web/ui_types.ts";
 import { applyUrlPrefix, removeUrlPrefix } from "../lib/url_prefix.ts";
-import { authCookieName, utcDateString } from "./util.ts";
+import { authCookieName, fileMetaToHeaders, utcDateString } from "./util.ts";
 import { renderHtmlPage } from "./serverside_render.ts";
 import { FilteredSpacePrimitives } from "../lib/spaces/filtered_space_primitives.ts";
 import { AssetBundlePlugSpacePrimitives } from "../lib/spaces/asset_bundle_space_primitives.ts";
@@ -24,10 +24,10 @@ import {
   type ShellBackend,
 } from "./shell_backend.ts";
 import { CONFIG_TEMPLATE, INDEX_TEMPLATE } from "../web/PAGE_TEMPLATES.ts";
-import type { FileMeta } from "../type/index.ts";
 import {
   CheckPathSpacePrimitives,
 } from "../lib/spaces/checked_space_primitives.ts";
+import { notFoundError } from "../lib/constants.ts";
 
 const authenticationExpirySeconds = 60 * 60 * 24 * 7; // 1 week
 
@@ -367,7 +367,7 @@ export class HttpServer {
 
     // Fetch config
     this.app.get("/.config", (c) => {
-      const clientConfig: ClientConfig = {
+      const clientConfig: BootConfig = {
         readOnly: this.options.readOnly,
         spaceFolderPath: this.options.pagesPath,
         indexPage: this.options.indexPage,
@@ -522,7 +522,7 @@ export class HttpServer {
         path,
         new Uint8Array(body),
       );
-      return c.text("OK", 200, this.fileMetaToHeaders(meta));
+      return c.text("OK", 200, fileMetaToHeaders(meta));
     } catch (err) {
       console.error("Write failed", err);
       return c.text("Write failed", 500);
@@ -539,7 +539,7 @@ export class HttpServer {
         const fileData = await this.spacePrimitives.getFileMeta(
           name,
         );
-        return c.text("", 200, this.fileMetaToHeaders(fileData));
+        return c.text("", 200, fileMetaToHeaders(fileData));
       }
       const fileData = await this.spacePrimitives.readFile(name);
       const lastModifiedHeader = new Date(fileData.meta.lastModified)
@@ -550,24 +550,13 @@ export class HttpServer {
         return c.body(null, 304);
       }
       return c.body(new Uint8Array(fileData.data).buffer, 200, {
-        ...this.fileMetaToHeaders(fileData.meta),
+        ...fileMetaToHeaders(fileData.meta),
         "Last-Modified": lastModifiedHeader,
       });
     } catch (e: any) {
       console.error("Error GETting file", name, e.message);
       return c.notFound();
     }
-  }
-
-  private fileMetaToHeaders(fileMeta: FileMeta) {
-    return {
-      "Content-Type": fileMeta.contentType,
-      "X-Last-Modified": "" + fileMeta.lastModified,
-      "X-Created": "" + fileMeta.created,
-      "Cache-Control": "no-cache",
-      "X-Permission": fileMeta.perm,
-      "X-Content-Length": "" + fileMeta.size,
-    };
   }
 
   private prefixedUrl(url: string): string {
@@ -598,7 +587,7 @@ export class HttpServer {
       // This will blow up if the page doesn't exist
       await this.spacePrimitives.getFileMeta(path);
     } catch (e: any) {
-      if (e.message === "Not found") {
+      if (e.message === notFoundError.message) {
         console.info(path, "page not found, creating...");
         await this.spacePrimitives.writeFile(
           path,

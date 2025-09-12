@@ -504,3 +504,10 @@ export function configureVimMode(): Promise<any> {
 export function sendMessage(type: string, data?: any): Promise<void> {
   return syscall("editor.sendMessage", type, data);
 }
+
+/**
+ * Check if the editor is running on a mobile device
+ */
+export function isMobile(): Promise<boolean> {
+  return syscall("editor.isMobile");
+}

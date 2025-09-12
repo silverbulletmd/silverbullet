@@ -1,13 +1,9 @@
 import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
 import type { EventSubscriptionDef } from "../lib/manifest.ts";
 
-export type IndexEvent = {
-  name: string;
-  text: string;
-};
-
 export type IndexTreeEvent = {
   name: string;
+
   tree: ParseTree;
 };
 

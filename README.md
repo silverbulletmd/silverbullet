@@ -68,9 +68,23 @@ deno task watch-server <PATH-TO-YOUR-SPACE>
 deno task watch-plugs
 ```
 
+Alternatively, you can use the convenience task (though you'll need to set the server path in a separate terminal first):
+
+```shell
+deno task watch-all
+```
+
 To typecheck the entire codebase (recommended before submitting PR):
 ```shell
 deno task check
+```
+
+Other useful development tasks:
+```shell
+deno task lint      # Lint and fix code
+deno task fmt       # Format code
+deno task test      # Run tests
+deno task checks    # Run check, lint, and test together
 ```
 
 To build it in a docker container (no Deno install required):

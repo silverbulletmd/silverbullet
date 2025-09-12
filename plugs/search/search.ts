@@ -2,9 +2,9 @@ import type {
   IndexTreeEvent,
   PageCreatingContent,
   PageCreatingEvent,
-} from "../../type/event.ts";
+} from "@silverbulletmd/silverbullet/type/event";
 import { renderToText } from "@silverbulletmd/silverbullet/lib/tree";
-import { editor } from "@silverbulletmd/silverbullet/syscalls";
+import { editor, system } from "@silverbulletmd/silverbullet/syscalls";
 import { ftsIndexPage, ftsSearch } from "./engine.ts";
 import { PromiseQueue } from "../../lib/async.ts";
 
@@ -13,8 +13,12 @@ const searchPrefix = "search:";
 // Search indexing is prone to concurrency issues, so we queue all write operations
 const promiseQueue = new PromiseQueue();
 
-export function indexPage({ name, tree }: IndexTreeEvent) {
+export async function indexPage({ name, tree }: IndexTreeEvent) {
+  if (!await system.getConfig("index.search.enable", true)) {
+    return;
+  }
   const text = renderToText(tree);
+
   return promiseQueue.runInQueue(async () => {
     // console.log("Now FTS indexing", name);
     // await engine.deleteDocument(name);

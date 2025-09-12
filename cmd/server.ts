@@ -123,6 +123,9 @@ export async function serveCommand(
   const shellCommandWhiteList = Deno.env.get("SB_SHELL_WHITELIST")?.split(" ");
 
   const spaceIgnore = Deno.env.get("SB_SPACE_IGNORE");
+  if (spaceIgnore) {
+    console.log(`Ignoring files matching: ${spaceIgnore}`);
+  }
 
   // All plug code bundled into a JSON blob
   const plugAssets = new AssetBundle(plugAssetBundle as AssetJson);

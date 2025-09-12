@@ -24,18 +24,20 @@ import {
   PathPageNavigator,
 } from "./navigator.ts";
 
-import type { AppViewState } from "./ui_types.ts";
+import type {
+  AppViewState,
+  BootConfig,
+  ServiceWorkerSourceMessage,
+  ServiceWorkerTargetMessage,
+} from "./ui_types.ts";
 
 import type { PageCreatingContent, PageCreatingEvent } from "../type/event.ts";
 import type { StyleObject } from "../plugs/index/style.ts";
 import { throttle } from "../lib/async.ts";
 import { PlugSpacePrimitives } from "../lib/spaces/plug_space_primitives.ts";
 import { EventedSpacePrimitives } from "../lib/spaces/evented_space_primitives.ts";
-import { pageSyncInterval, SyncService } from "./sync_service.ts";
 import { simpleHash } from "../lib/crypto.ts";
-import type { SyncStatus } from "../lib/spaces/sync.ts";
 import { HttpSpacePrimitives } from "../lib/spaces/http_space_primitives.ts";
-import { FallbackSpacePrimitives } from "../lib/spaces/fallback_space_primitives.ts";
 import {
   encodePageURI,
   encodeRef,
@@ -54,7 +56,6 @@ import type { SpacePrimitives } from "../lib/spaces/space_primitives.ts";
 import { DataStore } from "../lib/data/datastore.ts";
 import { IndexedDBKvPrimitives } from "../lib/data/indexeddb_kv_primitives.ts";
 import { DataStoreMQ } from "../lib/data/mq.datastore.ts";
-import { DataStoreSpacePrimitives } from "../lib/spaces/datastore_space_primitives.ts";
 
 import { ReadOnlySpacePrimitives } from "../lib/spaces/ro_space_primitives.ts";
 import { LimitedMap } from "../lib/limited_map.ts";
@@ -62,30 +63,18 @@ import { fsEndpoint, plugPrefix } from "../lib/spaces/constants.ts";
 import { diffAndPrepareChanges } from "./cm_util.ts";
 import { DocumentEditor } from "./document_editor.ts";
 import { parseExpressionString } from "../lib/space_lua/parse.ts";
-import { Config } from "./config.ts";
+import type { Config } from "./config.ts";
 import type { DocumentMeta, FileMeta, PageMeta } from "../type/index.ts";
 import { parseMarkdown } from "./markdown_parser/parser.ts";
 import { CheckPathSpacePrimitives } from "../lib/spaces/checked_space_primitives.ts";
+import { notFoundError, offlineError } from "../lib/constants.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
 const autoSaveInterval = 1000;
 
-/**
- * Client configuration that is set at boot time, doesn't change at runtime
- */
-export type ClientConfig = {
-  spaceFolderPath: string;
-  indexPage: string;
-  readOnly: boolean;
-  // These are all configured via ?query parameters, e.g. ?disableSpaceLua=1
-  disableSpaceLua?: boolean;
-  disableSpaceStyle?: boolean;
-  disablePlugs?: boolean;
-  disableSync?: boolean;
-  performWipe?: boolean;
-  performReset?: boolean;
-};
+// Fetch the file list ever so often, this will implicitly kick off a snapshot comparison resulting in the indexing of changed pages
+const fetchFileListInterval = 10000;
 
 declare global {
   var client: Client;
@@ -99,9 +88,8 @@ type WidgetCacheItem = {
 };
 
 export class Client {
-  readonly config = new Config();
   // Event bus used to communicate between components
-  eventHook = new EventHook(this.config);
+  eventHook: EventHook;
 
   space!: Space;
 
@@ -130,13 +118,11 @@ export class Client {
   }, 1000);
   // Track if plugs have been updated since sync cycle
   fullSyncCompleted = false;
-  syncService!: SyncService;
 
-  // Sync related stuff
   // Set to true once the system is ready (plugs loaded)
   public systemReady: boolean = false;
   private pageNavigator!: PathPageNavigator;
-  private dbPrefix: string;
+  private dbName: string;
   private onLoadRef: Ref;
   // Progress circle handling
   private progressTimeout?: number;
@@ -161,15 +147,15 @@ export class Client {
 
   constructor(
     private parent: Element,
-    public clientConfig: ClientConfig,
+    public bootConfig: BootConfig,
+    readonly config: Config,
   ) {
+    this.eventHook = new EventHook(this.config);
     // Generate a semi-unique prefix for the database so not to reuse databases for different space paths
-    this.dbPrefix = "" +
+    this.dbName = "" +
       simpleHash(
-        `${clientConfig.spaceFolderPath}:${
-          document.baseURI.replace(/\/*$/, "")
-        }`,
-      );
+        `${bootConfig.spaceFolderPath}:${document.baseURI.replace(/\/*$/, "")}`,
+      ) + "_data";
     // The third case should only ever happen when the user provides an invalid index env variable
     this.onLoadRef = parseRefFromURI() || this.getIndexRef();
   }
@@ -179,14 +165,13 @@ export class Client {
    * This is a separated from the constructor to allow for async initialization
    */
   async init() {
-    // Setup the data store
-    const kvPrimitives = new IndexedDBKvPrimitives(
-      `${this.dbPrefix}`,
-    );
+    // Setup the KV (database)
+    const kvPrimitives = new IndexedDBKvPrimitives(this.dbName);
     await kvPrimitives.init();
+    // Wrap it in a datastore
     this.ds = new DataStore(kvPrimitives);
 
-    // Setup message queue
+    // Setup message queue on top of that
     this.mq = new DataStoreMQ(this.ds);
 
     // Instantiate a PlugOS system
@@ -195,33 +180,10 @@ export class Client {
       this.mq,
       this.ds,
       this.eventHook,
-      this.clientConfig.readOnly,
+      this.bootConfig.readOnly,
     );
 
     this.initSpace();
-
-    // The sync service gets priveleged primitives, so it can sync files with invalid names
-    this.syncService = new SyncService(
-      this.eventedSpacePrimitives,
-      this.plugSpaceRemotePrimitives,
-      this.ds,
-      this.eventHook,
-      (path) => { // isSyncCandidate
-        // Exclude all plug space primitives paths
-        return !this.plugSpaceRemotePrimitives.isLikelyHandled(path);
-      },
-    );
-
-    if (this.clientConfig.disableSync) {
-      this.syncService.enabled = false;
-    }
-
-    if (!await this.hasInitialSyncCompleted()) {
-      console.info(
-        "Initial sync has not yet been completed, disabling page and document indexing to speed this up",
-      );
-      this.eventedSpacePrimitives.enablePageEvents = false;
-    }
 
     this.ui = new MainUI(this);
     this.ui.render(this.parent);
@@ -235,14 +197,14 @@ export class Client {
 
     this.clientSystem.init();
 
-    if (this.clientConfig.performWipe) {
+    if (this.bootConfig.performWipe) {
       if (confirm("Are you sure you want to wipe the client?")) {
         await this.wipeClient();
         alert("Wipe done. Please reload the page or navigate away.");
         return;
       }
     }
-    if (this.clientConfig.performReset) {
+    if (this.bootConfig.performReset) {
       if (
         confirm(
           "Are you sure you want to reset the client? This will wipe all local data and re-sync everything.",
@@ -275,9 +237,12 @@ export class Client {
 
     await this.clientSystem.loadScripts();
     await this.initNavigator();
-    await this.initSync();
+    // await this.initSync();
     await this.eventHook.dispatchEvent("system:ready");
     this.systemReady = true;
+
+    // Load space snapshot and enable events
+    await this.eventedSpacePrimitives.enable();
 
     // Kick off a cron event interval
     setInterval(() => {
@@ -297,65 +262,73 @@ export class Client {
       effects: client.undoHistoryCompartment?.reconfigure([history()]),
     });
 
-    // Regularly sync the currently open file
-    setInterval(() => {
-      try {
-        this.syncService.syncFile(this.currentPath()).catch((e: any) => {
-          console.error("Interval sync error", e);
-        });
-      } catch (e: any) {
-        console.error("Interval sync error", e);
-      }
-    }, pageSyncInterval);
-
     // Asynchronously update caches
     this.updatePageListCache().catch(console.error);
     this.updateDocumentListCache().catch(console.error);
   }
 
-  public hasInitialSyncCompleted(): Promise<boolean> {
-    return this.syncService.hasInitialSyncCompleted();
-  }
-
   initSpace() {
     this.httpSpacePrimitives = new HttpSpacePrimitives(
       document.baseURI.replace(/\/*$/, "") + fsEndpoint,
-      this.clientConfig.spaceFolderPath,
+      this.bootConfig.spaceFolderPath,
+      (message, actionOrRedirectHeader) => {
+        alert(message);
+        if (actionOrRedirectHeader === "reload") {
+          location.reload();
+        } else {
+          location.href = actionOrRedirectHeader;
+        }
+      },
     );
 
-    let remoteSpacePrimitives: SpacePrimitives = this.httpSpacePrimitives;
+    let remoteSpacePrimitives: SpacePrimitives = new CheckPathSpacePrimitives(
+      this.httpSpacePrimitives,
+    );
 
-    if (this.clientConfig.readOnly) {
+    if (this.bootConfig.readOnly) {
       remoteSpacePrimitives = new ReadOnlySpacePrimitives(
-        remoteSpacePrimitives,
+        this.httpSpacePrimitives,
       );
     }
 
     this.plugSpaceRemotePrimitives = new PlugSpacePrimitives(
       remoteSpacePrimitives,
       this.clientSystem.namespaceHook,
-      this.clientConfig.readOnly ? undefined : "client",
+      this.bootConfig.readOnly ? undefined : "client",
     );
 
     this.eventedSpacePrimitives = new EventedSpacePrimitives(
-      // Using fallback space primitives here to allow (by default) local reads to "fall through" to HTTP when files aren't synced yet
-      new FallbackSpacePrimitives(
-        new DataStoreSpacePrimitives(
-          new DataStore(
-            this.ds.kv,
-          ),
-        ),
-        this.plugSpaceRemotePrimitives,
-      ),
+      this.httpSpacePrimitives,
       this.eventHook,
+      this.ds,
     );
 
-    const localSpacePrimitives = new CheckPathSpacePrimitives(
-      this.eventedSpacePrimitives,
+    // Kick off a regular file listing request to trigger events
+    setInterval(() => {
+      this.eventedSpacePrimitives.fetchFileList();
+    }, fetchFileListInterval);
+
+    this.eventHook.addLocalListener(
+      "file:changed",
+      async (
+        name: string,
+      ) => {
+        // TODO: Optimization opportunity here: dispatch the page:index here directly rather than sending it off to a queue which will refetch the file
+        // console.log("Queueing index for", name);
+
+        await this.mq.send("indexQueue", name);
+      },
     );
+
+    this.eventHook.addLocalListener("file:initial", async () => {
+      await this.mq.awaitEmptyQueue("indexQueue");
+      console.info("Indexing complete, reloading state");
+      await this.clientSystem.markFullSpaceIndexComplete();
+      await this.clientSystem.reloadState();
+    });
 
     this.space = new Space(
-      localSpacePrimitives,
+      this.eventedSpacePrimitives,
       this.eventHook,
     );
 
@@ -377,9 +350,8 @@ export class Client {
 
     this.eventHook.addLocalListener(
       "file:changed",
-      async (
+      (
         path: string,
-        _localChange: boolean,
         oldHash: number,
         newHash: number,
       ) => {
@@ -389,8 +361,7 @@ export class Client {
           // Avoid reloading if the page was just saved (5s window)
           (!lastSaveTimestamp || (lastSaveTimestamp < Date.now() - 5000)) &&
           // Avoid reloading if the previous hash was undefined (first load)
-          // Only trigger this after an initial sync has happened
-          await this.hasInitialSyncCompleted()
+          oldHash !== undefined
         ) {
           console.log(
             "Page changed elsewhere, reloading. Old hash",
@@ -425,6 +396,7 @@ export class Client {
             this.clientSystem.allKnownFiles.add(f.name);
           }
         });
+        this.clientSystem.knownFilesLoaded = true;
       },
     );
 
@@ -471,7 +443,7 @@ export class Client {
         () => {
           if (
             !this.ui.viewState.unsavedChanges ||
-            this.clientConfig.readOnly
+            this.bootConfig.readOnly
           ) {
             // No unsaved changes, or read-only mode, not gonna save
             return resolve();
@@ -498,7 +470,6 @@ export class Client {
               .writePage(
                 this.currentName(),
                 this.editorView.state.sliceDoc(0),
-                true,
               )
               .then(async (meta) => {
                 this.ui.viewDispatch({ type: "page-saved" });
@@ -584,7 +555,7 @@ export class Client {
       initialIndexCompleted && this.clientSystem.system.loadedPlugs.has("index")
     ) {
       console.log(
-        "Initial sync complete and index plug loaded, loading full page list via index.",
+        "Initial index complete and index plug loaded, loading full page list via index.",
       );
       // Fetch actual indexed pages
       allPages = await this.clientSystem.queryLuaObjects<PageMeta>("page", {});
@@ -634,6 +605,9 @@ export class Client {
       type: "update-page-list",
       allPages: allPages,
     });
+
+    // Async kick-off file listing to bring listing up to date
+    this.space.spacePrimitives.fetchFileList();
   }
 
   async updateDocumentListCache() {
@@ -655,6 +629,7 @@ export class Client {
   }
 
   showProgress(progressPercentage?: number, progressType?: "sync" | "index") {
+    // console.log("Showing progress", progressPercentage, progressType);
     this.ui.viewDispatch({
       type: "set-progress",
       progressPercentage,
@@ -884,7 +859,7 @@ export class Client {
   }
 
   getIndexRef(): Ref {
-    return parseToRef(this.clientConfig.indexPage) || { path: "index.md" };
+    return parseToRef(this.bootConfig.indexPage) || { path: "index.md" };
   }
 
   async navigate(
@@ -993,9 +968,25 @@ export class Client {
     try {
       doc = await this.space.readPage(pageName);
     } catch (e: any) {
-      if (!e.message.includes("Not found")) {
+      if (
+        e.message !== notFoundError.message &&
+        e.message !== offlineError.message
+      ) {
+        // If the error is not a "not found" or "offline" error, rethrow it
         throw e;
       }
+
+      if (e.message === offlineError.message) {
+        console.info(
+          "Currently offline, will assume page doesn't exist:",
+          pageName,
+        );
+      }
+
+      // Scenarios:
+      // 1. We got a not found error -> Create an empty page
+      // 2. We got a offline error (which meant that the service worker didn't locally retrieve the page either so likely it doesn't exist) -> Create a new page
+      // Either way... we create an empty page!
 
       console.log(`Page doesn't exist, creating new page: ${pageName}`);
 
@@ -1040,7 +1031,7 @@ export class Client {
 
     // Fetch the meta which includes the possibly indexed stuff, like page
     // decorations
-    if (await this.hasInitialSyncCompleted()) {
+    if (await this.clientSystem.hasFullIndexCompleted()) {
       try {
         const enrichedMeta = await this.clientSystem.getObjectByRef<PageMeta>(
           pageName,
@@ -1123,7 +1114,7 @@ export class Client {
       this,
       (path, content) => {
         this.space
-          .writeDocument(path, content, true)
+          .writeDocument(path, content)
           .then(async (meta) => {
             this.ui.viewDispatch({ type: "document-editor-saved" });
 
@@ -1172,14 +1163,14 @@ export class Client {
   }
 
   async loadCustomStyles() {
-    if (this.clientConfig.disableSpaceStyle) {
+    if (this.bootConfig.disableSpaceStyle) {
       console.warn("Not loading custom styles, since space style is disabled");
       return;
     }
-    if (!await this.hasInitialSyncCompleted()) {
-      console.info(
-        "Not loading custom styles yet, since initial synca has not completed yet",
-      );
+    if (!await this.clientSystem.hasFullIndexCompleted()) {
+      // console.info(
+      //   "Not loading custom styles yet, since initial sync has not completed yet",
+      // );
       return;
     }
 
@@ -1282,75 +1273,34 @@ export class Client {
     return this.widgetCache.get(key);
   }
 
-  private async initSync() {
-    this.syncService.start();
-
-    // We're still booting, if a initial sync has already been completed we know this is the initial sync
-    let initialSync = !await this.hasInitialSyncCompleted();
-
-    this.eventHook.addLocalListener("sync:success", async (operations) => {
-      if (operations > 0) {
-        // Update the page list
-        await this.space.updatePageList();
-      }
-      if (operations !== undefined) {
-        // "sync:success" is called with a number of operations only from syncSpace(), not from syncing individual pages
+  async handleServiceWorkerMessage(message: ServiceWorkerSourceMessage) {
+    switch (message.type) {
+      case "space-sync-complete": {
         this.fullSyncCompleted = true;
-
-        console.log("[sync]", "Full sync completed");
-
-        // A full sync just completed
-        if (!initialSync) {
-          // If this was NOT the initial sync let's check if we need to perform a space reindex
-          this.clientSystem.ensureFullIndex().catch(
-            console.error,
-          );
-        } else { // initialSync
-          console.log(
-            "[sync]",
-            "Initial sync completed, now need to do a full space index to ensure all pages are indexed using any custom indexers",
-          );
-          this.eventedSpacePrimitives.enablePageEvents = true;
-          this.clientSystem.ensureFullIndex().catch(
-            console.error,
-          );
-          initialSync = false;
-        }
+        break;
       }
-      if (operations) {
-        // Likely initial sync so let's show visually that we're synced now
-        this.showProgress(100, "sync");
+      case "online-status": {
+        this.ui.viewDispatch({
+          type: "online-status-change",
+          isOnline: message.isOnline,
+        });
+        break;
       }
-
-      this.ui.viewDispatch({ type: "sync-change", syncSuccess: true });
-    });
-
-    this.eventHook.addLocalListener("sync:error", (_name) => {
-      this.ui.viewDispatch({ type: "sync-change", syncSuccess: false });
-    });
-
-    this.eventHook.addLocalListener("sync:conflict", (name) => {
-      this.flashNotification(
-        `Sync: conflict detected for ${name} - conflict copy created`,
-        "error",
-      );
-    });
-
-    this.eventHook.addLocalListener("sync:progress", (status: SyncStatus) => {
-      this.showProgress(
-        Math.round(status.filesProcessed / status.totalFiles * 100),
-        "sync",
-      );
-    });
-
-    this.eventHook.addLocalListener(
-      "file:synced",
-      (meta: FileMeta, direction: string) => {
-        if (direction === "secondary->primary") {
-          // We likely polled the currently open page or document which triggered a local update, let's update the editor accordingly
-          this.space.spacePrimitives.getFileMeta(meta.name);
+      case "auth-error": {
+        alert(message.message);
+        if (message.actionOrRedirectHeader) {
+          location.href = message.actionOrRedirectHeader;
+        } else {
+          location.reload();
         }
-      },
+        break;
+      }
+    }
+
+    // Also dispatch it on the event hook for any other listeners
+    await this.eventHook.dispatchEvent(
+      `service-worker:${message.type}`,
+      message,
     );
   }
 
@@ -1492,17 +1442,35 @@ export class Client {
   }
 
   async wipeClient() {
-    if (navigator.serviceWorker) {
+    if (navigator.serviceWorker?.controller) {
       // We will attempt to unregister the service worker, best effort
-      console.log("Getting service worker registrations");
-      navigator.serviceWorker.getRegistrations().then(
-        async (registrations) => {
-          for (const registration of registrations) {
-            await registration.unregister();
+      await new Promise<void>((resolve) => {
+        navigator.serviceWorker.addEventListener("message", async (e: any) => {
+          const message: ServiceWorkerSourceMessage = e.data;
+          if (message.type == "dataWiped") {
+            console.log(
+              "Got data wipe confirm, uninstalling service worker now",
+            );
+            const registrations = await navigator.serviceWorker
+              .getRegistrations();
+            for (const registration of registrations) {
+              await registration.unregister();
+            }
+            console.log("Unregistered all service workers");
+            resolve();
           }
-          console.log("Unregistered all service workers");
-        },
-      );
+        });
+        // Send wipe request
+        navigator.serviceWorker.getRegistration().then((registration) => {
+          console.log(
+            "Sending data wipe request to service worker",
+            registration,
+          );
+          registration?.active?.postMessage(
+            { type: "wipe-data" } as ServiceWorkerTargetMessage,
+          );
+        });
+      });
     } else {
       console.info(
         "Service workers not enabled (no HTTPS?), so not unregistering.",
@@ -1510,10 +1478,17 @@ export class Client {
     }
     console.log("Stopping all systems");
     this.space.unwatch();
-    this.syncService.close();
 
     console.log("Clearing data store");
     await this.ds.kv.clear();
     console.log("Clearing complete.");
+  }
+
+  public async postServiceWorkerMessage(message: ServiceWorkerTargetMessage) {
+    const registration = await navigator.serviceWorker.getRegistration();
+    if (!registration?.active) {
+      throw new Error("No active service worker to post message to");
+    }
+    registration?.active?.postMessage(message);
   }
 }

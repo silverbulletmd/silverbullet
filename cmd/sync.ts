@@ -1,4 +1,4 @@
-import { SpaceSync, type SyncStatusItem } from "../lib/spaces/sync.ts";
+import { SpaceSync, SyncSnapshot } from "../lib/spaces/sync.ts";
 import { determineStorageBackend } from "../server/storage_backend.ts";
 
 export async function syncCommand(
@@ -38,15 +38,11 @@ export async function syncCommand(
     console.log("Done wiping secondary storage.");
   }
 
-  const sync = new SpaceSync(primarySpacePrimitives, secondarySpacePrimitives, {
-    conflictResolver: SpaceSync.primaryConflictResolver,
-    isSyncCandidate: () => true,
-  });
-  let snapshot = new Map<string, SyncStatusItem>();
+  let snapshot = new SyncSnapshot();
   if (options.snapshot) {
     try {
-      snapshot = new Map(
-        Object.entries(JSON.parse(await Deno.readTextFile(options.snapshot))),
+      snapshot = SyncSnapshot.fromJSON(
+        JSON.parse(await Deno.readTextFile(options.snapshot)),
       );
     } catch (e: any) {
       console.warn(
@@ -56,13 +52,25 @@ export async function syncCommand(
       );
     }
   }
+  const sync = new SpaceSync(
+    primarySpacePrimitives,
+    secondarySpacePrimitives,
+    {
+      conflictResolver: SpaceSync.primaryConflictResolver,
+      isSyncCandidate: () => true,
+    },
+  );
 
-  const operations = await sync.syncFiles(snapshot);
-  console.log("Sync completed, operations:", operations);
   if (options.snapshot) {
-    await Deno.writeTextFile(
-      options.snapshot,
-      JSON.stringify(Object.fromEntries(snapshot.entries())),
-    );
+    sync.on({
+      snapshotUpdated: async (snapshot) => {
+        await Deno.writeTextFile(
+          options.snapshot!,
+          JSON.stringify(snapshot.toJSON()),
+        );
+      },
+    });
   }
+
+  await sync.syncFiles(snapshot);
 }

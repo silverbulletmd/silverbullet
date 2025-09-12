@@ -57,6 +57,7 @@ import { builtinPlugNames } from "../plugs/builtin_plugs.ts";
 
 const plugNameExtractRegex = /\/(.+)\.plug\.js$/;
 const indexVersionKey = ["$indexVersion"];
+const indexQueuedKey = ["$indexQueued"];
 // Bump this one every time a full reindex is needed
 const desiredIndexVersion = 8;
 const mqTimeout = 10000; // 10s
@@ -75,11 +76,13 @@ export class ClientSystem {
   codeWidgetHook!: CodeWidgetHook;
   documentEditorHook!: DocumentEditorHook;
 
+  // Known files (for UI)
   readonly allKnownFiles = new Set<string>();
+  public knownFilesLoaded: boolean = false;
+
   readonly scriptCommands = new Map<string, Command>();
-  spaceLuaEnv = new SpaceLuaEnvironment();
+  spaceLuaEnv: SpaceLuaEnvironment;
   scriptsLoaded: boolean = false;
-  private indexOngoing = false;
 
   constructor(
     private client: Client,
@@ -94,6 +97,8 @@ export class ClientSystem {
         "manifest",
       ),
     });
+
+    this.spaceLuaEnv = new SpaceLuaEnvironment(this.system);
 
     setInterval(() => {
       mq.requeueTimeouts(mqTimeout, mqTimeoutRetry, true).catch(console.error);
@@ -143,7 +148,8 @@ export class ClientSystem {
 
     this.eventHook.addLocalListener(
       "file:changed",
-      async (path: string, _selfUpdate, _oldHash, newHash) => {
+      async (path: string, _oldHash, newHash) => {
+        // Plug (re)loading
         if (path.startsWith(plugPrefix) && path.endsWith(".plug.js")) {
           const plugName = plugNameExtractRegex.exec(path)![1];
           console.log("Plug updated, reloading", plugName, "from", path);
@@ -191,7 +197,7 @@ export class ClientSystem {
       dataStoreWriteSyscalls(this.ds),
       syncSyscalls(this.client),
       clientStoreSyscalls(this.ds),
-      configSyscalls(this.client),
+      configSyscalls(this.client.config),
     );
 
     if (!this.readOnlyMode) {
@@ -214,7 +220,7 @@ export class ClientSystem {
   }
 
   async loadScripts() {
-    if (this.client.clientConfig.disableSpaceLua) {
+    if (this.client.bootConfig.disableSpaceLua) {
       console.info("Space Lua scripts are disabled, skipping loading scripts");
       return;
     }
@@ -226,7 +232,7 @@ export class ClientSystem {
     }
     this.client.config.clear();
     try {
-      await this.spaceLuaEnv.reload(this.system);
+      await this.spaceLuaEnv.reload();
     } catch (e: any) {
       console.error("Error loading Lua script:", e.message);
     }
@@ -256,7 +262,7 @@ export class ClientSystem {
       try {
         const plugName = plugNameExtractRegex.exec(plugMeta.name)![1];
         if (
-          this.client.clientConfig.disablePlugs &&
+          this.client.bootConfig.disablePlugs &&
           !builtinPlugNames.includes(plugName)
         ) {
           console.warn(
@@ -302,35 +308,62 @@ export class ClientSystem {
     );
   }
 
+  async isIndexOngoing() {
+    return !!(await this.ds.get(indexQueuedKey));
+  }
+
+  async setIndexOngoing(val: boolean = true) {
+    await this.ds.set(indexQueuedKey, val);
+  }
+
   async ensureFullIndex() {
+    if (!this.client.fullSyncCompleted) {
+      console.info(
+        "Initial full sync not completed, skipping index check",
+      );
+      return;
+    }
     const currentIndexVersion = await this.getCurrentIndexVersion();
+
+    if (!currentIndexVersion) {
+      console.log("No index version found, assuming fresh install");
+      await this.markFullSpaceIndexComplete();
+      return;
+    }
 
     console.info(
       "[index]",
       "Current space index version",
       currentIndexVersion,
       "index ongoing?",
-      this.indexOngoing,
+      await this.isIndexOngoing(),
     );
 
-    if (currentIndexVersion !== desiredIndexVersion && !this.indexOngoing) {
+    if (
+      currentIndexVersion !== desiredIndexVersion &&
+      !await this.isIndexOngoing()
+    ) {
       console.info(
         "[index]",
         "Performing a full space reindex, this could take a while...",
       );
-      this.indexOngoing = true;
+      await this.setIndexOngoing();
       await this.system.invokeFunction("index.reindexSpace", []);
       console.info("[index]", "Full space index complete.");
       await this.markFullSpaceIndexComplete();
-      this.indexOngoing = false;
+      await this.setIndexOngoing(false);
       // Let's load space scripts again, which probably weren't loaded before
-      console.log(
-        "Now loading space scripts, custom styles and rebuilding editor state",
-      );
-      await this.loadScripts();
-      await this.client.loadCustomStyles();
-      this.client.rebuildEditorState();
+      await this.reloadState();
     }
+  }
+
+  public async reloadState() {
+    console.log(
+      "Now loading space scripts, custom styles and rebuilding editor state",
+    );
+    await this.loadScripts();
+    await this.client.loadCustomStyles();
+    this.client.rebuildEditorState();
   }
 
   public async evalLuaFunction(
@@ -360,7 +393,7 @@ export class ClientSystem {
     return this.ds.get(indexVersionKey);
   }
 
-  private async markFullSpaceIndexComplete() {
+  async markFullSpaceIndexComplete() {
     await this.ds.set(indexVersionKey, desiredIndexVersion);
   }
 }

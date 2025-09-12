@@ -5,6 +5,7 @@ import type {
   ProxyFetchResponse64,
 } from "../proxy_fetch.ts";
 import { base64Decode, base64Encode } from "../crypto.ts";
+import { initLogger } from "../logger.ts";
 
 declare global {
   function syscall(name: string, ...args: any[]): Promise<any>;
@@ -135,6 +136,7 @@ export function setupMessageListener(
     type: "manifest",
     manifest,
   });
+  initLogger(`[${manifest.name} plug]`);
 }
 
 export async function sandboxFetch(
