@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - "main"
-      - "sw-sync"
     tags:
       - "*"
 env:
@@ -64,7 +63,6 @@ jobs:
             # type=edge,branch=main
             # When pushing to main branch, release as :v2
             type=raw,value=v2,enable=${{ github.ref == 'refs/heads/main' }}
-            type=raw,value=sync,enable=${{ github.ref == 'refs/heads/sw-sync' }}
 
       - name: Build and push main docker images
         uses: docker/build-push-action@v4.0.0
