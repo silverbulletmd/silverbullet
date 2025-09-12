@@ -824,9 +824,9 @@ export class Client {
 
     try {
       if (isMarkdownPath(this.currentPath())) {
-        await this.loadPage(this.currentPath());
+        await this.loadPage({ path: this.currentPath() }, false);
       } else {
-        await this.loadDocumentEditor(this.currentPath());
+        await this.loadDocumentEditor({ path: this.currentPath() });
       }
     } catch {
       console.log(this.currentPath());
@@ -891,7 +891,8 @@ export class Client {
     this.focus();
   }
 
-  async loadDocumentEditor(path: Path) {
+  async loadDocumentEditor(locationState: LocationState) {
+    const path = locationState.path;
     if (isMarkdownPath(path)) throw Error("This is a markdown path");
 
     const previousPath = this.ui.viewState.current?.path;
@@ -929,7 +930,7 @@ export class Client {
       }
     }
 
-    this.documentEditor!.setContent(doc.data, doc.meta);
+    this.documentEditor!.openFile(doc.data, doc.meta, locationState.details);
 
     this.space.watchFile(path);
 
@@ -948,7 +949,11 @@ export class Client {
     ).catch(console.error);
   }
 
-  async loadPage(path: Path) {
+  async loadPage(
+    locationState: LocationState,
+    navigateWithinPage: boolean = true,
+  ) {
+    const path = locationState.path;
     if (!isMarkdownPath(path)) throw Error("This is not a markdown path");
 
     const previousPath = this.ui.viewState.current?.path;
@@ -1081,6 +1086,15 @@ export class Client {
       pageName,
       previousPath ? getNameFromPath(previousPath) : undefined,
     ).catch(console.error);
+
+    if (navigateWithinPage) {
+      // Setup scroll position, cursor position, etc
+      try {
+        this.navigateWithinPage(locationState);
+      } catch {
+        // We don't really care if this fails.
+      }
+    }
   }
 
   isDocumentEditor(): this is { documentEditor: DocumentEditor } & this {
@@ -1402,16 +1416,9 @@ export class Client {
       console.log(`Now navigating to ${encodeRef(locationState)}`);
 
       if (isMarkdownPath(locationState.path)) {
-        await this.loadPage(locationState.path);
+        await this.loadPage(locationState);
       } else {
-        await this.loadDocumentEditor(locationState.path);
-      }
-
-      // Setup scroll position, cursor position, etc
-      try {
-        this.navigateWithinPage(locationState);
-      } catch {
-        // We don't really care if this fails.
+        await this.loadDocumentEditor(locationState);
       }
 
       // Persist this page as the last opened page, we'll use this for cold start PWA loads

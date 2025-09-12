@@ -1,6 +1,7 @@
 import type { Client } from "./client.ts";
 import { timeout } from "../lib/async.ts";
 import type { DocumentMeta } from "../type/index.ts";
+import type { Ref } from "@silverbulletmd/silverbullet/lib/ref";
 
 type DocumentEditorIframeWindow = Window & {
   silverbullet: EventTarget & {
@@ -88,12 +89,17 @@ export class DocumentEditor {
     this.dispatchEvent(message);
   }
 
-  setContent(data: Uint8Array, meta: DocumentMeta) {
+  openFile(
+    data: Uint8Array,
+    meta: DocumentMeta,
+    details: Ref["details"],
+  ) {
     this.dispatchEvent({
       type: "file-open",
       data: {
         data,
         meta,
+        details,
       },
     });
 
