@@ -80,6 +80,10 @@ export function MiniEditor(
 
       if (focus) {
         editorView.focus();
+        // Put cursor at the very end
+        editorView.dispatch({
+          selection: { anchor: text.length },
+        });
       }
 
       return () => {
