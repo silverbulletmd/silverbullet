@@ -20,6 +20,8 @@ export async function reindexSpace() {
   console.log("Clearing page index...");
   await system.invokeFunction("index.clearIndex");
 
+  const startTime = Date.now();
+
   const files = await space.listFiles();
 
   console.log("Queing", files.length, "pages to be indexed.");
@@ -29,7 +31,7 @@ export async function reindexSpace() {
   await mq.awaitEmptyQueue("indexQueue");
 
   // And notify the user
-  console.log("Indexing completed!");
+  console.log(`Indexing completed in ${(Date.now() - startTime) / 1000}s`);
   await editor.showProgress();
 }
 

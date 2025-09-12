@@ -72,6 +72,5 @@ export async function syncCommand(
     });
   }
 
-  const operations = await sync.syncFiles(snapshot);
-  console.log("Sync completed, operations:", operations);
+  await sync.syncFiles(snapshot);
 }
