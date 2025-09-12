@@ -20,6 +20,7 @@ export function cleanModePlugins(client: Client) {
   const pluginsNeededEvenWhenRenderingSyntax = [
     luaDirectivePlugin(client),
     cleanWikiLinkPlugin(client),
+    hashtagPlugin(),
   ];
 
   if (client.ui.viewState.uiOptions.markdownSyntaxRendering) {
@@ -53,6 +54,5 @@ export function cleanModePlugins(client: Client) {
     listBulletPlugin(),
     tablePlugin(client),
     cleanEscapePlugin(),
-    hashtagPlugin(),
   ] as Extension[];
 }
