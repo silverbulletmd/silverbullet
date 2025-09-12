@@ -309,7 +309,7 @@ self.addEventListener("activate", (event: any) => {
   );
 });
 
-console.log("Service worker loaded 4");
+console.log("Service worker loaded");
 
 function isConfigured() {
   return !!proxyRouter.syncEngine;
