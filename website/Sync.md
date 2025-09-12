@@ -1,3 +1,6 @@
+> **note** Note
+> This page contains sections that apply to the current _edge_ release, it is not part of an official release yet.
+
 SilverBullet is an offline-first web application. Therefore it keeps a copy of your space locally in your browser. It implements a sync engine to continuously keep this local copy in sync with the server (for technical details, see [[Architecture]]).
 
 Sync happens:

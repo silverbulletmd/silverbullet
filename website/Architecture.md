@@ -1,7 +1,10 @@
+> **note** Note
+> This page contains sections that apply to the current _edge_ release, it is not part of an official release yet.
+
 Some notes on how things fit together.
 
 # Client
-The client is what you see when you open SilverBullet in a browser tab or window. It renders the UI, interacts with the user, runs [[Plugs]] and maintains the index. 90%+ of logic lives here.
+The client is what you see when you open SilverBullet in a browser tab or window. It renders the UI, interacts with the user, runs [[Plugs]], [[Space Lua]], and maintains the index. 90%+ of logic lives here.
 
 The client relies on IndexedDB as a data store. It uses this data store primarily to keep the [[Objects|object index]]. In your browser’s database list, this database’s name will end with `_data`. This data store is _shared_ between tabs and windows (of the same browser).
 
