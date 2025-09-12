@@ -11,13 +11,11 @@ import { exposeSyscalls } from "./space_lua_api.ts";
 import { parse } from "../lib/space_lua/parse.ts";
 import { LuaEnv, LuaStackFrame } from "../lib/space_lua/runtime.ts";
 import { evalStatement } from "../lib/space_lua/eval.ts";
-import { BoxProxy } from "../lib/box_proxy.ts";
 import { editorSyscalls } from "./syscalls/editor.ts";
 import { markdownSyscalls } from "./syscalls/markdown.ts";
 import { yamlSyscalls } from "./syscalls/yaml.ts";
 import { languageSyscalls } from "./syscalls/language.ts";
 import { jsonschemaSyscalls } from "./syscalls/jsonschema.ts";
-import { SilverBulletHooks } from "../lib/manifest.ts";
 
 /**
  * Parses a page (CONFIG in practice) and extracts all space-lua code

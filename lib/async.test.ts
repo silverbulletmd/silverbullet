@@ -90,7 +90,7 @@ Deno.test("processWithConcurrency test - concurrency limit", async () => {
 Deno.test("processWithConcurrency test - empty array", async () => {
   const results = await processWithConcurrency(
     [],
-    async (item) => item,
+    (item) => Promise.resolve(item),
     2,
   );
   assertEquals(results, []);
@@ -115,11 +115,11 @@ Deno.test("processWithConcurrency test - error handling", async () => {
   try {
     await processWithConcurrency(
       items,
-      async (item) => {
+      (item) => {
         if (item === 3) {
           throw new Error(`Error processing item ${item}`);
         }
-        return item * 2;
+        return Promise.resolve(item * 2);
       },
       2,
     );

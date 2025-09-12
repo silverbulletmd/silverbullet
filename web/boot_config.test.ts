@@ -23,16 +23,19 @@ Deno.test("Test boot config", () => {
 
 Deno.test("Test CONFIG lua eval", async () => {
   // Test base case: no config code
-  let config = await loadConfig("");
+  let config = await loadConfig("", {});
   assertEquals(config.values, {});
 
   // Check a few config sets
-  config = await loadConfig(`
+  config = await loadConfig(
+    `
     config.set {
       option1 = "pete"
     }
     config.set("optionObj.nested", 5)
-`);
+`,
+    {},
+  );
   assertEquals(config.values, {
     option1: "pete",
     optionObj: {
@@ -41,7 +44,8 @@ Deno.test("Test CONFIG lua eval", async () => {
   });
 
   // Check random Lua code crap resilience
-  config = await loadConfig(`
+  config = await loadConfig(
+    `
     config.set {
       option1 = "pete"
     }
@@ -50,7 +54,9 @@ Deno.test("Test CONFIG lua eval", async () => {
     if shouldSet then
       config.set("optionObj.nested", 5)
     end
-`);
+`,
+    {},
+  );
   assertEquals(config.values, {
     option1: "pete",
     optionObj: {
