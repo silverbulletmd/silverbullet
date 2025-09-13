@@ -5,9 +5,11 @@ SilverBullet is an offline-first web application. Therefore it keeps a copy of y
 
 Sync happens:
 * For the entire space: roughly every 20 seconds
-* Open file: every 5 seconds, and immediately when a local change is made
+* For the currently open file: every 4-5 seconds
 
 In addition, you can use the ${widgets.commandButton "Sync: Space"} and ${widgets.commandButton "Sync: File"} commands to trigger these manually.
+
+Sync runs in a service worker and therefore only runs when the service worker is active. The service worker is automatically kept active for as long as you have a SilverBullet tab or window open. Some browsers slow web apps down when they are in the background or not in an active tab. This may also affect whether sync happens in the background. Most browsers (including mobile ones), keep service workers running for a little while (perhaps up to a minute), even when e.g. the screen is locked, or another app is activated.
 
 ## Status
 If sync takes longer than a second, a black circle progress indicator will appear in the [[Top Bar]].
