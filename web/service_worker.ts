@@ -177,9 +177,6 @@ self.addEventListener("message", async (event: any) => {
 
       // And wire up some events
       proxyRouter.on({
-        fileWritten: (path) => {
-          syncEngine.syncSingleFile(path);
-        },
         observedRequest: (path) => {
           // This is triggered for the currently open file, we want to proactively sync it to keep it up to date
           syncEngine.syncSingleFile(path);
