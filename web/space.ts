@@ -10,6 +10,7 @@ import {
   type Path,
 } from "@silverbulletmd/silverbullet/lib/ref";
 
+// Setting this to a slightly odd number not to interfere with the full sync cycle
 const pageWatchInterval = 4321;
 
 export class Space {
