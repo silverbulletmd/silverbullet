@@ -183,11 +183,14 @@ export async function getPlugGithubRelease(
 
   let assetName: string | undefined;
   // Support plug like foo.plug.js are in repo silverbullet-foo
-  const name = repo.startsWith("silverbullet-")
+  const shortName = repo.startsWith("silverbullet-")
     ? repo.slice("silverbullet-".length)
-    : repo;
+    : undefined;
   for (const asset of releaseInfo.assets ?? []) {
-    if (asset.name === `${repo}.plug.js`) {
+    if (
+      asset.name === `${repo}.plug.js` ||
+      shortName && asset.name === `${shortName}.plug.js`
+    ) {
       assetName = asset.name;
       break;
     }
@@ -195,7 +198,7 @@ export async function getPlugGithubRelease(
   if (!assetName) {
     throw new Error(
       `Could not find "${repo}.plug.js"` +
-        (name !== repo ? ` or "${name}.plug.js"` : "") +
+        (shortName ? ` or "${shortName}.plug.js"` : "") +
         ` in release ${version}`,
     );
   }
@@ -205,6 +208,6 @@ export async function getPlugGithubRelease(
   const code = await getPlugHTTPS(finalUrl);
   return {
     code: typeof code === "string" ? code : code.code,
-    name,
+    name: shortName ?? repo,
   };
 }
