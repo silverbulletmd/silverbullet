@@ -20,16 +20,18 @@ import { buildLuaEnv } from "./space_lua_api.ts";
 import type { LuaCollectionQuery } from "../lib/space_lua/query_collection.ts";
 
 export class SpaceLuaEnvironment {
-  env: LuaEnv = new LuaEnv();
+  env: LuaEnv;
+
+  constructor(private system: System<any>) {
+    this.env = buildLuaEnv(system);
+  }
 
   /**
    * Loads all Lua scripts from the database and evaluates them in a new environment
    * @param system
    */
-  async reload(
-    system: System<any>,
-  ) {
-    const allScripts: ScriptObject[] = await system.invokeFunction(
+  async reload() {
+    const allScripts: ScriptObject[] = await this.system.invokeFunction(
       "index.queryLuaObjects",
       ["space-lua", {
         objectVariable: "script",
@@ -40,7 +42,7 @@ export class SpaceLuaEnvironment {
       } as LuaCollectionQuery],
     );
     try {
-      this.env = buildLuaEnv(system);
+      this.env = buildLuaEnv(this.system);
       const tl = new LuaEnv();
       tl.setLocal("_GLOBAL", this.env);
       for (const script of allScripts) {

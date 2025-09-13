@@ -43,8 +43,8 @@ tags: meta/template/page
 # Currently active page templates
 
 ${template.each(query[[
-from index.tag "meta/template/page"
-where _.tag == "page"
+  from index.tag "meta/template/page"
+  where _.tag == "page"
 ]], templates.fullPageItem)}
 
 # Instantiating page templates
@@ -128,10 +128,25 @@ for pt in query[[
   print("Registered", pt.command)
 end
 
+local function cleanName(path)
+  -- Just pull the last part
+  local parts = path:split("/")
+  return parts[#parts]
+end
+
 command.define {
   name = "Page: From Template",
+  key = "Alt-shift-t",
   run = function()
-    local pageTemplates = query[[from index.tag "meta/template/page" where _.tag == "page"]]
+    local pageTemplates = query[[
+      from index.tag "meta/template/page"
+      where _.tag == "page"
+      select {
+        name = cleanName(_.name),
+        fullName = _.name,
+        suggestedName = _.suggestedName
+      }
+    ]]
     local selected = editor.filterBox("Page template", pageTemplates, "Pick the template you would like to instantiate")
     if not selected then
       return
@@ -144,7 +159,7 @@ command.define {
     if not pageName then
       return
     end
-    createPageFromTemplate(selected.name, pageName)
+    createPageFromTemplate(selected.fullName, pageName)
   end
 }
 ```

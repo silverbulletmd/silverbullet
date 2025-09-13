@@ -9,7 +9,7 @@ And if you are comfortable writing (or learning) some **code**, you will love _d
 
 Err, _whut_?! Dynamically generating content, what does that mean?
 
-Let’s say you want to a list of your 5 modified pages on your space’s index page. We can do that (`Alt-click` to see the underlying code):
+Let’s say you want to have a list of your 5 modified pages on your space’s index page. We can do that (`Alt-click` to see the underlying code):
 
 ${template.each(query[[
   from index.tag "page"

@@ -22,6 +22,7 @@ import {
 } from "@silverbulletmd/silverbullet/lib/frontmatter";
 import { deepClone } from "@silverbulletmd/silverbullet/lib/json";
 import type { ObjectValue } from "../../type/index.ts";
+import { system } from "@silverbulletmd/silverbullet/syscalls";
 
 export type ItemObject = ObjectValue<
   {
@@ -33,7 +34,15 @@ export type ItemObject = ObjectValue<
 >;
 
 export async function indexItems({ name, tree }: IndexTreeEvent) {
-  const items = await extractItems(name, tree);
+  const shouldIndexAll = await system.getConfig(
+    "index.item.all",
+    true,
+  );
+  let items = await extractItems(name, tree);
+  if (!shouldIndexAll) {
+    items = items.filter((item) => item.tags?.length);
+  }
+
   // console.log("Found", items, "item(s)");
   await indexObjects(name, items);
 }

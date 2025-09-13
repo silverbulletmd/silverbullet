@@ -43,7 +43,7 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
    * @param env either an environment or undefined for hybrid mode
    */
   constructor(
-    readonly env: string | undefined,
+    readonly env: string | undefined = undefined,
     readonly options: SystemOptions = {},
   ) {
     super();

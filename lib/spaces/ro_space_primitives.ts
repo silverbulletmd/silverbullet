@@ -15,8 +15,8 @@ export class ReadOnlySpacePrimitives implements SpacePrimitives {
     }));
   }
 
-  async readFile(name: string): Promise<{ meta: FileMeta; data: Uint8Array }> {
-    const { meta, data } = await this.wrapped.readFile(name);
+  async readFile(path: string): Promise<{ meta: FileMeta; data: Uint8Array }> {
+    const { meta, data } = await this.wrapped.readFile(path);
     return {
       meta: {
         ...meta,
@@ -26,8 +26,8 @@ export class ReadOnlySpacePrimitives implements SpacePrimitives {
     };
   }
 
-  async getFileMeta(name: string): Promise<FileMeta> {
-    const meta = await this.wrapped.getFileMeta(name);
+  async getFileMeta(path: string, observing?: boolean): Promise<FileMeta> {
+    const meta = await this.wrapped.getFileMeta(path, observing);
     return {
       ...meta,
       perm: "ro",

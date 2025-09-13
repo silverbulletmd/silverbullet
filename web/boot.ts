@@ -1,71 +1,49 @@
 import { safeRun } from "../lib/async.ts";
-import { Client, type ClientConfig } from "./client.ts";
+import { notAuthenticatedError, offlineError } from "../lib/constants.ts";
+import { initLogger } from "../lib/logger.ts";
+import { extractSpaceLuaFromPageText, loadConfig } from "./boot_config.ts";
+import { Client } from "./client.ts";
+import type { Config } from "./config.ts";
+import {
+  flushCachesAndUnregisterServiceWorker,
+} from "./service_worker/util.ts";
 import "./polyfills.ts";
+import type { BootConfig } from "./ui_types.ts";
+import { BoxProxy } from "../lib/box_proxy.ts";
 
-const configCacheKey = `silverbullet.${document.baseURI}.config`;
+initLogger("[Client]");
 
 safeRun(async () => {
   // First we attempt to fetch the config from the server
-  let clientConfig: ClientConfig | undefined;
+  let bootConfig: BootConfig | undefined;
+  let config: Config | undefined;
+  // Placeholder proxy for Client object to be swapped in later
+  const clientProxy = new BoxProxy({});
   try {
-    const configResponse = await fetch(".config", {
-      // We don't want to follow redirects, we want to get the redirect header in case of auth issues
-      redirect: "manual",
-      // Add short timeout in case of a bad internet connection, this would block loading of the UI
-      signal: AbortSignal.timeout(1000),
-    });
-    const redirectHeader = configResponse.headers.get("location");
-    if (
-      configResponse.status === 401 && redirectHeader
-    ) {
-      alert(
-        "Received an authentication redirect, redirecting to URL: " +
-          redirectHeader,
-      );
-      location.href = redirectHeader;
-      return;
-    }
-    clientConfig = await configResponse.json();
-    // Persist to localStorage
-    localStorage.setItem(configCacheKey, JSON.stringify(clientConfig));
+    const [configJSONText, customConfigText, defaultConfigText] = await Promise
+      .all([
+        cachedFetch(".config"),
+        cachedFetch(".fs/CONFIG.md"),
+        cachedFetch(".fs/Library/Std/Config.md"),
+      ]);
+    bootConfig = JSON.parse(configJSONText);
+    const luaDefaultConfig = extractSpaceLuaFromPageText(defaultConfigText);
+    const luaCustomConfig = extractSpaceLuaFromPageText(customConfigText);
+    // Append and evaluate
+    config = await loadConfig(
+      luaDefaultConfig + "\n" + luaCustomConfig,
+      clientProxy.buildProxy(),
+    );
   } catch (e: any) {
-    console.error("Failed to fetch client config from server", e.message);
-    // We may be offline, let's see if we have a cached config
-    const configString = localStorage.getItem(configCacheKey);
-    if (configString) {
-      // Yep! Let's use it
-      clientConfig = JSON.parse(configString);
-    } else {
-      alert(
-        "Could not fetch configuration from server. Make sure you have an internet connection.",
-      );
-      // Returning here because there's no way to recover from this
-      return;
-    }
+    console.error("Failed to process config", e.message);
+    alert(
+      "Could not process config and no cached copy, please connect to the Internet",
+    );
+    return;
   }
-  // Then we augment the config based on the URL arguments
-  const urlParams = new URLSearchParams(location.search);
-  if (urlParams.has("readOnly")) {
-    clientConfig!.readOnly = true;
-  }
-  if (urlParams.has("disableSpaceLua")) {
-    clientConfig!.disableSpaceLua = true;
-  }
-  if (urlParams.has("disableSync")) {
-    clientConfig!.disableSync = true;
-  }
-  if (urlParams.has("disablePlugs")) {
-    clientConfig!.disablePlugs = true;
-  }
-  if (urlParams.has("disableSpaceStyle")) {
-    clientConfig!.disableSpaceStyle = true;
-  }
-  if (urlParams.has("wipeClient")) {
-    clientConfig!.performWipe = true;
-  }
-  if (urlParams.has("resetClient")) {
-    clientConfig!.performReset = true;
-  }
+
+  await augmentBootConfig(bootConfig!, config!);
+
   // Update the browser URL to no longer contain the query parameters using pushState
   if (location.search) {
     const newURL = new URL(location.href);
@@ -73,11 +51,35 @@ safeRun(async () => {
     history.pushState({}, "", newURL.toString());
   }
   console.log("Booting SilverBullet client");
-  console.log("Client config", clientConfig);
+  console.log("Boot config", bootConfig, config.values);
 
-  if (navigator.serviceWorker) {
+  if (localStorage.getItem("enableSW") !== "0" && navigator.serviceWorker) {
     // Register service worker
     const workerURL = new URL("service_worker.js", document.baseURI);
+    let startNotificationCount = 0;
+    navigator.serviceWorker.addEventListener("message", (event) => {
+      if (event.data.type === "service-worker-started") {
+        startNotificationCount++;
+        // Service worker started, let's make sure it the current config
+        console.log(
+          "Got notified that service worker has just started, sending config",
+          bootConfig,
+        );
+        navigator.serviceWorker.ready.then((registration) => {
+          registration.active!.postMessage({
+            type: "config",
+            config: bootConfig,
+          });
+        });
+        if (startNotificationCount > 10) {
+          // This is not normal. Safari sometimes gets stuck on a database connection if the service worker is updated which means it cannot boot properly
+          // the only know fix is to quit the browser and restart it
+          alert(
+            "Something is wrong with the sync engine, please quit your browser and restart it.",
+          );
+        }
+      }
+    });
     navigator.serviceWorker
       .register(workerURL, {
         type: "module",
@@ -89,6 +91,12 @@ safeRun(async () => {
       })
       .then((registration) => {
         console.log("Service worker registered...");
+
+        // Send the config
+        registration.active?.postMessage({
+          type: "config",
+          config: bootConfig,
+        });
 
         // Set up update detection
         registration.addEventListener("updatefound", () => {
@@ -105,46 +113,132 @@ safeRun(async () => {
                   "New service worker installed and ready to take over.",
                 );
                 // Force the new service worker to activate immediately
-                newWorker.postMessage({ type: "skipWaiting" });
+                newWorker.postMessage({ type: "skip-waiting" });
               }
             });
           }
         });
       });
 
-    // Handle service worker controlled changes (when a new service worker takes over)
-    let refreshing = false;
-    navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if (!refreshing) {
-        refreshing = true;
-        console.log(
-          "New service worker activated, please reload to activate the new version.",
-        );
-      }
-    });
-
-    navigator.serviceWorker.ready.then((registration) => {
-      registration.active!.postMessage({
-        type: "config",
-        config: clientConfig,
-      });
-    });
+    // // Handle service worker controlled changes (when a new service worker takes over)
+    // navigator.serviceWorker.addEventListener("controllerchange", async () => {
+    //   console.log(
+    //     "New service worker activated!",
+    //   );
+    // });
   } else {
-    console.warn(
-      "Not launching service worker, likely because not running from localhost or over HTTPs. This means SilverBullet will not be available offline.",
-    );
+    console.info("Service worker disabled.");
   }
   const client = new Client(
     document.getElementById("sb-root")!,
-    clientConfig!,
+    bootConfig!,
+    config!,
   );
   // @ts-ignore: on purpose
   globalThis.client = client;
+  clientProxy.setTarget(client);
   await client.init();
+  if (navigator.serviceWorker) {
+    navigator.serviceWorker.addEventListener("message", (event) => {
+      client.handleServiceWorkerMessage(event.data);
+    });
+  }
 });
+
+/**
+ * Augments the boot config with values from the page's search params
+ * as well as well as Lua-based configuration from CONFIG
+ */
+async function augmentBootConfig(bootConfig: BootConfig, config: Config) {
+  // Pull out sync configuration
+  bootConfig.syncDocuments = config.get<boolean>(["sync", "documents"], false);
+  let syncIgnore = config!.get<string | string[]>(["sync", "ignore"], "");
+  if (Array.isArray(syncIgnore)) {
+    syncIgnore = syncIgnore.join("\n");
+  }
+  bootConfig.syncIgnore = syncIgnore;
+
+  // Then we augment the config based on the URL arguments
+  const urlParams = new URLSearchParams(location.search);
+  if (urlParams.has("readOnly")) {
+    bootConfig.readOnly = true;
+  }
+  if (urlParams.has("disableSpaceLua")) {
+    bootConfig.disableSpaceLua = true;
+  }
+  if (urlParams.has("disablePlugs")) {
+    bootConfig.disablePlugs = true;
+  }
+  if (urlParams.has("disableSpaceStyle")) {
+    bootConfig.disableSpaceStyle = true;
+  }
+  if (urlParams.has("wipeClient")) {
+    bootConfig.performWipe = true;
+  }
+  if (urlParams.has("resetClient")) {
+    bootConfig.performReset = true;
+  }
+  if (urlParams.has("enableSW")) {
+    const val = urlParams.get("enableSW")!;
+    localStorage.setItem("enableSW", val);
+    if (val === "0") {
+      await flushCachesAndUnregisterServiceWorker();
+    }
+  }
+}
 
 if (!globalThis.indexedDB) {
   alert(
     "SilverBullet requires IndexedDB to operate and it is not available in your browser. Please use a recent version of Chrome, Firefox (not in private mode) or Safari.",
   );
+}
+
+async function cachedFetch(path: string): Promise<string> {
+  const cacheKey = `silverbullet.${document.baseURI}.${path}`;
+  try {
+    const response = await fetch(path, {
+      // We don't want to follow redirects, we want to get the redirect header in case of auth issues
+      redirect: "manual",
+      // Add short timeout in case of a bad internet connection, this would block loading of the UI
+      signal: AbortSignal.timeout(1000),
+      headers: {
+        "X-Sync-Mode": "1",
+      },
+    });
+    if (response.status === 503) {
+      // Offline
+      const text = localStorage.getItem(cacheKey);
+      if (text) {
+        console.info("Falling back to cache for", path);
+        return text;
+      } else {
+        throw offlineError;
+      }
+    }
+    const redirectHeader = response.headers.get("location");
+    if (
+      response.status === 401 && redirectHeader
+    ) {
+      alert(
+        "Received an authentication redirect, redirecting to URL: " +
+          redirectHeader,
+      );
+      location.href = redirectHeader;
+      throw notAuthenticatedError;
+    }
+    const text = await response.text();
+    // Persist to localStorage
+    localStorage.setItem(cacheKey, text);
+    return text;
+  } catch {
+    console.info("Falling back to cache for", path);
+    // We may be offline, let's see if we have a cached config
+    const text = localStorage.getItem(cacheKey);
+    if (text) {
+      // Yep! Let's use it
+      return text;
+    } else {
+      throw offlineError;
+    }
+  }
 }

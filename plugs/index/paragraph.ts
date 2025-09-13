@@ -11,6 +11,7 @@ import { updateITags } from "@silverbulletmd/silverbullet/lib/tags";
 import { extractFrontMatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
 import { extractHashtag } from "../../plug-api/lib/tags.ts";
 import type { ObjectValue } from "../../type/index.ts";
+import { system } from "@silverbulletmd/silverbullet/syscalls";
 
 /** ParagraphObject  An index object for the top level text nodes */
 export type ParagraphObject = ObjectValue<
@@ -22,6 +23,11 @@ export type ParagraphObject = ObjectValue<
 >;
 
 export async function indexParagraphs({ name: page, tree }: IndexTreeEvent) {
+  const shouldIndexAll = await system.getConfig(
+    "index.paragraph.all",
+    true,
+  );
+
   const objects: ParagraphObject[] = [];
 
   const frontmatter = await extractFrontMatter(tree);
@@ -45,6 +51,10 @@ export async function indexParagraphs({ name: page, tree }: IndexTreeEvent) {
       // Hacky way to remove the hashtag
       tagNode.children = [];
     });
+    if (tags.size === 0 && !shouldIndexAll) {
+      // Don't index paragraphs without a hashtag
+      return false;
+    }
 
     // Extract attributes and remove from tree
     const attrs = await extractAttributes(p);

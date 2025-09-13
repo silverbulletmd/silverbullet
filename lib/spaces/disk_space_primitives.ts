@@ -1,9 +1,10 @@
-import * as path from "@std/path";
+import * as pathUtils from "@std/path";
 import { readAll } from "@std/io/read-all";
 import type { SpacePrimitives } from "./space_primitives.ts";
 import { mime } from "mimetypes";
 
 import type { FileMeta } from "../../type/index.ts";
+import { notFoundError } from "../constants.ts";
 
 function lookupContentType(path: string): string {
   return mime.getType(path) || "application/octet-stream";
@@ -13,20 +14,15 @@ function normalizeForwardSlashPath(path: string) {
   return path.replaceAll("\\", "/");
 }
 
-const excludedFiles = ["data.db", "data.db-journal", "sync.json"];
-
 export class DiskSpacePrimitives implements SpacePrimitives {
   rootPath: string;
-  fileListCache: FileMeta[] = [];
-  fileListCacheTime = 0;
-  fileListCacheUpdating: AbortController | null = null;
 
   constructor(rootPath: string) {
     this.rootPath = Deno.realPathSync(rootPath);
   }
 
   safePath(p: string): string {
-    const realPath = path.resolve(p);
+    const realPath = pathUtils.resolve(p);
     if (!realPath.startsWith(this.rootPath)) {
       throw Error(`Path ${p} is not in the space`);
     }
@@ -34,7 +30,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
   }
 
   filenameToPath(pageName: string) {
-    return this.safePath(path.join(this.rootPath, pageName));
+    return this.safePath(pathUtils.join(this.rootPath, pageName));
   }
 
   pathToFilename(fullPath: string): string {
@@ -42,12 +38,12 @@ export class DiskSpacePrimitives implements SpacePrimitives {
   }
 
   async readFile(
-    name: string,
+    path: string,
   ): Promise<{ data: Uint8Array; meta: FileMeta }> {
-    const localPath = this.filenameToPath(name);
+    const localPath = this.filenameToPath(path);
     try {
       const s = await Deno.stat(localPath);
-      const contentType = lookupContentType(name);
+      const contentType = lookupContentType(path);
 
       const f = await Deno.open(localPath, { read: true });
       const data = await readAll(f);
@@ -56,7 +52,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
       return {
         data,
         meta: {
-          name: name,
+          name: path,
           created: s.birthtime?.getTime() || s.mtime?.getTime() || 0,
           lastModified: s.mtime?.getTime() || 0,
           perm: "rw",
@@ -65,21 +61,20 @@ export class DiskSpacePrimitives implements SpacePrimitives {
         },
       };
     } catch {
-      // console.error("Error while reading file", name, e);
-      throw Error("Not found");
+      // console.error("Error while reading file", path, e);
+      throw notFoundError;
     }
   }
 
   async writeFile(
-    name: string,
+    path: string,
     data: Uint8Array,
-    _selfUpdate?: boolean,
     meta?: FileMeta,
   ): Promise<FileMeta> {
-    const localPath = this.filenameToPath(name);
+    const localPath = this.filenameToPath(path);
     try {
       // Ensure parent folder exists
-      await Deno.mkdir(path.dirname(localPath), { recursive: true });
+      await Deno.mkdir(pathUtils.dirname(localPath), { recursive: true });
 
       const file = await Deno.open(localPath, {
         write: true,
@@ -97,61 +92,58 @@ export class DiskSpacePrimitives implements SpacePrimitives {
       }
       await writer.close();
 
-      // Invalidate cache and trigger an update
-      this.fileListCache = [];
-      this.fileListCacheTime = 0;
-      this.updateCacheInBackground();
-
       // Fetch new metadata
-      return this.getFileMeta(name);
+      return this.getFileMeta(path);
     } catch (e) {
-      console.error("Error while writing file", name, e);
-      throw Error(`Could not write ${name}`);
+      console.error("Error while writing file", path, e);
+      throw Error(`Could not write ${path}`);
     }
   }
 
-  async getFileMeta(name: string): Promise<FileMeta> {
-    const localPath = this.filenameToPath(name);
+  async getFileMeta(path: string, _observing?: boolean): Promise<FileMeta> {
+    const localPath = this.filenameToPath(path);
     try {
       const s = await Deno.stat(localPath);
       return {
-        name: name,
+        name: path,
         size: s.size,
-        contentType: lookupContentType(name),
+        contentType: lookupContentType(path),
         created: s.birthtime?.getTime() || s.mtime?.getTime() || 0,
         lastModified: s.mtime?.getTime() || 0,
         perm: "rw",
       };
     } catch (e: any) {
       if (e instanceof Deno.errors.NotFound) {
-        throw Error("Not found");
+        throw notFoundError;
       }
       // console.error("Error while getting page meta", pageName, e);
-      throw Error(`Could not get meta for ${name}`);
+      throw Error(`Could not get meta for ${path}`);
     }
   }
 
-  async deleteFile(name: string): Promise<void> {
-    const localPath = this.filenameToPath(name);
-    await Deno.remove(localPath);
+  async deleteFile(path: string): Promise<void> {
+    const localPath = this.filenameToPath(path);
+    try {
+      await Deno.remove(localPath);
+    } catch (e: any) {
+      if (e instanceof Deno.errors.NotFound) {
+        throw notFoundError;
+      }
+      throw e;
+    }
 
     // Recursively remove empty parent directories up to rootPath
     await this.cleanOrphaned(localPath);
-
-    // Invalidate cache and trigger an update
-    this.fileListCache = [];
-    this.fileListCacheTime = 0;
-    this.updateCacheInBackground();
   }
 
   private async cleanOrphaned(pathToDeletedFile: string) {
-    let current = path.dirname(pathToDeletedFile);
+    let current = pathUtils.dirname(pathToDeletedFile);
 
     while (current.startsWith(this.rootPath) && current != this.rootPath) {
       try {
         // Attempt to remove the current directory
         await Deno.remove(current);
-        current = path.dirname(current);
+        current = pathUtils.dirname(current);
       } catch (e: any) {
         if (
           e.code === "ENOTEMPTY" ||
@@ -161,7 +153,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
         }
 
         if (e instanceof Deno.errors.NotFound) {
-          current = path.dirname(current); // continue upwards
+          current = pathUtils.dirname(current); // continue upwards
           continue;
         }
 
@@ -171,27 +163,8 @@ export class DiskSpacePrimitives implements SpacePrimitives {
     }
   }
 
-  async fetchFileList(): Promise<FileMeta[]> {
-    // console.log("Fetching file list");
-    const startTime = performance.now();
-
-    // If the file list cache is less than 60 seconds old, return it
-    if (
-      this.fileListCache.length > 0 &&
-      startTime - this.fileListCacheTime < 60000
-    ) {
-      // Trigger a background sync, but return the cached list while the cache is being updated
-      this.updateCacheInBackground();
-      return this.fileListCache;
-    }
-
-    // Otherwise get the file list and wait for it
-    const allFiles: FileMeta[] = await this.getFileList();
-
-    this.fileListCache = allFiles;
-    this.fileListCacheTime = startTime;
-
-    return allFiles;
+  fetchFileList(): Promise<FileMeta[]> {
+    return this.getFileList();
   }
 
   private async getFileList(): Promise<FileMeta[]> {
@@ -203,9 +176,6 @@ export class DiskSpacePrimitives implements SpacePrimitives {
       try {
         const s = await Deno.stat(fullPath);
         const name = fullPath.substring(this.rootPath.length + 1);
-        if (excludedFiles.includes(name)) {
-          continue;
-        }
         allFiles.push({
           name: normalizeForwardSlashPath(name),
           created: s.birthtime?.getTime() || s.mtime?.getTime() || 0,
@@ -223,40 +193,6 @@ export class DiskSpacePrimitives implements SpacePrimitives {
       }
     }
     return allFiles;
-  }
-
-  private updateCacheInBackground() {
-    if (this.fileListCacheUpdating) {
-      // Cancel the existing background update, so we never return stale data
-      this.fileListCacheUpdating.abort();
-    }
-
-    const abortController = new AbortController();
-    this.fileListCacheUpdating = abortController;
-
-    const updatePromise = this.getFileList().then((allFiles) => {
-      if (abortController.signal.aborted) return;
-
-      this.fileListCache = allFiles;
-      this.fileListCacheTime = performance.now();
-      // console.info(
-      //   "Updated file list cache in background:",
-      //   allFiles.length,
-      //   "files found",
-      // );
-    }).catch((error) => {
-      if (abortController.signal.aborted) return;
-
-      if (error.name !== "AbortError") {
-        console.error("Error updating file list cache in background:", error);
-      }
-    }).finally(() => {
-      if (this.fileListCacheUpdating === abortController) {
-        this.fileListCacheUpdating = null;
-      }
-    });
-
-    return updatePromise;
   }
 }
 

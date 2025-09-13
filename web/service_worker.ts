@@ -1,12 +1,21 @@
-import type { FileContent } from "../lib/spaces/datastore_space_primitives.ts";
+import { initLogger } from "../lib/logger.ts";
+import { ProxyRouter } from "./service_worker/proxy_router.ts";
+
+import { SyncEngine } from "./service_worker/sync_engine.ts";
+import type {
+  ServiceWorkerSourceMessage,
+  ServiceWorkerTargetMessage,
+} from "./ui_types.ts";
 import { simpleHash } from "../lib/crypto.ts";
-import { DataStore } from "../lib/data/datastore.ts";
 import { IndexedDBKvPrimitives } from "../lib/data/indexeddb_kv_primitives.ts";
-import { decodePageURI } from "@silverbulletmd/silverbullet/lib/ref";
-
 import { fsEndpoint } from "../lib/spaces/constants.ts";
+import { DataStoreSpacePrimitives } from "../lib/spaces/datastore_space_primitives.ts";
+import { HttpSpacePrimitives } from "../lib/spaces/http_space_primitives.ts";
+import { throttleImmediately } from "../lib/async.ts";
 
-// Note: the only thing cached here is SilverBullet client assets, files and databases are kept in IndexedDB
+initLogger("[Service Worker]");
+
+// Note: the only thing cached here is SilverBullet client assets, files are kept in IndexedDB
 const CACHE_NAME = "{{CACHE_NAME}}";
 
 //`location.href` minus this worker's filename will be our base URL, including any URL prefix
@@ -21,9 +30,6 @@ const baseURI = location.href.substring(
 const basePathName = location.pathname.substring(
   0,
   location.pathname.length - workerFilename.length - 1,
-);
-console.log(
-  `[Service Worker] Established baseURI=[${baseURI}]; basePathName=[${basePathName}]`,
 );
 
 const precacheFiles = Object.fromEntries([
@@ -40,37 +46,259 @@ const precacheFiles = Object.fromEntries([
   "/.client/manifest.json",
 ].map((path) => [path, `${baseURI}${path}?v=${CACHE_NAME}`, path])); // Cache busting
 
+// Initially set to undefined, resulting in all "fetch" being proxied.
+// Once the service worker is configured, this will be set and the proxy will handle fetches.
+const proxyRouter = new ProxyRouter(
+  basePathName,
+  baseURI,
+  precacheFiles,
+);
+
+// @ts-ignore: debugging
+globalThis.proxyRouter = proxyRouter;
+
+// Message received from client
+self.addEventListener("message", async (event: any) => {
+  const message: ServiceWorkerTargetMessage = event.data;
+  switch (message.type) {
+    case "skip-waiting": {
+      // @ts-ignore: Skip waiting to activate this service worker immediately
+      self.skipWaiting();
+      break;
+    }
+    case "flush-cache": {
+      const cacheNames = await caches.keys();
+
+      await Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheName !== CACHE_NAME) {
+            console.log("Removing cache", cacheName);
+            return caches.delete(cacheName);
+          }
+        }),
+      );
+      broadcastMessage({
+        type: "cacheFlushed",
+      });
+      break;
+    }
+    case "wipe-data": {
+      if (proxyRouter.syncEngine) {
+        await proxyRouter.syncEngine.wipe();
+        broadcastMessage({
+          type: "dataWiped",
+        });
+      } else {
+        console.warn("Not performing sync data wipe, sync engine not started");
+      }
+      break;
+    }
+    case "perform-file-sync": {
+      if (proxyRouter.syncEngine) {
+        await proxyRouter.syncEngine.syncSingleFile(
+          message.path,
+        );
+      } else {
+        console.warn(
+          "Ignoring perform-file-sync request, proxy not configured yet",
+        );
+      }
+      break;
+    }
+    case "perform-space-sync": {
+      if (proxyRouter.syncEngine) {
+        await proxyRouter.syncEngine.syncSpace();
+      } else {
+        console.warn(
+          "Ignoring perform-space-sync request, proxy not configured yet",
+        );
+      }
+      break;
+    }
+    case "config": {
+      const config = message.config;
+      // Configure the service worker if it hasn't been already
+      if (isConfigured()) {
+        console.info(
+          "Service worker already configured, just updating configs",
+        );
+        proxyRouter.syncEngine!.setSyncConfig({
+          syncDocuments: config.syncDocuments,
+          syncIgnore: config.syncIgnore,
+        });
+
+        return;
+      } else {
+        console.info("Service being configured with", config);
+      }
+      const spaceFolderPath = config.spaceFolderPath;
+      // We're generating a simple hashed database name based on the space path in case people regularly switch between multiple space paths
+      const spaceHash = "" +
+        simpleHash(`${spaceFolderPath}:${baseURI.replace(/\/*$/, "")}`);
+      // And we'll use a _files postfix to signify where synced files are kept
+      const dbName = `${spaceHash}_files`;
+
+      // Setup KV (database) for store synced files
+      const kv = new IndexedDBKvPrimitives(dbName);
+      await kv.init();
+
+      // And use that to power the IndexedDB backed local storage
+      const local = new DataStoreSpacePrimitives(kv);
+
+      // Which we'll sync with the remote server
+      const remote = new HttpSpacePrimitives(
+        basePathName + fsEndpoint,
+        spaceFolderPath,
+        (message, actionOrRedirectHeader) => {
+          // And auth error occured
+          console.error(
+            "[service proxy error]",
+            message,
+            actionOrRedirectHeader,
+          );
+          broadcastMessage({
+            type: "auth-error",
+            message,
+            actionOrRedirectHeader,
+          });
+        },
+      );
+
+      // Now let's setup sync
+      const syncEngine = new SyncEngine(kv, local, remote);
+      syncEngine.setSyncConfig({
+        syncDocuments: config.syncDocuments,
+        syncIgnore: config.syncIgnore,
+      });
+      await syncEngine.start();
+
+      // Ok, we're ready to go, let's plug in the proxy router
+      proxyRouter.configure(syncEngine.local, syncEngine);
+
+      // And wire up some events
+      proxyRouter.on({
+        fileWritten: (path) => {
+          syncEngine.syncSingleFile(path);
+        },
+        observedRequest: (path) => {
+          // This is triggered for the currently open file, we want to proactively sync it to keep it up to date
+          syncEngine.syncSingleFile(path);
+        },
+        onlineStatusUpdated: (isOnline) => {
+          broadcastMessage({
+            type: "online-status",
+            isOnline,
+          });
+        },
+      });
+      syncEngine.on({
+        syncProgress: (status) => {
+          broadcastMessage({
+            type: "sync-status",
+            status,
+          });
+        },
+        syncConflict: (path) => {
+          console.warn("Sync conflict detected:", path);
+          broadcastMessage({
+            type: "sync-conflict",
+            path,
+          });
+        },
+        spaceSyncComplete: (operations) => {
+          console.log("Space sync complete:", operations);
+          broadcastMessage({
+            type: "space-sync-complete",
+            operations,
+          });
+        },
+        fileSyncComplete: (path, operations) => {
+          broadcastMessage({
+            type: "file-sync-complete",
+            path,
+            operations,
+          });
+        },
+        syncError: (error) => {
+          broadcastMessage({
+            type: "sync-error",
+            message: error.message,
+          });
+        },
+      });
+      break;
+    }
+  }
+});
+
+function broadcastMessage(message: ServiceWorkerSourceMessage) {
+  // @ts-ignore: service worker API
+  const clients: any = self.clients;
+  // Find all windows attached to this service worker
+  clients.matchAll({
+    type: "window",
+  }).then((clients: any[]) => {
+    clients.forEach((client) => {
+      client.postMessage(message);
+    });
+    if (clients.length === 0) {
+      console.info(
+        "No clients are listening for messages, dropping message",
+        message,
+      );
+    }
+  });
+}
+
+const throttledServiceWorkerStarted = throttleImmediately(() => {
+  broadcastMessage({
+    type: "service-worker-started",
+  });
+}, 100);
+
+self.addEventListener("fetch", (event: any) => {
+  if (!isConfigured()) {
+    throttledServiceWorkerStarted();
+  }
+
+  // Always delegate to the proxy router
+  proxyRouter.onFetch(event);
+});
+
+// Service worker lifecycle management
 self.addEventListener("install", (event: any) => {
-  console.log("[Service worker]", "Installing service worker...");
+  console.log("Installing service worker...");
   event.waitUntil(
     (async () => {
       const cache = await caches.open(CACHE_NAME);
       console.log(
-        "[Service worker]",
         "Now pre-caching client files",
       );
       await cache.addAll(Object.values(precacheFiles));
       console.log(
-        "[Service worker]",
         Object.keys(precacheFiles).length,
         "client files cached",
       );
       // @ts-ignore: Force the waiting service worker to become the active service worker
       await self.skipWaiting();
-      console.log("[Service worker]", "skipWaiting complete");
     })(),
   );
 });
 
 self.addEventListener("activate", (event: any) => {
-  console.log("[Service worker]", "Activating new service worker!");
+  console.log("Activating new service worker!");
+
+  if (!isConfigured()) {
+    throttledServiceWorkerStarted();
+  }
+
   event.waitUntil(
     (async () => {
       const cacheNames = await caches.keys();
       await Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
-            console.log("[Service worker]", "Removing old cache", cacheName);
+            console.log("Removing old cache", cacheName);
             return caches.delete(cacheName);
           }
         }),
@@ -81,144 +309,8 @@ self.addEventListener("activate", (event: any) => {
   );
 });
 
-let ds: DataStore | undefined;
-const filesContentPrefix = ["file", "content"];
+console.log("Service worker loaded");
 
-self.addEventListener("fetch", (event: any) => {
-  const url = new URL(event.request.url);
-
-  const pathname = url.pathname.substring(basePathName.length); //url.pathname with any URL prefix removed
-
-  // Use the custom cache key if available, otherwise use the request URL
-  const cacheKey = precacheFiles[pathname] || event.request.url;
-
-  event.respondWith(
-    (async () => {
-      const request = event.request;
-      const requestUrl = new URL(request.url);
-
-      // Are we fetching a URL from the same origin as the app? If not, we don't handle it and pass it on
-      if (!requestUrl.href.startsWith(baseURI)) {
-        return fetch(request);
-      }
-
-      // Any request with the X-Sync-Mode header originates from the sync engine: pass it on to the server
-      if (request.headers.has("x-sync-mode")) {
-        return fetch(request);
-      }
-
-      // Try the static (client) file cache first
-      const cachedResponse = await caches.match(cacheKey);
-      // Return the cached response if found
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-
-      if (!ds) {
-        // Not initialzed yet
-        return fetch(request);
-      }
-
-      const pathname = requestUrl.pathname.substring(basePathName.length); //requestUrl.pathname without with any URL prefix removed
-
-      if (
-        pathname === "/.auth" ||
-        pathname === "/.logout" ||
-        pathname === "/.config" ||
-        pathname === "/.fs"
-      ) {
-        // Always proxy auth, config and fs listing requests to the server
-        return fetch(request);
-      } else if (
-        pathname.startsWith(fsEndpoint) &&
-        pathname.endsWith(".md") &&
-        request.headers.get("accept") !== "application/octet-stream" &&
-        request.headers.get("sec-fetch-mode") !== "cors"
-      ) {
-        // This handles the case of ending up with a .md URL in the browser address bar (likely due to a auth proxy redirect)
-        return Response.redirect(`${pathname.slice(fsEndpoint.length, -3)}`);
-      } else if (
-        // /.fs file system APIs: handled locally
-        pathname.startsWith(fsEndpoint)
-      ) {
-        return handleLocalFileRequest(pathname, request);
-      } else {
-        // Fallback to the SB app shell for all other requests (SPA)
-        return (await caches.match(precacheFiles["/"])) || fetch(request);
-      }
-    })().catch((e) => {
-      console.warn("[Service worker]", "Fetch failed:", e);
-      return new Response("Offline", {
-        status: 503, // Service Unavailable
-      });
-    }),
-  );
-});
-
-async function handleLocalFileRequest(
-  pathname: string,
-  request: Request,
-): Promise<Response> {
-  const path = decodePageURI(pathname.slice(fsEndpoint.length + 1));
-  const data = await ds?.get<FileContent>([...filesContentPrefix, path]);
-  if (data) {
-    // console.log("Serving from space", path);
-    return new Response(
-      // Casting to any because of weird Deno typing
-      data.data as any,
-      {
-        headers: {
-          "Content-type": data.meta.contentType,
-          "Content-Length": "" + data.meta.size,
-          "X-Permission": data.meta.perm,
-          "X-Created": "" + data.meta.created,
-          "X-Last-Modified": "" + data.meta.lastModified,
-        },
-      },
-    );
-  } else {
-    console.warn(
-      "Did not find file in locally synced space",
-      path,
-    );
-    // If this is a _plug request and we don't have it, we may not have performed an initial sync yet
-    if (path.startsWith("_plug/")) {
-      console.info("Proxying _plug fetch to server", path);
-      return fetch(request);
-    }
-
-    return new Response("Not found", {
-      status: 404,
-      headers: {
-        "Cache-Control": "no-cache",
-      },
-    });
-  }
+function isConfigured() {
+  return !!proxyRouter.syncEngine;
 }
-
-self.addEventListener("message", (event: any) => {
-  switch (event.data.type) {
-    case "skipWaiting": {
-      console.log(
-        "[Service worker]",
-        "Received skipWaiting message, activating immediately",
-      );
-      // @ts-ignore: Skip waiting to activate this service worker immediately
-      self.skipWaiting();
-      break;
-    }
-    case "config": {
-      const spaceFolderPath = event.data.config.spaceFolderPath;
-      const dbPrefix = "" +
-        simpleHash(`${spaceFolderPath}:${baseURI.replace(/\/*$/, "")}`);
-
-      // Setup space
-      const kv = new IndexedDBKvPrimitives(dbPrefix);
-      kv.init().then(() => {
-        ds = new DataStore(kv);
-        console.log("Datastore in service worker initialized...");
-      });
-      break;
-    }
-  }
-});

@@ -1,4 +1,5 @@
 import { editor, space } from "@silverbulletmd/silverbullet/syscalls";
+import { notFoundError } from "../../lib/constants.ts";
 
 export async function deletePage() {
   const pageName = await editor.getCurrentPage();
@@ -41,7 +42,7 @@ export async function copyPage(
       `"${newName}" already exists, cannot copy to existing page.`,
     );
   } catch (e: any) {
-    if (e.message === "Not found") {
+    if (e.message === notFoundError.message) {
       // Expected not found error, so we can continue
     } else {
       await editor.flashNotification(e.message, "error");

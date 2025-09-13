@@ -1,7 +1,6 @@
 #meta
 
-SilverBullet's configuration can be tweaked using the `config.set` Space Lua API. This page defines all built-in
-configurations available. Individual Plugs and Space Lua scripts may define their own.
+SilverBullet's configuration can be tweaked using the `config.set` Space Lua API. This page defines all built-in configurations available. Individual Plugs and Space Lua scripts may define their own.
 
 # Built-in options (schema)
 
@@ -9,6 +8,59 @@ This defines the [JSON schema](https://json-schema.org/) for built-in configurat
 
 ```space-lua
 -- priority: 100
+config.define("sync", {
+  description = "Configure sync",
+  type = "object",
+  properties = {
+    -- Defaults to false
+    documents = schema.boolean(),
+    -- In .gitignore format, either in a single string, or as a list of strings
+    ignore = {
+      oneOf = {
+        schema.array "string",
+        schema.string()
+      }
+    }
+  },
+  additionalProperties = false
+})
+
+config.define("index", {
+  description = "Configure individual indexers",
+  type = "object",
+  properties = {
+    search = {
+      type = "object",
+      properties = {
+        -- Create a full-text search
+        enable = schema.boolean(),
+      },
+    },
+    paragraph = {
+      type = "object",
+      properties = {
+        -- Index paragraphs without a hashtag
+        all = schema.boolean(),
+      },
+    },
+    item = {
+      type = "object",
+      properties = {
+        -- Index items without a hashtag
+        all = schema.boolean(),
+      },
+    },
+    task = {
+      type = "object",
+      properties = {
+        -- Index tasks without a hashtag
+        all = schema.boolean(),
+      },
+    },
+  },
+  additionalProperties = true
+})
+
 config.define("plugs", {
   description = "List of plugs to enable",
   oneOf = {
@@ -257,18 +309,24 @@ config.define("queryCollation", {
 })
 ```
 
-Some default values
+# Default values
 
 ```space-lua
 -- priority: 99
 config.set {
+  index = {
+    search = { enable = true },
+    paragraph = { all = true },
+    item = { all = true },
+    task = { all = true },
+  },
   actionButtons = {
     {
       icon = "home",
       description = "Go to the index page",
       priority = 3,
       run = function()
-        editor.invokeCommand("Navigate: Home")
+        editor.invokeCommand "Navigate: Home"
       end
     },
     {
@@ -276,7 +334,7 @@ config.set {
       description = "Open page",
       priority = 2,
       run = function()
-        editor.invokeCommand("Navigate: Page Picker")
+        editor.invokeCommand "Navigate: Page Picker"
       end
     },
     {

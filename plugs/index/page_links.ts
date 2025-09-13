@@ -71,7 +71,6 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
 
   // If this is a meta template page, we don't want to index links
   if (frontmatter.tags?.find((t) => t.startsWith("meta/template"))) {
-    console.log("Skipping meta template page", name);
     return;
   }
 
@@ -111,13 +110,10 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
     }
 
     // Also index [Markdown style]() links
-    if (n.type === "Link") {
-      const linkNode = findNodeOfType(n, "URL")!;
-      if (!linkNode) {
-        return false;
-      }
+    if (n.type === "Link" || n.type === "Image") {
+      // The [[Wiki links]] also have a wrapping Image node, but this just fails at the regex
       mdLinkRegex.lastIndex = 0;
-      const match = mdLinkRegex.exec(renderToText(linkNode.parent));
+      const match = mdLinkRegex.exec(renderToText(n));
       if (!match) {
         return false;
       }
@@ -130,7 +126,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
       if (!isLocalURL(url)) {
         return false;
       }
-      const pos = linkNode.from!;
+      const pos = n.from!;
       url = resolveMarkdownLink(name, decodeURI(url));
 
       const link: any = {

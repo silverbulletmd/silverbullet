@@ -6,6 +6,7 @@ import {
   markdown,
   space,
   sync,
+  system,
 } from "@silverbulletmd/silverbullet/syscalls";
 
 import {
@@ -19,7 +20,7 @@ import {
   renderToText,
   replaceNodesMatching,
   traverseTreeAsync,
-} from "../../plug-api/lib/tree.ts";
+} from "@silverbulletmd/silverbullet/lib/tree";
 import { niceDate } from "../../lib/dates.ts";
 import {
   cleanAttributes,
@@ -41,7 +42,7 @@ import {
 import { enrichItemFromParents } from "../index/item.ts";
 import { deepClone } from "@silverbulletmd/silverbullet/lib/json";
 import { queryLuaObjects } from "../index/api.ts";
-import type { ObjectValue } from "../../type/index.ts";
+import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 import type { ClickEvent } from "@silverbulletmd/silverbullet/type/client";
 
 export type TaskObject = ObjectValue<
@@ -154,7 +155,16 @@ export async function extractTasks(
 }
 
 export async function indexTasks({ name, tree }: IndexTreeEvent) {
-  const extractedTasks = await extractTasks(name, tree);
+  const shouldIndexAll = await system.getConfig(
+    "index.task.all",
+    true,
+  );
+
+  let extractedTasks = await extractTasks(name, tree);
+
+  if (!shouldIndexAll) {
+    extractedTasks = extractedTasks.filter((task) => task.tags?.length);
+  }
 
   // Index tasks themselves
   if (extractTasks.length > 0) {
