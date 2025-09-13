@@ -150,3 +150,10 @@ export function safeRun(fn: () => Promise<void>) {
     console.error(e);
   });
 }
+
+/**
+ * Generates a random delay between 0 and 1000 milliseconds.
+ */
+export function jitter() {
+  return Math.floor(Math.random() * 1000);
+}
