@@ -53,7 +53,7 @@ import {
   luaValueToJS,
 } from "../lib/space_lua/runtime.ts";
 import { buildThreadLocalEnv, handleLuaError } from "./space_lua_api.ts";
-import { builtinPlugNames } from "../plugs/builtin_plugs.ts";
+import { builtinPlugPaths } from "../plugs/builtin_plugs.ts";
 
 const indexVersionKey = ["$indexVersion"];
 const indexQueuedKey = ["$indexQueued"];
@@ -260,9 +260,6 @@ export class ClientSystem {
     let allPlugs = await space.listPlugs();
     if (this.client.bootConfig.disablePlugs) {
       // Only keep builtin plugs
-      const builtinPlugPaths = builtinPlugNames.map((name) =>
-        `_plug/${name}.plug.js`
-      );
       allPlugs = allPlugs.filter(({ name }) => builtinPlugPaths.includes(name));
 
       console.warn("Not loading custom plugs as `disablePlugs` has been set");
