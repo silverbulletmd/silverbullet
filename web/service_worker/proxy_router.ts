@@ -230,7 +230,10 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
           meta = await this.localSpacePrimitives.getFileMeta(path);
         }
         if (request.headers.has("x-observing")) {
-          this.emit("observedRequest", path);
+          setTimeout(() => {
+            // Next tick
+            this.emit("observedRequest", path);
+          });
         }
         return new Response(null, {
           headers: fileMetaToHeaders(meta!),
