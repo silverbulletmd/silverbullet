@@ -42,7 +42,9 @@ export class WorkerSandbox<HookT> implements Sandbox<HookT> {
 
     return race([
       // We're adding a timeout of 5s here to handle the case where a plug blows up during initialization
-      timeout(5000),
+      timeout(5000).catch((_) =>
+        Promise.reject(new Error("Plug timed out during creation"))
+      ),
       new Promise((resolve) => {
         this.worker!.onmessage = (ev) => {
           if (ev.data.type === "manifest") {

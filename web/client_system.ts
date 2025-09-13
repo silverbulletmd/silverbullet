@@ -163,7 +163,11 @@ export class ClientSystem {
           createWorkerSandboxFromLocalPath(path),
           path,
           newHash,
-        );
+        ).catch((e) => {
+          console.error(
+            `Could not load plug ${path} error: ${e.message}`,
+          );
+        });
       },
     );
   }

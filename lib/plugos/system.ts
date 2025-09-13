@@ -3,6 +3,10 @@ import { EventEmitter } from "./event.ts";
 import type { SandboxFactory } from "./sandboxes/sandbox.ts";
 import { Plug } from "./plug.ts";
 import { InMemoryManifestCache, type ManifestCache } from "./manifest_cache.ts";
+import {
+  builtinPlugNames,
+  builtinPlugPaths,
+} from "../../plugs/builtin_plugs.ts";
 
 export interface SysCallMapping {
   [key: string]: (ctx: SyscallContext, ...args: any) => Promise<any> | any;
@@ -151,6 +155,15 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     );
 
     const manifest = plug.manifest;
+
+    // This depends on cacheKey being the file path
+    if (
+      !builtinPlugPaths.includes(cacheKey) &&
+      builtinPlugNames.includes(manifest.name)
+    ) {
+      plug.stop();
+      throw new Error("Plug tried to overwrite internal plug");
+    }
 
     // Validate the manifest
     let errors: string[] = [];
