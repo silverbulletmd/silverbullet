@@ -1,9 +1,17 @@
-import type { EditorState } from "@codemirror/state";
-import { foldedRanges, syntaxTree } from "@codemirror/language";
-import { Decoration } from "@codemirror/view";
-import { decoratorStateField, HtmlWidget, isCursorInRange, LinkWidget } from "./util.ts";
+import type {EditorState} from "@codemirror/state";
+import {foldedRanges, syntaxTree} from "@codemirror/language";
+import {Decoration} from "@codemirror/view";
+import {decoratorStateField, HtmlWidget, isCursorInRange, LinkWidget} from "./util.ts";
+import type {Client} from "../client.ts";
+import {
+  fileName,
+  isBuiltinPath,
+} from "@silverbulletmd/silverbullet/lib/resolve";
+import {wikiLinkRegex} from "../markdown_parser/constants.ts";
+import {encodePageURI, encodeRef, parseToRef, getNameFromPath} from "@silverbulletmd/silverbullet/lib/ref";
+import type {ClickEvent} from "@silverbulletmd/silverbullet/type/client";
 
-export function frontmatterPlugin() {
+export function frontmatterPlugin(client: Client) {
   return decoratorStateField(
     (state: EditorState) => {
       const widgets: any[] = [];
@@ -48,11 +56,13 @@ export function frontmatterPlugin() {
             }
           }
 
-          // Render external links inside frontmatter code as clickable anchors
+          // Render links inside frontmatter code as clickable anchors (external and wiki links)
           if (node.name === "FrontMatterCode") {
             const from = node.from;
             const to = node.to;
             const text = state.sliceDoc(from, to);
+
+            // 1) External links: http(s) URLs
             const urlRegex = /(https?:\/\/[^\s"']+)/g;
             let match: RegExpExecArray | null;
             while ((match = urlRegex.exec(text)) !== null) {
@@ -61,7 +71,6 @@ export function frontmatterPlugin() {
               if (isCursorInRange(state, [mFrom, mTo])) {
                 continue;
               }
-              // Replace URL text with a LinkWidget to make it navigable
               const url = match[0];
               widgets.push(
                 Decoration.replace({
@@ -71,9 +80,17 @@ export function frontmatterPlugin() {
                     href: url,
                     cssClass: "sb-external-link",
                     from: mFrom,
-                    callback: () => {
+                    callback: (e) => {
+                      if (e.altKey) {
+                        // Move cursor into the link
+                        client.editorView.dispatch({
+                          selection: { anchor: mFrom },
+                        });
+                        client.focus();
+                        return;
+                      }
                       try {
-                          globalThis.open(url, "_blank" );
+                        globalThis.open(url, "_blank");
                       } catch (err) {
                         console.error("Failed to open external link", err);
                       }

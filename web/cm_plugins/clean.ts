@@ -21,6 +21,7 @@ export function cleanModePlugins(client: Client) {
     luaDirectivePlugin(client),
     cleanWikiLinkPlugin(client),
     hashtagPlugin(),
+      frontmatterPlugin(client),
   ];
 
   if (client.ui.viewState.uiOptions.markdownSyntaxRendering) {
@@ -35,7 +36,6 @@ export function cleanModePlugins(client: Client) {
     hideMarksPlugin(),
     hideHeaderMarkPlugin(),
     cleanBlockPlugin(),
-    frontmatterPlugin(),
     fencedCodePlugin(client),
     taskListPlugin({
       // TODO: Move this logic elsewhere?
