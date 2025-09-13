@@ -77,11 +77,15 @@ export async function loadConfig(
   for (const statement of chunk.statements) {
     try {
       await evalStatement(statement, localEnv, sf);
-    } catch {
+    } catch (e: any) {
       // Since people may do whatever in their Lua code, we're going to be extremely liberal in ignoring errors
       // Primarily config.* calls are processed, the rest is implicitly ignored through failure
-      // TODO: Don't show anything
-      // console.info("Statement errored out, but ignoring:", e.message);
+      console.info(
+        "Statement errored out during boot, but ignoring:",
+        luaCode.slice(statement.ctx.from, statement.ctx.to),
+        "Error:",
+        e.message,
+      );
     }
   }
   return config;
