@@ -17,8 +17,6 @@ const pingTimeout = 2000;
 const pingInterval = 5000;
 
 export type ProxyRouterEvents = {
-  // Use case: sync engine may more pro-actively sync this one file back to the server
-  fileWritten: (path: string) => void;
   // Use case: the user likely has this file open in the editor, so it's good to prioritize syncing it
   observedRequest: (path: string) => void;
   // Use case: client showing the "yellow bar" indicating not being online
@@ -290,7 +288,6 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
           // Note: there are going to be many cases where no meta is supplied in the request, this is ok, in that case this argument will be undefined
           headersToFileMeta(path, request.headers),
         );
-        this.emit("fileWritten", path);
         return new Response("OK", {
           status: 200,
           headers: fileMetaToHeaders(meta),
