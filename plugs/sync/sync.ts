@@ -35,10 +35,18 @@ export async function updateSyncStatus(
   },
 ) {
   // Update the status in the UI
-  await editor.showProgress(
-    Math.round((event.status.filesProcessed / event.status.totalFiles) * 100),
-    "sync",
+  const percentage = Math.round(
+    (event.status.filesProcessed / event.status.totalFiles) * 100,
   );
+  if (percentage >= 99) {
+    // Just hide it
+    await editor.showProgress();
+  } else {
+    await editor.showProgress(
+      percentage,
+      "sync",
+    );
+  }
 }
 
 export async function reportSyncConflict({ path }: { path: string }) {
