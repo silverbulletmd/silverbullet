@@ -71,7 +71,6 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
   constructor(
     private primary: SpacePrimitives,
     private secondary: SpacePrimitives,
-    // public snapshot: SyncSnapshot,
     readonly options: SyncOptions,
   ) {
     super();
@@ -409,8 +408,8 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
     } else if (
       primaryMeta !== undefined && secondaryMeta !== undefined &&
       snapshot.files.get(path) &&
-      secondaryMeta.lastModified !== snapshot.files.get(path)![1] &&
-      primaryMeta.lastModified === snapshot.files.get(path)![0]
+      primaryMeta.lastModified === snapshot.files.get(path)![0] &&
+      secondaryMeta.lastModified !== snapshot.files.get(path)![1]
     ) {
       // File has changed on secondary, but not primary
       if (syncBack) {

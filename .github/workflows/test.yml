@@ -7,32 +7,26 @@ on:
     branches: ["main"]
 
 permissions:
-    contents: read
+  contents: read
 
 jobs:
-    test:
-        runs-on: ubuntu-latest
+  test:
+    runs-on: ubuntu-latest
 
-        steps:
-            - name: Setup repo
-              uses: actions/checkout@v3
-              with:
-                  fetch-depth: 0
-                  fetch-tags: true
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
-            - name: Setup Deno
-              uses: denoland/setup-deno@v2
-              with:
-                  deno-version: v2.5.0
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.5.0
 
-            - name: Run build
-              run: deno task build
+      - name: Run build
+        run: deno task build
 
-            - name: Run type check
-              run: deno task check
-
-            - name: Run lint
-              run: deno task lint
-
-            - name: Run tests
-              run: deno task test
+      - name: Run checks
+        run: deno task checks
