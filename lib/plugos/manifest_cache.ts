@@ -3,28 +3,36 @@ import type { Plug } from "./plug.ts";
 import type { Manifest } from "./types.ts";
 
 export interface ManifestCache<T> {
-  getManifest(plug: Plug<T>, hash: number): Promise<Manifest<T>>;
+  getManifest(
+    plug: Plug<T>,
+    cacheKey: string,
+    cacheHash: number,
+  ): Promise<Manifest<T>>;
 }
 
 export class KVPrimitivesManifestCache<T> implements ManifestCache<T> {
   constructor(private kv: KvPrimitives, private manifestPrefix: string) {
   }
 
-  async getManifest(plug: Plug<T>, hash: number): Promise<Manifest<T>> {
+  async getManifest(
+    plug: Plug<T>,
+    cacheKey: string,
+    cacheHash: number,
+  ): Promise<Manifest<T>> {
     const [cached] = await this.kv.batchGet([[
       this.manifestPrefix,
-      plug.name,
+      cacheKey,
     ]]);
-    if (cached && cached.hash === hash) {
+    if (cached && cached.hash === cacheHash) {
       // console.log("Using KV cached manifest for", plug.name);
       return cached.manifest;
     }
     await plug.sandbox.init();
     const manifest = plug.sandbox.manifest!;
     await this.kv.batchSet([{
-      key: [this.manifestPrefix, plug.name],
+      key: [this.manifestPrefix, cacheKey],
       // Deliverately removing the assets from the manifest to preserve space, will be re-added upon load of actual worker
-      value: { manifest: { ...manifest, assets: undefined }, hash },
+      value: { manifest: { ...manifest, assets: undefined }, hash: cacheHash },
     }]);
     return manifest;
   }
@@ -36,9 +44,13 @@ export class InMemoryManifestCache<T> implements ManifestCache<T> {
     hash: number;
   }>();
 
-  async getManifest(plug: Plug<T>, hash: number): Promise<Manifest<T>> {
-    const cached = this.cache.get(plug.name);
-    if (cached && cached.hash === hash) {
+  async getManifest(
+    plug: Plug<T>,
+    cacheKey: string,
+    cacheHash: number,
+  ): Promise<Manifest<T>> {
+    const cached = this.cache.get(cacheKey);
+    if (cached && cached.hash === cacheHash) {
       // console.log("Using memory cached manifest for", plug.name);
       return cached.manifest;
     }
@@ -46,9 +58,9 @@ export class InMemoryManifestCache<T> implements ManifestCache<T> {
     const manifest = plug.sandbox.manifest!;
 
     // Deliverately removing the assets from the manifest to preserve space, will be re-added upon load of actual worker
-    this.cache.set(plug.name, {
+    this.cache.set(cacheKey, {
       manifest: { ...manifest, assets: undefined },
-      hash,
+      hash: cacheHash,
     });
     return manifest;
   }

@@ -134,23 +134,28 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     return Promise.resolve(syscall.callback(ctx, ...args));
   }
 
-  async load(
-    name: string,
+  /**
+   * @param cacheKey Used to cache the manifest of the worker. Should be equal to the filepath
+   * @param cacheHash Used to determine if the manifest is up to date. Should be `lastModified`
+   */
+  async loadPlug(
     sandboxFactory: SandboxFactory<HookT>,
-    hash = -1,
+    cacheKey: string,
+    cacheHash: number = -1,
   ): Promise<Plug<HookT>> {
-    const plug = new Plug(this, name, hash, sandboxFactory);
+    const plug = await Plug.createLazyily(
+      this,
+      cacheKey,
+      cacheHash,
+      sandboxFactory,
+    );
 
-    // Wait for worker to boot, and pass back its manifest
-    await plug.ready;
-
-    // and there it is!
-    const manifest = plug.manifest!;
+    const manifest = plug.manifest;
 
     // Validate the manifest
     let errors: string[] = [];
     for (const feature of this.enabledHooks) {
-      errors = [...errors, ...feature.validateManifest(plug.manifest!)];
+      errors = [...errors, ...feature.validateManifest(manifest)];
     }
     if (errors.length > 0) {
       throw new Error(`Invalid manifest: ${errors.join(", ")}`);

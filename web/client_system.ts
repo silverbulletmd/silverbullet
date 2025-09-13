@@ -1,7 +1,7 @@
 import { PlugNamespaceHook } from "./hooks/plug_namespace.ts";
 import type { SilverBulletHooks } from "../lib/manifest.ts";
 import type { EventHook } from "./hooks/event.ts";
-import { createSandbox } from "../lib/plugos/sandboxes/web_worker_sandbox.ts";
+import { createWorkerSandboxFromLocalPath } from "../lib/plugos/sandboxes/web_worker_sandbox.ts";
 
 import assetSyscalls from "../lib/plugos/syscalls/asset.ts";
 import { eventSyscalls } from "../lib/plugos/syscalls/event.ts";
@@ -34,7 +34,7 @@ import { clientCodeWidgetSyscalls } from "./syscalls/client_code_widget.ts";
 import { KVPrimitivesManifestCache } from "../lib/plugos/manifest_cache.ts";
 import { createKeyBindings } from "./editor_state.ts";
 import type { DataStoreMQ } from "../lib/data/mq.datastore.ts";
-import { fsEndpoint, plugPrefix } from "../lib/spaces/constants.ts";
+import { plugPrefix } from "../lib/spaces/constants.ts";
 import { jsonschemaSyscalls } from "./syscalls/jsonschema.ts";
 import { luaSyscalls } from "./syscalls/lua.ts";
 import { indexSyscalls } from "./syscalls/index.ts";
@@ -55,7 +55,6 @@ import {
 import { buildThreadLocalEnv, handleLuaError } from "./space_lua_api.ts";
 import { builtinPlugNames } from "../plugs/builtin_plugs.ts";
 
-const plugNameExtractRegex = /\/(.+)\.plug\.js$/;
 const indexVersionKey = ["$indexVersion"];
 const indexQueuedKey = ["$indexQueued"];
 // Bump this one every time a full reindex is needed
@@ -150,21 +149,21 @@ export class ClientSystem {
       "file:changed",
       async (path: string, _oldHash, newHash) => {
         // Plug (re)loading
-        if (path.startsWith(plugPrefix) && path.endsWith(".plug.js")) {
-          const plugName = plugNameExtractRegex.exec(path)![1];
-          console.log("Plug updated, reloading", plugName, "from", path);
-          this.system.unload(path);
-          await this.system.load(
-            plugName,
-            createSandbox(
-              new URL(
-                `${path}`,
-                document.baseURI.slice(0, -1) + fsEndpoint + "/",
-              ),
-            ),
-            newHash,
-          );
+        if (
+          !path.startsWith(plugPrefix) ||
+          !path.endsWith(".plug.js") ||
+          this.client.bootConfig.disablePlugs
+        ) {
+          return;
         }
+
+        console.log("Plug updated, reloading", path);
+
+        await this.system.loadPlug(
+          createWorkerSandboxFromLocalPath(path),
+          path,
+          newHash,
+        );
       },
     );
   }
@@ -255,42 +254,31 @@ export class ClientSystem {
   }
 
   async reloadPlugsFromSpace(space: Space) {
-    await this.system.unloadAll();
     console.log("(Re)loading plugs");
-    const allPlugs = await space.listPlugs();
-    await Promise.all(allPlugs.map(async (plugMeta) => {
-      try {
-        const plugName = plugNameExtractRegex.exec(plugMeta.name)![1];
-        if (
-          this.client.bootConfig.disablePlugs &&
-          !builtinPlugNames.includes(plugName)
-        ) {
-          console.warn(
-            "Skipping loading of plug",
-            plugMeta.name,
-            "because client config disables plugs",
-          );
-          return;
-        }
-        await this.system.load(
-          plugName,
-          createSandbox(
-            new URL(
-              plugMeta.name,
-              document.baseURI.slice(0, -1) + fsEndpoint + "/", // We're NOT striping trailing '/', this used to be `location.origin`
-            ),
-          ),
-          plugMeta.lastModified,
-        );
-      } catch (e: any) {
+    await this.system.unloadAll();
+
+    let allPlugs = await space.listPlugs();
+    if (this.client.bootConfig.disablePlugs) {
+      // Only keep builtin plugs
+      const builtinPlugPaths = builtinPlugNames.map((name) =>
+        `_plug/${name}.plug.js`
+      );
+      allPlugs = allPlugs.filter(({ name }) => builtinPlugPaths.includes(name));
+
+      console.warn("Not loading custom plugs as `disablePlugs` has been set");
+    }
+
+    await Promise.all(allPlugs.map((fileMeta) =>
+      this.system.loadPlug(
+        createWorkerSandboxFromLocalPath(fileMeta.name),
+        fileMeta.name,
+        fileMeta.lastModified,
+      ).catch((e) =>
         console.error(
-          "Could not load plug",
-          plugMeta.name,
-          "error:",
-          e.message,
-        );
-      }
-    }));
+          `Could not load plug ${fileMeta.name} error: ${e.message}`,
+        )
+      )
+    ));
   }
 
   localSyscall(name: string, args: any[]) {

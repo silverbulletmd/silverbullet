@@ -29,7 +29,7 @@ export class WorkerSandbox<HookT> implements Sandbox<HookT> {
    * Should only invoked lazily (either by invoke, or by a ManifestCache to load the manifest)
    */
   init(): Promise<void> {
-    console.log("Booting up worker for", this.plug.name);
+    console.log("Booting up worker from", this.workerUrl.pathname);
     if (this.worker) {
       // Race condition
       console.warn("Double init of sandbox, ignoring");
@@ -48,7 +48,7 @@ export class WorkerSandbox<HookT> implements Sandbox<HookT> {
           if (ev.data.type === "manifest") {
             this.manifest = ev.data.manifest;
             // Set manifest in the plug
-            this.plug.manifest = this.manifest;
+            this.plug.manifest = this.manifest!;
 
             // Set assets in the plug
             this.plug.assets = new AssetBundle(
