@@ -10,7 +10,7 @@ import {
   type Path,
 } from "@silverbulletmd/silverbullet/lib/ref";
 
-const pageWatchInterval = 5000;
+const pageWatchInterval = 4321;
 
 export class Space {
   // We do watch files in the background to detect changes
