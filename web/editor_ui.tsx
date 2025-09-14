@@ -18,7 +18,6 @@ import { runScopeHandlers } from "@codemirror/view";
 import type { Client } from "./client.ts";
 import { Panel } from "./components/panel.tsx";
 import { safeRun } from "../lib/async.ts";
-import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 import {
   getNameFromPath,
