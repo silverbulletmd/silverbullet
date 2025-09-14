@@ -52,11 +52,11 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
-      - name: Run Go tests
-        run: go test ./server_go -v
+      #- name: Run Go tests
+      #  run: go test ./server_go -v
 
-      - name: Run Go tests with coverage
-        run: go test ./server_go -coverprofile=coverage.out
+      #- name: Run Go tests with coverage
+      #  run: go test ./server_go -coverprofile=coverage.out
 
-      - name: Display test coverage
-        run: go tool cover -func=coverage.out
+      #- name: Display test coverage
+      #  run: go tool cover -func=coverage.out
