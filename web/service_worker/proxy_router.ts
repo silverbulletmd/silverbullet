@@ -9,6 +9,7 @@ import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
 
 const alwaysProxy = [
   "/.auth",
+  "/.shell",
   "/.logout",
   "/.config",
 ];
