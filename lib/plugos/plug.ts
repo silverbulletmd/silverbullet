@@ -20,7 +20,7 @@ export class Plug<HookT> {
     this.sandbox = sandboxFactory(this);
   }
 
-  static async createLazyily<HookT>(
+  static async createLazily<HookT>(
     system: System<HookT>,
     cacheKey: string,
     cacheHash: number,

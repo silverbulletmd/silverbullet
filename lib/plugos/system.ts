@@ -147,7 +147,7 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     cacheKey: string,
     cacheHash: number = -1,
   ): Promise<Plug<HookT>> {
-    const plug = await Plug.createLazyily(
+    const plug = await Plug.createLazily(
       this,
       cacheKey,
       cacheHash,
