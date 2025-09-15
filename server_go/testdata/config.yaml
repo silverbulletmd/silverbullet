@@ -1,0 +1,26 @@
+# Test configuration file for embedded filesystem testing
+app:
+  name: "SilverBullet Test"
+  version: "1.0.0"
+  debug: true
+
+server:
+  host: "localhost"
+  port: 3000
+  tls:
+    enabled: false
+    cert_file: ""
+    key_file: ""
+
+storage:
+  type: "disk"
+  path: "./data"
+
+features:
+  - "markdown"
+  - "plugins"
+  - "templates"
+
+limits:
+  max_file_size: 10485760  # 10MB
+  max_files: 1000
