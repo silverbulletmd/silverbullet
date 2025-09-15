@@ -18,7 +18,6 @@ import { runScopeHandlers } from "@codemirror/view";
 import type { Client } from "./client.ts";
 import { Panel } from "./components/panel.tsx";
 import { safeRun } from "../lib/async.ts";
-import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 import {
   getNameFromPath,
@@ -103,28 +102,15 @@ export class MainUI {
     }, [viewState.uiOptions.vimMode]);
 
     useEffect(() => {
-      clientStoreSyscalls(client.ds)["clientStore.get"](
-        {},
-        "darkMode",
-      ).then((storedDarkModePreference: boolean | undefined) => {
-        let theme: "dark" | "light";
-        if (storedDarkModePreference === true) {
-          theme = "dark";
-        } else if (storedDarkModePreference === false) {
-          theme = "light";
-        } else {
-          theme = globalThis.matchMedia("(prefers-color-scheme: dark)").matches
-            ? "dark"
-            : "light";
-        }
+      const darkMode = viewState.uiOptions.darkMode === undefined
+        ? globalThis.matchMedia("(prefers-color-scheme: dark)").matches
+        : viewState.uiOptions.darkMode;
 
-        viewState.uiOptions.darkMode = theme === "dark";
-        document.documentElement.dataset.theme = theme;
+      document.documentElement.dataset.theme = darkMode ? "dark" : "light";
 
-        if (this.client.isDocumentEditor()) {
-          this.client.documentEditor.updateTheme();
-        }
-      });
+      if (this.client.isDocumentEditor()) {
+        this.client.documentEditor.updateTheme();
+      }
     }, [viewState.uiOptions.darkMode]);
 
     useEffect(() => {

@@ -9,8 +9,12 @@ export async function setEditorMode() {
   if (await clientStore.get("vimMode")) {
     await editor.setUiOption("vimMode", true);
   }
-  if (await clientStore.get("darkMode")) {
-    await editor.setUiOption("darkMode", true);
+  // Only set the darkmode value if it was deliberatly set in the clientstore,
+  // otherwise leave it so the client can choose depending on the system
+  // settings
+  const darkMode = await clientStore.get("darkMode");
+  if (darkMode != null) {
+    await editor.setUiOption("darkMode", darkMode);
   }
   const markdownSyntaxRendering = await clientStore.get(
     "markdownSyntaxRendering",
