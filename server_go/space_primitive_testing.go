@@ -230,6 +230,27 @@ func testFileOverwriting(t *testing.T, spacePrimitives SpacePrimitives) {
 	if err != nil {
 		t.Fatalf("Failed to delete overwritten file: %v", err)
 	}
+
+	// Test writing files to new folders
+	writeMeta, err := spacePrimitives.WriteFile("some/folder/test.dat", []byte("Testing"), nil)
+	if err != nil {
+		t.Fatalf("Writing to a nested folder should work")
+	}
+	// Read it back
+	data, meta, err := spacePrimitives.ReadFile("some/folder/test.dat")
+	if err != nil {
+		t.Fatal("Reading should work")
+	}
+	if writeMeta.LastModified != meta.LastModified {
+		t.Fatal("Meta should be the same")
+	}
+	if !bytes.Equal(data, []byte("Testing")) {
+		t.Fatal("Did not get back what I put in")
+	}
+	if err := spacePrimitives.DeleteFile("some/folder/test.dat"); err != nil {
+		t.Fatal("Deletion should work")
+	}
+
 }
 
 func testEmptyFiles(t *testing.T, spacePrimitives SpacePrimitives) {

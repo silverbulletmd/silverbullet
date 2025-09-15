@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/djherbis/times"
 )
 
 // DiskSpacePrimitives implements SpacePrimitives for local disk storage
@@ -97,24 +99,12 @@ func lookupContentType(path string) string {
 
 // fileInfoToFileMeta converts os.FileInfo to FileMeta
 func (d *DiskSpacePrimitives) fileInfoToFileMeta(path string, info os.FileInfo) FileMeta {
-	var created int64
-	var lastModified int64
-
-	lastModified = info.ModTime().UnixMilli()
-
-	// Try to get creation time (platform-specific)
-	if stat := getCreationTime(info); stat != nil {
-		created = stat.UnixMilli()
-	} else {
-		created = lastModified
-	}
-
 	return FileMeta{
 		Name:         path,
 		Size:         info.Size(),
 		ContentType:  lookupContentType(path),
-		Created:      created,
-		LastModified: lastModified,
+		Created:      getCreationTime(info).UnixMilli(),
+		LastModified: info.ModTime().UnixMilli(),
 		Perm:         "rw",
 	}
 }
@@ -141,7 +131,6 @@ func (d *DiskSpacePrimitives) FetchFileList() ([]FileMeta, error) {
 			return nil
 		}
 
-		// Convert to relative path with forward slashes
 		relativePath := d.pathToFilename(path)
 		fileMeta := d.fileInfoToFileMeta(relativePath, info)
 		allFiles = append(allFiles, fileMeta)
@@ -164,6 +153,7 @@ func (d *DiskSpacePrimitives) GetFileMeta(path string, observing bool) (FileMeta
 	}
 
 	info, err := os.Stat(localPath)
+
 	if err != nil {
 		if os.IsNotExist(err) {
 			return FileMeta{}, ErrNotFound
@@ -261,5 +251,15 @@ func (d *DiskSpacePrimitives) cleanOrphaned(deletedFilePath string) {
 			break
 		}
 		current = filepath.Dir(current)
+	}
+}
+
+// This is tricky and OS specific, luckily we found the "times" package that abstracts from the OS-specific details
+func getCreationTime(info os.FileInfo) time.Time {
+	t := times.Get(info)
+	if t.HasBirthTime() {
+		return t.BirthTime()
+	} else {
+		return t.ChangeTime()
 	}
 }
