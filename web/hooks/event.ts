@@ -76,14 +76,14 @@ export class EventHook implements EventHookI {
               event === eventName || eventNameToRegex(event).test(eventName)
             ) {
               // Only dispatch functions that can run in this environment
-              if (await plug.canInvoke(name)) {
+              if (plug.canInvoke(name)) {
                 // Queue the promise
                 promises.push((async () => {
                   try {
                     return await plug.invoke(name, args);
                   } catch (e: any) {
                     console.error(
-                      `Error dispatching event ${eventName} to ${plug.name}.${name}: ${e.message}`,
+                      `Error dispatching event ${eventName} to ${plug.manifest.name}.${name}: ${e.message}`,
                     );
                     throw e;
                   }
@@ -140,7 +140,7 @@ export class EventHook implements EventHookI {
     this.system = system;
     this.system.on({
       plugLoaded: async (plug) => {
-        await this.dispatchEvent("plug:load", plug.name);
+        await this.dispatchEvent("plug:load", plug.manifest.name);
       },
     });
   }

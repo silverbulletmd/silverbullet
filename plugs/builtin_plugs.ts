@@ -10,3 +10,7 @@ export const builtinPlugNames = [
   "search",
   "image-viewer",
 ];
+
+export const builtinPlugPaths = builtinPlugNames.map((name) =>
+  `_plug/${name}.plug.js`
+);

@@ -4,7 +4,8 @@ import {
   space,
   system,
 } from "@silverbulletmd/silverbullet/syscalls";
-import { builtinPlugNames } from "../builtin_plugs.ts";
+import { builtinPlugPaths } from "../builtin_plugs.ts";
+import type { ResolvedPlug } from "@silverbulletmd/silverbullet/type/event";
 
 export async function updatePlugsCommand() {
   // Save the current file (could be a config page)
@@ -40,86 +41,101 @@ export async function updatePlugsCommand() {
     });
 
     console.log("Found Plug URIs:", plugList);
-    const allCustomPlugNames: string[] = [];
+    const allCustomPlugPaths: string[] = [];
     for (const plugUri of plugList) {
       const [protocol, ...rest] = plugUri.split(":");
-
-      let plugName: string;
-      if (protocol == "ghr") {
-        // For GitHub Release, the plug is expected to be named same as repository
-        plugName = rest[0].split("/")[1]; // skip repo owner
-        // Strip "silverbullet-foo" into "foo" (multiple plugs follow this convention)
-        if (plugName.startsWith("silverbullet-")) {
-          plugName = plugName.slice("silverbullet-".length);
-        }
-      } else {
-        // Other URIs are expected to contain the file .plug.js at the end
-        const plugNameMatch = /\/([^\/]+)\.plug\.js$/.exec(plugUri);
-        if (!plugNameMatch) {
-          console.error(
-            "Could not extract plug name from ",
-            plugUri,
-            "ignoring...",
-          );
-          continue;
-        }
-
-        plugName = plugNameMatch[1];
-      }
-
-      // Validate the extracted name
-      if (builtinPlugNames.includes(plugName)) {
-        throw new Error(
-          `Plug name '${plugName}' is conflicting with a built-in plug`,
-        );
-      }
-      if (allCustomPlugNames.includes(plugName)) {
-        throw new Error(
-          `Plug name '${plugName}' defined by more than one URI`,
-        );
-      }
 
       const manifests = await events.dispatchEvent(
         `get-plug:${protocol}`,
         rest.join(":"),
       );
+
       if (manifests.length === 0) {
-        console.error("Could not resolve plug", plugUri);
+        console.error("Could not resolve plug uri", plugUri);
+      } else if (manifests.length > 1) {
+        console.error(
+          `Got multiple results for plug uri ${plugUri}. Proceeding with the first result`,
+        );
       }
-      // console.log("Got manifests", plugUri, protocol, manifests);
-      const workerCode = manifests[0] as string;
-      allCustomPlugNames.push(plugName);
-      console.log("Writing", `_plug/${plugName}.plug.js`);
-      await space.writeDocument(
-        `_plug/${plugName}.plug.js`,
-        new TextEncoder().encode(workerCode),
-      );
+
+      const manifest = manifests[0] as unknown;
+
+      let code: string;
+      if (typeof manifest === "string") {
+        // "Legacy" syntax
+        code = manifest;
+      } else if (
+        manifest &&
+        typeof manifest === "object" &&
+        "code" in manifest &&
+        typeof manifest.code === "string"
+      ) {
+        code = manifest.code;
+      } else {
+        console.error(
+          "Invalid return from `get-plug` event. Please return value of type `{ code: string, name?: string } | string`",
+        );
+
+        continue;
+      }
+
+      let name: string;
+      if (
+        typeof manifest !== "object" ||
+        !("name" in manifest) ||
+        typeof manifest.name !== "string"
+      ) {
+        // Try taking a good guess at a name if it isn't provided
+        const match = /\/([^\/]+)\.plug\.js$/.exec(plugUri);
+        if (!match) {
+          console.error(
+            `No plug name provided and could not extract name from ${plugUri} ignoring...`,
+          );
+
+          continue;
+        }
+
+        name = match[1];
+      } else {
+        name = manifest.name;
+      }
+
+      const path = `_plug/${name}.plug.js`;
+
+      // Validate the extracted path
+      if (builtinPlugPaths.includes(path)) {
+        throw new Error(
+          `Plug '${path}' is conflicting with a built-in plug`,
+        );
+      }
+      if (allCustomPlugPaths.includes(path)) {
+        throw new Error(
+          `Plug '${path}' defined by more than one URI`,
+        );
+      }
+
+      allCustomPlugPaths.push(path);
+
+      console.log("Writing", path);
+      await space.writeDocument(path, new TextEncoder().encode(code));
     }
 
-    console.log("This part is done");
-
-    const allPlugNames = [...builtinPlugNames, ...allCustomPlugNames];
+    const allPlugPaths = [...builtinPlugPaths, ...allCustomPlugPaths];
     // And delete extra ones
     for (const { name: existingPlug } of await space.listPlugs()) {
-      const plugName = existingPlug.substring(
-        "_plug/".length,
-        existingPlug.length - ".plug.js".length,
-      );
-      if (!allPlugNames.includes(plugName)) {
+      if (!allPlugPaths.includes(existingPlug)) {
         console.log("Deleting", existingPlug);
         await space.deleteDocument(existingPlug);
       }
     }
-    await editor.flashNotification(
-      "All done!",
-    );
+    await editor.flashNotification("All done!");
     system.reloadPlugs();
   } catch (e: any) {
     editor.flashNotification("Error updating plugs: " + e.message, "error");
   }
 }
 
-export async function getPlugHTTPS(url: string): Promise<string> {
+export async function getPlugHTTPS(url: string): Promise<ResolvedPlug> {
   const fullUrl = `https:${url}`;
   console.log("Now fetching plug code from", fullUrl);
   const req = await fetch(fullUrl);
@@ -129,7 +145,7 @@ export async function getPlugHTTPS(url: string): Promise<string> {
   return req.text();
 }
 
-export function getPlugGithub(identifier: string): Promise<string> {
+export function getPlugGithub(identifier: string): Promise<ResolvedPlug> {
   const [owner, repo, path] = identifier.split("/");
   let [repoClean, branch] = repo.split("@");
   if (!branch) {
@@ -142,7 +158,7 @@ export function getPlugGithub(identifier: string): Promise<string> {
 
 export async function getPlugGithubRelease(
   identifier: string,
-): Promise<string> {
+): Promise<ResolvedPlug> {
   let [owner, repo, version] = identifier.split("/");
   let releaseInfo: any = {};
   let req: Response;
@@ -166,16 +182,15 @@ export async function getPlugGithubRelease(
   version = releaseInfo.tag_name;
 
   let assetName: string | undefined;
+  // Support plug like foo.plug.js are in repo silverbullet-foo
   const shortName = repo.startsWith("silverbullet-")
     ? repo.slice("silverbullet-".length)
     : undefined;
   for (const asset of releaseInfo.assets ?? []) {
-    if (asset.name === `${repo}.plug.js`) {
-      assetName = asset.name;
-      break;
-    }
-    // Support plug like foo.plug.js are in repo silverbullet-foo
-    if (shortName && asset.name === `${shortName}.plug.js`) {
+    if (
+      asset.name === `${repo}.plug.js` ||
+      shortName && asset.name === `${shortName}.plug.js`
+    ) {
       assetName = asset.name;
       break;
     }
@@ -190,5 +205,9 @@ export async function getPlugGithubRelease(
 
   const finalUrl =
     `//github.com/${owner}/${repo}/releases/download/${version}/${assetName}`;
-  return getPlugHTTPS(finalUrl);
+  const code = await getPlugHTTPS(finalUrl);
+  return {
+    code: typeof code === "string" ? code : code.code,
+    name: shortName ?? repo,
+  };
 }

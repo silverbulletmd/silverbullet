@@ -9,43 +9,50 @@ export class Plug<HookT> {
   public grantedPermissions: string[] = [];
   public sandbox: Sandbox<HookT>;
 
-  // Resolves once the plug's manifest is available
-  ready: Promise<void>;
-
-  // Only available after ready resolves
-  public manifest?: Manifest<HookT>;
+  public manifest!: Manifest<HookT>;
   public assets?: AssetBundle;
 
   constructor(
-    private system: System<HookT>,
-    readonly name: string,
-    private hash: number,
-    private sandboxFactory: SandboxFactory<HookT>,
+    readonly system: System<HookT>,
+    sandboxFactory: SandboxFactory<HookT>,
   ) {
     this.runtimeEnv = system.env;
+    this.sandbox = sandboxFactory(this);
+  }
 
-    this.sandbox = this.sandboxFactory(this);
-    // Retrieve the manifest asynchonously, which may either come from a cache or be loaded from the worker
-    this.ready = system.options.manifestCache!.getManifest(this, this.hash)
-      .then(
-        (manifest) => {
-          this.manifest = manifest;
-          // TODO: These need to be explicitly granted, not just taken
-          this.grantedPermissions = manifest.requiredPermissions || [];
-        },
-      );
+  static async createLazily<HookT>(
+    system: System<HookT>,
+    cacheKey: string,
+    cacheHash: number,
+    sandboxFactory: SandboxFactory<HookT>,
+  ): Promise<Plug<HookT>> {
+    const plug = new Plug(
+      system,
+      sandboxFactory,
+    );
+
+    // Retrieve the manifest, which may either come from a cache or be loaded from the worker
+    plug.manifest = await system.options.manifestCache!.getManifest(
+      plug,
+      cacheKey,
+      cacheHash,
+    );
+
+    // TODO: These need to be explicitly granted, not just taken
+    plug.grantedPermissions = plug.manifest.requiredPermissions || [];
+
+    return plug;
   }
 
   // Invoke a syscall
   syscall(name: string, args: any[]): Promise<any> {
-    return this.system.syscall({ plug: this.name }, name, args);
+    return this.system.syscall({ plug: this.manifest.name }, name, args);
   }
 
   /**
    * Checks if a function can be invoked (it may be restricted on its execution environment)
    */
-  async canInvoke(name: string) {
-    await this.ready;
+  canInvoke(name: string) {
     const funDef = this.manifest!.functions[name];
     if (!funDef) {
       throw new Error(`Function ${name} not found in manifest`);
@@ -55,9 +62,6 @@ export class Plug<HookT> {
 
   // Invoke a function
   async invoke(name: string, args: any[]): Promise<any> {
-    // Ensure the worker is fully up and running
-    await this.ready;
-
     // Before we access the manifest
     const funDef = this.manifest!.functions[name];
     if (!funDef) {
@@ -89,7 +93,7 @@ export class Plug<HookT> {
   }
 
   stop() {
-    console.log("Stopping sandbox for", this.name);
+    console.log("Stopping sandbox for", this.manifest.name);
     this.sandbox.stop();
   }
 }

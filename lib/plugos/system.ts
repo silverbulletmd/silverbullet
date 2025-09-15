@@ -3,6 +3,10 @@ import { EventEmitter } from "./event.ts";
 import type { SandboxFactory } from "./sandboxes/sandbox.ts";
 import { Plug } from "./plug.ts";
 import { InMemoryManifestCache, type ManifestCache } from "./manifest_cache.ts";
+import {
+  builtinPlugNames,
+  builtinPlugPaths,
+} from "../../plugs/builtin_plugs.ts";
 
 export interface SysCallMapping {
   [key: string]: (ctx: SyscallContext, ...args: any) => Promise<any> | any;
@@ -134,23 +138,37 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     return Promise.resolve(syscall.callback(ctx, ...args));
   }
 
-  async load(
-    name: string,
+  /**
+   * @param cacheKey Used to cache the manifest of the worker. Should be equal to the filepath
+   * @param cacheHash Used to determine if the manifest is up to date. Should be `lastModified`
+   */
+  async loadPlug(
     sandboxFactory: SandboxFactory<HookT>,
-    hash = -1,
+    cacheKey: string,
+    cacheHash: number = -1,
   ): Promise<Plug<HookT>> {
-    const plug = new Plug(this, name, hash, sandboxFactory);
+    const plug = await Plug.createLazily(
+      this,
+      cacheKey,
+      cacheHash,
+      sandboxFactory,
+    );
 
-    // Wait for worker to boot, and pass back its manifest
-    await plug.ready;
+    const manifest = plug.manifest;
 
-    // and there it is!
-    const manifest = plug.manifest!;
+    // This depends on cacheKey being the file path
+    if (
+      !builtinPlugPaths.includes(cacheKey) &&
+      builtinPlugNames.includes(manifest.name)
+    ) {
+      plug.stop();
+      throw new Error("Plug tried to overwrite internal plug");
+    }
 
     // Validate the manifest
     let errors: string[] = [];
     for (const feature of this.enabledHooks) {
-      errors = [...errors, ...feature.validateManifest(plug.manifest!)];
+      errors = [...errors, ...feature.validateManifest(manifest)];
     }
     if (errors.length > 0) {
       throw new Error(`Invalid manifest: ${errors.join(", ")}`);

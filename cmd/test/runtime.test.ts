@@ -1,10 +1,10 @@
-import { createSandbox } from "../../lib/plugos/sandboxes/deno_worker_sandbox.ts";
 import type { SysCallMapping } from "../../lib/plugos/system.ts";
 import { System } from "../../lib/plugos/system.ts";
 import { assertEquals } from "@std/assert";
 import { compileManifest } from "../compile.ts";
 import * as esbuild from "esbuild";
 import { fileURLToPath } from "node:url";
+import { WorkerSandbox } from "../../lib/plugos/sandboxes/worker_sandbox.ts";
 
 Deno.test("Run a deno sandbox", {
   sanitizeResources: false,
@@ -40,9 +40,9 @@ Deno.test("Run a deno sandbox", {
     },
   );
 
-  const plug = await system.load(
+  const plug = await system.loadPlug(
+    (plug) => new WorkerSandbox(plug, new URL(`file://${workerPath}`)),
     "test",
-    createSandbox(new URL(`file://${workerPath}`)),
   );
 
   assertEquals({
