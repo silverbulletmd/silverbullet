@@ -20,18 +20,23 @@ safeRun(async () => {
   // Placeholder proxy for Client object to be swapped in later
   const clientProxy = new BoxProxy({});
   try {
-    const [configJSONText, customConfigText, defaultConfigText] = await Promise
+    const [configJSONText, ...bootstrapLuaScriptPages] = await Promise
       .all([
         cachedFetch(".config"),
-        cachedFetch(".fs/CONFIG.md"),
+        // Some minimal bootstrap Lua: schema definition
+        cachedFetch(".fs/Library/Std/Schema.md"),
+        // Configuration option definitions and defaults
         cachedFetch(".fs/Library/Std/Config.md"),
+        // Custom configuration
+        cachedFetch(".fs/CONFIG.md"),
       ]);
     bootConfig = JSON.parse(configJSONText);
-    const luaDefaultConfig = extractSpaceLuaFromPageText(defaultConfigText);
-    const luaCustomConfig = extractSpaceLuaFromPageText(customConfigText);
+    const bootstrapLuaCodes = bootstrapLuaScriptPages.map(
+      extractSpaceLuaFromPageText,
+    );
     // Append and evaluate
     config = await loadConfig(
-      luaDefaultConfig + "\n" + luaCustomConfig,
+      bootstrapLuaCodes.join("\n"),
       clientProxy.buildProxy(),
     );
   } catch (e: any) {
@@ -57,9 +62,9 @@ safeRun(async () => {
     // Register service worker
     const workerURL = new URL("service_worker.js", document.baseURI);
     let startNotificationCount = 0;
+    let lastStartNotification = 0;
     navigator.serviceWorker.addEventListener("message", (event) => {
       if (event.data.type === "service-worker-started") {
-        startNotificationCount++;
         // Service worker started, let's make sure it the current config
         console.log(
           "Got notified that service worker has just started, sending config",
@@ -71,13 +76,20 @@ safeRun(async () => {
             config: bootConfig,
           });
         });
-        if (startNotificationCount > 10) {
+        // Check for weird restart behavior
+        startNotificationCount++;
+        if (Date.now() - lastStartNotification > 5000) {
+          // Last restart was longer than 5s ago: this is fine
+          startNotificationCount = 0;
+        }
+        if (startNotificationCount > 2) {
           // This is not normal. Safari sometimes gets stuck on a database connection if the service worker is updated which means it cannot boot properly
           // the only know fix is to quit the browser and restart it
           alert(
             "Something is wrong with the sync engine, please quit your browser and restart it.",
           );
         }
+        lastStartNotification = Date.now();
       }
     });
     navigator.serviceWorker
