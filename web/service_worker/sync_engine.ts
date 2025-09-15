@@ -1,5 +1,5 @@
 import { compile as gitIgnoreCompiler } from "gitignore-parser";
-import { sleep } from "../../lib/async.ts";
+import { jitter, sleep } from "../../lib/async.ts";
 import type { KvPrimitives } from "../../lib/data/kv_primitives.ts";
 import { EventEmitter } from "../../lib/plugos/event.ts";
 import { plugPrefix, stdLibPrefix } from "../../lib/spaces/constants.ts";
@@ -85,7 +85,7 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
       } catch {
         // Error communication is happening in syncSpace
       }
-      await sleep(syncInterval * 1000);
+      await sleep(syncInterval * 1000 + jitter());
     }
   }
 

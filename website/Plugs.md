@@ -21,6 +21,7 @@ The [SilverBullet ‘Plugs’ category has a list of third-party plugs you can t
 * [Mermaid](https://github.com/silverbulletmd/silverbullet-mermaid): adds mermaid diagram rendering
 * [PlantUML](https://github.com/LogeshG5/silverbullet-plantuml): adds plantuml diagram rendering
 * [Draw.io](https://github.com/LogeshG5/silverbullet-drawio): adds drawio diagram rendering and editing
+* [Excalidraw](https://github.com/LogeshG5/silverbullet-excalidraw): adds excalidraw diagram rendering and editing
 
 # Development
 Want to develop your own plugs? Have a look at [[Plugs/Development]].

@@ -55,10 +55,6 @@ export type SyncOptions = {
 type SyncDirection = "primary->secondary" | "secondary->primary";
 
 export type SyncEvents = {
-  fileSynced: (
-    meta: FileMeta,
-    direction: SyncDirection,
-  ) => void | Promise<void>;
   syncProgress: (syncStatus: SyncStatus) => void | Promise<void>;
   snapshotUpdated: (snapshot: SyncSnapshot) => void | Promise<void>;
 };
@@ -71,7 +67,6 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
   constructor(
     private primary: SpacePrimitives,
     private secondary: SpacePrimitives,
-    // public snapshot: SyncSnapshot,
     readonly options: SyncOptions,
   ) {
     super();
@@ -136,8 +131,8 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
         );
         operations = operations + fileOperations;
         filesProcessed++;
-        // Only report something significant
-        if (operations > 1) {
+        if (fileOperations > 1) {
+          // Only report something significant
           this.emit("syncProgress", {
             filesProcessed,
             totalFiles: sortedPaths.length,
@@ -161,18 +156,14 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
 
   /**
    * Syncs a single file from primary to secondary.
-   * Use cases:
-   * - Push local changes to remote (almost) immediately
-   * - Poll remote for changes to interesting files (e.g. files currently open)
+   * Used to more actively sync currently open files.
    * @returns number of operations performed, or -1 when sync was already ongoing
    */
   public async syncSingleFile(
     path: string,
     snapshot: SyncSnapshot,
   ): Promise<number> {
-    let operations = 0;
-
-    // Mutex behavior, only sync can happen at a time
+    // Mutex behavior, only sync cycle can happen at a time
     if (this.isSyncing) {
       console.warn("[sync]", "Sync already in progress...");
       return -1;
@@ -185,8 +176,11 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
       );
       return 0;
     }
+
     this.isSyncing = true;
     console.log("[sync]", "Performing a single file sync", path);
+
+    let operations = 0;
 
     try {
       const primaryMeta = await this.primary.getFileMeta(path);
@@ -200,7 +194,7 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
           throw e;
         }
       }
-      operations += await this.syncFile(
+      operations = await this.syncFile(
         path,
         primaryMeta,
         secondaryMeta,
@@ -219,7 +213,7 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
 
   /**
    * Syncs a single file
-   * @param path The name of the file to sync
+   * @param path The path of the file to sync
    * @param primaryMeta The metadata of the file on the primary space
    * @param secondaryMeta The metadata of the file on the secondary space
    * @param syncBack Whether this a file that is marked to be synced
@@ -259,7 +253,6 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
       // Let's make sure this file is not marked as nonSynced, because we have a local copy
       snapshot.nonSyncedFiles.delete(path);
       operations++;
-      await this.emit("fileSynced", writtenMeta, "primary->secondary");
     } else if (
       secondaryMeta !== undefined && ((
         // Scenario: a new file was created on the secondary
@@ -272,12 +265,12 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
         primaryMeta === undefined
       ))
     ) {
-      // New file, created on secondary
+      // New file to sync, present on secondary
       if (syncBack) {
         // Copy from secondary to primary
         console.log(
           "[sync]",
-          "New file created on secondary, copying from secondary to primary",
+          "New file to sync on secondary, copying from secondary to primary",
           path,
         );
         const { data, meta } = await this.secondary.readFile(path);
@@ -294,7 +287,6 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
         // Make sure the file is not marked as nonSynced anymore
         snapshot.nonSyncedFiles.delete(path);
         operations++;
-        await this.emit("fileSynced", writtenMeta, "secondary->primary");
       } else { // !syncBack
         // This has syncBack set to false, which means we'll just update the nonSyncedFiles and snapshot
         console.log(
@@ -405,12 +397,11 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
       // Delete from non-synced files just in case, because we clearly have a local copy
       snapshot.nonSyncedFiles.delete(path);
       operations++;
-      await this.emit("fileSynced", writtenMeta, "primary->secondary");
     } else if (
       primaryMeta !== undefined && secondaryMeta !== undefined &&
       snapshot.files.get(path) &&
-      secondaryMeta.lastModified !== snapshot.files.get(path)![1] &&
-      primaryMeta.lastModified === snapshot.files.get(path)![0]
+      primaryMeta.lastModified === snapshot.files.get(path)![0] &&
+      secondaryMeta.lastModified !== snapshot.files.get(path)![1]
     ) {
       // File has changed on secondary, but not primary
       if (syncBack) {
@@ -433,7 +424,6 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
         // Make sure it's not in nonSyncedFiles
         snapshot.nonSyncedFiles.delete(path);
         operations++;
-        await this.emit("fileSynced", writtenMeta, "secondary->primary");
       } else { // !syncBack
         console.log(
           "[sync]",
@@ -466,8 +456,8 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
       ( // File changed on both ends, CONFLICT!
         primaryMeta !== undefined && secondaryMeta !== undefined &&
         snapshot.files.get(path) &&
-        secondaryMeta.lastModified !== snapshot.files.get(path)![1] &&
-        primaryMeta.lastModified !== snapshot.files.get(path)![0]
+        primaryMeta.lastModified !== snapshot.files.get(path)![0] &&
+        secondaryMeta.lastModified !== snapshot.files.get(path)![1]
       )
     ) {
       console.log(
@@ -496,7 +486,18 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
         snapshot.nonSyncedFiles.set(path, secondaryMeta);
       }
     }
+    // End scene
     return operations;
+  }
+
+  getNonSyncCandidates(files: FileMeta[]): Map<string, FileMeta> {
+    const nonSyncCandidates: Map<string, FileMeta> = new Map();
+    files.forEach((meta) => {
+      if (!this.options.isSyncCandidate(meta.name)) {
+        nonSyncCandidates.set(meta.name, meta);
+      }
+    });
+    return nonSyncCandidates;
   }
 
   // Strategy: Primary wins
@@ -579,15 +580,5 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
       writeMeta.lastModified,
     ]);
     return operations;
-  }
-
-  getNonSyncCandidates(files: FileMeta[]): Map<string, FileMeta> {
-    const nonSyncCandidates: Map<string, FileMeta> = new Map();
-    files.forEach((meta) => {
-      if (!this.options.isSyncCandidate(meta.name)) {
-        nonSyncCandidates.set(meta.name, meta);
-      }
-    });
-    return nonSyncCandidates;
   }
 }

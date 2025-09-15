@@ -103,15 +103,7 @@ export class DiskSpacePrimitives implements SpacePrimitives {
   async getFileMeta(path: string, _observing?: boolean): Promise<FileMeta> {
     const localPath = this.filenameToPath(path);
     try {
-      const s = await Deno.stat(localPath);
-      return {
-        name: path,
-        size: s.size,
-        contentType: lookupContentType(path),
-        created: s.birthtime?.getTime() || s.mtime?.getTime() || 0,
-        lastModified: s.mtime?.getTime() || 0,
-        perm: "rw",
-      };
+      return this.fileInfoToFileMeta(path, await Deno.stat(localPath));
     } catch (e: any) {
       if (e instanceof Deno.errors.NotFound) {
         throw notFoundError;
@@ -119,6 +111,17 @@ export class DiskSpacePrimitives implements SpacePrimitives {
       // console.error("Error while getting page meta", pageName, e);
       throw Error(`Could not get meta for ${path}`);
     }
+  }
+
+  private fileInfoToFileMeta(path: string, s: Deno.FileInfo): FileMeta {
+    return {
+      name: path,
+      size: s.size,
+      contentType: lookupContentType(path),
+      created: s.birthtime?.getTime() || s.mtime?.getTime() || 0,
+      lastModified: s.mtime?.getTime() || 0,
+      perm: "rw",
+    };
   }
 
   async deleteFile(path: string): Promise<void> {
@@ -176,14 +179,9 @@ export class DiskSpacePrimitives implements SpacePrimitives {
       try {
         const s = await Deno.stat(fullPath);
         const name = fullPath.substring(this.rootPath.length + 1);
-        allFiles.push({
-          name: normalizeForwardSlashPath(name),
-          created: s.birthtime?.getTime() || s.mtime?.getTime() || 0,
-          lastModified: s.mtime?.getTime() || 0,
-          contentType: mime.getType(fullPath) || "application/octet-stream",
-          size: s.size,
-          perm: "rw",
-        });
+        allFiles.push(
+          this.fileInfoToFileMeta(normalizeForwardSlashPath(name), s),
+        );
       } catch (e: any) {
         if (e instanceof Deno.errors.NotFound) {
           // Ignore, temporariy file already deleted by the time we got here

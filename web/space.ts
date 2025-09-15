@@ -1,7 +1,7 @@
 import { plugPrefix } from "../lib/spaces/constants.ts";
 
 import type { EventHook } from "../web/hooks/event.ts";
-import { safeRun } from "../lib/async.ts";
+import { jitter, safeRun } from "../lib/async.ts";
 import { localDateString } from "../lib/dates.ts";
 import type { DocumentMeta, FileMeta, PageMeta } from "../type/index.ts";
 import type { SpacePrimitives } from "../lib/spaces/space_primitives.ts";
@@ -10,7 +10,7 @@ import {
   type Path,
 } from "@silverbulletmd/silverbullet/lib/ref";
 
-const pageWatchInterval = 5000;
+const pageWatchInterval = 3000; // + jitter
 
 export class Space {
   // We do watch files in the background to detect changes
@@ -172,7 +172,7 @@ export class Space {
           await this.spacePrimitives.getFileMeta(fileName, true);
         }
       });
-    }, pageWatchInterval);
+    }, pageWatchInterval + jitter());
   }
 
   unwatch() {

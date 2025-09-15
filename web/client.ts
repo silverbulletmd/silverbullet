@@ -33,7 +33,7 @@ import type {
 
 import type { PageCreatingContent, PageCreatingEvent } from "../type/event.ts";
 import type { StyleObject } from "../plugs/index/style.ts";
-import { throttle } from "../lib/async.ts";
+import { jitter, throttle } from "../lib/async.ts";
 import { PlugSpacePrimitives } from "../lib/spaces/plug_space_primitives.ts";
 import { EventedSpacePrimitives } from "../lib/spaces/evented_space_primitives.ts";
 import { simpleHash } from "../lib/crypto.ts";
@@ -306,7 +306,7 @@ export class Client {
     // Kick off a regular file listing request to trigger events
     setInterval(() => {
       this.eventedSpacePrimitives.fetchFileList();
-    }, fetchFileListInterval);
+    }, fetchFileListInterval + jitter());
 
     this.eventHook.addLocalListener(
       "file:changed",
