@@ -3,6 +3,7 @@ package main
 import (
 	"embed"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/silverbulletmd/silverbullet/pkg/server"
@@ -32,15 +33,28 @@ func main() {
 		panic(err)
 	}
 
+	var auth *server.AuthOptions
+
+	if os.Getenv("SB_USER") != "" {
+		pieces := strings.Split(os.Getenv("SB_USER"), ":")
+		auth = &server.AuthOptions{
+			User: pieces[0],
+			Pass: pieces[1],
+		}
+	}
+
 	clientBundle := server.NewReadOnlyFallthroughSpacePrimitives(bundledFiles, "dist_client_bundle", time.Now(), nil)
 	spacePrimitives = server.NewReadOnlyFallthroughSpacePrimitives(bundledFiles, "dist_plug_bundle", time.Now(), spacePrimitives)
 
-	server.RunServer(&server.ServerConfig{
+	if err := server.RunServer(&server.ServerConfig{
 		SpaceFolderPath: spaceFolder,
 		SpacePrimitives: spacePrimitives,
 		IndexPage:       indexPage,
 		GitIgnore:       os.Getenv("SB_GIT_IGNORE"),
 		ReadOnlyMode:    os.Getenv("SB_READ_ONLY") != "",
 		ClientBundle:    clientBundle,
-	})
+		Auth:            auth,
+	}); err != nil {
+		panic(err)
+	}
 }

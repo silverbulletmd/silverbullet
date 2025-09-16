@@ -18,6 +18,10 @@ type ServerConfig struct {
 	ShellBackend          string
 	ShellCommandWhiteList []string
 
+	// Authentication configuration
+	Auth          *AuthOptions
+	HostURLPrefix string
+
 	ClientBundle SpacePrimitives
 }
 
@@ -67,6 +71,21 @@ type ShellResponse struct {
 // Shell backend interface
 type ShellBackend interface {
 	Handle(request ShellRequest) (ShellResponse, error)
+}
+
+// Auth options for user authentication
+type AuthOptions struct {
+	AuthToken    string `json:"authToken,omitempty"`
+	User         string `json:"user"`
+	Pass         string `json:"pass"`
+	LockoutTime  int    `json:"lockoutTime"` // in seconds
+	LockoutLimit int    `json:"lockoutLimit"`
+}
+
+// JWT claims structure
+type JWTClaims struct {
+	Username string `json:"username"`
+	Exp      int64  `json:"exp,omitempty"`
 }
 
 // Common errors
