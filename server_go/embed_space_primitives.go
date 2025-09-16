@@ -9,26 +9,16 @@ import (
 	"time"
 )
 
-// FSSpacePrimitives implements SpacePrimitives for any filesystem with fallback.
-// It serves files from an fs.FS and falls back to another SpacePrimitives implementation
-// for files not found in the filesystem.
-//
-// Supported operations:
-// - GetFileMeta: First tries fs.FS, then fallback
-// - ReadFile: First tries fs.FS, then fallback
-// - FetchFileList: Combines all files from fs.FS and fallback
-// - WriteFile: Fails if file exists in fs.FS, otherwise delegates to fallback
-// - DeleteFile: Fails if file exists in fs.FS, otherwise delegates to fallback
 type FSSpacePrimitives struct {
-	fsys     fs.FS
-	wrapped  SpacePrimitives
-	rootPath string // Root path within the fs.FS
+	fsys      fs.FS
+	wrapped   SpacePrimitives
+	rootPath  string // Root path within the fs.FS
+	timeStamp time.Time
 }
 
 var _ SpacePrimitives = &FSSpacePrimitives{}
 
-// NewFSSpacePrimitives creates a new FSSpacePrimitives instance
-func NewFSSpacePrimitives(fsys fs.FS, rootPath string, wrapped SpacePrimitives) *FSSpacePrimitives {
+func NewFSSpacePrimitives(fsys fs.FS, rootPath string, timeStamp time.Time, wrapped SpacePrimitives) *FSSpacePrimitives {
 	// Clean the root path
 	cleanRootPath := strings.Trim(rootPath, "/")
 	if cleanRootPath != "" && !strings.HasSuffix(cleanRootPath, "/") {
@@ -36,9 +26,10 @@ func NewFSSpacePrimitives(fsys fs.FS, rootPath string, wrapped SpacePrimitives) 
 	}
 
 	return &FSSpacePrimitives{
-		fsys:     fsys,
-		wrapped:  wrapped,
-		rootPath: cleanRootPath,
+		fsys:      fsys,
+		wrapped:   wrapped,
+		rootPath:  cleanRootPath,
+		timeStamp: timeStamp,
 	}
 }
 
@@ -74,8 +65,8 @@ func (e *FSSpacePrimitives) fileInfoToFileMeta(path string, info fs.FileInfo) Fi
 		Name:         path,
 		Size:         info.Size(),
 		ContentType:  lookupContentTypeFromPath(path),
-		Created:      info.ModTime().UnixMilli(),
-		LastModified: info.ModTime().UnixMilli(),
+		Created:      e.timeStamp.UnixMilli(),
+		LastModified: e.timeStamp.UnixMilli(),
 		Perm:         "ro", // Embedded files are read-only
 	}
 }
@@ -120,17 +111,14 @@ func (e *FSSpacePrimitives) FetchFileList() ([]FileMeta, error) {
 		return nil, fmt.Errorf("failed to walk filesystem: %w", err)
 	}
 
-	// If we have a fallback, get its files too and add them all
-	if e.wrapped != nil {
-		fallbackFiles, err := e.wrapped.FetchFileList()
-		if err != nil {
-			// If fallback fails, just return embedded files
-			return allFiles, nil
-		}
-
-		// Add all fallback files (no deduplication)
-		allFiles = append(allFiles, fallbackFiles...)
+	// Append the wrapped file list as well
+	wrappedFiles, err := e.wrapped.FetchFileList()
+	if err != nil {
+		// If fallback fails, just return embedded files
+		return allFiles, nil
 	}
+
+	allFiles = append(allFiles, wrappedFiles...)
 
 	return allFiles, nil
 }

@@ -124,6 +124,12 @@ func (d *DiskSpacePrimitives) FetchFileList() ([]FileMeta, error) {
 			return nil
 		}
 
+		relativePath := d.pathToFilename(path)
+
+		if strings.HasPrefix(relativePath, ".") {
+			return nil
+		}
+
 		// Get file info
 		info, err := entry.Info()
 		if err != nil {
@@ -131,7 +137,6 @@ func (d *DiskSpacePrimitives) FetchFileList() ([]FileMeta, error) {
 			return nil
 		}
 
-		relativePath := d.pathToFilename(path)
 		fileMeta := d.fileInfoToFileMeta(relativePath, info)
 		allFiles = append(allFiles, fileMeta)
 

@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
@@ -36,7 +37,7 @@ func RunServer(bundledFiles embed.FS) {
 		os.Exit(1)
 	}
 
-	spacePrimitives = NewFSSpacePrimitives(bundledFiles, "dist_plug_bundle", spacePrimitives)
+	spacePrimitives = NewFSSpacePrimitives(bundledFiles, "dist_plug_bundle", time.Now(), spacePrimitives)
 
 	// Mount filesystem routes under /.fs
 	r.Mount("/.fs", buildFsRoutes(spacePrimitives))
@@ -53,6 +54,12 @@ func RunServer(bundledFiles embed.FS) {
 		w.Header().Set("Cache-Control", "no-cache")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(clientConfig)
+	})
+
+	r.Get("/.ping", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-cache")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
 	})
 
 	r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
