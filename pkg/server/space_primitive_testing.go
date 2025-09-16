@@ -1,4 +1,4 @@
-package server_go
+package server
 
 import (
 	"bytes"

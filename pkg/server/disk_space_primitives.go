@@ -1,26 +1,27 @@
-package server_go
+package server
 
 import (
 	"fmt"
 	"io/fs"
-	"mime"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	ignore "github.com/Diogenesoftoronto/go-gitignore"
 	"github.com/djherbis/times"
 )
 
 // DiskSpacePrimitives implements SpacePrimitives for local disk storage
 type DiskSpacePrimitives struct {
-	rootPath string
+	rootPath  string
+	gitIgnore *ignore.GitIgnore
 }
 
 var _ SpacePrimitives = &DiskSpacePrimitives{}
 
 // NewDiskSpacePrimitives creates a new DiskSpacePrimitives instance
-func NewDiskSpacePrimitives(rootPath string) (*DiskSpacePrimitives, error) {
+func NewDiskSpacePrimitives(rootPath string, gitIgnore string) (*DiskSpacePrimitives, error) {
 	// Resolve to absolute path
 	absPath, err := filepath.Abs(rootPath)
 	if err != nil {
@@ -28,12 +29,14 @@ func NewDiskSpacePrimitives(rootPath string) (*DiskSpacePrimitives, error) {
 	}
 
 	// Ensure the directory exists
-	if err := os.MkdirAll(absPath, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create root directory: %w", err)
+	if stat, err := os.Stat(absPath); err != nil || !stat.IsDir() {
+		return nil, fmt.Errorf("no such directory: %w", err)
 	}
+	ignore := ignore.CompileIgnoreLines(strings.Split(gitIgnore, "\n")...)
 
 	return &DiskSpacePrimitives{
-		rootPath: absPath,
+		rootPath:  absPath,
+		gitIgnore: ignore,
 	}, nil
 }
 
@@ -88,21 +91,12 @@ func (d *DiskSpacePrimitives) pathToFilename(fullPath string) string {
 	return strings.ReplaceAll(relativePath, string(filepath.Separator), "/")
 }
 
-// lookupContentType determines MIME type based on file extension
-func lookupContentType(path string) string {
-	contentType := mime.TypeByExtension(filepath.Ext(path))
-	if contentType == "" {
-		return "application/octet-stream"
-	}
-	return contentType
-}
-
 // fileInfoToFileMeta converts os.FileInfo to FileMeta
 func (d *DiskSpacePrimitives) fileInfoToFileMeta(path string, info os.FileInfo) FileMeta {
 	return FileMeta{
 		Name:         path,
 		Size:         info.Size(),
-		ContentType:  lookupContentType(path),
+		ContentType:  LookupContentTypeFromPath(path),
 		Created:      getCreationTime(info).UnixMilli(),
 		LastModified: info.ModTime().UnixMilli(),
 		Perm:         "rw",
@@ -126,6 +120,12 @@ func (d *DiskSpacePrimitives) FetchFileList() ([]FileMeta, error) {
 
 		relativePath := d.pathToFilename(path)
 
+		// Exclude ignored files
+		if d.gitIgnore.MatchesPath(relativePath) {
+			return nil
+		}
+
+		// Skip hidden folders in root
 		if strings.HasPrefix(relativePath, ".") {
 			return nil
 		}

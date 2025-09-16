@@ -1,8 +1,21 @@
-package server_go
+package server
 
 import (
 	"errors"
 )
+
+type ServerConfig struct {
+	Hostname string
+	Port     int
+
+	SpacePrimitives SpacePrimitives
+	SpaceFolderPath string
+	IndexPage       string
+	GitIgnore       string
+	ReadOnlyMode    bool
+
+	ClientBundle SpacePrimitives
+}
 
 // FileMeta represents metadata for a file in the space
 type FileMeta struct {
