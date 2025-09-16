@@ -42,6 +42,9 @@ func RunServer(config *ServerConfig) {
 		w.Write([]byte("OK"))
 	})
 
+	// Proxy endpoint
+	r.HandleFunc("/.proxy/*", proxyHandler(config))
+
 	r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
 		path := chi.URLParam(r, "*")
 
