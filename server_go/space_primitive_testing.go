@@ -3,6 +3,8 @@ package server_go
 import (
 	"bytes"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // TestSpacePrimitives runs a comprehensive test suite against any SpacePrimitives implementation
@@ -34,23 +36,15 @@ func TestSpacePrimitives(t *testing.T, spacePrimitives SpacePrimitives) {
 
 	// Ensure clean state at the end
 	finalFiles, err := spacePrimitives.FetchFileList()
-	if err != nil {
-		t.Fatalf("Failed to fetch final file list: %v", err)
-	}
-	if len(finalFiles) != 0 {
-		t.Errorf("Expected empty file list at end, got %d files", len(finalFiles))
-	}
+	assert.NoError(t, err, "Failed to fetch final file list")
+	assert.Empty(t, finalFiles, "Expected empty file list at end")
 }
 
 func testBasicOperations(t *testing.T, spacePrimitives SpacePrimitives) {
 	// Test initial empty state
 	files, err := spacePrimitives.FetchFileList()
-	if err != nil {
-		t.Fatalf("Failed to fetch file list: %v", err)
-	}
-	if len(files) != 0 {
-		t.Errorf("Expected empty file list, got %d files", len(files))
-	}
+	assert.NoError(t, err, "Failed to fetch file list")
+	assert.Empty(t, files, "Expected empty file list")
 
 	// Write text file
 	testContent := []byte("Hello World")
@@ -64,36 +58,22 @@ func testBasicOperations(t *testing.T, spacePrimitives SpacePrimitives) {
 	}
 
 	_, err = spacePrimitives.WriteFile("test.txt", testContent, fileMeta)
-	if err != nil {
-		t.Fatalf("Failed to write file: %v", err)
-	}
+	assert.NoError(t, err, "Failed to write file")
 
 	// Read the file back
 	retrievedData, retrievedMeta, err := spacePrimitives.ReadFile("test.txt")
-	if err != nil {
-		t.Fatalf("Failed to read file: %v", err)
-	}
+	assert.NoError(t, err, "Failed to read file")
 
-	if !bytes.Equal(retrievedData, testContent) {
-		t.Errorf("Retrieved data doesn't match: expected %s, got %s", testContent, retrievedData)
-	}
+	assert.Equal(t, testContent, retrievedData, "Retrieved data doesn't match")
 
 	// Check that the meta data is persisted (lastModified should be preserved)
-	if retrievedMeta.LastModified != 20 {
-		t.Errorf("Expected lastModified to be 20, got %d", retrievedMeta.LastModified)
-	}
+	assert.Equal(t, int64(20), retrievedMeta.LastModified, "Expected lastModified to be 20")
 
 	// Check file list
 	fileList, err := spacePrimitives.FetchFileList()
-	if err != nil {
-		t.Fatalf("Failed to fetch file list: %v", err)
-	}
-	if len(fileList) != 1 {
-		t.Errorf("Expected 1 file in list, got %d", len(fileList))
-	}
-	if fileList[0].Name != "test.txt" {
-		t.Errorf("Expected file name 'test.txt', got '%s'", fileList[0].Name)
-	}
+	assert.NoError(t, err, "Failed to fetch file list")
+	assert.Len(t, fileList, 1, "Expected 1 file in list")
+	assert.Equal(t, "test.txt", fileList[0].Name, "Expected file name 'test.txt'")
 
 	// Write binary file
 	buf := make([]byte, 1024*1024)
@@ -104,116 +84,72 @@ func testBasicOperations(t *testing.T, spacePrimitives SpacePrimitives) {
 	buf[4] = 5
 
 	_, err = spacePrimitives.WriteFile("test.bin", buf, nil)
-	if err != nil {
-		t.Fatalf("Failed to write binary file: %v", err)
-	}
+	assert.NoError(t, err, "Failed to write binary file")
 
 	fileData, _, err := spacePrimitives.ReadFile("test.bin")
-	if err != nil {
-		t.Fatalf("Failed to read binary file: %v", err)
-	}
+	assert.NoError(t, err, "Failed to read binary file")
 
-	if len(fileData) != 1024*1024 {
-		t.Errorf("Expected binary file size %d, got %d", 1024*1024, len(fileData))
-	}
+	assert.Len(t, fileData, 1024*1024, "Expected binary file size to match")
 
 	fileList, err = spacePrimitives.FetchFileList()
-	if err != nil {
-		t.Fatalf("Failed to fetch file list: %v", err)
-	}
-	if len(fileList) != 2 {
-		t.Errorf("Expected 2 files in list, got %d", len(fileList))
-	}
+	assert.NoError(t, err, "Failed to fetch file list")
+	assert.Len(t, fileList, 2, "Expected 2 files in list")
 
 	// Delete binary file
 	err = spacePrimitives.DeleteFile("test.bin")
-	if err != nil {
-		t.Fatalf("Failed to delete binary file: %v", err)
-	}
+	assert.NoError(t, err, "Failed to delete binary file")
 
 	fileList, err = spacePrimitives.FetchFileList()
-	if err != nil {
-		t.Fatalf("Failed to fetch file list: %v", err)
-	}
-	if len(fileList) != 1 {
-		t.Errorf("Expected 1 file in list after deletion, got %d", len(fileList))
-	}
+	assert.NoError(t, err, "Failed to fetch file list")
+	assert.Len(t, fileList, 1, "Expected 1 file in list after deletion")
 
 	// Clean up
 	err = spacePrimitives.DeleteFile("test.txt")
-	if err != nil {
-		t.Fatalf("Failed to delete test file: %v", err)
-	}
+	assert.NoError(t, err, "Failed to delete test file")
 
 	fileList, err = spacePrimitives.FetchFileList()
-	if err != nil {
-		t.Fatalf("Failed to fetch file list: %v", err)
-	}
-	if len(fileList) != 0 {
-		t.Errorf("Expected empty file list after cleanup, got %d files", len(fileList))
-	}
+	assert.NoError(t, err, "Failed to fetch file list")
+	assert.Empty(t, fileList, "Expected empty file list after cleanup")
 
 	// Test weird file names
 	weirdContent := []byte("Hello world!")
 	_, err = spacePrimitives.WriteFile("test+'s.txt", weirdContent, nil)
-	if err != nil {
-		t.Fatalf("Failed to write file with weird name: %v", err)
-	}
+	assert.NoError(t, err, "Failed to write file with weird name")
 
 	readWeirdData, _, err := spacePrimitives.ReadFile("test+'s.txt")
-	if err != nil {
-		t.Fatalf("Failed to read file with weird name: %v", err)
-	}
+	assert.NoError(t, err, "Failed to read file with weird name")
 
-	if !bytes.Equal(readWeirdData, weirdContent) {
-		t.Errorf("Weird file content doesn't match: expected %s, got %s", weirdContent, readWeirdData)
-	}
+	assert.Equal(t, weirdContent, readWeirdData, "Weird file content doesn't match")
 
 	err = spacePrimitives.DeleteFile("test+'s.txt")
-	if err != nil {
-		t.Fatalf("Failed to delete weird file: %v", err)
-	}
+	assert.NoError(t, err, "Failed to delete weird file")
 
 	// Check deletion of weird file name
 	_, _, err = spacePrimitives.ReadFile("test+'s.txt")
-	if err != ErrNotFound {
-		t.Errorf("Expected ErrNotFound when reading deleted file, got: %v", err)
-	}
+	assert.Equal(t, ErrNotFound, err, "Expected ErrNotFound when reading deleted file")
 }
 
 func testFileOverwriting(t *testing.T, spacePrimitives SpacePrimitives) {
 	// Test overwriting existing files
 	originalContent := []byte("Original")
 	_, err := spacePrimitives.WriteFile("overwrite.txt", originalContent, nil)
-	if err != nil {
-		t.Fatalf("Failed to write original file: %v", err)
-	}
+	assert.NoError(t, err, "Failed to write original file")
 
 	_, err = spacePrimitives.GetFileMeta("overwrite.txt", false)
-	if err != nil {
-		t.Fatalf("Failed to get original meta: %v", err)
-	}
+	assert.NoError(t, err, "Failed to get original meta")
 
 	updatedContent := []byte("Updated")
 	_, err = spacePrimitives.WriteFile("overwrite.txt", updatedContent, nil)
-	if err != nil {
-		t.Fatalf("Failed to overwrite file: %v", err)
-	}
+	assert.NoError(t, err, "Failed to overwrite file")
 
 	updatedData, _, err := spacePrimitives.ReadFile("overwrite.txt")
-	if err != nil {
-		t.Fatalf("Failed to read overwritten file: %v", err)
-	}
+	assert.NoError(t, err, "Failed to read overwritten file")
 
-	if !bytes.Equal(updatedData, updatedContent) {
-		t.Errorf("Overwritten content doesn't match: expected %s, got %s", updatedContent, updatedData)
-	}
+	assert.Equal(t, updatedContent, updatedData, "Overwritten content doesn't match")
 
 	// File list should still have only one entry for this file
 	filesAfterOverwrite, err := spacePrimitives.FetchFileList()
-	if err != nil {
-		t.Fatalf("Failed to fetch files after overwrite: %v", err)
-	}
+	assert.NoError(t, err, "Failed to fetch files after overwrite")
 
 	overwriteFiles := 0
 	for _, f := range filesAfterOverwrite {
@@ -222,85 +158,54 @@ func testFileOverwriting(t *testing.T, spacePrimitives SpacePrimitives) {
 		}
 	}
 
-	if overwriteFiles != 1 {
-		t.Errorf("Expected 1 instance of overwrite.txt, got %d", overwriteFiles)
-	}
+	assert.Equal(t, 1, overwriteFiles, "Expected 1 instance of overwrite.txt")
 
 	err = spacePrimitives.DeleteFile("overwrite.txt")
-	if err != nil {
-		t.Fatalf("Failed to delete overwritten file: %v", err)
-	}
+	assert.NoError(t, err, "Failed to delete overwritten file")
 
 	// Test writing files to new folders
 	writeMeta, err := spacePrimitives.WriteFile("some/folder/test.dat", []byte("Testing"), nil)
-	if err != nil {
-		t.Fatalf("Writing to a nested folder should work")
-	}
+	assert.NoError(t, err, "Writing to a nested folder should work")
+
 	// Read it back
 	data, meta, err := spacePrimitives.ReadFile("some/folder/test.dat")
-	if err != nil {
-		t.Fatal("Reading should work")
-	}
-	if writeMeta.LastModified != meta.LastModified {
-		t.Fatal("Meta should be the same")
-	}
-	if !bytes.Equal(data, []byte("Testing")) {
-		t.Fatal("Did not get back what I put in")
-	}
-	if err := spacePrimitives.DeleteFile("some/folder/test.dat"); err != nil {
-		t.Fatal("Deletion should work")
-	}
+	assert.NoError(t, err, "Reading should work")
+	assert.Equal(t, writeMeta.LastModified, meta.LastModified, "Meta should be the same")
+	assert.Equal(t, []byte("Testing"), data, "Did not get back what I put in")
 
+	err = spacePrimitives.DeleteFile("some/folder/test.dat")
+	assert.NoError(t, err, "Deletion should work")
 }
 
 func testEmptyFiles(t *testing.T, spacePrimitives SpacePrimitives) {
 	// Test empty file
 	emptyData := []byte{}
 	_, err := spacePrimitives.WriteFile("empty.txt", emptyData, nil)
-	if err != nil {
-		t.Fatalf("Failed to write empty file: %v", err)
-	}
+	assert.NoError(t, err, "Failed to write empty file")
 
 	emptyFileData, emptyFileMeta, err := spacePrimitives.ReadFile("empty.txt")
-	if err != nil {
-		t.Fatalf("Failed to read empty file: %v", err)
-	}
+	assert.NoError(t, err, "Failed to read empty file")
 
-	if len(emptyFileData) != 0 {
-		t.Errorf("Expected empty file data length 0, got %d", len(emptyFileData))
-	}
-
-	if emptyFileMeta.Size != 0 {
-		t.Errorf("Expected empty file meta size 0, got %d", emptyFileMeta.Size)
-	}
+	assert.Empty(t, emptyFileData, "Expected empty file data")
+	assert.Equal(t, int64(0), emptyFileMeta.Size, "Expected empty file meta size 0")
 
 	err = spacePrimitives.DeleteFile("empty.txt")
-	if err != nil {
-		t.Fatalf("Failed to delete empty file: %v", err)
-	}
+	assert.NoError(t, err, "Failed to delete empty file")
 }
 
 func testUnicodeContent(t *testing.T, spacePrimitives SpacePrimitives) {
 	// Test files with Unicode characters
 	unicodeContent := []byte("Hello 世界! 🌍 Здравствуй мир!")
 	_, err := spacePrimitives.WriteFile("unicode.txt", unicodeContent, nil)
-	if err != nil {
-		t.Fatalf("Failed to write unicode file: %v", err)
-	}
+	assert.NoError(t, err, "Failed to write unicode file")
 
 	unicodeData, _, err := spacePrimitives.ReadFile("unicode.txt")
-	if err != nil {
-		t.Fatalf("Failed to read unicode file: %v", err)
-	}
+	assert.NoError(t, err, "Failed to read unicode file")
 
-	if !bytes.Equal(unicodeData, unicodeContent) {
-		t.Errorf("Unicode content doesn't match: expected %s, got %s", unicodeContent, unicodeData)
-	}
+	assert.Equal(t, unicodeContent, unicodeData, "Unicode content doesn't match")
 
 	err = spacePrimitives.DeleteFile("unicode.txt")
-	if err != nil {
-		t.Fatalf("Failed to delete unicode file: %v", err)
-	}
+	assert.NoError(t, err, "Failed to delete unicode file")
 }
 
 func testSpecialFileNames(t *testing.T, spacePrimitives SpacePrimitives) {
@@ -318,26 +223,18 @@ func testSpecialFileNames(t *testing.T, spacePrimitives SpacePrimitives) {
 	for _, fileName := range specialNames {
 		content := []byte("Content of " + fileName)
 		_, err := spacePrimitives.WriteFile(fileName, content, nil)
-		if err != nil {
-			t.Fatalf("Failed to write file %s: %v", fileName, err)
-		}
+		assert.NoError(t, err, "Failed to write file %s", fileName)
 
 		fileData, _, err := spacePrimitives.ReadFile(fileName)
-		if err != nil {
-			t.Fatalf("Failed to read file %s: %v", fileName, err)
-		}
+		assert.NoError(t, err, "Failed to read file %s", fileName)
 
 		expectedContent := "Content of " + fileName
-		if string(fileData) != expectedContent {
-			t.Errorf("Content mismatch for %s: expected %s, got %s", fileName, expectedContent, string(fileData))
-		}
+		assert.Equal(t, expectedContent, string(fileData), "Content mismatch for %s", fileName)
 	}
 
 	// Verify all special files are in the list
 	allFiles, err := spacePrimitives.FetchFileList()
-	if err != nil {
-		t.Fatalf("Failed to fetch file list: %v", err)
-	}
+	assert.NoError(t, err, "Failed to fetch file list")
 
 	for _, fileName := range specialNames {
 		found := false
@@ -347,36 +244,26 @@ func testSpecialFileNames(t *testing.T, spacePrimitives SpacePrimitives) {
 				break
 			}
 		}
-		if !found {
-			t.Errorf("File %s should be in the file list", fileName)
-		}
+		assert.True(t, found, "File %s should be in the file list", fileName)
 	}
 
 	// Clean up special files
 	for _, fileName := range specialNames {
 		err := spacePrimitives.DeleteFile(fileName)
-		if err != nil {
-			t.Fatalf("Failed to delete file %s: %v", fileName, err)
-		}
+		assert.NoError(t, err, "Failed to delete file %s", fileName)
 	}
 }
 
 func testErrorHandling(t *testing.T, spacePrimitives SpacePrimitives) {
 	// Test error cases
 	_, _, err := spacePrimitives.ReadFile("nonexistent.txt")
-	if err != ErrNotFound {
-		t.Errorf("Expected ErrNotFound for non-existent file, got: %v", err)
-	}
+	assert.Equal(t, ErrNotFound, err, "Expected ErrNotFound for non-existent file")
 
 	err = spacePrimitives.DeleteFile("nonexistent.txt")
-	if err != ErrNotFound {
-		t.Errorf("Expected ErrNotFound when deleting non-existent file, got: %v", err)
-	}
+	assert.Equal(t, ErrNotFound, err, "Expected ErrNotFound when deleting non-existent file")
 
 	_, err = spacePrimitives.GetFileMeta("nonexistent.txt", false)
-	if err != ErrNotFound {
-		t.Errorf("Expected ErrNotFound for non-existent file meta, got: %v", err)
-	}
+	assert.Equal(t, ErrNotFound, err, "Expected ErrNotFound for non-existent file meta")
 }
 
 func testLargeFiles(t *testing.T, spacePrimitives SpacePrimitives) {
@@ -387,22 +274,13 @@ func testLargeFiles(t *testing.T, spacePrimitives SpacePrimitives) {
 	}
 
 	_, err := spacePrimitives.WriteFile("large.bin", largeContent, nil)
-	if err != nil {
-		t.Fatalf("Failed to write large file: %v", err)
-	}
+	assert.NoError(t, err, "Failed to write large file")
 
 	largeData, largeMeta, err := spacePrimitives.ReadFile("large.bin")
-	if err != nil {
-		t.Fatalf("Failed to read large file: %v", err)
-	}
+	assert.NoError(t, err, "Failed to read large file")
 
-	if len(largeData) != len(largeContent) {
-		t.Errorf("Large file size mismatch: expected %d, got %d", len(largeContent), len(largeData))
-	}
-
-	if largeMeta.Size != int64(len(largeContent)) {
-		t.Errorf("Large file meta size mismatch: expected %d, got %d", len(largeContent), largeMeta.Size)
-	}
+	assert.Len(t, largeData, len(largeContent), "Large file size mismatch")
+	assert.Equal(t, int64(len(largeContent)), largeMeta.Size, "Large file meta size mismatch")
 
 	// Verify content integrity (check first 1000 bytes)
 	checkSize := 1000
@@ -410,17 +288,10 @@ func testLargeFiles(t *testing.T, spacePrimitives SpacePrimitives) {
 		checkSize = len(largeContent)
 	}
 
-	for i := 0; i < checkSize; i++ {
-		if largeData[i] != largeContent[i] {
-			t.Errorf("Large file content mismatch at index %d: expected %d, got %d", i, largeContent[i], largeData[i])
-			break
-		}
-	}
+	assert.True(t, bytes.Equal(largeData[:checkSize], largeContent[:checkSize]), "Large file content mismatch in first %d bytes", checkSize)
 
 	err = spacePrimitives.DeleteFile("large.bin")
-	if err != nil {
-		t.Fatalf("Failed to delete large file: %v", err)
-	}
+	assert.NoError(t, err, "Failed to delete large file")
 }
 
 func testMetadataPreservation(t *testing.T, spacePrimitives SpacePrimitives) {
@@ -436,30 +307,16 @@ func testMetadataPreservation(t *testing.T, spacePrimitives SpacePrimitives) {
 	}
 
 	_, err := spacePrimitives.WriteFile("meta-test.txt", testContent, customMeta)
-	if err != nil {
-		t.Fatalf("Failed to write file with custom meta: %v", err)
-	}
+	assert.NoError(t, err, "Failed to write file with custom meta")
 
 	_, metaFile, err := spacePrimitives.ReadFile("meta-test.txt")
-	if err != nil {
-		t.Fatalf("Failed to read file with meta: %v", err)
-	}
+	assert.NoError(t, err, "Failed to read file with meta")
 
 	// Check that some metadata is preserved (implementations may handle timestamps differently)
-	if metaFile.LastModified <= 0 {
-		t.Error("LastModified timestamp should be set")
-	}
-
-	if metaFile.Name != "meta-test.txt" {
-		t.Errorf("Expected name 'meta-test.txt', got '%s'", metaFile.Name)
-	}
-
-	if metaFile.Size != int64(len(testContent)) {
-		t.Errorf("Expected size %d, got %d", len(testContent), metaFile.Size)
-	}
+	assert.Greater(t, metaFile.LastModified, int64(0), "LastModified timestamp should be set")
+	assert.Equal(t, "meta-test.txt", metaFile.Name, "Expected name 'meta-test.txt'")
+	assert.Equal(t, int64(len(testContent)), metaFile.Size, "Expected size to match content length")
 
 	err = spacePrimitives.DeleteFile("meta-test.txt")
-	if err != nil {
-		t.Fatalf("Failed to delete meta test file: %v", err)
-	}
+	assert.NoError(t, err, "Failed to delete meta test file")
 }

@@ -112,13 +112,15 @@ func (e *FSSpacePrimitives) FetchFileList() ([]FileMeta, error) {
 	}
 
 	// Append the wrapped file list as well
-	wrappedFiles, err := e.wrapped.FetchFileList()
-	if err != nil {
-		// If fallback fails, just return embedded files
-		return allFiles, nil
-	}
+	if e.wrapped != nil {
+		wrappedFiles, err := e.wrapped.FetchFileList()
+		if err != nil {
+			// If fallback fails, just return embedded files
+			return allFiles, nil
+		}
 
-	allFiles = append(allFiles, wrappedFiles...)
+		allFiles = append(allFiles, wrappedFiles...)
+	}
 
 	return allFiles, nil
 }
@@ -185,6 +187,9 @@ func (e *FSSpacePrimitives) WriteFile(path string, data []byte, meta *FileMeta) 
 	}
 
 	// File doesn't exist in filesystem, delegate to fallback
+	if e.wrapped == nil {
+		return FileMeta{}, fmt.Errorf("cannot write file %s: no fallback configured", path)
+	}
 	return e.wrapped.WriteFile(path, data, meta)
 }
 
@@ -201,5 +206,13 @@ func (e *FSSpacePrimitives) DeleteFile(path string) error {
 	}
 
 	// File doesn't exist in filesystem, delegate to fallback
+	if e.wrapped == nil {
+		return fmt.Errorf("cannot delete file %s: no fallback configured", path)
+	}
 	return e.wrapped.DeleteFile(path)
+}
+
+// NewEmbedFSSpacePrimitives is an alias for NewFSSpacePrimitives for backward compatibility
+func NewEmbedFSSpacePrimitives(fsys fs.FS, rootPath string, wrapped SpacePrimitives) *FSSpacePrimitives {
+	return NewFSSpacePrimitives(fsys, rootPath, time.Now(), wrapped)
 }
