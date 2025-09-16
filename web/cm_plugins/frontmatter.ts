@@ -7,9 +7,9 @@ import {
   fileName,
   isBuiltinPath,
 } from "@silverbulletmd/silverbullet/lib/resolve";
-import {wikiLinkRegex} from "../markdown_parser/constants.ts";
+import {frontmatterUrlRegex, frontmatterWikiLinkRegex} from "../markdown_parser/constants.ts";
 import {encodePageURI, encodeRef, parseToRef, getNameFromPath} from "@silverbulletmd/silverbullet/lib/ref";
-import type {ClickEvent} from "@silverbulletmd/silverbullet/type/client";
+
 
 export function frontmatterPlugin(client: Client) {
   return decoratorStateField(
@@ -63,15 +63,15 @@ export function frontmatterPlugin(client: Client) {
             const text = state.sliceDoc(from, to);
 
             // 1) External links: http(s) URLs
-            const urlRegex = /(https?:\/\/[^\s"']+)/g;
+            frontmatterUrlRegex.lastIndex = 0;
             let match: RegExpExecArray | null;
-            while ((match = urlRegex.exec(text)) !== null) {
+            while ((match = frontmatterUrlRegex.exec(text)) !== null) {
               const mFrom = from + (match.index ?? 0);
               const mTo = mFrom + match[0].length;
               if (isCursorInRange(state, [mFrom, mTo])) {
                 continue;
               }
-              const url = match[0];
+              const url = match[1];
               widgets.push(
                 Decoration.replace({
                   widget: new LinkWidget({
@@ -101,9 +101,9 @@ export function frontmatterPlugin(client: Client) {
             }
 
             // 2) Internal links: WikiLinks [[...]] (make navigable)
-            wikiLinkRegex.lastIndex = 0;
+            frontmatterWikiLinkRegex.lastIndex = 0;
             let wMatch: RegExpExecArray | null;
-            while ((wMatch = wikiLinkRegex.exec(text)) !== null) {
+            while ((wMatch = frontmatterWikiLinkRegex.exec(text)) !== null) {
               if (!wMatch || !wMatch.groups) {
                 return;
               }
@@ -112,12 +112,13 @@ export function frontmatterPlugin(client: Client) {
               if (isCursorInRange(state, [mFrom, mTo])) {
                 continue;
               }
-
-              const {leadingTrivia, stringRef, alias, trailingTrivia} =
+              const { leadingTrivia, stringRef, alias, trailingTrivia } =
                 wMatch.groups;
 
               const ref = parseToRef(stringRef);
+
               let linkStatus: "file-missing" | "default" | "invalid" = "default";
+
               if (!ref) {
                 linkStatus = "invalid";
               } else if (ref.path === "" || isBuiltinPath(ref.path)) {
@@ -130,6 +131,7 @@ export function frontmatterPlugin(client: Client) {
               } else if (client.fullSyncCompleted) {
                 linkStatus = "file-missing";
               }
+
               let css = {
                 "file-missing": "sb-wiki-link-missing",
                 "invalid": "sb-wiki-link-invalid",
@@ -150,6 +152,7 @@ export function frontmatterPlugin(client: Client) {
 
                 return;
               }
+
               const cleanedPath = ref ? getNameFromPath(ref.path) : stringRef;
               const helpText = {
                 "default": `Navigate to ${cleanedPath}`,
@@ -204,14 +207,11 @@ export function frontmatterPlugin(client: Client) {
                         client.focus();
                         return;
                       }
-                      const clickEvent: ClickEvent = {
-                        page: client.currentName(),
-                        ctrlKey: e.ctrlKey,
-                        metaKey: e.metaKey,
-                        altKey: e.altKey,
-                        pos: mFrom,
-                      };
-                      client.dispatchClickEvent(clickEvent).catch(console.error);
+                      client.navigate(
+                        ref,
+                        false,
+                        e.ctrlKey || e.metaKey,
+                      );
                     },
                   }),
                 }).range(mFrom, mTo),
