@@ -14,6 +14,10 @@ type ServerConfig struct {
 	GitIgnore       string
 	ReadOnlyMode    bool
 
+	// Shell configuration
+	ShellBackend          string
+	ShellCommandWhiteList []string
+
 	ClientBundle SpacePrimitives
 }
 
@@ -45,6 +49,24 @@ type SpacePrimitives interface {
 
 	// DeleteFile removes a file from the space
 	DeleteFile(path string) error
+}
+
+// Shell request/response types
+type ShellRequest struct {
+	Cmd   string   `json:"cmd"`
+	Args  []string `json:"args"`
+	Stdin *string  `json:"stdin,omitempty"`
+}
+
+type ShellResponse struct {
+	Stdout string `json:"stdout"`
+	Stderr string `json:"stderr"`
+	Code   int    `json:"code"`
+}
+
+// Shell backend interface
+type ShellBackend interface {
+	Handle(request ShellRequest) (ShellResponse, error)
 }
 
 // Common errors

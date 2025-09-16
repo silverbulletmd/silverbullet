@@ -22,6 +22,9 @@ func RunServer(config *ServerConfig) {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 
+	// Initialize shell backend
+	shellBackend := DetermineShellBackend(config)
+
 	// Mount filesystem routes under /.fs
 	r.Mount("/.fs", buildFsRoutes(config.SpacePrimitives, config.SpaceFolderPath))
 
@@ -41,6 +44,9 @@ func RunServer(config *ServerConfig) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	})
+
+	// Shell endpoint
+	r.Post("/.shell", handleShellEndpoint(config, shellBackend))
 
 	// Proxy endpoint
 	r.HandleFunc("/.proxy/*", proxyHandler(config))
