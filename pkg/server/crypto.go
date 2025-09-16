@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"os"
 	"time"
 
@@ -20,14 +21,14 @@ type Authenticator struct {
 	AuthHash  string `json:"auth_hash"`
 }
 
-func CreateAuthenticator(path string, authString string) (*Authenticator, error) {
+func CreateAuthenticator(path string, authOptions *AuthOptions) (*Authenticator, error) {
 	// Load from JSON
 	jsonBytes, err := os.ReadFile(path)
 	// If the file is not found, just start fresh
 	if os.IsNotExist(err) {
 		auth := &Authenticator{path: path}
 
-		if err := auth.init(authString); err != nil {
+		if err := auth.init(authOptions); err != nil {
 			return nil, err
 		}
 		return auth, nil
@@ -41,7 +42,7 @@ func CreateAuthenticator(path string, authString string) (*Authenticator, error)
 	if err := json.Unmarshal(jsonBytes, &auth); err != nil {
 		return nil, err
 	}
-	if err := auth.init(authString); err != nil {
+	if err := auth.init(authOptions); err != nil {
 		return nil, err
 	}
 
@@ -58,7 +59,7 @@ func (j *Authenticator) save() error {
 }
 
 // Init initializes the JWT issuer with an auth string for validation
-func (j *Authenticator) init(authString string) error {
+func (j *Authenticator) init(authConfig *AuthOptions) error {
 	if j.SecretKey == "" {
 		fmt.Println("Generating new JWT secret key")
 		if err := j.generateNewKey(); err != nil {
@@ -66,7 +67,7 @@ func (j *Authenticator) init(authString string) error {
 		}
 	}
 
-	newAuthHash := j.hashSHA256(authString)
+	newAuthHash := j.hashOptions(authConfig)
 	if j.AuthHash != newAuthHash {
 		fmt.Println("Authentication has changed since last run, so invalidating all existing tokens")
 		// Generate new key to invalidate all existing tokens
@@ -94,9 +95,12 @@ func (j *Authenticator) generateNewKey() error {
 	return nil
 }
 
-// hashSHA256 creates a SHA256 hash of the input string
-func (j *Authenticator) hashSHA256(input string) string {
-	hash := sha256.Sum256([]byte(input))
+func (j *Authenticator) hashOptions(authOptions *AuthOptions) string {
+	data, err := json.Marshal(authOptions)
+	if err != nil {
+		panic(err)
+	}
+	hash := sha256.Sum256(data)
 	return hex.EncodeToString(hash[:])
 }
 
@@ -105,9 +109,7 @@ func (j *Authenticator) CreateJWT(payload map[string]any, expirySeconds ...int) 
 	claims := jwt.MapClaims{}
 
 	// Copy payload to claims
-	for k, v := range payload {
-		claims[k] = v
-	}
+	maps.Copy(claims, payload)
 
 	// Add expiry if specified
 	if len(expirySeconds) > 0 && expirySeconds[0] > 0 {

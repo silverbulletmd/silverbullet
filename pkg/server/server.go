@@ -34,9 +34,7 @@ func RunServer(config *ServerConfig) error {
 	var err error
 
 	if config.Auth != nil {
-		authString := fmt.Sprintf(`{"auth":{"user":"%s","pass":"%s","lockoutTime":%d,"lockoutLimit":%d}}`,
-			config.Auth.User, config.Auth.Pass, config.Auth.LockoutTime, config.Auth.LockoutLimit)
-		jwtIssuer, err = CreateAuthenticator(path.Join(config.SpaceFolderPath, ".silverbullet.auth.json"), authString)
+		jwtIssuer, err = CreateAuthenticator(path.Join(config.SpaceFolderPath, ".silverbullet.auth.json"), config.Auth)
 		if err != nil {
 			return err
 		}

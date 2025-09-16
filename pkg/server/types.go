@@ -82,12 +82,6 @@ type AuthOptions struct {
 	LockoutLimit int    `json:"lockoutLimit"`
 }
 
-// JWT claims structure
-type JWTClaims struct {
-	Username string `json:"username"`
-	Exp      int64  `json:"exp,omitempty"`
-}
-
 // Common errors
 var (
 	ErrNotFound        = errors.New("Not found")
