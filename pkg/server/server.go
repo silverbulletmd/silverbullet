@@ -23,7 +23,10 @@ type BootConfig struct {
 
 func RunServer(config *ServerConfig) error {
 	r := chi.NewRouter()
-	r.Use(middleware.Logger)
+
+	if config.EnableHTTPLogging {
+		r.Use(middleware.Logger)
+	}
 
 	// Initialize authentication components
 	var jwtIssuer *Authenticator
@@ -101,7 +104,14 @@ func RunServer(config *ServerConfig) error {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(htmlContent))
 	})
-	log.Printf("Now going to listen on hostname %s and port %d", config.Hostname, config.Port)
+
+	// Display the final server running message
+	visibleHostname := config.Hostname
+	if config.Hostname == "127.0.0.1" {
+		visibleHostname = "localhost"
+	}
+	log.Printf("SilverBullet is now running: http://%s:%d", visibleHostname, config.Port)
+
 	http.ListenAndServe(fmt.Sprintf("%s:%d", config.Hostname, config.Port), r)
 	return nil
 }

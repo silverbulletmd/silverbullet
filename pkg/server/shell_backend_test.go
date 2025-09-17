@@ -10,7 +10,7 @@ import (
 
 func TestLocalShell_HandleValidCommand(t *testing.T) {
 	tmpDir := t.TempDir()
-	shell := NewLocalShell(tmpDir, nil) // No whitelist = allow all commands
+	shell := NewLocalShell(tmpDir, "") // No whitelist = allow all commands
 
 	request := ShellRequest{
 		Cmd:  "echo",
@@ -26,7 +26,7 @@ func TestLocalShell_HandleValidCommand(t *testing.T) {
 
 func TestLocalShell_HandleCommandWithStdin(t *testing.T) {
 	tmpDir := t.TempDir()
-	shell := NewLocalShell(tmpDir, nil)
+	shell := NewLocalShell(tmpDir, "")
 
 	input := "test input"
 	request := ShellRequest{
@@ -44,7 +44,7 @@ func TestLocalShell_HandleCommandWithStdin(t *testing.T) {
 
 func TestLocalShell_HandleWorkingDirectory(t *testing.T) {
 	tmpDir := t.TempDir()
-	shell := NewLocalShell(tmpDir, nil)
+	shell := NewLocalShell(tmpDir, "")
 
 	// Create a test file in the temp directory
 	testFile := filepath.Join(tmpDir, "test.txt")
@@ -65,8 +65,7 @@ func TestLocalShell_HandleWorkingDirectory(t *testing.T) {
 
 func TestLocalShell_HandleWithWhitelist(t *testing.T) {
 	tmpDir := t.TempDir()
-	whitelist := []string{"echo", "pwd"}
-	shell := NewLocalShell(tmpDir, whitelist)
+	shell := NewLocalShell(tmpDir, "echo pwd")
 
 	// Test allowed command
 	request := ShellRequest{
@@ -94,7 +93,7 @@ func TestLocalShell_HandleWithWhitelist(t *testing.T) {
 
 func TestLocalShell_HandleCommandWithBothStreams(t *testing.T) {
 	tmpDir := t.TempDir()
-	shell := NewLocalShell(tmpDir, nil)
+	shell := NewLocalShell(tmpDir, "")
 
 	// Create a shell script that outputs to both stdout and stderr
 	script := `#!/bin/sh

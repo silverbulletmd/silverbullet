@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/silverbulletmd/silverbullet/pkg/server"
+	"github.com/spf13/cobra"
 )
 
 // Embed the client and plug bundles into the Go binary
@@ -17,7 +19,53 @@ import (
 //go:embed dist_plug_bundle/*
 var bundledFiles embed.FS
 
+//go:embed public_version.ts
+var versionFileText string
+
 func main() {
+	cmd := rootCommand()
+	cmd.AddCommand(versionCommand())
+	// cmd.AddCommand(runCommand(), deployCommand(), attachCommand(), infoCommand(), ppCommand())
+	cmd.Execute()
+}
+
+func versionCommand() *cobra.Command {
+	return &cobra.Command{
+		Use: "version",
+		Run: func(cmd *cobra.Command, args []string) {
+			version, err := server.ParseVersionFromTypeScript(versionFileText)
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Println(version)
+		},
+	}
+}
+
+func rootCommand() *cobra.Command {
+	var userPass string
+	var hostname string
+	var port int
+	var cmd = &cobra.Command{
+		Use:   "silverbullet [path]",
+		Short: "Run the Silverbullet server",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			serverConfig := buildConfig(args)
+			if err := server.RunServer(serverConfig); err != nil {
+				log.Fatal(err)
+			}
+		},
+	}
+	// cmd.Flags().StringVar(&url, "url", "http://localhost:8222", "URL of matterless server to connect to")
+	cmd.Flags().StringVarP(&userPass, "user", "", "", "user:pass authentication info")
+	cmd.Flags().StringVarP(&hostname, "hostname", "L", "127.0.0.1", "Host or address to listen to")
+	cmd.Flags().IntVarP(&port, "port", "p", 3000, "Port to listen to")
+
+	return cmd
+}
+
+func buildConfig(args []string) *server.ServerConfig {
 	serverConfig := &server.ServerConfig{
 		IndexPage: "index",
 		Port:      3000,
@@ -38,16 +86,17 @@ func main() {
 	}
 
 	if os.Getenv("SB_INDEX_PAGE") != "" {
+
 		serverConfig.IndexPage = os.Getenv("SB_INDEX_PAGE")
 	}
-	if len(os.Args) > 0 {
-		serverConfig.SpaceFolderPath = os.Args[1]
+	if len(args) > 0 {
+		serverConfig.SpaceFolderPath = args[0]
 	}
 	if os.Getenv("SB_FOLDER_PATH") != "" {
 		serverConfig.SpaceFolderPath = os.Getenv("SB_FOLDER_PATH")
 	}
 	if serverConfig.SpaceFolderPath == "" {
-		log.Fatal("No space folder path specified")
+		log.Fatal("No folder specified. Please pass a folder as an argument or set SB_FOLDER environment variable.")
 	}
 
 	var spacePrimitives server.SpacePrimitives
@@ -57,18 +106,71 @@ func main() {
 		log.Fatal(err)
 	}
 
+	serverConfig.EnableHTTPLogging = os.Getenv("SB_HTTP_LOGGING") != ""
+
 	if os.Getenv("SB_USER") != "" {
 		pieces := strings.Split(os.Getenv("SB_USER"), ":")
+
 		serverConfig.Auth = &server.AuthOptions{
-			User: pieces[0],
-			Pass: pieces[1],
+			User:         pieces[0],
+			Pass:         pieces[1],
+			AuthToken:    os.Getenv("SB_AUTH_TOKEN"),
+			LockoutLimit: 10,
+			LockoutTime:  60,
+		}
+
+		if os.Getenv("SB_LOCKOUT_LIMIT") != "" {
+			serverConfig.Auth.LockoutLimit, err = strconv.Atoi(os.Getenv("SB_LOCKOUT_LIMIT"))
+			if err != nil {
+				log.Fatalf("Could not parse SB_LOCKOUT_LIMIT as number: %v", err)
+			}
+
+		}
+
+		if os.Getenv("SB_LOCKOUT_TIME") != "" {
+			serverConfig.Auth.LockoutTime, err = strconv.Atoi(os.Getenv("SB_LOCKOUT_TIME"))
+			if err != nil {
+				log.Fatalf("Could not parse SB_LOCKOUT_TIME as number: %v", err)
+			}
+		}
+
+		log.Printf("User authentication enabled for user \"%s\" with lockout limit %d and lockout time %ds",
+			pieces[0], serverConfig.Auth.LockoutLimit, serverConfig.Auth.LockoutTime)
+	}
+
+	serverConfig.ReadOnlyMode = os.Getenv("SB_READ_ONLY") != ""
+
+	if serverConfig.ReadOnlyMode {
+		log.Println("Starting in read-only mode.")
+	}
+
+	serverConfig.GitIgnore = os.Getenv("SB_GIT_IGNORE")
+
+	if os.Getenv("SB_SPACE_IGNORE") != "" {
+		log.Printf("Ignoring files matching: %s", os.Getenv("SB_SPACE_IGNORE"))
+	}
+
+	if os.Getenv("SB_URL_PREFIX") != "" {
+		hostUrlPrefix := os.Getenv("SB_URL_PREFIX")
+		// Normalize the host URL prefix (if set)
+		if !strings.HasPrefix(hostUrlPrefix, "/") {
+			hostUrlPrefix = "/" + hostUrlPrefix
+		}
+		hostUrlPrefix = strings.TrimRight(hostUrlPrefix, "/")
+
+		if hostUrlPrefix != "" {
+			log.Printf("Host URL Prefix: %s", hostUrlPrefix)
+			serverConfig.HostURLPrefix = hostUrlPrefix
 		}
 	}
-	serverConfig.ReadOnlyMode = os.Getenv("SB_READ_ONLY") != ""
-	serverConfig.GitIgnore = os.Getenv("SB_GIT_IGNORE")
 
 	serverConfig.ClientBundle = server.NewReadOnlyFallthroughSpacePrimitives(bundledFiles, "dist_client_bundle", time.Now(), nil)
 	serverConfig.SpacePrimitives = server.NewReadOnlyFallthroughSpacePrimitives(bundledFiles, "dist_plug_bundle", time.Now(), spacePrimitives)
+
+	log.Printf("Starting SilverBullet binding to %s:%d", serverConfig.Hostname, serverConfig.Port)
+	if serverConfig.Hostname == "127.0.0.1" {
+		log.Println("SilverBullet will only be available locally, to allow outside connections, pass -L0.0.0.0 as a flag, and put a TLS terminator on top.")
+	}
 
 	// Initialize shell backend
 	backendConfig := os.Getenv("SB_SHELL_BACKEND")
@@ -85,7 +187,5 @@ func main() {
 		serverConfig.ShellBackend = server.NewNotSupportedShell()
 	}
 
-	if err := server.RunServer(serverConfig); err != nil {
-		panic(err)
-	}
+	return serverConfig
 }

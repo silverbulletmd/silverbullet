@@ -22,6 +22,8 @@ type ServerConfig struct {
 	HostURLPrefix string
 
 	ClientBundle SpacePrimitives
+
+	EnableHTTPLogging bool
 }
 
 // FileMeta represents metadata for a file in the space
