@@ -16,3 +16,5 @@ deploy.json
 *.generated
 tmp_playground
 /public_version.ts
+tmp
+*.ipynb
