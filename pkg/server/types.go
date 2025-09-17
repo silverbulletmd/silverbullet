@@ -15,8 +15,7 @@ type ServerConfig struct {
 	ReadOnlyMode    bool
 
 	// Shell configuration
-	ShellBackend          string
-	ShellCommandWhiteList []string
+	ShellBackend ShellBackend
 
 	// Authentication configuration
 	Auth          *AuthOptions

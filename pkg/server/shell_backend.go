@@ -3,7 +3,6 @@ package server
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"os/exec"
 	"slices"
 	"strings"
@@ -11,24 +10,28 @@ import (
 
 // LocalShell implements shell execution on the local system
 type LocalShell struct {
-	cwd          string
-	cmdWhiteList []string
-	allowAllCmds bool
+	Cwd          string
+	CmdWhiteList []string
+	AllowAllCmds bool
 }
 
 // NewLocalShell creates a new LocalShell instance
-func NewLocalShell(cwd string, cmdWhiteList []string) *LocalShell {
+func NewLocalShell(cwd string, cmdWhiteList string) *LocalShell {
+	whiteListedCommands := strings.Split(cmdWhiteList, " ")
+	if cmdWhiteList == "" {
+		whiteListedCommands = []string{}
+	}
 	return &LocalShell{
-		cwd:          cwd,
-		cmdWhiteList: cmdWhiteList,
-		allowAllCmds: len(cmdWhiteList) == 0,
+		Cwd:          cwd,
+		CmdWhiteList: whiteListedCommands,
+		AllowAllCmds: len(whiteListedCommands) == 0,
 	}
 }
 
 // Handle executes a shell command and returns the result
 func (ls *LocalShell) Handle(request ShellRequest) (ShellResponse, error) {
 	// Check if command is whitelisted
-	if !ls.allowAllCmds && !slices.Contains(ls.cmdWhiteList, request.Cmd) {
+	if !ls.AllowAllCmds && !slices.Contains(ls.CmdWhiteList, request.Cmd) {
 		fmt.Printf("Not running shell command because not in whitelist: %s\n", request.Cmd)
 		return ShellResponse{
 			Code:   -1,
@@ -41,7 +44,7 @@ func (ls *LocalShell) Handle(request ShellRequest) (ShellResponse, error) {
 
 	// Create the command
 	cmd := exec.Command(request.Cmd, request.Args...)
-	cmd.Dir = ls.cwd
+	cmd.Dir = ls.Cwd
 
 	// Set up stdin if provided
 	if request.Stdin != nil {
@@ -93,31 +96,4 @@ func (nss *NotSupportedShell) Handle(request ShellRequest) (ShellResponse, error
 		Stdout: "",
 		Stderr: "Not supported",
 	}, nil
-}
-
-// DetermineShellBackend creates the appropriate shell backend based on configuration
-func DetermineShellBackend(config *ServerConfig) ShellBackend {
-	backendConfig := config.ShellBackend
-	if backendConfig == "" {
-		backendConfig = os.Getenv("SB_SHELL_BACKEND")
-		if backendConfig == "" {
-			backendConfig = "local"
-		}
-		if os.Getenv("SB_READ_ONLY_MODE") != "" {
-			backendConfig = "disabled"
-		}
-	}
-
-	switch backendConfig {
-	case "local":
-		if len(config.ShellCommandWhiteList) > 0 {
-			fmt.Printf("Running with the following shell commands enabled: %v\n", config.ShellCommandWhiteList)
-		} else {
-			fmt.Println("Running with ALL shell commands enabled.")
-		}
-		return NewLocalShell(config.SpaceFolderPath, config.ShellCommandWhiteList)
-	default:
-		fmt.Println("Running in shell-less mode, meaning shell commands are disabled")
-		return NewNotSupportedShell()
-	}
 }

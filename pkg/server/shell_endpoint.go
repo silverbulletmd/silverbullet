@@ -7,7 +7,7 @@ import (
 )
 
 // handleShellEndpoint handles POST requests to /.shell for executing shell commands
-func handleShellEndpoint(config *ServerConfig, shellBackend ShellBackend) http.HandlerFunc {
+func handleShellEndpoint(config *ServerConfig) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Parse the request body
 		var shellRequest ShellRequest
@@ -17,7 +17,7 @@ func handleShellEndpoint(config *ServerConfig, shellBackend ShellBackend) http.H
 		}
 
 		// Execute the shell command
-		shellResponse, err := shellBackend.Handle(shellRequest)
+		shellResponse, err := config.ShellBackend.Handle(shellRequest)
 		if err != nil {
 			fmt.Printf("Shell error: %v\n", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)

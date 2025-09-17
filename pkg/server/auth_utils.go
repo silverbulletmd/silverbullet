@@ -88,7 +88,6 @@ type CookieOptions struct {
 	SameSite string
 }
 
-// extractHost extracts the host from a request
 func extractHost(r *http.Request) string {
 	host := r.Host
 	if host == "" {
@@ -98,7 +97,7 @@ func extractHost(r *http.Request) string {
 }
 
 // redirectToAuth creates a redirect response to the auth page
-func redirectToAuth(w http.ResponseWriter, r *http.Request, authPath, fromPath, hostURLPrefix string) {
+func redirectToAuth(w http.ResponseWriter, authPath, fromPath, hostURLPrefix string) {
 	var redirectURL string
 
 	// Try filtering api paths
