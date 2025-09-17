@@ -39,9 +39,10 @@ func buildConfig(bundledFiles fs.FS, args []string) *server.ServerConfig {
 	if len(args) > 0 {
 		serverConfig.SpaceFolderPath = args[0]
 	}
-	if os.Getenv("SB_FOLDER_PATH") != "" {
-		serverConfig.SpaceFolderPath = os.Getenv("SB_FOLDER_PATH")
+	if os.Getenv("SB_FOLDER") != "" {
+		serverConfig.SpaceFolderPath = os.Getenv("SB_FOLDER")
 	}
+
 	if serverConfig.SpaceFolderPath == "" {
 		log.Fatal("No folder specified. Please pass a folder as an argument or set SB_FOLDER environment variable.")
 	}
@@ -144,7 +145,6 @@ func ServerCommand(bundledFiles fs.FS) *cobra.Command {
 	var c = &cobra.Command{
 		Use:   "silverbullet [path]",
 		Short: "Run the Silverbullet server",
-		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			serverConfig := buildConfig(bundledFiles, args)
 			if err := server.RunServer(serverConfig); err != nil {
