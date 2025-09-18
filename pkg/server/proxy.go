@@ -65,13 +65,14 @@ func proxyHandler(config *ServerConfig) http.HandlerFunc {
 			if strings.HasPrefix(strings.ToLower(key), "x-proxy-header-") {
 				headerName := key[len("x-proxy-header-"):]
 				for _, value := range values {
-					req.Header.Add(headerName, value)
+					req.Header.Set(headerName, value)
 				}
 			}
 		}
 
 		// Make the request
-		client := &http.Client{}
+		client := http.DefaultClient
+
 		resp, err := client.Do(req)
 		if err != nil {
 			fmt.Printf("Error fetching proxied URL: %v\n", err)
@@ -83,7 +84,7 @@ func proxyHandler(config *ServerConfig) http.HandlerFunc {
 		// Copy response headers
 		for key, values := range resp.Header {
 			for _, value := range values {
-				w.Header().Add(key, value)
+				w.Header().Set(key, value)
 			}
 		}
 
