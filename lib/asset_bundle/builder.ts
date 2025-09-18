@@ -1,5 +1,5 @@
 // import { globToRegExp, mime, path, walk } from "../deps_server.ts";
-import { dirname, globToRegExp } from "@std/path";
+import { globToRegExp } from "@std/path";
 import { AssetBundle } from "./bundle.ts";
 import { walk } from "@std/fs";
 import { mime } from "mimetypes";
