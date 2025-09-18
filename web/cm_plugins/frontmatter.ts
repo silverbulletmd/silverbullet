@@ -1,7 +1,12 @@
 import type { EditorState } from "@codemirror/state";
 import { foldedRanges, syntaxTree } from "@codemirror/language";
 import { Decoration } from "@codemirror/view";
-import { decoratorStateField, HtmlWidget, isCursorInRange, LinkWidget } from "./util.ts";
+import {
+  decoratorStateField,
+  HtmlWidget,
+  isCursorInRange,
+  LinkWidget,
+} from "./util.ts";
 
 export function frontmatterPlugin() {
   return decoratorStateField(
@@ -73,7 +78,7 @@ export function frontmatterPlugin() {
                     from: mFrom,
                     callback: () => {
                       try {
-                          globalThis.open(url, "_blank" );
+                        globalThis.open(url, "_blank");
                       } catch (err) {
                         console.error("Failed to open external link", err);
                       }
