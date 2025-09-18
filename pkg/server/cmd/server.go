@@ -3,6 +3,7 @@ package cmd
 import (
 	"io/fs"
 	"log"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -14,13 +15,21 @@ import (
 
 func buildConfig(bundledFiles fs.FS, args []string) *server.ServerConfig {
 	serverConfig := &server.ServerConfig{
+		BindHost: "127.0.0.1",
+		Port:     3000,
+	}
+
+	rootSpaceConfig := &server.SpaceConfig{
 		IndexPage: "index",
-		Port:      3000,
-		Hostname:  "127.0.0.1",
+	}
+
+	// For now just point every request to the rootSpaceConfig
+	serverConfig.SpaceConfigResolver = func(r *http.Request) *server.SpaceConfig {
+		return rootSpaceConfig
 	}
 
 	if os.Getenv("SB_HOSTNAME") != "" {
-		serverConfig.Hostname = os.Getenv("SB_HOSTNAME")
+		serverConfig.BindHost = os.Getenv("SB_HOSTNAME")
 	}
 
 	if os.Getenv("SB_PORT") != "" {
@@ -33,22 +42,21 @@ func buildConfig(bundledFiles fs.FS, args []string) *server.ServerConfig {
 	}
 
 	if os.Getenv("SB_INDEX_PAGE") != "" {
-
-		serverConfig.IndexPage = os.Getenv("SB_INDEX_PAGE")
+		rootSpaceConfig.IndexPage = os.Getenv("SB_INDEX_PAGE")
 	}
 	if len(args) > 0 {
-		serverConfig.SpaceFolderPath = args[0]
+		rootSpaceConfig.SpaceFolderPath = args[0]
 	}
 	if os.Getenv("SB_FOLDER") != "" {
-		serverConfig.SpaceFolderPath = os.Getenv("SB_FOLDER")
+		rootSpaceConfig.SpaceFolderPath = os.Getenv("SB_FOLDER")
 	}
 
-	if serverConfig.SpaceFolderPath == "" {
+	if rootSpaceConfig.SpaceFolderPath == "" {
 		log.Fatal("No folder specified. Please pass a folder as an argument or set SB_FOLDER environment variable.")
 	}
 
 	var spacePrimitives server.SpacePrimitives
-	spacePrimitives, err := server.NewDiskSpacePrimitives(serverConfig.SpaceFolderPath, os.Getenv("SB_GIT_IGNORE"))
+	spacePrimitives, err := server.NewDiskSpacePrimitives(rootSpaceConfig.SpaceFolderPath, os.Getenv("SB_GIT_IGNORE"))
 
 	if err != nil {
 		log.Fatal(err)
@@ -59,7 +67,7 @@ func buildConfig(bundledFiles fs.FS, args []string) *server.ServerConfig {
 	if os.Getenv("SB_USER") != "" {
 		pieces := strings.Split(os.Getenv("SB_USER"), ":")
 
-		serverConfig.Auth = &server.AuthOptions{
+		rootSpaceConfig.Auth = &server.AuthOptions{
 			User:         pieces[0],
 			Pass:         pieces[1],
 			AuthToken:    os.Getenv("SB_AUTH_TOKEN"),
@@ -68,7 +76,7 @@ func buildConfig(bundledFiles fs.FS, args []string) *server.ServerConfig {
 		}
 
 		if os.Getenv("SB_LOCKOUT_LIMIT") != "" {
-			serverConfig.Auth.LockoutLimit, err = strconv.Atoi(os.Getenv("SB_LOCKOUT_LIMIT"))
+			rootSpaceConfig.Auth.LockoutLimit, err = strconv.Atoi(os.Getenv("SB_LOCKOUT_LIMIT"))
 			if err != nil {
 				log.Fatalf("Could not parse SB_LOCKOUT_LIMIT as number: %v", err)
 			}
@@ -76,23 +84,23 @@ func buildConfig(bundledFiles fs.FS, args []string) *server.ServerConfig {
 		}
 
 		if os.Getenv("SB_LOCKOUT_TIME") != "" {
-			serverConfig.Auth.LockoutTime, err = strconv.Atoi(os.Getenv("SB_LOCKOUT_TIME"))
+			rootSpaceConfig.Auth.LockoutTime, err = strconv.Atoi(os.Getenv("SB_LOCKOUT_TIME"))
 			if err != nil {
 				log.Fatalf("Could not parse SB_LOCKOUT_TIME as number: %v", err)
 			}
 		}
 
 		log.Printf("User authentication enabled for user \"%s\" with lockout limit %d and lockout time %ds",
-			pieces[0], serverConfig.Auth.LockoutLimit, serverConfig.Auth.LockoutTime)
+			pieces[0], rootSpaceConfig.Auth.LockoutLimit, rootSpaceConfig.Auth.LockoutTime)
 	}
 
-	serverConfig.ReadOnlyMode = os.Getenv("SB_READ_ONLY") != ""
+	rootSpaceConfig.ReadOnlyMode = os.Getenv("SB_READ_ONLY") != ""
 
-	if serverConfig.ReadOnlyMode {
+	if rootSpaceConfig.ReadOnlyMode {
 		log.Println("Starting in read-only mode.")
 	}
 
-	serverConfig.GitIgnore = os.Getenv("SB_GIT_IGNORE")
+	rootSpaceConfig.GitIgnore = os.Getenv("SB_GIT_IGNORE")
 
 	if os.Getenv("SB_SPACE_IGNORE") != "" {
 		log.Printf("Ignoring files matching: %s", os.Getenv("SB_SPACE_IGNORE"))
@@ -108,7 +116,7 @@ func buildConfig(bundledFiles fs.FS, args []string) *server.ServerConfig {
 
 		if hostUrlPrefix != "" {
 			log.Printf("Host URL Prefix: %s", hostUrlPrefix)
-			serverConfig.HostURLPrefix = hostUrlPrefix
+			rootSpaceConfig.HostURLPrefix = hostUrlPrefix
 		}
 	}
 
@@ -121,18 +129,18 @@ func buildConfig(bundledFiles fs.FS, args []string) *server.ServerConfig {
 	}
 
 	serverConfig.ClientBundle = server.NewReadOnlyFallthroughSpacePrimitives(bundledFiles, "dist_client_bundle", bundlePathDate, nil)
-	serverConfig.SpacePrimitives = server.NewReadOnlyFallthroughSpacePrimitives(bundledFiles, "dist_plug_bundle", bundlePathDate, spacePrimitives)
+	rootSpaceConfig.SpacePrimitives = server.NewReadOnlyFallthroughSpacePrimitives(bundledFiles, "dist_plug_bundle", bundlePathDate, spacePrimitives)
 
-	log.Printf("Starting SilverBullet binding to %s:%d", serverConfig.Hostname, serverConfig.Port)
-	if serverConfig.Hostname == "127.0.0.1" {
+	log.Printf("Starting SilverBullet binding to %s:%d", serverConfig.BindHost, serverConfig.Port)
+	if serverConfig.BindHost == "127.0.0.1" {
 		log.Println("SilverBullet will only be available locally, to allow outside connections, pass -L0.0.0.0 as a flag, and put a TLS terminator on top.")
 	}
 
 	// Initialize shell backend
 	backendConfig := os.Getenv("SB_SHELL_BACKEND")
-	if backendConfig == "" && !serverConfig.ReadOnlyMode {
-		localShell := server.NewLocalShell(serverConfig.SpaceFolderPath, os.Getenv("SB_SHELL_WHITELIST"))
-		serverConfig.ShellBackend = localShell
+	if backendConfig == "" && !rootSpaceConfig.ReadOnlyMode {
+		localShell := server.NewLocalShell(rootSpaceConfig.SpaceFolderPath, os.Getenv("SB_SHELL_WHITELIST"))
+		rootSpaceConfig.ShellBackend = localShell
 		if localShell.AllowAllCmds {
 			log.Println("Local shell command execution enabled for ALL commands.")
 		} else {
@@ -140,7 +148,7 @@ func buildConfig(bundledFiles fs.FS, args []string) *server.ServerConfig {
 		}
 	} else {
 		log.Println("Shell running disabled.")
-		serverConfig.ShellBackend = server.NewNotSupportedShell()
+		rootSpaceConfig.ShellBackend = server.NewNotSupportedShell()
 	}
 
 	return serverConfig

@@ -2,11 +2,23 @@ package server
 
 import (
 	"errors"
+	"net/http"
 )
 
 type ServerConfig struct {
-	Hostname string
-	Port     int
+	SpaceConfigResolver ConfigResolver
+
+	BindHost          string
+	Port              int
+	EnableHTTPLogging bool
+
+	ClientBundle SpacePrimitives
+}
+
+type SpaceConfig struct {
+	Hostname      string
+	HostURLPrefix string
+	Auth          *AuthOptions
 
 	SpacePrimitives SpacePrimitives
 	SpaceFolderPath string
@@ -17,14 +29,12 @@ type ServerConfig struct {
 	// Shell configuration
 	ShellBackend ShellBackend
 
-	// Authentication configuration
-	Auth          *AuthOptions
-	HostURLPrefix string
-
-	ClientBundle SpacePrimitives
-
-	EnableHTTPLogging bool
+	// Auth temporary objects
+	JwtIssuer    *Authenticator
+	LockoutTimer *LockoutTimer
 }
+
+type ConfigResolver func(r *http.Request) *SpaceConfig
 
 // FileMeta represents metadata for a file in the space
 type FileMeta struct {

@@ -18,7 +18,8 @@ func init() {
 
 func proxyHandler(config *ServerConfig) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if config.ReadOnlyMode {
+		spaceConfig := spaceConfigFromContext(r.Context())
+		if spaceConfig.ReadOnlyMode {
 			http.Error(w, "Read only mode, no proxy allowed", http.StatusMethodNotAllowed)
 			return
 		}

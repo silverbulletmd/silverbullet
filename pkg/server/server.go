@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"path"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
@@ -28,30 +27,14 @@ func RunServer(config *ServerConfig) error {
 		r.Use(middleware.Logger)
 	}
 
-	// Initialize authentication components
-	var jwtIssuer *Authenticator
-	var lockoutTimer *LockoutTimer
-	var err error
+	// Expose space primitives and path to the request
+	r.Use(spaceMiddleware(config))
 
-	if config.Auth != nil {
-		jwtIssuer, err = CreateAuthenticator(path.Join(config.SpaceFolderPath, ".silverbullet.auth.json"), config.Auth)
-		if err != nil {
-			return err
-		}
+	// Authentication middleware (applies to all routes after this point)
+	r.Use(authMiddleware(config))
 
-		// Initialize lockout timer
-		if config.Auth.LockoutLimit > 0 {
-			lockoutTimer = NewLockoutTimer(config.Auth.LockoutTime*1000, config.Auth.LockoutLimit)
-		} else {
-			lockoutTimer = NewLockoutTimer(0, 0) // disabled
-		}
-
-		// Authentication middleware (applies to all routes after this point)
-		r.Use(authMiddleware(config, jwtIssuer))
-
-		// Authentication endpoints (must come before auth middleware)
-		addAuthEndpoints(r, config, jwtIssuer, lockoutTimer)
-	}
+	// Authentication endpoints (must come before auth middleware)
+	addAuthEndpoints(r, config)
 
 	r.Get("/.ping", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-cache")
@@ -60,14 +43,15 @@ func RunServer(config *ServerConfig) error {
 	})
 
 	// Mount filesystem routes under /.fs
-	r.Mount("/.fs", buildFsRoutes(config.SpacePrimitives, config.SpaceFolderPath))
+	r.Mount("/.fs", buildFsRoutes())
 
 	// Config endpoint
 	r.Get("/.config", func(w http.ResponseWriter, r *http.Request) {
+		spaceConfig := spaceConfigFromContext(r.Context())
 		clientConfig := &BootConfig{
-			SpaceFolderPath: config.SpaceFolderPath,
-			IndexPage:       config.IndexPage,
-			ReadOnly:        config.ReadOnlyMode,
+			SpaceFolderPath: spaceConfig.SpaceFolderPath,
+			IndexPage:       spaceConfig.IndexPage,
+			ReadOnly:        spaceConfig.ReadOnlyMode,
 		}
 
 		w.Header().Set("Cache-Control", "no-cache")
@@ -86,6 +70,8 @@ func RunServer(config *ServerConfig) error {
 	r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
 		path := chi.URLParam(r, "*")
 
+		spaceConfig := spaceConfigFromContext(r.Context())
+
 		// See if it's in the client bundle
 		data, meta, err := config.ClientBundle.ReadFile(path)
 		if err == nil {
@@ -98,7 +84,7 @@ func RunServer(config *ServerConfig) error {
 
 		// Replace template variables in index.html
 		htmlContent := string(data)
-		htmlContent = strings.ReplaceAll(htmlContent, "{{HOST_URL_PREFIX}}", config.HostURLPrefix)
+		htmlContent = strings.ReplaceAll(htmlContent, "{{HOST_URL_PREFIX}}", spaceConfig.HostURLPrefix)
 		htmlContent = strings.ReplaceAll(htmlContent, "{{TITLE}}", "SilverBullet")
 		htmlContent = strings.ReplaceAll(htmlContent, "{{DESCRIPTION}}", "SilverBullet - A note-taking application")
 		htmlContent = strings.ReplaceAll(htmlContent, "{{CONTENT}}", "")
@@ -109,12 +95,12 @@ func RunServer(config *ServerConfig) error {
 	})
 
 	// Display the final server running message
-	visibleHostname := config.Hostname
-	if config.Hostname == "127.0.0.1" {
+	visibleHostname := config.BindHost
+	if config.BindHost == "127.0.0.1" {
 		visibleHostname = "localhost"
 	}
 	log.Printf("SilverBullet is now running: http://%s:%d", visibleHostname, config.Port)
 
-	http.ListenAndServe(fmt.Sprintf("%s:%d", config.Hostname, config.Port), r)
+	http.ListenAndServe(fmt.Sprintf("%s:%d", config.BindHost, config.Port), r)
 	return nil
 }

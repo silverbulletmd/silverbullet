@@ -13,16 +13,16 @@ import (
 )
 
 // buildFsRoutes creates the filesystem API routes
-func buildFsRoutes(spacePrimitives SpacePrimitives, spacePath string) http.Handler {
+func buildFsRoutes() http.Handler {
 	fsRouter := chi.NewRouter()
 
 	// File list endpoint
-	fsRouter.Get("/", handleFsList(spacePrimitives, spacePath))
+	fsRouter.Get("/", handleFsList)
 
 	// File operations
-	fsRouter.Get("/*", handleFsGet(spacePrimitives))
-	fsRouter.Put("/*", handleFsPut(spacePrimitives))
-	fsRouter.Delete("/*", handleFsDelete(spacePrimitives))
+	fsRouter.Get("/*", handleFsGet)
+	fsRouter.Put("/*", handleFsPut)
+	fsRouter.Delete("/*", handleFsDelete)
 	fsRouter.Options("/*", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Allow", "GET, PUT, DELETE, OPTIONS")
 		w.WriteHeader(http.StatusOK)
@@ -31,55 +31,39 @@ func buildFsRoutes(spacePrimitives SpacePrimitives, spacePath string) http.Handl
 	return fsRouter
 }
 
-func handleFsList(spacePrimitives SpacePrimitives, spacePath string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("X-Sync-Mode") != "" {
-			// Handle direct requests for JSON representation of file list
-			files, err := spacePrimitives.FetchFileList()
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			w.Header().Set("X-Space-Path", spacePath)
-			render.JSON(w, r, files)
-		} else {
-			// Otherwise, redirect to the UI
-			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+func handleFsList(w http.ResponseWriter, r *http.Request) {
+	spaceConfig := spaceConfigFromContext(r.Context())
+	if r.Header.Get("X-Sync-Mode") != "" {
+		// Handle direct requests for JSON representation of file list
+		files, err := spaceConfig.SpacePrimitives.FetchFileList()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
+		w.Header().Set("X-Space-Path", spaceConfig.SpaceFolderPath)
+		render.JSON(w, r, files)
+	} else {
+		// Otherwise, redirect to the UI
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 	}
 }
 
 // handleFsGet handles GET requests for individual files
-func handleFsGet(spacePrimitives SpacePrimitives) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		path, err := getPath(w, r)
+func handleFsGet(w http.ResponseWriter, r *http.Request) {
+	path, err := getPath(w, r)
 
-		if err != nil {
-			// Handled by getPath
-			return
-		}
+	spaceConfig := spaceConfigFromContext(r.Context())
 
-		// log.Printf("Got this path: %s", path)
+	if err != nil {
+		// Handled by getPath
+		return
+	}
 
-		if r.Header.Get("X-Get-Meta") != "" {
-			// Getting meta via GET request
-			meta, err := spacePrimitives.GetFileMeta(path, false)
-			if err != nil {
-				if err == ErrNotFound {
-					http.NotFound(w, r)
-				} else {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-				}
-				return
-			}
+	// log.Printf("Got this path: %s", path)
 
-			setFileMetaHeaders(w, meta)
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-
-		// Read file content
-		data, meta, err := spacePrimitives.ReadFile(path)
+	if r.Header.Get("X-Get-Meta") != "" {
+		// Getting meta via GET request
+		meta, err := spaceConfig.SpacePrimitives.GetFileMeta(path, false)
 		if err != nil {
 			if err == ErrNotFound {
 				http.NotFound(w, r)
@@ -91,67 +75,82 @@ func handleFsGet(spacePrimitives SpacePrimitives) http.HandlerFunc {
 
 		setFileMetaHeaders(w, meta)
 		w.WriteHeader(http.StatusOK)
-		w.Write(data)
+		return
 	}
+
+	// Read file content
+	data, meta, err := spaceConfig.SpacePrimitives.ReadFile(path)
+	if err != nil {
+		if err == ErrNotFound {
+			http.NotFound(w, r)
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	setFileMetaHeaders(w, meta)
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
 }
 
 // handleFsPut handles PUT requests for writing files
-func handleFsPut(spacePrimitives SpacePrimitives) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		path, err := getPath(w, r)
+func handleFsPut(w http.ResponseWriter, r *http.Request) {
+	path, err := getPath(w, r)
 
-		if err != nil {
-			// Handled by getPath
-			return
-		}
+	spaceConfig := spaceConfigFromContext(r.Context())
 
-		// Read request body
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			http.Error(w, "Failed to read request body", http.StatusBadRequest)
-			return
-		}
-
-		// Write file
-		meta, err := spacePrimitives.WriteFile(path, body, nil)
-		if err != nil {
-			fmt.Printf("Write failed: %v\n", err)
-			http.Error(w, "Write failed", http.StatusInternalServerError)
-			return
-		}
-
-		setFileMetaHeaders(w, meta)
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+	if err != nil {
+		// Handled by getPath
+		return
 	}
+
+	// Read request body
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		return
+	}
+
+	// Write file
+	meta, err := spaceConfig.SpacePrimitives.WriteFile(path, body, nil)
+	if err != nil {
+		fmt.Printf("Write failed: %v\n", err)
+		http.Error(w, "Write failed", http.StatusInternalServerError)
+		return
+	}
+
+	setFileMetaHeaders(w, meta)
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK"))
 }
 
 // handleFsDelete handles DELETE requests for removing files
-func handleFsDelete(spacePrimitives SpacePrimitives) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		path, err := getPath(w, r)
+func handleFsDelete(w http.ResponseWriter, r *http.Request) {
+	path, err := getPath(w, r)
 
-		if err != nil {
-			// Handled by getPath
-			return
-		}
+	spaceConfig := spaceConfigFromContext(r.Context())
 
-		fmt.Printf("Deleting file: %s\n", path)
-
-		err = spacePrimitives.DeleteFile(path)
-		if err != nil {
-			if err == ErrNotFound {
-				http.NotFound(w, r)
-			} else {
-				fmt.Printf("Error deleting file: %v\n", err)
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-			}
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+	if err != nil {
+		// Handled by getPath
+		return
 	}
+
+	fmt.Printf("Deleting file: %s\n", path)
+
+	err = spaceConfig.SpacePrimitives.DeleteFile(path)
+	if err != nil {
+		if err == ErrNotFound {
+			http.NotFound(w, r)
+		} else {
+			fmt.Printf("Error deleting file: %v\n", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK"))
 }
 
 // setFileMetaHeaders sets HTTP headers based on FileMeta

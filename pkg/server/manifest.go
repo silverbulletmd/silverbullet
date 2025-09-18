@@ -31,6 +31,7 @@ type Manifest struct {
 // Generate PWA manifest.json with dynamic values
 func manifestHandler(config *ServerConfig) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		spaceConfig := spaceConfigFromContext(r.Context())
 		manifest := Manifest{
 			ShortName: "SilverBullet",
 			Name:      "SilverBullet",
@@ -59,10 +60,10 @@ func manifestHandler(config *ServerConfig) http.HandlerFunc {
 			manifest.Description = os.Getenv("SB_DESCRIPTION")
 		}
 
-		if config.HostURLPrefix != "" {
-			manifest.Icons[0].Src = config.HostURLPrefix + manifest.Icons[0].Src
-			manifest.StartURL = config.HostURLPrefix + manifest.StartURL
-			manifest.Scope = config.HostURLPrefix + manifest.Scope
+		if spaceConfig.HostURLPrefix != "" {
+			manifest.Icons[0].Src = spaceConfig.HostURLPrefix + manifest.Icons[0].Src
+			manifest.StartURL = spaceConfig.HostURLPrefix + manifest.StartURL
+			manifest.Scope = spaceConfig.HostURLPrefix + manifest.Scope
 		}
 
 		render.JSON(w, r, manifest)
