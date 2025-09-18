@@ -3,13 +3,8 @@ import {foldedRanges, syntaxTree} from "@codemirror/language";
 import {Decoration} from "@codemirror/view";
 import {decoratorStateField, HtmlWidget, isCursorInRange, LinkWidget} from "./util.ts";
 import type {Client} from "../client.ts";
-import {
-  fileName,
-  isBuiltinPath,
-} from "@silverbulletmd/silverbullet/lib/resolve";
 import {frontmatterUrlRegex, frontmatterWikiLinkRegex} from "../markdown_parser/constants.ts";
-import {encodePageURI, encodeRef, parseToRef, getNameFromPath} from "@silverbulletmd/silverbullet/lib/ref";
-
+import { processWikiLink, type WikiLinkMatch } from "./wiki_link_processor.ts";
 
 export function frontmatterPlugin(client: Client) {
   return decoratorStateField(
@@ -112,110 +107,40 @@ export function frontmatterPlugin(client: Client) {
               if (isCursorInRange(state, [mFrom, mTo])) {
                 continue;
               }
-              const { leadingTrivia, stringRef, alias, trailingTrivia } =
-                wMatch.groups;
 
-              const ref = parseToRef(stringRef);
+              const wikiLinkMatch: WikiLinkMatch = {
+                leadingTrivia: wMatch.groups.leadingTrivia,
+                stringRef: wMatch.groups.stringRef,
+                alias: wMatch.groups.alias,
+                trailingTrivia: wMatch.groups.trailingTrivia,
+              };
 
-              let linkStatus: "file-missing" | "default" | "invalid" = "default";
-
-              if (!ref) {
-                linkStatus = "invalid";
-              } else if (ref.path === "" || isBuiltinPath(ref.path)) {
-                linkStatus = "default";
-              } else if (
-                Array.from(client.clientSystem.allKnownFiles)
-                  .some((file) => file === ref.path)
-              ) {
-                linkStatus = "default";
-              } else if (client.fullSyncCompleted) {
-                linkStatus = "file-missing";
-              }
-
-              let css = {
-                "file-missing": "sb-wiki-link-missing",
-                "invalid": "sb-wiki-link-invalid",
-                "default": "",
-              }[linkStatus];
-
-              const renderingSyntax =
-                client.ui.viewState.uiOptions.markdownSyntaxRendering;
-              if (isCursorInRange(state, [from, to]) || renderingSyntax) {
-                // Only attach a CSS class, then get out
-                if (linkStatus !== "default") {
-                  widgets.push(
-                    Decoration.mark({
-                      class: css,
-                    }).range(from + leadingTrivia.length, to - trailingTrivia.length),
+              const decorations = processWikiLink({
+                from,
+                to,
+                match: wikiLinkMatch,
+                matchFrom: mFrom,
+                matchTo: mTo,
+                client,
+                state,
+                callback: (e, ref) => {
+                  if (e.altKey) {
+                    // Move cursor into the link's content
+                    client.editorView.dispatch({
+                      selection: {anchor: mFrom + wikiLinkMatch.leadingTrivia.length},
+                    });
+                    client.focus();
+                    return;
+                  }
+                  client.navigate(
+                    ref,
+                    false,
+                    e.ctrlKey || e.metaKey,
                   );
-                }
+                },
+              });
 
-                return;
-              }
-
-              const cleanedPath = ref ? getNameFromPath(ref.path) : stringRef;
-              const helpText = {
-                "default": `Navigate to ${cleanedPath}`,
-                "file-missing": `Create ${cleanedPath}`,
-                "invalid": `Cannot create invalid file ${cleanedPath}`,
-              }[linkStatus];
-
-              let linkText = alias || stringRef;
-
-              // The `&& ref` is only there to make typescript happy
-              if (linkStatus === "default" && ref) {
-                const meta = client.ui.viewState.allPages.find((p) =>
-                  parseToRef(p.ref)?.path === ref.path
-                );
-
-                const renderedRef = structuredClone(ref);
-
-                // We don't want to render the meta
-                renderedRef.meta = false;
-                // We also don't want to rendered the prefix of the path
-                renderedRef.path = fileName(renderedRef.path);
-
-                const prefix = (ref.details?.type === "position" ||
-                  ref.details?.type === "linecolumn")
-                  ? ""
-                  : (meta?.pageDecoration?.prefix ?? "");
-
-                linkText = alias || (prefix + encodeRef(renderedRef));
-
-                if (meta?.pageDecoration?.cssClasses) {
-                  css += " sb-decorated-object " +
-                    meta.pageDecoration.cssClasses
-                      .join(" ")
-                      .replaceAll(/[^a-zA-Z0-9-_ ]/g, "");
-                }
-              }
-
-              widgets.push(
-                Decoration.replace({
-                  widget: new LinkWidget({
-                    text: linkText,
-                    title: helpText,
-                    href: ref ? encodePageURI(encodeRef(ref)) : undefined,
-                    cssClass: "sb-wiki-link " + css,
-                    from: mFrom,
-                    callback: (e) => {
-                      if (e.altKey) {
-                        // Move cursor into the link's content
-                        client.editorView.dispatch({
-                          selection: {anchor: mFrom + leadingTrivia.length},
-                        });
-                        client.focus();
-                        return;
-                      }
-                      client.navigate(
-                        ref,
-                        false,
-                        e.ctrlKey || e.metaKey,
-                      );
-                    },
-                  }),
-                }).range(mFrom, mTo),
-              );
+              widgets.push(...decorations);
             }
           }
         },
