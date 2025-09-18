@@ -2,7 +2,6 @@ import { copy } from "@std/fs";
 import { fileURLToPath } from "node:url";
 
 import sass from "denosass";
-import { bundleFolder } from "./lib/asset_bundle/builder.ts";
 
 import { parseArgs } from "@std/cli/parse-args";
 import { patchDenoLibJS } from "./cmd/compile.ts";
@@ -88,11 +87,6 @@ async function buildCopyBundleAssets() {
     overwrite: true,
   });
 
-  await bundleFolder(
-    "dist_plug_bundle",
-    "dist/plug_asset_bundle.json",
-  );
-
   console.log("Now ESBuilding the client and service workers...");
 
   const result = await esbuild.build({
@@ -134,8 +128,6 @@ async function buildCopyBundleAssets() {
   await Deno.writeTextFile("dist_client_bundle/service_worker.js", swCode);
 
   await copyAssets("dist_client_bundle/.client");
-
-  await bundleFolder("dist_client_bundle", "dist/client_asset_bundle.json");
 
   console.log("Built!");
 }

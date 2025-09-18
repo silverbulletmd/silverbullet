@@ -35,29 +35,3 @@ export async function bundleAssets(
   }
   return bundle;
 }
-
-export async function bundleFolder(
-  rootPath: string,
-  bundlePath: string,
-) {
-  const bundle = new AssetBundle();
-
-  await Deno.mkdir(dirname(bundlePath), { recursive: true });
-  for await (
-    const { path: filePath } of walk(rootPath, { includeDirs: false })
-  ) {
-    console.log("Bundling", filePath);
-    const stat = await Deno.stat(filePath);
-    const cleanPath = filePath.substring(`${rootPath}/`.length);
-    bundle.writeFileSync(
-      cleanPath,
-      mime.getType(filePath) || "application/octet-stream",
-      await Deno.readFile(filePath),
-      stat.mtime?.getTime(),
-    );
-  }
-  await Deno.writeTextFile(
-    bundlePath,
-    JSON.stringify(bundle.toJSON(), null, 2),
-  );
-}

@@ -34,60 +34,55 @@ Check out the [instructions](https://silverbullet.md/Install).
 
 ## Developing SilverBullet
 
-SilverBullet is written in [TypeScript](https://www.typescriptlang.org/) and
-built on top of the excellent [CodeMirror 6](https://codemirror.net/) editor
-component. Additional UI is built using [Preact](https://preactjs.com).
-[ESBuild]([https://parceljs.org/](https://esbuild.github.io)) is used to build both the front-end and
-back-end bundles. The server backend runs as a HTTP server on Deno using and is written using [Hono](https://hono.dev).
+SilverBullet's frontend is written in [TypeScript](https://www.typescriptlang.org/) and built on top of the excellent [CodeMirror 6](https://codemirror.net/) editor component. Additional UI is built using [Preact](https://preactjs.com). [ESBuild]([https://parceljs.org/](https://esbuild.github.io)) is used to build both the front-end.
 
-To prepare the initial web and plug build run:
+The server backend is written in Go.
+
+### Requirements
+* [Deno](https://deno.com/): Used to build the frontend and plugs
+* [Go](https://go.dev/): Used to build the backend
+
+It's convenient to also install [air](https://github.com/air-verse/air) for development, this will automatically rebuild both the frontend and backend when changes are made:
 
 ```shell
-deno task build
+go install github.com/air-verse/air@latest
+```
+Make sure your `$GOPATH/bin` is in your $PATH.
+
+To build everything and run the server:
+
+```shell
+air <PATH-TO-YOUR-SPACE>
 ```
 
-To symlink `silverbullet` to your locally checked-out version, run:
+Alternatively, to build just the frontend:
 
 ```shell
-deno task install
+deno task build-frontend
 ```
 
-You can then run the server in "watch mode" (automatically restarting when you
-change source files) with:
+To build the backend (note: this will bundle the frontend into the same binary, so be sure to build that first):
 
 ```shell
-deno task watch-server <PATH-TO-YOUR-SPACE>
+go build
 ```
 
-After this initial build, it's convenient to run three commands in parallel (in
-separate terminals):
+To run the resulting server:
 
 ```shell
-deno task watch-web
-deno task watch-server <PATH-TO-YOUR-SPACE>
-deno task watch-plugs
+./silverbullet <PATH-TO-YOUR-SPACE>
 ```
 
-Alternatively, you can use the convenience task (though you'll need to set the server path in a separate terminal first):
+### Useful development tasks
+
+Typecheck, lint and test the frontend:
 
 ```shell
-deno task watch-all
-```
-
-To typecheck the entire codebase (recommended before submitting PR):
-```shell
-deno task check
-```
-
-Other useful development tasks:
-```shell
-deno task lint      # Lint and fix code
-deno task fmt       # Format code
-deno task test      # Run tests
 deno task checks    # Run check, lint, and test together
 ```
 
-To build it in a docker container (no Deno install required):
+### Build a docker container
+Note, you do not need Deno nor Go locally installed for this to work:
 
 ```shell
 docker build -t silverbullet .
