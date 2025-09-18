@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
-	"slices"
 	"strings"
 	"time"
 )
@@ -133,8 +132,14 @@ func removeURLPrefix(path, prefix string) string {
 }
 
 // isExcludedPath checks if a path should be excluded from authentication
-func isExcludedPath(path string, excludedPaths []string) bool {
-	return slices.Contains(excludedPaths, path)
+func isExcludedPath(path string) bool {
+	// Check if path starts with any item in excludedPaths
+	for _, excludedPath := range excludedPaths {
+		if strings.HasPrefix(path, excludedPath) {
+			return true
+		}
+	}
+	return false
 }
 
 // parseFormValue safely extracts a form value

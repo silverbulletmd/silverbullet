@@ -13,9 +13,7 @@ import (
 const authPagePath = ".client/auth.html"
 
 var excludedPaths = []string{
-	"/manifest.json",
-	"/favicon.png",
-	"/logo.png",
+	"/.client/",
 	"/.auth",
 	"/.logout",
 	"/.ping",
@@ -126,7 +124,7 @@ func authMiddleware(config *ServerConfig, jwtIssuer *Authenticator) func(http.Ha
 			path := removeURLPrefix(r.URL.Path, config.HostURLPrefix)
 			host := extractHost(r)
 
-			if isExcludedPath(path, excludedPaths) {
+			if isExcludedPath(path) {
 				next.ServeHTTP(w, r)
 				return
 			}

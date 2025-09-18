@@ -80,6 +80,9 @@ func RunServer(config *ServerConfig) error {
 	// Proxy endpoint
 	r.HandleFunc("/.proxy/*", proxyHandler(config))
 
+	// Manifest endpoint
+	r.HandleFunc("/.client/manifest.json", manifestHandler(config))
+
 	r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
 		path := chi.URLParam(r, "*")
 
