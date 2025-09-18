@@ -15,7 +15,7 @@ WORKDIR /app
 ADD . /app
 
 # This will produce the `silverbullet` self-contained binary in /app/silverbullet
-RUN deno task build
+RUN deno task build-frontend-production
 RUN go build
 
 # Stage 2: Create the runtime from the build

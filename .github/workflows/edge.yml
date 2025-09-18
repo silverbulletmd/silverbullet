@@ -1,38 +1,59 @@
 name: Build & Release Edge
 
 on:
-    push:
-        branches:
-            - "main"
+  push:
+    branches:
+      - "main"
 jobs:
-    release:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Setup repo
-              uses: actions/checkout@v3
-            - name: Setup Deno
-              uses: denoland/setup-deno@v2
-              with:
-                  deno-version: v2.5.0
-            - name: Compile for all platforms
-              run: |
-                  deno task build
-                  deno task server:zip:linux-x86_64
-                  deno task server:zip:linux-aarch64
-                  deno task server:zip:darwin-x86_64
-                  deno task server:zip:darwin-aarch64
-                  deno task server:zip:windows-x86_64
-            - name: Update edge release
-              uses: softprops/action-gh-release@v1
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              with:
-                  draft: false
-                  tag_name: edge
-                  body: Automated build from commit ${{ github.sha }}
-                  prerelease: true
-                  files: |
-                      website/CHANGELOG.md
-                      dist/plug-compile.js
-                      dist/silverbullet.js
-                      silverbullet-*.zip
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v3
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.5.0
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.25.1"
+      - name: Compile frontend and plug-compile with Deno
+        run: |
+          deno task build-frontend-production
+          deno task build-plug-compile
+      - name: Build Go binaries for multiple platforms
+        run: |
+          # Linux ARM64
+          GOOS=linux GOARCH=arm64 go build -o silverbullet .
+          zip silverbullet-server-linux-aarch64.zip silverbullet
+
+          # Linux x86_64
+          GOOS=linux GOARCH=amd64 go build -o silverbullet .
+          zip silverbullet-server-linux-x86_64.zip silverbullet
+
+          # macOS ARM64
+          GOOS=darwin GOARCH=arm64 go build -o silverbullet .
+          zip silverbullet-server-darwin-aarch64.zip silverbullet
+
+          # macOS x86_64
+          GOOS=darwin GOARCH=amd64 go build -o silverbullet .
+          zip silverbullet-server-darwin-x86_64.zip silverbullet
+
+          # Windows x86_64
+          GOOS=windows GOARCH=amd64 go build -o silverbullet.exe .
+          zip silverbullet-server-windows-x86_64.zip silverbullet.exe
+
+      - name: Update edge release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          draft: false
+          tag_name: edge
+          body: Automated build from commit ${{ github.sha }}
+          prerelease: true
+          files: |
+            website/CHANGELOG.md
+            dist/plug-compile.js
+            silverbullet-*.zip

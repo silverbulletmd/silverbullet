@@ -3,7 +3,6 @@ import { Command } from "@cliffy/command";
 
 import { version } from "./version.ts";
 
-import { versionCommand } from "./cmd/version.ts";
 import { plugCompileCommand } from "./cmd/plug_compile.ts";
 
 await new Command()
@@ -29,10 +28,6 @@ await new Command()
   .option("-c, --config <path:string>", "Path to deno.json file to use")
   .option("--runtimeUrl <url:string>", "URL to worker_runtime.ts to use")
   .action(plugCompileCommand)
-  // version
-  .command("version")
-  .description("Get current version")
-  .action(versionCommand)
   .parse(Deno.args);
 
 Deno.exit(0);

@@ -1,4 +1,4 @@
-name: Test
+name: Tests
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  test-frontend:
     runs-on: ubuntu-latest
 
     steps:
@@ -26,7 +26,7 @@ jobs:
           deno-version: v2.5.0
 
       - name: Run build
-        run: deno task build
+        run: deno task build-frontend
 
       - name: Run checks
         run: deno task checks
@@ -43,20 +43,11 @@ jobs:
         with:
           go-version: "1.25"
 
-      - name: Verify Go installation
-        run: go version
+      - name: Run Go tests
+        run: go test ./pkg/... -v
 
-      - name: Verify Go modules
-        run: go mod verify
+      - name: Run Go tests with coverage
+        run: go test ./pkg/... -coverprofile=coverage.out
 
-      - name: Download dependencies
-        run: go mod download
-
-      #- name: Run Go tests
-      #  run: go test ./server_go -v
-
-      #- name: Run Go tests with coverage
-      #  run: go test ./server_go -coverprofile=coverage.out
-
-      #- name: Display test coverage
-      #  run: go tool cover -func=coverage.out
+      - name: Display test coverage
+        run: go tool cover -func=coverage.out

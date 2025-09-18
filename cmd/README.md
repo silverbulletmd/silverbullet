@@ -1,1 +1,0 @@
-Code that implements `silverbullet` sub commands
