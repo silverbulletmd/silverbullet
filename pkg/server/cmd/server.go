@@ -112,8 +112,16 @@ func buildConfig(bundledFiles fs.FS, args []string) *server.ServerConfig {
 		}
 	}
 
-	serverConfig.ClientBundle = server.NewReadOnlyFallthroughSpacePrimitives(bundledFiles, "dist_client_bundle", time.Now(), nil)
-	serverConfig.SpacePrimitives = server.NewReadOnlyFallthroughSpacePrimitives(bundledFiles, "dist_plug_bundle", time.Now(), spacePrimitives)
+	// Extract the last modified time from the main binary, best effort
+	bundlePathDate := time.Now()
+	if executablePath, err := os.Executable(); err == nil {
+		if stat, err := os.Stat(executablePath); err == nil {
+			bundlePathDate = stat.ModTime()
+		}
+	}
+
+	serverConfig.ClientBundle = server.NewReadOnlyFallthroughSpacePrimitives(bundledFiles, "dist_client_bundle", bundlePathDate, nil)
+	serverConfig.SpacePrimitives = server.NewReadOnlyFallthroughSpacePrimitives(bundledFiles, "dist_plug_bundle", bundlePathDate, spacePrimitives)
 
 	log.Printf("Starting SilverBullet binding to %s:%d", serverConfig.Hostname, serverConfig.Port)
 	if serverConfig.Hostname == "127.0.0.1" {

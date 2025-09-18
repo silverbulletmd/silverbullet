@@ -17,22 +17,7 @@ func buildFsRoutes(spacePrimitives SpacePrimitives, spacePath string) http.Handl
 	fsRouter := chi.NewRouter()
 
 	// File list endpoint
-	fsRouter.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("X-Sync-Mode") != "" {
-			// Handle direct requests for JSON representation of file list
-			files, err := spacePrimitives.FetchFileList()
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			w.Header().Set("X-Space-Path", spacePath)
-			render.JSON(w, r, files)
-
-		} else {
-			// Otherwise, redirect to the UI
-			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-		}
-	})
+	fsRouter.Get("/", handleFsList(spacePrimitives, spacePath))
 
 	// File operations
 	fsRouter.Get("/*", handleFsGet(spacePrimitives))
@@ -44,6 +29,24 @@ func buildFsRoutes(spacePrimitives SpacePrimitives, spacePath string) http.Handl
 	})
 
 	return fsRouter
+}
+
+func handleFsList(spacePrimitives SpacePrimitives, spacePath string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-Sync-Mode") != "" {
+			// Handle direct requests for JSON representation of file list
+			files, err := spacePrimitives.FetchFileList()
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.Header().Set("X-Space-Path", spacePath)
+			render.JSON(w, r, files)
+		} else {
+			// Otherwise, redirect to the UI
+			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		}
+	}
 }
 
 // handleFsGet handles GET requests for individual files
