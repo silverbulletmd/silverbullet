@@ -1,7 +1,7 @@
 import { syntaxTree } from "@codemirror/language";
 import { Decoration } from "@codemirror/view";
 import type { Client } from "../client.ts";
-import { decoratorStateField, isCursorInRange } from "./util.ts";
+import { decoratorStateField } from "./util.ts";
 import type { ClickEvent } from "@silverbulletmd/silverbullet/type/client";
 import { wikiLinkRegex } from "../markdown_parser/constants.ts";
 import { processWikiLink, type WikiLinkMatch } from "./wiki_link_processor.ts";
@@ -42,7 +42,7 @@ export function cleanWikiLinkPlugin(client: Client) {
           matchTo: to,
           client,
           state,
-          callback: (e, ref) => {
+          callback: (e) => {
             if (e.altKey) {
               // Move cursor into the link
               client.editorView.dispatch({
