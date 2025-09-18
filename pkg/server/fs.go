@@ -3,7 +3,9 @@ package server
 import (
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
@@ -47,7 +49,14 @@ func buildFsRoutes(spacePrimitives SpacePrimitives, spacePath string) http.Handl
 // handleFsGet handles GET requests for individual files
 func handleFsGet(spacePrimitives SpacePrimitives) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		path := chi.URLParam(r, "*")
+		path, err := getPath(w, r)
+
+		if err != nil {
+			// Handled by getPath
+			return
+		}
+
+		// log.Printf("Got this path: %s", path)
 
 		if r.Header.Get("X-Get-Meta") != "" {
 			// Getting meta via GET request
@@ -86,8 +95,12 @@ func handleFsGet(spacePrimitives SpacePrimitives) http.HandlerFunc {
 // handleFsPut handles PUT requests for writing files
 func handleFsPut(spacePrimitives SpacePrimitives) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Extract path from URL parameter
-		path := chi.URLParam(r, "*")
+		path, err := getPath(w, r)
+
+		if err != nil {
+			// Handled by getPath
+			return
+		}
 
 		// Read request body
 		body, err := io.ReadAll(r.Body)
@@ -113,12 +126,16 @@ func handleFsPut(spacePrimitives SpacePrimitives) http.HandlerFunc {
 // handleFsDelete handles DELETE requests for removing files
 func handleFsDelete(spacePrimitives SpacePrimitives) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Extract path from URL parameter
-		path := chi.URLParam(r, "*")
+		path, err := getPath(w, r)
+
+		if err != nil {
+			// Handled by getPath
+			return
+		}
 
 		fmt.Printf("Deleting file: %s\n", path)
 
-		err := spacePrimitives.DeleteFile(path)
+		err = spacePrimitives.DeleteFile(path)
 		if err != nil {
 			if err == ErrNotFound {
 				http.NotFound(w, r)
@@ -142,4 +159,15 @@ func setFileMetaHeaders(w http.ResponseWriter, meta FileMeta) {
 	w.Header().Set("X-Content-Length", strconv.FormatInt(meta.Size, 10))
 	w.Header().Set("X-Permission", meta.Perm)
 	w.Header().Set("Cache-Contro", "no-cache")
+}
+
+func getPath(w http.ResponseWriter, r *http.Request) (string, error) {
+	path, err := url.QueryUnescape(chi.URLParam(r, "*"))
+
+	if err != nil {
+		log.Printf("Could not decode URL: %s: %v", path, err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return "", err
+	}
+	return path, nil
 }

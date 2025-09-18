@@ -8,7 +8,7 @@ import (
 // lookupContentTypeFromPath determines MIME type based on file extension
 func LookupContentTypeFromPath(path string) string {
 	ext := filepath.Ext(path)
-	if ext == "md" {
+	if ext == ".md" {
 		return "text/markdown"
 	}
 	contentType := mime.TypeByExtension(ext)

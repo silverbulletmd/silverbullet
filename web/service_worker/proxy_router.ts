@@ -95,61 +95,62 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
       (async () => {
         const request = event.request;
         const requestUrl = new URL(request.url);
+        try {
+          // Are we fetching a URL from the same origin as the app? If not, we don't handle it and pass it on
+          if (!requestUrl.href.startsWith(this.baseURI)) {
+            return fetch(request);
+          }
 
-        // Are we fetching a URL from the same origin as the app? If not, we don't handle it and pass it on
-        if (!requestUrl.href.startsWith(this.baseURI)) {
-          return fetch(request);
-        }
+          // Try the static (client) file cache first
+          const cachedResponse = await caches.match(cacheKey);
+          // Return the cached response if found
+          if (cachedResponse) {
+            return cachedResponse;
+          }
 
-        // Try the static (client) file cache first
-        const cachedResponse = await caches.match(cacheKey);
-        // Return the cached response if found
-        if (cachedResponse) {
-          return cachedResponse;
-        }
-
-        //requestUrl.pathname without with any URL prefix removed
-        const pathname = requestUrl.pathname.substring(
-          this.basePathName.length,
-        );
-
-        if (
-          // Not yet configured -> Proxy
-          !this.localSpacePrimitives || !this.syncEngine ||
-          // Not fully synced but online -> Proxy
-          (!this.fullSyncConfirmed && this.online) ||
-          // A path we always need to proxy -> Proxy
-          (alwaysProxy.includes(pathname) || pathname.startsWith("/.proxy/"))
-        ) {
-          return fetch(request);
-        }
-
-        // We are now in a state we're configured and either a full sync cycle has complete (since boot) OR we're offline
-
-        if (
-          pathname.startsWith(fsEndpoint) &&
-          pathname.endsWith(".md") &&
-          !request.headers.has("X-Sync-Mode")
-        ) {
-          // This handles the case of ending up with a .md URL in the browser address bar (likely due to a auth proxy redirect)
-          return Response.redirect(
-            `${pathname.slice(fsEndpoint.length, -3)}`,
+          //requestUrl.pathname without with any URL prefix removed
+          const pathname = requestUrl.pathname.substring(
+            this.basePathName.length,
           );
-        } else if (pathname.startsWith(fsEndpoint)) {
-          // Handle /.fs file system APIs
-          return this.handleRequest(pathname, request);
-        } else {
-          // Fallback to the app shell for all other requests (SPA)
-          return (await caches.match(this.precacheFiles["/"])) ||
-            fetch(request);
+
+          if (
+            // Not yet configured -> Proxy
+            !this.localSpacePrimitives || !this.syncEngine ||
+            // Not fully synced but online -> Proxy
+            (!this.fullSyncConfirmed && this.online) ||
+            // A path we always need to proxy -> Proxy
+            (alwaysProxy.includes(pathname) || pathname.startsWith("/.proxy/"))
+          ) {
+            return fetch(request);
+          }
+
+          // We are now in a state we're configured and either a full sync cycle has complete (since boot) OR we're offline
+
+          if (
+            pathname.startsWith(fsEndpoint) &&
+            pathname.endsWith(".md") &&
+            !request.headers.has("X-Sync-Mode")
+          ) {
+            // This handles the case of ending up with a .md URL in the browser address bar (likely due to a auth proxy redirect)
+            return Response.redirect(
+              `${pathname.slice(fsEndpoint.length, -3)}`,
+            );
+          } else if (pathname.startsWith(fsEndpoint)) {
+            // Handle /.fs file system APIs
+            return this.handleRequest(pathname, request);
+          } else {
+            // Fallback to the app shell for all other requests (SPA)
+            return (await caches.match(this.precacheFiles["/"])) ||
+              fetch(request);
+          }
+        } catch (e: any) {
+          console.warn("Fetch failed for", request.url, "error:", e.message);
+          this.online = false;
+          return new Response(offlineError.message, {
+            status: 503, // Service Unavailable
+          });
         }
-      })().catch((e) => {
-        console.warn("Fetch failed:", e);
-        this.online = false;
-        return new Response(offlineError.message, {
-          status: 503, // Service Unavailable
-        });
-      }),
+      })(),
     );
   }
 

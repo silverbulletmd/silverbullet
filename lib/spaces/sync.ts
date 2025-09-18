@@ -5,7 +5,7 @@ import type { FileMeta } from "../../type/index.ts";
 import { notFoundError } from "../constants.ts";
 import { processWithConcurrency } from "../async.ts";
 
-const syncConcurrency = 5;
+const syncConcurrency = 3;
 
 type SyncHash = number;
 
