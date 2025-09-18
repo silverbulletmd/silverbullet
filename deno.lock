@@ -8,7 +8,6 @@
     "jsr:@cliffy/internal@1.0.0-rc.8": "1.0.0-rc.8",
     "jsr:@cliffy/table@1.0.0-rc.7": "1.0.0-rc.7",
     "jsr:@cliffy/table@1.0.0-rc.8": "1.0.0-rc.8",
-    "jsr:@hono/hono@4.9.2": "4.9.2",
     "jsr:@luca/esbuild-deno-loader@~0.11.1": "0.11.1",
     "jsr:@std/assert@^1.0.1": "1.0.13",
     "jsr:@std/async@^1.0.13": "1.0.13",
@@ -118,9 +117,6 @@
       "dependencies": [
         "jsr:@std/fmt"
       ]
-    },
-    "@hono/hono@4.9.2": {
-      "integrity": "1a8ae7b0d9e4fecef440f991c604e032d5548dc313d1961073ac5d94809be52b"
     },
     "@luca/esbuild-deno-loader@0.11.1": {
       "integrity": "dc020d16d75b591f679f6b9288b10f38bdb4f24345edb2f5732affa1d9885267",
@@ -589,8 +585,6 @@
   "workspace": {
     "dependencies": [
       "jsr:@cliffy/command@^1.0.0-rc.7",
-      "jsr:@cliffy/prompt@^1.0.0-rc.7",
-      "jsr:@hono/hono@4.9.2",
       "jsr:@luca/esbuild-deno-loader@~0.11.1",
       "jsr:@std/assert@^1.0.1",
       "jsr:@std/cli@^1.0.1",
