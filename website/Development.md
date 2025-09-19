@@ -5,8 +5,19 @@ SilverBullet’s client is written in [TypeScript](https://www.typescriptlang.or
 
 The SilverBullet server is written in [Go](https://go.dev/).
 
-# Project layout
-
+# Code structure
+* `client/`: The SilverBullet client, implemented with TypeScript
+* `server/`: The SilverBullet server, written in Go
+* `plugs`: Set of built-in plugs that are distributed with SilverBullet
+* `libraries`: A set of libraries (space scripts, page templates, slash templates) distributed with SilverBullet
+* `plug-api/`: Useful APIs for use in plugs
+  * `lib/`: Useful libraries to be used in plugs
+  * `syscalls/`: TypeScript wrappers around syscalls
+  * `types/`: Various (client) types that can be references from plugs
+* `bin`
+  * `plug_compile.ts` the plug compiler
+* `scripts/`: Useful scripts
+* `website/`: silverbullet.md website content
 
 # Development
 Requirements: 
@@ -49,9 +60,14 @@ To run the resulting server:
 
 ### Useful development tasks
 
-Typecheck, lint, test the frontend:
-
 ```shell
+# Clean all generated files
+make clean
+# Typecheck and lint all code
+make check
+# Format all code
+make fmt
+# Run all tests
 make test
 ```
 

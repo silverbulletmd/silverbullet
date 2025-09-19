@@ -89,10 +89,15 @@ To run the resulting server:
 
 ### Useful development tasks
 
-Typecheck, lint and test the frontend:
-
 ```shell
-deno task checks    # Run check, lint, and test together
+# Clean all generated files
+make clean
+# Typecheck and lint all code
+make check
+# Format all code
+make fmt
+# Run all tests
+make test
 ```
 
 ### Build a docker container
