@@ -113,7 +113,7 @@ func handleFsPut(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Write file
-	meta, err := spaceConfig.SpacePrimitives.WriteFile(path, body, nil)
+	meta, err := spaceConfig.SpacePrimitives.WriteFile(path, body, getFileMetaFromHeaders(r.Header, path))
 	if err != nil {
 		fmt.Printf("Write failed: %v\n", err)
 		http.Error(w, "Write failed", http.StatusInternalServerError)
@@ -160,7 +160,46 @@ func setFileMetaHeaders(w http.ResponseWriter, meta FileMeta) {
 	w.Header().Set("X-Last-Modified", strconv.FormatInt(meta.LastModified, 10))
 	w.Header().Set("X-Content-Length", strconv.FormatInt(meta.Size, 10))
 	w.Header().Set("X-Permission", meta.Perm)
-	w.Header().Set("Cache-Contro", "no-cache")
+	w.Header().Set("Cache-Control", "no-cache")
+}
+
+// Build FileMeta from HTTP headers (reverse of setFileMetaHeaders)
+func getFileMetaFromHeaders(h http.Header, path string) *FileMeta {
+	var err error
+
+	fm := &FileMeta{
+		Name:        path,
+		ContentType: h.Get("Content-Type"),
+		Perm:        h.Get("X-Permission"),
+	}
+	if fm.Perm == "" {
+		fm.Perm = "ro"
+	}
+	if h.Get("X-Content-Length") != "" {
+		fm.Size, err = strconv.ParseInt(h.Get("X-Content-Length"), 10, 64)
+		if err != nil {
+			log.Printf("Could not parse content length: %v", err)
+		}
+	} else if h.Get("Content-Length") != "" {
+		fm.Size, err = strconv.ParseInt(h.Get("Content-Length"), 10, 64)
+		if err != nil {
+			log.Printf("Could not parse content length: %v", err)
+		}
+	}
+	if h.Get("X-Created") != "" {
+		fm.Created, err = strconv.ParseInt(h.Get("X-Created"), 10, 64)
+		if err != nil {
+			log.Printf("Could not parse created time: %v", err)
+		}
+	}
+	if h.Get("X-Last-Modified") != "" {
+		fm.LastModified, err = strconv.ParseInt(h.Get("X-Last-Modified"), 10, 64)
+		if err != nil {
+			log.Printf("Could not parse modified time: %v", err)
+		}
+	}
+
+	return fm
 }
 
 func getPath(w http.ResponseWriter, r *http.Request) (string, error) {

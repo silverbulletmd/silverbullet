@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"io/fs"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -217,7 +218,7 @@ func (d *DiskSpacePrimitives) WriteFile(path string, data []byte, meta *FileMeta
 	if meta != nil && meta.LastModified > 0 {
 		modTime := time.UnixMilli(meta.LastModified)
 		if err := os.Chtimes(localPath, modTime, modTime); err != nil {
-			// Non-fatal error, continue
+			log.Printf("Failed to set the mtime for %s: %v", localPath, err)
 		}
 	}
 

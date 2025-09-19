@@ -32,6 +32,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
   online = false;
   localSpacePrimitives?: SpacePrimitives;
   syncEngine?: SyncEngine;
+  forcedStatus = false;
 
   constructor(
     private basePathName: string,
@@ -119,8 +120,13 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
             // Not fully synced but online -> Proxy
             (!this.fullSyncConfirmed && this.online) ||
             // A path we always need to proxy -> Proxy
-            (alwaysProxy.includes(pathname) || pathname.startsWith("/.proxy/"))
+            (alwaysProxy.includes(pathname) ||
+              pathname.startsWith("/.proxy/")) ||
+            this.forcedStatus
           ) {
+            if (this.forcedStatus) {
+              console.log("Proxying", pathname, "because of forced status");
+            }
             return fetch(request);
           }
 

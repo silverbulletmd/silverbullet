@@ -195,8 +195,8 @@ export type ServiceWorkerTargetMessage =
   | { type: "flush-cache" }
   | { type: "wipe-data" }
   | { type: "perform-file-sync"; path: string }
-  | { type: "perform-space-sync" };
-
+  | { type: "perform-space-sync" }
+  | { type: "force-connection-status"; enabled: boolean };
 /**
  * Events received from the service worker -> client
  */
