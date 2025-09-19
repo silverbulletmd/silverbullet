@@ -1,42 +1,70 @@
 # Stack
-SilverBullet is written in [TypeScript](https://www.typescriptlang.org/) and built on top of the excellent [CodeMirror 6](https://codemirror.net/) editor component. Additional UI is built using [Preact](https://preactjs.com/). [ES Build](https://esbuild.github.io) is used to build both the front-end and back-end bundles. The server backend runs as an HTTP server on [Deno](https://deno.land/) using [Hono](https://hono.dev).
+SilverBullet’s client is written in [TypeScript](https://www.typescriptlang.org/) and built on top of the excellent [CodeMirror 6](https://codemirror.net/) editor component. Additional UI is built using [Preact](https://preactjs.com/). [ES Build](https://esbuild.github.io) is used to build the frontend.
+
+[[Plugs]] are also written in TypeScript.
+
+The SilverBullet server is written in [Go](https://go.dev/).
+
+# Project layout
+
 
 # Development
-Requirements: [Deno](https://deno.land/) 2.2 or newer.
+Requirements: 
+* [Deno](https://deno.land/) 2.4 or newer.
+* [Go](https://go.dev/) 1.25 or newer
+* Make
 
-Clone the repository from GitHub:
-
-```shell
-git clone git@github.com:silverbulletmd/silverbullet.git
-cd silverbullet
-```
-
-And build it:
+It's convenient to also install [air](https://github.com/air-verse/air) for development, this tool will watch your code base for changes and automatically rebuild:
 
 ```shell
-deno task build
+go install github.com/air-verse/air@latest
 ```
 
-For convenience, replace your `silverbullet` install with the one from this repo via:
+Make sure your `$GOPATH/bin` is in your $PATH.
+
+To build everything and run the server using air:
 
 ```shell
-deno task install
+air <PATH-TO-YOUR-SPACE>
 ```
 
-You can now run the server in “watch mode” (automatically restarting when you change source files) with:
+Note, that if you want to pass arguments to your SilverBullet binary like `-p` or `-L` you need to this as follows:
 
 ```shell
-deno task watch-server <PATH-TO-YOUR-SPACE>
+air -- -L 0.0.0.0 <PATH-TO-YOUR-SPACE>
 ```
 
-It's convenient to run three commands in parallel (in separate terminals):
+
+Alternatively, to build the project without air:
 
 ```shell
-deno task watch-web
-deno task watch-server <PATH-TO-YOUR-SPACE>
-deno task watch-plugs
+make build
 ```
 
-All of these watch for file changes and a rebuild should trigger automatically.
+To run the resulting server:
 
-Note that there are dependencies between these builds. Any change to any of the built-in _plugs_ requires a rebuild of the web app. Any rebuild of the web app will only be picked up by the server after it restarts (which should happen automatically).
+```shell
+./silverbullet <PATH-TO-YOUR-SPACE>
+```
+
+### Useful development tasks
+
+Typecheck, lint, test the frontend:
+
+```shell
+make test
+```
+
+### Build a docker container
+Note, you do not need Deno nor Go locally installed for this to work:
+
+```shell
+docker build -t silverbullet .
+```
+
+To run:
+
+```shell
+docker run -p 3000:3000 -v <PATH-TO-YOUR-SPACE>:/space silverbullet
+```
+

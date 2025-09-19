@@ -165,7 +165,6 @@ func buildConfig(bundledFiles fs.FS, args []string) *server.ServerConfig {
 }
 
 func ServerCommand(bundledFiles fs.FS) *cobra.Command {
-	var userPass string
 	var hostname string
 	var port int
 	var c = &cobra.Command{
@@ -174,12 +173,17 @@ func ServerCommand(bundledFiles fs.FS) *cobra.Command {
 		Args:  cobra.MinimumNArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
 			serverConfig := buildConfig(bundledFiles, args)
+			if port != 0 {
+				serverConfig.Port = port
+			}
+			if hostname != "" {
+				serverConfig.BindHost = hostname
+			}
 			if err := server.RunServer(serverConfig); err != nil {
 				log.Fatal(err)
 			}
 		},
 	}
-	c.Flags().StringVarP(&userPass, "user", "", "", "user:pass authentication info")
 	c.Flags().StringVarP(&hostname, "hostname", "L", "127.0.0.1", "Host or address to listen to")
 	c.Flags().IntVarP(&port, "port", "p", 3000, "Port to listen to")
 

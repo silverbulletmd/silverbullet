@@ -77,7 +77,6 @@ func RunServer(config *ServerConfig) error {
 			// File is in the bundle, let's serve it
 			if r.Header.Get("If-Modified-Since") == utcDateString(meta.LastModified) {
 				w.WriteHeader(304)
-				log.Printf("Sending 304 not modified: %s", path)
 				return
 			}
 			w.Header().Set("Content-Type", meta.ContentType)

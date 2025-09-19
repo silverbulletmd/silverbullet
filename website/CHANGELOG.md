@@ -3,11 +3,12 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 These are changes live on the edge builds:
 
+* New server written in Go, should be functionally equivalent to the old Deno-based backend, but is much smaller, faster and uses less memory.
 * Sync engine re-architecture: see [[Architecture]] and [[Sync]]
 * More configuring what to index (see [[^Library/Std/Config]] under the `index` section) for the purpose of reducing local storage size and needless CPU waste. Some useful ones:
   * `config.set("index.search.enable", false)` to disable [[Full Text Search]] entirely (saves on processing and storage if you don’t use it)
   * `config.set("index.paragraph.all", false)` to disable indexing all (untagged) paragraphs. This is also somewhat wasteful if you don’t query these.
-* Parallel sync (5 files simultaneously)
+* Parallel sync
 * Disable ability to rename pages in read-only mode (by [Jelenkee](https://github.com/silverbulletmd/silverbullet/pull/1509))
 * Improved docker build + health check (by [Zef](https://github.com/silverbulletmd/silverbullet/issues/1515))
 * Added `templates.tagItem` template (by [Andy Costanza](https://github.com/silverbulletmd/silverbullet/commit/6d4f964a6e2a4f7dae04aa7558defcaa9f1f1a86))

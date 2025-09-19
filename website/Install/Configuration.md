@@ -4,6 +4,7 @@ SilverBullet is primarily configured via environment variables. This page gives 
 
 * `SB_INDEX_PAGE`: Sets the default page to load, defaults to `index`.
 * `SB_SPACE_IGNORE`: Ignore certain path patterns based on a .gitignore style format, e.g. `SB_SPACE_IGNORE="IgnoreMe/*"`.
+* `SB_HTTP_LOGGING`: Set to any value to enable HTTP logging
 
 # Network
 * `SB_HOSTNAME`: Set to the hostname to bind to (defaults to `127.0.0.0`, set to `0.0.0.0` to accept outside connections for the local deno setup, defaults to `0.0.0.0` for docker)
@@ -43,7 +44,7 @@ Configuration only relevant to docker deployments:
 * `PGID`: Runs the server process with the specified GID (default: whatever group owns the `/space` mapped folder)\
 
 # Web app manifest
-Configure aspects of web app appearance:
+Configure aspects of web app appearance as well as the authentication page:
 
 * `SB_NAME`: Sets `name` and `short_name` members of web app manifest to whatever specified in `SB_NAME`
 * `SB_DESCRIPTION`: Sets `description` member of web app manifest to whatever specified in `SB_DESCRIPTION`
