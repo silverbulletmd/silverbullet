@@ -54,6 +54,9 @@ const proxyRouter = new ProxyRouter(
   precacheFiles,
 );
 
+// Configuration mutex
+let configuring = false;
+
 // @ts-ignore: debugging
 globalThis.proxyRouter = proxyRouter;
 
@@ -103,6 +106,7 @@ self.addEventListener("message", async (event: any) => {
           "Ignoring perform-file-sync request, proxy not configured yet",
         );
       }
+
       break;
     }
     case "perform-space-sync": {
@@ -131,98 +135,113 @@ self.addEventListener("message", async (event: any) => {
       } else {
         console.info("Service being configured with", config);
       }
-      const spaceFolderPath = config.spaceFolderPath;
-      // We're generating a simple hashed database name based on the space path in case people regularly switch between multiple space paths
-      const spaceHash = "" +
-        simpleHash(`${spaceFolderPath}:${baseURI.replace(/\/*$/, "")}`);
-      // And we'll use a _files postfix to signify where synced files are kept
-      const dbName = `${spaceHash}_files`;
+      if (configuring) {
+        console.info("Configuration already in progress, skipping");
+        return;
+      }
+      // Lock configuration mutex
+      configuring = true;
+      // Put a timeout on it, just in case
+      setTimeout(() => {
+        configuring = false;
+      }, 5000);
+      try {
+        const spaceFolderPath = config.spaceFolderPath;
+        // We're generating a simple hashed database name based on the space path in case people regularly switch between multiple space paths
+        const spaceHash = "" +
+          simpleHash(`${spaceFolderPath}:${baseURI.replace(/\/*$/, "")}`);
+        // And we'll use a _files postfix to signify where synced files are kept
+        const dbName = `${spaceHash}_files`;
 
-      // Setup KV (database) for store synced files
-      const kv = new IndexedDBKvPrimitives(dbName);
-      await kv.init();
+        // Setup KV (database) for store synced files
+        const kv = new IndexedDBKvPrimitives(dbName);
+        await kv.init();
 
-      // And use that to power the IndexedDB backed local storage
-      const local = new DataStoreSpacePrimitives(kv);
+        // And use that to power the IndexedDB backed local storage
+        const local = new DataStoreSpacePrimitives(kv);
 
-      // Which we'll sync with the remote server
-      const remote = new HttpSpacePrimitives(
-        basePathName + fsEndpoint,
-        spaceFolderPath,
-        (message, actionOrRedirectHeader) => {
-          // And auth error occured
-          console.error(
-            "[service proxy error]",
-            message,
-            actionOrRedirectHeader,
-          );
-          broadcastMessage({
-            type: "auth-error",
-            message,
-            actionOrRedirectHeader,
-          });
-        },
-      );
+        // Which we'll sync with the remote server
+        const remote = new HttpSpacePrimitives(
+          basePathName + fsEndpoint,
+          spaceFolderPath,
+          (message, actionOrRedirectHeader) => {
+            // And auth error occured
+            console.error(
+              "[service proxy error]",
+              message,
+              actionOrRedirectHeader,
+            );
+            broadcastMessage({
+              type: "auth-error",
+              message,
+              actionOrRedirectHeader,
+            });
+          },
+        );
 
-      // Now let's setup sync
-      const syncEngine = new SyncEngine(kv, local, remote);
-      syncEngine.setSyncConfig({
-        syncDocuments: config.syncDocuments,
-        syncIgnore: config.syncIgnore,
-      });
-      await syncEngine.start();
+        // Now let's setup sync
+        const syncEngine = new SyncEngine(kv, local, remote);
+        syncEngine.setSyncConfig({
+          syncDocuments: config.syncDocuments,
+          syncIgnore: config.syncIgnore,
+        });
+        await syncEngine.start();
 
-      // Ok, we're ready to go, let's plug in the proxy router
-      proxyRouter.configure(syncEngine.local, syncEngine);
+        // Ok, we're ready to go, let's plug in the proxy router
+        proxyRouter.configure(syncEngine);
 
-      // And wire up some events
-      proxyRouter.on({
-        observedRequest: (path) => {
-          // This is triggered for the currently open file, we want to proactively sync it to keep it up to date
-          syncEngine.syncSingleFile(path);
-        },
-        onlineStatusUpdated: (isOnline) => {
-          broadcastMessage({
-            type: "online-status",
-            isOnline,
-          });
-        },
-      });
-      syncEngine.on({
-        syncProgress: (status) => {
-          broadcastMessage({
-            type: "sync-status",
-            status,
-          });
-        },
-        syncConflict: (path) => {
-          console.warn("Sync conflict detected:", path);
-          broadcastMessage({
-            type: "sync-conflict",
-            path,
-          });
-        },
-        spaceSyncComplete: (operations) => {
-          console.log("Space sync complete:", operations);
-          broadcastMessage({
-            type: "space-sync-complete",
-            operations,
-          });
-        },
-        fileSyncComplete: (path, operations) => {
-          broadcastMessage({
-            type: "file-sync-complete",
-            path,
-            operations,
-          });
-        },
-        syncError: (error) => {
-          broadcastMessage({
-            type: "sync-error",
-            message: error.message,
-          });
-        },
-      });
+        // And wire up some events
+        proxyRouter.on({
+          observedRequest: (path) => {
+            // This is triggered for the currently open file, we want to proactively sync it to keep it up to date
+            syncEngine.syncSingleFile(path);
+          },
+          onlineStatusUpdated: (isOnline) => {
+            broadcastMessage({
+              type: "online-status",
+              isOnline,
+            });
+          },
+        });
+        syncEngine.on({
+          syncProgress: (status) => {
+            broadcastMessage({
+              type: "sync-status",
+              status,
+            });
+          },
+          syncConflict: (path) => {
+            console.warn("Sync conflict detected:", path);
+            broadcastMessage({
+              type: "sync-conflict",
+              path,
+            });
+          },
+          spaceSyncComplete: (operations) => {
+            console.log("Space sync complete:", operations);
+            broadcastMessage({
+              type: "space-sync-complete",
+              operations,
+            });
+          },
+          fileSyncComplete: (path, operations) => {
+            broadcastMessage({
+              type: "file-sync-complete",
+              path,
+              operations,
+            });
+          },
+          syncError: (error) => {
+            broadcastMessage({
+              type: "sync-error",
+              message: error.message,
+            });
+          },
+        });
+      } finally {
+        // Unlock mutex
+        configuring = false;
+      }
       break;
     }
   }

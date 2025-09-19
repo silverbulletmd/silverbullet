@@ -49,8 +49,8 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
   /**
    * Called as soon the service worker is configured, and the service worker is ready to start serving requests.
    */
-  configure(spacePrimitives: SpacePrimitives, syncEngine: SyncEngine) {
-    this.localSpacePrimitives = spacePrimitives;
+  configure(syncEngine: SyncEngine) {
+    this.localSpacePrimitives = syncEngine.local;
     this.syncEngine = syncEngine;
     syncEngine.on({
       spaceSyncComplete: () => {
