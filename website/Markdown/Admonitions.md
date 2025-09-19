@@ -8,6 +8,12 @@ Silverbullet supports [admonitions](https://github.com/community/community/discu
 > **warning** This is a
 > warning admonition
 
+> **danger** This is a
+> danger admonition
+
+> **success** This is a
+> success admonition
+
 Custom admonitions can be added in a [[Space Style]] using the following format:
 
 ```space-style
