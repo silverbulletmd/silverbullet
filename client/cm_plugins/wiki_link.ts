@@ -12,7 +12,7 @@ import { processWikiLink, type WikiLinkMatch } from "./wiki_link_processor.ts";
 export function cleanWikiLinkPlugin(client: Client) {
   return decoratorStateField((state) => {
     const widgets: any[] = [];
-    
+
     syntaxTree(state).iterate({
       enter: ({ type, from, to }) => {
         if (type.name !== "WikiLink") {
@@ -46,7 +46,9 @@ export function cleanWikiLinkPlugin(client: Client) {
             if (e.altKey) {
               // Move cursor into the link
               client.editorView.dispatch({
-                selection: { anchor: from + wikiLinkMatch.leadingTrivia.length },
+                selection: {
+                  anchor: from + wikiLinkMatch.leadingTrivia.length,
+                },
               });
               client.focus();
               return;

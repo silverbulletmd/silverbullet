@@ -1,8 +1,10 @@
-
 import type { EditorState } from "@codemirror/state";
 import { Decoration } from "@codemirror/view";
 import type { Client } from "../client.ts";
-import { fileName, isBuiltinPath } from "@silverbulletmd/silverbullet/lib/resolve";
+import {
+  fileName,
+  isBuiltinPath,
+} from "@silverbulletmd/silverbullet/lib/resolve";
 import {
   encodePageURI,
   encodeRef,
@@ -30,9 +32,10 @@ export interface WikiLinkProcessorOptions {
 }
 
 export function processWikiLink(options: WikiLinkProcessorOptions): any[] {
-  const { from, to, match, matchFrom, matchTo, client, state, callback } = options;
+  const { from, to, match, matchFrom, matchTo, client, state, callback } =
+    options;
   const widgets: any[] = [];
-  
+
   const { leadingTrivia, stringRef, alias, trailingTrivia } = match;
   const ref = parseToRef(stringRef);
 
@@ -43,7 +46,9 @@ export function processWikiLink(options: WikiLinkProcessorOptions): any[] {
   } else if (ref.path === "" || isBuiltinPath(ref.path)) {
     linkStatus = "default";
   } else if (
-    Array.from(client.clientSystem.allKnownFiles).some((file) => file === ref.path)
+    Array.from(client.clientSystem.allKnownFiles).some((file) =>
+      file === ref.path
+    )
   ) {
     linkStatus = "default";
   } else if (client.fullSyncCompleted || client.clientSystem.knownFilesLoaded) {
@@ -57,7 +62,7 @@ export function processWikiLink(options: WikiLinkProcessorOptions): any[] {
   }[linkStatus];
 
   const renderingSyntax = client.ui.viewState.uiOptions.markdownSyntaxRendering;
-  
+
   if (isCursorInRange(state, [from, to]) || renderingSyntax) {
     // Only attach a CSS class, then get out
     if (linkStatus !== "default") {

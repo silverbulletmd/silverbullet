@@ -1,9 +1,6 @@
 import "./syscall_mock.ts";
 import { parse } from "../../client/markdown_parser/parse_tree.ts";
-import {
-  cleanAttributes,
-  extractAttributes,
-} from "@silverbulletmd/silverbullet/lib/attribute";
+import { extractAttributes } from "@silverbulletmd/silverbullet/lib/attribute";
 import { assertEquals } from "@std/assert";
 import { renderToText } from "./tree.ts";
 import { extendedMarkdownLanguage } from "../../client/markdown_parser/parser.ts";
@@ -37,7 +34,4 @@ Deno.test("Test attribute extraction", async () => {
   assertEquals(toplevelAttributes.children, ["pete", "john", "mary"]);
   // Check if the attributes are still there
   assertEquals(renderToText(tree), inlineAttributeSample);
-  // And now clean
-  cleanAttributes(tree);
-  assertEquals(renderToText(tree), cleanedInlineAttributeSample);
 });

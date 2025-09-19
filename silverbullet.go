@@ -3,7 +3,7 @@ package main
 import (
 	"embed"
 
-	"github.com/silverbulletmd/silverbullet/pkg/server/cmd"
+	"github.com/silverbulletmd/silverbullet/server/cmd"
 )
 
 // Embed client files, plugs and version files into the binary

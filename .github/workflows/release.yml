@@ -23,6 +23,7 @@ jobs:
       - name: Run build
         run: |
           deno task build-production
+          deno task build-plug-compile
       - name: Publish to JSR
         run: deno publish --allow-dirty
       - name: Release
@@ -33,3 +34,4 @@ jobs:
           draft: false
           files: |
             website/CHANGELOG.md
+            dist/plug-compile.js

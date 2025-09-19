@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/silverbulletmd/silverbullet/pkg/server"
+	"github.com/silverbulletmd/silverbullet/server"
 	"github.com/spf13/cobra"
 )
 

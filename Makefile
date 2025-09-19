@@ -28,7 +28,7 @@ test:
 	# Run frontend tests
 	deno task test
 	# Run backend tests
-	go test ./pkg/...
+	go test ./server/...
 
 generate:
 	# Regenerate the Lua parser from the the grammar

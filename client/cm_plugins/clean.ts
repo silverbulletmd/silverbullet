@@ -21,7 +21,7 @@ export function cleanModePlugins(client: Client) {
     luaDirectivePlugin(client),
     cleanWikiLinkPlugin(client),
     hashtagPlugin(),
-      frontmatterPlugin(client),
+    frontmatterPlugin(client),
   ];
 
   if (client.ui.viewState.uiOptions.markdownSyntaxRendering) {
