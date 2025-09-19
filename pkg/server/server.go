@@ -66,7 +66,7 @@ func RunServer(config *ServerConfig) error {
 	// Manifest endpoint
 	r.HandleFunc("/.client/manifest.json", manifestHandler(config))
 
-	r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/*", func(w http.ResponseWriter, r *http.Request) {
 		path := chi.URLParam(r, "*")
 
 		spaceConfig := spaceConfigFromContext(r.Context())
@@ -74,12 +74,20 @@ func RunServer(config *ServerConfig) error {
 		// See if it's in the client bundle
 		data, meta, err := config.ClientBundle.ReadFile(path)
 		if err == nil {
+			// File is in the bundle, let's serve it
+			if r.Header.Get("If-Modified-Since") == utcDateString(meta.LastModified) {
+				w.WriteHeader(304)
+				log.Printf("Sending 304 not modified: %s", path)
+				return
+			}
 			w.Header().Set("Content-Type", meta.ContentType)
+			w.Header().Set("Last-Modified", utcDateString(meta.LastModified))
 			w.WriteHeader(200)
 			w.Write(data)
 			return
 		}
 
+		// TODO: handle request types
 		ServerSideRender(config, spaceConfig, path, w, r)
 	})
 
