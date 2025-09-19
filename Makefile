@@ -1,8 +1,14 @@
 build:
 	# Build frontend
 	deno task build
+	# Build plug-compile
+	deno task build-plug-compile
 	# Build backend
 	go build
+
+clean:
+	deno task clean
+	rm -f silverbullet
 
 check:
 	# Frontend type check
@@ -23,3 +29,7 @@ test:
 	deno task test
 	# Run backend tests
 	go test ./pkg/...
+
+generate:
+	# Regenerate the Lua parser from the the grammar
+	deno run -A npm:@lezer/generator@1.5.1 lib/space_lua/lua.grammar -o lib/space_lua/parse-lua.js

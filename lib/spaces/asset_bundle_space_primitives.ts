@@ -1,7 +1,7 @@
 import type { SpacePrimitives } from "./space_primitives.ts";
 import type { AssetBundle } from "../../lib/asset_bundle/bundle.ts";
 
-import type { FileMeta } from "../../type/index.ts";
+import type { FileMeta } from "../../plug-api/types/index.ts";
 
 export class AssetBundlePlugSpacePrimitives implements SpacePrimitives {
   constructor(

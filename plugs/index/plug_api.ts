@@ -1,7 +1,7 @@
 import { system } from "@silverbulletmd/silverbullet/syscalls";
-import type { ObjectValue } from "../../type/index.ts";
+import type { ObjectValue } from "../../plug-api/types/index.ts";
 
-import type { KV, KvQuery } from "../../type/datastore.ts";
+import type { KV, KvQuery } from "../../plug-api/types/datastore.ts";
 
 export function indexObjects<T>(
   page: string,

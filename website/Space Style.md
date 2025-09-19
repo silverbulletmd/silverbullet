@@ -4,7 +4,7 @@ This can be used to achieve various things, such as overriding the default edito
 
 To apply the updated styles, either reload the client or run the ${widgets.commandButton("System: Reload")} command.
 
-Many styles can be set with [variables](https://github.com/silverbulletmd/silverbullet/blob/main/web/styles/theme.scss) but not everything is covered. You’ll have to reverse-engineer those parts, unfortunately.
+Many styles can be set with [variables](https://github.com/silverbulletmd/silverbullet/blob/main/client/styles/theme.scss) but not everything is covered. You’ll have to reverse-engineer those parts, unfortunately.
 
 # Load order
 You can tweak the CSS load order style by including a `/* priority: number */` comment:

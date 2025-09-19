@@ -7,7 +7,7 @@ import type {
   MQMessage,
   MQStats,
   MQSubscribeOptions,
-} from "../../type/datastore.ts";
+} from "../../plug-api/types/datastore.ts";
 import { race, sleep } from "../async.ts";
 
 export type ProcessingMessage = MQMessage & {

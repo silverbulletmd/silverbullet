@@ -1,4 +1,4 @@
-import type { IndexTreeEvent } from "../../type/event.ts";
+import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
 import {
   editor,
   lua,
@@ -22,7 +22,7 @@ import {
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { updateITags } from "@silverbulletmd/silverbullet/lib/tags";
 import type { AspiringPageObject } from "./page_links.ts";
-import type { PageMeta } from "../../type/index.ts";
+import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 import type { LintDiagnostic } from "@silverbulletmd/silverbullet/type/client";
 
 export async function indexPage({ name, tree }: IndexTreeEvent) {

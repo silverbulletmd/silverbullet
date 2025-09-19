@@ -1,13 +1,16 @@
-import type { IndexTreeEvent } from "../../type/event.ts";
-import { renderToText, replaceNodesMatching } from "../../plug-api/lib/tree.ts";
-import { extractHashtag } from "../../plug-api/lib/tags.ts";
+import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
+import {
+  renderToText,
+  replaceNodesMatching,
+} from "@silverbulletmd/silverbullet/lib/tree";
+import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 import {
   collectNodesMatching,
   collectNodesOfType,
   type ParseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { indexObjects } from "./api.ts";
-import type { ObjectValue } from "../../type/index.ts";
+import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 
 type TableRowObject =
   & ObjectValue<{

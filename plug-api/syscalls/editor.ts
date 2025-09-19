@@ -1,10 +1,7 @@
 import { syscall } from "../syscall.ts";
-import type {
-  FilterOption,
-  UploadFile,
-} from "@silverbulletmd/silverbullet/type/client";
+import type { FilterOption, UploadFile } from "../../plug-api/types/client.ts";
 import type { Path, Ref } from "../lib/ref.ts";
-import type { PageMeta } from "../../type/index.ts";
+import type { PageMeta } from "../../plug-api/types/index.ts";
 
 /**
  * Exposes various editor utilities.

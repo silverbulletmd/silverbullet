@@ -9,7 +9,7 @@ import (
 // Embed client files, plugs and version files into the binary
 //
 //go:embed dist_client_bundle/*
-//go:embed dist_plug_bundle/*
+//go:embed dist_base_fs_bundle/*
 var bundledFiles embed.FS
 
 //go:embed public_version.ts

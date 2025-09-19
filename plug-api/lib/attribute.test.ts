@@ -1,12 +1,12 @@
 import "./syscall_mock.ts";
-import { parse } from "../../web/markdown_parser/parse_tree.ts";
+import { parse } from "../../client/markdown_parser/parse_tree.ts";
 import {
   cleanAttributes,
   extractAttributes,
 } from "@silverbulletmd/silverbullet/lib/attribute";
 import { assertEquals } from "@std/assert";
 import { renderToText } from "./tree.ts";
-import { extendedMarkdownLanguage } from "../../web/markdown_parser/parser.ts";
+import { extendedMarkdownLanguage } from "../../client/markdown_parser/parser.ts";
 
 const inlineAttributeSample = `
 # My document
@@ -20,12 +20,12 @@ Top level attributes: [name:: sup] [age:: 42] [children: [pete, "john", mary]]
 
 const cleanedInlineAttributeSample = `
 # My document
-Top level attributes:   
+Top level attributes:
 
-* [ ] Attribute in a task 
-* Regular item 
+* [ ] Attribute in a task
+* Regular item
 
-1. Itemized list 
+1. Itemized list
 `;
 
 Deno.test("Test attribute extraction", async () => {

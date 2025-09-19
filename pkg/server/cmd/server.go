@@ -139,7 +139,7 @@ func buildConfig(bundledFiles fs.FS, args []string) *server.ServerConfig {
 	}
 
 	serverConfig.ClientBundle = server.NewReadOnlyFallthroughSpacePrimitives(bundledFiles, "dist_client_bundle", bundlePathDate, nil)
-	rootSpaceConfig.SpacePrimitives = server.NewReadOnlyFallthroughSpacePrimitives(bundledFiles, "dist_plug_bundle", bundlePathDate, spacePrimitives)
+	rootSpaceConfig.SpacePrimitives = server.NewReadOnlyFallthroughSpacePrimitives(bundledFiles, "dist_base_fs_bundle", bundlePathDate, spacePrimitives)
 
 	log.Printf("Starting SilverBullet binding to %s:%d", serverConfig.BindHost, serverConfig.Port)
 	if serverConfig.BindHost == "127.0.0.1" {

@@ -1,7 +1,7 @@
 import { folderName } from "@silverbulletmd/silverbullet/lib/resolve";
 import { queryLuaObjects } from "../index/api.ts";
 import { language, lua } from "@silverbulletmd/silverbullet/syscalls";
-import type { DocumentMeta, PageMeta } from "../../type/index.ts";
+import type { DocumentMeta, PageMeta } from "../../plug-api/types/index.ts";
 import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
 
 // Page completion

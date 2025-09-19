@@ -1,4 +1,4 @@
-import { lezerToParseTree } from "../../web/markdown_parser/parse_tree.ts";
+import { lezerToParseTree } from "../../client/markdown_parser/parse_tree.ts";
 import {
   cleanTree,
   type ParseTree,

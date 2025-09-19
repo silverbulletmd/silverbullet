@@ -2,33 +2,23 @@
   "name": "@silverbulletmd/silverbullet",
   "version": "2.0.0",
   "tasks": {
-    "build": "deno task clean && deno run -A build_plugs.ts && deno run -A build_web.ts",
+    "build": "deno task clean && deno run -A build_plugs_libraries.ts && deno run -A build_client.ts",
     "build-production": "deno task build --production",
     "build-plug-compile": "deno run -A build_plug_compile.ts",
-    "clean": "rm -rf dist_client_bundle dist_plug_bundle dist",
+    "clean": "rm -rf dist_client_bundle dist_base_fs_bundle dist public_version.ts",
     "deep-clean-mac": "rm -f deno.lock && rm -rf $HOME/Library/Caches/deno && deno task clean",
     "check": "find . -name '*.ts*' -not -path \"*/node_modules/*\" | xargs deno check",
     "checks": "deno task check && deno task lint && deno task test",
     "lint": "deno lint --fix",
     "fmt": "deno fmt",
     "test": "deno test -A",
-    "plugs": "deno run -A build_plugs.ts",
-    "generate": "./scripts/generate.sh",
-    "watch-web": "deno run -A --check build_web.ts --watch",
-    "watch-plugs": "deno run -A --check build_plugs.ts -w",
-    "compile": "go build"
+    "plugs": "deno run -A build_plugs_libraries.ts"
   },
   "publish": {
     "exclude": ["website", "CHANGELOG.md", "**/*.md"]
   },
   "lint": {
-    "exclude": [
-      "dist",
-      "dist_client_bundle",
-      "dist_plug_bundle",
-      "cmd/test_space",
-      "cmd/test/test_space"
-    ],
+    "exclude": ["dist", "dist_client_bundle", "dist_base_fs_bundle"],
     "rules": {
       "exclude": ["no-explicit-any", "no-slow-types", "jsx-boolean-value"]
     }
@@ -37,7 +27,6 @@
     "exclude": [
       "dist*",
       "website",
-      "test_space",
       "**/*.md",
       "**/*.html",
       "**/*.js",
@@ -58,25 +47,21 @@
     "./lib/ref": "./plug-api/lib/ref.ts",
     "./lib/resolve": "./plug-api/lib/resolve.ts",
     "./lib/frontmatter": "./plug-api/lib/frontmatter.ts",
-    "./type/client": "./type/client.ts",
-    "./type/command": "./type/command.ts",
-    "./type/config": "./type/config.ts",
-    "./type/datastore": "./type/datastore.ts",
-    "./type/event": "./type/event.ts",
-    "./type/index": "./type/index.ts",
-    "./type/rpc": "./type/rpc.ts",
-    "./lib/tags": "./plug-api/lib/tags.ts"
+    "./lib/tags": "./plug-api/lib/tags.ts",
+    "./type/client": "./plug-api/types/client.ts",
+    "./type/config": "./plug-api/types/config.ts",
+    "./type/datastore": "./plug-api/types/datastore.ts",
+    "./type/event": "./plug-api/types/event.ts",
+    "./type/index": "./plug-api/types/index.ts"
   },
   "imports": {
     "@silverbulletmd/silverbullet/syscall": "./plug-api/syscall.ts",
     "@silverbulletmd/silverbullet/syscalls": "./plug-api/syscalls.ts",
-    "@silverbulletmd/silverbullet/type/client": "./type/client.ts",
-    "@silverbulletmd/silverbullet/type/command": "./type/command.ts",
-    "@silverbulletmd/silverbullet/type/config": "./type/config.ts",
-    "@silverbulletmd/silverbullet/type/datastore": "./type/datastore.ts",
-    "@silverbulletmd/silverbullet/type/event": "./type/event.ts",
-    "@silverbulletmd/silverbullet/type/index": "./type/index.ts",
-    "@silverbulletmd/silverbullet/type/rpc": "./type/rpc.ts",
+    "@silverbulletmd/silverbullet/type/client": "./plug-api/types/client.ts",
+    "@silverbulletmd/silverbullet/type/config": "./plug-api/types/config.ts",
+    "@silverbulletmd/silverbullet/type/datastore": "./plug-api/types/datastore.ts",
+    "@silverbulletmd/silverbullet/type/event": "./plug-api/types/event.ts",
+    "@silverbulletmd/silverbullet/type/index": "./plug-api/types/index.ts",
     "@silverbulletmd/silverbullet/lib/json": "./plug-api/lib/json.ts",
     "@silverbulletmd/silverbullet/lib/tree": "./plug-api/lib/tree.ts",
     "@silverbulletmd/silverbullet/lib/attribute": "./plug-api/lib/attribute.ts",

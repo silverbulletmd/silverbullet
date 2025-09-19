@@ -1,6 +1,6 @@
 import { syscall } from "../syscall.ts";
 
-import type { MQStats } from "../../type/datastore.ts";
+import type { MQStats } from "../../plug-api/types/datastore.ts";
 
 /**
  * Implements a simple Message Queue system.

@@ -1,16 +1,16 @@
-import type { IndexTreeEvent } from "../../type/event.ts";
+import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
 import { indexObjects } from "./api.ts";
 import {
   collectNodesOfType,
   findParentMatching,
   renderToText,
   traverseTreeAsync,
-} from "../../plug-api/lib/tree.ts";
+} from "@silverbulletmd/silverbullet/lib/tree";
 import { extractAttributes } from "@silverbulletmd/silverbullet/lib/attribute";
 import { updateITags } from "@silverbulletmd/silverbullet/lib/tags";
 import { extractFrontMatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
-import { extractHashtag } from "../../plug-api/lib/tags.ts";
-import type { ObjectValue } from "../../type/index.ts";
+import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
+import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 import { system } from "@silverbulletmd/silverbullet/syscalls";
 
 /** ParagraphObject  An index object for the top level text nodes */

@@ -4,7 +4,7 @@ import * as esbuild from "esbuild";
 await Deno.mkdir("dist", { recursive: true });
 const result = await esbuild.build({
   entryPoints: {
-    "plug-compile": "plug-compile.ts",
+    "plug-compile": "./bin/plug-compile.ts",
   },
   outdir: "dist",
   format: "esm",

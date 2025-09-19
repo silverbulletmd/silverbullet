@@ -1,6 +1,6 @@
 import { space, system } from "@silverbulletmd/silverbullet/syscalls";
 import { indexObjects } from "./api.ts";
-import type { DocumentMeta } from "../../type/index.ts";
+import type { DocumentMeta } from "../../plug-api/types/index.ts";
 
 // Note: clearFileIndex is not called but since this is the only attachmet:index listener, this should be fine (famous last words)
 export async function indexDocument(name: string) {

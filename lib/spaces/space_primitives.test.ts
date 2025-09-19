@@ -1,6 +1,6 @@
 import { assert, assertEquals } from "@std/assert";
 import type { SpacePrimitives } from "./space_primitives.ts";
-import type { FileMeta } from "../../type/index.ts";
+import type { FileMeta } from "../../plug-api/types/index.ts";
 import { notFoundError } from "../constants.ts";
 
 export async function testSpacePrimitives(spacePrimitives: SpacePrimitives) {
