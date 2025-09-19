@@ -1,12 +1,22 @@
-
 # Stage 1: Build the silverbullet binary
 FROM denoland/deno:2.5.0 AS builder
-RUN apt update && apt install -y git
+RUN apt update && apt install -y git wget
+
+ARG TARGETARCH
+ENV GO_VERSION=1.25.1
+
+RUN wget -P /tmp "https://dl.google.com/go/go${GO_VERSION}.linux-${TARGETARCH}.tar.gz"
+RUN tar -C /usr/local -xzf "/tmp/go${GO_VERSION}.linux-${TARGETARCH}.tar.gz"
+
+ENV GOPATH=/go
+ENV PATH=$GOPATH/bin:/usr/local/go/bin:$PATH
+
 WORKDIR /app
 ADD . /app
 
 # This will produce the `silverbullet` self-contained binary in /app/silverbullet
-RUN deno task build
+RUN deno task build-production
+RUN go build
 
 # Stage 2: Create the runtime from the build
 FROM ubuntu:noble

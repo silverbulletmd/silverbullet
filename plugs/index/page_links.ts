@@ -4,7 +4,7 @@ import {
   renderToText,
   traverseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import type { IndexTreeEvent } from "../../type/event.ts";
+import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
 import {
   isLocalURL,
   resolveMarkdownLink,
@@ -21,9 +21,9 @@ import { extractSnippetAroundIndex } from "./snippet_extractor.ts";
 import {
   mdLinkRegex,
   wikiLinkRegex,
-} from "../../web/markdown_parser/constants.ts";
+} from "../../client/markdown_parser/constants.ts";
 import { lua, space } from "@silverbulletmd/silverbullet/syscalls";
-import type { ObjectValue } from "../../type/index.ts";
+import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 
 export type LinkObject = ObjectValue<
   {

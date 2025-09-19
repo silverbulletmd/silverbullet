@@ -34,60 +34,74 @@ Check out the [instructions](https://silverbullet.md/Install).
 
 ## Developing SilverBullet
 
-SilverBullet is written in [TypeScript](https://www.typescriptlang.org/) and
-built on top of the excellent [CodeMirror 6](https://codemirror.net/) editor
-component. Additional UI is built using [Preact](https://preactjs.com).
-[ESBuild]([https://parceljs.org/](https://esbuild.github.io)) is used to build both the front-end and
-back-end bundles. The server backend runs as a HTTP server on Deno using and is written using [Hono](https://hono.dev).
+SilverBullet's frontend is written in [TypeScript](https://www.typescriptlang.org/) and built on top of the excellent [CodeMirror 6](https://codemirror.net/) editor component. Additional UI is built using [Preact](https://preactjs.com). [ESBuild]([https://parceljs.org/](https://esbuild.github.io)) is used to build both the front-end.
 
-To prepare the initial web and plug build run:
+The server backend is written in Go.
+
+## Code structure
+* `client/`: The SilverBullet client, implemented with TypeScript
+* `server/`: The SilverBullet server, written in Go
+* `plugs`: Set of built-in plugs that are distributed with SilverBullet
+* `libraries`: A set of libraries (space scripts, page templates, slash templates) distributed with SilverBullet
+* `plug-api/`: Useful APIs for use in plugs
+  * `lib/`: Useful libraries to be used in plugs
+  * `syscalls/`: TypeScript wrappers around syscalls
+  * `types/`: Various (client) types that can be references from plugs
+* `bin`
+  * `plug_compile.ts` the plug compiler
+* `scripts/`: Useful scripts
+* `website/`: silverbullet.md website content
+
+### Requirements
+* [Deno](https://deno.com/): Used to build the frontend and plugs
+* [Go](https://go.dev/): Used to build the backend
+
+It's convenient to also install [air](https://github.com/air-verse/air) for development, this will automatically rebuild both the frontend and backend when changes are made:
+
+```shell
+go install github.com/air-verse/air@latest
+```
+Make sure your `$GOPATH/bin` is in your $PATH.
+
+To build everything and run the server:
+
+```shell
+air <PATH-TO-YOUR-SPACE>
+```
+
+Alternatively, to build just the frontend:
 
 ```shell
 deno task build
 ```
 
-To symlink `silverbullet` to your locally checked-out version, run:
+To build the backend (note: this will bundle the frontend into the same binary, so be sure to build that first):
 
 ```shell
-deno task install
+go build
 ```
 
-You can then run the server in "watch mode" (automatically restarting when you
-change source files) with:
+To run the resulting server:
 
 ```shell
-deno task watch-server <PATH-TO-YOUR-SPACE>
+./silverbullet <PATH-TO-YOUR-SPACE>
 ```
 
-After this initial build, it's convenient to run three commands in parallel (in
-separate terminals):
+### Useful development tasks
 
 ```shell
-deno task watch-web
-deno task watch-server <PATH-TO-YOUR-SPACE>
-deno task watch-plugs
+# Clean all generated files
+make clean
+# Typecheck and lint all code
+make check
+# Format all code
+make fmt
+# Run all tests
+make test
 ```
 
-Alternatively, you can use the convenience task (though you'll need to set the server path in a separate terminal first):
-
-```shell
-deno task watch-all
-```
-
-To typecheck the entire codebase (recommended before submitting PR):
-```shell
-deno task check
-```
-
-Other useful development tasks:
-```shell
-deno task lint      # Lint and fix code
-deno task fmt       # Format code
-deno task test      # Run tests
-deno task checks    # Run check, lint, and test together
-```
-
-To build it in a docker container (no Deno install required):
+### Build a docker container
+Note, you do not need Deno nor Go locally installed for this to work:
 
 ```shell
 docker build -t silverbullet .

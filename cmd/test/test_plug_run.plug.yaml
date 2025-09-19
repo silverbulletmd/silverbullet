@@ -1,6 +1,0 @@
-name: test
-requiredPermissions:
-  - shell
-functions:
-  run:
-    path: plug_test.ts:run

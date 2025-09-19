@@ -1,6 +1,6 @@
 import type { SpacePrimitives } from "./space_primitives.ts";
 import { mime } from "mimetypes";
-import type { FileMeta } from "../../type/index.ts";
+import type { FileMeta } from "../../plug-api/types/index.ts";
 import { notFoundError } from "../constants.ts";
 import type { KvPrimitives } from "../data/kv_primitives.ts";
 

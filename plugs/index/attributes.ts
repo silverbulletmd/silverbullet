@@ -1,4 +1,4 @@
-import type { ObjectValue } from "../../type/index.ts";
+import type { ObjectValue } from "../../plug-api/types/index.ts";
 
 export type SimpleJSONType = {
   type?: "string" | "number" | "boolean" | "any" | "array" | "object" | "null";

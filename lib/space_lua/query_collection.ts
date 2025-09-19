@@ -5,9 +5,9 @@ import { asyncQuickSort } from "./util.ts";
 import type { DataStore } from "../data/datastore.ts";
 import type { KvPrimitives } from "../data/kv_primitives.ts";
 
-import type { QueryCollationConfig } from "../../type/config.ts";
+import type { QueryCollationConfig } from "../../plug-api/types/config.ts";
 
-import type { KvKey } from "../../type/datastore.ts";
+import type { KvKey } from "../../plug-api/types/datastore.ts";
 
 export function buildItemEnv(
   objectVariable: string | undefined,

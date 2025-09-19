@@ -2,10 +2,10 @@ import type { SpacePrimitives } from "./space_primitives.ts";
 import { encodePageURI } from "@silverbulletmd/silverbullet/lib/ref";
 import {
   flushCachesAndUnregisterServiceWorker,
-} from "../../web/service_worker/util.ts";
-import type { FileMeta } from "../../type/index.ts";
+} from "../../client/service_worker/util.ts";
+import type { FileMeta } from "../../plug-api/types/index.ts";
 import { notFoundError, offlineError } from "../constants.ts";
-import { headersToFileMeta } from "../../server/util.ts";
+import { headersToFileMeta } from "../../lib/util.ts";
 
 const defaultFetchTimeout = 30000; // 30 seconds
 

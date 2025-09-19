@@ -1,7 +1,7 @@
 import type { KvPrimitives, KvQueryOptions } from "./kv_primitives.ts";
 import { type IDBPDatabase, openDB } from "idb";
 
-import type { KV, KvKey } from "../../type/datastore.ts";
+import type { KV, KvKey } from "../../plug-api/types/datastore.ts";
 
 // Separator character to use for key serialization
 const sep = "\0";

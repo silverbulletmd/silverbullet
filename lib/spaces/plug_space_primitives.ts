@@ -1,7 +1,7 @@
 import type { SpacePrimitives } from "./space_primitives.ts";
 import type { NamespaceOperation } from "../plugos/namespace.ts";
-import type { PlugNamespaceHook } from "../../web/hooks/plug_namespace.ts";
-import type { FileMeta } from "../../type/index.ts";
+import type { PlugNamespaceHook } from "../../client/hooks/plug_namespace.ts";
+import type { FileMeta } from "../../plug-api/types/index.ts";
 
 export class PlugSpacePrimitives implements SpacePrimitives {
   constructor(

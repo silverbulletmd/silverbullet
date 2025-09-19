@@ -1,7 +1,7 @@
-import type { EventHook } from "../../web/hooks/event.ts";
+import type { EventHook } from "../../client/hooks/event.ts";
 
 import type { SpacePrimitives } from "./space_primitives.ts";
-import type { FileMeta } from "../../type/index.ts";
+import type { FileMeta } from "../../plug-api/types/index.ts";
 import type { DataStore } from "../data/datastore.ts";
 import { notFoundError } from "../constants.ts";
 

@@ -1,4 +1,4 @@
-import type { IndexTreeEvent } from "../../type/event.ts";
+import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
 import { extractFrontMatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
 import { indexObjects, queryLuaObjects } from "./api.ts";
 import {
@@ -6,8 +6,11 @@ import {
   collectNodesOfType,
   findParentMatching,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import { extractHashtag, renderHashtag } from "../../plug-api/lib/tags.ts";
-import type { ObjectValue } from "../../type/index.ts";
+import {
+  extractHashtag,
+  renderHashtag,
+} from "@silverbulletmd/silverbullet/lib/tags";
+import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
 
 export type TagObject = ObjectValue<{

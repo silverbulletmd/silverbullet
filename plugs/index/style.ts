@@ -1,7 +1,10 @@
-import type { IndexTreeEvent } from "../../type/event.ts";
-import { collectNodesOfType, findNodeOfType } from "../../plug-api/lib/tree.ts";
+import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
+import {
+  collectNodesOfType,
+  findNodeOfType,
+} from "@silverbulletmd/silverbullet/lib/tree";
 import { indexObjects } from "./api.ts";
-import type { ObjectValue } from "../../type/index.ts";
+import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 
 export type StyleObject = ObjectValue<{
   style: string;

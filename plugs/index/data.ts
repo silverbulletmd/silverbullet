@@ -3,12 +3,12 @@ import {
   collectNodesOfType,
   findNodeOfType,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import type { IndexTreeEvent } from "../../type/event.ts";
+import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
 import { indexObjects } from "./api.ts";
 import type { TagObject } from "./tags.ts";
 import { extractFrontMatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
 import { updateITags } from "@silverbulletmd/silverbullet/lib/tags";
-import type { ObjectValue } from "../../type/index.ts";
+import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 
 type DataObject = ObjectValue<
   {

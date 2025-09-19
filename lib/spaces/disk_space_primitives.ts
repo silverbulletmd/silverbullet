@@ -3,7 +3,7 @@ import { readAll } from "@std/io/read-all";
 import type { SpacePrimitives } from "./space_primitives.ts";
 import { mime } from "mimetypes";
 
-import type { FileMeta } from "../../type/index.ts";
+import type { FileMeta } from "../../plug-api/types/index.ts";
 import { notFoundError } from "../constants.ts";
 
 function lookupContentType(path: string): string {

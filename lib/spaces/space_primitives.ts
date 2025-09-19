@@ -1,4 +1,4 @@
-import type { FileMeta } from "../../type/index.ts";
+import type { FileMeta } from "../../plug-api/types/index.ts";
 
 /**
  * A generic interface used by `Space` to interact with the underlying storage, designed to be easy to implement for different storage backends

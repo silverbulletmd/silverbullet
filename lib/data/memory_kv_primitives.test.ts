@@ -2,7 +2,7 @@ import { assertEquals } from "@std/assert";
 import { MemoryKvPrimitives } from "./memory_kv_primitives.ts";
 import { allTests } from "./kv_primitives.test.ts";
 
-import type { KV } from "../../type/datastore.ts";
+import type { KV } from "../../plug-api/types/datastore.ts";
 
 Deno.test("MemoryKvPrimitives loads from non-existent file without error", async () => {
   const tempPath = await Deno.makeTempFile() + "_nonexistent";

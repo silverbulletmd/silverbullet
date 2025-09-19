@@ -3,8 +3,8 @@ import {
   type ParseTree,
   traverseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import { tagRegex } from "../../web/markdown_parser/constants.ts";
-import type { ObjectValue } from "../../type/index.ts";
+import { tagRegex } from "../../client/markdown_parser/constants.ts";
+import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 
 export function updateITags<T>(obj: ObjectValue<T>, frontmatter: FrontMatter) {
   const itags = [obj.tag, ...frontmatter.tags || []];

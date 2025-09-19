@@ -1,11 +1,11 @@
 import type { SpacePrimitives } from "./space_primitives.ts";
 import { EventEmitter } from "../plugos/event.ts";
 import { plugPrefix } from "./constants.ts";
-import type { FileMeta } from "../../type/index.ts";
+import type { FileMeta } from "../../plug-api/types/index.ts";
 import { notFoundError } from "../constants.ts";
 import { processWithConcurrency } from "../async.ts";
 
-const syncConcurrency = 5;
+const syncConcurrency = 3;
 
 type SyncHash = number;
 

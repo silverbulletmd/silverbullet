@@ -11,9 +11,9 @@ import {
   renderToText,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { applyPatches, type SetKeyPatch } from "../../lib/yaml.ts";
-import type { ObjectValue } from "../../type/index.ts";
+import type { ObjectValue } from "../../plug-api/types/index.ts";
 
-import type { KV, KvKey, KvQuery } from "../../type/datastore.ts";
+import type { KV, KvKey, KvQuery } from "../../plug-api/types/datastore.ts";
 
 const indexKey = "idx";
 const pageKey = "ridx";

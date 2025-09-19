@@ -1,5 +1,5 @@
 import type { SpacePrimitives } from "./space_primitives.ts";
-import type { FileMeta } from "../../type/index.ts";
+import type { FileMeta } from "../../plug-api/types/index.ts";
 
 export class ReadOnlySpacePrimitives implements SpacePrimitives {
   wrapped: SpacePrimitives;

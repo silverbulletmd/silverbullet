@@ -1,7 +1,7 @@
 .env
 .DS_Store
 dist_client_bundle
-dist_plug_bundle
+dist_base_fs_bundle
 dist
 *.js.map
 website_build
@@ -16,3 +16,5 @@ deploy.json
 *.generated
 tmp_playground
 /public_version.ts
+tmp
+*.ipynb

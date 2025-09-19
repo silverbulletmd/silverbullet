@@ -9,8 +9,8 @@ import {
   replaceNodesMatching,
 } from "./tree.ts";
 import { assertEquals, assertNotEquals } from "@std/assert";
-import { parse } from "../../web/markdown_parser/parse_tree.ts";
-import { extendedMarkdownLanguage } from "../../web/markdown_parser/parser.ts";
+import { parse } from "../../client/markdown_parser/parse_tree.ts";
+import { extendedMarkdownLanguage } from "../../client/markdown_parser/parser.ts";
 
 const mdTest1 = `
 # Heading

@@ -3,7 +3,7 @@ import type { System } from "../system.ts";
 import { throttle } from "../../async.ts";
 import type { MQHookT } from "../../manifest.ts";
 import type { DataStoreMQ, QueueWorker } from "../../data/mq.datastore.ts";
-import type { MQMessage } from "../../../type/datastore.ts";
+import type { MQMessage } from "../../../plug-api/types/datastore.ts";
 
 export class MQHook implements Hook<MQHookT> {
   subscriptions: QueueWorker[] = [];

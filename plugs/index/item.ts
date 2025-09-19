@@ -1,4 +1,4 @@
-import type { IndexTreeEvent } from "../../type/event.ts";
+import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
 
 import {
   findParentMatching,
@@ -21,7 +21,7 @@ import {
   type FrontMatter,
 } from "@silverbulletmd/silverbullet/lib/frontmatter";
 import { deepClone } from "@silverbulletmd/silverbullet/lib/json";
-import type { ObjectValue } from "../../type/index.ts";
+import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 import { system } from "@silverbulletmd/silverbullet/syscalls";
 
 export type ItemObject = ObjectValue<

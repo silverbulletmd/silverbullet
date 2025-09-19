@@ -1,4 +1,4 @@
-import type { IndexTreeEvent } from "../../type/event.ts";
+import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
 
 import {
   editor,

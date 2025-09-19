@@ -1,37 +1,37 @@
 name: Build & Release
 
 on:
-    push:
-        tags:
-            - "*"
+  push:
+    tags:
+      - "*"
 jobs:
-    release:
-        runs-on: ubuntu-latest
-        permissions:
-            contents: write
-            id-token: write # The OIDC ID token is used for authentication with JSR.
-        steps:
-            - name: Setup repo
-              uses: actions/checkout@v3
-              with:
-                  fetch-depth: 0
-                  fetch-tags: true
-            - name: Setup Deno
-              uses: denoland/setup-deno@v2
-              with:
-                  deno-version: v2.5.0
-            - name: Run build
-              run: |
-                  deno task build
-            - name: Publish to JSR
-              run: deno publish --allow-dirty
-            - name: Release
-              uses: softprops/action-gh-release@v1
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              with:
-                  draft: false
-                  files: |
-                      website/CHANGELOG.md
-                      dist/plug-compile.js
-                      dist/silverbullet.js
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write # The OIDC ID token is used for authentication with JSR.
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.5.0
+      - name: Run build
+        run: |
+          deno task build-production
+          deno task build-plug-compile
+      - name: Publish to JSR
+        run: deno publish --allow-dirty
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          draft: false
+          files: |
+            website/CHANGELOG.md
+            dist/plug-compile.js
