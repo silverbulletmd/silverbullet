@@ -4,7 +4,7 @@ tmp_dir = "tmp"
 [build]
   args_bin = []
   bin = "silverbullet"
-  cmd = "deno task build-frontend && go build"
+  cmd = "deno task build && go build"
   # delay = 10000
   exclude_dir = ["node_modules", "website", "scripts", "dist_client_bundle", "dist_plug_bundle", "dist"]
   exclude_file = ["public_version.ts"]

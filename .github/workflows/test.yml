@@ -26,7 +26,7 @@ jobs:
           deno-version: v2.5.0
 
       - name: Run build
-        run: deno task build-frontend
+        run: deno task build
 
       - name: Run checks
         run: deno task checks

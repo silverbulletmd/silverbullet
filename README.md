@@ -58,7 +58,7 @@ air <PATH-TO-YOUR-SPACE>
 Alternatively, to build just the frontend:
 
 ```shell
-deno task build-frontend
+deno task build
 ```
 
 To build the backend (note: this will bundle the frontend into the same binary, so be sure to build that first):

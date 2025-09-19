@@ -1,6 +1,6 @@
 build:
 	# Build frontend
-	deno task build-frontend
+	deno task build
 	# Build backend
 	go build
 

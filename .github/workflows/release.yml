@@ -22,7 +22,7 @@ jobs:
           deno-version: v2.5.0
       - name: Run build
         run: |
-          deno task build-frontend-production
+          deno task build-production
       - name: Publish to JSR
         run: deno publish --allow-dirty
       - name: Release

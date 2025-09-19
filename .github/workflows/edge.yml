@@ -20,7 +20,7 @@ jobs:
           go-version: "1.25.1"
       - name: Compile frontend and plug-compile with Deno
         run: |
-          deno task build-frontend-production
+          deno task build-production
           deno task build-plug-compile
       - name: Build Go binaries for multiple platforms
         run: |
