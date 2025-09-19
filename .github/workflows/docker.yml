@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - "main"
-      - "go-backend"
     tags:
       - "*"
 env:
@@ -63,7 +62,7 @@ jobs:
             # When pushing to main branch, release as :edge DISABLED FOR NOW
             # type=edge,branch=main
             # When pushing to main branch, release as :v2
-            type=raw,value=v2-go,enable=${{ github.ref == 'refs/heads/go-backend' }}
+            type=raw,value=v2,enable=${{ github.ref == 'refs/heads/main' }}
 
       - name: Build and push main docker images
         uses: docker/build-push-action@v4.0.0

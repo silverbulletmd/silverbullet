@@ -4,8 +4,6 @@ on:
   push:
     tags:
       - "*"
-    branches:
-      - "go-backend"
 jobs:
   release:
     runs-on: ubuntu-latest
