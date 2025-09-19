@@ -15,16 +15,6 @@ Top level attributes: [name:: sup] [age:: 42] [children: [pete, "john", mary]]
 1. Itemized list [tag:: baz]
 `;
 
-const cleanedInlineAttributeSample = `
-# My document
-Top level attributes:
-
-* [ ] Attribute in a task
-* Regular item
-
-1. Itemized list
-`;
-
 Deno.test("Test attribute extraction", async () => {
   const tree = parse(extendedMarkdownLanguage, inlineAttributeSample);
   const toplevelAttributes = await extractAttributes(tree);

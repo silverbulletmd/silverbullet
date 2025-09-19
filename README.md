@@ -38,6 +38,20 @@ SilverBullet's frontend is written in [TypeScript](https://www.typescriptlang.or
 
 The server backend is written in Go.
 
+## Code structure
+* `client/`: The SilverBullet client, implemented with TypeScript
+* `server/`: The SilverBullet server, written in Go
+* `plugs`: Set of built-in plugs that are distributed with SilverBullet
+* `libraries`: A set of libraries (space scripts, page templates, slash templates) distributed with SilverBullet
+* `plug-api/`: Useful APIs for use in plugs
+  * `lib/`: Useful libraries to be used in plugs
+  * `syscalls/`: TypeScript wrappers around syscalls
+  * `types/`: Various (client) types that can be references from plugs
+* `bin`
+  * `plug_compile.ts` the plug compiler
+* `scripts/`: Useful scripts
+* `website/`: silverbullet.md website content
+
 ### Requirements
 * [Deno](https://deno.com/): Used to build the frontend and plugs
 * [Go](https://go.dev/): Used to build the backend
