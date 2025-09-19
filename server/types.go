@@ -11,14 +11,15 @@ type ServerConfig struct {
 	BindHost          string
 	Port              int
 	EnableHTTPLogging bool
+	// TODO: Ideally this is configurable per space, but kinda hard
+	HostURLPrefix string
 
 	ClientBundle SpacePrimitives
 }
 
 type SpaceConfig struct {
-	Hostname      string
-	HostURLPrefix string
-	Auth          *AuthOptions
+	Hostname string
+	Auth     *AuthOptions
 
 	SpacePrimitives SpacePrimitives
 
@@ -26,6 +27,7 @@ type SpaceConfig struct {
 	IndexPage       string
 	GitIgnore       string
 	ReadOnlyMode    bool
+	LogPush         bool
 
 	// Used for the PWA manifest and login page
 	SpaceName        string

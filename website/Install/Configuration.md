@@ -5,6 +5,7 @@ SilverBullet is primarily configured via environment variables. This page gives 
 * `SB_INDEX_PAGE`: Sets the default page to load, defaults to `index`.
 * `SB_SPACE_IGNORE`: Ignore certain path patterns based on a .gitignore style format, e.g. `SB_SPACE_IGNORE="IgnoreMe/*"`.
 * `SB_HTTP_LOGGING`: Set to any value to enable HTTP logging
+* `SB_LOG_PUSH`: Set to any value to ask clients to push their logs to the server (for debugging purposes)
 
 # Network
 * `SB_HOSTNAME`: Set to the hostname to bind to (defaults to `127.0.0.0`, set to `0.0.0.0` to accept outside connections for the local deno setup, defaults to `0.0.0.0` for docker)

@@ -173,6 +173,7 @@ export type BootConfig = {
   spaceFolderPath: string;
   indexPage: string;
   readOnly: boolean;
+  logPush?: boolean;
   // Sync configuration
   syncDocuments?: boolean;
   syncIgnore?: string;

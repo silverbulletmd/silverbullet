@@ -4,7 +4,6 @@ export interface LogEntry {
   level: "log" | "info" | "warn" | "error" | "debug";
   timestamp: number;
   message: string;
-  args: any[];
 }
 
 export class Logger {
@@ -15,7 +14,7 @@ export class Logger {
     error: typeof console.error;
     debug: typeof console.debug;
   };
-  private logCapture: LogEntry[] = [];
+  public logBuffer: LogEntry[] = [];
 
   constructor(
     private prefix: string = "",
@@ -70,29 +69,42 @@ export class Logger {
           return String(arg);
         }
       }).join(" "),
-      args: args.map((arg) => {
-        // Serialize complex objects for safe transmission
-        try {
-          return typeof arg === "object"
-            ? JSON.parse(JSON.stringify(arg))
-            : arg;
-        } catch {
-          // This may fail due to recursive structures, in that case just fall back to a best-effort string
-          return String(arg);
-        }
-      }),
     };
 
-    this.logCapture.push(entry);
+    this.logBuffer.push(entry);
 
     // Maintain max capture size by removing oldest entries
-    if (this.logCapture.length > this.maxCaptureSize) {
-      this.logCapture.shift();
+    if (this.logBuffer.length > this.maxCaptureSize) {
+      this.logBuffer.shift();
     }
   }
 
-  getCapturedLogs(): LogEntry[] {
-    return [...this.logCapture];
+  /**
+   * Posts all buffered logs to a server endpoint
+   */
+  async postToServer(logEndpoint: string, source: string) {
+    const logs = this.logBuffer;
+    if (logs.length > 0) {
+      // Flush the buffer
+      const logCopy = [...this.logBuffer];
+      this.logBuffer = [];
+      try {
+        const resp = await fetch(logEndpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(logCopy.map((entry) => ({ ...entry, source }))),
+        });
+        if (!resp.ok) {
+          throw new Error("Failed to post logs to server");
+        }
+      } catch (e: any) {
+        console.warn("Could not post logs to server", e.message);
+        // Put back the logs into the buffer
+        this.logBuffer.unshift(...logCopy);
+      }
+    }
   }
 }
 

@@ -17,6 +17,9 @@ type BootConfig struct {
 	SpaceFolderPath string `json:"spaceFolderPath"`
 	IndexPage       string `json:"indexPage"`
 	ReadOnly        bool   `json:"readOnly"`
+
+	// Whether or not the client should push logs to the server
+	LogPush bool `json:"logPush"`
 }
 
 func RunServer(config *ServerConfig) error {
@@ -25,6 +28,8 @@ func RunServer(config *ServerConfig) error {
 	if config.EnableHTTPLogging {
 		r.Use(middleware.Logger)
 	}
+
+	r.Use(middleware.RealIP)
 
 	// Expose space primitives and path to the request
 	r.Use(spaceMiddleware(config))
@@ -35,22 +40,25 @@ func RunServer(config *ServerConfig) error {
 	// Authentication endpoints (must come before auth middleware)
 	addAuthEndpoints(r, config)
 
-	r.Get("/.ping", func(w http.ResponseWriter, r *http.Request) {
+	routes := chi.NewRouter()
+
+	routes.Get("/.ping", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-cache")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	})
 
 	// Mount filesystem routes under /.fs
-	r.Mount("/.fs", buildFsRoutes())
+	routes.Mount("/.fs", buildFsRoutes())
 
 	// Config endpoint
-	r.Get("/.config", func(w http.ResponseWriter, r *http.Request) {
+	routes.Get("/.config", func(w http.ResponseWriter, r *http.Request) {
 		spaceConfig := spaceConfigFromContext(r.Context())
 		clientConfig := &BootConfig{
 			SpaceFolderPath: spaceConfig.SpaceFolderPath,
 			IndexPage:       spaceConfig.IndexPage,
 			ReadOnly:        spaceConfig.ReadOnlyMode,
+			LogPush:         spaceConfig.LogPush,
 		}
 
 		w.Header().Set("Cache-Control", "no-cache")
@@ -58,15 +66,18 @@ func RunServer(config *ServerConfig) error {
 	})
 
 	// Shell endpoint
-	r.Post("/.shell", handleShellEndpoint(config))
+	routes.Post("/.shell", handleShellEndpoint)
+
+	// Log collection endpoint
+	routes.Post("/.logs", handleLogsEndpoint)
 
 	// Proxy endpoint
-	r.HandleFunc("/.proxy/*", proxyHandler(config))
+	routes.HandleFunc("/.proxy/*", proxyHandler)
 
 	// Manifest endpoint
-	r.HandleFunc("/.client/manifest.json", manifestHandler(config))
+	routes.HandleFunc("/.client/manifest.json", manifestHandler)
 
-	r.HandleFunc("/*", func(w http.ResponseWriter, r *http.Request) {
+	routes.HandleFunc("/*", func(w http.ResponseWriter, r *http.Request) {
 		path := chi.URLParam(r, "*")
 
 		spaceConfig := spaceConfigFromContext(r.Context())
@@ -89,6 +100,12 @@ func RunServer(config *ServerConfig) error {
 		// TODO: handle request types
 		ServerSideRender(config, spaceConfig, path, w, r)
 	})
+
+	if config.HostURLPrefix == "" {
+		r.Mount("/", routes)
+	} else {
+		r.Mount(config.HostURLPrefix, routes)
+	}
 
 	// Display the final server running message
 	visibleHostname := config.BindHost

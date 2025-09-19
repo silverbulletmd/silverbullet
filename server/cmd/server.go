@@ -53,6 +53,11 @@ func buildConfig(bundledFiles fs.FS, args []string) *server.ServerConfig {
 		rootSpaceConfig.SpaceFolderPath = os.Getenv("SB_FOLDER")
 	}
 
+	if os.Getenv("SB_LOG_PUSH") != "" {
+		rootSpaceConfig.LogPush = true
+		log.Println("Client log push enabled")
+	}
+
 	if rootSpaceConfig.SpaceFolderPath == "" {
 		log.Fatal("No folder specified. Please pass a folder as an argument or set SB_FOLDER environment variable.")
 	}
@@ -126,7 +131,7 @@ func buildConfig(bundledFiles fs.FS, args []string) *server.ServerConfig {
 
 		if hostUrlPrefix != "" {
 			log.Printf("Host URL Prefix: %s", hostUrlPrefix)
-			rootSpaceConfig.HostURLPrefix = hostUrlPrefix
+			serverConfig.HostURLPrefix = hostUrlPrefix
 		}
 	}
 
@@ -141,7 +146,6 @@ func buildConfig(bundledFiles fs.FS, args []string) *server.ServerConfig {
 	serverConfig.ClientBundle = server.NewReadOnlyFallthroughSpacePrimitives(bundledFiles, "dist_client_bundle", bundlePathDate, nil)
 	rootSpaceConfig.SpacePrimitives = server.NewReadOnlyFallthroughSpacePrimitives(bundledFiles, "dist_base_fs_bundle", bundlePathDate, spacePrimitives)
 
-	log.Printf("Starting SilverBullet binding to %s:%d", serverConfig.BindHost, serverConfig.Port)
 	if serverConfig.BindHost == "127.0.0.1" {
 		log.Println("SilverBullet will only be available locally, to allow outside connections, pass -L0.0.0.0 as a flag, and put a TLS terminator on top.")
 	}
@@ -173,7 +177,7 @@ func ServerCommand(bundledFiles fs.FS) *cobra.Command {
 		Args:  cobra.MinimumNArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
 			serverConfig := buildConfig(bundledFiles, args)
-			if port != 0 {
+			if port != 3000 {
 				serverConfig.Port = port
 			}
 			if hostname != "" {

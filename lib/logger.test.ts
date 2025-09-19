@@ -72,25 +72,21 @@ Deno.test("Logger log capture", () => {
   console.warn("Third message", 123);
   console.error("Fourth message");
 
-  const capturedLogs = logger.getCapturedLogs();
+  const capturedLogs = logger.logBuffer;
 
   assertEquals(capturedLogs.length, 4);
 
   assertEquals(capturedLogs[0].level, "log");
   assertEquals(capturedLogs[0].message, "First message");
-  assertEquals(capturedLogs[0].args, ["First message"]);
 
   assertEquals(capturedLogs[1].level, "info");
   assertEquals(capturedLogs[1].message, 'Second message {"key":"value"}');
-  assertEquals(capturedLogs[1].args, ["Second message", { key: "value" }]);
 
   assertEquals(capturedLogs[2].level, "warn");
   assertEquals(capturedLogs[2].message, "Third message 123");
-  assertEquals(capturedLogs[2].args, ["Third message", 123]);
 
   assertEquals(capturedLogs[3].level, "error");
   assertEquals(capturedLogs[3].message, "Fourth message");
-  assertEquals(capturedLogs[3].args, ["Fourth message"]);
 
   // Check that all entries have timestamps
   capturedLogs.forEach((entry) => {
@@ -109,7 +105,7 @@ Deno.test("Logger max capture size", () => {
   console.log("Message 4");
   console.log("Message 5");
 
-  const capturedLogs = logger.getCapturedLogs();
+  const capturedLogs = logger.logBuffer;
 
   // Should only keep the last 3 messages
   assertEquals(capturedLogs.length, 3);
@@ -153,15 +149,16 @@ Deno.test("Logger handles complex objects", () => {
   console.log("Complex object:", complexObject);
   console.log("Circular object:", circularObject);
 
-  const capturedLogs = logger.getCapturedLogs();
+  const capturedLogs = logger.logBuffer;
 
   assertEquals(capturedLogs.length, 2);
 
   // First log should handle complex object properly
-  assertEquals(capturedLogs[0].args[0], "Complex object:");
-  assertEquals(capturedLogs[0].args[1], complexObject);
+  assertEquals(
+    capturedLogs[0].message,
+    `Complex object: {"name":"test","nested":{"value":42},"array":[1,2,3]}`,
+  );
 
   // Second log should handle circular reference gracefully
-  assertEquals(capturedLogs[1].args[0], "Circular object:");
-  assertEquals(typeof capturedLogs[1].args[1], "string"); // Should be converted to string
+  assertEquals(capturedLogs[1].message, `Circular object: [object Object]`);
 });

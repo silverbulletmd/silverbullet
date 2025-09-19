@@ -13,7 +13,7 @@ import { DataStoreSpacePrimitives } from "../lib/spaces/datastore_space_primitiv
 import { HttpSpacePrimitives } from "../lib/spaces/http_space_primitives.ts";
 import { throttleImmediately } from "../lib/async.ts";
 
-initLogger("[Service Worker]");
+const logger = initLogger("[Service Worker]");
 
 // Note: the only thing cached here is SilverBullet client assets, files are kept in IndexedDB
 const CACHE_NAME = "{{CACHE_NAME}}";
@@ -157,6 +157,12 @@ self.addEventListener("message", async (event: any) => {
           simpleHash(`${spaceFolderPath}:${baseURI.replace(/\/*$/, "")}`);
         // And we'll use a _files postfix to signify where synced files are kept
         const dbName = `${spaceHash}_files`;
+
+        if (config.logPush) {
+          setInterval(() => {
+            logger.postToServer(".logs", "service_worker");
+          }, 1000);
+        }
 
         // Setup KV (database) for store synced files
         const kv = new IndexedDBKvPrimitives(dbName);

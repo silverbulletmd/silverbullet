@@ -12,6 +12,7 @@ const alwaysProxy = [
   "/.shell",
   "/.logout",
   "/.config",
+  "/.logs",
 ];
 
 const pingTimeout = 2000;

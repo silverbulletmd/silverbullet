@@ -69,7 +69,7 @@ func ServerSideRender(config *ServerConfig, spaceConfig *SpaceConfig, pageName s
 		Content     string
 	}{
 		Title:      "SilverBullet",
-		HostPrefix: spaceConfig.HostURLPrefix,
+		HostPrefix: config.HostURLPrefix,
 	}
 
 	if spaceConfig.ReadOnlyMode && spaceConfig.Auth == nil {

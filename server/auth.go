@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	"math"
 	"net/http"
 	"path"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -27,15 +29,14 @@ func addAuthEndpoints(r chi.Router, config *ServerConfig) {
 	// Logout
 	r.Get("/.logout", func(w http.ResponseWriter, r *http.Request) {
 		host := extractHost(r)
-		spaceConfig := spaceConfigFromContext(r.Context())
 		cookieOptions := CookieOptions{
-			Path: fmt.Sprintf("%s/", spaceConfig.HostURLPrefix),
+			Path: fmt.Sprintf("%s/", config.HostURLPrefix),
 		}
 
 		deleteCookie(w, authCookieName(host), cookieOptions)
 		deleteCookie(w, "refreshLogin", cookieOptions)
 
-		http.Redirect(w, r, applyURLPrefix("/.auth", spaceConfig.HostURLPrefix), http.StatusFound)
+		http.Redirect(w, r, applyURLPrefix("/.auth", config.HostURLPrefix), http.StatusFound)
 	})
 
 	// Auth page
@@ -58,7 +59,7 @@ func addAuthEndpoints(r chi.Router, config *ServerConfig) {
 			HostPrefix string
 			SpaceName  string
 		}{
-			HostPrefix: spaceConfig.HostURLPrefix,
+			HostPrefix: config.HostURLPrefix,
 			SpaceName:  spaceConfig.SpaceName,
 		}
 
@@ -88,13 +89,13 @@ func addAuthEndpoints(r chi.Router, config *ServerConfig) {
 		from := r.FormValue("from")
 
 		if username == "" || password == "" {
-			http.Redirect(w, r, applyURLPrefix("/.auth?error=0", spaceConfig.HostURLPrefix), http.StatusFound)
+			http.Redirect(w, r, applyURLPrefix("/.auth?error=0", config.HostURLPrefix), http.StatusFound)
 			return
 		}
 
 		if spaceConfig.LockoutTimer.IsLocked() {
 			log.Println("Authentication locked out, redirecting to auth page.")
-			http.Redirect(w, r, applyURLPrefix("/.auth?error=2", spaceConfig.HostURLPrefix), http.StatusFound)
+			http.Redirect(w, r, applyURLPrefix("/.auth?error=2", config.HostURLPrefix), http.StatusFound)
 			return
 		}
 
@@ -122,7 +123,7 @@ func addAuthEndpoints(r chi.Router, config *ServerConfig) {
 			inAWeek := time.Now().Add(time.Duration(authenticationExpirySeconds) * time.Second)
 
 			cookieOptions := CookieOptions{
-				Path:    fmt.Sprintf("%s/", spaceConfig.HostURLPrefix),
+				Path:    fmt.Sprintf("%s/", config.HostURLPrefix),
 				Expires: inAWeek,
 			}
 
@@ -137,12 +138,12 @@ func addAuthEndpoints(r chi.Router, config *ServerConfig) {
 				redirectPath = from
 			}
 
-			http.Redirect(w, r, applyURLPrefix(redirectPath, spaceConfig.HostURLPrefix), http.StatusFound)
+			http.Redirect(w, r, applyURLPrefix(redirectPath, config.HostURLPrefix), http.StatusFound)
 		} else {
 			log.Println("Authentication failed, redirecting to auth page.")
 			spaceConfig.LockoutTimer.AddCount()
 
-			http.Redirect(w, r, applyURLPrefix("/.auth?error=1", spaceConfig.HostURLPrefix), http.StatusFound)
+			http.Redirect(w, r, applyURLPrefix("/.auth?error=1", config.HostURLPrefix), http.StatusFound)
 		}
 	})
 }
@@ -178,7 +179,7 @@ func authMiddleware(config *ServerConfig) func(http.Handler) http.Handler {
 				return
 			}
 
-			path := removeURLPrefix(r.URL.Path, spaceConfig.HostURLPrefix)
+			path := removeURLPrefix(r.URL.Path, config.HostURLPrefix)
 			host := extractHost(r)
 
 			if isExcludedPath(path) {
@@ -211,7 +212,7 @@ func authMiddleware(config *ServerConfig) func(http.Handler) http.Handler {
 
 			if authCookie == "" {
 				log.Printf("Unauthorized access to %s, redirecting to auth page", path)
-				redirectToAuth(w, "/.auth", path, spaceConfig.HostURLPrefix)
+				redirectToAuth(w, "/.auth", path, config.HostURLPrefix)
 				return
 			}
 
@@ -219,14 +220,14 @@ func authMiddleware(config *ServerConfig) func(http.Handler) http.Handler {
 			claims, err := spaceConfig.JwtIssuer.VerifyAndDecodeJWT(authCookie)
 			if err != nil {
 				log.Printf("Error verifying JWT on %s, redirecting to auth page: %v\n", path, err)
-				redirectToAuth(w, "/.auth", path, spaceConfig.HostURLPrefix)
+				redirectToAuth(w, "/.auth", path, config.HostURLPrefix)
 				return
 			}
 
 			username, ok := claims["username"].(string)
 			if !ok || username != spaceConfig.Auth.User {
 				log.Printf("Username mismatch in JWT on %s", path)
-				redirectToAuth(w, "/.auth", path, spaceConfig.HostURLPrefix)
+				redirectToAuth(w, "/.auth", path, config.HostURLPrefix)
 				return
 			}
 
@@ -239,13 +240,12 @@ func authMiddleware(config *ServerConfig) func(http.Handler) http.Handler {
 // refreshLogin refreshes the login cookie if needed
 func refreshLogin(w http.ResponseWriter, r *http.Request, config *ServerConfig, host string) {
 	if getCookie(r, "refreshLogin") != "" {
-		spaceConfig := spaceConfigFromContext(r.Context())
 		inAWeek := time.Now().Add(time.Duration(authenticationExpirySeconds) * time.Second)
 		jwt := getCookie(r, authCookieName(host))
 
 		if jwt != "" {
 			cookieOptions := CookieOptions{
-				Path:    fmt.Sprintf("%s/", spaceConfig.HostURLPrefix),
+				Path:    fmt.Sprintf("%s/", config.HostURLPrefix),
 				Expires: inAWeek,
 			}
 
@@ -253,4 +253,66 @@ func refreshLogin(w http.ResponseWriter, r *http.Request, config *ServerConfig, 
 			setCookie(w, "refreshLogin", "true", cookieOptions)
 		}
 	}
+}
+
+// LockoutTimer implements a simple rate limiter to prevent brute force attacks
+type LockoutTimer struct {
+	mutex       sync.Mutex
+	bucketTime  int64
+	bucketCount int
+	bucketSize  int64 // duration in milliseconds
+	limit       int
+	disabled    bool
+}
+
+// NewLockoutTimer creates a new lockout timer
+// countPeriodMs: time window in milliseconds
+// limit: maximum attempts allowed in the time window
+func NewLockoutTimer(countPeriodMs int, limit int) *LockoutTimer {
+	disabled := math.IsNaN(float64(countPeriodMs)) || math.IsNaN(float64(limit)) ||
+		countPeriodMs < 1 || limit < 1
+
+	return &LockoutTimer{
+		bucketSize: int64(countPeriodMs),
+		limit:      limit,
+		disabled:   disabled,
+	}
+}
+
+// updateBucketTime updates the current bucket time and resets count if needed
+func (lt *LockoutTimer) updateBucketTime() {
+	currentBucketTime := time.Now().UnixMilli() / lt.bucketSize
+	if lt.bucketTime == currentBucketTime {
+		return
+	}
+	// the bucket is too old - empty it
+	lt.bucketTime = currentBucketTime
+	lt.bucketCount = 0
+}
+
+// IsLocked checks if the timer is currently locked due to too many attempts
+func (lt *LockoutTimer) IsLocked() bool {
+	if lt.disabled {
+		return false
+	}
+
+	lt.mutex.Lock()
+	defer lt.mutex.Unlock()
+
+	lt.updateBucketTime()
+	return lt.bucketCount >= lt.limit
+}
+
+// AddCount increments the attempt counter
+// IsLocked() should be called first to keep bucketTime current
+func (lt *LockoutTimer) AddCount() {
+	if lt.disabled {
+		return
+	}
+
+	lt.mutex.Lock()
+	defer lt.mutex.Unlock()
+
+	// updateBucketTime should have been called by IsLocked first
+	lt.bucketCount++
 }
