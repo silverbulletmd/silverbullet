@@ -184,7 +184,7 @@ func ServerCommand(bundledFiles fs.FS) *cobra.Command {
 			}
 		},
 	}
-	c.Flags().StringVarP(&hostname, "hostname", "L", "127.0.0.1", "Host or address to listen to")
+	c.Flags().StringVarP(&hostname, "hostname", "L", "", "Host or address to listen to")
 	c.Flags().IntVarP(&port, "port", "p", 3000, "Port to listen to")
 
 	return c
