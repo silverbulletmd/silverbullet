@@ -131,7 +131,7 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
         );
         operations = operations + fileOperations;
         filesProcessed++;
-        if (fileOperations > 1) {
+        if (fileOperations > 0) {
           // Only report something significant
           this.emit("syncProgress", {
             filesProcessed,
