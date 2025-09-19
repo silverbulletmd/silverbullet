@@ -13,7 +13,7 @@ import * as ct from "./customtags.ts";
 import { NakedURLTag } from "./customtags.ts";
 import { TaskList } from "./extended_task.ts";
 import { Table } from "./table_parser.ts";
-import { pWikiLinkRegex, tagRegex } from "./constants.ts";
+import {nakedUrlRegex, pWikiLinkRegex, tagRegex} from "./constants.ts";
 import { parse } from "./parse_tree.ts";
 import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
 import { luaLanguage } from "../../lib/space_lua/parse.ts";
@@ -291,8 +291,7 @@ function regexParser({
 const NakedURL = regexParser(
   {
     firstCharCode: 104, // h
-    regex:
-      /(^https?:\/\/([-a-zA-Z0-9@:%_\+~#=]|(?:[.](?!(\s|$)))){1,256})(([-a-zA-Z0-9(@:%_\+~#?&=\/]|(?:[.,:;)](?!(\s|$))))*)/,
+    regex:new RegExp(`^${nakedUrlRegex.source}`),
     nodeType: "NakedURL",
     className: "sb-naked-url",
     tag: NakedURLTag,
