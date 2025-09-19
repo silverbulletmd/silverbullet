@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -80,18 +79,8 @@ func RunServer(config *ServerConfig) error {
 			w.Write(data)
 			return
 		}
-		data, _, _ = config.ClientBundle.ReadFile(indexHtmlPath)
 
-		// Replace template variables in index.html
-		htmlContent := string(data)
-		htmlContent = strings.ReplaceAll(htmlContent, "{{HOST_URL_PREFIX}}", spaceConfig.HostURLPrefix)
-		htmlContent = strings.ReplaceAll(htmlContent, "{{TITLE}}", "SilverBullet")
-		htmlContent = strings.ReplaceAll(htmlContent, "{{DESCRIPTION}}", "SilverBullet - A note-taking application")
-		htmlContent = strings.ReplaceAll(htmlContent, "{{CONTENT}}", "")
-
-		w.Header().Set("Content-Type", "text/html")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(htmlContent))
+		ServerSideRender(config, spaceConfig, path, w, r)
 	})
 
 	// Display the final server running message

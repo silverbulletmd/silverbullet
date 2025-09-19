@@ -21,10 +21,15 @@ type SpaceConfig struct {
 	Auth          *AuthOptions
 
 	SpacePrimitives SpacePrimitives
+
 	SpaceFolderPath string
 	IndexPage       string
 	GitIgnore       string
 	ReadOnlyMode    bool
+
+	// Used for the PWA manifest and login page
+	SpaceName        string
+	SpaceDescription string
 
 	// Shell configuration
 	ShellBackend ShellBackend

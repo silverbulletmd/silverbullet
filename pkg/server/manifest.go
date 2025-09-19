@@ -2,7 +2,6 @@ package server
 
 import (
 	"net/http"
-	"os"
 
 	"github.com/go-chi/render"
 )
@@ -33,8 +32,8 @@ func manifestHandler(config *ServerConfig) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		spaceConfig := spaceConfigFromContext(r.Context())
 		manifest := Manifest{
-			ShortName: "SilverBullet",
-			Name:      "SilverBullet",
+			ShortName: spaceConfig.SpaceName,
+			Name:      spaceConfig.SpaceName,
 			Icons: []ManifestIcon{
 				{
 					Src:   "/.client/logo-dock.png",
@@ -48,16 +47,7 @@ func manifestHandler(config *ServerConfig) http.HandlerFunc {
 			DisplayOverride: []string{"window-controls-overlay"},
 			Scope:           "/",
 			ThemeColor:      "#e1e1e1",
-			Description:     "Markdown as a platform",
-		}
-
-		// Override with environment variables if set
-		if os.Getenv("SB_NAME") != "" {
-			manifest.Name = os.Getenv("SB_NAME")
-			manifest.ShortName = os.Getenv("SB_NAME")
-		}
-		if os.Getenv("SB_DESCRIPTION") != "" {
-			manifest.Description = os.Getenv("SB_DESCRIPTION")
+			Description:     spaceConfig.SpaceDescription,
 		}
 
 		if spaceConfig.HostURLPrefix != "" {

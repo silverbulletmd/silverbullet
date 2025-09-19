@@ -2,22 +2,25 @@ package server
 
 import (
 	"fmt"
+	"html/template"
+	"log"
 	"net/http"
 	"path"
 	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/render"
 )
 
+// path to auth page in the client bundle
 const authPagePath = ".client/auth.html"
 
+// These endpoints are not protected by auth
 var excludedPaths = []string{
-	"/.client/",
-	"/.auth",
-	"/.logout",
-	"/.ping",
+	"/service_worker.js", // because browser fetch this without sending any cookie (auth) headers
+	"/.client/",          // to allow a basic UI to load, not 100% sure this is necessary to exclude
+	"/.auth",             // otherwise the authentication UI would be behind authentication
+	"/.ping",             // because docker needs to be able to access this for its health check
 }
 
 func addAuthEndpoints(r chi.Router, config *ServerConfig) {
@@ -49,10 +52,22 @@ func addAuthEndpoints(r chi.Router, config *ServerConfig) {
 			return
 		}
 
-		htmlContent := string(data)
-		htmlContent = strings.ReplaceAll(htmlContent, "{{HOST_URL_PREFIX}}", spaceConfig.HostURLPrefix)
+		tpl := template.Must(template.New("auth").Parse(string(data)))
 
-		render.HTML(w, r, htmlContent)
+		templateData := struct {
+			HostPrefix string
+			SpaceName  string
+		}{
+			HostPrefix: spaceConfig.HostURLPrefix,
+			SpaceName:  spaceConfig.SpaceName,
+		}
+
+		w.Header().Set("Content-type", "text/html")
+		w.WriteHeader(http.StatusOK)
+		if err := tpl.Execute(w, templateData); err != nil {
+			log.Printf("Could not render auth page: %v", err)
+			w.Write([]byte("Server error"))
+		}
 	})
 
 	// Auth POST endpoint
@@ -62,26 +77,29 @@ func addAuthEndpoints(r chi.Router, config *ServerConfig) {
 			http.Error(w, "Failed to initialize authentication", http.StatusInternalServerError)
 			return
 		}
-		username := parseFormValue(r, "username")
-		password := parseFormValue(r, "password")
-		rememberMe := parseFormValue(r, "rememberMe")
-		from := parseFormValue(r, "from")
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, "Failed to parse form", http.StatusBadRequest)
+			return
+		}
+
+		username := r.FormValue("username")
+		password := r.FormValue("password")
+		rememberMe := r.FormValue("rememberMe")
+		from := r.FormValue("from")
 
 		if username == "" || password == "" {
-			w.Header().Set("Location", applyURLPrefix("/.auth?error=0", spaceConfig.HostURLPrefix))
-			w.WriteHeader(http.StatusFound)
+			http.Redirect(w, r, applyURLPrefix("/.auth?error=0", spaceConfig.HostURLPrefix), http.StatusFound)
 			return
 		}
 
 		if spaceConfig.LockoutTimer.IsLocked() {
 			fmt.Println("Authentication locked out, redirecting to auth page.")
-			w.Header().Set("Location", applyURLPrefix("/.auth?error=2", spaceConfig.HostURLPrefix))
-			w.WriteHeader(http.StatusFound)
+			http.Redirect(w, r, applyURLPrefix("/.auth?error=2", spaceConfig.HostURLPrefix), http.StatusFound)
 			return
 		}
 
 		if username == spaceConfig.Auth.User && password == spaceConfig.Auth.Pass {
-			// Generate JWT
+			// Generate JWT with username (not currently used)
 			payload := map[string]any{
 				"username": username,
 			}
@@ -119,13 +137,12 @@ func addAuthEndpoints(r chi.Router, config *ServerConfig) {
 				redirectPath = from
 			}
 
-			w.Header().Set("Location", applyURLPrefix(redirectPath, spaceConfig.HostURLPrefix))
-			w.WriteHeader(http.StatusFound)
+			http.Redirect(w, r, applyURLPrefix(redirectPath, spaceConfig.HostURLPrefix), http.StatusFound)
 		} else {
 			fmt.Println("Authentication failed, redirecting to auth page.")
 			spaceConfig.LockoutTimer.AddCount()
-			w.Header().Set("Location", applyURLPrefix("/.auth?error=1", spaceConfig.HostURLPrefix))
-			w.WriteHeader(http.StatusFound)
+
+			http.Redirect(w, r, applyURLPrefix("/.auth?error=1", spaceConfig.HostURLPrefix), http.StatusFound)
 		}
 	})
 }
@@ -193,7 +210,7 @@ func authMiddleware(config *ServerConfig) func(http.Handler) http.Handler {
 			}
 
 			if authCookie == "" {
-				fmt.Println("Unauthorized access, redirecting to auth page")
+				log.Printf("Unauthorized access to %s, redirecting to auth page", path)
 				redirectToAuth(w, "/.auth", path, spaceConfig.HostURLPrefix)
 				return
 			}
@@ -201,14 +218,14 @@ func authMiddleware(config *ServerConfig) func(http.Handler) http.Handler {
 			// Verify JWT
 			claims, err := spaceConfig.JwtIssuer.VerifyAndDecodeJWT(authCookie)
 			if err != nil {
-				fmt.Printf("Error verifying JWT, redirecting to auth page: %v\n", err)
+				log.Printf("Error verifying JWT on %s, redirecting to auth page: %v\n", path, err)
 				redirectToAuth(w, "/.auth", path, spaceConfig.HostURLPrefix)
 				return
 			}
 
 			username, ok := claims["username"].(string)
 			if !ok || username != spaceConfig.Auth.User {
-				fmt.Println("Username mismatch in JWT")
+				log.Printf("Username mismatch in JWT on %s", path)
 				redirectToAuth(w, "/.auth", path, spaceConfig.HostURLPrefix)
 				return
 			}

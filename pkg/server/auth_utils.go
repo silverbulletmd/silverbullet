@@ -35,25 +35,6 @@ func setCookie(w http.ResponseWriter, name, value string, options CookieOptions)
 		cookie.Expires = options.Expires
 	}
 
-	if options.HttpOnly {
-		cookie.HttpOnly = true
-	}
-
-	if options.Secure {
-		cookie.Secure = true
-	}
-
-	if options.SameSite != "" {
-		switch strings.ToLower(options.SameSite) {
-		case "strict":
-			cookie.SameSite = http.SameSiteStrictMode
-		case "lax":
-			cookie.SameSite = http.SameSiteLaxMode
-		case "none":
-			cookie.SameSite = http.SameSiteNoneMode
-		}
-	}
-
 	http.SetCookie(w, cookie)
 }
 
@@ -144,8 +125,5 @@ func isExcludedPath(path string) bool {
 
 // parseFormValue safely extracts a form value
 func parseFormValue(r *http.Request, key string) string {
-	if err := r.ParseForm(); err != nil {
-		return ""
-	}
 	return r.FormValue(key)
 }

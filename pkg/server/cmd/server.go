@@ -20,7 +20,9 @@ func buildConfig(bundledFiles fs.FS, args []string) *server.ServerConfig {
 	}
 
 	rootSpaceConfig := &server.SpaceConfig{
-		IndexPage: "index",
+		IndexPage:        "index",
+		SpaceName:        "SilverBullet",
+		SpaceDescription: "Powerful and programmable note taking app",
 	}
 
 	// For now just point every request to the rootSpaceConfig
@@ -95,6 +97,14 @@ func buildConfig(bundledFiles fs.FS, args []string) *server.ServerConfig {
 	}
 
 	rootSpaceConfig.ReadOnlyMode = os.Getenv("SB_READ_ONLY") != ""
+
+	if os.Getenv("SB_NAME") != "" {
+		rootSpaceConfig.SpaceName = os.Getenv("SB_NAME")
+	}
+
+	if os.Getenv("SB_DESCRIPTION") != "" {
+		rootSpaceConfig.SpaceDescription = os.Getenv("SB_DESCRIPTION")
+	}
 
 	if rootSpaceConfig.ReadOnlyMode {
 		log.Println("Starting in read-only mode.")
