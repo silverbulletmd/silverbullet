@@ -1,8 +1,8 @@
 package server
 
 import (
-	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"regexp"
 	"strings"
@@ -44,7 +44,7 @@ func proxyHandler(config *ServerConfig) http.HandlerFunc {
 			targetURL = "https://" + path
 		}
 
-		fmt.Printf("Proxying to %s\n", targetURL)
+		log.Printf("Proxying to %s\n", targetURL)
 
 		// Create the proxy request
 		req, err := http.NewRequest(r.Method, targetURL, r.Body)
@@ -76,7 +76,7 @@ func proxyHandler(config *ServerConfig) http.HandlerFunc {
 
 		resp, err := client.Do(req)
 		if err != nil {
-			fmt.Printf("Error fetching proxied URL: %v\n", err)
+			log.Printf("Error fetching proxied URL: %v\n", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}

@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"log"
 	"maps"
 	"os"
 	"time"
@@ -61,7 +62,7 @@ func (j *Authenticator) save() error {
 // Init initializes the JWT issuer with an auth string for validation
 func (j *Authenticator) init(authConfig *AuthOptions) error {
 	if j.SecretKey == "" {
-		fmt.Println("Generating new JWT secret key")
+		log.Println("Generating new JWT secret key")
 		if err := j.generateNewKey(); err != nil {
 			return err
 		}
@@ -69,7 +70,7 @@ func (j *Authenticator) init(authConfig *AuthOptions) error {
 
 	newAuthHash := j.hashOptions(authConfig)
 	if j.AuthHash != newAuthHash {
-		fmt.Println("Authentication has changed since last run, so invalidating all existing tokens")
+		log.Println("Authentication has changed since last run, so invalidating all existing tokens")
 		// Generate new key to invalidate all existing tokens
 		if err := j.generateNewKey(); err != nil {
 			return err

@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -115,7 +114,7 @@ func handleFsPut(w http.ResponseWriter, r *http.Request) {
 	// Write file
 	meta, err := spaceConfig.SpacePrimitives.WriteFile(path, body, getFileMetaFromHeaders(r.Header, path))
 	if err != nil {
-		fmt.Printf("Write failed: %v\n", err)
+		log.Printf("Write failed: %v\n", err)
 		http.Error(w, "Write failed", http.StatusInternalServerError)
 		return
 	}
@@ -136,14 +135,12 @@ func handleFsDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("Deleting file: %s\n", path)
-
 	err = spaceConfig.SpacePrimitives.DeleteFile(path)
 	if err != nil {
 		if err == ErrNotFound {
 			http.NotFound(w, r)
 		} else {
-			fmt.Printf("Error deleting file: %v\n", err)
+			log.Printf("Error deleting file: %v\n", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 		return

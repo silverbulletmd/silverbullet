@@ -93,7 +93,7 @@ func addAuthEndpoints(r chi.Router, config *ServerConfig) {
 		}
 
 		if spaceConfig.LockoutTimer.IsLocked() {
-			fmt.Println("Authentication locked out, redirecting to auth page.")
+			log.Println("Authentication locked out, redirecting to auth page.")
 			http.Redirect(w, r, applyURLPrefix("/.auth?error=2", spaceConfig.HostURLPrefix), http.StatusFound)
 			return
 		}
@@ -113,7 +113,7 @@ func addAuthEndpoints(r chi.Router, config *ServerConfig) {
 			}
 
 			if err != nil {
-				fmt.Printf("Failed to create JWT: %v\n", err)
+				log.Printf("Failed to create JWT: %v\n", err)
 				http.Error(w, "Internal server error", http.StatusInternalServerError)
 				return
 			}
@@ -139,7 +139,7 @@ func addAuthEndpoints(r chi.Router, config *ServerConfig) {
 
 			http.Redirect(w, r, applyURLPrefix(redirectPath, spaceConfig.HostURLPrefix), http.StatusFound)
 		} else {
-			fmt.Println("Authentication failed, redirecting to auth page.")
+			log.Println("Authentication failed, redirecting to auth page.")
 			spaceConfig.LockoutTimer.AddCount()
 
 			http.Redirect(w, r, applyURLPrefix("/.auth?error=1", spaceConfig.HostURLPrefix), http.StatusFound)
@@ -202,7 +202,7 @@ func authMiddleware(config *ServerConfig) func(http.Handler) http.Handler {
 						next.ServeHTTP(w, r)
 						return
 					} else {
-						fmt.Println("Unauthorized token access")
+						log.Println("Unauthorized token access")
 						http.Error(w, "Unauthorized", http.StatusUnauthorized)
 						return
 					}

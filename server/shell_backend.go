@@ -2,7 +2,7 @@ package server
 
 import (
 	"bytes"
-	"fmt"
+	"log"
 	"os/exec"
 	"slices"
 	"strings"
@@ -32,7 +32,7 @@ func NewLocalShell(cwd string, cmdWhiteList string) *LocalShell {
 func (ls *LocalShell) Handle(request ShellRequest) (ShellResponse, error) {
 	// Check if command is whitelisted
 	if !ls.AllowAllCmds && !slices.Contains(ls.CmdWhiteList, request.Cmd) {
-		fmt.Printf("Not running shell command because not in whitelist: %s\n", request.Cmd)
+		log.Printf("Not running shell command because not in whitelist: %s\n", request.Cmd)
 		return ShellResponse{
 			Code:   -1,
 			Stdout: "",
@@ -40,7 +40,7 @@ func (ls *LocalShell) Handle(request ShellRequest) (ShellResponse, error) {
 		}, nil
 	}
 
-	fmt.Printf("Running shell command: %s %s\n", request.Cmd, strings.Join(request.Args, " "))
+	log.Printf("Running shell command: %s %s\n", request.Cmd, strings.Join(request.Args, " "))
 
 	// Create the command
 	cmd := exec.Command(request.Cmd, request.Args...)

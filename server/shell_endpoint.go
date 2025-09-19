@@ -2,7 +2,7 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
+	"log"
 	"net/http"
 )
 
@@ -20,7 +20,7 @@ func handleShellEndpoint(config *ServerConfig) http.HandlerFunc {
 		// Execute the shell command
 		shellResponse, err := spaceConfig.ShellBackend.Handle(shellRequest)
 		if err != nil {
-			fmt.Printf("Shell error: %v\n", err)
+			log.Printf("Shell error: %v\n", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -28,7 +28,7 @@ func handleShellEndpoint(config *ServerConfig) http.HandlerFunc {
 		// Return the response as JSON
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(shellResponse); err != nil {
-			fmt.Printf("Error encoding shell response: %v\n", err)
+			log.Printf("Error encoding shell response: %v\n", err)
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}

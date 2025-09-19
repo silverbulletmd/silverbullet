@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"log"
 	pathLib "path"
 	"strings"
 	"time"
@@ -83,7 +84,7 @@ func (e *ReadOnlyFallthroughSpacePrimitives) FetchFileList() ([]FileMeta, error)
 	})
 
 	if err != nil {
-		fmt.Printf("Something went wrong listing files in the FS: %v", err)
+		log.Printf("Something went wrong listing files in the FS: %v", err)
 	}
 
 	wrappedFiles, err := e.fallthroughSpacePrimitives.FetchFileList()
