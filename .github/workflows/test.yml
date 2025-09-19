@@ -44,10 +44,10 @@ jobs:
           go-version: "1.25"
 
       - name: Run Go tests
-        run: go test ./pkg/... -v
+        run: go test ./server/... -v
 
       - name: Run Go tests with coverage
-        run: go test ./pkg/... -coverprofile=coverage.out
+        run: go test ./server/... -coverprofile=coverage.out
 
       - name: Display test coverage
         run: go tool cover -func=coverage.out
