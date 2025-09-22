@@ -135,7 +135,7 @@ func testFileOverwriting(t *testing.T, spacePrimitives SpacePrimitives) {
 	_, err := spacePrimitives.WriteFile("overwrite.txt", originalContent, nil)
 	assert.NoError(t, err, "Failed to write original file")
 
-	_, err = spacePrimitives.GetFileMeta("overwrite.txt", false)
+	_, err = spacePrimitives.GetFileMeta("overwrite.txt")
 	assert.NoError(t, err, "Failed to get original meta")
 
 	updatedContent := []byte("Updated")
@@ -262,7 +262,7 @@ func testErrorHandling(t *testing.T, spacePrimitives SpacePrimitives) {
 	err = spacePrimitives.DeleteFile("nonexistent.txt")
 	assert.Equal(t, ErrNotFound, err, "Expected ErrNotFound when deleting non-existent file")
 
-	_, err = spacePrimitives.GetFileMeta("nonexistent.txt", false)
+	_, err = spacePrimitives.GetFileMeta("nonexistent.txt")
 	assert.Equal(t, ErrNotFound, err, "Expected ErrNotFound for non-existent file meta")
 }
 

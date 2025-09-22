@@ -59,8 +59,7 @@ type SpacePrimitives interface {
 	FetchFileList() ([]FileMeta, error)
 
 	// GetFileMeta retrieves metadata for a specific file
-	// observing parameter hints that this file is under regular observation
-	GetFileMeta(path string, observing bool) (FileMeta, error)
+	GetFileMeta(path string) (FileMeta, error)
 
 	// ReadFile reads a file and returns its data and metadata
 	ReadFile(path string) ([]byte, FileMeta, error)

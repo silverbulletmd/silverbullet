@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	_ "embed"
+	"fmt"
 	"io/fs"
 	"log"
 	"net/http"
@@ -165,7 +167,37 @@ func buildConfig(bundledFiles fs.FS, args []string) *server.ServerConfig {
 		rootSpaceConfig.ShellBackend = server.NewNotSupportedShell()
 	}
 
+	// Ensure at least the index page and config page exist
+	ensureIndexAndConfig(rootSpaceConfig)
+
 	return serverConfig
+}
+
+//go:embed space_template/index.md
+var indexPageContent []byte
+
+//go:embed space_template/CONFIG.md
+var configPageContent []byte
+
+func ensureIndexAndConfig(rootSpaceConfig *server.SpaceConfig) {
+	// Index page first
+	indexPagePath := fmt.Sprintf("%s.md", rootSpaceConfig.IndexPage)
+	_, err := rootSpaceConfig.SpacePrimitives.GetFileMeta(indexPagePath)
+	if err == server.ErrNotFound {
+		log.Printf("Index page %s does not yet exist, creating...", indexPagePath)
+		if _, err := rootSpaceConfig.SpacePrimitives.WriteFile(indexPagePath, indexPageContent, nil); err != nil {
+			log.Fatalf("Could not write index page %s: %v", indexPagePath, err)
+		}
+	}
+	// Now let's check for a CONFIG.md
+	configPagePath := "CONFIG.md"
+	_, err = rootSpaceConfig.SpacePrimitives.GetFileMeta(configPagePath)
+	if err == server.ErrNotFound {
+		log.Printf("Config page %s does not yet exist, creating...", configPagePath)
+		if _, err := rootSpaceConfig.SpacePrimitives.WriteFile(configPagePath, configPageContent, nil); err != nil {
+			log.Fatalf("Could not write config page %s: %v", configPagePath, err)
+		}
+	}
 }
 
 func ServerCommand(bundledFiles fs.FS) *cobra.Command {

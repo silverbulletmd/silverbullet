@@ -98,7 +98,7 @@ func (e *ReadOnlyFallthroughSpacePrimitives) FetchFileList() ([]FileMeta, error)
 }
 
 // GetFileMeta implements SpacePrimitives.GetFileMeta
-func (e *ReadOnlyFallthroughSpacePrimitives) GetFileMeta(path string, observing bool) (FileMeta, error) {
+func (e *ReadOnlyFallthroughSpacePrimitives) GetFileMeta(path string) (FileMeta, error) {
 	embedPath := e.pathToEmbedPath(path)
 
 	// Try to get file info from filesystem
@@ -112,7 +112,7 @@ func (e *ReadOnlyFallthroughSpacePrimitives) GetFileMeta(path string, observing 
 	}
 
 	// If not found in fs.FS, fall back
-	return e.fallthroughSpacePrimitives.GetFileMeta(path, observing)
+	return e.fallthroughSpacePrimitives.GetFileMeta(path)
 }
 
 // ReadFile implements SpacePrimitives.ReadFile

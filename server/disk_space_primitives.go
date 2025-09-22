@@ -152,7 +152,7 @@ func (d *DiskSpacePrimitives) FetchFileList() ([]FileMeta, error) {
 }
 
 // GetFileMeta implements SpacePrimitives.GetFileMeta
-func (d *DiskSpacePrimitives) GetFileMeta(path string, observing bool) (FileMeta, error) {
+func (d *DiskSpacePrimitives) GetFileMeta(path string) (FileMeta, error) {
 	localPath, err := d.filenameToPath(path)
 	if err != nil {
 		return FileMeta{}, err
@@ -223,7 +223,7 @@ func (d *DiskSpacePrimitives) WriteFile(path string, data []byte, meta *FileMeta
 	}
 
 	// Return actual metadata
-	return d.GetFileMeta(path, false)
+	return d.GetFileMeta(path)
 }
 
 // DeleteFile implements SpacePrimitives.DeleteFile

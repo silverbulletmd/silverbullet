@@ -62,7 +62,7 @@ func handleFsGet(w http.ResponseWriter, r *http.Request) {
 
 	if r.Header.Get("X-Get-Meta") != "" {
 		// Getting meta via GET request
-		meta, err := spaceConfig.SpacePrimitives.GetFileMeta(path, false)
+		meta, err := spaceConfig.SpacePrimitives.GetFileMeta(path)
 		if err != nil {
 			if err == ErrNotFound {
 				http.NotFound(w, r)
