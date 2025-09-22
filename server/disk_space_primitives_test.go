@@ -37,7 +37,7 @@ func TestSafePath(t *testing.T) {
 	assert.NoError(t, err, "Valid relative path should not error")
 }
 
-func TestGitIngore(t *testing.T) {
+func TestGitIgnore(t *testing.T) {
 	space, err := NewDiskSpacePrimitives(t.TempDir(), "*.txt\n*.jpg")
 	assert.NoError(t, err, "Failed to create DiskSpacePrimitives")
 

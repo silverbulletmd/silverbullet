@@ -58,12 +58,18 @@ func buildConfig(bundledFiles fs.FS, args []string) *server.ServerConfig {
 		log.Println("Client log push enabled")
 	}
 
+	rootSpaceConfig.GitIgnore = os.Getenv("SB_SPACE_IGNORE")
+
+	if os.Getenv("SB_SPACE_IGNORE") != "" {
+		log.Printf("Ignoring files matching: %s", os.Getenv("SB_SPACE_IGNORE"))
+	}
+
 	if rootSpaceConfig.SpaceFolderPath == "" {
 		log.Fatal("No folder specified. Please pass a folder as an argument or set SB_FOLDER environment variable.")
 	}
 
 	var spacePrimitives server.SpacePrimitives
-	spacePrimitives, err := server.NewDiskSpacePrimitives(rootSpaceConfig.SpaceFolderPath, os.Getenv("SB_GIT_IGNORE"))
+	spacePrimitives, err := server.NewDiskSpacePrimitives(rootSpaceConfig.SpaceFolderPath, rootSpaceConfig.GitIgnore)
 
 	if err != nil {
 		log.Fatal(err)
@@ -113,12 +119,6 @@ func buildConfig(bundledFiles fs.FS, args []string) *server.ServerConfig {
 
 	if rootSpaceConfig.ReadOnlyMode {
 		log.Println("Starting in read-only mode.")
-	}
-
-	rootSpaceConfig.GitIgnore = os.Getenv("SB_GIT_IGNORE")
-
-	if os.Getenv("SB_SPACE_IGNORE") != "" {
-		log.Printf("Ignoring files matching: %s", os.Getenv("SB_SPACE_IGNORE"))
 	}
 
 	if os.Getenv("SB_URL_PREFIX") != "" {
