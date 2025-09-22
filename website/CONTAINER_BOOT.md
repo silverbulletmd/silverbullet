@@ -1,5 +1,7 @@
-# Update the repos
-apt update
+Uncomment the lines to actually run them.
 
-# Install additional packages
-apt install -y pandoc
+## Update the repos
+#apt update
+
+## Install additional packages
+#apt install -y pandoc

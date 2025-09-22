@@ -1,0 +1,8 @@
+FROM zefhemel/silverbullet:v2
+
+# Set some environment variables
+ENV SB_INDEX_PAGE=SilverBullet
+ENV SB_READ_ONLY=1
+
+# Add the website content
+ADD website /space
