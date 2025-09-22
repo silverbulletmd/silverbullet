@@ -18,6 +18,7 @@ The [SilverBullet ‘Plugs’ category has a list of third-party plugs you can t
 * [SilverSearch](https://github.com/MrMugame/silversearch): implements a better full text search
 * [TreeView](https://github.com/joekrill/silverbullet-treeview): adds a tree-view to your UI
 * [GraphView](https://github.com/deepkn/silverbullet-graphview): adds a graph view to your UI, similar to the one in Obsidian
+* [PDF](https://github.com/MrMugame/silverbullet-pdf): enables viewing and annotation of PDF documents with PDF.js
 * [Mermaid](https://github.com/silverbulletmd/silverbullet-mermaid): adds mermaid diagram rendering
 * [PlantUML](https://github.com/LogeshG5/silverbullet-plantuml): adds plantuml diagram rendering
 * [Draw.io](https://github.com/LogeshG5/silverbullet-drawio): adds drawio diagram rendering and editing
