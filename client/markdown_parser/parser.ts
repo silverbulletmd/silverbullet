@@ -16,7 +16,7 @@ import { Table } from "./table_parser.ts";
 import { nakedUrlRegex, pWikiLinkRegex, tagRegex } from "./constants.ts";
 import { parse } from "./parse_tree.ts";
 import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
-import { luaLanguage } from "../../lib/space_lua/parse.ts";
+import { luaLanguage } from "../space_lua/parse.ts";
 
 const WikiLink: MarkdownConfig = {
   defineNodes: [

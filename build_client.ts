@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 
 import sass from "denosass";
 
-import { patchDenoLibJS } from "./lib/plugos/plug_compile.ts";
+import { patchDenoLibJS } from "./client/plugos/plug_compile.ts";
 import { denoPlugins } from "@luca/esbuild-deno-loader";
 import * as esbuild from "esbuild";
 

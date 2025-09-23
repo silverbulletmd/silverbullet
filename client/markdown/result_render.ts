@@ -1,4 +1,4 @@
-import { LuaTable, luaToString } from "../../lib/space_lua/runtime.ts";
+import { LuaTable, luaToString } from "../space_lua/runtime.ts";
 
 export function defaultTransformer(v: any): Promise<string> {
   if (v === undefined) {

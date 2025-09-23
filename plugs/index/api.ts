@@ -1,6 +1,6 @@
 import { datastore, markdown } from "@silverbulletmd/silverbullet/syscalls";
-import { ttlCache } from "../../lib/memory_cache.ts";
-import type { LuaCollectionQuery } from "../../lib/space_lua/query_collection.ts";
+import { ttlCache } from "../../plug-api/lib/memory_cache.ts";
+import type { LuaCollectionQuery } from "../../client/space_lua/query_collection.ts";
 import {
   extractFrontMatter as extractFrontmatterFromTree,
   type FrontMatter,
@@ -10,7 +10,7 @@ import {
   collectNodesOfType,
   renderToText,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import { applyPatches, type SetKeyPatch } from "../../lib/yaml.ts";
+import { applyPatches, type SetKeyPatch } from "../../plug-api/lib/yaml.ts";
 import type { ObjectValue } from "../../plug-api/types/index.ts";
 
 import type { KV, KvKey, KvQuery } from "../../plug-api/types/datastore.ts";

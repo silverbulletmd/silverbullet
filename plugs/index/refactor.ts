@@ -19,7 +19,7 @@ import {
 import { queryLuaObjects } from "./api.ts";
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 import { isValidPath } from "@silverbulletmd/silverbullet/lib/ref";
-import { notFoundError } from "../../lib/constants.ts";
+import { notFoundError } from "@silverbulletmd/silverbullet/constants";
 
 /**
  * Renames a single page.

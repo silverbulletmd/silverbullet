@@ -1,4 +1,4 @@
-import { initLogger } from "../lib/logger.ts";
+import { initLogger } from "./logger.ts";
 import { ProxyRouter } from "./service_worker/proxy_router.ts";
 
 import { SyncEngine } from "./service_worker/sync_engine.ts";
@@ -6,12 +6,12 @@ import type {
   ServiceWorkerSourceMessage,
   ServiceWorkerTargetMessage,
 } from "./ui_types.ts";
-import { simpleHash } from "../lib/crypto.ts";
-import { IndexedDBKvPrimitives } from "../lib/data/indexeddb_kv_primitives.ts";
-import { fsEndpoint } from "../lib/spaces/constants.ts";
-import { DataStoreSpacePrimitives } from "../lib/spaces/datastore_space_primitives.ts";
-import { HttpSpacePrimitives } from "../lib/spaces/http_space_primitives.ts";
-import { throttleImmediately } from "../lib/async.ts";
+import { simpleHash } from "@silverbulletmd/silverbullet/lib/crypto";
+import { IndexedDBKvPrimitives } from "./data/indexeddb_kv_primitives.ts";
+import { fsEndpoint } from "./spaces/constants.ts";
+import { DataStoreSpacePrimitives } from "./spaces/datastore_space_primitives.ts";
+import { HttpSpacePrimitives } from "./spaces/http_space_primitives.ts";
+import { throttleImmediately } from "@silverbulletmd/silverbullet/lib/async";
 
 const logger = initLogger("[Service Worker]");
 

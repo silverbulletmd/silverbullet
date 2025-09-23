@@ -17,7 +17,7 @@ import { closeSearchPanel } from "@codemirror/search";
 import { runScopeHandlers } from "@codemirror/view";
 import type { Client } from "./client.ts";
 import { Panel } from "./components/panel.tsx";
-import { safeRun } from "../lib/async.ts";
+import { safeRun } from "@silverbulletmd/silverbullet/lib/async";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 import {
   getNameFromPath,

@@ -50,7 +50,7 @@ import {
 } from "@codemirror/lang-javascript";
 import { cssLanguage } from "@codemirror/lang-css";
 import { nixLanguage } from "@replit/codemirror-lang-nix";
-import { luaLanguage } from "../lib/space_lua/parse.ts";
+import { luaLanguage } from "./space_lua/parse.ts";
 
 const yamlStreamLanguage = StreamLanguage.define(yamlLanguage);
 

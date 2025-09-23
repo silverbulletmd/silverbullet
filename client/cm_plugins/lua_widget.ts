@@ -13,7 +13,7 @@ import {
   moveCursorIntoText,
 } from "./widget_util.ts";
 import { expandMarkdown } from "../markdown/inline.ts";
-import { LuaStackFrame, LuaTable } from "../../lib/space_lua/runtime.ts";
+import { LuaStackFrame, LuaTable } from "../space_lua/runtime.ts";
 import { isBlockMarkdown, jsonToMDTable } from "../markdown/result_render.ts";
 import { activeWidgets } from "./code_widget.ts";
 

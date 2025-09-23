@@ -3,7 +3,7 @@ import { Command } from "@cliffy/command";
 
 import { version } from "../version.ts";
 
-import { plugCompileCommand } from "../lib/plugos/plug_compile.ts";
+import { plugCompileCommand } from "../client/plugos/plug_compile.ts";
 
 await new Command()
   .name("plug-compile")

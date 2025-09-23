@@ -6,7 +6,7 @@ import type {
 import { renderToText } from "@silverbulletmd/silverbullet/lib/tree";
 import { editor, system } from "@silverbulletmd/silverbullet/syscalls";
 import { ftsIndexPage, ftsSearch } from "./engine.ts";
-import { PromiseQueue } from "../../lib/async.ts";
+import { PromiseQueue } from "@silverbulletmd/silverbullet/lib/async";
 
 const searchPrefix = "search:";
 

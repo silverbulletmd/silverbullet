@@ -7,19 +7,16 @@ import {
   isCursorInRange,
 } from "./util.ts";
 import type { Client } from "../client.ts";
-import { parse as parseLua } from "../../lib/space_lua/parse.ts";
-import type {
-  LuaBlock,
-  LuaFunctionCallStatement,
-} from "../../lib/space_lua/ast.ts";
-import { evalExpression } from "../../lib/space_lua/eval.ts";
+import { parse as parseLua } from "../space_lua/parse.ts";
+import type { LuaBlock, LuaFunctionCallStatement } from "../space_lua/ast.ts";
+import { evalExpression } from "../space_lua/eval.ts";
 import {
   LuaEnv,
   LuaRuntimeError,
   LuaStackFrame,
   luaValueToJS,
   singleResult,
-} from "../../lib/space_lua/runtime.ts";
+} from "../space_lua/runtime.ts";
 import {
   encodeRef,
   getNameFromPath,
@@ -27,7 +24,7 @@ import {
 import { resolveASTReference } from "../space_lua.ts";
 import { LuaWidget } from "./lua_widget.ts";
 import YAML from "js-yaml";
-import type { PageMeta } from "../../plug-api/types/index.ts";
+import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 
 export function luaDirectivePlugin(client: Client) {
   return decoratorStateField((state: EditorState) => {

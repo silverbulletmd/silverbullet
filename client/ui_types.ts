@@ -3,11 +3,14 @@ import type {
   FilterOption,
   Notification,
   PanelMode,
-} from "../plug-api/types/client.ts";
+} from "@silverbulletmd/silverbullet/type/client";
 
-import type { DocumentMeta, PageMeta } from "../plug-api/types/index.ts";
+import type {
+  DocumentMeta,
+  PageMeta,
+} from "@silverbulletmd/silverbullet/type/index";
 import type { Path } from "@silverbulletmd/silverbullet/lib/ref";
-import type { SyncStatus } from "../lib/spaces/sync.ts";
+import type { SyncStatus } from "./spaces/sync.ts";
 
 export type PanelConfig = {
   mode?: PanelMode;

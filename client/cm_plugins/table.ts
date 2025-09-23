@@ -8,7 +8,10 @@ import {
 } from "./util.ts";
 
 import { renderMarkdownToHtml } from "../markdown/markdown_render.ts";
-import { type ParseTree, renderToText } from "../../plug-api/lib/tree.ts";
+import {
+  type ParseTree,
+  renderToText,
+} from "@silverbulletmd/silverbullet/lib/tree";
 import { lezerToParseTree } from "../markdown_parser/parse_tree.ts";
 import type { Client } from "../client.ts";
 import {
@@ -16,7 +19,7 @@ import {
   resolveMarkdownLink,
 } from "@silverbulletmd/silverbullet/lib/resolve";
 import { expandMarkdown } from "../markdown/inline.ts";
-import { LuaStackFrame } from "../../lib/space_lua/runtime.ts";
+import { LuaStackFrame } from "../space_lua/runtime.ts";
 import { attachWidgetEventHandlers } from "./widget_util.ts";
 
 class TableViewWidget extends WidgetType {

@@ -1,5 +1,5 @@
 import { editor, space } from "@silverbulletmd/silverbullet/syscalls";
-import { notFoundError } from "../../lib/constants.ts";
+import { notFoundError } from "@silverbulletmd/silverbullet/constants";
 
 export async function deletePage() {
   const pageName = await editor.getCurrentPage();

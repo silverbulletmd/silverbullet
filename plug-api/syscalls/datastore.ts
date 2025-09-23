@@ -1,4 +1,4 @@
-import type { LuaCollectionQuery } from "../../lib/space_lua/query_collection.ts";
+import type { LuaCollectionQuery } from "../../client/space_lua/query_collection.ts";
 import { syscall } from "../syscall.ts";
 
 import type { KV, KvKey, KvQuery } from "../../plug-api/types/datastore.ts";

@@ -1,6 +1,6 @@
 import type { Client } from "./client.ts";
-import { timeout } from "../lib/async.ts";
-import type { DocumentMeta } from "../plug-api/types/index.ts";
+import { timeout } from "@silverbulletmd/silverbullet/lib/async";
+import type { DocumentMeta } from "@silverbulletmd/silverbullet/type/index";
 import type { Ref } from "@silverbulletmd/silverbullet/lib/ref";
 
 type DocumentEditorIframeWindow = Window & {

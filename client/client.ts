@@ -16,7 +16,7 @@ import type {
   FilterOption,
   SlashCompletions,
 } from "@silverbulletmd/silverbullet/type/client";
-import { EventHook } from "./hooks/event.ts";
+import { EventHook } from "./plugos/hooks/event.ts";
 import type { Command } from "./types/command.ts";
 import {
   type LocationState,
@@ -36,11 +36,11 @@ import type {
   PageCreatingEvent,
 } from "@silverbulletmd/silverbullet/type/event";
 import type { StyleObject } from "../plugs/index/style.ts";
-import { jitter, throttle } from "../lib/async.ts";
-import { PlugSpacePrimitives } from "../lib/spaces/plug_space_primitives.ts";
-import { EventedSpacePrimitives } from "../lib/spaces/evented_space_primitives.ts";
-import { simpleHash } from "../lib/crypto.ts";
-import { HttpSpacePrimitives } from "../lib/spaces/http_space_primitives.ts";
+import { jitter, throttle } from "@silverbulletmd/silverbullet/lib/async";
+import { PlugSpacePrimitives } from "./spaces/plug_space_primitives.ts";
+import { EventedSpacePrimitives } from "./spaces/evented_space_primitives.ts";
+import { simpleHash } from "@silverbulletmd/silverbullet/lib/crypto";
+import { HttpSpacePrimitives } from "./spaces/http_space_primitives.ts";
 import {
   encodePageURI,
   encodeRef,
@@ -55,17 +55,17 @@ import {
 import { ClientSystem } from "./client_system.ts";
 import { createEditorState, isValidEditor } from "./editor_state.ts";
 import { MainUI } from "./editor_ui.tsx";
-import type { SpacePrimitives } from "../lib/spaces/space_primitives.ts";
-import { DataStore } from "../lib/data/datastore.ts";
-import { IndexedDBKvPrimitives } from "../lib/data/indexeddb_kv_primitives.ts";
-import { DataStoreMQ } from "../lib/data/mq.datastore.ts";
+import type { SpacePrimitives } from "./spaces/space_primitives.ts";
+import { DataStore } from "./data/datastore.ts";
+import { IndexedDBKvPrimitives } from "./data/indexeddb_kv_primitives.ts";
+import { DataStoreMQ } from "./data/mq.datastore.ts";
 
-import { ReadOnlySpacePrimitives } from "../lib/spaces/ro_space_primitives.ts";
-import { LimitedMap } from "../lib/limited_map.ts";
-import { fsEndpoint, plugPrefix } from "../lib/spaces/constants.ts";
+import { ReadOnlySpacePrimitives } from "./spaces/ro_space_primitives.ts";
+import { LimitedMap } from "@silverbulletmd/silverbullet/lib/limited_map";
+import { fsEndpoint, plugPrefix } from "./spaces/constants.ts";
 import { diffAndPrepareChanges } from "./cm_util.ts";
 import { DocumentEditor } from "./document_editor.ts";
-import { parseExpressionString } from "../lib/space_lua/parse.ts";
+import { parseExpressionString } from "./space_lua/parse.ts";
 import type { Config } from "./config.ts";
 import type {
   DocumentMeta,
@@ -73,8 +73,11 @@ import type {
   PageMeta,
 } from "@silverbulletmd/silverbullet/type/index";
 import { parseMarkdown } from "./markdown_parser/parser.ts";
-import { CheckPathSpacePrimitives } from "../lib/spaces/checked_space_primitives.ts";
-import { notFoundError, offlineError } from "../lib/constants.ts";
+import { CheckPathSpacePrimitives } from "./spaces/checked_space_primitives.ts";
+import {
+  notFoundError,
+  offlineError,
+} from "@silverbulletmd/silverbullet/constants";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 

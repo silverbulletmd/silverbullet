@@ -1,14 +1,10 @@
 import { compile as gitIgnoreCompiler } from "gitignore-parser";
-import { jitter, sleep } from "../../lib/async.ts";
-import type { KvPrimitives } from "../../lib/data/kv_primitives.ts";
-import { EventEmitter } from "../../lib/plugos/event.ts";
-import { plugPrefix, stdLibPrefix } from "../../lib/spaces/constants.ts";
-import type { SpacePrimitives } from "../../lib/spaces/space_primitives.ts";
-import {
-  SpaceSync,
-  SyncSnapshot,
-  type SyncStatus,
-} from "../../lib/spaces/sync.ts";
+import { jitter, sleep } from "@silverbulletmd/silverbullet/lib/async";
+import type { KvPrimitives } from "../data/kv_primitives.ts";
+import { EventEmitter } from "../plugos/event.ts";
+import { plugPrefix, stdLibPrefix } from "../spaces/constants.ts";
+import type { SpacePrimitives } from "../spaces/space_primitives.ts";
+import { SpaceSync, SyncSnapshot, type SyncStatus } from "../spaces/sync.ts";
 
 const syncSnapshotKey = ["$sync", "snapshot"];
 const syncInterval = 20;

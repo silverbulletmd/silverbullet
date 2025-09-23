@@ -1,4 +1,4 @@
-import { base64DecodeDataUrl } from "../../lib/crypto.ts";
+import { base64DecodeDataUrl } from "../lib/crypto.ts";
 import { syscall } from "../syscall.ts";
 
 import type { FileMeta } from "../../plug-api/types/index.ts";

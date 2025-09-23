@@ -1,6 +1,9 @@
-import { safeRun } from "../lib/async.ts";
-import { notAuthenticatedError, offlineError } from "../lib/constants.ts";
-import { initLogger } from "../lib/logger.ts";
+import { safeRun } from "@silverbulletmd/silverbullet/lib/async";
+import {
+  notAuthenticatedError,
+  offlineError,
+} from "@silverbulletmd/silverbullet/constants";
+import { initLogger } from "./logger.ts";
 import { extractSpaceLuaFromPageText, loadConfig } from "./boot_config.ts";
 import { Client } from "./client.ts";
 import type { Config } from "./config.ts";
@@ -9,7 +12,7 @@ import {
 } from "./service_worker/util.ts";
 import "./polyfills.ts";
 import type { BootConfig } from "./ui_types.ts";
-import { BoxProxy } from "../lib/box_proxy.ts";
+import { BoxProxy } from "./box_proxy.ts";
 
 const logger = initLogger("[Client]");
 

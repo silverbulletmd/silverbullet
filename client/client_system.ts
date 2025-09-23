@@ -1,47 +1,49 @@
-import { PlugNamespaceHook } from "./hooks/plug_namespace.ts";
-import type { SilverBulletHooks } from "../lib/manifest.ts";
-import type { EventHook } from "./hooks/event.ts";
-import { createWorkerSandboxFromLocalPath } from "../lib/plugos/sandboxes/web_worker_sandbox.ts";
+import { PlugNamespaceHook } from "./plugos/hooks/plug_namespace.ts";
+import type { SilverBulletHooks } from "@silverbulletmd/silverbullet/type/manifest";
+import type { EventHook } from "./plugos/hooks/event.ts";
+import { createWorkerSandboxFromLocalPath } from "./plugos/sandboxes/web_worker_sandbox.ts";
 
-import assetSyscalls from "../lib/plugos/syscalls/asset.ts";
-import { eventSyscalls } from "../lib/plugos/syscalls/event.ts";
-import { System } from "../lib/plugos/system.ts";
+import assetSyscalls from "./plugos/syscalls/asset.ts";
+import { System } from "./plugos/system.ts";
 import type { Client } from "./client.ts";
-import { CodeWidgetHook } from "./hooks/code_widget.ts";
-import { CommandHook } from "./hooks/command.ts";
-import { SlashCommandHook } from "./hooks/slash_command.ts";
-import { SyscallHook } from "./hooks/syscall.ts";
-import { clientStoreSyscalls } from "./syscalls/clientStore.ts";
-import { editorSyscalls } from "./syscalls/editor.ts";
-import { sandboxFetchSyscalls } from "./syscalls/fetch.ts";
-import { markdownSyscalls } from "./syscalls/markdown.ts";
-import { shellSyscalls } from "./syscalls/shell.ts";
-import { spaceReadSyscalls, spaceWriteSyscalls } from "./syscalls/space.ts";
-import { syncSyscalls } from "./syscalls/sync.ts";
-import { systemSyscalls } from "./syscalls/system.ts";
-import { yamlSyscalls } from "./syscalls/yaml.ts";
+import { CodeWidgetHook } from "./plugos/hooks/code_widget.ts";
+import { CommandHook } from "./plugos/hooks/command.ts";
+import { SlashCommandHook } from "./plugos/hooks/slash_command.ts";
+import { SyscallHook } from "./plugos/hooks/syscall.ts";
+import { clientStoreSyscalls } from "./plugos/syscalls/clientStore.ts";
+import { editorSyscalls } from "./plugos/syscalls/editor.ts";
+import { sandboxFetchSyscalls } from "./plugos/syscalls/fetch.ts";
+import { markdownSyscalls } from "./plugos/syscalls/markdown.ts";
+import { shellSyscalls } from "./plugos/syscalls/shell.ts";
+import {
+  spaceReadSyscalls,
+  spaceWriteSyscalls,
+} from "./plugos/syscalls/space.ts";
+import { syncSyscalls } from "./plugos/syscalls/sync.ts";
+import { systemSyscalls } from "./plugos/syscalls/system.ts";
+import { yamlSyscalls } from "./plugos/syscalls/yaml.ts";
 import type { Space } from "./space.ts";
-import { MQHook } from "../lib/plugos/hooks/mq.ts";
-import { mqSyscalls } from "../lib/plugos/syscalls/mq.ts";
+import { MQHook } from "./plugos/hooks/mq.ts";
+import { mqSyscalls } from "./plugos/syscalls/mq.ts";
 import {
   dataStoreReadSyscalls,
   dataStoreWriteSyscalls,
-} from "./syscalls/datastore.ts";
-import type { DataStore } from "../lib/data/datastore.ts";
-import { languageSyscalls } from "./syscalls/language.ts";
-import { codeWidgetSyscalls } from "./syscalls/code_widget.ts";
-import { clientCodeWidgetSyscalls } from "./syscalls/client_code_widget.ts";
-import { KVPrimitivesManifestCache } from "../lib/plugos/manifest_cache.ts";
+} from "./plugos/syscalls/datastore.ts";
+import type { DataStore } from "./data/datastore.ts";
+import { languageSyscalls } from "./plugos/syscalls/language.ts";
+import { codeWidgetSyscalls } from "./plugos/syscalls/code_widget.ts";
+import { clientCodeWidgetSyscalls } from "./plugos/syscalls/client_code_widget.ts";
+import { KVPrimitivesManifestCache } from "./plugos/manifest_cache.ts";
 import { createKeyBindings } from "./editor_state.ts";
-import type { DataStoreMQ } from "../lib/data/mq.datastore.ts";
-import { plugPrefix } from "../lib/spaces/constants.ts";
-import { jsonschemaSyscalls } from "./syscalls/jsonschema.ts";
-import { luaSyscalls } from "./syscalls/lua.ts";
-import { indexSyscalls } from "./syscalls/index.ts";
-import { configSyscalls } from "./syscalls/config.ts";
-import { eventListenerSyscalls } from "./syscalls/event.ts";
-import { DocumentEditorHook } from "./hooks/document_editor.ts";
-import type { LuaCollectionQuery } from "../lib/space_lua/query_collection.ts";
+import type { DataStoreMQ } from "./data/mq.datastore.ts";
+import { plugPrefix } from "./spaces/constants.ts";
+import { jsonschemaSyscalls } from "./plugos/syscalls/jsonschema.ts";
+import { luaSyscalls } from "./plugos/syscalls/lua.ts";
+import { indexSyscalls } from "./plugos/syscalls/index.ts";
+import { configSyscalls } from "./plugos/syscalls/config.ts";
+import { eventSyscalls } from "./plugos/syscalls/event.ts";
+import { DocumentEditorHook } from "./plugos/hooks/document_editor.ts";
+import type { LuaCollectionQuery } from "./space_lua/query_collection.ts";
 import type { Command } from "./types/command.ts";
 import { SpaceLuaEnvironment } from "./space_lua.ts";
 import {
@@ -51,7 +53,7 @@ import {
   LuaStackFrame,
   type LuaValue,
   luaValueToJS,
-} from "../lib/space_lua/runtime.ts";
+} from "./space_lua/runtime.ts";
 import { buildThreadLocalEnv, handleLuaError } from "./space_lua_api.ts";
 import { builtinPlugPaths } from "../plugs/builtin_plugs.ts";
 
@@ -180,8 +182,7 @@ export class ClientSystem {
     // Syscalls available to all plugs
     this.system.registerSyscalls(
       [],
-      eventSyscalls(this.eventHook),
-      eventListenerSyscalls(this.client),
+      eventSyscalls(this.eventHook, this.client),
       editorSyscalls(this.client),
       spaceReadSyscalls(this.client),
       systemSyscalls(client, false),

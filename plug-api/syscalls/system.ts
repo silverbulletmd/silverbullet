@@ -1,6 +1,6 @@
 import { syscall } from "../syscall.ts";
-import type { CommandDef } from "../../lib/manifest.ts";
-import type { SyscallMeta } from "../../plug-api/types/index.ts";
+import type { CommandDef } from "../types/manifest.ts";
+import type { SyscallMeta } from "@silverbulletmd/silverbullet/type/index";
 
 /**
  * System level syscalls

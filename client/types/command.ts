@@ -1,4 +1,7 @@
-import type { CommandDef, SlashCommandDef } from "../../lib/manifest.ts";
+import type {
+  CommandDef,
+  SlashCommandDef,
+} from "@silverbulletmd/silverbullet/type/manifest";
 
 import type { SlashCompletions } from "@silverbulletmd/silverbullet/type/client";
 

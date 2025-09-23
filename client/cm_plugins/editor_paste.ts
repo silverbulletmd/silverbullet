@@ -13,10 +13,10 @@ import {
   findParentMatching,
   nodeAtPos,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import { maximumDocumentSize } from "../../lib/constants.ts";
-import { safeRun } from "../../lib/async.ts";
+import { maximumDocumentSize } from "@silverbulletmd/silverbullet/constants";
+import { safeRun } from "@silverbulletmd/silverbullet/lib/async";
 import { resolveMarkdownLink } from "@silverbulletmd/silverbullet/lib/resolve";
-import { localDateString } from "../../lib/dates.ts";
+import { localDateString } from "@silverbulletmd/silverbullet/lib/dates";
 import type { UploadFile } from "@silverbulletmd/silverbullet/type/client";
 import { isValidName, isValidPath } from "@silverbulletmd/silverbullet/lib/ref";
 

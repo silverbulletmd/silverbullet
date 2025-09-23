@@ -1,10 +1,13 @@
-import { fsEndpoint } from "../../lib/spaces/constants.ts";
+import { fsEndpoint } from "../spaces/constants.ts";
 import { decodePageURI } from "@silverbulletmd/silverbullet/lib/ref";
-import type { SpacePrimitives } from "../../lib/spaces/space_primitives.ts";
-import { fileMetaToHeaders, headersToFileMeta } from "../../lib/util.ts";
-import { notFoundError, offlineError } from "../../lib/constants.ts";
+import type { SpacePrimitives } from "../spaces/space_primitives.ts";
+import { fileMetaToHeaders, headersToFileMeta } from "../util.ts";
+import {
+  notFoundError,
+  offlineError,
+} from "@silverbulletmd/silverbullet/constants";
 import type { SyncEngine } from "./sync_engine.ts";
-import { EventEmitter } from "../../lib/plugos/event.ts";
+import { EventEmitter } from "../plugos/event.ts";
 import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
 
 const alwaysProxy = [

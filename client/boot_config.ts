@@ -3,19 +3,19 @@ import {
   traverseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { parseMarkdown } from "./markdown_parser/parser.ts";
-import { System } from "../lib/plugos/system.ts";
-import { configSyscalls } from "./syscalls/config.ts";
+import { System } from "./plugos/system.ts";
+import { configSyscalls } from "./plugos/syscalls/config.ts";
 import { Config } from "./config.ts";
-import { luaBuildStandardEnv } from "../lib/space_lua/stdlib.ts";
+import { luaBuildStandardEnv } from "./space_lua/stdlib.ts";
 import { exposeSyscalls } from "./space_lua_api.ts";
-import { parse } from "../lib/space_lua/parse.ts";
-import { LuaEnv, LuaStackFrame } from "../lib/space_lua/runtime.ts";
-import { evalStatement } from "../lib/space_lua/eval.ts";
-import { editorSyscalls } from "./syscalls/editor.ts";
-import { markdownSyscalls } from "./syscalls/markdown.ts";
-import { yamlSyscalls } from "./syscalls/yaml.ts";
-import { languageSyscalls } from "./syscalls/language.ts";
-import { jsonschemaSyscalls } from "./syscalls/jsonschema.ts";
+import { parse } from "./space_lua/parse.ts";
+import { LuaEnv, LuaStackFrame } from "./space_lua/runtime.ts";
+import { evalStatement } from "./space_lua/eval.ts";
+import { editorSyscalls } from "./plugos/syscalls/editor.ts";
+import { markdownSyscalls } from "./plugos/syscalls/markdown.ts";
+import { yamlSyscalls } from "./plugos/syscalls/yaml.ts";
+import { languageSyscalls } from "./plugos/syscalls/language.ts";
+import { jsonschemaSyscalls } from "./plugos/syscalls/jsonschema.ts";
 
 /**
  * Parses a page (CONFIG in practice) and extracts all space-lua code

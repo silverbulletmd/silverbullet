@@ -21,7 +21,7 @@ import {
   replaceNodesMatching,
   traverseTreeAsync,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import { niceDate } from "../../lib/dates.ts";
+import { niceDate } from "@silverbulletmd/silverbullet/lib/dates";
 import {
   cleanAttributes,
   extractAttributes,

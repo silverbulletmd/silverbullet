@@ -1,14 +1,14 @@
-import { plugPrefix } from "../lib/spaces/constants.ts";
+import { plugPrefix } from "./spaces/constants.ts";
 
-import type { EventHook } from "../client/hooks/event.ts";
-import { jitter, safeRun } from "../lib/async.ts";
-import { localDateString } from "../lib/dates.ts";
+import type { EventHook } from "./plugos/hooks/event.ts";
+import { jitter, safeRun } from "@silverbulletmd/silverbullet/lib/async";
+import { localDateString } from "@silverbulletmd/silverbullet/lib/dates";
 import type {
   DocumentMeta,
   FileMeta,
   PageMeta,
-} from "../plug-api/types/index.ts";
-import type { SpacePrimitives } from "../lib/spaces/space_primitives.ts";
+} from "@silverbulletmd/silverbullet/type/index";
+import type { SpacePrimitives } from "./spaces/space_primitives.ts";
 import {
   getPathExtension,
   type Path,

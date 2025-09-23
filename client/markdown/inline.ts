@@ -18,15 +18,15 @@ import {
 } from "@silverbulletmd/silverbullet/lib/resolve";
 import { mime } from "mimetypes";
 import type { Client } from "../client.ts";
-import type { LuaEnv, LuaStackFrame } from "../../lib/space_lua/runtime.ts";
+import type { LuaEnv, LuaStackFrame } from "../space_lua/runtime.ts";
 import { parseMarkdown } from "../markdown_parser/parser.ts";
 import { renderExpressionResult } from "./result_render.ts";
-import { parseExpressionString } from "../../lib/space_lua/parse.ts";
-import { evalExpression } from "../../lib/space_lua/eval.ts";
-import type { LuaExpression } from "../../lib/space_lua/ast.ts";
+import { parseExpressionString } from "../space_lua/parse.ts";
+import { evalExpression } from "../space_lua/eval.ts";
+import type { LuaExpression } from "../space_lua/ast.ts";
 import { mdLinkRegex, wikiLinkRegex } from "../markdown_parser/constants.ts";
 
-import { fsEndpoint } from "../../lib/spaces/constants.ts";
+import { fsEndpoint } from "../spaces/constants.ts";
 
 /**
  * Describes the dimensions of a transclusion, if provided through the alias.
