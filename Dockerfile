@@ -19,7 +19,7 @@ RUN deno task build-production
 RUN go build
 
 # Stage 2: Create the runtime from the build
-FROM ubuntu:noble
+FROM alpine:latest
 
 # The volume that will keep the space data
 VOLUME /space
@@ -31,20 +31,7 @@ VOLUME /space
 # Or simply mount an existing folder into the container:
 #   docker run -v /path/to/my/folder:/space -p3000:3000 -it ghcr.io/silverbulletmd/silverbullet
 
-# Accept TARGETARCH as argument
-ARG TARGETARCH
-
-# Adding tini
-ENV TINI_VERSION=v0.19.0
-ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini-${TARGETARCH} /tini
-
-RUN mkdir -p -m 777 /space \
-    && chmod +x /tini \
-    && apt update \
-    && apt install -y git curl \
-    && apt-get -y autoremove \
-    && apt-get clean  \
-    && rm -rf /tmp/* /var/tmp/* /var/log/* /usr/share/man /var/lib/apt/lists/*
+RUN apk add --no-cache git curl bash tini
 
 HEALTHCHECK CMD curl --fail http://localhost:3000/.ping || exit 1
 
@@ -64,4 +51,4 @@ COPY --from=builder /app/silverbullet /silverbullet
 
 # Run the server, allowing to pass in additional argument at run time, e.g.
 #   docker run -p 3002:3000 -v myspace:/space -it ghcr.io/silverbulletmd/silverbullet --user me:letmein
-ENTRYPOINT ["/tini", "--", "/docker-entrypoint.sh"]
+ENTRYPOINT ["/sbin/tini", "--", "/docker-entrypoint.sh"]

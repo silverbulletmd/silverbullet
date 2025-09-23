@@ -12,7 +12,7 @@ A few key things to know about the SilverBullet container image:
 * The container binds to port `3000`, so be sure to port-map that, e.g. via `-p 3000:3000` (note: the first `3000` is the external port)
 * The container uses whatever is volume-mapped to `/space` as the space root folder. You can connect a docker volume, or a host folder to this, e.g. `-v /home/myuser/space:/space`
 * SilverBullet will detect the UNIX owner (UID and GID) of the folder mapped into `/space` and run the server process with the same UID and GID so that permissions will just magically work. If you’d like to override this UID, set the `PUID` and `PGID` environment variables (see [[Install/Configuration]] for details).
-* The Docker image is based on Ubuntu. If you would like to install additional packages into it at runtime, you can do so via the `SB_APT_PACKAGES` environment variable, see [[Install/Configuration]].
+* The Docker image is based on [Alpine](https://alpinelinux.org/). If you'd like to install additional packages into it, see [[#Installing additional packages]] below.
 
 > **note** Note
 > The same docker images are currently both available from [GHCR](https://github.com/silverbulletmd/silverbullet/pkgs/container/silverbullet) and [Docker Hub](https://hub.docker.com/r/zefhemel/silverbullet), use whichever you prefer.
@@ -42,12 +42,9 @@ There you go!
 Note that to get offline mode to work you need to serve SilverBullet with HTTPS, via for example a reverse proxy.
 
 # Installing additional packages
+If you would like to install additional packages into your docker container (e.g. to call via [[API/shell]]), you can do so by creating a [[CONTAINER_BOOT]] page in your space. Whatever you put in this page, will be run as a bash script upon container boot (hence its name).
 
-If you would like to install additional packages into your docker container (e.g. to call via [[API/shell]]), you can do so by creating a [[CONTAINER_BOOT]] page in your space.
-
-In this page, put `apt` commands install the (ubuntu) packages you would like to install.
-
-This page will be run as a bash script upon container boot (hence its name). You can monitor its progress by checking your server’s logs.
+In practice, you’ll likely want to put `apk add` commands install the (Alpine) packages you would like to install.
 
 # Versions
 There are two release channels:
