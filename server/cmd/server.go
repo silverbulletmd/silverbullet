@@ -73,6 +73,17 @@ func buildConfig(bundledFiles fs.FS, args []string) *server.ServerConfig {
 	var spacePrimitives server.SpacePrimitives
 	spacePrimitives, err := server.NewDiskSpacePrimitives(rootSpaceConfig.SpaceFolderPath, rootSpaceConfig.GitIgnore)
 
+	rootSpaceConfig.ReadOnlyMode = os.Getenv("SB_READ_ONLY") != ""
+
+	if rootSpaceConfig.ReadOnlyMode {
+		log.Println("Starting in read-only mode.")
+	}
+
+	if rootSpaceConfig.ReadOnlyMode {
+		// Wrap the space primitives in read only mode
+		spacePrimitives = server.NewReadOnlySpacePrimitives(spacePrimitives)
+	}
+
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -109,18 +120,12 @@ func buildConfig(bundledFiles fs.FS, args []string) *server.ServerConfig {
 			pieces[0], rootSpaceConfig.Auth.LockoutLimit, rootSpaceConfig.Auth.LockoutTime)
 	}
 
-	rootSpaceConfig.ReadOnlyMode = os.Getenv("SB_READ_ONLY") != ""
-
 	if os.Getenv("SB_NAME") != "" {
 		rootSpaceConfig.SpaceName = os.Getenv("SB_NAME")
 	}
 
 	if os.Getenv("SB_DESCRIPTION") != "" {
 		rootSpaceConfig.SpaceDescription = os.Getenv("SB_DESCRIPTION")
-	}
-
-	if rootSpaceConfig.ReadOnlyMode {
-		log.Println("Starting in read-only mode.")
 	}
 
 	if os.Getenv("SB_URL_PREFIX") != "" {
