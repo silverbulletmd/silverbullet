@@ -31,9 +31,7 @@ export async function copyAssets(dist: string) {
   await copy("client/images/logo-dock.png", `${dist}/logo-dock.png`, {
     overwrite: true,
   });
-  await copy("client/manifest.json", `${dist}/manifest.json`, {
-    overwrite: true,
-  });
+
   const compiler = sass(
     Deno.readTextFileSync("client/styles/main.scss"),
     {
