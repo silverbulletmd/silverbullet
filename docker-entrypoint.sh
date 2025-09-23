@@ -36,12 +36,11 @@ if [ "$PUID" == "0" ] || [ "$UID" != "0" ]; then
     /silverbullet $@
 else
     # Create silverbullet user and group ad-hoc mapped to PUID and PGID
-    getent group $PGID &> /dev/null || groupadd -g $PGID silverbullet
-    getent passwd $PUID &> /dev/null || useradd -M -u $PUID -g $PGID silverbullet
+    getent group $PGID &> /dev/null || addgroup -g $PGID silverbullet
+    getent passwd $PUID &> /dev/null || adduser -D -H -u $PUID -G $PGID silverbullet
     args="$@"
     # And run via su as requested PUID, usually this will be 'silverbullet' but if a user with this idea already exists, we will use that
     USERNAME=$(getent passwd $PUID | cut -d ":" -f 1)
     echo "Running SilverBullet as $USERNAME (configured as PUID $PUID and PGID $PGID)"
     su $USERNAME -s /bin/bash -c "/silverbullet $args"
 fi
-
