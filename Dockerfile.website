@@ -1,0 +1,8 @@
+# To build:
+# docker build -t zefhemel/silverbullet-website:v1 -f Dockerfile.website .
+FROM zefhemel/silverbullet:edge
+
+ENV SB_READ_ONLY=1
+ENV SB_INDEX_PAGE=SilverBullet
+
+ADD ./website /space
