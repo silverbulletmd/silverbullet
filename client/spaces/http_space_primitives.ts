@@ -7,6 +7,8 @@ import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
 import {
   notFoundError,
   offlineError,
+  pingTimeout,
+  wrongSpacePathError,
 } from "@silverbulletmd/silverbullet/constants";
 import { headersToFileMeta } from "../util.ts";
 
@@ -132,6 +134,14 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       method: "GET",
     });
 
+    await this.validateSpacePathFromHeaders(resp);
+    return resp.json();
+  }
+
+  /**
+   * The /.fs file listing and /.ping endpoints both expose the currently exposed space path, if this doesn't match what the client expects, the client has to restart
+   */
+  async validateSpacePathFromHeaders(resp: Response) {
     if (
       resp.status === 200 &&
       this.expectedSpacePath &&
@@ -142,13 +152,10 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       console.log("Got space path", resp.headers.get("X-Space-Path"));
       await flushCachesAndUnregisterServiceWorker();
       this.authErrorCallback(
-        "Space folder path different on server, reloading the page",
+        wrongSpacePathError.message,
         "reload",
       );
-      // location.reload();
     }
-
-    return resp.json();
   }
 
   async readFile(
@@ -237,14 +244,16 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   async ping() {
     const parentEndpoint = this.url.split("/").slice(0, -1).join("/") +
       "/.ping";
-    const response = await this.authenticatedFetch(parentEndpoint, {
+    const resp = await this.authenticatedFetch(parentEndpoint, {
       method: "GET",
       headers: {
         Accept: "application/json",
       },
-    }, 5000);
+    }, pingTimeout);
+
+    await this.validateSpacePathFromHeaders(resp);
 
     // Consume the response body to avoid leaks
-    await response.text();
+    await resp.text();
   }
 }

@@ -7,7 +7,7 @@ import {
   isCursorInRange,
 } from "./util.ts";
 
-import { renderMarkdownToHtml } from "../markdown/markdown_render.ts";
+import { renderMarkdownToHtml } from "../markdown_renderer/markdown_render.ts";
 import {
   type ParseTree,
   renderToText,
@@ -18,7 +18,7 @@ import {
   isLocalURL,
   resolveMarkdownLink,
 } from "@silverbulletmd/silverbullet/lib/resolve";
-import { expandMarkdown } from "../markdown/inline.ts";
+import { expandMarkdown } from "../markdown_renderer/inline.ts";
 import { LuaStackFrame } from "../space_lua/runtime.ts";
 import { attachWidgetEventHandlers } from "./widget_util.ts";
 

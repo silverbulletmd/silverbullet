@@ -77,7 +77,12 @@ import { CheckPathSpacePrimitives } from "./spaces/checked_space_primitives.ts";
 import {
   notFoundError,
   offlineError,
+  wrongSpacePathError,
 } from "@silverbulletmd/silverbullet/constants";
+import {
+  flushCachesAndUnregisterServiceWorker,
+  unregisterServiceWorkers,
+} from "./service_worker/util.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -1312,7 +1317,10 @@ export class Client {
       }
       case "auth-error": {
         alert(message.message);
-        if (message.actionOrRedirectHeader) {
+        if (
+          message.actionOrRedirectHeader &&
+          message.actionOrRedirectHeader !== "reload"
+        ) {
           location.href = message.actionOrRedirectHeader;
         } else {
           location.reload();

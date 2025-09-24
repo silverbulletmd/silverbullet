@@ -5,13 +5,13 @@ import {
   renderToText,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { extendedMarkdownLanguage } from "../../markdown_parser/parser.ts";
-import { expandMarkdown } from "../../markdown/inline.ts";
+import { expandMarkdown } from "../../markdown_renderer/inline.ts";
 import type { Client } from "../../client.ts";
 import { LuaEnv, LuaStackFrame } from "../../space_lua/runtime.ts";
 import {
   type MarkdownRenderOptions,
   renderMarkdownToHtml,
-} from "../../markdown/markdown_render.ts";
+} from "../../markdown_renderer/markdown_render.ts";
 
 export function markdownSyscalls(client: Client): SysCallMapping {
   return {

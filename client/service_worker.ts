@@ -12,6 +12,7 @@ import { fsEndpoint } from "./spaces/constants.ts";
 import { DataStoreSpacePrimitives } from "./spaces/datastore_space_primitives.ts";
 import { HttpSpacePrimitives } from "./spaces/http_space_primitives.ts";
 import { throttleImmediately } from "@silverbulletmd/silverbullet/lib/async";
+import { wrongSpacePathError } from "@silverbulletmd/silverbullet/constants";
 
 const logger = initLogger("[Service Worker]");
 
@@ -67,6 +68,10 @@ self.addEventListener("message", async (event: any) => {
     case "skip-waiting": {
       // @ts-ignore: Skip waiting to activate this service worker immediately
       self.skipWaiting();
+      break;
+    }
+    case "shutdown": {
+      proxyRouter.reset();
       break;
     }
     case "flush-cache": {
@@ -182,6 +187,9 @@ self.addEventListener("message", async (event: any) => {
               message,
               actionOrRedirectHeader,
             );
+            if (message === wrongSpacePathError.message) {
+              proxyRouter.reset();
+            }
             broadcastMessage({
               type: "auth-error",
               message,

@@ -1,6 +1,6 @@
 import { WidgetType } from "@codemirror/view";
 import type { Client } from "../client.ts";
-import { renderMarkdownToHtml } from "../markdown/markdown_render.ts";
+import { renderMarkdownToHtml } from "../markdown_renderer/markdown_render.ts";
 import {
   isLocalURL,
   resolveMarkdownLink,
@@ -12,9 +12,12 @@ import {
   attachWidgetEventHandlers,
   moveCursorIntoText,
 } from "./widget_util.ts";
-import { expandMarkdown } from "../markdown/inline.ts";
+import { expandMarkdown } from "../markdown_renderer/inline.ts";
 import { LuaStackFrame, LuaTable } from "../space_lua/runtime.ts";
-import { isBlockMarkdown, jsonToMDTable } from "../markdown/result_render.ts";
+import {
+  isBlockMarkdown,
+  jsonToMDTable,
+} from "../markdown_renderer/result_render.ts";
 import { activeWidgets } from "./code_widget.ts";
 
 export type LuaWidgetCallback = (

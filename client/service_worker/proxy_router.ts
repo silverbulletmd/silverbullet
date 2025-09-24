@@ -5,6 +5,8 @@ import { fileMetaToHeaders, headersToFileMeta } from "../util.ts";
 import {
   notFoundError,
   offlineError,
+  pingInterval,
+  pingTimeout,
 } from "@silverbulletmd/silverbullet/constants";
 import type { SyncEngine } from "./sync_engine.ts";
 import { EventEmitter } from "../plugos/event.ts";
@@ -17,9 +19,6 @@ const alwaysProxy = [
   "/.config",
   "/.logs",
 ];
-
-const pingTimeout = 2000;
-const pingInterval = 5000;
 
 export type ProxyRouterEvents = {
   // Use case: the user likely has this file open in the editor, so it's good to prioritize syncing it
@@ -36,6 +35,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
   online = false;
   localSpacePrimitives?: SpacePrimitives;
   syncEngine?: SyncEngine;
+
   forcedStatus = false;
 
   constructor(
@@ -69,18 +69,36 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
     });
   }
 
+  /**
+   * Stops service worker operation only to be continued after reconfiguration
+   */
+  reset() {
+    console.log("Shutting down proxy router and linked components");
+    if (this.syncEngine) {
+      this.syncEngine.stop();
+      this.syncEngine = undefined;
+    }
+  }
+
   async checkOnline() {
-    try {
-      await fetch(this.baseURI + "/.ping", {
-        signal: AbortSignal.timeout(pingTimeout),
-      });
-      // If the ping is successful, we are online
-      this.online = true;
-    } catch {
-      // Otherwise we're not
-      this.online = false;
-    } finally {
-      this.emit("onlineStatusUpdated", this.online);
+    if (this.syncEngine) {
+      try {
+        this.syncEngine.remote.ping();
+        await fetch(this.baseURI + "/.ping", {
+          signal: AbortSignal.timeout(pingTimeout),
+        });
+        // If the ping is successful, we are online
+        this.online = true;
+      } catch {
+        // Otherwise we're not
+        this.online = false;
+      } finally {
+        this.emit("onlineStatusUpdated", this.online);
+      }
+    } else {
+      console.info(
+        "Sync engine not initialized yet, cannot check online status",
+      );
     }
   }
 

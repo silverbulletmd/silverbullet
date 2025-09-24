@@ -5,6 +5,7 @@ import { EventEmitter } from "../plugos/event.ts";
 import { plugPrefix, stdLibPrefix } from "../spaces/constants.ts";
 import type { SpacePrimitives } from "../spaces/space_primitives.ts";
 import { SpaceSync, SyncSnapshot, type SyncStatus } from "../spaces/sync.ts";
+import { HttpSpacePrimitives } from "../spaces/http_space_primitives.ts";
 
 const syncSnapshotKey = ["$sync", "snapshot"];
 const syncInterval = 20;
@@ -47,7 +48,7 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
   constructor(
     private kv: KvPrimitives,
     readonly local: SpacePrimitives,
-    readonly remote: SpacePrimitives,
+    readonly remote: HttpSpacePrimitives,
   ) {
     super();
   }
@@ -69,6 +70,10 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
 
     // Start the sync loop
     this.run();
+  }
+
+  stop() {
+    this.stopping = true;
   }
 
   async run() {
@@ -158,7 +163,7 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
   }
 
   async wipe() {
-    this.stopping = true;
+    this.stop();
     console.log("Wiping sync database");
     await this.kv.clear();
     console.log("Done wiping");

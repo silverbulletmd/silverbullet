@@ -197,6 +197,7 @@ export type ServiceWorkerTargetMessage =
   }
   | { type: "config"; config: BootConfig }
   | { type: "flush-cache" }
+  | { type: "shutdown" }
   | { type: "wipe-data" }
   | { type: "perform-file-sync"; path: string }
   | { type: "perform-space-sync" }

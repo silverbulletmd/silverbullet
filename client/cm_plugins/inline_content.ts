@@ -9,7 +9,10 @@ import {
 } from "./util.ts";
 import type { Client } from "../client.ts";
 import { LuaWidget } from "./lua_widget.ts";
-import { inlineContentFromURL, parseTransclusion } from "../markdown/inline.ts";
+import {
+  inlineContentFromURL,
+  parseTransclusion,
+} from "../markdown_renderer/inline.ts";
 
 export function inlineContentPlugin(client: Client) {
   return decoratorStateField((state: EditorState) => {

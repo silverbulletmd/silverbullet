@@ -43,7 +43,9 @@ func RunServer(config *ServerConfig) error {
 	routes := chi.NewRouter()
 
 	routes.Get("/.ping", func(w http.ResponseWriter, r *http.Request) {
+		spaceConfig := spaceConfigFromContext(r.Context())
 		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("X-Space-Path", spaceConfig.SpaceFolderPath)
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	})
