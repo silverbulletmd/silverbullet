@@ -77,12 +77,7 @@ import { CheckPathSpacePrimitives } from "./spaces/checked_space_primitives.ts";
 import {
   notFoundError,
   offlineError,
-  wrongSpacePathError,
 } from "@silverbulletmd/silverbullet/constants";
-import {
-  flushCachesAndUnregisterServiceWorker,
-  unregisterServiceWorkers,
-} from "./service_worker/util.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 

@@ -5,7 +5,7 @@ import { EventEmitter } from "../plugos/event.ts";
 import { plugPrefix, stdLibPrefix } from "../spaces/constants.ts";
 import type { SpacePrimitives } from "../spaces/space_primitives.ts";
 import { SpaceSync, SyncSnapshot, type SyncStatus } from "../spaces/sync.ts";
-import { HttpSpacePrimitives } from "../spaces/http_space_primitives.ts";
+import type { HttpSpacePrimitives } from "../spaces/http_space_primitives.ts";
 
 const syncSnapshotKey = ["$sync", "snapshot"];
 const syncInterval = 20;
