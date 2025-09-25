@@ -158,7 +158,7 @@ export async function compileManifests(
           dist,
           options,
         );
-      } catch (e) {
+      } catch (e: any) {
         console.error(`Error building ${manifestPath}:`, e.message);
         throw e;
       }
