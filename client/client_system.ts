@@ -36,7 +36,6 @@ import { clientCodeWidgetSyscalls } from "./plugos/syscalls/client_code_widget.t
 import { KVPrimitivesManifestCache } from "./plugos/manifest_cache.ts";
 import { createKeyBindings } from "./editor_state.ts";
 import type { DataStoreMQ } from "./data/mq.datastore.ts";
-import { plugPrefix } from "./spaces/constants.ts";
 import { jsonschemaSyscalls } from "./plugos/syscalls/jsonschema.ts";
 import { luaSyscalls } from "./plugos/syscalls/lua.ts";
 import { indexSyscalls } from "./plugos/syscalls/index.ts";
