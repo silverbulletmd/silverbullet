@@ -52,7 +52,7 @@ export class LimitedMap<V> {
     this.map.delete(key);
   }
 
-  toJSON() {
+  toJSON(): Record<string, any> {
     return Object.fromEntries(this.map.entries());
   }
 

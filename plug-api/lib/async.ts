@@ -1,4 +1,4 @@
-export function throttle(func: () => void, limit: number) {
+export function throttle(func: () => void, limit: number): () => void {
   let timer: any = null;
   return function () {
     if (!timer) {
@@ -10,7 +10,10 @@ export function throttle(func: () => void, limit: number) {
   };
 }
 
-export function throttleImmediately(func: () => void, limit: number) {
+export function throttleImmediately(
+  func: () => void,
+  limit: number,
+): () => void {
   let timer: any = null;
   return function () {
     if (!timer) {
@@ -145,7 +148,7 @@ export async function processWithConcurrency<I, O>(
  * Runs a function safely by catching any errors and logging them to the console.
  * @param fn - The function to run.
  */
-export function safeRun(fn: () => Promise<void>) {
+export function safeRun(fn: () => Promise<void>): void {
   fn().catch((e) => {
     console.error(e);
   });
@@ -154,6 +157,6 @@ export function safeRun(fn: () => Promise<void>) {
 /**
  * Generates a random delay between 0 and 1000 milliseconds.
  */
-export function jitter(maxLength = 1000) {
+export function jitter(maxLength = 1000): number {
   return Math.floor(Math.random() * maxLength);
 }
