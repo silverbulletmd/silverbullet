@@ -5,9 +5,11 @@ These are changes live on the edge builds:
 
 * _Nothing yet since 2.1.0_
 
-## 2.1.0
-* New server written in Go, should be functionally equivalent to the old Deno-based server, but is much smaller, faster and uses less memory.
-* The docker base image is now based on Alpine (previously it was Ubuntu), further reducing memory and disk space usage.
+## 2.1.2
+This is a major architectural overhaul compared to 2.0. Please — as always — make sure you regularly backup your space files to avoid any data loss. Nothing should happen, but better be safe than sorry!
+
+* All new server written in Go (previously written using Deno). Uses significantly less memory and is significantly smaller in size.
+* Docker base image is now based on Alpine (previously Ubuntu), further reducing memory and disk space usage.
 * Significant engine re-architecture: see [[Architecture]] and [[Sync]], now lives in the service worker and parallelizes sync. Once upgrading a full resync will need to happen. Documents are no longer synced by default (you can enable this via config, see [[Sync]]).
 * More configuration options for what to index (see [[^Library/Std/Config]] under the `index` section) for the purpose of reducing local storage size and needless CPU waste. Some useful ones:
   * `config.set("index.search.enable", false)` to disable [[Full Text Search]] entirely (saves on processing and storage if you don’t use it)
