@@ -43,6 +43,9 @@ EXPOSE 3000
 ENV SB_HOSTNAME=0.0.0.0
 ENV SB_FOLDER=/space
 
+# Reset /etc/group and /etc/passwd
+RUN echo "" > /etc/group && echo "root:x:0:0:root:/root:/bin/sh" > /etc/passwd
+
 # As well as the docker-entrypoint.sh script
 ADD ./docker-entrypoint.sh /docker-entrypoint.sh
 

@@ -1,19 +1,4 @@
 #!/bin/bash -e
-
-# Run last-minute package installs, DEPRECATED
-if [ -n "$SB_APT_PACKAGES" ]; then
-    if [ "$UID" == "0" ]; then
-        if [ -n "$SB_APT_SYNC" ]; then
-            apt update -y
-            apt install -y $SB_APT_PACKAGES
-        else
-            (apt update -y && apt install -y $SB_APT_PACKAGES) &
-        fi
-    else
-        echo "Cannot install packages selected via SB_APT_PACKAGES unless run as root"
-    fi
-fi
-
 # If a /space/CONTAINER_BOOT.md file exists, execute it as a bash script upon boot
 if [ -f "/space/CONTAINER_BOOT.md" ]; then
     echo "Executing CONTAINER_BOOT.md script"
@@ -35,12 +20,12 @@ if [ "$PUID" == "0" ] || [ "$UID" != "0" ]; then
     # Will run SilverBullet as default user
     /silverbullet $@
 else
+    echo "Creating 'silverbullet' group (with GID $PGID) and 'silverbullet' user (with UID $PUID) inside container"
     # Create silverbullet user and group ad-hoc mapped to PUID and PGID
-    getent group $PGID &> /dev/null || addgroup -g $PGID silverbullet
-    getent passwd $PUID &> /dev/null || adduser -D -H -G silverbullet -u $PUID silverbullet
+    addgroup -g $PGID silverbullet
+    adduser -D -H -G silverbullet -u $PUID silverbullet
     args="$@"
-    # And run via su as requested PUID, usually this will be 'silverbullet' but if a user with this idea already exists, we will use that
-    USERNAME=$(getent passwd $PUID | cut -d ":" -f 1)
-    echo "Running SilverBullet as $USERNAME (configured as PUID $PUID and PGID $PGID)"
-    su $USERNAME -s /bin/bash -c "/silverbullet $args"
+    # And run via su as requested PUID
+    echo "Running SilverBullet as user configured with PUID $PUID and PGID $PGID"
+    su silverbullet -s /bin/bash -c "/silverbullet $args"
 fi
