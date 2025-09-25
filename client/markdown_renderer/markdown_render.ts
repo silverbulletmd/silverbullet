@@ -7,7 +7,11 @@ import {
   renderToText,
   traverseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import { encodeRef, parseToRef } from "@silverbulletmd/silverbullet/lib/ref";
+import {
+  encodePageURI,
+  encodeRef,
+  parseToRef,
+} from "@silverbulletmd/silverbullet/lib/ref";
 import { Fragment, renderHtml, type Tag } from "./html_render.ts";
 import * as TagConstants from "../../plugs/index/constants.ts";
 import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
@@ -287,7 +291,7 @@ function render(
 
       const ref = parseToRef(link);
       if (ref) {
-        href = `/${encodeRef(ref)}`;
+        href = `/${encodePageURI(encodeRef(ref))}`;
       }
 
       return {
@@ -313,12 +317,14 @@ function render(
     }
     case "Hashtag": {
       const tagText: string = t.children![0].text!;
+      const link = TagConstants.tagPrefix + extractHashtag(tagText);
       return {
         name: "a",
         attrs: {
           class: "hashtag sb-hashtag",
           "data-tag-name": extractHashtag(tagText),
-          href: `/${TagConstants.tagPrefix}${extractHashtag(tagText)}`,
+          href: `/${encodePageURI(link)}`,
+          "data-ref": link,
         },
         body: tagText,
       };

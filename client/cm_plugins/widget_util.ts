@@ -55,21 +55,6 @@ export function attachWidgetEventHandlers(
     });
   });
 
-  // Attach click handlers to hash tags
-  div.querySelectorAll("span.hashtag").forEach((el_) => {
-    const el = el_ as HTMLElement;
-    // Override default click behavior with a local navigate (faster)
-    el.addEventListener("click", (e) => {
-      if (e.ctrlKey || e.metaKey) {
-        // Don't do anything special for ctrl/meta clicks
-        return;
-      }
-      client.navigate(
-        parseToRef(`${tagPrefix}${extractHashtag(el.innerText)}@0`),
-      );
-    });
-  });
-
   div.querySelectorAll("button[data-onclick]").forEach((el_) => {
     const el = el_ as HTMLElement;
     const onclick = el.dataset.onclick!;
