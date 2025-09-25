@@ -62,7 +62,7 @@ export class DataStoreSpacePrimitives implements SpacePrimitives {
       // No existing meta data, let's set some defaults
       meta = {
         name: path,
-        created: suggestedMeta?.lastModified || Date.now(),
+        created: suggestedMeta?.created || Date.now(),
         perm: "rw",
         contentType: mime.getType(path) || "application/octet-stream",
         // Overwritten in a sec
