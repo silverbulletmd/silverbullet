@@ -11,7 +11,7 @@ import { version } from "../../version.ts";
 //   import.meta.url,
 // );
 const workerRuntimeUrl =
-  `https://jsr.io/@silverbulletmd/silverbullet/${version}/client/plugos/worker_runtime.ts`;
+  `https://deno.land/x/silverbullet@${version}/client/plugos/worker_runtime.ts`;
 
 export type CompileOptions = {
   debug?: boolean;
@@ -159,7 +159,8 @@ export async function compileManifests(
           options,
         );
       } catch (e) {
-        console.error(`Error building ${manifestPath}:`, e);
+        console.error(`Error building ${manifestPath}:`, e.message);
+        throw e;
       }
     }));
     console.log(`Done building plugs in ${Date.now() - startTime}ms`);

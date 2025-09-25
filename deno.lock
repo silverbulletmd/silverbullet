@@ -130,6 +130,9 @@
     "@silverbulletmd/silverbullet@2.1.0": {
       "integrity": "0cac0af9f0f4f4ed134900cf0fe8e96cc31474197a90eb0691f6851146d10097"
     },
+    "@silverbulletmd/silverbullet@2.1.1": {
+      "integrity": "8d450952c66b4a8420c62bfd9fb503476b671d387943aebc0a88f42102b7aadf"
+    },
     "@std/assert@1.0.13": {
       "integrity": "ae0d31e41919b12c656c742b22522c32fb26ed0cba32975cb0de2a273cb68b29",
       "dependencies": [
@@ -492,6 +495,7 @@
     }
   },
   "redirects": {
+    "https://deno.land/x/silverbullet/2.1.1/client/plugos/worker_runtime.ts": "https://deno.land/x/silverbullet@2.1.1/2.1.1/client/plugos/worker_runtime.ts",
     "https://jsr.io/@silverbulletmd/silverbullet/2.1.1/client/plugos/worker_runtime.ts": "https://jsr.io/@silverbulletmd/silverbullet/2.1.1/"
   },
   "remote": {
@@ -592,6 +596,11 @@
     "https://deno.land/x/silverbullet@2.0.0/lib/plugos/worker_runtime.ts": "6f16899c0a3d2525c4bf3f881463bce2d7f2b8b55f072fd74ae0f621ba74fea0",
     "https://deno.land/x/silverbullet@2.0.0/lib/proxy_fetch.ts": "831d98cf7f9ada653fc958f52ad367d8511e2634400c29e1fe9d6babd230c0bf",
     "https://deno.land/x/silverbullet@2.0.0/type/datastore.ts": "43ac83561844fc5224bd2d5c6c2a92a2cdda6688d29b798c624e3c90bca7ab9d",
+    "https://deno.land/x/silverbullet@2.1.1/client/logger.ts": "09e3b6eabdb29203573da50950c9a08e75d7ca4f05bb56258413a758dda6201b",
+    "https://deno.land/x/silverbullet@2.1.1/client/plugos/protocol.ts": "1eca91d1fc2ef66ee5ed25f7b44c04f518b2d275a9f3d2a7b31c32d4437dd547",
+    "https://deno.land/x/silverbullet@2.1.1/client/plugos/worker_runtime.ts": "0371f6d8f007222b397dfe72a5b8b2e02f38f3521b9317d695f3f0a46e2310e1",
+    "https://deno.land/x/silverbullet@2.1.1/client/proxy_fetch.ts": "cffd9456426304a21fe50c8af5549fbc93c2afa259be48abe808a50d8ca71909",
+    "https://deno.land/x/silverbullet@2.1.1/plug-api/lib/crypto.ts": "b7485dfcc231cf03af0e5271b89970ba1f7ab6cb43ebfe555de0c48996313250",
     "https://esm.sh/lodash@4.17.21": "c2f90ffd948b7a30f054986888bdc2667824115fa48ad583ca8b3a579ca4a5a8",
     "https://esm.sh/lodash@4.17.21/denonext/lodash.mjs": "9d2a44e584d91008f61f974c6d0a32bf9afb1563761e60c366af0a293e8c759b",
     "https://esm.sh/moment@2.30.1": "61eef31d73508961f2cf25fc2cb507832f7158cf8638e86d933534c9adfac753",
