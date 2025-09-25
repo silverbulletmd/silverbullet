@@ -23,6 +23,7 @@ This is a major architectural overhaul compared to 2.0. Please — as always �
 * Fix transclusions not being indexed as links (by [MrMugame](https://github.com/silverbulletmd/silverbullet/pull/1539))
 * Render links inside frontmatter code as clickable anchors (by [Andy Constanza](https://github.com/silverbulletmd/silverbullet/pull/1552))
 * New `SB_LOG_PUSH` option asking clients to push their browser JS logs to the server so they’re visible there.
+* Hot reloading plugs has been disabled because it caused some nasty race condition. To explicitly reload plugs without restarting the client, use the `Plugs: Reload` command.
 
 ## 2.0.0
 * We’re now live!
