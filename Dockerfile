@@ -1,6 +1,6 @@
 # Stage 1: Build the silverbullet binary
 FROM denoland/deno:2.5.0 AS builder
-RUN apt update && apt install -y git wget
+RUN apt update && apt install -y git wget make
 
 ARG TARGETARCH
 ENV GO_VERSION=1.25.1
