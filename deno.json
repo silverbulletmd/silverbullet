@@ -22,7 +22,8 @@
   "lint": {
     "exclude": [
       "dist",
-      "client_bundle"
+      "client_bundle",
+      "website"
     ],
     "rules": {
       "exclude": [
