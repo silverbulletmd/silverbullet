@@ -7,6 +7,11 @@ import {
 import { builtinPlugPaths } from "../builtin_plugs.ts";
 import type { ResolvedPlug } from "@silverbulletmd/silverbullet/type/event";
 
+export async function reloadPlugsCommand() {
+  console.log("Reloading plug...");
+  await system.reloadPlugs();
+}
+
 export async function updatePlugsCommand() {
   // Save the current file (could be a config page)
   await editor.save();

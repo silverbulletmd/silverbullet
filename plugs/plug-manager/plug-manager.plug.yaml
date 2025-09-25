@@ -2,6 +2,10 @@ name: plug-manager
 requiredPermissions:
   - fetch
 functions:
+  reloadPlugsCommand:
+    path: ./plugmanager.ts:reloadPlugsCommand
+    command:
+      name: "Plugs: Reload"
   updatePlugsCommand:
     path: ./plugmanager.ts:updatePlugsCommand
     command:

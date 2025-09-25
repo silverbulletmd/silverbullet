@@ -146,32 +146,6 @@ export class ClientSystem {
 
     // Syscall hook
     this.system.addHook(new SyscallHook());
-
-    this.eventHook.addLocalListener(
-      "file:changed",
-      async (path: string, _oldHash, newHash) => {
-        // Plug (re)loading
-        if (
-          !path.startsWith(plugPrefix) ||
-          !path.endsWith(".plug.js") ||
-          this.client.bootConfig.disablePlugs
-        ) {
-          return;
-        }
-
-        console.log("Plug updated, reloading", path);
-
-        await this.system.loadPlug(
-          createWorkerSandboxFromLocalPath(path),
-          path,
-          newHash,
-        ).catch((e) => {
-          console.error(
-            `Could not load plug ${path} error: ${e.message}`,
-          );
-        });
-      },
-    );
   }
 
   init() {
