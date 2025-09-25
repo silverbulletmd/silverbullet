@@ -83,7 +83,10 @@ jobs:
         uses: docker/metadata-action@v4.4.0
         with:
           images: ${{ env.WEBSITE_IMAGE }}
-          tags: type=edge,branch=main
+          tags: |
+            type=edge,branch=main
+            type=semver,pattern=latest,enable=true
+            type=semver,pattern=latest,enable=true
 
       - name: "Website: Build and push website docker images"
         uses: docker/build-push-action@v4.0.0

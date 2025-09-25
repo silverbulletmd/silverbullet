@@ -491,6 +491,9 @@
       "integrity": "sha512-dpojBhNsCNN7T82Tm7k26A6G9ML3NkhDsnw9n/eoxSRlVBB4CEtIQ/KTCLI2Fwf3ataSXRhYFkQi3SlnFwPvPQ=="
     }
   },
+  "redirects": {
+    "https://jsr.io/@silverbulletmd/silverbullet/2.1.1/client/plugos/worker_runtime.ts": "https://jsr.io/@silverbulletmd/silverbullet/2.1.1/"
+  },
   "remote": {
     "https://cdn.jsdelivr.net/gh/urielch/react-icons@1.0.8/lib/iconBase.tsx": "8ae4746f8fbe5e4e00bfe448e38876a6c5d0ca7edf0846b917b971bec5beaa6c",
     "https://cdn.jsdelivr.net/gh/urielch/react-icons@1.0.8/lib/iconContext.ts": "a3ef1f1821598622472bf8aea52eaa4fdc7d27149e1757d569e1dc1e3f34d49f",
