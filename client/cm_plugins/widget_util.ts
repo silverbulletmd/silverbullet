@@ -1,7 +1,5 @@
 import { parseToRef } from "@silverbulletmd/silverbullet/lib/ref";
 import type { Client } from "../client.ts";
-import { tagPrefix } from "../../plugs/index/constants.ts";
-import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 import type { EventPayLoad } from "./lua_widget.ts";
 
 export function moveCursorIntoText(client: Client, textToFind: string) {
