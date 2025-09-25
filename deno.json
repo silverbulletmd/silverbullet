@@ -1,6 +1,6 @@
 {
   "name": "@silverbulletmd/silverbullet",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "tasks": {
     "build": "make clean && deno run -A build_plugs_libraries.ts && deno run -A build_client.ts",
     "build-production": "deno task build --production",
