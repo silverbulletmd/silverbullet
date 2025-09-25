@@ -3,7 +3,7 @@ This is where you configure SilverBullet to your liking. See [[^Library/Std/Conf
 ```space-lua
 config.set {
   plugs = {
-    "github:silverbulletmd/silverbullet-mermaid/mermaid.plug.js"
+    "ghr:LogeshG5/silverbullet-excalidraw"
   },
   actionButtons = {
     {

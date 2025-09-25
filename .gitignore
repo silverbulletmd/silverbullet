@@ -4,11 +4,8 @@ client_bundle/client
 client_bundle/base_fs
 dist
 *.js.map
-website_build
-fly.toml
 env.sh
 node_modules
-*.db*
 test_space
 silverbullet
 silverbullet-*
