@@ -70,7 +70,7 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Make the request
+	// TODO: Replaced with specifically configured client
 	client := http.DefaultClient
 
 	resp, err := client.Do(req)
@@ -90,5 +90,7 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Set status code and copy body
 	w.WriteHeader(resp.StatusCode)
-	io.Copy(w, resp.Body)
+	if _, err := io.Copy(w, resp.Body); err != nil {
+		log.Printf("Proxy: failed to copy response body: %v", err)
+	}
 }

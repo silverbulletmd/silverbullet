@@ -2,6 +2,7 @@ package cmd
 
 import (
 	_ "embed"
+	"errors"
 	"fmt"
 	"io/fs"
 	"log"
@@ -150,8 +151,8 @@ func buildConfig(bundledFiles fs.FS, args []string) *server.ServerConfig {
 		}
 	}
 
-	serverConfig.ClientBundle = server.NewReadOnlyFallthroughSpacePrimitives(bundledFiles, "dist_client_bundle", bundlePathDate, nil)
-	rootSpaceConfig.SpacePrimitives = server.NewReadOnlyFallthroughSpacePrimitives(bundledFiles, "dist_base_fs_bundle", bundlePathDate, spacePrimitives)
+	serverConfig.ClientBundle = server.NewReadOnlyFallthroughSpacePrimitives(bundledFiles, "client", bundlePathDate, nil)
+	rootSpaceConfig.SpacePrimitives = server.NewReadOnlyFallthroughSpacePrimitives(bundledFiles, "base_fs", bundlePathDate, spacePrimitives)
 
 	if serverConfig.BindHost == "127.0.0.1" {
 		log.Println("SilverBullet will only be available locally, to allow outside connections, pass -L0.0.0.0 as a flag, and put a TLS terminator on top.")
@@ -197,7 +198,7 @@ func ensureIndexAndConfig(rootSpaceConfig *server.SpaceConfig) {
 	// Now let's check for a CONFIG.md
 	configPagePath := "CONFIG.md"
 	_, err = rootSpaceConfig.SpacePrimitives.GetFileMeta(configPagePath)
-	if err == server.ErrNotFound {
+	if errors.Is(err, server.ErrNotFound) {
 		log.Printf("Config page %s does not yet exist, creating...", configPagePath)
 		if _, err := rootSpaceConfig.SpacePrimitives.WriteFile(configPagePath, configPageContent, nil); err != nil {
 			log.Fatalf("Could not write config page %s: %v", configPagePath, err)

@@ -2,11 +2,9 @@
   "name": "@silverbulletmd/silverbullet",
   "version": "2.0.0",
   "tasks": {
-    "build": "deno task clean && deno run -A build_plugs_libraries.ts && deno run -A build_client.ts",
+    "build": "make clean && deno run -A build_plugs_libraries.ts && deno run -A build_client.ts",
     "build-production": "deno task build --production",
     "build-plug-compile": "deno run -A build_plug_compile.ts",
-    "clean": "rm -rf dist_client_bundle dist_base_fs_bundle dist public_version.ts",
-    "deep-clean-mac": "rm -f deno.lock && rm -rf $HOME/Library/Caches/deno && deno task clean",
     "check": "find . -name '*.ts*' -not -path \"*/node_modules/*\" | xargs deno check",
     "checks": "deno task check && deno task lint && deno task test",
     "lint": "deno lint --fix",
@@ -15,17 +13,29 @@
     "plugs": "deno run -A build_plugs_libraries.ts"
   },
   "publish": {
-    "exclude": ["website", "CHANGELOG.md", "**/*.md"]
+    "exclude": [
+      "website",
+      "CHANGELOG.md",
+      "**/*.md"
+    ]
   },
   "lint": {
-    "exclude": ["dist", "dist_client_bundle", "dist_base_fs_bundle"],
+    "exclude": [
+      "dist",
+      "client_bundle"
+    ],
     "rules": {
-      "exclude": ["no-explicit-any", "no-slow-types", "jsx-boolean-value"]
+      "exclude": [
+        "no-explicit-any",
+        "no-slow-types",
+        "jsx-boolean-value"
+      ]
     }
   },
   "fmt": {
     "exclude": [
       "dist*",
+      "client_bundle/*",
       "website",
       "**/*.md",
       "**/*.html",
@@ -34,7 +44,12 @@
     ]
   },
   "compilerOptions": {
-    "lib": ["dom", "dom.iterable", "dom.asynciterable", "deno.ns"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "dom.asynciterable",
+      "deno.ns"
+    ],
     "jsx": "react-jsx",
     "jsxImportSource": "npm:preact@10.26.4"
   },

@@ -4,9 +4,9 @@ tmp_dir = "tmp"
 [build]
   args_bin = []
   bin = "silverbullet"
-  cmd = "deno task build && go build"
+  cmd = "make"
   # delay = 10000
-  exclude_dir = ["node_modules", "website", "scripts", "dist_client_bundle", "dist_base_fs_bundle", "dist"]
+  exclude_dir = ["node_modules", "website", "scripts", "client_bundle", "dist"]
   exclude_file = ["public_version.ts"]
   exclude_regex = ["_test.go", ".test.ts"]
   exclude_unchanged = false

@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { copy } from "@std/fs";
 import { version } from "./version.ts";
 
-// This builds all built-in plugs and libraries and puts them into dist_base_fs_bundle/
+// This builds all built-in plugs and libraries and puts them into client_bundle/base_fs
 
 if (import.meta.main) {
   await updateVersionFile();
@@ -20,13 +20,13 @@ if (import.meta.main) {
     `./plugs/${name}/${name}.plug.yaml`
   );
 
-  const plugBundlePath = "dist_base_fs_bundle";
+  const plugBundlePath = "client_bundle/base_fs";
   const targetDir = path.join(plugBundlePath, "_plug");
   Deno.mkdirSync(targetDir, { recursive: true });
   Deno.mkdirSync("dist", { recursive: true });
 
   // Copy Library files
-  await copy("libraries/Library", "dist_base_fs_bundle/Library", {
+  await copy("libraries/Library", `${plugBundlePath}/Library`, {
     overwrite: true,
   });
 

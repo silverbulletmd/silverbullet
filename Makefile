@@ -1,13 +1,13 @@
 build:
-	# Build frontend
+	# Build client
 	deno task build
 	# Build plug-compile
 	deno task build-plug-compile
-	# Build backend
+	# Build server
 	go build
 
 clean:
-	deno task clean
+	rm -rf  client_bundle/{base_fs,client} dist public_version.ts
 	rm -f silverbullet
 
 check:

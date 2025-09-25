@@ -7,7 +7,7 @@ import { patchDenoLibJS } from "./client/plugos/plug_compile.ts";
 import { denoPlugins } from "@luca/esbuild-deno-loader";
 import * as esbuild from "esbuild";
 
-// This builds the client and puts it into dist_client_bundle/
+// This builds the client and puts it into client_bundle/client
 
 export async function bundleAll(): Promise<void> {
   await buildCopyBundleAssets();
@@ -50,8 +50,8 @@ export async function copyAssets(dist: string) {
 }
 
 async function buildCopyBundleAssets() {
-  await Deno.mkdir("dist_client_bundle", { recursive: true });
-  await Deno.mkdir("dist_base_fs_bundle", { recursive: true });
+  await Deno.mkdir("client_bundle/client", { recursive: true });
+  await Deno.mkdir("client_bundle/base_fs", { recursive: true });
 
   console.log("Now ESBuilding the client and service workers...");
 
@@ -66,7 +66,7 @@ async function buildCopyBundleAssets() {
         out: "service_worker",
       },
     ],
-    outdir: "dist_client_bundle",
+    outdir: "client_bundle/client",
     absWorkingDir: Deno.cwd(),
     bundle: true,
     treeShaking: true,
@@ -89,11 +89,13 @@ async function buildCopyBundleAssets() {
   }
 
   // Patch the service_worker {{CACHE_NAME}}
-  let swCode = await Deno.readTextFile("dist_client_bundle/service_worker.js");
+  let swCode = await Deno.readTextFile(
+    "client_bundle/client/service_worker.js",
+  );
   swCode = swCode.replaceAll("{{CACHE_NAME}}", `cache-${Date.now()}`);
-  await Deno.writeTextFile("dist_client_bundle/service_worker.js", swCode);
+  await Deno.writeTextFile("client_bundle/client/service_worker.js", swCode);
 
-  await copyAssets("dist_client_bundle/.client");
+  await copyAssets("client_bundle/client/.client");
 
   console.log("Built!");
 }

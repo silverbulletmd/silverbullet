@@ -1,22 +1,17 @@
 package main
 
 import (
-	"embed"
+	_ "embed"
 
+	"github.com/silverbulletmd/silverbullet/client_bundle"
 	"github.com/silverbulletmd/silverbullet/server/cmd"
 )
 
-// Embed client files, plugs and version files into the binary
-//
-//go:embed dist_client_bundle/*
-//go:embed dist_base_fs_bundle/*
-var bundledFiles embed.FS
-
 //go:embed public_version.ts
-var versionFileText string
+var VersionFileText string
 
 func main() {
-	c := cmd.ServerCommand(bundledFiles)
-	c.AddCommand(cmd.VersionCommand(versionFileText), cmd.UpgradeCommand(), cmd.UpgradeEdgeCommand())
+	c := cmd.ServerCommand(client_bundle.BundledFiles)
+	c.AddCommand(cmd.VersionCommand(VersionFileText), cmd.UpgradeCommand(), cmd.UpgradeEdgeCommand())
 	c.Execute()
 }
