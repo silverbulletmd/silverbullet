@@ -127,6 +127,9 @@
         "jsr:@std/path@^1.0.6"
       ]
     },
+    "@silverbulletmd/silverbullet@2.1.0": {
+      "integrity": "0cac0af9f0f4f4ed134900cf0fe8e96cc31474197a90eb0691f6851146d10097"
+    },
     "@std/assert@1.0.13": {
       "integrity": "ae0d31e41919b12c656c742b22522c32fb26ed0cba32975cb0de2a273cb68b29",
       "dependencies": [

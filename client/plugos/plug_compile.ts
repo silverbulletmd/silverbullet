@@ -11,7 +11,7 @@ import { version } from "../../version.ts";
 //   import.meta.url,
 // );
 const workerRuntimeUrl =
-  `https://deno.land/x/silverbullet@${version}/lib/plugos/worker_runtime.ts`;
+  `https://jsr.io/@silverbulletmd/silverbullet/${version}/client/plugos/worker_runtime.ts`;
 
 export type CompileOptions = {
   debug?: boolean;
