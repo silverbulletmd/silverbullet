@@ -1,7 +1,5 @@
 import { parseToRef } from "@silverbulletmd/silverbullet/lib/ref";
 import type { Client } from "../client.ts";
-import { tagPrefix } from "../../plugs/index/constants.ts";
-import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 import type { EventPayLoad } from "./lua_widget.ts";
 
 export function moveCursorIntoText(client: Client, textToFind: string) {
@@ -51,21 +49,6 @@ export function attachWidgetEventHandlers(
         parseToRef(el.dataset.ref!),
         false,
         e.ctrlKey || e.metaKey,
-      );
-    });
-  });
-
-  // Attach click handlers to hash tags
-  div.querySelectorAll("span.hashtag").forEach((el_) => {
-    const el = el_ as HTMLElement;
-    // Override default click behavior with a local navigate (faster)
-    el.addEventListener("click", (e) => {
-      if (e.ctrlKey || e.metaKey) {
-        // Don't do anything special for ctrl/meta clicks
-        return;
-      }
-      client.navigate(
-        parseToRef(`${tagPrefix}${extractHashtag(el.innerText)}@0`),
       );
     });
   });
