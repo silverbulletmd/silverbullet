@@ -98,8 +98,8 @@ func (d *DiskSpacePrimitives) fileInfoToFileMeta(path string, info os.FileInfo) 
 		Name:         path,
 		Size:         info.Size(),
 		ContentType:  LookupContentTypeFromPath(path),
-		Created:      getCreationTime(info).UnixMilli(),
-		LastModified: info.ModTime().UnixMilli(),
+		Created:      getCreationTime(info).Unix(),
+		LastModified: info.ModTime().Unix(),
 		Perm:         "rw",
 	}
 }
@@ -216,7 +216,7 @@ func (d *DiskSpacePrimitives) WriteFile(path string, data []byte, meta *FileMeta
 
 	// Set modification time if provided
 	if meta != nil && meta.LastModified > 0 {
-		modTime := time.UnixMilli(meta.LastModified)
+		modTime := time.Unix(meta.LastModified, 0)
 		if err := os.Chtimes(localPath, modTime, modTime); err != nil {
 			log.Printf("Failed to set the mtime for %s: %v", localPath, err)
 		}

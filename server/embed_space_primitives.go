@@ -45,8 +45,8 @@ func (e *ReadOnlyFallthroughSpacePrimitives) fileInfoToFileMeta(path string, inf
 		Name:         path,
 		Size:         info.Size(),
 		ContentType:  LookupContentTypeFromPath(path),
-		Created:      e.timeStamp.UnixMilli(),
-		LastModified: e.timeStamp.UnixMilli(),
+		Created:      e.timeStamp.Unix(),
+		LastModified: e.timeStamp.Unix(),
 		Perm:         "ro",
 	}
 }
