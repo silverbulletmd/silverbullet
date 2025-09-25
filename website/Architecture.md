@@ -1,8 +1,4 @@
-Here’s a diagram (pan around to see it all):
-
-```excalidraw
-url:Architecture/Architecture.excalidraw
-```
+Here’s a diagram (pan around to see it all): 
 
 # Client
 The client is what you see when you open SilverBullet in a browser tab or window. It renders the UI, interacts with the user, runs [[Plugs]], [[Space Lua]], and maintains the index. 90%+ of logic lives here.
