@@ -1,7 +1,10 @@
 import { Ajv } from "ajv";
 
 export class Config {
-  public schemas: Record<string, any> = {};
+  public schemas: any = {
+    type: "object",
+    properties: {},
+  };
   private ajv = new Ajv();
 
   constructor(public values: Record<string, any> = {}) {
@@ -22,7 +25,10 @@ export class Config {
   }
 
   public clear() {
-    this.schemas = {};
+    this.schemas = {
+      type: "object",
+      properties: {},
+    };
     this.values = {};
   }
 
@@ -31,7 +37,7 @@ export class Config {
    * @param key The configuration key to define a schema for
    * @param schema The JSON schema to validate against
    */
-  define(key: string, schema: any): void {
+  define(key: string | string[], schema: any): void {
     // Validate the schema itself first
     const valid = this.ajv.validateSchema(schema);
     if (!valid) {
@@ -39,8 +45,27 @@ export class Config {
       throw new Error(`Invalid schema for key ${key}: ${errorText}`);
     }
 
-    // Store the schema for the key
-    this.schemas[key] = schema;
+    if (typeof key === "string") {
+      // Normalize
+      key = key.split(".");
+    }
+
+    // Navigate/create the path in the schema structure
+    let current = this.schemas;
+    for (let i = 0; i < key.length - 1; i++) {
+      const part = key[i];
+      if (!current.properties[part]) {
+        current.properties[part] = {
+          type: "object",
+          properties: {},
+        };
+      }
+      current = current.properties[part];
+    }
+
+    // Store the schema at the final key
+    const finalKey = key[key.length - 1];
+    current.properties[finalKey] = schema;
   }
 
   /**
@@ -91,8 +116,6 @@ export class Config {
     if (Array.isArray(keyOrValues)) {
       const key = keyOrValues as string[];
 
-      const rootKey = key[0];
-
       const resolved = this.resolvePath(key, true);
       if (resolved) {
         resolved.obj[resolved.key] = value;
@@ -100,17 +123,39 @@ export class Config {
         throw new Error(`Invalid key ${key}`);
       }
 
-      // Check if there's a schema for this key
-      if (this.schemas[rootKey]) {
-        const validate = this.ajv.compile(this.schemas[rootKey]);
-        // Validate against the new injected value
-        if (!validate(this.values[rootKey])) {
-          let errorText = this.ajv.errorsText(validate.errors);
-          errorText = errorText.replaceAll("/", ".");
-          errorText = errorText.replace(/^data[\.\s]/, "");
-          throw new Error(
-            `Validation error for ${key.join(".")}:> ${errorText}`,
-          );
+      // Find the appropriate schema for validation
+      const schemaInfo = this.findSchemaForPath(key);
+      if (schemaInfo) {
+        // If setting a field within a schema object, validate the field type
+        if (key.length > schemaInfo.schemaPath.length) {
+          const fieldPath = key.slice(schemaInfo.schemaPath.length);
+          const fieldSchema = this.getFieldSchema(schemaInfo.schema, fieldPath);
+          if (fieldSchema) {
+            const validate = this.ajv.compile(fieldSchema);
+            if (!validate(value)) {
+              let errorText = this.ajv.errorsText(validate.errors);
+              errorText = errorText.replaceAll("/", ".");
+              errorText = errorText.replace(/^data[\.\s]/, "");
+              throw new Error(
+                `Validation error for ${
+                  schemaInfo.schemaPath.join(".")
+                }:> ${errorText}`,
+              );
+            }
+          }
+        } else {
+          // Setting the entire schema object, validate normally
+          const validate = this.ajv.compile(schemaInfo.schema);
+          if (!validate(value)) {
+            let errorText = this.ajv.errorsText(validate.errors);
+            errorText = errorText.replaceAll("/", ".");
+            errorText = errorText.replace(/^data[\.\s]/, "");
+            throw new Error(
+              `Validation error for ${
+                schemaInfo.schemaPath.join(".")
+              }:> ${errorText}`,
+            );
+          }
         }
       }
     } else {
@@ -182,5 +227,63 @@ export class Config {
     }
 
     return { obj: current, key: lastKey };
+  }
+
+  /**
+   * Finds the most specific schema that applies to a given path
+   * @param path The path to find a schema for
+   * @returns The schema and its path, or null if no schema is found
+   */
+  private findSchemaForPath(
+    path: string[],
+  ): { schema: any; schemaPath: string[] } | null {
+    // Try to find the most specific schema by checking from the full path down to the root
+    for (let i = path.length; i > 0; i--) {
+      const schemaPath = path.slice(0, i);
+
+      // Navigate through the JSON schema structure
+      let current = this.schemas;
+      let found = true;
+
+      for (const part of schemaPath) {
+        if (!current.properties || !current.properties[part]) {
+          found = false;
+          break;
+        }
+        current = current.properties[part];
+      }
+
+      if (found && current && current.type) {
+        return { schema: current, schemaPath };
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Gets the schema for a specific field within a schema
+   * @param schema The parent schema object
+   * @param fieldPath The path to the field within the schema
+   * @returns The field schema, or null if not found
+   */
+  private getFieldSchema(schema: any, fieldPath: string[]): any | null {
+    if (!schema || !schema.properties || fieldPath.length === 0) {
+      return null;
+    }
+
+    let current = schema.properties;
+    for (const field of fieldPath) {
+      if (!current || typeof current !== "object" || !current[field]) {
+        return null;
+      }
+      if (fieldPath.indexOf(field) === fieldPath.length - 1) {
+        // Last field, return its schema
+        return current[field];
+      }
+      // Navigate deeper
+      current = current[field].properties;
+    }
+
+    return null;
   }
 }

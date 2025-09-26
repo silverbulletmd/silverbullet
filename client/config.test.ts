@@ -204,6 +204,119 @@ Deno.test("Config - schema validation", () => {
     Error,
     "Validation error for user",
   );
+
+  // Check nested keys
+  config.define("a.b.user", userSchema);
+
+  console.log(config.schemas);
+
+  config.set("a.b.user.name", "Hank");
+  assertThrows(
+    () => {
+      config.set("a.b.user.name", 22);
+    },
+    Error,
+    "Validation error for a.b.user",
+  );
+});
+
+Deno.test("Config - nested schema definitions with arrays", () => {
+  const config = new Config();
+
+  // Define schema for nested path using array syntax
+  const settingsSchema = {
+    type: "object",
+    properties: {
+      theme: { type: "string" },
+      maxItems: { type: "number", minimum: 1 },
+    },
+    required: ["theme"],
+  };
+
+  config.define(["app", "ui", "settings"], settingsSchema);
+
+  // Valid nested setting should work
+  config.set("app.ui.settings", {
+    theme: "dark",
+    maxItems: 10,
+  });
+
+  assertEquals(config.get("app.ui.settings.theme", null), "dark");
+  assertEquals(config.get("app.ui.settings.maxItems", 0), 10);
+
+  // Setting individual nested properties should work
+  config.set("app.ui.settings.theme", "light");
+  assertEquals(config.get("app.ui.settings.theme", null), "light");
+
+  // Invalid type should throw
+  assertThrows(
+    () => {
+      config.set("app.ui.settings.theme", 123);
+    },
+    Error,
+    "Validation error for app.ui.settings",
+  );
+
+  // Invalid value should throw
+  assertThrows(
+    () => {
+      config.set("app.ui.settings.maxItems", -1);
+    },
+    Error,
+    "Validation error for app.ui.settings",
+  );
+});
+
+Deno.test("Config - multiple nested schemas", () => {
+  const config = new Config();
+
+  // Define multiple schemas at different nesting levels
+  const userSchema = {
+    type: "object",
+    properties: {
+      name: { type: "string" },
+      age: { type: "number" },
+    },
+    required: ["name"],
+  };
+
+  const configSchema = {
+    type: "object",
+    properties: {
+      version: { type: "string" },
+      enabled: { type: "boolean" },
+    },
+    required: ["version"],
+  };
+
+  config.define("user", userSchema);
+  config.define("system.config", configSchema);
+
+  // Both schemas should work independently
+  config.set("user.name", "Alice");
+  config.set("system.config.version", "1.0.0");
+  config.set("system.config.enabled", true);
+
+  assertEquals(config.get("user.name", null), "Alice");
+  assertEquals(config.get("system.config.version", null), "1.0.0");
+  assertEquals(config.get("system.config.enabled", false), true);
+
+  // Validation should work for both
+  assertThrows(
+    () => {
+      config.set("user.name", 123);
+    },
+    Error,
+    "Validation error for user",
+  );
+
+  assertThrows(
+    () => {
+      config.set("system.config.enabled", "not-boolean");
+    },
+    Error,
+    "Validation error for system.config",
+  );
 });
 
 Deno.test("Config - invalid schema definition", () => {
