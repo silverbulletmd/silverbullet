@@ -6,7 +6,6 @@ import {
   notFoundError,
   offlineError,
   pingInterval,
-  pingTimeout,
 } from "@silverbulletmd/silverbullet/constants";
 import type { SyncEngine } from "./sync_engine.ts";
 import { EventEmitter } from "../plugos/event.ts";
@@ -301,6 +300,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
       throw new Error("This should not happen");
     }
     try {
+      // console.log("Doing a write for", path);
       if (!this.syncEngine.isSyncCandidate(path) && this.online) {
         console.log("Handling file write for non-synced file", path);
         // Writing a non-synced file while being online
