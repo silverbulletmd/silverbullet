@@ -158,7 +158,7 @@ export class ClientSystem {
       eventSyscalls(this.eventHook, this.client),
       editorSyscalls(this.client),
       spaceReadSyscalls(this.client),
-      systemSyscalls(client, false),
+      systemSyscalls(client, this.readOnlyMode),
       markdownSyscalls(client),
       assetSyscalls(this.system),
       yamlSyscalls(),
