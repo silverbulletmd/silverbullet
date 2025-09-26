@@ -59,8 +59,15 @@ export function spaceReadSyscalls(editor: Client): SysCallMapping {
     "space.readFile": async (_ctx, name: string): Promise<Uint8Array> => {
       return (await editor.space.spacePrimitives.readFile(name)).data;
     },
-    "space.fileExists": (_ctx, name: string): boolean => {
-      return editor.clientSystem.allKnownFiles.has(name);
+    "space.fileExists": async (_ctx, name: string): boolean => {
+      try {
+        await editor.space.spacePrimitives.getFileMeta(name);
+        // If this returned the file exists
+        return true;
+      } catch {
+        // Assumption: any error means the file does not exist
+        return false;
+      }
     },
   };
 }
