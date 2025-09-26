@@ -33,7 +33,7 @@ export type ProxyRouterEvents = {
  */
 export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
   private fullSyncConfirmed = false;
-  online = false;
+  online = true;
   localSpacePrimitives?: SpacePrimitives;
   syncEngine?: SyncEngine;
 
@@ -84,10 +84,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
   async checkOnline() {
     if (this.syncEngine) {
       try {
-        this.syncEngine.remote.ping();
-        await fetch(this.baseURI + "/.ping", {
-          signal: AbortSignal.timeout(pingTimeout),
-        });
+        await this.syncEngine.remote.ping();
         // If the ping is successful, we are online
         this.online = true;
       } catch {
