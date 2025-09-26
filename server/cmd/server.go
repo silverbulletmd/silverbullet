@@ -93,6 +93,9 @@ func buildConfig(bundledFiles fs.FS, args []string) *server.ServerConfig {
 
 	if os.Getenv("SB_USER") != "" {
 		pieces := strings.Split(os.Getenv("SB_USER"), ":")
+		if len(pieces) != 2 {
+			log.Fatal("SB_USER must be in the format user:pass")
+		}
 
 		rootSpaceConfig.Auth = &server.AuthOptions{
 			User:         pieces[0],
