@@ -236,11 +236,9 @@ async function cachedFetch(path: string): Promise<string> {
       }
     }
     const redirectHeader = response.headers.get("location");
-    if (
-      response.status === 401 && redirectHeader
-    ) {
+    if (redirectHeader) {
       alert(
-        "Received an authentication redirect, redirecting to URL: " +
+        "Received an (authentication) redirect, redirecting to URL: " +
           redirectHeader,
       );
       location.href = redirectHeader;
