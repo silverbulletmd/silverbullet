@@ -13,16 +13,13 @@ tmp_dir = "tmp"
   follow_symlink = false
   full_bin = ""
   include_dir = []
-  include_ext = ["go", "html", "ts", "scss"]
-  #include_file = []
+  include_ext = ["go", "html", "ts", "scss", "md"]
   kill_delay = "0s"
   log = "build-errors.log"
   poll = false
   poll_interval = 0
   post_cmd = []
   pre_cmd = []
-  #rerun = false
-  #rerun_delay = 1000
   stop_on_error = true
 
 [color]
