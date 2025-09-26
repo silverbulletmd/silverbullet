@@ -1,7 +1,7 @@
 import { Ajv } from "ajv";
 
 export class Config {
-  public schemas: any = {
+  public schemas: Record<string, any> = {
     type: "object",
     properties: {},
   };
@@ -46,7 +46,6 @@ export class Config {
     }
 
     if (typeof key === "string") {
-      // Normalize
       key = key.split(".");
     }
 
@@ -78,7 +77,7 @@ export class Config {
     if (typeof path === "string") {
       path = path.split(".");
     }
-    const resolved = this.resolvePath(path);
+    const resolved = resolvePath(this.values, path);
     if (!resolved) {
       return defaultValue;
     }
@@ -110,54 +109,20 @@ export class Config {
     value?: T,
   ): void {
     if (typeof keyOrValues === "string") {
-      // Normalize
       keyOrValues = keyOrValues.split(".");
     }
     if (Array.isArray(keyOrValues)) {
       const key = keyOrValues as string[];
 
-      const resolved = this.resolvePath(key, true);
+      const resolved = resolvePath(this.values, key, true);
       if (resolved) {
         resolved.obj[resolved.key] = value;
       } else {
         throw new Error(`Invalid key ${key}`);
       }
 
-      // Find the appropriate schema for validation
-      const schemaInfo = this.findSchemaForPath(key);
-      if (schemaInfo) {
-        // If setting a field within a schema object, validate the field type
-        if (key.length > schemaInfo.schemaPath.length) {
-          const fieldPath = key.slice(schemaInfo.schemaPath.length);
-          const fieldSchema = this.getFieldSchema(schemaInfo.schema, fieldPath);
-          if (fieldSchema) {
-            const validate = this.ajv.compile(fieldSchema);
-            if (!validate(value)) {
-              let errorText = this.ajv.errorsText(validate.errors);
-              errorText = errorText.replaceAll("/", ".");
-              errorText = errorText.replace(/^data[\.\s]/, "");
-              throw new Error(
-                `Validation error for ${
-                  schemaInfo.schemaPath.join(".")
-                }:> ${errorText}`,
-              );
-            }
-          }
-        } else {
-          // Setting the entire schema object, validate normally
-          const validate = this.ajv.compile(schemaInfo.schema);
-          if (!validate(value)) {
-            let errorText = this.ajv.errorsText(validate.errors);
-            errorText = errorText.replaceAll("/", ".");
-            errorText = errorText.replace(/^data[\.\s]/, "");
-            throw new Error(
-              `Validation error for ${
-                schemaInfo.schemaPath.join(".")
-              }:> ${errorText}`,
-            );
-          }
-        }
-      }
+      // Find and validate only the relevant schema
+      this.validatePath(key);
     } else {
       // Handle object form
       for (const [key, val] of Object.entries(keyOrValues)) {
@@ -175,7 +140,7 @@ export class Config {
     if (typeof path === "string") {
       path = path.split(".");
     }
-    const resolved = this.resolvePath(path);
+    const resolved = resolvePath(this.values, path);
     if (!resolved) {
       return false;
     }
@@ -192,98 +157,81 @@ export class Config {
   }
 
   /**
-   * Resolves a configuration path to the containing object and final key
-   * @param path The path to resolve (e.g. ["foo", "bar", "baz"])
-   * @param create Whether to create objects along the path if they don't exist
-   * @returns The containing object and the final key, or null if the path cannot be resolved
+   * Validates a specific path against its schema
    */
-  private resolvePath(
-    path: string[],
-    create = false,
-  ): { obj: any; key: string } | null {
-    // To avoid side effects, let's clone the path bits
-    path = [...path];
-
-    const lastKey = path.pop()!;
-    let current = this.values;
-
-    for (const part of path) {
-      if (current[part] === undefined) {
-        if (create) {
-          current[part] = {};
-        } else {
-          return null;
-        }
-      } else if (typeof current[part] !== "object" || current[part] === null) {
-        if (create) {
-          // Convert primitive to object if we're creating the path
-          current[part] = {};
-        } else {
-          return null;
-        }
-      }
-
-      current = current[part];
-    }
-
-    return { obj: current, key: lastKey };
-  }
-
-  /**
-   * Finds the most specific schema that applies to a given path
-   * @param path The path to find a schema for
-   * @returns The schema and its path, or null if no schema is found
-   */
-  private findSchemaForPath(
-    path: string[],
-  ): { schema: any; schemaPath: string[] } | null {
-    // Try to find the most specific schema by checking from the full path down to the root
+  private validatePath(path: string[]): void {
+    // Find the deepest schema that applies to this path
     for (let i = path.length; i > 0; i--) {
       const schemaPath = path.slice(0, i);
-
-      // Navigate through the JSON schema structure
-      let current = this.schemas;
-      let found = true;
-
-      for (const part of schemaPath) {
-        if (!current.properties || !current.properties[part]) {
-          found = false;
-          break;
+      const schema = this.getSchemaAtPath(schemaPath);
+      if (schema) {
+        const valueAtPath = this.get(schemaPath, undefined);
+        if (valueAtPath !== undefined) {
+          const validate = this.ajv.compile(schema);
+          if (!validate(valueAtPath)) {
+            let errorText = this.ajv.errorsText(validate.errors);
+            errorText = errorText.replaceAll("/", ".");
+            errorText = errorText.replace(/^data\.?/, "");
+            throw new Error(
+              `Validation error for ${schemaPath.join(".")}:> ${errorText}`,
+            );
+          }
         }
-        current = current.properties[part];
-      }
-
-      if (found && current && current.type) {
-        return { schema: current, schemaPath };
+        break; // Only validate the most specific schema
       }
     }
-    return null;
   }
 
   /**
-   * Gets the schema for a specific field within a schema
-   * @param schema The parent schema object
-   * @param fieldPath The path to the field within the schema
-   * @returns The field schema, or null if not found
+   * Gets the schema at a specific path
    */
-  private getFieldSchema(schema: any, fieldPath: string[]): any | null {
-    if (!schema || !schema.properties || fieldPath.length === 0) {
-      return null;
-    }
-
-    let current = schema.properties;
-    for (const field of fieldPath) {
-      if (!current || typeof current !== "object" || !current[field]) {
+  private getSchemaAtPath(path: string[]): any | null {
+    let current = this.schemas;
+    for (const part of path) {
+      if (!current.properties || !current.properties[part]) {
         return null;
       }
-      if (fieldPath.indexOf(field) === fieldPath.length - 1) {
-        // Last field, return its schema
-        return current[field];
+      current = current.properties[part];
+    }
+    return current.type ? current : null;
+  }
+}
+
+/**
+ * Resolves a configuration path to the containing object and final key
+ * @param path The path to resolve (e.g. ["foo", "bar", "baz"])
+ * @param create Whether to create objects along the path if they don't exist
+ * @returns The containing object and the final key, or null if the path cannot be resolved
+ */
+function resolvePath(
+  inObject: Record<string, any>,
+  path: string[],
+  create = false,
+): { obj: any; key: string } | null {
+  // To avoid side effects, let's clone the path bits
+  path = [...path];
+
+  const lastKey = path.pop()!;
+  let current = inObject;
+
+  for (const part of path) {
+    if (current[part] === undefined) {
+      if (create) {
+        current[part] = {};
+      } else {
+        return null;
       }
-      // Navigate deeper
-      current = current[field].properties;
+    } else if (typeof current[part] !== "object" || current[part] === null) {
+      if (create) {
+        // Convert primitive to object if we're creating the path
+        current[part] = {};
+      } else {
+        return null;
+      }
     }
 
-    return null;
+    current = current[part];
   }
+
+  return { obj: current, key: lastKey };
 }
