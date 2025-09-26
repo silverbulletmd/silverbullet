@@ -33,3 +33,7 @@ test:
 generate:
 	# Regenerate the Lua parser from the the grammar
 	deno run -A npm:@lezer/generator@1.5.1 lib/space_lua/lua.grammar -o lib/space_lua/parse-lua.js
+
+.PHONY: website
+website:
+	SB_INDEX_PAGE=SilverBullet ./silverbullet -p 3001 website

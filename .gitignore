@@ -13,5 +13,6 @@ deploy.json
 *.generated
 tmp_playground
 /public_version.ts
+website/_plug
 tmp
 .idea

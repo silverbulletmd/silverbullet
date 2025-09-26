@@ -6,3 +6,6 @@ ENV SB_READ_ONLY=1
 
 # Add the website content
 ADD website /space
+
+# Add excalidraw plug
+ADD https://github.com/LogeshG5/silverbullet-excalidraw/releases/download/edge/excalidraw.plug.js /space/_plug/
