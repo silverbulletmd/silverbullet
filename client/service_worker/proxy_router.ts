@@ -18,6 +18,7 @@ const alwaysProxy = [
   "/.logout",
   "/.config",
   "/.logs",
+  "/.proxy",
 ];
 
 export type ProxyRouterEvents = {
@@ -142,8 +143,8 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
             // Not fully synced but online -> Proxy
             (!this.fullSyncConfirmed && this.online) ||
             // A path we always need to proxy -> Proxy
-            (alwaysProxy.includes(pathname) ||
-              pathname.startsWith("/.proxy/")) ||
+            alwaysProxy.find((prefix) => pathname.startsWith(prefix)) ||
+            // Forced proxy mode -> Proxy
             this.forcedStatus
           ) {
             if (this.forcedStatus) {
