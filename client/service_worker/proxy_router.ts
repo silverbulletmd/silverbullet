@@ -9,7 +9,6 @@ import {
 } from "@silverbulletmd/silverbullet/constants";
 import type { SyncEngine } from "./sync_engine.ts";
 import { EventEmitter } from "../plugos/event.ts";
-import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
 
 const alwaysProxy = [
   "/.auth",
@@ -248,14 +247,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
     try {
       if (request.headers.has("x-get-meta")) {
         // Requesting only file meta
-        let meta: FileMeta | undefined;
-        if (this.nonSyncedFiles.has(path)) {
-          // Pull the file meta directly from nonSyncedFiles
-          meta = this.nonSyncedFiles.get(path);
-        } else {
-          // Otherwise fetch it from the local store
-          meta = await this.localSpacePrimitives.getFileMeta(path);
-        }
+        const meta = await this.localSpacePrimitives.getFileMeta(path);
         if (request.headers.has("x-observing")) {
           setTimeout(() => {
             // Next tick
@@ -263,7 +255,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
           });
         }
         return new Response(null, {
-          headers: fileMetaToHeaders(meta!),
+          headers: fileMetaToHeaders(meta),
         });
       } else {
         const { meta, data } = await this.localSpacePrimitives.readFile(path);
