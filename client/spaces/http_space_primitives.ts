@@ -251,6 +251,10 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       },
     }, pingTimeout);
 
+    if (!resp.ok) {
+      throw new Error(`Ping failed: ${resp.status} ${resp.statusText}`);
+    }
+
     await this.validateSpacePathFromHeaders(resp);
 
     // Consume the response body to avoid leaks
