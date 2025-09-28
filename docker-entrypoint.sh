@@ -21,9 +21,9 @@ if [ "$PUID" == "0" ] || [ "$UID" != "0" ]; then
     /silverbullet $@
 else
     echo "Creating 'silverbullet' group (with GID $PGID) and 'silverbullet' user (with UID $PUID) inside container"
-    # Create silverbullet user and group ad-hoc mapped to PUID and PGID
-    addgroup -g $PGID silverbullet
-    adduser -D -H -G silverbullet -u $PUID silverbullet
+    # Create silverbullet user and group ad-hoc mapped to PUID and PGID if they don't already exist
+    getent group silverbullet > /dev/null || addgroup -g $PGID silverbullet
+    getent passwd silverbullet > /dev/null || adduser -D -H -G silverbullet -u $PUID silverbullet
     args="$@"
     # And run via su as requested PUID
     echo "Running SilverBullet as user configured with PUID $PUID and PGID $PGID"
