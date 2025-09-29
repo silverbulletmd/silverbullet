@@ -34,7 +34,6 @@ templates.tagItem = template.new([==[
 ]==])
 ```
 
-
 # Examples
 `template.pageItem`:
 ${template.each(query[[from index.tag "page" limit 3]], templates.pageItem)}

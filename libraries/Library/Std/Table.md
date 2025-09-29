@@ -1,4 +1,5 @@
 #meta
+
 Implements utilities for working with Markdown tables
 
 # Table

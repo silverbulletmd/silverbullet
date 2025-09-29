@@ -1,6 +1,11 @@
 #meta
 
-Editor support for Lua, implemented in Lua. Of course.
+Basic editor support for Space Lua, implemented in Space Lua.
+
+Features:
+
+* Basic code completion for globals, e.g. `string.gm` will be completed
+* Navigation to global symbols implemented in Lua by Cmd-clicking (Mac) or Ctrl-clicking (other OSes)
 
 # Code complete support
 ```space-lua

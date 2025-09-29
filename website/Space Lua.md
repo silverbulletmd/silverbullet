@@ -34,7 +34,7 @@ It is possible to control load order of space lua scripts using the special `-- 
 
 Scripts are loaded in _reverse priority_ order. When you set no priority (the default) your scripts will be run last.
 
-The order used is determined by this [[Space Lua/Lua Integrated Query|query]] (also part of your [[^Library/Std/Space Overview]]) page:
+The order used is determined by this [[Space Lua/Lua Integrated Query|query]] (also part of your [[^Library/Std/Pages/Space Overview]]) page:
 
     query[[
       from index.tag "space-lua"
@@ -53,11 +53,9 @@ Here are the conventions used by the [[Library/Std]] library:
 > All your space-lua scripts are loaded on boot, to reload them without reloading the page, simply run the ${widgets.commandButton("System: Reload")} (Ctrl-Alt-r) command.
 
 # Expressions
-A new syntax introduced with Space Lua is the `${lua expression}` syntax that you can use in your pages. This syntax will [[Live Preview]] to the evaluation of that expression.
+A SilveBullet specific [[Markdown]] [[Markdown/Extensions]] is the `${lua expression}` syntax that you can use in your pages. This syntax will [[Live Preview]] to the evaluation of that Lua expression.
 
-For example: 10 + 2 = ${adder(10, 2)} (Alt-click, or select to see the expression) is using the just defined `adder` function to this rather impressive calculation.
-
-Note that you can have the text {lua expression} in your page and it won't be evaluated. So writing `${"$"}{lua expression}` can be used to “delay” evaluation by one pass, for example to escape expressions in templated content.
+For example: 10 + 2 = ${adder(10, 2)} (Alt-click, or select to see the expression) is using the just defined `adder` function.
 
 ## Queries
 Space Lua has a feature called [[Space Lua/Lua Integrated Query]], which integrate SQL-like queries into Lua. Here’s a small example querying the last 3 modifies pages:
@@ -69,11 +67,11 @@ ${query[[
   limit 3
 ]]}
 
-[[Space Lua/Widgets]]
+## Widgets
+See [[Space Lua/Widgets]]
 
 ## Commands
-
-Custom commands can be defined using [[API/command#command.define(commandDef)]]:
+Custom commands can be defined using  [[API/command#command.define(commandDef)]]:
 
 ```space-lua
 command.define {
@@ -88,7 +86,6 @@ command.define {
 Try it: ${widgets.commandButton("Hello World")}
 
 ## Slash commands
-
 Custom slash commands can be defined using [[API/slashCommand#slashCommand.define(spec)]]:
 
 ```space-lua
@@ -101,7 +98,6 @@ slashCommand.define {
 ```
 
 ## Event listeners
-
 You can listen to events using [[API/event#event.listen(listenerDef)]]:
 
 ```space-lua
@@ -115,7 +111,6 @@ event.listen {
 ```
 
 # Space Lua Extensions
-
 Space Lua introduces a few new features on top core Lua:
 
 1. [[Space Lua/Lua Integrated Query]], embedding a query language into Lua itself
