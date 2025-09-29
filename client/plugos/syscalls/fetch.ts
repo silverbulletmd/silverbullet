@@ -4,7 +4,7 @@ import type {
   ProxyFetchRequest64,
   ProxyFetchResponse,
   ProxyFetchResponse64,
-} from "../../proxy_fetch.ts";
+} from "../proxy_fetch.ts";
 import type { Client } from "../../client.ts";
 import {
   base64Decode,

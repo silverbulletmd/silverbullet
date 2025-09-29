@@ -1,7 +1,7 @@
 import { Confirm, Prompt } from "./components/basic_modals.tsx";
 import { CommandPalette } from "./components/command_palette.tsx";
 import { FilterList } from "./components/filter.tsx";
-import { PageNavigator } from "./components/page_navigator.tsx";
+import { AnythingPicker } from "./components/anything_picker.tsx";
 import { TopBar } from "./components/top_bar.tsx";
 import reducer from "./reducer.ts";
 import {
@@ -129,7 +129,7 @@ export class MainUI {
     return (
       <>
         {viewState.showPageNavigator && (
-          <PageNavigator
+          <AnythingPicker
             allDocuments={viewState.allDocuments}
             allPages={viewState.allPages}
             extensions={new Set(

@@ -43,7 +43,7 @@ import {
   documentExtension,
   pasteLinkExtension,
 } from "./cm_plugins/editor_paste.ts";
-import type { TextChange } from "./change.ts";
+import type { TextChange } from "./cm_plugins/change.ts";
 import { postScriptPrefacePlugin } from "./cm_plugins/top_bottom_panels.ts";
 import { languageFor } from "./languages.ts";
 import { plugLinter } from "./cm_plugins/lint.ts";

@@ -89,10 +89,10 @@ export function systemSyscalls(
     },
     "system.loadSpaceScripts": async () => {
       console.warn("DEPRECATED: used system.loadScripts instead");
-      await client.clientSystem.loadScripts();
+      await client.clientSystem.loadLuaScripts();
     },
     "system.loadScripts": async () => {
-      await client.clientSystem.loadScripts();
+      await client.clientSystem.loadLuaScripts();
     },
     "system.loadSpaceStyles": async () => {
       if (!client) {

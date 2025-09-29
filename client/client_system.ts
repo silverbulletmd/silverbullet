@@ -45,15 +45,6 @@ import { DocumentEditorHook } from "./plugos/hooks/document_editor.ts";
 import type { LuaCollectionQuery } from "./space_lua/query_collection.ts";
 import type { Command } from "./types/command.ts";
 import { SpaceLuaEnvironment } from "./space_lua.ts";
-import {
-  type ILuaFunction,
-  jsToLuaValue,
-  luaCall,
-  LuaStackFrame,
-  type LuaValue,
-  luaValueToJS,
-} from "./space_lua/runtime.ts";
-import { buildThreadLocalEnv, handleLuaError } from "./space_lua_api.ts";
 import { builtinPlugPaths } from "../plugs/builtin_plugs.ts";
 
 const indexVersionKey = ["$indexVersion"];
@@ -64,25 +55,26 @@ const mqTimeout = 10000; // 10s
 const mqTimeoutRetry = 3;
 
 /**
- * Wrapper around a System
+ * Handles the extension-related mechanisms of the client by wrapping a PlugOS System object as well as Space Lua environments
  */
 export class ClientSystem {
+  // PlugOS system
   system!: System<SilverBulletHooks>;
-
-  // Hooks
+  // ... and hooks
   commandHook!: CommandHook;
   slashCommandHook!: SlashCommandHook;
   namespaceHook!: PlugNamespaceHook;
   codeWidgetHook!: CodeWidgetHook;
   documentEditorHook!: DocumentEditorHook;
 
+  // Space Lua
+  spaceLuaEnv: SpaceLuaEnvironment;
+  readonly scriptCommands = new Map<string, Command>();
+  scriptsLoaded: boolean = false;
+
   // Known files (for UI)
   readonly allKnownFiles = new Set<string>();
   public knownFilesLoaded: boolean = false;
-
-  readonly scriptCommands = new Map<string, Command>();
-  spaceLuaEnv: SpaceLuaEnvironment;
-  scriptsLoaded: boolean = false;
 
   constructor(
     private client: Client,
@@ -196,7 +188,7 @@ export class ClientSystem {
     }
   }
 
-  async loadScripts() {
+  async loadLuaScripts() {
     if (this.client.bootConfig.disableSpaceLua) {
       console.info("Space Lua scripts are disabled, skipping loading scripts");
       return;
@@ -264,6 +256,8 @@ export class ClientSystem {
     return this.system.invokeFunction("index.queryLuaObjects", [tag, query]);
   }
 
+  // Index handling
+
   getObjectByRef<T>(page: string, tag: string, ref: string) {
     return this.localSyscall(
       "system.invokeFunction",
@@ -324,28 +318,9 @@ export class ClientSystem {
     console.log(
       "Now loading space scripts, custom styles and rebuilding editor state",
     );
-    await this.loadScripts();
+    await this.loadLuaScripts();
     await this.client.loadCustomStyles();
     this.client.rebuildEditorState();
-  }
-
-  public async evalLuaFunction(
-    luaFunction: ILuaFunction,
-    args: LuaValue[],
-  ): Promise<LuaValue> {
-    const tl = await buildThreadLocalEnv(
-      this.system,
-      this.spaceLuaEnv.env,
-    );
-    const sf = new LuaStackFrame(tl, null);
-    try {
-      return luaValueToJS(
-        await luaCall(luaFunction, args.map(jsToLuaValue), {}, sf),
-        sf,
-      );
-    } catch (e: any) {
-      await handleLuaError(e, this.system);
-    }
   }
 
   public async hasFullIndexCompleted() {

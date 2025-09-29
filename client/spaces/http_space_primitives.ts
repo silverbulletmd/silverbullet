@@ -10,7 +10,7 @@ import {
   pingTimeout,
   wrongSpacePathError,
 } from "@silverbulletmd/silverbullet/constants";
-import { headersToFileMeta } from "../util.ts";
+import { headersToFileMeta } from "../lib/util.ts";
 
 const defaultFetchTimeout = 30000; // 30 seconds
 

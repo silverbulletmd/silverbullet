@@ -1,4 +1,4 @@
-import { initLogger } from "./logger.ts";
+import { initLogger } from "./lib/logger.ts";
 import { ProxyRouter } from "./service_worker/proxy_router.ts";
 
 import { SyncEngine } from "./service_worker/sync_engine.ts";

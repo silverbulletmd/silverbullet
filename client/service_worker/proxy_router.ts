@@ -1,7 +1,7 @@
 import { fsEndpoint } from "../spaces/constants.ts";
 import { decodePageURI } from "@silverbulletmd/silverbullet/lib/ref";
 import type { SpacePrimitives } from "../spaces/space_primitives.ts";
-import { fileMetaToHeaders, headersToFileMeta } from "../util.ts";
+import { fileMetaToHeaders, headersToFileMeta } from "../lib/util.ts";
 import {
   notFoundError,
   offlineError,

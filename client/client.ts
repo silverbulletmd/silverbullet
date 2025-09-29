@@ -97,6 +97,7 @@ type WidgetCacheItem = {
   copyContent?: string;
 };
 
+// TODO: Clean this up, this has become a god class...
 export class Client {
   // Event bus used to communicate between components
   eventHook: EventHook;
@@ -245,7 +246,7 @@ export class Client {
     // Load plugs
     await this.loadPlugs();
 
-    await this.clientSystem.loadScripts();
+    await this.clientSystem.loadLuaScripts();
     await this.initNavigator();
     // await this.initSync();
     await this.eventHook.dispatchEvent("system:ready");
@@ -567,13 +568,15 @@ export class Client {
       console.log(
         "Initial index complete and index plug loaded, loading full page list via index.",
       );
-      // Fetch actual indexed pages
+      // Fetch indexed pages
       allPages = await this.clientSystem.queryLuaObjects<PageMeta>("page", {});
-      // Fetch aspiring pages only when using the index
+      // Fetch aspiring pages
       const aspiringPageNames = await this.clientSystem.queryLuaObjects<string>(
         "aspiring-page",
         { select: parseExpressionString("name"), distinct: true },
       );
+      // Fetch any augmented page meta data (for now only lastOpened)
+      // this.clientSystem.ds.query({prefix: })
       // Map and push aspiring pages directly into allPages
       allPages.push(
         ...aspiringPageNames.map((name): PageMeta => ({
@@ -1192,9 +1195,6 @@ export class Client {
       return;
     }
     if (!await this.clientSystem.hasFullIndexCompleted()) {
-      // console.info(
-      //   "Not loading custom styles yet, since initial sync has not completed yet",
-      // );
       return;
     }
 

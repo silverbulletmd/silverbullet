@@ -19,7 +19,7 @@ import { folderName } from "@silverbulletmd/silverbullet/lib/resolve";
 
 const tagRegex = new RegExp(mdTagRegex.source, "g");
 
-export function PageNavigator({
+export function AnythingPicker({
   allPages,
   allDocuments,
   extensions,
@@ -63,7 +63,9 @@ export function PageNavigator({
           documentMeta.tags.map((tag) => `#${tag}`).join(" ");
       }
 
-      if (!isViewable && client.clientSystem.readOnlyMode) continue;
+      if (!isViewable && client.clientSystem.readOnlyMode) {
+        continue;
+      }
 
       options.push({
         type: "document",

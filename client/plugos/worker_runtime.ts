@@ -3,9 +3,9 @@ import type { ControllerMessage, WorkerMessage } from "./protocol.ts";
 import type {
   ProxyFetchRequest64,
   ProxyFetchResponse64,
-} from "../proxy_fetch.ts";
+} from "./proxy_fetch.ts";
 import { base64Decode, base64Encode } from "../../plug-api/lib/crypto.ts";
-import { initLogger } from "../logger.ts";
+import { initLogger } from "../lib/logger.ts";
 
 declare global {
   function syscall(name: string, ...args: any[]): Promise<any>;
