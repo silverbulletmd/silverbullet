@@ -217,6 +217,13 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
           pos: link.pos,
           name: link.toPage,
         } as AspiringPageObject);
+        console.info(
+          "Link from",
+          name,
+          "to",
+          link.toPage,
+          "is broken, indexing as aspiring page",
+        );
       }
     }
   }
