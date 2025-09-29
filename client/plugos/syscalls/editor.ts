@@ -590,10 +590,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
       client.startPageNavigate(mode);
     },
     "editor.openCommandPalette": () => {
-      client.ui.viewDispatch({
-        type: "show-palette",
-        context: client.getContext(),
-      });
+      client.startCommandPalette();
     },
     "editor.deleteLine": () => {
       deleteLine(client.editorView);

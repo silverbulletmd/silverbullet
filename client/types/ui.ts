@@ -42,7 +42,6 @@ export type AppViewState = {
   panels: { [key: string]: PanelConfig };
   commands: Map<string, Command>;
   notifications: Notification[];
-  recentCommands: Map<string, Date>;
 
   uiOptions: {
     vimMode: boolean;
@@ -98,7 +97,7 @@ export const initialViewState: AppViewState = {
   allPages: [],
   allDocuments: [],
   commands: new Map(),
-  recentCommands: new Map(),
+
   notifications: [],
   showFilterBox: false,
   filterBoxHelpText: "",
@@ -129,7 +128,7 @@ export type Action =
     type: "update-commands";
     commands: Map<string, Command>;
   }
-  | { type: "show-palette"; context?: string }
+  | { type: "show-palette"; context?: string; commands: Map<string, Command> }
   | { type: "hide-palette" }
   | { type: "show-notification"; notification: Notification }
   | { type: "dismiss-notification"; id: number }
@@ -139,7 +138,6 @@ export type Action =
     config: PanelConfig;
   }
   | { type: "hide-panel"; id: string }
-  | { type: "command-run"; command: string }
   | {
     type: "show-filterbox";
     options: FilterOption[];

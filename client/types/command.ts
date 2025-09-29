@@ -6,7 +6,8 @@ import type {
 import type { SlashCompletions } from "@silverbulletmd/silverbullet/type/client";
 
 export type Command = CommandDef & {
-  run?: (args?: any[]) => Promise<void>;
+  run?: (args?: any[]) => Promise<any>;
+  lastRun?: number;
 };
 
 export type SlashCommand = SlashCommandDef & {

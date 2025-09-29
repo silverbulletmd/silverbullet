@@ -125,6 +125,7 @@ export default function reducer(
         showPageNavigator: false,
         showFilterBox: false,
         showCommandPaletteContext: action.context,
+        commands: action.commands,
       };
     }
     case "hide-palette":
@@ -132,11 +133,6 @@ export default function reducer(
         ...state,
         showCommandPalette: false,
         showCommandPaletteContext: undefined,
-      };
-    case "command-run":
-      return {
-        ...state,
-        recentCommands: state.recentCommands.set(action.command, new Date()),
       };
     case "update-commands":
       return {

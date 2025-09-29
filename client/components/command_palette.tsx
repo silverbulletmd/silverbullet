@@ -9,14 +9,12 @@ import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 
 export function CommandPalette({
   commands,
-  recentCommands,
   onTrigger,
   vimMode,
   darkMode,
   completer,
 }: {
   commands: Map<string, Command>;
-  recentCommands: Map<string, Date>;
   vimMode: boolean;
   darkMode?: boolean;
   completer: (context: CompletionContext) => Promise<CompletionResult | null>;
@@ -36,8 +34,8 @@ export function CommandPalette({
     options.push({
       name: name,
       hint: isMac && def.mac ? def.mac : def.key,
-      orderId: recentCommands.has(name)
-        ? -recentCommands.get(name)!.getTime()
+      orderId: def.lastRun !== undefined
+        ? -def.lastRun
         : def.priority || Infinity,
       category: category,
     });

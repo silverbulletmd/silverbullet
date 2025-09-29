@@ -69,8 +69,8 @@ export class DataStore {
     return this.batchDelete(keys);
   }
 
-  query(options: KvQueryOptions): AsyncIterableIterator<KV> {
-    return this.kv.query(options);
+  query<T = any>(options: KvQueryOptions): AsyncIterableIterator<KV<T>> {
+    return this.kv.query<T>(options);
   }
 
   luaQuery<T = any>(

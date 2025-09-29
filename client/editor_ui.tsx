@@ -65,10 +65,7 @@ export class MainUI {
       if (ev.touches.length === 3) {
         ev.stopPropagation();
         ev.preventDefault();
-        this.viewDispatch({
-          type: "show-palette",
-          context: client.getContext(),
-        });
+        client.startCommandPalette();
       }
     });
 
@@ -217,29 +214,27 @@ export class MainUI {
         {viewState.showCommandPalette && (
           <CommandPalette
             onTrigger={(cmd) => {
-              dispatch({ type: "hide-palette" });
-              if (cmd) {
-                dispatch({ type: "command-run", command: cmd.name });
-                cmd
-                  .run!()
-                  .catch((e: any) => {
-                    console.error("Error running command", e.message);
-                  })
-                  .then((returnValue: any) => {
-                    // Always be focusing the editor after running a command
+              safeRun(async () => {
+                dispatch({ type: "hide-palette" });
+                if (cmd) {
+                  await this.client.registerCommandRun(cmd.name);
+                  try {
+                    const returnValue = await cmd.run!();
                     if (returnValue !== false) {
                       client.focus();
                     }
-                  });
-              } else {
-                setTimeout(() => client.focus());
-              }
+                  } catch (e: any) {
+                    console.error("Error running command", e.message);
+                  }
+                } else {
+                  setTimeout(() => client.focus());
+                }
+              });
             }}
             commands={client.getCommandsByContext(viewState)}
             vimMode={viewState.uiOptions.vimMode}
             darkMode={viewState.uiOptions.darkMode}
             completer={client.miniEditorComplete.bind(client)}
-            recentCommands={viewState.recentCommands}
           />
         )}
         {viewState.showFilterBox && (

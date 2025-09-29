@@ -78,6 +78,7 @@ import {
   notFoundError,
   offlineError,
 } from "@silverbulletmd/silverbullet/constants";
+import { Augmenter } from "./data/data_augmenter.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -112,6 +113,8 @@ export class Client {
   ui!: MainUI;
   ds!: DataStore;
   mq!: DataStoreMQ;
+  pageMetaAugmenter!: Augmenter;
+  commandAugmenter!: Augmenter;
 
   // CodeMirror editor
   editorView!: EditorView;
@@ -181,6 +184,9 @@ export class Client {
     await kvPrimitives.init();
     // Wrap it in a datastore
     this.ds = new DataStore(kvPrimitives);
+
+    this.pageMetaAugmenter = new Augmenter(this.ds, ["$fileMeta"]);
+    this.commandAugmenter = new Augmenter(this.ds, ["$command"]);
 
     // Setup message queue on top of that
     this.mq = new DataStoreMQ(this.ds);
@@ -550,7 +556,6 @@ export class Client {
     this.ui.viewDispatch({ type: "start-navigate", mode });
     // And update the page list cache asynchronously
     this.updatePageListCache().catch(console.error);
-
     this.updateDocumentListCache().catch(console.error);
   }
 
@@ -570,6 +575,8 @@ export class Client {
       );
       // Fetch indexed pages
       allPages = await this.clientSystem.queryLuaObjects<PageMeta>("page", {});
+      // Overlay augmented meta values
+      await this.pageMetaAugmenter.augmentObjectArray(allPages, "ref");
       // Fetch aspiring pages
       const aspiringPageNames = await this.clientSystem.queryLuaObjects<string>(
         "aspiring-page",
@@ -638,6 +645,25 @@ export class Client {
     this.ui.viewDispatch({
       type: "update-document-list",
       allDocuments: allDocuments,
+    });
+  }
+
+  async startCommandPalette() {
+    const commands = this.ui.viewState.commands;
+    await this.commandAugmenter.augmentObjectMap(commands);
+    this.ui.viewDispatch({
+      type: "show-palette",
+      commands,
+      context: client.getContext(),
+    });
+  }
+
+  /**
+   * Saves when a command was last run to the datastore for command palette ordering
+   */
+  async registerCommandRun(name: string) {
+    await this.commandAugmenter.setAugmentation(name, {
+      lastRun: Date.now(),
     });
   }
 
