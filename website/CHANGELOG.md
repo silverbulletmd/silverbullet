@@ -11,6 +11,7 @@ These are changes live on the edge builds:
 * Last opened (for pages) and last run (for commands) timestamps are now kept persistently between client loads (and tabs)
 * Fixed docker user and group creation issues
 * Removed `file:deleted` triggering when checking for `getFileMeta` (causing an infinite indexing loop in SilverSearch)
+* Server: HTTP Gzip compression is now enabled for sensible content types
 
 
 ## 2.1.2
