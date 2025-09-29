@@ -7,6 +7,7 @@ import type { DataStore } from "./datastore.ts";
 
 /**
  * Implements out of band augmentation of entries in a DataStore
+ * Example use cases: store "lastOpened" for pages and "lastRun" for commands
  */
 export class Augmenter {
   constructor(

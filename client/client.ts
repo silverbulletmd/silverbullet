@@ -113,7 +113,9 @@ export class Client {
   ui!: MainUI;
   ds!: DataStore;
   mq!: DataStoreMQ;
+  // Used to store additional pageMeta outside the page index itself persistent between client runs (specifically: lastOpened)
   pageMetaAugmenter!: Augmenter;
+  // Used to store additional command data outside the objects themselves persistent between client rusn (specifically: lastRun)
   commandAugmenter!: Augmenter;
 
   // CodeMirror editor
@@ -185,8 +187,8 @@ export class Client {
     // Wrap it in a datastore
     this.ds = new DataStore(kvPrimitives);
 
-    this.pageMetaAugmenter = new Augmenter(this.ds, ["$fileMeta"]);
-    this.commandAugmenter = new Augmenter(this.ds, ["$command"]);
+    this.pageMetaAugmenter = new Augmenter(this.ds, ["aug", "pageMeta"]);
+    this.commandAugmenter = new Augmenter(this.ds, ["aug", "command"]);
 
     // Setup message queue on top of that
     this.mq = new DataStoreMQ(this.ds);
@@ -1066,6 +1068,10 @@ export class Client {
 
     // This could create an invalid editor state, but that doesn't matter, we'll update it later
     this.switchToPageEditor();
+
+    await this.pageMetaAugmenter.setAugmentation(pageName, {
+      lastOpened: Date.now(),
+    });
 
     this.ui.viewDispatch({
       type: "page-loaded",

@@ -25,11 +25,6 @@ export default function reducer(
         ...state,
         isLoading: false,
         isMobile: !mouseDetected,
-        allPages: state.allPages.map((pageMeta) =>
-          pageMeta.name === action.meta.name
-            ? { ...pageMeta, lastOpened: Date.now() }
-            : pageMeta
-        ),
         current: {
           path: action.path,
           meta: action.meta as PageMeta,
