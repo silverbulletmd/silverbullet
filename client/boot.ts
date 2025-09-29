@@ -11,7 +11,7 @@ import {
   flushCachesAndUnregisterServiceWorker,
 } from "./service_worker/util.ts";
 import "./lib/polyfills.ts";
-import type { BootConfig } from "./ui_types.ts";
+import type { BootConfig } from "./types/ui.ts";
 import { BoxProxy } from "./lib/box_proxy.ts";
 
 const logger = initLogger("[Client]");

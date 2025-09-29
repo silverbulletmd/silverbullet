@@ -1,4 +1,4 @@
-import type { Command } from "./types/command.ts";
+import type { Command } from "./command.ts";
 import type {
   FilterOption,
   Notification,
@@ -10,7 +10,7 @@ import type {
   PageMeta,
 } from "@silverbulletmd/silverbullet/type/index";
 import type { Path } from "@silverbulletmd/silverbullet/lib/ref";
-import type { SyncStatus } from "./spaces/sync.ts";
+import type { SyncStatus } from "../spaces/sync.ts";
 
 export type PanelConfig = {
   mode?: PanelMode;

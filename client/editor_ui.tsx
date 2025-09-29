@@ -8,7 +8,7 @@ import {
   type Action,
   type AppViewState,
   initialViewState,
-} from "./ui_types.ts";
+} from "./types/ui.ts";
 import * as featherIcons from "preact-feather";
 import * as mdi from "./filtered_material_icons.ts";
 import { h, render as preactRender } from "preact";

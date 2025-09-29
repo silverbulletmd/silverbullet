@@ -1,4 +1,4 @@
-import customMarkdownStyle from "./style.ts";
+import customMarkdownStyle from "../style.ts";
 import {
   history,
   indentWithTab,
@@ -34,23 +34,20 @@ import {
 } from "@codemirror/view";
 import { vim } from "@replit/codemirror-vim";
 import { markdown } from "@codemirror/lang-markdown";
-import type { Client } from "./client.ts";
-import { inlineContentPlugin } from "./cm_plugins/inline_content.ts";
-import { cleanModePlugins } from "./cm_plugins/clean.ts";
-import { lineWrapper } from "./cm_plugins/line_wrapper.ts";
-import { createSmartQuoteKeyBindings } from "./cm_plugins/smart_quotes.ts";
-import {
-  documentExtension,
-  pasteLinkExtension,
-} from "./cm_plugins/editor_paste.ts";
-import type { TextChange } from "./cm_plugins/change.ts";
-import { postScriptPrefacePlugin } from "./cm_plugins/top_bottom_panels.ts";
-import { languageFor } from "./languages.ts";
-import { plugLinter } from "./cm_plugins/lint.ts";
-import { extendedMarkdownLanguage } from "./markdown_parser/parser.ts";
+import type { Client } from "../client.ts";
+import { inlineContentPlugin } from "./inline_content.ts";
+import { cleanModePlugins } from "./clean.ts";
+import { lineWrapper } from "./line_wrapper.ts";
+import { createSmartQuoteKeyBindings } from "./smart_quotes.ts";
+import { documentExtension, pasteLinkExtension } from "./editor_paste.ts";
+import type { TextChange } from "./change.ts";
+import { postScriptPrefacePlugin } from "./top_bottom_panels.ts";
+import { languageFor } from "../languages.ts";
+import { plugLinter } from "./lint.ts";
+import { extendedMarkdownLanguage } from "../markdown_parser/parser.ts";
 import { safeRun } from "@silverbulletmd/silverbullet/lib/async";
-import { codeCopyPlugin } from "./cm_plugins/code_copy.ts";
-import { disableSpellcheck } from "./cm_plugins/spell_checking.ts";
+import { codeCopyPlugin } from "../codemirror/code_copy.ts";
+import { disableSpellcheck } from "../codemirror/spell_checking.ts";
 import type { ClickEvent } from "@silverbulletmd/silverbullet/type/client";
 
 export function createEditorState(

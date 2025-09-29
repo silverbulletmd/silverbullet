@@ -17,7 +17,7 @@ import {
   type ViewUpdate,
 } from "@codemirror/view";
 import { getCM as vimGetCm, Vim, vim } from "@replit/codemirror-vim";
-import { createCommandKeyBindings } from "../editor_state.ts";
+import { createCommandKeyBindings } from "../codemirror/editor_state.ts";
 
 type MiniEditorEvents = {
   onEnter: (newText: string, shiftDown?: boolean) => void;

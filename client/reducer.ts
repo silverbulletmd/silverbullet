@@ -1,4 +1,4 @@
-import type { Action, AppViewState } from "./ui_types.ts";
+import type { Action, AppViewState } from "./types/ui.ts";
 import type { PageMeta } from "../plug-api/types/index.ts";
 import {
   isMarkdownPath,
@@ -9,7 +9,6 @@ export default function reducer(
   state: AppViewState,
   action: Action,
 ): AppViewState {
-  // console.log("Got action", action);
   switch (action.type) {
     case "document-editor-loaded":
       return {

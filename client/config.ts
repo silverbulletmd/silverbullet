@@ -1,5 +1,8 @@
 import { Ajv } from "ajv";
 
+/**
+ * Configuration management (config.* APIs) for the client
+ */
 export class Config {
   public schemas: Record<string, any> = {
     type: "object",

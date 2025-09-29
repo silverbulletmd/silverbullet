@@ -5,7 +5,7 @@ import { SyncEngine } from "./service_worker/sync_engine.ts";
 import type {
   ServiceWorkerSourceMessage,
   ServiceWorkerTargetMessage,
-} from "./ui_types.ts";
+} from "./types/ui.ts";
 import { simpleHash } from "@silverbulletmd/silverbullet/lib/crypto";
 import { IndexedDBKvPrimitives } from "./data/indexeddb_kv_primitives.ts";
 import { fsEndpoint } from "./spaces/constants.ts";

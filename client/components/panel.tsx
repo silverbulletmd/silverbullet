@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "preact/hooks";
 import type { Client } from "../client.ts";
-import type { PanelConfig } from "../ui_types.ts";
+import type { PanelConfig } from "../types/ui.ts";
 import { panelHtml } from "./panel_html.ts";
 
 export function Panel({

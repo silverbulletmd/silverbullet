@@ -29,7 +29,7 @@ import type {
   BootConfig,
   ServiceWorkerSourceMessage,
   ServiceWorkerTargetMessage,
-} from "./ui_types.ts";
+} from "./types/ui.ts";
 
 import type {
   PageCreatingContent,
@@ -53,7 +53,7 @@ import {
   type Ref,
 } from "@silverbulletmd/silverbullet/lib/ref";
 import { ClientSystem } from "./client_system.ts";
-import { createEditorState, isValidEditor } from "./editor_state.ts";
+import { createEditorState, isValidEditor } from "./codemirror/editor_state.ts";
 import { MainUI } from "./editor_ui.tsx";
 import type { SpacePrimitives } from "./spaces/space_primitives.ts";
 import { DataStore } from "./data/datastore.ts";
@@ -63,7 +63,7 @@ import { DataStoreMQ } from "./data/mq.datastore.ts";
 import { ReadOnlySpacePrimitives } from "./spaces/ro_space_primitives.ts";
 import { LimitedMap } from "@silverbulletmd/silverbullet/lib/limited_map";
 import { fsEndpoint, plugPrefix } from "./spaces/constants.ts";
-import { diffAndPrepareChanges } from "./cm_util.ts";
+import { diffAndPrepareChanges } from "./codemirror/cm_util.ts";
 import { DocumentEditor } from "./document_editor.ts";
 import { parseExpressionString } from "./space_lua/parse.ts";
 import type { Config } from "./config.ts";

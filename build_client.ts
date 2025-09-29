@@ -16,10 +16,10 @@ export async function bundleAll(): Promise<void> {
 export async function copyAssets(dist: string) {
   await Deno.mkdir(dist, { recursive: true });
   await copy("client/fonts", `${dist}`, { overwrite: true });
-  await copy("client/index.html", `${dist}/index.html`, {
+  await copy("client/html/index.html", `${dist}/index.html`, {
     overwrite: true,
   });
-  await copy("client/auth.html", `${dist}/auth.html`, {
+  await copy("client/html/auth.html", `${dist}/auth.html`, {
     overwrite: true,
   });
   await copy("client/images/favicon.png", `${dist}/favicon.png`, {
