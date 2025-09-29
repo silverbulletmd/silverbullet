@@ -33,7 +33,7 @@ config.define("index", {
       type = "object",
       properties = {
         -- Create a full-text search
-        enable = schema.boolean(),
+        enabled = schema.boolean(),
       },
     },
     paragraph = {
@@ -315,7 +315,7 @@ config.define("queryCollation", {
 -- priority: 99
 config.set {
   index = {
-    search = { enable = true },
+    search = { enabled = true },
     paragraph = { all = true },
     item = { all = true },
     task = { all = true },

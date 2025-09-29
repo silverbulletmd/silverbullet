@@ -14,7 +14,7 @@ const searchPrefix = "search:";
 const promiseQueue = new PromiseQueue();
 
 export async function indexPage({ name, tree }: IndexTreeEvent) {
-  if (!await system.getConfig("index.search.enable", true)) {
+  if (!await system.getConfig("index.search.enabled", true)) {
     return;
   }
   const text = renderToText(tree);

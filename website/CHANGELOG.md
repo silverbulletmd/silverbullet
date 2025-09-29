@@ -3,7 +3,15 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 These are changes live on the edge builds:
 
-* _Nothing yet since 2.1.0_
+* _Nothing yet since 2.1.6_
+
+## 2.1.4 - 2.1.6
+* Fixed broken auth in Safari
+* Renamed the inconstently named `index.search.enable` to `index.search.enabled`
+* Last opened (for pages) and last run (for commands) timestamps are now kept persistently between client loads (and tabs)
+* Fixed docker user and group creation issues
+* Removed `file:deleted` triggering when checking for `getFileMeta` (causing an infinite indexing loop in SilverSearch)
+
 
 ## 2.1.2
 This is a major architectural overhaul compared to 2.0. Please — as always — make sure you regularly backup your space files to avoid any data loss. Nothing should happen, but better be safe than sorry!
@@ -12,7 +20,7 @@ This is a major architectural overhaul compared to 2.0. Please — as always �
 * Docker base image is now based on Alpine (previously Ubuntu), further reducing memory and disk space usage.
 * Significant engine re-architecture: see [[Architecture]] and [[Sync]], now lives in the service worker and parallelizes sync. Once upgrading a full resync will need to happen. Documents are no longer synced by default (you can enable this via config, see [[Sync]]).
 * More configuration options for what to index (see [[^Library/Std/Config]] under the `index` section) for the purpose of reducing local storage size and needless CPU waste. Some useful ones:
-  * `config.set("index.search.enable", false)` to disable [[Full Text Search]] entirely (saves on processing and storage if you don’t use it)
+  * `config.set("index.search.enabled", false)` to disable [[Full Text Search]] entirely (saves on processing and storage if you don’t use it)
   * `config.set("index.paragraph.all", false)` to disable indexing all (untagged) paragraphs. This is also somewhat wasteful if you don’t query these.
 * Disable ability to rename pages in read-only mode (by [Jelenkee](https://github.com/silverbulletmd/silverbullet/pull/1509))
 * Improved docker build + health check (by [Zef](https://github.com/silverbulletmd/silverbullet/issues/1515))
