@@ -225,16 +225,6 @@ export class EventedSpacePrimitives implements SpacePrimitives {
         await this.triggerEventsAndCache(path, newMeta.lastModified);
       }
       return newMeta;
-    } catch (e: any) {
-      // console.log("Checking error", e, path);
-      if (e.message === notFoundError.message) {
-        await this.dispatchEvent("file:deleted", path);
-        if (path.endsWith(".md")) {
-          const pageName = path.substring(0, path.length - 3);
-          await this.dispatchEvent("page:deleted", pageName);
-        }
-      }
-      throw e;
     } finally {
       this.operationInProgress = false;
     }
