@@ -1,3 +1,6 @@
+/**
+ * EventEmitter implementation, similar to the one used in CodeMirror
+ */
 export abstract class EventEmitter<HandlerT> {
   private handlers: Partial<HandlerT>[] = [];
 

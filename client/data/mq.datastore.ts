@@ -84,6 +84,9 @@ export class QueueWorker {
   }
 }
 
+/**
+ * Basic message queue implementation on top of a DataStore
+ */
 export class DataStoreMQ {
   // Internal sequencer for messages, only really necessary when batch sending tons of messages within a millisecond
   seq = 0;

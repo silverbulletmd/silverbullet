@@ -16,6 +16,12 @@ import {
 
 const pageWatchInterval = 3000; // + jitter
 
+/**
+ * Wrapper around space primitives (see spaces/) for Client use
+ * Adds:
+ * - Concept of a page (on top of files)
+ * - Page watchers
+ */
 export class Space {
   // We do watch files in the background to detect changes
   // This set of pages should only ever contain 1 page
@@ -31,19 +37,13 @@ export class Space {
   ) {
     eventHook.addLocalListener("file:deleted", (fileName: string) => {
       if (this.watchedFiles.has(fileName)) {
-        // Stop watching deleted files already
         this.watchedFiles.delete(fileName);
       }
     });
-    setTimeout(() => {
-      // Next tick, to ensure that the space is initialized
-      this.updatePageList().catch(console.error);
+    setTimeout(async () => {
+      // The only reason to do this is to trigger events
+      await this.spacePrimitives.fetchFileList();
     });
-  }
-
-  public async updatePageList() {
-    // The only reason to do this is to trigger events
-    await this.spacePrimitives.fetchFileList();
   }
 
   async deletePage(name: string): Promise<void> {
@@ -160,8 +160,9 @@ export class Space {
     return this.spacePrimitives.deleteFile(name);
   }
 
-  // Even though changes coming from a sync cycle will immediately trigger a reload
-  // there are scenarios in which other tabs run the sync, so we have to poll for changes
+  /**
+   * Polls for changes in the watched files.
+   */
   watch() {
     if (this.watchInterval) {
       clearInterval(this.watchInterval);

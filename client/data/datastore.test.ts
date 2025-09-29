@@ -3,13 +3,12 @@ import { IndexedDBKvPrimitives } from "./indexeddb_kv_primitives.ts";
 import { MemoryKvPrimitives } from "./memory_kv_primitives.ts";
 import type { KvPrimitives } from "./kv_primitives.ts";
 import { assertEquals } from "@std/assert";
-import { PrefixedKvPrimitives } from "./prefixed_kv_primitives.ts";
 import { DataStore } from "./datastore.ts";
 import { LuaEnv, LuaStackFrame } from "../space_lua/runtime.ts";
 import { parseExpressionString } from "../space_lua/parse.ts";
 
 async function test(db: KvPrimitives) {
-  const datastore = new DataStore(new PrefixedKvPrimitives(db, ["ds"]));
+  const datastore = new DataStore(db);
   await datastore.set(["user", "peter"], { name: "Peter" });
   await datastore.set(["user", "hank"], { name: "Hank" });
   const env = new LuaEnv();

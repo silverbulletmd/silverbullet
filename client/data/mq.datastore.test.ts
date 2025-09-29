@@ -2,7 +2,6 @@ import { DataStoreMQ } from "./mq.datastore.ts";
 import { assertEquals } from "@std/assert";
 import { MemoryKvPrimitives } from "./memory_kv_primitives.ts";
 import { DataStore } from "./datastore.ts";
-import { PrefixedKvPrimitives } from "./prefixed_kv_primitives.ts";
 import { FakeTime } from "@std/testing/time";
 
 import type { MQMessage } from "../../plug-api/types/datastore.ts";
@@ -13,7 +12,7 @@ Deno.test("DataStore MQ", async () => {
 
   try {
     const mq = new DataStoreMQ(
-      new DataStore(new PrefixedKvPrimitives(db, ["mq"])),
+      new DataStore(db),
     );
 
     let messages: MQMessage[];
@@ -81,7 +80,7 @@ Deno.test("DataStore MQ - Scale test with multiple subscribers", async () => {
 
   try {
     const mq = new DataStoreMQ(
-      new DataStore(new PrefixedKvPrimitives(db, ["mq"])),
+      new DataStore(db),
     );
 
     const queueName = "scale-test";
