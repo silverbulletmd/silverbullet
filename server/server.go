@@ -30,6 +30,7 @@ func RunServer(config *ServerConfig) error {
 	}
 
 	r.Use(middleware.RealIP)
+	r.Use(middleware.Compress(5, "application/json", "text/markdown", "text/javascript", "text/html", "text/css", "text/plain"))
 
 	// Expose space primitives and path to the request
 	r.Use(spaceMiddleware(config))
