@@ -79,7 +79,6 @@ event.listen {
     mdTree = markdown.expandMarkdown(mdTree)
     local renderedMd = markdown.renderParseTree(mdTree)
     editor.copyToClipboard(renderedMd)
-    editor.flashNotification "Copied markdown to clip board!"
   end
 }
 
@@ -90,7 +89,6 @@ event.listen {
     mdTree = markdown.expandMarkdown(mdTree)
     local html = markdown.markdownToHtml(markdown.renderParseTree(mdTree))
     editor.copyToClipboard(js.new(js.window.Blob, {html}, {type="text/html"}))
-    editor.flashNotification "Copied rich text to clip board!"
   end
 }
 ```

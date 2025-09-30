@@ -632,11 +632,18 @@ export function editorSyscalls(client: Client): SysCallMapping {
     "editor.openSearchPanel": () => {
       openSearchPanel(client.editorView);
     },
-    "editor.copyToClipboard": (_ctx, data: string | Blob) => {
-      if (typeof data === "string") {
-        navigator.clipboard.writeText(data);
-      } else {
-        navigator.clipboard.write([new ClipboardItem({ [data.type]: data })]);
+    "editor.copyToClipboard": async (_ctx, data: string | Blob) => {
+      try {
+        if (typeof data === "string") {
+          await navigator.clipboard.writeText(data);
+          client.flashNotification("Copied Markdown to clipboard!");
+        } else {
+          await navigator.clipboard.write([new ClipboardItem({[data.type]: data })]);
+          client.flashNotification("Copied to clipboard!");
+        }
+      } catch (e) {
+        console.error(e);
+        client.flashNotification(`Could not copy to clipboard: ${e}`);
       }
     },
     "editor.sendMessage": (_ctx, type: string, data: any) => {
