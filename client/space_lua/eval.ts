@@ -34,18 +34,20 @@ import {
 function luaCoerceToNumber(val: unknown): number {
   if (typeof val === "number") return val;
   if (typeof val === "string") {
-    // decimal
-    let n = Number(val.trim());
-    if (!isNaN(n)) return n;
-    // hexadecimal
-    if (/^0[xX][0-9a-fA-F]+$/.test(val.trim())) {
-      n = parseInt(val.trim(), 16);
+    const s = val.trim();
+    // hexadecimal: optional sign, hex prefix, digits
+    const match = s.match(/^([-+])?0[xX]([0-9a-fA-F]+)$/);
+    if (match) {
+      let n = parseInt(match[2], 16);
+      if (match[1] === "-") n = -n;
       if (!isNaN(n)) return n;
     }
+    // decimal (allows negative)
+    let n = Number(s);
+    if (!isNaN(n)) return n;
   }
   throw new LuaRuntimeError("attempt to perform arithmetic on a non-number");
 }
-
 
 async function handleTableFieldSync(
   table: LuaTable,
