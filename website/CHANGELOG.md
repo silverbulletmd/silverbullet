@@ -13,6 +13,7 @@ These are changes live on the edge builds:
 * Removed `file:deleted` triggering when checking for `getFileMeta` (causing an infinite indexing loop in SilverSearch)
 * Server: HTTP Gzip compression is now enabled for sensible content types
 * Nicer syntax to query tag objects from the index: `tags.page` becomes an alias for `index.tag "page"` (implemented here: [[^Library/Std/Tag]])
+* Hidden files and folders (starting with `.`) are no longer synced, as well as files without a file extension (those were not support anyway)
 
 ## 2.1.2
 This is a major architectural overhaul compared to 2.0. Please — as always — make sure you regularly backup your space files to avoid any data loss. Nothing should happen, but better be safe than sorry!
