@@ -65,7 +65,7 @@ function luaCoerceToNumber(val: unknown): number {
     const n = luaToNumber(val);
     if (n !== null) return n;
   }
-  throw new LuaRuntimeError("attempt to perform arithmetic on a non-number");
+  throw new Error("attempt to perform arithmetic on a non-number:");
 }
 
 async function handleTableFieldSync(

@@ -540,6 +540,17 @@ local r = query [[from p = data where type(p.favorite) == "table" and p.favorite
 assertEqual(#r, 1)
 assertEqual(r[1].name, "John")
 
+-- Test string to number coercion for arithmetical operations
+assertEqual(-1*' 16 '    ==  -16,  true)
+assertEqual(0-'0X10'     ==  -16,  true)
+assertEqual('-0x10'/1    ==  -16,  true)
+assertEqual('-0X10p0'//1 ==  -16,  true)
+assertEqual('0x10P0'%15  ==   1,   true)
+assertEqual('0X10P-1'^-1 == 0.125, true)
+-- TODO: unary operators "+" and "-" not yet implemented
+-- assertEqual(+'16'        ==   16,  true)
+-- assertEqual(-'16'        ==  -16,  true)
+
 -- Test tonumber function
 assertEqual(tonumber("123"), 123)
 assertEqual(tonumber("123.45"), 123.45)
