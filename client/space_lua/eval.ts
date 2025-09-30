@@ -30,42 +30,18 @@ import {
   ArrayQueryCollection,
   type LuaCollectionQuery,
 } from "./query_collection.ts";
-
-function luaToNumber(s: string): number | null {
-  s = s.trim();
-  // Hexadecimal parser
-  const hexMatch = s.match(/^([-+])?0[xX]([0-9a-fA-F]+)(?:\.([0-9a-fA-F]*))?(?:[pP]([-+]?\d+))?$/);
-  if (hexMatch) {
-    const sign = hexMatch[1] === '-' ? -1 : 1;
-    const intPart = parseInt(hexMatch[2], 16);
-    let fracPart = 0;
-    if (hexMatch[3] && hexMatch[3].length > 0) {
-      fracPart = parseInt(hexMatch[3], 16)/Math.pow(16, hexMatch[3].length);
-    }
-    const exponent = hexMatch[4] ? parseInt(hexMatch[4], 10) : 0;
-    // If an exponent is present then return float, otherwise
-    // if no fraction then return integer, else return float.
-    let result = sign*(intPart + fracPart)*Math.pow(2, exponent);
-    if (!hexMatch[3] && !hexMatch[4]) {
-      result = sign*intPart;
-    }
-    if (isFinite(result)) return result;
-    return null;
-  }
-  // Decimal fallback
-  const num = Number(s);
-  if (!isNaN(num)) return num;
-  return null;
-}
+import {
+  toNumber,
+} from "./tonumber.ts";
 
 // Wrapper for arithmetical operators
 function luaCoerceToNumber(val: unknown): number {
   if (typeof val === "number") return val;
   if (typeof val === "string") {
-    const n = luaToNumber(val);
+    const n = toNumber(val);
     if (n !== null) return n;
   }
-  throw new Error("attempt to perform arithmetic on a non-number:");
+  throw new Error(`attempt to perform arithmetic on a non-number`,);
 }
 
 async function handleTableFieldSync(
@@ -178,7 +154,7 @@ export function evalExpression(
           return value.then((value) => {
             switch (e.operator) {
               case "-":
-                return -singleResult(value);
+                return -luaCoerceToNumber(singleResult(value));
               case "+":
                 return +singleResult(value);
               case "not":
@@ -196,7 +172,7 @@ export function evalExpression(
         } else {
           switch (e.operator) {
             case "-":
-              return -singleResult(value);
+              return -luaCoerceToNumber(singleResult(value));
             case "+":
               return +singleResult(value);
             case "not":
