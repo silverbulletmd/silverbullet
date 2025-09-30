@@ -57,6 +57,13 @@ A SilveBullet specific [[Markdown]] [[Markdown/Extensions]] is the `${lua expres
 
 For example: 10 + 2 = ${adder(10, 2)} (Alt-click, or select to see the expression) is using the just defined `adder` function.
 
+> **note** Tip
+> Space Lua will convert strings to numbers the same way as Lua:
+>
+> * strings with leading/trailing whitespace are trimmed before conversion
+> * hexadecimal format is supported, including optional plus or minus signs (e.g., `" -0xFF "` becomes -255)
+> * if a string cannot be converted to a number, an error is raised
+
 ## Queries
 Space Lua has a feature called [[Space Lua/Lua Integrated Query]], which integrate SQL-like queries into Lua. Here’s a small example querying the last 3 modifies pages:
 
