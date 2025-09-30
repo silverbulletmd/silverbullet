@@ -105,6 +105,10 @@ func (d *DiskSpacePrimitives) fileInfoToFileMeta(path string, info os.FileInfo) 
 }
 
 // FetchFileList implements SpacePrimitives.FetchFileList
+// Returns a list of files in the space, with the following filtering rules:
+// - Hidden files and directories (starting with '.') are excluded at any depth
+// - Files without extensions are excluded
+// - Files matching gitignore patterns are excluded
 func (d *DiskSpacePrimitives) FetchFileList() ([]FileMeta, error) {
 	var allFiles []FileMeta
 
@@ -114,8 +118,16 @@ func (d *DiskSpacePrimitives) FetchFileList() ([]FileMeta, error) {
 			return nil
 		}
 
-		// Skip directories
+		// Skip hidden directories and stop traversal into them
 		if entry.IsDir() {
+			if strings.HasPrefix(entry.Name(), ".") {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		// Skip hidden files
+		if strings.HasPrefix(entry.Name(), ".") {
 			return nil
 		}
 
@@ -126,8 +138,8 @@ func (d *DiskSpacePrimitives) FetchFileList() ([]FileMeta, error) {
 			return nil
 		}
 
-		// Skip hidden folders in root
-		if strings.HasPrefix(relativePath, ".") {
+		// Skip files without extensions
+		if filepath.Ext(relativePath) == "" {
 			return nil
 		}
 
