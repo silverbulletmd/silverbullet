@@ -21,6 +21,7 @@ import { mathApi } from "./stdlib/math.ts";
 import { parse } from "./parse.ts";
 import { evalStatement } from "./eval.ts";
 import { encodingApi } from "./stdlib/encoding.ts";
+import { toNumber } from "./tonumber.ts";
 
 const printFunction = new LuaBuiltinFunction(async (_sf, ...args) => {
   console.log(
@@ -112,24 +113,7 @@ const tostringFunction = new LuaBuiltinFunction((_sf, value: any) => {
 
 const tonumberFunction = new LuaBuiltinFunction(
   (_sf, value: LuaValue, base?: number) => {
-    if (typeof value === "string" && value.trim() === "") {
-      return null;
-    }
-    if (base !== undefined) {
-      if (base < 2 || base > 36) {
-        return null;
-      }
-      const n = parseInt(String(value), base);
-      if (isNaN(n)) {
-        return null;
-      }
-      return n;
-    }
-    const n = Number(value);
-    if (isNaN(n)) {
-      return null;
-    }
-    return n;
+    return toNumber(value, base);
   },
 );
 
