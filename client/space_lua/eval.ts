@@ -31,6 +31,22 @@ import {
   type LuaCollectionQuery,
 } from "./query_collection.ts";
 
+function luaCoerceToNumber(val: unknown): number {
+  if (typeof val === "number") return val;
+  if (typeof val === "string") {
+    // decimal
+    let n = Number(val.trim());
+    if (!isNaN(n)) return n;
+    // hexadecimal
+    if (/^0[xX][0-9a-fA-F]+$/.test(val.trim())) {
+      n = parseInt(val.trim(), 16);
+      if (!isNaN(n)) return n;
+    }
+  }
+  throw new LuaRuntimeError("attempt to perform arithmetic on a non-number");
+}
+
+
 async function handleTableFieldSync(
   table: LuaTable,
   field: any,
@@ -435,13 +451,33 @@ const operatorsMetaMethods: Record<string, {
     sf: LuaStackFrame,
   ) => LuaValue;
 }> = {
-  "+": { metaMethod: "__add", nativeImplementation: (a, b) => a + b },
-  "-": { metaMethod: "__sub", nativeImplementation: (a, b) => a - b },
-  "*": { metaMethod: "__mul", nativeImplementation: (a, b) => a * b },
-  "/": { metaMethod: "__div", nativeImplementation: (a, b) => a / b },
+  "+": {
+    metaMethod: "__add",
+    nativeImplementation: (a, b) => luaCoerceToNumber(a) + luaCoerceToNumber(b),
+  },
+  "-": {
+    metaMethod: "__sub",
+    nativeImplementation: (a, b) => luaCoerceToNumber(a) - luaCoerceToNumber(b),
+  },
+  "*": {
+    metaMethod: "__mul",
+    nativeImplementation: (a, b) => luaCoerceToNumber(a) * luaCoerceToNumber(b),
+  },
+  "/": {
+    metaMethod: "__div",
+    nativeImplementation: (a, b) => luaCoerceToNumber(a) / luaCoerceToNumber(b),
+  },
   "//": {
     metaMethod: "__idiv",
-    nativeImplementation: (a, b) => Math.floor(a / b),
+    nativeImplementation: (a, b) => Math.floor(luaCoerceToNumber(a) / luaCoerceToNumber(b)),
+  },
+  "%": {
+    metaMethod: "__mod",
+    nativeImplementation: (a, b) => luaCoerceToNumber(a) % luaCoerceToNumber(b),
+  },
+  "^": {
+    metaMethod: "__pow",
+    nativeImplementation: (a, b) => luaCoerceToNumber(a) ** luaCoerceToNumber(b),
   },
   "&": {
     metaMethod: "__band",
@@ -468,8 +504,6 @@ const operatorsMetaMethods: Record<string, {
     nativeImplementation: (a, b, ctx, sf) =>
       exactInt(a, ctx, sf) >> exactInt(b, ctx, sf),
   },
-  "%": { metaMethod: "__mod", nativeImplementation: (a, b) => a % b },
-  "^": { metaMethod: "__pow", nativeImplementation: (a, b) => a ** b },
   "..": {
     metaMethod: "__concat",
     nativeImplementation: (a, b) => {
