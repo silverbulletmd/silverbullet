@@ -634,9 +634,24 @@ export function editorSyscalls(client: Client): SysCallMapping {
     },
     "editor.copyToClipboard": (_ctx, data: string | Blob) => {
       if (typeof data === "string") {
-        navigator.clipboard.writeText(data);
+        navigator.clipboard.writeText(data)
+          .then(() => {
+            // Only show notification if the copy operation was successful
+            client.flashNotification("Copied Markdown to clipboard!")
+          })
+          .catch((e) => {
+            console.error(e);
+            window.alert(e)
+          })
       } else {
-        navigator.clipboard.write([new ClipboardItem({ [data.type]: data })]);
+        navigator.clipboard.write([new ClipboardItem({[data.type]: data })])
+          .then(() => {
+            client.flashNotification("Copied to clipboard!")
+          })
+          .catch((e) => {
+            console.error(e);
+            window.alert(e)
+          })
       }
     },
     "editor.sendMessage": (_ctx, type: string, data: any) => {
