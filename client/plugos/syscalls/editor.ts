@@ -638,7 +638,9 @@ export function editorSyscalls(client: Client): SysCallMapping {
           await navigator.clipboard.writeText(data);
           client.flashNotification("Copied Markdown to clipboard!");
         } else {
-          await navigator.clipboard.write([new ClipboardItem({[data.type]: data })]);
+          await navigator.clipboard.write([
+            new ClipboardItem({ [data.type]: data }),
+          ]);
           client.flashNotification("Copied to clipboard!");
         }
       } catch (e) {
