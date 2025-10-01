@@ -86,7 +86,7 @@ export async function extractItemFromNode(
   name: string,
   itemNode: ParseTree,
   frontmatter: FrontMatter,
-  withParents = false,
+  withParents = true,
 ) {
   const item: ItemObject = {
     ref: `${name}@${itemNode.from}`,
