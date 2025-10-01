@@ -1,16 +1,13 @@
 import { SpaceSync, SyncSnapshot } from "./sync.ts";
-import { DiskSpacePrimitives } from "./disk_space_primitives.ts";
 import { assertEquals } from "@std/assert";
 import { sleep } from "@silverbulletmd/silverbullet/lib/async";
 import { assert } from "node:console";
+import { MemoryKvPrimitives } from "../data/memory_kv_primitives.ts";
+import { DataStoreSpacePrimitives } from "./datastore_space_primitives.ts";
 
 Deno.test("Test sync with no filtering", async () => {
-  const primaryPath = await Deno.makeTempDir();
-  const secondaryPath = await Deno.makeTempDir();
-  console.log("Primary", primaryPath);
-  console.log("Secondary", secondaryPath);
-  const primary = new DiskSpacePrimitives(primaryPath);
-  const secondary = new DiskSpacePrimitives(secondaryPath);
+  const primary = new DataStoreSpacePrimitives(new MemoryKvPrimitives());
+  const secondary = new DataStoreSpacePrimitives(new MemoryKvPrimitives());
   const snapshot = new SyncSnapshot();
   const sync = new SpaceSync(primary, secondary, {
     conflictResolver: SpaceSync.primaryConflictResolver,
@@ -133,9 +130,6 @@ Deno.test("Test sync with no filtering", async () => {
   // test + index + index.md + previous index.conflicting copy but nothing more
   assertEquals((await primary.fetchFileList()).length, 3);
 
-  await Deno.remove(primaryPath, { recursive: true });
-  await Deno.remove(secondaryPath, { recursive: true });
-
   async function doSync() {
     await sleep(10);
     const r = await sync.syncFiles(snapshot);
@@ -145,12 +139,8 @@ Deno.test("Test sync with no filtering", async () => {
 });
 
 Deno.test("Test sync with filtering", async () => {
-  const primaryPath = await Deno.makeTempDir();
-  const secondaryPath = await Deno.makeTempDir();
-  console.log("Primary", primaryPath);
-  console.log("Secondary", secondaryPath);
-  const primary = new DiskSpacePrimitives(primaryPath);
-  const secondary = new DiskSpacePrimitives(secondaryPath);
+  const primary = new DataStoreSpacePrimitives(new MemoryKvPrimitives());
+  const secondary = new DataStoreSpacePrimitives(new MemoryKvPrimitives());
 
   const snapshot = new SyncSnapshot();
   let sync = new SpaceSync(
@@ -276,9 +266,6 @@ Deno.test("Test sync with filtering", async () => {
   assertEquals((await primary.fetchFileList()).length, 3);
   assertEquals((await secondary.fetchFileList()).length, 3);
 
-  await Deno.remove(primaryPath, { recursive: true });
-  await Deno.remove(secondaryPath, { recursive: true });
-
   async function doSync() {
     await sleep(10);
     const r = await sync.syncFiles(snapshot);
@@ -287,12 +274,8 @@ Deno.test("Test sync with filtering", async () => {
 });
 
 Deno.test("Local push sync", async () => {
-  const primaryPath = await Deno.makeTempDir();
-  const secondaryPath = await Deno.makeTempDir();
-  console.log("Primary", primaryPath);
-  console.log("Secondary", secondaryPath);
-  const primary = new DiskSpacePrimitives(primaryPath);
-  const secondary = new DiskSpacePrimitives(secondaryPath);
+  const primary = new DataStoreSpacePrimitives(new MemoryKvPrimitives());
+  const secondary = new DataStoreSpacePrimitives(new MemoryKvPrimitives());
   const snapshot = new SyncSnapshot();
   const sync = new SpaceSync(primary, secondary, {
     conflictResolver: SpaceSync.primaryConflictResolver,
@@ -318,9 +301,6 @@ Deno.test("Local push sync", async () => {
   await primary.writeFile("test.txt", stringToBytes("Hello"));
   assertEquals(1, await sync.syncSingleFile("test.txt", snapshot));
   assertEquals(snapshot.nonSyncedFiles.size, 0);
-
-  await Deno.remove(primaryPath, { recursive: true });
-  await Deno.remove(secondaryPath, { recursive: true });
 });
 
 function stringToBytes(s: string): Uint8Array {
