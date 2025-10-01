@@ -3,7 +3,10 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 These are changes live on the edge builds:
 
-* _Nothing yet since 2.1.6_
+* Restructure of the `Library/Std` library, added some more (self) documentation. See [[^Library/Std]] as an entry point.
+* Readded `page:saved` event that was removed in 2.1
+* Fixed infinite item index loop in obscure cases
+* When the clipboard API is used in Safari, will now give a proper error (Safari restriction) by ([Noah Stanley](https://github.com/silverbulletmd/silverbullet/pull/1575))
 
 ## 2.1.4 - 2.1.6
 * Fixed broken auth in Safari
@@ -12,7 +15,7 @@ These are changes live on the edge builds:
 * Fixed docker user and group creation issues
 * Removed `file:deleted` triggering when checking for `getFileMeta` (causing an infinite indexing loop in SilverSearch)
 * Server: HTTP Gzip compression is now enabled for sensible content types
-* Nicer syntax to query tag objects from the index: `tags.page` becomes an alias for `index.tag "page"` (implemented here: [[^Library/Std/Tag]])
+* Nicer syntax to query tag objects from the index: `tags.page` becomes an alias for `index.tag "page"` (implemented here: [[^Library/Std/APIs/Tag]])
 * Hidden files and folders (starting with `.`) are no longer synced, as well as files without a file extension (those were not support anyway)
 
 ## 2.1.2

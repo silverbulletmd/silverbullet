@@ -27,7 +27,7 @@ safeRun(async () => {
       .all([
         cachedFetch(".config"),
         // Some minimal bootstrap Lua: schema definition
-        cachedFetch(".fs/Library/Std/Schema.md"),
+        cachedFetch(".fs/Library/Std/APIs/Schema.md"),
         // Configuration option definitions and defaults
         cachedFetch(".fs/Library/Std/Config.md"),
         // Custom configuration

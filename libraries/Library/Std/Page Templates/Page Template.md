@@ -1,5 +1,6 @@
 ---
 suggestedName: "Library/Page Templates/"
+description: A page template to create your own page templates
 confirmName: true
 tags: meta/template/page
 frontmatter: |

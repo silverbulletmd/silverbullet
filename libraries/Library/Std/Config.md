@@ -1,6 +1,15 @@
-#meta
+---
+description: Defines the schemas and built-in values of built-in configuration options
+tags: meta
+---
 
-SilverBullet's configuration can be tweaked using the `config.set` Space Lua API. This page defines all built-in configurations available. Individual Plugs and Space Lua scripts may define their own.
+SilverBullet uses the [config APIs](https://silverbullet.md/API/config) to manage its runtime configuration. You can set most of these anywhere in your space, but the convention is to use your [[CONFIG]] page for this purpose.
+
+This meta page defines the JSON Schema of all built-in configuration settings, as well as their default values. You can override them by e.g. putting the following in your CONFIG page (use `space-lua` instead of `lua` in your actual page):
+
+```lua
+config.set("sync.documents", true)
+```
 
 # Built-in options (schema)
 
@@ -8,6 +17,7 @@ This defines the [JSON schema](https://json-schema.org/) for built-in configurat
 
 ```space-lua
 -- priority: 100
+
 config.define("sync", {
   description = "Configure sync",
   type = "object",
@@ -71,6 +81,8 @@ config.define("plugs", {
   },
 })
 
+
+-- Editor configuration options
 config.define("autoCloseBrackets", {
   description = "List of brackets to auto close",
   type = "string",
@@ -85,58 +97,6 @@ config.define("emoji", {
       additionalProperties = schema.string(),
     }
   }
-})
-
-config.define("commands", {
-  type = "object",
-  additionalProperties = {
-    type = "object",
-    properties = {
-      name = schema.string(),
-      contexts = schema.nullableArray "string",
-      priority = schema.nullable "number",
-      key = schema.nullable "string",
-      mac = schema.nullable "string",
-      hid = schema.nullable "boolean",
-      requireMode = schema.nullable {
-        type = "string", 
-        enum = {"rw", "ro"},
-      },
-      requireEditor = schema.nullable("string"),
-      run = schema.func(),
-    },
-  },
-})
-
-config.define("slashCommands", {
-  type = "object",
-  additionalProperties = {
-    type = "object",
-    properties = {
-      name = schema.string(),
-      description = schema.nullable "string",
-      priority = schema.nullable "number",
-      onlyContexts = schema.nullableArray "string",
-      exceptContexts = schema.nullableArray "string",
-      run = schema.func(),
-    },
-  },
-})
-
-config.define("eventHandlers", {
-  type = "object",
-  additionalProperties = schema.array(schema.func()),
-})
-
-config.define("tagDefinitions", {
-  type = "object",
-  additionalProperties = {
-    type = "object",
-    properties = {
-      schema = { type = "object" },
-      metatable = { },
-    },
-  },
 })
 
 config.define("smartQuotes", {
@@ -181,34 +141,6 @@ config.define("smartQuotes", {
 
 config.define("mobileMenuStyle", {
   type = "string",
-})
-
-config.define("actionButtons", {
-  type = "array",
-  items = {
-    type = "object",
-    properties = {
-      icon = {
-        type = "string",
-        description = "Icon for the action button, from https://feathericons.com"
-      },
-      description = {
-        type = "string",
-        description = "Optional description of the action button"
-      },
-      priority = {
-        type = "number",
-        description = "Optional priority: the higher the earlier the button will appear in the list"
-      },
-      mobile = {
-        type = "boolean",
-        description = "Optional boolean indicating if the action button is applicable for mobile"
-      },
-      run = schema.func(),
-    },
-    required = {"icon", "run"},
-    additionalProperties = false
-  }
 })
 
 config.define("vim", {
@@ -287,6 +219,7 @@ config.define("vim", {
   additionalProperties = false
 })
 
+-- Query specific configuration options
 config.define("queryCollation", {
   description = "Configure string ordering in queries",
   type = "object",
@@ -307,9 +240,97 @@ config.define("queryCollation", {
   },
   additionalProperties = false
 })
+
+-- Configuration for internal use mostly
+
+-- Don't use directly, use command.define instead
+config.define("commands", {
+  type = "object",
+  additionalProperties = {
+    type = "object",
+    properties = {
+      name = schema.string(),
+      contexts = schema.nullableArray "string",
+      priority = schema.nullable "number",
+      key = schema.nullable "string",
+      mac = schema.nullable "string",
+      hid = schema.nullable "boolean",
+      requireMode = schema.nullable {
+        type = "string", 
+        enum = {"rw", "ro"},
+      },
+      requireEditor = schema.nullable("string"),
+      run = schema.func(),
+    },
+  },
+})
+
+-- Don't use directly, use slashCommands.define instead
+config.define("slashCommands", {
+  type = "object",
+  additionalProperties = {
+    type = "object",
+    properties = {
+      name = schema.string(),
+      description = schema.nullable "string",
+      priority = schema.nullable "number",
+      onlyContexts = schema.nullableArray "string",
+      exceptContexts = schema.nullableArray "string",
+      run = schema.func(),
+    },
+  },
+})
+
+-- Don't use directly, use event.listen instead
+config.define("eventHandlers", {
+  type = "object",
+  additionalProperties = schema.array(schema.func()),
+})
+
+-- Don't use directly, WIP
+config.define("tagDefinitions", {
+  type = "object",
+  additionalProperties = {
+    type = "object",
+    properties = {
+      schema = { type = "object" },
+      metatable = { },
+    },
+  },
+})
+
+-- Don't use directly, use actionButton.define instead
+config.define("actionButtons", {
+  type = "array",
+  items = {
+    type = "object",
+    properties = {
+      icon = {
+        type = "string",
+        description = "Icon for the action button, from https://feathericons.com"
+      },
+      description = {
+        type = "string",
+        description = "Optional description of the action button"
+      },
+      priority = {
+        type = "number",
+        description = "Optional priority: the higher the earlier the button will appear in the list"
+      },
+      mobile = {
+        type = "boolean",
+        description = "Optional boolean indicating if the action button is applicable for mobile"
+      },
+      run = schema.func(),
+    },
+    required = {"icon", "run"},
+    additionalProperties = false
+  }
+})
 ```
 
 # Default values
+Default values for built-in configuration options.
 
 ```space-lua
 -- priority: 99

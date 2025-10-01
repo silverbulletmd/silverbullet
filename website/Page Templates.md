@@ -1,1 +1,1 @@
-![[^Library/Std/Page Templates]]
+![[^Library/Std/Infrastructure/Page Templates]]

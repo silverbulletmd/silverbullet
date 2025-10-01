@@ -1,6 +1,6 @@
 Meta pages are pages not core to your content, but function as a way to configure, or extend your [[Spaces|space]]. You can think of them as “tooling” pages. 
 
-The most obvious examples are part of SilverBullet’s [[^Library/Std]] library and include generally useful [[Library/Std/Slash Templates]]. 
+The most obvious examples are part of SilverBullet’s [[^Library/Std]] library and include generally useful [[Library/Std/Infrastructure/Slash Templates]]. 
 
 If you use [[Space Lua]] or [[Space Style]], you may want to put those on separate pages and tag them as `#meta` as well, so they don’t mingle with your main content.
 

@@ -1,7 +1,17 @@
-#meta
+#meta/api
 
-Date and time APIs
+Useful date and time APIs as well as slash commands by default in `YYYY-MM-dd` format with times in `HH:mm:ss` (24h) format. 
 
+Included slash commands:
+
+* `/today` for today's date.
+* `/tomorrow` for tomorrow's date.
+* `/yesterday` for yesterday's date.
+
+# Examples
+Today: ${date.today()} and ${date.time()}
+
+# Implementation
 ```space-lua
 -- priority: 10
 
@@ -49,7 +59,3 @@ slashCommand.define {
   end
 }
 ```
-
-# Examples
-
-Today: ${date.today()} and ${date.time()}

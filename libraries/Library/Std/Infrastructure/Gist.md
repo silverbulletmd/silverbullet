@@ -1,6 +1,6 @@
 #meta
 
-[[^Library/Std/Import]] and [[^Library/Std/Export]] support for [Github Gists](https://gist.github.com/).
+[[^Library/Std/Infrastructure/Import]] and [[^Library/Std/Infrastructure/Export]] support for [Github Gists](https://gist.github.com/).
 
 # Configuration
 If you only want to _import_ from Gist URLs, no configuration is required.

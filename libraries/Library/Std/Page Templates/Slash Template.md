@@ -1,5 +1,6 @@
 ---
 suggestedName: "Library/Slash Templates/"
+description: A page template to create a custom slash command
 confirmName: true
 tags: meta/template/page
 frontmatter: |

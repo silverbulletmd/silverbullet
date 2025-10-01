@@ -1,5 +1,7 @@
-#meta
-
+---
+description: Implements the infrastructure of Page Templates.
+tags: meta
+---
 Page templates can be used to automate or simplify the creation of pages based on a template.
 
 # Creating a page template

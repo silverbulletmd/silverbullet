@@ -3,7 +3,7 @@ The `${lua expression}` syntax can be used to implement custom widgets. If the L
 To render a widget, call `widget.new` with any of the following keys:
 
 * `markdown`: Renders the value as markdown
-* `html`: Renders a HTML string as a widget. This is somewhat brittle. Therefore, it’s preferred to use the [[^Library/Std/DOM]] API.
+* `html`: Renders a HTML string as a widget. This is somewhat brittle. Therefore, it’s preferred to use the [[^Library/Std/APIs/DOM]] API.
 * `display`: Render the value either `inline` or as a `block` (defaults to `inline`)
 
 For convenience there are `widget.markdown` and `widget.html` wrappers available, see below for examples.
@@ -11,7 +11,7 @@ For convenience there are `widget.markdown` and `widget.html` wrappers available
 ## Markdown widgets
 
 ## DOM widgets
-To render a custom HTML-based widget, use the [[^Library/Std/DOM]] API:
+To render a custom HTML-based widget, use the [[^Library/Std/APIs/DOM]] API:
 
 ```space-lua
 function marquee(text)

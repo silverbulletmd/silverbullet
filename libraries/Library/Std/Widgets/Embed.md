@@ -1,13 +1,12 @@
 #meta
 
-Implements useful embeds
+Implements useful embed widgets.
 
 # Youtube
 ## Example
 ${embed.youtube "https://youtu.be/t1oy_41bDAY?si=X76FvJEUlJnApwEg"}
 
-## Implementation
-
+# Implementation
 ```space-lua
 -- Schema
 local youtubeSpecSchema = {

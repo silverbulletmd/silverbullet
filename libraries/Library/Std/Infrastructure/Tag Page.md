@@ -1,4 +1,7 @@
-#meta
+---
+description: Implements the tag page
+tags: meta
+---
 
 Implements a tag page, that renders when navigating to a hashtag: #meta based on the `tag:` prefix, by piggy backing on the `editor:pageCreating` event that triggers for non-existing pages.
 

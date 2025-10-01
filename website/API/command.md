@@ -1,1 +1,1 @@
-See [[^Library/Std/Command]]
+See [[^Library/Std/APIs/Command]]

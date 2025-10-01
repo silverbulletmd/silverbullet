@@ -1,4 +1,7 @@
-#meta
+---
+description: APIs to define custom action buttons
+tags: meta/api
+---
 
 APIs to more conveniently define action buttons (alternative to setting them via regular [[^Library/Std/Config]]).
 

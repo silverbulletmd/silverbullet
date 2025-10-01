@@ -1,4 +1,7 @@
-#meta
+---
+description: APIs to define custom commands and slash commands
+tags: meta/api
+---
 
 APIs to define and patch commands and slash commands.
 
@@ -50,8 +53,28 @@ command.update {
 }
 ```
 
+## slashCommand.define(spec)
+Defines a custom slash command.
+
+Supported keys in the spec:
+
+* `name`: name of the command
+* `description`: Description of the command
+* `run`: The callback function that will be invoked once the command is run.
+
+Example:
+
+```lua
+slashCommand.define {
+  name = "hello-world",
+  run = function()
+    editor.insertAtCursor("Hello |^| world!", false, true)
+  end
+}
+```
+
 # Implementation
-Most of the heavy lifting happens in SB itself.
+Most of the heavy lifting happens in SB itself. These are just wrappers around the config object API.
 
 ```space-lua
 -- priority: 99

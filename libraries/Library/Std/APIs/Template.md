@@ -1,4 +1,4 @@
-#meta
+#meta/api
 
 Implements useful template functions
 

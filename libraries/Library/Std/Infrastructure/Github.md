@@ -1,11 +1,11 @@
 #meta
 
-[[^Library/Std/Import]] and [[^Library/Std/Export]] support for [Github repo files](https://github.com).
+[[^Library/Std/Infrastructure/Import]] and [[^Library/Std/Infrastructure/Export]] support for [Github repo files](https://github.com).
 
 # Configuration
 If you only want to _import_ from Github URLs, no configuration is required.
 
-To _export_ got a Github repo, you need to get a [personal Github token](https://github.com/settings/personal-access-tokens) (with repo permissions). Configure your token somewhere in Space Lua (use a `space-lua` block), ideally a `SECRETS` page. This configuration is shared with [[^Library/Std/Gist]].
+To _export_ got a Github repo, you need to get a [personal Github token](https://github.com/settings/personal-access-tokens) (with repo permissions). Configure your token somewhere in Space Lua (use a `space-lua` block), ideally a `SECRETS` page. This configuration is shared with [[^Library/Std/Infrastructure/Gist]].
 
 ```lua
 config.set("github.token", "your token")

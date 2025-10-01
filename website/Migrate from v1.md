@@ -31,11 +31,11 @@ event.listen {
 }
 ```
 
-See [[^Library/Std/Widgets]] for some examples.
+See [[^Library/Std/Widgets/Widgets]] for some examples.
 
-_Snippets_ can be implemented as follows: [[Library/Std/Slash Templates]].
+_Snippets_ can be implemented as follows: [[Library/Std/Infrastructure/Slash Templates]].
 
-_Page templates_ now work slightly differently: [[^Library/Std/Page Templates]].
+_Page templates_ now work slightly differently: [[^Library/Std/Infrastructure/Page Templates]].
 
 # Plugs
 Many existing plugs _should_ keep working, but some may need updating.
@@ -58,7 +58,7 @@ Certain features have been removed:
 
 * Online mode: v2 is sync mode only, meaning all your content will be synced into your browser. A simpler Online mode may be added back later. If you like to wipe your local content at any time, use the `System: Wipe Client` command.
 * [Federation](https://v1.silverbullet.md/Federation)
-* [Share](https://v1.silverbullet.md/Plugs/Share) replaced by [[^Library/Std/Export]]
+* [Share](https://v1.silverbullet.md/Plugs/Share) replaced by [[^Library/Std/Infrastructure/Export]]
 * Space Script: replaced by [[Space Lua]]
 * Space Config: replaced by the [[API/config]] APIs.
 * Command link syntax (`{[...]})`) replaced by the `${widgets.commandButton(...)}` API.

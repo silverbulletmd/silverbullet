@@ -1,6 +1,6 @@
-#meta
+#meta/api
 
-Utilities to succinctly define JSON schema types.
+Utilities to succinctly define JSON schema types in Lua.
 
 ```space-lua
 -- priority: 101

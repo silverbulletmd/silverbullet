@@ -1,4 +1,4 @@
-#meta
+#meta/api
 
 A library to easily build DOM objects through the magic of Lua meta tables.
 
@@ -28,6 +28,8 @@ ${widget.html(dom.marquee{
 
 # Implementation
 ```space-lua
+-- priority: 50
+
 dom =  setmetatable({}, {
   __index = function(self, tag)
     return function(spec)

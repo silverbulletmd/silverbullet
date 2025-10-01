@@ -1,5 +1,7 @@
-#meta
-
+---
+description: Implements the infrastructure of Slash Templates.
+tags: meta
+---
 Allows for quick definition of slash commands based on templates.
 
 # Creating slash templates

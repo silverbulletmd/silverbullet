@@ -1,4 +1,4 @@
-#meta
+#meta/api
 
 This implements the widget API. For a Lua Directive to be rendered as a widget, you need to return it via `widget.new`.
 

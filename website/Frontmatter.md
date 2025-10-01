@@ -51,4 +51,4 @@ While SilverBullet allows arbitrary metadata to be added to pages, there are a f
   - "#tag2"
   ```
 
-For specific use cases, like [[^Library/Std/Page Templates]] or [[^Library/Std/Slash Templates]], frontmatter may have specific meaning.
+For specific use cases, like [[^Library/Std/Infrastructure/Page Templates]] or [[^Library/Std/Infrastructure/Slash Templates]], frontmatter may have specific meaning.
