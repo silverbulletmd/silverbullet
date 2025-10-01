@@ -121,3 +121,15 @@ ${query[[
   }
   limit 3
 ]]}
+
+## Rendering the output
+
+To render the output as a template, you can rely on the fact that queries return Lua tables. For example, to apply a template to render every page as a link:
+
+${template.each(query[[
+  from index.tag "page"
+  order by lastModified desc
+  limit 3
+]], templates.pageItem)}
+
+To render pages as links with their full local URL, use `templates.fullPageItem`. For more information on available templates, see [[API/templates]].
