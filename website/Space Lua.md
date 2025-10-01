@@ -63,35 +63,39 @@ Space Lua converts strings to numbers like standard Lua.
 
 Syntax:
 * Leading and trailing whitespace (space, tab, newline, carriage return, form feed and vertical tab) is trimmed.
-* The entire string after timming trailing whitespace must form a number.
+* The entire string after trimming trailing whitespace must form a number.
 * Optional `+` or `-` signs are accepted before the number.
-* _Decimal integers and floats_ are supported with optional exponent (e.g., `42`, `-3.5`, `.5`, `5.`, `1e3`, `-2.5E-2`).
-* _Hexadecimal integers and floats_ are also supported:
-  * integers (`0x10`, `-0XFF`),
+* _Decimal integers_ and _decimal floats_ are supported with optional exponent (e.g., `42`, `-3.5`, `.5`, `5.`, `1e3`, `-2.5E-2`).
+* _Hexadecimal integers_ and _hexadecimal floats_ are also supported:
+  * integers (e.g., `0x10`, `-0XFF`),
   * floats require `p` or `P` exponent (e.g., `0x1.8p1`, `-0X10.3P-1`).
 
 Failure handling:
-* In _arithmetic_ and _unary minus_ expressions invalid strings cause an exception:
-  * `Lua error: attempt to perform arithmetic on a non-number`
-* `tonumber(s)` returns `nil` on failure
-* `tonumber(s, base)` parses signed integers in bases 2..36 (no decimal points or exponents) and returns `nil` on invalid input string or base
+* In _arithmetic_ and _unary minus_ expressions invalid strings cause an Lua exception:
+  `attempt to perform arithmetic on a non-number`.
+* `tonumber(s)` returns `nil` on failure.
+* `tonumber(s, base)` parses _signed integers_ in bases 2..36 (without decimal points or exponents) and returns `nil` on invalid input string or base.
 
-Examples (`tonumber` function):
-```lua
-tonumber(' 42 ')     --> 42
-tonumber('-0xFF')    --> -255
-tonumber('0x1.8p1')  --> 3.0
-tonumber('1e-2')     --> 0.01
-tonumber('abc')      --> nil
+Examples (with `tonumber` function):
 
-tonumber('1010', 2)  --> 10
-tonumber(' +FF', 16) --> 255
-tonumber('8', 8)     --> nil
-```
+Code                   | Result                  | Expected
+-----------------------|-------------------------|---------
+`tonumber(' 42 ')`     | ${tonumber(' 42 ')}     | `42`
+`tonumber('-0xFf ')`   | ${tonumber('-0xFf ')}   | `-255`
+`tonumber('0x1.8p1')`  | ${tonumber('0x1.8p1')}  | `3.0`
+`tonumber('1e-2')`     | ${tonumber('1e-2')}     | `0.01`
+`tonumber('abc')`      | ${tonumber('abc')}      | `nil`
+`tonumber('1010', 2)`  | ${tonumber('1010', 2)}  | `10`
+`tonumber(' +fF', 16)` | ${tonumber(' +fF', 16)} | `255`
+`tonumber('8', 8)`     | ${tonumber('8', 8)}     | `nil`
 
-Examples (arithmetic expressions):
-- ${'0xffffP-1'} (string) vs ${'0xffffP-3' + 0} (addition),
-- ${-'123E-12'} (unary minus).
+Examples (with arithmetic operations):
+
+Code              | Result             | Expected
+------------------|--------------------|--------------------
+`'0xfFfFp1'`      | ${'0xfFfFp1'}      | string: `0xfFfFp1`
+`'0xffffP-3' + 0` | ${'0xffffP-3' + 0} | number: `8191.875`
+`-'123E-12'`      | ${-'123E-12'}      | number: `-1.23e-10`
 
 ## Queries
 Space Lua has a feature called [[Space Lua/Lua Integrated Query]], which integrate SQL-like queries into Lua. Here’s a small example querying the last 3 modifies pages:
