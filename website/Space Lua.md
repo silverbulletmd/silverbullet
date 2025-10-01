@@ -76,7 +76,7 @@ Failure handling:
 * `tonumber(s)` returns `nil` on failure
 * `tonumber(s, base)` parses signed integers in bases 2..36 (no decimal points or exponents) and returns `nil` on invalid input string or base
 
-Examples:
+Examples (`tonumber` function):
 ```lua
 tonumber(' 42 ')     --> 42
 tonumber('-0xFF')    --> -255
@@ -84,10 +84,14 @@ tonumber('0x1.8p1')  --> 3.0
 tonumber('1e-2')     --> 0.01
 tonumber('abc')      --> nil
 
-tonumber('1010', 2)  -->  10
-tonumber('FF', 16)   --> 255
+tonumber('1010', 2)  --> 10
+tonumber(' +FF', 16) --> 255
 tonumber('8', 8)     --> nil
 ```
+
+Examples (arithmetic expressions):
+- ${'0xffffP-1'} (string) vs ${'0xffffP-3' + 0} (addition),
+- ${-'123E-12'} (unary minus).
 
 ## Queries
 Space Lua has a feature called [[Space Lua/Lua Integrated Query]], which integrate SQL-like queries into Lua. Here’s a small example querying the last 3 modifies pages:
