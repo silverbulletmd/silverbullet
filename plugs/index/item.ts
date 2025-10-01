@@ -38,6 +38,7 @@ export async function indexItems({ name, tree }: IndexTreeEvent) {
     "index.item.all",
     true,
   );
+
   let items = await extractItems(name, tree);
   if (!shouldIndexAll) {
     items = items.filter((item) => item.tags?.length);
@@ -85,6 +86,7 @@ export async function extractItemFromNode(
   name: string,
   itemNode: ParseTree,
   frontmatter: FrontMatter,
+  withParents = true,
 ) {
   const item: ItemObject = {
     ref: `${name}@${itemNode.from}`,
@@ -129,7 +131,9 @@ export async function extractItemFromNode(
 
   updateITags(item, frontmatter);
 
-  await enrichItemFromParents(itemNode, item, name, frontmatter);
+  if (withParents) {
+    await enrichItemFromParents(itemNode, item, name, frontmatter);
+  }
 
   return item;
 }
@@ -148,6 +152,7 @@ export async function enrichItemFromParents(
       pageName,
       parentItemNode,
       frontmatter,
+      false,
     );
     if (directParent) {
       item.parent = parentItem.ref;

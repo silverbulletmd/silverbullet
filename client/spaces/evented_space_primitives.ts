@@ -10,6 +10,7 @@ import type { DataStore } from "../data/datastore.ts";
  * - file:deleted (string)
  * - file:listed (FileMeta[])
  * - file:initial: triggered in case of an initially empty snapshot, after the first set of events has gone out
+ * - page:saved (string, FileMeta)
  * - page:deleted (string)
  */
 export class EventedSpacePrimitives implements SpacePrimitives {
@@ -189,6 +190,11 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       if (!wasFetching) {
         await this.triggerEventsAndCache(path, newMeta.lastModified);
       }
+      if (path.endsWith(".md")) {
+        const pageName = path.substring(0, path.length - 3);
+        await this.dispatchEvent("page:saved", pageName, newMeta);
+      }
+
       return newMeta;
     } finally {
       this.operationInProgress = false;
