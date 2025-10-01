@@ -11,5 +11,3 @@ Media resizing is also supported:
 Syntax:
 * `![[page name]]` embed an entire page
 * `![[page name#header]]` embed only a section (guarded by the given header)
-* `![[page$anchor]]` embed a page _from_ the given anchor until the end of the page
-* `![[page@pos]]` embed a page _from_ the given character position until the end of the page
