@@ -540,26 +540,14 @@ local r = query [[from p = data where type(p.favorite) == "table" and p.favorite
 assertEqual(#r, 1)
 assertEqual(r[1].name, "John")
 
--- Test tonumber function
-assertEqual(tonumber("123"), 123)
-assertEqual(tonumber("123.45"), 123.45)
-assertEqual(tonumber("-123"), -123)
-assertEqual(tonumber("0"), 0)
-assertEqual(tonumber(""), nil)
-assertEqual(tonumber("abc"), nil)
-assertEqual(tonumber("12.34.56"), nil)
-
--- Test tonumber with base
-assertEqual(tonumber("1010", 2), 10)    -- Binary
-assertEqual(tonumber("FF", 16), 255)    -- Hexadecimal
-assertEqual(tonumber("377", 8), 255)    -- Octal
-assertEqual(tonumber("z", 36), 35)      -- Base 36
-assertEqual(tonumber("1010", 10), 1010) -- Decimal (explicit)
-assertEqual(tonumber("1010", 1), nil)   -- Invalid base
-assertEqual(tonumber("1010", 37), nil)  -- Invalid base
-assertEqual(tonumber("FF", 10), nil)    -- Invalid hex in decimal
-assertEqual(tonumber("8", 8), nil)      -- Invalid octal digit
-
+-- Test string to number coercion for arithmetical operations
+assertEqual(-1*' 16 '    ==  -16,  true)
+assertEqual(0-'0X10'     ==  -16,  true)
+assertEqual('-0x10'/1    ==  -16,  true)
+assertEqual('-0X10p0'//1 ==  -16,  true)
+assertEqual('0x10P0'%15  ==   1,   true)
+assertEqual('0X10P-1'^-1 == 0.125, true)
+assertEqual(-'16'        ==  -16,  true)
 
 -- select tests
 -- Base case

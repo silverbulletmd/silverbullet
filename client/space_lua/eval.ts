@@ -30,6 +30,21 @@ import {
   ArrayQueryCollection,
   type LuaCollectionQuery,
 } from "./query_collection.ts";
+import {
+  luaToNumber,
+} from "./tonumber.ts";
+
+// Wrapper for arithmetical operators
+function luaCoerceToNumber(val: unknown): number {
+  if (typeof val === "number") return val;
+  if (typeof val === "string") {
+    const n = luaToNumber(val);
+    if (n !== null) {
+      return n;
+    }
+  }
+  throw new Error(`attempt to perform arithmetic on a non-number`,);
+}
 
 async function handleTableFieldSync(
   table: LuaTable,
@@ -141,7 +156,7 @@ export function evalExpression(
           return value.then((value) => {
             switch (e.operator) {
               case "-":
-                return -singleResult(value);
+                return -luaCoerceToNumber(singleResult(value));
               case "+":
                 return +singleResult(value);
               case "not":
@@ -159,7 +174,7 @@ export function evalExpression(
         } else {
           switch (e.operator) {
             case "-":
-              return -singleResult(value);
+              return -luaCoerceToNumber(singleResult(value));
             case "+":
               return +singleResult(value);
             case "not":
@@ -435,13 +450,33 @@ const operatorsMetaMethods: Record<string, {
     sf: LuaStackFrame,
   ) => LuaValue;
 }> = {
-  "+": { metaMethod: "__add", nativeImplementation: (a, b) => a + b },
-  "-": { metaMethod: "__sub", nativeImplementation: (a, b) => a - b },
-  "*": { metaMethod: "__mul", nativeImplementation: (a, b) => a * b },
-  "/": { metaMethod: "__div", nativeImplementation: (a, b) => a / b },
+  "+": {
+    metaMethod: "__add",
+    nativeImplementation: (a, b) => luaCoerceToNumber(a) + luaCoerceToNumber(b),
+  },
+  "-": {
+    metaMethod: "__sub",
+    nativeImplementation: (a, b) => luaCoerceToNumber(a) - luaCoerceToNumber(b),
+  },
+  "*": {
+    metaMethod: "__mul",
+    nativeImplementation: (a, b) => luaCoerceToNumber(a) * luaCoerceToNumber(b),
+  },
+  "/": {
+    metaMethod: "__div",
+    nativeImplementation: (a, b) => luaCoerceToNumber(a) / luaCoerceToNumber(b),
+  },
   "//": {
     metaMethod: "__idiv",
-    nativeImplementation: (a, b) => Math.floor(a / b),
+    nativeImplementation: (a, b) => Math.floor(luaCoerceToNumber(a) / luaCoerceToNumber(b)),
+  },
+  "%": {
+    metaMethod: "__mod",
+    nativeImplementation: (a, b) => luaCoerceToNumber(a) % luaCoerceToNumber(b),
+  },
+  "^": {
+    metaMethod: "__pow",
+    nativeImplementation: (a, b) => luaCoerceToNumber(a) ** luaCoerceToNumber(b),
   },
   "&": {
     metaMethod: "__band",
@@ -468,8 +503,6 @@ const operatorsMetaMethods: Record<string, {
     nativeImplementation: (a, b, ctx, sf) =>
       exactInt(a, ctx, sf) >> exactInt(b, ctx, sf),
   },
-  "%": { metaMethod: "__mod", nativeImplementation: (a, b) => a % b },
-  "^": { metaMethod: "__pow", nativeImplementation: (a, b) => a ** b },
   "..": {
     metaMethod: "__concat",
     nativeImplementation: (a, b) => {

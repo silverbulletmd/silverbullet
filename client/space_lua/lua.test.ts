@@ -13,6 +13,10 @@ Deno.test("[Lua] Table tests", async () => {
   await runLuaTest("./stdlib/table_test.lua");
 });
 
+Deno.test("[Lua] String to number tests", async () => {
+  await runLuaTest("./tonumber_test.lua");
+});
+
 Deno.test("[Lua] String tests", async () => {
   await runLuaTest("./stdlib/string_test.lua");
   // await runLuaTest("./stdlib/string_test2.lua");

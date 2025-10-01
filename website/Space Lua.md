@@ -57,6 +57,42 @@ A SilveBullet specific [[Markdown]] [[Markdown/Extensions]] is the `${lua expres
 
 For example: 10 + 2 = ${adder(10, 2)} (Alt-click, or select to see the expression) is using the just defined `adder` function.
 
+## Conversion of Strings to Numbers
+
+Space Lua converts strings to numbers like standard Lua.
+
+Syntax:
+* Leading and trailing whitespace (space, tab, newline, carriage return, form feed and vertical tab) is trimmed.
+* The entire string after timming trailing whitespace must form a number.
+* Optional `+` or `-` signs are accepted before the number.
+* _Decimal integers and floats_ are supported with optional exponent (e.g., `42`, `-3.5`, `.5`, `5.`, `1e3`, `-2.5E-2`).
+* _Hexadecimal integers and floats_ are also supported:
+  * integers (`0x10`, `-0XFF`),
+  * floats require `p` or `P` exponent (e.g., `0x1.8p1`, `-0X10.3P-1`).
+
+Failure handling:
+* In _arithmetic_ and _unary minus_ expressions invalid strings cause an exception:
+  * `Lua error: attempt to perform arithmetic on a non-number`
+* `tonumber(s)` returns `nil` on failure
+* `tonumber(s, base)` parses signed integers in bases 2..36 (no decimal points or exponents) and returns `nil` on invalid input string or base
+
+Examples (`tonumber` function):
+```lua
+tonumber(' 42 ')     --> 42
+tonumber('-0xFF')    --> -255
+tonumber('0x1.8p1')  --> 3.0
+tonumber('1e-2')     --> 0.01
+tonumber('abc')      --> nil
+
+tonumber('1010', 2)  --> 10
+tonumber(' +FF', 16) --> 255
+tonumber('8', 8)     --> nil
+```
+
+Examples (arithmetic expressions):
+- ${'0xffffP-1'} (string) vs ${'0xffffP-3' + 0} (addition),
+- ${-'123E-12'} (unary minus).
+
 ## Queries
 Space Lua has a feature called [[Space Lua/Lua Integrated Query]], which integrate SQL-like queries into Lua. Here’s a small example querying the last 3 modifies pages:
 
