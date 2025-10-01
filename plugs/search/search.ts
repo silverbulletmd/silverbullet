@@ -43,7 +43,7 @@ export async function readFileSearch(
   const results = await ftsSearch(phrase);
   const text = `# Search results for "${phrase}"\n${
     results
-      .map((r) => `* [[${r.id}]] (score ${r.score})`)
+      .map((r) => `* [[${r.id}|${r.id}]] (score ${r.score})`)
       .join("\n")
   }
     `;
