@@ -21,7 +21,7 @@ import { mathApi } from "./stdlib/math.ts";
 import { parse } from "./parse.ts";
 import { evalStatement } from "./eval.ts";
 import { encodingApi } from "./stdlib/encoding.ts";
-import { toNumber } from "./tonumber.ts";
+import { luaToNumber } from "./tonumber.ts";
 
 const printFunction = new LuaBuiltinFunction(async (_sf, ...args) => {
   console.log(
@@ -113,7 +113,7 @@ const tostringFunction = new LuaBuiltinFunction((_sf, value: any) => {
 
 const tonumberFunction = new LuaBuiltinFunction(
   (_sf, value: LuaValue, base?: number) => {
-    return toNumber(value, base);
+    return luaToNumber(value, base);
   },
 );
 

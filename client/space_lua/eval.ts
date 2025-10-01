@@ -31,15 +31,17 @@ import {
   type LuaCollectionQuery,
 } from "./query_collection.ts";
 import {
-  toNumber,
+  luaToNumber,
 } from "./tonumber.ts";
 
 // Wrapper for arithmetical operators
 function luaCoerceToNumber(val: unknown): number {
   if (typeof val === "number") return val;
   if (typeof val === "string") {
-    const n = toNumber(val);
-    if (n !== null) return n;
+    const n = luaToNumber(val);
+    if (n !== null) {
+      return n;
+    }
   }
   throw new Error(`attempt to perform arithmetic on a non-number`,);
 }
