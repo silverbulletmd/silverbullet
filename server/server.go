@@ -1,9 +1,15 @@
 package server
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -117,6 +123,34 @@ func RunServer(config *ServerConfig) error {
 	}
 	log.Printf("SilverBullet is now running: http://%s:%d", visibleHostname, config.Port)
 
-	http.ListenAndServe(fmt.Sprintf("%s:%d", config.BindHost, config.Port), r)
+	server := &http.Server{
+		Addr:    fmt.Sprintf("%s:%d", config.BindHost, config.Port),
+		Handler: r,
+	}
+
+	shutdownChannel := make(chan bool, 1)
+
+	go func() {
+		if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+			log.Fatalf("HTTP server error: %v", err)
+		}
+		log.Println("Stopped serving new connections.")
+		shutdownChannel <- true
+	}()
+
+	signalChannel := make(chan os.Signal, 1)
+	signal.Notify(signalChannel, syscall.SIGINT, syscall.SIGTERM)
+	// Block on incoming signals.
+	s := <-signalChannel
+	log.Println("Received signal:", s)
+
+	shutdownCtx, shutdownRelease := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownRelease()
+
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		log.Fatalf("HTTP shutdown error: %v", err)
+	}
+	<-shutdownChannel
+	log.Println("Graceful shutdown complete.")
 	return nil
 }
