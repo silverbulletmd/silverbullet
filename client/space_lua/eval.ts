@@ -30,9 +30,7 @@ import {
   ArrayQueryCollection,
   type LuaCollectionQuery,
 } from "./query_collection.ts";
-import {
-  luaToNumber,
-} from "./tonumber.ts";
+import { luaToNumber } from "./tonumber.ts";
 
 // Wrapper for arithmetical operators
 function luaCoerceToNumber(val: unknown): number {
@@ -43,7 +41,7 @@ function luaCoerceToNumber(val: unknown): number {
       return n;
     }
   }
-  throw new Error(`attempt to perform arithmetic on a non-number`,);
+  throw new Error(`attempt to perform arithmetic on a non-number`);
 }
 
 async function handleTableFieldSync(
@@ -468,7 +466,8 @@ const operatorsMetaMethods: Record<string, {
   },
   "//": {
     metaMethod: "__idiv",
-    nativeImplementation: (a, b) => Math.floor(luaCoerceToNumber(a) / luaCoerceToNumber(b)),
+    nativeImplementation: (a, b) =>
+      Math.floor(luaCoerceToNumber(a) / luaCoerceToNumber(b)),
   },
   "%": {
     metaMethod: "__mod",
@@ -476,7 +475,8 @@ const operatorsMetaMethods: Record<string, {
   },
   "^": {
     metaMethod: "__pow",
-    nativeImplementation: (a, b) => luaCoerceToNumber(a) ** luaCoerceToNumber(b),
+    nativeImplementation: (a, b) =>
+      luaCoerceToNumber(a) ** luaCoerceToNumber(b),
   },
   "&": {
     metaMethod: "__band",

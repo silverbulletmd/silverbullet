@@ -81,8 +81,7 @@ function parseIntWithBase(
 
   while (i < n) {
     const c = s.charCodeAt(i);
-    const isAlnum =
-      (c >= 48 && c <= 57) ||
+    const isAlnum = (c >= 48 && c <= 57) ||
       (c >= 65 && c <= 90) ||
       (c >= 97 && c <= 122);
 
@@ -420,12 +419,12 @@ function parseHexFloat(s: string): { ok: boolean; value: number } {
 }
 
 export function luaToNumber(s: string, base?: number): number | null {
-  if (typeof s !== 'string') {
+  if (typeof s !== "string") {
     return null;
   }
 
   if (base !== undefined) {
-    if (!(typeof base === 'number' && base >= 2 && base <= 36)) {
+    if (!(typeof base === "number" && base >= 2 && base <= 36)) {
       return null;
     }
 
