@@ -149,7 +149,7 @@ BinaryExpression {
 
 UnaryExpression {
   !prefix kw<"not"> exp |
-  !prefix (ArithOp{"+" | minus} | BitOp{"~"} | LenOp{"#"}) exp
+  !prefix (ArithOp{minus} | BitOp{"~"} | LenOp{"#"}) exp
 }
 
 TableConstructor { "{" (field (fieldsep field)* fieldsep?)? "}" }

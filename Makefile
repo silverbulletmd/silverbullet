@@ -32,7 +32,7 @@ test:
 
 generate:
 	# Regenerate the Lua parser from the the grammar
-	deno run -A npm:@lezer/generator@1.5.1 lib/space_lua/lua.grammar -o lib/space_lua/parse-lua.js
+	deno run -A npm:@lezer/generator@1.5.1 client/space_lua/lua.grammar -o client/space_lua/parse-lua.js
 
 .PHONY: website
 website:
