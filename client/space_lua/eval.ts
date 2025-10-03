@@ -154,6 +154,11 @@ export function evalExpression(
           return value.then((value) => {
             switch (e.operator) {
               case "-":
+                if (e.argument.type === "Number" && e.argument.numericType === "int") {
+                  if (e.argument.value === 0) {
+                    return 0;
+                  }
+                }
                 return -luaCoerceToNumber(singleResult(value));
               case "+":
                 return +singleResult(value);
@@ -172,6 +177,11 @@ export function evalExpression(
         } else {
           switch (e.operator) {
             case "-":
+              if (e.argument.type === "Number" && e.argument.numericType === "int") {
+                if (e.argument.value === 0) {
+                  return 0;
+                }
+              }
               return -luaCoerceToNumber(singleResult(value));
             case "+":
               return +singleResult(value);
