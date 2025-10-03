@@ -114,6 +114,9 @@ func removeURLPrefix(path, prefix string) string {
 
 // isExcludedPath checks if a path should be excluded from authentication
 func isExcludedPath(path string) bool {
+	if path == "/" {
+		return true
+	}
 	// Check if path starts with any item in excludedPaths
 	for _, excludedPath := range excludedPaths {
 		if strings.HasPrefix(path, excludedPath) {
