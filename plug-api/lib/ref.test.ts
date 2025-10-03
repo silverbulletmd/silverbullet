@@ -114,6 +114,10 @@ Deno.test("isValidPath() and isValidName()", () => {
   assert(!isValidName("foo@123"));
   assert(!isValidName("^foo@123"));
   assert(!isValidName("foo[[bar"));
+
+  // Disallow < and > in ref names
+  assert(!isValidName("hello<there"));
+  assert(!isValidName("hello>there"));
 });
 
 Deno.test("Page URI encoding", () => {
