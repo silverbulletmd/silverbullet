@@ -404,6 +404,7 @@ function parseExpression(t: ParseTree, ctx: ASTCtx): LuaExpression {
         type: "Number",
         // Use the integer parser fox 0x literals
         value: text.includes("x") ? parseInt(text) : parseFloat(text),
+        numericType: /[\.eEpP]/.test(text) ? "float" : "int",
         ctx: context(t, ctx),
       };
     }

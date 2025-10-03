@@ -2,6 +2,8 @@ type ASTContext = {
   ctx: ASTCtx;
 };
 
+export type NumericType = "int" | "float";
+
 export type ASTCtx = {
   from?: number;
   to?: number;
@@ -165,6 +167,7 @@ export type LuaBooleanLiteral = {
 export type LuaNumberLiteral = {
   type: "Number";
   value: number;
+  numericType: NumericType;
 } & ASTContext;
 
 export type LuaStringLiteral = {
