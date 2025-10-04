@@ -176,3 +176,82 @@ func TestCleanOrphaned(t *testing.T) {
 	_, err = os.Stat(deepPath)
 	assert.True(t, os.IsNotExist(err), "Empty parent directory should be cleaned up")
 }
+
+func TestSymlinksAndInfiniteLoops(t *testing.T) {
+	tmpDir := t.TempDir()
+	space, err := NewDiskSpacePrimitives(tmpDir, "")
+	assert.NoError(t, err, "Failed to create DiskSpacePrimitives")
+
+	// Create a regular file to symlink to
+	_, err = space.WriteFile("target.txt", []byte("target content"), nil)
+	assert.NoError(t, err, "Failed to create target file")
+
+	// Create a directory with files to symlink to
+	_, err = space.WriteFile("targetdir/file.md", []byte("dir content"), nil)
+	assert.NoError(t, err, "Failed to create target directory file")
+
+	targetPath := filepath.Join(tmpDir, "target.txt")
+	targetDirPath := filepath.Join(tmpDir, "targetdir")
+
+	// Test 1: Create symlink to file
+	symlinkPath := filepath.Join(tmpDir, "link.txt")
+	err = os.Symlink(targetPath, symlinkPath)
+	assert.NoError(t, err, "Failed to create file symlink")
+
+	// Test 2: Create symlink to directory
+	symlinkDirPath := filepath.Join(tmpDir, "linkdir")
+	err = os.Symlink(targetDirPath, symlinkDirPath)
+	assert.NoError(t, err, "Failed to create directory symlink")
+
+	// Test 3: Create infinite loop - symlink pointing to itself
+	loopPath := filepath.Join(tmpDir, "loop.txt")
+	err = os.Symlink(loopPath, loopPath)
+	assert.NoError(t, err, "Failed to create self-referencing symlink")
+
+	// Test 4: Create circular symlinks
+	circleAPath := filepath.Join(tmpDir, "circleA.txt")
+	circleBPath := filepath.Join(tmpDir, "circleB.txt")
+	err = os.Symlink(circleBPath, circleAPath)
+	assert.NoError(t, err, "Failed to create first circular symlink")
+	err = os.Symlink(circleAPath, circleBPath)
+	assert.NoError(t, err, "Failed to create second circular symlink")
+
+	// Test that FetchFileList doesn't hang and returns expected files
+	fileList, err := space.FetchFileList()
+	assert.NoError(t, err, "FetchFileList should handle symlinks without error")
+
+	// Collect file names for verification
+	fileNames := make([]string, len(fileList))
+	for i, file := range fileList {
+		fileNames[i] = file.Name
+	}
+
+	// Should contain the original files and symlinked files (if they have extensions)
+	assert.Contains(t, fileNames, "target.txt", "Original file should be present")
+	assert.Contains(t, fileNames, "targetdir/file.md", "File in target directory should be present")
+	assert.Contains(t, fileNames, "link.txt", "Symlinked file should be present")
+	assert.Contains(t, fileNames, "linkdir/file.md", "File in symlinked directory should be present")
+
+	// Infinite loop symlinks should not cause issues (they may or may not appear in the list)
+	// The important thing is that FetchFileList completes without hanging
+
+	// Test that we can read through symlinks
+	content, meta, err := space.ReadFile("link.txt")
+	assert.NoError(t, err, "Should be able to read through file symlink")
+	assert.Equal(t, []byte("target content"), content, "Symlinked file should have correct content")
+	assert.Equal(t, "link.txt", meta.Name, "Meta should use the symlink name")
+
+	content, meta, err = space.ReadFile("linkdir/file.md")
+	assert.NoError(t, err, "Should be able to read through directory symlink")
+	assert.Equal(t, []byte("dir content"), content, "File in symlinked directory should have correct content")
+	assert.Equal(t, "linkdir/file.md", meta.Name, "Meta should use the symlinked path")
+
+	// Test that we can write through symlinks
+	_, err = space.WriteFile("link.txt", []byte("new content"), nil)
+	assert.NoError(t, err, "Should be able to write through symlink")
+
+	// Verify the original file was updated
+	content, _, err = space.ReadFile("target.txt")
+	assert.NoError(t, err, "Should be able to read original file")
+	assert.Equal(t, []byte("new content"), content, "Original file should be updated through symlink")
+}

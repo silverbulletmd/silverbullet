@@ -7,9 +7,11 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	ignore "github.com/Diogenesoftoronto/go-gitignore"
+	"github.com/charlievieth/fastwalk"
 	"github.com/djherbis/times"
 )
 
@@ -110,9 +112,15 @@ func (d *DiskSpacePrimitives) fileInfoToFileMeta(path string, info os.FileInfo) 
 // - Files without extensions are excluded
 // - Files matching gitignore patterns are excluded
 func (d *DiskSpacePrimitives) FetchFileList() ([]FileMeta, error) {
+	var l sync.Mutex
 	var allFiles []FileMeta
 
-	err := filepath.WalkDir(d.rootPath, func(path string, entry fs.DirEntry, err error) error {
+	cnf := fastwalk.Config{
+		// Follow symlinks
+		Follow: true,
+	}
+
+	err := fastwalk.Walk(&cnf, d.rootPath, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
 			// Skip files that can't be accessed
 			return nil
@@ -151,7 +159,10 @@ func (d *DiskSpacePrimitives) FetchFileList() ([]FileMeta, error) {
 		}
 
 		fileMeta := d.fileInfoToFileMeta(relativePath, info)
+		// Mutex to handle concurrent directory walking
+		l.Lock()
 		allFiles = append(allFiles, fileMeta)
+		l.Unlock()
 
 		return nil
 	})
