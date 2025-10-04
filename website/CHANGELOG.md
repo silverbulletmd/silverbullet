@@ -1,12 +1,19 @@
 An attempt at documenting the changes/new features introduced in each release.
 
 ## Edge
-These are changes live on the edge builds:
+No changes yet since 2.1.7
 
+## 2.1.7
 * Restructure of the `Library/Std` library, added some more (self) documentation. See [[^Library/Std]] as an entry point.
-* Readded `page:saved` event that was removed in 2.1
-* Fixed infinite item index loop in obscure cases
+* Re-added `page:saved` event that was removed in 2.1
 * When the clipboard API is used in Safari, will now give a proper error (Safari restriction) by ([Noah Stanley](https://github.com/silverbulletmd/silverbullet/pull/1575))
+* Full text search results now show full page path
+* Space folders now support symlinks again (regression from 2.1)
+* Lua: fixes in arithmetic model (by [Matouš Jan Fialka](https://github.com/silverbulletmd/silverbullet/pull/1587))
+* Lua: Removed unary plus from grammar (wasn’t actually supported) (by [Matouš Jan Fialka](https://github.com/silverbulletmd/silverbullet/pull/1585))
+* Bugfix: auth and service worker caching fixes
+* Bugfix: docker health check failed when SB_URL_PREFIX was used
+* Bugfix: infinite item index loop in obscure cases
 
 ## 2.1.4 - 2.1.6
 * Fixed broken auth in Safari
