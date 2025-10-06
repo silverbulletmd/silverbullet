@@ -12,6 +12,10 @@ import {
   type MarkdownRenderOptions,
   renderMarkdownToHtml,
 } from "../../markdown_renderer/markdown_render.ts";
+import {
+  jsonToMDTable,
+  refCellTransformer,
+} from "../../markdown_renderer/result_render.ts";
 
 export function markdownSyscalls(client: Client): SysCallMapping {
   return {
@@ -40,6 +44,13 @@ export function markdownSyscalls(client: Client): SysCallMapping {
     ) => {
       const mdTree = parse(extendedMarkdownLanguage, text);
       return renderMarkdownToHtml(mdTree, options);
+    },
+    "markdown.objectsToTable": (
+      _ctx,
+      data: any[],
+      options: { renderCell?: (val: any, key) => Promise<any> | any } = {},
+    ) => {
+      return jsonToMDTable(data, options.renderCell || refCellTransformer);
     },
   };
 }

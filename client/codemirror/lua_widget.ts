@@ -17,6 +17,7 @@ import { LuaStackFrame, LuaTable } from "../space_lua/runtime.ts";
 import {
   isBlockMarkdown,
   jsonToMDTable,
+  refCellTransformer,
 } from "../markdown_renderer/result_render.ts";
 import { activeWidgets } from "./code_widget.ts";
 
@@ -323,7 +324,7 @@ export function renderExpressionResult(result: any): Promise<string> {
   ) {
     // If result is an array of objects, render as a markdown table
     try {
-      return jsonToMDTable(result);
+      return jsonToMDTable(result, refCellTransformer);
     } catch (e: any) {
       console.error(
         `Error rendering expression directive: ${e.message} for value ${
@@ -334,7 +335,7 @@ export function renderExpressionResult(result: any): Promise<string> {
     }
   } else if (typeof result === "object" && result.constructor === Object) {
     // if result is a plain object, render as a markdown table
-    return jsonToMDTable([result]);
+    return jsonToMDTable([result], refCellTransformer);
   } else if (Array.isArray(result)) {
     // Not-object array, let's render it as a markdown list
     return Promise.resolve(result.map((item) => `- ${item}`).join("\n"));

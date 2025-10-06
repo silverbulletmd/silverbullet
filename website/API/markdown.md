@@ -52,3 +52,20 @@ local expandedTree = markdown.expandMarkdown(tree)
 local rendered = markdown.renderParseTree(expandedTree)
 print("Rendered markdown:", rendered)
 ```
+
+### markdown.objectsToTable(data, options?)
+Transforms a list of tables into a markdown table.
+
+Supported options:
+* `renderCell(val, key)` custom cell renderer
+
+Example:
+${markdown.objectsToTable({{name="Pete", age=20}, {name="Jane", age=32}}, {
+  renderCell=function(v, k)
+  if k == "age" and v > 20 then
+    return "*" .. v .. "*"
+  else
+    return v
+  end
+end})}
+

@@ -1,6 +1,6 @@
 import { LuaTable, luaToString } from "../space_lua/runtime.ts";
 
-export function defaultTransformer(v: any): Promise<string> {
+export function defaultTransformer(v: any, k: string): Promise<string> {
   if (v === undefined) {
     return Promise.resolve("");
   }
@@ -11,6 +11,14 @@ export function defaultTransformer(v: any): Promise<string> {
     return Promise.resolve(luaToString(v));
   }
   return Promise.resolve("" + v);
+}
+
+export function refCellTransformer(v: any, k: string) {
+  if (k === "ref") {
+    return Promise.resolve(`[[${v}]]`);
+  } else {
+    return defaultTransformer(v, k);
+  }
 }
 
 /**
@@ -51,7 +59,7 @@ function escapeRegularPipes(s: string) {
 // Nicely format an array of JSON objects as a Markdown table
 export async function jsonToMDTable(
   jsonArray: any[],
-  valueTransformer: (v: any) => Promise<string> = defaultTransformer,
+  valueTransformer: (v: any, k: string) => Promise<string> = defaultTransformer,
 ): Promise<string> {
   const headers = new Set<string>();
   for (const entry of jsonArray) {
@@ -86,7 +94,7 @@ export async function jsonToMDTable(
   for (const val of jsonArray) {
     const el = [];
     for (const prop of headerList) {
-      const s = await valueTransformer(val[prop]);
+      const s = await valueTransformer(val[prop], prop);
       el.push(s);
     }
     lines.push("|" + el.join("|") + "|");
