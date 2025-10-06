@@ -48,6 +48,18 @@ Example:
 space.deletePage("old-notes")
 ```
 
+## space.pageExists(name)
+Checks if a page exists in the space.
+
+Example:
+```lua
+if space.pageExists("Hello") then
+    print("Page exists!")
+else
+    print("Page not found")
+end
+
+
 # Document Operations
 
 ## space.listDocuments()
