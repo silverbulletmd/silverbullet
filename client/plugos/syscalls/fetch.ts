@@ -32,17 +32,11 @@ export function sandboxFetchSyscalls(
       const fetchOptions = options
         ? {
           method: options.method,
-          headers: options.headers,
+          headers: {} as Record<string, string>,
           body: options.body,
         }
         : {};
-      fetchOptions.headers = { "X-Proxy-Request": "true" };
-      // Copy the headers from the options prefixed with X-Proxy-Header
-      if (options.headers) {
-        for (const [k, v] of Object.entries(options.headers)) {
-          fetchOptions.headers[`X-Proxy-Header-${k}`] = v;
-        }
-      }
+      fetchOptions.headers = buildProxyHeaders(options.headers);
       const resp = await client.httpSpacePrimitives.authenticatedFetch(
         buildProxyUrl(client, url),
         fetchOptions,
@@ -62,7 +56,7 @@ export function sandboxFetchSyscalls(
       return {
         ok: resp.ok,
         status: resp.status,
-        headers: Object.fromEntries(resp.headers.entries()),
+        headers: extractProxyHeaders(resp.headers),
         body: body,
       };
     },
@@ -89,7 +83,7 @@ export function sandboxFetchSyscalls(
       return {
         ok: resp.ok,
         status: resp.status,
-        headers: Object.fromEntries(resp.headers.entries()),
+        headers: extractProxyHeaders(resp.headers),
         base64Body: base64Encode(new Uint8Array(body)),
       };
     },
@@ -101,4 +95,27 @@ function buildProxyUrl(client: Client, url: string) {
   // Strip off the /.fs and replace with /.proxy
   return client.httpSpacePrimitives.url.slice(0, -fsEndpoint.length) +
     "/.proxy/" + url;
+}
+
+function buildProxyHeaders(headers?: Record<string, any>): Record<string, any> {
+  const newHeaders: Record<string, any> = { "X-Proxy-Request": "true" };
+  if (!headers) {
+    return newHeaders;
+  }
+  for (const [key, value] of Object.entries(headers)) {
+    newHeaders[`X-Proxy-Header-${key}`] = value;
+  }
+  return newHeaders;
+}
+
+function extractProxyHeaders(
+  headers: Headers,
+): Record<string, any> {
+  const newHeaders: Record<string, any> = {};
+  for (const [key, value] of headers.entries()) {
+    if (key.toLowerCase().startsWith("x-proxy-header-")) {
+      newHeaders[key.slice("x-proxy-header-".length)] = value;
+    }
+  }
+  return newHeaders;
 }

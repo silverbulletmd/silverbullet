@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -52,14 +53,6 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Copy safe headers
-	safeHeaders := []string{"Authorization", "Accept", "Content-Type"}
-	for _, header := range safeHeaders {
-		if value := r.Header.Get(header); value != "" {
-			req.Header.Set(header, value)
-		}
-	}
-
 	// Copy headers starting with X-Proxy-Header-, removing the prefix
 	for key, values := range r.Header {
 		if strings.HasPrefix(strings.ToLower(key), "x-proxy-header-") {
@@ -81,10 +74,10 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
-	// Copy response headers
+	// Copy response response header with x-proxy-header prefix to keep things clean
 	for key, values := range resp.Header {
 		for _, value := range values {
-			w.Header().Set(key, value)
+			w.Header().Set(fmt.Sprintf("x-proxy-header-%s", key), value)
 		}
 	}
 

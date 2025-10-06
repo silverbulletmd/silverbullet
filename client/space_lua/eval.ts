@@ -154,7 +154,10 @@ export function evalExpression(
           return value.then((value) => {
             switch (e.operator) {
               case "-":
-                if (e.argument.type === "Number" && e.argument.numericType === "int") {
+                if (
+                  e.argument.type === "Number" &&
+                  e.argument.numericType === "int"
+                ) {
                   if (e.argument.value === 0) {
                     return 0;
                   }
@@ -177,7 +180,9 @@ export function evalExpression(
         } else {
           switch (e.operator) {
             case "-":
-              if (e.argument.type === "Number" && e.argument.numericType === "int") {
+              if (
+                e.argument.type === "Number" && e.argument.numericType === "int"
+              ) {
                 if (e.argument.value === 0) {
                   return 0;
                 }
