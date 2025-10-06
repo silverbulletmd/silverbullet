@@ -1,6 +1,6 @@
 import { LuaTable, luaToString } from "../space_lua/runtime.ts";
 
-export function defaultTransformer(v: any, k: string): Promise<string> {
+export function defaultTransformer(v: any, _k: string): Promise<string> {
   if (v === undefined) {
     return Promise.resolve("");
   }

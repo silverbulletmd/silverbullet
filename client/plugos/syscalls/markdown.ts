@@ -48,7 +48,8 @@ export function markdownSyscalls(client: Client): SysCallMapping {
     "markdown.objectsToTable": (
       _ctx,
       data: any[],
-      options: { renderCell?: (val: any, key) => Promise<any> | any } = {},
+      options: { renderCell?: (val: any, key: string) => Promise<any> | any } =
+        {},
     ) => {
       return jsonToMDTable(data, options.renderCell || refCellTransformer);
     },
