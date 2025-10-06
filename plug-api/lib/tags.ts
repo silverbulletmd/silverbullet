@@ -7,15 +7,14 @@ import { tagRegex } from "../../client/markdown_parser/constants.ts";
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 
 export function updateITags<T>(obj: ObjectValue<T>, frontmatter: FrontMatter) {
-  const itags = [obj.tag, ...frontmatter.tags || []];
-  if (obj.tags) {
-    for (const tag of obj.tags) {
-      if (!itags.includes(tag)) {
-        itags.push(tag);
-      }
-    }
+  const itags = new Set<string>([obj.tag, ...frontmatter.tags || []]);
+  for (const tag of obj.tags || []) {
+    itags.add(tag);
   }
-  obj.itags = itags;
+  for (const tag of obj.itags || []) {
+    itags.add(tag);
+  }
+  obj.itags = [...itags];
 }
 
 /**

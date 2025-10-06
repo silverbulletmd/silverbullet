@@ -50,6 +50,7 @@ export async function indexData({ name, tree }: IndexTreeEvent) {
           const dataObj = {
             ref: `${name}@${pos}`,
             tag: dataType,
+            itags: ["data"],
             ...doc,
             pos,
             page: name,
