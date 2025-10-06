@@ -34,6 +34,11 @@ export function attachWidgetEventHandlers(
     e.stopPropagation();
   });
 
+  div.addEventListener("mouseup", (e) => {
+    // Same as above
+    e.stopPropagation();
+  });
+
   // Override wiki links with local navigate (faster)
   div.querySelectorAll("a[data-ref]").forEach((el_) => {
     const el = el_ as HTMLElement;

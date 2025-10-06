@@ -467,9 +467,7 @@
     line-height: 0;
   }
 
-  .sb-markdown-widget {
-    margin: 0 0 -4ch 0;
-
+  .sb-lua-wrapper {
     ::selection {
       background-color: var(--editor-selection-background-color) !important;
     }
