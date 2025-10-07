@@ -2,6 +2,11 @@ Welcome to the wonderful world of SilverBullet. The goal of this manual is to gi
 
 However, that is all unlikely to happen unless you understand what SilverBullet can actually do. So let’s give you a bit of a sense.
 
+# Videos
+${embed.youtube "https://youtu.be/bb1USz_cEBY"}
+${embed.youtube "https://youtu.be/7hyLvEfw34w"}
+${embed.youtube "https://youtu.be/bZ79-RbyNoU"}
+
 # Keeping up-to-date
 * [[CHANGELOG]]: what’s new in SilverBullet? This page will give you the latest details. It’s worth monitoring this page.
 

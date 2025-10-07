@@ -2,7 +2,10 @@ An attempt at documenting the changes/new features introduced in each release.
 
 ## Edge
 * [[^Library/Std/APIs/Virtual Page]] API, and adapted [[^Library/Std/Infrastructure/Tag Page]] to be based on it
-* 
+* Some fixes in `tonumber` handling
+* Fix: render TOC correctly when header itself contains a link (by [Oleksandr Kuvshynov](https://github.com/silverbulletmd/silverbullet/pull/1597))
+* Fix: read-only pages are now _never_ saved back to your space (could happen, e.g. with tasks on tag pages)
+* Fix: Table of Contents widget works again
 
 ## 2.1.7
 * Restructure of the `Library/Std` library, added some more (self) documentation. See [[^Library/Std]] as an entry point.
