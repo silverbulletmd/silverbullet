@@ -57,7 +57,6 @@ pageEventHandlers.tagPage = function(e)
   end
   return {
     text = text,
-    -- Read only page
     perm = "ro"
   }
 end

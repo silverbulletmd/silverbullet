@@ -462,7 +462,7 @@ export class Client {
         () => {
           if (
             !this.ui.viewState.unsavedChanges ||
-            this.bootConfig.readOnly
+            this.isReadOnlyMode()
           ) {
             // No unsaved changes, or read-only mode, not gonna save
             return resolve();
@@ -822,6 +822,11 @@ export class Client {
       }
     }
     return currentResult;
+  }
+
+  isReadOnlyMode(): boolean {
+    return this.bootConfig.readOnly ||
+      this.ui.viewState.current?.meta.perm === "ro";
   }
 
   public extractParentNodes(editorState: EditorState, currentNode: SyntaxNode) {
