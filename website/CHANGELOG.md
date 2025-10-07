@@ -1,7 +1,8 @@
 An attempt at documenting the changes/new features introduced in each release.
 
 ## Edge
-No changes yet since 2.1.7
+* [[^Library/Std/APIs/Virtual Page]] API, and adapted [[^Library/Std/Infrastructure/Tag Page]] to be based on it
+* 
 
 ## 2.1.7
 * Restructure of the `Library/Std` library, added some more (self) documentation. See [[^Library/Std]] as an entry point.
