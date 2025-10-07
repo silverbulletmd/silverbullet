@@ -419,6 +419,10 @@ function parseHexFloat(s: string): { ok: boolean; value: number } {
 }
 
 export function luaToNumber(s: string, base?: number): number | null {
+  if (typeof s === "number") {
+    // No conversion required
+    return s;
+  }
   if (typeof s !== "string") {
     return null;
   }
