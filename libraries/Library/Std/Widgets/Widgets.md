@@ -128,7 +128,7 @@ function widgets.toc(options)
   for _, header in ipairs(headers) do
     if not(options.maxHeader and header.level > options.maxHeader or
            options.minLevel and header.level < options.minLevel) then
-      md = md .. string.rep(" ", (header.level - minLevel) * 2) +
+      md = md .. string.rep(" ", (header.level - minLevel) * 2) ..
          "* [[" .. pageName .. "@" .. header.pos .. "|" .. header.name .. "]]\n"
     end
   end
