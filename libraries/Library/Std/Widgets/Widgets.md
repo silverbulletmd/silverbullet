@@ -100,6 +100,8 @@ function widgets.toc(options)
         for child in topLevelChild.children do
           text = text .. string.trim(markdown.renderParseTree(child))
         end
+        -- Strip link syntax to avoid nested brackets in TOC
+        text = string.gsub(text, "%[%[(.-)%]%]", "%1")
 
         if text != "" then
           table.insert(headers, {
