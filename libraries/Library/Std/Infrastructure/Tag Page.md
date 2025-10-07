@@ -48,10 +48,6 @@ pageEventHandlers.tagPage = function(e)
     text = text .. "## Data\n"
       .. markdown.objectsToTable(taggedData) .. "\n"
   end
-  if #taggedItems > 0 then
-    text = text .. "## Items\n"
-      .. template.each(taggedItems, templates.itemItem)
-  end
   local taggedParagraphs = query[[
     from allObjects where table.includes(_.itags, "paragraph")
   ]]
