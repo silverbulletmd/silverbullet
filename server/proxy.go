@@ -82,6 +82,7 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Set status code and copy body
+	w.Header().Set("content-type", resp.Header.Get("content-type"))
 	w.WriteHeader(resp.StatusCode)
 	if _, err := io.Copy(w, resp.Body); err != nil {
 		log.Printf("Proxy: failed to copy response body: %v", err)
