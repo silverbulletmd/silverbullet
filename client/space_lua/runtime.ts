@@ -16,11 +16,11 @@ export type LuaValue = any;
 export type JSValue = any;
 export type NumKind = "int" | "float" | "unknown";
 
-function isPromiseLike<T = unknown>(v: unknown): v is Promise<T> {
+export function isPromiseLike<T = unknown>(v: unknown): v is Promise<T> {
   return typeof (v as any)?.then === "function";
 }
 
-function hasCall(v: unknown): v is ILuaFunction {
+export function hasCall(v: unknown): v is ILuaFunction {
   return !!v && typeof (v as any).call === "function";
 }
 

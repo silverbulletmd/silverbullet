@@ -32,20 +32,14 @@ import {
   luaValueToJS,
   type NumKind,
   singleResult,
+  isPromiseLike,
+  hasCall,
 } from "./runtime.ts";
 import {
   ArrayQueryCollection,
   type LuaCollectionQuery,
 } from "./query_collection.ts";
 import { luaToNumber } from "./tonumber.ts";
-
-function isPromiseLike<T = unknown>(v: unknown): v is Promise<T> {
-  return typeof (v as any)?.then === "function";
-}
-
-function hasCall(v: unknown): v is ILuaFunction {
-  return !!v && typeof (v as any).call === "function";
-}
 
 interface LuaFunctionLike {
   body: LuaFunctionBody;
