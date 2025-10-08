@@ -485,7 +485,6 @@ export function luaIndexValue(
       return rawValue;
     }
   }
-
   const metatable = getMetatable(value, sf);
   if (metatable && metatable.has("__index")) {
     const metaValue = metatable.get("__index", sf);
@@ -510,9 +509,13 @@ export function luaIndexValue(
     }
   }
   if (isPlainObject(value) || typeof value === "function") {
-    const anyObj = value as Record<any, any>;
-    const got = anyObj[key as any];
-    return got === undefined || got === null ? null : got;
+    const got = (value as Record<any, any>)[key as any];
+    if (got === undefined || got === null) {
+      return null;
+    }
+    return typeof got === "function"
+      ? new LuaNativeJSFunction(got.bind(value))
+      : got;
   }
   return null;
 }
@@ -553,7 +556,7 @@ export function luaGet(
   } else if (isPlainObject(obj) || typeof obj === "function") {
     const val = (obj as Record<any, any>)[key];
     if (typeof val === "function") {
-      return val.bind(obj);
+      return new LuaNativeJSFunction(val.bind(obj));
     } else if (val === undefined) {
       return null;
     } else {
