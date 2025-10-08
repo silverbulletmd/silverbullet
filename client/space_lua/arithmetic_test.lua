@@ -111,12 +111,12 @@ local _ = l()+r()
 assert_eq(table.concat(log, ''), 'lr', 'eval order: left then right')
 
 -- 14. String-to-number coercion around zero
-assert_eq(1/("0") == 1/0.0, true, 'str: "0" (+Inf)')
-assert_eq(1/("-0") == 1/0.0, true, 'str: "-0" (+Inf)')
-assert_eq(1/("0.0") == 1/0.0, true, 'str: "0.0" (+Inf)')
-assert_eq(1/("-0.0") == -1/0.0, true, 'str: "-0.0" (-Inf)')
-assert_eq(1/-("0") == 1/0.0, true, 'str: unary minus "0" (+Inf)')
-assert_eq(1/-("-0") == 1/0.0, true, 'str: unary minus "-0" (+Inf)')
+assert_eq(1/('0') == 1/0.0, true, 'str: "0" (+Inf)')
+assert_eq(1/('-0') == 1/0.0, true, 'str: "-0" (+Inf)')
+assert_eq(1/('0.0') == 1/0.0, true, 'str: "0.0" (+Inf)')
+assert_eq(1/('-0.0') == -1/0.0, true, 'str: "-0.0" (-Inf)')
+assert_eq(1/-('0') == 1/0.0, true, 'str: unary minus "0" (+Inf)')
+assert_eq(1/-('-0') == 1/0.0, true, 'str: unary minus "-0" (+Inf)')
 
 -- 15. Recursive function producing int zero (and unary minus)
 local function rec_zero(n)
@@ -170,11 +170,9 @@ assert_eq(1/(mr()) == 1/0, true, 'multi-ret: 1st used (+Inf)')
 assert_eq(1/-(mr()) == 1/0, true, 'multi-ret: unary minus 1st used (+Inf)')
 
 -- 19. Error tests
-local ok, err = pcall(function() return ~0.5 end)
-assert_eq(ok, false, "error: unary bitwise not on float (error)")
-
-local ok, err = pcall(function() return "a"+1 end)
-assert_eq(ok, false, "error: string plus number (error)")
-
-local ok, err = pcall(function() return -{} end)
-assert_eq(ok, false, "error: unary minus on table (error)")
+ok = pcall(function() return ~0.5 end)
+assert_eq(ok, false, 'error: unary bitwise not on float (error)')
+ok = pcall(function() return 'a'+1 end)
+assert_eq(ok, false, 'error: string plus number (error)')
+ok = pcall(function() return -{} end)
+assert_eq(ok, false, 'error: unary minus on table (error)')
