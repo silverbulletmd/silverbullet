@@ -69,16 +69,10 @@ To build everything and run the server:
 air <PATH-TO-YOUR-SPACE>
 ```
 
-Alternatively, to build just the frontend:
+Alternatively, to build:
 
 ```shell
-deno task build
-```
-
-To build the backend (note: this will bundle the frontend into the same binary, so be sure to build that first):
-
-```shell
-go build
+make
 ```
 
 To run the resulting server:
