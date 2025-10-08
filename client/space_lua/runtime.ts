@@ -553,7 +553,7 @@ export function luaGet(
   } else if (isPlainObject(obj) || typeof obj === "function") {
     const val = (obj as Record<any, any>)[key];
     if (typeof val === "function") {
-      return (val as Function).bind(obj);
+      return val.bind(obj);
     } else if (val === undefined) {
       return null;
     } else {

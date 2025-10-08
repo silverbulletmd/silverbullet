@@ -5,9 +5,7 @@ import type {
   LuaLValue,
   LuaStatement,
 } from "./ast.ts";
-
 import { evalPromiseValues } from "./util.ts";
-
 import {
   type ILuaFunction,
   type ILuaGettable,
@@ -35,12 +33,10 @@ import {
   type NumKind,
   singleResult,
 } from "./runtime.ts";
-
 import {
   ArrayQueryCollection,
   type LuaCollectionQuery,
 } from "./query_collection.ts";
-
 import { luaToNumber } from "./tonumber.ts";
 
 function isPromiseLike<T = unknown>(v: unknown): v is Promise<T> {
@@ -75,9 +71,9 @@ function isLuaFunctionLike(v: unknown): v is LuaFunctionLike {
 
 function luaCoerceToNumber(val: unknown): number {
   if (typeof val === "number") {
+    // No need to coerce
     return val;
   }
-
   if (typeof val === "string") {
     const s = val.trim();
     const n = luaToNumber(s);
@@ -88,8 +84,9 @@ function luaCoerceToNumber(val: unknown): number {
       return n;
     }
   }
-
-  throw new Error(`attempt to perform arithmetic on a ${typeof val}`);
+  throw new Error(
+    `Attempting to perform arithmetic operation on a ${typeof val} value`,
+  );
 }
 
 function kindCombine(a: NumKind, b: NumKind): NumKind {
@@ -113,60 +110,50 @@ function exprKindFnAware(
   seenFns: Set<LuaFunctionLike>,
 ): NumKind {
   switch (e.type) {
-    case "Number":
+    case "Number": {
       return e.numericType === "int" ? "int" : "float";
-
-    case "Parenthesized":
+    }
+    case "Parenthesized": {
       return exprKindFnAware(e.expression, env, currentFn, seenFns);
-
-    case "Unary":
+    }
+    case "Unary": {
       if (e.operator === "-") {
         return exprKindFnAware(e.argument, env, currentFn, seenFns);
       }
       return "unknown";
-
+    }
     case "Binary": {
       const op = e.operator;
-
       if (op === "/") {
         return "float";
       }
-
       if (!["+", "-", "*", "%", "//", "&", "|", "~", "<<", ">>"].includes(op)) {
         return "float";
       }
-
       const kl = exprKindFnAware(e.left, env, currentFn, seenFns);
       const kr = exprKindFnAware(e.right, env, currentFn, seenFns);
-
       if (kl === "int" && kr === "int") {
         return "int";
       }
-
       if (kl === "float" || kr === "float") {
         return "float";
       }
-
       return "unknown";
     }
-
-    case "Variable":
+    case "Variable": {
       return env.getNumKind(e.name);
-
+    }
     case "FunctionCall": {
       if (e.name) {
         return "unknown";
       }
-
       if (e.prefix.type !== "Variable") {
         return "unknown";
       }
-
       const callee = env.get(e.prefix.name);
       if (isPromiseLike(callee)) {
         return "unknown";
       }
-
       if (isLuaFunctionLike(callee)) {
         const fn = callee as LuaFunctionLike;
         if (currentFn && fn === currentFn) {
@@ -174,10 +161,8 @@ function exprKindFnAware(
         }
         return inferFunctionReturnKind(fn, env, seenFns);
       }
-
       return "unknown";
     }
-
     default:
       return "unknown";
   }
@@ -191,17 +176,15 @@ function inferFunctionReturnKind(
   if (seenFns.has(fn)) {
     return "int"; // recursion
   }
-
   seenFns.add(fn);
-
   function walkStmt(s: any): NumKind | null {
     switch (s.type) {
-      case "Return":
+      case "Return": {
         if (!s.expressions || s.expressions.length === 0) {
           return "unknown";
         }
         return exprKindFnAware(s.expressions[0], env, fn, seenFns);
-
+      }
       case "Block": {
         let res: NumKind | null = null;
         for (const st of s.statements) {
@@ -210,7 +193,6 @@ function inferFunctionReturnKind(
         }
         return res;
       }
-
       case "If": {
         let res: NumKind | null = null;
         for (const c of s.conditions) {
@@ -223,19 +205,17 @@ function inferFunctionReturnKind(
         }
         return res;
       }
-
       case "While":
       case "Repeat":
-      case "For":
+      case "For": {
         return walkStmt(s.block);
-
-      default:
+      }
+      default: {
         return null;
+      }
     }
   }
-
   const k = walkStmt(fn.body.block);
-
   return k === null ? "unknown" : k;
 }
 
@@ -251,19 +231,14 @@ async function handleTableFieldSync(
       table.set(field.key, singleResult(value), sf);
       break;
     }
-
     case "DynamicField": {
       const key = await evalExpression(field.key, env, sf);
       const value = await evalExpression(field.value, env, sf);
-
       table.set(singleResult(key), singleResult(value), sf);
-
       break;
     }
-
     case "ExpressionField": {
       const value = await evalExpression(field.value, env, sf);
-
       if (value instanceof LuaMultiRes) {
         for (const val of value.values) {
           table.set(table.length + 1, val, sf);
@@ -271,7 +246,6 @@ async function handleTableFieldSync(
       } else {
         table.set(table.length + 1, singleResult(value), sf);
       }
-
       break;
     }
   }
@@ -284,18 +258,18 @@ export function evalExpression(
 ): Promise<LuaValue> | LuaValue {
   try {
     switch (e.type) {
-      case "String":
+      case "String": {
         return e.value;
-
-      case "Number":
+      }
+      case "Number": {
         return e.value;
-
-      case "Boolean":
+      }
+      case "Boolean": {
         return e.value;
-
-      case "Nil":
+      }
+      case "Nil": {
         return null;
-
+      }
       case "Binary": {
         if (e.operator === "or") {
           const left = evalExpression(e.left, env, sf);
@@ -316,7 +290,6 @@ export function evalExpression(
               !luaTruthy(left) ? left : evalExpression(e.right, env, sf)
             );
         }
-
         // strict left-to-right evaluation for binary ops
         const left = evalExpression(e.left, env, sf);
         const evalRightThenApply = (lval: any): any => {
@@ -333,7 +306,7 @@ export function evalExpression(
                 if (nb === 0) {
                   if (bothInt) {
                     throw new LuaRuntimeError(
-                      `attempt to perform 'n%0'`,
+                      `Attempting to perform modulo by zero`,
                       sf.withCtx(e.ctx),
                     );
                   } else {
@@ -349,7 +322,7 @@ export function evalExpression(
                 if (nb === 0) {
                   if (bothInt) {
                     throw new LuaRuntimeError(
-                      `attempt to divide by zero`,
+                      `Attempting to divide by zero`,
                       sf.withCtx(e.ctx),
                     );
                   } else {
@@ -360,7 +333,6 @@ export function evalExpression(
                 return Math.floor(na / nb);
               }
             }
-
             const res = luaOp(
               e.operator,
               singleResult(lval),
@@ -368,7 +340,6 @@ export function evalExpression(
               e.ctx,
               sf,
             );
-
             // integer zero normalization for +, -, *, %
             if (
               res === 0 &&
@@ -387,7 +358,6 @@ export function evalExpression(
           ? left.then(evalRightThenApply)
           : evalRightThenApply(left);
       }
-
       case "Unary": {
         const value = evalExpression(e.argument, env, sf);
         const handle = (v: any) => {
@@ -414,29 +384,28 @@ export function evalExpression(
               }
               return -n;
             }
-
-            case "not":
+            case "not": {
               return !singleResult(v);
-
-            case "~":
+            }
+            case "~": {
               return ~exactInt(singleResult(v), e.ctx, sf);
-
-            case "#":
+            }
+            case "#": {
               return luaLen(singleResult(v));
-
-            default:
+            }
+            default: {
               throw new Error(`Unknown unary operator ${e.operator}`);
+            }
           }
         };
         return value instanceof Promise ? value.then(handle) : handle(value);
       }
-
       case "Variable":
       case "FunctionCall":
       case "TableAccess":
-      case "PropertyAccess":
+      case "PropertyAccess": {
         return evalPrefixExpression(e, env, sf);
-
+      }
       case "TableConstructor": {
         return Promise.resolve().then(async () => {
           const table = new LuaTable();
@@ -446,17 +415,14 @@ export function evalExpression(
           return table;
         });
       }
-
       case "FunctionDefinition": {
         return new LuaFunction(e.body, env);
       }
-
       case "Query": {
         const findFromClause = e.clauses.find((c) => c.type === "From");
         if (!findFromClause) {
           throw new LuaRuntimeError("No from clause found", sf.withCtx(e.ctx));
         }
-
         const objectVariable = findFromClause.name;
         const objectExpression = findFromClause.expression;
         return Promise.resolve(evalExpression(objectExpression, env, sf)).then(
@@ -467,7 +433,6 @@ export function evalExpression(
                 sf.withCtx(e.ctx),
               );
             }
-
             collection = luaValueToJS(collection, sf);
             if (!collection.query) {
               collection = await luaValueToJS(collection, sf);
@@ -479,29 +444,27 @@ export function evalExpression(
               }
               collection = new ArrayQueryCollection(collection);
             }
-
             const query: LuaCollectionQuery = {
               objectVariable,
               distinct: true,
             };
-
             for (const clause of e.clauses) {
               switch (clause.type) {
-                case "Where":
+                case "Where": {
                   query.where = clause.expression;
                   break;
-
-                case "OrderBy":
+                }
+                case "OrderBy": {
                   query.orderBy = clause.orderBy.map((o) => ({
                     expr: o.expression,
                     desc: o.direction === "desc",
                   }));
                   break;
-
-                case "Select":
+                }
+                case "Select": {
                   query.select = clause.expression;
                   break;
-
+                }
                 case "Limit": {
                   const limitVal = await evalExpression(clause.limit, env, sf);
                   query.limit = Number(limitVal);
@@ -517,12 +480,10 @@ export function evalExpression(
                 }
               }
             }
-
             return collection.query(query, env, sf).then(jsToLuaValue);
           },
         );
       }
-
       default:
         throw new Error(`Unknown expression type ${e.type}`);
     }
@@ -543,13 +504,14 @@ function evalPrefixExpression(
   switch (e.type) {
     case "Variable": {
       const value = env.get(e.name);
-      if (value === undefined) return null;
+      if (value === undefined) {
+        return null;
+      }
       return value;
     }
-
-    case "Parenthesized":
+    case "Parenthesized": {
       return evalExpression(e.expression, env, sf);
-
+    }
     case "TableAccess": {
       const values = evalPromiseValues([
         evalPrefixExpression(e.object, env, sf),
@@ -567,14 +529,12 @@ function evalPrefixExpression(
         return luaGet(table, singleResult(key), sf.withCtx(e.ctx));
       }
     }
-
     case "PropertyAccess": {
       const obj = evalPrefixExpression(e.object, env, sf);
       return obj instanceof Promise
         ? obj.then((o) => luaGet(o, e.property, sf.withCtx(e.ctx)))
         : luaGet(obj, e.property, sf.withCtx(e.ctx));
     }
-
     case "FunctionCall": {
       const prefixValue = evalPrefixExpression(e.prefix, env, sf);
       if (!prefixValue) {
@@ -583,9 +543,7 @@ function evalPrefixExpression(
           sf.withCtx(e.prefix.ctx),
         );
       }
-
       let selfArgs: LuaValue[] = [];
-
       const handleFunctionCall = (
         pv: LuaValue,
       ): LuaValue | Promise<LuaValue> => {
@@ -597,10 +555,8 @@ function evalPrefixExpression(
             return pv.then(handleFunctionCall);
           }
         }
-
         // Evaluate args before callee
         const args = evalExpressions(e.args, env, sf);
-
         if (args instanceof Promise) {
           return args.then((argv) =>
             luaCall(pv, [...selfArgs, ...argv], e.ctx, sf)
@@ -609,12 +565,10 @@ function evalPrefixExpression(
           return luaCall(pv, [...selfArgs, ...args], e.ctx, sf);
         }
       };
-
       return prefixValue instanceof Promise
         ? prefixValue.then(handleFunctionCall)
         : handleFunctionCall(prefixValue);
     }
-
     default:
       throw new Error(`Unknown prefix expression type ${e.type}`);
   }
@@ -645,7 +599,6 @@ export function getMetatable(
   if (value === null || value === undefined) {
     return null;
   }
-
   if (typeof value === "string") {
     if (!sf) {
       console.warn(
@@ -653,7 +606,6 @@ export function getMetatable(
       );
       return null;
     }
-
     const global = sf.threadLocal.get("_GLOBAL");
     if (!global) {
       console.warn(
@@ -661,7 +613,6 @@ export function getMetatable(
       );
       return null;
     }
-
     const stringMetatable = new LuaTable();
     stringMetatable.set("__index", global.get("string"));
     return stringMetatable;
@@ -683,75 +634,62 @@ const operatorsMetaMethods: Record<string, {
     metaMethod: "__add",
     nativeImplementation: (a, b) => luaCoerceToNumber(a) + luaCoerceToNumber(b),
   },
-
   "-": {
     metaMethod: "__sub",
     nativeImplementation: (a, b) => luaCoerceToNumber(a) - luaCoerceToNumber(b),
   },
-
   "*": {
     metaMethod: "__mul",
     nativeImplementation: (a, b) => luaCoerceToNumber(a) * luaCoerceToNumber(b),
   },
-
   "/": {
     metaMethod: "__div",
     nativeImplementation: (a, b) => luaCoerceToNumber(a) / luaCoerceToNumber(b),
   },
-
   "//": {
     metaMethod: "__idiv",
     nativeImplementation: (a, b) =>
       Math.floor(luaCoerceToNumber(a) / luaCoerceToNumber(b)),
   },
-
   "%": {
     metaMethod: "__mod",
     nativeImplementation: (a, b) => luaCoerceToNumber(a) % luaCoerceToNumber(b),
   },
-
   "^": {
     metaMethod: "__pow",
     nativeImplementation: (a, b) =>
       luaCoerceToNumber(a) ** luaCoerceToNumber(b),
   },
-
   "&": {
     metaMethod: "__band",
     nativeImplementation: (a, b, ctx, sf) =>
       exactInt(a, ctx, sf) & exactInt(b, ctx, sf),
   },
-
   "|": {
     metaMethod: "__bor",
     nativeImplementation: (a, b, ctx, sf) =>
       exactInt(a, ctx, sf) | exactInt(b, ctx, sf),
   },
-
   "~": {
     metaMethod: "__bxor",
     nativeImplementation: (a, b, ctx, sf) =>
       exactInt(a, ctx, sf) ^ exactInt(b, ctx, sf),
   },
-
   "<<": {
     metaMethod: "__shl",
     nativeImplementation: (a, b, ctx, sf) =>
       exactInt(a, ctx, sf) << exactInt(b, ctx, sf),
   },
-
   ">>": {
     metaMethod: "__shr",
     nativeImplementation: (a, b, ctx, sf) =>
       exactInt(a, ctx, sf) >> exactInt(b, ctx, sf),
   },
-
   "..": {
     metaMethod: "__concat",
     nativeImplementation: (a, b) => {
       const aStr = luaToString(a);
       const bStr = luaToString(b);
-
       if (aStr instanceof Promise || bStr instanceof Promise) {
         return Promise.all([aStr, bStr]).then(([as, bs]) => as + bs);
       } else {
@@ -759,45 +697,36 @@ const operatorsMetaMethods: Record<string, {
       }
     },
   },
-
   "==": {
     metaMethod: "__eq",
     nativeImplementation: (a, b) => luaEquals(a, b),
   },
-
   "~=": {
     metaMethod: "__ne",
     nativeImplementation: (a, b) => !luaEquals(a, b),
   },
-
   "!=": {
     metaMethod: "__ne",
     nativeImplementation: (a, b) => !luaEquals(a, b),
   },
-
   "<": {
     metaMethod: "__lt",
     nativeImplementation: (a, b) => a < b,
   },
-
   "<=": {
     metaMethod: "__le",
     nativeImplementation: (a, b) => a <= b,
   },
-
   ">": {
     nativeImplementation: (a, b, ctx, sf) => !luaOp("<=", a, b, ctx, sf),
   },
-
   ">=": {
     nativeImplementation: (a, b, ctx, sf) => !luaOp("<", a, b, ctx, sf),
   },
-
   "and": {
     metaMethod: "__and",
     nativeImplementation: (a, b) => a && b,
   },
-
   "or": {
     metaMethod: "__or",
     nativeImplementation: (a, b) => a || b,
@@ -815,12 +744,10 @@ function luaOp(
   if (!handler) {
     throw new LuaRuntimeError(`Unknown operator ${op}`, sf.withCtx(ctx));
   }
-
   if (handler.metaMethod) {
     const metaResult = evalMetamethod(left, right, handler.metaMethod, ctx, sf);
     if (metaResult !== undefined) return metaResult;
   }
-
   return handler.nativeImplementation(left, right, ctx, sf);
 }
 
@@ -832,7 +759,6 @@ function evalExpressions(
   const argsVal = evalPromiseValues(
     es.map((arg) => evalExpression(arg, env, sf)),
   );
-
   if (argsVal instanceof Promise) {
     return argsVal.then((argsResolved) =>
       new LuaMultiRes(argsResolved).flatten().values
@@ -854,11 +780,9 @@ export async function evalStatement(
       const lvalues = await evalPromiseValues(s.variables.map(
         (lval) => evalLValue(lval, env, sf),
       ));
-
       for (let i = 0; i < lvalues.length; i++) {
         const container = lvalues[i];
         const val = values[i];
-
         await luaSet(container.env, container.key, val, sf.withCtx(s.ctx));
         // Tag variable numeric kind on assignment
         if (
@@ -872,7 +796,6 @@ export async function evalStatement(
       }
       break;
     }
-
     case "Local": {
       if (s.expressions && s.expressions.length > 0) {
         const values = await evalExpressions(s.expressions, env, sf);
@@ -892,14 +815,13 @@ export async function evalStatement(
       }
       break;
     }
-
-    case "Semicolon":
+    case "Semicolon": {
       break;
-
+    }
     case "Label":
-    case "Goto":
+    case "Goto": {
       throw new Error("Labels and gotos are not supported");
-
+    }
     case "Block": {
       const newEnv = new LuaEnv(env);
       for (const statement of s.statements) {
@@ -915,7 +837,6 @@ export async function evalStatement(
       }
       break;
     }
-
     case "If": {
       for (const cond of s.conditions) {
         if (luaTruthy(await evalExpression(cond.condition, env, sf))) {
@@ -929,7 +850,6 @@ export async function evalStatement(
       }
       break;
     }
-
     case "While": {
       while (luaTruthy(await evalExpression(s.condition, env, sf))) {
         try {
@@ -944,7 +864,6 @@ export async function evalStatement(
       }
       break;
     }
-
     case "Repeat": {
       do {
         try {
@@ -967,7 +886,6 @@ export async function evalStatement(
       await evalExpression(s.call, env, sf);
       return;
     }
-
     case "Function": {
       let body = s.body;
       let propNames = s.name.propNames;
@@ -989,12 +907,10 @@ export async function evalStatement(
       settable.set(propNames[propNames.length - 1], new LuaFunction(body, env));
       break;
     }
-
     case "LocalFunction": {
       env.setLocal(s.name, new LuaFunction(s.body, env));
       break;
     }
-
     case "Return": {
       if (returnOnReturn) {
         return await evalPromiseValues(s.expressions.map(
@@ -1008,23 +924,17 @@ export async function evalStatement(
         );
       }
     }
-
     case "For": {
       const start = await evalExpression(s.start, env, sf);
       const end = await evalExpression(s.end, env, sf);
       const step = s.step ? await evalExpression(s.step, env, sf) : 1;
-
       for (let i = start; step > 0 ? i <= end : i >= end; i += step) {
         const localEnv = new LuaEnv(env);
-
         localEnv.setLocal(s.name, i);
-
         const k: NumKind = (typeof i === "number" && Number.isInteger(i))
           ? "int"
           : "float";
-
         localEnv.setNumKind(s.name, k);
-
         try {
           await evalStatement(s.block, localEnv, sf);
         } catch (e: any) {
@@ -1034,23 +944,19 @@ export async function evalStatement(
       }
       break;
     }
-
     case "ForIn": {
       const iteratorMultiRes = new LuaMultiRes(
         await evalPromiseValues(s.expressions.map(
           (e) => evalExpression(e, env, sf),
         )),
       ).flatten();
-
       let iteratorValue: ILuaFunction | any = iteratorMultiRes.values[0];
-
       if (Array.isArray(iteratorValue) || iteratorValue instanceof LuaTable) {
         iteratorValue = (env.get("each") as ILuaFunction).call(
           sf,
           iteratorValue,
         );
       }
-
       if (!hasCall(iteratorValue)) {
         console.error("Cannot iterate over", iteratorMultiRes.values[0]);
         throw new LuaRuntimeError(
@@ -1058,35 +964,27 @@ export async function evalStatement(
           sf.withCtx(s.ctx),
         );
       }
-
       const state: LuaValue = iteratorMultiRes.values[1] || null;
       const control: LuaValue = iteratorMultiRes.values[2] || null;
-
       while (true) {
         const iterResult = new LuaMultiRes(
           await iteratorValue.call(sf, state, control),
         ).flatten();
-
         if (
           iterResult.values[0] === null ||
           iterResult.values[0] === undefined
         ) {
           break;
         }
-
         const localEnv = new LuaEnv(env);
         for (let i = 0; i < s.names.length; i++) {
           const v = iterResult.values[i];
-
           localEnv.setLocal(s.names[i], v);
-
           const k: NumKind = (typeof v === "number" && Number.isInteger(v))
             ? "int"
             : "float";
-
           localEnv.setNumKind(s.names[i], k);
         }
-
         try {
           await evalStatement(s.block, localEnv, sf);
         } catch (e: any) {
@@ -1105,13 +1003,12 @@ function evalLValue(
   sf: LuaStackFrame,
 ): LuaLValueContainer | Promise<LuaLValueContainer> {
   switch (lval.type) {
-    case "Variable":
+    case "Variable": {
       return { env, key: lval.name };
-
+    }
     case "TableAccess": {
       const objValue = evalExpression(lval.object, env, sf);
       const keyValue = evalExpression(lval.key, env, sf);
-
       if (objValue instanceof Promise || keyValue instanceof Promise) {
         return Promise.all([
           objValue instanceof Promise ? objValue : Promise.resolve(objValue),
@@ -1124,7 +1021,6 @@ function evalLValue(
         return { env: singleResult(objValue), key: singleResult(keyValue) };
       }
     }
-
     case "PropertyAccess": {
       const objValue = evalExpression(lval.object, env, sf);
       return objValue instanceof Promise
@@ -1141,7 +1037,7 @@ function exactInt(
 ): number {
   if (!Number.isInteger(num)) {
     throw new LuaRuntimeError(
-      `Number ${num} has no integer representation (try floor/ceil)`,
+      `Number ${num} has no integer representation`,
       sf.withCtx(ctx),
     );
   }
