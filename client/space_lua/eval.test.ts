@@ -390,7 +390,7 @@ Deno.test("Thread local _CTX - advanced cases", async () => {
     function getNestedData()
       return _CTX.data.settings.theme
     end
-    
+
     function updateTheme(newTheme)
       _CTX.data.settings.theme = newTheme
       return _CTX.data.settings.theme
