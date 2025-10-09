@@ -20,6 +20,8 @@ export interface ILuaFunction {
   call(sf: LuaStackFrame, ...args: LuaValue[]): Promise<LuaValue> | LuaValue;
 
   asString(): string;
+  // Static numeric return type tags
+  returnNumericTypes?: ("int" | "float" | null)[];
 }
 
 export interface ILuaSettable {
@@ -32,12 +34,19 @@ export interface ILuaGettable {
 
 export class LuaEnv implements ILuaSettable, ILuaGettable {
   variables = new Map<string, LuaValue>();
+  // Track integer vs float (for zero sign collapsing)
+  private numericTypes = new Map<string, "int" | "float">();
 
   constructor(readonly parent?: LuaEnv) {
   }
 
-  setLocal(name: string, value: LuaValue) {
+  setLocal(name: string, value: LuaValue, numericType?: "int" | "float") {
     this.variables.set(name, value);
+    if (numericType) {
+      this.numericTypes.set(name, numericType);
+    } else {
+      this.numericTypes.delete(name);
+    }
   }
 
   set(key: string, value: LuaValue, sf?: LuaStackFrame): void {
@@ -69,6 +78,16 @@ export class LuaEnv implements ILuaSettable, ILuaGettable {
       return this.parent.get(name, sf);
     }
     return null;
+  }
+
+  getNumericType(name: string): "int" | "float" | undefined {
+    if (this.numericTypes.has(name)) {
+      return this.numericTypes.get(name);
+    }
+    if (this.parent) {
+      return this.parent.getNumericType(name);
+    }
+    return undefined;
   }
 
   /**
@@ -158,11 +177,41 @@ export function singleResult(value: any): any {
   }
 }
 
+// Static numeric tagging (for unary minus zero collapsing)
+function analyzeReturnNumericTypes(
+  body: LuaFunctionBody,
+): ("int" | "float" | null)[] | null {
+  const stmts = body.block.statements;
+  if (stmts.length !== 1 || stmts[0].type !== "Return") {
+    return null;
+  }
+  const ret = stmts[0];
+  const types: ("int" | "float" | null)[] = [];
+  for (const expr of ret.expressions) {
+    if (expr.type === "Number") {
+      types.push(expr.numericType);
+      continue;
+    }
+    if (
+      expr.type === "Unary" &&
+      (expr.operator === "-" || expr.operator === "+") &&
+      expr.argument.type === "Number"
+    ) {
+      types.push(expr.argument.numericType);
+      continue;
+    }
+    return null;
+  }
+  return types;
+}
+
 export class LuaFunction implements ILuaFunction {
   private capturedEnv: LuaEnv;
+  returnNumericTypes?: ("int" | "float" | null)[];
 
   constructor(readonly body: LuaFunctionBody, closure: LuaEnv) {
     this.capturedEnv = closure;
+    this.returnNumericTypes = analyzeReturnNumericTypes(body) || undefined;
   }
 
   async call(sf: LuaStackFrame, ...args: LuaValue[]): Promise<LuaValue> {
@@ -880,7 +929,8 @@ export function luaValueToJS(value: any, sf: LuaStackFrame): any {
   if (value instanceof LuaTable) {
     return value.toJS(sf);
   } else if (
-    value instanceof LuaNativeJSFunction || value instanceof LuaFunction ||
+    value instanceof LuaNativeJSFunction ||
+    value instanceof LuaFunction ||
     value instanceof LuaBuiltinFunction
   ) {
     return (...args: any[]) => {

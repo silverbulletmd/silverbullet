@@ -13,6 +13,8 @@
  * - decimal float allows '.' and `e` or `E` exponent
  */
 
+type NumericKind = "int" | "float"; // Minimal classification for evaluator (integer vs float domain)
+
 function skipSpace(s: string, i: number): number {
   const n = s.length;
   while (i < n) {
@@ -418,48 +420,61 @@ function parseHexFloat(s: string): { ok: boolean; value: number } {
   return { ok: true, value: result };
 }
 
-export function luaToNumber(s: string, base?: number): number | null {
+/**
+ * Detailed version returning (value, kind) where kind is 'int' | 'float'.
+ * Parser logic is copied exactly; only classification added.
+ */
+export function luaToNumberDetailed(
+  s: string,
+  base?: number,
+): [number | null, NumericKind | null] {
   if (typeof s === "number") {
-    // No conversion required
-    return s;
+    // Number input: classify by integerness
+    return [s, Number.isInteger(s) ? "int" : "float"];
   }
   if (typeof s !== "string") {
-    return null;
+    return [null, null];
   }
 
   if (base !== undefined) {
     if (!(typeof base === "number" && base >= 2 && base <= 36)) {
-      return null;
+      return [null, null];
     }
-
     const parsed = parseIntWithBase(s, base);
     if (parsed.ok) {
-      return parsed.value;
-    } else {
-      return null;
+      return [parsed.value, "int"];
     }
+    return [null, null];
   }
 
   {
     const parsed = parseInt(s);
     if (parsed.ok) {
-      return parsed.value;
+      return [parsed.value, "int"];
     }
   }
 
   {
     const parsed = parseHexFloat(s);
     if (parsed.ok) {
-      return parsed.value;
+      return [parsed.value, "float"];
     }
   }
 
   {
     const parsed = parseDecFloat(s);
     if (parsed.ok) {
-      return parsed.value;
+      // decimal float or int already handled above; here it's float
+      return [parsed.value, "float"];
     }
   }
 
-  return null;
+  return [null, null];
+}
+
+/**
+ * Original luaToNumber now delegates and only returns the numeric value.
+ */
+export function luaToNumber(s: string, base?: number): number | null {
+  return luaToNumberDetailed(s, base)[0];
 }

@@ -1,8 +1,9 @@
 local function assert_eq(a, b, message)
-    if a ~= b then
-        error('Assertion failed: ' ..
-        tostring(a) .. ' is not equal to ' .. tostring(b) .. (message and (' | ' .. message) or ''))
-    end
+  if a ~= b then
+    error('Assertion failed: '
+      .. tostring(a) .. ' is not equal to '
+      .. tostring(b) .. (message and (' | ' .. message) or ''))
+  end
 end
 
 -- helper for whitespace handling tests
