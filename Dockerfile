@@ -5,8 +5,7 @@ RUN apt update && apt install -y git wget make
 ARG TARGETARCH
 ENV GO_VERSION=1.25.1
 
-RUN wget -P /tmp "https://dl.google.com/go/go${GO_VERSION}.linux-${TARGETARCH}.tar.gz"
-RUN tar -C /usr/local -xzf "/tmp/go${GO_VERSION}.linux-${TARGETARCH}.tar.gz"
+RUN set -e; actual_arch=${TARGETARCH:-$(dpkg --print-architecture)}; wget -P /tmp "https://dl.google.com/go/go${GO_VERSION}.linux-${actual_arch}.tar.gz"; tar -C /usr/local -xzf "/tmp/go${GO_VERSION}.linux-${actual_arch}.tar.gz"; rm "/tmp/go${GO_VERSION}.linux-${actual_arch}.tar.gz"
 
 ENV GOPATH=/go
 ENV PATH=$GOPATH/bin:/usr/local/go/bin:$PATH
