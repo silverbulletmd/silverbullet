@@ -1,6 +1,7 @@
 import {
   type ILuaFunction,
   LuaBuiltinFunction,
+  luaCall,
   type LuaEnv,
   luaEquals,
   luaGet,
@@ -175,7 +176,7 @@ export const tableApi = new LuaTable({
       const startIndex = fromIndex < 1 ? 1 : fromIndex;
       for (let i = startIndex; i <= tbl.length; i++) {
         const val = await luaGet(tbl, i, sf);
-        if (await criteriaFn.call(sf, val)) {
+        if (await luaCall(criteriaFn, [val], sf.astCtx!, sf)) {
           return new LuaMultiRes([i, val]);
         }
       }
