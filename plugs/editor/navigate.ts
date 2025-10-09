@@ -27,7 +27,7 @@ async function actionClickOrActionEnter(
       "WikiLink",
       "Link",
       "Image",
-      "URL",
+      "Autolink",
       "NakedURL",
       "Hashtag",
     ]
@@ -68,8 +68,18 @@ async function actionClickOrActionEnter(
       }
       return editor.navigate(ref, false, inNewWindow);
     }
+    // https://example.org
     case "NakedURL":
       return editor.openUrl(mdTree.children![0].text!);
+    // <https://example.org>
+    case "Autolink": {
+      const urlNode = findNodeOfType(mdTree, "URL");
+      if (!urlNode) {
+        return;
+      }
+
+      return editor.openUrl(urlNode.children![0].text!);
+    }
     case "Image":
     case "Link": {
       const urlNode = findNodeOfType(mdTree, "URL");

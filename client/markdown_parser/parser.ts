@@ -1,5 +1,5 @@
 import { yaml as yamlLanguage } from "@codemirror/legacy-modes/mode/yaml";
-import { styleTags, type Tag, tags as t } from "@lezer/highlight";
+import { styleTags, tags as t } from "@lezer/highlight";
 import {
   type Line,
   type MarkdownConfig,
@@ -10,7 +10,6 @@ import {
 import { markdown } from "@codemirror/lang-markdown";
 import { foldNodeProp, StreamLanguage } from "@codemirror/language";
 import * as ct from "./customtags.ts";
-import { NakedURLTag } from "./customtags.ts";
 import { TaskList } from "./extended_task.ts";
 import { Table } from "./table_parser.ts";
 import { nakedUrlRegex, pWikiLinkRegex, tagRegex } from "./constants.ts";
@@ -259,8 +258,6 @@ type RegexParserExtension = {
   firstCharCode: number;
   regex: RegExp;
   nodeType: string;
-  tag: Tag;
-  className?: string;
 };
 
 function regexParser({
@@ -293,8 +290,6 @@ const NakedURL = regexParser(
     firstCharCode: 104, // h
     regex: new RegExp(`^${nakedUrlRegex.source}`),
     nodeType: "NakedURL",
-    className: "sb-naked-url",
-    tag: NakedURLTag,
   },
 );
 
@@ -302,16 +297,12 @@ const Hashtag = regexParser({
   firstCharCode: 35, // #
   regex: new RegExp(`^${tagRegex.source}`),
   nodeType: "Hashtag",
-  className: "sb-hashtag-text",
-  tag: ct.HashtagTag,
 });
 
 const TaskDeadline = regexParser({
   firstCharCode: 55357, // 📅
   regex: /^📅\s*\d{4}\-\d{2}\-\d{2}/,
-  className: "sb-task-deadline",
   nodeType: "DeadlineDate",
-  tag: ct.TaskDeadlineTag,
 });
 
 // FrontMatter parser
@@ -414,8 +405,8 @@ export const extendedMarkdownLanguage = markdown({
           Task: ct.TaskTag,
           TaskMark: ct.TaskMarkTag,
           Comment: ct.CommentTag,
-          "Subscript": ct.SubscriptTag,
-          "Superscript": ct.SuperscriptTag,
+          Subscript: ct.SubscriptTag,
+          Superscript: ct.SuperscriptTag,
           "TableDelimiter StrikethroughMark": t.processingInstruction,
           "TableHeader/...": t.heading,
           TableCell: t.content,

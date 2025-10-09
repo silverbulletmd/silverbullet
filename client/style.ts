@@ -12,7 +12,6 @@ export default function highlightStyles() {
     { tag: t.meta, class: "sb-meta" },
     { tag: t.quote, class: "sb-quote" },
     { tag: t.monospace, class: "sb-code" },
-    { tag: t.url, class: "sb-url" },
     { tag: ct.WikiLinkPartTag, class: "sb-wiki-link" },
     { tag: ct.AttributeTag, class: "sb-frontmatter" },
     { tag: ct.AttributeNameTag, class: "sb-atom" },
