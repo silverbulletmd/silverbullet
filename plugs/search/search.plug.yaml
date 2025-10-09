@@ -5,14 +5,6 @@ functions:
     events:
       - page:index
 
-  searchCommand:
-    path: ./search.ts:searchCommand
-    command:
-      name: "Search Space"
-      key: Ctrl-Shift-f
-      mac: Cmd-Shift-f
-
-  readPageSearch:
-    path: ./search.ts:readFileSearch
-    events:
-      - editor:pageCreating
+  ftsSearch:
+    path: ./engine.ts:ftsSearch
+    syscall: search.ftsSearch

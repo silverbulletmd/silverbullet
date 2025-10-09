@@ -1,13 +1,18 @@
 An attempt at documenting the changes/new features introduced in each release.
 
 ## Edge
-* [[^Library/Std/APIs/Virtual Page]] API, and adapted [[^Library/Std/Infrastructure/Tag Page]] to be based on it
+* New [[^Library/Std/APIs/Virtual Page]] API, internally used by:
+  * [[^Library/Std/Infrastructure/Tag Page]]
+  * [[^Library/Std/Infrastructure/Search]]
 * Some fixes in `tonumber` handling
 * Default table renderer now renders `ref` attributes as links, so they’re clickable:
   ${query[[from index.tag "page" limit 3 select {ref=ref, lastModified=lastModified}]]}
 * Fix: render TOC correctly when header itself contains a link (by [Oleksandr Kuvshynov](https://github.com/silverbulletmd/silverbullet/pull/1597))
 * Fix: read-only pages are now _never_ saved back to your space (could happen, e.g. with tasks on tag pages)
 * Fix: Table of Contents widget works again
+* Fix: Poor behavior when multiple pages are delete in sequence (by [Oleksandr Kuvshynov](https://github.com/silverbulletmd/silverbullet/pull/1599))
+* Lua:
+  * Setting a table value to `nil` now deletes it as a key, so it no longer appears in `table.keys`
 
 ## 2.1.7
 * Restructure of the `Library/Std` library, added some more (self) documentation. See [[^Library/Std]] as an entry point.
