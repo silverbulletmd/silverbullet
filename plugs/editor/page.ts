@@ -11,11 +11,11 @@ export async function deletePage() {
   // Query for last
   const recentlyOpenedPages = await editor.getRecentlyOpenedPages();
   const allPages = await space.listPages();
-  const existingPageNames = new Set(allPages.map(p => p.name));
+  const existingPageNames = new Set(allPages.map((p) => p.name));
 
   // Find the first recently opened page that still exists and is not the current page
   const firstRecentlyOpenedPage = recentlyOpenedPages.find(
-    (page) => page.name !== pageName && existingPageNames.has(page.name)
+    (page) => page.name !== pageName && existingPageNames.has(page.name),
   );
   await space.deletePage(pageName);
   console.log("Navigating to previous page");
