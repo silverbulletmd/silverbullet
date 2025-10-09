@@ -126,6 +126,13 @@ assert(table.includes(t, "three"))
 assert(table.includes(t, true))
 assert(not table.includes(t, "missing"))
 
+-- Test using table as set
+local s = {}
+s["something"] = true
+assertEqual(#table.keys(s), 1)
+-- Remove from the map
+s["something"] = nil
+assertEqual(#table.keys(s), 0)
 
 -- Error cases
 local success, error = pcall(function()

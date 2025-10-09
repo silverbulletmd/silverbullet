@@ -340,14 +340,22 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
       return value.then(() => this.rawSet(key, value));
     }
     if (typeof key === "string") {
-      this.stringKeys[key] = value;
+      if (value === null || value === undefined) {
+        delete this.stringKeys[key];
+      } else {
+        this.stringKeys[key] = value;
+      }
     } else if (Number.isInteger(key) && key >= 1) {
       this.arrayPart[key - 1] = value;
     } else {
       if (!this.otherKeys) {
         this.otherKeys = new Map();
       }
-      this.otherKeys.set(key, value);
+      if (value === null || value === undefined) {
+        this.otherKeys.delete(key);
+      } else {
+        this.otherKeys.set(key, value);
+      }
     }
   }
 
