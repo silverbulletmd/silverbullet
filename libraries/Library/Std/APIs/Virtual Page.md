@@ -31,7 +31,7 @@ virtualPage = virtualPage or {}
 --   pattern
 --   run()
 function virtualPage.define(def)
-  config.set({"virtualPages", config.pattern}, def)
+  config.set({"virtualPages", def.pattern}, def)
 end
 ```
 
