@@ -13,7 +13,7 @@
  * - decimal float allows '.' and `e` or `E` exponent
  */
 
-type NumericKind = "int" | "float"; // Minimal classification for evaluator (integer vs float domain)
+type NumericKind = "int" | "float";
 
 function skipSpace(s: string, i: number): number {
   const n = s.length;
@@ -420,18 +420,14 @@ function parseHexFloat(s: string): { ok: boolean; value: number } {
   return { ok: true, value: result };
 }
 
-/**
- * Detailed version returning (value, kind) where kind is 'int' | 'float'.
- * Parser logic is copied exactly; only classification added.
- */
 export function luaToNumberDetailed(
   s: string,
   base?: number,
 ): [number | null, NumericKind | null] {
   if (typeof s === "number") {
-    // Number input: classify by integerness
     return [s, Number.isInteger(s) ? "int" : "float"];
   }
+
   if (typeof s !== "string") {
     return [null, null];
   }
@@ -464,7 +460,6 @@ export function luaToNumberDetailed(
   {
     const parsed = parseDecFloat(s);
     if (parsed.ok) {
-      // decimal float or int already handled above; here it's float
       return [parsed.value, "float"];
     }
   }
@@ -472,9 +467,6 @@ export function luaToNumberDetailed(
   return [null, null];
 }
 
-/**
- * Original luaToNumber now delegates and only returns the numeric value.
- */
 export function luaToNumber(s: string, base?: number): number | null {
   return luaToNumberDetailed(s, base)[0];
 }
