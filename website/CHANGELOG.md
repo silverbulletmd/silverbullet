@@ -1,6 +1,9 @@
 An attempt at documenting the changes/new features introduced in each release.
 
 ## Edge
+* Nothing new yet since 2.1.8
+
+## 2.1.8
 * New [[^Library/Std/APIs/Virtual Page]] API, internally used by:
   * [[^Library/Std/Infrastructure/Tag Page]]
   * [[^Library/Std/Infrastructure/Search]]
