@@ -1,5 +1,7 @@
-#meta
-
+---
+description: Implements exporting to Github Gists.
+tags: meta
+---
 [[^Library/Std/Infrastructure/Import]] and [[^Library/Std/Infrastructure/Export]] support for [Github Gists](https://gist.github.com/).
 
 # Configuration

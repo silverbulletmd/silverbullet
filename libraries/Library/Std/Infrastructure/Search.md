@@ -1,5 +1,5 @@
 ---
-description: Implements the tag page
+description: Implements the search page
 tags: meta
 ---
 

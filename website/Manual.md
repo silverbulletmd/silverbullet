@@ -6,6 +6,7 @@ However, that is all unlikely to happen unless you understand what SilverBullet 
 ${embed.youtube "https://youtu.be/bb1USz_cEBY"}
 ${embed.youtube "https://youtu.be/7hyLvEfw34w"}
 ${embed.youtube "https://youtu.be/bZ79-RbyNoU"}
+${embed.youtube "https://youtu.be/qkLJ3viVq8I"}
 
 # Keeping up-to-date
 * [[CHANGELOG]]: what’s new in SilverBullet? This page will give you the latest details. It’s worth monitoring this page.
