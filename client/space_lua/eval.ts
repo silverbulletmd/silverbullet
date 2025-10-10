@@ -1,4 +1,10 @@
-import type { ASTCtx, LuaExpression, LuaLValue, LuaStatement } from "./ast.ts";
+import type {
+  ASTCtx,
+  LuaExpression,
+  LuaLValue,
+  LuaStatement,
+  NumericType,
+} from "./ast.ts";
 import { evalPromiseValues } from "./util.ts";
 import {
   type ILuaFunction,
@@ -30,18 +36,130 @@ import {
   ArrayQueryCollection,
   type LuaCollectionQuery,
 } from "./query_collection.ts";
-import { luaToNumber } from "./tonumber.ts";
+import { boxZero, coerceNumericPair, type OpHints } from "./numeric.ts";
 
-// Wrapper for arithmetical operators
-function luaCoerceToNumber(val: unknown): number {
-  if (typeof val === "number") return val;
-  if (typeof val === "string") {
-    const n = luaToNumber(val);
-    if (n !== null) {
-      return n;
-    }
+function luaFloorDiv(
+  a: unknown,
+  b: unknown,
+  ctx: ASTCtx,
+  sf: LuaStackFrame,
+  hints?: OpHints,
+): number {
+  const { ax, bx, bothInt } = coerceNumericPair(a, b, hints);
+  if (bothInt && bx === 0) {
+    throw new LuaRuntimeError(`attempt to divide by zero`, sf.withCtx(ctx));
   }
-  throw new Error(`attempt to perform arithmetic on a non-number`);
+
+  const q = Math.floor(ax / bx);
+  if (q === 0) {
+    if (bothInt) {
+      return boxZero("int");
+    }
+    return Object.is(q, -0) ? -0 : boxZero("float");
+  }
+  return q;
+}
+
+function luaMod(
+  a: unknown,
+  b: unknown,
+  ctx: ASTCtx,
+  sf: LuaStackFrame,
+  hints?: OpHints,
+): number {
+  const { ax, bx, bothInt } = coerceNumericPair(a, b, hints);
+  if (bothInt && bx === 0) {
+    throw new LuaRuntimeError(
+      `attempt to perform modulo by zero`,
+      sf.withCtx(ctx),
+    );
+  }
+
+  const q = Math.floor(ax / bx);
+  const r = ax - q * bx;
+  if (r === 0) {
+    if (Object.is(ax, -0)) {
+      return -0;
+    }
+    return boxZero(bothInt ? "int" : "float");
+  }
+  return r;
+}
+
+function luaLess(
+  a: any,
+  b: any,
+  ctx: ASTCtx,
+  sf: LuaStackFrame,
+): boolean {
+  const ta = (a instanceof Number) ? "number" : typeof a;
+  const tb = (b instanceof Number) ? "number" : typeof b;
+  const av = (a instanceof Number) ? Number(a) : a;
+  const bv = (b instanceof Number) ? Number(b) : b;
+
+  if (ta === "number" && tb === "number") {
+    return av < bv;
+  }
+
+  if (ta === "string" && tb === "string") {
+    return av < bv;
+  }
+
+  throw new LuaRuntimeError(
+    `attempt to compare ${ta} with ${tb}`,
+    sf.withCtx(ctx),
+  );
+}
+
+function luaLessEqual(
+  a: any,
+  b: any,
+  ctx: ASTCtx,
+  sf: LuaStackFrame,
+): boolean {
+  const ta = (a instanceof Number) ? "number" : typeof a;
+  const tb = (b instanceof Number) ? "number" : typeof b;
+  const av = (a instanceof Number) ? Number(a) : a;
+  const bv = (b instanceof Number) ? Number(b) : b;
+
+  if (ta === "number" && tb === "number") {
+    return av <= bv;
+  }
+
+  if (ta === "string" && tb === "string") {
+    return av <= bv;
+  }
+
+  throw new LuaRuntimeError(
+    `attempt to compare ${ta} with ${tb}`,
+    sf.withCtx(ctx),
+  );
+}
+
+function luaUnaryMinus(
+  v: any,
+): number {
+  const { ax, aZeroKind } = ((): {
+    ax: number;
+    aZeroKind?: NumericType;
+  } => {
+    const pair = coerceNumericPair(v, 0, { rightKind: "int" });
+    return { ax: pair.ax, aZeroKind: pair.aZeroKind };
+  })();
+
+  if (ax === 0) {
+    if (Object.is(ax, -0)) {
+      return boxZero("float");
+    }
+    if (aZeroKind === "int") {
+      return boxZero("int");
+    }
+    if (aZeroKind === "float") {
+      return -0;
+    }
+    return -0;
+  }
+  return -ax;
 }
 
 async function handleTableFieldSync(
@@ -77,6 +195,23 @@ async function handleTableFieldSync(
   }
 }
 
+// Unwrap parentheses and unary +/- around a numeric literal
+function astNumberKind(e: LuaExpression | undefined): NumericType | undefined {
+  if (!e) {
+    return undefined;
+  }
+  while (e.type === "Parenthesized") {
+    e = e.expression;
+  }
+  if (e.type === "Unary" && (e.operator === "-" || e.operator === "+")) {
+    return astNumberKind(e.argument);
+  }
+  if (e.type === "Number") {
+    return e.numericType === "int" ? "int" : "float";
+  }
+  return undefined;
+}
+
 export function evalExpression(
   e: LuaExpression,
   env: LuaEnv,
@@ -84,14 +219,20 @@ export function evalExpression(
 ): Promise<LuaValue> | LuaValue {
   try {
     switch (e.type) {
-      case "String":
+      case "String": {
         return e.value;
-      case "Number":
+      }
+      case "Number": {
+        return (e.value === 0 && !Object.is(e.value, -0))
+          ? boxZero(e.numericType === "int" ? "int" : "float")
+          : e.value;
+      }
+      case "Boolean": {
         return e.value;
-      case "Boolean":
-        return e.value;
-      case "Nil":
+      }
+      case "Nil": {
         return null;
+      }
       case "Binary": {
         if (e.operator === "or") {
           // Special case: eagerly evaluate left before even attempting right
@@ -124,28 +265,40 @@ export function evalExpression(
             return evalExpression(e.right, env, sf);
           }
         }
-        const values = evalPromiseValues([
-          evalExpression(e.left, env, sf),
-          evalExpression(e.right, env, sf),
-        ]);
-        if (values instanceof Promise) {
-          return values.then(([left, right]) =>
-            luaOp(
+        // Enforce left-to-right evaluation
+        const hints: OpHints = {
+          leftKind: astNumberKind(e.left),
+          rightKind: astNumberKind(e.right),
+        };
+        const leftVal = evalExpression(e.left, env, sf);
+        const evalRightAndOp = (lv: any) => {
+          const rightVal = evalExpression(e.right, env, sf);
+          if (rightVal instanceof Promise) {
+            return rightVal.then((rv) =>
+              luaOp(
+                e.operator,
+                singleResult(lv),
+                singleResult(rv),
+                e.ctx,
+                sf,
+                hints,
+              )
+            );
+          } else {
+            return luaOp(
               e.operator,
-              singleResult(left),
-              singleResult(right),
+              singleResult(leftVal instanceof Promise ? lv : leftVal),
+              singleResult(rightVal),
               e.ctx,
               sf,
-            )
-          );
+              hints,
+            );
+          }
+        };
+        if (leftVal instanceof Promise) {
+          return leftVal.then(evalRightAndOp);
         } else {
-          return luaOp(
-            e.operator,
-            singleResult(values[0]),
-            singleResult(values[1]),
-            e.ctx,
-            sf,
-          );
+          return evalRightAndOp(leftVal);
         }
       }
       case "Unary": {
@@ -153,53 +306,46 @@ export function evalExpression(
         if (value instanceof Promise) {
           return value.then((value) => {
             switch (e.operator) {
-              case "-":
-                if (
-                  e.argument.type === "Number" &&
-                  e.argument.numericType === "int"
-                ) {
-                  if (e.argument.value === 0) {
-                    return 0;
-                  }
-                }
-                return -luaCoerceToNumber(singleResult(value));
-              case "+":
+              case "-": {
+                return luaUnaryMinus(singleResult(value));
+              }
+              case "+": {
                 return +singleResult(value);
-              case "not":
+              }
+              case "not": {
                 return !singleResult(value);
-              case "~":
+              }
+              case "~": {
                 return ~exactInt(singleResult(value), e.ctx, sf);
-              case "#":
+              }
+              case "#": {
                 return luaLen(singleResult(value));
-              default:
-                throw new Error(
-                  `Unknown unary operator ${e.operator}`,
-                );
+              }
+              default: {
+                throw new Error(`Unknown unary operator ${e.operator}`);
+              }
             }
           });
         } else {
           switch (e.operator) {
-            case "-":
-              if (
-                e.argument.type === "Number" && e.argument.numericType === "int"
-              ) {
-                if (e.argument.value === 0) {
-                  return 0;
-                }
-              }
-              return -luaCoerceToNumber(singleResult(value));
-            case "+":
+            case "-": {
+              return luaUnaryMinus(singleResult(value));
+            }
+            case "+": {
               return +singleResult(value);
-            case "not":
+            }
+            case "not": {
               return !singleResult(value);
-            case "~":
+            }
+            case "~": {
               return ~exactInt(singleResult(value), e.ctx, sf);
-            case "#":
+            }
+            case "#": {
               return luaLen(singleResult(value));
-            default:
-              throw new Error(
-                `Unknown unary operator ${e.operator}`,
-              );
+            }
+            default: {
+              throw new Error(`Unknown unary operator ${e.operator}`);
+            }
           }
         }
       }
@@ -207,8 +353,9 @@ export function evalExpression(
       case "Variable":
       case "FunctionCall":
       case "TableAccess":
-      case "PropertyAccess":
+      case "PropertyAccess": {
         return evalPrefixExpression(e, env, sf);
+      }
       case "TableConstructor": {
         return Promise.resolve().then(async () => {
           const table = new LuaTable();
@@ -323,8 +470,9 @@ function evalPrefixExpression(
         return value;
       }
     }
-    case "Parenthesized":
+    case "Parenthesized": {
       return evalExpression(e.expression, env, sf);
+    }
     // <<expr>>[<<expr>>]
     case "TableAccess": {
       const values = evalPromiseValues([
@@ -461,37 +609,77 @@ const operatorsMetaMethods: Record<string, {
     b: LuaValue,
     ctx: ASTCtx,
     sf: LuaStackFrame,
+    hints?: OpHints,
   ) => LuaValue;
 }> = {
   "+": {
     metaMethod: "__add",
-    nativeImplementation: (a, b) => luaCoerceToNumber(a) + luaCoerceToNumber(b),
+    nativeImplementation: (a, b, _ctx, _sf, hints) => {
+      const { ax, bx, bothInt } = coerceNumericPair(a, b, hints);
+      const r = ax + bx;
+
+      if (r === 0) {
+        if (Object.is(r, -0)) {
+          return bothInt ? boxZero("int") : -0;
+        }
+        return boxZero(bothInt ? "int" : "float");
+      }
+      return r;
+    },
   },
   "-": {
     metaMethod: "__sub",
-    nativeImplementation: (a, b) => luaCoerceToNumber(a) - luaCoerceToNumber(b),
+    nativeImplementation: (a, b, _ctx, _sf, hints) => {
+      const { ax, bx, bothInt } = coerceNumericPair(a, b, hints);
+      const r = ax - bx;
+
+      if (r === 0) {
+        if (Object.is(r, -0)) {
+          return bothInt ? boxZero("int") : -0;
+        }
+        return boxZero(bothInt ? "int" : "float");
+      }
+      return r;
+    },
   },
   "*": {
     metaMethod: "__mul",
-    nativeImplementation: (a, b) => luaCoerceToNumber(a) * luaCoerceToNumber(b),
+    nativeImplementation: (a, b, _ctx, _sf, hints) => {
+      const { ax, bx, bothInt } = coerceNumericPair(a, b, hints);
+      const r = ax * bx;
+
+      if (r === 0) {
+        if (Object.is(r, -0)) {
+          return bothInt ? boxZero("int") : -0;
+        }
+        return boxZero(bothInt ? "int" : "float");
+      }
+      return r;
+    },
   },
   "/": {
     metaMethod: "__div",
-    nativeImplementation: (a, b) => luaCoerceToNumber(a) / luaCoerceToNumber(b),
+    nativeImplementation: (a, b, _ctx, _sf, hints) => {
+      const { ax, bx } = coerceNumericPair(a, b, hints);
+      return ax / bx;
+    },
   },
   "//": {
     metaMethod: "__idiv",
-    nativeImplementation: (a, b) =>
-      Math.floor(luaCoerceToNumber(a) / luaCoerceToNumber(b)),
+    nativeImplementation: (a, b, ctx, sf, hints) =>
+      luaFloorDiv(a, b, ctx, sf, hints),
   },
   "%": {
     metaMethod: "__mod",
-    nativeImplementation: (a, b) => luaCoerceToNumber(a) % luaCoerceToNumber(b),
+    nativeImplementation: (a, b, ctx, sf, hints) =>
+      luaMod(a, b, ctx, sf, hints),
   },
   "^": {
     metaMethod: "__pow",
-    nativeImplementation: (a, b) =>
-      luaCoerceToNumber(a) ** luaCoerceToNumber(b),
+    nativeImplementation: (a, b, _ctx, _sf, hints) => {
+      const { ax, bx } = coerceNumericPair(a, b, hints);
+      return ax ** bx;
+    },
   },
   "&": {
     metaMethod: "__band",
@@ -523,6 +711,7 @@ const operatorsMetaMethods: Record<string, {
     nativeImplementation: (a, b) => {
       const aString = luaToString(a);
       const bString = luaToString(b);
+
       if (aString instanceof Promise || bString instanceof Promise) {
         return Promise.all([aString, bString]).then(([a, b]) => a + b);
       } else {
@@ -542,15 +731,20 @@ const operatorsMetaMethods: Record<string, {
     metaMethod: "__ne",
     nativeImplementation: (a, b) => !luaEquals(a, b),
   },
-  "<": { metaMethod: "__lt", nativeImplementation: (a, b) => a < b },
-  "<=": { metaMethod: "__le", nativeImplementation: (a, b) => a <= b },
-  ">": { nativeImplementation: (a, b, ctx, sf) => !luaOp("<=", a, b, ctx, sf) },
-  ">=": { nativeImplementation: (a, b, ctx, sf) => !luaOp("<", a, b, ctx, sf) },
-  "and": {
-    metaMethod: "__and",
-    nativeImplementation: (a, b) => a && b,
+  "<": {
+    metaMethod: "__lt",
+    nativeImplementation: (a, b, ctx, sf) => luaLess(a, b, ctx, sf),
   },
-  "or": { metaMethod: "__or", nativeImplementation: (a, b) => a || b },
+  "<=": {
+    metaMethod: "__le",
+    nativeImplementation: (a, b, ctx, sf) => luaLessEqual(a, b, ctx, sf),
+  },
+  ">": {
+    nativeImplementation: (a, b, ctx, sf) => !luaOp("<=", a, b, ctx, sf),
+  },
+  ">=": {
+    nativeImplementation: (a, b, ctx, sf) => !luaOp("<", a, b, ctx, sf),
+  },
 };
 
 function luaOp(
@@ -559,6 +753,7 @@ function luaOp(
   right: any,
   ctx: ASTCtx,
   sf: LuaStackFrame,
+  hints?: OpHints,
 ): any {
   const handler = operatorsMetaMethods[op];
   if (!handler) {
@@ -572,7 +767,7 @@ function luaOp(
     }
   }
 
-  return handler.nativeImplementation(left, right, ctx, sf);
+  return handler.nativeImplementation(left, right, ctx, sf, hints);
 }
 
 function evalExpressions(
@@ -633,11 +828,13 @@ export async function evalStatement(
       }
       break;
     }
-    case "Semicolon":
+    case "Semicolon": {
       break;
+    }
     case "Label":
-    case "Goto":
+    case "Goto": {
       throw new Error("Labels and gotos are not supported");
+    }
     case "Block": {
       const newEnv = new LuaEnv(env);
       for (const statement of s.statements) {
@@ -695,8 +892,9 @@ export async function evalStatement(
       } while (!luaTruthy(await evalExpression(s.condition, env, sf)));
       break;
     }
-    case "Break":
+    case "Break": {
       throw new LuaBreak();
+    }
     case "FunctionCallStatement": {
       await evalExpression(s.call, env, sf);
       return;
@@ -828,8 +1026,12 @@ function evalLValue(
   sf: LuaStackFrame,
 ): LuaLValueContainer | Promise<LuaLValueContainer> {
   switch (lval.type) {
-    case "Variable":
-      return { env, key: lval.name };
+    case "Variable": {
+      return {
+        env,
+        key: lval.name,
+      };
+    }
     case "TableAccess": {
       const objValue = evalExpression(
         lval.object,
@@ -879,16 +1081,28 @@ function evalLValue(
 }
 
 function exactInt(
-  num: number,
+  num: any,
   ctx: ASTCtx,
   sf: LuaStackFrame,
 ): number {
   // See conversion from float to integer https://www.lua.org/manual/5.4/manual.html#3.4.3
-  if (!Number.isInteger(num)) {
+  let n: number;
+  if (typeof num === "number") {
+    n = num;
+  } else if (num instanceof Number) {
+    n = Number(num);
+  } else {
     throw new LuaRuntimeError(
-      `Number ${num} has no integer representation (consider math.floor or math.ceil)`,
+      `attempt to perform arithmetic on a non-number`,
       sf.withCtx(ctx),
     );
   }
-  return num;
+
+  if (!Number.isInteger(n)) {
+    throw new LuaRuntimeError(
+      `Number ${n} has no integer representation (consider math.floor or math.ceil)`,
+      sf.withCtx(ctx),
+    );
+  }
+  return n;
 }

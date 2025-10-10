@@ -296,6 +296,14 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     this.metatable = null;
   }
 
+  private static isIntegerKey(key: any): boolean {
+    const k = key instanceof Number ? Number(key) : key;
+    return typeof k === "number" && Number.isInteger(k) && k >= 1;
+  }
+  private static toIndex(key: any): number {
+    return (key instanceof Number ? Number(key) : key) - 1;
+  }
+
   get length(): number {
     return this.arrayPart.length;
   }
@@ -324,8 +332,8 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
   has(key: LuaValue) {
     if (typeof key === "string") {
       return this.stringKeys[key] !== undefined;
-    } else if (Number.isInteger(key) && key >= 1) {
-      return this.arrayPart[key - 1] !== undefined;
+    } else if (LuaTable.isIntegerKey(key)) {
+      return this.arrayPart[LuaTable.toIndex(key)] !== undefined;
     } else if (this.otherKeys) {
       return this.otherKeys.has(key);
     }
@@ -345,8 +353,8 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
       } else {
         this.stringKeys[key] = value;
       }
-    } else if (Number.isInteger(key) && key >= 1) {
-      this.arrayPart[key - 1] = value;
+    } else if (LuaTable.isIntegerKey(key)) {
+      this.arrayPart[LuaTable.toIndex(key)] = value;
     } else {
       if (!this.otherKeys) {
         this.otherKeys = new Map();
@@ -385,8 +393,8 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
   rawGet(key: LuaValue): LuaValue | null {
     if (typeof key === "string") {
       return this.stringKeys[key];
-    } else if (Number.isInteger(key) && key >= 1) {
-      return this.arrayPart[key - 1];
+    } else if (LuaTable.isIntegerKey(key)) {
+      return this.arrayPart[LuaTable.toIndex(key)];
     } else if (this.otherKeys) {
       return this.otherKeys.get(key);
     }
@@ -513,7 +521,14 @@ export function luaIndexValue(
     }
   }
   // If not, perhaps let's assume this is a plain JavaScript object and we just index into it
-  const objValue = value[key];
+  const idxKey = key instanceof Number ? Number(key) : key;
+  if (
+    typeof value === "object" && Array.isArray(value) &&
+    typeof idxKey === "number"
+  ) {
+    return (value as any)[idxKey - 1];
+  }
+  const objValue = (value as any)[idxKey];
   if (objValue === undefined || objValue === null) {
     return null;
   } else {
@@ -539,7 +554,8 @@ export async function luaSet(
   if (obj instanceof LuaTable || obj instanceof LuaEnv) {
     await obj.set(key, value, sf);
   } else {
-    obj[key] = value;
+    const k = key instanceof Number ? Number(key) : key;
+    obj[k] = value;
   }
 }
 
@@ -563,11 +579,13 @@ export function luaGet(
 
   if (obj instanceof LuaTable || obj instanceof LuaEnv) {
     return obj.get(key, sf);
-  } else if (typeof key === "number") {
-    return obj[key - 1];
+  } else if (typeof key === "number" || key instanceof Number) {
+    const idx = key instanceof Number ? Number(key) : key;
+    return obj[idx - 1];
   } else {
     // Native JS object
-    const val = obj[key];
+    const k = key instanceof Number ? Number(key) : key;
+    const val = obj[k];
     if (typeof val === "function") {
       // Automatically bind the function to the object
       return val.bind(obj);
@@ -649,6 +667,11 @@ export function luaCall(
 }
 
 export function luaEquals(a: any, b: any): boolean {
+  const an = a instanceof Number ? Number(a) : a;
+  const bn = b instanceof Number ? Number(b) : b;
+  if ((typeof an === "number") && (typeof bn === "number")) {
+    return an === bn;
+  }
   return a === b;
 }
 
@@ -670,7 +693,7 @@ export function luaTypeOf(val: any): LuaType | Promise<LuaType> {
     return val.then((v) => luaTypeOf(v));
   } else if (typeof val === "boolean") {
     return "boolean";
-  } else if (typeof val === "number") {
+  } else if (typeof val === "number" || val instanceof Number) {
     return "number";
   } else if (typeof val === "string") {
     return "string";
@@ -901,6 +924,8 @@ export function luaValueToJS(value: any, sf: LuaStackFrame): any {
         return value.call(sf, ...jsArgs);
       }
     };
+  } else if (value instanceof Number) {
+    return Number(value);
   } else {
     return value;
   }
