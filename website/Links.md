@@ -2,7 +2,8 @@ In SilverBullet, you can create links to pages or documents inside your space as
 
 # External links
 - _Markdown links_, using the `[title](URL)` syntax, for instance: [SilverBullet community](https://community.silverbullet.md). If the URL contains a space or closing parenthesis, you can enclose the URL in angled brackets.
-* _“Naked” URL links_, like https://community.silverbullet.md
+* _"[AutoLinks](https://spec.commonmark.org/current/#autolinks)"_, like <https://community.silverbullet.md>
+* _“Naked” URL links_ (AKA _"Bare URLs"_), like https://community.silverbullet.md
 
 # Internal links
 - _Relative internal links_, using the `[title](<relative specifier><link>)` format. The _relative specifier_ can be used to move up the file tree (or down, if you picture a file tree like this 🌳) relative to the page the link is on, similar to POSIX file systems `/../`. The _link_ has to conform to the [[#Link syntax (String refs)|link syntax]]
