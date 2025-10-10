@@ -12,6 +12,7 @@
  * - hex float requires `p` or `P` exponent
  * - decimal float allows '.' and `e` or `E` exponent
  */
+import type { NumericType } from "./ast.ts";
 
 function skipSpace(s: string, i: number): number {
   const n = s.length;
@@ -120,10 +121,10 @@ function parseInt(s: string): { ok: boolean; value: number } {
   }
 
   let neg = false;
-  if (s.charCodeAt(i) === 45) { // '-'
+  if (s.charCodeAt(i) === 45) {
     neg = true;
     i++;
-  } else if (s.charCodeAt(i) === 43) { // '+'
+  } else if (s.charCodeAt(i) === 43) {
     i++;
   }
 
@@ -418,15 +419,12 @@ function parseHexFloat(s: string): { ok: boolean; value: number } {
   return { ok: true, value: result };
 }
 
-export function luaToNumber(s: string, base?: number): number | null {
-  if (typeof s === "number") {
-    // No conversion required
-    return s;
-  }
-  if (typeof s !== "string") {
-    return null;
-  }
-
+// Detailed string conversion that returns numeric type, returns null
+// on failure, integer -0 is canonicalized to +0
+export function luaToNumberDetailed(
+  s: string,
+  base?: number,
+): { value: number; numericType: NumericType } | null {
   if (base !== undefined) {
     if (!(typeof base === "number" && base >= 2 && base <= 36)) {
       return null;
@@ -434,7 +432,8 @@ export function luaToNumber(s: string, base?: number): number | null {
 
     const parsed = parseIntWithBase(s, base);
     if (parsed.ok) {
-      return parsed.value;
+      const v = parsed.value;
+      return { value: v === 0 ? 0 : v, numericType: "int" };
     } else {
       return null;
     }
@@ -443,23 +442,39 @@ export function luaToNumber(s: string, base?: number): number | null {
   {
     const parsed = parseInt(s);
     if (parsed.ok) {
-      return parsed.value;
+      const v = parsed.value;
+      return { value: v === 0 ? 0 : v, numericType: "int" };
     }
   }
 
   {
     const parsed = parseHexFloat(s);
     if (parsed.ok) {
-      return parsed.value;
+      return { value: parsed.value, numericType: "float" };
     }
   }
 
   {
     const parsed = parseDecFloat(s);
     if (parsed.ok) {
-      return parsed.value;
+      return { value: parsed.value, numericType: "float" };
     }
   }
 
   return null;
+}
+
+// Space Lua `tonumber` returning only the numeric value or null
+export function luaToNumber(s: unknown, base?: number): number | null {
+  if (typeof s === "number") {
+    return s;
+  }
+  if (s instanceof Number) {
+    return Number(s);
+  }
+  if (typeof s !== "string") {
+    return null;
+  }
+  const detailed = luaToNumberDetailed(s, base);
+  return detailed ? detailed.value : null;
 }
