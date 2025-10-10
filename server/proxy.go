@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
@@ -81,9 +82,12 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Set status code and copy body
+	// Put status code in header
+	w.Header().Set("x-proxy-status-code", strconv.Itoa(resp.StatusCode))
 	w.Header().Set("content-type", resp.Header.Get("content-type"))
-	w.WriteHeader(resp.StatusCode)
+	// Always return 200, to avoid interference, actual status code is in x-proxy-status-code
+	w.WriteHeader(http.StatusOK)
+	// Copy body
 	if _, err := io.Copy(w, resp.Body); err != nil {
 		log.Printf("Proxy: failed to copy response body: %v", err)
 	}
