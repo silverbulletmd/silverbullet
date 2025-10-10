@@ -6,10 +6,14 @@ Implements useful embed widgets.
 ## Example
 ${embed.youtube "https://youtu.be/t1oy_41bDAY?si=X76FvJEUlJnApwEg"}
 
+# Peertube
+## Example 
+${embed.peertube "https://peertube.fr/w/kkGMgK9ZtnKfYAgnEtQxbv"}
+
 # Implementation
 ```space-lua
 -- Schema
-local youtubeSpecSchema = {
+local embedVideoSpecSchema = {
   type = "object",
   properties = {
     url = { type = "string"},
@@ -25,7 +29,7 @@ function embed.youtube(specOrUrl)
     specOrUrl = { url = specOrUrl }
   end
   -- Validate spec
-  local validationResult = jsonschema.validateObject(youtubeSpecSchema, specOrUrl)
+  local validationResult = jsonschema.validateObject(embedVideoSpecSchema, specOrUrl)
   if validationResult then
     error(validationResult)
   end
@@ -43,7 +47,39 @@ function embed.youtube(specOrUrl)
   return widget.html(dom.iframe {
     src="https://www.youtube.com/embed/" .. videoId,
     style="width: " .. width .. "; height: " .. height,
-    class = "sb-youtube-embed"
+    class = "sb-video-embed"
+  })
+end
+
+-- Peertube widget
+function embed.peertube(specOrUrl)
+  if type(specOrUrl) == "string" then
+    specOrUrl = { url = specOrUrl }
+  end
+ -- Validate spec
+  local validationResult = jsonschema.validateObject(embedVideoSpecSchema, specOrUrl)
+  if validationResult then
+    error(validationResult)
+  end
+  
+  local tempHost = string.match(specOrUrl.url, "https://(.+)")
+  local lastIndex = string.find(tempHost, "/w/")
+  local peertubeInstance = string.sub(tempHost, 1, (lastIndex -1) )
+  local videoId = string.match(specOrUrl.url, "/w/(.+)")
+
+  if not videoId then
+    error("No video id found")
+  end
+  
+  local width = specOrUrl.width or "100%"
+  local height = specOrUrl.height or "400px"
+  return widget.html(dom.iframe {
+    src = "https://" .. peertubeInstance .. "/videos/embed/" .. videoId,
+    style = "width: " .. width .. "; height: " .. height,
+    frameborder = "0",
+    allowfullscreen = "",
+    sandbox = "allow-same-origin allow-scripts allow-popups allow-forms",
+    class = "sb-video-embed"
   })
 end
 ```
@@ -51,7 +87,7 @@ end
 ## Styling
 
 ```space-style
-.sb-youtube-embed {
+.sb-video-embed {
   border: 0 !important;
 }
 ```
