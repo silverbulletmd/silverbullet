@@ -132,6 +132,16 @@ html {
   --editor-directive-color: #696969;
   --editor-directive-background-color: #ebebeb7d;
 
+  --editor-panels-bottom-input-background-color: #fff;
+  --editor-panels-bottom-button-background-image: linear-gradient(
+    #eff1f5,
+    #d9d9df
+  );
+  --editor-panels-bottom-button-active-background-image: linear-gradient(
+    #b4b4b4,
+    #d0d3d6
+  );
+
   --ui-font:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
     Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
@@ -281,6 +291,16 @@ html[data-theme="dark"] {
   --editor-directive-mark-color: #ba0303;
   --editor-directive-color: #898989;
   --editor-directive-background-color: #4c4c4c7d;
+
+  --editor-panels-bottom-input-background-color: inherit;
+  --editor-panels-bottom-button-background-image: linear-gradient(
+    #393939,
+    #111
+  );
+  --editor-panels-bottom-button-active-background-image: linear-gradient(
+    #111,
+    #333
+  );
 }
 
 html[data-markdown-syntax-rendering="on"] {

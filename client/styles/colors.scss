@@ -192,6 +192,20 @@
     color: var(--editor-panels-bottom-color);
     background-color: var(--editor-panels-bottom-background-color);
     border-top: var(--editor-panels-bottom-border-color) 1px solid;
+
+    .cm-search {
+      .cm-textfield {
+        background-color: var(--editor-panels-bottom-input-background-color);
+      }
+      .cm-button {
+        background-image: var(--editor-panels-bottom-button-background-image);
+        &:active {
+          background-image: var(
+            --editor-panels-bottom-button-active-background-image
+          );
+        }
+      }
+    }
   }
 
   .cm-editor .cm-tooltip-autocomplete {
