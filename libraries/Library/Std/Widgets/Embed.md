@@ -10,6 +10,10 @@ ${embed.youtube "https://youtu.be/t1oy_41bDAY?si=X76FvJEUlJnApwEg"}
 ## Example 
 ${embed.peertube "https://peertube.fr/w/kkGMgK9ZtnKfYAgnEtQxbv"}
 
+# Vimeo
+## Example
+${embed.vimeo "https://vimeo.com/1084537"}
+
 # Implementation
 ```space-lua
 -- Schema
@@ -79,6 +83,35 @@ function embed.peertube(specOrUrl)
     frameborder = "0",
     allowfullscreen = "",
     sandbox = "allow-same-origin allow-scripts allow-popups allow-forms",
+    class = "sb-video-embed"
+  })
+end
+
+-- Vimeo widget
+function embed.vimeo(specOrUrl)
+  if type(specOrUrl) == "string" then
+    specOrUrl = { url = specOrUrl }
+  end
+  -- Validate spec
+  local validationResult = jsonschema.validateObject(embedVideoSpecSchema, specOrUrl)
+  if validationResult then
+    error(validationResult)
+  end
+  local videoId = string.match(specOrUrl.url, "vimeo%.com/(.+)")
+
+  if not videoId then
+    error("No video id found")
+  end
+  
+  local width = specOrUrl.width or "100%"
+  local height = specOrUrl.height or "400px"
+  return widget.html(dom.iframe {
+    src = "https://player.vimeo.com/video/" .. videoId,
+    style = "width: " .. width .. "; height: " .. height,
+    frameborder = "0", 
+    referrerpolicy = "strict-origin-when-cross-origin", 
+    allow = "fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share",   
+    allowfullscreen = "",
     class = "sb-video-embed"
   })
 end
