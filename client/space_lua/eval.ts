@@ -309,7 +309,14 @@ export function evalExpression(
           return value.then((value) => {
             switch (e.operator) {
               case "-": {
-                return luaUnaryMinus(singleResult(value));
+                const arg = singleResult(value);
+                const mm = evalUnaryMetamethod(arg, "__unm", e.ctx, sf);
+                if (mm !== undefined) {
+                  return mm instanceof Promise
+                    ? mm.then(singleResult)
+                    : singleResult(mm);
+                }
+                return luaUnaryMinus(arg);
               }
               case "+": {
                 return +singleResult(value);
@@ -318,7 +325,14 @@ export function evalExpression(
                 return !singleResult(value);
               }
               case "~": {
-                return ~exactInt(singleResult(value), e.ctx, sf);
+                const arg = singleResult(value);
+                const mm = evalUnaryMetamethod(arg, "__bnot", e.ctx, sf);
+                if (mm !== undefined) {
+                  return mm instanceof Promise
+                    ? mm.then(singleResult)
+                    : singleResult(mm);
+                }
+                return ~exactInt(arg, e.ctx, sf);
               }
               case "#": {
                 return luaLen(singleResult(value));
@@ -334,7 +348,14 @@ export function evalExpression(
         } else {
           switch (e.operator) {
             case "-": {
-              return luaUnaryMinus(singleResult(value));
+              const arg = singleResult(value);
+              const mm = evalUnaryMetamethod(arg, "__unm", e.ctx, sf);
+              if (mm !== undefined) {
+                return mm instanceof Promise
+                  ? mm.then(singleResult)
+                  : singleResult(mm);
+              }
+              return luaUnaryMinus(arg);
             }
             case "+": {
               return +singleResult(value);
@@ -343,7 +364,14 @@ export function evalExpression(
               return !singleResult(value);
             }
             case "~": {
-              return ~exactInt(singleResult(value), e.ctx, sf);
+              const arg = singleResult(value);
+              const mm = evalUnaryMetamethod(arg, "__bnot", e.ctx, sf);
+              if (mm !== undefined) {
+                return mm instanceof Promise
+                  ? mm.then(singleResult)
+                  : singleResult(mm);
+              }
+              return ~exactInt(arg, e.ctx, sf);
             }
             case "#": {
               return luaLen(singleResult(value));
@@ -584,6 +612,21 @@ function evalMetamethod(
     const fn = rightMetatable.get(metaMethod);
     return luaCall(fn, [left, right], ctx, sf);
   }
+}
+
+// Unary metamethod lookup and call
+function evalUnaryMetamethod(
+  value: any,
+  metaMethod: "__unm" | "__bnot",
+  ctx: ASTCtx,
+  sf: LuaStackFrame,
+): LuaValue | Promise<LuaValue> | undefined {
+  const mt = getMetatable(value, sf);
+  if (mt?.has(metaMethod)) {
+    const fn = mt.get(metaMethod);
+    return luaCall(fn, [value], ctx, sf);
+  }
+  return undefined;
 }
 
 export function getMetatable(
