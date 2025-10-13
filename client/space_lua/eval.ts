@@ -38,6 +38,7 @@ import {
 } from "./query_collection.ts";
 import { boxZero, coerceNumericPair, type OpHints } from "./numeric.ts";
 
+// Lua 5.4 floor division and modulo:
 function luaFloorDiv(
   a: unknown,
   b: unknown,
@@ -139,13 +140,7 @@ function luaLessEqual(
 function luaUnaryMinus(
   v: any,
 ): number {
-  const { ax, aZeroKind } = ((): {
-    ax: number;
-    aZeroKind?: NumericType;
-  } => {
-    const pair = coerceNumericPair(v, 0, { rightKind: "int" });
-    return { ax: pair.ax, aZeroKind: pair.aZeroKind };
-  })();
+  const { ax, aZeroKind } = coerceNumericPair(v, 0, { rightKind: "int" });
 
   if (ax === 0) {
     if (Object.is(ax, -0)) {
