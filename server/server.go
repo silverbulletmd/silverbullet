@@ -28,7 +28,7 @@ type BootConfig struct {
 	LogPush bool `json:"logPush"`
 }
 
-func RunServer(config *ServerConfig) error {
+func Router(config *ServerConfig) chi.Router {
 	r := chi.NewRouter()
 
 	if config.EnableHTTPLogging {
@@ -115,7 +115,11 @@ func RunServer(config *ServerConfig) error {
 	} else {
 		r.Mount(config.HostURLPrefix, routes)
 	}
+	return r
+}
 
+func RunServer(config *ServerConfig) error {
+	r := Router(config)
 	// Display the final server running message
 	visibleHostname := config.BindHost
 	if config.BindHost == "127.0.0.1" {

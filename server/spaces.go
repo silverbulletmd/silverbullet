@@ -11,7 +11,11 @@ const serverConfigKey = "serverConfig"
 func spaceMiddleware(config *ServerConfig) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			spaceConfig := config.SpaceConfigResolver(r)
+			spaceConfig, err := config.SpaceConfigResolver(r)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 			ctx := context.WithValue(r.Context(), spaceConfigKey, spaceConfig)
 			ctx = context.WithValue(ctx, serverConfigKey, config)
 			augmentedRequest := r.WithContext(ctx)
