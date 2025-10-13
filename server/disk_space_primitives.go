@@ -193,6 +193,26 @@ func (d *DiskSpacePrimitives) GetFileMeta(path string) (FileMeta, error) {
 	return d.fileInfoToFileMeta(path, info), nil
 }
 
+// CreateDirectory implements SpacePrimitives.CreateDirectory
+func (d *DiskSpacePrimitives) CreateDirectory(path string) error {
+	localPath, err := d.filenameToPath(path)
+	if err != nil {
+		return err
+	}
+
+	// Check if it already exists
+	if _, err := os.Stat(localPath); err == nil {
+		return fmt.Errorf("directory already exists: %s", path)
+	}
+
+	// Create the directory
+	if err := os.MkdirAll(localPath, 0755); err != nil {
+		return fmt.Errorf("failed to create directory %s: %w", path, err)
+	}
+
+	return nil
+}
+
 // ReadFile implements SpacePrimitives.ReadFile
 func (d *DiskSpacePrimitives) ReadFile(path string) ([]byte, FileMeta, error) {
 	localPath, err := d.filenameToPath(path)
