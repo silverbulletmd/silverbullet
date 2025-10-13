@@ -52,7 +52,10 @@ function luaFloorDiv(
 ): number {
   const { ax, bx, bothInt } = coerceNumericPair(a, b, hints);
   if (bothInt && bx === 0) {
-    throw new LuaRuntimeError(`attempt to divide by zero`, sf.withCtx(ctx));
+    throw new LuaRuntimeError(
+      `attempt to divide by zero`,
+      sf.withCtx(ctx),
+    );
   }
 
   const q = Math.floor(ax / bx);
@@ -321,7 +324,10 @@ export function evalExpression(
                 return luaLen(singleResult(value));
               }
               default: {
-                throw new Error(`Unknown unary operator ${e.operator}`);
+                throw new LuaRuntimeError(
+                  `Unknown unary operator ${e.operator}`,
+                  sf.withCtx(e.ctx),
+                );
               }
             }
           });
@@ -343,7 +349,10 @@ export function evalExpression(
               return luaLen(singleResult(value));
             }
             default: {
-              throw new Error(`Unknown unary operator ${e.operator}`);
+              throw new LuaRuntimeError(
+                `Unknown unary operator ${e.operator}`,
+                sf.withCtx(e.ctx),
+              );
             }
           }
         }
@@ -373,7 +382,10 @@ export function evalExpression(
         // console.log("Query", e);
         const findFromClause = e.clauses.find((c) => c.type === "From");
         if (!findFromClause) {
-          throw new LuaRuntimeError("No from clause found", sf.withCtx(e.ctx));
+          throw new LuaRuntimeError(
+            "No from clause found",
+            sf.withCtx(e.ctx),
+          );
         }
         const objectVariable = findFromClause.name;
         const objectExpression = findFromClause.expression;
@@ -443,7 +455,10 @@ export function evalExpression(
         );
       }
       default:
-        throw new Error(`Unknown expression type ${e.type}`);
+        throw new LuaRuntimeError(
+          `Unknown expression type ${e.type}`,
+          sf.withCtx(e.ctx),
+        );
     }
   } catch (err: any) {
     // Repackage any non Lua-specific exceptions with some position information
@@ -545,7 +560,10 @@ function evalPrefixExpression(
       }
     }
     default:
-      throw new Error(`Unknown prefix expression type ${e.type}`);
+      throw new LuaRuntimeError(
+        `Unknown prefix expression type ${e.type}`,
+        sf.withCtx(e.ctx),
+      );
   }
 }
 
@@ -832,7 +850,10 @@ export async function evalStatement(
     }
     case "Label":
     case "Goto": {
-      throw new Error("Labels and gotos are not supported");
+      throw new LuaRuntimeError(
+        "Labels and gotos are not supported",
+        sf.withCtx(s.ctx),
+      );
     }
     case "Block": {
       const newEnv = new LuaEnv(env);
