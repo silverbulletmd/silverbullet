@@ -36,9 +36,13 @@ import {
   ArrayQueryCollection,
   type LuaCollectionQuery,
 } from "./query_collection.ts";
-import { boxZero, coerceNumericPair, type OpHints } from "./numeric.ts";
+import {
+  boxZero,
+  coerceNumeric,
+  coerceNumericPair,
+  type OpHints,
+} from "./numeric.ts";
 
-// Lua 5.4 floor division and modulo:
 function luaFloorDiv(
   a: unknown,
   b: unknown,
@@ -140,21 +144,21 @@ function luaLessEqual(
 function luaUnaryMinus(
   v: any,
 ): number {
-  const { ax, aZeroKind } = coerceNumericPair(v, 0, { rightKind: "int" });
+  const { n, zeroKind } = coerceNumeric(v);
 
-  if (ax === 0) {
-    if (Object.is(ax, -0)) {
+  if (n === 0) {
+    if (Object.is(n, -0)) {
       return boxZero("float");
     }
-    if (aZeroKind === "int") {
+    if (zeroKind === "int") {
       return boxZero("int");
     }
-    if (aZeroKind === "float") {
+    if (zeroKind === "float") {
       return -0;
     }
     return -0;
   }
-  return -ax;
+  return -n;
 }
 
 async function handleTableFieldSync(
