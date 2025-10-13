@@ -17,9 +17,13 @@ type ServerConfig struct {
 	ClientBundle SpacePrimitives
 }
 
+type UserPasswordAuthorizer func(username, password string) bool
+
 type SpaceConfig struct {
 	Hostname string
 	Auth     *AuthOptions
+
+	Authorize UserPasswordAuthorizer
 
 	SpacePrimitives SpacePrimitives
 
@@ -41,7 +45,7 @@ type SpaceConfig struct {
 	LockoutTimer *LockoutTimer
 }
 
-type ConfigResolver func(r *http.Request) *SpaceConfig
+type ConfigResolver func(r *http.Request) (*SpaceConfig, error)
 
 // FileMeta represents metadata for a file in the space
 type FileMeta struct {
