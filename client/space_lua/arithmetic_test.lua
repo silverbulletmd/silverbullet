@@ -353,12 +353,54 @@ assert_eq(val, true, 'mixed (int,float) idiv by zero ok (+Inf/-Inf)')
 -- 17. Metamethod precedence: __add should dispatch
 local mt = {
   __add = function(_, _)
-    return 'dispatched'
+    return 'added'
   end
 }
 local tbl = setmetatable({}, mt)
 
-assert_eq(tbl + tbl, 'dispatched', '__add dispatched')
+assert_eq(tbl + tbl, 'added', '__add dispatched')
+
+-- 17.1 Unary metamethod: __unm (negation)
+local mt_unm = {
+  __unm = function(_)
+    return 'negated'
+  end
+}
+local u = setmetatable({}, mt_unm)
+
+assert_eq(-u, 'negated', '__unm dispatched')
+
+-- 17.2 Unary metamethod: __bnot (bitwise NOT)
+local bnot_calls = 0
+local mt_bnot = {
+  __bnot = function(_)
+    bnot_calls = bnot_calls + 1
+    return 123
+  end
+}
+local b = setmetatable({}, mt_bnot)
+
+assert_eq(~b, 123, '__bnot dispatched')
+assert_eq(bnot_calls, 1, '__bnot called exactly once')
+
+-- 17.3 Unary metamethods: multi-return (first result only)
+local mt_unm_mr = {
+  __unm = function(_)
+    return 7, 8
+  end
+}
+local um = setmetatable({}, mt_unm_mr)
+
+assert_eq(-um, 7, '__unm uses first return value')
+
+local mt_bnot_mr = {
+  __bnot = function(_)
+    return 9, 10
+  end
+}
+local bm = setmetatable({}, mt_bnot_mr)
+
+assert_eq(~bm, 9, '__bnot uses first return value')
 
 -- 18. Multi-return in arithmetic (first result only)
 local function multi_ret()
