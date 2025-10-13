@@ -176,3 +176,13 @@ func (e *ReadOnlyFallthroughSpacePrimitives) DeleteFile(path string) error {
 
 	return e.fallthroughSpacePrimitives.DeleteFile(path)
 }
+
+// CreateDirectory implements SpacePrimitives.CreateDirectory
+// Fails since this is read-only, delegates to fallback
+func (e *ReadOnlyFallthroughSpacePrimitives) CreateDirectory(path string) error {
+	if e.fallthroughSpacePrimitives == nil {
+		return errors.New("Cannot create directory: read-only")
+	}
+
+	return e.fallthroughSpacePrimitives.CreateDirectory(path)
+}

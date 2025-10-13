@@ -47,7 +47,7 @@ type SpaceConfig struct {
 
 type ConfigResolver func(r *http.Request) (*SpaceConfig, error)
 
-// FileMeta represents metadata for a file in the space
+// FileMeta represents metadata for a file or directory in the space
 type FileMeta struct {
 	Name         string `json:"name"`
 	Created      int64  `json:"created"`
@@ -59,10 +59,10 @@ type FileMeta struct {
 
 // SpacePrimitives defines the interface for storage backends
 type SpacePrimitives interface {
-	// FetchFileList retrieves a list of all files in the space
+	// FetchFileList retrieves a list of all files and directories in the space
 	FetchFileList() ([]FileMeta, error)
 
-	// GetFileMeta retrieves metadata for a specific file
+	// GetFileMeta retrieves metadata for a specific file or directory
 	GetFileMeta(path string) (FileMeta, error)
 
 	// ReadFile reads a file and returns its data and metadata
@@ -72,8 +72,11 @@ type SpacePrimitives interface {
 	// Returns the actual metadata of the written file
 	WriteFile(path string, data []byte, meta *FileMeta) (FileMeta, error)
 
-	// DeleteFile removes a file from the space
+	// DeleteFile removes a file or directory from the space
 	DeleteFile(path string) error
+
+	// CreateDirectory creates a directory at the specified path
+	CreateDirectory(path string) error
 }
 
 // Shell request/response types
