@@ -39,3 +39,8 @@ func (ro *ReadOnlySpacePrimitives) WriteFile(path string, data []byte, meta *Fil
 func (ro *ReadOnlySpacePrimitives) DeleteFile(path string) error {
 	return NotAllowedError
 }
+
+// CreateDirectory returns an error since this is a read-only implementation
+func (ro *ReadOnlySpacePrimitives) CreateDirectory(path string) error {
+	return NotAllowedError
+}
