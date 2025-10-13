@@ -100,10 +100,7 @@ function luaLess(
   ctx: ASTCtx,
   sf: LuaStackFrame,
 ): boolean {
-  const ta = (a instanceof Number) ? "number" : typeof a;
-  const tb = (b instanceof Number) ? "number" : typeof b;
-  const av = (a instanceof Number) ? Number(a) : a;
-  const bv = (b instanceof Number) ? Number(b) : b;
+  const { ta, tb, av, bv } = luaRelOperands(a, b);
 
   if (ta === "number" && tb === "number") {
     return av < bv;
@@ -125,10 +122,7 @@ function luaLessEqual(
   ctx: ASTCtx,
   sf: LuaStackFrame,
 ): boolean {
-  const ta = (a instanceof Number) ? "number" : typeof a;
-  const tb = (b instanceof Number) ? "number" : typeof b;
-  const av = (a instanceof Number) ? Number(a) : a;
-  const bv = (b instanceof Number) ? Number(b) : b;
+  const { ta, tb, av, bv } = luaRelOperands(a, b);
 
   if (ta === "number" && tb === "number") {
     return av <= bv;
@@ -238,70 +232,22 @@ export function evalExpression(
       case "Binary": {
         if (e.operator === "or") {
           // Special case: eagerly evaluate left before even attempting right
-          const left = evalExpression(e.left, env, sf);
-          if (left instanceof Promise) {
-            return left.then((left) => {
-              if (luaTruthy(left)) {
-                return left;
-              }
-              return evalExpression(e.right, env, sf);
-            });
-          } else if (luaTruthy(left)) {
-            return left;
-          } else {
-            return evalExpression(e.right, env, sf);
-          }
+          return evalLogical("or", e.left, e.right, env, sf);
         } else if (e.operator === "and") {
           // Special case: eagerly evaluate left before even attempting right
-          const left = evalExpression(e.left, env, sf);
-          if (left instanceof Promise) {
-            return left.then((left) => {
-              if (!luaTruthy(left)) {
-                return left;
-              }
-              return evalExpression(e.right, env, sf);
-            });
-          } else if (!luaTruthy(left)) {
-            return left;
-          } else {
-            return evalExpression(e.right, env, sf);
-          }
+          return evalLogical("and", e.left, e.right, env, sf);
         }
         // Enforce left-to-right evaluation
-        const hints: OpHints = {
-          leftKind: astNumberKind(e.left),
-          rightKind: astNumberKind(e.right),
-        };
-        const leftVal = evalExpression(e.left, env, sf);
-        const evalRightAndOp = (lv: any) => {
-          const rightVal = evalExpression(e.right, env, sf);
-          if (rightVal instanceof Promise) {
-            return rightVal.then((rv) =>
-              luaOp(
-                e.operator,
-                singleResult(lv),
-                singleResult(rv),
-                e.ctx,
-                sf,
-                hints,
-              )
-            );
-          } else {
-            return luaOp(
-              e.operator,
-              singleResult(leftVal instanceof Promise ? lv : leftVal),
-              singleResult(rightVal),
-              e.ctx,
-              sf,
-              hints,
-            );
-          }
-        };
-        if (leftVal instanceof Promise) {
-          return leftVal.then(evalRightAndOp);
-        } else {
-          return evalRightAndOp(leftVal);
-        }
+        const hints: OpHints = opHintsFromBinary(e);
+        return evalBinaryWithLR(
+          e.operator,
+          e.left,
+          e.right,
+          e.ctx,
+          env,
+          sf,
+          hints,
+        );
       }
       case "Unary": {
         const value = evalExpression(e.argument, env, sf);
@@ -310,13 +256,13 @@ export function evalExpression(
             switch (e.operator) {
               case "-": {
                 const arg = singleResult(value);
-                const mm = evalUnaryMetamethod(arg, "__unm", e.ctx, sf);
-                if (mm !== undefined) {
-                  return mm instanceof Promise
-                    ? mm.then(singleResult)
-                    : singleResult(mm);
-                }
-                return luaUnaryMinus(arg);
+                return unaryWithMeta(
+                  arg,
+                  "__unm",
+                  e.ctx,
+                  sf,
+                  () => luaUnaryMinus(arg),
+                );
               }
               case "+": {
                 return +singleResult(value);
@@ -326,13 +272,13 @@ export function evalExpression(
               }
               case "~": {
                 const arg = singleResult(value);
-                const mm = evalUnaryMetamethod(arg, "__bnot", e.ctx, sf);
-                if (mm !== undefined) {
-                  return mm instanceof Promise
-                    ? mm.then(singleResult)
-                    : singleResult(mm);
-                }
-                return ~exactInt(arg, e.ctx, sf);
+                return unaryWithMeta(
+                  arg,
+                  "__bnot",
+                  e.ctx,
+                  sf,
+                  () => ~exactInt(arg, e.ctx, sf),
+                );
               }
               case "#": {
                 return luaLen(singleResult(value));
@@ -349,13 +295,13 @@ export function evalExpression(
           switch (e.operator) {
             case "-": {
               const arg = singleResult(value);
-              const mm = evalUnaryMetamethod(arg, "__unm", e.ctx, sf);
-              if (mm !== undefined) {
-                return mm instanceof Promise
-                  ? mm.then(singleResult)
-                  : singleResult(mm);
-              }
-              return luaUnaryMinus(arg);
+              return unaryWithMeta(
+                arg,
+                "__unm",
+                e.ctx,
+                sf,
+                () => luaUnaryMinus(arg),
+              );
             }
             case "+": {
               return +singleResult(value);
@@ -365,13 +311,13 @@ export function evalExpression(
             }
             case "~": {
               const arg = singleResult(value);
-              const mm = evalUnaryMetamethod(arg, "__bnot", e.ctx, sf);
-              if (mm !== undefined) {
-                return mm instanceof Promise
-                  ? mm.then(singleResult)
-                  : singleResult(mm);
-              }
-              return ~exactInt(arg, e.ctx, sf);
+              return unaryWithMeta(
+                arg,
+                "__bnot",
+                e.ctx,
+                sf,
+                () => ~exactInt(arg, e.ctx, sf),
+              );
             }
             case "#": {
               return luaLen(singleResult(value));
@@ -627,6 +573,123 @@ function evalUnaryMetamethod(
     return luaCall(fn, [value], ctx, sf);
   }
   return undefined;
+}
+
+// Unary metamethod handling (with fallback)
+function unaryWithMeta(
+  arg: any,
+  meta: "__unm" | "__bnot",
+  ctx: ASTCtx,
+  sf: LuaStackFrame,
+  fallback: () => any,
+): any {
+  const mm = evalUnaryMetamethod(arg, meta, ctx, sf);
+
+  if (mm !== undefined) {
+    return mm instanceof Promise ? mm.then(singleResult) : singleResult(mm);
+  }
+  return fallback();
+}
+
+// Logical short-circuit evaluation
+function evalLogical(
+  op: "and" | "or",
+  leftExpr: LuaExpression,
+  rightExpr: LuaExpression,
+  env: LuaEnv,
+  sf: LuaStackFrame,
+): any {
+  const left = evalExpression(leftExpr, env, sf);
+
+  const decide = (lv: any) => {
+    if (op === "or") {
+      if (luaTruthy(lv)) {
+        return lv;
+      }
+      return evalExpression(rightExpr, env, sf);
+    } else {
+      if (!luaTruthy(lv)) {
+        return lv;
+      }
+      return evalExpression(rightExpr, env, sf);
+    }
+  };
+
+  if (left instanceof Promise) {
+    return left.then(decide);
+  } else {
+    return decide(left);
+  }
+}
+
+function opHintsFromBinary(
+  e: Extract<LuaExpression, { type: "Binary" }>,
+): OpHints {
+  return {
+    leftKind: astNumberKind(e.left),
+    rightKind: astNumberKind(e.right),
+  };
+}
+
+function evalBinaryWithLR(
+  op: string,
+  leftExpr: LuaExpression,
+  rightExpr: LuaExpression,
+  ctx: ASTCtx,
+  env: LuaEnv,
+  sf: LuaStackFrame,
+  hints?: OpHints,
+): any {
+  const leftVal = evalExpression(leftExpr, env, sf);
+
+  const evalRightAndOp = (lv: any) => {
+    const rightVal = evalExpression(rightExpr, env, sf);
+    if (rightVal instanceof Promise) {
+      return rightVal.then((rv) =>
+        luaOp(
+          op,
+          singleResult(lv),
+          singleResult(rv),
+          ctx,
+          sf,
+          hints,
+        )
+      );
+    } else {
+      return luaOp(
+        op,
+        singleResult(leftVal instanceof Promise ? lv : leftVal),
+        singleResult(rightVal),
+        ctx,
+        sf,
+        hints,
+      );
+    }
+  };
+
+  if (leftVal instanceof Promise) {
+    return leftVal.then(evalRightAndOp);
+  } else {
+    return evalRightAndOp(leftVal);
+  }
+}
+
+// Relational comparison "prelude"
+function luaRelOperands(
+  a: any,
+  b: any,
+): {
+  ta: string;
+  tb: string;
+  av: any;
+  bv: any;
+} {
+  const ta = (a instanceof Number) ? "number" : typeof a;
+  const tb = (b instanceof Number) ? "number" : typeof b;
+  const av = (a instanceof Number) ? Number(a) : a;
+  const bv = (b instanceof Number) ? Number(b) : b;
+
+  return { ta, tb, av, bv };
 }
 
 export function getMetatable(
