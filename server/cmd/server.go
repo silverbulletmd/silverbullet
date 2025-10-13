@@ -29,8 +29,8 @@ func buildConfig(bundledFiles fs.FS, args []string) *server.ServerConfig {
 	}
 
 	// For now just point every request to the rootSpaceConfig
-	serverConfig.SpaceConfigResolver = func(r *http.Request) *server.SpaceConfig {
-		return rootSpaceConfig
+	serverConfig.SpaceConfigResolver = func(r *http.Request) (*server.SpaceConfig, error) {
+		return rootSpaceConfig, nil
 	}
 
 	if os.Getenv("SB_HOSTNAME") != "" {
@@ -103,6 +103,10 @@ func buildConfig(bundledFiles fs.FS, args []string) *server.ServerConfig {
 			AuthToken:    os.Getenv("SB_AUTH_TOKEN"),
 			LockoutLimit: 10,
 			LockoutTime:  60,
+		}
+
+		rootSpaceConfig.Authorize = func(username, password string) bool {
+			return username == rootSpaceConfig.Auth.User && password == rootSpaceConfig.Auth.Pass
 		}
 
 		if os.Getenv("SB_LOCKOUT_LIMIT") != "" {
