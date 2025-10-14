@@ -22,6 +22,7 @@ import { parse } from "./parse.ts";
 import { evalStatement } from "./eval.ts";
 import { encodingApi } from "./stdlib/encoding.ts";
 import { luaToNumber } from "./tonumber.ts";
+import { luaLoad } from "./stdlib/load.ts";
 
 const printFunction = new LuaBuiltinFunction(async (_sf, ...args) => {
   console.log(
@@ -265,6 +266,8 @@ const someFunction = new LuaBuiltinFunction(async (_sf, value: any) => {
   return value;
 });
 
+const loadFunction = new LuaBuiltinFunction(luaLoad);
+
 export function luaBuildStandardEnv() {
   const env = new LuaEnv();
   // Top-level builtins
@@ -288,6 +291,8 @@ export function luaBuildStandardEnv() {
   env.set("error", errorFunction);
   env.set("pcall", pcallFunction);
   env.set("xpcall", xpcallFunction);
+  // Evaluation
+  env.set("load", loadFunction);
   // APIs
   env.set("string", stringApi);
   env.set("table", tableApi);
