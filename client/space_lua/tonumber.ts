@@ -18,7 +18,7 @@ function skipSpace(s: string, i: number): number {
   const n = s.length;
   while (i < n) {
     const c = s.charCodeAt(i);
-    if (c === 32 || (c >= 9 && c <= 13)) {
+    if (c === 32 || (c >= 9 && c <= 13)) { // SP, HT, LF, VT, FF, CR
       i++;
     } else {
       break;
@@ -28,21 +28,21 @@ function skipSpace(s: string, i: number): number {
 }
 
 function charToDigitBase(c: number, base: number): number {
-  if (c >= 48 && c <= 57) {
+  if (c >= 48 && c <= 57) { // '0'..'9'
     const v = c - 48;
     if (v < base) {
       return v;
     } else {
       return -1;
     }
-  } else if (c >= 65 && c <= 90) {
+  } else if (c >= 65 && c <= 90) { // 'A'..'Z'
     const v = 10 + (c - 65);
     if (v < base) {
       return v;
     } else {
       return -1;
     }
-  } else if (c >= 97 && c <= 122) {
+  } else if (c >= 97 && c <= 122) { // 'a'..'z'
     const v = 10 + (c - 97);
     if (v < base) {
       return v;
@@ -66,10 +66,10 @@ function parseIntWithBase(
   }
 
   let sign = 1;
-  if (s.charCodeAt(i) === 45) {
+  if (s.charCodeAt(i) === 45) { // '-'
     sign = -1;
     i++;
-  } else if (s.charCodeAt(i) === 43) {
+  } else if (s.charCodeAt(i) === 43) { // '+'
     i++;
   }
 
@@ -82,9 +82,9 @@ function parseIntWithBase(
 
   while (i < n) {
     const c = s.charCodeAt(i);
-    const isAlnum = (c >= 48 && c <= 57) ||
-      (c >= 65 && c <= 90) ||
-      (c >= 97 && c <= 122);
+    const isAlnum = (c >= 48 && c <= 57) || // '0'..'9'
+      (c >= 65 && c <= 90) || // 'A'..'Z'
+      (c >= 97 && c <= 122); // 'a'..'z'
 
     if (!isAlnum) {
       break;
@@ -121,10 +121,10 @@ function parseInt(s: string): { ok: boolean; value: number } {
   }
 
   let neg = false;
-  if (s.charCodeAt(i) === 45) {
+  if (s.charCodeAt(i) === 45) { // '-'
     neg = true;
     i++;
-  } else if (s.charCodeAt(i) === 43) {
+  } else if (s.charCodeAt(i) === 43) { // '+'
     i++;
   }
 
@@ -136,18 +136,18 @@ function parseInt(s: string): { ok: boolean; value: number } {
   let any = false;
 
   // hex?
-  if (s.charCodeAt(i) === 48 && i + 1 < n) {
+  if (s.charCodeAt(i) === 48 && i + 1 < n) { // '0'
     const x = s.charCodeAt(i + 1);
-    if (x === 120 || x === 88) {
+    if (x === 120 || x === 88) { // 'x' or 'X'
       i += 2;
       while (i < n) {
         const c = s.charCodeAt(i);
         let d = -1;
-        if (c >= 48 && c <= 57) {
-          d = c - 48;
-        } else if (c >= 65 && c <= 70) {
+        if (c >= 48 && c <= 57) { // '0'..'9'
+          d = c - 48; // '0'
+        } else if (c >= 65 && c <= 70) { // 'A'..'F'
           d = 10 + (c - 65);
-        } else if (c >= 97 && c <= 102) {
+        } else if (c >= 97 && c <= 102) { // 'a'..'f'
           d = 10 + (c - 97);
         } else {
           d = -1;
@@ -171,7 +171,7 @@ function parseInt(s: string): { ok: boolean; value: number } {
   // decimal integer
   while (i < n) {
     const c = s.charCodeAt(i);
-    if (c < 48 || c > 57) {
+    if (c < 48 || c > 57) { // not '0'..'9'
       break;
     }
     acc = acc * 10 + (c - 48);
@@ -197,10 +197,10 @@ function parseDecFloat(s: string): { ok: boolean; value: number } {
 
   let sign = 1;
   const c0 = s.charCodeAt(i);
-  if (c0 === 45) {
+  if (c0 === 45) { // '-'
     sign = -1;
     i++;
-  } else if (c0 === 43) {
+  } else if (c0 === 43) { // '+'
     i++;
   }
 
@@ -211,7 +211,7 @@ function parseDecFloat(s: string): { ok: boolean; value: number } {
   // integer part
   while (i < n) {
     const c = s.charCodeAt(i);
-    if (c < 48 || c > 57) {
+    if (c < 48 || c > 57) { // not '0'..'9'
       break;
     }
     val = val * 10 + (c - 48);
@@ -221,12 +221,12 @@ function parseDecFloat(s: string): { ok: boolean; value: number } {
 
   // fractional part
   if (i < n) {
-    if (s.charCodeAt(i) === 46) {
+    if (s.charCodeAt(i) === 46) { // '.'
       i++;
       let scale = 1;
       while (i < n) {
         const c = s.charCodeAt(i);
-        if (c < 48 || c > 57) {
+        if (c < 48 || c > 57) { // not '0'..'9'
           break;
         }
         scale *= 0.1;
@@ -242,7 +242,7 @@ function parseDecFloat(s: string): { ok: boolean; value: number } {
   let hasExp = false;
   if (i < n) {
     const ec = s.charCodeAt(i);
-    if (ec === 101 || ec === 69) {
+    if (ec === 101 || ec === 69) { // 'e' or 'E'
       hasExp = true;
       i++;
       if (i >= n) {
@@ -251,10 +251,10 @@ function parseDecFloat(s: string): { ok: boolean; value: number } {
       let expSign = 1;
       if (i < n) {
         const es = s.charCodeAt(i);
-        if (es === 45) {
+        if (es === 45) { // '-'
           expSign = -1;
           i++;
-        } else if (es === 43) {
+        } else if (es === 43) { // '+'
           i++;
         }
       }
@@ -264,7 +264,7 @@ function parseDecFloat(s: string): { ok: boolean; value: number } {
       let anyExp = false;
       while (i < n) {
         const c = s.charCodeAt(i);
-        if (c < 48 || c > 57) {
+        if (c < 48 || c > 57) { // not '0'..'9'
           break;
         }
         exp = exp * 10 + (c - 48);
@@ -301,18 +301,18 @@ function parseHexFloat(s: string): { ok: boolean; value: number } {
 
   let sign = 1;
   const c0 = s.charCodeAt(i);
-  if (c0 === 45) {
+  if (c0 === 45) { // '-'
     sign = -1;
     i++;
-  } else if (c0 === 43) {
+  } else if (c0 === 43) { // '+'
     i++;
   }
 
-  if (!(i + 1 < n && s.charCodeAt(i) === 48)) {
+  if (!(i + 1 < n && s.charCodeAt(i) === 48)) { // '0'
     return { ok: false, value: 0 };
   }
   const x = s.charCodeAt(i + 1);
-  if (!(x === 120 || x === 88)) {
+  if (!(x === 120 || x === 88)) { // 'x' or 'X'
     return { ok: false, value: 0 };
   }
   i += 2;
@@ -326,11 +326,11 @@ function parseHexFloat(s: string): { ok: boolean; value: number } {
   while (i < n) {
     const c = s.charCodeAt(i);
     let d = -1;
-    if (c >= 48 && c <= 57) {
+    if (c >= 48 && c <= 57) { // '0'..'9'
       d = c - 48;
-    } else if (c >= 65 && c <= 70) {
+    } else if (c >= 65 && c <= 70) { // 'A'..'F'
       d = 10 + (c - 65);
-    } else if (c >= 97 && c <= 102) {
+    } else if (c >= 97 && c <= 102) { // 'a'..'f'
       d = 10 + (c - 97);
     } else {
       d = -1;
@@ -345,16 +345,16 @@ function parseHexFloat(s: string): { ok: boolean; value: number } {
 
   // optional fractional part
   if (i < n) {
-    if (s.charCodeAt(i) === 46) {
+    if (s.charCodeAt(i) === 46) { // '.'
       i++;
       while (i < n) {
         const c = s.charCodeAt(i);
         let d = -1;
-        if (c >= 48 && c <= 57) {
+        if (c >= 48 && c <= 57) { // '0'..'9'
           d = c - 48;
-        } else if (c >= 65 && c <= 70) {
+        } else if (c >= 65 && c <= 70) { // 'A'..'F'
           d = 10 + (c - 65);
-        } else if (c >= 97 && c <= 102) {
+        } else if (c >= 97 && c <= 102) { // 'a'..'f'
           d = 10 + (c - 97);
         } else {
           d = -1;
@@ -375,7 +375,7 @@ function parseHexFloat(s: string): { ok: boolean; value: number } {
     return { ok: false, value: 0 };
   }
   const ec = s.charCodeAt(i);
-  if (!(ec === 112 || ec === 80)) {
+  if (!(ec === 112 || ec === 80)) { // 'p' or 'P'
     return { ok: false, value: 0 };
   }
   i++;
@@ -383,10 +383,10 @@ function parseHexFloat(s: string): { ok: boolean; value: number } {
   let expSign = 1;
   if (i < n) {
     const sc = s.charCodeAt(i);
-    if (sc === 45) {
+    if (sc === 45) { // '-'
       expSign = -1;
       i++;
-    } else if (sc === 43) {
+    } else if (sc === 43) { // '+'
       i++;
     }
   }
@@ -398,7 +398,7 @@ function parseHexFloat(s: string): { ok: boolean; value: number } {
   let exp = 0;
   while (i < n) {
     const c = s.charCodeAt(i);
-    if (c < 48 || c > 57) {
+    if (c < 48 || c > 57) { // not '0'..'9'
       break;
     }
     exp = exp * 10 + (c - 48);
