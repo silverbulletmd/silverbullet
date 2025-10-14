@@ -190,6 +190,12 @@ func (d *DiskSpacePrimitives) GetFileMeta(path string) (FileMeta, error) {
 		return FileMeta{}, fmt.Errorf("%w: %s", ErrCouldNotGetMeta, path)
 	}
 
+	// Directories are not treated as files in the internal file system
+	// They only exist as synthetic WebDAV entities
+	if info.IsDir() {
+		return FileMeta{}, ErrNotFound
+	}
+
 	return d.fileInfoToFileMeta(path, info), nil
 }
 

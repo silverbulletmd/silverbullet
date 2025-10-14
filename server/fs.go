@@ -1,31 +1,32 @@
 package server
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 )
 
-// buildFsRoutes creates the filesystem API routes
+// buildFsRoutes creates the filesystem API routes with WebDAV support
 func buildFsRoutes() http.Handler {
 	fsRouter := chi.NewRouter()
 
-	// File list endpoint
+	// Root path handlers
 	fsRouter.Get("/", handleFsList)
 
-	// File operations
+	// File operations (REST API)
 	fsRouter.Get("/*", handleFsGet)
 	fsRouter.Put("/*", handleFsPut)
 	fsRouter.Delete("/*", handleFsDelete)
-	fsRouter.Options("/*", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Allow", "GET, PUT, DELETE, OPTIONS")
-		w.WriteHeader(http.StatusOK)
-	})
+
+	// Add WebDAV routes
+	buildWebDAVRoutes(fsRouter)
 
 	return fsRouter
 }
@@ -58,8 +59,6 @@ func handleFsGet(w http.ResponseWriter, r *http.Request) {
 		// Handled by getPath
 		return
 	}
-
-	// log.Printf("Got this path: %s", path)
 
 	if r.Header.Get("X-Get-Meta") != "" {
 		// Getting meta via GET request
@@ -147,8 +146,7 @@ func handleFsDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK"))
+	w.WriteHeader(http.StatusNoContent) // WebDAV prefers 204 for DELETE
 }
 
 // setFileMetaHeaders sets HTTP headers based on FileMeta
@@ -159,6 +157,8 @@ func setFileMetaHeaders(w http.ResponseWriter, meta FileMeta) {
 	w.Header().Set("X-Content-Length", strconv.FormatInt(meta.Size, 10))
 	w.Header().Set("X-Permission", meta.Perm)
 	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("ETag", fmt.Sprintf("\"%d-%d\"", meta.LastModified, meta.Size))
+	w.Header().Set("Last-Modified", time.UnixMilli(meta.LastModified).Format(time.RFC1123))
 }
 
 // Build FileMeta from HTTP headers (reverse of setFileMetaHeaders)

@@ -213,7 +213,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
         method: "DELETE",
       },
     );
-    if (req.status !== 200) {
+    if (req.status !== 200 && req.status === 204) {
       throw Error(`Failed to delete file: ${req.statusText}`);
     }
   }
