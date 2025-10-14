@@ -4,6 +4,24 @@ local function assert_eq(actual, expected, message)
   end
 end
 
+local function assert_throws(msg_substr, fn)
+  local ok, err = pcall(fn)
+
+  if ok then
+    error('Assertion failed: expected error containing "'
+      .. msg_substr .. '"')
+  end
+
+  if type(err) ~= 'string' then
+    err = tostring(err)
+  end
+
+  if not string.find(err, msg_substr, 1, true) then
+    error('Assertion failed: expected error message to contain "'
+      .. msg_substr .. '", got: "' .. err .. '"')
+  end
+end
+
 -- 1. Integer vs float zero divisors
 
 -- 1.1. Integer zeros collapse (no -0 for integers)
@@ -15,11 +33,21 @@ assert_eq(1/0.0 == 1/-0.0, false, 'float: +Inf != -Inf')
 assert_eq(1/0.0 == -1/-0.0, true, 'float: 1/0.0 == -1/-0.0')
 assert_eq(-1/0.0 == 1/-0.0, true, 'float: -1/0.0 == 1/-0.0')
 
+-- 1.3. Basic division
+assert_eq(5/2, 2.5, 'div: 5/2 == 2.5')
+assert_eq(-5/2, -2.5, 'div: -5/2 == -2.5')
+assert_eq(5/-2, -2.5, 'div: 5/-2 == -2.5')
+assert_eq(-5/-2, 2.5, 'div: -5/-2 == 2.5')
+
 -- 2. Unary minus literals and simple expressions
 assert_eq(1/-(0) == 1/0, true, 'unary minus: int literal (+Inf)')
 assert_eq(1/-(0.0) == -1/0.0, true, 'unary minus: float literal (-Inf)')
 assert_eq(1/-(1-1) == 1/0, true, 'unary minus: int expr (+Inf)')
 assert_eq(1/-(1.0-1.0) == -1/0.0, true, 'unary minus: float expr (-Inf)')
+
+-- 2.1. Unary minus coercion and precedence with power
+assert_eq(-2^2, -4, 'precedence: -2^2 == -(2^2)')
+assert_eq((-2)^2, 4, 'precedence: (-2)^2 == 4')
 
 -- 3. Integer operations (must not produce -0)
 assert_eq(1/(1-1) == 1/0, true, 'int: sub (+0)')
@@ -31,6 +59,9 @@ assert_eq(1/(0%-1) == 1/0, true, 'int: mod neg divisor (+0)')
 assert_eq(1/(0.0*-1.0) == -1/ 0.0, true, 'float: mul (-0.0)')
 assert_eq(1/((-0.0)%1.0) == -1/ 0.0, true, 'float: mod (-0.0)')
 assert_eq(1/((-0.0)%-1.0) == -1/ 0.0, true, 'float: mod neg divisor (-0.0)')
+
+-- 4.1. Zero result from float addition prefers +0.0
+assert_eq(1/((-0.0)+0.0) == 1/0.0, true, 'float: (-0.0)+0.0 yields +0.0')
 
 -- 5. Mixed arithmetic producing zero
 assert_eq(1/(0*-1.0) == -1/0.0, true, 'mixed: mul int*float (-0.0)')
@@ -103,6 +134,11 @@ assert_eq(id_ok(-5, 2), true, 'identity: -5, 2')
 assert_eq(id_ok(5, -2), true, 'identity: 5, -2')
 assert_eq(id_ok(-5, -2), true, 'identity: -5, -2')
 
+-- 10.2. Floor division signs
+assert_eq(5//-2, -3, 'idiv: 5//-2 == -3')
+assert_eq(-5//2, -3, 'idiv: -5//2 == -3')
+assert_eq(-5//-2, 2, 'idiv: -5//-2 == 2')
+
 -- 11. Ordering and NaN
 assert_eq((-0.0) < (0.0), false, 'ordering: -0.0 < 0.0 is false')
 assert_eq((0.0) < (-0.0), false, 'ordering: 0.0 < -0.0 is false')
@@ -141,11 +177,13 @@ assert_eq((5~1) == 4, true, 'bitwise xor result')
 assert_eq((1<<5) == 32, true, 'bitwise shl result')
 assert_eq((32>>5) == 1, true, 'bitwise shr result')
 
+-- 12.2 Bitwise with float values
+assert_eq((~(-0.0)) == -1, true, 'bitwise not on -0.0 == -1')
+
 -- 13. Evaluation order (left-to-right) for binary ops
 local log, val
 
 -- arithmetic + - * /
-
 local function lhs_num()
   log[#log + 1] = 'L'
   return 1
@@ -277,6 +315,17 @@ assert_eq(1/('-0.0') == -1/0.0, true, 'str: ("-0.0") (-Inf)')
 assert_eq(1/-('0') == 1/0.0, true, 'str: unary minus -("0") (+Inf)')
 assert_eq(1/-('-0') == 1/0.0, true, 'str: unary minus -("-0") (+Inf)')
 
+-- 14.1. General arithmetic with numeric strings
+assert_eq('1'+2, 3, 'str-num: "1"+2 == 3')
+assert_eq(' -2 ' * '3', -6, 'str-num: " -2 " * "3" == -6')
+assert_eq('0x10' + 1, 17, 'str-num: hex int string + 1 == 17')
+assert_eq('0x1p4' + 0, 16, 'str-num: hex float string + 0 == 16')
+assert_throws('attempt to perform arithmetic on a non-number',
+  function()
+    return 'x1'+1
+  end
+)
+
 -- 15. Recursive function producing int zero (and unary minus)
 local function rec_zero(n)
   if n == 0 then
@@ -293,12 +342,11 @@ assert_eq(1/-rec_zero(5) == 1/0, true, 'recursive: -(rec_zero) (+Inf)')
 -- 16. Modulo and integer division by zero
 
 -- 16.1. Modulo by zero
-val = pcall(
+assert_throws('modulo by zero',
   function()
     return 1%0
   end
 )
-assert_eq(val, false, 'int mod by zero errors')
 
 val = pcall(
   function()
@@ -322,12 +370,11 @@ val = pcall(
 assert_eq(val, true, 'mixed (int,float) mod by zero ok (NaN)')
 
 -- 16.2. Integer division by zero
-val = pcall(
+assert_throws('divide by zero',
   function()
     return 1//0
   end
 )
-assert_eq(val, false, 'int idiv by zero errors')
 
 val = pcall(
   function()
@@ -349,6 +396,11 @@ val = pcall(
   end
 )
 assert_eq(val, true, 'mixed (int,float) idiv by zero ok (+Inf/-Inf)')
+
+-- 16.3. Modulo sign semantics (explicit)
+assert_eq(5 % -2, -1, 'mod: 5 % -2 == -1')
+assert_eq(-5 % 2, 1, 'mod: -5 % 2 == 1')
+assert_eq(-5 % -2, -1, 'mod: -5 % -2 == -1')
 
 -- 17. Metamethod precedence: __add should dispatch
 local mt = {
@@ -383,7 +435,7 @@ local b = setmetatable({}, mt_bnot)
 assert_eq(~b, 123, '__bnot dispatched')
 assert_eq(bnot_calls, 1, '__bnot called exactly once')
 
--- 17.3 Unary metamethods: multi-return (first result only)
+-- 17.3. Unary metamethods multi-return (first return only)
 local mt_unm_mr = {
   __unm = function(_)
     return 7, 8
@@ -402,7 +454,7 @@ local bm = setmetatable({}, mt_bnot_mr)
 
 assert_eq(~bm, 9, '__bnot uses first return value')
 
--- 18. Multi-return in arithmetic (first result only)
+-- 18. Multi-return in arithmetic (first return only)
 local function multi_ret()
   return 0, 1
 end
@@ -415,60 +467,83 @@ assert_eq(0^0 == 1, true, 'pow: 0^0 == 1')
 assert_eq((-0.0)^0 == 1, true, 'pow: (-0.0)^0 == 1')
 
 -- 19. Error tests
-val = pcall(
+assert_throws('has no integer representation',
   function()
     return ~0.5
   end
 )
-assert_eq(val, false, 'error: unary bitwise not on float')
 
-val = pcall(
+assert_throws('attempt to perform arithmetic on a non-number',
   function()
     return 'a'+1
   end
 )
-assert_eq(val, false, 'error: string plus number')
 
-val = pcall(
+assert_throws('attempt to perform arithmetic on a non-number',
   function()
     return -{}
   end
 )
-assert_eq(val, false, 'error: unary minus on table')
 
--- 19.1 Bitwise on non-integers should error
-val = pcall(
+-- 19.1. Bitwise on non-integers should error
+assert_throws('has no integer representation',
   function()
     return 1.5&1
   end
 )
-assert_eq(val, false, 'error: bitwise and on float')
 
-val = pcall(
+assert_throws('attempt to perform arithmetic on a non-number',
   function()
     return '3'|1
   end
 )
-assert_eq(val, false, 'error: bitwise or with string')
 
-val = pcall(
+assert_throws('has no integer representation',
   function()
     return 1~1.2
   end
 )
-assert_eq(val, false, 'error: bitwise xor with float')
 
-val = pcall(
+assert_throws('has no integer representation',
   function()
     return 1<<0.1
   end
 )
-assert_eq(val, false, 'error: bitwise shift with float')
 
--- 19.2 Relational type error
-val = pcall(
+-- 19.2. Relational type error
+assert_throws('attempt to compare number with string',
   function()
     return 1<'1'
   end
 )
-assert_eq(val, false, 'error: rel cmp num and str')
+
+-- 19.3. Additional negative tests
+assert_throws('attempt to perform arithmetic on a non-number',
+  function()
+    return 1+{}
+  end
+)
+
+assert_throws('attempt to perform arithmetic on a non-number',
+  function()
+    return -'x'
+  end
+)
+
+assert_throws('attempt to perform arithmetic on a non-number',
+  function()
+    return ~'1'
+  end
+)
+
+assert_throws('attempt to compare string with number',
+  function()
+    return '1'<1
+  end
+)
+
+assert_throws('attempt to compare number with object',
+  function()
+    return 1<{}
+  end
+)
