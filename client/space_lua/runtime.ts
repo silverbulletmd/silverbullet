@@ -760,12 +760,14 @@ export function luaTruthy(value: any): boolean {
   if (value === undefined || value === null || value === false) {
     return false;
   }
-  if (value instanceof LuaTable) {
-    return !value.empty();
-  }
+
   if (value instanceof LuaMultiRes) {
-    return value.values.length > 0;
+    // for multi-return values, only the first result determines truthiness
+    const first = value.unwrap();
+    return !(first === null || first === undefined || first === false);
   }
+
+  // all non-`nil`/non-`false` values are truthy (including empty tables)
   return true;
 }
 
