@@ -2,7 +2,7 @@ import {
   LuaBuiltinFunction,
   LuaEnv,
   LuaMultiRes,
-  LuaStackFrame,
+  type LuaStackFrame,
   type LuaValue,
 } from "../runtime.ts";
 import { parse } from "../parse.ts";
