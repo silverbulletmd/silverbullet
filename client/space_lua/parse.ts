@@ -51,6 +51,9 @@ export const luaLanguage = LRLanguage.define({
       customIndent,
     ],
   }),
+  languageData: {
+    commentTokens: { line: "--", block: { open: "--[[", close: "--]]" }}
+  }
 });
 
 function context(t: ParseTree, ctx: Record<string, any>): ASTCtx {
