@@ -9,12 +9,22 @@ import { parse } from "../parse.ts";
 import { evalStatement } from "../eval.ts";
 
 // Returns a function (callable chunk) or (nil, "error message") pair.
-export function luaLoad(sf: LuaStackFrame, code: LuaValue): LuaValue {
+export function luaLoad(code: LuaValue, sf: LuaStackFrame): LuaValue {
   const s = typeof code === "string" ? code : String(code);
 
   try {
     const block = parse(s, sf.astCtx || {});
-    const globalEnv: LuaEnv = sf.threadLocal.get("_GLOBAL") || new LuaEnv();
+    const globalEnvMaybe = sf.threadLocal.get("_GLOBAL");
+
+    // Be vocal when no _GLOBAL is set
+    if (!globalEnvMaybe) {
+      console.warn(
+        "load() called without _GLOBAL in thread-local environment",
+      );
+      return new LuaMultiRes([null, "Global environment not set"]);
+    }
+
+    const globalEnv: LuaEnv = globalEnvMaybe as LuaEnv;
 
     const runner = new LuaBuiltinFunction(async (innerSf: LuaStackFrame) => {
       const res = await evalStatement(block, globalEnv, innerSf, true);

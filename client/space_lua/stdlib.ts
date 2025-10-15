@@ -266,7 +266,7 @@ const someFunction = new LuaBuiltinFunction(async (_sf, value: any) => {
   return value;
 });
 
-const loadFunction = new LuaBuiltinFunction(luaLoad);
+const loadFunction = new LuaBuiltinFunction((sf, s) => luaLoad(s, sf));
 
 export function luaBuildStandardEnv() {
   const env = new LuaEnv();
