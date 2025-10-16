@@ -186,3 +186,11 @@ func (e *ReadOnlyFallthroughSpacePrimitives) CreateDirectory(path string) error 
 
 	return e.fallthroughSpacePrimitives.CreateDirectory(path)
 }
+
+func (e *ReadOnlyFallthroughSpacePrimitives) IsDirectory(path string) bool {
+	info, err := fs.Stat(e.fsys, e.pathToEmbedPath(path))
+	if err != nil {
+		return e.fallthroughSpacePrimitives.IsDirectory(path)
+	}
+	return info.IsDir()
+}

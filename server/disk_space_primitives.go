@@ -219,6 +219,18 @@ func (d *DiskSpacePrimitives) CreateDirectory(path string) error {
 	return nil
 }
 
+func (d *DiskSpacePrimitives) IsDirectory(path string) bool {
+	p, err := d.filenameToPath(path)
+	if err != nil {
+		return false
+	}
+	info, err := os.Stat(p)
+	if err != nil {
+		return false
+	}
+	return info.IsDir()
+}
+
 // ReadFile implements SpacePrimitives.ReadFile
 func (d *DiskSpacePrimitives) ReadFile(path string) ([]byte, FileMeta, error) {
 	localPath, err := d.filenameToPath(path)

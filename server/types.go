@@ -77,6 +77,8 @@ type SpacePrimitives interface {
 
 	// CreateDirectory creates a directory at the specified path
 	CreateDirectory(path string) error
+
+	IsDirectory(path string) bool
 }
 
 // Shell request/response types

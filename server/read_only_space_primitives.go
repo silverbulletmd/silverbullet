@@ -8,6 +8,11 @@ type ReadOnlySpacePrimitives struct {
 	wrapped SpacePrimitives
 }
 
+// IsDirectory implements SpacePrimitives.
+func (ro *ReadOnlySpacePrimitives) IsDirectory(path string) bool {
+	return ro.wrapped.IsDirectory(path)
+}
+
 var _ SpacePrimitives = &ReadOnlySpacePrimitives{}
 var NotAllowedError = errors.New("Not allowed")
 
