@@ -466,6 +466,13 @@ export function deleteLine(): Promise<void> {
   return syscall("editor.deleteLine");
 }
 
+/**
+ * Comment or uncomment the current line in the editor
+ */
+export function toggleComment(): Promise<void> {
+  return syscall("editor.toggleComment");
+}
+
 export function moveLineUp(): Promise<void> {
   return syscall("editor.moveLineUp");
 }

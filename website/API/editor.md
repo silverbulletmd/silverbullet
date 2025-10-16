@@ -336,6 +336,14 @@ Example:
 editor.deleteLine()
 ```
 
+### editor.toggleComment()
+Comments or uncomments the current line.
+
+Example:
+```lua
+editor.toggleComment()
+```
+
 ### editor.moveLineUp()
 Moves the current line up.
 
