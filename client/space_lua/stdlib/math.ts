@@ -1,6 +1,37 @@
 import { LuaBuiltinFunction, LuaRuntimeError, LuaTable } from "../runtime.ts";
 
 export const mathApi = new LuaTable({
+  // math constants
+  huge: 1 / 0,
+
+  // math.type(x) => "integer" | "float" | nil
+  type: new LuaBuiltinFunction((_sf, x?: any) => {
+    // arg is mandatory
+    if (x === undefined) {
+      throw new LuaRuntimeError(
+        "bad argument #1 to 'math.type' (value expected)",
+        _sf,
+      );
+    }
+
+    if (typeof x === "number" || x instanceof Number) {
+      const n = Number(x);
+
+      // NaN and +Inf/-Inf are floats
+      if (!Number.isFinite(n)) {
+        return "float";
+      }
+
+      return Number.isInteger(n) ? "integer" : "float";
+    }
+
+    if (typeof x === "bigint") {
+      return "integer";
+    }
+
+    return null;
+  }),
+
   /**
    * When called without arguments, returns a pseudo-random float with
    * uniform distribution in the range [0,1). When called with two
