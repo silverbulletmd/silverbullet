@@ -10,27 +10,15 @@
     "lint": "deno lint --fix",
     "fmt": "deno fmt",
     "test": "deno test -A",
-    "plugs": "deno run -A build_plugs_libraries.ts",
+    "plugs": "deno run -A build_plugs_libraries.ts"
   },
   "publish": {
-    "exclude": [
-      "website",
-      "CHANGELOG.md",
-      "**/*.md"
-    ]
+    "exclude": ["website", "CHANGELOG.md", "**/*.md"]
   },
   "lint": {
-    "exclude": [
-      "dist",
-      "client_bundle",
-      "website"
-    ],
+    "exclude": ["dist", "client_bundle", "website"],
     "rules": {
-      "exclude": [
-        "no-explicit-any",
-        "no-slow-types",
-        "jsx-boolean-value"
-      ]
+      "exclude": ["no-explicit-any", "no-slow-types", "jsx-boolean-value"]
     }
   },
   "fmt": {
@@ -45,12 +33,7 @@
     ]
   },
   "compilerOptions": {
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "dom.asynciterable",
-      "deno.ns"
-    ],
+    "lib": ["dom", "dom.iterable", "dom.asynciterable", "deno.ns"],
     "jsx": "react-jsx",
     "jsxImportSource": "npm:preact@10.26.4"
   },
@@ -153,6 +136,7 @@
     "style-mod": "npm:style-mod@4.1.2",
     "turndown": "npm:turndown@7.2.0",
     "ajv": "npm:ajv@8.17.1",
-    "turndown-plugin-gfm": "npm:@joplin/turndown-plugin-gfm@1.0.62"
+    "turndown-plugin-gfm": "npm:@joplin/turndown-plugin-gfm@1.0.62",
+    "@msgpack/msgpack": "npm:@msgpack/msgpack@3.1.2"
   }
 }

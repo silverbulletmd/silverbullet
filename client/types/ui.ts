@@ -184,6 +184,10 @@ export type BootConfig = {
   disablePlugs?: boolean;
   performWipe?: boolean;
   performReset?: boolean;
+
+  // Encryption
+  encryptionSalt?: string; // base64 encoded, when set: enable client side encryption
+  encryptionKey?: string;
 };
 
 /**
@@ -199,7 +203,8 @@ export type ServiceWorkerTargetMessage =
   | { type: "wipe-data" }
   | { type: "perform-file-sync"; path: string }
   | { type: "perform-space-sync" }
-  | { type: "force-connection-status"; enabled: boolean };
+  | { type: "force-connection-status"; enabled: boolean }
+  | { type: "get-encryption-key" };
 /**
  * Events received from the service worker -> client
  */
@@ -232,4 +237,7 @@ export type ServiceWorkerSourceMessage = {
   type: "dataWiped";
 } | {
   type: "service-worker-started";
+} | {
+  type: "encryption-key";
+  key: string;
 };

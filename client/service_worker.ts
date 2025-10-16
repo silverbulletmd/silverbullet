@@ -6,13 +6,18 @@ import type {
   ServiceWorkerSourceMessage,
   ServiceWorkerTargetMessage,
 } from "./types/ui.ts";
-import { simpleHash } from "@silverbulletmd/silverbullet/lib/crypto";
+import {
+  base64Decode,
+  simpleHash,
+} from "@silverbulletmd/silverbullet/lib/crypto";
 import { IndexedDBKvPrimitives } from "./data/indexeddb_kv_primitives.ts";
 import { fsEndpoint } from "./spaces/constants.ts";
 import { DataStoreSpacePrimitives } from "./spaces/datastore_space_primitives.ts";
 import { HttpSpacePrimitives } from "./spaces/http_space_primitives.ts";
 import { throttleImmediately } from "@silverbulletmd/silverbullet/lib/async";
 import { wrongSpacePathError } from "@silverbulletmd/silverbullet/constants";
+import type { KvPrimitives } from "./data/kv_primitives.ts";
+import { EncryptedKvPrimitives } from "./data/encrypted_kv_primitives.ts";
 
 const logger = initLogger("[Service Worker]");
 
@@ -60,6 +65,20 @@ let configuring = false;
 
 // @ts-ignore: debugging
 globalThis.proxyRouter = proxyRouter;
+
+// This is the in-memory store of an encryption key that SB clients and the index engine can share without asking for it constantly
+let encryptionKeyMemoryStore: string | undefined;
+
+// Let's clean this encryptionKey if there's no more clients left for a little while, asking to re-enter
+setInterval(() => {
+  // @ts-ignore: service worker API
+  globalThis.clients.matchAll().then((clients) => {
+    if (clients.length === 0) {
+      console.info("No more clients, flushing encryption key");
+      encryptionKeyMemoryStore = undefined;
+    }
+  });
+}, 5000); // little while is 5s
 
 // Message received from client
 self.addEventListener("message", async (event: any) => {
@@ -129,6 +148,13 @@ self.addEventListener("message", async (event: any) => {
       console.info("Forced connection status to", message.enabled);
       break;
     }
+    case "get-encryption-key": {
+      event.source.postMessage({
+        type: "encryption-key",
+        key: encryptionKeyMemoryStore,
+      } as ServiceWorkerSourceMessage);
+      break;
+    }
     case "config": {
       const config = message.config;
       // Configure the service worker if it hasn't been already
@@ -140,6 +166,7 @@ self.addEventListener("message", async (event: any) => {
           syncDocuments: config.syncDocuments,
           syncIgnore: config.syncIgnore,
         });
+        encryptionKeyMemoryStore = config.encryptionKey;
 
         return;
       } else {
@@ -161,7 +188,8 @@ self.addEventListener("message", async (event: any) => {
         const spaceHash = "" +
           simpleHash(`${spaceFolderPath}:${baseURI.replace(/\/*$/, "")}`);
         // And we'll use a _files postfix to signify where synced files are kept
-        const dbName = `${spaceHash}_files`;
+        const dbName = `${spaceHash}_files` +
+          (config.encryptionSalt ? "_" + config.encryptionSalt : "");
 
         if (config.logPush) {
           setInterval(() => {
@@ -170,8 +198,25 @@ self.addEventListener("message", async (event: any) => {
         }
 
         // Setup KV (database) for store synced files
-        const kv = new IndexedDBKvPrimitives(dbName);
-        await kv.init();
+        let kv: KvPrimitives = new IndexedDBKvPrimitives(dbName);
+        await (kv as IndexedDBKvPrimitives).init();
+
+        if (config.encryptionSalt) {
+          if (!config.encryptionKey) {
+            console.error(
+              "Supposed to use encryption, but no key specified, ABORT",
+            );
+            return;
+          } else {
+            encryptionKeyMemoryStore = config.encryptionKey;
+            kv = new EncryptedKvPrimitives(
+              kv,
+              config.encryptionKey,
+              base64Decode(config.encryptionSalt),
+            );
+            await (kv as EncryptedKvPrimitives).init();
+          }
+        }
 
         // And use that to power the IndexedDB backed local storage
         const local = new DataStoreSpacePrimitives(kv);
