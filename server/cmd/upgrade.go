@@ -95,7 +95,7 @@ func upgrade(urlPrefix string) error {
 	fmt.Printf("Now going to replace the existing silverbullet binary in %s\n", installDir)
 
 	// Extract the zip file
-	err = extractZip(zipPath, installDir)
+	err = extractZip(tmpDir, zipPath, installDir)
 	if err != nil {
 		return fmt.Errorf("failed to extract zip: %w", err)
 	}
@@ -114,7 +114,7 @@ func upgrade(urlPrefix string) error {
 	return nil
 }
 
-func extractZip(src, dest string) error {
+func extractZip(tmpDir, src, dest string) error {
 	reader, err := zip.OpenReader(src)
 	if err != nil {
 		return err
@@ -144,7 +144,7 @@ func extractZip(src, dest string) error {
 		}
 
 		// Create the file as a temporary file first
-		tempFile, err := renameio.PendingFile(path)
+		tempFile, err := renameio.TempFile(tmpDir, path)
 		if err != nil {
 			return err
 		}
