@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"github.com/google/renameio"
 	"github.com/spf13/cobra"
 )
 
@@ -94,7 +95,7 @@ func upgrade(urlPrefix string) error {
 	fmt.Printf("Now going to replace the existing silverbullet binary in %s\n", installDir)
 
 	// Extract the zip file
-	err = extractZip(zipPath, installDir)
+	err = extractZip(tmpDir, zipPath, installDir)
 	if err != nil {
 		return fmt.Errorf("failed to extract zip: %w", err)
 	}
@@ -113,7 +114,7 @@ func upgrade(urlPrefix string) error {
 	return nil
 }
 
-func extractZip(src, dest string) error {
+func extractZip(tmpDir, src, dest string) error {
 	reader, err := zip.OpenReader(src)
 	if err != nil {
 		return err
@@ -121,34 +122,47 @@ func extractZip(src, dest string) error {
 	defer reader.Close()
 
 	for _, file := range reader.File {
+		path := filepath.Join(dest, file.Name)
+
+		// Handle directories first, report errors here too
+		if file.FileInfo().IsDir() {
+			if err := os.MkdirAll(path, file.FileInfo().Mode()); err != nil {
+				return err
+			}
+			continue
+		}
+
 		rc, err := file.Open()
 		if err != nil {
 			return err
 		}
 		defer rc.Close()
 
-		path := filepath.Join(dest, file.Name)
-
-		// Check for directory
-		if file.FileInfo().IsDir() {
-			os.MkdirAll(path, file.FileInfo().Mode())
-			continue
-		}
-
 		// Create parent directories
 		if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 			return err
 		}
 
-		// Create the file
-		outFile, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, file.FileInfo().Mode())
+		// Create the file as a temporary file first
+		tempFile, err := renameio.TempFile(tmpDir, path)
 		if err != nil {
 			return err
 		}
-		defer outFile.Close()
+		defer tempFile.Cleanup()
 
-		_, err = io.Copy(outFile, rc)
+		// Extract to the temporary file
+		_, err = io.Copy(tempFile, rc)
 		if err != nil {
+			return err
+		}
+
+		// Properly set the mode of the target file
+		if err := tempFile.Chmod(file.FileInfo().Mode()); err != nil {
+			return err
+		}
+
+		// Atomically create the target file
+		if err := tempFile.CloseAtomicallyReplace(); err != nil {
 			return err
 		}
 	}
