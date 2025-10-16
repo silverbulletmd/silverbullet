@@ -338,6 +338,38 @@ function parseExpList(t: ParseTree, ctx: ASTCtx): LuaExpression[] {
 
 const delimiterRegex = /^(\[=*\[)([\s\S]*)(\]=*\])$/;
 
+function stripZWhitespaceRaw(src: string): string {
+  let out = "";
+  for (let i = 0; i < src.length; i++) {
+    const c = src[i];
+    if (c === "\\" && src[i + 1] === "z") {
+      // Consume the "\z"
+      i += 2;
+
+      while (i < src.length) {
+        // Skip literal whitespace
+        switch (src[i]) {
+          case " ":
+          case "\t":
+          case "\n":
+          case "\v":
+          case "\f":
+          case "\r": {
+            i++;
+          }
+          default: {
+            break;
+          }
+        }
+      }
+      i--;
+      continue;
+    }
+    out += c;
+  }
+  return out;
+}
+
 // In case of quoted strings, remove the quotes and unescape the string
 // In case of a [[ type ]] literal string, remove the brackets
 function parseString(s: string): string {
@@ -351,48 +383,46 @@ function parseString(s: string): string {
     }
     return text;
   }
-  return s.slice(1, -1)
-    // Handle "\z" escape (remove the subsequent span of whitespace)
-    .replace(/\\z(?:[ \t\n\r\f\v]|\\[tnrfv])*/g, "")
-    // Handle (unescape) other escapes
-    .replace(
-      /\\(x[0-9a-fA-F]{2}|u\{[0-9a-fA-F]+\}|[abfnrtv\\'"])/g,
-      (match, capture) => {
-        switch (capture) {
-          case "a":
-            return "\x07"; // BEL (Bell)
-          case "b":
-            return "\b"; // BS (Backspace)
-          case "f":
-            return "\f"; // FF (Form Feed)
-          case "n":
-            return "\n"; // LF (Line Feed)
-          case "r":
-            return "\r"; // CR (Carriage return)
-          case "t":
-            return "\t"; // HT (Horizontal Tab)
-          case "v":
-            return "\v"; // VT (Vertical Tab)
-          case "\\":
-            return "\\"; // Backslash
-          case '"':
-            return '"'; // Double quote
-          case "'":
-            return "'"; // Single quote
-          default:
-            // Handle hexadecimal \x00
-            if (capture.startsWith("x")) {
-              return String.fromCharCode(parseInt(capture.slice(1), 16));
-            }
-            // Handle Unicode \u{XXXX}
-            if (capture.startsWith("u{")) {
-              const codePoint = parseInt(capture.slice(2, -1), 16);
-              return String.fromCodePoint(codePoint);
-            }
-            return match; // return the original match if nothing fits
-        }
-      },
-    );
+
+  // First do the \z removal on raw whitespace, then unescape
+  return stripZWhitespaceRaw(s.slice(1, -1)).replace(
+    /\\(x[0-9a-fA-F]{2}|u\{[0-9a-fA-F]+\}|[abfnrtv\\'"])/g,
+    (match, capture) => {
+      switch (capture) {
+        case "a":
+          return "\x07"; // BEL (Bell)
+        case "b":
+          return "\b"; // BS (Backspace)
+        case "f":
+          return "\f"; // FF (Form Feed)
+        case "n":
+          return "\n"; // LF (Line Feed)
+        case "r":
+          return "\r"; // CR (Carriage return)
+        case "t":
+          return "\t"; // HT (Horizontal Tab)
+        case "v":
+          return "\v"; // VT (Vertical Tab)
+        case "\\":
+          return "\\"; // Backslash
+        case '"':
+          return '"'; // Double quote
+        case "'":
+          return "'"; // Single quote
+        default:
+          // Handle hexadecimal \x00
+          if (capture.startsWith("x")) {
+            return String.fromCharCode(parseInt(capture.slice(1), 16));
+          }
+          // Handle Unicode \u{XXXX}
+          if (capture.startsWith("u{")) {
+            const codePoint = parseInt(capture.slice(2, -1), 16);
+            return String.fromCodePoint(codePoint);
+          }
+          return match; // return the original match if nothing fits
+      }
+    },
+  );
 }
 
 function parseExpression(t: ParseTree, ctx: ASTCtx): LuaExpression {
