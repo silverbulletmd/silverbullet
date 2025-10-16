@@ -52,8 +52,8 @@ export const luaLanguage = LRLanguage.define({
     ],
   }),
   languageData: {
-    commentTokens: { line: "--", block: { open: "--[[", close: "--]]" }}
-  }
+    commentTokens: { line: "--", block: { open: "--[[", close: "--]]" } },
+  },
 });
 
 function context(t: ParseTree, ctx: Record<string, any>): ASTCtx {
@@ -351,44 +351,48 @@ function parseString(s: string): string {
     }
     return text;
   }
-  return s.slice(1, -1).replace(
-    /\\(x[0-9a-fA-F]{2}|u\{[0-9a-fA-F]+\}|[abfnrtv\\'"n])/g,
-    (match, capture) => {
-      switch (capture) {
-        case "a":
-          return "\x07"; // Bell
-        case "b":
-          return "\b"; // Backspace
-        case "f":
-          return "\f"; // Form feed
-        case "n":
-          return "\n"; // Newline
-        case "r":
-          return "\r"; // Carriage return
-        case "t":
-          return "\t"; // Horizontal tab
-        case "v":
-          return "\v"; // Vertical tab
-        case "\\":
-          return "\\"; // Backslash
-        case '"':
-          return '"'; // Double quote
-        case "'":
-          return "'"; // Single quote
-        default:
-          // Handle hexadecimal \x00
-          if (capture.startsWith("x")) {
-            return String.fromCharCode(parseInt(capture.slice(1), 16));
-          }
-          // Handle unicode \u{XXXX}
-          if (capture.startsWith("u{")) {
-            const codePoint = parseInt(capture.slice(2, -1), 16);
-            return String.fromCodePoint(codePoint);
-          }
-          return match; // return the original match if nothing fits
-      }
-    },
-  );
+  return s.slice(1, -1)
+    // Handle "\z" escape (remove the subsequent span of whitespace)
+    .replace(/\\z([ \t\n\r\f\v]|\\[tnrfv])*/g, "")
+    // Handle (unescape) other escapes
+    .replace(
+      /\\(x[0-9a-fA-F]{2}|u\{[0-9a-fA-F]+\}|[abfnrtv\\'"])/g,
+      (match, capture) => {
+        switch (capture) {
+          case "a":
+            return "\x07"; // BEL (Bell)
+          case "b":
+            return "\b"; // BS (Backspace)
+          case "f":
+            return "\f"; // FF (Form Feed)
+          case "n":
+            return "\n"; // LF (Line Feed)
+          case "r":
+            return "\r"; // CR (Carriage return)
+          case "t":
+            return "\t"; // HT (Horizontal Tab)
+          case "v":
+            return "\v"; // VT (Vertical Tab)
+          case "\\":
+            return "\\"; // Backslash
+          case '"':
+            return '"'; // Double quote
+          case "'":
+            return "'"; // Single quote
+          default:
+            // Handle hexadecimal \x00
+            if (capture.startsWith("x")) {
+              return String.fromCharCode(parseInt(capture.slice(1), 16));
+            }
+            // Handle Unicode \u{XXXX}
+            if (capture.startsWith("u{")) {
+              const codePoint = parseInt(capture.slice(2, -1), 16);
+              return String.fromCodePoint(codePoint);
+            }
+            return match; // return the original match if nothing fits
+        }
+      },
+    );
 }
 
 function parseExpression(t: ParseTree, ctx: ASTCtx): LuaExpression {

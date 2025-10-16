@@ -466,7 +466,7 @@ assert_eq(1/-(multi_ret()) == 1/0, true, 'multi-ret: unary minus 1st used (+Inf)
 assert_eq(0^0 == 1, true, 'pow: 0^0 == 1')
 assert_eq((-0.0)^0 == 1, true, 'pow: (-0.0)^0 == 1')
 
--- 19. Error tests
+-- 20. Error tests
 assert_throws('has no integer representation',
   function()
     return ~0.5
@@ -485,7 +485,22 @@ assert_throws('attempt to perform arithmetic on a non-number',
   end
 )
 
--- 19.1. Bitwise on non-integers should error
+-- 19. Escaped whitespace before digits must parse and coerce
+
+-- Notes: the `\a` (BEL, Bell) and the `\b` (BS, Backspace) are not
+-- writespace characters but control character escapes. Although they
+-- are listed in the file `lua.grammar` the `tunumber()` does not coerce
+-- them (matches Lua semantics).  Therefor don't test them here.
+--
+-- The `\z` is Lua special escape that removes the following span of
+-- whitespace (including newlines) from the literal.
+
+assert_eq(-'\f4\z \r\n 2\t ', -42, "FF (Form Feed) should coerce")
+assert_eq(-'\n4\z \r\n 2\t ', -42, "LF (Line Feed) should coerce")
+assert_eq(-'\r4\z \r\n 2\t ', -42, "CR (Carriage Return) should coerce")
+assert_eq(-'\t4\z \r\n 2\t ', -42, "HT (Horizontal Tab) should coerce")
+
+-- 20.1. Bitwise on non-integers should error
 assert_throws('has no integer representation',
   function()
     return 1.5&1
@@ -510,14 +525,14 @@ assert_throws('has no integer representation',
   end
 )
 
--- 19.2. Relational type error
+-- 20.2. Relational type error
 assert_throws('attempt to compare number with string',
   function()
     return 1<'1'
   end
 )
 
--- 19.3. Additional negative tests
+-- 20.3. Additional negative tests
 assert_throws('attempt to perform arithmetic on a non-number',
   function()
     return 1+{}
