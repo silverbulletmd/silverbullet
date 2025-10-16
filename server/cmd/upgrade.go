@@ -151,7 +151,7 @@ func extractZip(tmpDir, src, dest string) error {
 		defer tempFile.Cleanup()
 
 		// Extract to the temporary file
-		_, err = io.Copy(outFile, rc)
+		_, err = io.Copy(tempFile, rc)
 		if err != nil {
 			return err
 		}
