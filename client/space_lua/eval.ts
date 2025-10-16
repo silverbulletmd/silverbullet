@@ -18,7 +18,6 @@ import {
   LuaFunction,
   luaGet,
   luaIndexValue,
-  luaLen,
   type LuaLValueContainer,
   LuaMultiRes,
   LuaReturn,
@@ -28,6 +27,8 @@ import {
   LuaTable,
   luaToString,
   luaTruthy,
+  type LuaType,
+  luaTypeOf,
   type LuaValue,
   luaValueToJS,
   singleResult,
@@ -281,7 +282,7 @@ export function evalExpression(
                 );
               }
               case "#": {
-                return luaLen(singleResult(value));
+                return luaLengthOp(singleResult(value), e.ctx, sf);
               }
               default: {
                 throw new LuaRuntimeError(
@@ -320,7 +321,7 @@ export function evalExpression(
               );
             }
             case "#": {
-              return luaLen(singleResult(value));
+              return luaLengthOp(singleResult(value), e.ctx, sf);
             }
             default: {
               throw new LuaRuntimeError(
@@ -891,6 +892,45 @@ function luaOp(
   }
 
   return handler.nativeImplementation(left, right, ctx, sf, hints);
+}
+
+function luaLengthOp(
+  val: any,
+  ctx: ASTCtx,
+  sf: LuaStackFrame,
+): LuaValue {
+  // Ignore `__len` for strings
+  if (typeof val === "string") {
+    return val.length;
+  }
+
+  if (val instanceof LuaTable) {
+    const mt = getMetatable(val, sf);
+    if (mt && mt.has("__len")) {
+      const fn = mt.get("__len");
+      return luaCall(fn, [val], ctx, sf);
+    }
+    return val.length;
+  }
+
+  // JS arrays
+  if (Array.isArray(val)) {
+    return val.length;
+  }
+
+  // Allow metatable `__len` if present for other values
+  const mt = getMetatable(val, sf);
+  if (mt && mt.has("__len")) {
+    const fn = mt.get("__len");
+    return luaCall(fn, [val], ctx, sf);
+  }
+
+  // Error with type name
+  const t = luaTypeOf(val) as LuaType;
+  throw new LuaRuntimeError(
+    `attempt to get length of a ${t} value`,
+    sf.withCtx(ctx),
+  );
 }
 
 function evalExpressions(

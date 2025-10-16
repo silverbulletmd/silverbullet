@@ -592,3 +592,60 @@ function varArgTest(a0, ...)
 end
 
 varArgTest(1, 2, 3, 4)
+
+-- Some `rawlen` tests
+
+-- Strings
+assertEqual(rawlen(""), 0, "rawlen on empty string")
+assertEqual(rawlen("abc"), 3, "rawlen on non-empty string")
+
+-- Tables
+assertEqual(rawlen({}), 0, "rawlen on empty table")
+assertEqual(rawlen({1, 2, 3}), 3, "rawlen on array table")
+
+-- `rawlen` ignores `__len` metamethod
+do
+  local t = {}
+  setmetatable(t, { __len = function(_) return 42 end })
+  assertEqual(rawlen(t), 0, "rawlen ignores __len (no array part)")
+  t[1] = "x"; t[2] = "y"
+  assertEqual(rawlen(t), 2, "rawlen returns raw array-part length")
+end
+
+-- JS arrays also have raw length
+do
+  local a0 = js.window.JSON.parse("[]")
+  assertEqual(rawlen(a0), 0, "rawlen on empty JS array")
+
+  local a4 = js.window.JSON.parse("[1,2,3,4]")
+  assertEqual(rawlen(a4), 4, "rawlen on JS array length 4")
+end
+
+-- Non-string/non-table must error with proper message
+local function expect_rawlen_error(v, typeName)
+  local ok, err = pcall(
+    function()
+      return rawlen(v)
+    end
+  )
+
+  assertEqual(ok, false, "rawlen must error on "
+    .. tostring(typeName))
+
+  local s = tostring(err)
+
+  assert(
+    string.find(s, "bad argument #1 to 'rawlen'", 1, true) ~= nil,
+    "error must mention rawlen"
+  )
+
+  assert(
+    string.find(s, typeName, 1, true) ~= nil,
+    "error must mention type name"
+  )
+end
+
+expect_rawlen_error(nil, "nil")
+expect_rawlen_error(1, "number")
+expect_rawlen_error(false, "boolean")
+expect_rawlen_error(function() end, "function")
