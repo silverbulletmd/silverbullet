@@ -579,16 +579,22 @@ export function luaGet(
   }
 }
 
-export function luaLen(obj: any): number {
-  if (obj instanceof LuaTable) {
+export function luaLen(
+  obj: any,
+  sf?: LuaStackFrame,
+): number {
+  // Only strings, Lua tables and JS arrays
+  if (
+    typeof obj === "string" || obj instanceof LuaTable || Array.isArray(obj)
+  ) {
     return obj.length;
-  } else if (Array.isArray(obj)) {
-    return obj.length;
-  } else if (typeof obj === "string") {
-    return obj.length;
-  } else {
-    return 0;
   }
+
+  const t = luaTypeOf(obj) as LuaType;
+  throw new LuaRuntimeError(
+    `bad argument #1 to 'rawlen' (table or string expected, got ${t})`,
+    sf || LuaStackFrame.lostFrame,
+  );
 }
 
 export function luaCall(

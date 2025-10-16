@@ -5,6 +5,7 @@ import {
   LuaEnv,
   luaGet,
   luaKeys,
+  luaLen,
   LuaMultiRes,
   LuaRuntimeError,
   type LuaTable,
@@ -158,6 +159,12 @@ const setmetatableFunction = new LuaBuiltinFunction(
   },
 );
 
+const rawlenFunction = new LuaBuiltinFunction(
+  (_sf, value: LuaValue) => {
+    return luaLen(value, _sf);
+  },
+);
+
 const rawsetFunction = new LuaBuiltinFunction(
   (_sf, table: LuaTable, key: LuaValue, value: LuaValue) => {
     return table.rawSet(key, value);
@@ -282,6 +289,7 @@ export function luaBuildStandardEnv() {
   // meta table stuff
   env.set("setmetatable", setmetatableFunction);
   env.set("getmetatable", getmetatableFunction);
+  env.set("rawlen", rawlenFunction);
   env.set("rawset", rawsetFunction);
   env.set("dofile", dofileFunction);
   // Error handling
