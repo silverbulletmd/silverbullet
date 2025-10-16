@@ -353,7 +353,7 @@ function parseString(s: string): string {
   }
   return s.slice(1, -1)
     // Handle "\z" escape (remove the subsequent span of whitespace)
-    .replace(/\\z([ \t\n\r\f\v]|\\[tnrfv])*/g, "")
+    .replace(/\\z(?:[ \t\n\r\f\v]|\\[tnrfv])*/g, "")
     // Handle (unescape) other escapes
     .replace(
       /\\(x[0-9a-fA-F]{2}|u\{[0-9a-fA-F]+\}|[abfnrtv\\'"])/g,
