@@ -26,6 +26,9 @@ type BootConfig struct {
 
 	// Whether or not the client should push logs to the server
 	LogPush bool `json:"logPush"`
+
+	// Encryption
+	EncryptionSalt string `json:"encryptionSalt,omitempty"` // base64 encoded, when set: enable client side encryption
 }
 
 func Router(config *ServerConfig) chi.Router {
@@ -68,6 +71,7 @@ func Router(config *ServerConfig) chi.Router {
 			IndexPage:       spaceConfig.IndexPage,
 			ReadOnly:        spaceConfig.ReadOnlyMode,
 			LogPush:         spaceConfig.LogPush,
+			EncryptionSalt:  spaceConfig.EncryptionSalt,
 		}
 
 		w.Header().Set("Cache-Control", "no-cache")

@@ -39,7 +39,10 @@ import type { StyleObject } from "../plugs/index/style.ts";
 import { jitter, throttle } from "@silverbulletmd/silverbullet/lib/async";
 import { PlugSpacePrimitives } from "./spaces/plug_space_primitives.ts";
 import { EventedSpacePrimitives } from "./spaces/evented_space_primitives.ts";
-import { simpleHash } from "@silverbulletmd/silverbullet/lib/crypto";
+import {
+  base64Decode,
+  simpleHash,
+} from "@silverbulletmd/silverbullet/lib/crypto";
 import { HttpSpacePrimitives } from "./spaces/http_space_primitives.ts";
 import {
   encodePageURI,
@@ -79,6 +82,8 @@ import {
   offlineError,
 } from "@silverbulletmd/silverbullet/constants";
 import { Augmenter } from "./data/data_augmenter.ts";
+import { EncryptedKvPrimitives } from "./data/encrypted_kv_primitives.ts";
+import { KvPrimitives } from "./data/kv_primitives.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -92,7 +97,6 @@ declare global {
 }
 
 type WidgetCacheItem = {
-  height: number;
   html: string;
   block?: boolean;
   copyContent?: string;
@@ -150,7 +154,7 @@ export class Client {
         console.error,
       );
   }, 2000);
-  private widgetHeightCache = new LimitedMap<number>(100); // bodytext -> height
+  private widgetHeightCache = new LimitedMap<number>(1000); // bodytext -> height
   debouncedWidgetHeightCacheFlush = throttle(() => {
     this.ds.set(
       ["cache", "widgetHeight"],
@@ -171,7 +175,10 @@ export class Client {
     this.dbName = "" +
       simpleHash(
         `${bootConfig.spaceFolderPath}:${document.baseURI.replace(/\/*$/, "")}`,
-      ) + "_data";
+      ) + "_data" +
+      (this.bootConfig.encryptionSalt
+        ? "_" + this.bootConfig.encryptionSalt
+        : "");
     // The third case should only ever happen when the user provides an invalid index env variable
     this.onLoadRef = parseRefFromURI() || this.getIndexRef();
   }
@@ -182,8 +189,18 @@ export class Client {
    */
   async init() {
     // Setup the KV (database)
-    const kvPrimitives = new IndexedDBKvPrimitives(this.dbName);
-    await kvPrimitives.init();
+    let kvPrimitives: KvPrimitives = new IndexedDBKvPrimitives(this.dbName);
+    await (kvPrimitives as IndexedDBKvPrimitives).init();
+
+    // See if we need to encrypt this
+    if (this.bootConfig.encryptionSalt) {
+      kvPrimitives = new EncryptedKvPrimitives(
+        kvPrimitives,
+        "zef",
+        base64Decode(this.bootConfig.encryptionSalt),
+      );
+      await (kvPrimitives as EncryptedKvPrimitives).init();
+    }
     // Wrap it in a datastore
     this.ds = new DataStore(kvPrimitives);
 
@@ -1312,7 +1329,7 @@ export class Client {
         "cache",
         "widgetHeight",
       ], ["cache", "widgets"]]);
-    this.widgetHeightCache = new LimitedMap(100, widgetHeightCache || {});
+    this.widgetHeightCache = new LimitedMap(1000, widgetHeightCache || {});
     this.widgetCache = new LimitedMap(100, widgetCache || {});
   }
 

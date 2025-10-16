@@ -63,3 +63,110 @@ export async function hashSHA256(message: string): Promise<string> {
     b.toString(16).padStart(2, "0")
   ).join("");
 }
+
+// Fixed counter for AES-CTR all zeroes, for determinism
+const fixedCounter = new Uint8Array(16);
+
+export async function encryptStringDeterministic(
+  key: CryptoKey,
+  clearText: string,
+): Promise<string> {
+  const encrypted = await crypto.subtle.encrypt(
+    { name: "AES-CTR", counter: fixedCounter, length: fixedCounter.length * 8 },
+    key,
+    new TextEncoder().encode(clearText),
+  );
+  return base64Encode(new Uint8Array(encrypted));
+}
+
+export async function decryptStringDeterministic(
+  key: CryptoKey,
+  cipherText: string,
+): Promise<string> {
+  const decrypted = await crypto.subtle.decrypt(
+    { name: "AES-CTR", counter: fixedCounter, length: fixedCounter.length * 8 },
+    key,
+    base64Decode(cipherText) as BufferSource,
+  );
+  return new TextDecoder().decode(decrypted);
+}
+
+// Encrypt using AES-GCM with random IV; output = IV + ciphertext
+export async function encryptAesGcm(
+  key: CryptoKey,
+  data: Uint8Array,
+): Promise<Uint8Array> {
+  const iv = crypto.getRandomValues(new Uint8Array(12)); // 96-bit IV recommended for GCM
+  const encryptedBuffer = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    key,
+    data as BufferSource,
+  );
+  const encrypted = new Uint8Array(encryptedBuffer);
+
+  // Prepend IV to ciphertext
+  const result = new Uint8Array(iv.length + encrypted.length);
+  result.set(iv, 0);
+  result.set(encrypted, iv.length);
+  return result;
+}
+
+// Decrypt using AES-GCM assuming input format IV + ciphertext
+export async function decryptAesGcm(
+  key: CryptoKey,
+  encryptedData: Uint8Array,
+): Promise<Uint8Array> {
+  const iv = encryptedData.slice(0, 12); // extract IV (first 12 bytes)
+  const ciphertext = encryptedData.slice(12);
+  const decryptedBuffer = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv },
+    key,
+    ciphertext,
+  );
+  return new Uint8Array(decryptedBuffer);
+}
+
+export async function deriveKeysFromPassword(
+  password: string,
+  salt: Uint8Array,
+): Promise<{ ctr: CryptoKey; gcm: CryptoKey }> {
+  // Encode password to ArrayBuffer
+  const passwordBytes = new TextEncoder().encode(password);
+
+  // Import password as a CryptoKey
+  const baseKey = await crypto.subtle.importKey(
+    "raw",
+    passwordBytes,
+    { name: "PBKDF2" },
+    false,
+    ["deriveBits", "deriveKey"],
+  );
+
+  // Derive a key for AES-CTR
+  const ctrKey = await crypto.subtle.deriveKey(
+    {
+      name: "PBKDF2",
+      salt: salt as BufferSource,
+      iterations: 100000,
+      hash: "SHA-256",
+    },
+    baseKey,
+    {
+      name: "AES-CTR",
+      length: 256,
+    },
+    true, // extractable
+    ["encrypt", "decrypt"],
+  );
+
+  const rawKey = await crypto.subtle.exportKey("raw", ctrKey);
+  const gcmKey = await crypto.subtle.importKey(
+    "raw",
+    rawKey,
+    { name: "AES-GCM" },
+    true,
+    ["encrypt", "decrypt"],
+  );
+
+  return { gcm: gcmKey, ctr: ctrKey };
+}

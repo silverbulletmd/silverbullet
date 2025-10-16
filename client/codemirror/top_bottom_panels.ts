@@ -20,8 +20,7 @@ class ArrayWidget extends WidgetType {
   }
 
   override get estimatedHeight(): number {
-    const cacheItem = this.client.getWidgetCache(this.cacheKey);
-    return cacheItem ? cacheItem.height : -1;
+    return this.client.getCachedWidgetHeight(this.cacheKey);
   }
 
   toDOM(): HTMLElement {
@@ -91,13 +90,13 @@ class ArrayWidget extends WidgetType {
 
     div.replaceChildren(...renderedWidgets);
 
+    this.client.setWidgetCache(this.cacheKey, {
+      block: true,
+      html: div.innerHTML,
+    });
     // Wait for the clientHeight to settle
     setTimeout(() => {
-      this.client.setWidgetCache(this.cacheKey, {
-        height: div.clientHeight,
-        block: true,
-        html: div.innerHTML,
-      });
+      this.client.setCachedWidgetHeight(this.cacheKey, div.clientHeight);
     });
   }
 
