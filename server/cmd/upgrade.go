@@ -2,15 +2,16 @@ package cmd
 
 import (
 	"archive/zip"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
 
-	"github.com/google/renameio"
 	"github.com/spf13/cobra"
 )
 
@@ -95,7 +96,7 @@ func upgrade(urlPrefix string) error {
 	fmt.Printf("Now going to replace the existing silverbullet binary in %s\n", installDir)
 
 	// Extract the zip file
-	err = extractZip(tmpDir, zipPath, installDir)
+	err = extractZip(zipPath, installDir)
 	if err != nil {
 		return fmt.Errorf("failed to extract zip: %w", err)
 	}
@@ -114,7 +115,7 @@ func upgrade(urlPrefix string) error {
 	return nil
 }
 
-func extractZip(tmpDir, src, dest string) error {
+func extractZip(src, dest string) error {
 	reader, err := zip.OpenReader(src)
 	if err != nil {
 		return err
@@ -143,26 +144,22 @@ func extractZip(tmpDir, src, dest string) error {
 			return err
 		}
 
-		// Create the file as a temporary file first
-		tempFile, err := renameio.TempFile(tmpDir, path)
+		// First, attempt to remove the file to prevent "text file busy" error
+		err = os.Remove(path)
+		if err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+
+		// Create the file. It will create a new inode, so we can write to it while the executable still runs
+		outFile, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, file.FileInfo().Mode())
 		if err != nil {
 			return err
 		}
-		defer tempFile.Cleanup()
+		defer outFile.Close()
 
-		// Extract to the temporary file
-		_, err = io.Copy(tempFile, rc)
+		// Extract to the file
+		_, err = io.Copy(outFile, rc)
 		if err != nil {
-			return err
-		}
-
-		// Properly set the mode of the target file
-		if err := tempFile.Chmod(file.FileInfo().Mode()); err != nil {
-			return err
-		}
-
-		// Atomically create the target file
-		if err := tempFile.CloseAtomicallyReplace(); err != nil {
 			return err
 		}
 	}
