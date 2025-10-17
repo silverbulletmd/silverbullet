@@ -1,4 +1,4 @@
-import { safeRun } from "@silverbulletmd/silverbullet/lib/async";
+import { race, safeRun, sleep } from "@silverbulletmd/silverbullet/lib/async";
 import {
   notAuthenticatedError,
   offlineError,
@@ -11,7 +11,7 @@ import {
   flushCachesAndUnregisterServiceWorker,
 } from "./service_worker/util.ts";
 import "./lib/polyfills.ts";
-import type { BootConfig } from "./types/ui.ts";
+import type { BootConfig, ServiceWorkerTargetMessage } from "./types/ui.ts";
 import { BoxProxy } from "./lib/box_proxy.ts";
 
 const logger = initLogger("[Client]");
@@ -50,6 +50,55 @@ safeRun(async () => {
     return;
   }
 
+  if (bootConfig?.encryptionSalt) {
+    // Init encryption
+    const swController = navigator.serviceWorker.controller;
+    if (swController) {
+      // Service is already running, let's see if has an encryption key for me
+      console.log(
+        "Service worker already running, querying it for an encryption key",
+      );
+      let encryptionKey: string | undefined;
+      swController.postMessage(
+        { type: "get-encryption-key" } as ServiceWorkerTargetMessage,
+      );
+      await race([
+        new Promise((resolve) => {
+          function keyListener(e: any) {
+            if (e.data.type === "encryption-key") {
+              navigator.serviceWorker.removeEventListener(
+                "message",
+                keyListener,
+              );
+              encryptionKey = e.data.key;
+              resolve(e);
+            }
+          }
+          navigator.serviceWorker.addEventListener("message", keyListener);
+        }),
+        sleep(200),
+      ]);
+      if (encryptionKey) {
+        bootConfig.encryptionKey = encryptionKey;
+      } else {
+        const encryptionKey = prompt("Local encryption key:");
+        if (!encryptionKey) {
+          alert("Aborting boot, reload to try again.");
+          throw new Error("boot aborted");
+        }
+        bootConfig.encryptionKey = encryptionKey;
+      }
+    } else {
+      // Service worker not yet running, so have to ask for encryption key
+      const encryptionKey = prompt("Local encryption key:");
+      if (!encryptionKey) {
+        alert("Aborting boot, reload to try again.");
+        throw new Error("boot aborted");
+      }
+      bootConfig.encryptionKey = encryptionKey;
+    }
+  }
+
   await augmentBootConfig(bootConfig!, config!);
 
   // Update the browser URL to no longer contain the query parameters using pushState
@@ -68,7 +117,7 @@ safeRun(async () => {
     let lastStartNotification = 0;
     navigator.serviceWorker.addEventListener("message", (event) => {
       if (event.data.type === "service-worker-started") {
-        // Service worker started, let's make sure it the current config
+        // Service worker started, let's make sure it has the current config
         console.log(
           "Got notified that service worker has just started, sending config",
           bootConfig,
@@ -88,7 +137,7 @@ safeRun(async () => {
         if (startNotificationCount > 2) {
           // This is not normal. Safari sometimes gets stuck on a database connection if the service worker is updated which means it cannot boot properly
           // the only know fix is to quit the browser and restart it
-          alert(
+          console.warn(
             "Something is wrong with the sync engine, please quit your browser and restart it.",
           );
         }

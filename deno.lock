@@ -50,6 +50,7 @@
     "npm:@lezer/javascript@1.5.1": "1.5.1",
     "npm:@lezer/lr@1.4.2": "1.4.2",
     "npm:@lezer/markdown@1.4.3": "1.4.3",
+    "npm:@msgpack/msgpack@3.1.2": "3.1.2",
     "npm:@replit/codemirror-lang-nix@6.0.1": "6.0.1_@codemirror+autocomplete@6.18.6_@codemirror+language@6.11.1_@codemirror+state@6.5.2_@codemirror+view@6.37.2_@lezer+common@1.2.3_@lezer+highlight@1.2.1_@lezer+lr@1.4.2",
     "npm:@replit/codemirror-vim@6.3.0": "6.3.0_@codemirror+commands@6.8.1_@codemirror+language@6.11.1_@codemirror+search@6.5.11_@codemirror+state@6.5.2_@codemirror+view@6.37.2",
     "npm:@types/node@*": "22.15.15",
@@ -386,6 +387,9 @@
     "@mixmark-io/domino@2.2.0": {
       "integrity": "sha512-Y28PR25bHXUg88kCV7nivXrP2Nj2RueZ3/l/jdx6J9f8J4nsEGcgX0Qe6lt7Pa+J79+kPiJU3LguR6O/6zrLOw=="
     },
+    "@msgpack/msgpack@3.1.2": {
+      "integrity": "sha512-JEW4DEtBzfe8HvUYecLU9e6+XJnKDlUAIve8FvPzF3Kzs6Xo/KuZkZJsDH0wJXl/qEZbeeE7edxDNY3kMs39hQ=="
+    },
     "@replit/codemirror-lang-nix@6.0.1_@codemirror+autocomplete@6.18.6_@codemirror+language@6.11.1_@codemirror+state@6.5.2_@codemirror+view@6.37.2_@lezer+common@1.2.3_@lezer+highlight@1.2.1_@lezer+lr@1.4.2": {
       "integrity": "sha512-lvzjoYn9nfJzBD5qdm3Ut6G3+Or2wEacYIDJ49h9+19WSChVnxv4ojf+rNmQ78ncuxIt/bfbMvDLMeMP0xze6g==",
       "dependencies": [
@@ -677,6 +681,7 @@
       "npm:@lezer/javascript@1.5.1",
       "npm:@lezer/lr@1.4.2",
       "npm:@lezer/markdown@1.4.3",
+      "npm:@msgpack/msgpack@3.1.2",
       "npm:@replit/codemirror-lang-nix@6.0.1",
       "npm:@replit/codemirror-vim@6.3.0",
       "npm:ajv@8.17.1",

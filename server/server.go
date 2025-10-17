@@ -26,9 +26,12 @@ type BootConfig struct {
 
 	// Whether or not the client should push logs to the server
 	LogPush bool `json:"logPush"`
+
+	// Encryption
+	EncryptionSalt string `json:"encryptionSalt,omitempty"` // base64 encoded, when set: enable client side encryption
 }
 
-func RunServer(config *ServerConfig) error {
+func Router(config *ServerConfig) chi.Router {
 	r := chi.NewRouter()
 
 	if config.EnableHTTPLogging {
@@ -68,6 +71,7 @@ func RunServer(config *ServerConfig) error {
 			IndexPage:       spaceConfig.IndexPage,
 			ReadOnly:        spaceConfig.ReadOnlyMode,
 			LogPush:         spaceConfig.LogPush,
+			EncryptionSalt:  spaceConfig.EncryptionSalt,
 		}
 
 		w.Header().Set("Cache-Control", "no-cache")
@@ -115,7 +119,11 @@ func RunServer(config *ServerConfig) error {
 	} else {
 		r.Mount(config.HostURLPrefix, routes)
 	}
+	return r
+}
 
+func RunServer(config *ServerConfig) error {
+	r := Router(config)
 	// Display the final server running message
 	visibleHostname := config.BindHost
 	if config.BindHost == "127.0.0.1" {

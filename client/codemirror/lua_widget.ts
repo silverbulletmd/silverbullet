@@ -60,8 +60,7 @@ export class LuaWidget extends WidgetType {
   }
 
   override get estimatedHeight(): number {
-    const cacheItem = this.client.getWidgetCache(this.cacheKey);
-    return cacheItem ? cacheItem.height : -1;
+    return this.client.getCachedWidgetHeight(this.cacheKey);
   }
 
   toDOM(): HTMLElement {
@@ -96,8 +95,9 @@ export class LuaWidget extends WidgetType {
         div.innerHTML = "";
         this.client.setWidgetCache(
           this.cacheKey,
-          { height: div.clientHeight, html: "", block: false },
+          { html: "", block: false },
         );
+        this.client.setCachedWidgetHeight(this.cacheKey, div.clientHeight);
         return;
       }
       widgetContent = { markdown: "nil", _isWidget: true };
@@ -159,8 +159,9 @@ export class LuaWidget extends WidgetType {
         div.innerHTML = "";
         this.client.setWidgetCache(
           this.cacheKey,
-          { height: div.clientHeight, html: "", block: false },
+          { html: "", block: false },
         );
+        this.client.setCachedWidgetHeight(this.cacheKey, div.clientHeight);
         return;
       }
 
@@ -207,12 +208,12 @@ export class LuaWidget extends WidgetType {
       this.client.setWidgetCache(
         this.cacheKey,
         {
-          height: div.offsetHeight,
           html: html?.outerHTML || "",
           block,
           copyContent: copyContent,
         },
       );
+      this.client.setCachedWidgetHeight(this.cacheKey, div.offsetHeight);
       // Because of the rejiggering of the DOM, we need to do a no-op cursor move to make sure it's positioned correctly
       this.client.editorView.dispatch({
         selection: this.client.editorView.state.selection,

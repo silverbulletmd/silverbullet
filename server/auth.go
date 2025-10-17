@@ -99,7 +99,7 @@ func addAuthEndpoints(r chi.Router, config *ServerConfig) {
 			return
 		}
 
-		if username == spaceConfig.Auth.User && password == spaceConfig.Auth.Pass {
+		if spaceConfig.Authorize(username, password) {
 			// Generate JWT with username (not currently used)
 			payload := map[string]any{
 				"username": username,
@@ -224,8 +224,8 @@ func authMiddleware(config *ServerConfig) func(http.Handler) http.Handler {
 				return
 			}
 
-			username, ok := claims["username"].(string)
-			if !ok || username != spaceConfig.Auth.User {
+			_, ok := claims["username"].(string)
+			if !ok {
 				log.Printf("Username mismatch in JWT on %s", path)
 				redirectToAuth(w, "/.auth", path, config.HostURLPrefix)
 				return
