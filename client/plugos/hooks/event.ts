@@ -131,7 +131,17 @@ export class EventHook implements EventHookI {
 
     // Wait for all promises to resolve
     return (await Promise.allSettled(promises))
-      .filter((result) => result.status === "fulfilled")
+      .filter((result) => {
+        if (result.status === "rejected") {
+          console.error(
+            "Error while dispatching event",
+            eventName,
+            ":",
+            result.reason,
+          );
+        }
+        return result.status === "fulfilled";
+      })
       .map((result) => result.value)
       .filter((result) => result != null); // This keeps non-null/undefined results
   }
