@@ -226,3 +226,29 @@ assert_eq(s1, 5, "or should see falsy first result and evaluate RHS")
 local s2 = (truthy_pair() or 5)
 
 assert_eq(s2, 1, "or should return first result of LHS when truthy")
+
+-- 12. Only the last expression expands
+
+local function ret() return "A", "B" end
+local function a() return "A1", "A2" end
+local function b() return "B1", "B2" end
+local function c() return "C1", "C2" end
+
+assert_eq(string.format("%s-%s", ret()), "A-B",
+  "last-only: single arg expands")
+
+assert_eq(string.format("%s-%s", ret(), "Z"), "A-Z",
+  "last-only: earlier arg is single")
+
+assert_eq(string.format("%s-%s-%s-%s", a(), b(), c()), "A1-B1-C1-C2",
+  "last-only: only last expands, earlier args single")
+
+-- 13. Only false and `nil` are falsey
+
+assert_false(not 0, "not 0 must be false")
+assert_false(not -0.0, "not -0.0 must be false")
+assert_false(not "", "not '' must be false")
+assert_false(not {}, "not {} must be false")
+
+assert_true(not nil, "not nil must be true")
+assert_true(not false, "not false must be true")

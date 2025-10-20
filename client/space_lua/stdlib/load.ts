@@ -1,6 +1,6 @@
 import {
   LuaBuiltinFunction,
-  LuaEnv,
+  type LuaEnv,
   LuaMultiRes,
   type LuaStackFrame,
   type LuaValue,
