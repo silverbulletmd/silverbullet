@@ -144,7 +144,7 @@
                     Login to <img src=".client/logo.png" style="height: 1ch" />
                     {{.SpaceName}}
                 </h1>
-                <form action=".auth" class="flow" id="login" method="POST">
+                <form class="flow" id="login" method="POST">
                     <div class="error-message"></div>
                     <div>
                         <label for="username">Username</label>
@@ -180,30 +180,58 @@
             </div>
         </div>
 
-        <script>
-            const params = new URLSearchParams(window.location.search);
+<script>
+document.getElementById("login").addEventListener("submit", (e) => {
+  console.log("Clicked login", e);
+  const params = new URLSearchParams();
+  params.append('username', document.getElementById('username').value);
+  params.append('password', document.getElementById('password').value);
+  fetch('.auth', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    credentials:'include',
+    body: params.toString(),
+  })
+  .then(response => {
+    console.log("Response", response)
+  })
+  e.preventDefault();
+});
+const workerURL = new URL("service_worker.js", document.baseURI);
+navigator.serviceWorker.register(workerURL, {
+  type: "module",
+  scope: workerURL.pathname.substring(0, workerURL.pathname.lastIndexOf("/") + 1),
+}).then((registration) => {
+  // registration.active.postMessage({
+  //   type: "set-encryption-key",
+  //   key,
+  // });
+});
+const params = new URLSearchParams(window.location.search);
 
-            const error = params.get("error");
-            if (error === "0") {
-                document.querySelector(".error-message").innerText =
-                    "The sent data was invalid";
-            } else if (error === "1") {
-                document.querySelector(".error-message").innerText =
-                    "Invalid username or password";
-            } else if (error === "2") {
-                document.querySelector(".error-message").innerText =
-                    "Too many invalid logins. Try again later";
-            }
+const error = params.get("error");
+if (error === "0") {
+    document.querySelector(".error-message").innerText =
+        "The sent data was invalid";
+} else if (error === "1") {
+    document.querySelector(".error-message").innerText =
+        "Invalid username or password";
+} else if (error === "2") {
+    document.querySelector(".error-message").innerText =
+        "Too many invalid logins. Try again later";
+}
 
-            const from = params.get("from");
-            if (from) {
-                var input = document.createElement("input");
-                input.setAttribute("type", "hidden");
-                input.setAttribute("name", "from");
-                input.setAttribute("value", from);
+const from = params.get("from");
+if (from) {
+    var input = document.createElement("input");
+    input.setAttribute("type", "hidden");
+    input.setAttribute("name", "from");
+    input.setAttribute("value", from);
 
-                document.getElementById("login").appendChild(input);
-            }
-        </script>
+    document.getElementById("login").appendChild(input);
+}
+</script>
     </body>
 </html>
