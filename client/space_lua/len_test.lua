@@ -37,7 +37,45 @@ do
   assert_eq(#t, 42, "__len should override raw table length")
 end
 
--- 3. Non-strings/non-tables (must error)
+-- 2.1. Metamethod result handling
+do
+  local t = {}
+
+  setmetatable(t,
+  {
+    __len = function(_)
+      return 42, 1, 2, 3
+    end,
+  })
+
+  assert_eq(#t, 42, "__len must use only first return value")
+end
+
+-- 2.2. Raw length when no array part
+do
+  local t = {
+    a = 1,
+    b = 2,
+  }
+
+  assert_eq(#t, 0, "table with only non-integer keys has length 0")
+end
+
+-- 2.3. Length when both array and key-value parts
+do
+  local t = {
+    a = 1,
+    b = 2,
+    1,
+    2,
+    c = 3,
+    3,
+  }
+
+  assert_eq(#t, 3, "table with mixed non-integer and integer keys")
+end
+
+-- 3. Non-strings and non-tables
 assert_throws(
   "attempt to get length of a nil value",
   function()
