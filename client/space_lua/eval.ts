@@ -894,16 +894,26 @@ function luaOp(
   return handler.nativeImplementation(left, right, ctx, sf, hints);
 }
 
+/**
+ * Length operator:
+ * - for strings return byte length, ignore `__len`,
+ * - for Lua tables if metatable has `__len` metamethod thenn call it;
+ *   use table length otherwise,
+ * - for other values (userdata): honor `__len` if present,
+ * - for JavaScript arrays return length,
+ * - throw error otherwise.
+ */
 function luaLengthOp(
   val: any,
   ctx: ASTCtx,
   sf: LuaStackFrame,
 ): LuaValue {
-  // Ignore `__len` for strings
+  // Strings: ignore `__len`
   if (typeof val === "string") {
     return val.length;
   }
 
+  // Tables: prefer metatable `__len` to raw length
   if (val instanceof LuaTable) {
     const mt = getMetatable(val, sf);
     if (mt && mt.has("__len")) {
@@ -913,19 +923,21 @@ function luaLengthOp(
     return val.length;
   }
 
-  // JS arrays
+  // Other values: allow metatable `__len` first
+  {
+    const mt = getMetatable(val, sf);
+    if (mt && mt.has("__len")) {
+      const fn = mt.get("__len");
+      return luaCall(fn, [val], ctx, sf);
+    }
+  }
+
+  // JS arrays (interop): length if no `__len` override
   if (Array.isArray(val)) {
     return val.length;
   }
 
-  // Allow metatable `__len` if present for other values
-  const mt = getMetatable(val, sf);
-  if (mt && mt.has("__len")) {
-    const fn = mt.get("__len");
-    return luaCall(fn, [val], ctx, sf);
-  }
-
-  // Error with type name
+  // Otherwise error with type
   const t = luaTypeOf(val) as LuaType;
   throw new LuaRuntimeError(
     `attempt to get length of a ${t} value`,
