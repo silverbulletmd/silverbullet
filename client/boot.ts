@@ -66,7 +66,7 @@ safeRun(async () => {
       );
       let encryptionPhrase: string | undefined;
       swController.postMessage(
-        { type: "get-encryption-key" } as ServiceWorkerTargetMessage,
+        { type: "get-encryption-phrase" } as ServiceWorkerTargetMessage,
       );
       await race([
         new Promise((resolve) => {

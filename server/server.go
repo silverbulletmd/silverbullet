@@ -28,7 +28,7 @@ type BootConfig struct {
 	LogPush bool `json:"logPush"`
 
 	// Encryption
-	EncryptionSalt string `json:"encryptionSalt,omitempty"` // base64 encoded, when set: enable client side encryption
+	EncryptionSalt string `json:"encryptionSalt,omitempty"` // base64 encoded only set when authentication is enabled
 }
 
 func Router(config *ServerConfig) chi.Router {

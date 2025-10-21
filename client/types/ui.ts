@@ -204,7 +204,7 @@ export type ServiceWorkerTargetMessage =
   | { type: "perform-file-sync"; path: string }
   | { type: "perform-space-sync" }
   | { type: "force-connection-status"; enabled: boolean }
-  | { type: "get-encryption-key" }
+  | { type: "get-encryption-phrase" }
   | { type: "set-encryption-phrase"; phrase: string };
 /**
  * Events received from the service worker -> client

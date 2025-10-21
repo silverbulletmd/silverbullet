@@ -149,7 +149,7 @@ self.addEventListener("message", async (event: any) => {
       console.info("Forced connection status to", message.enabled);
       break;
     }
-    case "get-encryption-key": {
+    case "get-encryption-phrase": {
       event.source.postMessage({
         type: "encryption-key",
         key: encryptionPhraseMemoryStore,
