@@ -43,9 +43,6 @@ type SpaceConfig struct {
 	// Auth temporary objects
 	JwtIssuer    *Authenticator
 	LockoutTimer *LockoutTimer
-
-	// Encryption
-	EncryptionSalt string
 }
 
 type ConfigResolver func(r *http.Request) (*SpaceConfig, error)

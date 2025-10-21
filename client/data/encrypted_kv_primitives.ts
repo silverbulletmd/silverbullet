@@ -4,9 +4,10 @@ import type { KV, KvKey } from "../../plug-api/types/datastore.ts";
 import {
   decryptAesGcm,
   decryptStringDeterministic,
-  deriveKeysFromPassword,
+  deriveGCMKeyFromCTR,
   encryptAesGcm,
   encryptStringDeterministic,
+  importKey,
 } from "@silverbulletmd/silverbullet/lib/crypto";
 
 import { decode, encode } from "@msgpack/msgpack";
@@ -17,15 +18,13 @@ export class EncryptedKvPrimitives implements KvPrimitives {
 
   constructor(
     private wrapped: KvPrimitives,
-    private password: string,
-    private salt: Uint8Array,
+    private encryptionKey: string, // base64 encoded
   ) {
   }
 
   async init() {
-    const { ctr, gcm } = await deriveKeysFromPassword(this.password, this.salt);
-    this.keyKey = ctr;
-    this.dataKey = gcm;
+    this.keyKey = await importKey(this.encryptionKey);
+    this.dataKey = await deriveGCMKeyFromCTR(this.keyKey);
   }
 
   clear(): Promise<void> {

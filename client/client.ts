@@ -39,10 +39,7 @@ import type { StyleObject } from "../plugs/index/style.ts";
 import { jitter, throttle } from "@silverbulletmd/silverbullet/lib/async";
 import { PlugSpacePrimitives } from "./spaces/plug_space_primitives.ts";
 import { EventedSpacePrimitives } from "./spaces/evented_space_primitives.ts";
-import {
-  base64Decode,
-  simpleHash,
-} from "@silverbulletmd/silverbullet/lib/crypto";
+import { simpleHash } from "@silverbulletmd/silverbullet/lib/crypto";
 import { HttpSpacePrimitives } from "./spaces/http_space_primitives.ts";
 import {
   encodePageURI,
@@ -83,7 +80,7 @@ import {
 } from "@silverbulletmd/silverbullet/constants";
 import { Augmenter } from "./data/data_augmenter.ts";
 import { EncryptedKvPrimitives } from "./data/encrypted_kv_primitives.ts";
-import { KvPrimitives } from "./data/kv_primitives.ts";
+import type { KvPrimitives } from "./data/kv_primitives.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -193,11 +190,10 @@ export class Client {
     await (kvPrimitives as IndexedDBKvPrimitives).init();
 
     // See if we need to encrypt this
-    if (this.bootConfig.encryptionSalt) {
+    if (this.bootConfig.encryptionKey) {
       kvPrimitives = new EncryptedKvPrimitives(
         kvPrimitives,
-        "zef",
-        base64Decode(this.bootConfig.encryptionSalt),
+        this.bootConfig.encryptionKey,
       );
       await (kvPrimitives as EncryptedKvPrimitives).init();
     }

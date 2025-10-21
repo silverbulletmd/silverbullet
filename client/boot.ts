@@ -13,6 +13,10 @@ import {
 import "./lib/polyfills.ts";
 import type { BootConfig, ServiceWorkerTargetMessage } from "./types/ui.ts";
 import { BoxProxy } from "./lib/box_proxy.ts";
+import {
+  base64Decode,
+  deriveCTRKeyFromPassword,
+} from "@silverbulletmd/silverbullet/lib/crypto";
 
 const logger = initLogger("[Client]");
 
@@ -50,15 +54,17 @@ safeRun(async () => {
     return;
   }
 
-  if (bootConfig?.encryptionSalt) {
+  // If client encryption is enabled (from auth page) AND the server set a salt (only the case when enabling auth)
+  if (localStorage.getItem("enableEncryption") && bootConfig?.encryptionSalt) {
     // Init encryption
+    console.log("Initializing encryption");
     const swController = navigator.serviceWorker.controller;
     if (swController) {
       // Service is already running, let's see if has an encryption key for me
       console.log(
         "Service worker already running, querying it for an encryption key",
       );
-      let encryptionKey: string | undefined;
+      let encryptionPhrase: string | undefined;
       swController.postMessage(
         { type: "get-encryption-key" } as ServiceWorkerTargetMessage,
       );
@@ -70,7 +76,7 @@ safeRun(async () => {
                 "message",
                 keyListener,
               );
-              encryptionKey = e.data.key;
+              encryptionPhrase = e.data.key;
               resolve(e);
             }
           }
@@ -78,25 +84,26 @@ safeRun(async () => {
         }),
         sleep(200),
       ]);
-      if (encryptionKey) {
-        bootConfig.encryptionKey = encryptionKey;
+      if (encryptionPhrase) {
+        const key = await deriveCTRKeyFromPassword(
+          encryptionPhrase,
+          base64Decode(bootConfig!.encryptionSalt!),
+        );
+        bootConfig!.encryptionKey = key;
       } else {
-        const encryptionKey = prompt("Local encryption key:");
-        if (!encryptionKey) {
-          alert("Aborting boot, reload to try again.");
-          throw new Error("boot aborted");
-        }
-        bootConfig.encryptionKey = encryptionKey;
+        // No encryption key, redirecting to the auth page
+        console.warn("Not authenticated, redirecting to auth page");
+        location.href = ".auth";
+        throw new Error("Not authenticated");
       }
     } else {
-      // Service worker not yet running, so have to ask for encryption key
-      const encryptionKey = prompt("Local encryption key:");
-      if (!encryptionKey) {
-        alert("Aborting boot, reload to try again.");
-        throw new Error("boot aborted");
-      }
-      bootConfig.encryptionKey = encryptionKey;
+      // No service worker, no encryption key, redirecting to the auth page
+      console.warn("Not authenticated, redirecting to auth page");
+      location.href = ".auth";
+      throw new Error("Not authenticated");
     }
+  } else {
+    delete bootConfig?.encryptionSalt;
   }
 
   await augmentBootConfig(bootConfig!, config!);

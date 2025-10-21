@@ -1,15 +1,18 @@
 import {
   decryptAesGcm,
   decryptStringDeterministic,
-  deriveKeysFromPassword,
+  deriveCTRKeyFromPassword,
+  deriveGCMKeyFromCTR,
   encryptAesGcm,
   encryptStringDeterministic,
+  importKey,
 } from "@silverbulletmd/silverbullet/lib/crypto";
 import { assertEquals } from "@std/assert";
 
 Deno.test("Crypto test", async () => {
   const salt = new Uint8Array(16); // zeroes for testing
-  const { gcm, ctr } = await deriveKeysFromPassword("12345", salt);
+  const ctr = await importKey(await deriveCTRKeyFromPassword("12345", salt));
+  const gcm = await deriveGCMKeyFromCTR(ctr);
   const text = "123";
   const encrypted = await encryptStringDeterministic(ctr, text);
   const encrypted2 = await encryptStringDeterministic(ctr, text);

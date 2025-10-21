@@ -66,12 +66,16 @@ func Router(config *ServerConfig) chi.Router {
 	// Config endpoint
 	routes.Get("/.config", func(w http.ResponseWriter, r *http.Request) {
 		spaceConfig := spaceConfigFromContext(r.Context())
+		salt := ""
+		if spaceConfig.JwtIssuer != nil {
+			salt = spaceConfig.JwtIssuer.Salt
+		}
 		clientConfig := &BootConfig{
 			SpaceFolderPath: spaceConfig.SpaceFolderPath,
 			IndexPage:       spaceConfig.IndexPage,
 			ReadOnly:        spaceConfig.ReadOnlyMode,
 			LogPush:         spaceConfig.LogPush,
-			EncryptionSalt:  spaceConfig.EncryptionSalt,
+			EncryptionSalt:  salt,
 		}
 
 		w.Header().Set("Cache-Control", "no-cache")

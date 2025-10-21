@@ -126,10 +126,10 @@ export async function decryptAesGcm(
   return new Uint8Array(decryptedBuffer);
 }
 
-export async function deriveKeysFromPassword(
+export async function deriveCTRKeyFromPassword(
   password: string,
   salt: Uint8Array,
-): Promise<{ ctr: CryptoKey; gcm: CryptoKey }> {
+): Promise<string> {
   // Encode password to ArrayBuffer
   const passwordBytes = new TextEncoder().encode(password);
 
@@ -142,31 +142,50 @@ export async function deriveKeysFromPassword(
     ["deriveBits", "deriveKey"],
   );
 
-  // Derive a key for AES-CTR
-  const ctrKey = await crypto.subtle.deriveKey(
-    {
-      name: "PBKDF2",
-      salt: salt as BufferSource,
-      iterations: 100000,
-      hash: "SHA-256",
-    },
-    baseKey,
-    {
-      name: "AES-CTR",
-      length: 256,
-    },
-    true, // extractable
+  return exportKey(
+    await crypto.subtle.deriveKey(
+      {
+        name: "PBKDF2",
+        salt: salt as BufferSource,
+        iterations: 100000,
+        hash: "SHA-256",
+      },
+      baseKey,
+      {
+        name: "AES-CTR",
+        length: 256,
+      },
+      true, // extractable
+      ["encrypt", "decrypt"],
+    ),
+  );
+}
+
+export async function exportKey(ctrKey: CryptoKey): Promise<string> {
+  const key = await crypto.subtle.exportKey("raw", ctrKey);
+  return base64Encode(new Uint8Array(key));
+}
+
+export function importKey(b64EncodedCtrKey: string): Promise<CryptoKey> {
+  const keyBytes = base64Decode(b64EncodedCtrKey);
+  return crypto.subtle.importKey(
+    "raw",
+    keyBytes as BufferSource,
+    { name: "AES-CTR" },
+    true,
     ["encrypt", "decrypt"],
   );
+}
 
+export async function deriveGCMKeyFromCTR(
+  ctrKey: CryptoKey,
+): Promise<CryptoKey> {
   const rawKey = await crypto.subtle.exportKey("raw", ctrKey);
-  const gcmKey = await crypto.subtle.importKey(
+  return crypto.subtle.importKey(
     "raw",
     rawKey,
     { name: "AES-GCM" },
     true,
     ["encrypt", "decrypt"],
   );
-
-  return { gcm: gcmKey, ctr: ctrKey };
 }

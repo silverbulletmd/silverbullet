@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/render"
 )
 
 // path to auth page in the client bundle
@@ -42,6 +43,10 @@ func addAuthEndpoints(r chi.Router, config *ServerConfig) {
 	// Auth page
 	r.Get("/.auth", func(w http.ResponseWriter, r *http.Request) {
 		spaceConfig := spaceConfigFromContext(r.Context())
+		if spaceConfig.Auth == nil {
+			http.Error(w, "Authentication not enabled", http.StatusForbidden)
+			return
+		}
 		if err := spaceConfig.InitAuth(); err != nil {
 			http.Error(w, "Failed to initialize authentication", http.StatusInternalServerError)
 			return
@@ -138,12 +143,18 @@ func addAuthEndpoints(r chi.Router, config *ServerConfig) {
 				redirectPath = from
 			}
 
-			http.Redirect(w, r, applyURLPrefix(redirectPath, config.HostURLPrefix), http.StatusFound)
+			render.JSON(w, r, map[string]any{
+				"status":   "ok",
+				"redirect": redirectPath,
+			})
 		} else {
 			log.Println("Authentication failed, redirecting to auth page.")
 			spaceConfig.LockoutTimer.AddCount()
 
-			http.Redirect(w, r, applyURLPrefix("/.auth?error=1", config.HostURLPrefix), http.StatusFound)
+			render.JSON(w, r, map[string]any{
+				"status": "error",
+				"error":  "Invalid username and/or password",
+			})
 		}
 	})
 }

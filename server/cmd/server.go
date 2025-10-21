@@ -89,11 +89,6 @@ func buildConfig(bundledFiles fs.FS, args []string) *server.ServerConfig {
 		log.Fatal(err)
 	}
 
-	if os.Getenv("SB_ENCRYPTION_SALT") != "" {
-		rootSpaceConfig.EncryptionSalt = os.Getenv("SB_ENCRYPTION_SALT")
-		log.Println("Client-side encryption enabled")
-	}
-
 	serverConfig.EnableHTTPLogging = os.Getenv("SB_HTTP_LOGGING") != ""
 
 	if os.Getenv("SB_USER") != "" {

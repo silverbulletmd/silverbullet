@@ -1,11 +1,13 @@
 import { assert, assertEquals } from "@std/assert";
 import { EncryptedKvPrimitives } from "./encrypted_kv_primitives.ts";
 import { MemoryKvPrimitives } from "./memory_kv_primitives.ts";
+import { deriveCTRKeyFromPassword } from "@silverbulletmd/silverbullet/lib/crypto";
 
 Deno.test("Test Encrypted KV Primitives", async () => {
   const memoryKv = new MemoryKvPrimitives();
   const salt = new Uint8Array(32);
-  const kv = new EncryptedKvPrimitives(memoryKv, "test", salt);
+  const key = await deriveCTRKeyFromPassword("test", salt);
+  const kv = new EncryptedKvPrimitives(memoryKv, key);
   await kv.init();
 
   // Store a basic key

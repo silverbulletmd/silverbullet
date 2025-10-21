@@ -8,6 +8,7 @@ import type {
 } from "./types/ui.ts";
 import {
   base64Decode,
+  deriveCTRKeyFromPassword,
   simpleHash,
 } from "@silverbulletmd/silverbullet/lib/crypto";
 import { IndexedDBKvPrimitives } from "./data/indexeddb_kv_primitives.ts";
@@ -67,7 +68,7 @@ let configuring = false;
 globalThis.proxyRouter = proxyRouter;
 
 // This is the in-memory store of an encryption key that SB clients and the index engine can share without asking for it constantly
-let encryptionKeyMemoryStore: string | undefined;
+let encryptionPhraseMemoryStore: string | undefined;
 
 // Let's clean this encryptionKey if there's no more clients left for a little while, asking to re-enter
 setInterval(() => {
@@ -75,7 +76,7 @@ setInterval(() => {
   globalThis.clients.matchAll().then((clients) => {
     if (clients.length === 0) {
       console.info("No more clients, flushing encryption key");
-      encryptionKeyMemoryStore = undefined;
+      encryptionPhraseMemoryStore = undefined;
     }
   });
 }, 5000); // little while is 5s
@@ -151,8 +152,13 @@ self.addEventListener("message", async (event: any) => {
     case "get-encryption-key": {
       event.source.postMessage({
         type: "encryption-key",
-        key: encryptionKeyMemoryStore,
+        key: encryptionPhraseMemoryStore,
       } as ServiceWorkerSourceMessage);
+      break;
+    }
+    case "set-encryption-phrase": {
+      encryptionPhraseMemoryStore = message.phrase;
+      console.info("Encryption phrase set");
       break;
     }
     case "config": {
@@ -166,7 +172,6 @@ self.addEventListener("message", async (event: any) => {
           syncDocuments: config.syncDocuments,
           syncIgnore: config.syncIgnore,
         });
-        encryptionKeyMemoryStore = config.encryptionKey;
 
         return;
       } else {
@@ -202,18 +207,22 @@ self.addEventListener("message", async (event: any) => {
         await (kv as IndexedDBKvPrimitives).init();
 
         if (config.encryptionSalt) {
-          if (!config.encryptionKey) {
+          if (!encryptionPhraseMemoryStore) {
             console.error(
-              "Supposed to use encryption, but no key specified, ABORT",
+              "Supposed to use encryption, but no phrase set yet, auth error",
             );
+            broadcastMessage({
+              type: "auth-error",
+              message: "No encryption phrase set, redirecting to authenticate",
+              actionOrRedirectHeader: "reload",
+            });
             return;
           } else {
-            encryptionKeyMemoryStore = config.encryptionKey;
-            kv = new EncryptedKvPrimitives(
-              kv,
-              config.encryptionKey,
+            const key = await deriveCTRKeyFromPassword(
+              encryptionPhraseMemoryStore,
               base64Decode(config.encryptionSalt),
             );
+            kv = new EncryptedKvPrimitives(kv, key);
             await (kv as EncryptedKvPrimitives).init();
           }
         }
