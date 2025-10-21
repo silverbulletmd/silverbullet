@@ -172,6 +172,72 @@ const rawsetFunction = new LuaBuiltinFunction(
   },
 );
 
+const rawgetFunction = new LuaBuiltinFunction(
+  (_sf, table: any, key: LuaValue) => {
+    const isLuaTable = typeof table === "object" &&
+      table !== null &&
+      typeof (table as any).rawGet === "function";
+
+    const isArray = Array.isArray(table);
+
+    const isPlainObj = typeof table === "object" &&
+      table !== null &&
+      table.constructor === Object;
+
+    if (!isLuaTable && !isArray && !isPlainObj) {
+      let typeName = "userdata";
+      if (table === null || table === undefined) {
+        typeName = "nil";
+      } else if (typeof table === "boolean") {
+        typeName = "boolean";
+      } else if (typeof table === "number" || table instanceof Number) {
+        typeName = "number";
+      } else if (typeof table === "string") {
+        typeName = "string";
+      } else if (
+        typeof table === "function" ||
+        (typeof table === "object" &&
+          table !== null &&
+          typeof (table as any).call === "function")
+      ) {
+        typeName = "function";
+      }
+      throw new LuaRuntimeError(
+        `bad argument #1 to 'rawget' (table expected, got ${typeName})`,
+        _sf,
+      );
+    }
+
+    if (isLuaTable) {
+      const v = (table as any).rawGet(key);
+      return v === undefined ? null : v;
+    }
+
+    const k = key instanceof Number ? Number(key) : key;
+
+    if (isArray) {
+      if (typeof k === "number") {
+        const v = (table as any)[k - 1];
+        return v === undefined ? null : v;
+      } else {
+        const v = (table as any)[k];
+        return v === undefined ? null : v;
+      }
+    }
+
+    const v = (table as any)[k];
+    return v === undefined ? null : v;
+  },
+);
+
+const rawequalFunction = new LuaBuiltinFunction(
+  (_sf, a: any, b: any) => {
+    const av = a instanceof Number ? Number(a) : a;
+    const bv = b instanceof Number ? Number(b) : b;
+    return av === bv;
+  },
+);
+
 const getmetatableFunction = new LuaBuiltinFunction((_sf, table: LuaTable) => {
   return table.metatable;
 });
@@ -294,6 +360,8 @@ export function luaBuildStandardEnv() {
   env.set("getmetatable", getmetatableFunction);
   env.set("rawlen", rawlenFunction);
   env.set("rawset", rawsetFunction);
+  env.set("rawget", rawgetFunction);
+  env.set("rawequal", rawequalFunction);
   env.set("dofile", dofileFunction);
   // Error handling
   env.set("error", errorFunction);

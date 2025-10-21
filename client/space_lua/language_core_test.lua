@@ -649,3 +649,100 @@ expect_rawlen_error(nil, "nil")
 expect_rawlen_error(1, "number")
 expect_rawlen_error(false, "boolean")
 expect_rawlen_error(function() end, "function")
+
+-- Some `rawget` tests
+
+-- Tables
+do
+  local t = { "a", "b" }
+
+  assertEqual(rawget(t, 1), "a")
+  assertEqual(rawget(t, 2), "b")
+  assertEqual(rawget(t, 3), nil, "rawget missing key returns nil")
+end
+
+-- `rawget` ignores `__index` metamethod
+do
+  local t = {}
+
+  setmetatable(
+    t,
+    {
+      __index = function()
+        return "X"
+      end
+    }
+  )
+
+  assertEqual(rawget(t, "k"), nil, "rawget must ignore __index")
+
+  t.k = "v"
+  assertEqual(rawget(t, "k"), "v")
+end
+
+-- JS arrays
+do
+  local a = js.window.JSON.parse("[1, 2, 3]")
+
+  assertEqual(rawget(a, 1), 1)
+  assertEqual(rawget(a, 2), 2)
+  assertEqual(rawget(a, 4), nil)
+end
+
+-- Plain JS objects
+do
+  local o = js.window.JSON.parse('{ "a": 1, "b": null }')
+
+  assertEqual(rawget(o, "a"), 1)
+  assertEqual(rawget(o, "b"), nil)
+  assertEqual(rawget(o, "c"), nil)
+end
+
+-- `rawget` argument errors
+local function expect_rawget_error(v, typeName)
+  local ok, err = pcall(
+    function()
+      return rawget(v, "k")
+    end
+  )
+
+  assertEqual(ok, false, "rawget must error on " .. tostring(typeName))
+
+  local s = tostring(err)
+
+  assert(
+    string.find(s, "bad argument #1 to 'rawget'", 1, true) ~= nil,
+    "error must mention rawget"
+  )
+
+  assert(
+    string.find(s, typeName, 1, true) ~= nil,
+    "error must mention type name"
+  )
+end
+
+expect_rawget_error(nil, "nil")
+expect_rawget_error(1, "number")
+expect_rawget_error(false, "boolean")
+expect_rawget_error(function() end, "function")
+
+-- Some `rawequal` tests
+do
+  -- Primitives
+  assertEqual(rawequal(1, 1), true)
+  assertEqual(rawequal(1, 2), false)
+  assertEqual(rawequal("x", "x"), true)
+  assertEqual(rawequal("x", "y"), false)
+
+  -- Tables: identity vs structural equality
+  local t1 = {}
+  local t2 = {}
+
+  assertEqual(rawequal(t1, t1), true)
+  assertEqual(rawequal(t1, t2), false)
+
+  -- NaN is not equal to NaN
+  local nan = 0/0
+
+  assertEqual(rawequal(nan, nan), false)
+end
