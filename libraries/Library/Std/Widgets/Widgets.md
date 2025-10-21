@@ -88,7 +88,6 @@ function widgets.toc(options)
   local text = editor.getText()
   local pageName = editor.getCurrentPage()
   local parsedMarkdown = markdown.parseMarkdown(text)
-
   -- Collect all headers
   local headers = {}
   for topLevelChild in parsedMarkdown.children do
@@ -107,7 +106,7 @@ function widgets.toc(options)
           table.insert(headers, {
             name = text,
             pos = topLevelChild.from,
-            level = headerLevel
+            level = tonumber(headerLevel)
           })
         end
       end

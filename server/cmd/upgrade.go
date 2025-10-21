@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"archive/zip"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -121,32 +123,41 @@ func extractZip(src, dest string) error {
 	defer reader.Close()
 
 	for _, file := range reader.File {
+		path := filepath.Join(dest, file.Name)
+
+		// Handle directories first, report errors here too
+		if file.FileInfo().IsDir() {
+			if err := os.MkdirAll(path, file.FileInfo().Mode()); err != nil {
+				return err
+			}
+			continue
+		}
+
 		rc, err := file.Open()
 		if err != nil {
 			return err
 		}
 		defer rc.Close()
 
-		path := filepath.Join(dest, file.Name)
-
-		// Check for directory
-		if file.FileInfo().IsDir() {
-			os.MkdirAll(path, file.FileInfo().Mode())
-			continue
-		}
-
 		// Create parent directories
 		if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 			return err
 		}
 
-		// Create the file
+		// First, attempt to remove the file to prevent "text file busy" error
+		err = os.Remove(path)
+		if err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+
+		// Create the file. It will create a new inode, so we can write to it while the executable still runs
 		outFile, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, file.FileInfo().Mode())
 		if err != nil {
 			return err
 		}
 		defer outFile.Close()
 
+		// Extract to the file
 		_, err = io.Copy(outFile, rc)
 		if err != nil {
 			return err
