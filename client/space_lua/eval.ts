@@ -899,7 +899,7 @@ function luaOp(
 /**
  * Length operator:
  * - for strings return byte length, ignore `__len`,
- * - for Lua tables if metatable has `__len` metamethod thenn call it;
+ * - for Lua tables if metatable has `__len` metamethod then call it;
  *   use table length otherwise,
  * - for other values (userdata): honor `__len` if present,
  * - for JavaScript arrays return length,
