@@ -48,8 +48,8 @@ command.update {
 -- To disable key bindings of an existing command
 command.update {
   name = "Navigate: Document Picker",
-  key = nil,
-  mac = nil,
+  key = "",
+  mac = "",
 }
 ```
 

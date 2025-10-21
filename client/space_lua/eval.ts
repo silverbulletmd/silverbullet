@@ -269,7 +269,7 @@ export function evalExpression(
                 return +singleResult(value);
               }
               case "not": {
-                return !singleResult(value);
+                return !luaTruthy(singleResult(value));
               }
               case "~": {
                 const arg = singleResult(value);
@@ -308,7 +308,7 @@ export function evalExpression(
               return +singleResult(value);
             }
             case "not": {
-              return !singleResult(value);
+              return !luaTruthy(singleResult(value));
             }
             case "~": {
               const arg = singleResult(value);
@@ -494,7 +494,7 @@ function evalPrefixExpression(
     }
     case "FunctionCall": {
       const prefixValue = evalPrefixExpression(e.prefix, env, sf);
-      if (!prefixValue) {
+      if (prefixValue === null || prefixValue === undefined) {
         throw new LuaRuntimeError(
           `Attempting to call nil as a function`,
           sf.withCtx(e.prefix.ctx),
@@ -605,14 +605,16 @@ function evalLogical(
   const decide = (lv: any) => {
     if (op === "or") {
       if (luaTruthy(lv)) {
-        return lv;
+        return singleResult(lv);
       }
-      return evalExpression(rightExpr, env, sf);
+      const rv = evalExpression(rightExpr, env, sf);
+      return rv instanceof Promise ? rv.then(singleResult) : singleResult(rv);
     } else {
       if (!luaTruthy(lv)) {
-        return lv;
+        return singleResult(lv);
       }
-      return evalExpression(rightExpr, env, sf);
+      const rv = evalExpression(rightExpr, env, sf);
+      return rv instanceof Promise ? rv.then(singleResult) : singleResult(rv);
     }
   };
 
@@ -941,12 +943,32 @@ function evalExpressions(
   const argsVal = evalPromiseValues(
     es.map((arg) => evalExpression(arg, env, sf)),
   );
+
+  // In Lua multi-returns propagate only in tail position of an expression
+  // list.
+  const finalize = (argsResolved: any[]) => {
+    if (argsResolved.length === 0) {
+      return [];
+    }
+    const out: LuaValue[] = [];
+    // All but last expression produce a single value
+    for (let i = 0; i < argsResolved.length - 1; i++) {
+      out.push(singleResult(argsResolved[i]));
+    }
+    // Last expression preserves multiple results
+    const last = argsResolved[argsResolved.length - 1];
+    if (last instanceof LuaMultiRes) {
+      out.push(...last.flatten().values);
+    } else {
+      out.push(singleResult(last));
+    }
+    return out;
+  };
+
   if (argsVal instanceof Promise) {
-    return argsVal.then((argsResolved) =>
-      new LuaMultiRes(argsResolved).flatten().values
-    );
+    return argsVal.then(finalize);
   } else {
-    return new LuaMultiRes(argsVal).flatten().values;
+    return finalize(argsVal as any[]);
   }
 }
 
