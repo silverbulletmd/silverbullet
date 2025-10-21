@@ -9,6 +9,10 @@ Deno.test("[Lua] Core language", async () => {
   await runLuaTest("./language_core_test.lua");
 });
 
+Deno.test("[Lua] Core language (length)", async () => {
+  await runLuaTest("./len_test.lua");
+});
+
 Deno.test("[Lua] Core language (truthiness)", async () => {
   await runLuaTest("./truthiness_test.lua");
 });
