@@ -229,8 +229,6 @@ self.addEventListener("message", async (event: any) => {
           console.log("Enabled client-side encryption for synced files");
         }
 
-        console.log("Encryption key", encryptionKeyMemoryStore);
-
         // And use that to power the IndexedDB backed local storage
         const local = new DataStoreSpacePrimitives(kv);
 

@@ -52,8 +52,8 @@ export const luaLanguage = LRLanguage.define({
     ],
   }),
   languageData: {
-    commentTokens: { line: "--", block: { open: "--[[", close: "--]]" }}
-  }
+    commentTokens: { line: "--", block: { open: "--[[", close: "--]]" } },
+  },
 });
 
 function context(t: ParseTree, ctx: Record<string, any>): ASTCtx {

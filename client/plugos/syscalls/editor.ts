@@ -13,8 +13,8 @@ import {
   moveLineDown,
   moveLineUp,
   redo,
+  toggleComment,
   undo,
-  toggleComment
 } from "@codemirror/commands";
 import type { Transaction } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
@@ -600,7 +600,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
       return toggleComment({
         state: client.editorView.state,
         dispatch: client.editorView.dispatch,
-      })
+      });
     },
     "editor.moveLineUp": () => {
       return moveLineUp({
