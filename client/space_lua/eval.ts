@@ -25,7 +25,6 @@ import {
   luaSet,
   type LuaStackFrame,
   LuaTable,
-  luaToString,
   luaTruthy,
   type LuaType,
   luaTypeOf,
@@ -834,15 +833,27 @@ const operatorsMetaMethods: Record<string, {
   },
   "..": {
     metaMethod: "__concat",
-    nativeImplementation: (a, b) => {
-      const aString = luaToString(a);
-      const bString = luaToString(b);
-
-      if (aString instanceof Promise || bString instanceof Promise) {
-        return Promise.all([aString, bString]).then(([a, b]) => a + b);
-      } else {
-        return aString + bString;
-      }
+    nativeImplementation: (a, b, ctx, sf) => {
+      // Accepts only strings or numbers (coerced to strings)
+      const coerce = (v: any): string => {
+        if (v === null || v === undefined) {
+          throw new LuaRuntimeError(
+            "attempt to concatenate a nil value",
+            sf.withCtx(ctx),
+          );
+        }
+        if (typeof v === "string") {
+          return v as string;
+        }
+        if (typeof v === "number" || v instanceof Number) {
+          return String(v instanceof Number ? Number(v) : v);
+        }
+        throw new LuaRuntimeError(
+          "attempt to concatenate a non-string or non-number",
+          sf.withCtx(ctx),
+        );
+      };
+      return coerce(a) + coerce(b);
     },
   },
   "==": {

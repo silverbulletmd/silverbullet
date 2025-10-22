@@ -746,3 +746,149 @@ do
 
   assertEqual(rawequal(nan, nan), false)
 end
+
+-- Some `..` (concatenation) tests
+
+-- Strings and numbers
+assertEqual("a" .. "b", "ab")
+assertEqual(1 .. "b", "1b")
+assertEqual("a" .. 2, "a2")
+assertEqual(4 .. 2, "42")
+assertEqual("123" .. 45, "12345")
+
+-- Multi-return (only first value is used)
+do
+  local function f()
+    return "X", "Y"
+  end
+
+  assertEqual("A" .. f(), "AX")
+
+  local function g()
+    return 1, 2
+  end
+
+  assertEqual(g() .. "X", "1X")
+end
+
+local function expect_concat_nil_error(lhs, rhs)
+  local ok, err = pcall(
+    function()
+      return lhs .. rhs
+    end
+  )
+
+  assertEqual(ok, false, "concat must error on nil")
+end
+
+local function expect_concat_type_error(lhs, rhs)
+  local ok, err = pcall(
+    function()
+      return lhs .. rhs
+    end
+  )
+
+  assertEqual(ok, false, "concat must error on non-string/non-number")
+end
+
+-- Nil on either side
+expect_concat_nil_error(nil, "x")
+expect_concat_nil_error("x", nil)
+expect_concat_nil_error(nil, 1)
+expect_concat_nil_error(1, nil)
+expect_concat_nil_error(nil, nil)
+
+-- Non-string and non-number must error
+expect_concat_type_error(true, "x")
+expect_concat_type_error("x", false)
+expect_concat_type_error(true, true)
+
+do
+  local t = {}
+
+  expect_concat_type_error(t, "x")
+  expect_concat_type_error("x", t)
+  expect_concat_type_error(t, t)
+end
+
+-- JS arrays and JS objects behave as tables (no concat)
+do
+  local arr = js.window.JSON.parse("[1, 2]")
+
+  expect_concat_type_error(arr, "x")
+  expect_concat_type_error("x", arr)
+  expect_concat_type_error(arr, arr)
+
+  local obj = js.window.JSON.parse('{ "a": 1 }')
+
+  expect_concat_type_error(obj, "x")
+  expect_concat_type_error("x", obj)
+  expect_concat_type_error(obj, obj)
+end
+
+-- `__tostring` alone does not relax concat rules
+do
+  local t = {}
+
+  setmetatable(
+    t,
+    {
+      __tostring = function(_)
+        return "T"
+      end
+    }
+  )
+
+  expect_concat_type_error(t, "x")
+  expect_concat_type_error("x", t)
+  expect_concat_type_error(t, t)
+end
+
+-- `__concat` metamethod cases
+do
+  local L = {}
+
+  setmetatable(
+    L,
+    {
+      __concat = function(a, b)
+        return "LEFT"
+      end
+    }
+  )
+
+  assertEqual(L .. "x", "LEFT")
+
+  local R = {}
+
+  setmetatable(
+    R,
+    {
+      __concat = function(a, b)
+        return "RIGHT"
+      end
+    }
+  )
+
+  assertEqual("x" .. R, "RIGHT")
+
+  assertEqual(L .. R, "LEFT",
+    "left-side __concat must be preferred when both defined")
+end
+
+-- `__concat` result handling (only first value used)
+do
+  local M = {}
+
+  setmetatable(
+    M,
+    {
+      __concat = function(a, b)
+        return "A", "B"
+      end
+    }
+  )
+
+  assertEqual(M .. "x", "A",
+    "__concat must use only first return value")
+end
