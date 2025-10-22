@@ -187,7 +187,7 @@ export type BootConfig = {
 
   // Encryption
   encryptionSalt?: string; // base64 encoded, when set: enable client side encryption
-  encryptionKey?: string;
+  encryptionKey?: CryptoKey; // Only used for internal transfer
 };
 
 /**

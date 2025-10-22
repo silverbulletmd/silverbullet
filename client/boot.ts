@@ -103,6 +103,7 @@ safeRun(async () => {
       throw new Error("Not authenticated");
     }
   } else {
+    // Unset encryptionSalt to indicate to the client that no encryption needs to be enabled
     delete bootConfig?.encryptionSalt;
   }
 

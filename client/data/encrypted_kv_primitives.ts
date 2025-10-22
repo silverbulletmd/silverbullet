@@ -7,23 +7,23 @@ import {
   deriveGCMKeyFromCTR,
   encryptAesGcm,
   encryptStringDeterministic,
-  importKey,
 } from "@silverbulletmd/silverbullet/lib/crypto";
 
 import { decode, encode } from "@msgpack/msgpack";
 
 export class EncryptedKvPrimitives implements KvPrimitives {
-  private keyKey!: CryptoKey;
+  private keyKey: CryptoKey;
   private dataKey!: CryptoKey;
 
   constructor(
     private wrapped: KvPrimitives,
-    private encryptionKey: string, // base64 encoded
+    encryptionKey: CryptoKey,
   ) {
+    this.keyKey = encryptionKey;
   }
 
+  // MUST immediately be called after constructor
   async init() {
-    this.keyKey = await importKey(this.encryptionKey);
     this.dataKey = await deriveGCMKeyFromCTR(this.keyKey);
   }
 

@@ -9,7 +9,7 @@ import type {
 import {
   base64Decode,
   deriveCTRKeyFromPassword,
-  simpleHash,
+  deriveDbName,
 } from "@silverbulletmd/silverbullet/lib/crypto";
 import { IndexedDBKvPrimitives } from "./data/indexeddb_kv_primitives.ts";
 import { fsEndpoint } from "./spaces/constants.ts";
@@ -188,24 +188,6 @@ self.addEventListener("message", async (event: any) => {
         configuring = false;
       }, 5000);
       try {
-        const spaceFolderPath = config.spaceFolderPath;
-        // We're generating a simple hashed database name based on the space path in case people regularly switch between multiple space paths
-        const spaceHash = "" +
-          simpleHash(`${spaceFolderPath}:${baseURI.replace(/\/*$/, "")}`);
-        // And we'll use a _files postfix to signify where synced files are kept
-        const dbName = `${spaceHash}_files` +
-          (config.encryptionSalt ? "_" + config.encryptionSalt : "");
-
-        if (config.logPush) {
-          setInterval(() => {
-            logger.postToServer(".logs", "service_worker");
-          }, 1000);
-        }
-
-        // Setup KV (database) for store synced files
-        let kv: KvPrimitives = new IndexedDBKvPrimitives(dbName);
-        await (kv as IndexedDBKvPrimitives).init();
-
         if (config.encryptionSalt) {
           if (!encryptionPhraseMemoryStore) {
             console.error(
@@ -216,15 +198,41 @@ self.addEventListener("message", async (event: any) => {
               message: "No encryption phrase set, redirecting to authenticate",
               actionOrRedirectHeader: "reload",
             });
+            // ABORT
             return;
           } else {
-            const key = await deriveCTRKeyFromPassword(
+            // Derive encryption key
+            config.encryptionKey = await deriveCTRKeyFromPassword(
               encryptionPhraseMemoryStore,
               base64Decode(config.encryptionSalt),
             );
-            kv = new EncryptedKvPrimitives(kv, key);
-            await (kv as EncryptedKvPrimitives).init();
           }
+        }
+
+        const spaceFolderPath = config.spaceFolderPath;
+        const dbName = await deriveDbName(
+          "files",
+          spaceFolderPath,
+          baseURI,
+          config.encryptionKey,
+        );
+
+        if (config.logPush) {
+          setInterval(() => {
+            logger.postToServer(".logs", "service_worker");
+          }, 1000);
+        }
+
+        // Setup KV (database) for store synced files
+        let kv: KvPrimitives = new IndexedDBKvPrimitives(dbName);
+        await (kv as IndexedDBKvPrimitives).init();
+        console.log("Using IndexedDB database", dbName);
+
+        if (config.encryptionKey) {
+          kv = new EncryptedKvPrimitives(kv, config.encryptionKey);
+          await (kv as EncryptedKvPrimitives).init();
+          // Wipe key from config
+          delete config.encryptionKey;
         }
 
         // And use that to power the IndexedDB backed local storage

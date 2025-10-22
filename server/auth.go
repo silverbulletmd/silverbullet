@@ -161,6 +161,9 @@ func addAuthEndpoints(r chi.Router, config *ServerConfig) {
 
 func (spaceConfig *SpaceConfig) InitAuth() error {
 	if spaceConfig.JwtIssuer == nil {
+		spaceConfig.authMutex.Lock()
+		defer spaceConfig.authMutex.Unlock()
+
 		var err error
 		// Need to do some initialization
 		spaceConfig.JwtIssuer, err = CreateAuthenticator(path.Join(spaceConfig.SpaceFolderPath, ".silverbullet.auth.json"), spaceConfig.Auth)

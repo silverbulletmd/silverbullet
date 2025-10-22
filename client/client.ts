@@ -39,7 +39,6 @@ import type { StyleObject } from "../plugs/index/style.ts";
 import { jitter, throttle } from "@silverbulletmd/silverbullet/lib/async";
 import { PlugSpacePrimitives } from "./spaces/plug_space_primitives.ts";
 import { EventedSpacePrimitives } from "./spaces/evented_space_primitives.ts";
-import { simpleHash } from "@silverbulletmd/silverbullet/lib/crypto";
 import { HttpSpacePrimitives } from "./spaces/http_space_primitives.ts";
 import {
   encodePageURI,
@@ -81,6 +80,7 @@ import {
 import { Augmenter } from "./data/data_augmenter.ts";
 import { EncryptedKvPrimitives } from "./data/encrypted_kv_primitives.ts";
 import type { KvPrimitives } from "./data/kv_primitives.ts";
+import { deriveDbName } from "@silverbulletmd/silverbullet/lib/crypto";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -139,7 +139,6 @@ export class Client {
   // Set to true once the system is ready (plugs loaded)
   public systemReady: boolean = false;
   private pageNavigator!: PathPageNavigator;
-  private dbName: string;
   private onLoadRef: Ref;
   // Progress circle handling
   private progressTimeout?: number;
@@ -168,14 +167,6 @@ export class Client {
     readonly config: Config,
   ) {
     this.eventHook = new EventHook(this.config);
-    // Generate a semi-unique prefix for the database so not to reuse databases for different space paths
-    this.dbName = "" +
-      simpleHash(
-        `${bootConfig.spaceFolderPath}:${document.baseURI.replace(/\/*$/, "")}`,
-      ) + "_data" +
-      (this.bootConfig.encryptionSalt
-        ? "_" + this.bootConfig.encryptionSalt
-        : "");
     // The third case should only ever happen when the user provides an invalid index env variable
     this.onLoadRef = parseRefFromURI() || this.getIndexRef();
   }
@@ -185,9 +176,17 @@ export class Client {
    * This is a separated from the constructor to allow for async initialization
    */
   async init() {
+    const dbName = await deriveDbName(
+      "data",
+      this.bootConfig.spaceFolderPath,
+      document.baseURI,
+      this.bootConfig.encryptionKey,
+    );
     // Setup the KV (database)
-    let kvPrimitives: KvPrimitives = new IndexedDBKvPrimitives(this.dbName);
+    let kvPrimitives: KvPrimitives = new IndexedDBKvPrimitives(dbName);
     await (kvPrimitives as IndexedDBKvPrimitives).init();
+
+    console.log("Using IndexedDB database", dbName);
 
     // See if we need to encrypt this
     if (this.bootConfig.encryptionKey) {
@@ -196,6 +195,9 @@ export class Client {
         this.bootConfig.encryptionKey,
       );
       await (kvPrimitives as EncryptedKvPrimitives).init();
+
+      // Remove encryption key from boot config
+      delete this.bootConfig.encryptionKey;
     }
     // Wrap it in a datastore
     this.ds = new DataStore(kvPrimitives);

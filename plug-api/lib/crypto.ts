@@ -1,16 +1,3 @@
-export function simpleHash(s: string): number {
-  let hash = 0,
-    i,
-    chr;
-  if (s.length === 0) return hash;
-  for (i = 0; i < s.length; i++) {
-    chr = s.charCodeAt(i);
-    hash = ((hash << 5) - hash) + chr;
-    hash |= 0; // Convert to 32bit integer
-  }
-  return hash;
-}
-
 export function base64Decode(s: string): Uint8Array {
   const binString = atob(s);
   const len = binString.length;
@@ -62,6 +49,26 @@ export async function hashSHA256(message: string): Promise<string> {
   return Array.from(new Uint8Array(hashBuffer)).map((b) =>
     b.toString(16).padStart(2, "0")
   ).join("");
+}
+
+/**
+ * To avoid database clashes based on space folder path name, base URLs and encryption keys we derive
+ * a database name from a hash of all these combined together
+ */
+export async function deriveDbName(
+  type: "data" | "files",
+  spaceFolderPath: string,
+  baseURI: string,
+  encryptionKey?: CryptoKey,
+) {
+  let keyPart = "";
+  if (encryptionKey) {
+    keyPart = await exportKey(encryptionKey);
+  }
+  const spaceHash = await hashSHA256(
+    `${spaceFolderPath}:${baseURI}:${keyPart}`,
+  );
+  return `sb_${type}_${spaceHash}`;
 }
 
 // Fixed counter for AES-CTR all zeroes, for determinism
@@ -129,7 +136,7 @@ export async function decryptAesGcm(
 export async function deriveCTRKeyFromPassword(
   password: string,
   salt: Uint8Array,
-): Promise<string> {
+): Promise<CryptoKey> {
   // Encode password to ArrayBuffer
   const passwordBytes = new TextEncoder().encode(password);
 
@@ -142,39 +149,26 @@ export async function deriveCTRKeyFromPassword(
     ["deriveBits", "deriveKey"],
   );
 
-  return exportKey(
-    await crypto.subtle.deriveKey(
-      {
-        name: "PBKDF2",
-        salt: salt as BufferSource,
-        iterations: 100000,
-        hash: "SHA-256",
-      },
-      baseKey,
-      {
-        name: "AES-CTR",
-        length: 256,
-      },
-      true, // extractable
-      ["encrypt", "decrypt"],
-    ),
+  return crypto.subtle.deriveKey(
+    {
+      name: "PBKDF2",
+      salt: salt as BufferSource,
+      iterations: 100000,
+      hash: "SHA-256",
+    },
+    baseKey,
+    {
+      name: "AES-CTR",
+      length: 256,
+    },
+    true, // extractable
+    ["encrypt", "decrypt"],
   );
 }
 
 export async function exportKey(ctrKey: CryptoKey): Promise<string> {
   const key = await crypto.subtle.exportKey("raw", ctrKey);
   return base64Encode(new Uint8Array(key));
-}
-
-export function importKey(b64EncodedCtrKey: string): Promise<CryptoKey> {
-  const keyBytes = base64Decode(b64EncodedCtrKey);
-  return crypto.subtle.importKey(
-    "raw",
-    keyBytes as BufferSource,
-    { name: "AES-CTR" },
-    true,
-    ["encrypt", "decrypt"],
-  );
 }
 
 export async function deriveGCMKeyFromCTR(
