@@ -1,7 +1,23 @@
 An attempt at documenting the changes/new features introduced in each release.
 
 ## Edge
-* Nothing new yet since 2.1.8
+* [[Client Encryption]]: due to a change in how database names are now generated, this will result in a _one-time_ resync and reindex of your space.
+* Lua fixes, making [[Space Lua]] more compatible with Lua 5.4 (most courtesy of of Matouš Jan Fialka):
+  * [Fix length (`#` operator) features](https://github.com/silverbulletmd/silverbullet/pull/1637)
+  * [Add `rawget` and `rawequal`](https://github.com/silverbulletmd/silverbullet/pull/1647)
+  * [Allow `..` to also concatenate strings and numbers](https://github.com/silverbulletmd/silverbullet/pull/1648)
+  * [Make truthiness more Lua compatible](https://github.com/silverbulletmd/silverbullet/pull/1644)
+  * [Align arithmetic model with standard Lua](https://github.com/silverbulletmd/silverbullet/pull/1611)
+  * [Add `huge` constant and `type` to `math.*` API](https://github.com/silverbulletmd/silverbullet/pull/1632)
+  * [Add `load` function](https://github.com/silverbulletmd/silverbullet/pull/1631)
+  * [Support %u in os.date](https://github.com/silverbulletmd/silverbullet/issues/1598)
+  * [Pass on status code differently when using `http.request`](https://github.com/silverbulletmd/silverbullet/issues/1608)
+* More video embeds in standard library (courtesey of Andy Costanza):
+  * [Vimeo](https://github.com/silverbulletmd/silverbullet/pull/1616)
+  * [Peertube](https://github.com/silverbulletmd/silverbullet/pull/1612)
+* Atomic upgrades with `silverbullet update` and `silverbullet update-edge` (by [Mihai Maruseac](https://github.com/silverbulletmd/silverbullet/pull/1634))
+* Fix: bottom search bar dark mode styling (by [numan](https://github.com/silverbulletmd/silverbullet/pull/1614))
+* Fix: navigation with auto links (by [MrMugame](https://github.com/silverbulletmd/silverbullet/pull/1607))
 
 ## 2.1.8
 * New [[^Library/Std/APIs/Virtual Page]] API, internally used by:
