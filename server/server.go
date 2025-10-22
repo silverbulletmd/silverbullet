@@ -28,7 +28,7 @@ type BootConfig struct {
 	LogPush bool `json:"logPush"`
 
 	// Encryption
-	EncryptionSalt string `json:"encryptionSalt,omitempty"` // base64 encoded only set when authentication is enabled
+	EnableClientEncryption bool `json:"enableClientEncryption"`
 }
 
 func Router(config *ServerConfig) chi.Router {
@@ -66,16 +66,13 @@ func Router(config *ServerConfig) chi.Router {
 	// Config endpoint
 	routes.Get("/.config", func(w http.ResponseWriter, r *http.Request) {
 		spaceConfig := spaceConfigFromContext(r.Context())
-		salt := ""
-		if spaceConfig.JwtIssuer != nil {
-			salt = spaceConfig.JwtIssuer.Salt
-		}
 		clientConfig := &BootConfig{
 			SpaceFolderPath: spaceConfig.SpaceFolderPath,
 			IndexPage:       spaceConfig.IndexPage,
 			ReadOnly:        spaceConfig.ReadOnlyMode,
 			LogPush:         spaceConfig.LogPush,
-			EncryptionSalt:  salt,
+			// Client encryption is offered as an option when auth is enabled only
+			EnableClientEncryption: spaceConfig.Auth != nil,
 		}
 
 		w.Header().Set("Cache-Control", "no-cache")

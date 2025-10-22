@@ -185,9 +185,7 @@ export type BootConfig = {
   performWipe?: boolean;
   performReset?: boolean;
 
-  // Encryption
-  encryptionSalt?: string; // base64 encoded, when set: enable client side encryption
-  encryptionKey?: CryptoKey; // Only used for internal transfer
+  enableClientEncryption: boolean;
 };
 
 /**
@@ -204,8 +202,8 @@ export type ServiceWorkerTargetMessage =
   | { type: "perform-file-sync"; path: string }
   | { type: "perform-space-sync" }
   | { type: "force-connection-status"; enabled: boolean }
-  | { type: "get-encryption-phrase" }
-  | { type: "set-encryption-phrase"; phrase: string };
+  | { type: "get-encryption-key" }
+  | { type: "set-encryption-key"; key: string };
 /**
  * Events received from the service worker -> client
  */

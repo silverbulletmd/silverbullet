@@ -13,10 +13,7 @@ import {
 import "./lib/polyfills.ts";
 import type { BootConfig, ServiceWorkerTargetMessage } from "./types/ui.ts";
 import { BoxProxy } from "./lib/box_proxy.ts";
-import {
-  base64Decode,
-  deriveCTRKeyFromPassword,
-} from "@silverbulletmd/silverbullet/lib/crypto";
+import { importKey } from "@silverbulletmd/silverbullet/lib/crypto";
 
 const logger = initLogger("[Client]");
 
@@ -54,8 +51,12 @@ safeRun(async () => {
     return;
   }
 
-  // If client encryption is enabled (from auth page) AND the server set a salt (only the case when enabling auth)
-  if (localStorage.getItem("enableEncryption") && bootConfig?.encryptionSalt) {
+  let encryptionKey: CryptoKey | undefined;
+  // If client encryption is enabled (from auth page) AND the server signals it
+  if (
+    localStorage.getItem("enableEncryption") &&
+    bootConfig?.enableClientEncryption
+  ) {
     // Init encryption
     console.log("Initializing encryption");
     const swController = navigator.serviceWorker.controller;
@@ -64,33 +65,28 @@ safeRun(async () => {
       console.log(
         "Service worker already running, querying it for an encryption key",
       );
-      let encryptionPhrase: string | undefined;
       swController.postMessage(
-        { type: "get-encryption-phrase" } as ServiceWorkerTargetMessage,
+        { type: "get-encryption-key" } as ServiceWorkerTargetMessage,
       );
       await race([
-        new Promise((resolve) => {
+        new Promise<void>((resolve) => {
           function keyListener(e: any) {
             if (e.data.type === "encryption-key") {
               navigator.serviceWorker.removeEventListener(
                 "message",
                 keyListener,
               );
-              encryptionPhrase = e.data.key;
-              resolve(e);
+              importKey(e.data.key).then((key) => {
+                encryptionKey = key;
+                resolve();
+              });
             }
           }
           navigator.serviceWorker.addEventListener("message", keyListener);
         }),
         sleep(200),
       ]);
-      if (encryptionPhrase) {
-        const key = await deriveCTRKeyFromPassword(
-          encryptionPhrase,
-          base64Decode(bootConfig!.encryptionSalt!),
-        );
-        bootConfig!.encryptionKey = key;
-      } else {
+      if (!encryptionKey) {
         // No encryption key, redirecting to the auth page
         console.warn("Not authenticated, redirecting to auth page");
         location.href = ".auth";
@@ -103,8 +99,7 @@ safeRun(async () => {
       throw new Error("Not authenticated");
     }
   } else {
-    // Unset encryptionSalt to indicate to the client that no encryption needs to be enabled
-    delete bootConfig?.encryptionSalt;
+    bootConfig!.enableClientEncryption = false;
   }
 
   await augmentBootConfig(bootConfig!, config!);
@@ -191,13 +186,6 @@ safeRun(async () => {
           }
         });
       });
-
-    // // Handle service worker controlled changes (when a new service worker takes over)
-    // navigator.serviceWorker.addEventListener("controllerchange", async () => {
-    //   console.log(
-    //     "New service worker activated!",
-    //   );
-    // });
   } else {
     console.info("Service worker disabled.");
   }
@@ -214,7 +202,7 @@ safeRun(async () => {
   // @ts-ignore: on purpose
   globalThis.client = client;
   clientProxy.setTarget(client);
-  await client.init();
+  await client.init(encryptionKey);
   if (navigator.serviceWorker) {
     navigator.serviceWorker.addEventListener("message", (event) => {
       client.handleServiceWorkerMessage(event.data);
@@ -294,7 +282,7 @@ async function cachedFetch(path: string): Promise<string> {
     }
     const redirectHeader = response.headers.get("location");
     if (redirectHeader) {
-      alert(
+      console.info(
         "Received an (authentication) redirect, redirecting to URL: " +
           redirectHeader,
       );

@@ -7,9 +7,9 @@ import type {
   ServiceWorkerTargetMessage,
 } from "./types/ui.ts";
 import {
-  base64Decode,
-  deriveCTRKeyFromPassword,
   deriveDbName,
+  exportKey,
+  importKey,
 } from "@silverbulletmd/silverbullet/lib/crypto";
 import { IndexedDBKvPrimitives } from "./data/indexeddb_kv_primitives.ts";
 import { fsEndpoint } from "./spaces/constants.ts";
@@ -68,7 +68,7 @@ let configuring = false;
 globalThis.proxyRouter = proxyRouter;
 
 // This is the in-memory store of an encryption key that SB clients and the index engine can share without asking for it constantly
-let encryptionPhraseMemoryStore: string | undefined;
+let encryptionKeyMemoryStore: CryptoKey | undefined;
 
 // Let's clean this encryptionKey if there's no more clients left for a little while, asking to re-enter
 setInterval(() => {
@@ -76,7 +76,7 @@ setInterval(() => {
   globalThis.clients.matchAll().then((clients) => {
     if (clients.length === 0) {
       console.info("No more clients, flushing encryption key");
-      encryptionPhraseMemoryStore = undefined;
+      encryptionKeyMemoryStore = undefined;
     }
   });
 }, 5000); // little while is 5s
@@ -149,15 +149,16 @@ self.addEventListener("message", async (event: any) => {
       console.info("Forced connection status to", message.enabled);
       break;
     }
-    case "get-encryption-phrase": {
+    case "get-encryption-key": {
       event.source.postMessage({
         type: "encryption-key",
-        key: encryptionPhraseMemoryStore,
+        key: encryptionKeyMemoryStore &&
+          await exportKey(encryptionKeyMemoryStore),
       } as ServiceWorkerSourceMessage);
       break;
     }
-    case "set-encryption-phrase": {
-      encryptionPhraseMemoryStore = message.phrase;
+    case "set-encryption-key": {
+      encryptionKeyMemoryStore = await importKey(message.key);
       console.info("Encryption phrase set");
       break;
     }
@@ -188,24 +189,18 @@ self.addEventListener("message", async (event: any) => {
         configuring = false;
       }, 5000);
       try {
-        if (config.encryptionSalt) {
-          if (!encryptionPhraseMemoryStore) {
+        if (config.enableClientEncryption) {
+          if (!encryptionKeyMemoryStore) {
             console.error(
               "Supposed to use encryption, but no phrase set yet, auth error",
             );
             broadcastMessage({
               type: "auth-error",
-              message: "No encryption phrase set, redirecting to authenticate",
+              message: "Re-authentication required, redirecting...",
               actionOrRedirectHeader: "reload",
             });
             // ABORT
             return;
-          } else {
-            // Derive encryption key
-            config.encryptionKey = await deriveCTRKeyFromPassword(
-              encryptionPhraseMemoryStore,
-              base64Decode(config.encryptionSalt),
-            );
           }
         }
 
@@ -214,7 +209,7 @@ self.addEventListener("message", async (event: any) => {
           "files",
           spaceFolderPath,
           baseURI,
-          config.encryptionKey,
+          encryptionKeyMemoryStore,
         );
 
         if (config.logPush) {
@@ -228,12 +223,13 @@ self.addEventListener("message", async (event: any) => {
         await (kv as IndexedDBKvPrimitives).init();
         console.log("Using IndexedDB database", dbName);
 
-        if (config.encryptionKey) {
-          kv = new EncryptedKvPrimitives(kv, config.encryptionKey);
+        if (encryptionKeyMemoryStore) {
+          kv = new EncryptedKvPrimitives(kv, encryptionKeyMemoryStore);
           await (kv as EncryptedKvPrimitives).init();
-          // Wipe key from config
-          delete config.encryptionKey;
+          console.log("Enabled client-side encryption for synced files");
         }
+
+        console.log("Encryption key", encryptionKeyMemoryStore);
 
         // And use that to power the IndexedDB backed local storage
         const local = new DataStoreSpacePrimitives(kv);

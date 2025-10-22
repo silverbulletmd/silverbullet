@@ -175,12 +175,12 @@ export class Client {
    * Initialize the client
    * This is a separated from the constructor to allow for async initialization
    */
-  async init() {
+  async init(encryptionKey?: CryptoKey) {
     const dbName = await deriveDbName(
       "data",
       this.bootConfig.spaceFolderPath,
-      document.baseURI,
-      this.bootConfig.encryptionKey,
+      document.baseURI.replace(/\/$/, ""),
+      encryptionKey,
     );
     // Setup the KV (database)
     let kvPrimitives: KvPrimitives = new IndexedDBKvPrimitives(dbName);
@@ -189,15 +189,13 @@ export class Client {
     console.log("Using IndexedDB database", dbName);
 
     // See if we need to encrypt this
-    if (this.bootConfig.encryptionKey) {
+    if (encryptionKey) {
       kvPrimitives = new EncryptedKvPrimitives(
         kvPrimitives,
-        this.bootConfig.encryptionKey,
+        encryptionKey,
       );
       await (kvPrimitives as EncryptedKvPrimitives).init();
-
-      // Remove encryption key from boot config
-      delete this.bootConfig.encryptionKey;
+      console.log("Enabled client-side encryption");
     }
     // Wrap it in a datastore
     this.ds = new DataStore(kvPrimitives);

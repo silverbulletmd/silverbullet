@@ -166,6 +166,16 @@ export async function deriveCTRKeyFromPassword(
   );
 }
 
+export function importKey(b64EncodedKey: string): Promise<CryptoKey> {
+  return crypto.subtle.importKey(
+    "raw",
+    base64Decode(b64EncodedKey) as BufferSource,
+    { name: "AES-CTR" },
+    true,
+    ["encrypt", "decrypt"],
+  );
+}
+
 export async function exportKey(ctrKey: CryptoKey): Promise<string> {
   const key = await crypto.subtle.exportKey("raw", ctrKey);
   return base64Encode(new Uint8Array(key));

@@ -60,12 +60,10 @@ func addAuthEndpoints(r chi.Router, config *ServerConfig) {
 
 		tpl := template.Must(template.New("auth").Parse(string(data)))
 
-		templateData := struct {
-			HostPrefix string
-			SpaceName  string
-		}{
-			HostPrefix: config.HostURLPrefix,
-			SpaceName:  spaceConfig.SpaceName,
+		templateData := map[string]string{
+			"HostPrefix":     config.HostURLPrefix,
+			"SpaceName":      spaceConfig.SpaceName,
+			"EncryptionSalt": spaceConfig.JwtIssuer.Salt,
 		}
 
 		w.Header().Set("Content-type", "text/html")

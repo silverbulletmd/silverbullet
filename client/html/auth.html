@@ -190,6 +190,7 @@
 
 <script>
 const workerURL = new URL("service_worker.js", document.baseURI);
+console.log("Registering service worker");
 navigator.serviceWorker.register(workerURL, {
   type: "module",
   scope: workerURL.pathname.substring(0, workerURL.pathname.lastIndexOf("/") + 1),
@@ -224,11 +225,13 @@ document.getElementById("login").addEventListener("submit", (e) => {
         localStorage.removeItem('enableEncryption');
       }
       if(enableEncryption) {
+        const salt = base64Decode({{.EncryptionSalt}});
+        const key = await deriveKey(`${username}:${password}`, salt);
         // Encode password to ArrayBuffer
         if(navigator.serviceWorker?.controller) {
           navigator.serviceWorker.controller.postMessage({
-            type: "set-encryption-phrase",
-            phrase: `${username}:${password}`,
+            type: "set-encryption-key",
+            key,
           });
         } else {
           alert("Something is not right, service worker not active");
@@ -252,6 +255,61 @@ if (from) {
     input.setAttribute("value", from);
 
     document.getElementById("login").appendChild(input);
+}
+
+async function deriveKey(phrase, salt) {
+  // Encode password to ArrayBuffer
+  const phraseBytes = new TextEncoder().encode(phrase);
+
+  // Import password as a CryptoKey
+  const baseKey = await crypto.subtle.importKey(
+    "raw",
+    phraseBytes,
+    { name: "PBKDF2" },
+    false,
+    ["deriveBits", "deriveKey"],
+  );
+
+  // Derive CTR key
+  const ctrKey = await crypto.subtle.deriveKey(
+    {
+      name: "PBKDF2",
+      salt: salt,
+      iterations: 100000,
+      hash: "SHA-256",
+    },
+    baseKey,
+    {
+      name: "AES-CTR",
+      length: 256,
+    },
+    true, // extractable
+    ["encrypt", "decrypt"],
+  );
+
+  // Export
+  const key = await crypto.subtle.exportKey("raw", ctrKey);
+  // Base64 encode
+  return base64Encode(new Uint8Array(key));
+}
+
+function base64Encode(buffer) {
+  let binary = "";
+  const len = buffer.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(buffer[i]);
+  }
+  return btoa(binary);
+}
+
+function base64Decode(s) {
+  const binString = atob(s);
+  const len = binString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binString.charCodeAt(i);
+  }
+  return bytes;
 }
 </script>
     </body>
