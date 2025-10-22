@@ -20,6 +20,7 @@ type Authenticator struct {
 	path      string
 	SecretKey string `json:"secret_key"`
 	AuthHash  string `json:"auth_hash"`
+	Salt      string `json:"salt"` // base64 encoded 16 byte randomized salt used for encryption
 }
 
 func CreateAuthenticator(path string, authOptions *AuthOptions) (*Authenticator, error) {
@@ -78,6 +79,12 @@ func (j *Authenticator) init(authConfig *AuthOptions) error {
 	}
 
 	j.AuthHash = newAuthHash
+
+	if j.Salt == "" {
+		b := make([]byte, 16)
+		rand.Read(b)
+		j.Salt = base64.StdEncoding.EncodeToString(b)
+	}
 
 	return j.save()
 

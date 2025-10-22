@@ -3,6 +3,7 @@ package server
 import (
 	"errors"
 	"net/http"
+	"sync"
 )
 
 type ServerConfig struct {
@@ -43,6 +44,7 @@ type SpaceConfig struct {
 	// Auth temporary objects
 	JwtIssuer    *Authenticator
 	LockoutTimer *LockoutTimer
+	authMutex    sync.Mutex
 }
 
 type ConfigResolver func(r *http.Request) (*SpaceConfig, error)
