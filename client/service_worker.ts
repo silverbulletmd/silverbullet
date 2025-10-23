@@ -197,7 +197,7 @@ self.addEventListener("message", async (event: any) => {
             broadcastMessage({
               type: "auth-error",
               message: "Re-authentication required, redirecting...",
-              actionOrRedirectHeader: "reload",
+              actionOrRedirectHeader: ".auth",
             });
             // ABORT
             return;
