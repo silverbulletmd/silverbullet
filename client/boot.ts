@@ -1,4 +1,4 @@
-import { safeRun } from "@silverbulletmd/silverbullet/lib/async";
+import { race, safeRun, sleep } from "@silverbulletmd/silverbullet/lib/async";
 import {
   notAuthenticatedError,
   offlineError,
@@ -11,8 +11,9 @@ import {
   flushCachesAndUnregisterServiceWorker,
 } from "./service_worker/util.ts";
 import "./lib/polyfills.ts";
-import type { BootConfig } from "./types/ui.ts";
+import type { BootConfig, ServiceWorkerTargetMessage } from "./types/ui.ts";
 import { BoxProxy } from "./lib/box_proxy.ts";
+import { importKey } from "@silverbulletmd/silverbullet/lib/crypto";
 
 const logger = initLogger("[Client]");
 
@@ -50,6 +51,57 @@ safeRun(async () => {
     return;
   }
 
+  let encryptionKey: CryptoKey | undefined;
+  // If client encryption is enabled (from auth page) AND the server signals it
+  if (
+    localStorage.getItem("enableEncryption") &&
+    bootConfig?.enableClientEncryption
+  ) {
+    // Init encryption
+    console.log("Initializing encryption");
+    const swController = navigator.serviceWorker.controller;
+    if (swController) {
+      // Service is already running, let's see if has an encryption key for me
+      console.log(
+        "Service worker already running, querying it for an encryption key",
+      );
+      swController.postMessage(
+        { type: "get-encryption-key" } as ServiceWorkerTargetMessage,
+      );
+      await race([
+        new Promise<void>((resolve) => {
+          function keyListener(e: any) {
+            if (e.data.type === "encryption-key") {
+              navigator.serviceWorker.removeEventListener(
+                "message",
+                keyListener,
+              );
+              importKey(e.data.key).then((key) => {
+                encryptionKey = key;
+                resolve();
+              });
+            }
+          }
+          navigator.serviceWorker.addEventListener("message", keyListener);
+        }),
+        sleep(200),
+      ]);
+      if (!encryptionKey) {
+        // No encryption key, redirecting to the auth page
+        console.warn("Not authenticated, redirecting to auth page");
+        location.href = ".auth";
+        throw new Error("Not authenticated");
+      }
+    } else {
+      // No service worker, no encryption key, redirecting to the auth page
+      console.warn("Not authenticated, redirecting to auth page");
+      location.href = ".auth";
+      throw new Error("Not authenticated");
+    }
+  } else {
+    bootConfig!.enableClientEncryption = false;
+  }
+
   await augmentBootConfig(bootConfig!, config!);
 
   // Update the browser URL to no longer contain the query parameters using pushState
@@ -68,7 +120,7 @@ safeRun(async () => {
     let lastStartNotification = 0;
     navigator.serviceWorker.addEventListener("message", (event) => {
       if (event.data.type === "service-worker-started") {
-        // Service worker started, let's make sure it the current config
+        // Service worker started, let's make sure it has the current config
         console.log(
           "Got notified that service worker has just started, sending config",
           bootConfig,
@@ -88,7 +140,7 @@ safeRun(async () => {
         if (startNotificationCount > 2) {
           // This is not normal. Safari sometimes gets stuck on a database connection if the service worker is updated which means it cannot boot properly
           // the only know fix is to quit the browser and restart it
-          alert(
+          console.warn(
             "Something is wrong with the sync engine, please quit your browser and restart it.",
           );
         }
@@ -134,13 +186,6 @@ safeRun(async () => {
           }
         });
       });
-
-    // // Handle service worker controlled changes (when a new service worker takes over)
-    // navigator.serviceWorker.addEventListener("controllerchange", async () => {
-    //   console.log(
-    //     "New service worker activated!",
-    //   );
-    // });
   } else {
     console.info("Service worker disabled.");
   }
@@ -157,7 +202,7 @@ safeRun(async () => {
   // @ts-ignore: on purpose
   globalThis.client = client;
   clientProxy.setTarget(client);
-  await client.init();
+  await client.init(encryptionKey);
   if (navigator.serviceWorker) {
     navigator.serviceWorker.addEventListener("message", (event) => {
       client.handleServiceWorkerMessage(event.data);
@@ -237,7 +282,7 @@ async function cachedFetch(path: string): Promise<string> {
     }
     const redirectHeader = response.headers.get("location");
     if (redirectHeader) {
-      alert(
+      console.info(
         "Received an (authentication) redirect, redirecting to URL: " +
           redirectHeader,
       );

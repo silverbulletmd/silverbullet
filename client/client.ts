@@ -39,7 +39,6 @@ import type { StyleObject } from "../plugs/index/style.ts";
 import { jitter, throttle } from "@silverbulletmd/silverbullet/lib/async";
 import { PlugSpacePrimitives } from "./spaces/plug_space_primitives.ts";
 import { EventedSpacePrimitives } from "./spaces/evented_space_primitives.ts";
-import { simpleHash } from "@silverbulletmd/silverbullet/lib/crypto";
 import { HttpSpacePrimitives } from "./spaces/http_space_primitives.ts";
 import {
   encodePageURI,
@@ -79,6 +78,9 @@ import {
   offlineError,
 } from "@silverbulletmd/silverbullet/constants";
 import { Augmenter } from "./data/data_augmenter.ts";
+import { EncryptedKvPrimitives } from "./data/encrypted_kv_primitives.ts";
+import type { KvPrimitives } from "./data/kv_primitives.ts";
+import { deriveDbName } from "@silverbulletmd/silverbullet/lib/crypto";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -92,7 +94,6 @@ declare global {
 }
 
 type WidgetCacheItem = {
-  height: number;
   html: string;
   block?: boolean;
   copyContent?: string;
@@ -138,7 +139,6 @@ export class Client {
   // Set to true once the system is ready (plugs loaded)
   public systemReady: boolean = false;
   private pageNavigator!: PathPageNavigator;
-  private dbName: string;
   private onLoadRef: Ref;
   // Progress circle handling
   private progressTimeout?: number;
@@ -150,7 +150,7 @@ export class Client {
         console.error,
       );
   }, 2000);
-  private widgetHeightCache = new LimitedMap<number>(100); // bodytext -> height
+  private widgetHeightCache = new LimitedMap<number>(1000); // bodytext -> height
   debouncedWidgetHeightCacheFlush = throttle(() => {
     this.ds.set(
       ["cache", "widgetHeight"],
@@ -167,11 +167,6 @@ export class Client {
     readonly config: Config,
   ) {
     this.eventHook = new EventHook(this.config);
-    // Generate a semi-unique prefix for the database so not to reuse databases for different space paths
-    this.dbName = "" +
-      simpleHash(
-        `${bootConfig.spaceFolderPath}:${document.baseURI.replace(/\/*$/, "")}`,
-      ) + "_data";
     // The third case should only ever happen when the user provides an invalid index env variable
     this.onLoadRef = parseRefFromURI() || this.getIndexRef();
   }
@@ -180,10 +175,28 @@ export class Client {
    * Initialize the client
    * This is a separated from the constructor to allow for async initialization
    */
-  async init() {
+  async init(encryptionKey?: CryptoKey) {
+    const dbName = await deriveDbName(
+      "data",
+      this.bootConfig.spaceFolderPath,
+      document.baseURI.replace(/\/$/, ""),
+      encryptionKey,
+    );
     // Setup the KV (database)
-    const kvPrimitives = new IndexedDBKvPrimitives(this.dbName);
-    await kvPrimitives.init();
+    let kvPrimitives: KvPrimitives = new IndexedDBKvPrimitives(dbName);
+    await (kvPrimitives as IndexedDBKvPrimitives).init();
+
+    console.log("Using IndexedDB database", dbName);
+
+    // See if we need to encrypt this
+    if (encryptionKey) {
+      kvPrimitives = new EncryptedKvPrimitives(
+        kvPrimitives,
+        encryptionKey,
+      );
+      await (kvPrimitives as EncryptedKvPrimitives).init();
+      console.log("Enabled client-side encryption");
+    }
     // Wrap it in a datastore
     this.ds = new DataStore(kvPrimitives);
 
@@ -1312,7 +1325,7 @@ export class Client {
         "cache",
         "widgetHeight",
       ], ["cache", "widgets"]]);
-    this.widgetHeightCache = new LimitedMap(100, widgetHeightCache || {});
+    this.widgetHeightCache = new LimitedMap(1000, widgetHeightCache || {});
     this.widgetCache = new LimitedMap(100, widgetCache || {});
   }
 

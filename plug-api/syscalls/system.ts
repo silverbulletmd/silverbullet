@@ -78,3 +78,10 @@ export function getConfig<T = any>(
 export function wipeClient(logout = false): Promise<void> {
   return syscall("system.wipeClient", logout);
 }
+
+/**
+ * Deletes all IndexedDB databases that are not connected to client (e.g. legacy databases)
+ */
+export function cleanDatabases(): Promise<boolean> {
+  return syscall("system.cleanDatabases");
+}

@@ -144,7 +144,7 @@
                     Login to <img src=".client/logo.png" style="height: 1ch" />
                     {{.SpaceName}}
                 </h1>
-                <form action=".auth" class="flow" id="login" method="POST">
+                <form class="flow" id="login" method="POST">
                     <div class="error-message"></div>
                     <div>
                         <label for="username">Username</label>
@@ -170,6 +170,14 @@
                         />
                         <label for="rememberMe">Remember me</label>
                     </div>
+                    <div class="checkbox-wrapper">
+                        <input
+                            id="clientEncryption"
+                            name="clientEncryption"
+                            type="checkbox"
+                        />
+                        <label for="clientEncryption">Enable client encryption (e.g. when using a public computer)</label>
+                    </div>
                     <div style="--space: 1.8rem">
                         <button>Login</button>
                     </div>
@@ -180,30 +188,129 @@
             </div>
         </div>
 
-        <script>
-            const params = new URLSearchParams(window.location.search);
+<script>
+const workerURL = new URL("service_worker.js", document.baseURI);
+console.log("Registering service worker");
+navigator.serviceWorker.register(workerURL, {
+  type: "module",
+  scope: workerURL.pathname.substring(0, workerURL.pathname.lastIndexOf("/") + 1),
+}).then(() => {
+  console.log("Service worker registered");
+});
 
-            const error = params.get("error");
-            if (error === "0") {
-                document.querySelector(".error-message").innerText =
-                    "The sent data was invalid";
-            } else if (error === "1") {
-                document.querySelector(".error-message").innerText =
-                    "Invalid username or password";
-            } else if (error === "2") {
-                document.querySelector(".error-message").innerText =
-                    "Too many invalid logins. Try again later";
-            }
+document.getElementById("login").addEventListener("submit", (e) => {
+  const enableEncryption = document.getElementById('clientEncryption').checked;
+  const params = new URLSearchParams();
+  const username = document.getElementById('username').value;
+  const password = document.getElementById('password').value;
+  params.append('username', username);
+  params.append('password', password);
+  fetch('.auth', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    credentials:'include',
+    body: params.toString(),
+  })
+  .then(async(response) => {
+    const body = await response.json();
+    if(body.status === "error") {
+      document.querySelector(".error-message").innerText =
+          body.error;
+    } else {
+      if(enableEncryption) {
+        localStorage.setItem('enableEncryption', "true");
+      } else {
+        localStorage.removeItem('enableEncryption');
+      }
+      if(enableEncryption) {
+        const salt = base64Decode({{.EncryptionSalt}});
+        const key = await deriveKey(`${username}:${password}`, salt);
+        // Encode password to ArrayBuffer
+        if(navigator.serviceWorker?.controller) {
+          navigator.serviceWorker.controller.postMessage({
+            type: "set-encryption-key",
+            key,
+          });
+        } else {
+          alert("Something is not right, service worker not active");
+          return;
+        }
+      }
+      location.href = body.redirect;
+    }
+  })
+  e.preventDefault();
+});
+const params = new URLSearchParams(window.location.search);
+const from = params.get("from");
+if(localStorage.getItem("enableEncryption")) {
+  document.getElementById("clientEncryption").checked = true;
+}
+if (from) {
+    var input = document.createElement("input");
+    input.setAttribute("type", "hidden");
+    input.setAttribute("name", "from");
+    input.setAttribute("value", from);
 
-            const from = params.get("from");
-            if (from) {
-                var input = document.createElement("input");
-                input.setAttribute("type", "hidden");
-                input.setAttribute("name", "from");
-                input.setAttribute("value", from);
+    document.getElementById("login").appendChild(input);
+}
 
-                document.getElementById("login").appendChild(input);
-            }
-        </script>
+async function deriveKey(phrase, salt) {
+  // Encode password to ArrayBuffer
+  const phraseBytes = new TextEncoder().encode(phrase);
+
+  // Import password as a CryptoKey
+  const baseKey = await crypto.subtle.importKey(
+    "raw",
+    phraseBytes,
+    { name: "PBKDF2" },
+    false,
+    ["deriveBits", "deriveKey"],
+  );
+
+  // Derive CTR key
+  const ctrKey = await crypto.subtle.deriveKey(
+    {
+      name: "PBKDF2",
+      salt: salt,
+      iterations: 100000,
+      hash: "SHA-256",
+    },
+    baseKey,
+    {
+      name: "AES-CTR",
+      length: 256,
+    },
+    true, // extractable
+    ["encrypt", "decrypt"],
+  );
+
+  // Export
+  const key = await crypto.subtle.exportKey("raw", ctrKey);
+  // Base64 encode
+  return base64Encode(new Uint8Array(key));
+}
+
+function base64Encode(buffer) {
+  let binary = "";
+  const len = buffer.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(buffer[i]);
+  }
+  return btoa(binary);
+}
+
+function base64Decode(s) {
+  const binString = atob(s);
+  const len = binString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binString.charCodeAt(i);
+  }
+  return bytes;
+}
+</script>
     </body>
 </html>

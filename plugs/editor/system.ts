@@ -30,6 +30,14 @@ export async function wipeAndLogoutCommand() {
   await system.wipeClient(true);
 }
 
+export async function cleanClientCommand() {
+  if (await system.cleanDatabases()) {
+    await editor.alert("Successfullly cleaned unnecessary client databases.");
+  } else {
+    await editor.alert("Failed to clean unnecessary client databases.");
+  }
+}
+
 export async function reloadUICommand() {
   await editor.reloadUI();
 }
