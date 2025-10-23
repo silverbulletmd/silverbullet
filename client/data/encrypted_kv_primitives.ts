@@ -22,6 +22,10 @@ export class EncryptedKvPrimitives implements KvPrimitives {
     this.keyKey = encryptionKey;
   }
 
+  get dbName(): string {
+    return (this.wrapped as any).dbName;
+  }
+
   // MUST immediately be called after constructor
   async init() {
     this.dataKey = await deriveGCMKeyFromCTR(this.keyKey);

@@ -16,6 +16,7 @@ An attempt at documenting the changes/new features introduced in each release.
   * [Vimeo](https://github.com/silverbulletmd/silverbullet/pull/1616)
   * [Peertube](https://github.com/silverbulletmd/silverbullet/pull/1612)
 * Atomic upgrades with `silverbullet update` and `silverbullet update-edge` (by [Mihai Maruseac](https://github.com/silverbulletmd/silverbullet/pull/1634))
+* Added `Client : Clean` command that deletes all redundant IndexedDB databases (ones the client is not using)
 * Fix: bottom search bar dark mode styling (by [numan](https://github.com/silverbulletmd/silverbullet/pull/1614))
 * Fix: navigation with auto links (by [MrMugame](https://github.com/silverbulletmd/silverbullet/pull/1607))
 

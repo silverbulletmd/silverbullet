@@ -108,6 +108,23 @@ export function systemSyscalls(
         alert("Client wiped, feel free to navigate elsewhere");
       }
     },
+    "system.cleanDatabases": async (): Promise<boolean> => {
+      // Determine current dbName
+      const dbName = (client.ds.kv as any).dbName;
+      const suffix = dbName.replace("sb_data", "");
+      if (indexedDB.databases) {
+        const allDbs = await indexedDB.databases();
+        for (const db of allDbs) {
+          if (!db.name?.endsWith(suffix)) {
+            console.log("Deleting database", db.name);
+            indexedDB.deleteDatabase(db.name!);
+          }
+        }
+        return true;
+      } else {
+        return false;
+      }
+    },
     // DEPRECATED
     "system.getEnv": () => {
       console.warn(
