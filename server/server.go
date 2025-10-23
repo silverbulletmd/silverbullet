@@ -14,6 +14,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
+	"github.com/silverbulletmd/silverbullet/server/tunnel"
 )
 
 const indexHtmlPath = ".client/index.html"
@@ -146,6 +147,11 @@ func RunServer(config *ServerConfig) error {
 		log.Println("Stopped serving new connections.")
 		shutdownChannel <- true
 	}()
+
+	if config.TunnelURL != "" {
+		t := tunnel.NewTunnel(config.TunnelURL, config.Port)
+		go t.Connect()
+	}
 
 	signalChannel := make(chan os.Signal, 1)
 	signal.Notify(signalChannel, syscall.SIGINT, syscall.SIGTERM)
