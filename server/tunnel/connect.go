@@ -1,6 +1,7 @@
 package tunnel
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -11,61 +12,71 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type Tunnel struct {
-	wsConnectURL     string
-	localPort        int
-	conn             *websocket.Conn
-	inflightRequests map[string]*streamingRequest
-	requestMapLock   sync.Mutex
-	sendChannel      chan *ResponseMessage
-	backOffSeconds   time.Duration
+type TunnelConnection struct {
+	// Local port to proxy the HTTP request to
+	localProxyPort int
+	wsConnectURL   string
+	wsConn         *websocket.Conn
+
+	// For when the connection is lost
+	backOffSeconds time.Duration
+
+	receivingRequests      map[string]*io.PipeWriter
+	receivingRequestsMutex sync.Mutex
+
+	// To sequence send requests
+	sendChannel chan *ResponseMessage
 }
 
-type streamingRequest struct {
-	pipeWriter *io.PipeWriter
-	done       chan struct{}
-}
-
-// NewTunnel creates a new tunnel instance
-func NewTunnel(wsConnectURL string, port int) *Tunnel {
-	return &Tunnel{
-		wsConnectURL: wsConnectURL,
-		localPort:    port,
+// NewTunnelConnection creates a new tunnel instance
+func NewTunnelConnection(wsConnectURL string, localProxyPort int) *TunnelConnection {
+	return &TunnelConnection{
+		wsConnectURL:   wsConnectURL,
+		localProxyPort: localProxyPort,
 	}
 }
 
-func (t *Tunnel) init(conn *websocket.Conn) {
-	t.inflightRequests = make(map[string]*streamingRequest)
+func (t *TunnelConnection) init(conn *websocket.Conn) {
+	t.wsConn = conn
+	t.receivingRequests = make(map[string]*io.PipeWriter)
+	if t.sendChannel != nil {
+		// Close
+		close(t.sendChannel)
+	}
 	t.sendChannel = make(chan *ResponseMessage)
-	t.conn = conn
 	t.backOffSeconds = 1
 }
 
 // Connect establishes the websocket connection and starts listening for messages
-func (t *Tunnel) Connect() {
+func (t *TunnelConnection) Connect() {
 	for {
+		// TODO: May have to finetune this
 		dialer := websocket.Dialer{}
 		conn, _, err := dialer.Dial(t.wsConnectURL, nil)
 		if err != nil {
 			log.Printf("Failed to connect to tunnel: %s, retrying in %ds", err.Error(), t.backOffSeconds)
 			time.Sleep(t.backOffSeconds * time.Second)
+
+			// Exponential back-off
 			if t.backOffSeconds < 30 {
 				t.backOffSeconds *= 2
 			}
 			continue
 		}
-		defer conn.Close()
 		t.init(conn)
 
-		log.Printf("Connected to tunnel: %s", t.wsConnectURL)
+		log.Print("Successfully connected to tunnel.")
 
+		// Start writer go-routine
 		go t.sendPump()
 
 		// Listen for incoming messages
 		for {
-			messageType, message, err := t.conn.ReadMessage()
+			messageType, message, err := t.wsConn.ReadMessage()
 			if err != nil {
 				log.Printf("Error reading tunnel message: %v", err)
+				// Likely this is a broken connection, eject out of this loop triggering a reconnect
+				t.wsConn.Close()
 				break
 			}
 
@@ -74,81 +85,70 @@ func (t *Tunnel) Connect() {
 				continue
 			}
 
-			// Decompress the message
-			decompressed, err := GzipDecompress(message)
-			if err != nil {
-				log.Printf("Error decompressing message: %v", err)
-				continue
-			}
-
-			// Decode the RequestMessage using gob
-			reqMsg, err := DecodeRequestMessage(decompressed)
+			reqMsg, err := DecodeRequestMessage(message)
 			if err != nil {
 				log.Printf("Error decoding request message: %v", err)
 				continue
 			}
 
-			// Handle the request message
+			// Handle the request message asynchronously
 			go t.handleRequestMessage(reqMsg)
 		}
+		conn.Close()
 	}
 }
 
-func (t *Tunnel) handleRequestMessage(reqMsg *RequestMessage) {
-	t.requestMapLock.Lock()
-	streamReq, exists := t.inflightRequests[reqMsg.ID]
+func (t *TunnelConnection) handleRequestMessage(reqMsg *RequestMessage) {
+	t.receivingRequestsMutex.Lock()
+	pipeWriter := t.receivingRequests[reqMsg.ID]
 
-	if !exists {
+	if pipeWriter == nil {
 		// First message - start the HTTP request
 		if reqMsg.Metadata == nil {
-			t.requestMapLock.Unlock()
 			log.Printf("First message for request %s has no metadata", reqMsg.ID)
 			t.sendErrorResponse(reqMsg.ID, "First message must contain metadata")
+			t.receivingRequestsMutex.Unlock()
 			return
 		}
 
-		log.Printf("Got %s with %s with reqId: %s", reqMsg.Metadata.Method, reqMsg.Metadata.Path, reqMsg.ID)
+		log.Printf("Tunnel request: %s %s", reqMsg.Metadata.Method, reqMsg.Metadata.Path)
 
 		// Create a pipe for streaming the request body
-		pipeReader, pipeWriter := io.Pipe()
+		var pipeReader *io.PipeReader
+		pipeReader, pipeWriter = io.Pipe()
 
-		streamReq = &streamingRequest{
-			pipeWriter: pipeWriter,
-			done:       make(chan struct{}),
-		}
-		t.inflightRequests[reqMsg.ID] = streamReq
-		t.requestMapLock.Unlock()
+		t.receivingRequests[reqMsg.ID] = pipeWriter
+		t.receivingRequestsMutex.Unlock()
 
 		// Start the HTTP request in a goroutine
 		go func() {
-			defer close(streamReq.done)
-			t.executeStreamingRequest(reqMsg.ID, reqMsg.Metadata, pipeReader)
+			t.streamProxyRequest(reqMsg.ID, reqMsg.Metadata, pipeReader)
+			// Done, remove from receiving requests
+			t.receivingRequestsMutex.Lock()
+			delete(t.receivingRequests, reqMsg.ID)
+			t.receivingRequestsMutex.Unlock()
 		}()
+	} else {
+		t.receivingRequestsMutex.Unlock()
 	}
 
 	// Write the chunk to the pipe
-	if _, err := streamReq.pipeWriter.Write(reqMsg.Payload); err != nil {
+	if _, err := pipeWriter.Write(reqMsg.Payload); err != nil {
 		log.Printf("Error writing to pipe: %v", err)
-		streamReq.pipeWriter.CloseWithError(err)
+		pipeWriter.CloseWithError(err)
 		return
 	}
 
 	// If this is also the final message, close the pipe
 	if reqMsg.IsFinal {
-		streamReq.pipeWriter.Close()
-		t.requestMapLock.Lock()
-		delete(t.inflightRequests, reqMsg.ID)
-		t.requestMapLock.Unlock()
-		// Wait for the request to complete
-		<-streamReq.done
-		log.Printf("Request %s completed", reqMsg.ID)
+		pipeWriter.Close()
 	}
 
 }
 
-func (t *Tunnel) executeStreamingRequest(id string, metadata *RequestMetadata, body io.Reader) {
+func (t *TunnelConnection) streamProxyRequest(id string, metadata *RequestMetadata, body io.Reader) {
 	// Build the local URL
-	localURL := fmt.Sprintf("http://localhost:%d%s", t.localPort, metadata.Path)
+	localURL := fmt.Sprintf("http://localhost:%d%s", t.localProxyPort, metadata.Path)
 
 	// Create HTTP request with streaming body
 	req, err := http.NewRequest(metadata.Method, localURL, body)
@@ -173,10 +173,10 @@ func (t *Tunnel) executeStreamingRequest(id string, metadata *RequestMetadata, b
 	defer resp.Body.Close()
 
 	// Stream back response
-	t.streamResponse(id, resp, metadata.Path)
+	t.streamResponse(id, resp)
 }
 
-func (t *Tunnel) streamResponse(id string, resp *http.Response, path string) {
+func (t *TunnelConnection) streamResponse(id string, resp *http.Response) {
 	isFirst := true
 	isFinal := false
 
@@ -187,29 +187,29 @@ func (t *Tunnel) streamResponse(id string, resp *http.Response, path string) {
 			respHeaders[key] = values[0]
 		}
 	}
-	buffer := make([]byte, ChunkSize)
 
 	for !isFinal {
-		n, err := resp.Body.Read(buffer)
-		isFinal = err == io.EOF || n == 0
-
-		if err != nil && err != io.EOF {
+		var buffer bytes.Buffer
+		// Read up to ChunkSize bytes at a time
+		n, err := io.Copy(&buffer, io.LimitReader(resp.Body, ChunkSize))
+		if err != nil {
 			log.Printf("Error reading response body: %v", err)
 			t.sendErrorResponse(id, fmt.Sprintf("Error reading response body: %v", err))
 			break
 		}
+		// When we read less, this is the final chunk
+		isFinal = n < ChunkSize
 
 		respMsg := &ResponseMessage{
 			ID:      id,
 			IsFinal: isFinal,
-			Payload: buffer[:n],
+			Payload: buffer.Bytes(),
 		}
 
 		// Include metadata only in the first message
 		if isFirst {
 			respMsg.Metadata = &ResponseMetadata{
 				StatusCode: resp.StatusCode,
-				Path:       path,
 				Headers:    respHeaders,
 			}
 			isFirst = false
@@ -219,7 +219,7 @@ func (t *Tunnel) streamResponse(id string, resp *http.Response, path string) {
 	}
 }
 
-func (t *Tunnel) sendPump() {
+func (t *TunnelConnection) sendPump() {
 	for respMsg := range t.sendChannel {
 		// Encode
 		resp, err := EncodeResponseMessage(respMsg)
@@ -227,22 +227,16 @@ func (t *Tunnel) sendPump() {
 			log.Printf("error encoding response message: %v", err)
 		}
 
-		// Compress
-		compressed, err := GzipCompress(resp)
-		if err != nil {
-			log.Printf("error compressing response: %v", err)
-		}
-
 		// Send over websocket
-		if err := t.conn.WriteMessage(websocket.BinaryMessage, compressed); err != nil {
+		if err := t.wsConn.WriteMessage(websocket.BinaryMessage, resp); err != nil {
 			log.Printf("error sending response: %s", err.Error())
-			t.conn.Close()
+			t.wsConn.Close()
 			break
 		}
 	}
 }
 
-func (t *Tunnel) sendErrorResponse(id string, errorMsg string) {
+func (t *TunnelConnection) sendErrorResponse(id string, errorMsg string) {
 	respMsg := &ResponseMessage{
 		ID:      id,
 		IsFinal: true,

@@ -149,7 +149,7 @@ func RunServer(config *ServerConfig) error {
 	}()
 
 	if config.TunnelURL != "" {
-		t := tunnel.NewTunnel(config.TunnelURL, config.Port)
+		t := tunnel.NewTunnelConnection(config.TunnelURL, config.Port)
 		go t.Connect()
 	}
 
