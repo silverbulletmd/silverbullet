@@ -1,5 +1,5 @@
 # To build:
-# docker build -t zefhemel/silverbullet-website:v1 -f Dockerfile.website .
+# docker buildx build --platform linux/amd64,linux/arm64 -t zefhemel/silverbullet-website:v1 -f Dockerfile.website --push .
 FROM zefhemel/silverbullet:edge
 
 ENV SB_READ_ONLY=1
