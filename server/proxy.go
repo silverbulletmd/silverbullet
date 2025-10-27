@@ -10,12 +10,18 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
-var localhostRegex *regexp.Regexp
+var localhostRegex *regexp.Regexp = regexp.MustCompile(`^(localhost|127\.0\.0\.1|\d+\.\d+\.\d+\.\d+)`)
+
+var proxyRequestsTotal = prometheus.NewCounter(prometheus.CounterOpts{
+	Name: "silverbullet_proxy_requests",
+	Help: "Total number of proxy requests in the SilverBullet space",
+})
 
 func init() {
-	localhostRegex = regexp.MustCompile(`^(localhost|127\.0\.0\.1|\d+\.\d+\.\d+\.\d+)`)
+	prometheus.MustRegister(proxyRequestsTotal)
 }
 
 func proxyHandler(w http.ResponseWriter, r *http.Request) {
@@ -91,4 +97,5 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 	if _, err := io.Copy(w, resp.Body); err != nil {
 		log.Printf("Proxy: failed to copy response body: %v", err)
 	}
+	proxyRequestsTotal.Inc()
 }

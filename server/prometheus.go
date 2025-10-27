@@ -12,7 +12,7 @@ import (
 
 var httpRequestsTotal = prometheus.NewCounter(
 	prometheus.CounterOpts{
-		Name: "silverbullet_http_requests_total",
+		Name: "silverbullet_http_requests",
 		Help: "Total number of HTTP requests to SilverBullet",
 	},
 )

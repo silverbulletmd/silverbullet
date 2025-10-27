@@ -13,6 +13,7 @@ import (
 	ignore "github.com/Diogenesoftoronto/go-gitignore"
 	"github.com/charlievieth/fastwalk"
 	"github.com/djherbis/times"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // DiskSpacePrimitives implements SpacePrimitives for local disk storage
@@ -22,6 +23,15 @@ type DiskSpacePrimitives struct {
 }
 
 var _ SpacePrimitives = &DiskSpacePrimitives{}
+
+var spaceFilesTotal = prometheus.NewGauge(prometheus.GaugeOpts{
+	Name: "silverbullet_space_files_count",
+	Help: "Total number of files in the SilverBullet space",
+})
+
+func init() {
+	prometheus.MustRegister(spaceFilesTotal)
+}
 
 // NewDiskSpacePrimitives creates a new DiskSpacePrimitives instance
 func NewDiskSpacePrimitives(rootPath string, gitIgnore string) (*DiskSpacePrimitives, error) {
@@ -170,6 +180,8 @@ func (d *DiskSpacePrimitives) FetchFileList() ([]FileMeta, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to walk directory: %w", err)
 	}
+
+	spaceFilesTotal.Set(float64(len(allFiles)))
 
 	return allFiles, nil
 }

@@ -4,7 +4,18 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+
+	"github.com/prometheus/client_golang/prometheus"
 )
+
+var shellCommandsTotal = prometheus.NewCounter(prometheus.CounterOpts{
+	Name: "silverbullet_shell_executions",
+	Help: "Total number of shell commands executions",
+})
+
+func init() {
+	prometheus.MustRegister(shellCommandsTotal)
+}
 
 // handleShellEndpoint handles POST requests to /.shell for executing shell commands
 func handleShellEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -23,6 +34,7 @@ func handleShellEndpoint(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	shellCommandsTotal.Inc()
 
 	// Return the response as JSON
 	w.Header().Set("Content-Type", "application/json")

@@ -91,6 +91,13 @@ func buildConfig(bundledFiles fs.FS, args []string) *server.ServerConfig {
 
 	serverConfig.EnableHTTPLogging = os.Getenv("SB_HTTP_LOGGING") != ""
 
+	if os.Getenv("SB_METRICS_PORT") != "" {
+		serverConfig.MetricsPort, err = strconv.Atoi(os.Getenv("SB_METRICS_PORT"))
+		if err != nil {
+			log.Fatalf("Could not parse SB_METRICS_PORT as number: %v", err)
+		}
+	}
+
 	if os.Getenv("SB_USER") != "" {
 		pieces := strings.Split(os.Getenv("SB_USER"), ":")
 		if len(pieces) != 2 {

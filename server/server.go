@@ -44,6 +44,8 @@ func Router(config *ServerConfig) chi.Router {
 	// Expose space primitives and path to the request
 	r.Use(spaceMiddleware(config))
 
+	r.Use(httpStatsMiddleware(config))
+
 	// Authentication middleware (applies to all routes after this point)
 	r.Use(authMiddleware(config))
 
@@ -146,6 +148,8 @@ func RunServer(config *ServerConfig) error {
 		log.Println("Stopped serving new connections.")
 		shutdownChannel <- true
 	}()
+
+	go runMetricsServer(config)
 
 	signalChannel := make(chan os.Signal, 1)
 	signal.Notify(signalChannel, syscall.SIGINT, syscall.SIGTERM)
