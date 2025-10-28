@@ -31,4 +31,4 @@ There’s a whole world out there to explore, but let’s not get ahead of ourse
 Then we’ll talk.
 
 # What next?
-You can find more information on SilverBullet’s feature set on its [official website](https://v2.silverbullet.md/). Also, be sure to join the [SilverBullet community](https://community.silverbullet.md/) to interact with fellow SilverBullet explorers.
+You can find more information on SilverBullet’s feature set on its [official website](https://silverbullet.md/). Also, be sure to join the [SilverBullet community](https://community.silverbullet.md/) to interact with fellow SilverBullet explorers.
