@@ -87,7 +87,7 @@ event.listen {
     end
     for key, val in pairs(currentValue) do
       if string.startsWith(key, lastProp) and val then
-        if val.call then
+        if type(val) == "function" then
           -- We got a function
           if val.body then
             -- Function defined in Lua
