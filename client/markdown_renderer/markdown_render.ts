@@ -26,6 +26,7 @@ export type MarkdownRenderOptions = {
   preserveAttributes?: true;
   // When defined, use to inline images as data: urls
   translateUrls?: (url: string, type: "link" | "image") => string;
+  expand?: true;
 };
 
 function cleanTags(values: (Tag | null)[], cleanWhitespace = false): Tag[] {

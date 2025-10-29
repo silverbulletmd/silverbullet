@@ -15,6 +15,8 @@ An attempt at documenting the changes/new features introduced in each release.
 * More video embeds in standard library (courtesey of Andy Costanza):
   * [Vimeo](https://github.com/silverbulletmd/silverbullet/pull/1616)
   * [Peertube](https://github.com/silverbulletmd/silverbullet/pull/1612)
+* New `widget.htmlBlock` and `widget.markdownBlock` convenience APIs for creating block widgets (that take the full width of the screen rather than being inlined)
+* The [[^Library/Std/APIs/DOM]] API now supports embedded widgets and markdown
 * Atomic upgrades with `silverbullet update` and `silverbullet update-edge` (by [Mihai Maruseac](https://github.com/silverbulletmd/silverbullet/pull/1634))
 * Added `Client : Clean` command that deletes all redundant IndexedDB databases (ones the client is not using)
 * Fix: bottom search bar dark mode styling (by [numan](https://github.com/silverbulletmd/silverbullet/pull/1614))

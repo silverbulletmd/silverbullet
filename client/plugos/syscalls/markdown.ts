@@ -26,23 +26,17 @@ export function markdownSyscalls(client: Client): SysCallMapping {
       return renderToText(tree);
     },
     "markdown.expandMarkdown": (_ctx, tree: ParseTree): Promise<ParseTree> => {
-      const globalEnv = client.clientSystem.spaceLuaEnv.env;
-      const tl = new LuaEnv();
-      tl.setLocal("_GLOBAL", globalEnv);
-      const sf = new LuaStackFrame(tl, null);
-      return expandMarkdown(
-        client,
-        tree,
-        globalEnv,
-        sf,
-      );
+      return expandMarkdownWithClient(client, tree);
     },
-    "markdown.markdownToHtml": (
+    "markdown.markdownToHtml": async (
       _ctx,
       text: string,
       options: MarkdownRenderOptions = {},
     ) => {
-      const mdTree = parse(extendedMarkdownLanguage, text);
+      let mdTree = parse(extendedMarkdownLanguage, text);
+      if (options.expand) {
+        mdTree = await expandMarkdownWithClient(client, mdTree);
+      }
       return renderMarkdownToHtml(mdTree, options);
     },
     "markdown.objectsToTable": (
@@ -54,4 +48,17 @@ export function markdownSyscalls(client: Client): SysCallMapping {
       return jsonToMDTable(data, options.renderCell || refCellTransformer);
     },
   };
+}
+
+function expandMarkdownWithClient(client: Client, tree: ParseTree) {
+  const globalEnv = client.clientSystem.spaceLuaEnv.env;
+  const tl = new LuaEnv();
+  tl.setLocal("_GLOBAL", globalEnv);
+  const sf = new LuaStackFrame(tl, null);
+  return expandMarkdown(
+    client,
+    tree,
+    globalEnv,
+    sf,
+  );
 }

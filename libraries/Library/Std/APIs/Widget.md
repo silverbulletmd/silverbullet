@@ -1,6 +1,6 @@
 #meta/api
 
-This implements the widget API. For a Lua Directive to be rendered as a widget, you need to return it via `widget.new`.
+This implements the widget API. For a Lua Directive to be rendered as a widget, you need to return it via `widget.new`. Consider using [[^Library/Std/APIs/DOM]] to construct these.
 
 ```space-lua
 -- priority: 50
@@ -58,10 +58,24 @@ function widget.html(html)
   }
 end
 
+function widget.htmlBlock(html)
+  return widget.new {
+    html = html,
+    display = "block"
+  }
+end
+
 -- Convenience function for markdown widgets
 function widget.markdown(markdown)
   return widget.new {
     markdown = markdown
+  }
+end
+
+function widget.markdownBlock(markdown)
+  return widget.new {
+    markdown = markdown,
+    display = "block"
   }
 end
 ```
