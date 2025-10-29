@@ -132,4 +132,4 @@ ${template.each(query[[
   limit 3
 ]], templates.pageItem)}
 
-To render pages as links with their full local URL, use `templates.fullPageItem`. For more information on available templates, see [[API/templates]].
+To render pages as links with their full local URL, use `templates.fullPageItem`. For more information on available templates, see [[^Library/Std/Infrastructure/Query Templates]].
