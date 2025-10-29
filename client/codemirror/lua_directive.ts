@@ -85,6 +85,9 @@ export function luaDirectivePlugin(client: Client) {
               `lua:${text}:${currentPageMeta?.name}`,
               text,
               async (bodyText) => {
+                if (bodyText.trim().length === 0) {
+                  return "**Error:** Empty Lua expression";
+                }
                 try {
                   const parsedLua = parseLua(`_(${bodyText})`) as LuaBlock;
                   const expr =
