@@ -81,6 +81,8 @@ import { Augmenter } from "./data/data_augmenter.ts";
 import { EncryptedKvPrimitives } from "./data/encrypted_kv_primitives.ts";
 import type { KvPrimitives } from "./data/kv_primitives.ts";
 import { deriveDbName } from "@silverbulletmd/silverbullet/lib/crypto";
+import { LuaRuntimeError } from "./space_lua/runtime.ts";
+import { resolveASTReference } from "./space_lua.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -564,6 +566,18 @@ export class Client {
       },
       type === "info" ? 4000 : 5000,
     );
+  }
+
+  reportError(e: any, context: string = "") {
+    console.error(`Error during ${context}:`, e);
+
+    if (e instanceof LuaRuntimeError) {
+      client.flashNotification(`Lua error: ${e.message}`, "error");
+      const origin = resolveASTReference(e.sf.astCtx!);
+      if (origin) {
+        client.navigate(origin);
+      }
+    }
   }
 
   startPageNavigate(mode: "page" | "meta" | "document" | "all") {

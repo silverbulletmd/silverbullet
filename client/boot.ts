@@ -14,7 +14,7 @@ import "./lib/polyfills.ts";
 import type { BootConfig, ServiceWorkerTargetMessage } from "./types/ui.ts";
 import { BoxProxy } from "./lib/box_proxy.ts";
 import { importKey } from "@silverbulletmd/silverbullet/lib/crypto";
-
+import "./debug.ts";
 const logger = initLogger("[Client]");
 
 safeRun(async () => {

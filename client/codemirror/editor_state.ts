@@ -341,11 +341,7 @@ export function createCommandKeyBindings(client: Client): KeyBinding[] {
           Promise.resolve([])
             .then(def.run)
             .catch((e: any) => {
-              console.error(e);
-              client.flashNotification(
-                `Error running command: ${e.message}`,
-                "error",
-              );
+              client.reportError(e, "key");
             }).then((returnValue: any) => {
               // Always be focusing the editor after running a command
               if (returnValue !== false) {

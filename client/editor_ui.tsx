@@ -224,7 +224,7 @@ export class MainUI {
                       client.focus();
                     }
                   } catch (e: any) {
-                    console.error("Error running command", e.message);
+                    this.client.reportError(e, "Command invocation");
                   }
                 } else {
                   setTimeout(() => client.focus());
