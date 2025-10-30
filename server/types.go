@@ -2,6 +2,7 @@ package server
 
 import (
 	"errors"
+	"html/template"
 	"net/http"
 	"sync"
 )
@@ -38,6 +39,9 @@ type SpaceConfig struct {
 	// Used for the PWA manifest and login page
 	SpaceName        string
 	SpaceDescription string
+
+	// Used to inject additional HTML into the <head> of index.html
+	AdditionalHeadHTML template.HTML
 
 	// Shell configuration
 	ShellBackend ShellBackend

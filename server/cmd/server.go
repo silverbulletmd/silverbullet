@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"html/template"
 	"io/fs"
 	"log"
 	"net/http"
@@ -142,6 +143,8 @@ func buildConfig(bundledFiles fs.FS, args []string) *server.ServerConfig {
 	if os.Getenv("SB_DESCRIPTION") != "" {
 		rootSpaceConfig.SpaceDescription = os.Getenv("SB_DESCRIPTION")
 	}
+
+	rootSpaceConfig.AdditionalHeadHTML = template.HTML(os.Getenv("SB_HEAD_HTML"))
 
 	if os.Getenv("SB_URL_PREFIX") != "" {
 		hostUrlPrefix := os.Getenv("SB_URL_PREFIX")

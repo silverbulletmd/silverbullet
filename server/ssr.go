@@ -63,13 +63,15 @@ func ServerSideRender(config *ServerConfig, spaceConfig *SpaceConfig, pageName s
 	tpl = template.Must(tpl.Parse(string(indexHtmlBuf)))
 
 	templateData := struct {
-		HostPrefix  string
-		Title       string
-		Description string
-		Content     string
+		HostPrefix         string
+		Title              string
+		Description        string
+		Content            string
+		AdditionalHeadHTML template.HTML
 	}{
-		Title:      "SilverBullet",
-		HostPrefix: config.HostURLPrefix,
+		Title:              "SilverBullet",
+		HostPrefix:         config.HostURLPrefix,
+		AdditionalHeadHTML: spaceConfig.AdditionalHeadHTML,
 	}
 
 	if spaceConfig.ReadOnlyMode && spaceConfig.Auth == nil {
