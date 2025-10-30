@@ -188,7 +188,10 @@ function render(
       };
     case "InlineCode":
       return {
-        name: "tt",
+        name: "code",
+        attrs: {
+          class: "sb-code",
+        },
         body: cleanTags(mapRender(t.children!)),
       };
     case "BulletList":
