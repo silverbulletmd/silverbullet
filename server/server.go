@@ -49,10 +49,10 @@ func Router(config *ServerConfig) chi.Router {
 	// Authentication middleware (applies to all routes after this point)
 	r.Use(authMiddleware(config))
 
-	// Authentication endpoints (must come before auth middleware)
-	addAuthEndpoints(r, config)
-
 	routes := chi.NewRouter()
+
+	// Authentication endpoints (must come before auth middleware)
+	addAuthEndpoints(routes, config)
 
 	routes.Get("/.ping", func(w http.ResponseWriter, r *http.Request) {
 		spaceConfig := spaceConfigFromContext(r.Context())

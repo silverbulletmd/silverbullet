@@ -136,7 +136,7 @@ func addAuthEndpoints(r chi.Router, config *ServerConfig) {
 				setCookie(w, "refreshLogin", "true", cookieOptions)
 			}
 
-			redirectPath := "/"
+			redirectPath := applyURLPrefix("/", config.HostURLPrefix)
 			if from != "" {
 				redirectPath = from
 			}
