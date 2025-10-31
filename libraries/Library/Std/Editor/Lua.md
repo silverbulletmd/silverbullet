@@ -58,7 +58,7 @@ event.listen {
     end
     local pos = e.data.pos
     local propaccessPrefix = string.matchRegex(linePrefix, "([a-zA-Z_0-9]+\\.)*([a-zA-Z_0-9]*)$")
-    if not propaccessPrefix or not propaccessPrefix[1] then
+    if not propaccessPrefix or propaccessPrefix[1] == "" then
       -- No propaccess prefix, so we can't complete
       return
     end
