@@ -8,6 +8,11 @@ Deno.test("Config - basic functionality", () => {
   config.set("testKey", "testValue");
   assertEquals(config.get(["testKey"], null), "testValue");
 
+  // Test insert
+  config.insert("plugs", "plug1");
+  config.insert("plugs", "plug1");
+  assertEquals(config.get("plugs", null), ["plug1", "plug1"]);
+
   // Test default value
   assertEquals(config.get("nonExistentKey", "default"), "default");
 

@@ -13,6 +13,13 @@ export function configSyscalls(config: Config): SysCallMapping {
     ) => {
       config.set(keyOrValues as any, value);
     },
+    "config.insert": (
+      _ctx,
+      key: string | string[],
+      value: any,
+    ) => {
+      config.insert(key, value);
+    },
     "config.has": (_ctx, path: string) => {
       return config.has(path);
     },

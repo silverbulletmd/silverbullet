@@ -134,6 +134,27 @@ export class Config {
     }
   }
 
+  insert<T>(
+    key: string | string[],
+    value?: T,
+  ): void {
+    if (typeof key === "string") {
+      key = key.split(".");
+    }
+    const resolved = resolvePath(this.values, key, true);
+    if (resolved) {
+      if (!Array.isArray(resolved.obj[resolved.key])) {
+        resolved.obj[resolved.key] = [];
+      }
+      resolved.obj[resolved.key].push(value);
+    } else {
+      throw new Error(`Invalid key ${key}`);
+    }
+
+    // Find and validate only the relevant schema after the fact...
+    this.validatePath(key);
+  }
+
   /**
    * Checks if a path exists in the config
    * @param path The path to check, supports dot notation (e.g. "foo.bar.baz")
