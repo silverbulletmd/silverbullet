@@ -262,7 +262,10 @@ print("Uploaded: " .. file.name)
 ```
 
 ### editor.copyToClipboard(data)
-Copies data to the clipboard.
+Copies data to the clipboard. 
+
+> **note** Note
+> Requires HTTPS, see [[Install/Network and Internet]]
 
 Example:
 ```lua
