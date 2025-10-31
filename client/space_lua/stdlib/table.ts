@@ -147,14 +147,24 @@ export const tableApi = new LuaTable({
     return tbl;
   }),
   unpack: new LuaBuiltinFunction(
-    (_sf, tbl: LuaTable, i?: number, j?: number) => {
-      i = i ?? 1;
-      j = j ?? tbl.length;
-      const result = [];
-      for (let k = i; k <= j; k++) {
-        result.push(tbl.get(k));
+    (_sf, tbl: LuaTable | any[], i?: number, j?: number) => {
+      if (Array.isArray(tbl)) {
+        i = i ?? 1;
+        j = j ?? tbl.length;
+        const result = [];
+        for (let k = i; k <= j; k++) {
+          result.push(tbl[k - 1]);
+        }
+        return new LuaMultiRes(result);
+      } else {
+        i = i ?? 1;
+        j = j ?? tbl.length;
+        const result = [];
+        for (let k = i; k <= j; k++) {
+          result.push(tbl.get(k));
+        }
+        return new LuaMultiRes(result);
       }
-      return new LuaMultiRes(result);
     },
   ),
 

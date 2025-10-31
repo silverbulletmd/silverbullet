@@ -43,7 +43,8 @@ export function sandboxFetchSyscalls(
       );
       // Do sensible things with the body based on the content type
       let body: any;
-      const contentTypeHeader = resp.headers.get("x-proxy-header-content-type");
+      const contentTypeHeader = options.responseEncoding ||
+        resp.headers.get("x-proxy-header-content-type");
       const statusCode = +(resp.headers.get("x-proxy-status-code") || "200");
       if (contentTypeHeader?.startsWith("application/json")) {
         body = await resp.json();

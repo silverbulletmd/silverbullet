@@ -17,6 +17,7 @@ export type ProxyFetchResponse64 = {
 export type ProxyFetchRequest = {
   method?: string;
   headers?: Record<string, string>;
+  responseEncoding?: string;
   body?: Uint8Array | string | any;
 };
 
