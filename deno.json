@@ -10,6 +10,7 @@
     "lint": "deno lint --fix",
     "fmt": "deno fmt",
     "test": "deno test -A",
+    "bench": "deno bench -A",
     "plugs": "deno run -A build_plugs_libraries.ts"
   },
   "publish": {

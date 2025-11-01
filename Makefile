@@ -30,6 +30,11 @@ test:
 	# Run backend tests
 	go test ./server/...
 
+.PHONY: bench
+bench:
+	# Run frontend tests
+	deno task bench
+
 generate:
 	# Regenerate the Lua parser from the the grammar
 	deno run -A npm:@lezer/generator@1.5.1 client/space_lua/lua.grammar -o client/space_lua/parse-lua.js
