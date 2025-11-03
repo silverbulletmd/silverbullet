@@ -202,4 +202,67 @@ event.listen {
     end
   end
 }
+
+```
+# Read URI support
+```space-lua
+-- Supports:
+--   ghr:owner/repo/path (latest)
+--   ghr:owner/repo@version/path
+event.listen {
+  name = "readURI:ghr:*",
+  run = function(e)
+    local uri = e.data.uri:sub(#"ghr:"+1)
+    local owner, repo, path = table.unpack(uri:split("/"))
+    local repoClean, version = table.unpack(repo:split("@"))
+    local url
+    if not version or version == "latest" then
+      url = "https://api.github.com/repos/"
+            .. owner .. "/" .. repoClean .. "/releases/latest"
+    else
+      url = "https://api.github.com/repos/" .. owner .. "/" .. repoClean .. "/releases/tags/" .. version
+    end
+    local res = http.request(url)
+    if res.status != 200 then
+      print("Could not fetch", url, res)
+      return
+    end
+    local releaseInfo = res.body
+    version = releaseInfo.tag_name
+    local url = "https://github.com/" .. owner .. "/" .. repoClean .. "/releases/download/" .. version .. "/" .. path
+    local res = http.request(url, {responseEncoding=e.data.encoding})
+    if res.status != 200 then
+      print("Failed to fetch", ur, res)
+      return nil
+    end
+    return res.body
+  end
+}
+
+-- Supports:
+--   github:owner/repo/path (defaults to "main" branch)
+--   github:owner/repo@branch/path
+--   github:https://github.com/owner/repo/blob/branch/path
+event.listen {
+  name = "readURI:github:*",
+  run = function(e)
+    local uri = e.data.uri:sub(#"github:"+1)
+    local owner, repo, path, branch
+    if uri:startsWith("https://") then
+      owner, repo, branch, path = uri:match("github%.com/([^/]+)/([^/]+)/[^/]+/([^/]+)/(.+)")
+    else
+      owner, repo, path = table.unpack(uri:split("/"))
+      repo, branch = table.unpack(repo:split("@"))
+      if not branch then
+        branch = "main"
+      end
+    end
+    local url = "https://raw.githubusercontent.com/" .. owner .. "/" .. repo .. "/" .. branch .. "/" .. path
+    local res = http.request(url)
+    if res.status != 200 then
+      return nil
+    end
+    return res.body
+  end
+}
 ```

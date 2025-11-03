@@ -1,4 +1,4 @@
-#meta
+#meta/library
 
 Welcome to SilverBullet’s standard library. This library (all pages under `Library/Std`) ship with SilverBullet itself. Therefore, you will not find these pages in your space folder, even though they _appear_ to be located there. These pages are all read-only, so you cannot (directly) modify them.
 

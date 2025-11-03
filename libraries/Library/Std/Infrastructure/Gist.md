@@ -183,3 +183,27 @@ event.listen {
   end
 }
 ```
+
+# ReadURI support
+```space-lua
+-- Supports
+--   gist:https://gist.github.com/user/gistid
+event.listen {
+  name = "readURI:gist:*",
+  run = function(e)
+    local gistId = e.data.uri:match("([^/]+)$")
+    local resp = http.request("https://api.github.com/gists/" .. gistId)
+    if resp.status != 200 then
+      print("Failed to fetch gist", resp)
+      return nil
+    end
+    local files = resp.body.files
+    for filename, data in pairs(files) do
+      if data.content then
+        return data.content
+      end
+    end
+    return nil
+  end
+}
+```
