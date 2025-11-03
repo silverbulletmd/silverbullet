@@ -1,8 +1,8 @@
 import type { DataStoreMQ } from "../../data/mq.datastore.ts";
-import { MQListenerSpec } from "../hooks/mq.ts";
+import type { MQListenerSpec } from "../hooks/mq.ts";
 import type { SysCallMapping } from "../system.ts";
 
-export type EventSubscription = EventSubscriptionDef & {
+export type EventSubscription = MQListenerSpec & {
   run: (...args: any[]) => Promise<any>;
 };
 

@@ -46,6 +46,8 @@ import type { LuaCollectionQuery } from "./space_lua/query_collection.ts";
 import type { Command } from "./types/command.ts";
 import { SpaceLuaEnvironment } from "./space_lua.ts";
 import { builtinPlugPaths } from "../plugs/builtin_plugs.ts";
+import { ServiceRegistry } from "./service_registry.ts";
+import { serviceRegistrySyscalls } from "./plugos/syscalls/service_registry.ts";
 
 const indexVersionKey = ["$indexVersion"];
 const indexQueuedKey = ["$indexQueued"];
@@ -67,6 +69,8 @@ export class ClientSystem {
   codeWidgetHook!: CodeWidgetHook;
   documentEditorHook!: DocumentEditorHook;
   mqHook!: MQHook;
+
+  serviceRegistry!: ServiceRegistry;
 
   // Space Lua
   spaceLuaEnv: SpaceLuaEnvironment;
@@ -92,6 +96,7 @@ export class ClientSystem {
     });
 
     this.spaceLuaEnv = new SpaceLuaEnvironment(this.system);
+    this.serviceRegistry = new ServiceRegistry(this.eventHook);
 
     setInterval(() => {
       mq.requeueTimeouts(mqTimeout, mqTimeoutRetry, true).catch(console.error);
@@ -164,6 +169,7 @@ export class ClientSystem {
       //commandSyscalls(client),
       luaSyscalls(this),
       mqSyscalls(this.mq),
+      serviceRegistrySyscalls(this.serviceRegistry),
       dataStoreReadSyscalls(this.ds, this),
       dataStoreWriteSyscalls(this.ds),
       syncSyscalls(this.client),
@@ -202,6 +208,7 @@ export class ClientSystem {
       return;
     }
     this.client.config.clear();
+    this.serviceRegistry.clear();
     try {
       await this.spaceLuaEnv.reload();
     } catch (e: any) {
