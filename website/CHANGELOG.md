@@ -1,7 +1,12 @@
 An attempt at documenting the changes/new features introduced in each release.
 
 ## Edge
-* [[Client Encryption]]: due to a change in how database names are now generated, this will result in a _one-time_ resync and reindex of your space.
+Nothing new since 2.2.0 just yet!
+
+## 2.2.0
+This is a dot release primarily because due to changes in how IndexedDB databases are named, a fully resync and reindex of your space will happen on all your devices. I’m sorry for the inconvenience, we try to limit how often this is required. If you’d like to clean up unnecessary databases afterwards you can run the `Client: Clean` command (once) afterwards.
+
+* [[Client Encryption]]: when using a untrusted device (e.g. a public computer), enable this option when logging in (only supported with built-in [[Authentication]]) to encrypt all locally stored data (at a performance penalty).
 * Lua fixes, making [[Space Lua]] more compatible with Lua 5.4 (most courtesy of of Matouš Jan Fialka):
   * [Fix length (`#` operator) features](https://github.com/silverbulletmd/silverbullet/pull/1637)
   * [Add `rawget` and `rawequal`](https://github.com/silverbulletmd/silverbullet/pull/1647)
@@ -12,15 +17,18 @@ An attempt at documenting the changes/new features introduced in each release.
   * [Add `load` function](https://github.com/silverbulletmd/silverbullet/pull/1631)
   * [Support %u in os.date](https://github.com/silverbulletmd/silverbullet/issues/1598)
   * [Pass on status code differently when using `http.request`](https://github.com/silverbulletmd/silverbullet/issues/1608)
-* More video embeds in standard library (courtesey of Andy Costanza):
+* More video embeds in standard library (courtesy of Andy Costanza):
   * [Vimeo](https://github.com/silverbulletmd/silverbullet/pull/1616)
   * [Peertube](https://github.com/silverbulletmd/silverbullet/pull/1612)
 * New `widget.htmlBlock` and `widget.markdownBlock` convenience APIs for creating block widgets (that take the full width of the screen rather than being inlined)
 * The [[^Library/Std/APIs/DOM]] API now supports embedded widgets and markdown
+* The markdown renderer now renders ${"`inline code`"} as a `code` tag with `.sb-code` class
 * Atomic upgrades with `silverbullet update` and `silverbullet update-edge` (by [Mihai Maruseac](https://github.com/silverbulletmd/silverbullet/pull/1634))
 * Added `Client : Clean` command that deletes all redundant IndexedDB databases (ones the client is not using)
+* Very basic Prometheus metrics (see [[Install/Configuration#Metrics]])
 * Fix: bottom search bar dark mode styling (by [numan](https://github.com/silverbulletmd/silverbullet/pull/1614))
 * Fix: navigation with auto links (by [MrMugame](https://github.com/silverbulletmd/silverbullet/pull/1607))
+* Fix: `SB_USER` now works with `SB_URL_PREFIX`
 
 ## 2.1.8
 * New [[^Library/Std/APIs/Virtual Page]] API, internally used by:

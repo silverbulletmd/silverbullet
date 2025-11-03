@@ -44,6 +44,11 @@ Configuration only relevant to docker deployments:
 * `PUID`: Runs the server process with the specified UID (default: whatever user owns the `/space` mapped folder)
 * `PGID`: Runs the server process with the specified GID (default: whatever group owns the `/space` mapped folder)\
 
+# Metrics
+SilverBullet offers a few basic Prometheus metrics, these can be configured with the following environment variables:
+
+* `SB_METRICS_PORT`: HTTP port to expose metrics (under the default `/metrics` endpoint) on
+
 # Web app manifest
 Configure aspects of web app appearance as well as the authentication page:
 
