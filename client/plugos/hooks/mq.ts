@@ -1,9 +1,22 @@
+// deno-lint-ignore-file ban-types
 import type { Hook, Manifest } from "../types.ts";
 import type { System } from "../system.ts";
 import { throttle } from "@silverbulletmd/silverbullet/lib/async";
 import type { MQHookT } from "@silverbulletmd/silverbullet/type/manifest";
 import type { DataStoreMQ, QueueWorker } from "../../data/mq.datastore.ts";
-import type { MQMessage } from "@silverbulletmd/silverbullet/type/datastore";
+import type {
+  MQMessage,
+  MQSubscribeOptions,
+} from "@silverbulletmd/silverbullet/type/datastore";
+import type { Config } from "../../config.ts";
+
+export type MQListenerSpec =
+  & MQSubscribeOptions
+  & {
+    queue: string;
+    autoAck?: boolean;
+    run: Function;
+  };
 
 export class MQHook implements Hook<MQHookT> {
   subscriptions: QueueWorker[] = [];
@@ -11,7 +24,11 @@ export class MQHook implements Hook<MQHookT> {
     this.reloadQueues();
   }, 1000);
 
-  constructor(private system: System<MQHookT>, readonly mq: DataStoreMQ) {
+  constructor(
+    private system: System<MQHookT>,
+    readonly mq: DataStoreMQ,
+    readonly config: Config,
+  ) {
   }
 
   apply(system: System<MQHookT>): void {
@@ -35,6 +52,7 @@ export class MQHook implements Hook<MQHookT> {
 
   reloadQueues() {
     this.stop();
+    // Plug based subscriptions
     for (const plug of this.system.loadedPlugs.values()) {
       if (!plug.manifest) {
         continue;
@@ -79,6 +97,42 @@ export class MQHook implements Hook<MQHookT> {
             ),
           );
         }
+      }
+    }
+    // Space Lua based subscriptions
+    const configListeners: Record<string, MQListenerSpec[]> = this.config.get(
+      "mqSubscriptions",
+      {},
+    );
+    for (const [queue, listeners] of Object.entries(configListeners)) {
+      for (const listener of listeners) {
+        // console.log("Subscribing to", queue, listener);
+        this.subscriptions.push(
+          this.mq.subscribe(
+            queue,
+            {
+              batchSize: listener.batchSize,
+              pollInterval: listener.pollInterval,
+            },
+            async (messages: MQMessage[]) => {
+              try {
+                await listener.run(messages);
+                if (listener.autoAck) {
+                  await this.mq.batchAck(queue, messages.map((m) => m.id));
+                }
+              } catch (e: any) {
+                console.error(
+                  "Execution of mqSubscription for queue",
+                  queue,
+                  "with messages",
+                  messages,
+                  "failed:",
+                  e,
+                );
+              }
+            },
+          ),
+        );
       }
     }
   }

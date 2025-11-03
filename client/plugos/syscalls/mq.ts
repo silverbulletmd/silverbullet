@@ -1,10 +1,29 @@
 import type { DataStoreMQ } from "../../data/mq.datastore.ts";
+import { MQListenerSpec } from "../hooks/mq.ts";
 import type { SysCallMapping } from "../system.ts";
+
+export type EventSubscription = EventSubscriptionDef & {
+  run: (...args: any[]) => Promise<any>;
+};
 
 export function mqSyscalls(
   mq: DataStoreMQ,
 ): SysCallMapping {
   return {
+    /**
+     * Define a Lua event listener
+     */
+    "mq.subscribe": (
+      _ctx,
+      def: MQListenerSpec,
+    ) => {
+      def.autoAck = def.autoAck != false;
+      // console.log("Registering Lua event listener: ", def.name);
+      client.config.insert([
+        "mqSubscriptions",
+        def.queue,
+      ], def);
+    },
     "mq.send": (_ctx, queue: string, body: any) => {
       return mq.send(queue, body);
     },

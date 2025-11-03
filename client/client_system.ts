@@ -66,6 +66,7 @@ export class ClientSystem {
   namespaceHook!: PlugNamespaceHook;
   codeWidgetHook!: CodeWidgetHook;
   documentEditorHook!: DocumentEditorHook;
+  mqHook!: MQHook;
 
   // Space Lua
   spaceLuaEnv: SpaceLuaEnvironment;
@@ -133,7 +134,8 @@ export class ClientSystem {
     this.slashCommandHook = new SlashCommandHook(this.client);
 
     // MQ hook
-    this.system.addHook(new MQHook(this.system, this.mq));
+    this.mqHook = new MQHook(this.system, this.mq, this.client.config);
+    this.system.addHook(this.mqHook);
 
     // Syscall hook
     this.system.addHook(new SyscallHook());
@@ -219,6 +221,7 @@ export class ClientSystem {
     // Make scripted (slash) commands available
     this.commandHook.throttledBuildAllCommandsAndEmit();
     this.slashCommandHook.throttledBuildAllCommands();
+    this.mqHook.throttledReloadQueues();
 
     this.scriptsLoaded = true;
   }

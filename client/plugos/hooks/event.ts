@@ -106,7 +106,7 @@ export class EventHook implements EventHookI {
       }
     }
 
-    // Space script listeners
+    // Space Lua listeners
     if (this.config) {
       const configListeners: Record<string, Function[]> = this.config.get(
         "eventListeners",
