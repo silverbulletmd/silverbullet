@@ -96,13 +96,14 @@ export class EventHook implements EventHookI {
     }
 
     // Local listeners
-    const localListeners = this.localListeners.get(eventName);
-    if (localListeners) {
-      for (const localListener of localListeners) {
-        // Queue the promise
-        promises.push((async () => {
-          return await Promise.resolve(localListener(...args));
-        })());
+    for (const [name, localListeners] of this.localListeners) {
+      if (eventNameToRegex(name).test(eventName)) {
+        for (const localListener of localListeners) {
+          // Queue the promise
+          promises.push((async () => {
+            return await Promise.resolve(localListener(...args));
+          })());
+        }
       }
     }
 
