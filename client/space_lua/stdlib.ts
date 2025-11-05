@@ -24,6 +24,7 @@ import { evalStatement } from "./eval.ts";
 import { encodingApi } from "./stdlib/encoding.ts";
 import { luaToNumber } from "./tonumber.ts";
 import { luaLoad } from "./stdlib/load.ts";
+import { cryptoApi } from "./stdlib/crypto.ts";
 
 const printFunction = new LuaBuiltinFunction(async (_sf, ...args) => {
   console.log(
@@ -379,6 +380,7 @@ export function luaBuildStandardEnv() {
   env.set("each", eachFunction);
   env.set("spacelua", spaceluaApi);
   env.set("encoding", encodingApi);
+  env.set("crypto", cryptoApi);
   env.set("some", someFunction);
   return env;
 }
