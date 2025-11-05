@@ -12,5 +12,5 @@ export const builtinPlugNames = [
 ];
 
 export const builtinPlugPaths = builtinPlugNames.map((name) =>
-  `_plug/${name}.plug.js`
+  `Library/Std/Plugs/${name}.plug.js`
 );

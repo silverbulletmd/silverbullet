@@ -1,3 +1,4 @@
+import { Config } from "./config.ts";
 import type { EventHook } from "./plugos/hooks/event.ts";
 
 export type ServiceMatch = {
@@ -7,13 +8,13 @@ export type ServiceMatch = {
 export type ServiceSpec = {
   name: string;
   selector: string;
-  match: (opts: any) => Promise<ServiceMatch | null | undefined>;
-  run: (opts: any) => Promise<any>;
+  match: (data: any) => Promise<ServiceMatch | null | undefined>;
+  run: (data: any) => Promise<any>;
 };
 
 export class ServiceRegistry {
   private usedServiceNames = new Set<string>();
-  constructor(private eventHook: EventHook) {
+  constructor(private eventHook: EventHook, private config: Config) {
   }
 
   public define(spec: ServiceSpec): void {
@@ -22,20 +23,22 @@ export class ServiceRegistry {
     }
     this.usedServiceNames.add(spec.name);
     // Register with discover:* event
-    this.eventHook.addLocalListener(
+    this.config.insert([
+      "eventListeners",
       `discover:${spec.selector}`,
-      async (opts) => {
-        const matchResult = await spec.match(opts);
-        if (matchResult) {
-          return {
-            ...matchResult,
-            name: spec.name,
-          };
-        }
-      },
-    );
+    ], async (e: any) => {
+      const matchResult = await spec.match(e.data);
+      if (matchResult) {
+        return {
+          ...matchResult,
+          name: spec.name,
+        };
+      }
+    });
     // Register callback when invoked
-    this.eventHook.addLocalListener(spec.name, spec.run);
+    this.config.insert(["eventListeners", `service:${spec.name}`], (e: any) => {
+      return spec.run(e.data);
+    });
   }
 
   public async discover(selector: string, opts: any): Promise<ServiceMatch[]> {
@@ -47,11 +50,9 @@ export class ServiceRegistry {
     return discoveryResults;
   }
 
-  public async invoke(name: string, opt: any): Promise<any> {
-    const results = await this.eventHook.dispatchEvent(name, opt);
-    if (results.length === 0) {
-      throw new Error(`Service not found: ${name}`);
-    }
+  public async invoke(name: string, data: any): Promise<any> {
+    const results = await this.eventHook.dispatchEvent(`service:${name}`, data);
+    // Note: results may be an empty array in case no service actually returned a result (void) case, which is implicitly passed on here
     return results[0];
   }
 

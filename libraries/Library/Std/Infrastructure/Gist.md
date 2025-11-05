@@ -25,26 +25,13 @@ githubGist = {
 # Import implementation
 ```space-lua
 -- Import discovery
-event.listen {
-  name = "import:discover",
-  run = function(event)
-    local url = event.data.url
-    if githubGist.extractGistId(url) then
-      return {
-        {
-          id = "github-gist",
-          name = "Github: Gist"
-        },
-      }
-    end
-  end
-}
-
--- Gist export implementation
-event.listen {
-  name = "import:run:github-gist",
-  run = function(event)
-    local url = event.data.url
+service.define {
+  selector = "import:https://gist.github.com/*",
+  name = "Github Gist: Import",
+  match = function(url)
+    return {priority=10}
+  end,
+  run = function(url)
     local gistUrl = githubGist.extractGistId(url)
     local resp = http.request("https://api.github.com/gists/" .. gistUrl)
     if not resp.ok then
@@ -112,25 +99,15 @@ function githubGist.request(url, method, body)
   })
 end
 
--- Export discovery
-event.listen {
-  name = "export:discover",
-  run = function(event)
-    return {
-      {
-        id = "github-gist",
-        name = "Github: Gist"
-      },
-    }
-  end
-}
-
--- Gist export implementation
-event.listen {
-  name = "export:run:github-gist",
-  run = function(event)
+service.define {
+  selector = "export",
+  name = "Github Gist: Export",
+  match = function(data)
+    return {priority=10}
+  end,
+  run = function(data)
     -- Extract any existing gist URLs
-    local text = event.data.text
+    local text = data.text
     local fm = index.extractFrontmatter(text, {
       removeKeys = {githubGist.fmUrlKey, githubGist.fmFileKey}
     })
@@ -187,11 +164,15 @@ event.listen {
 # ReadURI support
 ```space-lua
 -- Supports
---   gist:https://gist.github.com/user/gistid
-event.listen {
-  name = "readURI:gist:*",
-  run = function(e)
-    local gistId = e.data.uri:match("([^/]+)$")
+--   https://gist.github.com/user/gistid
+service.define {
+  selector = "readURI:https://gist.github.com/*",
+  name = "readURI:gist",
+  match = function()
+    return {priority=10}
+  end,
+  run = function(data)
+    local gistId = githubGist.extractGistId(data.uri)
     local resp = http.request("https://api.github.com/gists/" .. gistId)
     if resp.status != 200 then
       print("Failed to fetch gist", resp)

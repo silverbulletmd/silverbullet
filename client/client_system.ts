@@ -96,7 +96,7 @@ export class ClientSystem {
     });
 
     this.spaceLuaEnv = new SpaceLuaEnvironment(this.system);
-    this.serviceRegistry = new ServiceRegistry(this.eventHook);
+    this.serviceRegistry = new ServiceRegistry(this.eventHook, client.config);
 
     setInterval(() => {
       mq.requeueTimeouts(mqTimeout, mqTimeoutRetry, true).catch(console.error);

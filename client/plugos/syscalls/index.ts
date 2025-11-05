@@ -15,6 +15,9 @@ import type { Client } from "../../client.ts";
 export function indexSyscalls(client: Client): SysCallMapping {
   return {
     "index.tag": (_ctx, tagName: string): LuaQueryCollection => {
+      if (!tagName) {
+        throw new Error("Tag name is required");
+      }
       return {
         query: (
           query: LuaCollectionQuery,

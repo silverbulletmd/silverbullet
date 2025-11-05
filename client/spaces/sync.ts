@@ -3,7 +3,6 @@
  */
 import type { SpacePrimitives } from "./space_primitives.ts";
 import { EventEmitter } from "../plugos/event.ts";
-import { plugPrefix } from "./constants.ts";
 import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
 import { notFoundError } from "@silverbulletmd/silverbullet/constants";
 import { processWithConcurrency } from "@silverbulletmd/silverbullet/lib/async";
@@ -116,11 +115,11 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
 
       const sortedPaths = [...allFilesToProcess];
       sortedPaths.sort((a) => {
-        // Just make sure that _plug/ files appear first
+        // Just make sure that plug files appear first
         // This is important for the initial sync: plugs are loaded the moment they are pulled into the space,
         // which would activate e.g. any indexing logic for the remaining space content
         // TODO: To verify if this is still true today
-        return a.startsWith(plugPrefix) ? -1 : 1;
+        return a.endsWith(".plug.js") ? -1 : 1;
       });
       // console.log("[sync]", "Iterating over all files");
       let filesProcessed = 0;

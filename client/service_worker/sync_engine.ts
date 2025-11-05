@@ -2,7 +2,7 @@ import { compile as gitIgnoreCompiler } from "gitignore-parser";
 import { jitter, sleep } from "@silverbulletmd/silverbullet/lib/async";
 import type { KvPrimitives } from "../data/kv_primitives.ts";
 import { EventEmitter } from "../plugos/event.ts";
-import { plugPrefix, stdLibPrefix } from "../spaces/constants.ts";
+import { stdLibPrefix } from "../spaces/constants.ts";
 import type { SpacePrimitives } from "../spaces/space_primitives.ts";
 import { SpaceSync, SyncSnapshot, type SyncStatus } from "../spaces/sync.ts";
 import type { HttpSpacePrimitives } from "../spaces/http_space_primitives.ts";
@@ -103,7 +103,7 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
 
   isSyncCandidate(path: string): boolean {
     // ALWAYS sync plugs
-    if (path.startsWith(plugPrefix)) {
+    if (path.endsWith(".plug.js")) {
       return true;
     }
     // Follow SB_SYNC_IGNORE rules
@@ -178,7 +178,7 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
     primary: SpacePrimitives,
     secondary: SpacePrimitives,
   ): Promise<number> {
-    if (!name.startsWith(plugPrefix) && !name.startsWith(stdLibPrefix)) {
+    if (!name.startsWith(stdLibPrefix)) {
       const operations = await SpaceSync.primaryConflictResolver(
         name,
         snapshot,

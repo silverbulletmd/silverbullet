@@ -209,10 +209,14 @@ event.listen {
 -- Supports:
 --   ghr:owner/repo/path (latest)
 --   ghr:owner/repo@version/path
-event.listen {
-  name = "readURI:ghr:*",
-  run = function(e)
-    local uri = e.data.uri:sub(#"ghr:"+1)
+service.define {
+  selector = "readURI:ghr:*",
+  name = "readURI:ghr",
+  match = function()
+    return {priority=10}
+  end,
+  run = function(data)
+    local uri = data.uri:sub(#"ghr:"+1)
     local owner, repo, path = table.unpack(uri:split("/"))
     local repoClean, version = table.unpack(repo:split("@"))
     local url
@@ -230,7 +234,7 @@ event.listen {
     local releaseInfo = res.body
     version = releaseInfo.tag_name
     local url = "https://github.com/" .. owner .. "/" .. repoClean .. "/releases/download/" .. version .. "/" .. path
-    local res = http.request(url, {responseEncoding=e.data.encoding})
+    local res = http.request(url, {responseEncoding=data.encoding})
     if res.status != 200 then
       print("Failed to fetch", ur, res)
       return nil
@@ -242,21 +246,39 @@ event.listen {
 -- Supports:
 --   github:owner/repo/path (defaults to "main" branch)
 --   github:owner/repo@branch/path
---   github:https://github.com/owner/repo/blob/branch/path
-event.listen {
-  name = "readURI:github:*",
-  run = function(e)
-    local uri = e.data.uri:sub(#"github:"+1)
+service.define {
+  selector = "readURI:github:*",
+  name = "readURI:github",
+  match = function()
+    return {priority=10}
+  end,
+  run = function(data)
+    local uri = data.uri:sub(#"github:"+1)
     local owner, repo, path, branch
-    if uri:startsWith("https://") then
-      owner, repo, branch, path = uri:match("github%.com/([^/]+)/([^/]+)/[^/]+/([^/]+)/(.+)")
-    else
-      owner, repo, path = table.unpack(uri:split("/"))
-      repo, branch = table.unpack(repo:split("@"))
-      if not branch then
-        branch = "main"
-      end
+    owner, repo, path = table.unpack(uri:split("/"))
+    repo, branch = table.unpack(repo:split("@"))
+    if not branch then
+      branch = "main"
     end
+    local url = "https://raw.githubusercontent.com/" .. owner .. "/" .. repo .. "/" .. branch .. "/" .. path
+    local res = http.request(url)
+    if res.status != 200 then
+      return nil
+    end
+    return res.body
+  end
+}
+
+-- Supports:
+--   https://github.com/owner/repo/blob/branch/path
+service.define {
+  selector = "readURI:https://github.com/*",
+  name = "readURI:github:url",
+  match = function()
+    return {priority=10}
+  end,
+  run = function(data)
+    local owner, repo, branch, path = data.uri:match("github%.com/([^/]+)/([^/]+)/[^/]+/([^/]+)/(.+)")
     local url = "https://raw.githubusercontent.com/" .. owner .. "/" .. repo .. "/" .. branch .. "/" .. path
     local res = http.request(url)
     if res.status != 200 then

@@ -3,13 +3,15 @@ import { EventHook } from "./plugos/hooks/event.ts";
 import { System } from "./plugos/system.ts";
 import { ServiceRegistry } from "./service_registry.ts";
 import { assert, assertEquals } from "@std/assert";
+import { Config } from "./config.ts";
 
 Deno.test("Test services", async () => {
   const system = new System<EventHookT>();
-  const eventHook = new EventHook();
+  const config = new Config();
+  const eventHook = new EventHook(config);
   system.addHook(eventHook);
 
-  const registry = new ServiceRegistry(eventHook);
+  const registry = new ServiceRegistry(eventHook, config);
 
   registry.define({
     selector: "greeter",

@@ -15,25 +15,21 @@ virtualPage.define {
   end
 }
 
-event.listen {
-  name = "readURI:https:*",
-  run = function(e)
-    local uri = e.data.uri
-    return http.request(uri).body
+service.define {
+  selector = "readURI:https:*",
+  name = "readURI:https",
+  match = function()
+    -- Fallback
+    return {}
+  end,
+  run = function(data)
+    return http.request(data.uri).body
   end
 }
 
 function readURI(uri, options)
   options = options or {}
   options.uri = uri
-  local results = event.dispatch("readURI:" .. uri, options)
-  if #results == 0 then
-    return nil
-  elseif #results == 1 then
-    return results[1]
-  else
-    print("Got multipe response", results)
-    error("Too many response")
-  end
+  return service.invokeBestMatch("readURI:" .. uri, options)
 end
 ```

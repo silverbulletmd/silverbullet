@@ -21,7 +21,7 @@ if (import.meta.main) {
   );
 
   const plugBundlePath = "client_bundle/base_fs";
-  const targetDir = path.join(plugBundlePath, "_plug");
+  const targetDir = path.join(plugBundlePath, "Library", "Std", "Plugs");
   Deno.mkdirSync(targetDir, { recursive: true });
   Deno.mkdirSync("dist", { recursive: true });
 
