@@ -1,5 +1,6 @@
 import {
   type ILuaFunction,
+  isLuaTable,
   LuaBuiltinFunction,
   luaCall,
   LuaEnv,
@@ -46,7 +47,10 @@ const ipairsFunction = new LuaBuiltinFunction((sf, ar: LuaTable | any[]) => {
     if (i > ar.length) {
       return;
     }
-    const result = new LuaMultiRes([i, await luaGet(ar, i, sf)]);
+    const result = new LuaMultiRes([
+      i,
+      await luaGet(ar, i, sf.astCtx ?? null, sf),
+    ]);
     i++;
     return result;
   };
@@ -57,7 +61,7 @@ const pairsFunction = new LuaBuiltinFunction(
     let keys: (string | number)[];
     if (Array.isArray(t)) {
       keys = Array.from({ length: t.length }, (_, i) => i + 1); // For arrays, generate 1-based indices
-    } else if (t.keys) {
+    } else if (isLuaTable(t)) {
       keys = t.keys();
     } else {
       // For plain JavaScript objects case, note: this will also include keys from the prototype
@@ -74,7 +78,7 @@ const pairsFunction = new LuaBuiltinFunction(
       }
       const key = keys[i];
       i++;
-      const value = await luaGet(t, key, sf);
+      const value = await luaGet(t, key, sf.astCtx ?? null, sf);
       return new LuaMultiRes([key, value]);
     };
   },
@@ -83,12 +87,12 @@ const pairsFunction = new LuaBuiltinFunction(
 export const eachFunction = new LuaBuiltinFunction(
   (sf, ar: LuaTable | any[]) => {
     let i = 1;
-    const length = ar.length;
+    const length = (ar as any).length;
     return async () => {
       if (i > length) {
         return;
       }
-      const result = await luaGet(ar, i, sf);
+      const result = await luaGet(ar, i, sf.astCtx ?? null, sf);
       i++;
       return result;
     };
@@ -97,8 +101,8 @@ export const eachFunction = new LuaBuiltinFunction(
 
 const unpackFunction = new LuaBuiltinFunction(async (sf, t: LuaTable) => {
   const values: LuaValue[] = [];
-  for (let i = 1; i <= t.length; i++) {
-    values.push(await luaGet(t, i, sf));
+  for (let i = 1; i <= (t as any).length; i++) {
+    values.push(await luaGet(t, i, sf.astCtx ?? null, sf));
   }
   return new LuaMultiRes(values);
 });
@@ -155,7 +159,7 @@ const setmetatableFunction = new LuaBuiltinFunction(
     if (!metatable) {
       throw new LuaRuntimeError("metatable cannot be set to nil", sf);
     }
-    table.metatable = metatable;
+    (table as any).metatable = metatable;
     return table;
   },
 );
@@ -168,23 +172,19 @@ const rawlenFunction = new LuaBuiltinFunction(
 
 const rawsetFunction = new LuaBuiltinFunction(
   (_sf, table: LuaTable, key: LuaValue, value: LuaValue) => {
-    return table.rawSet(key, value);
+    return (table as any).rawSet(key, value);
   },
 );
 
 const rawgetFunction = new LuaBuiltinFunction(
   (_sf, table: any, key: LuaValue) => {
-    const isLuaTable = typeof table === "object" &&
-      table !== null &&
-      typeof (table as any).rawGet === "function";
-
     const isArray = Array.isArray(table);
 
     const isPlainObj = typeof table === "object" &&
       table !== null &&
-      table.constructor === Object;
+      (table as any).constructor === Object;
 
-    if (!isLuaTable && !isArray && !isPlainObj) {
+    if (!isLuaTable(table) && !isArray && !isPlainObj) {
       let typeName = "userdata";
       if (table === null || table === undefined) {
         typeName = "nil";
@@ -208,8 +208,8 @@ const rawgetFunction = new LuaBuiltinFunction(
       );
     }
 
-    if (isLuaTable) {
-      const v = (table as any).rawGet(key);
+    if (isLuaTable(table)) {
+      const v = table.rawGet(key);
       return v === undefined ? null : v;
     }
 
@@ -217,15 +217,15 @@ const rawgetFunction = new LuaBuiltinFunction(
 
     if (isArray) {
       if (typeof k === "number") {
-        const v = (table as any)[k - 1];
+        const v = (table as any[])[k - 1];
         return v === undefined ? null : v;
       } else {
-        const v = (table as any)[k];
+        const v = (table as Record<string, any>)[k];
         return v === undefined ? null : v;
       }
     }
 
-    const v = (table as any)[k];
+    const v = (table as Record<string | number, any>)[k as any];
     return v === undefined ? null : v;
   },
 );
@@ -239,13 +239,13 @@ const rawequalFunction = new LuaBuiltinFunction(
 );
 
 const getmetatableFunction = new LuaBuiltinFunction((_sf, table: LuaTable) => {
-  return table.metatable;
+  return (table as any).metatable;
 });
 
 const dofileFunction = new LuaBuiltinFunction(async (sf, filename: string) => {
-  const global = sf.threadLocal.get("_GLOBAL");
+  const global = sf.threadLocal.get("_GLOBAL") as LuaEnv;
   const file = await luaCall(
-    global.get("space").get("readFile"),
+    (global.get("space") as any).get("readFile"),
     [filename],
     sf.astCtx!,
     sf,
@@ -265,9 +265,11 @@ const dofileFunction = new LuaBuiltinFunction(async (sf, filename: string) => {
 
 /**
  * From the Lua docs:
- * If index is a number, returns all arguments after argument number index; a negative number indexes
- * from the end (-1 is the last argument). Otherwise, index must be the string "#", and select returns
- * the total number of extra arguments it received.
+ *
+ * If index is a number, returns all arguments after argument number
+ * index; a negative number indexes from the end (-1 is the last
+ * argument). Otherwise, index must be the string "#", and select
+ * returns the total number of extra arguments it received.
  */
 const selectFunction = new LuaBuiltinFunction(
   (_sf, index: number | "#", ...args: LuaValue[]) => {
@@ -285,11 +287,23 @@ const selectFunction = new LuaBuiltinFunction(
 
 /**
  * From the Lua docs:
- * Allows a program to traverse all fields of a table. Its first argument is a table and its second argument is an index in this table. A call to next returns the next index of the table and its associated value. When called with nil as its second argument, next returns an initial index and its associated value. When called with the last index, or with nil in an empty table, next returns nil. If the second argument is absent, then it is interpreted as nil. In particular, you can use next(t) to check whether a table is empty.
  *
- * The order in which the indices are enumerated is not specified, even for numeric indices. (To traverse a table in numerical order, use a numerical for.)
+ * Allows a program to traverse all fields of a table. Its first
+ * argument is a table and its second argument is an index in this
+ * table. A call to next returns the next index of the table and its
+ * associated value. When called with nil as its second argument, next
+ * returns an initial index and its associated value. When called with
+ * the last index, or with nil in an empty table, next returns nil. If
+ * the second argument is absent, then it is interpreted as nil. In
+ * particular, you can use next(t) to check whether a table is empty.
  *
- * You should not assign any value to a non-existent field in a table during its traversal. You may however modify existing fields. In particular, you may set existing fields to nil.
+ * The order in which the indices are enumerated is not specified, even
+ * for numeric indices. (To traverse a table in numerical order, use
+ * a numerical for.)
+ *
+ * You should not assign any value to a non-existent field in a table
+ * during its traversal. You may however modify existing fields. In
+ * particular, you may set existing fields to nil.
  */
 const nextFunction = new LuaBuiltinFunction(
   (sf, table: LuaTable | Record<string, any>, index: number | null = null) => {
@@ -307,7 +321,7 @@ const nextFunction = new LuaBuiltinFunction(
     if (index === null) {
       // Return the first key, value
       const key = keys[0];
-      return new LuaMultiRes([key, luaGet(table, key, sf)]);
+      return new LuaMultiRes([key, luaGet(table, key, sf.astCtx ?? null, sf)]);
     } else {
       // Find index in the key list
       const idx = keys.indexOf(index);
@@ -319,7 +333,7 @@ const nextFunction = new LuaBuiltinFunction(
         // When called with the last key, should return nil
         return null;
       }
-      return new LuaMultiRes([key, luaGet(table, key, sf)]);
+      return new LuaMultiRes([key, luaGet(table, key, sf.astCtx ?? null, sf)]);
     }
   },
 );
