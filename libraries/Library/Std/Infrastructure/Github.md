@@ -25,11 +25,10 @@ config.set("github.email", "john@doe.com")
 ## Constants
 ```space-lua
 -- priority: 50
-github = {
-}
+github = {}
 ```
 
-## Export
+## Github Repo Files
 ```space-lua
 -- returns (something/bla, branch, path)
 function github.extractData(url)
@@ -47,6 +46,21 @@ function github.buildUrlWithBranch(repo, branch, path)
   return github.buildUrl(repo, path) .. "?ref=" .. branch
 end
 
+function github.request(url, method, body)
+  local token = config.get("github.token")
+  if not token then
+    error("github.token config not set")
+  end
+  return http.request(url, {
+    method = method,
+    headers = {
+      Authorization = "token " .. token,
+      Accept = "application/vnd.github+json"
+    },
+    body = body
+  })
+end
+
 function github.checkConfig()
   if not config.get("github.token") then
     error("github.token needs to be set")
@@ -61,51 +75,83 @@ function github.checkConfig()
   end
 end
 
--- Export implementation
--- TO BE FIXED
-event.listen {
-  name = "export:run:github-file",
-  run = function(event)
+service.define {
+  selector = "mirror:onboard",
+  match = {
+    name = "Github file",
+    description = "Mirror this page a file on a github repo",
+  },
+  run = function(data)
+    local name = data.name
+    local content = data.text
     -- Check configuration
     local checkOk, err = pcall(github.checkConfig)
     if not checkOk then
       editor.flashNotification(err, "error")
       return
     end
-    -- Extract the URL from frontmatter if set
-    local text = event.data.text
-    local fm = index.extractFrontmatter(text, {
-      removeKeys = {github.fmUrlKey},
-    })
-    local repo, branch, path = github.extractData(fm.frontmatter[github.fmUrlKey])
-    local sha = nil -- will be set for existing files
+    repo = editor.prompt "Github repo (user/repo):"
     if not repo then
-      -- Not there? This will be a new file
-      repo = editor.prompt "Github repo (user/repo):"
-      if not repo then
-        return
-      end
-      branch = editor.prompt("Branch:", "main")
-      if not branch then
-        return
-      end
-      path = editor.prompt("File path:", editor.getCurrentPage() .. ".md")
-      if not path then
-        return
-      end
-    else
-      -- We did find an existing file, let's fetch it to get the SHA
-      local oldContent = githubGist.request(github.buildUrlWithBranch(repo, branch, path), "GET")
-      if not oldContent.ok then
-        editor.flashNotification("Could not fetch existing file", "error")
-        return
-      end
-      sha = oldContent.body.sha
+      return
+    end
+    branch = editor.prompt("Branch:", "main")
+    if not branch then
+      return
+    end
+    path = editor.prompt("File path:", name .. ".md")
+    if not path then
+      return
     end
     -- Ask for a commit message
     local message = editor.prompt("Commit message:", "Commit")
     -- Push the change
-    local resp = githubGist.request(github.buildUrl(repo, path), "PUT", {
+    local resp = github.request(github.buildUrl(repo, path), "PUT", {
+      message = message,
+      committer = {
+        name = config.get("github.name"),
+        email = config.get("github.email"),
+      },
+      branch = branch,
+      content = encoding.base64Encode(content)
+    })
+    if resp.ok then
+      local uri = "https://github.com/" .. repo .. "/blob/" .. branch .. "/" .. path
+      return {
+        uri = uri,
+        hash = mirror.contentHash(content),
+        mode = "push"
+      }
+    else
+      js.log("Error", resp)
+      error("Error, check console")
+    end
+  end
+}
+
+-- writeURI support
+service.define {
+  selector = "writeURI:https://github.com/*",
+  match = {priority=10},
+  run = function(data)
+    local uri = data.uri
+    local content = data.content
+    -- Check configuration
+    local checkOk, err = pcall(github.checkConfig)
+    if not checkOk then
+      editor.flashNotification(err, "error")
+      return
+    end
+    local repo, branch, path = github.extractData(uri)
+    -- We did find an existing file, let's fetch it to get the SHA
+    local oldContent = github.request(github.buildUrlWithBranch(repo, branch, path), "GET")
+    if not oldContent.ok then
+      error("Could not fetch existing file")
+    end
+    local sha = oldContent.body.sha
+    -- Ask for a commit message
+    local message = editor.prompt("Commit message:", "Commit")
+    -- Push the change
+    local resp = github.request(github.buildUrl(repo, path), "PUT", {
       message = message,
       committer = {
         name = config.get("github.name"),
@@ -113,28 +159,16 @@ event.listen {
       },
       branch = branch,
       sha = sha,
-      content = encoding.base64Encode(fm.text)
+      content = encoding.base64Encode(content)
     })
-    if resp.ok then
-      editor.flashNotification "Published file successfully"
-      local url = "https://github.com/" .. repo .. "/blob/" .. branch .. "/" .. path
-      local updated = index.patchFrontmatter(editor.getText(),
-      {
-        {op="set-key", path=github.fmUrlKey, value=url}
-      })
-      editor.setText(updated)
-      editor.flashNotification "Done!"
-    else
-      editor.flashNotification("Error, check console")
+    if not resp.ok then
       js.log("Error", resp)
+      error("Error, check console")
     end
   end
 }
-```
 
-# Read URI support
-```space-lua
--- Supports:
+-- readURI
 --   ghr:owner/repo/path (latest)
 --   ghr:owner/repo@version/path
 service.define {
@@ -168,7 +202,7 @@ service.define {
   end
 }
 
--- Supports:
+-- readURI
 --   github:owner/repo/path (defaults to "main" branch)
 --   github:owner/repo@branch/path
 service.define {
@@ -191,7 +225,7 @@ service.define {
   end
 }
 
--- Supports:
+-- readURI
 --   https://github.com/owner/repo/blob/branch/path
 service.define {
   selector = "readURI:https://github.com/*",
@@ -208,102 +242,57 @@ service.define {
 }
 ```
 
-# Export implementation
+## Gists
 ```space-lua
--- Utility functions
-function github.extractGistId(url)
+local function extractGistId(url)
   if not url:startsWith("https://gist.github.com/") then
     return nil
   end
   return url:match("([^/]+)$")
 end
 
-function github.request(url, method, body)
-  local token = config.get("github.token")
-  if not token then
-    error("github.token config not set")
-  end
-  return http.request(url, {
-    method = method,
-    headers = {
-      Authorization = "token " .. token,
-      Accept = "application/vnd.github+json"
-    },
-    body = body
-  })
-end
-
+-- Mirror onboarding
 service.define {
-  selector = "export",
+  selector = "mirror:onboard",
   match = {
-    name = "Github Gist: Export",
-    priority=10
+    name = "Github Gist",
+    description = "Mirror this page to a gist"
   },
   run = function(data)
-    -- Extract any existing gist URLs
-    local text = data.text
-    local fm = index.extractFrontmatter(text, {
-      removeKeys = {githubGist.fmUrlKey, githubGist.fmFileKey}
+    local filename = "content.md"
+    local text = mirror.cleanFrontmatter(editor.getText())
+    filename = editor.prompt("File name", filename)
+    if not filename then
+      return
+    end
+    local resp = github.request("https://api.github.com/gists", "POST", {
+      public = true,
+      files = {
+        [filename] = {
+          content = text
+        }
+      }
     })
-    if not fm.frontmatter[githubGist.fmUrlKey] then
-      -- Not there? This will be a fresh gist
-      local filename = "content.md"
-      filename = editor.prompt("File name", filename)
-      if not filename then
-        return
-      end
-      local resp = githubGist.request("https://api.github.com/gists", "POST", {
-        public = true,
-        files = {
-          [filename] = {
-            content = fm.text
-          }
-        }
-      })
-      if resp.ok then
-        editor.flashNotification "Published new gist successfully"
-        local updated = index.patchFrontmatter(editor.getText(),
-        {
-          {op="set-key", path=githubGist.fmUrlKey, value=resp.body.html_url},
-          {op="set-key", path=githubGist.fmFileKey, value=filename},
-        })
-        editor.setText(updated)
-        editor.flashNotification "Done!"
-      else
-        editor.flashNotification("Error, check console")
-        js.log("Error", resp)
-      end
+    if resp.ok then
+      return {
+        uri = resp.body.html_url,
+        hash = mirror.contentHash(text),
+        mode = "push"
+      }
     else
-      -- Already published, should update
-      local gistId = githubGist.extractGistId(fm.frontmatter[githubGist.fmUrlKey])
-      local resp = githubGist.request("https://api.github.com/gists/" .. gistId, "PATCH", {
-        public = true,
-        files = {
-          [fm.frontmatter[githubGist.fmFileKey]] = {
-            content = fm.text
-          }
-        }
-      })
-      if resp.ok then
-        editor.flashNotification "Updated gist successfully!"
-      else
-        editor.flashNotification("Error, check console")
-        js.log("Error", resp)
-      end
+      editor.flashNotification("Error, check console")
+      js.log("Error", resp)
     end
   end
 }
-```
 
-# ReadURI and WriteURI support
-```space-lua
--- Supports
+-- readURI supports
 --   https://gist.github.com/user/gistid
 service.define {
   selector = "readURI:https://gist.github.com/*",
   match = {priority=10},
   run = function(data)
-    local gistId = github.extractGistId(data.uri)
+    local gistId = extractGistId(data.uri)
     local resp = http.request("https://api.github.com/gists/" .. gistId)
     if resp.status != 200 then
       print("Failed to fetch gist", resp)
@@ -319,21 +308,22 @@ service.define {
   end
 }
 
+-- writeURI
 service.define {
   selector = "writeURI:https://gist.github.com/*",
   match = {priority=10},
   run = function(data)
-    local gistId = github.extractGistId(data.uri)
+    local gistId = extractGistId(data.uri)
     
     -- First fetch the gist to find the file name
-    local resp = http.request("https://api.github.com/gists/" .. gistId)
+    local resp = github.request("https://api.github.com/gists/" .. gistId, "GET")
     if not resp.ok then
-      editor.flashNotification("Failed, see console for error", "error")
-      js.log("Error", resp)
-      return
+      js.log("Error with gist writeURI", resp)
+      error("Gist writeURI failed")
     end
     local files = resp.body.files
     local selectedFilename
+    -- Find a .md file in the gist to overwrite
     for filename, meta in pairs(files) do
       if filename:endsWith(".md") then
         selectedFilename = filename
@@ -341,23 +331,19 @@ service.define {
       end
     end
     if not selectedFilename then
-      editor.flashNotification("Could not find markdown file in gist", "error")
-      js.log("Error", resp)
-      return
+      error("Could not find markdown file in gist")
     end
     local resp = github.request("https://api.github.com/gists/" .. gistId, "PATCH", {
       public = true,
       files = {
         [selectedFilename] = {
-          content = fm.text
+          content = data.content
         }
       }
     })
-    if resp.ok then
-      editor.flashNotification "Updated gist successfully!"
-    else
-      editor.flashNotification("Error, check console")
+    if not resp.ok then
       js.log("Error", resp)
+      error("Error publishing gist, check console")
     end
   end
 }

@@ -17,11 +17,7 @@ virtualPage.define {
 
 service.define {
   selector = "readURI:https:*",
-  name = "readURI:https",
-  match = function()
-    -- Fallback
-    return {}
-  end,
+  match = {},
   run = function(data)
     return http.request(data.uri).body
   end
