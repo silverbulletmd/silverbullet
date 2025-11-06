@@ -76,10 +76,10 @@ function github.checkConfig()
 end
 
 service.define {
-  selector = "mirror:onboard",
+  selector = "share:onboard",
   match = {
     name = "Github file",
-    description = "Mirror this page a file on a github repo",
+    description = "Share this page as a file on a github repo",
   },
   run = function(data)
     local name = data.name
@@ -118,7 +118,7 @@ service.define {
       local uri = "https://github.com/" .. repo .. "/blob/" .. branch .. "/" .. path
       return {
         uri = uri,
-        hash = mirror.contentHash(content),
+        hash = share.contentHash(content),
         mode = "push"
       }
     else
@@ -165,6 +165,22 @@ service.define {
       js.log("Error", resp)
       error("Error, check console")
     end
+  end
+}
+
+service.define {
+  selector = "writeURI:github:*",
+  match = {priority=10},
+  run = function(data)
+    local uri = data.uri:sub(#"github:"+1)
+    local owner, repo, path = table.unpack(uri:split("/"))
+    local repo, branch = table.unpack(repo:split("@"))
+    if not branch then
+      branch = "main"
+    end
+    local fullUrl = "https://github.com/" .. owner .. "/" .. repo .. "/blob/" .. branch .. "/" .. path
+    -- Redirect to full URI implementation
+    writeURI(fullUrl, data.content)
   end
 }
 
@@ -251,16 +267,16 @@ local function extractGistId(url)
   return url:match("([^/]+)$")
 end
 
--- Mirror onboarding
+-- Share onboarding
 service.define {
-  selector = "mirror:onboard",
+  selector = "share:onboard",
   match = {
     name = "Github Gist",
-    description = "Mirror this page to a gist"
+    description = "Share this page as a gist"
   },
   run = function(data)
     local filename = "content.md"
-    local text = mirror.cleanFrontmatter(editor.getText())
+    local text = share.cleanFrontmatter(editor.getText())
     filename = editor.prompt("File name", filename)
     if not filename then
       return
@@ -276,7 +292,7 @@ service.define {
     if resp.ok then
       return {
         uri = resp.body.html_url,
-        hash = mirror.contentHash(text),
+        hash = share.contentHash(text),
         mode = "push"
       }
     else

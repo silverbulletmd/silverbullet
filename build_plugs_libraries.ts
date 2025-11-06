@@ -29,6 +29,9 @@ if (import.meta.main) {
   await copy("libraries/Library", `${plugBundlePath}/Library`, {
     overwrite: true,
   });
+  await copy("libraries/Repositories", `${plugBundlePath}/Repositories`, {
+    overwrite: true,
+  });
 
   // Build the plugs
   await compileManifests(

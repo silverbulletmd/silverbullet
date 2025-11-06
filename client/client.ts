@@ -570,11 +570,13 @@ export class Client {
     console.error(`Error during ${context}:`, e);
 
     if (e instanceof LuaRuntimeError) {
-      client.flashNotification(`Lua error: ${e.message}`, "error");
+      this.flashNotification(`Lua error: ${e.message}`, "error");
       const origin = resolveASTReference(e.sf.astCtx!);
       if (origin) {
         client.navigate(origin);
       }
+    } else {
+      this.flashNotification(`Error: ${e.message}`, "error");
     }
   }
 
