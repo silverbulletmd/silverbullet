@@ -21,23 +21,23 @@ export function serviceRegistrySyscalls(
     "service.discover": (
       _ctx,
       selector: string,
-      opts: any,
+      data: any,
     ): Promise<ServiceMatch[]> => {
-      return serviceRegistry.discover(selector, opts);
+      return serviceRegistry.discover(selector, data);
     },
     "service.invoke": (
       _ctx,
-      name: string,
-      opts: any,
+      service: ServiceMatch,
+      data: any,
     ): Promise<any> => {
-      return serviceRegistry.invoke(name, opts);
+      return serviceRegistry.invoke(service, data);
     },
     "service.invokeBestMatch": (
       _ctx,
       selector: string,
-      opts: any,
+      data: any,
     ): Promise<any> => {
-      return serviceRegistry.invokeBestMatch(selector, opts);
+      return serviceRegistry.invokeBestMatch(selector, data);
     },
   };
 }

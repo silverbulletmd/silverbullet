@@ -79,14 +79,6 @@ export function applyPatches(
   for (const patch of patches) {
     if (patch.op !== "set-key") continue;
 
-    // Still simplifying: Only handle top-level keys
-    if (patch.path.includes(".") || patch.path.includes("[")) {
-      console.warn(
-        `Skipping patch for nested or invalid key path (not supported): ${patch.path}`,
-      );
-      continue;
-    }
-
     const key = patch.path;
 
     // Split the YAML into lines for easier processing

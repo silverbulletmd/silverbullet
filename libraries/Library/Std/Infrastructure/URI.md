@@ -32,4 +32,11 @@ function readURI(uri, options)
   options.uri = uri
   return service.invokeBestMatch("readURI:" .. uri, options)
 end
+
+function writeURI(uri, content)
+  return service.invokeBestMatch("writeURI:" .. uri, {
+    uri = uri,
+    content = content
+  })
+end
 ```

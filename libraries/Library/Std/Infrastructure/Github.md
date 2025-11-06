@@ -1,13 +1,13 @@
 ---
-description: Implements exporting to Github repo files.
+description: Integration with Github repositories and gists.
 tags: meta
 ---
-[[^Library/Std/Infrastructure/Import]] and [[^Library/Std/Infrastructure/Export]] support for [Github repo files](https://github.com).
+[[^Library/Std/Infrastructure/Export]] support for [Github repo files](https://github.com).
 
 # Configuration
-If you only want to _import_ from Github URLs, no configuration is required.
+If you only want to read from Github URLs, no configuration is required.
 
-To _export_ got a Github repo, you need to get a [personal Github token](https://github.com/settings/personal-access-tokens) (with repo permissions). Configure your token somewhere in Space Lua (use a `space-lua` block), ideally a `SECRETS` page. This configuration is shared with [[^Library/Std/Infrastructure/Gist]].
+To write to Github repo, you need to get a [personal Github token](https://github.com/settings/personal-access-tokens) (with repo permissions). Configure your token somewhere in Space Lua (use a `space-lua` block), ideally a `SECRETS` page. This configuration is shared with [[^Library/Std/Infrastructure/Gist]].
 
 ```lua
 config.set("github.token", "your token")
@@ -26,66 +26,6 @@ config.set("github.email", "john@doe.com")
 ```space-lua
 -- priority: 50
 github = {
-  fmUrlKey = "githubUrl",
-}
-```
-
-## Import
-```space-lua
--- Import discovery
-event.listen {
-  name = "import:discover",
-  run = function(event)
-    local url = event.data.url
-    if github.extractData(url) then
-      return {
-        {
-          id = "github-file",
-          name = "Github: Repo file",
-        },
-      }
-    end
-  end
-}
-
--- Import implementation
-event.listen {
-  name = "import:run:github-file",
-  run = function(event)
-    local url = event.data.url
-    local repo, branch, path = github.extractData(url)
-    -- Fetch content via the Github API, unauthenticated
-    local resp = http.request(github.buildUrlWithBranch(repo, branch, path), {method = "GET"})
-    if not resp.ok then
-      editor.flashNotification("Failed, see console for error")
-      js.log("Error", resp)
-      return
-    end
-    local content = encoding.utf8Decode(encoding.base64Decode(resp.body.content))
-    local fm = index.extractFrontmatter(content)
-    local suggestedPath = path:gsub("%.md$", "")
-    if table.includes(fm.frontmatter.tags, "meta") then
-      -- Maybe more of a library function
-      suggestedPath = "Library/" .. suggestedPath
-    end
-    -- Ask for location to import to
-    local localPath = editor.prompt("Save to", suggestedPath)
-    if not localPath then
-      return
-    end
-    if space.fileExists(localPath .. ".md") then
-      editor.flashNotification("Page already exists, won't do that", "error")
-      return
-    end
-    space.writePage(localPath, content)
-    editor.flashNotification("Imported to " .. localPath)
-    editor.navigate({kind="page", page=localPath})
-    local updated = index.patchFrontmatter(editor.getText(),
-    {
-      {op="set-key", path=github.fmUrlKey, value=url}
-    })
-    editor.setText(updated)
-  end
 }
 ```
 
@@ -121,20 +61,8 @@ function github.checkConfig()
   end
 end
 
--- Export discovery
-event.listen {
-  name = "export:discover",
-  run = function(event)
-    return {
-      {
-        id = "github-file",
-        name = "Github: Repo file"
-      },
-    }
-  end
-}
-
 -- Export implementation
+-- TO BE FIXED
 event.listen {
   name = "export:run:github-file",
   run = function(event)
@@ -202,8 +130,8 @@ event.listen {
     end
   end
 }
-
 ```
+
 # Read URI support
 ```space-lua
 -- Supports:
@@ -211,10 +139,7 @@ event.listen {
 --   ghr:owner/repo@version/path
 service.define {
   selector = "readURI:ghr:*",
-  name = "readURI:ghr",
-  match = function()
-    return {priority=10}
-  end,
+  match = { priority=10 },
   run = function(data)
     local uri = data.uri:sub(#"ghr:"+1)
     local owner, repo, path = table.unpack(uri:split("/"))
@@ -248,10 +173,7 @@ service.define {
 --   github:owner/repo@branch/path
 service.define {
   selector = "readURI:github:*",
-  name = "readURI:github",
-  match = function()
-    return {priority=10}
-  end,
+  match = { priority=10 },
   run = function(data)
     local uri = data.uri:sub(#"github:"+1)
     local owner, repo, path, branch
@@ -273,10 +195,7 @@ service.define {
 --   https://github.com/owner/repo/blob/branch/path
 service.define {
   selector = "readURI:https://github.com/*",
-  name = "readURI:github:url",
-  match = function()
-    return {priority=10}
-  end,
+  match = {priority=10},
   run = function(data)
     local owner, repo, branch, path = data.uri:match("github%.com/([^/]+)/([^/]+)/[^/]+/([^/]+)/(.+)")
     local url = "https://raw.githubusercontent.com/" .. owner .. "/" .. repo .. "/" .. branch .. "/" .. path
@@ -285,6 +204,161 @@ service.define {
       return nil
     end
     return res.body
+  end
+}
+```
+
+# Export implementation
+```space-lua
+-- Utility functions
+function github.extractGistId(url)
+  if not url:startsWith("https://gist.github.com/") then
+    return nil
+  end
+  return url:match("([^/]+)$")
+end
+
+function github.request(url, method, body)
+  local token = config.get("github.token")
+  if not token then
+    error("github.token config not set")
+  end
+  return http.request(url, {
+    method = method,
+    headers = {
+      Authorization = "token " .. token,
+      Accept = "application/vnd.github+json"
+    },
+    body = body
+  })
+end
+
+service.define {
+  selector = "export",
+  match = {
+    name = "Github Gist: Export",
+    priority=10
+  },
+  run = function(data)
+    -- Extract any existing gist URLs
+    local text = data.text
+    local fm = index.extractFrontmatter(text, {
+      removeKeys = {githubGist.fmUrlKey, githubGist.fmFileKey}
+    })
+    if not fm.frontmatter[githubGist.fmUrlKey] then
+      -- Not there? This will be a fresh gist
+      local filename = "content.md"
+      filename = editor.prompt("File name", filename)
+      if not filename then
+        return
+      end
+      local resp = githubGist.request("https://api.github.com/gists", "POST", {
+        public = true,
+        files = {
+          [filename] = {
+            content = fm.text
+          }
+        }
+      })
+      if resp.ok then
+        editor.flashNotification "Published new gist successfully"
+        local updated = index.patchFrontmatter(editor.getText(),
+        {
+          {op="set-key", path=githubGist.fmUrlKey, value=resp.body.html_url},
+          {op="set-key", path=githubGist.fmFileKey, value=filename},
+        })
+        editor.setText(updated)
+        editor.flashNotification "Done!"
+      else
+        editor.flashNotification("Error, check console")
+        js.log("Error", resp)
+      end
+    else
+      -- Already published, should update
+      local gistId = githubGist.extractGistId(fm.frontmatter[githubGist.fmUrlKey])
+      local resp = githubGist.request("https://api.github.com/gists/" .. gistId, "PATCH", {
+        public = true,
+        files = {
+          [fm.frontmatter[githubGist.fmFileKey]] = {
+            content = fm.text
+          }
+        }
+      })
+      if resp.ok then
+        editor.flashNotification "Updated gist successfully!"
+      else
+        editor.flashNotification("Error, check console")
+        js.log("Error", resp)
+      end
+    end
+  end
+}
+```
+
+# ReadURI and WriteURI support
+```space-lua
+-- Supports
+--   https://gist.github.com/user/gistid
+service.define {
+  selector = "readURI:https://gist.github.com/*",
+  match = {priority=10},
+  run = function(data)
+    local gistId = github.extractGistId(data.uri)
+    local resp = http.request("https://api.github.com/gists/" .. gistId)
+    if resp.status != 200 then
+      print("Failed to fetch gist", resp)
+      return nil
+    end
+    local files = resp.body.files
+    for filename, data in pairs(files) do
+      if data.content then
+        return data.content
+      end
+    end
+    return nil
+  end
+}
+
+service.define {
+  selector = "writeURI:https://gist.github.com/*",
+  match = {priority=10},
+  run = function(data)
+    local gistId = github.extractGistId(data.uri)
+    
+    -- First fetch the gist to find the file name
+    local resp = http.request("https://api.github.com/gists/" .. gistId)
+    if not resp.ok then
+      editor.flashNotification("Failed, see console for error", "error")
+      js.log("Error", resp)
+      return
+    end
+    local files = resp.body.files
+    local selectedFilename
+    for filename, meta in pairs(files) do
+      if filename:endsWith(".md") then
+        selectedFilename = filename
+        break
+      end
+    end
+    if not selectedFilename then
+      editor.flashNotification("Could not find markdown file in gist", "error")
+      js.log("Error", resp)
+      return
+    end
+    local resp = github.request("https://api.github.com/gists/" .. gistId, "PATCH", {
+      public = true,
+      files = {
+        [selectedFilename] = {
+          content = fm.text
+        }
+      }
+    })
+    if resp.ok then
+      editor.flashNotification "Updated gist successfully!"
+    else
+      editor.flashNotification("Error, check console")
+      js.log("Error", resp)
+    end
   end
 }
 ```

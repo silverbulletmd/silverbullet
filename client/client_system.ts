@@ -208,7 +208,6 @@ export class ClientSystem {
       return;
     }
     this.client.config.clear();
-    this.serviceRegistry.clear();
     try {
       await this.spaceLuaEnv.reload();
     } catch (e: any) {

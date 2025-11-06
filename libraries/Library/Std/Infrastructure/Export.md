@@ -41,7 +41,7 @@ command.define {
     if not selectedOption then
       return
     end
-    service.invoke(selectedOption.name, exportObj)
+    service.invoke(selectedOption, exportObj)
   end
 }
 ```
@@ -54,12 +54,10 @@ Implements two exporters:
 ```space-lua
 service.define {
   selector = "export",
-  name = "Clipboard: Export Rich Text",
-  match = function()
-    return {
-      description = "To paste into Google Docs or other WYSIWYG environment"
-    }
-  end,
+  match = {
+    name = "Clipboard: Export Rich Text",
+    description = "To paste into Google Docs or other WYSIWYG environment"
+  },
   run = function(data)
     local mdTree = markdown.parseMarkdown(data.text)
     mdTree = markdown.expandMarkdown(mdTree)
@@ -70,12 +68,10 @@ service.define {
 
 service.define {
   selector = "export",
-  name = "Clipboard: Export Clean Markdown",
-  match = function()
-    return {
-      description = "To paste into another markdown supporting tool"
-    }
-  end,
+  match = {
+    name = "Clipboard: Export Clean Markdown",
+    description = "To paste into another markdown supporting tool"
+  },
   run = function(data)
     local mdTree = markdown.parseMarkdown(data.text)
     mdTree = markdown.expandMarkdown(mdTree)
