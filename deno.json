@@ -1,6 +1,6 @@
 {
   "name": "@silverbulletmd/silverbullet",
-  "version": "2.1.9",
+  "version": "2.2.1",
   "tasks": {
     "build": "make clean && deno run -A build_plugs_libraries.ts && deno run -A build_client.ts",
     "build-production": "deno task build --production",
@@ -10,6 +10,7 @@
     "lint": "deno lint --fix",
     "fmt": "deno fmt",
     "test": "deno test -A",
+    "bench": "deno bench -A",
     "plugs": "deno run -A build_plugs_libraries.ts"
   },
   "publish": {

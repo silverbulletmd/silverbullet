@@ -215,21 +215,22 @@ assert(t.bar == "bar")
 assertEqual(t.foo, "Key not found: foo")
 
 -- Test the __newindex metamethod
-t = setmetatable(
+t, c = setmetatable(
     {}, {
         __newindex = function(table, key, value)
-            print("Raw set", key, value)
+	    c = c + 1
             rawset(table, key, "Value: " .. value)
-            print("Raw set done")
+	    c = c + 1
         end
     }
-)
+), 0
 
 t.name = "John"
 -- rawset ignores the metamethod
 rawset(t, "age", 100)
 assertEqual(t.name, "Value: John")
 assertEqual(t.age, 100)
+assertEqual(c, 2)
 
 -- Test some of the operator metamethods
 t = setmetatable(

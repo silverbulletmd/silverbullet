@@ -67,7 +67,7 @@ export async function deriveDbName(
   spaceFolderPath: string,
   baseURI: string,
   encryptionKey?: CryptoKey,
-) {
+): Promise<string> {
   let keyPart = "";
   if (encryptionKey) {
     keyPart = await exportKey(encryptionKey);
