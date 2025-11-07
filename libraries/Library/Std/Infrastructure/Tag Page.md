@@ -29,6 +29,15 @@ virtualPage.define {
       from index.tag(tagName)
       order by ref
     ]]
+    local subTags = query[[
+      from index.tag "tag"
+      where string.startsWith(_.name, tagName .. "/")
+      select {name=_.name}
+    ]]
+    if #subTags > 0 then
+      text = text .. "## Sub-tags\n"
+        .. template.each(subTags, templates.tagItem)
+    end
     local taggedPages = query[[
       from allObjects where table.includes(_.itags, "page")
     ]]
