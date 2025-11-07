@@ -40,5 +40,5 @@ generate:
 	deno run -A npm:@lezer/generator@1.5.1 client/space_lua/lua.grammar -o client/space_lua/parse-lua.js
 
 .PHONY: website
-website:
+website: build
 	SB_INDEX_PAGE=SilverBullet ./silverbullet -p 3001 website
