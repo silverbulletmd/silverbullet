@@ -1,6 +1,6 @@
 import type { SysCallMapping } from "../system.ts";
 import YAML from "js-yaml";
-import { applyPatches, type SetKeyPatch } from "../../../plug-api/lib/yaml.ts";
+import { applyPatches, YamlPatch } from "../../../plug-api/lib/yaml.ts";
 
 type YamlStringifyOptions = {
   /** indentation width to use (in spaces). */
@@ -49,7 +49,7 @@ export function yamlSyscalls(): SysCallMapping {
     "yaml.patch": (
       _ctx,
       yaml: string,
-      patches: SetKeyPatch[],
+      patches: YamlPatch[],
     ): string => {
       return applyPatches(yaml, patches);
     },

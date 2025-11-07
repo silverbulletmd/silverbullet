@@ -72,7 +72,7 @@ export async function extractFrontMatter(
       const yamlNode = t.children![1].children![0];
       const yamlText = renderToText(yamlNode);
       try {
-        const parsedData: any = await YAML.parse(yamlText);
+        const parsedData: any = cleanupJSON(await YAML.parse(yamlText));
         // console.log("Parsed front matter", parsedData);
         const newData = { ...parsedData };
         data = { ...data, ...parsedData };

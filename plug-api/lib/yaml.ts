@@ -1,8 +1,8 @@
 // Define the patch structure
-export interface SetKeyPatch {
-  op: "set-key";
+export interface YamlPatch {
+  op: "set-key" | "delete-key";
   path: string; // Still assuming simple, top-level key names
-  value: any; // Allow any value, including arrays
+  value?: any; // Required for set-key, not used for delete-key
 }
 
 // Helper function specifically for serializing scalar types
@@ -72,20 +72,123 @@ function serializeToYamlValue(
 
 export function applyPatches(
   yamlString: string,
-  patches: SetKeyPatch[],
+  patches: YamlPatch[],
 ): string {
   let currentYaml = yamlString;
 
   for (const patch of patches) {
-    if (patch.op !== "set-key") continue;
+    if (patch.op === "delete-key") {
+      // Handle delete operation
+      const key = patch.path;
+      const lines = currentYaml.split("\n");
+      let keyLineIndex = -1;
+      let startDeleteIndex = -1;
+      let endDeleteIndex = -1;
 
-    // Still simplifying: Only handle top-level keys
-    if (patch.path.includes(".") || patch.path.includes("[")) {
-      console.warn(
-        `Skipping patch for nested or invalid key path (not supported): ${patch.path}`,
-      );
+      // Find the key line
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const trimmedLine = line.trim();
+        if (trimmedLine.startsWith(key + ":")) {
+          keyLineIndex = i;
+          startDeleteIndex = i;
+          endDeleteIndex = i;
+
+          // Look backwards for preceding comments (delete them too)
+          for (let j = i - 1; j >= 0; j--) {
+            const prevLine = lines[j].trim();
+            if (prevLine.startsWith("#")) {
+              startDeleteIndex = j;
+            } else if (prevLine !== "") {
+              break;
+            } else {
+              // Empty line - include it in deletion if followed by comments
+              if (startDeleteIndex < i) {
+                startDeleteIndex = j;
+              } else {
+                break;
+              }
+            }
+          }
+
+          // Determine the indentation of the key
+          const keyIndent = lines[i].match(/^(\s*)/)?.[1] || "";
+
+          // Look forwards to find all content belonging to this key
+          // This includes list items and nested objects
+          for (let j = i + 1; j < lines.length; j++) {
+            const nextLine = lines[j];
+            const trimmedNextLine = nextLine.trim();
+
+            // Empty line - continue looking
+            if (trimmedNextLine === "") {
+              continue;
+            }
+
+            // Comment at same or greater indentation - might be trailing comment
+            if (trimmedNextLine.startsWith("#")) {
+              const commentIndent = nextLine.match(/^(\s*)/)?.[1] || "";
+              if (commentIndent.length > keyIndent.length) {
+                endDeleteIndex = j;
+                continue;
+              } else {
+                // Comment at same or less indentation - not part of this key
+                break;
+              }
+            }
+
+            // Check indentation of next non-empty, non-comment line
+            const nextIndent = nextLine.match(/^(\s*)/)?.[1] || "";
+            if (nextIndent.length > keyIndent.length) {
+              // This line is indented more than the key, so it belongs to the key
+              endDeleteIndex = j;
+            } else {
+              // This line is at same or less indentation, so it's a new key
+              break;
+            }
+          }
+
+          break;
+        }
+      }
+
+      if (keyLineIndex !== -1) {
+        // Delete the lines from startDeleteIndex to endDeleteIndex (inclusive)
+        const beforeDelete = lines.slice(0, startDeleteIndex);
+        const afterDelete = lines.slice(endDeleteIndex + 1);
+
+        // Clean up excessive empty lines at the boundary
+        // Remove trailing empty lines from beforeDelete
+        while (
+          beforeDelete.length > 0 &&
+          beforeDelete[beforeDelete.length - 1].trim() === ""
+        ) {
+          beforeDelete.pop();
+        }
+
+        // Remove leading empty lines from afterDelete (but keep one if there's content after)
+        let leadingEmptyCount = 0;
+        for (const line of afterDelete) {
+          if (line.trim() === "") {
+            leadingEmptyCount++;
+          } else {
+            break;
+          }
+        }
+        const cleanedAfterDelete = afterDelete.slice(
+          Math.min(leadingEmptyCount, 1),
+        );
+
+        currentYaml = [...beforeDelete, ...cleanedAfterDelete].join("\n");
+        if (currentYaml && !currentYaml.endsWith("\n")) {
+          currentYaml += "\n";
+        }
+      }
+      // If key not found, do nothing
       continue;
     }
+
+    if (patch.op !== "set-key") continue;
 
     const key = patch.path;
 
