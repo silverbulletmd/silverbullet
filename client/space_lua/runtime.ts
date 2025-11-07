@@ -323,14 +323,15 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
   private arrayPart: any[];
 
   // Metamethod presence flags
-  private _hasIndexMM = false;
-  private _hasNewIndexMM = false;
-  private _hasLenMM = false;
+  hasIndexMM = false;
+  hasNewIndexMM = false;
+  hasLenMM = false;
 
   constructor(init?: any[] | Record<string, any>) {
     // For efficiency and performance reasons we pre-allocate these (modern JS engines are very good at optimizing this)
     this.arrayPart = Array.isArray(init) ? init : [];
-    this.stringKeys = Object.create(null);
+    this.stringKeys = init && !Array.isArray(init) ? init : {};
+
     if (init && !Array.isArray(init)) {
       for (const k in init) {
         if (Object.prototype.hasOwnProperty.call(init, k)) {
@@ -353,14 +354,14 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
   private refreshMetaFlags(): void {
     const mt = this.metatable;
     if (!mt) {
-      this._hasIndexMM = false;
-      this._hasNewIndexMM = false;
-      this._hasLenMM = false;
+      this.hasIndexMM = false;
+      this.hasNewIndexMM = false;
+      this.hasLenMM = false;
       return;
     }
-    this._hasIndexMM = mt.rawGet("__index") != null;
-    this._hasNewIndexMM = mt.rawGet("__newindex") != null;
-    this._hasLenMM = mt.rawGet("__len") != null;
+    this.hasIndexMM = mt.rawGet("__index") !== null;
+    this.hasNewIndexMM = mt.rawGet("__newindex") !== null;
+    this.hasLenMM = mt.rawGet("__len") !== null;
   }
 
   get length(): number {
@@ -449,10 +450,11 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     if (!mt) {
       return this.rawSet(key, value);
     }
-    // Refresh flags when used
-    this._hasNewIndexMM = mt.rawGet("__newindex") != null;
+    // Refresh flags when used (fix: treat both undefined and null as absent)
+    const newIndexMM = mt.rawGet("__newindex");
+    this.hasNewIndexMM = !(newIndexMM === undefined || newIndexMM === null);
 
-    if (this._hasNewIndexMM && !this.has(key)) {
+    if (this.hasNewIndexMM && !this.has(key)) {
       // Invoke the meta table
       const metaValue = mt.get("__newindex", sf);
       // Ensure we pass a non-null ASTCtx to luaCall

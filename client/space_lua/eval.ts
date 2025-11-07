@@ -1110,13 +1110,13 @@ export function evalStatement(
       if (!isPromise(valuesRP) && !isPromise(lvaluesRP)) {
         return apply(
           valuesRP as LuaValue[],
-          lvaluesRP as LuaLValueContainer[] as any,
+          lvaluesRP as LuaLValueContainer[],
         );
       } else if (
         isPromise(valuesRP) && !isPromise(lvaluesRP)
       ) {
         return (valuesRP as Promise<LuaValue[]>).then((values: LuaValue[]) =>
-          apply(values, lvaluesRP as LuaLValueContainer[] as any)
+          apply(values, lvaluesRP as LuaLValueContainer[])
         );
       } else if (
         !isPromise(valuesRP) && isPromise(lvaluesRP)
@@ -1169,6 +1169,10 @@ export function evalStatement(
       const newEnv = new LuaEnv(env);
       const stmts = b.statements;
 
+      // Sync-first execution: iterate statements in a simple loop; if
+      // a statement returns a Promise, immediately switch to async by
+      // returning a continuation that resumes execution from the next
+      // statement (`i + 1`).
       const processFrom = (
         idx: number,
       ): void | LuaValue[] | Promise<void | LuaValue[]> => {
