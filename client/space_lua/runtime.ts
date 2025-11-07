@@ -927,9 +927,12 @@ export function luaValueToJS(value: any, sf: LuaStackFrame): any {
         args.map((v) => luaValueToJS(v, sf)),
       );
       if (jsArgs instanceof Promise) {
-        return jsArgs.then((jsArgs) => value.call(sf, ...jsArgs));
+        return luaValueToJS(
+          jsArgs.then((jsArgs) => value.call(sf, ...jsArgs)),
+          sf,
+        );
       } else {
-        return value.call(sf, ...jsArgs);
+        return luaValueToJS(value.call(sf, ...jsArgs), sf);
       }
     };
   } else if (value instanceof Number) {
