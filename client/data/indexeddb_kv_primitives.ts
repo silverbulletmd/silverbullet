@@ -83,6 +83,9 @@ export class IndexedDBKvPrimitives implements KvPrimitives {
 
   private buildKey(key: KvKey): string {
     for (const k of key) {
+      if (typeof k !== "string") {
+        throw new Error(`Key needs to consists of strings: ${key}`);
+      }
       if (k.includes(sep)) {
         throw new Error(`Key cannot contain ${sep}`);
       }
