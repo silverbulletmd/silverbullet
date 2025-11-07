@@ -7,5 +7,5 @@ name: Mermaid
 uri: github:silverbulletmd/silverbullet-mermaid/README.md
 ---
 name: Silversearch
-uri: ghr:zefhemel/silversearch@edge/README.md
+uri: ghr:MrMugame/silversearch/PLUG.md
 ```
