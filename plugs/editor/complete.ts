@@ -8,7 +8,9 @@ import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
 export async function pageComplete(completeEvent: CompleteEvent) {
   const isDocumentQuery = {
     objectVariable: "_",
-    where: await lua.parseExpression(`not string.startsWith(_.name, "_")`),
+    where: await lua.parseExpression(
+      `not string.startsWith(_.name, "_") and not string.endsWith(_.name, ".plug.js")`,
+    ),
   };
   const isMetaPageQuery = {
     objectVariable: "_",
@@ -52,9 +54,9 @@ export async function pageComplete(completeEvent: CompleteEvent) {
     // This is the most common case, we're combining three types of completions here:
     allPages = (await Promise.all([
       // All non-meta pages
-      queryLuaObjects<PageMeta>("page", isntMetaPageQuery!, {}, 5),
+      queryLuaObjects<PageMeta>("page", isntMetaPageQuery, {}, 5),
       // All documents
-      queryLuaObjects<DocumentMeta>("document", isDocumentQuery!, {}, 5),
+      queryLuaObjects<DocumentMeta>("document", isDocumentQuery, {}, 5),
       // And all links to non-existing pages (to augment the existing ones)
       queryLuaObjects<string>(
         "aspiring-page",
