@@ -6,6 +6,7 @@ An attempt at documenting the changes/new features introduced in each release.
 * [[Services]]: a new mechanism used behind the scenes to power [[Share]], but also [[Export]] and likely other features in the future. Built on top of [[Events]].
 * [[URIs]] are now a more formalized and centralized mechanism, used by [[Share]] and likely other features in the future.
 * Removed “Import” support, succeeded by [[Share]].
+* Plugs are now loaded from anywhere in the space, as long as they end with `.plug.js` (so no longer need to be in `_plug`, in fact all shipped core plugs are now mounted under `Library/Std/Plugs`)
 
 ## 2.2.0
 This is a dot release primarily because due to changes in how IndexedDB databases are named, a fully resync and reindex of your space will happen on all your devices. I’m sorry for the inconvenience, we try to limit how often this is required. If you’d like to clean up unnecessary databases afterwards you can run the `Client: Clean` command (once) afterwards.
