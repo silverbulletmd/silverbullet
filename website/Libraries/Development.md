@@ -3,7 +3,7 @@ To develop your own SilverBullet library follow the following steps:
 # Write the code
 Put all functionality you like in a [[Meta Pages|Meta Page]] somewhere under `Library/`, e.g. `Library/My Library`.
 
-These can , for instance:
+These can, for instance, contain:
 * [[Space Lua]]
 * [[Space Style]]
 
@@ -18,7 +18,7 @@ Decorate your library page with some [[Frontmatter]], at the very least:
 tags: meta/library
 ---
 ```
-If you want to distribute additional pages or files with the library (such as `.plug.js` files, or additional pages like page templates and slash commands) make sure that they are kept at the same folder level as your library page. For instance if your library page is `Library/My Library` you can create an additional `Library/My Library/Page Template` or have a `Library/myplug.plug.js` and then mark them for distribution by adding them to the `files` key in your frontmatter, e.g.
+If you want to distribute additional pages or files with the library (such as `.plug.js` files, or additional pages like page templates and slash commands) make sure that they are kept at the same folder level as your library page. For instance if your library page is `Library/My Library` you can create an additional `Library/Page Template` or have a `Library/myplug.plug.js` and then mark them for distribution by adding them to the `files` key in your frontmatter, e.g.
 ```
 ---
 tags: meta/library
@@ -43,18 +43,18 @@ In your library to be shared, run the ${widgets.commandButton "Share: Page"} com
 3. The file name: while this defaults to using a `Library/` prefix, remove that and just name it e.g. `My Library.md`
 4. A commit message: pick whatever you like
 
-If all went well, an initial version of your page should now be uploaded to github, check your repo page. You’ll notice that a few [[Share]] related frontmatter keys were set. You can now make further changes to your page and run the `Share: Page` command again (Cmd-p or Ctrl-p by default) and after entering another commit message your page will be pushed again.
+If all went well, an initial version of your page should now be uploaded to github, check your repo page. You’ll notice that a few [[Share]] related frontmatter keys were set in your local copy (but not in the remote version). You can now make further changes to your page and run the `Share: Page` command again (Cmd-p or Ctrl-p by default) and after entering another commit message your page will be pushed again. This is how you publish new version for other people to use.
 
 If your library consisted of multiple files, do the same for the other files. If you rely on plugs, unfortunately you have to push those in some other way.
 
-Your library is now ready to install, you can try doing so by running ${widgets.commandButton "Library: Install"}. As URI you can either install the full Github URL of the markdown file, or use the value of what is generated under `share.uri` in your library’s frontmatter. Give it a temporary name, to test it all works. Then delete the page again.
+Your library is now ready to install, you can test this by running ${widgets.commandButton "Library: Install"}. As URI you can either install the full Github URL of the markdown file, or use the value of what is generated under `share.uri` in your library’s frontmatter. Give it a temporary name, to test it all works. Then delete the page again.
 
 You can now [broadcast that your library is ready to install](https://community.silverbullet.md/c/plugs-libraries/14)!
 
 # Create a repository
-If you develop a few libraries and keep adding more, it may be good to make them a bit more discoverable. To do so, you can group them in a [[Repositories|Repository]] (not to be confused with a Github repository).’
+If you develop a few libraries and keep adding more, it may be good to make them a bit more discoverable. To do so, you can group them in a [[Repositories|Repository]] (not to be confused with a Github repository).
 
-For this, create another page, this time under `Repository/`, e.g. `Repository/<<yourname>>`. In it, put a list of all your awesome libraries, encoded in a [[Objects#data|data object]] as follows:
+For this, create another page, this time under `Repository/`, e.g. `Repository/<<yourname>>`. In it, put a list of all your awesome libraries, encoded in a [[Objects#data|data object]] as follows.
 
 ~~~
 ```#meta/library/remote
@@ -66,13 +66,8 @@ uri: github:username/silverbullet-libraries/Library2.md
 ```
 ~~~
 
-Or if you prefer, you can do the same using tagged items and [[Attributes]]:
-
-~~~
-* #meta/library/remote yourname/Library1 [uri: github:username/silverbullet-libraries/Library1.md]
-* #meta/library/remote yourname/Library2 [uri: github:username/silverbullet-libraries/Library2.md]
-~~~
+Note that it’s a good idea to namespace your libraries a bit, hence the `yourname/` prefix in _name_.
 
 Now share this repo page using [[Share]] to the same github repo (or any other, it doesn’t really matter), and call it `REPO.md` (by convention).
 
-Then announce to the [community](https://community.silverbullet.md/c/plugs-libraries/14) that your repo is open for business and they can add it via the ${widgets.commandButton "Library: Add Repository"} command.
+Then announce to the [community](https://community.silverbullet.md/c/plugs-libraries/14) that your repo is open for business and they can add it via the ${widgets.commandButton "Library: Add Repository"} command (either based on the full Github URL, or the `share.uri` set in your frontmatter).

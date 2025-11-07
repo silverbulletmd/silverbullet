@@ -26,12 +26,12 @@ SilverBullet has [[^Library/Std/Infrastructure/Share|infrastructural support]] t
 * `share.mode`: specifies the _mode_ this sharing should happen, options are: `push`, `pull` or `sync`
 * `share.hash`: automatically calculated and updated content hash of your local version to detect whether local changes were made since the last share operation.
 
-Generally performing a share operation (in whatever mode) is triggered with the ${widgets.commandButton "Share: Page"} (bound to `Cmd-p`/`Ctrl-p` by default) command on each page individually. However for certain cases, larger batches of pages may be shared together (for instance when using the “update all” in the [[Library Manager]]).
+Performing a share operation (in whatever mode) is triggered with the ${widgets.commandButton "Share: Page"} (bound to `Cmd-p`/`Ctrl-p` by default) command on each page individually. However for certain cases, larger batches of pages may be shared together (for instance when using the “update all” in the [[Library Manager]]).
 
 # Support
 Out of the box, sharing is supported for:
 
 * Plain `https://` URIs (_Pull_ mode only) (implemented in [[^Library/Std/Infrastructure/URI]]).
-* [[^Library/Std/Infrastructure/Github]] (`github:` and `gist:` URI schemes as well as github and gist full URLs): both in _Pull_ mode, and _Push_ mode when a token is configured. Technically _Sync_ should work except that Github aggressively caches files, making this impractical.
+* [[^Library/Std/Infrastructure/Github]] (`github:` and URI schemes as well as github and gist full URLs): both in _Pull_ mode, and _Push_ mode when a token is configured. Technically _Sync_ should work except that Github aggressively caches files, making this impractical.
 
 To implement your own share provider, have a look at the implementations linked to understand how they work.

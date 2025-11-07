@@ -15,7 +15,7 @@ There are a few things at play here:
 
 To make discovery and installation of libraries easier, SilverBullet includes a basic [[Library Manager]].
 
-Libraries kept under the `Library/` prefix in your space.
+Libraries are kept under the `Library/` prefix in your space.
 
 # What’s in a library
 Here are some things that a library may provide:
