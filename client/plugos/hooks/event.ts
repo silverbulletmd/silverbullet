@@ -54,6 +54,15 @@ export class EventHook implements EventHookI {
     for (const eventName of this.localListeners.keys()) {
       eventNames.add(eventName);
     }
+    if (this.config) {
+      const configListeners: Record<string, Function[]> = this.config.get(
+        "eventListeners",
+        {},
+      );
+      for (const name of Object.keys(configListeners)) {
+        eventNames.add(name);
+      }
+    }
 
     return [...eventNames];
   }

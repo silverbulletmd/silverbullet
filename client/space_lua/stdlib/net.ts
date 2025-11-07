@@ -55,7 +55,7 @@ export const netApi = new LuaTable({
     },
   ),
   readURI: new LuaNativeJSFunction(
-    (uri: string, options: { uri?: string; encoding?: string }) => {
+    (uri: string, options: { uri?: string; encoding?: string } = {}) => {
       options.uri = uri;
       return client.clientSystem.serviceRegistry.invokeBestMatch(
         "net.readURI:" + uri,

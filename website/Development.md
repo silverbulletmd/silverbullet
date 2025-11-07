@@ -1,3 +1,7 @@
+SilverBullet development can happen at various level.
+
+At its most basic level, you can do a lot using [[Space Lua]]. If this does not give enough power, you can upgrade to [[Plugs]]. If _that_ doesn’t suffice, you can contribute to SilverBullet’s core (see below).
+
 # Stack
 SilverBullet’s client is written in [TypeScript](https://www.typescriptlang.org/) and built on top of the excellent [CodeMirror 6](https://codemirror.net/) editor component. Additional UI is built using [Preact](https://preactjs.com/). [ES Build](https://esbuild.github.io) is used to build the frontend.
 
