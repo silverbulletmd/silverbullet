@@ -8,5 +8,5 @@ ${library.installedRepositoriesWidget()}
 # Installed libraries
 ${widgets.commandButton "Library: Install"} ${widgets.commandButton "Library: Update All"} ${widgets.commandButton "Plugs: Reload"}
 ${library.installedLibrariesWidget()}
-# Available packages
+# Available libraries
 ${library.installableLibrariesWidget()}
