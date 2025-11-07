@@ -2,19 +2,24 @@
 
 export type RP<T> = T | Promise<T>;
 
-export function isP<T>(v: RP<T>): v is Promise<T> {
+// Returns true when v is a Promise or a has a then function.
+export function isPromise<T>(v: RP<T>): v is Promise<T> {
   return v !== null && typeof v === "object" &&
     typeof (v as any).then === "function";
 }
 
 export function rpThen<A, B>(v: RP<A>, f: (a: A) => RP<B>): RP<B> {
-  return isP(v) ? (v as Promise<A>).then(f) : f(v as A);
+  return isPromise(v) ? (v as Promise<A>).then(f) : f(v as A);
 }
 
+/**
+ * Collect an array of Result-or-Promise values into a single array
+ * avoiding Promise allocation when all inputs are synchronous.
+ */
 export function rpAll<T>(arr: RP<T>[]): RP<T[]> {
   let hasPromise = false;
   for (let i = 0; i < arr.length; i++) {
-    if (isP(arr[i])) {
+    if (isPromise(arr[i])) {
       hasPromise = true;
       break;
     }

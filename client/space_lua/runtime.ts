@@ -1,7 +1,7 @@
 import type { ASTCtx, LuaFunctionBody } from "./ast.ts";
 import { evalStatement } from "./eval.ts";
 import { asyncQuickSort } from "./util.ts";
-import { rpAll } from "./rp.ts";
+import { isPromise, rpAll } from "./rp.ts";
 
 export type LuaType =
   | "nil"
@@ -223,7 +223,7 @@ export class LuaFunction implements ILuaFunction {
             return mapFunctionReturnValue(val);
           }
         };
-        if (r instanceof Promise) {
+        if (isPromise(r)) {
           return r.then(map).catch((e: any) => {
             if (e instanceof LuaReturn) {
               return mapFunctionReturnValue(e.values);
@@ -241,7 +241,7 @@ export class LuaFunction implements ILuaFunction {
       }
     };
 
-    if (argsRP instanceof Promise) {
+    if (isPromise(argsRP)) {
       return argsRP.then(resolveArgs);
     } else {
       return resolveArgs(argsRP);
@@ -275,7 +275,7 @@ export class LuaNativeJSFunction implements ILuaFunction {
   call(sf: LuaStackFrame, ...args: LuaValue[]): Promise<LuaValue> | LuaValue {
     const jsArgsRP = args.map((v) => luaValueToJS(v, sf));
     const resolved = rpAll(jsArgsRP);
-    if (resolved instanceof Promise) {
+    if (isPromise(resolved)) {
       return resolved.then((jsArgs) => this.fn(...jsArgs));
     } else {
       return this.fn(...resolved);
@@ -412,11 +412,11 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
   }
 
   rawSet(key: LuaValue, value: LuaValue): void | Promise<void> {
-    if (key instanceof Promise) {
+    if (isPromise(key)) {
       return key.then((key) => this.rawSet(key, value));
     }
-    if (value instanceof Promise) {
-      return value.then(() => this.rawSet(key, value));
+    if (isPromise(value)) {
+      return value.then((v) => this.rawSet(key, v));
     }
     if (typeof key === "string") {
       if (value === null || value === undefined) {
@@ -738,7 +738,7 @@ export function luaCall(
       args.map((v) => luaValueToJS(v, sf || LuaStackFrame.lostFrame)),
     );
 
-    if (jsArgs instanceof Promise) {
+    if (isPromise(jsArgs)) {
       return jsArgs.then((resolved) =>
         (callee as (...a: any[]) => any)(...resolved)
       );
@@ -808,8 +808,8 @@ export function luaTypeOf(val: any): LuaType | Promise<LuaType> {
   if (val === null || val === undefined) {
     return "nil";
   }
-  if (val instanceof Promise) {
-    return val.then((v) => luaTypeOf(v));
+  if (isPromise(val)) {
+    return (val as Promise<any>).then((v) => luaTypeOf(v));
   } else if (typeof val === "boolean") {
     return "boolean";
   } else if (typeof val === "number" || val instanceof Number) {
@@ -920,8 +920,8 @@ export function luaToString(
   if (value === null || value === undefined) {
     return "nil";
   }
-  if (value instanceof Promise) {
-    return value.then((v) => luaToString(v, visited));
+  if (isPromise(value)) {
+    return (value as Promise<any>).then((v) => luaToString(v, visited));
   }
   // Check for circular references
   if (typeof value === "object" && visited.has(value)) {
@@ -1022,8 +1022,8 @@ export function getMetatable(
 }
 
 export function jsToLuaValue(value: any): any {
-  if (value instanceof Promise) {
-    return value.then(jsToLuaValue);
+  if (isPromise(value)) {
+    return (value as Promise<any>).then(jsToLuaValue);
   }
   if (value instanceof LuaTable) {
     return value;
@@ -1061,8 +1061,8 @@ export function jsToLuaValue(value: any): any {
 
 // Inverse of jsToLuaValue
 export function luaValueToJS(value: any, sf: LuaStackFrame): any {
-  if (value instanceof Promise) {
-    return value.then((v) => luaValueToJS(v, sf));
+  if (isPromise(value)) {
+    return (value as Promise<any>).then((v) => luaValueToJS(v, sf));
   }
   if (value instanceof LuaTable) {
     return value.toJS(sf);
@@ -1074,7 +1074,7 @@ export function luaValueToJS(value: any, sf: LuaStackFrame): any {
       const jsArgs = rpAll(
         args.map((v) => luaValueToJS(v, sf)),
       );
-      if (jsArgs instanceof Promise) {
+      if (isPromise(jsArgs)) {
         return jsArgs.then((jsArgs) =>
           (value as ILuaFunction).call(sf, ...jsArgs)
         );

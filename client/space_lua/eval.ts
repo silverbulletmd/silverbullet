@@ -43,7 +43,7 @@ import {
   coerceNumericPair,
   type OpHints,
 } from "./numeric.ts";
-import { isP, rpAll, rpThen } from "./rp.ts";
+import { isPromise, rpAll, rpThen } from "./rp.ts";
 import {
   asAssignment,
   asBinary,
@@ -72,6 +72,7 @@ import {
   asWhile,
 } from "./ast_narrow.ts";
 
+// Queryable guard to avoid `(collection as any).query` usage
 type Queryable = {
   query: (
     q: LuaCollectionQuery,
@@ -79,7 +80,6 @@ type Queryable = {
     sf: LuaStackFrame,
   ) => Promise<any>;
 };
-
 function isQueryable(x: unknown): x is Queryable {
   return !!x && typeof (x as any).query === "function";
 }
@@ -294,7 +294,7 @@ export function evalExpression(
       case "Unary": {
         const u = asUnary(e);
         const value = evalExpression(u.argument, env, sf);
-        if (value instanceof Promise) {
+        if (isPromise(value)) {
           return value.then((value) => {
             switch (u.operator) {
               case "-": {
@@ -517,7 +517,7 @@ function evalPrefixExpression(
       const objV = evalPrefixExpression(ta.object, env, sf);
       const keyV = evalExpression(ta.key, env, sf);
 
-      if (!(objV instanceof Promise) && !(keyV instanceof Promise)) {
+      if (!isPromise(objV) && !isPromise(keyV)) {
         const table = singleResult(objV);
         const key = singleResult(keyV);
         return luaGet(table, key, ta.ctx, sf);
@@ -537,7 +537,7 @@ function evalPrefixExpression(
       const pa = asPropertyAccess(e);
       // Sync-first: evaluate object; avoid Promise when object is sync.
       const objV = evalPrefixExpression(pa.object, env, sf);
-      if (!(objV instanceof Promise)) {
+      if (!isPromise(objV)) {
         return luaGet(objV, pa.property, pa.ctx, sf);
       }
       return rpThen(objV, (obj) => luaGet(obj, pa.property, pa.ctx, sf));
@@ -567,8 +567,8 @@ function evalPrefixExpression(
           selfArgs = [calleeVal];
           calleeVal = luaIndexValue(calleeVal, fc.name, sf);
 
-          if (calleeVal instanceof Promise) {
-            return calleeVal.then(handleFunctionCall);
+          if (isPromise(calleeVal)) {
+            return (calleeVal as Promise<any>).then(handleFunctionCall);
           }
         }
 
@@ -582,7 +582,7 @@ function evalPrefixExpression(
         const thenCall = (args: LuaValue[]) =>
           luaCall(calleeVal, [...selfArgs, ...args], fc.ctx, sf);
 
-        if (isP(argsVal)) {
+        if (isPromise(argsVal)) {
           return (argsVal as Promise<any[]>).then((argsResolved: any[]) => {
             if (argsResolved.length === 0) return thenCall([]);
             const out: LuaValue[] = [];
@@ -615,7 +615,7 @@ function evalPrefixExpression(
           return thenCall(out);
         }
       };
-      if (prefixValue instanceof Promise) {
+      if (isPromise(prefixValue)) {
         return (prefixValue as Promise<any>).then(handleFunctionCall);
       } else {
         return handleFunctionCall(prefixValue);
@@ -674,7 +674,9 @@ function unaryWithMeta(
   const mm = evalUnaryMetamethod(arg, meta, ctx, sf);
 
   if (mm !== undefined) {
-    return mm instanceof Promise ? mm.then(singleResult) : singleResult(mm);
+    return isPromise(mm)
+      ? (mm as Promise<any>).then(singleResult)
+      : singleResult(mm);
   }
   return fallback();
 }
@@ -695,17 +697,21 @@ function evalLogical(
         return singleResult(lv);
       }
       const rv = evalExpression(rightExpr, env, sf);
-      return rv instanceof Promise ? rv.then(singleResult) : singleResult(rv);
+      return isPromise(rv)
+        ? (rv as Promise<any>).then(singleResult)
+        : singleResult(rv);
     } else {
       if (!luaTruthy(lv)) {
         return singleResult(lv);
       }
       const rv = evalExpression(rightExpr, env, sf);
-      return rv instanceof Promise ? rv.then(singleResult) : singleResult(rv);
+      return isPromise(rv)
+        ? (rv as Promise<any>).then(singleResult)
+        : singleResult(rv);
     }
   };
 
-  if (left instanceof Promise) {
+  if (isPromise(left)) {
     return (left as Promise<any>).then(decide);
   } else {
     return decide(left);
@@ -732,9 +738,9 @@ function evalBinaryWithLR(
 ): any {
   const leftVal = evalExpression(leftExpr, env, sf);
 
-  if (!(leftVal instanceof Promise)) {
+  if (!isPromise(leftVal)) {
     const rightVal = evalExpression(rightExpr, env, sf);
-    if (!(rightVal instanceof Promise)) {
+    if (!isPromise(rightVal)) {
       return luaOp(
         op,
         singleResult(leftVal),
@@ -757,7 +763,7 @@ function evalBinaryWithLR(
 
   return rpThen(leftVal, (lv) => {
     const rightVal = evalExpression(rightExpr, env, sf);
-    if (!(rightVal instanceof Promise)) {
+    if (!isPromise(rightVal)) {
       return luaOp(
         op,
         singleResult(lv),
@@ -1059,7 +1065,7 @@ function evalExpressions(
     return out;
   };
 
-  return isP(argsVal)
+  return isPromise(argsVal)
     ? (argsVal as Promise<any[]>).then(finalize)
     : finalize(argsVal as LuaValue[]);
 }
@@ -1091,7 +1097,7 @@ export function evalStatement(
             values[i],
             sf.withCtx(a.ctx),
           );
-          if (r instanceof Promise) {
+          if (isPromise(r)) {
             ps.push(r);
           }
         }
@@ -1101,23 +1107,26 @@ export function evalStatement(
         return;
       };
 
-      if (!(valuesRP instanceof Promise) && !(lvaluesRP instanceof Promise)) {
-        return apply(valuesRP, lvaluesRP as LuaLValueContainer[] as any);
+      if (!isPromise(valuesRP) && !isPromise(lvaluesRP)) {
+        return apply(
+          valuesRP as LuaValue[],
+          lvaluesRP as LuaLValueContainer[] as any,
+        );
       } else if (
-        valuesRP instanceof Promise && !(lvaluesRP instanceof Promise)
+        isPromise(valuesRP) && !isPromise(lvaluesRP)
       ) {
-        return valuesRP.then((values) =>
+        return (valuesRP as Promise<LuaValue[]>).then((values: LuaValue[]) =>
           apply(values, lvaluesRP as LuaLValueContainer[] as any)
         );
       } else if (
-        !(valuesRP instanceof Promise) && (lvaluesRP instanceof Promise)
+        !isPromise(valuesRP) && isPromise(lvaluesRP)
       ) {
-        return (lvaluesRP as Promise<any[]>).then((lvalues) =>
+        return (lvaluesRP as Promise<any[]>).then((lvalues: any[]) =>
           apply(valuesRP as LuaValue[], lvalues)
         );
       } else {
-        return (valuesRP as Promise<LuaValue[]>).then((values) =>
-          (lvaluesRP as Promise<any[]>).then((lvalues) =>
+        return (valuesRP as Promise<LuaValue[]>).then((values: LuaValue[]) =>
+          (lvaluesRP as Promise<any[]>).then((lvalues: any[]) =>
             apply(values, lvalues)
           )
         );
@@ -1133,8 +1142,8 @@ export function evalStatement(
           }
           return;
         };
-        if (valuesRP instanceof Promise) {
-          return valuesRP.then(setAll);
+        if (isPromise(valuesRP)) {
+          return (valuesRP as Promise<LuaValue[]>).then(setAll);
         } else {
           return setAll(valuesRP);
         }
@@ -1170,8 +1179,8 @@ export function evalStatement(
             sf,
             returnOnReturn,
           );
-          if (result instanceof Promise) {
-            return result.then((res) => {
+          if (isPromise(result)) {
+            return (result as Promise<any>).then((res) => {
               if (res !== undefined) {
                 return res;
               }
@@ -1203,11 +1212,11 @@ export function evalStatement(
           return;
         }
         const cv = evalExpression(conds[i].condition, env, sf);
-        if (cv instanceof Promise) {
+        if (isPromise(cv)) {
           return (cv as Promise<any>).then((val) => {
             if (luaTruthy(val)) {
               const r = evalStatement(conds[i].block, env, sf, returnOnReturn);
-              return r instanceof Promise ? r : r;
+              return isPromise(r) ? r : r;
             }
             return runFrom(i + 1);
           });
@@ -1231,7 +1240,7 @@ export function evalStatement(
           }
           try {
             const r = evalStatement(w.block, env, sf, returnOnReturn);
-            if (r instanceof Promise) {
+            if (isPromise(r)) {
               const res = await r;
               if (res !== undefined) {
                 return res;
@@ -1252,7 +1261,7 @@ export function evalStatement(
 
       while (true) {
         const c = evalExpression(w.condition, env, sf);
-        if (c instanceof Promise) {
+        if (isPromise(c)) {
           return (c as Promise<any>).then((cv) => {
             if (!luaTruthy(cv)) {
               return;
@@ -1261,7 +1270,7 @@ export function evalStatement(
             // continue async.
             try {
               const r = evalStatement(w.block, env, sf, returnOnReturn);
-              if (r instanceof Promise) {
+              if (isPromise(r)) {
                 return (r as Promise<any>).then((res) => {
                   if (res !== undefined) {
                     return res;
@@ -1290,7 +1299,7 @@ export function evalStatement(
         }
         try {
           const r = evalStatement(w.block, env, sf, returnOnReturn);
-          if (r instanceof Promise) {
+          if (isPromise(r)) {
             return (r as Promise<any>).then((res) => {
               if (res !== undefined) {
                 return res;
@@ -1321,7 +1330,7 @@ export function evalStatement(
         while (true) {
           try {
             const rr = evalStatement(r.block, env, sf, returnOnReturn);
-            if (rr instanceof Promise) {
+            if (isPromise(rr)) {
               const res = await rr;
               if (res !== undefined) {
                 return res;
@@ -1347,7 +1356,7 @@ export function evalStatement(
       while (true) {
         try {
           const rr = evalStatement(r.block, env, sf, returnOnReturn);
-          if (rr instanceof Promise) {
+          if (isPromise(rr)) {
             return (rr as Promise<any>).then((res) => {
               if (res !== undefined) {
                 return res;
@@ -1370,7 +1379,7 @@ export function evalStatement(
           }
         }
         const c = evalExpression(r.condition, env, sf);
-        if (c instanceof Promise) {
+        if (isPromise(c)) {
           return (c as Promise<any>).then((
             cv,
           ) => (luaTruthy(cv) ? undefined : runAsync()));
@@ -1388,7 +1397,7 @@ export function evalStatement(
     case "FunctionCallStatement": {
       const fcs = asFunctionCallStmt(s);
       const r = evalExpression(fcs.call, env, sf);
-      if (r instanceof Promise) {
+      if (isPromise(r)) {
         return (r as Promise<any>).then(() => undefined);
       }
       return;
@@ -1438,14 +1447,14 @@ export function evalStatement(
       );
       const valuesRP = rpAll(parts);
       if (returnOnReturn) {
-        return valuesRP instanceof Promise ? valuesRP : valuesRP;
+        return isPromise(valuesRP) ? valuesRP : valuesRP;
       } else {
-        if (valuesRP instanceof Promise) {
+        if (isPromise(valuesRP)) {
           return (valuesRP as Promise<any[]>).then((vals) => {
             throw new LuaReturn(vals);
           });
         } else {
-          throw new LuaReturn(valuesRP);
+          throw new LuaReturn(valuesRP as LuaValue[]);
         }
       }
     }
@@ -1466,7 +1475,7 @@ export function evalStatement(
           localEnv.setLocal(fr.name, i);
           try {
             const r = evalStatement(fr.block, localEnv, sf, returnOnReturn);
-            if (r instanceof Promise) {
+            if (isPromise(r)) {
               const res = await r;
               if (res !== undefined) {
                 return res;
@@ -1499,7 +1508,7 @@ export function evalStatement(
           localEnv.setLocal(fr.name, i);
           try {
             const r = evalStatement(fr.block, localEnv, sf, returnOnReturn);
-            if (r instanceof Promise) {
+            if (isPromise(r)) {
               return (r as Promise<any>).then((res) => {
                 if (res !== undefined) {
                   return res;
@@ -1526,16 +1535,16 @@ export function evalStatement(
       };
 
       if (
-        !(startV instanceof Promise) &&
-        !(endV instanceof Promise) &&
-        !(stepV instanceof Promise)
+        !isPromise(startV) &&
+        !isPromise(endV) &&
+        !isPromise(stepV)
       ) {
         return runSyncFirst(startV, endV, (stepV as number) ?? 1);
       } else {
         return Promise.all([
-          startV instanceof Promise ? startV : Promise.resolve(startV),
-          endV instanceof Promise ? endV : Promise.resolve(endV),
-          stepV instanceof Promise ? stepV : Promise.resolve(stepV),
+          isPromise(startV) ? startV : Promise.resolve(startV),
+          isPromise(endV) ? endV : Promise.resolve(endV),
+          isPromise(stepV) ? stepV : Promise.resolve(stepV),
         ]).then(([start, end, step]) => runSyncFirst(start, end, step ?? 1));
       }
     }
@@ -1577,7 +1586,7 @@ export function evalStatement(
               sf,
             );
             const iterResult = new LuaMultiRes(
-              callRes instanceof Promise ? await callRes : callRes,
+              isPromise(callRes) ? await callRes : callRes,
             ).flatten();
             if (
               iterResult.values[0] === null ||
@@ -1591,7 +1600,7 @@ export function evalStatement(
             }
             try {
               const r = evalStatement(fi.block, localEnv, sf, returnOnReturn);
-              if (r instanceof Promise) {
+              if (isPromise(r)) {
                 const res = await r;
                 if (res !== undefined) {
                   return res;
@@ -1612,7 +1621,7 @@ export function evalStatement(
 
         while (true) {
           const iterCall = luaCall(iteratorValue, [state, control], fi.ctx, sf);
-          if (iterCall instanceof Promise) {
+          if (isPromise(iterCall)) {
             return (iterCall as Promise<any>).then((itv) => {
               const iterResult = new LuaMultiRes(itv).flatten();
               if (
@@ -1626,7 +1635,7 @@ export function evalStatement(
                 localEnv.setLocal(fi.names[i], iterResult.values[i]);
               }
               const r = evalStatement(fi.block, localEnv, sf, returnOnReturn);
-              if (r instanceof Promise) {
+              if (isPromise(r)) {
                 return (r as Promise<any>).then((res) => {
                   if (res !== undefined) {
                     return res;
@@ -1657,7 +1666,7 @@ export function evalStatement(
           }
           try {
             const r = evalStatement(fi.block, localEnv, sf, returnOnReturn);
-            if (r instanceof Promise) {
+            if (isPromise(r)) {
               return (r as Promise<any>).then((res) => {
                 if (res !== undefined) {
                   return res;
@@ -1683,10 +1692,10 @@ export function evalStatement(
         return;
       };
 
-      if (exprVals instanceof Promise) {
+      if (isPromise(exprVals)) {
         return (exprVals as Promise<any[]>).then(afterExprs);
       } else {
-        return afterExprs(exprVals);
+        return afterExprs(exprVals as any[]);
       }
     }
   }
@@ -1714,12 +1723,12 @@ function evalLValue(
       );
       const keyValue = evalExpression(ta.key, env, sf);
       if (
-        objValue instanceof Promise ||
-        keyValue instanceof Promise
+        isPromise(objValue) ||
+        isPromise(keyValue)
       ) {
         return Promise.all([
-          objValue instanceof Promise ? objValue : Promise.resolve(objValue),
-          keyValue instanceof Promise ? keyValue : Promise.resolve(keyValue),
+          isPromise(objValue) ? objValue : Promise.resolve(objValue),
+          isPromise(keyValue) ? keyValue : Promise.resolve(keyValue),
         ]).then(([objValue, keyValue]) => ({
           env: singleResult(objValue),
           key: singleResult(keyValue),
@@ -1738,7 +1747,7 @@ function evalLValue(
         env,
         sf,
       );
-      if (objValue instanceof Promise) {
+      if (isPromise(objValue)) {
         return (objValue as Promise<any>).then((ov) => {
           return {
             env: ov,
