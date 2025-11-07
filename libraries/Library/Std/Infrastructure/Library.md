@@ -56,7 +56,7 @@ command.define {
       mode = "pull"
     }, text))
     editor.flashNotification "Library installed"
-    editor.navigate(libPage)
+    editor.navigate(repoPage)
     reloadEverything()
   end
 }
