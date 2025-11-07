@@ -81,7 +81,6 @@ command.define {
     if not uri then
       return
     end
-    local text = net.readURI(uri, {encoding="text/markdown"})
     local name = editor.prompt("Name (library will be saved under Library/<<Name>>):")
     if not name then
       return
@@ -91,14 +90,10 @@ command.define {
       editor.flashNotification(libPage .. " already exists", "error")
       return
     end
-    space.writePage(libPage, share.setFrontmatter({
-      uri = uri,
-      hash = share.contentHash(text),
-      mode = "pull"
-    }, text))
+    library.install(libPage, uri)
     editor.flashNotification "Library installed"
-    editor.navigate(libPage)
     reloadEverything()
+    editor.navigate("Library/Std/Pages/Library Manager")
   end
 }
 
