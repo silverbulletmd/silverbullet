@@ -1,5 +1,3 @@
-import { plugPrefix } from "./spaces/constants.ts";
-
 import type { EventHook } from "./plugos/hooks/event.ts";
 import { jitter, safeRun } from "@silverbulletmd/silverbullet/lib/async";
 import { localDateString } from "@silverbulletmd/silverbullet/lib/dates";
@@ -60,10 +58,7 @@ export class Space {
   async listPlugs(): Promise<FileMeta[]> {
     const files = await this.deduplicatedFileList();
     return files
-      .filter((fileMeta) =>
-        fileMeta.name.startsWith(plugPrefix) &&
-        fileMeta.name.endsWith(".plug.js")
-      );
+      .filter((fileMeta) => fileMeta.name.endsWith(".plug.js"));
   }
 
   async readPage(name: string): Promise<{ text: string; meta: PageMeta }> {

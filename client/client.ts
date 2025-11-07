@@ -61,7 +61,7 @@ import { DataStoreMQ } from "./data/mq.datastore.ts";
 
 import { ReadOnlySpacePrimitives } from "./spaces/ro_space_primitives.ts";
 import { LimitedMap } from "@silverbulletmd/silverbullet/lib/limited_map";
-import { fsEndpoint, plugPrefix } from "./spaces/constants.ts";
+import { fsEndpoint } from "./spaces/constants.ts";
 import { diffAndPrepareChanges } from "./codemirror/cm_util.ts";
 import { DocumentEditor } from "./document_editor.ts";
 import { parseExpressionString } from "./space_lua/parse.ts";
@@ -426,9 +426,7 @@ export class Client {
         // Update list of known pages
         this.clientSystem.allKnownFiles.clear();
         allFiles.forEach((f) => {
-          if (!f.name.startsWith(plugPrefix)) {
-            this.clientSystem.allKnownFiles.add(f.name);
-          }
+          this.clientSystem.allKnownFiles.add(f.name);
         });
         this.clientSystem.knownFilesLoaded = true;
       },
@@ -572,11 +570,13 @@ export class Client {
     console.error(`Error during ${context}:`, e);
 
     if (e instanceof LuaRuntimeError) {
-      client.flashNotification(`Lua error: ${e.message}`, "error");
+      this.flashNotification(`Lua error: ${e.message}`, "error");
       const origin = resolveASTReference(e.sf.astCtx!);
       if (origin) {
         client.navigate(origin);
       }
+    } else {
+      this.flashNotification(`Error: ${e.message}`, "error");
     }
   }
 
