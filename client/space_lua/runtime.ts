@@ -351,19 +351,6 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     return (key instanceof Number ? Number(key) : key) - 1;
   }
 
-  private refreshMetaFlags(): void {
-    const mt = this.metatable;
-    if (!mt) {
-      this.hasIndexMM = false;
-      this.hasNewIndexMM = false;
-      this.hasLenMM = false;
-      return;
-    }
-    this.hasIndexMM = mt.rawGet("__index") !== null;
-    this.hasNewIndexMM = mt.rawGet("__newindex") !== null;
-    this.hasLenMM = mt.rawGet("__len") !== null;
-  }
-
   get length(): number {
     return this.arrayPart.length;
   }
