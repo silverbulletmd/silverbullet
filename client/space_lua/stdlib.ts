@@ -159,7 +159,7 @@ const setmetatableFunction = new LuaBuiltinFunction(
     if (!metatable) {
       throw new LuaRuntimeError("metatable cannot be set to nil", sf);
     }
-    (table as any).metatable = metatable;
+    table.metatable = metatable;
     return table;
   },
 );
