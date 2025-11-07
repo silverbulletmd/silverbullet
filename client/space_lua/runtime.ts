@@ -446,7 +446,7 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
       const metaValue = mt.get("__newindex", sf);
       // Ensure we pass a non-null ASTCtx to luaCall
       const callCtx: ASTCtx = (sf?.astCtx ?? {}) as ASTCtx;
-      if ((metaValue as any)?.then) {
+      if (isPromise(metaValue)) {
         // This is a promise, we need to wait for it
         return (metaValue as Promise<any>).then((mv: any) => {
           return luaCall(
@@ -583,7 +583,7 @@ export function luaIndexValue(
   if (metatable && metatable.has("__index")) {
     // Invoke the meta table
     const metaValue = metatable.get("__index", sf);
-    if ((metaValue as any)?.then) {
+    if (isPromise(metaValue)) {
       // Got a promise, we need to wait for it
       return (metaValue as Promise<any>).then((mv: any) => {
         if (mv?.call) {
@@ -752,7 +752,7 @@ export function luaCall(
         }
       };
 
-      if ((metaValue as any)?.then) {
+      if (isPromise(metaValue)) {
         // Got a promise, we need to wait for it
         return (metaValue as Promise<any>).then((value: any) => {
           return callMetaValue(value);
