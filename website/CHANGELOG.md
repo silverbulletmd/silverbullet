@@ -1,7 +1,11 @@
 An attempt at documenting the changes/new features introduced in each release.
 
 ## Edge
-Nothing new since 2.2.0 just yet!
+* [[Libraries]]: are now a more “real” thing, and can be distributed via the [[Library Manager]] and grouped into [[Repositories]]. For instructions on how to build your own libraries, see [[Libraries/Development]]. In time this mechanism will succeed the `plugs` configuration and `Plugs: Update` mechanism. Plug authors can already start to update their plugs to get ready, usually all that needs to be done is to add some frontmatter to their README file, [example](https://github.com/silverbulletmd/silverbullet-mermaid/blob/main/README.md).
+* [[Share]]: a new mechanism to push content to external places and pull external content in (also used as the foundation of [[Libraries]]). This partially will replace many [[Export]]. Export will be more for one-off use cases.
+* [[Services]]: a new mechanism used behind the scenes to power [[Share]], but also [[Export]] and likely other features in the future. Built on top of [[Events]].
+* [[URIs]] are now a more formalized and centralized mechanism, used by [[Share]] and likely other features in the future.
+* Removed “Import” support, succeeded by [[Share]].
 
 ## 2.2.0
 This is a dot release primarily because due to changes in how IndexedDB databases are named, a fully resync and reindex of your space will happen on all your devices. I’m sorry for the inconvenience, we try to limit how often this is required. If you’d like to clean up unnecessary databases afterwards you can run the `Client: Clean` command (once) afterwards.
