@@ -37,13 +37,20 @@ export function base64DecodeDataUrl(dataUrl: string): Uint8Array {
  * Note: this will only work over HTTPS
  * @param message
  */
-export async function hashSHA256(message: string): Promise<string> {
+export async function hashSHA256(
+  message: string | Uint8Array,
+): Promise<string> {
   // Transform the string into an ArrayBuffer
   const encoder = new TextEncoder();
-  const data = encoder.encode(message);
+  const data: Uint8Array = typeof message === "string"
+    ? encoder.encode(message)
+    : message;
 
   // Generate the hash
-  const hashBuffer = await globalThis.crypto.subtle.digest("SHA-256", data);
+  const hashBuffer = await globalThis.crypto.subtle.digest(
+    "SHA-256",
+    data as BufferSource,
+  );
 
   // Transform the hash into a hex string
   return Array.from(new Uint8Array(hashBuffer)).map((b) =>
