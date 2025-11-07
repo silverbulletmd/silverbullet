@@ -64,9 +64,6 @@ async function updateIndexProgressInUI() {
 export async function processIndexQueue(messages: MQMessage[]) {
   for (const message of messages) {
     let name: string = message.body;
-    if (name.startsWith("_plug/")) {
-      continue;
-    }
     console.log(`Indexing file ${name}`);
     if (name.endsWith(".md")) {
       name = name.slice(0, -3);
