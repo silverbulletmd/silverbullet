@@ -10,7 +10,6 @@ Support for [SilverBullet Share](https://silverbullet.md/Share) for:
 As well as URI support (both read and write) for the following schemes:
 * `github:username/repo@branch/path`
 * `github:username/repo/path` (defaults to `main` branch)
-* `github:username/repo` (defaults to `main` branch and `README.md` path)
 * `https://github.com/username/repo/blob/branch/path`
 * `https://gist.github.com/username/gist-id`
 
@@ -188,10 +187,6 @@ service.define {
     if not branch then
       branch = "main"
     end
-    if not path then
-      -- default to README.md
-      path = "README.md"
-    end
     local fullUrl = "https://github.com/" .. owner .. "/" .. repo .. "/blob/" .. branch .. "/" .. path
     -- Redirect to full URI implementation
     net.writeURI(fullUrl, data.content)
@@ -207,10 +202,6 @@ service.define {
   run = function(data)
     local uri = data.uri:sub(#"ghr:"+1)
     local owner, repo, path = table.unpack(uri:split("/"))
-    if not path then
-      -- default to README.md
-      path = "README.md"
-    end
     local repoClean, version = table.unpack(repo:split("@"))
     local url
     if not version or version == "latest" then
@@ -249,10 +240,6 @@ service.define {
     repo, branch = table.unpack(repo:split("@"))
     if not branch then
       branch = "main"
-    end
-    if not path then
-      -- default to README.md
-      path = "README.md"
     end
     local url = "https://raw.githubusercontent.com/" .. owner .. "/" .. repo .. "/" .. branch .. "/" .. path
     local res = net.proxyFetch(url)
