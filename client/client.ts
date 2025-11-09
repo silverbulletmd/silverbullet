@@ -1,3 +1,4 @@
+console.log("[SB] boot start - test 6", location.href);
 import type {
   CompletionContext,
   CompletionResult,

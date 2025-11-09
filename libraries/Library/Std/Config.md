@@ -384,3 +384,41 @@ config.set {
   },
 }
 ```
+
+
+
+## Touch input
+
+`ui.touch.bindings` — configure multi-touch gesture bindings.
+
+Default (mirroring current behavior):
+
+```lua
+config.set("ui.touch.bindings", {
+  { fingers = 2, command = "Navigate: Page Picker", preventDefault = true },
+  { fingers = 3, command = "Command: Open Palette", preventDefault = true },
+})
+```
+
+Schema (added by SB):
+
+```lua
+config.define("ui.touch.bindings", {
+  description = "Multi-touch gesture bindings",
+  type = "array",
+  items = {
+    type = "object",
+    properties = {
+      fingers = { type = "number", minimum = 2, maximum = 5 },
+      command = { type = "string" },
+      preventDefault = { type = "boolean" },
+    },
+    required = { "fingers", "command" },
+    additionalProperties = false,
+  },
+  default = {
+    { fingers = 2, command = "Navigate: Page Picker", preventDefault = true },
+    { fingers = 3, command = "Command: Open Palette", preventDefault = true },
+  }
+})
+```
