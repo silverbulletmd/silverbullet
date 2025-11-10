@@ -26,35 +26,6 @@ export function setupTouchRouter(client: ClientLike) {
     }
   }
 
-  async function runCommandByName(client: any, name: string): Promise<boolean> {
-    try {
-      // Prefer explicit APIs if present
-      if (typeof client.runCommand === "function") {
-        await client.runCommand(name);
-        return true;
-      }
-      if (typeof client.clientSystem?.runCommand === "function") {
-        await client.clientSystem.runCommand(name);
-        return true;
-      }
-      if (typeof client.clientSystem?.invokeCommand === "function") {
-        await client.clientSystem.invokeCommand(name);
-        return true;
-      }
-
-      // Fall back to a direct command object with a run() (some builds expose it)
-      const cmds: any[] = client.ui?.viewState?.commands ?? [];
-      const cmd = cmds.find((c) => c?.name === name);
-      if (cmd && typeof cmd.run === "function") {
-        await cmd.run();
-        return true;
-      }
-    } catch {
-      // ignore and report false
-    }
-    return false;
-  }
-
   function compile(): Map<number, TouchMapEntry> {
     const cfg = readConfigBindings();
     const cmds = readCommands();
@@ -85,7 +56,7 @@ export function setupTouchRouter(client: ClientLike) {
 
     const name = binding.command;
 
-    // Disable if empty or explicit "none"
+    // Disabled if empty or "none"
     if (!name || name === "none") return;
 
     if (name === "Navigate: Page Picker") {
@@ -93,14 +64,14 @@ export function setupTouchRouter(client: ClientLike) {
     } else if (name === "Command: Open Palette") {
       client.startCommandPalette();
     } else {
-      // Try to run the command by name
-      runCommandByName(client, name).then((ran) => {
-        if (!ran) {
-          // As a gentle fallback, show palette so user can confirm/trigger
-          // (optional: pre-filter the palette if your build supports it)
-          client.startCommandPalette();
-        }
-      });
+      // ✅ Run any command by name (no palette fallback unless you want one)
+      try {
+        // fire-and-forget is fine; or await if you prefer
+        void client.runCommandByName(name);
+      } catch (_e) {
+        // Optional gentle fallback if a typo or timing issue:
+        // client.startCommandPalette();
+      }
     }
   };
 
