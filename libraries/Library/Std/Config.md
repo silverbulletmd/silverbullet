@@ -400,7 +400,7 @@ config.set("ui.touch.bindings", {
 })
 ```
 
-Schema:
+Schema (reference):
 
 ```lua
 config.define("ui.touch.bindings", {

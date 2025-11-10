@@ -21,4 +21,4 @@ config.set("ui.touch.bindings", {
 - The UI installs a single `touchstart` listener (non-passive) and resolves the gesture using:
   1. Built-in defaults
   2. `ui.touch.bindings` from config
-- Handler lives in `client/input/touch_router.ts` and registry logic in `client/input/touch_registry.ts`.
+- Handler lives in `client/input/touch_router.ts` and registry in `client/input/touch_registry.ts`.

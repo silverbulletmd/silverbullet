@@ -10,7 +10,6 @@ type ClientLike = {
   startCommandPalette: () => void;
   runCommandByName: (name: string, args?: any[]) => Promise<void>;
   clientSystem?: { commandHook?: { on?: (h: { commandsUpdated: () => void }) => void } };
-  ui?: { viewState?: { commands?: Map<string, unknown> } };
 };
 
 export function setupTouchRouter(client: ClientLike) {
@@ -24,7 +23,7 @@ export function setupTouchRouter(client: ClientLike) {
 
   function compile(): Map<number, TouchMapEntry> {
     const cfg = readConfigBindings();
-    return buildTouchMap(cmds, cfg);
+    return buildTouchMap(cfg);
   }
 
   let map: Map<number, TouchMapEntry>;
@@ -42,7 +41,7 @@ export function setupTouchRouter(client: ClientLike) {
   try {
     map = compile();
   } catch {
-    map = buildTouchMap([], readConfigBindings());
+    map = buildTouchMap(readConfigBindings());
   }
 
   const onTouchStart = (ev: TouchEvent) => {
@@ -55,15 +54,15 @@ export function setupTouchRouter(client: ClientLike) {
       if (!binding) return;
     }
 
-    if (binding.preventDefault) {
-      ev.preventDefault();
-      ev.stopPropagation();
-    }
-
     const name = binding.command;
 
     // Disabled if empty or "none"
     if (!name || name === "none") return;
+
+    if (binding.preventDefault) {
+      ev.preventDefault();
+      ev.stopPropagation();
+    }
 
     if (name === "Navigate: Page Picker") {
       client.startPageNavigate("page");

@@ -1,5 +1,5 @@
 // client/input/touch_registry.ts
-// Build a Map<fingers, binding> from (1) built-in defaults, (2) config ui.touch.bindings, (3) per-command `touch` attributes.
+// Build a Map<fingers, binding> from (1) built-in defaults, (2) config ui.touch.bindings.
 // Later sources override earlier ones per finger count.
 
 export type TouchBinding = {
@@ -9,11 +9,6 @@ export type TouchBinding = {
 };
 
 export type TouchMapEntry = { command: string; preventDefault: boolean };
-
-type CommandLike = {
-  name: string;
-  touch?: { fingers: number; preventDefault?: boolean }[];
-};
 
 /** Built-in fallbacks that mirror current behavior */
 export const defaultBindings: TouchBinding[] = [
@@ -38,7 +33,6 @@ function merge(list: TouchBinding[], into: Map<number, TouchMapEntry>) {
  * @param configBindings Values from config.get("ui.touch.bindings", [])
  */
 export function buildTouchMap(
-  commands: CommandLike[],
   configBindings: TouchBinding[] = [],
 ): Map<number, TouchMapEntry> {
   const map = new Map<number, TouchMapEntry>();
