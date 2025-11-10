@@ -185,7 +185,7 @@ export const tableApi = new LuaTable({
     ) => {
       const startIndex = fromIndex < 1 ? 1 : fromIndex;
       for (let i = startIndex; i <= tbl.length; i++) {
-        const val = await luaGet(tbl, i, sf);
+        const val = await luaGet(tbl, i, sf.astCtx ?? null, sf);
         if (await luaCall(criteriaFn, [val], sf.astCtx!, sf)) {
           return new LuaMultiRes([i, val]);
         }

@@ -1,6 +1,7 @@
 import type { ASTCtx, LuaFunctionBody } from "./ast.ts";
-import { evalStatement, getMetatable } from "./eval.ts";
-import { asyncQuickSort, evalPromiseValues } from "./util.ts";
+import { evalStatement } from "./eval.ts";
+import { asyncQuickSort } from "./util.ts";
+import { isPromise, rpAll } from "./rp.ts";
 
 export type LuaType =
   | "nil"
@@ -29,6 +30,32 @@ export interface ILuaSettable {
 export interface ILuaGettable {
   get(key: LuaValue, sf?: LuaStackFrame): LuaValue | undefined;
 }
+
+// Small helpers for type safety/readability
+export function isILuaFunction(v: unknown): v is ILuaFunction {
+  return !!v && typeof (v as any).call === "function";
+}
+
+export function isLuaTable(v: unknown): v is LuaTable {
+  return v instanceof LuaTable;
+}
+
+export function toNumKey(key: unknown): string | number {
+  if (key instanceof Number) {
+    return Number(key);
+  }
+  if (typeof key === "number" || typeof key === "string") {
+    return key;
+  }
+  return key as unknown as string | number;
+}
+
+export function ctxOrNull(sf?: LuaStackFrame): ASTCtx | null {
+  return sf?.astCtx ?? null;
+}
+
+// Reuse a single empty context to avoid allocating `{}` in hot paths
+const EMPTY_CTX = {} as ASTCtx;
 
 export class LuaEnv implements ILuaSettable, ILuaGettable {
   variables = new Map<string, LuaValue>();
@@ -165,7 +192,7 @@ export class LuaFunction implements ILuaFunction {
     this.capturedEnv = closure;
   }
 
-  async call(sf: LuaStackFrame, ...args: LuaValue[]): Promise<LuaValue> {
+  call(sf: LuaStackFrame, ...args: LuaValue[]): Promise<LuaValue> | LuaValue {
     // Create a new environment that chains to the captured environment
     const env = new LuaEnv(this.capturedEnv);
     if (!sf) {
@@ -174,25 +201,54 @@ export class LuaFunction implements ILuaFunction {
     // Set _CTX to the thread local environment from the stack frame
     env.setLocal("_CTX", sf.threadLocal);
 
-    // Evaluate all arguments
-    const resolvedArgs = await evalPromiseValues(args);
-
-    // Assign parameter values to variable names in env
-    let varargs: LuaValue[] = [];
-    for (let i = 0; i < this.body.parameters.length; i++) {
-      const paramName = this.body.parameters[i];
-      if (paramName === "...") {
-        // Vararg parameter, let's collect the remainder of the resolved args into the varargs array
-        varargs = resolvedArgs.slice(i);
-        // Done, break out of this loop
-        break;
+    // Resolve args (sync-first)
+    const argsRP = rpAll(args as any[]);
+    const resolveArgs = (resolvedArgs: any[]) => {
+      // Assign parameter values to variable names in env
+      let varargs: LuaValue[] = [];
+      for (let i = 0; i < this.body.parameters.length; i++) {
+        const paramName = this.body.parameters[i];
+        if (paramName === "...") {
+          // Vararg parameter, let's collect the remainder of the resolved args into the varargs array
+          varargs = resolvedArgs.slice(i);
+          // Done, break out of this loop
+          break;
+        }
+        env.setLocal(paramName, resolvedArgs[i] ?? null);
       }
-      env.setLocal(paramName, resolvedArgs[i] ?? null);
+      env.setLocal("...", new LuaMultiRes(varargs));
+
+      // Evaluate the function body with returnOnReturn set to true
+      try {
+        const r = evalStatement(this.body.block, env, sf, true);
+        const map = (val: any) => {
+          if (val !== undefined) {
+            return mapFunctionReturnValue(val);
+          }
+        };
+        if (isPromise(r)) {
+          return r.then(map).catch((e: any) => {
+            if (e instanceof LuaReturn) {
+              return mapFunctionReturnValue(e.values);
+            }
+            throw e;
+          });
+        } else {
+          return map(r);
+        }
+      } catch (e: any) {
+        if (e instanceof LuaReturn) {
+          return mapFunctionReturnValue(e.values);
+        }
+        throw e;
+      }
+    };
+
+    if (isPromise(argsRP)) {
+      return argsRP.then(resolveArgs);
+    } else {
+      return resolveArgs(argsRP);
     }
-
-    env.setLocal("...", new LuaMultiRes(varargs));
-
-    return this.evalBody(env, sf);
   }
 
   asString(): string {
@@ -201,25 +257,6 @@ export class LuaFunction implements ILuaFunction {
 
   toString(): string {
     return this.asString();
-  }
-
-  private async evalBody(
-    env: LuaEnv,
-    sf: LuaStackFrame,
-  ): Promise<LuaValue> {
-    try {
-      // Evaluate the function body with returnOnReturn set to true
-      const result = await evalStatement(this.body.block, env, sf, true);
-      if (result !== undefined) {
-        return mapFunctionReturnValue(result);
-      }
-    } catch (e: any) {
-      if (e instanceof LuaReturn) {
-        return mapFunctionReturnValue(e.values);
-      } else {
-        throw e;
-      }
-    }
   }
 }
 
@@ -239,13 +276,12 @@ export class LuaNativeJSFunction implements ILuaFunction {
 
   // Performs automatic conversion between Lua and JS values for arguments, but not for return values
   call(sf: LuaStackFrame, ...args: LuaValue[]): Promise<LuaValue> | LuaValue {
-    const evaluatedArgs = evalPromiseValues(
-      args.map((v) => luaValueToJS(v, sf)),
-    );
-    if (evaluatedArgs instanceof Promise) {
-      return evaluatedArgs.then((args) => this.fn(...args));
+    const jsArgsRP = args.map((v) => luaValueToJS(v, sf));
+    const resolved = rpAll(jsArgsRP);
+    if (isPromise(resolved)) {
+      return resolved.then((jsArgs) => this.fn(...jsArgs));
     } else {
-      return this.fn(...evaluatedArgs);
+      return this.fn(...resolved);
     }
   }
 
@@ -281,6 +317,7 @@ export class LuaBuiltinFunction implements ILuaFunction {
 export class LuaTable implements ILuaSettable, ILuaGettable {
   // To optimize the table implementation we use a combination of different data structures
   public metatable: LuaTable | null;
+
   // When tables are used as maps, the common case is that they are string keys, so we use a simple object for that
   private stringKeys: Record<string, any>;
   // Other keys we can support using a Map as a fallback
@@ -288,10 +325,23 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
   // When tables are used as arrays, we use a native JavaScript array for that
   private arrayPart: any[];
 
+  // Metamethod presence flags
+  hasIndexMM = false;
+  hasNewIndexMM = false;
+  hasLenMM = false;
+
   constructor(init?: any[] | Record<string, any>) {
     // For efficiency and performance reasons we pre-allocate these (modern JS engines are very good at optimizing this)
     this.arrayPart = Array.isArray(init) ? init : [];
     this.stringKeys = init && !Array.isArray(init) ? init : {};
+
+    if (init && !Array.isArray(init)) {
+      for (const k in init) {
+        if (Object.prototype.hasOwnProperty.call(init, k)) {
+          this.stringKeys[k] = (init as any)[k];
+        }
+      }
+    }
     this.otherKeys = null; // Only create this when needed
     this.metatable = null;
   }
@@ -308,16 +358,13 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     return this.arrayPart.length;
   }
 
-  empty(): boolean {
-    return (
-      Object.keys(this.stringKeys).length === 0 &&
-      this.arrayPart.length === 0 &&
-      (this.otherKeys === null || this.otherKeys.size === 0)
-    );
-  }
-
   keys(): any[] {
-    const keys: any[] = Object.keys(this.stringKeys);
+    const keys: any[] = [];
+    for (const k in this.stringKeys) {
+      if (Object.prototype.hasOwnProperty.call(this.stringKeys, k)) {
+        keys.push(k);
+      }
+    }
     for (let i = 0; i < this.arrayPart.length; i++) {
       keys.push(i + 1);
     }
@@ -327,6 +374,21 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
       }
     }
     return keys;
+  }
+
+  empty(): boolean {
+    for (const k in this.stringKeys) {
+      if (Object.prototype.hasOwnProperty.call(this.stringKeys, k)) {
+        return false;
+      }
+    }
+    if (this.arrayPart.length !== 0) {
+      return false;
+    }
+    if (this.otherKeys && this.otherKeys.size !== 0) {
+      return false;
+    }
+    return true;
   }
 
   has(key: LuaValue) {
@@ -341,11 +403,11 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
   }
 
   rawSet(key: LuaValue, value: LuaValue): void | Promise<void> {
-    if (key instanceof Promise) {
+    if (isPromise(key)) {
       return key.then((key) => this.rawSet(key, value));
     }
-    if (value instanceof Promise) {
-      return value.then(() => this.rawSet(key, value));
+    if (isPromise(value)) {
+      return value.then((v) => this.rawSet(key, v));
     }
     if (typeof key === "string") {
       if (value === null || value === undefined) {
@@ -353,17 +415,19 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
       } else {
         this.stringKeys[key] = value;
       }
-    } else if (LuaTable.isIntegerKey(key)) {
+      return;
+    }
+    if (LuaTable.isIntegerKey(key)) {
       this.arrayPart[LuaTable.toIndex(key)] = value;
+      return;
+    }
+    if (!this.otherKeys) {
+      this.otherKeys = new Map();
+    }
+    if (value === null || value === undefined) {
+      this.otherKeys.delete(key);
     } else {
-      if (!this.otherKeys) {
-        this.otherKeys = new Map();
-      }
-      if (value === null || value === undefined) {
-        this.otherKeys.delete(key);
-      } else {
-        this.otherKeys.set(key, value);
-      }
+      this.otherKeys.set(key, value);
     }
   }
 
@@ -372,17 +436,36 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     value: LuaValue,
     sf?: LuaStackFrame,
   ): Promise<void> | void {
-    const metatable = getMetatable(this, sf);
-    if (metatable && metatable.has("__newindex") && !this.has(key)) {
-      // Invoke the meta table!
-      const metaValue = metatable.get("__newindex", sf);
-      if (metaValue.then) {
+    const mt = this.metatable;
+    if (!mt) {
+      return this.rawSet(key, value);
+    }
+    // Refresh flags when used (fix: treat both undefined and null as absent)
+    const newIndexMM = mt.rawGet("__newindex");
+    this.hasNewIndexMM = !(newIndexMM === undefined || newIndexMM === null);
+
+    if (this.hasNewIndexMM && !this.has(key)) {
+      // Invoke the meta table
+      const metaValue = mt.get("__newindex", sf);
+      // Ensure we pass a non-null ASTCtx to luaCall
+      const callCtx: ASTCtx = sf?.astCtx ?? EMPTY_CTX;
+      if (isPromise(metaValue)) {
         // This is a promise, we need to wait for it
-        return metaValue.then((metaValue: any) => {
-          return luaCall(metaValue, [this, key, value], metaValue.ctx, sf);
+        return (metaValue as Promise<any>).then((mv: any) => {
+          return luaCall(
+            mv,
+            [this, key, value],
+            callCtx,
+            sf,
+          );
         });
       } else {
-        return luaCall(metaValue, [this, key, value], metaValue.ctx, sf);
+        return luaCall(
+          metaValue,
+          [this, key, value],
+          callCtx,
+          sf,
+        );
       }
     }
 
@@ -493,42 +576,53 @@ export function luaIndexValue(
     if (rawValue !== undefined) {
       return rawValue;
     }
+    // Skip metatable lookup fast path
+    if (value.metatable === null) {
+      return null;
+    }
   }
   // If not, let's see if the value has a metatable and if it has a __index metamethod
   const metatable = getMetatable(value, sf);
   if (metatable && metatable.has("__index")) {
     // Invoke the meta table
     const metaValue = metatable.get("__index", sf);
-    if (metaValue.then) {
+    if (isPromise(metaValue)) {
       // Got a promise, we need to wait for it
-      return metaValue.then((metaValue: any) => {
-        if (metaValue.call) {
-          return metaValue.call(sf, value, key);
-        } else if (metaValue instanceof LuaTable) {
-          return metaValue.get(key, sf);
+      return (metaValue as Promise<any>).then((mv: any) => {
+        if (mv?.call) {
+          return luaCall(mv, [value, key], sf?.astCtx ?? EMPTY_CTX, sf);
+        } else if (mv instanceof LuaTable) {
+          return mv.get(key, sf);
         } else {
-          throw new Error("Meta table __index must be a function or table");
+          throw new LuaRuntimeError(
+            "Meta table __index must be a function or table",
+            sf || LuaStackFrame.lostFrame,
+          );
         }
       });
     } else {
-      if (metaValue.call) {
-        return metaValue.call(sf, value, key);
-      } else if (metaValue instanceof LuaTable) {
-        return metaValue.get(key, sf);
+      const mv = metaValue as any;
+      if (mv?.call) {
+        return luaCall(mv, [value, key], sf?.astCtx ?? EMPTY_CTX, sf);
+      } else if (mv instanceof LuaTable) {
+        return mv.get(key, sf);
       } else {
-        throw new Error("Meta table __index must be a function or table");
+        throw new LuaRuntimeError(
+          "Meta table __index must be a function or table",
+          sf || LuaStackFrame.lostFrame,
+        );
       }
     }
   }
   // If not, perhaps let's assume this is a plain JavaScript object and we just index into it
-  const idxKey = key instanceof Number ? Number(key) : key;
+  const k = toNumKey(key);
   if (
     typeof value === "object" && Array.isArray(value) &&
-    typeof idxKey === "number"
+    typeof k === "number"
   ) {
-    return (value as any)[idxKey - 1];
+    return (value as any[])[k - 1];
   }
-  const objValue = (value as any)[idxKey];
+  const objValue = (value as Record<string | number, any>)[k];
   if (objValue === undefined || objValue === null) {
     return null;
   } else {
@@ -554,26 +648,29 @@ export async function luaSet(
   if (obj instanceof LuaTable || obj instanceof LuaEnv) {
     await obj.set(key, value, sf);
   } else {
-    const k = key instanceof Number ? Number(key) : key;
-    obj[k] = value;
+    const k = toNumKey(key);
+    (obj as Record<string | number, any>)[k] = value;
   }
 }
 
 export function luaGet(
   obj: any,
   key: any,
+  ctx: ASTCtx | null,
   sf: LuaStackFrame,
 ): Promise<any> | any {
+  const errSf = ctx ? sf.withCtx(ctx) : sf;
+
   if (obj === null || obj === undefined) {
     throw new LuaRuntimeError(
-      `Attempting to index a nil value`,
-      sf,
+      `attempt to index a nil value`,
+      errSf,
     );
   }
   if (key === null || key === undefined) {
     throw new LuaRuntimeError(
-      `Attempting to index with a nil key`,
-      sf,
+      `attempt to index with a nil key`,
+      errSf,
     );
   }
 
@@ -581,11 +678,11 @@ export function luaGet(
     return obj.get(key, sf);
   } else if (typeof key === "number" || key instanceof Number) {
     const idx = key instanceof Number ? Number(key) : key;
-    return obj[idx - 1];
+    return (obj as any[])[idx - 1];
   } else {
     // Native JS object
-    const k = key instanceof Number ? Number(key) : key;
-    const val = obj[k];
+    const k = toNumKey(key);
+    const val = (obj as Record<string | number, any>)[k];
     if (typeof val === "function") {
       // Automatically bind the function to the object
       return val.bind(obj);
@@ -623,20 +720,22 @@ export function luaCall(
 ): any {
   if (!callee) {
     throw new LuaRuntimeError(
-      `Attempting to call a nil value`,
+      `attempt to call a nil value`,
       (sf || LuaStackFrame.lostFrame).withCtx(ctx),
     );
   }
 
   if (typeof callee === "function") {
-    const jsArgs = evalPromiseValues(
+    const jsArgs = rpAll(
       args.map((v) => luaValueToJS(v, sf || LuaStackFrame.lostFrame)),
     );
 
-    if (jsArgs instanceof Promise) {
-      return jsArgs.then((jsArgs) => callee(...jsArgs));
+    if (isPromise(jsArgs)) {
+      return jsArgs.then((resolved) =>
+        (callee as (...a: any[]) => any)(...resolved)
+      );
     } else {
-      return callee(...jsArgs);
+      return (callee as (...a: any[]) => any)(...jsArgs);
     }
   } else if (callee instanceof LuaTable) {
     const metatable = getMetatable(callee, sf);
@@ -646,27 +745,33 @@ export function luaCall(
       const metaValue = metatable.get("__call", sf);
 
       const callMetaValue = (value: any) => {
-        if (metaValue.call) {
+        if (value && value.call) {
           return luaCall(value, [callee, ...args], ctx, sf);
         } else {
-          throw new Error("Meta table __call must be a function");
+          throw new LuaRuntimeError(
+            "Meta table __call must be a function",
+            (sf || LuaStackFrame.lostFrame).withCtx(ctx),
+          );
         }
       };
 
-      if (metaValue.then) {
+      if (isPromise(metaValue)) {
         // Got a promise, we need to wait for it
-        return metaValue.then((value: any) => {
-          callMetaValue(value);
+        return (metaValue as Promise<any>).then((value: any) => {
+          return callMetaValue(value);
         });
       } else {
         return callMetaValue(metaValue);
       }
     }
-  } else if (callee.call) {
-    return callee.call((sf || LuaStackFrame.lostFrame).withCtx(ctx), ...args);
+  } else if (isILuaFunction(callee)) {
+    return callee.call(
+      (sf || LuaStackFrame.lostFrame).withCtx(ctx),
+      ...args,
+    );
   } else {
     throw new LuaRuntimeError(
-      `Attempting to call a non-callable value of type: ${luaTypeOf(callee)}`,
+      `attempt to call a non-callable value of type: ${luaTypeOf(callee)}`,
       (sf || LuaStackFrame.lostFrame).withCtx(ctx),
     );
   }
@@ -695,8 +800,8 @@ export function luaTypeOf(val: any): LuaType | Promise<LuaType> {
   if (val === null || val === undefined) {
     return "nil";
   }
-  if (val instanceof Promise) {
-    return val.then((v) => luaTypeOf(v));
+  if (isPromise(val)) {
+    return (val as Promise<any>).then((v) => luaTypeOf(v));
   } else if (typeof val === "boolean") {
     return "boolean";
   } else if (typeof val === "number" || val instanceof Number) {
@@ -707,9 +812,9 @@ export function luaTypeOf(val: any): LuaType | Promise<LuaType> {
     return "table";
   } else if (Array.isArray(val)) {
     return "table";
-  } else if (typeof val === "function" || val.call) {
+  } else if (typeof val === "function" || isILuaFunction(val)) {
     return "function";
-  } else if (typeof val === "object" && val.constructor === Object) {
+  } else if (typeof val === "object" && (val as any).constructor === Object) {
     return "table";
   } else {
     return "userdata";
@@ -790,7 +895,7 @@ export function luaTruthy(value: any): boolean {
     return false;
   }
 
-  if (value instanceof LuaMultiRes) {
+  if (typeof value === "object" && value instanceof LuaMultiRes) {
     // for multi-return values, only the first result determines truthiness
     const first = value.unwrap();
     return !(first === null || first === undefined || first === false);
@@ -807,21 +912,21 @@ export function luaToString(
   if (value === null || value === undefined) {
     return "nil";
   }
-  if (value instanceof Promise) {
-    return value.then((v) => luaToString(v, visited));
+  if (isPromise(value)) {
+    return (value as Promise<any>).then((v) => luaToString(v, visited));
   }
   // Check for circular references
   if (typeof value === "object" && visited.has(value)) {
     return "<circular reference>";
   }
-  if (value.toStringAsync) {
+  if ((value as any).toStringAsync) {
     // Add to visited before recursing
     visited.add(value);
-    return value.toStringAsync();
+    return (value as any).toStringAsync();
   }
-  if (value.asString) {
+  if ((value as any).asString) {
     visited.add(value);
-    return value.asString();
+    return (value as any).asString();
   }
   if (value instanceof LuaFunction) {
     // Don't recurse into the function body, just show the function signature
@@ -873,9 +978,44 @@ export function luaToString(
   return String(value);
 }
 
+export function getMetatable(
+  value: LuaValue,
+  sf?: LuaStackFrame,
+): LuaValue | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  if (typeof value === "string") {
+    // Prefer per-thread cached string metatable if `_GLOBAL` available
+    const thread = sf?.threadLocal;
+    const globalEnv = thread?.get("_GLOBAL") as LuaEnv | null | undefined;
+
+    if (thread && globalEnv instanceof LuaEnv) {
+      const cached = thread.get("_STRING_MT") as LuaTable | undefined;
+      if (cached instanceof LuaTable) {
+        return cached;
+      }
+
+      const stringMetatable = new LuaTable();
+      stringMetatable.set("__index", (globalEnv as any).get("string"));
+      thread.setLocal("_STRING_MT", stringMetatable);
+
+      return stringMetatable;
+    }
+
+    return null;
+  }
+
+  if ((value as any).metatable) {
+    return (value as any).metatable;
+  } else {
+    return null;
+  }
+}
+
 export function jsToLuaValue(value: any): any {
-  if (value instanceof Promise) {
-    return value.then(jsToLuaValue);
+  if (isPromise(value)) {
+    return (value as Promise<any>).then(jsToLuaValue);
   }
   if (value instanceof LuaTable) {
     return value;
@@ -901,7 +1041,7 @@ export function jsToLuaValue(value: any): any {
   } else if (typeof value === "object") {
     const table = new LuaTable();
     for (const key in value) {
-      table.set(key, jsToLuaValue(value[key]));
+      table.set(key, jsToLuaValue((value as any)[key]));
     }
     return table;
   } else if (typeof value === "function") {
@@ -913,8 +1053,8 @@ export function jsToLuaValue(value: any): any {
 
 // Inverse of jsToLuaValue
 export function luaValueToJS(value: any, sf: LuaStackFrame): any {
-  if (value instanceof Promise) {
-    return value.then((v) => luaValueToJS(v, sf));
+  if (isPromise(value)) {
+    return (value as Promise<any>).then((v) => luaValueToJS(v, sf));
   }
   if (value instanceof LuaTable) {
     return value.toJS(sf);
@@ -923,16 +1063,16 @@ export function luaValueToJS(value: any, sf: LuaStackFrame): any {
     value instanceof LuaBuiltinFunction
   ) {
     return (...args: any[]) => {
-      const jsArgs = evalPromiseValues(
+      const jsArgs = rpAll(
         args.map((v) => luaValueToJS(v, sf)),
       );
-      if (jsArgs instanceof Promise) {
+      if (isPromise(jsArgs)) {
         return luaValueToJS(
-          jsArgs.then((jsArgs) => value.call(sf, ...jsArgs)),
+          jsArgs.then((jsArgs) => (value as ILuaFunction).call(sf, ...jsArgs)),
           sf,
         );
       } else {
-        return luaValueToJS(value.call(sf, ...jsArgs), sf);
+        return luaValueToJS((value as ILuaFunction).call(sf, ...jsArgs), sf);
       }
     };
   } else if (value instanceof Number) {

@@ -19,7 +19,7 @@ export function buildItemEnv(
   if (!objectVariable) {
     // Inject all item keys as variables
     for (const key of luaKeys(item)) {
-      itemEnv.setLocal(key, luaGet(item, key, sf));
+      itemEnv.setLocal(key, luaGet(item, key, sf.astCtx ?? null, sf));
     }
     // As well as _
     itemEnv.setLocal("_", item);
