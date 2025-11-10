@@ -54,6 +54,9 @@ export function ctxOrNull(sf?: LuaStackFrame): ASTCtx | null {
   return sf?.astCtx ?? null;
 }
 
+// Reuse a single empty context to avoid allocating `{}` in hot paths
+const EMPTY_CTX = {} as ASTCtx;
+
 export class LuaEnv implements ILuaSettable, ILuaGettable {
   variables = new Map<string, LuaValue>();
 
@@ -445,7 +448,7 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
       // Invoke the meta table
       const metaValue = mt.get("__newindex", sf);
       // Ensure we pass a non-null ASTCtx to luaCall
-      const callCtx: ASTCtx = (sf?.astCtx ?? {}) as ASTCtx;
+      const callCtx: ASTCtx = sf?.astCtx ?? EMPTY_CTX;
       if (isPromise(metaValue)) {
         // This is a promise, we need to wait for it
         return (metaValue as Promise<any>).then((mv: any) => {
@@ -587,7 +590,7 @@ export function luaIndexValue(
       // Got a promise, we need to wait for it
       return (metaValue as Promise<any>).then((mv: any) => {
         if (mv?.call) {
-          return luaCall(mv, [value, key], (sf?.astCtx ?? {}) as ASTCtx, sf);
+          return luaCall(mv, [value, key], sf?.astCtx ?? EMPTY_CTX, sf);
         } else if (mv instanceof LuaTable) {
           return mv.get(key, sf);
         } else {
@@ -600,7 +603,7 @@ export function luaIndexValue(
     } else {
       const mv = metaValue as any;
       if (mv?.call) {
-        return luaCall(mv, [value, key], (sf?.astCtx ?? {}) as ASTCtx, sf);
+        return luaCall(mv, [value, key], sf?.astCtx ?? EMPTY_CTX, sf);
       } else if (mv instanceof LuaTable) {
         return mv.get(key, sf);
       } else {
@@ -892,7 +895,7 @@ export function luaTruthy(value: any): boolean {
     return false;
   }
 
-  if (value instanceof LuaMultiRes) {
+  if (typeof value === "object" && value instanceof LuaMultiRes) {
     // for multi-return values, only the first result determines truthiness
     const first = value.unwrap();
     return !(first === null || first === undefined || first === false);

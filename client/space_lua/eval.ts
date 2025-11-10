@@ -311,7 +311,7 @@ export function evalExpression(
                 return +singleResult(value);
               }
               case "not": {
-                return !luaTruthy(singleResult(value));
+                return !luaTruthy(value);
               }
               case "~": {
                 const arg = singleResult(value);
@@ -350,7 +350,7 @@ export function evalExpression(
               return +singleResult(value);
             }
             case "not": {
-              return !luaTruthy(singleResult(value));
+              return !luaTruthy(value);
             }
             case "~": {
               const arg = singleResult(value);
