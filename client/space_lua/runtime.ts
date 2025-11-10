@@ -587,7 +587,7 @@ export function luaIndexValue(
       // Got a promise, we need to wait for it
       return (metaValue as Promise<any>).then((mv: any) => {
         if (mv?.call) {
-          return mv.call(sf, value, key);
+          return luaCall(mv, [value, key], (sf?.astCtx ?? {}) as ASTCtx, sf);
         } else if (mv instanceof LuaTable) {
           return mv.get(key, sf);
         } else {
@@ -600,7 +600,7 @@ export function luaIndexValue(
     } else {
       const mv = metaValue as any;
       if (mv?.call) {
-        return mv.call(sf, value, key);
+        return luaCall(mv, [value, key], (sf?.astCtx ?? {}) as ASTCtx, sf);
       } else if (mv instanceof LuaTable) {
         return mv.get(key, sf);
       } else {
