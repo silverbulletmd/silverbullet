@@ -15,7 +15,7 @@ If the filter phrase contains `#tags` the results will be filtered based on matc
 > Any page tagged with a tag starting with `#meta`, even though technically regular pages, will **not** appear in the page picker. To navigate to them, use the [[Meta Picker]] instead.
 
 > **note** Pro-tip
-> To cycle between the three pickers [[Page Picker]], [[Meta Picker]] and [[All Pages Picker]], type `^` in the filter phrase box.
+> To cycle between the three pickers [[Page Picker]], [[Meta Picker]] and [[Anything Picker]], type `^` in the filter phrase box.
 
 Pressing the `Enter` key will open/create the selected page.
 Pressing `Shift-Enter` will always open or create (if it doesn't already exist) the page _exactly matching_ the filter phrase.
@@ -39,7 +39,7 @@ When entering a filter phrase, the best matches should appear closer to the top,
 * `Home`: moves to the start of the list
 * `End`: moves to the end of the list
 * `Escape`: closes the page picker UI
-* Typing `^` when filter phrase is empty will cycle to the next picker, first [[Meta Picker]], then [[All Pages Picker]]
+* Typing `^` when filter phrase is empty will cycle to the next picker, first [[Meta Picker]], then [[Anything Picker]]
 
 # Mouse/touch operation
 You can scroll and select an item from the list by clicking with the mouse, as well as close the page picker by clicking outside of it.
