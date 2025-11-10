@@ -18,6 +18,12 @@ import { importKey } from "@silverbulletmd/silverbullet/lib/crypto";
 import "./debug.ts";
 const logger = initLogger("[Client]");
 
+if (!crypto.subtle) {
+  alert(
+    "You are likely accessing SilverBullet via HTTP (rather than HTTPS or localhost), this is not a supported configuration. See https://silverbullet.md/TLS",
+  );
+}
+
 safeRun(async () => {
   // First we attempt to fetch the config from the server
   let bootConfig: BootConfig | undefined;
