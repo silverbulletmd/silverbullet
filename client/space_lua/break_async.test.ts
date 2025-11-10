@@ -25,6 +25,7 @@ Deno.test("Nested for loops: inner break (sync body)", async () => {
         for j = i + 1, #t do
           found = found + 1
           break
+	  error("BUG! Execution continued after break!")
         end
       end
     `,
@@ -48,6 +49,7 @@ Deno.test("Nested for loops: inner break with async call in body (Promise path)"
           asyncOne()         -- forces Promise in body
           found = found + 1  -- still must execute before break
           break              -- breaks only inner loop
+	  error("BUG! Execution continued after break!")
         end
       end
     `,
@@ -77,6 +79,7 @@ Deno.test("While: Promise condition, break inside body", async () => {
       while cond() do
         cnt = cnt + 1
         break
+        error("BUG! Execution continued after break!")
       end
     `,
     env,
@@ -97,6 +100,7 @@ Deno.test("Repeat-until: body goes Promise once, break handled locally", async (
         asyncOne() -- body Promise
         n = n + 1
         break
+        error("BUG! Execution continued after break!")
       until true
     `,
     env,
@@ -125,6 +129,7 @@ Deno.test("For-in: custom iterator, Promise in body before break", async () => {
         asyncOne() -- force Promise during body
         hits = hits + 1
         break
+        error("BUG! Execution continued after break!")
       end
     `,
     env,
@@ -161,6 +166,7 @@ Deno.test("Jaro-like inner-window matching: inner break with occasional Promise"
             s2m[j] = true
             mc = mc + 1
             break
+            error("BUG! Execution continued after break!")
           end
         end
       end
