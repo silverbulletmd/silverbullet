@@ -63,7 +63,7 @@ const pairsFunction = new LuaBuiltinFunction(
     let keys: (string | number)[];
     if (Array.isArray(t)) {
       keys = Array.from({ length: t.length }, (_, i) => i + 1); // For arrays, generate 1-based indices
-    } else if (isLuaTable(t)) {
+    } else if (isLuaTable(t) || t instanceof LuaEnv) {
       keys = t.keys();
     } else {
       // For plain JavaScript objects case, note: this will also include keys from the prototype
