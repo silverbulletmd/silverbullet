@@ -10,7 +10,7 @@ import {
   collectNodesOfType,
   renderToText,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import { applyPatches, type SetKeyPatch } from "../../plug-api/lib/yaml.ts";
+import { applyPatches, type YamlPatch } from "../../plug-api/lib/yaml.ts";
 import type { ObjectValue } from "../../plug-api/types/index.ts";
 
 import type { KV, KvKey, KvQuery } from "../../plug-api/types/datastore.ts";
@@ -174,22 +174,30 @@ export async function extractFrontmatter(
 
 export async function patchFrontmatter(
   text: string,
-  patches: SetKeyPatch[],
+  patches: YamlPatch[],
 ): Promise<string> {
   const tree = await markdown.parseMarkdown(text);
-  const frontmatter = collectNodesOfType(tree, "FrontMatterCode");
-
+  const frontmatter = collectNodesOfType(tree, "FrontMatter");
   if (frontmatter.length === 0) {
-    // No frontmatter found, create from the patches
-    const patchedFrontmatter = applyPatches("", patches);
-    return "---\n" + patchedFrontmatter + "---\n\n" + text;
+    // No frontmatter found, create from patches
+    const patchedFrontmatter = applyPatches("", patches).trim();
+    if (patchedFrontmatter) {
+      return "---\n" + patchedFrontmatter + "\n---\n" + text;
+    } else {
+      return text;
+    }
   } else {
     // Existing frontmatter found, patch it
-    const frontmatterText = renderToText(frontmatter[0]);
-    const patchedFrontmatter = applyPatches(frontmatterText, patches);
+    const frontmatterText = renderToText(frontmatter[0].children![1]);
+    const patchedFrontmatter = applyPatches(frontmatterText, patches).trim();
 
-    // Replace the frontmatter with the patched frontmatter in the original string
-    return text.slice(0, frontmatter[0].from) + patchedFrontmatter +
-      text.slice(frontmatter[0].to);
+    if (patchedFrontmatter) {
+      // Replace the frontmatter with the patched frontmatter in the original string
+      return "---\n" + patchedFrontmatter + "\n---" +
+        text.slice(frontmatter[0].to);
+    } else {
+      // Nothing left, let's just return the text content
+      return text.slice(frontmatter[0].to! + 1); // +1 to skip the initial \n
+    }
   }
 }

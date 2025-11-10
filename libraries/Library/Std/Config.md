@@ -287,6 +287,21 @@ config.define("eventHandlers", {
   additionalProperties = schema.array(schema.func()),
 })
 
+-- Don't use directly, use mq.listen instead
+config.define("mqSubscriptions", {
+  type = "object",
+  additionalProperties = {
+    type = "array",
+    items = {
+      type = "object",
+      properties = {
+        batchSize = schema.number(),
+        run = schema.func(),
+      }
+    }
+  },
+})
+
 -- Don't use directly, WIP
 config.define("tagDefinitions", {
   type = "object",

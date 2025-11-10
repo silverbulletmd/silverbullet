@@ -1067,11 +1067,12 @@ export function luaValueToJS(value: any, sf: LuaStackFrame): any {
         args.map((v) => luaValueToJS(v, sf)),
       );
       if (isPromise(jsArgs)) {
-        return jsArgs.then((jsArgs) =>
-          (value as ILuaFunction).call(sf, ...jsArgs)
+        return luaValueToJS(
+          jsArgs.then((jsArgs) => (value as ILuaFunction).call(sf, ...jsArgs)),
+          sf,
         );
       } else {
-        return (value as ILuaFunction).call(sf, ...jsArgs);
+        return luaValueToJS((value as ILuaFunction).call(sf, ...jsArgs), sf);
       }
     };
   } else if (value instanceof Number) {

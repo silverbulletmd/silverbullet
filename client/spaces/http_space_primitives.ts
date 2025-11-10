@@ -7,6 +7,7 @@ import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
 import {
   notFoundError,
   offlineError,
+  offlineStatusCodes,
   pingTimeout,
   wrongSpacePathError,
 } from "@silverbulletmd/silverbullet/constants";
@@ -46,7 +47,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       options.signal = AbortSignal.timeout(fetchTimeout);
       options.redirect = "manual";
       const result = await fetch(url, options);
-      if (result.status === 503) {
+      if (result.status in offlineStatusCodes) {
         throw offlineError;
       }
       const redirectHeader = result.headers.get("location");

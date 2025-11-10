@@ -51,7 +51,8 @@ function embed.youtube(specOrUrl)
   return widget.html(dom.iframe {
     src="https://www.youtube.com/embed/" .. videoId,
     style="width: " .. width .. "; height: " .. height,
-    class = "sb-video-embed"
+    class = "sb-video-embed",
+    referrerpolicy = "strict-origin-when-cross-origin"
   })
 end
 

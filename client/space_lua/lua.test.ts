@@ -62,6 +62,10 @@ Deno.test("[Lua] Encoding functions tests", async () => {
   await runLuaTest("./stdlib/encoding_test.lua");
 });
 
+Deno.test("[Lua] Crypto functions tests", async () => {
+  await runLuaTest("./stdlib/crypto_test.lua");
+});
+
 Deno.test("[Lua] Lume functions tests", async () => {
   await runLuaTest("./lume_test.lua");
 });

@@ -54,6 +54,15 @@ export class EventHook implements EventHookI {
     for (const eventName of this.localListeners.keys()) {
       eventNames.add(eventName);
     }
+    if (this.config) {
+      const configListeners: Record<string, Function[]> = this.config.get(
+        "eventListeners",
+        {},
+      );
+      for (const name of Object.keys(configListeners)) {
+        eventNames.add(name);
+      }
+    }
 
     return [...eventNames];
   }
@@ -96,17 +105,18 @@ export class EventHook implements EventHookI {
     }
 
     // Local listeners
-    const localListeners = this.localListeners.get(eventName);
-    if (localListeners) {
-      for (const localListener of localListeners) {
-        // Queue the promise
-        promises.push((async () => {
-          return await Promise.resolve(localListener(...args));
-        })());
+    for (const [name, localListeners] of this.localListeners) {
+      if (eventNameToRegex(name).test(eventName)) {
+        for (const localListener of localListeners) {
+          // Queue the promise
+          promises.push((async () => {
+            return await Promise.resolve(localListener(...args));
+          })());
+        }
       }
     }
 
-    // Space script listeners
+    // Space Lua listeners
     if (this.config) {
       const configListeners: Record<string, Function[]> = this.config.get(
         "eventListeners",

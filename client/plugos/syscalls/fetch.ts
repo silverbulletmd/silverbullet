@@ -22,6 +22,7 @@ export function sandboxFetchSyscalls(
       url: string,
       options: ProxyFetchRequest = {},
     ): Promise<ProxyFetchResponse> => {
+      console.warn("Deprecated: use net.proxyFetch() instead");
       // JSONify any non-serializable body
       if (
         options?.body && typeof options.body !== "string" &&

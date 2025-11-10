@@ -23,18 +23,14 @@ export function eventSyscalls(
       def: EventSubscription,
     ) => {
       // console.log("Registering Lua event listener: ", def.name);
-      // deno-lint-ignore ban-types
-      const listeners = client.config.get<Function[]>([
+      client.config.insert([
         "eventListeners",
         def.name,
-      ], []);
-      listeners.push((...args: any[]) => {
+      ], async (...args: any[]) => {
         // Convert return value to JS
-        return def.run(...args).then((val) =>
-          luaValueToJS(val, LuaStackFrame.lostFrame)
-        );
+        const val = await def.run(...args);
+        return luaValueToJS(val, LuaStackFrame.lostFrame);
       });
-      client.config.set(["eventListeners", def.name], listeners);
     },
   };
 }

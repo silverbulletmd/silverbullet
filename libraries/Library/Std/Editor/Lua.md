@@ -166,7 +166,6 @@ event.listen {
       end
     end
     local callText = text:sub(startPos+1, endPos-1)
-    print("Potential call text", callText, #callText)
     local propParts = callText:split(".")
     local currentValue = _CTX._GLOBAL
     for i = 1, #propParts do
