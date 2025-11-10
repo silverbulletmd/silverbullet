@@ -34,7 +34,6 @@ export class MainUI {
   private _touch?: { dispose: () => void; refresh: () => void };
 
   constructor(private client: Client) {
-    console.log("[SB] MainUI ctor");
     // Make keyboard shortcuts work even when the editor is in read only mode or not focused
     globalThis.addEventListener("keydown", (ev) => {
       if (!client.editorView.hasFocus) {
@@ -57,8 +56,8 @@ export class MainUI {
       }
     });
 
-    // Install touch router (reads ui.touch.bindings + command.touch)
-    const __touch = setupTouchRouter(client);
+    // Install touch router (reads ui.touch.bindings)
+    this._touch = setupTouchRouter(client);
 
     globalThis.addEventListener("mouseup", (_) => {
       setTimeout(() => {

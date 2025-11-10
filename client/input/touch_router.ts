@@ -4,35 +4,41 @@
 import type { TouchMapEntry } from "./touch_registry.ts";
 import { buildTouchMap } from "./touch_registry.ts";
 
-type CommandLike = { name: string; touch?: { fingers: number; preventDefault?: boolean }[] };
-
 type ClientLike = {
   config: { get<T>(path: string, def: T): T };
   startPageNavigate: (mode: "page" | "meta" | "document" | "all") => void;
   startCommandPalette: () => void;
-  ui?: { viewState?: { commands?: CommandLike[] } };
+  runCommandByName: (name: string, args?: any[]) => Promise<void>;
+  clientSystem?: { commandHook?: { on?: (h: { commandsUpdated: () => void }) => void } };
+  ui?: { viewState?: { commands?: Map<string, unknown> } };
 };
 
 export function setupTouchRouter(client: ClientLike) {
+  if ((navigator as any).maxTouchPoints <= 0) {
+    return { dispose: () => {}, refresh: () => {} }; // noop
+  }
+
   function readConfigBindings(): { fingers: number; command: string; preventDefault?: boolean }[] {
     return client.config.get("ui.touch.bindings", [] as any[]);
   }
 
-  function readCommands(): CommandLike[] {
-    try {
-      return client.ui?.viewState?.commands ?? [];
-    } catch {
-      return [];
-    }
-  }
-
   function compile(): Map<number, TouchMapEntry> {
     const cfg = readConfigBindings();
-    const cmds = readCommands();
     return buildTouchMap(cmds, cfg);
   }
 
   let map: Map<number, TouchMapEntry>;
+
+  try {
+    client.clientSystem?.commandHook?.on?.({
+      commandsUpdated: () => {
+        try { map = compile(); } catch {}
+      },
+    });
+  } catch {}
+  // Optional: one-shot delayed refresh for slow boots
+  setTimeout(() => { try { map = compile(); } catch {} }, 1500);
+
   try {
     map = compile();
   } catch {
