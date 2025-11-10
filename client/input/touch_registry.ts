@@ -51,15 +51,5 @@ export function buildTouchMap(
     merge(configBindings, map);
   }
 
-  // 3) Per-command attributes
-  for (const cmd of commands || []) {
-    if (!cmd?.touch || !Array.isArray(cmd.touch)) continue;
-    for (const t of cmd.touch) {
-      if (!t || typeof t.fingers !== "number") continue;
-      const pd = (t.preventDefault ?? true);
-      map.set(t.fingers, { command: cmd.name, preventDefault: pd });
-    }
-  }
-
   return map;
 }

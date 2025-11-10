@@ -15,12 +15,10 @@ config.set("ui.touch.bindings", {
 
 - `preventDefault` defaults to **true**. Set **false** to allow browser/system zoom.
 - Later entries override earlier ones when they use the same `fingers`.
-- Command-local overrides can also be specified via `command.update({ name=..., touch = [{fingers=...}] })`.
 
 ## Developer notes
 
 - The UI installs a single `touchstart` listener (non-passive) and resolves the gesture using:
   1. Built-in defaults
   2. `ui.touch.bindings` from config
-  3. Per-command `touch` attributes
 - Handler lives in `client/input/touch_router.ts` and registry logic in `client/input/touch_registry.ts`.
