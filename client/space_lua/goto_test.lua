@@ -24,7 +24,7 @@ end
 do
   local x = 0
   goto after_init
-  x = -1         -- skipped
+  x = -1 -- skipped
   ::after_init:: x = x + 2
   assertEqual(x, 2)
 end
@@ -308,18 +308,27 @@ do
   assertEqual(r[2], "second")
 end
 
--- Ensures label visibility restricted to branch
+-- Label visibility restricted to branch (goto in else to label in then)
 do
-  local function f(flag)
+  local function f_bad(flag)
     if flag then
       ::branch_label:: return "yes"
     else
-      -- goto branch_label is invalid here
       goto branch_label
     end
   end
-  expect_error(function() f(false) end, "no visible label 'branch_label'")
-  assertEqual(f(true), "yes")
+  expect_error(function() f_bad(true) end, "no visible label 'branch_label'")
+  expect_error(function() f_bad(false) end, "no visible label 'branch_label'")
+end
+
+-- Label visible to both branches (label placed after the if)
+do
+  local function f_good(flag)
+    if not flag then goto after end
+    ::after:: return "yes"
+  end
+  assertEqual(f_good(true), "yes")
+  assertEqual(f_good(false), "yes")
 end
 
 -- Jump over multiple locals but not into them (allowed backward)

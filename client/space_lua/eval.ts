@@ -1,5 +1,6 @@
 import type {
   ASTCtx,
+  LuaBlock,
   LuaExpression,
   LuaLValue,
   LuaStatement,
@@ -95,6 +96,20 @@ function consumeGotoInBlock(
     return res; // upwards
   }
   return res;
+}
+
+function blockMetaOrThrow(
+  block: LuaBlock,
+  sf: LuaStackFrame,
+): ReturnType<typeof getBlockGotoMeta> {
+  try {
+    return getBlockGotoMeta(block);
+  } catch (e: any) {
+    if (e && typeof e === "object" && "astCtx" in e) {
+      throw new LuaRuntimeError(e.message, sf.withCtx((e as any).astCtx));
+    }
+    throw e;
+  }
 }
 
 // Queryable guard to avoid `(collection as any).query` usage
@@ -1200,25 +1215,23 @@ export function evalStatement(
       const b = asBlock(s);
 
       // Parses flags
-      const hasGotoFlag = (b as any).hasGoto as boolean | undefined;
-      const hasLabelFlag = (b as any).hasLabel as boolean | undefined;
+      type BlockFlags = LuaBlock & {
+        hasGoto?: boolean;
+        hasLabel?: boolean;
+        dupLabelError?: { name: string; ctx: ASTCtx };
+      };
+      const bf = b as BlockFlags;
+      const hasGotoFlag = bf.hasGoto === true;
+      const hasLabelFlag = bf.hasLabel === true;
 
+      // Fetch metadata for blocks with gotos OR labels (needed to catch nested duplicate labels).
       let meta: ReturnType<typeof getBlockGotoMeta> | undefined = undefined;
-      if (hasGotoFlag === true || hasLabelFlag === true) {
-        try {
-          meta = getBlockGotoMeta(b);
-        } catch (e: any) {
-          if (e && typeof e === "object" && "astCtx" in e) {
-            throw new LuaRuntimeError(e.message, sf.withCtx((e as any).astCtx));
-          }
-          throw e;
-        }
+      if (hasGotoFlag || hasLabelFlag) {
+        meta = blockMetaOrThrow(b, sf);
       }
 
       if (!meta || !meta.funcHasGotos) {
-        const dup = (b as any).dupLabelError as
-          | { name: string; ctx: ASTCtx }
-          | undefined;
+        const dup = bf.dupLabelError;
         if (dup) {
           // Duplicated labels detected by parser.
           throw new LuaRuntimeError(

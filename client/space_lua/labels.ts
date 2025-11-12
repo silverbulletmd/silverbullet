@@ -227,10 +227,6 @@ function processBlock(
   seen.add(block);
   parentByBlock.set(block, parent);
   roleByBlock.set(block, role);
-  functionMetaByAnyBlock.set(block, {
-    blockMeta,
-    funcHasGotos: false,
-  });
 
   const labelActiveMap = new Map<string, Set<LocalID>>();
   const labelLocMap = new Map<string, { index: number; ctx: ASTCtx }>();
