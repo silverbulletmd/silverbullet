@@ -55,17 +55,16 @@ function share.sharePage(name)
 
   print("Current share frontmatter", m)
   
-  local remoteText = net.readURI(m.uri, {encoding="text/markdown"})
-  if not remoteText then
-    error("Could not read " .. m.uri)
-  end
-
   local mode = m.mode or "push"
   local oldHash = m.hash
   local newLocalHash = share.contentHash(text)
   local newHash = newLocalHash
 
   if mode == "sync" then
+    local remoteText = net.readURI(m.uri, {encoding="text/markdown"})
+    if not remoteText then
+      error("Could not read " .. m.uri)
+    end
     -- Two-way sync mode
     local newRemoteHash = share.contentHash(remoteText)
     -- Sync cases
@@ -92,6 +91,10 @@ function share.sharePage(name)
       net.writeURI(m.uri, share.cleanFrontmatter(text))
     end 
   elseif mode == "pull" then
+    local remoteText = net.readURI(m.uri, {encoding="text/markdown"})
+    if not remoteText then
+      error("Could not read " .. m.uri)
+    end
     local newRemoteHash = share.contentHash(remoteText)
     if oldHash == newRemoteHash then
       print("No remote changes: nothing to do")

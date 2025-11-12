@@ -3,7 +3,7 @@
 
 SilverBullet is designed to be [[Extensions|extensible]]. In fact, a lot of functionality in SilverBullet is implemented through [[Space Lua]] embedded in [[Meta Pages]], other functionality is implemented using [[Plugs]]. 
 
-A big part of the fun of SilverBullet is hacking around in it, building your own extensions. Libraries are the way to [[Share]] those extensions. Both for you to publish your own libraries, but also to pull in other people’s creations.
+A big part of the fun of SilverBullet is building your own extensions, bit or small. Libraries are the way to [[Share]] those extensions. Both for you to [[Libraries/Development|publish your own]] libraries, and to pull in other people’s creations.
 
 There are a few things at play here:
 
@@ -13,9 +13,9 @@ There are a few things at play here:
 
 [[Share]] is the general-purpose mechanism built into SilverBullet to both _push_, _pull_ and _sync_ content in your space with the outside world. In the context of Libraries this mechanism is used (partially under the hood, but you’ll recognize traces of it) both for you to _publish_ your libraries somewhere, as well as to _install_ and _update_ other people’s creations.
 
-To make discovery and installation of libraries easier, SilverBullet includes a basic [[Library Manager]].
+To make discovery and installation of libraries easier, SilverBullet includes a [[Library Manager]].
 
-Libraries are kept under the `Library/` prefix in your space.
+By convention, libraries are kept under the `Library/` prefix (folder) in your space.
 
 # What’s in a library
 Here are some things that a library may provide:

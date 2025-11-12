@@ -8,6 +8,6 @@ Repositories are a collection of _pointers_ to [[Libraries]] to install. Their p
 
 By default, SilverBullet ships with one repository ([[^Repositories/Std]]) but more can be installed via the [[Library Manager]].
 
-Repositories are kept under the `Repository/` prefix in your space.
+Repositories are kept under the `Repository/` prefix in your space by convention.
 
 Repositories are implemented on top of a few SilverBullet mechanisms, specifically they are simply [[Meta Pages]] tagged with `#meta/repository` that contain [[Objects#data]] objects tagged with `#meta/library/remote` with a `name` and `uri` attribute. Libraries are kept up to date using the [[Share]] mechanism.

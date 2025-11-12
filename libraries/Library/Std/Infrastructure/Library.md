@@ -11,7 +11,6 @@ library = {
   repositoryTag = "meta/repository"
 }
 
--- Harcoded prefixes
 local libraryPrefix = "Library/"
 local repositoryPrefix = "Repositories/"
 
@@ -20,16 +19,21 @@ local repositoryPrefix = "Repositories/"
 local librarySchema = {
   type = "object",
   properties = {
+    name = schema.string(),
     files = schema.array(schema.string())
-  }
+  },
+  required = {"name"}
 }
 
 local remoteLibrarySchema = {
   type = "object",
   properties = {
     name = schema.string(),
+    description = schema.string(),
+    website = schema.string(),
     uri = schema.string(),
-  }
+  },
+  required = {"name", "uri"}
 }
 
 -- Repo management commands
@@ -41,11 +45,11 @@ command.define {
       return
     end
     local text = net.readURI(repoUri, {encoding="text/markdown"})
-    local repoName = editor.prompt("Name:")
-    if not repoName then
+    local suggestedName = library.suggestRepoNameFromUri(repoUri)
+    local repoPage = editor.prompt("Install into:", repositoryPrefix .. suggestedName)
+    if not repoPage then
       return
     end
-    local repoPage = repositoryPrefix .. repoName
     if space.pageExists(repoPage) then
       editor.flashNotification(repoPage .. " already exists", "error")
       return
@@ -81,16 +85,7 @@ command.define {
     if not uri then
       return
     end
-    local name = editor.prompt("Name (library will be saved under Library/<<Name>>):")
-    if not name then
-      return
-    end
-    local libPage = libraryPrefix .. name
-    if space.pageExists(libPage) then
-      editor.flashNotification(libPage .. " already exists", "error")
-      return
-    end
-    library.install(libPage, uri)
+    library.install(uri)
     editor.flashNotification "Library installed"
     reloadEverything()
     editor.navigate("Library/Std/Pages/Library Manager")
@@ -100,8 +95,10 @@ command.define {
 command.define {
   name = "Library: Update All",
   run = function()
-    local installedLibraries = query[[from index.tag(library.libraryTag)]]
-    for lib in installedLibraries do
+    for lib in query[[
+      from index.tag(library.libraryTag)
+      where _.share and _.share.mode == "pull"
+    ]] do
       if library.update(lib.name, false) then
         editor.flashNotification("Updated " .. lib.name)
       end
@@ -132,7 +129,7 @@ function library.getInstalled(uri)
 end
 
 -- Install a library
-function library.install(pageName, uri, currentHash)
+function library.install(uri, currentHash)
   -- Fetch from remote URL
   local text = net.readURI(uri, {
     encoding = "text/markdown"
@@ -144,11 +141,18 @@ function library.install(pageName, uri, currentHash)
 
   local remoteLibFM = index.extractFrontmatter(text).frontmatter
   local remoteHash = share.contentHash(text)
-
+  
   local err = jsonschema.validateObject(librarySchema, remoteLibFM)
   if err then
     editor.flashNotification("Library frontmatter validation error: " .. err, "error")
     return
+  end
+  
+  local pageName = remoteLibFM.name
+
+  -- If this is a fresh install, don't override existing pages
+  if not currentHash and space.pageExists(pageName) then
+    error("Page already exists: " .. pageName)
   end
 
   -- Check if update is required based on hash
@@ -157,7 +161,8 @@ function library.install(pageName, uri, currentHash)
   end
 
   -- Ok, let's do this
-  local baseUrl = urlDir(uri)
+  local sourceBase = urlDir(uri)
+  local targetBase = urlDir(pageName)
   text = share.setFrontmatter({
     uri = uri,
     hash = remoteHash,
@@ -171,10 +176,10 @@ function library.install(pageName, uri, currentHash)
   if remoteLibFM.files then
     for file in remoteLibFM.files do
       print("Downloading file", file)
-      local targetPath = pageName .. "/" .. file
-      local data = net.readURI(baseUrl .. file, {encoding="application/octet-stream"})
+      local targetPath = targetBase .. file
+      local data = net.readURI(sourceBase .. file, {encoding="application/octet-stream"})
       if not data then
-        error("Could not fetch file: "..baseUrl..file)
+        error("Could not fetch file: " .. sourceBase .. file)
       end
       space.writeFile(targetPath, data)
     end
@@ -187,7 +192,7 @@ function library.update(pageName, force)
   local text = space.readPage(pageName)
   local fm = index.extractFrontmatter(text).frontmatter
   if fm.share then
-     return library.install(pageName, fm.share.uri, fm.share.hash)
+     return library.install(fm.share.uri, fm.share.hash)
   else
     print("No 'share' key found in frontmatter for " .. pageName)
   end
@@ -216,32 +221,59 @@ end
 
 function library.installedLibrariesWidget()
   local rows = {}
-  for lib in query[[from index.tag "meta/library"]] do
+  for lib in query[[
+    from index.tag "meta/library"
+  ]] do
     table.insert(rows, dom.tr {
       dom.td { "[[" .. lib.name .. "|" .. lib.name .. "]]" },
       dom.td {
-        not lib.share and "" or dom.span{
-          widgets.button("Update", function()
-            local updated = library.update(lib.name, true)
-            if updated then
-              editor.flashNotification "Updated."
-              reloadEverything()
-            else
-              editor.flashNotification "No update required."
-            end
-          end),
-          widgets.button("Remove", function()
-            if editor.confirm("Are you sure?") then
-              library.remove(lib.name)
-              editor.flashNotification "Done!"
-              reloadEverything()
-            end
-          end)  
-        }
+        (
+          not lib.share and ""
+        ) or (
+          lib.share.mode == "pull" and
+          dom.span {
+            widgets.button("Update", function()
+              local updated = library.update(lib.name, true)
+              if updated then
+                editor.flashNotification "Updated."
+                reloadEverything()
+              else
+                editor.flashNotification "No update available."
+              end
+            end, { class = "update" }),
+            widgets.button("Remove", function()
+              if editor.confirm("Are you sure?") then
+                library.remove(lib.name)
+                editor.flashNotification "Done!"
+                reloadEverything()
+              end
+            end, { class = "remove"})  
+          }
+        ) or (
+          dom.span {
+            widgets.button("Publish", function()
+              local updated = library.update(lib.name, true)
+              if updated then
+                editor.flashNotification "Published."
+                reloadEverything()
+              else
+                editor.flashNotification "No changes to publish."
+              end
+            end, { class = "update" })
+          }
+        )
       }
     })
   end
+  if #rows == 0 then
+    rows = {
+      dom.tr {
+        dom.td { colspan="2", "_Nothing yet_" }
+      }
+    }
+  end
   return widget.htmlBlock(dom.table {
+    class = "manage-library",
     dom.thead {
       dom.tr {
         dom.td {"Library"},
@@ -253,28 +285,35 @@ function library.installedLibrariesWidget()
 end
 
 function library.installableLibrariesWidget()
+  local installableLibraries = query[[from index.tag "meta/library/remote"]]
   local rows = {}
-  for lib in query[[from index.tag "meta/library/remote"]] do
-    local installed = library.getInstalled(lib.uri)
-    if not installed then
-      table.insert(rows, dom.tr {
-        dom.td { lib.name },
-        dom.td { "[[" .. lib.page .. "|" .. lib.page .. "]]" },
-        dom.td {
-          widgets.button("Install", function()
-            library.install(library.libPath(lib.name), lib.uri)
-            editor.flashNotification "Done!"
-            reloadEverything()
-          end)
-        }
-      })
-    end
+  for lib in query[[
+    from installableLibraries where not library.getInstalled(_.uri)
+  ]] do
+    table.insert(rows, dom.tr {
+      dom.td {
+        lib.website and dom.a {
+          href = lib.website,
+          "**" .. lib.name .. "**",
+        } or "**" .. lib.name .. "**",
+        " _([[" .. lib.page .. "]])_",
+        lib.description and dom.p { lib.description } or ""
+      },
+      dom.td {
+        widgets.button("Install", function()
+          library.install(lib.uri)
+          editor.flashNotification "Done!"
+          reloadEverything()
+        end, { class = "install" })
+      }
+    })
   end
+  
   return widget.htmlBlock(dom.table {
+    class = "manage-library",
     dom.thead {
       dom.tr {
         dom.td {"Library"},
-        dom.td {"Repository"},
         dom.td {"Action"}
       }
     },
@@ -303,12 +342,13 @@ function library.installedRepositoriesWidget()
               editor.flashNotification "Done!"
               reloadEverything()
             end
-          end)
+          end, { class = "remove" })
         } or ""
       }
     })
   end
   return widget.htmlBlock(dom.table {
+    class = "manage-library",
     dom.thead {
       dom.tr {
         dom.td {"Repository"},
@@ -338,10 +378,40 @@ function library.repoName(path)
   return path:sub(#repositoryPrefix + 1)
 end
 
+function library.suggestRepoNameFromUri(uri)
+  -- Take the bit after the last :
+  local uriParts = uri:split(":")
+  local suggestedName = uriParts[#uriParts]
+  -- Strip .md
+  local suggestedName = suggestedName:gsub("%.md$", "")
+  -- Strip any some generic names
+  for strippableSuffix in {"/REPO", "/silverbullet-libraries"} do
+    suggestedName = suggestedName:gsub(strippableSuffix .. "$", "")
+  end
+  -- Strip branch names (@something)
+  suggestedName = suggestedName:gsub("@.+$", "")
+  -- Take the the last bit
+  local parts = suggestedName:split("/")
+  return parts[#parts]
+end
+
 function reloadEverything()
   mq.awaitEmptyQueue("indexQueue")
   editor.reloadConfigAndCommands()
   codeWidget.refreshAll()
 end
+```
 
+# Styles
+```space-style
+table.manage-library td {
+  vertical-align: top;
+}
+table.manage-library thead td:last-child {
+  text-align: right;
+}
+
+table.manage-library tbody td:last-child {
+  text-align: right;
+}
 ```

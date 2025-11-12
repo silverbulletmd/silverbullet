@@ -41,11 +41,20 @@ config.set("std.widgets.linkedTasks.enabled", false)
 ## Buttons
 ```space-lua
 -- priority: 10
-function widgets.button(text, callback)
-  return widget.html(dom.button {
-    onclick=callback,
+function widgets.button(text, callback, attrs)
+  local buttonEl = {
+    onclick = callback,
     text
-  })
+  }
+
+  -- attrs can be used for additional customization
+  if attrs then
+    for k, v in pairs(attrs) do
+      buttonEl[k] = v
+    end
+  end
+
+  return widget.html(dom.button(buttonEl))
 end
 
 function widgets.commandButton(text, commandName, args)
