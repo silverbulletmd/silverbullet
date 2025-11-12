@@ -297,14 +297,6 @@ export class ClientSystem {
       return;
     }
 
-    console.info(
-      "[index]",
-      "Current space index version",
-      currentIndexVersion,
-      "index ongoing?",
-      await this.isIndexOngoing(),
-    );
-
     if (
       currentIndexVersion !== desiredIndexVersion &&
       !await this.isIndexOngoing()
