@@ -15,6 +15,7 @@ import type {
   LuaFunctionCallExpression,
   LuaFunctionCallStatement,
   LuaFunctionName,
+  LuaIfStatement,
   LuaLValue,
   LuaOrderBy,
   LuaPrefixExpression,
@@ -72,7 +73,78 @@ function parseBlock(t: ParseTree, ctx: ASTCtx): LuaBlock {
     throw new Error(`Expected Block, got ${t.type}`);
   }
   const statements = t.children!.map((s) => parseStatement(s, ctx));
-  return { type: "Block", statements, ctx: context(t, ctx) };
+  const block: LuaBlock = { type: "Block", statements, ctx: context(t, ctx) };
+
+  // Flag and detect duplicate labels within block
+  let hasLabel = false;
+  let hasGoto = false;
+  let dup: { name: string; ctx: ASTCtx } | undefined;
+  const seen = new Set<string>();
+
+  for (const s of statements) {
+    switch (s.type) {
+      case "Label": {
+        hasLabel = true;
+        // Duplicate labels in the same block are illegal
+        const name = (s as any).name as string;
+        if (!dup) {
+          if (seen.has(name)) {
+            dup = { name, ctx: (s as any).ctx as ASTCtx };
+          } else {
+            seen.add(name);
+          }
+        }
+        break;
+      }
+      case "Goto": {
+        hasGoto = true;
+        break;
+      }
+      case "Block": {
+        const child = s as LuaBlock;
+        hasLabel = hasLabel || !!child.hasLabel;
+        hasGoto = hasGoto || !!child.hasGoto;
+        break;
+      }
+      case "If": {
+        const iff = s as LuaIfStatement;
+        for (const c of iff.conditions) {
+          hasLabel = hasLabel || !!c.block.hasLabel;
+          hasGoto = hasGoto || !!c.block.hasGoto;
+        }
+        if (iff.elseBlock) {
+          hasLabel = hasLabel || !!iff.elseBlock.hasLabel;
+          hasGoto = hasGoto || !!iff.elseBlock.hasGoto;
+        }
+        break;
+      }
+      case "While":
+      case "Repeat":
+      case "For":
+      case "ForIn": {
+        const child = (s as any).block as LuaBlock;
+        hasLabel = hasLabel || !!child.hasLabel;
+        hasGoto = hasGoto || !!child.hasGoto;
+        break;
+      }
+      case "Function":
+      case "LocalFunction":
+      default: {
+        break;
+      }
+    }
+  }
+
+  if (hasLabel) {
+    block.hasLabel = true;
+  }
+  if (hasGoto) {
+    block.hasGoto = true;
+  }
+  if (dup) {
+    block.dupLabelError = dup;
+  }
+  return block;
 }
 
 function parseStatement(t: ParseTree, ctx: ASTCtx): LuaStatement {
