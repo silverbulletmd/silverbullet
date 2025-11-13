@@ -424,3 +424,21 @@ do
   end
   expect_error(f, "jumps into the scope")
 end
+
+-- goto to correct label when nested
+do goto l3; ::l3:: end -- does not loop jumping to previous label 'l3'
+
+do
+  local x
+  ::L1::
+  local y
+  assert(y == nil)
+  y = true
+  if x == nil then
+    x = 1
+    goto L1
+  else
+    x = x + 1
+  end
+  assert(x == 2 and y == true)
+end
