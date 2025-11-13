@@ -425,13 +425,12 @@ end
 
 -- goto to correct label when nested
 ::l1::
-local outer = true -- outer label
 do
   local v = 0
-  goto l1 -- jump to inner label
-  v = -1 -- would execute if jump went outward
-  ::l1::
-  v = v + 1 -- inner label shadowing the outer
+  goto l1
+  v = -1
+  ::l1:: -- inner label shadowing the outer label
+  v = v + 1
   assertEqual(v, 1)
 end
 
