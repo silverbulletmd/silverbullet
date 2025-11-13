@@ -366,3 +366,61 @@ do
   end
   expect_error(f, "jumps into the scope")
 end
+
+-- Cross-function goto (outer to inner label, invalid)
+do
+  local function inner()
+    ::in_label:: return 1
+  end
+  local function outer()
+    goto in_label
+    return 0
+  end
+  expect_error(outer, "no visible label 'in_label'")
+end
+
+-- Cross-function goto (inner to outer label, invalid)
+do
+  local function outer()
+    ::outer_label:: ;
+    local function inner()
+      goto outer_label
+    end
+    return inner()
+  end
+  expect_error(outer, "no visible label 'outer_label'")
+end
+
+-- Cross-function goto (outer after defining inner label, invalid)
+do
+  local function outer()
+    local function inner()
+      ::nested_label:: return 2
+    end
+    goto nested_label
+  end
+  expect_error(outer, "no visible label 'nested_label'")
+end
+
+-- Forward goto to label not safe end (fails)
+do
+  local function f()
+    goto after_locals
+    local a = 1
+    ::after_locals:: local b = 2
+    return b
+  end
+  expect_error(f, "jumps into the scope")
+end
+
+-- Repeat safe-end style still illegal
+do
+  local function f()
+    repeat
+      goto done
+      local x = 1
+      ::done:: ;
+    until x == 0
+  end
+  expect_error(f, "jumps into the scope")
+end
