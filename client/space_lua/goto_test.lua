@@ -57,8 +57,6 @@ end
 do
   local function f() ::dup:: ::dup:: end
   expect_error(f, "label 'dup'")
-  local function g() ::dup:: do ::dup:: end end
-  expect_error(g, "label 'dup'")
 end
 
 -- Jump into local scope (illegal forward into variable region)
@@ -426,17 +424,27 @@ do
 end
 
 -- goto to correct label when nested
-do goto l3; ::l3:: end -- does not loop jumping to previous label 'l3'
+::l1::
+local outer = true -- outer label
+do
+  local v = 0
+  goto l1 -- jump to inner label
+  v = -1 -- would execute if jump went outward
+  ::l1::
+  v = v + 1 -- inner label shadowing the outer
+  assertEqual(v, 1)
+end
 
+-- regression test for Lua 5.2 bug
 do
   local x
-  ::L1::
+  ::l1::
   local y
   assert(y == nil)
   y = true
   if x == nil then
     x = 1
-    goto L1
+    goto l1
   else
     x = x + 1
   end

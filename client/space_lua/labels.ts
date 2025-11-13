@@ -242,7 +242,7 @@ function processBlock(
     switch (s.type) {
       case "Label": {
         const lab = s as LuaLabelStatement;
-        if (vis.has(lab.name)) {
+        if (labels.has(lab.name)) {
           throw new LabelResolveError(
             `label '${lab.name}' already defined`,
             lab.ctx,
