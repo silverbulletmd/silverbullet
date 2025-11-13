@@ -1,20 +1,6 @@
 ---
 tags: meta/library
-version: builtin
-files:
-# Note: this is for demonstration purposes only. Library/Std ships with SilverBullet and cannot be updated via regular library management.
-# Plugs:
-- Plugs/core.plug.js
-- Plugs/editor.plug.js
-- Plugs/emoji.plug.js
-- Plugs/image-viewer.plug.js
-- Plugs/index.plug.js
-- Plugs/search.plug.js
-- Plugs/sync.plug.js
-- Plugs/tasks.plug.js
-# Other pages omitted
 ---
-
 Welcome to SilverBullet’s standard library. This library (all pages under `Library/Std`) ship with SilverBullet itself. Therefore, you will not find these pages in your space folder, even though they _appear_ to be located there. These pages are all read-only, so you cannot (directly) modify them.
 
 The goal of the standard library is provide a base-level of useful commands, slash commands, page templates and scripts.

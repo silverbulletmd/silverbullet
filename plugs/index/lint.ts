@@ -9,13 +9,16 @@ import type {
   LintEvent,
 } from "@silverbulletmd/silverbullet/type/client";
 
-export async function lintYAML({ tree }: LintEvent): Promise<LintDiagnostic[]> {
+export async function lintYAML(
+  { tree, name }: LintEvent,
+): Promise<LintDiagnostic[]> {
   const diagnostics: LintDiagnostic[] = [];
   await traverseTreeAsync(tree, async (node) => {
     if (node.type === "FrontMatterCode") {
       const lintResult = await lintYaml(
         renderToText(node),
         node.from!,
+        name,
       );
       if (lintResult) {
         diagnostics.push(lintResult);
@@ -57,9 +60,18 @@ const errorRegex = /\((\d+):(\d+)\)/;
 async function lintYaml(
   yamlText: string,
   startPos: number,
+  pageName?: string,
 ): Promise<LintDiagnostic | undefined> {
   try {
-    await YAML.parse(yamlText);
+    const parsed = await YAML.parse(yamlText);
+    if (pageName && parsed.name && parsed.name != pageName) {
+      return {
+        from: startPos,
+        to: startPos + yamlText.length,
+        severity: "error",
+        message: "'name' attribute has to match page name",
+      };
+    }
   } catch (e: any) {
     const errorMatch = errorRegex.exec(e.message);
     if (errorMatch) {

@@ -1,6 +1,10 @@
 An attempt at documenting the changes/new features introduced in each release.
 
 ## Edge
+Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
+
+What's new:
+
 * [[Libraries]]: are now a more “real” thing, and can be distributed via the [[Library Manager]] and grouped into [[Repositories]]. For instructions on how to build your own libraries, see [[Libraries/Development]]. In time this mechanism will succeed the `plugs` configuration and `Plugs: Update` mechanism. Plug authors can already start to update their plugs to get ready, usually all that needs to be done is to add frontmatter to their README file, [example](https://github.com/silverbulletmd/silverbullet-mermaid/blob/main/README.md).
 * [[Share]]: a new mechanism to push content to external places and pull external content in (also used as the foundation of [[Libraries]]). This partially will replace many [[Export]]. Export will be more for one-off use cases.
 * [[Services]]: a new mechanism used behind the scenes to power [[Share]], but also [[Export]] and likely other features in the future. Built on top of [[Events]].
