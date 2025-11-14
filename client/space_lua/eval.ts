@@ -416,11 +416,14 @@ export function evalExpression(
                 sf.withCtx(q.ctx),
               );
             }
-            collection = luaValueToJS(collection, sf);
+            if (collection instanceof LuaTable && collection.empty()) {
+              // Make sure we're converting an empty result to an array to "query"
+              collection = [];
+            } else {
+              collection = luaValueToJS(collection, sf);
+            }
             // Check if collection is a queryable collection
             if (!isQueryable(collection)) {
-              // If not, try to convert it to JS and see if it's an array
-              collection = await luaValueToJS(collection, sf);
               if (!Array.isArray(collection)) {
                 throw new LuaRuntimeError(
                   "Collection does not support query",
