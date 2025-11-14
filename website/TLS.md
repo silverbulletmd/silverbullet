@@ -1,6 +1,6 @@
-SilverBullet relies on a few advanced browser features to operate (specifically service workers, crypto APIs and clipboard APIs). These features are _only_ enabled by browsers when websites are accessed via `http://localhost` or via [TLS](https://en.wikipedia.org/wiki/Transport_Layer_Security), that is: a `https://` URL.
+SilverBullet relies on a few advanced browser features to operate (specifically service workers, crypto APIs and clipboard APIs). These features are _only_ enabled by browsers when websites are accessed via `http://localhost` or via [TLS](https://en.wikipedia.org/wiki/Transport_Layer_Security), that is — a `https://` URL.
 
-This is not a limitation imposed by SilverBullet, it is a restriction encoded in web standards.
+This is not a limitation imposed by SilverBullet, it is a restriction encoded in web standards. You may not like this restriction, but it is what it is.
 
 Therefore, to use SilverBullet you need to either access it via `localhost` or put a TLS certificate on it.
 
@@ -44,23 +44,23 @@ For this, you need to get your hands on a TLS certificate.
 A few options:
 
 ## Tailscale SSL certificate
-If you’re a [Tailscale](https://tailscale.com/) user, this a simple solution. If not, you may consider becoming one — it’s a good service, and _free_ for this use case.
+If you’re a [Tailscale](https://tailscale.com/) user, this a simple solution. If not, you may consider becoming one — it’s a solid service, very friendly to [[Self Hosted|self hosters]], and _free_ for this use case.
 
 Part of the [guide to setup SilverBullet on Linux](https://community.silverbullet.md/t/install-silverbullet-on-a-64-bit-debian-ubuntu-raspianos-internet-accessible-via-tailscale/48) are instructions on how to install  (a free service) and use it to expose a local server (like SilverBullet) locally on your VPN, or the Internet — a setup that gives you a `.ts.net` subdomain with TLS certificate. 
 
 The advantage of this approach is that you have the choice to expose your SilverBullet to the wide Internet, or limit it to just your Tailscale VPN. The disadvantage is that you now rely on a third party (Tailscale).
 
 ## Cloud VM with Caddy
-There a various affordable providers of cloud servers that can be used to self-host SilverBullet in the cloud. It is significantly easier to get a TLS certificate issued on a publicly exposed server.
+There a various affordable providers of cloud servers that can be used to self-host SilverBullet in the cloud. It relatively easy to get a TLS certificate issued on a publicly exposed server.
 
 The recommended approach for this requires two things:
 
 1. An Internet exposed cloud server. Affordable options include:
-   * [Hetzner Cloud](https://hetzner.cloud/?ref=6jW03LSGlJKf) (referral link) starting from about 3.5 euro/month
-   * [Vultr](https://www.vultr.com/products/cloud-compute/) starting from about $2.5/month
-2. A domain name that you can configure DNS records on to point to your server
+   * [Hetzner Cloud](https://hetzner.cloud/?ref=6jW03LSGlJKf) (referral link, EU based) starting from about 3.5 euro/month.
+   * [Vultr](https://www.vultr.com/products/cloud-compute/) starting from about $2.5/month.
+2. A domain name of your own that you can configure DNS records on to point to your server, or using a service like [DuckDNS](https://www.duckdns.org/) which gives you a `*.duckdns.org` sub-domain for free.
 
-After deploying SilverBullet on the VM (with [[Authentication]], obviously), you can deploy [Caddy](https://caddyserver.com/) next to it with a reverse proxy. Caddy has the ability to request an install a TLS certificate built in. 
+After deploying SilverBullet on the VM (with [[Authentication]] enabled, obviously), you can deploy [Caddy](https://caddyserver.com/) next to it as a reverse proxy. Caddy can automatically request TLS certificates using [Let’s Encrypt](https://letsencrypt.org/). 
 
 For this, [install Caddy](https://caddyserver.com/docs/install) into your VM. Then, in your Caddyfile (usually located `/etc/caddy/Caddyfile`) put:
 
@@ -72,10 +72,7 @@ silverbullet.mydomain.com {
 
 Replace `silverbullet.mydomain.com` with any domain that you have configured to resolve to the IP of your server, and the `:3000` port with whatever local port you run SilverBullet on.
 
-Restart Caddy and access SilverBullet via `https://silverbullet.mydomain.com`. On first load, Caddy will use [certbot](https://certbot.eff.org/) to issue a TLS certificate and install (and update) it automatically.
+Restart Caddy and access SilverBullet via `https://silverbullet.mydomain.com`. On first load, Caddy will work with Let’s Encrypt to issue a TLS certificate and install (and update) it automatically, this may take a minute, so be patient.
 
 ## Self-signed certificate
 It is possible to self sign certificates and use those. Search the Internet for instructions on how to do this, [here is website that describes the way it works and how to do it](https://www.ssldragon.com/blog/what-is-self-signed-certificate/).
-
-# Alternative: Pikapods (SaaS)
-If you’re ok having your SilverBullet instance be hosted by a third party, consider using [PikaPods](https://www.pikapods.com/pods?run=silverbullet). From about $1.50/month you can host SilverBullet there. It will automatically install and update SilverBullet for you, and expose it on a sub-domain via https.
