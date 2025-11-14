@@ -3,6 +3,8 @@ import {
   codeWidget,
   editor,
 } from "@silverbulletmd/silverbullet/syscalls";
+import { queryLuaObjects } from "../index/api.ts";
+import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 
 // Run on "editor:init"
 export async function setEditorMode() {
@@ -38,6 +40,25 @@ export async function openPageNavigator() {
 
 export async function openMetaNavigator() {
   await editor.openPageNavigator("meta");
+}
+
+export async function openTagNavigator() {
+  // Query all tags with a matching parent
+  const allTags: FilterOption[] = (await queryLuaObjects<string>("tag", {
+    select: { type: "Variable", name: "name", ctx: {} as any },
+    distinct: true,
+  })).map((name) => ({ name }));
+
+  const selectedTag = await editor.filterBox(
+    "Open",
+    allTags,
+    "Press <tt>enter</tt> to go to the tag page of the selected tag.",
+    "Tag",
+  );
+  if (!selectedTag) {
+    return;
+  }
+  await editor.navigate(`tag:${selectedTag.name}`);
 }
 
 export async function openDocumentNavigator() {

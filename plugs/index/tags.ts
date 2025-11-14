@@ -69,10 +69,11 @@ export async function tagComplete(completeEvent: CompleteEvent) {
   }
 
   // Query all tags with a matching parent
-  const allTags: TagObject[] = await queryLuaObjects<TagObject>(
+  const allTags: string[] = await queryLuaObjects<string>(
     "tag",
     {
       distinct: true,
+      select: { type: "Variable", name: "name", ctx: {} as any },
     },
     {},
     5,
@@ -81,7 +82,7 @@ export async function tagComplete(completeEvent: CompleteEvent) {
   return {
     from: completeEvent.pos - match[0].length,
     options: allTags.map((tag) => ({
-      label: renderHashtag(tag.name),
+      label: renderHashtag(tag),
       type: "tag",
     })),
   };

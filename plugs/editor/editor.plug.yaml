@@ -42,6 +42,12 @@ functions:
       key: "Ctrl-Shift-k"
       mac: "Cmd-Shift-k"
 
+  openTagNavigator:
+    path: editor.ts:openTagNavigator
+    command:
+      name: "Navigate: Tag Picker"
+      key: "Ctrl-Alt-t"
+
   openDocumentNavigator:
     path: editor.ts:openDocumentNavigator
     command:

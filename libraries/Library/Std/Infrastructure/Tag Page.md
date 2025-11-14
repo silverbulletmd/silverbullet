@@ -29,13 +29,25 @@ virtualPage.define {
       from index.tag(tagName)
       order by ref
     ]]
+    local tagParts = tagName:split("/")
+    local parentTags = {}
+    for i in ipairs(tagParts) do
+      local slice = table.pack(table.unpack(tagParts, 1, i))
+      if i != #tagParts then
+        table.insert(parentTags, {name=table.concat(slice, "/")})
+      end
+    end
+    if #parentTags > 0 then
+      text = text .. "## Parent tags\n"
+        .. template.each(parentTags, templates.tagItem)
+    end
     local subTags = query[[
       from index.tag "tag"
       where string.startsWith(_.name, tagName .. "/")
       select {name=_.name}
     ]]
     if #subTags > 0 then
-      text = text .. "## Sub-tags\n"
+      text = text .. "## Child tags\n"
         .. template.each(subTags, templates.tagItem)
     end
     local taggedPages = query[[
