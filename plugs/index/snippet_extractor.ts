@@ -11,7 +11,7 @@ export function extractSnippetAroundIndex(
 
   // Find which line contains the index
   const textBeforeIndex = text.slice(0,index);
-  let linesBeforeIndex = textBeforeIndex.matchAll(new RegExp("/\n/","g")).toArray();
+  const linesBeforeIndex = textBeforeIndex.matchAll(new RegExp("/\n/","g")).toArray();
   targetLineIndex = linesBeforeIndex.length;
 
   if (targetLineIndex === -1) {
@@ -31,7 +31,8 @@ export function extractSnippetAroundIndex(
   // If snippet is still too long, truncate while centering around the reference
   if (snippet.length > maxSnippetLength) {
     // Get the position of the index within the snippet based on the index of the newline character at the end of the preceding line
-    const indexInSnippet = index - linesBeforeIndex.pop().index - 1;
+    const previousNewline = linesBeforeIndex.pop();
+    const indexInSnippet = index - 1 - (previousNewline ? previousNewline.index : 0);
 
     // Center the truncation around the reference
     const halfLength = Math.floor(maxSnippetLength / 2);
