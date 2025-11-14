@@ -1,8 +1,7 @@
 ---
 testattribute: 10
 ---
-
-#apidoc
+#api/syscall
 
 The `index` API provides functions for interacting with SilverBullet's [[Objects]], allowing you to store and query page-associated data.
 

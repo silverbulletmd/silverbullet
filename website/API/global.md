@@ -1,3 +1,5 @@
+#api/lua
+
 These are Lua functions defined in the global namespace:
 
 # Standard Lua

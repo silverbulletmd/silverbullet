@@ -1,3 +1,5 @@
+#api/syscall
+
 The Asset API provides functions for reading and managing assets embedded in plugs.
 
 ### asset.readAsset(plugName, name, encoding?)

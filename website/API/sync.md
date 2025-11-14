@@ -1,4 +1,4 @@
-# Sync API
+#api/syscall
 
 The Sync API provides functions for interacting with the sync engine when the client runs in Sync mode.
 

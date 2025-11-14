@@ -1,3 +1,5 @@
+#api/space-lua
+
 The Space Lua API provides functions for working with Lua expressions and templates.
 
 ## spacelua.parseExpression(luaExpression)

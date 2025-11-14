@@ -1,3 +1,5 @@
+#api/syscall
+
 The Datastore API provides functions for interacting with a key-value store that has query capabilities.
 
 * **Keys** are represented as a list (Lua table) of strings.

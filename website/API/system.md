@@ -1,4 +1,4 @@
-# System API
+#api/syscall
 
 The System API provides system-level functions for interacting with the SilverBullet environment.
 

@@ -1,3 +1,5 @@
+#api/lua
+
 API docs for Lua's `os` module.
 
 ## os.time(table?)

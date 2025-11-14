@@ -1,4 +1,5 @@
-# Message Queue API
+#api/space-lua
+
 The Message Queue API provides functions for implementing a simple message queue system.
 
 ## Example

@@ -1,3 +1,5 @@
+#api/lua
+
 API docs for Lua's `math` module.
 
 ## math.random(m?, n?)

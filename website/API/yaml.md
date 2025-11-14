@@ -1,3 +1,5 @@
+#api/syscall
+
 The YAML API provides functions for parsing and stringifying YAML content.
 
 ### yaml.parse(text)

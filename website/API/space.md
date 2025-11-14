@@ -1,3 +1,5 @@
+#api/syscall
+
 The Space API provides functions for interacting with pages, documents, and files in the space.
 
 # Page Operations
