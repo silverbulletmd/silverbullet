@@ -1219,15 +1219,27 @@ export function evalStatement(
         hasGoto?: boolean;
         hasLabel?: boolean;
         dupLabelError?: { name: string; ctx: ASTCtx };
+        needsEnv?: boolean;
       };
       const bf = b as BlockFlags;
       const hasGotoFlag = bf.hasGoto === true;
       const hasLabelFlag = bf.hasLabel === true;
 
-      // Fetch metadata for blocks with gotos OR labels (needed to catch nested duplicate labels).
+      // Metadata decision: use function-level cache when available
       let meta: ReturnType<typeof getBlockGotoMeta> | undefined = undefined;
-      if (hasGotoFlag || hasLabelFlag) {
+      const curFn = (sf as any).currentFunction as LuaFunction | undefined;
+      const cachedHas = curFn?.funcHasGotos;
+      if (cachedHas === false) {
+        meta = undefined;
+      } else if (cachedHas === true) {
         meta = blockMetaOrThrow(b, sf);
+      } else {
+        if (hasGotoFlag || hasLabelFlag) {
+          meta = blockMetaOrThrow(b, sf);
+          if (curFn) {
+            curFn.funcHasGotos = !!meta?.funcHasGotos;
+          }
+        }
       }
 
       if (!meta || !meta.funcHasGotos) {
@@ -1244,7 +1256,7 @@ export function evalStatement(
         // a statement returns a Promise, immediately switch to async by
         // returning a continuation that resumes execution from the next
         // statement (`i + 1`).
-        const newEnv = new LuaEnv(env);
+        const execEnv = bf.needsEnv === true ? new LuaEnv(env) : env;
         const stmts = b.statements;
 
         const processFrom = (
@@ -1253,7 +1265,7 @@ export function evalStatement(
           for (let i = idx; i < stmts.length; i++) {
             const result = evalStatement(
               stmts[i],
-              newEnv,
+              execEnv,
               sf,
               returnOnReturn,
             );
@@ -1288,7 +1300,7 @@ export function evalStatement(
 
         return processFrom(0);
       } else {
-        const newEnv = new LuaEnv(env);
+        const execEnv = bf.needsEnv === true ? new LuaEnv(env) : env;
         const stmts = b.statements;
 
         const runFrom = (
@@ -1299,7 +1311,7 @@ export function evalStatement(
           | GotoSignal
           | Promise<void | LuaValue[] | GotoSignal> => {
           for (; i < stmts.length; i++) {
-            const r = evalStatement(stmts[i], newEnv, sf, returnOnReturn);
+            const r = evalStatement(stmts[i], execEnv, sf, returnOnReturn);
             if (isPromise(r)) {
               return (r as Promise<any>).then((res) => {
                 const consumed = consumeGotoInBlock(res, meta!.labels);

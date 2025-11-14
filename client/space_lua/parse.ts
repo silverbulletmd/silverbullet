@@ -75,10 +75,11 @@ function parseBlock(t: ParseTree, ctx: ASTCtx): LuaBlock {
   const statements = t.children!.map((s) => parseStatement(s, ctx));
   const block: LuaBlock = { type: "Block", statements, ctx: context(t, ctx) };
 
-  // Flag and detect duplicate labels within block
   let hasLabel = false;
   let hasGoto = false;
+  let hasLocalDecl = false;
   let dup: { name: string; ctx: ASTCtx } | undefined;
+
   const seen = new Set<string>();
 
   for (const s of statements) {
@@ -98,6 +99,14 @@ function parseBlock(t: ParseTree, ctx: ASTCtx): LuaBlock {
       }
       case "Goto": {
         hasGoto = true;
+        break;
+      }
+      case "Local": {
+        hasLocalDecl = true;
+        break;
+      }
+      case "LocalFunction": {
+        hasLocalDecl = true;
         break;
       }
       case "Block": {
@@ -128,7 +137,6 @@ function parseBlock(t: ParseTree, ctx: ASTCtx): LuaBlock {
         break;
       }
       case "Function":
-      case "LocalFunction":
       default: {
         break;
       }
@@ -143,6 +151,9 @@ function parseBlock(t: ParseTree, ctx: ASTCtx): LuaBlock {
   }
   if (dup) {
     block.dupLabelError = dup;
+  }
+  if (hasLocalDecl) {
+    block.needsEnv = true;
   }
   return block;
 }

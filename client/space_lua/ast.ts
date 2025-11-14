@@ -16,6 +16,8 @@ export type LuaBlock = {
   hasGoto?: boolean;
   // the first duplicated label is recorded here for later eval
   dupLabelError?: { name: string; ctx: ASTCtx };
+  // this block declares top-level locals and therefore needs a new env
+  needsEnv?: boolean;
 } & ASTContext;
 
 // STATEMENTS
