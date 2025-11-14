@@ -12,6 +12,12 @@ export type ASTCtx = {
 export type LuaBlock = {
   type: "Block";
   statements: LuaStatement[];
+  hasLabel?: boolean;
+  hasGoto?: boolean;
+  // the first duplicated label is recorded here for later eval
+  dupLabelError?: { name: string; ctx: ASTCtx };
+  // this block declares top-level locals and therefore needs a new env
+  needsEnv?: boolean;
 } & ASTContext;
 
 // STATEMENTS
