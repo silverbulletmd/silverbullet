@@ -36,9 +36,9 @@ config.set {
     },
     {
       icon = "heart",
-      description = "Sponsor",
+      description = "Funding",
       run = function()
-        editor.openUrl "https://github.com/sponsors/silverbulletmd"
+        editor.navigate "Funding"
       end
     },
     {
