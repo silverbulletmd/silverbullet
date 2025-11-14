@@ -2,24 +2,17 @@ export function extractSnippetAroundIndex(
   text: string,
   index: number,
   maxSnippetLength: number = 300,
-  maxLines: number = 3,
 ): string {
   if (index < 0 || index >= text.length) {
     return "";
   }
   const lines = text.split("\n");
-  let currentPos = 0;
   let targetLineIndex = -1;
 
   // Find which line contains the index
-  for (let i = 0; i < lines.length; i++) {
-    const lineLength = lines[i].length + (i < lines.length - 1 ? 1 : 0); // +1 for newline except last line
-    if (index >= currentPos && index < currentPos + lineLength) {
-      targetLineIndex = i;
-      break;
-    }
-    currentPos += lineLength;
-  }
+  const textBeforeIndex = text.slice(0,index);
+  let linesBeforeIndex = textBeforeIndex.matchAll(new RegExp("/\n/","g")).toArray();
+  targetLineIndex = linesBeforeIndex.length;
 
   if (targetLineIndex === -1) {
     // Fallback to original sentence-based logic if line detection fails
@@ -30,51 +23,15 @@ export function extractSnippetAroundIndex(
     );
   }
 
-  // Calculate range of lines to include (up to maxLines, centered around target)
-  const linesToInclude = Math.min(maxLines, lines.length);
-  const linesAbove = Math.floor((linesToInclude - 1) / 2);
-  const linesBelow = linesToInclude - 1 - linesAbove;
+  // Get full text of target line
 
-  const startLine = Math.max(0, targetLineIndex - linesAbove);
-  const endLine = Math.min(lines.length - 1, targetLineIndex + linesBelow);
 
-  const selectedLines = lines.slice(startLine, endLine + 1);
-
-  // Stop at markdown list boundaries to avoid including separate bullet points
-  const processedLines: string[] = [];
-  let foundTargetLine = false;
-
-  for (let i = 0; i < selectedLines.length; i++) {
-    const line = selectedLines[i];
-    const isCurrentTargetLine = (startLine + i) === targetLineIndex;
-
-    if (isCurrentTargetLine) {
-      foundTargetLine = true;
-      processedLines.push(line);
-    } else if (!foundTargetLine) {
-      // Before target line - include it
-      processedLines.push(line);
-    } else {
-      // After target line - check if it's a new bullet point or list item
-      const trimmedLine = line.trim();
-      if (trimmedLine.match(/^[*+-]\s/) || trimmedLine.match(/^\d+\.\s/)) {
-        // New bullt point or numbered list item
-        break;
-      }
-      processedLines.push(line);
-    }
-  }
-
-  let snippet = processedLines.join(" ").replace(/\s+/g, " ").trim();
+  let snippet = lines[targetLineIndex].trim();
 
   // If snippet is still too long, truncate while centering around the reference
   if (snippet.length > maxSnippetLength) {
-    // Calculate the position of the index within the multi-line snippet
-    let snippetStartPos = 0;
-    for (let i = 0; i < startLine; i++) {
-      snippetStartPos += lines[i].length + (i < lines.length - 1 ? 1 : 0); // +1 for newline except last line
-    }
-    const indexInSnippet = index - snippetStartPos;
+    // Get the position of the index within the snippet based on the index of the newline character at the end of the preceding line
+    const indexInSnippet = index - linesBeforeIndex.pop().index - 1;
 
     // Center the truncation around the reference
     const halfLength = Math.floor(maxSnippetLength / 2);
