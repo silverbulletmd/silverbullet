@@ -11,7 +11,7 @@ export function extractSnippetAroundIndex(
 
   // Find which line contains the index
   const textBeforeIndex = text.slice(0,index);
-  const linesBeforeIndex = textBeforeIndex.matchAll(new RegExp("/\n/","g")).toArray();
+  const linesBeforeIndex = textBeforeIndex.matchAll(new RegExp("\n","g")).toArray();
   targetLineIndex = linesBeforeIndex.length;
 
   if (targetLineIndex === -1) {
