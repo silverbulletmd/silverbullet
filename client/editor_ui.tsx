@@ -456,14 +456,6 @@ export class MainUI {
       }
     }
   }
-
-  destroy() {
-    try {
-      this._touch?.dispose();
-    } catch {
-      // ignore
-    }
-  }
 }
 
 // TODO: Parking this here for now, this is very similar to the definition in top_bar.tsx

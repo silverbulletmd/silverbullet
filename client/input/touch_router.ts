@@ -3,53 +3,52 @@
 
 import type { TouchMapEntry } from "./touch_registry.ts";
 import { buildTouchMap } from "./touch_registry.ts";
+import type { Client } from "../client.ts";
 
-type ClientLike = {
-  config: { get<T>(path: string, def: T): T };
-  startPageNavigate: (mode: "page" | "meta" | "document" | "all") => void;
-  startCommandPalette: () => void;
-  runCommandByName: (name: string, args?: any[]) => Promise<void>;
-  clientSystem?: { commandHook?: { on?: (h: { commandsUpdated: () => void }) => void } };
-};
-
-export function setupTouchRouter(client: ClientLike) {
+export function setupTouchRouter(client: Client) {
   if ((navigator as any).maxTouchPoints <= 0) {
     return { dispose: () => {}, refresh: () => {} }; // noop
   }
 
-  function readConfigBindings(): { fingers: number; command: string; preventDefault?: boolean }[] {
-    return client.config.get("ui.touch.bindings", [] as any[]);
+  function readConfigBindings(): {
+    fingers: number;
+    command: string;
+    preventDefault?: boolean;
+  }[] {
+    return client.config.get("ui.touch.bindings", []);
   }
 
   function compile(): Map<number, TouchMapEntry> {
     const cfg = readConfigBindings();
-    return buildTouchMap(cfg);
+    try {
+      map = buildTouchMap(cfg);
+    } catch {
+      client.flashNotification(
+        "unexpected errur in touch_router:compile()",
+        "error",
+      );
+    }
+    return map;
   }
 
   let map: Map<number, TouchMapEntry>;
 
-  try {
-    client.clientSystem?.commandHook?.on?.({
-      commandsUpdated: () => {
-        try { map = compile(); } catch {}
-      },
-    });
-  } catch {}
+  client.clientSystem?.commandHook?.on?.({
+    commandsUpdated: () => {
+      map = compile();
+    },
+  });
   // Optional: one-shot delayed refresh for slow boots
-  setTimeout(() => { try { map = compile(); } catch {} }, 1500);
-
-  try {
-    map = compile();
-  } catch {
-    map = buildTouchMap(readConfigBindings());
-  }
+  // setTimeout(() => { map = compile(); }, 1500);
 
   const onTouchStart = (ev: TouchEvent) => {
-    const n = (ev.touches?.length ?? 0);
+    const n = ev.touches?.length ?? 0;
     if (!n) return;
     let binding = map.get(n);
     if (!binding) {
-      try { map = compile(); } catch { /* ignore */ }
+      try {
+        map = compile();
+      } catch { /* ignore */ }
       binding = map.get(n);
       if (!binding) return;
     }
@@ -64,19 +63,13 @@ export function setupTouchRouter(client: ClientLike) {
       ev.stopPropagation();
     }
 
-    if (name === "Navigate: Page Picker") {
-      client.startPageNavigate("page");
-    } else if (name === "Command: Open Palette") {
-      client.startCommandPalette();
-    } else {
-      // ✅ Run any command by name (no palette fallback unless you want one)
-      try {
-        // fire-and-forget is fine; or await if you prefer
-        void client.runCommandByName(name);
-      } catch (_e) {
-        // Optional gentle fallback if a typo or timing issue:
-        // client.startCommandPalette();
-      }
+    try {
+      client.runCommandByName(name);
+    } catch {
+      client.flashNotification(
+        "unexpected errur in touch_router:onTouchStart()",
+        "error",
+      );
     }
   };
 
@@ -86,6 +79,7 @@ export function setupTouchRouter(client: ClientLike) {
     map = compile();
   }
 
-  const dispose = () => globalThis.removeEventListener("touchstart", onTouchStart);
+  const dispose = () =>
+    globalThis.removeEventListener("touchstart", onTouchStart);
   return { dispose, refresh };
 }

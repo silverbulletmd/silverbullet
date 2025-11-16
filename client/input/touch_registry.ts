@@ -3,9 +3,9 @@
 // Later sources override earlier ones per finger count.
 
 export type TouchBinding = {
-  fingers: number;                 // e.g. 2 or 3
-  command: string;                 // e.g. "Navigate: Page Picker" | "Command: Open Palette" | other command name
-  preventDefault?: boolean;        // default true
+  fingers: number; // e.g. 2 or 3
+  command: string; // e.g. "Navigate: Page Picker" | "Command: Open Palette" | other command name
+  preventDefault?: boolean; // default true
 };
 
 export type TouchMapEntry = { command: string; preventDefault: boolean };
@@ -22,7 +22,7 @@ export const defaultBindings: TouchBinding[] = [
 function merge(list: TouchBinding[], into: Map<number, TouchMapEntry>) {
   for (const b of list) {
     if (!b) continue;
-    const pd = (b.preventDefault ?? true);
+    const pd = b.preventDefault ?? true;
     into.set(b.fingers, { command: b.command, preventDefault: pd });
   }
 }
