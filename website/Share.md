@@ -32,6 +32,6 @@ Performing a share operation (in whatever mode) is triggered with the ${widgets.
 Out of the box, sharing is supported for:
 
 * Plain `https://` URIs (_Pull_ mode only) (implemented in [[^Library/Std/Infrastructure/URI]]).
-* [[^Library/Std/Infrastructure/Github]] (`github:` and URI schemes as well as github and gist full URLs): both in _Pull_ mode, and _Push_ mode when a token is configured. Technically _Sync_ should work except that Github aggressively caches files, making this impractical.
+* [[^Library/Std/Infrastructure/Github]] (`https://github.com/*` for repository files and `https://gist.github.com/*` URLs): both in _Pull_ mode, and _Push_ mode when a token is configured. Technically _Sync_ should work except that Github aggressively caches files, making this impractical.
 
 To implement your own share provider, have a look at the implementations linked to understand how they work.
