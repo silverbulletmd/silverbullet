@@ -237,6 +237,7 @@ export class ClientSystem {
     await this.system.unloadAll();
 
     let allPlugs = await space.listPlugs();
+    console.log("All plugs", allPlugs);
     if (this.client.bootConfig.disablePlugs) {
       // Only keep builtin plugs
       allPlugs = allPlugs.filter(({ name }) => builtinPlugPaths.includes(name));

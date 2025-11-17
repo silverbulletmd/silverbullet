@@ -35,8 +35,6 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
   localSpacePrimitives?: SpacePrimitives;
   syncEngine?: SyncEngine;
 
-  forcedStatus = false;
-
   constructor(
     private basePathName: string,
     private baseURI: string,
@@ -138,14 +136,20 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
             // Not fully synced but online -> Proxy
             (!this.fullSyncConfirmed && this.online) ||
             // A path we always need to proxy -> Proxy
-            alwaysProxy.find((prefix) => pathname.startsWith(prefix)) ||
-            // Forced proxy mode -> Proxy
-            this.forcedStatus
+            alwaysProxy.find((prefix) => pathname.startsWith(prefix))
           ) {
-            if (this.forcedStatus) {
-              console.log("Proxying", pathname, "because of forced status");
+            try {
+              return await fetch(request);
+            } catch (e: any) {
+              if (e.message === "Offline") {
+                console.info(
+                  "Detected offline, marking offline and falling through",
+                );
+                this.online = false;
+              } else {
+                throw e;
+              }
             }
-            return fetch(request);
           }
 
           // We are now in a state we're configured and either a full sync cycle has complete (since boot) OR we're offline
