@@ -49,6 +49,13 @@ config.set {
       end
     },
     {
+      icon = "search",
+      description = "Search",
+      run = function()
+        editor.invokeCommand("Silversearch: Search")
+      end
+    },
+    {
       icon = "terminal",
       description = "Run command",
       run = function()
