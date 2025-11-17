@@ -7,11 +7,12 @@ Support for [SilverBullet Share](https://silverbullet.md/Share) for:
 * Github repo files
 * Github gists
 
-As well as URI support (both read and write) for the following schemes:
-* `github:username/repo@branch/path`
-* `github:username/repo/path` (defaults to `main` branch)
+As well as [URI](https://silverbullet.md/URIs) support (both read and write) for the following schemes:
 * `https://github.com/username/repo/blob/branch/path`
 * `https://gist.github.com/username/gist-id`
+* `github:username/repo@branch/path`
+* `github:username/repo/path` (defaults to `main` branch)
+* `ghr:username/repo@version/path` (github release support)
 
 # Configuration
 If you only want to read from Github URLs, no configuration is required.
@@ -47,12 +48,16 @@ function github.extractData(url)
   return url:match("github%.com/([^/]+/[^/]+)/[^/]+/([^/]+)/(.+)")
 end
 
-function github.buildUrl(repo, path)
+function github.buildAPIURL(repo, path)
   return "https://api.github.com/repos/" .. repo .. "/contents/" .. path
 end
 
-function github.buildUrlWithBranch(repo, branch, path)
-  return github.buildUrl(repo, path) .. "?ref=" .. branch
+function github.buildAPIURLWithBranch(repo, branch, path)
+  return github.buildAPIURL(repo, path) .. "?ref=" .. branch
+end
+
+function github.buildURI(repo, branch, path)
+  return "https://github.com/" .. repo .. "/blob/" .. branch .. "/" .. path
 end
 
 function github.request(url, method, body)
@@ -114,7 +119,7 @@ service.define {
     -- Ask for a commit message
     local message = editor.prompt("Commit message:", "Commit")
     -- Push the change
-    local resp = github.request(github.buildUrl(repo, path), "PUT", {
+    local resp = github.request(github.buildAPIURL(repo, path), "PUT", {
       message = message,
       committer = {
         name = config.get("github.name"),
@@ -124,7 +129,7 @@ service.define {
       content = encoding.base64Encode(content)
     })
     if resp.ok then
-      local uri = "github:" .. repo .. "@" .. branch .. "/" .. path
+      local uri = github.buildURI(repo, branch, path)
       return {
         uri = uri,
         hash = share.contentHash(content),
@@ -152,7 +157,7 @@ service.define {
     end
     local repo, branch, path = github.extractData(uri)
     -- We did find an existing file, let's fetch it to get the SHA
-    local oldContent = github.request(github.buildUrlWithBranch(repo, branch, path), "GET")
+    local oldContent = github.request(github.buildAPIURLWithBranch(repo, branch, path), "GET")
     if not oldContent.ok then
       error("Could not fetch existing file")
     end
@@ -160,7 +165,7 @@ service.define {
     -- Ask for a commit message
     local message = editor.prompt("Commit message:", "Commit")
     -- Push the change
-    local resp = github.request(github.buildUrl(repo, path), "PUT", {
+    local resp = github.request(github.buildAPIURL(repo, path), "PUT", {
       message = message,
       committer = {
         name = config.get("github.name"),
