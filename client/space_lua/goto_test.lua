@@ -9,7 +9,7 @@ local function contains(hay, needle)
   return string.find(tostring(hay), needle, 1, true) ~= nil
 end
 
-local function expect_error(fn, needle, msg)
+local function expectError(fn, needle, msg)
   local ok, err = pcall(fn)
   if ok then
     error("Expected error, but call succeeded: " .. (msg or ""))
@@ -48,15 +48,15 @@ end
 -- No visible label (forward into inner block / outward from inner)
 do
   local function f() goto missing; do ::missing:: end end
-  expect_error(f, "no visible label 'missing'")
+  expectError(f, "no visible label 'missing'")
   local function g() do ::inner:: end; goto inner end
-  expect_error(g, "no visible label 'inner'")
+  expectError(g, "no visible label 'inner'")
 end
 
 -- Duplicate label in same block
 do
   local function f() ::dup:: ::dup:: end
-  expect_error(f, "label 'dup'")
+  expectError(f, "label 'dup'")
 end
 
 -- Jump into local scope (illegal forward into variable region)
@@ -66,7 +66,7 @@ do
     local a = 1
     ::after_local:: return a
   end
-  expect_error(f, "jumps into the scope")
+  expectError(f, "jumps into the scope")
 end
 
 -- Repeat loop: safe-end label NOT allowed to bypass scope
@@ -79,7 +79,7 @@ do
       ::after_repeat:: -- repeat end label scope test
     until hidden and flag
   end
-  expect_error(f, "jumps into the scope")
+  expectError(f, "jumps into the scope")
 end
 
 -- Safe end-of-block backward jump (allowed)
@@ -217,7 +217,7 @@ do
     do ::sib:: end
     do goto sib end
   end
-  expect_error(f, "no visible label 'sib'", "cannot jump to sibling label")
+  expectError(f, "no visible label 'sib'", "cannot jump to sibling label")
 end
 
 -- Forward to inside for: label not visible from outside
@@ -228,7 +228,7 @@ do
       ::in_for:: return i
     end
   end
-  expect_error(f, "no visible label 'in_for'")
+  expectError(f, "no visible label 'in_for'")
 end
 
 -- Forward to inside for-in: label not visible from outside
@@ -239,7 +239,7 @@ do
       ::in_forin:: return k
     end
   end
-  expect_error(f, "no visible label 'in_forin'")
+  expectError(f, "no visible label 'in_forin'")
 end
 
 -- Repeat block end scope jump (illegal)
@@ -251,7 +251,7 @@ do
       ::end_repeat::
     until z == 0
   end
-  expect_error(f, "jumps into the scope")
+  expectError(f, "jumps into the scope")
 end
 
 -- Nested upward multi-jump
@@ -315,8 +315,8 @@ do
       goto branch_label
     end
   end
-  expect_error(function() f_bad(true) end, "no visible label 'branch_label'")
-  expect_error(function() f_bad(false) end, "no visible label 'branch_label'")
+  expectError(function() f_bad(true) end, "no visible label 'branch_label'")
+  expectError(function() f_bad(false) end, "no visible label 'branch_label'")
 end
 
 -- Label visible to both branches (label placed after the if)
@@ -362,7 +362,7 @@ do
     local p = 99
     ::chain_a::::chain_b::::after_chain:: return p
   end
-  expect_error(f, "jumps into the scope")
+  expectError(f, "jumps into the scope")
 end
 
 -- Cross-function goto (outer to inner label, invalid)
@@ -374,7 +374,7 @@ do
     goto in_label
     return 0
   end
-  expect_error(outer, "no visible label 'in_label'")
+  expectError(outer, "no visible label 'in_label'")
 end
 
 -- Cross-function goto (inner to outer label, invalid)
@@ -386,7 +386,7 @@ do
     end
     return inner()
   end
-  expect_error(outer, "no visible label 'outer_label'")
+  expectError(outer, "no visible label 'outer_label'")
 end
 
 -- Cross-function goto (outer after defining inner label, invalid)
@@ -397,7 +397,7 @@ do
     end
     goto nested_label
   end
-  expect_error(outer, "no visible label 'nested_label'")
+  expectError(outer, "no visible label 'nested_label'")
 end
 
 -- Forward goto to label not safe end (fails)
@@ -408,7 +408,7 @@ do
     ::after_locals:: local b = 2
     return b
   end
-  expect_error(f, "jumps into the scope")
+  expectError(f, "jumps into the scope")
 end
 
 -- Repeat safe-end style still illegal
@@ -420,7 +420,7 @@ do
       ::done:: ;
     until x == 0
   end
-  expect_error(f, "jumps into the scope")
+  expectError(f, "jumps into the scope")
 end
 
 -- goto to correct label when nested
