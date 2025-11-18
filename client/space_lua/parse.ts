@@ -72,7 +72,8 @@ function parseBlock(t: ParseTree, ctx: ASTCtx): LuaBlock {
   if (t.type !== "Block") {
     throw new Error(`Expected Block, got ${t.type}`);
   }
-  const statements = t.children!.map((s) => parseStatement(s, ctx));
+  const stmtNodes = t.children!.filter((c) => c && c.type);
+  const statements = stmtNodes.map((s) => parseStatement(s, ctx));
   const block: LuaBlock = { type: "Block", statements, ctx: context(t, ctx) };
 
   let hasLabel = false;
@@ -103,10 +104,7 @@ function parseBlock(t: ParseTree, ctx: ASTCtx): LuaBlock {
         hasGoto = true;
         break;
       }
-      case "Local": {
-        hasLocalDecl = true;
-        break;
-      }
+      case "Local":
       case "LocalFunction": {
         hasLocalDecl = true;
         break;
@@ -138,7 +136,6 @@ function parseBlock(t: ParseTree, ctx: ASTCtx): LuaBlock {
         hasGoto = hasGoto || !!child.hasGoto;
         break;
       }
-      case "Function":
       default: {
         break;
       }
@@ -158,12 +155,19 @@ function parseBlock(t: ParseTree, ctx: ASTCtx): LuaBlock {
     block.needsEnv = true;
   }
   if (hasLabelHere) {
-    (block as any).hasLabelHere = true;
+    block.hasLabelHere = true;
   }
+
   return block;
 }
 
 function parseStatement(t: ParseTree, ctx: ASTCtx): LuaStatement {
+  if (!t || !t.type) {
+    return {
+      type: "Semicolon",
+      ctx: context(t, ctx),
+    };
+  }
   switch (t.type) {
     case "Block":
       return parseChunk(t.children![0], ctx);
@@ -211,24 +215,23 @@ function parseStatement(t: ParseTree, ctx: ASTCtx): LuaStatement {
       let elseBlock: LuaBlock | undefined = undefined;
       for (let i = 0; i < t.children!.length; i += 4) {
         const child = t.children![i];
-        if (
-          child.children![0].text === "if" ||
-          child.children![0].text === "elseif"
-        ) {
+        if (!child || !child.children || !child.children[0]) {
+          continue;
+        }
+        const token = child.children![0].text;
+        if (token === "if" || token === "elseif") {
           conditions.push({
             condition: parseExpression(t.children![i + 1], ctx),
             block: parseBlock(t.children![i + 3], ctx),
             from: child.from,
             to: child.to,
           });
-        } else if (child.children![0].text === "else") {
+        } else if (token === "else") {
           elseBlock = parseBlock(t.children![i + 1], ctx);
-        } else if (child.children![0].text === "end") {
+        } else if (token === "end") {
           break;
         } else {
-          throw new Error(
-            `Unknown if clause type: ${child.children![0].text}`,
-          );
+          throw new Error(`Unknown if clause type: ${token}`);
         }
       }
       return {
@@ -285,9 +288,9 @@ function parseStatement(t: ParseTree, ctx: ASTCtx): LuaStatement {
     case "Assign":
       return {
         type: "Assignment",
-        variables: t.children![0].children!.filter((t) => t.type !== ",").map(
-          (lvalue) => parseLValue(lvalue, ctx),
-        ),
+        variables: t.children![0].children!
+          .filter((c) => c.type && c.type !== ",")
+          .map((lvalue) => parseLValue(lvalue, ctx)),
         expressions: parseExpList(t.children![2], ctx),
         ctx: context(t, ctx),
       };
@@ -307,8 +310,21 @@ function parseStatement(t: ParseTree, ctx: ASTCtx): LuaStatement {
     case "break":
       return { type: "Break", ctx: context(t, ctx) };
     default:
+      // Gracefully ignore unknown empty nodes
+      if (!t.children || t.children.length === 0) {
+        return {
+          type: "Semicolon",
+          ctx: context(t, ctx),
+        };
+      }
       console.error(t);
-      throw new Error(`Unknown statement type: ${t.children![0].text}`);
+      throw new Error(
+        `Unknown statement type: ${
+          t.children![0] && t.children![0].text
+            ? t.children![0].text
+            : String(t.type)
+        }`,
+      );
   }
 }
 
@@ -316,7 +332,7 @@ function parseFunctionCall(
   t: ParseTree,
   ctx: ASTCtx,
 ): LuaFunctionCallExpression {
-  if (t.children![1].type === ":") {
+  if (t.children![1] && t.children![1].type === ":") {
     return {
       type: "FunctionCall",
       prefix: parsePrefixExpression(t.children![0], ctx),
@@ -337,9 +353,9 @@ function parseAttNames(t: ParseTree, ctx: ASTCtx): LuaAttName[] {
   if (t.type !== "AttNameList") {
     throw new Error(`Expected AttNameList, got ${t.type}`);
   }
-  return t.children!.filter((t) => t.type !== ",").map((att) =>
-    parseAttName(att, ctx)
-  );
+  return t.children!
+    .filter((c) => c.type && c.type !== ",")
+    .map((att) => parseAttName(att, ctx));
 }
 
 function parseAttName(t: ParseTree, ctx: ASTCtx): LuaAttName {
@@ -410,18 +426,18 @@ function parseNameList(t: ParseTree): string[] {
   if (t.type !== "NameList") {
     throw new Error(`Expected NameList, got ${t.type}`);
   }
-  return t.children!.filter((t) => t.type === "Name").map((t) =>
-    t.children![0].text!
-  );
+  return t.children!
+    .filter((c) => c.type === "Name")
+    .map((c) => c.children![0].text!);
 }
 
 function parseExpList(t: ParseTree, ctx: ASTCtx): LuaExpression[] {
   if (t.type !== "ExpList") {
     throw new Error(`Expected ExpList, got ${t.type}`);
   }
-  return t.children!.filter((t) => t.type !== ",").map((e) =>
-    parseExpression(e, ctx)
-  );
+  return t.children!
+    .filter((c) => c.type && c.type !== ",")
+    .map((e) => parseExpression(e, ctx));
 }
 
 const delimiterRegex = /^(\[=*\[)([\s\S]*)(\]=*\])$/;
@@ -480,6 +496,9 @@ function parseString(s: string): string {
 }
 
 function parseExpression(t: ParseTree, ctx: ASTCtx): LuaExpression {
+  if (!t || !t.type) {
+    throw new Error("Undefined expression node");
+  }
   switch (t.type) {
     case "LiteralString": {
       const cleanString = parseString(t.children![0].text!);
@@ -558,9 +577,12 @@ function parseExpression(t: ParseTree, ctx: ASTCtx): LuaExpression {
     case "TableConstructor":
       return {
         type: "TableConstructor",
-        fields: t.children!.slice(1, -1).filter((t) =>
-          ["FieldExp", "FieldProp", "FieldDynamic"].includes(t.type!)
-        ).map((tf) => parseTableField(tf, ctx)),
+        fields: t.children!
+          .slice(1, -1)
+          .filter((c) =>
+            ["FieldExp", "FieldProp", "FieldDynamic"].includes(c.type!)
+          )
+          .map((tf) => parseTableField(tf, ctx)),
         ctx: context(t, ctx),
       };
     case "nil":
@@ -650,9 +672,9 @@ function parseQueryClause(t: ParseTree, ctx: ASTCtx): LuaQueryClause {
 }
 
 function parseFunctionArgs(ts: ParseTree[], ctx: ASTCtx): LuaExpression[] {
-  return ts.filter((t) => ![",", "(", ")"].includes(t.type!)).map(
-    (e) => parseExpression(e, ctx),
-  );
+  return ts
+    .filter((t) => t.type && ![",", "(", ")"].includes(t.type))
+    .map((e) => parseExpression(e, ctx));
 }
 
 function parseFunctionBody(t: ParseTree, ctx: ASTCtx): LuaFunctionBody {
@@ -661,16 +683,18 @@ function parseFunctionBody(t: ParseTree, ctx: ASTCtx): LuaFunctionBody {
   }
   return {
     type: "FunctionBody",
-    parameters: t.children![1].children!.filter((t) =>
-      ["Name", "Ellipsis"].includes(t.type!)
-    )
-      .map((t) => t.children![0].text!),
+    parameters: t.children![1].children!
+      .filter((c) => c.type && ["Name", "Ellipsis"].includes(c.type))
+      .map((c) => c.children![0].text!),
     block: parseBlock(t.children![3], ctx),
     ctx: context(t, ctx),
   };
 }
 
 function parsePrefixExpression(t: ParseTree, ctx: ASTCtx): LuaPrefixExpression {
+  if (!t || !t.type) {
+    throw new Error("Undefined prefix expression node");
+  }
   switch (t.type) {
     case "Name":
       return {

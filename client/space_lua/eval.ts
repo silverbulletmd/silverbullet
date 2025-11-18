@@ -1213,27 +1213,16 @@ export function evalStatement(
     }
     case "Block": {
       const b = asBlock(s);
-
-      // Parses flags
-      type BlockFlags = LuaBlock & {
-        hasGoto?: boolean;
-        hasLabel?: boolean;
-        hasLabelHere?: boolean;
-        dupLabelError?: { name: string; ctx: ASTCtx };
-        needsEnv?: boolean;
-      };
-      const bf = b as BlockFlags;
-
-      const hasGotoFlag = bf.hasGoto === true;
-      const hasLabelFlag = bf.hasLabel === true;
-      const hasLabelHere = bf.hasLabelHere === true;
+      const hasGotoFlag = b.hasGoto === true;
+      const hasLabelFlag = b.hasLabel === true;
+      const hasLabelHere = b.hasLabelHere === true;
 
       const curFn = (sf as any).currentFunction as LuaFunction | undefined;
       const fnHasGotos = curFn?.funcHasGotos;
 
       // Fast path: function known to have no gotos, run without meta
       if (fnHasGotos === false || (!hasGotoFlag && !hasLabelFlag)) {
-        const dup = bf.dupLabelError;
+        const dup = b.dupLabelError;
         if (dup) {
           // Duplicated labels detected by parser.
           throw new LuaRuntimeError(
@@ -1246,7 +1235,7 @@ export function evalStatement(
         // a statement returns a Promise, immediately switch to async by
         // returning a continuation that resumes execution from the next
         // statement (`i + 1`).
-        const execEnv = bf.needsEnv === true ? new LuaEnv(env) : env;
+        const execEnv = b.needsEnv === true ? new LuaEnv(env) : env;
         const stmts = b.statements;
 
         const processFrom = (
@@ -1294,7 +1283,7 @@ export function evalStatement(
       // If function has gotos, but this block itself has no labels,
       // avoid computing metadata for this block.
       if (fnHasGotos === true && !hasLabelHere && !hasGotoFlag) {
-        const execEnv = bf.needsEnv === true ? new LuaEnv(env) : env;
+        const execEnv = b.needsEnv === true ? new LuaEnv(env) : env;
         const stmts = b.statements;
         const runFrom = (
           i: number,
@@ -1338,14 +1327,14 @@ export function evalStatement(
       }
 
       if (!meta || !meta.funcHasGotos) {
-        const dup = bf.dupLabelError;
+        const dup = b.dupLabelError;
         if (dup) {
           throw new LuaRuntimeError(
             `label '${dup.name}' already defined`,
             sf.withCtx(dup.ctx),
           );
         }
-        const execEnv = bf.needsEnv === true ? new LuaEnv(env) : env;
+        const execEnv = b.needsEnv === true ? new LuaEnv(env) : env;
         const stmts = b.statements;
 
         const processFrom = (
@@ -1387,7 +1376,7 @@ export function evalStatement(
 
         return processFrom(0);
       } else {
-        const execEnv = bf.needsEnv === true ? new LuaEnv(env) : env;
+        const execEnv = b.needsEnv === true ? new LuaEnv(env) : env;
         const stmts = b.statements;
 
         const runFrom = (

@@ -18,6 +18,8 @@ export type LuaBlock = {
   dupLabelError?: { name: string; ctx: ASTCtx };
   // this block declares top-level locals and therefore needs a new env
   needsEnv?: boolean;
+  // true if this block itself (not nested ones) defines at least one label
+  hasLabelHere?: boolean;
 } & ASTContext;
 
 // STATEMENTS
