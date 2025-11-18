@@ -8,4 +8,5 @@ ENV SB_READ_ONLY=1
 ADD website /space
 
 # Add excalidraw plug
-ADD https://github.com/LogeshG5/silverbullet-excalidraw/releases/download/edge/excalidraw.plug.js /space/_plug/
+ADD https://github.com/LogeshG5/silverbullet-excalidraw/releases/download/edge/excalidraw.plug.js /space/
+ADD https://github.com/MrMugame/silversearch/releases/latest/download/silversearch.plug.js /space/

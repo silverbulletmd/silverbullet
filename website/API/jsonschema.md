@@ -1,4 +1,4 @@
-# JSON Schema API
+#api/space-lua
 
 The JSON Schema API provides functions for validating JSON objects against JSON schemas.
 

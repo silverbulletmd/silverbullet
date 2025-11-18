@@ -1,4 +1,4 @@
-# String API
+#api/lua
 
 API docs for Space Lua's `string` module.
 

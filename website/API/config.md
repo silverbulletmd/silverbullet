@@ -1,3 +1,5 @@
+#api/syscall
+
 The Config API provides functions for managing configuration values.
 
 ### config.get(path, defaultValue)

@@ -1,4 +1,5 @@
-# Service registry API
+#api/syscall
+
 Exposes a simple service registry API leveraged by various parts of SilverBullet, see [[Services]].
 
 ## Example

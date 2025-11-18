@@ -1,4 +1,4 @@
-# Event API
+#api/syscall
 
 The Event API provides functions for working with SilverBullet's event bus system, allowing communication between different parts of the application.
 

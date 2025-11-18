@@ -144,11 +144,6 @@ self.addEventListener("message", async (event: any) => {
       }
       break;
     }
-    case "force-connection-status": {
-      proxyRouter.forcedStatus = message.enabled;
-      console.info("Forced connection status to", message.enabled);
-      break;
-    }
     case "get-encryption-key": {
       event.source.postMessage({
         type: "encryption-key",

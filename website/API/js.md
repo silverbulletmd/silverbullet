@@ -1,3 +1,5 @@
+#api/space-lua
+
 API docs for Space Lua's `js` module, which provides JavaScript interoperability.
 
 ## js.import(url)

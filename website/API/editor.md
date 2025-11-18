@@ -1,3 +1,5 @@
+#api/syscall
+
 The Editor API provides functions for interacting with the editor interface.
 
 ### editor.getCurrentPage()

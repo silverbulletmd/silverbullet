@@ -1,3 +1,5 @@
+#api/space-lua
+
 Template functions that use the [[API/template#template.new(template)]] function.
 
 ## template.new(template, stripIndent)

@@ -1,3 +1,5 @@
+#api/space-lua
+
 The `encoding` API implements a few useful functions to handle various types of encoding.
 
 ### encoding.base64Encode(data)

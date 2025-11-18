@@ -1,3 +1,5 @@
+#api/syscall
+
 The Language API provides functions for parsing code in various programming languages and listing supported languages.
 
 ## Language Operations

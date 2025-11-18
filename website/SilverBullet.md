@@ -1,64 +1,72 @@
 # Introduction
-SilverBullet is a tool to **develop**, **organize**, and **structure** your personal knowledge and to make it **universally accessible** across your devices. 
+SilverBullet is a [[Programmable]], [[Private]], [[Browser]]-based, [[Open Source]], [[Self Hosted]], [[Personal]] [[Knowledge Management]] [[Platform]].
 
-In SilverBullet you keep your content as a collection of [[Markdown]] [[Pages]] (called a [[Spaces|Space]]). You navigate your space using the [[Page Picker]] like a traditional notes app, or through [[Links]] like a wiki (except they are [[Linked Mentions|bi-directional]]). 
+_Yowza!_ That surely is a lot of adjectives to describe a [[Markdown]] editor programmable with [[Lua]].
+
+Let’s get more specific.
+
+In SilverBullet you keep your content as a collection of [[Markdown]] [[Pages]] (called a [[Spaces|Space]]). You navigate your space using the [[Page Picker]] like a traditional notes app, or through [[Links]] like a wiki (except they are [[Linked Mentions|bi-directional]]).
 
 If you are the **writer** type, you’ll appreciate SilverBullet as a clean [[Markdown]] editor with [[Live Preview]]. If you have more of an **outliner** personality, SilverBullet has [[Outlines|Outlining]] tools for you. Productivity freak? Have a look at [[Tasks]]. More of a **database** person? You will appreciate [[Objects]] and [[Space Lua/Lua Integrated Query|Queries]]. 
 
-And if you are comfortable writing (or learning) some **code**, you will love _dynamically generating content_ with [[Space Lua]] (SilverBullet’s [[Lua]] dialect), and use it to create custom [[Commands]] and [[Space Lua/Widgets]].
+And if you are comfortable **programming** a little bit — now we’re really talking. You will love _dynamically generating content_ with [[Space Lua]] (SilverBullet’s [[Lua]] dialect), or to use it to create custom [[Commands]], [[Page Templates]] or [[Space Lua/Widgets]].
 
-Err, _whut_?! Dynamically generating content, what does that mean?
+# Programmable notes?
+Dynamically generating content, _programmable notes_... why would you want that, and how does it work?
 
-Let’s say you want to have a list of your 5 modified pages on your space’s index page. We can do that (`Alt-click` to see the underlying code):
+Let’s say you have documented a set of product features in individual pages that you’ve [[Tags|tagged]] with a #feature tag, and annotated with a few custom [[Frontmatter]] [[Attributes]].
+
+With a simple [[Space Lua/Lua Integrated Query|Query]] and [[Template]], you can now dynamically build a product feature list, ordered by _awesomeness_ (`Alt-click` or hover and click the edit button to see the underlying code):
 
 ${template.each(query[[
-  from index.tag "page"
-  order by _.lastModified desc
+  from tags.feature
+  where tag == "page"
+  order by awesomeness desc
+]], templates.featureItem)}
+
+_(The template generating the feature bullet items can be found in [[^Library/Website Templates]])_
+
+Neat huh? A few more use cases.
+
+## Active pages
+Let’s say you want to have a list of your 5 modified pages. We can do that!
+${template.each(query[[
+  from tags.page
+  order by lastModified desc
   limit 5
 ]], templates.pageItem)}
 
-Want to collect all [[Tasks]] that you have not yet completed from across your space? No problem!
-
+## Todo items 
+Maybe you want to collect all [[Tasks]] that you have not yet completed from across your space? No problem:
 ${template.each(query[[
   from index.tag "task"
   where not _.done
   limit 3
 ]], templates.taskItem)}
 
-That all sounds nice, but what does that look like in practice? Well, if you’re wondering purely about _looks_: have a look around — this very website is hosted as a _read-only_ SilverBullet instance.
+# Tour
+That all sounds nice, but what does that look like in practice? Well, if you’re wondering purely about _looks_: have a look around — this very website is hosted as a _read-only_ SilverBullet instance. You probably already figured this out.
 
 If you’d like a bit of a tour and demo, give this a watch:
 ${embed.youtube "https://www.youtube.com/watch?v=mik1EbTshX4"}
+
+Want to see even more? Here is a whole [playlist with instruction videos](https://www.youtube.com/watch?v=bb1USz_cEBY&list=PLxFAb_vXRcEp4465MVI6Ha9wzNiX5VevQ) that go more in depth.
+
 # Installing
-SilverBullet is a **self-hosted web application**. You need to install it on a server. Perhaps you do this on a Raspberry Pi you didn’t have a use for, or a VPS somewhere in the cloud. SilverBullet is distributed as a single self-contained server [[Install/Binary]] or [[Install/Docker]] container. While this is a bit more complicated to set up than simply downloading a desktop or mobile app, since your space is centrally stored on a server under your control, you can now access it from anywhere you can access your server. And it may well be your gateway to [[Self Hosting]] more interesting applications.
+As mentioned, SilverBullet is a [[Self Hosted]] web application. You need to install it on a server. Perhaps you do this on a Raspberry Pi you didn’t have a use for, or a VPS somewhere in the cloud. SilverBullet is distributed as a single self-contained server [[Install/Binary]] or [[Install/Docker]] container.
+
+While this is a bit more complicated to set up than simply downloading desktop app or signing up for an account with some online service, self hosting is a path to both [[Data Sovereignty]] and to access your content from any device with a modern [[Browser]].
 
 The SilverBullet client is built as a [[Local First]], [[PWA|progressive web application]], syncing all your content into your browser’s local storage, enabling **instant access** to your entire space whether you are **online** or **offline**. Simply opt to “Install SilverBullet” from your browser (in any Chrome-based browser), add it to your Dock or home screen (Safari and Android), and voila: SilverBullet becomes indistinguishable from a regular desktop or mobile app. You can try it right here on silverbullet.md.
 ![[pwa-screenshot.png]]
 
 Unplug your (hypothetical) network cable, and everything still works!
 
-# Features
-So, what is SilverBullet? Like... _really._
-
-* SilverBullet at its core is a **note taking** application, a kind of personal wiki, storing its notes in the universal [[Markdown]] format in a folder on your server.
-* SilverBullet provides an enjoyable [[Markdown]] writing experience with a clean UI, rendering text using [[Live Preview|live preview]], further **reducing visual noise** while still providing direct access to the underlying markdown syntax. It has convenient [[Commands]] and keyboard shortcuts, to e.g. make text bold or italic, and [[Slash Commands]] for more advanced text manipulation.
-* SilverBullet supports wiki-style **page linking** using the `[[page link]]` syntax. Incoming links are indexed and appear as [[Linked Mentions]] at the bottom of the pages linked to, thereby providing _bi-directional linking_.
-* SilverBullet is a **web application** and therefore accessible from wherever a (modern) web browser is available.
-* SilverBullet is built as a [[Local First]] [[PWA]] keeping a copy of your content in your browser’s local ([IndexedDB](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API)) database, syncing back to the server when a network connection is available.
-* SilverBullet is a **self-hosted** solution: _you own your data_. Your [[Spaces|space]] is stored as plain files in a folder on disk on your server. Back it up, sync, edit, publish, script it with any additional tools you like.
-* SilverBullet is optimized for **keyboard-based operation**:
-  * Quickly navigate between pages using the **page switcher** (triggered with `Cmd-k` on Mac or `Ctrl-k` on Linux and Windows).
-  * Run commands via their keyboard shortcuts or the **command palette** (triggered with `Cmd-/` or `Ctrl-/` on Linux and Windows).
-  * Use [[Slash Commands]] to perform common text editing operations.
-* SilverBullet is a platform for [[End-User Programming]] through its support for [[Objects]] and [[Space Lua]].
-* SilverBullet can be extended using [[Space Lua]] and [[Plugs]], and a lot of core functionality is built that way.
-* SilverBullet is free, [**open source**, MIT licensed](https://github.com/silverbulletmd/silverbullet) software.
-
 # Project status
-SilverBullet has been in development since late 2022, but is ever evolving. The current iteration is **SilverBullet v2**. We had a little bit of a reboot, rebuilding some of the foundations, and replacing some of the previous ([v1](https://v1.silverbullet.md)) features. 
+SilverBullet has been in development since early 2022, but is ever evolving. The current iteration is **SilverBullet v2**. We had a little bit of a reboot, rebuilding some of the foundations, and replacing some of the previous ([v1](https://v1.silverbullet.md)) features. 
 
 # What’s next?
-* [[Manual]]: SilverBullet’s official, yet incomplete manual.
+* [[Manual]]: SilverBullet’s official manual.
 * [[CHANGELOG]]: we’re in active development, so things change rapidly. Watch this page to keep up.
 * [Community](https://community.silverbullet.md): join our community: ask questions, share your experiences.
 * [Issues](https://github.com/silverbulletmd/silverbullet/issues): if you have ideas or find bugs, please report them.

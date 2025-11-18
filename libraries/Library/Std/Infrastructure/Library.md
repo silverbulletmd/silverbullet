@@ -207,10 +207,12 @@ function library.remove(pageName)
 
   local fm = index.extractFrontmatter(text).frontmatter
 
+  local targetBase = urlDir(pageName)
+
   -- Remove associated files first
   if fm.files then
     for file in fm.files do
-      local p = pageName .. "/" .. file
+      local p = targetBase .. file
       space.deleteFile(p)
     end
   end
@@ -292,15 +294,16 @@ function library.installableLibrariesWidget()
   ]] do
     table.insert(rows, dom.tr {
       dom.td {
-        lib.website and dom.a {
-          href = lib.website,
+        dom.a {
+          href = lib.website or lib.uri:startsWith("https://") and lib.uri,
           "**" .. lib.name .. "**",
-        } or "**" .. lib.name .. "**",
+        },
         " _([[" .. lib.page .. "]])_",
         lib.description and dom.p { lib.description } or ""
       },
       dom.td {
         widgets.button("Install", function()
+          editor.flashNotification "Installing..."
           library.install(lib.uri)
           editor.flashNotification "Done!"
           reloadEverything()

@@ -1,3 +1,5 @@
+#api/syscall
+
 The Shell API provides functions for running shell commands and interacting with processes.
 
 ### shell.run(cmd, args, stdin?)

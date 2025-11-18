@@ -1,3 +1,5 @@
+#api/lua
+
 These are Lua functions defined in the `table` namespace:
 
 ## table.concat(table, sep?, i?, j?)

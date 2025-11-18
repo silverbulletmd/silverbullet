@@ -1,12 +1,33 @@
-Here’s a diagram of roughly how things fit together: 
+Here is a big-picture (conceptual) architecture of SilverBullet:
 ```excalidraw
-url:Architecture/Architecture.excalidraw
+url:architecture.excalidraw
+height:800px
 ```
 
 # Client
-The client is what you see when you open SilverBullet in a browser tab or window. It renders the UI, interacts with the user, runs [[Plugs]], [[Space Lua]], and maintains the index. 90%+ of logic lives here.
+The client is what you see when you open SilverBullet in a browser tab or window. It renders the UI, interacts with the user and runs most of the logic. 90%+ of logic in SilverBullet lives here.
 
-The client relies on IndexedDB as a data store. It uses this data store primarily to keep the [[Objects|object index]]. In your browser’s database list, this database’s name will end with `_data`. This data store is _shared_ between tabs and windows (of the same browser).
+## Editor
+The editor is built on [CodeMirror](https://codemirror.net/) with a lot of [[Markdown/Extensions]] to its default Markdown mode.
+
+## Space Lua
+SilverBullet contains a custom [[Lua]] runtime called [[Space Lua]]. It should be your first go-to when you are interested in extending SilverBullet to your like. Space Lua implements the majority of the Lua 5.4 standard library (where it makes sense), but also includes some additional Space Lua-specific [[API]]s. In addition all [[#Syscalls]] are accessible from Space Lua.
+
+When Lua code gets too complicated or performance is more of a concern, the next level is to build your extension in TypeScript as a plug.
+
+## Plugs
+[[Plugs]] and the PlugOS library that implements are a generic means to extend SilverBullet. Code is written in TypeScript and compiled into a single JavaScript `.plug.js` bundle that can be distributed as part of a [[Libraries|Library]]. 
+
+A lot of [“built in” functionality](https://github.com/silverbulletmd/silverbullet/tree/main/plugs) in SilverBullet in in fact implemented as plugs, partially to “stress test” this infrastructure. 
+
+## Syscalls
+Syscalls (system calls) are the abstraction used in SilverBullet to cleanly create an API boundary between SilverBullet and extension code (Plugs or Space Lua). A lot of functionality core to SilverBullet (in the editor, the event system, datastore) are exposed through syscalls.
+
+## Events and services
+[[Events]]
+
+## Datastore
+
 
 The client interacts with the service worker and server primarily via the [[HTTP API]], which exposes CRUD-style operations on files.
 
@@ -30,4 +51,3 @@ The server has only three jobs:
 * Implement the [[HTTP API]], which mainly means listing, reading, writing and deleting files, and executing shell commands.
 
 Note that all indexing, querying etc. happens in the client. The server effectively acts as a file store.
-

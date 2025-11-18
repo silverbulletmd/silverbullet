@@ -1,3 +1,5 @@
+#api/syscall
+
 The Client Store API provides a simple key-value store for client-specific states and preferences.
 
 ## clientStore.set(key, value)

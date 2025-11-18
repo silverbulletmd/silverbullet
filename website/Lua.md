@@ -1,1 +1,1 @@
-[Lua](https://www.lua.org/) is the preferred programming language that SilverBullet leverages to make it extensible. It contains a custom implementation of a dialect called [[Space Lua]].
+[Lua](https://www.lua.org/) is the programming language that SilverBullet leverages to make it extensible. It has a custom implementation of a Lua dialect called [[Space Lua]].
