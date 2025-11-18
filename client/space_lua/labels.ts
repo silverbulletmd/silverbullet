@@ -19,6 +19,8 @@ type BlockGotoMeta = {
 };
 
 type FunctionMeta = {
+  // Stores per-block data and drops entries automatically when a block
+  // is no longer used.
   blockMeta: WeakMap<LuaBlock, BlockGotoMeta>;
   funcHasGotos: boolean;
 };
