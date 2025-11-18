@@ -1218,31 +1218,21 @@ export function evalStatement(
       type BlockFlags = LuaBlock & {
         hasGoto?: boolean;
         hasLabel?: boolean;
+        hasLabelHere?: boolean;
         dupLabelError?: { name: string; ctx: ASTCtx };
         needsEnv?: boolean;
       };
       const bf = b as BlockFlags;
+
       const hasGotoFlag = bf.hasGoto === true;
       const hasLabelFlag = bf.hasLabel === true;
+      const hasLabelHere = bf.hasLabelHere === true;
 
-      // Metadata decision: use function-level cache when available
-      let meta: ReturnType<typeof getBlockGotoMeta> | undefined = undefined;
       const curFn = (sf as any).currentFunction as LuaFunction | undefined;
-      const cachedHas = curFn?.funcHasGotos;
-      if (cachedHas === false) {
-        meta = undefined;
-      } else if (cachedHas === true) {
-        meta = blockMetaOrThrow(b, sf);
-      } else {
-        if (hasGotoFlag || hasLabelFlag) {
-          meta = blockMetaOrThrow(b, sf);
-          if (curFn) {
-            curFn.funcHasGotos = !!meta?.funcHasGotos;
-          }
-        }
-      }
+      const fnHasGotos = curFn?.funcHasGotos;
 
-      if (!meta || !meta.funcHasGotos) {
+      // Fast path: function known to have no gotos, run without meta
+      if (fnHasGotos === false || (!hasGotoFlag && !hasLabelFlag)) {
         const dup = bf.dupLabelError;
         if (dup) {
           // Duplicated labels detected by parser.
@@ -1285,6 +1275,103 @@ export function evalStatement(
               });
             }
             // Will only happen with `return` statement
+            if (result !== undefined) {
+              if (isGotoSignal(result)) {
+                throw new LuaRuntimeError(
+                  "unexpected goto signal",
+                  sf.withCtx(stmts[i].ctx),
+                );
+              }
+              return result;
+            }
+          }
+          return;
+        };
+
+        return processFrom(0);
+      }
+
+      // If function has gotos, but this block itself has no labels,
+      // avoid computing metadata for this block.
+      if (fnHasGotos === true && !hasLabelHere && !hasGotoFlag) {
+        const execEnv = bf.needsEnv === true ? new LuaEnv(env) : env;
+        const stmts = b.statements;
+        const runFrom = (
+          i: number,
+        ):
+          | void
+          | LuaValue[]
+          | GotoSignal
+          | Promise<void | LuaValue[] | GotoSignal> => {
+          for (; i < stmts.length; i++) {
+            const r = evalStatement(stmts[i], execEnv, sf, returnOnReturn);
+            if (isPromise(r)) {
+              return (r as Promise<any>).then((res) => {
+                if (isGotoSignal(res)) return res;
+                if (res !== undefined) return res;
+                return runFrom(i + 1);
+              });
+            } else {
+              if (isGotoSignal(r)) return r;
+              if (r !== undefined) return r;
+            }
+          }
+          return;
+        };
+        return runFrom(0);
+      }
+
+      // Need metadata (function or block has label/goto)
+      let meta: ReturnType<typeof getBlockGotoMeta> | undefined;
+      if (fnHasGotos === undefined && (hasGotoFlag || hasLabelFlag)) {
+        meta = blockMetaOrThrow(b, sf);
+        if (curFn) {
+          curFn.funcHasGotos = !!meta?.funcHasGotos;
+        }
+      } else if (fnHasGotos === true) {
+        // Only fetch metadata for blocks that actually have label/goto
+        meta = hasLabelFlag || hasGotoFlag
+          ? blockMetaOrThrow(b, sf)
+          : undefined;
+      } else {
+        meta = undefined;
+      }
+
+      if (!meta || !meta.funcHasGotos) {
+        const dup = bf.dupLabelError;
+        if (dup) {
+          throw new LuaRuntimeError(
+            `label '${dup.name}' already defined`,
+            sf.withCtx(dup.ctx),
+          );
+        }
+        const execEnv = bf.needsEnv === true ? new LuaEnv(env) : env;
+        const stmts = b.statements;
+
+        const processFrom = (
+          idx: number,
+        ): void | LuaValue[] | Promise<void | LuaValue[]> => {
+          for (let i = idx; i < stmts.length; i++) {
+            const result = evalStatement(
+              stmts[i],
+              execEnv,
+              sf,
+              returnOnReturn,
+            );
+            if (isPromise(result)) {
+              return (result as Promise<any>).then((res) => {
+                if (res !== undefined && !isGotoSignal(res)) {
+                  return res;
+                }
+                if (isGotoSignal(res)) {
+                  throw new LuaRuntimeError(
+                    "unexpected goto signal",
+                    sf.withCtx(stmts[i].ctx),
+                  );
+                }
+                return processFrom(i + 1);
+              });
+            }
             if (result !== undefined) {
               if (isGotoSignal(result)) {
                 throw new LuaRuntimeError(

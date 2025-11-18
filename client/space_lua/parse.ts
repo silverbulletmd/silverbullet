@@ -79,6 +79,7 @@ function parseBlock(t: ParseTree, ctx: ASTCtx): LuaBlock {
   let hasGoto = false;
   let hasLocalDecl = false;
   let dup: { name: string; ctx: ASTCtx } | undefined;
+  let hasLabelHere = false;
 
   const seen = new Set<string>();
 
@@ -86,6 +87,7 @@ function parseBlock(t: ParseTree, ctx: ASTCtx): LuaBlock {
     switch (s.type) {
       case "Label": {
         hasLabel = true;
+        hasLabelHere = true;
         // Duplicate labels in the same block are illegal
         const name = (s as any).name as string;
         if (!dup) {
@@ -154,6 +156,9 @@ function parseBlock(t: ParseTree, ctx: ASTCtx): LuaBlock {
   }
   if (hasLocalDecl) {
     block.needsEnv = true;
+  }
+  if (hasLabelHere) {
+    (block as any).hasLabelHere = true;
   }
   return block;
 }
