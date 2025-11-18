@@ -128,6 +128,7 @@ export class LuaStackFrame {
     readonly threadLocal: LuaEnv,
     readonly astCtx: ASTCtx | null,
     readonly parent?: LuaStackFrame,
+    readonly currentFunction?: LuaFunction,
   ) {
   }
 
@@ -141,7 +142,11 @@ export class LuaStackFrame {
   }
 
   withCtx(ctx: ASTCtx): LuaStackFrame {
-    return new LuaStackFrame(this.threadLocal, ctx, this);
+    return new LuaStackFrame(this.threadLocal, ctx, this, this.currentFunction);
+  }
+
+  withFunction(fn: LuaFunction): LuaStackFrame {
+    return new LuaStackFrame(this.threadLocal, this.astCtx, this.parent, fn);
   }
 }
 
@@ -187,6 +192,7 @@ export function singleResult(value: any): any {
 
 export class LuaFunction implements ILuaFunction {
   private capturedEnv: LuaEnv;
+  funcHasGotos?: boolean;
 
   constructor(readonly body: LuaFunctionBody, closure: LuaEnv) {
     this.capturedEnv = closure;
@@ -200,6 +206,9 @@ export class LuaFunction implements ILuaFunction {
     }
     // Set _CTX to the thread local environment from the stack frame
     env.setLocal("_CTX", sf.threadLocal);
+
+    // Eval using a stack frame that knows the current function
+    const sfWithFn = sf.currentFunction === this ? sf : sf.withFunction(this);
 
     // Resolve args (sync-first)
     const argsRP = rpAll(args as any[]);
@@ -220,7 +229,7 @@ export class LuaFunction implements ILuaFunction {
 
       // Evaluate the function body with returnOnReturn set to true
       try {
-        const r = evalStatement(this.body.block, env, sf, true);
+        const r = evalStatement(this.body.block, env, sfWithFn, true);
         const map = (val: any) => {
           if (val !== undefined) {
             return mapFunctionReturnValue(val);
@@ -765,8 +774,12 @@ export function luaCall(
       }
     }
   } else if (isILuaFunction(callee)) {
+    const base = (sf || LuaStackFrame.lostFrame).withCtx(ctx);
+    const frameForCall = callee instanceof LuaFunction
+      ? base.withFunction(callee)
+      : base;
     return callee.call(
-      (sf || LuaStackFrame.lostFrame).withCtx(ctx),
+      frameForCall,
       ...args,
     );
   } else {

@@ -1,5 +1,6 @@
 import type {
   ASTCtx,
+  LuaBlock,
   LuaExpression,
   LuaLValue,
   LuaStatement,
@@ -54,7 +55,9 @@ import {
   asFunctionCallStmt,
   asFunctionDef,
   asFunctionStmt,
+  asGoto,
   asIf,
+  asLabel,
   asLocal,
   asLocalFunction,
   asLValuePropertyAccess,
@@ -71,6 +74,42 @@ import {
   asVariable,
   asWhile,
 } from "./ast_narrow.ts";
+import { getBlockGotoMeta } from "./labels.ts";
+
+type GotoSignal = { ctrl: "goto"; target: string };
+function isGotoSignal(v: any): v is GotoSignal {
+  return !!v && typeof v === "object" && v.ctrl === "goto";
+}
+
+function consumeGotoInBlock(
+  res: any,
+  labels: Map<string, number>,
+): number | any | undefined {
+  if (res === undefined) {
+    return undefined;
+  }
+  if (isGotoSignal(res)) {
+    const labelIdx = labels.get(res.target);
+    if (labelIdx !== undefined) {
+      return labelIdx + 1; // next statement
+    }
+  }
+  return res;
+}
+
+function blockMetaOrThrow(
+  block: LuaBlock,
+  sf: LuaStackFrame,
+): ReturnType<typeof getBlockGotoMeta> {
+  try {
+    return getBlockGotoMeta(block);
+  } catch (e: any) {
+    if (e && typeof e === "object" && "astCtx" in e) {
+      throw new LuaRuntimeError(e.message, sf.withCtx((e as any).astCtx));
+    }
+    throw e;
+  }
+}
 
 // Queryable guard to avoid `(collection as any).query` usage
 type Queryable = {
@@ -624,11 +663,12 @@ function evalPrefixExpression(
         return handleFunctionCall(prefixValue);
       }
     }
-    default:
+    default: {
       throw new LuaRuntimeError(
         `Unknown prefix expression type ${e.type}`,
         sf.withCtx(e.ctx),
       );
+    }
   }
 }
 
@@ -1074,16 +1114,21 @@ function evalExpressions(
 }
 
 /**
- * Evaluates an expression in two possible modes:
- * 1. with `returnOnReturn` set to `true` will return the value of a return statement
- * 2. with `returnOnReturn` set to `false` will throw a LuaReturn exception if a return statement is encountered
+ * Evaluates a statement in two possible modes:
+ *
+ * 1. With `returnOnReturn` set to `true` will return the value of
+ *    a return statement.
+ * 2. With `returnOnReturn` set to `false` will throw a LuaReturn
+ *    exception if a return statement is encountered.
+ *
+ * May also return `{ctrl:"goto", target}` for goto.
  */
 export function evalStatement(
   s: LuaStatement,
   env: LuaEnv,
   sf: LuaStackFrame,
   returnOnReturn = false,
-): void | LuaValue[] | Promise<void | LuaValue[]> {
+): void | LuaValue[] | GotoSignal | Promise<void | LuaValue[] | GotoSignal> {
   switch (s.type) {
     case "Assignment": {
       const a = asAssignment(s);
@@ -1160,49 +1205,218 @@ export function evalStatement(
     case "Semicolon": {
       return;
     }
-    case "Label":
+    case "Label": {
+      const _lab = asLabel(s); // No-op!
+      return;
+    }
     case "Goto": {
-      throw new LuaRuntimeError(
-        "Labels and gotos are not supported",
-        sf.withCtx(s.ctx),
-      );
+      const g = asGoto(s);
+      return { ctrl: "goto", target: g.name };
     }
     case "Block": {
       const b = asBlock(s);
-      const newEnv = new LuaEnv(env);
-      const stmts = b.statements;
+      const hasGotoFlag = b.hasGoto === true;
+      const hasLabelFlag = b.hasLabel === true;
+      const hasLabelHere = b.hasLabelHere === true;
 
-      // Sync-first execution: iterate statements in a simple loop; if
-      // a statement returns a Promise, immediately switch to async by
-      // returning a continuation that resumes execution from the next
-      // statement (`i + 1`).
-      const processFrom = (
-        idx: number,
-      ): void | LuaValue[] | Promise<void | LuaValue[]> => {
-        for (let i = idx; i < stmts.length; i++) {
-          const result = evalStatement(
-            stmts[i],
-            newEnv,
-            sf,
-            returnOnReturn,
+      const curFn = (sf as any).currentFunction as LuaFunction | undefined;
+      const fnHasGotos = curFn?.funcHasGotos;
+
+      // Fast path: function known to have no gotos, run without meta
+      if (fnHasGotos === false || (!hasGotoFlag && !hasLabelFlag)) {
+        const dup = b.dupLabelError;
+        if (dup) {
+          // Duplicated labels detected by parser.
+          throw new LuaRuntimeError(
+            `label '${dup.name}' already defined`,
+            sf.withCtx(dup.ctx),
           );
-          if (isPromise(result)) {
-            return (result as Promise<any>).then((res) => {
-              if (res !== undefined) {
-                return res;
-              }
-              return processFrom(i + 1);
-            });
-          }
-          // Will only happen with `return` statement
-          if (result !== undefined) {
-            return result;
-          }
         }
-        return;
-      };
 
-      return processFrom(0);
+        // Sync-first execution: iterate statements in a simple loop; if
+        // a statement returns a Promise, immediately switch to async by
+        // returning a continuation that resumes execution from the next
+        // statement (`i + 1`).
+        const execEnv = b.needsEnv === true ? new LuaEnv(env) : env;
+        const stmts = b.statements;
+
+        const processFrom = (
+          idx: number,
+        ): void | LuaValue[] | Promise<void | LuaValue[]> => {
+          for (let i = idx; i < stmts.length; i++) {
+            const result = evalStatement(
+              stmts[i],
+              execEnv,
+              sf,
+              returnOnReturn,
+            );
+            if (isPromise(result)) {
+              return (result as Promise<any>).then((res) => {
+                if (res !== undefined && !isGotoSignal(res)) {
+                  return res;
+                }
+                if (isGotoSignal(res)) {
+                  // Should not happen in fast path
+                  throw new LuaRuntimeError(
+                    "unexpected goto signal",
+                    sf.withCtx(stmts[i].ctx),
+                  );
+                }
+                return processFrom(i + 1);
+              });
+            }
+            // Will only happen with `return` statement
+            if (result !== undefined) {
+              if (isGotoSignal(result)) {
+                throw new LuaRuntimeError(
+                  "unexpected goto signal",
+                  sf.withCtx(stmts[i].ctx),
+                );
+              }
+              return result;
+            }
+          }
+          return;
+        };
+
+        return processFrom(0);
+      }
+
+      // If function has gotos, but this block itself has no labels,
+      // avoid computing metadata for this block.
+      if (fnHasGotos === true && !hasLabelHere && !hasGotoFlag) {
+        const execEnv = b.needsEnv === true ? new LuaEnv(env) : env;
+        const stmts = b.statements;
+        const runFrom = (
+          i: number,
+        ):
+          | void
+          | LuaValue[]
+          | GotoSignal
+          | Promise<void | LuaValue[] | GotoSignal> => {
+          for (; i < stmts.length; i++) {
+            const r = evalStatement(stmts[i], execEnv, sf, returnOnReturn);
+            if (isPromise(r)) {
+              return (r as Promise<any>).then((res) => {
+                if (isGotoSignal(res)) return res;
+                if (res !== undefined) return res;
+                return runFrom(i + 1);
+              });
+            } else {
+              if (isGotoSignal(r)) return r;
+              if (r !== undefined) return r;
+            }
+          }
+          return;
+        };
+        return runFrom(0);
+      }
+
+      // Need metadata (function or block has label/goto)
+      let meta: ReturnType<typeof getBlockGotoMeta> | undefined;
+      if (fnHasGotos === undefined && (hasGotoFlag || hasLabelFlag)) {
+        meta = blockMetaOrThrow(b, sf);
+        if (curFn) {
+          curFn.funcHasGotos = !!meta?.funcHasGotos;
+        }
+      } else if (fnHasGotos === true) {
+        // Only fetch metadata for blocks that actually have label/goto
+        meta = hasLabelFlag || hasGotoFlag
+          ? blockMetaOrThrow(b, sf)
+          : undefined;
+      } else {
+        meta = undefined;
+      }
+
+      if (!meta || !meta.funcHasGotos) {
+        const dup = b.dupLabelError;
+        if (dup) {
+          throw new LuaRuntimeError(
+            `label '${dup.name}' already defined`,
+            sf.withCtx(dup.ctx),
+          );
+        }
+        const execEnv = b.needsEnv === true ? new LuaEnv(env) : env;
+        const stmts = b.statements;
+
+        const processFrom = (
+          idx: number,
+        ): void | LuaValue[] | Promise<void | LuaValue[]> => {
+          for (let i = idx; i < stmts.length; i++) {
+            const result = evalStatement(
+              stmts[i],
+              execEnv,
+              sf,
+              returnOnReturn,
+            );
+            if (isPromise(result)) {
+              return (result as Promise<any>).then((res) => {
+                if (res !== undefined && !isGotoSignal(res)) {
+                  return res;
+                }
+                if (isGotoSignal(res)) {
+                  throw new LuaRuntimeError(
+                    "unexpected goto signal",
+                    sf.withCtx(stmts[i].ctx),
+                  );
+                }
+                return processFrom(i + 1);
+              });
+            }
+            if (result !== undefined) {
+              if (isGotoSignal(result)) {
+                throw new LuaRuntimeError(
+                  "unexpected goto signal",
+                  sf.withCtx(stmts[i].ctx),
+                );
+              }
+              return result;
+            }
+          }
+          return;
+        };
+
+        return processFrom(0);
+      } else {
+        const execEnv = b.needsEnv === true ? new LuaEnv(env) : env;
+        const stmts = b.statements;
+
+        const runFrom = (
+          i: number,
+        ):
+          | void
+          | LuaValue[]
+          | GotoSignal
+          | Promise<void | LuaValue[] | GotoSignal> => {
+          for (; i < stmts.length; i++) {
+            const r = evalStatement(stmts[i], execEnv, sf, returnOnReturn);
+            if (isPromise(r)) {
+              return (r as Promise<any>).then((res) => {
+                const consumed = consumeGotoInBlock(res, meta!.labels);
+                if (typeof consumed === "number") {
+                  return runFrom(consumed);
+                }
+                if (consumed !== undefined) {
+                  return consumed;
+                }
+                return runFrom(i + 1);
+              });
+            }
+            const consumed = consumeGotoInBlock(r, meta.labels);
+            if (typeof consumed === "number") {
+              // consumed is the next statement index; adjust for for-loop increment
+              i = consumed - 1;
+              continue;
+            }
+            if (consumed !== undefined) {
+              return consumed;
+            }
+          }
+          return;
+        };
+
+        return runFrom(0);
+      }
     }
     case "If": {
       const iff = asIf(s);
@@ -1211,7 +1425,11 @@ export function evalStatement(
 
       const runFrom = (
         i: number,
-      ): void | LuaValue[] | Promise<void | LuaValue[]> => {
+      ):
+        | void
+        | LuaValue[]
+        | GotoSignal
+        | Promise<void | LuaValue[] | GotoSignal> => {
         if (i >= conds.length) {
           if (iff.elseBlock) {
             return evalStatement(iff.elseBlock, env, sf, returnOnReturn);
@@ -1222,8 +1440,7 @@ export function evalStatement(
         if (isPromise(cv)) {
           return (cv as Promise<any>).then((val) => {
             if (luaTruthy(val)) {
-              const r = evalStatement(conds[i].block, env, sf, returnOnReturn);
-              return isPromise(r) ? r : r;
+              return evalStatement(conds[i].block, env, sf, returnOnReturn);
             }
             return runFrom(i + 1);
           });
@@ -1239,7 +1456,7 @@ export function evalStatement(
     }
     case "While": {
       const w = asWhile(s);
-      const runAsync = async () => {
+      const runAsync = async (): Promise<void | LuaValue[] | GotoSignal> => {
         while (true) {
           const c = await evalExpression(w.condition, env, sf);
           if (!luaTruthy(c)) {
@@ -1249,9 +1466,14 @@ export function evalStatement(
             const r = evalStatement(w.block, env, sf, returnOnReturn);
             if (isPromise(r)) {
               const res = await r;
+              if (isGotoSignal(res)) {
+                return res;
+              }
               if (res !== undefined) {
                 return res;
               }
+            } else if (isGotoSignal(r)) {
+              return r;
             } else if (r !== undefined) {
               return r;
             }
@@ -1273,12 +1495,13 @@ export function evalStatement(
             if (!luaTruthy(cv)) {
               return;
             }
-            // Run body once for this already true condition, then
-            // continue async.
             try {
               const r = evalStatement(w.block, env, sf, returnOnReturn);
               if (isPromise(r)) {
                 return (r as Promise<any>).then((res) => {
+                  if (isGotoSignal(res)) {
+                    return res;
+                  }
                   if (res !== undefined) {
                     return res;
                   }
@@ -1289,10 +1512,15 @@ export function evalStatement(
                   }
                   throw e;
                 });
-              } else if (r !== undefined) {
-                return r;
+              } else {
+                if (isGotoSignal(r)) {
+                  return r;
+                }
+                if (r !== undefined) {
+                  return r;
+                }
+                return runAsync();
               }
-              return runAsync();
             } catch (e: any) {
               if (e instanceof LuaBreak) {
                 return;
@@ -1308,6 +1536,9 @@ export function evalStatement(
           const r = evalStatement(w.block, env, sf, returnOnReturn);
           if (isPromise(r)) {
             return (r as Promise<any>).then((res) => {
+              if (isGotoSignal(res)) {
+                return res;
+              }
               if (res !== undefined) {
                 return res;
               }
@@ -1318,8 +1549,13 @@ export function evalStatement(
               }
               throw e;
             });
-          } else if (r !== undefined) {
-            return r;
+          } else {
+            if (isGotoSignal(r)) {
+              return r;
+            }
+            if (r !== undefined) {
+              return r;
+            }
           }
         } catch (e: any) {
           if (e instanceof LuaBreak) {
@@ -1333,17 +1569,25 @@ export function evalStatement(
     }
     case "Repeat": {
       const r = asRepeat(s);
-      const runAsync = async () => {
+      const runAsync = async (): Promise<void | LuaValue[] | GotoSignal> => {
         while (true) {
           try {
             const rr = evalStatement(r.block, env, sf, returnOnReturn);
             if (isPromise(rr)) {
               const res = await rr;
+              if (isGotoSignal(res)) {
+                return res;
+              }
               if (res !== undefined) {
                 return res;
               }
-            } else if (rr !== undefined) {
-              return rr;
+            } else {
+              if (isGotoSignal(rr)) {
+                return rr;
+              }
+              if (rr !== undefined) {
+                return rr;
+              }
             }
           } catch (e: any) {
             if (e instanceof LuaBreak) {
@@ -1365,6 +1609,9 @@ export function evalStatement(
           const rr = evalStatement(r.block, env, sf, returnOnReturn);
           if (isPromise(rr)) {
             return (rr as Promise<any>).then((res) => {
+              if (isGotoSignal(res)) {
+                return res;
+              }
               if (res !== undefined) {
                 return res;
               }
@@ -1375,8 +1622,11 @@ export function evalStatement(
               }
               throw e;
             });
-          } else if (rr !== undefined) {
-            return rr;
+          } else {
+            if (isGotoSignal(rr)) {
+              return rr;
+            }
+            if (rr !== undefined) return rr;
           }
         } catch (e: any) {
           if (e instanceof LuaBreak) {
@@ -1484,9 +1734,14 @@ export function evalStatement(
             const r = evalStatement(fr.block, localEnv, sf, returnOnReturn);
             if (isPromise(r)) {
               const res = await r;
+              if (isGotoSignal(res)) {
+                return res;
+              }
               if (res !== undefined) {
                 return res;
               }
+            } else if (isGotoSignal(r)) {
+              return r;
             } else if (r !== undefined) {
               return r;
             }
@@ -1505,7 +1760,11 @@ export function evalStatement(
         start: any,
         end: any,
         step: any,
-      ): void | LuaValue[] | Promise<void | LuaValue[]> => {
+      ):
+        | void
+        | LuaValue[]
+        | GotoSignal
+        | Promise<void | LuaValue[] | GotoSignal> => {
         for (
           let i = start;
           step > 0 ? i <= end : i >= end;
@@ -1517,6 +1776,9 @@ export function evalStatement(
             const r = evalStatement(fr.block, localEnv, sf, returnOnReturn);
             if (isPromise(r)) {
               return (r as Promise<any>).then((res) => {
+                if (isGotoSignal(res)) {
+                  return res;
+                }
                 if (res !== undefined) {
                   return res;
                 }
@@ -1527,6 +1789,8 @@ export function evalStatement(
                 }
                 throw e;
               });
+            } else if (isGotoSignal(r)) {
+              return r;
             } else if (r !== undefined) {
               return r;
             }
@@ -1609,9 +1873,14 @@ export function evalStatement(
               const r = evalStatement(fi.block, localEnv, sf, returnOnReturn);
               if (isPromise(r)) {
                 const res = await r;
+                if (isGotoSignal(res)) {
+                  return res;
+                }
                 if (res !== undefined) {
                   return res;
                 }
+              } else if (isGotoSignal(r)) {
+                return r;
               } else if (r !== undefined) {
                 return r;
               }
@@ -1644,6 +1913,9 @@ export function evalStatement(
               const r = evalStatement(fi.block, localEnv, sf, returnOnReturn);
               if (isPromise(r)) {
                 return (r as Promise<any>).then((res) => {
+                  if (isGotoSignal(res)) {
+                    return res;
+                  }
                   if (res !== undefined) {
                     return res;
                   }
@@ -1654,10 +1926,15 @@ export function evalStatement(
                   }
                   throw e;
                 });
-              } else if (r !== undefined) {
-                return r;
               } else {
-                return runAsync();
+                if (isGotoSignal(r)) {
+                  return r;
+                }
+                if (r !== undefined) {
+                  return r;
+                } else {
+                  return runAsync();
+                }
               }
             });
           }
@@ -1675,6 +1952,9 @@ export function evalStatement(
             const r = evalStatement(fi.block, localEnv, sf, returnOnReturn);
             if (isPromise(r)) {
               return (r as Promise<any>).then((res) => {
+                if (isGotoSignal(res)) {
+                  return res;
+                }
                 if (res !== undefined) {
                   return res;
                 }
@@ -1685,6 +1965,8 @@ export function evalStatement(
                 }
                 throw e;
               });
+            } else if (isGotoSignal(r)) {
+              return r;
             } else if (r !== undefined) {
               return r;
             }
