@@ -16,6 +16,7 @@ uri: https://github.com/silverbulletmd/silverbullet-mermaid/blob/main/PLUG.md
 name: Excalidraw diagrams
 author: Logesh
 website: https://github.com/LogeshG5/silverbullet-excalidraw
+description: Support for [Excalidraw](https://excalidraw.com/) in SilverBullet.
 uri: https://github.com/LogeshG5/silverbullet-excalidraw/blob/main/PLUG.md
 ---
 name: Silversearch
@@ -23,6 +24,18 @@ author: MrMugame
 description: Powerful full-text search engine for SilverBullet
 website: https://github.com/MrMugame/silversearch
 uri: ghr:MrMugame/silversearch/PLUG.md
+---
+name: TreeView
+author: Joe Krill
+description: Adds a tree view that allows you to navigate your SilverBullet pages hierarchically
+website: https://github.com/joekrill/silverbullet-treeview
+uri: https://github.com/zefhemel/silverbullet-treeview/blob/main/PLUG.md
+---
+name: GraphView
+author: Deepak Narayan
+description: Obsidian-like graph view for SilverBullet
+website: https://github.com/deepkn/silverbullet-graphview
+uri: https://github.com/zefhemel/silverbullet-graphview/blob/main/PLUG.md
 ---
 name: PDF Viewer
 author: MrMugame
