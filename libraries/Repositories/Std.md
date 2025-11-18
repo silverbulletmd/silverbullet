@@ -16,7 +16,7 @@ uri: https://github.com/silverbulletmd/silverbullet-mermaid/blob/main/PLUG.md
 name: Excalidraw diagrams
 author: Logesh
 website: https://github.com/LogeshG5/silverbullet-excalidraw
-uri: https://github.com/zefhemel/silverbullet-excalidraw/blob/main/PLUG.md
+uri: https://github.com/LogeshG5/silverbullet-excalidraw/blob/main/PLUG.md
 ---
 name: Silversearch
 author: MrMugame
