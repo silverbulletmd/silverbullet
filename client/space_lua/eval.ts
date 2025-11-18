@@ -93,7 +93,6 @@ function consumeGotoInBlock(
     if (labelIdx !== undefined) {
       return labelIdx + 1; // next statement
     }
-    return res; // upwards
   }
   return res;
 }
