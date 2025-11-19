@@ -385,10 +385,8 @@ function library.suggestRepoNameFromUri(uri)
   -- Take the bit after the last :
   local uriParts = uri:split(":")
   local suggestedName = uriParts[#uriParts]
-  -- Strip .md
-  local suggestedName = suggestedName:gsub("%.md$", "")
-  -- Strip any some generic names
-  for strippableSuffix in {"/REPO", "/silverbullet-libraries"} do
+  -- Strip some generic suffixes
+  for strippableSuffix in {".md", "/REPO", "/main", "/blob", "/silverbullet-libraries"} do
     suggestedName = suggestedName:gsub(strippableSuffix .. "$", "")
   end
   -- Strip branch names (@something)
