@@ -169,10 +169,8 @@ There's a magic `_CTX` global variable available from which you can access usefu
 # Lua implementation notes
 Space Lua is intended to be a more or less complete implementation of [Lua 5.4](https://www.lua.org/manual/5.4/). However, a few features are (still) missing:
 
-* `goto` and labels (not planned, goto considered harmful)
 * coroutines (not planned, not useful in the SilverBullet context)
 * _ENV (planned)
-* Full metatable support (only partial now, planned)
 * Hexadecimal numeric constants with a fractional part, or binary exponents (not supported by JavaScript number parser either)
 
 # Frequently Asked Questions
