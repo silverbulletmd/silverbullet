@@ -29,7 +29,7 @@ name: TreeView
 author: Joe Krill
 description: Adds a tree view that allows you to navigate your SilverBullet pages hierarchically
 website: https://github.com/joekrill/silverbullet-treeview
-uri: https://github.com/zefhemel/silverbullet-treeview/blob/main/PLUG.md
+uri: https://github.com/joekrill/silverbullet-treeview/blob/main/PLUG.md
 ---
 name: GraphView
 author: Deepak Narayan
