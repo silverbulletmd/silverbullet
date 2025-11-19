@@ -43,8 +43,8 @@ website: https://github.com/MrMugame/silverbullet-pdf
 description: PDF Viewer for Silverbullet
 uri: ghr:MrMugame/silverbullet-pdf/PLUG.md
 ---
-name: LaTeX
+name: Math
 author: MrMugame
-description: LaTeX widgets for SilverBullet
+description: LaTeX-style math widgets for SilverBullet
 uri: https://github.com/MrMugame/silverbullet-math/blob/main/Math.md
 ```
