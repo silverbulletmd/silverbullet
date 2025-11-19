@@ -31,6 +31,14 @@ export const netApi = new LuaTable({
         buildProxyUrl(client, url),
         fetchOptions,
       );
+      if (resp.status !== 200) {
+        return {
+          ok: false,
+          status: resp.status,
+          headers: extractProxyHeaders(resp.headers),
+          body: await resp.text(),
+        };
+      }
       // Do sensible things with the body based on the content type
       let body: any;
       const contentTypeHeader = options.responseEncoding ||
