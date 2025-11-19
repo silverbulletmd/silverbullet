@@ -2,9 +2,15 @@ import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
 import type { SpacePrimitives } from "./space_primitives.ts";
 import { isValidPath } from "@silverbulletmd/silverbullet/lib/ref";
 
-export class CheckPathSpacePrimitives implements SpacePrimitives {
+/**
+ * Adds checks for two things:
+ * 1. Allowed path names
+ * 2. Permissions
+ */
+export class CheckedSpacePrimitives implements SpacePrimitives {
   constructor(
     private wrapped: SpacePrimitives,
+    private readOnly: boolean,
   ) {
   }
 
@@ -28,23 +34,23 @@ export class CheckPathSpacePrimitives implements SpacePrimitives {
     return this.wrapped.getFileMeta(path, observing);
   }
 
-  writeFile(
+  async writeFile(
     path: string,
     data: Uint8Array,
     meta?: FileMeta,
   ): Promise<FileMeta> {
-    if (!this.isWritable(path)) {
-      throw new Error("Couldn't write file, path is invalid");
+    if (!await this.isWritable(path)) {
+      throw new Error("Couldn't write file, path is not writable");
     }
     return this.wrapped.writeFile(path, data, meta);
   }
 
-  deleteFile(path: string): Promise<void> {
+  async deleteFile(path: string): Promise<void> {
     // We allow deletion of paths we can't write to. This is for the case when
     // the user has an invalidly named file in their space and they need to
     // remove it/rename it
-    if (!this.isReadable(path)) {
-      throw new Error("Couldn't delete file, path isn't writable");
+    if (!await this.isWritable(path)) {
+      throw new Error("Couldn't delete file, path is not writable");
     }
     return this.wrapped.deleteFile(path);
   }
@@ -53,7 +59,18 @@ export class CheckPathSpacePrimitives implements SpacePrimitives {
     return !path.startsWith(".");
   }
 
-  private isWritable(path: string): boolean {
+  private async isWritable(path: string): Promise<boolean> {
+    if (this.readOnly) {
+      return false;
+    }
+    try {
+      const fileMeta = await this.getFileMeta(path);
+      if (fileMeta.perm === "ro") {
+        return false;
+      }
+    } catch {
+      // Assumption, not found, that's ok
+    }
     return this.isReadable(path) && isValidPath(path);
   }
 }

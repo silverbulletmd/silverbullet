@@ -37,7 +37,6 @@ import type {
 } from "@silverbulletmd/silverbullet/type/event";
 import type { StyleObject } from "../plugs/index/style.ts";
 import { jitter, throttle } from "@silverbulletmd/silverbullet/lib/async";
-import { PlugSpacePrimitives } from "./spaces/plug_space_primitives.ts";
 import { EventedSpacePrimitives } from "./spaces/evented_space_primitives.ts";
 import { HttpSpacePrimitives } from "./spaces/http_space_primitives.ts";
 import {
@@ -54,12 +53,10 @@ import {
 import { ClientSystem } from "./client_system.ts";
 import { createEditorState, isValidEditor } from "./codemirror/editor_state.ts";
 import { MainUI } from "./editor_ui.tsx";
-import type { SpacePrimitives } from "./spaces/space_primitives.ts";
 import { DataStore } from "./data/datastore.ts";
 import { IndexedDBKvPrimitives } from "./data/indexeddb_kv_primitives.ts";
 import { DataStoreMQ } from "./data/mq.datastore.ts";
 
-import { ReadOnlySpacePrimitives } from "./spaces/ro_space_primitives.ts";
 import { LimitedMap } from "@silverbulletmd/silverbullet/lib/limited_map";
 import { fsEndpoint } from "./spaces/constants.ts";
 import { diffAndPrepareChanges } from "./codemirror/cm_util.ts";
@@ -72,7 +69,7 @@ import type {
   PageMeta,
 } from "@silverbulletmd/silverbullet/type/index";
 import { parseMarkdown } from "./markdown_parser/parser.ts";
-import { CheckPathSpacePrimitives } from "./spaces/checked_space_primitives.ts";
+import { CheckedSpacePrimitives } from "./spaces/checked_space_primitives.ts";
 import {
   notFoundError,
   offlineError,
@@ -109,7 +106,6 @@ export class Client {
   space!: Space;
 
   clientSystem!: ClientSystem;
-  plugSpaceRemotePrimitives!: PlugSpacePrimitives;
   eventedSpacePrimitives!: EventedSpacePrimitives;
   httpSpacePrimitives!: HttpSpacePrimitives;
 
@@ -315,24 +311,11 @@ export class Client {
       },
     );
 
-    let remoteSpacePrimitives: SpacePrimitives = new CheckPathSpacePrimitives(
-      this.httpSpacePrimitives,
-    );
-
-    if (this.bootConfig.readOnly) {
-      remoteSpacePrimitives = new ReadOnlySpacePrimitives(
-        this.httpSpacePrimitives,
-      );
-    }
-
-    this.plugSpaceRemotePrimitives = new PlugSpacePrimitives(
-      remoteSpacePrimitives,
-      this.clientSystem.namespaceHook,
-      this.bootConfig.readOnly ? undefined : "client",
-    );
-
     this.eventedSpacePrimitives = new EventedSpacePrimitives(
-      this.httpSpacePrimitives,
+      new CheckedSpacePrimitives(
+        this.httpSpacePrimitives,
+        this.bootConfig.readOnly,
+      ),
       this.eventHook,
       this.ds,
     );
