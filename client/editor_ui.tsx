@@ -99,14 +99,27 @@ export class MainUI {
     }, [viewState.uiOptions.vimMode]);
 
     useEffect(() => {
-      const darkMode = viewState.uiOptions.darkMode === undefined
-        ? globalThis.matchMedia("(prefers-color-scheme: dark)").matches
-        : viewState.uiOptions.darkMode;
+      const updateTheme = () => {
+        const darkMode = viewState.uiOptions.darkMode === undefined
+          ? globalThis.matchMedia("(prefers-color-scheme: dark)").matches
+          : viewState.uiOptions.darkMode;
 
-      document.documentElement.dataset.theme = darkMode ? "dark" : "light";
+        document.documentElement.dataset.theme = darkMode ? "dark" : "light";
 
-      if (this.client.isDocumentEditor()) {
-        this.client.documentEditor.updateTheme();
+        if (this.client.isDocumentEditor()) {
+          this.client.documentEditor.updateTheme();
+        }
+      };
+
+      updateTheme();
+
+      if (viewState.uiOptions.darkMode === undefined) {
+        const mediaQuery = globalThis.matchMedia("(prefers-color-scheme: dark)");
+        mediaQuery.addEventListener("change", updateTheme);
+
+        return () => {
+          mediaQuery.removeEventListener("change", updateTheme);
+        };
       }
     }, [viewState.uiOptions.darkMode]);
 
