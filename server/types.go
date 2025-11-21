@@ -18,6 +18,9 @@ type ServerConfig struct {
 	HostURLPrefix string
 
 	ClientBundle SpacePrimitives
+
+	// Tunnel
+	TunnelURL string
 }
 
 type UserPasswordAuthorizer func(username, password string) bool

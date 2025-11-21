@@ -14,6 +14,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
+	"github.com/silverbulletmd/silverbullet/server/tunnel"
 )
 
 const indexHtmlPath = ".client/index.html"
@@ -149,6 +150,10 @@ func RunServer(config *ServerConfig) error {
 		shutdownChannel <- true
 	}()
 
+	if config.TunnelURL != "" {
+		t := tunnel.NewTunnelConnection(config.TunnelURL, config.Port)
+		go t.Connect()
+	}
 	go runMetricsServer(config)
 
 	signalChannel := make(chan os.Signal, 1)

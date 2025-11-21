@@ -190,6 +190,10 @@ func buildConfig(bundledFiles fs.FS, args []string) *server.ServerConfig {
 		rootSpaceConfig.ShellBackend = server.NewNotSupportedShell()
 	}
 
+	if os.Getenv("SB_TUNNEL") != "" {
+		serverConfig.TunnelURL = os.Getenv("SB_TUNNEL")
+	}
+
 	// Ensure at least the index page and config page exist
 	ensureIndexAndConfig(rootSpaceConfig)
 
