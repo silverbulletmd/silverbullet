@@ -87,7 +87,7 @@ exp {
 
 
 Query {
-  kw<"query"> "[[" QueryClause* "]]" 
+  kw<"query"> "[[" QueryClause* "]]"
 }
 
 QueryClause {
@@ -160,7 +160,7 @@ TableConstructor { "{" (field (fieldsep field)* fieldsep?)? "}" }
   identifier { (std.asciiLetter | "_") (std.digit | std.asciiLetter | "_")* }
 
   stringEscape {
-    "\\" ($[abfnrz"'\\] | digit digit? digit?) |
+    "\\" ($[abfnrtz"'\\] | digit digit? digit?) |
     "\\x" hex hex |
     "\\u{" hex+ "}"
   }
@@ -169,11 +169,11 @@ TableConstructor { "{" (field (fieldsep field)* fieldsep?)? "}" }
   longStringContent { (![\]] | $[\]] ![\]])* }
 
   singleEqualStringContent {
-    (![\]] | $[\]] ![=] ![\]])* $[\]]* ![\]]* 
+    (![\]] | $[\]] ![=] ![\]])* $[\]]* ![\]]*
   }
 
   doubleEqualStringContent {
-    (![\]] | $[\]] ![=] ![=] ![\]])* $[\]]* ![\]]* 
+    (![\]] | $[\]] ![=] ![=] ![\]])* $[\]]* ![\]]*
   }
 
   simpleString {
