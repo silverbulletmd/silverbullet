@@ -255,3 +255,20 @@ func TestSymlinksAndInfiniteLoops(t *testing.T) {
 	assert.NoError(t, err, "Should be able to read original file")
 	assert.Equal(t, []byte("new content"), content, "Original file should be updated through symlink")
 }
+
+// Test that virtual pages (like tag:Something) return ErrNotFound instead of possible filesystem errors
+func TestVirtualPages(t *testing.T) {
+	space, err := NewDiskSpacePrimitives(t.TempDir(), "")
+	assert.NoError(t, err, "Failed to create DiskSpacePrimitives")
+
+	// Virtual pages with colons should return ErrNotFound, not a filesystem error
+	_, err = space.GetFileMeta("tag:Todo.md")
+	assert.Equal(t, ErrNotFound, err, "Virtual page should return ErrNotFound")
+
+	_, err = space.GetFileMeta("search:this")
+	assert.Equal(t, ErrNotFound, err, "Virtual page should return ErrNotFound")
+
+	_, _, err = space.ReadFile("tag:Todo.md")
+	assert.Equal(t, ErrNotFound, err, "Reading virtual page should return ErrNotFound")
+
+}
