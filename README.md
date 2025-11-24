@@ -11,6 +11,8 @@ If you are the **writer** type, you’ll appreciate SilverBullet as a clean Mark
 
 And if you are comfortable **programming** a little bit — now we’re really talking. You will love _dynamically generating content_ with Space Lua (SilverBullet’s Lua dialect), or to use it to create custom Commands, Page Templates or Widgets.
 
+[Much more detail can be found on silverbullet.md](https://silverbullet.md)
+
 ## Installing SilverBullet
 Check out the [instructions](https://silverbullet.md/Install).
 
