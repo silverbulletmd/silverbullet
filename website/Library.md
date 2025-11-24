@@ -2,7 +2,7 @@
 
 SilverBullet is designed to be [[Extensions|extensible]]. In fact, a lot of functionality in SilverBullet is implemented through [[Space Lua]] embedded in [[Meta Page]], other functionality is implemented using [[Plugs]]. 
 
-A big part of the fun of SilverBullet is building your own extensions, big or small. Libraries are the way to [[Share]] those extensions. Both for you to [[Libraries/Development|publish your own]] libraries, and to pull in other people’s creations.
+A big part of the fun of SilverBullet is building your own extensions, big or small. Libraries are the way to [[Share]] those extensions. Both for you to [[Library/Development|publish your own]] libraries, and to pull in other people’s creations.
 
 # Terms
 Let’s define terms:
@@ -31,4 +31,4 @@ Libraries you manually installed can be freely changed. Do note that when you at
 The [[^Library/Std]] library comes “baked in” with SilverBullet and is read only. You cannot change it. However, for most things there are ways to override or disable standard behavior, check [[Space Lua#Load order]] for some hints.
 
 # How do I develop my own library?
-See [[Libraries/Development]]
+See [[Library/Development]]
