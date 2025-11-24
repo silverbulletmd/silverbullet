@@ -128,7 +128,11 @@ export async function updatePlugsCommand() {
     const allPlugPaths = [...builtinPlugPaths, ...allCustomPlugPaths];
     // And delete extra ones
     for (const { name: existingPlug } of await space.listPlugs()) {
-      if (!allPlugPaths.includes(existingPlug)) {
+      // Only delete plugs installed (for legacy reason) installed under _plug
+      if (
+        existingPlug.startsWith("_plug/") &&
+        !allPlugPaths.includes(existingPlug)
+      ) {
         console.log("Deleting", existingPlug);
         await space.deleteDocument(existingPlug);
       }
