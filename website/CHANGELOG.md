@@ -16,8 +16,12 @@ Here’s what’s new:
 * [[Tag Picker]]: to quickly navigate to tag pages
 * Space Lua improvements (courtesy of Matouš Jan Fialka):
   * Support for `goto` (yes, I said I’d never add it, but Matouš did anyway)
+  * Significant [performance leaps](https://github.com/silverbulletmd/silverbullet/pull/1666)
+  * Support [\t](https://github.com/silverbulletmd/silverbullet/pull/1698) in strings
 * More of an in-your-face error when you’re not using [[TLS]] and you should, with instructions how to fix it: even though using plain HTTP was never a supported configuration, it hard-broke in 2.2.1
 * Plugs are now loaded from anywhere in the space, as long as they end with `.plug.js` (so no longer need to be in `_plug`, in fact all shipped core plugs are now mounted under `Library/Std/Plugs`)
+* Automatically follow system dark mode (by [Lelouch He](https://github.com/silverbulletmd/silverbullet/pull/1696))
+* Fix Youtube embes (by [Rodolfo Souza](https://github.com/silverbulletmd/silverbullet/pull/1672))
 
 Upgrade notes:
 
