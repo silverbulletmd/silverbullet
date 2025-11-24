@@ -199,6 +199,12 @@ func (d *DiskSpacePrimitives) GetFileMeta(path string) (FileMeta, error) {
 		if os.IsNotExist(err) {
 			return FileMeta{}, ErrNotFound
 		}
+		// Check if this is a filesystem syntax error (e.g., invalid characters)
+		// This typically happens with virtual pages like "tag:Something" which contain
+		// characters that are invalid in filesystem paths
+		if isSyntaxError(err) {
+			return FileMeta{}, ErrNotFound
+		}
 		return FileMeta{}, fmt.Errorf("%w: %s", ErrCouldNotGetMeta, path)
 	}
 
@@ -218,12 +224,20 @@ func (d *DiskSpacePrimitives) ReadFile(path string) ([]byte, FileMeta, error) {
 		if os.IsNotExist(err) {
 			return nil, FileMeta{}, ErrNotFound
 		}
+		// Check if this is a filesystem syntax error (e.g., invalid characters)
+		if isSyntaxError(err) {
+			return nil, FileMeta{}, ErrNotFound
+		}
 		return nil, FileMeta{}, fmt.Errorf("failed to stat file %s: %w", path, err)
 	}
 
 	// Read file content
 	data, err := os.ReadFile(localPath)
 	if err != nil {
+		// Check if this is a filesystem syntax error
+		if isSyntaxError(err) {
+			return nil, FileMeta{}, ErrNotFound
+		}
 		return nil, FileMeta{}, fmt.Errorf("failed to read file %s: %w", path, err)
 	}
 
@@ -303,4 +317,22 @@ func getCreationTime(info os.FileInfo) time.Time {
 	} else {
 		return t.ChangeTime()
 	}
+}
+
+// isSyntaxError checks if the error is due to invalid filename syntax
+// This typically happens on virtual filesystems when trying to access files with characters
+// like colons (e.g., "tag:Something") which are valid in SilverBullet virtual pages
+// but not valid in some virtual filesystem paths
+func isSyntaxError(err error) bool {
+	if err == nil {
+		return false
+	}
+	// Check for specific syntax errors in the error message
+	// We need to check the entire error chain, not just the top-level error
+	errMsg := err.Error()
+	return strings.Contains(errMsg, "syntax is incorrect") ||
+		strings.Contains(errMsg, "syntax incorrect") ||
+		(strings.Contains(errMsg, "syntax") && strings.Contains(errMsg, "incorrect")) ||
+		strings.Contains(errMsg, "invalid argument") ||
+		strings.Contains(errMsg, "bad file descriptor")
 }
