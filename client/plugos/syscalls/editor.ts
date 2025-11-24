@@ -40,8 +40,14 @@ export function editorSyscalls(client: Client): SysCallMapping {
     "editor.getCurrentPage": (): string => {
       return client.currentName();
     },
-    "editor.getCurrentPageMeta": (): PageMeta | undefined => {
-      return client.ui.viewState.current?.meta;
+    "editor.getCurrentPageMeta": (): Promise<PageMeta | undefined> => {
+      const name = client.currentName();
+      return client.clientSystem.localSyscall("index.getObjectByRef", [
+        name,
+        "page",
+        name,
+      ]);
+      // return client.ui.viewState.current?.meta;
     },
     "editor.getCurrentPath": (_ctx): string => {
       return client.currentPath();
