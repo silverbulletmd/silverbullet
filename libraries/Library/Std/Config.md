@@ -39,13 +39,6 @@ config.define("index", {
   description = "Configure individual indexers",
   type = "object",
   properties = {
-    search = {
-      type = "object",
-      properties = {
-        -- Create a full-text search
-        enabled = schema.boolean(),
-      },
-    },
     paragraph = {
       type = "object",
       properties = {
@@ -351,7 +344,6 @@ Default values for built-in configuration options.
 -- priority: 99
 config.set {
   index = {
-    search = { enabled = true },
     paragraph = { all = true },
     item = { all = true },
     task = { all = true },

@@ -41,4 +41,10 @@ name: Math
 author: MrMugame
 description: LaTeX-style math widgets for SilverBullet
 uri: https://github.com/MrMugame/silverbullet-math/blob/main/Math.md
+---
+name: Basic Full-Text Search
+author: Zef Hemel
+description: Basic full-text search engine for SilverBullet (previously a built-in plug)
+website: https://github.com/silverbulletmd/basic-search
+uri: https://github.com/silverbulletmd/basic-search/blob/main/PLUG.md
 ```

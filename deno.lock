@@ -61,7 +61,6 @@
     "npm:gitignore-parser@0.0.2": "0.0.2",
     "npm:idb@8.0.3": "8.0.3",
     "npm:js-yaml@4.1.0": "4.1.0",
-    "npm:porter-stemmer@0.9.1": "0.9.1",
     "npm:preact-feather@4.2.1": "4.2.1_preact@10.26.9",
     "npm:preact@10.23.1": "10.23.1",
     "npm:preact@10.26.4": "10.26.4",
@@ -461,9 +460,6 @@
     "json-schema-traverse@1.0.0": {
       "integrity": "sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug=="
     },
-    "porter-stemmer@0.9.1": {
-      "integrity": "sha512-vnSYgMMWKMo0+zCUumdcQAYE2RD55k2b27sPySqseetSRaGtXCCktv3llCB4EXyU1nQApMM5u+rGwVWcW72AHg=="
-    },
     "preact-feather@4.2.1_preact@10.26.9": {
       "integrity": "sha512-yK5kYW64AoOkm+xTtUjwcFx0zNrqVTbwmtww8G2AmAB6f8wyQgwZgc6oRXllSYeg7q1I8VbkUpErJuKJ6Vq2eA==",
       "dependencies": [
@@ -650,6 +646,11 @@
     "https://deno.land/x/silverbullet@2.2.1/client/plugos/proxy_fetch.ts": "ab6d1c3944b3631d73756c53d960144e15ef63e4e657ca6e41d546495d6bf09a",
     "https://deno.land/x/silverbullet@2.2.1/client/plugos/worker_runtime.ts": "0237c0c2d689bb47fc7561f835d081d8cc582b047b5867bea6e8c0b073b4ed55",
     "https://deno.land/x/silverbullet@2.2.1/plug-api/lib/crypto.ts": "39bc1439bc0c8cf430ae8ae4cc5dbbe1cc35b0db02a7aae97029d62fcf1e61a7",
+    "https://deno.land/x/silverbullet@2.3.0/client/lib/logger.ts": "09e3b6eabdb29203573da50950c9a08e75d7ca4f05bb56258413a758dda6201b",
+    "https://deno.land/x/silverbullet@2.3.0/client/plugos/protocol.ts": "1eca91d1fc2ef66ee5ed25f7b44c04f518b2d275a9f3d2a7b31c32d4437dd547",
+    "https://deno.land/x/silverbullet@2.3.0/client/plugos/proxy_fetch.ts": "ab6d1c3944b3631d73756c53d960144e15ef63e4e657ca6e41d546495d6bf09a",
+    "https://deno.land/x/silverbullet@2.3.0/client/plugos/worker_runtime.ts": "0237c0c2d689bb47fc7561f835d081d8cc582b047b5867bea6e8c0b073b4ed55",
+    "https://deno.land/x/silverbullet@2.3.0/plug-api/lib/crypto.ts": "37c25cbb8c34a0e38e76955389a3583fa18ff7a21a715be6f43e308d08a1e4e0",
     "https://esm.sh/lodash@4.17.21": "c2f90ffd948b7a30f054986888bdc2667824115fa48ad583ca8b3a579ca4a5a8",
     "https://esm.sh/lodash@4.17.21/denonext/lodash.mjs": "9d2a44e584d91008f61f974c6d0a32bf9afb1563761e60c366af0a293e8c759b",
     "https://esm.sh/moment@2.30.1": "61eef31d73508961f2cf25fc2cb507832f7158cf8638e86d933534c9adfac753",
@@ -696,7 +697,6 @@
       "npm:gitignore-parser@0.0.2",
       "npm:idb@8.0.3",
       "npm:js-yaml@4.1.0",
-      "npm:porter-stemmer@0.9.1",
       "npm:preact-feather@4.2.1",
       "npm:preact@10.26.4",
       "npm:preact@10.26.9",

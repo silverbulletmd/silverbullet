@@ -2,9 +2,6 @@ This is where you configure SilverBullet to your liking. See [[^Library/Std/Conf
 
 ```space-lua
 config.set {
-  plugs = {
-    "ghr:LogeshG5/silverbullet-excalidraw"
-  },
   actionButtons = {
     {
       icon = "home",
@@ -61,16 +58,6 @@ config.set {
       run = function()
         editor.invokeCommand "Open Command Palette"
       end,
-    }
-  },
-  smartQuotes = {
-    enabled = true,
-  },
-  queryCollate = {
-    enabled = true,
-    locale = "en",
-    options = {
-      caseFirst = "upper"
     }
   }
 }

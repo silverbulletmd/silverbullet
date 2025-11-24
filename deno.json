@@ -127,7 +127,6 @@
     "idb": "npm:idb@8.0.3",
     "js-yaml": "npm:js-yaml@4.1.0",
     "mimetypes": "https://deno.land/x/mimetypes@v1.0.0/mod.ts",
-    "porter-stemmer": "npm:porter-stemmer@0.9.1",
     "preact": "npm:preact@10.26.9",
     "preact-feather": "npm:preact-feather@4.2.1",
     "preact-feather/types": "npm:preact-feather@4.2.1/dist/types",

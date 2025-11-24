@@ -331,15 +331,20 @@ export class Client {
         name: string,
       ) => {
         // TODO: Optimization opportunity here: dispatch the page:index here directly rather than sending it off to a queue which will refetch the file
-        // console.log("Queueing index for", name);
+        console.log("Queueing index for", name);
 
         await this.mq.send("indexQueue", name);
       },
     );
 
     this.eventHook.addLocalListener("file:initial", async () => {
+      const startTime = Date.now();
       await this.mq.awaitEmptyQueue("indexQueue");
-      console.info("Indexing complete, reloading state");
+      console.info(
+        "Initial indexing complete after",
+        (Date.now() - startTime) / 1000,
+        "s",
+      );
       await this.clientSystem.markFullSpaceIndexComplete();
       await this.clientSystem.reloadState();
     });
