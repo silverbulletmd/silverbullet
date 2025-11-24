@@ -1,40 +1,22 @@
 # SilverBullet
-SilverBullet is an open source **personal productivity platform** built on Markdown, turbo charged with the scripting power of Lua. You self host it on your server, access it via any modern browser on any device (desktop, laptop, mobile). Since SilverBullet is built as a Local First PWA, it is fully offline capable. Temporarily don't have network access? No problem, SilverBullet will sync your content when you get back online.
+SilverBullet is a Programmable, Private, Browser-based, Open Source, Self Hosted, Personal Knowledge Management Platform.
 
-You may start your SilverBullet journey by simply thinking of it as a note taking app. Because, well, it is. You write notes in Markdown and get Live Preview. It looks WYSIWYG while still easily accessing the markdown that lies underneath. You can create Links to other pages, via the `[[other page]]` syntax. As you navigate your Space (that's what we call a SilverBullet instance) by clicking these links, you will see Linked Mentions to get a feel of how your pages are inter-linked.
+_Yowza!_ That surely is a lot of adjectives to describe a Markdown editor programmable with Lua.
 
-Then you learn that in SilverBullet, you can embed Space Lua (SilverBullet's Lua dialect) right into your pages, using the special `${lua expression}` syntax. You try something simple, like `${10 + 2}`. Ok, that's cool. As you learn more, you start tagging pages and adding Frontmatter. As it turns out, pages (and other things) are indexed as Objects. You realize you can query these objects like a database.
+Let’s get more specific.
 
-Imagine the possibilities. Before you know it — you realize you're effectively building applications in your notes app. End-User Programming, y'all. It's cool.
+In SilverBullet you keep your content as a collection of Markdown Pages (called a Space). You navigate your space using the Page Picker like a traditional notes app, or through Links like a wiki (except they are bi-directional).
 
-You may have been told there is _no such thing_ as a [silver bullet](https://en.wikipedia.org/wiki/Silver_bullet).
+If you are the **writer** type, you’ll appreciate SilverBullet as a clean Markdown editor with Live Preview. If you have more of an **outliner** personality, SilverBullet has Outlining tools for you. Productivity freak? Have a look at Tasks. More of a **database** person? You will appreciate Objects and Queries. 
 
-You were told wrong.
-
-[![Introduction to SilverBullet](http://img.youtube.com/vi/mik1EbTshX4/0.jpg)](https://www.youtube.com/watch?v=mik1EbTshX4)
-
-## Features
-SilverBullet...
-* At its core is a **note taking** application, a kind of personal wiki, storing its notes in the universal Markdown format in a folder on your server.
-* Is a **web application** and therefore accessible from wherever a (modern) web browser is available.
-* Is built as a Local First PWA keeping a copy of your content in your browser's local database, syncing back to the server when a network connection is available, enabling **100% offline operation**.
-* Provides an enjoyable Markdown writing experience with a clean UI, rendering text using Live Preview, further **reducing visual noise** while still providing direct access to the underlying markdown syntax.
-* Supports wiki-style **page linking** using the `[[page link]]` syntax. Incoming links are indexed and appear as Linked Mentions at the bottom of the pages linked to thereby providing _bi-directional linking_.
-* Is optimized for **keyboard-based operation**:
-  * Quickly navigate between pages using the **page switcher** (triggered with `Cmd-k` on Mac or `Ctrl-k` on Linux and Windows).
-  * Run commands via their keyboard shortcuts or the **command palette** (triggered with `Cmd-/` or `Ctrl-/` on Linux and Windows).
-  * Use Slash Commands to perform common text editing operations.
-* Is a platform for End-User Programming through its support for Objects and Space Lua.
-* Can be extended using Space Lua and Plugs, and a lot of core functionality is built that way.
-* Is **self-hosted**: _you own your data_. Your space is stored as plain files in a folder on disk on your server. Back it up, sync, edit, publish, script it with any additional tools you like.
-* Is free, [**open source**, MIT licensed](https://github.com/silverbulletmd/silverbullet) software.
+And if you are comfortable **programming** a little bit — now we’re really talking. You will love _dynamically generating content_ with Space Lua (SilverBullet’s Lua dialect), or to use it to create custom Commands, Page Templates or Widgets.
 
 ## Installing SilverBullet
 Check out the [instructions](https://silverbullet.md/Install).
 
 ## Developing SilverBullet
 
-SilverBullet's frontend is written in [TypeScript](https://www.typescriptlang.org/) and built on top of the excellent [CodeMirror 6](https://codemirror.net/) editor component. Additional UI is built using [Preact](https://preactjs.com). [ESBuild]([https://parceljs.org/](https://esbuild.github.io)) is used to build both the front-end.
+SilverBullet's frontend is written in [TypeScript](https://www.typescriptlang.org/) and built on top of the excellent [CodeMirror 6](https://codemirror.net/) editor component. Additional UI is built using [Preact](https://preactjs.com). [ESBuild](https://esbuild.github.io)) is used to build both the front-end.
 
 The server backend is written in Go.
 
