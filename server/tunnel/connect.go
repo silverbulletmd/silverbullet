@@ -33,6 +33,7 @@ func NewTunnelConnection(wsConnectURL string, localProxyPort int) *TunnelConnect
 	return &TunnelConnection{
 		wsConnectURL:   wsConnectURL,
 		localProxyPort: localProxyPort,
+		backOffSeconds: 1,
 	}
 }
 
@@ -52,8 +53,12 @@ func (t *TunnelConnection) Connect() {
 	for {
 		// TODO: May have to finetune this
 		dialer := websocket.Dialer{}
-		conn, _, err := dialer.Dial(t.wsConnectURL, nil)
+		conn, httpResp, err := dialer.Dial(t.wsConnectURL, nil)
 		if err != nil {
+			if httpResp.StatusCode == 401 {
+				log.Printf("Failed to connect to tunnel: token rejected")
+				return
+			}
 			log.Printf("Failed to connect to tunnel: %s, retrying in %ds", err.Error(), t.backOffSeconds)
 			time.Sleep(t.backOffSeconds * time.Second)
 
