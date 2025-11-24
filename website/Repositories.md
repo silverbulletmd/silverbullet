@@ -1,8 +1,4 @@
-> **note** Note
-> This page contains sections that apply to the current _edge_ release, it is not part of an official release yet.
-
-> **warning** Beta feature
-> This is a **beta** feature. Feel free to use it, but it may change (significantly) in the future or potentially replaced.
+#maturity/beta
 
 Repositories are a collection of _pointers_ to [[Libraries]] to install. Their purpose is to offer a curated list of libraries to install.
 

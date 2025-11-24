@@ -36,7 +36,7 @@ ${template.each(query[[
   limit 5
 ]], templates.pageItem)}
 
-## Todo items 
+## To do items 
 Maybe you want to collect all [[Tasks]] that you have not yet completed from across your space? No problem:
 ${template.each(query[[
   from index.tag "task"
@@ -53,7 +53,7 @@ ${embed.youtube "https://www.youtube.com/watch?v=mik1EbTshX4"}
 Want to see even more? Here is a whole [playlist with instruction videos](https://www.youtube.com/watch?v=bb1USz_cEBY&list=PLxFAb_vXRcEp4465MVI6Ha9wzNiX5VevQ) that go more in depth.
 
 # Installing
-As mentioned, SilverBullet is a [[Self Hosted]] web application. You need to install it on a server. Perhaps you do this on a Raspberry Pi you didn’t have a use for, or a VPS somewhere in the cloud. SilverBullet is distributed as a single self-contained server [[Install/Binary]] or [[Install/Docker]] container.
+As mentioned, SilverBullet is a [[Self Hosted]] web application. This is great if you care about [[Data Sovereignty]], but it does mean you need to install it on a server yourself. Perhaps you do this on a Raspberry Pi you didn’t have a use for, or a VPS somewhere in the cloud. SilverBullet is distributed as a single self-contained server [[Install/Binary]] or [[Install/Docker]] container.
 
 While this is a bit more complicated to set up than simply downloading desktop app or signing up for an account with some online service, self hosting is a path to both [[Data Sovereignty]] and to access your content from any device with a modern [[Browser]].
 
