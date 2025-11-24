@@ -24,7 +24,7 @@ A lot of [“built in” functionality](https://github.com/silverbulletmd/silver
 Syscalls (system calls) are the abstraction used in SilverBullet to cleanly create an API boundary between SilverBullet and extension code (Plugs or Space Lua). A lot of functionality core to SilverBullet (in the editor, the event system, datastore) are exposed through syscalls.
 
 ## Events and services
-[[Events]]
+[[Event]]
 
 ## Datastore
 

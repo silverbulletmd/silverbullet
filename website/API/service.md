@@ -1,6 +1,6 @@
 #api/syscall
 
-Exposes a simple service registry API leveraged by various parts of SilverBullet, see [[Services]].
+Exposes a simple service registry API leveraged by various parts of SilverBullet, see [[Service]].
 
 ## Example
 ```space-lua
