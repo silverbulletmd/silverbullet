@@ -1,6 +1,4 @@
-Running into trouble? Sorry to hear it.
-
-Let’s figure this out.
+Running into trouble? Sorry to hear it. Let’s figure this out.
 
 Here are some things you can try when things don’t work, if you’re still stuck — ask the [community for help](https://community.silverbullet.md/).
 

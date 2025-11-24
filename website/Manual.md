@@ -17,8 +17,9 @@ ${embed.youtube "https://youtu.be/qkLJ3viVq8I"}
 The biggest hurdle to get over with SilverBullet is that you need to get this thing running. And as of yet, the only way to do that is to install and deploy it yourself. 🤷
 
 * [[Install]]: Installation instructions for various setups
+* [[TLS]]: the part where we walk through options to expose SilverBullet via HTTPS.
 
-For more additional guides, check out [our community guides](https://community.silverbullet.md/c/guides/6).
+For additional guides, check out [our community guides](https://community.silverbullet.md/c/guides/6).
 
 # Core Concepts
 These are the core concepts used in SilverBullet:

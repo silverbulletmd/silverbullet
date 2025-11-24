@@ -3,18 +3,26 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
-What's new:
+## 2.3.0
+This release (re)introduces [[Share]], formalizes [[Libraries]], and introduces in initial version of the [[Library Manager]], a type of package manager for SilverBullet. It also progresses on Lua 5.4 compatibility.
 
-* [[Libraries]]: are now a more “real” thing, and can be distributed via the [[Library Manager]] and grouped into [[Repositories]]. For instructions on how to build your own libraries, see [[Libraries/Development]]. In time this mechanism will succeed the `plugs` configuration and `Plugs: Update` mechanism. Plug authors can already start to update their plugs to get ready, usually all that needs to be done is to add frontmatter to their README file, [example](https://github.com/silverbulletmd/silverbullet-mermaid/blob/main/README.md).
-* [[Share]]: a new mechanism to push content to external places and pull external content in (also used as the foundation of [[Libraries]]). This partially will replace many [[Export]]. Export will be more for one-off use cases.
+Here’s what’s new:
+
+* [[Share]]: a new mechanism to push content to external places and pull external content in (also used as the foundation of [[Libraries]]). This partially replaces many [[Export]] use cases. Export will be more for one-off use cases.
+* [[Libraries]]: are now a more “real” thing, and can be distributed via the [[Library Manager]] and curated with [[Repositories]]. For instructions on how to build your own libraries, see [[Libraries/Development]]. Eventually, this mechanism will succeed the `plugs` configuration and `Plugs: Update` mechanism. Plug authors can already start to update their plugs to get ready, usually all that needs to be done is to add a `PLUG.md` file to their repository: [example](https://github.com/silverbulletmd/silverbullet-mermaid/blob/main/PLUG.md).
 * [[Services]]: a new mechanism used behind the scenes to power [[Share]], but also [[Export]] and likely other features in the future. Built on top of [[Events]].
 * [[URIs]] are now a more formalized and centralized mechanism, used by [[Share]] and likely other features in the future.
 * Removed “Import” support, succeeded by [[Share]].
 * [[Tag Picker]]: to quickly navigate to tag pages
 * Space Lua improvements (courtesy of Matouš Jan Fialka):
   * Support for `goto` (yes, I said I’d never add it, but Matouš did anyway)
-* More of an in-your-face error when you’re not using [[TLS]] with instructions how to fix it: even though using plain HTTP was never a supported configuration, it hard-broke in 2.2.1
+* More of an in-your-face error when you’re not using [[TLS]] and you should, with instructions how to fix it: even though using plain HTTP was never a supported configuration, it hard-broke in 2.2.1
 * Plugs are now loaded from anywhere in the space, as long as they end with `.plug.js` (so no longer need to be in `_plug`, in fact all shipped core plugs are now mounted under `Library/Std/Plugs`)
+
+Upgrade notes:
+
+* If you have third-party plugs installed and intend to reinstall them as Libraries: be sure to delete the old versions first. You can do so by cleaning out your `_plug` folder right on the file system, or use the document picker, filter on `plug.js` and delete every single document that’s in the `_plug` folder that way.
+* If you somehow end up in a state where SilverBullet doesn’t load properly, have a look at [[Troubleshooting]] for hints on what to try to fix it.
 
 ## 2.2.0
 This is a dot release primarily because due to changes in how IndexedDB databases are named, a fully resync and reindex of your space will happen on all your devices. I’m sorry for the inconvenience, we try to limit how often this is required. If you’d like to clean up unnecessary databases afterwards you can run the `Client: Clean` command (once) afterwards.
