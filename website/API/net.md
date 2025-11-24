@@ -20,10 +20,10 @@ Returns:
   * anything else: UInt8Array
 
 ## net.readURI(uri, options?)
-Fetches the content of a [[URIs|URI]].
+Fetches the content of a [[URI]].
 
 Options:
 * `encoding` force an encoding for the result, e.g. `{encoding = "text/markdown"}`
 
 ## net.writeURI(uri, content)
-Writes content to a specific [[URIs|URI]].
+Writes content to a specific [[URI|URI]].

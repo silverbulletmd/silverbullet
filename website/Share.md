@@ -18,7 +18,7 @@ Sharing may be desirable in different directions:
 # Operation
 SilverBullet has [[^Library/Std/Infrastructure/Share|infrastructural support]] to solve this problem in a general way. It leverages [[Frontmatter]], specifically the following three keys:
 
-* `share.uri`: specifies the external location to push, pull or sync your content with, represented as a [[URIs|URI]].
+* `share.uri`: specifies the external location to push, pull or sync your content with, represented as a [[URI|URI]].
 * `share.mode`: specifies the _mode_ this sharing should happen, options are: `push`, `pull` or `sync`
 * `share.hash`: automatically calculated and updated content hash of your local version to detect whether local changes were made since the last share operation.
 
