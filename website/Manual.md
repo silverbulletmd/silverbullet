@@ -24,12 +24,12 @@ For additional guides, check out [our community guides](https://community.silver
 # Core Concepts
 These are the core concepts used in SilverBullet:
 
-* [[Spaces]]
-* [[Pages]] (and [[Meta Pages]])
+* [[Space]]
+* [[Page]] (and [[Meta Page]])
   * [[Frontmatter]]
   * [[Names]]
-* [[Folders]]
-* [[Documents]]
+* [[Folder]]
+* [[Document]]
 
 # User interface
 SilverBullet’s UI is minimalist by design. Let’s look at the few UI elements and how to use them.
@@ -41,17 +41,16 @@ SilverBullet’s UI is minimalist by design. Let’s look at the few UI elements
   * [[Command Palette]]
 * The main [[Editor]] component contains your currently selected page’s text
 
-
 # Editing and Formatting
 * Content is written using [[Markdown]] and rendered using [[Live Preview]]
   * Markdown [[Markdown/Basics]]
   * Markdown [[Markdown/Extensions]]
-    * [[Links]]
-    * [[Markdown/Admonitions]]
-    * [[Tasks]]
+    * [[Link]]
+    * [[Markdown/Admonition]]
+    * [[Task]]
     * [[Markdown/Syntax Highlighting]]
     * [[Markdown/Fenced Code Blocks]]
-* [[Slash Commands]]
+* [[Slash Command]]
 * [[Outlines]]
 
 # Navigation
@@ -59,14 +58,15 @@ The main ways to roam your space, beside following page links, are:
 
 * [[Page Picker]]
 * [[Meta Picker]]
+* [[Tag Picker]]
 * [[Full Text Search]]
 
 # Advanced topics
-* [[Objects]]
+* [[Object]]
   * [[Frontmatter]]
-  * [[Attributes]]
+  * [[Attribute]]
 * [[Space Lua]]
-* [[Libraries]]
+* [[Library]]
 * [[Space Style]]
 * [[Troubleshooting]]
 

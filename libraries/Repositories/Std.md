@@ -31,12 +31,6 @@ description: Adds a tree view that allows you to navigate your SilverBullet page
 website: https://github.com/joekrill/silverbullet-treeview
 uri: https://github.com/joekrill/silverbullet-treeview/blob/main/PLUG.md
 ---
-name: GraphView
-author: Deepak Narayan
-description: Obsidian-like graph view for SilverBullet
-website: https://github.com/deepkn/silverbullet-graphview
-uri: https://github.com/zefhemel/silverbullet-graphview/blob/main/PLUG.md
----
 name: PDF Viewer
 author: MrMugame
 website: https://github.com/MrMugame/silverbullet-pdf

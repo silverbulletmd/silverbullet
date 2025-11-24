@@ -8,7 +8,7 @@ Many string values can be written directly in YAML without any quoting, like:
 property: value
 ```
 
-However when you want to reference [[Links|a page]] you will need to quote the full link:
+However when you want to reference [[Link|a page]] you will need to quote the full link:
 ```yaml
 some page: "[[Pages]]"
 list of pages:

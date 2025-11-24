@@ -409,6 +409,11 @@ table.manage-library td {
   vertical-align: top;
   white-space: normal !important;
 }
+
+table.manage-library thead td {
+  white-space: nowrap !important;
+}
+
 table.manage-library thead td:last-child {
   text-align: right;
 }

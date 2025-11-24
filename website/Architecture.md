@@ -16,7 +16,7 @@ SilverBullet contains a custom [[Lua]] runtime called [[Space Lua]]. It should b
 When Lua code gets too complicated or performance is more of a concern, the next level is to build your extension in TypeScript as a plug.
 
 ## Plugs
-[[Plugs]] and the PlugOS library that implements are a generic means to extend SilverBullet. Code is written in TypeScript and compiled into a single JavaScript `.plug.js` bundle that can be distributed as part of a [[Libraries|Library]]. 
+[[Plugs]] and the PlugOS library that implements are a generic means to extend SilverBullet. Code is written in TypeScript and compiled into a single JavaScript `.plug.js` bundle that can be distributed as part of a [[Library|Library]]. 
 
 A lot of [“built in” functionality](https://github.com/silverbulletmd/silverbullet/tree/main/plugs) in SilverBullet in in fact implemented as plugs, partially to “stress test” this infrastructure. 
 

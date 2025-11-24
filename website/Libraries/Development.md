@@ -1,7 +1,7 @@
 To develop your own SilverBullet library follow these steps:
 
 # Decorate your library with frontmatter
-Put all functionality you like in a [[Meta Pages|Meta Page]] somewhere under `Library/`. For name spacing purposes it’s good form to put your (Github) username in the path as well, so create, for instance `Library/myuser/My Library`.
+Put all functionality you like in a [[Meta Page|Meta Page]] somewhere under `Library/`. For name spacing purposes it’s good form to put your (Github) username in the path as well, so create, for instance `Library/myuser/My Library`.
 
 Then, decorate your library page with some [[Frontmatter]]. Here is an minimal example library that defines a new “Hello world” command:
 
@@ -60,11 +60,11 @@ Your library is now ready to install, you can test this by running ${widgets.com
 You can now [broadcast that your library is ready to install](https://community.silverbullet.md/c/plugs-libraries/14)!
 
 # Create a repository
-If you develop a few libraries, it may be good to make them more discoverable. To do so, you can group them in a [[Repositories|Repository]].
+If you develop a few libraries, it may be good to make them more discoverable. To do so, you can group them in a [[Repository|Repository]].
 
 For this, create another page in your space, this time under `Repository/`, e.g. `Repository/myuser` and tag it with `#meta/repository`. 
 
-In the page body, put a list of all your libraries, encoded as [[Objects#data|data objects]] as follows:
+In the page body, put a list of all your libraries, encoded as [[Object#data|data objects]] as follows:
 
     ---
     tags: meta/repository

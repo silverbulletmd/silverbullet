@@ -1,9 +1,9 @@
 The page picker has two main functions:
 
-1. Enables quick navigation between [[Pages]]
+1. Enables quick navigation between [[Page]]
 2. Enables creation of new pages
    * Based on the entered name
-   * Based on [[Links|linked]] to, but not yet created page names
+   * Based on [[Link|linked]] to, but not yet created page names
 
 The page picker can be invoked by clicking the 📔 icon in the top bar, or by pressing `Cmd-k` on Mac, or `Ctrl-k` on Windows/Linux.
 
@@ -31,7 +31,7 @@ When entering a filter phrase, the best matches should appear closer to the top,
 * `Enter`: selects the highlighted page from the list and navigate there. If that page is marked with “Create page” it will create that page.
 * `Shift-Enter`: navigate to the page entered in as the filter phrase.
 * `Space`: with an empty filter phrase will attempt to do something intelligent:
-  * If the currently opened page is nested in a [[Folders|folder]], it will auto complete the current folder name in its place.
+  * If the currently opened page is nested in a [[Folder|folder]], it will auto complete the current folder name in its place.
   * If the currently opened page name starts with an emoji, it will complete that emoji in its place.
   * Otherwise, it will complete the full page name of the currently open page.
 * `ArrowUp`/`ArrowDown`: move up and down the highlighted page list

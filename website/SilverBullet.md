@@ -5,16 +5,16 @@ _Yowza!_ That surely is a lot of adjectives to describe a [[Markdown]] editor pr
 
 Let’s get more specific.
 
-In SilverBullet you keep your content as a collection of [[Markdown]] [[Pages]] (called a [[Spaces|Space]]). You navigate your space using the [[Page Picker]] like a traditional notes app, or through [[Links]] like a wiki (except they are [[Linked Mentions|bi-directional]]).
+In SilverBullet you keep your content as a collection of [[Markdown]] [[Page|Pages]] (called a [[Space]]). You navigate your space using the [[Page Picker]] like a traditional notes app, or through [[Link|Links]] like a wiki (except they are [[Linked Mention|bi-directional]]).
 
-If you are the **writer** type, you’ll appreciate SilverBullet as a clean [[Markdown]] editor with [[Live Preview]]. If you have more of an **outliner** personality, SilverBullet has [[Outlines|Outlining]] tools for you. Productivity freak? Have a look at [[Tasks]]. More of a **database** person? You will appreciate [[Objects]] and [[Space Lua/Lua Integrated Query|Queries]]. 
+If you are the **writer** type, you’ll appreciate SilverBullet as a clean [[Markdown]] editor with [[Live Preview]]. If you have more of an **outliner** personality, SilverBullet has [[Outlines|Outlining]] tools for you. Productivity freak? Have a look at [[Task|Tasks]]. More of a **database** person? You will appreciate [[Object|Objects]] and [[Space Lua/Lua Integrated Query|Queries]]. 
 
-And if you are comfortable **programming** a little bit — now we’re really talking. You will love _dynamically generating content_ with [[Space Lua]] (SilverBullet’s [[Lua]] dialect), or to use it to create custom [[Commands]], [[Page Templates]] or [[Space Lua/Widgets]].
+And if you are comfortable **programming** a little bit — now we’re really talking. You will love _dynamically generating content_ with [[Space Lua]] (SilverBullet’s [[Lua]] dialect), or to use it to create custom [[Command|Commands]], [[Page Template|Page Templates]] or [[Space Lua/Widget|Widgets]].
 
 # Programmable notes?
 Dynamically generating content, _programmable notes_... why would you want that, and how does it work?
 
-Let’s say you have documented a set of product features in individual pages that you’ve [[Tags|tagged]] with a #feature tag, and annotated with a few custom [[Frontmatter]] [[Attributes]].
+Let’s say you have documented a set of product features in individual pages that you’ve [[Tags|tagged]] with a #feature tag, and annotated with a few custom [[Frontmatter]] [[Attribute|Attributes]].
 
 With a simple [[Space Lua/Lua Integrated Query|Query]] and [[Template]], you can now dynamically build a product feature list, ordered by _awesomeness_ (`Alt-click` or hover and click the edit button to see the underlying code):
 
@@ -37,7 +37,7 @@ ${template.each(query[[
 ]], templates.pageItem)}
 
 ## To do items 
-Maybe you want to collect all [[Tasks]] that you have not yet completed from across your space? No problem:
+Maybe you want to collect all [[Task|Tasks]] that you have not yet completed from across your space? No problem:
 ${template.each(query[[
   from index.tag "task"
   where not _.done
@@ -57,7 +57,7 @@ As mentioned, SilverBullet is a [[Self Hosted]] web application. This is great i
 
 While this is a bit more complicated to set up than simply downloading desktop app or signing up for an account with some online service, self hosting is a path to both [[Data Sovereignty]] and to access your content from any device with a modern [[Browser]].
 
-The SilverBullet client is built as a [[Local First]], [[PWA|progressive web application]], syncing all your content into your browser’s local storage, enabling **instant access** to your entire space whether you are **online** or **offline**. Simply opt to “Install SilverBullet” from your browser (in any Chrome-based browser), add it to your Dock or home screen (Safari and Android), and voila: SilverBullet becomes indistinguishable from a regular desktop or mobile app. You can try it right here on silverbullet.md.
+The SilverBullet client is built as a [[Local First]], [[PWA|Progressive Web Application]], syncing all your content into your browser’s local storage, enabling **instant access** to your entire space whether you are **online** or **offline**. Simply opt to “Install SilverBullet” from your browser (in any Chrome-based browser), add it to your Dock or home screen (Safari and Android), and voila: SilverBullet becomes indistinguishable from a regular desktop or mobile app. You can try it right here on silverbullet.md.
 ![[pwa-screenshot.png]]
 
 Unplug your (hypothetical) network cable, and everything still works!

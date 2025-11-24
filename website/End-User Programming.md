@@ -7,5 +7,5 @@ An excellent [essay from Ink & Switch](https://www.inkandswitch.com/end-user-pro
 SilverBullet is working towards supporting more end-user programming features. Some of them currently available include:
 
 * [[Space Lua]]
-* [[Objects]]
+* [[Object]]
 * [[Metadata]]

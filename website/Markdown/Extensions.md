@@ -1,10 +1,10 @@
 In addition to supporting [[Markdown/Basics|markdown basics]] as standardized by [CommonMark](https://commonmark.org/), SilverBullet relies on the following extensions:
 
-* [[Links]]
-* [[Frontmatter]] and [[Attributes]]
+* [[Link]]
+* [[Frontmatter]] and [[Attribute]]
 * [[Markdown/Fenced Code Blocks]]
 * [[Transclusions]] syntax
-* [[Markdown/Admonitions]]
+* [[Markdown/Admonition]]
 * [[Markdown/Hashtags]]
 * [[Space Lua]] expressions
 * [Tables](https://www.markdownguide.org/extended-syntax/#tables)

@@ -9,7 +9,7 @@ Steps:
 2. Unzip the file in a convenient place
 3. Run it from the command line (see below)
 
-You need to create a folder to hold your [[Spaces|space]] files. This folder can be kept anywhere. You can then run `silverbullet` taking the folder path as an argument:
+You need to create a folder to hold your [[Space|space]] files. This folder can be kept anywhere. You can then run `silverbullet` taking the folder path as an argument:
 
 ```bash
 mkdir sb

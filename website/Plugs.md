@@ -10,7 +10,7 @@ Plugs can hook into SB in various ways:
 
 Each plug runs in its own _sandboxed environment_ and communicates with SB via _syscalls_ that expose a vast range of functionality. Plugs can be loaded, unloaded, and updated without having to restart SilverBullet itself.
 
-Plugs are distributed as self-contained JavaScript bundles (ending with `.plug.js`). SilverBullet will load all core plugs bundled with SB itself (listed below), as well as any additional plugs stored in the `_plug` folder in your [[Spaces|space]].
+Plugs are distributed as self-contained JavaScript bundles (ending with `.plug.js`). SilverBullet will load all core plugs bundled with SB itself (listed below), as well as any additional plugs stored in the `_plug` folder in your [[Space|space]].
 
 # Available plugs
 The [SilverBullet ‘Plugs’ category has a list of third-party plugs you can try](https://community.silverbullet.md/c/plugs/14).

@@ -1,4 +1,4 @@
-The Command Palette is used to explore SilverBullet’s numerous [[Commands]] as well as execute them.
+The Command Palette is used to explore SilverBullet’s numerous [[Command]] as well as execute them.
 
 The UI and its operation is largely the same as the [[Page Picker]]‘s, with a few differences:
 

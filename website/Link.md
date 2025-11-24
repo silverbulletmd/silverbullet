@@ -20,4 +20,4 @@ The link or “string refs” has to follow some specific formatting:
   - `@` followed by a number _n_. This will point to the _nth_ character in the page (0-based), e.g. [[CHANGELOG@123]]
 
 # Caret page links
-[[Meta Pages]] are excluded from link auto complete in many contexts. However, you may still want to reference a meta page outside of a “meta context.” To make it easier to reference, you can use the caret syntax: `[[^Library/Std]]`. Semantically this has the same meaning as `[[LIbrary/Std]]`. The only difference is that auto complete will _only_ complete meta pages.
+[[Meta Page]] are excluded from link auto complete in many contexts. However, you may still want to reference a meta page outside of a “meta context.” To make it easier to reference, you can use the caret syntax: `[[^Library/Std]]`. Semantically this has the same meaning as `[[LIbrary/Std]]`. The only difference is that auto complete will _only_ complete meta pages.

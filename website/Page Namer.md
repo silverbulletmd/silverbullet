@@ -4,4 +4,4 @@ At the header of each page, you see the currently open page name. Let’s call t
 * Its font color indicates the current **page status**:
   * Black (in light mode) indicates the page is currently saved
   * Gray (in light mode) indicates the page is currently not saved
-* By changing the page name and hitting `Enter` (or clicking/tapping outside of it) you **rename** the [[Pages|page]], automatically updating all references to it as well.
+* By changing the page name and hitting `Enter` (or clicking/tapping outside of it) you **rename** the [[Page|page]], automatically updating all references to it as well.

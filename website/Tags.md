@@ -1,3 +1,3 @@
-Tags in SilverBullet are used to encode types of [[Objects]]. 
+Tags in SilverBullet are used to encode types of [[Object]]. 
 
-See [[Objects#Tags]] for more information.
+See [[Object#Tags]] for more information.

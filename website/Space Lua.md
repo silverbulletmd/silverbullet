@@ -16,7 +16,7 @@ function adder(a, b)
 end
 ```
 
-Each `space-lua` block has its own local scope. However, following Lua semantics, when functions and variables are not explicitly defined as `local` they will be available globally across your [[Spaces|space]]. This means that the `adder` function above can be used in any other page.
+Each `space-lua` block has its own local scope. However, following Lua semantics, when functions and variables are not explicitly defined as `local` they will be available globally across your [[Space|space]]. This means that the `adder` function above can be used in any other page.
 
 Since there is a single global namespace, it is good practice to manually namespace functions using the following pattern:
 
@@ -108,7 +108,7 @@ ${query[[
 ]]}
 
 ## Widgets
-See [[Space Lua/Widgets]]
+See [[Space Lua/Widget]]
 
 ## Commands
 Custom commands can be defined using  [[API/command#command.define(commandDef)]]:

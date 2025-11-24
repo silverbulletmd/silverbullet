@@ -4,12 +4,12 @@ An attempt at documenting the changes/new features introduced in each release.
 Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
 ## 2.3.0
-This release (re)introduces [[Share]], formalizes [[Libraries]], and introduces in initial version of the [[Library Manager]], a type of package manager for SilverBullet. It also progresses on Lua 5.4 compatibility.
+This release (re)introduces [[Share]], formalizes [[Library]], and introduces in initial version of the [[Library Manager]], a type of package manager for SilverBullet. It also progresses on Lua 5.4 compatibility.
 
 Here’s what’s new:
 
-* [[Share]]: a new mechanism to push content to external places and pull external content in (also used as the foundation of [[Libraries]]). This partially replaces many [[Export]] use cases. Export will be more for one-off use cases.
-* [[Libraries]]: are now a more “real” thing, and can be distributed via the [[Library Manager]] and curated with [[Repositories]]. For instructions on how to build your own libraries, see [[Libraries/Development]]. Eventually, this mechanism will succeed the `plugs` configuration and `Plugs: Update` mechanism. Plug authors can already start to update their plugs to get ready, usually all that needs to be done is to add a `PLUG.md` file to their repository: [example](https://github.com/silverbulletmd/silverbullet-mermaid/blob/main/PLUG.md).
+* [[Share]]: a new mechanism to push content to external places and pull external content in (also used as the foundation of [[Library]]). This partially replaces many [[Export]] use cases. Export will be more for one-off use cases.
+* [[Library]]: are now a more “real” thing, and can be distributed via the [[Library Manager]] and curated with [[Repository]]. For instructions on how to build your own libraries, see [[Libraries/Development]]. Eventually, this mechanism will succeed the `plugs` configuration and `Plugs: Update` mechanism. Plug authors can already start to update their plugs to get ready, usually all that needs to be done is to add a `PLUG.md` file to their repository: [example](https://github.com/silverbulletmd/silverbullet-mermaid/blob/main/PLUG.md).
 * [[Services]]: a new mechanism used behind the scenes to power [[Share]], but also [[Export]] and likely other features in the future. Built on top of [[Events]].
 * [[URIs]] are now a more formalized and centralized mechanism, used by [[Share]] and likely other features in the future.
 * Removed “Import” support, succeeded by [[Share]].

@@ -3,12 +3,12 @@ testattribute: 10
 ---
 #api/syscall
 
-The `index` API provides functions for interacting with SilverBullet's [[Objects]], allowing you to store and query page-associated data.
+The `index` API provides functions for interacting with SilverBullet's [[Object]], allowing you to store and query page-associated data.
 
 ## Object Operations
 
 ## index.tag(name)
-Returns a given [[Objects#Tags]] as a query collection, to be queried using [[Space Lua/Lua Integrated Query]].
+Returns a given [[Object#Tags]] as a query collection, to be queried using [[Space Lua/Lua Integrated Query]].
 
 Example:
 

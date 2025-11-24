@@ -141,7 +141,7 @@ editor.save()
 Navigates to the specified page reference.
 
 Parameters:
-- `ref`: The (string) reference to navigate to, see [[Links#Link syntax (String refs)|string refs]]
+- `ref`: The (string) reference to navigate to, see [[../Link#Link syntax (String refs)|string refs]]
 - `replaceState`: Whether to replace the current history state
 - `newWindow`: Whether to open in a new window
 

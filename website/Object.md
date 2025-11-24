@@ -1,9 +1,9 @@
-SilverBullet automatically builds and maintains an index of _objects_ extracted from all [[Markdown]] [[Pages]] in your [[Spaces|Space]]. It subsequently allows you to use [[Space Lua/Lua Integrated Query]] to query this database in (potentially) useful ways.
+SilverBullet automatically builds and maintains an index of _objects_ extracted from all [[Markdown]] [[Page]] in your [[Space|Space]]. It subsequently allows you to use [[Space Lua/Lua Integrated Query]] to query this database in (potentially) useful ways.
 
 By design, the truth remains in the markdown: all data indexed as objects will have a representation in markdown text as well. This index can be flushed at any time and be rebuilt from its source markdown files kept in your space (and you can do so on demand if you like using the `Space: Reindex` command).
 
 # Object representation
-Every object has a set of [[Attributes]], some predefined, but you can add any additional custom attributes that you like.
+Every object has a set of [[Attribute]], some predefined, but you can add any additional custom attributes that you like.
 
 The following attributes are predefined, and you can expect all objects to have them:
 * `ref`: a globally unique _identifier_, often represented as a pointer to the place (page, position) in your space where the object is defined. For instance, a _page_ object will use the page name as its `ref` attribute, and a `task` will use `page@pos` (where `pos` is the location the task appears in `page`).
@@ -13,7 +13,7 @@ In addition, many objects will also contain:
 * `tags`: an optional set of additional, explicitly assigned tags.
 * `itags`: a set of _implicit_ or _inherited_ tags: including the object’s `tag`, `tags` as well as any tags _assigned to its containing page_. This is useful to answer queries like, “give me all tasks on pages where that page is tagged with `person`“, which would be expressed as `query[[from index.tag "task" where table.includes(_.itags, "person")]]` (although technically that would also match any tags that have the `#person` explicitly assigned).
 
-Beside these, any number of additional tag-specific and custom [[Attributes]] can be defined (see below).
+Beside these, any number of additional tag-specific and custom [[Attribute]] can be defined (see below).
 
 # Tags
 Every object has a main `tag`, which signifies the type of object being described. In addition, any number of additional tags can be assigned as well via the `tags` attribute. You can use either the main `tag` or any of the `tags` as query sources in [[Space Lua/Lua Integrated Query]] — examples below.
@@ -50,7 +50,7 @@ Table headers will be normalized by converting them to lowercase and replacing a
 ## item
 List items (both bullet point and numbered items) are indexed with the `item` tag, and additional tags can be added using [[Tags]].
 
-Here is an example of a #quote item using a custom [[Attributes|attribute]]:
+Here is an example of a #quote item using a custom [[Attribute|attribute]]:
 
 * “If you don’t know where you’re going you may not get there.” [by: Yogi Berra] #quote
 
@@ -92,7 +92,7 @@ ${template.each(query[[from index.tag "upnext"]], templates.taskItem)}
 Similar to [[#item]], `task` objects have a `parent` attribute when nested (pointing to their parent `item`), and inherit their ancestor’s tags in `itags`.
 
 ## taskstate
-[[Tasks]] support the default `x` and ` ` states (done and not done), but custom states as well. Custom states used across your space are kept in `taskstate`:
+[[Task]] support the default `x` and ` ` states (done and not done), but custom states as well. Custom states used across your space are kept in `taskstate`:
 
 * [NOT STARTED] Task 1
 * [IN PROGRESS] Task 2
