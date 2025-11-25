@@ -64,6 +64,8 @@ export class IndexedDBKvPrimitives implements KvPrimitives {
     ]);
   }
 
+  // Important IndexedDB limitation: no asynchronous processing can happen
+  // in the body of the for await: https://stackoverflow.com/a/51898463
   async *query({ prefix }: KvQueryOptions): AsyncIterableIterator<KV> {
     const tx = this.db.transaction(objectStoreName, "readonly");
     prefix = prefix || [];

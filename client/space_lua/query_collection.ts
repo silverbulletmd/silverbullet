@@ -68,35 +68,43 @@ export class ArrayQueryCollection<T> implements LuaQueryCollection {
   constructor(private readonly array: T[]) {
   }
 
-  async query(
+  query(
     query: LuaCollectionQuery,
     env: LuaEnv,
     sf: LuaStackFrame,
     collation?: QueryCollationConfig,
   ): Promise<any[]> {
-    const result: any[] = [];
-
-    // Filter the array
-    for (const item of this.array) {
-      const itemEnv = buildItemEnv(query.objectVariable, item, env, sf);
-      if (query.where && !await evalExpression(query.where, itemEnv, sf)) {
-        continue;
-      }
-      result.push(item);
-    }
-
-    return applyTransforms(result, query, env, sf, collation);
+    return applyQuery(this.array, query, env, sf, collation);
   }
 }
 
-export async function applyTransforms(
-  result: any[],
+/**
+ * Applies a given query (where, order by, limit etc.) to a set of results
+ */
+export async function applyQuery(
+  results: any[],
   query: LuaCollectionQuery,
   env: LuaEnv,
   sf: LuaStackFrame,
   collation?: QueryCollationConfig,
 ): Promise<any[]> {
-  // Apply the order by
+  // Shallow copy to avoid updating underlying data structures
+  results = results.slice();
+
+  // Filter results based on `where` clause first
+  if (query.where) {
+    const filteredResults = [];
+    for (const value of results) {
+      // Enrich value
+      const itemEnv = buildItemEnv(query.objectVariable, value, env, sf);
+      if (await evalExpression(query.where, itemEnv, sf)) {
+        filteredResults.push(value);
+      }
+    }
+    results = filteredResults;
+  }
+
+  // Apply `order by` next
   if (query.orderBy) {
     // Retrieve from config API if not passed
     if (collation === undefined) {
@@ -108,7 +116,7 @@ export async function applyTransforms(
     // Both arguments are optional, so passing undefined is fine
     const collator = Intl.Collator(collation?.locale, collation?.options);
 
-    result = await asyncQuickSort(result, async (a, b) => {
+    results = await asyncQuickSort(results, async (a, b) => {
       // Compare each orderBy clause until we find a difference
       for (const { expr, desc } of query.orderBy!) {
         const aEnv = buildItemEnv(query.objectVariable, a, env, sf);
@@ -140,11 +148,11 @@ export async function applyTransforms(
   // Apply the select
   if (query.select) {
     const newResult = [];
-    for (const item of result) {
+    for (const item of results) {
       const itemEnv = buildItemEnv(query.objectVariable, item, env, sf);
       newResult.push(await evalExpression(query.select, itemEnv, sf));
     }
-    result = newResult;
+    results = newResult;
   }
 
   // Apply distinct filter (after select to filter on selected values)
@@ -152,7 +160,7 @@ export async function applyTransforms(
     const seen = new Set();
     const distinctResult = [];
 
-    for (const item of result) {
+    for (const item of results) {
       // For non-primitive values, we use a JSON string as the key for comparison
       const key = generateKey(item);
 
@@ -162,19 +170,19 @@ export async function applyTransforms(
       }
     }
 
-    result = distinctResult;
+    results = distinctResult;
   }
 
   // Apply the limit and offset
   if (query.limit !== undefined && query.offset !== undefined) {
-    result = result.slice(query.offset, query.offset + query.limit);
+    results = results.slice(query.offset, query.offset + query.limit);
   } else if (query.limit !== undefined) {
-    result = result.slice(0, query.limit);
+    results = results.slice(0, query.limit);
   } else if (query.offset !== undefined) {
-    result = result.slice(query.offset);
+    results = results.slice(query.offset);
   }
 
-  return result;
+  return results;
 }
 
 export async function queryLua<T = any>(
@@ -185,23 +193,18 @@ export async function queryLua<T = any>(
   sf: LuaStackFrame = LuaStackFrame.lostFrame,
   enricher?: (key: KvKey, item: any) => any,
 ): Promise<T[]> {
-  const result: T[] = [];
+  const results: T[] = [];
+  // Accumulate all results into an array
   for await (
     let { key, value } of kv.query({ prefix })
   ) {
     if (enricher) {
       value = enricher(key, value);
     }
-    if (query.where) {
-      // Enrich
-      const itemEnv = buildItemEnv(query.objectVariable, value, env, sf);
-      if (!await evalExpression(query.where, itemEnv, sf)) {
-        continue;
-      }
-    }
-    result.push(value);
+    results.push(value);
   }
-  return applyTransforms(result, query, env, sf);
+
+  return applyQuery(results, query, env, sf);
 }
 
 function generateKey(value: any) {
