@@ -4,7 +4,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"net/url"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
@@ -50,14 +49,8 @@ func handleFsList(w http.ResponseWriter, r *http.Request) {
 
 // handleFsGet handles GET requests for individual files
 func handleFsGet(w http.ResponseWriter, r *http.Request) {
-	path, err := getPath(w, r)
-
+	path := chi.URLParam(r, "*")
 	spaceConfig := spaceConfigFromContext(r.Context())
-
-	if err != nil {
-		// Handled by getPath
-		return
-	}
 
 	// log.Printf("Got this path: %s", path)
 
@@ -96,14 +89,8 @@ func handleFsGet(w http.ResponseWriter, r *http.Request) {
 
 // handleFsPut handles PUT requests for writing files
 func handleFsPut(w http.ResponseWriter, r *http.Request) {
-	path, err := getPath(w, r)
-
+	path := chi.URLParam(r, "*")
 	spaceConfig := spaceConfigFromContext(r.Context())
-
-	if err != nil {
-		// Handled by getPath
-		return
-	}
 
 	// Read request body
 	body, err := io.ReadAll(r.Body)
@@ -127,17 +114,10 @@ func handleFsPut(w http.ResponseWriter, r *http.Request) {
 
 // handleFsDelete handles DELETE requests for removing files
 func handleFsDelete(w http.ResponseWriter, r *http.Request) {
-	path, err := getPath(w, r)
-
+	path := chi.URLParam(r, "*")
 	spaceConfig := spaceConfigFromContext(r.Context())
 
-	if err != nil {
-		// Handled by getPath
-		return
-	}
-
-	err = spaceConfig.SpacePrimitives.DeleteFile(path)
-	if err != nil {
+	if err := spaceConfig.SpacePrimitives.DeleteFile(path); err != nil {
 		if err == ErrNotFound {
 			http.NotFound(w, r)
 		} else {
@@ -198,15 +178,4 @@ func getFileMetaFromHeaders(h http.Header, path string) *FileMeta {
 	}
 
 	return fm
-}
-
-func getPath(w http.ResponseWriter, r *http.Request) (string, error) {
-	path, err := url.QueryUnescape(chi.URLParam(r, "*"))
-
-	if err != nil {
-		log.Printf("Could not decode URL: %s: %v", path, err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return "", err
-	}
-	return path, nil
 }
