@@ -94,7 +94,7 @@ func Router(config *ServerConfig) chi.Router {
 	routes.HandleFunc("/.client/manifest.json", manifestHandler)
 
 	routes.HandleFunc("/*", func(w http.ResponseWriter, r *http.Request) {
-		path := chi.URLParam(r, "*")
+		path := DecodeURLParam(r, "*")
 
 		spaceConfig := spaceConfigFromContext(r.Context())
 
