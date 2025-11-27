@@ -8,11 +8,11 @@ export const panelHtml = `<!DOCTYPE html>
 const pendingRequests = new Map();
 let syscallReqId = 0;
 
-self.syscall = async (name, ...args) => {
+globalThis.syscall = async (name, ...args) => {
   return await new Promise((resolve, reject) => {
     syscallReqId++;
     pendingRequests.set(syscallReqId, { resolve, reject });
-    window.parent.postMessage({
+    globalThis.parent.postMessage({
       type: "syscall",
       id: syscallReqId,
       name,
@@ -24,7 +24,7 @@ self.syscall = async (name, ...args) => {
 let oldHeight = undefined;
 let heightChecks = 0;
 
-window.addEventListener("message", (message) => {
+globalThis.addEventListener("message", (message) => {
   const data = message.data;
   switch (data.type) {
     case "html":
@@ -70,17 +70,13 @@ window.addEventListener("message", (message) => {
   }
 });
 
-function api(obj) {
-  window.parent.postMessage(obj, "*");
-}
-
 function updateHeight() {
   const body = document.body, html = document.documentElement;
   let height = Math.max(body.offsetHeight, html.offsetHeight);
   heightChecks++;
   if(height !== oldHeight) {
     oldHeight = height;
-    api({
+    globalThis.parent.postMessage({
       type: "setHeight",
       height: height,
     });
@@ -97,7 +93,6 @@ function loadJsByUrl(url,integrity=null) {
     script.integrity=integrity;
     script.crossOrigin="anonymous"; //for some weird reason this attribute is case sensitive when used in JS
   }
-  
 
   return new Promise((resolve) => {
     script.onload = resolve;

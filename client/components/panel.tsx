@@ -49,9 +49,6 @@ export function Panel({
         return;
       }
       switch (data.type) {
-        case "event":
-          editor.dispatchAppEvent(data.name, ...data.args);
-          break;
         case "syscall": {
           const { id, name, args } = data;
           editor.clientSystem.localSyscall(name, args).then(
