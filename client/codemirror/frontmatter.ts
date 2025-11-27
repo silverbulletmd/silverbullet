@@ -9,6 +9,7 @@ import {
 } from "./util.ts";
 import type { Client } from "../client.ts";
 import {
+  frontmatterQuotesRegex,
   frontmatterUrlRegex,
   frontmatterWikiLinkRegex,
 } from "../markdown_parser/constants.ts";
@@ -61,96 +62,102 @@ export function frontmatterPlugin(client: Client) {
 
           // Render links inside frontmatter code as clickable anchors (external and wiki links)
           if (node.name === "FrontMatterCode") {
-            const from = node.from;
-            const to = node.to;
-            const text = state.sliceDoc(from, to);
+            const oFrom = node.from;
+            const oTo = node.to;
 
-            // 1) External links: http(s) URLs
-            frontmatterUrlRegex.lastIndex = 0;
-            let match: RegExpExecArray | null;
-            while ((match = frontmatterUrlRegex.exec(text)) !== null) {
-              const mFrom = from + (match.index ?? 0);
-              const mTo = mFrom + match[0].length;
-              if (isCursorInRange(state, [mFrom, mTo])) {
-                continue;
-              }
-              const url = match[1];
-              widgets.push(
-                Decoration.replace({
-                  widget: new LinkWidget({
-                    text: url,
-                    title: `Open ${url}`,
-                    href: url,
-                    cssClass: "sb-external-link",
-                    from: mFrom,
-                    callback: (e) => {
-                      if (e.altKey) {
-                        // Move cursor into the link
-                        client.editorView.dispatch({
-                          selection: { anchor: mFrom },
-                        });
-                        client.focus();
-                        return;
-                      }
-                      try {
-                        globalThis.open(url, "_blank");
-                      } catch (err) {
-                        console.error("Failed to open external link", err);
-                      }
-                    },
-                  }),
-                }).range(mFrom, mTo),
-              );
+            if (isCursorInRange(state, [oFrom, oTo])) {
+              return;
             }
 
-            // 2) Internal links: WikiLinks [[...]] (make navigable)
-            frontmatterWikiLinkRegex.lastIndex = 0;
-            let wMatch: RegExpExecArray | null;
-            while ((wMatch = frontmatterWikiLinkRegex.exec(text)) !== null) {
-              if (!wMatch || !wMatch.groups) {
-                return;
-              }
-              const mFrom = from + (wMatch.index ?? 0);
-              const mTo = mFrom + wMatch[0].length;
-              if (isCursorInRange(state, [mFrom, mTo])) {
-                continue;
-              }
+            const otext = state.sliceDoc(oFrom, oTo);
 
-              const wikiLinkMatch: WikiLinkMatch = {
-                leadingTrivia: wMatch.groups.leadingTrivia,
-                stringRef: wMatch.groups.stringRef,
-                alias: wMatch.groups.alias,
-                trailingTrivia: wMatch.groups.trailingTrivia,
-              };
+            let oMatch: RegExpExecArray | null;
+            while ((oMatch = frontmatterQuotesRegex.exec(otext)) !== null) {
+              const from = oFrom + (oMatch.index ?? 0);
+              const to = from + oMatch[0].length;
+              const text = state.sliceDoc(from, to);
 
-              const decorations = processWikiLink({
-                from,
-                to,
-                match: wikiLinkMatch,
-                matchFrom: mFrom,
-                matchTo: mTo,
-                client,
-                state,
-                callback: (e, ref) => {
-                  if (e.altKey) {
-                    // Move cursor into the link's content
-                    client.editorView.dispatch({
-                      selection: {
-                        anchor: mFrom + wikiLinkMatch.leadingTrivia.length,
+              // 1) External links: http(s) URLs
+              frontmatterUrlRegex.lastIndex = 0;
+              let match: RegExpExecArray | null;
+              while ((match = frontmatterUrlRegex.exec(text)) !== null) {
+                const mFrom = from + (match.index ?? 0);
+                const mTo = mFrom + match[0].length;
+                const url = match[1];
+                widgets.push(
+                  Decoration.replace({
+                    widget: new LinkWidget({
+                      text: url,
+                      title: `Open ${url}`,
+                      href: url,
+                      cssClass: "sb-external-link",
+                      from: mFrom,
+                      callback: (e) => {
+                        if (e.altKey) {
+                          // Move cursor into the link
+                          client.editorView.dispatch({
+                            selection: { anchor: mFrom },
+                          });
+                          client.focus();
+                          return;
+                        }
+                        try {
+                          globalThis.open(url, "_blank");
+                        } catch (err) {
+                          console.error("Failed to open external link", err);
+                        }
                       },
-                    });
-                    client.focus();
-                    return;
-                  }
-                  client.navigate(
-                    ref,
-                    false,
-                    e.ctrlKey || e.metaKey,
-                  );
-                },
-              });
+                    }),
+                  }).range(mFrom, mTo),
+                );
+              }
 
-              widgets.push(...decorations);
+              // 2) Internal links: WikiLinks [[...]] (make navigable)
+              frontmatterWikiLinkRegex.lastIndex = 0;
+              let wMatch: RegExpExecArray | null;
+              while ((wMatch = frontmatterWikiLinkRegex.exec(text)) !== null) {
+                if (!wMatch || !wMatch.groups) {
+                  return;
+                }
+                const mFrom = from + (wMatch.index ?? 0);
+                const mTo = mFrom + wMatch[0].length;
+
+                const wikiLinkMatch: WikiLinkMatch = {
+                  leadingTrivia: wMatch.groups.leadingTrivia,
+                  stringRef: wMatch.groups.stringRef,
+                  alias: wMatch.groups.alias,
+                  trailingTrivia: wMatch.groups.trailingTrivia,
+                };
+
+                const decorations = processWikiLink({
+                  from,
+                  to,
+                  match: wikiLinkMatch,
+                  matchFrom: mFrom,
+                  matchTo: mTo,
+                  client,
+                  state,
+                  callback: (e, ref) => {
+                    if (e.altKey) {
+                      // Move cursor into the link's content
+                      client.editorView.dispatch({
+                        selection: {
+                          anchor: mFrom + wikiLinkMatch.leadingTrivia.length,
+                        },
+                      });
+                      client.focus();
+                      return;
+                    }
+                    client.navigate(
+                      ref,
+                      false,
+                      e.ctrlKey || e.metaKey,
+                    );
+                  },
+                });
+
+                widgets.push(...decorations);
+              }
             }
           }
         },
