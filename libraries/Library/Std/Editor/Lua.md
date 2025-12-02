@@ -138,15 +138,23 @@ local function inLuaContext(parentNodes)
   return false
 end
 
+local function notDefinedinLua()
+  return editor.flashNotification(
+    "Cannot navigate to definition; not defined in Lua."
+  )
+end
+
 event.listen {
   name = "page:click",
   run = function(e)
-    if not e.data.metaKey or e.data.ctrlKey then
+    -- Accept either Cmd-click (Mac) or Ctrl-click (Linux)
+    if not (e.data.metaKey or e.data.ctrlKey) then
       return
     end
     if not inLuaContext(e.data.parentNodes) then
-      return
+      return notDefinedinLua()
     end
+
     local pos = e.data.pos
     local text = editor.getText()
     -- Find start pos
@@ -188,6 +196,8 @@ event.listen {
         -- Has to be offset a bit
         pos=tonumber(refBits[2]) + ctx.from + #"```space-lua\n"
       })
+    else
+      return notDefinedinLua()
     end
   end
 }
