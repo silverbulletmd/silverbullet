@@ -59,6 +59,7 @@ const EMPTY_CTX = {} as ASTCtx;
 
 export class LuaEnv implements ILuaSettable, ILuaGettable {
   variables = new Map<string, LuaValue>();
+  private readonly consts = new Set<string>();
 
   constructor(readonly parent?: LuaEnv) {
   }
@@ -67,8 +68,19 @@ export class LuaEnv implements ILuaSettable, ILuaGettable {
     this.variables.set(name, value);
   }
 
+  setLocalConst(name: string, value: LuaValue) {
+    this.variables.set(name, value);
+    this.consts.add(name);
+  }
+
   set(key: string, value: LuaValue, sf?: LuaStackFrame): void {
     if (this.variables.has(key) || !this.parent) {
+      if (this.consts.has(key)) {
+        throw new LuaRuntimeError(
+          `attempt to assign to const variable '${key}'`,
+          sf || LuaStackFrame.lostFrame,
+        );
+      }
       this.variables.set(key, value);
     } else {
       this.parent.set(key, value, sf);
