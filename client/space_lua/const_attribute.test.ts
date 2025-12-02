@@ -38,6 +38,31 @@ async function runAndCatch(code: string, ref = "const_attribute.lua") {
   }
 }
 
+Deno.test("const: Unknown attribute (parse-time)", () => {
+  let threw = false;
+  try {
+    parse(`local x<close> = 1`, { ref: "unknown_attribute.lua" });
+  } catch (e: any) {
+    threw = true;
+    assertStringIncludes(String(e?.message ?? e), "unknown attribute 'close'");
+  }
+  if (!threw) {
+    throw new Error("Expected parse error for unknown attribute");
+  }
+});
+
+Deno.test("const: Case-sensitive attribute (parse-time)", () => {
+  let threw = false;
+  try {
+    parse(`local x<Const> = 1`, { ref: "unknown_attribute.lua" });
+  } catch (e: any) {
+    threw = true;
+    assertStringIncludes(String(e?.message ?? e), "unknown attribute 'Const'");
+  }
+  if (!threw) {
+    throw new Error("Expected parse error for unknown attribute");
+  }
+});
 Deno.test("const: Requires initializer", async () => {
   const { e } = await runAndCatch(`
     local x <const>
@@ -229,18 +254,6 @@ Deno.test("const: Rebinding table fails", async () => {
   );
 });
 
-Deno.test("const: Unknown attribute", async () => {
-  const { e } = await runAndCatch(
-    `local x<close> = 1`,
-    "unknown_attribute.lua",
-  );
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes(
-    (e as LuaRuntimeError).message,
-    "unknown attribute 'close'",
-  );
-});
-
 Deno.test("const: Inner block reassignment", async () => {
   const { e } = await runAndCatch(`
     local a<const> = 1
@@ -285,16 +298,4 @@ Deno.test("const: Closure mutates table", async () => {
     y = t.x
   `);
   assertEquals(env.get("y"), 2);
-});
-
-Deno.test("const: Case-sensitive attribute", async () => {
-  const { e } = await runAndCatch(
-    `local x <Const> = 1`,
-    "unknown_attribute.lua",
-  );
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes(
-    (e as LuaRuntimeError).message,
-    "unknown attribute 'Const'",
-  );
 });

@@ -139,10 +139,15 @@ export type LuaLocalStatement = {
   expressions?: LuaExpression[];
 } & ASTContext;
 
+export enum LuaAttribute {
+  Const = "const",
+}
+
 export type LuaAttName = {
   type: "AttName";
   name: string;
   attribute?: string;
+  attributes?: LuaAttribute[];
 } & ASTContext;
 
 export type LuaFunctionCallStatement = {
