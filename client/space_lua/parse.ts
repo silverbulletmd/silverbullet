@@ -23,6 +23,7 @@ import type {
   LuaStatement,
   LuaTableField,
 } from "./ast.ts";
+import { LuaAttribute } from "./ast.ts";
 
 const luaStyleTags = styleTags({
   Name: t.variableName,
@@ -362,12 +363,17 @@ function parseAttName(t: ParseTree, ctx: ASTCtx): LuaAttName {
   if (t.type !== "AttName") {
     throw new Error(`Expected AttName, got ${t.type}`);
   }
+  const attribute = t.children![1].children![1]
+    ? t.children![1].children![1].children![0].text!
+    : undefined;
+  if (attribute && attribute !== LuaAttribute.Const) {
+    throw new Error(`unknown attribute '${attribute}'`);
+  }
   return {
     type: "AttName",
     name: t.children![0].children![0].text!,
-    attribute: t.children![1].children![1]
-      ? t.children![1].children![1].children![0].text!
-      : undefined,
+    attribute,
+    attributes: attribute ? [LuaAttribute.Const] : undefined,
     ctx: context(t, ctx),
   };
 }

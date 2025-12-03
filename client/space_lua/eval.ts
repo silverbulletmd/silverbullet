@@ -6,6 +6,7 @@ import type {
   LuaStatement,
   NumericType,
 } from "./ast.ts";
+import { LuaAttribute } from "./ast.ts";
 import { evalPromiseValues } from "./util.ts";
 import {
   getMetatable,
@@ -1182,11 +1183,32 @@ export function evalStatement(
     }
     case "Local": {
       const l = asLocal(s);
-      if (l.expressions) {
-        const valuesRP = evalExpressions(l.expressions, env, sf);
+
+      const hasInit = Array.isArray(l.expressions) && l.expressions.length > 0;
+
+      for (const att of l.names) {
+        const isConst = att.attributes?.includes(LuaAttribute.Const) === true;
+        if (isConst && !hasInit) {
+          throw new LuaRuntimeError(
+            `const variable '${att.name}' must be initialized`,
+            sf.withCtx(att.ctx),
+          );
+        }
+      }
+
+      if (hasInit) {
+        const valuesRP = evalExpressions(l.expressions!, env, sf);
         const setAll = (values: LuaValue[]) => {
           for (let i = 0; i < l.names.length; i++) {
-            env.setLocal(l.names[i].name, values[i]);
+            const name = l.names[i];
+            const v = values[i];
+            const isConst =
+              name.attributes?.includes(LuaAttribute.Const) === true;
+            if (isConst) {
+              env.setLocalConst(name.name, v);
+            } else {
+              env.setLocal(name.name, v);
+            }
           }
           return;
         };
