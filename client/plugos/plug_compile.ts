@@ -106,7 +106,7 @@ setupMessageListener(functionMapping, manifest, self.postMessage);
     format: "esm",
     globalName: "mod",
     platform: "browser",
-    sourcemap: options.debug ? "linked" : undefined,
+    sourcemap: "linked",
     minify: !options.debug,
     outfile: outFile,
     metafile: options.info,
