@@ -10,6 +10,7 @@ import { Client } from "./client.ts";
 import type { Config } from "./config.ts";
 import {
   flushCachesAndUnregisterServiceWorker,
+  unregisterServiceWorkers,
 } from "./service_worker/util.ts";
 import "./lib/polyfills.ts";
 import type { BootConfig, ServiceWorkerTargetMessage } from "./types/ui.ts";
@@ -285,6 +286,16 @@ async function cachedFetch(path: string): Promise<string> {
       } else {
         throw offlineError;
       }
+    }
+    if (response.type === "opaqueredirect") {
+      // We received an opaque redirect, there's little sensible we can do than unregister service workers and reload
+      console.log(
+        "Got opaque redirect, going to unregister service workers and reload",
+      );
+      await unregisterServiceWorkers();
+      console.log("Ok, now going to reload, let's hope for the best");
+      location.reload();
+      throw offlineError;
     }
     const redirectHeader = response.headers.get("location");
     if (redirectHeader) {
