@@ -25,4 +25,6 @@ export const offlineStatusCodes = {
   502: "Bad Gateway", // Proxy server received invalid response from upstream server
   503: "Service Unavailable", // Server is temporarily unable to handle the request
   504: "Gateway Timeout", // Proxy server did not receive a timely response from upstream server
+
+  530: "Unable to resolve origin hostname", // Served when cloudflared is down on the host
 } as const;
