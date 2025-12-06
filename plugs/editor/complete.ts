@@ -96,20 +96,23 @@ export async function pageComplete(completeEvent: CompleteEvent) {
 
       if (isWikilink) {
         // A [[wikilink]]
-        if (pageMeta.displayName) {
-          const decoratedName = namePrefix + pageMeta.displayName;
+        const linkAlias = pageMeta.linkName || pageMeta.displayName;
+        if (linkAlias) {
+          const decoratedName = namePrefix + linkAlias;
           let boost = new Date(pageMeta.lastModified).getTime();
           if (pageMeta._isAspiring) {
             boost = -Infinity;
           }
           completions.push({
-            label: pageMeta.displayName,
+            label: linkAlias,
             displayLabel: decoratedName,
             boost,
             apply: pageMeta.tag === "template"
               ? pageMeta.name
-              : `${pageMeta.name}|${pageMeta.displayName}`,
-            detail: `displayName for: ${pageMeta.name}`,
+              : `${pageMeta.name}|${linkAlias}`,
+            detail: pageMeta.linkName
+              ? `linkName for: ${pageMeta.name}`
+              : `displayName for: ${pageMeta.name}`,
             type: "page",
             cssClass,
           });
