@@ -53,9 +53,11 @@ safeRun(async () => {
     );
   } catch (e: any) {
     console.error("Failed to process config", e.message);
-    alert(
-      "Could not process config and no cached copy, please connect to the Internet",
-    );
+    if (e.message === offlineError.message) {
+      alert(
+        "Could not process config and no cached copy, please connect to the Internet",
+      );
+    }
     return;
   }
 
@@ -295,7 +297,7 @@ async function cachedFetch(path: string): Promise<string> {
       await unregisterServiceWorkers();
       console.log("Ok, now going to reload, let's hope for the best");
       location.reload();
-      throw offlineError;
+      throw notAuthenticatedError;
     }
     const redirectHeader = response.headers.get("location");
     if (redirectHeader) {
