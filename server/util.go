@@ -6,22 +6,23 @@ import (
 	"strings"
 )
 
+// Custom MIME type mappings for file extensions not in the system database
+var mimeTypeExtMapping = map[string]string{
+	".md":   "text/markdown",
+	".heic": "image/heic",
+	".heif": "image/heic",
+}
+
 // lookupContentTypeFromPath determines MIME type based on file extension
 func LookupContentTypeFromPath(path string) string {
-	ext := filepath.Ext(path)
+	ext := strings.ToLower(filepath.Ext(path))
 
-	// Handle specific file types that may not be in the system MIME database
-	// or need special handling
-	if strings.EqualFold(ext, ".md") {
-		return "text/markdown"
-	}
-	if strings.EqualFold(ext, ".heic") {
-		return "image/heic"
-	}
-	if strings.EqualFold(ext, ".heif") {
-		return "image/heic"
+	// Check our custom MIME type mappings first
+	if mimeType, exists := mimeTypeExtMapping[ext]; exists {
+		return mimeType
 	}
 
+	// Fall back to system MIME type detection
 	contentType := mime.TypeByExtension(ext)
 	if contentType == "" {
 		return "application/octet-stream"
