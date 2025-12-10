@@ -203,8 +203,6 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
         true,
         snapshot,
       );
-    } catch (e: any) {
-      console.log("error", "Error syncing file", path, e.message);
     } finally {
       this.isSyncing = false;
       this.emit("snapshotUpdated", snapshot);
