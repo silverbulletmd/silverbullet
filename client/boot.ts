@@ -312,7 +312,7 @@ async function cachedFetch(path: string): Promise<string> {
     // Persist to localStorage
     localStorage.setItem(cacheKey, text);
     return text;
-  } catch {
+  } catch (e: any) {
     console.info("Falling back to cache for", path);
     // We may be offline, let's see if we have a cached config
     const text = localStorage.getItem(cacheKey);
@@ -320,7 +320,7 @@ async function cachedFetch(path: string): Promise<string> {
       // Yep! Let's use it
       return text;
     } else {
-      throw offlineError;
+      throw e;
     }
   }
 }
