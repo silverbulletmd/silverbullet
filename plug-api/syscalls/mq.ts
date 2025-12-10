@@ -58,7 +58,7 @@ export function batchAck(queue: string, ids: string[]): Promise<void> {
  * Retrieves stats on a particular queue.
  * @param queue the name of the queue
  */
-export function getQueueStats(queue: string): Promise<MQStats> {
+export function getQueueStats(queue?: string): Promise<MQStats> {
   return syscall("mq.getQueueStats", queue);
 }
 

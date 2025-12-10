@@ -109,6 +109,11 @@ export class EncryptedKvPrimitives implements KvPrimitives {
     }
   }
 
+  async countQuery({ prefix }: KvQueryOptions): Promise<number> {
+    const encryptedPrefix = prefix ? await this.encryptKey(prefix) : undefined;
+    return this.wrapped.countQuery({ prefix: encryptedPrefix });
+  }
+
   close() {
     this.wrapped.close();
   }

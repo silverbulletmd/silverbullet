@@ -202,7 +202,7 @@ export class Client {
     this.commandAugmenter = new Augmenter(this.ds, ["aug", "command"]);
 
     // Setup message queue on top of that
-    this.mq = new DataStoreMQ(this.ds);
+    this.mq = new DataStoreMQ(this.ds, this.eventHook);
 
     // Instantiate a PlugOS system
     this.clientSystem = new ClientSystem(
@@ -330,28 +330,56 @@ export class Client {
       async (
         name: string,
       ) => {
-        // TODO: Optimization opportunity here: dispatch the page:index here directly rather than sending it off to a queue which will refetch the file
         console.log("Queueing index for", name);
-
-        await this.mq.send("indexQueue", name);
+        await this.eventHook.dispatchEvent("file:clearindex", name);
+        await this.mq.send("preIndexQueue", name);
+        if (await this.clientSystem.hasPreIndexCompleted()) {
+          // When the client is clean booted (no index yet), we skip indexing on the first pass
+          // and then schedule it once pre-index has finished for all files
+          // However, if pre indexing has already completed, then we schedule it immediately
+          await this.mq.send("indexQueue", name);
+        }
       },
     );
 
-    this.eventHook.addLocalListener("file:initial", async () => {
-      const startTime = Date.now();
-      await this.mq.awaitEmptyQueue("indexQueue");
-      console.info(
-        "Initial indexing complete after",
-        (Date.now() - startTime) / 1000,
-        "s",
-      );
-      await this.clientSystem.markFullSpaceIndexComplete();
-      await this.clientSystem.reloadState();
-    });
-
-    this.space = new Space(
+    const space = new Space(
       this.eventedSpacePrimitives,
       this.eventHook,
+    );
+
+    this.space = space;
+
+    let startTime = -1;
+    this.eventHook.addLocalListener("file:initial", () => {
+      startTime = Date.now();
+    });
+
+    const emptyQueueHandler = async () => {
+      if (!await this.clientSystem.hasPreIndexCompleted()) {
+        // Pre indexing has just finished for the first time
+        console.info(
+          "Pre-indexing complete after",
+          (Date.now() - startTime) / 1000,
+          "s",
+        );
+        // Unsubscribe myself
+        this.eventHook.removeLocalListener(
+          "mq:emptyQueue:preIndexQueue",
+          emptyQueueHandler,
+        );
+        await this.clientSystem.markPreIndexComplete();
+        await this.clientSystem.reloadState();
+        // Queue all pages for full indexing
+        await this.mq.batchSend(
+          "indexQueue",
+          (await space.fetchPageList()).map((pm) => pm.name + ".md"),
+        );
+        await this.mq.awaitEmptyQueue("indexQueue");
+      }
+    };
+    this.eventHook.addLocalListener(
+      "mq:emptyQueue:preIndexQueue",
+      emptyQueueHandler,
     );
 
     let lastSaveTimestamp: number | undefined;
@@ -580,7 +608,7 @@ export class Client {
     console.log("Updating page list cache");
     // Check if the initial sync has been completed
     const initialIndexCompleted = await this.clientSystem
-      .hasFullIndexCompleted();
+      .hasPreIndexCompleted();
 
     let allPages: PageMeta[] = [];
 
@@ -1101,7 +1129,7 @@ export class Client {
 
     // Fetch the meta which includes the possibly indexed stuff, like page
     // decorations
-    if (await this.clientSystem.hasFullIndexCompleted()) {
+    if (await this.clientSystem.hasPreIndexCompleted()) {
       try {
         const enrichedMeta = await this.clientSystem.getObjectByRef<PageMeta>(
           pageName,
@@ -1246,7 +1274,7 @@ export class Client {
       console.warn("Not loading custom styles, since space style is disabled");
       return;
     }
-    if (!await this.clientSystem.hasFullIndexCompleted()) {
+    if (!await this.clientSystem.hasPreIndexCompleted()) {
       return;
     }
 

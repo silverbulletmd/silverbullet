@@ -201,7 +201,7 @@ export class ClientSystem {
       console.info("Space Lua scripts are disabled, skipping loading scripts");
       return;
     }
-    if (!await this.hasFullIndexCompleted()) {
+    if (!await this.hasPreIndexCompleted()) {
       console.info(
         "Not loading space scripts, since initial indexing has not completed yet",
       );
@@ -294,7 +294,6 @@ export class ClientSystem {
 
     if (!currentIndexVersion) {
       console.log("No index version found, assuming fresh install");
-      await this.markFullSpaceIndexComplete();
       return;
     }
 
@@ -309,7 +308,7 @@ export class ClientSystem {
       await this.setIndexOngoing();
       await this.system.invokeFunction("index.reindexSpace", []);
       console.info("[index]", "Full space index complete.");
-      await this.markFullSpaceIndexComplete();
+      await this.markPreIndexComplete();
       await this.setIndexOngoing(false);
       // Let's load space scripts again, which probably weren't loaded before
       await this.reloadState();
@@ -325,7 +324,7 @@ export class ClientSystem {
     this.client.rebuildEditorState();
   }
 
-  public async hasFullIndexCompleted() {
+  public async hasPreIndexCompleted() {
     return (await this.ds.get(indexVersionKey)) === desiredIndexVersion;
   }
 
@@ -333,7 +332,7 @@ export class ClientSystem {
     return this.ds.get(indexVersionKey);
   }
 
-  async markFullSpaceIndexComplete() {
+  async markPreIndexComplete() {
     await this.ds.set(indexVersionKey, desiredIndexVersion);
   }
 }

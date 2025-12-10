@@ -9,6 +9,7 @@ import type {
   MQSubscribeOptions,
 } from "../../plug-api/types/datastore.ts";
 import { race, sleep } from "@silverbulletmd/silverbullet/lib/async";
+import type { EventHook } from "../plugos/hooks/event.ts";
 
 export type ProcessingMessage = MQMessage & {
   ts: number;
@@ -49,6 +50,10 @@ export class QueueWorker {
           await this.callback(messages);
         } else {
           // No messages, wait to be woken up or a timeout
+          this.mq.eventHook.dispatchEvent(
+            `mq:emptyQueue:${this.queue}`,
+            this.queue,
+          );
           try {
             await race([
               // Wait to be woken up explicitly
@@ -98,6 +103,7 @@ export class DataStoreMQ {
 
   constructor(
     private ds: DataStore,
+    public eventHook: EventHook,
   ) {
   }
 
@@ -350,12 +356,16 @@ export class DataStoreMQ {
     await this.ds.batchDelete(ids);
   }
 
-  async getQueueStats(queue: string): Promise<MQStats> {
-    const queued =
-      (await (this.ds.luaQuery([...queuedPrefix, queue], {}))).length;
-    const processing =
-      (await (this.ds.luaQuery([...processingPrefix, queue], {}))).length;
-    const dlq = (await (this.ds.luaQuery([...dlqPrefix, queue], {}))).length;
+  async getQueueStats(queue?: string): Promise<MQStats> {
+    const queued = await this.ds.kv.countQuery({
+      prefix: queue ? [...queuedPrefix, queue] : queuedPrefix,
+    });
+    const processing = await this.ds.kv.countQuery({
+      prefix: queue ? [...processingPrefix, queue] : processingPrefix,
+    });
+    const dlq = await this.ds.kv.countQuery({
+      prefix: queue ? [...dlqPrefix, queue] : dlqPrefix,
+    });
     return {
       queued,
       processing,
@@ -371,56 +381,5 @@ export class DataStoreMQ {
       }
       await sleep(200);
     }
-  }
-
-  async getAllQueueStats(): Promise<Record<string, MQStats>> {
-    const allStatus: Record<string, MQStats> = {};
-    for (
-      const message of await this.ds.luaQuery<MQMessage>(
-        queuedPrefix,
-        {},
-      )
-    ) {
-      if (!allStatus[message.queue]) {
-        allStatus[message.queue] = {
-          queued: 0,
-          processing: 0,
-          dlq: 0,
-        };
-      }
-      allStatus[message.queue].queued++;
-    }
-    for (
-      const message of await this.ds.luaQuery<MQMessage>(
-        processingPrefix,
-        {},
-      )
-    ) {
-      if (!allStatus[message.queue]) {
-        allStatus[message.queue] = {
-          queued: 0,
-          processing: 0,
-          dlq: 0,
-        };
-      }
-      allStatus[message.queue].processing++;
-    }
-    for (
-      const message of await this.ds.luaQuery<MQMessage>(
-        dlqPrefix,
-        {},
-      )
-    ) {
-      if (!allStatus[message.queue]) {
-        allStatus[message.queue] = {
-          queued: 0,
-          processing: 0,
-          dlq: 0,
-        };
-      }
-      allStatus[message.queue].dlq++;
-    }
-
-    return allStatus;
   }
 }

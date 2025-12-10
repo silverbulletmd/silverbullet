@@ -144,6 +144,14 @@ export class MemoryKvPrimitives implements KvPrimitives {
     }
   }
 
+  countQuery({ prefix }: KvQueryOptions): Promise<number> {
+    const prefixStr = prefix ? prefix.join(memoryKeySeparator) : undefined;
+    const keys = [...this.store.keys()];
+    return Promise.resolve(
+      keys.filter((key) => !prefixStr || key.startsWith(prefixStr)).length,
+    );
+  }
+
   async close(): Promise<void> {
     // Force immediate persistence when closing
     if (this.filePath) {

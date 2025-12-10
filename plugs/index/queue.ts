@@ -9,7 +9,8 @@ import {
 import { sleep } from "@silverbulletmd/silverbullet/lib/async";
 import type { MQMessage } from "@silverbulletmd/silverbullet/type/datastore";
 import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
-import { clearFileIndex } from "./api.ts";
+
+const uiUpdateInterval = 5000;
 
 export async function reindexSpace() {
   if (await system.getMode() === "ro") {
@@ -25,8 +26,10 @@ export async function reindexSpace() {
 
   console.log("Queing", files.length, "pages to be indexed.");
   // Queue all file names to be indexed
+  await mq.batchSend("preIndexQueue", files.map((file) => file.name));
   await mq.batchSend("indexQueue", files.map((file) => file.name));
   await editor.showProgress(0, "index");
+  // We'll assume this one completes last
   await mq.awaitEmptyQueue("indexQueue");
 
   // And notify the user
@@ -34,56 +37,88 @@ export async function reindexSpace() {
   await editor.showProgress();
 }
 
-setTimeout(updateIndexProgressInUI, 5000);
+setTimeout(updateIndexProgressInUI, uiUpdateInterval);
+
+async function totalItemsQueued() {
+  const queueStats = await mq.getQueueStats();
+  return queueStats.queued + queueStats.processing;
+}
 
 async function updateIndexProgressInUI() {
   // Let's see if there's anything in the index queue
-  let queueStats = await mq.getQueueStats("indexQueue");
-  if (queueStats.queued > 0 || queueStats.processing > 0) {
+  let totalQueued = await totalItemsQueued();
+  if (totalQueued > 0) {
     // Something's queued, likely it makes sense to compare this to the total number of files (progress wise)
     const fileList = await space.listFiles();
-    while (queueStats.queued > 0 || queueStats.processing > 0) {
-      queueStats = await mq.getQueueStats("indexQueue");
-      const percentage = Math.round(
-        (fileList.length - queueStats.queued) / fileList.length * 100,
+    while (totalQueued > 0) {
+      totalQueued = await totalItemsQueued();
+      let percentage = Math.round(
+        (fileList.length - totalQueued) / fileList.length * 100,
       );
+      if (percentage < 0) {
+        // The assumption that the queue size is related tot he file list length turns out to be wrong
+        // // Let's show some sort of number
+        percentage = 67;
+      }
       if (percentage > 99) {
         // Hide progress circle
         await editor.showProgress();
       } else {
         await editor.showProgress(percentage, "index");
       }
-      // Update UI every second
       await sleep(1000);
     }
   }
   // Schedule again
-  setTimeout(updateIndexProgressInUI, 5000);
+  setTimeout(updateIndexProgressInUI, uiUpdateInterval);
 }
 
 export async function processIndexQueue(messages: MQMessage[]) {
   for (const message of messages) {
-    let name: string = message.body;
-    console.log(`Indexing file ${name}`);
-    if (name.endsWith(".md")) {
-      name = name.slice(0, -3);
-      await indexPage(name);
-    } else {
-      await events.dispatchEvent("document:index", name);
-    }
+    const path: string = message.body;
+    console.log("[index]", `Indexing file ${path}`);
+    await indexFile(path);
   }
 }
 
-async function indexPage(name: string) {
-  // Clear any previous index entries for this file
-  await clearFileIndex(name);
-  // Read and parse the file
-  const text = await space.readPage(name);
-  const parsed = await markdown.parseMarkdown(text);
+async function indexFile(path: string) {
+  if (path.endsWith(".md")) {
+    // Page
+    const name = path.slice(0, -3);
+    // Read and parse the file
+    const text = await space.readPage(name);
+    const tree = await markdown.parseMarkdown(text);
 
-  // Emit the event which will be picked up by indexers
-  await events.dispatchEvent("page:index", {
-    name,
-    tree: parsed,
-  } as IndexTreeEvent);
+    // Emit the event which will be picked up by indexers
+    await events.dispatchEvent("page:index", {
+      name,
+      tree,
+    } as IndexTreeEvent);
+  }
+}
+
+export async function processPreIndexQueue(messages: MQMessage[]) {
+  for (const message of messages) {
+    const path: string = message.body;
+    console.log("[pre-index]", `Pre-indexing file ${path}`);
+    await preIndexFile(path);
+  }
+}
+
+async function preIndexFile(path: string) {
+  if (path.endsWith(".md")) {
+    // Page
+    const name = path.slice(0, -3);
+    // Read file
+    const text = await space.readPage(name);
+    const tree = await markdown.parseMarkdown(text);
+
+    // Emit the event which will be picked up by indexers
+    await events.dispatchEvent("page:preindex", {
+      name,
+      tree,
+    } as IndexTreeEvent);
+  } else {
+    await events.dispatchEvent("document:index", path);
+  }
 }

@@ -25,11 +25,12 @@ import type { AspiringPageObject } from "./page_links.ts";
 import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 import type { LintDiagnostic } from "@silverbulletmd/silverbullet/type/client";
 
-export async function indexPage({ name, tree }: IndexTreeEvent) {
+export async function preIndexPage({ name, tree }: IndexTreeEvent) {
   if (name.startsWith("_")) {
     // Don't index pages starting with _
     return;
   }
+
   const pageMeta = await space.getPageMeta(name);
   const frontmatter = await extractFrontMatter(tree);
   const toplevelAttributes = await extractAttributes(tree);
@@ -65,7 +66,19 @@ export async function indexPage({ name, tree }: IndexTreeEvent) {
 
   updateITags(combinedPageMeta, frontmatter);
 
+  // console.log("Page object", combinedPageMeta);
+  await indexObjects<PageMeta>(name, [combinedPageMeta]);
+}
+
+// Most interesting indexing for pages happens in the preindex phase, here we're just cleaning up aspiring pages
+export async function indexPage({ name }: IndexTreeEvent) {
+  if (name.startsWith("_")) {
+    // Don't index pages starting with _
+    return;
+  }
+
   // Make sure this page is no (longer) in the aspiring pages list
+  // TODO: This can possibly done more optimally
   const aspiringPages = await queryLuaObjects<AspiringPageObject>(
     "aspiring-page",
     {
@@ -78,9 +91,6 @@ export async function indexPage({ name, tree }: IndexTreeEvent) {
     console.log("Deleting aspiring page", aspiringPage);
     await deleteObject("aspiring-page", aspiringPage.page, aspiringPage.ref);
   }
-
-  // console.log("Page object", combinedPageMeta);
-  await indexObjects<PageMeta>(name, [combinedPageMeta]);
 }
 
 export async function lintFrontmatter(): Promise<LintDiagnostic[]> {

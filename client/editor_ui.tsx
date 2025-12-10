@@ -114,7 +114,9 @@ export class MainUI {
       updateTheme();
 
       if (viewState.uiOptions.darkMode === undefined) {
-        const mediaQuery = globalThis.matchMedia("(prefers-color-scheme: dark)");
+        const mediaQuery = globalThis.matchMedia(
+          "(prefers-color-scheme: dark)",
+        );
         mediaQuery.addEventListener("change", updateTheme);
 
         return () => {

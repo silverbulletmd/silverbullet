@@ -1,720 +1,718 @@
 .cm-focused {
-    outline: none !important;
+  outline: none !important;
 }
 
 #sb-main .cm-editor {
-    font-size: 18px;
-    height: 100%;
+  font-size: 18px;
+  height: 100%;
 
-    .cm-content {
-        width: 100%;
-        margin-left: auto;
-        margin-right: auto;
-        max-width: var(--#{"editor-width"});
-        padding: 5px 20px;
+  .cm-content {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: var(--#{"editor-width"});
+    padding: 5px 20px;
+  }
+
+  .cm-line {
+    padding: 0;
+
+    &.sb-line-h1,
+    &.sb-line-h2,
+    &.sb-line-h3,
+    &.sb-line-h4,
+    &.sb-line-h5,
+    &.sb-line-h6 {
+      font-weight: bold;
+      padding: 2px;
+    }
+  }
+
+  .cm-line:has(.sb-directive) {
+    background-color: var(--editor-directive-background-color);
+  }
+
+  .sb-line-h1,
+  h1 {
+    font-size: 1.5em;
+  }
+
+  .sb-line-h2,
+  h2 {
+    font-size: 1.2em;
+  }
+
+  .sb-line-h3,
+  h3 {
+    font-size: 1.1em;
+  }
+
+  .sb-line-h4,
+  h4,
+  .sb-line-h5,
+  h5,
+  .sb-line-h6,
+  h6 {
+    font-size: 1em;
+  }
+
+  // If a header only contains a tag, it's likely a line containging "#" which may turn into a hashtag, so style it as such instead of a header
+  .sb-line-h1:has(> a.sb-hashtag:only-child) {
+    font-size: 1em;
+    padding: 0;
+    font-weight: normal;
+
+    .sb-meta {
+      color: var(--editor-hashtag-color);
+    }
+  }
+
+  .cm-panels-bottom .cm-vim-panel {
+    padding: 0 20px;
+    max-width: var(--editor-width);
+    margin: auto;
+    font-family: var(--editor-font);
+    height: 1.5em;
+    line-height: 1.5em;
+
+    input {
+      font-family: var(--editor-font);
+      font-size: 1em;
+    }
+  }
+
+  // Gutter styling
+  .cm-gutters {
+    background-color: transparent;
+    border-right: none;
+  }
+
+  .cm-foldPlaceholder {
+    background-color: transparent;
+    border: 0;
+  }
+
+  // Indentation of follow-up lines
+  @mixin lineOverflow($baseIndent, $bulletIndent: 0) {
+    text-indent: calc(-1 * (#{$baseIndent}ch + 2ch));
+    padding-left: calc(#{$baseIndent}ch + 2ch);
+
+    &.sb-line-task {
+      text-indent: calc(-1 * (#{$baseIndent}ch + 5ch));
+      padding-left: calc(#{$baseIndent}ch + 5ch);
+
+      .cm-list-bullet::after {
+        left: calc(#{$baseIndent}ch + 5ch);
+      }
     }
 
-    .cm-line {
-        padding: 0;
-
-        &.sb-line-h1,
-        &.sb-line-h2,
-        &.sb-line-h3,
-        &.sb-line-h4,
-        &.sb-line-h5,
-        &.sb-line-h6 {
-            font-weight: bold;
-            padding: 2px;
-        }
-    }
-
-    .cm-line:has(.sb-directive) {
-        background-color: var(--editor-directive-background-color);
-    }
-
-    .sb-line-h1,
-    h1 {
-        font-size: 1.5em;
-    }
-
-    .sb-line-h2,
-    h2 {
-        font-size: 1.2em;
-    }
-
-    .sb-line-h3,
-    h3 {
-        font-size: 1.1em;
-    }
-
-    .sb-line-h4,
-    h4,
-    .sb-line-h5,
-    h5,
-    .sb-line-h6,
-    h6 {
-        font-size: 1em;
-    }
-
-    // If a header only contains a tag, it's likely a line containging "#" which may turn into a hashtag, so style it as such instead of a header
-    .sb-line-h1:has(> a.sb-hashtag:only-child) {
-        font-size: 1em;
-        padding: 0;
-        font-weight: normal;
-
-        .sb-meta {
-            color: var(--editor-hashtag-color);
-        }
-    }
-
-    .cm-panels-bottom .cm-vim-panel {
-        padding: 0 20px;
-        max-width: var(--editor-width);
-        margin: auto;
-        font-family: var(--editor-font);
-        height: 1.5em;
-        line-height: 1.5em;
-
-        input {
-            font-family: var(--editor-font);
-            font-size: 1em;
-        }
-    }
-
-    // Gutter styling
-    .cm-gutters {
-        background-color: transparent;
-        border-right: none;
-    }
-
-    .cm-foldPlaceholder {
-        background-color: transparent;
-        border: 0;
-    }
-
-    // Indentation of follow-up lines
-    @mixin lineOverflow($baseIndent, $bulletIndent: 0) {
-        text-indent: calc(-1 * (#{$baseIndent}ch + 2ch));
-        padding-left: calc(#{$baseIndent}ch + 2ch);
-
-        &.sb-line-task {
-            text-indent: calc(-1 * (#{$baseIndent}ch + 5ch));
-            padding-left: calc(#{$baseIndent}ch + 5ch);
-
-            .cm-list-bullet::after {
-                left: calc(#{$baseIndent}ch + 5ch);
-            }
-        }
-
-        &.sb-line-blockquote {
-            text-indent: calc(-1 * (#{$baseIndent}ch + 4ch));
-            padding-left: calc(#{$baseIndent}ch + 4ch);
-        }
-
-        .cm-list-bullet::after {
-            left: calc(#{$baseIndent}ch + #{$bulletIndent}ch + 2ch);
-        }
-    }
-
-    .sb-line-ul {
-        &.sb-line-li-1 {
-            @include lineOverflow(0);
-        }
-
-        &.sb-line-li-1.sb-line-li-2 {
-            @include lineOverflow(2);
-        }
-
-        &.sb-line-li-1.sb-line-li-2.sb-line-li-3 {
-            @include lineOverflow(4);
-        }
-
-        &.sb-line-li-1.sb-line-li-2.sb-line-li-3.sb-line-li-4 {
-            @include lineOverflow(6);
-        }
-
-        &.sb-line-li-1.sb-line-li-2.sb-line-li-3.sb-line-li-4.sb-line-li-5 {
-            @include lineOverflow(8);
-        }
-    }
-
-    .sb-line-ol {
-        &.sb-line-li-1 {
-            @include lineOverflow(1);
-        }
-
-        &.sb-line-li-1.sb-line-li-2 {
-            @include lineOverflow(4);
-        }
-
-        &.sb-line-li-1.sb-line-li-2.sb-line-li-3 {
-            @include lineOverflow(7);
-        }
-
-        &.sb-line-li-1.sb-line-li-2.sb-line-li-3.sb-line-li-4 {
-            @include lineOverflow(10);
-        }
-
-        &.sb-line-li-1.sb-line-li-2.sb-line-li-3.sb-line-li-4.sb-line-li-5 {
-            @include lineOverflow(13);
-        }
-    }
-
-    .sb-line-ol.sb-line-ul {
-        // &.sb-line-li-1 {
-        //   @include lineOverflow(1);
-        // }
-
-        &.sb-line-li-1.sb-line-li-2 {
-            @include lineOverflow(3);
-        }
-
-        &.sb-line-li-1.sb-line-li-2.sb-line-li-3 {
-            @include lineOverflow(6);
-        }
-
-        &.sb-line-li-1.sb-line-li-2.sb-line-li-3.sb-line-li-4 {
-            @include lineOverflow(9);
-        }
-
-        &.sb-line-li-1.sb-line-li-2.sb-line-li-3.sb-line-li-4.sb-line-li-5 {
-            @include lineOverflow(12);
-        }
-    }
-
-    .sb-line-blockquote {
-        &.sb-line-li-1 {
-            @include lineOverflow(-1, 2);
-        }
-
-        &.sb-line-li-1.sb-line-li-2 {
-            @include lineOverflow(1, 2);
-        }
-
-        &.sb-line-li-1.sb-line-li-2.sb-line-li-3 {
-            @include lineOverflow(4);
-        }
-
-        &.sb-line-li-1.sb-line-li-2.sb-line-li-3.sb-line-li-4 {
-            @include lineOverflow(6);
-        }
-
-        &.sb-line-li-1.sb-line-li-2.sb-line-li-3.sb-line-li-4.sb-line-li-5 {
-            @include lineOverflow(8);
-        }
-    }
-
-    .sb-line-comment {
-        text-indent: -1 * 3ch;
-        padding-left: 3ch;
-    }
-
-    .cm-list-bullet {
-        position: relative;
-        visibility: hidden;
+    &.sb-line-blockquote {
+      text-indent: calc(-1 * (#{$baseIndent}ch + 4ch));
+      padding-left: calc(#{$baseIndent}ch + 4ch);
     }
 
     .cm-list-bullet::after {
-        visibility: visible;
-        position: absolute;
-        content: "\2022";
-        /* U+2022 BULLET */
+      left: calc(#{$baseIndent}ch + #{$bulletIndent}ch + 2ch);
+    }
+  }
+
+  .sb-line-ul {
+    &.sb-line-li-1 {
+      @include lineOverflow(0);
     }
 
-    .cm-task-checked,
-    .sb-line-task:has(.cm-task-checked) .sb-wiki-link {
-        text-decoration: line-through !important;
+    &.sb-line-li-1.sb-line-li-2 {
+      @include lineOverflow(2);
     }
 
-    .cm-tooltip-autocomplete {
-        .cm-completionDetail {
-            font-style: normal;
-            display: block;
-            font-size: 80%;
-            margin-left: 5px;
-        }
-
-        .cm-completionLabel {
-            display: block;
-            margin-left: 5px;
-        }
-
-        .cm-completionIcon {
-            display: none;
-        }
+    &.sb-line-li-1.sb-line-li-2.sb-line-li-3 {
+      @include lineOverflow(4);
     }
 
-    .sb-header-inside.sb-line-h1 {
-        text-indent: -2ch;
+    &.sb-line-li-1.sb-line-li-2.sb-line-li-3.sb-line-li-4 {
+      @include lineOverflow(6);
     }
 
-    .sb-header-inside.sb-line-h2 {
-        text-indent: -3ch;
+    &.sb-line-li-1.sb-line-li-2.sb-line-li-3.sb-line-li-4.sb-line-li-5 {
+      @include lineOverflow(8);
+    }
+  }
+
+  .sb-line-ol {
+    &.sb-line-li-1 {
+      @include lineOverflow(1);
     }
 
-    .sb-header-inside.sb-line-h3 {
-        text-indent: -4ch;
+    &.sb-line-li-1.sb-line-li-2 {
+      @include lineOverflow(4);
     }
 
-    .sb-header-inside.sb-line-h4 {
-        text-indent: -5ch;
+    &.sb-line-li-1.sb-line-li-2.sb-line-li-3 {
+      @include lineOverflow(7);
     }
 
-    .sb-header-inside.sb-line-h5 {
-        text-indent: -6ch;
+    &.sb-line-li-1.sb-line-li-2.sb-line-li-3.sb-line-li-4 {
+      @include lineOverflow(10);
     }
 
-    .sb-header-inside.sb-line-h6 {
-        text-indent: -7ch;
+    &.sb-line-li-1.sb-line-li-2.sb-line-li-3.sb-line-li-4.sb-line-li-5 {
+      @include lineOverflow(13);
+    }
+  }
+
+  .sb-line-ol.sb-line-ul {
+    // &.sb-line-li-1 {
+    //   @include lineOverflow(1);
+    // }
+
+    &.sb-line-li-1.sb-line-li-2 {
+      @include lineOverflow(3);
     }
 
-    .sb-checkbox > input[type="checkbox"] {
-        width: 3ch;
+    &.sb-line-li-1.sb-line-li-2.sb-line-li-3 {
+      @include lineOverflow(6);
     }
 
-    .sb-hashtag,
-    .hashtag {
-        border-radius: 6px;
-        padding: 0 3px;
-        margin: 0 1px 0 0;
-        font-size: 0.9em;
+    &.sb-line-li-1.sb-line-li-2.sb-line-li-3.sb-line-li-4 {
+      @include lineOverflow(9);
     }
 
-    a.sb-hashtag {
-        text-decoration: none;
+    &.sb-line-li-1.sb-line-li-2.sb-line-li-3.sb-line-li-4.sb-line-li-5 {
+      @include lineOverflow(12);
+    }
+  }
+
+  .sb-line-blockquote {
+    &.sb-line-li-1 {
+      @include lineOverflow(-1, 2);
     }
 
-    .sb-strikethrough {
-        text-decoration: line-through;
-
-        &.sb-meta {
-            text-decoration: none;
-        }
+    &.sb-line-li-1.sb-line-li-2 {
+      @include lineOverflow(1, 2);
     }
 
-    .sb-line-hr {
-        margin-top: 1em;
-        margin-bottom: -1em;
+    &.sb-line-li-1.sb-line-li-2.sb-line-li-3 {
+      @include lineOverflow(4);
     }
 
-    .sb-hr {
-        font-weight: bold;
+    &.sb-line-li-1.sb-line-li-2.sb-line-li-3.sb-line-li-4 {
+      @include lineOverflow(6);
     }
 
-    .sb-naked-url {
-        cursor: pointer;
+    &.sb-line-li-1.sb-line-li-2.sb-line-li-3.sb-line-li-4.sb-line-li-5 {
+      @include lineOverflow(8);
+    }
+  }
+
+  .sb-line-comment {
+    text-indent: -1 * 3ch;
+    padding-left: 3ch;
+  }
+
+  .cm-list-bullet {
+    position: relative;
+    visibility: hidden;
+  }
+
+  .cm-list-bullet::after {
+    visibility: visible;
+    position: absolute;
+    content: "\2022";
+    /* U+2022 BULLET */
+  }
+
+  .cm-task-checked,
+  .sb-line-task:has(.cm-task-checked) .sb-wiki-link {
+    text-decoration: line-through !important;
+  }
+
+  .cm-tooltip-autocomplete {
+    .cm-completionDetail {
+      font-style: normal;
+      display: block;
+      font-size: 80%;
+      margin-left: 5px;
     }
 
-    .sb-link:not(.sb-url) {
-        cursor: pointer;
+    .cm-completionLabel {
+      display: block;
+      margin-left: 5px;
     }
 
-    .sb-link:not(.sb-meta, .sb-url) {
-        text-decoration: underline;
+    .cm-completionIcon {
+      display: none;
+    }
+  }
+
+  .sb-header-inside.sb-line-h1 {
+    text-indent: -2ch;
+  }
+
+  .sb-header-inside.sb-line-h2 {
+    text-indent: -3ch;
+  }
+
+  .sb-header-inside.sb-line-h3 {
+    text-indent: -4ch;
+  }
+
+  .sb-header-inside.sb-line-h4 {
+    text-indent: -5ch;
+  }
+
+  .sb-header-inside.sb-line-h5 {
+    text-indent: -6ch;
+  }
+
+  .sb-header-inside.sb-line-h6 {
+    text-indent: -7ch;
+  }
+
+  .sb-checkbox > input[type="checkbox"] {
+    width: 3ch;
+  }
+
+  .sb-hashtag,
+  .hashtag {
+    border-radius: 6px;
+    padding: 0 3px;
+    margin: 0 1px 0 0;
+    font-size: 0.9em;
+  }
+
+  a.sb-hashtag {
+    text-decoration: none;
+  }
+
+  .sb-strikethrough {
+    text-decoration: line-through;
+
+    &.sb-meta {
+      text-decoration: none;
+    }
+  }
+
+  .sb-line-hr {
+    margin-top: 1em;
+    margin-bottom: -1em;
+  }
+
+  .sb-hr {
+    font-weight: bold;
+  }
+
+  .sb-naked-url {
+    cursor: pointer;
+  }
+
+  .sb-link:not(.sb-url) {
+    cursor: pointer;
+  }
+
+  .sb-link:not(.sb-meta, .sb-url) {
+    text-decoration: underline;
+  }
+
+  .sb-url:not(.sb-link) {
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .sb-wiki-link {
+    border-radius: 5px;
+    padding: 0 5px;
+    // white-space: nowrap;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .sb-lua-directive-inline {
+    display: inline;
+    padding: 2px;
+  }
+
+  .sb-lua-directive-block {
+    display: block;
+    margin: -1em 0;
+  }
+
+  .sb-widget-array {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sb-task-mark {
+    font-size: 91%;
+  }
+
+  .sb-task-state {
+    font-size: 91%;
+  }
+
+  .sb-task-deadline {
+    background-color: rgba(22, 22, 22, 0.07);
+  }
+
+  .sb-line-frontmatter-outside,
+  .sb-line-code-outside {
+    .sb-meta {
+      color: transparent;
     }
 
-    .sb-url:not(.sb-link) {
-        text-decoration: underline;
-        cursor: pointer;
+    color: transparent;
+  }
+
+  .sb-line-blockquote {
+    text-indent: -2ch;
+  }
+
+  .sb-blockquote-outside {
+    text-indent: -1ch;
+    min-height: 1em;
+  }
+
+  .sb-line-table-outside {
+    display: none;
+  }
+
+  .sb-line-tbl-header {
+    font-weight: bold;
+  }
+
+  .sb-line-tbl-header .meta {
+    font-weight: normal;
+  }
+
+  .sb-table-widget {
+    display: block;
+    font-weight: normal;
+    margin-bottom: -3rem;
+    overflow: auto;
+  }
+
+  table {
+    width: 100%;
+    border-spacing: 0;
+  }
+
+  thead tr {
+    font-weight: bold;
+  }
+
+  thead tr td {
+    // Primarily to make the column headers look reasonable with the button bar that may be put on top
+    padding: 11px 8px;
+  }
+
+  th,
+  td {
+    padding: 8px;
+    white-space: nowrap;
+  }
+
+  // Table alignment classes for justified tables
+  .sb-table-align-left {
+    text-align: left;
+  }
+
+  .sb-table-align-right {
+    text-align: right;
+  }
+
+  .sb-table-align-center {
+    text-align: center;
+  }
+
+  // dont apply background color twice for (fenced) code blocks
+  .sb-line-code .sb-code {
+    background-color: transparent;
+  }
+
+  .sb-line-code-outside .sb-code-info {
+    display: block;
+    float: right;
+    font-size: 90%;
+    padding-right: 7px;
+  }
+
+  .sb-code-copy-button {
+    float: right;
+    cursor: pointer;
+    margin: 0 3px;
+  }
+
+  .sb-code-copy-button > svg {
+    height: 1rem;
+    width: 1rem;
+  }
+
+  .sb-line-fenced-code .sb-code {
+    background-color: transparent;
+  }
+
+  .sb-line-fenced-code .sb-comment {
+    border-radius: 0;
+    font-style: inherit;
+    font-size: inherit;
+    line-height: inherit;
+  }
+
+  .sb-keyword {
+    font-weight: bold;
+  }
+
+  // Allow for cursor movement into a code widget fenced code block from bottom-up
+  .sb-fenced-code-hide {
+    background-color: transparent;
+    line-height: 0;
+  }
+
+  .sb-lua-wrapper {
+    ::selection {
+      background-color: var(--editor-selection-background-color) !important;
     }
+  }
 
-    .sb-wiki-link {
-        border-radius: 5px;
-        padding: 0 5px;
-        // white-space: nowrap;
-        text-decoration: none;
-        cursor: pointer;
-    }
+  .sb-lua-top-widget,
+  .sb-lua-bottom-widget {
+    border: 1px solid var(--editor-widget-background-color);
+    border-radius: 5px;
+    white-space: normal;
+    position: relative;
+    min-height: 48px;
+  }
 
-    .sb-lua-directive-inline {
-        display: inline;
-        padding: 2px;
-    }
+  .sb-lua-top-widget {
+    margin: 0 0 10px 0;
+  }
 
-    .sb-lua-directive-block {
-        display: block;
-        margin: -1em 0;
-    }
+  .sb-lua-bottom-widget {
+    margin: 10px 0 0 0;
+  }
 
-    .sb-widget-array {
-        display: flex;
-        flex-direction: column;
-    }
+  .sb-lua-top-widget h1,
+  .sb-lua-bottom-widget h1 {
+    margin: -10px -10px 10px -10px !important;
+    padding: 15px 10px !important;
+    background-color: var(--editor-widget-background-color);
+    font-size: 1.2em;
+  }
 
-    .sb-task-mark {
-        font-size: 91%;
-    }
+  .sb-markdown-top-widget h1,
+  .sb-markdown-bottom-widget h1 {
+    margin: 0 0 5px 0;
+    padding: 10px !important;
+    background-color: var(--editor-widget-background-color);
+    font-size: 1.2em;
+  }
 
-    .sb-task-state {
-        font-size: 91%;
-    }
+  .sb-markdown-top-widget:has(*) {
+    margin-bottom: 10px;
+  }
 
-    .sb-task-deadline {
-        background-color: rgba(22, 22, 22, 0.07);
-    }
+  .sb-markdown-bottom-widget {
+    margin-top: 10px;
+  }
 
-    .sb-line-frontmatter-outside,
-    .sb-line-code-outside {
-        .sb-meta {
-            color: transparent;
-        }
+  .sb-lua-top-widget .content,
+  .sb-lua-bottom-widget .content {
+    max-height: 500px;
+    padding: 10px;
+  }
 
-        color: transparent;
-    }
+  .sb-lua-bottom-widget p strong {
+    display: block;
+    padding: 10px 12px;
+    background-color: var(--editor-widget-background-color);
+    border: 1px solid var(--editor-widget-background-color);
+    border-radius: 8px 8px 0 0;
+    font-weight: 600;
+  }
 
-    .sb-line-blockquote {
-        text-indent: -2ch;
-    }
+  .sb-lua-bottom-widget blockquote {
+    margin: 0 5px;
+    padding: 12px;
+    border: 1px solid var(--editor-widget-background-color);
+    border-radius: 8px;
+    background-color: var(--editor-widget-background-color);
+    color: var(--editor-text-color);
+    border-top: 1px solid var(--editor-widget-background-color);
+  }
 
-    .sb-blockquote-outside {
-        text-indent: -1ch;
-        min-height: 1em;
-    }
+  .sb-markdown-top-widget:has(*) .content {
+    max-height: 500px;
+  }
 
-    .sb-line-table-outside {
-        display: none;
-    }
-
-    .sb-line-tbl-header {
-        font-weight: bold;
-    }
-
-    .sb-line-tbl-header .meta {
-        font-weight: normal;
-    }
-
-    .sb-table-widget {
-        display: block;
-        font-weight: normal;
-        margin-bottom: -3rem;
-        overflow: auto;
-    }
-
-    table {
-        width: 100%;
-        border-spacing: 0;
-    }
-
-    thead tr {
-        font-weight: bold;
-    }
-
-    thead tr td {
-        // Primarily to make the column headers look reasonable with the button bar that may be put on top
-        padding: 11px 8px;
-    }
-
-    th,
-    td {
-        padding: 8px;
-        white-space: nowrap;
-    }
-
-    // Table alignment classes for justified tables
-    .sb-table-align-left {
-        text-align: left;
-    }
-
-    .sb-table-align-right {
-        text-align: right;
-    }
-
-    .sb-table-align-center {
-        text-align: center;
-    }
-
-    // dont apply background color twice for (fenced) code blocks
-    .sb-line-code .sb-code {
-        background-color: transparent;
-    }
-
-    .sb-line-code-outside .sb-code-info {
-        display: block;
-        float: right;
-        font-size: 90%;
-        padding-right: 7px;
-    }
-
-    .sb-code-copy-button {
-        float: right;
-        cursor: pointer;
-        margin: 0 3px;
-    }
-
-    .sb-code-copy-button > svg {
-        height: 1rem;
-        width: 1rem;
-    }
-
-    .sb-line-fenced-code .sb-code {
-        background-color: transparent;
-    }
-
-    .sb-line-fenced-code .sb-comment {
-        border-radius: 0;
-        font-style: inherit;
-        font-size: inherit;
-        line-height: inherit;
-    }
-
-    .sb-keyword {
-        font-weight: bold;
-    }
-
-    // Allow for cursor movement into a code widget fenced code block from bottom-up
-    .sb-fenced-code-hide {
-        background-color: transparent;
-        line-height: 0;
-    }
-
-    .sb-lua-wrapper {
-        ::selection {
-            background-color: var(
-                --editor-selection-background-color
-            ) !important;
-        }
-    }
-
-    .sb-lua-top-widget,
-    .sb-lua-bottom-widget {
-        border: 1px solid var(--editor-widget-background-color);
-        border-radius: 5px;
-        white-space: normal;
-        position: relative;
-        min-height: 48px;
-    }
-
-    .sb-lua-top-widget {
-        margin: 0 0 10px 0;
-    }
-
-    .sb-lua-bottom-widget {
-        margin: 10px 0 0 0;
-    }
-
-    .sb-lua-top-widget h1,
-    .sb-lua-bottom-widget h1 {
-        margin: -10px -10px 10px -10px !important;
-        padding: 15px 10px !important;
-        background-color: var(--editor-widget-background-color);
-        font-size: 1.2em;
-    }
-
-    .sb-markdown-top-widget h1,
-    .sb-markdown-bottom-widget h1 {
-        margin: 0 0 5px 0;
-        padding: 10px !important;
-        background-color: var(--editor-widget-background-color);
-        font-size: 1.2em;
-    }
-
-    .sb-markdown-top-widget:has(*) {
-        margin-bottom: 10px;
-    }
-
-    .sb-markdown-bottom-widget {
-        margin-top: 10px;
-    }
-
-    .sb-lua-top-widget .content,
-    .sb-lua-bottom-widget .content {
-        max-height: 500px;
-        padding: 10px;
-    }
-
-    .sb-lua-bottom-widget p strong {
-        display: block;
-        padding: 10px 12px;
-        background-color: var(--editor-widget-background-color);
-        border: 1px solid var(--editor-widget-background-color);
-        border-radius: 8px 8px 0 0;
-        font-weight: 600;
-    }
-
-    .sb-lua-bottom-widget blockquote {
-        margin: 0 5px;
-        padding: 12px;
-        border: 1px solid var(--editor-widget-background-color);
-        border-radius: 8px;
-        background-color: var(--editor-widget-background-color);
-        color: var(--editor-text-color);
-        border-top: 1px solid var(--editor-widget-background-color);
-    }
-
+  @media screen and (max-height: 1000px) {
     .sb-markdown-top-widget:has(*) .content {
-        max-height: 500px;
+      max-height: 300px;
+    }
+  }
+
+  .sb-markdown-widget,
+  .sb-lua-directive-block,
+  .sb-lua-directive-inline,
+  .sb-markdown-top-widget:has(*),
+  .sb-markdown-bottom-widget:has(*) {
+    border: 1px solid var(--editor-widget-background-color);
+    border-radius: 5px;
+    white-space: normal;
+    position: relative;
+    min-height: 48px;
+
+    .content {
+      overflow-y: auto;
     }
 
-    @media screen and (max-height: 1000px) {
-        .sb-markdown-top-widget:has(*) .content {
-            max-height: 300px;
-        }
+    ul,
+    ol {
+      margin-top: 0;
+      margin-bottom: 0;
     }
 
-    .sb-markdown-widget,
-    .sb-lua-directive-block,
-    .sb-lua-directive-inline,
-    .sb-markdown-top-widget:has(*),
-    .sb-markdown-bottom-widget:has(*) {
-        border: 1px solid var(--editor-widget-background-color);
-        border-radius: 5px;
-        white-space: normal;
-        position: relative;
-        min-height: 48px;
-
-        .content {
-            overflow-y: auto;
-        }
-
-        ul,
-        ol {
-            margin-top: 0;
-            margin-bottom: 0;
-        }
-
-        ul {
-            list-style: none;
-            // padding-left: 1ch;
-        }
-
-        ul li::before {
-            content: "\2022";
-            /* Add content: \2022 is the CSS Code/unicode for a bullet */
-            color: var(--editor-list-bullet-color);
-            display: inline-block;
-            /* Needed to add space between the bullet and the text */
-            width: 1em;
-            /* Also needed for space (tweak if needed) */
-            margin-left: -1em;
-        }
-
-        h1,
-        h2,
-        h3,
-        h4,
-        h5 {
-            margin: 0;
-        }
-
-        a.wiki-link {
-            border-radius: 5px;
-            padding: 0 5px;
-            color: var(--editor-wiki-link-page-color);
-            background-color: var(--editor-wiki-link-page-background-color);
-            text-decoration: none;
-        }
-
-        span.task-deadline {
-            background-color: rgba(22, 22, 22, 0.07);
-        }
-
-        tt {
-            background-color: var(--editor-code-background-color);
-        }
-
-        // Only show the button bar on hover on non-touch devices
-        &:hover .button-bar {
-            display: block;
-        }
-
-        // Always show button bar on touch devices
-        @media (hover: none) and (pointer: coarse) {
-            .button-bar {
-                display: block !important;
-            }
-        }
-
-        .button-bar {
-            position: absolute;
-            right: 0;
-            top: 0;
-            display: none;
-            background: var(--editor-widget-background-color);
-            padding-inline: 3px;
-            padding: 4px 0;
-            border-radius: 0 0 0 5px;
-
-            button {
-                border: none;
-                background: none;
-                cursor: pointer;
-                color: var(--root-color);
-                margin-right: -8px;
-                padding: 11px 8px;
-            }
-
-            button:last-of-type {
-                margin-right: 2px;
-            }
-        }
+    ul {
+      list-style: none;
+      // padding-left: 1ch;
     }
 
-    .sb-lua-directive-inline:has(> button) {
+    ul li::before {
+      content: "\2022";
+      /* Add content: \2022 is the CSS Code/unicode for a bullet */
+      color: var(--editor-list-bullet-color);
+      display: inline-block;
+      /* Needed to add space between the bullet and the text */
+      width: 1em;
+      /* Also needed for space (tweak if needed) */
+      margin-left: -1em;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5 {
+      margin: 0;
+    }
+
+    a.wiki-link {
+      border-radius: 5px;
+      padding: 0 5px;
+      color: var(--editor-wiki-link-page-color);
+      background-color: var(--editor-wiki-link-page-background-color);
+      text-decoration: none;
+    }
+
+    span.task-deadline {
+      background-color: rgba(22, 22, 22, 0.07);
+    }
+
+    tt {
+      background-color: var(--editor-code-background-color);
+    }
+
+    // Only show the button bar on hover on non-touch devices
+    &:hover .button-bar {
+      display: block;
+    }
+
+    // Always show button bar on touch devices
+    @media (hover: none) and (pointer: coarse) {
+      .button-bar {
+        display: block !important;
+      }
+    }
+
+    .button-bar {
+      position: absolute;
+      right: 0;
+      top: 0;
+      display: none;
+      background: var(--editor-widget-background-color);
+      padding-inline: 3px;
+      padding: 4px 0;
+      border-radius: 0 0 0 5px;
+
+      button {
         border: none;
-        border-radius: 0;
+        background: none;
+        cursor: pointer;
+        color: var(--root-color);
+        margin-right: -8px;
+        padding: 11px 8px;
+      }
+
+      button:last-of-type {
+        margin-right: 2px;
+      }
     }
+  }
 
-    .sb-inline-content > div > .content > * {
-        max-width: 100%;
-        display: block;
+  .sb-lua-directive-inline:has(> button) {
+    border: none;
+    border-radius: 0;
+  }
+
+  .sb-inline-content > div > .content > * {
+    max-width: 100%;
+    display: block;
+  }
+
+  .sb-inline-content {
+    margin: 0;
+    overflow: hidden;
+  }
+
+  .sb-fenced-code-iframe {
+    background-color: transparent;
+
+    iframe {
+      border: 0;
+      width: 100%;
+      max-width: 100%;
+      padding: 0;
+      margin: 0 0 -2ch 0;
+      border: 1px solid var(--editor-widget-background-color);
+      border-radius: 5px;
     }
+  }
 
-    .sb-inline-content {
-        margin: 0;
-        overflow: hidden;
-    }
+  .sb-line-blockquote.sb-line-ul.sb-line-li > .sb-quote.sb-meta:first-child {
+    margin-left: -1ch;
+  }
 
-    .sb-fenced-code-iframe {
-        background-color: transparent;
+  .sb-admonition {
+    border-left-width: 4px !important;
+    border-left-style: solid;
+    padding-left: 5px;
+  }
 
-        iframe {
-            border: 0;
-            width: 100%;
-            max-width: 100%;
-            padding: 0;
-            margin: 0 0 -2ch 0;
-            border: 1px solid var(--editor-widget-background-color);
-            border-radius: 5px;
-        }
-    }
+  .sb-admonition-type::before {
+    content: "";
+    mask: var(--admonition-icon) no-repeat;
+    -webkit-mask: var(--admonition-icon) no-repeat;
+    mask-size: cover;
+    -webkit-mask-size: cover;
 
-    .sb-line-blockquote.sb-line-ul.sb-line-li > .sb-quote.sb-meta:first-child {
-        margin-left: -1ch;
-    }
+    /* used in (custom) admonition definitions */
+    --admonition-width: 1.1em;
+    width: 0em;
+    height: 1.1em;
+    display: inline-flex;
+    vertical-align: middle;
+  }
 
-    .sb-admonition {
-        border-left-width: 4px !important;
-        border-left-style: solid;
-        padding-left: 5px;
-    }
+  .sb-frontmatter-marker {
+    float: right;
+    font-size: 80%;
+    padding-right: 7px;
+  }
 
-    .sb-admonition-type::before {
-        content: "";
-        mask: var(--admonition-icon) no-repeat;
-        -webkit-mask: var(--admonition-icon) no-repeat;
-        mask-size: cover;
-        -webkit-mask-size: cover;
-
-        /* used in (custom) admonition definitions */
-        --admonition-width: 1.1em;
-        width: 0em;
-        height: 1.1em;
-        display: inline-flex;
-        vertical-align: middle;
-    }
-
-    .sb-frontmatter-marker {
-        float: right;
-        font-size: 80%;
-        padding-right: 7px;
-    }
-
-    .cm-scroller {
-        // Give some breathing space at the bottom of the screen
-        padding-bottom: 20em;
-    }
+  .cm-scroller {
+    // Give some breathing space at the bottom of the screen
+    padding-bottom: 20em;
+  }
 }
 
 div:not(.cm-focused).cm-fat-cursor {
-    outline: none !important;
+  outline: none !important;
 }

@@ -5,14 +5,21 @@ import { DataStore } from "./datastore.ts";
 import { FakeTime } from "@std/testing/time";
 
 import type { MQMessage } from "../../plug-api/types/datastore.ts";
+import { EventHook } from "../plugos/hooks/event.ts";
+import { System } from "../plugos/system.ts";
+import type { EventHookT } from "@silverbulletmd/silverbullet/type/manifest";
 
 Deno.test("DataStore MQ", async () => {
   const time = new FakeTime();
   const db = new MemoryKvPrimitives(); // In-memory only, no persistence
+  const eventHook = new EventHook();
+  const system = new System<EventHookT>();
+  system.addHook(eventHook);
 
   try {
     const mq = new DataStoreMQ(
       new DataStore(db),
+      eventHook,
     );
 
     let messages: MQMessage[];
@@ -32,8 +39,8 @@ Deno.test("DataStore MQ", async () => {
     await time.tickAsync(20);
     await mq.requeueTimeouts(10);
     messages = await mq.poll("test", 10);
-    const stats = await mq.getAllQueueStats();
-    assertEquals(stats["test"].processing, 1);
+    const stats = await mq.getQueueStats();
+    assertEquals(stats.processing, 1);
     assertEquals(messages.length, 1);
     assertEquals(messages[0].retries, 1);
 
@@ -77,10 +84,14 @@ Deno.test("DataStore MQ", async () => {
 Deno.test("DataStore MQ - Scale test with multiple subscribers", async () => {
   const time = new FakeTime();
   const db = new MemoryKvPrimitives();
+  const eventHook = new EventHook();
+  const system = new System<EventHookT>();
+  system.addHook(eventHook);
 
   try {
     const mq = new DataStoreMQ(
       new DataStore(db),
+      eventHook,
     );
 
     const queueName = "scale-test";

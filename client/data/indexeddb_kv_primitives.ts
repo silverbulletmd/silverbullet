@@ -79,6 +79,15 @@ export class IndexedDBKvPrimitives implements KvPrimitives {
     }
   }
 
+  countQuery({ prefix }: KvQueryOptions): Promise<number> {
+    const tx = this.db.transaction(objectStoreName, "readonly");
+    prefix = prefix || [];
+    return tx.store.count(IDBKeyRange.bound(
+      this.buildKey([...prefix, ""]),
+      this.buildKey([...prefix, "\uffff"]),
+    ));
+  }
+
   close() {
     this.db.close();
   }

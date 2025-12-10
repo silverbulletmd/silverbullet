@@ -13,6 +13,11 @@ export interface KvPrimitives {
 
   query<T = any>(options: KvQueryOptions): AsyncIterableIterator<KV<T>>;
 
+  /**
+   * A more efficient way to do counts
+   */
+  countQuery(options: KvQueryOptions): Promise<number>;
+
   // Completely clear all data from this datastore
   clear(): Promise<void>;
 

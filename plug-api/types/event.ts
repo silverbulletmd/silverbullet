@@ -3,7 +3,6 @@ import type { EventSubscriptionDef } from "./manifest.ts";
 
 export type IndexTreeEvent = {
   name: string;
-
   tree: ParseTree;
 };
 

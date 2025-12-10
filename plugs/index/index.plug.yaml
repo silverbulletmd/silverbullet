@@ -32,6 +32,7 @@ functions:
     path: api.ts:clearFileIndex
     events:
       - file:deleted
+      - file:clearindex
 
   reindexSpaceCommand:
     path: "./command.ts:reindexCommand"
@@ -46,6 +47,13 @@ functions:
         batchSize: 3
         autoAck: true
 
+  processPreIndexQueue:
+    path: ./queue.ts:processPreIndexQueue
+    mqSubscriptions:
+      - queue: preIndexQueue
+        batchSize: 5
+        autoAck: true
+
   reindexSpace:
     path: "./queue.ts:reindexSpace"
 
@@ -58,6 +66,11 @@ functions:
     path: page.ts:indexPage
     events:
       - page:index
+
+  preIndexPage:
+    path: page.ts:preIndexPage
+    events:
+      - page:preindex
 
   indexParagraphs:
     path: "./paragraph.ts:indexParagraphs"
@@ -98,27 +111,24 @@ functions:
     events:
       - page:index
 
-  # Script
-  indexSpaceScript:
-    path: script.ts:indexSpaceScript
-    events:
-      - page:index
+  # Lua
   indexSpaceLua:
     path: script.ts:indexSpaceLua
     events:
-      - page:index
+      - page:preindex
 
   # Style
   indexSpaceStyle:
     path: style.ts:indexSpaceStyle
     events:
-      - page:index
+      - page:preindex
 
   # Hashtags
   indexTags:
     path: tags.ts:indexTags
     events:
       - page:index
+
   tagComplete:
     path: tags.ts:tagComplete
     events:
