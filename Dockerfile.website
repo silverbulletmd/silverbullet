@@ -9,4 +9,4 @@ ADD website /space
 
 # Add excalidraw plug
 ADD https://github.com/LogeshG5/silverbullet-excalidraw/releases/download/edge/excalidraw.plug.js /space/
-ADD https://github.com/MrMugame/silversearch/releases/latest/download/silversearch.plug.js /space/
+ADD https://github.com/MrMugame/silversearch/releases/download/edge/silversearch.plug.js /space/
