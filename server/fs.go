@@ -182,9 +182,10 @@ func getFileMetaFromHeaders(h http.Header, path string) *FileMeta {
 }
 
 func DecodeURLParam(r *http.Request, name string) string {
+	// Source: https://github.com/go-chi/chi/issues/642
 	value := chi.URLParam(r, name)
 	if r.URL.RawPath != "" {
-		value, _ = url.PathUnescape(value) // it is better to handle error
+		value, _ = url.PathUnescape(value)
 	}
 	return value
 }
