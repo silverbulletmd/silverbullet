@@ -70,7 +70,7 @@ async function buildCopyBundleAssets() {
     absWorkingDir: Deno.cwd(),
     bundle: true,
     treeShaking: true,
-    sourcemap: Deno.args[0] === "--production" ? undefined : "linked",
+    sourcemap: "linked",
     minify: true,
     jsxFactory: "h",
     // metafile: true,
