@@ -9,3 +9,5 @@ docker run -e SB_USER=pete:1234 ...
 Will let `pete` authenticate with password `1234`. 
 
 For more options see [[Install/Configuration]].
+
+Alternatively, or in addition, you can also use an [[Authentication Proxy]].
