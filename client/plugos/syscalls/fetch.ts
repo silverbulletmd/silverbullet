@@ -37,7 +37,9 @@ export function sandboxFetchSyscalls(
           body: options.body,
         }
         : {};
-      fetchOptions.headers = buildProxyHeaders(options.headers);
+
+      fetchOptions.headers = buildProxyHeaders(options?.headers);
+
       const resp = await client.httpSpacePrimitives.authenticatedFetch(
         buildProxyUrl(client, url),
         fetchOptions,
@@ -77,7 +79,7 @@ export function sandboxFetchSyscalls(
           body: options.base64Body && base64Decode(options.base64Body),
         }
         : {};
-      fetchOptions.headers = fetchOptions.headers ?? {};
+      fetchOptions.headers = buildProxyHeaders(options?.headers);
       const resp = await client.httpSpacePrimitives.authenticatedFetch(
         buildProxyUrl(client, url),
         // Casting this to any because of weird Deno typing

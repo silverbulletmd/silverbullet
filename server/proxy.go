@@ -13,7 +13,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-var localhostRegex *regexp.Regexp = regexp.MustCompile(`^(localhost|127\.0\.0\.1|\d+\.\d+\.\d+\.\d+)`)
+var localhostRegex *regexp.Regexp = regexp.MustCompile(`^(localhost|127\.0\.0\.1|\d+\.\d+\.\d+\.\d+|host\.docker\.internal)`)
 
 var proxyRequestsTotal = prometheus.NewCounter(prometheus.CounterOpts{
 	Name: "silverbullet_proxy_requests",
