@@ -343,7 +343,9 @@ export class MainUI {
                 description: "Open Menu",
                 class: "expander",
                 callback: () => {
-                  /* nothing to do, menu opens on hover/mobile click */
+                  // Make the expander button open/close the menu via toggling the CSS class "open"
+                  document.querySelector("#sb-top .sb-actions.hamburger")
+                    ?.classList.toggle("open");
                 },
               }]
               : [],
