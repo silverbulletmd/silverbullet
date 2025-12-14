@@ -12,12 +12,13 @@ import {
   encodeRef,
   parseToRef,
 } from "@silverbulletmd/silverbullet/lib/ref";
-import { Fragment, renderHtml, type Tag } from "./html_render.ts";
+import { Fragment, RawHTML, renderHtml, type Tag } from "./html_render.ts";
 import * as TagConstants from "../../plugs/index/constants.ts";
 import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 import { justifiedTableRender } from "./justified_tables.ts";
 import type { PageMeta } from "../../plug-api/types/index.ts";
 import { inlineContentFromURL, parseTransclusion } from "./inline.ts";
+import katex from "katex";
 
 export type MarkdownRenderOptions = {
   failOnUnknown?: true;
@@ -479,6 +480,51 @@ function render(
         },
         body: renderToText(t),
       };
+
+    case "InlineMath": {
+      const content = t.children!
+        .filter((c) => c.type !== "InlineMathMark")
+        .map((c) => renderToText(c))
+        .join("");
+      try {
+        const html = katex.renderToString(content, {
+          displayMode: false,
+          throwOnError: false,
+        });
+        return {
+          name: "span",
+          attrs: { class: "sb-math-inline" },
+          body: [{ name: RawHTML, body: html }],
+        };
+      } catch (e: any) {
+        return {
+          name: "span",
+          attrs: { class: "sb-math-error", title: e.message },
+          body: content,
+        };
+      }
+    }
+    case "BlockMath": {
+      const contentNode = findNodeOfType(t, "BlockMathContent");
+      const content = contentNode ? renderToText(contentNode) : "";
+      try {
+        const html = katex.renderToString(content.trim(), {
+          displayMode: true,
+          throwOnError: false,
+        });
+        return {
+          name: "div",
+          attrs: { class: "sb-math-block" },
+          body: [{ name: RawHTML, body: html }],
+        };
+      } catch (e: any) {
+        return {
+          name: "div",
+          attrs: { class: "sb-math-error", title: e.message },
+          body: content,
+        };
+      }
+    }
 
     // Text
     case undefined:

@@ -368,6 +368,112 @@ export const FrontMatter: MarkdownConfig = {
   }],
 };
 
+const InlineMathDelim = { resolve: "InlineMath", mark: "InlineMathMark" };
+
+export const InlineMath: MarkdownConfig = {
+  defineNodes: [
+    {
+      name: "InlineMath",
+      style: { "InlineMath/...": ct.InlineMathTag },
+    },
+    {
+      name: "InlineMathMark",
+      style: ct.MathMarkTag,
+    },
+  ],
+  parseInline: [
+    {
+      name: "InlineMath",
+      parse(cx, next, pos) {
+        // Check for $
+        if (next !== 36 /* '$' */) {
+          return -1;
+        }
+        // If next char is also $, it should be block math
+        if (cx.char(pos + 1) === 36) {
+          return -1;
+        }
+        // If next char is {, it should be LuaDirective
+        if (cx.char(pos + 1) === 123 /* '{' */) {
+          return -1;
+        }
+        return cx.addDelimiter(InlineMathDelim, pos, pos + 1, true, true);
+      },
+      after: "Emphasis",
+    },
+  ],
+};
+
+export const BlockMath: MarkdownConfig = {
+  defineNodes: [
+    { name: "BlockMath", block: true, style: ct.BlockMathTag },
+    { name: "BlockMathMark", style: ct.MathMarkTag },
+    { name: "BlockMathContent" },
+  ],
+  // block parser for multi-line $$\n...\n$$
+  parseBlock: [
+    {
+      name: "BlockMath",
+      parse: (cx, line) => {
+        // Check if line starts with $$
+        if (!line.text.startsWith("$$")) {
+          return false;
+        }
+
+        const startPos = cx.parsedPos;
+        // start mark
+        const elts = [
+          cx.elt("BlockMathMark", startPos, startPos + 2),
+        ];
+
+        // if it's a single-line block math ($$...$$)
+        if (line.text.length > 4 && line.text.endsWith("$$")) {
+          const content = line.text.slice(2, -2);
+          elts.push(
+            cx.elt("BlockMathContent", startPos + 2, startPos + 2 + content.length),
+          );
+          elts.push(
+            cx.elt("BlockMathMark", startPos + line.text.length - 2, startPos + line.text.length),
+          );
+          cx.addElement(cx.elt("BlockMath", startPos, startPos + line.text.length, elts));
+          cx.nextLine();
+          return true;
+        }
+
+        // Multi-line block math
+        cx.nextLine();
+        const contentStart = cx.parsedPos;
+        let endPos = contentStart;
+        let lastPos = cx.parsedPos;
+        // Find closing $$
+        while (!line.text.startsWith("$$")) {
+          endPos = cx.parsedPos + line.text.length + 1;
+          cx.nextLine();
+          if (cx.parsedPos === lastPos) {
+            // EOF 
+            return false;
+          }
+          lastPos = cx.parsedPos;
+        }
+
+        if (contentStart < endPos) {
+          elts.push(cx.elt("BlockMathContent", contentStart, endPos - 1));
+        }
+
+        // end mark
+        elts.push(
+          cx.elt("BlockMathMark", cx.parsedPos, cx.parsedPos + 2),
+        );
+
+        cx.addElement(cx.elt("BlockMath", startPos, cx.parsedPos + 2, elts));
+        cx.nextLine();
+        return true;
+      },
+      before: "FencedCode",
+    },
+  ],
+};
+
 export const extendedMarkdownLanguage = markdown({
   extensions: [
     WikiLink,
@@ -383,6 +489,8 @@ export const extendedMarkdownLanguage = markdown({
     TaskDeadline,
     Superscript,
     Subscript,
+    InlineMath,
+    BlockMath,
     {
       props: [
         foldNodeProp.add({
