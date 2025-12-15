@@ -350,3 +350,21 @@ Deno.test("Test mixed math", () => {
   assertEquals(inlineBlockMath[0].children![1].text, "\nE=mc^2\n");
   assertEquals(blockMath[0].children![1].text, "E=mc^2");
 });
+
+Deno.test("Test BlockMath with spaces", () => {
+  const sample = `
+$$trailing space$$  
+
+  $$leading space$$
+`;
+  const tree = parseMarkdown(sample);
+  const blockMath = collectNodesOfType(tree, "BlockMath");
+
+  assertEquals(blockMath[0].children![0].type, "BlockMathMark");
+  assertEquals(blockMath[0].children![2].type, "BlockMathMark");
+  assertEquals(blockMath[0].children![1].text, "trailing space");
+
+  assertEquals(blockMath[1].children![0].type, "BlockMathMark");
+  assertEquals(blockMath[1].children![2].type, "BlockMathMark");
+  assertEquals(blockMath[1].children![1].text, "leading space");
+});

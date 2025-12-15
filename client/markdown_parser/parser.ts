@@ -438,28 +438,36 @@ export const BlockMath: MarkdownConfig = {
     {
       name: "BlockMath",
       parse: (cx, line) => {
-        // Check if line starts with $$
-        if (!line.text.startsWith("$$")) {
+        const indent = line.text.search(/\S/);
+        // Check if line starts with $$ (ignoring indent)
+        if (indent === -1 || !line.text.slice(indent).startsWith("$$")) {
           return false;
         }
 
         const startPos = cx.parsedPos;
         // start mark
         const elts = [
-          cx.elt("BlockMathMark", startPos, startPos + 2),
+          cx.elt("BlockMathMark", startPos + indent, startPos + indent + 2),
         ];
 
+        const trimmedLine = line.text.trimEnd();
+
         // Check for single line, e.g. $$\alpha$$
-        if (line.text.length > 4 && line.text.endsWith("$$")) {
+        if (trimmedLine.length > indent + 4 && trimmedLine.endsWith("$$")) {
           elts.push(
             cx.elt(
               "BlockMathMark",
-              startPos + line.text.length - 2,
-              startPos + line.text.length,
+              startPos + trimmedLine.length - 2,
+              startPos + trimmedLine.length,
             ),
           );
           cx.addElement(
-            cx.elt("BlockMath", startPos, startPos + line.text.length, elts),
+            cx.elt(
+              "BlockMath",
+              startPos + indent,
+              startPos + trimmedLine.length,
+              elts,
+            ),
           );
           cx.nextLine();
           return true;
@@ -469,11 +477,24 @@ export const BlockMath: MarkdownConfig = {
         let lastPos = cx.parsedPos;
 
         while (true) {
+          const currentLineTrimmed = line.text.trimEnd();
           // Check for single line ending with $$, e.g. $$ or abc$$
-          if (line.text.endsWith("$$")) {
-            const endPos = cx.parsedPos + line.text.length;
-            elts.push(cx.elt("BlockMathMark", endPos - 2, endPos));
-            cx.addElement(cx.elt("BlockMath", startPos, endPos, elts));
+          if (currentLineTrimmed.endsWith("$$")) {
+            elts.push(
+              cx.elt(
+                "BlockMathMark",
+                cx.parsedPos + currentLineTrimmed.length - 2,
+                cx.parsedPos + currentLineTrimmed.length,
+              ),
+            );
+            cx.addElement(
+              cx.elt(
+                "BlockMath",
+                startPos + indent,
+                cx.parsedPos + currentLineTrimmed.length,
+                elts,
+              ),
+            );
             cx.nextLine();
             return true;
           }
