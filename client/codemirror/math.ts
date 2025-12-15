@@ -64,52 +64,30 @@ export function mathPlugin(client: Client) {
           // Remove the $
           let content = text.slice(1, -1);
 
-          // When block math has no blank line before it, $$...$$ can be misparsed as inline math
-          const charBefore = from > 0 ? state.sliceDoc(from - 1, from) : "";
-          if (charBefore === "$" && content.endsWith("$")) {
-            content = content.slice(0, -1);
-
-            if (!client.ui.viewState.uiOptions.markdownSyntaxRendering) {
-              widgets.push(
-                Decoration.replace({
-                  widget: new MathWidget(content, true, client),
-                  block: true,
-                }).range(from - 1, to),
-              );
-            }
-          } else {
-            // Regular inline math $...$
-            if (!client.ui.viewState.uiOptions.markdownSyntaxRendering) {
-              widgets.push(invisibleDecoration.range(from, to));
-              widgets.push(
-                Decoration.widget({
-                  widget: new MathWidget(content, false, client),
-                }).range(to),
-              );
-            }
+          if (!client.ui.viewState.uiOptions.markdownSyntaxRendering) {
+            widgets.push(invisibleDecoration.range(from, to));
+            widgets.push(
+              Decoration.widget({
+                widget: new MathWidget(content, false, client),
+              }).range(to),
+            );
           }
         }
 
         // Handle BlockMath ($$...$$)
-        if (type.name === "BlockMath") {
+        if (type.name === "BlockMath" || type.name === "InlineBlockMath") {
           if (isCursorInRange(state, [from, to])) {
             return;
           }
 
-          // Extract BlockMathContent
-          let content = "";
-          node.toTree().iterate({
-            enter: (innerNode) => {
-              if (innerNode.name === "BlockMathContent") {
-                content = state.sliceDoc(from + innerNode.from, from + innerNode.to);
-              }
-            },
-          });
+          const text = state.sliceDoc(from, to);
+          // Remove the $$
+          let content = text.slice(2, -2);
 
           if (!client.ui.viewState.uiOptions.markdownSyntaxRendering) {
             widgets.push(
               Decoration.replace({
-                widget: new MathWidget(content.trim(), true, client),
+                widget: new MathWidget(content, true, client),
                 block: true,
               }).range(from, to),
             );

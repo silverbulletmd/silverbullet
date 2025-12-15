@@ -369,6 +369,7 @@ export const FrontMatter: MarkdownConfig = {
 };
 
 const InlineMathDelim = { resolve: "InlineMath", mark: "InlineMathMark" };
+const InlineBlockMathDelim = { resolve: "InlineBlockMath", mark: "InlineBlockMathMark" };
 
 export const InlineMath: MarkdownConfig = {
   defineNodes: [
@@ -380,6 +381,10 @@ export const InlineMath: MarkdownConfig = {
       name: "InlineMathMark",
       style: ct.MathMarkTag,
     },
+    // for some uncommon cases where $$...$$ is used inline. e.g.
+    // The formula is $$E=mc^2$$
+    { name: "InlineBlockMath", block: true, style: ct.BlockMathTag },
+    { name: "InlineBlockMathMark", style: ct.MathMarkTag },
   ],
   parseInline: [
     {
@@ -389,13 +394,13 @@ export const InlineMath: MarkdownConfig = {
         if (next !== 36 /* '$' */) {
           return -1;
         }
-        // If next char is also $, it should be block math
-        if (cx.char(pos + 1) === 36) {
-          return -1;
-        }
         // If next char is {, it should be LuaDirective
         if (cx.char(pos + 1) === 123 /* '{' */) {
           return -1;
+        }
+        // If next char is also $, it should be block math
+        if (cx.char(pos + 1) === 36) {
+          return cx.addDelimiter(InlineBlockMathDelim, pos, pos + 2, true, true);
         }
         return cx.addDelimiter(InlineMathDelim, pos, pos + 1, true, true);
       },
@@ -404,13 +409,22 @@ export const InlineMath: MarkdownConfig = {
   ],
 };
 
+/**
+ * block parser for multi-line, e.g.
+ * $$
+ *
+ * \alpha
+ * $$
+ * or
+ * $$\begin{matrix}
+ * a & b
+ * \end{matrix}$$
+ */
 export const BlockMath: MarkdownConfig = {
   defineNodes: [
     { name: "BlockMath", block: true, style: ct.BlockMathTag },
     { name: "BlockMathMark", style: ct.MathMarkTag },
-    { name: "BlockMathContent" },
   ],
-  // block parser for multi-line $$\n...\n$$
   parseBlock: [
     {
       name: "BlockMath",
@@ -426,50 +440,36 @@ export const BlockMath: MarkdownConfig = {
           cx.elt("BlockMathMark", startPos, startPos + 2),
         ];
 
-        // if it's a single-line block math ($$...$$)
+        // Check for single line, e.g. $$\alpha$$
         if (line.text.length > 4 && line.text.endsWith("$$")) {
-          const content = line.text.slice(2, -2);
-          elts.push(
-            cx.elt("BlockMathContent", startPos + 2, startPos + 2 + content.length),
-          );
-          elts.push(
-            cx.elt("BlockMathMark", startPos + line.text.length - 2, startPos + line.text.length),
-          );
-          cx.addElement(cx.elt("BlockMath", startPos, startPos + line.text.length, elts));
-          cx.nextLine();
-          return true;
+            elts.push(cx.elt("BlockMathMark", startPos + line.text.length - 2, startPos + line.text.length));
+            cx.addElement(cx.elt("BlockMath", startPos, startPos + line.text.length, elts));
+            cx.nextLine();
+            return true;
         }
 
-        // Multi-line block math
         cx.nextLine();
-        const contentStart = cx.parsedPos;
-        let endPos = contentStart;
         let lastPos = cx.parsedPos;
-        // Find closing $$
-        while (!line.text.startsWith("$$")) {
-          endPos = cx.parsedPos + line.text.length + 1;
+
+        while (true) {
+          // Check for single line ending with $$, e.g. $$ or abc$$
+          if (line.text.endsWith("$$")) {
+              const endPos = cx.parsedPos + line.text.length;
+              elts.push(cx.elt("BlockMathMark", endPos - 2, endPos));
+              cx.addElement(cx.elt("BlockMath", startPos, endPos, elts));
+              cx.nextLine();
+              return true;
+          }
+ 
           cx.nextLine();
           if (cx.parsedPos === lastPos) {
-            // EOF 
+            // EOF
             return false;
           }
           lastPos = cx.parsedPos;
         }
-
-        if (contentStart < endPos) {
-          elts.push(cx.elt("BlockMathContent", contentStart, endPos - 1));
-        }
-
-        // end mark
-        elts.push(
-          cx.elt("BlockMathMark", cx.parsedPos, cx.parsedPos + 2),
-        );
-
-        cx.addElement(cx.elt("BlockMath", startPos, cx.parsedPos + 2, elts));
-        cx.nextLine();
-        return true;
       },
-      before: "FencedCode",
+      after: "FencedCode",
     },
   ],
 };

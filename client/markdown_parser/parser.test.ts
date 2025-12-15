@@ -205,3 +205,148 @@ Deno.test("Test table parser", () => {
   assertEquals(wikiName!.children![0].text, "Wiki");
   assertEquals(wikiAlias!.children![0].text, "Alias");
 });
+
+const inlineMathSample = `
+We have some text with inline math: $E=mc^2$ within a sentence.
+`;
+
+Deno.test("Test inline math parser", () => {
+  const tree = parseMarkdown(inlineMathSample);
+  const inlineMath = collectNodesOfType(tree, "InlineMath");
+
+  // Make sure we found InlineMathMark
+  assertEquals(inlineMath[0].children![0].type, "InlineMathMark");
+  assertEquals(inlineMath[0].children![2].type, "InlineMathMark");
+
+  // Make sure the marks are $
+  const inlineMathMark = findNodeOfType(inlineMath[0], "InlineMathMark");
+  assertEquals(inlineMathMark!.children![0].text, "$");
+
+  // Make sure the content is correct
+  assertEquals(inlineMath[0].children![1].text, "E=mc^2");
+});
+
+const blockMathSample1 = `
+Here is a block math:
+
+$$E=mc^2$$
+
+$$
+E=mc^2
+$$
+`;
+
+Deno.test("Test standard block math", () => {
+  const tree = parseMarkdown(blockMathSample1);
+  const math = collectNodesOfType(tree, "BlockMath");
+
+  assertEquals(math[0].children![0].type, "BlockMathMark");
+  assertEquals(math[0].children![2].type, "BlockMathMark");
+  assertEquals(math[1].children![0].type, "BlockMathMark");
+  assertEquals(math[1].children![2].type, "BlockMathMark");
+
+  assertEquals(math[0].children![0].children![0].text, "$$")
+  assertEquals(math[0].children![0].children![0].text, "$$")
+  assertEquals(math[1].children![2].children![0].text, "$$")
+  assertEquals(math[1].children![2].children![0].text, "$$")
+
+  // Make sure the content is correct
+  assertEquals(math[0].children![1].text, "E=mc^2");
+  assertEquals(math[1].children![1].text, "\nE=mc^2\n");
+});
+
+const blockMathSample2 = `
+Here is a block math: $$E=mc^2$$
+
+Here is another block math:
+$$E=mc^2$$
+`;
+
+Deno.test("Test block math mixed with inline", () => {
+  const tree = parseMarkdown(blockMathSample2);
+  const math = collectNodesOfType(tree, "InlineBlockMath");
+
+  assertEquals(math[0].children![0].type, "InlineBlockMathMark");
+  assertEquals(math[0].children![2].type, "InlineBlockMathMark");
+  assertEquals(math[1].children![0].type, "InlineBlockMathMark");
+  assertEquals(math[1].children![2].type, "InlineBlockMathMark");
+
+  assertEquals(math[0].children![0].children![0].text, "$$")
+  assertEquals(math[0].children![0].children![0].text, "$$")
+  assertEquals(math[1].children![2].children![0].text, "$$")
+  assertEquals(math[1].children![2].children![0].text, "$$")
+
+  // Make sure the content is correct
+  assertEquals(math[0].children![1].text, "E=mc^2");
+  assertEquals(math[1].children![1].text, "E=mc^2");
+});
+
+const blockMathSample3 = `
+Here is a block math:
+$$E=
+mc^2$$
+
+Here is another block math:
+
+$$
+
+E=
+
+mc^2
+$$
+`;
+
+Deno.test("Test more complex block math", () => {
+  const tree = parseMarkdown(blockMathSample3);
+  const inlineMath = collectNodesOfType(tree, "InlineBlockMath");
+  const blockMath = collectNodesOfType(tree, "BlockMath");
+
+  assertEquals(inlineMath[0].children![0].type, "InlineBlockMathMark");
+  assertEquals(inlineMath[0].children![2].type, "InlineBlockMathMark");
+  assertEquals(blockMath[0].children![0].type, "BlockMathMark");
+  assertEquals(blockMath[0].children![2].type, "BlockMathMark");
+
+  assertEquals(inlineMath[0].children![0].children![0].text, "$$")
+  assertEquals(inlineMath[0].children![0].children![0].text, "$$")
+  assertEquals(blockMath[0].children![2].children![0].text, "$$")
+  assertEquals(blockMath[0].children![2].children![0].text, "$$")
+
+  // Make sure the content is correct
+  assertEquals(inlineMath[0].children![1].text, "E=\nmc^2");
+  assertEquals(blockMath[0].children![1].text, "\n\nE=\n\nmc^2\n");
+});
+
+const mixedMathSample = `
+Here is a inline math: $E=mc^2$
+$$
+E=mc^2
+$$
+
+$$E=mc^2$$
+`;
+
+Deno.test("Test mixed math", () => {
+  const tree = parseMarkdown(mixedMathSample);
+  const inlineMath = collectNodesOfType(tree, "InlineMath");
+  const inlineBlockMath = collectNodesOfType(tree, "InlineBlockMath");
+  const blockMath = collectNodesOfType(tree, "BlockMath");
+
+  assertEquals(inlineMath[0].children![0].type, "InlineMathMark");
+  assertEquals(inlineMath[0].children![2].type, "InlineMathMark");
+  assertEquals(inlineBlockMath[0].children![0].type, "InlineBlockMathMark");
+  assertEquals(inlineBlockMath[0].children![2].type, "InlineBlockMathMark");
+  assertEquals(blockMath[0].children![0].type, "BlockMathMark");
+  assertEquals(blockMath[0].children![2].type, "BlockMathMark");
+
+  assertEquals(inlineMath[0].children![0].children![0].text, "$")
+  assertEquals(inlineMath[0].children![0].children![0].text, "$")
+  assertEquals(inlineBlockMath[0].children![0].children![0].text, "$$")
+  assertEquals(inlineBlockMath[0].children![0].children![0].text, "$$")
+  assertEquals(blockMath[0].children![2].children![0].text, "$$")
+  assertEquals(blockMath[0].children![2].children![0].text, "$$")
+
+  // Make sure the content is correct
+  assertEquals(inlineMath[0].children![1].text, "E=mc^2");
+  assertEquals(inlineBlockMath[0].children![1].text, "\nE=mc^2\n");
+  assertEquals(blockMath[0].children![1].text, "E=mc^2");
+});

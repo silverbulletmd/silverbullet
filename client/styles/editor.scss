@@ -711,28 +711,6 @@
     // Give some breathing space at the bottom of the screen
     padding-bottom: 20em;
   }
-
-  .sb-inline-math {
-    background-color: var(--editor-code-background-color);
-    border-radius: 3px;
-    padding: 0 2px;
-  }
-
-  .sb-block-math {
-    background-color: var(--editor-code-background-color);
-  }
-
-  .sb-math-mark {
-    color: var(--editor-meta-color);
-  }
-
-  .sb-math-error {
-    color: var(--editor-error-color, #ff0000);
-    font-family: monospace;
-    background-color: rgba(255, 0, 0, 0.1);
-    padding: 2px 4px;
-    border-radius: 3px;
-  }
 }
 
 div:not(.cm-focused).cm-fat-cursor {

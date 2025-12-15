@@ -504,11 +504,36 @@ function render(
         };
       }
     }
-    case "BlockMath": {
-      const contentNode = findNodeOfType(t, "BlockMathContent");
-      const content = contentNode ? renderToText(contentNode) : "";
+    case "InlineBlockMath": {
+      const content = t.children!
+        .filter((c) => c.type !== "InlineBlockMathMark")
+        .map((c) => renderToText(c))
+        .join("");
       try {
-        const html = katex.renderToString(content.trim(), {
+        const html = katex.renderToString(content, {
+          displayMode: true,
+          throwOnError: false,
+        });
+        return {
+          name: "div",
+          attrs: { class: "sb-math-block" },
+          body: [{ name: RawHTML, body: html }],
+        };
+      } catch (e: any) {
+        return {
+          name: "div",
+          attrs: { class: "sb-math-error", title: e.message },
+          body: content,
+        };
+      }
+    }
+    case "BlockMath": {
+      const content = t.children!
+        .filter((c) => c.type !== "BlockMathMark")
+        .map((c) => renderToText(c))
+        .join("");
+      try {
+        const html = katex.renderToString(content, {
           displayMode: true,
           throwOnError: false,
         });

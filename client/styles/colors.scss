@@ -438,3 +438,20 @@ a.sb-wiki-link-invalid,
 .sb-line-comment {
   background-color: var(--editor-code-comment-color); // rgba(255, 255, 0, 0.5);
 }
+
+.sb-inline-math {
+  background-color: var(--editor-code-background-color);
+}
+
+.sb-block-math {
+  background-color: var(--editor-code-background-color);
+}
+
+.sb-math-mark {
+  background-color: var(--root-background-color);
+  color: var(--editor-meta-color);
+}
+
+.sb-math-error {
+  color: var(--editor-error-color, #ff0000);
+}
