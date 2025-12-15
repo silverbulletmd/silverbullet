@@ -245,10 +245,10 @@ Deno.test("Test standard block math", () => {
   assertEquals(math[1].children![0].type, "BlockMathMark");
   assertEquals(math[1].children![2].type, "BlockMathMark");
 
-  assertEquals(math[0].children![0].children![0].text, "$$")
-  assertEquals(math[0].children![0].children![0].text, "$$")
-  assertEquals(math[1].children![2].children![0].text, "$$")
-  assertEquals(math[1].children![2].children![0].text, "$$")
+  assertEquals(math[0].children![0].children![0].text, "$$");
+  assertEquals(math[0].children![0].children![0].text, "$$");
+  assertEquals(math[1].children![2].children![0].text, "$$");
+  assertEquals(math[1].children![2].children![0].text, "$$");
 
   // Make sure the content is correct
   assertEquals(math[0].children![1].text, "E=mc^2");
@@ -271,10 +271,10 @@ Deno.test("Test block math mixed with inline", () => {
   assertEquals(math[1].children![0].type, "InlineBlockMathMark");
   assertEquals(math[1].children![2].type, "InlineBlockMathMark");
 
-  assertEquals(math[0].children![0].children![0].text, "$$")
-  assertEquals(math[0].children![0].children![0].text, "$$")
-  assertEquals(math[1].children![2].children![0].text, "$$")
-  assertEquals(math[1].children![2].children![0].text, "$$")
+  assertEquals(math[0].children![0].children![0].text, "$$");
+  assertEquals(math[0].children![0].children![0].text, "$$");
+  assertEquals(math[1].children![2].children![0].text, "$$");
+  assertEquals(math[1].children![2].children![0].text, "$$");
 
   // Make sure the content is correct
   assertEquals(math[0].children![1].text, "E=mc^2");
@@ -306,10 +306,10 @@ Deno.test("Test more complex block math", () => {
   assertEquals(blockMath[0].children![0].type, "BlockMathMark");
   assertEquals(blockMath[0].children![2].type, "BlockMathMark");
 
-  assertEquals(inlineMath[0].children![0].children![0].text, "$$")
-  assertEquals(inlineMath[0].children![0].children![0].text, "$$")
-  assertEquals(blockMath[0].children![2].children![0].text, "$$")
-  assertEquals(blockMath[0].children![2].children![0].text, "$$")
+  assertEquals(inlineMath[0].children![0].children![0].text, "$$");
+  assertEquals(inlineMath[0].children![0].children![0].text, "$$");
+  assertEquals(blockMath[0].children![2].children![0].text, "$$");
+  assertEquals(blockMath[0].children![2].children![0].text, "$$");
 
   // Make sure the content is correct
   assertEquals(inlineMath[0].children![1].text, "E=\nmc^2");
@@ -338,12 +338,12 @@ Deno.test("Test mixed math", () => {
   assertEquals(blockMath[0].children![0].type, "BlockMathMark");
   assertEquals(blockMath[0].children![2].type, "BlockMathMark");
 
-  assertEquals(inlineMath[0].children![0].children![0].text, "$")
-  assertEquals(inlineMath[0].children![0].children![0].text, "$")
-  assertEquals(inlineBlockMath[0].children![0].children![0].text, "$$")
-  assertEquals(inlineBlockMath[0].children![0].children![0].text, "$$")
-  assertEquals(blockMath[0].children![2].children![0].text, "$$")
-  assertEquals(blockMath[0].children![2].children![0].text, "$$")
+  assertEquals(inlineMath[0].children![0].children![0].text, "$");
+  assertEquals(inlineMath[0].children![0].children![0].text, "$");
+  assertEquals(inlineBlockMath[0].children![0].children![0].text, "$$");
+  assertEquals(inlineBlockMath[0].children![0].children![0].text, "$$");
+  assertEquals(blockMath[0].children![2].children![0].text, "$$");
+  assertEquals(blockMath[0].children![2].children![0].text, "$$");
 
   // Make sure the content is correct
   assertEquals(inlineMath[0].children![1].text, "E=mc^2");

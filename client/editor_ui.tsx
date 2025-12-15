@@ -339,7 +339,7 @@ export class MainUI {
                     "hamburger",
                   ))
               ? [{
-                icon: featherIcons.MoreVertical,
+                icon: featherIcons.MoreVertical as any,
                 description: "Open Menu",
                 class: "expander",
                 callback: () => {
@@ -370,7 +370,7 @@ export class MainUI {
                   featherIcon = featherIcons.HelpCircle;
                 }
                 return {
-                  icon: mdiIcon ? mdiIcon : featherIcon,
+                  icon: (mdiIcon ? mdiIcon : featherIcon) as any,
                   description: button.description || "",
                   callback: button.run || (() => {
                     client.flashNotification(

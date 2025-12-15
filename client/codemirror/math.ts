@@ -5,7 +5,6 @@ import {
   decoratorStateField,
   invisibleDecoration,
   isCursorInRange,
-  shouldRenderWidgets,
 } from "./util.ts";
 import type { Client } from "../client.ts";
 import katex from "katex";
@@ -21,15 +20,17 @@ class MathWidget extends WidgetType {
 
   toDOM(): HTMLElement {
     const wrapper = document.createElement(this.displayMode ? "div" : "span");
-    wrapper.className = this.displayMode ? "sb-math-block-widget" : "sb-math-inline-widget";
-    
+    wrapper.className = this.displayMode
+      ? "sb-math-block-widget"
+      : "sb-math-inline-widget";
+
     try {
       katex.render(this.content, wrapper, {
         displayMode: this.displayMode,
         throwOnError: false,
         output: "html",
       });
-    } catch (e: any) {
+    } catch (_e: any) {
       wrapper.className = "sb-math-error";
       wrapper.textContent = this.content;
     }
@@ -45,7 +46,7 @@ class MathWidget extends WidgetType {
 }
 
 /**
- * Plugin that renders inline math ($...$) and block math ($$...$$) 
+ * Plugin that renders inline math ($...$) and block math ($$...$$)
  * with KaTeX in the CodeMirror editor.
  */
 export function mathPlugin(client: Client) {
@@ -53,7 +54,7 @@ export function mathPlugin(client: Client) {
     const widgets: Range<Decoration>[] = [];
 
     syntaxTree(state).iterate({
-      enter: ({ type, from, to, node }) => {
+      enter: ({ type, from, to, node: _node }) => {
         // Handle InlineMath ($...$)
         if (type.name === "InlineMath") {
           if (isCursorInRange(state, [from, to])) {
@@ -62,7 +63,7 @@ export function mathPlugin(client: Client) {
 
           const text = state.sliceDoc(from, to);
           // Remove the $
-          let content = text.slice(1, -1);
+          const content = text.slice(1, -1);
 
           if (!client.ui.viewState.uiOptions.markdownSyntaxRendering) {
             widgets.push(invisibleDecoration.range(from, to));
@@ -82,7 +83,7 @@ export function mathPlugin(client: Client) {
 
           const text = state.sliceDoc(from, to);
           // Remove the $$
-          let content = text.slice(2, -2);
+          const content = text.slice(2, -2);
 
           if (!client.ui.viewState.uiOptions.markdownSyntaxRendering) {
             widgets.push(

@@ -369,7 +369,10 @@ export const FrontMatter: MarkdownConfig = {
 };
 
 const InlineMathDelim = { resolve: "InlineMath", mark: "InlineMathMark" };
-const InlineBlockMathDelim = { resolve: "InlineBlockMath", mark: "InlineBlockMathMark" };
+const InlineBlockMathDelim = {
+  resolve: "InlineBlockMath",
+  mark: "InlineBlockMathMark",
+};
 
 export const InlineMath: MarkdownConfig = {
   defineNodes: [
@@ -400,7 +403,13 @@ export const InlineMath: MarkdownConfig = {
         }
         // If next char is also $, it should be block math
         if (cx.char(pos + 1) === 36) {
-          return cx.addDelimiter(InlineBlockMathDelim, pos, pos + 2, true, true);
+          return cx.addDelimiter(
+            InlineBlockMathDelim,
+            pos,
+            pos + 2,
+            true,
+            true,
+          );
         }
         return cx.addDelimiter(InlineMathDelim, pos, pos + 1, true, true);
       },
@@ -442,10 +451,18 @@ export const BlockMath: MarkdownConfig = {
 
         // Check for single line, e.g. $$\alpha$$
         if (line.text.length > 4 && line.text.endsWith("$$")) {
-            elts.push(cx.elt("BlockMathMark", startPos + line.text.length - 2, startPos + line.text.length));
-            cx.addElement(cx.elt("BlockMath", startPos, startPos + line.text.length, elts));
-            cx.nextLine();
-            return true;
+          elts.push(
+            cx.elt(
+              "BlockMathMark",
+              startPos + line.text.length - 2,
+              startPos + line.text.length,
+            ),
+          );
+          cx.addElement(
+            cx.elt("BlockMath", startPos, startPos + line.text.length, elts),
+          );
+          cx.nextLine();
+          return true;
         }
 
         cx.nextLine();
@@ -454,13 +471,13 @@ export const BlockMath: MarkdownConfig = {
         while (true) {
           // Check for single line ending with $$, e.g. $$ or abc$$
           if (line.text.endsWith("$$")) {
-              const endPos = cx.parsedPos + line.text.length;
-              elts.push(cx.elt("BlockMathMark", endPos - 2, endPos));
-              cx.addElement(cx.elt("BlockMath", startPos, endPos, elts));
-              cx.nextLine();
-              return true;
+            const endPos = cx.parsedPos + line.text.length;
+            elts.push(cx.elt("BlockMathMark", endPos - 2, endPos));
+            cx.addElement(cx.elt("BlockMath", startPos, endPos, elts));
+            cx.nextLine();
+            return true;
           }
- 
+
           cx.nextLine();
           if (cx.parsedPos === lastPos) {
             // EOF
