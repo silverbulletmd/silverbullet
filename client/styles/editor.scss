@@ -711,6 +711,12 @@
     // Give some breathing space at the bottom of the screen
     padding-bottom: 20em;
   }
+
+  .sb-math-block-widget {
+    .katex-display {
+      margin: 0;
+    }
+  }
 }
 
 div:not(.cm-focused).cm-fat-cursor {

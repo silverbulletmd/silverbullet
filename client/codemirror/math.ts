@@ -91,7 +91,6 @@ export function mathPlugin(client: Client) {
             widgets.push(
               Decoration.replace({
                 widget: new MathWidget(content, true, client),
-                block: true,
               }).range(from, to),
             );
           }

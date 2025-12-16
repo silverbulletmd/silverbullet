@@ -368,3 +368,38 @@ $$trailing space$$
   assertEquals(blockMath[1].children![2].type, "BlockMathMark");
   assertEquals(blockMath[1].children![1].text, "leading space");
 });
+
+const inlineMathWithSpaceSample = `
+Here is an inline math: $E=mc^2 $
+
+Here is another inline math: $ E=mc^2$
+
+Here is a block math inline: $$ E=mc^2 $$
+`;
+
+Deno.test("Test mixed math", () => {
+  const tree = parseMarkdown(inlineMathWithSpaceSample);
+  const inlineMath = collectNodesOfType(tree, "InlineMath");
+  const inlineBlockMath = collectNodesOfType(tree, "InlineBlockMath");
+
+  assertEquals(inlineMath.length, 0);
+
+  // Make sure the content is correct
+  assertEquals(inlineBlockMath[0].children![1].text, " E=mc^2 ");
+});
+
+
+const complexInlineMathSample = `
+Here is an inline math: $a *b* c$
+`;
+
+Deno.test("Test mixed math", () => {
+  const tree = parseMarkdown(complexInlineMathSample);
+  const inlineMath = collectNodesOfType(tree, "InlineMath");
+  const emphasis = collectNodesOfType(tree, "Emphasis");
+
+  assertEquals(emphasis.length, 0);
+  
+  // Make sure the content is correct
+  assertEquals(inlineMath[0].children![1].text, "a *b* c");
+});

@@ -368,12 +368,6 @@ export const FrontMatter: MarkdownConfig = {
   }],
 };
 
-const InlineMathDelim = { resolve: "InlineMath", mark: "InlineMathMark" };
-const InlineBlockMathDelim = {
-  resolve: "InlineBlockMath",
-  mark: "InlineBlockMathMark",
-};
-
 export const InlineMath: MarkdownConfig = {
   defineNodes: [
     {
@@ -384,7 +378,8 @@ export const InlineMath: MarkdownConfig = {
       name: "InlineMathMark",
       style: ct.MathMarkTag,
     },
-    // for some uncommon cases where $$...$$ is used inline. e.g.
+    // for some uncommon cases where $$...$$ is used inline and cannot be parsed
+    // by BlockMath. e.g.
     // The formula is $$E=mc^2$$
     { name: "InlineBlockMath", block: true, style: ct.BlockMathTag },
     { name: "InlineBlockMathMark", style: ct.MathMarkTag },
@@ -401,17 +396,51 @@ export const InlineMath: MarkdownConfig = {
         if (cx.char(pos + 1) === 123 /* '{' */) {
           return -1;
         }
-        // If next char is also $, it should be block math
-        if (cx.char(pos + 1) === 36) {
-          return cx.addDelimiter(
-            InlineBlockMathDelim,
-            pos,
-            pos + 2,
-            true,
-            true,
-          );
+        // If inline math start with space, ignore
+        if (cx.char(pos + 1) === 32 /* ' ' */) {
+          return -1;
         }
-        return cx.addDelimiter(InlineMathDelim, pos, pos + 1, true, true);
+
+        // If next char is also $, it should be parsed as InlineBlockMath
+        const isBlockMath = cx.char(pos + 1) === 36 /* '$' */;
+
+        // Search for end delimiter
+        let ptr = isBlockMath ? pos + 2 : pos + 1;
+        const len = cx.end;
+
+        while (ptr < len) {
+          if (cx.char(ptr) === 36 /* '$' */) { // Possible end
+            if (isBlockMath) {
+              // Only if two $ found
+              if (cx.char(ptr + 1) === 36 /* '$' */ && ptr > pos + 2) {
+                return cx.addElement(cx.elt("InlineBlockMath", pos, ptr + 2, [
+                  // Start mark
+                  cx.elt("InlineBlockMathMark", pos, pos + 2),
+                  // End mark
+                  cx.elt("InlineBlockMathMark", ptr, ptr + 2),
+                ]));
+              }
+            } else if (ptr > pos + 1) {
+              // Must be inline math
+
+              // If inline math end with space, ignore
+              if (cx.char(ptr - 1) === 32 /* ' ' */) {
+                ptr++;
+                continue;
+              }
+              return cx.addElement(cx.elt("InlineMath", pos, ptr + 1, [
+                cx.elt("InlineMathMark", pos, pos + 1),
+                cx.elt("InlineMathMark", ptr, ptr + 1),
+              ]));
+            }
+          }
+          if (cx.char(ptr) === 92 /* \ */) {
+            ptr++; // Skip \$
+          }
+          ptr++;
+        }
+
+        return -1;
       },
       after: "Emphasis",
     },
