@@ -1,11 +1,7 @@
 import type { EditorState, Range } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
-import { Decoration, WidgetType } from "@codemirror/view";
-import {
-  decoratorStateField,
-  invisibleDecoration,
-  isCursorInRange,
-} from "./util.ts";
+import { Decoration, type EditorView, WidgetType } from "@codemirror/view";
+import { decoratorStateField, isCursorInRange } from "./util.ts";
 import type { Client } from "../client.ts";
 import katex from "katex";
 
@@ -18,7 +14,7 @@ class MathWidget extends WidgetType {
     super();
   }
 
-  toDOM(): HTMLElement {
+  toDOM(view: EditorView): HTMLElement {
     const wrapper = document.createElement(this.displayMode ? "div" : "span");
     wrapper.className = this.displayMode
       ? "sb-math-block-widget"
@@ -34,6 +30,13 @@ class MathWidget extends WidgetType {
       wrapper.className = "sb-math-error";
       wrapper.textContent = this.content;
     }
+
+    // Make MathWidget editable on click
+    wrapper.addEventListener("click", () => {
+      const pos = view.posAtDOM(wrapper);
+      view.dispatch({ selection: { anchor: pos } });
+      view.focus();
+    });
 
     return wrapper;
   }
@@ -66,11 +69,10 @@ export function mathPlugin(client: Client) {
           const content = text.slice(1, -1);
 
           if (!client.ui.viewState.uiOptions.markdownSyntaxRendering) {
-            widgets.push(invisibleDecoration.range(from, to));
             widgets.push(
-              Decoration.widget({
+              Decoration.replace({
                 widget: new MathWidget(content, false, client),
-              }).range(to),
+              }).range(from, to),
             );
           }
         }
