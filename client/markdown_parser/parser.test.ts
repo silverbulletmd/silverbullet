@@ -388,7 +388,6 @@ Deno.test("Test mixed math", () => {
   assertEquals(inlineBlockMath[0].children![1].text, " E=mc^2 ");
 });
 
-
 const complexInlineMathSample = `
 Here is an inline math: $a *b* c$
 `;
@@ -399,7 +398,7 @@ Deno.test("Test mixed math", () => {
   const emphasis = collectNodesOfType(tree, "Emphasis");
 
   assertEquals(emphasis.length, 0);
-  
+
   // Make sure the content is correct
   assertEquals(inlineMath[0].children![1].text, "a *b* c");
 });
