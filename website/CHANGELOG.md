@@ -3,8 +3,21 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
+* Two-staged indexing, an attempt to speed up initial client boots:
+  * **pre-index**: only indexes page objects and space-lua and space-style blocks. After this phase the system will reload and most core functionality should become available.
+  * **index**: indexes everything else
 * **Removed** full-text search plug from the main distribution, this has now been moved to [a separate repo](https://github.com/silverbulletmd/basic-search) (installable via the library manager). This dramatically improves indexing speed. Honestly, use [Silversearch](https://github.com/MrMugame/silversearch) instead.
 * Production builds now include sourcemaps for easier debugging in browser DevTools. If you don't want to serve sourcemaps publicly, you can block `*.js.map` files at your reverse proxy level (see [[TLS#Blocking sourcemaps]]).
+* Better link support in frontmatter (by [Tomasz Gorochowik](https://github.com/silverbulletmd/silverbullet/pull/1711))
+* Lua:
+  * [LIQ fix](https://github.com/silverbulletmd/silverbullet/issues/1705)
+  * [Ctrl-click](https://github.com/silverbulletmd/silverbullet/pull/1713) navigate to definition on non-Mac operating systems
+  * Support for `<const>` in Lua (by [Matouš Jan Fialka](https://github.com/silverbulletmd/silverbullet/pull/1715))
+* Fixes:
+  * Should now deal better with authentication layers (Cloudflare Zero Trust, Authelia, Pangolin)
+  * [Sync errors](https://github.com/silverbulletmd/silverbullet/issues/1720) now propagate better to the UI
+  * Document editors now fixed in Safari (by [MrMugame](https://github.com/silverbulletmd/silverbullet/pull/1710))
+  * `%` now supported in [page names](https://github.com/silverbulletmd/silverbullet/issues/1694)
 
 ## 2.3.0
 This release (re)introduces [[Share]], formalizes [[Library]], and introduces in initial version of the [[Library Manager]], a type of package manager for SilverBullet. It also progresses on Lua 5.4 compatibility.
