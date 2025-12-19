@@ -88,6 +88,11 @@
   color: var(--action-button-hover-color);
 }
 
+// Only color the expander button, when the hamburger menu is open
+.sb-actions:not(.open) button.expander:hover {
+  color: var(--action-button-color);
+}
+
 .sb-button,
 .sb-button-primary {
   --color: var(--button-color);

@@ -136,6 +136,13 @@ export function TopBar({
                       e.stopPropagation();
                       actionButton.callback();
                     }}
+                    onBlur={() => {
+                      // Close the hamburger menu in mobile mode if the action button loses focus after callback
+                      if (mobileMenuStyle === "hamburger") {
+                        document.querySelector("#sb-top .sb-actions.hamburger")
+                          ?.classList.remove("open");
+                      }
+                    }}
                     title={actionButton.description}
                     className={actionButton.class}
                   >
