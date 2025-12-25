@@ -126,6 +126,11 @@ func Router(config *ServerConfig) chi.Router {
 }
 
 func RunServer(config *ServerConfig) error {
+	// Initialize SSR template cache at startup
+	if err := initSSRTemplate(config); err != nil {
+		return fmt.Errorf("failed to initialize SSR template: %w", err)
+	}
+
 	r := Router(config)
 	// Display the final server running message
 	visibleHostname := config.BindHost

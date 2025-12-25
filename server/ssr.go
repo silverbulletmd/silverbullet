@@ -19,13 +19,15 @@ import (
 // The ONLY use case of this is search engine indexing
 // It is only activated when the space is both read-only and has no authentication, so basically the silverbullet.md scenario.
 
+var (
+	// Compiled once at package init for performance
+	wikiLinkRegex = regexp.MustCompile(`\[\[([^\]]+)\]\]`)
+)
+
 // Very crude markdown link replacement
 func convertWikiLinksToMarkdown(input string) string {
-	// Regular expression to match [[text]] patterns
-	re := regexp.MustCompile(`\[\[([^\]]+)\]\]`)
-
 	// Replace all matches with [text](text) format
-	result := re.ReplaceAllStringFunc(input, func(match string) string {
+	result := wikiLinkRegex.ReplaceAllStringFunc(input, func(match string) string {
 		// Extract the text between [[ and ]]
 		text := strings.TrimPrefix(match, "[[")
 		text = strings.TrimSuffix(text, "]]")
@@ -36,31 +38,44 @@ func convertWikiLinksToMarkdown(input string) string {
 	return result
 }
 
-func ServerSideRender(config *ServerConfig, spaceConfig *SpaceConfig, pageName string, w http.ResponseWriter, r *http.Request) {
-	// Let's fetch the index.html text
-	indexHtmlBuf, _, _ := config.ClientBundle.ReadFile(indexHtmlPath)
-
-	if pageName == "" {
-		pageName = spaceConfig.IndexPage
+// initSSRTemplate parses and caches the SSR template once at startup
+func initSSRTemplate(config *ServerConfig) error {
+	// Fetch the index.html template
+	indexHtmlBuf, _, err := config.ClientBundle.ReadFile(indexHtmlPath)
+	if err != nil {
+		return fmt.Errorf("failed to read index.html: %w", err)
 	}
 
+	// Create template with markdown rendering function
 	tpl := template.New("index_html")
 	tpl.Funcs(template.FuncMap{
 		"markdown": func(text string) template.HTML {
 			if text == "" {
-				// Let's not even bother doing anything
 				return ""
 			}
 
-			// Setup markdown renderer
-			var markdownParser = parser.NewWithExtensions(parser.CommonExtensions)
-			var markdownRenderer = html.NewRenderer(html.RendererOptions{})
+			// Setup markdown renderer (parser/renderer are cheap to create)
+			markdownParser := parser.NewWithExtensions(parser.CommonExtensions)
+			markdownRenderer := html.NewRenderer(html.RendererOptions{})
 			text = convertWikiLinksToMarkdown(text)
 			doc := markdownParser.Parse([]byte(text))
 			return template.HTML(markdown.Render(doc, markdownRenderer))
 		},
 	})
-	tpl = template.Must(tpl.Parse(string(indexHtmlBuf)))
+
+	// Parse and cache the template
+	config.ssrTemplate, err = tpl.Parse(string(indexHtmlBuf))
+	if err != nil {
+		return fmt.Errorf("failed to parse SSR template: %w", err)
+	}
+
+	return nil
+}
+
+func ServerSideRender(config *ServerConfig, spaceConfig *SpaceConfig, pageName string, w http.ResponseWriter, r *http.Request) {
+	if pageName == "" {
+		pageName = spaceConfig.IndexPage
+	}
 
 	templateData := struct {
 		HostPrefix         string
@@ -89,7 +104,7 @@ func ServerSideRender(config *ServerConfig, spaceConfig *SpaceConfig, pageName s
 
 	w.Header().Set("Content-type", "text/html")
 	w.WriteHeader(http.StatusOK)
-	if err := tpl.Execute(w, templateData); err != nil {
+	if err := config.ssrTemplate.Execute(w, templateData); err != nil {
 		log.Printf("SSR error for %s: %v", pageName, err)
 		w.Write([]byte("Server error"))
 	}

@@ -18,6 +18,9 @@ type ServerConfig struct {
 	HostURLPrefix string
 
 	ClientBundle SpacePrimitives
+
+	// Cached SSR template (parsed once at startup for performance)
+	ssrTemplate *template.Template
 }
 
 type UserPasswordAuthorizer func(username, password string) bool
