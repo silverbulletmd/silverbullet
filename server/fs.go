@@ -93,6 +93,9 @@ func handleFsPut(w http.ResponseWriter, r *http.Request) {
 	path := DecodeURLParam(r, "*")
 	spaceConfig := spaceConfigFromContext(r.Context())
 
+	// Limit request body size to prevent OOM (50MB max)
+	r.Body = http.MaxBytesReader(w, r.Body, 50*1024*1024)
+
 	// Read request body
 	body, err := io.ReadAll(r.Body)
 	if err != nil {

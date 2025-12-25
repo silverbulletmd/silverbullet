@@ -16,6 +16,9 @@ type LogEntry struct {
 }
 
 func handleLogsEndpoint(w http.ResponseWriter, r *http.Request) {
+	// Limit request body size to prevent OOM (1MB max for log messages)
+	r.Body = http.MaxBytesReader(w, r.Body, 1*1024*1024)
+
 	var messages []LogEntry
 
 	if err := render.DecodeJSON(r.Body, &messages); err != nil {
