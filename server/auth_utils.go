@@ -76,9 +76,22 @@ func extractHost(r *http.Request) string {
 	return host
 }
 
+// validateRedirectPath validates that a redirect path is safe (relative, not external)
+func validateRedirectPath(path string) string {
+	// Only allow relative paths starting with /
+	// Reject protocol-relative URLs (//example.com) and external URLs
+	if path == "" || !strings.HasPrefix(path, "/") || strings.HasPrefix(path, "//") {
+		return "/" // Default to home
+	}
+	return path
+}
+
 // redirectToAuth creates a redirect response to the auth page
 func redirectToAuth(w http.ResponseWriter, authPath, fromPath, hostURLPrefix string) {
 	var redirectURL string
+
+	// Validate redirect path to prevent open redirect vulnerability
+	fromPath = validateRedirectPath(fromPath)
 
 	// Try filtering api paths
 	if strings.HasPrefix(fromPath, "/.") || strings.HasSuffix(fromPath, ".md") {
