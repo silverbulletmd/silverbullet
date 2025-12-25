@@ -158,15 +158,12 @@ func addAuthEndpoints(r chi.Router, config *ServerConfig) {
 }
 
 func (spaceConfig *SpaceConfig) InitAuth() error {
-	if spaceConfig.JwtIssuer == nil {
-		spaceConfig.authMutex.Lock()
-		defer spaceConfig.authMutex.Unlock()
-
-		var err error
+	var initErr error
+	spaceConfig.authOnce.Do(func() {
 		// Need to do some initialization
-		spaceConfig.JwtIssuer, err = CreateAuthenticator(path.Join(spaceConfig.SpaceFolderPath, ".silverbullet.auth.json"), spaceConfig.Auth)
-		if err != nil {
-			return err
+		spaceConfig.JwtIssuer, initErr = CreateAuthenticator(path.Join(spaceConfig.SpaceFolderPath, ".silverbullet.auth.json"), spaceConfig.Auth)
+		if initErr != nil {
+			return
 		}
 
 		// Initialize lockout timer
@@ -175,8 +172,8 @@ func (spaceConfig *SpaceConfig) InitAuth() error {
 		} else {
 			spaceConfig.LockoutTimer = NewLockoutTimer(0, 0) // disabled
 		}
-	}
-	return nil
+	})
+	return initErr
 }
 
 // authMiddleware provides authentication middleware
