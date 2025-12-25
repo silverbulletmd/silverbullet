@@ -29,8 +29,16 @@ type Manifest struct {
 
 // Generate PWA manifest.json with dynamic values
 func manifestHandler(w http.ResponseWriter, r *http.Request) {
-	spaceConfig := spaceConfigFromContext(r.Context())
-	config := serverConfigFromContext(r.Context())
+	spaceConfig, ok := spaceConfigFromContext(r.Context())
+	if !ok {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	config, ok := serverConfigFromContext(r.Context())
+	if !ok {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
 	manifest := Manifest{
 		ShortName: spaceConfig.SpaceName,
 		Name:      spaceConfig.SpaceName,

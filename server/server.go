@@ -55,7 +55,11 @@ func Router(config *ServerConfig) chi.Router {
 	addAuthEndpoints(routes, config)
 
 	routes.Get("/.ping", func(w http.ResponseWriter, r *http.Request) {
-		spaceConfig := spaceConfigFromContext(r.Context())
+		spaceConfig, ok := spaceConfigFromContext(r.Context())
+		if !ok {
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
 		w.Header().Set("Cache-Control", "no-cache")
 		w.Header().Set("X-Space-Path", spaceConfig.SpaceFolderPath)
 		w.WriteHeader(http.StatusOK)
@@ -67,7 +71,11 @@ func Router(config *ServerConfig) chi.Router {
 
 	// Config endpoint
 	routes.Get("/.config", func(w http.ResponseWriter, r *http.Request) {
-		spaceConfig := spaceConfigFromContext(r.Context())
+		spaceConfig, ok := spaceConfigFromContext(r.Context())
+		if !ok {
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
 		clientConfig := &BootConfig{
 			SpaceFolderPath: spaceConfig.SpaceFolderPath,
 			IndexPage:       spaceConfig.IndexPage,
@@ -96,7 +104,11 @@ func Router(config *ServerConfig) chi.Router {
 	routes.HandleFunc("/*", func(w http.ResponseWriter, r *http.Request) {
 		path := DecodeURLParam(r, "*")
 
-		spaceConfig := spaceConfigFromContext(r.Context())
+		spaceConfig, ok := spaceConfigFromContext(r.Context())
+		if !ok {
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
 
 		// See if it's in the client bundle
 		data, meta, err := config.ClientBundle.ReadFile(path)

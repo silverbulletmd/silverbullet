@@ -24,10 +24,12 @@ func spaceMiddleware(config *ServerConfig) func(http.Handler) http.Handler {
 	}
 }
 
-func spaceConfigFromContext(ctx context.Context) *SpaceConfig {
-	return ctx.Value(spaceConfigKey).(*SpaceConfig)
+func spaceConfigFromContext(ctx context.Context) (*SpaceConfig, bool) {
+	cfg, ok := ctx.Value(spaceConfigKey).(*SpaceConfig)
+	return cfg, ok
 }
 
-func serverConfigFromContext(ctx context.Context) *ServerConfig {
-	return ctx.Value(serverConfigKey).(*ServerConfig)
+func serverConfigFromContext(ctx context.Context) (*ServerConfig, bool) {
+	cfg, ok := ctx.Value(serverConfigKey).(*ServerConfig)
+	return cfg, ok
 }

@@ -31,7 +31,11 @@ func buildFsRoutes() http.Handler {
 }
 
 func handleFsList(w http.ResponseWriter, r *http.Request) {
-	spaceConfig := spaceConfigFromContext(r.Context())
+	spaceConfig, ok := spaceConfigFromContext(r.Context())
+	if !ok {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
 	if r.Header.Get("X-Sync-Mode") != "" {
 		// Handle direct requests for JSON representation of file list
 		files, err := spaceConfig.SpacePrimitives.FetchFileList()
@@ -51,7 +55,11 @@ func handleFsList(w http.ResponseWriter, r *http.Request) {
 // handleFsGet handles GET requests for individual files
 func handleFsGet(w http.ResponseWriter, r *http.Request) {
 	path := DecodeURLParam(r, "*")
-	spaceConfig := spaceConfigFromContext(r.Context())
+	spaceConfig, ok := spaceConfigFromContext(r.Context())
+	if !ok {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
 
 	// log.Printf("Got this path: %s", path)
 
@@ -91,7 +99,11 @@ func handleFsGet(w http.ResponseWriter, r *http.Request) {
 // handleFsPut handles PUT requests for writing files
 func handleFsPut(w http.ResponseWriter, r *http.Request) {
 	path := DecodeURLParam(r, "*")
-	spaceConfig := spaceConfigFromContext(r.Context())
+	spaceConfig, ok := spaceConfigFromContext(r.Context())
+	if !ok {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
 
 	// Read request body
 	body, err := io.ReadAll(r.Body)
@@ -116,7 +128,11 @@ func handleFsPut(w http.ResponseWriter, r *http.Request) {
 // handleFsDelete handles DELETE requests for removing files
 func handleFsDelete(w http.ResponseWriter, r *http.Request) {
 	path := DecodeURLParam(r, "*")
-	spaceConfig := spaceConfigFromContext(r.Context())
+	spaceConfig, ok := spaceConfigFromContext(r.Context())
+	if !ok {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
 
 	if err := spaceConfig.SpacePrimitives.DeleteFile(path); err != nil {
 		if err == ErrNotFound {

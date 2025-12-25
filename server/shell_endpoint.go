@@ -19,7 +19,11 @@ func init() {
 
 // handleShellEndpoint handles POST requests to /.shell for executing shell commands
 func handleShellEndpoint(w http.ResponseWriter, r *http.Request) {
-	spaceConfig := spaceConfigFromContext(r.Context())
+	spaceConfig, ok := spaceConfigFromContext(r.Context())
+	if !ok {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
 	// Parse the request body
 	var shellRequest ShellRequest
 	if err := json.NewDecoder(r.Body).Decode(&shellRequest); err != nil {

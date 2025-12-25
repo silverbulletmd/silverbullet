@@ -25,7 +25,11 @@ func init() {
 }
 
 func proxyHandler(w http.ResponseWriter, r *http.Request) {
-	spaceConfig := spaceConfigFromContext(r.Context())
+	spaceConfig, ok := spaceConfigFromContext(r.Context())
+	if !ok {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
 	if spaceConfig.ReadOnlyMode {
 		http.Error(w, "Read only mode, no proxy allowed", http.StatusMethodNotAllowed)
 		return

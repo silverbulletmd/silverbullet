@@ -42,7 +42,11 @@ func addAuthEndpoints(r chi.Router, config *ServerConfig) {
 
 	// Auth page
 	r.Get("/.auth", func(w http.ResponseWriter, r *http.Request) {
-		spaceConfig := spaceConfigFromContext(r.Context())
+		spaceConfig, ok := spaceConfigFromContext(r.Context())
+		if !ok {
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
 		if spaceConfig.Auth == nil {
 			http.Error(w, "Authentication not enabled", http.StatusForbidden)
 			return
@@ -76,7 +80,11 @@ func addAuthEndpoints(r chi.Router, config *ServerConfig) {
 
 	// Auth POST endpoint
 	r.Post("/.auth", func(w http.ResponseWriter, r *http.Request) {
-		spaceConfig := spaceConfigFromContext(r.Context())
+		spaceConfig, ok := spaceConfigFromContext(r.Context())
+		if !ok {
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
 		if err := spaceConfig.InitAuth(); err != nil {
 			http.Error(w, "Failed to initialize authentication", http.StatusInternalServerError)
 			return
@@ -184,7 +192,11 @@ func authMiddleware(config *ServerConfig) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			var err error
-			spaceConfig := spaceConfigFromContext(r.Context())
+			spaceConfig, ok := spaceConfigFromContext(r.Context())
+			if !ok {
+				http.Error(w, "Internal server error", http.StatusInternalServerError)
+				return
+			}
 			if spaceConfig.Auth == nil {
 				// No authentication to do, moving on
 				next.ServeHTTP(w, r)
@@ -236,7 +248,7 @@ func authMiddleware(config *ServerConfig) func(http.Handler) http.Handler {
 				return
 			}
 
-			_, ok := claims["username"].(string)
+			_, ok = claims["username"].(string)
 			if !ok {
 				log.Printf("Username mismatch in JWT on %s", path)
 				redirectToAuth(w, "/.auth", path, config.HostURLPrefix)
