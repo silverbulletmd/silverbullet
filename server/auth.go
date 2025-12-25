@@ -126,8 +126,11 @@ func addAuthEndpoints(r chi.Router, config *ServerConfig) {
 			inAWeek := time.Now().Add(time.Duration(authenticationExpirySeconds) * time.Second)
 
 			cookieOptions := CookieOptions{
-				Path:    fmt.Sprintf("%s/", config.HostURLPrefix),
-				Expires: inAWeek,
+				Path:     fmt.Sprintf("%s/", config.HostURLPrefix),
+				Expires:  inAWeek,
+				HttpOnly: true,
+				Secure:   r.TLS != nil,
+				SameSite: "Lax",
 			}
 
 			setCookie(w, authCookieName(host), jwt, cookieOptions)
@@ -257,8 +260,11 @@ func refreshLogin(w http.ResponseWriter, r *http.Request, config *ServerConfig, 
 
 		if jwt != "" {
 			cookieOptions := CookieOptions{
-				Path:    fmt.Sprintf("%s/", config.HostURLPrefix),
-				Expires: inAWeek,
+				Path:     fmt.Sprintf("%s/", config.HostURLPrefix),
+				Expires:  inAWeek,
+				HttpOnly: true,
+				Secure:   r.TLS != nil,
+				SameSite: "Lax",
 			}
 
 			setCookie(w, authCookieName(host), jwt, cookieOptions)

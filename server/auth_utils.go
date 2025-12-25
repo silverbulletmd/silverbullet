@@ -26,13 +26,27 @@ func utcDateString(mtime int64) string {
 // setCookie sets an HTTP cookie
 func setCookie(w http.ResponseWriter, name, value string, options CookieOptions) {
 	cookie := &http.Cookie{
-		Name:  name,
-		Value: value,
-		Path:  options.Path,
+		Name:     name,
+		Value:    value,
+		Path:     options.Path,
+		HttpOnly: options.HttpOnly,
+		Secure:   options.Secure,
 	}
 
 	if !options.Expires.IsZero() {
 		cookie.Expires = options.Expires
+	}
+
+	// Map string SameSite to http.SameSite constant
+	switch options.SameSite {
+	case "Strict":
+		cookie.SameSite = http.SameSiteStrictMode
+	case "Lax":
+		cookie.SameSite = http.SameSiteLaxMode
+	case "None":
+		cookie.SameSite = http.SameSiteNoneMode
+	default:
+		cookie.SameSite = http.SameSiteDefaultMode
 	}
 
 	http.SetCookie(w, cookie)
@@ -50,12 +64,27 @@ func getCookie(r *http.Request, name string) string {
 // deleteCookie deletes an HTTP cookie
 func deleteCookie(w http.ResponseWriter, name string, options CookieOptions) {
 	cookie := &http.Cookie{
-		Name:    name,
-		Value:   "",
-		Path:    options.Path,
-		Expires: time.Unix(0, 0),
-		MaxAge:  -1,
+		Name:     name,
+		Value:    "",
+		Path:     options.Path,
+		HttpOnly: options.HttpOnly,
+		Secure:   options.Secure,
+		Expires:  time.Unix(0, 0),
+		MaxAge:   -1,
 	}
+
+	// Map string SameSite to http.SameSite constant
+	switch options.SameSite {
+	case "Strict":
+		cookie.SameSite = http.SameSiteStrictMode
+	case "Lax":
+		cookie.SameSite = http.SameSiteLaxMode
+	case "None":
+		cookie.SameSite = http.SameSiteNoneMode
+	default:
+		cookie.SameSite = http.SameSiteDefaultMode
+	}
+
 	http.SetCookie(w, cookie)
 }
 
