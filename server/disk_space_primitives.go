@@ -263,16 +263,26 @@ func (d *DiskSpacePrimitives) WriteFile(path string, data []byte, meta *FileMeta
 		return FileMeta{}, fmt.Errorf("%w: %s", ErrCouldNotWrite, path)
 	}
 
+	// Default to current time for Created/LastModified to avoid an extra Stat syscall
+	lastModified := time.Now().UnixMilli()
+
 	// Set modification time if provided
 	if meta != nil && meta.LastModified > 0 {
-		modTime := time.UnixMilli(meta.LastModified)
+		lastModified = meta.LastModified
+		modTime := time.UnixMilli(lastModified)
 		if err := os.Chtimes(localPath, modTime, modTime); err != nil {
 			log.Printf("Failed to set the mtime for %s: %v", localPath, err)
 		}
 	}
 
-	// Return actual metadata
-	return d.GetFileMeta(path)
+	return FileMeta{
+		Name:         path,
+		Size:         int64(len(data)),
+		ContentType:  LookupContentTypeFromPath(path),
+		Created:      lastModified,
+		LastModified: lastModified,
+		Perm:         "rw",
+	}, nil
 }
 
 // DeleteFile implements SpacePrimitives.DeleteFile
