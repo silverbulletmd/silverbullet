@@ -70,7 +70,9 @@ func addAuthEndpoints(r chi.Router, config *ServerConfig) {
 		w.WriteHeader(http.StatusOK)
 		if err := tpl.Execute(w, templateData); err != nil {
 			log.Printf("Could not render auth page: %v", err)
-			w.Write([]byte("Server error"))
+			if _, writeErr := w.Write([]byte("Server error")); writeErr != nil {
+				log.Printf("Failed to write error response: %v", writeErr)
+			}
 		}
 	})
 

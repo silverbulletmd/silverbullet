@@ -85,7 +85,9 @@ func handleFsGet(w http.ResponseWriter, r *http.Request) {
 
 	setFileMetaHeaders(w, meta)
 	w.WriteHeader(http.StatusOK)
-	w.Write(data)
+	if _, err := w.Write(data); err != nil {
+		log.Printf("Failed to write response: %v", err)
+	}
 }
 
 // handleFsPut handles PUT requests for writing files
@@ -110,7 +112,9 @@ func handleFsPut(w http.ResponseWriter, r *http.Request) {
 
 	setFileMetaHeaders(w, meta)
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK"))
+	if _, err := w.Write([]byte("OK")); err != nil {
+		log.Printf("Failed to write response: %v", err)
+	}
 }
 
 // handleFsDelete handles DELETE requests for removing files
@@ -129,7 +133,9 @@ func handleFsDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK"))
+	if _, err := w.Write([]byte("OK")); err != nil {
+		log.Printf("Failed to write response: %v", err)
+	}
 }
 
 // setFileMetaHeaders sets HTTP headers based on FileMeta

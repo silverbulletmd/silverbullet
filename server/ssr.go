@@ -91,6 +91,8 @@ func ServerSideRender(config *ServerConfig, spaceConfig *SpaceConfig, pageName s
 	w.WriteHeader(http.StatusOK)
 	if err := tpl.Execute(w, templateData); err != nil {
 		log.Printf("SSR error for %s: %v", pageName, err)
-		w.Write([]byte("Server error"))
+		if _, writeErr := w.Write([]byte("Server error")); writeErr != nil {
+			log.Printf("Failed to write error response: %v", writeErr)
+		}
 	}
 }

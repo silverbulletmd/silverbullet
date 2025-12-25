@@ -108,7 +108,7 @@ func (e *ReadOnlyFallthroughSpacePrimitives) GetFileMeta(path string) (FileMeta,
 	}
 
 	if e.fallthroughSpacePrimitives == nil {
-		return FileMeta{}, errors.New("Not found")
+		return FileMeta{}, errors.New("not found")
 	}
 
 	// If not found in fs.FS, fall back
@@ -132,7 +132,7 @@ func (e *ReadOnlyFallthroughSpacePrimitives) ReadFile(path string) ([]byte, File
 	}
 
 	if e.fallthroughSpacePrimitives == nil {
-		return nil, FileMeta{}, errors.New("Not found")
+		return nil, FileMeta{}, errors.New("not found")
 	}
 
 	// If not found in fs.FS, fall back
@@ -148,11 +148,11 @@ func (e *ReadOnlyFallthroughSpacePrimitives) WriteFile(path string, data []byte,
 	_, err := fs.Stat(e.fsys, embedPath)
 	if err == nil {
 		// File exists in filesystem, cannot write
-		return FileMeta{}, fmt.Errorf("Cannot write file %s: read-only", path)
+		return FileMeta{}, fmt.Errorf("cannot write file %s: read-only", path)
 	}
 
 	if e.fallthroughSpacePrimitives == nil {
-		return FileMeta{}, errors.New("Not found")
+		return FileMeta{}, errors.New("not found")
 	}
 
 	return e.fallthroughSpacePrimitives.WriteFile(path, data, meta)
@@ -171,7 +171,7 @@ func (e *ReadOnlyFallthroughSpacePrimitives) DeleteFile(path string) error {
 	}
 
 	if e.fallthroughSpacePrimitives == nil {
-		return errors.New("Not found")
+		return errors.New("not found")
 	}
 
 	return e.fallthroughSpacePrimitives.DeleteFile(path)

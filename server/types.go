@@ -112,8 +112,8 @@ type AuthOptions struct {
 
 // Common errors
 var (
-	ErrNotFound        = errors.New("Not found")
-	ErrPathOutsideRoot = errors.New("Path not in space")
-	ErrCouldNotWrite   = errors.New("Could not write file")
-	ErrCouldNotGetMeta = errors.New("Could not get file metadata")
+	ErrNotFound        = errors.New("not found")
+	ErrPathOutsideRoot = errors.New("path not in space")
+	ErrCouldNotWrite   = errors.New("could not write file")
+	ErrCouldNotGetMeta = errors.New("could not get file metadata")
 )

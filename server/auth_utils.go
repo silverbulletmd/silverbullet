@@ -125,8 +125,3 @@ func isExcludedPath(path string) bool {
 	}
 	return false
 }
-
-// parseFormValue safely extracts a form value
-func parseFormValue(r *http.Request, key string) string {
-	return r.FormValue(key)
-}

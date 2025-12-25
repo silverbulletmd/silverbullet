@@ -59,7 +59,9 @@ func Router(config *ServerConfig) chi.Router {
 		w.Header().Set("Cache-Control", "no-cache")
 		w.Header().Set("X-Space-Path", spaceConfig.SpaceFolderPath)
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		if _, err := w.Write([]byte("OK")); err != nil {
+			log.Printf("Failed to write response: %v", err)
+		}
 	})
 
 	// Mount filesystem routes under /.fs
@@ -109,7 +111,9 @@ func Router(config *ServerConfig) chi.Router {
 			w.Header().Set("Content-Type", meta.ContentType)
 			w.Header().Set("Last-Modified", utcDateString(meta.LastModified))
 			w.WriteHeader(200)
-			w.Write(data)
+			if _, err := w.Write(data); err != nil {
+				log.Printf("Failed to write response: %v", err)
+			}
 			return
 		}
 

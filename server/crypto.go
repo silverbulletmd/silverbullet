@@ -82,7 +82,9 @@ func (j *Authenticator) init(authConfig *AuthOptions) error {
 
 	if j.Salt == "" {
 		b := make([]byte, 16)
-		rand.Read(b)
+		if _, err := rand.Read(b); err != nil {
+			return fmt.Errorf("failed to generate salt: %w", err)
+		}
 		j.Salt = base64.StdEncoding.EncodeToString(b)
 	}
 
