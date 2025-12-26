@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/text/unicode/norm"
 )
 
 // TestSpacePrimitives runs a comprehensive test suite against any SpacePrimitives implementation
@@ -237,9 +238,11 @@ func testSpecialFileNames(t *testing.T, spacePrimitives SpacePrimitives) {
 	assert.NoError(t, err, "Failed to fetch file list")
 
 	for _, fileName := range specialNames {
+		// Normalize the expected filename to NFD for comparison
+		normalizedExpected := norm.NFD.String(fileName)
 		found := false
 		for _, f := range allFiles {
-			if f.Name == fileName {
+			if f.Name == normalizedExpected {
 				found = true
 				break
 			}

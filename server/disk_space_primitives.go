@@ -14,6 +14,7 @@ import (
 	"github.com/charlievieth/fastwalk"
 	"github.com/djherbis/times"
 	"github.com/prometheus/client_golang/prometheus"
+	"golang.org/x/text/unicode/norm"
 )
 
 // DiskSpacePrimitives implements SpacePrimitives for local disk storage
@@ -31,6 +32,15 @@ var spaceFilesTotal = prometheus.NewGauge(prometheus.GaugeOpts{
 
 func init() {
 	prometheus.MustRegister(spaceFilesTotal)
+}
+
+// normalizePath normalizes a file path to NFD (canonical decomposition) form
+// This ensures consistent handling of Unicode characters across different file systems.
+// macOS (APFS) normalizes to NFD automatically, while Linux file systems typically don't.
+// By normalizing to NFD in the application layer, we ensure consistent behavior regardless
+// of the underlying file system's normalization policy.
+func normalizePath(path string) string {
+	return norm.NFD.String(path)
 }
 
 // NewDiskSpacePrimitives creates a new DiskSpacePrimitives instance
@@ -87,21 +97,28 @@ func (d *DiskSpacePrimitives) safePath(p string) (string, error) {
 }
 
 // filenameToPath converts a relative filename to an absolute path
+// Normalizes the filename to NFD form to ensure consistent Unicode handling
 func (d *DiskSpacePrimitives) filenameToPath(filename string) (string, error) {
-	return d.safePath(filename)
+	// Normalize the filename to NFD form for consistent Unicode handling
+	normalizedFilename := normalizePath(filename)
+	return d.safePath(normalizedFilename)
 }
 
 // pathToFilename converts an absolute path back to a relative filename
+// Normalizes the path to NFD form to ensure consistent Unicode handling
 func (d *DiskSpacePrimitives) pathToFilename(fullPath string) string {
 	if !strings.HasPrefix(fullPath, d.rootPath) {
-		return fullPath
+		return normalizePath(fullPath)
 	}
 
 	relativePath := strings.TrimPrefix(fullPath, d.rootPath)
 	relativePath = strings.TrimPrefix(relativePath, string(filepath.Separator))
 
 	// Normalize path separators to forward slashes
-	return strings.ReplaceAll(relativePath, string(filepath.Separator), "/")
+	relativePath = strings.ReplaceAll(relativePath, string(filepath.Separator), "/")
+
+	// Normalize to NFD form for consistent Unicode handling
+	return normalizePath(relativePath)
 }
 
 // fileInfoToFileMeta converts os.FileInfo to FileMeta
@@ -188,7 +205,9 @@ func (d *DiskSpacePrimitives) FetchFileList() ([]FileMeta, error) {
 
 // GetFileMeta implements SpacePrimitives.GetFileMeta
 func (d *DiskSpacePrimitives) GetFileMeta(path string) (FileMeta, error) {
-	localPath, err := d.filenameToPath(path)
+	// Normalize the path first
+	normalizedPath := normalizePath(path)
+	localPath, err := d.filenameToPath(normalizedPath)
 	if err != nil {
 		return FileMeta{}, err
 	}
@@ -205,15 +224,17 @@ func (d *DiskSpacePrimitives) GetFileMeta(path string) (FileMeta, error) {
 		if isSyntaxError(err) {
 			return FileMeta{}, ErrNotFound
 		}
-		return FileMeta{}, fmt.Errorf("%w: %s", ErrCouldNotGetMeta, path)
+		return FileMeta{}, fmt.Errorf("%w: %s", ErrCouldNotGetMeta, normalizedPath)
 	}
 
-	return d.fileInfoToFileMeta(path, info), nil
+	return d.fileInfoToFileMeta(normalizedPath, info), nil
 }
 
 // ReadFile implements SpacePrimitives.ReadFile
 func (d *DiskSpacePrimitives) ReadFile(path string) ([]byte, FileMeta, error) {
-	localPath, err := d.filenameToPath(path)
+	// Normalize the path first
+	normalizedPath := normalizePath(path)
+	localPath, err := d.filenameToPath(normalizedPath)
 	if err != nil {
 		return nil, FileMeta{}, err
 	}
@@ -228,7 +249,7 @@ func (d *DiskSpacePrimitives) ReadFile(path string) ([]byte, FileMeta, error) {
 		if isSyntaxError(err) {
 			return nil, FileMeta{}, ErrNotFound
 		}
-		return nil, FileMeta{}, fmt.Errorf("failed to stat file %s: %w", path, err)
+		return nil, FileMeta{}, fmt.Errorf("failed to stat file %s: %w", normalizedPath, err)
 	}
 
 	// Read file content
@@ -238,16 +259,18 @@ func (d *DiskSpacePrimitives) ReadFile(path string) ([]byte, FileMeta, error) {
 		if isSyntaxError(err) {
 			return nil, FileMeta{}, ErrNotFound
 		}
-		return nil, FileMeta{}, fmt.Errorf("failed to read file %s: %w", path, err)
+		return nil, FileMeta{}, fmt.Errorf("failed to read file %s: %w", normalizedPath, err)
 	}
 
-	meta := d.fileInfoToFileMeta(path, info)
+	meta := d.fileInfoToFileMeta(normalizedPath, info)
 	return data, meta, nil
 }
 
 // WriteFile implements SpacePrimitives.WriteFile
 func (d *DiskSpacePrimitives) WriteFile(path string, data []byte, meta *FileMeta) (FileMeta, error) {
-	localPath, err := d.filenameToPath(path)
+	// Normalize the path first
+	normalizedPath := normalizePath(path)
+	localPath, err := d.filenameToPath(normalizedPath)
 	if err != nil {
 		return FileMeta{}, err
 	}
@@ -255,12 +278,12 @@ func (d *DiskSpacePrimitives) WriteFile(path string, data []byte, meta *FileMeta
 	// Ensure parent directory exists
 	parentDir := filepath.Dir(localPath)
 	if err := os.MkdirAll(parentDir, 0755); err != nil {
-		return FileMeta{}, fmt.Errorf("%w: %s", ErrCouldNotWrite, path)
+		return FileMeta{}, fmt.Errorf("%w: %s", ErrCouldNotWrite, normalizedPath)
 	}
 
 	// Write file
 	if err := os.WriteFile(localPath, data, 0644); err != nil {
-		return FileMeta{}, fmt.Errorf("%w: %s", ErrCouldNotWrite, path)
+		return FileMeta{}, fmt.Errorf("%w: %s", ErrCouldNotWrite, normalizedPath)
 	}
 
 	// Set modification time if provided
@@ -272,12 +295,14 @@ func (d *DiskSpacePrimitives) WriteFile(path string, data []byte, meta *FileMeta
 	}
 
 	// Return actual metadata
-	return d.GetFileMeta(path)
+	return d.GetFileMeta(normalizedPath)
 }
 
 // DeleteFile implements SpacePrimitives.DeleteFile
 func (d *DiskSpacePrimitives) DeleteFile(path string) error {
-	localPath, err := d.filenameToPath(path)
+	// Normalize the path first
+	normalizedPath := normalizePath(path)
+	localPath, err := d.filenameToPath(normalizedPath)
 	if err != nil {
 		return err
 	}
@@ -286,7 +311,7 @@ func (d *DiskSpacePrimitives) DeleteFile(path string) error {
 		if os.IsNotExist(err) {
 			return ErrNotFound
 		}
-		return fmt.Errorf("failed to delete file %s: %w", path, err)
+		return fmt.Errorf("failed to delete file %s: %w", normalizedPath, err)
 	}
 
 	// Clean up empty parent directories
