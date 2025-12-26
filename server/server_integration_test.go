@@ -952,3 +952,146 @@ func TestURLPrefix_WithoutPrefixShouldFail(t *testing.T) {
 
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 }
+
+// Typical User Session Test
+
+func TestTypicalUserSession_CompleteWorkflow(t *testing.T) {
+	auth := &AuthOptions{
+		User:         "alice",
+		Pass:         "secret123",
+		LockoutLimit: 5,
+		LockoutTime:  60,
+	}
+
+	server, _, _, _ := setupTestServer(t, auth)
+	defer server.Close()
+
+	// Step 1: Login
+	formData := "username=alice&password=secret123&rememberMe=on"
+	loginResp := makeRequest(t, server, "POST", "/.auth", strings.NewReader(formData), map[string]string{
+		"Content-Type": "application/x-www-form-urlencoded",
+	})
+	defer loginResp.Body.Close()
+
+	require.Equal(t, http.StatusOK, loginResp.StatusCode)
+
+	var loginResult map[string]interface{}
+	err := json.NewDecoder(loginResp.Body).Decode(&loginResult)
+	require.NoError(t, err)
+	assert.Equal(t, "ok", loginResult["status"])
+
+	// Extract auth cookie
+	var authCookie *http.Cookie
+	for _, cookie := range loginResp.Cookies() {
+		if strings.HasPrefix(cookie.Name, "auth_") {
+			authCookie = cookie
+			break
+		}
+	}
+	require.NotNil(t, authCookie, "Should have auth cookie after login")
+
+	// Step 2: Create a new note
+	noteContent := "# My First Note\n\nThis is a test note created during a typical session."
+	createResp := makeRequest(t, server, "PUT", "/.fs/my-note.md", strings.NewReader(noteContent), map[string]string{
+		"Content-Type": "text/markdown",
+		"Cookie":       fmt.Sprintf("%s=%s", authCookie.Name, authCookie.Value),
+	})
+	defer createResp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, createResp.StatusCode)
+	assert.NotEmpty(t, createResp.Header.Get("X-Last-Modified"))
+
+	// Step 3: Edit the note
+	updatedContent := "# My First Note\n\nThis is an updated note.\n\n## New Section\n\nAdded more content."
+	updateResp := makeRequest(t, server, "PUT", "/.fs/my-note.md", strings.NewReader(updatedContent), map[string]string{
+		"Content-Type": "text/markdown",
+		"Cookie":       fmt.Sprintf("%s=%s", authCookie.Name, authCookie.Value),
+	})
+	defer updateResp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, updateResp.StatusCode)
+
+	// Step 4: Create another note
+	secondNote := "# Todo List\n\n- [ ] Task 1\n- [ ] Task 2"
+	createResp2 := makeRequest(t, server, "PUT", "/.fs/todo.md", strings.NewReader(secondNote), map[string]string{
+		"Content-Type": "text/markdown",
+		"Cookie":       fmt.Sprintf("%s=%s", authCookie.Name, authCookie.Value),
+	})
+	defer createResp2.Body.Close()
+
+	assert.Equal(t, http.StatusOK, createResp2.StatusCode)
+
+	// Step 5: List all files
+	listResp := makeRequest(t, server, "GET", "/.fs/", nil, map[string]string{
+		"X-Sync-Mode": "true",
+		"Cookie":      fmt.Sprintf("%s=%s", authCookie.Name, authCookie.Value),
+	})
+	defer listResp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, listResp.StatusCode)
+
+	var fileList []FileMeta
+	err = json.NewDecoder(listResp.Body).Decode(&fileList)
+	require.NoError(t, err)
+
+	// Verify both files are in the list
+	fileNames := make(map[string]bool)
+	for _, meta := range fileList {
+		fileNames[meta.Name] = true
+	}
+	assert.True(t, fileNames["my-note.md"], "Should have my-note.md")
+	assert.True(t, fileNames["todo.md"], "Should have todo.md")
+
+	// Step 6: Read back the edited note
+	readResp := makeRequest(t, server, "GET", "/.fs/my-note.md", nil, map[string]string{
+		"Cookie": fmt.Sprintf("%s=%s", authCookie.Name, authCookie.Value),
+	})
+	defer readResp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, readResp.StatusCode)
+	assert.Equal(t, updatedContent, readBody(t, readResp))
+
+	// Step 7: Execute a shell command (if whitelisted)
+	shellReq := map[string]interface{}{
+		"cmd":  "echo",
+		"args": []string{"Hello from session"},
+	}
+	shellBytes, err := json.Marshal(shellReq)
+	require.NoError(t, err)
+
+	shellResp := makeRequest(t, server, "POST", "/.shell", bytes.NewReader(shellBytes), map[string]string{
+		"Content-Type": "application/json",
+		"Cookie":       fmt.Sprintf("%s=%s", authCookie.Name, authCookie.Value),
+	})
+	defer shellResp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, shellResp.StatusCode)
+
+	var shellResult map[string]interface{}
+	err = json.NewDecoder(shellResp.Body).Decode(&shellResult)
+	require.NoError(t, err)
+	assert.Contains(t, shellResult["stdout"], "Hello from session")
+
+	// Step 8: Delete one note
+	deleteResp := makeRequest(t, server, "DELETE", "/.fs/todo.md", nil, map[string]string{
+		"Cookie": fmt.Sprintf("%s=%s", authCookie.Name, authCookie.Value),
+	})
+	defer deleteResp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, deleteResp.StatusCode)
+
+	// Step 9: Verify deletion
+	verifyResp := makeRequest(t, server, "GET", "/.fs/todo.md", nil, map[string]string{
+		"Cookie": fmt.Sprintf("%s=%s", authCookie.Name, authCookie.Value),
+	})
+	defer verifyResp.Body.Close()
+
+	assert.Equal(t, http.StatusNotFound, verifyResp.StatusCode)
+
+	// Step 10: Check server health
+	pingResp := makeRequest(t, server, "GET", "/.ping", nil, nil) // Ping doesn't require auth
+	defer pingResp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, pingResp.StatusCode)
+	assert.Equal(t, "OK", readBody(t, pingResp))
+}
