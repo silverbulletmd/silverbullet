@@ -21,6 +21,12 @@ var proxyRequestsTotal = prometheus.NewCounter(prometheus.CounterOpts{
 	Help: "Total number of proxy requests in the SilverBullet space",
 })
 
+// proxyClient is a shared HTTP client with timeout for all proxy requests
+// Reusing the client enables connection pooling and keep-alive for better performance
+var proxyClient = &http.Client{
+	Timeout: 30 * time.Second,
+}
+
 func init() {
 	prometheus.MustRegister(proxyRequestsTotal)
 }
@@ -71,13 +77,9 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Use a client with timeout to prevent hanging on slow/unresponsive endpoints
-	// 30 seconds is reasonable for external API calls while preventing indefinite hangs
-	client := &http.Client{
-		Timeout: 30 * time.Second,
-	}
-
-	resp, err := client.Do(req)
+	// Use the shared client with timeout to prevent hanging on slow/unresponsive endpoints
+	// The shared client enables connection pooling and TCP keep-alive for better performance
+	resp, err := proxyClient.Do(req)
 	if err != nil {
 		log.Printf("Error fetching proxied URL: %v\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
