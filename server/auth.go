@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"html/template"
 	"log"
-	"math"
 	"net/http"
 	"path"
 	"strings"
@@ -42,7 +41,11 @@ func addAuthEndpoints(r chi.Router, config *ServerConfig) {
 
 	// Auth page
 	r.Get("/.auth", func(w http.ResponseWriter, r *http.Request) {
-		spaceConfig := spaceConfigFromContext(r.Context())
+		spaceConfig, ok := spaceConfigFromContext(r.Context())
+		if !ok {
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
 		if spaceConfig.Auth == nil {
 			http.Error(w, "Authentication not enabled", http.StatusForbidden)
 			return
@@ -78,7 +81,11 @@ func addAuthEndpoints(r chi.Router, config *ServerConfig) {
 
 	// Auth POST endpoint
 	r.Post("/.auth", func(w http.ResponseWriter, r *http.Request) {
-		spaceConfig := spaceConfigFromContext(r.Context())
+		spaceConfig, ok := spaceConfigFromContext(r.Context())
+		if !ok {
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
 		if err := spaceConfig.InitAuth(); err != nil {
 			http.Error(w, "Failed to initialize authentication", http.StatusInternalServerError)
 			return
@@ -128,8 +135,11 @@ func addAuthEndpoints(r chi.Router, config *ServerConfig) {
 			inAWeek := time.Now().Add(time.Duration(authenticationExpirySeconds) * time.Second)
 
 			cookieOptions := CookieOptions{
-				Path:    fmt.Sprintf("%s/", config.HostURLPrefix),
-				Expires: inAWeek,
+				Path:     fmt.Sprintf("%s/", config.HostURLPrefix),
+				Expires:  inAWeek,
+				HttpOnly: true,
+				Secure:   r.TLS != nil,
+				SameSite: "Lax",
 			}
 
 			setCookie(w, authCookieName(host), jwt, cookieOptions)
@@ -138,10 +148,8 @@ func addAuthEndpoints(r chi.Router, config *ServerConfig) {
 				setCookie(w, "refreshLogin", "true", cookieOptions)
 			}
 
-			redirectPath := applyURLPrefix("/", config.HostURLPrefix)
-			if from != "" {
-				redirectPath = from
-			}
+			from = validateRedirectPath(from)
+			redirectPath := applyURLPrefix(from, config.HostURLPrefix)
 
 			render.JSON(w, r, map[string]any{
 				"status":   "ok",
@@ -160,15 +168,16 @@ func addAuthEndpoints(r chi.Router, config *ServerConfig) {
 }
 
 func (spaceConfig *SpaceConfig) InitAuth() error {
-	if spaceConfig.JwtIssuer == nil {
-		spaceConfig.authMutex.Lock()
-		defer spaceConfig.authMutex.Unlock()
-
-		var err error
-		// Need to do some initialization
-		spaceConfig.JwtIssuer, err = CreateAuthenticator(path.Join(spaceConfig.SpaceFolderPath, ".silverbullet.auth.json"), spaceConfig.Auth)
-		if err != nil {
-			return err
+	// Use sync.Once to ensure initialization happens exactly once
+	// This is the idiomatic Go pattern for thread-safe lazy initialization
+	spaceConfig.authOnce.Do(func() {
+		// Initialize JWT issuer
+		spaceConfig.JwtIssuer, spaceConfig.authErr = CreateAuthenticator(
+			path.Join(spaceConfig.SpaceFolderPath, ".silverbullet.auth.json"),
+			spaceConfig.Auth,
+		)
+		if spaceConfig.authErr != nil {
+			return
 		}
 
 		// Initialize lockout timer
@@ -177,8 +186,8 @@ func (spaceConfig *SpaceConfig) InitAuth() error {
 		} else {
 			spaceConfig.LockoutTimer = NewLockoutTimer(0, 0) // disabled
 		}
-	}
-	return nil
+	})
+	return spaceConfig.authErr
 }
 
 // authMiddleware provides authentication middleware
@@ -186,7 +195,11 @@ func authMiddleware(config *ServerConfig) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			var err error
-			spaceConfig := spaceConfigFromContext(r.Context())
+			spaceConfig, ok := spaceConfigFromContext(r.Context())
+			if !ok {
+				http.Error(w, "Internal server error", http.StatusInternalServerError)
+				return
+			}
 			if spaceConfig.Auth == nil {
 				// No authentication to do, moving on
 				next.ServeHTTP(w, r)
@@ -238,7 +251,7 @@ func authMiddleware(config *ServerConfig) func(http.Handler) http.Handler {
 				return
 			}
 
-			_, ok := claims["username"].(string)
+			_, ok = claims["username"].(string)
 			if !ok {
 				log.Printf("Username mismatch in JWT on %s", path)
 				redirectToAuth(w, "/.auth", path, config.HostURLPrefix)
@@ -259,8 +272,11 @@ func refreshLogin(w http.ResponseWriter, r *http.Request, config *ServerConfig, 
 
 		if jwt != "" {
 			cookieOptions := CookieOptions{
-				Path:    fmt.Sprintf("%s/", config.HostURLPrefix),
-				Expires: inAWeek,
+				Path:     fmt.Sprintf("%s/", config.HostURLPrefix),
+				Expires:  inAWeek,
+				HttpOnly: true,
+				Secure:   r.TLS != nil,
+				SameSite: "Lax",
 			}
 
 			setCookie(w, authCookieName(host), jwt, cookieOptions)
@@ -283,8 +299,7 @@ type LockoutTimer struct {
 // countPeriodMs: time window in milliseconds
 // limit: maximum attempts allowed in the time window
 func NewLockoutTimer(countPeriodMs int, limit int) *LockoutTimer {
-	disabled := math.IsNaN(float64(countPeriodMs)) || math.IsNaN(float64(limit)) ||
-		countPeriodMs < 1 || limit < 1
+	disabled := countPeriodMs < 1 || limit < 1
 
 	return &LockoutTimer{
 		bucketSize: int64(countPeriodMs),

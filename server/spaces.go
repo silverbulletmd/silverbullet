@@ -5,8 +5,11 @@ import (
 	"net/http"
 )
 
-const spaceConfigKey = "spaceConfig"
-const serverConfigKey = "serverConfig"
+// contextKey is a custom type for context keys to avoid collisions
+type contextKey string
+
+const spaceConfigKey contextKey = "spaceConfig"
+const serverConfigKey contextKey = "serverConfig"
 
 func spaceMiddleware(config *ServerConfig) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -24,10 +27,12 @@ func spaceMiddleware(config *ServerConfig) func(http.Handler) http.Handler {
 	}
 }
 
-func spaceConfigFromContext(ctx context.Context) *SpaceConfig {
-	return ctx.Value(spaceConfigKey).(*SpaceConfig)
+func spaceConfigFromContext(ctx context.Context) (*SpaceConfig, bool) {
+	cfg, ok := ctx.Value(spaceConfigKey).(*SpaceConfig)
+	return cfg, ok
 }
 
-func serverConfigFromContext(ctx context.Context) *ServerConfig {
-	return ctx.Value(serverConfigKey).(*ServerConfig)
+func serverConfigFromContext(ctx context.Context) (*ServerConfig, bool) {
+	cfg, ok := ctx.Value(serverConfigKey).(*ServerConfig)
+	return cfg, ok
 }

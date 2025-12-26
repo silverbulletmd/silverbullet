@@ -19,6 +19,14 @@ import (
 
 // Test helpers
 
+// closeResponseBody is a test helper that properly closes HTTP response bodies with error checking
+func closeResponseBody(t *testing.T, body io.ReadCloser) {
+	t.Helper()
+	if err := body.Close(); err != nil {
+		t.Logf("Failed to close response body: %v", err)
+	}
+}
+
 func setupTestServer(t *testing.T, auth *AuthOptions) (*httptest.Server, *ServerConfig, *SpaceConfig, string) {
 	t.Helper()
 
@@ -115,7 +123,7 @@ func makeRequest(t *testing.T, server *httptest.Server, method, path string, bod
 
 func readBody(t *testing.T, resp *http.Response) string {
 	t.Helper()
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp.Body)
 
 	body, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
@@ -130,7 +138,7 @@ func TestFileOperations_GetNonExistentFile(t *testing.T) {
 	defer server.Close()
 
 	resp := makeRequest(t, server, "GET", "/.fs/nonexistent.md", nil, nil)
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp.Body)
 
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 }
@@ -144,7 +152,7 @@ func TestFileOperations_CreateAndReadFile(t *testing.T) {
 	resp := makeRequest(t, server, "PUT", "/.fs/test.md", strings.NewReader(content), map[string]string{
 		"Content-Type": "text/markdown",
 	})
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp.Body)
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	assert.NotEmpty(t, resp.Header.Get("X-Last-Modified"))
@@ -152,7 +160,7 @@ func TestFileOperations_CreateAndReadFile(t *testing.T) {
 
 	// Read the file back
 	resp2 := makeRequest(t, server, "GET", "/.fs/test.md", nil, nil)
-	defer resp2.Body.Close()
+	defer closeResponseBody(t, resp2.Body)
 
 	assert.Equal(t, http.StatusOK, resp2.StatusCode)
 	assert.Equal(t, "text/markdown", resp2.Header.Get("Content-Type"))
@@ -165,19 +173,19 @@ func TestFileOperations_UpdateFile(t *testing.T) {
 
 	// Create initial file
 	resp := makeRequest(t, server, "PUT", "/.fs/update.md", strings.NewReader("Original"), nil)
-	resp.Body.Close()
+	closeResponseBody(t, resp.Body)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
 	// Update the file
 	newContent := "Updated content"
 	resp2 := makeRequest(t, server, "PUT", "/.fs/update.md", strings.NewReader(newContent), nil)
-	defer resp2.Body.Close()
+	defer closeResponseBody(t, resp2.Body)
 
 	assert.Equal(t, http.StatusOK, resp2.StatusCode)
 
 	// Verify update
 	resp3 := makeRequest(t, server, "GET", "/.fs/update.md", nil, nil)
-	defer resp3.Body.Close()
+	defer closeResponseBody(t, resp3.Body)
 
 	assert.Equal(t, newContent, readBody(t, resp3))
 }
@@ -188,18 +196,18 @@ func TestFileOperations_DeleteFile(t *testing.T) {
 
 	// Create a file
 	resp := makeRequest(t, server, "PUT", "/.fs/delete.md", strings.NewReader("To be deleted"), nil)
-	resp.Body.Close()
+	closeResponseBody(t, resp.Body)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
 	// Delete the file
 	resp2 := makeRequest(t, server, "DELETE", "/.fs/delete.md", nil, nil)
-	defer resp2.Body.Close()
+	defer closeResponseBody(t, resp2.Body)
 
 	assert.Equal(t, http.StatusOK, resp2.StatusCode)
 
 	// Verify it's gone
 	resp3 := makeRequest(t, server, "GET", "/.fs/delete.md", nil, nil)
-	defer resp3.Body.Close()
+	defer closeResponseBody(t, resp3.Body)
 
 	assert.Equal(t, http.StatusNotFound, resp3.StatusCode)
 }
@@ -209,7 +217,7 @@ func TestFileOperations_DeleteNonExistentFile(t *testing.T) {
 	defer server.Close()
 
 	resp := makeRequest(t, server, "DELETE", "/.fs/nothere.md", nil, nil)
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp.Body)
 
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 }
@@ -222,14 +230,14 @@ func TestFileOperations_GetFileMeta(t *testing.T) {
 	resp := makeRequest(t, server, "PUT", "/.fs/meta.md", strings.NewReader("Content"), map[string]string{
 		"Content-Type": "text/markdown",
 	})
-	resp.Body.Close()
+	closeResponseBody(t, resp.Body)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
 	// Get metadata only
 	resp2 := makeRequest(t, server, "GET", "/.fs/meta.md", nil, map[string]string{
 		"X-Get-Meta": "true",
 	})
-	defer resp2.Body.Close()
+	defer closeResponseBody(t, resp2.Body)
 
 	assert.Equal(t, http.StatusOK, resp2.StatusCode)
 	assert.Equal(t, "text/markdown", resp2.Header.Get("Content-Type"))
@@ -250,7 +258,7 @@ func TestFileOperations_GetFileList(t *testing.T) {
 	files := []string{"file1.md", "file2.md", "file3.md"}
 	for _, file := range files {
 		resp := makeRequest(t, server, "PUT", "/.fs/"+file, strings.NewReader("content"), nil)
-		resp.Body.Close()
+		closeResponseBody(t, resp.Body)
 		require.Equal(t, http.StatusOK, resp.StatusCode)
 	}
 
@@ -258,7 +266,7 @@ func TestFileOperations_GetFileList(t *testing.T) {
 	resp := makeRequest(t, server, "GET", "/.fs/", nil, map[string]string{
 		"X-Sync-Mode": "true",
 	})
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp.Body)
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
@@ -296,7 +304,7 @@ func TestFileOperations_GetFileListWithoutSyncMode(t *testing.T) {
 
 	resp, err := client.Do(req)
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp.Body)
 
 	assert.Equal(t, http.StatusTemporaryRedirect, resp.StatusCode)
 	assert.Equal(t, "/", resp.Header.Get("Location"))
@@ -310,12 +318,12 @@ func TestFileOperations_URLEncodedPaths(t *testing.T) {
 	encodedPath := "/.fs/file%20with%20spaces.md"
 
 	resp := makeRequest(t, server, "PUT", encodedPath, strings.NewReader("content"), nil)
-	resp.Body.Close()
+	closeResponseBody(t, resp.Body)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
 	// Read it back
 	resp2 := makeRequest(t, server, "GET", encodedPath, nil, nil)
-	defer resp2.Body.Close()
+	defer closeResponseBody(t, resp2.Body)
 
 	assert.Equal(t, http.StatusOK, resp2.StatusCode)
 	assert.Equal(t, "content", readBody(t, resp2))
@@ -326,7 +334,7 @@ func TestFileOperations_OptionsRequest(t *testing.T) {
 	defer server.Close()
 
 	resp := makeRequest(t, server, "OPTIONS", "/.fs/anything.md", nil, nil)
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp.Body)
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	assert.Equal(t, "GET, PUT, DELETE, OPTIONS", resp.Header.Get("Allow"))
@@ -339,7 +347,7 @@ func TestHealthEndpoint_Ping(t *testing.T) {
 	defer server.Close()
 
 	resp := makeRequest(t, server, "GET", "/.ping", nil, nil)
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp.Body)
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	assert.Equal(t, "OK", readBody(t, resp))
@@ -353,7 +361,7 @@ func TestConfigEndpoint_NoAuth(t *testing.T) {
 	defer server.Close()
 
 	resp := makeRequest(t, server, "GET", "/.config", nil, nil)
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp.Body)
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	assert.Equal(t, "no-cache", resp.Header.Get("Cache-Control"))
@@ -384,7 +392,7 @@ func TestConfigEndpoint_WithAuth(t *testing.T) {
 	resp := makeRequest(t, server, "GET", "/.config", nil, map[string]string{
 		"Authorization": "Bearer invalid",
 	})
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp.Body)
 
 	// Should be unauthorized
 	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
@@ -404,7 +412,7 @@ func TestAuth_LoginPageRendered(t *testing.T) {
 	defer server.Close()
 
 	resp := makeRequest(t, server, "GET", "/.auth", nil, nil)
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp.Body)
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	assert.Equal(t, "text/html", resp.Header.Get("Content-Type"))
@@ -420,7 +428,7 @@ func TestAuth_LoginPageWithoutAuthEnabled(t *testing.T) {
 	defer server.Close()
 
 	resp := makeRequest(t, server, "GET", "/.auth", nil, nil)
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp.Body)
 
 	assert.Equal(t, http.StatusForbidden, resp.StatusCode)
 }
@@ -441,7 +449,7 @@ func TestAuth_SuccessfulLogin(t *testing.T) {
 	resp := makeRequest(t, server, "POST", "/.auth", strings.NewReader(formData), map[string]string{
 		"Content-Type": "application/x-www-form-urlencoded",
 	})
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp.Body)
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -481,7 +489,7 @@ func TestAuth_FailedLogin(t *testing.T) {
 	resp := makeRequest(t, server, "POST", "/.auth", strings.NewReader(formData), map[string]string{
 		"Content-Type": "application/x-www-form-urlencoded",
 	})
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp.Body)
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -518,7 +526,7 @@ func TestAuth_MissingCredentials(t *testing.T) {
 
 	resp, err := client.Do(req)
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp.Body)
 
 	assert.Equal(t, http.StatusFound, resp.StatusCode)
 	assert.Contains(t, resp.Header.Get("Location"), "/.auth?error=0")
@@ -548,7 +556,7 @@ func TestAuth_Logout(t *testing.T) {
 
 	resp, err := client.Do(req)
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp.Body)
 
 	assert.Equal(t, http.StatusFound, resp.StatusCode)
 	assert.Contains(t, resp.Header.Get("Location"), "/.auth")
@@ -578,14 +586,14 @@ func TestAuth_BearerTokenAuthentication(t *testing.T) {
 	resp := makeRequest(t, server, "PUT", "/.fs/test.md", strings.NewReader("content"), map[string]string{
 		"Authorization": "Bearer secret-token-123",
 	})
-	resp.Body.Close()
+	closeResponseBody(t, resp.Body)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
 	// Access with valid token
 	resp2 := makeRequest(t, server, "GET", "/.fs/test.md", nil, map[string]string{
 		"Authorization": "Bearer secret-token-123",
 	})
-	defer resp2.Body.Close()
+	defer closeResponseBody(t, resp2.Body)
 
 	assert.Equal(t, http.StatusOK, resp2.StatusCode)
 	assert.Equal(t, "content", readBody(t, resp2))
@@ -607,7 +615,7 @@ func TestAuth_BearerTokenUnauthorized(t *testing.T) {
 	resp := makeRequest(t, server, "GET", "/.config", nil, map[string]string{
 		"Authorization": "Bearer wrong-token",
 	})
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp.Body)
 
 	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 }
@@ -637,7 +645,7 @@ func TestAuth_UnauthorizedAccessRedirects(t *testing.T) {
 
 	resp, err := client.Do(req)
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp.Body)
 
 	assert.Equal(t, http.StatusFound, resp.StatusCode)
 	location := resp.Header.Get("Location")
@@ -664,7 +672,7 @@ func TestAuth_ExcludedPathsNoAuth(t *testing.T) {
 
 	for _, path := range excludedPaths {
 		resp := makeRequest(t, server, "GET", path, nil, nil)
-		resp.Body.Close()
+		closeResponseBody(t, resp.Body)
 		assert.NotEqual(t, http.StatusFound, resp.StatusCode, "Path %s should not redirect to auth", path)
 	}
 }
@@ -685,7 +693,7 @@ func TestShell_ExecuteCommand(t *testing.T) {
 	resp := makeRequest(t, server, "POST", "/.shell", bytes.NewReader(bodyBytes), map[string]string{
 		"Content-Type": "application/json",
 	})
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp.Body)
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -711,7 +719,7 @@ func TestShell_CommandNotFound(t *testing.T) {
 	resp := makeRequest(t, server, "POST", "/.shell", bytes.NewReader(bodyBytes), map[string]string{
 		"Content-Type": "application/json",
 	})
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp.Body)
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -742,7 +750,7 @@ func TestLogs_PostLogs(t *testing.T) {
 	resp := makeRequest(t, server, "POST", "/.logs", bytes.NewReader(bodyBytes), map[string]string{
 		"Content-Type": "application/json",
 	})
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp.Body)
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
@@ -766,7 +774,7 @@ func TestManifest_GetManifest(t *testing.T) {
 	defer server.Close()
 
 	resp := makeRequest(t, server, "GET", "/.client/manifest.json", nil, nil)
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp.Body)
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
@@ -785,7 +793,7 @@ func TestClientBundle_IndexHTML(t *testing.T) {
 	defer server.Close()
 
 	resp := makeRequest(t, server, "GET", "/.client/index.html", nil, nil)
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp.Body)
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	assert.Contains(t, resp.Header.Get("Content-Type"), "text/html")
@@ -800,7 +808,7 @@ func TestClientBundle_CacheControl(t *testing.T) {
 
 	resp := makeRequest(t, server, "GET", "/.client/index.html", nil, nil)
 	lastModified := resp.Header.Get("Last-Modified")
-	resp.Body.Close()
+	closeResponseBody(t, resp.Body)
 
 	require.NotEmpty(t, lastModified)
 
@@ -808,7 +816,7 @@ func TestClientBundle_CacheControl(t *testing.T) {
 	resp2 := makeRequest(t, server, "GET", "/.client/index.html", nil, map[string]string{
 		"If-Modified-Since": lastModified,
 	})
-	defer resp2.Body.Close()
+	defer closeResponseBody(t, resp2.Body)
 
 	assert.Equal(t, http.StatusNotModified, resp2.StatusCode)
 }
@@ -822,7 +830,7 @@ func TestErrors_InvalidJSON(t *testing.T) {
 	resp := makeRequest(t, server, "POST", "/.shell", strings.NewReader("invalid json"), map[string]string{
 		"Content-Type": "application/json",
 	})
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp.Body)
 
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }
@@ -839,7 +847,7 @@ func TestReadOnlyMode_PreventWrites(t *testing.T) {
 
 	// Try to create a file
 	resp := makeRequest(t, server, "PUT", "/.fs/readonly.md", strings.NewReader("content"), nil)
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp.Body)
 
 	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 }
@@ -858,7 +866,7 @@ func TestReadOnlyMode_AllowReads(t *testing.T) {
 
 	// Reading should still work
 	resp := makeRequest(t, server, "GET", "/.fs/existing.md", nil, nil)
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp.Body)
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	assert.Equal(t, "existing content", readBody(t, resp))
@@ -882,7 +890,7 @@ func TestConcurrency_MultipleSimultaneousRequests(t *testing.T) {
 
 			// Write
 			resp := makeRequest(t, server, "PUT", filename, strings.NewReader(content), nil)
-			resp.Body.Close()
+			closeResponseBody(t, resp.Body)
 			if resp.StatusCode != http.StatusOK {
 				errors <- fmt.Errorf("write failed for %s: %d", filename, resp.StatusCode)
 				done <- false
@@ -929,7 +937,7 @@ func TestURLPrefix_WithPrefix(t *testing.T) {
 
 	// Ping should work with prefix
 	resp := makeRequest(t, prefixServer, "GET", "/app/.ping", nil, nil)
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp.Body)
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
@@ -948,7 +956,150 @@ func TestURLPrefix_WithoutPrefixShouldFail(t *testing.T) {
 
 	// Request without prefix should fail
 	resp := makeRequest(t, prefixServer, "GET", "/.ping", nil, nil)
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp.Body)
 
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+}
+
+// Typical User Session Test
+
+func TestTypicalUserSession_CompleteWorkflow(t *testing.T) {
+	auth := &AuthOptions{
+		User:         "alice",
+		Pass:         "secret123",
+		LockoutLimit: 5,
+		LockoutTime:  60,
+	}
+
+	server, _, _, _ := setupTestServer(t, auth)
+	defer server.Close()
+
+	// Step 1: Login
+	formData := "username=alice&password=secret123&rememberMe=on"
+	loginResp := makeRequest(t, server, "POST", "/.auth", strings.NewReader(formData), map[string]string{
+		"Content-Type": "application/x-www-form-urlencoded",
+	})
+	defer closeResponseBody(t, loginResp.Body)
+
+	require.Equal(t, http.StatusOK, loginResp.StatusCode)
+
+	var loginResult map[string]interface{}
+	err := json.NewDecoder(loginResp.Body).Decode(&loginResult)
+	require.NoError(t, err)
+	assert.Equal(t, "ok", loginResult["status"])
+
+	// Extract auth cookie
+	var authCookie *http.Cookie
+	for _, cookie := range loginResp.Cookies() {
+		if strings.HasPrefix(cookie.Name, "auth_") {
+			authCookie = cookie
+			break
+		}
+	}
+	require.NotNil(t, authCookie, "Should have auth cookie after login")
+
+	// Step 2: Create a new note
+	noteContent := "# My First Note\n\nThis is a test note created during a typical session."
+	createResp := makeRequest(t, server, "PUT", "/.fs/my-note.md", strings.NewReader(noteContent), map[string]string{
+		"Content-Type": "text/markdown",
+		"Cookie":       fmt.Sprintf("%s=%s", authCookie.Name, authCookie.Value),
+	})
+	defer closeResponseBody(t, createResp.Body)
+
+	assert.Equal(t, http.StatusOK, createResp.StatusCode)
+	assert.NotEmpty(t, createResp.Header.Get("X-Last-Modified"))
+
+	// Step 3: Edit the note
+	updatedContent := "# My First Note\n\nThis is an updated note.\n\n## New Section\n\nAdded more content."
+	updateResp := makeRequest(t, server, "PUT", "/.fs/my-note.md", strings.NewReader(updatedContent), map[string]string{
+		"Content-Type": "text/markdown",
+		"Cookie":       fmt.Sprintf("%s=%s", authCookie.Name, authCookie.Value),
+	})
+	defer closeResponseBody(t, updateResp.Body)
+
+	assert.Equal(t, http.StatusOK, updateResp.StatusCode)
+
+	// Step 4: Create another note
+	secondNote := "# Todo List\n\n- [ ] Task 1\n- [ ] Task 2"
+	createResp2 := makeRequest(t, server, "PUT", "/.fs/todo.md", strings.NewReader(secondNote), map[string]string{
+		"Content-Type": "text/markdown",
+		"Cookie":       fmt.Sprintf("%s=%s", authCookie.Name, authCookie.Value),
+	})
+	defer closeResponseBody(t, createResp2.Body)
+
+	assert.Equal(t, http.StatusOK, createResp2.StatusCode)
+
+	// Step 5: List all files
+	listResp := makeRequest(t, server, "GET", "/.fs/", nil, map[string]string{
+		"X-Sync-Mode": "true",
+		"Cookie":      fmt.Sprintf("%s=%s", authCookie.Name, authCookie.Value),
+	})
+	defer closeResponseBody(t, listResp.Body)
+
+	assert.Equal(t, http.StatusOK, listResp.StatusCode)
+
+	var fileList []FileMeta
+	err = json.NewDecoder(listResp.Body).Decode(&fileList)
+	require.NoError(t, err)
+
+	// Verify both files are in the list
+	fileNames := make(map[string]bool)
+	for _, meta := range fileList {
+		fileNames[meta.Name] = true
+	}
+	assert.True(t, fileNames["my-note.md"], "Should have my-note.md")
+	assert.True(t, fileNames["todo.md"], "Should have todo.md")
+
+	// Step 6: Read back the edited note
+	readResp := makeRequest(t, server, "GET", "/.fs/my-note.md", nil, map[string]string{
+		"Cookie": fmt.Sprintf("%s=%s", authCookie.Name, authCookie.Value),
+	})
+	defer closeResponseBody(t, readResp.Body)
+
+	assert.Equal(t, http.StatusOK, readResp.StatusCode)
+	assert.Equal(t, updatedContent, readBody(t, readResp))
+
+	// Step 7: Execute a shell command (if whitelisted)
+	shellReq := map[string]interface{}{
+		"cmd":  "echo",
+		"args": []string{"Hello from session"},
+	}
+	shellBytes, err := json.Marshal(shellReq)
+	require.NoError(t, err)
+
+	shellResp := makeRequest(t, server, "POST", "/.shell", bytes.NewReader(shellBytes), map[string]string{
+		"Content-Type": "application/json",
+		"Cookie":       fmt.Sprintf("%s=%s", authCookie.Name, authCookie.Value),
+	})
+	defer closeResponseBody(t, shellResp.Body)
+
+	assert.Equal(t, http.StatusOK, shellResp.StatusCode)
+
+	var shellResult map[string]interface{}
+	err = json.NewDecoder(shellResp.Body).Decode(&shellResult)
+	require.NoError(t, err)
+	assert.Contains(t, shellResult["stdout"], "Hello from session")
+
+	// Step 8: Delete one note
+	deleteResp := makeRequest(t, server, "DELETE", "/.fs/todo.md", nil, map[string]string{
+		"Cookie": fmt.Sprintf("%s=%s", authCookie.Name, authCookie.Value),
+	})
+	defer closeResponseBody(t, deleteResp.Body)
+
+	assert.Equal(t, http.StatusOK, deleteResp.StatusCode)
+
+	// Step 9: Verify deletion
+	verifyResp := makeRequest(t, server, "GET", "/.fs/todo.md", nil, map[string]string{
+		"Cookie": fmt.Sprintf("%s=%s", authCookie.Name, authCookie.Value),
+	})
+	defer closeResponseBody(t, verifyResp.Body)
+
+	assert.Equal(t, http.StatusNotFound, verifyResp.StatusCode)
+
+	// Step 10: Check server health
+	pingResp := makeRequest(t, server, "GET", "/.ping", nil, nil) // Ping doesn't require auth
+	defer closeResponseBody(t, pingResp.Body)
+
+	assert.Equal(t, http.StatusOK, pingResp.StatusCode)
+	assert.Equal(t, "OK", readBody(t, pingResp))
 }

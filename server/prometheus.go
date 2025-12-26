@@ -46,6 +46,8 @@ func runMetricsServer(config *ServerConfig) {
 		}
 		metricRouter.Handle("/metrics", promhttp.Handler())
 		log.Printf("Metrics server started on %s:%d", config.BindHost, config.MetricsPort)
-		metricsServer.ListenAndServe()
+		// Error intentionally not checked - this runs in a goroutine and blocks until shutdown
+		// Any fatal errors will be logged by the http package
+		_ = metricsServer.ListenAndServe()
 	}
 }

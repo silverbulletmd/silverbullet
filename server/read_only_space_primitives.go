@@ -9,7 +9,9 @@ type ReadOnlySpacePrimitives struct {
 }
 
 var _ SpacePrimitives = &ReadOnlySpacePrimitives{}
-var NotAllowedError = errors.New("Not allowed")
+
+// ErrNotAllowed is returned when attempting write operations in read-only mode
+var ErrNotAllowed = errors.New("not allowed")
 
 func NewReadOnlySpacePrimitives(wrapped SpacePrimitives) *ReadOnlySpacePrimitives {
 	return &ReadOnlySpacePrimitives{wrapped: wrapped}
@@ -32,10 +34,10 @@ func (ro *ReadOnlySpacePrimitives) ReadFile(path string) ([]byte, FileMeta, erro
 
 // WriteFile returns an error since this is a read-only implementation
 func (ro *ReadOnlySpacePrimitives) WriteFile(path string, data []byte, meta *FileMeta) (FileMeta, error) {
-	return FileMeta{}, NotAllowedError
+	return FileMeta{}, ErrNotAllowed
 }
 
 // DeleteFile returns an error since this is a read-only implementation
 func (ro *ReadOnlySpacePrimitives) DeleteFile(path string) error {
-	return NotAllowedError
+	return ErrNotAllowed
 }
