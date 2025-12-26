@@ -62,6 +62,10 @@ func handleFsGet(w http.ResponseWriter, r *http.Request) {
 			if err == ErrNotFound {
 				http.NotFound(w, r)
 			} else {
+				// Expose full error message to client for debuggability
+				// Design choice: SilverBullet is a personal tool where the owner
+				// benefits from detailed errors (e.g., "permission denied", "disk full")
+				// Enterprise deployments should wrap errors generically to avoid leaking internals
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
 			return
@@ -78,6 +82,8 @@ func handleFsGet(w http.ResponseWriter, r *http.Request) {
 		if err == ErrNotFound {
 			http.NotFound(w, r)
 		} else {
+			// Expose full error message to client for debuggability
+			// See comment in handleFsGet for design rationale
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 		return
