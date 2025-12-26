@@ -144,10 +144,14 @@ func extractZip(src, dest string) error {
 			return err
 		}
 
-		// First, attempt to remove the file to prevent "text file busy" error
-		err = os.Remove(path)
+		// Rename existing file to .old instead of removing it
+		// This works on Windows where running executables cannot be deleted
+		oldPath := path + ".old"
+		err = os.Rename(path, oldPath)
 		if err != nil && !errors.Is(err, fs.ErrNotExist) {
-			return err
+			// If rename fails for reasons other than file not existing, continue anyway
+			// The new file will be created with a new inode
+			log.Printf("Warning: could not rename existing file: %v\n", err)
 		}
 
 		// Create the file. It will create a new inode, so we can write to it while the executable still runs
