@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/prometheus/client_golang/prometheus"
@@ -70,8 +71,11 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// TODO: Replaced with specifically configured client
-	client := http.DefaultClient
+	// Use a client with timeout to prevent hanging on slow/unresponsive endpoints
+	// 30 seconds is reasonable for external API calls while preventing indefinite hangs
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
 
 	resp, err := client.Do(req)
 	if err != nil {
