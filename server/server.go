@@ -149,7 +149,7 @@ func RunServer(config *ServerConfig) error {
 		shutdownChannel <- true
 	}()
 
-	go runMetricsServer(config)
+	metricsServer := runMetricsServer(config)
 
 	signalChannel := make(chan os.Signal, 1)
 	signal.Notify(signalChannel, syscall.SIGINT, syscall.SIGTERM)
@@ -163,6 +163,14 @@ func RunServer(config *ServerConfig) error {
 	if err := server.Shutdown(shutdownCtx); err != nil {
 		log.Fatalf("HTTP shutdown error: %v", err)
 	}
+
+	// Shutdown metrics server if it's running
+	if metricsServer != nil {
+		if err := metricsServer.Shutdown(shutdownCtx); err != nil {
+			log.Printf("Metrics server shutdown error: %v", err)
+		}
+	}
+
 	<-shutdownChannel
 	log.Println("Graceful shutdown complete.")
 	return nil

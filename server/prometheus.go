@@ -37,15 +37,24 @@ func httpStatsMiddleware(config *ServerConfig) func(http.Handler) http.Handler {
 	}
 }
 
-func runMetricsServer(config *ServerConfig) {
-	if config.MetricsPort != 0 {
-		metricRouter := chi.NewRouter()
-		metricsServer := &http.Server{
-			Addr:    fmt.Sprintf("%s:%d", config.BindHost, config.MetricsPort),
-			Handler: metricRouter,
-		}
-		metricRouter.Handle("/metrics", promhttp.Handler())
-		log.Printf("Metrics server started on %s:%d", config.BindHost, config.MetricsPort)
-		metricsServer.ListenAndServe()
+func runMetricsServer(config *ServerConfig) *http.Server {
+	if config.MetricsPort == 0 {
+		return nil
 	}
+
+	metricRouter := chi.NewRouter()
+	metricsServer := &http.Server{
+		Addr:    fmt.Sprintf("%s:%d", config.BindHost, config.MetricsPort),
+		Handler: metricRouter,
+	}
+	metricRouter.Handle("/metrics", promhttp.Handler())
+
+	go func() {
+		log.Printf("Metrics server started on %s:%d", config.BindHost, config.MetricsPort)
+		if err := metricsServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Printf("Metrics server error: %v", err)
+		}
+	}()
+
+	return metricsServer
 }
