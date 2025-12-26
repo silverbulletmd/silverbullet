@@ -17,9 +17,18 @@ type LocalShell struct {
 
 // NewLocalShell creates a new LocalShell instance
 func NewLocalShell(cwd string, cmdWhiteList string) *LocalShell {
-	whiteListedCommands := strings.Split(cmdWhiteList, " ")
+	var whiteListedCommands []string
 	if cmdWhiteList == "" {
 		whiteListedCommands = []string{}
+	} else {
+		// Use comma as delimiter to support paths with spaces
+		parts := strings.Split(cmdWhiteList, ",")
+		for _, part := range parts {
+			trimmed := strings.TrimSpace(part)
+			if trimmed != "" {
+				whiteListedCommands = append(whiteListedCommands, trimmed)
+			}
+		}
 	}
 	return &LocalShell{
 		Cwd:          cwd,
