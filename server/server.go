@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -113,8 +114,14 @@ func Router(config *ServerConfig) chi.Router {
 			return
 		}
 
-		// TODO: handle request types
-		ServerSideRender(config, spaceConfig, path, w, r)
+		// Only attempt SSR for requests that look like page visits
+		// (no extension or .md extension), not for missing static assets
+		ext := filepath.Ext(path)
+		if ext == "" || ext == ".md" {
+			ServerSideRender(config, spaceConfig, path, w, r)
+		} else {
+			http.NotFound(w, r)
+		}
 	})
 
 	if config.HostURLPrefix == "" {
