@@ -1,3 +1,8 @@
+![GitHub Repo stars](https://img.shields.io/github/stars/silverbulletmd/silverbullet)
+![Docker Pulls](https://img.shields.io/docker/pulls/zefhemel/silverbullet)
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/silverbulletmd/silverbullet/total)
+![GitHub contributors](https://img.shields.io/github/contributors/silverbulletmd/silverbullet)
+
 # SilverBullet
 SilverBullet is a Programmable, Private, Browser-based, Open Source, Self Hosted, Personal Knowledge Management Platform.
 
