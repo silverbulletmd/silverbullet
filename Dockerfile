@@ -30,7 +30,7 @@ VOLUME /space
 # Or simply mount an existing folder into the container:
 #   docker run -v /path/to/my/folder:/space -p3000:3000 -it ghcr.io/silverbulletmd/silverbullet
 
-RUN apk add --no-cache git curl bash tini
+RUN apk add --no-cache git curl bash tini openssh-client
 
 HEALTHCHECK CMD curl --fail http://localhost:3000$SB_URL_PREFIX/.ping || exit 1
 
