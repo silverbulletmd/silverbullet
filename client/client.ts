@@ -543,6 +543,9 @@ export class Client {
                     type: "update-current-page-meta",
                     meta: enrichedMeta,
                   });
+
+                  // Trigger editor re-render to update Lua widgets with the new metadata
+                  this.editorView.dispatch({});
                 }
               })
               .catch((e) => {
@@ -1150,6 +1153,9 @@ export class Client {
           type: "update-current-page-meta",
           meta: enrichedMeta,
         });
+
+        // Trigger editor re-render to update Lua widgets with the new metadata
+        this.editorView.dispatch({});
       } catch (e: any) {
         console.log(
           `There was an error trying to fetch enriched metadata: ${e.message}`,
