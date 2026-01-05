@@ -344,7 +344,7 @@ Default values for built-in configuration options.
 -- priority: 99
 config.set {
   index = {
-    paragraph = { all = true },
+    paragraph = { all = false },
     item = { all = true },
     task = { all = true },
   },
