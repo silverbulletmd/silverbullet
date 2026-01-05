@@ -21,6 +21,10 @@ export class EventedSpacePrimitives implements SpacePrimitives {
 
   private enabled = false;
 
+  // Snapshot state management
+  private spaceSnapshot: Record<string, number> = {};
+  private snapshotChanged = false;
+
   constructor(
     private wrapped: SpacePrimitives,
     private eventHook: EventHook,
@@ -43,10 +47,6 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       }
     });
   }
-
-  // Snapshot state management
-  private spaceSnapshot: Record<string, number> = {};
-  private snapshotChanged = false;
 
   private updateInSnapshot(key: string, value: number) {
     const oldValue = this.spaceSnapshot[key];

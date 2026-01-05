@@ -47,13 +47,6 @@ functions:
         batchSize: 3
         autoAck: true
 
-  processPreIndexQueue:
-    path: ./queue.ts:processPreIndexQueue
-    mqSubscriptions:
-      - queue: preIndexQueue
-        batchSize: 5
-        autoAck: true
-
   reindexSpace:
     path: "./queue.ts:reindexSpace"
 
@@ -66,11 +59,6 @@ functions:
     path: page.ts:indexPage
     events:
       - page:index
-
-  preIndexPage:
-    path: page.ts:preIndexPage
-    events:
-      - page:preindex
 
   indexParagraphs:
     path: "./paragraph.ts:indexParagraphs"
@@ -115,13 +103,13 @@ functions:
   indexSpaceLua:
     path: script.ts:indexSpaceLua
     events:
-      - page:preindex
+      - page:index
 
   # Style
   indexSpaceStyle:
     path: style.ts:indexSpaceStyle
     events:
-      - page:preindex
+      - page:index
 
   # Hashtags
   indexTags:

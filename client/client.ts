@@ -332,13 +332,7 @@ export class Client {
       ) => {
         console.log("Queueing index for", name);
         await this.eventHook.dispatchEvent("file:clearindex", name);
-        await this.mq.send("preIndexQueue", name);
-        if (await this.clientSystem.hasPreIndexCompleted()) {
-          // When the client is clean booted (no index yet), we skip indexing on the first pass
-          // and then schedule it once pre-index has finished for all files
-          // However, if pre indexing has already completed, then we schedule it immediately
-          await this.mq.send("indexQueue", name);
-        }
+        await this.mq.send("indexQueue", name);
       },
     );
 
@@ -350,35 +344,31 @@ export class Client {
     this.space = space;
 
     let startTime = -1;
-    this.eventHook.addLocalListener("file:initial", () => {
+    this.eventHook.addLocalListener("file:initial", async () => {
       startTime = Date.now();
+      await this.clientSystem.setIndexOngoing(true);
     });
 
     const emptyQueueHandler = async () => {
-      if (!await this.clientSystem.hasPreIndexCompleted()) {
-        // Pre indexing has just finished for the first time
+      await this.clientSystem.setIndexOngoing(false);
+      if (!await this.clientSystem.hasInitialIndexCompleted()) {
+        // Indexing has just finished for the first time
         console.info(
-          "Pre-indexing complete after",
+          "Initial index complete after",
           (Date.now() - startTime) / 1000,
           "s",
         );
         // Unsubscribe myself
         this.eventHook.removeLocalListener(
-          "mq:emptyQueue:preIndexQueue",
+          "mq:emptyQueue:indexQueue",
           emptyQueueHandler,
         );
-        await this.clientSystem.markPreIndexComplete();
+        await this.clientSystem.markInitialIndexComplete();
         await this.clientSystem.reloadState();
-        // Queue all pages for full indexing
-        await this.mq.batchSend(
-          "indexQueue",
-          (await space.fetchPageList()).map((pm) => pm.name + ".md"),
-        );
-        await this.mq.awaitEmptyQueue("indexQueue");
       }
     };
     this.eventHook.addLocalListener(
-      "mq:emptyQueue:preIndexQueue",
+      "mq:emptyQueue:indexQueue",
       emptyQueueHandler,
     );
 
@@ -611,7 +601,7 @@ export class Client {
     console.log("Updating page list cache");
     // Check if the initial sync has been completed
     const initialIndexCompleted = await this.clientSystem
-      .hasPreIndexCompleted();
+      .hasInitialIndexCompleted();
 
     let allPages: PageMeta[] = [];
 
@@ -1132,7 +1122,7 @@ export class Client {
 
     // Fetch the meta which includes the possibly indexed stuff, like page
     // decorations
-    if (await this.clientSystem.hasPreIndexCompleted()) {
+    if (await this.clientSystem.hasInitialIndexCompleted()) {
       try {
         const enrichedMeta = await this.clientSystem.getObjectByRef<PageMeta>(
           pageName,
@@ -1280,7 +1270,7 @@ export class Client {
       console.warn("Not loading custom styles, since space style is disabled");
       return;
     }
-    if (!await this.clientSystem.hasPreIndexCompleted()) {
+    if (!await this.clientSystem.hasInitialIndexCompleted()) {
       return;
     }
 
