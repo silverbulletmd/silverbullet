@@ -3,10 +3,9 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
-* Two-staged indexing, an attempt to speed up initial client boots:
-  * **pre-index**: only indexes page objects and space-lua and space-style blocks. After this phase the system will reload and most core functionality should become available.
-  * **index**: indexes everything else
-* **Removed** full-text search plug from the main distribution, this has now been moved to [a separate repo](https://github.com/silverbulletmd/basic-search) (installable via the library manager). This dramatically improves indexing speed. Honestly, use [Silversearch](https://github.com/MrMugame/silversearch) instead.
+* **Removed** full-text search plug from the main distribution, this has now been moved to [a separate repo](https://github.com/silverbulletmd/basic-search) (installable via the library manager). This dramatically improves indexing speed. But actually: install [Silversearch](https://github.com/MrMugame/silversearch) instead.
+* Disabled indexing all paragraph text (even those not tagged) by default, this caused significant indexing overhead. [See discussion](https://community.silverbullet.md/t/who-is-using-paragraph-for-queries/3686).
+  * To re-enable: `config.set("index.paragraph.all", true)`
 * Production builds now include sourcemaps for easier debugging in browser DevTools. If you don't want to serve sourcemaps publicly, you can block `*.js.map` files at your reverse proxy level (see [[TLS#Blocking sourcemaps]]).
 * Better link support in frontmatter (by [Tomasz Gorochowik](https://github.com/silverbulletmd/silverbullet/pull/1711))
 * Lua:
