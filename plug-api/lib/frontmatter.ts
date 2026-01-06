@@ -1,5 +1,7 @@
 import {
   addParentPointers,
+  findNodeOfType,
+  findParentMatching,
   type ParseTree,
   renderToText,
   replaceNodesMatchingAsync,
@@ -17,19 +19,19 @@ export type FrontMatterExtractOptions = {
 };
 
 /**
- * Extracts front matter from a markdown document, as well as extracting tags that are to apply to the page
+ * Extracts frontmatter from a markdown tree, as well as extracting tags and attributes that are to apply to the page
  * optionally removes certain keys from the front matter
- * Side effect: will add parent pointers
+ * Side effect: adds parent pointers to tree
  */
 export async function extractFrontMatter(
   tree: ParseTree,
   options: FrontMatterExtractOptions = {},
 ): Promise<FrontMatter> {
+  addParentPointers(tree);
   let data: FrontMatter = {
     tags: [],
   };
   const tags: string[] = [];
-  addParentPointers(tree);
 
   await replaceNodesMatchingAsync(tree, async (t) => {
     // Find tags in paragraphs directly nested under the document where the only content is tags
@@ -112,8 +114,25 @@ export async function extractFrontMatter(
         // console.warn("Could not parse frontmatter", e.message);
       }
     }
+    if (t.type === "Attribute") {
+      if (findParentMatching(t, (n) => n.type === "ListItem")) {
+        return;
+      }
+      const nameNode = findNodeOfType(t, "AttributeName");
+      const valueNode = findNodeOfType(t, "AttributeValue");
+      if (nameNode && valueNode) {
+        const name = nameNode.children![0].text!;
+        const val = valueNode.children![0].text!;
+        try {
+          data[name] = cleanupJSON(await YAML.parse(val));
+        } catch (e: any) {
+          console.error("Error parsing attribute value as YAML", val, e);
+        }
+      }
+      return;
+    }
 
-    return undefined;
+    return;
   });
 
   try {

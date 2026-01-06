@@ -56,7 +56,7 @@ functions:
       - document:index
 
   indexPage:
-    path: page.ts:indexPage
+    path: index.ts:indexPage
     events:
       - page:index
 
@@ -68,12 +68,6 @@ functions:
   # Backlinks
   indexLinks:
     path: "./page_links.ts:indexLinks"
-    events:
-      - page:index
-
-  # Item indexing
-  indexItem:
-    path: "./item.ts:indexItems"
     events:
       - page:index
 
@@ -92,12 +86,6 @@ functions:
     path: header.ts:headerComplete
     events:
       - editor:complete
-
-  # Data
-  indexData:
-    path: data.ts:indexData
-    events:
-      - page:index
 
   # Lua
   indexSpaceLua:

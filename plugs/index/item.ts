@@ -1,5 +1,3 @@
-import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
-
 import {
   findParentMatching,
   type ParseTree,
@@ -10,18 +8,17 @@ import {
   cleanAttributes,
   extractAttributes,
 } from "@silverbulletmd/silverbullet/lib/attribute";
-import { indexObjects } from "./api.ts";
 import {
   cleanHashTags,
   extractHashTags,
   updateITags,
 } from "@silverbulletmd/silverbullet/lib/tags";
-import {
-  extractFrontMatter,
-  type FrontMatter,
-} from "@silverbulletmd/silverbullet/lib/frontmatter";
+import type { FrontMatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
 import { deepClone } from "@silverbulletmd/silverbullet/lib/json";
-import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
+import type {
+  ObjectValue,
+  PageMeta,
+} from "@silverbulletmd/silverbullet/type/index";
 import { system } from "@silverbulletmd/silverbullet/syscalls";
 
 export type ItemObject = ObjectValue<
@@ -33,25 +30,17 @@ export type ItemObject = ObjectValue<
   } & Record<string, any>
 >;
 
-export async function indexItems({ name, tree }: IndexTreeEvent) {
+export async function indexItems(
+  pageMeta: PageMeta,
+  frontmatter: FrontMatter,
+  tree: ParseTree,
+) {
   const shouldIndexAll = await system.getConfig(
     "index.item.all",
     true,
   );
 
-  let items = await extractItems(name, tree);
-  if (!shouldIndexAll) {
-    items = items.filter((item) => item.tags?.length);
-  }
-
-  // console.log("Found", items, "item(s)");
-  await indexObjects(name, items);
-}
-
-export async function extractItems(name: string, tree: ParseTree) {
-  const items: ObjectValue<ItemObject>[] = [];
-
-  const frontmatter = await extractFrontMatter(tree);
+  let items: ObjectValue<ItemObject>[] = [];
 
   await traverseTreeAsync(tree, async (n) => {
     if (n.type !== "ListItem") {
@@ -70,7 +59,7 @@ export async function extractItems(name: string, tree: ParseTree) {
     }
 
     const item: ItemObject = await extractItemFromNode(
-      name,
+      pageMeta.name,
       n,
       frontmatter,
     );
@@ -79,6 +68,11 @@ export async function extractItems(name: string, tree: ParseTree) {
 
     return false;
   });
+
+  if (!shouldIndexAll) {
+    items = items.filter((item) => item.tags?.length);
+  }
+
   return items;
 }
 
@@ -147,7 +141,6 @@ export async function enrichItemFromParents(
   let directParent = true;
   let parentItemNode = findParentMatching(n, (n) => n.type === "ListItem");
   while (parentItemNode) {
-    // console.log("Got parent", parentItemNode);
     const parentItem = await extractItemFromNode(
       pageName,
       parentItemNode,

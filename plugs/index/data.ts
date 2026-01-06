@@ -2,13 +2,15 @@ import { YAML } from "@silverbulletmd/silverbullet/syscalls";
 import {
   collectNodesOfType,
   findNodeOfType,
+  type ParseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
-import { indexObjects } from "./api.ts";
 import type { TagObject } from "./tags.ts";
-import { extractFrontMatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
+import type { FrontMatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
 import { updateITags } from "@silverbulletmd/silverbullet/lib/tags";
-import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
+import type {
+  ObjectValue,
+  PageMeta,
+} from "@silverbulletmd/silverbullet/type/index";
 
 type DataObject = ObjectValue<
   {
@@ -17,9 +19,13 @@ type DataObject = ObjectValue<
   } & Record<string, any>
 >;
 
-export async function indexData({ name, tree }: IndexTreeEvent) {
+export async function indexData(
+  pageMeta: PageMeta,
+  frontmatter: FrontMatter,
+  tree: ParseTree,
+) {
   const dataObjects: ObjectValue<DataObject>[] = [];
-  const frontmatter = await extractFrontMatter(tree);
+  const tagObjects: Map<string, ObjectValue<TagObject>> = new Map();
 
   await Promise.all(
     collectNodesOfType(tree, "FencedCode").map(async (t) => {
@@ -48,32 +54,28 @@ export async function indexData({ name, tree }: IndexTreeEvent) {
           }
           const pos = t.from! + i;
           const dataObj = {
-            ref: `${name}@${pos}`,
+            ref: `${pageMeta.name}@${pos}`,
             tag: dataType,
             itags: ["data"],
             ...doc,
             pos,
-            page: name,
+            page: pageMeta.name,
           };
           updateITags(dataObj, frontmatter);
           dataObjects.push(dataObj);
         }
-        // console.log("Parsed data", parsedData);
-        await indexObjects<TagObject>(name, [
-          {
-            ref: dataType,
-            tag: "tag",
-            name: dataType,
-            page: name,
-            parent: "data",
-          },
-        ]);
+        tagObjects.set(dataType, {
+          ref: dataType,
+          tag: "tag",
+          name: dataType,
+          page: pageMeta.name,
+          parent: "data",
+        });
       } catch (e) {
         console.error("Could not parse data", codeText, "error:", e);
         return;
       }
     }),
   );
-  // console.log("Found", dataObjects.length, "data objects");
-  await indexObjects(name, dataObjects);
+  return [...dataObjects, ...tagObjects.values()];
 }

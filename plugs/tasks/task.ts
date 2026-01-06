@@ -26,7 +26,7 @@ import {
   cleanAttributes,
   extractAttributes,
 } from "@silverbulletmd/silverbullet/lib/attribute";
-import { indexObjects } from "../index/plug_api.ts";
+import { indexObjects } from "../index/api.ts";
 import {
   cleanHashTags,
   extractHashTags,

@@ -1,7 +1,10 @@
 import "../../plug-api/lib/syscall_mock.ts";
 import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
-import { extractItems } from "./item.ts";
+import { indexItems } from "./item.ts";
 import { assertEquals } from "@std/assert";
+import { createMockSystem } from "../../plug-api/system_mock.ts";
+import { extractFrontMatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
+import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 
 const itemsMd = `
 * Item 1 #tag1 #tag2 [age: 100]
@@ -10,8 +13,18 @@ const itemsMd = `
 `;
 
 Deno.test("Test item extraction", async () => {
-  const t = parseMarkdown(itemsMd);
-  const items = await extractItems("test", t);
+  createMockSystem();
+  const tree = parseMarkdown(itemsMd);
+  const frontmatter = await extractFrontMatter(tree);
+  const pageMeta: PageMeta = {
+    ref: "test",
+    name: "test",
+    tag: "page",
+    created: "",
+    lastModified: "",
+    perm: "rw",
+  };
+  const items = await indexItems(pageMeta, frontmatter, tree);
 
   assertEquals(items[0].name, "Item 1");
   assertEquals(items[0].age, 100);
