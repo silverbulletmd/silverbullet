@@ -23,14 +23,19 @@ import { System } from "../client/plugos/system.ts";
 import { Space } from "../client/space.ts";
 import { SpaceLuaEnvironment } from "../client/space_lua.ts";
 import { DataStoreSpacePrimitives } from "../client/spaces/datastore_space_primitives.ts";
+import { EventedSpacePrimitives } from "../client/spaces/evented_space_primitives.ts";
 
 export function createMockSystem() {
   const system = new System<any>();
   const eventHook = new EventHook();
   system.addHook(eventHook);
   const kv = new MemoryKvPrimitives();
-  const spacePrimitives = new DataStoreSpacePrimitives(kv);
   const ds = new DataStore(kv);
+  const spacePrimitives = new EventedSpacePrimitives(
+    new DataStoreSpacePrimitives(kv),
+    eventHook,
+    ds,
+  );
 
   const space = new Space(spacePrimitives, eventHook);
   const mq = new DataStoreMQ(ds, eventHook);
@@ -38,6 +43,7 @@ export function createMockSystem() {
   const clientMock: any = {
     space,
     config,
+    eventedSpacePrimitives: spacePrimitives,
   };
 
   const clientSystemMock: any = {
