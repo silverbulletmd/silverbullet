@@ -2,8 +2,8 @@ import {
   clientStore,
   codeWidget,
   editor,
+  index,
 } from "@silverbulletmd/silverbullet/syscalls";
-import { queryLuaObjects } from "../index/api.ts";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 
 // Run on "editor:init"
@@ -44,7 +44,7 @@ export async function openMetaNavigator() {
 
 export async function openTagNavigator() {
   // Query all tags with a matching parent
-  const allTags: FilterOption[] = (await queryLuaObjects<string>("tag", {
+  const allTags: FilterOption[] = (await index.queryLuaObjects<string>("tag", {
     select: { type: "Variable", name: "name", ctx: {} as any },
     distinct: true,
   })).map((name) => ({ name }));

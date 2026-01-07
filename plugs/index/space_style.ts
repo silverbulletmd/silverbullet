@@ -1,17 +1,24 @@
-import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
 import {
   collectNodesOfType,
   findNodeOfType,
+  type ParseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import { indexObjects } from "./api.ts";
-import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
+import type {
+  ObjectValue,
+  PageMeta,
+} from "@silverbulletmd/silverbullet/type/index";
+import type { FrontMatter } from "./frontmatter.ts";
 
 export type StyleObject = ObjectValue<{
   style: string;
   priority?: number;
 }>;
 
-export async function indexSpaceStyle({ name, tree }: IndexTreeEvent) {
+export function indexSpaceStyle(
+  pageMeta: PageMeta,
+  _frontmatter: FrontMatter,
+  tree: ParseTree,
+) {
   const allStyles: StyleObject[] = [];
 
   // Also collect CSS from custom styles in config
@@ -37,12 +44,12 @@ export async function indexSpaceStyle({ name, tree }: IndexTreeEvent) {
     const priority = codeText.match(/\/\*+\s*priority:\s*(-?\d+)/)?.[1];
 
     allStyles.push({
-      ref: `${name}@${t.from!}`,
+      ref: `${pageMeta.name}@${t.from!}`,
       tag: "space-style",
       style: codeText,
       priority: priority !== undefined ? +priority : undefined,
     });
   });
 
-  await indexObjects<StyleObject>(name, allStyles);
+  return Promise.resolve(allStyles);
 }

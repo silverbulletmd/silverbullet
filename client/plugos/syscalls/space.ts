@@ -7,61 +7,65 @@ import type {
   PageMeta,
 } from "@silverbulletmd/silverbullet/type/index";
 
-export function spaceReadSyscalls(editor: Client): SysCallMapping {
+export function spaceReadSyscalls(client: Client): SysCallMapping {
   return {
     "space.listPages": (): Promise<PageMeta[]> => {
-      return editor.space.fetchPageList();
+      return client.space.fetchPageList();
     },
     "space.readPage": async (_ctx, name: string): Promise<string> => {
-      return (await editor.space.readPage(name)).text;
+      return (await client.space.readPage(name)).text;
     },
     "space.pageExists": (_ctx, name: string): boolean => {
-      return editor.clientSystem.allKnownFiles.has(name + ".md");
+      return client.clientSystem.allKnownFiles.has(name + ".md");
     },
     "space.getPageMeta": (_ctx, name: string): Promise<PageMeta> => {
-      return editor.space.getPageMeta(name);
+      return client.space.getPageMeta(name);
     },
     "space.listPlugs": (): Promise<FileMeta[]> => {
-      return editor.space.listPlugs();
+      return client.space.listPlugs();
     },
     "space.listDocuments": async (): Promise<DocumentMeta[]> => {
-      return await editor.space.fetchDocumentList();
+      return await client.space.fetchDocumentList();
     },
     "space.readDocument": async (_ctx, name: string): Promise<Uint8Array> => {
-      return (await editor.space.readDocument(name)).data;
+      return (await client.space.readDocument(name)).data;
     },
     "space.getDocumentMeta": async (
       _ctx,
       name: string,
     ): Promise<DocumentMeta> => {
-      return await editor.space.getDocumentMeta(name);
+      return await client.space.getDocumentMeta(name);
     },
     // DEPRECATED, please use document versions instead, left here for backwards compatibility
     "space.listAttachments": async (): Promise<DocumentMeta[]> => {
-      return await editor.space.fetchDocumentList();
+      return await client.space.fetchDocumentList();
     },
     "space.readAttachment": async (_ctx, name: string): Promise<Uint8Array> => {
-      return (await editor.space.readDocument(name)).data;
+      return (await client.space.readDocument(name)).data;
     },
     "space.getAttachmentMeta": async (
       _ctx,
       name: string,
     ): Promise<DocumentMeta> => {
-      return await editor.space.getDocumentMeta(name);
+      return await client.space.getDocumentMeta(name);
     },
     // FS
     "space.listFiles": (): Promise<FileMeta[]> => {
-      return editor.space.spacePrimitives.fetchFileList();
+      return client.space.spacePrimitives.fetchFileList();
     },
     "space.getFileMeta": (_ctx, name: string): Promise<FileMeta> => {
-      return editor.space.spacePrimitives.getFileMeta(name);
+      return client.space.spacePrimitives.getFileMeta(name);
     },
     "space.readFile": async (_ctx, name: string): Promise<Uint8Array> => {
-      return (await editor.space.spacePrimitives.readFile(name)).data;
+      return (await client.space.spacePrimitives.readFile(name)).data;
     },
     "space.fileExists": async (_ctx, name: string): Promise<boolean> => {
+      // If we have a snapshot, let's use that, it's faster
+      if (!client.eventedSpacePrimitives.isSnapshotEmpty()) {
+        return !!client.eventedSpacePrimitives.getSnapshot()[name];
+      }
       try {
-        await editor.space.spacePrimitives.getFileMeta(name);
+        await client.space.spacePrimitives.getFileMeta(name);
         // If this returned the file exists
         return true;
       } catch {

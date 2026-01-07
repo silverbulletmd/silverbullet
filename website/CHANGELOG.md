@@ -3,7 +3,10 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
-* **Removed** full-text search plug from the main distribution, this has now been moved to [a separate repo](https://github.com/silverbulletmd/basic-search) (installable via the library manager). This dramatically improves indexing speed. But actually: install [Silversearch](https://github.com/MrMugame/silversearch) instead.
+* Removed full-text search plug from the main distribution, this has now been moved to [a separate repo](https://github.com/silverbulletmd/basic-search) (installable via the library manager). This dramatically improves indexing speed. But actually: install [Silversearch](https://github.com/MrMugame/silversearch) instead.
+* Indexer refactor:
+  * For consistency with items, `task` `refs` now point to the item’s position resulting in a slight positional shift, if you have code relying on this, you may have to adjust it
+  * `page:index` now also received `text` attribute
 * Disabled indexing all paragraph text (even those not tagged) by default, this caused significant indexing overhead. [See discussion](https://community.silverbullet.md/t/who-is-using-paragraph-for-queries/3686).
   * To re-enable: `config.set("index.paragraph.all", true)`
 * Production builds now include sourcemaps for easier debugging in browser DevTools. If you don't want to serve sourcemaps publicly, you can block `*.js.map` files at your reverse proxy level (see [[TLS#Blocking sourcemaps]]).
@@ -73,7 +76,6 @@ This is a dot release primarily because due to changes in how IndexedDB database
 ## 2.1.8
 * New [[^Library/Std/APIs/Virtual Page]] API, internally used by:
   * [[^Library/Std/Infrastructure/Tag Page]]
-  * [[^Library/Std/Infrastructure/Search]]
 * Some fixes in `tonumber` handling
 * Default table renderer now renders `ref` attributes as links, so they’re clickable:
   ${query[[from index.tag "page" limit 3 select {ref=ref, lastModified=lastModified}]]}

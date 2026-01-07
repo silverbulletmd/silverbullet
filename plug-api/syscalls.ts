@@ -9,7 +9,6 @@ export * as codeWidget from "./syscalls/code_widget.ts";
 export * as asset from "./syscalls/asset.ts";
 export * as events from "./syscalls/event.ts";
 export * as shell from "./syscalls/shell.ts";
-export * as YAML from "./syscalls/yaml.ts";
 export * as mq from "./syscalls/mq.ts";
 export * as datastore from "./syscalls/datastore.ts";
 export * as jsonschema from "./syscalls/jsonschema.ts";

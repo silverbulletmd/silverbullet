@@ -1,40 +1,25 @@
-import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
-import {
-  editor,
-  lua,
-  markdown,
-  space,
-  YAML,
-} from "@silverbulletmd/silverbullet/syscalls";
+import { editor, lua, markdown } from "@silverbulletmd/silverbullet/syscalls";
 
-import { extractFrontMatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
-import { extractAttributes } from "@silverbulletmd/silverbullet/lib/attribute";
-import {
-  deleteObject,
-  getObjectByRef,
-  indexObjects,
-  queryLuaObjects,
-} from "./api.ts";
+import type { FrontMatter } from "./frontmatter.ts";
+import { deleteObject, getObjectByRef, queryLuaObjects } from "./api.ts";
 import {
   findNodeOfType,
+  type ParseTree,
   renderToText,
   traverseTreeAsync,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import { updateITags } from "@silverbulletmd/silverbullet/lib/tags";
+import { updateITags } from "./tags.ts";
 import type { AspiringPageObject } from "./page_links.ts";
 import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 import type { LintDiagnostic } from "@silverbulletmd/silverbullet/type/client";
 
-export async function indexPage({ name, tree }: IndexTreeEvent) {
-  if (name.startsWith("_")) {
-    // Don't index pages starting with _
-    return;
-  }
+import YAML from "js-yaml";
 
-  const pageMeta = await space.getPageMeta(name);
-  const frontmatter = await extractFrontMatter(tree);
-  const toplevelAttributes = await extractAttributes(tree);
-
+export async function indexPage(
+  pageMeta: PageMeta,
+  frontmatter: FrontMatter,
+  _tree: ParseTree,
+) {
   // Push them all into the page object
   // Note the order here, making sure that the actual page meta data overrules
   // any attempt to manually set built-in attributes like 'name' or 'lastModified'
@@ -42,16 +27,10 @@ export async function indexPage({ name, tree }: IndexTreeEvent) {
   const combinedPageMeta: PageMeta = {
     ...pageMeta,
     ...frontmatter,
-    ...toplevelAttributes,
     ...pageMeta,
   };
 
-  combinedPageMeta.tags = [
-    ...new Set([
-      ...frontmatter.tags || [],
-      ...toplevelAttributes.tags || [],
-    ]),
-  ];
+  combinedPageMeta.tags = [...new Set([...frontmatter.tags || []])];
 
   combinedPageMeta.tag = "page";
 
@@ -74,15 +53,14 @@ export async function indexPage({ name, tree }: IndexTreeEvent) {
       objectVariable: "_",
       where: await lua.parseExpression(`_.name == pageRef`),
     },
-    { pageRef: name },
+    { pageRef: pageMeta.name },
   );
   for (const aspiringPage of aspiringPages) {
     console.log("Deleting aspiring page", aspiringPage);
     await deleteObject("aspiring-page", aspiringPage.page, aspiringPage.ref);
   }
 
-  // console.log("Page object", combinedPageMeta);
-  await indexObjects<PageMeta>(name, [combinedPageMeta]);
+  return [combinedPageMeta];
 }
 
 export async function lintFrontmatter(): Promise<LintDiagnostic[]> {
@@ -141,7 +119,7 @@ async function lintYaml(
   to: number,
 ): Promise<LintDiagnostic | undefined> {
   try {
-    await YAML.parse(yamlText);
+    await YAML.load(yamlText);
   } catch (e: any) {
     const errorMatch = errorRegex.exec(e.message);
     if (errorMatch) {

@@ -1,18 +1,25 @@
-import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
 import {
   collectNodesOfType,
   findNodeOfType,
+  type ParseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import { indexObjects } from "./api.ts";
-import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
+import type {
+  ObjectValue,
+  PageMeta,
+} from "@silverbulletmd/silverbullet/type/index";
+import type { FrontMatter } from "./frontmatter.ts";
 
-export type ScriptObject = ObjectValue<{
+export type SpaceLuaObject = ObjectValue<{
   script: string;
   priority?: number;
 }>;
 
-export async function indexSpaceLua({ name, tree }: IndexTreeEvent) {
-  const allScripts: ScriptObject[] = [];
+export function indexSpaceLua(
+  pageMeta: PageMeta,
+  _frontmatter: FrontMatter,
+  tree: ParseTree,
+) {
+  const allSpaceLuas: SpaceLuaObject[] = [];
   collectNodesOfType(tree, "FencedCode").map((t) => {
     const codeInfoNode = findNodeOfType(t, "CodeInfo");
     if (!codeInfoNode) {
@@ -31,12 +38,12 @@ export async function indexSpaceLua({ name, tree }: IndexTreeEvent) {
     // Parse out "-- priority: <number>"
     const priority = codeText.match(/--\s*priority:\s*(-?\d+)/)?.[1];
 
-    allScripts.push({
-      ref: `${name}@${t.from!}`,
+    allSpaceLuas.push({
+      ref: `${pageMeta.name}@${t.from!}`,
       tag: "space-lua",
       script: codeText,
       priority: priority !== undefined ? +priority : undefined,
     });
   });
-  await indexObjects<ScriptObject>(name, allScripts);
+  return Promise.resolve(allSpaceLuas);
 }

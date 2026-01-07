@@ -4,6 +4,7 @@ import type { EventSubscriptionDef } from "./manifest.ts";
 export type IndexTreeEvent = {
   name: string;
   tree: ParseTree;
+  text: string;
 };
 
 export type PageCreatingEvent = {

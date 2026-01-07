@@ -5,7 +5,7 @@ import {
   extractFrontMatter as extractFrontmatterFromTree,
   type FrontMatter,
   type FrontMatterExtractOptions,
-} from "../../plug-api/lib/frontmatter.ts";
+} from "./frontmatter.ts";
 import {
   collectNodesOfType,
   renderToText,

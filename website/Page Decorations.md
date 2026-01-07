@@ -1,4 +1,5 @@
 ---
+tags: maturity/beta
 pageDecoration:
   prefix: "🎄 "
   disableTOC: true
@@ -6,9 +7,6 @@ pageDecoration:
   - christmas-decoration
 ---
 Page decorations allow you to “decorate” pages in various fun ways.
-
-> **warning** Warning
-> This feature is still experimental and may change in the (near) future.
  
 # Supported decorations
 * `prefix`: A (visual) string prefix (often an emoji) to add to all page names. This prefix will appear in the top bar as well as in (live preview) links to this page. For example, the name of this page is actually “Page Decorations”, but when you link to it, you’ll see it’s prefixed with a 🎄: [[Page Decorations]]

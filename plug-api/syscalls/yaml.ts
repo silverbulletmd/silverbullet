@@ -1,7 +1,7 @@
 import { syscall } from "../syscall.ts";
 
 /**
- * YAML operations
+ * YAML operations, exposed via `index` plug
  * @module
  */
 

@@ -35,7 +35,7 @@ import type {
   PageCreatingContent,
   PageCreatingEvent,
 } from "@silverbulletmd/silverbullet/type/event";
-import type { StyleObject } from "../plugs/index/style.ts";
+import type { StyleObject } from "../plugs/index/space_style.ts";
 import { jitter, throttle } from "@silverbulletmd/silverbullet/lib/async";
 import { EventedSpacePrimitives } from "./spaces/evented_space_primitives.ts";
 import { HttpSpacePrimitives } from "./spaces/http_space_primitives.ts";

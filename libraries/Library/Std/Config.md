@@ -295,6 +295,17 @@ config.define("mqSubscriptions", {
   },
 })
 
+-- Task states
+config.define("taskStates", {
+  type = "object",
+  additionalProperties = {
+    type = "object",
+    properties = {
+      -- for future use
+    },
+  },
+})
+
 -- Don't use directly, WIP
 config.define("tagDefinitions", {
   type = "object",
@@ -348,6 +359,7 @@ config.set {
     item = { all = true },
     task = { all = true },
   },
+  taskStates = {},
   actionButtons = {
     {
       icon = "home",

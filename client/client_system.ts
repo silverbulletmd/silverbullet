@@ -21,7 +21,6 @@ import {
 } from "./plugos/syscalls/space.ts";
 import { syncSyscalls } from "./plugos/syscalls/sync.ts";
 import { systemSyscalls } from "./plugos/syscalls/system.ts";
-import { yamlSyscalls } from "./plugos/syscalls/yaml.ts";
 import type { Space } from "./space.ts";
 import { MQHook } from "./plugos/hooks/mq.ts";
 import { mqSyscalls } from "./plugos/syscalls/mq.ts";
@@ -160,7 +159,6 @@ export class ClientSystem {
       systemSyscalls(client, this.readOnlyMode),
       markdownSyscalls(client),
       assetSyscalls(this.system),
-      yamlSyscalls(),
       codeWidgetSyscalls(this.codeWidgetHook),
       clientCodeWidgetSyscalls(),
       languageSyscalls(),

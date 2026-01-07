@@ -37,7 +37,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     console.log("Loading snapshot and enabling events");
     this.spaceSnapshot = (await this.ds.get(this.snapshotKey)) || {};
     this.snapshotChanged = false;
-    const isFreshSnapshot = Object.keys(this.spaceSnapshot).length === 0;
+    const isFreshSnapshot = this.isSnapshotEmpty();
     this.enabled = true;
     // trigger loading and eventing
     this.fetchFileList().then(async () => {
@@ -46,6 +46,14 @@ export class EventedSpacePrimitives implements SpacePrimitives {
         await this.dispatchEvent("file:initial");
       }
     });
+  }
+
+  public isSnapshotEmpty() {
+    return Object.keys(this.spaceSnapshot).length === 0;
+  }
+
+  public getSnapshot() {
+    return this.spaceSnapshot;
   }
 
   private updateInSnapshot(key: string, value: number) {

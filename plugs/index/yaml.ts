@@ -1,8 +1,6 @@
-import type { SysCallMapping } from "../system.ts";
 import YAML from "js-yaml";
-import { applyPatches, type YamlPatch } from "../../../plug-api/lib/yaml.ts";
 
-type YamlStringifyOptions = {
+export type YamlStringifyOptions = {
   /** indentation width to use (in spaces). */
   indent?: number;
   /** when true, will not add an indentation level to array elements */
@@ -30,28 +28,17 @@ type YamlStringifyOptions = {
   forceQuotes?: boolean;
 };
 
-export function yamlSyscalls(): SysCallMapping {
-  return {
-    "yaml.parse": (_ctx, text: string): any => {
-      return YAML.load(text);
-    },
-    "yaml.stringify": (
-      _ctx,
-      obj: any,
-      options: YamlStringifyOptions = {},
-    ): string => {
-      return YAML.dump(obj, {
-        quotingType: '"',
-        noCompatMode: true,
-        ...options,
-      });
-    },
-    "yaml.patch": (
-      _ctx,
-      yaml: string,
-      patches: YamlPatch[],
-    ): string => {
-      return applyPatches(yaml, patches);
-    },
-  };
+export function parse(text: string): any {
+  return YAML.load(text);
+}
+
+export function stringify(
+  text: string,
+  options: YamlStringifyOptions = {},
+): any {
+  return YAML.dump(text, {
+    quotingType: '"',
+    noCompatMode: true,
+    ...options,
+  });
 }

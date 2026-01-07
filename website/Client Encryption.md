@@ -1,5 +1,4 @@
-> **warning** Warning
-> Client encryption is a beta feature, its implementation may still evolve.
+#maturity/beta
 
 By default SilverBullet keeps a copy of all your files as well as the index, unencrypted in your browser’s IndexedDB. As long as you control your device and other people do not have access to it, this should be perfectly safe. Browsers do not allow access to these databases from other websites and domains.
 

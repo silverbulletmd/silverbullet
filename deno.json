@@ -9,7 +9,7 @@
     "checks": "deno task check && deno task lint && deno task test",
     "lint": "deno lint --fix",
     "fmt": "deno fmt",
-    "test": "deno test -A",
+    "test": "deno test -A --fail-fast",
     "bench": "deno bench -A",
     "plugs": "deno run -A build_plugs_libraries.ts"
   },

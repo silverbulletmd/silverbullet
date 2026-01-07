@@ -1,16 +1,18 @@
-import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
 import {
   renderToText,
   replaceNodesMatching,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 import {
   collectNodesMatching,
   collectNodesOfType,
   type ParseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import { indexObjects } from "./api.ts";
-import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
+import type {
+  ObjectValue,
+  PageMeta,
+} from "@silverbulletmd/silverbullet/type/index";
+import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
+import type { FrontMatter } from "./frontmatter.ts";
 
 type TableRowObject =
   & ObjectValue<{
@@ -47,7 +49,11 @@ function concatChildrenTextsPreserveLinks(nodes: ParseTree[]): string {
   return nodes.map((c) => renderToText(c)).join("").trim();
 }
 
-export async function indexTables({ name: pageName, tree }: IndexTreeEvent) {
+export function indexTables(
+  pageMeta: PageMeta,
+  _frontmatter: FrontMatter,
+  tree: ParseTree,
+) {
   const result: ObjectValue<TableRowObject>[] = [];
 
   collectNodesMatching(
@@ -72,11 +78,11 @@ export async function indexTables({ name: pageName, tree }: IndexTreeEvent) {
         const cells = collectNodesOfType(row, "TableCell");
 
         const tableRow: TableRowObject = {
-          tableref: `${pageName}@${table.from}`,
-          ref: `${pageName}@${row.from}`,
+          tableref: `${pageMeta.name}@${table.from}`,
+          ref: `${pageMeta.name}@${row.from}`,
           tag: "table",
           tags: [...tags],
-          page: pageName,
+          page: pageMeta.name,
           pos: row.from!,
         };
         cells.forEach((c, i) => {
@@ -94,5 +100,5 @@ export async function indexTables({ name: pageName, tree }: IndexTreeEvent) {
     },
   );
 
-  await indexObjects(pageName, result);
+  return Promise.resolve(result);
 }

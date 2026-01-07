@@ -1,12 +1,10 @@
-import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
-
 import {
+  config,
   editor,
   events,
   markdown,
   space,
   sync,
-  system,
 } from "@silverbulletmd/silverbullet/syscalls";
 
 import {
@@ -18,172 +16,24 @@ import {
   nodeAtPos,
   type ParseTree,
   renderToText,
-  replaceNodesMatching,
-  traverseTreeAsync,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import { niceDate } from "@silverbulletmd/silverbullet/lib/dates";
-import {
-  cleanAttributes,
-  extractAttributes,
-} from "@silverbulletmd/silverbullet/lib/attribute";
-import { indexObjects } from "../index/plug_api.ts";
-import {
-  cleanHashTags,
-  extractHashTags,
-  updateITags,
-} from "@silverbulletmd/silverbullet/lib/tags";
-import { extractFrontMatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
 import {
   getNameFromPath,
   getOffsetFromLineColumn,
   isMarkdownPath,
   parseToRef,
 } from "@silverbulletmd/silverbullet/lib/ref";
-import { enrichItemFromParents } from "../index/item.ts";
-import { deepClone } from "@silverbulletmd/silverbullet/lib/json";
-import { queryLuaObjects } from "../index/api.ts";
-import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 import type { ClickEvent } from "@silverbulletmd/silverbullet/type/client";
 
-export type TaskObject = ObjectValue<
-  {
-    page: string;
-    pos: number;
-    name: string;
-    text: string;
-    done: boolean;
-    state: string;
-    deadline?: string;
-  } & Record<string, any>
->;
+export const completeStates = ["x", "X"];
 
-export type TaskStateObject = ObjectValue<{
-  state: string;
-  count: number;
-  page: string;
-}>;
-
-function getDeadline(deadlineNode: ParseTree): string {
-  return deadlineNode.children![0].text!.replace(/📅\s*/, "");
-}
-
-const completeStates = ["x", "X"];
-const incompleteStates = [" "];
-
-export async function extractTasks(
-  name: string,
-  tree: ParseTree,
-): Promise<TaskObject[]> {
-  const tasks: ObjectValue<TaskObject>[] = [];
-  const taskStates = new Map<string, { count: number; firstPos: number }>();
-  const frontmatter = await extractFrontMatter(tree);
-
-  await traverseTreeAsync(tree, async (n) => {
-    if (n.type !== "Task") {
-      return false;
-    }
-    const listItemNode = n.parent!;
-    const state = n.children![0].children![1].text!;
-    if (!incompleteStates.includes(state) && !completeStates.includes(state)) {
-      let currentState = taskStates.get(state);
-      if (!currentState) {
-        currentState = { count: 0, firstPos: n.from! };
-        taskStates.set(state, currentState);
-      }
-      currentState.count++;
-    }
-    const complete = completeStates.includes(state);
-
-    const task: TaskObject = {
-      ref: `${name}@${n.from}`,
-      tag: "task",
-      name: "",
-      text: "",
-      done: complete,
-      page: name,
-      pos: n.from!,
-      state,
-    };
-
-    // The task text is everything after the task marker
-    task.text = n.children!.slice(1).map(renderToText).join("").trim();
-
-    // This finds the deadline and tags, and removes them from the tree
-    replaceNodesMatching(n, (tree) => {
-      if (tree.type === "DeadlineDate") {
-        task.deadline = getDeadline(tree);
-        // Remove this node from the tree
-        return null;
-      }
-    });
-
-    // Extract tags and attributes
-    task.tags = extractHashTags(n);
-    const extractedAttributes = await extractAttributes(n);
-
-    // Then clean them out
-    const clonedNode = deepClone(n, ["parent"]);
-    cleanHashTags(clonedNode);
-    cleanAttributes(clonedNode);
-    task.name = clonedNode.children!.slice(1).map(renderToText).join("").trim();
-
-    for (const [key, value] of Object.entries(extractedAttributes)) {
-      task[key] = value;
-    }
-
-    updateITags(task, frontmatter);
-    await enrichItemFromParents(listItemNode, task, name, frontmatter);
-
-    tasks.push(task);
-    return true;
-  });
-
-  // Index task states
-  if (taskStates.size > 0) {
-    await indexObjects<TaskStateObject>(
-      name,
-      Array.from(taskStates.entries()).map(([state, { firstPos, count }]) => ({
-        ref: `${name}@${firstPos}`,
-        tag: "taskstate",
-        state,
-        count,
-        page: name,
-      })),
-    );
-  }
-  return tasks;
-}
-
-export async function indexTasks({ name, tree }: IndexTreeEvent) {
-  const shouldIndexAll = await system.getConfig(
-    "index.task.all",
-    true,
-  );
-
-  let extractedTasks = await extractTasks(name, tree);
-
-  if (!shouldIndexAll) {
-    extractedTasks = extractedTasks.filter((task) => task.tags?.length);
-  }
-
-  // Index tasks themselves
-  if (extractTasks.length > 0) {
-    await indexObjects(name, extractedTasks);
-  }
-}
+export const incompleteStates = [" "];
 
 export function taskToggle(event: ClickEvent) {
   if (event.altKey) {
     return;
   }
   return taskCycleAtPos(event.pos);
-}
-
-export function previewTaskToggle(eventString: string) {
-  const [eventName, pos] = JSON.parse(eventString);
-  if (eventName === "task") {
-    return taskCycleAtPos(+pos);
-  }
 }
 
 async function convertListItemToTask(node: ParseTree) {
@@ -254,23 +104,18 @@ async function cycleTaskState(
     changeTo = "x";
   } else {
     // Not a checkbox, but a custom state
-    const allStates = await queryLuaObjects<TaskStateObject>(
-      "taskstate",
-      {},
-      {},
-    );
-    const states = [...new Set(allStates.map((s) => s.state))];
+    const allStates = await config.get("taskStates", {});
+    const states = Object.keys(allStates);
+    console.log("All states", states);
     states.sort();
     // Select a next state
-    const currentStateIndex = states.indexOf(stateText);
+    let currentStateIndex = states.indexOf(stateText);
     if (currentStateIndex === -1) {
       console.error("Unknown state", stateText);
-      return;
+      currentStateIndex = 0;
     }
     const nextStateIndex = (currentStateIndex + 1) % states.length;
     changeTo = states[nextStateIndex];
-    // console.log("All possible states", states);
-    // return;
   }
   await editor.dispatch({
     changes: {
@@ -329,8 +174,8 @@ export async function updateTaskState(
 
     // Check if the task state marker is still there
     const targetText = editorText.substring(
-      targetPos + 1,
-      targetPos + 1 + oldState.length,
+      targetPos + 3, // 3 because: "* ["
+      targetPos + 3 + oldState.length,
     );
     if (targetText !== oldState) {
       console.error(
@@ -341,8 +186,8 @@ export async function updateTaskState(
     }
     await editor.dispatch({
       changes: {
-        from: targetPos + 1,
-        to: targetPos + 1 + oldState.length,
+        from: targetPos + 3,
+        to: targetPos + 3 + oldState.length,
         insert: newState,
       },
     });
@@ -359,11 +204,18 @@ export async function updateTaskState(
         ref.details.column,
       );
 
-    // Adding +1 to immediately hit the task state node
-    const taskStateNode = nodeAtPos(referenceMdTree, targetPos + 1);
-    if (!taskStateNode || taskStateNode.type !== "TaskState") {
+    const itemNode = nodeAtPos(referenceMdTree, targetPos + 1);
+    if (!itemNode) {
       console.error(
-        "Reference not a task marker, out of date?",
+        "Reference not a valid item, out of date?",
+        itemNode,
+      );
+      return;
+    }
+    const taskStateNode = findNodeOfType(itemNode, "TaskState");
+    if (!taskStateNode) {
+      console.error(
+        "Cannot find a task state",
         taskStateNode,
       );
       return;
@@ -410,7 +262,6 @@ export async function taskCycleCommand() {
     await editor.flashNotification("No task at cursor");
     return;
   }
-  console.log("Node", node);
   const taskNode = node.type === "Task"
     ? node
     : findParentMatching(node!, (n) => n.type === "Task");
@@ -444,66 +295,21 @@ export async function taskCycleCommand() {
   convertListItemToTask(listItem);
 }
 
-export async function postponeCommand() {
-  const text = await editor.getText();
-  const pos = await editor.getCursor();
-  const tree = await markdown.parseMarkdown(text);
-  addParentPointers(tree);
-
-  const node = nodeAtPos(tree, pos)!;
-  // We kwow node.type === DeadlineDate (due to the task context)
-  const date = getDeadline(node);
-  const option = await editor.filterBox(
-    "Postpone for...",
-    [
-      { name: "a day", orderId: 1 },
-      { name: "a week", orderId: 2 },
-      { name: "following Monday", orderId: 3 },
-    ],
-    "Select the desired time span to delay this task",
-  );
-  if (!option) {
-    return;
-  }
-  // Parse "naive" due date
-  const [yyyy, mm, dd] = date.split("-").map(Number);
-  // Create new naive Date object.
-  // `monthIndex` parameter is zero-based, so subtract 1 from parsed month.
-  const d = new Date(yyyy, mm - 1, dd);
-  switch (option.name) {
-    case "a day":
-      d.setDate(d.getDate() + 1);
-      break;
-    case "a week":
-      d.setDate(d.getDate() + 7);
-      break;
-    case "following Monday":
-      d.setDate(d.getDate() + ((7 - d.getDay() + 1) % 7 || 7));
-      break;
-  }
-  // console.log("New date", niceDate(d));
-  await editor.dispatch({
-    changes: {
-      from: node.from,
-      to: node.to,
-      insert: `📅 ${niceDate(d)}`,
-    },
-    selection: {
-      anchor: pos,
-    },
-  });
-}
-
 export async function removeCompletedTasksCommand() {
   const tree = await markdown.parseMarkdown(await editor.getText());
   addParentPointers(tree);
 
   // Taking this ugly approach because the tree is modified in place
   // Just finding and removing one task at a time and then repeating until nothing changes
+  const allCompletedStates = completeStates.concat(
+    Object.values(await config.get("taskStates", {})).filter((ts: any) =>
+      ts.done
+    ).map((ts: any) => ts.name),
+  );
   while (true) {
     const completedTaskNode = findNodeMatching(tree, (node) => {
       return node.type === "Task" &&
-        ["x", "X"].includes(node.children![0].children![1].text!);
+        allCompletedStates.includes(node.children![0].children![1].text!);
     });
     if (completedTaskNode) {
       // Ok got one, let's remove it

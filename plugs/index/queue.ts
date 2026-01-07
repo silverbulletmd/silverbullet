@@ -86,6 +86,7 @@ async function indexFile(path: string) {
     await events.dispatchEvent("page:index", {
       name,
       tree,
+      text,
     } as IndexTreeEvent);
   } else {
     await events.dispatchEvent("document:index", path);

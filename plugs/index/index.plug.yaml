@@ -15,14 +15,21 @@ functions:
   getObjectByRef:
     path: api.ts:getObjectByRef
     syscall: index.getObjectByRef
-
   extractFrontmatter:
     path: api.ts:extractFrontmatter
     syscall: index.extractFrontmatter
-
   patchFrontmatter:
     path: api.ts:patchFrontmatter
     syscall: index.patchFrontmatter
+
+  # YAML syscalls
+  yamlParse:
+    path: yaml.ts:parse
+    syscall: yaml.parse
+
+  yamlStringify:
+    path: yaml.ts:stringify
+    syscall: yaml.stringify
 
   # Index management
   clearIndex:
@@ -56,67 +63,17 @@ functions:
       - document:index
 
   indexPage:
-    path: page.ts:indexPage
-    events:
-      - page:index
-
-  indexParagraphs:
-    path: "./paragraph.ts:indexParagraphs"
-    events:
-      - page:index
-
-  # Backlinks
-  indexLinks:
-    path: "./page_links.ts:indexLinks"
-    events:
-      - page:index
-
-  # Item indexing
-  indexItem:
-    path: "./item.ts:indexItems"
-    events:
-      - page:index
-
-  # Tables
-  indexTables:
-    path: "table.ts:indexTables"
+    path: index.ts:indexPage
     events:
       - page:index
 
   # Headers
-  indexHeaders:
-    path: header.ts:indexHeaders
-    events:
-      - page:index
   headerComplete:
     path: header.ts:headerComplete
     events:
       - editor:complete
 
-  # Data
-  indexData:
-    path: data.ts:indexData
-    events:
-      - page:index
-
-  # Lua
-  indexSpaceLua:
-    path: script.ts:indexSpaceLua
-    events:
-      - page:index
-
-  # Style
-  indexSpaceStyle:
-    path: style.ts:indexSpaceStyle
-    events:
-      - page:index
-
   # Hashtags
-  indexTags:
-    path: tags.ts:indexTags
-    events:
-      - page:index
-
   tagComplete:
     path: tags.ts:tagComplete
     events:
@@ -145,6 +102,8 @@ functions:
       requireMode: rw
       requireEditor: page
 
+  # Refactoring Commands
+
   renameDocumentCommand:
     path: "./refactor.ts:renameDocumentCommand"
     command:
@@ -152,7 +111,6 @@ functions:
       requireMode: rw
       requireEditor: notpage
 
-  # Refactoring Commands
   extractToPageCommand:
     path: ./refactor.ts:extractToPageCommand
     command:
@@ -172,6 +130,34 @@ functions:
     path: lint.ts:lintLua
     events:
       - editor:lint
+
+  # Tasks
+  updateTaskState:
+    path: task.ts:updateTaskState
+
+  taskToggle:
+    path: "./task.ts:taskToggle"
+    events:
+      - page:click
+  taskToggleCommand:
+    path: ./task.ts:taskCycleCommand
+    command:
+      name: "Task: Cycle State"
+      key: Alt-t
+      requireMode: rw
+      requireEditor: page
+
+  taskComplete:
+    path: ./complete.ts:completeTaskState
+    events:
+      - editor:complete
+
+  removeCompletedTasksCommand:
+    path: task.ts:removeCompletedTasksCommand
+    command:
+      name: "Task: Remove Completed"
+      requireMode: rw
+      requireEditor: page
 
 config:
   # Schema for the built-in tags indexed by this plug
@@ -418,8 +404,6 @@ config:
           type: number
         alias:
           type: string
-        asTemplate:
-          type: boolean
     header:
       type: object
       properties:
@@ -525,3 +509,39 @@ config:
           type: string
         pos:
           type: number
+    task:
+      type: object
+      additionalProperties: true
+      properties:
+        ref:
+          type: string
+          readOnly: true
+        tag:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+          nullable: true
+        itags:
+          type: array
+          items:
+            type: string
+          nullable: true
+        name:
+          type: string
+        page:
+          type: string
+        parent:
+          type: string
+        pos:
+          type: number
+        text:
+          type: string
+        state:
+          type: string
+        done:
+          type: boolean
+        deadline:
+          type: string
+          nullable: true

@@ -1,7 +1,9 @@
 import { folderName } from "@silverbulletmd/silverbullet/lib/resolve";
-import { queryLuaObjects } from "../index/api.ts";
-import { language, lua } from "@silverbulletmd/silverbullet/syscalls";
-import type { DocumentMeta, PageMeta } from "../../plug-api/types/index.ts";
+import { index, language, lua } from "@silverbulletmd/silverbullet/syscalls";
+import type {
+  DocumentMeta,
+  PageMeta,
+} from "@silverbulletmd/silverbullet/type/index";
 import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
 
 // Page completion
@@ -44,7 +46,12 @@ export async function pageComplete(completeEvent: CompleteEvent) {
 
   if (prefix.startsWith("^")) {
     // A carrot prefix means we're looking for a meta page
-    allPages = await queryLuaObjects<PageMeta>("page", isMetaPageQuery!, {}, 5);
+    allPages = await index.queryLuaObjects<PageMeta>(
+      "page",
+      isMetaPageQuery!,
+      {},
+      5,
+    );
     // Let's prefix the names with a caret to make them match
     allPages = allPages.map((page) => ({
       ...page,
@@ -54,11 +61,11 @@ export async function pageComplete(completeEvent: CompleteEvent) {
     // This is the most common case, we're combining three types of completions here:
     allPages = (await Promise.all([
       // All non-meta pages
-      queryLuaObjects<PageMeta>("page", isntMetaPageQuery, {}, 5),
+      index.queryLuaObjects<PageMeta>("page", isntMetaPageQuery, {}, 5),
       // All documents
-      queryLuaObjects<DocumentMeta>("document", isDocumentQuery, {}, 5),
+      index.queryLuaObjects<DocumentMeta>("document", isDocumentQuery, {}, 5),
       // And all links to non-existing pages (to augment the existing ones)
-      queryLuaObjects<string>(
+      index.queryLuaObjects<string>(
         "aspiring-page",
         {
           select: { type: "Variable", name: "name", ctx: {} as any },
