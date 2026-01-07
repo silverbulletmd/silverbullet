@@ -1,4 +1,5 @@
 import {
+  cloneTree,
   findParentMatching,
   type ParseTree,
   renderToText,
@@ -12,7 +13,6 @@ import type {
 } from "@silverbulletmd/silverbullet/type/index";
 import { system } from "@silverbulletmd/silverbullet/syscalls";
 import { cleanAttributes, collectAttributes } from "./attribute.ts";
-import { deepClone } from "@silverbulletmd/silverbullet/lib/json";
 
 /** ParagraphObject  An index object for the top level text nodes */
 export type ParagraphObject = ObjectValue<
@@ -59,10 +59,10 @@ export async function indexParagraphs(
     const attrs = collectAttributes(p);
 
     // Clean tree, just to check if it's effectively empty or not
-    const cleanP = deepClone(p, ["parent"]);
-    cleanTags(cleanP);
-    cleanAttributes(cleanP);
-    const text = renderToText(cleanP);
+    const pClone = cloneTree(p);
+    cleanTags(pClone);
+    cleanAttributes(pClone);
+    const text = renderToText(pClone);
 
     if (!text.trim()) {
       // Empty paragraph, just tags and attributes maybe

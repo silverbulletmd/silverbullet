@@ -1,4 +1,5 @@
 import {
+  cloneTree,
   findParentMatching,
   type ParseTree,
   renderToText,
@@ -12,7 +13,6 @@ import type {
 } from "@silverbulletmd/silverbullet/type/index";
 import { system } from "@silverbulletmd/silverbullet/syscalls";
 import { cleanAttributes, collectAttributes } from "./attribute.ts";
-import { deepClone } from "@silverbulletmd/silverbullet/lib/json";
 
 export type TaskObject = ObjectValue<
   {
@@ -118,10 +118,10 @@ export function extractItemFromNode(
 
   item.text = renderToText(nameNode).trim();
 
-  const cleanNameNode = deepClone(nameNode, ["parent"])!;
-  cleanTags(cleanNameNode);
-  cleanAttributes(cleanNameNode);
-  item.name = renderToText(cleanNameNode).trim();
+  const nameNodeClone = cloneTree(nameNode!);
+  cleanTags(nameNodeClone);
+  cleanAttributes(nameNodeClone);
+  item.name = renderToText(nameNodeClone).trim();
 
   if (tags.length > 0) {
     item.tags = tags;

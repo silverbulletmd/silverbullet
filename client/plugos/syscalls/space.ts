@@ -60,6 +60,10 @@ export function spaceReadSyscalls(client: Client): SysCallMapping {
       return (await client.space.spacePrimitives.readFile(name)).data;
     },
     "space.fileExists": async (_ctx, name: string): Promise<boolean> => {
+      // If we have a snapshot, let's use that, it's faster
+      if (!client.eventedSpacePrimitives.isSnapshotEmpty()) {
+        return !!client.eventedSpacePrimitives.getSnapshot()[name];
+      }
       try {
         await client.space.spacePrimitives.getFileMeta(name);
         // If this returned the file exists

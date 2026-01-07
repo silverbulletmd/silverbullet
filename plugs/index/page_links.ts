@@ -206,7 +206,6 @@ export async function indexLinks(
   // Now let's check which are aspiring pages
   for (const link of objects.slice()) {
     if (link.toPage) {
-      // TODO: Optimize fileExists to be more efficient
       if (!await space.fileExists(`${link.toPage}.md`)) {
         objects.push({
           ref: `${name}@${link.pos}`,

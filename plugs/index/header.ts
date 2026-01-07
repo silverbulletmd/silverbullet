@@ -1,4 +1,5 @@
 import {
+  cloneTree,
   collectNodesMatching,
   type ParseTree,
   renderToText,
@@ -45,9 +46,10 @@ export function indexHeaders(
     const name = renderToText(n).slice(level + 1);
     const tags = collectTags(n);
     const attributes = collectAttributes(n);
-    cleanTags(n);
-    cleanAttributes(n);
-    const text = renderToText(n).slice(level + 1);
+    const nClone = cloneTree(n);
+    cleanTags(nClone);
+    cleanAttributes(nClone);
+    const text = renderToText(nClone).slice(level + 1);
 
     headers.push({
       ref: `${pageMeta.name}@${n.from}`,
