@@ -1,17 +1,15 @@
 import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
 import { indexObjects } from "./api.ts";
 import {
-  collectNodesOfType,
   findParentMatching,
   renderToText,
-  traverseTreeAsync,
+  traverseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import { extractAttributes } from "@silverbulletmd/silverbullet/lib/attribute";
-import { updateITags } from "@silverbulletmd/silverbullet/lib/tags";
-import { extractFrontMatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
-import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
+import { cleanTags, collectTags, updateITags } from "./tags.ts";
+import { extractFrontMatter } from "./frontmatter.ts";
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 import { system } from "@silverbulletmd/silverbullet/syscalls";
+import { cleanAttributes, collectAttributes } from "./attribute.ts";
 
 /** ParagraphObject  An index object for the top level text nodes */
 export type ParagraphObject = ObjectValue<
@@ -30,9 +28,9 @@ export async function indexParagraphs({ name: page, tree }: IndexTreeEvent) {
 
   const objects: ParagraphObject[] = [];
 
-  const frontmatter = await extractFrontMatter(tree);
+  const frontmatter = extractFrontMatter(tree);
 
-  await traverseTreeAsync(tree, async (p) => {
+  traverseTree(tree, (p) => {
     if (p.type !== "Paragraph") {
       return false;
     }
@@ -45,19 +43,19 @@ export async function indexParagraphs({ name: page, tree }: IndexTreeEvent) {
     const fullText = renderToText(p);
 
     // Collect tags and remove from the tree
-    const tags = new Set<string>();
-    collectNodesOfType(p, "Hashtag").forEach((tagNode) => {
-      tags.add(extractHashtag(tagNode.children![0].text!));
-      // Hacky way to remove the hashtag
-      tagNode.children = [];
-    });
-    if (tags.size === 0 && !shouldIndexAll) {
+    const tags = collectTags(p);
+
+    if (tags.length === 0 && !shouldIndexAll) {
       // Don't index paragraphs without a hashtag
       return false;
     }
 
-    // Extract attributes and remove from tree
-    const attrs = await extractAttributes(p);
+    // Extract attributes
+    const attrs = collectAttributes(p);
+
+    // Clean tree
+    cleanTags(p);
+    cleanAttributes(p);
     const text = renderToText(p);
 
     if (!text.trim()) {
@@ -74,7 +72,7 @@ export async function indexParagraphs({ name: page, tree }: IndexTreeEvent) {
       pos,
       ...attrs,
     };
-    if (tags.size > 0) {
+    if (tags.length > 0) {
       paragraph.tags = [...tags];
       paragraph.itags = [...tags];
     }

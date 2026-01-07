@@ -13,7 +13,6 @@ import { LuaEnv, LuaStackFrame } from "./space_lua/runtime.ts";
 import { evalStatement } from "./space_lua/eval.ts";
 import { editorSyscalls } from "./plugos/syscalls/editor.ts";
 import { markdownSyscalls } from "./plugos/syscalls/markdown.ts";
-import { yamlSyscalls } from "./plugos/syscalls/yaml.ts";
 import { languageSyscalls } from "./plugos/syscalls/language.ts";
 import { jsonschemaSyscalls } from "./plugos/syscalls/jsonschema.ts";
 
@@ -61,7 +60,6 @@ export async function loadConfig(
     editorSyscalls(lateBoundClient),
     // And these, because: why not
     markdownSyscalls(lateBoundClient),
-    yamlSyscalls(),
     languageSyscalls(),
     jsonschemaSyscalls(),
   );

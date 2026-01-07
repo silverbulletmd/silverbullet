@@ -2,23 +2,24 @@ import {
   findNodeOfType,
   type ParseTree,
   replaceNodesMatching,
-  traverseTreeAsync,
-} from "./tree.ts";
+  traverseTree,
+} from "@silverbulletmd/silverbullet/lib/tree";
 
 import { cleanupJSON } from "@silverbulletmd/silverbullet/lib/json";
 
-import { YAML } from "../syscalls.ts";
+import YAML from "js-yaml";
 
 /**
- * Extracts attributes from a tree
- * @param tree tree to extract attributes from
- * @returns mapping from attribute name to attribute value
+ * Collects all attributes from a parse tree
+ * @param tree to clean attributes from
+ * @return
  */
-export async function extractAttributes(
+export function collectAttributes(
   tree: ParseTree,
-): Promise<Record<string, any>> {
+): Record<string, any> {
   const attributes: Record<string, any> = {};
-  await traverseTreeAsync(tree, async (n) => {
+
+  traverseTree(tree, (n) => {
     if (tree !== n && n.type === "ListItem") {
       // Find top-level only, no nested lists
       return true;
@@ -30,16 +31,16 @@ export async function extractAttributes(
         const name = nameNode.children![0].text!;
         const val = valueNode.children![0].text!;
         try {
-          attributes[name] = cleanupJSON(await YAML.parse(val));
+          attributes[name] = cleanupJSON(YAML.load(val));
         } catch (e: any) {
           console.error("Error parsing attribute value as YAML", val, e);
         }
       }
       return true;
     }
-    // Go on...
     return false;
   });
+
   return attributes;
 }
 

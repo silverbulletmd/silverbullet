@@ -19,7 +19,6 @@ import {
   spaceWriteSyscalls,
 } from "../client/plugos/syscalls/space.ts";
 import { systemSyscalls } from "../client/plugos/syscalls/system.ts";
-import { yamlSyscalls } from "../client/plugos/syscalls/yaml.ts";
 import { System } from "../client/plugos/system.ts";
 import { Space } from "../client/space.ts";
 import { SpaceLuaEnvironment } from "../client/space_lua.ts";
@@ -53,7 +52,6 @@ export function createMockSystem() {
     spaceReadSyscalls(clientMock),
     spaceWriteSyscalls(clientMock),
     markdownSyscalls(clientMock),
-    yamlSyscalls(),
     languageSyscalls(),
     jsonschemaSyscalls(),
     indexSyscalls(clientMock),

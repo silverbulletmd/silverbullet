@@ -1,5 +1,4 @@
-import { queryLuaObjects } from "../index/api.ts";
-import type { TaskStateObject } from "./task.ts";
+import { config } from "@silverbulletmd/silverbullet/syscalls";
 import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
 
 export async function completeTaskState(completeEvent: CompleteEvent) {
@@ -9,17 +8,11 @@ export async function completeTaskState(completeEvent: CompleteEvent) {
   if (!taskMatch) {
     return null;
   }
-  const allStates = await queryLuaObjects<TaskStateObject>(
-    "taskstate",
-    {},
-    {},
-    5,
-  );
-  const states = [...new Set(allStates.map((s) => s.state))];
+  const allStates = Object.keys(await config.get("taskStates", {}));
 
   return {
     from: completeEvent.pos - taskMatch[2].length,
-    options: states.map((state) => ({
+    options: allStates.map((state) => ({
       label: state,
     })),
   };

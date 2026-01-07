@@ -1,7 +1,8 @@
-import { lua, YAML } from "@silverbulletmd/silverbullet/syscalls";
+import { lua } from "@silverbulletmd/silverbullet/syscalls";
 import {
   findNodeOfType,
   renderToText,
+  traverseTree,
   traverseTreeAsync,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import type {
@@ -9,13 +10,15 @@ import type {
   LintEvent,
 } from "@silverbulletmd/silverbullet/type/client";
 
-export async function lintYAML(
+import YAML from "js-yaml";
+
+export function lintYAML(
   { tree, name }: LintEvent,
-): Promise<LintDiagnostic[]> {
+): LintDiagnostic[] {
   const diagnostics: LintDiagnostic[] = [];
-  await traverseTreeAsync(tree, async (node) => {
+  traverseTree(tree, (node) => {
     if (node.type === "FrontMatterCode") {
-      const lintResult = await lintYaml(
+      const lintResult = lintYaml(
         renderToText(node),
         node.from!,
         name,
@@ -40,7 +43,7 @@ export async function lintYAML(
           return true;
         }
         const yamlCode = renderToText(codeText);
-        const lintResult = await lintYaml(
+        const lintResult = lintYaml(
           yamlCode,
           codeText.from!,
         );
@@ -57,13 +60,13 @@ export async function lintYAML(
 
 const errorRegex = /\((\d+):(\d+)\)/;
 
-async function lintYaml(
+function lintYaml(
   yamlText: string,
   startPos: number,
   pageName?: string,
-): Promise<LintDiagnostic | undefined> {
+): LintDiagnostic | undefined {
   try {
-    const parsed = await YAML.parse(yamlText);
+    const parsed = YAML.load(yamlText);
     if (pageName && parsed.name && parsed.name != pageName) {
       return {
         from: startPos,

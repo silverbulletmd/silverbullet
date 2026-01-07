@@ -91,15 +91,6 @@ ${template.each(query[[from index.tag "upnext"]], templates.taskItem)}
 
 Similar to [[#item]], `task` objects have a `parent` attribute when nested (pointing to their parent `item`), and inherit their ancestor’s tags in `itags`.
 
-## taskstate
-[[Task]] support the default `x` and ` ` states (done and not done), but custom states as well. Custom states used across your space are kept in `taskstate`:
-
-* [NOT STARTED] Task 1
-* [IN PROGRESS] Task 2
-
-And can be queried as follows:
-${query[[from index.tag "taskstate" where page == _CTX.currentPage.name]]}
-
 ## paragraph
 Top-level paragraphs (that is: paragraphs not embedded in a list) are indexed using the `paragraph` tag, any additional tags can be added using [[Tags]].
 

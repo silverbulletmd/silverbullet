@@ -1,4 +1,3 @@
-import { extractHashtag } from "../../plug-api/lib/tags.ts";
 import { editor, markdown } from "@silverbulletmd/silverbullet/syscalls";
 import {
   addParentPointers,
@@ -14,6 +13,7 @@ import {
 import { parseToRef } from "@silverbulletmd/silverbullet/lib/ref";
 import { tagPrefix } from "../index/constants.ts";
 import type { ClickEvent } from "@silverbulletmd/silverbullet/type/client";
+import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 
 async function actionClickOrActionEnter(
   mdTree: ParseTree | null,

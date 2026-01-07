@@ -10,8 +10,8 @@ import {
   resolveMarkdownLink,
 } from "@silverbulletmd/silverbullet/lib/resolve";
 import { indexObjects, queryLuaObjects } from "./api.ts";
-import { extractFrontMatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
-import { updateITags } from "@silverbulletmd/silverbullet/lib/tags";
+import { extractFrontMatter } from "./frontmatter.ts";
+import { updateITags } from "./tags.ts";
 import {
   getNameFromPath,
   isMarkdownPath,

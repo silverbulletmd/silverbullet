@@ -5,7 +5,8 @@ import {
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { assertEquals, assertNotEquals } from "@std/assert";
 import { parseMarkdown } from "./parser.ts";
-import { extractHashtag, renderHashtag } from "../../plug-api/lib/tags.ts";
+import { extractHashtag } from "../../plug-api/lib/tags.ts";
+import { renderHashtag } from "../../plugs/index/tags.ts";
 
 const sample1 = `---
 type: page

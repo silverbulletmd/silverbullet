@@ -1,30 +1,38 @@
 import {
   collectNodesMatching,
-  collectNodesOfType,
+  type ParseTree,
   renderToText,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
-import { indexObjects, queryLuaObjects } from "./api.ts";
+import { queryLuaObjects } from "./api.ts";
 import {
   getNameFromPath,
   parseToRef,
 } from "@silverbulletmd/silverbullet/lib/ref";
-import { extractAttributes } from "@silverbulletmd/silverbullet/lib/attribute";
-import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 import { lua } from "@silverbulletmd/silverbullet/syscalls";
-import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
+import type {
+  ObjectValue,
+  PageMeta,
+} from "@silverbulletmd/silverbullet/type/index";
 import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
+import type { FrontMatter } from "./frontmatter.ts";
+import { cleanAttributes, collectAttributes } from "./attribute.ts";
+import { cleanTags, collectTags } from "./tags.ts";
 
 type HeaderObject = ObjectValue<
   {
     name: string;
+    text: string;
     page: string;
     level: number;
     pos: number;
   } & Record<string, any>
 >;
 
-export async function indexHeaders({ name: pageName, tree }: IndexTreeEvent) {
+export function indexHeaders(
+  pageMeta: PageMeta,
+  _frontmatter: FrontMatter,
+  tree: ParseTree,
+): Promise<HeaderObject[]> {
   const headers: ObjectValue<HeaderObject>[] = [];
 
   for (
@@ -34,32 +42,27 @@ export async function indexHeaders({ name: pageName, tree }: IndexTreeEvent) {
     )
   ) {
     const level = +n.type!.substring("ATXHeading".length);
-    const tags = new Set<string>();
-
-    collectNodesOfType(n, "Hashtag").forEach((h) => {
-      // Push tag to the list, removing the initial #
-      tags.add(extractHashtag(h.children![0].text!));
-      h.children = [];
-    });
-
-    // Extract attributes and remove from tree
-    const extractedAttributes = await extractAttributes(n);
-    const name = n.children!.slice(1).map(renderToText).join("").trim();
+    const name = renderToText(n).slice(level + 1);
+    const tags = collectTags(n);
+    const attributes = collectAttributes(n);
+    cleanTags(n);
+    cleanAttributes(n);
+    const text = renderToText(n).slice(level + 1);
 
     headers.push({
-      ref: `${pageName}@${n.from}`,
+      ref: `${pageMeta.name}@${n.from}`,
       tag: "header",
       tags: [...tags],
       level,
       name,
-      page: pageName,
+      text,
+      page: pageMeta.name,
       pos: n.from!,
-      ...extractedAttributes,
+      ...attributes,
     });
   }
 
-  // console.log("Found", headers, "headers(s)");
-  await indexObjects(pageName, headers);
+  return Promise.resolve(headers);
 }
 
 export async function headerComplete(completeEvent: CompleteEvent) {

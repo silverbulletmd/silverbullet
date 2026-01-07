@@ -23,7 +23,6 @@ import {
 } from "@silverbulletmd/silverbullet/lib/ref";
 import { resolveASTReference } from "../space_lua.ts";
 import { LuaWidget } from "./lua_widget.ts";
-import YAML from "js-yaml";
 import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 
 export function luaDirectivePlugin(client: Client) {
@@ -46,12 +45,8 @@ export function luaDirectivePlugin(client: Client) {
         if (node.name === "FrontMatterCode") {
           const text = state.sliceDoc(node.from, node.to);
           try {
-            const parsedFrontmatter = YAML.load(text);
-            let tags = parsedFrontmatter.tags || [];
-            if (typeof tags === "string") {
-              tags = tags.split(/\s+|,\s*/);
-            }
-            if (tags.find((tag: string) => tag.startsWith("meta/template"))) {
+            // Very ad-hoc regex to detect if meta/template appears in the tag list
+            if (/tags:.*meta\/template/s.exec(text)) {
               shouldRender = false;
               return;
             }

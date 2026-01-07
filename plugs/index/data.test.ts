@@ -4,7 +4,7 @@ import type {
   ObjectValue,
   PageMeta,
 } from "@silverbulletmd/silverbullet/type/index";
-import { extractFrontMatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
+import { extractFrontMatter } from "./frontmatter.ts";
 import { assertEquals } from "@std/assert";
 import { indexData } from "./data.ts";
 
@@ -25,7 +25,7 @@ age: 101
 Deno.test("Test indexers", async () => {
   createMockSystem();
   const tree = parseMarkdown(testPage);
-  const frontmatter = await extractFrontMatter(tree);
+  const frontmatter = extractFrontMatter(tree);
 
   const pageMeta: PageMeta = {
     ref: "test",

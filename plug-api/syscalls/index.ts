@@ -31,8 +31,9 @@ export function queryLuaObjects<T>(
   tag: string,
   query: LuaCollectionQuery,
   scopedVariables?: Record<string, any>,
+  ttlSecs?: number,
 ): Promise<ObjectValue<T>[]> {
-  return syscall("index.queryLuaObjects", tag, query, scopedVariables);
+  return syscall("index.queryLuaObjects", tag, query, scopedVariables, ttlSecs);
 }
 
 /**

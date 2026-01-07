@@ -81,31 +81,33 @@ export function attachWidgetEventHandlers(
   // Implement task toggling
   div.querySelectorAll("span[data-external-task-ref]").forEach((el: any) => {
     const taskRef = el.dataset.externalTaskRef;
-    const input = el.querySelector("input[type=checkbox]")!;
-    input.addEventListener(
-      "click",
-      (e: any) => {
-        // Avoid triggering the click on the parent
-        e.stopPropagation();
-      },
-    );
-    input.addEventListener(
-      "change",
-      (e: any) => {
-        e.stopPropagation();
-        const oldState = e.target.dataset.state;
-        const newState = oldState === " " ? "x" : " ";
-        // Update state in DOM as well for future toggles
-        e.target.dataset.state = newState;
-        console.log("Toggling task", taskRef);
-        client.clientSystem.localSyscall(
-          "system.invokeFunction",
-          ["tasks.updateTaskState", taskRef, oldState, newState],
-        ).catch(
-          console.error,
-        );
-      },
-    );
+    const input = el.querySelector("input[type=checkbox]");
+    if (input) {
+      input.addEventListener(
+        "click",
+        (e: any) => {
+          // Avoid triggering the click on the parent
+          e.stopPropagation();
+        },
+      );
+      input.addEventListener(
+        "change",
+        (e: any) => {
+          e.stopPropagation();
+          const oldState = e.target.dataset.state;
+          const newState = oldState === " " ? "x" : " ";
+          // Update state in DOM as well for future toggles
+          e.target.dataset.state = newState;
+          console.log("Toggling task", taskRef);
+          client.clientSystem.localSyscall(
+            "system.invokeFunction",
+            ["index.updateTaskState", taskRef, oldState, newState],
+          ).catch(
+            console.error,
+          );
+        },
+      );
+    }
   });
 
   if (events) {

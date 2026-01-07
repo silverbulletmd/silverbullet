@@ -4,11 +4,11 @@ import {
   findParentMatching,
   type ParseTree,
   renderToText,
-  replaceNodesMatchingAsync,
-} from "./tree.ts";
-import { cleanupJSON } from "./json.ts";
-import { YAML } from "../syscalls.ts";
-import { extractHashtag } from "./tags.ts";
+  replaceNodesMatching,
+} from "@silverbulletmd/silverbullet/lib/tree";
+import { cleanupJSON } from "@silverbulletmd/silverbullet/lib/json";
+import YAML from "js-yaml";
+import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 
 export type FrontMatter = { tags?: string[] } & Record<string, any>;
 
@@ -23,17 +23,17 @@ export type FrontMatterExtractOptions = {
  * optionally removes certain keys from the front matter
  * Side effect: adds parent pointers to tree
  */
-export async function extractFrontMatter(
+export function extractFrontMatter(
   tree: ParseTree,
   options: FrontMatterExtractOptions = {},
-): Promise<FrontMatter> {
+): FrontMatter {
   addParentPointers(tree);
   let data: FrontMatter = {
     tags: [],
   };
   const tags: string[] = [];
 
-  await replaceNodesMatchingAsync(tree, async (t) => {
+  replaceNodesMatching(tree, (t) => {
     // Find tags in paragraphs directly nested under the document where the only content is tags
     if (t.type === "Paragraph" && t.parent?.type === "Document") {
       let onlyTags = true;
@@ -74,7 +74,7 @@ export async function extractFrontMatter(
       const yamlNode = t.children![1].children![0];
       const yamlText = renderToText(yamlNode);
       try {
-        const parsedData: any = cleanupJSON(await YAML.parse(yamlText));
+        const parsedData: any = cleanupJSON(YAML.load(yamlText));
         // console.log("Parsed front matter", parsedData);
         const newData = { ...parsedData };
         data = { ...data, ...parsedData };
@@ -101,7 +101,7 @@ export async function extractFrontMatter(
             }
           }
           if (removedOne) {
-            yamlNode.text = await YAML.stringify(newData);
+            yamlNode.text = YAML.stringify(newData);
           }
         }
         // If nothing is left, let's just delete this whole block
@@ -124,7 +124,7 @@ export async function extractFrontMatter(
         const name = nameNode.children![0].text!;
         const val = valueNode.children![0].text!;
         try {
-          data[name] = cleanupJSON(await YAML.parse(val));
+          data[name] = cleanupJSON(YAML.load(val));
         } catch (e: any) {
           console.error("Error parsing attribute value as YAML", val, e);
         }

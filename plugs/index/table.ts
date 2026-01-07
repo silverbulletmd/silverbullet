@@ -3,7 +3,6 @@ import {
   renderToText,
   replaceNodesMatching,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 import {
   collectNodesMatching,
   collectNodesOfType,
@@ -11,6 +10,7 @@ import {
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { indexObjects } from "./api.ts";
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
+import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 
 type TableRowObject =
   & ObjectValue<{

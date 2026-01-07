@@ -1,11 +1,6 @@
-import {
-  editor,
-  lua,
-  markdown,
-  YAML,
-} from "@silverbulletmd/silverbullet/syscalls";
+import { editor, lua, markdown } from "@silverbulletmd/silverbullet/syscalls";
 
-import type { FrontMatter } from "@silverbulletmd/silverbullet/lib/frontmatter";
+import type { FrontMatter } from "./frontmatter.ts";
 import { deleteObject, getObjectByRef, queryLuaObjects } from "./api.ts";
 import {
   findNodeOfType,
@@ -13,10 +8,12 @@ import {
   renderToText,
   traverseTreeAsync,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import { updateITags } from "@silverbulletmd/silverbullet/lib/tags";
+import { updateITags } from "./tags.ts";
 import type { AspiringPageObject } from "./page_links.ts";
 import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 import type { LintDiagnostic } from "@silverbulletmd/silverbullet/type/client";
+
+import YAML from "js-yaml";
 
 export async function indexPage(
   pageMeta: PageMeta,
@@ -122,7 +119,7 @@ async function lintYaml(
   to: number,
 ): Promise<LintDiagnostic | undefined> {
   try {
-    await YAML.parse(yamlText);
+    await YAML.load(yamlText);
   } catch (e: any) {
     const errorMatch = errorRegex.exec(e.message);
     if (errorMatch) {
