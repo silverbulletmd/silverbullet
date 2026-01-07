@@ -1,5 +1,5 @@
 import type { System } from "./plugos/system.ts";
-import type { ScriptObject } from "../plugs/index/script.ts";
+import type { SpaceLuaObject } from "../plugs/index/space_lua.ts";
 import { LuaEnv, LuaRuntimeError, LuaStackFrame } from "./space_lua/runtime.ts";
 import { parse as parseLua, parseExpressionString } from "./space_lua/parse.ts";
 import { evalStatement } from "./space_lua/eval.ts";
@@ -24,7 +24,7 @@ export class SpaceLuaEnvironment {
    * @param system
    */
   async reload() {
-    const allScripts: ScriptObject[] = await this.system.invokeFunction(
+    const allScripts: SpaceLuaObject[] = await this.system.invokeFunction(
       "index.queryLuaObjects",
       ["space-lua", {
         objectVariable: "script",

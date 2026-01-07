@@ -11,11 +11,18 @@ import { indexPage as pageIndexPage } from "./page.ts";
 import { indexData } from "./data.ts";
 import { indexItems } from "./item.ts";
 import { indexHeaders } from "./header.ts";
+import { indexParagraphs } from "./paragraph.ts";
+import { indexLinks } from "./page_links.ts";
+import { indexTables } from "./table.ts";
+import { indexSpaceLua } from "./space_lua.ts";
+import { indexSpaceStyle } from "./space_style.ts";
+import { indexTags } from "./tags.ts";
 
 export type IndexerFunction = (
   pageMeta: PageMeta,
   frontmatter: FrontMatter,
   tree: ParseTree,
+  text: string,
 ) => Promise<ObjectValue<any>[]>;
 
 const allIndexers: IndexerFunction[] = [
@@ -23,20 +30,26 @@ const allIndexers: IndexerFunction[] = [
   indexData,
   indexItems,
   indexHeaders,
+  indexParagraphs,
+  indexLinks,
+  indexTables,
+  indexSpaceLua,
+  indexSpaceStyle,
+  indexTags,
 ];
 
-export async function indexPage({ name, tree }: IndexTreeEvent) {
+export async function indexPage({ name, tree, text }: IndexTreeEvent) {
   const pageMeta = await space.getPageMeta(name);
   const frontmatter = extractFrontMatter(tree);
 
-  console.log("Now going to index page", name);
+  // console.log("Now going to index page", name);
 
   // Index the page
   const index = await Promise.all(allIndexers.map((indexer) => {
-    return indexer(pageMeta, frontmatter, tree);
+    return indexer(pageMeta, frontmatter, tree, text);
   }));
 
-  console.log("Found these objects", index.flat());
+  // console.log("Found these objects", index.flat());
 
   await indexObjects<any>(name, index.flat());
 }

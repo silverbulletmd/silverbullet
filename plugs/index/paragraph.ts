@@ -1,15 +1,18 @@
-import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
-import { indexObjects } from "./api.ts";
 import {
   findParentMatching,
+  type ParseTree,
   renderToText,
   traverseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { cleanTags, collectTags, updateITags } from "./tags.ts";
-import { extractFrontMatter } from "./frontmatter.ts";
-import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
+import type { FrontMatter } from "./frontmatter.ts";
+import type {
+  ObjectValue,
+  PageMeta,
+} from "@silverbulletmd/silverbullet/type/index";
 import { system } from "@silverbulletmd/silverbullet/syscalls";
 import { cleanAttributes, collectAttributes } from "./attribute.ts";
+import { deepClone } from "@silverbulletmd/silverbullet/lib/json";
 
 /** ParagraphObject  An index object for the top level text nodes */
 export type ParagraphObject = ObjectValue<
@@ -20,15 +23,17 @@ export type ParagraphObject = ObjectValue<
   } & Record<string, any>
 >;
 
-export async function indexParagraphs({ name: page, tree }: IndexTreeEvent) {
+export async function indexParagraphs(
+  pageMeta: PageMeta,
+  frontmatter: FrontMatter,
+  tree: ParseTree,
+) {
   const shouldIndexAll = await system.getConfig(
     "index.paragraph.all",
-    true,
+    false,
   );
 
   const objects: ParagraphObject[] = [];
-
-  const frontmatter = extractFrontMatter(tree);
 
   traverseTree(tree, (p) => {
     if (p.type !== "Paragraph") {
@@ -37,26 +42,27 @@ export async function indexParagraphs({ name: page, tree }: IndexTreeEvent) {
 
     if (findParentMatching(p, (n) => n.type === "ListItem")) {
       // Not looking at paragraphs nested in a list
-      return false;
+      return true;
     }
 
     const fullText = renderToText(p);
 
-    // Collect tags and remove from the tree
+    // Collect tags
     const tags = collectTags(p);
 
     if (tags.length === 0 && !shouldIndexAll) {
       // Don't index paragraphs without a hashtag
-      return false;
+      return true;
     }
 
     // Extract attributes
     const attrs = collectAttributes(p);
 
-    // Clean tree
-    cleanTags(p);
-    cleanAttributes(p);
-    const text = renderToText(p);
+    // Clean tree, just to check if it's effectively empty or not
+    const cleanP = deepClone(p, ["parent"]);
+    cleanTags(cleanP);
+    cleanAttributes(cleanP);
+    const text = renderToText(cleanP);
 
     if (!text.trim()) {
       // Empty paragraph, just tags and attributes maybe
@@ -66,9 +72,9 @@ export async function indexParagraphs({ name: page, tree }: IndexTreeEvent) {
     const pos = p.from!;
     const paragraph: ParagraphObject = {
       tag: "paragraph",
-      ref: `${page}@${pos}`,
+      ref: `${pageMeta.name}@${pos}`,
       text: fullText,
-      page,
+      page: pageMeta.name,
       pos,
       ...attrs,
     };
@@ -84,7 +90,5 @@ export async function indexParagraphs({ name: page, tree }: IndexTreeEvent) {
     return true;
   });
 
-  // console.log("Paragraph objects", objects);
-
-  await indexObjects<ParagraphObject>(page, objects);
+  return objects;
 }

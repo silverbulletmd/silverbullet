@@ -15,7 +15,7 @@ const itemsMd = `
   * [ ] Sub task
 `;
 
-Deno.test("Test item extraction", async () => {
+Deno.test("Test item indexing", async () => {
   createMockSystem();
   const tree = parseMarkdown(itemsMd);
   const frontmatter = extractFrontMatter(tree);

@@ -6,7 +6,7 @@ Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be
 * Removed full-text search plug from the main distribution, this has now been moved to [a separate repo](https://github.com/silverbulletmd/basic-search) (installable via the library manager). This dramatically improves indexing speed. But actually: install [Silversearch](https://github.com/MrMugame/silversearch) instead.
 * Indexer refactor:
   * For consistency with items, `task` `refs` now point to the item’s position resulting in a slight positional shift, if you have code relying on this, you may have to adjust it
-  * 
+  * `page:index` now also received `text` attribute
 * Disabled indexing all paragraph text (even those not tagged) by default, this caused significant indexing overhead. [See discussion](https://community.silverbullet.md/t/who-is-using-paragraph-for-queries/3686).
   * To re-enable: `config.set("index.paragraph.all", true)`
 * Production builds now include sourcemaps for easier debugging in browser DevTools. If you don't want to serve sourcemaps publicly, you can block `*.js.map` files at your reverse proxy level (see [[TLS#Blocking sourcemaps]]).

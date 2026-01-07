@@ -1,16 +1,16 @@
 import {
   collectNodesOfType,
   findNodeOfType,
+  type ParseTree,
   renderToText,
   traverseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
 import {
   isLocalURL,
   resolveMarkdownLink,
 } from "@silverbulletmd/silverbullet/lib/resolve";
-import { indexObjects, queryLuaObjects } from "./api.ts";
-import { extractFrontMatter } from "./frontmatter.ts";
+import { queryLuaObjects } from "./api.ts";
+import type { FrontMatter } from "./frontmatter.ts";
 import { updateITags } from "./tags.ts";
 import {
   getNameFromPath,
@@ -23,7 +23,10 @@ import {
   wikiLinkRegex,
 } from "../../client/markdown_parser/constants.ts";
 import { lua, space } from "@silverbulletmd/silverbullet/syscalls";
-import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
+import type {
+  ObjectValue,
+  PageMeta,
+} from "@silverbulletmd/silverbullet/type/index";
 
 export type LinkObject = ObjectValue<
   {
@@ -35,7 +38,6 @@ export type LinkObject = ObjectValue<
     pos: number;
     snippet: string;
     alias?: string;
-    asTemplate: boolean;
     toFile?: never;
   } | {
     // Document Link
@@ -46,7 +48,6 @@ export type LinkObject = ObjectValue<
     pos: number;
     snippet: string;
     alias?: string;
-    asTemplate: boolean;
     toPage?: never;
   }
 >;
@@ -64,15 +65,20 @@ export type AspiringPageObject = ObjectValue<{
   name: string;
 }>;
 
-export async function indexLinks({ name, tree }: IndexTreeEvent) {
-  const links: ObjectValue<LinkObject>[] = [];
-  const frontmatter = await extractFrontMatter(tree);
-  const pageText = renderToText(tree);
+export async function indexLinks(
+  pageMeta: PageMeta,
+  frontmatter: FrontMatter,
+  tree: ParseTree,
+  pageText: string,
+) {
+  const objects: ObjectValue<any>[] = [];
 
   // If this is a meta template page, we don't want to index links
   if (frontmatter.tags?.find((t) => t.startsWith("meta/template"))) {
-    return;
+    return [];
   }
+
+  const name = pageMeta.name;
 
   traverseTree(tree, (n): boolean => {
     // Index [[WikiLinks]]
@@ -88,7 +94,6 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
         snippet: extractSnippetAroundIndex(pageText, pos),
         pos,
         page: name,
-        asTemplate: false,
       };
 
       const ref = parseToRef(url);
@@ -105,7 +110,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
         link.alias = wikiLinkAlias.children![0].text!;
       }
       updateITags(link, frontmatter);
-      links.push(link);
+      objects.push(link);
       return true;
     }
 
@@ -135,7 +140,6 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
         snippet: extractSnippetAroundIndex(pageText, pos),
         pos,
         page: name,
-        asTemplate: false,
       };
 
       const ref = parseToRef(url);
@@ -152,7 +156,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
         link.alias = alias;
       }
       updateITags(link, frontmatter);
-      links.push(link);
+      objects.push(link);
       return true;
     }
 
@@ -176,7 +180,6 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
             page: name,
             snippet: extractSnippetAroundIndex(pageText, pos),
             pos: pos,
-            asTemplate: false,
           };
 
           const ref = parseToRef(stringRef);
@@ -193,24 +196,19 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
             link.alias = alias;
           }
           updateITags(link, frontmatter);
-          links.push(link);
+          objects.push(link);
         }
       }
     }
     return false;
   });
 
-  // console.log("Found", links, "page link(s)");
-  if (links.length > 0) {
-    await indexObjects(name, links);
-  }
-
   // Now let's check which are aspiring pages
-  const aspiringPages: ObjectValue<AspiringPageObject>[] = [];
-  for (const link of links) {
+  for (const link of objects.slice()) {
     if (link.toPage) {
+      // TODO: Optimize fileExists to be more efficient
       if (!await space.fileExists(`${link.toPage}.md`)) {
-        aspiringPages.push({
+        objects.push({
           ref: `${name}@${link.pos}`,
           tag: "aspiring-page",
           page: name,
@@ -228,9 +226,7 @@ export async function indexLinks({ name, tree }: IndexTreeEvent) {
     }
   }
 
-  if (aspiringPages.length > 0) {
-    await indexObjects(name, aspiringPages);
-  }
+  return objects;
 }
 
 export async function getBackLinks(

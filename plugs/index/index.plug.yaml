@@ -67,47 +67,13 @@ functions:
     events:
       - page:index
 
-  indexParagraphs:
-    path: "./paragraph.ts:indexParagraphs"
-    events:
-      - page:index
-
-  # Backlinks
-  indexLinks:
-    path: "./page_links.ts:indexLinks"
-    events:
-      - page:index
-
-  # Tables
-  indexTables:
-    path: "table.ts:indexTables"
-    events:
-      - page:index
-
   # Headers
   headerComplete:
     path: header.ts:headerComplete
     events:
       - editor:complete
 
-  # Lua
-  indexSpaceLua:
-    path: script.ts:indexSpaceLua
-    events:
-      - page:index
-
-  # Style
-  indexSpaceStyle:
-    path: style.ts:indexSpaceStyle
-    events:
-      - page:index
-
   # Hashtags
-  indexTags:
-    path: tags.ts:indexTags
-    events:
-      - page:index
-
   tagComplete:
     path: tags.ts:tagComplete
     events:
@@ -136,6 +102,8 @@ functions:
       requireMode: rw
       requireEditor: page
 
+  # Refactoring Commands
+
   renameDocumentCommand:
     path: "./refactor.ts:renameDocumentCommand"
     command:
@@ -143,7 +111,6 @@ functions:
       requireMode: rw
       requireEditor: notpage
 
-  # Refactoring Commands
   extractToPageCommand:
     path: ./refactor.ts:extractToPageCommand
     command:
@@ -437,8 +404,6 @@ config:
           type: number
         alias:
           type: string
-        asTemplate:
-          type: boolean
     header:
       type: object
       properties:

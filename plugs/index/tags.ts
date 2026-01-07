@@ -1,6 +1,5 @@
-import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
-import { extractFrontMatter, type FrontMatter } from "./frontmatter.ts";
-import { indexObjects, queryLuaObjects } from "./api.ts";
+import type { FrontMatter } from "./frontmatter.ts";
+import { queryLuaObjects } from "./api.ts";
 import {
   addParentPointers,
   collectNodesOfType,
@@ -9,7 +8,10 @@ import {
   replaceNodesMatching,
   traverseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
+import type {
+  ObjectValue,
+  PageMeta,
+} from "@silverbulletmd/silverbullet/type/index";
 import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
 import { tagRegex } from "../../client/markdown_parser/constants.ts";
 import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
@@ -20,10 +22,17 @@ export type TagObject = ObjectValue<{
   parent: string;
 }>;
 
-export async function indexTags({ name, tree }: IndexTreeEvent) {
+/**
+ * Handles indexing of page, item and task level tags, data tags are handled in data.ts
+ */
+export function indexTags(
+  pageMeta: PageMeta,
+  frontmatter: FrontMatter,
+  tree: ParseTree,
+) {
   const tags = new Set<string>(); // name:parent
   addParentPointers(tree);
-  const pageTags: string[] = extractFrontMatter(tree).tags || [];
+  const pageTags: string[] = frontmatter.tags || [];
   for (const pageTag of pageTags) {
     tags.add(`${pageTag}:page`);
   }
@@ -40,20 +49,16 @@ export async function indexTags({ name, tree }: IndexTreeEvent) {
       tags.add(`${tagName}:page`);
     }
   });
-  // console.log("Indexing these tags", tags);
-  await indexObjects<TagObject>(
-    name,
-    [...tags].map((tag) => {
-      const [tagName, parent] = tag.split(":");
-      return {
-        ref: tag,
-        tag: "tag",
-        name: tagName,
-        page: name,
-        parent,
-      };
-    }),
-  );
+  return Promise.resolve([...tags].map((tag) => {
+    const [tagName, parent] = tag.split(":");
+    return {
+      ref: tag,
+      tag: "tag",
+      name: tagName,
+      page: pageMeta.name,
+      parent,
+    };
+  }));
 }
 
 export async function tagComplete(completeEvent: CompleteEvent) {

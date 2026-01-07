@@ -24,9 +24,10 @@ export async function reindexSpace() {
 
   console.log("Queing", files.length, "pages to be indexed.");
   // Queue all file names to be indexed
+  const startTime = Date.now();
   await mq.batchSend("indexQueue", files.map((file) => file.name));
   await mq.awaitEmptyQueue("indexQueue");
-  console.log("And done with full index!");
+  console.log("Done with full index after", Date.now() - startTime, "ms");
 }
 
 setTimeout(updateIndexProgressInUI, uiUpdateInterval);
@@ -85,6 +86,7 @@ async function indexFile(path: string) {
     await events.dispatchEvent("page:index", {
       name,
       tree,
+      text,
     } as IndexTreeEvent);
   } else {
     await events.dispatchEvent("document:index", path);
