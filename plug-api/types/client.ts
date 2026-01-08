@@ -49,11 +49,10 @@ export type UploadFile = {
 
 export type AppEvent =
   | "page:click"
-  | "editor:complete"
   | "minieditor:complete"
   | "slash:complete"
+  | "editor:complete"
   | "editor:lint"
-  | "page:load"
   | "editor:init"
   | "editor:pageLoaded" // args: pageName, previousPage, isSynced
   | "editor:pageReloaded"
@@ -64,6 +63,8 @@ export type AppEvent =
   | "editor:documentSaving"
   | "editor:documentSaved"
   | "editor:modeswitch"
+  | "editor:fold"
+  | "editor:unfold"
   | "plugs:loaded"
   | "cron:secondPassed"
   | "hooks:renderTopWidgets"

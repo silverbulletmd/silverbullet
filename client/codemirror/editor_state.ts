@@ -15,11 +15,13 @@ import {
 } from "@codemirror/autocomplete";
 import {
   codeFolding,
+  foldEffect,
   indentOnInput,
   indentUnit,
   LanguageDescription,
   LanguageSupport,
   syntaxHighlighting,
+  unfoldEffect,
 } from "@codemirror/language";
 import { Compartment, EditorState, type Extension } from "@codemirror/state";
 import {
@@ -274,6 +276,18 @@ export function createEditorState(
       ViewPlugin.fromClass(
         class {
           update(update: ViewUpdate): void {
+            if (update.transactions.length > 0) {
+              for (const tr of update.transactions) {
+                for (const e of tr.effects) {
+                  if (e.is(foldEffect)) {
+                    client.dispatchAppEvent("editor:fold", e.value);
+                  }
+                  if (e.is(unfoldEffect)) {
+                    client.dispatchAppEvent("editor:unfold", e.value);
+                  }
+                }
+              }
+            }
             if (update.docChanged) {
               // Find if there's a history isolate in the transaction, if so it came from a local reload and we don't do anything
               if (
