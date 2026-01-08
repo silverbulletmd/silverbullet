@@ -8,8 +8,8 @@ While the project is largely a labor love, and a lot of volunteers contribute si
 # How?
 There are roughly two ways to financially support the project at the moment:
 
+* [LiberaPay](https://liberapay.com/zef) (preferred)
 * [Github sponsors](https://github.com/sponsors/silverbulletmd)
-* [LiberaPay](https://liberapay.com/zef)
 
 If you are interested in becoming a corporate sponsor, reach out to [Zef Hemel directly](mailto:zef@zef.me) to discuss options.
 

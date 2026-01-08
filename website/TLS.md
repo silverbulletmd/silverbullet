@@ -1,8 +1,6 @@
 SilverBullet relies on a few advanced browser features to operate (specifically service workers, crypto APIs and clipboard APIs). These features are _only_ enabled by browsers when websites are accessed via `http://localhost` or via [TLS](https://en.wikipedia.org/wiki/Transport_Layer_Security), that is — a `https://` URL.
 
-This is not a limitation imposed by SilverBullet, it is a restriction encoded in web standards. You may not like this restriction, but it is what it is.
-
-Therefore, to use SilverBullet you need to either access it via `localhost` or put a TLS certificate on it.
+This is not a limitation imposed by SilverBullet, it is a restriction encoded in web standards. Therefore, to use SilverBullet you need to either access it via `localhost` or put a TLS certificate on it.
 
 # localhost (http)
 You can do this in a few ways:
@@ -76,30 +74,3 @@ Restart Caddy and access SilverBullet via `https://silverbullet.mydomain.com`. O
 
 ## Self-signed certificate
 It is possible to self sign certificates and use those. Search the Internet for instructions on how to do this, [here is website that describes the way it works and how to do it](https://www.ssldragon.com/blog/what-is-self-signed-certificate/).
-
-# Blocking sourcemaps
-
-SilverBullet production builds include sourcemaps (`.js.map` files) to help with debugging in browser DevTools. These files expose the original source code, which some users may prefer not to serve publicly.
-
-If you're using a reverse proxy, you can block access to sourcemaps:
-
-## Caddy
-Add a matcher and respond block to your Caddyfile:
-
-```
-silverbullet.mydomain.com {
-    @sourcemaps path *.js.map
-    respond @sourcemaps 404
-
-    reverse_proxy localhost:3000
-}
-```
-
-## Nginx
-```nginx
-location ~* \.js\.map$ {
-    return 404;
-}
-```
-
-This will return a 404 for any `.js.map` file requests while still allowing normal SilverBullet operation.

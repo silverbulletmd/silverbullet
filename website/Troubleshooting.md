@@ -3,10 +3,13 @@ Running into trouble? Sorry to hear it. Let’s figure this out.
 Here are some things you can try when things don’t work, if you’re still stuck — ask the [community for help](https://community.silverbullet.md/).
 
 # Logs
-SilverBullet logs in two places: in your browser and on the server. Most valuable logs are likely going to be in your browser’s logs:
+SilverBullet logs can be scattered across places. Most valuable logs are likely going to be in your browser’s logs, so especially if you’re a power user, get comfortable opening your JavaScript console.
 
 * Client logs: Check your browser’s JavaScript console.
 * Server logs: Server logs are written to the standard output of the server process. Have a look there too, to see if anything obvious is going on.
+* Reverse proxy logs: if you use some sort of reverse proxy, check those as well. Reverse proxies may do some surprising stuff, like block certain requests.
+
+Watch these logs to see if you see anything suspicious.
 
 # Disable features
 Depending on the situation you may (temporarily) disable various client features by appending any of the following to any SilverBullet URL (e.g. `http://localhost:3000/?disableSpaceLua=1`):

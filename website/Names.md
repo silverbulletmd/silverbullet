@@ -22,3 +22,6 @@ Names _must_ also follow certain rules:
 - “.foo”
 - “foo//bar”
 - “foo/../bar”
+
+# Special characters
+Certain HTTP reverse proxies may block “suspicious” characters (such as `?`, `#` and `;`) by default, including Traefik, [see this thread](https://community.silverbullet.md/t/traefik-proxied-setups-block-page-names-with-fix/3724/2) on how to work around this.

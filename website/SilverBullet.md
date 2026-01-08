@@ -1,7 +1,7 @@
 # Introduction
 SilverBullet is a [[Programmable]], [[Private]], [[Browser]]-based, [[Open Source]], [[Self Hosted]], [[Personal]] [[Knowledge Management]] [[Platform]].
 
-_Yowza!_ That surely is a lot of adjectives to describe a [[Markdown]] editor programmable with [[Lua]].
+_Yowza!_ That surely is a lot of adjectives to describe a browser-based [[Markdown]] editor programmable with [[Lua]].
 
 Let’s get more specific.
 
@@ -11,7 +11,7 @@ If you are the **writer** type, you’ll appreciate SilverBullet as a clean [[Ma
 
 And if you are comfortable **programming** a little bit — now we’re really talking. You will love _dynamically generating content_ with [[Space Lua]] (SilverBullet’s [[Lua]] dialect), or to use it to create custom [[Command|Commands]], [[Page Template|Page Templates]] or [[Space Lua/Widget|Widgets]].
 
-# Programmable notes?
+# Programmable notes
 Dynamically generating content, _programmable notes_... why would you want that, and how does it work?
 
 Let’s say you have documented a set of product features in individual pages that you’ve [[Tags|tagged]] with a #feature tag, and annotated with a few custom [[Frontmatter]] [[Attribute|Attributes]].
@@ -52,15 +52,20 @@ ${embed.youtube "https://www.youtube.com/watch?v=mik1EbTshX4"}
 
 Want to see even more? Here is a whole [playlist with instruction videos](https://www.youtube.com/watch?v=bb1USz_cEBY&list=PLxFAb_vXRcEp4465MVI6Ha9wzNiX5VevQ) that go more in depth.
 
-# Installing
-As mentioned, SilverBullet is a [[Self Hosted]] web application. This is great if you care about [[Data Sovereignty]], but it does mean you need to install it on a server yourself. Perhaps you do this on a Raspberry Pi you didn’t have a use for, or a VPS somewhere in the cloud. SilverBullet is distributed as a single self-contained server [[Install/Binary]] or [[Install/Docker]] container.
+# [[Install]]
+As mentioned, SilverBullet is a [[Self Hosted]] web application. This is great if you care about [[Data Sovereignty]], but it does mean you need to [[Install]] it on a server yourself. Perhaps you do this on a Raspberry Pi you didn’t have a use for, or a VPS somewhere in the cloud. SilverBullet is distributed as a single self-contained server [[Install/Binary]] or [[Install/Docker]] container.
 
 While this is a bit more complicated to set up than simply downloading desktop app or signing up for an account with some online service, self hosting is a path to both [[Data Sovereignty]] and to access your content from any device with a modern [[Browser]].
 
+Ready? Proceed to [[Install]].
+
+# [[Architecture]]
 The SilverBullet client is built as a [[Local First]], [[PWA|Progressive Web Application]], syncing all your content into your browser’s local storage, enabling **instant access** to your entire space whether you are **online** or **offline**. Simply opt to “Install SilverBullet” from your browser (in any Chrome-based browser), add it to your Dock or home screen (Safari and Android), and voila: SilverBullet becomes indistinguishable from a regular desktop or mobile app. You can try it right here on silverbullet.md.
 ![[pwa-screenshot.png]]
 
 Unplug your (hypothetical) network cable, and everything still works!
+
+Learn more about SilverBullet’s technical [[Architecture]].
 
 # Project status
 SilverBullet has been in development since early 2022, but is ever evolving. The current iteration is **SilverBullet v2**. We had a little bit of a reboot, rebuilding some of the foundations, and replacing some of the previous ([v1](https://v1.silverbullet.md)) features. 
