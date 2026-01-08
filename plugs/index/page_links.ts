@@ -228,6 +228,26 @@ export async function indexLinks(
   return objects;
 }
 
+/**
+ * Collects wiki links from a tree
+ * @param n
+ * @return found links
+ */
+export function collectPageLinks(n: ParseTree): string[] {
+  const links = new Set<string>();
+  traverseTree(n, (n) => {
+    if (n.type === "WikiLink") {
+      links.add(findNodeOfType(n, "WikiLinkPage")!.children![0].text!);
+      return true;
+    } else if (n.type === "OrderedList" || n.type === "BulletList") {
+      // Don't traverse into sub-lists
+      return true;
+    }
+    return false;
+  });
+  return [...links];
+}
+
 export async function getBackLinks(
   name: string,
 ): Promise<LinkObject[]> {

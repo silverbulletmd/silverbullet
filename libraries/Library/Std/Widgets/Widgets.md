@@ -238,9 +238,8 @@ function widgets.linkedTasks(pageName)
   pageName = pageName or editor.getCurrentPage()
   local tasks = query[[
     from index.tag "task"
-    where not _.done
-      and string.find(_.name, "[[" .. pageName .. "]]", 1, true)
-    order by page
+    where not _.done and table.includes(_.ilinks, pageName)
+    order by _.page
   ]]
   local md = ""
   if #tasks > 0 then

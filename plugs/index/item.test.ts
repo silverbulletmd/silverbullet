@@ -13,6 +13,8 @@ const itemsMd = `
 * [x] Task 2
 * Item 2 #tag4
   * [ ] Sub task
+* [[link]]
+  * Child second [[link 2|alias]]
 `;
 
 Deno.test("Test item indexing", async () => {
@@ -28,6 +30,7 @@ Deno.test("Test item indexing", async () => {
     perm: "rw",
   };
   const items = await indexItems(pageMeta, frontmatter, tree);
+  assertEquals(items.length, 9);
   // Test regular items
   assertEquals(items[0].name, "Item 1");
   assertEquals(items[0].age, 100);
@@ -62,4 +65,9 @@ Deno.test("Test item indexing", async () => {
   assertEquals(items[6].done, false);
   assertEquals(items[6].parent, items[5].ref);
   assertEquals(new Set(items[6].itags), new Set(["task", "tag4"]));
+
+  assertEquals(items[7].links, ["link"]);
+  assertEquals(items[7].ilinks, ["link"]);
+  assertEquals(items[8].links, ["link 2"]);
+  assertEquals(new Set(items[8].ilinks), new Set(["link", "link 2"]));
 });

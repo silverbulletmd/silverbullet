@@ -13,20 +13,7 @@ import type {
 } from "@silverbulletmd/silverbullet/type/index";
 import { system } from "@silverbulletmd/silverbullet/syscalls";
 import { cleanAttributes, collectAttributes } from "./attribute.ts";
-
-export type TaskObject = ObjectValue<
-  {
-    page: string;
-    pos: number;
-    name: string;
-    text: string;
-    done: boolean;
-    state: string;
-    deadline?: string;
-  } & Record<string, any>
->;
-
-const completeStates = ["x", "X"];
+import { collectPageLinks } from "./page_links.ts";
 
 export type ItemObject = ObjectValue<
   {
@@ -34,8 +21,20 @@ export type ItemObject = ObjectValue<
     name: string;
     text: string;
     pos: number;
+    links?: string[];
+    ilinks?: string[];
   } & Record<string, any>
 >;
+export type TaskObject = ObjectValue<
+  & ItemObject
+  & {
+    done: boolean;
+    state: string;
+  }
+  & Record<string, any>
+>;
+
+const completeStates = ["x", "X"];
 
 export async function indexItems(
   pageMeta: PageMeta,
@@ -112,9 +111,9 @@ export function extractItemFromNode(
   }
 
   // Now let's extract tags and attributes
-
   const tags = collectTags(itemNode);
   const attributes = collectAttributes(itemNode);
+  const links = collectPageLinks(itemNode);
 
   item.text = renderToText(nameNode).trim();
 
@@ -125,6 +124,11 @@ export function extractItemFromNode(
 
   if (tags.length > 0) {
     item.tags = tags;
+  }
+
+  if (links.length > 0) {
+    item.links = links;
+    item.ilinks = links;
   }
 
   for (const [key, value] of Object.entries(attributes)) {
@@ -166,6 +170,17 @@ export function enrichItemFromParents(
         ...(parentItem.itags!.filter((t) => !["item", "task"].includes(t))),
       ]),
     ];
+
+    // And links
+    const ilinks = [
+      ...new Set([
+        ...item.ilinks || [],
+        ...parentItem.ilinks || [],
+      ]),
+    ];
+    if (ilinks.length > 0) {
+      item.ilinks = ilinks;
+    }
 
     parentItemNode = findParentMatching(
       parentItemNode,
