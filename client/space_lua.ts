@@ -60,6 +60,7 @@ export class SpaceLuaEnvironment {
           }
           console.error(
             `Error evaluating script: ${e.message} for script: ${script.script}`,
+            e,
           );
         }
       }

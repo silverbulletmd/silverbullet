@@ -1932,30 +1932,38 @@ export function evalStatement(
               for (let i = 0; i < fi.names.length; i++) {
                 localEnv.setLocal(fi.names[i], iterResult.values[i]);
               }
-              const r = evalStatement(fi.block, localEnv, sf, returnOnReturn);
-              if (isPromise(r)) {
-                return (r as Promise<any>).then((res) => {
-                  if (isGotoSignal(res)) {
-                    return res;
-                  }
-                  if (res !== undefined) {
-                    return res;
-                  }
-                  return runAsync();
-                }).catch((e: any) => {
-                  if (e instanceof LuaBreak) {
-                    return;
-                  }
-                  throw e;
-                });
-              } else {
-                if (isGotoSignal(r)) {
-                  return r;
-                }
-                if (r !== undefined) {
-                  return r;
+              try {
+                const r = evalStatement(fi.block, localEnv, sf, returnOnReturn);
+                if (isPromise(r)) {
+                  return (r as Promise<any>).then((res) => {
+                    if (isGotoSignal(res)) {
+                      return res;
+                    }
+                    if (res !== undefined) {
+                      return res;
+                    }
+                    return runAsync();
+                  }).catch((e: any) => {
+                    if (e instanceof LuaBreak) {
+                      return;
+                    }
+                    throw e;
+                  });
                 } else {
-                  return runAsync();
+                  if (isGotoSignal(r)) {
+                    return r;
+                  }
+                  if (r !== undefined) {
+                    return r;
+                  } else {
+                    return runAsync();
+                  }
+                }
+              } catch (e: any) {
+                if (e instanceof LuaBreak) {
+                  return;
+                } else {
+                  throw e;
                 }
               }
             });

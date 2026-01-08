@@ -15,6 +15,24 @@ async function evalBlock(code: string, env?: LuaEnv) {
   return base;
 }
 
+Deno.test("For loops: inner break", async () => {
+  const env = new LuaEnv(luaBuildStandardEnv());
+  await evalBlock(
+    `
+    local fruits = {"apple", "banana", "cherry"}
+    local result = {}
+    found = 0
+    for index, fruit in ipairs(fruits) do
+      table.insert(result, fruit)
+      found = found + 1
+      break
+    end
+    `,
+    env,
+  );
+  assertEquals(env.get("found"), 1);
+});
+
 Deno.test("Nested for loops: inner break (sync body)", async () => {
   const env = new LuaEnv(luaBuildStandardEnv());
   await evalBlock(
