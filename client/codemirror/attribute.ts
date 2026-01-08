@@ -24,8 +24,6 @@ export function attributePlugin() {
           attributeText.length - 1,
         ).trim();
 
-        console.log("Found an attribute", attributeName, attributeValue);
-
         // Wrap the tag in html anchor element
         widgets.push(
           Decoration.mark({
