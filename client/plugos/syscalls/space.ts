@@ -15,6 +15,12 @@ export function spaceReadSyscalls(client: Client): SysCallMapping {
     "space.readPage": async (_ctx, name: string): Promise<string> => {
       return (await client.space.readPage(name)).text;
     },
+    "space.readPageWithMeta": async (
+      _ctx,
+      name: string,
+    ): Promise<{ text: string; meta: PageMeta }> => {
+      return await client.space.readPage(name);
+    },
     "space.pageExists": (_ctx, name: string): boolean => {
       return client.clientSystem.allKnownFiles.has(name + ".md");
     },
@@ -59,9 +65,19 @@ export function spaceReadSyscalls(client: Client): SysCallMapping {
     "space.readFile": async (_ctx, name: string): Promise<Uint8Array> => {
       return (await client.space.spacePrimitives.readFile(name)).data;
     },
+    "space.readFileWithMeta": async (
+      _ctx,
+      name: string,
+    ): Promise<{ data: Uint8Array; meta: FileMeta }> => {
+      return await client.space.spacePrimitives.readFile(name);
+    },
     "space.fileExists": async (_ctx, name: string): Promise<boolean> => {
-      // If we have a snapshot, let's use that, it's faster
-      if (!client.eventedSpacePrimitives.isSnapshotEmpty()) {
+      // If a full sync has successfully completed (so we know what files exist)
+      // and we have a snapshot, let's use the snapshot
+      if (
+        client.fullSyncCompleted &&
+        !client.eventedSpacePrimitives.isSnapshotEmpty()
+      ) {
         return !!client.eventedSpacePrimitives.getSnapshot()[name];
       }
       try {

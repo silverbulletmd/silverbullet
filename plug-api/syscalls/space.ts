@@ -50,6 +50,19 @@ export function readPage(
 }
 
 /**
+ * Read a page from the space returning both its text and meta data
+ * @param name the name of the page to read
+ * @returns
+ *  - text: page text as a string
+ *  - meta: pageMeta
+ */
+export function readPageWithMeta(
+  name: string,
+): Promise<{ text: string; meta: PageMeta }> {
+  return syscall("space.readPageWithMeta", name);
+}
+
+/**
  * Write a page to the space.
  * @param name the name of the page to write
  * @param text the text of the page to write
@@ -141,6 +154,19 @@ export function listFiles(): Promise<FileMeta[]> {
  */
 export function readFile(name: string): Promise<Uint8Array> {
   return syscall("space.readFile", name);
+}
+
+/**
+ * Read a file from the space returning both its data and meta data
+ * @param name the name of the page to read
+ * @returns
+ *  - data: file content
+ *  - meta: pageMeta
+ */
+export function readFileWithMeta(
+  name: string,
+): Promise<{ data: Uint8Array; meta: FileMeta }> {
+  return syscall("space.readFileWithMeta", name);
 }
 
 /**
