@@ -83,8 +83,9 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
       }
       try {
         await this.syncSpace();
-      } catch {
-        // Error communication is happening in syncSpace
+      } catch (e: any) {
+        // User error communication is happening in syncSpace
+        console.error("Sync space error", e.message);
       }
       await sleep(syncInterval * 1000 + jitter());
     }
