@@ -351,7 +351,9 @@ export class Client {
 
     const emptyQueueHandler = async () => {
       await this.clientSystem.setIndexOngoing(false);
-      if (!await this.clientSystem.hasInitialIndexCompleted()) {
+      if (
+        startTime !== -1 && !await this.clientSystem.hasInitialIndexCompleted()
+      ) {
         // Indexing has just finished for the first time
         console.info(
           "Initial index complete after",
