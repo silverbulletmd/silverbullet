@@ -1,4 +1,4 @@
-The most straightforward way to add TLS on top of SilverBulet is to use [Caddy](https://caddyserver.com/). Caddy can automatically provision an SSL certificate for you.
+The most straightforward way to add TLS on top of SilverBullet is to use [Caddy](https://caddyserver.com/). Caddy can automatically provision an SSL certificate for you.
 
 When you’re deploying on a public server accessible to the Internet, you can do this as follows:
 
