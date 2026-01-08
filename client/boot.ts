@@ -31,8 +31,11 @@ safeRun(async () => {
   let config: Config | undefined;
   // Placeholder proxy for Client object to be swapped in later
   const clientProxy = new BoxProxy({});
+  let bootstrapLuaScriptPages: string[] = [];
+  // Try loading config and scripts
   try {
-    const [configJSONText, ...bootstrapLuaScriptPages] = await Promise
+    let configJSONText: string;
+    [configJSONText, ...bootstrapLuaScriptPages] = await Promise
       .all([
         cachedFetch(".config"),
         // Some minimal bootstrap Lua: schema definition
@@ -43,22 +46,44 @@ safeRun(async () => {
         cachedFetch(".fs/CONFIG.md"),
       ]);
     bootConfig = JSON.parse(configJSONText);
-    const bootstrapLuaCodes = bootstrapLuaScriptPages.map(
-      extractSpaceLuaFromPageText,
-    );
-    // Append and evaluate
-    config = await loadConfig(
-      bootstrapLuaCodes.join("\n"),
-      clientProxy.buildProxy(),
-    );
   } catch (e: any) {
-    console.error("Failed to process config", e.message);
     if (e.message === offlineError.message) {
       alert(
         "Could not process config and no cached copy, please connect to the Internet",
       );
+      // Not recoverable
+      return;
     }
-    return;
+  }
+  // Concatenate and evaluate
+  try {
+    config = await loadConfig(
+      bootstrapLuaScriptPages.map(
+        extractSpaceLuaFromPageText,
+      ).join("\n"),
+      clientProxy.buildProxy(),
+    );
+  } catch (e: any) {
+    alert(
+      `Failed to run Space Lua code (likely CONFIG), will attempt to boot without. Error: ${e.message}`,
+    );
+    console.error("Error evaluating Space Lua script on boot:", e);
+    try {
+      config = await loadConfig(
+        // Everything but CONFIG (at the end)
+        bootstrapLuaScriptPages.slice(0, bootstrapLuaScriptPages.length - 1)
+          .map(
+            extractSpaceLuaFromPageText,
+          ).join("\n"),
+        clientProxy.buildProxy(),
+      );
+    } catch (e: any) {
+      console.error("Boot error", e);
+      alert(
+        "Could not load boot scripts, even without CONFIG, check your browser's logs",
+      );
+      return;
+    }
   }
 
   let encryptionKey: CryptoKey | undefined;
