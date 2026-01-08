@@ -183,6 +183,9 @@ export const tableApi = new LuaTable({
       criteriaFn: ILuaFunction,
       fromIndex = 1,
     ) => {
+      if (!tbl) {
+        return null;
+      }
       const startIndex = fromIndex < 1 ? 1 : fromIndex;
       for (let i = startIndex; i <= tbl.length; i++) {
         const val = await luaGet(tbl, i, sf.astCtx ?? null, sf);
