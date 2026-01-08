@@ -70,6 +70,11 @@ export class LuaWidget extends WidgetType {
     wrapperSpan.appendChild(innerDiv);
     const cacheItem = this.client.getWidgetCache(this.cacheKey);
     if (cacheItem) {
+      if (cacheItem.block) {
+        innerDiv.className += " sb-lua-directive-block";
+      } else {
+        innerDiv.className += " sb-lua-directive-inline";
+      }
       // This is to make the initial render faster, will later be replaced by the actual content
       innerDiv.replaceChildren(
         this.wrapHtml(!!cacheItem.block, cacheItem.html, cacheItem.copyContent),
