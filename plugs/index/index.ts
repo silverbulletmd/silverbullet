@@ -5,7 +5,6 @@ import type {
 import { extractFrontMatter, type FrontMatter } from "./frontmatter.ts";
 import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
 import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
-import { space } from "@silverbulletmd/silverbullet/syscalls";
 import { indexObjects } from "./api.ts";
 import { indexPage as pageIndexPage } from "./page.ts";
 import { indexData } from "./data.ts";
@@ -38,15 +37,14 @@ const allIndexers: IndexerFunction[] = [
   indexTags,
 ];
 
-export async function indexPage({ name, tree, text }: IndexTreeEvent) {
-  const pageMeta = await space.getPageMeta(name);
+export async function indexPage({ name, tree, meta, text }: IndexTreeEvent) {
   const frontmatter = extractFrontMatter(tree);
 
   // console.log("Now going to index page", name);
 
   // Index the page
   const index = await Promise.all(allIndexers.map((indexer) => {
-    return indexer(pageMeta, frontmatter, tree, text);
+    return indexer(meta, frontmatter, tree, text);
   }));
 
   // console.log("Found these objects", index.flat());

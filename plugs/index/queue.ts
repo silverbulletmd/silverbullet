@@ -79,12 +79,13 @@ async function indexFile(path: string) {
     // Page
     const name = path.slice(0, -3);
     // Read and parse the file
-    const text = await space.readPage(name);
+    const { text, meta } = await space.readPageWithMeta(name);
     const tree = await markdown.parseMarkdown(text);
 
     // Emit the event which will be picked up by indexers
     await events.dispatchEvent("page:index", {
       name,
+      meta,
       tree,
       text,
     } as IndexTreeEvent);
