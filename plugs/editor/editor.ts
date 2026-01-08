@@ -3,11 +3,26 @@ import {
   codeWidget,
   editor,
   index,
+  system,
 } from "@silverbulletmd/silverbullet/syscalls";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 
 // Run on "editor:init"
 export async function setEditorMode() {
+  // TODO: Remove at some point: temporary upgrade code
+  const allSyscalls = await system.listSyscalls();
+  const readPageWithMetaCall = allSyscalls.find((sc) =>
+    sc.name === "space.readPageWithMeta"
+  );
+
+  if (!readPageWithMetaCall) {
+    await editor.alert(
+      "Client needs reloading to update the cache, required syscalls are not available in this version. This message may appear a few times. Reloading now.",
+    );
+    editor.reloadUI();
+  }
+  // END
+
   if (await clientStore.get("vimMode")) {
     await editor.setUiOption("vimMode", true);
   }
