@@ -1054,6 +1054,7 @@ export class Client {
 
     // Fetch next page to open
     let doc;
+    let markerIndex = -1;
     try {
       doc = await this.space.readPage(pageName);
     } catch (e: any) {
@@ -1102,6 +1103,13 @@ export class Client {
       if (results.length === 1) {
         doc.text = results[0].text;
         doc.meta.perm = results[0].perm;
+        // check for |^| and remove it; record position to place cursor later
+        const cursorMarker = "|^|";
+        const idx = doc.text.indexOf(cursorMarker);
+        if (idx !== -1) {
+          markerIndex = idx;
+          doc.text = doc.text.slice(0, idx) + doc.text.slice(idx + cursorMarker.length);
+        }
       } else if (results.length > 1) {
         console.error(
           "Multiple responses for editor:pageCreating event, this is not supported",
@@ -1184,6 +1192,22 @@ export class Client {
         this.navigateWithinPage(locationState);
       } catch {
         // We don't really care if this fails.
+      }
+    }
+
+    // If a cursor marker was found for a newly-created page, place the
+    // cursor there now (after navigateWithinPage so it doesn't get
+    // overwritten by default positioning).
+    if (markerIndex !== -1) {
+      try {
+        const pos = Math.max(0, Math.min(markerIndex, this.editorView.state.doc.length));
+        this.editorView.dispatch({
+          selection: { anchor: pos },
+          effects: [EditorView.scrollIntoView(pos, { y: "center" })],
+        });
+        this.editorView.focus();
+      } catch (e) {
+        console.error("Failed to set cursor at cursor marker:", e);
       }
     }
   }
