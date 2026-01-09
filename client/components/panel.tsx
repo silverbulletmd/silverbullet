@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "preact/hooks";
+import { useEffect, useMemo, useRef } from "preact/hooks";
 import type { Client } from "../client.ts";
 import type { PanelConfig } from "../types/ui.ts";
 import { panelHtml } from "./panel_html.ts";
@@ -11,6 +11,10 @@ export function Panel({
   editor: Client;
 }) {
   const iFrameRef = useRef<HTMLIFrameElement>(null);
+
+  const html = useMemo(() => {
+    return panelHtml.replace("{{.HostPrefix}}", document.baseURI);
+  }, []);
 
   function updateContent() {
     if (!iFrameRef.current?.contentWindow) {
@@ -87,7 +91,7 @@ export function Panel({
   return (
     <div className="sb-panel" style={{ flex: config.mode }}>
       <iframe
-        srcDoc={panelHtml}
+        srcDoc={html}
         ref={iFrameRef}
         style={{ visibility: "hidden" }}
         onLoad={() => iFrameRef.current!.style.visibility = "visible"}

@@ -2,7 +2,7 @@ export const panelHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <base target="_top">
+    <base target="_top" href="{{.HostPrefix}}">
     <meta name='color-scheme' content='dark light'>
 <script>
 const pendingRequests = new Map();
