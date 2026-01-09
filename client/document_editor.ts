@@ -218,6 +218,10 @@ export class DocumentEditor {
     script.text = documentEditorJS;
     doc.head.prepend(script);
 
+    const base = doc.createElement("base");
+    base.href = document.baseURI;
+    doc.head.prepend(base);
+
     // This isn't great, but the only way to get the up-to-date theme without
     // using media queries
     const theme = document.querySelector("html")?.getAttribute("data-theme");
