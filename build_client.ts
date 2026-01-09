@@ -1,4 +1,6 @@
 import { copy } from "@std/fs";
+import { dirname } from "@std/path";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
 import sass from "denosass";
@@ -32,6 +34,38 @@ export async function copyAssets(dist: string) {
     overwrite: true,
   });
 
+  let katexCss = "";
+  try {
+    const require = createRequire(import.meta.url);
+    const katexCssPath = require.resolve("katex/dist/katex.min.css");
+    const katexPath = dirname(katexCssPath);
+
+    // Copy Katex fonts
+    await Deno.mkdir(`${dist}/fonts`, { recursive: true });
+    // Copy only woff2 fonts
+    for await (const entry of Deno.readDir(`${katexPath}/fonts`)) {
+      if (entry.isFile && entry.name.endsWith(".woff2")) {
+        await copy(
+          `${katexPath}/fonts/${entry.name}`,
+          `${dist}/fonts/${entry.name}`,
+          { overwrite: true },
+        );
+      }
+    }
+    // Read KaTex css
+    katexCss = Deno.readTextFileSync(katexCssPath);
+  } catch (e: any) {
+    console.warn(
+      `Could not find KaTeX in node_modules, skipping copy: ${e.message}`,
+    );
+  }
+
+  // Remove font fallbacks for woff and ttf
+  katexCss = katexCss.replaceAll(
+    /,\s*url\(fonts\/[^)]+\.(woff|ttf)\)\s*format\(['"]?(woff|truetype)['"]?\)/g,
+    "",
+  );
+
   const compiler = sass(
     Deno.readTextFileSync("client/styles/main.scss"),
     {
@@ -40,7 +74,7 @@ export async function copyAssets(dist: string) {
   );
   await Deno.writeTextFile(
     `${dist}/main.css`,
-    compiler.to_string("expanded") as string,
+    katexCss + "\n" + compiler.to_string("expanded") as string,
   );
 
   // HACK: Patch the JS by removing an invalid regex

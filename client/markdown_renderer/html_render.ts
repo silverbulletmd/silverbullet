@@ -1,4 +1,5 @@
 export const Fragment = "FRAGMENT";
+export const RawHTML = "RAW_HTML";
 
 export type Tag = {
   name: string;
@@ -31,6 +32,9 @@ export function renderHtml(t: Tag | null): string {
   }
   if (typeof t === "string") {
     return htmlEscape(t);
+  }
+  if (t.name === RawHTML && typeof t.body === "string") {
+    return t.body;
   }
   const attrs = t.attrs
     ? " " + Object.entries(t.attrs)

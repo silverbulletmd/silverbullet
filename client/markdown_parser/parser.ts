@@ -368,6 +368,179 @@ export const FrontMatter: MarkdownConfig = {
   }],
 };
 
+export const InlineMath: MarkdownConfig = {
+  defineNodes: [
+    {
+      name: "InlineMath",
+      style: { "InlineMath/...": ct.InlineMathTag },
+    },
+    {
+      name: "InlineMathMark",
+      style: ct.MathMarkTag,
+    },
+    // for some uncommon cases where $$...$$ is used inline and cannot be parsed
+    // by BlockMath. e.g.
+    // The formula is $$E=mc^2$$
+    { name: "InlineBlockMath", block: true, style: ct.BlockMathTag },
+    { name: "InlineBlockMathMark", style: ct.MathMarkTag },
+  ],
+  parseInline: [
+    {
+      name: "InlineMath",
+      parse(cx, next, pos) {
+        // Check for $
+        if (next !== 36 /* '$' */) {
+          return -1;
+        }
+        // If next char is {, it should be LuaDirective
+        if (cx.char(pos + 1) === 123 /* '{' */) {
+          return -1;
+        }
+        // If inline math start with space, ignore
+        if (cx.char(pos + 1) === 32 /* ' ' */) {
+          return -1;
+        }
+
+        // If next char is also $, it should be parsed as InlineBlockMath
+        const isBlockMath = cx.char(pos + 1) === 36 /* '$' */;
+
+        // Search for end delimiter
+        let ptr = isBlockMath ? pos + 2 : pos + 1;
+        const len = cx.end;
+
+        while (ptr < len) {
+          if (cx.char(ptr) === 36 /* '$' */) { // Possible end
+            if (isBlockMath) {
+              // Only if two $ found
+              if (cx.char(ptr + 1) === 36 /* '$' */ && ptr > pos + 2) {
+                return cx.addElement(cx.elt("InlineBlockMath", pos, ptr + 2, [
+                  // Start mark
+                  cx.elt("InlineBlockMathMark", pos, pos + 2),
+                  // End mark
+                  cx.elt("InlineBlockMathMark", ptr, ptr + 2),
+                ]));
+              }
+            } else if (ptr > pos + 1) {
+              // Must be inline math
+
+              // If inline math end with space, ignore
+              if (cx.char(ptr - 1) === 32 /* ' ' */) {
+                ptr++;
+                continue;
+              }
+              return cx.addElement(cx.elt("InlineMath", pos, ptr + 1, [
+                cx.elt("InlineMathMark", pos, pos + 1),
+                cx.elt("InlineMathMark", ptr, ptr + 1),
+              ]));
+            }
+          }
+          if (cx.char(ptr) === 92 /* \ */) {
+            ptr++; // Skip \$
+          }
+          ptr++;
+        }
+
+        return -1;
+      },
+      after: "Emphasis",
+    },
+  ],
+};
+
+/**
+ * block parser for multi-line, e.g.
+ * $$
+ *
+ * \alpha
+ * $$
+ * or
+ * $$\begin{matrix}
+ * a & b
+ * \end{matrix}$$
+ */
+export const BlockMath: MarkdownConfig = {
+  defineNodes: [
+    { name: "BlockMath", block: true, style: ct.BlockMathTag },
+    { name: "BlockMathMark", style: ct.MathMarkTag },
+  ],
+  parseBlock: [
+    {
+      name: "BlockMath",
+      parse: (cx, line) => {
+        const indent = line.text.search(/\S/);
+        // Check if line starts with $$ (ignoring indent)
+        if (indent === -1 || !line.text.slice(indent).startsWith("$$")) {
+          return false;
+        }
+
+        const startPos = cx.parsedPos;
+        // start mark
+        const elts = [
+          cx.elt("BlockMathMark", startPos + indent, startPos + indent + 2),
+        ];
+
+        const trimmedLine = line.text.trimEnd();
+
+        // Check for single line, e.g. $$\alpha$$
+        if (trimmedLine.length > indent + 4 && trimmedLine.endsWith("$$")) {
+          elts.push(
+            cx.elt(
+              "BlockMathMark",
+              startPos + trimmedLine.length - 2,
+              startPos + trimmedLine.length,
+            ),
+          );
+          cx.addElement(
+            cx.elt(
+              "BlockMath",
+              startPos + indent,
+              startPos + trimmedLine.length,
+              elts,
+            ),
+          );
+          cx.nextLine();
+          return true;
+        }
+
+        cx.nextLine();
+        let lastPos = cx.parsedPos;
+
+        while (true) {
+          const currentLineTrimmed = line.text.trimEnd();
+          // Check for single line ending with $$, e.g. $$ or abc$$
+          if (currentLineTrimmed.endsWith("$$")) {
+            elts.push(
+              cx.elt(
+                "BlockMathMark",
+                cx.parsedPos + currentLineTrimmed.length - 2,
+                cx.parsedPos + currentLineTrimmed.length,
+              ),
+            );
+            cx.addElement(
+              cx.elt(
+                "BlockMath",
+                startPos + indent,
+                cx.parsedPos + currentLineTrimmed.length,
+                elts,
+              ),
+            );
+            cx.nextLine();
+            return true;
+          }
+
+          cx.nextLine();
+          if (cx.parsedPos === lastPos) {
+            // EOF
+            return false;
+          }
+          lastPos = cx.parsedPos;
+        }
+      },
+      after: "FencedCode",
+    },
+  ],
+};
+
 export const extendedMarkdownLanguage = markdown({
   extensions: [
     WikiLink,
@@ -383,6 +556,8 @@ export const extendedMarkdownLanguage = markdown({
     TaskDeadline,
     Superscript,
     Subscript,
+    InlineMath,
+    BlockMath,
     {
       props: [
         foldNodeProp.add({

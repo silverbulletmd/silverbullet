@@ -13,6 +13,7 @@ import { fencedCodePlugin } from "./fenced_code.ts";
 import { frontmatterPlugin } from "./frontmatter.ts";
 import { cleanEscapePlugin } from "./escapes.ts";
 import { luaDirectivePlugin } from "./lua_directive.ts";
+import { mathPlugin } from "./math.ts";
 import { hashtagPlugin } from "./hashtag.ts";
 import type { ClickEvent } from "@silverbulletmd/silverbullet/type/client";
 import { attributePlugin } from "./attribute.ts";
@@ -56,5 +57,6 @@ export function cleanModePlugins(client: Client) {
     listBulletPlugin(),
     tablePlugin(client),
     cleanEscapePlugin(),
+    mathPlugin(client),
   ] as Extension[];
 }
