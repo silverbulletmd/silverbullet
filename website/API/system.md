@@ -55,6 +55,15 @@ local mode = system.getMode()
 print("System mode: " .. mode)
 ```
 
+### system.getURLPrefix()
+Returns the prefix set by [[Install/Configuration|SB_URL_PREFIX]] or "/" if the variable isn't set
+
+Example:
+```lua
+local prefix = system.getURLPrefix()
+print("Prefix: " .. prefix)
+```
+
 ### system.getVersion()
 Returns the SilverBullet version.
 

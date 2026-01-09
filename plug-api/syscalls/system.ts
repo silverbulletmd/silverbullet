@@ -62,6 +62,13 @@ export function getMode(): Promise<"ro" | "rw"> {
 }
 
 /**
+ * Returns the prefix set by SB_URL_PREFIX or "/" if the variable isn't set
+ */
+export function getURLPrefix(): Promise<string> {
+  return syscall("system.getURLPrefix");
+}
+
+/**
  * Returns the SilverBullet version
  */
 export function getVersion(): Promise<string> {
