@@ -1,3 +1,4 @@
+import { parseToRef, type Ref } from "@silverbulletmd/silverbullet/lib/ref";
 import type { Client } from "../../client.ts";
 import type { SysCallMapping } from "../system.ts";
 
@@ -15,11 +16,20 @@ export function spaceReadSyscalls(client: Client): SysCallMapping {
     "space.readPage": async (_ctx, name: string): Promise<string> => {
       return (await client.space.readPage(name)).text;
     },
-    "space.readPageWithMeta": async (
+    "space.readPageWithMeta": (
       _ctx,
       name: string,
     ): Promise<{ text: string; meta: PageMeta }> => {
-      return await client.space.readPage(name);
+      return client.space.readPage(name);
+    },
+    "space.readRef": (_ctx, ref: string | Ref): Promise<string> => {
+      if (typeof ref === "string") {
+        ref = parseToRef(ref)!;
+        if (!ref) {
+          throw new Error(`Invalid ref: ${ref}`);
+        }
+      }
+      return client.space.readRef(ref);
     },
     "space.pageExists": (_ctx, name: string): boolean => {
       return client.clientSystem.allKnownFiles.has(name + ".md");

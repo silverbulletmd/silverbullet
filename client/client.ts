@@ -1108,7 +1108,8 @@ export class Client {
         const idx = doc.text.indexOf(cursorMarker);
         if (idx !== -1) {
           markerIndex = idx;
-          doc.text = doc.text.slice(0, idx) + doc.text.slice(idx + cursorMarker.length);
+          doc.text = doc.text.slice(0, idx) +
+            doc.text.slice(idx + cursorMarker.length);
         }
       } else if (results.length > 1) {
         console.error(
@@ -1200,7 +1201,10 @@ export class Client {
     // overwritten by default positioning).
     if (markerIndex !== -1) {
       try {
-        const pos = Math.max(0, Math.min(markerIndex, this.editorView.state.doc.length));
+        const pos = Math.max(
+          0,
+          Math.min(markerIndex, this.editorView.state.doc.length),
+        );
         this.editorView.dispatch({
           selection: { anchor: pos },
           effects: [EditorView.scrollIntoView(pos, { y: "center" })],

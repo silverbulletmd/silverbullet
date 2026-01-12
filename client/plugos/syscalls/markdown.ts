@@ -7,7 +7,6 @@ import {
 import { extendedMarkdownLanguage } from "../../markdown_parser/parser.ts";
 import { expandMarkdown } from "../../markdown_renderer/inline.ts";
 import type { Client } from "../../client.ts";
-import { LuaEnv, LuaStackFrame } from "../../space_lua/runtime.ts";
 import {
   type MarkdownRenderOptions,
   renderMarkdownToHtml,
@@ -51,14 +50,10 @@ export function markdownSyscalls(client: Client): SysCallMapping {
 }
 
 function expandMarkdownWithClient(client: Client, tree: ParseTree) {
-  const globalEnv = client.clientSystem.spaceLuaEnv.env;
-  const tl = new LuaEnv();
-  tl.setLocal("_GLOBAL", globalEnv);
-  const sf = new LuaStackFrame(tl, null);
   return expandMarkdown(
-    client,
+    client.space,
+    client.currentName(),
     tree,
-    globalEnv,
-    sf,
+    client.clientSystem.spaceLuaEnv,
   );
 }

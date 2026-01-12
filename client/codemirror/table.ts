@@ -19,7 +19,6 @@ import {
   resolveMarkdownLink,
 } from "@silverbulletmd/silverbullet/lib/resolve";
 import { expandMarkdown } from "../markdown_renderer/inline.ts";
-import { LuaStackFrame } from "../space_lua/runtime.ts";
 import { attachWidgetEventHandlers } from "./widget_util.ts";
 
 class TableViewWidget extends WidgetType {
@@ -54,14 +53,11 @@ class TableViewWidget extends WidgetType {
       });
     });
 
-    const sf = LuaStackFrame.createWithGlobalEnv(
-      client.clientSystem.spaceLuaEnv.env,
-    );
     expandMarkdown(
-      client,
+      client.space,
+      client.currentName(),
       this.t,
-      client.clientSystem.spaceLuaEnv.env,
-      sf,
+      client.clientSystem.spaceLuaEnv,
     ).then((t) => {
       dom.innerHTML = renderMarkdownToHtml(t, {
         // Annotate every element with its position so we can use it to put

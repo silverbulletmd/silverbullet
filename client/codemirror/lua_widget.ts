@@ -13,7 +13,7 @@ import {
   moveCursorIntoText,
 } from "./widget_util.ts";
 import { expandMarkdown } from "../markdown_renderer/inline.ts";
-import { LuaStackFrame, LuaTable } from "../space_lua/runtime.ts";
+import { LuaTable } from "../space_lua/runtime.ts";
 import {
   isBlockMarkdown,
   jsonToMDTable,
@@ -90,9 +90,10 @@ export class LuaWidget extends WidgetType {
   async renderContent(
     div: HTMLElement,
   ) {
+    const currentName = this.client.currentName();
     let widgetContent = await this.callback(
       this.bodyText,
-      this.client.currentName(),
+      currentName,
     );
     activeWidgets.add(this);
     if (widgetContent === null || widgetContent === undefined) {
@@ -146,14 +147,11 @@ export class LuaWidget extends WidgetType {
         widgetContent.markdown || "",
       );
 
-      const sf = LuaStackFrame.createWithGlobalEnv(
-        client.clientSystem.spaceLuaEnv.env,
-      );
       mdTree = await expandMarkdown(
-        client,
+        client.space,
+        currentName,
         mdTree,
-        client.clientSystem.spaceLuaEnv.env,
-        sf,
+        client.clientSystem.spaceLuaEnv,
       );
       const trimmedMarkdown = renderToText(mdTree).trim();
 

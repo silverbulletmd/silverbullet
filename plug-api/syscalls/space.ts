@@ -5,6 +5,7 @@ import type {
   FileMeta,
   PageMeta,
 } from "../../plug-api/types/index.ts";
+import type { Ref } from "@silverbulletmd/silverbullet/lib/ref";
 
 /**
  * Exposes the space with its pages, documents and plugs.
@@ -154,6 +155,13 @@ export function listFiles(): Promise<FileMeta[]> {
  */
 export function readFile(name: string): Promise<Uint8Array> {
   return syscall("space.readFile", name);
+}
+
+/**
+ * Reads a reference (e.g. page#header or page@20) and returns it as a string
+ */
+export function readRef(ref: string | Ref): Promise<string> {
+  return syscall("space.readRef", ref);
 }
 
 /**

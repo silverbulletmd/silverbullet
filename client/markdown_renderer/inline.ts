@@ -1,41 +1,32 @@
 import {
+  addParentPointers,
   findNodeOfType,
   type ParseTree,
   renderToText,
   replaceNodesMatchingAsync,
-  traverseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import {
-  getNameFromPath,
   getPathExtension,
   isMarkdownPath,
   parseToRef,
-  type Ref,
 } from "@silverbulletmd/silverbullet/lib/ref";
-import {
-  isLocalURL,
-  resolveMarkdownLink,
-} from "@silverbulletmd/silverbullet/lib/resolve";
+import { isLocalURL } from "@silverbulletmd/silverbullet/lib/resolve";
 import { mime } from "mimetypes";
-import type { Client } from "../client.ts";
-import type { LuaEnv, LuaStackFrame } from "../space_lua/runtime.ts";
+import { LuaStackFrame } from "../space_lua/runtime.ts";
 import { parseMarkdown } from "../markdown_parser/parser.ts";
 import { renderExpressionResult } from "./result_render.ts";
 import { parseExpressionString } from "../space_lua/parse.ts";
 import { evalExpression } from "../space_lua/eval.ts";
 import type { LuaExpression } from "../space_lua/ast.ts";
-import { mdLinkRegex, wikiLinkRegex } from "../markdown_parser/constants.ts";
 
 import { fsEndpoint } from "../spaces/constants.ts";
-
-/**
- * Describes the dimensions of a transclusion, if provided through the alias.
- * Can be parsed from the alias using {@link parseDimensionFromAlias}
- */
-export type ContentDimensions = {
-  width?: number;
-  height?: number;
-};
+import {
+  nameFromTransclusion,
+  parseTransclusion,
+  type Transclusion,
+} from "@silverbulletmd/silverbullet/lib/transclusion";
+import type { Space } from "../space.ts";
+import type { SpaceLuaEnvironment } from "../space_lua.ts";
 
 /**
  * Expands custom markdown Lua directives and transclusions into plain markdown
@@ -43,49 +34,48 @@ export type ContentDimensions = {
  * @returns modified mdTree
  */
 export async function expandMarkdown(
-  client: Client,
+  space: Space,
+  pageName: string,
   mdTree: ParseTree,
-  env: LuaEnv,
-  sf: LuaStackFrame,
-  forbiddenPages: Set<string> = new Set(),
+  sle: SpaceLuaEnvironment,
+  processedPages: Set<string> = new Set(),
 ): Promise<ParseTree> {
+  addParentPointers(mdTree);
   await replaceNodesMatchingAsync(mdTree, async (n) => {
     if (n.type === "Image") {
       // Let's scan for ![[embeds]] that are codified as Images, confusingly
       const text = renderToText(n);
 
       const transclusion = parseTransclusion(text);
-      if (!transclusion || forbiddenPages.has(transclusion.url)) {
+      if (!transclusion || processedPages.has(transclusion.url)) {
         return n;
       }
 
-      const result = await inlineContentFromURL(
-        client,
-        transclusion.url,
-        transclusion.alias,
-        transclusion.dimension,
-        transclusion.linktype !== "wikilink",
-      );
+      try {
+        const result = await inlineContentFromURL(space, transclusion);
 
-      // We don't transclude anything that's not markdown
-      if (typeof result !== "string") {
-        return n;
+        // We don't transclude anything that's not markdown
+        if (typeof result !== "string") {
+          return n;
+        }
+
+        // We know it's a markdown page and we know we are transcluding it. "Mark"
+        // it so we won't touch it down the line and cause endless recursion
+        processedPages.add(transclusion.url);
+
+        const tree = parseMarkdown(result);
+
+        // Recursively process
+        return expandMarkdown(
+          space,
+          nameFromTransclusion(transclusion),
+          tree,
+          sle,
+          processedPages,
+        );
+      } catch (e: any) {
+        return parseMarkdown(`**Error:** ${e.message}`);
       }
-
-      // We know it's a markdown page and we know we are transcluding it. "Mark"
-      // it so we won't touch it down the line and cause endless recursion
-      forbiddenPages.add(transclusion.url);
-
-      const tree = parseMarkdown(result);
-
-      // Recursively process
-      return expandMarkdown(
-        client,
-        tree,
-        env,
-        sf,
-        forbiddenPages,
-      );
     } else if (n.type === "LuaDirective") {
       const expr = findNodeOfType(n, "LuaExpressionDirective") as
         | LuaExpression
@@ -96,21 +86,46 @@ export async function expandMarkdown(
       const exprText = renderToText(expr);
 
       try {
+        const sf = LuaStackFrame.createWithGlobalEnv(sle.env);
+
         let result = await evalExpression(
           parseExpressionString(exprText),
-          env,
+          sle.env,
           sf,
         );
 
         if (result?.markdown) {
           result = result.markdown;
         }
-        const markdown = await renderExpressionResult(result);
-        return parseMarkdown(markdown);
+        return parseMarkdown(await renderExpressionResult(result));
       } catch (e: any) {
         // Reduce blast radius and give useful error message
         console.error("Error evaluating Lua directive", exprText, e);
         return parseMarkdown(`**Error:** ${e.message}`);
+      }
+    } else if (n.type === "Task") {
+      // Add a task reference to this based on the current page name if there's not one already
+      const existingLink = findNodeOfType(n, "WikiLink");
+      if (!existingLink) {
+        n.children!.splice(1, 0, {
+          "text": " ",
+        }, {
+          "type": "WikiLink",
+          "children": [
+            {
+              "type": "WikiLinkMark",
+              "children": [{ "text": "[[" }],
+            },
+            {
+              "type": "WikiLinkPage",
+              "children": [{ "text": `${pageName}@${n.parent!.from!}` }],
+            },
+            {
+              "type": "WikiLinkMark",
+              "children": [{ "text": "]]" }],
+            },
+          ],
+        });
       }
     }
   });
@@ -118,86 +133,22 @@ export async function expandMarkdown(
 }
 
 /**
- * Extracts the transclusion from a markdown tree. Right now this is only
- * supported for headers, in which case the Function will extract the header
- * plus all text till the next header
- * @returns Returns null if the header isn't found
- */
-export function extractTransclusion(
-  markdown: string,
-  details: Ref["details"],
-): string | null {
-  if (!details) {
-    return markdown;
-  } else if (details.type !== "header") {
-    return null;
-  }
-
-  const parseTree = parseMarkdown(markdown);
-
-  let from: undefined | number = undefined, to: undefined | number = undefined;
-  traverseTree(parseTree, (subTree) => {
-    // We are done, but we can't properly cancel the traversal
-    if (from !== undefined && to !== undefined) {
-      return true;
-    }
-
-    if (!subTree.type || !subTree.type.startsWith("ATXHeading")) {
-      return false;
-    }
-
-    // We already found the first header
-    if (from !== undefined) {
-      to = subTree.from;
-      return true;
-    }
-
-    const mark = findNodeOfType(subTree, "HeaderMark");
-    if (!mark || mark.from === undefined || mark.to === undefined) {
-      return true;
-    }
-
-    if (
-      renderToText(subTree)
-        .slice(mark.to - mark.from)
-        .trimStart() === details.header.trim()
-    ) {
-      from = subTree.from;
-    }
-
-    // No need to continue into a header
-    return true;
-  });
-
-  // Go till end of file if we can't find a second header
-  to ??= parseTree.to;
-
-  if (from === undefined) {
-    return null;
-  }
-
-  return markdown.slice(from, to);
-}
-
-/**
  * Function to generate HTML or markdown for a ![[<link>]] type transclusion.
- * @param allowExternal In SB currently, wikilinks don't allow external links
- * and markdown links do
- * @returns a string for a markdown transclusion or html for everything else
+ * @param space space object to use to retrieve content (readRef)
+ * @param transclusion transclusion object to process
+ * @returns a string for a markdown transclusion, or html for everything else
  */
 export function inlineContentFromURL(
-  client: Client | undefined,
-  url: string,
-  alias: string,
-  dimension: ContentDimensions | undefined,
-  allowExternal: boolean = true,
+  space: Space,
+  transclusion: Transclusion,
 ): string | HTMLElement | Promise<HTMLElement | string> {
+  const allowExternal = transclusion.linktype !== "wikilink";
   if (!client) {
     return "";
   }
   let mimeType: string | null | undefined;
-  if (!isLocalURL(url) && allowExternal) {
-    // TODO
+  if (!isLocalURL(transclusion.url) && allowExternal) {
+    // Remote URL
     // Realistically we should dertermine the mine type by sending a HEAD
     // request, this poses multiple problems
     // 1. This makes `async` a hard requirement here
@@ -209,43 +160,47 @@ export function inlineContentFromURL(
     //    complete. This could take a noticeable amount of time.
     // For this reason we will stick to doing it the `dumb` way by just getting
     // it from the URL extension
-    const extension = URL.parse(url)?.pathname.split(".").pop();
+    const extension = URL.parse(transclusion.url)?.pathname.split(".").pop();
     if (extension) {
       mimeType = mime.getType(extension);
     }
   } else {
-    const ref = parseToRef(url);
+    const ref = parseToRef(transclusion.url);
     if (!ref) {
-      return `Failed to parse url`;
+      throw Error(`Failed to parse url: ${transclusion.url}`);
     }
 
     mimeType = mime.getType(getPathExtension(ref.path));
   }
 
   if (!mimeType) {
-    return `Failed to determine mime type`;
+    throw Error(`Failed to determine mime type for ${transclusion.url}`);
   }
 
   const style = `max-width: 100%;` +
-    (dimension?.width ? `width: ${dimension.width}px;` : "") +
-    (dimension?.height ? `height: ${dimension.height}px;` : "");
+    (transclusion.dimension?.width
+      ? `width: ${transclusion.dimension.width}px;`
+      : "") +
+    (transclusion.dimension?.height
+      ? `height: ${transclusion.dimension.height}px;`
+      : "");
 
   // If the URL is a local, prefix it with /.fs and encode the : so that it's not interpreted as a protocol
-  const sanitizedFsUrl = isLocalURL(url)
-    ? fsEndpoint.slice(1) + "/" + url.replace(":", "%3A")
-    : url;
+  const sanitizedFsUrl = isLocalURL(transclusion.url)
+    ? fsEndpoint.slice(1) + "/" + transclusion.url.replace(":", "%3A")
+    : transclusion.url;
 
   let result: HTMLElement | string | Promise<string | HTMLElement>;
   if (mimeType.startsWith("image/")) {
     const img = document.createElement("img");
     img.src = sanitizedFsUrl;
-    img.alt = alias;
+    img.alt = transclusion.alias;
     img.style = style;
     result = img;
   } else if (mimeType.startsWith("video/")) {
     const video = document.createElement("video");
     video.src = sanitizedFsUrl;
-    video.title = alias;
+    video.title = transclusion.alias;
     video.controls = true;
     video.autoplay = false;
     video.style = style;
@@ -253,7 +208,7 @@ export function inlineContentFromURL(
   } else if (mimeType.startsWith("audio/")) {
     const audio = document.createElement("audio");
     audio.src = sanitizedFsUrl;
-    audio.title = alias;
+    audio.title = transclusion.alias;
     audio.controls = true;
     audio.autoplay = false;
     audio.style = style;
@@ -267,126 +222,22 @@ export function inlineContentFromURL(
     embed.style = style;
     result = embed;
   } else if (mimeType === "text/markdown") {
-    if (!isLocalURL(url) && allowExternal) {
-      return `Transcluding markdown from external sources is not supported`;
+    if (!isLocalURL(transclusion.url) && allowExternal) {
+      throw Error(`Transcluding markdown from external sources is not allowed`);
     }
 
-    const ref = parseToRef(url);
-
+    const ref = parseToRef(transclusion.url);
     if (!ref || !isMarkdownPath(ref.path)) {
       // We can be fairly sure this can't happen, but just be sure
-      return `Couldn't transclude markdown, invalid path`;
-    }
-
-    // Do a pre-check, because `readPage` is quite heavy
-    if (!client.clientSystem.allKnownFiles.has(ref.path)) {
-      return `Couldn't transclude markdown, page doesn't exist`;
-    }
-
-    result = (async () => {
-      // Don't try catch, we just checked the existence
-      const { text: markdown } = await client.space.readPage(
-        getNameFromPath(ref.path),
+      throw Error(
+        `Couldn't transclude markdown, invalid path: ${transclusion.url}`,
       );
+    }
 
-      const transclusion = extractTransclusion(markdown, ref.details);
-      if (!transclusion) {
-        return `Couldn't extract transclusion from markdown, try removing any headers '\\#' or positions '@' from your link`;
-      }
-
-      return transclusion;
-    })();
+    result = space.readRef(ref);
   } else {
     result = `File has unsupported mimeType: ${mimeType}`;
   }
 
   return result;
-}
-
-/**
- * Parse an alias, possibly containing dimensions into an object
- * @example "alias", "alias|100", "alias|100x200", "100", "100x200"
- */
-export function parseDimensionFromAlias(
-  text: string,
-): { alias: string; dimension?: ContentDimensions } {
-  let alias: string;
-  let dim: ContentDimensions | undefined;
-  if (text.includes("|")) {
-    const [aliasPart, dimPart] = text.split("|");
-    alias = aliasPart;
-    const [width, height] = dimPart.split("x");
-    dim = {};
-    if (width) {
-      dim.width = parseInt(width);
-    }
-    if (height) {
-      dim.height = parseInt(height);
-    }
-  } else if (/^[x\d]/.test(text)) {
-    const [width, height] = text.split("x");
-    dim = {};
-    if (width) {
-      dim.width = parseInt(width);
-    }
-    if (height) {
-      dim.height = parseInt(height);
-    }
-    alias = "";
-  } else {
-    alias = text;
-  }
-
-  return { alias, dimension: dim };
-}
-
-/**
- * Parses a transclusion of the type `![[]]` or `![]()`
- * @param text
- */
-export function parseTransclusion(
-  text: string,
-): {
-  url: string;
-  alias: string;
-  dimension?: ContentDimensions;
-  linktype: "wikilink" | "markdown";
-} | null {
-  let url, alias = undefined;
-  let linktype: "wikilink" | "markdown" = "markdown";
-  // TODO: Take in the tree and use tree nodes to get url and alias (Applies to all regex uses)
-  mdLinkRegex.lastIndex = 0;
-  wikiLinkRegex.lastIndex = 0;
-  let match: RegExpMatchArray | null = null;
-  if ((match = mdLinkRegex.exec(text)) && match.groups) {
-    ({ url, title: alias } = match.groups);
-
-    if (isLocalURL(url)) {
-      url = resolveMarkdownLink(
-        client.currentName(),
-        decodeURI(url),
-      );
-    }
-    linktype = "markdown";
-  } else if ((match = wikiLinkRegex.exec(text)) && match.groups) {
-    ({ stringRef: url, alias } = match.groups);
-    linktype = "wikilink";
-  } else {
-    // We found no match
-    return null;
-  }
-
-  let dimension: ContentDimensions | undefined;
-  if (alias) {
-    ({ alias, dimension: dimension } = parseDimensionFromAlias(alias));
-  } else {
-    alias = "";
-  }
-
-  return {
-    url,
-    alias,
-    dimension,
-    linktype,
-  };
 }

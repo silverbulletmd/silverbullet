@@ -77,6 +77,7 @@
     "@silverbulletmd/silverbullet/lib/attribute": "./plug-api/lib/attribute.ts",
     "@silverbulletmd/silverbullet/lib/limited_map": "./plug-api/lib/limited_map.ts",
     "@silverbulletmd/silverbullet/lib/ref": "./plug-api/lib/ref.ts",
+    "@silverbulletmd/silverbullet/lib/transclusion": "./plug-api/lib/transclusion.ts",
     "@silverbulletmd/silverbullet/lib/async": "./plug-api/lib/async.ts",
     "@silverbulletmd/silverbullet/lib/crypto": "./plug-api/lib/crypto.ts",
     "@silverbulletmd/silverbullet/lib/dates": "./plug-api/lib/dates.ts",

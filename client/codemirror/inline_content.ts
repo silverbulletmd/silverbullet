@@ -10,9 +10,15 @@ import {
 import type { Client } from "../client.ts";
 import { LuaWidget } from "./lua_widget.ts";
 import {
+  expandMarkdown,
   inlineContentFromURL,
-  parseTransclusion,
 } from "../markdown_renderer/inline.ts";
+import { parseMarkdown } from "../markdown_parser/parser.ts";
+import { renderToText } from "@silverbulletmd/silverbullet/lib/tree";
+import {
+  nameFromTransclusion,
+  parseTransclusion,
+} from "@silverbulletmd/silverbullet/lib/transclusion";
 
 export function inlineContentPlugin(client: Client) {
   return decoratorStateField((state: EditorState) => {
@@ -38,6 +44,9 @@ export function inlineContentPlugin(client: Client) {
         const renderingSyntax = client.ui.viewState.uiOptions
           .markdownSyntaxRendering;
         const cursorIsInRange = isCursorInRange(state, [from, to]);
+        if (cursorIsInRange) {
+          return;
+        }
         if (!renderingSyntax && !cursorIsInRange) {
           widgets.push(invisibleDecoration.range(from, to));
         }
@@ -50,14 +59,20 @@ export function inlineContentPlugin(client: Client) {
               text,
               async () => {
                 const result = await inlineContentFromURL(
-                  client,
-                  transclusion.url,
-                  transclusion.alias,
-                  transclusion.dimension,
-                  transclusion.linktype !== "wikilink",
+                  client.space,
+                  transclusion,
                 );
                 const content = typeof result === "string"
-                  ? { markdown: result }
+                  ? {
+                    markdown: renderToText(
+                      await expandMarkdown(
+                        client.space,
+                        nameFromTransclusion(transclusion),
+                        parseMarkdown(result),
+                        client.clientSystem.spaceLuaEnv,
+                      ),
+                    ),
+                  }
                   : { html: result };
 
                 return {
@@ -71,7 +86,7 @@ export function inlineContentPlugin(client: Client) {
               true,
             ),
             block: true,
-          }).range(to + 1),
+          }).range(from),
         );
       },
     });

@@ -8,9 +8,19 @@ import type {
 } from "@silverbulletmd/silverbullet/type/index";
 import type { SpacePrimitives } from "./spaces/space_primitives.ts";
 import {
+  getOffsetFromLineColumn,
   getPathExtension,
   type Path,
+  type Ref,
 } from "@silverbulletmd/silverbullet/lib/ref";
+import { parseMarkdown } from "./markdown_parser/parser.ts";
+import {
+  addParentPointers,
+  findNodeMatching,
+  nodeAtPos,
+  renderToText,
+  traverseTree,
+} from "@silverbulletmd/silverbullet/lib/tree";
 
 const pageWatchInterval = 3000; // + jitter
 
@@ -67,6 +77,70 @@ export class Space {
       text: new TextDecoder().decode(pageData.data),
       meta: fileMetaToPageMeta(pageData.meta),
     };
+  }
+
+  async readRef(ref: Ref): Promise<string> {
+    if (!ref.path.endsWith(".md")) {
+      throw new Error("Not supported");
+    }
+    const name = ref.path.slice(0, -3);
+    const pageText = (await this.readPage(name)).text;
+    if (!ref.details) {
+      return pageText;
+    }
+    const tree = parseMarkdown(pageText);
+    addParentPointers(tree);
+    if (ref.details.type === "linecolumn") {
+      ref.details = {
+        type: "position",
+        pos: getOffsetFromLineColumn(
+          pageText,
+          ref.details.line,
+          ref.details.column,
+        ),
+      };
+    }
+    switch (ref.details.type) {
+      case "header": {
+        const desiredHeaderText = ref.details.header;
+        let text = `**Error:** Header not found: ${desiredHeaderText}`;
+        traverseTree(tree, (n) => {
+          if (n.type && n.type.startsWith("ATXHeading")) {
+            const level = +n.type!.substring("ATXHeading".length);
+            const headerText = renderToText(n).slice(level + 1);
+            let endPos = pageText.length;
+            if (headerText === desiredHeaderText) {
+              // Now we have to scan for the end point
+              // Let's go up one level and find either another header at this same level
+              const parent = n.parent!;
+              const nextHeader = findNodeMatching(
+                parent,
+                (h) => h.type === `ATXHeading${level}` && h.from! > n.from!,
+              );
+              if (nextHeader) {
+                endPos = nextHeader.from!;
+              }
+              text = pageText.slice(n.from!, endPos);
+              return true;
+            }
+          }
+          return false;
+        });
+        return text;
+      }
+      case "position": {
+        const pos = ref.details.pos;
+        let n = nodeAtPos(tree, pos);
+        if (!n) {
+          throw new Error("No node found at position");
+        }
+        if (["ListMark"].includes(n.type!)) {
+          n = n.parent!;
+        }
+        return pageText.slice(n.from!, n.to!);
+      }
+    }
+    return "";
   }
 
   async writePage(

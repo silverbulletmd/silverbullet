@@ -11,9 +11,12 @@ import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 export async function setEditorMode() {
   // TODO: Remove at some point: temporary upgrade code
   const allSyscalls = await system.listSyscalls();
+  // console.log("All syscalls", allSyscalls);
   const readPageWithMetaCall = allSyscalls.find((sc) =>
     sc.name === "space.readPageWithMeta"
   );
+
+  // console.log(readPageWithMetaCall);
 
   if (!readPageWithMetaCall) {
     await editor.alert(
@@ -21,7 +24,6 @@ export async function setEditorMode() {
     );
     editor.reloadUI();
   }
-  // END
 
   if (await clientStore.get("vimMode")) {
     await editor.setUiOption("vimMode", true);
