@@ -52,7 +52,6 @@ export async function expandMarkdown(
   processedPages: Set<string> = new Set(),
 ): Promise<ParseTree> {
   addParentPointers(mdTree);
-  console.log("OPTIONS", options);
   await replaceNodesMatchingAsync(mdTree, async (n) => {
     if (n.type === "Image" && options.expandTransclusions !== false) {
       // Let's scan for ![[embeds]] that are codified as Images, confusingly
