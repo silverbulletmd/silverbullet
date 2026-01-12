@@ -68,6 +68,7 @@ class ArrayWidget extends WidgetType {
         () => Promise.resolve(widgetContent),
         false,
         false,
+        null,
       );
 
       // Throw away the wrapper, as it only causes trouble and we are rewrapping

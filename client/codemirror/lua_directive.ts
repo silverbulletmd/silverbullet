@@ -137,6 +137,7 @@ export function luaDirectivePlugin(client: Client) {
               },
               true,
               true,
+              null,
             ),
           }).range(node.to),
         );

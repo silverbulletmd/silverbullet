@@ -19,6 +19,7 @@ import {
   nameFromTransclusion,
   parseTransclusion,
 } from "@silverbulletmd/silverbullet/lib/transclusion";
+import { parseToRef } from "@silverbulletmd/silverbullet/lib/ref";
 
 export function inlineContentPlugin(client: Client) {
   return decoratorStateField((state: EditorState) => {
@@ -59,32 +60,42 @@ export function inlineContentPlugin(client: Client) {
               text,
               text,
               async () => {
-                const result = await inlineContentFromURL(
-                  client.space,
-                  transclusion,
-                );
-                const content = typeof result === "string"
-                  ? {
-                    markdown: renderToText(
-                      await expandMarkdown(
-                        client.space,
-                        nameFromTransclusion(transclusion),
-                        parseMarkdown(result),
-                        client.clientSystem.spaceLuaEnv,
+                try {
+                  const result = await inlineContentFromURL(
+                    client.space,
+                    transclusion,
+                  );
+                  const content = typeof result === "string"
+                    ? {
+                      markdown: renderToText(
+                        await expandMarkdown(
+                          client.space,
+                          nameFromTransclusion(transclusion),
+                          parseMarkdown(result),
+                          client.clientSystem.spaceLuaEnv,
+                        ),
                       ),
-                    ),
-                  }
-                  : { html: result };
+                    }
+                    : { html: result };
 
-                return {
-                  _isWidget: true,
-                  display: "block",
-                  cssClasses: ["sb-inline-content"],
-                  ...content,
-                };
+                  return {
+                    _isWidget: true,
+                    display: "block",
+                    cssClasses: ["sb-inline-content"],
+                    ...content,
+                  };
+                } catch (e: any) {
+                  return {
+                    _isWidget: true,
+                    display: "block",
+                    cssClasses: ["sb-inline-content"],
+                    markdown: `**Error:** ${e.message}`,
+                  };
+                }
               },
               true,
               true,
+              parseToRef(transclusion.url),
             ),
             block: true,
           }).range(from),

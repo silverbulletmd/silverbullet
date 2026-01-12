@@ -28,6 +28,16 @@ import {
 import type { Space } from "../space.ts";
 import type { SpaceLuaEnvironment } from "../space_lua.ts";
 
+export type MarkdownExpandOptions = {
+  // all options default to true, set to false to explicitly disable
+  // Replace (markdown transclusions) with their content
+  expandTransclusions?: boolean;
+  // Replace Lua directives with their evaluated values
+  expandLuaDirectives?: boolean;
+  // Rewrite tasks to include references so that they can be updated
+  rewriteTasks?: boolean;
+};
+
 /**
  * Expands custom markdown Lua directives and transclusions into plain markdown
  * @param mdTree parsed markdown tree
@@ -38,11 +48,13 @@ export async function expandMarkdown(
   pageName: string,
   mdTree: ParseTree,
   sle: SpaceLuaEnvironment,
+  options: MarkdownExpandOptions = {},
   processedPages: Set<string> = new Set(),
 ): Promise<ParseTree> {
   addParentPointers(mdTree);
+  console.log("OPTIONS", options);
   await replaceNodesMatchingAsync(mdTree, async (n) => {
-    if (n.type === "Image") {
+    if (n.type === "Image" && options.expandTransclusions !== false) {
       // Let's scan for ![[embeds]] that are codified as Images, confusingly
       const text = renderToText(n);
 
@@ -71,12 +83,15 @@ export async function expandMarkdown(
           nameFromTransclusion(transclusion),
           tree,
           sle,
+          options,
           processedPages,
         );
       } catch (e: any) {
         return parseMarkdown(`**Error:** ${e.message}`);
       }
-    } else if (n.type === "LuaDirective") {
+    } else if (
+      n.type === "LuaDirective" && options.expandLuaDirectives !== false
+    ) {
       const expr = findNodeOfType(n, "LuaExpressionDirective") as
         | LuaExpression
         | null;
@@ -103,7 +118,7 @@ export async function expandMarkdown(
         console.error("Error evaluating Lua directive", exprText, e);
         return parseMarkdown(`**Error:** ${e.message}`);
       }
-    } else if (n.type === "Task") {
+    } else if (n.type === "Task" && options.rewriteTasks !== false) {
       // Add a task reference to this based on the current page name if there's not one already
       const existingLink = findNodeOfType(n, "WikiLink");
       if (!existingLink) {

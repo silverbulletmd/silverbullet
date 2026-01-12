@@ -40,16 +40,18 @@ local html = markdown.markdownToHtml(text)
 print("Rendered html:", html)
 ```
 
-### markdown.expandMarkdown(tree)
-Expands custom markdown Lua directives and transclusions into plain markdown inside a ParseTree
+### markdown.expandMarkdown(textOrTree, options?)
+Expands custom markdown Lua directives and transclusions into plain markdown. Accepts either a markdown ParseTree or string.
+
+Options (all default to `true`):
+* `expandTransclusions`: Replace (markdown transclusions) with their content
+* `expandLuaDirectives`: Replace Lua directives with their evaluated values
+* `rewriteTasks`: Rewrite tasks to include references so that they can be updated
 
 Example:
 ```lua
 local text = "This is a some lua ${os.time()}"
-local tree = markdown.parseMarkdown(text)
-local expandedTree = markdown.expandMarkdown(tree)
-local rendered = markdown.renderParseTree(expandedTree)
-print("Rendered markdown:", rendered)
+print("Expanded markdown:", markdown.expandMarkdown(text))
 ```
 
 ### markdown.objectsToTable(data, options?)
