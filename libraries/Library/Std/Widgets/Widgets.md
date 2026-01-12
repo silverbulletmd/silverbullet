@@ -69,6 +69,14 @@ function widgets.commandButton(text, commandName, args)
     text
   })
 end
+
+function widgets.subPages(pageName)
+  local prefix = (pageName or editor.getCurrentPage()) .. "/"
+  return widget.markdown(template.each(query[[
+    from index.tag "page"
+    where string.startsWith(_.name, prefix)
+  ]], templates.pageItem))
+end
 ```
 
 ## Table of contents
