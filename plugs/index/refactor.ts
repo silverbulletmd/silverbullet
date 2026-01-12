@@ -4,7 +4,7 @@ import {
   markdown,
   space,
 } from "@silverbulletmd/silverbullet/syscalls";
-import { getBackLinks, type LinkObject } from "./page_links.ts";
+import { getBackLinks, type LinkObject } from "./link.ts";
 import {
   absoluteToRelativePath,
   folderName,

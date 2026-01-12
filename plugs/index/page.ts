@@ -9,7 +9,7 @@ import {
   traverseTreeAsync,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { updateITags } from "./tags.ts";
-import type { AspiringPageObject } from "./page_links.ts";
+import type { AspiringPageObject } from "./link.ts";
 import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 import type { LintDiagnostic } from "@silverbulletmd/silverbullet/type/client";
 

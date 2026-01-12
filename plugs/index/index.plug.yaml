@@ -21,6 +21,9 @@ functions:
   patchFrontmatter:
     path: api.ts:patchFrontmatter
     syscall: index.patchFrontmatter
+  text:
+    path: index.ts:indexText
+    syscall: index.text
 
   # YAML syscalls
   yamlParse:

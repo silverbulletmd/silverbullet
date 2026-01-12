@@ -13,7 +13,7 @@ import type {
 } from "@silverbulletmd/silverbullet/type/index";
 import { system } from "@silverbulletmd/silverbullet/syscalls";
 import { cleanAttributes, collectAttributes } from "./attribute.ts";
-import { collectPageLinks } from "./page_links.ts";
+import { collectPageLinks } from "./link.ts";
 
 export type ItemObject = ObjectValue<
   {
@@ -21,12 +21,18 @@ export type ItemObject = ObjectValue<
     name: string;
     text: string;
     pos: number;
+    toPos: number;
+    parent?: string;
+    iparents?: string[];
     links?: string[];
     ilinks?: string[];
   } & Record<string, any>
 >;
+
 export type TaskObject = ObjectValue<
+  // "Inherit" everyting from item
   & ItemObject
+  // And add a few more attributes
   & {
     done: boolean;
     state: string;
@@ -95,6 +101,7 @@ export function extractItemFromNode(
     text: "", // to be replaced
     page: name,
     pos: itemNode.from!,
+    toPos: itemNode.to!,
   };
 
   // This will only be valid for items, not task
@@ -146,7 +153,7 @@ export function extractItemFromNode(
 
 export function enrichItemFromParents(
   n: ParseTree,
-  item: ObjectValue<any>,
+  item: ItemObject,
   pageName: string,
   frontmatter: FrontMatter,
 ) {
@@ -163,6 +170,10 @@ export function enrichItemFromParents(
       item.parent = parentItem.ref;
       directParent = false;
     }
+    if (!item.iparents) {
+      item.iparents = [];
+    }
+    item.iparents.push(parentItem.ref);
     // Merge tags
     item.itags = [
       ...new Set([

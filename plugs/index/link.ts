@@ -29,27 +29,23 @@ import type {
 } from "@silverbulletmd/silverbullet/type/index";
 
 export type LinkObject = ObjectValue<
-  {
-    //Page Link
-    // The page the link points to
-    toPage: string;
-    // The page the link occurs in
+  & {
+    // Common to all links
     page: string;
     pos: number;
     snippet: string;
     alias?: string;
+  }
+  & ({
+    // Page Link
+    toPage: string;
     toFile?: never;
   } | {
     // Document Link
-    // The file the link points to
     toFile: string;
     // The page the link occurs in
-    page: string;
-    pos: number;
-    snippet: string;
-    alias?: string;
     toPage?: never;
-  }
+  })
 >;
 
 /**
