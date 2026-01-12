@@ -8,6 +8,8 @@ which renders as follows:
 
 * [ ] This is my first task
 
+Also see [[Object/task]].
+
 # Custom states
 Tasks support the default `x` and ` ` states (done and not done), but custom states as well. Support for this is still very basic, however.
 

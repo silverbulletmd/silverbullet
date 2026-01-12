@@ -14,6 +14,9 @@ Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be
   * To re-enable: `config.set("index.paragraph.all", true)`
 * Production builds now include sourcemaps for easier debugging in browser DevTools. If you don't want to serve sourcemaps publicly, you can block `*.js.map` files at your reverse proxy level (see [[TLS#Blocking sourcemaps]]).
 * Better link support in frontmatter (by [Tomasz Gorochowik](https://github.com/silverbulletmd/silverbullet/pull/1711))
+* Syscalls:
+  * Added [[API/space#space.readFileWithMeta(name)]]
+  * Added [[API/space#space.readPageWithMeta(name)]]
 * Lua:
   * [LIQ fix](https://github.com/silverbulletmd/silverbullet/issues/1705)
   * [Ctrl-click](https://github.com/silverbulletmd/silverbullet/pull/1713) navigate to definition on non-Mac operating systems

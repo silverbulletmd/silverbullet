@@ -1,8 +1,9 @@
-Attribute syntax can contribute additional [[Metadata]] to various [[Object]], including:
+Attribute syntax can contribute additional [[Metadata]] to various [[Object|Objects]], including:
 
 * Pages (although the preferred way is [[Frontmatter]])
-* Items
-* Tasks
+* Items (bulleted and numbered list items)
+* [[Task|Tasks]]
+* Paragraphs
 
 ## Syntax
 The syntax is as follows:
