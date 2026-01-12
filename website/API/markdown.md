@@ -3,7 +3,6 @@
 The Markdown API provides functions for parsing and rendering Markdown content.
 
 ## Markdown Operations
-
 ### markdown.parseMarkdown(text)
 Parses a piece of markdown text into a ParseTree.
 

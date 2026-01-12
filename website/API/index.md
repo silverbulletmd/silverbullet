@@ -1,21 +1,25 @@
----
-testattribute: 10
----
 #api/syscall
 
-The `index` API provides functions for interacting with SilverBullet's [[Object]], allowing you to store and query page-associated data.
+The `index` API provides functions for interacting with SilverBullet's [[Object|Objects]], allowing you to store and query data.
 
 ## Object Operations
-
 ## index.tag(name)
 Returns a given [[Object#Tags]] as a query collection, to be queried using [[Space Lua/Lua Integrated Query]].
 
 Example:
-
 ${query[[from index.tag("page") limit 1]]}
 
+## index.text(text, pageMeta?)
+Ad-hoc indexes `text` (represented as a markdown string) in memory, and returns all objects found there for further query. When no `pageMeta` is supplied dummy (empty) values will be used.
+
+Example:
+${query[[
+  from index.text("* Item 1\n* [ ] Task 1")
+  where _.tag == "item"
+]]}
+
 ## index.indexObjects(page, objects)
-Indexes an array of objects for a specific page.
+Indexes an array of objects for a specific page and stores it in the data store.
 
 Example:
 ```lua

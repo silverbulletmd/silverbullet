@@ -37,15 +37,6 @@ for _, syscall in ipairs(syscalls) do
 end
 ```
 
-### system.getEnv()
-Returns the runtime environment ("server", "client", or undefined for hybrid).
-
-Example:
-```lua
-local env = system.getEnv()
-print("Running in environment: " .. (env or "hybrid"))
-```
-
 ### system.getMode()
 Returns the current mode of the system ("ro" or "rw").
 
@@ -74,19 +65,6 @@ print("SilverBullet version: " .. version)
 ```
 
 ## Configuration
-
-### system.getConfig(key, defaultValue?)
-Gets a configuration value.
-
-Parameters:
-- `key`: The configuration key to get
-- `defaultValue`: Optional default value if the key is not set
-
-Example:
-```lua
-local theme = system.getConfig("theme", "light")
-print("Current theme: " .. theme)
-```
 
 ### system.reloadConfig()
 Triggers an explicit reload of the configuration.
