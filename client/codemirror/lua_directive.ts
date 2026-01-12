@@ -71,14 +71,16 @@ export function luaDirectivePlugin(client: Client) {
           return;
         }
 
-        const text = state.sliceDoc(node.from + 2, node.to - 1);
+        const codeText = state.sliceDoc(node.from, node.to);
+        const expressionText = codeText.slice(2, -1);
         const currentPageMeta = client.ui.viewState.current?.meta as PageMeta;
         widgets.push(
           Decoration.widget({
             widget: new LuaWidget(
               client,
-              `lua:${text}:${currentPageMeta?.name}`,
-              text,
+              `lua:${expressionText}:${currentPageMeta?.name}`,
+              expressionText,
+              codeText,
               async (bodyText) => {
                 if (bodyText.trim().length === 0) {
                   return "**Error:** Empty Lua expression";

@@ -6,7 +6,7 @@ export function moveCursorIntoText(client: Client, textToFind: string) {
   const allText = client.editorView.state.sliceDoc();
   const pos = allText.indexOf(textToFind);
   if (pos === -1) {
-    console.error("Could not find position of widget in text");
+    console.error("Could not find position of widget in text", textToFind);
     return;
   }
   client.editorView.dispatch({

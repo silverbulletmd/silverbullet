@@ -50,8 +50,12 @@ export class LuaWidget extends WidgetType {
 
   constructor(
     readonly client: Client,
+    // key to use for caching
     readonly cacheKey: string,
-    readonly bodyText: string,
+    // body text to send to widget renderer
+    readonly expressionText: string,
+    // code as it appears in the page (used to find when hitting the "edit" button)
+    readonly codeText: string,
     readonly callback: LuaWidgetCallback,
     private renderEmpty: boolean,
     readonly inPage: boolean,
@@ -92,7 +96,7 @@ export class LuaWidget extends WidgetType {
   ) {
     const currentName = this.client.currentName();
     let widgetContent = await this.callback(
-      this.bodyText,
+      this.expressionText,
       currentName,
     );
     activeWidgets.add(this);
@@ -201,7 +205,7 @@ export class LuaWidget extends WidgetType {
       attachWidgetEventHandlers(
         div,
         this.client,
-        this.inPage ? "${" + this.bodyText + "}" : undefined,
+        this.inPage ? this.codeText : undefined,
         widgetContent._isWidget && widgetContent.events,
       );
     }
@@ -295,7 +299,7 @@ export class LuaWidget extends WidgetType {
             '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>',
           listener: (e) => {
             e.stopPropagation();
-            moveCursorIntoText(this.client, "${" + this.bodyText + "}");
+            moveCursorIntoText(this.client, this.codeText);
           },
         },
       ));
@@ -314,7 +318,8 @@ export class LuaWidget extends WidgetType {
   override eq(other: WidgetType): boolean {
     return (
       other instanceof LuaWidget &&
-      other.bodyText === this.bodyText && other.cacheKey === this.cacheKey
+      other.expressionText === this.expressionText &&
+      other.cacheKey === this.cacheKey
     );
   }
 }

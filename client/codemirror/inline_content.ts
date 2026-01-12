@@ -57,6 +57,7 @@ export function inlineContentPlugin(client: Client) {
               client,
               `widget:${client.currentPath()}:${text}`,
               text,
+              text,
               async () => {
                 const result = await inlineContentFromURL(
                   client.space,

@@ -64,6 +64,7 @@ class ArrayWidget extends WidgetType {
         this.client,
         `${this.cacheKey}:${i}`,
         "",
+        "",
         () => Promise.resolve(widgetContent),
         false,
         false,
