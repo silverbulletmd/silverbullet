@@ -47,6 +47,8 @@ Deno.test("Test item indexing", async () => {
     new Set(["tag3", "tag2", "tag1", "item"]),
   );
   assertEquals(items[1].parent, items[0].ref);
+
+  assertEquals(items[2].name, "Item 1.1.1");
   assertEquals(items[2].parent, items[1].ref);
 
   // Test tasks

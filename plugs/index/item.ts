@@ -23,7 +23,6 @@ export type ItemObject = ObjectValue<
     pos: number;
     toPos: number;
     parent?: string;
-    iparents?: string[];
     links?: string[];
     ilinks?: string[];
   } & Record<string, any>
@@ -170,10 +169,6 @@ export function enrichItemFromParents(
       item.parent = parentItem.ref;
       directParent = false;
     }
-    if (!item.iparents) {
-      item.iparents = [];
-    }
-    item.iparents.push(parentItem.ref);
     // Merge tags
     item.itags = [
       ...new Set([

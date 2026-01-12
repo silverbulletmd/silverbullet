@@ -11,11 +11,12 @@ import { indexData } from "./data.ts";
 import { indexItems } from "./item.ts";
 import { indexHeaders } from "./header.ts";
 import { indexParagraphs } from "./paragraph.ts";
-import { indexLinks } from "./page_links.ts";
+import { indexLinks } from "./link.ts";
 import { indexTables } from "./table.ts";
 import { indexSpaceLua } from "./space_lua.ts";
 import { indexSpaceStyle } from "./space_style.ts";
 import { indexTags } from "./tags.ts";
+import { markdown } from "@silverbulletmd/silverbullet/syscalls";
 
 export type IndexerFunction = (
   pageMeta: PageMeta,
@@ -36,6 +37,30 @@ const allIndexers: IndexerFunction[] = [
   indexSpaceStyle,
   indexTags,
 ];
+
+/**
+ * Ad-hoc index a piece of markdown text
+ * @return a list of indexed objects
+ */
+export async function indexText(text: string, pageMeta: PageMeta = {
+  ref: "",
+  tag: "",
+  name: "",
+  perm: "ro",
+  lastModified: "",
+  created: "",
+}): Promise<ObjectValue<any>> {
+  const tree = await markdown.parseMarkdown(text);
+  const frontmatter = extractFrontMatter(tree);
+  const index = await Promise.all(
+    allIndexers.filter((indexer) => indexer !== pageIndexPage).map(
+      (indexer) => {
+        return indexer(pageMeta, frontmatter, tree, text);
+      },
+    ),
+  );
+  return index.flat();
+}
 
 export async function indexPage({ name, tree, meta, text }: IndexTreeEvent) {
   const frontmatter = extractFrontMatter(tree);

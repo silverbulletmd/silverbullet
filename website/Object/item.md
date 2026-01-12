@@ -13,7 +13,6 @@ ${query[[
 Additional attributes:
 
 * `parent` will contain a ref to the item’s direct parent `item` if any
-* `iparents` will contain a list of refs to the item’s ancestor nodes including their direct parent, if any
 * `links` will contain a list of all the wiki-style [[Link|links]] in the item
 * `ilinks` (inherited links) will contain a list of all the wiki-style links in the item _and its parents_.
 * `itags` will also inherit their ancestors’ tags
