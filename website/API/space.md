@@ -24,6 +24,12 @@ local content = space.readPage("welcome")
 print(content)  -- prints the content of the "welcome" page
 ```
 
+## space.readRef(ref)
+Reads a reference and returns it as a string, works for:
+* `page`: reads the entire page
+* `page#header` reads the referenced header
+* `page@pos` where `pos` points to an item or task: reads the item/task and its children
+
 ## space.getPageMeta(name)
 Gets metadata for a specific page.
 

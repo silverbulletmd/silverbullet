@@ -3,20 +3,32 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
-* Removed full-text search plug from the main distribution, this has now been moved to [a separate repo](https://github.com/silverbulletmd/basic-search) (installable via the library manager). This dramatically improves indexing speed. But actually: install [Silversearch](https://github.com/MrMugame/silversearch) instead.
+* Removed:
+  * **Full-text search** plug from the main distribution, this has now been moved to [a separate repo](https://github.com/silverbulletmd/basic-search) (installable via the library manager). This dramatically improves indexing speed. 
+    #protip Install [Silversearch](https://github.com/MrMugame/silversearch) instead.
 * Indexer improvements:
+  * Performance: up to 2x faster
   * For consistency with items, `task` `refs` now point to the item’s position resulting in a slight positional shift, if you have code relying on this, you may have to adjust it
-  * Obscure deadline syntax for tasks has been removed, please use attributes instead (e.g. `[deadline: "2026-01-01"]`)
+  * Removed: deadline syntax for tasks, please use attributes instead (e.g. `[deadline: "2026-01-01"]`)
   * `page:index` now also receives a `text` and `meta` attribute
   * Significant performance improvements
   * `item` and `task` now also index (wiki) links and inherited (wiki) links (links appearing in parent nodes), as [requested here](https://community.silverbullet.md/t/coming-from-logseq-outlines-and-linked-mentions/290) under `links` and `ilinks`. Updated the "Linked Tasks" widget now to rely on `ilinks`.
-* Disabled indexing all paragraph text (even those not tagged) by default, this caused significant indexing overhead. [See discussion](https://community.silverbullet.md/t/who-is-using-paragraph-for-queries/3686).
-  * To re-enable: `config.set("index.paragraph.all", true)`
-* Production builds now include sourcemaps for easier debugging in browser DevTools. If you don't want to serve sourcemaps publicly, you can block `*.js.map` files at your reverse proxy level (see [[TLS#Blocking sourcemaps]]).
-* Better link support in frontmatter (by [Tomasz Gorochowik](https://github.com/silverbulletmd/silverbullet/pull/1711))
+  * Disabled indexing all paragraph text by default, this caused significant indexing overhead. [See discussion](https://community.silverbullet.md/t/who-is-using-paragraph-for-queries/3686).
+    To re-enable: `config.set("index.paragraph.all", true)`
+  * Rewrote snippet text for links (used in [[Linked Mention|Linked Mentions]]) to be more contextual, now also includes child bullet items, see [community discussion](https://community.silverbullet.md/t/coming-from-logseq-outlines-and-linked-mentions/290).
+  * Better link support in frontmatter (by [Tomasz Gorochowik](https://github.com/silverbulletmd/silverbullet/pull/1711))
 * Syscalls:
   * Added [[API/space#space.readFileWithMeta(name)]]
   * Added [[API/space#space.readPageWithMeta(name)]]
+  * Added [[API/space#space.readRef(ref)]]
+* [[Transclusions]]:
+  * Now have an “eye” button to navigate to the transcluded location
+  * Now properly support headers
+  * Items and tasks can be transcluded with children (based on `@pos` notation)
+* New commands:
+  * `Navigate: Copy Ref To Current Position`
+  * `Navigate: Copy Link To Current Position`
+* Production builds now include sourcemaps for easier debugging in browser DevTools. If you don't want to serve sourcemaps publicly, you can block `*.js.map` files at your reverse proxy level (see [[TLS#Blocking sourcemaps]]).
 * Lua:
   * [LIQ fix](https://github.com/silverbulletmd/silverbullet/issues/1705)
   * [Ctrl-click](https://github.com/silverbulletmd/silverbullet/pull/1713) navigate to definition on non-Mac operating systems
@@ -26,6 +38,7 @@ Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be
   * [Sync errors](https://github.com/silverbulletmd/silverbullet/issues/1720) now propagate better to the UI
   * Document editors now fixed in Safari (by [MrMugame](https://github.com/silverbulletmd/silverbullet/pull/1710))
   * `%` now supported in [page names](https://github.com/silverbulletmd/silverbullet/issues/1694)
+  * Lua widgets “flapping” should now be less
 
 ## 2.3.0
 This release (re)introduces [[Share]], formalizes [[Library]], and introduces in initial version of the [[Library Manager]], a type of package manager for SilverBullet. It also progresses on Lua 5.4 compatibility.
