@@ -12,7 +12,7 @@ import {
 } from "@silverbulletmd/silverbullet/lib/ref";
 import { isLocalURL } from "@silverbulletmd/silverbullet/lib/resolve";
 import { mime } from "mimetypes";
-import { LuaStackFrame } from "../space_lua/runtime.ts";
+import { LuaStackFrame, LuaTable } from "../space_lua/runtime.ts";
 import { parseMarkdown } from "../markdown_parser/parser.ts";
 import { renderExpressionResult } from "./result_render.ts";
 import { parseExpressionString } from "../space_lua/parse.ts";
@@ -110,6 +110,8 @@ export async function expandMarkdown(
 
         if (result?.markdown) {
           result = result.markdown;
+        } else if (result instanceof LuaTable && result.has("markdown")) {
+          result = result.get("markdown");
         }
         return parseMarkdown(await renderExpressionResult(result));
       } catch (e: any) {
