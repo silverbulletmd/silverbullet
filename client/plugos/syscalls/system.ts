@@ -146,6 +146,9 @@ export function systemSyscalls(
 
       return url.pathname;
     },
+    "system.getBaseURI": () => {
+      return document.baseURI;
+    },
     "system.getVersion": () => {
       return publicVersion;
     },

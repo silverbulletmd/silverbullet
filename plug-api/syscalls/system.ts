@@ -69,6 +69,13 @@ export function getURLPrefix(): Promise<string> {
 }
 
 /**
+ * Returns the base URI for this SilverBullet isntance
+ */
+export function getBaseURI(): Promise<string> {
+  return syscall("system.getBaseURI");
+}
+
+/**
  * Returns the SilverBullet version
  */
 export function getVersion(): Promise<string> {
