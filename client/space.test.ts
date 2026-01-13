@@ -15,7 +15,8 @@ Some text
 * Item 1
   * Sub item
 * [ ] Task 1
-  * Sub item
+  * Sub item 2
+    * Sub-sub item
 `.trim();
 
 Deno.test("readRef checks", async () => {
@@ -41,7 +42,7 @@ Deno.test("readRef checks", async () => {
   );
   assertEquals(
     await space.readRef(parseToRef("test#Header 2")!),
-    "# Header 2\n* Item 1\n  * Sub item\n* [ ] Task 1\n  * Sub item",
+    "# Header 2\n* Item 1\n  * Sub item\n* [ ] Task 1\n  * Sub item 2\n    * Sub-sub item",
   );
 
   // Reference to an item should get item and children
@@ -55,6 +56,13 @@ Deno.test("readRef checks", async () => {
   const taskPos = testPage.indexOf("* [ ] Task 1");
   assertEquals(
     await space.readRef(parseToRef(`test@${taskPos}`)!),
-    "* [ ] Task 1\n  * Sub item",
+    "* [ ] Task 1\n  * Sub item 2\n    * Sub-sub item",
+  );
+
+  // Check left shift in case of jumping into nested item
+  const subItemPos = testPage.indexOf("* Sub item 2");
+  assertEquals(
+    await space.readRef(parseToRef(`test@${subItemPos}`)!),
+    "* Sub item 2\n  * Sub-sub item",
   );
 });

@@ -137,7 +137,15 @@ export class Space {
         if (["ListMark"].includes(n.type!)) {
           n = n.parent!;
         }
-        return pageText.slice(n.from!, n.to!);
+        const sliceText = pageText.slice(n.from!, n.to!);
+
+        // Determine indent level
+        const targetLineIndex =
+          pageText.substring(0, n.from!).split("\n").length - 1;
+        const lines = pageText.split("\n");
+        const targetLine = lines[targetLineIndex];
+        const indent = targetLine.match(/^\s*/)![0];
+        return sliceText.replaceAll(`\n${indent}`, "\n");
       }
     }
     return "";
