@@ -17,7 +17,6 @@ import {
   isMarkdownPath,
   parseToRef,
 } from "@silverbulletmd/silverbullet/lib/ref";
-import { extractSnippetAroundIndex } from "./snippet_extractor.ts";
 import {
   mdLinkRegex,
   wikiLinkRegex,
@@ -27,6 +26,7 @@ import type {
   ObjectValue,
   PageMeta,
 } from "@silverbulletmd/silverbullet/type/index";
+import { extractSnippet } from "./snippet.ts";
 
 export type LinkObject = ObjectValue<
   & {
@@ -87,7 +87,7 @@ export async function indexLinks(
       const link: any = {
         ref: `${name}@${pos}`,
         tag: "link",
-        snippet: extractSnippetAroundIndex(pageText, pos),
+        snippet: extractSnippet(name, pageText, pos),
         pos,
         page: name,
       };
@@ -133,7 +133,7 @@ export async function indexLinks(
       const link: any = {
         ref: `${name}@${pos}`,
         tag: "link",
-        snippet: extractSnippetAroundIndex(pageText, pos),
+        snippet: extractSnippet(name, pageText, pos),
         pos,
         page: name,
       };
@@ -174,7 +174,7 @@ export async function indexLinks(
             ref: `${name}@${pos}`,
             tag: "link",
             page: name,
-            snippet: extractSnippetAroundIndex(pageText, pos),
+            snippet: extractSnippet(name, pageText, pos),
             pos: pos,
           };
 

@@ -178,8 +178,8 @@ end
 widgets = widgets or {}
 
 local mentionTemplate = template.new [==[
-**[[${_.ref}]]**
-> ${_.snippet}
+**[[${_.ref}]]**:
+${_.snippet}
 
 ]==]
 
@@ -201,7 +201,7 @@ function widgets.linkedMentions(pageName)
   local linkedMentions = query[[
     from index.tag "link"
     where _.page != pageName and _.toPage == pageName
-    order by page
+    order by _.page desc, _.pos
   ]]
   if #linkedMentions > 0 then
     return widget.new {
