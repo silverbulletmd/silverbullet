@@ -121,6 +121,16 @@ functions:
     command:
       name: "Navigate: To Position"
       requireEditor: page
+  copyRefCommand:
+    path: "./editor.ts:copyRefCommand"
+    command:
+      name: "Navigate: Copy Ref To Current Position"
+      requireEditor: page
+  copyLinkCommand:
+    path: "./editor.ts:copyLinkCommand"
+    command:
+      name: "Navigate: Copy Link To Current Position"
+      requireEditor: page
   moveToLine:
     path: "./editor.ts:moveToLineCommand"
     command:

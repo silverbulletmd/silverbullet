@@ -117,6 +117,20 @@ export async function moveToPosCommand() {
   await editor.moveCursor(pos, true); // showing the movement for better UX
 }
 
+export async function copyRefCommand() {
+  const page = await editor.getCurrentPage();
+  const pos = await editor.getCursor();
+  await editor.copyToClipboard(`[[${page}@${pos}]]`);
+  await editor.flashNotification("Ref copied to clipboard");
+}
+
+export async function copyLinkCommand() {
+  const page = await editor.getCurrentPage();
+  const pos = await editor.getCursor();
+  await editor.copyToClipboard(`${await system.getBaseURI()}${page}@${pos}`);
+  await editor.flashNotification("Link copied to clipboard");
+}
+
 export async function moveToLineCommand() {
   const lineString = await editor.prompt(
     "Move to line (and optionally column):",
