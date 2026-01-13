@@ -649,12 +649,10 @@ export function editorSyscalls(client: Client): SysCallMapping {
       try {
         if (typeof data === "string") {
           await navigator.clipboard.writeText(data);
-          client.flashNotification("Copied Markdown to clipboard!");
         } else {
           await navigator.clipboard.write([
             new ClipboardItem({ [data.type]: data }),
           ]);
-          client.flashNotification("Copied to clipboard!");
         }
       } catch (e) {
         console.error(e);
