@@ -165,7 +165,6 @@ There's a magic `_CTX` global variable available from which you can access usefu
 
 # API
 ![[API]]
-
 # Lua implementation notes
 Space Lua is intended to be a more or less complete implementation of [Lua 5.4](https://www.lua.org/manual/5.4/). However, a few features are (still) missing:
 
