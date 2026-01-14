@@ -16,12 +16,15 @@ import {
   jsToLuaValue,
   LuaBreak,
   luaCall,
+  luaCloseFromMark,
+  luaEnsureCloseStack,
   LuaEnv,
   luaEquals,
   LuaFunction,
   luaGet,
   luaIndexValue,
   type LuaLValueContainer,
+  luaMarkToBeClosed,
   LuaMultiRes,
   LuaReturn,
   LuaRuntimeError,
@@ -334,47 +337,8 @@ export function evalExpression(
       case "Unary": {
         const u = asUnary(e);
         const value = evalExpression(u.argument, env, sf);
-        if (isPromise(value)) {
-          return value.then((value) => {
-            switch (u.operator) {
-              case "-": {
-                const arg = singleResult(value);
-                return unaryWithMeta(
-                  arg,
-                  "__unm",
-                  u.ctx,
-                  sf,
-                  () => luaUnaryMinus(arg),
-                );
-              }
-              case "+": {
-                return +singleResult(value);
-              }
-              case "not": {
-                return !luaTruthy(value);
-              }
-              case "~": {
-                const arg = singleResult(value);
-                return unaryWithMeta(
-                  arg,
-                  "__bnot",
-                  u.ctx,
-                  sf,
-                  () => ~exactInt(arg, u.ctx, sf),
-                );
-              }
-              case "#": {
-                return luaLengthOp(singleResult(value), u.ctx, sf);
-              }
-              default: {
-                throw new LuaRuntimeError(
-                  `Unknown unary operator ${u.operator}`,
-                  sf.withCtx(u.ctx),
-                );
-              }
-            }
-          });
-        } else {
+
+        const apply = (value: LuaValue) => {
           switch (u.operator) {
             case "-": {
               const arg = singleResult(value);
@@ -412,7 +376,9 @@ export function evalExpression(
               );
             }
           }
-        }
+        };
+
+        return rpThen(value, apply);
       }
 
       case "Variable":
@@ -615,54 +581,15 @@ function evalPrefixExpression(
           }
         }
 
-        // Unsure if part of the spec, but it seems to be common for lua implementations
-        // to evaluate all args before evaluating the callee
-        const parts = fc.args.map((arg: LuaExpression) =>
-          evalExpression(arg, env, sf)
-        );
-        const argsVal = rpAll(parts);
+        const argsVal = evalExpressions(fc.args, env, sf);
 
         const thenCall = (args: LuaValue[]) =>
           luaCall(calleeVal, [...selfArgs, ...args], fc.ctx, sf);
 
-        if (isPromise(argsVal)) {
-          return (argsVal as Promise<any[]>).then((argsResolved: any[]) => {
-            if (argsResolved.length === 0) return thenCall([]);
-            const out: LuaValue[] = [];
-            // All but last expression produce a single value
-            for (let i = 0; i < argsResolved.length - 1; i++) {
-              out.push(singleResult(argsResolved[i]));
-            }
-            // Last expression preserves multiple results
-            const last = argsResolved[argsResolved.length - 1];
-            if (last instanceof LuaMultiRes) {
-              out.push(...last.flatten().values);
-            } else {
-              out.push(singleResult(last));
-            }
-            return thenCall(out);
-          });
-        } else {
-          const argsResolved = argsVal as LuaValue[];
-          if (argsResolved.length === 0) return thenCall([]);
-          const out: LuaValue[] = [];
-          for (let i = 0; i < argsResolved.length - 1; i++) {
-            out.push(singleResult(argsResolved[i]));
-          }
-          const last = argsResolved[argsResolved.length - 1];
-          if (last instanceof LuaMultiRes) {
-            out.push(...last.flatten().values);
-          } else {
-            out.push(singleResult(last));
-          }
-          return thenCall(out);
-        }
+        return rpThen(argsVal, thenCall);
       };
-      if (isPromise(prefixValue)) {
-        return (prefixValue as Promise<any>).then(handleFunctionCall);
-      } else {
-        return handleFunctionCall(prefixValue);
-      }
+
+      return rpThen(prefixValue, handleFunctionCall);
     }
     default: {
       throw new LuaRuntimeError(
@@ -1109,9 +1036,206 @@ function evalExpressions(
     return out;
   };
 
-  return isPromise(argsVal)
-    ? (argsVal as Promise<any[]>).then(finalize)
-    : finalize(argsVal as LuaValue[]);
+  return rpThen(argsVal, finalize);
+}
+
+type EvalBlockResult =
+  | void
+  | LuaValue[]
+  | GotoSignal
+  | Promise<void | LuaValue[] | GotoSignal>;
+
+function runStatementsNoGoto(
+  stmts: LuaStatement[],
+  execEnv: LuaEnv,
+  sf: LuaStackFrame,
+  returnOnReturn: boolean,
+  startIdx: number,
+): void | LuaValue[] | Promise<void | LuaValue[]> {
+  const processFrom = (
+    idx: number,
+  ): void | LuaValue[] | Promise<void | LuaValue[]> => {
+    for (let i = idx; i < stmts.length; i++) {
+      const result = evalStatement(
+        stmts[i],
+        execEnv,
+        sf,
+        returnOnReturn,
+      );
+      if (isPromise(result)) {
+        return (result as Promise<any>).then((res) => {
+          if (res !== undefined && !isGotoSignal(res)) {
+            return res;
+          }
+          if (isGotoSignal(res)) {
+            throw new LuaRuntimeError(
+              "unexpected goto signal",
+              sf.withCtx(stmts[i].ctx),
+            );
+          }
+          return processFrom(i + 1);
+        });
+      }
+      if (result !== undefined) {
+        if (isGotoSignal(result)) {
+          throw new LuaRuntimeError(
+            "unexpected goto signal",
+            sf.withCtx(stmts[i].ctx),
+          );
+        }
+        return result;
+      }
+    }
+    return;
+  };
+
+  return processFrom(startIdx);
+}
+
+function withCloseBoundary(
+  sf: LuaStackFrame,
+  mark: number,
+  out: EvalBlockResult,
+): EvalBlockResult {
+  if (!isPromise(out)) {
+    const r = luaCloseFromMark(sf, mark, null);
+    if (isPromise(r)) {
+      return (r as Promise<void>).then(() => out as any);
+    }
+    return out;
+  }
+
+  const p = out as Promise<any>;
+
+  const onFulfilled = (res: any) => {
+    const r = luaCloseFromMark(sf, mark, null);
+    return isPromise(r) ? (r as Promise<void>).then(() => res) : res;
+  };
+
+  const onRejected = (e: any) => {
+    const errObj: LuaValue = e instanceof LuaRuntimeError
+      ? e.message
+      : (e?.message ?? String(e));
+    const r = luaCloseFromMark(sf, mark, errObj);
+    if (isPromise(r)) {
+      return (r as Promise<void>).then(() => {
+        throw e;
+      });
+    }
+    throw e;
+  };
+
+  return p.then(onFulfilled, onRejected);
+}
+
+function evalBlockNoClose(
+  b: LuaBlock,
+  env: LuaEnv,
+  sf: LuaStackFrame,
+  returnOnReturn: boolean,
+): EvalBlockResult {
+  const hasGotoFlag = b.hasGoto === true;
+  const hasLabelFlag = b.hasLabel === true;
+  const hasLabelHere = b.hasLabelHere === true;
+
+  const curFn = sf.currentFunction;
+  const fnHasGotos = curFn?.funcHasGotos;
+
+  if (fnHasGotos === false || (!hasGotoFlag && !hasLabelFlag)) {
+    const dup = b.dupLabelError;
+    if (dup) {
+      // Duplicated labels detected by parser.
+      throw new LuaRuntimeError(
+        `label '${dup.name}' already defined`,
+        sf.withCtx(dup.ctx),
+      );
+    }
+
+    const execEnv = b.needsEnv === true ? new LuaEnv(env) : env;
+    return runStatementsNoGoto(b.statements, execEnv, sf, returnOnReturn, 0);
+  }
+
+  if (fnHasGotos === true && !hasLabelHere && !hasGotoFlag) {
+    const execEnv = b.needsEnv === true ? new LuaEnv(env) : env;
+    const stmts = b.statements;
+    const runFrom = (
+      i: number,
+    ): EvalBlockResult => {
+      for (; i < stmts.length; i++) {
+        const r = evalStatement(stmts[i], execEnv, sf, returnOnReturn);
+        if (isPromise(r)) {
+          return (r as Promise<any>).then((res) => {
+            if (isGotoSignal(res)) return res;
+            if (res !== undefined) return res;
+            return runFrom(i + 1);
+          });
+        } else {
+          if (isGotoSignal(r)) return r;
+          if (r !== undefined) return r;
+        }
+      }
+      return;
+    };
+    return runFrom(0);
+  }
+
+  let meta: ReturnType<typeof getBlockGotoMeta> | undefined;
+  if (fnHasGotos === undefined && (hasGotoFlag || hasLabelFlag)) {
+    meta = blockMetaOrThrow(b, sf);
+    if (curFn) {
+      curFn.funcHasGotos = !!meta?.funcHasGotos;
+    }
+  } else if (fnHasGotos === true) {
+    meta = hasLabelFlag || hasGotoFlag ? blockMetaOrThrow(b, sf) : undefined;
+  } else {
+    meta = undefined;
+  }
+
+  if (!meta || !meta.funcHasGotos) {
+    const dup = b.dupLabelError;
+    if (dup) {
+      throw new LuaRuntimeError(
+        `label '${dup.name}' already defined`,
+        sf.withCtx(dup.ctx),
+      );
+    }
+    const execEnv = b.needsEnv === true ? new LuaEnv(env) : env;
+    return runStatementsNoGoto(b.statements, execEnv, sf, returnOnReturn, 0);
+  }
+
+  const execEnv = b.needsEnv === true ? new LuaEnv(env) : env;
+  const stmts = b.statements;
+
+  const runFrom = (
+    i: number,
+  ): EvalBlockResult => {
+    for (; i < stmts.length; i++) {
+      const r = evalStatement(stmts[i], execEnv, sf, returnOnReturn);
+      if (isPromise(r)) {
+        return (r as Promise<any>).then((res) => {
+          const consumed = consumeGotoInBlock(res, meta!.labels);
+          if (typeof consumed === "number") {
+            return runFrom(consumed);
+          }
+          if (consumed !== undefined) {
+            return consumed;
+          }
+          return runFrom(i + 1);
+        });
+      }
+      const consumed = consumeGotoInBlock(r, meta.labels);
+      if (typeof consumed === "number") {
+        i = consumed - 1;
+        continue;
+      }
+      if (consumed !== undefined) {
+        return consumed;
+      }
+    }
+    return;
+  };
+
+  return runFrom(0);
 }
 
 /**
@@ -1196,33 +1320,86 @@ export function evalStatement(
         }
       }
 
-      if (hasInit) {
-        const valuesRP = evalExpressions(l.expressions!, env, sf);
-        const setAll = (values: LuaValue[]) => {
-          for (let i = 0; i < l.names.length; i++) {
-            const name = l.names[i];
-            const v = values[i];
-            const isConst =
-              name.attributes?.includes(LuaAttribute.Const) === true;
-            if (isConst) {
-              env.setLocalConst(name.name, v);
-            } else {
-              env.setLocal(name.name, v);
-            }
-          }
-          return;
-        };
-        if (isPromise(valuesRP)) {
-          return (valuesRP as Promise<LuaValue[]>).then(setAll);
+      const bindOne = (name: any, v: LuaValue) => {
+        const isConst = name.attributes?.includes(LuaAttribute.Const) === true;
+        const isClose = name.attributes?.includes(LuaAttribute.Close) === true;
+
+        if (isConst || isClose) {
+          env.setLocalConst(name.name, v);
         } else {
-          return setAll(valuesRP);
+          env.setLocal(name.name, v);
         }
-      } else {
+
+        if (isClose) {
+          luaMarkToBeClosed(sf, v, name.ctx);
+        }
+      };
+
+      if (!hasInit) {
         for (let i = 0; i < l.names.length; i++) {
-          env.setLocal(l.names[i].name, null);
+          bindOne(l.names[i], null);
         }
         return;
       }
+
+      // Evaluate initializers left-to-right and bind/mark `<close>`
+      // locals as soon as they receive a value.  This ensures earlier
+      // `<close>` locals are closed if a later initializer errors.
+      const exprs = l.expressions!;
+      const out: LuaValue[] = [];
+      let boundCount = 0;
+
+      const bindAvailable = () => {
+        while (boundCount < l.names.length && boundCount < out.length) {
+          bindOne(l.names[boundCount], out[boundCount] ?? null);
+          boundCount++;
+        }
+      };
+
+      const finish = () => {
+        while (out.length < l.names.length) {
+          out.push(null);
+        }
+        bindAvailable();
+      };
+
+      const runFrom = (i: number): void | Promise<void> => {
+        if (i >= exprs.length) {
+          finish();
+          return;
+        }
+
+        const isLastExpr = i === exprs.length - 1;
+        const rp = evalExpression(exprs[i], env, sf);
+
+        const onValue = (v: LuaValue) => {
+          if (isLastExpr) {
+            if (v instanceof LuaMultiRes) {
+              for (const x of v.values) {
+                out.push(x);
+              }
+            } else {
+              out.push(v);
+            }
+          } else {
+            out.push(singleResult(v));
+          }
+
+          bindAvailable();
+
+          // If we already have enough values for all locals, remaining
+          // expressions will not affect the binding, so we can stop.
+          if (out.length >= l.names.length && !isLastExpr) {
+            return;
+          }
+
+          return runFrom(i + 1);
+        };
+
+        return rpThen(rp, onValue) as any;
+      };
+
+      return runFrom(0);
     }
     case "Semicolon": {
       return;
@@ -1237,208 +1414,35 @@ export function evalStatement(
     }
     case "Block": {
       const b = asBlock(s);
-      const hasGotoFlag = b.hasGoto === true;
-      const hasLabelFlag = b.hasLabel === true;
-      const hasLabelHere = b.hasLabelHere === true;
 
-      const curFn = (sf as any).currentFunction as LuaFunction | undefined;
-      const fnHasGotos = curFn?.funcHasGotos;
+      if (!b.hasCloseHere) {
+        return evalBlockNoClose(b, env, sf, returnOnReturn);
+      }
 
-      // Fast path: function known to have no gotos, run without meta
-      if (fnHasGotos === false || (!hasGotoFlag && !hasLabelFlag)) {
-        const dup = b.dupLabelError;
-        if (dup) {
-          // Duplicated labels detected by parser.
-          throw new LuaRuntimeError(
-            `label '${dup.name}' already defined`,
-            sf.withCtx(dup.ctx),
-          );
+      // Blocks establish a boundary (mark) and close all entries
+      // created within the block on exit or error, shrinking the stack
+      // back to mark.  This is _required_ for correct `pcall` and
+      // `xpcall` boundary semantics.
+      const closeStack = luaEnsureCloseStack(sf);
+      const mark = closeStack.length;
+
+      let out: EvalBlockResult;
+      try {
+        out = evalBlockNoClose(b, env, sf, returnOnReturn);
+      } catch (e: any) {
+        const errObj: LuaValue = e instanceof LuaRuntimeError
+          ? e.message
+          : (e?.message ?? String(e));
+        const r = luaCloseFromMark(sf, mark, errObj);
+        if (isPromise(r)) {
+          return (r as Promise<void>).then(() => {
+            throw e;
+          });
         }
-
-        // Sync-first execution: iterate statements in a simple loop; if
-        // a statement returns a Promise, immediately switch to async by
-        // returning a continuation that resumes execution from the next
-        // statement (`i + 1`).
-        const execEnv = b.needsEnv === true ? new LuaEnv(env) : env;
-        const stmts = b.statements;
-
-        const processFrom = (
-          idx: number,
-        ): void | LuaValue[] | Promise<void | LuaValue[]> => {
-          for (let i = idx; i < stmts.length; i++) {
-            const result = evalStatement(
-              stmts[i],
-              execEnv,
-              sf,
-              returnOnReturn,
-            );
-            if (isPromise(result)) {
-              return (result as Promise<any>).then((res) => {
-                if (res !== undefined && !isGotoSignal(res)) {
-                  return res;
-                }
-                if (isGotoSignal(res)) {
-                  // Should not happen in fast path
-                  throw new LuaRuntimeError(
-                    "unexpected goto signal",
-                    sf.withCtx(stmts[i].ctx),
-                  );
-                }
-                return processFrom(i + 1);
-              });
-            }
-            // Will only happen with `return` statement
-            if (result !== undefined) {
-              if (isGotoSignal(result)) {
-                throw new LuaRuntimeError(
-                  "unexpected goto signal",
-                  sf.withCtx(stmts[i].ctx),
-                );
-              }
-              return result;
-            }
-          }
-          return;
-        };
-
-        return processFrom(0);
+        throw e;
       }
 
-      // If function has gotos, but this block itself has no labels,
-      // avoid computing metadata for this block.
-      if (fnHasGotos === true && !hasLabelHere && !hasGotoFlag) {
-        const execEnv = b.needsEnv === true ? new LuaEnv(env) : env;
-        const stmts = b.statements;
-        const runFrom = (
-          i: number,
-        ):
-          | void
-          | LuaValue[]
-          | GotoSignal
-          | Promise<void | LuaValue[] | GotoSignal> => {
-          for (; i < stmts.length; i++) {
-            const r = evalStatement(stmts[i], execEnv, sf, returnOnReturn);
-            if (isPromise(r)) {
-              return (r as Promise<any>).then((res) => {
-                if (isGotoSignal(res)) return res;
-                if (res !== undefined) return res;
-                return runFrom(i + 1);
-              });
-            } else {
-              if (isGotoSignal(r)) return r;
-              if (r !== undefined) return r;
-            }
-          }
-          return;
-        };
-        return runFrom(0);
-      }
-
-      // Need metadata (function or block has label/goto)
-      let meta: ReturnType<typeof getBlockGotoMeta> | undefined;
-      if (fnHasGotos === undefined && (hasGotoFlag || hasLabelFlag)) {
-        meta = blockMetaOrThrow(b, sf);
-        if (curFn) {
-          curFn.funcHasGotos = !!meta?.funcHasGotos;
-        }
-      } else if (fnHasGotos === true) {
-        // Only fetch metadata for blocks that actually have label/goto
-        meta = hasLabelFlag || hasGotoFlag
-          ? blockMetaOrThrow(b, sf)
-          : undefined;
-      } else {
-        meta = undefined;
-      }
-
-      if (!meta || !meta.funcHasGotos) {
-        const dup = b.dupLabelError;
-        if (dup) {
-          throw new LuaRuntimeError(
-            `label '${dup.name}' already defined`,
-            sf.withCtx(dup.ctx),
-          );
-        }
-        const execEnv = b.needsEnv === true ? new LuaEnv(env) : env;
-        const stmts = b.statements;
-
-        const processFrom = (
-          idx: number,
-        ): void | LuaValue[] | Promise<void | LuaValue[]> => {
-          for (let i = idx; i < stmts.length; i++) {
-            const result = evalStatement(
-              stmts[i],
-              execEnv,
-              sf,
-              returnOnReturn,
-            );
-            if (isPromise(result)) {
-              return (result as Promise<any>).then((res) => {
-                if (res !== undefined && !isGotoSignal(res)) {
-                  return res;
-                }
-                if (isGotoSignal(res)) {
-                  throw new LuaRuntimeError(
-                    "unexpected goto signal",
-                    sf.withCtx(stmts[i].ctx),
-                  );
-                }
-                return processFrom(i + 1);
-              });
-            }
-            if (result !== undefined) {
-              if (isGotoSignal(result)) {
-                throw new LuaRuntimeError(
-                  "unexpected goto signal",
-                  sf.withCtx(stmts[i].ctx),
-                );
-              }
-              return result;
-            }
-          }
-          return;
-        };
-
-        return processFrom(0);
-      } else {
-        const execEnv = b.needsEnv === true ? new LuaEnv(env) : env;
-        const stmts = b.statements;
-
-        const runFrom = (
-          i: number,
-        ):
-          | void
-          | LuaValue[]
-          | GotoSignal
-          | Promise<void | LuaValue[] | GotoSignal> => {
-          for (; i < stmts.length; i++) {
-            const r = evalStatement(stmts[i], execEnv, sf, returnOnReturn);
-            if (isPromise(r)) {
-              return (r as Promise<any>).then((res) => {
-                const consumed = consumeGotoInBlock(res, meta!.labels);
-                if (typeof consumed === "number") {
-                  return runFrom(consumed);
-                }
-                if (consumed !== undefined) {
-                  return consumed;
-                }
-                return runFrom(i + 1);
-              });
-            }
-            const consumed = consumeGotoInBlock(r, meta.labels);
-            if (typeof consumed === "number") {
-              // consumed is the next statement index; adjust for for-loop increment
-              i = consumed - 1;
-              continue;
-            }
-            if (consumed !== undefined) {
-              return consumed;
-            }
-          }
-          return;
-        };
-
-        return runFrom(0);
-      }
+      return withCloseBoundary(sf, mark, out);
     }
     case "If": {
       const iff = asIf(s);
@@ -1739,7 +1743,6 @@ export function evalStatement(
     }
     case "For": {
       const fr = asFor(s);
-      // Evaluate bounds and step once (sync-first)
       const startV = evalExpression(fr.start, env, sf);
       const endV = evalExpression(fr.end, env, sf);
       const stepV = fr.step ? evalExpression(fr.step, env, sf) : 1;
@@ -1867,148 +1870,200 @@ export function evalStatement(
           );
         }
 
-        const state: LuaValue = iteratorMultiRes.values[1] || null;
-        const control: LuaValue = iteratorMultiRes.values[2] || null;
+        const state: LuaValue = iteratorMultiRes.values[1] ?? null;
+        let control: LuaValue = iteratorMultiRes.values[2] ?? null;
+        const closing: LuaValue = iteratorMultiRes.values[3] ?? null;
 
-        const runAsync = async () => {
+        // The closing value in a generic-for has loop scope.  Close it
+        // when the loop ends, not only when the surrounding block ends.
+        const closeStack = luaEnsureCloseStack(sf);
+        const mark = closeStack.length;
+
+        // The closing value is a "to-be-closed" value, and only `nil`
+        // means "no close"; `false` is NOT special here.
+        if (closing !== null) {
+          luaMarkToBeClosed(sf, closing, fi.ctx);
+        }
+
+        const errObjFrom = (e: any): LuaValue =>
+          e instanceof LuaRuntimeError ? e.message : (e?.message ?? String(e));
+
+        const finish = (res: any) => {
+          const r = luaCloseFromMark(sf, mark, null);
+          return isPromise(r) ? (r as Promise<void>).then(() => res) : res;
+        };
+
+        const finishErr = (e: any): Promise<never> | never => {
+          const errObj = errObjFrom(e);
+          const r = luaCloseFromMark(sf, mark, errObj);
+          if (isPromise(r)) {
+            return (r as Promise<void>).then(() => {
+              throw e;
+            });
+          }
+          throw e;
+        };
+
+        try {
+          const runAsync = async () => {
+            while (true) {
+              const callRes = luaCall(
+                iteratorValue,
+                [state, control],
+                fi.ctx,
+                sf,
+              );
+              const iterResult = new LuaMultiRes(
+                isPromise(callRes) ? await callRes : callRes,
+              ).flatten();
+              const nextControl = iterResult.values[0];
+              if (nextControl === null || nextControl === undefined) {
+                break;
+              }
+              control = nextControl;
+
+              const localEnv = new LuaEnv(env);
+              for (let i = 0; i < fi.names.length; i++) {
+                localEnv.setLocal(fi.names[i], iterResult.values[i]);
+              }
+
+              try {
+                const r = evalStatement(fi.block, localEnv, sf, returnOnReturn);
+                if (isPromise(r)) {
+                  const res = await r;
+                  if (isGotoSignal(res)) {
+                    return await finish(res);
+                  }
+                  if (res !== undefined) {
+                    return await finish(res);
+                  }
+                } else if (isGotoSignal(r)) {
+                  return await finish(r);
+                } else if (r !== undefined) {
+                  return await finish(r);
+                }
+              } catch (e: any) {
+                if (e instanceof LuaBreak) {
+                  break;
+                } else {
+                  throw e;
+                }
+              }
+            }
+            return await finish(undefined);
+          };
+
           while (true) {
-            const callRes = luaCall(
+            const iterCall = luaCall(
               iteratorValue,
               [state, control],
               fi.ctx,
               sf,
             );
-            const iterResult = new LuaMultiRes(
-              isPromise(callRes) ? await callRes : callRes,
-            ).flatten();
-            if (
-              iterResult.values[0] === null ||
-              iterResult.values[0] === undefined
-            ) {
-              break;
+            if (isPromise(iterCall)) {
+              return (iterCall as Promise<any>).then((itv) => {
+                const iterResult = new LuaMultiRes(itv).flatten();
+                const nextControl = iterResult.values[0];
+                if (nextControl === null || nextControl === undefined) {
+                  const r = finish(undefined);
+                  if (isPromise(r)) return (r as Promise<void>).then(() => {});
+                  return;
+                }
+                control = nextControl;
+
+                const localEnv = new LuaEnv(env);
+                for (let i = 0; i < fi.names.length; i++) {
+                  localEnv.setLocal(fi.names[i], iterResult.values[i]);
+                }
+
+                try {
+                  const r = evalStatement(
+                    fi.block,
+                    localEnv,
+                    sf,
+                    returnOnReturn,
+                  );
+                  if (isPromise(r)) {
+                    return (r as Promise<any>).then((res) => {
+                      if (isGotoSignal(res)) {
+                        return rpThen(finish(undefined), () => res);
+                      }
+                      if (res !== undefined) {
+                        return rpThen(finish(undefined), () => res);
+                      }
+                      return runAsync();
+                    }).catch((e: any) => {
+                      if (e instanceof LuaBreak) {
+                        return finish(undefined);
+                      }
+                      throw e;
+                    });
+                  } else {
+                    if (isGotoSignal(r)) {
+                      return rpThen(finish(undefined), () => r);
+                    }
+                    if (r !== undefined) {
+                      return rpThen(finish(undefined), () => r);
+                    }
+                    return runAsync();
+                  }
+                } catch (e: any) {
+                  if (e instanceof LuaBreak) {
+                    return finish(undefined);
+                  }
+                  throw e;
+                }
+              }).catch((e: any) => finishErr(e));
             }
+
+            const iterResult = new LuaMultiRes(iterCall).flatten();
+            const nextControl = iterResult.values[0];
+            if (nextControl === null || nextControl === undefined) {
+              const r = finish(undefined);
+              if (isPromise(r)) {
+                return (r as Promise<void>);
+              }
+              return;
+            }
+            control = nextControl;
+
             const localEnv = new LuaEnv(env);
             for (let i = 0; i < fi.names.length; i++) {
               localEnv.setLocal(fi.names[i], iterResult.values[i]);
             }
+
             try {
               const r = evalStatement(fi.block, localEnv, sf, returnOnReturn);
               if (isPromise(r)) {
-                const res = await r;
-                if (isGotoSignal(res)) {
-                  return res;
-                }
-                if (res !== undefined) {
-                  return res;
-                }
+                return (r as Promise<any>).then((res) => {
+                  if (isGotoSignal(res)) {
+                    return rpThen(finish(undefined), () => res);
+                  }
+                  if (res !== undefined) {
+                    return rpThen(finish(undefined), () => res);
+                  }
+                  return runAsync();
+                }).catch((e: any) => {
+                  if (e instanceof LuaBreak) {
+                    return finish(undefined);
+                  }
+                  throw e;
+                }).catch((e: any) => finishErr(e));
               } else if (isGotoSignal(r)) {
-                return r;
+                return rpThen(finish(undefined), () => r);
               } else if (r !== undefined) {
-                return r;
+                return rpThen(finish(undefined), () => r);
               }
             } catch (e: any) {
               if (e instanceof LuaBreak) {
-                break;
-              } else {
-                throw e;
+                return finish(undefined);
               }
+              return finishErr(e);
             }
           }
-          return;
-        };
-
-        while (true) {
-          const iterCall = luaCall(iteratorValue, [state, control], fi.ctx, sf);
-          if (isPromise(iterCall)) {
-            return (iterCall as Promise<any>).then((itv) => {
-              const iterResult = new LuaMultiRes(itv).flatten();
-              if (
-                iterResult.values[0] === null ||
-                iterResult.values[0] === undefined
-              ) {
-                return;
-              }
-              const localEnv = new LuaEnv(env);
-              for (let i = 0; i < fi.names.length; i++) {
-                localEnv.setLocal(fi.names[i], iterResult.values[i]);
-              }
-              try {
-                const r = evalStatement(fi.block, localEnv, sf, returnOnReturn);
-                if (isPromise(r)) {
-                  return (r as Promise<any>).then((res) => {
-                    if (isGotoSignal(res)) {
-                      return res;
-                    }
-                    if (res !== undefined) {
-                      return res;
-                    }
-                    return runAsync();
-                  }).catch((e: any) => {
-                    if (e instanceof LuaBreak) {
-                      return;
-                    }
-                    throw e;
-                  });
-                } else {
-                  if (isGotoSignal(r)) {
-                    return r;
-                  }
-                  if (r !== undefined) {
-                    return r;
-                  } else {
-                    return runAsync();
-                  }
-                }
-              } catch (e: any) {
-                if (e instanceof LuaBreak) {
-                  return;
-                } else {
-                  throw e;
-                }
-              }
-            });
-          }
-          const iterResult = new LuaMultiRes(iterCall).flatten();
-          if (
-            iterResult.values[0] === null || iterResult.values[0] === undefined
-          ) {
-            break;
-          }
-          const localEnv = new LuaEnv(env);
-          for (let i = 0; i < fi.names.length; i++) {
-            localEnv.setLocal(fi.names[i], iterResult.values[i]);
-          }
-          try {
-            const r = evalStatement(fi.block, localEnv, sf, returnOnReturn);
-            if (isPromise(r)) {
-              return (r as Promise<any>).then((res) => {
-                if (isGotoSignal(res)) {
-                  return res;
-                }
-                if (res !== undefined) {
-                  return res;
-                }
-                return runAsync();
-              }).catch((e: any) => {
-                if (e instanceof LuaBreak) {
-                  return;
-                }
-                throw e;
-              });
-            } else if (isGotoSignal(r)) {
-              return r;
-            } else if (r !== undefined) {
-              return r;
-            }
-          } catch (e: any) {
-            if (e instanceof LuaBreak) {
-              break;
-            } else {
-              throw e;
-            }
-          }
+        } catch (e: any) {
+          return finishErr(e);
         }
-        return;
       };
 
       if (isPromise(exprVals)) {

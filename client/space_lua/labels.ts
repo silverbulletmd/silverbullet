@@ -12,6 +12,7 @@ import type {
   LuaRepeatStatement,
   LuaWhileStatement,
 } from "./ast.ts";
+import { LuaAttribute } from "./ast.ts";
 import { asBlock } from "./ast_narrow.ts";
 
 type BlockGotoMeta = {
@@ -66,6 +67,7 @@ type ValidationCtx = {
   gotos: GotoInfo[];
   hasGoto: boolean;
   nextLocalId: number;
+  closeLocals: Set<LocalID>;
 };
 
 type BlockRole =
@@ -90,6 +92,7 @@ function resolveFunction(root: LuaBlock): FunctionMeta {
     gotos: [],
     hasGoto: false,
     nextLocalId: 1,
+    closeLocals: new Set<LocalID>(),
   };
 
   const seenBlocks = new Set<LuaBlock>();
@@ -101,7 +104,6 @@ function resolveFunction(root: LuaBlock): FunctionMeta {
     undefined,
     "Root",
     new Set<LocalID>(),
-    new Set<string>(),
     blockMeta,
     vctx,
     seenBlocks,
@@ -155,12 +157,25 @@ function resolveFunction(root: LuaBlock): FunctionMeta {
 
     // Local scope forward jump check
     let entersLocalScope = false;
+    let entersCloseScope = false;
+
     for (const id of lset) {
       if (!g.active.has(id)) {
         entersLocalScope = true;
-        break;
+        if (vctx.closeLocals.has(id)) {
+          entersCloseScope = true;
+          break;
+        }
       }
     }
+
+    if (entersCloseScope) {
+      throw new LabelResolveError(
+        `goto '${target}' jumps into the scope of a local variable`,
+        g.node.ctx,
+      );
+    }
+
     if (entersLocalScope) {
       const safeEnd = isSafeEndLabel(labelDefBlock, lloc.index, roleByBlock);
       if (!safeEnd) {
@@ -216,7 +231,6 @@ function processBlock(
   parent: LuaBlock | undefined,
   role: BlockRole,
   active: Set<LocalID>,
-  visibleLabels: Set<string>,
   blockMeta: WeakMap<LuaBlock, BlockGotoMeta>,
   vctx: ValidationCtx,
   seen: Set<LuaBlock>,
@@ -236,7 +250,6 @@ function processBlock(
   vctx.labelLocByBlock.set(block, labelLocMap);
 
   const curActive = cloneSet(active);
-  const vis = new Set<string>(visibleLabels);
 
   const stmts = block.statements;
   for (let i = 0; i < stmts.length; i++) {
@@ -254,7 +267,6 @@ function processBlock(
         const actSet = cloneSet(curActive);
         labelActiveMap.set(lab.name, actSet);
         labelLocMap.set(lab.name, { index: i, ctx: lab.ctx });
-        vis.add(lab.name);
         break;
       }
       case "Goto": {
@@ -266,7 +278,15 @@ function processBlock(
       case "Local": {
         const l = s as LuaLocalStatement;
         for (let j = 0; j < l.names.length; j++) {
-          curActive.add(vctx.nextLocalId++);
+          const id = vctx.nextLocalId++;
+          curActive.add(id);
+
+          const isClose =
+            l.names[j].attributes?.includes(LuaAttribute.Close) ===
+              true;
+          if (isClose) {
+            vctx.closeLocals.add(id);
+          }
         }
         break;
       }
@@ -286,7 +306,6 @@ function processBlock(
           block,
           "For",
           childActive,
-          new Set<string>(vis),
           blockMeta,
           vctx,
           seen,
@@ -306,7 +325,6 @@ function processBlock(
           block,
           "ForIn",
           childActive,
-          new Set<string>(vis),
           blockMeta,
           vctx,
           seen,
@@ -322,7 +340,6 @@ function processBlock(
           block,
           "While",
           cloneSet(curActive),
-          new Set<string>(vis),
           blockMeta,
           vctx,
           seen,
@@ -338,7 +355,6 @@ function processBlock(
           block,
           "Repeat",
           cloneSet(curActive),
-          new Set<string>(vis),
           blockMeta,
           vctx,
           seen,
@@ -355,7 +371,6 @@ function processBlock(
             block,
             "If",
             cloneSet(curActive),
-            new Set<string>(vis),
             blockMeta,
             vctx,
             seen,
@@ -369,7 +384,6 @@ function processBlock(
             block,
             "If",
             cloneSet(curActive),
-            new Set<string>(vis),
             blockMeta,
             vctx,
             seen,
@@ -386,7 +400,6 @@ function processBlock(
           block,
           "Do",
           cloneSet(curActive),
-          new Set<string>(vis),
           blockMeta,
           vctx,
           seen,

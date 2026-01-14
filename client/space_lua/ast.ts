@@ -20,6 +20,8 @@ export type LuaBlock = {
   needsEnv?: boolean;
   // true if this block itself (not nested ones) defines at least one label
   hasLabelHere?: boolean;
+  // true if this block itself (not nested ones) may create to-be-closed values
+  hasCloseHere?: boolean;
 } & ASTContext;
 
 // STATEMENTS
@@ -141,6 +143,7 @@ export type LuaLocalStatement = {
 
 export enum LuaAttribute {
   Const = "const",
+  Close = "close",
 }
 
 export type LuaAttName = {

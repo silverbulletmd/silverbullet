@@ -1,14 +1,18 @@
 import {
   type ILuaFunction,
+  isILuaFunction,
   isLuaTable,
   LuaBuiltinFunction,
   luaCall,
+  luaCloseFromMark,
+  luaEnsureCloseStack,
   LuaEnv,
   luaGet,
   luaKeys,
   luaLen,
   LuaMultiRes,
   LuaRuntimeError,
+  type LuaStackFrame,
   type LuaTable,
   luaToString,
   luaTypeOf,
@@ -60,6 +64,18 @@ const ipairsFunction = new LuaBuiltinFunction((sf, ar: LuaTable | any[]) => {
 
 const pairsFunction = new LuaBuiltinFunction(
   (sf, t: LuaTable | any[] | Record<string, any>) => {
+    // Respect `__pairs` metamethod for Lua tables
+    if (isLuaTable(t)) {
+      const mt = (t as any).metatable as LuaTable | null | undefined;
+      if (mt) {
+        const mm = mt.get("__pairs", sf);
+        if (mm && (typeof mm === "function" || isILuaFunction(mm))) {
+          // __pairs must return (iter, state, control, closing)
+          return luaCall(mm, [t], sf.astCtx ?? {}, sf);
+        }
+      }
+    }
+
     let keys: (string | number)[];
     if (Array.isArray(t)) {
       keys = Array.from({ length: t.length }, (_, i) => i + 1); // For arrays, generate 1-based indices
@@ -74,7 +90,7 @@ const pairsFunction = new LuaBuiltinFunction(
     }
 
     let i = 0;
-    return async () => {
+    const iter = async () => {
       if (i >= keys.length) {
         return;
       }
@@ -83,6 +99,9 @@ const pairsFunction = new LuaBuiltinFunction(
       const value = await luaGet(t, key, sf.astCtx ?? null, sf);
       return new LuaMultiRes([key, value]);
     };
+
+    // Must return (iter, state, control) for generic for
+    return new LuaMultiRes([iter, t, null]);
   },
 );
 
@@ -129,30 +148,68 @@ const errorFunction = new LuaBuiltinFunction((sf, message: string) => {
   throw new LuaRuntimeError(message, sf);
 });
 
+async function pcallBoundary(
+  sf: LuaStackFrame,
+  fn: ILuaFunction,
+  args: LuaValue[],
+): Promise<
+  | { ok: true; values: LuaValue[] }
+  | { ok: false; message: string }
+> {
+  const closeStack = luaEnsureCloseStack(sf);
+  const mark = closeStack.length;
+
+  const errMsgOf = (e: any): string =>
+    e instanceof LuaRuntimeError ? e.message : (e?.message ?? String(e));
+
+  try {
+    const r = await luaCall(fn, args, sf.astCtx!, sf);
+    await luaCloseFromMark(sf, mark, null);
+    const values = r instanceof LuaMultiRes ? r.flatten().values : [r];
+    return { ok: true, values };
+  } catch (e: any) {
+    const msg = errMsgOf(e);
+    try {
+      await luaCloseFromMark(sf, mark, msg);
+      return { ok: false, message: msg };
+    } catch (closeErr: any) {
+      return { ok: false, message: errMsgOf(closeErr) };
+    }
+  }
+}
+
 const pcallFunction = new LuaBuiltinFunction(
   async (sf, fn: ILuaFunction, ...args) => {
-    try {
-      return new LuaMultiRes([true, await luaCall(fn, args, sf.astCtx!, sf)]);
-    } catch (e: any) {
-      if (e instanceof LuaRuntimeError) {
-        return new LuaMultiRes([false, e.message]);
-      }
-      return new LuaMultiRes([false, e.message]);
+    // To-be-closed variables must be closed when unwinding to the
+    // protected call boundary. Space Lua uses a per-thread close
+    // stack, so we snapshot its length and close anything pushed
+    // after that.
+    //
+    // The protected call boundary must be established *before*
+    // evaluating the function and its arguments.  Otherwise, any
+    // `<close>` locals created while evaluating `pcall`'s arguments
+    // will be wrongly treated as "inside" the protected call, and
+    // `pcall` may end up closing them (or affecting close ordering).
+    //
+    // `threadState` is read-only on the stack frame; do not reassign!
+    const res = await pcallBoundary(sf, fn, args);
+    if (res.ok) {
+      return new LuaMultiRes([true, ...res.values]);
     }
+    return new LuaMultiRes([false, res.message]);
   },
 );
 
 const xpcallFunction = new LuaBuiltinFunction(
   async (sf, fn: ILuaFunction, errorHandler: ILuaFunction, ...args) => {
-    try {
-      return new LuaMultiRes([true, await fn.call(sf, ...args)]);
-    } catch (e: any) {
-      const errorMsg = e instanceof LuaRuntimeError ? e.message : e.message;
-      return new LuaMultiRes([
-        false,
-        await luaCall(errorHandler, [errorMsg], sf.astCtx!, sf),
-      ]);
+    // Same semantic as `pcall` (see comments there)
+    const res = await pcallBoundary(sf, fn, args);
+    if (res.ok) {
+      return new LuaMultiRes([true, ...res.values]);
     }
+    const hr = await luaCall(errorHandler, [res.message], sf.astCtx!, sf);
+    const outVals = hr instanceof LuaMultiRes ? hr.flatten().values : [hr];
+    return new LuaMultiRes([false, ...outVals]);
   },
 );
 

@@ -24,6 +24,8 @@ import type {
   LuaTableField,
 } from "./ast.ts";
 import { LuaAttribute } from "./ast.ts";
+import { getBlockGotoMeta } from "./labels.ts";
+import { LuaRuntimeError, LuaStackFrame } from "./runtime.ts";
 
 const luaStyleTags = styleTags({
   Name: t.variableName,
@@ -69,6 +71,18 @@ function parseChunk(t: ParseTree, ctx: ASTCtx): LuaBlock {
   return parseBlock(t.children![0], ctx);
 }
 
+function hasCloseLocal(names: LuaAttName[] | undefined): boolean {
+  if (!names) {
+    return false;
+  }
+  for (const n of names) {
+    if (n.attributes?.includes(LuaAttribute.Close) === true) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function parseBlock(t: ParseTree, ctx: ASTCtx): LuaBlock {
   if (t.type !== "Block") {
     throw new Error(`Expected Block, got ${t.type}`);
@@ -82,6 +96,7 @@ function parseBlock(t: ParseTree, ctx: ASTCtx): LuaBlock {
   let hasLocalDecl = false;
   let dup: { name: string; ctx: ASTCtx } | undefined;
   let hasLabelHere = false;
+  let hasCloseHere = false;
 
   const seen = new Set<string>();
 
@@ -105,7 +120,13 @@ function parseBlock(t: ParseTree, ctx: ASTCtx): LuaBlock {
         hasGoto = true;
         break;
       }
-      case "Local":
+      case "Local": {
+        hasLocalDecl = true;
+        if (!hasCloseHere) {
+          hasCloseHere = hasCloseLocal((s as any).names as LuaAttName[]);
+        }
+        break;
+      }
       case "LocalFunction": {
         hasLocalDecl = true;
         break;
@@ -114,6 +135,7 @@ function parseBlock(t: ParseTree, ctx: ASTCtx): LuaBlock {
         const child = s as LuaBlock;
         hasLabel = hasLabel || !!child.hasLabel;
         hasGoto = hasGoto || !!child.hasGoto;
+        hasCloseHere = hasCloseHere || !!child.hasCloseHere;
         break;
       }
       case "If": {
@@ -121,20 +143,29 @@ function parseBlock(t: ParseTree, ctx: ASTCtx): LuaBlock {
         for (const c of iff.conditions) {
           hasLabel = hasLabel || !!c.block.hasLabel;
           hasGoto = hasGoto || !!c.block.hasGoto;
+          hasCloseHere = hasCloseHere || !!c.block.hasCloseHere;
         }
         if (iff.elseBlock) {
           hasLabel = hasLabel || !!iff.elseBlock.hasLabel;
           hasGoto = hasGoto || !!iff.elseBlock.hasGoto;
+          hasCloseHere = hasCloseHere || !!iff.elseBlock.hasCloseHere;
         }
         break;
       }
       case "While":
       case "Repeat":
-      case "For":
+      case "For": {
+        const child = (s as any).block as LuaBlock;
+        hasLabel = hasLabel || !!child.hasLabel;
+        hasGoto = hasGoto || !!child.hasGoto;
+        hasCloseHere = hasCloseHere || !!child.hasCloseHere;
+        break;
+      }
       case "ForIn": {
         const child = (s as any).block as LuaBlock;
         hasLabel = hasLabel || !!child.hasLabel;
         hasGoto = hasGoto || !!child.hasGoto;
+        hasCloseHere = true;
         break;
       }
       default: {
@@ -157,6 +188,9 @@ function parseBlock(t: ParseTree, ctx: ASTCtx): LuaBlock {
   }
   if (hasLabelHere) {
     block.hasLabelHere = true;
+  }
+  if (hasCloseHere) {
+    block.hasCloseHere = true;
   }
 
   return block;
@@ -295,13 +329,26 @@ function parseStatement(t: ParseTree, ctx: ASTCtx): LuaStatement {
         expressions: parseExpList(t.children![2], ctx),
         ctx: context(t, ctx),
       };
-    case "Local":
+    case "Local": {
+      const names = parseAttNames(t.children![1], ctx);
+
+      let closeCount = 0;
+      for (const n of names) {
+        if (n.attributes?.includes(LuaAttribute.Close) === true) {
+          closeCount++;
+          if (closeCount > 1) {
+            throw new Error("multiple <close> variables in local list");
+          }
+        }
+      }
+
       return {
         type: "Local",
-        names: parseAttNames(t.children![1], ctx),
+        names,
         expressions: t.children![3] ? parseExpList(t.children![3], ctx) : [],
         ctx: context(t, ctx),
       };
+    }
     case "ReturnStatement": {
       const expressions = t.children![1]
         ? parseExpList(t.children![1], ctx)
@@ -366,14 +413,19 @@ function parseAttName(t: ParseTree, ctx: ASTCtx): LuaAttName {
   const attribute = t.children![1].children![1]
     ? t.children![1].children![1].children![0].text!
     : undefined;
-  if (attribute && attribute !== LuaAttribute.Const) {
+  if (
+    attribute &&
+    attribute !== LuaAttribute.Const &&
+    attribute !== LuaAttribute.Close
+  ) {
     throw new Error(`unknown attribute '${attribute}'`);
   }
+  const attributes = attribute ? [attribute as LuaAttribute] : undefined;
   return {
     type: "AttName",
     name: t.children![0].children![0].text!,
     attribute,
-    attributes: attribute ? [LuaAttribute.Const] : undefined,
+    attributes,
     ctx: context(t, ctx),
   };
 }
@@ -867,14 +919,27 @@ export function stripLuaComments(s: string): string {
 }
 
 export function parse(s: string, ctx: ASTCtx = {}): LuaBlock {
-  const t = parseToCrudeAST(stripLuaComments(s));
-  // console.log("Clean tree", JSON.stringify(t, null, 2));
-  const result = parseChunk(t, ctx);
-  // console.log("Parsed AST", JSON.stringify(result, null, 2));
-  return result;
+  try {
+    const t = parseToAST(stripLuaComments(s));
+    // console.log("Clean tree", JSON.stringify(t, null, 2));
+    const result = parseChunk(t, ctx);
+    // console.log("Parsed AST", JSON.stringify(result, null, 2));
+    getBlockGotoMeta(result);
+    return result;
+  } catch (e: any) {
+    if (e && typeof e === "object" && "astCtx" in e) {
+      throw new LuaRuntimeError(
+        e.message,
+        LuaStackFrame.lostFrame.withCtx(
+          (e as any).astCtx as ASTCtx,
+        ),
+      );
+    }
+    throw e;
+  }
 }
 
-export function parseToCrudeAST(t: string): ParseTree {
+export function parseToAST(t: string): ParseTree {
   const n = lezerToParseTree(t, parser.parse(t).topNode);
   return cleanTree(n, true);
 }
