@@ -43,10 +43,15 @@ function cleanTags(values: (Tag | null)[], cleanWhitespace = false): Tag[] {
   return result;
 }
 
+/**
+ * Cleans up a markdown tree. Side effect: adds parent pointers
+ */
 function preprocess(t: ParseTree) {
   addParentPointers(t);
   traverseTree(t, (node) => {
+    // If this node i
     if (!node.type) {
+      // Remove redundant newlines in table
       if (node.text?.startsWith("\n")) {
         const prevNodeIdx = node.parent!.children!.indexOf(node) - 1;
         const prevNodeType = node.parent!.children![prevNodeIdx]?.type;

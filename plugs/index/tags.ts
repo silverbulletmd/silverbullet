@@ -1,7 +1,6 @@
 import type { FrontMatter } from "./frontmatter.ts";
 import { queryLuaObjects } from "./api.ts";
 import {
-  addParentPointers,
   collectNodesOfType,
   findParentMatching,
   type ParseTree,
@@ -31,7 +30,6 @@ export function indexTags(
   tree: ParseTree,
 ) {
   const tags = new Set<string>(); // name:parent
-  addParentPointers(tree);
   const pageTags: string[] = frontmatter.tags || [];
   for (const pageTag of pageTags) {
     tags.add(`${pageTag}:page`);

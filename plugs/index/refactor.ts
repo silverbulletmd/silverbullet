@@ -49,7 +49,6 @@ export async function renamePageLinkCommand() {
     console.error("No link found at cursor position...");
     return;
   }
-  console.log("Link node", mdTree);
   addParentPointers(mdTree);
   let node: ParseTree | null = link;
   if (node.type !== "WikiLink") {
