@@ -32,7 +32,7 @@ This means that I have to review every single line of LLM produced code and neve
 
 The ease and pace at which an AI agent produces a full pull request with meticulous sounding description and thousands of lines of code added (many of which are “tests”) is impressive. However, because of reasons listed before, now _my part starts_. I now have to go through this code for _hours or even days_ that only took _minutes_ to produce. 
 
-This is not a fair game, and I’m not here for it.
+This is not a fair game, and I’m not here for it. I’m sure your intention is good, but it’s often simply counter productive.
 
 # Enforcement
 I’m not the type of person that is interested in strict rules and policing. My approach is always to focus on explaining the _why_ and giving context so that people can draw their own conclusions.
