@@ -49,7 +49,6 @@ function cleanTags(values: (Tag | null)[], cleanWhitespace = false): Tag[] {
 function preprocess(t: ParseTree) {
   addParentPointers(t);
   traverseTree(t, (node) => {
-    // If this node i
     if (!node.type) {
       // Remove redundant newlines in table
       if (node.text?.startsWith("\n")) {
