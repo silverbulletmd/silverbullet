@@ -47,9 +47,9 @@ function preprocess(t: ParseTree) {
   addParentPointers(t);
   traverseTree(t, (node) => {
     if (!node.type) {
-      if (node.text?.startsWith("\n")) {
-        const prevNodeIdx = node.parent!.children!.indexOf(node) - 1;
-        const prevNodeType = node.parent!.children![prevNodeIdx]?.type;
+      if (node.text?.startsWith("\n") && node.parent?.children) {
+        const prevNodeIdx = node.parent.children.indexOf(node) - 1;
+        const prevNodeType = node.parent.children[prevNodeIdx]?.type;
         if (
           prevNodeType?.includes("Heading") || prevNodeType?.includes("Table")
         ) {
@@ -60,6 +60,7 @@ function preprocess(t: ParseTree) {
     return false;
   });
 }
+
 
 function posPreservingRender(
   t: ParseTree,

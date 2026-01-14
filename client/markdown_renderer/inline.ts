@@ -122,8 +122,9 @@ export async function expandMarkdown(
     } else if (n.type === "Task" && options.rewriteTasks !== false) {
       // Add a task reference to this based on the current page name if there's not one already
       const existingLink = findNodeOfType(n, "WikiLink");
-      if (!existingLink) {
-        n.children!.splice(1, 0, {
+      // Only rewrite if we have children, parent, and parent position
+      if (!existingLink && n.children && n.parent?.from !== undefined) {
+        n.children.splice(1, 0, {
           "text": " ",
         }, {
           "type": "WikiLink",
@@ -134,7 +135,7 @@ export async function expandMarkdown(
             },
             {
               "type": "WikiLinkPage",
-              "children": [{ "text": `${pageName}@${n.parent!.from!}` }],
+              "children": [{ "text": `${pageName}@${n.parent.from}` }],
             },
             {
               "type": "WikiLinkMark",

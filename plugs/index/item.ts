@@ -108,12 +108,14 @@ export function extractItemFromNode(
 
   // Is this a task?
   const taskNode = itemNode.children!.find((n) => n.type === "Task");
-  if (taskNode) {
+  if (taskNode && taskNode.children) {
     item.tag = "task";
-    item.state = taskNode.children![0].children![1].text!;
+    // Safely extract task state with fallback - structure is TaskState > [ > state > ]
+    const taskStateNode = taskNode.children[0];
+    item.state = taskStateNode?.children?.[1]?.text ?? " ";
     item.done = completeStates.includes(item.state);
     // Fake a paragraph node for text rendering later
-    nameNode = { type: "Paragraph", children: taskNode.children!.slice(1) };
+    nameNode = { type: "Paragraph", children: taskNode.children.slice(1) };
   }
 
   // Now let's extract tags and attributes
