@@ -1,4 +1,4 @@
-**TL;DR:** Please do not (heavily) use LLM-based coding tools to contribute code to the [main SilverBullet code base](https://github.com/silverbulletmd/silverbullet). Also don’t heavily rely LLMs to contribute to issues or community discussions (except for language support, if you need it).
+**TL;DR:** Please do not (heavily) use LLM-based coding tools to contribute code to the [main SilverBullet code base](https://github.com/silverbulletmd/silverbullet). Also don’t heavily rely on LLMs to contribute to issues or community discussions (except for language support, if you need it).
 
 The topic of how to deal with (largely) LLM generated contributions comes up from time in SilverBullet. Different open source project take different approaches: some allow them because “it’s the future,” some [decidedly do not](https://ziglang.org/code-of-conduct/). After much deliberation, I decided that for now I’ll put SilverBullet in the latter camp, as in: no thank you. 
 
