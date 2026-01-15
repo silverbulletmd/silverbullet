@@ -128,7 +128,7 @@ export async function pageComplete(completeEvent: CompleteEvent) {
           for (const alias of pageMeta.aliases) {
             const decoratedName = namePrefix + alias;
             completions.push({
-              label: alias,
+              label: "" + alias,
               displayLabel: decoratedName,
               boost: new Date(pageMeta.lastModified).getTime(),
               apply: pageMeta.tag === "template"
