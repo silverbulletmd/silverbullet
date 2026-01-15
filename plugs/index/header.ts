@@ -93,7 +93,9 @@ export async function headerComplete(completeEvent: CompleteEvent) {
   return {
     from: completeEvent.pos - match.groups.path.length,
     options: headers.map((header) => ({
-      label: `${getNameFromPath(ref.path)}#${header.name}`,
+      label: `${
+        (ref.meta ? "^" : "") + getNameFromPath(ref.path)
+      }#${header.name}`,
       type: "header",
     })),
   };
