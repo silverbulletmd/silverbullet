@@ -39,6 +39,9 @@ export function mqSyscalls(
     "mq.flushQueue": (_ctx, queue: string) => {
       return mq.flushQueue(queue);
     },
+    "mq.flushAllQueues": () => {
+      return mq.flushAllQueues();
+    },
     "mq.getQueueStats": (_ctx, queue: string) => {
       return mq.getQueueStats(queue);
     },

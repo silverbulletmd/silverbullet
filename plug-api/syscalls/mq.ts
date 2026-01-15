@@ -37,6 +37,13 @@ export function flushQueue(queue: string): Promise<void> {
 }
 
 /**
+ * Flushes all messages from all queues.
+ */
+export function flushAllQueues(): Promise<void> {
+  return syscall("mq.flushAllQueues");
+}
+
+/**
  * Acknowledges a message from a queue, in case it needs to be explicitly acknowledged.
  * @param queue the name of the queue the message came from
  * @param id the id of the message to acknowledge

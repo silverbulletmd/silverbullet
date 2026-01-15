@@ -356,6 +356,13 @@ export class DataStoreMQ {
     await this.ds.batchDelete(ids);
   }
 
+  /**
+   * Flushes all queues
+   */
+  flushAllQueues() {
+    return this.ds.batchDeletePrefix(["mq"]);
+  }
+
   async getQueueStats(queue?: string): Promise<MQStats> {
     const queued = await this.ds.kv.countQuery({
       prefix: queue ? [...queuedPrefix, queue] : queuedPrefix,
