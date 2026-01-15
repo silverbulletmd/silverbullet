@@ -1,5 +1,4 @@
-// @deno-types="https://deno.land/x/fuse@v6.4.1/dist/fuse.d.ts"
-import Fuse from "fuse";
+import Fuse, { type FuseResultMatch } from "fuse";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 import { fileName } from "@silverbulletmd/silverbullet/lib/resolve";
 
@@ -22,7 +21,6 @@ export const fuzzySearchAndSort = (
       baseName: fileName(item.name),
       displayName: item?.meta?.displayName,
       aliases: item?.meta?.aliases?.join(" "),
-      category: item.category,
     };
   });
 
@@ -42,32 +40,17 @@ export const fuzzySearchAndSort = (
     }, {
       name: "description",
       weight: 0.3,
-    }, {
-      name: "category",
-      weight: 0.8,
     }],
-    includeScore: true,
-    shouldSort: true,
     isCaseSensitive: false,
-    ignoreLocation: true,
+    ignoreDiacritics: true,
+    shouldSort: true,
     threshold: 0.6,
+    includeScore: true,
     sortFn: (a, b): number => {
       const aItem = enrichedArr[a.idx];
       const bItem = enrichedArr[b.idx];
 
-      // Check for exact category matches first
-      const searchLower = searchPhrase.toLowerCase();
-      const aExactCategoryMatch = aItem.category?.toLowerCase() === searchLower;
-      const bExactCategoryMatch = bItem.category?.toLowerCase() === searchLower;
-
-      if (aExactCategoryMatch && !bExactCategoryMatch) {
-        return -1; // a comes first
-      }
-      if (!aExactCategoryMatch && bExactCategoryMatch) {
-        return 1; // b comes first
-      }
-
-      // If both or neither have exact category matches, use normal scoring
+      // If scores are the same, use orderId for sorting
       if (a.score === b.score) {
         const aOrder = aItem.orderId || 0;
         const bOrder = bItem.orderId || 0;
@@ -80,8 +63,9 @@ export const fuzzySearchAndSort = (
   });
 
   const results = fuse.search(searchPhrase);
-  return results.map((r) => ({
+  const enhancedResults = results.map((r) => ({
     ...r.item,
     fuseScore: r.score,
   }));
+  return enhancedResults;
 };

@@ -1,110 +1,93 @@
 .sb-modal-box {
-  margin-top: 60px;
-  padding: 0;
-  width: 700px;
-  max-width: 90%;
-
-  border-radius: 8px;
-  overflow: hidden;
-
-  .cm-content {
+    margin-top: 60px;
     padding: 0;
+    width: 700px;
+    max-width: 90%;
 
-    .cm-line {
-      padding: 2px 0 0 3px;
-    }
-  }
+    border-radius: 8px;
+    overflow: hidden;
 
-  .sb-header {
-    padding: 13px 10px 10px 10px;
-    display: flex;
+    .cm-content {
+        padding: 0;
 
-    label {
-      margin: 3px;
-    }
-
-    .sb-mini-editor {
-      flex-grow: 1;
-      min-width: 0;
-    }
-  }
-
-  .sb-prompt {
-    padding: 13px 10px 10px 10px;
-
-    label {
-      font-weight: bold;
+        .cm-line {
+            padding: 2px 0 0 3px;
+        }
     }
 
-    .sb-mini-editor {
-      background-color: var(--text-field-background-color);
-      margin: 10px 0;
-      padding: 0.2em 0.5em;
-      border: 0;
-      border-radius: 0.5em;
-      outline: none;
+    .sb-header {
+        padding: 13px 10px 10px 10px;
+        display: flex;
+
+        label {
+            margin: 3px;
+        }
+
+        .sb-mini-editor {
+            flex-grow: 1;
+            min-width: 0;
+        }
     }
 
-    .sb-prompt-buttons {
-      display: flex;
-      justify-content: flex-end;
-      margin-top: 10px;
-      gap: 10px;
+    .sb-prompt {
+        padding: 13px 10px 10px 10px;
+
+        label {
+            font-weight: bold;
+        }
+
+        .sb-mini-editor {
+            background-color: var(--text-field-background-color);
+            margin: 10px 0;
+            padding: 0.2em 0.5em;
+            border: 0;
+            border-radius: 0.5em;
+            outline: none;
+        }
+
+        .sb-prompt-buttons {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 10px;
+            gap: 10px;
+        }
     }
-  }
 
-  .sb-help-text {
-    padding: 5px;
-  }
-
-  .sb-result-list {
-    max-height: 250px;
-    overflow-y: scroll;
-
-    .sb-icon {
-      padding: 0 8px 0 5px;
-      position: relative;
-      top: 3px;
+    .sb-help-text {
+        padding: 5px;
     }
 
-    .sb-description {
-      font-size: 75%;
+    .sb-result-list {
+        max-height: 250px;
+        overflow-y: scroll;
+
+        .sb-icon {
+            padding: 0 8px 0 5px;
+            position: relative;
+            top: 3px;
+        }
+
+        .sb-description {
+            font-size: 75%;
+        }
     }
-  }
 
-  .sb-category-header {
-    padding: 12px 8px 8px 8px;
-    font-weight: 600;
-    font-size: 70%;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: inherit;
-    background-color: var(--modal-background-color);
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
+    .sb-option,
+    .sb-selected-option {
+        padding: 8px;
+        cursor: pointer;
+        line-height: 20px;
+    }
 
-  .sb-category-header + .sb-option {
-    margin-top: 4px;
-  }
-
-  .sb-option,
-  .sb-selected-option {
-    padding: 8px;
-    cursor: pointer;
-    line-height: 20px;
-  }
-
-  .sb-option .sb-hint,
-  .sb-selected-option .sb-hint {
-    float: right;
-    margin-right: 0;
-    margin-top: -4px;
-    padding-left: 5px;
-    padding-right: 5px;
-    padding-top: 3px;
-    padding-bottom: 3px;
-    border-radius: 5px;
-  }
+    .sb-option .sb-hint,
+    .sb-selected-option .sb-hint {
+        float: right;
+        margin-right: 0;
+        margin-top: -4px;
+        padding-left: 5px;
+        padding-right: 5px;
+        padding-top: 3px;
+        padding-bottom: 3px;
+        border-radius: 5px;
+    }
 }

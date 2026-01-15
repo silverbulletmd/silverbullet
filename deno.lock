@@ -58,10 +58,11 @@
     "npm:crelt@1.0.6": "1.0.6",
     "npm:fake-indexeddb@6.0.1": "6.0.1",
     "npm:fast-diff@1.3.0": "1.3.0",
+    "npm:fuse.js@7.1.0": "7.1.0",
     "npm:gitignore-parser@0.0.2": "0.0.2",
     "npm:idb@8.0.3": "8.0.3",
     "npm:js-yaml@4.1.0": "4.1.0",
-    "npm:preact-feather@4.2.1": "4.2.1_preact@10.26.9",
+    "npm:preact-feather@4.2.1": "4.2.1_preact@10.23.1",
     "npm:preact@10.23.1": "10.23.1",
     "npm:preact@10.26.4": "10.26.4",
     "npm:preact@10.26.9": "10.26.9",
@@ -444,6 +445,9 @@
     "fast-uri@3.0.6": {
       "integrity": "sha512-Atfo14OibSv5wAp4VWNsFYE1AchQRTv9cBGWET4pZWHzYshFSS9NQI6I57rdKn9croWVMbYFbLhJ+yJvmZIIHw=="
     },
+    "fuse.js@7.1.0": {
+      "integrity": "sha512-trLf4SzuuUxfusZADLINj+dE8clK1frKdmqiJNb1Es75fmI5oY6X2mxLVUciLLjxqw/xr72Dhy+lER6dGd02FQ=="
+    },
     "gitignore-parser@0.0.2": {
       "integrity": "sha512-X6mpqUv59uWLGD4n3hZ8Cu8KbF2PMWPSFYmxZjdkpm3yOU7hSUYnzTkZI1mcWqchphvqyuz3/BhgBR4E/JtkCg=="
     },
@@ -460,10 +464,10 @@
     "json-schema-traverse@1.0.0": {
       "integrity": "sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug=="
     },
-    "preact-feather@4.2.1_preact@10.26.9": {
+    "preact-feather@4.2.1_preact@10.23.1": {
       "integrity": "sha512-yK5kYW64AoOkm+xTtUjwcFx0zNrqVTbwmtww8G2AmAB6f8wyQgwZgc6oRXllSYeg7q1I8VbkUpErJuKJ6Vq2eA==",
       "dependencies": [
-        "preact@10.26.9"
+        "preact@10.23.1"
       ]
     },
     "preact@10.23.1": {
@@ -694,6 +698,7 @@
       "npm:crelt@1.0.6",
       "npm:fake-indexeddb@6.0.1",
       "npm:fast-diff@1.3.0",
+      "npm:fuse.js@7.1.0",
       "npm:gitignore-parser@0.0.2",
       "npm:idb@8.0.3",
       "npm:js-yaml@4.1.0",
