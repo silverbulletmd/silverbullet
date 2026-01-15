@@ -1,4 +1,4 @@
-import Fuse, { type FuseResultMatch } from "fuse";
+import Fuse from "fuse";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 import { fileName } from "@silverbulletmd/silverbullet/lib/resolve";
 
