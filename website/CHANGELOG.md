@@ -3,36 +3,40 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
-* Removed:
-  * **Full-text search** plug from the main distribution, this has now been moved to [a separate repo](https://github.com/silverbulletmd/basic-search) (installable via the library manager). This dramatically improves indexing speed. 
-    #protip Install [Silversearch](https://github.com/MrMugame/silversearch) instead.
-* Indexer improvements:
+* Indexer rework:
   * Performance: up to 2x faster
-  * For consistency with items, `task` `refs` now point to the item’s position resulting in a slight positional shift, if you have code relying on this, you may have to adjust it
-  * Removed: deadline syntax for tasks, please use attributes instead (e.g. `[deadline: "2026-01-01"]`)
-  * `page:index` now also receives a `text` and `meta` attribute
-  * Significant performance improvements
   * `item` and `task` now also index (wiki) links and inherited (wiki) links (links appearing in parent nodes), as [requested here](https://community.silverbullet.md/t/coming-from-logseq-outlines-and-linked-mentions/290) under `links` and `ilinks`. Updated the "Linked Tasks" widget now to rely on `ilinks`.
+  * Rewrote snippet text for links (used in [[Linked Mention|Linked Mentions]]) to be more contextual, now also includes child bullet items, see [community discussion](https://community.silverbullet.md/t/coming-from-logseq-outlines-and-linked-mentions/290).
+  * For consistency with items, `task` `refs` now point to the item’s position resulting in a slight positional shift, if you have code relying on this, you may have to adjust it
+  * `page:index` now also receives a `text` and `meta` attribute
   * Disabled indexing all paragraph text by default, this caused significant indexing overhead. [See discussion](https://community.silverbullet.md/t/who-is-using-paragraph-for-queries/3686).
     To re-enable: `config.set("index.paragraph.all", true)`
-  * Rewrote snippet text for links (used in [[Linked Mention|Linked Mentions]]) to be more contextual, now also includes child bullet items, see [community discussion](https://community.silverbullet.md/t/coming-from-logseq-outlines-and-linked-mentions/290).
   * Better link support in frontmatter (by [Tomasz Gorochowik](https://github.com/silverbulletmd/silverbullet/pull/1711))
-* Syscalls:
-  * Added [[API/space#space.readFileWithMeta(name)]]
-  * Added [[API/space#space.readPageWithMeta(name)]]
-  * Added [[API/space#space.readRef(ref)]]
-* [[Transclusions]]:
+* [[Transclusions]] improvements:
   * Now have an “eye” button to navigate to the transcluded location
   * Now properly support headers
-  * Items and tasks can be transcluded with children (based on `@pos` notation)
+  * Items and tasks are now transcluded with their children (based on `@pos` notation) (this is mostly helpful when used in queries)
+* Page/document/meta picker tweaks:
+  * Upgraded the underlying [Fuse.js](https://www.fusejs.io) library and tuned the ranking parameters, hopefully leading to better results.
+  * Meta picker now more consistent with page picker
+  * You can now use `Alt-space` to complete a folder matching the first result — try it and let me know how this works for you in practice.
+* **Full-text search has been removed** from the main distribution, this has now been moved to [a separate repo](https://github.com/silverbulletmd/basic-search) (installable via the library manager). Rationale: full text indexing is expensive and the search results were quite bad. Recommendation: install [Silversearch](https://github.com/MrMugame/silversearch) as an alternative.
+* Tasks:
+  * `taskstate` objects are no more. Custom task states should now be defined using the [[API/taskState]] API.
+  * **Removed:** deadline syntax (legacy syntax from v1) for tasks, please use attributes instead (e.g. `[deadline: "2026-01-01"]`).
+* New APIs:
+  * [[API/space#space.readFileWithMeta(name)]]
+  * [[API/space#space.readPageWithMeta(name)]]
+  * [[API/space#space.readRef(ref)]]
+  * [[API/taskState#taskState.define(def)]] (see “Tasks” above)
 * New commands:
   * `Navigate: Copy Ref To Current Position`
   * `Navigate: Copy Link To Current Position`
-* Production builds now include sourcemaps for easier debugging in browser DevTools. If you don't want to serve sourcemaps publicly, you can block `*.js.map` files at your reverse proxy level (see [[TLS#Blocking sourcemaps]]).
 * Lua:
   * [LIQ fix](https://github.com/silverbulletmd/silverbullet/issues/1705)
   * [Ctrl-click](https://github.com/silverbulletmd/silverbullet/pull/1713) navigate to definition on non-Mac operating systems
   * Support for `<const>` in Lua (by [Matouš Jan Fialka](https://github.com/silverbulletmd/silverbullet/pull/1715))
+* Production builds now include sourcemaps for easier debugging in browser DevTools. If you don't want to serve sourcemaps publicly, you can block `*.js.map` files at your reverse proxy level (see [[TLS#Blocking sourcemaps]]).
 * Fixes:
   * Should now deal better with authentication layers (Cloudflare Zero Trust, Authelia, Pangolin)
   * [Sync errors](https://github.com/silverbulletmd/silverbullet/issues/1720) now propagate better to the UI

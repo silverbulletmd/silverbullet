@@ -23,7 +23,7 @@ Restrictions:
 
 * Task states cannot contain `:` to avoid ambiguity with [[Attribute]] syntax.
 
-It is advisable to explicitly define custom task state using the [[Library/Std/APIs/Task State#taskState.define(def)]] API, this will enable cycling through the task states by clicking on them.
+To define custom states explicitly (and get code completion for them), use the [[API/taskState]] API.
 
 # Querying
 SilverBullet allows you to simply toggle the complete state of a task by clicking the checkbox. It also allows for querying tasks as [[Object#task]]. For instance:
