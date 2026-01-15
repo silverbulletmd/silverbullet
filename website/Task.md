@@ -8,10 +8,12 @@ which renders as follows:
 
 * [ ] This is my first task
 
-Also see [[Object/task]].
+SilverBullet allows you to simply toggle the complete state of a task by clicking the checkbox.
+
+All tasks across your space are automatically [[Object/task|indexed]] and can therefore be [[Space Lua/Lua Integrated Query|queried]].
 
 # Custom states
-Tasks support the default `x` and ` ` states (done and not done), but custom states as well. Support for this is still very basic, however.
+Tasks support the default `x` and ` ` states (done and not done), but custom states as well. Support for this is still basic, however.
 
 Example:
 
@@ -24,8 +26,3 @@ Restrictions:
 * Task states cannot contain `:` to avoid ambiguity with [[Attribute]] syntax.
 
 To define custom states explicitly (and get code completion for them), use the [[API/taskState]] API.
-
-# Querying
-SilverBullet allows you to simply toggle the complete state of a task by clicking the checkbox. It also allows for querying tasks as [[Object#task]]. For instance:
-
-${query[[from index.tag "task" where page == editor.getCurrentPage()]]}

@@ -7,8 +7,8 @@ Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be
   * Performance: up to 2x faster
   * `item` and `task` now also index (wiki) links and inherited (wiki) links (links appearing in parent nodes), as [requested here](https://community.silverbullet.md/t/coming-from-logseq-outlines-and-linked-mentions/290) under `links` and `ilinks`. Updated the "Linked Tasks" widget now to rely on `ilinks`.
   * Rewrote snippet text for links (used in [[Linked Mention|Linked Mentions]]) to be more contextual, now also includes child bullet items, see [community discussion](https://community.silverbullet.md/t/coming-from-logseq-outlines-and-linked-mentions/290).
-  * For consistency with items, `task` `refs` now point to the item’s position resulting in a slight positional shift, if you have code relying on this, you may have to adjust it
-  * `page:index` now also receives a `text` and `meta` attribute
+  * For consistency with items, `task` `refs` now point to the item’s position resulting in a slight positional shift, if you have code relying on this, you may have to adjust it.
+  * The `page:index` event now also receives a `text` and `meta` attributes.
   * Disabled indexing all paragraph text by default, this caused significant indexing overhead. [See discussion](https://community.silverbullet.md/t/who-is-using-paragraph-for-queries/3686).
     To re-enable: `config.set("index.paragraph.all", true)`
   * Better link support in frontmatter (by [Tomasz Gorochowik](https://github.com/silverbulletmd/silverbullet/pull/1711))
@@ -21,7 +21,7 @@ Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be
   * Meta picker now more consistent with page picker
   * You can now use `Alt-space` to complete a folder matching the first result — try it and let me know how this works for you in practice.
 * **Full-text search has been removed** from the main distribution, this has now been moved to [a separate repo](https://github.com/silverbulletmd/basic-search) (installable via the library manager). Rationale: full text indexing is expensive and the search results were quite bad. Recommendation: install [Silversearch](https://github.com/MrMugame/silversearch) as an alternative.
-* Tasks:
+* [[Task|Tasks]]:
   * `taskstate` objects are no more. Custom task states should now be defined using the [[API/taskState]] API.
   * **Removed:** deadline syntax (legacy syntax from v1) for tasks, please use attributes instead (e.g. `[deadline: "2026-01-01"]`).
 * New APIs:
