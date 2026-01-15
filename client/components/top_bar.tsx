@@ -4,12 +4,10 @@ import type {
 } from "@codemirror/autocomplete";
 import type { ComponentChildren, FunctionalComponent } from "preact";
 import type { Notification } from "@silverbulletmd/silverbullet/type/client";
-import type { FeatherProps } from "preact-feather/types";
-import type { IconBaseProps } from "react-icons/types";
 import { MiniEditor } from "./mini_editor.tsx";
 
 export type ActionButton = {
-  icon: FunctionalComponent<FeatherProps | IconBaseProps>;
+  icon: FunctionalComponent<any>;
   description: string;
   class?: string;
   callback: () => void;

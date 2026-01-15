@@ -64,8 +64,7 @@
     "npm:js-yaml@4.1.0": "4.1.0",
     "npm:preact-feather@4.2.1": "4.2.1_preact@10.23.1",
     "npm:preact@10.23.1": "10.23.1",
-    "npm:preact@10.26.4": "10.26.4",
-    "npm:preact@10.26.9": "10.26.9",
+    "npm:preact@10.28.2": "10.28.2",
     "npm:style-mod@4.1.2": "4.1.2",
     "npm:turndown@7.2.0": "7.2.0"
   },
@@ -473,11 +472,8 @@
     "preact@10.23.1": {
       "integrity": "sha512-O5UdRsNh4vdZaTieWe3XOgSpdMAmkIYBCT3VhQDlKrzyCm8lUYsk0fmVEvoQQifoOjFRTaHZO69ylrzTW2BH+A=="
     },
-    "preact@10.26.4": {
-      "integrity": "sha512-KJhO7LBFTjP71d83trW+Ilnjbo+ySsaAgCfXOXUlmGzJ4ygYPWmysm77yg4emwfmoz3b22yvH5IsVFHbhUaH5w=="
-    },
-    "preact@10.26.9": {
-      "integrity": "sha512-SSjF9vcnF27mJK1XyFMNJzFd5u3pQiATFqoaDy03XuN00u4ziveVVEGt5RKJrDR8MHE/wJo9Nnad56RLzS2RMA=="
+    "preact@10.28.2": {
+      "integrity": "sha512-lbteaWGzGHdlIuiJ0l2Jq454m6kcpI1zNje6d8MlGAFlYvP2GO4ibnat7P74Esfz4sPTdM6UxtTwh/d3pwM9JA=="
     },
     "require-from-string@2.0.2": {
       "integrity": "sha512-Xf0nWe6RseziFMu+Ap9biiUbmplq6S9/p+7w7YXP/JBHhrUDDUhwa+vANyubuqfZWTveU//DYVGsDG7RKL/vEw=="
@@ -703,8 +699,7 @@
       "npm:idb@8.0.3",
       "npm:js-yaml@4.1.0",
       "npm:preact-feather@4.2.1",
-      "npm:preact@10.26.4",
-      "npm:preact@10.26.9",
+      "npm:preact@10.28.2",
       "npm:style-mod@4.1.2",
       "npm:turndown@7.2.0"
     ]
