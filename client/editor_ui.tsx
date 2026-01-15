@@ -151,7 +151,6 @@ export class MainUI {
             )}
             currentPath={client.currentPath()}
             mode={viewState.pageNavigatorMode}
-            completer={client.miniEditorComplete.bind(client)}
             vimMode={viewState.uiOptions.vimMode}
             darkMode={viewState.uiOptions.darkMode}
             onModeSwitch={(mode) => {
@@ -249,7 +248,6 @@ export class MainUI {
             commands={client.getCommandsByContext(viewState)}
             vimMode={viewState.uiOptions.vimMode}
             darkMode={viewState.uiOptions.darkMode}
-            completer={client.miniEditorComplete.bind(client)}
           />
         )}
         {viewState.showFilterBox && (
@@ -260,7 +258,6 @@ export class MainUI {
             vimMode={viewState.uiOptions.vimMode}
             darkMode={viewState.uiOptions.darkMode}
             allowNew={false}
-            completer={client.miniEditorComplete.bind(client)}
             helpText={viewState.filterBoxHelpText}
             onSelect={viewState.filterBoxOnSelect}
           />
@@ -271,7 +268,6 @@ export class MainUI {
             defaultValue={viewState.promptDefaultValue}
             vimMode={viewState.uiOptions.vimMode}
             darkMode={viewState.uiOptions.darkMode}
-            completer={client.miniEditorComplete.bind(client)}
             callback={(value) => {
               dispatch({ type: "hide-prompt" });
               viewState.promptCallback!(value);
@@ -299,7 +295,6 @@ export class MainUI {
           darkMode={viewState.uiOptions.darkMode}
           progressPercentage={viewState.progressPercentage}
           progressType={viewState.progressType}
-          completer={client.miniEditorComplete.bind(client)}
           onClick={() => {
             if (!client.isDocumentEditor()) {
               client.editorView.scrollDOM.scrollTop = 0;

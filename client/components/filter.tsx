@@ -1,8 +1,4 @@
 import type { FeatherProps } from "preact-feather/types";
-import type {
-  CompletionContext,
-  CompletionResult,
-} from "@codemirror/autocomplete";
 import type { FunctionalComponent } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
@@ -10,6 +6,7 @@ import { MiniEditor } from "./mini_editor.tsx";
 import { fuzzySearchAndSort } from "../lib/fuse_search.ts";
 import { deepEqual } from "../../plug-api/lib/json.ts";
 import { AlwaysShownModal } from "./basic_modals.tsx";
+import type { EditorView } from "@codemirror/view";
 
 export function FilterList({
   placeholder,
@@ -17,7 +14,6 @@ export function FilterList({
   label,
   onSelect,
   onKeyPress,
-  completer,
   vimMode,
   darkMode,
   preFilter,
@@ -31,13 +27,12 @@ export function FilterList({
   placeholder: string;
   options: FilterOption[];
   label: string;
-  onKeyPress?: (key: string, currentText: string) => void;
+  onKeyPress?: (view: EditorView, event: KeyboardEvent) => boolean;
   onSelect: (option: FilterOption | undefined) => void;
   preFilter?: (options: FilterOption[], phrase: string) => FilterOption[];
   phrasePreprocessor?: (phrase: string) => string;
   vimMode: boolean;
   darkMode?: boolean;
-  completer: (context: CompletionContext) => Promise<CompletionResult | null>;
   allowNew?: boolean;
   completePrefix?: string;
   helpText: string;
@@ -116,7 +111,6 @@ export function FilterList({
           vimStartInInsertMode={true}
           focus={true}
           darkMode={darkMode}
-          completer={completer}
           placeholderText={placeholder}
           onEnter={(_newText, shiftDown) => {
             onSelect(
@@ -133,9 +127,25 @@ export function FilterList({
             setText(text);
           }}
           onKeyUp={(view, e) => {
-            // This event is triggered after the key has been processed by CM already
+            if (e.code === "Space" && e.altKey) {
+              if (matchingOptions.length > 0) {
+                const text = view.state.sliceDoc().trimEnd(); // space already added, remove it
+                const option = matchingOptions[0];
+                if (option.name.toLowerCase().startsWith(text.toLowerCase())) {
+                  // If the prefixes are the same, add one more segment
+                  let nextSlash = option.name.indexOf("/", text.length + 1);
+                  if (nextSlash === -1) {
+                    nextSlash = Infinity;
+                  }
+                  setText(option.name.slice(0, nextSlash));
+                } else {
+                  setText(`${option.name.split("/")[0]}/`);
+                }
+              }
+              return true;
+            }
             if (onKeyPress) {
-              onKeyPress(e.key, view.state.sliceDoc());
+              return onKeyPress(view, e);
             }
             return false;
           }}

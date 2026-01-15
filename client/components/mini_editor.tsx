@@ -1,16 +1,8 @@
 import { useEffect, useRef } from "preact/hooks";
 import { history, historyKeymap, standardKeymap } from "@codemirror/commands";
-import {
-  autocompletion,
-  closeBracketsKeymap,
-  type CompletionContext,
-  completionKeymap,
-  type CompletionResult,
-} from "@codemirror/autocomplete";
 import { EditorState } from "@codemirror/state";
 import {
   EditorView,
-  highlightSpecialChars,
   keymap,
   placeholder,
   ViewPlugin,
@@ -42,7 +34,6 @@ export function MiniEditor(
     onEnter,
     onChange,
     focus,
-    completer,
     editable,
   }: {
     text: string;
@@ -51,9 +42,6 @@ export function MiniEditor(
     darkMode?: boolean;
     vimStartInInsertMode?: boolean;
     focus?: boolean;
-    completer?: (
-      context: CompletionContext,
-    ) => Promise<CompletionResult | null>;
     editable: boolean;
   } & MiniEditorEvents,
 ) {
@@ -167,11 +155,6 @@ export function MiniEditor(
             ? []
             : [EditorView.editable.of(false), EditorState.readOnly.of(true)],
         ],
-
-        autocompletion({
-          override: completer ? [completer] : [],
-        }),
-        highlightSpecialChars(),
         history(),
         [...placeholderText ? [placeholder(placeholderText)] : []],
         keymap.of([
@@ -197,10 +180,8 @@ export function MiniEditor(
               return true;
             },
           },
-          ...closeBracketsKeymap,
           ...standardKeymap,
           ...historyKeymap,
-          ...completionKeymap,
           ...createCommandKeyBindings(globalThis.client),
         ]),
         EditorView.domEventHandlers({

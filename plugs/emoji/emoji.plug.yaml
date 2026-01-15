@@ -16,4 +16,3 @@ functions:
     path: "./emoji.ts:emojiCompleter"
     events:
       - editor:complete
-      - minieditor:complete

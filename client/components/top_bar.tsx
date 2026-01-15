@@ -1,7 +1,3 @@
-import type {
-  CompletionContext,
-  CompletionResult,
-} from "@codemirror/autocomplete";
 import type { ComponentChildren, FunctionalComponent } from "preact";
 import type { Notification } from "@silverbulletmd/silverbullet/type/client";
 import { MiniEditor } from "./mini_editor.tsx";
@@ -27,7 +23,6 @@ export function TopBar({
   vimMode,
   progressPercentage,
   progressType,
-  completer,
   lhs,
   onClick,
   rhs,
@@ -46,7 +41,6 @@ export function TopBar({
   progressType?: string;
   onRename: (newName?: string) => Promise<void>;
   onClick: () => void;
-  completer: (context: CompletionContext) => Promise<CompletionResult | null>;
   actionButtons: ActionButton[];
   lhs?: ComponentChildren;
   rhs?: ComponentChildren;
@@ -85,7 +79,6 @@ export function TopBar({
                     return onRename();
                   }
                 }}
-                completer={completer}
                 onEnter={(newName) => {
                   onRename(newName);
                 }}

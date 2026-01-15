@@ -1,7 +1,3 @@
-import type {
-  CompletionContext,
-  CompletionResult,
-} from "@codemirror/autocomplete";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { MiniEditor } from "./mini_editor.tsx";
 import type { ComponentChildren, Ref } from "preact";
@@ -11,14 +7,12 @@ export function Prompt({
   defaultValue,
   vimMode,
   darkMode,
-  completer,
   callback,
 }: {
   message: string;
   defaultValue?: string;
   vimMode: boolean;
   darkMode: boolean | undefined;
-  completer: (context: CompletionContext) => Promise<CompletionResult | null>;
   callback: (value?: string) => void;
 }) {
   const [text, setText] = useState(defaultValue || "");
@@ -36,7 +30,6 @@ export function Prompt({
           vimStartInInsertMode={true}
           focus={true}
           darkMode={darkMode}
-          completer={completer}
           onEnter={(text) => {
             callback(text);
             return true;

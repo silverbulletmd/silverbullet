@@ -892,14 +892,6 @@ export class Client {
     >;
   }
 
-  miniEditorComplete(
-    context: CompletionContext,
-  ): Promise<CompletionResult | null> {
-    return this.completeWithEvent(context, "minieditor:complete") as Promise<
-      CompletionResult | null
-    >;
-  }
-
   async reloadEditor() {
     if (!this.systemReady) return;
 

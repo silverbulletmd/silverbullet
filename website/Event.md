@@ -8,7 +8,6 @@ To use them, simply subscribe to them via [[API/event#event.listen(listenerDef)]
 
 * `page:click`: user clicks a location on the page
 * `page:index`: page has changed and requested to be indexed (used by [[Object]] indexing)
-* `minieditor:complete`: auto complete triggered in the mini editor (mini editor is used in dialogs and the top bar)
 * `editor:complete`: editor completion triggered, returns completion results
 * `slash:complete`: slash completion triggered, returns completion results
 * `editor:lint`: request to lint, returns errors

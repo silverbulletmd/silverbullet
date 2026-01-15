@@ -1,8 +1,4 @@
 import { FilterList } from "./filter.tsx";
-import type {
-  CompletionContext,
-  CompletionResult,
-} from "@codemirror/autocomplete";
 import { Terminal } from "preact-feather";
 import type { Command } from "../types/command.ts";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
@@ -12,12 +8,10 @@ export function CommandPalette({
   onTrigger,
   vimMode,
   darkMode,
-  completer,
 }: {
   commands: Map<string, Command>;
   vimMode: boolean;
   darkMode?: boolean;
-  completer: (context: CompletionContext) => Promise<CompletionResult | null>;
   onTrigger: (command: Command | undefined) => void;
 }) {
   const options: FilterOption[] = [];
@@ -43,7 +37,6 @@ export function CommandPalette({
       options={options}
       allowNew={false}
       icon={Terminal}
-      completer={completer}
       vimMode={vimMode}
       darkMode={darkMode}
       helpText="Start typing the command name to filter results, press <code>Enter</code> to run."

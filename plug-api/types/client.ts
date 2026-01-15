@@ -48,7 +48,6 @@ export type UploadFile = {
 
 export type AppEvent =
   | "page:click"
-  | "minieditor:complete"
   | "slash:complete"
   | "editor:complete"
   | "editor:lint"

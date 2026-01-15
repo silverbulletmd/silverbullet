@@ -1,9 +1,5 @@
 import { FilterList } from "./filter.tsx";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
-import type {
-  CompletionContext,
-  CompletionResult,
-} from "@codemirror/autocomplete";
 import { tagRegex as mdTagRegex } from "../markdown_parser/constants.ts";
 import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 import type {
@@ -25,7 +21,6 @@ export function AnythingPicker({
   extensions,
   onNavigate,
   onModeSwitch,
-  completer,
   vimMode,
   mode,
   darkMode,
@@ -39,7 +34,6 @@ export function AnythingPicker({
   mode: "page" | "meta" | "document" | "all";
   onNavigate: (name: string | null) => void;
   onModeSwitch: (mode: "page" | "meta" | "document" | "all") => void;
-  completer: (context: CompletionContext) => Promise<CompletionResult | null>;
   currentPath: Path;
 }) {
   const options: FilterOption[] = [];
@@ -137,10 +131,10 @@ export function AnythingPicker({
         options.push({
           type: "page",
           meta: pageMeta,
-          // Use the displayName or last bit of the path as the name
-          name: pageMeta.displayName || pageMeta.name.split("/").pop()!,
-          // And use the full path as the description
-          description: pageMeta.name,
+          name: pageMeta.name,
+          description: pageMeta.description
+            ? pageMeta.description.slice(0, 200)
+            : "",
           hint: pageMeta.tags![0],
           orderId: orderId,
           cssClass,
@@ -149,8 +143,7 @@ export function AnythingPicker({
         // In mode "all" just show the full path and all tags
         let description: string | undefined;
         if (pageMeta.tags) {
-          description = (description || "") +
-            pageMeta.tags.map((tag) => `#${tag}`).join(" ");
+          description = pageMeta.tags.map((tag) => `#${tag}`).join(" ");
         }
         options.push({
           type: "page",
@@ -184,14 +177,14 @@ export function AnythingPicker({
       options={options}
       vimMode={vimMode}
       darkMode={darkMode}
-      completer={completer}
       phrasePreprocessor={(phrase) => {
         phrase = phrase.replaceAll(tagRegex, "").trim();
         return phrase;
       }}
-      onKeyPress={(key, text) => {
+      onKeyPress={(view, event) => {
+        const text = view.state.sliceDoc();
         // Pages cannot start with ^, as documented in Page Name Rules
-        if (key === "^" && text === "^") {
+        if (event.key === "^" && text === "^") {
           switch (mode) {
             case "page":
               onModeSwitch("meta");
@@ -206,7 +199,9 @@ export function AnythingPicker({
               onModeSwitch("page");
               break;
           }
+          return true;
         }
+        return false;
       }}
       preFilter={(options, phrase) => {
         if (mode === "page") {
