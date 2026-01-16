@@ -3,24 +3,27 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
-* Indexer rework:
+## 2.4.0
+* Indexer rework (note: upgrading will start a full space reindex automatically):
   * Performance: up to 2x faster
+  * Internal refactor, actually adding at least (rudimentary) unit tests now (imagine!)
   * `item` and `task` now also index (wiki) links and inherited (wiki) links (links appearing in parent nodes), as [requested here](https://community.silverbullet.md/t/coming-from-logseq-outlines-and-linked-mentions/290) under `links` and `ilinks`. Updated the "Linked Tasks" widget now to rely on `ilinks`.
   * Rewrote snippet text for links (used in [[Linked Mention|Linked Mentions]]) to be more contextual, now also includes child bullet items, see [community discussion](https://community.silverbullet.md/t/coming-from-logseq-outlines-and-linked-mentions/290).
   * For consistency with items, `task` `refs` now point to the item’s position resulting in a slight positional shift, if you have code relying on this, you may have to adjust it.
-  * The `page:index` event now also receives a `text` and `meta` attributes.
   * Disabled indexing all paragraph text by default, this caused significant indexing overhead. [See discussion](https://community.silverbullet.md/t/who-is-using-paragraph-for-queries/3686).
     To re-enable: `config.set("index.paragraph.all", true)`
   * Better link support in frontmatter (by [Tomasz Gorochowik](https://github.com/silverbulletmd/silverbullet/pull/1711))
+  * The `page:index` event now also receives a `text` and `meta` attributes.
 * [[Transclusions]] improvements:
   * Now have an “eye” button to navigate to the transcluded location
-  * Now properly support headers
+  * Transclusions now only live preview when the cursor is outside of them (as with other pieces of markup)
+  * Transclusions now properly support headers
   * Items and tasks are now transcluded with their children (based on `@pos` notation) (this is mostly helpful when used in queries)
 * Page/document/meta picker tweaks:
-  * Upgraded the underlying [Fuse.js](https://www.fusejs.io) library and tuned the ranking parameters, hopefully leading to better results.
+  * Upgraded the [Fuse.js](https://www.fusejs.io) library and tuned the ranking parameters, hopefully leading to better results.
   * Meta picker now more consistent with page picker
   * You can now use `Alt-space` to complete a folder matching the first result — try it and let me know how this works for you in practice.
-* **Full-text search has been removed** from the main distribution, this has now been moved to [a separate repo](https://github.com/silverbulletmd/basic-search) (installable via the library manager). Rationale: full text indexing is expensive and the search results were quite bad. Recommendation: install [Silversearch](https://github.com/MrMugame/silversearch) as an alternative.
+* **Built-in full-text search has been removed** from the main distribution, this has now been moved to [a separate repo](https://github.com/silverbulletmd/basic-search) (installable via the library manager). Rationale: full text indexing is expensive and the search results were quite bad. Recommendation: install [Silversearch](https://github.com/MrMugame/silversearch) as an alternative.
 * [[Task|Tasks]]:
   * `taskstate` objects are no more. Custom task states should now be defined using the [[API/taskState]] API.
   * **Removed:** deadline syntax (legacy syntax from v1) for tasks, please use attributes instead (e.g. `[deadline: "2026-01-01"]`).
@@ -37,12 +40,11 @@ Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be
   * [Ctrl-click](https://github.com/silverbulletmd/silverbullet/pull/1713) navigate to definition on non-Mac operating systems
   * Support for `<const>` in Lua (by [Matouš Jan Fialka](https://github.com/silverbulletmd/silverbullet/pull/1715))
 * Production builds now include sourcemaps for easier debugging in browser DevTools. If you don't want to serve sourcemaps publicly, you can block `*.js.map` files at your reverse proxy level (see [[TLS#Blocking sourcemaps]]).
-* Fixes:
-  * Should now deal better with authentication layers (Cloudflare Zero Trust, Authelia, Pangolin)
-  * [Sync errors](https://github.com/silverbulletmd/silverbullet/issues/1720) now propagate better to the UI
-  * Document editors now fixed in Safari (by [MrMugame](https://github.com/silverbulletmd/silverbullet/pull/1710))
-  * `%` now supported in [page names](https://github.com/silverbulletmd/silverbullet/issues/1694)
-  * Lua widgets “flapping” should now be less
+* Should now **deal better with authentication layers** (Cloudflare Zero Trust, Authelia, Pangolin)
+* [Sync errors](https://github.com/silverbulletmd/silverbullet/issues/1720) now propagate better to the UI
+* Document editors now fixed in Safari (by [MrMugame](https://github.com/silverbulletmd/silverbullet/pull/1710))
+* `%` now supported in [page names](https://github.com/silverbulletmd/silverbullet/issues/1694)
+* Lua widgets “flapping” should now be less
 
 ## 2.3.0
 This release (re)introduces [[Share]], formalizes [[Library]], and introduces in initial version of the [[Library Manager]], a type of package manager for SilverBullet. It also progresses on Lua 5.4 compatibility.
