@@ -78,21 +78,7 @@ If you don’t want to use docker compose, you can run SilverBullet “raw” as
 ```shell
 # Create a local folder "space" to keep files in
 mkdir -p space
-# Run the SilverBullet docker container in the foreground
-docker run -it --rm -p 3000:3000 \
-  --name silverbullet \
-  -v ./space:/space \
-  -e SB_USER=user:password \
-  ghcr.io/silverbulletmd/silverbullet:latest
-```
-
-This will run SilverBullet in the foreground, interactively, so you can see the logs and instructions. Replace `user` and `password` with something more sensible.
-
-If this all works fine, you can stop the container with `Ctrl-c`.
-
-You probably want to run the container in daemon (background) mode, give it a name, and automatically have it restart after you e.g. reboot your machine:
-
-```shell
+# Run the docker container in the background
 docker run -d --restart unless-stopped \
   --name silverbullet \
   -p 3000:3000 \
