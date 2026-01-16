@@ -4,6 +4,7 @@ import { FilterList } from "./components/filter.tsx";
 import { AnythingPicker } from "./components/anything_picker.tsx";
 import { TopBar } from "./components/top_bar.tsx";
 import reducer from "./reducer.ts";
+import { setupTouchRouter } from "./input/touch_router.ts";
 import {
   type Action,
   type AppViewState,
@@ -30,6 +31,7 @@ import {
 
 export class MainUI {
   viewState: AppViewState = initialViewState;
+  private _touch?: { dispose: () => void; refresh: () => void };
 
   constructor(private client: Client) {
     // Make keyboard shortcuts work even when the editor is in read only mode or not focused
@@ -54,20 +56,8 @@ export class MainUI {
       }
     });
 
-    globalThis.addEventListener("touchstart", (ev) => {
-      // Launch the page picker on a two-finger tap
-      if (ev.touches.length === 2) {
-        ev.stopPropagation();
-        ev.preventDefault();
-        client.startPageNavigate("page");
-      }
-      // Launch the command palette using a three-finger tap
-      if (ev.touches.length === 3) {
-        ev.stopPropagation();
-        ev.preventDefault();
-        client.startCommandPalette();
-      }
-    });
+    // Install touch router (reads ui.touch.bindings)
+    this._touch = setupTouchRouter(client);
 
     globalThis.addEventListener("mouseup", (_) => {
       setTimeout(() => {
