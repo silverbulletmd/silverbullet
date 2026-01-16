@@ -9,12 +9,12 @@ Returns a given [[Object#Tags]] as a query collection, to be queried using [[Spa
 Example:
 ${query[[from index.tag("page") limit 1]]}
 
-## index.text(text, pageMeta?)
+## index.markdown(text, pageMeta?)
 Ad-hoc indexes `text` (represented as a markdown string) in memory, and returns all objects found there for further query. When no `pageMeta` is supplied dummy (empty) values will be used.
 
 Example:
 ${query[[
-  from index.text("* Item 1\n* [ ] Task 1")
+  from index.markdown("* Item 1\n* [ ] Task 1")
   where _.tag == "item"
 ]]}
 

@@ -42,7 +42,7 @@ const allIndexers: IndexerFunction[] = [
  * Ad-hoc index a piece of markdown text
  * @return a list of indexed objects
  */
-export async function indexText(text: string, pageMeta: PageMeta = {
+export async function indexMarkdown(text: string, pageMeta: PageMeta = {
   ref: "",
   tag: "",
   name: "",
