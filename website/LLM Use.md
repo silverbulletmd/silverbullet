@@ -7,7 +7,7 @@ There are two main reasons for this, the first is _moral_, a second more _practi
 # The moral reason
 I have been open sourcing code for over 25 years. My goals for doing so include helping people solve similar problems that I have, enjoy and benefit from the software I build, to allow them to adapt, improve, change and learn from it, and to build community. I have always distributed code under the most liberal of licenses (usually MIT), and have been lucky enough that those licenses were not exploited. Until recently, when LLMs came around.
 
-Specifically _not_ on my list of goals was allowing companies to take my code (or content in general) as input to a _ridiculously_ resource-intensive (money, energy, cheap labor) algorithm, and have the result be sold back to me in the form of tokens. Yet, here we are. And while there may be reasons why this is legal, I’m not too happy about it.
+Specifically _not_ on my list of goals was allowing companies to take my code (or content in general) as input to a _ridiculously_ resource-intensive (money, energy, cheap labor) algorithm, and have the result be sold back to me in the form of tokens. Yet, here we are. And while some may have the sentiment that this is fine, and perhaps even legal, I’m not too happy about it.
 
 There are various areas in my life where I have to make more pragmatic choices, but in my open source work I feel I can afford to take a stand.
 
