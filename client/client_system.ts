@@ -51,7 +51,7 @@ import { serviceRegistrySyscalls } from "./plugos/syscalls/service_registry.ts";
 const indexVersionKey = ["$indexVersion"];
 const indexQueuedKey = ["$indexQueued"];
 // Bump this one every time a full reindex is needed
-const desiredIndexVersion = 8;
+const desiredIndexVersion = 9;
 const mqTimeout = 10000; // 10s
 const mqTimeoutRetry = 3;
 
@@ -302,6 +302,8 @@ export class ClientSystem {
       console.info(
         "[index]",
         "Performing a full space reindex, this could take a while...",
+        currentIndexVersion,
+        desiredIndexVersion,
       );
       await this.setIndexOngoing(true);
       await this.system.invokeFunction("index.reindexSpace", []);
