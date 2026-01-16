@@ -26,6 +26,8 @@ SilverBullet's frontend is written in [TypeScript](https://www.typescriptlang.or
 
 The server backend is written in Go.
 
+If you're considering contributing changes, be aware of the [LLM use policy](https://silverbullet.md/LLM%20Use).
+
 ## Code structure
 * `client/`: The SilverBullet client, implemented with TypeScript
 * `server/`: The SilverBullet server, written in Go
