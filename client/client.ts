@@ -80,6 +80,8 @@ import type { KvPrimitives } from "./data/kv_primitives.ts";
 import { deriveDbName } from "@silverbulletmd/silverbullet/lib/crypto";
 import { LuaRuntimeError } from "./space_lua/runtime.ts";
 import { resolveASTReference } from "./space_lua.ts";
+import { ObjectIndex } from "./data/object_index.ts";
+import type { LuaCollectionQuery } from "./space_lua/query_collection.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -158,6 +160,7 @@ export class Client {
         console.error,
       );
   }, 2000);
+  objectIndex!: ObjectIndex;
 
   constructor(
     private parent: Element,
@@ -204,12 +207,20 @@ export class Client {
     // Setup message queue on top of that
     this.mq = new DataStoreMQ(this.ds, this.eventHook);
 
+    this.objectIndex = new ObjectIndex(
+      this.ds,
+      this.config,
+      this.eventHook,
+      this.mq,
+    );
+
     // Instantiate a PlugOS system
     this.clientSystem = new ClientSystem(
       this,
       this.mq,
       this.ds,
       this.eventHook,
+      this.objectIndex,
       this.bootConfig.readOnly,
     );
 
@@ -331,7 +342,7 @@ export class Client {
         name: string,
       ) => {
         console.log("Queueing index for", name);
-        await this.eventHook.dispatchEvent("file:clearindex", name);
+        await this.objectIndex.clearFileIndex(name);
         await this.mq.send("indexQueue", name);
       },
     );
@@ -342,37 +353,6 @@ export class Client {
     );
 
     this.space = space;
-
-    let startTime = -1;
-    this.eventHook.addLocalListener("file:initial", async () => {
-      startTime = Date.now();
-      await this.clientSystem.setIndexOngoing(true);
-    });
-
-    const emptyQueueHandler = async () => {
-      await this.clientSystem.setIndexOngoing(false);
-      if (
-        startTime !== -1 && !await this.clientSystem.hasInitialIndexCompleted()
-      ) {
-        // Indexing has just finished for the first time
-        console.info(
-          "Initial index complete after",
-          (Date.now() - startTime) / 1000,
-          "s",
-        );
-        // Unsubscribe myself
-        this.eventHook.removeLocalListener(
-          "mq:emptyQueue:indexQueue",
-          emptyQueueHandler,
-        );
-        await this.clientSystem.markInitialIndexComplete();
-        await this.clientSystem.reloadState();
-      }
-    };
-    this.eventHook.addLocalListener(
-      "mq:emptyQueue:indexQueue",
-      emptyQueueHandler,
-    );
 
     let lastSaveTimestamp: number | undefined;
 
@@ -523,7 +503,7 @@ export class Client {
                 resolve();
 
                 // In the background we'll fetch any enriched meta data, if any
-                const enrichedMeta = await this.clientSystem.getObjectByRef<
+                const enrichedMeta = await this.objectIndex.getObjectByRef<
                   PageMeta
                 >(
                   this.currentName(),
@@ -599,26 +579,37 @@ export class Client {
     this.updateDocumentListCache().catch(console.error);
   }
 
+  queryLuaObjects<T>(
+    tag: string,
+    query: LuaCollectionQuery,
+    scopedVariables?: Record<string, any>,
+  ): Promise<T[]> {
+    return this.objectIndex.queryLuaObjects(
+      this.clientSystem.spaceLuaEnv.env,
+      tag,
+      query,
+      scopedVariables,
+    );
+  }
+
   async updatePageListCache() {
     console.log("Updating page list cache");
     // Check if the initial sync has been completed
-    const initialIndexCompleted = await this.clientSystem
+    const initialIndexCompleted = await this.objectIndex
       .hasInitialIndexCompleted();
 
     let allPages: PageMeta[] = [];
 
-    if (
-      initialIndexCompleted && this.clientSystem.system.loadedPlugs.has("index")
-    ) {
+    if (initialIndexCompleted) {
       console.log(
-        "Initial index complete and index plug loaded, loading full page list via index.",
+        "Initial index complete, loading full page list via index.",
       );
       // Fetch indexed pages
-      allPages = await this.clientSystem.queryLuaObjects<PageMeta>("page", {});
+      allPages = await this.queryLuaObjects<PageMeta>("page", {});
       // Overlay augmented meta values
       await this.pageMetaAugmenter.augmentObjectArray(allPages, "ref");
       // Fetch aspiring pages
-      const aspiringPageNames = await this.clientSystem.queryLuaObjects<string>(
+      const aspiringPageNames = await this.queryLuaObjects<string>(
         "aspiring-page",
         { select: parseExpressionString("name"), distinct: true },
       );
@@ -677,7 +668,7 @@ export class Client {
       return;
     }
 
-    const allDocuments = await this.clientSystem.queryLuaObjects<DocumentMeta>(
+    const allDocuments = await this.queryLuaObjects<DocumentMeta>(
       "document",
       {},
     );
@@ -1125,9 +1116,9 @@ export class Client {
 
     // Fetch the meta which includes the possibly indexed stuff, like page
     // decorations
-    if (await this.clientSystem.hasInitialIndexCompleted()) {
+    if (await this.objectIndex.hasInitialIndexCompleted()) {
       try {
-        const enrichedMeta = await this.clientSystem.getObjectByRef<PageMeta>(
+        const enrichedMeta = await this.objectIndex.getObjectByRef<PageMeta>(
           pageName,
           "page",
           pageName,
@@ -1291,11 +1282,11 @@ export class Client {
       console.warn("Not loading custom styles, since space style is disabled");
       return;
     }
-    if (!await this.clientSystem.hasInitialIndexCompleted()) {
+    if (!await this.objectIndex.hasInitialIndexCompleted()) {
       return;
     }
 
-    const spaceStyles = await this.clientSystem.queryLuaObjects<StyleObject>(
+    const spaceStyles = await this.queryLuaObjects<StyleObject>(
       "space-style",
       {
         objectVariable: "_",

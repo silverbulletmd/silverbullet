@@ -2,6 +2,7 @@ import { Config } from "../client/config.ts";
 import { DataStore } from "../client/data/datastore.ts";
 import { MemoryKvPrimitives } from "../client/data/memory_kv_primitives.ts";
 import { DataStoreMQ } from "../client/data/mq.datastore.ts";
+import { ObjectIndex } from "../client/data/object_index.ts";
 import { EventHook } from "../client/plugos/hooks/event.ts";
 import {
   dataStoreReadSyscalls,
@@ -46,9 +47,11 @@ export function createMockSystem() {
     eventedSpacePrimitives: spacePrimitives,
   };
 
+  const objectIndex = new ObjectIndex(ds, config, eventHook, mq);
+
   const clientSystemMock: any = {
     system: system,
-    spaceLuaEnv: new SpaceLuaEnvironment(system),
+    spaceLuaEnv: new SpaceLuaEnvironment(system, objectIndex),
   };
   clientMock.clientSystem = clientSystemMock;
 
@@ -60,7 +63,7 @@ export function createMockSystem() {
     markdownSyscalls(clientMock),
     languageSyscalls(),
     jsonschemaSyscalls(),
-    indexSyscalls(clientMock),
+    indexSyscalls(objectIndex, clientMock),
     luaSyscalls(clientSystemMock),
     mqSyscalls(mq),
     dataStoreReadSyscalls(ds, clientSystemMock),

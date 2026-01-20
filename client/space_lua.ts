@@ -11,11 +11,12 @@ import {
 import type { ASTCtx } from "./space_lua/ast.ts";
 import { buildLuaEnv } from "./space_lua_api.ts";
 import type { LuaCollectionQuery } from "./space_lua/query_collection.ts";
+import type { ObjectIndex } from "./data/object_index.ts";
 
 export class SpaceLuaEnvironment {
   env: LuaEnv;
 
-  constructor(private system: System<any>) {
+  constructor(private system: System<any>, private objectIndex: ObjectIndex) {
     this.env = buildLuaEnv(system);
   }
 
@@ -24,15 +25,16 @@ export class SpaceLuaEnvironment {
    * @param system
    */
   async reload() {
-    const allScripts: SpaceLuaObject[] = await this.system.invokeFunction(
-      "index.queryLuaObjects",
-      ["space-lua", {
+    const allScripts: SpaceLuaObject[] = await this.objectIndex.queryLuaObjects(
+      this.env,
+      "space-lua",
+      {
         objectVariable: "script",
         orderBy: [{
           expr: parseExpressionString("script.priority"),
           desc: true,
         }],
-      } as LuaCollectionQuery],
+      } as LuaCollectionQuery,
     );
     try {
       this.env = buildLuaEnv(this.system);

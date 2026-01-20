@@ -9,7 +9,6 @@ import {
   isLocalURL,
   resolveMarkdownLink,
 } from "@silverbulletmd/silverbullet/lib/resolve";
-import { queryLuaObjects } from "./api.ts";
 import type { FrontMatter } from "./frontmatter.ts";
 import { updateITags } from "./tags.ts";
 import {
@@ -21,7 +20,7 @@ import {
   mdLinkRegex,
   wikiLinkRegex,
 } from "../../client/markdown_parser/constants.ts";
-import { lua, space } from "@silverbulletmd/silverbullet/syscalls";
+import { index, lua, space } from "@silverbulletmd/silverbullet/syscalls";
 import type {
   ObjectValue,
   PageMeta,
@@ -247,7 +246,7 @@ export function collectPageLinks(n: ParseTree): string[] {
 export async function getBackLinks(
   name: string,
 ): Promise<LinkObject[]> {
-  return (await queryLuaObjects<LinkObject>("link", {
+  return (await index.queryLuaObjects<LinkObject>("link", {
     objectVariable: "_",
     where: await lua.parseExpression(`_.toPage == name or _.toFile == name`),
   }, {

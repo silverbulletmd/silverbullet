@@ -3,6 +3,9 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
+* Migrated core indexer APIs to SB core˜
+
+
 ## 2.4.0
 * Indexer rework (note: upgrading will start a full space reindex automatically):
   * Performance: up to 2x faster

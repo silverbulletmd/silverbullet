@@ -1,5 +1,4 @@
-import { space, system } from "@silverbulletmd/silverbullet/syscalls";
-import { indexObjects } from "./api.ts";
+import { index, space, system } from "@silverbulletmd/silverbullet/syscalls";
 import type { DocumentMeta } from "../../plug-api/types/index.ts";
 
 // Note: clearFileIndex is not called but since this is the only document:index listener, this should be fine (famous last words)
@@ -9,5 +8,5 @@ export async function indexDocument(name: string) {
   }
   // console.log("Indexing document", name);
   const fileMeta = await space.getDocumentMeta(name);
-  await indexObjects<DocumentMeta>(fileMeta.name, [fileMeta]);
+  await index.indexObjects<DocumentMeta>(fileMeta.name, [fileMeta]);
 }

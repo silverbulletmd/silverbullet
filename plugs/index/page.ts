@@ -1,7 +1,11 @@
-import { editor, lua, markdown } from "@silverbulletmd/silverbullet/syscalls";
+import {
+  editor,
+  index,
+  lua,
+  markdown,
+} from "@silverbulletmd/silverbullet/syscalls";
 
 import type { FrontMatter } from "./frontmatter.ts";
-import { deleteObject, getObjectByRef, queryLuaObjects } from "./api.ts";
 import {
   findNodeOfType,
   type ParseTree,
@@ -47,7 +51,7 @@ export async function indexPage(
 
   // Make sure this page is no (longer) in the aspiring pages list
   // TODO: This can possibly done more optimally
-  const aspiringPages = await queryLuaObjects<AspiringPageObject>(
+  const aspiringPages = await index.queryLuaObjects<AspiringPageObject>(
     "aspiring-page",
     {
       objectVariable: "_",
@@ -57,7 +61,11 @@ export async function indexPage(
   );
   for (const aspiringPage of aspiringPages) {
     console.log("Deleting aspiring page", aspiringPage);
-    await deleteObject("aspiring-page", aspiringPage.page, aspiringPage.ref);
+    await index.deleteObject(
+      "aspiring-page",
+      aspiringPage.page,
+      aspiringPage.ref,
+    );
   }
 
   return [combinedPageMeta];
@@ -145,7 +153,7 @@ export async function loadPageObject(pageName?: string): Promise<PageMeta> {
       created: "",
     } as PageMeta;
   }
-  return (await getObjectByRef<PageMeta>(
+  return (await index.getObjectByRef<PageMeta>(
     pageName,
     "page",
     pageName,

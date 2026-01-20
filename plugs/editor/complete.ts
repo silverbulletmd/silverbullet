@@ -46,12 +46,7 @@ export async function pageComplete(completeEvent: CompleteEvent) {
 
   if (prefix.startsWith("^")) {
     // A carrot prefix means we're looking for a meta page
-    allPages = await index.queryLuaObjects<PageMeta>(
-      "page",
-      isMetaPageQuery!,
-      {},
-      5,
-    );
+    allPages = await index.queryLuaObjects<PageMeta>("page", isMetaPageQuery);
     // Let's prefix the names with a caret to make them match
     allPages = allPages.map((page) => ({
       ...page,
@@ -61,9 +56,9 @@ export async function pageComplete(completeEvent: CompleteEvent) {
     // This is the most common case, we're combining three types of completions here:
     allPages = (await Promise.all([
       // All non-meta pages
-      index.queryLuaObjects<PageMeta>("page", isntMetaPageQuery, {}, 5),
+      index.queryLuaObjects<PageMeta>("page", isntMetaPageQuery),
       // All documents
-      index.queryLuaObjects<DocumentMeta>("document", isDocumentQuery, {}, 5),
+      index.queryLuaObjects<DocumentMeta>("document", isDocumentQuery),
       // And all links to non-existing pages (to augment the existing ones)
       index.queryLuaObjects<string>(
         "aspiring-page",
@@ -71,8 +66,6 @@ export async function pageComplete(completeEvent: CompleteEvent) {
           select: { type: "Variable", name: "name", ctx: {} as any },
           distinct: true,
         },
-        {},
-        5,
       ).then((aspiringPages) =>
         // Rewrite them to PageMeta shaped objects
         aspiringPages.map((aspiringPage: string): PageMeta => ({

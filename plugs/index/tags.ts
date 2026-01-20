@@ -1,5 +1,4 @@
 import type { FrontMatter } from "./frontmatter.ts";
-import { queryLuaObjects } from "./api.ts";
 import {
   collectNodesOfType,
   findParentMatching,
@@ -14,6 +13,7 @@ import type {
 import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
 import { tagRegex } from "../../client/markdown_parser/constants.ts";
 import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
+import { index } from "@silverbulletmd/silverbullet/syscalls";
 
 export type TagObject = ObjectValue<{
   name: string;
@@ -73,14 +73,12 @@ export async function tagComplete(completeEvent: CompleteEvent) {
   }
 
   // Query all tags with a matching parent
-  const allTags: string[] = await queryLuaObjects<string>(
+  const allTags: string[] = await index.queryLuaObjects<string>(
     "tag",
     {
       distinct: true,
       select: { type: "Variable", name: "name", ctx: {} as any },
     },
-    {},
-    5,
   );
 
   return {

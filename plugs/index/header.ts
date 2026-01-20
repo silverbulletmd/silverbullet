@@ -4,12 +4,11 @@ import {
   type ParseTree,
   renderToText,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import { queryLuaObjects } from "./api.ts";
 import {
   getNameFromPath,
   parseToRef,
 } from "@silverbulletmd/silverbullet/lib/ref";
-import { lua } from "@silverbulletmd/silverbullet/syscalls";
+import { index, lua } from "@silverbulletmd/silverbullet/syscalls";
 import type {
   ObjectValue,
   PageMeta,
@@ -80,14 +79,13 @@ export async function headerComplete(completeEvent: CompleteEvent) {
     return;
   }
 
-  const headers = await queryLuaObjects<HeaderObject>(
+  const headers = await index.queryLuaObjects<HeaderObject>(
     "header",
     {
       objectVariable: "_",
       where: await lua.parseExpression(`_.page == name`),
     },
     { name: getNameFromPath(ref.path) || completeEvent.pageName },
-    5,
   );
 
   return {

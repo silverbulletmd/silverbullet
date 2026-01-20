@@ -4,31 +4,12 @@ import {
   markdown,
   mq,
   space,
-  system,
 } from "@silverbulletmd/silverbullet/syscalls";
 import { sleep } from "@silverbulletmd/silverbullet/lib/async";
 import type { MQMessage } from "@silverbulletmd/silverbullet/type/datastore";
 import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
 
 const uiUpdateInterval = 5000;
-
-export async function reindexSpace() {
-  if (await system.getMode() === "ro") {
-    console.info("Not reindexing because we're in read-only mode");
-    return;
-  }
-  console.log("Clearing page index...");
-  await system.invokeFunction("index.clearIndex");
-
-  const files = await space.listFiles();
-
-  console.log("Queing", files.length, "pages to be indexed.");
-  // Queue all file names to be indexed
-  const startTime = Date.now();
-  await mq.batchSend("indexQueue", files.map((file) => file.name));
-  await mq.awaitEmptyQueue("indexQueue");
-  console.log("Done with full index after", Date.now() - startTime, "ms");
-}
 
 setTimeout(updateIndexProgressInUI, uiUpdateInterval);
 

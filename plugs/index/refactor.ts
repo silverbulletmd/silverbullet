@@ -1,5 +1,6 @@
 import {
   editor,
+  index,
   lua,
   markdown,
   space,
@@ -16,7 +17,6 @@ import {
   findParentMatching,
   nodeAtPos,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import { queryLuaObjects } from "./api.ts";
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 import { isValidPath } from "@silverbulletmd/silverbullet/lib/ref";
 import { notFoundError } from "@silverbulletmd/silverbullet/constants";
@@ -169,7 +169,7 @@ async function renamePage(oldName: string, newName: string) {
   const documentsToMove = new Set<string>();
   // Links only need to be updated if the folder changes
   if (oldFolder !== newFolder) {
-    const linksInPage = await queryLuaObjects<LinkObject>("link", {
+    const linksInPage = await index.queryLuaObjects<LinkObject>("link", {
       objectVariable: "_",
       where: await lua.parseExpression(`_.page == oldName`),
     }, {

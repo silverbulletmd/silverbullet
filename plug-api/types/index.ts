@@ -47,7 +47,7 @@ export type SyscallMeta = {
  * - ref: a unique reference (id) for the object, ideally a page reference
  * - tags: a list of tags that the object belongs to
  */
-export type ObjectValue<T> = {
+export type ObjectValue<T = any> = {
   ref: string;
   tag: string; // main tag
   tags?: string[];
