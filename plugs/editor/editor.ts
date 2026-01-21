@@ -12,13 +12,13 @@ export async function setEditorMode() {
   // TODO: Remove at some point: temporary upgrade code
   const allSyscalls = await system.listSyscalls();
   // console.log("All syscalls", allSyscalls);
-  const readPageWithMetaCall = allSyscalls.find((sc) =>
-    sc.name === "space.readPageWithMeta"
+  const queryLuaObjects = allSyscalls.find((sc) =>
+    sc.name === "index.queryLuaObjects"
   );
 
   // console.log(readPageWithMetaCall);
 
-  if (!readPageWithMetaCall) {
+  if (!queryLuaObjects) {
     await editor.alert(
       "Client needs reloading to update the cache, required syscalls are not available in this version. This message may appear a few times. Reloading now.",
     );
