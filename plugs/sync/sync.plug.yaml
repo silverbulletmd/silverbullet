@@ -1,13 +1,10 @@
 name: sync
 functions:
-
   # Commands
   syncSpaceCommand:
     path: "./sync.ts:syncSpaceCommand"
     command:
       name: "Sync: Space"
-      key: "Alt-Shift-s"
-      mac: "Cmd-Shift-s"
 
   syncFileCommand:
     path: "./sync.ts:syncFileCommand"

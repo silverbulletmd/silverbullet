@@ -59,7 +59,6 @@ functions:
     path: "./refactor.ts:renamePageCommand"
     command:
       name: "Page: Rename"
-      mac: Cmd-Alt-r
       page: ""
       requireMode: rw
       requireEditor: page
@@ -73,8 +72,6 @@ functions:
     path: "./refactor.ts:renamePageLinkCommand"
     command:
       name: "Page: Rename Linked Page"
-      mac: Cmd-Ctrl-Alt-r
-      key: Ctrl-Shift-Alt-r
       requireMode: rw
       requireEditor: page
 
@@ -119,7 +116,7 @@ functions:
     path: ./task.ts:taskCycleCommand
     command:
       name: "Task: Cycle State"
-      key: Alt-t
+      key: Mod-. t
       requireMode: rw
       requireEditor: page
 

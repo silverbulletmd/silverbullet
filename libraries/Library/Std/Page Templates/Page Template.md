@@ -16,8 +16,8 @@ frontmatter: |
   ## To trigger the page template with a custom command
   #command: Create My Custom Page
   ## To trigger the page template with a custom key
-  #key: "Alt-Shift-q"
-  #mac: "Cmd-Shift-q"
+  #key: "Ctrl-q c"
+  #mac: "Cmd-Alt-q"
   ## To prefill frontmatter
   #frontmatter: |
   #  date: "${"$"}{date.today()}"

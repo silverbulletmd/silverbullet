@@ -90,7 +90,6 @@ functions:
     path: editor.ts:refreshAllWidgets
     command:
       name: "Widgets: Refresh All"
-      key: "Alt-q"
       requireEditor: page
 
   languageComplete:
@@ -114,7 +113,7 @@ functions:
     path: "./navigate.ts:navigateCommand"
     command:
       name: "Navigate: Home"
-      key: "Alt-h"
+      key: "Ctrl-g h"
       page: ""
   moveToPos:
     path: "./editor.ts:moveToPosCommand"
@@ -214,7 +213,7 @@ functions:
     path: ./text.ts:wrapSelection
     command:
       name: "Text: Marker"
-      key: "Alt-m"
+      key: "Ctrl-Alt-m"
       wrapper: "=="
       requireMode: rw
       requireEditor: page
@@ -298,7 +297,9 @@ functions:
     path: ./outline.ts:moveItemUp
     command:
       name: "Outline: Move Up"
-      key: "Alt-ArrowUp"
+      key:
+        - "Alt-ArrowUp"
+        - "Mod-. k"
       requireMode: rw
       requireEditor: page
 
@@ -306,7 +307,9 @@ functions:
     path: ./outline.ts:moveItemDown
     command:
       name: "Outline: Move Down"
-      key: "Alt-ArrowDown"
+      key:
+        - "Alt-ArrowDown"
+        - "Mod-. j"
       requireMode: rw
       requireEditor: page
 
@@ -314,7 +317,7 @@ functions:
     path: ./outline.ts:indentItem
     command:
       name: "Outline: Move Right"
-      key: "Alt->"
+      key: "Mod-. l"
       requireMode: rw
       requireEditor: page
 
@@ -322,7 +325,7 @@ functions:
     path: ./outline.ts:outdentItem
     command:
       name: "Outline: Move Left"
-      key: "Alt-<"
+      key: "Mod-. h"
       requireMode: rw
       requireEditor: page
 
@@ -331,31 +334,27 @@ functions:
     path: ./outline.ts:foldCommand
     command:
       name: "Outline: Fold"
-      key: "Ctrl-Alt-["
       requireEditor: page
   unfoldCommand:
     path: ./outline.ts:unfoldCommand
     command:
       name: "Outline: Unfold"
-      key: "Ctrl-Alt-]"
       requireEditor: page
   toggleFoldCommand:
     path: ./outline.ts:toggleFoldCommand
     command:
       name: "Outline: Toggle Fold"
-      key: "Alt-Shift-f"
+      key: "Mod-. Mod-."
       requireEditor: page
   foldAllCommand:
     path: ./outline.ts:foldAllCommand
     command:
       name: "Outline: Fold All"
-      key: "Ctrl-Alt-Shift-["
       requireEditor: page
   unfoldAllCommand:
     path: ./outline.ts:unfoldAllCommand
     command:
       name: "Outline: Unfold All"
-      key: "Ctrl-Alt-Shift-]"
       requireEditor: page
   findInPageCommand:
     path: editor.ts:findInPageCommand

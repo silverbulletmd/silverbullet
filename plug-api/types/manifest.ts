@@ -15,8 +15,8 @@ export type CommandDef = {
   priority?: number;
 
   // Bind to keyboard shortcut
-  key?: string;
-  mac?: string;
+  key?: string | string[];
+  mac?: string | string[];
 
   hide?: boolean;
   requireMode?: "rw" | "ro";

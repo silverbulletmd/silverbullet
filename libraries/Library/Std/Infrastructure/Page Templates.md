@@ -67,7 +67,7 @@ that are built in.
 ~~~
 ---
 command: Quick Note
-key: "Alt-Shift-n"
+key: "Ctrl-q q"
 suggestedName: "Quick notes/${os.date('%Y-%m-%d/%H-%M-%S')}"
 confirmName: false
 tags: meta/template/page
@@ -138,7 +138,7 @@ end
 
 command.define {
   name = "Page: From Template",
-  key = "Alt-shift-t",
+  key = "Ctrl-q t",
   run = function()
     local pageTemplates = query[[
       from index.tag "meta/template/page"

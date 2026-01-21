@@ -245,9 +245,21 @@ config.define("commands", {
       name = schema.string(),
       contexts = schema.nullableArray "string",
       priority = schema.nullable "number",
-      key = schema.nullable "string",
-      mac = schema.nullable "string",
-      hid = schema.nullable "boolean",
+      key = {
+        anyOf = {
+          schema.string(),
+          schema.array("string"),
+          schema.null()
+        }
+      },
+      mac = {
+        anyOf = {
+          schema.string(),
+          schema.array("string"),
+          schema.null()
+        }
+      },
+      hide = schema.nullable "boolean",
       requireMode = schema.nullable {
         type = "string", 
         enum = {"rw", "ro"},

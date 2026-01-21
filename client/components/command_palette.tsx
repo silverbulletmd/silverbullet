@@ -2,6 +2,7 @@ import { FilterList } from "./filter.tsx";
 import { Terminal } from "preact-feather";
 import type { Command } from "../types/command.ts";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
+import { isMacLike } from "../codemirror/editor_state.ts";
 
 export function CommandPalette({
   commands,
@@ -15,7 +16,6 @@ export function CommandPalette({
   onTrigger: (command: Command | undefined) => void;
 }) {
   const options: FilterOption[] = [];
-  const isMac = isMacLike();
   for (const [name, def] of commands.entries()) {
     if (def.hide) {
       continue;
@@ -23,7 +23,7 @@ export function CommandPalette({
 
     options.push({
       name: name,
-      hint: isMac && def.mac ? def.mac : def.key,
+      hint: keyboardHint(def),
       orderId: def.lastRun !== undefined
         ? -def.lastRun
         : def.priority || Infinity,
@@ -51,10 +51,20 @@ export function CommandPalette({
   );
 }
 
-/**
- * Checks if the current platform is Mac-like (Mac, iPhone, iPod, iPad).
- * @returns A boolean indicating if the platform is Mac-like.
- */
-function isMacLike() {
-  return /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform);
+function keyboardHint(def: Command): string | undefined {
+  const shortcuts: string[] = [];
+  if (isMacLike && def.mac) {
+    if (Array.isArray(def.mac)) {
+      shortcuts.push(...def.mac);
+    } else {
+      shortcuts.push(def.mac);
+    }
+  } else if (def.key) {
+    if (Array.isArray(def.key)) {
+      shortcuts.push(...def.key);
+    } else {
+      shortcuts.push(def.key);
+    }
+  }
+  return shortcuts.length > 0 ? shortcuts.join(" | ") : undefined;
 }

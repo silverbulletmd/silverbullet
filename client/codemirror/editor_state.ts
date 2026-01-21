@@ -341,31 +341,48 @@ export function createCommandKeyBindings(client: Client): KeyBinding[] {
     const currentEditor = client.documentEditor?.name;
     const requiredEditor = def.requireEditor;
 
-    if (def.key && isValidEditor(currentEditor, requiredEditor)) {
-      commandKeyBindings.push({
-        key: def.key,
-        mac: def.mac,
-        run: (): boolean => {
-          if (def.contexts) {
-            const context = client.getContext();
-            if (!context || !def.contexts.includes(context)) {
-              return false;
-            }
+    if ((def.key || def.mac) && isValidEditor(currentEditor, requiredEditor)) {
+      const run = (): boolean => {
+        if (def.contexts) {
+          const context = client.getContext();
+          if (!context || !def.contexts.includes(context)) {
+            return false;
           }
-          Promise.resolve([])
-            .then(def.run)
-            .catch((e: any) => {
-              client.reportError(e, "key");
-            }).then((returnValue: any) => {
-              // Always be focusing the editor after running a command
-              if (returnValue !== false) {
-                client.focus();
-              }
-            });
+        }
+        Promise.resolve([])
+          .then(def.run)
+          .catch((e: any) => {
+            client.reportError(e, "key");
+          }).then((returnValue: any) => {
+            // Always be focusing the editor after running a command UNLESS it returns false
+            if (returnValue !== false) {
+              client.focus();
+            }
+          });
 
-          return true;
-        },
-      });
+        return true;
+      };
+      // Only create a generic key handler (non-mac specific) when
+      // EITHER we're not on a mac, or we're on a mac AND not specific mac key binding is set
+      if (def.key && (!isMacLike || (isMacLike && !def.mac))) {
+        if (Array.isArray(def.key)) {
+          for (const key of def.key) {
+            commandKeyBindings.push({ key, run });
+          }
+        } else {
+          commandKeyBindings.push({ key: def.key, run });
+        }
+      }
+      // Only set mac key handlers if we're on a mac, because... you know, logic
+      if (def.mac && isMacLike) {
+        if (Array.isArray(def.mac)) {
+          for (const key of def.mac) {
+            commandKeyBindings.push({ mac: key, run });
+          }
+        } else {
+          commandKeyBindings.push({ mac: def.mac, run });
+        }
+      }
     }
   }
 
@@ -400,3 +417,9 @@ export function createKeyBindings(client: Client): Extension {
     ]);
   }
 }
+
+/**
+ * Checks if the current platform is Mac-like (Mac, iPhone, iPod, iPad).
+ * @returns A boolean indicating if the platform is Mac-like.
+ */
+export const isMacLike = /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform);

@@ -19,17 +19,19 @@ An outline is simply a (nested) bulleted list, for instance:
 * Solution
 * Conclusion
 
-SilverBullet offers a number of `Outline` commands to make manipulating such outlines easier, they are:
+# Commands
+SilverBullet offers a number of `Outline` commands to make manipulating such outlines easier, they are (note that on Mac `Mod` binds to `Cmd`, on Linux and Windows it’s `Ctrl`):
 
 * `Outline: Move Up` (`Alt-ArrowUp`): moves the current item and its children up
 * `Outline: Move Down` (`Alt-ArrowDown`): moves the current item and its children down
-* `Outline: Move Right` (`Alt->`): indents the current item and its children one level deeper
-* `Outline: Move Left` (`Alt-<`): outdents the current item and its children one level higher
+* `Outline: Move Right` (`Mod-. l`): indents the current item and its children one level deeper
+* `Outline: Move Left` (`Mod-. h`): outdents the current item and its children one level higher
+
 
 And for folding outlines:
 
-* `Outline: Fold` (`Ctrl-Alt-[`): folds the current item’s children
-* `Outline: Unfold` (`Ctrl-Alt-]`): unfolds the current item’s children
-* `Outline: Toggle Fold` (`Ctrl-Shift-f`): toggles the current item’s fold state
-* `Outline: Fold All` (`Ctrl-Alt-Shift-[`): folds all sections in the entire page
-* `Outline: Unfold All` (`Ctrl-Alt-Shift-]`): unfolds all sections in the entire page
+* `Outline: Fold`: folds the current item’s children
+* `Outline: Unfold`: unfolds the current item’s children
+* `Outline: Toggle Fold` (`Mod-. Mod-.`): toggles the current item’s fold state
+* `Outline: Fold All`: folds all sections in the entire page
+* `Outline: Unfold All`: unfolds all sections in the entire page

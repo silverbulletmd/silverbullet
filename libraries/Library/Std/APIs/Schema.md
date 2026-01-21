@@ -73,4 +73,8 @@ end
 function schema.func()
   return {}
 end
+
+function schema.null()
+  return { type = "null" }
+end
 ```

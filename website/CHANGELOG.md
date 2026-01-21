@@ -3,8 +3,22 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
-* Migrated core indexer APIs to SB core˜
-
+* Upgraded dependencies, specifically CodeMirror. CodeMirror now no longer allows `Alt-<letter>` and `Alt-<special-character>` [[Keyboard Shortcuts]], meaning I had to remap a few existing ones. It’s basically a mission impossible to pick great ones, but I tried:
+  * `Quick note` is now bound to both `Ctrl-q q` (type `Ctrl-q` first, then hit `q` again) and `Ctrl-q Ctrl-q` (hit `Ctrl-q` twice)
+  * `Navigate: Home` is now bound to `Ctrl-g h`
+  * `Text: Marker` is now bound to `Ctrl-Alt-m`
+  * [[Outlines]] commands generally now use a `Mod-.` (`Cmd-.` on mac, `Ctrl-.` on Linux/Windows) prefix:
+    * `Outline: Move Right`: `Mod-. l`
+    * `Outline: Move Left`: `Mod-. h`
+    * `Outline: Move Up`: `Alt-ArrowUp` still works, but now also adds `Mod-. k` for consistency
+    * `Outline: Move Down`: `Alt-ArrowDow` still works, but now also adds `Mod-. j` for consistency
+    * `Outline: Toggle Fold`: `Mod-. Mod-.`
+    * `Outline: * Fold` (other fold commands): keyboard disabled, readd yourself if you need them (see [[Keyboard Shortcuts]])
+    * `Task: Cycle State`: `Mod-. t`
+  * `Page: Rename` keyboard shortcut removed
+  * `Page: Rename Linked Page` keyboard shortcut removed
+  * `Sync: Space` keyboard shortcut removed
+* As documented in [[Keyboard Shortcuts]], it is now possible to specify _multiple_ keyboard shortcuts to a commands.
 
 ## 2.4.0
 * Indexer rework (note: upgrading will start a full space reindex automatically):
