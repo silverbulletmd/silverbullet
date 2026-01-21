@@ -178,7 +178,7 @@ end
 widgets = widgets or {}
 
 local mentionTemplate = template.new [==[
-**[[${_.ref}]]**:
+**[[${_.ref}|${_.ref}]]**:
 ${_.snippet}
 
 ]==]
