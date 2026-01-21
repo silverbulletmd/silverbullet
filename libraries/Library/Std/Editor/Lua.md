@@ -64,7 +64,7 @@ event.listen {
     end
     -- Split propaccess and traverse
     local propParts = string.split(propaccessPrefix[1], ".")
-    local currentValue = _CTX._GLOBAL
+    local currentValue = _G
     local failed = false
     for i = 1, #propParts-1 do
       local prop = propParts[i]
@@ -175,7 +175,7 @@ event.listen {
     end
     local callText = text:sub(startPos+1, endPos-1)
     local propParts = callText:split(".")
-    local currentValue = _CTX._GLOBAL
+    local currentValue = _G
     for i = 1, #propParts do
       local prop = propParts[i]
       if currentValue then
@@ -190,12 +190,9 @@ event.listen {
       -- Parse out the position in the doc
       local refBits = ctx.ref:split("@")
       -- Navigate there
-      editor.navigate({
-        kind="page",
-        page=refBits[1],
-        -- Has to be offset a bit
-        pos=tonumber(refBits[2]) + ctx.from + #"```space-lua\n"
-      })
+      editor.navigate(refBits[1] .. "@" ..
+        (tonumber(refBits[2]) + ctx.from + #"```space-lua\n")
+      )
     else
       return notDefinedinLua()
     end

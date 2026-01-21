@@ -359,6 +359,8 @@ const loadFunction = new LuaBuiltinFunction((sf, s) => luaLoad(s, sf));
 
 export function luaBuildStandardEnv() {
   const env = new LuaEnv();
+  // _G global
+  env.set("_G", env);
   // Top-level builtins
   env.set("print", printFunction);
   env.set("assert", assertFunction);
