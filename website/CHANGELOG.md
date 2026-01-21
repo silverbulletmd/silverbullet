@@ -19,6 +19,7 @@ Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be
   * `Page: Rename Linked Page` keyboard shortcut removed
   * `Sync: Space` keyboard shortcut removed
 * As documented in [[Keyboard Shortcuts]], it is now possible to specify _multiple_ keyboard shortcuts to a commands.
+* Linked Mentions now list full page path rather than abbreviated version
 
 ## 2.4.0
 * Indexer rework (note: upgrading will start a full space reindex automatically):
