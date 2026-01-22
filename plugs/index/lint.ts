@@ -1,8 +1,7 @@
-import { lua } from "@silverbulletmd/silverbullet/syscalls";
+import { config, jsonschema, lua } from "@silverbulletmd/silverbullet/syscalls";
 import {
   findNodeOfType,
   renderToText,
-  traverseTree,
   traverseTreeAsync,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import type {
@@ -11,20 +10,45 @@ import type {
 } from "@silverbulletmd/silverbullet/type/client";
 
 import YAML from "js-yaml";
+import { extractFrontMatter } from "./frontmatter.ts";
 
-export function lintYAML(
+export async function lintYAML(
   { tree, name }: LintEvent,
-): LintDiagnostic[] {
+): Promise<LintDiagnostic[]> {
   const diagnostics: LintDiagnostic[] = [];
-  traverseTree(tree, (node) => {
+  const frontmatter = extractFrontMatter(tree);
+
+  await traverseTreeAsync(tree, async (node) => {
     if (node.type === "FrontMatterCode") {
+      const yamlText = renderToText(node);
       const lintResult = lintYaml(
-        renderToText(node),
+        yamlText,
         node.from!,
         name,
       );
       if (lintResult) {
         diagnostics.push(lintResult);
+      } else {
+        const parsed = YAML.load(yamlText);
+        // Parses as valid YAML, now let's see if we need to do schema validation
+        for (const tag of frontmatter.tags || []) {
+          const schema = await config.get(["tags", tag, "schema"], undefined);
+
+          if (schema) {
+            const validationError = await jsonschema.validateObject(
+              schema,
+              parsed,
+            );
+            if (validationError) {
+              diagnostics.push({
+                message: `${tag} validation failed: ${validationError}`,
+                severity: "error",
+                from: node.from!,
+                to: node.to!,
+              });
+            }
+          }
+        }
       }
       return true;
     }

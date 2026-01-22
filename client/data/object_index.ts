@@ -4,17 +4,13 @@ import type {
   LuaCollectionQuery,
   LuaQueryCollection,
 } from "../space_lua/query_collection.ts";
-import {
-  jsToLuaValue,
-  LuaEnv,
-  LuaStackFrame,
-  type LuaTable,
-} from "../space_lua/runtime.ts";
+import { jsToLuaValue, LuaEnv, LuaStackFrame } from "../space_lua/runtime.ts";
 import type { DataStore } from "./datastore.ts";
 import type { KV, KvKey } from "@silverbulletmd/silverbullet/type/datastore";
 import type { EventHook } from "../plugos/hooks/event.ts";
 import type { DataStoreMQ } from "./mq.datastore.ts";
 import type { Space } from "../space.ts";
+import { validateObject } from "../plugos/syscalls/jsonschema.ts";
 
 const indexKey = "idx";
 const pageKey = "ridx";
@@ -23,6 +19,15 @@ const indexVersionKey = ["$indexVersion"];
 const indexQueuedKey = ["$indexQueued"];
 // Bump this one every time a full reindex is needed
 const desiredIndexVersion = 9;
+
+type TagDefinition = {
+  metatable?: any;
+  mustValidate?: boolean;
+  schema?: any;
+  postProcess?: (
+    o: ObjectValue,
+  ) => Promise<ObjectValue[] | ObjectValue> | ObjectValue[] | ObjectValue;
+};
 
 export class ObjectIndex {
   constructor(
@@ -82,21 +87,21 @@ export class ObjectIndex {
           query,
           env,
           sf,
-          (key, value: any) => {
-            const tag = key[1];
-            const tagDef = this.config.get<LuaTable | undefined>(
-              ["tagDefinitions", tag],
-              undefined,
-            );
-            if (!tagDef || !tagDef.has("metatable")) {
-              // Return as is
-              return value;
-            }
-            // Convert to LuaTable
-            value = jsToLuaValue(value);
-            value.metatable = tagDef.get("metatable");
-            return value;
-          },
+          // (key, value: any) => {
+          //   const tag = key[1];
+          //   const tagDef = this.config.get<LuaTable | undefined>(
+          //     ["tags", tag],
+          //     undefined,
+          //   );
+          //   if (!tagDef || !tagDef.metatable) {
+          //     // Return as is
+          //     return value;
+          //   }
+          //   // Convert to LuaTable
+          //   value = jsToLuaValue(value);
+          //   value.metatable = tagDef.get("metatable");
+          //   return value;
+          // },
         );
       },
     };
@@ -267,12 +272,18 @@ export class ObjectIndex {
   /**
    * Indexes entities in the data store
    */
-  public indexObjects<T>(
+  public async indexObjects<T>(
     page: string,
     objects: ObjectValue<T>[],
   ): Promise<void> {
     const kvs: KV<T>[] = [];
-    for (const obj of objects) {
+    const tagDefinitions: Record<string, TagDefinition> = this.config.get(
+      "tags",
+      {},
+    );
+    // Taking this iteration approach as new objects may be pushed into this array on the fly
+    while (objects.length > 0) {
+      const obj = objects.shift()!;
       if (!obj.tag) {
         console.error("Object has no tag", obj, "this shouldn't happen");
         continue;
@@ -280,11 +291,50 @@ export class ObjectIndex {
       // Index as all the tag + any additional tags specified
       const allTags = [obj.tag, ...obj.tags || []];
       for (const tag of allTags) {
-        // The object itself
-        kvs.push({
-          key: [tag, this.cleanKey(obj.ref, page)],
-          value: obj,
-        });
+        const tagDefinition = tagDefinitions[tag];
+        // Validate object if required
+        if (tagDefinition?.mustValidate && tagDefinition?.schema) {
+          const validationError = validateObject(tagDefinition?.schema, obj);
+          if (validationError) {
+            console.error(
+              `Object failed ${tag} validation so won't be indexed:`,
+              obj,
+              "Error:",
+              validationError,
+            );
+            continue;
+          }
+        }
+        if (tagDefinition?.postProcess) {
+          let newObjects = await tagDefinition.postProcess(obj);
+
+          if (!Array.isArray(newObjects)) {
+            // Probably returned single object, let's normalize
+            newObjects = [newObjects];
+          }
+          for (const newObj of newObjects) {
+            if (!newObj.ref) {
+              console.error("postProcess object did not contain ref", newObj);
+              continue;
+            }
+            if (newObj.ref === obj.ref) {
+              // Got the same object back here, let's just index it without further processing
+              kvs.push({
+                key: [tag, this.cleanKey(newObj.ref, page)],
+                value: newObj,
+              });
+            } else {
+              // Some other object
+              objects.push(newObj);
+            }
+          }
+        } else {
+          // Just insert it directly
+          kvs.push({
+            key: [tag, this.cleanKey(obj.ref, page)],
+            value: obj,
+          });
+        }
       }
     }
     if (kvs.length > 0) {

@@ -18,7 +18,7 @@ tag = tag or {}
 
 -- For future use
 function tag.define(spec)
-  config.set("tagDefinitions", spec.name, spec)
+  config.set({"tags", spec.name}, spec)
 end
 
 -- Set up tags.* short cut via meta tables

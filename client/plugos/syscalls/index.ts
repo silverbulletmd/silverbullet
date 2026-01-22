@@ -65,7 +65,7 @@ export function indexSyscalls(
       if (!tagDef.has("name")) {
         throw new Error("A tag name is required");
       }
-      client.config.set(["tagDefinitions", tagDef.get("name")], tagDef);
+      client.config.set(["tags", tagDef.get("name")], tagDef);
     },
   };
 }

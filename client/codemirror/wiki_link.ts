@@ -12,6 +12,7 @@ import { processWikiLink, type WikiLinkMatch } from "./wiki_link_processor.ts";
 export function cleanWikiLinkPlugin(client: Client) {
   return decoratorStateField((state) => {
     const widgets: any[] = [];
+    const shortWikiLinks = client.config.get("shortWikiLinks", true);
 
     syntaxTree(state).iterate({
       enter: ({ type, from, to }) => {
@@ -41,6 +42,7 @@ export function cleanWikiLinkPlugin(client: Client) {
           matchFrom: from,
           matchTo: to,
           client,
+          shortWikiLinks,
           state,
           callback: (e) => {
             if (e.altKey) {

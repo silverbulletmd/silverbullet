@@ -2,4 +2,4 @@ While folders technically exist in SilverBullet, they’re not necessarily the k
 
 There’s no explicit way to create a folder, but you can do so by simply putting slashes `/` in your page name (also on Windows). SilverBullet will automatically create the folder hierarchy on disk, if necessary.
 
-What are some alternatives to using folders for organization? [[Tags]], primarily.
+What are some alternatives to using folders for organization? [[Tag]], primarily.

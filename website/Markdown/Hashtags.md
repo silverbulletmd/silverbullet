@@ -1,4 +1,4 @@
-These can be used in text to assign an [[Object#tag]]. If hashtags are the only content of first paragraph, they are applied to the entire page.
+These can be used in text to assign an [[Tag]]. If hashtags are the only content of first paragraph, they are applied to the entire page.
 
 Hashtags can contain letters, dashes, underscores and other characters, but not:
 - Whitespace (space, newline etc.)

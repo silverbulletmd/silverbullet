@@ -14,7 +14,7 @@ And if you are comfortable **programming** a little bit — now we’re really t
 # Programmable notes
 Dynamically generating content, _programmable notes_... why would you want that, and how does it work?
 
-Let’s say you have documented a set of product features in individual pages that you’ve [[Tags|tagged]] with a #feature tag, and annotated with a few custom [[Frontmatter]] [[Attribute|Attributes]].
+Let’s say you have documented a set of product features in individual pages that you’ve [[Tag|tagged]] with a #feature tag, and annotated with a few custom [[Frontmatter]] [[Attribute|Attributes]].
 
 With a simple [[Space Lua/Lua Integrated Query|Query]] and [[Template]], you can now dynamically build a product feature list, ordered by _awesomeness_ (`Alt-click` or hover and click the edit button to see the underlying code):
 

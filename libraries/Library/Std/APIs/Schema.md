@@ -70,8 +70,14 @@ function schema.nullableArray(typ)
   end
 end
 
+-- Used to specify we're expecting a function, but doesn't deeply validate
 function schema.func()
   return {}
+end
+
+-- Used to specify we're expecting a schema, but doesn't deeply validate
+function schema.schema()
+  return { type = "object" }
 end
 
 function schema.null()

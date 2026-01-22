@@ -4,6 +4,9 @@ An attempt at documenting the changes/new features introduced in each release.
 Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
 * New `shortWikiLinks` config (defaulting to `true`) that decides whether a wiki link should be rendered in its short form (rendering just the last segment, e.g. `Person/John` would show as `John`). To always render the full name, put `config.set("shortWikiLinks", false)` in your [[CONFIG]].
+* Experimental support for custom tag behavior — see [[API/tag]] for more information and examples, currently supports:
+  * Schema validation
+  * Post processing during index phase
 * Upgraded dependencies, specifically CodeMirror. CodeMirror now no longer allows `Alt-<letter>` and `Alt-<special-character>` [[Keyboard Shortcuts]], meaning I had to remap a few existing ones. It’s basically a mission impossible to pick great ones, but I tried:
   * `Quick note` is now bound to both `Ctrl-q q` (type `Ctrl-q` first, then hit `q` again) and `Ctrl-q Ctrl-q` (hit `Ctrl-q` twice)
   * `Navigate: Home` is now bound to `Ctrl-g h`

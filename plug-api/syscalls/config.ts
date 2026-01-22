@@ -6,7 +6,7 @@ import { syscall } from "../syscall.ts";
  * @param defaultValue The default value to return if the path doesn't exist
  * @returns The value at the path, or the default value
  */
-export function get<T>(path: string, defaultValue: T): Promise<T> {
+export function get<T>(path: string | string[], defaultValue: T): Promise<T> {
   return syscall("config.get", path, defaultValue);
 }
 

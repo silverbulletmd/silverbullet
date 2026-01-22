@@ -1,5 +1,5 @@
 import type { SysCallMapping } from "../system.ts";
-import { Ajv } from "ajv";
+import { Ajv, type ValidateFunction } from "ajv";
 
 const ajv = new Ajv();
 
@@ -18,6 +18,38 @@ ajv.addFormat("page-ref", {
   async: false,
 });
 
+const schemaCache = new Map<string, ValidateFunction>();
+
+export function validateObject(schema: any, object: any): undefined | string {
+  try {
+    const schemaKey = JSON.stringify(schema);
+    if (!schemaCache.has(schemaKey)) {
+      const validate = ajv.compile(schema);
+      schemaCache.set(schemaKey, validate);
+    }
+    const validate = schemaCache.get(schemaKey)!;
+    if (validate(object)) {
+      return;
+    } else {
+      let text = ajv.errorsText(validate.errors);
+      text = text.replaceAll("/", ".");
+      text = text.replace(/^data[\.\s]/, "");
+      return text;
+    }
+  } catch (e: any) {
+    return e.message;
+  }
+}
+
+export function validateSchema(schema: any): undefined | string {
+  const valid = ajv.validateSchema(schema);
+  if (valid) {
+    return;
+  } else {
+    return ajv.errorsText(ajv.errors);
+  }
+}
+
 export function jsonschemaSyscalls(): SysCallMapping {
   return {
     "jsonschema.validateObject": (
@@ -25,30 +57,13 @@ export function jsonschemaSyscalls(): SysCallMapping {
       schema: any,
       object: any,
     ): undefined | string => {
-      try {
-        const validate = ajv.compile(schema);
-        if (validate(object)) {
-          return;
-        } else {
-          let text = ajv.errorsText(validate.errors);
-          text = text.replaceAll("/", ".");
-          text = text.replace(/^data[\.\s]/, "");
-          return text;
-        }
-      } catch (e: any) {
-        return e.message;
-      }
+      return validateObject(schema, object);
     },
     "jsonschema.validateSchema": (
       _ctx,
       schema: any,
     ): undefined | string => {
-      const valid = ajv.validateSchema(schema);
-      if (valid) {
-        return;
-      } else {
-        return ajv.errorsText(ajv.errors);
-      }
+      return validateSchema(schema);
     },
   };
 }
