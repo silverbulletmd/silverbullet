@@ -670,7 +670,8 @@ export async function luaSet(
     await obj.set(key, value, sf);
   } else {
     const k = toNumKey(key);
-    (obj as Record<string | number, any>)[k] = value;
+    // Writing into a "native" JavaScript object, need to do value conversion
+    (obj as Record<string | number, any>)[k] = await luaValueToJS(value, sf);
   }
 }
 
