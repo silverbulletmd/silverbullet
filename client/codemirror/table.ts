@@ -63,6 +63,7 @@ class TableViewWidget extends WidgetType {
         // Annotate every element with its position so we can use it to put
         // the cursor there when the user clicks on the table.
         annotationPositions: true,
+        shortWikiLinks: this.client.config.get("shortWikiLinks", false),
         translateUrls: (url) => {
           if (isLocalURL(url)) {
             url = resolveMarkdownLink(

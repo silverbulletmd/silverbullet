@@ -190,6 +190,7 @@ export class LuaWidget extends WidgetType {
       );
 
       html = parseHtmlString(renderMarkdownToHtml(mdTree, {
+        shortWikiLinks: this.client.config.get("shortWikiLinks", false),
         translateUrls: (url) => {
           if (isLocalURL(url)) {
             url = resolveMarkdownLink(

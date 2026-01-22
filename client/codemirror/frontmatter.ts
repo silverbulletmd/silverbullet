@@ -20,6 +20,7 @@ export function frontmatterPlugin(client: Client) {
     (state: EditorState) => {
       const widgets: any[] = [];
       const foldRanges = foldedRanges(state);
+      const shortWikiLinks = client.config.get("shortWikiLinks", true);
 
       syntaxTree(state).iterate({
         enter(node) {
@@ -136,6 +137,7 @@ export function frontmatterPlugin(client: Client) {
                   matchFrom: mFrom,
                   matchTo: mTo,
                   client,
+                  shortWikiLinks,
                   state,
                   callback: (e, ref) => {
                     if (e.altKey) {

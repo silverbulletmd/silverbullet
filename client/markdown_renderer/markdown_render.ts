@@ -25,6 +25,7 @@ export type MarkdownRenderOptions = {
   smartHardBreak?: true;
   annotationPositions?: true;
   preserveAttributes?: true;
+  shortWikiLinks?: boolean;
   // When defined, use to inline images as data: urls
   translateUrls?: (url: string, type: "link" | "image") => string;
   expand?: true;
@@ -296,7 +297,9 @@ function render(
     // Custom stuff
     case "WikiLink": {
       const link = findNodeOfType(t, "WikiLinkPage")!.children![0].text!;
-      let linkText = link.split("/").pop()!;
+      let linkText = options.shortWikiLinks === true
+        ? link.split("/").pop()!
+        : link;
       const aliasNode = findNodeOfType(t, "WikiLinkAlias");
       if (aliasNode) {
         linkText = aliasNode.children![0].text!;

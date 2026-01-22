@@ -81,6 +81,11 @@ config.define("autoCloseBrackets", {
   type = "string",
 })
 
+config.define("shortWikiLinks", {
+  description = "Render wiki links to just the last segment, e.g. Person/John becomes John",
+  type = "boolean"
+})
+
 config.define("emoji", {
   description = "Additional emoji aliases",
   type = "object",
@@ -372,6 +377,7 @@ config.set {
     task = { all = true },
   },
   taskStates = {},
+  shortWikiLinks = true,
   actionButtons = {
     {
       icon = "home",

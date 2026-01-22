@@ -28,6 +28,7 @@ export interface WikiLinkProcessorOptions {
   matchTo: number;
   client: Client;
   state: EditorState;
+  shortWikiLinks: boolean;
   callback: (e: MouseEvent, ref: any) => void;
 }
 
@@ -95,7 +96,9 @@ export function processWikiLink(options: WikiLinkProcessorOptions): any[] {
     // We don't want to render the meta
     renderedRef.meta = false;
     // We also don't want to rendered the prefix of the path
-    renderedRef.path = fileName(renderedRef.path);
+    renderedRef.path = options.shortWikiLinks
+      ? fileName(renderedRef.path)
+      : renderedRef.path;
 
     const prefix = (ref.details?.type === "position" ||
         ref.details?.type === "linecolumn")

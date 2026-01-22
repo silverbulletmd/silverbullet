@@ -3,6 +3,7 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
+* New `shortWikiLinks` config (defaulting to `true`) that decides whether a wiki link should be rendered in its short form (rendering just the last segment, e.g. `Person/John` would show as `John`). To always render the full name, put `config.set("shortWikiLinks", false)` in your [[CONFIG]].
 * Upgraded dependencies, specifically CodeMirror. CodeMirror now no longer allows `Alt-<letter>` and `Alt-<special-character>` [[Keyboard Shortcuts]], meaning I had to remap a few existing ones. It’s basically a mission impossible to pick great ones, but I tried:
   * `Quick note` is now bound to both `Ctrl-q q` (type `Ctrl-q` first, then hit `q` again) and `Ctrl-q Ctrl-q` (hit `Ctrl-q` twice)
   * `Navigate: Home` is now bound to `Ctrl-g h`
@@ -19,7 +20,7 @@ Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be
   * `Page: Rename Linked Page` keyboard shortcut removed
   * `Sync: Space` keyboard shortcut removed
 * As documented in [[Keyboard Shortcuts]], it is now possible to specify _multiple_ keyboard shortcuts to a commands.
-* Linked Mentions now list full page path rather than abbreviated version
+* Linked Mentions now list full page path rather than abbreviated version.
 
 ## 2.4.0
 * Indexer rework (note: upgrading will start a full space reindex automatically):
