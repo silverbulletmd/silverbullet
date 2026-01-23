@@ -1,5 +1,5 @@
 # Stage 1: Build the silverbullet binary
-FROM denoland/deno:2.6.1 AS builder
+FROM denoland/deno:2.6.5 AS builder
 RUN apt update && apt install -y git wget make
 
 ARG TARGETARCH
