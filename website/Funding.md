@@ -11,6 +11,7 @@ There are a few ways to financially support the project at the moment, ordered b
 1. [LiberaPay](https://liberapay.com/zef) (preferred)
 2. [Github sponsors](https://github.com/sponsors/silverbulletmd)
 3. [Patreon](https://www.patreon.com/cw/silverbulletmd)
+4. [PayPal](https://paypal.me/zefhemel)
 
 If you are interested in becoming a corporate sponsor, reach out to [Zef Hemel directly](mailto:zef@zef.me) to discuss options.
 
