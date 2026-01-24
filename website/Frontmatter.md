@@ -38,11 +38,11 @@ While SilverBullet allows arbitrary metadata to be added to pages, there are a f
 * `name` (==DISALLOWED==): is an attribute used for page names, _you should not set it_.
 * `displayName` (`string`): very similar in effect as `aliases` but will use this name for the page in certain contexts.
 * `aliases` (`array of strings`): allow you to specify a list of alternative names for this page, which can be used to navigate or link to this page
-* `tags` (`array of strings` or `string`): an alternative (and perhaps preferred) way to assign [[Tag]] to a page. There are various ways to define these, take your pick:
+* `tags` (`array of strings` or `string`): an alternative (and perhaps preferred) way to assign [[Tag]] to a page. There are various ways to define these:
   ```yaml
   tags: tag1, tag2 # with commas
   tags: tag1 tag2 # with spaces
-  tags: "#tag1 #tag2" # with pound signs and quotes (you get completion)
+  tags: "#tag1 #tag2" # with pound signs and quotes (with auto completion)
   tags: # as a list
   - tag1
   - tag2
