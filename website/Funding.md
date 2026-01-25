@@ -20,4 +20,4 @@ There are two costs of the project right now:
 1. Infrastructure cost to run SilverBullet websites ([silverbullet.md](https://silverbullet.md) and [community.silverbullet.md](https://community.silverbullet.md), primarily)
 2. [[Zef]]’s time for development and maintenance of the product
 
-Infrastructure costs are relatively low, but [[Zef]]’s time is not. He has a family to support, and needs to reasonably share his time between SilverBullet and other activities that function as a source of income. The more funding coming in for SilverBullet, the more of his time can be dedicated to SilverBullet, the better the product product becomes. It’s as simple as that.
+Infrastructure costs are relatively low, but [[Zef]]’s time is not. He has a family to support, and needs to reasonably share his time between SilverBullet and other activities that function as a source of income. The more funding coming in for SilverBullet, the more of his time can be dedicated to SilverBullet, the better the product becomes. It’s as simple as that.
