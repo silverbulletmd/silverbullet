@@ -10,6 +10,12 @@ functions:
   text:
     path: index.ts:indexMarkdown
     syscall: index.markdown
+  queryLuaObjects:
+    # DEPRECATED: use index.queryLuaObjects syscall instead
+    path: api.ts:queryLuaObjects
+  getObjectByRef:
+    # DEPRECATED: use index.getObjectByRef syscall instead
+    path: api.ts:getObjectByRef
 
   # YAML syscalls
   yamlParse:

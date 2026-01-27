@@ -1,4 +1,8 @@
-import { markdown } from "@silverbulletmd/silverbullet/syscalls";
+import {
+  datastore,
+  index,
+  markdown,
+} from "@silverbulletmd/silverbullet/syscalls";
 import {
   extractFrontMatter as extractFrontmatterFromTree,
   type FrontMatter,
@@ -9,6 +13,8 @@ import {
   renderToText,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { applyPatches, type YamlPatch } from "../../plug-api/lib/yaml.ts";
+import { LuaCollectionQuery } from "../../client/space_lua/query_collection.ts";
+import { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 
 /*
  * Key namespace:
@@ -54,4 +60,22 @@ export async function patchFrontmatter(
       return text.slice(frontmatter[0].to! + 1); // +1 to skip the initial \n
     }
   }
+}
+
+// DEPRECATED: use index.queryLuaObjects directly
+export function queryLuaObjects<T>(
+  tag: string,
+  query: LuaCollectionQuery,
+  scopedVariables?: Record<string, any>,
+): Promise<ObjectValue<T>[]> {
+  return index.queryLuaObjects(tag, query, scopedVariables);
+}
+
+// DEPRECATED: use index.getObjectByRef directly
+export function getObjectByRef<T>(
+  page: string,
+  tag: string,
+  ref: string,
+): Promise<ObjectValue<T> | undefined> {
+  return index.getObjectByRef(page, tag, ref);
 }
