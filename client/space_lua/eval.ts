@@ -127,6 +127,22 @@ function isQueryable(x: unknown): x is Queryable {
   return !!x && typeof (x as any).query === "function";
 }
 
+function luaTypeName(val: any): string {
+  const t = luaTypeOf(val);
+  if (typeof t === "string") {
+    return t;
+  }
+  // keep sync in hot paths; fall back to JS typeof when async
+  if (val === null || val === undefined) return "nil";
+  if (typeof val === "number" || val instanceof Number) return "number";
+  if (typeof val === "string") return "string";
+  if (typeof val === "boolean") return "boolean";
+  if (typeof val === "function") return "function";
+  if (Array.isArray(val)) return "table";
+  if (typeof val === "object" && (val as any).constructor === Object) return "table";
+  return "userdata";
+}
+
 function luaFloorDiv(
   a: unknown,
   b: unknown,
@@ -162,7 +178,7 @@ function luaMod(
   const { ax, bx, bothInt } = coerceNumericPair(a, b, hints);
   if (bothInt && bx === 0) {
     throw new LuaRuntimeError(
-      `attempt to perform modulo by zero`,
+      `attempt to perform 'n%0'`,
       sf.withCtx(ctx),
     );
   }
@@ -347,7 +363,22 @@ export function evalExpression(
                 "__unm",
                 u.ctx,
                 sf,
-                () => luaUnaryMinus(arg),
+                () => {
+                  // Lua: numeric strings are accepted for unary minus.
+                  // Only non-numeric strings should trigger the `unm` error message.
+                  if (typeof arg === "string") {
+                    try {
+                      // Coercion will succeed for "10", "  -2  ", "0x10", etc.
+                      coerceNumeric(arg);
+                    } catch (_e: any) {
+                      throw new LuaRuntimeError(
+                        "attempt to unm a 'string' with a 'string'",
+                        sf.withCtx(u.ctx),
+                      );
+                    }
+                  }
+                  return luaUnaryMinus(arg);
+                },
               );
             }
             case "+": {
@@ -766,8 +797,8 @@ function luaRelOperands(
   av: any;
   bv: any;
 } {
-  const ta = (a instanceof Number) ? "number" : typeof a;
-  const tb = (b instanceof Number) ? "number" : typeof b;
+  const ta = luaTypeName(a);
+  const tb = luaTypeName(b);
   const av = (a instanceof Number) ? Number(a) : a;
   const bv = (b instanceof Number) ? Number(b) : b;
 
@@ -787,17 +818,33 @@ const operatorsMetaMethods: Record<string, {
 }> = {
   "+": {
     metaMethod: "__add",
-    nativeImplementation: (a, b, _ctx, _sf, hints) => {
-      const { ax, bx, bothInt } = coerceNumericPair(a, b, hints);
-      const r = ax + bx;
+    nativeImplementation: (a, b, ctx, sf, hints) => {
+      try {
+        const { ax, bx, bothInt } = coerceNumericPair(a, b, hints);
+        const r = ax + bx;
 
-      if (r === 0) {
-        if (Object.is(r, -0)) {
-          return bothInt ? boxZero("int") : -0;
+        if (r === 0) {
+          if (Object.is(r, -0)) {
+            return bothInt ? boxZero("int") : -0;
+          }
+          return boxZero(bothInt ? "int" : "float");
         }
-        return boxZero(bothInt ? "int" : "float");
+        return r;
+      } catch (e: any) {
+        if (typeof a === "string" && (typeof b === "number" || b instanceof Number)) {
+          throw new LuaRuntimeError(
+            `attempt to add a 'string' with a 'number'`,
+            sf.withCtx(ctx),
+          );
+        }
+        if (typeof b === "string" && (typeof a === "number" || a instanceof Number)) {
+          throw new LuaRuntimeError(
+            `attempt to add a 'number' with a 'string'`,
+            sf.withCtx(ctx),
+          );
+        }
+        throw e;
       }
-      return r;
     },
   },
   "-": {
@@ -2149,9 +2196,15 @@ function exactInt(
     n = num;
   } else if (num instanceof Number) {
     n = Number(num);
-  } else {
+  } else if (typeof num === "string") {
     throw new LuaRuntimeError(
-      `attempt to perform arithmetic on a non-number`,
+      `attempt to perform bitwise operation on a string value (constant '${num}')`,
+      sf.withCtx(ctx),
+    );
+  } else {
+    const t = luaTypeName(num);
+    throw new LuaRuntimeError(
+      `attempt to perform bitwise operation on a ${t} value`,
       sf.withCtx(ctx),
     );
   }

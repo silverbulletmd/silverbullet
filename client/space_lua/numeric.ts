@@ -24,6 +24,21 @@ export type OpHints = {
   rightKind?: NumericType;
 };
 
+function luaTypeName(val: unknown): string {
+  if (val === null || val === undefined) return "nil";
+  if (typeof val === "boolean") return "boolean";
+  if (typeof val === "number" || val instanceof Number) return "number";
+  if (typeof val === "string") return "string";
+  if (typeof val === "function") return "function";
+  if (Array.isArray(val)) return "table";
+
+  if (typeof val === "object") {
+    return "table";
+  }
+
+  return typeof val;
+}
+
 export function coerceNumeric(
   val: unknown,
 ): {
@@ -75,7 +90,7 @@ export function coerceNumeric(
   if (typeof val === "string") {
     const det = luaToNumberDetailed(val);
     if (!det) {
-      throw new Error(`attempt to perform arithmetic on a non-number`);
+      throw new Error(`attempt to perform arithmetic on a string value`);
     }
 
     const n = det.value;
@@ -101,7 +116,7 @@ export function coerceNumeric(
     };
   }
 
-  throw new Error(`attempt to perform arithmetic on a non-number`);
+  throw new Error(`attempt to perform arithmetic on a ${luaTypeName(val)} value`);
 }
 
 export function coerceNumericPair(
