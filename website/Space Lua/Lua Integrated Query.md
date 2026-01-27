@@ -7,22 +7,22 @@ However, in [[Space Lua]] it interpreted as an SQL (and [LINQ](https://learn.mic
 General syntax:
 
     query[[
-      from <var> = <expression>
+      from <var> in <expression>
       where <expression>
       order by <expression>
       limit <expression>, <expression>
       select <expression>
     ]]
 
-LIQ can operate on any Lua collection.
+LIQ operates on any Lua collection.
 
 For instance, to sort a list of numbers in descending order:
-${query[[from n = {1, 2, 3} order by n desc]]}
+${query[[from n in {1, 2, 3} order by n desc]]}
 
 However, in most cases you’ll use it in conjunction with [[API/index#index.tag(name)]]. Here’s an example querying the 3 pages that were last modified:
 
 ${query[[
-  from p = index.tag "page"
+  from p in index.tag "page"
   order by p.lastModified desc
   select p.name
   limit 3
@@ -41,50 +41,68 @@ Here are the clauses that are currently supported:
 ## from <expression>
 The `from` clause specifies the source of your data. There are two syntactic variants:
 
-With explicit variable binding:
+**Recommended:** With explicit variable binding:
+
+    from v in <<expression>>
+
+or
 
     from v = <<expression>>
 
 binding each item to the variable `v`.
 
-And the shorter:
+However, there is also the more concise:
 
     from <<expression>>
 
-implicitly binding each item to the variable `_` as well as making all attributes directly available as variables.
+implicitly binding each item to the variable `_` as well as making all attributes directly available as variables. The latter, while shorter, is less performant and will block future optimizations, so the variable-binding variant is preferred.
+
+> **warning** Warning
+> When you use a `from` clause without explicit variable binding (so without thee `v in` syntax), note that any attribute of the object you’re iterating over will shadow global variables. For instance, if you have an object with a `table` attribute, regular `table` APIs will become inaccessible within the query.
+> 
+> **Recommendation:** Use the explicit variable binding syntax
 
 Example without variable binding:
 ${query[[from {1, 2, 3} select _]]}
 
 With variable binding:
-${query[[from n = {1, 2, 3} select n]]}
+${query[[from n in {1, 2, 3} select n]]}
 
 A more realistic example using `index.tag`:
-${query[[from index.tag "page" order by lastModified select name limit 3]]}
+${query[[from p in index.tag "page" order by p.lastModified select p.name limit 3]]}
 
 ## where <expression>
 The `where` clause allows you to filter data. When the expression evaluated to a truthy value, the item is included in the result.
 
 Example:
 
-${query[[from {1, 2, 3, 4, 5} where _ > 2]]}
+${query[[from n in {1, 2, 3, 4, 5} where n > 2]]}
 
-Or to select all pages tagged with `#meta`:
+Or to select 5 pages tagged with `#meta`:
 
-${query[[from index.tag "page" where table.includes(tags, "meta")]]}
+${query[[from p in index.tag "page" where table.includes(p.tags, "meta") limit 5]]}
 
 Or select based on name (including folder) and a [[API/string|string function]]
 
-${query[[from index.tag "page" where name:startsWith("Person")]]}
+${query[[from p in index.tag "page" where p.name:startsWith("Person")]]}
 
 ## order by <expression> [desc]
 The `order by` clause allows you to sort data, when `desc` is specified it reverts the sort order.
 
 As an example, the last 3 modified pages:
 ${query[[
-  from index.tag "page"
-  order by lastModified desc
-  select name
+  from p in index.tag "page"
+  order by p.lastModified desc
+  select p.name
+  limit 3
+]]}
+
+You can order based on multiple expressions by specifying multiple expressions separated by commas:
+
+${query[[
+  from p in index.tag "page"
+  order by p.lastModified desc, p.name
+  select p.name
   limit 3
 ]]}
 
@@ -107,28 +125,21 @@ The `select` clause allows you to transform each item in the result set. If omit
 Some examples:
 
 Double each number:
-${query[[from {1, 2, 3} select _ * 2]]}
+${query[[from n in {1, 2, 3} select n * 2]]}
 
-Extract just the name from pages:
-${query[[from index.tag "page" select _.name limit 3]]}
-
-You can also return tables or other complex values:
+It is convenient to combine it with the [[API/table#table.select(table, keys...)]] API:
 ${query[[
-  from p = index.tag "page" 
-  select {
-    name = p.name,
-    modified = p.lastModified
-  }
+  from p in index.tag "page" 
+  select table.select(p, "name", "lastModified")
   limit 3
 ]]}
 
 ## Rendering the output
-
 To render the output as a template, you can rely on the fact that queries return Lua tables. For example, to apply a template to render every page as a link:
 
 ${template.each(query[[
-  from index.tag "page"
-  order by lastModified desc
+  from p in index.tag "page"
+  order by p.lastModified desc
   limit 3
 ]], templates.pageItem)}
 

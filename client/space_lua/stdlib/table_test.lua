@@ -1,8 +1,36 @@
+function deepCompare(t1, t2)
+    if t1 == t2 then return true end
+    -- If they are the same object, return true
+    if type(t1) ~= "table" or type(t2) ~= "table" then return false end
+    -- If not both tables, return false
+    -- Check if both tables have the same number of keys
+    local t1_keys = 0
+    local t2_keys = 0
+    for k in pairs(t1) do
+        t1_keys = t1_keys + 1
+    end
+    for k in pairs(t2) do
+        t2_keys = t2_keys + 1
+    end
+    if t1_keys ~= t2_keys then return false end
+
+    -- Recursively compare each key-value pair
+    for k, v in pairs(t1) do
+        if not deepCompare(v, t2[k]) then
+            return false
+        end
+    end
+
+    return true
+end
+
 local function assertEqual(a, b)
-    if a ~= b then
-        error("Assertion failed: " .. a .. " is not equal to " .. b)
+    if not deepCompare(a, b) then
+        error("Assertion failed: " .. tostring(a) .. " is not equal to " .. tostring(b))
     end
 end
+
+
 
 -- Basic table operations
 local t = { 1, 2, 3 }
@@ -155,3 +183,10 @@ local idx, two = table.find(t, function(v) return v == 2 end)
 assertEqual(idx, 3)
 assertEqual(two, 2)
 assertEqual(table.find(t, function(v) return v == 4 end), nil)
+
+-- Test table.select
+local tbl = {name = "Pete", age = 100, parents = {"John", "Jane"}}
+assertEqual(table.select(tbl, "name"), {name = "Pete"})
+assertEqual(table.select(tbl, {"name"}), {name = "Pete"})
+assertEqual(table.select(tbl, "name", "age"), { name = "Pete", age = 100})
+assertEqual(table.select(tbl, "name", "age", "non-existing"), { name = "Pete", age = 100})

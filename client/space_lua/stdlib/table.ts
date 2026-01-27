@@ -11,7 +11,7 @@ import {
   type LuaValue,
   luaValueToJS,
 } from "../runtime.ts";
-import { asyncQuickSort } from "../util.ts";
+import { asyncQuickSort, evalPromiseValues } from "../util.ts";
 
 export const tableApi = new LuaTable({
   /**
@@ -99,6 +99,7 @@ export const tableApi = new LuaTable({
   ),
   /**
    * Returns the keys of a table.
+   * Note: Space Lua specific
    * @param tbl - The table to get the keys from.
    * @returns The keys of the table.
    */
@@ -111,6 +112,7 @@ export const tableApi = new LuaTable({
   }),
   /**
    * Checks if a table (used as an array) contains a value.
+   * Note: Space Lua specific
    * @param tbl - The table to check.
    * @param value - The value to check for.
    * @returns True if the value is in the table, false otherwise.
@@ -135,6 +137,34 @@ export const tableApi = new LuaTable({
           `Cannot use includes on a non-table or non-array value`,
           sf,
         );
+      }
+    },
+  ),
+  /**
+   * Returns a new table from an old one, only with selected keys
+   * @param tbl a Lua table or JS object
+   * @param keys a list of keys to select from the table, if keys[0] is a table or array, assumed to contain the keys to select
+   * @returns a new table with only the selected keys
+   */
+  select: new LuaBuiltinFunction(
+    (sf, tbl: LuaTable | Record<string, any>, ...keys: LuaValue[]) => {
+      // Normalize arguments
+      if (Array.isArray(keys[0])) {
+        // First argument is key array, let's unpack
+        keys = keys[0];
+      } else if (keys[0] instanceof LuaTable) {
+        keys = keys[0].toJSArray();
+      }
+      const resultTable = new LuaTable();
+      const setPromises: (void | Promise<void>)[] = [];
+      for (const key of keys) {
+        setPromises.push(resultTable.set(key, luaGet(tbl, key, null, sf)));
+      }
+      const promised = evalPromiseValues(setPromises);
+      if (promised instanceof Promise) {
+        return promised.then(() => resultTable);
+      } else {
+        return resultTable;
       }
     },
   ),
