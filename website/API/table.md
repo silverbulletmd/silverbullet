@@ -53,26 +53,6 @@ table.sort(numbers, function(a, b) return a > b end)
 print(table.concat(numbers, ", "))  -- prints: 9, 5, 4, 3, 1, 1
 ```
 
-## table.keys(table)
-Returns an array containing all the keys in the table.
-
-Example:
-```lua
-local person = {name = "John", age = 30, city = "New York"}
-local keys = table.keys(person)
-print(table.concat(keys, ", "))  -- prints: name, age, city
-```
-
-## table.includes(table, value)
-Checks if a list-table contains a specific value.
-
-Example:
-```lua
-local fruits = {"apple", "banana", "orange"}
-print(table.includes(fruits, "banana"))  -- prints: true
-print(table.includes(fruits, "grape"))   -- prints: false
-```
-
 ## table.pack(...)
 Creates a new table with the given arguments. The resulting table has all arguments stored at integer keys starting with 1, and a field "n" with the total number of arguments.
 
@@ -97,7 +77,27 @@ local x, y = table.unpack(fruits, 2, 3)
 print(x, y)  -- prints: banana orange
 ```
 
-# Non-standard functions
+# Non-standard APIs
+## table.keys(table)
+Returns an array containing all the keys in the table.
+
+Example:
+```lua
+local person = {name = "John", age = 30, city = "New York"}
+local keys = table.keys(person)
+print(table.concat(keys, ", "))  -- prints: name, age, city
+```
+
+## table.includes(table, value)
+Checks if a list-table contains a specific value.
+
+Example:
+```lua
+local fruits = {"apple", "banana", "orange"}
+print(table.includes(fruits, "banana"))  -- prints: true
+print(table.includes(fruits, "grape"))   -- prints: false
+```
+
 ## table.find(table, criteriaFn, fromIndex?)
 Finds an element in a table that matches a criteria function. Returns a Lua multi value of index and first element or nil if no element is found.
 
@@ -115,3 +115,13 @@ print(firstEvenAfter3)  -- prints: 4
 local result = table.find(numbers, function(n) return n > 10 end)
 print(result)  -- prints: nil
 ```
+
+## table.select(table, keys...)
+Returns a new table from an old one, only with selected keys.
+
+Example:
+${query[[
+  from p = index.tag "page"
+  limit 3
+  select table.select(p, "name", "lastModified")
+]]}
