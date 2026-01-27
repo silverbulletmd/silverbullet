@@ -63,3 +63,23 @@ The `extractOptions` is an optional table that can contain the following keys (w
 
 Example applied to this page:
 ${(index.extractFrontmatter(editor.getText())).frontmatter}
+
+## index.defineTag(def)
+Allows you to attach a custom Lua metatable to objects part of a particular tag.
+
+### Example
+The following adds a custom attribute to all page objects that dynamically produces an ALL CAPS version of the page name:
+```space-lua
+index.defineTag {
+  name = "page",
+  metatable = {
+    __index = function(self, attr)
+      if attr == "loudName" then
+        return string.upper(self.name)
+      end
+    end
+  }
+}
+```
+In use:
+${query[[from index.tag "page" select {name=_.name, loudName=_.loudName} limit 3]]}
