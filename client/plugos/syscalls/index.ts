@@ -7,7 +7,7 @@ import type {
 import type { ObjectIndex } from "../../data/object_index.ts";
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 import type { Client } from "../../client.ts";
-import { LuaTable } from "../../space_lua/runtime.ts";
+import type { LuaTable } from "../../space_lua/runtime.ts";
 
 export function indexSyscalls(
   objectIndex: ObjectIndex,

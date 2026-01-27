@@ -8,7 +8,7 @@ import {
   jsToLuaValue,
   LuaEnv,
   LuaStackFrame,
-  LuaTable,
+  type LuaTable,
 } from "../space_lua/runtime.ts";
 import type { DataStore } from "./datastore.ts";
 import type { KV, KvKey } from "@silverbulletmd/silverbullet/type/datastore";
