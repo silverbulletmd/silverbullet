@@ -60,12 +60,5 @@ export function indexSyscalls(
     ): Promise<void> => {
       return objectIndex.deleteObject(page, tag, ref);
     },
-    "lua:index.defineTag": (_ctx, tagDef: LuaTable) => {
-      // Using 'lua:' prefix to _not_ convert tagDef to a JS version (but keep original LuaTable)
-      if (!tagDef.has("name")) {
-        throw new Error("A tag name is required");
-      }
-      client.config.set(["tags", tagDef.get("name")], tagDef);
-    },
   };
 }
