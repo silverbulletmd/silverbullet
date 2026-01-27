@@ -14,7 +14,7 @@ Defines a custom tag. `spec` is a table that can contain:
 * `name` (required) the name of the tag
 * `mustValidate` a boolean defining whether or not schema validation must pass for the object to be indexed
 * `schema` [[Schema]] to validate against
-* `postProcess` callback function invoked when an object with tag `name` has been indexed. Allows you to make changes to it, skip indexing altogether or generate additional objects
+* `transform` callback function invoked when an object with tag `name` has been indexed. Allows you to make changes to it, skip indexing altogether or generate additional objects.
 
 # Use cases
 ## Schema validation
@@ -35,22 +35,24 @@ The result of this is that when editing a page tagged with `#person` where this 
 
 If you set `mustValidate` to `true`, schema validation will happen during the index phase (in addition to linting in the editor) and non-validating objects will not be indexed (with errors being reported in the JavaScript console). Use this to ensure all your objects conform to your schema (it does come at a slight performance penalty at the indexing phase).
 
-## Post processing
-Based on your page’s markdown, an indexer produces a list of objects to be indexed. If you define a `postProcess` callback function for a custom tag, this function will be invoked with objects with that tag when the indexer encounters them. `postProcess` can inspect the object and do a few things:
+## Tranformation
+Based on your page’s markdown, an indexer produces a list of objects to be indexed. If you define a `transform` callback function for a custom tag, this function will be invoked for each object with that tag, when the indexer encounters one. `transform` can inspect the object and do a few things:
 
 * Make changes to the object and return it: this is the most common scenario. It allows you to attach additional attributes to the object before it's persisted to the database.
 * Return an empty table (`{}`): in this case the object will not be indexed at all.
-* Return a list of objects that should be indexed instead: this may include the original object or a modification of it. This allows you to generate a set of custom objects, e.g. based on further parsing of the data in the object. A use case here could be to extract additional attributes from an existing attribute.
+* Return `nil` in which case indexing proceeds as usual.
+* Return a list of objects that should be indexed _instead_: this may include the original object or a modification of it. This allows you to generate a set of custom objects, e.g. based on further parsing of the data in the object. A use case here could be to extract additional attributes from an existing attribute.
+  **Note:** one of the returned objects _must_ have the same `ref` attribute as the 
 
 > **note** Note
-> `postProcess` will only be invoked when a page is indexed. This generally happens after making a change. To apply newly defined `postProcess` functionality to all pages in your space, you have to reindex the entire space using `Space: Reindex`.
+> `transform` will only be invoked when a page is indexed. This generally happens after making a change. To apply newly defined `transform` functionality to all pages in your space, you have to reindex the entire space using `Space: Reindex`.
 
-### Example: adding [[Page Decorations]]
+### Example: adding [[Page Decorations]] dynamically
 The following dynamically adds a 🧑 prefix [[Page Decorations|page decoration]] to all pages tagged with `#person`, such as [[Person/John]] and [[Person/Zef]].
 ```space-lua
 tag.define {
   name = "person",
-  postProcess = function(o)
+  transform = function(o)
     o.pageDecoration = { prefix = "🧑 " }
     return o
   end

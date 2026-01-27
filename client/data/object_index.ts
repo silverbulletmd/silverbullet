@@ -24,9 +24,13 @@ type TagDefinition = {
   metatable?: any;
   mustValidate?: boolean;
   schema?: any;
-  postProcess?: (
+  transform?: (
     o: ObjectValue,
-  ) => Promise<ObjectValue[] | ObjectValue> | ObjectValue[] | ObjectValue;
+  ) =>
+    | Promise<ObjectValue[] | ObjectValue>
+    | ObjectValue[]
+    | ObjectValue
+    | null;
 };
 
 export class ObjectIndex {
@@ -305,16 +309,31 @@ export class ObjectIndex {
             continue;
           }
         }
-        if (tagDefinition?.postProcess) {
-          let newObjects = await tagDefinition.postProcess(obj);
+        if (tagDefinition?.transform) {
+          let newObjects = await tagDefinition.transform(obj);
+
+          if (!newObjects) {
+            // null value returned, just index as usual
+            kvs.push({
+              key: [tag, this.cleanKey(obj.ref, page)],
+              value: obj,
+            });
+            continue;
+          }
 
           if (!Array.isArray(newObjects)) {
             // Probably returned single object, let's normalize
             newObjects = [newObjects];
           }
+          // A transform function _must_ either return an empty list of objects to index, or return at least one object with the same ref
+          // If this doesn't happen, we may end up in an infinite loop.
+          let foundAssignedRef = false;
           for (const newObj of newObjects) {
             if (!newObj.ref) {
-              console.error("postProcess object did not contain ref", newObj);
+              console.error(
+                "transform result object did not contain ref",
+                newObj,
+              );
               continue;
             }
             if (newObj.ref === obj.ref) {
@@ -323,10 +342,16 @@ export class ObjectIndex {
                 key: [tag, this.cleanKey(newObj.ref, page)],
                 value: newObj,
               });
+              foundAssignedRef = true;
             } else {
               // Some other object
               objects.push(newObj);
             }
+          }
+          if (!foundAssignedRef && newObjects.length) {
+            throw new Error(
+              `transform() result objects for ${tag} did not contain result with original ref.`,
+            );
           }
         } else {
           // Just insert it directly
