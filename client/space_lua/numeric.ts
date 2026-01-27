@@ -90,6 +90,8 @@ export function coerceNumeric(
   if (typeof val === "string") {
     const det = luaToNumberDetailed(val);
     if (!det) {
+      // Kept generic for evaluator upgrades string-related arithmetic
+      // failures depending on operator/operand types.
       throw new Error(`attempt to perform arithmetic on a string value`);
     }
 
@@ -116,7 +118,9 @@ export function coerceNumeric(
     };
   }
 
-  throw new Error(`attempt to perform arithmetic on a ${luaTypeName(val)} value`);
+  throw new Error(
+    `attempt to perform arithmetic on a ${luaTypeName(val)} value`,
+  );
 }
 
 export function coerceNumericPair(

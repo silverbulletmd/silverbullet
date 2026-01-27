@@ -139,8 +139,57 @@ function luaTypeName(val: any): string {
   if (typeof val === "boolean") return "boolean";
   if (typeof val === "function") return "function";
   if (Array.isArray(val)) return "table";
-  if (typeof val === "object" && (val as any).constructor === Object) return "table";
+  if (typeof val === "object" && (val as any).constructor === Object) {
+    return "table";
+  }
   return "userdata";
+}
+
+function arithVerbFromOperator(op: string): string | null {
+  // Mirrors Lua internal naming used by string metamethod arithmetic
+  switch (op) {
+    case "+":
+      return "add";
+    case "-":
+      return "sub";
+    case "*":
+      return "mul";
+    case "/":
+      return "div";
+    case "//":
+      return "idiv";
+    case "%":
+      return "mod";
+    case "^":
+      return "pow";
+    default:
+      return null;
+  }
+}
+
+function maybeLuaArithStringError(
+  op: string,
+  a: any,
+  b: any,
+  ctx: ASTCtx,
+  sf: LuaStackFrame,
+): LuaRuntimeError | null {
+  const verb = arithVerbFromOperator(op);
+  if (!verb) {
+    return null;
+  }
+
+  const ta = luaTypeName(a);
+  const tb = luaTypeName(b);
+
+  if (ta === "string" || tb === "string") {
+    return new LuaRuntimeError(
+      `attempt to ${verb} a '${ta}' with a '${tb}'`,
+      sf.withCtx(ctx),
+    );
+  }
+
+  return null;
 }
 
 function luaFloorDiv(
@@ -818,33 +867,17 @@ const operatorsMetaMethods: Record<string, {
 }> = {
   "+": {
     metaMethod: "__add",
-    nativeImplementation: (a, b, ctx, sf, hints) => {
-      try {
-        const { ax, bx, bothInt } = coerceNumericPair(a, b, hints);
-        const r = ax + bx;
+    nativeImplementation: (a, b, _ctx, _sf, hints) => {
+      const { ax, bx, bothInt } = coerceNumericPair(a, b, hints);
+      const r = ax + bx;
 
-        if (r === 0) {
-          if (Object.is(r, -0)) {
-            return bothInt ? boxZero("int") : -0;
-          }
-          return boxZero(bothInt ? "int" : "float");
+      if (r === 0) {
+        if (Object.is(r, -0)) {
+          return bothInt ? boxZero("int") : -0;
         }
-        return r;
-      } catch (e: any) {
-        if (typeof a === "string" && (typeof b === "number" || b instanceof Number)) {
-          throw new LuaRuntimeError(
-            `attempt to add a 'string' with a 'number'`,
-            sf.withCtx(ctx),
-          );
-        }
-        if (typeof b === "string" && (typeof a === "number" || a instanceof Number)) {
-          throw new LuaRuntimeError(
-            `attempt to add a 'number' with a 'string'`,
-            sf.withCtx(ctx),
-          );
-        }
-        throw e;
+        return boxZero(bothInt ? "int" : "float");
       }
+      return r;
     },
   },
   "-": {
@@ -999,7 +1032,15 @@ function luaOp(
     }
   }
 
-  return handler.nativeImplementation(left, right, ctx, sf, hints);
+  try {
+    return handler.nativeImplementation(left, right, ctx, sf, hints);
+  } catch (e: any) {
+    const mapped = maybeLuaArithStringError(op, left, right, ctx, sf);
+    if (mapped) {
+      throw mapped;
+    }
+    throw e;
+  }
 }
 
 /**
@@ -2211,7 +2252,7 @@ function exactInt(
 
   if (!Number.isInteger(n)) {
     throw new LuaRuntimeError(
-      `Number ${n} has no integer representation (consider math.floor or math.ceil)`,
+      `number has no integer representation`,
       sf.withCtx(ctx),
     );
   }
