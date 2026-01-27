@@ -37,19 +37,69 @@ local function inString(line)
   return singleQuotes % 2 == 1 or doubleQuotes % 2 == 1 or brackets > 0
 end
 
+-- Converts (some) JSON schema to dummy Lua values for code complete to use
+local function schemaToDummyValue(schema)
+  if schema.type == "string" then
+    return ""
+  elseif schema.type == "number" then
+    return 0
+  elseif schema.type == "boolean" then
+    return true
+  elseif schema.type == "array" then
+    return {}
+  elseif schema.type == "object" then
+    local t = {}
+    for k, v in pairs(schema.properties) do
+      t[k] = schemaToDummyValue(v)
+    end
+    return t
+  else
+    return nil
+  end
+end
+
+-- Implements extremely simplistic global variable augmentation by scanning for local variables (declared via `local` and `from`)
+local function augmentGlobal(localCode)
+  local vars = {}
+  -- Copy over all globals
+  for k, v in pairs(_G) do
+    vars[k] = v
+  end
+  -- Then approximate specific local tag-based object declarations in queries and add them
+  -- matches `tags.something`, `index.tag "something"` and `index.tag("something")` patterns only
+  for m in string.matchRegexAll(localCode, "(?:from|local)\\s+(\\w+)\\s+=\\s*(?:index\\.tag\\s*\"(\\w+)\"|index\\.tag\\s*\\(\"(\\w+)\"\\)|tags\\.(\\w+))") do
+    local tag
+    for i, t in ipairs(m) do
+      if i > 2 and t then
+        tag = t
+      end
+    end
+    -- Do we have a schema for this tag?
+    local schema = config.get({"tags", tag, "schema"})
+    if schema then
+      -- Schema exists, add to vars
+      vars[m[2]] = schemaToDummyValue(schema)
+    end
+  end
+  return vars
+end
+
 -- API code completion for Lua
--- Completes something.somethingelse APIs 
+-- Completes a.b-style property accesses 
 event.listen {
   name = "editor:complete",
   run = function(e)
     local parents = e.data.parentNodes
-    local foundSpaceLua = false
+    local luaCode = nil
     for _, parent in ipairs(parents) do
-      if string.startsWith(parent, "FencedCode:space-lua") or parent == "LuaDirective" then
-        foundSpaceLua = true
+      if string.startsWith(parent, "FencedCode:space-lua") then
+        luaCode = string.sub(parent, #"FencedCode:space-lua"+1)
+      elseif string.startsWith(parent, "LuaDirective:") then
+        luaCode = string.sub(parent, #"LuaDirective:"+1)
       end
     end
-    if not foundSpaceLua then
+    -- Not in a Lua context
+    if not luaCode then
       return
     end
     local linePrefix = e.data.linePrefix
@@ -64,7 +114,7 @@ event.listen {
     end
     -- Split propaccess and traverse
     local propParts = string.split(propaccessPrefix[1], ".")
-    local currentValue = _G
+    local currentValue = augmentGlobal(luaCode)
     local failed = false
     for i = 1, #propParts-1 do
       local prop = propParts[i]
@@ -94,21 +144,20 @@ event.listen {
             table.insert(options, {
               label = key .. "(" .. table.concat(val.body.parameters, ", ") ..")",
               apply = key,
-              detail = "Lua function"
+              detail = "function"
             })
           else
             -- Builtin
             table.insert(options, {
               label = key .. "()",
               apply = key,
-              detail = "Lua built-in"
+              detail = "built-in"
             })
           end
         else
-          -- Table
           table.insert(options, {
             label = key,
-            detail = "Lua table"
+            detail = type(val),
           })
         end
       end

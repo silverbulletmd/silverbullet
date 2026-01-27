@@ -9,6 +9,9 @@ import {
 import { cleanupJSON } from "@silverbulletmd/silverbullet/lib/json";
 import YAML from "js-yaml";
 import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
+import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
+import { determineTags } from "./cheap_yaml.ts";
+import { attributeCompletion } from "./complete.ts";
 
 export type FrontMatter = { tags?: string[] } & Record<string, any>;
 
@@ -148,9 +151,34 @@ export function extractFrontMatter(
     console.error("Error while processing tags", e);
   }
 
-  // console.log("Extracted tags", data.tags);
   // Expand property names (e.g. "foo.bar" => { foo: { bar: true } })
   data = cleanupJSON(data);
 
   return data;
+}
+
+const attributeRegex = /^[\w\-_]+$/;
+
+export async function frontmatterComplete(completeEvent: CompleteEvent) {
+  const frontmatterCode = completeEvent.parentNodes.find((nt) =>
+    nt.startsWith("FrontMatter:")
+  );
+
+  if (!frontmatterCode) {
+    return;
+  }
+
+  const attributeName = completeEvent.linePrefix;
+
+  if (!attributeRegex.exec(attributeName)) {
+    return;
+  }
+
+  const tags = determineTags(frontmatterCode);
+  tags.push("page");
+
+  return {
+    from: completeEvent.pos - attributeName.length,
+    options: await attributeCompletion(tags),
+  };
 }

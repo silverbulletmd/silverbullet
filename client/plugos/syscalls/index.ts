@@ -3,7 +3,6 @@ import type {
   LuaCollectionQuery,
   LuaQueryCollection,
 } from "../../space_lua/query_collection.ts";
-import type { LuaTable } from "../../space_lua/runtime.ts";
 
 import type { ObjectIndex } from "../../data/object_index.ts";
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
