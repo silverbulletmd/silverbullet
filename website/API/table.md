@@ -121,7 +121,7 @@ Returns a new table from an old one, only with selected keys.
 
 Example:
 ${query[[
-  from p = index.tag "page"
+  from p in index.tag "page"
   limit 3
   select table.select(p, "name", "lastModified")
 ]]}

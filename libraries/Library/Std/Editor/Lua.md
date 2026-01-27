@@ -10,7 +10,7 @@ Features:
 # Code complete support
 ```space-lua
 -- priority: 10
-local LUA_KEYWORDS = {"do", "if", "then", "for", "else", "end", "function", "local", "return"}
+local LUA_KEYWORDS = {"do", "if", "then", "for", "else", "end", "function", "local", "return", "in"}
 
 -- Are we in a comment?
 local function inComment(line)
