@@ -320,7 +320,7 @@ assert_eq('1'+2, 3, 'str-num: "1"+2 == 3')
 assert_eq(' -2 ' * '3', -6, 'str-num: " -2 " * "3" == -6')
 assert_eq('0x10' + 1, 17, 'str-num: hex int string + 1 == 17')
 assert_eq('0x1p4' + 0, 16, 'str-num: hex float string + 0 == 16')
-assert_throws('attempt to perform arithmetic on a non-number',
+assert_throws("attempt to add a 'string' with a 'number'",
   function()
     return 'x1'+1
   end
@@ -342,7 +342,7 @@ assert_eq(1/-rec_zero(5) == 1/0, true, 'recursive: -(rec_zero) (+Inf)')
 -- 16. Modulo and integer division by zero
 
 -- 16.1. Modulo by zero
-assert_throws('modulo by zero',
+assert_throws("attempt to perform 'n%0'",
   function()
     return 1%0
   end
@@ -473,13 +473,13 @@ assert_throws('has no integer representation',
   end
 )
 
-assert_throws('attempt to perform arithmetic on a non-number',
+assert_throws("attempt to add a 'string' with a 'number'",
   function()
     return 'a'+1
   end
 )
 
-assert_throws('attempt to perform arithmetic on a non-number',
+assert_throws('attempt to perform arithmetic on a table value',
   function()
     return -{}
   end
@@ -492,7 +492,8 @@ assert_throws('has no integer representation',
   end
 )
 
-assert_throws('attempt to perform arithmetic on a non-number',
+assert_throws(
+  "attempt to perform bitwise operation on a string value (constant '3')",
   function()
     return '3'|1
   end
@@ -518,19 +519,20 @@ assert_throws('attempt to compare number with string',
 )
 
 -- 19.3. Additional negative tests
-assert_throws('attempt to perform arithmetic on a non-number',
+assert_throws('attempt to perform arithmetic on a table value',
   function()
     return 1+{}
   end
 )
 
-assert_throws('attempt to perform arithmetic on a non-number',
+assert_throws("attempt to unm a 'string' with a 'string'",
   function()
     return -'x'
   end
 )
 
-assert_throws('attempt to perform arithmetic on a non-number',
+assert_throws(
+  "attempt to perform bitwise operation on a string value (constant '1')",
   function()
     return ~'1'
   end
@@ -542,8 +544,160 @@ assert_throws('attempt to compare string with number',
   end
 )
 
-assert_throws('attempt to compare number with object',
+assert_throws('attempt to compare number with table',
   function()
     return 1<{}
+  end
+)
+
+-- 19.4. String arithmetic: exact verb mapping
+assert_throws("attempt to sub a 'string' with a 'number'",
+  function()
+    return 'x' - 1
+  end
+)
+
+assert_throws("attempt to mul a 'string' with a 'number'",
+  function()
+    return 'x' * 2
+  end
+)
+
+assert_throws("attempt to div a 'string' with a 'number'",
+  function()
+    return 'x' / 2
+  end
+)
+
+assert_throws("attempt to idiv a 'string' with a 'number'",
+  function()
+    return 'x' // 2
+  end
+)
+
+assert_throws("attempt to mod a 'string' with a 'number'",
+  function()
+    return 'x' % 2
+  end
+)
+
+assert_throws("attempt to pow a 'string' with a 'number'",
+  function()
+    return 'x' ^ 2
+  end
+)
+
+-- 19.4.1. String arithmetic: type pairing and string-vs-string cases
+assert_throws("attempt to add a 'string' with a 'string'",
+  function()
+    return 'x' + 'y'
+  end
+)
+
+assert_throws("attempt to mul a 'number' with a 'string'",
+  function()
+    return 2 * 'x'
+  end
+)
+
+-- 19.5. Bitwise: exact type errors
+assert_throws("attempt to perform bitwise operation on a table value",
+  function()
+    return {} & 1
+  end
+)
+
+assert_throws("attempt to perform bitwise operation on a nil value",
+  function()
+    return nil | 1
+  end
+)
+
+assert_throws("attempt to perform bitwise operation on a boolean value",
+  function()
+    return true ~ 1
+  end
+)
+
+-- 19.6. Bitwise shifts: non-integer RHS
+assert_throws("number has no integer representation",
+  function()
+    return 1 << 0.5
+  end
+)
+
+assert_throws("number has no integer representation",
+  function()
+    return 8 >> 0.25
+  end
+)
+
+-- 19.7. Concatenation: exact messages
+assert_throws("attempt to concatenate a nil value",
+  function()
+    return nil .. "x"
+  end
+)
+
+assert_throws("attempt to concatenate a nil value",
+  function()
+    return "x" .. nil
+  end
+)
+
+assert_throws("attempt to concatenate a table value",
+  function()
+    return "x" .. {}
+  end
+)
+
+-- 19.8. Length operator: exact message
+assert_throws("attempt to get length of a number value",
+  function()
+    return #1
+  end
+)
+
+assert_throws("attempt to get length of a nil value",
+  function()
+    return #nil
+  end
+)
+
+-- 19.9. Relational mismatches
+assert_throws("attempt to compare number with string",
+  function()
+    return 1 <= '1'
+  end
+)
+
+assert_throws("attempt to compare number with string",
+  function()
+    return '1' >= 1
+  end
+)
+
+assert_throws("attempt to compare table with number",
+  function()
+    return 1 > {}
+  end
+)
+
+assert_throws("attempt to compare table with number",
+  function()
+    return {} < 1
+  end
+)
+
+-- 19.10. Explicit int-path division/modulo by zero through expr
+assert_throws("attempt to perform 'n%0'",
+  function()
+    return 1 % (1-1)
+  end
+)
+
+assert_throws("attempt to divide by zero",
+  function()
+    return 1 // (1-1)
   end
 )
