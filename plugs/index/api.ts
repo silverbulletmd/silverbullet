@@ -1,8 +1,4 @@
-import {
-  datastore,
-  index,
-  markdown,
-} from "@silverbulletmd/silverbullet/syscalls";
+import { index, markdown } from "@silverbulletmd/silverbullet/syscalls";
 import {
   extractFrontMatter as extractFrontmatterFromTree,
   type FrontMatter,
@@ -13,8 +9,8 @@ import {
   renderToText,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { applyPatches, type YamlPatch } from "../../plug-api/lib/yaml.ts";
-import { LuaCollectionQuery } from "../../client/space_lua/query_collection.ts";
-import { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
+import type { LuaCollectionQuery } from "../../client/space_lua/query_collection.ts";
+import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 
 /*
  * Key namespace:
