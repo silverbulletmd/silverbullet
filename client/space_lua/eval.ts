@@ -962,7 +962,6 @@ const operatorsMetaMethods: Record<string, {
   "..": {
     metaMethod: "__concat",
     nativeImplementation: (a, b, ctx, sf) => {
-      // Accepts only strings or numbers (coerced to strings)
       const coerce = (v: any): string => {
         if (v === null || v === undefined) {
           throw new LuaRuntimeError(
@@ -976,14 +975,15 @@ const operatorsMetaMethods: Record<string, {
         if (typeof v === "number" || v instanceof Number) {
           return String(v instanceof Number ? Number(v) : v);
         }
+        const t = luaTypeName(v);
         throw new LuaRuntimeError(
-          "attempt to concatenate a non-string or non-number",
+          `attempt to concatenate a ${t} value`,
           sf.withCtx(ctx),
         );
       };
       return coerce(a) + coerce(b);
     },
-  },
+  }, 
   "==": {
     metaMethod: "__eq",
     nativeImplementation: (a, b) => luaEquals(a, b),
@@ -1005,10 +1005,10 @@ const operatorsMetaMethods: Record<string, {
     nativeImplementation: (a, b, ctx, sf) => luaLessEqual(a, b, ctx, sf),
   },
   ">": {
-    nativeImplementation: (a, b, ctx, sf) => !luaOp("<=", a, b, ctx, sf),
+    nativeImplementation: (a, b, ctx, sf) => luaOp("<", b, a, ctx, sf),
   },
   ">=": {
-    nativeImplementation: (a, b, ctx, sf) => !luaOp("<", a, b, ctx, sf),
+    nativeImplementation: (a, b, ctx, sf) => luaOp("<=", b, a, ctx, sf),
   },
 };
 

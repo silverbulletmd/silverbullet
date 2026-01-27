@@ -645,7 +645,7 @@ assert_throws("attempt to concatenate a nil value",
   end
 )
 
-assert_throws("attempt to concatenate a non-string or non-number",
+assert_throws("attempt to concatenate a table value",
   function()
     return "x" .. {}
   end
@@ -671,13 +671,13 @@ assert_throws("attempt to compare number with string",
   end
 )
 
-assert_throws("attempt to compare string with number",
+assert_throws("attempt to compare number with string",
   function()
     return '1' >= 1
   end
 )
 
-assert_throws("attempt to compare number with table",
+assert_throws("attempt to compare table with number",
   function()
     return 1 > {}
   end

@@ -139,7 +139,15 @@ const tostringFunction = new LuaBuiltinFunction((_sf, value: any) => {
 });
 
 const tonumberFunction = new LuaBuiltinFunction(
-  (_sf, value: LuaValue, base?: number) => {
+  (sf, value: LuaValue, base?: number) => {
+    if (base !== undefined) {
+      if (!(typeof base === "number" && base >= 2 && base <= 36)) {
+        throw new LuaRuntimeError(
+          "bad argument #2 to 'tonumber' (base out of range)",
+          sf,
+        );
+      }
+    }
     return luaToNumber(value, base);
   },
 );
@@ -360,9 +368,8 @@ const selectFunction = new LuaBuiltinFunction(
  * for numeric indices. (To traverse a table in numerical order, use
  * a numerical for.)
  *
- * You should not assign any value to a non-existent field in a table
- * during its traversal. You may however modify existing fields. In
- * particular, you may set existing fields to nil.
+ * The implementation in this file is not stable across mutations of a
+ * table during traversal; it is intended for basic usage and tests.
  */
 const nextFunction = new LuaBuiltinFunction(
   (sf, table: LuaTable | Record<string, any>, index: number | null = null) => {
