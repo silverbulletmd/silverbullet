@@ -4,7 +4,12 @@ import type {
   LuaCollectionQuery,
   LuaQueryCollection,
 } from "../space_lua/query_collection.ts";
-import { jsToLuaValue, LuaEnv, LuaStackFrame } from "../space_lua/runtime.ts";
+import {
+  jsToLuaValue,
+  LuaEnv,
+  LuaStackFrame,
+  LuaTable,
+} from "../space_lua/runtime.ts";
 import type { DataStore } from "./datastore.ts";
 import type { KV, KvKey } from "@silverbulletmd/silverbullet/type/datastore";
 import type { EventHook } from "../plugos/hooks/event.ts";
@@ -91,21 +96,21 @@ export class ObjectIndex {
           query,
           env,
           sf,
-          // (key, value: any) => {
-          //   const tag = key[1];
-          //   const tagDef = this.config.get<LuaTable | undefined>(
-          //     ["tags", tag],
-          //     undefined,
-          //   );
-          //   if (!tagDef || !tagDef.metatable) {
-          //     // Return as is
-          //     return value;
-          //   }
-          //   // Convert to LuaTable
-          //   value = jsToLuaValue(value);
-          //   value.metatable = tagDef.get("metatable");
-          //   return value;
-          // },
+          (key, value: any) => {
+            const tag = key[1];
+            const mt = this.config.get<LuaTable | undefined>(
+              ["tags", tag, "metatable"],
+              undefined,
+            );
+            if (!mt) {
+              // Return as is
+              return value;
+            }
+            // Convert to LuaTable
+            value = jsToLuaValue(value);
+            value.metatable = mt;
+            return value;
+          },
         );
       },
     };
