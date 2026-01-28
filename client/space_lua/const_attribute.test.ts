@@ -41,10 +41,10 @@ async function runAndCatch(code: string, ref = "const_attribute.lua") {
 Deno.test("const: Unknown attribute (parse-time)", () => {
   let threw = false;
   try {
-    parse(`local x<close> = 1`, { ref: "unknown_attribute.lua" });
+    parse(`local x<nope> = 1`, { ref: "unknown_attribute.lua" });
   } catch (e: any) {
     threw = true;
-    assertStringIncludes(String(e?.message ?? e), "unknown attribute 'close'");
+    assertStringIncludes(String(e?.message ?? e), "unknown attribute 'nope'");
   }
   if (!threw) {
     throw new Error("Expected parse error for unknown attribute");

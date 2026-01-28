@@ -24,11 +24,11 @@ export interface ILuaFunction {
 }
 
 export interface ILuaSettable {
-  set(key: LuaValue, value: LuaValue, sf?: LuaStackFrame): void;
+  set(key: LuaValue, value: LuaValue, sf?: LuaStackFrame): void | Promise<void>;
 }
 
 export interface ILuaGettable {
-  get(key: LuaValue, sf?: LuaStackFrame): LuaValue | undefined;
+  get(key: LuaValue, sf?: LuaStackFrame): LuaValue | Promise<LuaValue> | null;
 }
 
 // Small helpers for type safety/readability
@@ -56,6 +56,156 @@ export function ctxOrNull(sf?: LuaStackFrame): ASTCtx | null {
 
 // Reuse a single empty context to avoid allocating `{}` in hot paths
 const EMPTY_CTX = {} as ASTCtx;
+
+// Close-stack support
+export type LuaCloseEntry = { value: LuaValue; ctx: ASTCtx };
+
+type LuaThreadState = {
+  closeStack?: LuaCloseEntry[];
+};
+
+// Check whether a value is callable without invoking it.
+export function luaIsCallable(
+  v: LuaValue,
+  sf: LuaStackFrame,
+): boolean {
+  if (v === null || v === undefined) {
+    return false;
+  }
+  if (typeof v === "function") {
+    return true;
+  }
+  if (isILuaFunction(v)) {
+    return true;
+  }
+  if (v instanceof LuaTable) {
+    const mt = getMetatable(v, sf);
+    if (mt && mt.has("__call")) {
+      const mm = mt.get("__call", sf);
+      return !!mm && (typeof mm === "function" || isILuaFunction(mm));
+    }
+  }
+  return false;
+}
+
+// In Lua, `__close` must be a function (no `__call` fallback).
+function luaIsCloseMethod(
+  v: LuaValue,
+): boolean {
+  return typeof v === "function" || isILuaFunction(v);
+}
+
+export function luaEnsureCloseStack(sf: LuaStackFrame): LuaCloseEntry[] {
+  if (!sf.threadState.closeStack) {
+    sf.threadState.closeStack = [];
+  }
+  return sf.threadState.closeStack as LuaCloseEntry[];
+}
+
+export function luaMarkToBeClosed(
+  sf: LuaStackFrame,
+  value: LuaValue,
+  ctx: ASTCtx,
+): void {
+  const closeStack = luaEnsureCloseStack(sf);
+
+  // In Lua, `nil` is not closed.
+  if (value === null) {
+    return;
+  }
+
+  const mt = getMetatable(value, sf);
+  if (!mt || !mt.has("__close")) {
+    throw new LuaRuntimeError(
+      "variable got a non-closable value",
+      sf.withCtx(ctx),
+    );
+  }
+
+  const mm = mt.get("__close");
+  if (!luaIsCloseMethod(mm)) {
+    throw new LuaRuntimeError(
+      "variable got a non-closable value",
+      sf.withCtx(ctx),
+    );
+  }
+
+  closeStack.push({ value, ctx });
+}
+
+// Close entries from a mark (LIFO) and shrink stack back to mark.  This
+// is the core semantic for block exits and protected call boundaries.
+export function luaCloseFromMark(
+  sf: LuaStackFrame,
+  mark: number,
+  errObj: LuaValue | null,
+): Promise<void> | void {
+  const closeStack = sf.threadState?.closeStack as LuaCloseEntry[] | undefined;
+  if (!closeStack) {
+    return;
+  }
+  if (closeStack.length <= mark) {
+    return;
+  }
+
+  const callClose = (entry: LuaCloseEntry): LuaValue | Promise<LuaValue> => {
+    const mt = getMetatable(entry.value, sf);
+    const mm = mt ? mt.get("__close", sf) : null;
+    if (!luaIsCloseMethod(mm)) {
+      throw new LuaRuntimeError(
+        "metamethod '__close' is not callable",
+        sf.withCtx(entry.ctx),
+      );
+    }
+    if (errObj === null) {
+      return luaCall(mm, [entry.value], entry.ctx, sf);
+    }
+    return luaCall(mm, [entry.value, errObj], entry.ctx, sf);
+  };
+
+  // Close all to-be-closed variables (LIFO) even if one close errors.
+  // The reported error should be the first close error encountered.
+  const runFrom = (i: number): void | Promise<void> => {
+    let firstErr: unknown | null = null;
+
+    const recordErr = (e: unknown) => {
+      if (firstErr === null) {
+        firstErr = e;
+      }
+    };
+
+    const next = (idx: number): void | Promise<void> => {
+      for (let j = idx; j >= mark; j--) {
+        let r: LuaValue | Promise<LuaValue>;
+        try {
+          r = callClose(closeStack[j]);
+        } catch (e) {
+          recordErr(e);
+          continue;
+        }
+
+        if (isPromise(r)) {
+          return (r as Promise<any>).then(
+            () => next(j - 1),
+            (e: any) => {
+              recordErr(e);
+              return next(j - 1);
+            },
+          );
+        }
+      }
+
+      closeStack.length = mark;
+      if (firstErr !== null) {
+        throw firstErr;
+      }
+    };
+
+    return next(i);
+  };
+
+  return runFrom(closeStack.length - 1);
+}
 
 export class LuaEnv implements ILuaSettable, ILuaGettable {
   variables = new Map<string, LuaValue>();
@@ -99,13 +249,13 @@ export class LuaEnv implements ILuaSettable, ILuaGettable {
 
   get(
     name: string,
-    sf?: LuaStackFrame,
-  ): Promise<LuaValue> | LuaValue | undefined {
+    _sf?: LuaStackFrame,
+  ): Promise<LuaValue> | LuaValue | null {
     if (this.variables.has(name)) {
       return this.variables.get(name);
     }
     if (this.parent) {
-      return this.parent.get(name, sf);
+      return this.parent.get(name, _sf);
     }
     return null;
   }
@@ -134,13 +284,20 @@ export class LuaEnv implements ILuaSettable, ILuaGettable {
 }
 
 export class LuaStackFrame {
-  static lostFrame = new LuaStackFrame(new LuaEnv(), null);
+  // Must not share mutable per-thread state across calls/tests. This is
+  // a getter that returns a fresh frame each time.
+  static get lostFrame(): LuaStackFrame {
+    return new LuaStackFrame(new LuaEnv(), null, undefined, undefined, {
+      closeStack: undefined,
+    });
+  }
 
   constructor(
     readonly threadLocal: LuaEnv,
     readonly astCtx: ASTCtx | null,
     readonly parent?: LuaStackFrame,
     readonly currentFunction?: LuaFunction,
+    readonly threadState: LuaThreadState = { closeStack: undefined },
   ) {
   }
 
@@ -150,15 +307,29 @@ export class LuaStackFrame {
   ): LuaStackFrame {
     const env = new LuaEnv();
     env.setLocal("_GLOBAL", globalEnv);
-    return new LuaStackFrame(env, ctx);
+    return new LuaStackFrame(env, ctx, undefined, undefined, {
+      closeStack: undefined,
+    });
   }
 
   withCtx(ctx: ASTCtx): LuaStackFrame {
-    return new LuaStackFrame(this.threadLocal, ctx, this, this.currentFunction);
+    return new LuaStackFrame(
+      this.threadLocal,
+      ctx,
+      this,
+      this.currentFunction,
+      this.threadState,
+    );
   }
 
   withFunction(fn: LuaFunction): LuaStackFrame {
-    return new LuaStackFrame(this.threadLocal, this.astCtx, this.parent, fn);
+    return new LuaStackFrame(
+      this.threadLocal,
+      this.astCtx,
+      this.parent,
+      fn,
+      this.threadState,
+    );
   }
 }
 
@@ -240,28 +411,16 @@ export class LuaFunction implements ILuaFunction {
       env.setLocal("...", new LuaMultiRes(varargs));
 
       // Evaluate the function body with returnOnReturn set to true
-      try {
-        const r = evalStatement(this.body.block, env, sfWithFn, true);
-        const map = (val: any) => {
-          if (val !== undefined) {
-            return mapFunctionReturnValue(val);
-          }
-        };
-        if (isPromise(r)) {
-          return r.then(map).catch((e: any) => {
-            if (e instanceof LuaReturn) {
-              return mapFunctionReturnValue(e.values);
-            }
-            throw e;
-          });
-        } else {
-          return map(r);
+      const r = evalStatement(this.body.block, env, sfWithFn, true);
+      const map = (val: any) => {
+        if (val !== undefined) {
+          return mapFunctionReturnValue(val);
         }
-      } catch (e: any) {
-        if (e instanceof LuaReturn) {
-          return mapFunctionReturnValue(e.values);
-        }
-        throw e;
+      };
+      if (isPromise(r)) {
+        return r.then(map);
+      } else {
+        return map(r);
       }
     };
 
@@ -604,12 +763,27 @@ export function luaIndexValue(
   }
   // If not, let's see if the value has a metatable and if it has a __index metamethod
   const metatable = getMetatable(value, sf);
-  if (metatable && metatable.has("__index")) {
-    // Invoke the meta table
-    const metaValue = metatable.get("__index", sf);
-    if (isPromise(metaValue)) {
-      // Got a promise, we need to wait for it
-      return (metaValue as Promise<any>).then((mv: any) => {
+  if (metatable) {
+    const mm = metatable.rawGet("__index");
+    if (!(mm === undefined || mm === null)) {
+      // Invoke the meta table
+      const metaValue = mm;
+      if (isPromise(metaValue)) {
+        // Got a promise, we need to wait for it
+        return (metaValue as Promise<any>).then((mv: any) => {
+          if (mv?.call) {
+            return luaCall(mv, [value, key], sf?.astCtx ?? EMPTY_CTX, sf);
+          } else if (mv instanceof LuaTable) {
+            return mv.get(key, sf);
+          } else {
+            throw new LuaRuntimeError(
+              "Meta table __index must be a function or table",
+              sf || LuaStackFrame.lostFrame,
+            );
+          }
+        });
+      } else {
+        const mv = metaValue;
         if (mv?.call) {
           return luaCall(mv, [value, key], sf?.astCtx ?? EMPTY_CTX, sf);
         } else if (mv instanceof LuaTable) {
@@ -620,18 +794,6 @@ export function luaIndexValue(
             sf || LuaStackFrame.lostFrame,
           );
         }
-      });
-    } else {
-      const mv = metaValue as any;
-      if (mv?.call) {
-        return luaCall(mv, [value, key], sf?.astCtx ?? EMPTY_CTX, sf);
-      } else if (mv instanceof LuaTable) {
-        return mv.get(key, sf);
-      } else {
-        throw new LuaRuntimeError(
-          "Meta table __index must be a function or table",
-          sf || LuaStackFrame.lostFrame,
-        );
       }
     }
   }
@@ -1007,7 +1169,7 @@ export function luaToString(
 export function getMetatable(
   value: LuaValue,
   sf?: LuaStackFrame,
-): LuaValue | null {
+): LuaTable | null {
   if (value === null || value === undefined) {
     return null;
   }
@@ -1033,7 +1195,7 @@ export function getMetatable(
   }
 
   if ((value as any).metatable) {
-    return (value as any).metatable;
+    return (value as any).metatable as LuaTable;
   } else {
     return null;
   }
