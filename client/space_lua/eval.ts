@@ -87,10 +87,6 @@ function isGotoSignal(v: any): v is GotoSignal {
   return !!v && typeof v === "object" && v.ctrl === "goto";
 }
 
-function isReturnSignal(v: any): v is ReturnSignal {
-  return !!v && typeof v === "object" && v.ctrl === "return";
-}
-
 function isBreakSignal(v: any): v is BreakSignal {
   return !!v && typeof v === "object" && v.ctrl === "break";
 }
