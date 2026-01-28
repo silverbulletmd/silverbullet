@@ -17,12 +17,12 @@ General syntax:
 LIQ operates on any Lua collection.
 
 For instance, to sort a list of numbers in descending order:
-${query[[from n in {1, 2, 3} order by n desc]]}
+${query[[from n = {1, 2, 3} order by n desc]]}
 
 However, in most cases you’ll use it in conjunction with [[API/index#index.tag(name)]]. Here’s an example querying the 3 pages that were last modified:
 
 ${query[[
-  from p in index.tag "page"
+  from p = index.tag "page"
   order by p.lastModified desc
   select p.name
   limit 3
@@ -43,10 +43,6 @@ The `from` clause specifies the source of your data. There are two syntactic var
 
 **Recommended:** With explicit variable binding:
 
-    from v in <<expression>>
-
-or
-
     from v = <<expression>>
 
 binding each item to the variable `v`.
@@ -66,32 +62,32 @@ Example without variable binding:
 ${query[[from {1, 2, 3} select _]]}
 
 With variable binding:
-${query[[from n in {1, 2, 3} select n]]}
+${query[[from n = {1, 2, 3} select n]]}
 
 A more realistic example using `index.tag`:
-${query[[from p in index.tag "page" order by p.lastModified select p.name limit 3]]}
+${query[[from p = index.tag "page" order by p.lastModified select p.name limit 3]]}
 
 ## where <expression>
 The `where` clause allows you to filter data. When the expression evaluated to a truthy value, the item is included in the result.
 
 Example:
 
-${query[[from n in {1, 2, 3, 4, 5} where n > 2]]}
+${query[[from n = {1, 2, 3, 4, 5} where n > 2]]}
 
 Or to select 5 pages tagged with `#meta`:
 
-${query[[from p in index.tag "page" where table.includes(p.tags, "meta") limit 5]]}
+${query[[from p = index.tag "page" where table.includes(p.tags, "meta") limit 5]]}
 
 Or select based on name (including folder) and a [[API/string|string function]]
 
-${query[[from p in index.tag "page" where p.name:startsWith("Person")]]}
+${query[[from p = index.tag "page" where p.name:startsWith("Person")]]}
 
 ## order by <expression> [desc]
 The `order by` clause allows you to sort data, when `desc` is specified it reverts the sort order.
 
 As an example, the last 3 modified pages:
 ${query[[
-  from p in index.tag "page"
+  from p = index.tag "page"
   order by p.lastModified desc
   select p.name
   limit 3
@@ -100,7 +96,7 @@ ${query[[
 You can order based on multiple expressions by specifying multiple expressions separated by commas:
 
 ${query[[
-  from p in index.tag "page"
+  from p = index.tag "page"
   order by p.lastModified desc, p.name
   select p.name
   limit 3
@@ -125,11 +121,11 @@ The `select` clause allows you to transform each item in the result set. If omit
 Some examples:
 
 Double each number:
-${query[[from n in {1, 2, 3} select n * 2]]}
+${query[[from n = {1, 2, 3} select n * 2]]}
 
 It is convenient to combine it with the [[API/table#table.select(table, keys...)]] API:
 ${query[[
-  from p in index.tag "page" 
+  from p = index.tag "page" 
   select table.select(p, "name", "lastModified")
   limit 3
 ]]}
@@ -138,7 +134,7 @@ ${query[[
 To render the output as a template, you can rely on the fact that queries return Lua tables. For example, to apply a template to render every page as a link:
 
 ${template.each(query[[
-  from p in index.tag "page"
+  from p = index.tag "page"
   order by p.lastModified desc
   limit 3
 ]], templates.pageItem)}

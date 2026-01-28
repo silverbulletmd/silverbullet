@@ -98,7 +98,7 @@ QueryClause {
   LimitClause
 }
 
-FromClause { ckw<"from"> (Name ("=" | kw<"in">))? exp }
+FromClause { ckw<"from"> (Name "=")? exp }
 WhereClause { ckw<"where"> exp }
 LimitClause { ckw<"limit"> exp ("," exp)? }
 OrderByClause { ckw<"order">  ckw<"by"> list<OrderBy> }

@@ -36,7 +36,9 @@ function keyBindingForQuote(
       // Figure out the context, if in some sort of code/comment fragment don't be smart
       let node = syntaxTree(target.state).resolveInner(cursorPos);
       while (node) {
-        if (straightQuoteContexts.includes(node.type.name)) {
+        if (
+          straightQuoteContexts.find((sqc) => sqc.startsWith(node.type.name))
+        ) {
           return false;
         }
         if (node.parent) {

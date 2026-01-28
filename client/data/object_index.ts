@@ -4,7 +4,12 @@ import type {
   LuaCollectionQuery,
   LuaQueryCollection,
 } from "../space_lua/query_collection.ts";
-import { jsToLuaValue, LuaEnv, LuaStackFrame } from "../space_lua/runtime.ts";
+import {
+  jsToLuaValue,
+  LuaEnv,
+  LuaStackFrame,
+  type LuaTable,
+} from "../space_lua/runtime.ts";
 import type { DataStore } from "./datastore.ts";
 import type { KV, KvKey } from "@silverbulletmd/silverbullet/type/datastore";
 import type { EventHook } from "../plugos/hooks/event.ts";
@@ -24,9 +29,13 @@ type TagDefinition = {
   metatable?: any;
   mustValidate?: boolean;
   schema?: any;
-  postProcess?: (
+  transform?: (
     o: ObjectValue,
-  ) => Promise<ObjectValue[] | ObjectValue> | ObjectValue[] | ObjectValue;
+  ) =>
+    | Promise<ObjectValue[] | ObjectValue>
+    | ObjectValue[]
+    | ObjectValue
+    | null;
 };
 
 export class ObjectIndex {
@@ -87,21 +96,21 @@ export class ObjectIndex {
           query,
           env,
           sf,
-          // (key, value: any) => {
-          //   const tag = key[1];
-          //   const tagDef = this.config.get<LuaTable | undefined>(
-          //     ["tags", tag],
-          //     undefined,
-          //   );
-          //   if (!tagDef || !tagDef.metatable) {
-          //     // Return as is
-          //     return value;
-          //   }
-          //   // Convert to LuaTable
-          //   value = jsToLuaValue(value);
-          //   value.metatable = tagDef.get("metatable");
-          //   return value;
-          // },
+          (key, value: any) => {
+            const tag = key[1];
+            const mt = this.config.get<LuaTable | undefined>(
+              ["tags", tag, "metatable"],
+              undefined,
+            );
+            if (!mt) {
+              // Return as is
+              return value;
+            }
+            // Convert to LuaTable
+            value = jsToLuaValue(value);
+            value.metatable = mt;
+            return value;
+          },
         );
       },
     };
@@ -305,16 +314,31 @@ export class ObjectIndex {
             continue;
           }
         }
-        if (tagDefinition?.postProcess) {
-          let newObjects = await tagDefinition.postProcess(obj);
+        if (tagDefinition?.transform) {
+          let newObjects = await tagDefinition.transform(obj);
+
+          if (!newObjects) {
+            // null value returned, just index as usual
+            kvs.push({
+              key: [tag, this.cleanKey(obj.ref, page)],
+              value: obj,
+            });
+            continue;
+          }
 
           if (!Array.isArray(newObjects)) {
             // Probably returned single object, let's normalize
             newObjects = [newObjects];
           }
+          // A transform function _must_ either return an empty list of objects to index, or return at least one object with the same ref
+          // If this doesn't happen, we may end up in an infinite loop.
+          let foundAssignedRef = false;
           for (const newObj of newObjects) {
             if (!newObj.ref) {
-              console.error("postProcess object did not contain ref", newObj);
+              console.error(
+                "transform result object did not contain ref",
+                newObj,
+              );
               continue;
             }
             if (newObj.ref === obj.ref) {
@@ -323,10 +347,16 @@ export class ObjectIndex {
                 key: [tag, this.cleanKey(newObj.ref, page)],
                 value: newObj,
               });
+              foundAssignedRef = true;
             } else {
               // Some other object
               objects.push(newObj);
             }
+          }
+          if (!foundAssignedRef && newObjects.length) {
+            throw new Error(
+              `transform() result objects for ${tag} did not contain result with original ref.`,
+            );
           }
         } else {
           // Just insert it directly

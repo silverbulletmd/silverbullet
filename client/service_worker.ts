@@ -288,7 +288,6 @@ self.addEventListener("message", async (event: any) => {
             });
           },
           spaceSyncComplete: (operations) => {
-            console.log("Space sync complete:", operations);
             broadcastMessage({
               type: "space-sync-complete",
               operations,

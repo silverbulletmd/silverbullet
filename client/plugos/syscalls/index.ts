@@ -3,11 +3,11 @@ import type {
   LuaCollectionQuery,
   LuaQueryCollection,
 } from "../../space_lua/query_collection.ts";
-import type { LuaTable } from "../../space_lua/runtime.ts";
 
 import type { ObjectIndex } from "../../data/object_index.ts";
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 import type { Client } from "../../client.ts";
+import type { LuaTable } from "../../space_lua/runtime.ts";
 
 export function indexSyscalls(
   objectIndex: ObjectIndex,
@@ -65,7 +65,16 @@ export function indexSyscalls(
       if (!tagDef.has("name")) {
         throw new Error("A tag name is required");
       }
-      client.config.set(["tags", tagDef.get("name")], tagDef);
+      const currentTag = client.config.get(["tags", tagDef.get("name")], null);
+      if (!currentTag) {
+        client.config.set(["tags", tagDef.get("name")], {
+          name: tagDef.get("name"),
+        });
+      }
+      client.config.set(
+        ["tags", tagDef.get("name"), "metatable"],
+        tagDef.get("metatable"),
+      );
     },
   };
 }

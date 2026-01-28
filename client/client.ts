@@ -863,8 +863,11 @@ export class Client {
     if (currentNode) {
       let node: SyntaxNode | null = currentNode;
       do {
-        if (node.name === "FencedCode" || node.name === "FrontMatter") {
+        if (["FencedCode", "FrontMatter"].includes(node.name)) {
           const body = editorState.sliceDoc(node.from + 3, node.to - 3);
+          parentNodes.push(`${node.name}:${body}`);
+        } else if (node.name === "LuaDirective") {
+          const body = editorState.sliceDoc(node.from + 2, node.to - 1);
           parentNodes.push(`${node.name}:${body}`);
         } else {
           parentNodes.push(node.name);
