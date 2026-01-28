@@ -132,6 +132,14 @@ func buildConfig(bundledFiles fs.FS, args []string) *server.ServerConfig {
 			}
 		}
 
+		rootSpaceConfig.Auth.RememberMeHours = 168 // default 7 days
+		if os.Getenv("SB_REMEMBER_ME_HOURS") != "" {
+			rootSpaceConfig.Auth.RememberMeHours, err = strconv.Atoi(os.Getenv("SB_REMEMBER_ME_HOURS"))
+			if err != nil {
+				log.Fatalf("Could not parse SB_REMEMBER_ME_HOURS as number: %v", err)
+			}
+		}
+
 		log.Printf("User authentication enabled for user \"%s\" with lockout limit %d and lockout time %ds",
 			pieces[0], rootSpaceConfig.Auth.LockoutLimit, rootSpaceConfig.Auth.LockoutTime)
 	}

@@ -60,10 +60,11 @@ func addAuthEndpoints(r chi.Router, config *ServerConfig) {
 
 		tpl := template.Must(template.New("auth").Parse(string(data)))
 
-		templateData := map[string]string{
-			"HostPrefix":     config.HostURLPrefix,
-			"SpaceName":      spaceConfig.SpaceName,
-			"EncryptionSalt": spaceConfig.JwtIssuer.Salt,
+		templateData := map[string]any{
+			"HostPrefix":      config.HostURLPrefix,
+			"SpaceName":       spaceConfig.SpaceName,
+			"EncryptionSalt":  spaceConfig.JwtIssuer.Salt,
+			"RememberMeDays":  spaceConfig.Auth.RememberMeHours / 24,
 		}
 
 		w.Header().Set("Content-type", "text/html")
@@ -111,7 +112,8 @@ func addAuthEndpoints(r chi.Router, config *ServerConfig) {
 			var jwt string
 			var err error
 			if rememberMe != "" {
-				jwt, err = spaceConfig.JwtIssuer.CreateJWT(payload) // No expiry
+				rememberMeExpirySeconds := spaceConfig.Auth.RememberMeHours * 60 * 60
+				jwt, err = spaceConfig.JwtIssuer.CreateJWT(payload, rememberMeExpirySeconds)
 			} else {
 				jwt, err = spaceConfig.JwtIssuer.CreateJWT(payload, authenticationExpirySeconds)
 			}
