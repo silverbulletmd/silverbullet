@@ -31,7 +31,16 @@ export function luaLoad(code: LuaValue, sf: LuaStackFrame): LuaValue {
       if (res === undefined) {
         return null;
       } else {
-        return new LuaMultiRes(res);
+        if (res && typeof res === "object" && (res as any).ctrl === "return") {
+          return new LuaMultiRes((res as any).values);
+        }
+        if (res && typeof res === "object" && (res as any).ctrl === "break") {
+          throw new Error("break outside loop");
+        }
+        if (res && typeof res === "object" && (res as any).ctrl === "goto") {
+          throw new Error("unexpected goto signal");
+        }
+        return null;
       }
     });
 
