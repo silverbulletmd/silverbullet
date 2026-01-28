@@ -412,11 +412,28 @@ export class LuaFunction implements ILuaFunction {
 
       // Evaluate the function body with returnOnReturn set to true
       const r = evalStatement(this.body.block, env, sfWithFn, true);
+
       const map = (val: any) => {
-        if (val !== undefined) {
-          return mapFunctionReturnValue(val);
+        if (val === undefined) {
+          return;
+        }
+        if (val && typeof val === "object" && val.ctrl === "return") {
+          return mapFunctionReturnValue(val.values);
+        }
+        if (val && typeof val === "object" && val.ctrl === "break") {
+          throw new LuaRuntimeError(
+            "break outside loop",
+            sfWithFn.withCtx(this.body.block.ctx),
+          );
+        }
+        if (val && typeof val === "object" && val.ctrl === "goto") {
+          throw new LuaRuntimeError(
+            "unexpected goto signal",
+            sfWithFn.withCtx(this.body.block.ctx),
+          );
         }
       };
+
       if (isPromise(r)) {
         return r.then(map);
       } else {

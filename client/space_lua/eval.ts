@@ -14,7 +14,6 @@ import {
   type ILuaGettable,
   type ILuaSettable,
   jsToLuaValue,
-  LuaBreak,
   luaCall,
   luaCloseFromMark,
   luaEnsureCloseStack,
@@ -26,7 +25,6 @@ import {
   type LuaLValueContainer,
   luaMarkToBeClosed,
   LuaMultiRes,
-  LuaReturn,
   LuaRuntimeError,
   luaSet,
   type LuaStackFrame,
@@ -81,8 +79,24 @@ import {
 import { getBlockGotoMeta } from "./labels.ts";
 
 type GotoSignal = { ctrl: "goto"; target: string };
+type ReturnSignal = { ctrl: "return"; values: LuaValue[] };
+type BreakSignal = { ctrl: "break" };
+type ControlSignal = GotoSignal | ReturnSignal | BreakSignal;
+
 function isGotoSignal(v: any): v is GotoSignal {
   return !!v && typeof v === "object" && v.ctrl === "goto";
+}
+
+function isReturnSignal(v: any): v is ReturnSignal {
+  return !!v && typeof v === "object" && v.ctrl === "return";
+}
+
+function isBreakSignal(v: any): v is BreakSignal {
+  return !!v && typeof v === "object" && v.ctrl === "break";
+}
+
+function _isControlSignal(v: any): v is ControlSignal {
+  return isGotoSignal(v) || isReturnSignal(v) || isBreakSignal(v);
 }
 
 function consumeGotoInBlock(
@@ -1041,9 +1055,8 @@ function evalExpressions(
 
 type EvalBlockResult =
   | void
-  | LuaValue[]
-  | GotoSignal
-  | Promise<void | LuaValue[] | GotoSignal>;
+  | ControlSignal
+  | Promise<void | ControlSignal>;
 
 function runStatementsNoGoto(
   stmts: LuaStatement[],
@@ -1051,10 +1064,10 @@ function runStatementsNoGoto(
   sf: LuaStackFrame,
   returnOnReturn: boolean,
   startIdx: number,
-): void | LuaValue[] | Promise<void | LuaValue[]> {
+): void | ControlSignal | Promise<void | ControlSignal> {
   const processFrom = (
     idx: number,
-  ): void | LuaValue[] | Promise<void | LuaValue[]> => {
+  ): void | ControlSignal | Promise<void | ControlSignal> => {
     for (let i = idx; i < stmts.length; i++) {
       const result = evalStatement(
         stmts[i],
@@ -1064,14 +1077,14 @@ function runStatementsNoGoto(
       );
       if (isPromise(result)) {
         return (result as Promise<any>).then((res) => {
-          if (res !== undefined && !isGotoSignal(res)) {
+          if (res !== undefined) {
+            if (isGotoSignal(res)) {
+              throw new LuaRuntimeError(
+                "unexpected goto signal",
+                sf.withCtx(stmts[i].ctx),
+              );
+            }
             return res;
-          }
-          if (isGotoSignal(res)) {
-            throw new LuaRuntimeError(
-              "unexpected goto signal",
-              sf.withCtx(stmts[i].ctx),
-            );
           }
           return processFrom(i + 1);
         });
@@ -1253,7 +1266,7 @@ export function evalStatement(
   env: LuaEnv,
   sf: LuaStackFrame,
   returnOnReturn = false,
-): void | LuaValue[] | GotoSignal | Promise<void | LuaValue[] | GotoSignal> {
+): void | ControlSignal | Promise<void | ControlSignal> {
   switch (s.type) {
     case "Assignment": {
       const a = asAssignment(s);
@@ -1453,9 +1466,8 @@ export function evalStatement(
         i: number,
       ):
         | void
-        | LuaValue[]
-        | GotoSignal
-        | Promise<void | LuaValue[] | GotoSignal> => {
+        | ControlSignal
+        | Promise<void | ControlSignal> => {
         if (i >= conds.length) {
           if (iff.elseBlock) {
             return evalStatement(iff.elseBlock, env, sf, returnOnReturn);
@@ -1482,33 +1494,20 @@ export function evalStatement(
     }
     case "While": {
       const w = asWhile(s);
-      const runAsync = async (): Promise<void | LuaValue[] | GotoSignal> => {
+
+      const runAsync = async (): Promise<void | ControlSignal> => {
         while (true) {
           const c = await evalExpression(w.condition, env, sf);
           if (!luaTruthy(c)) {
             break;
           }
-          try {
-            const r = evalStatement(w.block, env, sf, returnOnReturn);
-            if (isPromise(r)) {
-              const res = await r;
-              if (isGotoSignal(res)) {
-                return res;
-              }
-              if (res !== undefined) {
-                return res;
-              }
-            } else if (isGotoSignal(r)) {
-              return r;
-            } else if (r !== undefined) {
-              return r;
-            }
-          } catch (e: any) {
-            if (e instanceof LuaBreak) {
+          const r = evalStatement(w.block, env, sf, returnOnReturn);
+          const res = isPromise(r) ? await r : r;
+          if (res !== undefined) {
+            if (isBreakSignal(res)) {
               break;
-            } else {
-              throw e;
             }
+            return res;
           }
         }
         return;
@@ -1525,32 +1524,24 @@ export function evalStatement(
               const r = evalStatement(w.block, env, sf, returnOnReturn);
               if (isPromise(r)) {
                 return (r as Promise<any>).then((res) => {
-                  if (isGotoSignal(res)) {
-                    return res;
-                  }
                   if (res !== undefined) {
+                    if (isBreakSignal(res)) {
+                      return;
+                    }
                     return res;
                   }
                   return runAsync();
-                }).catch((e: any) => {
-                  if (e instanceof LuaBreak) {
-                    return;
-                  }
-                  throw e;
                 });
               } else {
-                if (isGotoSignal(r)) {
-                  return r;
-                }
                 if (r !== undefined) {
+                  if (isBreakSignal(r)) {
+                    return;
+                  }
                   return r;
                 }
                 return runAsync();
               }
             } catch (e: any) {
-              if (e instanceof LuaBreak) {
-                return;
-              }
               throw e;
             }
           });
@@ -1558,36 +1549,23 @@ export function evalStatement(
         if (!luaTruthy(c)) {
           break;
         }
-        try {
-          const r = evalStatement(w.block, env, sf, returnOnReturn);
-          if (isPromise(r)) {
-            return (r as Promise<any>).then((res) => {
-              if (isGotoSignal(res)) {
-                return res;
-              }
-              if (res !== undefined) {
-                return res;
-              }
-              return runAsync();
-            }).catch((e: any) => {
-              if (e instanceof LuaBreak) {
+        const r = evalStatement(w.block, env, sf, returnOnReturn);
+        if (isPromise(r)) {
+          return (r as Promise<any>).then((res) => {
+            if (res !== undefined) {
+              if (isBreakSignal(res)) {
                 return;
               }
-              throw e;
-            });
-          } else {
-            if (isGotoSignal(r)) {
-              return r;
+              return res;
             }
-            if (r !== undefined) {
-              return r;
+            return runAsync();
+          });
+        } else {
+          if (r !== undefined) {
+            if (isBreakSignal(r)) {
+              break;
             }
-          }
-        } catch (e: any) {
-          if (e instanceof LuaBreak) {
-            break;
-          } else {
-            throw e;
+            return r;
           }
         }
       }
@@ -1595,32 +1573,16 @@ export function evalStatement(
     }
     case "Repeat": {
       const r = asRepeat(s);
-      const runAsync = async (): Promise<void | LuaValue[] | GotoSignal> => {
+
+      const runAsync = async (): Promise<void | ControlSignal> => {
         while (true) {
-          try {
-            const rr = evalStatement(r.block, env, sf, returnOnReturn);
-            if (isPromise(rr)) {
-              const res = await rr;
-              if (isGotoSignal(res)) {
-                return res;
-              }
-              if (res !== undefined) {
-                return res;
-              }
-            } else {
-              if (isGotoSignal(rr)) {
-                return rr;
-              }
-              if (rr !== undefined) {
-                return rr;
-              }
-            }
-          } catch (e: any) {
-            if (e instanceof LuaBreak) {
+          const rr = evalStatement(r.block, env, sf, returnOnReturn);
+          const res = isPromise(rr) ? await rr : rr;
+          if (res !== undefined) {
+            if (isBreakSignal(res)) {
               break;
-            } else {
-              throw e;
             }
+            return res;
           }
           const c = await evalExpression(r.condition, env, sf);
           if (luaTruthy(c)) {
@@ -1631,41 +1593,31 @@ export function evalStatement(
       };
 
       while (true) {
-        try {
-          const rr = evalStatement(r.block, env, sf, returnOnReturn);
-          if (isPromise(rr)) {
-            return (rr as Promise<any>).then((res) => {
-              if (isGotoSignal(res)) {
-                return res;
-              }
-              if (res !== undefined) {
-                return res;
-              }
-              return runAsync();
-            }).catch((e: any) => {
-              if (e instanceof LuaBreak) {
+        const rr = evalStatement(r.block, env, sf, returnOnReturn);
+        if (isPromise(rr)) {
+          return (rr as Promise<any>).then((res) => {
+            if (res !== undefined) {
+              if (isBreakSignal(res)) {
                 return;
               }
-              throw e;
-            });
-          } else {
-            if (isGotoSignal(rr)) {
-              return rr;
+              return res;
             }
-            if (rr !== undefined) return rr;
-          }
-        } catch (e: any) {
-          if (e instanceof LuaBreak) {
-            break;
-          } else {
-            throw e;
+            return runAsync();
+          });
+        } else {
+          if (rr !== undefined) {
+            if (isBreakSignal(rr)) {
+              return;
+            }
+            return rr;
           }
         }
+
         const c = evalExpression(r.condition, env, sf);
         if (isPromise(c)) {
-          return (c as Promise<any>).then((
-            cv,
-          ) => (luaTruthy(cv) ? undefined : runAsync()));
+          return (c as Promise<any>).then((cv) =>
+            luaTruthy(cv) ? undefined : runAsync()
+          );
         } else {
           if (luaTruthy(c)) {
             break;
@@ -1675,7 +1627,7 @@ export function evalStatement(
       return;
     }
     case "Break": {
-      throw new LuaBreak();
+      return { ctrl: "break" };
     }
     case "FunctionCallStatement": {
       const fcs = asFunctionCallStmt(s);
@@ -1729,16 +1681,17 @@ export function evalStatement(
         evalExpression(value, env, sf)
       );
       const valuesRP = rpAll(parts);
-      if (returnOnReturn) {
-        return isPromise(valuesRP) ? valuesRP : valuesRP;
+
+      if (isPromise(valuesRP)) {
+        return (valuesRP as Promise<any[]>).then((vals) => ({
+          ctrl: "return",
+          values: vals as LuaValue[],
+        }));
       } else {
-        if (isPromise(valuesRP)) {
-          return (valuesRP as Promise<any[]>).then((vals) => {
-            throw new LuaReturn(vals);
-          });
-        } else {
-          throw new LuaReturn(valuesRP as LuaValue[]);
-        }
+        return {
+          ctrl: "return",
+          values: valuesRP as LuaValue[],
+        };
       }
     }
     case "For": {
@@ -1755,27 +1708,13 @@ export function evalStatement(
         ) {
           const localEnv = new LuaEnv(env);
           localEnv.setLocal(fr.name, i);
-          try {
-            const r = evalStatement(fr.block, localEnv, sf, returnOnReturn);
-            if (isPromise(r)) {
-              const res = await r;
-              if (isGotoSignal(res)) {
-                return res;
-              }
-              if (res !== undefined) {
-                return res;
-              }
-            } else if (isGotoSignal(r)) {
-              return r;
-            } else if (r !== undefined) {
-              return r;
-            }
-          } catch (e: any) {
-            if (e instanceof LuaBreak) {
+          const r = evalStatement(fr.block, localEnv, sf, returnOnReturn);
+          const res = isPromise(r) ? await r : r;
+          if (res !== undefined) {
+            if (isBreakSignal(res)) {
               break;
-            } else {
-              throw e;
             }
+            return res;
           }
         }
         return;
@@ -1787,9 +1726,8 @@ export function evalStatement(
         step: any,
       ):
         | void
-        | LuaValue[]
-        | GotoSignal
-        | Promise<void | LuaValue[] | GotoSignal> => {
+        | ControlSignal
+        | Promise<void | ControlSignal> => {
         for (
           let i = start;
           step > 0 ? i <= end : i >= end;
@@ -1797,34 +1735,22 @@ export function evalStatement(
         ) {
           const localEnv = new LuaEnv(env);
           localEnv.setLocal(fr.name, i);
-          try {
-            const r = evalStatement(fr.block, localEnv, sf, returnOnReturn);
-            if (isPromise(r)) {
-              return (r as Promise<any>).then((res) => {
-                if (isGotoSignal(res)) {
-                  return res;
-                }
-                if (res !== undefined) {
-                  return res;
-                }
-                return runAsync(i + step, end, step);
-              }).catch((e: any) => {
-                if (e instanceof LuaBreak) {
+          const r = evalStatement(fr.block, localEnv, sf, returnOnReturn);
+          if (isPromise(r)) {
+            return (r as Promise<any>).then((res) => {
+              if (res !== undefined) {
+                if (isBreakSignal(res)) {
                   return;
                 }
-                throw e;
-              });
-            } else if (isGotoSignal(r)) {
-              return r;
-            } else if (r !== undefined) {
-              return r;
-            }
-          } catch (e: any) {
-            if (e instanceof LuaBreak) {
+                return res;
+              }
+              return runAsync(i + step, end, step);
+            });
+          } else if (r !== undefined) {
+            if (isBreakSignal(r)) {
               break;
-            } else {
-              throw e;
             }
+            return r;
           }
         }
         return;
@@ -1927,27 +1853,13 @@ export function evalStatement(
                 localEnv.setLocal(fi.names[i], iterResult.values[i]);
               }
 
-              try {
-                const r = evalStatement(fi.block, localEnv, sf, returnOnReturn);
-                if (isPromise(r)) {
-                  const res = await r;
-                  if (isGotoSignal(res)) {
-                    return await finish(res);
-                  }
-                  if (res !== undefined) {
-                    return await finish(res);
-                  }
-                } else if (isGotoSignal(r)) {
-                  return await finish(r);
-                } else if (r !== undefined) {
-                  return await finish(r);
-                }
-              } catch (e: any) {
-                if (e instanceof LuaBreak) {
+              const r = evalStatement(fi.block, localEnv, sf, returnOnReturn);
+              const res = isPromise(r) ? await r : r;
+              if (res !== undefined) {
+                if (isBreakSignal(res)) {
                   break;
-                } else {
-                  throw e;
                 }
+                return await finish(res);
               }
             }
             return await finish(undefined);
@@ -1976,42 +1888,30 @@ export function evalStatement(
                   localEnv.setLocal(fi.names[i], iterResult.values[i]);
                 }
 
-                try {
-                  const r = evalStatement(
-                    fi.block,
-                    localEnv,
-                    sf,
-                    returnOnReturn,
-                  );
-                  if (isPromise(r)) {
-                    return (r as Promise<any>).then((res) => {
-                      if (isGotoSignal(res)) {
-                        return rpThen(finish(undefined), () => res);
-                      }
-                      if (res !== undefined) {
-                        return rpThen(finish(undefined), () => res);
-                      }
-                      return runAsync();
-                    }).catch((e: any) => {
-                      if (e instanceof LuaBreak) {
+                const r = evalStatement(
+                  fi.block,
+                  localEnv,
+                  sf,
+                  returnOnReturn,
+                );
+                if (isPromise(r)) {
+                  return (r as Promise<any>).then((res) => {
+                    if (res !== undefined) {
+                      if (isBreakSignal(res)) {
                         return finish(undefined);
                       }
-                      throw e;
-                    });
-                  } else {
-                    if (isGotoSignal(r)) {
-                      return rpThen(finish(undefined), () => r);
-                    }
-                    if (r !== undefined) {
-                      return rpThen(finish(undefined), () => r);
+                      return rpThen(finish(undefined), () => res);
                     }
                     return runAsync();
+                  });
+                } else {
+                  if (r !== undefined) {
+                    if (isBreakSignal(r)) {
+                      return finish(undefined);
+                    }
+                    return rpThen(finish(undefined), () => r);
                   }
-                } catch (e: any) {
-                  if (e instanceof LuaBreak) {
-                    return finish(undefined);
-                  }
-                  throw e;
+                  return runAsync();
                 }
               }).catch((e: any) => finishErr(e));
             }
@@ -2032,33 +1932,22 @@ export function evalStatement(
               localEnv.setLocal(fi.names[i], iterResult.values[i]);
             }
 
-            try {
-              const r = evalStatement(fi.block, localEnv, sf, returnOnReturn);
-              if (isPromise(r)) {
-                return (r as Promise<any>).then((res) => {
-                  if (isGotoSignal(res)) {
-                    return rpThen(finish(undefined), () => res);
-                  }
-                  if (res !== undefined) {
-                    return rpThen(finish(undefined), () => res);
-                  }
-                  return runAsync();
-                }).catch((e: any) => {
-                  if (e instanceof LuaBreak) {
+            const r = evalStatement(fi.block, localEnv, sf, returnOnReturn);
+            if (isPromise(r)) {
+              return (r as Promise<any>).then((res) => {
+                if (res !== undefined) {
+                  if (isBreakSignal(res)) {
                     return finish(undefined);
                   }
-                  throw e;
-                }).catch((e: any) => finishErr(e));
-              } else if (isGotoSignal(r)) {
-                return rpThen(finish(undefined), () => r);
-              } else if (r !== undefined) {
-                return rpThen(finish(undefined), () => r);
-              }
-            } catch (e: any) {
-              if (e instanceof LuaBreak) {
+                  return rpThen(finish(undefined), () => res);
+                }
+                return runAsync();
+              }).catch((e: any) => finishErr(e));
+            } else if (r !== undefined) {
+              if (isBreakSignal(r)) {
                 return finish(undefined);
               }
-              return finishErr(e);
+              return rpThen(finish(undefined), () => r);
             }
           }
         } catch (e: any) {
