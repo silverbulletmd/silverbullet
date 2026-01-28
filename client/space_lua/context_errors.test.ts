@@ -77,7 +77,7 @@ Deno.test("Context error: modulo by zero includes message and ref", async () => 
   `,
     "mod_zero.lua",
   );
-  assertCtxErrorContains(e, code, ref, "attempt to perform modulo by zero");
+  assertCtxErrorContains(e, code, ref, "attempt to perform 'n%0'");
 });
 
 Deno.test("Context error: type mismatch in comparison includes message and ref", async () => {

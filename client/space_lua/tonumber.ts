@@ -321,6 +321,7 @@ function parseHexFloat(s: string): { ok: boolean; value: number } {
   let fracVal = 0;
   let fracScale = 1;
   let anyHex = false;
+  let sawDot = false;
 
   // integer hex digits
   while (i < n) {
@@ -346,6 +347,7 @@ function parseHexFloat(s: string): { ok: boolean; value: number } {
   // optional fractional part
   if (i < n) {
     if (s.charCodeAt(i) === 46) { // '.'
+      sawDot = true;
       i++;
       while (i < n) {
         const c = s.charCodeAt(i);
@@ -370,43 +372,64 @@ function parseHexFloat(s: string): { ok: boolean; value: number } {
     }
   }
 
-  // exponent (required)
-  if (i >= n) {
-    return { ok: false, value: 0 };
-  }
-  const ec = s.charCodeAt(i);
-  if (!(ec === 112 || ec === 80)) { // 'p' or 'P'
-    return { ok: false, value: 0 };
-  }
-  i++;
-
+  // exponent:
+  // - required if there is no dot (so `0x10` stays an integer),
+  // - optional if there was a dot (`0x1.2` means `0x1.2p0`).
   let expSign = 1;
-  if (i < n) {
-    const sc = s.charCodeAt(i);
-    if (sc === 45) { // '-'
-      expSign = -1;
-      i++;
-    } else if (sc === 43) { // '+'
-      i++;
-    }
-  }
-  if (i >= n) {
-    return { ok: false, value: 0 };
-  }
-
-  let anyExp = false;
   let exp = 0;
-  while (i < n) {
-    const c = s.charCodeAt(i);
-    if (c < 48 || c > 57) { // not '0'..'9'
-      break;
+
+  if (i < n) {
+    const ec = s.charCodeAt(i);
+    if (ec === 112 || ec === 80) { // 'p' or 'P'
+      i++;
+      if (i < n) {
+        const sc = s.charCodeAt(i);
+        if (sc === 45) { // '-'
+          expSign = -1;
+          i++;
+        } else if (sc === 43) { // '+'
+          i++;
+        }
+      }
+      if (i >= n) {
+        return { ok: false, value: 0 };
+      }
+
+      let anyExp = false;
+      while (i < n) {
+        const c = s.charCodeAt(i);
+        if (c < 48 || c > 57) { // not '0'..'9'
+          break;
+        }
+        exp = exp * 10 + (c - 48);
+        anyExp = true;
+        i++;
+      }
+      if (!anyHex || !anyExp) {
+        return { ok: false, value: 0 };
+      }
+    } else {
+      // no exponent marker
+      if (!sawDot) {
+        // without dot we must reject so parseInt can claim it as integer
+        return { ok: false, value: 0 };
+      }
+      if (!anyHex) {
+        return { ok: false, value: 0 };
+      }
+      expSign = 1;
+      exp = 0; // implicit p0
     }
-    exp = exp * 10 + (c - 48);
-    anyExp = true;
-    i++;
-  }
-  if (!anyHex || !anyExp) {
-    return { ok: false, value: 0 };
+  } else {
+    // end of string
+    if (!sawDot) {
+      return { ok: false, value: 0 };
+    }
+    if (!anyHex) {
+      return { ok: false, value: 0 };
+    }
+    expSign = 1;
+    exp = 0;
   }
 
   i = skipSpace(s, i);
@@ -426,6 +449,8 @@ export function luaToNumberDetailed(
   base?: number,
 ): { value: number; numericType: NumericType } | null {
   if (base !== undefined) {
+    // Base range errors are handled by the stdlib `tonumber` builtin,
+    // to match Lua's "bad argument #2 ..." error message.
     if (!(typeof base === "number" && base >= 2 && base <= 36)) {
       return null;
     }

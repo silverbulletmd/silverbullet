@@ -64,6 +64,39 @@ type LuaThreadState = {
   closeStack?: LuaCloseEntry[];
 };
 
+export function luaTypeName(val: any): LuaType {
+  const t = luaTypeOf(val);
+
+  if (typeof t === "string") {
+    return t;
+  }
+  if (val === null || val === undefined) {
+    return "nil";
+  }
+
+  const ty = typeof val;
+  if (ty === "number" || val instanceof Number) {
+    return "number";
+  }
+  if (ty === "string") {
+    return "string";
+  }
+  if (ty === "boolean") {
+    return "boolean";
+  }
+  if (ty === "function") {
+    return "function";
+  }
+  if (Array.isArray(val)) {
+    return "table";
+  }
+  if (ty === "object" && (val as any).constructor === Object) {
+    return "table";
+  }
+
+  return "userdata";
+}
+
 // Check whether a value is callable without invoking it.
 export function luaIsCallable(
   v: LuaValue,

@@ -1,5 +1,6 @@
 import type { NumericType } from "./ast.ts";
 import { luaToNumberDetailed } from "./tonumber.ts";
+import { luaTypeName } from "./runtime.ts";
 
 export const ZeroBoxKind = Symbol("ZeroBox");
 
@@ -23,6 +24,13 @@ export type OpHints = {
   leftKind?: NumericType;
   rightKind?: NumericType;
 };
+
+// Marker error used to let the evaluator decide the final message.
+export class LuaStringCoercionError extends Error {
+  constructor() {
+    super("LuaStringCoercionError");
+  }
+}
 
 export function coerceNumeric(
   val: unknown,
@@ -75,7 +83,8 @@ export function coerceNumeric(
   if (typeof val === "string") {
     const det = luaToNumberDetailed(val);
     if (!det) {
-      throw new Error(`attempt to perform arithmetic on a non-number`);
+      // Let evaluator produce the final error message
+      throw new LuaStringCoercionError();
     }
 
     const n = det.value;
@@ -101,7 +110,9 @@ export function coerceNumeric(
     };
   }
 
-  throw new Error(`attempt to perform arithmetic on a non-number`);
+  throw new Error(
+    `attempt to perform arithmetic on a ${luaTypeName(val)} value`,
+  );
 }
 
 export function coerceNumericPair(
