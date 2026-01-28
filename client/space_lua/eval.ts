@@ -95,10 +95,6 @@ function isBreakSignal(v: any): v is BreakSignal {
   return !!v && typeof v === "object" && v.ctrl === "break";
 }
 
-function _isControlSignal(v: any): v is ControlSignal {
-  return isGotoSignal(v) || isReturnSignal(v) || isBreakSignal(v);
-}
-
 function consumeGotoInBlock(
   res: any,
   labels: Map<string, number>,
