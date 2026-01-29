@@ -1026,16 +1026,6 @@ export function luaTypeOf(val: any): LuaType | Promise<LuaType> {
   }
 }
 
-// Both `break` and `return` are implemented by exception throwing
-export class LuaBreak extends Error {
-}
-
-export class LuaReturn extends Error {
-  constructor(readonly values: LuaValue[]) {
-    super();
-  }
-}
-
 export class LuaRuntimeError extends Error {
   constructor(
     override readonly message: string,
