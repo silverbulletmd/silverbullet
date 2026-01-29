@@ -5,6 +5,24 @@ local function assert_eq(a, b, message)
     end
 end
 
+local function assertThrows(msg_substr, fn)
+    local ok, err = pcall(fn)
+
+    if ok then
+        error('Assertion failed: expected error containing "'
+        .. msg_substr .. '"')
+    end
+
+    if type(err) ~= 'string' then
+        err = tostring(err)
+    end
+
+    if not string.find(err, msg_substr, 1, true) then
+        error('Assertion failed: expected error message to contain "'
+        .. msg_substr .. '", got: "' .. err .. '"')
+    end
+end
+
 -- helper for whitespace handling tests
 local chr = string.char
 -- no base: whitespace handling
@@ -58,6 +76,7 @@ assert_eq(tonumber('-0x10p0'), -16.0)
 assert_eq(tonumber('0x10.2p0'), 16.125)
 assert_eq(tonumber('0x10.3P-1'), 8.09375)
 assert_eq(tonumber('-0X10.3P-1'), -8.09375)
+assert_eq(tonumber('0x1.2'), 1.125)
 
 -- no base: invalid
 assert_eq(tonumber(''), nil)
@@ -70,7 +89,6 @@ assert_eq(tonumber('1e'), nil)
 assert_eq(tonumber('1e+'), nil)
 assert_eq(tonumber('0x'), nil)
 assert_eq(tonumber('0xG'), nil)
-assert_eq(tonumber('0x1.2'), nil)
 assert_eq(tonumber('+ 10'), nil)
 assert_eq(tonumber('- 10'), nil)
 assert_eq(tonumber('123x'), nil)
@@ -92,8 +110,18 @@ assert_eq(tonumber('  ff  ', 16), 255)
 assert_eq(tonumber('1010', 10), 1010)
 
 -- with base: invalid
-assert_eq(tonumber('1010', 1), nil)
-assert_eq(tonumber('1010', 37), nil)
+assertThrows("bad argument #2 to 'tonumber' (base out of range)",
+    function()
+        return tonumber('1010', 1)
+    end
+)
+
+assertThrows("bad argument #2 to 'tonumber' (base out of range)",
+    function()
+        return tonumber('1010', 37)
+    end
+)
+
 assert_eq(tonumber('FF', 10), nil)
 assert_eq(tonumber('8', 8), nil)
 assert_eq(tonumber('2', 2), nil)

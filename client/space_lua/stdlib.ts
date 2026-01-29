@@ -139,7 +139,15 @@ const tostringFunction = new LuaBuiltinFunction((_sf, value: any) => {
 });
 
 const tonumberFunction = new LuaBuiltinFunction(
-  (_sf, value: LuaValue, base?: number) => {
+  (sf, value: LuaValue, base?: number) => {
+    if (base !== undefined) {
+      if (!(typeof base === "number" && base >= 2 && base <= 36)) {
+        throw new LuaRuntimeError(
+          "bad argument #2 to 'tonumber' (base out of range)",
+          sf,
+        );
+      }
+    }
     return luaToNumber(value, base);
   },
 );

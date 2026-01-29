@@ -33,6 +33,7 @@ import {
   LuaTable,
   luaTruthy,
   type LuaType,
+  luaTypeName,
   luaTypeOf,
   type LuaValue,
   luaValueToJS,
@@ -46,6 +47,7 @@ import {
   boxZero,
   coerceNumeric,
   coerceNumericPair,
+  luaStringCoercionError,
   type OpHints,
 } from "./numeric.ts";
 import { isPromise, rpAll, rpThen } from "./rp.ts";
@@ -127,6 +129,52 @@ function isQueryable(x: unknown): x is Queryable {
   return !!x && typeof (x as any).query === "function";
 }
 
+function arithVerbFromOperator(op: string): string | null {
+  switch (op) {
+    case "+":
+      return "add";
+    case "-":
+      return "sub";
+    case "*":
+      return "mul";
+    case "/":
+      return "div";
+    case "//":
+      return "idiv";
+    case "%":
+      return "mod";
+    case "^":
+      return "pow";
+    default:
+      return null;
+  }
+}
+
+function maybeLuaArithStringError(
+  op: string,
+  a: any,
+  b: any,
+  ctx: ASTCtx,
+  sf: LuaStackFrame,
+): LuaRuntimeError | null {
+  const verb = arithVerbFromOperator(op);
+  if (!verb) {
+    return null;
+  }
+
+  const ta = luaTypeName(a);
+  const tb = luaTypeName(b);
+
+  if (ta === "string" || tb === "string") {
+    return new LuaRuntimeError(
+      `attempt to ${verb} a '${ta}' with a '${tb}'`,
+      sf.withCtx(ctx),
+    );
+  }
+
+  return null;
+}
+
 function luaFloorDiv(
   a: unknown,
   b: unknown,
@@ -162,7 +210,7 @@ function luaMod(
   const { ax, bx, bothInt } = coerceNumericPair(a, b, hints);
   if (bothInt && bx === 0) {
     throw new LuaRuntimeError(
-      `attempt to perform modulo by zero`,
+      `attempt to perform 'n%0'`,
       sf.withCtx(ctx),
     );
   }
@@ -347,7 +395,19 @@ export function evalExpression(
                 "__unm",
                 u.ctx,
                 sf,
-                () => luaUnaryMinus(arg),
+                () => {
+                  if (typeof arg === "string") {
+                    try {
+                      coerceNumeric(arg);
+                    } catch (_e: any) {
+                      throw new LuaRuntimeError(
+                        "attempt to unm a 'string' with a 'string'",
+                        sf.withCtx(u.ctx),
+                      );
+                    }
+                  }
+                  return luaUnaryMinus(arg);
+                },
               );
             }
             case "+": {
@@ -766,8 +826,8 @@ function luaRelOperands(
   av: any;
   bv: any;
 } {
-  const ta = (a instanceof Number) ? "number" : typeof a;
-  const tb = (b instanceof Number) ? "number" : typeof b;
+  const ta = luaTypeName(a);
+  const tb = luaTypeName(b);
   const av = (a instanceof Number) ? Number(a) : a;
   const bv = (b instanceof Number) ? Number(b) : b;
 
@@ -882,7 +942,6 @@ const operatorsMetaMethods: Record<string, {
   "..": {
     metaMethod: "__concat",
     nativeImplementation: (a, b, ctx, sf) => {
-      // Accepts only strings or numbers (coerced to strings)
       const coerce = (v: any): string => {
         if (v === null || v === undefined) {
           throw new LuaRuntimeError(
@@ -896,8 +955,9 @@ const operatorsMetaMethods: Record<string, {
         if (typeof v === "number" || v instanceof Number) {
           return String(v instanceof Number ? Number(v) : v);
         }
+        const t = luaTypeName(v);
         throw new LuaRuntimeError(
-          "attempt to concatenate a non-string or non-number",
+          `attempt to concatenate a ${t} value`,
           sf.withCtx(ctx),
         );
       };
@@ -924,11 +984,13 @@ const operatorsMetaMethods: Record<string, {
     metaMethod: "__le",
     nativeImplementation: (a, b, ctx, sf) => luaLessEqual(a, b, ctx, sf),
   },
+  // Lua does not define `>`/`>=` as logical negations of `<`/`<=` but
+  // as swapped operands (`a>b` evaluated as `b<a`, `a>=b` as `b<=a`).
   ">": {
-    nativeImplementation: (a, b, ctx, sf) => !luaOp("<=", a, b, ctx, sf),
+    nativeImplementation: (a, b, ctx, sf) => luaOp("<", b, a, ctx, sf),
   },
   ">=": {
-    nativeImplementation: (a, b, ctx, sf) => !luaOp("<", a, b, ctx, sf),
+    nativeImplementation: (a, b, ctx, sf) => luaOp("<=", b, a, ctx, sf),
   },
 };
 
@@ -952,7 +1014,28 @@ function luaOp(
     }
   }
 
-  return handler.nativeImplementation(left, right, ctx, sf, hints);
+  try {
+    return handler.nativeImplementation(left, right, ctx, sf, hints);
+  } catch (e: any) {
+    // If numeric coercion failed on a string produce the Lua message
+    if (e === luaStringCoercionError) {
+      const mapped = maybeLuaArithStringError(op, left, right, ctx, sf);
+      if (mapped) {
+        throw mapped;
+      }
+      // Fallback
+      throw new LuaRuntimeError(
+        "attempt to perform arithmetic on a string value",
+        sf.withCtx(ctx),
+      );
+    }
+
+    const mapped = maybeLuaArithStringError(op, left, right, ctx, sf);
+    if (mapped) {
+      throw mapped;
+    }
+    throw e;
+  }
 }
 
 /**
@@ -2149,16 +2232,22 @@ function exactInt(
     n = num;
   } else if (num instanceof Number) {
     n = Number(num);
-  } else {
+  } else if (typeof num === "string") {
     throw new LuaRuntimeError(
-      `attempt to perform arithmetic on a non-number`,
+      `attempt to perform bitwise operation on a string value (constant '${num}')`,
+      sf.withCtx(ctx),
+    );
+  } else {
+    const t = luaTypeName(num);
+    throw new LuaRuntimeError(
+      `attempt to perform bitwise operation on a ${t} value`,
       sf.withCtx(ctx),
     );
   }
 
   if (!Number.isInteger(n)) {
     throw new LuaRuntimeError(
-      `Number ${n} has no integer representation (consider math.floor or math.ceil)`,
+      `number has no integer representation`,
       sf.withCtx(ctx),
     );
   }
