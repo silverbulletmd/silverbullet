@@ -57,7 +57,7 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
     this.snapshot = await this.loadSnapshot();
 
     this.spaceSync = new SpaceSync(this.local, this.remote, {
-      conflictResolver: this.plugAwareConflictResolver.bind(this),
+      conflictResolver: this.stdLibAwareConflictResolver.bind(this),
       isSyncCandidate: this.isSyncCandidate.bind(this),
     });
 
@@ -173,7 +173,7 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
   /**
    * Delegates to the standard primary conflict resolver, but in case of any conflicts in plugs, it will always take the version from the secondary.
    */
-  async plugAwareConflictResolver(
+  async stdLibAwareConflictResolver(
     name: string,
     snapshot: SyncSnapshot,
     primary: SpacePrimitives,
