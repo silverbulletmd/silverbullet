@@ -175,6 +175,14 @@ export class Space {
     return fileMeta.name.endsWith(".md") && !fileMeta.name.startsWith("_");
   }
 
+  // Checks if this a document to be listed meaning:
+  // - it's not a markdown file
+  // - it's not a javascript of javascript source map (.map)
+  isListedDocument(fileMeta: FileMeta): boolean {
+    return !this.isListedPage(fileMeta) && !fileMeta.name.endsWith(".js") &&
+      !fileMeta.name.endsWith(".map");
+  }
+
   async fetchPageList(): Promise<PageMeta[]> {
     return (await this.deduplicatedFileList())
       .filter(this.isListedPage)
@@ -183,10 +191,7 @@ export class Space {
 
   async fetchDocumentList(): Promise<DocumentMeta[]> {
     return (await this.deduplicatedFileList()).flatMap((fileMeta) =>
-      !this.isListedPage(fileMeta) &&
-        !fileMeta.name.endsWith(".plug.js")
-        ? [fileMetaToDocumentMeta(fileMeta)]
-        : []
+      this.isListedDocument(fileMeta) ? [fileMetaToDocumentMeta(fileMeta)] : []
     );
   }
 

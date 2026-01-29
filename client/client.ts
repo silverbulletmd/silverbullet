@@ -663,11 +663,6 @@ export class Client {
 
   async updateDocumentListCache() {
     console.log("Updating document list cache");
-    if (!this.clientSystem.system.loadedPlugs.has("index")) {
-      console.warn("Index plug not loaded, won't update document list cache");
-      return;
-    }
-
     const allDocuments = await this.queryLuaObjects<DocumentMeta>(
       "document",
       {},
