@@ -3,11 +3,21 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
-* New `shortWikiLinks` config (defaulting to `true`) that decides whether a wiki link should be rendered in its short form (rendering just the last segment, e.g. `Person/John` would show as `John`). To always render the full name, put `config.set("shortWikiLinks", false)` in your [[CONFIG]].
-* Experimental support for custom tag behavior — see [[API/tag]] for more information and examples, currently supports:
-  * Schema validation
-  * Post processing during index phase
-* Upgraded dependencies, specifically CodeMirror. CodeMirror now no longer allows `Alt-<letter>` and `Alt-<special-character>` [[Keyboard Shortcuts]], meaning I had to remap a few existing ones. It’s basically a mission impossible to pick great ones, but I tried:
+* New _experimental_ API: [[API/tag#tag.define(spec)]], see linked page for docs and example uses. Brings back ability to define 📅 deadlines for tasks (see example). Another part of this is [[Schema]] support for [[Tag|tags]]. When a schema is defined for a tag, you get:
+  * [[Frontmatter]] **attribute completion and linting** (in-editor error indicators) for attributes defined as part of the tag’s schema.
+  * [[Space Lua/Lua Integrated Query]] **attribute code completion** _if_ you use the `from v = index.tag("bla")` style syntax (so explicitly bind your iterator variable)
+* Lua engine improvements (courtesy of [Matouš Jan Fialka](https://github.com/mjf)):
+  * [Support for `<close>` attribute and __close metamethod](https://github.com/silverbulletmd/silverbullet/commit/9419cdcd9be61908330e1dce68a9156dbb911d23)
+  * [Better arithmetic error messages](https://github.com/silverbulletmd/silverbullet/commit/5a20a5f8f476a98172609e80c799cd1d83765585)
+  * [Refactor of control flow (performance)](https://github.com/silverbulletmd/silverbullet/commit/e5b4c8feb22a44cb4b22b3a77f9f2ed21dd09297)
+* Lua APIs:
+  * [[API/table#table.select(table, keys...)]] (non-standard in Lua) API, convenient to use in [[Space Lua/Lua Integrated Query]] `select` clauses, see example in docs.
+* Better indication whether your page is synced to the server
+  * “Dirty state” (slightly tainted color of page name) is now aligned with actual synced-to-server state _unless_ the editor clearly indicates it is in offline mode (yellow top bar).
+* Library manager: SilverBullet now navigates to library page after installing one.
+* Now excluding `.plug.js` and `.js.map` files from the document list.
+* How long “remember me” works is now configurable (by [Metin Yazici](https://github.com/silverbulletmd/silverbullet/pull/1796)) via [[Install/Configuration]].
+* Upgraded dependencies, specifically CodeMirror. CodeMirror now no longer allows `Alt-<letter>` and `Alt-<special-character>` [[Keyboard Shortcuts]], meaning I had to **remap a few key bindings**. It’s basically a mission impossible to pick great ones, but I tried:
   * `Quick note` is now bound to both `Ctrl-q q` (type `Ctrl-q` first, then hit `q` again) and `Ctrl-q Ctrl-q` (hit `Ctrl-q` twice)
   * `Navigate: Home` is now bound to `Ctrl-g h`
   * `Text: Marker` is now bound to `Ctrl-Alt-m`
@@ -22,6 +32,7 @@ Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be
   * `Page: Rename` keyboard shortcut removed
   * `Page: Rename Linked Page` keyboard shortcut removed
   * `Sync: Space` keyboard shortcut removed
+* New `shortWikiLinks` config (defaulting to `true`) that decides whether a wiki link should be rendered in its short form (rendering just the last segment, e.g. `Person/John` would show as `John`). To always render the full name, put `config.set("shortWikiLinks", false)` in your [[CONFIG]].
 * As documented in [[Keyboard Shortcuts]], it is now possible to specify _multiple_ keyboard shortcuts to a commands.
 * Linked Mentions now list full page path rather than abbreviated version.
 
