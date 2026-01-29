@@ -1,5 +1,6 @@
 import type { SysCallMapping } from "../system.ts";
 import type { Config } from "../../config.ts";
+import { LuaStackFrame, luaValueToJS } from "../../space_lua/runtime.ts";
 
 export function configSyscalls(config: Config): SysCallMapping {
   return {
@@ -11,6 +12,15 @@ export function configSyscalls(config: Config): SysCallMapping {
       keyOrValues: string | string[] | Record<string, any>,
       value?: any,
     ) => {
+      config.set(keyOrValues as any, value);
+    },
+    "lua:config.setLuaValue": async (
+      _ctx,
+      keyOrValues: string | string[] | Record<string, any>,
+      value?: any,
+    ) => {
+      // This is for special cases where we explicitly want to NOT convert a value to a JS value, but maintain its Lua version (mostly for LuaTables) — main use case: metatable
+      keyOrValues = await luaValueToJS(keyOrValues, LuaStackFrame.lostFrame);
       config.set(keyOrValues as any, value);
     },
     "config.insert": (

@@ -42,6 +42,8 @@ safeRun(async () => {
         cachedFetch(".fs/Library/Std/APIs/Schema.md"),
         // Configuration option definitions and defaults
         cachedFetch(".fs/Library/Std/Config.md"),
+        // Tag definition API
+        cachedFetch(".fs/Library/Std/APIs/Tag.md"),
         // Custom configuration
         cachedFetch(".fs/CONFIG.md"),
       ]);

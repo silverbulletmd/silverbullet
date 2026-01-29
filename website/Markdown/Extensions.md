@@ -2,7 +2,7 @@ In addition to supporting [[Markdown/Basics|markdown basics]] as standardized by
 
 * [[Link]]
 * [[Frontmatter]] and [[Attribute]]
-* [[Markdown/Fenced Code Blocks]]
+* [[Markdown/Fenced Code Block]]
 * [[Transclusions]] syntax
 * [[Markdown/Admonition]]
 * [[Markdown/Hashtags]]
