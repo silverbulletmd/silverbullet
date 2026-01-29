@@ -315,6 +315,31 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
           // Note: there are going to be many cases where no meta is supplied in the request, this is ok, in that case this argument will be undefined
           headersToFileMeta(path, request.headers),
         );
+        // Attempt immediate sync
+        try {
+          const operations = await this.syncEngine.syncSingleFile(path);
+          if (operations === -1) {
+            console.info("File sync delayed for", path);
+            // Sync was in progress, will sync later
+            return new Response("Delayed", {
+              status: 202,
+              headers: fileMetaToHeaders(meta),
+            });
+          }
+        } catch (e: any) {
+          console.error(
+            "File sync delayed for",
+            path,
+            "due to error",
+            e.message,
+          );
+          // Sync failed (could be offline or other reason)
+          return new Response(e.message, {
+            status: 202,
+            headers: fileMetaToHeaders(meta),
+          });
+        }
+
         return new Response("OK", {
           status: 200,
           headers: fileMetaToHeaders(meta),

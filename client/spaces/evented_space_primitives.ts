@@ -69,7 +69,6 @@ export class EventedSpacePrimitives implements SpacePrimitives {
 
   private async saveSnapshot() {
     if (this.enabled && this.snapshotChanged) {
-      console.log("Saving snapshot");
       await this.ds.set(this.snapshotKey, this.spaceSnapshot);
       this.snapshotChanged = false;
     }
