@@ -26,11 +26,9 @@ export type OpHints = {
 };
 
 // Marker error used to let the evaluator decide the final message.
-export class LuaStringCoercionError extends Error {
-  constructor() {
-    super("LuaStringCoercionError");
-  }
-}
+export const luaStringCoercionError: Error = new Error(
+  "LuaStringCoercionError",
+);
 
 export function coerceNumeric(
   val: unknown,
@@ -84,7 +82,7 @@ export function coerceNumeric(
     const det = luaToNumberDetailed(val);
     if (!det) {
       // Let evaluator produce the final error message
-      throw new LuaStringCoercionError();
+      throw luaStringCoercionError;
     }
 
     const n = det.value;

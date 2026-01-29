@@ -47,7 +47,7 @@ import {
   boxZero,
   coerceNumeric,
   coerceNumericPair,
-  LuaStringCoercionError,
+  luaStringCoercionError,
   type OpHints,
 } from "./numeric.ts";
 import { isPromise, rpAll, rpThen } from "./rp.ts";
@@ -1018,7 +1018,7 @@ function luaOp(
     return handler.nativeImplementation(left, right, ctx, sf, hints);
   } catch (e: any) {
     // If numeric coercion failed on a string produce the Lua message
-    if (e instanceof LuaStringCoercionError) {
+    if (e === luaStringCoercionError) {
       const mapped = maybeLuaArithStringError(op, left, right, ctx, sf);
       if (mapped) {
         throw mapped;
