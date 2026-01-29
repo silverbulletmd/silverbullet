@@ -85,10 +85,12 @@ command.define {
     if not uri then
       return
     end
-    library.install(uri)
-    editor.flashNotification "Library installed"
-    reloadEverything()
-    editor.navigate("Library/Std/Pages/Library Manager")
+    local libraryPage = library.install(uri)
+    if libraryPage then
+      editor.flashNotification "Library installed"
+      reloadEverything()
+      editor.navigate(libraryPage)
+    end
   end
 }
 
@@ -184,7 +186,7 @@ function library.install(uri, currentHash)
       space.writeFile(targetPath, data)
     end
   end
-  return true
+  return pageName
 end
 
 -- Update a library
@@ -304,9 +306,12 @@ function library.installableLibrariesWidget()
       dom.td {
         widgets.button("Install", function()
           editor.flashNotification "Installing..."
-          library.install(lib.uri)
-          editor.flashNotification "Done!"
-          reloadEverything()
+          local libraryPage = library.install(lib.uri)
+          if libraryPage then
+            editor.flashNotification "Done!"
+            reloadEverything()
+            editor.navigate(libraryPage)
+          end
         end, { class = "install" })
       }
     })
