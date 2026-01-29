@@ -299,12 +299,6 @@ const Hashtag = regexParser({
   nodeType: "Hashtag",
 });
 
-const TaskDeadline = regexParser({
-  firstCharCode: 55357, // 📅
-  regex: /^📅\s*\d{4}\-\d{2}\-\d{2}/,
-  nodeType: "DeadlineDate",
-});
-
 // FrontMatter parser
 
 const yamlLang = StreamLanguage.define(yamlLanguage);
@@ -380,7 +374,6 @@ export const extendedMarkdownLanguage = markdown({
     Table,
     NakedURL,
     Hashtag,
-    TaskDeadline,
     Superscript,
     Subscript,
     {
@@ -414,7 +407,6 @@ export const extendedMarkdownLanguage = markdown({
           HorizontalRule: ct.HorizontalRuleTag,
           Hashtag: ct.HashtagTag,
           NakedURL: ct.NakedURLTag,
-          DeadlineDate: ct.TaskDeadlineTag,
           NamedAnchor: ct.NamedAnchorTag,
         }),
       ],
