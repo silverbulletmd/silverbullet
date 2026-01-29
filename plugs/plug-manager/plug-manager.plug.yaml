@@ -10,8 +10,6 @@ functions:
     path: ./plugmanager.ts:updatePlugsCommand
     command:
       name: "Plugs: Update"
-      key: "Ctrl-Shift-p"
-      mac: "Cmd-Shift-p"
       requireMode: rw
   getPlugHTTPS:
     path: "./plugmanager.ts:getPlugHTTPS"
