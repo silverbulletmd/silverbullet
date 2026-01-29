@@ -5,7 +5,7 @@ local function assert_eq(a, b, message)
     end
 end
 
-local function assert_throws(msg_substr, fn)
+local function assertThrows(msg_substr, fn)
     local ok, err = pcall(fn)
 
     if ok then
@@ -110,13 +110,13 @@ assert_eq(tonumber('  ff  ', 16), 255)
 assert_eq(tonumber('1010', 10), 1010)
 
 -- with base: invalid
-assert_throws("bad argument #2 to 'tonumber' (base out of range)",
+assertThrows("bad argument #2 to 'tonumber' (base out of range)",
     function()
         return tonumber('1010', 1)
     end
 )
 
-assert_throws("bad argument #2 to 'tonumber' (base out of range)",
+assertThrows("bad argument #2 to 'tonumber' (base out of range)",
     function()
         return tonumber('1010', 37)
     end

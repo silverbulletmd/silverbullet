@@ -4,7 +4,7 @@ local function assert_eq(actual, expected, msg)
   end
 end
 
-local function assert_throws(substr, fn)
+local function assertThrows(substr, fn)
   local ok, err = pcall(fn)
   if ok then
     error("expected error containing: " .. substr)
@@ -76,28 +76,28 @@ do
 end
 
 -- 3. Non-strings and non-tables
-assert_throws(
+assertThrows(
   "attempt to get length of a nil value",
   function()
     return #nil
   end
 )
 
-assert_throws(
+assertThrows(
   "attempt to get length of a number value",
   function()
     return #1
   end
 )
 
-assert_throws(
+assertThrows(
   "attempt to get length of a boolean value",
   function()
     return #false
   end
 )
 
-assert_throws(
+assertThrows(
   "attempt to get length of a function value",
   function()
     local f = function() end
