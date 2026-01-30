@@ -125,11 +125,15 @@ func addAuthEndpoints(r chi.Router, config *ServerConfig) {
 			}
 
 			host := extractHost(r)
-			inAWeek := time.Now().Add(time.Duration(authenticationExpirySeconds) * time.Second)
+      expirySeconds := authenticationExpirySeconds
+      if rememberMe != "" {
+        expirySeconds = spaceConfig.Auth.RememberMeHours * 60 * 60
+      }
+      expires := time.Now().Add(time.Duration(expirySeconds) * time.Second)			
 
 			cookieOptions := CookieOptions{
 				Path:    fmt.Sprintf("%s/", config.HostURLPrefix),
-				Expires: inAWeek,
+				Expires: expires,
 			}
 
 			setCookie(w, authCookieName(host), jwt, cookieOptions)
@@ -245,28 +249,43 @@ func authMiddleware(config *ServerConfig) func(http.Handler) http.Handler {
 				return
 			}
 
-			refreshLogin(w, r, config, host)
+			refreshLogin(w, r, config, host, spaceConfig)
 			next.ServeHTTP(w, r)
 		})
 	}
 }
 
 // refreshLogin refreshes the login cookie if needed
-func refreshLogin(w http.ResponseWriter, r *http.Request, config *ServerConfig, host string) {
+func refreshLogin(w http.ResponseWriter, r *http.Request, config *ServerConfig, host string, spaceConfig *SpaceConfig) {
 	if getCookie(r, "refreshLogin") != "" {
-		inAWeek := time.Now().Add(time.Duration(authenticationExpirySeconds) * time.Second)
-		jwt := getCookie(r, authCookieName(host))
-
-		if jwt != "" {
-			cookieOptions := CookieOptions{
-				Path:    fmt.Sprintf("%s/", config.HostURLPrefix),
-				Expires: inAWeek,
-			}
-
-			setCookie(w, authCookieName(host), jwt, cookieOptions)
-			setCookie(w, "refreshLogin", "true", cookieOptions)
-		}
+		return
 	}
+	oldJwt := getCookie(r, authCookieName(host))
+	if oldJwt == "" {
+		return
+	}
+	
+	claims, err := spaceConfig.JwtIssuer.VerifyAndDecodeJWT(oldJwt)
+	if err != nil {
+		return
+	}
+
+	// Create new JWT with fresh expiry
+	expirySeconds := spaceConfig.Auth.RememberMeHours * 60 * 60
+	payload := map[string]any{"username": claims["username"]}
+	newJwt, err := spaceConfig.JwtIssuer.CreateJWT(payload, expirySeconds)
+	if err != nil {
+		return
+	}
+
+  expires := time.Now().Add(time.Duration(expirySeconds) * time.Second)
+	cookieOptions := CookieOptions{
+		Path:    fmt.Sprintf("%s/", config.HostURLPrefix),
+		Expires: expires,
+	}
+
+	setCookie(w, authCookieName(host), jwt, cookieOptions)
+	setCookie(w, "refreshLogin", "true", cookieOptions)
 }
 
 // LockoutTimer implements a simple rate limiter to prevent brute force attacks
