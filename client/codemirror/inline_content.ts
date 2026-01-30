@@ -61,17 +61,17 @@ export function inlineContentPlugin(client: Client) {
               text,
               async () => {
                 try {
-                  const result = await inlineContentFromURL(
+                  const result: any = await inlineContentFromURL(
                     client.space,
                     transclusion,
                   );
-                  const content = typeof result === "string"
+                  const content = result.text !== undefined
                     ? {
                       markdown: renderToText(
                         await expandMarkdown(
                           client.space,
                           nameFromTransclusion(transclusion),
-                          parseMarkdown(result),
+                          parseMarkdown(result.text, result.offset),
                           client.clientSystem.spaceLuaEnv,
                         ),
                       ),

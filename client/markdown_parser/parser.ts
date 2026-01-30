@@ -414,6 +414,6 @@ export const extendedMarkdownLanguage = markdown({
   ],
 }).language;
 
-export function parseMarkdown(text: string): ParseTree {
-  return parse(extendedMarkdownLanguage, text);
+export function parseMarkdown(text: string, offset?: number): ParseTree {
+  return parse(extendedMarkdownLanguage, text, offset);
 }

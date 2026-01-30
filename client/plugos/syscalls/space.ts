@@ -22,14 +22,14 @@ export function spaceReadSyscalls(client: Client): SysCallMapping {
     ): Promise<{ text: string; meta: PageMeta }> => {
       return client.space.readPage(name);
     },
-    "space.readRef": (_ctx, ref: string | Ref): Promise<string> => {
+    "space.readRef": async (_ctx, ref: string | Ref): Promise<string> => {
       if (typeof ref === "string") {
         ref = parseToRef(ref)!;
         if (!ref) {
           throw new Error(`Invalid ref: ${ref}`);
         }
       }
-      return client.space.readRef(ref);
+      return (await client.space.readRef(ref)).text;
     },
     "space.pageExists": (_ctx, name: string): boolean => {
       return client.clientSystem.allKnownFiles.has(name + ".md");

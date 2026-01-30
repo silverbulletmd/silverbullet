@@ -11,7 +11,7 @@ export function lezerToParseTree(
   let nodeText: string | undefined;
   let child = n.firstChild;
   while (child) {
-    children.push(lezerToParseTree(text, child));
+    children.push(lezerToParseTree(text, child, offset));
     child = child.nextSibling;
   }
 
@@ -25,22 +25,27 @@ export function lezerToParseTree(
     ];
   } else {
     const newChildren: ParseTree[] = [];
-    let index = n.from;
+    let startIndex = n.from + offset;
     for (const child of children) {
-      const s = text.substring(index, child.from);
+      // indices are shifted with offset, so first need to shift back to get text
+      const s = text.substring(startIndex - offset, child.from! - offset);
       if (s) {
         newChildren.push({
-          from: index + offset,
-          to: child.from! + offset,
+          from: startIndex,
+          to: child.from!,
           text: s,
         });
       }
       newChildren.push(child);
-      index = child.to!;
+      startIndex = child.to!;
     }
-    const s = text.substring(index, n.to);
+    const s = text.substring(startIndex - offset, n.to);
     if (s) {
-      newChildren.push({ from: index + offset, to: n.to + offset, text: s });
+      newChildren.push({
+        from: startIndex,
+        to: n.to + offset,
+        text: s,
+      });
     }
     children = newChildren;
   }
@@ -59,9 +64,17 @@ export function lezerToParseTree(
   return result;
 }
 
-export function parse(language: Language, text: string): ParseTree {
+export function parse(
+  language: Language,
+  text: string,
+  offset?: number,
+): ParseTree {
   // Remove \r for Windows before parsing
   text = text.replaceAll("\r", "");
-  const tree = lezerToParseTree(text, language.parser.parse(text).topNode);
+  const tree = lezerToParseTree(
+    text,
+    language.parser.parse(text).topNode,
+    offset,
+  );
   return tree;
 }

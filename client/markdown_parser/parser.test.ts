@@ -32,6 +32,11 @@ Deno.test("Test parser", () => {
   // Check if rendering back to text works
   assertEquals(renderToText(tree), sample1);
 
+  const tree2 = parseMarkdown(sample1, 3);
+  // console.log("tree", JSON.stringify(tree, null, 2));
+  // Check if rendering back to text works
+  assertEquals(renderToText(tree2), sample1);
+
   // Find wiki link and wiki link alias
   const links = collectNodesOfType(tree, "WikiLink");
   assertEquals(links.length, 2);

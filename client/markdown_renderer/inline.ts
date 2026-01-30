@@ -148,6 +148,11 @@ export async function expandMarkdown(
   return mdTree;
 }
 
+type OffsetText = {
+  text: string;
+  offset: number;
+};
+
 /**
  * Function to generate HTML or markdown for a ![[<link>]] type transclusion.
  * @param space space object to use to retrieve content (readRef)
@@ -157,10 +162,10 @@ export async function expandMarkdown(
 export function inlineContentFromURL(
   space: Space,
   transclusion: Transclusion,
-): string | HTMLElement | Promise<HTMLElement | string> {
+): HTMLElement | OffsetText | Promise<HTMLElement | OffsetText> {
   const allowExternal = transclusion.linktype !== "wikilink";
   if (!client) {
-    return "";
+    return { text: "", offset: 0 };
   }
   let mimeType: string | null | undefined;
   if (!isLocalURL(transclusion.url) && allowExternal) {
@@ -206,13 +211,12 @@ export function inlineContentFromURL(
     ? fsEndpoint.slice(1) + "/" + transclusion.url.replace(":", "%3A")
     : transclusion.url;
 
-  let result: HTMLElement | string | Promise<string | HTMLElement>;
   if (mimeType.startsWith("image/")) {
     const img = document.createElement("img");
     img.src = sanitizedFsUrl;
     img.alt = transclusion.alias;
     img.style = style;
-    result = img;
+    return img;
   } else if (mimeType.startsWith("video/")) {
     const video = document.createElement("video");
     video.src = sanitizedFsUrl;
@@ -220,7 +224,7 @@ export function inlineContentFromURL(
     video.controls = true;
     video.autoplay = false;
     video.style = style;
-    result = video;
+    return video;
   } else if (mimeType.startsWith("audio/")) {
     const audio = document.createElement("audio");
     audio.src = sanitizedFsUrl;
@@ -228,7 +232,7 @@ export function inlineContentFromURL(
     audio.controls = true;
     audio.autoplay = false;
     audio.style = style;
-    result = audio;
+    return audio;
   } else if (mimeType === "application/pdf") {
     const embed = document.createElement("object");
     embed.type = mimeType;
@@ -236,7 +240,7 @@ export function inlineContentFromURL(
     embed.style.width = "100%";
     embed.style.height = "20em";
     embed.style = style;
-    result = embed;
+    return embed;
   } else if (mimeType === "text/markdown") {
     if (!isLocalURL(transclusion.url) && allowExternal) {
       throw Error(`Transcluding markdown from external sources is not allowed`);
@@ -250,10 +254,8 @@ export function inlineContentFromURL(
       );
     }
 
-    result = space.readRef(ref);
+    return space.readRef(ref);
   } else {
-    result = `File has unsupported mimeType: ${mimeType}`;
+    return { text: `File has unsupported mimeType: ${mimeType}`, offset: 0 };
   }
-
-  return result;
 }

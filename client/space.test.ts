@@ -27,42 +27,61 @@ Deno.test("readRef checks", async () => {
   await space.writePage("test", testPage);
 
   // Reference to page
-  assertEquals(await space.readRef(parseToRef("test")!), testPage);
+  assertEquals(await space.readRef(parseToRef("test")!), {
+    text: testPage,
+    offset: 0,
+  });
 
   // Pointer to a paragraph
-  assertEquals(await space.readRef(parseToRef("test@0")!), "Some paragraph");
+  assertEquals(await space.readRef(parseToRef("test@0")!), {
+    text: "Some paragraph",
+    offset: 0,
+  });
 
   // With a linecolumn ref
-  assertEquals(await space.readRef(parseToRef("test@l1c1")!), "Some paragraph");
+  assertEquals(await space.readRef(parseToRef("test@l1c1")!), {
+    text: "Some paragraph",
+    offset: 0,
+  });
 
   // Reference to a header
   assertEquals(
     await space.readRef(parseToRef("test#Header 1")!),
-    "# Header 1\nSome text\n\n",
+    {
+      text: "# Header 1\nSome text\n\n",
+      offset: testPage.indexOf("# Header 1"),
+    },
   );
   assertEquals(
     await space.readRef(parseToRef("test#Header 2")!),
-    "# Header 2\n* Item 1\n  * Sub item\n* [ ] Task 1\n  * Sub item 2\n    * Sub-sub item",
+    {
+      text:
+        "# Header 2\n* Item 1\n  * Sub item\n* [ ] Task 1\n  * Sub item 2\n    * Sub-sub item",
+      offset: testPage.indexOf("# Header 2"),
+    },
   );
 
   // Reference to an item should get item and children
   const itemPos = testPage.indexOf("* Item 1");
   assertEquals(
     await space.readRef(parseToRef(`test@${itemPos}`)!),
-    "* Item 1\n  * Sub item",
+    { text: "* Item 1\n  * Sub item", offset: itemPos },
   );
 
   // Reference to a task should get item and children
   const taskPos = testPage.indexOf("* [ ] Task 1");
   assertEquals(
     await space.readRef(parseToRef(`test@${taskPos}`)!),
-    "* [ ] Task 1\n  * Sub item 2\n    * Sub-sub item",
+    {
+      text: "* [ ] Task 1\n  * Sub item 2\n    * Sub-sub item",
+      offset: taskPos,
+    },
   );
 
   // Check left shift in case of jumping into nested item
   const subItemPos = testPage.indexOf("* Sub item 2");
   assertEquals(
     await space.readRef(parseToRef(`test@${subItemPos}`)!),
-    "* Sub item 2\n  * Sub-sub item",
+    { text: "* Sub item 2\n  * Sub-sub item", offset: subItemPos },
   );
 });
