@@ -34,6 +34,7 @@ export type LinkObject = ObjectValue<
     pos: number;
     snippet: string;
     alias?: string;
+    pageLastModified: string;
   }
   & ({
     // Page Link
@@ -89,6 +90,7 @@ export async function indexLinks(
         snippet: extractSnippet(name, pageText, pos),
         pos,
         page: name,
+        pageLastModified: pageMeta.lastModified,
       };
 
       const ref = parseToRef(url);

@@ -199,9 +199,9 @@ config.set("std.widgets.linkedMentions", {
 function widgets.linkedMentions(pageName)
   pageName = pageName or editor.getCurrentPage()
   local linkedMentions = query[[
-    from index.tag "link"
-    where _.page != pageName and _.toPage == pageName
-    order by _.page desc, _.pos
+    from l = index.tag "link"
+    where l.page != pageName and l.toPage == pageName
+    order by l.pageLastModified desc, l.pos
   ]]
   if #linkedMentions > 0 then
     return widget.new {

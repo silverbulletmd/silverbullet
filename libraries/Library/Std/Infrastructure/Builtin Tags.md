@@ -181,6 +181,7 @@ tag.define {
       },
       name = schema.string(),
       page = schema.string(),
+      pageLastModified = schema.string(),
       toFile = schema.nullable("string"),
       toPage = schema.nullable("string"),
       snippet = schema.string(),

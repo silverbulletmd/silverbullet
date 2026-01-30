@@ -266,8 +266,11 @@ function render(
       try {
         const result = inlineContentFromURL(client.space, transclusion);
         if (result instanceof Promise) {
-          // Can't support promises in this content
-          throw new Error("Unsupported inline");
+          // console.warn(
+          //   `Unsupported inline in markdown render context: ${transclusion.url}`,
+          // );
+          // Can't support promises in this context, returning original text
+          return text;
         }
         // Running in non-browser context
         if (!globalThis.HTMLElement || !(result instanceof HTMLElement)) {
