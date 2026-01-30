@@ -257,6 +257,7 @@ func authMiddleware(config *ServerConfig) func(http.Handler) http.Handler {
 
 // refreshLogin refreshes the login cookie if needed
 func refreshLogin(w http.ResponseWriter, r *http.Request, config *ServerConfig, host string, spaceConfig *SpaceConfig) {
+	// if cookie doesn't exist, return
 	if getCookie(r, "refreshLogin") != "" {
 		return
 	}
@@ -284,7 +285,7 @@ func refreshLogin(w http.ResponseWriter, r *http.Request, config *ServerConfig, 
 		Expires: expires,
 	}
 
-	setCookie(w, authCookieName(host), jwt, cookieOptions)
+	setCookie(w, authCookieName(host), newJwt, cookieOptions)
 	setCookie(w, "refreshLogin", "true", cookieOptions)
 }
 
