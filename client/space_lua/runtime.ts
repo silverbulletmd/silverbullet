@@ -2,6 +2,7 @@ import type { ASTCtx, LuaFunctionBody } from "./ast.ts";
 import { evalStatement } from "./eval.ts";
 import { asyncQuickSort } from "./util.ts";
 import { isPromise, rpAll } from "./rp.ts";
+import { isFloatTag, isNegativeZero } from "./numeric.ts";
 
 export type LuaType =
   | "nil"
@@ -576,12 +577,49 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     this.metatable = null;
   }
 
-  private static isIntegerKey(key: any): boolean {
-    const k = key instanceof Number ? Number(key) : key;
-    return typeof k === "number" && Number.isInteger(k) && k >= 1;
+  private static numKeyValue(key: any): number | null {
+    if (isFloatTag(key)) {
+      return key.value;
+    }
+    if (key instanceof Number) {
+      return Number(key);
+    }
+    if (typeof key === "number") {
+      return key;
+    }
+    return null;
   }
+
+  // Normalize numeric keys for table indexing:
+  // * negative zero becomes positive zero,
+  // * integer-valued floats become plain integers,
+  // * non-integer floats stay as-is.
+  private static normalizeNumericKey(key: any): any {
+    const numVal = LuaTable.numKeyValue(key);
+    if (numVal !== null) {
+      // Normalize -0 to +0
+      if (isNegativeZero(numVal)) {
+        return 0;
+      }
+      // Integer-valued numbers normalize to integers
+      if (Number.isInteger(numVal)) {
+        return numVal;
+      }
+      // Non-integer floats
+      return numVal;
+    }
+    return key;
+  }
+
+  private static isIntegerKey(key: any): boolean {
+    const norm = LuaTable.normalizeNumericKey(key);
+    return typeof norm === "number" && Number.isInteger(norm) && norm >= 1;
+  }
+
   private static toIndex(key: any): number {
-    return (key instanceof Number ? Number(key) : key) - 1;
+    const norm = LuaTable.normalizeNumericKey(key);
+    const k = typeof norm === "number" ? norm : (norm as number);
+    return k - 1;
   }
 
   get length(): number {
@@ -622,12 +660,14 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
   }
 
   has(key: LuaValue) {
-    if (typeof key === "string") {
-      return this.stringKeys[key] !== undefined;
-    } else if (LuaTable.isIntegerKey(key)) {
-      return this.arrayPart[LuaTable.toIndex(key)] !== undefined;
+    const normalizedKey = LuaTable.normalizeNumericKey(key);
+
+    if (typeof normalizedKey === "string") {
+      return this.stringKeys[normalizedKey] !== undefined;
+    } else if (LuaTable.isIntegerKey(normalizedKey)) {
+      return this.arrayPart[LuaTable.toIndex(normalizedKey)] !== undefined;
     } else if (this.otherKeys) {
-      return this.otherKeys.has(key);
+      return this.otherKeys.has(normalizedKey);
     }
     return false;
   }
@@ -639,25 +679,28 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     if (isPromise(value)) {
       return value.then((v) => this.rawSet(key, v));
     }
-    if (typeof key === "string") {
+
+    const normalizedKey = LuaTable.normalizeNumericKey(key);
+
+    if (typeof normalizedKey === "string") {
       if (value === null || value === undefined) {
-        delete this.stringKeys[key];
+        delete this.stringKeys[normalizedKey];
       } else {
-        this.stringKeys[key] = value;
+        this.stringKeys[normalizedKey] = value;
       }
       return;
     }
-    if (LuaTable.isIntegerKey(key)) {
-      this.arrayPart[LuaTable.toIndex(key)] = value;
+    if (LuaTable.isIntegerKey(normalizedKey)) {
+      this.arrayPart[LuaTable.toIndex(normalizedKey)] = value;
       return;
     }
     if (!this.otherKeys) {
       this.otherKeys = new Map();
     }
     if (value === null || value === undefined) {
-      this.otherKeys.delete(key);
+      this.otherKeys.delete(normalizedKey);
     } else {
-      this.otherKeys.set(key, value);
+      this.otherKeys.set(normalizedKey, value);
     }
   }
 
@@ -704,12 +747,14 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
   }
 
   rawGet(key: LuaValue): LuaValue | null {
-    if (typeof key === "string") {
-      return this.stringKeys[key];
-    } else if (LuaTable.isIntegerKey(key)) {
-      return this.arrayPart[LuaTable.toIndex(key)];
+    const normalizedKey = LuaTable.normalizeNumericKey(key);
+
+    if (typeof normalizedKey === "string") {
+      return this.stringKeys[normalizedKey];
+    } else if (LuaTable.isIntegerKey(normalizedKey)) {
+      return this.arrayPart[LuaTable.toIndex(normalizedKey)];
     } else if (this.otherKeys) {
-      return this.otherKeys.get(key);
+      return this.otherKeys.get(normalizedKey);
     }
   }
 
@@ -1016,12 +1061,18 @@ export function luaCall(
 }
 
 export function luaEquals(a: any, b: any): boolean {
-  const an = a instanceof Number ? Number(a) : a;
-  const bn = b instanceof Number ? Number(b) : b;
-  if ((typeof an === "number") && (typeof bn === "number")) {
-    return an === bn;
+  // Unwrap Number objects
+  let an = a instanceof Number ? Number(a) : a;
+  let bn = b instanceof Number ? Number(b) : b;
+
+  // Unwrap LuaFloatTag objects
+  if (an && typeof an === "object" && "type" in an) {
+    an = an.value;
   }
-  return a === b;
+  if (bn && typeof bn === "object" && "type" in bn) {
+    bn = bn.value;
+  }
+  return an === bn;
 }
 
 export function luaKeys(val: any): any[] {
@@ -1143,6 +1194,27 @@ export function luaToString(
   if (isPromise(value)) {
     return (value as Promise<any>).then((v) => luaToString(v, visited));
   }
+
+  if (value && typeof value === "object" && value.type === "float") {
+    return luaFormatNumber(value.value, "float");
+  }
+
+  if (value instanceof Number) {
+    const numVal = Number(value);
+    const symbols = Object.getOwnPropertySymbols(value);
+    for (const sym of symbols) {
+      const kind = (value as any)[sym];
+      if (kind === "int" || kind === "float") {
+        return luaFormatNumber(numVal, kind);
+      }
+    }
+    return luaFormatNumber(numVal);
+  }
+
+  if (typeof value === "number") {
+    return luaFormatNumber(value);
+  }
+
   // Check for circular references
   if (typeof value === "object" && visited.has(value)) {
     return "<circular reference>";
@@ -1204,6 +1276,39 @@ export function luaToString(
     })();
   }
   return String(value);
+}
+
+// Format a number according to Lua semantics:
+// * integers: plain format (e.g., `42`);
+// * floats: with decimal point (e.g., `1.0`);
+// * special values: `inf`, `-inf`, `nan`, `-nan`;
+// * negative zero: `-0.0`.
+function luaFormatNumber(n: number, kind?: "int" | "float"): string {
+  if (!isFinite(n)) {
+    if (isNaN(n)) {
+      // NaN in Lua always formats as `-nan`
+      return "-nan";
+    }
+    return n < 0 ? "-inf" : "inf";
+  }
+
+  if (n === 0 && isNegativeZero(n)) {
+    return "-0.0";
+  }
+
+  if (n === 0 && kind === "float") {
+    return "0.0";
+  }
+
+  if (kind === "float" && Number.isInteger(n)) {
+    return n.toString() + ".0";
+  }
+
+  if (Number.isInteger(n)) {
+    return String(n);
+  }
+
+  return String(n);
 }
 
 export function getMetatable(

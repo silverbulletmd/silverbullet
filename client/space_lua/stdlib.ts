@@ -27,10 +27,11 @@ import { mathApi } from "./stdlib/math.ts";
 import { parse } from "./parse.ts";
 import { evalStatement } from "./eval.ts";
 import { encodingApi } from "./stdlib/encoding.ts";
-import { luaToNumber } from "./tonumber.ts";
+import { luaToNumberDetailed } from "./tonumber.ts";
 import { luaLoad } from "./stdlib/load.ts";
 import { cryptoApi } from "./stdlib/crypto.ts";
 import { netApi } from "./stdlib/net.ts";
+import { floatLiteral } from "./numeric.ts";
 
 const printFunction = new LuaBuiltinFunction(async (_sf, ...args) => {
   console.log(
@@ -148,7 +149,25 @@ const tonumberFunction = new LuaBuiltinFunction(
         );
       }
     }
-    return luaToNumber(value, base);
+
+    if (typeof value === "number" || value instanceof Number) {
+      return value; // Already a number, return as-is
+    }
+
+    if (typeof value !== "string") {
+      return null;
+    }
+
+    const result = luaToNumberDetailed(value, base);
+    if (result === null) {
+      return null;
+    }
+
+    if (result.numericType === "float") {
+      return floatLiteral(result.value);
+    }
+
+    return result.value;
   },
 );
 
