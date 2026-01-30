@@ -5,4 +5,4 @@ onlyContexts:
 - "FencedCode:space-lua"
 - "LuaDirective"
 ---
-query[[from index.tag "|^|"]]
+query[[from o = index.tag "|^|"]]
