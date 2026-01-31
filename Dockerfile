@@ -32,7 +32,7 @@ VOLUME /space
 
 RUN apk add --no-cache git curl bash tini
 
-HEALTHCHECK CMD curl --fail http://localhost:3000$SB_URL_PREFIX/.ping || exit 1
+HEALTHCHECK CMD curl --fail http://localhost:$SB_PORT$SB_URL_PREFIX/.ping || exit 1
 
 # Expose port 3000
 # Port map this when running, e.g. with -p 3002:3000 (where 3002 is the host port)
