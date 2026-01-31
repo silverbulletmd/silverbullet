@@ -201,10 +201,14 @@ navigator.serviceWorker.register(workerURL, {
 document.getElementById("login").addEventListener("submit", (e) => {
   const enableEncryption = document.getElementById('clientEncryption').checked;
   const params = new URLSearchParams();
+  const rememberMe = document.getElementById('rememberMe').checked;
   const username = document.getElementById('username').value;
   const password = document.getElementById('password').value;
   params.append('username', username);
   params.append('password', password);
+  if (rememberMe) {
+    params.append('rememberMe', 'true');
+  }
   fetch('.auth', {
     method: 'POST',
     headers: {
