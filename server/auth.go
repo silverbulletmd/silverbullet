@@ -125,11 +125,11 @@ func addAuthEndpoints(r chi.Router, config *ServerConfig) {
 			}
 
 			host := extractHost(r)
-      expirySeconds := authenticationExpirySeconds
-      if rememberMe != "" {
-        expirySeconds = spaceConfig.Auth.RememberMeHours * 60 * 60
-      }
-      expires := time.Now().Add(time.Duration(expirySeconds) * time.Second)			
+			expirySeconds := authenticationExpirySeconds
+			if rememberMe != "" {
+				expirySeconds = spaceConfig.Auth.RememberMeHours * 60 * 60
+			}
+			expires := time.Now().Add(time.Duration(expirySeconds) * time.Second)			
 
 			cookieOptions := CookieOptions{
 				Path:    fmt.Sprintf("%s/", config.HostURLPrefix),
@@ -279,7 +279,7 @@ func refreshLogin(w http.ResponseWriter, r *http.Request, config *ServerConfig, 
 		return
 	}
 
-  expires := time.Now().Add(time.Duration(expirySeconds) * time.Second)
+	expires := time.Now().Add(time.Duration(expirySeconds) * time.Second)
 	cookieOptions := CookieOptions{
 		Path:    fmt.Sprintf("%s/", config.HostURLPrefix),
 		Expires: expires,
