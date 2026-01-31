@@ -1,6 +1,9 @@
 import { syntaxTree } from "@codemirror/language";
 import { Decoration } from "@codemirror/view";
-import { decoratorStateField } from "./util.ts";
+import {
+  decoratorStateField,
+  isCursorInRange,
+} from "./util.ts";
 
 export function attributePlugin() {
   return decoratorStateField((state) => {
@@ -9,6 +12,9 @@ export function attributePlugin() {
     syntaxTree(state).iterate({
       enter: (node) => {
         if (node.type.name !== "Attribute") {
+          return;
+        }
+        if (isCursorInRange(state, [node.from, node.to])) {
           return;
         }
 
