@@ -1,4 +1,4 @@
-import { editor, markdown } from "@silverbulletmd/silverbullet/syscalls";
+import { editor, markdown, space } from "@silverbulletmd/silverbullet/syscalls";
 import {
   addParentPointers,
   findNodeOfType,
@@ -159,6 +159,35 @@ export async function navigateToPage(_cmdDef: any, pageName: string) {
   }
 
   await editor.navigate(ref);
+}
+
+export async function createPageUnderCursorCommand() {
+  const mdTree = await markdown.parseMarkdown(await editor.getText());
+  addParentPointers(mdTree);
+  let newNode = nodeAtPos(mdTree, await editor.getCursor());
+  if (!newNode) {
+    await editor.flashNotification("No page link under cursor", "error");
+    return;
+  }
+  newNode = findParentMatching(newNode, (n) => n.type === "WikiLink");
+  if (!newNode) {
+    await editor.flashNotification("No page link under cursor", "error");
+    return;
+  }
+  const wikiLinkPage = findNodeOfType(newNode, "WikiLinkPage")!;
+  const pageName = wikiLinkPage.children![0].text!;
+  if (pageName) {
+    if (await space.pageExists(pageName)) {
+      await editor.flashNotification(
+        "Page under cursor already exists",
+        "error",
+      );
+    } else {
+      await space.writePage(pageName, "");
+      await editor.dispatch({});
+      await editor.flashNotification(`Empty page ${pageName} created.`);
+    }
+  }
 }
 
 export async function navigateToURL(_cmdDef: any, url: string) {

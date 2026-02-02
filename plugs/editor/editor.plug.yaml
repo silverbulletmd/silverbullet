@@ -97,6 +97,16 @@ functions:
     events:
       - editor:complete
 
+  # Create page under cursor
+  createPageUnderCursorCommand:
+    path: "./navigate.ts:createPageUnderCursorCommand"
+    command:
+      name: "Page: Create Under Cursor"
+      key: "Ctrl-Shift-Enter"
+      mac: "Cmd-Shift-Enter"
+      requireEditor: page
+      requireMode: rw
+
   # Navigation
   linkNavigate:
     path: "./navigate.ts:linkNavigate"
