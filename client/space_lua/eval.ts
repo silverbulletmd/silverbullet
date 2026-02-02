@@ -926,12 +926,11 @@ const operatorsMetaMethods: Record<string, {
   "-": {
     metaMethod: "__sub",
     nativeImplementation: (a, b, _ctx, _sf, hints) => {
-      const { ax, bx, bothInt, aZeroKind: _aZeroKind, bZeroKind } =
-        coerceNumericPair(
-          a,
-          b,
-          hints,
-        );
+      const { ax, bx, bothInt, bZeroKind } = coerceNumericPair(
+        a,
+        b,
+        hints,
+      );
       const result = ax - bx;
 
       if (result === 0 && isNegativeZero(result) && !bothInt) {
@@ -1872,6 +1871,16 @@ export function evalStatement(
         return i;
       };
 
+      // Extract the common iteration logic
+      const executeIteration = (
+        i: number,
+        mode: "int" | "float",
+      ): void | ControlSignal | Promise<void | ControlSignal> => {
+        const localEnv = new LuaEnv(env);
+        localEnv.setLocal(fr.name, wrapLoopVar(i, mode));
+        return evalStatement(fr.block, localEnv, sf, returnOnReturn);
+      };
+
       const runAsync = async (
         _start: any,
         end: any,
@@ -1886,31 +1895,19 @@ export function evalStatement(
           throw new LuaRuntimeError("'for' step is zero", sf.withCtx(fr.ctx));
         }
 
-        if (st0 > 0) {
-          for (let i = startIndex; i <= e0; i += st0) {
-            const localEnv = new LuaEnv(env);
-            localEnv.setLocal(fr.name, wrapLoopVar(i, mode));
-            const r = evalStatement(fr.block, localEnv, sf, returnOnReturn);
-            const res = isPromise(r) ? await r : r;
-            if (res !== undefined) {
-              if (isBreakSignal(res)) {
-                break;
-              }
-              return res;
+        // Condition changes based on direction
+        const shouldContinue = st0 > 0
+          ? (i: number) => i <= e0
+          : (i: number) => i >= e0;
+
+        for (let i = startIndex; shouldContinue(i); i += st0) {
+          const r = executeIteration(i, mode);
+          const res = isPromise(r) ? await r : r;
+          if (res !== undefined) {
+            if (isBreakSignal(res)) {
+              break;
             }
-          }
-        } else {
-          for (let i = startIndex; i >= e0; i += st0) {
-            const localEnv = new LuaEnv(env);
-            localEnv.setLocal(fr.name, wrapLoopVar(i, mode));
-            const r = evalStatement(fr.block, localEnv, sf, returnOnReturn);
-            const res = isPromise(r) ? await r : r;
-            if (res !== undefined) {
-              if (isBreakSignal(res)) {
-                break;
-              }
-              return res;
-            }
+            return res;
           }
         }
         return;
@@ -1921,10 +1918,7 @@ export function evalStatement(
         end: any,
         step: any,
         mode: "int" | "float",
-      ):
-        | void
-        | ControlSignal
-        | Promise<void | ControlSignal> => {
+      ): void | ControlSignal | Promise<void | ControlSignal> => {
         const s0 = untagNumber(start);
         const e0 = untagNumber(end);
         const st0 = untagNumber(step);
@@ -1933,49 +1927,28 @@ export function evalStatement(
           throw new LuaRuntimeError("'for' step is zero", sf.withCtx(fr.ctx));
         }
 
-        if (st0 > 0) {
-          for (let i = s0; i <= e0; i += st0) {
-            const localEnv = new LuaEnv(env);
-            localEnv.setLocal(fr.name, wrapLoopVar(i, mode));
-            const r = evalStatement(fr.block, localEnv, sf, returnOnReturn);
-            if (isPromise(r)) {
-              return (r as Promise<any>).then((res) => {
-                if (res !== undefined) {
-                  if (isBreakSignal(res)) {
-                    return;
-                  }
-                  return res;
+        // Condition changes based on direction
+        const shouldContinue = st0 > 0
+          ? (i: number) => i <= e0
+          : (i: number) => i >= e0;
+
+        for (let i = s0; shouldContinue(i); i += st0) {
+          const r = executeIteration(i, mode);
+          if (isPromise(r)) {
+            return (r as Promise<any>).then((res) => {
+              if (res !== undefined) {
+                if (isBreakSignal(res)) {
+                  return;
                 }
-                return runAsync(start, end, step, mode, i + st0);
-              });
-            } else if (r !== undefined) {
-              if (isBreakSignal(r)) {
-                break;
+                return res;
               }
-              return r;
+              return runAsync(start, end, step, mode, i + st0);
+            });
+          } else if (r !== undefined) {
+            if (isBreakSignal(r)) {
+              break;
             }
-          }
-        } else {
-          for (let i = s0; i >= e0; i += st0) {
-            const localEnv = new LuaEnv(env);
-            localEnv.setLocal(fr.name, wrapLoopVar(i, mode));
-            const r = evalStatement(fr.block, localEnv, sf, returnOnReturn);
-            if (isPromise(r)) {
-              return (r as Promise<any>).then((res) => {
-                if (res !== undefined) {
-                  if (isBreakSignal(res)) {
-                    return;
-                  }
-                  return res;
-                }
-                return runAsync(start, end, step, mode, i + st0);
-              });
-            } else if (r !== undefined) {
-              if (isBreakSignal(r)) {
-                break;
-              }
-              return r;
-            }
+            return r;
           }
         }
         return;
