@@ -1,4 +1,5 @@
 import { LuaBuiltinFunction, LuaRuntimeError, LuaTable } from "../runtime.ts";
+import { getZeroBoxKind, isFloatTag, isNegativeZero } from "../numeric.ts";
 
 export const mathApi = new LuaTable({
   // math constants
@@ -14,8 +15,34 @@ export const mathApi = new LuaTable({
       );
     }
 
-    if (typeof x === "number" || x instanceof Number) {
+    if (isFloatTag(x)) {
+      return "float";
+    }
+
+    if (x instanceof Number) {
+      const kind = getZeroBoxKind(x);
+      if (kind === "float") {
+        return "float";
+      }
+      if (kind === "int") {
+        return "integer";
+      }
+
       const n = Number(x);
+      if (!Number.isFinite(n)) {
+        return "float";
+      }
+
+      return Number.isInteger(n) ? "integer" : "float";
+    }
+
+    if (typeof x === "number") {
+      const n = Number(x);
+
+      // Negative zero is a float
+      if (n === 0 && isNegativeZero(n)) {
+        return "float";
+      }
 
       // NaN and +Inf/-Inf are floats
       if (!Number.isFinite(n)) {

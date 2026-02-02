@@ -45,8 +45,15 @@ import {
   boxZero,
   coerceNumeric,
   coerceNumericPair,
+  floatLiteral,
+  getNumericKind,
+  getZeroBoxKind,
+  isFloatTag,
+  isNegativeZero,
+  type LuaFloatTag,
   luaStringCoercionError,
   type OpHints,
+  untagNumber,
 } from "./numeric.ts";
 import { isPromise, rpAll, rpThen } from "./rp.ts";
 import {
@@ -181,13 +188,34 @@ function maybeLuaArithStringError(
   return null;
 }
 
+// Normalize arithmetic result based on operation mode:
+// * integer operations: -0 becomes +0, integer results stay plain,
+// * float operations:   -0 stays   -0, integer results tagged as float.
+function normalizeArithmeticResult(
+  r: number,
+  bothInt: boolean,
+): number | LuaFloatTag {
+  if (r === 0) {
+    if (isNegativeZero(r)) {
+      return bothInt ? 0 : -0;
+    }
+    return bothInt ? 0 : boxZero("float");
+  }
+
+  if (!bothInt && Number.isInteger(r)) {
+    return floatLiteral(r);
+  }
+
+  return r;
+}
+
 function luaFloorDiv(
   a: unknown,
   b: unknown,
   ctx: ASTCtx,
   sf: LuaStackFrame,
   hints?: OpHints,
-): number {
+): number | LuaFloatTag {
   const { ax, bx, bothInt } = coerceNumericPair(a, b, hints);
   if (bothInt && bx === 0) {
     throw new LuaRuntimeError(
@@ -199,10 +227,16 @@ function luaFloorDiv(
   const q = Math.floor(ax / bx);
   if (q === 0) {
     if (bothInt) {
-      return boxZero("int");
+      return 0;
     }
-    return Object.is(q, -0) ? -0 : boxZero("float");
+    return isNegativeZero(q) ? -0 : boxZero("float");
   }
+
+  // Tag integer-valued float results
+  if (!bothInt && Number.isInteger(q)) {
+    return floatLiteral(q);
+  }
+
   return q;
 }
 
@@ -212,7 +246,7 @@ function luaMod(
   ctx: ASTCtx,
   sf: LuaStackFrame,
   hints?: OpHints,
-): number {
+): number | LuaFloatTag {
   const { ax, bx, bothInt } = coerceNumericPair(a, b, hints);
   if (bothInt && bx === 0) {
     throw new LuaRuntimeError(
@@ -224,11 +258,17 @@ function luaMod(
   const q = Math.floor(ax / bx);
   const r = ax - q * bx;
   if (r === 0) {
-    if (Object.is(ax, -0)) {
+    if (isNegativeZero(ax)) {
       return -0;
     }
-    return boxZero(bothInt ? "int" : "float");
+    return bothInt ? 0 : boxZero("float");
   }
+
+  // Tag integer-valued float results
+  if (!bothInt && Number.isInteger(r)) {
+    return floatLiteral(r);
+  }
+
   return r;
 }
 
@@ -276,23 +316,31 @@ function luaLessEqual(
   );
 }
 
-function luaUnaryMinus(
-  v: any,
-): number {
+function luaUnaryMinus(v: any): number | LuaFloatTag {
   const { n, zeroKind } = coerceNumeric(v);
 
   if (n === 0) {
-    if (Object.is(n, -0)) {
-      return boxZero("float");
+    const origKind = getZeroBoxKind(v);
+    const isFloat = origKind === "float" || zeroKind === "float" ||
+      isFloatTag(v);
+
+    // If it's a float zero for sure, flip the sign
+    if (isFloat) {
+      return isNegativeZero(v) || isNegativeZero(n) ? 0 : -0;
     }
-    if (zeroKind === "int") {
-      return boxZero("int");
-    }
-    if (zeroKind === "float") {
-      return -0;
-    }
-    return -0;
+    return 0;
   }
+
+  // Preserve float type for non-zero values. Without this code -5.0
+  // would become plain integer -5 (it would loose its float type).
+  if (isFloatTag(v) || zeroKind === "float" || getNumericKind(v) === "float") {
+    const result = -n;
+    if (Number.isInteger(result)) {
+      return floatLiteral(result);
+    }
+    return result;
+  }
+
   return -n;
 }
 
@@ -357,9 +405,13 @@ export function evalExpression(
         return e.value;
       }
       case "Number": {
-        return (e.value === 0 && !Object.is(e.value, -0))
-          ? boxZero(e.numericType === "int" ? "int" : "float")
-          : e.value;
+        if (e.value === 0 && !isNegativeZero(e.value)) {
+          return e.numericType === "int" ? 0 : boxZero("float");
+        }
+        if (e.numericType === "float" && Number.isInteger(e.value)) {
+          return floatLiteral(e.value);
+        }
+        return e.value;
       }
       case "Boolean": {
         return e.value;
@@ -390,6 +442,19 @@ export function evalExpression(
       }
       case "Unary": {
         const u = asUnary(e);
+        if (u.operator === "-" && u.argument.type === "Number") {
+          const num = u.argument;
+          if (num.value === 0 && !isNegativeZero(num.value)) {
+            if (num.numericType === "float") {
+              return -0;
+            } else {
+              return 0;
+            }
+          }
+          return num.numericType === "float" && Number.isInteger(-num.value)
+            ? floatLiteral(-num.value)
+            : -num.value;
+        }
         const value = evalExpression(u.argument, env, sf);
 
         const apply = (value: LuaValue) => {
@@ -855,52 +920,51 @@ const operatorsMetaMethods: Record<string, {
     metaMethod: "__add",
     nativeImplementation: (a, b, _ctx, _sf, hints) => {
       const { ax, bx, bothInt } = coerceNumericPair(a, b, hints);
-      const r = ax + bx;
-
-      if (r === 0) {
-        if (Object.is(r, -0)) {
-          return bothInt ? boxZero("int") : -0;
-        }
-        return boxZero(bothInt ? "int" : "float");
-      }
-      return r;
+      return normalizeArithmeticResult(ax + bx, bothInt);
     },
   },
   "-": {
     metaMethod: "__sub",
     nativeImplementation: (a, b, _ctx, _sf, hints) => {
-      const { ax, bx, bothInt } = coerceNumericPair(a, b, hints);
-      const r = ax - bx;
+      const { ax, bx, bothInt, bZeroKind } = coerceNumericPair(
+        a,
+        b,
+        hints,
+      );
+      const result = ax - bx;
 
-      if (r === 0) {
-        if (Object.is(r, -0)) {
-          return bothInt ? boxZero("int") : -0;
+      if (result === 0 && isNegativeZero(result) && !bothInt) {
+        const rightIsIntZero = bx === 0 &&
+          (bZeroKind === undefined || bZeroKind === "int");
+        if (rightIsIntZero) {
+          return boxZero("float"); // Normalize to +0.0
         }
-        return boxZero(bothInt ? "int" : "float");
       }
-      return r;
+
+      return normalizeArithmeticResult(result, bothInt);
     },
   },
   "*": {
     metaMethod: "__mul",
     nativeImplementation: (a, b, _ctx, _sf, hints) => {
       const { ax, bx, bothInt } = coerceNumericPair(a, b, hints);
-      const r = ax * bx;
-
-      if (r === 0) {
-        if (Object.is(r, -0)) {
-          return bothInt ? boxZero("int") : -0;
-        }
-        return boxZero(bothInt ? "int" : "float");
-      }
-      return r;
+      return normalizeArithmeticResult(ax * bx, bothInt);
     },
   },
   "/": {
     metaMethod: "__div",
     nativeImplementation: (a, b, _ctx, _sf, hints) => {
-      const { ax, bx } = coerceNumericPair(a, b, hints);
-      return ax / bx;
+      const { ax, bx, bothInt, bZeroKind } = coerceNumericPair(a, b, hints);
+
+      // In integer division mode, or if divisor is an integer zero,
+      // normalize -0 to +0.
+      let divisor = bx;
+      if ((bothInt || bZeroKind === "int") && isNegativeZero(bx)) {
+        divisor = 0;
+      }
+
+      const result = ax / divisor;
+      return normalizeArithmeticResult(result, false);
     },
   },
   "//": {
@@ -917,7 +981,10 @@ const operatorsMetaMethods: Record<string, {
     metaMethod: "__pow",
     nativeImplementation: (a, b, _ctx, _sf, hints) => {
       const { ax, bx } = coerceNumericPair(a, b, hints);
-      return ax ** bx;
+      const result = ax ** bx;
+
+      // Always treat as potentially float
+      return normalizeArithmeticResult(result, false);
     },
   },
   "&": {
@@ -1775,15 +1842,66 @@ export function evalStatement(
       const endV = evalExpression(fr.end, env, sf);
       const stepV = fr.step ? evalExpression(fr.step, env, sf) : 1;
 
-      const runAsync = async (start: any, end: any, step: any) => {
-        for (
-          let i = start;
-          step > 0 ? i <= end : i >= end;
-          i += step
-        ) {
-          const localEnv = new LuaEnv(env);
-          localEnv.setLocal(fr.name, i);
-          const r = evalStatement(fr.block, localEnv, sf, returnOnReturn);
+      const classifyMode = (
+        start: any,
+        _end: any,
+        step: any,
+      ): "int" | "float" => {
+        const s0 = untagNumber(start);
+        const st0 = untagNumber(step);
+
+        if (!Number.isInteger(s0) || !Number.isInteger(st0)) {
+          return "float";
+        }
+
+        const startKind = getNumericKind(start);
+        const stepKind = getNumericKind(step);
+
+        if (startKind === "float" || stepKind === "float") {
+          return "float";
+        }
+
+        return "int";
+      };
+
+      const wrapLoopVar = (i: number, mode: "int" | "float") => {
+        if (mode === "float") {
+          return floatLiteral(i);
+        }
+        return i;
+      };
+
+      // Extract the common iteration logic
+      const executeIteration = (
+        i: number,
+        mode: "int" | "float",
+      ): void | ControlSignal | Promise<void | ControlSignal> => {
+        const localEnv = new LuaEnv(env);
+        localEnv.setLocal(fr.name, wrapLoopVar(i, mode));
+        return evalStatement(fr.block, localEnv, sf, returnOnReturn);
+      };
+
+      const runAsync = async (
+        _start: any,
+        end: any,
+        step: any,
+        mode: "int" | "float",
+        startIndex: number,
+      ) => {
+        const e0 = untagNumber(end);
+        const st0 = untagNumber(step);
+
+        if (st0 === 0) {
+          throw new LuaRuntimeError("'for' step is zero", sf.withCtx(fr.ctx));
+        }
+
+        // Condition changes based on direction
+        const shouldContinue = st0 > 0
+          ? (i: number) => i <= e0
+          : (i: number) => i >= e0;
+
+        for (let i = startIndex; shouldContinue(i); i += st0) {
+          const r = executeIteration(i, mode);
           const res = isPromise(r) ? await r : r;
           if (res !== undefined) {
             if (isBreakSignal(res)) {
@@ -1799,18 +1917,23 @@ export function evalStatement(
         start: any,
         end: any,
         step: any,
-      ):
-        | void
-        | ControlSignal
-        | Promise<void | ControlSignal> => {
-        for (
-          let i = start;
-          step > 0 ? i <= end : i >= end;
-          i += step
-        ) {
-          const localEnv = new LuaEnv(env);
-          localEnv.setLocal(fr.name, i);
-          const r = evalStatement(fr.block, localEnv, sf, returnOnReturn);
+        mode: "int" | "float",
+      ): void | ControlSignal | Promise<void | ControlSignal> => {
+        const s0 = untagNumber(start);
+        const e0 = untagNumber(end);
+        const st0 = untagNumber(step);
+
+        if (st0 === 0) {
+          throw new LuaRuntimeError("'for' step is zero", sf.withCtx(fr.ctx));
+        }
+
+        // Condition changes based on direction
+        const shouldContinue = st0 > 0
+          ? (i: number) => i <= e0
+          : (i: number) => i >= e0;
+
+        for (let i = s0; shouldContinue(i); i += st0) {
+          const r = executeIteration(i, mode);
           if (isPromise(r)) {
             return (r as Promise<any>).then((res) => {
               if (res !== undefined) {
@@ -1819,7 +1942,7 @@ export function evalStatement(
                 }
                 return res;
               }
-              return runAsync(i + step, end, step);
+              return runAsync(start, end, step, mode, i + st0);
             });
           } else if (r !== undefined) {
             if (isBreakSignal(r)) {
@@ -1830,19 +1953,22 @@ export function evalStatement(
         }
         return;
       };
-
       if (
         !isPromise(startV) &&
         !isPromise(endV) &&
         !isPromise(stepV)
       ) {
-        return runSyncFirst(startV, endV, (stepV as number) ?? 1);
+        const mode = classifyMode(startV, endV, stepV);
+        return runSyncFirst(startV, endV, stepV ?? 1, mode);
       } else {
         return Promise.all([
           isPromise(startV) ? startV : Promise.resolve(startV),
           isPromise(endV) ? endV : Promise.resolve(endV),
           isPromise(stepV) ? stepV : Promise.resolve(stepV),
-        ]).then(([start, end, step]) => runSyncFirst(start, end, step ?? 1));
+        ]).then(([start, end, step]) => {
+          const mode = classifyMode(start, end, step ?? 1);
+          return runSyncFirst(start, end, step ?? 1, mode);
+        });
       }
     }
     case "ForIn": {
@@ -2109,7 +2235,10 @@ function exactInt(
 ): number {
   // See conversion from float to integer https://www.lua.org/manual/5.4/manual.html#3.4.3
   let n: number;
-  if (typeof num === "number") {
+
+  if (isFloatTag(num)) {
+    n = num.value;
+  } else if (typeof num === "number") {
     n = num;
   } else if (num instanceof Number) {
     n = Number(num);
