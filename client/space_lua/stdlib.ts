@@ -27,7 +27,7 @@ import { mathApi } from "./stdlib/math.ts";
 import { parse } from "./parse.ts";
 import { evalStatement } from "./eval.ts";
 import { encodingApi } from "./stdlib/encoding.ts";
-import { luaToNumber } from "./tonumber.ts";
+import { luaToNumberDetailed } from "./tonumber.ts";
 import { luaLoad } from "./stdlib/load.ts";
 import { cryptoApi } from "./stdlib/crypto.ts";
 import { netApi } from "./stdlib/net.ts";
@@ -47,18 +47,18 @@ const assertFunction = new LuaBuiltinFunction(
   },
 );
 
-const ipairsFunction = new LuaBuiltinFunction((sf, ar: LuaTable | any[]) => {
-  let i = 1;
+const ipairsFunction = new LuaBuiltinFunction((sf, t: LuaTable | any[]) => {
+  let i = 0;
+
   return async () => {
-    if (i > ar.length) {
+    i = i + 1;
+
+    const v = await luaGet(t, i, sf.astCtx ?? null, sf);
+    if (v === null || v === undefined) {
       return;
     }
-    const result = new LuaMultiRes([
-      i,
-      await luaGet(ar, i, sf.astCtx ?? null, sf),
-    ]);
-    i++;
-    return result;
+
+    return new LuaMultiRes([i, v]);
   };
 });
 
@@ -148,7 +148,21 @@ const tonumberFunction = new LuaBuiltinFunction(
         );
       }
     }
-    return luaToNumber(value, base);
+
+    if (typeof value === "number" || value instanceof Number) {
+      return typeof value === "number" ? value : Number(value);
+    }
+
+    if (typeof value !== "string") {
+      return null;
+    }
+
+    const result = luaToNumberDetailed(value, base);
+    if (result === null) {
+      return null;
+    }
+
+    return result.value;
   },
 );
 
@@ -286,10 +300,9 @@ const rawgetFunction = new LuaBuiltinFunction(
       if (typeof k === "number") {
         const v = (table as any[])[k - 1];
         return v === undefined ? null : v;
-      } else {
-        const v = (table as Record<string, any>)[k];
-        return v === undefined ? null : v;
       }
+      const v = (table as Record<string, any>)[k];
+      return v === undefined ? null : v;
     }
 
     const v = (table as Record<string | number, any>)[k as any];
@@ -342,12 +355,12 @@ const selectFunction = new LuaBuiltinFunction(
   (_sf, index: number | "#", ...args: LuaValue[]) => {
     if (index === "#") {
       return args.length;
-    } else if (typeof index === "number") {
+    }
+    if (typeof index === "number") {
       if (index >= 0) {
         return new LuaMultiRes(args.slice(index - 1));
-      } else {
-        return new LuaMultiRes(args.slice(args.length + index));
       }
+      return new LuaMultiRes(args.slice(args.length + index));
     }
   },
 );
@@ -389,19 +402,18 @@ const nextFunction = new LuaBuiltinFunction(
       // Return the first key, value
       const key = keys[0];
       return new LuaMultiRes([key, luaGet(table, key, sf.astCtx ?? null, sf)]);
-    } else {
-      // Find index in the key list
-      const idx = keys.indexOf(index);
-      if (idx === -1) { // Not found
-        throw new LuaRuntimeError("invalid key to 'next': key not found", sf);
-      }
-      const key = keys[idx + 1];
-      if (key === undefined) {
-        // When called with the last key, should return nil
-        return null;
-      }
-      return new LuaMultiRes([key, luaGet(table, key, sf.astCtx ?? null, sf)]);
     }
+    // Find index in the key list
+    const idx = keys.indexOf(index);
+    if (idx === -1) { // Not found
+      throw new LuaRuntimeError("invalid key to 'next': key not found", sf);
+    }
+    const key = keys[idx + 1];
+    if (key === undefined) {
+      // When called with the last key, should return nil
+      return null;
+    }
+    return new LuaMultiRes([key, luaGet(table, key, sf.astCtx ?? null, sf)]);
   },
 );
 

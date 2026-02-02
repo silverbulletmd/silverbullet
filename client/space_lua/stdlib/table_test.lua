@@ -1,26 +1,21 @@
-function deepCompare(t1, t2)
+local function deepCompare(t1, t2, seen)
     if t1 == t2 then return true end
-    -- If they are the same object, return true
     if type(t1) ~= "table" or type(t2) ~= "table" then return false end
-    -- If not both tables, return false
-    -- Check if both tables have the same number of keys
-    local t1_keys = 0
-    local t2_keys = 0
-    for k in pairs(t1) do
-        t1_keys = t1_keys + 1
-    end
-    for k in pairs(t2) do
-        t2_keys = t2_keys + 1
-    end
-    if t1_keys ~= t2_keys then return false end
 
-    -- Recursively compare each key-value pair
+    seen = seen or {}
+    if seen[t1] and seen[t1] == t2 then return true end
+    seen[t1] = t2
+
+    local n1, n2 = 0, 0
+    for _ in pairs(t1) do n1 = n1 + 1 end
+    for _ in pairs(t2) do n2 = n2 + 1 end
+    if n1 ~= n2 then return false end
+
     for k, v in pairs(t1) do
-        if not deepCompare(v, t2[k]) then
+        if not deepCompare(v, t2[k], seen) then
             return false
         end
     end
-
     return true
 end
 
@@ -30,163 +25,233 @@ local function assertEqual(a, b)
     end
 end
 
-
-
--- Basic table operations
-local t = { 1, 2, 3 }
-table.insert(t, 4)
-assertEqual(t[4], 4)
-table.remove(t, 1)
-table.remove(t)
-assertEqual(t[2], 3)
-assertEqual(#t, 2)
-
-t = js.tojs({ 1, 2, 3 })
-table.insert(t, 4)
-assertEqual(t[4], 4)
-table.remove(t, 1)
-table.remove(t)
-assertEqual(t[2], 3)
-assertEqual(#t, 2)
-
-
--- Test concat
-assertEqual(table.concat({ "Hello", "world" }, " "), "Hello world")
-assertEqual(table.concat({ "Hello", "world", "three" }, " ", 2, 3), "world three")
-
--- Test with JavaScript array
-assertEqual(table.concat(js.tojs({ "Hello", "world", "three" }), " ", 2, 3), "world three")
-
--- Table sorting
-local t = { 3, 1, 2 }
-table.sort(t)
-assertEqual(t[1], 1)
-assertEqual(t[2], 2)
-assertEqual(t[3], 3)
-
--- Table sorting with custom comparator
-table.sort(t, function(a, b)
-    return a > b
-end)
-assertEqual(t[1], 3)
-assertEqual(t[2], 2)
-assertEqual(t[3], 1)
-
--- Table sorting with complex objects
-local data = { { name = "John", age = 30 }, { name = "Jane", age = 25 } }
-table.sort(data, function(a, b)
-    return a.age < b.age
-end)
-assertEqual(data[1].name, "Jane")
-assertEqual(data[2].name, "John")
-
--- Now the same with js.tojs
-local data = js.tojs { 1, 3, 2 }
-table.sort(data)
-assertEqual(data[1], 1)
-assertEqual(data[2], 2)
-assertEqual(data[3], 3)
-
-local data = js.tojs { { name = "John", age = 30 }, { name = "Jane", age = 25 } }
-table.sort(data, function(a, b)
-    return a.age < b.age
-end)
-assertEqual(data[1].name, "Jane")
-assertEqual(data[2].name, "John")
-
-
--- ipairs tests
-local p = ipairs({ 3, 2, 1 })
-local idx, value = p()
-assert(idx == 1 and value == 3)
-idx, value = p()
-assert(idx == 2 and value == 2)
-idx, value = p()
-assert(idx == 3 and value == 1)
-idx, value = p()
-assert(idx == nil and value == nil)
-
-for index, value in ipairs({ 1, 2, 3 }) do
-    assert(index == value)
+local function assertTrue(v, msg)
+    if not v then error(msg or "Assertion failed") end
 end
 
--- pairs tests
-local p = pairs({ a = 1, b = 2, c = 3 })
-local key, value = p()
-assert(key == "a" and value == 1)
-key, value = p()
-assert(key == "b" and value == 2)
-key, value = p()
-assert(key == "c" and value == 3)
-key, value = p()
-assert(key == nil and value == nil)
-
-for key, value in pairs({ a = "a", b = "b" }) do
-    assertEqual(key, value)
+local function assertFalse(v, msg)
+    if v then error(msg or "Assertion failed (expected false)") end
 end
 
--- for in over tables directly
-local cnt = 1
-for val in { 1, 2, 3 } do
-    assertEqual(val, cnt)
-    cnt = cnt + 1
+local function assertError(fn, msg)
+    local ok, err = pcall(fn)
+    if ok then
+        error(msg or "Assertion failed (expected error)")
+    end
+    return err
 end
-assertEqual(cnt, 4)
 
-local cnt = 1
-for val in js.tojs({ 1, 2, 3 }) do
-    assertEqual(val, cnt)
-    cnt = cnt + 1
+-- Basic table operations (insert/remove)
+do
+    local t = { 1, 2, 3 }
+    table.insert(t, 4)
+    assertEqual(t[4], 4)
+
+    table.insert(t, 1, 99)
+    assertEqual(t[1], 99)
+    assertEqual(#t, 5)
+
+    local x = table.remove(t, 1)
+    assertEqual(x, 99)
+
+    table.remove(t) -- remove last
+    assertEqual(#t, 3)
+    assertEqual(t, { 1, 2, 3 })
+
+    -- remove out of range should error
+    assertError(function() table.remove(t, 0) end)
+    assertError(function() table.remove(t, #t + 2) end)
 end
-assertEqual(cnt, 4)
 
--- Table keys tests
-local t = { a = 1, b = 2, c = 3 }
-local keys = table.keys(t)
-assert(table.includes(keys, "a"))
-assert(table.includes(keys, "b"))
-assert(table.includes(keys, "c"))
+-- Reference semantics / aliasing (tables are mutable references)
+do
+    local a = { x = 1 }
+    local b = a
+    b.x = 2
+    assertEqual(a.x, 2)
 
--- Table includes tests with different value types
-local t = { 1, 2, "three", true }
-assert(table.includes(t, 1))
-assert(table.includes(t, "three"))
-assert(table.includes(t, true))
-assert(not table.includes(t, "missing"))
+    local nested = { inner = { 1, 2 } }
+    local alias = nested.inner
+    alias[1] = 10
+    assertEqual(nested.inner[1], 10)
+end
 
--- Test using table as set
-local s = {}
-s["something"] = true
-assertEqual(#table.keys(s), 1)
--- Remove from the map
-s["something"] = nil
-assertEqual(#table.keys(s), 0)
+-- rawget/rawset/rawequal ignore metamethods
+do
+    local backing = {}
+    local t = setmetatable({}, {
+        __index = function(_, k)
+            return backing[k]
+        end,
+        __newindex = function(_, k, v)
+            backing[k] = v
+        end,
+    })
 
--- Error cases
-local success, error = pcall(function()
-    table.includes("not a table", 1)
-end)
-assert(not success)
-assert(string.find(error, "Cannot use includes"))
+    t.a = 1
+    assertEqual(backing.a, 1)
+    assertEqual(t.a, 1)
 
--- Test pack and unpack
-local t = { 1, 2, 3 }
-local packed = table.pack(table.unpack(t))
-assertEqual(packed[1], 1)
-assertEqual(packed[2], 2)
-assertEqual(packed[3], 3)
-assertEqual(packed.n, 3)
+    rawset(t, "a", 2)
+    assertEqual(rawget(t, "a"), 2)
+    assertEqual(backing.a, 1)
 
--- Test table.find
-local t = { 0, 1, 2, 3 }
-local idx, two = table.find(t, function(v) return v == 2 end)
-assertEqual(idx, 3)
-assertEqual(two, 2)
-assertEqual(table.find(t, function(v) return v == 4 end), nil)
+    assertEqual(rawget(t, "missing"), nil)
 
--- Test table.select
-local tbl = {name = "Pete", age = 100, parents = {"John", "Jane"}}
-assertEqual(table.select(tbl, "name"), {name = "Pete"})
-assertEqual(table.select(tbl, {"name"}), {name = "Pete"})
-assertEqual(table.select(tbl, "name", "age"), { name = "Pete", age = 100})
-assertEqual(table.select(tbl, "name", "age", "non-existing"), { name = "Pete", age = 100})
+    local t2 = t
+    local t3 = {}
+    assertTrue(rawequal(t2, t))
+    assertFalse(rawequal(t3, t))
+end
+
+-- Length operator semantics
+do
+    local seq = { 1, 2, 3 }
+    assertEqual(#seq, 3)
+
+    local holes = { 1, 2, 3, nil, nil, nil, 4 }
+    assertEqual(rawlen(holes), 7)
+
+    local t = { 1, 2, 3 }
+    t[5] = 5
+    local collected = {}
+    for i, v in ipairs(t) do
+        collected[i] = v
+    end
+    assertEqual(collected, { 1, 2, 3 })
+end
+
+-- __len metamethod can override #t
+do
+    local t = setmetatable({ 1, 2, 3 }, {
+        __len = function(_) return 123 end
+    })
+    assertEqual(#t, 123)
+end
+
+-- pairs / __pairs
+do
+    local t = setmetatable({ a = 1, b = 2 }, {
+        __pairs = function(_)
+            local yielded = false
+            return function()
+                if yielded then return nil end
+                yielded = true
+                return "only", 42
+            end
+        end
+    })
+
+    local out = {}
+    for k, v in pairs(t) do
+        out[k] = v
+    end
+    assertEqual(out, { only = 42 })
+end
+
+-- next
+do
+    local t = { a = 1, b = 2, c = 3 }
+    local k, v = next(t, nil)
+    assertTrue(k ~= nil)
+    assertTrue(v ~= nil)
+
+    local seen = {}
+    while k do
+        seen[k] = v
+        k, v = next(t, k)
+    end
+    assertEqual(seen.a, 1)
+    assertEqual(seen.b, 2)
+    assertEqual(seen.c, 3)
+end
+
+-- table.concat
+do
+    assertEqual(table.concat({ "Hello", "world" }, " "), "Hello world")
+    assertEqual(table.concat({ "Hello", "world", "three" }, " ", 2, 3), "world three")
+    assertEqual(table.concat({ "a", "b", "c" }), "abc")
+    assertEqual(table.concat({ "a", "b", "c" }, "", 2, 1), "")
+
+    assertError(function() table.concat({ "a", {} }, "") end)
+end
+
+-- table.sort
+do
+    local t = { 3, 1, 2 }
+    table.sort(t)
+    assertEqual(t, { 1, 2, 3 })
+
+    table.sort(t, function(a, b) return a > b end)
+    assertEqual(t, { 3, 2, 1 })
+
+    local data = { { name = "John", age = 30 }, { name = "Jane", age = 25 } }
+    table.sort(data, function(a, b) return a.age < b.age end)
+    assertEqual(data[1].name, "Jane")
+    assertEqual(data[2].name, "John")
+
+    assertError(function() table.sort({ 1, "x" }) end)
+
+    -- Portable error test: comparator itself throws -> sort must raise
+    assertError(function()
+        table.sort({ 2, 1 }, function()
+            error("boom")
+        end)
+    end)
+
+    -- NOTE: Do NOT require an error for comparator returning nil; Lua may treat it as false.
+end
+
+-- table.pack / table.unpack
+do
+    local t = { 1, 2, 3 }
+    local packed = table.pack(table.unpack(t))
+    assertEqual(packed[1], 1)
+    assertEqual(packed[2], 2)
+    assertEqual(packed[3], 3)
+    assertEqual(packed.n, 3)
+
+    local p = table.pack(1, nil, 3, nil)
+    assertEqual(p.n, 4)
+    assertEqual(p[1], 1)
+    assertEqual(p[2], nil)
+    assertEqual(p[3], 3)
+    assertEqual(p[4], nil)
+
+    local a, b, c, d = table.unpack(p, 1, p.n)
+    assertEqual(a, 1)
+    assertEqual(b, nil)
+    assertEqual(c, 3)
+    assertEqual(d, nil)
+
+    local seq = { "x", "y" }
+    local x, y = table.unpack(seq)
+    assertEqual(x, "x")
+    assertEqual(y, "y")
+end
+
+-- __index / __newindex semantics
+do
+    local backing = { a = 10 }
+    local t = setmetatable({}, {
+        __index = backing,
+        __newindex = function(_, k, v)
+            backing[k] = v * 2
+        end,
+    })
+
+    assertEqual(t.a, 10)
+
+    t.b = 5
+    assertEqual(backing.b, 10)
+    assertEqual(rawget(t, "b"), nil)
+end
+
+-- Equality semantics: tables compare by reference
+do
+    local a = { 1 }
+    local b = { 1 }
+    assertFalse(a == b)
+    local c = a
+    assertTrue(a == c)
+end

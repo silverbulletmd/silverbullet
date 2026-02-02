@@ -25,6 +25,10 @@ Deno.test("[Lua] Core language (arithmetic)", async () => {
   await runLuaTest("./arithmetic_test.lua");
 });
 
+Deno.test("[Lua] Core language (metamethods)", async () => {
+  await runLuaTest("./metamethods_test.lua");
+});
+
 Deno.test("[Lua] Load tests", async () => {
   await runLuaTest("./stdlib/load_test.lua");
 });

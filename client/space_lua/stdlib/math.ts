@@ -1,8 +1,20 @@
-import { LuaBuiltinFunction, LuaRuntimeError, LuaTable } from "../runtime.ts";
+import {
+  LuaBuiltinFunction,
+  LuaMultiRes,
+  LuaRuntimeError,
+  LuaTable,
+} from "../runtime.ts";
+import {
+  inferNumericType,
+  isLuaFloat,
+  isLuaZero,
+  isNegativeZero,
+} from "../numeric.ts";
 
 export const mathApi = new LuaTable({
   // math constants
   huge: 1 / 0,
+  pi: 3.1415926535898,
 
   // math.type(x) => "integer" | "float" | nil
   type: new LuaBuiltinFunction((_sf, x?: any) => {
@@ -14,7 +26,11 @@ export const mathApi = new LuaTable({
       );
     }
 
-    if (typeof x === "number" || x instanceof Number) {
+    if (isLuaZero(x) || isLuaFloat(x)) {
+      return "float";
+    }
+
+    if (x instanceof Number) {
       const n = Number(x);
 
       // NaN and +Inf/-Inf are floats
@@ -22,7 +38,17 @@ export const mathApi = new LuaTable({
         return "float";
       }
 
+      // Negative zero is float
+      if (n === 0 && isNegativeZero(n)) {
+        return "float";
+      }
+
       return Number.isInteger(n) ? "integer" : "float";
+    }
+
+    if (typeof x === "number") {
+      const t = inferNumericType(x);
+      return t === "int" ? "integer" : "float";
     }
 
     if (typeof x === "bigint") {
@@ -67,16 +93,15 @@ export const mathApi = new LuaTable({
         }
 
         return result;
-      } else {
-        // random(m) returns [1,m]
-        if (m! < 1) {
-          throw new LuaRuntimeError(
-            "bad argument #1 to 'math.random' (interval is empty)",
-            _sf,
-          );
-        }
-        return Math.floor(Math.random() * m!) + 1;
       }
+      // random(m) returns [1,m]
+      if (m! < 1) {
+        throw new LuaRuntimeError(
+          "bad argument #1 to 'math.random' (interval is empty)",
+          _sf,
+        );
+      }
+      return Math.floor(Math.random() * m!) + 1;
     }
 
     if (!Number.isInteger(n!)) {
@@ -106,9 +131,9 @@ export const mathApi = new LuaTable({
   // Rounding and remainder
   fmod: new LuaBuiltinFunction((_sf, x: number, y: number) => x % y),
   modf: new LuaBuiltinFunction((_sf, x: number) => {
-    const int = Math.floor(x);
+    const int = Math.trunc(x);
     const frac = x - int;
-    return new LuaTable([int, frac]);
+    return new LuaMultiRes([int, frac]);
   }),
 
   // Power and logarithms

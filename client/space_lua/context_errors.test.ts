@@ -109,7 +109,7 @@ Deno.test("Context error: __index metamethod must be function or table", async (
     e,
     code,
     ref,
-    "Meta table __index must be a function or table",
+    "attempt to index a number value",
   );
 });
 
@@ -126,7 +126,7 @@ Deno.test("Context error: __call metamethod must be a function", async () => {
     e,
     code,
     ref,
-    "Meta table __call must be a function",
+    "attempt to call a number value",
   );
 });
 

@@ -1,4 +1,5 @@
 import { lezerToParseTree } from "../../client/markdown_parser/parse_tree.ts";
+import type { SyntaxNode } from "@lezer/common";
 import {
   cleanTree,
   type ParseTree,
@@ -276,7 +277,7 @@ function parseStatement(t: ParseTree, ctx: ASTCtx): LuaStatement {
         ctx: context(t, ctx),
       };
     }
-    case "ForStatement":
+    case "ForStatement": {
       if (t.children![1].type === "ForNumeric") {
         const forNumeric = t.children![1];
         return {
@@ -290,16 +291,16 @@ function parseStatement(t: ParseTree, ctx: ASTCtx): LuaStatement {
           block: parseBlock(t.children![3], ctx),
           ctx: context(t, ctx),
         };
-      } else {
-        const forGeneric = t.children![1];
-        return {
-          type: "ForIn",
-          names: parseNameList(forGeneric.children![0]),
-          expressions: parseExpList(forGeneric.children![2], ctx),
-          block: parseBlock(t.children![3], ctx),
-          ctx: context(t, ctx),
-        };
       }
+      const forGeneric = t.children![1];
+      return {
+        type: "ForIn",
+        names: parseNameList(forGeneric.children![0]),
+        expressions: parseExpList(forGeneric.children![2], ctx),
+        block: parseBlock(t.children![3], ctx),
+        ctx: context(t, ctx),
+      };
+    }
     case "Function":
       return {
         type: "Function",
@@ -584,13 +585,20 @@ function parseExpression(t: ParseTree, ctx: ASTCtx): LuaExpression {
         right: parseExpression(t.children![2], ctx),
         ctx: context(t, ctx),
       };
-    case "UnaryExpression":
+    case "UnaryExpression": {
+      const op = t.children![0].children![0].text!;
+      if (op === "+") {
+        const err = new Error("unexpected symbol near '+'");
+        (err as any).astCtx = context(t.children![0], ctx);
+        throw err;
+      }
       return {
         type: "Unary",
-        operator: t.children![0].children![0].text!,
+        operator: op,
         argument: parseExpression(t.children![1], ctx),
         ctx: context(t, ctx),
       };
+    }
     case "Property":
       return {
         type: "PropertyAccess",
@@ -672,13 +680,12 @@ function parseQueryClause(t: ParseTree, ctx: ASTCtx): LuaQueryClause {
           expression: parseExpression(t.children![3], ctx),
           ctx: context(t, ctx),
         };
-      } else {
-        return {
-          type: "From",
-          expression: parseExpression(t.children![1], ctx),
-          ctx: context(t, ctx),
-        };
       }
+      return {
+        type: "From",
+        expression: parseExpression(t.children![1], ctx),
+        ctx: context(t, ctx),
+      };
     }
     case "WhereClause":
       return {
@@ -940,8 +947,37 @@ export function parse(s: string, ctx: ASTCtx = {}): LuaBlock {
 }
 
 export function parseToAST(t: string): ParseTree {
-  const n = lezerToParseTree(t, parser.parse(t).topNode);
+  const tree = parser.parse(t);
+
+  const errNode = findFirstParseError(tree.topNode);
+  if (errNode) {
+    const err = new Error(luaUnexpectedSymbolMessage(t, errNode.from));
+    (err as any).astCtx = { from: errNode.from, to: errNode.to };
+    throw err;
+  }
+
+  const n = lezerToParseTree(t, tree.topNode);
   return cleanTree(n, true);
+}
+
+function findFirstParseError(node: SyntaxNode): SyntaxNode | null {
+  if (node.type.isError) {
+    return node;
+  }
+  for (let ch = node.firstChild; ch; ch = ch.nextSibling) {
+    const hit = findFirstParseError(ch);
+    if (hit) {
+      return hit;
+    }
+  }
+  return null;
+}
+
+function luaUnexpectedSymbolMessage(src: string, from: number): string {
+  let i = from;
+  while (i < src.length && /\s/.test(src[i])) i++;
+  const sym = i < src.length ? src[i] : "?";
+  return `unexpected symbol near '${sym}'`;
 }
 
 /**

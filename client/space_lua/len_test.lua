@@ -104,3 +104,43 @@ assertThrows(
     return #f
   end
 )
+
+-- 4. rawlen() semantics
+do
+  local t = { 1, 2, 3 }
+
+  setmetatable(t, {
+    __len = function(_) return 99 end,
+  })
+
+  assert_eq(#t, 99, "#t uses __len")
+  assert_eq(rawlen(t), 3, "rawlen(t) ignores __len")
+end
+
+-- 5. Trailing-nil shrinking behavior
+do
+  local t = { 1, 2, 3 }
+  assert_eq(#t, 3, "initial sequence length")
+
+  t[3] = nil
+  assert_eq(#t, 2, "sequence length shrinks when last element is set to nil")
+  assert_eq(rawlen(t), 2, "rawlen shrinks with trailing nil (array part shrinks)")
+
+  t[2] = nil
+  assert_eq(#t, 1, "sequence length shrinks again after removing new last element")
+  assert_eq(rawlen(t), 1, "rawlen shrinks again after trailing nil")
+end
+
+-- 6. rawlen on strings
+assert_eq(rawlen("abc"), 3, "rawlen on strings")
+
+-- 7. rawlen(t) must ignore the __len metamethod
+local t = {1,2,3}
+
+setmetatable(t, {
+  __len = function()
+    return 99 end
+})
+
+assert(#t == 99)
+assert(rawlen(t) == 3)
