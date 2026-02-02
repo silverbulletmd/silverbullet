@@ -105,50 +105,60 @@ functions:
       key: Ctrl-Enter
       mac: Cmd-Enter
       requireEditor: page
+
   clickNavigate:
     path: "./navigate.ts:clickNavigate"
     events:
       - page:click
+
   navigateHome:
     path: "./navigate.ts:navigateCommand"
     command:
       name: "Navigate: Home"
       key: "Ctrl-g h"
       page: ""
+
   moveToPos:
     path: "./editor.ts:moveToPosCommand"
     command:
       name: "Navigate: To Position"
       requireEditor: page
+
   copyRefCommand:
     path: "./editor.ts:copyRefCommand"
     command:
       name: "Navigate: Copy Ref To Current Position"
       requireEditor: page
+
   copyLinkCommand:
     path: "./editor.ts:copyLinkCommand"
     command:
       name: "Navigate: Copy Link To Current Position"
       requireEditor: page
+
   moveToLine:
     path: "./editor.ts:moveToLineCommand"
     command:
       name: "Navigate: To Line"
       requireEditor: page
+
   navigateToPage:
     path: "./navigate.ts:navigateToPage"
     command:
       name: "Navigate: To Page"
       hide: true
+
   navigateToURL:
     path: "./navigate.ts:navigateToURL"
     command:
       name: "Navigate: To URL"
       hide: true
+
   navigateBack:
     path: "./navigate.ts:navigateBack"
     command:
       name: "Navigate: Back in History"
+
   navigateForward:
     path: "./navigate.ts:navigateForward"
     command:
