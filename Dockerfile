@@ -41,6 +41,7 @@ EXPOSE 3000
 # Always binding to this IP, otherwise the server wouldn't be available
 ENV SB_HOSTNAME=0.0.0.0
 ENV SB_FOLDER=/space
+ENV SB_PORT=3000
 
 # Reset /etc/group and /etc/passwd
 RUN echo "" > /etc/group && echo "root:x:0:0:root:/root:/bin/sh" > /etc/passwd
