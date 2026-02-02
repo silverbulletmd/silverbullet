@@ -218,7 +218,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     // if (oldHash && newHash && oldHash !== newHash) {
     if (oldHash !== newHash) {
       // Page changed since last cached metadata, trigger event
-      this.dispatchEvent("file:changed", name, oldHash, newHash);
+      await this.dispatchEvent("file:changed", name, oldHash, newHash);
     }
     this.updateInSnapshot(name, newHash);
     await this.saveSnapshot();
