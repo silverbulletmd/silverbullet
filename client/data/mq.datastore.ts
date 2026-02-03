@@ -67,9 +67,8 @@ export class QueueWorker {
                 this.mq.removeQueuedWorker(this.queue, this.stopReject!);
               }),
             ]);
-          } catch (e: any) {
+          } catch {
             // Only scenario we should end up here is stop being called
-            console.info(e.message);
             break;
           }
         }
