@@ -9,43 +9,7 @@ import { sleep } from "@silverbulletmd/silverbullet/lib/async";
 import type { MQMessage } from "@silverbulletmd/silverbullet/type/datastore";
 import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
 
-const uiUpdateInterval = 5000;
-
-setTimeout(updateIndexProgressInUI, uiUpdateInterval);
-
-async function totalItemsQueued() {
-  const queueStats = await mq.getQueueStats();
-  return queueStats.queued + queueStats.processing;
-}
-
-async function updateIndexProgressInUI() {
-  // Let's see if there's anything in the index queue
-  let totalQueued = await totalItemsQueued();
-  if (totalQueued > 0) {
-    // Something's queued, likely it makes sense to compare this to the total number of files (progress wise)
-    const fileList = await space.listFiles();
-    while (totalQueued > 0) {
-      totalQueued = await totalItemsQueued();
-      let percentage = Math.round(
-        (fileList.length - totalQueued) / fileList.length * 100,
-      );
-      if (percentage < 0) {
-        // The assumption that the queue size is related tot he file list length turns out to be wrong
-        // // Let's show some sort of number
-        percentage = 67;
-      }
-      if (percentage > 99) {
-        // Hide progress circle
-        await editor.showProgress();
-      } else {
-        await editor.showProgress(percentage, "index");
-      }
-      await sleep(1000);
-    }
-  }
-  // Schedule again
-  setTimeout(updateIndexProgressInUI, uiUpdateInterval);
-}
+/// QUEUE PROCESSING
 
 export async function processIndexQueue(messages: MQMessage[]) {
   for (const message of messages) {
@@ -73,4 +37,47 @@ async function indexFile(path: string) {
   } else {
     await events.dispatchEvent("document:index", path);
   }
+}
+
+/// UI PROGRESS UPDATE LOGIC
+
+const uiUpdateInterval = 5000;
+
+// There is no reliable way to know the total number of queue items, so we'll keep track of the maximum observed queue size
+// and use that to calculate the progress percentage.
+let maximumObservedQueueSize = 0;
+
+setTimeout(updateIndexProgressInUI, uiUpdateInterval);
+
+// Returns the total number of items queued, updating the maximum observed queue size if necessary
+async function totalItemsQueued() {
+  const queueStats = await mq.getQueueStats();
+  const total = queueStats.queued + queueStats.processing;
+  if (total > maximumObservedQueueSize) {
+    maximumObservedQueueSize = total;
+  } else if (total === 0) {
+    // Empty queue, let's reset the maximum observed queue size
+    maximumObservedQueueSize = 0;
+  }
+  return total;
+}
+
+async function updateIndexProgressInUI() {
+  // Let's see if there's anything in the index queue
+  let totalQueued = await totalItemsQueued();
+  while (totalQueued > 0) {
+    const percentage = Math.round(
+      (maximumObservedQueueSize - totalQueued) / maximumObservedQueueSize * 100,
+    );
+    if (percentage > 0 && percentage <= 99) {
+      await editor.showProgress(percentage, "index");
+    } else {
+      // Hide progress circle
+      await editor.showProgress();
+    }
+    await sleep(1000);
+    totalQueued = await totalItemsQueued();
+  }
+  // Schedule again
+  setTimeout(updateIndexProgressInUI, uiUpdateInterval);
 }
