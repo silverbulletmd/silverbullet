@@ -1,9 +1,6 @@
 import { syntaxTree } from "@codemirror/language";
 import { Decoration } from "@codemirror/view";
-import {
-  decoratorStateField,
-  isCursorInRange,
-} from "./util.ts";
+import { decoratorStateField, isCursorInRange } from "./util.ts";
 
 export function attributePlugin() {
   return decoratorStateField((state) => {
