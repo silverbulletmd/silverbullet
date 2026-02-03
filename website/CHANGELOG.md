@@ -6,18 +6,7 @@ Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be
 * New _experimental_ API: [[API/tag#tag.define(spec)]], see linked page for docs and example uses. Brings back ability to define 📅 deadlines for tasks (see example). Another part of this is [[Schema]] support for [[Tag|tags]]. When a schema is defined for a tag, you get:
   * [[Frontmatter]] **attribute completion and linting** (in-editor error indicators) for attributes defined as part of the tag’s schema.
   * [[Space Lua/Lua Integrated Query]] **attribute code completion** _if_ you use the `from v = index.tag("bla")` style syntax (so explicitly bind your iterator variable)
-* Lua engine improvements (courtesy of [Matouš Jan Fialka](https://github.com/mjf)):
-  * [Support for `<close>` attribute and __close metamethod](https://github.com/silverbulletmd/silverbullet/commit/9419cdcd9be61908330e1dce68a9156dbb911d23)
-  * [Better arithmetic error messages](https://github.com/silverbulletmd/silverbullet/commit/5a20a5f8f476a98172609e80c799cd1d83765585)
-  * [Refactor of control flow (performance)](https://github.com/silverbulletmd/silverbullet/commit/e5b4c8feb22a44cb4b22b3a77f9f2ed21dd09297)
-* Lua APIs:
-  * [[API/table#table.select(table, keys...)]] (non-standard in Lua) API, convenient to use in [[Space Lua/Lua Integrated Query]] `select` clauses, see example in docs.
-* Better indication whether your page is synced to the server
-  * “Dirty state” (slightly tainted color of page name) is now aligned with actual synced-to-server state _unless_ the editor clearly indicates it is in offline mode (yellow top bar).
-* Library manager: SilverBullet now navigates to library page after installing one.
-* Now excluding `.plug.js` and `.js.map` files from the document list.
-* How long “remember me” works is now configurable (by [Metin Yazici](https://github.com/silverbulletmd/silverbullet/pull/1796)) via [[Install/Configuration]].
-* Upgraded dependencies, specifically CodeMirror. CodeMirror now no longer allows `Alt-<letter>` and `Alt-<special-character>` [[Keyboard Shortcuts]], meaning I had to **remap a few key bindings**. It’s basically a mission impossible to pick great ones, but I tried:
+* Changed keyboard bindings (sorry!). CodeMirror no longer directly allows `Alt-<letter>` and `Alt-<special-character>` [[Keyboard Shortcuts]], meaning I had to **remap a few key bindings**. It’s basically a mission impossible to pick great ones, but here are the new defaults:
   * `Quick note` is now bound to both `Ctrl-q q` (type `Ctrl-q` first, then hit `q` again) and `Ctrl-q Ctrl-q` (hit `Ctrl-q` twice)
   * `Navigate: Home` is now bound to `Ctrl-g h`
   * `Text: Marker` is now bound to `Ctrl-Alt-m`
@@ -32,7 +21,24 @@ Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be
   * `Page: Rename` keyboard shortcut removed
   * `Page: Rename Linked Page` keyboard shortcut removed
   * `Sync: Space` keyboard shortcut removed
+* Lua engine improvements (courtesy of [Matouš Jan Fialka](https://github.com/mjf)):
+  * [Support for `<close>` attribute and __close metamethod](https://github.com/silverbulletmd/silverbullet/commit/9419cdcd9be61908330e1dce68a9156dbb911d23)
+  * [Better arithmetic error messages](https://github.com/silverbulletmd/silverbullet/commit/5a20a5f8f476a98172609e80c799cd1d83765585)
+  * [Refactor of control flow (performance)](https://github.com/silverbulletmd/silverbullet/commit/e5b4c8feb22a44cb4b22b3a77f9f2ed21dd09297)
+  * [Improved numeric type semantics](https://github.com/silverbulletmd/silverbullet/pull/1803)
+* Lua APIs:
+  * [[API/table#table.select(table, keys...)]] (non-standard in Lua) API, convenient to use in [[Space Lua/Lua Integrated Query]] `select` clauses, see example in docs.
+* Sync reliability work:
+  * Better indication whether your page is synced to the server: “Dirty state” (slightly tinted color of page name) is now aligned with actual synced-to-server state _unless_ the editor clearly indicates it is in offline mode (yellow top bar).
+  * Sync snapshots are now persisted after every file sync, reducing (and hopefully eliminating) edge cases where the sync engine is killed mid-sync (for whatever reason) and the snapshot becomes of sync with “reality”.
+  * The index status progress indicator (blue circle) should now be more reliably reflect the actual indexing status.
+* Library manager: SilverBullet now navigates to library page after installing one.
+* New `Page: Create Under Cursor` command, useful to pre-create an aspiring page link. Put your cursor in a wiki link to a non-existing page, and hit `Cmd-Shift-Enter` (`Ctrl-Shift-Enter`) to create it (empty) without navigating there.
+* Authentication:
+  * How long “remember me” works is now configurable (by [Metin Yazici](https://github.com/silverbulletmd/silverbullet/pull/1796)) via [[Install/Configuration]] and more reliably persisted.
+* Now excluding `.plug.js` and `.js.map` files from the document list.
 * New `shortWikiLinks` config (defaulting to `true`) that decides whether a wiki link should be rendered in its short form (rendering just the last segment, e.g. `Person/John` would show as `John`). To always render the full name, put `config.set("shortWikiLinks", false)` in your [[CONFIG]].
+* The `diff` [[Markdown/Fenced Code Block]] language now uses colors to indicate additions and removals (by [Lajos Papp](https://github.com/silverbulletmd/silverbullet/pull/1807))
 * As documented in [[Keyboard Shortcuts]], it is now possible to specify _multiple_ keyboard shortcuts to a commands.
 * Linked Mentions now list full page path rather than abbreviated version.
 
