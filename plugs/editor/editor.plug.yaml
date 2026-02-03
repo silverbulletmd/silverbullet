@@ -291,11 +291,6 @@ functions:
     command:
       name: "Client: Wipe"
 
-  cleanClientCommand:
-    path: ./system.ts:cleanClientCommand
-    command:
-      name: "Client: Clean"
-
   wipeAndLogoutCommand:
     path: ./system.ts:wipeAndLogoutCommand
     command:

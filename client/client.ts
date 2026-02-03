@@ -1548,6 +1548,20 @@ export class Client {
   }
 
   async wipeClient() {
+    // Clean out _other_ IndexedDB databases
+    console.log("Wiping IndexedDB databses not connected to this space...");
+    const dbName = (this.ds.kv as any).dbName;
+    const suffix = dbName.replace("sb_data", "");
+    if (indexedDB.databases) {
+      const allDbs = await indexedDB.databases();
+      for (const db of allDbs) {
+        if (!db.name?.endsWith(suffix)) {
+          console.log("Deleting database", db.name);
+          indexedDB.deleteDatabase(db.name!);
+        }
+      }
+    }
+    // Instructe service worker to wipe
     if (navigator.serviceWorker?.controller) {
       // We will attempt to unregister the service worker, best effort
       await new Promise<void>((resolve) => {
