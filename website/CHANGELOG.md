@@ -5,7 +5,8 @@ Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be
 
 * New _experimental_ API: [[API/tag#tag.define(spec)]], see linked page for docs and example uses. Brings back ability to define 📅 deadlines for tasks (see example). Another part of this is [[Schema]] support for [[Tag|tags]]. When a schema is defined for a tag, you get:
   * [[Frontmatter]] **attribute completion and linting** (in-editor error indicators) for attributes defined as part of the tag’s schema.
-  * [[Space Lua/Lua Integrated Query]] **attribute code completion** _if_ you use the `from v = index.tag("bla")` style syntax (so explicitly bind your iterator variable)
+  * [[Space Lua/Lua Integrated Query]] **attribute code completion** _if_ you use the `from v = index.tag("bla")` style syntax (so explicitly bind your iterator variable).
+  * Item-level linting (highlights the object in-line in case of validation errors)
 * Changed keyboard bindings (sorry!). CodeMirror no longer directly allows `Alt-<letter>` and `Alt-<special-character>` [[Keyboard Shortcuts]], meaning I had to **remap a few key bindings**. It’s basically a mission impossible to pick great ones, but here are the new defaults:
   * `Quick note` is now bound to both `Ctrl-q q` (type `Ctrl-q` first, then hit `q` again) and `Ctrl-q Ctrl-q` (hit `Ctrl-q` twice)
   * `Navigate: Home` is now bound to `Ctrl-g h`

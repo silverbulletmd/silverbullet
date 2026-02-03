@@ -21,7 +21,6 @@ export type ItemObject = ObjectValue<
     name: string;
     text: string;
     pos: number;
-    toPos: number;
     parent?: string;
     links?: string[];
     ilinks?: string[];
@@ -96,11 +95,11 @@ export function extractItemFromNode(
   const item: ItemObject | TaskObject = {
     ref: `${name}@${itemNode.from}`,
     tag: "item",
+    pos: itemNode.from!,
+    range: [itemNode.from!, itemNode.to!],
     name: "", // to be replaced
     text: "", // to be replaced
     page: name,
-    pos: itemNode.from!,
-    toPos: itemNode.to!,
   };
 
   // This will only be valid for items, not task

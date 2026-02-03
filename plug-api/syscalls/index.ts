@@ -20,6 +20,13 @@ export function indexObjects<T>(
   return syscall("index.indexObjects", page, objects);
 }
 
+export function validateObjects<T>(
+  page: string,
+  objects: ObjectValue<T>[],
+): Promise<{ error: string; object: ObjectValue } | null> {
+  return syscall("index.validateObjects", page, objects);
+}
+
 /**
  * Queries objects using a Lua-based collection query
  * @param tag - The tag to filter objects by

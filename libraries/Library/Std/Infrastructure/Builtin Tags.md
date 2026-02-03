@@ -135,7 +135,7 @@ tag.define {
       name = readOnlyType("string"),
       page = readOnlyType("string"),
       parent = readOnlyType("string"),
-      pos = readOnlyType("string"),
+      pos = readOnlyType("number"),
       text = readOnlyType("string"),
     },
   },

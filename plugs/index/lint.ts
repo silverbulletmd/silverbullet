@@ -1,7 +1,8 @@
-import { config, jsonschema, lua } from "@silverbulletmd/silverbullet/syscalls";
+import { index, lua } from "@silverbulletmd/silverbullet/syscalls";
 import {
   findNodeOfType,
   renderToText,
+  traverseTree,
   traverseTreeAsync,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import type {
@@ -11,44 +12,26 @@ import type {
 
 import YAML from "js-yaml";
 import { extractFrontMatter } from "./frontmatter.ts";
+import { allIndexers } from "./indexer.ts";
 
-export async function lintYAML(
+/**
+ * Lint YAML syntax in frontmatter and fenced code blocks
+ */
+export function lintYAML(
   { tree, name }: LintEvent,
-): Promise<LintDiagnostic[]> {
+): LintDiagnostic[] {
   const diagnostics: LintDiagnostic[] = [];
-  const frontmatter = extractFrontMatter(tree);
 
-  await traverseTreeAsync(tree, async (node) => {
+  traverseTree(tree, (node) => {
     if (node.type === "FrontMatterCode") {
       const yamlText = renderToText(node);
-      const lintResult = lintYaml(
+      const lintResult = lintYamlBlock(
         yamlText,
         node.from!,
         name,
       );
       if (lintResult) {
         diagnostics.push(lintResult);
-      } else {
-        const parsed = YAML.load(yamlText);
-        // Parses as valid YAML, now let's see if we need to do schema validation
-        for (const tag of frontmatter.tags || []) {
-          const schema = await config.get(["tags", tag, "schema"], undefined);
-
-          if (schema) {
-            const validationError = await jsonschema.validateObject(
-              schema,
-              parsed,
-            );
-            if (validationError) {
-              diagnostics.push({
-                message: `${tag} validation failed: ${validationError}`,
-                severity: "error",
-                from: node.from!,
-                to: node.to!,
-              });
-            }
-          }
-        }
       }
       return true;
     }
@@ -67,7 +50,7 @@ export async function lintYAML(
           return true;
         }
         const yamlCode = renderToText(codeText);
-        const lintResult = lintYaml(
+        const lintResult = lintYamlBlock(
           yamlCode,
           codeText.from!,
         );
@@ -84,7 +67,14 @@ export async function lintYAML(
 
 const errorRegex = /\((\d+):(\d+)\)/;
 
-function lintYaml(
+/**
+ * Lint a YAML block
+ * @param yamlText - The YAML text to lint
+ * @param startPos - The start position of the YAML block
+ * @param pageName - The page name to check against
+ * @returns A LintDiagnostic if there is an error, undefined otherwise
+ */
+function lintYamlBlock(
   yamlText: string,
   startPos: number,
   pageName?: string,
@@ -121,6 +111,10 @@ function lintYaml(
   }
 }
 
+/**
+ * Lint Lua code in fenced code blocks
+ * @returns A list of LintDiagnostics for any errors found
+ */
 export async function lintLua({ tree }: LintEvent): Promise<LintDiagnostic[]> {
   const diagnostics: LintDiagnostic[] = [];
   await traverseTreeAsync(tree, async (node) => {
@@ -165,4 +159,29 @@ export async function lintLua({ tree }: LintEvent): Promise<LintDiagnostic[]> {
     return false;
   });
   return diagnostics;
+}
+
+/**
+ * Lint objects in the page
+ */
+export async function lintObjects(
+  { tree, pageMeta: meta, text, name }: LintEvent,
+): Promise<LintDiagnostic[]> {
+  const frontmatter = extractFrontMatter(tree);
+
+  // Index the page
+  const allObjects = (await Promise.all(allIndexers.map((indexer) => {
+    return indexer(meta, frontmatter, tree, text);
+  }))).flat();
+  const result = await index.validateObjects(name, allObjects);
+  // If validation failed, return the error
+  if (result?.object?.range) {
+    return [{
+      from: result.object.range[0],
+      to: result.object.range[1],
+      severity: "error",
+      message: result.error,
+    }];
+  }
+  return [];
 }

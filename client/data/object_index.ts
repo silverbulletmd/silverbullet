@@ -29,6 +29,7 @@ type TagDefinition = {
   metatable?: any;
   mustValidate?: boolean;
   schema?: any;
+  validate?: (o: ObjectValue) => Promise<string | null | undefined>;
   transform?: (
     o: ObjectValue,
   ) =>
@@ -37,6 +38,12 @@ type TagDefinition = {
     | ObjectValue
     | null;
 };
+
+export class ObjectValidationError extends Error {
+  constructor(message: string, readonly object: ObjectValue) {
+    super(message);
+  }
+}
 
 export class ObjectIndex {
   constructor(
@@ -285,6 +292,29 @@ export class ObjectIndex {
     page: string,
     objects: ObjectValue<T>[],
   ): Promise<void> {
+    const kvs = await this.processObjectsToKVs<T>(page, objects, false);
+    if (kvs.length > 0) {
+      return this.batchSet(page, kvs);
+    } else {
+      return Promise.resolve();
+    }
+  }
+
+  /**
+   * Validate and transform objects, throws a ValidationError when it fails
+   * @param page
+   * @param objects
+   * @throw ValidationError
+   */
+  public async validateObjects<T>(page: string, objects: ObjectValue<T>[]) {
+    await this.processObjectsToKVs(page, objects, true);
+  }
+
+  private async processObjectsToKVs<T>(
+    page: string,
+    objects: ObjectValue<T>[],
+    throwOnValidationErrors: boolean,
+  ): Promise<KV<T>[]> {
     const kvs: KV<T>[] = [];
     const tagDefinitions: Record<string, TagDefinition> = this.config.get(
       "tags",
@@ -301,21 +331,54 @@ export class ObjectIndex {
       const allTags = [obj.tag, ...obj.tags || []];
       for (const tag of allTags) {
         const tagDefinition = tagDefinitions[tag];
-        // Validate object if required
-        if (tagDefinition?.mustValidate && tagDefinition?.schema) {
+        // Validate object based on schema if required
+        if (
+          tagDefinition?.schema &&
+          (tagDefinition?.mustValidate || throwOnValidationErrors)
+        ) {
           const validationError = validateObject(tagDefinition?.schema, obj);
           if (validationError) {
-            console.error(
-              `Object failed ${tag} validation so won't be indexed:`,
-              obj,
-              "Error:",
-              validationError,
-            );
-            continue;
+            if (!throwOnValidationErrors) {
+              console.warn(
+                `Object failed ${tag} validation so won't be indexed:`,
+                obj,
+                "Validation error:",
+                validationError,
+              );
+              continue;
+            } else {
+              throw new ObjectValidationError(validationError, obj);
+            }
           }
         }
+        // Validate object based on validate callback if required
+        if (
+          tagDefinition?.validate &&
+          (tagDefinition?.mustValidate || throwOnValidationErrors)
+        ) {
+          const validationError = await tagDefinition.validate(obj);
+          if (validationError) {
+            if (!throwOnValidationErrors) {
+              console.warn(
+                `Object failed ${tag} validation so won't be indexed:`,
+                obj,
+                "Validation error:",
+                validationError,
+              );
+              continue;
+            } else {
+              throw new ObjectValidationError(validationError, obj);
+            }
+          }
+        }
+        // Transform object
         if (tagDefinition?.transform) {
-          let newObjects = await tagDefinition.transform(obj);
+          let newObjects;
+          try {
+            newObjects = await tagDefinition.transform(obj);
+          } catch (e: any) {
+            throw new ObjectValidationError(e.message, obj);
+          }
 
           if (!newObjects) {
             // null value returned, just index as usual
@@ -367,11 +430,7 @@ export class ObjectIndex {
         }
       }
     }
-    if (kvs.length > 0) {
-      return this.batchSet(page, kvs);
-    } else {
-      return Promise.resolve();
-    }
+    return kvs;
   }
 
   deleteObject(

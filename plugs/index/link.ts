@@ -84,11 +84,12 @@ export async function indexLinks(
       const url = wikiLinkPage.children![0].text!;
       const pos = wikiLinkPage.from!;
 
-      const link: any = {
+      const link: Partial<LinkObject> = {
         ref: `${name}@${pos}`,
         tag: "link",
         snippet: extractSnippet(name, pageText, pos),
         pos,
+        range: [n.from!, n.to!],
         page: name,
         pageLastModified: pageMeta.lastModified,
       };
@@ -106,7 +107,7 @@ export async function indexLinks(
       if (wikiLinkAlias) {
         link.alias = wikiLinkAlias.children![0].text!;
       }
-      updateITags(link, frontmatter);
+      updateITags(link as LinkObject, frontmatter);
       objects.push(link);
       return true;
     }
@@ -131,12 +132,14 @@ export async function indexLinks(
       const pos = n.from!;
       url = resolveMarkdownLink(name, decodeURI(url));
 
-      const link: any = {
+      const link: Partial<LinkObject> = {
         ref: `${name}@${pos}`,
         tag: "link",
         snippet: extractSnippet(name, pageText, pos),
         pos,
+        range: [n.from!, n.to!],
         page: name,
+        pageLastModified: pageMeta.lastModified,
       };
 
       const ref = parseToRef(url);
@@ -152,7 +155,7 @@ export async function indexLinks(
       if (alias) {
         link.alias = alias;
       }
-      updateITags(link, frontmatter);
+      updateITags(link as LinkObject, frontmatter);
       objects.push(link);
       return true;
     }
@@ -171,12 +174,17 @@ export async function indexLinks(
         if (match && match.groups && match[0] === trimmed) {
           const { leadingTrivia, stringRef, alias } = match.groups;
           const pos = textNode.from! + match.index! + leadingTrivia.length;
-          const link: any = {
+          const link: Partial<LinkObject> = {
             ref: `${name}@${pos}`,
             tag: "link",
             page: name,
             snippet: extractSnippet(name, pageText, pos),
             pos: pos,
+            range: [
+              textNode.from! + match.index!,
+              textNode.from! + match.index! + match[0].length,
+            ],
+            pageLastModified: pageMeta.lastModified,
           };
 
           const ref = parseToRef(stringRef);
@@ -192,7 +200,7 @@ export async function indexLinks(
           if (alias) {
             link.alias = alias;
           }
-          updateITags(link, frontmatter);
+          updateITags(link as LinkObject, frontmatter);
           objects.push(link);
         }
       }
@@ -209,6 +217,7 @@ export async function indexLinks(
           tag: "aspiring-page",
           page: name,
           pos: link.pos,
+          range: link.range,
           name: link.toPage,
         } as AspiringPageObject);
         console.info(

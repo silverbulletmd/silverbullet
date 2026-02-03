@@ -76,6 +76,7 @@ export async function indexParagraphs(
       text: fullText,
       page: pageMeta.name,
       pos,
+      range: [p.from!, p.to!],
       ...attrs,
     };
     if (tags.length > 0) {

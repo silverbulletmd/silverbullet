@@ -24,7 +24,7 @@ export type IndexerFunction = (
   text: string,
 ) => Promise<ObjectValue<any>[]>;
 
-const allIndexers: IndexerFunction[] = [
+export const allIndexers: IndexerFunction[] = [
   pageIndexPage,
   indexData,
   indexItems,

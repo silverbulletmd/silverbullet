@@ -4,7 +4,10 @@ import type {
   LuaQueryCollection,
 } from "../../space_lua/query_collection.ts";
 
-import type { ObjectIndex } from "../../data/object_index.ts";
+import {
+  type ObjectIndex,
+  ObjectValidationError,
+} from "../../data/object_index.ts";
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 import type { Client } from "../../client.ts";
 import type { LuaTable } from "../../space_lua/runtime.ts";
@@ -29,6 +32,25 @@ export function indexSyscalls(
       objects: ObjectValue[],
     ): Promise<void> => {
       return objectIndex.indexObjects(page, objects);
+    },
+    "index.validateObjects": async (
+      _ctx,
+      page: string,
+      objects: ObjectValue[],
+    ): Promise<{ error: string; object: ObjectValue } | null> => {
+      try {
+        await objectIndex.validateObjects(page, objects);
+        return null;
+      } catch (e: any) {
+        if (e instanceof ObjectValidationError) {
+          return {
+            error: e.message,
+            object: e.object,
+          };
+        } else {
+          throw e;
+        }
+      }
     },
     "index.getObjectByRef": (
       _ctx,

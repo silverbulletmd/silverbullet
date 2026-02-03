@@ -84,6 +84,7 @@ export function indexTables(
           tags: [...tags],
           page: pageMeta.name,
           pos: row.from!,
+          range: [row.from!, row.to!],
         };
         cells.forEach((c, i) => {
           replaceNodesMatching(c, (tree) => {

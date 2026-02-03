@@ -12,9 +12,10 @@ Defines a tag explicitly.
 
 `spec` is a table that can contain:
 * `name` (required) the name of the tag
+* `metatable` to set a custom Lua metatable for objects with this tag.
 * `mustValidate` a boolean defining whether or not schema validation must pass for the object to be indexed
 * `schema` [[Schema]] to validate against
-* `metatable` to set a custom Lua metatable for objects with this tag.
+* `validate` callback function invoked when an objects needs to be validated, returns `nil` or an error message.
 * `transform` callback function invoked when an object with tag `name` has been indexed. Allows you to make changes to it, skip indexing altogether or generate additional objects.
 
 When `tag.define` is called multiple times with the same `name`, the specs will be merged. This e.g. enables overriding the schema of a built-in tag, or augment it with a custom `transform` callback.
@@ -24,7 +25,7 @@ This is a very powerful API, with a wide range of potential use cases.
 # Use cases
 ## Schema validation
 To define a [[Schema]] for validating an object (e.g. a page) tagged with `#person` ensuring that the `age` attribute is always a number, you can do the following:
-```space-lua
+```lua
 tag.define {
   name = "person",
   -- mustValidate = true,
@@ -73,15 +74,35 @@ Let’s say that you’d like the encode a deadline attribute for tasks without 
 
 * [ ] Hello 📅 2026-12-31
 
+In addition:
+
+We’d like to highlight tasks that use a 📅 but then don’t follow the correct date format, like here:
+
+* [ ] Hello task 📅 31-12-2026
+
+And we’d like the `name` attribute to be cleaned from the deadline syntax.
+
 This can be implemented by defining a custom `transform` for tasks:
  
 ```lua
+local deadlinePattern = "📅%s*(%d%d%d%d%-%d%d%-%d%d)"
+
 tag.define {
   name = "task",
+  validate = function(o)
+    if o.name:find("📅") then
+      if not o.name:match(deadlinePattern) then
+        return "Found 📅, but did not match YYYY-mm-dd format"
+      end
+    end
+  end,
   transform = function(o)
     -- Use a regular expression to find a deadline
-    local date = o.name:match("📅%s*(%d%d%d%d%-%d%d%-%d%d)")
+    local date = o.name:match(deadlinePattern)
     if date then
+      -- Remove the deadline from the name
+      o.name = o.name:gsub(deadlinePattern, "")
+      -- And put it in as attribute
       o.deadline = date
     end
     return o
