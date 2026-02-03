@@ -1,7 +1,6 @@
 import {
   editor,
   markdown,
-  mq,
   system,
 } from "@silverbulletmd/silverbullet/syscalls";
 
