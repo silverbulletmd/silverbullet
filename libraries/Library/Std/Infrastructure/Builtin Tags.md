@@ -275,4 +275,51 @@ tag.define {
     },
   },
 }
+
+-- page templates
+tag.define {
+  name = "meta/template/page",
+  mustValidate = true,
+  schema = {
+    type = "object",
+    properties = {
+      tags = {
+        anyOf = {
+          { type = "array", items = schema.string() },
+          schema.string(),
+        },
+      },
+      frontmatter = schema.string(),
+      suggestedName = schema.string(),
+      confirmName = schema.boolean(),
+      openIfExists = schema.boolean(),
+      command = schema.string(),
+      key = schema.string(),
+      mac = schema.string(),
+      priority = schema.number(),
+      description = schema.string(),
+    },
+  }
+}
+
+-- slash templates
+tag.define {
+  name = "meta/template/slash",
+  mustValidate = true,
+  schema = {
+    type = "object",
+    properties = {
+      tags = {
+        anyOf = {
+          { type = "array", items = schema.string() },
+          schema.string(),
+        },
+      },
+      description = schema.string(),
+      priority = schema.number(),
+      onlyContexts = schema.array("string"),
+      exceptContexts = schema.array("string"),
+    },
+  }
+}
 ```
