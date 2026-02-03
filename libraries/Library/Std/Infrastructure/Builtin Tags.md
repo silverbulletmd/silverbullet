@@ -279,7 +279,6 @@ tag.define {
 -- page templates
 tag.define {
   name = "meta/template/page",
-  mustValidate = true,
   schema = {
     type = "object",
     properties = {
@@ -294,8 +293,18 @@ tag.define {
       confirmName = schema.boolean(),
       openIfExists = schema.boolean(),
       command = schema.string(),
-      key = schema.string(),
-      mac = schema.string(),
+      key = {
+        anyOf = {
+          { type = "array", items = schema.string() },
+          schema.string(),
+        },
+      },
+      mac = {
+        anyOf = {
+          { type = "array", items = schema.string() },
+          schema.string(),
+        },
+      },
       priority = schema.number(),
       description = schema.string(),
     },
@@ -305,7 +314,6 @@ tag.define {
 -- slash templates
 tag.define {
   name = "meta/template/slash",
-  mustValidate = true,
   schema = {
     type = "object",
     properties = {
