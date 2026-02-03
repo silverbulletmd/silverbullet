@@ -23,7 +23,6 @@ import {
 } from "@silverbulletmd/silverbullet/lib/ref";
 import { resolveASTReference } from "../space_lua.ts";
 import { LuaWidget } from "./lua_widget.ts";
-import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 
 export function luaDirectivePlugin(client: Client) {
   return decoratorStateField((state: EditorState) => {
@@ -73,7 +72,7 @@ export function luaDirectivePlugin(client: Client) {
 
         const codeText = state.sliceDoc(node.from, node.to);
         const expressionText = codeText.slice(2, -1);
-        const currentPageMeta = client.ui.viewState.current?.meta as PageMeta;
+        const currentPageMeta = client.currentPageMeta();
         widgets.push(
           Decoration.widget({
             widget: new LuaWidget(

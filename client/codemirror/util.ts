@@ -10,8 +10,6 @@ import type { DecorationSet } from "@codemirror/view";
 import { Decoration, EditorView, WidgetType } from "@codemirror/view";
 import type { Client } from "../client.ts";
 
-import type { PageMeta } from "../../plug-api/types/index.ts";
-
 type LinkOptions = {
   text: string;
   href?: string;
@@ -182,7 +180,6 @@ export function isCursorInRange(state: EditorState, range: [number, number]) {
 export const invisibleDecoration = Decoration.replace({});
 
 export function shouldRenderWidgets(client: Client) {
-  const currentPageMeta = client.ui.viewState.current?.meta as PageMeta;
   return client.systemReady &&
-    currentPageMeta?.pageDecoration?.renderWidgets !== false;
+    client.currentPageMeta()?.pageDecoration?.renderWidgets !== false;
 }

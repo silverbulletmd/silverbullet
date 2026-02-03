@@ -433,6 +433,10 @@ export class Client {
     );
   }
 
+  currentPageMeta(): PageMeta | undefined {
+    return this.ui.viewState.current?.meta;
+  }
+
   dispatchAppEvent(name: AppEvent, ...args: any[]): Promise<any[]> {
     return this.eventHook.dispatchEvent(name, ...args);
   }
@@ -783,7 +787,7 @@ export class Client {
         this,
         this.currentName(),
         editorView.state.sliceDoc(),
-        this.ui.viewState.current?.meta.perm === "ro",
+        this.currentPageMeta()?.perm === "ro",
       ),
     );
   }
@@ -850,7 +854,7 @@ export class Client {
 
   isReadOnlyMode(): boolean {
     return this.bootConfig.readOnly ||
-      this.ui.viewState.current?.meta.perm === "ro";
+      this.currentPageMeta()?.perm === "ro";
   }
 
   public extractParentNodes(editorState: EditorState, currentNode: SyntaxNode) {
