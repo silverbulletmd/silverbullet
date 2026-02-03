@@ -9,6 +9,7 @@ import { processWithConcurrency } from "@silverbulletmd/silverbullet/lib/async";
 
 const syncConcurrency = 3;
 
+// In practice this is the lastModified timestamp
 type SyncHash = number;
 
 // Tuple where the first value represents a lastModified timestamp for the primary space
@@ -57,7 +58,10 @@ export type SyncOptions = {
 type SyncDirection = "primary->secondary" | "secondary->primary";
 
 export type SyncEvents = {
-  syncProgress: (syncStatus: SyncStatus) => void | Promise<void>;
+  syncProgress: (
+    syncStatus: SyncStatus,
+    snapshot: SyncSnapshot,
+  ) => void | Promise<void>;
   snapshotUpdated: (snapshot: SyncSnapshot) => void | Promise<void>;
 };
 
@@ -135,10 +139,10 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
         filesProcessed++;
         if (fileOperations > 0) {
           // Only report something significant
-          this.emit("syncProgress", {
+          await this.emit("syncProgress", {
             filesProcessed,
             totalFiles: sortedPaths.length,
-          });
+          }, snapshot);
         }
       }, syncConcurrency);
       console.log(
@@ -150,7 +154,9 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
       );
     } finally {
       this.isSyncing = false;
-      this.emit("snapshotUpdated", snapshot);
+      if (operations > 0) {
+        this.emit("snapshotUpdated", snapshot);
+      }
     }
 
     return operations;
@@ -205,7 +211,9 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
       );
     } finally {
       this.isSyncing = false;
-      this.emit("snapshotUpdated", snapshot);
+      if (operations > 0) {
+        this.emit("snapshotUpdated", snapshot);
+      }
     }
 
     return operations;
