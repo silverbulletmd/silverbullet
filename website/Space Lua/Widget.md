@@ -1,6 +1,6 @@
 The `${lua expression}` syntax can be used to implement custom widgets. If the Lua expression evaluates to a simple string, it will live preview as that string rendered as markdown. However, if the expression returns a `widget.new`-generated result value, you can do some fancier stuff.
 
-To render a widget, call `widget.new` with any of the following keys:
+To render a widget, call `widget.new` with a[text](https://meet.google.com/dtz-nbtq-wwf)ny of the following keys:
 
 * `markdown`: Renders the value as markdown
 * `html`: Renders a HTML string as a widget. This is somewhat brittle. Therefore, it’s preferred to use the [[^Library/Std/APIs/DOM]] API.

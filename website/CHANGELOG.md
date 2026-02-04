@@ -22,6 +22,13 @@ Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be
   * `Page: Rename` keyboard shortcut removed
   * `Page: Rename Linked Page` keyboard shortcut removed
   * `Sync: Space` keyboard shortcut removed
+* Sync reliability work:
+  * Better indication whether your page is synced to the server: “Dirty state” (slightly tinted color of page name) is now aligned with actual synced-to-server state _unless_ the editor clearly indicates it is in offline mode (yellow top bar).
+  * Sync snapshots are now persisted after every file sync, reducing (and hopefully eliminating) edge cases where the sync engine is killed mid-sync (for whatever reason) and the snapshot becomes of sync with “reality”.
+  * The index status progress indicator (blue circle) should now be more reliably reflect the actual indexing status.
+* Tag schema updates:
+  * `pos` (present in link, item and some other tags) is now _deprecated_, use `range` instead
+  * `range` is a tuple of two numbers: _from_ and _to_ (e.g. `{0, 10}`) identify where the object appears in the page
 * Lua engine improvements (courtesy of [Matouš Jan Fialka](https://github.com/mjf)):
   * [Support for `<close>` attribute and __close metamethod](https://github.com/silverbulletmd/silverbullet/commit/9419cdcd9be61908330e1dce68a9156dbb911d23)
   * [Better arithmetic error messages](https://github.com/silverbulletmd/silverbullet/commit/5a20a5f8f476a98172609e80c799cd1d83765585)
@@ -29,11 +36,9 @@ Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be
   * [Improved numeric type semantics](https://github.com/silverbulletmd/silverbullet/pull/1803)
 * Lua APIs:
   * [[API/table#table.select(table, keys...)]] (non-standard in Lua) API, convenient to use in [[Space Lua/Lua Integrated Query]] `select` clauses, see example in docs.
-* Sync reliability work:
-  * Better indication whether your page is synced to the server: “Dirty state” (slightly tinted color of page name) is now aligned with actual synced-to-server state _unless_ the editor clearly indicates it is in offline mode (yellow top bar).
-  * Sync snapshots are now persisted after every file sync, reducing (and hopefully eliminating) edge cases where the sync engine is killed mid-sync (for whatever reason) and the snapshot becomes of sync with “reality”.
-  * The index status progress indicator (blue circle) should now be more reliably reflect the actual indexing status.
 * Library manager: SilverBullet now navigates to library page after installing one.
+* Styling changes:
+  * Attribute names and values ([key: value] notation) now get different CSS classes in the editor: `sb-attribute-name` for names and `sb-attribute-value` for values.
 * New `Page: Create Under Cursor` command, useful to pre-create an aspiring page link. Put your cursor in a wiki link to a non-existing page, and hit `Cmd-Shift-Enter` (`Ctrl-Shift-Enter`) to create it (empty) without navigating there.
 * Authentication:
   * How long “remember me” works is now configurable (by [Metin Yazici](https://github.com/silverbulletmd/silverbullet/pull/1796)) via [[Install/Configuration]] and more reliably persisted.

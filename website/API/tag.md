@@ -6,6 +6,9 @@ Enables customization of [[Tag|tags]] and its [[Object|objects]] in a few ways:
 * Change how objects are indexed in the [[Object Index]]
 * Tweak styling of tags in the editor using [[Space Style]]
 
+> **success** Success
+> Put all your `tag.define` calls in your [[CONFIG]] page so that they will be picked up during the index process.
+
 # API
 ## tag.define(spec)
 Defines a tag explicitly.
