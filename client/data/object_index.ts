@@ -22,6 +22,7 @@ const pageKey = "ridx";
 
 const indexVersionKey = ["$indexVersion"];
 const indexQueuedKey = ["$indexQueued"];
+
 // Bump this one every time a full reindex is needed
 const desiredIndexVersion = 9;
 
@@ -151,7 +152,7 @@ export class ObjectIndex {
     }
 
     if (
-      currentIndexVersion !== desiredIndexVersion &&
+      currentIndexVersion < desiredIndexVersion &&
       !await this.isIndexOngoing()
     ) {
       console.info(
