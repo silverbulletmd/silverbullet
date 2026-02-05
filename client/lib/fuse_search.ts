@@ -6,12 +6,25 @@ type FuseOption = FilterOption & {
   baseName: string;
 };
 
+/**
+ * Compare orderIds; aspiring pages (Infinity) sort last. Avoids NaN when both are Infinity.
+ * @returns -1 if a is less than b, 1 if a is greater than b, 0 if they are equal
+ */
+function compareOrderId(a: number | undefined, b: number | undefined): number {
+  const aOrder = a ?? 0;
+  const bOrder = b ?? 0;
+  if (aOrder === Infinity && bOrder === Infinity) return 0;
+  if (aOrder === Infinity) return 1;
+  if (bOrder === Infinity) return -1;
+  return aOrder - bOrder;
+}
+
 export const fuzzySearchAndSort = (
   arr: FilterOption[],
   searchPhrase: string,
 ): FilterOption[] => {
   if (!searchPhrase) {
-    return arr.sort((a, b) => (a.orderId || 0) - (b.orderId || 0));
+    return arr.sort((a, b) => compareOrderId(a.orderId, b.orderId));
   }
 
   const enrichedArr: FuseOption[] = arr.map((item) => {
@@ -50,15 +63,15 @@ export const fuzzySearchAndSort = (
       const aItem = enrichedArr[a.idx];
       const bItem = enrichedArr[b.idx];
 
-      // If either aItem.orderId or bItem.orderId is Infinity (== aspiring page), put it last
+      // If either orderId is Infinity (aspiring page), put it last (compareOrderId avoids NaN)
       if (aItem.orderId === Infinity || bItem.orderId === Infinity) {
-        return (aItem.orderId || 0) - (bItem.orderId || 0);
+        return compareOrderId(aItem.orderId, bItem.orderId);
       }
 
       // If scores are the same, use orderId for sorting
       if (a.score === b.score) {
-        const aOrder = aItem.orderId || 0;
-        const bOrder = bItem.orderId || 0;
+        const aOrder = aItem.orderId ?? 0;
+        const bOrder = bItem.orderId ?? 0;
         if (aOrder !== bOrder) {
           return aOrder - bOrder;
         }
