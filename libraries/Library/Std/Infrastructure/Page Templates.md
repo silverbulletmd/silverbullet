@@ -127,7 +127,6 @@ for pt in query[[
       createPageFromTemplate(pt.name, pageName)
     end
   }
-  print("Registered", pt.command)
 end
 
 local function cleanName(path)
