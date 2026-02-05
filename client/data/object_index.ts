@@ -21,7 +21,6 @@ const indexKey = "idx";
 const pageKey = "ridx";
 
 const indexVersionKey = ["$indexVersion"];
-const indexQueuedKey = ["$indexQueued"];
 
 // Bump this one every time a full reindex is needed
 const desiredIndexVersion = 9;
@@ -53,40 +52,47 @@ export class ObjectIndex {
     private eventHook: EventHook,
     private mq: DataStoreMQ,
   ) {
-    let startTime = -1;
-    this.eventHook.addLocalListener("file:initial", async () => {
-      startTime = Date.now();
-      await this.setIndexOngoing(true);
+    // Clear any entries for deleted files
+    this.eventHook.addLocalListener("file:deleted", (path: string) => {
+      return this.clearFileIndex(path);
     });
 
-    this.eventHook.addLocalListener("file:deleted", async (path: string) => {
-      await this.clearFileIndex(path);
+    // Tracks if the file:listed event has been triggered,
+    // which is fired after all file:changed events have been dispatched
+    // resulting in new index entries (if any) being queued in the index queue
+    // this is later used to track if the index is complete
+    let indexStarted = false;
+    this.eventHook.addLocalListener("file:listed", () => {
+      indexStarted = true;
     });
 
-    const emptyQueueHandler = async () => {
-      await this.setIndexOngoing(false);
-      if (
-        startTime !== -1 && !await this.hasInitialIndexCompleted()
-      ) {
-        // Indexing has just finished for the first time
-        console.info(
-          "Initial index complete after",
-          (Date.now() - startTime) / 1000,
-          "s",
-        );
-        // Unsubscribe myself
-        this.eventHook.removeLocalListener(
+    // Handle initial index completion
+    this.hasFullIndexCompleted().then((hasCompleted) => {
+      if (!hasCompleted) {
+        const emptyQueueHandler = async () => {
+          console.log("Index queue empty, checking if index is complete");
+          // Theoretically we could get empty queue notifications before the file:listed event has been triggered, so let's account for this
+          if (indexStarted) {
+            // Indexing has just finished for the first time for this client
+            console.info(
+              "Initial index complete, reloading editor state",
+            );
+            await this.markFullIndexComplete();
+            // Unsubscribe yourself
+            this.eventHook.removeLocalListener(
+              "mq:emptyQueue:indexQueue",
+              emptyQueueHandler,
+            );
+            // Trigger an editor:reloadState event to reload the editor state (render widgets etc.)
+            this.eventHook.dispatchEvent("editor:reloadState");
+          }
+        };
+        this.eventHook.addLocalListener(
           "mq:emptyQueue:indexQueue",
           emptyQueueHandler,
         );
-        await this.markInitialIndexComplete();
-        this.eventHook.dispatchEvent("editor:reloadState");
       }
-    };
-    this.eventHook.addLocalListener(
-      "mq:emptyQueue:indexQueue",
-      emptyQueueHandler,
-    );
+    });
   }
 
   tag(tagName: string): LuaQueryCollection {
@@ -128,22 +134,7 @@ export class ObjectIndex {
     return this.ds.get([indexKey, tag, this.cleanKey(ref, page), page]);
   }
 
-  async isIndexOngoing() {
-    return !!(await this.ds.get(indexQueuedKey));
-  }
-
-  async setIndexOngoing(val: boolean = true) {
-    await this.ds.set(indexQueuedKey, val);
-  }
-
   async ensureFullIndex(space: Space) {
-    // Commenting out this check because I think it always holds when calling this API
-    // if (!this.client.fullSyncCompleted) {
-    //   console.info(
-    //     "Initial full sync not completed, skipping index check",
-    //   );
-    //   return;
-    // }
     const currentIndexVersion = await this.getCurrentIndexVersion();
 
     if (!currentIndexVersion) {
@@ -152,8 +143,10 @@ export class ObjectIndex {
     }
 
     if (
+      // If the index version is less than the desired version
       currentIndexVersion < desiredIndexVersion &&
-      !await this.isIndexOngoing()
+      // And the index queue is empty (meaning no indexing is ongoing)
+      await this.mq.isQueueEmpty("indexQueue")
     ) {
       console.info(
         "[index]",
@@ -161,12 +154,10 @@ export class ObjectIndex {
         currentIndexVersion,
         desiredIndexVersion,
       );
-      await this.setIndexOngoing(true);
+
       await this.reindexSpace(space);
-      console.info("[index]", "Full space index complete.");
-      await this.markInitialIndexComplete();
-      await this.setIndexOngoing(false);
-      // Let's load space scripts again, which probably weren't loaded before
+
+      // Dispatch an editor:reloadState event to reload the editor state (render widgets etc.)
       this.eventHook.dispatchEvent("editor:reloadState");
     }
   }
@@ -174,6 +165,7 @@ export class ObjectIndex {
   async reindexSpace(space: Space) {
     console.log("Clearing page index...");
     await this.clearIndex();
+    await this.markFullIndexInComplete();
 
     const files = await space.deduplicatedFileList();
 
@@ -182,10 +174,11 @@ export class ObjectIndex {
     const startTime = Date.now();
     await this.mq.batchSend("indexQueue", files.map((file) => file.name));
     await this.mq.awaitEmptyQueue("indexQueue");
-    console.log("Done with full index after", Date.now() - startTime, "ms");
+    await this.markFullIndexComplete();
+    console.log("Full index completed after", Date.now() - startTime, "ms");
   }
 
-  public async hasInitialIndexCompleted() {
+  public async hasFullIndexCompleted() {
     return (await this.ds.get(indexVersionKey)) >= desiredIndexVersion;
   }
 
@@ -193,8 +186,12 @@ export class ObjectIndex {
     return this.ds.get(indexVersionKey);
   }
 
-  async markInitialIndexComplete() {
+  async markFullIndexComplete() {
     await this.ds.set(indexVersionKey, desiredIndexVersion);
+  }
+
+  async markFullIndexInComplete() {
+    await this.ds.delete(indexVersionKey);
   }
 
   cleanKey(ref: string, page: string) {

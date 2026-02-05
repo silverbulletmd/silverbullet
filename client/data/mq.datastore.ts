@@ -379,10 +379,14 @@ export class DataStoreMQ {
     };
   }
 
-  async awaitEmptyQueue(queue: string): Promise<void> {
+  public async isQueueEmpty(queue: string): Promise<boolean> {
+    const stats = await this.getQueueStats(queue);
+    return stats.queued === 0 && stats.processing === 0;
+  }
+
+  public async awaitEmptyQueue(queue: string): Promise<void> {
     while (true) {
-      const stats = await this.getQueueStats(queue);
-      if (stats.queued === 0 && stats.processing === 0) {
+      if (await this.isQueueEmpty(queue)) {
         break;
       }
       await sleep(200);

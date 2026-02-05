@@ -37,15 +37,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     console.log("Loading snapshot and enabling events");
     this.spaceSnapshot = (await this.ds.get(this.snapshotKey)) || {};
     this.snapshotChanged = false;
-    const isFreshSnapshot = this.isSnapshotEmpty();
     this.enabled = true;
-    // trigger loading and eventing
-    this.fetchFileList().then(async () => {
-      if (isFreshSnapshot) {
-        // Trigger event to signal that an intial batch of events has been triggered
-        await this.dispatchEvent("file:initial");
-      }
-    });
   }
 
   public isSnapshotEmpty() {

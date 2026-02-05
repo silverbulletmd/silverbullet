@@ -600,7 +600,7 @@ export class Client {
     console.log("Updating page list cache");
     // Check if the initial sync has been completed
     const initialIndexCompleted = await this.objectIndex
-      .hasInitialIndexCompleted();
+      .hasFullIndexCompleted();
 
     let allPages: PageMeta[] = [];
 
@@ -1118,7 +1118,7 @@ export class Client {
 
     // Fetch the meta which includes the possibly indexed stuff, like page
     // decorations
-    if (await this.objectIndex.hasInitialIndexCompleted()) {
+    if (await this.objectIndex.hasFullIndexCompleted()) {
       try {
         const enrichedMeta = await this.objectIndex.getObjectByRef<PageMeta>(
           pageName,
@@ -1284,7 +1284,10 @@ export class Client {
       console.warn("Not loading custom styles, since space style is disabled");
       return;
     }
-    if (!await this.objectIndex.hasInitialIndexCompleted()) {
+    if (!await this.objectIndex.hasFullIndexCompleted()) {
+      console.warn(
+        "Not loading custom styles, since full indexing has not completed yet",
+      );
       return;
     }
 
