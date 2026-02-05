@@ -27,28 +27,33 @@ export const fuzzySearchAndSort = (
   const fuse = new Fuse(enrichedArr, {
     keys: [{
       name: "name",
-      weight: 0.3,
+      weight: 2,
     }, {
       name: "baseName",
-      weight: 1,
+      weight: 3,
     }, {
       name: "displayName",
-      weight: 0.7,
+      weight: 2,
     }, {
       name: "aliases",
-      weight: 0.5,
+      weight: 2,
     }, {
       name: "description",
-      weight: 0.3,
+      weight: 1,
     }],
     isCaseSensitive: false,
     ignoreDiacritics: true,
     shouldSort: true,
-    threshold: 0.6,
+    threshold: 0.3,
     includeScore: true,
     sortFn: (a, b): number => {
       const aItem = enrichedArr[a.idx];
       const bItem = enrichedArr[b.idx];
+
+      // If either aItem.orderId or bItem.orderId is Infinity (== aspiring page), put it last
+      if (aItem.orderId === Infinity || bItem.orderId === Infinity) {
+        return (aItem.orderId || 0) - (bItem.orderId || 0);
+      }
 
       // If scores are the same, use orderId for sorting
       if (a.score === b.score) {
