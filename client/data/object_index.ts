@@ -186,7 +186,7 @@ export class ObjectIndex {
   }
 
   public async hasInitialIndexCompleted() {
-    return (await this.ds.get(indexVersionKey)) === desiredIndexVersion;
+    return (await this.ds.get(indexVersionKey)) >= desiredIndexVersion;
   }
 
   private getCurrentIndexVersion() {
