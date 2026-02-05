@@ -12,6 +12,13 @@ local function readOnlyType(type)
   }
 end
 
+local rangeType = {
+  type = "array",
+  items = { schema.number(), schema.number() },
+  minItems = 2,
+  maxItems = 2,
+}
+
 -- page
 tag.define {
   name = "page",
@@ -27,6 +34,8 @@ tag.define {
           schema.string(),
         },
       },
+      -- range of where fronmatter appears in the page (if present)
+      range = rangeType,
       itags = {
         type = "array",
         readOnly = true,
@@ -132,11 +141,13 @@ tag.define {
         items = schema.string(),
         nullable = true,
       },
-      name = readOnlyType("string"),
       page = readOnlyType("string"),
-      parent = readOnlyType("string"),
-      pos = readOnlyType("number"),
+      name = readOnlyType("string"),
       text = readOnlyType("string"),
+      parent = readOnlyType("string"),
+      range = rangeType,
+      -- deprecated in favor of range
+      pos = readOnlyType("number"),
     },
   },
 }
@@ -172,6 +183,8 @@ tag.define {
     properties = {
       ref = readOnlyType("string"),
       tag = schema.string(),
+      -- type of link: page, file, url
+      type = schema.string(),
       tags = schema.array("string"),
       itags = {
         type = "array",
@@ -181,12 +194,15 @@ tag.define {
       },
       name = schema.string(),
       page = schema.string(),
+      alias = schema.string(),
       pageLastModified = schema.string(),
       toFile = schema.nullable("string"),
       toPage = schema.nullable("string"),
+      toURL = schema.nullable("string"),
       snippet = schema.string(),
+      range = rangeType,
+      -- deprecated in favor of range
       pos = schema.number(),
-      alias = schema.string(),
     },
   },
 }
@@ -207,8 +223,10 @@ tag.define {
       },
       name = readOnlyType("string"),
       page = readOnlyType("string"),
-      pos = readOnlyType("number"),
+      range = rangeType,
       level = readOnlyType("number"),
+      -- deprecated in favor of range
+      pos = readOnlyType("number"),
     },
   },
 }
@@ -230,6 +248,8 @@ tag.define {
       },
       text = readOnlyType("string"),
       page = readOnlyType("string"),
+      range = rangeType,
+      -- deprecated in favor of range
       pos = readOnlyType("number"),
     },
   },
@@ -244,6 +264,8 @@ tag.define {
       ref = readOnlyType("string"),
       tag = readOnlyType("string"),
       page = schema.string(),
+      range = rangeType,
+      -- deprecated in favor of range
       pos = schema.number(),
     },
   },
@@ -268,6 +290,8 @@ tag.define {
       name = readOnlyType("string"),
       page = readOnlyType("string"),
       parent = readOnlyType("string"),
+      range = rangeType,
+      -- deprecated in favor of range
       pos = readOnlyType("number"),
       text = readOnlyType("string"),
       state = readOnlyType("string"),
