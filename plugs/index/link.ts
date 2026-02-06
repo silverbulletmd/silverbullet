@@ -205,7 +205,7 @@ export async function indexLinks(
           if (alias) {
             link.alias = alias;
           }
-          updateITags(link as LinkObject, frontmatter);
+          updateITags(link, frontmatter);
           objects.push(link);
         }
       }
