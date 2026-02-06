@@ -121,7 +121,7 @@ export class Client {
 
   // CodeMirror editor
   editorView!: EditorView;
-  keyHandlerCompartment?: Compartment;
+  commandKeyHandlerCompartment?: Compartment;
   indentUnitCompartment?: Compartment;
   undoHistoryCompartment?: Compartment;
 
