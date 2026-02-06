@@ -78,7 +78,7 @@ export function frontmatterPlugin(client: Client) {
               const to = from + oMatch[0].length;
               const text = state.sliceDoc(from, to);
 
-              // 1) External links: http(s) URLs
+              // 1) External links: http(s), <scheme>:// URLs
               frontmatterUrlRegex.lastIndex = 0;
               let match: RegExpExecArray | null;
               while ((match = frontmatterUrlRegex.exec(text)) !== null) {
@@ -103,7 +103,14 @@ export function frontmatterPlugin(client: Client) {
                           return;
                         }
                         try {
-                          globalThis.open(url, "_blank");
+                          // Open http(s) links in a new window/tab, open
+                          // alternate schemes in the same page, as they'll
+                          // bounce to another application.
+                          if (/^https?:\/\//i.test(url)) {
+                            globalThis.open(url, "_blank");
+                          } else {
+                            globalThis.open(url, "_self");
+                          }
                         } catch (err) {
                           console.error("Failed to open external link", err);
                         }
