@@ -33,7 +33,7 @@ import { languageSyscalls } from "./plugos/syscalls/language.ts";
 import { codeWidgetSyscalls } from "./plugos/syscalls/code_widget.ts";
 import { clientCodeWidgetSyscalls } from "./plugos/syscalls/client_code_widget.ts";
 import { KVPrimitivesManifestCache } from "./plugos/manifest_cache.ts";
-import { createKeyBindings } from "./codemirror/editor_state.ts";
+import { createCommandKeyBindings } from "./codemirror/editor_state.ts";
 import type { DataStoreMQ } from "./data/mq.datastore.ts";
 import { jsonschemaSyscalls } from "./plugos/syscalls/jsonschema.ts";
 import { luaSyscalls } from "./plugos/syscalls/lua.ts";
@@ -125,8 +125,8 @@ export class ClientSystem {
         });
         // Replace the key mapping compartment (keybindings)
         this.client.editorView.dispatch({
-          effects: this.client.keyHandlerCompartment?.reconfigure(
-            createKeyBindings(this.client),
+          effects: this.client.commandKeyHandlerCompartment?.reconfigure(
+            createCommandKeyBindings(this.client),
           ),
         });
       },

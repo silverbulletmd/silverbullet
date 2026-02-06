@@ -60,11 +60,15 @@ export function createEditorState(
 ): EditorState {
   let touchCount = 0;
 
-  // Ugly: keep the keyhandler compartment in the client, to be replaced later once more commands are loaded
-  client.keyHandlerCompartment = new Compartment();
-  const keyBindings = client.keyHandlerCompartment.of(
-    createKeyBindings(client),
+  // Ugly: keep the commandKeyHandler compartment in the client, to be replaced
+  // later once more commands are loaded
+  client.commandKeyHandlerCompartment = new Compartment();
+  const commandKeyBindings = client.commandKeyHandlerCompartment.of(
+    createCommandKeyBindings(client),
   );
+  // Regular key bindings are not dynamically updated and do not require a
+  // compartment.
+  const regularKeyBindings = createRegularKeyBindings(client);
 
   client.indentUnitCompartment = new Compartment();
   const indentUnits = client.indentUnitCompartment.of(
@@ -81,6 +85,12 @@ export function createEditorState(
       EditorView.theme({}, {
         dark: client.ui.viewState.uiOptions.darkMode,
       }),
+
+      // Insert our command key bindings *before* vim mode. Vim in normal-mode is
+      // greedy and captures all key events, preventing them from reaching our
+      // own handlers to trigger commands. This will mean some vim-mode
+      // bindings wont trigger if they have the same keys.
+      commandKeyBindings,
 
       // Enable vim mode, or not
       [
@@ -183,7 +193,7 @@ export function createEditorState(
         },
       ]),
       disableSpellcheck(["InlineCode", "CodeText", "CodeInfo", "FrontMatter"]),
-      keyBindings,
+      regularKeyBindings,
       EditorView.domEventHandlers({
         // This may result in duplicated touch events on mobile devices
         touchmove: () => {
@@ -331,7 +341,7 @@ export function isValidEditor(
     (currentEditor !== undefined && requiredEditor === "notpage");
 }
 
-export function createCommandKeyBindings(client: Client): KeyBinding[] {
+export function createCommandKeyBindings(client: Client): Extension {
   const commandKeyBindings: KeyBinding[] = [];
 
   // Then add bindings for plug commands
@@ -386,17 +396,16 @@ export function createCommandKeyBindings(client: Client): KeyBinding[] {
     }
   }
 
-  return commandKeyBindings;
+  return keymap.of([
+    ...commandKeyBindings,
+  ]);
 }
 
-export function createKeyBindings(client: Client): Extension {
+export function createRegularKeyBindings(client: Client): Extension {
   if (client.isDocumentEditor()) {
-    return keymap.of([
-      ...createCommandKeyBindings(client),
-    ]);
+    return keymap.of([]);
   } else {
     return keymap.of([
-      ...createCommandKeyBindings(client),
       ...createSmartQuoteKeyBindings(client),
       ...closeBracketsKeymap,
       ...client.ui.viewState.uiOptions.vimMode

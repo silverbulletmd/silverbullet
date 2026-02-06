@@ -148,6 +148,9 @@ export function MiniEditor(
       doc: text,
       extensions: [
         EditorView.theme({}, { dark: darkMode }),
+        // Insert command bindings before vim-mode to ensure they're available
+        // in normal mode. See editor_state.ts for more details.
+        createCommandKeyBindings(globalThis.client),
         // Enable vim mode, or not
         [...vimMode ? [vim()] : []],
         [
@@ -182,7 +185,6 @@ export function MiniEditor(
           },
           ...standardKeymap,
           ...historyKeymap,
-          ...createCommandKeyBindings(globalThis.client),
         ]),
         EditorView.domEventHandlers({
           click: (e) => {
