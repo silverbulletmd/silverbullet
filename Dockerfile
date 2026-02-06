@@ -16,7 +16,7 @@ WORKDIR /app
 ADD . /app
 
 # Build the `silverbullet` self-contained binary in /app/silverbullet
-RUN rm deno.lock && make build
+RUN make build
 
 # Stage 2: Create the runtime from the build
 FROM alpine:latest
