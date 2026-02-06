@@ -249,7 +249,7 @@ export function filterBox(
 export function showPanel(
   id: "lhs" | "rhs" | "bhs" | "modal",
   mode: number,
-  html: string,
+  html: HTMLElement | HTMLElement[] | string,
   script = "",
 ): Promise<void> {
   return syscall("editor.showPanel", id, mode, html, script);

@@ -311,7 +311,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
       _ctx,
       id: string,
       mode: number,
-      html: string,
+      html: HTMLElement | HTMLElement[] | string,
       script: string,
     ) => {
       client.ui.viewDispatch({

@@ -14,7 +14,7 @@ import type { SyncStatus } from "../spaces/sync.ts";
 
 export type PanelConfig = {
   mode?: PanelMode;
-  html?: string;
+  html?: HTMLElement | HTMLElement[] | string;
   script?: string;
 };
 
