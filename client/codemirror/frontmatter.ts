@@ -12,6 +12,7 @@ import {
   frontmatterQuotesRegex,
   frontmatterUrlRegex,
   frontmatterWikiLinkRegex,
+  frontmatterMailtoRegex,
 } from "../markdown_parser/constants.ts";
 import { processWikiLink, type WikiLinkMatch } from "./wiki_link_processor.ts";
 
@@ -166,6 +167,42 @@ export function frontmatterPlugin(client: Client) {
                 });
 
                 widgets.push(...decorations);
+              }
+
+              // 3) mailto:... links
+              frontmatterMailtoRegex.lastIndex = 0;
+              let mMatch: RegExpExecArray | null;
+              while ((mMatch = frontmatterMailtoRegex.exec(text)) !== null) {
+                const mFrom = from + (mMatch.index ?? 0);
+                const mTo = mFrom + mMatch[0].length;
+                const url = mMatch[1];
+                const address = url.slice(7);
+                widgets.push(
+                  Decoration.replace({
+                    widget: new LinkWidget({
+                      text: url,
+                      title: `Mail ${address}`,
+                      href: url,
+                      cssClass: "sb-external-link",
+                      from: mFrom,
+                      callback: (e) => {
+                        if (e.altKey) {
+                          // Move cursor into the link
+                          client.editorView.dispatch({
+                            selection: { anchor: mFrom },
+                          });
+                          client.focus();
+                          return;
+                        }
+                        try {
+                          globalThis.open(url, "_self");
+                        } catch (err) {
+                          console.error("Failed to open external link", err);
+                        }
+                      },
+                    }),
+                  }).range(mFrom, mTo),
+                );
               }
             }
           }
