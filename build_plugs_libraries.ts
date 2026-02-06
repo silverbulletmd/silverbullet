@@ -1,5 +1,5 @@
 import * as path from "@std/path";
-import * as esbuild from "esbuild";
+import { esbuild } from "./build_deps.ts";
 import { compileManifests } from "./client/plugos/plug_compile.ts";
 import { builtinPlugNames } from "./plugs/builtin_plugs.ts";
 import { parseArgs } from "@std/cli/parse-args";
