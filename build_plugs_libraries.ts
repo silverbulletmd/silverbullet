@@ -62,9 +62,9 @@ export async function updateVersionFile() {
   }
 
   const versionFilePath = "./public_version.ts";
-  // Write version to file with date in YYYY-MM-DD format attached to the version
+  // Write version to file with date in YYYY-MM-DDTHH-MM-SSZ format attached to the version
   const versionContent = `export const publicVersion = "${commitVersion}-${
-    new Date().toISOString().split(".")[0].replaceAll(":", "-")
+    new Date().toISOString().split(".")[0].replaceAll(":", "-").concat("Z")
   }";`;
 
   await Deno.writeTextFile(versionFilePath, versionContent);
