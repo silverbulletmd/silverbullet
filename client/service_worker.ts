@@ -74,7 +74,7 @@ let encryptionKeyMemoryStore: CryptoKey | undefined;
 setInterval(() => {
   // @ts-ignore: service worker API
   globalThis.clients.matchAll().then((clients) => {
-    if (clients.length === 0) {
+    if (clients.length === 0 && encryptionKeyMemoryStore) {
       console.info("No more clients, flushing encryption key");
       encryptionKeyMemoryStore = undefined;
     }
@@ -379,6 +379,7 @@ self.addEventListener("activate", (event: any) => {
 
   event.waitUntil(
     (async () => {
+      // Flush old caches
       const cacheNames = await caches.keys();
       await Promise.all(
         cacheNames.map((cacheName) => {

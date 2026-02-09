@@ -1,7 +1,6 @@
 import {
   editor,
   markdown,
-  mq,
   system,
 } from "@silverbulletmd/silverbullet/syscalls";
 
@@ -29,20 +28,6 @@ export async function wipeClientCommand() {
 
 export async function wipeAndLogoutCommand() {
   await system.wipeClient(true);
-}
-
-/**
- * Does the following:
- * - Flushes all message queues
- * - Cleans IndexedDB databases not connected to the current space
- */
-export async function cleanClientCommand() {
-  await mq.flushAllQueues();
-  if (await system.cleanDatabases()) {
-    await editor.alert("Successfullly cleaned unnecessary client databases.");
-  } else {
-    await editor.alert("Failed to clean unnecessary client databases.");
-  }
 }
 
 export async function reloadUICommand() {

@@ -245,9 +245,9 @@ config.set("std.widgets.linkedTasks", {
 function widgets.linkedTasks(pageName)
   pageName = pageName or editor.getCurrentPage()
   local tasks = query[[
-    from index.tag "task"
-    where not _.done and table.includes(_.ilinks, pageName)
-    order by _.page
+    from t = index.tag "task"
+    where not t.done and table.includes(t.ilinks, pageName)
+    order by t.page
   ]]
   local md = ""
   if #tasks > 0 then

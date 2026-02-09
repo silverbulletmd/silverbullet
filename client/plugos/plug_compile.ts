@@ -1,7 +1,6 @@
 import * as path from "@std/path";
 import * as YAML from "@std/yaml";
-import { denoPlugins } from "@luca/esbuild-deno-loader";
-import * as esbuild from "esbuild";
+import { denoPlugin, esbuild } from "../../build_deps.ts";
 import { bundleAssets } from "../asset_bundle/builder.ts";
 import type { Manifest } from "./types.ts";
 import { version } from "../../version.ts";
@@ -18,8 +17,6 @@ export type CompileOptions = {
   runtimeUrl?: string;
   // path to config file
   configPath?: string;
-  // path to import map
-  importMap?: string;
   // Print info on bundle size
   info?: boolean;
 };
@@ -100,8 +97,14 @@ setupMessageListener(functionMapping, manifest, self.postMessage);
   const outFile = `${destPath}/${manifest.name}.plug.js`;
   await Deno.writeTextFile(inFile, jsFile);
 
+  try {
+    await Deno.remove("deno.lock");
+  } catch {
+    // Ignore
+  }
+
   const result = await esbuild.build({
-    entryPoints: [path.basename(inFile)],
+    entryPoints: [inFile],
     bundle: true,
     format: "esm",
     globalName: "mod",
@@ -112,13 +115,11 @@ setupMessageListener(functionMapping, manifest, self.postMessage);
     metafile: options.info,
     treeShaking: true,
     plugins: [
-      ...denoPlugins({
+      denoPlugin({
         configPath: options.configPath &&
           path.resolve(Deno.cwd(), options.configPath),
-        importMapURL: options.importMap,
       }),
     ],
-    absWorkingDir: path.resolve(path.dirname(inFile)),
   });
 
   if (options.info) {
@@ -176,11 +177,10 @@ export function patchDenoLibJS(code: string): string {
 }
 
 export async function plugCompileCommand(
-  { dist, debug, info, importmap, config, runtimeUrl }: {
+  { dist, debug, info, config, runtimeUrl }: {
     dist: string;
     debug: boolean;
     info: boolean;
-    importmap?: string;
     config?: string;
     runtimeUrl?: string;
   },
@@ -193,9 +193,6 @@ export async function plugCompileCommand(
       debug: debug,
       info: info,
       runtimeUrl,
-      importMap: importmap
-        ? new URL(importmap, `file://${Deno.cwd()}/`).toString()
-        : undefined,
       configPath: config,
     },
   );

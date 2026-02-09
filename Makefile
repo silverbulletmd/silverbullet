@@ -6,9 +6,16 @@ build:
 	# Build server
 	go build
 
+build-for-docker: build
+	GOOS=linux GOARCH=arm64 go build -o silverbullet-arm64 .
+	GOOS=linux GOARCH=amd64 go build -o silverbullet-amd64 .
+
+docker: build-for-docker
+	docker buildx build --platform linux/arm64,linux/amd64 --push .
+
 clean:
 	rm -rf  client_bundle/{base_fs,client} dist public_version.ts
-	rm -f silverbullet
+	rm -f silverbullet silverbullet-arm64 silverbullet-amd64
 
 check:
 	# Frontend type check

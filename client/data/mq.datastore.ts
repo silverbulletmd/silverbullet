@@ -67,9 +67,8 @@ export class QueueWorker {
                 this.mq.removeQueuedWorker(this.queue, this.stopReject!);
               }),
             ]);
-          } catch (e: any) {
+          } catch {
             // Only scenario we should end up here is stop being called
-            console.info(e.message);
             break;
           }
         }
@@ -380,10 +379,14 @@ export class DataStoreMQ {
     };
   }
 
-  async awaitEmptyQueue(queue: string): Promise<void> {
+  public async isQueueEmpty(queue: string): Promise<boolean> {
+    const stats = await this.getQueueStats(queue);
+    return stats.queued === 0 && stats.processing === 0;
+  }
+
+  public async awaitEmptyQueue(queue: string): Promise<void> {
     while (true) {
-      const stats = await this.getQueueStats(queue);
-      if (stats.queued === 0 && stats.processing === 0) {
+      if (await this.isQueueEmpty(queue)) {
         break;
       }
       await sleep(200);

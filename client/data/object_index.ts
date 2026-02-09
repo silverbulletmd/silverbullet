@@ -21,7 +21,7 @@ const indexKey = "idx";
 const pageKey = "ridx";
 
 const indexVersionKey = ["$indexVersion"];
-const indexQueuedKey = ["$indexQueued"];
+
 // Bump this one every time a full reindex is needed
 const desiredIndexVersion = 9;
 
@@ -29,6 +29,7 @@ type TagDefinition = {
   metatable?: any;
   mustValidate?: boolean;
   schema?: any;
+  validate?: (o: ObjectValue) => Promise<string | null | undefined>;
   transform?: (
     o: ObjectValue,
   ) =>
@@ -38,6 +39,12 @@ type TagDefinition = {
     | null;
 };
 
+export class ObjectValidationError extends Error {
+  constructor(message: string, readonly object: ObjectValue) {
+    super(message);
+  }
+}
+
 export class ObjectIndex {
   constructor(
     private ds: DataStore,
@@ -45,40 +52,47 @@ export class ObjectIndex {
     private eventHook: EventHook,
     private mq: DataStoreMQ,
   ) {
-    let startTime = -1;
-    this.eventHook.addLocalListener("file:initial", async () => {
-      startTime = Date.now();
-      await this.setIndexOngoing(true);
+    // Clear any entries for deleted files
+    this.eventHook.addLocalListener("file:deleted", (path: string) => {
+      return this.clearFileIndex(path);
     });
 
-    this.eventHook.addLocalListener("file:deleted", async (path: string) => {
-      await this.clearFileIndex(path);
+    // Tracks if the file:listed event has been triggered,
+    // which is fired after all file:changed events have been dispatched
+    // resulting in new index entries (if any) being queued in the index queue
+    // this is later used to track if the index is complete
+    let indexStarted = false;
+    this.eventHook.addLocalListener("file:listed", () => {
+      indexStarted = true;
     });
 
-    const emptyQueueHandler = async () => {
-      await this.setIndexOngoing(false);
-      if (
-        startTime !== -1 && !await this.hasInitialIndexCompleted()
-      ) {
-        // Indexing has just finished for the first time
-        console.info(
-          "Initial index complete after",
-          (Date.now() - startTime) / 1000,
-          "s",
-        );
-        // Unsubscribe myself
-        this.eventHook.removeLocalListener(
+    // Handle initial index completion
+    this.hasFullIndexCompleted().then((hasCompleted) => {
+      if (!hasCompleted) {
+        const emptyQueueHandler = async () => {
+          console.log("Index queue empty, checking if index is complete");
+          // Theoretically we could get empty queue notifications before the file:listed event has been triggered, so let's account for this
+          if (indexStarted) {
+            // Indexing has just finished for the first time for this client
+            console.info(
+              "Initial index complete, reloading editor state",
+            );
+            await this.markFullIndexComplete();
+            // Unsubscribe yourself
+            this.eventHook.removeLocalListener(
+              "mq:emptyQueue:indexQueue",
+              emptyQueueHandler,
+            );
+            // Trigger an editor:reloadState event to reload the editor state (render widgets etc.)
+            this.eventHook.dispatchEvent("editor:reloadState");
+          }
+        };
+        this.eventHook.addLocalListener(
           "mq:emptyQueue:indexQueue",
           emptyQueueHandler,
         );
-        await this.markInitialIndexComplete();
-        this.eventHook.dispatchEvent("editor:reloadState");
       }
-    };
-    this.eventHook.addLocalListener(
-      "mq:emptyQueue:indexQueue",
-      emptyQueueHandler,
-    );
+    });
   }
 
   tag(tagName: string): LuaQueryCollection {
@@ -120,22 +134,7 @@ export class ObjectIndex {
     return this.ds.get([indexKey, tag, this.cleanKey(ref, page), page]);
   }
 
-  async isIndexOngoing() {
-    return !!(await this.ds.get(indexQueuedKey));
-  }
-
-  async setIndexOngoing(val: boolean = true) {
-    await this.ds.set(indexQueuedKey, val);
-  }
-
   async ensureFullIndex(space: Space) {
-    // Commenting out this check because I think it always holds when calling this API
-    // if (!this.client.fullSyncCompleted) {
-    //   console.info(
-    //     "Initial full sync not completed, skipping index check",
-    //   );
-    //   return;
-    // }
     const currentIndexVersion = await this.getCurrentIndexVersion();
 
     if (!currentIndexVersion) {
@@ -144,8 +143,10 @@ export class ObjectIndex {
     }
 
     if (
-      currentIndexVersion !== desiredIndexVersion &&
-      !await this.isIndexOngoing()
+      // If the index version is less than the desired version
+      currentIndexVersion < desiredIndexVersion &&
+      // And the index queue is empty (meaning no indexing is ongoing)
+      await this.mq.isQueueEmpty("indexQueue")
     ) {
       console.info(
         "[index]",
@@ -153,12 +154,10 @@ export class ObjectIndex {
         currentIndexVersion,
         desiredIndexVersion,
       );
-      await this.setIndexOngoing(true);
+
       await this.reindexSpace(space);
-      console.info("[index]", "Full space index complete.");
-      await this.markInitialIndexComplete();
-      await this.setIndexOngoing(false);
-      // Let's load space scripts again, which probably weren't loaded before
+
+      // Dispatch an editor:reloadState event to reload the editor state (render widgets etc.)
       this.eventHook.dispatchEvent("editor:reloadState");
     }
   }
@@ -166,6 +165,7 @@ export class ObjectIndex {
   async reindexSpace(space: Space) {
     console.log("Clearing page index...");
     await this.clearIndex();
+    await this.markFullIndexInComplete();
 
     const files = await space.deduplicatedFileList();
 
@@ -174,19 +174,24 @@ export class ObjectIndex {
     const startTime = Date.now();
     await this.mq.batchSend("indexQueue", files.map((file) => file.name));
     await this.mq.awaitEmptyQueue("indexQueue");
-    console.log("Done with full index after", Date.now() - startTime, "ms");
+    await this.markFullIndexComplete();
+    console.log("Full index completed after", Date.now() - startTime, "ms");
   }
 
-  public async hasInitialIndexCompleted() {
-    return (await this.ds.get(indexVersionKey)) === desiredIndexVersion;
+  public async hasFullIndexCompleted() {
+    return (await this.ds.get(indexVersionKey)) >= desiredIndexVersion;
   }
 
   private getCurrentIndexVersion() {
     return this.ds.get(indexVersionKey);
   }
 
-  async markInitialIndexComplete() {
+  async markFullIndexComplete() {
     await this.ds.set(indexVersionKey, desiredIndexVersion);
+  }
+
+  async markFullIndexInComplete() {
+    await this.ds.delete(indexVersionKey);
   }
 
   cleanKey(ref: string, page: string) {
@@ -285,6 +290,29 @@ export class ObjectIndex {
     page: string,
     objects: ObjectValue<T>[],
   ): Promise<void> {
+    const kvs = await this.processObjectsToKVs<T>(page, objects, false);
+    if (kvs.length > 0) {
+      return this.batchSet(page, kvs);
+    } else {
+      return Promise.resolve();
+    }
+  }
+
+  /**
+   * Validate and transform objects, throws a ValidationError when it fails
+   * @param page
+   * @param objects
+   * @throw ValidationError
+   */
+  public async validateObjects<T>(page: string, objects: ObjectValue<T>[]) {
+    await this.processObjectsToKVs(page, objects, true);
+  }
+
+  private async processObjectsToKVs<T>(
+    page: string,
+    objects: ObjectValue<T>[],
+    throwOnValidationErrors: boolean,
+  ): Promise<KV<T>[]> {
     const kvs: KV<T>[] = [];
     const tagDefinitions: Record<string, TagDefinition> = this.config.get(
       "tags",
@@ -301,21 +329,54 @@ export class ObjectIndex {
       const allTags = [obj.tag, ...obj.tags || []];
       for (const tag of allTags) {
         const tagDefinition = tagDefinitions[tag];
-        // Validate object if required
-        if (tagDefinition?.mustValidate && tagDefinition?.schema) {
+        // Validate object based on schema if required
+        if (
+          tagDefinition?.schema &&
+          (tagDefinition?.mustValidate || throwOnValidationErrors)
+        ) {
           const validationError = validateObject(tagDefinition?.schema, obj);
           if (validationError) {
-            console.error(
-              `Object failed ${tag} validation so won't be indexed:`,
-              obj,
-              "Error:",
-              validationError,
-            );
-            continue;
+            if (!throwOnValidationErrors) {
+              console.warn(
+                `Object failed ${tag} validation so won't be indexed:`,
+                obj,
+                "Validation error:",
+                validationError,
+              );
+              continue;
+            } else {
+              throw new ObjectValidationError(validationError, obj);
+            }
           }
         }
+        // Validate object based on validate callback if required
+        if (
+          tagDefinition?.validate &&
+          (tagDefinition?.mustValidate || throwOnValidationErrors)
+        ) {
+          const validationError = await tagDefinition.validate(obj);
+          if (validationError) {
+            if (!throwOnValidationErrors) {
+              console.warn(
+                `Object failed ${tag} validation so won't be indexed:`,
+                obj,
+                "Validation error:",
+                validationError,
+              );
+              continue;
+            } else {
+              throw new ObjectValidationError(validationError, obj);
+            }
+          }
+        }
+        // Transform object
         if (tagDefinition?.transform) {
-          let newObjects = await tagDefinition.transform(obj);
+          let newObjects;
+          try {
+            newObjects = await tagDefinition.transform(obj);
+          } catch (e: any) {
+            throw new ObjectValidationError(e.message, obj);
+          }
 
           if (!newObjects) {
             // null value returned, just index as usual
@@ -367,11 +428,7 @@ export class ObjectIndex {
         }
       }
     }
-    if (kvs.length > 0) {
-      return this.batchSet(page, kvs);
-    } else {
-      return Promise.resolve();
-    }
+    return kvs;
   }
 
   deleteObject(

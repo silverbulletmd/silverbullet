@@ -1,4 +1,5 @@
 import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
+import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 
 export type FilterOption = {
   name: string;
@@ -82,7 +83,9 @@ export type EnrichedClickEvent = ClickEvent & {
 
 export type LintEvent = {
   name: string;
+  pageMeta: PageMeta;
   tree: ParseTree;
+  text: string;
 };
 
 export type CompleteEvent = {

@@ -31,6 +31,7 @@ import { luaToNumberDetailed } from "./tonumber.ts";
 import { luaLoad } from "./stdlib/load.ts";
 import { cryptoApi } from "./stdlib/crypto.ts";
 import { netApi } from "./stdlib/net.ts";
+import { floatLiteral } from "./numeric.ts";
 
 const printFunction = new LuaBuiltinFunction(async (_sf, ...args) => {
   console.log(
@@ -150,7 +151,7 @@ const tonumberFunction = new LuaBuiltinFunction(
     }
 
     if (typeof value === "number" || value instanceof Number) {
-      return typeof value === "number" ? value : Number(value);
+      return value;
     }
 
     if (typeof value !== "string") {
@@ -160,6 +161,10 @@ const tonumberFunction = new LuaBuiltinFunction(
     const result = luaToNumberDetailed(value, base);
     if (result === null) {
       return null;
+    }
+
+    if (result.numericType === "float") {
+      return floatLiteral(result.value);
     }
 
     return result.value;

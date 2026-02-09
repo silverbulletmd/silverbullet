@@ -27,26 +27,21 @@ import type {
 } from "@silverbulletmd/silverbullet/type/index";
 import { extractSnippet } from "./snippet.ts";
 
-export type LinkObject = ObjectValue<
-  & {
-    // Common to all links
-    page: string;
-    pos: number;
-    snippet: string;
-    alias?: string;
-    pageLastModified: string;
-  }
-  & ({
-    // Page Link
-    toPage: string;
-    toFile?: never;
-  } | {
-    // Document Link
-    toFile: string;
-    // The page the link occurs in
-    toPage?: never;
-  })
->;
+export type LinkObject = ObjectValue<{
+  // Common to all links
+  page: string;
+  pos: number;
+  type: "page" | "file" | "url";
+  snippet: string;
+  alias?: string;
+  pageLastModified: string;
+  // Page Link
+  toPage?: string;
+  // File Link
+  toFile?: string;
+  // External URL
+  toURL?: string;
+}>;
 
 /**
  * Represents a page that does not yet exist, but is being linked to. A page "aspiring" to be created.
@@ -84,11 +79,13 @@ export async function indexLinks(
       const url = wikiLinkPage.children![0].text!;
       const pos = wikiLinkPage.from!;
 
-      const link: any = {
+      const link: LinkObject = {
         ref: `${name}@${pos}`,
+        type: "page", // can be swapped later
         tag: "link",
         snippet: extractSnippet(name, pageText, pos),
         pos,
+        range: [n.from!, n.to!],
         page: name,
         pageLastModified: pageMeta.lastModified,
       };
@@ -99,19 +96,21 @@ export async function indexLinks(
         return true;
       } else if (isMarkdownPath(ref.path)) {
         link.toPage = getNameFromPath(ref.path);
+        link.type = "page";
       } else {
         link.toFile = ref.path;
+        link.type = "file";
       }
 
       if (wikiLinkAlias) {
         link.alias = wikiLinkAlias.children![0].text!;
       }
-      updateITags(link, frontmatter);
+      updateITags(link as LinkObject, frontmatter);
       objects.push(link);
       return true;
     }
 
-    // Also index [Markdown style]() links
+    // Index [markdown style]() links
     if (n.type === "Link" || n.type === "Image") {
       // The [[Wiki links]] also have a wrapping Image node, but this just fails at the regex
       mdLinkRegex.lastIndex = 0;
@@ -119,40 +118,46 @@ export async function indexLinks(
       if (!match) {
         return false;
       }
-      let { title: alias, url } = match.groups as {
+      const { title: alias, url } = match.groups as {
         url: string;
         title: string;
       };
 
       // Check if local link
-      if (!isLocalURL(url)) {
-        return false;
-      }
       const pos = n.from!;
-      url = resolveMarkdownLink(name, decodeURI(url));
-
-      const link: any = {
+      const link: LinkObject = {
         ref: `${name}@${pos}`,
         tag: "link",
+        type: "page", // swapped out later if needed
         snippet: extractSnippet(name, pageText, pos),
         pos,
+        range: [n.from!, n.to!],
         page: name,
+        pageLastModified: pageMeta.lastModified,
       };
 
-      const ref = parseToRef(url);
-      if (!ref) {
-        // Invalid links aren't indexed
-        return true;
-      } else if (isMarkdownPath(ref.path)) {
-        link.toPage = getNameFromPath(ref.path);
+      if (isLocalURL(url)) {
+        const ref = parseToRef(resolveMarkdownLink(name, decodeURI(url)));
+        if (!ref) {
+          // Invalid links aren't indexed
+          return true;
+        } else if (isMarkdownPath(ref.path)) {
+          link.toPage = getNameFromPath(ref.path);
+          link.type = "page";
+        } else {
+          link.toFile = ref.path;
+          link.type = "file";
+        }
       } else {
-        link.toFile = ref.path;
+        // External URL
+        link.type = "url";
+        link.toURL = url;
       }
 
       if (alias) {
         link.alias = alias;
       }
-      updateITags(link, frontmatter);
+      updateITags(link as LinkObject, frontmatter);
       objects.push(link);
       return true;
     }
@@ -171,12 +176,18 @@ export async function indexLinks(
         if (match && match.groups && match[0] === trimmed) {
           const { leadingTrivia, stringRef, alias } = match.groups;
           const pos = textNode.from! + match.index! + leadingTrivia.length;
-          const link: any = {
+          const link: LinkObject = {
             ref: `${name}@${pos}`,
             tag: "link",
+            type: "page", // final value set later
             page: name,
             snippet: extractSnippet(name, pageText, pos),
             pos: pos,
+            range: [
+              textNode.from! + match.index!,
+              textNode.from! + match.index! + match[0].length,
+            ],
+            pageLastModified: pageMeta.lastModified,
           };
 
           const ref = parseToRef(stringRef);
@@ -185,8 +196,10 @@ export async function indexLinks(
             return true;
           } else if (isMarkdownPath(ref.path)) {
             link.toPage = getNameFromPath(ref.path);
+            link.type = "page";
           } else {
             link.toFile = ref.path;
+            link.type = "file";
           }
 
           if (alias) {
@@ -209,6 +222,7 @@ export async function indexLinks(
           tag: "aspiring-page",
           page: name,
           pos: link.pos,
+          range: link.range,
           name: link.toPage,
         } as AspiringPageObject);
         console.info(

@@ -23,3 +23,18 @@ Deno.test("testFuzzyFilter", () => {
   assertEquals(results[1].name, "My Company/Hane");
   assertEquals(results[2].name, "My Company/Hank");
 });
+
+Deno.test("Fuzzy search edge case testing", () => {
+  // Test edge case where aspiring pages (Infinity orderId) sort last without NaN
+  const array: FilterOption[] = [
+    { name: "Existing", orderId: 1 },
+    { name: "Aspiring A", orderId: Infinity },
+    { name: "Aspiring B", orderId: Infinity },
+  ];
+  const results = fuzzySearchAndSort(array, "");
+  assertEquals(results.length, 3);
+  assertEquals(results[0].name, "Existing");
+  // Both aspiring pages last; relative order between them is stable (no NaN)
+  assertEquals(results[1].name, "Aspiring A");
+  assertEquals(results[2].name, "Aspiring B");
+});

@@ -59,6 +59,7 @@ export function indexHeaders(
       text,
       page: pageMeta.name,
       pos: n.from!,
+      range: [n.from!, n.to!],
       ...attributes,
     });
   }

@@ -3,6 +3,7 @@ import {
   index,
   lua,
   markdown,
+  mq,
   space,
 } from "@silverbulletmd/silverbullet/syscalls";
 import { getBackLinks, type LinkObject } from "./link.ts";
@@ -228,10 +229,6 @@ async function renamePage(oldName: string, newName: string) {
     await batchRenameFiles(batchRenameDocuments);
   }
 
-  // Navigate to new page if currently viewing old page
-  if (await editor.getCurrentPage() === oldName) {
-    await editor.navigate(newName, true);
-  }
   // Handling the edge case of a changing page name just in casing on a case insensitive FS
   const oldPageMeta = await space.getPageMeta(oldName);
   if (oldPageMeta.lastModified !== newPageMeta.lastModified) {
@@ -241,6 +238,13 @@ async function renamePage(oldName: string, newName: string) {
 
   // Update backlinks to this page
   const updatedRefences = await updateBacklinks(oldName, newName);
+
+  // Navigate to new page if currently viewing old page
+  if (await editor.getCurrentPage() === oldName) {
+    // Wait for index queue to be processed so that widgets are updated with up-to-date information
+    await mq.awaitEmptyQueue("indexQueue");
+    await editor.navigate(newName, true);
+  }
 
   let message = `Renamed ${oldName} to ${newName}`;
   if (updatedRefences > 0) {

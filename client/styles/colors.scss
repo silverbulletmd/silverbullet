@@ -349,6 +349,16 @@ tbody tr:nth-of-type(even) {
   color: var(--editor-meta-color);
 }
 
+.sb-deleted {
+  color: var(--editor-code-deleted-color, #dc2626);
+  background-color: var(--editor-code-deleted-bg, rgba(254, 202, 202, 0.25));
+}
+
+.sb-inserted {
+  color: var(--editor-code-inserted-color, #16a34a);
+  background-color: var(--editor-code-inserted-bg, rgba(187, 247, 208, 0.25));
+}
+
 // Admonitions
 
 .sb-admonition {
@@ -413,7 +423,7 @@ a,
   color: var(--editor-link-url-color);
 }
 
-.sb-atom {
+.sb-atom, .sb-attribute-name {
   color: var(--editor-code-atom-color);
 }
 

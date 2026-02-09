@@ -121,7 +121,7 @@ export class Client {
 
   // CodeMirror editor
   editorView!: EditorView;
-  keyHandlerCompartment?: Compartment;
+  commandKeyHandlerCompartment?: Compartment;
   indentUnitCompartment?: Compartment;
   undoHistoryCompartment?: Compartment;
 
@@ -433,6 +433,10 @@ export class Client {
     );
   }
 
+  currentPageMeta(): PageMeta | undefined {
+    return this.ui.viewState.current?.meta;
+  }
+
   dispatchAppEvent(name: AppEvent, ...args: any[]): Promise<any[]> {
     return this.eventHook.dispatchEvent(name, ...args);
   }
@@ -596,7 +600,7 @@ export class Client {
     console.log("Updating page list cache");
     // Check if the initial sync has been completed
     const initialIndexCompleted = await this.objectIndex
-      .hasInitialIndexCompleted();
+      .hasFullIndexCompleted();
 
     let allPages: PageMeta[] = [];
 
@@ -783,7 +787,7 @@ export class Client {
         this,
         this.currentName(),
         editorView.state.sliceDoc(),
-        this.ui.viewState.current?.meta.perm === "ro",
+        this.currentPageMeta()?.perm === "ro",
       ),
     );
   }
@@ -850,7 +854,7 @@ export class Client {
 
   isReadOnlyMode(): boolean {
     return this.bootConfig.readOnly ||
-      this.ui.viewState.current?.meta.perm === "ro";
+      this.currentPageMeta()?.perm === "ro";
   }
 
   public extractParentNodes(editorState: EditorState, currentNode: SyntaxNode) {
@@ -1114,7 +1118,7 @@ export class Client {
 
     // Fetch the meta which includes the possibly indexed stuff, like page
     // decorations
-    if (await this.objectIndex.hasInitialIndexCompleted()) {
+    if (await this.objectIndex.hasFullIndexCompleted()) {
       try {
         const enrichedMeta = await this.objectIndex.getObjectByRef<PageMeta>(
           pageName,
@@ -1280,7 +1284,10 @@ export class Client {
       console.warn("Not loading custom styles, since space style is disabled");
       return;
     }
-    if (!await this.objectIndex.hasInitialIndexCompleted()) {
+    if (!await this.objectIndex.hasFullIndexCompleted()) {
+      console.warn(
+        "Not loading custom styles, since full indexing has not completed yet",
+      );
       return;
     }
 
@@ -1548,6 +1555,20 @@ export class Client {
   }
 
   async wipeClient() {
+    // Clean out _other_ IndexedDB databases
+    console.log("Wiping IndexedDB databses not connected to this space...");
+    const dbName = (this.ds.kv as any).dbName;
+    const suffix = dbName.replace("sb_data", "");
+    if (indexedDB.databases) {
+      const allDbs = await indexedDB.databases();
+      for (const db of allDbs) {
+        if (!db.name?.endsWith(suffix)) {
+          console.log("Deleting database", db.name);
+          indexedDB.deleteDatabase(db.name!);
+        }
+      }
+    }
+    // Instructe service worker to wipe
     if (navigator.serviceWorker?.controller) {
       // We will attempt to unregister the service worker, best effort
       await new Promise<void>((resolve) => {

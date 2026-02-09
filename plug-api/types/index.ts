@@ -50,6 +50,7 @@ export type SyscallMeta = {
 export type ObjectValue<T = any> = {
   ref: string;
   tag: string; // main tag
+  range?: [number, number];
   tags?: string[];
   itags?: string[]; // implicit or inherited tags (inherited from the page for instance)
 } & T;

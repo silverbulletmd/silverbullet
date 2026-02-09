@@ -88,7 +88,8 @@ export class MainUI {
 
     useEffect(() => {
       if (viewState.current) {
-        document.title = (viewState.current.meta.pageDecoration?.prefix ?? "") +
+        document.title =
+          (this.client.currentPageMeta()?.pageDecoration?.prefix ?? "") +
           getNameFromPath(viewState.current.path);
       }
     }, [viewState.current]);
@@ -391,11 +392,10 @@ export class MainUI {
               style={{ flex: viewState.panels.lhs.mode }}
             />
           )}
-          pageNamePrefix={viewState.current?.meta.pageDecoration?.prefix ?? ""}
-          cssClass={viewState.current?.meta.pageDecoration?.cssClasses
-            ? viewState.current?.meta.pageDecoration?.cssClasses
-              .join(" ").replaceAll(/[^a-zA-Z0-9-_ ]/g, "")
-            : ""}
+          pageNamePrefix={client.currentPageMeta()?.pageDecoration?.prefix ??
+            ""}
+          cssClass={(client.currentPageMeta()?.pageDecoration?.cssClasses ?? [])
+            .join(" ").replaceAll(/[^a-zA-Z0-9-_ ]/g, "")}
           mobileMenuStyle={client.config.get<string>(
             "mobileMenuStyle",
             "hamburger",

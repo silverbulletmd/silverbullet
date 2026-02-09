@@ -94,6 +94,7 @@ export function wipeClient(logout = false): Promise<void> {
 }
 
 /**
+ * DEPRECATED
  * Deletes all IndexedDB databases that are not connected to client (e.g. legacy databases)
  */
 export function cleanDatabases(): Promise<boolean> {

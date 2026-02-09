@@ -13,7 +13,11 @@ import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
 import { determineTags } from "./cheap_yaml.ts";
 import { attributeCompletion } from "./complete.ts";
 
-export type FrontMatter = { tags?: string[] } & Record<string, any>;
+export type FrontMatter = {
+  tags?: string[];
+  // Location in the document where the frontmatter appears
+  range?: [number, number];
+} & Record<string, any>;
 
 export type FrontMatterExtractOptions = {
   removeKeys?: string[];
@@ -31,7 +35,7 @@ export function extractFrontMatter(
   options: FrontMatterExtractOptions = {},
 ): FrontMatter {
   addParentPointers(tree);
-  let data: FrontMatter = {
+  let frontmatter: FrontMatter = {
     tags: [],
   };
   const tags: string[] = [];
@@ -76,22 +80,23 @@ export function extractFrontMatter(
     if (t.type === "FrontMatter") {
       const yamlNode = t.children![1].children![0];
       const yamlText = renderToText(yamlNode);
+      frontmatter.range = [t.from!, t.to!];
       try {
         const parsedData: any = cleanupJSON(YAML.load(yamlText));
         // console.log("Parsed front matter", parsedData);
         const newData = { ...parsedData };
-        data = { ...data, ...parsedData };
+        frontmatter = { ...frontmatter, ...parsedData };
         // Make sure we have a tags array
-        if (!data.tags) {
-          data.tags = [];
+        if (!frontmatter.tags) {
+          frontmatter.tags = [];
         }
         // Normalize tags to an array
         // support "tag1, tag2" as well as "tag1 tag2" as well as "#tag1 #tag2" notations
-        if (typeof data.tags === "string") {
-          tags.push(...(data.tags as string).split(/,\s*|\s+/));
+        if (typeof frontmatter.tags === "string") {
+          tags.push(...(frontmatter.tags as string).split(/,\s*|\s+/));
         }
-        if (Array.isArray(data.tags)) {
-          tags.push(...data.tags);
+        if (Array.isArray(frontmatter.tags)) {
+          tags.push(...frontmatter.tags);
         }
 
         if (options.removeKeys && options.removeKeys.length > 0) {
@@ -127,7 +132,7 @@ export function extractFrontMatter(
         const name = nameNode.children![0].text!;
         const val = valueNode.children![0].text!;
         try {
-          data[name] = cleanupJSON(YAML.load(val));
+          frontmatter[name] = cleanupJSON(YAML.load(val));
         } catch (e: any) {
           console.error("Error parsing attribute value as YAML", val, e);
         }
@@ -139,7 +144,7 @@ export function extractFrontMatter(
   });
 
   try {
-    data.tags = [
+    frontmatter.tags = [
       ...new Set([...tags.map((t) => {
         // Always treat tags as strings
         const tagAsString = String(t);
@@ -152,9 +157,9 @@ export function extractFrontMatter(
   }
 
   // Expand property names (e.g. "foo.bar" => { foo: { bar: true } })
-  data = cleanupJSON(data);
+  frontmatter = cleanupJSON(frontmatter);
 
-  return data;
+  return frontmatter;
 }
 
 const attributeRegex = /^[\w\-_]+$/;

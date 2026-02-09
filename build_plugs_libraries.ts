@@ -1,5 +1,5 @@
 import * as path from "@std/path";
-import * as esbuild from "esbuild";
+import { esbuild } from "./build_deps.ts";
 import { compileManifests } from "./client/plugos/plug_compile.ts";
 import { builtinPlugNames } from "./plugs/builtin_plugs.ts";
 import { parseArgs } from "@std/cli/parse-args";
@@ -62,10 +62,10 @@ export async function updateVersionFile() {
   }
 
   const versionFilePath = "./public_version.ts";
-  const versionContent = `export const publicVersion = "${commitVersion}";`;
+  // Write version to file with date in YYYY-MM-DDTHH-MM-SSZ format attached to the version
+  const versionContent = `export const publicVersion = "${commitVersion}-${
+    new Date().toISOString().split(".")[0].replaceAll(":", "-").concat("Z")
+  }";`;
 
   await Deno.writeTextFile(versionFilePath, versionContent);
-  console.log(
-    `Updated public_version.ts with version information: ${commitVersion}`,
-  );
 }

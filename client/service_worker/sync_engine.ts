@@ -23,7 +23,10 @@ type SyncEngineEvents = {
   syncConflict: (path: string) => void | Promise<void>;
 
   // Sync progress updated
-  syncProgress: (syncStatus: SyncStatus) => void | Promise<void>;
+  syncProgress: (
+    syncStatus: SyncStatus,
+    snapshot: SyncSnapshot,
+  ) => void | Promise<void>;
 };
 
 export type SyncConfig = {
@@ -62,8 +65,9 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
     });
 
     this.spaceSync.on({
-      syncProgress: (status) => {
-        this.emit("syncProgress", status);
+      syncProgress: async (status, snapshot) => {
+        this.emit("syncProgress", status, snapshot);
+        await this.saveSnapshot(snapshot);
       },
       snapshotUpdated: this.saveSnapshot.bind(this),
     });

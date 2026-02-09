@@ -333,6 +333,8 @@ config.define("tags", {
       schema = schema.schema(),
       -- Whether or not an object HAS to validate to be indexed (defaults to false), has a performance penalty
       mustValidate = schema.boolean(),
+      -- Additional custom validation logic
+      validate = schema.func(),
       -- Invoked by the object indexer, takes a proposed object as input, returns an array of objects (can be empty table to skip indexing altogether)
       transform = schema.func(),
     },

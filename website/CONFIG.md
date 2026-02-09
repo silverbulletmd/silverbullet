@@ -65,6 +65,7 @@ config.set {
 ```
 
 # Custom tag definitions
+(further detailed in [[API/tag#Use cases]])
 ```space-lua
 tag.define {
   name = "person",
@@ -74,11 +75,24 @@ tag.define {
   end
 }
 
+local deadlinePattern = "📅%s*(%d%d%d%d%-%d%d%-%d%d)"
+
 tag.define {
   name = "task",
+  validate = function(o)
+    if o.name:find("📅") then
+      if not o.name:match(deadlinePattern) then
+        return "Found 📅, but did not match YYYY-mm-dd format"
+      end
+    end
+  end,
   transform = function(o)
-    local date = o.name:match("📅%s*(%d%d%d%d%-%d%d%-%d%d)")
+    -- Use a regular expression to find a deadline
+    local date = o.name:match(deadlinePattern)
     if date then
+      -- Remove the deadline from the name
+      o.name = o.name:gsub(deadlinePattern, "")
+      -- And put it in as attribute
       o.deadline = date
     end
     return o

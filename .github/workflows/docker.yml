@@ -1,6 +1,7 @@
 name: Docker
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - "main"
@@ -8,7 +9,7 @@ on:
       - "*"
 env:
   # Docker & Registries
-  ARCHITECTURES: linux/amd64,linux/arm64
+  ARCHITECTURES: linux/arm64,linux/amd64
   IMAGE_NAME: silverbullet
   WEBSITE_IMAGE: zefhemel/silverbullet-website
   NAMESPACE_GITHUB: silverbulletmd
@@ -47,6 +48,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.6.8
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.25.1"
+
+      - name: Build binaries for multiple platforms
+        run: |
+          make build-for-docker
+  
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v4.4.0
@@ -66,12 +80,12 @@ jobs:
             type=raw,value=v2,enable=${{ github.ref == 'refs/heads/main' }}
 
       - name: Build and push main docker images
-        uses: docker/build-push-action@v4.0.0
+        uses: docker/build-push-action@v6.18.0
         with:
           context: .
           platforms: ${{ env.ARCHITECTURES }}
           push: true
-          file: Dockerfile
+          file: Dockerfile.ci
           provenance: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

@@ -40,3 +40,4 @@ local events = event.listEvents()
 for _, eventName in ipairs(events) do
     print("Registered event: " .. eventName)
 end
+```

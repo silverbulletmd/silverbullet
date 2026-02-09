@@ -6,13 +6,16 @@ import type { LintEvent } from "@silverbulletmd/silverbullet/type/client";
 
 export function plugLinter(client: Client) {
   return linter(async (view): Promise<Diagnostic[]> => {
+    const text = view.state.sliceDoc();
     const tree = parse(
       extendedMarkdownLanguage,
-      view.state.sliceDoc(),
+      text,
     );
     const results = (await client.dispatchAppEvent("editor:lint", {
       name: client.currentName(),
-      tree: tree,
+      pageMeta: client.currentPageMeta(),
+      tree,
+      text,
     } as LintEvent)).flat();
     return results;
   });

@@ -7,7 +7,7 @@ You interact with it in a few ways:
 
 # Indexing
 ## Initial indexing process
-When you launch a fresh client for the first time, the object index will be built from scratch. Depending on the size of your space this can take anything between a few seconds and minutes. If the process takes longer than a few seconds, you will see progress with a blue status circle. Until this initial indexing process finishes, you will notice that things like [[Space Lua/Widget]] and [[Space Lua/Lua Integrated Query]] are not yet rendered, this is to avoid errors and invalid data.
+When you launch a fresh client for the first time, the object index will be built from scratch. Depending on the size of your space this can take anything between a few seconds and minutes. If the process takes longer than a few seconds, you will see progress with a blue status circle. Until this initial indexing process finishes, you will notice that things like [[API/widget|Widgets]] and [[Space Lua/Lua Integrated Query]] are not yet rendered, this is to avoid errors and invalid data.
 
 After the initial index process, the index will be kept up-to-date incrementally.
 

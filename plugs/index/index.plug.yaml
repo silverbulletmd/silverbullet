@@ -8,7 +8,7 @@ functions:
     path: api.ts:patchFrontmatter
     syscall: index.patchFrontmatter
   text:
-    path: index.ts:indexMarkdown
+    path: indexer.ts:indexMarkdown
     syscall: index.markdown
   queryLuaObjects:
     # DEPRECATED: use index.queryLuaObjects syscall instead
@@ -44,7 +44,7 @@ functions:
       - document:index
 
   indexPage:
-    path: index.ts:indexPage
+    path: indexer.ts:indexPage
     events:
       - page:index
 
@@ -111,6 +111,11 @@ functions:
 
   lintLua:
     path: lint.ts:lintLua
+    events:
+      - editor:lint
+
+  lintObjects:
+    path: lint.ts:lintObjects
     events:
       - editor:lint
 

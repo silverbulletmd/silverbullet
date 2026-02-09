@@ -41,6 +41,9 @@ function embed.youtube(specOrUrl)
   if not videoId then
     videoId = string.match(specOrUrl.url, "youtu%.be/(.+)")
   end
+  if not videoId then
+    videoId = string.match(specOrUrl.url, "youtube%.com/shorts/(.+)")
+  end
 
   if not videoId then
     error("No video id found")
