@@ -74,17 +74,14 @@ type LuaThreadState = {
 };
 
 export function luaTypeName(val: any): LuaType {
-  if (isFloatTag(val)) {
-    return "number";
+  if (val === null || val === undefined) {
+    return "nil";
   }
 
   const t = luaTypeOf(val);
 
   if (typeof t === "string") {
     return t;
-  }
-  if (val === null || val === undefined) {
-    return "nil";
   }
 
   const ty = typeof val;
@@ -625,9 +622,6 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
   }
 
   private static numKeyValue(key: any): number | null {
-    if (isFloatTag(key)) {
-      return key.value;
-    }
     if (key instanceof Number) {
       return Number(key);
     }
@@ -1339,17 +1333,9 @@ export function luaCall(
 }
 
 export function luaEquals(a: any, b: any): boolean {
-  // Unwrap Number objects
-  let an = a instanceof Number ? Number(a) : a;
-  let bn = b instanceof Number ? Number(b) : b;
-
-  // Unwrap LuaFloatTag objects
-  if (an && typeof an === "object" && "type" in an) {
-    an = an.value;
-  }
-  if (bn && typeof bn === "object" && "type" in bn) {
-    bn = bn.value;
-  }
+  // Unwrap boxed Number objects
+  const an = a instanceof Number ? Number(a) : a;
+  const bn = b instanceof Number ? Number(b) : b;
   return an === bn;
 }
 
@@ -1374,9 +1360,6 @@ export function luaTypeOf(val: any): LuaType | Promise<LuaType> {
     return "boolean";
   }
   if (typeof val === "number" || val instanceof Number) {
-    return "number";
-  }
-  if (isFloatTag(val)) {
     return "number";
   }
   if (typeof val === "string") {
@@ -1482,17 +1465,18 @@ export function luaToString(
     return (value as Promise<any>).then((v) => luaToString(v, visited));
   }
 
-  if (value && typeof value === "object" && value.type === "float") {
-    return luaFormatNumber(value.value, "float");
-  }
-
   if (value instanceof Number) {
     const numVal = Number(value);
+    const kind = isFloatTag(value) ? "float" : undefined;
+    if (kind) {
+      return luaFormatNumber(numVal, kind);
+    }
+    // Check for legacy symbol tags
     const symbols = Object.getOwnPropertySymbols(value);
     for (const sym of symbols) {
-      const kind = (value as any)[sym];
-      if (kind === "int" || kind === "float") {
-        return luaFormatNumber(numVal, kind);
+      const k = (value as any)[sym];
+      if (k === "int" || k === "float") {
+        return luaFormatNumber(numVal, k);
       }
     }
     return luaFormatNumber(numVal);
@@ -1701,9 +1685,6 @@ export function luaValueToJS(value: any, sf: LuaStackFrame): any {
   }
   if (value instanceof Number) {
     return Number(value);
-  }
-  if (isFloatTag(value)) {
-    return value.value;
   }
   return value;
 }

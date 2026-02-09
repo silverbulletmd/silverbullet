@@ -2,51 +2,55 @@ import type { NumericType } from "./ast.ts";
 import { luaToNumberDetailed } from "./tonumber.ts";
 import { luaTypeName } from "./runtime.ts";
 
-export const ZeroBoxKind = Symbol("ZeroBox");
+const FloatKind: unique symbol = Symbol("FloatKind");
 
-export type LuaFloatTag = {
-  readonly type: "float";
-  readonly value: number;
-};
+// Marker error used to let the evaluator decide the final message.
+export const luaStringCoercionError: Error = new Error(
+  "LuaStringCoercionError",
+);
 
-export function isBoxedZero(x: any): boolean {
-  return x instanceof Number && Number(x) === 0 && !isNegativeZero(Number(x));
+export function isNegativeZero(x: number): boolean {
+  return x === 0 && 1 / x === -Infinity;
 }
 
-export function getZeroBoxKind(x: any): NumericType | undefined {
-  return isBoxedZero(x)
-    ? (x as any)[ZeroBoxKind] as NumericType | undefined
-    : undefined;
+function makeFloat(n: number): any {
+  const box = new Number(n);
+  (box as any)[FloatKind] = "float";
+  return box;
 }
 
-export function boxZero(kind: NumericType): number {
-  const z = new Number(0);
-  (z as any)[ZeroBoxKind] = kind;
-  return z as unknown as number;
-}
-
-export function isFloatTag(v: any): v is LuaFloatTag {
-  return v && typeof v === "object" && v.type === "float";
-}
-
-// Tag an integer-valued number as a float:
-// * zero: returns boxed float zero,
-// * integer: returns tagged float,
-// * non-integer: returns plain number.
-export function floatLiteral(n: number): number | LuaFloatTag {
-  if (n === 0 && !isNegativeZero(n)) {
-    return boxZero("float");
+export function floatLiteral(n: number): any {
+  if (n === 0) {
+    if (isNegativeZero(n)) {
+      return -0;
+    }
+    return makeFloat(0);
   }
   if (Number.isInteger(n)) {
-    return { type: "float" as const, value: n };
+    return makeFloat(n);
   }
   return n;
 }
 
-export function untagNumber(n: any): number {
-  if (isFloatTag(n)) {
-    return n.value;
+export function boxZero(kind: NumericType): any {
+  if (kind === "float") {
+    return makeFloat(0);
   }
+  return 0;
+}
+
+export function isFloatTag(v: any): boolean {
+  return v instanceof Number && (v as any)[FloatKind] === "float";
+}
+
+export function getZeroBoxKind(x: any): NumericType | undefined {
+  if (x instanceof Number) {
+    return (x as any)[FloatKind] as NumericType | undefined;
+  }
+  return undefined;
+}
+
+export function untagNumber(n: any): number {
   if (n instanceof Number) {
     return Number(n);
   }
@@ -54,20 +58,19 @@ export function untagNumber(n: any): number {
 }
 
 export function getNumericKind(
-  n: number | LuaFloatTag | any,
+  n: unknown,
 ): NumericType | undefined {
-  if (isFloatTag(n)) {
-    return "float";
-  }
   if (typeof n === "number") {
+    if (!Number.isFinite(n)) return "float";
+    if (isNegativeZero(n)) return "float";
     return Number.isInteger(n) ? "int" : "float";
   }
   if (n instanceof Number) {
-    const kind = getZeroBoxKind(n);
-    if (kind) {
-      return kind;
-    }
-    return Number.isInteger(Number(n)) ? "int" : "float";
+    if ((n as any)[FloatKind] === "float") return "float";
+    const nv = Number(n);
+    if (!Number.isFinite(nv)) return "float";
+    if (isNegativeZero(nv)) return "float";
+    return Number.isInteger(nv) ? "int" : "float";
   }
   return undefined;
 }
@@ -77,73 +80,39 @@ export type OpHints = {
   rightKind?: NumericType;
 };
 
-// Marker error used to let the evaluator decide the final message.
-export const luaStringCoercionError: Error = new Error(
-  "LuaStringCoercionError",
-);
-
-export function isNegativeZero(x: number): boolean {
-  // faster than `Object.is(<object>, -0)`
-  return x === 0 && 1 / x === -Infinity;
-}
-
-function produceNegativeZero() {
-  return { n: -0, isInt: false, zeroKind: "float" as const };
-}
-
-export function coerceNumeric(
-  val: unknown,
-): {
+export type CoerceNumericResult = {
   n: number;
   isInt: boolean;
   zeroKind?: NumericType;
-} {
-  if (isFloatTag(val)) {
-    const n = val.value;
-    if (n === 0) {
-      if (isNegativeZero(n)) {
-        return produceNegativeZero();
-      }
-      return { n: 0, isInt: false, zeroKind: "float" };
-    }
-    // Non-zero float tag: always mark as float
-    return { n, isInt: false, zeroKind: "float" };
-  }
+};
 
-  if (isBoxedZero(val)) {
-    return { n: 0, isInt: true, zeroKind: getZeroBoxKind(val)! };
-  }
+function produceNegativeZero(): CoerceNumericResult {
+  return { n: -0, isInt: false, zeroKind: "float" };
+}
 
+// Coerce a single value to a number, preserving int/float kind info.
+export function coerceNumeric(val: unknown): CoerceNumericResult {
   if (typeof val === "number") {
-    const n = val;
-    if (n === 0) {
-      if (isNegativeZero(n)) {
-        return produceNegativeZero();
-      }
-      return {
-        n,
-        isInt: true,
-      };
+    if (val === 0) {
+      if (isNegativeZero(val)) return produceNegativeZero();
+      return { n: 0, isInt: true };
     }
-    return {
-      n,
-      isInt: Number.isInteger(n),
-    };
+    return { n: val, isInt: Number.isInteger(val) };
   }
 
   if (val instanceof Number) {
     const n = Number(val);
-    if (n === 0 && !isNegativeZero(n)) {
-      return {
-        n,
-        isInt: true,
-        zeroKind: getZeroBoxKind(val),
-      };
+    if (n === 0) {
+      if (isNegativeZero(n)) return produceNegativeZero();
+      const kind: NumericType = (val as any)[FloatKind] === "float"
+        ? "float"
+        : "int";
+      return { n: 0, isInt: kind === "int", zeroKind: kind };
     }
-    return {
-      n,
-      isInt: Number.isInteger(n),
-    };
+    if ((val as any)[FloatKind] === "float") {
+      return { n, isInt: false, zeroKind: "float" };
+    }
+    return { n, isInt: Number.isInteger(n) };
   }
 
   if (typeof val === "string") {
@@ -151,25 +120,13 @@ export function coerceNumeric(
     if (!det) {
       throw luaStringCoercionError;
     }
-
     const n = det.value;
     const isInt = det.numericType === "int";
-
     if (n === 0) {
-      if (isNegativeZero(n)) {
-        return produceNegativeZero();
-      }
-      return {
-        n,
-        isInt,
-        zeroKind: det.numericType,
-      };
+      if (isNegativeZero(n)) return produceNegativeZero();
+      return { n: 0, isInt, zeroKind: det.numericType };
     }
-
-    return {
-      n,
-      isInt,
-    };
+    return { n, isInt };
   }
 
   throw new Error(
@@ -177,44 +134,30 @@ export function coerceNumeric(
   );
 }
 
-export function toInteger(v: unknown): number | null {
-  if (isFloatTag(v)) {
-    const n = (v as LuaFloatTag).value;
-    if (!Number.isInteger(n)) {
-      return null;
-    }
-    return n;
-  }
+export type CoerceNumericPairResult = {
+  ax: number;
+  bx: number;
+  bothInt: boolean;
+  bZeroKind?: NumericType;
+};
 
-  if (typeof v === "number") {
-    if (!Number.isInteger(v)) {
-      return null;
-    }
-    return v;
-  }
-
-  if (v instanceof Number) {
-    const n = Number(v);
-    if (!Number.isInteger(n)) {
-      return null;
-    }
-    return n;
-  }
-
-  return null;
-}
-
+// Coerce a pair of values to numbers and determine the result mode.
 export function coerceNumericPair(
   a: unknown,
   b: unknown,
   hints?: OpHints,
-): {
-  ax: number;
-  bx: number;
-  bothInt: boolean;
-  aZeroKind?: NumericType;
-  bZeroKind?: NumericType;
-} {
+): CoerceNumericPairResult {
+  // Fast path: both plain numbers (covers most int+int cases)
+  if (typeof a === "number" && typeof b === "number") {
+    const aIsInt = hints?.leftKind !== undefined
+      ? hints.leftKind === "int"
+      : (Number.isInteger(a) && !isNegativeZero(a));
+    const bIsInt = hints?.rightKind !== undefined
+      ? hints.rightKind === "int"
+      : (Number.isInteger(b) && !isNegativeZero(b));
+    return { ax: a, bx: b, bothInt: aIsInt && bIsInt };
+  }
+
   const A = coerceNumeric(a);
   const B = coerceNumeric(b);
 
@@ -234,7 +177,17 @@ export function coerceNumericPair(
     ax: A.n,
     bx: B.n,
     bothInt: aIsInt && bIsInt,
-    aZeroKind: A.zeroKind,
     bZeroKind: B.zeroKind,
   };
+}
+
+export function toInteger(v: unknown): number | null {
+  if (typeof v === "number") {
+    return Number.isInteger(v) ? v : null;
+  }
+  if (v instanceof Number) {
+    const n = Number(v);
+    return Number.isInteger(n) ? n : null;
+  }
+  return null;
 }

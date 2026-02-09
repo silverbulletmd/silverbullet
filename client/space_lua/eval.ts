@@ -50,7 +50,6 @@ import {
   getZeroBoxKind,
   isFloatTag,
   isNegativeZero,
-  type LuaFloatTag,
   luaStringCoercionError,
   type OpHints,
   toInteger,
@@ -209,7 +208,7 @@ function arithCoercionErrorOrThrow(
 function normalizeArithmeticResult(
   r: number,
   bothInt: boolean,
-): number | LuaFloatTag {
+): any {
   if (r === 0) {
     if (isNegativeZero(r)) {
       return bothInt ? 0 : -0;
@@ -494,7 +493,7 @@ function maybeLuaArithStringError(
   return null;
 }
 
-function luaUnaryMinus(v: any): number | LuaFloatTag {
+function luaUnaryMinus(v: any): any {
   const { n, zeroKind } = coerceNumeric(v);
 
   if (n === 0) {
@@ -502,15 +501,12 @@ function luaUnaryMinus(v: any): number | LuaFloatTag {
     const isFloat = origKind === "float" || zeroKind === "float" ||
       isFloatTag(v);
 
-    // If it's a float zero for sure, flip the sign
     if (isFloat) {
       return isNegativeZero(v) || isNegativeZero(n) ? 0 : -0;
     }
     return 0;
   }
 
-  // Preserve float type for non-zero values. Without this code -5.0
-  // would become plain integer -5 (it would loose its float type).
   if (isFloatTag(v) || zeroKind === "float" || getNumericKind(v) === "float") {
     const result = -n;
     if (Number.isInteger(result)) {
@@ -528,7 +524,7 @@ function luaFloorDiv(
   ctx: ASTCtx,
   sf: LuaStackFrame,
   hints?: OpHints,
-): number | LuaFloatTag {
+): any {
   const { ax, bx, bothInt } = coerceNumericPair(a, b, hints);
   if (bothInt && bx === 0) {
     throw new LuaRuntimeError(
@@ -545,7 +541,6 @@ function luaFloorDiv(
     return isNegativeZero(q) ? -0 : boxZero("float");
   }
 
-  // Tag integer-valued float results
   if (!bothInt && Number.isInteger(q)) {
     return floatLiteral(q);
   }
@@ -559,7 +554,7 @@ function luaMod(
   ctx: ASTCtx,
   sf: LuaStackFrame,
   hints?: OpHints,
-): number | LuaFloatTag {
+): any {
   const { ax, bx, bothInt } = coerceNumericPair(a, b, hints);
   if (bothInt && bx === 0) {
     throw new LuaRuntimeError(
@@ -577,7 +572,6 @@ function luaMod(
     return bothInt ? 0 : boxZero("float");
   }
 
-  // Tag integer-valued float results
   if (!bothInt && Number.isInteger(r)) {
     return floatLiteral(r);
   }
@@ -1209,10 +1203,8 @@ function luaRelWithMetamethod(
   ctx: ASTCtx,
   sf: LuaStackFrame,
 ): boolean | Promise<boolean> {
-  let an = a instanceof Number ? Number(a) : a;
-  let bn = b instanceof Number ? Number(b) : b;
-  if (isFloatTag(an)) an = an.value;
-  if (isFloatTag(bn)) bn = bn.value;
+  const an = a instanceof Number ? Number(a) : a;
+  const bn = b instanceof Number ? Number(b) : b;
 
   if (typeof an === "number" && typeof bn === "number") {
     return op === "<" ? an < bn : an <= bn;
