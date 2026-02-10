@@ -178,6 +178,33 @@ export function coerceNumericPair(
     };
   }
 
+  // One tagged float, one plain number
+  if (typeof a === "number" && isTaggedFloat(b)) {
+    return {
+      left: a,
+      right: b.value,
+      resultType: forceFloat ? "float" : "float",
+    };
+  }
+
+  if (isTaggedFloat(a) && typeof b === "number") {
+    return {
+      left: a.value,
+      right: b,
+      resultType: forceFloat ? "float" : "float",
+    };
+  }
+
+  // Both tagged floats
+  if (isTaggedFloat(a) && isTaggedFloat(b)) {
+    return {
+      left: a.value,
+      right: b.value,
+      resultType: "float",
+    };
+  }
+
+  // General fallback
   const A = coerceNumeric(a, leftType);
   const B = coerceNumeric(b, rightType);
 
