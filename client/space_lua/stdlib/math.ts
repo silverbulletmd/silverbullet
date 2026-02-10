@@ -4,12 +4,12 @@ import {
   LuaRuntimeError,
   LuaTable,
 } from "../runtime.ts";
-import {
-  getZeroBoxKind,
-  isFloatTag,
-  isNegativeZero,
-  untagNumber,
-} from "../numeric.ts";
+import { getZeroBoxKind, isFloatTag, isNegativeZero } from "../numeric.ts";
+
+// Fast unwrap: avoids function call overhead for the common plain-number case
+function untagNumber(x: any): number {
+  return typeof x === "number" ? x : Number(x);
+}
 
 export const mathApi = new LuaTable({
   // math constants

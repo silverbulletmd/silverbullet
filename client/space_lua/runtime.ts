@@ -635,7 +635,11 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
   // * negative zero becomes positive zero,
   // * integer-valued floats become plain integers,
   // * non-integer floats stay as-is.
-  private static normalizeNumericKey(key: any): any {
+  static normalizeNumericKey(key: any): any {
+    if (typeof key === "string") {
+      return key;
+    }
+
     const numVal = LuaTable.numKeyValue(key);
     if (numVal !== null) {
       // Normalize -0 to +0
@@ -714,18 +718,25 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
   }
 
   has(key: LuaValue) {
+    if (typeof key === "string") {
+      return this.stringKeys[key] !== undefined;
+    }
+
     const normalizedKey = LuaTable.normalizeNumericKey(key);
 
-    if (typeof normalizedKey === "string") {
-      return this.stringKeys[normalizedKey] !== undefined;
-    }
-    if (LuaTable.isIntegerKey(normalizedKey)) {
-      const idx = LuaTable.toIndex(normalizedKey);
+    if (
+      typeof normalizedKey === "number" && Number.isInteger(normalizedKey) &&
+      normalizedKey >= 1
+    ) {
+      const idx = normalizedKey - 1;
       const v = this.arrayPart[idx];
       if (v !== undefined) {
         return true;
       }
       return this.otherKeys ? this.otherKeys.has(normalizedKey) : false;
+    }
+    if (typeof normalizedKey === "string") {
+      return this.stringKeys[normalizedKey] !== undefined;
     }
     if (this.otherKeys) {
       return this.otherKeys.has(normalizedKey);
@@ -789,6 +800,23 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
       return value.then((v) => this.rawSet(key, v, numType));
     }
 
+    // Fast path: string keys (the dominant case)
+    if (typeof key === "string") {
+      if (value === null || value === undefined) {
+        delete this.stringKeys[key];
+        this.stringKeyTypes.delete(key);
+      } else {
+        const isNum = typeof value === "number" || value instanceof Number;
+        this.stringKeys[key] = value;
+        if (isNum && numType) {
+          this.stringKeyTypes.set(key, numType);
+        } else {
+          this.stringKeyTypes.delete(key);
+        }
+      }
+      return;
+    }
+
     const normalizedKey = LuaTable.normalizeNumericKey(key);
 
     if (typeof normalizedKey === "string") {
@@ -807,8 +835,11 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
       return;
     }
 
-    if (LuaTable.isIntegerKey(normalizedKey)) {
-      const idx = LuaTable.toIndex(normalizedKey);
+    if (
+      typeof normalizedKey === "number" && Number.isInteger(normalizedKey) &&
+      normalizedKey >= 1
+    ) {
+      const idx = normalizedKey - 1;
       const isNum = typeof value === "number" || value instanceof Number;
 
       // Sparse writes (e.g. `a[7]=4` when length is 3) go to the hash
@@ -984,14 +1015,21 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
   }
 
   rawGet(key: LuaValue): LuaValue | null {
+    if (typeof key === "string") {
+      return this.stringKeys[key];
+    }
+
     const normalizedKey = LuaTable.normalizeNumericKey(key);
 
     if (typeof normalizedKey === "string") {
       return this.stringKeys[normalizedKey];
     }
 
-    if (LuaTable.isIntegerKey(normalizedKey)) {
-      const idx = LuaTable.toIndex(normalizedKey);
+    if (
+      typeof normalizedKey === "number" && Number.isInteger(normalizedKey) &&
+      normalizedKey >= 1
+    ) {
+      const idx = normalizedKey - 1;
       const v = this.arrayPart[idx];
       if (v !== undefined) {
         return v;

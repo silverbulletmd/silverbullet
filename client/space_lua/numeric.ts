@@ -4,13 +4,12 @@ import { luaTypeName } from "./runtime.ts";
 
 const FloatKind: unique symbol = Symbol("FloatKind");
 
-// Marker error used to let the evaluator decide the final message.
 export const luaStringCoercionError: Error = new Error(
   "LuaStringCoercionError",
 );
 
-export function isNegativeZero(x: number): boolean {
-  return x === 0 && 1 / x === -Infinity;
+export function isNegativeZero(n: number): boolean {
+  return n === 0 && 1 / n === -Infinity;
 }
 
 function makeFloat(n: number): any {
@@ -19,29 +18,31 @@ function makeFloat(n: number): any {
   return box;
 }
 
-export function floatLiteral(n: number): any {
-  if (n === 0) {
-    if (isNegativeZero(n)) {
-      return -0;
-    }
-    return makeFloat(0);
+export function makeLuaZero(
+  n: number,
+  numericType: NumericType,
+): any {
+  if (n !== 0) {
+    return n;
   }
-  if (Number.isInteger(n)) {
-    return makeFloat(n);
+  if (numericType !== "float") {
+    return 0;
   }
-  return n;
+  return makeFloat(isNegativeZero(n) ? -0 : 0);
 }
 
-export function boxZero(kind: NumericType): any {
-  if (kind === "float") {
-    return makeFloat(0);
+export function makeLuaFloat(n: number): any {
+  if (!Number.isInteger(n)) {
+    return n;
   }
-  return 0;
+  return makeFloat(n);
 }
 
-export function isFloatTag(v: any): boolean {
+export function isLuaFloat(v: unknown): boolean {
   return v instanceof Number && (v as any)[FloatKind] === "float";
 }
+
+export const isFloatTag = isLuaFloat;
 
 export function getZeroBoxKind(x: any): NumericType | undefined {
   if (x instanceof Number) {
@@ -57,62 +58,74 @@ export function untagNumber(n: any): number {
   return n;
 }
 
+export function coerceToNumber(v: unknown): number | null {
+  if (typeof v === "number") {
+    return v;
+  }
+  if (v instanceof Number) {
+    return Number(v);
+  }
+  if (typeof v === "string") {
+    const det = luaToNumberDetailed(v);
+    if (!det) {
+      return null;
+    }
+    return det.value;
+  }
+  return null;
+}
+
+export function inferNumericType(n: number): NumericType {
+  if (!Number.isFinite(n)) {
+    return "float";
+  }
+  if (isNegativeZero(n)) {
+    return "float";
+  }
+  return Number.isInteger(n) ? "int" : "float";
+}
+
+export function combineNumericTypes(
+  a: NumericType | undefined,
+  b: NumericType | undefined,
+): NumericType {
+  if (a === "float" || b === "float") {
+    return "float";
+  }
+  return "int";
+}
+
 export function getNumericKind(
   n: unknown,
 ): NumericType | undefined {
   if (typeof n === "number") {
-    if (!Number.isFinite(n)) return "float";
-    if (isNegativeZero(n)) return "float";
-    return Number.isInteger(n) ? "int" : "float";
+    return inferNumericType(n);
   }
   if (n instanceof Number) {
     if ((n as any)[FloatKind] === "float") return "float";
     const nv = Number(n);
-    if (!Number.isFinite(nv)) return "float";
-    if (isNegativeZero(nv)) return "float";
-    return Number.isInteger(nv) ? "int" : "float";
+    return inferNumericType(nv);
   }
   return undefined;
 }
 
-export type OpHints = {
-  leftKind?: NumericType;
-  rightKind?: NumericType;
-};
-
 export type CoerceNumericResult = {
   n: number;
-  isInt: boolean;
-  zeroKind?: NumericType;
+  type: NumericType;
 };
 
-function produceNegativeZero(): CoerceNumericResult {
-  return { n: -0, isInt: false, zeroKind: "float" };
-}
-
-// Coerce a single value to a number, preserving int/float kind info.
-export function coerceNumeric(val: unknown): CoerceNumericResult {
+export function coerceNumeric(
+  val: unknown,
+  hint?: NumericType,
+): CoerceNumericResult {
   if (typeof val === "number") {
-    if (val === 0) {
-      if (isNegativeZero(val)) return produceNegativeZero();
-      return { n: 0, isInt: true };
-    }
-    return { n: val, isInt: Number.isInteger(val) };
+    return { n: val, type: hint ?? inferNumericType(val) };
   }
 
   if (val instanceof Number) {
     const n = Number(val);
-    if (n === 0) {
-      if (isNegativeZero(n)) return produceNegativeZero();
-      const kind: NumericType = (val as any)[FloatKind] === "float"
-        ? "float"
-        : "int";
-      return { n: 0, isInt: kind === "int", zeroKind: kind };
-    }
-    if ((val as any)[FloatKind] === "float") {
-      return { n, isInt: false, zeroKind: "float" };
-    }
-    return { n, isInt: Number.isInteger(n) };
+    const kind = (val as any)[FloatKind] === "float" ? "float" : undefined;
+    return { n, type: hint ?? kind ?? inferNumericType(n) };
   }
 
   if (typeof val === "string") {
@@ -120,13 +133,7 @@ export function coerceNumeric(val: unknown): CoerceNumericResult {
     if (!det) {
       throw luaStringCoercionError;
     }
-    const n = det.value;
-    const isInt = det.numericType === "int";
-    if (n === 0) {
-      if (isNegativeZero(n)) return produceNegativeZero();
-      return { n: 0, isInt, zeroKind: det.numericType };
-    }
-    return { n, isInt };
+    return { n: det.value, type: hint ?? det.numericType };
   }
 
   throw new Error(
@@ -135,50 +142,55 @@ export function coerceNumeric(val: unknown): CoerceNumericResult {
 }
 
 export type CoerceNumericPairResult = {
-  ax: number;
-  bx: number;
-  bothInt: boolean;
-  bZeroKind?: NumericType;
+  left: number;
+  right: number;
+  resultType: NumericType;
 };
 
-// Coerce a pair of values to numbers and determine the result mode.
 export function coerceNumericPair(
   a: unknown,
   b: unknown,
-  hints?: OpHints,
+  leftType?: NumericType,
+  rightType?: NumericType,
+  op?: string,
 ): CoerceNumericPairResult {
-  // Fast path: both plain numbers (covers most int+int cases)
+  const forceFloat = op === "/" || op === "^";
+
+  // Both plain numbers
   if (typeof a === "number" && typeof b === "number") {
-    const aIsInt = hints?.leftKind !== undefined
-      ? hints.leftKind === "int"
-      : (Number.isInteger(a) && !isNegativeZero(a));
-    const bIsInt = hints?.rightKind !== undefined
-      ? hints.rightKind === "int"
-      : (Number.isInteger(b) && !isNegativeZero(b));
-    return { ax: a, bx: b, bothInt: aIsInt && bIsInt };
+    const lt = leftType ?? inferNumericType(a);
+    const rt = rightType ?? inferNumericType(b);
+
+    return {
+      left: a,
+      right: b,
+      resultType: forceFloat
+        ? "float"
+        : ((lt === "float" || rt === "float") ? "float" : "int"),
+    };
   }
 
-  const A = coerceNumeric(a);
-  const B = coerceNumeric(b);
-
-  const aIsInt = hints?.leftKind !== undefined
-    ? hints.leftKind === "int"
-    : (A.zeroKind === "float"
-      ? false
-      : (A.zeroKind === "int" ? true : A.isInt));
-
-  const bIsInt = hints?.rightKind !== undefined
-    ? hints.rightKind === "int"
-    : (B.zeroKind === "float"
-      ? false
-      : (B.zeroKind === "int" ? true : B.isInt));
+  const A = coerceNumeric(a, leftType);
+  const B = coerceNumeric(b, rightType);
 
   return {
-    ax: A.n,
-    bx: B.n,
-    bothInt: aIsInt && bIsInt,
-    bZeroKind: B.zeroKind,
+    left: A.n,
+    right: B.n,
+    resultType: forceFloat ? "float" : combineNumericTypes(A.type, B.type),
   };
+}
+
+export function normalizeArithmeticResult(
+  n: number,
+  resultType: NumericType,
+): number {
+  if (n === 0) {
+    if (resultType === "int") {
+      return 0;
+    }
+    return isNegativeZero(n) ? -0 : 0;
+  }
+  return n;
 }
 
 export function toInteger(v: unknown): number | null {
@@ -190,4 +202,11 @@ export function toInteger(v: unknown): number | null {
     return Number.isInteger(n) ? n : null;
   }
   return null;
+}
+
+export function toPlainNumber(v: unknown): unknown {
+  if (v instanceof Number) {
+    return Number(v);
+  }
+  return v;
 }
