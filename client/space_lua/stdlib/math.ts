@@ -4,11 +4,13 @@ import {
   LuaRuntimeError,
   LuaTable,
 } from "../runtime.ts";
-import { getZeroBoxKind, isFloatTag, isNegativeZero } from "../numeric.ts";
+import { isNegativeZero, isTaggedFloat } from "../numeric.ts";
 
 // Fast unwrap: avoids function call overhead for the common plain-number case
 function untagNumber(x: any): number {
-  return typeof x === "number" ? x : Number(x);
+  if (typeof x === "number") return x;
+  if (isTaggedFloat(x)) return x.value;
+  return Number(x);
 }
 
 export const mathApi = new LuaTable({
@@ -24,47 +26,20 @@ export const mathApi = new LuaTable({
         _sf,
       );
     }
-
-    if (isFloatTag(x)) {
+    if (isTaggedFloat(x)) {
       return "float";
     }
-
-    if (x instanceof Number) {
-      const kind = getZeroBoxKind(x);
-      if (kind === "float") {
-        return "float";
-      }
-      if (kind === "int") {
-        return "integer";
-      }
-
-      const nv = Number(x);
-      if (!Number.isFinite(nv)) {
-        return "float";
-      }
-
-      return Number.isInteger(nv) ? "integer" : "float";
-    }
-
     if (typeof x === "number") {
-      if (x === 0 && isNegativeZero(x)) {
+      if (!Number.isFinite(x) || isNegativeZero(x)) {
         return "float";
       }
-
-      if (!Number.isFinite(x)) {
-        return "float";
-      }
-
       return Number.isInteger(x) ? "integer" : "float";
     }
-
     if (typeof x === "bigint") {
       return "integer";
     }
-
     return null;
   }),
-
   /**
    * When called without arguments, returns a pseudo-random float with
    * uniform distribution in the range [0,1). When called with two

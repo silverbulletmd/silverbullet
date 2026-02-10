@@ -31,7 +31,7 @@ import { luaToNumberDetailed } from "./tonumber.ts";
 import { luaLoad } from "./stdlib/load.ts";
 import { cryptoApi } from "./stdlib/crypto.ts";
 import { netApi } from "./stdlib/net.ts";
-import { makeLuaFloat } from "./numeric.ts";
+import { isTaggedFloat, makeLuaFloat } from "./numeric.ts";
 
 const printFunction = new LuaBuiltinFunction(async (_sf, ...args) => {
   console.log(
@@ -150,7 +150,10 @@ const tonumberFunction = new LuaBuiltinFunction(
       }
     }
 
-    if (typeof value === "number" || value instanceof Number) {
+    if (typeof value === "number") {
+      return value;
+    }
+    if (isTaggedFloat(value)) {
       return value;
     }
 
@@ -276,7 +279,7 @@ const rawgetFunction = new LuaBuiltinFunction(
         typeName = "nil";
       } else if (typeof table === "boolean") {
         typeName = "boolean";
-      } else if (typeof table === "number" || table instanceof Number) {
+      } else if (typeof table === "number" || isTaggedFloat(table)) {
         typeName = "number";
       } else if (typeof table === "string") {
         typeName = "string";
@@ -299,7 +302,7 @@ const rawgetFunction = new LuaBuiltinFunction(
       return v === undefined ? null : v;
     }
 
-    const k = key instanceof Number ? Number(key) : key;
+    const k = isTaggedFloat(key) ? key.value : key;
 
     if (isArray) {
       if (typeof k === "number") {
@@ -317,8 +320,8 @@ const rawgetFunction = new LuaBuiltinFunction(
 
 const rawequalFunction = new LuaBuiltinFunction(
   (_sf, a: any, b: any) => {
-    const av = a instanceof Number ? Number(a) : a;
-    const bv = b instanceof Number ? Number(b) : b;
+    const av = isTaggedFloat(a) ? a.value : a;
+    const bv = isTaggedFloat(b) ? b.value : b;
     return av === bv;
   },
 );

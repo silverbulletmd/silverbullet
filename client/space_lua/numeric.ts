@@ -2,7 +2,14 @@ import type { NumericType } from "./ast.ts";
 import { luaToNumberDetailed } from "./tonumber.ts";
 import { luaTypeName } from "./runtime.ts";
 
-const FloatKind: unique symbol = Symbol("FloatKind");
+export interface LuaTaggedFloat {
+  readonly value: number;
+  readonly isFloat: true;
+}
+
+// Pre-allocated singletons for float zeros
+const FLOAT_POS_ZERO: LuaTaggedFloat = { value: 0, isFloat: true };
+const FLOAT_NEG_ZERO: LuaTaggedFloat = { value: -0, isFloat: true };
 
 export const luaStringCoercionError: Error = new Error(
   "LuaStringCoercionError",
@@ -12,12 +19,18 @@ export function isNegativeZero(n: number): boolean {
   return n === 0 && 1 / n === -Infinity;
 }
 
-function makeFloat(n: number): any {
-  const box = new Number(n);
-  (box as any)[FloatKind] = "float";
-  return box;
+export function isTaggedFloat(v: unknown): v is LuaTaggedFloat {
+  return v !== null && typeof v === "object" && (v as any).isFloat === true;
 }
 
+function makeFloat(n: number): LuaTaggedFloat {
+  if (n === 0) {
+    return isNegativeZero(n) ? FLOAT_NEG_ZERO : FLOAT_POS_ZERO;
+  }
+  return { value: n, isFloat: true };
+}
+
+// Box a zero with a given kind tag.
 export function makeLuaZero(
   n: number,
   numericType: NumericType,
@@ -28,9 +41,12 @@ export function makeLuaZero(
   if (numericType !== "float") {
     return 0;
   }
-  return makeFloat(isNegativeZero(n) ? -0 : 0);
+  return isNegativeZero(n) ? FLOAT_NEG_ZERO : FLOAT_POS_ZERO;
 }
 
+// Tag an integer-valued number as float.
+// Only allocates for integer-valued results; non-integer floats
+// (1.5, NaN, Inf) are already unambiguously float as plain `number`.
 export function makeLuaFloat(n: number): any {
   if (!Number.isInteger(n)) {
     return n;
@@ -38,22 +54,18 @@ export function makeLuaFloat(n: number): any {
   return makeFloat(n);
 }
 
-export function isLuaFloat(v: unknown): boolean {
-  return v instanceof Number && (v as any)[FloatKind] === "float";
-}
-
-export const isFloatTag = isLuaFloat;
-
 export function getZeroBoxKind(x: any): NumericType | undefined {
-  if (x instanceof Number) {
-    return (x as any)[FloatKind] as NumericType | undefined;
+  if (isTaggedFloat(x)) {
+    return "float";
   }
   return undefined;
 }
 
+// Unwrap a potentially tagged or boxed Number to a plain number.
 export function untagNumber(n: any): number {
-  if (n instanceof Number) {
-    return Number(n);
+  if (typeof n === "number") return n;
+  if (isTaggedFloat(n)) {
+    return n.value;
   }
   return n;
 }
@@ -62,8 +74,8 @@ export function coerceToNumber(v: unknown): number | null {
   if (typeof v === "number") {
     return v;
   }
-  if (v instanceof Number) {
-    return Number(v);
+  if (isTaggedFloat(v)) {
+    return v.value;
   }
   if (typeof v === "string") {
     const det = luaToNumberDetailed(v);
@@ -101,10 +113,8 @@ export function getNumericKind(
   if (typeof n === "number") {
     return inferNumericType(n);
   }
-  if (n instanceof Number) {
-    if ((n as any)[FloatKind] === "float") return "float";
-    const nv = Number(n);
-    return inferNumericType(nv);
+  if (isTaggedFloat(n)) {
+    return "float";
   }
   return undefined;
 }
@@ -122,10 +132,8 @@ export function coerceNumeric(
     return { n: val, type: hint ?? inferNumericType(val) };
   }
 
-  if (val instanceof Number) {
-    const n = Number(val);
-    const kind = (val as any)[FloatKind] === "float" ? "float" : undefined;
-    return { n, type: hint ?? kind ?? inferNumericType(n) };
+  if (isTaggedFloat(val)) {
+    return { n: val.value, type: hint ?? "float" };
   }
 
   if (typeof val === "string") {
@@ -197,16 +205,9 @@ export function toInteger(v: unknown): number | null {
   if (typeof v === "number") {
     return Number.isInteger(v) ? v : null;
   }
-  if (v instanceof Number) {
-    const n = Number(v);
+  if (isTaggedFloat(v)) {
+    const n = v.value;
     return Number.isInteger(n) ? n : null;
   }
   return null;
-}
-
-export function toPlainNumber(v: unknown): unknown {
-  if (v instanceof Number) {
-    return Number(v);
-  }
-  return v;
 }

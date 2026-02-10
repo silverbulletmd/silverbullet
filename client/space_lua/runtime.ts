@@ -2,7 +2,7 @@ import type { ASTCtx, LuaFunctionBody, NumericType } from "./ast.ts";
 import { evalStatement } from "./eval.ts";
 import { asyncQuickSort } from "./util.ts";
 import { isPromise, rpAll } from "./rp.ts";
-import { isFloatTag, isNegativeZero } from "./numeric.ts";
+import { isNegativeZero, isTaggedFloat } from "./numeric.ts";
 
 export type LuaType =
   | "nil"
@@ -48,8 +48,8 @@ export function isLuaTable(v: unknown): v is LuaTable {
 }
 
 export function toNumKey(key: unknown): string | number {
-  if (key instanceof Number) {
-    return Number(key);
+  if (isTaggedFloat(key)) {
+    return key.value;
   }
   if (typeof key === "number" || typeof key === "string") {
     return key;
@@ -73,6 +73,10 @@ type LuaThreadState = {
   closeStack?: LuaCloseEntry[];
 };
 
+function isLuaNumber(v: any): boolean {
+  return typeof v === "number" || isTaggedFloat(v);
+}
+
 export function luaTypeName(val: any): LuaType {
   if (val === null || val === undefined) {
     return "nil";
@@ -85,7 +89,7 @@ export function luaTypeName(val: any): LuaType {
   }
 
   const ty = typeof val;
-  if (ty === "number" || val instanceof Number) {
+  if (ty === "number") {
     return "number";
   }
   if (ty === "string") {
@@ -261,8 +265,7 @@ export class LuaEnv implements ILuaSettable, ILuaGettable {
 
   setLocal(name: string, value: LuaValue, numType?: NumericType) {
     this.variables.set(name, value);
-    const isNum = typeof value === "number" || value instanceof Number;
-    if (isNum && numType) {
+    if (isLuaNumber(value) && numType) {
       this.numericTypes.set(name, numType);
     } else {
       this.numericTypes.delete(name);
@@ -272,8 +275,7 @@ export class LuaEnv implements ILuaSettable, ILuaGettable {
   setLocalConst(name: string, value: LuaValue, numType?: NumericType) {
     this.variables.set(name, value);
     this.consts.add(name);
-    const isNum = typeof value === "number" || value instanceof Number;
-    if (isNum && numType) {
+    if (isLuaNumber(value) && numType) {
       this.numericTypes.set(name, numType);
     } else {
       this.numericTypes.delete(name);
@@ -294,8 +296,7 @@ export class LuaEnv implements ILuaSettable, ILuaGettable {
         );
       }
       this.variables.set(key, value);
-      const isNum = typeof value === "number" || value instanceof Number;
-      if (isNum && numType) {
+      if (isLuaNumber(value) && numType) {
         this.numericTypes.set(key, numType);
       } else {
         this.numericTypes.delete(key);
@@ -622,8 +623,8 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
   }
 
   private static numKeyValue(key: any): number | null {
-    if (key instanceof Number) {
-      return Number(key);
+    if (isTaggedFloat(key)) {
+      return key.value;
     }
     if (typeof key === "number") {
       return key;
@@ -754,10 +755,9 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     numType?: NumericType,
   ): void {
     const idx = index1 - 1;
-    const isNum = typeof value === "number" || value instanceof Number;
 
     this.arrayPart[idx] = value;
-    if (isNum && numType) {
+    if (isLuaNumber(value) && numType) {
       this.arrayTypes[idx] = numType;
     } else {
       this.arrayTypes[idx] = undefined;
@@ -806,9 +806,8 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
         delete this.stringKeys[key];
         this.stringKeyTypes.delete(key);
       } else {
-        const isNum = typeof value === "number" || value instanceof Number;
         this.stringKeys[key] = value;
-        if (isNum && numType) {
+        if (isLuaNumber(value) && numType) {
           this.stringKeyTypes.set(key, numType);
         } else {
           this.stringKeyTypes.delete(key);
@@ -824,9 +823,8 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
         delete this.stringKeys[normalizedKey];
         this.stringKeyTypes.delete(normalizedKey);
       } else {
-        const isNum = typeof value === "number" || value instanceof Number;
         this.stringKeys[normalizedKey] = value;
-        if (isNum && numType) {
+        if (isLuaNumber(value) && numType) {
           this.stringKeyTypes.set(normalizedKey, numType);
         } else {
           this.stringKeyTypes.delete(normalizedKey);
@@ -840,13 +838,12 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
       normalizedKey >= 1
     ) {
       const idx = normalizedKey - 1;
-      const isNum = typeof value === "number" || value instanceof Number;
 
       // Sparse writes (e.g. `a[7]=4` when length is 3) go to the hash
       // part so that `#a` does not jump across holes.
       if (idx <= this.arrayPart.length) {
         this.arrayPart[idx] = value;
-        if (isNum && numType) {
+        if (isLuaNumber(value) && numType) {
           this.arrayTypes[idx] = numType;
         } else {
           this.arrayTypes[idx] = undefined;
@@ -891,7 +888,7 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
         this.otherKeyTypes.delete(normalizedKey);
       } else {
         this.otherKeys.set(normalizedKey, value);
-        if (isNum && numType) {
+        if (isLuaNumber(value) && numType) {
           this.otherKeyTypes.set(normalizedKey, numType);
         } else {
           this.otherKeyTypes.delete(normalizedKey);
@@ -911,9 +908,8 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
       this.otherKeys.delete(normalizedKey);
       this.otherKeyTypes.delete(normalizedKey);
     } else {
-      const isNum = typeof value === "number" || value instanceof Number;
       this.otherKeys.set(normalizedKey, value);
-      if (isNum && numType) {
+      if (isLuaNumber(value) && numType) {
         this.otherKeyTypes.set(normalizedKey, numType);
       } else {
         this.otherKeyTypes.delete(normalizedKey);
@@ -1222,7 +1218,7 @@ export async function luaSet(
     );
   }
 
-  const normKey = key instanceof Number ? Number(key) : key;
+  const normKey = isTaggedFloat(key) ? key.value : key;
 
   if (obj instanceof LuaTable || obj instanceof LuaEnv) {
     await obj.set(normKey, value, sf, numType);
@@ -1256,9 +1252,11 @@ export function luaGet(
   if (obj instanceof LuaTable || obj instanceof LuaEnv) {
     return obj.get(key, sf);
   }
-  if (typeof key === "number" || key instanceof Number) {
-    const idx = key instanceof Number ? Number(key) : key;
-    return (obj as any[])[idx - 1];
+  if (typeof key === "number") {
+    return (obj as any[])[key - 1];
+  }
+  if (isTaggedFloat(key)) {
+    return (obj as any[])[key.value - 1];
   }
   // Native JS object
   const k = toNumKey(key);
@@ -1371,9 +1369,8 @@ export function luaCall(
 }
 
 export function luaEquals(a: any, b: any): boolean {
-  // Unwrap boxed Number objects
-  const an = a instanceof Number ? Number(a) : a;
-  const bn = b instanceof Number ? Number(b) : b;
+  const an = isTaggedFloat(a) ? a.value : a;
+  const bn = isTaggedFloat(b) ? b.value : b;
   return an === bn;
 }
 
@@ -1397,7 +1394,10 @@ export function luaTypeOf(val: any): LuaType | Promise<LuaType> {
   if (typeof val === "boolean") {
     return "boolean";
   }
-  if (typeof val === "number" || val instanceof Number) {
+  if (typeof val === "number") {
+    return "number";
+  }
+  if (isTaggedFloat(val)) {
     return "number";
   }
   if (typeof val === "string") {
@@ -1503,21 +1503,8 @@ export function luaToString(
     return (value as Promise<any>).then((v) => luaToString(v, visited));
   }
 
-  if (value instanceof Number) {
-    const numVal = Number(value);
-    const kind = isFloatTag(value) ? "float" : undefined;
-    if (kind) {
-      return luaFormatNumber(numVal, kind);
-    }
-    // Check for legacy symbol tags
-    const symbols = Object.getOwnPropertySymbols(value);
-    for (const sym of symbols) {
-      const k = (value as any)[sym];
-      if (k === "int" || k === "float") {
-        return luaFormatNumber(numVal, k);
-      }
-    }
-    return luaFormatNumber(numVal);
+  if (isTaggedFloat(value)) {
+    return luaFormatNumber(value.value, "float");
   }
 
   if (typeof value === "number") {
@@ -1721,8 +1708,8 @@ export function luaValueToJS(value: any, sf: LuaStackFrame): any {
       return luaValueToJS((value as ILuaFunction).call(sf, ...jsArgs), sf);
     };
   }
-  if (value instanceof Number) {
-    return Number(value);
+  if (isTaggedFloat(value)) {
+    return value.value;
   }
   return value;
 }

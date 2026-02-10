@@ -45,14 +45,13 @@ import {
   coerceNumericPair,
   coerceToNumber,
   inferNumericType,
-  isLuaFloat,
   isNegativeZero,
+  isTaggedFloat,
   luaStringCoercionError,
   makeLuaFloat,
   makeLuaZero,
   normalizeArithmeticResult,
   toInteger,
-  toPlainNumber,
   untagNumber,
 } from "./numeric.ts";
 import { isPromise, rpAll, rpThen } from "./rp.ts";
@@ -340,8 +339,11 @@ function luaOp(
           if (typeof v === "string") {
             return v as string;
           }
-          if (typeof v === "number" || v instanceof Number) {
-            return String(v instanceof Number ? Number(v) : v);
+          if (typeof v === "number") {
+            return String(v);
+          }
+          if (isTaggedFloat(v)) {
+            return String(v.value);
           }
           const t = luaTypeName(v);
           throw new LuaRuntimeError(
@@ -699,7 +701,7 @@ export function evalExpression(
                   return -n;
                 }
 
-                const plain = toPlainNumber(arg);
+                const plain = untagNumber(arg);
                 if (typeof plain !== "number") {
                   throw new LuaRuntimeError(
                     "attempt to perform arithmetic on a table value",
@@ -707,7 +709,7 @@ export function evalExpression(
                   );
                 }
 
-                const argType = (arg instanceof Number && Number(arg) === 0)
+                const argType = isTaggedFloat(arg)
                   ? "float"
                   : astNumberKind(u.argument);
 
@@ -715,7 +717,7 @@ export function evalExpression(
 
                 // If the operand is a float-tagged boxed number, unary
                 // minus must keep the result float-typed.
-                if (isLuaFloat(arg)) {
+                if (isTaggedFloat(arg)) {
                   if (out === 0) {
                     return makeLuaZero(out, "float");
                   }
@@ -1301,8 +1303,8 @@ function luaRelWithMetamethod(
   ctx: ASTCtx,
   sf: LuaStackFrame,
 ): boolean | Promise<boolean> {
-  const an = a instanceof Number ? Number(a) : a;
-  const bn = b instanceof Number ? Number(b) : b;
+  const an = isTaggedFloat(a) ? a.value : a;
+  const bn = isTaggedFloat(b) ? b.value : b;
 
   if (typeof an === "number" && typeof bn === "number") {
     return op === "<" ? an < bn : an <= bn;

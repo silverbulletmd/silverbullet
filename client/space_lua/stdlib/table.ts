@@ -15,6 +15,7 @@ import {
   singleResult,
 } from "../runtime.ts";
 import { asyncQuickSort, evalPromiseValues } from "../util.ts";
+import { isTaggedFloat } from "../numeric.ts";
 
 // For `LuaTable` honor `__len` when present; otherwise use raw array
 // length.  For JS arrays use `.length`.
@@ -78,8 +79,8 @@ export const tableApi = new LuaTable({
         if (typeof v === "number") {
           return String(v);
         }
-        if (v instanceof Number) {
-          return String(Number(v));
+        if (isTaggedFloat(v)) {
+          return String(v.value);
         }
 
         const ty = typeof v === "object" && v instanceof LuaTable
@@ -237,8 +238,8 @@ export const tableApi = new LuaTable({
           return r ? -1 : 1;
         }
 
-        const av = a instanceof Number ? Number(a) : a;
-        const bv = b instanceof Number ? Number(b) : b;
+        const av = isTaggedFloat(a) ? a.value : a;
+        const bv = isTaggedFloat(b) ? b.value : b;
 
         if (typeof av === "number" && typeof bv === "number") {
           return av < bv ? -1 : 1;
