@@ -183,7 +183,7 @@ export function coerceNumericPair(
     return {
       left: a,
       right: b.value,
-      resultType: forceFloat ? "float" : "float",
+      resultType: "float",
     };
   }
 
@@ -191,7 +191,7 @@ export function coerceNumericPair(
     return {
       left: a.value,
       right: b,
-      resultType: forceFloat ? "float" : "float",
+      resultType: "float",
     };
   }
 
