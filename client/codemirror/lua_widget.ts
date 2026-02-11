@@ -13,7 +13,8 @@ import {
   moveCursorIntoText,
 } from "./widget_util.ts";
 import { expandMarkdown } from "../markdown_renderer/inline.ts";
-import { LuaTable } from "../space_lua/runtime.ts";
+import { luaFormatNumber, LuaTable } from "../space_lua/runtime.ts";
+import { isTaggedFloat } from "../space_lua/numeric.ts";
 import {
   isBlockMarkdown,
   jsonToMDTable,
@@ -346,10 +347,17 @@ export function renderExpressionResult(result: any): Promise<string> {
   if (result instanceof LuaTable) {
     result = result.toJS();
   }
+  // Must check before object/array checks — tagged floats are plain objects
+  if (isTaggedFloat(result)) {
+    return Promise.resolve(luaFormatNumber(result.value, "float"));
+  }
+  if (typeof result === "number") {
+    return Promise.resolve(luaFormatNumber(result));
+  }
   if (
     Array.isArray(result) && result.length > 0 && typeof result[0] === "object"
   ) {
-    // If result is an array of objects, render as a markdown table
+    // If result is an array of objects, render as a Markdown table
     try {
       return jsonToMDTable(result, refCellTransformer);
     } catch (e: any) {
@@ -361,10 +369,10 @@ export function renderExpressionResult(result: any): Promise<string> {
       return Promise.resolve(JSON.stringify(result));
     }
   } else if (typeof result === "object" && result.constructor === Object) {
-    // if result is a plain object, render as a markdown table
+    // If result is a plain object, render as a Markdown table
     return jsonToMDTable([result], refCellTransformer);
   } else if (Array.isArray(result)) {
-    // Not-object array, let's render it as a markdown list
+    // Not-object array, let's render it as a Markdown list
     return Promise.resolve(result.map((item) => `- ${item}`).join("\n"));
   } else {
     return Promise.resolve("" + result);

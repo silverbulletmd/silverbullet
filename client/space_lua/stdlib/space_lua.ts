@@ -84,10 +84,9 @@ export async function interpolateLuaString(
     try {
       const parsedExpr = parseExpressionString(expr);
       const env = createAugmentedEnv(sf, envAugmentation);
-      const luaResult = await luaValueToJS(
-        singleResult(await evalExpression(parsedExpr, env, sf)),
-        sf,
-      );
+      // Do `luaToString` before `luaValueToJS` to preserve tagged float
+      // formatting.
+      const luaResult = singleResult(await evalExpression(parsedExpr, env, sf));
       result += await luaToString(luaResult);
     } catch (e: any) {
       throw new LuaRuntimeError(

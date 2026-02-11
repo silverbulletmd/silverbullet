@@ -1576,35 +1576,92 @@ export function luaToString(
 
 // Format a number according to Lua semantics:
 // * integers: plain format (e.g., `42`);
-// * floats: with decimal point (e.g., `1.0`);
+// * floats: `%.14g` with guaranteed `.0` for integer-valued floats
 // * special values: `inf`, `-inf`, `nan`, `-nan`;
 // * negative zero: `-0.0`.
-function luaFormatNumber(n: number, kind?: "int" | "float"): string {
-  if (!isFinite(n)) {
-    if (isNaN(n)) {
-      // NaN in Lua always formats as `-nan`
-      return "-nan";
-    }
-    return n < 0 ? "-inf" : "inf";
-  }
-
-  if (n === 0 && isNegativeZero(n)) {
-    return "-0.0";
-  }
-
-  if (n === 0 && kind === "float") {
-    return "0.0";
-  }
-
-  if (kind === "float" && Number.isInteger(n)) {
-    return n.toString() + ".0";
-  }
-
-  if (Number.isInteger(n)) {
+export function luaFormatNumber(n: number, kind?: "int" | "float"): string {
+  if (kind !== "float" && Number.isInteger(n) && isFinite(n)) {
     return String(n);
   }
+  if (n !== n) return "-nan";
+  if (n === Infinity) return "inf";
+  if (n === -Infinity) return "-inf";
+  if (n === 0) {
+    return (1 / n === -Infinity) ? "-0.0" : "0.0";
+  }
 
-  return String(n);
+  const raw = n.toPrecision(14);
+  const len = raw.length;
+  const out = new Array<number>(len + 4);
+  let oi = 0;
+
+  let dotPos = -1;
+  let ePos = -1;
+  for (let i = 0; i < len; i++) {
+    const ch = raw.charCodeAt(i);
+    if (ch === 46) dotPos = i;
+    else if (ch === 101 || ch === 69) {
+      ePos = i;
+      break;
+    }
+  }
+
+  if (ePos !== -1) {
+    let coeffEnd = ePos;
+    if (dotPos !== -1) {
+      while (coeffEnd > dotPos + 1 && raw.charCodeAt(coeffEnd - 1) === 48) {
+        coeffEnd--;
+      }
+      if (coeffEnd === dotPos + 1) coeffEnd = dotPos;
+    }
+    for (let i = 0; i < coeffEnd; i++) {
+      out[oi++] = raw.charCodeAt(i);
+    }
+
+    out[oi++] = 101; // 'e'
+
+    let ei = ePos + 1;
+    let expSign = 43; // '+'
+    if (raw.charCodeAt(ei) === 43) ei++;
+    else if (raw.charCodeAt(ei) === 45) {
+      expSign = 45;
+      ei++;
+    }
+    out[oi++] = expSign;
+
+    let expStart = ei;
+    while (expStart < len - 1 && raw.charCodeAt(expStart) === 48) {
+      expStart++;
+    }
+    if (len - expStart < 2) out[oi++] = 48;
+    for (let i = expStart; i < len; i++) {
+      out[oi++] = raw.charCodeAt(i);
+    }
+  } else if (dotPos !== -1) {
+    let end = len;
+    while (end > dotPos + 1 && raw.charCodeAt(end - 1) === 48) {
+      end--;
+    }
+    if (end === dotPos + 1) {
+      for (let i = 0; i < dotPos; i++) {
+        out[oi++] = raw.charCodeAt(i);
+      }
+      out[oi++] = 46; // '.'
+      out[oi++] = 48; // '0'
+    } else {
+      for (let i = 0; i < end; i++) {
+        out[oi++] = raw.charCodeAt(i);
+      }
+    }
+  } else {
+    for (let i = 0; i < len; i++) {
+      out[oi++] = raw.charCodeAt(i);
+    }
+    out[oi++] = 46;
+    out[oi++] = 48;
+  }
+
+  return String.fromCharCode(...out.slice(0, oi));
 }
 
 export function getMetatable(

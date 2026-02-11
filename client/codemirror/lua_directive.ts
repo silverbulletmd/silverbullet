@@ -17,6 +17,7 @@ import {
   luaValueToJS,
   singleResult,
 } from "../space_lua/runtime.ts";
+import { isTaggedFloat } from "../space_lua/numeric.ts";
 import {
   encodeRef,
   getNameFromPath,
@@ -109,16 +110,21 @@ export function luaDirectivePlugin(client: Client) {
                     client.clientSystem.spaceLuaEnv.env,
                   );
                   threadLocalizedEnv.setLocal("_CTX", tl);
-                  return luaValueToJS(
-                    singleResult(
-                      await evalExpression(
-                        expr,
-                        threadLocalizedEnv,
-                        sf,
-                      ),
+                  const rawResult = singleResult(
+                    await evalExpression(
+                      expr,
+                      threadLocalizedEnv,
+                      sf,
                     ),
-                    sf,
                   );
+                  // keep tagged floats as-is for proper formatting
+                  if (
+                    isTaggedFloat(rawResult) || typeof rawResult === "number"
+                  ) {
+                    return rawResult;
+                  }
+                  // everything else needs luaValueToJS for widget support
+                  return luaValueToJS(rawResult, sf);
                 } catch (e: any) {
                   if (e instanceof LuaRuntimeError) {
                     if (e.sf?.astCtx) {
