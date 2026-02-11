@@ -135,14 +135,15 @@ function addSign(s: string, flags: number): string {
 
 function formatInt(n: number, spec: FormatSpec): string {
   const code = spec.spec;
-  let v = Math.trunc(n);
+  const v = Math.trunc(n);
 
   let base = 10;
   let unsigned = false;
   let upper = false;
 
   switch (code) {
-    case 100: case 105: // 'd', 'i'
+    case 100:
+    case 105: // 'd', 'i'
       break;
     case 117: // 'u'
       unsigned = true;
