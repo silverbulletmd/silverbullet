@@ -2100,7 +2100,8 @@ export function evalStatement(
         return i;
       };
 
-      const canReuseEnv = !fr.block.hasFunctionDef;
+      const canReuseEnv = !fr.block.hasFunctionDef ||
+        fr.capturesLoopVar === false;
 
       const executeIteration = canReuseEnv
         ? (
@@ -2223,8 +2224,8 @@ export function evalStatement(
         fi.expressions.map((e: LuaExpression) => evalExpression(e, env, sf)),
       );
 
-      const canReuseEnv = !fi.block.hasFunctionDef;
-
+      const canReuseEnv = !fi.block.hasFunctionDef ||
+        fi.capturesLoopVar === false;
       const setIterVars = (
         localEnv: LuaEnv,
         names: string[],

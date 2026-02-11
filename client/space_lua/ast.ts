@@ -93,6 +93,8 @@ export type LuaForStatement = {
   end: LuaExpression;
   step?: LuaExpression;
   block: LuaBlock;
+  // function definition in the block captures the loop variable
+  capturesLoopVar?: boolean;
 } & ASTContext;
 
 export type LuaForInStatement = {
@@ -100,6 +102,8 @@ export type LuaForInStatement = {
   names: string[];
   expressions: LuaExpression[];
   block: LuaBlock;
+  // function definition in the block captures any loop variable
+  capturesLoopVar?: boolean;
 } & ASTContext;
 
 export type LuaFunctionStatement = {
