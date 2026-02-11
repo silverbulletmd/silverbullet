@@ -484,8 +484,24 @@ export function editorSyscalls(client: Client): SysCallMapping {
       _ctx,
       message: string,
       defaultValue = "",
+      options: { acceptEmpty?: boolean, trim?: boolean } = { acceptEmpty: false, trim: true }
     ): Promise<string | undefined> => {
-      return client.prompt(message, defaultValue);
+      const { acceptEmpty: acceptEmpty, trim: trim } = options;
+      // prompt() can return the input string, "" if the user just presses ok, or
+      // null if they press cancel.
+      let input = client.prompt(message, defaultValue);
+      if (input == null) {
+        return null;
+      }
+      if (trim) {
+        // input = trim && input.trim() || input; will shortcut incorrectly because "" == falsey
+        input = input.trim()
+      }
+      // Trim again in this check incase trim == false
+      if (!acceptEmpty && input.trim() == "") {
+        return null;
+      }
+      return input;
     },
     "editor.confirm": (_ctx, message: string): Promise<boolean> => {
       return client.confirm(message);

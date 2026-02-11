@@ -351,6 +351,7 @@ export function dispatch(change: any): Promise<void> {
 export function prompt(
   message: string,
   defaultValue = "",
+  // TODO: also here
 ): Promise<string | undefined> {
   return syscall("editor.prompt", message, defaultValue);
 }
