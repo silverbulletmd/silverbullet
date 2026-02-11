@@ -407,21 +407,21 @@ class Formatter {
   }
 
   formatDouble(token: TokenInfo): void {
-    let f = parseFloat(token.arg as string);
-    if (!isFinite(f)) { // isNaN(f) || f == Number.POSITIVE_INFINITY || f == Number.NEGATIVE_INFINITY)
-      // allow this only if arg is number
-      if (typeof token.arg !== "number" && typeof token.arg !== "string") {
-        throw new Error(
-          "format argument '" + token.arg +
-            "' not a float; parseFloat returned " + f,
-        );
+    const f = parseFloat(token.arg as string);
+
+    // Lua: inf, -inf, -nan (always lowercase for nan, always negative)
+    if (!isFinite(f)) {
+      if (isNaN(f)) {
+        token.arg = token.toUpper ? "-NAN" : "-nan";
+      } else if (f > 0) {
+        token.arg = token.toUpper ? "INF" : "inf";
+        if (token.sign) {
+          token.arg = token.sign + token.arg;
+        }
+      } else {
+        token.arg = token.toUpper ? "-INF" : "-inf";
       }
-      // C99 says that for 'f':
-      //   infinity -> '[-]inf' or '[-]infinity' ('[-]INF' or '[-]INFINITY' for 'F')
-      //   NaN -> a string  starting with 'nan' ('NAN' for 'F')
-      // this is not commonly implemented though.
-      //return '' + f;
-      f = 0;
+      return;
     }
 
     switch (token.doubleNotation) {
@@ -434,18 +434,19 @@ class Formatter {
         break;
       }
       case "g": {
-        // C says use 'e' notation if exponent is < -4 or is >= prec
-        // ECMAScript for toPrecision says use exponential notation if exponent is >= prec,
-        // though step 17 of toPrecision indicates a test for < -6 to force exponential.
-        if (Math.abs(f) < 0.0001) {
-          //print('forcing exponential notation for f=' + f);
-          token.arg = f.toExponential(
-            (token.precision ?? 1) > 0
-              ? (token.precision ?? 1) - 1
-              : (token.precision ?? 1),
-          );
+        // C %g: precision 0 is treated as 1
+        const prec = (token.precision ?? 1) || 1;
+
+        if (f === 0) {
+          // Zero must not fall into the exponential branch
+          token.arg = "0";
+        } else if (Math.abs(f) < 0.0001) {
+          // C says use 'e' notation if exponent is < -4 or is >= prec
+          // ECMAScript for toPrecision says use exponential notation if exponent is >= prec,
+          // though step 17 of toPrecision indicates a test for < -6 to force exponential.
+          token.arg = f.toExponential(prec > 1 ? prec - 1 : 0);
         } else {
-          token.arg = f.toPrecision(token.precision ?? 1);
+          token.arg = f.toPrecision(prec);
         }
 
         // In C, unlike 'f', 'gG' removes trailing 0s from fractional part, unless alternative format flag ('#').
@@ -605,7 +606,8 @@ class Formatter {
     if (currentDepth >= maxDepth) {
       if (Array.isArray(obj)) {
         return "[Array]";
-      } else if (typeof obj === "object" && obj !== null) {
+      }
+      if (typeof obj === "object" && obj !== null) {
         return "[Object]";
       }
       return obj;
@@ -615,7 +617,8 @@ class Formatter {
       return obj.map((item) =>
         this.limitObjectDepth(item, maxDepth, currentDepth + 1)
       );
-    } else if (typeof obj === "object" && obj !== null) {
+    }
+    if (typeof obj === "object" && obj !== null) {
       const result: Record<string, any> = {};
       for (const key in obj) {
         if (Object.prototype.hasOwnProperty.call(obj, key)) {
