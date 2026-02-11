@@ -2100,16 +2100,29 @@ export function evalStatement(
         return i;
       };
 
-      const executeIteration = (
-        i: number,
-        loopType: NumericType,
-      ): void | ControlSignal | Promise<void | ControlSignal> => {
-        const localEnv = new LuaEnv(env);
-        localEnv.setLocal(fr.name, wrapLoopVar(i, loopType));
-        return evalStatement(fr.block, localEnv, sf, returnOnReturn);
-      };
+      const canReuseEnv = !fr.block.hasFunctionDef;
+
+      const executeIteration = canReuseEnv
+        ? (
+          loopEnv: LuaEnv,
+          i: number,
+          loopType: NumericType,
+        ): void | ControlSignal | Promise<void | ControlSignal> => {
+          loopEnv.setLocal(fr.name, wrapLoopVar(i, loopType));
+          return evalStatement(fr.block, loopEnv, sf, returnOnReturn);
+        }
+        : (
+          _loopEnv: LuaEnv,
+          i: number,
+          loopType: NumericType,
+        ): void | ControlSignal | Promise<void | ControlSignal> => {
+          const localEnv = new LuaEnv(env);
+          localEnv.setLocal(fr.name, wrapLoopVar(i, loopType));
+          return evalStatement(fr.block, localEnv, sf, returnOnReturn);
+        };
 
       const runAsync = async (
+        loopEnv: LuaEnv,
         end: number,
         step: number,
         startIndex: number,
@@ -2124,7 +2137,7 @@ export function evalStatement(
           : (i: number) => i >= end;
 
         for (let i = startIndex; shouldContinue(i); i += step) {
-          const r = executeIteration(i, loopType);
+          const r = executeIteration(loopEnv, i, loopType);
           const res = isPromise(r) ? await r : r;
           if (res !== undefined) {
             if (isBreakSignal(res)) {
@@ -2152,8 +2165,10 @@ export function evalStatement(
           ? (i: number) => i <= end
           : (i: number) => i >= end;
 
+        const loopEnv = new LuaEnv(env);
+
         for (let i = start; shouldContinue(i); i += step) {
-          const r = executeIteration(i, loopType);
+          const r = executeIteration(loopEnv, i, loopType);
           if (isPromise(r)) {
             return (r as Promise<any>).then((res) => {
               if (res !== undefined) {
@@ -2162,7 +2177,7 @@ export function evalStatement(
                 }
                 return res;
               }
-              return runAsync(end, step, i + step, loopType);
+              return runAsync(loopEnv, end, step, i + step, loopType);
             });
           }
           if (r !== undefined) {
@@ -2208,6 +2223,18 @@ export function evalStatement(
         fi.expressions.map((e: LuaExpression) => evalExpression(e, env, sf)),
       );
 
+      const canReuseEnv = !fi.block.hasFunctionDef;
+
+      const setIterVars = (
+        localEnv: LuaEnv,
+        names: string[],
+        values: LuaValue[],
+      ) => {
+        for (let i = 0; i < names.length; i++) {
+          localEnv.setLocal(names[i], values[i]);
+        }
+      };
+
       const afterExprs = (resolved: any[]) => {
         const iteratorMultiRes = new LuaMultiRes(resolved).flatten();
         let iteratorValue: ILuaFunction | any = iteratorMultiRes.values[0];
@@ -2232,13 +2259,9 @@ export function evalStatement(
         let control: LuaValue = iteratorMultiRes.values[2] ?? null;
         const closing: LuaValue = iteratorMultiRes.values[3] ?? null;
 
-        // The closing value in a generic-for has loop scope.  Close it
-        // when the loop ends, not only when the surrounding block ends.
         const closeStack = luaEnsureCloseStack(sf);
         const mark = closeStack.length;
 
-        // The closing value is a "to-be-closed" value, and only `nil`
-        // means "no close"; `false` is NOT special here.
         if (closing !== null) {
           luaMarkToBeClosed(sf, closing, fi.ctx);
         }
@@ -2262,6 +2285,16 @@ export function evalStatement(
           throw e;
         };
 
+        // Allocate the reusable env once before the loop
+        const loopEnv = canReuseEnv ? new LuaEnv(env) : null;
+
+        const makeIterEnv = (): LuaEnv => {
+          if (loopEnv) {
+            return loopEnv;
+          }
+          return new LuaEnv(env);
+        };
+
         try {
           const runAsync = async () => {
             while (true) {
@@ -2280,10 +2313,8 @@ export function evalStatement(
               }
               control = nextControl;
 
-              const localEnv = new LuaEnv(env);
-              for (let i = 0; i < fi.names.length; i++) {
-                localEnv.setLocal(fi.names[i], iterResult.values[i]);
-              }
+              const localEnv = makeIterEnv();
+              setIterVars(localEnv, fi.names, iterResult.values);
 
               const r = evalStatement(fi.block, localEnv, sf, returnOnReturn);
               const res = isPromise(r) ? await r : r;
@@ -2315,10 +2346,8 @@ export function evalStatement(
                 }
                 control = nextControl;
 
-                const localEnv = new LuaEnv(env);
-                for (let i = 0; i < fi.names.length; i++) {
-                  localEnv.setLocal(fi.names[i], iterResult.values[i]);
-                }
+                const localEnv = makeIterEnv();
+                setIterVars(localEnv, fi.names, iterResult.values);
 
                 const r = evalStatement(
                   fi.block,
@@ -2358,10 +2387,8 @@ export function evalStatement(
             }
             control = nextControl;
 
-            const localEnv = new LuaEnv(env);
-            for (let i = 0; i < fi.names.length; i++) {
-              localEnv.setLocal(fi.names[i], iterResult.values[i]);
-            }
+            const localEnv = makeIterEnv();
+            setIterVars(localEnv, fi.names, iterResult.values);
 
             const r = evalStatement(fi.block, localEnv, sf, returnOnReturn);
             if (isPromise(r)) {

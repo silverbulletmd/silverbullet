@@ -22,6 +22,8 @@ export type LuaBlock = {
   hasLabelHere?: boolean;
   // true if this block itself (not nested ones) may create to-be-closed values
   hasCloseHere?: boolean;
+  // true if this block's subtree contains any function definition
+  hasFunctionDef?: boolean;
 } & ASTContext;
 
 // STATEMENTS

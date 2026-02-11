@@ -98,6 +98,7 @@ function parseBlock(t: ParseTree, ctx: ASTCtx): LuaBlock {
   let dup: { name: string; ctx: ASTCtx } | undefined;
   let hasLabelHere = false;
   let hasCloseHere = false;
+  let hasFunctionDef = false;
 
   const seen = new Set<string>();
 
@@ -126,10 +127,44 @@ function parseBlock(t: ParseTree, ctx: ASTCtx): LuaBlock {
         if (!hasCloseHere) {
           hasCloseHere = hasCloseLocal((s as any).names as LuaAttName[]);
         }
+        if (!hasFunctionDef) {
+          hasFunctionDef = expressionsHaveFunctionDef(
+            (s as any).expressions as LuaExpression[] | undefined,
+          );
+        }
         break;
       }
       case "LocalFunction": {
         hasLocalDecl = true;
+        hasFunctionDef = true;
+        break;
+      }
+      case "Function": {
+        hasFunctionDef = true;
+        break;
+      }
+      case "FunctionCallStatement": {
+        if (!hasFunctionDef) {
+          const call = (s as any).call as LuaFunctionCallExpression;
+          hasFunctionDef = expressionHasFunctionDef(call.prefix) ||
+            expressionsHaveFunctionDef(call.args);
+        }
+        break;
+      }
+      case "Assignment": {
+        if (!hasFunctionDef) {
+          hasFunctionDef = expressionsHaveFunctionDef(
+            (s as any).expressions as LuaExpression[],
+          );
+        }
+        break;
+      }
+      case "Return": {
+        if (!hasFunctionDef) {
+          hasFunctionDef = expressionsHaveFunctionDef(
+            (s as any).expressions as LuaExpression[],
+          );
+        }
         break;
       }
       case "Block": {
@@ -137,6 +172,7 @@ function parseBlock(t: ParseTree, ctx: ASTCtx): LuaBlock {
         hasLabel = hasLabel || !!child.hasLabel;
         hasGoto = hasGoto || !!child.hasGoto;
         hasCloseHere = hasCloseHere || !!child.hasCloseHere;
+        hasFunctionDef = hasFunctionDef || !!child.hasFunctionDef;
         break;
       }
       case "If": {
@@ -145,21 +181,44 @@ function parseBlock(t: ParseTree, ctx: ASTCtx): LuaBlock {
           hasLabel = hasLabel || !!c.block.hasLabel;
           hasGoto = hasGoto || !!c.block.hasGoto;
           hasCloseHere = hasCloseHere || !!c.block.hasCloseHere;
+          hasFunctionDef = hasFunctionDef || !!c.block.hasFunctionDef;
+          if (!hasFunctionDef) {
+            hasFunctionDef = expressionHasFunctionDef(c.condition);
+          }
         }
         if (iff.elseBlock) {
           hasLabel = hasLabel || !!iff.elseBlock.hasLabel;
           hasGoto = hasGoto || !!iff.elseBlock.hasGoto;
           hasCloseHere = hasCloseHere || !!iff.elseBlock.hasCloseHere;
+          hasFunctionDef = hasFunctionDef || !!iff.elseBlock.hasFunctionDef;
         }
         break;
       }
       case "While":
-      case "Repeat":
+      case "Repeat": {
+        const child = (s as any).block as LuaBlock;
+        hasLabel = hasLabel || !!child.hasLabel;
+        hasGoto = hasGoto || !!child.hasGoto;
+        hasCloseHere = hasCloseHere || !!child.hasCloseHere;
+        hasFunctionDef = hasFunctionDef || !!child.hasFunctionDef;
+        if (!hasFunctionDef) {
+          hasFunctionDef = expressionHasFunctionDef((s as any).condition);
+        }
+        break;
+      }
       case "For": {
         const child = (s as any).block as LuaBlock;
         hasLabel = hasLabel || !!child.hasLabel;
         hasGoto = hasGoto || !!child.hasGoto;
         hasCloseHere = hasCloseHere || !!child.hasCloseHere;
+        hasFunctionDef = hasFunctionDef || !!child.hasFunctionDef;
+        if (!hasFunctionDef) {
+          hasFunctionDef = expressionHasFunctionDef((s as any).start) ||
+            expressionHasFunctionDef((s as any).end) ||
+            ((s as any).step
+              ? expressionHasFunctionDef((s as any).step)
+              : false);
+        }
         break;
       }
       case "ForIn": {
@@ -167,6 +226,12 @@ function parseBlock(t: ParseTree, ctx: ASTCtx): LuaBlock {
         hasLabel = hasLabel || !!child.hasLabel;
         hasGoto = hasGoto || !!child.hasGoto;
         hasCloseHere = true;
+        hasFunctionDef = hasFunctionDef || !!child.hasFunctionDef;
+        if (!hasFunctionDef) {
+          hasFunctionDef = expressionsHaveFunctionDef(
+            (s as any).expressions as LuaExpression[],
+          );
+        }
         break;
       }
       default: {
@@ -192,6 +257,9 @@ function parseBlock(t: ParseTree, ctx: ASTCtx): LuaBlock {
   }
   if (hasCloseHere) {
     block.hasCloseHere = true;
+  }
+  if (hasFunctionDef) {
+    block.hasFunctionDef = true;
   }
 
   return block;
@@ -988,4 +1056,83 @@ export function parseExpressionString(
 ): LuaExpression {
   const parsedLua = parse(`_(${expr})`) as LuaBlock;
   return (parsedLua.statements[0] as LuaFunctionCallStatement).call.args[0];
+}
+
+function expressionHasFunctionDef(e: LuaExpression): boolean {
+  if (!e) return false;
+  switch (e.type) {
+    case "FunctionDefinition":
+      return true;
+    case "FunctionCall": {
+      if (expressionHasFunctionDef(e.prefix)) return true;
+      for (let i = 0; i < e.args.length; i++) {
+        if (expressionHasFunctionDef(e.args[i])) return true;
+      }
+      return false;
+    }
+    case "Binary":
+      return expressionHasFunctionDef(e.left) ||
+        expressionHasFunctionDef(e.right);
+    case "Unary":
+      return expressionHasFunctionDef(e.argument);
+    case "Parenthesized":
+      return expressionHasFunctionDef(e.expression);
+    case "TableConstructor": {
+      for (let i = 0; i < e.fields.length; i++) {
+        const f = e.fields[i];
+        switch (f.type) {
+          case "DynamicField":
+            if (expressionHasFunctionDef(f.key)) return true;
+            // falls through
+          case "PropField":
+          case "ExpressionField":
+            if (expressionHasFunctionDef(f.value)) return true;
+        }
+      }
+      return false;
+    }
+    case "TableAccess":
+      return expressionHasFunctionDef(e.object) ||
+        expressionHasFunctionDef(e.key);
+    case "PropertyAccess":
+      return expressionHasFunctionDef(e.object);
+    case "Query": {
+      for (let i = 0; i < e.clauses.length; i++) {
+        const c = e.clauses[i];
+        switch (c.type) {
+          case "From":
+            if (expressionHasFunctionDef(c.expression)) return true;
+            break;
+          case "Where":
+          case "Select":
+            if (expressionHasFunctionDef(c.expression)) return true;
+            break;
+          case "Limit":
+            if (expressionHasFunctionDef(c.limit)) return true;
+            if (c.offset && expressionHasFunctionDef(c.offset)) return true;
+            break;
+          case "OrderBy":
+            for (let j = 0; j < c.orderBy.length; j++) {
+              if (expressionHasFunctionDef(c.orderBy[j].expression)) {
+                return true;
+              }
+            }
+            break;
+        }
+      }
+      return false;
+    }
+    default:
+      return false;
+  }
+}
+
+function expressionsHaveFunctionDef(
+  exprs: LuaExpression[] | undefined,
+): boolean {
+  if (!exprs) return false;
+  for (let i = 0; i < exprs.length; i++) {
+    if (expressionHasFunctionDef(exprs[i])) return true;
+  }
+  return false;
 }
