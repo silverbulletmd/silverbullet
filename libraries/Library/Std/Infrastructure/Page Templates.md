@@ -79,11 +79,16 @@ This is my quick note version
 ```space-lua
 -- priority: 10
 
-local function createPageFromTemplate(templatePage, pageName)
+local function createPageFromTemplate(templatePage, pageName, openIfExists)
   -- Won't override an existing page
   if space.pageExists(pageName) then
-    editor.flashNotification("Page " .. pageName .. " already exists", "error")
-    return
+    if openIfExists then
+      editor.navigate(pageName)
+      return
+    else
+      editor.flashNotification("Page " .. pageName .. " already exists", "error")
+      return
+    end
   end
   local tpl, fm = template.fromPage(templatePage)
   local initialText = ""
@@ -115,16 +120,13 @@ for pt in query[[
         pageName = (template.new(pt.suggestedName))()
       end
       if pt.confirmName != false then
-        pageName = editor.prompt("Page name", pageName)
+        pageName = string.trim(some(editor.prompt("Page name", pageName)) or "")
       end
-      if not pageName then
+      if pageName == "" then
+        editor.flashNotification("No page name given for '" .. pt.command .. "', unable to continue.", "error")
         return
       end
-      if pt.openIfExists and space.pageExists(pageName) then
-        editor.navigate(pageName)
-        return
-      end
-      createPageFromTemplate(pt.name, pageName)
+      createPageFromTemplate(pt.name, pageName, pt.openIfExists)
     end
   }
 end
@@ -145,7 +147,8 @@ command.define {
       select {
         name = cleanName(_.name),
         fullName = _.name,
-        suggestedName = _.suggestedName
+        suggestedName = _.suggestedName,
+        openIfExists = _.openIfExists
       }
     ]]
     local selected = editor.filterBox("Page template", pageTemplates, "Pick the template you would like to instantiate")
@@ -161,7 +164,7 @@ command.define {
       editor.flashNotification("No page name given for template '" .. cleanName(selected.fullName) .. "', unable to continue.", "error")
       return
     end
-    createPageFromTemplate(selected.fullName, pageName)
+    createPageFromTemplate(selected.fullName, pageName, selected.openIfExists)
   end
 }
 ```
