@@ -156,8 +156,9 @@ command.define {
     if selected.suggestedName then
       pageName = (template.new(selected.suggestedName))()
     end
-    pageName = editor.prompt("Page name", pageName)
-    if not pageName then
+    pageName = string.trim(some(editor.prompt("Page name", pageName)) or "")
+    if pageName == "" then
+      editor.flashNotification("No page name given for template '" .. cleanName(selected.fullName) .. "', unable to continue.", "error")
       return
     end
     createPageFromTemplate(selected.fullName, pageName)
