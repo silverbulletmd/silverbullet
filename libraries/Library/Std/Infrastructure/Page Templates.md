@@ -17,8 +17,8 @@ the page.
 Optional keys you can set in the page’s frontmatter:
 
 * `suggestedName`: the proposed name for the new page, can use embedded Lua expressions, like `Daily/${date.today()}`.
-* `confirmName`: Confirm the suggested page name before creating it (defaults to `true`).
-* `openIfExists`: If a page with the `suggestedName` already exists, open it rather than attempting to create it anew.
+* `confirmName`: Confirm the suggested page name before creating it (defaults to `true`). Only effects pages created by a key binding, otherwise you will always be prompted to confirm the new page name.
+* `openIfExists`: If a page with the `suggestedName` already exists, open it rather than showing an error.
 * `command`: expose the page template as a command with this name.
 * `key`: Bind the snippet to a keyboard shortcut (note: this requires to _also_ specify the `command` configuration).
 * `mac`: Bind the snippet to a Mac-specific keyboard shortcut.
