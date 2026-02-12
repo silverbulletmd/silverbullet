@@ -2,13 +2,13 @@
 // Supported flags set: [-+0# ]
 // Width and precision via digits or `*`
 
-interface FormatSpec {
+type FormatSpec = {
   flags: number; // FLAG_*
   width: number;
   hasPrec: boolean;
   prec: number;
   spec: number;
-}
+};
 
 const FLAG_MINUS = 1;
 const FLAG_PLUS = 2;
