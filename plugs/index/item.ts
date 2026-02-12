@@ -20,7 +20,10 @@ export type ItemObject = ObjectValue<
     page: string;
     name: string;
     text: string;
+    // Deprecated, use range instead
     pos: number;
+    // Deprecated, use range instead
+    toPos: number;
     parent?: string;
     links?: string[];
     ilinks?: string[];
@@ -96,6 +99,7 @@ export function extractItemFromNode(
     ref: `${name}@${itemNode.from}`,
     tag: "item",
     pos: itemNode.from!,
+    toPos: itemNode.to!,
     range: [itemNode.from!, itemNode.to!],
     name: "", // to be replaced
     text: "", // to be replaced
