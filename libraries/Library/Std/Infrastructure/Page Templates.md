@@ -17,8 +17,8 @@ the page.
 Optional keys you can set in the page’s frontmatter:
 
 * `suggestedName`: the proposed name for the new page, can use embedded Lua expressions, like `Daily/${date.today()}`.
-* `confirmName`: Confirm the suggested page name before creating it (defaults to `true`).
-* `openIfExists`: If a page with the `suggestedName` already exists, open it rather than attempting to create it anew.
+* `confirmName`: Confirm the suggested page name before creating it (defaults to `true`). Only effects pages created by a key binding, otherwise you will always be prompted to confirm the new page name.
+* `openIfExists`: If a page with the `suggestedName` already exists, open it rather than showing an error.
 * `command`: expose the page template as a command with this name.
 * `key`: Bind the snippet to a keyboard shortcut (note: this requires to _also_ specify the `command` configuration).
 * `mac`: Bind the snippet to a Mac-specific keyboard shortcut.
@@ -79,11 +79,16 @@ This is my quick note version
 ```space-lua
 -- priority: 10
 
-local function createPageFromTemplate(templatePage, pageName)
+local function createPageFromTemplate(templatePage, pageName, openIfExists)
   -- Won't override an existing page
   if space.pageExists(pageName) then
-    editor.flashNotification("Page " .. pageName .. " already exists", "error")
-    return
+    if openIfExists then
+      editor.navigate(pageName)
+      return
+    else
+      editor.flashNotification("Page " .. pageName .. " already exists", "error")
+      return
+    end
   end
   local tpl, fm = template.fromPage(templatePage)
   local initialText = ""
@@ -115,16 +120,13 @@ for pt in query[[
         pageName = (template.new(pt.suggestedName))()
       end
       if pt.confirmName != false then
-        pageName = editor.prompt("Page name", pageName)
+        pageName = string.trim(some(editor.prompt("Page name", pageName)) or "")
       end
-      if not pageName then
+      if pageName == "" then
+        editor.flashNotification("No page name given for '" .. pt.command .. "', unable to continue.", "error")
         return
       end
-      if pt.openIfExists and space.pageExists(pageName) then
-        editor.navigate(pageName)
-        return
-      end
-      createPageFromTemplate(pt.name, pageName)
+      createPageFromTemplate(pt.name, pageName, pt.openIfExists)
     end
   }
 end
@@ -145,7 +147,8 @@ command.define {
       select {
         name = cleanName(_.name),
         fullName = _.name,
-        suggestedName = _.suggestedName
+        suggestedName = _.suggestedName,
+        openIfExists = _.openIfExists
       }
     ]]
     local selected = editor.filterBox("Page template", pageTemplates, "Pick the template you would like to instantiate")
@@ -156,11 +159,12 @@ command.define {
     if selected.suggestedName then
       pageName = (template.new(selected.suggestedName))()
     end
-    pageName = editor.prompt("Page name", pageName)
-    if not pageName then
+    pageName = string.trim(some(editor.prompt("Page name", pageName)) or "")
+    if pageName == "" then
+      editor.flashNotification("No page name given for template '" .. cleanName(selected.fullName) .. "', unable to continue.", "error")
       return
     end
-    createPageFromTemplate(selected.fullName, pageName)
+    createPageFromTemplate(selected.fullName, pageName, selected.openIfExists)
   end
 }
 ```
