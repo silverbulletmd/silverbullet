@@ -113,8 +113,11 @@ export const stringApi = new LuaTable({
     },
   ),
   format: new LuaBuiltinFunction((_sf, format: string, ...args: any[]) => {
-    // Unwrap tagged floats so `luaFormat` sees plain numbers
-    return luaFormat(format, ...args.map(untagNumber));
+    // Unwrap tagged floats so luaFormat sees plain numbers
+    for (let i = 0; i < args.length; i++) {
+      args[i] = untagNumber(args[i]);
+    }
+    return luaFormat(format, ...args);
   }),
   gmatch: new LuaBuiltinFunction((_sf, s: string, pattern: string) => {
     pattern = translatePattern(pattern);
