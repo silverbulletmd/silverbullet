@@ -2,7 +2,7 @@
   "name": "@silverbulletmd/silverbullet",
   "version": "2.4.1",
   "tasks": {
-    "build": "make clean && deno run -A --no-lock build_plugs_libraries.ts && deno run -A --no-lock build_client.ts",
+    "build": "make clean && deno run -A build_plugs_libraries.ts && deno run -A build_client.ts",
     "build-production": "deno task build --production",
     "build-plug-compile": "deno run -A --no-lock build_plug_compile.ts",
     "check": "find . -name '*.ts*' -not -path \"*/node_modules/*\" | xargs deno check",
