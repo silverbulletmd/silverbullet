@@ -89,26 +89,19 @@ import { getBlockGotoMeta } from "./labels.ts";
 const astNumberKindCache = new WeakMap<LuaExpression, NumericType>();
 
 function astNumberKind(e: LuaExpression | undefined): NumericType | undefined {
-  if (!e) {
-    return undefined;
-  }
+  if (!e) return undefined;
 
   const cached = astNumberKindCache.get(e);
-  if (cached) {
-    return cached;
-  }
-
-  let result: NumericType | undefined;
+  if (cached) return cached;
 
   let unwrapped = e;
   while (unwrapped.type === "Parenthesized") {
     unwrapped = unwrapped.expression;
   }
 
-  if (
-    unwrapped.type === "Unary" &&
-    unwrapped.operator === "-"
-  ) {
+  let result: NumericType | undefined;
+
+  if (unwrapped.type === "Unary" && unwrapped.operator === "-") {
     result = astNumberKind(unwrapped.argument);
   } else if (unwrapped.type === "Number") {
     result = unwrapped.numericType === "int" ? "int" : "float";
@@ -126,13 +119,13 @@ function astNumberKind(e: LuaExpression | undefined): NumericType | undefined {
       } else if (lk === "int" && rk === "int") {
         result = "int";
       } else {
-        result = undefined;
+        return undefined;
       }
     } else {
-      result = undefined;
+      return undefined;
     }
   } else {
-    result = undefined;
+    return undefined;
   }
 
   if (result !== undefined) {
