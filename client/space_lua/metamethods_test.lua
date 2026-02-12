@@ -1,4 +1,4 @@
-local function assert_eq(actual, expected, message)
+local function assertEquals(actual, expected, message)
   if actual ~= expected then
     error('Assertion failed: ' .. message
       .. ' (expected ' .. tostring(expected)
@@ -6,13 +6,13 @@ local function assert_eq(actual, expected, message)
   end
 end
 
-local function assert_true(v, message)
+local function assertTrue(v, message)
   if v ~= true then
     error('Assertion failed: ' .. message .. ' (expected true)')
   end
 end
 
-local function assert_false(v, message)
+local function assertFalse(v, message)
   if v ~= false then
     error('Assertion failed: ' .. message .. ' (expected false)')
   end
@@ -34,11 +34,6 @@ local function assertThrows(msg_substr, fn)
     error('Assertion failed: expected error message to contain "'
       .. msg_substr .. '", got: "' .. err .. '"')
   end
-end
-
-local function assert_first_only(expr_fn, expected, message)
-  local v = expr_fn()
-  assert_eq(v, expected, message)
 end
 
 -- 1. Arithmetic + bitwise metamethods: values + multi-return trimming
@@ -63,22 +58,22 @@ do
   local a = setmetatable({ tag = 'A' }, mt)
   local b = setmetatable({ tag = 'B' }, mt)
 
-  assert_eq(a + b, 'A+B', '__add produced correct value')
-  assert_eq(a - b, 'A-B', '__sub produced correct value')
-  assert_eq(a * b, 'A*B', '__mul produced correct value')
-  assert_eq(a / b, 'A/B', '__div produced correct value')
-  assert_eq(a ^ b, 'A^B', '__pow produced correct value')
-  assert_eq(a // b, 'A//B', '__idiv produced correct value')
-  assert_eq(a % b, 'A%B', '__mod produced correct value')
+  assertEquals(a + b, 'A+B', '__add produced correct value')
+  assertEquals(a - b, 'A-B', '__sub produced correct value')
+  assertEquals(a * b, 'A*B', '__mul produced correct value')
+  assertEquals(a / b, 'A/B', '__div produced correct value')
+  assertEquals(a ^ b, 'A^B', '__pow produced correct value')
+  assertEquals(a // b, 'A//B', '__idiv produced correct value')
+  assertEquals(a % b, 'A%B', '__mod produced correct value')
 
-  assert_eq(-a, '(-A)', '__unm produced correct value')
-  assert_eq(~a, '(~A)', '__bnot produced correct value')
+  assertEquals(-a, '(-A)', '__unm produced correct value')
+  assertEquals(~a, '(~A)', '__bnot produced correct value')
 
-  assert_eq(a & b, 'A&B', '__band produced correct value')
-  assert_eq(a | b, 'A|B', '__bor produced correct value')
-  assert_eq(a ~ b, 'A~B', '__bxor produced correct value')
-  assert_eq(a << b, 'A<<B', '__shl produced correct value')
-  assert_eq(a >> b, 'A>>B', '__shr produced correct value')
+  assertEquals(a & b, 'A&B', '__band produced correct value')
+  assertEquals(a | b, 'A|B', '__bor produced correct value')
+  assertEquals(a ~ b, 'A~B', '__bxor produced correct value')
+  assertEquals(a << b, 'A<<B', '__shl produced correct value')
+  assertEquals(a >> b, 'A>>B', '__shr produced correct value')
 
   -- Multi-return from metamethod: must take only the first return
   do
@@ -92,11 +87,11 @@ do
 
     local x = setmetatable({}, mt_mr)
 
-    assert_eq(x + x, 'first', 'binary operator uses first return value')
-    assert_eq(-x, 7, 'unary operator uses first return value')
-    assert_eq(~x, 9, 'unary operator uses first return value')
-    assert_eq(x .. x, "c1", 'concat uses first return value')
-    assert_eq(#x, 123, 'len uses first return value')
+    assertEquals(x + x, 'first', 'binary operator uses first return value')
+    assertEquals(-x, 7, 'unary operator uses first return value')
+    assertEquals(~x, 9, 'unary operator uses first return value')
+    assertEquals(x .. x, "c1", 'concat uses first return value')
+    assertEquals(#x, 123, 'len uses first return value')
   end
 end
 
@@ -116,18 +111,18 @@ do
     }
     local function O(v) return setmetatable({ v = v }, mt) end
 
-    assert_true(O(1) < O(2), "__lt true")
-    assert_false(O(2) < O(1), "__lt false")
-    assert_true(O(2) <= O(2), "__le true")
-    assert_false(O(3) <= O(2), "__le false")
+    assertTrue(O(1) < O(2), "__lt true")
+    assertFalse(O(2) < O(1), "__lt false")
+    assertTrue(O(2) <= O(2), "__le true")
+    assertFalse(O(3) <= O(2), "__le false")
   end
 
 -- 2.3. `__eq` semantics
 do
   do
     local a, b = {}, {}
-    assert_false(a == b, "raw equality for distinct tables without __eq is false")
-    assert_true(a == a, "raw equality for same table is true")
+    assertFalse(a == b, "raw equality for distinct tables without __eq is false")
+    assertTrue(a == a, "raw equality for same table is true")
   end
 
   do
@@ -141,23 +136,23 @@ do
     local x = setmetatable({}, mt)
     local y = {} -- no metatable
 
-    assert_true(x == y, "__eq may be used from left operand metatable")
-    assert_true(y == x, "__eq may be used from right operand metatable")
-    assert_true(calls >= 1, "__eq was called at least once")
+    assertTrue(x == y, "__eq may be used from left operand metatable")
+    assertTrue(y == x, "__eq may be used from right operand metatable")
+    assertTrue(calls >= 1, "__eq was called at least once")
   end
 
   do
     local a = setmetatable({ v = 1 }, { __eq = function() return true end })
     local b = setmetatable({ v = 2 }, { __eq = function() return true end })
-    assert_true(a == b, "__eq true/true => true")
-    assert_false(a ~= b, "~= is negation of ==")
+    assertTrue(a == b, "__eq true/true => true")
+    assertFalse(a ~= b, "~= is negation of ==")
   end
 
   do
     local a = setmetatable({ v = 1 }, { __eq = function() return false end })
     local b = setmetatable({ v = 2 }, { __eq = function() return false end })
-    assert_false(a == b, "__eq false/false => false")
-    assert_true(a ~= b, "~= is negation of ==")
+    assertFalse(a == b, "__eq false/false => false")
+    assertTrue(a ~= b, "~= is negation of ==")
   end
 end
 
@@ -169,9 +164,9 @@ do
   local a = P(3)
   local b = P(2)
 
-  assert_true(b < a, "sanity: b < a uses __lt")
-  assert_true(a > b, '">" uses swapped __lt')
-  assert_false(b > a, '">" uses swapped __lt (false case)')
+  assertTrue(b < a, "sanity: b < a uses __lt")
+  assertTrue(a > b, '">" uses swapped __lt')
+  assertFalse(b > a, '">" uses swapped __lt (false case)')
 end
 
 do
@@ -181,9 +176,9 @@ do
   local a = P(3)
   local b = P(2)
 
-  assert_true(b <= a, "sanity: b <= a uses __le")
-  assert_true(a >= b, '">=" uses swapped __le')
-  assert_false(b >= a, '">=" uses swapped __le (false case)')
+  assertTrue(b <= a, "sanity: b <= a uses __le")
+  assertTrue(a >= b, '">=" uses swapped __le')
+  assertFalse(b >= a, '">=" uses swapped __le (false case)')
 end
 
 -- 2.5. No `__le` fallback via `__lt` in Lua for metamethod comparisons
@@ -194,7 +189,7 @@ do
   local a = P(2)
   local b = P(2)
 
-  assert_false(a < b, "sanity: 2 < 2 is false via __lt")
+  assertFalse(a < b, "sanity: 2 < 2 is false via __lt")
   assertThrows("attempt to compare", function() return a <= b end)
 end
 
@@ -206,29 +201,29 @@ do
   local function P(v) return setmetatable({ v = v }, mt) end
   local a = P(2)
   local b = P(2)
-  assert_true(a <= b, "__le works when provided")
+  assertTrue(a <= b, "__le works when provided")
 end
 end
 
 -- 3. `rawlen` vs `#` when `__len` exists
 do
   local t = setmetatable({ 1, 2, 3 }, { __len = function() return 10 end })
-  assert_eq(#t, 10, '# uses __len')
-  assert_eq(rawlen(t), 3, 'rawlen ignores __len on tables')
-  assert_eq(rawlen("abc"), 3, 'rawlen works on strings')
+  assertEquals(#t, 10, '# uses __len')
+  assertEquals(rawlen(t), 3, 'rawlen ignores __len on tables')
+  assertEquals(rawlen("abc"), 3, 'rawlen works on strings')
 end
 
 -- 4. `__len`: tables use metamethod; strings are raw length
 do
   local t = setmetatable({ x = 20 }, { __len = function(tt) return tt.x end })
-  assert_eq(#t, 20, '__len dispatched for tables')
+  assertEquals(#t, 20, '__len dispatched for tables')
   t.x = "234"
-  assert_eq(#t, "234", '__len can return non-number')
+  assertEquals(#t, "234", '__len can return non-number')
 end
 
 do
   local s = "abc"
-  assert_eq(#s, 3, 'strings ignore __len metamethod')
+  assertEquals(#s, 3, 'strings ignore __len metamethod')
 end
 
 -- 5. `__concat`: produced value and number/table interop
@@ -236,7 +231,7 @@ do
   local a = setmetatable({ x = "u" }, {
     __concat = function(l, r) return l.x .. "." .. r.x end
   })
-  assert_eq(a .. a, "u.u", '__concat dispatched')
+  assertEquals(a .. a, "u.u", '__concat dispatched')
 end
 
 do
@@ -244,27 +239,27 @@ do
   setmetatable(c, {
     __concat = function(a, b)
       if type(a) == "number" then
-        assert_eq(b, c, '__concat rhs is c when lhs number')
+        assertEquals(b, c, '__concat rhs is c when lhs number')
         return "n..c"
       else
-        assert_eq(a, c, '__concat lhs is c when rhs number')
+        assertEquals(a, c, '__concat lhs is c when rhs number')
         return "c..n"
       end
     end
   })
-  assert_eq(c .. 5, "c..n", "__concat handles table .. number")
-  assert_eq(5 .. c, "n..c", "__concat handles number .. table")
+  assertEquals(c .. 5, "c..n", "__concat handles table .. number")
+  assertEquals(5 .. c, "n..c", "__concat handles number .. table")
 end
 
 -- 6. `__call`: produced values
 do
   local t = setmetatable({}, {
     __call = function(self, a, b)
-      assert_eq(type(self), 'table', '__call self is table')
+      assertEquals(type(self), 'table', '__call self is table')
       return a + b
     end
   })
-  assert_eq(t(2, 3), 5, '__call dispatched')
+  assertEquals(t(2, 3), 5, '__call dispatched')
 end
 
 do
@@ -274,9 +269,9 @@ do
     end
   })
   local a, b, n = t(10, 20)
-  assert_eq(a, "a", "__call multi-return first")
-  assert_eq(b, "b", "__call multi-return second")
-  assert_eq(n, 2, "__call sees arguments")
+  assertEquals(a, "a", "__call multi-return first")
+  assertEquals(b, "b", "__call multi-return second")
+  assertEquals(n, 2, "__call sees arguments")
 end
 
 do
@@ -292,7 +287,7 @@ do
     f = setmetatable({}, { __call = f })
   end
 
-  assert_eq(f(), 1023, 'chain of __call metamethods works')
+  assertEquals(f(), 1023, 'chain of __call metamethods works')
 end
 
 do
@@ -310,10 +305,10 @@ do
   local c = setmetatable({ f = b }, tt)
 
   local x = c(3, 4, 5)
-  assert_eq(i, 3, "__call nested chain increments i")
-  assert_eq(x[1], 3, "__call nested chain arg1")
-  assert_eq(x[2], 4, "__call nested chain arg2")
-  assert_eq(x[3], 5, "__call nested chain arg3")
+  assertEquals(i, 3, "__call nested chain increments i")
+  assertEquals(x[1], 3, "__call nested chain arg1")
+  assertEquals(x[2], 4, "__call nested chain arg2")
+  assertEquals(x[3], 5, "__call nested chain arg3")
 end
 
 do
@@ -331,17 +326,17 @@ do
     __newindex = function(_, k, v) backing[k] = v end,
   })
 
-  assert_eq(t.x, 10, '__index function dispatched')
+  assertEquals(t.x, 10, '__index function dispatched')
   t.y = 20
-  assert_eq(backing.y, 20, '__newindex function dispatched')
+  assertEquals(backing.y, 20, '__newindex function dispatched')
 end
 
 do
   local backing = { a = 1, b = 2 }
   local t = setmetatable({}, { __index = backing })
-  assert_eq(t.a, 1, '__index table dispatched (a)')
-  assert_eq(t.b, 2, '__index table dispatched (b)')
-  assert_eq(t.c, nil, '__index table missing key yields nil')
+  assertEquals(t.a, 1, '__index table dispatched (a)')
+  assertEquals(t.b, 2, '__index table dispatched (b)')
+  assertEquals(t.c, nil, '__index table missing key yields nil')
 end
 
 do
@@ -349,7 +344,7 @@ do
   local backing = {}
   local t = setmetatable({}, { __newindex = backing })
   t.k = 99
-  assert_eq(backing.k, 99, '__newindex table dispatched')
+  assertEquals(backing.k, 99, '__newindex table dispatched')
 end
 
 do
@@ -363,11 +358,11 @@ do
   })
 
   t.present = 2
-  assert_eq(calls, 0, '__newindex not called for existing key')
+  assertEquals(calls, 0, '__newindex not called for existing key')
 
   t.absent = 3
-  assert_eq(calls, 1, '__newindex called for absent key')
-  assert_eq(t.absent, 3, '__newindex stored value')
+  assertEquals(calls, 1, '__newindex called for absent key')
+  assertEquals(t.absent, 3, '__newindex stored value')
 end
 
 do
@@ -391,7 +386,7 @@ do
   local out = {}
 
   local function foo(e, i)
-    assert_eq(e, a, "__pairs sees original table")
+    assertEquals(e, a, "__pairs sees original table")
     if i < 10 then
       return i + 1, i + 2
     end
@@ -405,11 +400,11 @@ do
     out[i] = { k, v }
   end
 
-  assert_eq(i, 10, "__pairs loop count")
-  assert_eq(out[1][1], 1, "__pairs k1")
-  assert_eq(out[1][2], 2, "__pairs v1")
-  assert_eq(out[10][1], 10, "__pairs k10")
-  assert_eq(out[10][2], 11, "__pairs v10")
+  assertEquals(i, 10, "__pairs loop count")
+  assertEquals(out[1][1], 1, "__pairs k1")
+  assertEquals(out[1][2], 2, "__pairs v1")
+  assertEquals(out[10][1], 10, "__pairs k10")
+  assertEquals(out[10][2], 11, "__pairs v10")
 end
 
 do
@@ -427,9 +422,9 @@ do
     out[#out + 1] = k .. ":" .. v
   end
 
-  assert_eq(#out, 5, "ipairs iterates n entries via __index")
-  assert_eq(out[1], "1:10", "ipairs entry 1")
-  assert_eq(out[5], "5:50", "ipairs entry 5")
+  assertEquals(#out, 5, "ipairs iterates n entries via __index")
+  assertEquals(out[1], "1:10", "ipairs entry 1")
+  assertEquals(out[5], "5:50", "ipairs entry 5")
 end
 
 -- 9. `table` library interaction with metamethods
@@ -438,31 +433,31 @@ do
     for i = 1, 10 do
       table.insert(proxy, 1, i)
     end
-    assert_eq(#proxy, 10, "proxy length after inserts")
-    assert_eq(#backing, 10, "backing length after inserts")
+    assertEquals(#proxy, 10, "proxy length after inserts")
+    assertEquals(#backing, 10, "backing length after inserts")
 
     for i = 1, 10 do
-      assert_eq(backing[i], 11 - i, "backing reversed insert " .. i)
+      assertEquals(backing[i], 11 - i, "backing reversed insert " .. i)
     end
 
     table.sort(proxy)
     for i = 1, 10 do
-      assert_eq(backing[i], i, "backing sorted " .. i)
-      assert_eq(proxy[i], i, "proxy sorted " .. i)
+      assertEquals(backing[i], i, "backing sorted " .. i)
+      assertEquals(proxy[i], i, "proxy sorted " .. i)
     end
 
-    assert_eq(table.concat(proxy, ","), "1,2,3,4,5,6,7,8,9,10", "table.concat(proxy)")
+    assertEquals(table.concat(proxy, ","), "1,2,3,4,5,6,7,8,9,10", "table.concat(proxy)")
 
     for i = 1, 8 do
-      assert_eq(table.remove(proxy, 1), i, "table.remove(proxy,1) yields i")
+      assertEquals(table.remove(proxy, 1), i, "table.remove(proxy,1) yields i")
     end
-    assert_eq(#proxy, 2, "proxy length after removes")
-    assert_eq(#backing, 2, "backing length after removes")
+    assertEquals(#proxy, 2, "proxy length after removes")
+    assertEquals(#backing, 2, "backing length after removes")
 
     local a, b, c = table.unpack(proxy)
-    assert_eq(a, 9, "table.unpack(proxy) first")
-    assert_eq(b, 10, "table.unpack(proxy) second")
-    assert_eq(c, nil, "table.unpack(proxy) third nil")
+    assertEquals(a, 9, "table.unpack(proxy) first")
+    assertEquals(b, 10, "table.unpack(proxy) second")
+    assertEquals(c, nil, "table.unpack(proxy) third nil")
   end
 
   local backing = {}
@@ -485,9 +480,9 @@ do
   local c = setmetatable({}, mt1)
   local d = setmetatable({}, mt1)
 
-  assert_true(c == d, "comparison compat: __eq true (same mt)")
-  assert_true(c < d, "comparison compat: __lt true (same mt)")
-  assert_false(d <= c, "comparison compat: __le false (same mt)")
+  assertTrue(c == d, "comparison compat: __eq true (same mt)")
+  assertTrue(c < d, "comparison compat: __lt true (same mt)")
+  assertFalse(d <= c, "comparison compat: __le false (same mt)")
 
   local mt2 = {
     __eq = mt1.__eq,
@@ -497,9 +492,9 @@ do
   local e = setmetatable({}, mt1)
   local f = setmetatable({}, mt2)
 
-  assert_true(e == f, "comparison compat across metatables: __eq")
-  assert_true(e < f, "comparison compat across metatables: __lt")
-  assert_false(f <= e, "comparison compat across metatables: __le")
+  assertTrue(e == f, "comparison compat across metatables: __eq")
+  assertTrue(e < f, "comparison compat across metatables: __lt")
+  assertFalse(f <= e, "comparison compat across metatables: __le")
 end
 
 -- 11. Concat chain associativity + returning table from `__concat`
@@ -515,8 +510,8 @@ do
   local d = setmetatable({ val = "d" }, t)
 
   local x = c .. d .. c .. d
-  assert_eq(type(x), "table", "__concat chain returns table")
-  assert_eq(x.val, "cdcd", "__concat chain value")
+  assertEquals(type(x), "table", "__concat chain returns table")
+  assertEquals(x.val, "cdcd", "__concat chain value")
 end
 
 -- 12. `__eq` is not used for table indexing / hashing
@@ -533,14 +528,14 @@ do
   local k1 = Set{1, 2, 3}
   local k2 = Set{1, 2, 3}
 
-  assert_true(k1 == k2, "__eq says equal")
-  assert_false(rawequal(k1, k2), "not the same object")
+  assertTrue(k1 == k2, "__eq says equal")
+  assertFalse(rawequal(k1, k2), "not the same object")
 
   local t = {}
   t[k1] = 123
 
-  assert_eq(t[k2], nil, "table indexing ignores __eq")
-  assert_eq(t[k1], 123, "table indexing by same object works")
+  assertEquals(t[k2], nil, "table indexing ignores __eq")
+  assertEquals(t[k1], 123, "table indexing by same object works")
 end
 
 -- 13. operator metamethod lookup must be raw (no `__index` involvement)
@@ -563,7 +558,7 @@ do
   local m = setmetatable({ name = "NAME" }, {
     __tostring = function(x) return x.name end
   })
-  assert_eq(tostring(m), "NAME", "__tostring used by tostring()")
+  assertEquals(tostring(m), "NAME", "__tostring used by tostring()")
 end
 
 do

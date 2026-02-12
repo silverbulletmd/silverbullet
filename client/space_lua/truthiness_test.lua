@@ -1,18 +1,18 @@
-local function assert_eq(actual, expected, msg)
+local function assertEquals(actual, expected, msg)
   if actual ~= expected then
-    error('assert_eq failed: ' .. msg)
+    error('assertEquals failed: ' .. msg)
   end
 end
 
-local function assert_true(cond, msg)
+local function assertTrue(cond, msg)
   if not cond then
-    error('assert_true failed: ' .. msg)
+    error('assertTrue failed: ' .. msg)
   end
 end
 
-local function assert_false(cond, msg)
+local function assertFalse(cond, msg)
   if cond then
-    error('assert_false failed: ' .. msg)
+    error('assertFalse failed: ' .. msg)
   end
 end
 
@@ -44,35 +44,35 @@ end
 
 -- 1. Basic boolean/nil
 
-assert_false(false, "false must be falsey")
-assert_true(true, "true must be truthy")
-assert_false(nil, "nil must be falsey")
+assertFalse(false, "false must be falsey")
+assertTrue(true, "true must be truthy")
+assertFalse(nil, "nil must be falsey")
 
 -- 2. Numbers: all numbers are truthy
 
-assert_true(0, "0 must be truthy")
-assert_true(1, "1 must be truthy")
-assert_true(-1, "-1 must be truthy")
-assert_true(0.0, "0.0 must be truthy")
-assert_true(-0.0, "-0.0 must be truthy")
+assertTrue(0, "0 must be truthy")
+assertTrue(1, "1 must be truthy")
+assertTrue(-1, "-1 must be truthy")
+assertTrue(0.0, "0.0 must be truthy")
+assertTrue(-0.0, "-0.0 must be truthy")
 
 -- 3. Strings: empty and non-empty strings are truthy
 
-assert_true("", "empty string must be truthy")
-assert_true("0", '"0" must be truthy')
-assert_true("a", '"a" must be truthy')
+assertTrue("", "empty string must be truthy")
+assertTrue("0", '"0" must be truthy')
+assertTrue("a", '"a" must be truthy')
 
 -- 4. Tables: empty and non-empty tables are truthy
 
-assert_true({}, "empty table must be truthy")
-assert_true({1}, "non-empty table must be truthy")
+assertTrue({}, "empty table must be truthy")
+assertTrue({1}, "non-empty table must be truthy")
 
 -- 5. Functions are truthy
 
 local fn = function() end
 
-assert_true(fn, "function must be truthy")
-assert_true(function() end, "function must be truthy")
+assertTrue(fn, "function must be truthy")
+assertTrue(function() end, "function must be truthy")
 
 -- 6. Multi-return: only the first value determines truthiness
 
@@ -100,24 +100,24 @@ end
 
 -- 7.1. `and` returns first falsey value, otherwise last value
 
-assert_eq((true and 2), 2, "and: true and 2 -> 2")
-assert_eq((false and 2), false, "and: false and 2 -> false")
-assert_eq((nil and 2), nil, "and: nil and 2 -> nil")
-assert_eq((0 and "x"), "x", "and: 0 and 'x' -> 'x' (0 is truthy)")
+assertEquals((true and 2), 2, "and: true and 2 -> 2")
+assertEquals((false and 2), false, "and: false and 2 -> false")
+assertEquals((nil and 2), nil, "and: nil and 2 -> nil")
+assertEquals((0 and "x"), "x", "and: 0 and 'x' -> 'x' (0 is truthy)")
 
 -- 7.2. `or` returns first truthy value, otherwise last value
 
-assert_eq((false or 3), 3, "or: false or 3 -> 3")
-assert_eq((nil or 3), 3, "or: nil or 3 -> 3")
-assert_eq((0 or 3), 0, "or: 0 or 3 -> 0 (0 is truthy)")
-assert_eq(("" or "x"), "", "or: '' or 'x' -> '' ('' is truthy)")
+assertEquals((false or 3), 3, "or: false or 3 -> 3")
+assertEquals((nil or 3), 3, "or: nil or 3 -> 3")
+assertEquals((0 or 3), 0, "or: 0 or 3 -> 0 (0 is truthy)")
+assertEquals(("" or "x"), "", "or: '' or 'x' -> '' ('' is truthy)")
 
 -- 7.3. Multi-return: operand evaluation yields first value
 
-assert_eq((true and ret_one_two()), 1,
+assertEquals((true and ret_one_two()), 1,
   "and: true and (1,2) yields first result 1")
 
-assert_eq((false or ret_one_two()), 1,
+assertEquals((false or ret_one_two()), 1,
   "or: false or (1,2) yields first result 1")
 
 -- 8. Litmus tests involving tables and `and`/`or`
@@ -127,20 +127,20 @@ assert_eq((false or ret_one_two()), 1,
 
 local t = {}
 
-assert_eq((t and 2 or 3), 2, "{} and 2 or 3 must be 2")
+assertEquals((t and 2 or 3), 2, "{} and 2 or 3 must be 2")
 
 -- `v` should be the same table reference `t`
 
 local v = (t or 2 and 3)
 
-assert_true(type(v) == "table",
+assertTrue(type(v) == "table",
   "{} or 2 and 3 must return the table (truthy left operand)")
 
 -- changing `t` reflects in `v` (same reference)
 
 t.key = "ok"
 
-assert_eq(v.key, "ok",
+assertEquals(v.key, "ok",
   "{} or 2 and 3 returns original table reference")
 
 -- 9. `if`/`while` with truthiness
@@ -151,7 +151,7 @@ if {} then
   ran_if_truthy = true
 end
 
-assert_true(ran_if_truthy, "if {} must run branch")
+assertTrue(ran_if_truthy, "if {} must run branch")
 
 local ran_if_falsey = false
 
@@ -159,7 +159,7 @@ if nil then
   ran_if_falsey = true
 end
 
-assert_false(ran_if_falsey, "if nil must not run branch")
+assertFalse(ran_if_falsey, "if nil must not run branch")
 
 -- `while` must stop only on `false`/`nil`
 
@@ -182,7 +182,7 @@ while next_or_nil() do
   count = count + 1
 end
 
-assert_eq(count, 2,
+assertEquals(count, 2,
   "while should loop while condition is truthy")
 
 -- 10. Short-circuit evaluation (no RHS evaluation when not needed)
@@ -199,13 +199,13 @@ end
 local s0 = side
 local _ = (true or bump())
 
-assert_eq(side, s0, "or short-circuit must avoid RHS when LHS truthy")
+assertEquals(side, s0, "or short-circuit must avoid RHS when LHS truthy")
 
 -- For `false and bump()` RHS must not be evaluated
 
 local _ = (false and bump())
 
-assert_eq(side, s0, "and short-circuit must avoid RHS when LHS falsey")
+assertEquals(side, s0, "and short-circuit must avoid RHS when LHS falsey")
 
 -- 11. Multi-return short-circuit
 
@@ -221,11 +221,11 @@ end
 
 local s1 = (falsy_pair() or 5)
 
-assert_eq(s1, 5, "or should see falsy first result and evaluate RHS")
+assertEquals(s1, 5, "or should see falsy first result and evaluate RHS")
 
 local s2 = (truthy_pair() or 5)
 
-assert_eq(s2, 1, "or should return first result of LHS when truthy")
+assertEquals(s2, 1, "or should return first result of LHS when truthy")
 
 -- 12. Only the last expression expands
 
@@ -234,21 +234,21 @@ local function a() return "A1", "A2" end
 local function b() return "B1", "B2" end
 local function c() return "C1", "C2" end
 
-assert_eq(string.format("%s-%s", ret()), "A-B",
+assertEquals(string.format("%s-%s", ret()), "A-B",
   "last-only: single arg expands")
 
-assert_eq(string.format("%s-%s", ret(), "Z"), "A-Z",
+assertEquals(string.format("%s-%s", ret(), "Z"), "A-Z",
   "last-only: earlier arg is single")
 
-assert_eq(string.format("%s-%s-%s-%s", a(), b(), c()), "A1-B1-C1-C2",
+assertEquals(string.format("%s-%s-%s-%s", a(), b(), c()), "A1-B1-C1-C2",
   "last-only: only last expands, earlier args single")
 
 -- 13. Only false and `nil` are falsey
 
-assert_false(not 0, "not 0 must be false")
-assert_false(not -0.0, "not -0.0 must be false")
-assert_false(not "", "not '' must be false")
-assert_false(not {}, "not {} must be false")
+assertFalse(not 0, "not 0 must be false")
+assertFalse(not -0.0, "not -0.0 must be false")
+assertFalse(not "", "not '' must be false")
+assertFalse(not {}, "not {} must be false")
 
-assert_true(not nil, "not nil must be true")
-assert_true(not false, "not false must be true")
+assertTrue(not nil, "not nil must be true")
+assertTrue(not false, "not false must be true")

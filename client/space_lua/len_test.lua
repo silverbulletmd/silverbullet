@@ -1,6 +1,6 @@
-local function assert_eq(actual, expected, msg)
+local function assertEquals(actual, expected, msg)
   if actual ~= expected then
-    error('assert_eq failed: ' .. msg)
+    error('assertEquals failed: ' .. msg)
   end
 end
 
@@ -17,12 +17,12 @@ local function assertThrows(substr, fn)
 end
 
 -- 1. Strings: raw length, ignore metamethods
-assert_eq(#"", 0, "empty string length")
-assert_eq(#"abc", 3, "string length")
+assertEquals(#"", 0, "empty string length")
+assertEquals(#"abc", 3, "string length")
 
 -- 2. Tables (raw length for sequence or `__len`)
-assert_eq(#{}, 0, "empty table length")
-assert_eq(#{1,2,3}, 3, "array length")
+assertEquals(#{}, 0, "empty table length")
+assertEquals(#{1,2,3}, 3, "array length")
 
 do
   local t = {}
@@ -34,7 +34,7 @@ do
     end,
   })
 
-  assert_eq(#t, 42, "__len should override raw table length")
+  assertEquals(#t, 42, "__len should override raw table length")
 end
 
 -- 2.1. Metamethod result handling
@@ -48,7 +48,7 @@ do
     end,
   })
 
-  assert_eq(#t, 42, "__len must use only first return value")
+  assertEquals(#t, 42, "__len must use only first return value")
 end
 
 -- 2.2. Raw length when no array part
@@ -58,7 +58,7 @@ do
     b = 2,
   }
 
-  assert_eq(#t, 0, "table with only non-integer keys has length 0")
+  assertEquals(#t, 0, "table with only non-integer keys has length 0")
 end
 
 -- 2.3. Length when both array and key-value parts
@@ -72,7 +72,7 @@ do
     3,
   }
 
-  assert_eq(#t, 3, "table with mixed non-integer and integer keys")
+  assertEquals(#t, 3, "table with mixed non-integer and integer keys")
 end
 
 -- 3. Non-strings and non-tables
@@ -113,26 +113,26 @@ do
     __len = function(_) return 99 end,
   })
 
-  assert_eq(#t, 99, "#t uses __len")
-  assert_eq(rawlen(t), 3, "rawlen(t) ignores __len")
+  assertEquals(#t, 99, "#t uses __len")
+  assertEquals(rawlen(t), 3, "rawlen(t) ignores __len")
 end
 
 -- 5. Trailing-nil shrinking behavior
 do
   local t = { 1, 2, 3 }
-  assert_eq(#t, 3, "initial sequence length")
+  assertEquals(#t, 3, "initial sequence length")
 
   t[3] = nil
-  assert_eq(#t, 2, "sequence length shrinks when last element is set to nil")
-  assert_eq(rawlen(t), 2, "rawlen shrinks with trailing nil (array part shrinks)")
+  assertEquals(#t, 2, "sequence length shrinks when last element is set to nil")
+  assertEquals(rawlen(t), 2, "rawlen shrinks with trailing nil (array part shrinks)")
 
   t[2] = nil
-  assert_eq(#t, 1, "sequence length shrinks again after removing new last element")
-  assert_eq(rawlen(t), 1, "rawlen shrinks again after trailing nil")
+  assertEquals(#t, 1, "sequence length shrinks again after removing new last element")
+  assertEquals(rawlen(t), 1, "rawlen shrinks again after trailing nil")
 end
 
 -- 6. rawlen on strings
-assert_eq(rawlen("abc"), 3, "rawlen on strings")
+assertEquals(rawlen("abc"), 3, "rawlen on strings")
 
 -- 7. rawlen(t) must ignore the __len metamethod
 local t = {1,2,3}
