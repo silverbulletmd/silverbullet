@@ -29,6 +29,12 @@ export async function saveFile(file: UploadFile) {
     return;
   }
 
+  const notifyInvalidPath = async () => {
+    await editor.flashNotification(
+      "Unable to upload file, invalid target filename or path",
+      "error",
+    );
+  }
   const ensureFilename = (filename) => {
     return isValidPath(filename)
       ? filename
@@ -47,7 +53,7 @@ export async function saveFile(file: UploadFile) {
   }
   desiredFilePath = desiredFilePath.trim();
   if (!isValidPath(desiredFilePath)) {
-    // TODO: notify why we halted
+    await notifyInvalidPath();
     return;
   }
 
@@ -71,7 +77,7 @@ export async function saveFile(file: UploadFile) {
       }
       confirmedFilePath = confirmedFilePath.trim();
       if (!isValidPath(confirmedFilePath)) {
-        // TODO: notify we have cancelled the operation
+        await notifyInvalidPath();
         return;
       }
       if (desiredFilePath === confirmedFilePath) {
