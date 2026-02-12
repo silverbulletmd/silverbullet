@@ -97,12 +97,6 @@ setupMessageListener(functionMapping, manifest, self.postMessage);
   const outFile = `${destPath}/${manifest.name}.plug.js`;
   await Deno.writeTextFile(inFile, jsFile);
 
-  try {
-    await Deno.remove("deno.lock");
-  } catch {
-    // Ignore
-  }
-
   const result = await esbuild.build({
     entryPoints: [inFile],
     bundle: true,
