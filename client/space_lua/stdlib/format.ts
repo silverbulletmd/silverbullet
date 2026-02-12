@@ -1,6 +1,7 @@
-// Supported specifiers set: [diuoxXfeEgGcs%]
+// Supported specifiers set: [diuoxXaAfeEgGcsq%]
 // Supported flags set: [-+0# ]
 // Width and precision via digits or `*`
+// %q does not support modifiers (flags, width, precision)
 
 interface FormatSpec {
   flags: number; // FLAG_*
@@ -105,7 +106,7 @@ function parseSpec(
   };
 }
 
-// pad a string to `width` respecting FLAG_MINUS and FLAG_ZERO
+// pad a string to `width` respecting `FLAG_MINUS` and `FLAG_ZERO`
 function pad(s: string, width: number, flags: number, numPad: boolean): string {
   if (width <= 0 || s.length >= width) return s;
   const n = width - s.length;
@@ -267,7 +268,7 @@ function formatFloat(n: number, spec: FormatSpec): string {
     body = body.toUpperCase();
   }
 
-  // Alt flag for 'f'/'e' flahs: ensure decimal point exists
+  // Alt flag for 'f'/'e': ensure decimal point exists
   if ((spec.flags & FLAG_HASH) && lower !== 103) {
     if (body.indexOf(".") === -1) {
       // Insert dot before 'e' if present, else append
@@ -348,6 +349,281 @@ function stripTrailingZerosG(s: string): string {
   return mantissa.slice(0, end) + exp;
 }
 
+// Format a number as hexadecimal floating-point (%a/%A)
+function formatHexFloat(n: number, spec: FormatSpec): string {
+  const code = spec.spec;
+  const upper = code === 65; // 'A'
+
+  if (!isFinite(n)) {
+    let s: string;
+    if (n !== n) {
+      s = upper ? "-NAN" : "-nan";
+    } else if (n > 0) {
+      s = upper ? "INF" : "inf";
+      s = addSign(s, spec.flags);
+    } else {
+      s = upper ? "-INF" : "-inf";
+    }
+    return pad(s, spec.width, spec.flags, false);
+  }
+
+  const neg = n < 0 || (n === 0 && 1 / n === -Infinity);
+  const abs = neg ? -n : n;
+
+  let body: string;
+  if (abs === 0) {
+    const prec = spec.hasPrec ? spec.prec : 0;
+    if (prec > 0) {
+      body = "0x0." + "0".repeat(prec) + "p+0";
+    } else {
+      body = "0x0p+0";
+    }
+  } else {
+    body = hexFloatBody(abs, spec);
+  }
+
+  if (upper) body = body.toUpperCase();
+
+  // Alt flag: ensure decimal point
+  if (spec.flags & FLAG_HASH) {
+    const pIdx = findPIndex(body);
+    if (pIdx !== -1) {
+      let hasDot = false;
+      for (let k = 0; k < pIdx; k++) {
+        if (body.charCodeAt(k) === 46) { // '.'
+          hasDot = true;
+          break;
+        }
+      }
+      if (!hasDot) {
+        body = body.slice(0, pIdx) + "." + body.slice(pIdx);
+      }
+    }
+  }
+
+  let result: string;
+  if (neg) {
+    result = "-" + body;
+  } else {
+    result = addSign(body, spec.flags);
+  }
+
+  return pad(result, spec.width, spec.flags, true);
+}
+
+// Find index of 'p' or 'P' in hex float string
+function findPIndex(s: string): number {
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    if (c === 112 || c === 80) return i; // 'p' or 'P'
+  }
+  return -1;
+}
+
+// Number of bits needed to represent a positive bigint
+function bitLength(n: bigint): number {
+  let bits = 0;
+  let v = n;
+  while (v > 0n) {
+    bits++;
+    v >>= 1n;
+  }
+  return bits;
+}
+
+// Decompose a positive non-zero finite float into `0xH.HHHpN` form
+function hexFloatBody(abs: number, spec: FormatSpec): string {
+  const buf = new Float64Array(1);
+  const view = new DataView(buf.buffer);
+  view.setFloat64(0, abs);
+  const bits = view.getBigUint64(0);
+  const biasedExp = Number((bits >> 52n) & 0x7FFn);
+  const frac = bits & 0xFFFFFFFFFFFFFn;
+
+  let exponent: number;
+  let mantBits: bigint;
+
+  if (biasedExp === 0) {
+    // Subnormal
+    if (frac === 0n) return "0x0p+0";
+    const shift = 52 - bitLength(frac) + 1;
+    mantBits = frac << BigInt(shift);
+    exponent = -1022 - shift;
+  } else {
+    // Normal
+    exponent = biasedExp - 1023;
+    mantBits = frac | (1n << 52n);
+  }
+
+  let firstDigit = Number(mantBits >> 52n);
+  const restBits = mantBits & ((1n << 52n) - 1n);
+
+  // 13 hex digits from 52 bits
+  let fracHex = hexDigits52(restBits);
+
+  if (spec.hasPrec) {
+    if (spec.prec < 13) {
+      const carry = roundHexInPlace(fracHex, spec.prec);
+      if (carry) firstDigit++;
+      fracHex = truncHexDigits(fracHex, spec.prec);
+    } else {
+      fracHex = padHexRight(fracHex, spec.prec);
+    }
+  } else {
+    fracHex = stripHexTrailingZeros(fracHex);
+  }
+
+  const expSign = exponent >= 0 ? "+" : "";
+  if (fracHex.length > 0) {
+    return "0x" + firstDigit + "." + fracHex + "p" + expSign + exponent;
+  }
+  return "0x" + firstDigit + "p" + expSign + exponent;
+}
+
+// Convert 52-bit value to 13 hex digits, zero-padded
+function hexDigits52(bits: bigint): string {
+  const s = bits.toString(16);
+  if (s.length >= 13) return s;
+  return "0".repeat(13 - s.length) + s;
+}
+
+// Parse one hex char to its numeric value
+function hexVal(c: number): number {
+  if (c >= 48 && c <= 57) return c - 48; // '0'..'9'
+  if (c >= 97 && c <= 102) return c - 87; // 'a'..'f'
+  if (c >= 65 && c <= 70) return c - 55; // 'A'..'F'
+  return 0;
+}
+
+function roundHexInPlace(digits: string, prec: number): boolean {
+  if (prec >= digits.length) return false;
+
+  const nextVal = hexVal(digits.charCodeAt(prec));
+  if (nextVal < 8) return false;
+
+  if (prec === 0) return true;
+
+  const arr = new Array<number>(prec);
+  for (let i = 0; i < prec; i++) {
+    arr[i] = hexVal(digits.charCodeAt(i));
+  }
+
+  let carry = 1;
+  for (let i = prec - 1; i >= 0 && carry; i--) {
+    arr[i] += carry;
+    if (arr[i] >= 16) {
+      arr[i] = 0;
+      carry = 1;
+    } else {
+      carry = 0;
+    }
+  }
+
+  return carry === 1;
+}
+
+function truncHexDigits(digits: string, prec: number): string {
+  if (prec === 0) return "";
+
+  const nextVal = hexVal(digits.charCodeAt(prec));
+  if (nextVal < 8) return digits.slice(0, prec);
+
+  const arr = new Array<number>(prec);
+  for (let i = 0; i < prec; i++) {
+    arr[i] = hexVal(digits.charCodeAt(i));
+  }
+
+  let carry = 1;
+  for (let i = prec - 1; i >= 0 && carry; i--) {
+    arr[i] += carry;
+    if (arr[i] >= 16) {
+      arr[i] = 0;
+    } else {
+      carry = 0;
+    }
+  }
+
+  let out = "";
+  for (let i = 0; i < prec; i++) {
+    out += arr[i].toString(16);
+  }
+
+  return out;
+}
+
+function padHexRight(s: string, len: number): string {
+  if (s.length >= len) return s;
+  return s + "0".repeat(len - s.length);
+}
+
+function stripHexTrailingZeros(s: string): string {
+  let end = s.length;
+  while (end > 0 && s.charCodeAt(end - 1) === 48) { // '0'
+    end--;
+  }
+  if (end === s.length) return s;
+  return s.slice(0, end);
+}
+
+function quoteString(s: string): string {
+  let out = '"';
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    if (c === 34 || c === 92 || c === 10) {
+      // '"', '\\', '\n': backslash + literal char
+      out += "\\";
+      out += String.fromCharCode(c);
+    } else if (c < 32) {
+      const next = i + 1 < s.length ? s.charCodeAt(i + 1) : -1;
+      const isNextDigit = next >= 48 && next <= 57;
+      if (isNextDigit) {
+        const ds = c.toString();
+        out += "\\";
+        if (ds.length < 3) out += "0".repeat(3 - ds.length);
+        out += ds;
+      } else {
+        out += "\\" + c.toString();
+      }
+    } else {
+      out += String.fromCharCode(c);
+    }
+  }
+  out += '"';
+  return out;
+}
+
+// Format a float for %q: hex representation preserving full precision
+function quoteFloat(n: number): string {
+  if (n !== n) return "(0/0)";
+  if (n === Infinity) return "1e9999";
+  if (n === -Infinity) return "-1e9999";
+
+  const spec: FormatSpec = {
+    flags: 0,
+    width: 0,
+    hasPrec: false,
+    prec: 0,
+    spec: 97, // 'a'
+  };
+  return formatHexFloat(n, spec);
+}
+
+function formatQ(v: unknown): string {
+  if (v === null || v === undefined) return "nil";
+  if (v === true) return "true";
+  if (v === false) return "false";
+
+  if (typeof v === "number") {
+    if (v === 0 && 1 / v === -Infinity) return quoteFloat(v);
+    if (Number.isInteger(v) && Number.isFinite(v)) {
+      return v.toString();
+    }
+    return quoteFloat(v);
+  }
+
+  return quoteString(String(v));
+}
+
 function formatChar(n: number): string {
   return String.fromCharCode(n & 0x7f);
 }
@@ -406,6 +682,10 @@ export function luaFormat(fmt: string, ...args: any[]): string {
 
     const code = spec.spec;
     switch (code) {
+      case 97:
+      case 65: // 'a', 'A'
+        out += formatHexFloat(Number(args[ai++]), spec);
+        break;
       case 100:
       case 105:
       case 117: // 'd', 'i', 'u'
@@ -430,6 +710,10 @@ export function luaFormat(fmt: string, ...args: any[]): string {
           false,
         );
         break;
+      case 113: { // 'q'
+        out += formatQ(args[ai++]);
+        break;
+      }
       case 115: { // 's'
         let s = String(args[ai++]);
         if (spec.hasPrec && s.length > spec.prec) {

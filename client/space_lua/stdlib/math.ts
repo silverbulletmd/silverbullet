@@ -16,7 +16,7 @@ function untagNumber(x: any): number {
 export const mathApi = new LuaTable({
   // math constants
   huge: 1 / 0,
-  pi: 3.1415926535898,
+  pi: Math.PI,
 
   // math.type(x) => "integer" | "float" | nil
   type: new LuaBuiltinFunction((_sf, x?: any) => {

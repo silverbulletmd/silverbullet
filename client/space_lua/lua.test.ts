@@ -33,8 +33,12 @@ Deno.test("[Lua] Load tests", async () => {
   await runLuaTest("./stdlib/load_test.lua");
 });
 
-Deno.test("[Lua] Table tests", async () => {
-  await runLuaTest("./stdlib/table_test.lua");
+Deno.test("[Lua] Core language (length)", async () => {
+  await runLuaTest("./len_test.lua");
+});
+
+Deno.test("[Lua] Format tests", async () => {
+  await runLuaTest("./stdlib/format_test.lua");
 });
 
 Deno.test("[Lua] String to number tests", async () => {
