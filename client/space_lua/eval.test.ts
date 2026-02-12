@@ -110,6 +110,144 @@ Deno.test("Evaluator test", async () => {
   assertEquals(fn.body.parameters, ["a", "b"]);
 });
 
+Deno.test("Parser rejects unary plus - parenthesized", () => {
+  for (
+    const src of [
+      "return +(1)",
+      "return +((1))",
+      "return +(1 + 2)",
+      "return +({})",
+    ]
+  ) {
+    let err: any = null;
+    try {
+      parse(src);
+    } catch (e: any) {
+      err = e;
+    }
+    assertEquals(err !== null, true, `expected parse error for: ${src}`);
+    assertEquals(
+      String(err?.message ?? err).includes("unexpected symbol near '+'"),
+      true,
+      `expected unary-plus message for: ${src}`,
+    );
+  }
+});
+
+Deno.test("Parser rejects unary plus - variables and calls", () => {
+  for (
+    const src of [
+      "return +(a)",
+      "return +(a.b)",
+      "return +(a[1])",
+      "return +f()",
+      "return +(f())",
+    ]
+  ) {
+    let err: any = null;
+    try {
+      parse(src);
+    } catch (e: any) {
+      err = e;
+    }
+    assertEquals(err !== null, true, `expected parse error for: ${src}`);
+    assertEquals(
+      String(err?.message ?? err).includes("unexpected symbol near '+'"),
+      true,
+      `expected unary-plus message for: ${src}`,
+    );
+  }
+});
+
+Deno.test("Parser rejects unary plus - whitespace/newlines", () => {
+  for (
+    const src of [
+      "return + 1",
+      "return +\n1",
+      "return +\t(1)",
+      "return \n+\n(1)",
+    ]
+  ) {
+    let err: any = null;
+    try {
+      parse(src);
+    } catch (e: any) {
+      err = e;
+    }
+    assertEquals(err !== null, true, `expected parse error for: ${src}`);
+    assertEquals(
+      String(err?.message ?? err).includes("unexpected symbol near '+'"),
+      true,
+      `expected unary-plus message for: ${src}`,
+    );
+  }
+});
+
+Deno.test("Comparison metamethods: __lt", async () => {
+  const env = new LuaEnv(luaBuildStandardEnv());
+
+  await evalBlock(
+    `
+      local mt = {
+        __lt = function(a, b) return a.v < b.v end
+      }
+      local a = setmetatable({ v = 1 }, mt)
+      local b = setmetatable({ v = 2 }, mt)
+      res = (a < b)
+    `,
+    env,
+  );
+
+  assertEquals(env.get("res"), true);
+});
+
+Deno.test("Comparison metamethods: __le does not fallback to __lt", async () => {
+  const env = new LuaEnv(luaBuildStandardEnv());
+
+  let threw = false;
+  try {
+    await evalBlock(
+      `
+      local mt = {
+        __lt = function(a, b) return a.v < b.v end
+      }
+      local a = setmetatable({ v = 2 }, mt)
+      local b = setmetatable({ v = 2 }, mt)
+      res = (a <= b)
+    `,
+      env,
+    );
+  } catch (e: any) {
+    threw = true;
+    const msg = String(e?.message ?? e);
+    if (!msg.includes("attempt to compare")) {
+      throw e;
+    }
+  }
+
+  assertEquals(threw, true);
+});
+
+Deno.test("Equality metamethod: __eq requires same function", async () => {
+  const env = new LuaEnv(luaBuildStandardEnv());
+
+  await evalBlock(
+    `
+      local f1 = function(a, b) return true end
+      local f2 = function(a, b) return true end
+      local mt1 = { __eq = f1 }
+      local mt2 = { __eq = f2 } -- different function object
+      local a = setmetatable({}, mt1)
+      local b = setmetatable({}, mt2)
+      res = (a == b)
+    `,
+    env,
+  );
+
+  // Lua calls __eq even when the functions differ
+  assertEquals(env.get("res"), true);
+});
+
 Deno.test("Statement evaluation", async () => {
   const env = new LuaEnv();
   env.set("test", new LuaNativeJSFunction((n) => n));
@@ -481,4 +619,21 @@ Deno.test("Thread local _CTX - advanced cases", async () => {
     ),
     `Some JSON {"name":"Pete"}!`,
   );
+});
+
+Deno.test("Length: rawlen ignores __len", async () => {
+  const env = new LuaEnv(luaBuildStandardEnv());
+
+  await evalBlock(
+    `
+      local t = {1,2,3}
+      setmetatable(t, { __len = function() return 99 end })
+      a = #t
+      b = rawlen(t)
+    `,
+    env,
+  );
+
+  assertEquals(env.get("a"), 99);
+  assertEquals(env.get("b"), 3);
 });

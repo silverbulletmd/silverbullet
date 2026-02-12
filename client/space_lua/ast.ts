@@ -22,6 +22,8 @@ export type LuaBlock = {
   hasLabelHere?: boolean;
   // true if this block itself (not nested ones) may create to-be-closed values
   hasCloseHere?: boolean;
+  // true if this block's subtree contains any function definition
+  hasFunctionDef?: boolean;
 } & ASTContext;
 
 // STATEMENTS
@@ -91,6 +93,8 @@ export type LuaForStatement = {
   end: LuaExpression;
   step?: LuaExpression;
   block: LuaBlock;
+  // function definition in the block captures the loop variable
+  capturesLoopVar?: boolean;
 } & ASTContext;
 
 export type LuaForInStatement = {
@@ -98,6 +102,8 @@ export type LuaForInStatement = {
   names: string[];
   expressions: LuaExpression[];
   block: LuaBlock;
+  // function definition in the block captures any loop variable
+  capturesLoopVar?: boolean;
 } & ASTContext;
 
 export type LuaFunctionStatement = {

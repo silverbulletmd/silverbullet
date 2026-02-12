@@ -2,147 +2,138 @@ import type { NumericType } from "./ast.ts";
 import { luaToNumberDetailed } from "./tonumber.ts";
 import { luaTypeName } from "./runtime.ts";
 
-export const ZeroBoxKind = Symbol("ZeroBox");
-
-export type LuaFloatTag = {
-  readonly type: "float";
+export interface LuaTaggedFloat {
   readonly value: number;
-};
-
-export function isBoxedZero(x: any): boolean {
-  return x instanceof Number && Number(x) === 0 && !isNegativeZero(Number(x));
+  readonly isFloat: true;
 }
 
-export function getZeroBoxKind(x: any): NumericType | undefined {
-  return isBoxedZero(x)
-    ? (x as any)[ZeroBoxKind] as NumericType | undefined
-    : undefined;
-}
-
-export function boxZero(kind: NumericType): number {
-  const z = new Number(0);
-  (z as any)[ZeroBoxKind] = kind;
-  return z as unknown as number;
-}
-
-export function isFloatTag(v: any): v is LuaFloatTag {
-  return v && typeof v === "object" && v.type === "float";
-}
-
-// Tag an integer-valued number as a float:
-// * zero: returns boxed float zero,
-// * integer: returns tagged float,
-// * non-integer: returns plain number.
-export function floatLiteral(n: number): number | LuaFloatTag {
-  if (n === 0 && !isNegativeZero(n)) {
-    return boxZero("float");
-  }
-  if (Number.isInteger(n)) {
-    return { type: "float" as const, value: n };
-  }
-  return n;
-}
-
-export function untagNumber(n: any): number {
-  if (isFloatTag(n)) {
-    return n.value;
-  }
-  if (n instanceof Number) {
-    return Number(n);
-  }
-  return n;
-}
-
-export function getNumericKind(
-  n: number | LuaFloatTag | any,
-): NumericType | undefined {
-  if (isFloatTag(n)) {
-    return "float";
-  }
-  if (typeof n === "number") {
-    return Number.isInteger(n) ? "int" : "float";
-  }
-  if (n instanceof Number) {
-    const kind = getZeroBoxKind(n);
-    if (kind) {
-      return kind;
-    }
-    return Number.isInteger(Number(n)) ? "int" : "float";
-  }
-  return undefined;
-}
-
-export type OpHints = {
-  leftKind?: NumericType;
-  rightKind?: NumericType;
-};
+// Pre-allocated singletons for float zeros
+const FLOAT_POS_ZERO: LuaTaggedFloat = { value: 0, isFloat: true };
+const FLOAT_NEG_ZERO: LuaTaggedFloat = { value: -0, isFloat: true };
 
 export const luaStringCoercionError: Error = new Error(
   "LuaStringCoercionError",
 );
 
-export function isNegativeZero(x: number): boolean {
-  // faster than `Object.is(<object>, -0)`
-  return x === 0 && 1 / x === -Infinity;
+export function isNegativeZero(n: number): boolean {
+  return n === 0 && 1 / n === -Infinity;
 }
 
-function produceNegativeZero() {
-  return { n: -0, isInt: false, zeroKind: "float" as const };
+export function isTaggedFloat(v: unknown): v is LuaTaggedFloat {
+  return v !== null && typeof v === "object" && (v as any).isFloat === true;
 }
+
+function makeFloat(n: number): LuaTaggedFloat {
+  if (n === 0) {
+    return isNegativeZero(n) ? FLOAT_NEG_ZERO : FLOAT_POS_ZERO;
+  }
+  return { value: n, isFloat: true };
+}
+
+// Box a zero with a given kind tag.
+export function makeLuaZero(
+  n: number,
+  numericType: NumericType,
+): any {
+  if (n !== 0) {
+    return n;
+  }
+  if (numericType !== "float") {
+    return 0;
+  }
+  return isNegativeZero(n) ? FLOAT_NEG_ZERO : FLOAT_POS_ZERO;
+}
+
+// Tag an integer-valued number as float.
+// Only allocates for integer-valued results; non-integer floats
+// (1.5, NaN, Inf) are already unambiguously float as plain `number`.
+export function makeLuaFloat(n: number): any {
+  if (!Number.isInteger(n)) {
+    return n;
+  }
+  return makeFloat(n);
+}
+
+export function getZeroBoxKind(x: any): NumericType | undefined {
+  if (isTaggedFloat(x)) {
+    return "float";
+  }
+  return undefined;
+}
+
+// Unwrap a potentially tagged or boxed Number to a plain number.
+export function untagNumber(n: any): number {
+  if (typeof n === "number") return n;
+  if (isTaggedFloat(n)) {
+    return n.value;
+  }
+  return n;
+}
+
+export function coerceToNumber(v: unknown): number | null {
+  if (typeof v === "number") {
+    return v;
+  }
+  if (isTaggedFloat(v)) {
+    return v.value;
+  }
+  if (typeof v === "string") {
+    const det = luaToNumberDetailed(v);
+    if (!det) {
+      return null;
+    }
+    return det.value;
+  }
+  return null;
+}
+
+export function inferNumericType(n: number): NumericType {
+  if (!Number.isFinite(n)) {
+    return "float";
+  }
+  if (isNegativeZero(n)) {
+    return "float";
+  }
+  return Number.isInteger(n) ? "int" : "float";
+}
+
+export function combineNumericTypes(
+  a: NumericType | undefined,
+  b: NumericType | undefined,
+): NumericType {
+  if (a === "float" || b === "float") {
+    return "float";
+  }
+  return "int";
+}
+
+export function getNumericKind(
+  n: unknown,
+): NumericType | undefined {
+  if (typeof n === "number") {
+    return inferNumericType(n);
+  }
+  if (isTaggedFloat(n)) {
+    return "float";
+  }
+  return undefined;
+}
+
+export type CoerceNumericResult = {
+  n: number;
+  type: NumericType;
+};
 
 export function coerceNumeric(
   val: unknown,
-): {
-  n: number;
-  isInt: boolean;
-  zeroKind?: NumericType;
-} {
-  if (isFloatTag(val)) {
-    const n = val.value;
-    if (n === 0) {
-      if (isNegativeZero(n)) {
-        return produceNegativeZero();
-      }
-      return { n: 0, isInt: false, zeroKind: "float" };
-    }
-    // Non-zero float tag: always mark as float
-    return { n, isInt: false, zeroKind: "float" };
-  }
-
-  if (isBoxedZero(val)) {
-    return { n: 0, isInt: true, zeroKind: getZeroBoxKind(val)! };
-  }
-
+  hint?: NumericType,
+): CoerceNumericResult {
   if (typeof val === "number") {
-    const n = val;
-    if (n === 0) {
-      if (isNegativeZero(n)) {
-        return produceNegativeZero();
-      }
-      return {
-        n,
-        isInt: true,
-      };
-    }
-    return {
-      n,
-      isInt: Number.isInteger(n),
-    };
+    return { n: val, type: hint ?? inferNumericType(val) };
   }
 
-  if (val instanceof Number) {
-    const n = Number(val);
-    if (n === 0 && !isNegativeZero(n)) {
-      return {
-        n,
-        isInt: true,
-        zeroKind: getZeroBoxKind(val),
-      };
-    }
-    return {
-      n,
-      isInt: Number.isInteger(n),
-    };
+  if (isTaggedFloat(val)) {
+    return { n: val.value, type: hint ?? "float" };
   }
 
   if (typeof val === "string") {
@@ -150,25 +141,7 @@ export function coerceNumeric(
     if (!det) {
       throw luaStringCoercionError;
     }
-
-    const n = det.value;
-    const isInt = det.numericType === "int";
-
-    if (n === 0) {
-      if (isNegativeZero(n)) {
-        return produceNegativeZero();
-      }
-      return {
-        n,
-        isInt,
-        zeroKind: det.numericType,
-      };
-    }
-
-    return {
-      n,
-      isInt,
-    };
+    return { n: det.value, type: hint ?? det.numericType };
   }
 
   throw new Error(
@@ -176,37 +149,92 @@ export function coerceNumeric(
   );
 }
 
+export type CoerceNumericPairResult = {
+  left: number;
+  right: number;
+  resultType: NumericType;
+};
+
 export function coerceNumericPair(
   a: unknown,
   b: unknown,
-  hints?: OpHints,
-): {
-  ax: number;
-  bx: number;
-  bothInt: boolean;
-  aZeroKind?: NumericType;
-  bZeroKind?: NumericType;
-} {
-  const A = coerceNumeric(a);
-  const B = coerceNumeric(b);
+  leftType?: NumericType,
+  rightType?: NumericType,
+  op?: string,
+): CoerceNumericPairResult {
+  const forceFloat = op === "/" || op === "^";
 
-  const aIsInt = hints?.leftKind !== undefined
-    ? hints.leftKind === "int"
-    : (A.zeroKind === "float"
-      ? false
-      : (A.zeroKind === "int" ? true : A.isInt));
+  // Both plain numbers
+  if (typeof a === "number" && typeof b === "number") {
+    const lt = leftType ?? inferNumericType(a);
+    const rt = rightType ?? inferNumericType(b);
 
-  const bIsInt = hints?.rightKind !== undefined
-    ? hints.rightKind === "int"
-    : (B.zeroKind === "float"
-      ? false
-      : (B.zeroKind === "int" ? true : B.isInt));
+    return {
+      left: a,
+      right: b,
+      resultType: forceFloat
+        ? "float"
+        : ((lt === "float" || rt === "float") ? "float" : "int"),
+    };
+  }
+
+  // One tagged float, one plain number
+  if (typeof a === "number" && isTaggedFloat(b)) {
+    return {
+      left: a,
+      right: b.value,
+      resultType: "float",
+    };
+  }
+
+  if (isTaggedFloat(a) && typeof b === "number") {
+    return {
+      left: a.value,
+      right: b,
+      resultType: "float",
+    };
+  }
+
+  // Both tagged floats
+  if (isTaggedFloat(a) && isTaggedFloat(b)) {
+    return {
+      left: a.value,
+      right: b.value,
+      resultType: "float",
+    };
+  }
+
+  // General fallback
+  const A = coerceNumeric(a, leftType);
+  const B = coerceNumeric(b, rightType);
 
   return {
-    ax: A.n,
-    bx: B.n,
-    bothInt: aIsInt && bIsInt,
-    aZeroKind: A.zeroKind,
-    bZeroKind: B.zeroKind,
+    left: A.n,
+    right: B.n,
+    resultType: forceFloat ? "float" : combineNumericTypes(A.type, B.type),
   };
+}
+
+export function normalizeArithmeticResult(
+  n: number,
+  resultType: NumericType,
+): number {
+  if (n === 0) {
+    if (resultType === "int") {
+      return 0;
+    }
+    return isNegativeZero(n) ? -0 : 0;
+  }
+  return n;
+}
+
+export function toInteger(v: unknown): number | null {
+  if (typeof v === "number") {
+    return Number.isInteger(v) ? v : null;
+  }
+  if (isTaggedFloat(v)) {
+    const n = v.value;
+    return Number.isInteger(n) ? n : null;
+  }
+  return null;
 }

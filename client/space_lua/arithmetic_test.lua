@@ -49,6 +49,35 @@ assert_eq(1/-(1.0-1.0) == -1/0.0, true, 'unary minus: float expr (-Inf)')
 assert_eq(-2^2, -4, 'precedence: -2^2 == -(2^2)')
 assert_eq((-2)^2, 4, 'precedence: (-2)^2 == 4')
 
+-- 2.1.1. Unary minus with float-typed exponentiation results
+do
+  local function mt(x)
+    return math.type(x)
+  end
+
+  assert_eq(mt(-("1.0" ^ 1)), "float", "math.type(-('1.0'^1)) => float")
+  assert_eq(mt(-"1.0" ^ 1), "float", "math.type(-'1.0'^1) => float")
+  assert_eq(mt(-("2.0" ^ 1)), "float", "math.type(-('2.0'^1)) => float")
+  assert_eq(mt(-("2.0" ^ 2)), "float", "math.type(-('2.0'^2)) => float")
+end
+
+-- 2.2. Unary minus uses table metadata for dynamic keys
+local dyn_tbl = {}
+local dyn_key = 'zf'
+dyn_tbl[dyn_key] = 0.0
+assert_eq(1/-(dyn_tbl[dyn_key]) == -1/0.0, true, 'unary minus: table dyn key float (-Inf)')
+
+-- 2.3. Unary minus uses table metadata for property access
+local prop_tbl = { zf = 0.0, zi = 0 }
+assert_eq(1/-(prop_tbl.zf) == -1/0.0, true, 'unary minus: table prop float (-Inf)')
+assert_eq(1/-(prop_tbl.zi) == 1/0, true, 'unary minus: table prop int (+Inf)')
+
+-- 2.4. Unary minus uses env metadata for locals
+local u_zi, u_zf, u_zfn = 0, 0.0, -0.0
+assert_eq(1/-(u_zi) == 1/0, true, 'var: unary minus zi (+Inf)')
+assert_eq(1/-(u_zfn) == 1/0.0, true, 'var: unary minus zfn (+Inf)')
+assert_eq(1/u_zf == 1/0.0, true, 'var: zf (+Inf)')
+
 -- 3. Integer operations (must not produce -0)
 assert_eq(1/(1-1) == 1/0, true, 'int: sub (+0)')
 assert_eq(1/(0*-1) == 1/0, true, 'int: mul (+0)')
@@ -103,6 +132,11 @@ assert_eq(1/(0.0*-1 ) == -1/0.0, true, 'mixed: mul float*int (-0.0)')
 assert_eq(1/(1.0+(-1)) == 1/0.0, true, 'mixed: add (+0.0)')
 assert_eq(1/(-(1-1.0)) == -1/0.0, true, 'mixed: sub then unary minus (-0.0)')
 
+-- 5.1. Dynamic key table metadata affects binary ops
+local dyn_t, dyn_k = {}, 'zf'
+dyn_t[dyn_k] = 0.0
+assert_eq(1/dyn_t[dyn_k] == 1/0.0, true, 'binary: table dyn key float (+Inf)')
+
 -- 6. Variables
 local zi, zf, zfn = 0, 0.0, -0.0
 
@@ -111,6 +145,14 @@ assert_eq(1/zf == 1/0.0, true, 'var: zf (+Inf)')
 assert_eq(1/zfn == -1/0.0, true, 'var: zfn (-Inf)')
 assert_eq(1/-(zi) == 1/0, true, 'var: unary minus zi (+Inf)')
 assert_eq(1/-(zfn) == 1/0.0, true, 'var: unary minus zfn (+Inf)')
+
+-- 6.1. Variables: metadata must flow through reassignment
+local zswap = 0.0
+assert_eq(1/zswap == 1/0.0, true, 'var: zswap float (+Inf)')
+zswap = 0
+assert_eq(1/zswap == 1/0, true, 'var: zswap reassigned int (+Inf)')
+zswap = 0.0
+assert_eq(1/zswap == 1/0.0, true, 'var: zswap reassigned float (+Inf)')
 
 -- 7. Functions returning zeros and unary minus
 local function ret_zi()
@@ -143,6 +185,12 @@ assert_eq(1/t.zfn == -1/0.0, true, 'table: t.zfn (-Inf)')
 -- 8.2. Arrays
 assert_eq(1/arr[1] == 1/0, true, 'array: arr[1]=zi (+Inf)')
 assert_eq(1/arr[2] == -1/0.0, true, 'array: arr[2]=zfn (-Inf)')
+
+-- 8.3. Arrays: dynamic numeric index key metadata
+local arr2 = {}
+local idx = 1
+arr2[idx] = 0.0
+assert_eq(1/arr2[idx] == 1/0.0, true, 'array: dyn index float (+Inf)')
 
 -- 9. Deeply nested parentheses and expressions
 local xi, xf = 1-1, 1.0-1.0
@@ -359,6 +407,63 @@ assertThrows("attempt to add a 'string' with a 'number'",
     return 'x1'+1
   end
 )
+
+-- 14.2 Numeric string coercion preserves int/float kind
+do
+  local function mt(x)
+    return math.type(x)
+  end
+
+  assert_eq(mt("0" + 0), "integer", "string '0' + 0 => integer")
+  assert_eq(mt("-0" + 0), "integer", "string '-0' + 0 => integer")
+
+  assert_eq(mt("0.0" + 0), "float", "string '0.0' + 0 => float")
+  assert_eq(mt("-0.0" + 0), "float", "string '-0.0' + 0 => float")
+
+  assert_eq(mt("0" + 0.0), "float", "string '0' + 0.0 => float")
+  assert_eq(mt("0.0" + 0.0), "float", "string '0.0' + 0.0 => float")
+
+  assert_eq(mt("0" + -0), "integer", "string '0' + -0 => integer")
+  assert_eq(mt("0" + -0.0), "float", "string '0' + -0.0 => float")
+
+  -- Regression coverage: numeric strings for all arithmetic ops and operand order
+  assert_eq(mt("0" - 0), "integer", "string '0' - 0 => integer")
+  assert_eq(mt("0.0" - 0), "float", "string '0.0' - 0 => float")
+  assert_eq(mt("0" * 1), "integer", "string '0' * 1 => integer")
+  assert_eq(mt("0.0" * 1), "float", "string '0.0' * 1 => float")
+  assert_eq(mt("0" / 1), "float", "string '0' / 1 => float")
+  assert_eq(mt("0.0" / 1), "float", "string '0.0' / 1 => float")
+  assert_eq(mt("0" // 1), "integer", "string '0' // 1 => integer")
+  assert_eq(mt("0.0" // 1), "float", "string '0.0' // 1 => float")
+  assert_eq(mt("0" % 1), "integer", "string '0' % 1 => integer")
+  assert_eq(mt("0.0" % 1), "float", "string '0.0' % 1 => float")
+  assert_eq(mt("2" ^ 1), "float", "string '2' ^ 1 => float")
+  assert_eq(mt("2.0" ^ 1), "float", "string '2.0' ^ 1 => float")
+
+  assert_eq(mt(0 + "0"), "integer", "0 + string '0' => integer")
+  assert_eq(mt(0 + "0.0"), "float", "0 + string '0.0' => float")
+
+  assert_eq(mt(0 - "0"), "integer", "0 - string '0' => integer")
+  assert_eq(mt(0 - "0.0"), "float", "0 - string '0.0' => float")
+
+  assert_eq(mt(1 * "0"), "integer", "1 * string '0' => integer")
+  assert_eq(mt(1 * "0.0"), "float", "1 * string '0.0' => float")
+
+  assert_eq(mt(0 / "1"), "float", "0 / string '1' => float")
+  assert_eq(mt(0 / "1.0"), "float", "0 / string '1.0' => float")
+
+  assert_eq(mt(0 // "1"), "integer", "0 // string '1' => integer")
+  assert_eq(mt(0 // "1.0"), "float", "0 // string '1.0' => float")
+
+  assert_eq(mt(0 % "1"), "integer", "0 % string '1' => integer")
+  assert_eq(mt(0 % "1.0"), "float", "0 % string '1.0' => float")
+
+  assert_eq(mt(2 ^ "1"), "float", "2 ^ string '1' => float")
+  assert_eq(mt(2 ^ "1.0"), "float", "2 ^ string '1.0' => float")
+
+  assert_eq((1 // "2"), 0, "1 // '2' == 0")
+  assert_eq((1 // "2.0"), 0.0, "1 // '2.0' == 0.0")
+end
 
 -- 15. Recursive function producing int zero (and unary minus)
 local function rec_zero(n)

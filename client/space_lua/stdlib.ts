@@ -31,7 +31,7 @@ import { luaToNumberDetailed } from "./tonumber.ts";
 import { luaLoad } from "./stdlib/load.ts";
 import { cryptoApi } from "./stdlib/crypto.ts";
 import { netApi } from "./stdlib/net.ts";
-import { floatLiteral } from "./numeric.ts";
+import { isTaggedFloat, makeLuaFloat } from "./numeric.ts";
 
 const printFunction = new LuaBuiltinFunction(async (_sf, ...args) => {
   console.log(
@@ -48,18 +48,18 @@ const assertFunction = new LuaBuiltinFunction(
   },
 );
 
-const ipairsFunction = new LuaBuiltinFunction((sf, ar: LuaTable | any[]) => {
-  let i = 1;
+const ipairsFunction = new LuaBuiltinFunction((sf, t: LuaTable | any[]) => {
+  let i = 0;
+
   return async () => {
-    if (i > ar.length) {
+    i = i + 1;
+
+    const v = await luaGet(t, i, sf.astCtx ?? null, sf);
+    if (v === null || v === undefined) {
       return;
     }
-    const result = new LuaMultiRes([
-      i,
-      await luaGet(ar, i, sf.astCtx ?? null, sf),
-    ]);
-    i++;
-    return result;
+
+    return new LuaMultiRes([i, v]);
   };
 });
 
@@ -150,7 +150,10 @@ const tonumberFunction = new LuaBuiltinFunction(
       }
     }
 
-    if (typeof value === "number" || value instanceof Number) {
+    if (typeof value === "number") {
+      return value;
+    }
+    if (isTaggedFloat(value)) {
       return value;
     }
 
@@ -164,7 +167,7 @@ const tonumberFunction = new LuaBuiltinFunction(
     }
 
     if (result.numericType === "float") {
-      return floatLiteral(result.value);
+      return makeLuaFloat(result.value);
     }
 
     return result.value;
@@ -276,7 +279,7 @@ const rawgetFunction = new LuaBuiltinFunction(
         typeName = "nil";
       } else if (typeof table === "boolean") {
         typeName = "boolean";
-      } else if (typeof table === "number" || table instanceof Number) {
+      } else if (typeof table === "number" || isTaggedFloat(table)) {
         typeName = "number";
       } else if (typeof table === "string") {
         typeName = "string";
@@ -299,16 +302,15 @@ const rawgetFunction = new LuaBuiltinFunction(
       return v === undefined ? null : v;
     }
 
-    const k = key instanceof Number ? Number(key) : key;
+    const k = isTaggedFloat(key) ? key.value : key;
 
     if (isArray) {
       if (typeof k === "number") {
         const v = (table as any[])[k - 1];
         return v === undefined ? null : v;
-      } else {
-        const v = (table as Record<string, any>)[k];
-        return v === undefined ? null : v;
       }
+      const v = (table as Record<string, any>)[k];
+      return v === undefined ? null : v;
     }
 
     const v = (table as Record<string | number, any>)[k as any];
@@ -318,8 +320,8 @@ const rawgetFunction = new LuaBuiltinFunction(
 
 const rawequalFunction = new LuaBuiltinFunction(
   (_sf, a: any, b: any) => {
-    const av = a instanceof Number ? Number(a) : a;
-    const bv = b instanceof Number ? Number(b) : b;
+    const av = isTaggedFloat(a) ? a.value : a;
+    const bv = isTaggedFloat(b) ? b.value : b;
     return av === bv;
   },
 );
@@ -361,12 +363,12 @@ const selectFunction = new LuaBuiltinFunction(
   (_sf, index: number | "#", ...args: LuaValue[]) => {
     if (index === "#") {
       return args.length;
-    } else if (typeof index === "number") {
+    }
+    if (typeof index === "number") {
       if (index >= 0) {
         return new LuaMultiRes(args.slice(index - 1));
-      } else {
-        return new LuaMultiRes(args.slice(args.length + index));
       }
+      return new LuaMultiRes(args.slice(args.length + index));
     }
   },
 );
@@ -408,19 +410,18 @@ const nextFunction = new LuaBuiltinFunction(
       // Return the first key, value
       const key = keys[0];
       return new LuaMultiRes([key, luaGet(table, key, sf.astCtx ?? null, sf)]);
-    } else {
-      // Find index in the key list
-      const idx = keys.indexOf(index);
-      if (idx === -1) { // Not found
-        throw new LuaRuntimeError("invalid key to 'next': key not found", sf);
-      }
-      const key = keys[idx + 1];
-      if (key === undefined) {
-        // When called with the last key, should return nil
-        return null;
-      }
-      return new LuaMultiRes([key, luaGet(table, key, sf.astCtx ?? null, sf)]);
     }
+    // Find index in the key list
+    const idx = keys.indexOf(index);
+    if (idx === -1) { // Not found
+      throw new LuaRuntimeError("invalid key to 'next': key not found", sf);
+    }
+    const key = keys[idx + 1];
+    if (key === undefined) {
+      // When called with the last key, should return nil
+      return null;
+    }
+    return new LuaMultiRes([key, luaGet(table, key, sf.astCtx ?? null, sf)]);
   },
 );
 

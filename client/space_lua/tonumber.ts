@@ -32,26 +32,24 @@ function charToDigitBase(c: number, base: number): number {
     const v = c - 48;
     if (v < base) {
       return v;
-    } else {
-      return -1;
     }
-  } else if (c >= 65 && c <= 90) { // 'A'..'Z'
+    return -1;
+  }
+  if (c >= 65 && c <= 90) { // 'A'..'Z'
     const v = 10 + (c - 65);
     if (v < base) {
       return v;
-    } else {
-      return -1;
     }
-  } else if (c >= 97 && c <= 122) { // 'a'..'z'
+    return -1;
+  }
+  if (c >= 97 && c <= 122) { // 'a'..'z'
     const v = 10 + (c - 97);
     if (v < base) {
       return v;
-    } else {
-      return -1;
     }
-  } else {
     return -1;
   }
+  return -1;
 }
 
 function parseIntWithBase(
@@ -162,9 +160,8 @@ function parseInt(s: string): { ok: boolean; value: number } {
       i = skipSpace(s, i);
       if (!any || i !== n) {
         return { ok: false, value: 0 };
-      } else {
-        return { ok: true, value: neg ? -acc : acc };
       }
+      return { ok: true, value: neg ? -acc : acc };
     }
   }
 
@@ -182,9 +179,8 @@ function parseInt(s: string): { ok: boolean; value: number } {
   i = skipSpace(s, i);
   if (!any || i !== n) {
     return { ok: false, value: 0 };
-  } else {
-    return { ok: true, value: neg ? -acc : acc };
   }
+  return { ok: true, value: neg ? -acc : acc };
 }
 
 function parseDecFloat(s: string): { ok: boolean; value: number } {
@@ -459,9 +455,8 @@ export function luaToNumberDetailed(
     if (parsed.ok) {
       const v = parsed.value;
       return { value: v === 0 ? 0 : v, numericType: "int" };
-    } else {
-      return null;
     }
+    return null;
   }
 
   {
@@ -494,8 +489,9 @@ export function luaToNumber(s: unknown, base?: number): number | null {
   if (typeof s === "number") {
     return s;
   }
-  if (s instanceof Number) {
-    return Number(s);
+  // Tagged float: { value: number, isFloat: true }
+  if (s !== null && typeof s === "object" && (s as any).isFloat === true) {
+    return (s as any).value;
   }
   if (typeof s !== "string") {
     return null;

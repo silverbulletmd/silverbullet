@@ -6,7 +6,8 @@ import {
   LuaTable,
   luaToString,
 } from "../runtime.ts";
-import printf from "./printf.ts";
+import { untagNumber } from "../numeric.ts";
+import { luaFormat } from "./format.ts";
 
 // Bits and pieces borrowed from https://github.com/paulcuth/starlight/blob/master/src/runtime/lib/string.js
 
@@ -112,7 +113,8 @@ export const stringApi = new LuaTable({
     },
   ),
   format: new LuaBuiltinFunction((_sf, format: string, ...args: any[]) => {
-    return printf(format, ...args);
+    // Unwrap tagged floats so `luaFormat` sees plain numbers
+    return luaFormat(format, ...args.map(untagNumber));
   }),
   gmatch: new LuaBuiltinFunction((_sf, s: string, pattern: string) => {
     pattern = translatePattern(pattern);
@@ -216,7 +218,8 @@ export const stringApi = new LuaTable({
 
       if (!matches) {
         return null;
-      } else if (matches[1] === undefined) {
+      }
+      if (matches[1] === undefined) {
         // No captures
         return matches[0];
       }

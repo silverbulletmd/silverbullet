@@ -97,8 +97,6 @@ setupMessageListener(functionMapping, manifest, self.postMessage);
   const outFile = `${destPath}/${manifest.name}.plug.js`;
   await Deno.writeTextFile(inFile, jsFile);
 
-  // console.log("JS FILE", inFile);
-
   const result = await esbuild.build({
     entryPoints: [inFile],
     bundle: true,
@@ -114,7 +112,6 @@ setupMessageListener(functionMapping, manifest, self.postMessage);
       denoPlugin({
         configPath: options.configPath &&
           path.resolve(Deno.cwd(), options.configPath),
-        // importMapURL: options.importMap,
       }),
     ],
   });
