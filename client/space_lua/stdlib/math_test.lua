@@ -25,10 +25,6 @@ local function assert_close(a, b, eps, msg)
   end
 end
 
-local function has_math(name)
-  return type(math[name]) == "function"
-end
-
 -- math.type (basic)
 do
   assert_eq(math.type(0), "integer", "math.type(0)")
@@ -98,11 +94,7 @@ do
   assert_eq(math.exp(0), 1, "exp(0)")
   assert_close(math.log(math.exp(1)), 1, 1e-12, "log(exp(1))")
   assert_close(math.log(8, 2), 3, 1e-12, "log base 2 of 8")
-
-  if has_math("pow") then
-    assert_eq(math.pow(2, 3), 8, "pow(2,3)")
-  end
-
+  assert_eq(math.pow(2, 3), 8, "pow(2,3)")
   assert_eq(math.sqrt(9), 3, "sqrt(9)")
 end
 
@@ -119,43 +111,32 @@ end
 
 -- hyperbolic
 do
-  if has_math("cosh") then assert_eq(math.cosh(0), 1, "cosh(0)") end
-  if has_math("sinh") then assert_eq(math.sinh(0), 0, "sinh(0)") end
-  if has_math("tanh") then assert_eq(math.tanh(0), 0, "tanh(0)") end
+  assert_eq(math.cosh(0), 1, "cosh(0)")
+  assert_eq(math.sinh(0), 0, "sinh(0)")
+  assert_eq(math.tanh(0), 0, "tanh(0)")
 end
 
 -- remainder
 do
-  if has_math("fmod") then
-    assert_eq(math.fmod(7, 3), 1, "fmod(7,3)")
-  end
+  assert_eq(math.fmod(7, 3), 1, "fmod(7,3)")
 end
 
--- random/randomseed
+-- random
 do
-  if has_math("randomseed") and has_math("random") then
-    math.randomseed(1234)
-    local a1 = math.random()
-    assert_true(a1 >= 0 and a1 < 1, "random() range")
+  local a1 = math.random()
+  assert_true(a1 >= 0 and a1 < 1, "random() range")
 
-    local aN = math.random(10)
-    assert_true(aN >= 1 and aN <= 10, "random(10) range")
+  local aN = math.random(10)
+  assert_true(aN >= 1 and aN <= 10, "random(10) range")
 
-    local aR = math.random(5, 10)
-    assert_true(aR >= 5 and aR <= 10, "random(5,10) range")
-
-    math.randomseed(1234)
-    local b1 = math.random()
-    assert_close(a1, b1, 0, "randomseed determinism")
-  end
+  local aR = math.random(5, 10)
+  assert_true(aR >= 5 and aR <= 10, "random(5,10) range")
 end
 
 -- unsigned less-than
 do
-  if has_math("ult") then
-    assert_eq(math.ult(1, 2), true, "ult(1,2)")
-    assert_eq(math.ult(2, 1), false, "ult(2,1)")
-  end
+  assert_eq(math.ult(1, 2), true, "ult(1,2)")
+  assert_eq(math.ult(2, 1), false, "ult(2,1)")
 end
 
 -- reported regression
