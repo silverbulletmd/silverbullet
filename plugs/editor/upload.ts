@@ -38,16 +38,22 @@ export async function saveFile(file: UploadFile) {
   }
 
   let desiredFilePath = await editor.prompt(
-    "File name for pasted document",
+    "File name for uploaded document",
     resolveMarkdownLink(await editor.getCurrentPath(), ensureFilename(file.name)),
   );
-  if (!desiredFilePath || !isValidPath(desiredFilePath)) {
+  if (desiredFilePath == null) {
+    return;
+  }
+  desiredFilePath = desiredFilePath.trim();
+  if (!isValidPath(desiredFilePath)) {
+    // TODO: notify why we halted
     return;
   }
 
   // Check the given desired file path wont clobber an existing file. If it
   // would, ask the user to confirm or provide another filename. Repeat this
   // check for every new filename they give.
+  // Note: duplicate any modifications here to client/code_mirror/editor_paste.ts
   let finalFilePath = null;
   while(finalFilePath == null) {
     if (await space.fileExists(desiredFilePath)) {
@@ -55,7 +61,13 @@ export async function saveFile(file: UploadFile) {
         "A file with that name already exists, keep the same name to replace it, or rename your file",
         resolveMarkdownLink(await editor.getCurrentPath(), ensureFilename(desiredFilePath)),
       );
-      if (!confirmedFilePath || !isValidPath(confirmedFilePath)) {
+      if (confirmedFilePath == null) {
+        // TODO: notify we have cancelled the operation
+        return;
+      }
+      confirmedFilePath = confirmedFilePath.trim()
+      if (!isValidPath(confirmedFilePath)) {
+        // TODO: notify we have cancelled the operation
         return;
       }
       if (desiredFilePath === confirmedFilePath) {
