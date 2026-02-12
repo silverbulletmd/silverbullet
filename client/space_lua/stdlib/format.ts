@@ -1,7 +1,6 @@
-// Supported specifiers set: [diuoxXaAfeEgGcsq%]
+// Supported specifiers set: [diuoxXaAfeEgGcspq%]
 // Supported flags set: [-+0# ]
 // Width and precision via digits or `*`
-// %q does not support modifiers (flags, width, precision)
 
 interface FormatSpec {
   flags: number; // FLAG_*
@@ -628,6 +627,40 @@ function formatChar(n: number): string {
   return String.fromCharCode(n & 0x7f);
 }
 
+const objectIds = new WeakMap<WeakKey, number>();
+const stringIds = new Map<string, number>();
+let nextId = 1;
+
+function toPointer(v: unknown): string {
+  if (v === null || v === undefined) return "(null)";
+  if (typeof v === "boolean" || typeof v === "number") return "(null)";
+
+  // Primitives (strings, symbols, etc.) cannot be `WeakMap` keys
+  if (typeof v !== "object" && typeof v !== "function") {
+    const key = String(v);
+    let id = stringIds.get(key);
+    if (id === undefined) {
+      id = nextId++;
+      stringIds.set(key, id);
+    }
+    return "0x" + id.toString(16).padStart(14, "0");
+  }
+
+  const obj = v as object;
+  let id = objectIds.get(obj);
+  if (id === undefined) {
+    id = nextId++;
+    objectIds.set(obj, id);
+  }
+  return "0x" + id.toString(16).padStart(14, "0");
+}
+
+function formatPointer(v: unknown, spec: FormatSpec): string {
+  const s = toPointer(v);
+  // `%p` only supports width and '-' flag, no precision
+  return pad(s, spec.width, spec.flags, false);
+}
+
 export function luaFormat(fmt: string, ...args: any[]): string {
   let out = "";
   let ai = 0; // arg index
@@ -710,6 +743,10 @@ export function luaFormat(fmt: string, ...args: any[]): string {
           false,
         );
         break;
+      case 112: { // 'p'
+        out += formatPointer(args[ai++], spec);
+        break;
+      }
       case 113: { // 'q'
         out += formatQ(args[ai++]);
         break;

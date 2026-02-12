@@ -377,3 +377,127 @@ assert_eq(
   'name="Alice" age=30',
   "%q: mixed"
 )
+
+-- %p: pointer-like identity for tables
+do
+  local t1 = {}
+  local t2 = {}
+  local s1 = string.format("%p", t1)
+  local s2 = string.format("%p", t2)
+  -- starts with 0x
+  assert_eq(s1:sub(1, 2), "0x", "%p: table prefix")
+  -- same object gives same result
+  assert_eq(string.format("%p", t1), s1, "%p: stable identity")
+  -- different objects give different results
+  assert_eq(s1 ~= s2, true, "%p: distinct tables differ")
+end
+
+-- %p: functions get an identity too
+do
+  local f1 = function() end
+  local f2 = function() end
+  local s1 = string.format("%p", f1)
+  local s2 = string.format("%p", f2)
+  assert_eq(s1:sub(1, 2), "0x", "%p: function prefix")
+  assert_eq(s1 ~= s2, true, "%p: distinct functions differ")
+end
+
+-- %p: nil and primitives yield (null)
+assert_eq(string.format("%p", nil), "(null)", "%p: nil")
+assert_eq(string.format("%p", true), "(null)", "%p: boolean")
+assert_eq(string.format("%p", 42), "(null)", "%p: number")
+
+-- %p: strings get an identity (they are GC objects in Lua)
+do
+  local s = string.format("%p", "hello")
+  assert_eq(s:sub(1, 2), "0x", "%p: string prefix")
+end
+
+-- %p: width
+do
+  local t = {}
+  local s = string.format("%20p", t)
+  assert_eq(#s >= 20, true, "%p: width pads")
+end
+
+-- %p: left-justify
+do
+  local t = {}
+  local s = string.format("%-20p", t)
+  assert_eq(#s >= 20, true, "%p: left width pads")
+  -- trailing spaces
+  assert_eq(s:sub(#s, #s), " ", "%p: left-justify trailing space")
+end
+
+-- %p: pointer-like identity for tables
+do
+  local t1 = {}
+  local t2 = {}
+  local s1 = string.format("%p", t1)
+  local s2 = string.format("%p", t2)
+  assert_eq(s1:sub(1, 2), "0x", "%p: table prefix")
+  assert_eq(string.format("%p", t1), s1, "%p: table stable identity")
+  assert_eq(s1 ~= s2, true, "%p: distinct tables differ")
+end
+
+-- %p: functions get an identity too
+do
+  local f1 = function() end
+  local f2 = function() end
+  local s1 = string.format("%p", f1)
+  local s2 = string.format("%p", f2)
+  assert_eq(s1:sub(1, 2), "0x", "%p: function prefix")
+  assert_eq(string.format("%p", f1), s1, "%p: function stable identity")
+  assert_eq(s1 ~= s2, true, "%p: distinct functions differ")
+end
+
+-- %p: strings get an identity (interned: same content = same id)
+do
+  local s1 = string.format("%p", "hello")
+  local s2 = string.format("%p", "hello")
+  local s3 = string.format("%p", "world")
+  assert_eq(s1:sub(1, 2), "0x", "%p: string prefix")
+  assert_eq(s1, s2, "%p: same string content = same id")
+  assert_eq(s1 ~= s3, true, "%p: different string content differs")
+end
+
+-- %p: nil and primitives yield (null)
+assert_eq(string.format("%p", nil), "(null)", "%p: nil")
+assert_eq(string.format("%p", true), "(null)", "%p: boolean")
+assert_eq(string.format("%p", 42), "(null)", "%p: number")
+
+-- %p: repeated calls on same table are stable
+do
+  local t = {}
+  local ids = {}
+  for i = 1, 5 do
+    ids[i] = string.format("%p", t)
+  end
+  for i = 2, 5 do
+    assert_eq(ids[i], ids[1], "%p: repeated call #" .. i .. " stable")
+  end
+end
+
+-- %p: table stored in another table keeps identity
+do
+  local inner = {}
+  local outer = { ref = inner }
+  local s1 = string.format("%p", inner)
+  local s2 = string.format("%p", outer.ref)
+  assert_eq(s1, s2, "%p: table via reference stable")
+end
+
+-- %p: width
+do
+  local t = {}
+  local s = string.format("%20p", t)
+  assert_eq(#s >= 20, true, "%p: width pads")
+end
+
+-- %p: left-justify
+do
+  local t = {}
+  local s = string.format("%-20p", t)
+  assert_eq(#s >= 20, true, "%p: left width pads")
+  assert_eq(s:sub(#s, #s), " ", "%p: left-justify trailing space")
+end
