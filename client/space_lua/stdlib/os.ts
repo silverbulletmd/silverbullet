@@ -366,20 +366,6 @@ export const osApi = new LuaTable({
     },
   ),
 
-  // On server side returns the value of the environment variable
-  // `varname`, or `nil` if not set.  On client (browser) side always
-  // returns `nil`.
-  getenv: new LuaBuiltinFunction((_sf, varname?: string): string | null => {
-    if (varname === undefined || varname === null) {
-      return null;
-    }
-    try {
-      return Deno.env.get(varname) ?? null;
-    } catch {
-      return null;
-    }
-  }),
-
   // Returns an approximation of CPU time used by the program in seconds.
   clock: new LuaBuiltinFunction((_sf): number => {
     return performance.now() / 1000.0;
