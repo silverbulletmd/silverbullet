@@ -365,4 +365,18 @@ export const osApi = new LuaTable({
       return luaFormatTime(fmt, d, utc);
     },
   ),
+
+  // On server side returns the value of the environment variable
+  // `varname`, or `nil` if not set.  On client (browser) side always
+  // returns `nil`.
+  getenv: new LuaBuiltinFunction((_sf, varname?: string): string | null => {
+    if (varname === undefined || varname === null) {
+      return null;
+    }
+    try {
+      return Deno.env.get(varname) ?? null;
+    } catch {
+      return null;
+    }
+  }),
 });

@@ -168,3 +168,10 @@ assert(type(err) == "string")
 
 -- Repeated specifiers
 assertEquals(os.date("!%Y%Y", ts), "20062006")
+
+-- os.getenv
+-- Non-existent variable returns nil
+assert(os.getenv("NONEXISTENT_VARIABLE_12345") == nil)
+
+-- No argument returns nil
+assert(os.getenv() == nil)
