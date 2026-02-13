@@ -10,92 +10,51 @@ export function Panel({
   config: PanelConfig;
   editor: Client;
 }) {
-  const iFrameRef = useRef<HTMLIFrameElement>(null);
-
-  const html = useMemo(() => {
-    return panelHtml.replace("{{.HostPrefix}}", document.baseURI);
-  }, []);
-
+  const panelRef = useRef<HTMLDivElement>(null);
+  const shadowRef = useRef<ShadowRoot>(null);
   function updateContent() {
-    if (!iFrameRef.current?.contentWindow) {
-      return;
-    }
+    const shadow = shadowRef.current;
+    if (!shadow) return;
 
-    iFrameRef.current.contentWindow.postMessage({
-      type: "html",
-      html: config.html,
-      script: config.script,
-      theme: document.getElementsByTagName("html")[0].dataset.theme,
-    });
+    const root = shadow.getElementById("panel-root");
+    if (!root) return;
+
+    root.innerHTML = "";
+
+    root.setAttribute(
+      "data-theme",
+      document.documentElement.dataset.theme || "light",
+    );
+    if (Array.isArray(config.html)) {
+      root.append(...config.html);
+    } else {
+      root.append(config.html as HTMLElement);
+    }
   }
 
   useEffect(() => {
-    const iframe = iFrameRef.current;
-    if (!iframe) {
-      return;
-    }
+    if (!panelRef.current) return;
 
-    iframe.addEventListener("load", updateContent);
-    updateContent();
+    shadowRef.current = panelRef.current.attachShadow({ mode: "closed" });
+
+    const container = document.createElement("div");
+    container.id = "panel-root";
+    shadowRef.current.appendChild(container);
 
     return () => {
-      iframe.removeEventListener("load", updateContent);
-    };
-  }, [config.html, config.script]);
-
-  useEffect(() => {
-    const messageListener = (evt: any) => {
-      if (evt.source !== iFrameRef.current!.contentWindow) {
-        return;
-      }
-      const data = evt.data;
-      if (!data) {
-        return;
-      }
-      switch (data.type) {
-        case "syscall": {
-          const { id, name, args } = data;
-          editor.clientSystem.localSyscall(name, args).then(
-            (result) => {
-              if (!iFrameRef.current?.contentWindow) {
-                // iFrame already went away
-                return;
-              }
-              iFrameRef.current!.contentWindow!.postMessage({
-                type: "syscall-response",
-                id,
-                result,
-              });
-            },
-          ).catch((e: any) => {
-            if (!iFrameRef.current?.contentWindow) {
-              // iFrame already went away
-              return;
-            }
-            iFrameRef.current!.contentWindow!.postMessage({
-              type: "syscall-response",
-              id,
-              error: e.message,
-            });
-          });
-          break;
-        }
-      }
-    };
-    globalThis.addEventListener("message", messageListener);
-    return () => {
-      globalThis.removeEventListener("message", messageListener);
+      shadowRef.current = null;
     };
   }, []);
 
+  useEffect(() => {
+    updateContent();
+  }, [config.html, config.script]);
+
   return (
-    <div className="sb-panel" style={{ flex: config.mode }}>
-      <iframe
-        srcDoc={html}
-        ref={iFrameRef}
-        style={{ visibility: "hidden" }}
-        onLoad={() => iFrameRef.current!.style.visibility = "visible"}
-      />
-    </div>
+    <div
+      className="sb-panel"
+      style={{ flex: config.mode }}
+      ref={panelRef}
+    />
   );
 }
