@@ -168,3 +168,15 @@ assert(type(err) == "string")
 
 -- Repeated specifiers
 assertEquals(os.date("!%Y%Y", ts), "20062006")
+
+-- os.clock
+-- Returns a number (seconds)
+assert(type(os.clock()) == "number")
+
+-- Must be non-negative
+assert(os.clock() >= 0)
+
+-- Monotonically non-decreasing
+local c1 = os.clock()
+local c2 = os.clock()
+assert(c2 >= c1)
