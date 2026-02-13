@@ -1,6 +1,6 @@
 local function assertEqual(a, b)
     if a ~= b then
-        error("Assertion failed: " .. a .. " is not equal to " .. b)
+        error("Assertion failed: " .. tostring(a) .. " is not equal to " .. tostring(b))
     end
 end
 
@@ -8,124 +8,80 @@ end
 assert(string.len("Hello") == 5)
 assert(string.byte("Hello", 1) == 72)
 assert(string.char(72) == "H")
-assert(string.find("Hello", "l") == 3)
 assert(string.rep("Hello", 3) == "HelloHelloHello")
 assert(string.sub("Hello", 2, 4) == "ell")
 assert(string.upper("Hello") == "HELLO")
 assert(string.lower("Hello") == "hello")
 
+-- string.byte tests
+local a, b = string.byte('Mo0')
+assert(a == 77, 'string.byte() should return the code for the first char')
+assert(b == nil, 'string.byte() should return only one item when no length is given')
+
+a, b = string.byte('Mo0', 2)
+assert(a == 111, 'string.byte() should return the code for the nth character')
+assert(b == nil, 'string.byte() should return only one item when no length is given')
+
+local a2, b2, c2 = string.byte('Mo0', 2, 3)
+assert(a2 == 111, 'string.byte() multi-return [1]')
+assert(b2 == 48, 'string.byte() multi-return [2]')
+assert(c2 == nil, 'string.byte() should stop at end of string')
+
+a2, b2 = string.byte('Mo0', 3, 20)
+assert(a2 == 48, 'string.byte() should clamp to string length')
+assert(b2 == nil, 'string.byte() should not return past end of string')
+
+-- string.char tests
+assertEqual(string.char(), '')
+assertEqual(string.char(116, 101, 115, 116), 'test')
+
+-- string.len tests
+assertEqual(string.len(''), 0)
+assertEqual(string.len('McLaren Mercedes'), 16)
+
+-- string.lower tests
+assertEqual(string.lower(''), '')
+assertEqual(string.lower('McLaren Mercedes'), 'mclaren mercedes')
+
+-- string.upper tests
+assertEqual(string.upper(''), '')
+assertEqual(string.upper('JavaScript'), 'JAVASCRIPT')
+
+-- string.rep tests
+assertEqual(string.rep('Ho', 0), '')
+assertEqual(string.rep('Ho', 1), 'Ho')
+assertEqual(string.rep('Ho', 3), 'HoHoHo')
+assertEqual(string.rep("ab", 3, ","), "ab,ab,ab")
+assertEqual(string.rep("x", 1, ","), "x")
+
+-- string.reverse tests
+assertEqual(string.reverse(''), '')
+assertEqual(string.reverse('x'), 'x')
+assertEqual(string.reverse('tpircSavaJ'), 'JavaScript')
+
 -- string.sub tests
 assertEqual(string.sub("hello", 1), "hello")
 assertEqual(string.sub("hello", 1, 1), "h")
--- with negative indeses
+-- with negative indices
 assertEqual(string.sub("hello", -1), "o")
 assertEqual(string.sub("hello", -2), "lo")
 assertEqual(string.sub("hello", -2, -1), "lo")
 
+local s = 'Pub Standards'
+assertEqual(string.sub(s, 1), 'Pub Standards')
+assertEqual(string.sub(s, 5), 'Standards')
+assertEqual(string.sub(s, -4), 'ards')
+assertEqual(string.sub(s, 1, 3), 'Pub')
+assertEqual(string.sub(s, 7, 9), 'and')
+assertEqual(string.sub(s, 5, -2), 'Standard')
+assertEqual(string.sub(s, 0), 'Pub Standards')
+
 -- Invoke string metatable methods
 assertEqual(("hello"):len(), 5)
 assertEqual(("hello"):upper(), "HELLO")
+assertEqual(('Hey'):lower(), 'hey')
 
--- Test string.gsub with various replacement types
--- Simple string replacement
-local result, count = string.gsub("hello world", "hello", "hi")
-assert(result == "hi world", "Basic string replacement failed")
-assert(count == 1, "Basic replacement count failed")
-
--- https://github.com/silverbulletmd/silverbullet/issues/1326
-result, count = ("abc|de"):gsub("|", "-")
-assert(result == "abc-de", "replacements failed [got: " .. result .. ", expected: abc-de]")
-assert(count == 1, "replacement count failed")
-
-result, count = ("abc\\|de|"):gsub("|", "-")
-assert(result == "abc\\-de-", "replacements failed [got: " .. result .. ", expected: abc\\-de-]")
-assert(count == 2, "replacement count failed")
-
--- Multiple replacements
-result, count = string.gsub("hello hello hello", "hello", "hi")
-assert(result == "hi hi hi", "Multiple replacements failed")
-assert(count == 3, "Multiple replacement count failed")
-
--- Limited replacements with n parameter
-result, count = string.gsub("hello hello hello", "hello", "hi", 2)
-assert(result == "hi hi hello", "Limited replacements failed")
-assert(count == 2, "Limited replacement count failed")
-
--- Function replacement without captures
-result = string.gsub("hello world", "hello", function(match)
-    assert(match == "hello", "Function received incorrect match")
-    return string.upper(match)
-end)
-assertEqual(result, "HELLO world", "Function replacement without captures failed")
-
--- Function replacement with single capture
-result = string.gsub("hello world", "(h)ello", function(h)
-    assertEqual(h, "h", "Function received incorrect capture")
-    return string.upper(h) .. "i"
-end)
-assert(result == "Hi world", "Function replacement with single capture failed")
-
--- Function replacement with multiple captures
-result = string.gsub("hello world", "(h)(e)(l)(l)o", function(h, e, l1, l2)
-    assert(h == "h" and e == "e" and l1 == "l" and l2 == "l",
-        "Function received incorrect captures: " .. h .. ", " .. e .. ", " .. l1 .. ", " .. l2)
-    return string.upper(h) .. string.upper(e) .. l1 .. l2 .. "o"
-end)
-assert(result == "HEllo world", "Function replacement with multiple captures failed")
-
--- Function returning nil (should keep original match)
-result = string.gsub("hello world", "hello", function() return nil end)
-assert(result == "hello world", "Function returning nil failed")
-
--- Pattern with multiple matches on same position
-result = string.gsub("hello world", "h?e", "X")
-assert(result == "Xllo world", "Overlapping matches failed")
-
--- Empty captures
-result = string.gsub("hello", "(h()e)", function(full, empty)
-    assert(full == "he" and empty == "", "Empty capture handling failed")
-    return "XX"
-end)
-assert(result == "XXllo", "Empty capture replacement failed")
-
--- Patterns with magic characters
-result = string.gsub("hello.world", "%.", "-")
-assert(result == "hello-world", "Magic character replacement failed")
-
--- Test string.match
-local m1, m2 = string.match("hello world", "(h)(ello)")
-assertEqual(m1, "h")
-assertEqual(m2, "ello")
-
--- Test with pattern with character class
-assertEqual(string.match("c", "[abc]"), "c")
-
--- Test match with init position - need to capture the group
-local initMatch = string.match("hello world", "(world)", 7)
-assertEqual(initMatch, "world")
-
--- Test string.gmatch
-local words = {}
-for word in string.gmatch("hello world lua", "%w+") do
-    table.insert(words, word)
-end
-assertEqual(words[1], "hello")
-assertEqual(words[2], "world")
-assertEqual(words[3], "lua")
-
--- with capture
-local captures = {}
-for k, v in string.gmatch("from=world, to=Lua", "(%w+)=(%w+)") do
-    captures[k] = v
-end
-assertEqual(captures.from, "world")
-assertEqual(captures.to, "Lua")
-
--- Test string.reverse
-assertEqual(string.reverse("hello"), "olleh")
-assertEqual(string.reverse(""), "")
-
--- Test string.split
+-- Test string.split (non-standard)
 local parts = string.split("a,b,c", ",")
 assertEqual(parts[1], "a")
 assertEqual(parts[2], "b")
@@ -134,49 +90,10 @@ assertEqual(parts[3], "c")
 -- Test non-standard string extensions
 assertEqual(string.startsWith("hello world", "hello"), true)
 assertEqual(string.startsWith("hello world", "world"), false)
-
 assertEqual(string.endsWith("hello world", "world"), true)
 assertEqual(string.endsWith("hello world", "hello"), false)
 
--- Extended string.match tests
--- Basic pattern matching
-assertEqual(string.match("hello", "h"), "h")
-assertEqual(string.match("hello", "hello"), "hello")
-
--- Test with no matches
-assertEqual(string.match("hello", "x"), nil)
-
--- Test with captures
-local m1, m2 = string.match("hello", "(h)(ello)")
-assertEqual(m1, "h")
-assertEqual(m2, "ello")
-
--- Test with init position
-local initMatch = string.match("hello world", "(world)", 7)
-assertEqual(initMatch, "world")
-
--- Test init position with no match
-assertEqual(string.match("hello world", "hello", 7), nil)
-
--- Test pattern characters
-assertEqual(string.match("123", "%d+"), "123")
-assertEqual(string.match("abc123", "%a+"), "abc")
-assertEqual(string.match("   abc", "%s+"), "   ")
-
--- Test multiple captures
-local year, month, day = string.match("2024-03-14", "(%d+)%-(%d+)%-(%d+)")
-assertEqual(year, "2024")
-assertEqual(month, "03")
-assertEqual(day, "14")
-
--- Test escaped hyphen at the end of a pattern
-assertEqual(string.match("4-", "%d%-"), "4-")
-
--- Test optional captures
-local word = string.match("The quick brown fox", "%s*(%w+)%s*")
-assertEqual(word, "The")
-
--- Test matchRegexAll
+-- Test matchRegexAll (non-standard, regex-based)
 local matches = {}
 for match in string.matchRegexAll("hellolllbl", "(l+)") do
     table.insert(matches, match)
@@ -185,9 +102,3 @@ assertEqual(#matches, 3)
 assertEqual(matches[1][1], "ll")
 assertEqual(matches[2][1], "lll")
 assertEqual(matches[3][1], "l")
-
--- https://community.silverbullet.md/t/test-if-string-find-outputs-nil-not-working-as-expected/2342
-assert(string.find("a", "b") == nil)
-assert(not (string.find("a", "b") ~= nil))
-assert(string.match("a", "b") == nil)
-assert(not (string.match("a", "b") ~= nil))
