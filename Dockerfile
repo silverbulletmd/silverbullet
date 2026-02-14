@@ -1,5 +1,5 @@
 # Stage 1: Build the silverbullet binary
-FROM node:20-bookworm AS builder
+FROM node:24.13.0-bookworm AS builder
 RUN apt update && apt install -y git wget make
 
 ARG TARGETARCH
