@@ -1,52 +1,41 @@
+import { expect, test } from "vitest";
 import { resolveMarkdownLink } from "@silverbulletmd/silverbullet/lib/resolve";
-import { assertEquals } from "@std/assert";
 
-Deno.test("Test URL resolver", () => {
+test("Test URL resolver", () => {
   // Absolute paths
-  assertEquals(
+  expect(
     resolveMarkdownLink("foo", "/bar"),
-    "bar",
-  );
-  assertEquals(
+  ).toEqual("bar");
+  expect(
     resolveMarkdownLink("/foo/bar/baz", "/qux"),
-    "qux",
-  );
-  assertEquals(
+  ).toEqual("qux");
+  expect(
     resolveMarkdownLink("foo", "/bar@123#456"),
-    "bar@123#456",
-  );
-  assertEquals(
+  ).toEqual("bar@123#456");
+  expect(
     resolveMarkdownLink("foo/bar", "/baz.jpg"),
-    "baz.jpg",
-  );
+  ).toEqual("baz.jpg");
 
   // Relative paths
-  assertEquals(
+  expect(
     resolveMarkdownLink("bar", "foo"),
-    "foo",
-  );
-  assertEquals(
+  ).toEqual("foo");
+  expect(
     resolveMarkdownLink("foo/bar.jpg", "baz"),
-    "foo/baz",
-  );
-  assertEquals(
+  ).toEqual("foo/baz");
+  expect(
     resolveMarkdownLink("/foo/bar", "baz"),
-    "/foo/baz",
-  );
-  assertEquals(
+  ).toEqual("/foo/baz");
+  expect(
     resolveMarkdownLink("foo///bar", "baz"),
-    "foo///baz",
-  );
-  assertEquals(
+  ).toEqual("foo///baz");
+  expect(
     resolveMarkdownLink("bar", "../foo/baz"),
-    "foo/baz",
-  );
-  assertEquals(
+  ).toEqual("foo/baz");
+  expect(
     resolveMarkdownLink("bar", "../../foo/baz"),
-    "foo/baz",
-  );
-  assertEquals(
+  ).toEqual("foo/baz");
+  expect(
     resolveMarkdownLink("bar/qux", "foo/../baz"),
-    "bar/foo/../baz",
-  );
+  ).toEqual("bar/foo/../baz");
 });

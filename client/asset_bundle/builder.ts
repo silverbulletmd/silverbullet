@@ -1,8 +1,21 @@
-// import { globToRegExp, mime, path, walk } from "../deps_server.ts";
-import { globToRegExp } from "@std/path";
+import picomatch from "picomatch";
+import { readFile, readdir } from "node:fs/promises";
+import { join } from "node:path";
+import mime from "mime";
+
 import { AssetBundle } from "./bundle.ts";
-import { walk } from "@std/fs";
-import { mime } from "mimetypes";
+
+async function* walk(dir: string): AsyncGenerator<{ path: string }> {
+  const entries = await readdir(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      yield* walk(fullPath);
+    } else if (entry.isFile()) {
+      yield { path: fullPath };
+    }
+  }
+}
 
 export async function bundleAssets(
   rootPath: string,
@@ -12,24 +25,17 @@ export async function bundleAssets(
   if (patterns.length === 0) {
     return bundle;
   }
-  const matchRegexes = patterns.map((pat) => globToRegExp(pat));
+  const isMatch = picomatch(patterns);
   for await (
     const file of walk(rootPath)
   ) {
     const cleanPath = file.path.substring(rootPath.length + 1);
-    let match = false;
     // console.log("Considering", rootPath, file.path, cleanPath);
-    for (const matchRegex of matchRegexes) {
-      if (matchRegex.test(cleanPath)) {
-        match = true;
-        break;
-      }
-    }
-    if (match) {
+    if (isMatch(cleanPath)) {
       bundle.writeFileSync(
         cleanPath,
         mime.getType(cleanPath) || "application/octet-stream",
-        await Deno.readFile(file.path),
+        await readFile(file.path),
       );
     }
   }

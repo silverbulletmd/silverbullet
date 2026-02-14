@@ -1,4 +1,4 @@
-import { assertEquals } from "@std/assert/equals";
+import { expect, test } from "vitest";
 import { parse } from "./parse.ts";
 import { evalStatement } from "./eval.ts";
 import { LuaEnv, LuaNativeJSFunction, LuaStackFrame } from "./runtime.ts";
@@ -15,7 +15,7 @@ async function evalBlock(code: string, env?: LuaEnv) {
   return base;
 }
 
-Deno.test("For loops: inner break", async () => {
+test("For loops: inner break", async () => {
   const env = new LuaEnv(luaBuildStandardEnv());
   await evalBlock(
     `
@@ -30,10 +30,10 @@ Deno.test("For loops: inner break", async () => {
     `,
     env,
   );
-  assertEquals(env.get("found"), 1);
+  expect(env.get("found")).toEqual(1);
 });
 
-Deno.test("Nested for loops: inner break (sync body)", async () => {
+test("Nested for loops: inner break (sync body)", async () => {
   const env = new LuaEnv(luaBuildStandardEnv());
   await evalBlock(
     `
@@ -49,10 +49,10 @@ Deno.test("Nested for loops: inner break (sync body)", async () => {
     `,
     env,
   );
-  assertEquals(env.get("found"), 2);
+  expect(env.get("found")).toEqual(2);
 });
 
-Deno.test("Nested for loops: inner break with async call in body (Promise path)", async () => {
+test("Nested for loops: inner break with async call in body (Promise path)", async () => {
   const env = new LuaEnv(luaBuildStandardEnv());
   env.set(
     "asyncOne",
@@ -73,10 +73,10 @@ Deno.test("Nested for loops: inner break with async call in body (Promise path)"
     `,
     env,
   );
-  assertEquals(env.get("found"), 2);
+  expect(env.get("found")).toEqual(2);
 });
 
-Deno.test("While: Promise condition, break inside body", async () => {
+test("While: Promise condition, break inside body", async () => {
   const env = new LuaEnv(luaBuildStandardEnv());
   // asyncTrue returns a truthy value via Promise to trigger Promise-based while path
   env.set(
@@ -102,10 +102,10 @@ Deno.test("While: Promise condition, break inside body", async () => {
     `,
     env,
   );
-  assertEquals(env.get("cnt"), 1);
+  expect(env.get("cnt")).toEqual(1);
 });
 
-Deno.test("Repeat-until: body goes Promise once, break handled locally", async () => {
+test("Repeat-until: body goes Promise once, break handled locally", async () => {
   const env = new LuaEnv(luaBuildStandardEnv());
   env.set(
     "asyncOne",
@@ -123,10 +123,10 @@ Deno.test("Repeat-until: body goes Promise once, break handled locally", async (
     `,
     env,
   );
-  assertEquals(env.get("n"), 1);
+  expect(env.get("n")).toEqual(1);
 });
 
-Deno.test("For-in: custom iterator, Promise in body before break", async () => {
+test("For-in: custom iterator, Promise in body before break", async () => {
   const env = new LuaEnv(luaBuildStandardEnv());
   env.set(
     "asyncOne",
@@ -152,10 +152,10 @@ Deno.test("For-in: custom iterator, Promise in body before break", async () => {
     `,
     env,
   );
-  assertEquals(env.get("hits"), 1);
+  expect(env.get("hits")).toEqual(1);
 });
 
-Deno.test("Jaro-like inner-window matching: inner break with occasional Promise", async () => {
+test("Jaro-like inner-window matching: inner break with occasional Promise", async () => {
   const env = new LuaEnv(luaBuildStandardEnv());
   env.set(
     "tick",
@@ -193,5 +193,5 @@ Deno.test("Jaro-like inner-window matching: inner break with occasional Promise"
     `,
     env,
   );
-  assertEquals(env.get("ok"), true);
+  expect(env.get("ok")).toEqual(true);
 });

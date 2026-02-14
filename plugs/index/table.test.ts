@@ -1,8 +1,8 @@
+import { expect, test } from "vitest";
 import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
 import { createMockSystem } from "../../plug-api/system_mock.ts";
 import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 import { extractFrontMatter } from "./frontmatter.ts";
-import { assertEquals } from "@std/assert";
 import { indexTables } from "./table.ts";
 
 const testPage = `
@@ -12,7 +12,7 @@ const testPage = `
 | Fred | 21 |
 `.trim();
 
-Deno.test("Test table indexing", async () => {
+test("Test table indexing", async () => {
   createMockSystem();
 
   const tree = parseMarkdown(testPage);
@@ -28,9 +28,9 @@ Deno.test("Test table indexing", async () => {
   };
 
   const datas = await indexTables(pageMeta, frontmatter, tree);
-  assertEquals(datas.length, 2);
-  assertEquals(datas[0].name, "Frank");
-  assertEquals(datas[0].age, "20");
-  assertEquals(datas[1].name, "Fred");
-  assertEquals(datas[1].age, "21");
+  expect(datas.length).toEqual(2);
+  expect(datas[0].name).toEqual("Frank");
+  expect(datas[0].age).toEqual("20");
+  expect(datas[1].name).toEqual("Fred");
+  expect(datas[1].age).toEqual("21");
 });

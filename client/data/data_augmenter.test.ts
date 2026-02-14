@@ -1,9 +1,9 @@
-import { assertEquals } from "@std/assert";
+import { expect, test } from "vitest";
 import { Augmenter } from "./data_augmenter.ts";
 import { DataStore } from "./datastore.ts";
 import { MemoryKvPrimitives } from "./memory_kv_primitives.ts";
 
-Deno.test("Test data augmentation", async () => {
+test("Test data augmentation", async () => {
   const ds = new DataStore(new MemoryKvPrimitives());
   const john: any = {
     ref: "john",
@@ -28,6 +28,6 @@ Deno.test("Test data augmentation", async () => {
   // Fetch them back
   const objs = [john, mary];
   await augm.augmentObjectArray(objs, "ref");
-  assertEquals(objs[0].augmented, true);
-  assertEquals(objs[1].augmented, undefined);
+  expect(objs[0].augmented).toEqual(true);
+  expect(objs[1].augmented).toEqual(undefined);
 });

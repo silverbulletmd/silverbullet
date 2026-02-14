@@ -1,4 +1,4 @@
-import { assert, assertEquals } from "@std/assert";
+import { expect, test } from "vitest";
 import { EventEmitter } from "./event.ts";
 
 // Test event handler interfaces
@@ -16,7 +16,7 @@ class TestEventEmitter extends EventEmitter<TestEvents> {
   // Just a concrete implementation for testing
 }
 
-Deno.test("EventEmitter - basic on/emit functionality", async () => {
+test("EventEmitter - basic on/emit functionality", async () => {
   const emitter = new TestEventEmitter();
   let received = "";
   let count = 0;
@@ -31,13 +31,13 @@ Deno.test("EventEmitter - basic on/emit functionality", async () => {
   });
 
   await emitter.emit("message", "hello world");
-  assertEquals(received, "hello world");
+  expect(received).toEqual("hello world");
 
   await emitter.emit("count", 42);
-  assertEquals(count, 42);
+  expect(count).toEqual(42);
 });
 
-Deno.test("EventEmitter - multiple handlers for same event", async () => {
+test("EventEmitter - multiple handlers for same event", async () => {
   const emitter = new TestEventEmitter();
   const results: string[] = [];
 
@@ -55,12 +55,12 @@ Deno.test("EventEmitter - multiple handlers for same event", async () => {
 
   await emitter.emit("message", "test");
 
-  assertEquals(results.length, 2);
-  assertEquals(results[0], "handler1: test");
-  assertEquals(results[1], "handler2: test");
+  expect(results.length).toEqual(2);
+  expect(results[0]).toEqual("handler1: test");
+  expect(results[1]).toEqual("handler2: test");
 });
 
-Deno.test("EventEmitter - multiple events in single handler", async () => {
+test("EventEmitter - multiple events in single handler", async () => {
   const emitter = new TestEventEmitter();
   let messageReceived = "";
   let countReceived = 0;
@@ -77,11 +77,11 @@ Deno.test("EventEmitter - multiple events in single handler", async () => {
   await emitter.emit("message", "multi-handler");
   await emitter.emit("count", 123);
 
-  assertEquals(messageReceived, "multi-handler");
-  assertEquals(countReceived, 123);
+  expect(messageReceived).toEqual("multi-handler");
+  expect(countReceived).toEqual(123);
 });
 
-Deno.test("EventEmitter - emit with multiple arguments", async () => {
+test("EventEmitter - emit with multiple arguments", async () => {
   const emitter = new TestEventEmitter();
   let receivedA = "";
   let receivedB = 0;
@@ -97,12 +97,12 @@ Deno.test("EventEmitter - emit with multiple arguments", async () => {
 
   await emitter.emit("multi", "test", 456, true);
 
-  assertEquals(receivedA, "test");
-  assertEquals(receivedB, 456);
-  assertEquals(receivedC, true);
+  expect(receivedA).toEqual("test");
+  expect(receivedB).toEqual(456);
+  expect(receivedC).toEqual(true);
 });
 
-Deno.test("EventEmitter - off removes specific handler object with multiple events", async () => {
+test("EventEmitter - off removes specific handler object with multiple events", async () => {
   const emitter = new TestEventEmitter();
   let messageCount = 0;
   let numberCount = 0;
@@ -131,9 +131,9 @@ Deno.test("EventEmitter - off removes specific handler object with multiple even
   // Test that both handlers work initially
   await emitter.emit("message", "test1");
   await emitter.emit("count", 42);
-  assertEquals(messageCount, 1);
-  assertEquals(numberCount, 1);
-  assertEquals(remainingMessageCount, 1);
+  expect(messageCount).toEqual(1);
+  expect(numberCount).toEqual(1);
+  expect(remainingMessageCount).toEqual(1);
 
   // Remove the first handler object
   emitter.off(handlersToRemove);
@@ -141,12 +141,12 @@ Deno.test("EventEmitter - off removes specific handler object with multiple even
   // Test that only the remaining message handler works
   await emitter.emit("message", "test2");
   await emitter.emit("count", 43);
-  assertEquals(messageCount, 1); // Should not have incremented
-  assertEquals(numberCount, 1); // Should not have incremented
-  assertEquals(remainingMessageCount, 2); // Should have incremented
+  expect(messageCount).toEqual(1); // Should not have incremented
+  expect(numberCount).toEqual(1); // Should not have incremented
+  expect(remainingMessageCount).toEqual(2); // Should have incremented
 });
 
-Deno.test("EventEmitter - off removes only the specified handler object", async () => {
+test("EventEmitter - off removes only the specified handler object", async () => {
   const emitter = new TestEventEmitter();
   let handler1MessageCount = 0;
   let handler1CountValue = 0;
@@ -177,10 +177,10 @@ Deno.test("EventEmitter - off removes only the specified handler object", async 
   // Test both handlers work initially
   await emitter.emit("message", "test1");
   await emitter.emit("count", 100);
-  assertEquals(handler1MessageCount, 1);
-  assertEquals(handler1CountValue, 100);
-  assertEquals(handler2MessageCount, 1);
-  assertEquals(handler2CountValue, 100);
+  expect(handler1MessageCount).toEqual(1);
+  expect(handler1CountValue).toEqual(100);
+  expect(handler2MessageCount).toEqual(1);
+  expect(handler2CountValue).toEqual(100);
 
   // Remove only handlers1
   emitter.off(handlers1);
@@ -188,13 +188,13 @@ Deno.test("EventEmitter - off removes only the specified handler object", async 
   // Test that only handlers2 continues to work
   await emitter.emit("message", "test2");
   await emitter.emit("count", 200);
-  assertEquals(handler1MessageCount, 1); // Should not have incremented
-  assertEquals(handler1CountValue, 100); // Should not have changed
-  assertEquals(handler2MessageCount, 2); // Should have incremented
-  assertEquals(handler2CountValue, 200); // Should have changed
+  expect(handler1MessageCount).toEqual(1); // Should not have incremented
+  expect(handler1CountValue).toEqual(100); // Should not have changed
+  expect(handler2MessageCount).toEqual(2); // Should have incremented
+  expect(handler2CountValue).toEqual(200); // Should have changed
 });
 
-Deno.test("EventEmitter - no handlers for event", async () => {
+test("EventEmitter - no handlers for event", async () => {
   const emitter = new TestEventEmitter();
 
   // Should not throw when emitting to non-existent handlers
@@ -202,5 +202,5 @@ Deno.test("EventEmitter - no handlers for event", async () => {
   await emitter.emit("count", 42);
 
   // Test passes if no exception is thrown
-  assert(true);
+  expect(true).toBeTruthy();
 });

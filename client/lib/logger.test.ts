@@ -1,7 +1,7 @@
-import { assert, assertEquals } from "@std/assert";
+import { expect, test } from "vitest";
 import { initLogger, Logger } from "./logger.ts";
 
-Deno.test("Logger prefix functionality", () => {
+test("Logger prefix functionality", () => {
   // Store original console methods
   const originalLog = console.log;
   const originalInfo = console.info;
@@ -32,10 +32,10 @@ Deno.test("Logger prefix functionality", () => {
     console.warn("Warning message");
     console.error("Error message");
 
-    assertEquals(capturedOutput[0], "[TEST] Hello world");
-    assertEquals(capturedOutput[1], "[TEST] Info message");
-    assertEquals(capturedOutput[2], "[TEST] Warning message");
-    assertEquals(capturedOutput[3], "[TEST] Error message");
+    expect(capturedOutput[0]).toEqual("[TEST] Hello world");
+    expect(capturedOutput[1]).toEqual("[TEST] Info message");
+    expect(capturedOutput[2]).toEqual("[TEST] Warning message");
+    expect(capturedOutput[3]).toEqual("[TEST] Error message");
   } finally {
     // Restore original console methods
     console.log = originalLog;
@@ -45,7 +45,7 @@ Deno.test("Logger prefix functionality", () => {
   }
 });
 
-Deno.test("Logger without prefix", () => {
+test("Logger without prefix", () => {
   const originalLog = console.log;
   const capturedOutput: string[] = [];
 
@@ -58,13 +58,13 @@ Deno.test("Logger without prefix", () => {
 
     console.log("Hello", "world");
 
-    assertEquals(capturedOutput[0], "Hello world");
+    expect(capturedOutput[0]).toEqual("Hello world");
   } finally {
     console.log = originalLog;
   }
 });
 
-Deno.test("Logger log capture", () => {
+test("Logger log capture", () => {
   const logger = new Logger("[CAPTURE]");
 
   console.log("First message");
@@ -74,28 +74,28 @@ Deno.test("Logger log capture", () => {
 
   const capturedLogs = logger.logBuffer;
 
-  assertEquals(capturedLogs.length, 4);
+  expect(capturedLogs.length).toEqual(4);
 
-  assertEquals(capturedLogs[0].level, "log");
-  assertEquals(capturedLogs[0].message, "First message");
+  expect(capturedLogs[0].level).toEqual("log");
+  expect(capturedLogs[0].message).toEqual("First message");
 
-  assertEquals(capturedLogs[1].level, "info");
-  assertEquals(capturedLogs[1].message, 'Second message {"key":"value"}');
+  expect(capturedLogs[1].level).toEqual("info");
+  expect(capturedLogs[1].message).toEqual('Second message {"key":"value"}');
 
-  assertEquals(capturedLogs[2].level, "warn");
-  assertEquals(capturedLogs[2].message, "Third message 123");
+  expect(capturedLogs[2].level).toEqual("warn");
+  expect(capturedLogs[2].message).toEqual("Third message 123");
 
-  assertEquals(capturedLogs[3].level, "error");
-  assertEquals(capturedLogs[3].message, "Fourth message");
+  expect(capturedLogs[3].level).toEqual("error");
+  expect(capturedLogs[3].message).toEqual("Fourth message");
 
   // Check that all entries have timestamps
   capturedLogs.forEach((entry) => {
-    assert(typeof entry.timestamp === "number");
-    assert(entry.timestamp > 0);
+    expect(typeof entry.timestamp === "number").toBeTruthy();
+    expect(entry.timestamp > 0).toBeTruthy();
   });
 });
 
-Deno.test("Logger max capture size", () => {
+test("Logger max capture size", () => {
   const logger = new Logger("[SIZE]", 3);
 
   // Add more logs than the max size
@@ -108,13 +108,13 @@ Deno.test("Logger max capture size", () => {
   const capturedLogs = logger.logBuffer;
 
   // Should only keep the last 3 messages
-  assertEquals(capturedLogs.length, 3);
-  assertEquals(capturedLogs[0].message, "Message 3");
-  assertEquals(capturedLogs[1].message, "Message 4");
-  assertEquals(capturedLogs[2].message, "Message 5");
+  expect(capturedLogs.length).toEqual(3);
+  expect(capturedLogs[0].message).toEqual("Message 3");
+  expect(capturedLogs[1].message).toEqual("Message 4");
+  expect(capturedLogs[2].message).toEqual("Message 5");
 });
 
-Deno.test("Global logger initialization", () => {
+test("Global logger initialization", () => {
   const originalLog = console.log;
   const capturedOutput: string[] = [];
 
@@ -127,14 +127,14 @@ Deno.test("Global logger initialization", () => {
 
     console.log("Global test");
 
-    assertEquals(capturedOutput[0], "[GLOBAL] Global test");
-    assert(logger instanceof Logger);
+    expect(capturedOutput[0]).toEqual("[GLOBAL] Global test");
+    expect(logger instanceof Logger).toBeTruthy();
   } finally {
     console.log = originalLog;
   }
 });
 
-Deno.test("Logger handles complex objects", () => {
+test("Logger handles complex objects", () => {
   const logger = new Logger("[COMPLEX]");
 
   const complexObject = {
@@ -151,14 +151,12 @@ Deno.test("Logger handles complex objects", () => {
 
   const capturedLogs = logger.logBuffer;
 
-  assertEquals(capturedLogs.length, 2);
+  expect(capturedLogs.length).toEqual(2);
 
   // First log should handle complex object properly
-  assertEquals(
-    capturedLogs[0].message,
-    `Complex object: {"name":"test","nested":{"value":42},"array":[1,2,3]}`,
+  expect(capturedLogs[0].message).toEqual(`Complex object: {"name":"test","nested":{"value":42},"array":[1,2,3]}`,
   );
 
   // Second log should handle circular reference gracefully
-  assertEquals(capturedLogs[1].message, `Circular object: [object Object]`);
+  expect(capturedLogs[1].message).toEqual(`Circular object: [object Object]`);
 });

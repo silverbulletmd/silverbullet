@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["DOM", "DOM.Iterable", "ES2024"],
+    "types": ["node"],
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "paths": {
+      "@silverbulletmd/silverbullet/syscall": ["./plug-api/syscall.ts"],
+      "@silverbulletmd/silverbullet/syscalls": ["./plug-api/syscalls.ts"],
+      "@silverbulletmd/silverbullet/constants": ["./plug-api/constants.ts"],
+      "@silverbulletmd/silverbullet/lib/*": ["./plug-api/lib/*.ts"],
+      "@silverbulletmd/silverbullet/type/*": ["./plug-api/types/*.ts"],
+      "fuse": ["./node_modules/fuse.js"]
+    }
+  },
+  "include": [
+    "client/**/*",
+    "plug-api/**/*",
+    "plugs/**/*",
+    "bin/**/*",
+    "build_*.ts",
+    "version.ts"
+  ],
+  "exclude": ["node_modules", "dist", "client_bundle", "website"]
+}

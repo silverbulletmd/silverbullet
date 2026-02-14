@@ -1,3 +1,4 @@
+import { expect, test } from "vitest";
 // import { parse } from "./parse_tree.ts";
 import {
   addParentPointers,
@@ -8,7 +9,6 @@ import {
   renderToText,
   replaceNodesMatching,
 } from "./tree.ts";
-import { assertEquals, assertNotEquals } from "@std/assert";
 import { parse } from "../../client/markdown_parser/parse_tree.ts";
 import { extendedMarkdownLanguage } from "../../client/markdown_parser/parser.ts";
 
@@ -39,22 +39,19 @@ name: something
 \`\`\`
 `;
 
-Deno.test("Test parsing", () => {
+test("Test parsing", () => {
   const mdTree = parse(extendedMarkdownLanguage, mdTest1);
   addParentPointers(mdTree);
   // console.log(JSON.stringify(mdTree, null, 2));
   const wikiLink = nodeAtPos(mdTree, mdTest1.indexOf("Wiki Page"))!;
-  assertEquals(wikiLink.type, "WikiLinkPage");
-  assertNotEquals(
-    findParentMatching(wikiLink, (n) => n.type === "BulletList"),
-    null,
-  );
+  expect(wikiLink.type).toEqual("WikiLinkPage");
+  expect(findParentMatching(wikiLink, (n) => n.type === "BulletList")).not.toEqual(null);
 
   const allTodos = collectNodesMatching(mdTree, (n) => n.type === "Task");
-  assertEquals(allTodos.length, 2);
+  expect(allTodos.length).toEqual(2);
 
   // Render back into markdown should be equivalent
-  assertEquals(renderToText(mdTree), mdTest1);
+  expect(renderToText(mdTree)).toEqual(mdTest1);
 
   removeParentPointers(mdTree);
   replaceNodesMatching(mdTree, (n) => {

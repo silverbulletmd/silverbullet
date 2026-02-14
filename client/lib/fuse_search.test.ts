@@ -1,8 +1,8 @@
+import { expect, test } from "vitest";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
-import { assertEquals } from "@std/assert";
 import { fuzzySearchAndSort } from "./fuse_search.ts";
 
-Deno.test("testFuzzyFilter", () => {
+test("testFuzzyFilter", () => {
   const array: FilterOption[] = [
     { name: "My Company/Hank", orderId: 2 },
     { name: "My Company/Hane", orderId: 1 },
@@ -13,18 +13,18 @@ Deno.test("testFuzzyFilter", () => {
 
   // Prioritize match in last path part
   let results = fuzzySearchAndSort(array, "");
-  assertEquals(results.length, array.length);
+  expect(results.length).toEqual(array.length);
   results = fuzzySearchAndSort(array, "Steve");
-  assertEquals(results.length, 3);
+  expect(results.length).toEqual(3);
   results = fuzzySearchAndSort(array, "Co");
   // Match in last path part
-  assertEquals(results[0].name, "My Company/Steve Co");
+  expect(results[0].name).toEqual("My Company/Steve Co");
   // Due to orderId
-  assertEquals(results[1].name, "My Company/Hane");
-  assertEquals(results[2].name, "My Company/Hank");
+  expect(results[1].name).toEqual("My Company/Hane");
+  expect(results[2].name).toEqual("My Company/Hank");
 });
 
-Deno.test("Fuzzy search edge case testing", () => {
+test("Fuzzy search edge case testing", () => {
   // Test edge case where aspiring pages (Infinity orderId) sort last without NaN
   const array: FilterOption[] = [
     { name: "Existing", orderId: 1 },
@@ -32,9 +32,9 @@ Deno.test("Fuzzy search edge case testing", () => {
     { name: "Aspiring B", orderId: Infinity },
   ];
   const results = fuzzySearchAndSort(array, "");
-  assertEquals(results.length, 3);
-  assertEquals(results[0].name, "Existing");
+  expect(results.length).toEqual(3);
+  expect(results[0].name).toEqual("Existing");
   // Both aspiring pages last; relative order between them is stable (no NaN)
-  assertEquals(results[1].name, "Aspiring A");
-  assertEquals(results[2].name, "Aspiring B");
+  expect(results[1].name).toEqual("Aspiring A");
+  expect(results[2].name).toEqual("Aspiring B");
 });

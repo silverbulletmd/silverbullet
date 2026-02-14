@@ -1,8 +1,8 @@
+import { expect, test } from "vitest";
 import { ttlCache } from "./memory_cache.ts";
 import { sleep } from "./async.ts";
-import { assertEquals } from "@std/assert";
 
-Deno.test("Memory cache", async () => {
+test("Memory cache", async () => {
   let calls = 0;
 
   async function expensiveFunction(key: string) {
@@ -11,9 +11,9 @@ Deno.test("Memory cache", async () => {
     return key;
   }
 
-  assertEquals("key", await ttlCache("key", expensiveFunction, 0.01));
-  assertEquals(1, calls);
-  assertEquals("key", await ttlCache("key", expensiveFunction, 0.01));
-  assertEquals(1, calls);
+  expect("key").toEqual(await ttlCache("key", expensiveFunction, 0.01));
+  expect(1).toEqual(calls);
+  expect("key").toEqual(await ttlCache("key", expensiveFunction, 0.01));
+  expect(1).toEqual(calls);
   await sleep(10);
 });

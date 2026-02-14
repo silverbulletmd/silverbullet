@@ -1,6 +1,5 @@
 # Stage 1: Build the silverbullet binary
-# Use the Debian version of Deno as a base image
-FROM denoland/deno:debian-2.6.8 AS builder
+FROM node:24.13.0-bookworm AS builder
 RUN apt update && apt install -y git wget make
 
 ARG TARGETARCH
@@ -14,6 +13,9 @@ ENV PATH=$GOPATH/bin:/usr/local/go/bin:$PATH
 
 WORKDIR /app
 ADD . /app
+
+# Install npm dependencies
+RUN npm ci
 
 # Build the `silverbullet` self-contained binary in /app/silverbullet
 RUN make build

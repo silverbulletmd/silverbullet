@@ -1,7 +1,7 @@
-import { assertEquals, assertExists } from "@std/assert";
+import { expect, test } from "vitest";
 import { applyPatches, type YamlPatch } from "./yaml.ts";
 
-Deno.test("YAML patching - basic operations and value types", () => {
+test("YAML patching - basic operations and value types", () => {
   const initialYaml = `
 name: my-package
 version: 1.0.0
@@ -20,23 +20,23 @@ description: A sample package
 
   const result = applyPatches(initialYaml, patches);
 
-  assertExists(result);
+  expect(result).toBeDefined();
   // Basic scalar updates
-  assertEquals(result.includes("version: 1.1.0"), true);
-  assertEquals(result.includes("description: Updated description"), true);
-  assertEquals(result.includes("name: my-package"), true);
+  expect(result.includes("version: 1.1.0")).toEqual(true);
+  expect(result.includes("description: Updated description")).toEqual(true);
+  expect(result.includes("name: my-package")).toEqual(true);
 
   // Special values and characters
-  assertEquals(result.includes('empty: ""'), true);
-  assertEquals(result.includes('special: "value:with:colons"'), true);
-  assertEquals(result.includes("null: null"), true);
+  expect(result.includes('empty: ""')).toEqual(true);
+  expect(result.includes('special: "value:with:colons"')).toEqual(true);
+  expect(result.includes("null: null")).toEqual(true);
 
   // Empty collections
-  assertEquals(result.includes("emptyList: []"), true);
-  assertEquals(result.includes("emptyObject: {}"), true);
+  expect(result.includes("emptyList: []")).toEqual(true);
+  expect(result.includes("emptyObject: {}")).toEqual(true);
 });
 
-Deno.test("YAML patching - collections and nested structures", () => {
+test("YAML patching - collections and nested structures", () => {
   const initialYaml = `
 name: my-package
 tags:
@@ -63,25 +63,25 @@ tags:
 
   const result = applyPatches(initialYaml, patches);
 
-  assertExists(result);
+  expect(result).toBeDefined();
   // Array values
-  assertEquals(result.includes("tags:"), true);
-  assertEquals(result.includes("- deno"), true);
-  assertEquals(result.includes("- typescript"), true);
-  assertEquals(result.includes("- yaml"), true);
-  assertEquals(result.includes("dependencies:"), true);
-  assertEquals(result.includes("- std"), true);
-  assertEquals(result.includes("- testing"), true);
+  expect(result.includes("tags:")).toEqual(true);
+  expect(result.includes("- deno")).toEqual(true);
+  expect(result.includes("- typescript")).toEqual(true);
+  expect(result.includes("- yaml")).toEqual(true);
+  expect(result.includes("dependencies:")).toEqual(true);
+  expect(result.includes("- std")).toEqual(true);
+  expect(result.includes("- testing")).toEqual(true);
 
   // Nested object values
-  assertEquals(result.includes("config:"), true);
-  assertEquals(result.includes("  port: 3000"), true);
-  assertEquals(result.includes("  host: localhost"), true);
-  assertEquals(result.includes("    debug: true"), true);
-  assertEquals(result.includes("    timeout: 5000"), true);
+  expect(result.includes("config:")).toEqual(true);
+  expect(result.includes("  port: 3000")).toEqual(true);
+  expect(result.includes("  host: localhost")).toEqual(true);
+  expect(result.includes("    debug: true")).toEqual(true);
+  expect(result.includes("    timeout: 5000")).toEqual(true);
 });
 
-Deno.test("YAML patching - comments and formatting preservation", () => {
+test("YAML patching - comments and formatting preservation", () => {
   const initialYaml = `
 # Main package configuration
 name: my-package  # The package name
@@ -103,45 +103,45 @@ license: MIT      # License type
   const result = applyPatches(initialYaml, patches);
 
   // Verify all comments are preserved
-  assertEquals(result.includes("# Main package configuration"), true);
-  assertEquals(result.includes("# The package name"), true);
-  assertEquals(result.includes("# Current version"), true);
-  assertEquals(result.includes("# Additional metadata"), true);
-  assertEquals(result.includes("# Package maintainer"), true);
-  assertEquals(result.includes("# License type"), true);
+  expect(result.includes("# Main package configuration")).toEqual(true);
+  expect(result.includes("# The package name")).toEqual(true);
+  expect(result.includes("# Current version")).toEqual(true);
+  expect(result.includes("# Additional metadata")).toEqual(true);
+  expect(result.includes("# Package maintainer")).toEqual(true);
+  expect(result.includes("# License type")).toEqual(true);
 
   // Verify content is correct and in order
-  assertEquals(result.includes("version: 2.0.0"), true);
-  assertEquals(result.includes("description: An updated package"), true);
-  assertEquals(result.includes("newProp: new value"), true);
+  expect(result.includes("version: 2.0.0")).toEqual(true);
+  expect(result.includes("description: An updated package")).toEqual(true);
+  expect(result.includes("newProp: new value")).toEqual(true);
 
   // Verify trailing newlines are preserved
-  assertEquals(result.endsWith("\n"), true);
+  expect(result.endsWith("\n")).toEqual(true);
   const lines = result.split("\n");
-  assertEquals(lines[lines.length - 1], "");
+  expect(lines[lines.length - 1]).toEqual("");
 });
 
-Deno.test("YAML patching - edge cases", () => {
+test("YAML patching - edge cases", () => {
   // Test empty input
   const emptyResult = applyPatches("", [
     { op: "set-key", path: "name", value: "new-package" },
   ]);
-  assertEquals(emptyResult.trim(), "name: new-package");
+  expect(emptyResult.trim()).toEqual("name: new-package");
 
   // Test single line with trailing newline
   const singleLineResult = applyPatches("key: value\n", [
     { op: "set-key", path: "key", value: "new value" },
   ]);
-  assertEquals(singleLineResult, "key: new value\n");
+  expect(singleLineResult).toEqual("key: new value\n");
 
   // Test multiple trailing newlines
   const multiNewlineResult = applyPatches("key: value\n\n\n", [
     { op: "set-key", path: "key", value: "new value" },
   ]);
-  assertEquals(multiNewlineResult, "key: new value\n");
+  expect(multiNewlineResult).toEqual("key: new value\n");
 });
 
-Deno.test("YAML patching - delete key basic operations", () => {
+test("YAML patching - delete key basic operations", () => {
   const initialYaml = `
 name: my-package
 version: 1.0.0
@@ -157,18 +157,18 @@ license: MIT
 
   const result = applyPatches(initialYaml, patches);
 
-  assertExists(result);
+  expect(result).toBeDefined();
   // Verify deleted keys are gone
-  assertEquals(result.includes("version:"), false);
-  assertEquals(result.includes("author:"), false);
+  expect(result.includes("version:")).toEqual(false);
+  expect(result.includes("author:")).toEqual(false);
 
   // Verify remaining keys are still present
-  assertEquals(result.includes("name: my-package"), true);
-  assertEquals(result.includes("description: A sample package"), true);
-  assertEquals(result.includes("license: MIT"), true);
+  expect(result.includes("name: my-package")).toEqual(true);
+  expect(result.includes("description: A sample package")).toEqual(true);
+  expect(result.includes("license: MIT")).toEqual(true);
 });
 
-Deno.test("YAML patching - delete key with comments", () => {
+test("YAML patching - delete key with comments", () => {
   const initialYaml = `
 # Package configuration
 name: my-package
@@ -188,20 +188,20 @@ author: John Doe  # Main author
   const result = applyPatches(initialYaml, patches);
 
   // Verify the key and its comments are removed
-  assertEquals(result.includes("version:"), false);
-  assertEquals(result.includes("# Version number"), false);
-  assertEquals(result.includes("# Current version"), false);
+  expect(result.includes("version:")).toEqual(false);
+  expect(result.includes("# Version number")).toEqual(false);
+  expect(result.includes("# Current version")).toEqual(false);
 
   // Verify other content remains
-  assertEquals(result.includes("# Package configuration"), true);
-  assertEquals(result.includes("name: my-package"), true);
-  assertEquals(result.includes("# Description"), true);
-  assertEquals(result.includes("description: A sample package"), true);
-  assertEquals(result.includes("author: John Doe"), true);
-  assertEquals(result.includes("# Main author"), true);
+  expect(result.includes("# Package configuration")).toEqual(true);
+  expect(result.includes("name: my-package")).toEqual(true);
+  expect(result.includes("# Description")).toEqual(true);
+  expect(result.includes("description: A sample package")).toEqual(true);
+  expect(result.includes("author: John Doe")).toEqual(true);
+  expect(result.includes("# Main author")).toEqual(true);
 });
 
-Deno.test("YAML patching - delete key with list values", () => {
+test("YAML patching - delete key with list values", () => {
   const initialYaml = `
 name: my-package
 tags:
@@ -221,20 +221,20 @@ author: John Doe
   const result = applyPatches(initialYaml, patches);
 
   // Verify the key and its list values are removed
-  assertEquals(result.includes("tags:"), false);
-  assertEquals(result.includes("- node"), false);
-  assertEquals(result.includes("- typescript"), false);
-  assertEquals(result.includes("- yaml"), false);
+  expect(result.includes("tags:")).toEqual(false);
+  expect(result.includes("- node")).toEqual(false);
+  expect(result.includes("- typescript")).toEqual(false);
+  expect(result.includes("- yaml")).toEqual(false);
 
   // Verify other content remains
-  assertEquals(result.includes("name: my-package"), true);
-  assertEquals(result.includes("dependencies:"), true);
-  assertEquals(result.includes("- std"), true);
-  assertEquals(result.includes("- testing"), true);
-  assertEquals(result.includes("author: John Doe"), true);
+  expect(result.includes("name: my-package")).toEqual(true);
+  expect(result.includes("dependencies:")).toEqual(true);
+  expect(result.includes("- std")).toEqual(true);
+  expect(result.includes("- testing")).toEqual(true);
+  expect(result.includes("author: John Doe")).toEqual(true);
 });
 
-Deno.test("YAML patching - delete key with nested object values", () => {
+test("YAML patching - delete key with nested object values", () => {
   const initialYaml = `
 name: my-package
 config:
@@ -253,18 +253,18 @@ author: John Doe
   const result = applyPatches(initialYaml, patches);
 
   // Verify the key and its nested content are removed
-  assertEquals(result.includes("config:"), false);
-  assertEquals(result.includes("port: 3000"), false);
-  assertEquals(result.includes("host: localhost"), false);
-  assertEquals(result.includes("debug: true"), false);
-  assertEquals(result.includes("timeout: 5000"), false);
+  expect(result.includes("config:")).toEqual(false);
+  expect(result.includes("port: 3000")).toEqual(false);
+  expect(result.includes("host: localhost")).toEqual(false);
+  expect(result.includes("debug: true")).toEqual(false);
+  expect(result.includes("timeout: 5000")).toEqual(false);
 
   // Verify other content remains
-  assertEquals(result.includes("name: my-package"), true);
-  assertEquals(result.includes("author: John Doe"), true);
+  expect(result.includes("name: my-package")).toEqual(true);
+  expect(result.includes("author: John Doe")).toEqual(true);
 });
 
-Deno.test("YAML patching - delete non-existent key", () => {
+test("YAML patching - delete non-existent key", () => {
   const initialYaml = `
 name: my-package
 version: 1.0.0
@@ -277,12 +277,12 @@ version: 1.0.0
   const result = applyPatches(initialYaml, patches);
 
   // Verify nothing changes when deleting a non-existent key
-  assertEquals(result.includes("name: my-package"), true);
-  assertEquals(result.includes("version: 1.0.0"), true);
-  assertEquals(result, initialYaml);
+  expect(result.includes("name: my-package")).toEqual(true);
+  expect(result.includes("version: 1.0.0")).toEqual(true);
+  expect(result).toEqual(initialYaml);
 });
 
-Deno.test("YAML patching - mixed set and delete operations", () => {
+test("YAML patching - mixed set and delete operations", () => {
   const initialYaml = `
 name: my-package
 version: 1.0.0
@@ -301,19 +301,19 @@ license: MIT
   const result = applyPatches(initialYaml, patches);
 
   // Verify deletions
-  assertEquals(result.includes("author:"), false);
-  assertEquals(result.includes("description:"), false);
+  expect(result.includes("author:")).toEqual(false);
+  expect(result.includes("description:")).toEqual(false);
 
   // Verify updates and additions
-  assertEquals(result.includes("version: 2.0.0"), true);
-  assertEquals(result.includes("maintainer: Jane Smith"), true);
+  expect(result.includes("version: 2.0.0")).toEqual(true);
+  expect(result.includes("maintainer: Jane Smith")).toEqual(true);
 
   // Verify unchanged content
-  assertEquals(result.includes("name: my-package"), true);
-  assertEquals(result.includes("license: MIT"), true);
+  expect(result.includes("name: my-package")).toEqual(true);
+  expect(result.includes("license: MIT")).toEqual(true);
 });
 
-Deno.test("YAML patching - delete all keys", () => {
+test("YAML patching - delete all keys", () => {
   const initialYaml = `
 name: my-package
 version: 1.0.0
@@ -327,10 +327,10 @@ version: 1.0.0
   const result = applyPatches(initialYaml, patches);
 
   // Result should be effectively empty (just newlines)
-  assertEquals(result.trim(), "");
+  expect(result.trim()).toEqual("");
 });
 
-Deno.test("YAML patching - delete key preserves surrounding structure", () => {
+test("YAML patching - delete key preserves surrounding structure", () => {
   const initialYaml = `
 # Header comment
 name: my-package
@@ -348,12 +348,12 @@ license: MIT
   const result = applyPatches(initialYaml, patches);
 
   // Verify structure is maintained
-  assertEquals(result.includes("# Header comment"), true);
-  assertEquals(result.includes("name: my-package"), true);
-  assertEquals(result.includes("description: A sample package"), true);
-  assertEquals(result.includes("# Footer comment"), true);
-  assertEquals(result.includes("license: MIT"), true);
+  expect(result.includes("# Header comment")).toEqual(true);
+  expect(result.includes("name: my-package")).toEqual(true);
+  expect(result.includes("description: A sample package")).toEqual(true);
+  expect(result.includes("# Footer comment")).toEqual(true);
+  expect(result.includes("license: MIT")).toEqual(true);
 
   // Verify deleted key is gone
-  assertEquals(result.includes("version:"), false);
+  expect(result.includes("version:")).toEqual(false);
 });

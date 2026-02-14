@@ -1,3 +1,4 @@
+import { expect, test } from "vitest";
 import {
   decodePageURI,
   encodePageURI,
@@ -6,128 +7,118 @@ import {
   isValidPath,
   parseToRef,
 } from "./ref.ts";
-import { assert, assertEquals } from "@std/assert";
 
-Deno.test("parseToRef() default cases", () => {
-  assertEquals(parseToRef("foo"), { path: "foo.md" });
-  assertEquals(parseToRef("/foo"), { path: "foo.md" });
-  assertEquals(parseToRef("foo/bar"), { path: "foo/bar.md" });
-  assertEquals(parseToRef("foo.png"), { path: "foo.png" });
-  assertEquals(parseToRef("foo.md"), { path: "foo.md" });
-  assertEquals(parseToRef("foo."), { path: "foo..md" });
-  assertEquals(parseToRef("foo.."), { path: "foo...md" });
-  assertEquals(parseToRef(" .foo"), { path: " .foo" });
-  assertEquals(parseToRef("foo[bar"), { path: "foo[bar.md" });
-  assertEquals(parseToRef("foo]bar"), { path: "foo]bar.md" });
-  assertEquals(parseToRef("foo(bar"), { path: "foo(bar.md" });
-  assertEquals(parseToRef("foo)bar"), { path: "foo)bar.md" });
-  assertEquals(parseToRef("/bar/.../foo"), { path: "bar/.../foo.md" });
+test("parseToRef() default cases", () => {
+  expect(parseToRef("foo")).toEqual({ path: "foo.md" });
+  expect(parseToRef("/foo")).toEqual({ path: "foo.md" });
+  expect(parseToRef("foo/bar")).toEqual({ path: "foo/bar.md" });
+  expect(parseToRef("foo.png")).toEqual({ path: "foo.png" });
+  expect(parseToRef("foo.md")).toEqual({ path: "foo.md" });
+  expect(parseToRef("foo.")).toEqual({ path: "foo..md" });
+  expect(parseToRef("foo..")).toEqual({ path: "foo...md" });
+  expect(parseToRef(" .foo")).toEqual({ path: " .foo" });
+  expect(parseToRef("foo[bar")).toEqual({ path: "foo[bar.md" });
+  expect(parseToRef("foo]bar")).toEqual({ path: "foo]bar.md" });
+  expect(parseToRef("foo(bar")).toEqual({ path: "foo(bar.md" });
+  expect(parseToRef("foo)bar")).toEqual({ path: "foo)bar.md" });
+  expect(parseToRef("/bar/.../foo")).toEqual({ path: "bar/.../foo.md" });
 
-  assertEquals(parseToRef("/foo/.bar.md"), null);
-  assertEquals(parseToRef("foo.md.md"), null);
-  assertEquals(parseToRef("/.../foo"), null);
-  assertEquals(parseToRef("^.foo"), null);
-  assertEquals(parseToRef(".foobar"), null);
-  assertEquals(parseToRef("foo[[bar"), null);
-  assertEquals(parseToRef("foo]]bar"), null);
-  assertEquals(parseToRef("foo|bar"), null);
-  assertEquals(parseToRef("foo@bar"), null);
-  assertEquals(parseToRef("/../foo"), null);
-  assertEquals(parseToRef("/./foo"), null);
-  assertEquals(parseToRef("/bar/../foo"), null);
-  assertEquals(parseToRef("/bar/./foo"), null);
+  expect(parseToRef("/foo/.bar.md")).toEqual(null);
+  expect(parseToRef("foo.md.md")).toEqual(null);
+  expect(parseToRef("/.../foo")).toEqual(null);
+  expect(parseToRef("^.foo")).toEqual(null);
+  expect(parseToRef(".foobar")).toEqual(null);
+  expect(parseToRef("foo[[bar")).toEqual(null);
+  expect(parseToRef("foo]]bar")).toEqual(null);
+  expect(parseToRef("foo|bar")).toEqual(null);
+  expect(parseToRef("foo@bar")).toEqual(null);
+  expect(parseToRef("/../foo")).toEqual(null);
+  expect(parseToRef("/./foo")).toEqual(null);
+  expect(parseToRef("/bar/../foo")).toEqual(null);
+  expect(parseToRef("/bar/./foo")).toEqual(null);
 
-  assertEquals(parseToRef(""), { path: "" });
-  assertEquals(parseToRef("/"), { path: "" });
-  assertEquals(parseToRef("/.md"), null);
-  assertEquals(parseToRef("/.foo"), null);
-  assertEquals(parseToRef("/@132"), {
+  expect(parseToRef("")).toEqual({ path: "" });
+  expect(parseToRef("/")).toEqual({ path: "" });
+  expect(parseToRef("/.md")).toEqual(null);
+  expect(parseToRef("/.foo")).toEqual(null);
+  expect(parseToRef("/@132")).toEqual({
     path: "",
     details: { type: "position", pos: 132 },
   });
 });
 
-Deno.test("parseToRef() link cases", () => {
-  assertEquals(parseToRef("^foo"), { path: "foo.md", meta: true });
+test("parseToRef() link cases", () => {
+  expect(parseToRef("^foo")).toEqual({ path: "foo.md", meta: true });
 
-  assertEquals(parseToRef("foo# header"), {
+  expect(parseToRef("foo# header")).toEqual({
     path: "foo.md",
     details: { type: "header", header: "header" },
   });
-  assertEquals(parseToRef("foo# header@123"), {
+  expect(parseToRef("foo# header@123")).toEqual({
     path: "foo.md",
     details: { type: "header", header: "header@123" },
   });
-  assertEquals(parseToRef("foo@1231"), {
+  expect(parseToRef("foo@1231")).toEqual({
     path: "foo.md",
     details: { type: "position", pos: 1231 },
   });
-  assertEquals(parseToRef("foo@l42c69"), {
+  expect(parseToRef("foo@l42c69")).toEqual({
     path: "foo.md",
     details: { type: "linecolumn", line: 42, column: 69 },
   });
-  assertEquals(parseToRef("foo@L42C69"), {
+  expect(parseToRef("foo@L42C69")).toEqual({
     path: "foo.md",
     details: { type: "linecolumn", line: 42, column: 69 },
   });
-  assertEquals(parseToRef("foo@L42"), {
+  expect(parseToRef("foo@L42")).toEqual({
     path: "foo.md",
     details: { type: "linecolumn", line: 42, column: 1 },
   });
 
-  assertEquals(parseToRef("foo@ 123"), null);
-  assertEquals(parseToRef("foo@c69"), null);
-  assertEquals(parseToRef("foo@123#header"), null);
-  assertEquals(parseToRef("foo@123@l29"), null);
+  expect(parseToRef("foo@ 123")).toEqual(null);
+  expect(parseToRef("foo@c69")).toEqual(null);
+  expect(parseToRef("foo@123#header")).toEqual(null);
+  expect(parseToRef("foo@123@l29")).toEqual(null);
 });
 
-Deno.test("encodeRef() cases", () => {
+test("encodeRef() cases", () => {
   // Encoding
-  assertEquals(encodeRef({ path: "foo.md" }), "foo");
-  assertEquals(
-    encodeRef({ path: "foo.md", details: { type: "position", pos: 10 } }),
-    "foo@10",
-  );
-  assertEquals(
-    encodeRef({
-      path: "foo.md",
-      details: { type: "linecolumn", line: 10, column: 69 },
-    }),
-    "foo@L10C69",
-  );
-  assertEquals(
-    encodeRef({
-      path: "foo.md",
-      details: { type: "header", header: "bar" },
-    }),
-    "foo#bar",
-  );
+  expect(encodeRef({ path: "foo.md" })).toEqual("foo");
+  expect(encodeRef({ path: "foo.md", details: { type: "position", pos: 10 } })).toEqual("foo@10");
+  expect(encodeRef({
+    path: "foo.md",
+    details: { type: "linecolumn", line: 10, column: 69 },
+  })).toEqual("foo@L10C69");
+  expect(encodeRef({
+    path: "foo.md",
+    details: { type: "header", header: "bar" },
+  })).toEqual("foo#bar");
 });
 
-Deno.test("isValidPath() and isValidName()", () => {
-  assert(isValidPath("foo.md"));
-  assert(!isValidPath("foo"));
-  assert(!isValidPath("foo.md@123"));
+test("isValidPath() and isValidName()", () => {
+  expect(isValidPath("foo.md")).toBeTruthy();
+  expect(!isValidPath("foo")).toBeTruthy();
+  expect(!isValidPath("foo.md@123")).toBeTruthy();
 
-  assert(isValidName("foo"));
-  assert(!isValidName("foo.md"));
-  assert(!isValidName("foo@123"));
-  assert(!isValidName("^foo@123"));
-  assert(!isValidName("foo[[bar"));
+  expect(isValidName("foo")).toBeTruthy();
+  expect(!isValidName("foo.md")).toBeTruthy();
+  expect(!isValidName("foo@123")).toBeTruthy();
+  expect(!isValidName("^foo@123")).toBeTruthy();
+  expect(!isValidName("foo[[bar")).toBeTruthy();
 
   // Disallow < and > in ref names
-  assert(!isValidName("hello<there"));
-  assert(!isValidName("hello>there"));
+  expect(!isValidName("hello<there")).toBeTruthy();
+  expect(!isValidName("hello>there")).toBeTruthy();
 });
 
-Deno.test("Page URI encoding", () => {
-  assertEquals(encodePageURI("foo"), "foo");
-  assertEquals(encodePageURI("folder/foo"), "folder/foo");
-  assertEquals(encodePageURI("hello there"), "hello%20there");
-  assertEquals(encodePageURI("hello?there"), "hello%3Fthere");
+test("Page URI encoding", () => {
+  expect(encodePageURI("foo")).toEqual("foo");
+  expect(encodePageURI("folder/foo")).toEqual("folder/foo");
+  expect(encodePageURI("hello there")).toEqual("hello%20there");
+  expect(encodePageURI("hello?there")).toEqual("hello%3Fthere");
   // Now ensure all these cases are reversible
-  assertEquals(decodePageURI("foo"), "foo");
-  assertEquals(decodePageURI("folder/foo"), "folder/foo");
-  assertEquals(decodePageURI("hello%20there"), "hello there");
-  assertEquals(decodePageURI("hello%3Fthere"), "hello?there");
+  expect(decodePageURI("foo")).toEqual("foo");
+  expect(decodePageURI("folder/foo")).toEqual("folder/foo");
+  expect(decodePageURI("hello%20there")).toEqual("hello there");
+  expect(decodePageURI("hello%3Fthere")).toEqual("hello?there");
 });

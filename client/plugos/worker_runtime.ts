@@ -27,6 +27,7 @@ const runningAsWebWorker = typeof window === "undefined" &&
   // @ts-ignore: globalThis
   typeof globalThis.WebSocketPair === "undefined";
 
+// @ts-ignore: Check if Deno is defined
 if (typeof Deno === "undefined") {
   // @ts-ignore: Deno hack
   self.Deno = {
