@@ -29,19 +29,58 @@ export async function saveFile(file: UploadFile) {
     return;
   }
 
-  const finalFilePath = await editor.prompt(
-    "File name for pasted document",
-    resolveMarkdownLink(
-      await editor.getCurrentPath(),
-      isValidPath(file.name)
-        ? file.name
-        : `file.${
-          file.name.indexOf(".") !== -1 ? file.name.split(".").pop() : "txt"
-        }`,
-    ),
+  const ensureFilename = (filename) => {
+    return isValidPath(filename)
+      ? filename
+      : `file.${
+        filename.indexOf(".") !== -1 ? filename.split(".").pop() : "txt"
+      }`
+  }
+
+  let desiredFilePath = await editor.prompt(
+    "File name for uploaded document",
+    resolveMarkdownLink(await editor.getCurrentPath(), ensureFilename(file.name)),
   );
-  if (!finalFilePath || !isValidPath(finalFilePath)) {
+  if (desiredFilePath == null) {
     return;
+  }
+  desiredFilePath = desiredFilePath.trim();
+  if (!isValidPath(desiredFilePath)) {
+    // TODO: notify why we halted
+    return;
+  }
+
+  // Check the given desired file path wont clobber an existing file. If it
+  // would, ask the user to confirm or provide another filename. Repeat this
+  // check for every new filename they give.
+  // Note: duplicate any modifications here to client/code_mirror/editor_paste.ts
+  let finalFilePath = null;
+  while(finalFilePath == null) {
+    if (await space.fileExists(desiredFilePath)) {
+      let confirmedFilePath = await editor.prompt(
+        "A file with that name already exists, keep the same name to replace it, or rename your file",
+        resolveMarkdownLink(await editor.getCurrentPath(), ensureFilename(desiredFilePath)),
+      );
+      if (confirmedFilePath == null) {
+        // TODO: notify we have cancelled the operation
+        return;
+      }
+      confirmedFilePath = confirmedFilePath.trim()
+      if (!isValidPath(confirmedFilePath)) {
+        // TODO: notify we have cancelled the operation
+        return;
+      }
+      if (desiredFilePath === confirmedFilePath) {
+        // if we got back the same path, we're replacing and should accept the given name
+        finalFilePath = desiredFilePath;
+      } else {
+        // we got a new path, so we must repeat the check
+        desiredFilePath = confirmedFilePath;
+        confirmedFilePath = null;
+      }
+    } else {
+      finalFilePath = desiredFilePath;
+    }
   }
 
   await space.writeDocument(finalFilePath, file.content);
