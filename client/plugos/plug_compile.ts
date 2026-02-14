@@ -1,16 +1,29 @@
-import * as path from "@std/path";
-import * as YAML from "@std/yaml";
-import { denoPlugin, esbuild } from "../../build_deps.ts";
+import * as path from "node:path";
+import { readFile, writeFile, mkdtemp, rm, mkdir } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import * as YAML from "js-yaml";
+
+import * as esbuild from "esbuild";
 import { bundleAssets } from "../asset_bundle/builder.ts";
 import type { Manifest } from "./types.ts";
 import { version } from "../../version.ts";
 
-// const workerRuntimeUrl = new URL(
-//   "../lib/plugos/worker_runtime.ts",
-//   import.meta.url,
-// );
-const workerRuntimeUrl =
-  `https://deno.land/x/silverbullet@${version}/client/plugos/worker_runtime.ts`;
+import { fileURLToPath } from "node:url";
+import { readFileSync, existsSync } from "node:fs";
+import { dirname } from "node:path";
+
+// Read the pre-built worker_runtime bundle
+// When running from source: ../../dist/worker_runtime_bundle.js (from client/plugos/)
+// When bundled: ./worker_runtime_bundle.js (from dist/)
+const currentDir = dirname(fileURLToPath(import.meta.url));
+const bundledPath = path.join(currentDir, "worker_runtime_bundle.js");
+const sourcePath = path.join(currentDir, "../../dist/worker_runtime_bundle.js");
+
+const workerRuntimeBundlePath = existsSync(bundledPath) ? bundledPath : sourcePath;
+const workerRuntimeBundle = readFileSync(workerRuntimeBundlePath, "utf-8");
+
+// Create a data URL so esbuild can inline it
+const workerRuntimeUrl = `data:text/javascript;charset=utf-8,${encodeURIComponent(workerRuntimeBundle)}`;
 
 export type CompileOptions = {
   debug?: boolean;
@@ -27,9 +40,8 @@ export async function compileManifest(
   options: CompileOptions = {},
 ): Promise<string> {
   const rootPath = path.dirname(manifestPath);
-  const manifest = YAML.parse(
-    await Deno.readTextFile(manifestPath),
-  ) as Manifest<any>;
+  const manifestContent = await readFile(manifestPath, "utf-8");
+  const manifest = YAML.load(manifestContent) as Manifest<any>;
 
   if (!manifest.name) {
     throw new Error(`Missing 'name' in ${manifestPath}`);
@@ -93,9 +105,10 @@ setupMessageListener(functionMapping, manifest, self.postMessage);
 
   // console.log("Code:", jsFile);
 
-  const inFile = await Deno.makeTempFile({ suffix: ".js" });
+  const tempDir = await mkdtemp(path.join(tmpdir(), "plug-compile-"));
+  const inFile = path.join(tempDir, "input.js");
   const outFile = `${destPath}/${manifest.name}.plug.js`;
-  await Deno.writeTextFile(inFile, jsFile);
+  await writeFile(inFile, jsFile, "utf-8");
 
   const result = await esbuild.build({
     entryPoints: [inFile],
@@ -109,10 +122,16 @@ setupMessageListener(functionMapping, manifest, self.postMessage);
     metafile: options.info,
     treeShaking: true,
     plugins: [
-      denoPlugin({
-        configPath: options.configPath &&
-          path.resolve(Deno.cwd(), options.configPath),
-      }),
+      // Simple plugin to handle file:// URLs
+      {
+        name: "file-url-resolver",
+        setup(build: esbuild.PluginBuild) {
+          build.onResolve({ filter: /^file:\/\// }, (args: esbuild.OnResolveArgs) => {
+            const filePath = args.path.replace(/^file:\/\//, "");
+            return { path: filePath };
+          });
+        },
+      },
     ],
   });
 
@@ -121,9 +140,13 @@ setupMessageListener(functionMapping, manifest, self.postMessage);
     console.log("Bundle info for", manifestPath, text);
   }
 
-  let jsCode = await Deno.readTextFile(outFile);
+  let jsCode = await readFile(outFile, "utf-8");
   jsCode = patchDenoLibJS(jsCode);
-  await Deno.writeTextFile(outFile, jsCode);
+  await writeFile(outFile, jsCode, "utf-8");
+  
+  // Clean up temp directory
+  await rm(tempDir, { recursive: true, force: true });
+  
   console.log(`Plug ${manifest.name} written to ${outFile}.`);
   return outFile;
 }
@@ -142,7 +165,7 @@ export async function compileManifests(
     }
     console.log("Building", manifestFiles);
     building = true;
-    Deno.mkdirSync(dist, { recursive: true });
+    await mkdir(dist, { recursive: true });
     const startTime = Date.now();
     // Build all plugs in parallel
     await Promise.all(manifestFiles.map(async (plugManifestPath) => {
@@ -191,5 +214,5 @@ export async function plugCompileCommand(
     },
   );
   esbuild.stop();
-  Deno.exit(0);
+  process.exit(0);
 }

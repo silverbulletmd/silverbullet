@@ -1,8 +1,4 @@
-import {
-  assertEquals,
-  assertInstanceOf,
-  assertStringIncludes,
-} from "@std/assert";
+import { expect, test } from "vitest";
 import { isPromise } from "./rp.ts";
 import { parse } from "./parse.ts";
 import { evalStatement } from "./eval.ts";
@@ -60,7 +56,7 @@ async function runAndCatchEnv(code: string, ref = "close_attribute.lua") {
 
 // 1. parsing and static validation
 
-Deno.test("close: parse ok", () => {
+test("close: parse ok", () => {
   parse(
     `
     local x<close> = {}
@@ -69,7 +65,7 @@ Deno.test("close: parse ok", () => {
   );
 });
 
-Deno.test("close: parse ok without init", () => {
+test("close: parse ok without init", () => {
   parse(
     `
     do
@@ -80,7 +76,7 @@ Deno.test("close: parse ok without init", () => {
   );
 });
 
-Deno.test("close: local list only one", () => {
+test("close: local list only one", () => {
   try {
     parse(
       `
@@ -92,12 +88,12 @@ Deno.test("close: local list only one", () => {
     );
     throw new Error("Expected parse error");
   } catch (e) {
-    assertStringIncludes(String((e as any)?.message ?? e), "<close>");
-    assertStringIncludes(String((e as any)?.message ?? e), "local list");
+    expect(String((e as any)?.message ?? e)).toContain("<close>");
+    expect(String((e as any)?.message ?? e)).toContain("local list");
   }
 });
 
-Deno.test("close: <const> parse ok", () => {
+test("close: <const> parse ok", () => {
   parse(
     `
     do
@@ -108,7 +104,7 @@ Deno.test("close: <const> parse ok", () => {
   );
 });
 
-Deno.test("close: <const> and <close> parse ok", () => {
+test("close: <const> and <close> parse ok", () => {
   parse(
     `
     do
@@ -123,7 +119,7 @@ Deno.test("close: <const> and <close> parse ok", () => {
   );
 });
 
-Deno.test("close: invalid goto into scope", () => {
+test("close: invalid goto into scope", () => {
   try {
     parse(
       `
@@ -140,13 +136,13 @@ Deno.test("close: invalid goto into scope", () => {
     );
     throw new Error("Expected parse error");
   } catch (e) {
-    assertStringIncludes(String((e as any)?.message ?? e), "goto");
+    expect(String((e as any)?.message ?? e)).toContain("goto");
   }
 });
 
 // 2. basic scope exit
 
-Deno.test("close: nil ignored; false is non-closable", async () => {
+test("close: nil ignored; false is non-closable", async () => {
   const { e, ref, code } = await runAndCatch(
     `
     do
@@ -157,14 +153,14 @@ Deno.test("close: nil ignored; false is non-closable", async () => {
     "close_nil_false.lua",
   );
 
-  assertStringIncludes(ref, "close_nil_false.lua");
-  assertStringIncludes(code, "local y<close> = false");
+  expect(ref).toContain("close_nil_false.lua");
+  expect(code).toContain("local y<close> = false");
 
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes((e as LuaRuntimeError).message, "non-closable");
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("non-closable");
 });
 
-Deno.test("close: normal close gets nil error", async () => {
+test("close: normal close gets nil error", async () => {
   const env = await evalBlock(`
     t = {}
 
@@ -181,10 +177,10 @@ Deno.test("close: normal close gets nil error", async () => {
     end
   `);
 
-  assertEquals((env.get("t") as any).get(1), "nil");
+  expect((env.get("t") as any).get(1)).toEqual("nil");
 });
 
-Deno.test("close: close order", async () => {
+test("close: close order", async () => {
   const env = await evalBlock(`
     t = {}
 
@@ -203,11 +199,11 @@ Deno.test("close: close order", async () => {
     end
   `);
 
-  assertEquals((env.get("t") as any).get(1), 2);
-  assertEquals((env.get("t") as any).get(2), 1);
+  expect((env.get("t") as any).get(1)).toEqual(2);
+  expect((env.get("t") as any).get(2)).toEqual(1);
 });
 
-Deno.test("close: shadowed variables close independently", async () => {
+test("close: shadowed variables close independently", async () => {
   const env = await evalBlock(`
     t = {}
 
@@ -231,14 +227,14 @@ Deno.test("close: shadowed variables close independently", async () => {
 
   const t = env.get("t") as any;
 
-  assertEquals(t.get(1), "inner-end");
-  assertEquals(t.get(2), "close-INNER");
-  assertEquals(t.get(3), "middle");
-  assertEquals(t.get(4), "close-OUTER");
-  assertEquals(t.get(5), "outer-end");
+  expect(t.get(1)).toEqual("inner-end");
+  expect(t.get(2)).toEqual("close-INNER");
+  expect(t.get(3)).toEqual("middle");
+  expect(t.get(4)).toEqual("close-OUTER");
+  expect(t.get(5)).toEqual("outer-end");
 });
 
-Deno.test("close: metatable swap after mark closes with new __close", async () => {
+test("close: metatable swap after mark closes with new __close", async () => {
   const env = await evalBlock(`
     t = {}
 
@@ -263,10 +259,10 @@ Deno.test("close: metatable swap after mark closes with new __close", async () =
 
   // Lua uses the metamethod at close time; this verifies close-time
   // lookup
-  assertEquals(t.get(1), "close-2");
+  expect(t.get(1)).toEqual("close-2");
 });
 
-Deno.test("close: replacing __close function affects close-time behavior", async () => {
+test("close: replacing __close function affects close-time behavior", async () => {
   const env = await evalBlock(`
     t = {}
 
@@ -286,24 +282,24 @@ Deno.test("close: replacing __close function affects close-time behavior", async
   `);
 
   const t = env.get("t") as any;
-  assertEquals(t.length, 1);
-  assertEquals(t.get(1), "close-2");
+  expect(t.length).toEqual(1);
+  expect(t.get(1)).toEqual("close-2");
 });
 
 // 3. errors and unwinding
 
-Deno.test("close: non-closable init", async () => {
+test("close: non-closable init", async () => {
   const { e } = await runAndCatch(`
     do
       local x<close> = {}
     end
   `);
 
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes((e as LuaRuntimeError).message, "non-closable");
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("non-closable");
 });
 
-Deno.test("close: reassign after implicit nil errors", async () => {
+test("close: reassign after implicit nil errors", async () => {
   const { e } = await runAndCatch(
     `
     do
@@ -314,14 +310,11 @@ Deno.test("close: reassign after implicit nil errors", async () => {
     "close_reassign_after_implicit_nil.lua",
   );
 
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes(
-    (e as LuaRuntimeError).message,
-    "attempt to assign to const variable 'a'",
-  );
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("attempt to assign to const variable 'a'",);
 });
 
-Deno.test("close: reassign after explicit nil errors", async () => {
+test("close: reassign after explicit nil errors", async () => {
   const { e } = await runAndCatch(
     `
     do
@@ -332,14 +325,11 @@ Deno.test("close: reassign after explicit nil errors", async () => {
     "close_reassign_after_explicit_nil.lua",
   );
 
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes(
-    (e as LuaRuntimeError).message,
-    "attempt to assign to const variable 'a'",
-  );
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("attempt to assign to const variable 'a'",);
 });
 
-Deno.test("close: reassign after false is non-closable", async () => {
+test("close: reassign after false is non-closable", async () => {
   const { e } = await runAndCatch(
     `
     do
@@ -350,11 +340,11 @@ Deno.test("close: reassign after false is non-closable", async () => {
     "close_reassign_after_false.lua",
   );
 
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes((e as LuaRuntimeError).message, "non-closable");
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("non-closable");
 });
 
-Deno.test("close: reassign after closable value errors", async () => {
+test("close: reassign after closable value errors", async () => {
   const { e } = await runAndCatch(
     `
     do
@@ -368,14 +358,11 @@ Deno.test("close: reassign after closable value errors", async () => {
     "close_reassign_after_closable.lua",
   );
 
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes(
-    (e as LuaRuntimeError).message,
-    "attempt to assign to const variable 'a'",
-  );
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("attempt to assign to const variable 'a'",);
 });
 
-Deno.test("close: reassignment through closure is non-closable", async () => {
+test("close: reassignment through closure is non-closable", async () => {
   const { e } = await runAndCatch(
     `
     do
@@ -391,11 +378,11 @@ Deno.test("close: reassignment through closure is non-closable", async () => {
     "close_reassign_through_closure.lua",
   );
 
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes((e as LuaRuntimeError).message, "non-closable");
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("non-closable");
 });
 
-Deno.test("close: initializer true is non-closable", async () => {
+test("close: initializer true is non-closable", async () => {
   const { e } = await runAndCatch(
     `
     do
@@ -405,11 +392,11 @@ Deno.test("close: initializer true is non-closable", async () => {
     "close_init_true.lua",
   );
 
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes((e as LuaRuntimeError).message, "non-closable");
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("non-closable");
 });
 
-Deno.test("close: initializer integer is non-closable", async () => {
+test("close: initializer integer is non-closable", async () => {
   const { e } = await runAndCatch(
     `
     do
@@ -419,11 +406,11 @@ Deno.test("close: initializer integer is non-closable", async () => {
     "close_init_int.lua",
   );
 
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes((e as LuaRuntimeError).message, "non-closable");
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("non-closable");
 });
 
-Deno.test("close: initializer float is non-closable", async () => {
+test("close: initializer float is non-closable", async () => {
   const { e } = await runAndCatch(
     `
     do
@@ -433,11 +420,11 @@ Deno.test("close: initializer float is non-closable", async () => {
     "close_init_float.lua",
   );
 
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes((e as LuaRuntimeError).message, "non-closable");
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("non-closable");
 });
 
-Deno.test("close: initializer string is non-closable", async () => {
+test("close: initializer string is non-closable", async () => {
   const { e } = await runAndCatch(
     `
     do
@@ -447,11 +434,11 @@ Deno.test("close: initializer string is non-closable", async () => {
     "close_init_string.lua",
   );
 
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes((e as LuaRuntimeError).message, "non-closable");
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("non-closable");
 });
 
-Deno.test("close: initializer function is non-closable", async () => {
+test("close: initializer function is non-closable", async () => {
   const { e } = await runAndCatch(
     `
     do
@@ -461,11 +448,11 @@ Deno.test("close: initializer function is non-closable", async () => {
     "close_init_function.lua",
   );
 
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes((e as LuaRuntimeError).message, "non-closable");
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("non-closable");
 });
 
-Deno.test("close: __close called exactly once on normal exit", async () => {
+test("close: __close called exactly once on normal exit", async () => {
   const env = await evalBlock(`
     t = {}
 
@@ -482,11 +469,11 @@ Deno.test("close: __close called exactly once on normal exit", async () => {
 
   const t = env.get("t") as any;
 
-  assertEquals(t.length, 1);
-  assertEquals(t.get(1), 1);
+  expect(t.length).toEqual(1);
+  expect(t.get(1)).toEqual(1);
 });
 
-Deno.test("close: async __close awaited on normal exit", async () => {
+test("close: async __close awaited on normal exit", async () => {
   const G = luaBuildStandardEnv();
   const env = new LuaEnv(G);
 
@@ -513,11 +500,11 @@ Deno.test("close: async __close awaited on normal exit", async () => {
   );
 
   const t = env.get("t") as any;
-  assertEquals(t.length, 1);
-  assertEquals(t.get(1), "closed");
+  expect(t.length).toEqual(1);
+  expect(t.get(1)).toEqual("closed");
 });
 
-Deno.test("close: __close called exactly once on error unwind", async () => {
+test("close: __close called exactly once on error unwind", async () => {
   const { err: e, env } = await runAndCatchEnv(
     `
     t = {}
@@ -536,15 +523,15 @@ Deno.test("close: __close called exactly once on error unwind", async () => {
     "close_once_on_error.lua",
   );
 
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes((e as LuaRuntimeError).message, "boom");
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("boom");
 
   const t = env.get("t") as any;
-  assertEquals(t.length, 1);
-  assertEquals(t.get(1), 1);
+  expect(t.length).toEqual(1);
+  expect(t.get(1)).toEqual(1);
 });
 
-Deno.test("close: async __close awaited on error unwind", async () => {
+test("close: async __close awaited on error unwind", async () => {
   const code = `
     t = {}
 
@@ -579,15 +566,15 @@ Deno.test("close: async __close awaited on error unwind", async () => {
     e = err;
   }
 
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes((e as LuaRuntimeError).message, "boom");
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("boom");
 
   const t = env.get("t") as any;
-  assertEquals(t.length, 1);
-  assertEquals(t.get(1), "close-X-boom");
+  expect(t.length).toEqual(1);
+  expect(t.get(1)).toEqual("close-X-boom");
 });
 
-Deno.test("close: error in __close inside vararg function", async () => {
+test("close: error in __close inside vararg function", async () => {
   const { e } = await runAndCatch(
     `
     local function mk()
@@ -608,11 +595,11 @@ Deno.test("close: error in __close inside vararg function", async () => {
     "close_vararg_close_error.lua",
   );
 
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes((e as LuaRuntimeError).message, "closefail");
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("closefail");
 });
 
-Deno.test("close: __close not callable", async () => {
+test("close: __close not callable", async () => {
   const { e } = await runAndCatch(
     `
     do
@@ -624,11 +611,11 @@ Deno.test("close: __close not callable", async () => {
     "close_not_callable.lua",
   );
 
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes((e as LuaRuntimeError).message, "non-closable");
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("non-closable");
 });
 
-Deno.test("close: __close not found via __index", async () => {
+test("close: __close not found via __index", async () => {
   const { e } = await runAndCatch(
     `
     do
@@ -645,11 +632,11 @@ Deno.test("close: __close not found via __index", async () => {
     "close_index_metaclose.lua",
   );
 
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes((e as LuaRuntimeError).message, "non-closable");
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("non-closable");
 });
 
-Deno.test("close: mutate __close", async () => {
+test("close: mutate __close", async () => {
   const { e } = await runAndCatch(
     `
     do
@@ -664,11 +651,11 @@ Deno.test("close: mutate __close", async () => {
     "close_mutate.lua",
   );
 
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes((e as LuaRuntimeError).message, "not callable");
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("not callable");
 });
 
-Deno.test("close: remove __close after mark errors at close time", async () => {
+test("close: remove __close after mark errors at close time", async () => {
   const { err: e } = await runAndCatchEnv(
     `
     do
@@ -684,11 +671,11 @@ Deno.test("close: remove __close after mark errors at close time", async () => {
     "close_remove_metaclose.lua",
   );
 
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes((e as LuaRuntimeError).message, "not callable");
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("not callable");
 });
 
-Deno.test("close: __close callable via __call", async () => {
+test("close: __close callable via __call", async () => {
   const { e } = await runAndCatch(
     `
     do
@@ -706,11 +693,11 @@ Deno.test("close: __close callable via __call", async () => {
     "close_callable_via_call.lua",
   );
 
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes((e as LuaRuntimeError).message, "non-closable");
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("non-closable");
 });
 
-Deno.test("close: error after close var init still closes", async () => {
+test("close: error after close var init still closes", async () => {
   const { e } = await runAndCatch(
     `
     t = {}
@@ -731,11 +718,11 @@ Deno.test("close: error after close var init still closes", async () => {
     "close_error_after_init_closes.lua",
   );
 
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes((e as LuaRuntimeError).message, "boom");
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("boom");
 });
 
-Deno.test("close: close gets error", async () => {
+test("close: close gets error", async () => {
   const { e } = await runAndCatch(`
     t = {}
 
@@ -753,11 +740,11 @@ Deno.test("close: close gets error", async () => {
     end
   `);
 
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes((e as LuaRuntimeError).message, "boom");
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("boom");
 });
 
-Deno.test("close: close error", async () => {
+test("close: close error", async () => {
   const { e } = await runAndCatch(
     `
     do
@@ -771,11 +758,11 @@ Deno.test("close: close error", async () => {
     "close_error.lua",
   );
 
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes((e as LuaRuntimeError).message, "closefail");
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("closefail");
 });
 
-Deno.test("close: close error on error", async () => {
+test("close: close error on error", async () => {
   const { e } = await runAndCatch(
     `
     do
@@ -791,11 +778,11 @@ Deno.test("close: close error on error", async () => {
     "close_error_on_error.lua",
   );
 
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes((e as LuaRuntimeError).message, "closefail");
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("closefail");
 });
 
-Deno.test("close: close errors stop", async () => {
+test("close: close errors stop", async () => {
   const { err: e, env } = await runAndCatchEnv(
     `
     t = {}
@@ -819,18 +806,18 @@ Deno.test("close: close errors stop", async () => {
     "close_errors_stop.lua",
   );
 
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes((e as LuaRuntimeError).message, "c2");
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("c2");
 
   // verify that both closes were attempted (Lua 5.4), but the first
   // close error (from B, closed first) is the reported error
   const t = env.get("t") as any;
-  assertEquals(t.length, 2);
-  assertEquals(t.get(1), "close-B");
-  assertEquals(t.get(2), "close-A");
+  expect(t.length).toEqual(2);
+  expect(t.get(1)).toEqual("close-B");
+  expect(t.get(2)).toEqual("close-A");
 });
 
-Deno.test("close: multiple closers unwind on error", async () => {
+test("close: multiple closers unwind on error", async () => {
   const { err: e, env } = await runAndCatchEnv(
     `
     t = {}
@@ -852,17 +839,17 @@ Deno.test("close: multiple closers unwind on error", async () => {
     "close_multi_unwind.lua",
   );
 
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes((e as LuaRuntimeError).message, "boom");
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("boom");
 
   // verify both were closed in reverse order with the error object
   const t = env.get("t") as any;
-  assertEquals(t.length, 2);
-  assertEquals(t.get(1), "close-B-boom");
-  assertEquals(t.get(2), "close-A-boom");
+  expect(t.length).toEqual(2);
+  expect(t.get(1)).toEqual("close-B-boom");
+  expect(t.get(2)).toEqual("close-A-boom");
 });
 
-Deno.test("close: close errors stop during unwind", async () => {
+test("close: close errors stop during unwind", async () => {
   const { err: e, env } = await runAndCatchEnv(
     `
     t = {}
@@ -887,18 +874,18 @@ Deno.test("close: close errors stop during unwind", async () => {
     "close_unwind_close_error.lua",
   );
 
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes((e as LuaRuntimeError).message, "closefail-B");
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("closefail-B");
 
   // verify both closes were attempted (Lua 5.4), but the first close
   // error (from B, closed first) is the reported error
   const t = env.get("t") as any;
-  assertEquals(t.length, 2);
-  assertEquals(t.get(1), "close-B-boom");
-  assertEquals(t.get(2), "close-A-boom");
+  expect(t.length).toEqual(2);
+  expect(t.get(1)).toEqual("close-B-boom");
+  expect(t.get(2)).toEqual("close-A-boom");
 });
 
-Deno.test("close: complex assignment error closes prior", async () => {
+test("close: complex assignment error closes prior", async () => {
   const { err: e, env } = await runAndCatchEnv(
     `
     t = {}
@@ -923,15 +910,15 @@ Deno.test("close: complex assignment error closes prior", async () => {
     "complex_assign_error.lua",
   );
 
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes((e as LuaRuntimeError).message, "assign_error");
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("assign_error");
 
   // verify 'a' was closed despite 'b' failing to assign
   const t = env.get("t") as any;
-  assertEquals(t.get(1), "a_closed");
+  expect(t.get(1)).toEqual("a_closed");
 });
 
-Deno.test("close: multi-init closes prior when later init errors", async () => {
+test("close: multi-init closes prior when later init errors", async () => {
   const { err: e, env } = await runAndCatchEnv(
     `
     t = {}
@@ -955,14 +942,14 @@ Deno.test("close: multi-init closes prior when later init errors", async () => {
     "close_multi_init_later_error.lua",
   );
 
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes((e as LuaRuntimeError).message, "boom");
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("boom");
 
   const t = env.get("t") as any;
-  assertEquals(t.get(1), "a_closed");
+  expect(t.get(1)).toEqual("a_closed");
 });
 
-Deno.test("close: async close error reported; later closers still run", async () => {
+test("close: async close error reported; later closers still run", async () => {
   const G = luaBuildStandardEnv();
   const env = new LuaEnv(G);
 
@@ -1005,19 +992,19 @@ Deno.test("close: async close error reported; later closers still run", async ()
     return { err };
   })();
 
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes((e as LuaRuntimeError).message, "b-closefail");
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("b-closefail");
 
   const t = env.get("t") as any;
   // B closes first and errors, but A must still be closed in Lua 5.4 intent
-  assertEquals(t.length, 2);
-  assertEquals(t.get(1), "close-B");
-  assertEquals(t.get(2), "close-A");
+  expect(t.length).toEqual(2);
+  expect(t.get(1)).toEqual("close-B");
+  expect(t.get(2)).toEqual("close-A");
 });
 
 // 4. control flow exits
 
-Deno.test("close: return closes", async () => {
+test("close: return closes", async () => {
   const env = await evalBlock(`
     t = {}
 
@@ -1035,11 +1022,11 @@ Deno.test("close: return closes", async () => {
     table.insert(t, f())
   `);
 
-  assertEquals((env.get("t") as any).get(1), "close-X");
-  assertEquals((env.get("t") as any).get(2), 1);
+  expect((env.get("t") as any).get(1)).toEqual("close-X");
+  expect((env.get("t") as any).get(2)).toEqual(1);
 });
 
-Deno.test("close: return in if closes", async () => {
+test("close: return in if closes", async () => {
   const env = await evalBlock(`
     t = {}
 
@@ -1060,11 +1047,11 @@ Deno.test("close: return in if closes", async () => {
     table.insert(t, f())
   `);
 
-  assertEquals((env.get("t") as any).get(1), "close-X");
-  assertEquals((env.get("t") as any).get(2), 2);
+  expect((env.get("t") as any).get(1)).toEqual("close-X");
+  expect((env.get("t") as any).get(2)).toEqual(2);
 });
 
-Deno.test("close: goto closes", async () => {
+test("close: goto closes", async () => {
   const env = await evalBlock(`
     t = {}
 
@@ -1084,10 +1071,10 @@ Deno.test("close: goto closes", async () => {
     end
   `);
 
-  assertEquals((env.get("t") as any).get(1), "close-X");
+  expect((env.get("t") as any).get(1)).toEqual("close-X");
 });
 
-Deno.test("close: goto nested", async () => {
+test("close: goto nested", async () => {
   const env = await evalBlock(`
     t = {}
 
@@ -1111,11 +1098,11 @@ Deno.test("close: goto nested", async () => {
     end
   `);
 
-  assertEquals((env.get("t") as any).get(1), "close-B");
-  assertEquals((env.get("t") as any).get(2), "close-A");
+  expect((env.get("t") as any).get(1)).toEqual("close-B");
+  expect((env.get("t") as any).get(2)).toEqual("close-A");
 });
 
-Deno.test("close: return to-be-closed variable", async () => {
+test("close: return to-be-closed variable", async () => {
   const env = await evalBlock(`
     t = {}
 
@@ -1133,13 +1120,13 @@ Deno.test("close: return to-be-closed variable", async () => {
   `);
 
   const t = env.get("t") as any;
-  assertEquals(t.get(1), "closed");
-  assertEquals(t.get(2), "table");
+  expect(t.get(1)).toEqual("closed");
+  expect(t.get(2)).toEqual("table");
 });
 
 // 5. generic-for loop-scoped closing
 
-Deno.test("close: for-in no close", async () => {
+test("close: for-in no close", async () => {
   const env = await evalBlock(`
     t = {}
 
@@ -1159,11 +1146,11 @@ Deno.test("close: for-in no close", async () => {
     end
   `);
 
-  assertEquals((env.get("t") as any).get(1), "body");
-  assertEquals((env.get("t") as any).length, 1);
+  expect((env.get("t") as any).get(1)).toEqual("body");
+  expect((env.get("t") as any).length).toEqual(1);
 });
 
-Deno.test("close: for-in false close is non-closable", async () => {
+test("close: for-in false close is non-closable", async () => {
   const { e } = await runAndCatch(
     `
     local function iter(state, ctrl)
@@ -1183,11 +1170,11 @@ Deno.test("close: for-in false close is non-closable", async () => {
     "for_in_false_close.lua",
   );
 
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes((e as LuaRuntimeError).message, "non-closable");
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("non-closable");
 });
 
-Deno.test("close: for-in bad close", async () => {
+test("close: for-in bad close", async () => {
   const { e } = await runAndCatch(
     `
     local function iter(state, ctrl)
@@ -1207,11 +1194,11 @@ Deno.test("close: for-in bad close", async () => {
     "for_in_bad_close.lua",
   );
 
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes((e as LuaRuntimeError).message, "non-closable");
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("non-closable");
 });
 
-Deno.test("close: for-in updates control", async () => {
+test("close: for-in updates control", async () => {
   const env = await evalBlock(`
     t = {}
     local calls = 0
@@ -1241,12 +1228,12 @@ Deno.test("close: for-in updates control", async () => {
     table.insert(t, calls)
   `);
 
-  assertEquals((env.get("t") as any).get(1), "body");
-  assertEquals((env.get("t") as any).get(2), "close-C");
-  assertEquals((env.get("t") as any).get(3), 2);
+  expect((env.get("t") as any).get(1)).toEqual("body");
+  expect((env.get("t") as any).get(2)).toEqual("close-C");
+  expect((env.get("t") as any).get(3)).toEqual(2);
 });
 
-Deno.test("close: for-in closes", async () => {
+test("close: for-in closes", async () => {
   const env = await evalBlock(`
     t = {}
 
@@ -1272,11 +1259,11 @@ Deno.test("close: for-in closes", async () => {
     end
   `);
 
-  assertEquals((env.get("t") as any).get(1), "body");
-  assertEquals((env.get("t") as any).get(2), "close-C");
+  expect((env.get("t") as any).get(1)).toEqual("body");
+  expect((env.get("t") as any).get(2)).toEqual("close-C");
 });
 
-Deno.test("close: for-in async iterator and async closing are awaited", async () => {
+test("close: for-in async iterator and async closing are awaited", async () => {
   const G = luaBuildStandardEnv();
   const env = new LuaEnv(G);
 
@@ -1319,12 +1306,12 @@ Deno.test("close: for-in async iterator and async closing are awaited", async ()
   );
 
   const t = env.get("t") as any;
-  assertEquals(t.get(1), "body");
-  assertEquals(t.get(2), "close-C-nil");
-  assertEquals(t.get(3), 2);
+  expect(t.get(1)).toEqual("body");
+  expect(t.get(2)).toEqual("close-C-nil");
+  expect(t.get(3)).toEqual(2);
 });
 
-Deno.test("close: loop scope", async () => {
+test("close: loop scope", async () => {
   const env = await evalBlock(`
     t = {}
 
@@ -1351,12 +1338,12 @@ Deno.test("close: loop scope", async () => {
     table.insert(t, "after")
   `);
 
-  assertEquals((env.get("t") as any).get(1), "body");
-  assertEquals((env.get("t") as any).get(2), "close-C");
-  assertEquals((env.get("t") as any).get(3), "after");
+  expect((env.get("t") as any).get(1)).toEqual("body");
+  expect((env.get("t") as any).get(2)).toEqual("close-C");
+  expect((env.get("t") as any).get(3)).toEqual("after");
 });
 
-Deno.test("close: for-in closing closes before outer block closers", async () => {
+test("close: for-in closing closes before outer block closers", async () => {
   const env = await evalBlock(`
     t = {}
 
@@ -1401,14 +1388,14 @@ Deno.test("close: for-in closing closes before outer block closers", async () =>
   // after-loop runs
   // outer closes when leaving do-block
   // after-block runs
-  assertEquals(t.get(1), "body");
-  assertEquals(t.get(2), "close-L");
-  assertEquals(t.get(3), "after-loop");
-  assertEquals(t.get(4), "close-O");
-  assertEquals(t.get(5), "after-block");
+  expect(t.get(1)).toEqual("body");
+  expect(t.get(2)).toEqual("close-L");
+  expect(t.get(3)).toEqual("after-loop");
+  expect(t.get(4)).toEqual("close-O");
+  expect(t.get(5)).toEqual("after-block");
 });
 
-Deno.test("close: for-in closes on break", async () => {
+test("close: for-in closes on break", async () => {
   const env = await evalBlock(`
     t = {}
 
@@ -1435,11 +1422,11 @@ Deno.test("close: for-in closes on break", async () => {
     end
   `);
 
-  assertEquals((env.get("t") as any).get(1), "body");
-  assertEquals((env.get("t") as any).get(2), "close-C");
+  expect((env.get("t") as any).get(1)).toEqual("body");
+  expect((env.get("t") as any).get(2)).toEqual("close-C");
 });
 
-Deno.test("close: for-in closes on error", async () => {
+test("close: for-in closes on error", async () => {
   const { err: e, env } = await runAndCatchEnv(`
     t = {}
 
@@ -1465,15 +1452,15 @@ Deno.test("close: for-in closes on error", async () => {
     end
   `);
 
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes((e as LuaRuntimeError).message, "boom");
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("boom");
 
   // verify closer received error
   const t = env.get("t") as any;
-  assertEquals(t.get(1), "close-C-boom");
+  expect(t.get(1)).toEqual("close-C-boom");
 });
 
-Deno.test("close: for-in closes if iterator errors", async () => {
+test("close: for-in closes if iterator errors", async () => {
   const { err: e, env } = await runAndCatchEnv(
     `
     t = {}
@@ -1498,15 +1485,15 @@ Deno.test("close: for-in closes if iterator errors", async () => {
     "for_in_iterator_error.lua",
   );
 
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes((e as LuaRuntimeError).message, "iterboom");
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("iterboom");
 
   // verify closer received error
   const t = env.get("t") as any;
-  assertEquals(t.get(1), "close-C-iterboom");
+  expect(t.get(1)).toEqual("close-C-iterboom");
 });
 
-Deno.test("close: return inside for-in body closes loop closing value", async () => {
+test("close: return inside for-in body closes loop closing value", async () => {
   const env = await evalBlock(`
     t = {}
 
@@ -1537,11 +1524,11 @@ Deno.test("close: return inside for-in body closes loop closing value", async ()
   `);
 
   const t = env.get("t") as any;
-  assertEquals(t.get(1), "close-C-nil");
-  assertEquals(t.get(2), 1);
+  expect(t.get(1)).toEqual("close-C-nil");
+  expect(t.get(2)).toEqual(1);
 });
 
-Deno.test("close: error inside for-in body closes loop closing value with error", async () => {
+test("close: error inside for-in body closes loop closing value with error", async () => {
   const { err: e, env } = await runAndCatchEnv(
     `
     t = {}
@@ -1569,16 +1556,16 @@ Deno.test("close: error inside for-in body closes loop closing value with error"
     "for_in_body_error_close_value.lua",
   );
 
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes((e as LuaRuntimeError).message, "boom");
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("boom");
 
   const t = env.get("t") as any;
-  assertEquals(t.get(1), "close-C-boom");
+  expect(t.get(1)).toEqual("close-C-boom");
 });
 
 // 6. pairs integration
 
-Deno.test("close: pairs closes", async () => {
+test("close: pairs closes", async () => {
   const env = await evalBlock(`
     t = {}
     local closed = false
@@ -1613,14 +1600,14 @@ Deno.test("close: pairs closes", async () => {
     end
   `);
 
-  assertEquals((env.get("t") as any).get(1), "body");
-  assertEquals((env.get("t") as any).get(2), "close-P");
-  assertEquals((env.get("t") as any).get(3), "closed");
+  expect((env.get("t") as any).get(1)).toEqual("body");
+  expect((env.get("t") as any).get(2)).toEqual("close-P");
+  expect((env.get("t") as any).get(3)).toEqual("closed");
 });
 
 // 7. protected calls
 
-Deno.test("close: pcall closes on success", async () => {
+test("close: pcall closes on success", async () => {
   const env = await evalBlock(`
     t = {}
 
@@ -1639,11 +1626,11 @@ Deno.test("close: pcall closes on success", async () => {
     end
   `);
 
-  assertEquals((env.get("t") as any).get(1), "close-X-nil");
-  assertEquals((env.get("t") as any).get(2), 1);
+  expect((env.get("t") as any).get(1)).toEqual("close-X-nil");
+  expect((env.get("t") as any).get(2)).toEqual(1);
 });
 
-Deno.test("close: multi-return expansion binds and closes", async () => {
+test("close: multi-return expansion binds and closes", async () => {
   const env = await evalBlock(`
     t = {}
 
@@ -1663,11 +1650,11 @@ Deno.test("close: multi-return expansion binds and closes", async () => {
   `);
 
   const t = env.get("t") as any;
-  assertEquals(t.get(1), 99);
-  assertEquals(t.get(2), "close-A-nil");
+  expect(t.get(1)).toEqual(99);
+  expect(t.get(2)).toEqual("close-A-nil");
 });
 
-Deno.test("close: pcall return closes with nil error", async () => {
+test("close: pcall return closes with nil error", async () => {
   const env = await evalBlock(`
     t = {}
 
@@ -1692,12 +1679,12 @@ Deno.test("close: pcall return closes with nil error", async () => {
   `);
 
   const t = env.get("t") as any;
-  assertEquals(t.get(1), "close-R-nil");
-  assertEquals(t.get(2), true);
-  assertEquals(t.get(3), 7);
+  expect(t.get(1)).toEqual("close-R-nil");
+  expect(t.get(2)).toEqual(true);
+  expect(t.get(3)).toEqual(7);
 });
 
-Deno.test("close: pcall break closes with nil error", async () => {
+test("close: pcall break closes with nil error", async () => {
   const env = await evalBlock(`
     t = {}
 
@@ -1725,12 +1712,12 @@ Deno.test("close: pcall break closes with nil error", async () => {
   `);
 
   const t = env.get("t") as any;
-  assertEquals(t.get(1), "close-B-nil");
-  assertEquals(t.get(2), true);
-  assertEquals(t.get(3), 1);
+  expect(t.get(1)).toEqual("close-B-nil");
+  expect(t.get(2)).toEqual(true);
+  expect(t.get(3)).toEqual(1);
 });
 
-Deno.test("close: pcall goto closes with nil error", async () => {
+test("close: pcall goto closes with nil error", async () => {
   const env = await evalBlock(`
     t = {}
 
@@ -1758,12 +1745,12 @@ Deno.test("close: pcall goto closes with nil error", async () => {
   `);
 
   const t = env.get("t") as any;
-  assertEquals(t.get(1), "close-G-nil");
-  assertEquals(t.get(2), true);
-  assertEquals(t.get(3), 2);
+  expect(t.get(1)).toEqual("close-G-nil");
+  expect(t.get(2)).toEqual(true);
+  expect(t.get(3)).toEqual(2);
 });
 
-Deno.test("close: pcall closes on error", async () => {
+test("close: pcall closes on error", async () => {
   const env = await evalBlock(`
     t = {}
 
@@ -1782,11 +1769,11 @@ Deno.test("close: pcall closes on error", async () => {
     end
   `);
 
-  assertEquals((env.get("t") as any).get(1), "close-X-boom");
-  assertEquals((env.get("t") as any).get(2), "boom");
+  expect((env.get("t") as any).get(1)).toEqual("close-X-boom");
+  expect((env.get("t") as any).get(2)).toEqual("boom");
 });
 
-Deno.test("close: pcall close error overrides original and skips remaining closers", async () => {
+test("close: pcall close error overrides original and skips remaining closers", async () => {
   const env = await evalBlock(`
       t = {}
 
@@ -1818,15 +1805,15 @@ Deno.test("close: pcall close error overrides original and skips remaining close
   const t = env.get("t") as any;
 
   // C closes first, then B closes and errors; A is still closed in Lua 5.4
-  assertEquals(t.get(1), "close-C-boom");
-  assertEquals(t.get(2), "close-B-boom");
-  assertEquals(t.get(3), "close-A-boom");
-  assertEquals(t.get(4), false);
-  assertEquals(t.get(5), "closefail-B");
-  assertEquals(t.length, 5);
+  expect(t.get(1)).toEqual("close-C-boom");
+  expect(t.get(2)).toEqual("close-B-boom");
+  expect(t.get(3)).toEqual("close-A-boom");
+  expect(t.get(4)).toEqual(false);
+  expect(t.get(5)).toEqual("closefail-B");
+  expect(t.length).toEqual(5);
 });
 
-Deno.test("close: xpcall closes on error", async () => {
+test("close: xpcall closes on error", async () => {
   const env = await evalBlock(`
     t = {}
 
@@ -1849,11 +1836,11 @@ Deno.test("close: xpcall closes on error", async () => {
     end
   `);
 
-  assertEquals((env.get("t") as any).get(1), "close-X-boom");
-  assertEquals((env.get("t") as any).get(2), "handled-boom");
+  expect((env.get("t") as any).get(1)).toEqual("close-X-boom");
+  expect((env.get("t") as any).get(2)).toEqual("handled-boom");
 });
 
-Deno.test("close: xpcall boundary contains __close errors", async () => {
+test("close: xpcall boundary contains __close errors", async () => {
   const env = await evalBlock(`
     t = {}
 
@@ -1882,18 +1869,18 @@ Deno.test("close: xpcall boundary contains __close errors", async () => {
   const t = env.get("t") as any;
 
   // close runs during unwind and sees original error
-  assertEquals(t.get(1), "close-err-boom");
+  expect(t.get(1)).toEqual("close-err-boom");
 
   // the close error overrides the original for `xpcall`, so the
   // handler sees "closefail"
-  assertEquals(t.get(2), "handler-closefail");
+  expect(t.get(2)).toEqual("handler-closefail");
 
-  assertEquals(t.get(3), false);
-  assertEquals(t.get(4), "handled-closefail");
-  assertEquals(t.length, 4);
+  expect(t.get(3)).toEqual(false);
+  expect(t.get(4)).toEqual("handled-closefail");
+  expect(t.length).toEqual(4);
 });
 
-Deno.test("close: nested to-be-closed created inside __close", async () => {
+test("close: nested to-be-closed created inside __close", async () => {
   const env = await evalBlock(`
     t = {}
 
@@ -1927,14 +1914,14 @@ Deno.test("close: nested to-be-closed created inside __close", async () => {
   // - outer close begins
   // - inner scope ends, so inner closes (during exec of outer __close)
   // - outer close ends
-  assertEquals(t.get(1), "body-end");
-  assertEquals(t.get(2), "outer-close-start-nil");
-  assertEquals(t.get(3), "inner-scope-end");
-  assertEquals(t.get(4), "close-INNER-nil");
-  assertEquals(t.get(5), "outer-close-end");
+  expect(t.get(1)).toEqual("body-end");
+  expect(t.get(2)).toEqual("outer-close-start-nil");
+  expect(t.get(3)).toEqual("inner-scope-end");
+  expect(t.get(4)).toEqual("close-INNER-nil");
+  expect(t.get(5)).toEqual("outer-close-end");
 });
 
-Deno.test("close: pcall boundary does not close closers created in pcall args", async () => {
+test("close: pcall boundary does not close closers created in pcall args", async () => {
   const env = await evalBlock(`
     t = {}
 
@@ -1966,14 +1953,14 @@ Deno.test("close: pcall boundary does not close closers created in pcall args", 
 
   // if `pcall` boundary is correct, ARG is closed at end of its own
   // scope and `pcall` does not close it
-  assertEquals(t.get(1), "arg");
-  assertEquals(t.get(2), "close-ARG");
-  assertEquals(t.get(3), "in-f");
-  assertEquals(t.get(4), true);
-  assertEquals(t.get(5), 1);
+  expect(t.get(1)).toEqual("arg");
+  expect(t.get(2)).toEqual("close-ARG");
+  expect(t.get(3)).toEqual("in-f");
+  expect(t.get(4)).toEqual(true);
+  expect(t.get(5)).toEqual(1);
 });
 
-Deno.test("close: nested pcall boundaries", async () => {
+test("close: nested pcall boundaries", async () => {
   const env = await evalBlock(`
     t = {}
 
@@ -2007,10 +1994,10 @@ Deno.test("close: nested pcall boundaries", async () => {
 
   // inner closes with "inner" outer continues, then outer closes with
   // nil on success of outer itself
-  assertEquals(t.get(1), "close-B-inner");
-  assertEquals(t.get(2), false);
-  assertEquals(t.get(3), "inner");
-  assertEquals(t.get(4), "close-A-nil");
-  assertEquals(t.get(5), true);
-  assertEquals(t.get(6), 1);
+  expect(t.get(1)).toEqual("close-B-inner");
+  expect(t.get(2)).toEqual(false);
+  expect(t.get(3)).toEqual("inner");
+  expect(t.get(4)).toEqual("close-A-nil");
+  expect(t.get(5)).toEqual(true);
+  expect(t.get(6)).toEqual(1);
 });

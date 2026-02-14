@@ -1,9 +1,9 @@
+import { expect, test } from "vitest";
 import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
 import { createMockSystem } from "../../plug-api/system_mock.ts";
 import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 import { indexPage } from "./page.ts";
 import { extractFrontMatter } from "./frontmatter.ts";
-import { assertEquals } from "@std/assert";
 
 const testPage = `
 ---
@@ -15,7 +15,7 @@ hello: attribute
 
 `.trim();
 
-Deno.test("Test page indexing", async () => {
+test("Test page indexing", async () => {
   createMockSystem();
   const tree = parseMarkdown(testPage);
   const frontmatter = extractFrontMatter(tree);
@@ -30,7 +30,7 @@ Deno.test("Test page indexing", async () => {
   };
 
   const [pm] = await indexPage(pageMeta, frontmatter, tree);
-  assertEquals(pm.hello, "attribute");
-  assertEquals(pm.hello2, 12);
-  assertEquals(pm.itags, ["page"]);
+  expect(pm.hello).toEqual("attribute");
+  expect(pm.hello2).toEqual(12);
+  expect(pm.itags).toEqual(["page"]);
 });

@@ -1,5 +1,6 @@
+import { expect, test } from "vitest";
 import { localDateString } from "./dates.ts";
 
-Deno.test("Dates", () => {
+test("Dates", () => {
   console.log("Local date string", localDateString(new Date()));
 });

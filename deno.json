@@ -9,7 +9,8 @@
     "checks": "deno task check && deno task lint && deno task test",
     "lint": "deno lint --fix",
     "fmt": "deno fmt",
-    "test": "deno test -A --fail-fast",
+    "test": "deno run -A npm:vitest run",
+    "test-deno-old": "deno test -A --fail-fast",
     "bench": "deno bench -A",
     "plugs": "deno run -A --no-lock build_plugs_libraries.ts"
   },
@@ -122,6 +123,8 @@
     "idb": "npm:idb@8.0.3",
     "js-yaml": "npm:js-yaml@4.1.0",
     "mimetypes": "https://deno.land/x/mimetypes@v1.0.0/mod.ts",
+    "mime": "npm:mime@4.0.4",
+    "vitest": "npm:vitest@4.0.18",
     "preact": "npm:preact@10.28.2",
     "preact-feather": "npm:preact-feather@4.2.1",
     "preact-feather/types": "npm:preact-feather@4.2.1/dist/types",

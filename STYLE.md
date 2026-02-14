@@ -44,11 +44,13 @@ import { sleep } from "@silverbulletmd/silverbullet/lib/async";
 
 
 ### Testing Patterns
-TypeScript tests run with Deno.
+TypeScript tests run with Vitest (Node.js).
 
 **Test structure:**
 ```typescript
-Deno.test("Test description in plain English", async () => {
+import { expect, test } from "vitest";
+
+test("Test description in plain English", async () => {
   // Setup
   const kv = new MemoryKvPrimitives();
   const space = new Space(new DataStoreSpacePrimitives(kv), eventHook);
@@ -57,26 +59,25 @@ Deno.test("Test description in plain English", async () => {
   await space.writePage("test", testPage);
   
   // Assert
-  assertEquals(await space.readPage("test"), testPage);
+  expect(await space.readPage("test")).toEqual(testPage);
 });
 ```
 
 **Assertions:**
 ```typescript
-import { assertEquals, assertNotEquals } from "@std/assert";
+import { expect } from "vitest";
 
-assertEquals(actual, expected);
-assertNotEquals(actual, notExpected);
+expect(actual).toEqual(expected);
+expect(actual).not.toEqual(notExpected);
+expect(value).toBeTruthy();
+expect(value).toBeInstanceOf(ClassName);
 ```
 
-**Test configuration:**
-```typescript
-Deno.test("Test with options", {
-  sanitizeResources: false,
-  sanitizeOps: false,
-}, async () => {
-  // test code
-});
+**Running tests:**
+```bash
+npx vitest run              # Run all tests once
+npx vitest                  # Run in watch mode
+npx vitest run <file>       # Run specific test file
 ```
 
 ### Comments & Documentation

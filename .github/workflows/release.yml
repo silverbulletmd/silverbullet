@@ -16,16 +16,21 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
-      - name: Setup Deno
-        uses: denoland/setup-deno@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          deno-version: v2.6.8
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+      - name: Install dependencies
+        run: npm ci
       - name: Run build
         run: |
-          deno task build-production
-          deno task build-plug-compile
-      - name: Publish to JSR
-        run: deno publish --allow-dirty
+          npm run build
+          npm run build:plug-compile
+      - name: Publish to npm
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Release
         uses: softprops/action-gh-release@v1
         env:

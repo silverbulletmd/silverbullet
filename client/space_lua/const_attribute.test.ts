@@ -1,8 +1,4 @@
-import {
-  assertEquals,
-  assertInstanceOf,
-  assertStringIncludes,
-} from "@std/assert";
+import { expect, test } from "vitest";
 import { parse } from "./parse.ts";
 import { evalStatement } from "./eval.ts";
 import { LuaEnv, LuaRuntimeError, LuaStackFrame } from "./runtime.ts";
@@ -38,114 +34,102 @@ async function runAndCatch(code: string, ref = "const_attribute.lua") {
   }
 }
 
-Deno.test("const: Unknown attribute (parse-time)", () => {
+test("const: Unknown attribute (parse-time)", () => {
   let threw = false;
   try {
     parse(`local x<nope> = 1`, { ref: "unknown_attribute.lua" });
   } catch (e: any) {
     threw = true;
-    assertStringIncludes(String(e?.message ?? e), "unknown attribute 'nope'");
+    expect(String(e?.message ?? e)).toContain("unknown attribute 'nope'");
   }
   if (!threw) {
     throw new Error("Expected parse error for unknown attribute");
   }
 });
 
-Deno.test("const: Case-sensitive attribute (parse-time)", () => {
+test("const: Case-sensitive attribute (parse-time)", () => {
   let threw = false;
   try {
     parse(`local x<Const> = 1`, { ref: "unknown_attribute.lua" });
   } catch (e: any) {
     threw = true;
-    assertStringIncludes(String(e?.message ?? e), "unknown attribute 'Const'");
+    expect(String(e?.message ?? e)).toContain("unknown attribute 'Const'");
   }
   if (!threw) {
     throw new Error("Expected parse error for unknown attribute");
   }
 });
-Deno.test("const: Requires initializer", async () => {
+test("const: Requires initializer", async () => {
   const { e } = await runAndCatch(`
     local x <const>
   `);
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes((e as LuaRuntimeError).message, "must be initialized");
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("must be initialized");
 });
 
-Deno.test("const: Initialization ok, reassignment error", async () => {
+test("const: Initialization ok, reassignment error", async () => {
   const env = await evalBlock(`
     local x<const> = 1
     y = x
   `);
-  assertEquals(env.get("y"), 1);
+  expect(env.get("y")).toEqual(1);
 
   const { e } = await runAndCatch(`
     local x<const> = 1
     x = 2
   `);
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes(
-    (e as LuaRuntimeError).message,
-    "attempt to assign to const variable 'x'",
-  );
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("attempt to assign to const variable 'x'",);
 });
 
-Deno.test("const: Initialization to nil ok, reassignment error", async () => {
+test("const: Initialization to nil ok, reassignment error", async () => {
   const { e } = await runAndCatch(`
     local x <const> = nil
     x = 2
   `);
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes(
-    (e as LuaRuntimeError).message,
-    "attempt to assign to const variable 'x'",
-  );
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("attempt to assign to const variable 'x'",);
 });
 
-Deno.test("const: Multi-declaration and missing RHS", async () => {
+test("const: Multi-declaration and missing RHS", async () => {
   {
     const env = await evalBlock(`
       local a <const>, b = 1
       y1 = a
       y2 = b
     `);
-    assertEquals(env.get("y1"), 1);
-    assertEquals(env.get("y2"), null);
+    expect(env.get("y1")).toEqual(1);
+    expect(env.get("y2")).toEqual(null);
   }
 
   {
     const { e } = await runAndCatch(`
       local a<const>, b <const>; -- missing assignment
     `);
-    assertInstanceOf(e, LuaRuntimeError);
-    assertStringIncludes((e as LuaRuntimeError).message, "must be initialized");
+    expect(e).toBeInstanceOf(LuaRuntimeError);
+    expect((e as LuaRuntimeError).message).toContain("must be initialized");
   }
 });
 
-Deno.test("const: Multi-assignment after declaration fails", async () => {
+test("const: Multi-assignment after declaration fails", async () => {
   const { e } = await runAndCatch(`
     local a<const>, b = 1, 2
     a, b = 3, 4
   `);
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes(
-    (e as LuaRuntimeError).message,
-    "attempt to assign to const variable 'a'",
-  );
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("attempt to assign to const variable 'a'",);
 });
 
-Deno.test("const: Second position", async () => {
+test("const: Second position", async () => {
   const { e } = await runAndCatch(`
     local a, b<const> = 1, 2
     b = 3
   `);
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes(
-    (e as LuaRuntimeError).message,
-    "attempt to assign to const variable 'b'",
-  );
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("attempt to assign to const variable 'b'",);
 });
 
-Deno.test("const: Initialization from function returns", async () => {
+test("const: Initialization from function returns", async () => {
   const env = await evalBlock(`
     local function f()
       return 7
@@ -155,8 +139,8 @@ Deno.test("const: Initialization from function returns", async () => {
 
     y1, y2 = a, b
   `);
-  assertEquals(env.get("y1"), 7);
-  assertEquals(env.get("y2"), null);
+  expect(env.get("y1")).toEqual(7);
+  expect(env.get("y2")).toEqual(null);
 
   const { e } = await runAndCatch(`
     local function f()
@@ -167,14 +151,11 @@ Deno.test("const: Initialization from function returns", async () => {
 
     a = 2
   `);
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes(
-    (e as LuaRuntimeError).message,
-    "attempt to assign to const variable 'a'",
-  );
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("attempt to assign to const variable 'a'",);
 });
 
-Deno.test("const: Shadowing", async () => {
+test("const: Shadowing", async () => {
   {
     const { e } = await runAndCatch(`
       local a<const> = 1
@@ -184,11 +165,8 @@ Deno.test("const: Shadowing", async () => {
         a = 3
       end
     `);
-    assertInstanceOf(e, LuaRuntimeError);
-    assertStringIncludes(
-      (e as LuaRuntimeError).message,
-      "attempt to assign to const variable 'a'",
-    );
+    expect(e).toBeInstanceOf(LuaRuntimeError);
+    expect((e as LuaRuntimeError).message).toContain("attempt to assign to const variable 'a'",);
   }
 
   {
@@ -202,11 +180,11 @@ Deno.test("const: Shadowing", async () => {
 
       y = a
     `);
-    assertEquals(env.get("y"), 1);
+    expect(env.get("y")).toEqual(1);
   }
 });
 
-Deno.test("const: Globals and fields not affected", async () => {
+test("const: Globals and fields not affected", async () => {
   const env = await evalBlock(`
     local a<const> = 1
     G = a
@@ -216,11 +194,11 @@ Deno.test("const: Globals and fields not affected", async () => {
 
     y1, y2 = G, T.x
   `);
-  assertEquals(env.get("y1"), 1);
-  assertEquals(env.get("y2"), 1);
+  expect(env.get("y1")).toEqual(1);
+  expect(env.get("y2")).toEqual(1);
 });
 
-Deno.test("const: Table binding vs table contents", async () => {
+test("const: Table binding vs table contents", async () => {
   const env = await evalBlock(`
     local t<const> = { a = 1, 2, 3 }
 
@@ -229,12 +207,12 @@ Deno.test("const: Table binding vs table contents", async () => {
 
     y1, y2, y3 = t.a, t[2], #t
   `);
-  assertEquals(env.get("y1"), 10);
-  assertEquals(env.get("y2"), 20);
-  assertEquals(env.get("y3"), 2);
+  expect(env.get("y1")).toEqual(10);
+  expect(env.get("y2")).toEqual(20);
+  expect(env.get("y3")).toEqual(2);
 });
 
-Deno.test("const: Rebinding table fails", async () => {
+test("const: Rebinding table fails", async () => {
   const { e } = await runAndCatch(
     `
     local t<const> = {
@@ -247,28 +225,22 @@ Deno.test("const: Rebinding table fails", async () => {
   `,
     "const_table_rebind.lua",
   );
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes(
-    (e as LuaRuntimeError).message,
-    "attempt to assign to const variable 't'",
-  );
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("attempt to assign to const variable 't'",);
 });
 
-Deno.test("const: Inner block reassignment", async () => {
+test("const: Inner block reassignment", async () => {
   const { e } = await runAndCatch(`
     local a<const> = 1
     do
       a = 2 -- must fail
     end
   `);
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes(
-    (e as LuaRuntimeError).message,
-    "attempt to assign to const variable 'a'",
-  );
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("attempt to assign to const variable 'a'",);
 });
 
-Deno.test("const: Closure reassignment", async () => {
+test("const: Closure reassignment", async () => {
   const { e } = await runAndCatch(`
     local a<const> = 1
 
@@ -278,14 +250,11 @@ Deno.test("const: Closure reassignment", async () => {
 
     f()
   `);
-  assertInstanceOf(e, LuaRuntimeError);
-  assertStringIncludes(
-    (e as LuaRuntimeError).message,
-    "attempt to assign to const variable 'a'",
-  );
+  expect(e).toBeInstanceOf(LuaRuntimeError);
+  expect((e as LuaRuntimeError).message).toContain("attempt to assign to const variable 'a'",);
 });
 
-Deno.test("const: Closure mutates table", async () => {
+test("const: Closure mutates table", async () => {
   const env = await evalBlock(`
     local t<const> = { x = 1 }
 
@@ -297,5 +266,5 @@ Deno.test("const: Closure mutates table", async () => {
 
     y = t.x
   `);
-  assertEquals(env.get("y"), 2);
+  expect(env.get("y")).toEqual(2);
 });

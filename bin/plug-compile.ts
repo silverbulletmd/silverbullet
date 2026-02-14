@@ -1,32 +1,34 @@
-import.meta.main = false;
-import { Command } from "@cliffy/command";
+import { Command } from "commander";
 
 import { version } from "../version.ts";
 
 import { plugCompileCommand } from "../client/plugos/plug_compile.ts";
 
-await new Command()
+const program = new Command();
+
+program
   .name("plug-compile")
   .description("Bundle (compile) one or more plug manifests")
   .version(version)
-  .helpOption(false)
-  .usage("<options> <manifest paths> | <command> (see below)")
-  .arguments("<...name.plug.yaml:string>")
-  .option("--debug", "Do not minifiy code", { default: false })
-  .option("--info", "Print out size info per function", {
-    default: false,
-  })
-  .option("--watch, -w [type:boolean]", "Watch for changes and rebuild", {
-    default: false,
-  })
-  .option(
-    "--dist <path:string>",
-    "Folder to put the resulting .plug.json file into",
-    { default: "." },
-  )
-  .option("-c, --config <path:string>", "Path to deno.json file to use")
-  .option("--runtimeUrl <url:string>", "URL to worker_runtime.ts to use")
-  .action(plugCompileCommand)
-  .parse(Deno.args);
+  .usage("<options> <manifest paths>")
+  .argument("<manifestPaths...>", "One or more .plug.yaml manifest files")
+  .option("--debug", "Do not minify code", false)
+  .option("--info", "Print out size info per function", false)
+  .option("-w, --watch", "Watch for changes and rebuild", false)
+  .option("--dist <path>", "Folder to put the resulting .plug.json file into", ".")
+  .option("-c, --config <path>", "Path to deno.json file to use")
+  .option("--runtimeUrl <url>", "URL to worker_runtime.ts to use")
+  .action(async (manifestPaths: string[], options: any) => {
+    await plugCompileCommand(
+      {
+        dist: options.dist,
+        debug: options.debug,
+        info: options.info,
+        config: options.config,
+        runtimeUrl: options.runtimeUrl,
+      },
+      ...manifestPaths,
+    );
+  });
 
-Deno.exit(0);
+program.parse(process.argv);

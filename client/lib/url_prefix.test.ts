@@ -1,204 +1,148 @@
-import { assertEquals } from "@std/assert";
+import { expect, test } from "vitest";
 import { applyUrlPrefix, removeUrlPrefix } from "./url_prefix.ts";
 
-Deno.test("url_prefix - removeUrlPrefix - with value", async (t) => {
-  await t.step("Absolute URL, present, should be removed", () => {
-    assertEquals(
-      removeUrlPrefix("http://myserver/sb/relevant", "/sb"),
-      "http://myserver/relevant",
-    );
-    assertEquals(
-      removeUrlPrefix("https://myserver/sb/relevant", "/sb"),
-      "https://myserver/relevant",
-    );
-  });
+test("url_prefix - removeUrlPrefix - with value", async () => {
+  // Absolute URL, present, should be removed
+  expect(
+    removeUrlPrefix("http://myserver/sb/relevant", "/sb"),
+  ).toEqual("http://myserver/relevant");
+  expect(
+    removeUrlPrefix("https://myserver/sb/relevant", "/sb"),
+  ).toEqual("https://myserver/relevant");
 
-  await t.step("Absolute URL, present, should only remove leading", () => {
-    assertEquals(
-      removeUrlPrefix("http://myserver/sb/sb/relevant/sb", "/sb"),
-      "http://myserver/sb/relevant/sb",
-    );
-    assertEquals(
-      removeUrlPrefix("http://myserver/relevant/sb", "/sb"),
-      "http://myserver/relevant/sb",
-    );
-  });
+  // Absolute URL, present, should only remove leading
+  expect(
+    removeUrlPrefix("http://myserver/sb/sb/relevant/sb", "/sb"),
+  ).toEqual("http://myserver/sb/relevant/sb");
+  expect(
+    removeUrlPrefix("http://myserver/relevant/sb", "/sb"),
+  ).toEqual("http://myserver/relevant/sb");
 
-  await t.step("Absolute URL, absent, should be untouched", () => {
-    assertEquals(
-      removeUrlPrefix("http://myserver/other/relevant", "/sb"),
-      "http://myserver/other/relevant",
-    );
-    assertEquals(
-      removeUrlPrefix("https://myserver/other/relevant", "/sb"),
-      "https://myserver/other/relevant",
-    );
-  });
+  // Absolute URL, absent, should be untouched
+  expect(
+    removeUrlPrefix("http://myserver/other/relevant", "/sb"),
+  ).toEqual("http://myserver/other/relevant");
+  expect(
+    removeUrlPrefix("https://myserver/other/relevant", "/sb"),
+  ).toEqual("https://myserver/other/relevant");
 
-  await t.step("Absolute URL, queryString, should be preserved", () => {
-    assertEquals(
-      removeUrlPrefix("http://myserver/sb/sb/relevant/sb?param=arg", "/sb"),
-      "http://myserver/sb/relevant/sb?param=arg",
-    );
-  });
+  // Absolute URL, queryString, should be preserved
+  expect(
+    removeUrlPrefix("http://myserver/sb/sb/relevant/sb?param=arg", "/sb"),
+  ).toEqual("http://myserver/sb/relevant/sb?param=arg");
 
-  await t.step("Absolute URL, unsupported, should be untouched", () => {
-    assertEquals(
-      removeUrlPrefix("ftp://myserver/sb/relevant", "/sb"),
-      "ftp://myserver/sb/relevant",
-    );
-  });
+  // Absolute URL, unsupported, should be untouched
+  expect(
+    removeUrlPrefix("ftp://myserver/sb/relevant", "/sb"),
+  ).toEqual("ftp://myserver/sb/relevant");
 
-  await t.step("Host-Relative URL, present, should be removed", () => {
-    assertEquals(removeUrlPrefix("/sb/relevant", "/sb"), "/relevant");
-  });
+  // Host-Relative URL, present, should be removed
+  expect(removeUrlPrefix("/sb/relevant", "/sb")).toEqual("/relevant");
 
-  await t.step("Host-Relative URL, present, should only remove leading", () => {
-    assertEquals(
-      removeUrlPrefix("/sb/sb/relevant/sb", "/sb"),
-      "/sb/relevant/sb",
-    );
-    assertEquals(removeUrlPrefix("/relevant/sb", "/sb"), "/relevant/sb");
-  });
+  // Host-Relative URL, present, should only remove leading
+  expect(
+    removeUrlPrefix("/sb/sb/relevant/sb", "/sb"),
+  ).toEqual("/sb/relevant/sb");
+  expect(removeUrlPrefix("/relevant/sb", "/sb")).toEqual("/relevant/sb");
 
-  await t.step("Host-Relative URL, queryString, should be preserved", () => {
-    assertEquals(
-      removeUrlPrefix("/sb/sb/relevant/sb?param=arg", "/sb"),
-      "/sb/relevant/sb?param=arg",
-    );
-    assertEquals(
-      removeUrlPrefix("/relevant/sb?param=arg", "/sb"),
-      "/relevant/sb?param=arg",
-    );
-  });
+  // Host-Relative URL, queryString, should be preserved
+  expect(
+    removeUrlPrefix("/sb/sb/relevant/sb?param=arg", "/sb"),
+  ).toEqual("/sb/relevant/sb?param=arg");
+  expect(
+    removeUrlPrefix("/relevant/sb?param=arg", "/sb"),
+  ).toEqual("/relevant/sb?param=arg");
 
-  await t.step("Host-Relative URL, absent, should be untouched", () => {
-    assertEquals(removeUrlPrefix("/other/relevant", "/sb"), "/other/relevant");
-  });
+  // Host-Relative URL, absent, should be untouched
+  expect(removeUrlPrefix("/other/relevant", "/sb")).toEqual("/other/relevant");
 
-  await t.step("Page-Relative URL, should be untouched", () => {
-    assertEquals(removeUrlPrefix("sb/relevant", "/sb"), "sb/relevant");
-  });
+  // Page-Relative URL, should be untouched
+  expect(removeUrlPrefix("sb/relevant", "/sb")).toEqual("sb/relevant");
 });
 
-Deno.test("url_prefix - removeUrlPrefix - no value", async (t) => {
-  await t.step("Absolute URL, should be untouched", () => {
-    assertEquals(
-      removeUrlPrefix("http://myserver/sb/relevant", ""),
-      "http://myserver/sb/relevant",
-    );
-    assertEquals(
-      removeUrlPrefix("https://myserver/sb/relevant"),
-      "https://myserver/sb/relevant",
-    );
-  });
+test("url_prefix - removeUrlPrefix - no value", async () => {
+  // Absolute URL, should be untouched
+  expect(
+    removeUrlPrefix("http://myserver/sb/relevant", ""),
+  ).toEqual("http://myserver/sb/relevant");
+  expect(
+    removeUrlPrefix("https://myserver/sb/relevant"),
+  ).toEqual("https://myserver/sb/relevant");
 
-  await t.step("Host-Relative URL, should be untouched", () => {
-    assertEquals(removeUrlPrefix("/sb/relevant", ""), "/sb/relevant");
-    assertEquals(removeUrlPrefix("/sb/relevant"), "/sb/relevant");
-  });
+  // Host-Relative URL, should be untouched
+  expect(removeUrlPrefix("/sb/relevant", "")).toEqual("/sb/relevant");
+  expect(removeUrlPrefix("/sb/relevant")).toEqual("/sb/relevant");
 
-  await t.step("Page-Relative URL, should be untouched", () => {
-    assertEquals(removeUrlPrefix("sb/relevant", ""), "sb/relevant");
-    assertEquals(removeUrlPrefix("sb/relevant"), "sb/relevant");
-  });
+  // Page-Relative URL, should be untouched
+  expect(removeUrlPrefix("sb/relevant", "")).toEqual("sb/relevant");
+  expect(removeUrlPrefix("sb/relevant")).toEqual("sb/relevant");
 });
 
-Deno.test("url_prefix - applyUrlPrefix - with value", async (t) => {
-  await t.step("string, Absolute URL, should be prefixed", () => {
-    assertEquals(
-      applyUrlPrefix("http://myserver/relevant", "/sb"),
-      "http://myserver/sb/relevant",
-    );
-    assertEquals(
-      applyUrlPrefix("https://myserver/relevant", "/sb"),
-      "https://myserver/sb/relevant",
-    );
-  });
+test("url_prefix - applyUrlPrefix - with value", async () => {
+  // string, Absolute URL, should be prefixed
+  expect(
+    applyUrlPrefix("http://myserver/relevant", "/sb"),
+  ).toEqual("http://myserver/sb/relevant");
+  expect(
+    applyUrlPrefix("https://myserver/relevant", "/sb"),
+  ).toEqual("https://myserver/sb/relevant");
 
-  await t.step("string, Absolute URL, should not care about dups", () => {
-    assertEquals(
-      applyUrlPrefix("http://myserver/sb/relevant/sb", "/sb"),
-      "http://myserver/sb/sb/relevant/sb",
-    );
-  });
+  // string, Absolute URL, should not care about dups
+  expect(
+    applyUrlPrefix("http://myserver/sb/relevant/sb", "/sb"),
+  ).toEqual("http://myserver/sb/sb/relevant/sb");
 
-  await t.step("string, Absolute URL, queryString should be preserved", () => {
-    assertEquals(
-      applyUrlPrefix("http://myserver/sb/relevant/sb?param=arg", "/sb"),
-      "http://myserver/sb/sb/relevant/sb?param=arg",
-    );
-  });
+  // string, Absolute URL, queryString should be preserved
+  expect(
+    applyUrlPrefix("http://myserver/sb/relevant/sb?param=arg", "/sb"),
+  ).toEqual("http://myserver/sb/sb/relevant/sb?param=arg");
 
-  await t.step("string, Absolute URL, unsupported, should be untouched", () => {
-    assertEquals(
-      applyUrlPrefix("ftp://myserver/relevant", "/sb"),
-      "ftp://myserver/relevant",
-    );
-  });
+  // string, Absolute URL, unsupported, should be untouched
+  expect(
+    applyUrlPrefix("ftp://myserver/relevant", "/sb"),
+  ).toEqual("ftp://myserver/relevant");
 
-  await t.step("string, Host-Relative URL, should be prefixed", () => {
-    assertEquals(applyUrlPrefix("/relevant", "/sb"), "/sb/relevant");
-  });
+  // string, Host-Relative URL, should be prefixed
+  expect(applyUrlPrefix("/relevant", "/sb")).toEqual("/sb/relevant");
 
-  await t.step("string, Host-Relative URL, should not care about dups", () => {
-    assertEquals(
-      applyUrlPrefix("/sb/relevant/sb", "/sb"),
-      "/sb/sb/relevant/sb",
-    );
-  });
+  // string, Host-Relative URL, should not care about dups
+  expect(
+    applyUrlPrefix("/sb/relevant/sb", "/sb"),
+  ).toEqual("/sb/sb/relevant/sb");
 
-  await t.step(
-    "string, Host-Relative URL, queryString should be preserved",
-    () => {
-      assertEquals(
-        applyUrlPrefix("/sb/relevant/sb?param=arg", "/sb"),
-        "/sb/sb/relevant/sb?param=arg",
-      );
-    },
-  );
+  // string, Host-Relative URL, queryString should be preserved
+  expect(
+    applyUrlPrefix("/sb/relevant/sb?param=arg", "/sb"),
+  ).toEqual("/sb/sb/relevant/sb?param=arg");
 
-  await t.step("string, Page-Relative URL, should be untouched", () => {
-    assertEquals(applyUrlPrefix("relevant", "/sb"), "relevant");
-  });
+  // string, Page-Relative URL, should be untouched
+  expect(applyUrlPrefix("relevant", "/sb")).toEqual("relevant");
 
-  await t.step("URL object, Absolute URL, should be prefixed", () => {
-    assertEquals(
-      applyUrlPrefix(new URL("http://myserver/relevant"), "/sb"),
-      new URL("http://myserver/sb/relevant"),
-    );
-  });
+  // URL object, Absolute URL, should be prefixed
+  expect(
+    applyUrlPrefix(new URL("http://myserver/relevant"), "/sb"),
+  ).toEqual(new URL("http://myserver/sb/relevant"));
 
-  await t.step(
-    "URL object, Absolute URL, queryString should be preserved",
-    () => {
-      assertEquals(
-        applyUrlPrefix(new URL("http://myserver/relevant?param=arg"), "/sb"),
-        new URL("http://myserver/sb/relevant?param=arg"),
-      );
-    },
-  );
+  // URL object, Absolute URL, queryString should be preserved
+  expect(
+    applyUrlPrefix(new URL("http://myserver/relevant?param=arg"), "/sb"),
+  ).toEqual(new URL("http://myserver/sb/relevant?param=arg"));
 });
 
-Deno.test("url_prefix - applyUrlPrefix - no value", async (t) => {
-  await t.step("Absolute URL, should be untouched", () => {
-    assertEquals(
-      applyUrlPrefix("http://myserver/relevant", ""),
-      "http://myserver/relevant",
-    );
-    assertEquals(
-      applyUrlPrefix("https://myserver/relevant"),
-      "https://myserver/relevant",
-    );
-  });
+test("url_prefix - applyUrlPrefix - no value", async () => {
+  // Absolute URL, should be untouched
+  expect(
+    applyUrlPrefix("http://myserver/relevant", ""),
+  ).toEqual("http://myserver/relevant");
+  expect(
+    applyUrlPrefix("https://myserver/relevant"),
+  ).toEqual("https://myserver/relevant");
 
-  await t.step("Host-Relative URL, should be untouched", () => {
-    assertEquals(applyUrlPrefix("/relevant", ""), "/relevant");
-    assertEquals(applyUrlPrefix("/relevant"), "/relevant");
-  });
+  // Host-Relative URL, should be untouched
+  expect(applyUrlPrefix("/relevant", "")).toEqual("/relevant");
+  expect(applyUrlPrefix("/relevant")).toEqual("/relevant");
 
-  await t.step("Page-Relative URL, should be untouched", () => {
-    assertEquals(applyUrlPrefix("relevant", ""), "relevant");
-    assertEquals(applyUrlPrefix("relevant"), "relevant");
-  });
+  // Page-Relative URL, should be untouched
+  expect(applyUrlPrefix("relevant", "")).toEqual("relevant");
+  expect(applyUrlPrefix("relevant")).toEqual("relevant");
 });
