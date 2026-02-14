@@ -365,4 +365,9 @@ export const osApi = new LuaTable({
       return luaFormatTime(fmt, d, utc);
     },
   ),
+
+  // Returns an approximation of CPU time used by the program in seconds.
+  clock: new LuaBuiltinFunction((_sf): number => {
+    return performance.now() / 1000.0;
+  }),
 });

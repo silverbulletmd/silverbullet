@@ -48,7 +48,6 @@ test("[Lua] String to number tests", async () => {
 
 test("[Lua] String tests", async () => {
   await runLuaTest("./stdlib/string_test.lua");
-  // await runLuaTest("./stdlib/string_test2.lua");
 });
 
 test("[Lua] Space Lua tests", async () => {
