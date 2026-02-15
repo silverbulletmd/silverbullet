@@ -11,7 +11,7 @@ import {
   parseToRef,
 } from "@silverbulletmd/silverbullet/lib/ref";
 import { isLocalURL } from "@silverbulletmd/silverbullet/lib/resolve";
-import { mime } from "mimetypes";
+import mime from "mime";
 import { LuaStackFrame, LuaTable } from "../space_lua/runtime.ts";
 import { parseMarkdown } from "../markdown_parser/parser.ts";
 import { renderExpressionResult } from "./result_render.ts";

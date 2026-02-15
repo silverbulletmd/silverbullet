@@ -3,11 +3,9 @@
 // }
 
 // This is the case when running tests only, so giving it a dummy syscall function
-if (typeof self === "undefined") {
-  (self as any) = {
-    syscall: () => {
-      throw new Error("Not implemented here");
-    },
+if (typeof (globalThis as any).syscall === "undefined") {
+  (globalThis as any).syscall = () => {
+    throw new Error("Not implemented here");
   };
 }
 

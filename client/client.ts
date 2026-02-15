@@ -127,7 +127,7 @@ export class Client {
 
   // Document editor
   documentEditor: DocumentEditor | null = null;
-  saveTimeout?: number;
+  saveTimeout?: ReturnType<typeof setTimeout>;
   debouncedUpdateEvent = throttle(() => {
     this.eventHook
       .dispatchEvent("editor:updated")
@@ -140,8 +140,10 @@ export class Client {
   public systemReady: boolean = false;
   private pageNavigator!: PathPageNavigator;
   private onLoadRef: Ref;
+  dbPrefix?: string;
+  syncMode = false;
   // Progress circle handling
-  private progressTimeout?: number;
+  private progressTimeout?: ReturnType<typeof setTimeout>;
   // Widget and image height caching
   private widgetCache = new LimitedMap<WidgetCacheItem>(100); // bodyText -> WidgetCacheItem
   debouncedWidgetCacheFlush = throttle(() => {

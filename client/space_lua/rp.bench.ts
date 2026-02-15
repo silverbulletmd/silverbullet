@@ -1,3 +1,5 @@
+import { bench } from "vitest";
+import { readFile } from "node:fs/promises";
 // Benchmark suite for Space Lua RP (Result-or-Promise) optimizations
 // that exercises hot synchronous paths (binary ops, loops, function
 // calls, argument lists, table get/set, concatenation).
@@ -176,7 +178,7 @@ const luaTableDotMissRead = `
 // The truthiness_test.lua uses the `string.format`.
 const truthinessPath =
   new URL("./truthiness_test.lua", import.meta.url).pathname;
-const truthinessCode = await Deno.readTextFile(truthinessPath);
+const truthinessCode = await readFile(truthinessPath, "utf-8");
 
 const astWhileSync = parseLua(luaWhileSync);
 const astForNumeric = parseLua(luaForNumeric);
@@ -191,80 +193,50 @@ const astTableDeepDotGetSet = parseLua(luaTableDeepDotGetSet);
 const astTableDotMissRead = parseLua(luaTableDotMissRead);
 const astTruthiness = parseLua(truthinessCode);
 
-Deno.bench(
-  { name: "RP: while (sync cond) numeric sum", group: "space-lua" },
-  async () => {
-    await run(astWhileSync);
-  },
-);
+bench("RP: while (sync cond) numeric sum", async () => {
+  await run(astWhileSync);
+});
 
-Deno.bench({ name: "RP: for (numeric) sum", group: "space-lua" }, async () => {
+bench("RP: for (numeric) sum", async () => {
   await run(astForNumeric);
 });
 
-Deno.bench({
-  name: "RP: while (function cond -> truthy then nil)",
-  group: "space-lua",
-}, async () => {
+bench("RP: while (function cond -> truthy then nil)", async () => {
   await run(astWhileFuncCondTruthy);
 });
 
-Deno.bench(
-  { name: "RP: function calls + arg eval", group: "space-lua" },
-  async () => {
-    await run(astFuncCallArgs);
-  },
-);
+bench("RP: function calls + arg eval", async () => {
+  await run(astFuncCallArgs);
+});
 
-Deno.bench({ name: "RP: table dot get/set", group: "space-lua" }, async () => {
+bench("RP: table dot get/set", async () => {
   await run(astTableGetSet);
 });
 
-Deno.bench(
-  { name: "RP: table numeric index get/set", group: "space-lua" },
-  async () => {
-    await run(astTableIndexNumeric);
-  },
-);
+bench("RP: table numeric index get/set", async () => {
+  await run(astTableIndexNumeric);
+});
 
-Deno.bench(
-  { name: "RP: table deep dot get/set (3 levels)", group: "space-lua" },
-  async () => {
-    await run(astTableDeepDotGetSet);
-  },
-);
+bench("RP: table deep dot get/set (3 levels)", async () => {
+  await run(astTableDeepDotGetSet);
+});
 
-Deno.bench(
-  { name: "RP: table dot miss (nil reads, no metatable)", group: "space-lua" },
-  async () => {
-    await run(astTableDotMissRead);
-  },
-);
+bench("RP: table dot miss (nil reads, no metatable)", async () => {
+  await run(astTableDotMissRead);
+});
 
-Deno.bench(
-  { name: "RP: string concatenation (..)", group: "space-lua" },
-  async () => {
-    await run(astConcatStrings);
-  },
-);
+bench("RP: string concatenation (..)", async () => {
+  await run(astConcatStrings);
+});
 
-Deno.bench(
-  { name: "RP: arithmetic (binary ops)", group: "space-lua" },
-  async () => {
-    await run(astArithmeticBinary);
-  },
-);
+bench("RP: arithmetic (binary ops)", async () => {
+  await run(astArithmeticBinary);
+});
 
-Deno.bench({
-  name: "RP: while truthiness mix (0,'' ,{},...)",
-  group: "space-lua",
-}, async () => {
+bench("RP: while truthiness mix (0,'' ,{},...)", async () => {
   await run(astWhileTruthinessMix);
 });
 
-Deno.bench(
-  { name: "RP: truthiness_test.lua (end-to-end)", group: "space-lua" },
-  async () => {
-    await run(astTruthiness);
-  },
-);
+bench("RP: truthiness_test.lua (end-to-end)", async () => {
+  await run(astTruthiness);
+});

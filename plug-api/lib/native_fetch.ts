@@ -1,3 +1,5 @@
+export {};
+
 declare global {
   function nativeFetch(
     input: RequestInfo | URL,

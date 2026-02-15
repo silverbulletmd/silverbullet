@@ -1,9 +1,9 @@
+import { expect, test } from "vitest";
 import {
   collectNodesOfType,
   findNodeOfType,
   renderToText,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import { assertEquals, assertNotEquals } from "@std/assert";
 import { parseMarkdown } from "./parser.ts";
 import { extractHashtag } from "../../plug-api/lib/tags.ts";
 import { renderHashtag } from "../../plugs/index/tags.ts";
@@ -26,34 +26,34 @@ name: Zef
 
 Supper`;
 
-Deno.test("Test parser", () => {
+test("Test parser", () => {
   let tree = parseMarkdown(sample1);
   // console.log("tree", JSON.stringify(tree, null, 2));
   // Check if rendering back to text works
-  assertEquals(renderToText(tree), sample1);
+  expect(renderToText(tree)).toEqual(sample1);
 
   const tree2 = parseMarkdown(sample1, 3);
   // console.log("tree", JSON.stringify(tree, null, 2));
   // Check if rendering back to text works
-  assertEquals(renderToText(tree2), sample1);
+  expect(renderToText(tree2)).toEqual(sample1);
 
   // Find wiki link and wiki link alias
   const links = collectNodesOfType(tree, "WikiLink");
-  assertEquals(links.length, 2);
+  expect(links.length).toEqual(2);
   const nameNode = findNodeOfType(links[0], "WikiLinkPage");
-  assertEquals(nameNode!.children![0].text, "wiki link");
+  expect(nameNode!.children![0].text).toEqual("wiki link");
 
   // Check if alias is parsed properly
   const aliasNode = findNodeOfType(links[1], "WikiLinkAlias");
-  assertEquals(aliasNode!.children![0].text, "alias");
+  expect(aliasNode!.children![0].text).toEqual("alias");
 
   // Find frontmatter
   let node = findNodeOfType(tree, "FrontMatter");
-  assertNotEquals(node, undefined);
+  expect(node).not.toEqual(undefined);
   tree = parseMarkdown(sampleInvalid1);
   node = findNodeOfType(tree, "FrontMatter");
   // console.log("Invalid node", node);
-  assertEquals(node, undefined);
+  expect(node).toEqual(undefined);
 });
 
 const inlineAttributeSample = `
@@ -66,24 +66,24 @@ Here's a more [ambiguous: case](http://zef.plus)
 And one with nested brackets: [array: [1, 2, 3]]
 `;
 
-Deno.test("Test inline attribute syntax", () => {
+test("Test inline attribute syntax", () => {
   const tree = parseMarkdown(inlineAttributeSample);
   // console.log("Attribute parsed", JSON.stringify(tree, null, 2));
   const attributes = collectNodesOfType(tree, "Attribute");
   let nameNode = findNodeOfType(attributes[0], "AttributeName");
-  assertEquals(nameNode!.children![0].text, "age");
+  expect(nameNode!.children![0].text).toEqual("age");
   let valueNode = findNodeOfType(attributes[0], "AttributeValue");
-  assertEquals(valueNode!.children![0].text, "100");
+  expect(valueNode!.children![0].text).toEqual("100");
 
   nameNode = findNodeOfType(attributes[1], "AttributeName");
-  assertEquals(nameNode!.children![0].text, "age");
+  expect(nameNode!.children![0].text).toEqual("age");
   valueNode = findNodeOfType(attributes[1], "AttributeValue");
-  assertEquals(valueNode!.children![0].text, "200");
+  expect(valueNode!.children![0].text).toEqual("200");
 
   nameNode = findNodeOfType(attributes[2], "AttributeName");
-  assertEquals(nameNode!.children![0].text, "array");
+  expect(nameNode!.children![0].text).toEqual("array");
   valueNode = findNodeOfType(attributes[2], "AttributeValue");
-  assertEquals(valueNode!.children![0].text, "[1, 2, 3]");
+  expect(valueNode!.children![0].text).toEqual("[1, 2, 3]");
 });
 
 const multiStatusTaskExample = `
@@ -92,18 +92,18 @@ const multiStatusTaskExample = `
 * [TODO] Task 3
 `;
 
-Deno.test("Test multi-status tasks", () => {
+test("Test multi-status tasks", () => {
   const tree = parseMarkdown(multiStatusTaskExample);
   // console.log("Tasks parsed", JSON.stringify(tree, null, 2));
   const tasks = collectNodesOfType(tree, "Task");
-  assertEquals(tasks.length, 3);
+  expect(tasks.length).toEqual(3);
   // Check " " checkbox state parsing
-  assertEquals(tasks[0].children![0].children![1].text, " ");
-  assertEquals(tasks[1].children![0].children![1].text, "x");
-  assertEquals(tasks[2].children![0].children![1].text, "TODO");
+  expect(tasks[0].children![0].children![1].text).toEqual(" ");
+  expect(tasks[1].children![0].children![1].text).toEqual("x");
+  expect(tasks[2].children![0].children![1].text).toEqual("TODO");
 });
 
-Deno.test("Test lua directive parser", () => {
+test("Test lua directive parser", () => {
   const simpleExample = `Simple \${query_coll("something")}`;
   console.log(JSON.stringify(parseMarkdown(simpleExample), null, 2));
 });
@@ -122,43 +122,41 @@ But magazine issue #1 or #123 are not hashtags.
 Should support other languages, like #żółć or #井号
 `;
 
-Deno.test("Test hashtag parser", () => {
+test("Test hashtag parser", () => {
   const tree = parseMarkdown(hashtagSample);
   const hashtags = collectNodesOfType(tree, "Hashtag");
-  assertEquals(hashtags.length, 14);
+  expect(hashtags.length).toEqual(14);
 
-  assertEquals(hashtags[0].children![0].text, "#mytag");
-  assertEquals(hashtags[1].children![0].text, "#level/beginner");
-  assertEquals(hashtags[2].children![0].text, "#Mike's-idea");
-  assertEquals(hashtags[3].children![0].text, "#a");
-  assertEquals(hashtags[4].children![0].text, "#interpunction");
-  assertEquals(hashtags[5].children![0].text, "#exclamation");
-  assertEquals(hashtags[6].children![0].text, "#question");
-  assertEquals(hashtags[7].children![0].text, "#<tag with spaces>");
+  expect(hashtags[0].children![0].text).toEqual("#mytag");
+  expect(hashtags[1].children![0].text).toEqual("#level/beginner");
+  expect(hashtags[2].children![0].text).toEqual("#Mike's-idea");
+  expect(hashtags[3].children![0].text).toEqual("#a");
+  expect(hashtags[4].children![0].text).toEqual("#interpunction");
+  expect(hashtags[5].children![0].text).toEqual("#exclamation");
+  expect(hashtags[6].children![0].text).toEqual("#question");
+  expect(hashtags[7].children![0].text).toEqual("#<tag with spaces>");
   // multiple lines not allowed
-  assertEquals(hashtags[8].children![0].text, "#no");
-  assertEquals(hashtags[9].children![0].text, "#spacing");
-  assertEquals(hashtags[10].children![0].text, "#3dprint");
-  assertEquals(hashtags[11].children![0].text, "#15-52_Trip-to-NYC");
-  assertEquals(hashtags[12].children![0].text, "#żółć");
-  assertEquals(hashtags[13].children![0].text, "#井号");
+  expect(hashtags[8].children![0].text).toEqual("#no");
+  expect(hashtags[9].children![0].text).toEqual("#spacing");
+  expect(hashtags[10].children![0].text).toEqual("#3dprint");
+  expect(hashtags[11].children![0].text).toEqual("#15-52_Trip-to-NYC");
+  expect(hashtags[12].children![0].text).toEqual("#żółć");
+  expect(hashtags[13].children![0].text).toEqual("#井号");
 });
 
-Deno.test("Test hashtag helper functions", () => {
-  assertEquals(extractHashtag("#name"), "name");
-  assertEquals(extractHashtag("#123-content"), "123-content");
-  assertEquals(extractHashtag("#<escaped tag>"), "escaped tag");
-  assertEquals(
-    extractHashtag("#<allow < and # inside>"),
-    "allow < and # inside",
+test("Test hashtag helper functions", () => {
+  expect(extractHashtag("#name")).toEqual("name");
+  expect(extractHashtag("#123-content")).toEqual("123-content");
+  expect(extractHashtag("#<escaped tag>")).toEqual("escaped tag");
+  expect(extractHashtag("#<allow < and # inside>")).toEqual("allow < and # inside",
   );
 
-  assertEquals(renderHashtag("simple"), "#simple");
-  assertEquals(renderHashtag("123-content"), "#123-content");
-  assertEquals(renderHashtag("with spaces"), "#<with spaces>");
-  assertEquals(renderHashtag("single'quote"), "#single'quote");
+  expect(renderHashtag("simple")).toEqual("#simple");
+  expect(renderHashtag("123-content")).toEqual("#123-content");
+  expect(renderHashtag("with spaces")).toEqual("#<with spaces>");
+  expect(renderHashtag("single'quote")).toEqual("#single'quote");
   // should behave like this for all characters in tagRegex
-  assertEquals(renderHashtag("exclamation!"), "#<exclamation!>");
+  expect(renderHashtag("exclamation!")).toEqual("#<exclamation!>");
 });
 
 const nakedURLSample = `
@@ -170,11 +168,11 @@ http://abc.com?e=2.71,pi=3.14 is a URL too.
 http://abc.com?e=2.71. That is a URL, which ends with 1 (and not '.').
 `;
 
-Deno.test("Test NakedURL parser", () => {
+test("Test NakedURL parser", () => {
   const tree = parseMarkdown(nakedURLSample);
   const urls = collectNodesOfType(tree, "NakedURL");
 
-  assertEquals(urls.map((x) => x.children![0].text), [
+  expect(urls.map((x) => x.children![0].text)).toEqual([
     "http://abc.com",
     "http://no-trailing-period.com",
     "http://no-trailing-comma.com",
@@ -191,11 +189,11 @@ const tableSample = `
 | 2A             | 2B |
 `;
 
-Deno.test("Test table parser", () => {
+test("Test table parser", () => {
   const tree = parseMarkdown(tableSample);
   const cells = collectNodesOfType(tree, "TableCell");
 
-  assertEquals(cells.map((x) => x.children![0].text), [
+  expect(cells.map((x) => x.children![0].text)).toEqual([
     "Header A",
     "Header B",
     undefined,
@@ -205,9 +203,9 @@ Deno.test("Test table parser", () => {
   ]);
 
   // Check the Wiki Link - Make sure no backslash has been added (issue 943)
-  assertEquals(cells[2].children![0].type, "WikiLink");
+  expect(cells[2].children![0].type).toEqual("WikiLink");
   const wikiName = findNodeOfType(cells[2], "WikiLinkPage");
   const wikiAlias = findNodeOfType(cells[2], "WikiLinkAlias");
-  assertEquals(wikiName!.children![0].text, "Wiki");
-  assertEquals(wikiAlias!.children![0].text, "Alias");
+  expect(wikiName!.children![0].text).toEqual("Wiki");
+  expect(wikiAlias!.children![0].text).toEqual("Alias");
 });

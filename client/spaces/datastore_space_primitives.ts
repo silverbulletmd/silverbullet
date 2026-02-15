@@ -1,5 +1,5 @@
 import type { SpacePrimitives } from "./space_primitives.ts";
-import { mime } from "mimetypes";
+import mime from "mime";
 import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
 import { notFoundError } from "@silverbulletmd/silverbullet/constants";
 import type { KvPrimitives } from "../data/kv_primitives.ts";

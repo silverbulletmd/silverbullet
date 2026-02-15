@@ -1,11 +1,11 @@
+import { expect, test } from "vitest";
 import type { EventHookT } from "@silverbulletmd/silverbullet/type/manifest";
 import { EventHook } from "./plugos/hooks/event.ts";
 import { System } from "./plugos/system.ts";
 import { ServiceRegistry } from "./service_registry.ts";
-import { assertEquals } from "@std/assert";
 import { Config } from "./config.ts";
 
-Deno.test("Test services", async () => {
+test("Test services", async () => {
   const system = new System<EventHookT>();
   const config = new Config();
   const eventHook = new EventHook(config);
@@ -56,23 +56,17 @@ Deno.test("Test services", async () => {
   });
 
   const matches = await registry.discover("greeter", {});
-  assertEquals(matches.length, 1);
-  assertEquals(matches[0].priority, 1);
+  expect(matches.length).toEqual(1);
+  expect(matches[0].priority).toEqual(1);
 
   const matchesMulti = await registry.discover("greeter-multi", {});
-  assertEquals(matchesMulti.length, 2);
+  expect(matchesMulti.length).toEqual(2);
   // higher prio should come first
-  assertEquals(matchesMulti[0].priority, 2);
-  assertEquals(matchesMulti[1].priority, 1);
+  expect(matchesMulti[0].priority).toEqual(2);
+  expect(matchesMulti[1].priority).toEqual(1);
 
-  assertEquals(await registry.invoke(matches[0], "Pete"), "Hello Pete!");
-  assertEquals(
-    await registry.invokeBestMatch("greeter", "Pete"),
-    "Hello Pete!",
-  );
+  expect(await registry.invoke(matches[0], "Pete")).toEqual("Hello Pete!");
+  expect(await registry.invokeBestMatch("greeter", "Pete")).toEqual("Hello Pete!");
 
-  assertEquals(
-    await registry.invokeBestMatch("greeter-multi", "Pete"),
-    "Hello 2 Pete!",
-  );
+  expect(await registry.invokeBestMatch("greeter-multi", "Pete")).toEqual("Hello 2 Pete!");
 });

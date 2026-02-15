@@ -1,3 +1,4 @@
+import { readFile, writeFile } from "node:fs/promises";
 import type { KvPrimitives, KvQueryOptions } from "./kv_primitives.ts";
 import { throttle } from "@silverbulletmd/silverbullet/lib/async";
 
@@ -62,7 +63,7 @@ export class MemoryKvPrimitives implements KvPrimitives {
     if (!this.filePath) return;
 
     try {
-      const text = await Deno.readTextFile(this.filePath);
+      const text = await readFile(this.filePath, "utf-8");
       // Handle empty files gracefully to prevent "SyntaxError: Unexpected end of JSON input"
       if (text.trim() === "") {
         return;
@@ -74,7 +75,7 @@ export class MemoryKvPrimitives implements KvPrimitives {
       }
     } catch (error) {
       // Handle specific errors more gracefully
-      if (error instanceof Deno.errors.NotFound) {
+      if ((error as any).code === "ENOENT") {
         // File doesn't exist yet, nothing to load
         return;
       }
@@ -167,9 +168,10 @@ export class MemoryKvPrimitives implements KvPrimitives {
 
     try {
       const jsonData = this.toJSON();
-      await Deno.writeTextFile(
+      await writeFile(
         this.filePath,
         JSON.stringify(jsonData, null, 2),
+        "utf-8",
       );
     } catch (error) {
       console.error(`Failed to persist KV store to ${this.filePath}:`, error);

@@ -1,4 +1,7 @@
-import type { FeatherProps } from "preact-feather/types";
+import type { ComponentProps } from "preact";
+import type { X } from "preact-feather";
+
+type FeatherProps = ComponentProps<typeof X>;
 import type { FunctionalComponent } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";

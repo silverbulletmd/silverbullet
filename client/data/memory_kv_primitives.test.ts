@@ -1,22 +1,25 @@
-import { assertEquals } from "@std/assert";
+import { expect, test } from "vitest";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { MemoryKvPrimitives } from "./memory_kv_primitives.ts";
 import { allTests } from "./kv_primitives.test.ts";
 
 import type { KV } from "../../plug-api/types/datastore.ts";
 
-Deno.test("MemoryKvPrimitives loads from non-existent file without error", async () => {
-  const tempPath = await Deno.makeTempFile() + "_nonexistent";
+test("MemoryKvPrimitives loads from non-existent file without error", async () => {
+  const tempPath = join(tmpdir(), `test-${Date.now()}-${Math.random().toString(36)}.json`) + "_nonexistent";
   // Disable throttling for tests
   const store = new MemoryKvPrimitives(tempPath, { throttleMs: 0 });
   await store.init();
 
   // Should create an empty store
   const result = await store.batchGet([["test"]]);
-  assertEquals(result, [undefined]);
+  expect(result).toEqual([undefined]);
 });
 
-Deno.test("MemoryKvPrimitives passes all KvPrimitives tests", async () => {
-  const tempPath = await Deno.makeTempFile();
+test("MemoryKvPrimitives passes all KvPrimitives tests", async () => {
+  const tempPath = join(tmpdir(), `test-${Date.now()}-${Math.random().toString(36)}.json`);
 
   try {
     const store = new MemoryKvPrimitives(tempPath, { throttleMs: 0 });
@@ -26,15 +29,15 @@ Deno.test("MemoryKvPrimitives passes all KvPrimitives tests", async () => {
   } finally {
     // Clean up
     try {
-      await Deno.remove(tempPath);
+      await rm(tempPath, { force: true });
     } catch (_) {
       // Ignore errors during cleanup
     }
   }
 });
 
-Deno.test("MemoryKvPrimitives persists and loads data", async () => {
-  const tempPath = await Deno.makeTempFile();
+test("MemoryKvPrimitives persists and loads data", async () => {
+  const tempPath = join(tmpdir(), `test-${Date.now()}-${Math.random().toString(36)}.json`);
 
   try {
     // Create and populate first instance
@@ -54,19 +57,19 @@ Deno.test("MemoryKvPrimitives persists and loads data", async () => {
 
     // Check if data was loaded correctly
     const results = await store2.batchGet([["test", "key1"], ["test", "key2"]]);
-    assertEquals(results, ["value1", "value2"]);
+    expect(results).toEqual(["value1", "value2"]);
   } finally {
     // Clean up
     try {
-      await Deno.remove(tempPath);
+      await rm(tempPath, { force: true });
     } catch (_) {
       // Ignore errors during cleanup
     }
   }
 });
 
-Deno.test("MemoryKvPrimitives mutations trigger persistence", async () => {
-  const tempPath = await Deno.makeTempFile();
+test("MemoryKvPrimitives mutations trigger persistence", async () => {
+  const tempPath = join(tmpdir(), `test-${Date.now()}-${Math.random().toString(36)}.json`);
 
   try {
     // Create and populate first instance
@@ -82,19 +85,19 @@ Deno.test("MemoryKvPrimitives mutations trigger persistence", async () => {
 
     // Check if data was persisted
     const results = await store2.batchGet([["test", "key"]]);
-    assertEquals(results, ["value"]);
+    expect(results).toEqual(["value"]);
   } finally {
     // Clean up
     try {
-      await Deno.remove(tempPath);
+      await rm(tempPath, { force: true });
     } catch (_) {
       // Ignore errors during cleanup
     }
   }
 });
 
-Deno.test("MemoryKvPrimitives persists delete operations", async () => {
-  const tempPath = await Deno.makeTempFile();
+test("MemoryKvPrimitives persists delete operations", async () => {
+  const tempPath = join(tmpdir(), `test-${Date.now()}-${Math.random().toString(36)}.json`);
 
   try {
     // Create and populate store
@@ -116,26 +119,26 @@ Deno.test("MemoryKvPrimitives persists delete operations", async () => {
 
     // Check if delete was persisted
     const results = await store2.batchGet([["test", "key1"], ["test", "key2"]]);
-    assertEquals(results, [undefined, "value2"]);
+    expect(results).toEqual([undefined, "value2"]);
   } finally {
     // Clean up
     try {
-      await Deno.remove(tempPath);
+      await rm(tempPath, { force: true });
     } catch (_) {
       // Ignore errors during cleanup
     }
   }
 });
 
-Deno.test("MemoryKvPrimitives.fromFile creates and initializes store", async () => {
-  const tempPath = await Deno.makeTempFile();
+test("MemoryKvPrimitives.fromFile creates and initializes store", async () => {
+  const tempPath = join(tmpdir(), `test-${Date.now()}-${Math.random().toString(36)}.json`);
 
   try {
     // Create JSON file with initial data
     const initialData = {
       "test\0key": "value",
     };
-    await Deno.writeTextFile(tempPath, JSON.stringify(initialData));
+    await writeFile(tempPath, JSON.stringify(initialData), "utf-8");
 
     // Use factory method with throttling disabled
     const store = await MemoryKvPrimitives.fromFile(tempPath, {
@@ -144,19 +147,19 @@ Deno.test("MemoryKvPrimitives.fromFile creates and initializes store", async () 
 
     // Check if data was loaded
     const result = await store.batchGet([["test", "key"]]);
-    assertEquals(result, ["value"]);
+    expect(result).toEqual(["value"]);
   } finally {
     // Clean up
     try {
-      await Deno.remove(tempPath);
+      await rm(tempPath, { force: true });
     } catch (_) {
       // Ignore errors during cleanup
     }
   }
 });
 
-Deno.test("MemoryKvPrimitives query works with persisted data", async () => {
-  const tempPath = await Deno.makeTempFile();
+test("MemoryKvPrimitives query works with persisted data", async () => {
+  const tempPath = join(tmpdir(), `test-${Date.now()}-${Math.random().toString(36)}.json`);
 
   try {
     // Create and populate store
@@ -182,15 +185,15 @@ Deno.test("MemoryKvPrimitives query works with persisted data", async () => {
       results.push(item);
     }
 
-    assertEquals(results.length, 2);
-    assertEquals(results[0].key, ["test", "key1"]);
-    assertEquals(results[0].value, "value1");
-    assertEquals(results[1].key, ["test", "key2"]);
-    assertEquals(results[1].value, "value2");
+    expect(results.length).toEqual(2);
+    expect(results[0].key).toEqual(["test", "key1"]);
+    expect(results[0].value).toEqual("value1");
+    expect(results[1].key).toEqual(["test", "key2"]);
+    expect(results[1].value).toEqual("value2");
   } finally {
     // Clean up
     try {
-      await Deno.remove(tempPath);
+      await rm(tempPath, { force: true });
     } catch (_) {
       // Ignore errors during cleanup
     }

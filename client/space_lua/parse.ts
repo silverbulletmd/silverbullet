@@ -4,6 +4,7 @@ import {
   cleanTree,
   type ParseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
+// @ts-ignore - Local generated JavaScript file without type definitions
 import { parser } from "./parse-lua.js";
 import { styleTags, tags as t } from "@lezer/highlight";
 import { indentNodeProp, LRLanguage } from "@codemirror/language";

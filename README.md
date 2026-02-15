@@ -22,7 +22,7 @@ And if you are comfortable **programming** a little bit — now we’re really t
 Check out the [instructions](https://silverbullet.md/Install).
 
 ## Developing SilverBullet
-SilverBullet's frontend is written in [TypeScript](https://www.typescriptlang.org/) and built on top of the excellent [CodeMirror 6](https://codemirror.net/) editor component. Additional UI is built using [Preact](https://preactjs.com). [ESBuild](https://esbuild.github.io)) running through Deno is used to build both the front-end.
+SilverBullet's frontend is written in [TypeScript](https://www.typescriptlang.org/) and built on top of the excellent [CodeMirror 6](https://codemirror.net/) editor component. Additional UI is built using [Preact](https://preactjs.com). [ESBuild](https://esbuild.github.io) is used to build the frontend.
 
 The server backend is written in Go.
 
@@ -43,8 +43,14 @@ If you're considering contributing changes, be aware of the [LLM use policy](htt
 * `website/`: silverbullet.md website content
 
 ### Requirements
-* [Deno](https://deno.com/): Used to build the frontend and plugs
+* [Node.js](https://nodejs.org/) 24+ and npm 10+: Used to build the frontend and plugs
 * [Go](https://go.dev/): Used to build the backend
+
+The project includes `.nvmrc` and `.node-version` files. If you use [nvm](https://github.com/nvm-sh/nvm) or another Node version manager, it will automatically use the correct Node.js version:
+
+```shell
+nvm use  # If using nvm
+```
 
 It's convenient to also install [air](https://github.com/air-verse/air) for development, this will automatically rebuild both the frontend and backend when changes are made:
 
@@ -52,6 +58,12 @@ It's convenient to also install [air](https://github.com/air-verse/air) for deve
 go install github.com/air-verse/air@latest
 ```
 Make sure your `$GOPATH/bin` is in your $PATH.
+
+First, install dependencies:
+
+```shell
+npm install
+```
 
 To build everything and run the server:
 
@@ -62,7 +74,9 @@ air <PATH-TO-YOUR-SPACE>
 Alternatively, to build:
 
 ```shell
-make
+make build
+# or
+npm run build
 ```
 
 To run the resulting server:
@@ -85,7 +99,7 @@ make test
 ```
 
 ### Build a docker container
-Note, you do not need Deno nor Go locally installed for this to work:
+Note, you do not need Node.js nor Go locally installed for this to work:
 
 ```shell
 docker build -t silverbullet .

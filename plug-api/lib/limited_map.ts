@@ -1,7 +1,7 @@
 type LimitedMapRecord<V> = {
   value: V;
   la: number;
-  expTimer?: number;
+  expTimer?: ReturnType<typeof setTimeout>;
 };
 
 export class LimitedMap<V> {
