@@ -193,80 +193,50 @@ const astTableDeepDotGetSet = parseLua(luaTableDeepDotGetSet);
 const astTableDotMissRead = parseLua(luaTableDotMissRead);
 const astTruthiness = parseLua(truthinessCode);
 
-bench(
-  { name: "RP: while (sync cond) numeric sum", group: "space-lua" },
-  async () => {
-    await run(astWhileSync);
-  },
-);
+bench("RP: while (sync cond) numeric sum", async () => {
+  await run(astWhileSync);
+});
 
 bench("RP: for (numeric) sum", async () => {
   await run(astForNumeric);
 });
 
-bench({
-  name: "RP: while (function cond -> truthy then nil)",
-  group: "space-lua",
-}, async () => {
+bench("RP: while (function cond -> truthy then nil)", async () => {
   await run(astWhileFuncCondTruthy);
 });
 
-bench(
-  { name: "RP: function calls + arg eval", group: "space-lua" },
-  async () => {
-    await run(astFuncCallArgs);
-  },
-);
+bench("RP: function calls + arg eval", async () => {
+  await run(astFuncCallArgs);
+});
 
 bench("RP: table dot get/set", async () => {
   await run(astTableGetSet);
 });
 
-bench(
-  { name: "RP: table numeric index get/set", group: "space-lua" },
-  async () => {
-    await run(astTableIndexNumeric);
-  },
-);
+bench("RP: table numeric index get/set", async () => {
+  await run(astTableIndexNumeric);
+});
 
-bench(
-  { name: "RP: table deep dot get/set (3 levels)", group: "space-lua" },
-  async () => {
-    await run(astTableDeepDotGetSet);
-  },
-);
+bench("RP: table deep dot get/set (3 levels)", async () => {
+  await run(astTableDeepDotGetSet);
+});
 
-bench(
-  { name: "RP: table dot miss (nil reads, no metatable)", group: "space-lua" },
-  async () => {
-    await run(astTableDotMissRead);
-  },
-);
+bench("RP: table dot miss (nil reads, no metatable)", async () => {
+  await run(astTableDotMissRead);
+});
 
-bench(
-  { name: "RP: string concatenation (..)", group: "space-lua" },
-  async () => {
-    await run(astConcatStrings);
-  },
-);
+bench("RP: string concatenation (..)", async () => {
+  await run(astConcatStrings);
+});
 
-bench(
-  { name: "RP: arithmetic (binary ops)", group: "space-lua" },
-  async () => {
-    await run(astArithmeticBinary);
-  },
-);
+bench("RP: arithmetic (binary ops)", async () => {
+  await run(astArithmeticBinary);
+});
 
-bench({
-  name: "RP: while truthiness mix (0,'' ,{},...)",
-  group: "space-lua",
-}, async () => {
+bench("RP: while truthiness mix (0,'' ,{},...)", async () => {
   await run(astWhileTruthinessMix);
 });
 
-bench(
-  { name: "RP: truthiness_test.lua (end-to-end)", group: "space-lua" },
-  async () => {
-    await run(astTruthiness);
-  },
-);
+bench("RP: truthiness_test.lua (end-to-end)", async () => {
+  await run(astTruthiness);
+});

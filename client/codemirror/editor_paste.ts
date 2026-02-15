@@ -6,6 +6,7 @@ import type { Client } from "../client.ts";
 import TurndownService from "turndown";
 
 // With tables and task notation as well
+// @ts-ignore - No type definitions available for this package
 import { tables, taskListItems } from "@joplin/turndown-plugin-gfm";
 import { lezerToParseTree } from "../markdown_parser/parse_tree.ts";
 import {
