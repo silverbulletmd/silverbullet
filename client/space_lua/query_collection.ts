@@ -29,6 +29,50 @@ export function buildItemEnv(
   return itemEnv;
 }
 
+// Build environment for post-`group by` clauses (`having`, `select`,
+// `order by`).  Injects `key` and `group` as top-level variables.  Also
+// unpacks the `group by` key fields as locals so that `group by name,
+// tag` makes `name` and `tag` accessible.
+function buildGroupItemEnv(
+  objectVariable: string | undefined,
+  groupByNames: string[] | undefined,
+  item: any,
+  env: LuaEnv,
+  sf: LuaStackFrame,
+): LuaEnv {
+  const itemEnv = new LuaEnv(env);
+  if (objectVariable) {
+    itemEnv.setLocal(objectVariable, item);
+  } else {
+    itemEnv.setLocal("_", item);
+  }
+  if (item instanceof LuaTable) {
+    const keyVal = item.rawGet("key");
+    const groupVal = item.rawGet("group");
+    if (keyVal !== undefined) {
+      itemEnv.setLocal("key", keyVal);
+    }
+    if (groupVal !== undefined) {
+      itemEnv.setLocal("group", groupVal);
+    }
+    if (keyVal instanceof LuaTable) {
+      for (const k of luaKeys(keyVal)) {
+        itemEnv.setLocal(
+          k,
+          luaGet(keyVal, k, sf.astCtx ?? null, sf),
+        );
+      }
+    }
+    if (
+      !(keyVal instanceof LuaTable) && groupByNames &&
+      groupByNames.length === 1
+    ) {
+      itemEnv.setLocal(groupByNames[0], keyVal);
+    }
+  }
+  return itemEnv;
+}
+
 export type LuaOrderBy = {
   expr: LuaExpression;
   desc: boolean;
@@ -51,6 +95,10 @@ export type LuaCollectionQuery = {
   offset?: number;
   // Whether to return only distinct values
   distinct?: boolean;
+  // The group by expressions evaluated with Lua
+  groupBy?: LuaExpression[];
+  // The having expression evaluated with Lua
+  having?: LuaExpression;
 };
 
 export interface LuaQueryCollection {
@@ -104,6 +152,92 @@ export async function applyQuery(
     results = filteredResults;
   }
 
+  const grouped = !!query.groupBy;
+
+  // Collect `group by` key names for unpacking into the environment.
+  let groupByNames: string[] | undefined;
+
+  // Apply `group by`
+  if (query.groupBy) {
+    groupByNames = query.groupBy.map((expr) => {
+      if (expr.type === "Variable") {
+        return expr.name;
+      }
+      if (expr.type === "PropertyAccess") {
+        return expr.property;
+      }
+      return undefined as unknown as string;
+    }).filter(Boolean);
+
+    const groups = new Map<string, { key: any; items: any[] }>();
+    for (const item of results) {
+      const itemEnv = buildItemEnv(query.objectVariable, item, env, sf);
+      // Evaluate all `group by` expressions to form a composite key
+      const keyParts: any[] = [];
+      for (const expr of query.groupBy) {
+        keyParts.push(await evalExpression(expr, itemEnv, sf));
+      }
+      const compositeKey = keyParts.length === 1
+        ? generateKey(keyParts[0])
+        : JSON.stringify(keyParts.map(generateKey));
+      let entry = groups.get(compositeKey);
+      if (!entry) {
+        // Unwrap single key; multi-key to `LuaTable` with named fields
+        let keyVal: any;
+        if (keyParts.length === 1) {
+          keyVal = keyParts[0];
+        } else {
+          const kt = new LuaTable();
+          for (let i = 0; i < keyParts.length; i++) {
+            kt.rawSetArrayIndex(i + 1, keyParts[i]);
+            if (groupByNames && groupByNames[i]) {
+              kt.rawSet(groupByNames[i], keyParts[i]);
+            }
+          }
+          keyVal = kt;
+        }
+        entry = { key: keyVal, items: [] };
+        groups.set(compositeKey, entry);
+      }
+      entry.items.push(item);
+    }
+    // Convert groups to result rows with `key` and `group`
+    results = [];
+    for (const { key, items } of groups.values()) {
+      const groupTable = new LuaTable();
+      for (let i = 0; i < items.length; i++) {
+        groupTable.rawSetArrayIndex(i + 1, items[i]);
+      }
+      const row = new LuaTable();
+      row.rawSet("key", key);
+      row.rawSet("group", groupTable);
+      results.push(row);
+    }
+  }
+
+  // Apply `having`
+  if (query.having) {
+    const filteredResults = [];
+    for (const value of results) {
+      const itemEnv = buildGroupItemEnv(
+        query.objectVariable,
+        groupByNames,
+        value,
+        env,
+        sf,
+      );
+      if (await evalExpression(query.having, itemEnv, sf)) {
+        filteredResults.push(value);
+      }
+    }
+    results = filteredResults;
+  }
+
+  const mkEnv = grouped
+    ? (ov: string | undefined, item: any, e: LuaEnv, s: LuaStackFrame) =>
+      buildGroupItemEnv(ov, groupByNames, item, e, s)
+    : buildItemEnv;
+
   // Apply `order by` next
   if (query.orderBy) {
     // Retrieve from config API if not passed
@@ -119,8 +253,8 @@ export async function applyQuery(
     results = await asyncQuickSort(results, async (a, b) => {
       // Compare each orderBy clause until we find a difference
       for (const { expr, desc } of query.orderBy!) {
-        const aEnv = buildItemEnv(query.objectVariable, a, env, sf);
-        const bEnv = buildItemEnv(query.objectVariable, b, env, sf);
+        const aEnv = mkEnv(query.objectVariable, a, env, sf);
+        const bEnv = mkEnv(query.objectVariable, b, env, sf);
 
         const aVal = await evalExpression(expr, aEnv, sf);
         const bVal = await evalExpression(expr, bEnv, sf);
@@ -149,7 +283,7 @@ export async function applyQuery(
   if (query.select) {
     const newResult = [];
     for (const item of results) {
-      const itemEnv = buildItemEnv(query.objectVariable, item, env, sf);
+      const itemEnv = mkEnv(query.objectVariable, item, env, sf);
       newResult.push(await evalExpression(query.select, itemEnv, sf));
     }
     results = newResult;

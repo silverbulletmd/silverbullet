@@ -9,6 +9,8 @@ General syntax:
     query[[
       from <var> in <expression>
       where <expression>
+      group by <expression>[, <expression>, ...]
+      having <expression>
       order by <expression>
       limit <expression>, <expression>
       select <expression>
@@ -81,6 +83,41 @@ ${query[[from p = index.tag "page" where table.includes(p.tags, "meta") limit 5]
 Or select based on name (including folder) and a [[API/string|string function]]
 
 ${query[[from p = index.tag "page" where p.name:startsWith("Person")]]}
+
+## group by <expression>[, <expression>, ...]
+The `group by` clause groups results by one or more key expressions. After grouping, each result row becomes a table with two fields:
+
+- `key` — the group key value (single value for one key, table for multi-key)
+- `group` — a table (array) of all original items in that group
+
+The `group by` field names are also available as bare variables in `having`, `select`, and `order by`. Use `#group` to get the count of items in a group.
+
+Example:
+
+${query[[
+  from p = index.tag "tag"
+  group by p.name
+  select { name = name, count = #group }
+  limit 5
+]]}
+
+See [[Space Lua/Lua Integrated Query/Grouping]] for detailed examples.
+
+## having <expression>
+The `having` clause filters groups **after** `group by`. It follows SQL semantics: only group key fields, `key`, and `group` are accessible — use `where` to filter individual rows before grouping.
+
+Example:
+
+${query[[
+  from p = index.tag "tag"
+  group by p.name
+  having #group > 2
+  select { name = name, count = #group }
+  order by count desc
+  limit 5
+]]}
+
+See [[Space Lua/Lua Integrated Query/Grouping]] for detailed examples.
 
 ## order by <expression> [desc]
 The `order by` clause allows you to sort data, when `desc` is specified it reverts the sort order.
