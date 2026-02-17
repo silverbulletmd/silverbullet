@@ -292,7 +292,9 @@ export type LuaQueryClause =
   | LuaWhereClause
   | LuaLimitClause
   | LuaOrderByClause
-  | LuaSelectClause;
+  | LuaSelectClause
+  | LuaGroupByClause
+  | LuaHavingClause;
 
 export type LuaFromClause = {
   type: "From";
@@ -324,5 +326,15 @@ export type LuaOrderBy = {
 
 export type LuaSelectClause = {
   type: "Select";
+  expression: LuaExpression;
+} & ASTContext;
+
+export type LuaGroupByClause = {
+  type: "GroupBy";
+  expressions: LuaExpression[];
+} & ASTContext;
+
+export type LuaHavingClause = {
+  type: "Having";
   expression: LuaExpression;
 } & ASTContext;

@@ -906,6 +906,14 @@ export function evalExpression(
                   }
                   break;
                 }
+                case "GroupBy": {
+                  query.groupBy = clause.expressions;
+                  break;
+                }
+                case "Having": {
+                  query.having = clause.expression;
+                  break;
+                }
               }
             }
 
