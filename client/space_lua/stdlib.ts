@@ -284,7 +284,7 @@ const setmetatableFunction = new LuaBuiltinFunction(
 
 const rawlenFunction = new LuaBuiltinFunction(
   (_sf, value: LuaValue) => {
-    return luaLen(value, _sf);
+    return luaLen(value, _sf, true);
   },
 );
 

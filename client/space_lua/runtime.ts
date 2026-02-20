@@ -1275,7 +1275,8 @@ export function luaGet(
 export function luaLen(
   obj: any,
   sf?: LuaStackFrame,
-): number {
+  raw = false,
+): number | Promise<number> {
   if (typeof obj === "string") {
     return obj.length;
   }
@@ -1283,6 +1284,18 @@ export function luaLen(
     return obj.length;
   }
   if (obj instanceof LuaTable) {
+    // Check __len metamethod unless raw access is requested
+    if (!raw) {
+      const mt = getMetatable(obj, sf || LuaStackFrame.lostFrame);
+      const mm = mt ? mt.rawGet("__len") : null;
+      if (mm !== undefined && mm !== null) {
+        const r = luaCall(mm, [obj], (sf?.astCtx ?? {}) as ASTCtx, sf);
+        if (isPromise(r)) {
+          return (r as Promise<any>).then((v: any) => Number(singleResult(v)));
+        }
+        return Number(singleResult(r));
+      }
+    }
     return obj.rawLength;
   }
 
