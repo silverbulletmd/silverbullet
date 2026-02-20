@@ -40,6 +40,27 @@ export const mathApi = new LuaTable({
     }
     return null;
   }),
+
+  /**
+   * If the value x is representable as a Lua integer, returns an
+   * integer with that value. Otherwise returns nil.
+   */
+  tointeger: new LuaBuiltinFunction((_sf, x?: any) => {
+    if (x === undefined || x === null) return null;
+    if (typeof x === "number") {
+      // plain integer
+      if (Number.isInteger(x)) return x;
+      return null;
+    }
+    if (isTaggedFloat(x)) {
+      // float with integer value e.g. 3.0
+      if (Number.isInteger(x.value)) return x.value;
+      return null;
+    }
+    if (typeof x === "bigint") return x;
+    return null;
+  }),
+
   /**
    * When called without arguments, returns a pseudo-random float with
    * uniform distribution in the range [0,1). When called with two

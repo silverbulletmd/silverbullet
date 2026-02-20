@@ -171,3 +171,29 @@ do
   assertEquals(f2, 3, "floor(8*0.49)")
   assertEquals(f3, 4, "floor(9*0.5)")
 end
+
+-- math.tointeger
+do
+  -- integers pass through unchanged
+  assertEquals(math.tointeger(0),  0,  "tointeger(0)")
+  assertEquals(math.tointeger(42), 42, "tointeger(42)")
+  assertEquals(math.tointeger(-7), -7, "tointeger(-7)")
+  assertEquals(math.type(math.tointeger(1)), "integer", "tointeger result is integer")
+
+  -- float with whole value yields integer
+  assertEquals(math.tointeger(3.0),  3,  "tointeger(3.0)")
+  assertEquals(math.tointeger(-1.0), -1, "tointeger(-1.0)")
+  assertEquals(math.type(math.tointeger(3.0)), "integer", "tointeger(3.0) type")
+
+  -- float with fractional part yields nil
+  assertEquals(math.tointeger(3.5),  nil, "tointeger(3.5)")
+  assertEquals(math.tointeger(-0.1), nil, "tointeger(-0.1)")
+
+  -- non-numbers yields nil (no error)
+  assertEquals(math.tointeger("3"),  nil, "tointeger(string)")
+  assertEquals(math.tointeger(nil),  nil, "tointeger(nil)")
+
+  -- inf and nan yields nil
+  assertEquals(math.tointeger(1/0),  nil, "tointeger(inf)")
+  assertEquals(math.tointeger(0/0),  nil, "tointeger(nan)")
+end
