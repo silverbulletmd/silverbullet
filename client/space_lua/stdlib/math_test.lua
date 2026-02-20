@@ -81,12 +81,22 @@ end
 -- modf
 do
   local i, f = math.modf(3.5)
+  assertEquals(math.type(i), "integer", "modf int part is integer")
+  assertEquals(math.type(f), "float",   "modf frac part is float")
   assertEquals(i, 3, "modf(3.5) int")
   assertClose(f, 0.5, 1e-12, "modf(3.5) frac")
 
   local i2, f2 = math.modf(-3.5)
+  assertEquals(math.type(i2), "integer", "modf neg int part is integer")
+  assertEquals(math.type(f2), "float",   "modf neg frac part is float")
   assertEquals(i2, -3, "modf(-3.5) int")
   assertClose(f2, -0.5, 1e-12, "modf(-3.5) frac")
+
+  local i3, f3 = math.modf(4.0)
+  assertEquals(math.type(i3), "integer", "modf whole int part is integer")
+  assertEquals(math.type(f3), "float", "modf whole frac is float")
+  assertEquals(i3, 4, "modf(4.0) int")
+  assertEquals(f3, 0.0, "modf(4.0) frac")
 end
 
 -- sqrt/exp/log/pow

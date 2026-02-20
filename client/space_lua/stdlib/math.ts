@@ -4,7 +4,7 @@ import {
   LuaRuntimeError,
   LuaTable,
 } from "../runtime.ts";
-import { isNegativeZero, isTaggedFloat } from "../numeric.ts";
+import { isNegativeZero, isTaggedFloat, makeLuaFloat } from "../numeric.ts";
 
 // Fast unwrap: avoids function call overhead for the common plain-number case
 function untagNumber(x: any): number {
@@ -117,7 +117,8 @@ export const mathApi = new LuaTable({
   modf: new LuaBuiltinFunction((_sf, x: number) => {
     const xn = untagNumber(x);
     const int = Math.trunc(xn);
-    const frac = xn - int;
+    // Guarantee that the `frac` part is always Lua float
+    const frac = makeLuaFloat(xn - int);
     return new LuaMultiRes([int, frac]);
   }),
 
