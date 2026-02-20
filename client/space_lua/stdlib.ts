@@ -1,4 +1,5 @@
 import {
+  getMetatable,
   type ILuaFunction,
   isILuaFunction,
   isLuaTable,
@@ -17,6 +18,7 @@ import {
   luaToString,
   luaTypeOf,
   type LuaValue,
+  singleResult,
 } from "./runtime.ts";
 import { stringApi } from "./stdlib/string.ts";
 import { tableApi } from "./stdlib/table.ts";
@@ -32,6 +34,7 @@ import { luaLoad } from "./stdlib/load.ts";
 import { cryptoApi } from "./stdlib/crypto.ts";
 import { netApi } from "./stdlib/net.ts";
 import { isTaggedFloat, makeLuaFloat } from "./numeric.ts";
+import { isPromise } from "./rp.ts";
 
 const printFunction = new LuaBuiltinFunction(async (_sf, ...args) => {
   console.log(
@@ -135,9 +138,35 @@ const typeFunction = new LuaBuiltinFunction(
   },
 );
 
-const tostringFunction = new LuaBuiltinFunction((_sf, value: any) => {
-  return luaToString(value);
-});
+// tostring() checks `__tostring` metamethod first (with live SF), then
+// falls back to the default `luaToString` representation.
+const tostringFunction = new LuaBuiltinFunction(
+  (sf, value: any): string | Promise<string> => {
+    const mt = getMetatable(value, sf);
+    if (mt) {
+      const mm = mt.rawGet("__tostring");
+      if (mm !== undefined && mm !== null) {
+        const ctx = sf.astCtx ?? {};
+        const r = luaCall(mm, [value], ctx as any, sf);
+        const unwrap = (v: any): string => {
+          const s = singleResult(v);
+          if (typeof s !== "string") {
+            throw new LuaRuntimeError(
+              "'__tostring' must return a string",
+              sf,
+            );
+          }
+          return s;
+        };
+        if (isPromise(r)) {
+          return (r as Promise<any>).then(unwrap);
+        }
+        return unwrap(r);
+      }
+    }
+    return luaToString(value);
+  },
+);
 
 const tonumberFunction = new LuaBuiltinFunction(
   (sf, value: LuaValue, base?: number) => {
