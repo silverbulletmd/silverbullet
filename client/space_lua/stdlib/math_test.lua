@@ -189,8 +189,13 @@ do
   assertEquals(math.tointeger(3.5),  nil, "tointeger(3.5)")
   assertEquals(math.tointeger(-0.1), nil, "tointeger(-0.1)")
 
-  -- non-numbers yields nil (no error)
-  assertEquals(math.tointeger("3"),  nil, "tointeger(string)")
+  -- string coercion: integer-valued string yields integer
+  assertEquals(math.tointeger("3"),  3,   "tointeger(string int)")
+  assertEquals(math.tointeger("3.0"), 3,  "tointeger(string float whole)")
+  assertEquals(math.tointeger("3.5"), nil, "tointeger(string float frac)")
+  assertEquals(math.tointeger("x"),   nil, "tointeger(non-numeric string)")
+
+  -- nil yields nil
   assertEquals(math.tointeger(nil),  nil, "tointeger(nil)")
 
   -- inf and nan yields nil

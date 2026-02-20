@@ -42,22 +42,23 @@ export const mathApi = new LuaTable({
   }),
 
   /**
-   * If the value x is representable as a Lua integer, returns an
-   * integer with that value. Otherwise returns nil.
+   * If the value x is representable as a Lua integer, returns an integer
+   * with that value. Otherwise returns nil.
+   * Strings are NOT accepted — only Lua number values.
    */
   tointeger: new LuaBuiltinFunction((_sf, x?: any) => {
-    if (x === undefined || x === null) return null;
     if (typeof x === "number") {
-      // plain integer
-      if (Number.isInteger(x)) return x;
-      return null;
+      return Number.isInteger(x) && isFinite(x) ? x : null;
     }
     if (isTaggedFloat(x)) {
-      // float with integer value e.g. 3.0
-      if (Number.isInteger(x.value)) return x.value;
-      return null;
+      const n = x.value;
+      return Number.isInteger(n) && isFinite(n) ? n : null;
     }
-    if (typeof x === "bigint") return x;
+    if (typeof x === "string") {
+      const n = untagNumber(x); // Number(x) coerces the string
+      if (isNaN(n) || !isFinite(n) || !Number.isInteger(n)) return null;
+      return n;
+    }
     return null;
   }),
 
