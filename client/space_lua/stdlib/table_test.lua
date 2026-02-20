@@ -285,3 +285,132 @@ do
     -- mixed strings and numbers
     assertEqual(table.concat({ "a", 1, "b", 2.5 }, "-"), "a-1-b-2.5")
 end
+
+-- table.move
+do
+    -- Basic copy within same table (non-overlapping)
+    local t = { 1, 2, 3, 4, 5 }
+    table.move(t, 1, 3, 4)
+    assertEqual(t[4], 1)
+    assertEqual(t[5], 2)
+    assertEqual(t[6], 3)
+    -- original slots untouched
+    assertEqual(t[1], 1)
+    assertEqual(t[2], 2)
+    assertEqual(t[3], 3)
+
+    -- Same, with nested table values
+    local nt = { {a=1}, {a=2}, {a=3}, "x", "x" }
+    table.move(nt, 1, 3, 4)
+    assertEqual(nt[4].a, 1)
+    assertEqual(nt[5].a, 2)
+    assertEqual(nt[6].a, 3)
+    assertTrue(nt[4] == nt[1])
+
+    -- Optional destination defaults to source
+    local a = { 10, 20, 30 }
+    local ret = table.move(a, 1, 2, 4)
+    assertTrue(ret == a)
+    assertEqual(a[4], 10)
+    assertEqual(a[5], 20)
+
+    -- Same with nested values
+    local na = { {v=10}, {v=20}, {v=30} }
+    local nret = table.move(na, 1, 2, 4)
+    assertTrue(nret == na)
+    assertEqual(na[4].v, 10)
+    assertEqual(na[5].v, 20)
+
+    -- Copy to a different table; returns destination, source unchanged
+    local src = { "a", "b", "c" }
+    local dst = { "x", "y", "z", "w" }
+    local ret2 = table.move(src, 1, 3, 2, dst)
+    assertTrue(ret2 == dst)
+    assertEqual(dst[1], "x") -- before destination start: untouched
+    assertEqual(dst[2], "a")
+    assertEqual(dst[3], "b")
+    assertEqual(dst[4], "c")
+    assertEqual(src[1], "a") -- source untouched
+    assertEqual(src[2], "b")
+    assertEqual(src[3], "c")
+
+    -- Same with nested values in source and destination
+    local nsrc = { {k=1}, {k=2}, {k=3} }
+    local ndst = { {k=99}, {k=99}, {k=99}, {k=99} }
+    local nret2 = table.move(nsrc, 1, 3, 2, ndst)
+    assertTrue(nret2 == ndst)
+    assertEqual(ndst[1].k, 99) -- before destination start: untouched
+    assertEqual(ndst[2].k, 1)
+    assertEqual(ndst[3].k, 2)
+    assertEqual(ndst[4].k, 3)
+    assertTrue(ndst[2] == nsrc[1]) -- shallow copy: same object
+    assertEqual(nsrc[1].k, 1) -- source untouched
+
+    -- Overlapping: same table — requires backward copy to be correct
+    local ov = { 1, 2, 3, 4, 5 }
+    table.move(ov, 1, 4, 2)
+    assertEqual(ov[1], 1) -- slot before destination: untouched
+    assertEqual(ov[2], 1)
+    assertEqual(ov[3], 2)
+    assertEqual(ov[4], 3)
+    assertEqual(ov[5], 4)
+
+    -- Same with nested values — backward copy must not clobber via aliasing
+    local nov = { {n=1}, {n=2}, {n=3}, {n=4}, {n=5} }
+    table.move(nov, 1, 4, 2)
+    assertEqual(nov[2].n, 1)
+    assertEqual(nov[3].n, 2)
+    assertEqual(nov[4].n, 3)
+    assertEqual(nov[5].n, 4)
+    assertTrue(nov[2] == nov[1]) -- same object references after shift
+
+    -- Overlapping: same table — forward copy is safe (shift left)
+    local ov2 = { 1, 2, 3, 4, 5 }
+    table.move(ov2, 2, 5, 1)
+    assertEqual(ov2[1], 2)
+    assertEqual(ov2[2], 3)
+    assertEqual(ov2[3], 4)
+    assertEqual(ov2[4], 5)
+
+    -- Same with nested values
+    local nov2 = { {n=1}, {n=2}, {n=3}, {n=4}, {n=5} }
+    table.move(nov2, 2, 5, 1)
+    assertEqual(nov2[1].n, 2)
+    assertEqual(nov2[2].n, 3)
+    assertEqual(nov2[3].n, 4)
+    assertEqual(nov2[4].n, 5)
+
+    -- Exact same position: same table) — forward copy, net no-op
+    local same = { 7, 8, 9 }
+    table.move(same, 1, 3, 1)
+    assertEqual(same[1], 7)
+    assertEqual(same[2], 8)
+    assertEqual(same[3], 9)
+
+    -- Empty range: no writes, returns destination
+    local empty = { 1, 2, 3 }
+    local ret3 = table.move(empty, 3, 1, 1)
+    assertTrue(ret3 == empty)
+    assertEqual(empty[1], 1)
+    assertEqual(empty[2], 2)
+    assertEqual(empty[3], 3)
+
+    -- Empty range with explicit different destination
+    local esrc = { 1, 2 }
+    local edst = { 9, 9 }
+    local ret4 = table.move(esrc, 2, 1, 1, edst)
+    assertTrue(ret4 == edst)
+    assertEqual(edst[1], 9)
+    assertEqual(edst[2], 9)
+
+    -- Single element copy
+    local s = { 10, 20, 30 }
+    table.move(s, 2, 2, 3)
+    assertEqual(s[3], 20)
+
+    -- Single element copy, nested
+    local ns = { {x=1}, {x=2}, {x=3} }
+    table.move(ns, 2, 2, 3)
+    assertTrue(ns[3] == ns[2])
+    assertEqual(ns[3].x, 2)
+end

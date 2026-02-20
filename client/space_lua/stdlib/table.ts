@@ -206,6 +206,56 @@ export const tableApi = new LuaTable({
   ),
 
   /**
+   * Moves elements from table a1 into table a2 (defaults to a1).
+   * Equivalent to: `for i = f, e do a2[t+(i-f)] = a1[i] end`
+   * Handles overlapping ranges within the same table correctly.
+   * @param a1 - Source table.
+   * @param f - First source index (inclusive).
+   * @param e - Last source index (inclusive).
+   * @param t - Destination start index.
+   * @param a2 - Destination table (defaults to a1).
+   * @returns a2.
+   */
+  move: new LuaBuiltinFunction(
+    async (
+      sf,
+      a1: LuaTable | any[],
+      f: number,
+      e: number,
+      t: number,
+      a2?: LuaTable | any[],
+    ) => {
+      // a2 defaults to a1
+      if (a2 === undefined || a2 === null) {
+        a2 = a1;
+      }
+
+      // Empty range: nothing to do, return destination
+      if (e < f) {
+        return a2;
+      }
+
+      const count = e - f + 1;
+
+      // When source and destination overlap and destination is ahead of
+      // source then copy backwards to avoid clobbering unread values.
+      if (t > f && a2 === a1) {
+        for (let i = count - 1; i >= 0; i--) {
+          const v = await luaGet(a1, f + i, sf.astCtx ?? null, sf);
+          await luaSet(a2, t + i, v, sf);
+        }
+      } else {
+        for (let i = 0; i < count; i++) {
+          const v = await luaGet(a1, f + i, sf.astCtx ?? null, sf);
+          await luaSet(a2, t + i, v, sf);
+        }
+      }
+
+      return a2;
+    },
+  ),
+
+  /**
    * Sorts a table.
    * @param tbl - The table to sort.
    * @param comp - The comparison function.
