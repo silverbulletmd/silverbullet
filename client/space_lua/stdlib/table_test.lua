@@ -63,6 +63,38 @@ do
     assertError(function() table.remove(t, #t + 2) end)
 end
 
+-- nil and NaN keys are forbidden
+do
+    -- nil key at assignment
+    assertError(function()
+        local t = {}
+        t[nil] = "foo"
+    end)
+
+    -- nil key in table constructor (dynamic field)
+    assertError(function()
+        local k = nil
+        local _ = { [k] = "foo" }
+    end)
+
+    -- NaN key at assignment
+    assertError(function()
+        local t = {}
+        t[0/0] = "bar"
+    end)
+
+    -- NaN key in table constructor
+    assertError(function()
+        local _ = { [0/0] = "bar" }
+    end)
+
+    -- reading with nil key is also an error
+    assertError(function()
+        local t = {}
+        return t[nil]
+    end)
+end
+
 -- Reference semantics / aliasing (tables are mutable references)
 do
     local a = { x = 1 }

@@ -927,6 +927,20 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     const errSf = sf || LuaStackFrame.lostFrame;
     const ctx = sf?.astCtx ?? EMPTY_CTX;
 
+    if (key === null || key === undefined) {
+      throw new LuaRuntimeError(
+        "table index is nil",
+        errSf,
+      );
+    }
+
+    if (typeof key === "number" && isNaN(key)) {
+      throw new LuaRuntimeError(
+        "table index is NaN",
+        errSf,
+      );
+    }
+
     if (this.has(key)) {
       return this.rawSet(key, value, numType);
     }
