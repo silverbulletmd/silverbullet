@@ -45,18 +45,6 @@ Deno.test("Context error: indexing nil value includes message and ref", async ()
   assertCtxErrorContains(e, code, ref, "attempt to index a nil value");
 });
 
-Deno.test("Context error: indexing with nil key includes message and ref", async () => {
-  const { e, code, ref } = await runAndCatch(
-    `
-    local t = {}
-    local k = nil
-    local x = t[k]
-  `,
-    "nil_key.lua",
-  );
-  assertCtxErrorContains(e, code, ref, "attempt to index with a nil key");
-});
-
 Deno.test("Context error: calling nil includes message and ref", async () => {
   const { e, code, ref } = await runAndCatch(
     `

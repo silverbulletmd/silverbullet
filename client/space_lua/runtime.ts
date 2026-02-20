@@ -927,6 +927,20 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     const errSf = sf || LuaStackFrame.lostFrame;
     const ctx = sf?.astCtx ?? EMPTY_CTX;
 
+    if (key === null || key === undefined) {
+      throw new LuaRuntimeError(
+        "table index is nil",
+        errSf,
+      );
+    }
+
+    if (typeof key === "number" && isNaN(key)) {
+      throw new LuaRuntimeError(
+        "table index is NaN",
+        errSf,
+      );
+    }
+
     if (this.has(key)) {
       return this.rawSet(key, value, numType);
     }
@@ -1243,11 +1257,10 @@ export function luaGet(
       errSf,
     );
   }
+
+  // In Lua reading with a nil key returns nil silently
   if (key === null || key === undefined) {
-    throw new LuaRuntimeError(
-      `attempt to index with a nil key`,
-      errSf,
-    );
+    return null;
   }
 
   if (obj instanceof LuaTable || obj instanceof LuaEnv) {
@@ -1275,7 +1288,8 @@ export function luaGet(
 export function luaLen(
   obj: any,
   sf?: LuaStackFrame,
-): number {
+  raw = false,
+): number | Promise<number> {
   if (typeof obj === "string") {
     return obj.length;
   }
@@ -1283,6 +1297,18 @@ export function luaLen(
     return obj.length;
   }
   if (obj instanceof LuaTable) {
+    // Check __len metamethod unless raw access is requested
+    if (!raw) {
+      const mt = getMetatable(obj, sf || LuaStackFrame.lostFrame);
+      const mm = mt ? mt.rawGet("__len") : null;
+      if (mm !== undefined && mm !== null) {
+        const r = luaCall(mm, [obj], (sf?.astCtx ?? {}) as ASTCtx, sf);
+        if (isPromise(r)) {
+          return (r as Promise<any>).then((v: any) => Number(singleResult(v)));
+        }
+        return Number(singleResult(r));
+      }
+    }
     return obj.rawLength;
   }
 
