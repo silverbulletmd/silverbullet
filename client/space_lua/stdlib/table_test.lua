@@ -255,3 +255,33 @@ do
     local c = a
     assertTrue(a == c)
 end
+
+-- table.concat
+do
+    assertEqual(table.concat(
+        { "Hello", "world" }, " "), "Hello world")
+    assertEqual(table.concat(
+        { "Hello", "world", "three" }, " ", 2, 3), "world three")
+
+    assertEqual(table.concat({ "a", "b", "c" }), "abc")
+    assertEqual(table.concat({ "a", "b", "c" }, "", 2, 1), "")
+
+    assertError(function() table.concat({ "a", {} }, "") end)
+
+    -- number coercion: integers must not get a decimal point
+    assertEqual(table.concat({ 1, 2, 3 }, ","), "1,2,3")
+
+    -- integer-valued floats must show .0 suffix (Lua semantics)
+    assertEqual(table.concat({ 1.0, 2.0 }, ","), "1.0,2.0")
+
+    -- motivating case: 10.8*22 must produce "237.6" not "237.60000000000002"
+    assertEqual(table.concat({ 10.8 * 22 }, ""), "237.6")
+
+    -- special float values
+    assertEqual(table.concat({ 1/0.0 }, ""), "inf")
+    assertEqual(table.concat({ -1/0.0 }, ""), "-inf")
+    assertEqual(table.concat({ 0.0/0.0 }, ""), "-nan")
+
+    -- mixed strings and numbers
+    assertEqual(table.concat({ "a", 1, "b", 2.5 }, "-"), "a-1-b-2.5")
+end

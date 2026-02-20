@@ -1741,3 +1741,34 @@ do
     assertEquals(math.type(sum_f), 'float', 'float sum stays float')
   end
 end
+
+-- 24. Concatenation number-to-string coercion
+
+-- 24.1. Integer formatting must not get decimal point
+assertEquals(1 .. "", "1", ".. int 1")
+assertEquals(0 .. "", "0", ".. int 0")
+assertEquals(-5 .. "", "-5", ".. int -5")
+
+-- 24.2. Integer-valued floats must show .0 suffix
+assertEquals(1.0 .. "", "1.0", ".. float 1.0")
+assertEquals(2.0 .. "", "2.0", ".. float 2.0")
+assertEquals(-3.0 .. "", "-3.0", ".. float -3.0")
+
+-- 24.3. 10.8*22 must produce Lua's "237.6" and not "237.60000000000002"
+local r = 10.8 * 22
+assertEquals(r .. "", "237.6", ".. 10.8*22 formats correctly")
+
+-- 24.4. Special float values
+assertEquals(1/0.0 .. "", "inf", ".. +inf")
+assertEquals(-1/0.0 .. "", "-inf", ".. -inf")
+assertEquals(0.0/0.0 .. "", "-nan", ".. nan")
+
+-- 24.5. Non-integer floats
+assertEquals(0.5 .. "", "0.5", ".. float 0.5")
+assertEquals(3.14 .. "", "3.14", ".. float 3.14")
+
+-- 24.6. LHS and RHS number coercion
+assertEquals("x=" .. 42, "x=42", ".. string..int")
+assertEquals("x=" .. 1.5, "x=1.5", ".. string..float")
+assertEquals(99 .. "!", "99!", ".. int..string")
+assertEquals(0.0 .. "!", "0.0!", ".. float..string")

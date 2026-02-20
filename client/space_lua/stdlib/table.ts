@@ -5,6 +5,7 @@ import {
   luaCall,
   type LuaEnv,
   luaEquals,
+  luaFormatNumber,
   luaGet,
   LuaMultiRes,
   LuaRuntimeError,
@@ -77,10 +78,10 @@ export const tableApi = new LuaTable({
           return v;
         }
         if (typeof v === "number") {
-          return String(v);
+          return luaFormatNumber(v);
         }
         if (isTaggedFloat(v)) {
-          return String(v.value);
+          return luaFormatNumber(v.value, "float");
         }
 
         const ty = typeof v === "object" && v instanceof LuaTable
