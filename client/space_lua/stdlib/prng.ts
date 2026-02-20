@@ -80,20 +80,6 @@ export class LuaPRNG {
     }
   }
 
-  // Validates that a number is a valid integer
-  private checkInteger(v: number, argN: number): void {
-    if (!isFinite(v)) {
-      throw new Error(
-        `bad argument #${argN} to 'random' (number has no integer representation)`,
-      );
-    }
-    if (!Number.isInteger(v)) {
-      throw new Error(
-        `bad argument #${argN} to 'random' (number has no integer representation)`,
-      );
-    }
-  }
-
   // `random()` yields float in [0, 1)
   // `random(0)` yields raw 64-bit signed integer (all bits random)
   // `random(n)` yields integer in [1, n]
@@ -106,7 +92,11 @@ export class LuaPRNG {
       return Number(rv >> 11n) * (1.0 / 9007199254740992.0);
     }
 
-    this.checkInteger(arg1, 1);
+    if (!isFinite(arg1) || !Number.isInteger(arg1)) {
+      throw new Error(
+        "bad argument #1 to 'random' (number has no integer representation)",
+      );
+    }
 
     if (arg2 === undefined) {
       if (arg1 === 0) {
@@ -117,19 +107,18 @@ export class LuaPRNG {
         return signed;
       }
       if (arg1 < 1) {
-        throw new Error(
-          "bad argument #1 to 'random' (interval is empty)",
-        );
+        throw new Error("bad argument #1 to 'random' (interval is empty)");
       }
       return Number(this.project(rv, BigInt(arg1) - 1n) + 1n);
     }
 
-    this.checkInteger(arg2, 2);
-
-    if (arg2 < arg1) {
+    if (!isFinite(arg2) || !Number.isInteger(arg2)) {
       throw new Error(
-        "bad argument #2 to 'random' (interval is empty)",
+        "bad argument #2 to 'random' (number has no integer representation)",
       );
+    }
+    if (arg2 < arg1) {
+      throw new Error("bad argument #2 to 'random' (interval is empty)");
     }
     return Number(this.project(rv, BigInt(arg2) - BigInt(arg1)) + BigInt(arg1));
   }
@@ -139,9 +128,15 @@ export class LuaPRNG {
     if (arg1 === undefined) {
       return this.autoSeed();
     }
-    this.checkInteger(arg1, 1);
-    if (arg2 !== undefined) {
-      this.checkInteger(arg2, 2);
+    if (!isFinite(arg1) || !Number.isInteger(arg1)) {
+      throw new Error(
+        "bad argument #1 to 'randomseed' (number has no integer representation)",
+      );
+    }
+    if (arg2 !== undefined && (!isFinite(arg2) || !Number.isInteger(arg2))) {
+      throw new Error(
+        "bad argument #2 to 'randomseed' (number has no integer representation)",
+      );
     }
     const s1 = BigInt(Math.trunc(arg1));
     const s2 = arg2 !== undefined ? BigInt(Math.trunc(arg2)) : 0n;
