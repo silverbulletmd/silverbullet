@@ -1257,11 +1257,10 @@ export function luaGet(
       errSf,
     );
   }
+
+  // In Lua reading with a nil key returns nil silently
   if (key === null || key === undefined) {
-    throw new LuaRuntimeError(
-      `attempt to index with a nil key`,
-      errSf,
-    );
+    return null;
   }
 
   if (obj instanceof LuaTable || obj instanceof LuaEnv) {

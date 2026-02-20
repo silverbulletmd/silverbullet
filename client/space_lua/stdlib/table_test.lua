@@ -63,7 +63,7 @@ do
     assertError(function() table.remove(t, #t + 2) end)
 end
 
--- nil and NaN keys are forbidden
+-- nil and NaN keys are forbidden on write
 do
     -- nil key at assignment
     assertError(function()
@@ -88,11 +88,9 @@ do
         local _ = { [0/0] = "bar" }
     end)
 
-    -- reading with nil key is also an error
-    assertError(function()
-        local t = {}
-        return t[nil]
-    end)
+    -- reading with nil key returns nil silently
+    local t = {}
+    assertEqual(t[nil], nil)
 end
 
 -- Reference semantics / aliasing (tables are mutable references)
@@ -218,7 +216,7 @@ do
     assertEqual(t, { 3, 2, 1 })
 
     table.sort(t, function(a, b) return a < b end)
-    assertEqual(t, { 3, 2, 1 })
+    assertEqual(t, { 1, 2, 3 })
 
     local data = { { name = "John", age = 30 }, { name = "Jane", age = 25 } }
     table.sort(data, function(a, b) return a.age < b.age end)
