@@ -185,6 +185,9 @@ do
     table.sort(t, function(a, b) return a > b end)
     assertEqual(t, { 3, 2, 1 })
 
+    table.sort(t, function(a, b) return a < b end)
+    assertEqual(t, { 3, 2, 1 })
+
     local data = { { name = "John", age = 30 }, { name = "Jane", age = 25 } }
     table.sort(data, function(a, b) return a.age < b.age end)
     assertEqual(data[1].name, "Jane")

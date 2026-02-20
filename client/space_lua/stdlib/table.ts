@@ -266,7 +266,7 @@ export const tableApi = new LuaTable({
       if (Array.isArray(tbl)) {
         return await asyncQuickSort(tbl, async (a, b) => {
           if (comp) {
-            return (await comp.call(sf, a, b)) ? -1 : 1;
+            return (await comp.call(sf, a, b)) ? -1 : 0;
           }
           return (a as any) < (b as any) ? -1 : 1;
         });
@@ -286,7 +286,7 @@ export const tableApi = new LuaTable({
       const cmp = async (a: any, b: any): Promise<number> => {
         if (comp) {
           const r = await luaCall(comp, [a, b], sf.astCtx ?? {}, sf);
-          return r ? -1 : 1;
+          return r ? -1 : 0;
         }
 
         const av = isTaggedFloat(a) ? a.value : a;
