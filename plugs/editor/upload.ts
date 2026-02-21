@@ -35,7 +35,7 @@ export async function saveFile(file: UploadFile) {
       "error",
     );
   }
-  const ensureFilename = (filename) => {
+  const ensureFilename = (filename: string) => {
     return isValidPath(filename)
       ? filename
       : `file.${
@@ -86,7 +86,7 @@ export async function saveFile(file: UploadFile) {
       } else {
         // we got a new path, so we must repeat the check
         desiredFilePath = confirmedFilePath;
-        confirmedFilePath = null;
+        confirmedFilePath = undefined;
       }
     } else {
       finalFilePath = desiredFilePath;
