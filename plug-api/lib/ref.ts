@@ -87,7 +87,7 @@ export function isValidName(name: string): boolean {
 export function isValidPath(path: string): path is Path {
   const ref = parseToRef(path);
 
-  return !!ref && ref.path === path;
+  return !!ref && ref.path === path && path !== "";
 }
 
 /**
