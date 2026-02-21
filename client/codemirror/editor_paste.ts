@@ -214,7 +214,7 @@ export function documentExtension(editor: Client) {
       );
       return;
     }
-    const ensureFilename = (filename) => {
+    const ensureFilename = (filename: string) => {
       return isValidPath(filename)
         ? filename
         : `file.${
@@ -227,7 +227,7 @@ export function documentExtension(editor: Client) {
         "error",
       );
     }
-    const doesFileExist = async (filePath) => {
+    const doesFileExist = async (filePath: string) => {
       try {
         await client.space.spacePrimitives.getFileMeta(filePath);
         return true;
@@ -285,7 +285,7 @@ export function documentExtension(editor: Client) {
         } else {
           // we got a new path, so we must repeat the check
           desiredFilePath = confirmedFilePath;
-          confirmedFilePath = null;
+          confirmedFilePath = undefined;
         }
       } else {
         finalFilePath = desiredFilePath;
