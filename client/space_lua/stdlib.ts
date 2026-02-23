@@ -467,6 +467,10 @@ export function luaBuildStandardEnv() {
   const env = new LuaEnv();
   // _G global
   env.set("_G", env);
+  // Lua version string - for now it signals Lua 5.4 compatibility with
+  // selective 5.5 features; kept non-standard so callers can distinguish
+  // Space Lua from a plain Lua runtime.
+  env.set("_VERSION", "Lua 5.4+");
   // Top-level builtins
   env.set("print", printFunction);
   env.set("assert", assertFunction);
