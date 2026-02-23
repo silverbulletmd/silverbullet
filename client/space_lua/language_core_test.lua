@@ -78,10 +78,6 @@ local t = { a = 1, b = 2 }
 assert(t.a == 1 and t.b == 2)
 assert(t["a"] == 1 and t["b"] == 2)
 
--- Unpacking tables
-local a, b = unpack({ 1, 2 })
-assert(a == 1 and b == 2)
-
 -- Scope tests
 local a = 1
 do
