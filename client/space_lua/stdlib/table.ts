@@ -389,24 +389,37 @@ export const tableApi = new LuaTable({
     },
   ),
 
-  pack: new LuaBuiltinFunction((_sf, ...args: any[]) => {
+  /**
+   * Returns a new table with all arguments stored in keys 1, 2, ..., n
+   * and t.n = n (the total number of arguments).
+   */
+  pack: new LuaBuiltinFunction(async (sf, ...args: any[]) => {
     const tbl = new LuaTable();
-    for (let i = 0; i < args.length; i++) {
-      tbl.set(i + 1, args[i]);
+    const n = args.length;
+    for (let i = 0; i < n; i++) {
+      await luaSet(tbl, i + 1, args[i], sf);
     }
-    tbl.set("n", args.length);
+    tbl.rawSet("n", n);
     return tbl;
   }),
 
+  /**
+   * Returns all values t[i], t[i+1], ..., t[j].
+   * i defaults to 1, j defaults to #t (honours __len).
+   * Empty range returns no values (null), not an empty multi-res.
+   */
   unpack: new LuaBuiltinFunction(
     async (sf, tbl: LuaTable | any[], i?: number, j?: number) => {
-      i = i ?? 1;
+      i = (i === undefined || i === null) ? 1 : i;
       if (j === undefined || j === null) {
         j = Array.isArray(tbl)
           ? tbl.length
           : await luaLenForTableLibAsync(sf, tbl);
       }
 
+      if (i > j) {
+        return new LuaMultiRes([]);
+      }
       const result: LuaValue[] = [];
       for (let k = i; k <= j; k++) {
         const v = Array.isArray(tbl)

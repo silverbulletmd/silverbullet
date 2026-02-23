@@ -263,6 +263,60 @@ do
     assertEqual(y, "y")
 end
 
+-- table.pack / table.unpack edge cases
+do
+  -- __newindex is honoured by pack
+  local log = {}
+  local proxy = setmetatable({}, {
+    __newindex = function(t, k, v)
+      log[#log + 1] = k
+      rawset(t, k, v)
+    end
+  })
+  -- pack into a fresh table, not through proxy; just verify t.n
+  local p = table.pack(10, 20, 30)
+  assertEqual(p.n, 3)
+  assertEqual(p[1], 10)
+  assertEqual(p[2], 20)
+  assertEqual(p[3], 30)
+
+  -- t.n is set even with nils inside
+  local p2 = table.pack(1, nil, 3)
+  assertEqual(p2.n, 3)
+  assertEqual(p2[1], 1)
+  assertEqual(p2[2], nil)
+  assertEqual(p2[3], 3)
+
+  -- empty pack
+  local p3 = table.pack()
+  assertEqual(p3.n, 0)
+
+  -- unpack empty range returns nothing
+  local t = {10, 20, 30}
+  local function count(...)  return select("#", ...) end
+  assertEqual(count(table.unpack(t, 2, 1)), 0)  -- i > j: empty range
+  assertEqual(count(table.unpack(t, 5, 4)), 0)  -- i > j: out of bounds
+
+  -- unpack respects explicit i and j
+  local a, b = table.unpack(t, 2, 3)
+  assertEqual(a, 20)
+  assertEqual(b, 30)
+
+  -- unpack with j beyond array length (reads nils)
+  local c, d, e = table.unpack(t, 2, 4)
+  assertEqual(c, 20)
+  assertEqual(d, 30)
+  assertEqual(e, nil)
+
+  -- unpack honours __index
+  local mt_tbl = setmetatable({}, {
+    __index = function(_, k) return k * 10 end
+  })
+  local x, y = table.unpack(mt_tbl, 1, 2)
+  assertEqual(x, 10)
+  assertEqual(y, 20)
+end
+
 -- __index / __newindex semantics
 do
     local backing = { a = 10 }

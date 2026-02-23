@@ -124,14 +124,6 @@ export const eachFunction = new LuaBuiltinFunction(
   },
 );
 
-const unpackFunction = new LuaBuiltinFunction(async (sf, t: LuaTable) => {
-  const values: LuaValue[] = [];
-  for (let i = 1; i <= (t as any).length; i++) {
-    values.push(await luaGet(t, i, sf.astCtx ?? null, sf));
-  }
-  return new LuaMultiRes(values);
-});
-
 const typeFunction = new LuaBuiltinFunction(
   (_sf, value: LuaValue): string | Promise<string> => {
     return luaTypeOf(value);
@@ -481,7 +473,6 @@ export function luaBuildStandardEnv() {
   env.set("type", typeFunction);
   env.set("tostring", tostringFunction);
   env.set("tonumber", tonumberFunction);
-  env.set("unpack", unpackFunction);
   env.set("select", selectFunction);
   env.set("next", nextFunction);
   // Iterators
