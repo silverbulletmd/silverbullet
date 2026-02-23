@@ -276,3 +276,34 @@ do
   local j2 = math.random()
   assertEquals(j1, j2, "determinism restored after re-seed")
 end
+
+-- frexp / ldexp
+do
+  -- frexp: x = m * 2^e, 0.5 <= |m| < 1
+  local m, e = math.frexp(8)
+  assertClose(m, 0.5, 1e-15, "frexp(8) m")
+  assertEquals(e, 4, "frexp(8) e")
+
+  local m2, e2 = math.frexp(1)
+  assertClose(m2, 0.5, 1e-15, "frexp(1) m")
+  assertEquals(e2, 1, "frexp(1) e")
+
+  local m3, e3 = math.frexp(-4)
+  assertClose(m3, -0.5, 1e-15, "frexp(-4) m")
+  assertEquals(e3, 3, "frexp(-4) e")
+
+  local m4, e4 = math.frexp(0)
+  assertEquals(m4, 0, "frexp(0) m")
+  assertEquals(e4, 0, "frexp(0) e")
+
+  -- ldexp: m * 2^e
+  assertClose(math.ldexp(0.5, 4), 8.0, 1e-15, "ldexp(0.5,4)")
+  assertClose(math.ldexp(0.5, 1), 1.0, 1e-15, "ldexp(0.5,1)")
+  assertClose(math.ldexp(-0.5, 3), -4.0, 1e-15, "ldexp(-0.5,3)")
+  assertClose(math.ldexp(0.0, 10), 0.0, 1e-15, "ldexp(0,10)")
+
+  -- round-trip: ldexp(frexp(x)) == x
+  local orig = 3.14159
+  local fm, fe = math.frexp(orig)
+  assertClose(math.ldexp(fm, fe), orig, 1e-14, "frexp/ldexp round-trip")
+end
