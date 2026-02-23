@@ -5,6 +5,10 @@ import {
   LuaTable,
 } from "../runtime.ts";
 import { isNegativeZero, isTaggedFloat, makeLuaFloat } from "../numeric.ts";
+import { LuaPRNG } from "./prng.ts";
+
+// One PRNG per module load, auto-seeded at startup
+const prng = new LuaPRNG();
 
 // Fast unwrap: avoids function call overhead for the common plain-number case
 function untagNumber(x: any): number {
@@ -74,51 +78,21 @@ export const mathApi = new LuaTable({
   random: new LuaBuiltinFunction((_sf, m?: number, n?: number) => {
     if (m !== undefined) m = untagNumber(m);
     if (n !== undefined) n = untagNumber(n);
-
-    if (m === undefined && n === undefined) {
-      return Math.random();
+    try {
+      return prng.random(m, n);
+    } catch (e: any) {
+      throw new LuaRuntimeError(e.message, _sf);
     }
-
-    if (!Number.isInteger(m)) {
-      throw new LuaRuntimeError(
-        "bad argument #1 to 'math.random' (integer expected)",
-        _sf,
-      );
-    }
-
-    if (n === undefined) {
-      if (m! == 0) {
-        const high = Math.floor(Math.random() * 0x100000000);
-        const low = Math.floor(Math.random() * 0x100000000);
-        let result = (BigInt(high) << 32n) | BigInt(low);
-        if (result & (1n << 63n)) {
-          result -= 1n << 64n;
-        }
-        return result;
-      }
-      if (m! < 1) {
-        throw new LuaRuntimeError(
-          "bad argument #1 to 'math.random' (interval is empty)",
-          _sf,
-        );
-      }
-      return Math.floor(Math.random() * m!) + 1;
-    }
-
-    if (!Number.isInteger(n!)) {
-      throw new LuaRuntimeError(
-        "bad argument #2 to 'math.random' (integer expected)",
-        _sf,
-      );
-    }
-
-    if (n! < m!) {
-      throw new LuaRuntimeError(
-        "bad argument #1 to 'math.random' (interval is empty)",
-        _sf,
-      );
-    }
-    return Math.floor(Math.random() * (n! - m! + 1)) + m!;
+  }),
+  /**
+   * Seeds the pseudo-random generator. With no arguments, uses a
+   * time-based seed. Returns the two seed integers used (Lua 5.4 contract).
+   */
+  randomseed: new LuaBuiltinFunction((_sf, x?: number, y?: number) => {
+    if (x !== undefined) x = untagNumber(x);
+    if (y !== undefined) y = untagNumber(y);
+    const [s1, s2] = prng.randomseed(x, y);
+    return new LuaMultiRes([s1, s2]);
   }),
 
   // Basic functions
