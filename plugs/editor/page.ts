@@ -31,9 +31,13 @@ export async function copyPage(
   const fromName = sourcePage || currentPage;
   const suggestedName = toName || fromName;
 
-  const newName = await editor.prompt(`Copy to page:`, suggestedName);
-
-  if (!newName) {
+  let newName = await editor.prompt(`Copy to page:`, suggestedName);
+  if (newName === undefined) {
+    return;
+  }
+  newName = newName.trim();
+  if (newName === "") {
+    editor.flashNotification("Must provide a non-empty page name.", "error");
     return;
   }
 
