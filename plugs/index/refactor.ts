@@ -316,7 +316,7 @@ async function renameDocument(
  * @returns True if the rename succeeded; otherwise, false.
  */
 export async function renamePrefixCommand(cmdDef: any) {
-  let oldPrefix = cmdDef.oldPrefix ??
+  const oldPrefix = cmdDef.oldPrefix ??
     await editor.prompt("Prefix to rename:", "");
   if (oldPrefix === undefined) {
     return false;
@@ -328,7 +328,7 @@ export async function renamePrefixCommand(cmdDef: any) {
     editor.flashNotification("Must provide a non-empty prefix.", "error");
     return false;
   }
-  let newPrefix = cmdDef.newPrefix ??
+  const newPrefix = cmdDef.newPrefix ??
     await editor.prompt("New prefix:", oldPrefix);
   if (newPrefix === undefined) {
     return false;
