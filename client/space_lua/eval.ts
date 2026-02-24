@@ -250,7 +250,7 @@ function arithCoercionErrorOrThrow(
   throw e;
 }
 
-function luaOp(
+export function luaOp(
   op: string,
   left: any,
   right: any,

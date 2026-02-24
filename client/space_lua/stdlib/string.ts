@@ -18,7 +18,7 @@ import {
 } from "./pattern.ts";
 
 function capturesToLua(caps: CaptureResult[]): any {
-  if (caps.length === 0) {return null;}
+  if (caps.length === 0) return null;
   if (caps.length === 1) {
     const c = caps[0];
     return "s" in c ? c.s : c.position;
@@ -32,8 +32,8 @@ export const stringApi = new LuaTable({
   byte: new LuaBuiltinFunction((_sf, s: string, i?: number, j?: number) => {
     i = i ?? 1;
     j = j ?? i;
-    if (j > s.length) {j = s.length;}
-    if (i < 1) {i = 1;}
+    if (j > s.length) j = s.length;
+    if (i < 1) i = 1;
     const result = [];
     for (let k = i; k <= j; k++) {
       result.push(s.charCodeAt(k - 1));
@@ -46,7 +46,7 @@ export const stringApi = new LuaTable({
   find: new LuaBuiltinFunction(
     (_sf, s: string, pattern: string, init = 1, plain = false) => {
       const r = patternFind(s, pattern, init, plain);
-      if (!r) {return null;}
+      if (!r) return null;
       const result: any[] = [r.start, r.end];
       for (const c of r.captures) {
         result.push("s" in c ? c.s : c.position);
@@ -65,7 +65,7 @@ export const stringApi = new LuaTable({
       const iter = patternGmatch(s, pattern, init);
       return () => {
         const caps = iter();
-        if (!caps) {return;}
+        if (!caps) return;
         return capturesToLua(caps);
       };
     },
@@ -84,7 +84,7 @@ export const stringApi = new LuaTable({
       } else if (repl instanceof LuaTable) {
         callbacks.replTable = (key: string) => {
           const v = repl.get(key);
-          if (v === null || v === undefined || v === false) {return null;}
+          if (v === null || v === undefined || v === false) return null;
           return String(v);
         };
       } else if (repl.call) {
@@ -121,12 +121,12 @@ export const stringApi = new LuaTable({
   match: new LuaBuiltinFunction(
     (_sf, s: string, pattern: string, init = 1) => {
       const caps = patternMatch(s, pattern, init);
-      if (!caps) {return null;}
+      if (!caps) return null;
       return capturesToLua(caps);
     },
   ),
   rep: new LuaBuiltinFunction((_sf, s: string, n: number, sep?: string) => {
-    if (n <= 0) {return "";}
+    if (n <= 0) return "";
     sep = sep ?? "";
     const parts: string[] = [];
     for (let i = 0; i < n; i++) {
