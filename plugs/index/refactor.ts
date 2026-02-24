@@ -38,9 +38,9 @@ export async function renamePageCommand(cmdDef: any) {
   if (newName === undefined) {
     return false;
   }
-  newName = newName.trim()
+  newName = newName.trim();
   if (newName === "") {
-    editor.flashNotification("Must provide a non-empty page name.", "error",);
+    editor.flashNotification("Must provide a non-empty page name.", "error");
     return false;
   }
   const pageList: [string, string][] = [[oldName + ".md", newName + ".md"]];
@@ -75,9 +75,9 @@ export async function renamePageLinkCommand() {
   if (newName === undefined) {
     return false;
   }
-  newName = newName.trim()
+  newName = newName.trim();
   if (newName === "") {
-    editor.flashNotification("Must provide a non-empty page name.", "error",);
+    editor.flashNotification("Must provide a non-empty page name.", "error");
     return false;
   }
   const pageList: [string, string][] = [[oldName + ".md", newName + ".md"]];
@@ -99,9 +99,12 @@ export async function renameDocumentCommand(cmdDef: any) {
   if (newName === undefined) {
     return false;
   }
-  newName = newName.trim()
+  newName = newName.trim();
   if (newName === "") {
-    editor.flashNotification("Must provide a non-empty document name.", "error",);
+    editor.flashNotification(
+      "Must provide a non-empty document name.",
+      "error",
+    );
     return false;
   }
   const pageList: [string, string][] = [[oldName, newName]];
@@ -372,7 +375,7 @@ export async function extractToPageCommand() {
   if (newName === undefined) {
     return false;
   }
-  newName = newName.trim()
+  newName = newName.trim();
   if (newName === "") {
     editor.flashNotification("Must provide a non-empty page title.", "error");
   }
