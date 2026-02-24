@@ -150,7 +150,11 @@ export async function applyQuery(
     const newResult = [];
     for (const item of results) {
       const itemEnv = buildItemEnv(query.objectVariable, item, env, sf);
-      newResult.push(await evalExpression(query.select, itemEnv, sf));
+      const val = await evalExpression(query.select, itemEnv, sf);
+      // Skip nil results - selecting a missing field produces no row
+      if (val !== null && val !== undefined) {
+        newResult.push(val);
+      }
     }
     results = newResult;
   }
