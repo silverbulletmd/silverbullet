@@ -18,11 +18,13 @@ All examples below use `index.tag 'tag'`.
 
 Group all tags by `name`:
 
-```sql
-from
-  index.tag 'tag'
-group by
-  name
+```lua
+query [[
+  from
+    index.tag 'tag'
+  group by
+    name
+]]
 ```
 
 ${query [[
@@ -36,12 +38,14 @@ ${query [[
 
 Group tags by `name` and `parent` together:
 
-```sql
-from
-  index.tag 'tag'
-group by
-  name,
-  parent
+```lua
+query [[
+  from
+    index.tag 'tag'
+  group by
+    name,
+    parent
+]]
 ```
 
 ${query [[
@@ -56,13 +60,15 @@ ${query [[
 
 Only show tags that appear more than 2 times:
 
-```sql
-from
-  index.tag 'tag'
-group by
-  name
-having
-  #group > 2
+```lua
+query [[
+  from
+    index.tag 'tag'
+  group by
+    name
+  having
+    #group > 2
+]]
 ```
 
 ${query [[
@@ -78,13 +84,15 @@ ${query [[
 
 Tags appearing exactly once:
 
-```sql
-from
-  index.tag 'tag'
-group by
-  name
-having
-  #group == 1
+```lua
+query [[
+  from
+    index.tag 'tag'
+  group by
+    name
+  having
+    #group == 1
+]]
 ```
 
 ${query [[
@@ -100,13 +108,15 @@ ${query [[
 
 Only show the group where `name` is "meta":
 
-```sql
-from
-  index.tag 'tag'
-group by
-  name
-having
-  name == 'meta'
+```lua
+query [[
+  from
+    index.tag 'tag'
+  group by
+    name
+  having
+    name == 'meta'
+]]
 ```
 
 ${query [[
@@ -122,15 +132,17 @@ ${query [[
 
 Groups by `name` and `parent`, keep only page-level tags with more than 1 entry:
 
-```sql
-from
-  index.tag 'tag'
-group by
-  name,
-  parent
-having
-  parent == 'page' and
-  #group > 1
+```lua
+query [[
+  from
+    index.tag 'tag'
+  group by
+    name,
+    parent
+  having
+    parent == 'page' and
+    #group > 1
+]]
 ```
 
 ${query [[
@@ -148,13 +160,15 @@ ${query [[
 
 Filter to page parents first, then group by `name`:
 
-```sql
-from
-  index.tag 'tag'
-where
-  parent == 'page'
-group by
-  name
+```lua
+query [[
+  from
+    index.tag 'tag'
+  where
+    parent == 'page'
+  group by
+    name
+]]
 ```
 
 ${query [[
@@ -170,15 +184,17 @@ ${query [[
 
 Filter to page parents, group by `name`, keep groups with 2+ items:
 
-```sql
-from
-  index.tag 'tag'
-where
-  parent == 'page'
-group by
-  name
-having
-  #group >= 2
+```lua
+query [[
+  from
+    index.tag 'tag'
+  where
+    parent == 'page'
+  group by
+    name
+  having
+    #group >= 2
+]]
 ```
 
 ${query [[
@@ -196,15 +212,17 @@ ${query [[
 
 Project each group into a table with `name` and `count`:
 
-```sql
-from
-  index.tag 'tag'
-group by
-  name
-select {
-  name = name,
-  count = #group
-}
+```lua
+query [[
+  from
+    index.tag 'tag'
+  group by
+    name
+  select {
+    name = name,
+    count = #group
+  }
+]]
 ```
 
 ${query [[
@@ -222,17 +240,19 @@ ${query [[
 
 Project both key parts and count:
 
-```sql
-from
-  index.tag 'tag'
-group by
-  name,
-  parent
-select {
-  name = name,
-  parent = parent,
-  count = #group
-}
+```lua
+query [[
+  from
+    index.tag 'tag'
+  group by
+    name,
+    parent
+  select {
+    name = name,
+    parent = parent,
+    count = #group
+  }
+]]
 ```
 
 ${query [[
@@ -252,20 +272,22 @@ ${query [[
 
 Filter, group, filter groups, then project:
 
-```sql
-from
-  index.tag 'tag'
-where
-  parent == 'page' or
-  parent == 'task'
-group by
-  name
-having
-  #group > 1
-select {
-  tag = name,
-  total = #group
-}
+```lua
+query [[
+  from
+    index.tag 'tag'
+  where
+    parent == 'page' or
+    parent == 'task'
+  group by
+    name
+  having
+    #group > 1
+  select {
+    tag = name,
+    total = #group
+  }
+]]
 ```
 
 ${query [[
@@ -288,13 +310,15 @@ ${query [[
 
 Sort groups by size, largest first:
 
-```sql
-from
-  index.tag 'tag'
-group by
-  name
-order by
-  #group desc
+```lua
+query [[
+  from
+    index.tag 'tag'
+  group by
+    name
+  order by
+    #group desc
+]]
 ```
 
 ${query [[
@@ -310,19 +334,21 @@ ${query [[
 
 Tags with 2+ occurrences, sorted by count, projected:
 
-```sql
-from
-  index.tag 'tag'
-group by
-  name
-having
-  #group >= 2
-order by
-  #group desc
-select {
-  tag = name,
-  count = #group
-}
+```lua
+query [[
+  from
+    index.tag 'tag'
+  group by
+    name
+  having
+    #group >= 2
+  order by
+    #group desc
+  select {
+    tag = name,
+    count = #group
+  }
+]]
 ```
 
 ${query [[
@@ -344,15 +370,17 @@ ${query [[
 
 Top 3 most used tags:
 
-```sql
-from
-  index.tag 'tag'
-group by
-  name
-order by
-  #group desc
-limit
-  3
+```lua
+query [[
+  from
+    index.tag 'tag'
+  group by
+    name
+  order by
+    #group desc
+  limit
+    3
+]]
 ```
 
 ${query [[
@@ -370,21 +398,23 @@ ${query [[
 
 Top 5 tags with 2+ uses, showing name and count:
 
-```sql
-from
-  index.tag 'tag'
-group by
-  name
-having
-  #group >= 2
-order by
-  #group desc
-select {
-  tag = name,
-  count = #group
-}
-limit
-  5
+```lua
+query [[
+  from
+    index.tag 'tag'
+  group by
+    name
+  having
+    #group >= 2
+  order by
+    #group desc
+  select {
+    tag = name,
+    count = #group
+  }
+  limit
+    5
+]]
 ```
 
 ${query [[
@@ -408,17 +438,19 @@ ${query [[
 
 The same works with `p =` binding:
 
-```sql
-from
-  p = index.tag 'tag'
-group by
-  p.name
-having
-  #group > 1
-select {
-  tag = name,
-  count = #group
-}
+```lua
+query [[
+  from
+    p = index.tag 'tag'
+  group by
+    p.name
+  having
+    #group > 1
+  select {
+    tag = name,
+    count = #group
+  }
+]]
 ```
 
 ${query [[
@@ -438,23 +470,25 @@ ${query [[
 
 Full pipeline with `p =` binding and two group keys:
 
-```sql
-from
-  p = index.tag 'tag'
-where
-  p.parent == 'page'
-group by
-  p.name,
-  p.parent
-having
-  #group >= 2
-order by
-  #group desc
-select {
-  tag = name,
-  parent = parent,
-  count = #group
-}
+```lua
+query [[
+  from
+    p = index.tag 'tag'
+  where
+    p.parent == 'page'
+  group by
+    p.name,
+    p.parent
+  having
+    #group >= 2
+  order by
+    #group desc
+  select {
+    tag = name,
+    parent = parent,
+    count = #group
+  }
+]]
 ```
 
 ${query [[
@@ -480,13 +514,15 @@ ${query [[
 
 For single-key grouping, `key` holds the value directly:
 
-```sql
-from
-  index.tag 'tag'
-group by
-  name
-having
-  key == 'meta'
+```lua
+query [[
+  from
+    index.tag 'tag'
+  group by
+    name
+  having
+    key == 'meta'
+]]
 ```
 
 ${query [[
@@ -502,15 +538,17 @@ ${query [[
 
 For multi-key grouping, `key` is a table indexed from 1:
 
-```sql
-from
-  index.tag 'tag'
-group by
-  name,
-  parent
-having
-  key[1] == 'meta' and
-  key[2] == 'page'
+```lua
+query [[
+  from
+    index.tag 'tag'
+  group by
+    name,
+    parent
+  having
+    key[1] == 'meta' and
+    key[2] == 'page'
+]]
 ```
 
 ${query [[
