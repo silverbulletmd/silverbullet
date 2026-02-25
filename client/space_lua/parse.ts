@@ -17,6 +17,7 @@ import type {
   LuaFunctionCallStatement,
   LuaFunctionName,
   LuaIfStatement,
+  LuaReturnStatement,
   LuaLValue,
   LuaOrderBy,
   LuaPrefixExpression,
@@ -1558,4 +1559,95 @@ export function parseExpressionString(
 ): LuaExpression {
   const parsedLua = parse(`_(${expr})`) as LuaBlock;
   return (parsedLua.statements[0] as LuaFunctionCallStatement).call.args[0];
+}
+
+export function parseInterpolationBlock(code: string): LuaBlock {
+  // Try as a single expression
+  try {
+    const expr = parseExpressionString(code);
+    return {
+      type: "Block",
+      statements: [{
+        type: "Return",
+        expressions: [expr],
+        ctx: expr.ctx,
+      } as LuaReturnStatement],
+      ctx: expr.ctx,
+    };
+  } catch {
+    // Not a single expression, fall through
+  }
+
+  // Scan backwards for the last `;` or `\n` outside strings/comments,
+  // and insert `return ` before the trailing part.
+  const lastSep = findLastSeparator(code);
+  if (lastSep >= 0) {
+    const prefix = code.substring(0, lastSep + 1);
+    const suffix = code.substring(lastSep + 1).trim();
+    if (suffix && !suffix.startsWith("return")) {
+      // Try as a block with `return` prepended to the last segment
+      try {
+        return parse(prefix + " return " + suffix);
+      } catch {
+        // Fall through to plain block parse
+      }
+    }
+  }
+
+  // Plain block (e.g. `a = 1` or `local x = 1; return x + 1`)
+  const block = parse(code);
+  if (block.statements.length > 0) {
+    const lastStmt = block.statements[block.statements.length - 1];
+    // Implicit return for trailing function call
+    if (lastStmt.type === "FunctionCallStatement") {
+      block.statements[block.statements.length - 1] = {
+        type: "Return",
+        expressions: [lastStmt.call],
+        ctx: lastStmt.ctx,
+      } as LuaReturnStatement;
+    }
+  }
+  return block;
+}
+
+// Find index of last `;` or `\n` not inside a string literal
+function findLastSeparator(code: string): number {
+  let last = -1;
+  let i = 0;
+  while (i < code.length) {
+    const ch = code[i];
+    // Skip string literals
+    if (ch === '"' || ch === "'") {
+      i++;
+      while (i < code.length && code[i] !== ch) {
+        if (code[i] === "\\") i++; // skip escaped char
+        i++;
+      }
+      i++; // closing quote
+      continue;
+    }
+    // Skip long strings [[ ... ]] / [=[ ... ]=]
+    if (ch === "[") {
+      let eq = 0;
+      let j = i + 1;
+      while (j < code.length && code[j] === "=") { eq++; j++; }
+      if (j < code.length && code[j] === "[") {
+        const close = "]" + "=".repeat(eq) + "]";
+        const end = code.indexOf(close, j + 1);
+        i = end >= 0 ? end + close.length : code.length;
+        continue;
+      }
+    }
+    // Skip line comments
+    if (ch === "-" && code[i + 1] === "-") {
+      i += 2;
+      while (i < code.length && code[i] !== "\n") i++;
+      continue;
+    }
+    if (ch === ";" || ch === "\n") {
+      last = i;
+    }
+    i++;
+  }
+  return last;
 }

@@ -7,9 +7,8 @@ import {
   isCursorInRange,
 } from "./util.ts";
 import type { Client } from "../client.ts";
-import { parse as parseLua } from "../space_lua/parse.ts";
-import type { LuaBlock, LuaFunctionCallStatement } from "../space_lua/ast.ts";
-import { evalExpression } from "../space_lua/eval.ts";
+import { parseInterpolationBlock } from "../space_lua/parse.ts";
+import { evalBlockForValue } from "../space_lua/eval.ts";
 import {
   LuaEnv,
   LuaRuntimeError,
@@ -86,10 +85,7 @@ export function luaDirectivePlugin(client: Client) {
                   return "**Error:** Empty Lua expression";
                 }
                 try {
-                  const parsedLua = parseLua(`_(${bodyText})`) as LuaBlock;
-                  const expr =
-                    (parsedLua.statements[0] as LuaFunctionCallStatement).call
-                      .args[0];
+                  const parsedBlock = parseInterpolationBlock(bodyText);
 
                   const tl = new LuaEnv();
                   tl.setLocal(
@@ -104,15 +100,15 @@ export function luaDirectivePlugin(client: Client) {
                   );
                   const sf = LuaStackFrame.createWithGlobalEnv(
                     client.clientSystem.spaceLuaEnv.env,
-                    expr.ctx,
+                    parsedBlock.ctx,
                   );
                   const threadLocalizedEnv = new LuaEnv(
                     client.clientSystem.spaceLuaEnv.env,
                   );
                   threadLocalizedEnv.setLocal("_CTX", tl);
                   const rawResult = singleResult(
-                    await evalExpression(
-                      expr,
+                    await evalBlockForValue(
+                      parsedBlock,
                       threadLocalizedEnv,
                       sf,
                     ),

@@ -12,12 +12,11 @@ import {
 } from "@silverbulletmd/silverbullet/lib/ref";
 import { isLocalURL } from "@silverbulletmd/silverbullet/lib/resolve";
 import { mime } from "mimetypes";
-import { LuaStackFrame, LuaTable } from "../space_lua/runtime.ts";
+import { LuaStackFrame, LuaTable, singleResult } from "../space_lua/runtime.ts";
 import { parseMarkdown } from "../markdown_parser/parser.ts";
 import { renderExpressionResult } from "./result_render.ts";
-import { parseExpressionString } from "../space_lua/parse.ts";
-import { evalExpression } from "../space_lua/eval.ts";
-import type { LuaExpression } from "../space_lua/ast.ts";
+import { parseInterpolationBlock } from "../space_lua/parse.ts";
+import { evalBlockForValue } from "../space_lua/eval.ts";
 
 import { fsEndpoint } from "../spaces/constants.ts";
 import {
@@ -92,7 +91,7 @@ export async function expandMarkdown(
       n.type === "LuaDirective" && options.expandLuaDirectives !== false
     ) {
       const expr = findNodeOfType(n, "LuaExpressionDirective") as
-        | LuaExpression
+        | ParseTree
         | null;
       if (!expr) {
         return;
@@ -102,10 +101,9 @@ export async function expandMarkdown(
       try {
         const sf = LuaStackFrame.createWithGlobalEnv(sle.env);
 
-        let result = await evalExpression(
-          parseExpressionString(exprText),
-          sle.env,
-          sf,
+        const parsedBlock = parseInterpolationBlock(exprText);
+        let result = singleResult(
+          await evalBlockForValue(parsedBlock, sle.env, sf),
         );
 
         if (result?.markdown) {

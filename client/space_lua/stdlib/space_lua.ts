@@ -1,6 +1,6 @@
-import { parseExpressionString } from "../parse.ts";
+import { parseExpressionString, parseInterpolationBlock } from "../parse.ts";
 import type { LuaExpression } from "../ast.ts";
-import { evalExpression } from "../eval.ts";
+import { evalBlockForValue, evalExpression } from "../eval.ts";
 import {
   LuaBuiltinFunction,
   LuaEnv,
@@ -9,7 +9,6 @@ import {
   LuaTable,
   luaToString,
   luaValueToJS,
-  singleResult,
 } from "../runtime.ts";
 
 /**
@@ -62,7 +61,6 @@ export async function interpolateLuaString(
 
     result += template.slice(currentIndex, startIndex);
 
-    // Find matching closing brace by counting nesting
     let nestLevel = 1;
     let endIndex = startIndex + 2;
     while (nestLevel > 0 && endIndex < template.length) {
@@ -82,11 +80,10 @@ export async function interpolateLuaString(
 
     const expr = template.slice(startIndex + 2, endIndex);
     try {
-      const parsedExpr = parseExpressionString(expr);
+      const parsedBlock = parseInterpolationBlock(expr);
       const env = createAugmentedEnv(sf, envAugmentation);
-      // Do `luaToString` before `luaValueToJS` to preserve tagged float
-      // formatting.
-      const luaResult = singleResult(await evalExpression(parsedExpr, env, sf));
+      const luaResult = await evalBlockForValue(parsedBlock, env, sf);
+
       result += await luaToString(luaResult);
     } catch (e: any) {
       throw new LuaRuntimeError(
