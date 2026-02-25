@@ -17,11 +17,11 @@ import type {
   LuaFunctionCallStatement,
   LuaFunctionName,
   LuaIfStatement,
-  LuaReturnStatement,
   LuaLValue,
   LuaOrderBy,
   LuaPrefixExpression,
   LuaQueryClause,
+  LuaReturnStatement,
   LuaStatement,
   LuaTableField,
 } from "./ast.ts";
@@ -1578,59 +1578,64 @@ export function parseInterpolationBlock(code: string): LuaBlock {
     // Not a single expression, fall through
   }
 
-  // Scan backwards for the last `;` or `\n` outside strings/comments,
-  // and insert `return ` before the trailing part.
-  const lastSep = findLastSeparator(code);
-  if (lastSep >= 0) {
-    const prefix = code.substring(0, lastSep + 1);
-    const suffix = code.substring(lastSep + 1).trim();
-    if (suffix && !suffix.startsWith("return")) {
-      // Try as a block with `return` prepended to the last segment
-      try {
-        return parse(prefix + " return " + suffix);
-      } catch {
-        // Fall through to plain block parse
-      }
+  // Try splitting at separators (right to left) to find a valid block
+  // and trailing return expression
+  const separators = findAllSeparators(code);
+  for (const sepIdx of separators) {
+    const prefix = code.substring(0, sepIdx + 1);
+    const suffix = code.substring(sepIdx + 1).trim();
+    if (!prefix.trim() || !suffix || suffix.startsWith("return")) continue;
+
+    try {
+      return parse(prefix + " return " + suffix);
+    } catch {
+      continue;
     }
   }
 
-  // Plain block (e.g. `a = 1` or `local x = 1; return x + 1`)
+  // Plain block (e.g. `a = 1`, `print(x)` or `return x`)
   const block = parse(code);
   if (block.statements.length > 0) {
-    const lastStmt = block.statements[block.statements.length - 1];
-    // Implicit return for trailing function call
-    if (lastStmt.type === "FunctionCallStatement") {
-      block.statements[block.statements.length - 1] = {
+    // Skip trailing semicolons to find last meaningful statement
+    let lastIdx = block.statements.length - 1;
+    while (lastIdx >= 0 && block.statements[lastIdx].type === "Semicolon") {
+      lastIdx--;
+    }
+    if (
+      lastIdx >= 0 && block.statements[lastIdx].type === "FunctionCallStatement"
+    ) {
+      block.statements[lastIdx] = {
         type: "Return",
-        expressions: [lastStmt.call],
-        ctx: lastStmt.ctx,
+        expressions: [block.statements[lastIdx].call],
+        ctx: block.statements[lastIdx].ctx,
       } as LuaReturnStatement;
     }
   }
   return block;
 }
 
-// Find index of last `;` or `\n` not inside a string literal
-function findLastSeparator(code: string): number {
-  let last = -1;
+// Find all `;` and `\n` positions outside strings/comments, rightmost first
+function findAllSeparators(code: string): number[] {
+  const result: number[] = [];
   let i = 0;
   while (i < code.length) {
     const ch = code[i];
-    // Skip string literals
     if (ch === '"' || ch === "'") {
       i++;
       while (i < code.length && code[i] !== ch) {
-        if (code[i] === "\\") i++; // skip escaped char
+        if (code[i] === "\\") i++;
         i++;
       }
-      i++; // closing quote
+      i++;
       continue;
     }
-    // Skip long strings [[ ... ]] / [=[ ... ]=]
     if (ch === "[") {
       let eq = 0;
       let j = i + 1;
-      while (j < code.length && code[j] === "=") { eq++; j++; }
+      while (j < code.length && code[j] === "=") {
+        eq++;
+        j++;
+      }
       if (j < code.length && code[j] === "[") {
         const close = "]" + "=".repeat(eq) + "]";
         const end = code.indexOf(close, j + 1);
@@ -1638,16 +1643,16 @@ function findLastSeparator(code: string): number {
         continue;
       }
     }
-    // Skip line comments
-    if (ch === "-" && code[i + 1] === "-") {
+    if (ch === "-" && i + 1 < code.length && code[i + 1] === "-") {
       i += 2;
       while (i < code.length && code[i] !== "\n") i++;
       continue;
     }
     if (ch === ";" || ch === "\n") {
-      last = i;
+      result.push(i);
     }
     i++;
   }
-  return last;
+  result.reverse(); // rightmost first
+  return result;
 }
