@@ -16,6 +16,7 @@ import {
   patternGsub,
   patternMatch,
 } from "./pattern.ts";
+import { strPackFn, strPackSizeFn, strUnpackFn } from "./string_pack.ts";
 
 function capturesToLua(caps: CaptureResult[]): any {
   if (caps.length === 0) return null;
@@ -164,9 +165,14 @@ export const stringApi = new LuaTable({
     }
     return "";
   }),
+
   split: new LuaBuiltinFunction((_sf, s: string, sep: string) => {
     return s.split(sep);
   }),
+
+  pack: strPackFn,
+  unpack: strUnpackFn,
+  packsize: strPackSizeFn,
 
   // Non-standard extensions
   startsWith: new LuaBuiltinFunction((_sf, s: string, prefix: string) => {
