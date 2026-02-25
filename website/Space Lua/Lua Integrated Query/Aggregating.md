@@ -105,31 +105,6 @@ ${query [[
   }
 ]]}
 
-## Using `_` as the item variable
-
-Aggregate expressions referencing `_` directly:
-
-```lua
-from
-  index.tag 'page'
-group by
-  tags[1]
-select {
-  tag = key,
-  total = count(_.name)
-}
-```
-${query [[
-  from
-    index.tag 'page'
-  group by
-    tags[1]
-  select {
-    tag = key,
-    total = count(_.name)
-  }
-]]}
-
 ## Group filtering with `having` and aggregates
 
 Only groups with more than two items:
@@ -188,7 +163,7 @@ ${query [[
 
 ## Custom aggregators
 
-Custom aggregator functions may be defined by the user. See [[website/CustomAggregates.md]] for details and usage examples.
+Custom aggregator functions may be defined by the user using [[Library/Std/APIs/Aggregate|dedicated API]].
 
 # See also
 
