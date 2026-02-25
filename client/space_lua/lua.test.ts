@@ -53,6 +53,10 @@ Deno.test("[Lua] String tests", async () => {
   await runLuaTest("./stdlib/string_test.lua");
 });
 
+Deno.test("[Lua] String pack/unpack/packsize tests", async () => {
+  await runLuaTest("./stdlib/string_pack_test.lua");
+});
+
 Deno.test("[Lua] Space Lua tests", async () => {
   await runLuaTest("./stdlib/space_lua_test.lua");
 });
