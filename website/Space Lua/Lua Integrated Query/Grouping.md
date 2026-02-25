@@ -1,3 +1,5 @@
+#maturity/experimental
+
 The `group by` and `having` clauses extend [[Space Lua/Lua Integrated Query]] with SQL-style grouping and aggregate filtering.
 
 After `group by`, each result row has two fields:
