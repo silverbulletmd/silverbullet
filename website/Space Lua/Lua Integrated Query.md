@@ -97,7 +97,7 @@ Example:
 ${query[[
   from p = index.tag "tag"
   group by p.name
-  select { name = name, count = #group }
+  select { name = p.name, count = #p.group }
   limit 5
 ]]}
 
