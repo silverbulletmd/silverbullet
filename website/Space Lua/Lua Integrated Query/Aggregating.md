@@ -1,4 +1,4 @@
-The `group by` and `having` clauses of [[Space Lua/ lua integrated query]] support aggregate functions for grouped analysis, following SQL-style semantics.
+The `group by` and `having` clauses of [[Space Lua/Lua Integrated Query]] support aggregate functions for grouped analysis, following SQL-style semantics.
 
 After `group by`, each result row contains:
 
@@ -23,7 +23,7 @@ Grouping pages by their first tag, and computing the count and aggregate statist
 **Without binding variable:**
 
 ```lua
-from
+query[[from
   index.tag 'page'
 group by
   tags[1]
@@ -33,7 +33,7 @@ select {
   min_size = min(size),
   max_size = max(size),
   avg_size = avg(size)
-}
+}]]
 ```
 ${query [[
   from
@@ -52,17 +52,19 @@ ${query [[
 **With binding variable:**
 
 ```lua
-from
-  p = index.tag 'page'
-group by
-  p.tags[1]
-select {
-  tag = key,
-  total = count(p.name),
-  min_size = min(p.size),
-  max_size = max(p.size),
-  avg_size = avg(p.size)
-}
+query[[
+  from
+    p = index.tag 'page'
+  group by
+    p.tags[1]
+  select {
+    tag = key,
+    total = count(p.name),
+    min_size = min(p.size),
+    max_size = max(p.size),
+    avg_size = avg(p.size)
+  }
+]]
 ```
 ${query [[
   from
@@ -81,16 +83,18 @@ ${query [[
 ## Multi-key grouping and aggregate
 
 ```lua
-from
-  index.tag 'page'
-group by
-  tags[1],
-  tags[2]
-select {
-  first = key[1],
-  second = key[2],
-  count = count(name)
-}
+query[[
+  from
+    index.tag 'page'
+  group by
+    tags[1],
+    tags[2]
+  select {
+    first = key[1],
+    second = key[2],
+    count = count(name)
+  }
+]]
 ```
 ${query [[
   from
@@ -110,16 +114,18 @@ ${query [[
 Only groups with more than two items:
 
 ```lua
-from
-  index.tag 'page'
-group by
-  tags[1]
-having
-  count(name) > 2
-select {
-  tag = key,
-  total = count(name)
-}
+query[[
+  from
+    index.tag 'page'
+  group by
+    tags[1]
+  having
+    count(name) > 2
+  select {
+    tag = key,
+    total = count(name)
+  }
+]]
 ```
 ${query [[
   from
@@ -139,15 +145,17 @@ ${query [[
 Non-aggregated field references, such as `name` in `select`, refer to the first item in the group, matching common SQL and MySQL semantics.
 
 ```lua
-from
-  index.tag 'page'
-group by
-  tags[1]
-select {
-  tag = key,
-  first_page = name,
-  n = count(name)
-}
+query[[
+  from
+    index.tag 'page'
+  group by
+    tags[1]
+  select {
+    tag = key,
+    first_page = name,
+    n = count(name)
+  }
+]]
 ```
 ${query [[
   from
@@ -167,5 +175,5 @@ Custom aggregator functions may be defined by the user using [[Library/Std/APIs/
 
 # See also
 
-- [[website/Lua Integrated Query/Grouping.md]] — grouping queries without aggregation
-- [[website/Lua Integrated Query.md]] — full LIQ language reference and listing available aggregators
+- [[Space Lua/Lua Integrated Query/Grouping]] — grouping queries without aggregation
+- [[Space Lua/Lua Integrated Query]] — full LIQ language reference and listing available aggregators
