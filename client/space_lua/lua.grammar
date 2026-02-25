@@ -95,7 +95,9 @@ QueryClause {
   WhereClause |
   OrderByClause |
   SelectClause |
-  LimitClause
+  LimitClause |
+  GroupByClause |
+  HavingClause
 }
 
 FromClause { ckw<"from"> (Name "=")? exp }
@@ -104,6 +106,8 @@ LimitClause { ckw<"limit"> exp ("," exp)? }
 OrderByClause { ckw<"order">  ckw<"by"> list<OrderBy> }
 OrderBy { exp ckw<"desc">? }
 SelectClause { ckw<"select"> exp }
+GroupByClause { ckw<"group"> ckw<"by"> list<exp> }
+HavingClause { ckw<"having"> exp }
 
 
 field[@isGroup=Field] {

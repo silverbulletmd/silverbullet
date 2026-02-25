@@ -250,7 +250,7 @@ function arithCoercionErrorOrThrow(
   throw e;
 }
 
-function luaOp(
+export function luaOp(
   op: string,
   left: any,
   right: any,
@@ -904,6 +904,14 @@ export function evalExpression(
                     );
                     query.offset = Number(offsetVal);
                   }
+                  break;
+                }
+                case "GroupBy": {
+                  query.groupBy = clause.expressions;
+                  break;
+                }
+                case "Having": {
+                  query.having = clause.expression;
                   break;
                 }
               }
