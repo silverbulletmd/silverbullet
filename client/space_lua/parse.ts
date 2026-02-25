@@ -1596,7 +1596,6 @@ export function parseInterpolationBlock(code: string): LuaBlock {
   // Plain block (e.g. `a = 1`, `print(x)` or `return x`)
   const block = parse(code);
   if (block.statements.length > 0) {
-    // Skip trailing semicolons to find last meaningful statement
     let lastIdx = block.statements.length - 1;
     while (lastIdx >= 0 && block.statements[lastIdx].type === "Semicolon") {
       lastIdx--;
@@ -1604,10 +1603,11 @@ export function parseInterpolationBlock(code: string): LuaBlock {
     if (
       lastIdx >= 0 && block.statements[lastIdx].type === "FunctionCallStatement"
     ) {
+      const callStmt = block.statements[lastIdx] as LuaFunctionCallStatement;
       block.statements[lastIdx] = {
         type: "Return",
-        expressions: [block.statements[lastIdx].call],
-        ctx: block.statements[lastIdx].ctx,
+        expressions: [callStmt.call],
+        ctx: callStmt.ctx,
       } as LuaReturnStatement;
     }
   }
