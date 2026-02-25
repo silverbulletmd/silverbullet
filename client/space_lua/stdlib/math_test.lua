@@ -88,12 +88,22 @@ end
 -- modf
 do
   local i, f = math.modf(3.5)
+  assertEquals(math.type(i), "integer", "modf int part is integer")
+  assertEquals(math.type(f), "float",   "modf frac part is float")
   assertEquals(i, 3, "modf(3.5) int")
   assertClose(f, 0.5, 1e-12, "modf(3.5) frac")
 
   local i2, f2 = math.modf(-3.5)
+  assertEquals(math.type(i2), "integer", "modf neg int part is integer")
+  assertEquals(math.type(f2), "float",   "modf neg frac part is float")
   assertEquals(i2, -3, "modf(-3.5) int")
   assertClose(f2, -0.5, 1e-12, "modf(-3.5) frac")
+
+  local i3, f3 = math.modf(4.0)
+  assertEquals(math.type(i3), "integer", "modf whole int part is integer")
+  assertEquals(math.type(f3), "float", "modf whole frac is float")
+  assertEquals(i3, 4, "modf(4.0) int")
+  assertEquals(f3, 0.0, "modf(4.0) frac")
 end
 
 -- sqrt/exp/log/pow
@@ -167,6 +177,37 @@ do
   assertEquals(f1, 4, "floor(8*0.5)")
   assertEquals(f2, 3, "floor(8*0.49)")
   assertEquals(f3, 4, "floor(9*0.5)")
+end
+
+-- math.tointeger
+do
+  -- integers pass through unchanged
+  assertEquals(math.tointeger(0),  0,  "tointeger(0)")
+  assertEquals(math.tointeger(42), 42, "tointeger(42)")
+  assertEquals(math.tointeger(-7), -7, "tointeger(-7)")
+  assertEquals(math.type(math.tointeger(1)), "integer", "tointeger result is integer")
+
+  -- float with whole value yields integer
+  assertEquals(math.tointeger(3.0),  3,  "tointeger(3.0)")
+  assertEquals(math.tointeger(-1.0), -1, "tointeger(-1.0)")
+  assertEquals(math.type(math.tointeger(3.0)), "integer", "tointeger(3.0) type")
+
+  -- float with fractional part yields nil
+  assertEquals(math.tointeger(3.5),  nil, "tointeger(3.5)")
+  assertEquals(math.tointeger(-0.1), nil, "tointeger(-0.1)")
+
+  -- string coercion: integer-valued string yields integer
+  assertEquals(math.tointeger("3"),  3,   "tointeger(string int)")
+  assertEquals(math.tointeger("3.0"), 3,  "tointeger(string float whole)")
+  assertEquals(math.tointeger("3.5"), nil, "tointeger(string float frac)")
+  assertEquals(math.tointeger("x"),   nil, "tointeger(non-numeric string)")
+
+  -- nil yields nil
+  assertEquals(math.tointeger(nil),  nil, "tointeger(nil)")
+
+  -- inf and nan yields nil
+  assertEquals(math.tointeger(1/0),  nil, "tointeger(inf)")
+  assertEquals(math.tointeger(0/0),  nil, "tointeger(nan)")
 end
 
 -- random and randomseed

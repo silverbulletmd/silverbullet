@@ -19,6 +19,7 @@ import {
   luaEnsureCloseStack,
   LuaEnv,
   luaEquals,
+  luaFormatNumber,
   LuaFunction,
   luaGet,
   luaIndexValue,
@@ -333,10 +334,10 @@ export function luaOp(
             return v as string;
           }
           if (typeof v === "number") {
-            return String(v);
+            return luaFormatNumber(v);
           }
           if (isTaggedFloat(v)) {
-            return String(v.value);
+            return luaFormatNumber(v.value, "float");
           }
           const t = luaTypeName(v);
           throw new LuaRuntimeError(

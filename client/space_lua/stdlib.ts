@@ -1,4 +1,5 @@
 import {
+  getMetatable,
   type ILuaFunction,
   isILuaFunction,
   isLuaTable,
@@ -17,6 +18,7 @@ import {
   luaToString,
   luaTypeOf,
   type LuaValue,
+  singleResult,
 } from "./runtime.ts";
 import { stringApi } from "./stdlib/string.ts";
 import { tableApi } from "./stdlib/table.ts";
@@ -32,6 +34,7 @@ import { luaLoad } from "./stdlib/load.ts";
 import { cryptoApi } from "./stdlib/crypto.ts";
 import { netApi } from "./stdlib/net.ts";
 import { isTaggedFloat, makeLuaFloat } from "./numeric.ts";
+import { isPromise } from "./rp.ts";
 
 const printFunction = new LuaBuiltinFunction(async (_sf, ...args) => {
   console.log(
@@ -121,23 +124,41 @@ export const eachFunction = new LuaBuiltinFunction(
   },
 );
 
-const unpackFunction = new LuaBuiltinFunction(async (sf, t: LuaTable) => {
-  const values: LuaValue[] = [];
-  for (let i = 1; i <= (t as any).length; i++) {
-    values.push(await luaGet(t, i, sf.astCtx ?? null, sf));
-  }
-  return new LuaMultiRes(values);
-});
-
 const typeFunction = new LuaBuiltinFunction(
   (_sf, value: LuaValue): string | Promise<string> => {
     return luaTypeOf(value);
   },
 );
 
-const tostringFunction = new LuaBuiltinFunction((_sf, value: any) => {
-  return luaToString(value);
-});
+// tostring() checks `__tostring` metamethod first (with live SF), then
+// falls back to the default `luaToString` representation.
+const tostringFunction = new LuaBuiltinFunction(
+  (sf, value: any): string | Promise<string> => {
+    const mt = getMetatable(value, sf);
+    if (mt) {
+      const mm = mt.rawGet("__tostring");
+      if (mm !== undefined && mm !== null) {
+        const ctx = sf.astCtx ?? {};
+        const r = luaCall(mm, [value], ctx as any, sf);
+        const unwrap = (v: any): string => {
+          const s = singleResult(v);
+          if (typeof s !== "string") {
+            throw new LuaRuntimeError(
+              "'__tostring' must return a string",
+              sf,
+            );
+          }
+          return s;
+        };
+        if (isPromise(r)) {
+          return (r as Promise<any>).then(unwrap);
+        }
+        return unwrap(r);
+      }
+    }
+    return luaToString(value);
+  },
+);
 
 const tonumberFunction = new LuaBuiltinFunction(
   (sf, value: LuaValue, base?: number) => {
@@ -255,7 +276,7 @@ const setmetatableFunction = new LuaBuiltinFunction(
 
 const rawlenFunction = new LuaBuiltinFunction(
   (_sf, value: LuaValue) => {
-    return luaLen(value, _sf);
+    return luaLen(value, _sf, true);
   },
 );
 
@@ -446,13 +467,16 @@ export function luaBuildStandardEnv() {
   const env = new LuaEnv();
   // _G global
   env.set("_G", env);
+  // Lua version string - for now it signals Lua 5.4 compatibility with
+  // selective 5.5 features; kept non-standard so callers can distinguish
+  // Space Lua from a plain Lua runtime.
+  env.set("_VERSION", "Lua 5.4+");
   // Top-level builtins
   env.set("print", printFunction);
   env.set("assert", assertFunction);
   env.set("type", typeFunction);
   env.set("tostring", tostringFunction);
   env.set("tonumber", tonumberFunction);
-  env.set("unpack", unpackFunction);
   env.set("select", selectFunction);
   env.set("next", nextFunction);
   // Iterators

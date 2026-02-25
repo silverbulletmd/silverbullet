@@ -4,7 +4,7 @@ import {
   LuaRuntimeError,
   LuaTable,
 } from "../runtime.ts";
-import { isNegativeZero, isTaggedFloat } from "../numeric.ts";
+import { isNegativeZero, isTaggedFloat, makeLuaFloat } from "../numeric.ts";
 import { LuaPRNG } from "./prng.ts";
 
 // One PRNG per module load, auto-seeded at startup
@@ -44,6 +44,28 @@ export const mathApi = new LuaTable({
     }
     return null;
   }),
+
+  /**
+   * If the value x is representable as a Lua integer, returns an integer
+   * with that value. Otherwise returns nil.
+   * Strings are NOT accepted — only Lua number values.
+   */
+  tointeger: new LuaBuiltinFunction((_sf, x?: any) => {
+    if (typeof x === "number") {
+      return Number.isInteger(x) && isFinite(x) ? x : null;
+    }
+    if (isTaggedFloat(x)) {
+      const n = x.value;
+      return Number.isInteger(n) && isFinite(n) ? n : null;
+    }
+    if (typeof x === "string") {
+      const n = untagNumber(x); // Number(x) coerces the string
+      if (isNaN(n) || !isFinite(n) || !Number.isInteger(n)) return null;
+      return n;
+    }
+    return null;
+  }),
+
   /**
    * When called without arguments, returns a pseudo-random float with
    * uniform distribution in the range [0,1). When called with two
@@ -91,7 +113,8 @@ export const mathApi = new LuaTable({
   modf: new LuaBuiltinFunction((_sf, x: number) => {
     const xn = untagNumber(x);
     const int = Math.trunc(xn);
-    const frac = xn - int;
+    // Guarantee that the `frac` part is always Lua float
+    const frac = makeLuaFloat(xn - int);
     return new LuaMultiRes([int, frac]);
   }),
 

@@ -6,7 +6,7 @@ import {
   LuaTable,
   luaToString,
 } from "../runtime.ts";
-import { untagNumber } from "../numeric.ts";
+import { isTaggedFloat, untagNumber } from "../numeric.ts";
 import { luaFormat } from "./format.ts";
 import {
   type CaptureResult,
@@ -86,7 +86,9 @@ export const stringApi = new LuaTable({
         callbacks.replTable = (key: string) => {
           const v = repl.get(key);
           if (v === null || v === undefined || v === false) return null;
-          return String(v);
+          return typeof v === "number"
+            ? String(v)
+            : String(isTaggedFloat(v) ? v.value : v);
         };
       } else if (repl.call) {
         callbacks.replFunction = async (...caps: CaptureResult[]) => {
