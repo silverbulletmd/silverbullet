@@ -54,6 +54,7 @@
 
       .cm-scroller {
         font-family: var(--ui-font);
+        overflow-x: hidden;
       }
 
       .cm-content {
