@@ -2,7 +2,6 @@ import { race, safeRun, sleep } from "@silverbulletmd/silverbullet/lib/async";
 import {
   notAuthenticatedError,
   offlineError,
-  offlineStatusCodes,
 } from "@silverbulletmd/silverbullet/constants";
 import { initLogger } from "./lib/logger.ts";
 import { extractSpaceLuaFromPageText, loadConfig } from "./boot_config.ts";
@@ -307,7 +306,7 @@ async function cachedFetch(path: string): Promise<string> {
         "X-Sync-Mode": "1",
       },
     });
-    if (response.status in offlineStatusCodes) {
+    if (response.status >= 500 && response.status < 600) {
       const text = localStorage.getItem(cacheKey);
       if (text) {
         console.info("Falling back to cache for", path);
