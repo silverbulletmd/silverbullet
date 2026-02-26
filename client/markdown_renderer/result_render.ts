@@ -4,10 +4,14 @@ import {
   luaToString,
 } from "../space_lua/runtime.ts";
 import { isTaggedFloat } from "../space_lua/numeric.ts";
+import { LUA_SQL_NULL } from "../space_lua/query_collection.ts";
 
 export function defaultTransformer(v: any, _k: string): Promise<string> {
   if (v === undefined) {
     return Promise.resolve("");
+  }
+  if (v === LUA_SQL_NULL) {
+    return Promise.resolve("*(null)*");
   }
   if (typeof v === "string") {
     return Promise.resolve(escapeRegularPipes(v.replaceAll("\n", " ")));
