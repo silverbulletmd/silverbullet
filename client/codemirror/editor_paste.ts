@@ -44,9 +44,9 @@ function ensureValidFilenameWithExtension(filename: string): string {
   return `file.${match ? match[1] : "txt"}`;
 }
 
-async function doesFileExist(filePath: string): Promise<boolean> {
+async function doesFileExist(editor: Client, filePath: string): Promise<boolean> {
   try {
-    await client.space.spacePrimitives.getFileMeta(filePath);
+    await editor.space.spacePrimitives.getFileMeta(filePath);
     return true;
   } catch {
     return false;
@@ -257,7 +257,7 @@ export function documentExtension(editor: Client) {
     // Note: duplicate any modifications here to client/code_mirror/editor_paste.ts
     let finalFilePath = null;
     while(finalFilePath == null) {
-      if (await doesFileExist(desiredFilePath)) {
+      if (await doesFileExist(editor, desiredFilePath)) {
         let confirmedFilePath = await editor.prompt(
           "A file with that name already exists, keep the same name to replace it, or rename your file",
           resolveMarkdownLink(
