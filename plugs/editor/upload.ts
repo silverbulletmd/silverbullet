@@ -19,7 +19,8 @@ function ensureValidFilenameWithExtension(filename: string): string {
 }
 
 export async function saveFile(file: UploadFile) {
-  const invalidPathMessage = "Unable to upload file, invalid target filename or path";
+  const invalidPathMessage =
+    "Unable to upload file, invalid target filename or path";
   const maxSize = await system.getConfig<number>(
     "maximumDocumentSize",
     maximumDocumentSize,
@@ -41,10 +42,13 @@ export async function saveFile(file: UploadFile) {
 
   let desiredFilePath = await editor.prompt(
     "File name for uploaded document",
-    resolveMarkdownLink(await editor.getCurrentPath(), ensureValidFilenameWithExtension(file.name)),
+    resolveMarkdownLink(
+      await editor.getCurrentPath(),
+      ensureValidFilenameWithExtension(file.name),
+    ),
   );
   if (desiredFilePath === undefined) {
-     // User hit cancel, so they know why we stopped and dont need an notification.
+    // User hit cancel, so they know why we stopped and dont need an notification.
     return;
   }
   desiredFilePath = desiredFilePath.trim();
@@ -58,17 +62,20 @@ export async function saveFile(file: UploadFile) {
   // check for every new filename they give.
   // Note: duplicate any modifications here to client/code_mirror/editor_paste.ts
   let finalFilePath = null;
-  while(finalFilePath == null) {
+  while (finalFilePath == null) {
     if (await space.fileExists(desiredFilePath)) {
       let confirmedFilePath = await editor.prompt(
         "A file with that name already exists, keep the same name to replace it, or rename your file",
-        resolveMarkdownLink(await editor.getCurrentPath(), ensureValidFilenameWithExtension(desiredFilePath)),
+        resolveMarkdownLink(
+          await editor.getCurrentPath(),
+          ensureValidFilenameWithExtension(desiredFilePath),
+        ),
       );
       if (confirmedFilePath === undefined) {
-         // Unlike the initial filename prompt, we're inside a workflow here
-         // and should be explicit that the user action cancelled the whole
-         // operation.
-         editor.flashNotification("Upload cancelled by user", "info",);
+        // Unlike the initial filename prompt, we're inside a workflow here
+        // and should be explicit that the user action cancelled the whole
+        // operation.
+        editor.flashNotification("Upload cancelled by user", "info");
         return;
       }
       confirmedFilePath = confirmedFilePath.trim();

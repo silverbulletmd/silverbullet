@@ -44,7 +44,10 @@ function ensureValidFilenameWithExtension(filename: string): string {
   return `file.${match ? match[1] : "txt"}`;
 }
 
-async function doesFileExist(editor: Client, filePath: string): Promise<boolean> {
+async function doesFileExist(
+  editor: Client,
+  filePath: string,
+): Promise<boolean> {
   try {
     await editor.space.spacePrimitives.getFileMeta(filePath);
     return true;
@@ -224,7 +227,8 @@ export function documentExtension(editor: Client) {
 
   async function saveFile(file: UploadFile) {
     const maxSize = maximumDocumentSize;
-    const invalidPathMessage = "Unable to upload file, invalid target filename or path";
+    const invalidPathMessage =
+      "Unable to upload file, invalid target filename or path";
 
     if (file.content.length > maxSize * 1024 * 1024) {
       editor.flashNotification(
@@ -256,7 +260,7 @@ export function documentExtension(editor: Client) {
     // check for every new filename they give.
     // Note: duplicate any modifications here to client/code_mirror/editor_paste.ts
     let finalFilePath = null;
-    while(finalFilePath == null) {
+    while (finalFilePath == null) {
       if (await doesFileExist(editor, desiredFilePath)) {
         let confirmedFilePath = await editor.prompt(
           "A file with that name already exists, keep the same name to replace it, or rename your file",
@@ -269,10 +273,10 @@ export function documentExtension(editor: Client) {
           // Unlike the initial filename prompt, we're inside a workflow here
           // and should be explicit that the user action cancelled the whole
           // operation.
-          editor.flashNotification("Upload cancelled by user", "info",);
+          editor.flashNotification("Upload cancelled by user", "info");
           return;
         }
-        confirmedFilePath = confirmedFilePath.trim()
+        confirmedFilePath = confirmedFilePath.trim();
         if (!isValidPath(confirmedFilePath)) {
           editor.flashNotification(invalidPathMessage, "error");
           return;
