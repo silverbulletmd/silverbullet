@@ -10,11 +10,21 @@ import {
 } from "@silverbulletmd/silverbullet/lib/ref";
 import type { UploadFile } from "@silverbulletmd/silverbullet/type/client";
 
+function ensureValidFilenameWithExtension(filename: string): string {
+  if (isValidPath(filename)) {
+    return filename;
+  }
+  const match = filename.match(/\.([^.]+)$/);
+  return `file.${match ? match[1] : "txt"}`;
+}
+
 export async function saveFile(file: UploadFile) {
+  const invalidPathMessage = "Unable to upload file, invalid target filename or path";
   const maxSize = await system.getConfig<number>(
     "maximumDocumentSize",
     maximumDocumentSize,
   );
+
   if (typeof maxSize !== "number") {
     await editor.flashNotification(
       "The setting 'maximumDocumentSize' must be a number",
@@ -29,23 +39,9 @@ export async function saveFile(file: UploadFile) {
     return;
   }
 
-  const notifyInvalidPath = async () => {
-    await editor.flashNotification(
-      "Unable to upload file, invalid target filename or path",
-      "error",
-    );
-  }
-  const ensureFilename = (filename: string) => {
-    return isValidPath(filename)
-      ? filename
-      : `file.${
-        filename.indexOf(".") !== -1 ? filename.split(".").pop() : "txt"
-      }`
-  }
-
   let desiredFilePath = await editor.prompt(
     "File name for uploaded document",
-    resolveMarkdownLink(await editor.getCurrentPath(), ensureFilename(file.name)),
+    resolveMarkdownLink(await editor.getCurrentPath(), ensureValidFilenameWithExtension(file.name)),
   );
   if (desiredFilePath === undefined) {
      // User hit cancel, so they know why we stopped and dont need an notification.
@@ -53,7 +49,7 @@ export async function saveFile(file: UploadFile) {
   }
   desiredFilePath = desiredFilePath.trim();
   if (!isValidPath(desiredFilePath)) {
-    await notifyInvalidPath();
+    await editor.flashNotification(invalidPathMessage, "error");
     return;
   }
 
@@ -66,7 +62,7 @@ export async function saveFile(file: UploadFile) {
     if (await space.fileExists(desiredFilePath)) {
       let confirmedFilePath = await editor.prompt(
         "A file with that name already exists, keep the same name to replace it, or rename your file",
-        resolveMarkdownLink(await editor.getCurrentPath(), ensureFilename(desiredFilePath)),
+        resolveMarkdownLink(await editor.getCurrentPath(), ensureValidFilenameWithExtension(desiredFilePath)),
       );
       if (confirmedFilePath === undefined) {
          // Unlike the initial filename prompt, we're inside a workflow here
@@ -77,7 +73,7 @@ export async function saveFile(file: UploadFile) {
       }
       confirmedFilePath = confirmedFilePath.trim();
       if (!isValidPath(confirmedFilePath)) {
-        await notifyInvalidPath();
+        await editor.flashNotification(invalidPathMessage, "error");
         return;
       }
       if (desiredFilePath === confirmedFilePath) {

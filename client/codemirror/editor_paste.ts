@@ -36,6 +36,23 @@ function striptHtmlComments(s: string): string {
   return s.replace(/<!--[\s\S]*?-->/g, "");
 }
 
+function ensureValidFilenameWithExtension(filename: string): string {
+  if (isValidPath(filename)) {
+    return filename;
+  }
+  const match = filename.match(/\.([^.]+)$/);
+  return `file.${match ? match[1] : "txt"}`;
+}
+
+async function doesFileExist(filePath: string): Promise<boolean> {
+  try {
+    await client.space.spacePrimitives.getFileMeta(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 const urlRegexp =
   /^https?:\/\/[-a-zA-Z0-9@:%._\+~#=]{1,256}([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
 
@@ -207,6 +224,8 @@ export function documentExtension(editor: Client) {
 
   async function saveFile(file: UploadFile) {
     const maxSize = maximumDocumentSize;
+    const invalidPathMessage = "Unable to upload file, invalid target filename or path";
+
     if (file.content.length > maxSize * 1024 * 1024) {
       editor.flashNotification(
         `Document is too large, maximum is ${maxSize}MiB`,
@@ -214,33 +233,12 @@ export function documentExtension(editor: Client) {
       );
       return;
     }
-    const ensureFilename = (filename: string) => {
-      return isValidPath(filename)
-        ? filename
-        : `file.${
-          filename.indexOf(".") !== -1 ? filename.split(".").pop() : "txt"
-        }`
-    }
-    const notifyInvalidPath = () => {
-      editor.flashNotification(
-        "Unable to upload file, invalid target filename or path",
-        "error",
-      );
-    }
-    const doesFileExist = async (filePath: string) => {
-      try {
-        await client.space.spacePrimitives.getFileMeta(filePath);
-        return true;
-      } catch {
-        return false;
-      }
-    }
 
     let desiredFilePath = await editor.prompt(
       "File name for pasted document",
       resolveMarkdownLink(
         client.currentPath(),
-        ensureFilename(file.name),
+        ensureValidFilenameWithExtension(file.name),
       ),
     );
     if (desiredFilePath === undefined) {
@@ -249,7 +247,7 @@ export function documentExtension(editor: Client) {
     }
     desiredFilePath = desiredFilePath.trim();
     if (!isValidName(desiredFilePath)) {
-      notifyInvalidPath();
+      editor.flashNotification(invalidPathMessage, "error");
       return;
     }
 
@@ -264,7 +262,7 @@ export function documentExtension(editor: Client) {
           "A file with that name already exists, keep the same name to replace it, or rename your file",
           resolveMarkdownLink(
             client.currentPath(),
-            ensureFilename(desiredFilePath),
+            ensureValidFilenameWithExtension(desiredFilePath),
           ),
         );
         if (confirmedFilePath === undefined) {
@@ -276,7 +274,7 @@ export function documentExtension(editor: Client) {
         }
         confirmedFilePath = confirmedFilePath.trim()
         if (!isValidPath(confirmedFilePath)) {
-          notifyInvalidPath();
+          editor.flashNotification(invalidPathMessage, "error");
           return;
         }
         if (desiredFilePath === confirmedFilePath) {
