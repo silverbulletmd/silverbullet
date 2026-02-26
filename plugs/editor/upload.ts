@@ -53,7 +53,7 @@ export async function saveFile(file: UploadFile) {
   }
   desiredFilePath = desiredFilePath.trim();
   if (!isValidPath(desiredFilePath)) {
-    await editor.flashNotification(invalidPathMessage, "error");
+    editor.flashNotification(invalidPathMessage, "error");
     return;
   }
 
@@ -80,7 +80,7 @@ export async function saveFile(file: UploadFile) {
       }
       confirmedFilePath = confirmedFilePath.trim();
       if (!isValidPath(confirmedFilePath)) {
-        await editor.flashNotification(invalidPathMessage, "error");
+        editor.flashNotification(invalidPathMessage, "error");
         return;
       }
       if (desiredFilePath === confirmedFilePath) {
