@@ -848,9 +848,19 @@ export function evalExpression(
                 sf.withCtx(q.ctx),
               );
             }
-            if (collection instanceof LuaTable && collection.empty()) {
+
+            // If already a queryable collection (e.g. DataStoreQueryCollection),
+            // use directly - skip all LuaTable/JS conversion.
+            if (
+              typeof collection === "object" &&
+              collection !== null &&
+              "query" in collection &&
+              typeof (collection as any).query === "function"
+            ) {
+              // Already queryable, use as-is
+            } else if (collection instanceof LuaTable && collection.empty()) {
               // Empty table → empty array
-              collection = [];
+              collection = toCollection([]);
             } else if (collection instanceof LuaTable) {
               if (collection.length > 0) {
                 // Array-like table: extract array items, keep as LuaTables
@@ -858,14 +868,14 @@ export function evalExpression(
                 for (let i = 1; i <= collection.length; i++) {
                   arr.push(collection.rawGet(i));
                 }
-                collection = arr;
+                collection = toCollection(arr);
               } else {
                 // Record-like table (no array part): treat as singleton
-                collection = [collection];
+                collection = toCollection([collection]);
               }
+            } else {
+              collection = toCollection(luaValueToJS(collection, sf));
             }
-
-            collection = toCollection(collection);
 
             // Build up query object
             const query: LuaCollectionQuery = {
@@ -916,7 +926,7 @@ export function evalExpression(
             }
 
             // Always use the possibly-wrapped collection
-            return collection.query(query, env, sf).then(jsToLuaValue);
+            return (collection as any).query(query, env, sf).then(jsToLuaValue);
           },
         );
       }
