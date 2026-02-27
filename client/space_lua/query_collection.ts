@@ -35,6 +35,10 @@ import { buildItemEnv } from "./query_env.ts";
 // Sentinel value representing SQL NULL in query results.
 export const LUA_SQL_NULL = Symbol.for("silverbullet.sqlNull");
 
+export function isSqlNull(v: any): boolean {
+  return v === LUA_SQL_NULL;
+}
+
 // Build environment for post-`group by` clauses (`having`, `select`,
 // `order by`).  Injects `key` and `group` as top-level variables.  Also
 // unpacks the `group by` key fields as locals so that `group by name,
@@ -63,22 +67,21 @@ function buildGroupItemEnv(
     // Always unpack first group item's fields as locals, regardless of
     // objectVariable, so bare field names (e.g. `name`) are accessible
     // in having/select/order by after group by.
-    if (groupVal instanceof LuaTable) {
-      const firstItem = groupVal.rawGet(1);
-      if (firstItem) {
-        for (const k of luaKeys(firstItem)) {
-          itemEnv.setLocal(
-            k,
-            luaGet(firstItem, k, sf.astCtx ?? null, sf),
-          );
-        }
-      }
+    const firstItem = (groupVal instanceof LuaTable)
+      ? groupVal.rawGet(1)
+      : undefined;
 
-      // When objectVariable is set, bind it to the first group item
-      // (not the group row) so `t.name` resolves from item fields.
-      if (objectVariable && firstItem) {
-        itemEnv.setLocal(objectVariable, firstItem);
+    if (firstItem) {
+      for (const k of luaKeys(firstItem)) {
+        itemEnv.setLocal(
+          k,
+          luaGet(firstItem, k, sf.astCtx ?? null, sf),
+        );
       }
+    }
+
+    if (objectVariable) {
+      itemEnv.setLocal(objectVariable, firstItem ?? item);
     }
 
     if (keyVal !== undefined) {
@@ -409,6 +412,93 @@ function normalizeSelectResults(results: any[]): any[] {
   return results;
 }
 
+// Handles both grouped (aggregate-aware) and non-grouped evaluation,
+// optional select-alias injection, and collation
+async function orderByCompare(
+  a: any,
+  b: any,
+  orderBy: LuaOrderBy[],
+  mkEnv: (
+    ov: string | undefined,
+    item: any,
+    e: LuaEnv,
+    s: LuaStackFrame,
+  ) => LuaEnv,
+  objectVariable: string | undefined,
+  env: LuaEnv,
+  sf: LuaStackFrame,
+  grouped: boolean,
+  collation: QueryCollationConfig | undefined,
+  collator: Intl.Collator,
+  aSelectRow?: any,
+  bSelectRow?: any,
+): Promise<number> {
+  for (const { expr, desc } of orderBy) {
+    const aEnv = mkEnv(objectVariable, a, env, sf);
+    const bEnv = mkEnv(objectVariable, b, env, sf);
+
+    if (aSelectRow) {
+      for (const k of luaKeys(aSelectRow)) {
+        const v = luaGet(aSelectRow, k, sf.astCtx ?? null, sf);
+        aEnv.setLocal(k, isSqlNull(v) ? null : v);
+      }
+    }
+    if (bSelectRow) {
+      for (const k of luaKeys(bSelectRow)) {
+        const v = luaGet(bSelectRow, k, sf.astCtx ?? null, sf);
+        bEnv.setLocal(k, isSqlNull(v) ? null : v);
+      }
+    }
+
+    let aVal, bVal;
+    if (grouped) {
+      const aGroup = (a as LuaTable).rawGet("group");
+      const bGroup = (b as LuaTable).rawGet("group");
+      aVal = await evalExpressionWithAggregates(
+        expr,
+        aEnv,
+        sf,
+        aGroup,
+        objectVariable,
+        env,
+      );
+      bVal = await evalExpressionWithAggregates(
+        expr,
+        bEnv,
+        sf,
+        bGroup,
+        objectVariable,
+        env,
+      );
+    } else {
+      aVal = await evalExpression(expr, aEnv, sf);
+      bVal = await evalExpression(expr, bEnv, sf);
+    }
+
+    const aIsNull = aVal === null || aVal === undefined;
+    const bIsNull = bVal === null || bVal === undefined;
+    if (aIsNull && bIsNull) continue;
+    if (aIsNull) return desc ? -1 : 1;
+    if (bIsNull) return desc ? 1 : -1;
+
+    if (
+      collation?.enabled &&
+      typeof aVal === "string" &&
+      typeof bVal === "string"
+    ) {
+      const order = collator.compare(aVal, bVal);
+      if (order != 0) {
+        return desc ? -order : order;
+      }
+    } else if (aVal < bVal) {
+      return desc ? 1 : -1;
+    } else if (aVal > bVal) {
+      return desc ? -1 : 1;
+    }
+  }
+  return 0;
+}
+
 /**
  * Applies a given query (where, order by, limit etc.) to a set of results
  */
@@ -498,19 +588,18 @@ export async function applyQuery(
     }
   }
 
-  // Apply `having` -- aggregate-aware when grouped
   if (query.having) {
     const filteredResults = [];
     for (const value of results) {
-      const itemEnv = buildGroupItemEnv(
-        query.objectVariable,
-        groupByNames,
-        value,
-        env,
-        sf,
-      );
       let condResult;
       if (grouped) {
+        const itemEnv = buildGroupItemEnv(
+          query.objectVariable,
+          groupByNames,
+          value,
+          env,
+          sf,
+        );
         const groupTable = (value as LuaTable).rawGet("group");
         condResult = await evalExpressionWithAggregates(
           query.having,
@@ -521,6 +610,7 @@ export async function applyQuery(
           env,
         );
       } else {
+        const itemEnv = buildItemEnv(query.objectVariable, value, env, sf);
         condResult = await evalExpression(query.having, itemEnv, sf);
       }
       if (condResult) {
@@ -572,132 +662,42 @@ export async function applyQuery(
     // Both arguments are optional, so passing undefined is fine
     const collator = Intl.Collator(collation?.locale, collation?.options);
 
-    // Build index array for sorting so we can keep results and
-    // selectResults in sync without using identity-based Map lookups.
     if (selectResults) {
+      // Sort via index array to keep results and selectResults in sync
       const indices = results.map((_, i) => i);
-      await asyncQuickSort(indices, async (ai, bi) => {
-        const a = results[ai];
-        const b = results[bi];
-        for (const { expr, desc } of query.orderBy!) {
-          const aEnv = mkEnv(query.objectVariable, a, env, sf);
-          const bEnv = mkEnv(query.objectVariable, b, env, sf);
-
-          // Inject pre-computed select output fields so `order by` can
-          // reference aliases like `tot` from `select { tot = count() }`
-          const aSelected = selectResults![ai];
-          const bSelected = selectResults![bi];
-          if (aSelected) {
-            for (const k of luaKeys(aSelected)) {
-              aEnv.setLocal(
-                k,
-                luaGet(aSelected, k, sf.astCtx ?? null, sf),
-              );
-            }
-          }
-          if (bSelected) {
-            for (const k of luaKeys(bSelected)) {
-              bEnv.setLocal(
-                k,
-                luaGet(bSelected, k, sf.astCtx ?? null, sf),
-              );
-            }
-          }
-
-          // Use aggregate-aware evaluation when grouped so that
-          // `order by count()` and similar expressions work
-          const aGroup = (a as LuaTable).rawGet("group");
-          const bGroup = (b as LuaTable).rawGet("group");
-          const aVal = await evalExpressionWithAggregates(
-            expr,
-            aEnv,
-            sf,
-            aGroup,
-            query.objectVariable,
-            env,
-          );
-          const bVal = await evalExpressionWithAggregates(
-            expr,
-            bEnv,
-            sf,
-            bGroup,
-            query.objectVariable,
-            env,
-          );
-
-          if (
-            collation?.enabled &&
-            typeof aVal === "string" &&
-            typeof bVal === "string"
-          ) {
-            const order = collator.compare(aVal, bVal);
-            if (order != 0) {
-              return desc ? -order : order;
-            }
-          } else if (aVal < bVal) {
-            return desc ? 1 : -1;
-          } else if (aVal > bVal) {
-            return desc ? -1 : 1;
-          }
-          // If equal, continue to next orderBy clause
-        }
-        return 0; // All orderBy clauses were equal
-      });
+      await asyncQuickSort(indices, (ai, bi) =>
+        orderByCompare(
+          results[ai],
+          results[bi],
+          query.orderBy!,
+          mkEnv,
+          query.objectVariable,
+          env,
+          sf,
+          grouped,
+          collation,
+          collator,
+          selectResults![ai],
+          selectResults![bi],
+        ));
 
       // Reorder both arrays according to sorted indices
       results = indices.map((i) => results[i]);
       selectResults = indices.map((i) => selectResults![i]);
     } else {
-      results = await asyncQuickSort(results, async (a, b) => {
-        // Compare each orderBy clause until we find a difference
-        for (const { expr, desc } of query.orderBy!) {
-          const aEnv = mkEnv(query.objectVariable, a, env, sf);
-          const bEnv = mkEnv(query.objectVariable, b, env, sf);
-
-          let aVal, bVal;
-          if (grouped) {
-            // Use aggregate-aware evaluation when grouped
-            const aGroup = (a as LuaTable).rawGet("group");
-            const bGroup = (b as LuaTable).rawGet("group");
-            aVal = await evalExpressionWithAggregates(
-              expr,
-              aEnv,
-              sf,
-              aGroup,
-              query.objectVariable,
-              env,
-            );
-            bVal = await evalExpressionWithAggregates(
-              expr,
-              bEnv,
-              sf,
-              bGroup,
-              query.objectVariable,
-              env,
-            );
-          } else {
-            aVal = await evalExpression(expr, aEnv, sf);
-            bVal = await evalExpression(expr, bEnv, sf);
-          }
-
-          if (
-            collation?.enabled &&
-            typeof aVal === "string" &&
-            typeof bVal === "string"
-          ) {
-            const order = collator.compare(aVal, bVal);
-            if (order != 0) {
-              return desc ? -order : order;
-            }
-          } else if (aVal < bVal) {
-            return desc ? 1 : -1;
-          } else if (aVal > bVal) {
-            return desc ? -1 : 1;
-          }
-          // If equal, continue to next orderBy clause
-        }
-        return 0; // All orderBy clauses were equal
-      });
+      results = await asyncQuickSort(results, (a, b) =>
+        orderByCompare(
+          a,
+          b,
+          query.orderBy!,
+          mkEnv,
+          query.objectVariable,
+          env,
+          sf,
+          grouped,
+          collation,
+          collator,
+        ));
     }
   }
 
@@ -729,6 +729,8 @@ export async function applyQuery(
       results = newResult;
     }
 
+    // Normalize: ensure all result tables have the same set of keys
+    // in the same insertion order, using LUA_SQL_NULL for nil gaps
     results = normalizeSelectResults(results);
   }
 
@@ -784,13 +786,47 @@ export async function queryLua<T = any>(
   return applyQuery(results, query, env, sf);
 }
 
+// Generate a stable string key for deduplication.
 function generateKey(value: any) {
+  if (isSqlNull(value)) {
+    return "__SQL_NULL__";
+  }
   if (value instanceof LuaTable) {
-    return JSON.stringify(value.toJS());
+    return JSON.stringify(luaTableToJSWithNulls(value));
   }
   return typeof value === "object" && value !== null
     ? JSON.stringify(value)
     : value;
+}
+
+function luaTableToJSWithNulls(
+  table: LuaTable,
+  sf = LuaStackFrame.lostFrame,
+): any {
+  if (table.length > 0) {
+    const arr: any[] = [];
+    for (let i = 1; i <= table.length; i++) {
+      const v = table.rawGet(i);
+      arr.push(
+        isSqlNull(v)
+          ? "__SQL_NULL__"
+          : v instanceof LuaTable
+          ? luaTableToJSWithNulls(v, sf)
+          : v,
+      );
+    }
+    return arr;
+  }
+  const obj: Record<string, any> = {};
+  for (const key of luaKeys(table)) {
+    const v = table.rawGet(key);
+    obj[key] = isSqlNull(v)
+      ? "__SQL_NULL__"
+      : v instanceof LuaTable
+      ? luaTableToJSWithNulls(v, sf)
+      : v;
+  }
+  return obj;
 }
 
 export class DataStoreQueryCollection implements LuaQueryCollection {
