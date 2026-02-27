@@ -5,6 +5,7 @@ import {
   luaCall,
   type LuaEnv,
   luaEquals,
+  luaFormatNumber,
   luaGet,
   LuaMultiRes,
   LuaRuntimeError,
@@ -77,10 +78,10 @@ export const tableApi = new LuaTable({
           return v;
         }
         if (typeof v === "number") {
-          return String(v);
+          return luaFormatNumber(v);
         }
         if (isTaggedFloat(v)) {
-          return String(v.value);
+          return luaFormatNumber(v.value, "float");
         }
 
         const ty = typeof v === "object" && v instanceof LuaTable
@@ -205,6 +206,56 @@ export const tableApi = new LuaTable({
   ),
 
   /**
+   * Moves elements from table a1 into table a2 (defaults to a1).
+   * Equivalent to: `for i = f, e do a2[t+(i-f)] = a1[i] end`
+   * Handles overlapping ranges within the same table correctly.
+   * @param a1 - Source table.
+   * @param f - First source index (inclusive).
+   * @param e - Last source index (inclusive).
+   * @param t - Destination start index.
+   * @param a2 - Destination table (defaults to a1).
+   * @returns a2.
+   */
+  move: new LuaBuiltinFunction(
+    async (
+      sf,
+      a1: LuaTable | any[],
+      f: number,
+      e: number,
+      t: number,
+      a2?: LuaTable | any[],
+    ) => {
+      // a2 defaults to a1
+      if (a2 === undefined || a2 === null) {
+        a2 = a1;
+      }
+
+      // Empty range: nothing to do, return destination
+      if (e < f) {
+        return a2;
+      }
+
+      const count = e - f + 1;
+
+      // When source and destination overlap and destination is ahead of
+      // source then copy backwards to avoid clobbering unread values.
+      if (t > f && a2 === a1) {
+        for (let i = count - 1; i >= 0; i--) {
+          const v = await luaGet(a1, f + i, sf.astCtx ?? null, sf);
+          await luaSet(a2, t + i, v, sf);
+        }
+      } else {
+        for (let i = 0; i < count; i++) {
+          const v = await luaGet(a1, f + i, sf.astCtx ?? null, sf);
+          await luaSet(a2, t + i, v, sf);
+        }
+      }
+
+      return a2;
+    },
+  ),
+
+  /**
    * Sorts a table.
    * @param tbl - The table to sort.
    * @param comp - The comparison function.
@@ -215,7 +266,7 @@ export const tableApi = new LuaTable({
       if (Array.isArray(tbl)) {
         return await asyncQuickSort(tbl, async (a, b) => {
           if (comp) {
-            return (await comp.call(sf, a, b)) ? -1 : 1;
+            return (await comp.call(sf, a, b)) ? -1 : 0;
           }
           return (a as any) < (b as any) ? -1 : 1;
         });
@@ -235,7 +286,7 @@ export const tableApi = new LuaTable({
       const cmp = async (a: any, b: any): Promise<number> => {
         if (comp) {
           const r = await luaCall(comp, [a, b], sf.astCtx ?? {}, sf);
-          return r ? -1 : 1;
+          return r ? -1 : 0;
         }
 
         const av = isTaggedFloat(a) ? a.value : a;
@@ -338,24 +389,37 @@ export const tableApi = new LuaTable({
     },
   ),
 
-  pack: new LuaBuiltinFunction((_sf, ...args: any[]) => {
+  /**
+   * Returns a new table with all arguments stored in keys 1, 2, ..., n
+   * and t.n = n (the total number of arguments).
+   */
+  pack: new LuaBuiltinFunction(async (sf, ...args: any[]) => {
     const tbl = new LuaTable();
-    for (let i = 0; i < args.length; i++) {
-      tbl.set(i + 1, args[i]);
+    const n = args.length;
+    for (let i = 0; i < n; i++) {
+      await luaSet(tbl, i + 1, args[i], sf);
     }
-    tbl.set("n", args.length);
+    tbl.rawSet("n", n);
     return tbl;
   }),
 
+  /**
+   * Returns all values t[i], t[i+1], ..., t[j].
+   * i defaults to 1, j defaults to #t (honours __len).
+   * Empty range returns no values (null), not an empty multi-res.
+   */
   unpack: new LuaBuiltinFunction(
     async (sf, tbl: LuaTable | any[], i?: number, j?: number) => {
-      i = i ?? 1;
+      i = (i === undefined || i === null) ? 1 : i;
       if (j === undefined || j === null) {
         j = Array.isArray(tbl)
           ? tbl.length
           : await luaLenForTableLibAsync(sf, tbl);
       }
 
+      if (i > j) {
+        return new LuaMultiRes([]);
+      }
       const result: LuaValue[] = [];
       for (let k = i; k <= j; k++) {
         const v = Array.isArray(tbl)

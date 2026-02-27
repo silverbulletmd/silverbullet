@@ -6,7 +6,7 @@ import {
   LuaTable,
   luaToString,
 } from "../runtime.ts";
-import { untagNumber } from "../numeric.ts";
+import { isTaggedFloat, untagNumber } from "../numeric.ts";
 import { luaFormat } from "./format.ts";
 import {
   type CaptureResult,
@@ -16,9 +16,10 @@ import {
   patternGsub,
   patternMatch,
 } from "./pattern.ts";
+import { strPackFn, strPackSizeFn, strUnpackFn } from "./string_pack.ts";
 
 function capturesToLua(caps: CaptureResult[]): any {
-  if (caps.length === 0) {return null;}
+  if (caps.length === 0) return null;
   if (caps.length === 1) {
     const c = caps[0];
     return "s" in c ? c.s : c.position;
@@ -32,8 +33,8 @@ export const stringApi = new LuaTable({
   byte: new LuaBuiltinFunction((_sf, s: string, i?: number, j?: number) => {
     i = i ?? 1;
     j = j ?? i;
-    if (j > s.length) {j = s.length;}
-    if (i < 1) {i = 1;}
+    if (j > s.length) j = s.length;
+    if (i < 1) i = 1;
     const result = [];
     for (let k = i; k <= j; k++) {
       result.push(s.charCodeAt(k - 1));
@@ -46,7 +47,7 @@ export const stringApi = new LuaTable({
   find: new LuaBuiltinFunction(
     (_sf, s: string, pattern: string, init = 1, plain = false) => {
       const r = patternFind(s, pattern, init, plain);
-      if (!r) {return null;}
+      if (!r) return null;
       const result: any[] = [r.start, r.end];
       for (const c of r.captures) {
         result.push("s" in c ? c.s : c.position);
@@ -65,7 +66,7 @@ export const stringApi = new LuaTable({
       const iter = patternGmatch(s, pattern, init);
       return () => {
         const caps = iter();
-        if (!caps) {return;}
+        if (!caps) return;
         return capturesToLua(caps);
       };
     },
@@ -84,8 +85,10 @@ export const stringApi = new LuaTable({
       } else if (repl instanceof LuaTable) {
         callbacks.replTable = (key: string) => {
           const v = repl.get(key);
-          if (v === null || v === undefined || v === false) {return null;}
-          return String(v);
+          if (v === null || v === undefined || v === false) return null;
+          return typeof v === "number"
+            ? String(v)
+            : String(isTaggedFloat(v) ? v.value : v);
         };
       } else if (repl.call) {
         callbacks.replFunction = async (...caps: CaptureResult[]) => {
@@ -121,12 +124,12 @@ export const stringApi = new LuaTable({
   match: new LuaBuiltinFunction(
     (_sf, s: string, pattern: string, init = 1) => {
       const caps = patternMatch(s, pattern, init);
-      if (!caps) {return null;}
+      if (!caps) return null;
       return capturesToLua(caps);
     },
   ),
   rep: new LuaBuiltinFunction((_sf, s: string, n: number, sep?: string) => {
-    if (n <= 0) {return "";}
+    if (n <= 0) return "";
     sep = sep ?? "";
     const parts: string[] = [];
     for (let i = 0; i < n; i++) {
@@ -162,9 +165,14 @@ export const stringApi = new LuaTable({
     }
     return "";
   }),
+
   split: new LuaBuiltinFunction((_sf, s: string, sep: string) => {
     return s.split(sep);
   }),
+
+  pack: strPackFn,
+  unpack: strUnpackFn,
+  packsize: strPackSizeFn,
 
   // Non-standard extensions
   startsWith: new LuaBuiltinFunction((_sf, s: string, prefix: string) => {

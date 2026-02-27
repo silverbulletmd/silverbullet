@@ -19,6 +19,7 @@ import {
   luaEnsureCloseStack,
   LuaEnv,
   luaEquals,
+  luaFormatNumber,
   LuaFunction,
   luaGet,
   luaIndexValue,
@@ -250,7 +251,7 @@ function arithCoercionErrorOrThrow(
   throw e;
 }
 
-function luaOp(
+export function luaOp(
   op: string,
   left: any,
   right: any,
@@ -333,10 +334,10 @@ function luaOp(
             return v as string;
           }
           if (typeof v === "number") {
-            return String(v);
+            return luaFormatNumber(v);
           }
           if (isTaggedFloat(v)) {
-            return String(v.value);
+            return luaFormatNumber(v.value, "float");
           }
           const t = luaTypeName(v);
           throw new LuaRuntimeError(
@@ -904,6 +905,14 @@ export function evalExpression(
                     );
                     query.offset = Number(offsetVal);
                   }
+                  break;
+                }
+                case "GroupBy": {
+                  query.groupBy = clause.expressions;
+                  break;
+                }
+                case "Having": {
+                  query.having = clause.expression;
                   break;
                 }
               }

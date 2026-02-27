@@ -25,6 +25,13 @@ local function assertClose(a, b, eps, msg)
   end
 end
 
+local function assertError(fn, msg)
+  local ok, err = pcall(fn)
+  if ok then
+    error((msg or "assertError failed") .. ": expected an error but none was raised")
+  end
+end
+
 -- math.type (basic)
 do
   assertEquals(math.type(0), "integer", "math.type(0)")
@@ -81,12 +88,22 @@ end
 -- modf
 do
   local i, f = math.modf(3.5)
+  assertEquals(math.type(i), "integer", "modf int part is integer")
+  assertEquals(math.type(f), "float",   "modf frac part is float")
   assertEquals(i, 3, "modf(3.5) int")
   assertClose(f, 0.5, 1e-12, "modf(3.5) frac")
 
   local i2, f2 = math.modf(-3.5)
+  assertEquals(math.type(i2), "integer", "modf neg int part is integer")
+  assertEquals(math.type(f2), "float",   "modf neg frac part is float")
   assertEquals(i2, -3, "modf(-3.5) int")
   assertClose(f2, -0.5, 1e-12, "modf(-3.5) frac")
+
+  local i3, f3 = math.modf(4.0)
+  assertEquals(math.type(i3), "integer", "modf whole int part is integer")
+  assertEquals(math.type(f3), "float", "modf whole frac is float")
+  assertEquals(i3, 4, "modf(4.0) int")
+  assertEquals(f3, 0.0, "modf(4.0) frac")
 end
 
 -- sqrt/exp/log/pow
@@ -160,4 +177,174 @@ do
   assertEquals(f1, 4, "floor(8*0.5)")
   assertEquals(f2, 3, "floor(8*0.49)")
   assertEquals(f3, 4, "floor(9*0.5)")
+end
+
+-- math.tointeger
+do
+  -- integers pass through unchanged
+  assertEquals(math.tointeger(0),  0,  "tointeger(0)")
+  assertEquals(math.tointeger(42), 42, "tointeger(42)")
+  assertEquals(math.tointeger(-7), -7, "tointeger(-7)")
+  assertEquals(math.type(math.tointeger(1)), "integer", "tointeger result is integer")
+
+  -- float with whole value yields integer
+  assertEquals(math.tointeger(3.0),  3,  "tointeger(3.0)")
+  assertEquals(math.tointeger(-1.0), -1, "tointeger(-1.0)")
+  assertEquals(math.type(math.tointeger(3.0)), "integer", "tointeger(3.0) type")
+
+  -- float with fractional part yields nil
+  assertEquals(math.tointeger(3.5),  nil, "tointeger(3.5)")
+  assertEquals(math.tointeger(-0.1), nil, "tointeger(-0.1)")
+
+  -- string coercion: integer-valued string yields integer
+  assertEquals(math.tointeger("3"),  3,   "tointeger(string int)")
+  assertEquals(math.tointeger("3.0"), 3,  "tointeger(string float whole)")
+  assertEquals(math.tointeger("3.5"), nil, "tointeger(string float frac)")
+  assertEquals(math.tointeger("x"),   nil, "tointeger(non-numeric string)")
+
+  -- nil yields nil
+  assertEquals(math.tointeger(nil),  nil, "tointeger(nil)")
+
+  -- inf and nan yields nil
+  assertEquals(math.tointeger(1/0),  nil, "tointeger(inf)")
+  assertEquals(math.tointeger(0/0),  nil, "tointeger(nan)")
+end
+
+-- random and randomseed
+do
+  -- random(): float in [0, 1)
+  for _ = 1, 20 do
+    local v = math.random()
+    assertTrue(v >= 0 and v < 1, "random() in [0,1)")
+    assertEquals(math.type(v), "float", "random() returns float")
+  end
+
+  -- random(n): integer in [1, n]
+  for _ = 1, 20 do
+    local v = math.random(10)
+    assertTrue(v >= 1 and v <= 10, "random(10) in [1,10]")
+    assertEquals(math.type(v), "integer", "random(n) returns integer")
+  end
+
+  -- random(m, n): integer in [m, n]
+  for _ = 1, 20 do
+    local v = math.random(5, 10)
+    assertTrue(v >= 5 and v <= 10, "random(5,10) in [5,10]")
+    assertEquals(math.type(v), "integer", "random(m,n) returns integer")
+  end
+
+  -- random(m, m): always returns m
+  for _ = 1, 5 do
+    assertEquals(math.random(7, 7), 7, "random(m,m) == m")
+  end
+
+  -- random(0): raw 64-bit integer, type integer
+  local r0 = math.random(0)
+  assertEquals(math.type(r0), "integer", "random(0) returns integer")
+
+  -- random(n) with n=1: always 1
+  for _ = 1, 5 do
+    assertEquals(math.random(1), 1, "random(1) == 1")
+  end
+
+  -- error: random(0.5) — non-integer arg1
+  assertError(function() math.random(0.5) end)
+
+  -- error: random(1, 0) — empty interval
+  assertError(function() math.random(1, 0) end)
+
+  -- error: random(0) is valid (raw), but random(-1) is not
+  assertError(function() math.random(-1) end)
+
+  -- error: random(1, 1.5) — non-integer arg2
+  assertError(function() math.random(1, 1.5) end)
+
+  -- randomseed arg validation
+  assertError(function() math.randomseed(0.5) end)
+  assertError(function() math.randomseed(1, 0.5) end)
+  assertError(function() math.randomseed(1/0) end)
+end
+
+-- randomseed: determinism
+do
+  -- same seed yields identical sequence
+  math.randomseed(42)
+  local a1, a2, a3 = math.random(), math.random(100), math.random(1, 50)
+
+  math.randomseed(42)
+  local b1, b2, b3 = math.random(), math.random(100), math.random(1, 50)
+
+  assertEquals(a1, b1, "randomseed: float sequence reproducible")
+  assertEquals(a2, b2, "randomseed: random(n) reproducible")
+  assertEquals(a3, b3, "randomseed: random(m,n) reproducible")
+
+  -- different seeds yields different first values
+  math.randomseed(1)
+  local c1 = math.random()
+  math.randomseed(2)
+  local d1 = math.random()
+  assertTrue(c1 ~= d1, "different seeds give different values")
+
+  -- two-argument seed: same pair yields same sequence
+  math.randomseed(123, 456)
+  local e1, e2 = math.random(), math.random()
+  math.randomseed(123, 456)
+  local f1, f2 = math.random(), math.random()
+  assertEquals(e1, f1, "randomseed(x,y): first value reproducible")
+  assertEquals(e2, f2, "randomseed(x,y): second value reproducible")
+
+  -- two-argument seed: different second arg yields different sequence
+  math.randomseed(123, 456)
+  local g1 = math.random()
+  math.randomseed(123, 789)
+  local h1 = math.random()
+  assertTrue(g1 ~= h1, "randomseed(x,y1) ~= randomseed(x,y2)")
+
+  -- no-args seed does not error and produces valid range
+  math.randomseed()
+  local i1 = math.random()
+  assertTrue(i1 >= 0 and i1 < 1, "randomseed(): range valid after auto-seed")
+
+  -- return values: two integers (Lua 5.4 contract)
+  local s1, s2 = math.randomseed(99)
+  assertEquals(math.type(s1), "integer", "randomseed returns integer s1")
+  assertEquals(math.type(s2), "integer", "randomseed returns integer s2")
+
+  -- re-seeding restores determinism after auto-seed
+  math.randomseed(7)
+  local j1 = math.random()
+  math.randomseed(7)
+  local j2 = math.random()
+  assertEquals(j1, j2, "determinism restored after re-seed")
+end
+
+-- frexp / ldexp
+do
+  -- frexp: x = m * 2^e, 0.5 <= |m| < 1
+  local m, e = math.frexp(8)
+  assertClose(m, 0.5, 1e-15, "frexp(8) m")
+  assertEquals(e, 4, "frexp(8) e")
+
+  local m2, e2 = math.frexp(1)
+  assertClose(m2, 0.5, 1e-15, "frexp(1) m")
+  assertEquals(e2, 1, "frexp(1) e")
+
+  local m3, e3 = math.frexp(-4)
+  assertClose(m3, -0.5, 1e-15, "frexp(-4) m")
+  assertEquals(e3, 3, "frexp(-4) e")
+
+  local m4, e4 = math.frexp(0)
+  assertEquals(m4, 0, "frexp(0) m")
+  assertEquals(e4, 0, "frexp(0) e")
+
+  -- ldexp: m * 2^e
+  assertClose(math.ldexp(0.5, 4), 8.0, 1e-15, "ldexp(0.5,4)")
+  assertClose(math.ldexp(0.5, 1), 1.0, 1e-15, "ldexp(0.5,1)")
+  assertClose(math.ldexp(-0.5, 3), -4.0, 1e-15, "ldexp(-0.5,3)")
+  assertClose(math.ldexp(0.0, 10), 0.0, 1e-15, "ldexp(0,10)")
+
+  -- round-trip: ldexp(frexp(x)) == x
+  local orig = 3.14159
+  local fm, fe = math.frexp(orig)
+  assertClose(math.ldexp(fm, fe), orig, 1e-14, "frexp/ldexp round-trip")
 end

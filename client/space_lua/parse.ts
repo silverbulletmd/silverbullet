@@ -36,7 +36,7 @@ const luaStyleTags = styleTags({
   CompareOp: t.operator,
   "true false": t.bool,
   Comment: t.lineComment,
-  "return break goto do end while repeat until function local if then else elseif in for nil or and not query from where limit select order by desc":
+  "return break goto do end while repeat until function local if then else elseif in for nil or and not query from where limit select order by desc group having":
     t.keyword,
 });
 
@@ -132,6 +132,7 @@ function expressionHasFunctionDef(e: LuaExpression): boolean {
             break;
           case "Where":
           case "Select":
+          case "Having":
             if (expressionHasFunctionDef(c.expression)) return true;
             break;
           case "Limit":
@@ -143,6 +144,11 @@ function expressionHasFunctionDef(e: LuaExpression): boolean {
               if (expressionHasFunctionDef(c.orderBy[j].expression)) {
                 return true;
               }
+            }
+            break;
+          case "GroupBy":
+            for (let j = 0; j < c.expressions.length; j++) {
+              if (expressionHasFunctionDef(c.expressions[j])) return true;
             }
             break;
         }
@@ -214,6 +220,7 @@ function exprReferencesNames(e: LuaExpression, names: Set<string>): boolean {
             break;
           case "Where":
           case "Select":
+          case "Having":
             if (exprReferencesNames(c.expression, names)) return true;
             break;
           case "Limit":
@@ -225,6 +232,11 @@ function exprReferencesNames(e: LuaExpression, names: Set<string>): boolean {
               if (exprReferencesNames(c.orderBy[j].expression, names)) {
                 return true;
               }
+            }
+            break;
+          case "GroupBy":
+            for (let j = 0; j < c.expressions.length; j++) {
+              if (exprReferencesNames(c.expressions[j], names)) return true;
             }
             break;
         }
@@ -513,6 +525,7 @@ function exprCapturesNames(e: LuaExpression, names: Set<string>): boolean {
             break;
           case "Where":
           case "Select":
+          case "Having":
             if (exprCapturesNames(c.expression, names)) return true;
             break;
           case "Limit":
@@ -524,6 +537,11 @@ function exprCapturesNames(e: LuaExpression, names: Set<string>): boolean {
               if (exprCapturesNames(c.orderBy[j].expression, names)) {
                 return true;
               }
+            }
+            break;
+          case "GroupBy":
+            for (let j = 0; j < c.expressions.length; j++) {
+              if (exprCapturesNames(c.expressions[j], names)) return true;
             }
             break;
         }
@@ -1258,6 +1276,27 @@ function parseQueryClause(t: ParseTree, ctx: ASTCtx): LuaQueryClause {
     case "SelectClause": {
       return {
         type: "Select",
+        expression: parseExpression(t.children![1], ctx),
+        ctx: context(t, ctx),
+      };
+    }
+    case "GroupByClause": {
+      // children: ckw<"group">, ckw<"by">, exp, ",", exp, ...
+      const expressions: LuaExpression[] = t.children!
+        .filter((c) =>
+          c.type !== undefined && c.type !== "group" && c.type !== "by" &&
+          c.type !== ","
+        )
+        .map((c) => parseExpression(c, ctx));
+      return {
+        type: "GroupBy",
+        expressions,
+        ctx: context(t, ctx),
+      };
+    }
+    case "HavingClause": {
+      return {
+        type: "Having",
         expression: parseExpression(t.children![1], ctx),
         ctx: context(t, ctx),
       };

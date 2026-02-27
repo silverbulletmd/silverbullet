@@ -34,8 +34,8 @@ test("[Lua] Load tests", async () => {
   await runLuaTest("./stdlib/load_test.lua");
 });
 
-test("[Lua] Core language (length)", async () => {
-  await runLuaTest("./len_test.lua");
+test("[Lua] Table tests", async () => {
+  await runLuaTest("./stdlib/table_test.lua");
 });
 
 test("[Lua] Format tests", async () => {
@@ -46,8 +46,16 @@ test("[Lua] String to number tests", async () => {
   await runLuaTest("./tonumber_test.lua");
 });
 
+test("[Lua] Pattern tests", async () => {
+  await runLuaTest("./stdlib/pattern_test.lua");
+});
+
 test("[Lua] String tests", async () => {
   await runLuaTest("./stdlib/string_test.lua");
+});
+
+test("[Lua] String pack/unpack/packsize tests", async () => {
+  await runLuaTest("./stdlib/string_pack_test.lua");
 });
 
 test("[Lua] Space Lua tests", async () => {
@@ -82,10 +90,47 @@ test("[Lua] Lume functions tests", async () => {
   await runLuaTest("./lume_test.lua");
 });
 
+test("[Lua] Lua Integrated Query tests", async () => {
+  await runLuaTest("./query_test.lua");
+});
+
 async function runLuaTest(luaPath: string) {
+  if (
+    typeof globalThis.client !== "undefined" &&
+    globalThis.client &&
+    typeof globalThis.client === "object"
+  ) {
+    if (
+      !globalThis.client.config ||
+      typeof globalThis.client.config.get !== "function"
+    ) {
+      try {
+        Object.defineProperty(globalThis.client, "config", {
+          value: {
+            get(_key: string, fallback: unknown) {
+              return fallback ?? {};
+            },
+          },
+          configurable: true,
+          writable: true,
+        });
+      } catch {
+        // ignore
+      }
+    }
+  } else {
+    (globalThis as any).client = {
+      config: {
+        get(_key: string, fallback: unknown) {
+          return fallback ?? {};
+        },
+      },
+    };
+  }
+
   const luaFile = await readFile(
     fileURLToPath(new URL(luaPath, import.meta.url)),
-    "utf-8"
+    "utf-8",
   );
   const chunk = parse(luaFile, {});
   const env = new LuaEnv(luaBuildStandardEnv());

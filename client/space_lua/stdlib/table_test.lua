@@ -63,6 +63,36 @@ do
     assertError(function() table.remove(t, #t + 2) end)
 end
 
+-- nil and NaN keys are forbidden on write
+do
+    -- nil key at assignment
+    assertError(function()
+        local t = {}
+        t[nil] = "foo"
+    end)
+
+    -- nil key in table constructor (dynamic field)
+    assertError(function()
+        local k = nil
+        local _ = { [k] = "foo" }
+    end)
+
+    -- NaN key at assignment
+    assertError(function()
+        local t = {}
+        t[0/0] = "bar"
+    end)
+
+    -- NaN key in table constructor
+    assertError(function()
+        local _ = { [0/0] = "bar" }
+    end)
+
+    -- reading with nil key returns nil silently
+    local t = {}
+    assertEqual(t[nil], nil)
+end
+
 -- Reference semantics / aliasing (tables are mutable references)
 do
     local a = { x = 1 }
@@ -185,6 +215,9 @@ do
     table.sort(t, function(a, b) return a > b end)
     assertEqual(t, { 3, 2, 1 })
 
+    table.sort(t, function(a, b) return a < b end)
+    assertEqual(t, { 1, 2, 3 })
+
     local data = { { name = "John", age = 30 }, { name = "Jane", age = 25 } }
     table.sort(data, function(a, b) return a.age < b.age end)
     assertEqual(data[1].name, "Jane")
@@ -230,6 +263,60 @@ do
     assertEqual(y, "y")
 end
 
+-- table.pack / table.unpack edge cases
+do
+  -- __newindex is honoured by pack
+  local log = {}
+  local proxy = setmetatable({}, {
+    __newindex = function(t, k, v)
+      log[#log + 1] = k
+      rawset(t, k, v)
+    end
+  })
+  -- pack into a fresh table, not through proxy; just verify t.n
+  local p = table.pack(10, 20, 30)
+  assertEqual(p.n, 3)
+  assertEqual(p[1], 10)
+  assertEqual(p[2], 20)
+  assertEqual(p[3], 30)
+
+  -- t.n is set even with nils inside
+  local p2 = table.pack(1, nil, 3)
+  assertEqual(p2.n, 3)
+  assertEqual(p2[1], 1)
+  assertEqual(p2[2], nil)
+  assertEqual(p2[3], 3)
+
+  -- empty pack
+  local p3 = table.pack()
+  assertEqual(p3.n, 0)
+
+  -- unpack empty range returns nothing
+  local t = {10, 20, 30}
+  local function count(...)  return select("#", ...) end
+  assertEqual(count(table.unpack(t, 2, 1)), 0)  -- i > j: empty range
+  assertEqual(count(table.unpack(t, 5, 4)), 0)  -- i > j: out of bounds
+
+  -- unpack respects explicit i and j
+  local a, b = table.unpack(t, 2, 3)
+  assertEqual(a, 20)
+  assertEqual(b, 30)
+
+  -- unpack with j beyond array length (reads nils)
+  local c, d, e = table.unpack(t, 2, 4)
+  assertEqual(c, 20)
+  assertEqual(d, 30)
+  assertEqual(e, nil)
+
+  -- unpack honours __index
+  local mt_tbl = setmetatable({}, {
+    __index = function(_, k) return k * 10 end
+  })
+  local x, y = table.unpack(mt_tbl, 1, 2)
+  assertEqual(x, 10)
+  assertEqual(y, 20)
+end
+
 -- __index / __newindex semantics
 do
     local backing = { a = 10 }
@@ -254,4 +341,163 @@ do
     assertFalse(a == b)
     local c = a
     assertTrue(a == c)
+end
+
+-- table.concat
+do
+    assertEqual(table.concat(
+        { "Hello", "world" }, " "), "Hello world")
+    assertEqual(table.concat(
+        { "Hello", "world", "three" }, " ", 2, 3), "world three")
+
+    assertEqual(table.concat({ "a", "b", "c" }), "abc")
+    assertEqual(table.concat({ "a", "b", "c" }, "", 2, 1), "")
+
+    assertError(function() table.concat({ "a", {} }, "") end)
+
+    -- number coercion: integers must not get a decimal point
+    assertEqual(table.concat({ 1, 2, 3 }, ","), "1,2,3")
+
+    -- integer-valued floats must show .0 suffix (Lua semantics)
+    assertEqual(table.concat({ 1.0, 2.0 }, ","), "1.0,2.0")
+
+    -- motivating case: 10.8*22 must produce "237.6" not "237.60000000000002"
+    assertEqual(table.concat({ 10.8 * 22 }, ""), "237.6")
+
+    -- special float values
+    assertEqual(table.concat({ 1/0.0 }, ""), "inf")
+    assertEqual(table.concat({ -1/0.0 }, ""), "-inf")
+    assertEqual(table.concat({ 0.0/0.0 }, ""), "-nan")
+
+    -- mixed strings and numbers
+    assertEqual(table.concat({ "a", 1, "b", 2.5 }, "-"), "a-1-b-2.5")
+end
+
+-- table.move
+do
+    -- Basic copy within same table (non-overlapping)
+    local t = { 1, 2, 3, 4, 5 }
+    table.move(t, 1, 3, 4)
+    assertEqual(t[4], 1)
+    assertEqual(t[5], 2)
+    assertEqual(t[6], 3)
+    -- original slots untouched
+    assertEqual(t[1], 1)
+    assertEqual(t[2], 2)
+    assertEqual(t[3], 3)
+
+    -- Same, with nested table values
+    local nt = { {a=1}, {a=2}, {a=3}, "x", "x" }
+    table.move(nt, 1, 3, 4)
+    assertEqual(nt[4].a, 1)
+    assertEqual(nt[5].a, 2)
+    assertEqual(nt[6].a, 3)
+    assertTrue(nt[4] == nt[1])
+
+    -- Optional destination defaults to source
+    local a = { 10, 20, 30 }
+    local ret = table.move(a, 1, 2, 4)
+    assertTrue(ret == a)
+    assertEqual(a[4], 10)
+    assertEqual(a[5], 20)
+
+    -- Same with nested values
+    local na = { {v=10}, {v=20}, {v=30} }
+    local nret = table.move(na, 1, 2, 4)
+    assertTrue(nret == na)
+    assertEqual(na[4].v, 10)
+    assertEqual(na[5].v, 20)
+
+    -- Copy to a different table; returns destination, source unchanged
+    local src = { "a", "b", "c" }
+    local dst = { "x", "y", "z", "w" }
+    local ret2 = table.move(src, 1, 3, 2, dst)
+    assertTrue(ret2 == dst)
+    assertEqual(dst[1], "x") -- before destination start: untouched
+    assertEqual(dst[2], "a")
+    assertEqual(dst[3], "b")
+    assertEqual(dst[4], "c")
+    assertEqual(src[1], "a") -- source untouched
+    assertEqual(src[2], "b")
+    assertEqual(src[3], "c")
+
+    -- Same with nested values in source and destination
+    local nsrc = { {k=1}, {k=2}, {k=3} }
+    local ndst = { {k=99}, {k=99}, {k=99}, {k=99} }
+    local nret2 = table.move(nsrc, 1, 3, 2, ndst)
+    assertTrue(nret2 == ndst)
+    assertEqual(ndst[1].k, 99) -- before destination start: untouched
+    assertEqual(ndst[2].k, 1)
+    assertEqual(ndst[3].k, 2)
+    assertEqual(ndst[4].k, 3)
+    assertTrue(ndst[2] == nsrc[1]) -- shallow copy: same object
+    assertEqual(nsrc[1].k, 1) -- source untouched
+
+    -- Overlapping: same table — requires backward copy to be correct
+    local ov = { 1, 2, 3, 4, 5 }
+    table.move(ov, 1, 4, 2)
+    assertEqual(ov[1], 1) -- slot before destination: untouched
+    assertEqual(ov[2], 1)
+    assertEqual(ov[3], 2)
+    assertEqual(ov[4], 3)
+    assertEqual(ov[5], 4)
+
+    -- Same with nested values — backward copy must not clobber via aliasing
+    local nov = { {n=1}, {n=2}, {n=3}, {n=4}, {n=5} }
+    table.move(nov, 1, 4, 2)
+    assertEqual(nov[2].n, 1)
+    assertEqual(nov[3].n, 2)
+    assertEqual(nov[4].n, 3)
+    assertEqual(nov[5].n, 4)
+    assertTrue(nov[2] == nov[1]) -- same object references after shift
+
+    -- Overlapping: same table — forward copy is safe (shift left)
+    local ov2 = { 1, 2, 3, 4, 5 }
+    table.move(ov2, 2, 5, 1)
+    assertEqual(ov2[1], 2)
+    assertEqual(ov2[2], 3)
+    assertEqual(ov2[3], 4)
+    assertEqual(ov2[4], 5)
+
+    -- Same with nested values
+    local nov2 = { {n=1}, {n=2}, {n=3}, {n=4}, {n=5} }
+    table.move(nov2, 2, 5, 1)
+    assertEqual(nov2[1].n, 2)
+    assertEqual(nov2[2].n, 3)
+    assertEqual(nov2[3].n, 4)
+    assertEqual(nov2[4].n, 5)
+
+    -- Exact same position: same table) — forward copy, net no-op
+    local same = { 7, 8, 9 }
+    table.move(same, 1, 3, 1)
+    assertEqual(same[1], 7)
+    assertEqual(same[2], 8)
+    assertEqual(same[3], 9)
+
+    -- Empty range: no writes, returns destination
+    local empty = { 1, 2, 3 }
+    local ret3 = table.move(empty, 3, 1, 1)
+    assertTrue(ret3 == empty)
+    assertEqual(empty[1], 1)
+    assertEqual(empty[2], 2)
+    assertEqual(empty[3], 3)
+
+    -- Empty range with explicit different destination
+    local esrc = { 1, 2 }
+    local edst = { 9, 9 }
+    local ret4 = table.move(esrc, 2, 1, 1, edst)
+    assertTrue(ret4 == edst)
+    assertEqual(edst[1], 9)
+    assertEqual(edst[2], 9)
+
+    -- Single element copy
+    local s = { 10, 20, 30 }
+    table.move(s, 2, 2, 3)
+    assertEqual(s[3], 20)
+
+    -- Single element copy, nested
+    local ns = { {x=1}, {x=2}, {x=3} }
+    table.move(ns, 2, 2, 3)
+    assertTrue(ns[3] == ns[2])
+    assertEqual(ns[3].x, 2)
 end

@@ -136,6 +136,22 @@ test("Test query parsing", () => {
     `_(query[[from p = index.tag("page") order by p.lastModified desc, p.name]])`,
   );
   parse(`_(query[[from p = index.tag("page") order by p.lastModified]])`);
+  // group by single key
+  parse(
+    `_(query[[from p = index.tag("page") group by p.category]])`,
+  );
+  // group by multiple keys
+  parse(
+    `_(query[[from p = index.tag("page") group by p.category, p.status]])`,
+  );
+  // group by + having
+  parse(
+    `_(query[[from p = index.tag("page") group by p.category having #group > 1]])`,
+  );
+  // group by + having + select
+  parse(
+    `_(query[[from p = index.tag("page") group by p.category, p.status having #group > 2 select { key = key, count = #group }]])`,
+  );
 });
 
 test("Test numeric constant parsing", () => {
