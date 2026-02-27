@@ -72,7 +72,7 @@ ${
       // Resolve path
       filePath = path.join(rootPath, filePath);
 
-      return `import {${jsFunctionName} as ${funcName}} from "file://${
+      return `import {${jsFunctionName} as ${funcName}} from "${
         // Replacing \ with / for Windows
         path.resolve(filePath).replaceAll(
           "\\",
@@ -119,18 +119,6 @@ setupMessageListener(functionMapping, manifest, self.postMessage);
     outfile: outFile,
     metafile: options.info,
     treeShaking: true,
-    plugins: [
-      // Simple plugin to handle file:// URLs
-      {
-        name: "file-url-resolver",
-        setup(build: esbuild.PluginBuild) {
-          build.onResolve({ filter: /^file:\/\// }, (args: esbuild.OnResolveArgs) => {
-            const filePath = args.path.replace(/^file:\/\//, "");
-            return { path: filePath };
-          });
-        },
-      },
-    ],
   });
 
   if (options.info) {
