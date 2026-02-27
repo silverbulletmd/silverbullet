@@ -1,6 +1,6 @@
 #meta
 
-From here you can extend SilverBullet with additional functionality throught he use of [libraries](https://silverbullet.md/Libraries).
+From here you can extend SilverBullet with additional functionality through the use of [libraries](https://silverbullet.md/Libraries).
 
 # Installed Libraries
 ${widgets.commandButton("Update All", "Library: Update All")}
