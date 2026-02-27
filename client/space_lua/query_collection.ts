@@ -8,6 +8,7 @@ import type {
   LuaPropField,
   LuaUnaryExpression,
 } from "./ast.ts";
+
 import {
   LuaEnv,
   luaGet,
@@ -29,9 +30,6 @@ import type { KvKey } from "../../plug-api/types/datastore.ts";
 
 import { executeAggregate, getAggregateSpec } from "./aggregates.ts";
 
-export { buildItemEnv } from "./query_env.ts";
-import { buildItemEnv } from "./query_env.ts";
-
 // Sentinel value representing SQL NULL in query results.
 export const LUA_SQL_NULL = Symbol.for("silverbullet.sqlNull");
 
@@ -39,51 +37,35 @@ export function isSqlNull(v: any): boolean {
   return v === LUA_SQL_NULL;
 }
 
-// Build environment for post-`group by` clauses (`having`, `select`,
-// `order by`).  Injects `key` and `group` as top-level variables.  Also
-// unpacks the `group by` key fields as locals so that `group by name,
-// tag` makes `name` and `tag` accessible.
-//
-// When an objectVariable is set (e.g. `from t = ...`), `t` is bound to
-// the first group item so that `t.name` etc. keep working post-group,
-// consistent with the non-binding path where bare field names come from
-// the first item.
+// Build environment for post-`group by` clauses. Injects `key` and `group`
+// as top-level variables. Unpacks first group item fields and group-by key
+// fields as locals so that bare field access works after grouping.
 function buildGroupItemEnv(
   objectVariable: string | undefined,
   groupByNames: string[] | undefined,
   item: any,
-  env: LuaEnv,
+  parentGlobals: LuaEnv,
   sf: LuaStackFrame,
 ): LuaEnv {
-  const itemEnv = new LuaEnv(env);
-
-  // Always expose the raw group row as `_`
+  const itemEnv = new LuaEnv(parentGlobals);
   itemEnv.setLocal("_", item);
-
   if (item instanceof LuaTable) {
     const keyVal = item.rawGet("key");
     const groupVal = item.rawGet("group");
-
-    // Always unpack first group item's fields as locals, regardless of
-    // objectVariable, so bare field names (e.g. `name`) are accessible
-    // in having/select/order by after group by.
     const firstItem = (groupVal instanceof LuaTable)
       ? groupVal.rawGet(1)
       : undefined;
 
     if (firstItem) {
       for (const k of luaKeys(firstItem)) {
-        itemEnv.setLocal(
-          k,
-          luaGet(firstItem, k, sf.astCtx ?? null, sf),
-        );
+        if (typeof k !== "string") continue;
+        itemEnv.setLocal(k, luaGet(firstItem, k, sf.astCtx ?? null, sf));
       }
     }
 
     if (objectVariable) {
       itemEnv.setLocal(objectVariable, firstItem ?? item);
     }
-
     if (keyVal !== undefined) {
       itemEnv.setLocal("key", keyVal);
     }
@@ -93,14 +75,14 @@ function buildGroupItemEnv(
 
     if (keyVal instanceof LuaTable) {
       for (const k of luaKeys(keyVal)) {
-        itemEnv.setLocal(
-          k,
-          luaGet(keyVal, k, sf.astCtx ?? null, sf),
-        );
+        if (typeof k !== "string") continue;
+        itemEnv.setLocal(k, luaGet(keyVal, k, sf.astCtx ?? null, sf));
       }
     }
+    // For single-key group by, bind the key name as a local
     if (
-      !(keyVal instanceof LuaTable) && groupByNames &&
+      !(keyVal instanceof LuaTable) &&
+      groupByNames &&
       groupByNames.length === 1
     ) {
       itemEnv.setLocal(groupByNames[0], keyVal);
@@ -108,6 +90,43 @@ function buildGroupItemEnv(
   }
   return itemEnv;
 }
+
+/**
+ * Build an environment for evaluating per-item expressions in queries.
+ *
+ * When `objectVariable` is NOT set: item fields are unpacked as locals
+ * and shadow any globals. The item is also bound to `_`.
+ *
+ * When `objectVariable` IS set: only the object variable is bound.
+ * Item fields are NOT unpacked - the user opted into qualified access
+ * (e.g. `p.name`) and bare names must resolve from the parent env.
+ */
+function buildItemEnvLocal(
+  objectVariable: string | undefined,
+  item: any,
+  env: LuaEnv,
+  sf: LuaStackFrame,
+): LuaEnv {
+  const itemEnv = new LuaEnv(env);
+  if (objectVariable) {
+    itemEnv.setLocal(objectVariable, item);
+  } else {
+    // Unpack item fields as locals so unqualified access works
+    itemEnv.setLocal("_", item);
+    if (item instanceof LuaTable) {
+      for (const key of luaKeys(item)) {
+        itemEnv.setLocal(key, luaGet(item, key, sf.astCtx ?? null, sf));
+      }
+    } else if (typeof item === "object" && item !== null) {
+      for (const key of luaKeys(item)) {
+        itemEnv.setLocal(key, luaGet(item, key, sf.astCtx ?? null, sf));
+      }
+    }
+  }
+  return itemEnv;
+}
+
+export { buildItemEnvLocal as buildItemEnv };
 
 export type LuaOrderBy = {
   expr: LuaExpression;
@@ -151,7 +170,6 @@ export interface LuaQueryCollection {
 export class ArrayQueryCollection<T> implements LuaQueryCollection {
   constructor(private readonly array: T[]) {
   }
-
   query(
     query: LuaCollectionQuery,
     env: LuaEnv,
@@ -162,7 +180,20 @@ export class ArrayQueryCollection<T> implements LuaQueryCollection {
   }
 }
 
-// Check whether an expression tree contains any aggregate function call.
+// Wrap any object, array, or LuaQueryCollection as a queryable collection
+export function toCollection(obj: any): LuaQueryCollection {
+  if (
+    obj instanceof ArrayQueryCollection ||
+    obj instanceof DataStoreQueryCollection
+  ) {
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    return new ArrayQueryCollection(obj);
+  }
+  return new ArrayQueryCollection([obj]);
+}
+
 function containsAggregate(expr: LuaExpression): boolean {
   switch (expr.type) {
     case "FunctionCall": {
@@ -219,11 +250,9 @@ export async function evalExpressionWithAggregates(
   objectVariable: string | undefined,
   outerEnv: LuaEnv,
 ): Promise<LuaValue> {
-  // Fast path: no aggregate calls in tree -> normal eval
   if (!containsAggregate(expr)) {
     return evalExpression(expr, env, sf);
   }
-
   const recurse = (e: LuaExpression) =>
     evalExpressionWithAggregates(
       e,
@@ -233,8 +262,6 @@ export async function evalExpressionWithAggregates(
       objectVariable,
       outerEnv,
     );
-
-  // Direct aggregate call
   if (expr.type === "FunctionCall") {
     const fc = expr as LuaFunctionCallExpression;
     if (fc.prefix.type === "Variable") {
@@ -254,8 +281,6 @@ export async function evalExpressionWithAggregates(
       }
     }
   }
-
-  // Recurse into field values
   if (expr.type === "TableConstructor") {
     const table = new LuaTable();
     let nextArrayIndex = 1;
@@ -285,11 +310,8 @@ export async function evalExpressionWithAggregates(
     }
     return table;
   }
-
-  // Recurse operands, apply via luaOp
   if (expr.type === "Binary") {
     const bin = expr as LuaBinaryExpression;
-
     if (bin.operator === "and") {
       const left = singleResult(await recurse(bin.left));
       if (!luaTruthy(left)) return left;
@@ -300,7 +322,6 @@ export async function evalExpressionWithAggregates(
       if (luaTruthy(left)) return left;
       return singleResult(await recurse(bin.right));
     }
-
     const left = singleResult(await recurse(bin.left));
     const right = singleResult(await recurse(bin.right));
     return luaOp(
@@ -313,8 +334,6 @@ export async function evalExpressionWithAggregates(
       sf,
     );
   }
-
-  // Recurse argument, apply operator
   if (expr.type === "Unary") {
     const un = expr as LuaUnaryExpression;
     const arg = singleResult(await recurse(un.argument));
@@ -340,13 +359,10 @@ export async function evalExpressionWithAggregates(
         return evalExpression(expr, env, sf);
     }
   }
-
-  // Unwrap
   if (expr.type === "Parenthesized") {
     const paren = expr as LuaParenthesizedExpression;
     return singleResult(await recurse(paren.expression));
   }
-
   return evalExpression(expr, env, sf);
 }
 
@@ -371,19 +387,13 @@ function collectCanonicalKeyOrder(results: any[]): string[] | null {
   return best;
 }
 
-// After select, ensure every `LuaTable` result has the same string keys
-// in the same insertion order.
 function normalizeSelectResults(results: any[]): any[] {
   if (results.length === 0) return results;
-
   const canonicalKeys = collectCanonicalKeyOrder(results);
   if (!canonicalKeys || canonicalKeys.length === 0) return results;
-
   for (let i = 0; i < results.length; i++) {
     const item = results[i];
     if (!(item instanceof LuaTable)) continue;
-
-    // Check if this table is missing any canonical keys
     let needsRebuild = false;
     for (const k of canonicalKeys) {
       const v = item.rawGet(k);
@@ -393,7 +403,6 @@ function normalizeSelectResults(results: any[]): any[] {
       }
     }
     if (!needsRebuild) continue;
-
     const rebuilt = new LuaTable();
     for (const k of canonicalKeys) {
       const v = item.rawGet(k);
@@ -412,8 +421,6 @@ function normalizeSelectResults(results: any[]): any[] {
   return results;
 }
 
-// Handles both grouped (aggregate-aware) and non-grouped evaluation,
-// optional select-alias injection, and collation
 async function orderByCompare(
   a: any,
   b: any,
@@ -436,7 +443,6 @@ async function orderByCompare(
   for (const { expr, desc } of orderBy) {
     const aEnv = mkEnv(objectVariable, a, env, sf);
     const bEnv = mkEnv(objectVariable, b, env, sf);
-
     if (aSelectRow) {
       for (const k of luaKeys(aSelectRow)) {
         const v = luaGet(aSelectRow, k, sf.astCtx ?? null, sf);
@@ -449,7 +455,6 @@ async function orderByCompare(
         bEnv.setLocal(k, isSqlNull(v) ? null : v);
       }
     }
-
     let aVal, bVal;
     if (grouped) {
       const aGroup = (a as LuaTable).rawGet("group");
@@ -474,13 +479,11 @@ async function orderByCompare(
       aVal = await evalExpression(expr, aEnv, sf);
       bVal = await evalExpression(expr, bEnv, sf);
     }
-
     const aIsNull = aVal === null || aVal === undefined;
     const bIsNull = bVal === null || bVal === undefined;
     if (aIsNull && bIsNull) continue;
     if (aIsNull) return desc ? -1 : 1;
     if (bIsNull) return desc ? 1 : -1;
-
     if (
       collation?.enabled &&
       typeof aVal === "string" &&
@@ -499,9 +502,6 @@ async function orderByCompare(
   return 0;
 }
 
-/**
- * Applies a given query (where, order by, limit etc.) to a set of results
- */
 export async function applyQuery(
   results: any[],
   query: LuaCollectionQuery,
@@ -509,15 +509,16 @@ export async function applyQuery(
   sf: LuaStackFrame,
   collation?: QueryCollationConfig,
 ): Promise<any[]> {
-  // Shallow copy to avoid updating underlying data structures
   results = results.slice();
-
-  // Filter results based on `where` clause first
   if (query.where) {
     const filteredResults = [];
     for (const value of results) {
-      // Enrich value
-      const itemEnv = buildItemEnv(query.objectVariable, value, env, sf);
+      const itemEnv = buildItemEnvLocal(
+        query.objectVariable,
+        value,
+        env,
+        sf,
+      );
       if (await evalExpression(query.where, itemEnv, sf)) {
         filteredResults.push(value);
       }
@@ -527,11 +528,11 @@ export async function applyQuery(
 
   const grouped = !!query.groupBy;
 
-  // Collect `group by` key names for unpacking into the environment.
+  // Collect group-by key names for unpacking into the post-group environment.
   let groupByNames: string[] | undefined;
 
-  // Apply `group by`
   if (query.groupBy) {
+    // Extract bare names from group-by expressions for local binding
     groupByNames = query.groupBy.map((expr) => {
       if (expr.type === "Variable") {
         return expr.name;
@@ -542,39 +543,67 @@ export async function applyQuery(
       return undefined as unknown as string;
     }).filter(Boolean);
 
-    const groups = new Map<string, { key: any; items: any[] }>();
+    const groups = new Map<
+      string,
+      { key: any; items: any[] }
+    >();
+    const groupByExprs = query.groupBy as LuaExpression[];
+
     for (const item of results) {
-      const itemEnv = buildItemEnv(query.objectVariable, item, env, sf);
-      // Evaluate all `group by` expressions to form a composite key
+      const itemEnv = buildItemEnvLocal(
+        query.objectVariable,
+        item,
+        env,
+        sf,
+      );
+
       const keyParts: any[] = [];
-      for (const expr of query.groupBy) {
-        keyParts.push(await evalExpression(expr, itemEnv, sf));
+      const keyRecord: Record<string, any> = {};
+
+      for (const expr of groupByExprs) {
+        if (expr.type === "Variable") {
+          const v = await evalExpression(expr, itemEnv, sf);
+          keyParts.push(v);
+          keyRecord[expr.name] = v;
+        } else if (expr.type === "PropertyAccess") {
+          const v = await evalExpression(expr, itemEnv, sf);
+          keyParts.push(v);
+          keyRecord[expr.property] = v;
+        } else {
+          const v = await evalExpression(expr, itemEnv, sf);
+          keyParts.push(v);
+        }
       }
+
       const compositeKey = keyParts.length === 1
         ? generateKey(keyParts[0])
         : JSON.stringify(keyParts.map(generateKey));
       let entry = groups.get(compositeKey);
       if (!entry) {
-        // Unwrap single key; multi-key to `LuaTable` with named fields
         let keyVal: any;
         if (keyParts.length === 1) {
           keyVal = keyParts[0];
         } else {
           const kt = new LuaTable();
+          // Always populate array indices from keyParts
           for (let i = 0; i < keyParts.length; i++) {
             kt.rawSetArrayIndex(i + 1, keyParts[i]);
-            if (groupByNames && groupByNames[i]) {
-              kt.rawSet(groupByNames[i], keyParts[i]);
-            }
+          }
+          // Additionally set named fields for Variable/PropertyAccess exprs
+          for (const name in keyRecord) {
+            kt.rawSet(name, keyRecord[name]);
           }
           keyVal = kt;
         }
-        entry = { key: keyVal, items: [] };
+        entry = {
+          key: keyVal,
+          items: [],
+        };
         groups.set(compositeKey, entry);
       }
       entry.items.push(item);
     }
-    // Convert groups to result rows with `key` and `group`
+
     results = [];
     for (const { key, items } of groups.values()) {
       const groupTable = new LuaTable();
@@ -610,7 +639,12 @@ export async function applyQuery(
           env,
         );
       } else {
-        const itemEnv = buildItemEnv(query.objectVariable, value, env, sf);
+        const itemEnv = buildItemEnvLocal(
+          query.objectVariable,
+          value,
+          env,
+          sf,
+        );
         condResult = await evalExpression(query.having, itemEnv, sf);
       }
       if (condResult) {
@@ -621,16 +655,16 @@ export async function applyQuery(
   }
 
   const mkEnv = grouped
-    ? (ov: string | undefined, item: any, e: LuaEnv, s: LuaStackFrame) =>
-      buildGroupItemEnv(ov, groupByNames, item, e, s)
-    : buildItemEnv;
+    ? (
+      ov: string | undefined,
+      item: any,
+      e: LuaEnv,
+      s: LuaStackFrame,
+    ) => buildGroupItemEnv(ov, groupByNames, item, e, s)
+    : buildItemEnvLocal;
 
-  // When grouped with both select and order by, pre-evaluate select for
-  // each group row so that order by can reference output aliases
-  // (e.g., `select { tot = count() } order by tot desc`).
-  // Store results in a parallel array to preserve insertion order of
-  // the select table's keys (avoids column reordering side effects).
   let selectResults: any[] | undefined;
+
   if (grouped && query.select && query.orderBy) {
     selectResults = [];
     for (const item of results) {
@@ -646,24 +680,18 @@ export async function applyQuery(
       );
       selectResults.push(selected);
     }
-    // Normalize early so order by env injection also gets correct keys
     selectResults = normalizeSelectResults(selectResults);
   }
 
-  // Apply `order by` next
   if (query.orderBy) {
-    // Retrieve from config API if not passed
     if (collation === undefined) {
       // @ts-ignore: Hack to access client via the browser
-      const config = globalThis.client.config; // HACK: Shouldn't be using client here directly
-
+      const config = globalThis.client.config;
       collation = config.get("queryCollation", {});
     }
-    // Both arguments are optional, so passing undefined is fine
     const collator = Intl.Collator(collation?.locale, collation?.options);
 
     if (selectResults) {
-      // Sort via index array to keep results and selectResults in sync
       const indices = results.map((_, i) => i);
       await asyncQuickSort(indices, (ai, bi) =>
         orderByCompare(
@@ -681,7 +709,6 @@ export async function applyQuery(
           selectResults![bi],
         ));
 
-      // Reorder both arrays according to sorted indices
       results = indices.map((i) => results[i]);
       selectResults = indices.map((i) => selectResults![i]);
     } else {
@@ -701,8 +728,6 @@ export async function applyQuery(
     }
   }
 
-  // Apply the select -- aggregate-aware when grouped
-  // When select was already pre-evaluated for order by, reuse those results
   if (query.select) {
     if (selectResults) {
       results = selectResults;
@@ -728,31 +753,22 @@ export async function applyQuery(
       }
       results = newResult;
     }
-
-    // Normalize: ensure all result tables have the same set of keys
-    // in the same insertion order, using LUA_SQL_NULL for nil gaps
     results = normalizeSelectResults(results);
   }
 
-  // Apply distinct filter (after select to filter on selected values)
   if (query.distinct) {
     const seen = new Set();
     const distinctResult = [];
-
     for (const item of results) {
-      // For non-primitive values, we use a JSON string as the key for comparison
       const key = generateKey(item);
-
       if (!seen.has(key)) {
         seen.add(key);
         distinctResult.push(item);
       }
     }
-
     results = distinctResult;
   }
 
-  // Apply the limit and offset
   if (query.limit !== undefined && query.offset !== undefined) {
     results = results.slice(query.offset, query.offset + query.limit);
   } else if (query.limit !== undefined) {
@@ -773,7 +789,6 @@ export async function queryLua<T = any>(
   enricher?: (key: KvKey, item: any) => any,
 ): Promise<T[]> {
   const results: T[] = [];
-  // Accumulate all results into an array
   for await (
     let { key, value } of kv.query({ prefix })
   ) {
@@ -782,11 +797,9 @@ export async function queryLua<T = any>(
     }
     results.push(value);
   }
-
   return applyQuery(results, query, env, sf);
 }
 
-// Generate a stable string key for deduplication.
 function generateKey(value: any) {
   if (isSqlNull(value)) {
     return "__SQL_NULL__";
@@ -833,9 +846,7 @@ export class DataStoreQueryCollection implements LuaQueryCollection {
   constructor(
     private readonly dataStore: DataStore,
     readonly prefix: string[],
-  ) {
-  }
-
+  ) {}
   query(
     query: LuaCollectionQuery,
     env: LuaEnv,
