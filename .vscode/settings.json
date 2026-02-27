@@ -1,18 +1,10 @@
 {
   "editor.formatOnSave": true,
-  "deno.enable": true,
-  "deno.config": "deno.json",
-  "[json]": {
-    "editor.defaultFormatter": "denoland.vscode-deno"
-  },
-  "[jsonc]": {
-    "editor.defaultFormatter": "denoland.vscode-deno"
-  },
   "[markdown]": {
     "editor.formatOnSave": false
   },
   "[typescript]": {
-    "editor.defaultFormatter": "denoland.vscode-deno"
+    "editor.defaultFormatter": "vscode.typescript-language-features"
   },
   "editor.tabSize": 2
 }

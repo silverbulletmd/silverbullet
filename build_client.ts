@@ -5,7 +5,7 @@ import * as sass from "sass";
 
 import * as esbuild from "esbuild";
 
-import { patchDenoLibJS } from "./client/plugos/plug_compile.ts";
+import { patchBundledJS } from "./client/plugos/plug_compile.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -34,7 +34,7 @@ export async function copyAssets(dist: string) {
 
   // HACK: Patch the JS by removing an invalid regex
   let bundleJs = await readFile(`${dist}/client.js`, "utf-8");
-  bundleJs = patchDenoLibJS(bundleJs);
+  bundleJs = patchBundledJS(bundleJs);
   await writeFile(`${dist}/client.js`, bundleJs, "utf-8");
 }
 

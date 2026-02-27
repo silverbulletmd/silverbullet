@@ -127,7 +127,7 @@ setupMessageListener(functionMapping, manifest, self.postMessage);
   }
 
   let jsCode = await readFile(outFile, "utf-8");
-  jsCode = patchDenoLibJS(jsCode);
+  jsCode = patchBundledJS(jsCode);
   await writeFile(outFile, jsCode, "utf-8");
   
   // Clean up temp directory
@@ -174,8 +174,8 @@ export async function compileManifests(
   await buildAll();
 }
 
-export function patchDenoLibJS(code: string): string {
-  // The Deno std lib has one occurence of a regex that Webkit JS doesn't (yet parse), we'll strip it because it's likely never invoked anyway, YOLO
+export function patchBundledJS(code: string): string {
+  // One bundled dependency has a lookbehind regex that WebKit can't parse; replace it with a no-op
   return code.replaceAll("/(?<=\\n)/", "/()/");
 }
 
