@@ -28,8 +28,6 @@ const workerRuntimeUrl = `data:text/javascript;charset=utf-8,${encodeURIComponen
 export type CompileOptions = {
   debug?: boolean;
   runtimeUrl?: string;
-  // path to config file
-  configPath?: string;
   // Print info on bundle size
   info?: boolean;
 };
@@ -194,11 +192,10 @@ export function patchDenoLibJS(code: string): string {
 }
 
 export async function plugCompileCommand(
-  { dist, debug, info, config, runtimeUrl }: {
+  { dist, debug, info, runtimeUrl }: {
     dist: string;
     debug: boolean;
     info: boolean;
-    config?: string;
     runtimeUrl?: string;
   },
   ...manifestPaths: string[]
@@ -210,7 +207,6 @@ export async function plugCompileCommand(
       debug: debug,
       info: info,
       runtimeUrl,
-      configPath: config,
     },
   );
   esbuild.stop();

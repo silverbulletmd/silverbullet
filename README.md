@@ -96,6 +96,8 @@ make check
 make fmt
 # Run all tests
 make test
+# Run benchmarks
+make bench
 ```
 
 ### Build a docker container

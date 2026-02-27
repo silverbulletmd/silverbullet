@@ -21,7 +21,7 @@ import { Space } from "./space.ts";
 // Use `type` for type-only imports (part of the lint rules)
 import type { Command } from "./types/command.ts";
 
-// Use package-prefixed absolute when available (defined in deno.json)
+// Use package-prefixed absolute when available (defined in package.json)
 import { sleep } from "@silverbulletmd/silverbullet/lib/async";
 ```
 

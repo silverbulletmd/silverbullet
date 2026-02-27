@@ -50,7 +50,6 @@ if (isMain) {
     {
       debug: args.debug as boolean | undefined,
       info: args.info as boolean | undefined,
-      configPath: fileURLToPath(new URL("deno.json", import.meta.url)),
     },
   );
   esbuild.stop();

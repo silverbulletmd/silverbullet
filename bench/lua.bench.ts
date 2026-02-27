@@ -1,7 +1,4 @@
-use strict;
-use warnings;
-use File::Copy;
-import { bench } from "vitest";
+import { bench, expect } from "vitest";
 import { readFile } from "node:fs/promises";
 import { parse } from "../client/space_lua/parse.ts";
 import { luaBuildStandardEnv } from "../client/space_lua/stdlib.ts";
@@ -77,6 +74,7 @@ bench("[Lua] Lume functions tests", async () => {
 async function runLuaTest(luaPath: string) {
   const luaFile = await readFile(
     fileURLToPath(new URL(luaPath, import.meta.url)),
+    "utf-8",
   );
   const chunk = parse(luaFile, {});
   const env = new LuaEnv(luaBuildStandardEnv());
