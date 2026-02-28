@@ -1,26 +1,14 @@
+import { expect, test } from "vitest";
 import { rangeLength, rangesOverlap } from "./change.ts";
-import { assertEquals } from "@std/assert";
 
-Deno.test("rangeLength", () => {
-  assertEquals(rangeLength({ from: 4, to: 11 }), 7);
+test("rangeLength", () => {
+  expect(rangeLength({ from: 4, to: 11 })).toEqual(7);
 });
 
-Deno.test("rangesOverlap", () => {
-  assertEquals(
-    rangesOverlap({ from: 0, to: 5 }, { from: 3, to: 8 }),
-    true,
-  );
-  assertEquals(
-    rangesOverlap({ from: 0, to: 5 }, { from: 6, to: 8 }),
-    false,
-  );
+test("rangesOverlap", () => {
+  expect(rangesOverlap({ from: 0, to: 5 }, { from: 3, to: 8 })).toEqual(true);
+  expect(rangesOverlap({ from: 0, to: 5 }, { from: 6, to: 8 })).toEqual(false);
   // `to` is exclusive
-  assertEquals(
-    rangesOverlap({ from: 0, to: 6 }, { from: 6, to: 8 }),
-    false,
-  );
-  assertEquals(
-    rangesOverlap({ from: 3, to: 6 }, { from: 0, to: 4 }),
-    true,
-  );
+  expect(rangesOverlap({ from: 0, to: 6 }, { from: 6, to: 8 })).toEqual(false);
+  expect(rangesOverlap({ from: 3, to: 6 }, { from: 0, to: 4 })).toEqual(true);
 });

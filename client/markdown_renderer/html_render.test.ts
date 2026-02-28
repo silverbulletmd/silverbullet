@@ -1,29 +1,20 @@
-import { assertEquals } from "@std/assert";
+import { expect, test } from "vitest";
 import { renderHtml } from "./html_render.ts";
 
-Deno.test("HTML Render", () => {
-  assertEquals(
-    renderHtml({
-      name: "b",
-      body: "hello",
-    }),
-    `<b>hello</b>`,
-  );
-  assertEquals(
-    renderHtml({
-      name: "a",
-      attrs: {
-        href: "https://example.com",
-      },
-      body: "hello",
-    }),
-    `<a href="https://example.com">hello</a>`,
-  );
-  assertEquals(
-    renderHtml({
-      name: "span",
-      body: "<>",
-    }),
-    `<span>&lt;&gt;</span>`,
-  );
+test("HTML Render", () => {
+  expect(renderHtml({
+    name: "b",
+    body: "hello",
+  })).toEqual(`<b>hello</b>`);
+  expect(renderHtml({
+    name: "a",
+    attrs: {
+      href: "https://example.com",
+    },
+    body: "hello",
+  })).toEqual(`<a href="https://example.com">hello</a>`);
+  expect(renderHtml({
+    name: "span",
+    body: "<>",
+  })).toEqual(`<span>&lt;&gt;</span>`);
 });

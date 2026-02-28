@@ -1,8 +1,8 @@
+import { expect, test } from "vitest";
 import { parse, parseExpressionString, stripLuaComments } from "./parse.ts";
 import type { LuaNumberLiteral } from "./ast.ts";
-import { assertEquals } from "@std/assert/equals";
 
-Deno.test("Test Lua parser", () => {
+test("Test Lua parser", () => {
   // Basic block test
   parse(`
         print("Hello, World!")
@@ -109,7 +109,7 @@ Deno.test("Test Lua parser", () => {
   parse(`return 1, 2, 3`);
 });
 
-Deno.test("Test comment handling", () => {
+test("Test comment handling", () => {
   const code = `
 -- Single line comment
 --[[ Multi
@@ -120,14 +120,14 @@ hello
 -- yo
 ]])`;
   const code2 = stripLuaComments(code);
-  assertEquals(code2.length, code.length);
+  expect(code2.length).toEqual(code.length);
   console.log(code2);
   console.log(stripLuaComments(`e([==[
     --- Hello
   ]==])`));
 });
 
-Deno.test("Test query parsing", () => {
+test("Test query parsing", () => {
   parse(
     `_(query[[from p = index.tag("page") where p.name == "John" limit 10, 3]])`,
   );
@@ -154,30 +154,20 @@ Deno.test("Test query parsing", () => {
   );
 });
 
-Deno.test("Test numeric constant parsing", () => {
+test("Test numeric constant parsing", () => {
   // Examples from Lua 5.4 Reference Manual, except hexadecimal constants with fractional part
-  assertEquals((parseExpressionString(`3`) as LuaNumberLiteral).value, 3);
-  assertEquals((parseExpressionString(`345`) as LuaNumberLiteral).value, 345);
-  assertEquals((parseExpressionString(`0xff`) as LuaNumberLiteral).value, 0xff);
-  assertEquals(
-    (parseExpressionString(`0xBEBADA`) as LuaNumberLiteral).value,
-    0xBEBADA,
+  expect((parseExpressionString(`3`) as LuaNumberLiteral).value).toEqual(3);
+  expect((parseExpressionString(`345`) as LuaNumberLiteral).value).toEqual(345);
+  expect((parseExpressionString(`0xff`) as LuaNumberLiteral).value).toEqual(0xff);
+  expect((parseExpressionString(`0xBEBADA`) as LuaNumberLiteral).value).toEqual(0xBEBADA,
   );
-  assertEquals((parseExpressionString(`3.0`) as LuaNumberLiteral).value, 3.0);
-  assertEquals(
-    (parseExpressionString(`3.1416`) as LuaNumberLiteral).value,
-    3.1416,
+  expect((parseExpressionString(`3.0`) as LuaNumberLiteral).value).toEqual(3.0);
+  expect((parseExpressionString(`3.1416`) as LuaNumberLiteral).value).toEqual(3.1416,
   );
-  assertEquals(
-    (parseExpressionString(`314.16e-2`) as LuaNumberLiteral).value,
-    314.16e-2,
+  expect((parseExpressionString(`314.16e-2`) as LuaNumberLiteral).value).toEqual(314.16e-2,
   );
-  assertEquals(
-    (parseExpressionString(`0.31416E1`) as LuaNumberLiteral).value,
-    0.31416E1,
+  expect((parseExpressionString(`0.31416E1`) as LuaNumberLiteral).value).toEqual(0.31416E1,
   );
-  assertEquals(
-    (parseExpressionString(`34e1`) as LuaNumberLiteral).value,
-    34e1,
+  expect((parseExpressionString(`34e1`) as LuaNumberLiteral).value).toEqual(34e1,
   );
 });

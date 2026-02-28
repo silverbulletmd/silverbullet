@@ -1,8 +1,8 @@
 build:
 	# Build client
-	deno task build
+	npm run build
 	# Build plug-compile
-	deno task build-plug-compile
+	npm run build:plug-compile
 	# Build server
 	go build
 
@@ -19,32 +19,28 @@ clean:
 
 check:
 	# Frontend type check
-	deno task check
-	# Frontend lint
-	deno task lint
+	npm run check
 	# Backend lint
 	go vet
 
 fmt:
-	# Reformat frontend
-	deno task fmt
 	# Reformat backend
 	go fmt
 
 test:
 	# Run frontend tests
-	deno task test
+	npx vitest run
 	# Run backend tests
 	go test ./server/...
 
 .PHONY: bench
 bench:
-	# Run frontend tests
-	deno task bench
+	# Run frontend benchmarks
+	npm run bench
 
 generate:
 	# Regenerate the Lua parser from the the grammar
-	deno run -A npm:@lezer/generator@1.5.1 client/space_lua/lua.grammar -o client/space_lua/parse-lua.js
+	npx @lezer/generator@1.5.1 client/space_lua/lua.grammar -o client/space_lua/parse-lua.js
 
 .PHONY: website
 website: build

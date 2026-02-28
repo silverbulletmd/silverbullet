@@ -10,18 +10,20 @@ jobs:
     steps:
       - name: Setup repo
         uses: actions/checkout@v3
-      - name: Setup Deno
-        uses: denoland/setup-deno@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          deno-version: v2.6.8
+          node-version-file: '.nvmrc'
       - name: Setup Go
         uses: actions/setup-go@v4
         with:
           go-version: "1.25.1"
-      - name: Compile frontend and plug-compile with Deno
+      - name: Install dependencies
+        run: npm ci
+      - name: Compile frontend and plug-compile
         run: |
-          deno task build-production
-          deno task build-plug-compile
+          npm run build
+          npm run build:plug-compile
       - name: Build Go binaries for multiple platforms
         run: |
           # Linux ARM64

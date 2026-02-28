@@ -1,4 +1,4 @@
-import { assert, assertEquals } from "@std/assert";
+import { expect } from "vitest";
 import type { SpacePrimitives } from "./space_primitives.ts";
 import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
 import { notFoundError } from "@silverbulletmd/silverbullet/constants";
@@ -15,12 +15,12 @@ export async function testSpacePrimitives(spacePrimitives: SpacePrimitives) {
 
   // Ensure clean state at the end
   const finalFiles = await spacePrimitives.fetchFileList();
-  assertEquals(finalFiles, []);
+  expect(finalFiles).toEqual([]);
 }
 
 async function testBasicOperations(spacePrimitives: SpacePrimitives) {
   const files = await spacePrimitives.fetchFileList();
-  assertEquals(files, []);
+  expect(files).toEqual([]);
 
   // Write text file
   const fileMeta = await spacePrimitives.writeFile(
@@ -39,45 +39,43 @@ async function testBasicOperations(spacePrimitives: SpacePrimitives) {
   const { data: retrievedData, meta: retrievedMeta } = await spacePrimitives
     .readFile("test.txt");
 
-  assertEquals(retrievedData, stringToBytes("Hello World"));
+  expect(retrievedData).toEqual(stringToBytes("Hello World"));
   // Check that the meta data is persisted
-  assertEquals(retrievedMeta.lastModified, 20);
+  expect(retrievedMeta.lastModified).toEqual(20);
 
   const fbContent = (await spacePrimitives.readFile("test.txt"))
     .data;
-  assertEquals(new TextDecoder().decode(fbContent), "Hello World");
+  expect(new TextDecoder().decode(fbContent)).toEqual("Hello World");
 
-  assertEquals(await spacePrimitives.fetchFileList(), [fileMeta]);
+  expect(await spacePrimitives.fetchFileList()).toEqual([fileMeta]);
 
   // Write binary file
   const buf = new Uint8Array(1024 * 1024);
   buf.set([1, 2, 3, 4, 5]);
   await spacePrimitives.writeFile("test.bin", buf);
   const fileData = await spacePrimitives.readFile("test.bin");
-  assertEquals(fileData.data.length, 1024 * 1024);
-  assertEquals((await spacePrimitives.fetchFileList()).length, 2);
+  expect(fileData.data.length).toEqual(1024 * 1024);
+  expect((await spacePrimitives.fetchFileList()).length).toEqual(2);
 
   await spacePrimitives.deleteFile("test.bin");
-  assertEquals(await spacePrimitives.fetchFileList(), [fileMeta]);
+  expect(await spacePrimitives.fetchFileList()).toEqual([fileMeta]);
 
   // Clean up
   await spacePrimitives.deleteFile("test.txt");
-  assertEquals(await spacePrimitives.fetchFileList(), []);
+  expect(await spacePrimitives.fetchFileList()).toEqual([]);
 
   // Test weird file names
   await spacePrimitives.writeFile("test+'s.txt", stringToBytes("Hello world!"));
-  assertEquals(
-    stringToBytes("Hello world!"),
-    (await spacePrimitives.readFile("test+'s.txt")).data,
+  expect(stringToBytes("Hello world!")).toEqual((await spacePrimitives.readFile("test+'s.txt")).data,
   );
   await spacePrimitives.deleteFile("test+'s.txt");
 
   // Check deletion of weird file file name
   try {
     await spacePrimitives.getFileMeta("test+'s.txt");
-    assert(false);
+    expect(false).toBeTruthy();
   } catch (e: any) {
-    assertEquals(e, notFoundError);
+    expect(e).toEqual(notFoundError);
   }
 }
 
@@ -88,14 +86,14 @@ async function testFileOverwriting(spacePrimitives: SpacePrimitives) {
 
   await spacePrimitives.writeFile("overwrite.txt", stringToBytes("Updated"));
   const updatedData = await spacePrimitives.readFile("overwrite.txt");
-  assertEquals(new TextDecoder().decode(updatedData.data), "Updated");
+  expect(new TextDecoder().decode(updatedData.data)).toEqual("Updated");
 
   // File list should still have only one entry for this file
   const filesAfterOverwrite = await spacePrimitives.fetchFileList();
   const overwriteFiles = filesAfterOverwrite.filter((f) =>
     f.name === "overwrite.txt"
   );
-  assertEquals(overwriteFiles.length, 1);
+  expect(overwriteFiles.length).toEqual(1);
 
   await spacePrimitives.deleteFile("overwrite.txt");
 }
@@ -104,8 +102,8 @@ async function testEmptyFiles(spacePrimitives: SpacePrimitives) {
   // Test empty file
   await spacePrimitives.writeFile("empty.txt", new Uint8Array(0));
   const emptyFile = await spacePrimitives.readFile("empty.txt");
-  assertEquals(emptyFile.data.length, 0);
-  assertEquals(emptyFile.meta.size, 0);
+  expect(emptyFile.data.length).toEqual(0);
+  expect(emptyFile.meta.size).toEqual(0);
   await spacePrimitives.deleteFile("empty.txt");
 }
 
@@ -114,7 +112,7 @@ async function testUnicodeContent(spacePrimitives: SpacePrimitives) {
   const unicodeContent = "Hello 世界! 🌍 Здравствуй мир!";
   await spacePrimitives.writeFile("unicode.txt", stringToBytes(unicodeContent));
   const unicodeFile = await spacePrimitives.readFile("unicode.txt");
-  assertEquals(new TextDecoder().decode(unicodeFile.data), unicodeContent);
+  expect(new TextDecoder().decode(unicodeFile.data)).toEqual(unicodeContent);
   await spacePrimitives.deleteFile("unicode.txt");
 }
 
@@ -136,9 +134,7 @@ async function testSpecialFileNames(spacePrimitives: SpacePrimitives) {
       stringToBytes(`Content of ${fileName}`),
     );
     const fileData = await spacePrimitives.readFile(fileName);
-    assertEquals(
-      new TextDecoder().decode(fileData.data),
-      `Content of ${fileName}`,
+    expect(new TextDecoder().decode(fileData.data)).toEqual(`Content of ${fileName}`,
     );
   }
 
@@ -146,7 +142,7 @@ async function testSpecialFileNames(spacePrimitives: SpacePrimitives) {
   const allFiles = await spacePrimitives.fetchFileList();
   for (const fileName of specialNames) {
     const found = allFiles.find((f) => f.name === fileName);
-    assert(found, `File ${fileName} should be in the file list`);
+    expect(found, `File ${fileName} should be in the file list`).toBeTruthy();
   }
 
   // Clean up special files
@@ -159,16 +155,16 @@ async function testErrorHandling(spacePrimitives: SpacePrimitives) {
   // Test error cases
   try {
     await spacePrimitives.readFile("nonexistent.txt");
-    assert(false, "Should throw error for non-existent file");
+    expect(false, "Should throw error for non-existent file").toBeTruthy();
   } catch (e: any) {
-    assertEquals(e, notFoundError);
+    expect(e).toEqual(notFoundError);
   }
 
   try {
     await spacePrimitives.deleteFile("nonexistent.txt");
-    assert(false, "Should throw error when deleting non-existent file");
+    expect(false, "Should throw error when deleting non-existent file").toBeTruthy();
   } catch (e: any) {
-    assertEquals(e, notFoundError);
+    expect(e).toEqual(notFoundError);
   }
 }
 
@@ -181,12 +177,12 @@ async function testLargeFiles(spacePrimitives: SpacePrimitives) {
 
   await spacePrimitives.writeFile("large.bin", largeContent);
   const largeFile = await spacePrimitives.readFile("large.bin");
-  assertEquals(largeFile.data.length, largeContent.length);
-  assertEquals(largeFile.meta.size, largeContent.length);
+  expect(largeFile.data.length).toEqual(largeContent.length);
+  expect(largeFile.meta.size).toEqual(largeContent.length);
 
   // Verify content integrity
   for (let i = 0; i < Math.min(1000, largeContent.length); i++) {
-    assertEquals(largeFile.data[i], largeContent[i]);
+    expect(largeFile.data[i]).toEqual(largeContent[i]);
   }
 
   await spacePrimitives.deleteFile("large.bin");
@@ -212,12 +208,12 @@ async function testMetadataPreservation(spacePrimitives: SpacePrimitives) {
   const metaFile = await spacePrimitives.readFile("meta-test.txt");
 
   // Check that some metadata is preserved (implementations may handle timestamps differently)
-  assert(
+  expect(
     metaFile.meta.lastModified > 0,
     "LastModified timestamp should be set",
-  );
-  assertEquals(metaFile.meta.name, "meta-test.txt");
-  assertEquals(metaFile.meta.size, testContent.length);
+  ).toBeTruthy();
+  expect(metaFile.meta.name).toEqual("meta-test.txt");
+  expect(metaFile.meta.size).toEqual(testContent.length);
 
   await spacePrimitives.deleteFile("meta-test.txt");
 }

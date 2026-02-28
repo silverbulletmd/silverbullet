@@ -61,7 +61,7 @@ export function indexData(
           tag: dataType,
           itags: ["data"],
           pos: docStart,
-          range: [docStart, docEnd],
+          range: [docStart, docEnd] as [number, number],
           ...doc,
           page: pageMeta.name,
         };

@@ -1,4 +1,4 @@
-import { assert, assertEquals } from "@std/assert";
+import { expect, test } from "vitest";
 import {
   batchRequests,
   processWithConcurrency,
@@ -6,7 +6,7 @@ import {
   sleep,
 } from "./async.ts";
 
-Deno.test("PromiseQueue test", async () => {
+test("PromiseQueue test", async () => {
   const q = new PromiseQueue();
   let r1RanFirst = false;
   const r1 = q.runInQueue(async () => {
@@ -20,17 +20,17 @@ Deno.test("PromiseQueue test", async () => {
     await sleep(4);
     return 2;
   });
-  assertEquals(await Promise.all([r1, r2]), [1, 2]);
-  assertEquals(r1RanFirst, true);
+  expect(await Promise.all([r1, r2])).toEqual([1, 2]);
+  expect(r1RanFirst).toEqual(true);
   let wasRun = false;
   await q.runInQueue(async () => {
     await sleep(4);
     wasRun = true;
   });
-  assertEquals(wasRun, true);
+  expect(wasRun).toEqual(true);
 });
 
-Deno.test("processWithConcurrency test - basic functionality", async () => {
+test("processWithConcurrency test - basic functionality", async () => {
   const items = [1, 2, 3, 4, 5];
   const results = await processWithConcurrency(
     items,
@@ -40,10 +40,10 @@ Deno.test("processWithConcurrency test - basic functionality", async () => {
     },
     2,
   );
-  assertEquals(results, [2, 4, 6, 8, 10]);
+  expect(results).toEqual([2, 4, 6, 8, 10]);
 });
 
-Deno.test("processWithConcurrency test - maintains order", async () => {
+test("processWithConcurrency test - maintains order", async () => {
   const items = [1, 2, 3, 4, 5];
   const startTimes: number[] = [];
   const endTimes: number[] = [];
@@ -62,10 +62,10 @@ Deno.test("processWithConcurrency test - maintains order", async () => {
   );
 
   // Results should be in original order despite different processing times
-  assertEquals(results, ["item-1", "item-2", "item-3", "item-4", "item-5"]);
+  expect(results).toEqual(["item-1", "item-2", "item-3", "item-4", "item-5"]);
 });
 
-Deno.test("processWithConcurrency test - concurrency limit", async () => {
+test("processWithConcurrency test - concurrency limit", async () => {
   const items = [1, 2, 3, 4, 5, 6];
   const activeCount = { value: 0 };
   const maxActive = { value: 0 };
@@ -82,21 +82,21 @@ Deno.test("processWithConcurrency test - concurrency limit", async () => {
     3,
   );
 
-  assertEquals(results, [1, 2, 3, 4, 5, 6]);
+  expect(results).toEqual([1, 2, 3, 4, 5, 6]);
   // Should never exceed concurrency limit of 3
-  assertEquals(maxActive.value <= 3, true);
+  expect(maxActive.value <= 3).toEqual(true);
 });
 
-Deno.test("processWithConcurrency test - empty array", async () => {
+test("processWithConcurrency test - empty array", async () => {
   const results = await processWithConcurrency(
     [],
     (item) => Promise.resolve(item),
     2,
   );
-  assertEquals(results, []);
+  expect(results).toEqual([]);
 });
 
-Deno.test("processWithConcurrency test - concurrency higher than item count", async () => {
+test("processWithConcurrency test - concurrency higher than item count", async () => {
   const items = [1, 2, 3];
   const results = await processWithConcurrency(
     items,
@@ -106,10 +106,10 @@ Deno.test("processWithConcurrency test - concurrency higher than item count", as
     },
     10, // Higher than items.length
   );
-  assertEquals(results, [11, 12, 13]);
+  expect(results).toEqual([11, 12, 13]);
 });
 
-Deno.test("processWithConcurrency test - error handling", async () => {
+test("processWithConcurrency test - error handling", async () => {
   const items = [1, 2, 3, 4, 5];
 
   try {
@@ -123,16 +123,16 @@ Deno.test("processWithConcurrency test - error handling", async () => {
       },
       2,
     );
-    assert(false, "Should have thrown an error");
+    expect(false).toEqual(true); // Should have thrown an error
   } catch (error) {
-    assert(
+    expect(
       error instanceof Error &&
         error.message.includes("Error processing item 3"),
-    );
+    ).toBeTruthy();
   }
 });
 
-Deno.test("processWithConcurrency test - performance with concurrency", async () => {
+test("processWithConcurrency test - performance with concurrency", async () => {
   const items = Array.from({ length: 6 }, (_, i) => i + 1);
   const delay = 30;
 
@@ -162,24 +162,23 @@ Deno.test("processWithConcurrency test - performance with concurrency", async ()
 
   // Parallel should be significantly faster than sequential
   // Allow some margin for timing variations
-  assert(
+  expect(
     parallel < sequential * 0.8,
-    `Parallel (${parallel}ms) should be faster than sequential (${sequential}ms)`,
-  );
+  ).toBeTruthy(); // `Parallel (${parallel}ms) should be faster than sequential (${sequential}ms)`
 });
 
-Deno.test("Batch test", async () => {
+test("Batch test", async () => {
   // Generate an array with numbers up to 100
   const elements = Array.from(Array(100).keys());
   const multiplied = await batchRequests(elements, async (batch) => {
     await sleep(2);
     // Batches should be 9 or smaller (last batch will be smaller)
-    assert(batch.length <= 9);
+    expect(batch.length <= 9).toBeTruthy();
     return batch.map((e) => e * 2);
   }, 9);
-  assertEquals(multiplied, elements.map((e) => e * 2));
+  expect(multiplied).toEqual(elements.map((e) => e * 2));
   const multiplied2 = await batchRequests(elements, (batch) => {
     return Promise.resolve(batch.map((e) => e * 2));
   }, 10000);
-  assertEquals(multiplied2, elements.map((e) => e * 2));
+  expect(multiplied2).toEqual(elements.map((e) => e * 2));
 });

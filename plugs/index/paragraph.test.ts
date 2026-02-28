@@ -1,8 +1,8 @@
+import { expect, test } from "vitest";
 import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
 import { createMockSystem } from "../../plug-api/system_mock.ts";
 import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 import { extractFrontMatter } from "./frontmatter.ts";
-import { assertEquals } from "@std/assert";
 import { indexParagraphs } from "./paragraph.ts";
 
 const testPage = `
@@ -15,7 +15,7 @@ Another paragraph that is #tagged
 * Item paragraph (don't index)
 `.trim();
 
-Deno.test("Test paragraph indexing", async () => {
+test("Test paragraph indexing", async () => {
   const { config } = createMockSystem();
 
   config.set("index.paragraph.all", true);
@@ -34,14 +34,14 @@ Deno.test("Test paragraph indexing", async () => {
   let paragraphs = await indexParagraphs(pageMeta, frontmatter, tree);
   console.log(paragraphs);
 
-  assertEquals(paragraphs.length, 2);
-  assertEquals([...new Set(paragraphs[0].itags)], ["paragraph", "tag-only"]);
-  assertEquals(paragraphs[1].tags, ["tagged"]);
+  expect(paragraphs.length).toEqual(2);
+  expect([...new Set(paragraphs[0].itags)]).toEqual(["paragraph", "tag-only"]);
+  expect(paragraphs[1].tags).toEqual(["tagged"]);
 
   config.set("index.paragraph.all", false);
   tree = parseMarkdown(testPage);
   frontmatter = extractFrontMatter(tree);
 
   paragraphs = await indexParagraphs(pageMeta, frontmatter, tree);
-  assertEquals(paragraphs.length, 1);
+  expect(paragraphs.length).toEqual(1);
 });

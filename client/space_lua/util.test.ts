@@ -1,11 +1,10 @@
+import { expect, test } from "vitest";
 import { evalPromiseValues } from "./util.ts";
-import { assertEquals } from "@std/assert/equals";
-import { assert } from "@std/assert";
 
-Deno.test("Test promise helpers", async () => {
+test("Test promise helpers", async () => {
   const r = evalPromiseValues([1, 2, 3]);
   // should return the same array not as a promise
-  assertEquals(r, [1, 2, 3]);
+  expect(r).toEqual([1, 2, 3]);
   const asyncR = evalPromiseValues([
     new Promise((resolve) => {
       setTimeout(() => {
@@ -16,6 +15,6 @@ Deno.test("Test promise helpers", async () => {
     3,
   ]);
   // should return a promise
-  assert(asyncR instanceof Promise);
-  assertEquals(await asyncR, [1, 2, 3]);
+  expect(asyncR instanceof Promise).toBeTruthy();
+  expect(await asyncR).toEqual([1, 2, 3]);
 });

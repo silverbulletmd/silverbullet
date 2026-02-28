@@ -85,7 +85,7 @@ export async function encryptStringDeterministic(
   key: CryptoKey,
   clearText: string,
 ): Promise<string> {
-  const encrypted = await crypto.subtle.encrypt(
+  const encrypted = await globalThis.crypto.subtle.encrypt(
     { name: "AES-CTR", counter: fixedCounter, length: fixedCounter.length * 8 },
     key,
     new TextEncoder().encode(clearText),
@@ -97,7 +97,7 @@ export async function decryptStringDeterministic(
   key: CryptoKey,
   cipherText: string,
 ): Promise<string> {
-  const decrypted = await crypto.subtle.decrypt(
+  const decrypted = await globalThis.crypto.subtle.decrypt(
     { name: "AES-CTR", counter: fixedCounter, length: fixedCounter.length * 8 },
     key,
     base64Decode(cipherText) as BufferSource,
@@ -110,8 +110,8 @@ export async function encryptAesGcm(
   key: CryptoKey,
   data: Uint8Array,
 ): Promise<Uint8Array> {
-  const iv = crypto.getRandomValues(new Uint8Array(12)); // 96-bit IV recommended for GCM
-  const encryptedBuffer = await crypto.subtle.encrypt(
+  const iv = globalThis.crypto.getRandomValues(new Uint8Array(12)); // 96-bit IV recommended for GCM
+  const encryptedBuffer = await globalThis.crypto.subtle.encrypt(
     { name: "AES-GCM", iv },
     key,
     data as BufferSource,
@@ -132,7 +132,7 @@ export async function decryptAesGcm(
 ): Promise<Uint8Array> {
   const iv = encryptedData.slice(0, 12); // extract IV (first 12 bytes)
   const ciphertext = encryptedData.slice(12);
-  const decryptedBuffer = await crypto.subtle.decrypt(
+  const decryptedBuffer = await globalThis.crypto.subtle.decrypt(
     { name: "AES-GCM", iv },
     key,
     ciphertext,
@@ -148,7 +148,7 @@ export async function deriveCTRKeyFromPassword(
   const passwordBytes = new TextEncoder().encode(password);
 
   // Import password as a CryptoKey
-  const baseKey = await crypto.subtle.importKey(
+  const baseKey = await globalThis.crypto.subtle.importKey(
     "raw",
     passwordBytes,
     { name: "PBKDF2" },
@@ -156,7 +156,7 @@ export async function deriveCTRKeyFromPassword(
     ["deriveBits", "deriveKey"],
   );
 
-  return crypto.subtle.deriveKey(
+  return globalThis.crypto.subtle.deriveKey(
     {
       name: "PBKDF2",
       salt: salt as BufferSource,
@@ -174,7 +174,7 @@ export async function deriveCTRKeyFromPassword(
 }
 
 export function importKey(b64EncodedKey: string): Promise<CryptoKey> {
-  return crypto.subtle.importKey(
+  return globalThis.crypto.subtle.importKey(
     "raw",
     base64Decode(b64EncodedKey) as BufferSource,
     { name: "AES-CTR" },
@@ -184,15 +184,15 @@ export function importKey(b64EncodedKey: string): Promise<CryptoKey> {
 }
 
 export async function exportKey(ctrKey: CryptoKey): Promise<string> {
-  const key = await crypto.subtle.exportKey("raw", ctrKey);
+  const key = await globalThis.crypto.subtle.exportKey("raw", ctrKey);
   return base64Encode(new Uint8Array(key));
 }
 
 export async function deriveGCMKeyFromCTR(
   ctrKey: CryptoKey,
 ): Promise<CryptoKey> {
-  const rawKey = await crypto.subtle.exportKey("raw", ctrKey);
-  return crypto.subtle.importKey(
+  const rawKey = await globalThis.crypto.subtle.exportKey("raw", ctrKey);
+  return globalThis.crypto.subtle.importKey(
     "raw",
     rawKey,
     { name: "AES-GCM" },

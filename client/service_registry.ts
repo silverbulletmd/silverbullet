@@ -19,7 +19,7 @@ export class ServiceRegistry {
   }
 
   public define(spec: ServiceSpec): void {
-    const id = crypto.randomUUID();
+    const id = globalThis.crypto.randomUUID();
     // Register with discover:* event
     this.config.insert([
       "eventListeners",

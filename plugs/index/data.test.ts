@@ -1,3 +1,4 @@
+import { expect, test } from "vitest";
 import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
 import { createMockSystem } from "../../plug-api/system_mock.ts";
 import type {
@@ -5,7 +6,6 @@ import type {
   PageMeta,
 } from "@silverbulletmd/silverbullet/type/index";
 import { extractFrontMatter } from "./frontmatter.ts";
-import { assertEquals } from "@std/assert";
 import { indexData } from "./data.ts";
 
 const testPage = `
@@ -22,7 +22,7 @@ age: 101
 \`\`\`
 `.trim();
 
-Deno.test("Test indexers", async () => {
+test("Test indexers", async () => {
   createMockSystem();
   const tree = parseMarkdown(testPage);
   const frontmatter = extractFrontMatter(tree);
@@ -42,17 +42,17 @@ Deno.test("Test indexers", async () => {
     tree,
   );
   // 1 data 1 tag
-  assertEquals(datas.length, 3);
+  expect(datas.length).toEqual(3);
 
   // data object first
-  assertEquals(datas[0].tag, "superduper");
-  assertEquals(datas[0].itags, ["superduper", "data"]);
-  assertEquals(datas[0].name, "Pete");
-  assertEquals(datas[0].age, 100);
+  expect(datas[0].tag).toEqual("superduper");
+  expect(datas[0].itags).toEqual(["superduper", "data"]);
+  expect(datas[0].name).toEqual("Pete");
+  expect(datas[0].age).toEqual(100);
 
   // data object first
-  assertEquals(datas[1].tag, "superduper");
-  assertEquals(datas[1].itags, ["superduper", "data"]);
-  assertEquals(datas[1].name, "Hank");
-  assertEquals(datas[1].age, 101);
+  expect(datas[1].tag).toEqual("superduper");
+  expect(datas[1].itags).toEqual(["superduper", "data"]);
+  expect(datas[1].name).toEqual("Hank");
+  expect(datas[1].age).toEqual(101);
 });

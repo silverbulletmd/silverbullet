@@ -34,7 +34,7 @@ export class Space {
   // We do watch files in the background to detect changes
   // This set of pages should only ever contain 1 page
   watchedFiles = new Set<string>();
-  watchInterval?: number;
+  watchInterval?: ReturnType<typeof setInterval>;
 
   // private initialPageListLoad = true;
   private saving = false;

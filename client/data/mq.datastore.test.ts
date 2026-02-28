@@ -1,16 +1,15 @@
+import { expect, test, vi } from "vitest";
 import { DataStoreMQ } from "./mq.datastore.ts";
-import { assertEquals } from "@std/assert";
 import { MemoryKvPrimitives } from "./memory_kv_primitives.ts";
 import { DataStore } from "./datastore.ts";
-import { FakeTime } from "@std/testing/time";
 
 import type { MQMessage } from "../../plug-api/types/datastore.ts";
 import { EventHook } from "../plugos/hooks/event.ts";
 import { System } from "../plugos/system.ts";
 import type { EventHookT } from "@silverbulletmd/silverbullet/type/manifest";
 
-Deno.test("DataStore MQ", async () => {
-  const time = new FakeTime();
+test("DataStore MQ", async () => {
+  vi.useFakeTimers();
   const db = new MemoryKvPrimitives(); // In-memory only, no persistence
   const eventHook = new EventHook();
   const system = new System<EventHookT>();
@@ -27,62 +26,62 @@ Deno.test("DataStore MQ", async () => {
     // Send and ack
     await mq.send("test", "Hello World");
     messages = await mq.poll("test", 10);
-    assertEquals(messages.length, 1);
+    expect(messages.length).toEqual(1);
     await mq.ack("test", messages[0].id);
-    assertEquals([], await mq.poll("test", 10));
+    expect([]).toEqual(await mq.poll("test", 10));
 
     // Timeout
     await mq.send("test", "Hello World");
     messages = await mq.poll("test", 10);
-    assertEquals(messages.length, 1);
-    assertEquals([], await mq.poll("test", 10));
-    await time.tickAsync(20);
+    expect(messages.length).toEqual(1);
+    expect([]).toEqual(await mq.poll("test", 10));
+    await vi.advanceTimersByTimeAsync(20);
     await mq.requeueTimeouts(10);
     messages = await mq.poll("test", 10);
     const stats = await mq.getQueueStats();
-    assertEquals(stats.processing, 1);
-    assertEquals(messages.length, 1);
-    assertEquals(messages[0].retries, 1);
+    expect(stats.processing).toEqual(1);
+    expect(messages.length).toEqual(1);
+    expect(messages[0].retries).toEqual(1);
 
     // Max retries
-    await time.tickAsync(20);
+    await vi.advanceTimersByTimeAsync(20);
     await mq.requeueTimeouts(10, 1);
-    assertEquals((await mq.fetchDLQMessages()).length, 1);
+    expect((await mq.fetchDLQMessages()).length).toEqual(1);
 
     // Batch send and ack
     await mq.batchSend("test", ["Hello", "World"]);
     const messageBatch1 = await mq.poll("test", 1);
-    assertEquals(messageBatch1.length, 1);
-    assertEquals(messageBatch1[0].body, "Hello");
+    expect(messageBatch1.length).toEqual(1);
+    expect(messageBatch1[0].body).toEqual("Hello");
     const messageBatch2 = await mq.poll("test", 1);
-    assertEquals(messageBatch2.length, 1);
-    assertEquals(messageBatch2[0].body, "World");
+    expect(messageBatch2.length).toEqual(1);
+    expect(messageBatch2[0].body).toEqual("World");
     await mq.batchAck("test", [messageBatch1[0].id, messageBatch2[0].id]);
-    assertEquals(await mq.fetchProcessingMessages(), []);
+    expect(await mq.fetchProcessingMessages()).toEqual([]);
 
     // Subscribe
     let receivedMessage = false;
     const worker = mq.subscribe("test123", {}, async (messages) => {
-      assertEquals(messages.length, 1);
+      expect(messages.length).toEqual(1);
       receivedMessage = true;
       await mq.ack("test123", messages[0].id);
     });
     await mq.send("test123", "Hello World");
     // Wait for message to be processed by checking queue stats
     while ((await mq.getQueueStats("test123")).queued > 0) {
-      await time.tickAsync(100);
+      await vi.advanceTimersByTimeAsync(100);
     }
-    assertEquals(receivedMessage, true);
+    expect(receivedMessage).toEqual(true);
     worker.stop();
-    assertEquals(mq.queueWaiters.size, 0);
+    expect(mq.queueWaiters.size).toEqual(0);
   } finally {
     await db.close();
-    time.restore();
+    vi.useRealTimers();
   }
 });
 
-Deno.test("DataStore MQ - Scale test with multiple subscribers", async () => {
-  const time = new FakeTime();
+test("DataStore MQ - Scale test with multiple subscribers", async () => {
+  vi.useFakeTimers();
   const db = new MemoryKvPrimitives();
   const eventHook = new EventHook();
   const system = new System<EventHookT>();
@@ -116,11 +115,7 @@ Deno.test("DataStore MQ - Scale test with multiple subscribers", async () => {
         queueName,
         { batchSize },
         async (messages) => {
-          assertEquals(
-            messages.length <= batchSize,
-            true,
-            `Batch size should not exceed ${batchSize}`,
-          );
+          expect(messages.length <= batchSize).toBe(true);
 
           console.log(
             `[Subscriber ${subscriberId}] Processing batch of ${messages.length} messages`,
@@ -179,7 +174,7 @@ Deno.test("DataStore MQ - Scale test with multiple subscribers", async () => {
       const chunk = messageBodies.slice(i, i + chunkSize);
       await mq.batchSend(queueName, chunk);
       // Give a small delay to allow processing
-      await time.tickAsync(10);
+      await vi.advanceTimersByTimeAsync(10);
     }
 
     // Wait for all messages to be processed
@@ -187,24 +182,20 @@ Deno.test("DataStore MQ - Scale test with multiple subscribers", async () => {
     let waitTime = 0;
 
     while (processedMessages.size < totalMessages && waitTime < maxWaitTime) {
-      await time.tickAsync(100);
+      await vi.advanceTimersByTimeAsync(100);
       waitTime += 100;
     }
 
     // Verify all messages were processed
-    assertEquals(
-      processedMessages.size,
-      totalMessages,
-      `Expected ${totalMessages} messages processed, got ${processedMessages.size}`,
-    );
+    expect(processedMessages.size).toEqual(totalMessages);
 
     // Wait a bit more to ensure all acks are processed
-    await time.tickAsync(100);
+    await vi.advanceTimersByTimeAsync(100);
 
     // Verify queue is empty
     const stats = await mq.getQueueStats(queueName);
-    assertEquals(stats.queued, 0, "Queue should be empty");
-    assertEquals(stats.processing, 0, "No messages should be processing");
+    expect(stats.queued).toEqual(0);
+    expect(stats.processing).toEqual(0);
 
     // Verify work distribution among subscribers
     let totalProcessedAcrossSubscribers = 0;
@@ -212,28 +203,20 @@ Deno.test("DataStore MQ - Scale test with multiple subscribers", async () => {
       totalProcessedAcrossSubscribers += count;
       console.log(`Subscriber ${subscriberId} processed ${count} messages`);
     }
-    assertEquals(
-      totalProcessedAcrossSubscribers,
-      totalMessages,
-      "Total processed should match sent messages",
-    );
+    expect(totalProcessedAcrossSubscribers).toEqual(totalMessages);
 
     // Verify at least one subscriber processed messages (relaxed requirement since MQ may favor one worker)
     const activeSubscribers =
       Array.from(subscriberStats.values()).filter((count) => count > 0).length;
-    assertEquals(
-      activeSubscribers >= 1,
-      true,
-      "At least one subscriber should have processed messages",
-    );
+    expect(activeSubscribers >= 1).toBe(true);
 
     // Stop all workers
     workers.forEach((worker) => worker.stop());
 
     // Verify no queue waiters remain
-    assertEquals(mq.queueWaiters.size, 0);
+    expect(mq.queueWaiters.size).toEqual(0);
   } finally {
     await db.close();
-    time.restore();
+    vi.useRealTimers();
   }
 });

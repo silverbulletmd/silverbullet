@@ -1,4 +1,4 @@
-import { assertEquals } from "@std/assert/equals";
+import { expect, test } from "vitest";
 import {
   LuaEnv,
   LuaNativeJSFunction,
@@ -30,87 +30,83 @@ async function evalBlock(s: string, e = new LuaEnv()): Promise<void> {
   await evalStatement(node, e, sf);
 }
 
-Deno.test("Evaluator test", async () => {
+test("Evaluator test", async () => {
   const env = new LuaEnv();
   env.set("test", new LuaNativeJSFunction((n) => n));
   env.set("asyncTest", new LuaNativeJSFunction((n) => Promise.resolve(n)));
 
   // Basic arithmetic
-  assertEquals(evalExpr(`1 + 2 + 3 - 3`), 3);
-  assertEquals(evalExpr(`4 // 3`), 1);
-  assertEquals(evalExpr(`4 % 3`), 1);
+  expect(evalExpr(`1 + 2 + 3 - 3`)).toEqual(3);
+  expect(evalExpr(`4 // 3`)).toEqual(1);
+  expect(evalExpr(`4 % 3`)).toEqual(1);
 
   // Bitwise arithmetic
-  assertEquals(evalExpr(`~171`), -172); // signed two's complement
-  assertEquals(evalExpr(`5 & 3`), 1); // 101 & 011 = 001
-  assertEquals(evalExpr(`5 | 3`), 7); // 101 | 011 = 111
-  assertEquals(evalExpr(`5 ~ 3`), 6); // 101 ^ 011 = 110
-  assertEquals(evalExpr(`5 << 3`), 40); // 101 << 3 = 101000
-  assertEquals(evalExpr(`5 >> 2`), 1); // 101 >> 2 = 1
+  expect(evalExpr(`~171`)).toEqual(-172); // signed two's complement
+  expect(evalExpr(`5 & 3`)).toEqual(1); // 101 & 011 = 001
+  expect(evalExpr(`5 | 3`)).toEqual(7); // 101 | 011 = 111
+  expect(evalExpr(`5 ~ 3`)).toEqual(6); // 101 ^ 011 = 110
+  expect(evalExpr(`5 << 3`)).toEqual(40); // 101 << 3 = 101000
+  expect(evalExpr(`5 >> 2`)).toEqual(1); // 101 >> 2 = 1
 
   // Strings
-  assertEquals(evalExpr(`"a" .. "b"`), "ab");
+  expect(evalExpr(`"a" .. "b"`)).toEqual("ab");
 
   // Logic
-  assertEquals(evalExpr(`true and false`), false);
-  assertEquals(evalExpr(`true or false`), true);
-  assertEquals(evalExpr(`not true`), false);
+  expect(evalExpr(`true and false`)).toEqual(false);
+  expect(evalExpr(`true or false`)).toEqual(true);
+  expect(evalExpr(`not true`)).toEqual(false);
   // Test eager evaluation of left operand
-  assertEquals(
+  expect(
     evalExpr(
       `true or (function() error("this should not be evaluated") end)()`,
     ),
-    true,
-  );
+  ).toEqual(true);
   // Tables
   const tbl = await evalExpr(`{3, 1, 2}`);
-  assertEquals(tbl.get(1), 3);
-  assertEquals(tbl.get(2), 1);
-  assertEquals(tbl.get(3), 2);
-  assertEquals(luaValueToJS(tbl, sf), [3, 1, 2]);
+  expect(tbl.get(1)).toEqual(3);
+  expect(tbl.get(2)).toEqual(1);
+  expect(tbl.get(3)).toEqual(2);
+  expect(luaValueToJS(tbl, sf)).toEqual([3, 1, 2]);
 
-  assertEquals(
+  expect(
     luaValueToJS(await evalExpr(`{name=test("Zef"), age=100}`, env), sf),
-    {
-      name: "Zef",
-      age: 100,
-    },
-  );
+  ).toEqual({
+    name: "Zef",
+    age: 100,
+  });
 
-  assertEquals(
+  expect(
     luaValueToJS(await evalExpr(`{name="Zef", age=asyncTest(100)}`, env), sf),
-    {
-      name: "Zef",
-      age: 100,
-    },
-  );
+  ).toEqual({
+    name: "Zef",
+    age: 100,
+  });
 
   const result = await evalExpr(`{[3+2]=1, ["a".."b"]=2}`);
-  assertEquals(result.get(5), 1);
-  assertEquals(result.get("ab"), 2);
+  expect(result.get(5)).toEqual(1);
+  expect(result.get("ab")).toEqual(2);
 
-  assertEquals(await evalExpr(`#{}`), 0);
-  assertEquals(await evalExpr(`#{1, 2, 3}`), 3);
+  expect(await evalExpr(`#{}`)).toEqual(0);
+  expect(await evalExpr(`#{1, 2, 3}`)).toEqual(3);
 
   // Unary operators
-  assertEquals(await evalExpr(`-asyncTest(3)`, env), -3);
+  expect(await evalExpr(`-asyncTest(3)`, env)).toEqual(-3);
 
   // Function calls
-  assertEquals(singleResult(evalExpr(`test(3)`, env)), 3);
-  assertEquals(singleResult(await evalExpr(`asyncTest(3) + 1`, env)), 4);
+  expect(singleResult(evalExpr(`test(3)`, env))).toEqual(3);
+  expect(singleResult(await evalExpr(`asyncTest(3) + 1`, env))).toEqual(4);
 
   // Function expressions and table access
-  assertEquals(
+  expect(
     await evalExpr(`(function() return {name="John"} end)().name`),
-    "John",
-  );
+  ).toEqual("John");
 
   // Function definitions
   const fn = evalExpr(`function(a, b) return a + b end`);
-  assertEquals(fn.body.parameters, ["a", "b"]);
+  expect(fn.body.parameters).toEqual(["a", "b"]);
 });
 
-Deno.test("Parser rejects unary plus - parenthesized", () => {
+test("Parser rejects unary plus - parenthesized", () => {
   for (
     const src of [
       "return +(1)",
@@ -125,16 +121,14 @@ Deno.test("Parser rejects unary plus - parenthesized", () => {
     } catch (e: any) {
       err = e;
     }
-    assertEquals(err !== null, true, `expected parse error for: ${src}`);
-    assertEquals(
+    expect(err !== null).toEqual(true);
+    expect(
       String(err?.message ?? err).includes("unexpected symbol near '+'"),
-      true,
-      `expected unary-plus message for: ${src}`,
-    );
+    ).toEqual(true);
   }
 });
 
-Deno.test("Parser rejects unary plus - variables and calls", () => {
+test("Parser rejects unary plus - variables and calls", () => {
   for (
     const src of [
       "return +(a)",
@@ -150,16 +144,14 @@ Deno.test("Parser rejects unary plus - variables and calls", () => {
     } catch (e: any) {
       err = e;
     }
-    assertEquals(err !== null, true, `expected parse error for: ${src}`);
-    assertEquals(
+    expect(err !== null).toEqual(true);
+    expect(
       String(err?.message ?? err).includes("unexpected symbol near '+'"),
-      true,
-      `expected unary-plus message for: ${src}`,
-    );
+    ).toEqual(true);
   }
 });
 
-Deno.test("Parser rejects unary plus - whitespace/newlines", () => {
+test("Parser rejects unary plus - whitespace/newlines", () => {
   for (
     const src of [
       "return + 1",
@@ -174,16 +166,14 @@ Deno.test("Parser rejects unary plus - whitespace/newlines", () => {
     } catch (e: any) {
       err = e;
     }
-    assertEquals(err !== null, true, `expected parse error for: ${src}`);
-    assertEquals(
+    expect(err !== null).toEqual(true);
+    expect(
       String(err?.message ?? err).includes("unexpected symbol near '+'"),
-      true,
-      `expected unary-plus message for: ${src}`,
-    );
+    ).toEqual(true);
   }
 });
 
-Deno.test("Comparison metamethods: __lt", async () => {
+test("Comparison metamethods: __lt", async () => {
   const env = new LuaEnv(luaBuildStandardEnv());
 
   await evalBlock(
@@ -198,10 +188,10 @@ Deno.test("Comparison metamethods: __lt", async () => {
     env,
   );
 
-  assertEquals(env.get("res"), true);
+  expect(env.get("res")).toEqual(true);
 });
 
-Deno.test("Comparison metamethods: __le does not fallback to __lt", async () => {
+test("Comparison metamethods: __le does not fallback to __lt", async () => {
   const env = new LuaEnv(luaBuildStandardEnv());
 
   let threw = false;
@@ -225,10 +215,10 @@ Deno.test("Comparison metamethods: __le does not fallback to __lt", async () => 
     }
   }
 
-  assertEquals(threw, true);
+  expect(threw).toEqual(true);
 });
 
-Deno.test("Equality metamethod: __eq requires same function", async () => {
+test("Equality metamethod: __eq requires same function", async () => {
   const env = new LuaEnv(luaBuildStandardEnv());
 
   await evalBlock(
@@ -245,38 +235,38 @@ Deno.test("Equality metamethod: __eq requires same function", async () => {
   );
 
   // Lua calls __eq even when the functions differ
-  assertEquals(env.get("res"), true);
+  expect(env.get("res")).toEqual(true);
 });
 
-Deno.test("Statement evaluation", async () => {
+test("Statement evaluation", async () => {
   const env = new LuaEnv();
   env.set("test", new LuaNativeJSFunction((n) => n));
   env.set("asyncTest", new LuaNativeJSFunction((n) => Promise.resolve(n)));
 
-  assertEquals(undefined, await evalBlock(`a = 3`, env));
-  assertEquals(env.get("a"), 3);
-  assertEquals(undefined, await evalBlock(`b = test(3)`, env));
-  assertEquals(env.get("b"), 3);
+  expect(await evalBlock(`a = 3`, env)).toEqual(undefined);
+  expect(env.get("a")).toEqual(3);
+  expect(await evalBlock(`b = test(3)`, env)).toEqual(undefined);
+  expect(env.get("b")).toEqual(3);
 
   await evalBlock(`c = asyncTest(3)`, env);
-  assertEquals(env.get("c"), 3);
+  expect(env.get("c")).toEqual(3);
 
   // Multiple assignments
   const env2 = new LuaEnv();
-  assertEquals(undefined, await evalBlock(`a, b = 1, 2`, env2));
-  assertEquals(env2.get("a"), 1);
-  assertEquals(env2.get("b"), 2);
+  expect(await evalBlock(`a, b = 1, 2`, env2)).toEqual(undefined);
+  expect(env2.get("a")).toEqual(1);
+  expect(env2.get("b")).toEqual(2);
 
   // Other lvalues
   const env3 = new LuaEnv();
   await evalBlock(`tbl = {1, 2, 3}`, env3);
   await evalBlock(`tbl[1] = 3`, env3);
-  assertEquals(luaValueToJS(env3.get("tbl"), sf), [3, 2, 3]);
+  expect(luaValueToJS(env3.get("tbl"), sf)).toEqual([3, 2, 3]);
   await evalBlock("tbl.name = 'Zef'", env3);
-  assertEquals(env3.get("tbl").get("name"), "Zef");
+  expect(env3.get("tbl").get("name")).toEqual("Zef");
   await evalBlock(`tbl[2] = {age=10}`, env3);
   await evalBlock(`tbl[2].age = 20`, env3);
-  assertEquals(env3.get("tbl").get(2).get("age"), 20);
+  expect(env3.get("tbl").get(2).get("age")).toEqual(20);
 
   // Blocks and scopes
   const env4 = new LuaEnv();
@@ -291,7 +281,7 @@ Deno.test("Statement evaluation", async () => {
     end`,
     env4,
   );
-  assertEquals(env4.get("a"), 3);
+  expect(env4.get("a")).toEqual(3);
 
   const env5 = new LuaEnv();
   env5.set("print", new LuaNativeJSFunction(console.log));
@@ -306,7 +296,7 @@ Deno.test("Statement evaluation", async () => {
     end`,
     env5,
   );
-  assertEquals(env5.get("a"), 3);
+  expect(env5.get("a")).toEqual(3);
 
   await evalBlock(
     `
@@ -319,7 +309,7 @@ Deno.test("Statement evaluation", async () => {
     end`,
     env5,
   );
-  assertEquals(env5.get("a"), 1);
+  expect(env5.get("a")).toEqual(1);
 
   await evalBlock(
     `
@@ -330,7 +320,7 @@ Deno.test("Statement evaluation", async () => {
         end`,
     env5,
   );
-  assertEquals(env5.get("var"), 1);
+  expect(env5.get("var")).toEqual(1);
 
   // While loop
   const env6 = new LuaEnv();
@@ -346,7 +336,7 @@ Deno.test("Statement evaluation", async () => {
     `,
     env6,
   );
-  assertEquals(env6.get("c"), 3);
+  expect(env6.get("c")).toEqual(3);
 
   // Repeat loop
   const env7 = new LuaEnv();
@@ -362,7 +352,7 @@ Deno.test("Statement evaluation", async () => {
     `,
     env7,
   );
-  assertEquals(env7.get("c"), 3);
+  expect(env7.get("c")).toEqual(3);
 
   // Function definition and calling
   const env8 = new LuaEnv();
@@ -401,7 +391,7 @@ Deno.test("Statement evaluation", async () => {
     `,
     env10,
   );
-  assertEquals(env10.get("c"), 6);
+  expect(env10.get("c")).toEqual(6);
 
   // For loop over iterator
   const env11 = new LuaEnv(luaBuildStandardEnv());
@@ -443,16 +433,15 @@ Deno.test("Statement evaluation", async () => {
       return fn("Lua");
     }),
   );
-  assertEquals(
-    "Hello from Lua",
+  expect(
     await evalExpr(
       `runMe(function(name) return "Hello from " .. name end)`,
       env12,
     ),
-  );
+  ).toEqual("Hello from Lua");
 });
 
-Deno.test("Thread local _CTX", async () => {
+test("Thread local _CTX", async () => {
   const env = new LuaEnv();
   const threadLocal = new LuaEnv();
   threadLocal.setLocal("threadValue", "test123");
@@ -469,10 +458,10 @@ Deno.test("Thread local _CTX", async () => {
   );
 
   const result = await evalExpr("test()", env, sf);
-  assertEquals(singleResult(result), "test123");
+  expect(singleResult(result)).toEqual("test123");
 });
 
-Deno.test("Thread local _CTX - advanced cases", async () => {
+test("Thread local _CTX - advanced cases", async () => {
   // Create environment with standard library
   const env = new LuaEnv(luaBuildStandardEnv());
   const threadLocal = new LuaEnv();
@@ -502,7 +491,7 @@ Deno.test("Thread local _CTX - advanced cases", async () => {
   `,
     env,
   );
-  assertEquals(await evalExpr("outer()", env, sf), "alice");
+  expect(await evalExpr("outer()", env, sf)).toEqual("alice");
 
   // Test 2: Table access and modification
   await evalBlock(
@@ -518,9 +507,9 @@ Deno.test("Thread local _CTX - advanced cases", async () => {
   `,
     env,
   );
-  assertEquals(await evalExpr("checkAdmin()", env, sf), true);
-  assertEquals(await evalExpr("revokeAdmin()", env, sf), false);
-  assertEquals(threadLocal.get("permissions").get("admin"), false);
+  expect(await evalExpr("checkAdmin()", env, sf)).toEqual(true);
+  expect(await evalExpr("revokeAdmin()", env, sf)).toEqual(false);
+  expect(threadLocal.get("permissions").get("admin")).toEqual(false);
 
   // Test 3: Complex data structures
   await evalBlock(
@@ -536,8 +525,8 @@ Deno.test("Thread local _CTX - advanced cases", async () => {
     `,
     env,
   );
-  assertEquals(await evalExpr("getNestedData()", env, sf), "dark");
-  assertEquals(await evalExpr("updateTheme('light')", env, sf), "light");
+  expect(await evalExpr("getNestedData()", env, sf)).toEqual("dark");
+  expect(await evalExpr("updateTheme('light')", env, sf)).toEqual("light");
 
   // Test 4: Multiple thread locals
   const threadLocal2 = new LuaEnv();
@@ -554,8 +543,8 @@ Deno.test("Thread local _CTX - advanced cases", async () => {
   );
 
   // Same function, different thread contexts
-  assertEquals(await evalExpr("getUser()", env, sf), "alice");
-  assertEquals(await evalExpr("getUser()", env, sf2), "bob");
+  expect(await evalExpr("getUser()", env, sf)).toEqual("alice");
+  expect(await evalExpr("getUser()", env, sf2)).toEqual("bob");
 
   // Test 5: Async operations with _CTX
   env.set(
@@ -578,8 +567,8 @@ Deno.test("Thread local _CTX - advanced cases", async () => {
     env,
   );
 
-  assertEquals(await evalExpr("asyncTest()", env, sf), "completed");
-  assertEquals(threadLocal.get("status"), "completed");
+  expect(await evalExpr("asyncTest()", env, sf)).toEqual("completed");
+  expect(threadLocal.get("status")).toEqual("completed");
 
   // Test 6: Error handling with _CTX
   await evalBlock(
@@ -596,32 +585,30 @@ Deno.test("Thread local _CTX - advanced cases", async () => {
     env,
   );
 
-  assertEquals(await evalExpr("errorTest()", env, sf), "caught");
-  assertEquals(threadLocal.get("error"), "caught");
+  expect(await evalExpr("errorTest()", env, sf)).toEqual("caught");
+  expect(threadLocal.get("error")).toEqual("caught");
 
   // Test string interpolation
   sf.threadLocal.setLocal("_GLOBAL", env);
-  assertEquals(
+  expect(
     await evalExpr(
       "spacelua.interpolate('Hello, ${globalEnv} and ${loc}!', {loc='local'})",
       env,
       sf,
     ),
-    "Hello, GLOBAL and local!",
-  );
+  ).toEqual("Hello, GLOBAL and local!");
 
   // Some more complex string interpolation with more complex lua expressions, with nested {}
-  assertEquals(
+  expect(
     await evalExpr(
       `spacelua.interpolate('Some JSON \${js.stringify(js.tojs({name="Pete"}))}!')`,
       env,
       sf,
     ),
-    `Some JSON {"name":"Pete"}!`,
-  );
+  ).toEqual(`Some JSON {"name":"Pete"}!`);
 });
 
-Deno.test("Length: rawlen ignores __len", async () => {
+test("Length: rawlen ignores __len", async () => {
   const env = new LuaEnv(luaBuildStandardEnv());
 
   await evalBlock(
@@ -634,6 +621,6 @@ Deno.test("Length: rawlen ignores __len", async () => {
     env,
   );
 
-  assertEquals(env.get("a"), 99);
-  assertEquals(env.get("b"), 3);
+  expect(env.get("a")).toEqual(99);
+  expect(env.get("b")).toEqual(3);
 });

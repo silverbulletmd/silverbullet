@@ -199,7 +199,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       {
         method: "PUT",
         headers,
-        // Casting to any because of weird Deno typing
+        // Casting to any due to TypeScript fetch type limitations
         body: data as any,
       },
     );

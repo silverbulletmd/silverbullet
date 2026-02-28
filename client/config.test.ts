@@ -1,27 +1,27 @@
-import { assert, assertEquals, assertThrows } from "@std/assert";
+import { expect, test } from "vitest";
 import { Config } from "./config.ts";
 
-Deno.test("Config - basic functionality", () => {
+test("Config - basic functionality", () => {
   const config = new Config();
 
   // Test set and get
   config.set("testKey", "testValue");
-  assertEquals(config.get(["testKey"], null), "testValue");
+  expect(config.get(["testKey"], null)).toEqual("testValue");
 
   // Test insert
   config.insert("plugs", "plug1");
   config.insert("plugs", "plug1");
-  assertEquals(config.get("plugs", null), ["plug1", "plug1"]);
+  expect(config.get("plugs", null)).toEqual(["plug1", "plug1"]);
 
   // Test default value
-  assertEquals(config.get("nonExistentKey", "default"), "default");
+  expect(config.get("nonExistentKey", "default")).toEqual("default");
 
   // Test has
-  assert(config.has("testKey"));
-  assert(!config.has("nonExistentKey"));
+  expect(config.has("testKey")).toBeTruthy();
+  expect(!config.has("nonExistentKey")).toBeTruthy();
 });
 
-Deno.test("Config - object-based setting", () => {
+test("Config - object-based setting", () => {
   const config = new Config();
 
   // Test setting multiple values at once
@@ -31,12 +31,12 @@ Deno.test("Config - object-based setting", () => {
     key3: 123,
   });
 
-  assertEquals(config.get("key1", null), "value1");
-  assertEquals(config.get("key2", null), "value2");
-  assertEquals(config.get("key3", 0), 123);
+  expect(config.get("key1", null)).toEqual("value1");
+  expect(config.get("key2", null)).toEqual("value2");
+  expect(config.get("key3", 0)).toEqual(123);
 });
 
-Deno.test("Config - paths", () => {
+test("Config - paths", () => {
   const config = new Config();
 
   // Test setting with dot notation
@@ -44,26 +44,26 @@ Deno.test("Config - paths", () => {
   config.set("user.profile.age", 30);
 
   // Test getting with dot notation
-  assertEquals(config.get("user.name", null), "John");
-  assertEquals(config.get("user.profile.age", 0), 30);
+  expect(config.get("user.name", null)).toEqual("John");
+  expect(config.get("user.profile.age", 0)).toEqual(30);
 
   config.set(["user", "name"], "Pete");
   config.set(["user", "profile", "age"], 20);
-  assertEquals(config.get(["user", "name"], null), "Pete");
-  assertEquals(config.get(["user", "profile", "age"], 0), 20);
+  expect(config.get(["user", "name"], null)).toEqual("Pete");
+  expect(config.get(["user", "profile", "age"], 0)).toEqual(20);
 
   // Test has with dot notation
-  assert(config.has("user.name"));
-  assert(config.has("user.profile"));
-  assert(config.has("user.profile.age"));
-  assert(!config.has("user.profile.nonExistent"));
+  expect(config.has("user.name")).toBeTruthy();
+  expect(config.has("user.profile")).toBeTruthy();
+  expect(config.has("user.profile.age")).toBeTruthy();
+  expect(!config.has("user.profile.nonExistent")).toBeTruthy();
 
   // Test with path notation
-  assert(config.has(["user", "name"]));
-  assert(config.has(["user", "profile", "age"]));
+  expect(config.has(["user", "name"])).toBeTruthy();
+  expect(config.has(["user", "profile", "age"])).toBeTruthy();
 
   // Test getting the entire object
-  assertEquals(config.get("user", {}), {
+  expect(config.get("user", {})).toEqual({
     name: "Pete",
     profile: {
       age: 20,
@@ -71,39 +71,39 @@ Deno.test("Config - paths", () => {
   });
 });
 
-Deno.test("Config - edge cases", () => {
+test("Config - edge cases", () => {
   const config = new Config();
 
   // Test setting a value on a non-existent path
   config.set("a.b.c", "value");
-  assertEquals(config.get("a.b.c", null), "value");
+  expect(config.get("a.b.c", null)).toEqual("value");
 
   // Test overwriting a primitive with an object
   config.set("x", "primitive");
-  assertEquals(config.get("x", null), "primitive");
+  expect(config.get("x", null)).toEqual("primitive");
 
   config.set("x.y", "nested");
-  assertEquals(config.get("x.y", null), "nested");
+  expect(config.get("x.y", null)).toEqual("nested");
 
   // Test setting a value on a path where part of the path is a primitive
   config.set("p", "primitive");
   config.set("p.q.r", "nested");
-  assertEquals(config.get("p.q.r", null), "nested");
+  expect(config.get("p.q.r", null)).toEqual("nested");
 
   // Test deep nesting
   config.set("deep.nesting.test.value", 42);
-  assertEquals(config.get("deep.nesting.test.value", 0), 42);
+  expect(config.get("deep.nesting.test.value", 0)).toEqual(42);
 
   // Test with empty string key
   config.set("", "empty");
-  assertEquals(config.get("", null), "empty");
+  expect(config.get("", null)).toEqual("empty");
 
   // Test with special characters in key
   config.set("special!@#", "chars");
-  assertEquals(config.get("special!@#", null), "chars");
+  expect(config.get("special!@#", null)).toEqual("chars");
 });
 
-Deno.test("Config - object setting with dot notation in keys", () => {
+test("Config - object setting with dot notation in keys", () => {
   const config = new Config();
 
   // Test setting an object with dot notation in keys
@@ -112,11 +112,11 @@ Deno.test("Config - object setting with dot notation in keys", () => {
     "user.profile.age": 30,
   });
 
-  assertEquals(config.get("user.name", null), "John");
-  assertEquals(config.get("user.profile.age", 0), 30);
+  expect(config.get("user.name", null)).toEqual("John");
+  expect(config.get("user.profile.age", 0)).toEqual(30);
 });
 
-Deno.test("Config - constructor with initial values", () => {
+test("Config - constructor with initial values", () => {
   const config = new Config({
     simple: "value",
     nested: {
@@ -124,11 +124,11 @@ Deno.test("Config - constructor with initial values", () => {
     },
   });
 
-  assertEquals(config.get("simple", null), "value");
-  assertEquals(config.get("nested.key", null), "nestedValue");
+  expect(config.get("simple", null)).toEqual("value");
+  expect(config.get("nested.key", null)).toEqual("nestedValue");
 });
 
-Deno.test("Config - schema validation", () => {
+test("Config - schema validation", () => {
   const config = new Config();
 
   // Define a schema for a key
@@ -154,61 +154,41 @@ Deno.test("Config - schema validation", () => {
   config.set("user.name", "John");
 
   // Missing required field should throw
-  assertThrows(
-    () => {
-      config.set("user", {
-        name: "John",
-      });
-    },
-    Error,
-    "Validation error for user",
-  );
+  expect(() => {
+    config.set("user", {
+      name: "John",
+    });
+  }).toThrow("Validation error for user");
 
   // Wrong type should throw
-  assertThrows(
-    () => {
-      config.set("user", {
-        name: "John",
-        age: "thirty", // Should be a number
-      });
-    },
-    Error,
-    "Validation error for user",
-  );
+  expect(() => {
+    config.set("user", {
+      name: "John",
+      age: "thirty", // Should be a number
+    });
+  }).toThrow("Validation error for user");
 
   // Wrong type should throw with path
-  assertThrows(
-    () => {
-      config.set(["user", "name"], 22);
-    },
-    Error,
-    "Validation error for user",
-  );
+  expect(() => {
+    config.set(["user", "name"], 22);
+  }).toThrow("Validation error for user");
 
   // Invalid format should throw
-  assertThrows(
-    () => {
-      config.set("user", {
-        name: "John",
-        age: 30,
-        email: "not-an-email",
-      });
-    },
-    Error,
-    "Validation error for user",
-  );
+  expect(() => {
+    config.set("user", {
+      name: "John",
+      age: 30,
+      email: "not-an-email",
+    });
+  }).toThrow("Validation error for user");
 
   // Value below minimum should throw
-  assertThrows(
-    () => {
-      config.set("user", {
-        name: "John",
-        age: -1, // Should be >= 0
-      });
-    },
-    Error,
-    "Validation error for user",
-  );
+  expect(() => {
+    config.set("user", {
+      name: "John",
+      age: -1, // Should be >= 0
+    });
+  }).toThrow("Validation error for user");
 
   // Check nested keys
   config.define("a.b.user", userSchema);
@@ -216,16 +196,12 @@ Deno.test("Config - schema validation", () => {
   console.log(config.schemas);
 
   config.set("a.b.user.name", "Hank");
-  assertThrows(
-    () => {
-      config.set("a.b.user.name", 22);
-    },
-    Error,
-    "Validation error for a.b.user",
-  );
+  expect(() => {
+    config.set("a.b.user.name", 22);
+  }).toThrow("Validation error for a.b.user");
 });
 
-Deno.test("Config - nested schema definitions with arrays", () => {
+test("Config - nested schema definitions with arrays", () => {
   const config = new Config();
 
   // Define schema for nested path using array syntax
@@ -246,33 +222,25 @@ Deno.test("Config - nested schema definitions with arrays", () => {
     maxItems: 10,
   });
 
-  assertEquals(config.get("app.ui.settings.theme", null), "dark");
-  assertEquals(config.get("app.ui.settings.maxItems", 0), 10);
+  expect(config.get("app.ui.settings.theme", null)).toEqual("dark");
+  expect(config.get("app.ui.settings.maxItems", 0)).toEqual(10);
 
   // Setting individual nested properties should work
   config.set("app.ui.settings.theme", "light");
-  assertEquals(config.get("app.ui.settings.theme", null), "light");
+  expect(config.get("app.ui.settings.theme", null)).toEqual("light");
 
   // Invalid type should throw
-  assertThrows(
-    () => {
-      config.set("app.ui.settings.theme", 123);
-    },
-    Error,
-    "Validation error for app.ui.settings",
-  );
+  expect(() => {
+    config.set("app.ui.settings.theme", 123);
+  }).toThrow("Validation error for app.ui.settings");
 
   // Invalid value should throw
-  assertThrows(
-    () => {
-      config.set("app.ui.settings.maxItems", -1);
-    },
-    Error,
-    "Validation error for app.ui.settings",
-  );
+  expect(() => {
+    config.set("app.ui.settings.maxItems", -1);
+  }).toThrow("Validation error for app.ui.settings");
 });
 
-Deno.test("Config - multiple nested schemas", () => {
+test("Config - multiple nested schemas", () => {
   const config = new Config();
 
   // Define multiple schemas at different nesting levels
@@ -302,39 +270,27 @@ Deno.test("Config - multiple nested schemas", () => {
   config.set("system.config.version", "1.0.0");
   config.set("system.config.enabled", true);
 
-  assertEquals(config.get("user.name", null), "Alice");
-  assertEquals(config.get("system.config.version", null), "1.0.0");
-  assertEquals(config.get("system.config.enabled", false), true);
+  expect(config.get("user.name", null)).toEqual("Alice");
+  expect(config.get("system.config.version", null)).toEqual("1.0.0");
+  expect(config.get("system.config.enabled", false)).toEqual(true);
 
   // Validation should work for both
-  assertThrows(
-    () => {
-      config.set("user.name", 123);
-    },
-    Error,
-    "Validation error for user",
-  );
+  expect(() => {
+    config.set("user.name", 123);
+  }).toThrow("Validation error for user");
 
-  assertThrows(
-    () => {
-      config.set("system.config.enabled", "not-boolean");
-    },
-    Error,
-    "Validation error for system.config",
-  );
+  expect(() => {
+    config.set("system.config.enabled", "not-boolean");
+  }).toThrow("Validation error for system.config");
 });
 
-Deno.test("Config - invalid schema definition", () => {
+test("Config - invalid schema definition", () => {
   const config = new Config();
 
   // Invalid schema should throw when defined
-  assertThrows(
-    () => {
-      config.define("test", {
-        type: "invalid-type", // Invalid type
-      });
-    },
-    Error,
-    "Invalid schema for key test",
-  );
+  expect(() => {
+    config.define("test", {
+      type: "invalid-type", // Invalid type
+    });
+  }).toThrow("Invalid schema for key test");
 });

@@ -1,5 +1,5 @@
+import { expect } from "vitest";
 import type { KvPrimitives } from "./kv_primitives.ts";
-import { assertEquals } from "@std/assert";
 
 import type { KV } from "../../plug-api/types/datastore.ts";
 
@@ -13,16 +13,16 @@ export async function allTests(db: KvPrimitives) {
     "kv",
     "test3",
   ]]);
-  assertEquals(result.length, 3);
-  assertEquals(result[0], "Hello1");
-  assertEquals(result[1], "Hello2");
-  assertEquals(result[2], undefined);
+  expect(result.length).toEqual(3);
+  expect(result[0]).toEqual("Hello1");
+  expect(result[1]).toEqual("Hello2");
+  expect(result[2]).toEqual(undefined);
   let counter = 0;
   // Query all
   for await (const _entry of db.query({})) {
     counter++;
   }
-  assertEquals(counter, 3);
+  expect(counter).toEqual(3);
 
   counter = 0;
   // Query prefix
@@ -30,7 +30,7 @@ export async function allTests(db: KvPrimitives) {
     counter++;
     console.log(_entry);
   }
-  assertEquals(counter, 2);
+  expect(counter).toEqual(2);
 
   // Delete a few keys
   await db.batchDelete([["kv", "test1"], ["other", "random"]]);
@@ -38,15 +38,15 @@ export async function allTests(db: KvPrimitives) {
     "other",
     "random",
   ]]);
-  assertEquals(result2.length, 3);
-  assertEquals(result2[0], undefined);
-  assertEquals(result2[1], "Hello2");
-  assertEquals(result2[2], undefined);
+  expect(result2.length).toEqual(3);
+  expect(result2[0]).toEqual(undefined);
+  expect(result2[1]).toEqual("Hello2");
+  expect(result2[2]).toEqual(undefined);
 
   // Update a key
   await db.batchSet([{ key: ["kv", "test2"], value: "Hello2.1" }]);
   const [val] = await db.batchGet([["kv", "test2"]]);
-  assertEquals(val, "Hello2.1");
+  expect(val).toEqual("Hello2.1");
 
   // Set a large batch
   const largeBatch: KV[] = [];
@@ -58,7 +58,7 @@ export async function allTests(db: KvPrimitives) {
   for await (const entry of db.query({ prefix: ["test"] })) {
     largeBatchResult.push(entry);
   }
-  assertEquals(largeBatchResult.length, 50);
+  expect(largeBatchResult.length).toEqual(50);
 
   // Delete the large batch
   await db.batchDelete(largeBatch.map((e) => e.key));

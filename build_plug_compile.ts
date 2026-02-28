@@ -1,38 +1,41 @@
-import { denoPlugin, esbuild } from "./build_deps.ts";
+import { mkdir } from "node:fs/promises";
+import * as esbuild from "esbuild";
 
-await Deno.mkdir("dist", { recursive: true });
+await mkdir("dist", { recursive: true });
 const result = await esbuild.build({
-  entryPoints: {
-    "plug-compile": "./bin/plug-compile.ts",
-  },
-  outdir: "dist",
+  entryPoints: ["./bin/plug-compile.ts"],
+  outfile: "dist/plug-compile.js",
   format: "esm",
-  absWorkingDir: Deno.cwd(),
+  banner: {
+    js: "#!/usr/bin/env node",
+  },
+  platform: "node",
+  absWorkingDir: process.cwd(),
   bundle: true,
   metafile: false,
   treeShaking: true,
   logLevel: "error",
-  minify: true,
+  minify: false, // Don't minify for better debugging
+  // Mark all npm packages as external - they'll be installed by npm
   external: [
-    // Exclude weird yarn detection modules
-    "pnpapi",
-    // Exclude some larger dependencies that can be downloaded on the fly
-    "npm:esbuild*",
-    "jsr:@deno/esbuild-plugin*",
+    "esbuild",
+    "commander",
+    "js-yaml",
+    "picomatch",
+    "sass",
+    "fast-glob",
   ],
-  plugins: [denoPlugin({
-    configPath: new URL("./deno.json", import.meta.url).pathname,
-  })],
 });
 if (result.metafile) {
   const text = await esbuild.analyzeMetafile(result.metafile!);
   console.log("Bundle info", text);
 }
-// const plugBundleJS = await Deno.readTextFile("dist/plug-compile.js");
+// const plugBundleJS = await readFile("dist/plug-compile.js", "utf-8");
 // Patch output JS with import.meta.main override to avoid ESBuild CLI handling
-// await Deno.writeTextFile(
+// await writeFile(
 //   "dist/plug-compile.js",
 //   "import.meta.main = false;\n" + plugBundleJS,
+//   "utf-8",
 // );
 console.log("Output in dist");
 esbuild.stop();

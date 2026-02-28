@@ -109,7 +109,7 @@ export function extractFrontMatter(
             }
           }
           if (removedOne) {
-            yamlNode.text = YAML.stringify(newData);
+            yamlNode.text = YAML.dump(newData);
           }
         }
         // If nothing is left, let's just delete this whole block
