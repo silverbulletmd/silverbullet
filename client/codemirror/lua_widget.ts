@@ -13,15 +13,13 @@ import {
   moveCursorIntoText,
 } from "./widget_util.ts";
 import { expandMarkdown } from "../markdown_renderer/inline.ts";
-import { luaFormatNumber, LuaTable } from "../space_lua/runtime.ts";
-import { isTaggedFloat } from "../space_lua/numeric.ts";
-import {
-  isBlockMarkdown,
-  jsonToMDTable,
-  refCellTransformer,
-} from "../markdown_renderer/result_render.ts";
+import { isBlockMarkdown } from "../markdown_renderer/result_render.ts";
 import { activeWidgets } from "./code_widget.ts";
 import type { Ref } from "@silverbulletmd/silverbullet/lib/ref";
+import {
+  refCellTransformer,
+  renderExpressionResult,
+} from "../space_lua/render_lua_markdown.ts";
 
 export type LuaWidgetCallback = (
   bodyText: string,
@@ -126,7 +124,10 @@ export class LuaWidget extends WidgetType {
       // Apply heuristic to render the object as a markdown table
       widgetContent = {
         _isWidget: true,
-        markdown: await renderExpressionResult(widgetContent),
+        markdown: await renderExpressionResult(
+          widgetContent,
+          refCellTransformer,
+        ),
       };
     }
 
@@ -340,42 +341,6 @@ export class LuaWidget extends WidgetType {
       other.expressionText === this.expressionText &&
       other.cacheKey === this.cacheKey
     );
-  }
-}
-
-export function renderExpressionResult(result: any): Promise<string> {
-  if (result instanceof LuaTable) {
-    result = result.toJS();
-  }
-  // Must check before object/array checks — tagged floats are plain objects
-  if (isTaggedFloat(result)) {
-    return Promise.resolve(luaFormatNumber(result.value, "float"));
-  }
-  if (typeof result === "number") {
-    return Promise.resolve(luaFormatNumber(result));
-  }
-  if (
-    Array.isArray(result) && result.length > 0 && typeof result[0] === "object"
-  ) {
-    // If result is an array of objects, render as a Markdown table
-    try {
-      return jsonToMDTable(result, refCellTransformer);
-    } catch (e: any) {
-      console.error(
-        `Error rendering expression directive: ${e.message} for value ${
-          JSON.stringify(result)
-        }`,
-      );
-      return Promise.resolve(JSON.stringify(result));
-    }
-  } else if (typeof result === "object" && result.constructor === Object) {
-    // If result is a plain object, render as a Markdown table
-    return jsonToMDTable([result], refCellTransformer);
-  } else if (Array.isArray(result)) {
-    // Not-object array, let's render it as a Markdown list
-    return Promise.resolve(result.map((item) => `- ${item}`).join("\n"));
-  } else {
-    return Promise.resolve("" + result);
   }
 }
 

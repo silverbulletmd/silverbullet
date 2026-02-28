@@ -14,6 +14,7 @@ import {
   LuaEnv,
   LuaRuntimeError,
   LuaStackFrame,
+  LuaTable,
   luaValueToJS,
   singleResult,
 } from "../space_lua/runtime.ts";
@@ -121,6 +122,12 @@ export function luaDirectivePlugin(client: Client) {
                   if (
                     isTaggedFloat(rawResult) || typeof rawResult === "number"
                   ) {
+                    return rawResult;
+                  }
+                  if (rawResult instanceof LuaTable) {
+                    if (rawResult.rawGet("_isWidget")) {
+                      return luaValueToJS(rawResult, sf);
+                    }
                     return rawResult;
                   }
                   // everything else needs luaValueToJS for widget support
