@@ -4,10 +4,14 @@ import {
   luaToString,
 } from "../space_lua/runtime.ts";
 import { isTaggedFloat } from "../space_lua/numeric.ts";
+import { isSqlNull } from "../space_lua/query_collection.ts";
 
 export function defaultTransformer(v: any, _k: string): Promise<string> {
   if (v === undefined) {
     return Promise.resolve("");
+  }
+  if (isSqlNull(v)) {
+    return Promise.resolve("*(null)*");
   }
   if (typeof v === "string") {
     return Promise.resolve(escapeRegularPipes(v.replaceAll("\n", " ")));
@@ -24,9 +28,8 @@ export function defaultTransformer(v: any, _k: string): Promise<string> {
 export function refCellTransformer(v: any, k: string) {
   if (k === "ref") {
     return Promise.resolve(`[[${v}]]`);
-  } else {
-    return defaultTransformer(v, k);
   }
+  return defaultTransformer(v, k);
 }
 
 /**

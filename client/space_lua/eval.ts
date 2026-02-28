@@ -38,10 +38,7 @@ import {
   luaValueToJS,
   singleResult,
 } from "./runtime.ts";
-import {
-  ArrayQueryCollection,
-  type LuaCollectionQuery,
-} from "./query_collection.ts";
+import { type LuaCollectionQuery, toCollection } from "./query_collection.ts";
 import {
   coerceNumericPair,
   coerceToNumber,
@@ -187,9 +184,6 @@ type Queryable = {
     sf: LuaStackFrame,
   ) => Promise<any>;
 };
-function isQueryable(x: unknown): x is Queryable {
-  return !!x && typeof (x as any).query === "function";
-}
 
 function arithVerbFromOperator(op: string): string | null {
   switch (op) {
@@ -854,22 +848,35 @@ export function evalExpression(
                 sf.withCtx(q.ctx),
               );
             }
-            if (collection instanceof LuaTable && collection.empty()) {
-              // Make sure we're converting an empty result to an array to "query"
-              collection = [];
-            } else {
-              collection = luaValueToJS(collection, sf);
-            }
-            // Check if collection is a queryable collection
-            if (!isQueryable(collection)) {
-              if (!Array.isArray(collection)) {
-                throw new LuaRuntimeError(
-                  "Collection does not support query",
-                  sf.withCtx(q.ctx),
-                );
+
+            // If already a queryable collection (e.g. DataStoreQueryCollection),
+            // use directly - skip all LuaTable/JS conversion.
+            if (
+              typeof collection === "object" &&
+              collection !== null &&
+              "query" in collection &&
+              typeof (collection as any).query === "function"
+            ) {
+              // Already queryable, use as-is
+            } else if (collection instanceof LuaTable && collection.empty()) {
+              // Empty table → empty array
+              collection = toCollection([]);
+            } else if (collection instanceof LuaTable) {
+              if (collection.length > 0) {
+                // Array-like table: extract array items, keep as LuaTables
+                const arr: any[] = [];
+                for (let i = 1; i <= collection.length; i++) {
+                  arr.push(collection.rawGet(i));
+                }
+                collection = toCollection(arr);
+              } else {
+                // Record-like table (no array part): treat as singleton
+                collection = toCollection([collection]);
               }
-              collection = new ArrayQueryCollection(collection);
+            } else {
+              collection = toCollection(luaValueToJS(collection, sf));
             }
+
             // Build up query object
             const query: LuaCollectionQuery = {
               objectVariable,
@@ -918,9 +925,8 @@ export function evalExpression(
               }
             }
 
-            return (collection as Queryable).query(query, env, sf).then(
-              jsToLuaValue,
-            );
+            // Always use the possibly-wrapped collection
+            return (collection as any).query(query, env, sf).then(jsToLuaValue);
           },
         );
       }
