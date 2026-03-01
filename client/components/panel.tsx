@@ -10,6 +10,23 @@ export function Panel({
   config: PanelConfig;
   editor: Client;
 }) {
+  switch (typeof config.html) {
+    case "string":
+      return <IFramePanel config={config} editor={editor} />;
+    case "object":
+      return <ShadowPanel config={config} />;
+    default:
+      return null;
+  }
+}
+
+function IFramePanel({
+  config,
+  editor,
+}: {
+  config: PanelConfig;
+  editor: Client;
+}) {
   const iFrameRef = useRef<HTMLIFrameElement>(null);
 
   const html = useMemo(() => {
@@ -97,5 +114,55 @@ export function Panel({
         onLoad={() => iFrameRef.current!.style.visibility = "visible"}
       />
     </div>
+  );
+}
+
+function ShadowPanel({
+  config,
+}: {
+  config: PanelConfig;
+}) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const shadowRef = useRef<ShadowRoot>(null);
+  function updateContent() {
+    const shadow = shadowRef.current;
+    if (!shadow) return;
+
+    const root = shadow.getElementById("panel-root");
+    if (!root) return;
+
+    root.innerHTML = "";
+
+    if (Array.isArray(config.html)) {
+      root.append(...config.html);
+    } else {
+      root.append(config.html as HTMLElement);
+    }
+  }
+
+  useEffect(() => {
+    if (!panelRef.current) return;
+
+    shadowRef.current = panelRef.current.attachShadow({ mode: "closed" });
+
+    const container = document.createElement("div");
+    container.id = "panel-root";
+    shadowRef.current.appendChild(container);
+
+    return () => {
+      shadowRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    updateContent();
+  }, [config.html, config.script]);
+
+  return (
+    <div
+      className="sb-panel"
+      style={{ flex: config.mode }}
+      ref={panelRef}
+    />
   );
 }
