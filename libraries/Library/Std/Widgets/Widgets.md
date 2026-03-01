@@ -102,9 +102,13 @@ config.set("std.widgets.toc", {
 function widgets.toc(options)
   options = options or config.get("std.widgets.toc")
   options.minHeaders = options.minHeaders or 3
+  options.minLevel = options.minLevel or 1
+  options.defaultOpen = options.defaultOpen or nil
+  options.header = options.header or "Table of Contents"
   local text = editor.getText()
   local pageName = editor.getCurrentPage()
   local parsedMarkdown = markdown.parseMarkdown(text)
+
   -- Collect all headers
   local headers = {}
   for topLevelChild in parsedMarkdown.children do
@@ -129,27 +133,56 @@ function widgets.toc(options)
       end
     end
   end
+
   if options.minHeaders and options.minHeaders > #headers then
     return widget.new{}
   end
+
+  -- Filter headers to display
+  local headersToDisplay = {}
+  for _, header in ipairs(headers) do
+    if not (options.maxHeader and header.level > options.maxHeader or
+            header.level < options.minLevel) then
+      table.insert(headersToDisplay, header)
+    end
+  end
+  
   -- Find min level
   local minLevel = 6
-  for _, header in ipairs(headers) do
-    if header.level < minLevel then
-      minLevel = header.level
-    end
+  for _, header in ipairs(headersToDisplay) do
+    minLevel = math.min(minLevel, header.level)
   end
-  -- Build up markdown
-  local md = (options.header or "# Table of Contents") .. "\n"
-  for _, header in ipairs(headers) do
-    if not(options.maxHeader and header.level > options.maxHeader or
-           options.minLevel and header.level < options.minLevel) then
-      md = md .. string.rep(" ", (header.level - minLevel) * 2) ..
-         "* [[" .. pageName .. "@" .. header.pos .. "|" .. header.name .. "]]\n"
-    end
+
+  -- Build TOC entries as DOM elements
+  local tocItems = {}
+  for _, header in ipairs(headersToDisplay) do
+    local indent = (header.level - minLevel) * 1.5
+    table.insert(tocItems, dom.div {
+      style = "margin-left: " .. indent .. "rem; padding: 0.1rem 0;",
+      dom.a {
+        onclick = function()
+          editor.navigate({ page = pageName, pos = header.pos })
+        end,
+        style = "cursor: pointer; text-decoration: none;",
+        "- " .. header.name
+      }
+    })
   end
+
+  -- Wrap in a <details> element for native show/hide toggle
   return widget.new {
-    markdown = md
+    html = dom.details {
+      open = options.defaultOpen,
+      dom.summary {
+        style = "cursor: pointer; font-weight: bold; user-select: none;",
+        options.header
+      },
+      dom.div {
+        style = "padding-top: 0.5rem;",
+        table.unpack(tocItems)
+      }
+    },
+    display = "block"
   }
 end
 ```
