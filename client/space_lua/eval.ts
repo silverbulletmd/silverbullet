@@ -2485,3 +2485,24 @@ function evalLValue(
     }
   }
 }
+
+export function evalBlockForValue(
+  block: LuaBlock,
+  env: LuaEnv,
+  sf: LuaStackFrame,
+): LuaValue | Promise<LuaValue> {
+  const result = evalStatement(block, env, sf, true);
+
+  const handleResult = (res: any): LuaValue => {
+    if (res && res.ctrl === "return") {
+      return singleResult(res.values[0]);
+    }
+    return null; // nil, not undefined
+  };
+
+  if (isPromise(result)) {
+    return (result as Promise<any>).then(handleResult);
+  } else {
+    return handleResult(result);
+  }
+}

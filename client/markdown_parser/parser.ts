@@ -122,23 +122,35 @@ const LuaDirectives: MarkdownConfig = {
         const bodyText = textFromPos.slice(2, valueLength);
         const endPos = pos + valueLength + 1;
 
-        // Let's parse as an expression
-        const parsedExpression = luaLanguage.parser.parse(`_(${bodyText})`);
-
         // If bodyText starts with whitespace, we need to offset this later
         const whiteSpaceOffset = bodyText.match(/^\s*/)?.[0].length ?? 0;
 
-        const node = parsedExpression.resolveInner(2, 0).firstChild?.nextSibling
+        // Try parsing as a single expression first
+        let treeNode = null;
+        const parsedExpression = luaLanguage.parser.parse(`_(${bodyText})`);
+        treeNode = parsedExpression.resolveInner(2, 0).firstChild?.nextSibling
           ?.nextSibling;
 
-        if (!node) {
-          return -1;
+        if (!treeNode) {
+          // Expression parse failed, try as a multi-statement block
+          const parsedBlock = luaLanguage.parser.parse(bodyText);
+          let hasError = false;
+          parsedBlock.iterate({
+            enter: (n) => {
+              if (n.type.isError) hasError = true;
+            },
+          });
+          if (hasError) {
+            return -1;
+          }
+          treeNode = parsedBlock.topNode;
         }
+
         const bodyEl = cx.elt(
           "LuaExpressionDirective",
           pos + 2,
           endPos - 1,
-          [cx.elt(node.toTree()!, pos + 2 + whiteSpaceOffset)],
+          [cx.elt(treeNode.toTree()!, pos + 2 + whiteSpaceOffset)],
         );
 
         return cx.addElement(

@@ -21,6 +21,7 @@ import type {
   LuaOrderBy,
   LuaPrefixExpression,
   LuaQueryClause,
+  LuaReturnStatement,
   LuaStatement,
   LuaTableField,
 } from "./ast.ts";
@@ -1558,4 +1559,100 @@ export function parseExpressionString(
 ): LuaExpression {
   const parsedLua = parse(`_(${expr})`) as LuaBlock;
   return (parsedLua.statements[0] as LuaFunctionCallStatement).call.args[0];
+}
+
+export function parseInterpolationBlock(code: string): LuaBlock {
+  // Try as a single expression
+  try {
+    const expr = parseExpressionString(code);
+    return {
+      type: "Block",
+      statements: [{
+        type: "Return",
+        expressions: [expr],
+        ctx: expr.ctx,
+      } as LuaReturnStatement],
+      ctx: expr.ctx,
+    };
+  } catch {
+    // Not a single expression, fall through
+  }
+
+  // Try splitting at separators (right to left) to find a valid block
+  // and trailing return expression
+  const separators = findAllSeparators(code);
+  for (const sepIdx of separators) {
+    const prefix = code.substring(0, sepIdx + 1);
+    const suffix = code.substring(sepIdx + 1).trim();
+    if (!prefix.trim() || !suffix || suffix.startsWith("return")) continue;
+
+    try {
+      return parse(prefix + " return " + suffix);
+    } catch {
+      continue;
+    }
+  }
+
+  // Plain block (e.g. `a = 1`, `print(x)` or `return x`)
+  const block = parse(code);
+  if (block.statements.length > 0) {
+    let lastIdx = block.statements.length - 1;
+    while (lastIdx >= 0 && block.statements[lastIdx].type === "Semicolon") {
+      lastIdx--;
+    }
+    if (
+      lastIdx >= 0 && block.statements[lastIdx].type === "FunctionCallStatement"
+    ) {
+      const callStmt = block.statements[lastIdx] as LuaFunctionCallStatement;
+      block.statements[lastIdx] = {
+        type: "Return",
+        expressions: [callStmt.call],
+        ctx: callStmt.ctx,
+      } as LuaReturnStatement;
+    }
+  }
+  return block;
+}
+
+// Find all `;` and `\n` positions outside strings/comments, rightmost first
+function findAllSeparators(code: string): number[] {
+  const result: number[] = [];
+  let i = 0;
+  while (i < code.length) {
+    const ch = code[i];
+    if (ch === '"' || ch === "'") {
+      i++;
+      while (i < code.length && code[i] !== ch) {
+        if (code[i] === "\\") i++;
+        i++;
+      }
+      i++;
+      continue;
+    }
+    if (ch === "[") {
+      let eq = 0;
+      let j = i + 1;
+      while (j < code.length && code[j] === "=") {
+        eq++;
+        j++;
+      }
+      if (j < code.length && code[j] === "[") {
+        const close = "]" + "=".repeat(eq) + "]";
+        const end = code.indexOf(close, j + 1);
+        i = end >= 0 ? end + close.length : code.length;
+        continue;
+      }
+    }
+    if (ch === "-" && i + 1 < code.length && code[i + 1] === "-") {
+      i += 2;
+      while (i < code.length && code[i] !== "\n") i++;
+      continue;
+    }
+    if (ch === ";" || ch === "\n") {
+      result.push(i);
+    }
+    i++;
+  }
+  result.reverse(); // rightmost first
+  return result;
 }
