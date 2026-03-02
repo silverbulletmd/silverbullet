@@ -248,3 +248,79 @@ Deno.test("ArrayQueryCollection", async () => {
   assertEquals(resultUpper[2].letter, "Z");
   assertEquals(resultUpper[3].letter, "z");
 });
+
+Deno.test("ArrayQueryCollection - nulls ordering", async () => {
+  const rootEnv = new LuaEnv();
+
+  const collection = new ArrayQueryCollection([
+    { name: "alice", priority: 10 },
+    { name: "bob", priority: undefined },
+    { name: "carol", priority: 50 },
+    { name: "dave", priority: undefined },
+    { name: "eve", priority: 1 },
+  ]);
+
+  // Default: asc nulls last
+  const r1 = await collection.query(
+    {
+      objectVariable: "p",
+      orderBy: [{ expr: parseExpressionString("p.priority"), desc: false }],
+    },
+    rootEnv,
+    LuaStackFrame.lostFrame,
+    {},
+  );
+  assertEquals(r1[0].name, "eve");
+  assertEquals(r1[1].name, "alice");
+  assertEquals(r1[2].name, "carol");
+  assertEquals(r1[3].priority, undefined);
+  assertEquals(r1[4].priority, undefined);
+
+  // Default: desc nulls first
+  const r2 = await collection.query(
+    {
+      objectVariable: "p",
+      orderBy: [{ expr: parseExpressionString("p.priority"), desc: true }],
+    },
+    rootEnv,
+    LuaStackFrame.lostFrame,
+    {},
+  );
+  assertEquals(r2[0].priority, undefined);
+  assertEquals(r2[1].priority, undefined);
+  assertEquals(r2[2].name, "carol");
+  assertEquals(r2[3].name, "alice");
+  assertEquals(r2[4].name, "eve");
+
+  // Explicit: desc nulls last
+  const r3 = await collection.query(
+    {
+      objectVariable: "p",
+      orderBy: [{ expr: parseExpressionString("p.priority"), desc: true, nulls: "last" }],
+    },
+    rootEnv,
+    LuaStackFrame.lostFrame,
+    {},
+  );
+  assertEquals(r3[0].name, "carol");
+  assertEquals(r3[1].name, "alice");
+  assertEquals(r3[2].name, "eve");
+  assertEquals(r3[3].priority, undefined);
+  assertEquals(r3[4].priority, undefined);
+
+  // Explicit: asc nulls first
+  const r4 = await collection.query(
+    {
+      objectVariable: "p",
+      orderBy: [{ expr: parseExpressionString("p.priority"), desc: false, nulls: "first" }],
+    },
+    rootEnv,
+    LuaStackFrame.lostFrame,
+    {},
+  );
+  assertEquals(r4[0].priority, undefined);
+  assertEquals(r4[1].priority, undefined);
+  assertEquals(r4[2].name, "eve");
+  assertEquals(r4[3].name, "alice");
+  assertEquals(r4[4].name, "carol");
+});

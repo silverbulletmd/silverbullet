@@ -131,6 +131,7 @@ export { buildItemEnvLocal as buildItemEnv };
 export type LuaOrderBy = {
   expr: LuaExpression;
   desc: boolean;
+  nulls?: "first" | "last";
 };
 
 /**
@@ -440,7 +441,7 @@ async function orderByCompare(
   aSelectRow?: any,
   bSelectRow?: any,
 ): Promise<number> {
-  for (const { expr, desc } of orderBy) {
+  for (const { expr, desc, nulls } of orderBy) {
     const aEnv = mkEnv(objectVariable, a, env, sf);
     const bEnv = mkEnv(objectVariable, b, env, sf);
     if (aSelectRow) {
@@ -479,11 +480,16 @@ async function orderByCompare(
       aVal = await evalExpression(expr, aEnv, sf);
       bVal = await evalExpression(expr, bEnv, sf);
     }
+    // Handle nulls positioning
     const aIsNull = aVal === null || aVal === undefined;
     const bIsNull = bVal === null || bVal === undefined;
-    if (aIsNull && bIsNull) continue;
-    if (aIsNull) return desc ? -1 : 1;
-    if (bIsNull) return desc ? 1 : -1;
+    if (aIsNull || bIsNull) {
+      if (aIsNull && bIsNull) continue;
+      // Default: nulls last for asc, nulls first for desc
+      const nullsLast = nulls === "last" || (nulls === undefined && !desc);
+      if (aIsNull) return nullsLast ? 1 : -1;
+      return nullsLast ? -1 : 1;
+    }
     if (
       collation?.enabled &&
       typeof aVal === "string" &&

@@ -35,7 +35,7 @@ const luaStyleTags = styleTags({
   CompareOp: t.operator,
   "true false": t.bool,
   Comment: t.lineComment,
-  "return break goto do end while repeat until function local if then else elseif in for nil or and not query from where limit select order by desc group having":
+  "return break goto do end while repeat until function local if then else elseif in for nil or and not query from where limit select order by desc asc nulls first last group having":
     t.keyword,
 });
 
@@ -1258,12 +1258,24 @@ function parseQueryClause(t: ParseTree, ctx: ASTCtx): LuaQueryClause {
       const orderBy: LuaOrderBy[] = [];
       for (const child of t.children!) {
         if (child.type === "OrderBy") {
-          orderBy.push({
+          const kids = child.children!;
+          let direction: "asc" | "desc" = "asc";
+          let nulls: "first" | "last" | undefined;
+          for (let i = 1; i < kids.length; i++) {
+            const typ = kids[i].type;
+            if (typ === "desc") direction = "desc";
+            else if (typ === "asc") direction = "asc";
+            else if (typ === "first") nulls = "first";
+            else if (typ === "last") nulls = "last";
+          }
+          const ob: LuaOrderBy = {
             type: "Order",
-            expression: parseExpression(child.children![0], ctx),
-            direction: child.children![1]?.type === "desc" ? "desc" : "asc",
+            expression: parseExpression(kids[0], ctx),
+            direction,
             ctx: context(child, ctx),
-          });
+          };
+          if (nulls) ob.nulls = nulls;
+          orderBy.push(ob);
         }
       }
       return {

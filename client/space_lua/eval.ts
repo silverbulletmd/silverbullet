@@ -894,6 +894,7 @@ export function evalExpression(
                   query.orderBy = clause.orderBy.map((o) => ({
                     expr: o.expression,
                     desc: o.direction === "desc",
+                    nulls: o.nulls,
                   }));
                   break;
                 }

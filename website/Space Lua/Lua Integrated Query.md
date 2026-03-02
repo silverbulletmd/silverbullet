@@ -11,7 +11,7 @@ General syntax:
       where <expression>
       group by <expression>[, <expression>, ...]
       having <expression>
-      order by <expression>
+      order by <expression> [asc | desc] [nulls { first | last }][, ...]
       limit <expression>, <expression>
       select <expression>
     ]]
@@ -121,8 +121,12 @@ ${query[[
 
 See [[Space Lua/Lua Integrated Query/Grouping]] for detailed examples.
 
-## order by <expression> [desc]
-The `order by` clause allows you to sort data, when `desc` is specified it reverts the sort order.
+## order by <expression> [asc | desc] [nulls {first | last}][, ...]
+The `order by` clause allows you to sort data. Use `desc` for descending order, or `asc` (the default) for ascending.
+
+You can control where `nil` values are placed using `nulls first` or `nulls last`. The defaults follow SQL conventions:
+- **`asc`**: nulls are placed **last**,
+- **`desc`**: nulls are placed **first**.
 
 As an example, the last 3 modified pages:
 ${query[[
@@ -140,6 +144,26 @@ ${query[[
   select p.name
   limit 3
 ]]}
+
+Override the default null placement with `nulls first` or `nulls last`:
+
+```lua
+query[[
+  from p = index.tag "page"
+  order by p.priority desc nulls last
+  select { name = p.name, priority = p.priority }
+]]
+```
+
+Each sort key can have its own direction and nulls clause:
+
+```lua
+query[[
+  from p = data
+  order by p.category asc, p.priority desc nulls last
+  select { name = p.name }
+]]
+```
 
 Sorting of strings can be adjusted with `queryCollation` in [[^Library/Std/Config]]
 

@@ -322,6 +322,7 @@ export type LuaOrderBy = {
   type: "Order";
   expression: LuaExpression;
   direction: "asc" | "desc";
+  nulls?: "first" | "last";
 } & ASTContext;
 
 export type LuaSelectClause = {

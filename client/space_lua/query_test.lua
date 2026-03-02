@@ -1568,3 +1568,157 @@ do
   assertEquals(r[1].sm, 60)
   assertEquals(r[1].ct, 3)
 end
+
+-- 40. Order by with nulls — default behavior
+
+do
+  local data = {
+    { name = "alice", priority = 10 },
+    { name = "bob" },
+    { name = "carol", priority = 50 },
+    { name = "dave" },
+    { name = "eve", priority = 1 },
+  }
+
+  -- 40a. asc default: nulls last
+  local r1 = query [[
+    from
+      p = data
+    select { name = p.name }
+    order by
+      p.priority
+  ]]
+  assertEquals(r1[1].name, "eve")
+  assertEquals(r1[2].name, "alice")
+  assertEquals(r1[3].name, "carol")
+  -- nulls at end (bob and dave, order between them is unspecified)
+  assertTrue(r1[4].name == "bob" or r1[4].name == "dave", "expected null-priority item")
+  assertTrue(r1[5].name == "bob" or r1[5].name == "dave", "expected null-priority item")
+
+  -- 40b. desc default: nulls first
+  local r2 = query [[
+    from
+      p = data
+    select { name = p.name }
+    order by
+      p.priority desc
+  ]]
+  assertTrue(r2[1].name == "bob" or r2[1].name == "dave", "expected null-priority item")
+  assertTrue(r2[2].name == "bob" or r2[2].name == "dave", "expected null-priority item")
+  assertEquals(r2[3].name, "carol")
+  assertEquals(r2[4].name, "alice")
+  assertEquals(r2[5].name, "eve")
+end
+
+-- 41. Order by with explicit nulls last / nulls first
+
+do
+  local data = {
+    { name = "alice", priority = 10 },
+    { name = "bob" },
+    { name = "carol", priority = 50 },
+    { name = "dave" },
+    { name = "eve", priority = 1 },
+  }
+
+  -- 41a. desc nulls last (override default)
+  local r3 = query [[
+    from
+      p = data
+    select { name = p.name }
+    order by
+      p.priority desc nulls last
+  ]]
+  assertEquals(r3[1].name, "carol")
+  assertEquals(r3[2].name, "alice")
+  assertEquals(r3[3].name, "eve")
+  assertTrue(r3[4].name == "bob" or r3[4].name == "dave", "expected null-priority item")
+  assertTrue(r3[5].name == "bob" or r3[5].name == "dave", "expected null-priority item")
+
+  -- 41b. asc nulls first (override default)
+  local r4 = query [[
+    from
+      p = data
+    select { name = p.name }
+    order by
+      p.priority asc nulls first
+  ]]
+  assertTrue(r4[1].name == "bob" or r4[1].name == "dave", "expected null-priority item")
+  assertTrue(r4[2].name == "bob" or r4[2].name == "dave", "expected null-priority item")
+  assertEquals(r4[3].name, "eve")
+  assertEquals(r4[4].name, "alice")
+  assertEquals(r4[5].name, "carol")
+end
+
+-- 42. Order by nulls with unbound access
+
+do
+  local data = {
+    { name = "a", val = 3 },
+    { name = "b" },
+    { name = "c", val = 1 },
+  }
+
+  -- 42a. desc nulls last, unbound
+  local r = query [[
+    from
+      data
+    select { name = name }
+    order by
+      val desc nulls last
+  ]]
+  assertEquals(r[1].name, "a")
+  assertEquals(r[2].name, "c")
+  assertEquals(r[3].name, "b")
+
+  -- 42b. asc nulls first, unbound
+  local r2 = query [[
+    from
+      data
+    select { name = name }
+    order by
+      val nulls first
+  ]]
+  assertEquals(r2[1].name, "b")
+  assertEquals(r2[2].name, "c")
+  assertEquals(r2[3].name, "a")
+end
+
+-- 43. Order by nulls with multiple keys
+
+do
+  local data = {
+    { name = "a", x = 1, y = 10 },
+    { name = "b", x = 1 },
+    { name = "c", x = 2, y = 5 },
+    { name = "d", x = 2 },
+  }
+
+  local r = query [[
+    from
+      p = data
+    select { name = p.name }
+    order by
+      p.x, p.y nulls first
+  ]]
+  assertEquals(r[1].name, "b")
+  assertEquals(r[2].name, "a")
+  assertEquals(r[3].name, "d")
+  assertEquals(r[4].name, "c")
+end
+
+-- 44. Explicit asc keyword (same as default)
+
+do
+  local r = query [[
+    from
+      p = pages
+    select { name = p.name }
+    order by
+      p.size asc
+    limit
+      2
+  ]]
+  assertEquals(r[1].name, "Fran")
+  assertEquals(r[2].name, "Greg")
+end
