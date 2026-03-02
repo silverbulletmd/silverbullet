@@ -31,10 +31,10 @@ import type { KvKey } from "../../plug-api/types/datastore.ts";
 import { executeAggregate, getAggregateSpec } from "./aggregates.ts";
 
 // Sentinel value representing SQL NULL in query results.
-export const LUA_SQL_NULL = Symbol.for("silverbullet.sqlNull");
+export const LIQ_NULL = Symbol.for("silverbullet.sqlNull");
 
 export function isSqlNull(v: any): boolean {
-  return v === LUA_SQL_NULL;
+  return v === LIQ_NULL;
 }
 
 // Build environment for post-`group by` clauses. Injects `key` and `group`
@@ -409,7 +409,7 @@ function normalizeSelectResults(results: any[]): any[] {
       const v = item.rawGet(k);
       rebuilt.rawSet(
         k,
-        (v === undefined || v === null) ? LUA_SQL_NULL : v,
+        (v === undefined || v === null) ? LIQ_NULL : v,
       );
     }
     for (const k of luaKeys(item)) {
