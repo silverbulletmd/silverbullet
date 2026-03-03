@@ -33,6 +33,7 @@ export class SpaceLuaEnvironment {
         orderBy: [{
           expr: parseExpressionString("script.priority"),
           desc: true,
+          nulls: "last",
         }],
       } as LuaCollectionQuery,
     );

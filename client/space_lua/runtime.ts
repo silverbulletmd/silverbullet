@@ -1266,11 +1266,15 @@ export function luaGet(
   if (obj instanceof LuaTable || obj instanceof LuaEnv) {
     return obj.get(key, sf);
   }
+  // Native JS array access: normalize undefined → null (Lua nil).
+  // Without this, accessing an out-of-bounds index on a JS array
+  // leaks JS undefined into the Lua runtime, breaking nil checks
+  // such as `tags[1] ~= nil` on an empty array.
   if (typeof key === "number") {
-    return (obj as any[])[key - 1];
+    return (obj as any[])[key - 1] ?? null;
   }
   if (isTaggedFloat(key)) {
-    return (obj as any[])[key.value - 1];
+    return (obj as any[])[key.value - 1] ?? null;
   }
   // Native JS object
   const k = toNumKey(key);
