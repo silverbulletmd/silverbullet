@@ -104,7 +104,7 @@ FromClause { ckw<"from"> (Name "=")? exp }
 WhereClause { ckw<"where"> exp }
 LimitClause { ckw<"limit"> exp ("," exp)? }
 OrderByClause { ckw<"order">  ckw<"by"> list<OrderBy> }
-OrderBy { exp (ckw<"desc"> | ckw<"asc">)? (ckw<"nulls"> (ckw<"first"> | ckw<"last">))? }
+OrderBy { exp (ckw<"desc"> | ckw<"asc"> | kw<"using"> (Name | kw<"function"> FuncBody))? (ckw<"nulls"> (ckw<"first"> | ckw<"last">))? }
 SelectClause { ckw<"select"> exp }
 GroupByClause { ckw<"group"> ckw<"by"> list<exp> }
 HavingClause { ckw<"having"> exp }

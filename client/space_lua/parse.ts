@@ -35,7 +35,7 @@ const luaStyleTags = styleTags({
   CompareOp: t.operator,
   "true false": t.bool,
   Comment: t.lineComment,
-  "return break goto do end while repeat until function local if then else elseif in for nil or and not query from where limit select order by desc asc nulls first last group having filter":
+  "return break goto do end while repeat until function local if then else elseif in for nil or and not query from where limit select order by desc asc nulls first last group having filter using":
     t.keyword,
 });
 
@@ -143,6 +143,11 @@ function expressionHasFunctionDef(e: LuaExpression): boolean {
               if (expressionHasFunctionDef(c.orderBy[j].expression)) {
                 return true;
               }
+              if (
+                c.orderBy[j].using && typeof c.orderBy[j].using !== "string"
+              ) {
+                return true;
+              }
             }
             break;
           case "GroupBy":
@@ -234,6 +239,12 @@ function exprReferencesNames(e: LuaExpression, names: Set<string>): boolean {
           case "OrderBy":
             for (let j = 0; j < c.orderBy.length; j++) {
               if (exprReferencesNames(c.orderBy[j].expression, names)) {
+                return true;
+              }
+              if (
+                typeof c.orderBy[j].using === "string" &&
+                names.has(c.orderBy[j].using as string)
+              ) {
                 return true;
               }
             }
@@ -545,6 +556,10 @@ function exprCapturesNames(e: LuaExpression, names: Set<string>): boolean {
             for (let j = 0; j < c.orderBy.length; j++) {
               if (exprCapturesNames(c.orderBy[j].expression, names)) {
                 return true;
+              }
+              const u = c.orderBy[j].using;
+              if (u && typeof u !== "string") {
+                if (functionBodyCapturesNames(u, names)) return true;
               }
             }
             break;
@@ -1286,12 +1301,23 @@ function parseQueryClause(t: ParseTree, ctx: ASTCtx): LuaQueryClause {
           const kids = child.children!;
           let direction: "asc" | "desc" = "asc";
           let nulls: "first" | "last" | undefined;
+          let usingVal: string | LuaFunctionBody | undefined;
           for (let i = 1; i < kids.length; i++) {
             const typ = kids[i].type;
             if (typ === "desc") direction = "desc";
             else if (typ === "asc") direction = "asc";
             else if (typ === "first") nulls = "first";
             else if (typ === "last") nulls = "last";
+            else if (typ === "using") {
+              const next = kids[i + 1];
+              if (next.type === "function") {
+                usingVal = parseFunctionBody(kids[i + 2], ctx);
+                i += 2;
+              } else {
+                usingVal = next.children![0].text!;
+                i++;
+              }
+            }
           }
           const ob: LuaOrderBy = {
             type: "Order",
@@ -1300,6 +1326,7 @@ function parseQueryClause(t: ParseTree, ctx: ASTCtx): LuaQueryClause {
             ctx: context(child, ctx),
           };
           if (nulls) ob.nulls = nulls;
+          if (usingVal !== undefined) ob.using = usingVal;
           orderBy.push(ob);
         }
       }

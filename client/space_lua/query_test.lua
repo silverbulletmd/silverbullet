@@ -1943,3 +1943,223 @@ do
     end
   end
 end
+
+-- 54. `using` with named function comparator
+
+local function reverseAlpha(a, b)
+  return a > b
+end
+
+do
+  local r = query [[
+    from
+      p = pages
+    order by
+      p.name using reverseAlpha
+    select p.name
+  ]]
+  assertEquals(r[1], "Greg")
+  assertEquals(r[#r], "Alice")
+end
+
+-- 55. `using` with inline anonymous function
+
+do
+  local r = query [[
+    from
+      p = pages
+    order by
+      p.size using function(a, b) return a > b end
+    select { name = p.name, size = p.size }
+  ]]
+  assertEquals(r[1].name, "Bob")   -- size 20
+  assertEquals(r[2].name, "Dave")  -- size 15
+end
+
+-- 56. `using` with `nulls last`
+
+do
+  local r = query [[
+    from
+      p = pages
+    order by
+      p.tags[1] using function(a, b) return a < b end nulls last
+    select { name = p.name, tag = p.tags[1] }
+  ]]
+  assertEquals(r[#r].name, "Ed")
+end
+
+-- 57. `using` with `nulls first`
+
+do
+  local r = query [[
+    from
+      p = pages
+    order by
+      p.tags[1] using function(a, b) return a < b end nulls first
+    select { name = p.name, tag = p.tags[1] }
+  ]]
+  assertEquals(r[1].name, "Ed")
+end
+
+-- 58. `using` named function with `nulls last`
+
+do
+  local r = query [[
+    from
+      p = pages
+    order by
+      p.tags[1] using reverseAlpha nulls last
+    select { name = p.name, tag = p.tags[1] }
+  ]]
+  assertEquals(r[#r].name, "Ed")
+  assertEquals(r[1].tag, "work")
+end
+
+-- 59. `using` anonymous function with `nulls first`
+
+do
+  local r = query [[
+    from
+      p = pages
+    order by
+      p.tags[1] using function(a, b) return a < b end nulls first
+    select { name = p.name, tag = p.tags[1] }
+  ]]
+  assertEquals(r[1].name, "Ed")
+end
+
+-- 60. `using` on one key, normal on another
+
+do
+  local r = query [[
+    from
+      p = pages
+    where
+      p.tags[1] ~= nil
+    order by
+      p.tags[1] using reverseAlpha,
+      p.name
+    select { tag = p.tags[1], name = p.name }
+  ]]
+  assertEquals(r[1].tag, "work")
+  assertEquals(r[1].name, "Alice")
+end
+
+-- 61. Multiple keys with mixed using and desc
+
+do
+  local data = {
+    { name = "a", x = 2, y = 10 },
+    { name = "b", x = 1, y = 20 },
+    { name = "c", x = 2, y = 5 },
+    { name = "d", x = 1, y = 15 },
+  }
+  local r = query [[
+    from
+      p = data
+    order by
+      p.x using function(a, b) return a < b end,
+      p.y desc
+    select { name = p.name }
+  ]]
+  assertEquals(r[1].name, "b")
+  assertEquals(r[2].name, "d")
+  assertEquals(r[3].name, "a")
+  assertEquals(r[4].name, "c")
+end
+
+-- 62. `using` anonymous function with `nulls first`
+
+do
+  local data = {
+    { name = "a", val = 3 },
+    { name = "b" },
+    { name = "c", val = 1 },
+  }
+  local r = query [[
+    from
+      p = data
+    order by
+      p.val using function(a, b) return a > b end nulls first
+    select { name = p.name }
+  ]]
+  assertEquals(r[1].name, "b")
+  assertEquals(r[2].name, "a")
+  assertEquals(r[3].name, "c")
+end
+
+-- 63. `using` with group by + aggregate order
+
+do
+  local r = query [[
+    from
+      p = pages
+    where
+      p.tags[1] ~= nil
+    group by
+      p.tags[1]
+    select {
+      tag = key,
+      n = count(),
+    }
+    order by
+      n using function(a, b) return a > b end
+  ]]
+  assertEquals(r[1].tag, "work")
+  assertEquals(r[1].n, 3)
+  assertEquals(r[#r].n, 1)
+end
+
+-- 64. `using` named function in unbound mode
+
+do
+  local function byLen(a, b)
+    return #a < #b
+  end
+  local r = query [[
+    from
+      pages
+    order by
+      name using byLen
+    select name
+  ]]
+  assertEquals(r[1], "Ed")
+end
+
+-- 65. `using` anonymous function alone
+
+do
+  local r = query [[
+    from
+      p = pages
+    order by
+      p.age using function(a, b) return a > b end
+    select { name = p.name, age = p.age }
+  ]]
+  assertEquals(r[1].name, "Greg")  -- age 63
+  assertEquals(r[#r].name, "Ed")   -- age 19
+end
+
+-- 66. `using` with nulls on different keys
+
+do
+  local data = {
+    { name = "a", x = 1, y = 10 },
+    { name = "b", x = 1 },
+    { name = "c", x = 2, y = 5 },
+    { name = "d", x = 2 },
+  }
+  local r = query [[
+    from
+      p = data
+    order by
+      p.x using function(a, b) return a < b end,
+      p.y using function(a, b) return a < b end nulls first
+    select { name = p.name }
+  ]]
+  assertEquals(r[1].name, "b")
+  assertEquals(r[2].name, "a")
+  assertEquals(r[3].name, "d")
+  assertEquals(r[4].name, "c")
+end

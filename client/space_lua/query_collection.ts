@@ -4,6 +4,7 @@ import type {
   LuaExpression,
   LuaExpressionField,
   LuaFilteredCallExpression,
+  LuaFunctionBody,
   LuaFunctionCallExpression,
   LuaParenthesizedExpression,
   LuaPropField,
@@ -11,7 +12,9 @@ import type {
 } from "./ast.ts";
 
 import {
+  luaCall,
   LuaEnv,
+  LuaFunction,
   luaGet,
   luaKeys,
   LuaStackFrame,
@@ -133,6 +136,7 @@ export type LuaOrderBy = {
   expr: LuaExpression;
   desc: boolean;
   nulls?: "first" | "last";
+  using?: string | LuaFunctionBody;
 };
 
 /**
@@ -456,6 +460,18 @@ function normalizeSelectResults(results: any[]): any[] {
   return results;
 }
 
+function resolveUsing(
+  using: string | LuaFunctionBody | undefined,
+  env: LuaEnv,
+  _sf: LuaStackFrame,
+): LuaValue | null {
+  if (using === undefined) return null;
+  if (typeof using === "string") {
+    return env.get(using) ?? null;
+  }
+  return new LuaFunction(using, env);
+}
+
 async function orderByCompare(
   a: any,
   b: any,
@@ -472,10 +488,13 @@ async function orderByCompare(
   grouped: boolean,
   collation: QueryCollationConfig | undefined,
   collator: Intl.Collator,
+  resolvedUsing: (LuaValue | null)[],
   aSelectRow?: any,
   bSelectRow?: any,
 ): Promise<number> {
-  for (const { expr, desc, nulls } of orderBy) {
+  for (let idx = 0; idx < orderBy.length; idx++) {
+    const { expr, desc, nulls } = orderBy[idx];
+    const usingFn = resolvedUsing[idx];
     const aEnv = mkEnv(objectVariable, a, env, sf);
     const bEnv = mkEnv(objectVariable, b, env, sf);
     if (aSelectRow) {
@@ -524,7 +543,16 @@ async function orderByCompare(
       if (aIsNull) return nullsLast ? 1 : -1;
       return nullsLast ? -1 : 1;
     }
-    if (
+    if (usingFn) {
+      const aLtB = luaTruthy(
+        await luaCall(usingFn, [aVal, bVal], sf.astCtx ?? {}, sf),
+      );
+      const bLtA = luaTruthy(
+        await luaCall(usingFn, [bVal, aVal], sf.astCtx ?? {}, sf),
+      );
+      if (aLtB && !bLtA) return desc ? 1 : -1;
+      if (bLtA && !aLtB) return desc ? -1 : 1;
+    } else if (
       collation?.enabled &&
       typeof aVal === "string" &&
       typeof bVal === "string"
@@ -731,6 +759,11 @@ export async function applyQuery(
     }
     const collator = Intl.Collator(collation?.locale, collation?.options);
 
+    const resolvedUsing: (LuaValue | null)[] = [];
+    for (const ob of query.orderBy) {
+      resolvedUsing.push(resolveUsing(ob.using, env, sf));
+    }
+
     if (selectResults) {
       const indices = results.map((_, i) => i);
       await asyncQuickSort(indices, (ai, bi) =>
@@ -745,6 +778,7 @@ export async function applyQuery(
           grouped,
           collation,
           collator,
+          resolvedUsing,
           selectResults![ai],
           selectResults![bi],
         ));
@@ -764,6 +798,7 @@ export async function applyQuery(
           grouped,
           collation,
           collator,
+          resolvedUsing,
         ));
     }
   }
