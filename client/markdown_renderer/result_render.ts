@@ -7,11 +7,8 @@ import { isTaggedFloat } from "../space_lua/numeric.ts";
 import { isSqlNull } from "../space_lua/query_collection.ts";
 
 export function defaultTransformer(v: any, _k: string): Promise<string> {
-  if (v === undefined) {
+  if (v === undefined || isSqlNull(v)) {
     return Promise.resolve("");
-  }
-  if (isSqlNull(v)) {
-    return Promise.resolve("*(null)*");
   }
   if (typeof v === "string") {
     return Promise.resolve(escapeRegularPipes(v.replaceAll("\n", " ")));
