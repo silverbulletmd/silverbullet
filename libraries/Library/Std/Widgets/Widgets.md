@@ -80,6 +80,24 @@ end
 ```
 
 ## Table of contents
+```space-style
+.sb-toc-summary {
+  cursor: pointer;
+  font-weight: bold;
+  user-select: none;
+}
+.sb-toc-content {
+  padding-top: 0.5rem;
+}
+.sb-toc-item {
+  padding: 0.1rem 0;
+}
+.sb-toc-link {
+  cursor: pointer;
+  text-decoration: none;
+}
+```
+
 ```space-lua
 -- priority: 10
 widgets = widgets or {}
@@ -158,12 +176,13 @@ function widgets.toc(options)
   for _, header in ipairs(headersToDisplay) do
     local indent = (header.level - minLevel) * 1.5
     table.insert(tocItems, dom.div {
-      style = "margin-left: " .. indent .. "rem; padding: 0.1rem 0;",
+      class = "sb-toc-item",
+      style = "margin-left: " .. indent .. "rem;",
       dom.a {
         onclick = function()
           editor.navigate({ page = pageName, pos = header.pos })
         end,
-        style = "cursor: pointer; text-decoration: none;",
+        class = "sb-toc-link",
         "- " .. header.name
       }
     })
@@ -174,11 +193,11 @@ function widgets.toc(options)
     html = dom.details {
       open = options.defaultOpen,
       dom.summary {
-        style = "cursor: pointer; font-weight: bold; user-select: none;",
+        class = "sb-toc-summary",
         options.header
       },
       dom.div {
-        style = "padding-top: 0.5rem;",
+        class = "sb-toc-content",
         table.unpack(tocItems)
       }
     },
