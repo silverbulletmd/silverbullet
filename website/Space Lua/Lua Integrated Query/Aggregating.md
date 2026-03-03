@@ -142,6 +142,45 @@ ${query [[
   }
 ]]}
 
+## Per-aggregate filtering with `filter(where ...)`
+
+Individual aggregate expressions can include a `filter(where <condition>)` clause to restrict which rows contribute to that specific aggregate.
+
+Unlike `where` (which filters rows before grouping) and `having` (which filters entire groups after aggregation), `filter(where ...)` applies per-aggregate, per-row within each group. Multiple aggregates in the same `select` can each have different filters.
+
+```lua
+query[[
+  from
+    p = index.tag 'page'
+  group by
+    p.tags[1]
+  select {
+    tag = key,
+    total = count(p.name),
+    big = count(p.name) filter(where p.size > 10),
+    big_sz = sum(p.size) filter(where p.size > 10)
+  }
+  order by
+    tag
+]]
+```
+${query [[
+  from
+    p = index.tag 'page'
+  group by
+    p.tags[1]
+  select {
+    tag = key,
+    total = count(p.name),
+    big = count(p.name) filter(where p.size > 10),
+    big_sz = sum(p.size) filter(where p.size > 10)
+  }
+  order by
+    tag
+]]}
+
+The filter clause works with all aggregate functions: `count`, `sum`, `min`, `max`, `avg`, `array_agg`, and custom aggregates.  When no rows match the filter condition, aggregates return their identity value: `0` for `count` and `sum`, `nil` for `min`, `max`, and `avg`, and an empty table `{}` for `array_agg`.
+
 ## Field access after grouping
 
 Non-aggregated field references, such as `name` in `select`, refer to the first item in the group, matching common SQL and MySQL semantics.

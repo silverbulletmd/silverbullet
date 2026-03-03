@@ -3,6 +3,7 @@ import type {
   LuaDynamicField,
   LuaExpression,
   LuaExpressionField,
+  LuaFilteredCallExpression,
   LuaFunctionCallExpression,
   LuaParenthesizedExpression,
   LuaPropField,
@@ -197,6 +198,14 @@ export function toCollection(obj: any): LuaQueryCollection {
 
 function containsAggregate(expr: LuaExpression): boolean {
   switch (expr.type) {
+    case "FilteredCall": {
+      const fc = (expr as LuaFilteredCallExpression).call;
+      if (fc.prefix.type === "Variable" && getAggregateSpec(fc.prefix.name)) {
+        return true;
+      }
+      return containsAggregate(fc) ||
+        containsAggregate((expr as LuaFilteredCallExpression).filter);
+    }
     case "FunctionCall": {
       const fc = expr as LuaFunctionCallExpression;
       if (fc.prefix.type === "Variable" && getAggregateSpec(fc.prefix.name)) {
@@ -263,6 +272,31 @@ export async function evalExpressionWithAggregates(
       objectVariable,
       outerEnv,
     );
+
+  if (expr.type === "FilteredCall") {
+    const filtered = expr as LuaFilteredCallExpression;
+    const fc = filtered.call;
+    if (fc.prefix.type === "Variable") {
+      const name = fc.prefix.name;
+      const spec = getAggregateSpec(name);
+      if (spec) {
+        const valueExpr = fc.args.length > 0 ? fc.args[0] : null;
+        return executeAggregate(
+          spec,
+          groupItems,
+          valueExpr,
+          objectVariable,
+          outerEnv,
+          sf,
+          evalExpression,
+          filtered.filter,
+        );
+      }
+    }
+
+    return evalExpression(expr, env, sf);
+  }
+
   if (expr.type === "FunctionCall") {
     const fc = expr as LuaFunctionCallExpression;
     if (fc.prefix.type === "Variable") {

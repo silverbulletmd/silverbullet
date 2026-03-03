@@ -16,6 +16,7 @@ import {
   luaCall,
   type LuaEnv,
   LuaTable,
+  luaTruthy,
   type LuaValue,
 } from "./runtime.ts";
 import type { LuaExpression } from "./ast.ts";
@@ -157,8 +158,6 @@ export function getAggregateSpec(name: string): AggregateSpec | null {
 
 /**
  * Execute an aggregate function over a group of items.
- *
- * `evalExprFn` is passed in to avoid a circular import with eval.ts.
  */
 export async function executeAggregate(
   spec: AggregateSpec,
@@ -172,6 +171,7 @@ export async function executeAggregate(
     env: LuaEnv,
     sf: LuaStackFrame,
   ) => Promise<LuaValue> | LuaValue,
+  filterExpr?: LuaExpression,
 ): Promise<LuaValue> {
   const ctx = buildAggCtx(spec.name);
 
@@ -182,6 +182,16 @@ export async function executeAggregate(
   const len = items.length;
   for (let i = 1; i <= len; i++) {
     const item = items.rawGet(i);
+
+    // Filter
+    if (filterExpr) {
+      const filterEnv = buildItemEnv(objectVariable, item, env, sf);
+      const filterResult = await evalExprFn(filterExpr, filterEnv, sf);
+      if (!luaTruthy(filterResult)) {
+        continue;
+      }
+    }
+
     let value: LuaValue;
     if (valueExpr === null) {
       value = item;

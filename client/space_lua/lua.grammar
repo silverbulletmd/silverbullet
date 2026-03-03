@@ -82,9 +82,9 @@ exp {
   UnaryExpression |
   TableConstructor |
   FunctionDef { kw<"function"> FuncBody } |
-  Query
+  Query |
+  FilteredCall { FunctionCall ckw<"filter"> "(" ckw<"where"> exp ")" }
 }
-
 
 Query {
   kw<"query"> "[[" QueryClause* "]]"

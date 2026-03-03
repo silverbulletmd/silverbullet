@@ -35,7 +35,7 @@ const luaStyleTags = styleTags({
   CompareOp: t.operator,
   "true false": t.bool,
   Comment: t.lineComment,
-  "return break goto do end while repeat until function local if then else elseif in for nil or and not query from where limit select order by desc asc nulls first last group having":
+  "return break goto do end while repeat until function local if then else elseif in for nil or and not query from where limit select order by desc asc nulls first last group having filter":
     t.keyword,
 });
 
@@ -153,6 +153,11 @@ function expressionHasFunctionDef(e: LuaExpression): boolean {
         }
       }
       return false;
+    case "FilteredCall":
+      return (
+        expressionHasFunctionDef(e.call) ||
+        expressionHasFunctionDef(e.filter)
+      );
     default:
       return false;
   }
@@ -241,6 +246,11 @@ function exprReferencesNames(e: LuaExpression, names: Set<string>): boolean {
         }
       }
       return false;
+    case "FilteredCall":
+      return (
+        exprReferencesNames(e.call, names) ||
+        exprReferencesNames(e.filter, names)
+      );
     default:
       return false;
   }
@@ -546,6 +556,11 @@ function exprCapturesNames(e: LuaExpression, names: Set<string>): boolean {
         }
       }
       return false;
+    case "FilteredCall":
+      return (
+        exprCapturesNames(e.call, names) ||
+        exprCapturesNames(e.filter, names)
+      );
     default:
       return false;
   }
@@ -1208,6 +1223,16 @@ function parseExpression(t: ParseTree, ctx: ASTCtx): LuaExpression {
         clauses: t.children!.slice(2, -1).map((c) => parseQueryClause(c, ctx)),
         ctx: context(t, ctx),
       };
+    case "FilteredCall": {
+      const call = parseFunctionCall(t.children![0], ctx);
+      const filterExpr = parseExpression(t.children![4], ctx);
+      return {
+        type: "FilteredCall",
+        call,
+        filter: filterExpr,
+        ctx: context(t, ctx),
+      };
+    }
     default:
       console.error(t);
       throw new Error(`Unknown expression type: ${t.type}`);

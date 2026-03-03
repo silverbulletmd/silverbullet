@@ -175,7 +175,8 @@ export type LuaExpression =
   | LuaUnaryExpression
   | LuaTableConstructor
   | LuaFunctionDefinition
-  | LuaQueryExpression;
+  | LuaQueryExpression
+  | LuaFilteredCallExpression;
 
 export type LuaNilLiteral = {
   type: "Nil";
@@ -279,6 +280,13 @@ export type LuaExpressionField = {
 export type LuaFunctionDefinition = {
   type: "FunctionDefinition";
   body: LuaFunctionBody;
+} & ASTContext;
+
+// Aggregate with per-row filter
+export type LuaFilteredCallExpression = {
+  type: "FilteredCall";
+  call: LuaFunctionCallExpression;
+  filter: LuaExpression;
 } & ASTContext;
 
 // Query stuff

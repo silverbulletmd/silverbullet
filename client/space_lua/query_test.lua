@@ -1722,3 +1722,224 @@ do
   assertEquals(r[1].name, "Fran")
   assertEquals(r[2].name, "Greg")
 end
+
+-- 45. Count with filter
+
+do
+  local r = query [[
+    from
+      p = pages
+    where
+      p.tags[1] ~= nil
+    group by
+      p.tags[1]
+    select {
+      tag = key,
+      total = count(),
+      big = count(p.name) filter(where p.size > 10),
+    }
+    order by
+      tag
+  ]]
+  -- personal: Carol(5),Dave(15) -> big=1 (Dave)
+  -- random: Fran(1) -> big=0
+  -- work: Alice(10),Bob(20),Greg(2) -> big=1 (Bob)
+  assertEquals(#r, 3)
+  for _, row in ipairs(r) do
+    if row.tag == "personal" then
+      assertEquals(row.big, 1)
+      assertEquals(row.total, 2)
+    elseif row.tag == "random" then
+      assertEquals(row.big, 0)
+      assertEquals(row.total, 1)
+    elseif row.tag == "work" then
+      assertEquals(row.big, 1)
+      assertEquals(row.total, 3)
+    end
+  end
+end
+
+-- 46. Sum with filter
+
+do
+  local r = query [[
+    from
+      p = pages
+    where
+      p.tags[1] ~= nil
+    group by
+      p.tags[1]
+    select {
+      tag = key,
+      total_size = sum(p.size),
+      big_size = sum(p.size) filter(where p.size > 5),
+    }
+    order by
+      tag
+  ]]
+  for _, row in ipairs(r) do
+    if row.tag == "work" then
+      -- Alice(10)+Bob(20)+Greg(2)=32 total, big: 10+20=30
+      assertEquals(row.total_size, 32)
+      assertEquals(row.big_size, 30)
+    elseif row.tag == "personal" then
+      -- Carol(5)+Dave(15)=20 total, big: 15
+      assertEquals(row.total_size, 20)
+      assertEquals(row.big_size, 15)
+    elseif row.tag == "random" then
+      -- Fran(1) total=1, big: 0 (none pass)
+      assertEquals(row.total_size, 1)
+      assertEquals(row.big_size, 0)
+    end
+  end
+end
+
+-- 47. Min/max with filter
+
+do
+  local r = query [[
+    from
+      p = pages
+    group by
+      "all"
+    select {
+      min_big = min(p.size) filter(where p.size > 5),
+      max_small = max(p.size) filter(where p.size <= 5),
+    }
+  ]]
+  assertEquals(#r, 1)
+  assertEquals(r[1].min_big, 10)   -- smallest > 5: Alice(10)
+  assertEquals(r[1].max_small, 5)  -- largest <= 5: Carol(5)
+end
+
+-- 48. Avg with filter
+
+do
+  local r = query [[
+    from
+      p = pages
+    group by
+      "all"
+    select {
+      avg_all = avg(p.size),
+      avg_big = avg(p.size) filter(where p.size >= 10),
+    }
+  ]]
+  assertEquals(#r, 1)
+  -- all: (10+20+5+15+3+1+2)/7 = 56/7 = 8
+  assertEquals(r[1].avg_all, 8)
+  -- big (>=10): (10+20+15)/3 = 45/3 = 15
+  assertEquals(r[1].avg_big, 15)
+end
+
+-- 49. Array_agg with filter
+
+do
+  local r = query [[
+    from
+      p = pages
+    group by
+      "all"
+    select {
+      all_names = array_agg(p.name),
+      big_names = array_agg(p.name) filter(where p.size > 10),
+    }
+  ]]
+  assertEquals(#r, 1)
+  assertEquals(#r[1].all_names, 7)
+  -- size > 10: Bob(20), Dave(15)
+  assertEquals(#r[1].big_names, 2)
+end
+
+-- 50. Unbound access in filter
+
+do
+  local r = query [[
+    from
+      pages
+    where
+      tags[1] ~= nil
+    group by
+      tags[1]
+    select {
+      tag = key,
+      big = count(name) filter(where size > 10),
+    }
+    order by
+      tag
+  ]]
+  for _, row in ipairs(r) do
+    if row.tag == "work" then
+      assertEquals(row.big, 1) -- Bob(20)
+    end
+  end
+end
+
+-- 51. Count without argument with filter
+
+do
+  local r = query [[
+    from
+      p = pages
+    group by
+      "all"
+    select {
+      total = count(),
+      big = count() filter(where p.size > 10),
+    }
+  ]]
+  assertEquals(r[1].total, 7)
+  assertEquals(r[1].big, 2) -- Bob(20), Dave(15)
+end
+
+-- 52. Filter that matches nothing
+
+do
+  local r = query [[
+    from
+      p = pages
+    group by
+      "all"
+    select {
+      n = count() filter(where p.size > 1000),
+      s = sum(p.size) filter(where p.size > 1000),
+    }
+  ]]
+  assertEquals(r[1].n, 0)
+  assertEquals(r[1].s, 0)
+end
+
+-- 53. Multiple filters in one select
+
+do
+  local r = query [[
+    from
+      p = pages
+    where
+      p.tags[1] ~= nil
+    group by
+      p.tags[1]
+    select {
+      tag = key,
+      young = count(p.name) filter(where p.age < 30),
+      old = count(p.name) filter(where p.age >= 50),
+    }
+    order by
+      tag
+  ]]
+  for _, row in ipairs(r) do
+    if row.tag == "work" then
+      -- young: Bob(25) -> 1; old: Greg(63) -> 1
+      assertEquals(row.young, 1)
+      assertEquals(row.old, 1)
+    elseif row.tag == "personal" then
+      -- young: none; old: Dave(52) -> 1
+      assertEquals(row.young, 0)
+      assertEquals(row.old, 1)
+    elseif row.tag == "random" then
+      -- young: none; old: Fran(55) -> 1
+      assertEquals(row.young, 0)
+      assertEquals(row.old, 1)
+    end
+  end
+end
