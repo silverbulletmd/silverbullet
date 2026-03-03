@@ -14,120 +14,76 @@ The field names used in `group by` are also available as bare variables in `havi
 
 # Examples
 
-All examples below use `index.tag 'tag'`.
+All examples below use `tags.tag`.
 
 ## Group by single key
-
 Group all tags by `name`:
-
-```lua
-query [[
-  from
-    index.tag 'tag'
-  group by
-    name
-]]
-```
 
 ${query [[
   from
-    index.tag 'tag'
+    t = tags.tag
   group by
-    name
+    t.name
+  limit 5
 ]]}
 
 ## Group by multiple keys
-
 Group tags by `name` and `parent` together:
 
-```lua
-query [[
+${query[[
   from
-    index.tag 'tag'
+    t = tags.tag
   group by
-    name,
-    parent
-]]
-```
-
-${query [[
-  from
-    index.tag 'tag'
-  group by
-    name,
-    parent
+    t.name,
+    t.parent
+  limit 5
 ]]}
 
 ## Filter groups by count
-
 Only show tags that appear more than 2 times:
 
-```lua
-query [[
+${query[[
   from
-    index.tag 'tag'
+    t = tags.tag
   group by
-    name
+    t.name
   having
     #group > 2
-]]
-```
-
-${query [[
-  from
-    index.tag 'tag'
-  group by
-    name
-  having
-    #group > 2
+  limit 5
 ]]}
 
 ## Find unique tags
-
 Tags appearing exactly once:
 
-```lua
-query [[
+${query[[
   from
-    index.tag 'tag'
+    t = tags.tag
   group by
-    name
+    t.name
   having
     #group == 1
-]]
-```
-
-${query [[
-  from
-    index.tag 'tag'
-  group by
-    name
-  having
-    #group == 1
+  select key
 ]]}
 
 ## Filter groups by key value
-
 Only show the group where `name` is "meta":
 
-```lua
-query [[
+${query[[
   from
-    index.tag 'tag'
+    tags.tag
   group by
     name
   having
-    name == 'meta'
-]]
-```
+    name == "meta"
+]]}
 
-${query [[
+${query[[
   from
-    index.tag 'tag'
+    t = tags.tag
   group by
-    name
+    t.name
   having
-    name == 'meta'
+    t.name == "meta"
 ]]}
 
 ## Multi-key having
