@@ -10,13 +10,16 @@ However, in [[Space Lua]] it is interpreted as an SQL (and [LINQ](https://learn.
 
 General syntax:
 
-    query[[
-      from <var> in <expression>
+    query [[
+      from <expression>
       where <expression>
-      group by <expression>[, <expression>, ...]
+      group by <expression>[, ...]
       having <expression>
-      order by <expression> [asc | desc] [nulls { first | last }][, ...]
-      limit <expression>, <expression>
+      order by <expression>
+        [asc | desc | using <comparator>]
+        [nulls { first | last }]
+        [, ...]
+      limit <expression>[, ...]
       select <expression>
     ]]
 
@@ -44,7 +47,7 @@ ${some(query[[
 # Clauses
 Here are the clauses that are currently supported:
 
-## from <expression>
+## `from`
 The `from` clause specifies the source of your data. There are two syntactic variants:
 
 **Recommended:** With explicit variable binding:
@@ -73,7 +76,7 @@ ${query[[from n = {1, 2, 3} select n]]}
 A more realistic example using `index.tag`:
 ${query[[from p = index.tag "page" order by p.lastModified select p.name limit 3]]}
 
-## where <expression>
+## `where`
 The `where` clause allows you to filter data. When the expression evaluated to a truthy value, the item is included in the result.
 
 Example:
@@ -88,7 +91,7 @@ Or select based on name (including folder) and a [[API/string|string function]]:
 
 ${query[[from p = index.tag "page" where p.name:startsWith("Person")]]}
 
-## group by <expression>[, <expression>, ...]
+## `group by`
 The `group by` clause groups results by one or more key expressions. After grouping, each result row becomes a table with two fields:
 
 - `key` — the group key value (single value for one key, table for multi-key)
@@ -107,7 +110,7 @@ ${query[[
 
 See [[Space Lua/Lua Integrated Query/Grouping]] for detailed examples.
 
-## having <expression>
+## `having`
 The `having` clause filters groups **after** `group by`. It follows SQL semantics: only group key fields, `key`, and `group` are accessible — use `where` to filter individual rows before grouping.
 
 Aggregate functions like `count()`, `sum()`, `min()`, `max()`, and `avg()` can be used in `having` expressions. See [[Space Lua/Lua Integrated Query/Aggregating]] for details.
@@ -125,14 +128,11 @@ ${query[[
 
 See [[Space Lua/Lua Integrated Query/Grouping]] for detailed examples.
 
-## order by <expression> [asc | desc] [nulls {first | last}][, ...]
-The `order by` clause allows you to sort data. Use `desc` for descending order, or `asc` (the default) for ascending.
-
-You can control where `nil` values are placed using `nulls first` or `nulls last`. The defaults follow SQL conventions:
-- **`asc`**: nulls are placed **last**,
-- **`desc`**: nulls are placed **first**.
+## `order by`
+The `order by` clause sorts results by one or more expressions. By default, sorting is ascending. Append `desc` for descending order, or `asc` to be explicit about ascending.
 
 As an example, the last 3 modified pages:
+
 ${query[[
   from p = index.tag "page"
   order by p.lastModified desc
@@ -140,7 +140,7 @@ ${query[[
   limit 3
 ]]}
 
-You can order based on multiple expressions by specifying multiple expressions separated by commas:
+You can sort by multiple expressions separated by commas. Each key is evaluated left to right — the second key only matters when the first compares as equal:
 
 ${query[[
   from p = index.tag "page"
@@ -149,29 +149,88 @@ ${query[[
   limit 3
 ]]}
 
-Override the default null placement with `nulls first` or `nulls last`:
-
-```lua
-query[[
-  from p = index.tag "page"
-  order by p.priority desc nulls last
-  select { name = p.name, priority = p.priority }
-]]
-```
-
-Each sort key can have its own direction and nulls clause:
+Each sort key can have its own direction:
 
 ```lua
 query[[
   from p = data
-  order by p.category asc, p.priority desc nulls last
+  order by p.category asc, p.priority desc
   select { name = p.name }
 ]]
 ```
 
-Sorting of strings can be adjusted with `queryCollation` in [[^Library/Std/Config]]
+### Null placement
+By default, `nil` values follow SQL conventions: they appear **last** for ascending order and **first** for descending order. You can override this per key with `nulls first` or `nulls last`:
 
-## limit <expression>[, <expression>]
+${query[[
+  from p = index.tag "page"
+  order by p.priority desc nulls last
+  select { name = p.name, priority = p.priority }
+  limit 3
+]]}
+
+### String collation
+Sorting of strings can be adjusted with `queryCollation` in [[^Library/Std/Config]].
+
+### `using` (custom comparators)
+The `using` clause specifies a custom comparator function instead of the default `asc`/`desc` ordering. The two are mutually exclusive — `using` defines both the comparison logic and the direction.
+
+The comparator must accept two arguments and return `true` when the first should come strictly before the second. It can be a named function:
+
+```lua
+function byLength(a, b)
+  return #a < #b
+end
+```
+
+```lua
+query [[
+  from p = index.tag "page"
+  order by p.name using byLength
+  select p.name
+  limit 5
+]]
+```
+
+Or an anonymous function inline. Example:
+
+${query[[
+  from n = {5, 1, 3, 2, 4}
+  order by n using function(a, b) return a < b end
+]]}
+
+The `nulls` clause works with `using`, and each sort key can independently choose `asc`/`desc` or `using`:
+
+```lua
+query [[
+  from p = data
+  order by
+    p.category using customCategoryCmp,
+    p.priority desc nulls last
+  select {
+    name = p.name
+  }
+]]
+```
+
+When `using` is specified, it overrides any `queryCollation` configuration for that sort key.
+
+> **note** Note
+> `using` is a reserved keyword in Space Lua and cannot be used as a variable name.
+
+#### Strict weak ordering
+A comparator must satisfy **strict weak ordering** (SWO) — if comparing A with B returns `true`, then comparing B with A must return `false`. In practice this means using strict comparisons like `<` or `>` and **never** `<=` or `>=`.
+
+The query engine validates this at runtime. If comparing two values in both directions both return `true`, the query fails with a clear error:
+
+${query [[
+  from n = {5, 1, 3, 2, 3}
+  order by n using function(a, b) return a <= b end
+]]}
+
+The query engine uses a *stable merge sort* algorithm with guaranteed performance. Items that compare as equal preserve their original order and an invalid comparator cannot cause an infinite loop or crash — the violation is detected and reported as an error.
+
+## `limit`
 The `limit` clause allows you to limit the number of results, optionally with an offset.
 
 Example:
@@ -182,7 +241,7 @@ You can also specify an offset to skip some results:
 
 ${query[[from {1, 2, 3, 4, 5} limit 3, 2]]}
 
-## select <expression>
+## `select`
 The `select` clause allows you to transform each item in the result set. If omitted, it defaults to returning the item itself.
 
 When used with `group by`, aggregate functions like `sum()`, `count()`, `min()`, `max()`, and `avg()` can be used in the `select` expression to compute values across each group. See [[Space Lua/Lua Integrated Query/Aggregating]] for details.
@@ -197,18 +256,6 @@ ${query[[
   from p = index.tag "page"
   select table.select(p, "name", "lastModified")
   limit 3
-]]}
-
-# Listing available aggregate functions
-
-You can list all available aggregator functions (built-ins and custom) using LIQ.
-
-Example:
-
-${query [[
-  from k, v in pairs(config.get("aggregates", {}))
-  select { name = k, desc = v.description }
-  order by name
 ]]}
 
 # Rendering the output

@@ -4,6 +4,7 @@ import type {
   LuaExpression,
   LuaExpressionField,
   LuaFilteredCallExpression,
+  LuaFunctionBody,
   LuaFunctionCallExpression,
   LuaParenthesizedExpression,
   LuaPropField,
@@ -11,9 +12,13 @@ import type {
 } from "./ast.ts";
 
 import {
+  jsToLuaValue,
+  luaCall,
   LuaEnv,
+  LuaFunction,
   luaGet,
   luaKeys,
+  LuaRuntimeError,
   LuaStackFrame,
   LuaTable,
   luaTruthy,
@@ -21,7 +26,7 @@ import {
   singleResult,
 } from "./runtime.ts";
 import { evalExpression, luaOp } from "./eval.ts";
-import { asyncQuickSort } from "./util.ts";
+import { asyncMergeSort } from "./util.ts";
 import type { DataStore } from "../data/datastore.ts";
 import type { KvPrimitives } from "../data/kv_primitives.ts";
 
@@ -133,6 +138,7 @@ export type LuaOrderBy = {
   expr: LuaExpression;
   desc: boolean;
   nulls?: "first" | "last";
+  using?: string | LuaFunctionBody;
 };
 
 /**
@@ -456,9 +462,58 @@ function normalizeSelectResults(results: any[]): any[] {
   return results;
 }
 
-async function orderByCompare(
-  a: any,
-  b: any,
+function resolveUsing(
+  using: string | LuaFunctionBody | undefined,
+  env: LuaEnv,
+  _sf: LuaStackFrame,
+): LuaValue | null {
+  if (using === undefined) return null;
+  if (typeof using === "string") {
+    return env.get(using) ?? null;
+  }
+  return new LuaFunction(using, env);
+}
+
+// Compare values using a custom comparator with SWO violation detection
+async function usingCompare(
+  luaCmp: LuaValue,
+  aVal: any,
+  bVal: any,
+  originalA: number,
+  originalB: number,
+  desc: boolean,
+  sf: LuaStackFrame,
+  violated: boolean[],
+  keyIdx: number,
+): Promise<number> {
+  const res = luaTruthy(
+    singleResult(
+      await luaCall(luaCmp, [aVal, bVal], sf.astCtx ?? {}, sf),
+    ),
+  );
+  const reverseRes = luaTruthy(
+    singleResult(
+      await luaCall(luaCmp, [bVal, aVal], sf.astCtx ?? {}, sf),
+    ),
+  );
+
+  // both true means SWO violation
+  if (res && reverseRes) {
+    violated[keyIdx] = true;
+    return originalA < originalB ? -1 : 1;
+  }
+
+  if (res) return desc ? 1 : -1;
+  if (reverseRes) return desc ? -1 : 1;
+  return 0;
+}
+
+/**
+ * Pre-compute all sort keys for each result item (Schwartzian transform)
+ * and evaluate each `order by` expression exactly once per item
+ */
+async function precomputeSortKeys(
+  results: any[],
   orderBy: LuaOrderBy[],
   mkEnv: (
     ov: string | undefined,
@@ -470,50 +525,63 @@ async function orderByCompare(
   env: LuaEnv,
   sf: LuaStackFrame,
   grouped: boolean,
+  selectResults: any[] | undefined,
+): Promise<any[][]> {
+  const allKeys: any[][] = new Array(results.length);
+  for (let i = 0; i < results.length; i++) {
+    const item = results[i];
+    const itemEnv = mkEnv(objectVariable, item, env, sf);
+    if (selectResults) {
+      const row = selectResults[i];
+      if (row) {
+        for (const k of luaKeys(row)) {
+          const v = luaGet(row, k, sf.astCtx ?? null, sf);
+          itemEnv.setLocal(k, isSqlNull(v) ? null : v);
+        }
+      }
+    }
+    const keys: any[] = new Array(orderBy.length);
+    for (let j = 0; j < orderBy.length; j++) {
+      if (grouped) {
+        const groupTable = (item as LuaTable).rawGet("group");
+        keys[j] = await evalExpressionWithAggregates(
+          orderBy[j].expr,
+          itemEnv,
+          sf,
+          groupTable,
+          objectVariable,
+          env,
+        );
+      } else {
+        keys[j] = await evalExpression(orderBy[j].expr, itemEnv, sf);
+      }
+    }
+    allKeys[i] = keys;
+  }
+  return allKeys;
+}
+
+/**
+ * Compare two items by their pre-computed sort keys without Lua
+ * expressions evaluation.
+ */
+async function sortKeyCompare(
+  a: { val: any; idx: number },
+  b: { val: any; idx: number },
+  orderBy: LuaOrderBy[],
+  aKeys: any[],
+  bKeys: any[],
   collation: QueryCollationConfig | undefined,
   collator: Intl.Collator,
-  aSelectRow?: any,
-  bSelectRow?: any,
+  resolvedUsing: (LuaValue | null)[],
+  violated: boolean[],
+  sf: LuaStackFrame,
 ): Promise<number> {
-  for (const { expr, desc, nulls } of orderBy) {
-    const aEnv = mkEnv(objectVariable, a, env, sf);
-    const bEnv = mkEnv(objectVariable, b, env, sf);
-    if (aSelectRow) {
-      for (const k of luaKeys(aSelectRow)) {
-        const v = luaGet(aSelectRow, k, sf.astCtx ?? null, sf);
-        aEnv.setLocal(k, isSqlNull(v) ? null : v);
-      }
-    }
-    if (bSelectRow) {
-      for (const k of luaKeys(bSelectRow)) {
-        const v = luaGet(bSelectRow, k, sf.astCtx ?? null, sf);
-        bEnv.setLocal(k, isSqlNull(v) ? null : v);
-      }
-    }
-    let aVal, bVal;
-    if (grouped) {
-      const aGroup = (a as LuaTable).rawGet("group");
-      const bGroup = (b as LuaTable).rawGet("group");
-      aVal = await evalExpressionWithAggregates(
-        expr,
-        aEnv,
-        sf,
-        aGroup,
-        objectVariable,
-        env,
-      );
-      bVal = await evalExpressionWithAggregates(
-        expr,
-        bEnv,
-        sf,
-        bGroup,
-        objectVariable,
-        env,
-      );
-    } else {
-      aVal = await evalExpression(expr, aEnv, sf);
-      bVal = await evalExpression(expr, bEnv, sf);
-    }
+  for (let idx = 0; idx < orderBy.length; idx++) {
+    const { desc, nulls } = orderBy[idx];
+    const aVal = aKeys[idx];
+    const bVal = bKeys[idx];
+
     // Handle nulls positioning
     const aIsNull = aVal === null || aVal === undefined;
     const bIsNull = bVal === null || bVal === undefined;
@@ -524,13 +592,28 @@ async function orderByCompare(
       if (aIsNull) return nullsLast ? 1 : -1;
       return nullsLast ? -1 : 1;
     }
-    if (
+
+    const usingFn = resolvedUsing[idx];
+    if (usingFn) {
+      const cmp = await usingCompare(
+        usingFn,
+        aVal,
+        bVal,
+        a.idx,
+        b.idx,
+        desc,
+        sf,
+        violated,
+        idx,
+      );
+      if (cmp !== 0) return cmp;
+    } else if (
       collation?.enabled &&
       typeof aVal === "string" &&
       typeof bVal === "string"
     ) {
       const order = collator.compare(aVal, bVal);
-      if (order != 0) {
+      if (order !== 0) {
         return desc ? -order : order;
       }
     } else if (aVal < bVal) {
@@ -648,7 +731,14 @@ export async function applyQuery(
     for (const { key, items } of groups.values()) {
       const groupTable = new LuaTable();
       for (let i = 0; i < items.length; i++) {
-        groupTable.rawSetArrayIndex(i + 1, items[i]);
+        const item = items[i];
+        groupTable.rawSetArrayIndex(
+          i + 1,
+          (item instanceof LuaTable || typeof item !== "object" ||
+              item === null)
+            ? item
+            : jsToLuaValue(item),
+        );
       }
       const row = new LuaTable();
       row.rawSet("key", key);
@@ -731,40 +821,66 @@ export async function applyQuery(
     }
     const collator = Intl.Collator(collation?.locale, collation?.options);
 
-    if (selectResults) {
-      const indices = results.map((_, i) => i);
-      await asyncQuickSort(indices, (ai, bi) =>
-        orderByCompare(
-          results[ai],
-          results[bi],
-          query.orderBy!,
-          mkEnv,
-          query.objectVariable,
-          env,
-          sf,
-          grouped,
-          collation,
-          collator,
-          selectResults![ai],
-          selectResults![bi],
-        ));
+    const resolvedUsing: (LuaValue | null)[] = [];
+    const violated: boolean[] = [];
+    for (const ob of query.orderBy) {
+      resolvedUsing.push(resolveUsing(ob.using, env, sf));
+      violated.push(false);
+    }
 
-      results = indices.map((i) => results[i]);
-      selectResults = indices.map((i) => selectResults![i]);
-    } else {
-      results = await asyncQuickSort(results, (a, b) =>
-        orderByCompare(
-          a,
-          b,
-          query.orderBy!,
-          mkEnv,
-          query.objectVariable,
-          env,
+    // Decorate: pre-compute all sort keys once (Schwartzian transform)
+    const sortKeys = await precomputeSortKeys(
+      results,
+      query.orderBy,
+      mkEnv,
+      query.objectVariable,
+      env,
+      sf,
+      grouped,
+      selectResults,
+    );
+
+    // Tag each result with its original index for stable sorting
+    const tagged = results.map((val, idx) => ({ val, idx }));
+
+    // Sort: compare cached keys only, no Lua eval in comparator
+    await asyncMergeSort(tagged, (a, b) =>
+      sortKeyCompare(
+        a,
+        b,
+        query.orderBy!,
+        sortKeys[a.idx],
+        sortKeys[b.idx],
+        collation,
+        collator,
+        resolvedUsing,
+        violated,
+        sf,
+      ));
+
+    // Check for SWO violations in comparators
+    for (let i = 0; i < violated.length; i++) {
+      if (violated[i]) {
+        throw new LuaRuntimeError(
+          `order by #${
+            i + 1
+          }: 'using' comparator violates strict weak ordering`,
           sf,
-          grouped,
-          collation,
-          collator,
-        ));
+        );
+      }
+    }
+
+    if (selectResults) {
+      const reorderedResults: any[] = new Array(tagged.length);
+      const reorderedSelect: any[] = new Array(tagged.length);
+      for (let i = 0; i < tagged.length; i++) {
+        reorderedResults[i] = tagged[i].val;
+        reorderedSelect[i] = selectResults[tagged[i].idx];
+      }
+      results = reorderedResults;
+      selectResults = reorderedSelect;
+    } else {
+      results = tagged.map((t) => t.val);
     }
   }
 

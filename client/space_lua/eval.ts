@@ -895,6 +895,7 @@ export function evalExpression(
                     expr: o.expression,
                     desc: o.direction === "desc",
                     nulls: o.nulls,
+                    using: o.using,
                   }));
                   break;
                 }
