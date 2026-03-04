@@ -14,9 +14,8 @@ export function evalPromiseValues(vals: any[]): Promise<any[]> | any[] {
   }
   if (promises.length === 0) {
     return promiseResults;
-  } else {
-    return Promise.all(promises).then(() => promiseResults);
   }
+  return Promise.all(promises).then(() => promiseResults);
 }
 
 /**
@@ -36,18 +35,19 @@ async function getPivot(
   if (await compare(x, y) < 0) {
     if (await compare(y, z) < 0) {
       return y;
-    } else if (await compare(z, x) < 0) {
-      return x;
-    } else {
-      return z;
     }
-  } else if (await compare(y, z) > 0) {
-    return y;
-  } else if (await compare(z, x) > 0) {
-    return x;
-  } else {
+    if (await compare(z, x) < 0) {
+      return x;
+    }
     return z;
   }
+  if (await compare(y, z) > 0) {
+    return y;
+  }
+  if (await compare(z, x) > 0) {
+    return x;
+  }
+  return z;
 }
 
 /**
@@ -93,4 +93,38 @@ export async function asyncQuickSort(
     await asyncQuickSort(arr, compare, j + 1, right);
   }
   return arr;
+}
+
+/**
+ * iterative async merge sort
+ * @param arr tagged array of { val, idx } elements
+ * @param compare async comparator returning <0, 0, or >0
+ */
+export async function asyncMergeSort(
+  arr: { val: any; idx: number }[],
+  compare: (
+    a: { val: any; idx: number },
+    b: { val: any; idx: number },
+  ) => Promise<number>,
+): Promise<void> {
+  const n = arr.length;
+  if (n <= 1) return;
+  const work = new Array(n);
+
+  for (let size = 1; size < n; size *= 2) {
+    for (let left = 0; left < n; left += 2 * size) {
+      const mid = Math.min(left + size, n);
+      const right = Math.min(left + 2 * size, n);
+
+      let i = left, j = mid, k = left;
+      while (i < mid && j < right) {
+        const cmp = await compare(arr[i], arr[j]);
+        if (cmp <= 0) work[k++] = arr[i++];
+        else work[k++] = arr[j++];
+      }
+      while (i < mid) work[k++] = arr[i++];
+      while (j < right) work[k++] = arr[j++];
+      for (let m = left; m < right; m++) arr[m] = work[m];
+    }
+  }
 }

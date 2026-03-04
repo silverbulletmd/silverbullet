@@ -125,16 +125,10 @@ ${query[[
 See [[Space Lua/Lua Integrated Query/Grouping]] for detailed examples.
 
 ## `order by`
-The `order by` clause allows you to sort data. Use `desc` for descending order, or `asc` (the default) for ascending.
-
-You can control where `nil` values are placed using `nulls first` or `nulls last`. The defaults follow SQL conventions:
-- **`asc`**: nulls are placed **last**,
-- **`desc`**: nulls are placed **first**.
-
-You can also use custom comparator:
-- **`using <comparator>`**.
+The `order by` clause sorts results by one or more expressions. By default, sorting is ascending. Append `desc` for descending order, or `asc` to be explicit about ascending.
 
 As an example, the last 3 modified pages:
+
 ${query[[
   from p = index.tag "page"
   order by p.lastModified desc
@@ -142,7 +136,7 @@ ${query[[
   limit 3
 ]]}
 
-You can order based on multiple expressions by specifying multiple expressions separated by commas:
+You can sort by multiple expressions separated by commas. Each key is evaluated left to right — the second key only matters when the first compares as equal:
 
 ${query[[
   from p = index.tag "page"
@@ -151,47 +145,39 @@ ${query[[
   limit 3
 ]]}
 
-Override the default null placement with `nulls first` or `nulls last`:
-
-```lua
-query[[
-  from p = index.tag "page"
-  order by p.priority desc nulls last
-  select { name = p.name, priority = p.priority }
-]]
-```
-
-Each sort key can have its own direction and nulls clause:
+Each sort key can have its own direction:
 
 ```lua
 query[[
   from p = data
-  order by p.category asc, p.priority desc nulls last
+  order by p.category asc, p.priority desc
   select { name = p.name }
 ]]
 ```
 
-Sorting of strings can be adjusted with `queryCollation` in [[^Library/Std/Config]]
+### Null placement
+By default, `nil` values follow SQL conventions: they appear **last** for ascending order and **first** for descending order. You can override this per key with `nulls first` or `nulls last`:
 
-### `using`  (custom comparators)
-The `using` clause specifies a custom comparator. It is mutually exclusive with `asc`/`desc` — the comparator defines the ordering direction.
+${query[[
+  from p = index.tag "page"
+  order by p.priority desc nulls last
+  select { name = p.name, priority = p.priority }
+  limit 3
+]]}
 
-> **note** Note
-> `using` is a reserved keyword in Space Lua and cannot be used as a variable name.
+### String collation
+Sorting of strings can be adjusted with `queryCollation` in [[^Library/Std/Config]].
 
-Two forms are supported:
+### `using` (custom comparators)
+The `using` clause specifies a custom comparator function instead of the default `asc`/`desc` ordering. The two are mutually exclusive — `using` defines both the comparison logic and the direction.
 
-**Named function** — must accept two arguments and return `true` if the first comes before the second.
-
-Example:
+The comparator must accept two arguments and return `true` when the first should come strictly before the second. It can be a named function:
 
 ```lua
-local function byLength(a, b)
+function byLength(a, b)
   return #a < #b
 end
 ```
-
-And use the custom comparator function in a query:
 
 ```lua
 query [[
@@ -202,29 +188,14 @@ query [[
 ]]
 ```
 
-Annonymous functions are also supported.  Example:
+Or an anonymous function inline. Example:
 
 ${query[[
   from n = {5, 1, 3, 2, 4}
   order by n using function(a, b) return a < b end
 ]]}
 
-The `nulls` clause works with `using`:
-
-```lua
-query [[
-  from
-    p = index.tag "page"
-  order
-    by p.name
-  using
-    byLength nulls last
-  select
-    p.name
-]]
-```
-
-Each sort key can independently use `asc`/`desc` or `using`, combined with `nulls { first | last }`:
+The `nulls` clause works with `using`, and each sort key can independently choose `asc`/`desc` or `using`:
 
 ```lua
 query [[
@@ -238,7 +209,22 @@ query [[
 ]]
 ```
 
-> **note** When `using` is specified, it overrides any `queryCollation` configuration for that sort key.
+When `using` is specified, it overrides any `queryCollation` configuration for that sort key.
+
+> **note** Note
+> `using` is a reserved keyword in Space Lua and cannot be used as a variable name.
+
+#### Strict weak ordering
+A comparator must satisfy **strict weak ordering** (SWO) — if comparing A with B returns `true`, then comparing B with A must return `false`. In practice this means using strict comparisons like `<` or `>` and **never** `<=` or `>=`.
+
+The query engine validates this at runtime. If comparing two values in both directions both return `true`, the query fails with a clear error:
+
+${query [[
+  from n = {5, 1, 3, 2, 3}
+  order by n using function(a, b) return a <= b end
+]]}
+
+The query engine uses a *stable merge sort* algorithm with guaranteed performance. Items that compare as equal preserve their original order and an invalid comparator cannot cause an infinite loop or crash — the violation is detected and reported as an error.
 
 ## `limit`
 The `limit` clause allows you to limit the number of results, optionally with an offset.

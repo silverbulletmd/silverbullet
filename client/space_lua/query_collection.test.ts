@@ -1,6 +1,11 @@
 import { parseExpressionString } from "./parse.ts";
 import { ArrayQueryCollection } from "./query_collection.ts";
-import { LuaEnv, LuaNativeJSFunction, LuaStackFrame } from "./runtime.ts";
+import {
+  LuaEnv,
+  LuaNativeJSFunction,
+  LuaRuntimeError,
+  LuaStackFrame,
+} from "./runtime.ts";
 import { assert, assertEquals } from "@std/assert";
 
 Deno.test("ArrayQueryCollection", async () => {
@@ -296,7 +301,11 @@ Deno.test("ArrayQueryCollection - nulls ordering", async () => {
   const r3 = await collection.query(
     {
       objectVariable: "p",
-      orderBy: [{ expr: parseExpressionString("p.priority"), desc: true, nulls: "last" }],
+      orderBy: [{
+        expr: parseExpressionString("p.priority"),
+        desc: true,
+        nulls: "last",
+      }],
     },
     rootEnv,
     LuaStackFrame.lostFrame,
@@ -312,7 +321,11 @@ Deno.test("ArrayQueryCollection - nulls ordering", async () => {
   const r4 = await collection.query(
     {
       objectVariable: "p",
-      orderBy: [{ expr: parseExpressionString("p.priority"), desc: false, nulls: "first" }],
+      orderBy: [{
+        expr: parseExpressionString("p.priority"),
+        desc: false,
+        nulls: "first",
+      }],
     },
     rootEnv,
     LuaStackFrame.lostFrame,
@@ -323,4 +336,38 @@ Deno.test("ArrayQueryCollection - nulls ordering", async () => {
   assertEquals(r4[2].name, "eve");
   assertEquals(r4[3].name, "alice");
   assertEquals(r4[4].name, "carol");
+});
+
+Deno.test("ArrayQueryCollection - SWO violation detection", async () => {
+  const rootEnv = new LuaEnv();
+  rootEnv.setLocal(
+    "badCmp",
+    new LuaNativeJSFunction((a, b) => a <= b),
+  );
+
+  const collection = new ArrayQueryCollection([
+    { name: "alice", score: 10 },
+    { name: "bob", score: 10 },
+    { name: "carol", score: 5 },
+  ]);
+
+  const { assertRejects } = await import("@std/assert");
+  await assertRejects(
+    () =>
+      collection.query(
+        {
+          objectVariable: "p",
+          orderBy: [{
+            expr: parseExpressionString("p.score"),
+            desc: false,
+            using: "badCmp",
+          }],
+        },
+        rootEnv,
+        LuaStackFrame.lostFrame,
+        {},
+      ),
+    LuaRuntimeError,
+    "strict weak ordering",
+  );
 });
