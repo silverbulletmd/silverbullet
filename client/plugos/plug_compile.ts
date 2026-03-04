@@ -9,25 +9,30 @@ import type { Manifest } from "./types.ts";
 import { version } from "../../version.ts";
 
 import { fileURLToPath } from "node:url";
-import { readFileSync, existsSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { dirname } from "node:path";
 
-// Read the pre-built worker_runtime bundle
+// Resolve the pre-built worker_runtime bundle path
 // When running from source: ../../dist/worker_runtime_bundle.js (from client/plugos/)
 // When bundled: ./worker_runtime_bundle.js (from dist/)
 const currentDir = dirname(fileURLToPath(import.meta.url));
 const bundledPath = path.join(currentDir, "worker_runtime_bundle.js");
 const sourcePath = path.join(currentDir, "../../dist/worker_runtime_bundle.js");
+const workerRuntimeBundlePath = existsSync(bundledPath)
+  ? bundledPath
+  : sourcePath;
 
-const workerRuntimeBundlePath = existsSync(bundledPath) ? bundledPath : sourcePath;
-const workerRuntimeBundle = readFileSync(workerRuntimeBundlePath, "utf-8");
-
-// Create a data URL so esbuild can inline it
-const workerRuntimeUrl = `data:text/javascript;charset=utf-8,${encodeURIComponent(workerRuntimeBundle)}`;
+const workerRuntimePlugin: esbuild.Plugin = {
+  name: "worker-runtime",
+  setup(build) {
+    build.onResolve({ filter: /^worker-runtime$/ }, () => ({
+      path: workerRuntimeBundlePath,
+    }));
+  },
+};
 
 export type CompileOptions = {
   debug?: boolean;
-  runtimeUrl?: string;
   // Print info on bundle size
   info?: boolean;
 };
@@ -58,9 +63,7 @@ export async function compileManifest(
   }
 
   const jsFile = `
-import { setupMessageListener } from "${
-    options.runtimeUrl || workerRuntimeUrl
-  }";
+import { setupMessageListener } from "worker-runtime";
 
 // Imports
 ${
@@ -119,6 +122,7 @@ setupMessageListener(functionMapping, manifest, self.postMessage);
     outfile: outFile,
     metafile: options.info,
     treeShaking: true,
+    plugins: [workerRuntimePlugin],
   });
 
   if (options.info) {
@@ -180,11 +184,10 @@ export function patchBundledJS(code: string): string {
 }
 
 export async function plugCompileCommand(
-  { dist, debug, info, runtimeUrl }: {
+  { dist, debug, info }: {
     dist: string;
     debug: boolean;
     info: boolean;
-    runtimeUrl?: string;
   },
   ...manifestPaths: string[]
 ) {
@@ -194,7 +197,6 @@ export async function plugCompileCommand(
     {
       debug: debug,
       info: info,
-      runtimeUrl,
     },
   );
   esbuild.stop();

@@ -16,14 +16,12 @@ program
   .option("--info", "Print out size info per function", false)
   .option("-w, --watch", "Watch for changes and rebuild", false)
   .option("--dist <path>", "Folder to put the resulting .plug.json file into", ".")
-  .option("--runtimeUrl <url>", "URL to worker_runtime.ts to use")
   .action(async (manifestPaths: string[], options: any) => {
     await plugCompileCommand(
       {
         dist: options.dist,
         debug: options.debug,
         info: options.info,
-        runtimeUrl: options.runtimeUrl,
       },
       ...manifestPaths,
     );
