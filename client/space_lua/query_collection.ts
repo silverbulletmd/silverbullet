@@ -12,6 +12,7 @@ import type {
 } from "./ast.ts";
 
 import {
+  jsToLuaValue,
   luaCall,
   LuaEnv,
   LuaFunction,
@@ -730,7 +731,14 @@ export async function applyQuery(
     for (const { key, items } of groups.values()) {
       const groupTable = new LuaTable();
       for (let i = 0; i < items.length; i++) {
-        groupTable.rawSetArrayIndex(i + 1, items[i]);
+        const item = items[i];
+        groupTable.rawSetArrayIndex(
+          i + 1,
+          (item instanceof LuaTable || typeof item !== "object" ||
+              item === null)
+            ? item
+            : jsToLuaValue(item),
+        );
       }
       const row = new LuaTable();
       row.rawSet("key", key);
