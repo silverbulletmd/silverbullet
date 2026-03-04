@@ -1,3 +1,5 @@
+#getting-started
+
 SilverBullet is distributed as a single server binary available for the following platforms:
 
 * macOS (Intel and Apple Silicon) (platform name “darwin”)

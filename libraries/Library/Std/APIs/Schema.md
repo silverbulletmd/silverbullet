@@ -1,6 +1,52 @@
-#meta/api
+---
+description: Helper functions for building JSON Schema objects in Lua
+tags: meta/api
+---
 
-Utilities to succinctly define JSON schema types in Lua.
+Helper functions for succinctly defining JSON Schema types in Lua. Used with [[API/tag#tag.define(spec)]] and [[API/config#config.define(key, schema)]].
+
+# API
+
+## schema.string()
+Returns `{type = "string"}`.
+
+## schema.number()
+Returns `{type = "number"}`.
+
+## schema.boolean()
+Returns `{type = "boolean"}`.
+
+## schema.null()
+Returns `{type = "null"}`.
+
+## schema.array(typ)
+Returns an array schema with items of the given type. `typ` can be a type string (e.g. `"string"`) or a full schema table.
+
+Example:
+
+```lua
+schema.array("string")    -- {type = "array", items = {type = "string"}}
+schema.array {
+    type = "object",
+    properties = {
+        name = {type = "string"}
+    }
+}
+```
+
+## schema.nullable(typ)
+Allows the given type or null. `typ` can be a type string or a schema table.
+
+## schema.nullableArray(typ)
+An array of the given type, or null.
+
+## schema.func()
+Marker for function-typed values.
+
+## schema.schema()
+Marker for schema-typed values.
+
+# Implementation
 
 ```space-lua
 -- priority: 101

@@ -1,3 +1,7 @@
+---
+description: The quick-open dialog for navigating to any page.
+tags: glossary
+---
 The page picker has two main functions:
 
 1. Enables quick navigation between [[Page]]

@@ -1,3 +1,8 @@
+---
+description: A checkbox item tracked as a queryable object.
+tags: glossary
+---
+
 The task notation syntax is a [[Markdown]] extension to write down tasks.
 
 Its most basic form is:

@@ -1,3 +1,7 @@
+---
+description: A Lua-embedded query syntax for selecting and transforming objects.
+tags: glossary
+---
 Lua Integrated Query (LIQ) is a SilverBullet specific Lua extension. It adds a convenient query syntax to the language in a backwards compatible way. It does so by overloading Lua’s default function call + single argument syntax when using `query` as the function call. As a result, Lua programs using LIQ are still syntactically valid Lua.
 
 The syntax for LIQ is `query[[my query]]`. In regular Lua `[[my query]]` is just another way of writing `"my query"` (it is an alternative string syntax). Function calls that only take a string argument can omit parentheses, therefore `query[[my query]]` is equivalent to `query("my query")`.

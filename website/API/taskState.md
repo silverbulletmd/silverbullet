@@ -1,4 +1,4 @@
-#maturity/beta
+#maturity/experimental #api/space-lua
 
 APIs to define [[Task#Custom states]].
 

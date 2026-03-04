@@ -1,3 +1,5 @@
+#development
+
 To develop your own SilverBullet library follow these steps:
 
 # Decorate your library with frontmatter

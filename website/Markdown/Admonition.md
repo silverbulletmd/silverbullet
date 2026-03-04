@@ -1,4 +1,7 @@
-#level/intermediate
+---
+description: A callout block rendered from a special blockquote syntax.
+tags: level/intermediate glossary
+---
 
 Silverbullet supports [admonitions](https://github.com/community/community/discussions/16925) using GitHub syntax (`note` and `warning`).
 

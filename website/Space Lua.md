@@ -1,3 +1,7 @@
+---
+description: "SilverBullet's embedded Lua scripting environment for extending functionality."
+tags: glossary
+---
 Space Lua is a custom dialect and implementation of the [Lua programming language](https://lua.org/), embedded in SilverBullet. It aims to be a largely complete Lua implementation, but adds a few non-standard features while remaining syntactically compatible with “real” Lua.
 
 In its essence, Space Lua adds two features to SilverBullet’s [[Markdown]] language:
@@ -29,7 +33,7 @@ Your `space-lua` definitions are constantly being indexed as part of the [[Objec
 
 When your client boots, or if you explicitly run the `System: Reload` command, all these scripts are executed in sequence. 
 
-It is possible to **control load order** of space lua scripts using the special `-- priority: <number>` comment in Space Lua code. For instance:
+It is possible to **control load order** of Space Lua scripts using the special `-- priority: <number>` comment in Space Lua code. For instance:
 
 ```space-lua
 -- priority: 10

@@ -2,7 +2,15 @@
 
 Exposes a simple service registry API leveraged by various parts of SilverBullet, see [[Service]].
 
-## Example
+# Architecture
+Services are built on top of [[Event|Events]]. When a service is defined, it registers two event listeners:
+
+1. `discover:<<selector>>` — for service discovery
+2. `service:<<guid>>` — for invocation
+
+Discovery broadcasts on the event bus and collects all matches, sorted by priority. Invocation calls the specific service's `run` callback.
+
+# Example
 ```space-lua
 service.define {
   selector = "greeter-service",
@@ -31,7 +39,7 @@ service.define {
 
 To invoke: ${service.invokeBestMatch("greeter-service", "Pete")} and ${service.invokeBestMatch("greeter-service", "Hank")}
 
-## API
+# API
 ### service.define(spec)
 Defines a service matching a selector.
 
@@ -50,5 +58,5 @@ Return value is a list of tables (can be empty) with keys:
 ### service.invoke(match, data)
 Invokes a service match (as returned by [[#service.discover(selector, options)]]).
 
-### service.invokeBest(selector, options)
+### service.invokeBestMatch(selector, data)
 Performs a `discover` based on the selector, then immediately performs and `invoke` on the best match (based on priority).

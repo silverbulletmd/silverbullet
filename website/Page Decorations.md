@@ -1,5 +1,6 @@
 ---
-tags: maturity/beta
+description: Visual customization (icons, prefixes, CSS) applied to pages matching certain criteria.
+tags: maturity/beta glossary
 pageDecoration:
   prefix: "🎄 "
   disableTOC: true

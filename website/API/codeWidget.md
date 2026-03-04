@@ -1,3 +1,5 @@
+#api/syscall
+
 The Code Widget API provides functions for managing code widgets in the editor.
 
 ### codeWidget.refreshAll()

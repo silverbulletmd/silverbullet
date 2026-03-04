@@ -71,6 +71,7 @@ Learn more about SilverBullet’s technical [[Architecture]].
 SilverBullet has been in development since early 2022, but is ever evolving. The current iteration is **SilverBullet v2**. We had a little bit of a reboot, rebuilding some of the foundations, and replacing some of the previous ([v1](https://v1.silverbullet.md)) features. 
 
 # What’s next?
+* [[Quick Start]]: Get up and running in five minutes.
 * [[Manual]]: SilverBullet’s official manual.
 * [[CHANGELOG]]: we’re in active development, so things change rapidly. Watch this page to keep up.
 * [Community](https://community.silverbullet.md): join our community: ask questions, share your experiences.

@@ -1,3 +1,5 @@
+#getting-started
+
 Excited to use SilverBullet? Here are three ways for you to deploy it. Also have a look at the note on [[#File systems]] at the end.
 
 # localhost (desktop, laptop)

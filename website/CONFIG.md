@@ -68,6 +68,17 @@ config.set {
 (further detailed in [[API/tag#Use cases]])
 ```space-lua
 tag.define {
+  name = "glossary",
+  schema = {
+    type = "object",
+    properties = {
+      description = { type = "string" },
+    },
+    required = { "description" },
+  },
+}
+
+tag.define {
   name = "person",
   transform = function(o)
     o.pageDecoration = { prefix = "🧑 " }

@@ -1,3 +1,8 @@
+---
+description: A template used to pre-populate new pages.
+tags: glossary
+---
+
 Page templates can be used to automate or simplify the creation of pages based on a template.
 
 # Creating a page template

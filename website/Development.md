@@ -1,3 +1,5 @@
+#development
+
 SilverBullet development can happen at various level.
 
 At its most basic level, you can do a lot using [[Space Lua]]. If this does not give enough power, you can upgrade to [[Plugs]]. If _that_ doesn’t suffice, you can contribute to SilverBullet’s core (see below).
