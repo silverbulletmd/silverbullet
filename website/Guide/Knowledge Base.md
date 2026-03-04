@@ -67,6 +67,7 @@ Use [[Transclusions]] to pull content from one page into another. For instance o
 # What's next?
 You now have the core pattern: create pages, link them, add structure with tags and frontmatter, and query across your space.
 
+* [[Guide/Journaling]] — set up a daily journal
 * [[Guide/Task Management]] — track projects and tasks
 * [[Guide/People Notes]] — keep track of people and conversations
 * [[Manual]] — the full user manual

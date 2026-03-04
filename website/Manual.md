@@ -7,6 +7,7 @@ However, that is all unlikely to happen unless you understand what SilverBullet 
 # Guides
 Practical walkthroughs for common workflows:
 
+* [[Guide/Journaling]] — set up a daily journal
 * [[Guide/Knowledge Base]] — build a personal knowledge base
 * [[Guide/Task Management]] — track projects and tasks
 * [[Guide/People Notes]] — keep track of people and conversations
