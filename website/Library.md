@@ -1,4 +1,7 @@
-#maturity/beta
+---
+description: A collection of reusable Space Lua scripts, templates, and pages that can be imported into your space.
+tags: maturity/beta glossary
+---
 
 SilverBullet is designed to be [[Extensions|extensible]]. In fact, a lot of functionality in SilverBullet is implemented through [[Space Lua]] embedded in [[Meta Page]], other functionality is implemented using [[Plugs]]. 
 

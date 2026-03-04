@@ -1,5 +1,7 @@
 ---
+description: A YAML block at the top of a page that sets page-level attributes.
 status: Complete
+tags: glossary
 ---
 Frontmatter is a common format to attach additional metadata (data about data) to markdown documents. Many tools support it as a markdown [[Markdown/Extensions|extension]].
 

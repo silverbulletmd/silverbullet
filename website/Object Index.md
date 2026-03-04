@@ -1,3 +1,8 @@
+---
+description: The local index that makes objects queryable.
+tags: glossary
+---
+
 The Object Index stores [[Object|Objects]] found in your [[Space]].
 
 You interact with it in a few ways:

@@ -1,3 +1,8 @@
+---
+description: Inline embedding of one page's content inside another.
+tags: glossary
+---
+
 Transclusions are an extension of the [[Markdown]] syntax enabling inline embedding of content.
 
 The general syntax is `![[path]]`. Two types of transclusions are currently supported:

@@ -1,7 +1,12 @@
 import { expect, test } from "vitest";
 import { parseExpressionString } from "./parse.ts";
 import { ArrayQueryCollection } from "./query_collection.ts";
-import { LuaEnv, LuaNativeJSFunction, LuaStackFrame } from "./runtime.ts";
+import {
+  LuaEnv,
+  LuaNativeJSFunction,
+  LuaRuntimeError,
+  LuaStackFrame,
+} from "./runtime.ts";
 
 test("ArrayQueryCollection", async () => {
   const rootEnv = new LuaEnv();
@@ -247,4 +252,118 @@ test("ArrayQueryCollection", async () => {
   expect(resultUpper[1].letter).toEqual("ä");
   expect(resultUpper[2].letter).toEqual("Z");
   expect(resultUpper[3].letter).toEqual("z");
+});
+
+test("ArrayQueryCollection - nulls ordering", async () => {
+  const rootEnv = new LuaEnv();
+
+  const collection = new ArrayQueryCollection([
+    { name: "alice", priority: 10 },
+    { name: "bob", priority: undefined },
+    { name: "carol", priority: 50 },
+    { name: "dave", priority: undefined },
+    { name: "eve", priority: 1 },
+  ]);
+
+  // Default: asc nulls last
+  const r1 = await collection.query(
+    {
+      objectVariable: "p",
+      orderBy: [{ expr: parseExpressionString("p.priority"), desc: false }],
+    },
+    rootEnv,
+    LuaStackFrame.lostFrame,
+    {},
+  );
+  expect(r1[0].name).toBe("eve");
+  expect(r1[1].name).toBe("alice");
+  expect(r1[2].name).toBe("carol");
+  expect(r1[3].priority).toBeUndefined();
+  expect(r1[4].priority).toBeUndefined();
+
+  // Default: desc nulls first
+  const r2 = await collection.query(
+    {
+      objectVariable: "p",
+      orderBy: [{ expr: parseExpressionString("p.priority"), desc: true }],
+    },
+    rootEnv,
+    LuaStackFrame.lostFrame,
+    {},
+  );
+  expect(r2[0].priority).toBeUndefined();
+  expect(r2[1].priority).toBeUndefined();
+  expect(r2[2].name).toBe("carol");
+  expect(r2[3].name).toBe("alice");
+  expect(r2[4].name).toBe("eve");
+
+  // Explicit: desc nulls last
+  const r3 = await collection.query(
+    {
+      objectVariable: "p",
+      orderBy: [{
+        expr: parseExpressionString("p.priority"),
+        desc: true,
+        nulls: "last",
+      }],
+    },
+    rootEnv,
+    LuaStackFrame.lostFrame,
+    {},
+  );
+  expect(r3[0].name).toBe("carol");
+  expect(r3[1].name).toBe("alice");
+  expect(r3[2].name).toBe("eve");
+  expect(r3[3].priority).toBeUndefined();
+  expect(r3[4].priority).toBeUndefined();
+
+  // Explicit: asc nulls first
+  const r4 = await collection.query(
+    {
+      objectVariable: "p",
+      orderBy: [{
+        expr: parseExpressionString("p.priority"),
+        desc: false,
+        nulls: "first",
+      }],
+    },
+    rootEnv,
+    LuaStackFrame.lostFrame,
+    {},
+  );
+  expect(r4[0].priority).toBeUndefined();
+  expect(r4[1].priority).toBeUndefined();
+  expect(r4[2].name).toBe("eve");
+  expect(r4[3].name).toBe("alice");
+  expect(r4[4].name).toBe("carol");
+});
+
+test("ArrayQueryCollection - SWO violation detection", async () => {
+  const rootEnv = new LuaEnv();
+  rootEnv.setLocal(
+    "badCmp",
+    new LuaNativeJSFunction((a, b) => a <= b),
+  );
+
+  const collection = new ArrayQueryCollection([
+    { name: "alice", score: 10 },
+    { name: "bob", score: 10 },
+    { name: "carol", score: 5 },
+  ]);
+
+  await expect(
+    collection.query(
+      {
+        objectVariable: "p",
+        orderBy: [{
+          expr: parseExpressionString("p.score"),
+          desc: false,
+          using: "badCmp",
+        }],
+      },
+      rootEnv,
+      LuaStackFrame.lostFrame,
+      {},
+    ),
+  ).rejects.toThrow("strict weak ordering");
 });

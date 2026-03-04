@@ -46,6 +46,10 @@ jobs:
           GOOS=windows GOARCH=amd64 go build -o silverbullet.exe .
           zip silverbullet-server-windows-x86_64.zip silverbullet.exe
 
+          # FreeBSD x86_64
+          GOOS=freebsd GOARCH=amd64 go build -o silverbullet .
+          zip silverbullet-server-freebsd-x86_64.zip silverbullet
+
       - name: Update edge release
         uses: softprops/action-gh-release@v1
         env:

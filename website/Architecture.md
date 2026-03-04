@@ -1,3 +1,5 @@
+#development
+
 Here is a big-picture (conceptual) architecture of SilverBullet:
 ```excalidraw
 url:architecture.excalidraw
@@ -27,7 +29,14 @@ Syscalls (system calls) are the abstraction used in SilverBullet to cleanly crea
 [[Event]]
 
 ## Datastore
+The DataStore is an (IndexedDB-backed) key-value store that lives in the browser. It serves as the local persistence layer for everything the client needs to keep track of:
 
+* **Object index**: All indexed objects (pages, tasks, items, links, tags, etc.) are stored here, enabling fast local queries via [[Space Lua/Lua Integrated Query]].
+* **File cache**: The [[Sync]] engine stores a local copy of all space files, enabling offline access.
+* **Configuration**: Runtime configuration and state.
+* **Message queue**: An internal message queue (MQ) used for asynchronous operations.
+
+The DataStore wraps lower-level `KvPrimitives` (IndexedDB operations) in a user-friendly API with `get`, `set`, `delete`, and batch variants. The [[API/datastore]] syscall API exposes this to Space Lua and plugs.
 
 The client interacts with the service worker and server primarily via the [[HTTP API]], which exposes CRUD-style operations on files.
 

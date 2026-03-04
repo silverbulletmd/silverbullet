@@ -25,7 +25,7 @@ Example:
 event.dispatch("custom.event", {message = "Hello"})
 
 -- Event dispatch with timeout and response handling
-local responses = event.dispatchEvent("data.request", {id = 123}, 5000)
+local responses = event.dispatch("data.request", {id = 123}, 5000)
 for _, response in ipairs(responses) do
     print(response)
 end

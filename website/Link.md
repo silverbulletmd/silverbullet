@@ -1,3 +1,8 @@
+---
+description: A wiki-link or Markdown link connecting pages in your space.
+tags: glossary
+---
+
 In SilverBullet, you can create links to pages or documents inside your space as well as to external resources, using different link formats.
 
 # External links

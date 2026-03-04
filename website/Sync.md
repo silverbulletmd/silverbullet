@@ -1,3 +1,8 @@
+---
+description: The bidirectional synchronisation between the client's local store and the server.
+tags: glossary
+---
+
 SilverBullet is an offline-first web application. Therefore it keeps a copy of your space locally in your browser. It implements a sync engine to continuously keep this local copy in sync with the server (for technical details, see [[Architecture]]).
 
 Sync happens:

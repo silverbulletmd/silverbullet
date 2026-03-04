@@ -1,3 +1,7 @@
+---
+description: A non-page file (such as an image, PDF, or other attachment) stored in your space.
+tags: glossary
+---
 While SilverBullet is aimed at primarily text-based content, life can not fully be represented in text always. Therefore, SilverBullet supports documents. Documents, like [[Page]] ultimately are — once again — just files on disk. Using plugs, documents of specific file types can also be viewed and edited.
 
 # Uploading

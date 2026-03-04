@@ -1,3 +1,8 @@
+---
+description: A triple-backtick block that can render widgets, queries, or syntax-highlighted code.
+tags: glossary
+---
+
 Blocks use the fenced code block notation of [[Markdown]], and assign special behavior to it.
 
 The general syntax is:

@@ -1,3 +1,8 @@
+---
+description: A structured, queryable unit of data extracted from your pages (e.g. tasks, items, paragraphs).
+tags: glossary
+---
+
 SilverBullet automatically maintains an [[Object Index]] extracted from all [[Markdown]] [[Page|pages]] in your [[Space|Space]].
 
 Objects are a feature that powers a lot of SilverBullet functionality, including the [[Page Picker]], [[Linked Mention|Linked Mentions]] and many others. They can also be queried by the user directly, typically via [[Space Lua/Lua Integrated Query]].
