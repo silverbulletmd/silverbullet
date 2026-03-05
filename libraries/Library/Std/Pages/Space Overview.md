@@ -16,8 +16,8 @@ ${query[[
 # Active Space Lua
 These are all Space Lua scripts and the order in which they are loaded:
 ${template.each(query[[
-  from index.tag "space-lua"
-  order by _.priority desc
+  from script = index.tag "space-lua"
+  order by (script.priority or 0) desc, script.ref
 ]], template.new[==[
     * [[${ref}]] (priority: ${priority or "default"})
 ]==])}
