@@ -175,6 +175,7 @@ func buildConfig(bundledFiles fs.FS, args []string) *server.ServerConfig {
 			bundlePathDate = stat.ModTime()
 		}
 	}
+	log.Printf("Determined bundle path change date: %s, %d", bundlePathDate, bundlePathDate.UnixMilli())
 
 	serverConfig.ClientBundle = server.NewReadOnlyFallthroughSpacePrimitives(bundledFiles, "client", bundlePathDate, nil)
 	rootSpaceConfig.SpacePrimitives = server.NewReadOnlyFallthroughSpacePrimitives(bundledFiles, "base_fs", bundlePathDate, spacePrimitives)
