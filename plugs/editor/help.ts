@@ -1,8 +1,7 @@
-import { editor } from "@silverbulletmd/silverbullet/syscalls";
-import { publicVersion } from "../../public_version.ts";
+import { editor, system } from "@silverbulletmd/silverbullet/syscalls";
 
 export async function versionCommand() {
   await editor.flashNotification(
-    `You are currently running SilverBullet ${publicVersion}`,
+    `You are currently running SilverBullet ${await system.getVersion()}`,
   );
 }
