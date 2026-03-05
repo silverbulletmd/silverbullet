@@ -179,7 +179,6 @@ func buildConfig(bundledFiles fs.FS, args []string, buildTime string) *server.Se
 		log.Println("Couldn't determine build time of binary, falling back to current time stamp")
 		bundlePathDate = time.Now()
 	}
-	log.Printf("Determined bundle path change date: %s, %d", bundlePathDate, bundlePathDate.UnixMilli())
 
 	serverConfig.ClientBundle = server.NewReadOnlyFallthroughSpacePrimitives(bundledFiles, "client", bundlePathDate, nil)
 	rootSpaceConfig.SpacePrimitives = server.NewReadOnlyFallthroughSpacePrimitives(bundledFiles, "base_fs", bundlePathDate, spacePrimitives)
