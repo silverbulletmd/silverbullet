@@ -124,8 +124,9 @@ function widgets.toc(options)
   options = options or config.get("std.widgets.toc")
   options.minHeaders = options.minHeaders or 3
   options.minLevel = options.minLevel or 1
-  options.defaultOpen = options.defaultOpen or nil
   options.header = options.header or "Table of Contents"
+  local defaultOpen = (options.defaultOpen ~= false) or nil
+
   local text = editor.getText()
   local pageName = editor.getCurrentPage()
   local parsedMarkdown = markdown.parseMarkdown(text)
@@ -194,7 +195,7 @@ function widgets.toc(options)
   -- Wrap in a <details> element for native show/hide toggle
   return widget.new {
     html = dom.details {
-      open = options.defaultOpen,
+      open = defaultOpen,
       dom.summary {
         class = "sb-toc-summary",
         options.header
