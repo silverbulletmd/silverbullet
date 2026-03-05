@@ -85,6 +85,9 @@ end
   cursor: pointer;
   font-weight: bold;
   user-select: none;
+  padding: 15px 10px;
+  margin: -10px;
+  background-color: var(--editor-widget-background-color);
 }
 .sb-toc-content {
   padding-top: 0.5rem;
