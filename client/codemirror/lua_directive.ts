@@ -37,6 +37,10 @@ export function luaDirectivePlugin(client: Client) {
       return Decoration.none;
     }
 
+    const globalEnv = client.clientSystem.spaceLuaEnv.env;
+    // Page-scoped env (reads chain to global, writes stop here)
+    const pageEnv = new LuaEnv(globalEnv, true);
+
     syntaxTree(state).iterate({
       enter: (node) => {
         // Disable rendering of Lua directives in #meta/template pages
@@ -99,17 +103,16 @@ export function luaDirectivePlugin(client: Client) {
                       : undefined),
                   );
                   const sf = LuaStackFrame.createWithGlobalEnv(
-                    client.clientSystem.spaceLuaEnv.env,
+                    globalEnv,
                     parsedBlock.ctx,
                   );
-                  const threadLocalizedEnv = new LuaEnv(
-                    client.clientSystem.spaceLuaEnv.env,
-                  );
-                  threadLocalizedEnv.setLocal("_CTX", tl);
+                  // Block-local env on top of page-scoped env
+                  const blockEnv = new LuaEnv(pageEnv);
+                  blockEnv.setLocal("_CTX", tl);
                   const rawResult = singleResult(
                     await evalBlockForValue(
                       parsedBlock,
-                      threadLocalizedEnv,
+                      blockEnv,
                       sf,
                     ),
                   );

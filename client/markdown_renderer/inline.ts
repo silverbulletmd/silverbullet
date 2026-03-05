@@ -12,7 +12,7 @@ import {
 } from "@silverbulletmd/silverbullet/lib/ref";
 import { isLocalURL } from "@silverbulletmd/silverbullet/lib/resolve";
 import { mime } from "mimetypes";
-import { LuaStackFrame, LuaTable, singleResult } from "../space_lua/runtime.ts";
+import { LuaEnv, LuaStackFrame, LuaTable, singleResult } from "../space_lua/runtime.ts";
 import { parseMarkdown } from "../markdown_parser/parser.ts";
 import { renderExpressionResult } from "./result_render.ts";
 import { parseInterpolationBlock } from "../space_lua/parse.ts";
@@ -51,6 +51,10 @@ export async function expandMarkdown(
   processedPages: Set<string> = new Set(),
 ): Promise<ParseTree> {
   addParentPointers(mdTree);
+
+  // Page-scoped env (reads chain to global, writes stop here)
+  const pageEnv = new LuaEnv(sle.env, true);
+
   await replaceNodesMatchingAsync(mdTree, async (n) => {
     if (n.type === "Image" && options.expandTransclusions !== false) {
       // Let's scan for ![[embeds]] that are codified as Images, confusingly
@@ -102,8 +106,10 @@ export async function expandMarkdown(
         const sf = LuaStackFrame.createWithGlobalEnv(sle.env);
 
         const parsedBlock = parseInterpolationBlock(exprText);
+        // Block-local env on top of page-scoped env
+        const blockEnv = new LuaEnv(pageEnv);
         let result = singleResult(
-          await evalBlockForValue(parsedBlock, sle.env, sf),
+          await evalBlockForValue(parsedBlock, blockEnv, sf),
         );
 
         if (result?.markdown) {
