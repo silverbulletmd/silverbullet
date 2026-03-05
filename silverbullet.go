@@ -11,7 +11,7 @@ import (
 var VersionFileText string
 
 func main() {
-	c := cmd.ServerCommand(client_bundle.BundledFiles)
+	c := cmd.ServerCommand(client_bundle.BundledFiles, VersionFileText)
 	c.AddCommand(cmd.VersionCommand(VersionFileText), cmd.UpgradeCommand(), cmd.UpgradeEdgeCommand())
 	c.Execute()
 }

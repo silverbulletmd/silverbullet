@@ -231,7 +231,7 @@ func ensureIndexAndConfig(rootSpaceConfig *server.SpaceConfig) {
 	}
 }
 
-func ServerCommand(bundledFiles fs.FS) *cobra.Command {
+func ServerCommand(bundledFiles fs.FS, versionFileText string) *cobra.Command {
 	var hostname string
 	var port int
 	var c = &cobra.Command{
@@ -239,6 +239,9 @@ func ServerCommand(bundledFiles fs.FS) *cobra.Command {
 		Short: "Run the Silverbullet server",
 		Args:  cobra.MinimumNArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
+			if version, err := server.ParseVersionFromTypeScript(versionFileText); err == nil {
+				log.Printf("Starting SilverBullet version %s", version)
+			}
 			serverConfig := buildConfig(bundledFiles, args)
 			if port != 3000 {
 				serverConfig.Port = port
