@@ -8,14 +8,12 @@ import { bundleAssets } from "../asset_bundle/builder.ts";
 import type { Manifest } from "./types.ts";
 import { version } from "../../version.ts";
 
-import { fileURLToPath } from "node:url";
 import { existsSync } from "node:fs";
-import { dirname } from "node:path";
 
 // Resolve the pre-built worker_runtime bundle path
 // When running from source: ../../dist/worker_runtime_bundle.js (from client/plugos/)
 // When bundled: ./worker_runtime_bundle.js (from dist/)
-const currentDir = dirname(fileURLToPath(import.meta.url));
+const currentDir = import.meta.dirname;
 const bundledPath = path.join(currentDir, "worker_runtime_bundle.js");
 const sourcePath = path.join(currentDir, "../../dist/worker_runtime_bundle.js");
 const workerRuntimeBundlePath = existsSync(bundledPath)
