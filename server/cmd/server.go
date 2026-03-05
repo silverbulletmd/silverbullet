@@ -17,7 +17,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func buildConfig(bundledFiles fs.FS, args []string) *server.ServerConfig {
+func buildConfig(bundledFiles fs.FS, args []string, buildTime string) *server.ServerConfig {
 	serverConfig := &server.ServerConfig{
 		BindHost: "127.0.0.1",
 		Port:     3000,
@@ -168,12 +168,16 @@ func buildConfig(bundledFiles fs.FS, args []string) *server.ServerConfig {
 		}
 	}
 
-	// Extract the last modified time from the main binary, best effort
-	bundlePathDate := time.Now()
-	if executablePath, err := os.Executable(); err == nil {
-		if stat, err := os.Stat(executablePath); err == nil {
-			bundlePathDate = stat.ModTime()
+	// Determine bundle timestamp from build-time injected value, fall back to current time
+	var bundlePathDate time.Time
+	if buildTime != "" {
+		if t, err := time.Parse(time.RFC3339, buildTime); err == nil {
+			bundlePathDate = t
 		}
+	}
+	if bundlePathDate.IsZero() {
+		log.Println("Couldn't determine build time of binary, falling back to current time stamp")
+		bundlePathDate = time.Now()
 	}
 
 	serverConfig.ClientBundle = server.NewReadOnlyFallthroughSpacePrimitives(bundledFiles, "client", bundlePathDate, nil)
@@ -231,7 +235,7 @@ func ensureIndexAndConfig(rootSpaceConfig *server.SpaceConfig) {
 	}
 }
 
-func ServerCommand(bundledFiles fs.FS) *cobra.Command {
+func ServerCommand(bundledFiles fs.FS, versionFileText string, buildTime string) *cobra.Command {
 	var hostname string
 	var port int
 	var c = &cobra.Command{
@@ -239,7 +243,10 @@ func ServerCommand(bundledFiles fs.FS) *cobra.Command {
 		Short: "Run the Silverbullet server",
 		Args:  cobra.MinimumNArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
-			serverConfig := buildConfig(bundledFiles, args)
+			if version, err := server.ParseVersionFromTypeScript(versionFileText); err == nil {
+				log.Printf("Starting SilverBullet version %s", version)
+			}
+			serverConfig := buildConfig(bundledFiles, args, buildTime)
 			if port != 3000 {
 				serverConfig.Port = port
 			}
