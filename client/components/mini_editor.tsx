@@ -104,6 +104,8 @@ export function MiniEditor({
     }
   }, [text, vimMode]);
 
+  let onBlurred = false, onEntered = false;
+
   return (
     <div
       class="sb-mini-editor"
@@ -160,14 +162,14 @@ export function MiniEditor({
           {
             key: "Enter",
             run: (view) => {
-              onEnter(view.state.sliceDoc(), false);
+              onEnterHandler(view, false);
               return true;
             },
           },
           {
             key: "Shift-Enter",
             run: (view) => {
-              onEnter(view.state.sliceDoc(), true);
+              onEnterHandler(view, true);
               return true;
             },
           },
@@ -194,7 +196,7 @@ export function MiniEditor({
               // Enter should be handled by the keymap, except when in Vim normal mode
               // because then it's disabled
               if (vimMode && vimModeRef.current === "normal") {
-                onEnter(view.state.sliceDoc(), event.shiftKey);
+                onEnterHandler(view, event.shiftKey);
                 return true;
               }
               return false;
@@ -205,7 +207,7 @@ export function MiniEditor({
             return false;
           },
           blur: (_e, view) => {
-            onBlur?.(view.state.sliceDoc());
+            onBlurHandler(view);
           },
         }),
 
@@ -220,5 +222,36 @@ export function MiniEditor({
         ),
       ],
     });
+
+    // Avoid double triggering these events (may happen due to onkeypress vs onkeyup delay)
+    function onEnterHandler(view: EditorView, shiftDown: boolean) {
+      if (onEntered) {
+        return;
+      }
+      onEntered = true;
+      callbacksRef.current!.onEnter(view.state.sliceDoc(), shiftDown);
+      // Event may occur again in 500ms
+      setTimeout(() => {
+        onEntered = false;
+      }, 500);
+    }
+
+    function onBlurHandler(view: EditorView) {
+      if (onBlurred || onEntered) {
+        return;
+      }
+      onBlurred = true;
+      if (callbacksRef.current!.onBlur) {
+        Promise.resolve(callbacksRef.current!.onBlur(view.state.sliceDoc()))
+          .catch(() => {
+            // Reset the state
+            view.setState(buildEditorState());
+          });
+      }
+      // Event may occur again in 500ms
+      setTimeout(() => {
+        onBlurred = false;
+      }, 500);
+    }
   }
 }
