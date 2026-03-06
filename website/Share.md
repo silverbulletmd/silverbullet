@@ -1,5 +1,7 @@
-#maturity/beta
-
+---
+description: The mechanism for publishing or sharing individual pages.
+tags: maturity/beta glossary
+---
 SilverBullet is aimed for single-user, private use. Nevertheless, many have the need to _share_ some content kept in SilverBullet with the outside world: to push content out, pull it in, or even sync between different locations. This is where SilverBullet _share_ functionality comes in. 
 
 **Note:** If you are interested in one-off ways to get content out, have a look at [[Export]].

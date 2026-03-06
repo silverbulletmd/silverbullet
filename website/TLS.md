@@ -1,3 +1,5 @@
+#getting-started
+
 SilverBullet relies on a few advanced browser features to operate (specifically service workers, crypto APIs and clipboard APIs). These features are _only_ enabled by browsers when websites are accessed via `http://localhost` or via [TLS](https://en.wikipedia.org/wiki/Transport_Layer_Security), that is — a `https://` URL.
 
 This is not a limitation imposed by SilverBullet, it is a restriction encoded in web standards. Therefore, to use SilverBullet you need to either access it via `localhost` or put a TLS certificate on it.

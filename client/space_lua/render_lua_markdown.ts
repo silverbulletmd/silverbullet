@@ -1,5 +1,6 @@
 import { luaFormatNumber, LuaTable } from "../space_lua/runtime.ts";
 import { isTaggedFloat } from "../space_lua/numeric.ts";
+import { isSqlNull } from "../space_lua/query_collection.ts";
 
 function isMultiLine(str: string): boolean {
   return /\n/.test(str.trim());
@@ -16,7 +17,7 @@ function indentExceptFirstLine(md: string, indent: string): string {
 
 // Simple transformers for Markdown rendering
 export function defaultTransformer(v: any, _k: string): Promise<string> {
-  if (v === undefined) return Promise.resolve("");
+  if (v === undefined || isSqlNull(v)) return Promise.resolve("");
   if (typeof v === "string") {
     return Promise.resolve(escapeRegularPipes(v.replaceAll("\n", " ")));
   }

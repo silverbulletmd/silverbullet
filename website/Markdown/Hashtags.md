@@ -1,3 +1,8 @@
+---
+description: "An inline #tag that annotates a page or object for categorisation and querying."
+tags: glossary
+---
+
 Hashtag syntax (`#my-tag`) can be used to explicitly assign a [[Tag]] to an [[Object]].
 
 # Scope rules

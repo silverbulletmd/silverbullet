@@ -1,3 +1,8 @@
+---
+description: "A page tagged with #meta that serves as tooling (configuration, extensions, templates) rather than regular content."
+tags: glossary
+---
+
 Meta pages are pages not core to your content, but function as a way to configure, or extend your [[Space]]. You can think of them as “tooling” pages. 
 
 The most obvious examples are part of SilverBullet’s [[^Library/Std]] library and include generally useful [[Library/Std/Infrastructure/Slash Templates]]. 

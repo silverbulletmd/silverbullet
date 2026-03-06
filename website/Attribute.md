@@ -1,3 +1,8 @@
+---
+description: A key-value pair attached to a page or object, used for querying and filtering.
+tags: glossary
+---
+
 Attribute syntax can contribute additional [[Metadata]] to various [[Object|Objects]], including:
 
 * Pages (although the preferred way is [[Frontmatter]])

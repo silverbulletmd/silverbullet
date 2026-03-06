@@ -1,14 +1,9 @@
-The SilverBullet service bus is an extension mechanism built into SilverBullet.
+The SilverBullet service bus is an extension mechanism for defining and discovering pluggable behavior. It lets you register named services that can be discovered and invoked by other parts of SilverBullet or your own scripts. This enables a plugin-like architecture where multiple implementations can compete for the same operation, with the best match winning.
 
 # Concepts
-* Discovery: the process of discovering available services based on a _selector_.
-* Selector: a string (possibly with a wildcard `*`) used to advertise as well as discover services.
-* Service: defined via [[API/service#service.define(spec)]]), implements a service advertised via a selector.
-* Invocation: running a discovered service.
+* **Service**: A named handler defined via `service.define`. It advertises itself under a _selector_ and provides a `run` callback.
+* **Selector**: A string used to advertise and discover services. Can contain wildcards (e.g. `export:*`).
+* **Discovery**: The process of finding all services matching a selector. Each service's `match` function determines if it applies and at what priority.
+* **Invocation**: Running a discovered service's `run` callback.
 
-# Architecture
-Services are an abstraction built on top of [[Event]]. When a new service is defined, it registers itself listening to the `discover:<<selector>>` event (to be discovered), and under `service:<<guid>>` to be invoked.
-
-Service discovery happens by broadcasting an event on the event bus with the given selector, returning a list of services that are a match, ordered by (self assigned) priority. One (or all) of these services can then be invoked based on their returned ID.
-
-See [[API/service]] for API details.
+See [[API/service]] for more information on how to use and define your own services.

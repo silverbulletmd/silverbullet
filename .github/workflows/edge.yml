@@ -23,26 +23,7 @@ jobs:
           deno task build-production
           deno task build-plug-compile
       - name: Build Go binaries for multiple platforms
-        run: |
-          # Linux ARM64
-          GOOS=linux GOARCH=arm64 go build -o silverbullet .
-          zip silverbullet-server-linux-aarch64.zip silverbullet
-
-          # Linux x86_64
-          GOOS=linux GOARCH=amd64 go build -o silverbullet .
-          zip silverbullet-server-linux-x86_64.zip silverbullet
-
-          # macOS ARM64
-          GOOS=darwin GOARCH=arm64 go build -o silverbullet .
-          zip silverbullet-server-darwin-aarch64.zip silverbullet
-
-          # macOS x86_64
-          GOOS=darwin GOARCH=amd64 go build -o silverbullet .
-          zip silverbullet-server-darwin-x86_64.zip silverbullet
-
-          # Windows x86_64
-          GOOS=windows GOARCH=amd64 go build -o silverbullet.exe .
-          zip silverbullet-server-windows-x86_64.zip silverbullet.exe
+        run: make build-server-releases
 
       - name: Update edge release
         uses: softprops/action-gh-release@v1

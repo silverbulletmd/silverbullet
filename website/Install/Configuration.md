@@ -1,3 +1,5 @@
+#getting-started
+
 SilverBullet is primarily configured via environment variables. This page gives a comprehensive overview of all configuration options. You can set these ad-hoc when running the SilverBullet server, or e.g. in your [[Install/Docker|docker-compose file]].
 
 # General configuration
@@ -18,7 +20,7 @@ SilverBullet supports basic authentication for a single user.
 * `SB_USER`: Sets single-user credentials, e.g. `SB_USER=pete:1234` allows you to login with username “pete” and password “1234”.
 * `SB_AUTH_TOKEN`: Enables `Authorization: Bearer <token>` style authentication on the [[HTTP API]].
 * `SB_LOCKOUT_LIMIT`: Specifies the number of failed login attempt before locking the user out (for a `SB_LOCKOUT_TIME` specified amount of seconds), defaults to `10`
-* `SB_LOCKOUT_TIME`: Specifies the amount of time (in seconds) a client will be blocked until attempting to log back in.
+* `SB_LOCKOUT_TIME`: Specifies the amount of time (in seconds) a client will be blocked until attempting to log back in, defaults to `60`.
 * `SB_REMEMBER_ME_HOURS`: Sets the session duration in hours when "Remember me" is checked during login, defaults to 7 days.
 
 # Storage

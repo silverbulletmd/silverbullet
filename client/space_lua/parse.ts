@@ -35,7 +35,7 @@ const luaStyleTags = styleTags({
   CompareOp: t.operator,
   "true false": t.bool,
   Comment: t.lineComment,
-  "return break goto do end while repeat until function local if then else elseif in for nil or and not query from where limit select order by desc group having":
+  "return break goto do end while repeat until function local if then else elseif in for nil or and not query from where limit select order by desc asc nulls first last group having filter using":
     t.keyword,
 });
 
@@ -143,6 +143,11 @@ function expressionHasFunctionDef(e: LuaExpression): boolean {
               if (expressionHasFunctionDef(c.orderBy[j].expression)) {
                 return true;
               }
+              if (
+                c.orderBy[j].using && typeof c.orderBy[j].using !== "string"
+              ) {
+                return true;
+              }
             }
             break;
           case "GroupBy":
@@ -153,6 +158,11 @@ function expressionHasFunctionDef(e: LuaExpression): boolean {
         }
       }
       return false;
+    case "FilteredCall":
+      return (
+        expressionHasFunctionDef(e.call) ||
+        expressionHasFunctionDef(e.filter)
+      );
     default:
       return false;
   }
@@ -231,6 +241,12 @@ function exprReferencesNames(e: LuaExpression, names: Set<string>): boolean {
               if (exprReferencesNames(c.orderBy[j].expression, names)) {
                 return true;
               }
+              if (
+                typeof c.orderBy[j].using === "string" &&
+                names.has(c.orderBy[j].using as string)
+              ) {
+                return true;
+              }
             }
             break;
           case "GroupBy":
@@ -241,6 +257,11 @@ function exprReferencesNames(e: LuaExpression, names: Set<string>): boolean {
         }
       }
       return false;
+    case "FilteredCall":
+      return (
+        exprReferencesNames(e.call, names) ||
+        exprReferencesNames(e.filter, names)
+      );
     default:
       return false;
   }
@@ -536,6 +557,10 @@ function exprCapturesNames(e: LuaExpression, names: Set<string>): boolean {
               if (exprCapturesNames(c.orderBy[j].expression, names)) {
                 return true;
               }
+              const u = c.orderBy[j].using;
+              if (u && typeof u !== "string") {
+                if (functionBodyCapturesNames(u, names)) return true;
+              }
             }
             break;
           case "GroupBy":
@@ -546,6 +571,11 @@ function exprCapturesNames(e: LuaExpression, names: Set<string>): boolean {
         }
       }
       return false;
+    case "FilteredCall":
+      return (
+        exprCapturesNames(e.call, names) ||
+        exprCapturesNames(e.filter, names)
+      );
     default:
       return false;
   }
@@ -1208,6 +1238,16 @@ function parseExpression(t: ParseTree, ctx: ASTCtx): LuaExpression {
         clauses: t.children!.slice(2, -1).map((c) => parseQueryClause(c, ctx)),
         ctx: context(t, ctx),
       };
+    case "FilteredCall": {
+      const call = parseFunctionCall(t.children![0], ctx);
+      const filterExpr = parseExpression(t.children![4], ctx);
+      return {
+        type: "FilteredCall",
+        call,
+        filter: filterExpr,
+        ctx: context(t, ctx),
+      };
+    }
     default:
       console.error(t);
       throw new Error(`Unknown expression type: ${t.type}`);
@@ -1258,12 +1298,36 @@ function parseQueryClause(t: ParseTree, ctx: ASTCtx): LuaQueryClause {
       const orderBy: LuaOrderBy[] = [];
       for (const child of t.children!) {
         if (child.type === "OrderBy") {
-          orderBy.push({
+          const kids = child.children!;
+          let direction: "asc" | "desc" = "asc";
+          let nulls: "first" | "last" | undefined;
+          let usingVal: string | LuaFunctionBody | undefined;
+          for (let i = 1; i < kids.length; i++) {
+            const typ = kids[i].type;
+            if (typ === "desc") direction = "desc";
+            else if (typ === "asc") direction = "asc";
+            else if (typ === "first") nulls = "first";
+            else if (typ === "last") nulls = "last";
+            else if (typ === "using") {
+              const next = kids[i + 1];
+              if (next.type === "function") {
+                usingVal = parseFunctionBody(kids[i + 2], ctx);
+                i += 2;
+              } else {
+                usingVal = next.children![0].text!;
+                i++;
+              }
+            }
+          }
+          const ob: LuaOrderBy = {
             type: "Order",
-            expression: parseExpression(child.children![0], ctx),
-            direction: child.children![1]?.type === "desc" ? "desc" : "asc",
+            expression: parseExpression(kids[0], ctx),
+            direction,
             ctx: context(child, ctx),
-          });
+          };
+          if (nulls) ob.nulls = nulls;
+          if (usingVal !== undefined) ob.using = usingVal;
+          orderBy.push(ob);
         }
       }
       return {

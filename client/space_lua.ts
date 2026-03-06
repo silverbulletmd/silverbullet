@@ -31,8 +31,12 @@ export class SpaceLuaEnvironment {
       {
         objectVariable: "script",
         orderBy: [{
-          expr: parseExpressionString("script.priority"),
+          expr: parseExpressionString("script.priority or 0"),
           desc: true,
+          nulls: "first",
+        }, {
+          expr: parseExpressionString("script.ref"),
+          desc: false,
         }],
       } as LuaCollectionQuery,
     );

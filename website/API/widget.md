@@ -1,3 +1,5 @@
+#api/space-lua
+
 APIs to define widgets in SilverBullet, often used through [[Space Lua#Expressions]].
 
 # Widget types
@@ -56,3 +58,13 @@ Shortcut for `widget.new { markdown = text }`
 Shortcut for `widget.new { html = htmlOrDOM }`
 
 Usually used in conjunction with [[API/dom]].
+
+## widget.htmlBlock(htmlOrDOM)
+Shortcut for `widget.new { html = htmlOrDOM, display = "block" }`
+
+Block-level version of `widget.html`.
+
+## widget.markdownBlock(text)
+Shortcut for `widget.new { markdown = text, display = "block" }`
+
+Block-level version of `widget.markdown`. Useful for content that needs to render as a block element (lists, tables, headings, etc.).

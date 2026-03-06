@@ -1,12 +1,11 @@
 An attempt at documenting the changes/new features introduced in each release.
 
 ## Edge
-Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
+Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
-* New _experimental_ API: [[API/tag#tag.define(spec)]], see linked page for docs and example uses. Brings back ability to define 📅 deadlines for tasks (see example). Another part of this is [[Schema]] support for [[Tag|tags]]. When a schema is defined for a tag, you get:
-  * [[Frontmatter]] **attribute completion and linting** (in-editor error indicators) for attributes defined as part of the tag’s schema.
-  * [[Space Lua/Lua Integrated Query]] **attribute code completion** _if_ you use the `from v = index.tag("bla")` style syntax (so explicitly bind your iterator variable).
-  * Item-level linting (highlights the object in-line in case of validation errors).
+* Nothing new yet
+
+## 2.5.0
 * Changed keyboard bindings (sorry!). CodeMirror no longer directly allows `Alt-<letter>` and `Alt-<special-character>` [[Keyboard Shortcuts]], meaning I had to **remap a few key bindings**. It’s basically a mission impossible to pick great ones, but here are the new defaults:
   * `Quick note` is now bound to both `Ctrl-q q` (type `Ctrl-q` first, then hit `q` again) and `Ctrl-q Ctrl-q` (hit `Ctrl-q` twice)
   * `Navigate: Home` is now bound to `Ctrl-g h`
@@ -22,31 +21,55 @@ Whenever a commit is pushed to the `main` branch, within ~10 minutes, it will be
   * `Page: Rename` keyboard shortcut removed
   * `Page: Rename Linked Page` keyboard shortcut removed
   * `Sync: Space` keyboard shortcut removed
-* Sync reliability work:
+  * As documented in [[Keyboard Shortcuts]], it is now possible to specify _multiple_ keyboard shortcuts to a commands.
+* [[Sync]] reliability work:
   * Better indication whether your page is synced to the server: “Dirty state” (slightly tinted color of page name) is now aligned with actual synced-to-server state _unless_ the editor clearly indicates it is in offline mode (yellow top bar).
   * Sync snapshots are now persisted after every file sync, reducing (and hopefully eliminating) edge cases where the sync engine is killed mid-sync (for whatever reason) and the snapshot becomes of sync with “reality”.
   * The index status progress indicator (blue circle) should now be more reliably reflect the actual indexing status.
-* Tag schema updates:
-  * `pos` (present in link, item and some other tags) is now _deprecated_, use `range` instead
-  * `range` is a tuple of two numbers: _from_ and _to_ (e.g. `{0, 10}`) identify where the object appears in the page
-* Lua engine improvements (courtesy of [Matouš Jan Fialka](https://github.com/mjf)):
+  * HTTP status codes >= 500 are now treated as offline (better offline detection).
+* [[Space Lua/Lua Integrated Query]] improvements (courtesy of [Matouš Jan Fialka](https://github.com/mjf)):
+  * [[Space Lua/Lua Integrated Query/Grouping|group by]] and `having` clauses with [[Space Lua/Lua Integrated Query/Aggregating|aggregator]] support
+  * `filter(where <cond>)` clause for per-row aggregate filtering
+  * `nulls first`/`nulls last` in `order by`
+  * Null/missing query cells now render as empty
+* [[Space Lua]] engine general improvements (most courtesey of [Matouš Jan Fialka](https://github.com/mjf)):
+  * [Native Lua pattern matching engine](https://github.com/silverbulletmd/silverbullet/pull/1838) (replacing previous implementation)
   * [Support for `<close>` attribute and __close metamethod](https://github.com/silverbulletmd/silverbullet/commit/9419cdcd9be61908330e1dce68a9156dbb911d23)
   * [Better arithmetic error messages](https://github.com/silverbulletmd/silverbullet/commit/5a20a5f8f476a98172609e80c799cd1d83765585)
   * [Refactor of control flow (performance)](https://github.com/silverbulletmd/silverbullet/commit/e5b4c8feb22a44cb4b22b3a77f9f2ed21dd09297)
   * [Improved numeric type semantics](https://github.com/silverbulletmd/silverbullet/pull/1803)
-* Lua APIs:
+  * Implement `string.pack`, `string.unpack` and `string.packsize`
+  * Implement `math.random`, `math.randomseed`, `math.tointeger`, `math.frexp` and `math.ldexp`
+  * Implement `table.move`; align `table.pack` and `table.unpack` with Lua semantics
   * [[API/table#table.select(table, keys...)]] (non-standard in Lua) API, convenient to use in [[Space Lua/Lua Integrated Query]] `select` clauses, see example in docs.
-* Library manager: SilverBullet now navigates to library page after installing one.
+  * [Extend `os` module](https://github.com/silverbulletmd/silverbullet/pull/1836)
+  * Add `_VERSION` environment variable
+  * `tostring()` now respects `__tostring` metamethod; `#` operator now respects `__len` metamethod
+  * Fix: `table.sort` comparator, `string.gsub` table replacement, `math.modf` return types, number formatting in `..` and `table.concat`
+  * **Load order** of scripts is now well defined: `order by (script.priority or 0) desc, script.ref`
+* New _experimental_ API: [[API/tag#tag.define(spec)]], see linked page for docs and example uses. Brings back ability to define 📅 deadlines for tasks (see example). Another part of this is [[Schema]] support for [[Tag|tags]]. When a schema is defined for a tag, you get:
+  * [[Frontmatter]] **attribute completion and linting** (in-editor error indicators) for attributes defined as part of the tag’s schema.
+  * [[Space Lua/Lua Integrated Query]] **attribute code completion** _if_ you use the `from v = index.tag(“bla”)` style syntax (so explicitly bind your iterator variable).
+  * Item-level linting (highlights the object in-line in case of validation errors).
+* Tag schema updates:
+  * `pos` (present in link, item and some other tags) is now _deprecated_, use `range` instead
+  * `range` is a tuple of two numbers: _from_ and _to_ (e.g. `{0, 10}`) identify where the object appears in the page
+* Editor improvements:
+  * New `Page: Create Under Cursor` command, useful to pre-create an aspiring page link. Put your cursor in a wiki link to a non-existing page, and hit `Cmd-Shift-Enter` (`Ctrl-Shift-Enter`) to create it (empty) without navigating there.
+  * [[Linked Mention|Linked Mentions]] now list full page path rather than abbreviated version.
+  * Hide vertical scrollbar overflow for long page names.
+  * Upload file: prompt user before replacing files and no-clobber behavior for paste uploads (by [Oliver Marriott](https://github.com/rktjmp)).
+  * Trim user input from prompts where appropriate (by [rktjmp](https://github.com/rktjmp)).
+  * Consider empty string as invalid path (by [rktjmp](https://github.com/rktjmp)).
 * Styling changes:
   * Attribute names and values ([key: value] notation) now get different CSS classes in the editor: `sb-attribute-name` for names and `sb-attribute-value` for values.
-* New `Page: Create Under Cursor` command, useful to pre-create an aspiring page link. Put your cursor in a wiki link to a non-existing page, and hit `Cmd-Shift-Enter` (`Ctrl-Shift-Enter`) to create it (empty) without navigating there.
-* Authentication:
-  * How long “remember me” works is now configurable (by [Metin Yazici](https://github.com/silverbulletmd/silverbullet/pull/1796)) via [[Install/Configuration]] and more reliably persisted.
+  * The `diff` [[Markdown/Fenced Code Block]] language now uses colors to indicate additions and removals (by [Lajos Papp](https://github.com/silverbulletmd/silverbullet/pull/1807)).
+* Configuration:
+  * New `shortWikiLinks` config (defaulting to `true`) that decides whether a wiki link should be rendered in its short form (rendering just the last segment, e.g. `Person/John` would show as `John`). To always render the full name, put `config.set(“shortWikiLinks”, false)` in your [[CONFIG]].
+  * [[Authentication]]: how long “remember me” works is now configurable (by [Metin Yazici](https://github.com/silverbulletmd/silverbullet/pull/1796)) via [[Install/Configuration]] and more reliably persisted.
+* [[Library Manager]]: SilverBullet now navigates to library page after installing one.
 * Now excluding `.plug.js` and `.js.map` files from the document list.
-* New `shortWikiLinks` config (defaulting to `true`) that decides whether a wiki link should be rendered in its short form (rendering just the last segment, e.g. `Person/John` would show as `John`). To always render the full name, put `config.set("shortWikiLinks", false)` in your [[CONFIG]].
-* The `diff` [[Markdown/Fenced Code Block]] language now uses colors to indicate additions and removals (by [Lajos Papp](https://github.com/silverbulletmd/silverbullet/pull/1807))
-* As documented in [[Keyboard Shortcuts]], it is now possible to specify _multiple_ keyboard shortcuts to a commands.
-* Linked Mentions now list full page path rather than abbreviated version.
+* Fix: bring back [[Virtual Pages]].
 
 ## 2.4.0
 * Indexer rework (note: upgrading will start a full space reindex automatically):

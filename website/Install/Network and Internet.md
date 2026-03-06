@@ -1,4 +1,6 @@
-Running SilverBullet locally on your machine is nice, but you likely want to access it from elsewhere as well (other machines on your network, your mobile device), perhaps even from outside your home. 
+#getting-started
+
+Running SilverBullet locally on your machine is nice, but you likely want to access it from elsewhere as well (other machines on your network, your mobile device), perhaps even from outside your home.
 
 > **note** IMPORTANT
 > To use SilverBullet from anywhere other than localhost, you have to set up [[TLS]]. SilverBullet does not work (other than via localhost) on URLs other than `https://` ones.
