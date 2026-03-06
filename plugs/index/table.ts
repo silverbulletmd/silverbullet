@@ -86,16 +86,34 @@ export function indexTables(
           pos: row.from!,
           range: [row.from!, row.to!],
         };
-        cells.forEach((c, i) => {
-          replaceNodesMatching(c, (tree) => {
-            if (tree.type === "Hashtag") {
-              return null;
-            }
-          });
-          const content = concatChildrenTextsPreserveLinks(c.children!);
-          const label = headerLabels[i];
-          tableRow[label!] = content;
-        });
+        // Match cells to columns by position between delimiters
+        const delimiters = collectNodesOfType(row, "TableDelimiter");
+        let col = 0;
+        for (
+          let d = 0;
+          d < delimiters.length - 1 && col < headerLabels.length;
+          d++
+        ) {
+          const gapStart = delimiters[d].to!;
+          const gapEnd = delimiters[d + 1].from!;
+          // Find cell whose range falls within this delimiter gap
+          const cell = cells.find(
+            (c) => c.from! >= gapStart && c.to! <= gapEnd,
+          );
+          if (cell) {
+            replaceNodesMatching(cell, (tree) => {
+              if (tree.type === "Hashtag") {
+                return null;
+              }
+            });
+            tableRow[headerLabels[col]] = concatChildrenTextsPreserveLinks(
+              cell.children!,
+            );
+          } else {
+            tableRow[headerLabels[col]] = "";
+          }
+          col++;
+        }
         result.push(tableRow);
       }
     },
