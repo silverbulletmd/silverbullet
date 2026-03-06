@@ -5,6 +5,7 @@ import {
 import {
   collectNodesMatching,
   collectNodesOfType,
+  normalizeTableRow,
   type ParseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import type {
@@ -47,29 +48,6 @@ function concatChildrenTexts(nodes: ParseTree[]): string {
  */
 function concatChildrenTextsPreserveLinks(nodes: ParseTree[]): string {
   return nodes.map((c) => renderToText(c)).join("").trim();
-}
-
-/**
- * Ensure a TableRow has a TableCell between every pair of TableDelimiters.
- * The parser omits TableCell nodes for empty cells; this fills them in.
- */
-function normalizeTableRow(row: ParseTree): void {
-  const children = row.children!;
-  const normalized: ParseTree[] = [];
-  let lookingForCell = false;
-  for (const child of children) {
-    if (child.type === "TableDelimiter" && lookingForCell) {
-      normalized.push({ type: "TableCell", children: [{ text: "" }] });
-    }
-    if (child.type === "TableDelimiter") {
-      lookingForCell = true;
-    }
-    if (child.type === "TableCell") {
-      lookingForCell = false;
-    }
-    normalized.push(child);
-  }
-  row.children = normalized;
 }
 
 export function indexTables(

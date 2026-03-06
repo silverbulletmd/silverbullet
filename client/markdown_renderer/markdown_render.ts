@@ -2,6 +2,7 @@ import {
   addParentPointers,
   collectNodesOfType,
   findNodeOfType,
+  normalizeTableRow,
   type ParseTree,
   removeParentPointers,
   renderToText,
@@ -388,15 +389,14 @@ function render(
           },
           body: "",
         };
-      } else {
-        return {
-          name: "span",
-          attrs: {
-            class: "task-state",
-          },
-          body: stateText,
-        };
       }
+      return {
+        name: "span",
+        attrs: {
+          class: "task-state",
+        },
+        body: stateText,
+      };
     }
 
     // Tables
@@ -421,30 +421,10 @@ function render(
         body: cleanTags(mapRender(t.children!)),
       };
     case "TableRow": {
-      const children = t.children!;
-      const newChildren: ParseTree[] = [];
-      // Ensure there is TableCell in between every delimiter
-      let lookingForCell = false;
-      for (const child of children) {
-        if (child.type === "TableDelimiter" && lookingForCell) {
-          // We were looking for a cell, but didn't fine one: empty cell!
-          // Let's inject an empty one
-          newChildren.push({
-            type: "TableCell",
-            children: [],
-          });
-        }
-        if (child.type === "TableDelimiter") {
-          lookingForCell = true;
-        }
-        if (child.type === "TableCell") {
-          lookingForCell = false;
-        }
-        newChildren.push(child);
-      }
+      normalizeTableRow(t);
       return {
         name: "tr",
-        body: cleanTags(mapRender(newChildren), true),
+        body: cleanTags(mapRender(t.children!), true),
       };
     }
     case "Attribute":
