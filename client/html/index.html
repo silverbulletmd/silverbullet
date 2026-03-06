@@ -24,32 +24,6 @@
         <meta content=".client/logo.png" property="og:image" />
         <meta content="{{.Description}}" property="og:description" />
 
-        <script>
-            // Some global variables we need to make this work
-            Deno = {
-                args: [],
-                build: {
-                    arch: "x86_64",
-                    os: "browser",
-                },
-                core: {
-                    runMicrotasks() {
-                        // console.log("Not supported");
-                    },
-                    setHasTickScheduled() {
-                        // console.log("Not supported");
-                    },
-                },
-                env: {
-                    get(_key) {
-                        // return undefined;
-                    },
-                },
-                errors: {
-                    AlreadyExists: class extends Error {},
-                },
-            };
-        </script>
         <link href=".client/main.css" rel="stylesheet" />
         <script src=".client/client.js" type="module"></script>
         <link
