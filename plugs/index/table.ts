@@ -5,6 +5,7 @@ import {
 import {
   collectNodesMatching,
   collectNodesOfType,
+  normalizeTableRow,
   type ParseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import type {
@@ -74,6 +75,8 @@ export function indexTables(
           // Push tag to the list, removing the initial #
           tags.add(extractHashtag(h.children![0].text!));
         });
+
+        normalizeTableRow(row);
 
         const cells = collectNodesOfType(row, "TableCell");
 

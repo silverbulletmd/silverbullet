@@ -220,7 +220,7 @@ async function renamePage(oldName: string, newName: string) {
       let newTail = text.substring(link.pos);
 
       // Only relative links need to be updated
-      if (/^[^/][^\]]+?(?<!]])\)/.test(newTail)) {
+      if (text.substring(link.pos - 2, link.pos) !== "[[") {
         newLink = absoluteToRelativePath(newName, newLink);
         newTail = newTail.replace(/^.*?(?=@\d*|#|\$|\))/, newLink);
         // Wrap in <> if link has spaces
@@ -448,7 +448,7 @@ async function updateBacklinks(
     for (const link of linksInPage) {
       let newTail = text.substring(link.pos);
       let newLink = newName;
-      if (/^[^\]]+?(?<!]])\)/.test(newTail)) {
+      if (text.substring(link.pos - 2, link.pos) !== "[[") {
         // Is [Markdown link]()
         if (newTail.startsWith("/") || newTail.startsWith("</")) {
           // Is absolute mdlink, update with full path with leading /
