@@ -63,20 +63,21 @@ export function indexTables(
   ).forEach(
     (table) => {
       const rows = collectNodesOfType(table, "TableRow");
-      const header = collectNodesOfType(table, "TableHeader")[0]; //Use first header. As per markdown spec there can only be exactly one
+      const header = collectNodesOfType(table, "TableHeader")[0];
+      normalizeTableRow(header);
+      const headerHasLeadingDelim =
+        header.children?.[0]?.type === "TableDelimiter";
       const headerLabels = collectNodesOfType(header, "TableCell").map((cell) =>
         concatChildrenTexts(cell.children!)
       ).map(cleanHeaderFieldName);
-      //console.log("Header labels", headerLabels);
 
       for (const row of rows) {
         const tags = new Set<string>();
         collectNodesOfType(row, "Hashtag").forEach((h) => {
-          // Push tag to the list, removing the initial #
           tags.add(extractHashtag(h.children![0].text!));
         });
 
-        normalizeTableRow(row);
+        normalizeTableRow(row, headerLabels.length, headerHasLeadingDelim);
 
         const cells = collectNodesOfType(row, "TableCell");
 

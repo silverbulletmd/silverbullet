@@ -421,7 +421,18 @@ function render(
         body: cleanTags(mapRender(t.children!)),
       };
     case "TableRow": {
-      normalizeTableRow(t);
+      const table = t.parent;
+      const header = table?.children?.find((c) => c.type === "TableHeader");
+      let columnCount = 0;
+      let headerHasLeadingDelim: boolean | undefined;
+      if (header) {
+        normalizeTableRow(header);
+        headerHasLeadingDelim = header.children?.[0]?.type === "TableDelimiter";
+        for (const c of header.children ?? []) {
+          if (c.type === "TableCell") columnCount++;
+        }
+      }
+      normalizeTableRow(t, columnCount, headerHasLeadingDelim);
       return {
         name: "tr",
         body: cleanTags(mapRender(t.children!), true),
