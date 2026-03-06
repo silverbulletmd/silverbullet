@@ -182,12 +182,34 @@ export function nodeAtPos(tree: ParseTree, pos: number): ParseTree | null {
     if (n && n.text !== undefined) {
       // Got a text node, let's return its parent
       return tree;
-    } else if (n) {
+    }
+    if (n) {
       // Got it
       return n;
     }
   }
   return null;
+}
+
+// Ensure a TableRow has a TableCell between every pair of TableDelimiters
+export function normalizeTableRow(row: ParseTree): void {
+  const children = row.children;
+  if (!children) return;
+  const normalized: ParseTree[] = [];
+  let lookingForCell = false;
+  for (const child of children) {
+    if (child.type === "TableDelimiter" && lookingForCell) {
+      normalized.push({ type: "TableCell", children: [{ text: "" }] });
+    }
+    if (child.type === "TableDelimiter") {
+      lookingForCell = true;
+    }
+    if (child.type === "TableCell") {
+      lookingForCell = false;
+    }
+    normalized.push(child);
+  }
+  row.children = normalized;
 }
 
 // Turn ParseTree back into text
