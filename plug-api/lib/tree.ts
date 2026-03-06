@@ -199,7 +199,7 @@ export function normalizeTableRow(row: ParseTree): void {
   let lookingForCell = false;
   for (const child of children) {
     if (child.type === "TableDelimiter" && lookingForCell) {
-      normalized.push({ type: "TableCell", children: [{ text: "" }] });
+      normalized.push({ type: "TableCell", children: [] });
     }
     if (child.type === "TableDelimiter") {
       lookingForCell = true;
