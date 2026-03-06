@@ -49,6 +49,29 @@ function concatChildrenTextsPreserveLinks(nodes: ParseTree[]): string {
   return nodes.map((c) => renderToText(c)).join("").trim();
 }
 
+/**
+ * Ensure a TableRow has a TableCell between every pair of TableDelimiters.
+ * The parser omits TableCell nodes for empty cells; this fills them in.
+ */
+function normalizeTableRow(row: ParseTree): void {
+  const children = row.children!;
+  const normalized: ParseTree[] = [];
+  let lookingForCell = false;
+  for (const child of children) {
+    if (child.type === "TableDelimiter" && lookingForCell) {
+      normalized.push({ type: "TableCell", children: [{ text: "" }] });
+    }
+    if (child.type === "TableDelimiter") {
+      lookingForCell = true;
+    }
+    if (child.type === "TableCell") {
+      lookingForCell = false;
+    }
+    normalized.push(child);
+  }
+  row.children = normalized;
+}
+
 export function indexTables(
   pageMeta: PageMeta,
   _frontmatter: FrontMatter,
@@ -74,6 +97,8 @@ export function indexTables(
           // Push tag to the list, removing the initial #
           tags.add(extractHashtag(h.children![0].text!));
         });
+
+        normalizeTableRow(row);
 
         const cells = collectNodesOfType(row, "TableCell");
 
