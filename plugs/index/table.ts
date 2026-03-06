@@ -49,6 +49,29 @@ function concatChildrenTextsPreserveLinks(nodes: ParseTree[]): string {
   return nodes.map((c) => renderToText(c)).join("").trim();
 }
 
+/**
+ * Ensure a TableRow has a TableCell between every pair of TableDelimiters.
+ * The parser omits TableCell nodes for empty cells; this fills them in.
+ */
+function normalizeTableRow(row: ParseTree): void {
+  const children = row.children!;
+  const normalized: ParseTree[] = [];
+  let lookingForCell = false;
+  for (const child of children) {
+    if (child.type === "TableDelimiter" && lookingForCell) {
+      normalized.push({ type: "TableCell", children: [{ text: "" }] });
+    }
+    if (child.type === "TableDelimiter") {
+      lookingForCell = true;
+    }
+    if (child.type === "TableCell") {
+      lookingForCell = false;
+    }
+    normalized.push(child);
+  }
+  row.children = normalized;
+}
+
 export function indexTables(
   pageMeta: PageMeta,
   _frontmatter: FrontMatter,
@@ -75,6 +98,8 @@ export function indexTables(
           tags.add(extractHashtag(h.children![0].text!));
         });
 
+        normalizeTableRow(row);
+
         const cells = collectNodesOfType(row, "TableCell");
 
         const tableRow: TableRowObject = {
@@ -86,34 +111,16 @@ export function indexTables(
           pos: row.from!,
           range: [row.from!, row.to!],
         };
-        // Match cells to columns by position between delimiters
-        const delimiters = collectNodesOfType(row, "TableDelimiter");
-        let col = 0;
-        for (
-          let d = 0;
-          d < delimiters.length - 1 && col < headerLabels.length;
-          d++
-        ) {
-          const gapStart = delimiters[d].to!;
-          const gapEnd = delimiters[d + 1].from!;
-          // Find cell whose range falls within this delimiter gap
-          const cell = cells.find(
-            (c) => c.from! >= gapStart && c.to! <= gapEnd,
-          );
-          if (cell) {
-            replaceNodesMatching(cell, (tree) => {
-              if (tree.type === "Hashtag") {
-                return null;
-              }
-            });
-            tableRow[headerLabels[col]] = concatChildrenTextsPreserveLinks(
-              cell.children!,
-            );
-          } else {
-            tableRow[headerLabels[col]] = "";
-          }
-          col++;
-        }
+        cells.forEach((c, i) => {
+          replaceNodesMatching(c, (tree) => {
+            if (tree.type === "Hashtag") {
+              return null;
+            }
+          });
+          const content = concatChildrenTextsPreserveLinks(c.children!);
+          const label = headerLabels[i];
+          tableRow[label!] = content;
+        });
         result.push(tableRow);
       }
     },
