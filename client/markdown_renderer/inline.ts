@@ -66,7 +66,7 @@ export async function expandMarkdown(
         const result = await inlineContentFromURL(space, transclusion);
 
         // We don't transclude anything that's not markdown
-        if (typeof result !== "string") {
+        if (!("text" in result)) {
           return n;
         }
 
@@ -74,7 +74,7 @@ export async function expandMarkdown(
         // it so we won't touch it down the line and cause endless recursion
         processedPages.add(transclusion.url);
 
-        const tree = parseMarkdown(result);
+        const tree = parseMarkdown(result.text);
 
         // Recursively process
         return expandMarkdown(
