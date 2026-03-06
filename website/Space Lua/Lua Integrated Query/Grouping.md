@@ -90,22 +90,9 @@ ${query[[
 
 Groups by `name` and `parent`, keep only page-level tags with more than 1 entry:
 
-```lua
-query [[
-  from
-    index.tag 'tag'
-  group by
-    name,
-    parent
-  having
-    parent == 'page' and
-    #group > 1
-]]
-```
-
 ${query [[
   from
-    index.tag 'tag'
+    tags.tag
   group by
     name,
     parent
@@ -118,20 +105,9 @@ ${query [[
 
 Filter to page parents first, then group by `name`:
 
-```lua
-query [[
-  from
-    index.tag 'tag'
-  where
-    parent == 'page'
-  group by
-    name
-]]
-```
-
 ${query [[
   from
-    index.tag 'tag'
+    tags.tag
   where
     parent == 'page'
   group by
@@ -141,20 +117,6 @@ ${query [[
 ## `where`, `group by` and `having` combined
 
 Filter to page parents, group by `name`, keep groups with 2+ items:
-
-```lua
-query [[
-  from
-    index.tag 'tag'
-  where
-    parent == 'page'
-  group by
-    name
-  having
-    #group >= 2
-]]
-```
-
 ${query [[
   from
     index.tag 'tag'
@@ -169,20 +131,6 @@ ${query [[
 ## `select` name and count
 
 Project each group into a table with `name` and `count`:
-
-```lua
-query [[
-  from
-    index.tag 'tag'
-  group by
-    name
-  select {
-    name = name,
-    count = #group
-  }
-]]
-```
-
 ${query [[
   from
     index.tag 'tag'
@@ -197,21 +145,6 @@ ${query [[
 ## `select` with multi-key
 
 Project both key parts and count:
-
-```lua
-query [[
-  from
-    index.tag 'tag'
-  group by
-    name,
-    parent
-  select {
-    name = name,
-    parent = parent,
-    count = #group
-  }
-]]
-```
 
 ${query [[
   from
@@ -229,24 +162,6 @@ ${query [[
 ## Full pipeline: `where`, `group by`, `having` and `select`
 
 Filter, group, filter groups, then project:
-
-```lua
-query [[
-  from
-    index.tag 'tag'
-  where
-    parent == 'page' or
-    parent == 'task'
-  group by
-    name
-  having
-    #group > 1
-  select {
-    tag = name,
-    total = #group
-  }
-]]
-```
 
 ${query [[
   from
@@ -268,17 +183,6 @@ ${query [[
 
 Sort groups by size, largest first:
 
-```lua
-query [[
-  from
-    index.tag 'tag'
-  group by
-    name
-  order by
-    #group desc
-]]
-```
-
 ${query [[
   from
     index.tag 'tag'
@@ -291,24 +195,6 @@ ${query [[
 ## Top tags with `having`, `order by`, and `select`
 
 Tags with 2+ occurrences, sorted by count, projected:
-
-```lua
-query [[
-  from
-    index.tag 'tag'
-  group by
-    name
-  having
-    #group >= 2
-  order by
-    #group desc
-  select {
-    tag = name,
-    count = #group
-  }
-]]
-```
-
 ${query [[
   from
     index.tag 'tag'
@@ -325,22 +211,6 @@ ${query [[
 ]]}
 
 ## Top N groups with `limit`
-
-Top 3 most used tags:
-
-```lua
-query [[
-  from
-    index.tag 'tag'
-  group by
-    name
-  order by
-    #group desc
-  limit
-    3
-]]
-```
-
 ${query [[
   from
     index.tag 'tag'
@@ -353,64 +223,7 @@ ${query [[
 ]]}
 
 ## Full pipeline with `limit`
-
 Top 5 tags with 2+ uses, showing name and count:
-
-```lua
-query [[
-  from
-    index.tag 'tag'
-  group by
-    name
-  having
-    #group >= 2
-  order by
-    #group desc
-  select {
-    tag = name,
-    count = #group
-  }
-  limit
-    5
-]]
-```
-
-${query [[
-  from
-    index.tag 'tag'
-  group by
-    name
-  having
-    #group >= 2
-  order by
-    #group desc
-  select {
-    tag = name,
-    count = #group
-  }
-  limit
-    5
-]]}
-
-## With explicit object variable
-
-The same works with `p =` binding:
-
-```lua
-query [[
-  from
-    p = index.tag 'tag'
-  group by
-    p.name
-  having
-    #group > 1
-  select {
-    tag = name,
-    count = #group
-  }
-]]
-```
-
 ${query [[
   from
     p = index.tag 'tag'
@@ -425,29 +238,7 @@ ${query [[
 ]]}
 
 ## Multi-key with explicit object variable
-
 Full pipeline with `p =` binding and two group keys:
-
-```lua
-query [[
-  from
-    p = index.tag 'tag'
-  where
-    p.parent == 'page'
-  group by
-    p.name,
-    p.parent
-  having
-    #group >= 2
-  order by
-    #group desc
-  select {
-    tag = name,
-    parent = parent,
-    count = #group
-  }
-]]
-```
 
 ${query [[
   from
@@ -471,18 +262,6 @@ ${query [[
 ## Access `key` directly
 
 For single-key grouping, `key` holds the value directly:
-
-```lua
-query [[
-  from
-    index.tag 'tag'
-  group by
-    name
-  having
-    key == 'meta'
-]]
-```
-
 ${query [[
   from
     index.tag 'tag'
@@ -495,20 +274,6 @@ ${query [[
 ## Access `key` table for multi-key
 
 For multi-key grouping, `key` is a table indexed from 1:
-
-```lua
-query [[
-  from
-    index.tag 'tag'
-  group by
-    name,
-    parent
-  having
-    key[1] == 'meta' and
-    key[2] == 'page'
-]]
-```
-
 ${query [[
   from
     index.tag 'tag'
