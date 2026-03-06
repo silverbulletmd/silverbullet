@@ -509,9 +509,7 @@ export class Client {
                 resolve();
 
                 // In the background we'll fetch any enriched meta data, if any
-                const enrichedMeta = await this.objectIndex.getObjectByRef<
-                  PageMeta
-                >(
+                const enrichedMeta = await this.objectIndex.getObjectByRef(
                   this.currentName(),
                   "page",
                   this.currentName(),
@@ -1122,7 +1120,7 @@ export class Client {
     // decorations
     if (await this.objectIndex.hasFullIndexCompleted()) {
       try {
-        const enrichedMeta = await this.objectIndex.getObjectByRef<PageMeta>(
+        const enrichedMeta = await this.objectIndex.getObjectByRef(
           pageName,
           "page",
           pageName,
