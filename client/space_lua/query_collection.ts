@@ -815,7 +815,6 @@ export async function applyQuery(
 
   if (query.orderBy) {
     if (collation === undefined) {
-      // @ts-ignore: Hack to access client via the browser
       const config = globalThis.client.config;
       collation = config.get("queryCollation", {});
     }

@@ -20,7 +20,7 @@ let workerPostMessage = (_msg: ControllerMessage): void => {
 // - in a browser's worker threads, typeof window === "undefined"
 // - in Cloudflare workers typeof window === "undefined", but typeof globalThis.WebSocketPair is defined
 const runningAsWebWorker = typeof window === "undefined" &&
-  // @ts-ignore: globalThis
+  // @ts-expect-error: globalThis
   typeof globalThis.WebSocketPair === "undefined";
 
 const pendingRequests = new Map<
@@ -136,17 +136,16 @@ export async function sandboxFetch(
   return syscall("sandboxFetch.fetch", reqInfo, options);
 }
 
-// @ts-ignore: monkey patching fetch
 globalThis.nativeFetch = globalThis.fetch;
 
 // Monkey patch fetch()
 export function monkeyPatchFetch() {
-  // @ts-ignore: monkey patching fetch
-  globalThis.fetch = async function (
+  // @ts-expect-error: monkey patching fetch
+  globalThis.fetch = async (
     reqInfo: RequestInfo,
     init?: RequestInit,
-  ): Promise<Response> {
-    const encodedBody = init && init.body
+  ): Promise<Response> => {
+    const encodedBody = init?.body
       ? base64Encode(
         new Uint8Array(await (new Response(init.body)).arrayBuffer()),
       )

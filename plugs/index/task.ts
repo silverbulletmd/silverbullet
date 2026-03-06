@@ -44,7 +44,7 @@ async function convertListItemToTask(node: ParseTree) {
   let taskMarker: string;
   if (originalMark.match(/^\d+\./)) {
     // Numbered list: preserve the number
-    taskMarker = originalMark + " [ ]";
+    taskMarker = `${originalMark} [ ]`;
   } else {
     // Bullet list: use standard bullet
     taskMarker = "* [ ]";

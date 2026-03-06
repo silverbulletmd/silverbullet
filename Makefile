@@ -30,6 +30,8 @@ clean:
 check:
 	# Frontend type check
 	npm run check
+	# Frontend lint
+	npx biome lint .
 	# Backend lint
 	go vet
 

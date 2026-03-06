@@ -145,7 +145,7 @@ export function createEditorState(
         ],
         optionClass(completion: any) {
           if (completion.cssClass) {
-            return "sb-decorated-object " + completion.cssClass;
+            return `sb-decorated-object ${completion.cssClass}`;
           } else {
             return "";
           }

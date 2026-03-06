@@ -219,7 +219,7 @@ export function FilterList({
                     ? "sb-option sb-selected-option"
                     : "sb-option") +
                     (option.cssClass
-                      ? " sb-decorated-object " + option.cssClass
+                      ? ` sb-decorated-object ${option.cssClass}`
                       : "")}
                   onMouseMove={() => {
                     if (selectedOption !== currentOptionIndex) {

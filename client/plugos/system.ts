@@ -193,8 +193,8 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     this.plugs.delete(name);
   }
 
-  unloadAll(): Promise<void[]> {
-    return Promise.all(
+  async unloadAll(): Promise<void> {
+    await Promise.all(
       Array.from(this.plugs.keys()).map(this.unload.bind(this)),
     );
   }

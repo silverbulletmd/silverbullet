@@ -52,15 +52,15 @@ export const mathApi = new LuaTable({
    */
   tointeger: new LuaBuiltinFunction((_sf, x?: any) => {
     if (typeof x === "number") {
-      return Number.isInteger(x) && isFinite(x) ? x : null;
+      return Number.isInteger(x) && Number.isFinite(x) ? x : null;
     }
     if (isTaggedFloat(x)) {
       const n = x.value;
-      return Number.isInteger(n) && isFinite(n) ? n : null;
+      return Number.isInteger(n) && Number.isFinite(n) ? n : null;
     }
     if (typeof x === "string") {
       const n = untagNumber(x); // Number(x) coerces the string
-      if (isNaN(n) || !isFinite(n) || !Number.isInteger(n)) return null;
+      if (Number.isNaN(n) || !Number.isFinite(n) || !Number.isInteger(n)) return null;
       return n;
     }
     return null;
@@ -123,12 +123,12 @@ export const mathApi = new LuaTable({
   // Special cases: frexp(0) = (0, 0); frexp(+-inf/nan) = (x, 0).
   frexp: new LuaBuiltinFunction((_sf, x: number) => {
     const xn = untagNumber(x);
-    if (xn === 0 || !isFinite(xn) || isNaN(xn)) {
+    if (xn === 0 || !Number.isFinite(xn) || Number.isNaN(xn)) {
       return new LuaMultiRes([xn, 0]);
     }
     const abs = Math.abs(xn);
     let e = Math.floor(Math.log2(abs)) + 1;
-    let m = xn / Math.pow(2, e);
+    let m = xn / 2 ** e;
     if (Math.abs(m) >= 1.0) {
       e += 1;
       m /= 2;
@@ -142,7 +142,7 @@ export const mathApi = new LuaTable({
 
   // Returns m * 2^e (the inverse of frexp).  Mirrors C99/Lua.
   ldexp: new LuaBuiltinFunction((_sf, m: number, e: number) =>
-    untagNumber(m) * Math.pow(2, untagNumber(e))
+    untagNumber(m) * 2 ** untagNumber(e)
   ),
 
   // Power and logarithms
@@ -155,7 +155,7 @@ export const mathApi = new LuaTable({
   }),
   // Power function (deprecated in Lua 5.4 but retained for compatibility)
   pow: new LuaBuiltinFunction((_sf, x: number, y: number) =>
-    Math.pow(untagNumber(x), untagNumber(y))
+    untagNumber(x) ** untagNumber(y)
   ),
   sqrt: new LuaBuiltinFunction((_sf, x: number) => Math.sqrt(untagNumber(x))),
 

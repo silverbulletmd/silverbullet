@@ -30,7 +30,7 @@ const WikiLink: MarkdownConfig = {
       name: "WikiLink",
       parse(cx, next, pos) {
         // Do a preliminary check for performance
-        if (next != 91 /* '[' */ && next != 33 /* '!' */) {
+        if (next !== 91 /* '[' */ && next !== 33 /* '!' */) {
           return -1;
         }
 
@@ -68,7 +68,7 @@ const WikiLink: MarkdownConfig = {
         ]);
 
         // If inline image
-        if (next == 33) {
+        if (next === 33) {
           allElts = cx.elt("Image", pos, endPos, [allElts]);
         }
 
@@ -171,7 +171,7 @@ export const Highlight: MarkdownConfig = {
     {
       name: "Highlight",
       parse(cx, next, pos) {
-        if (next != 61 /* '=' */ || cx.char(pos + 1) != 61) return -1;
+        if (next !== 61 /* '=' */ || cx.char(pos + 1) !== 61) return -1;
         return cx.addDelimiter(HighlightDelim, pos, pos + 2, true, true);
       },
       after: "Emphasis",
@@ -179,7 +179,7 @@ export const Highlight: MarkdownConfig = {
   ],
 };
 
-export const attributeStartRegex = /^\[([\w\$]+)(::?\s*)/;
+export const attributeStartRegex = /^\[([\w$]+)(::?\s*)/;
 
 export const Attribute: MarkdownConfig = {
   defineNodes: [
@@ -196,7 +196,7 @@ export const Attribute: MarkdownConfig = {
         let match: RegExpMatchArray | null;
         const textFromPos = cx.slice(pos, cx.end);
         if (
-          next != 91 /* '[' */ ||
+          next !== 91 /* '[' */ ||
           // and match the whole thing
           !(match = attributeStartRegex.exec(textFromPos))
         ) {
@@ -332,7 +332,7 @@ export const FrontMatter: MarkdownConfig = {
       let text = "";
       let lastPos = cx.parsedPos;
       do {
-        text += line.text + "\n";
+        text += `${line.text}\n`;
         endPos += line.text.length + 1;
         cx.nextLine();
         if (cx.parsedPos === lastPos) {

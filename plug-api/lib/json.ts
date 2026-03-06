@@ -125,7 +125,7 @@ export function deepClone<T>(obj: T, ignoreKeys: string[] = []): T {
     for (const key in obj) {
       if (ignoreKeys.includes(key)) {
         objClone[key] = obj[key];
-      } else if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      } else if (Object.hasOwn(obj, key)) {
         objClone[key] = deepClone(obj[key], ignoreKeys);
       }
     }

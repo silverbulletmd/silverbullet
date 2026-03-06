@@ -6,7 +6,7 @@ import type { Client } from "../client.ts";
 import TurndownService from "turndown";
 
 // With tables and task notation as well
-// @ts-ignore - No type definitions available for this package
+// @ts-expect-error - No type definitions available for this package
 import { tables, taskListItems } from "@joplin/turndown-plugin-gfm";
 import { lezerToParseTree } from "../markdown_parser/parse_tree.ts";
 import {
@@ -58,7 +58,7 @@ async function doesFileExist(
 }
 
 const urlRegexp =
-  /^https?:\/\/[-a-zA-Z0-9@:%._\+~#=]{1,256}([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
+  /^https?:\/\/[-a-zA-Z0-9@:%._+~#=]{1,256}([-a-zA-Z0-9()@:%_+.~#?&//=]*)/;
 
 // Known iOS Safari paste issue (unrelated to this implementation): https://voxpelli.com/2015/03/ios-safari-url-copy-paste-bug/
 export const pasteLinkExtension = ViewPlugin.fromClass(
@@ -84,12 +84,10 @@ export const pasteLinkExtension = ViewPlugin.fromClass(
                     {
                       from: from,
                       to: to,
-                      insert: `[${
-                        update.startState.sliceDoc(
-                          selection.from,
-                          selection.to,
-                        )
-                      }](${pastedString})`,
+                      insert: `[${update.startState.sliceDoc(
+                        selection.from,
+                        selection.to,
+                      )}](${pastedString})`,
                     },
                   ],
                 });
@@ -151,9 +149,8 @@ export function documentExtension(editor: Client) {
           editor.editorView.state.selection.main.from,
         );
         if (currentNode) {
-          const fencedParentNode = findParentMatching(
-            currentNode,
-            (t) => ["FrontMatter", "FencedCode"].includes(t.type!),
+          const fencedParentNode = findParentMatching(currentNode, (t) =>
+            ["FrontMatter", "FencedCode"].includes(t.type!),
           );
           if (
             fencedParentNode ||
@@ -164,8 +161,9 @@ export function documentExtension(editor: Client) {
           }
         }
 
-        const markdown = striptHtmlComments(turndownService.turndown(richText))
-          .trim();
+        const markdown = striptHtmlComments(
+          turndownService.turndown(richText),
+        ).trim();
         const view = editor.editorView;
         const selection = view.state.selection.main;
         view.dispatch({
@@ -298,7 +296,7 @@ export function documentExtension(editor: Client) {
     await editor.space.writeDocument(finalFilePath, file.content);
     let documentMarkdown = `[[${finalFilePath}]]`;
     if (file.contentType.startsWith("image/")) {
-      documentMarkdown = "!" + documentMarkdown;
+      documentMarkdown = `!${documentMarkdown}`;
     }
     editor.editorView.dispatch({
       changes: [

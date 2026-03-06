@@ -409,7 +409,6 @@ function match(ms: MatchState, si: number, pi: number): number {
     }
     si++;
     pi = ep;
-    continue;
   }
 }
 

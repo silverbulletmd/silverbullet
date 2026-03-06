@@ -990,7 +990,7 @@ export class Client {
       } catch (e: any) {
         // If there is no document editor we will open the file raw
         if (e.message.includes("Couldn't find")) {
-          this.openUrl(fsEndpoint + "/" + path, !previousPath);
+          this.openUrl(`${fsEndpoint}/${path}`, !previousPath);
         }
 
         throw e;
@@ -1211,7 +1211,7 @@ export class Client {
 
     // Deliberately not awaiting this function as destroying & last-save can be handled in the background
     this.documentEditor.destroy();
-    // @ts-ignore: This is there the hacked type-guard from isDocumentEditor fails
+    // @ts-expect-error: This is there the hacked type-guard from isDocumentEditor fails
     this.documentEditor = null;
 
     this.rebuildEditorState();
@@ -1309,7 +1309,7 @@ export class Client {
 
     // Prepare separate <style> tag per custom style (for robustness)
     const customStylesContent = spaceStyles.map((s) =>
-      "<style>" + s.style + "</style>"
+      `<style>${s.style}</style>`
     ).join("\n\n");
     this.ui.viewDispatch({
       type: "set-ui-option",
@@ -1430,7 +1430,7 @@ export class Client {
     if (!isMarkdownPath(pageState.path)) return;
 
     // We can't use getOffsetFromRef here, because it is asyncronous.
-    let pos: number | undefined = undefined;
+    let pos: number | undefined ;
 
     // Don't use getOffsetFromRef, so we can show error messages
     if (pageState.details?.type === "header") {
@@ -1576,7 +1576,7 @@ export class Client {
       await new Promise<void>((resolve) => {
         navigator.serviceWorker.addEventListener("message", async (e: any) => {
           const message: ServiceWorkerSourceMessage = e.data;
-          if (message.type == "dataWiped") {
+          if (message.type === "dataWiped") {
             console.log(
               "Got data wipe confirm, uninstalling service worker now",
             );

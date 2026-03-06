@@ -176,14 +176,6 @@ function blockMetaOrThrow(
   }
 }
 
-// Queryable guard to avoid `(collection as any).query` usage
-type Queryable = {
-  query: (
-    q: LuaCollectionQuery,
-    env: LuaEnv,
-    sf: LuaStackFrame,
-  ) => Promise<any>;
-};
 
 function arithVerbFromOperator(op: string): string | null {
   switch (op) {
@@ -1427,9 +1419,9 @@ function evalExpressions(
 }
 
 type EvalBlockResult =
-  | void
+  | undefined
   | ControlSignal
-  | Promise<void | ControlSignal>;
+  | Promise<undefined | ControlSignal>;
 
 function runStatementsNoGoto(
   stmts: LuaStatement[],
@@ -1437,10 +1429,10 @@ function runStatementsNoGoto(
   sf: LuaStackFrame,
   returnOnReturn: boolean,
   startIdx: number,
-): void | ControlSignal | Promise<void | ControlSignal> {
+): undefined | ControlSignal | Promise<undefined | ControlSignal> {
   const processFrom = (
     idx: number,
-  ): void | ControlSignal | Promise<void | ControlSignal> => {
+  ): undefined | ControlSignal | Promise<undefined | ControlSignal> => {
     for (let i = idx; i < stmts.length; i++) {
       const result = evalStatement(
         stmts[i],
@@ -1638,7 +1630,7 @@ export function evalStatement(
   env: LuaEnv,
   sf: LuaStackFrame,
   returnOnReturn = false,
-): void | ControlSignal | Promise<void | ControlSignal> {
+): undefined | ControlSignal | Promise<undefined | ControlSignal> {
   switch (s.type) {
     case "Assignment": {
       const a = asAssignment(s);
@@ -1790,7 +1782,7 @@ export function evalStatement(
         return rpThen(rp, onValue) as any;
       };
 
-      return runFrom(0);
+      return runFrom(0) as undefined | Promise<undefined>;
     }
     case "Semicolon": {
       return;
@@ -1843,9 +1835,9 @@ export function evalStatement(
       const runFrom = (
         i: number,
       ):
-        | void
+        | undefined
         | ControlSignal
-        | Promise<void | ControlSignal> => {
+        | Promise<undefined | ControlSignal> => {
         if (i >= conds.length) {
           if (iff.elseBlock) {
             return evalStatement(iff.elseBlock, env, sf, returnOnReturn);
@@ -1872,7 +1864,7 @@ export function evalStatement(
     case "While": {
       const w = asWhile(s);
 
-      const runAsync = async (): Promise<void | ControlSignal> => {
+      const runAsync = async (): Promise<undefined | ControlSignal> => {
         while (true) {
           const c = await evalExpression(w.condition, env, sf);
           if (!luaTruthy(c)) {
@@ -1897,7 +1889,6 @@ export function evalStatement(
             if (!luaTruthy(cv)) {
               return;
             }
-            try {
               const r = evalStatement(w.block, env, sf, returnOnReturn);
               if (isPromise(r)) {
                 return (r as Promise<any>).then((res) => {
@@ -1917,9 +1908,6 @@ export function evalStatement(
                 return r;
               }
               return runAsync();
-            } catch (e: any) {
-              throw e;
-            }
           });
         }
         if (!luaTruthy(c)) {
@@ -1949,7 +1937,7 @@ export function evalStatement(
     case "Repeat": {
       const r = asRepeat(s);
 
-      const runAsync = async (): Promise<void | ControlSignal> => {
+      const runAsync = async (): Promise<undefined | ControlSignal> => {
         while (true) {
           const rr = evalStatement(r.block, env, sf, returnOnReturn);
           const res = isPromise(rr) ? await rr : rr;
@@ -2118,7 +2106,7 @@ export function evalStatement(
           loopEnv: LuaEnv,
           i: number,
           loopType: NumericType,
-        ): void | ControlSignal | Promise<void | ControlSignal> => {
+        ): undefined | ControlSignal | Promise<undefined | ControlSignal> => {
           loopEnv.setLocal(fr.name, wrapLoopVar(i, loopType));
           return evalStatement(fr.block, loopEnv, sf, returnOnReturn);
         }
@@ -2126,7 +2114,7 @@ export function evalStatement(
           _loopEnv: LuaEnv,
           i: number,
           loopType: NumericType,
-        ): void | ControlSignal | Promise<void | ControlSignal> => {
+        ): undefined | ControlSignal | Promise<undefined | ControlSignal> => {
           const localEnv = new LuaEnv(env);
           localEnv.setLocal(fr.name, wrapLoopVar(i, loopType));
           return evalStatement(fr.block, localEnv, sf, returnOnReturn);
@@ -2165,9 +2153,9 @@ export function evalStatement(
         step: number,
         loopType: NumericType,
       ):
-        | void
+        | undefined
         | ControlSignal
-        | Promise<void | ControlSignal> => {
+        | Promise<undefined | ControlSignal> => {
         if (step === 0) {
           throw new LuaRuntimeError("'for' step is zero", sf.withCtx(fr.ctx));
         }

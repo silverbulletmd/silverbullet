@@ -91,7 +91,7 @@ export function replaceNodesMatching(
   tree: ParseTree,
   substituteFn: (tree: ParseTree) => ParseTree | null | undefined,
 ) {
-  if (tree && tree.children) {
+  if (tree?.children) {
     const children = tree.children.slice();
     for (const child of children) {
       const subst = substituteFn(child);

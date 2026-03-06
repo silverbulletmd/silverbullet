@@ -119,7 +119,7 @@ export class LuaWidget extends WidgetType {
 
     let html: HTMLElement | undefined;
     let block = false;
-    let copyContent: string | undefined = undefined;
+    let copyContent: string | undefined ;
 
     // Normalization
     if (typeof widgetContent === "string" || !widgetContent._isWidget) {
@@ -375,7 +375,7 @@ export function renderExpressionResult(result: any): Promise<string> {
     // Not-object array, let's render it as a Markdown list
     return Promise.resolve(result.map((item) => `- ${item}`).join("\n"));
   } else {
-    return Promise.resolve("" + result);
+    return Promise.resolve(`${result}`);
   }
 }
 

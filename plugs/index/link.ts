@@ -173,7 +173,7 @@ export async function indexLinks(
         wikiLinkRegex.lastIndex = 0;
         const match = wikiLinkRegex.exec(text);
         // Search in entire node text to get correct position, but check for full match against trimmed
-        if (match && match.groups && match[0] === trimmed) {
+        if (match?.groups && match[0] === trimmed) {
           const { leadingTrivia, stringRef, alias } = match.groups;
           const pos = textNode.from! + match.index! + leadingTrivia.length;
           const link: LinkObject = {

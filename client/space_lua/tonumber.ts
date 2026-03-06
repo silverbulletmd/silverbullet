@@ -283,7 +283,7 @@ function parseDecFloat(s: string): { ok: boolean; value: number } {
     return { ok: false, value: 0 };
   }
 
-  const result = sign * (hasExp ? val * Math.pow(10, exp) : val);
+  const result = sign * (hasExp ? val * 10 ** exp : val);
   return { ok: true, value: result };
 }
 
@@ -434,7 +434,7 @@ function parseHexFloat(s: string): { ok: boolean; value: number } {
   }
 
   const frac = fracVal === 0 ? 0 : (fracVal / fracScale);
-  const result = sign * (intVal + frac) * Math.pow(2, expSign * exp);
+  const result = sign * (intVal + frac) * 2 ** (expSign * exp);
   return { ok: true, value: result };
 }
 
@@ -460,6 +460,7 @@ export function luaToNumberDetailed(
   }
 
   {
+    // biome-ignore lint/correctness/useParseIntRadix: local parseInt function, not global
     const parsed = parseInt(s);
     if (parsed.ok) {
       const v = parsed.value;

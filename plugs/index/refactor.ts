@@ -43,7 +43,7 @@ export async function renamePageCommand(cmdDef: any) {
     editor.flashNotification("Must provide a non-empty page title.", "error");
     return false;
   }
-  const pageList: [string, string][] = [[oldName + ".md", newName + ".md"]];
+  const pageList: [string, string][] = [[`${oldName}.md`, `${newName}.md`]];
   await batchRenameFiles(pageList);
   return true;
 }
@@ -80,7 +80,7 @@ export async function renamePageLinkCommand() {
     editor.flashNotification("Must provide a non-empty page title.", "error");
     return false;
   }
-  const pageList: [string, string][] = [[oldName + ".md", newName + ".md"]];
+  const pageList: [string, string][] = [[`${oldName}.md`, `${newName}.md`]];
   await batchRenameFiles(pageList);
 }
 
@@ -225,7 +225,7 @@ async function renamePage(oldName: string, newName: string) {
         newTail = newTail.replace(/^.*?(?=@\d*|#|\$|\))/, newLink);
         // Wrap in <> if link has spaces
         if (newLink.includes(" ")) {
-          newTail = "<" + newTail.replace(")", ">)");
+          newTail = `<${newTail.replace(")", ">)")}`;
         }
         text = text.substring(0, link.pos) + newTail;
       }
@@ -239,7 +239,7 @@ async function renamePage(oldName: string, newName: string) {
   const batchRenameDocuments: [string, string][] = [];
   for (const document of documentsToMove) {
     const newAttName = oldFolder.length === 0
-      ? newFolder + "/" + document
+      ? `${newFolder}/${document}`
       : document.replace(oldFolder, newFolder).replace(/^\//, "");
     batchRenameDocuments.push([document, newAttName]);
   }
@@ -340,7 +340,7 @@ export async function renamePrefixCommand(cmdDef: any) {
     file,
   ) => file.startsWith(oldPrefix));
   allAffectedFiles = allAffectedFiles.concat(
-    allPages.map((page) => page.name + ".md").filter((page) =>
+    allPages.map((page) => `${page.name}.md`).filter((page) =>
       page.startsWith(oldPrefix)
     ),
   );
@@ -452,7 +452,7 @@ async function updateBacklinks(
         // Is [Markdown link]()
         if (newTail.startsWith("/") || newTail.startsWith("</")) {
           // Is absolute mdlink, update with full path with leading /
-          newLink = "/" + newLink;
+          newLink = `/${newLink}`;
         } else {
           // Is relative mdlink
           newLink = absoluteToRelativePath(pageToEdit, newLink);
@@ -461,7 +461,7 @@ async function updateBacklinks(
 
         // Wrap in <> if link has spaces
         if (newLink.includes(" ")) {
-          newTail = "<" + newTail.replace(")", ">)");
+          newTail = `<${newTail.replace(")", ">)")}`;
         }
       } else {
         // Is wikilink, replace with full path

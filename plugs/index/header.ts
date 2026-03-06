@@ -68,7 +68,7 @@ export function indexHeaders(
 }
 
 export async function headerComplete(completeEvent: CompleteEvent) {
-  const match = /(?:\[\[|\[.*?\]\()(?<path>[^\[]*)$/.exec(
+  const match = /(?:\[\[|\[.*?\]\()(?<path>[^[]*)$/.exec(
     completeEvent.linePrefix,
   );
   if (!match || !match.groups?.path) {

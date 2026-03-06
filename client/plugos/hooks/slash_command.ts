@@ -15,7 +15,7 @@ import type {
   SlashCompletions,
 } from "@silverbulletmd/silverbullet/type/client";
 
-const slashCommandRegexp = /([^\w:]|^)\/[\w#\-]*/;
+const slashCommandRegexp = /([^\w:]|^)\/[\w#-]*/;
 
 export class SlashCommandHook implements Hook<SlashCommandHookT> {
   slashCommands: SlashCommand[] = [];
@@ -94,7 +94,7 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
         continue;
       }
       if (
-        def.exceptContexts && def.exceptContexts.some(
+        def.exceptContexts?.some(
           (context) => parentNodes.some((node) => node.startsWith(context)),
         )
       ) {

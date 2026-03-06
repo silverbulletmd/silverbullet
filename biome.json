@@ -1,0 +1,44 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.4.6/schema.json",
+	"formatter": {
+		"enabled": false
+	},
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"recommended": true,
+			"suspicious": {
+				"noExplicitAny": "off",
+				"noAssignInExpressions": "off",
+				"noImplicitAnyLet": "off",
+				"noSelfCompare": "off",
+				"noShadowRestrictedNames": "off",
+				"noTemplateCurlyInString": "off",
+				"noThenProperty": "off",
+				"useIterableCallbackReturn": "off"
+			},
+			"style": {
+				"noNonNullAssertion": "off"
+			},
+			"complexity": {
+				"noBannedTypes": "off"
+			},
+			"a11y": {
+				"recommended": false
+			},
+			"correctness": {
+				"noInnerDeclarations": "off"
+			}
+		}
+	},
+	"files": {
+		"includes": [
+			"**",
+			"!**/node_modules",
+			"!**/dist",
+			"!**/client_bundle",
+			"!**/website_build",
+			"!**/*.html"
+		]
+	}
+}

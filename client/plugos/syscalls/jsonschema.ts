@@ -33,7 +33,7 @@ export function validateObject(schema: any, object: any): undefined | string {
     } else {
       let text = ajv.errorsText(validate.errors);
       text = text.replaceAll("/", ".");
-      text = text.replace(/^data[\.\s]/, "");
+      text = text.replace(/^data[.\s]/, "");
       return text;
     }
   } catch (e: any) {

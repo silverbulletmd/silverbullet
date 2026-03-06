@@ -85,7 +85,7 @@ async function updateConfig() {
   }
   if (badAliases.length > 0) {
     await editor.flashNotification(
-      errorMsg + `, need to fix: ${badAliases.join(",")}`,
+      `${errorMsg}, need to fix: ${badAliases.join(",")}`,
       "error",
     );
   }

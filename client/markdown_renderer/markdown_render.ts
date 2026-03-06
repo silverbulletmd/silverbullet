@@ -84,7 +84,7 @@ function posPreservingRender(
     if (!tag.attrs) {
       tag.attrs = {};
     }
-    tag.attrs["data-pos"] = "" + t.from;
+    tag.attrs["data-pos"] = `${t.from}`;
   }
   return tag;
 }

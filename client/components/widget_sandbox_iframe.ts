@@ -150,7 +150,7 @@ export function mountIFrame(
           }
           case "setHeight":
             // iframe.height = data.height + "px";
-            iframe.style.height = data.height + "px";
+            iframe.style.height = `${data.height}px`;
             if (widgetHeightCacheKey) {
               client.setCachedWidgetHeight(
                 widgetHeightCacheKey,
@@ -188,7 +188,7 @@ export function mountIFrame(
       } else if (resolvedContent.url) {
         iframe.contentWindow!.location.href = resolvedContent.url;
         if (resolvedContent.height) {
-          iframe.style.height = resolvedContent.height + "px";
+          iframe.style.height = `${resolvedContent.height}px`;
           if (widgetHeightCacheKey) {
             client.setCachedWidgetHeight(
               widgetHeightCacheKey!,
@@ -197,7 +197,7 @@ export function mountIFrame(
           }
         }
         if (resolvedContent.width) {
-          iframe.width = resolvedContent.width + "px";
+          iframe.width = `${resolvedContent.width}px`;
         }
       }
     }

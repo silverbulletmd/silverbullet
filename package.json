@@ -58,6 +58,7 @@
     "prepublishOnly": "npm run build:plug-compile",
     "test": "vitest run",
     "check": "tsc --noEmit",
+    "lint": "biome lint .",
     "bench": "vitest bench"
   },
   "dependencies": {
@@ -104,6 +105,7 @@
     "turndown": "7.2.2"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.4.6",
     "@preact/preset-vite": "^2.10.3",
     "@types/gitignore-parser": "^0.0.3",
     "@types/js-yaml": "^4.0.9",

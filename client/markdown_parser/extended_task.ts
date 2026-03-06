@@ -52,7 +52,7 @@ export const TaskList: MarkdownConfig = {
       // Note: task states cannot contain : to avoid ambiguity with attribute syntax
       const match = /^\[([^\]:]+)\][ \t]/.exec(leaf.content);
       return match &&
-          cx.parentType().name == "ListItem"
+          cx.parentType().name === "ListItem"
         ? new MultiStatusTaskParser(match[1])
         : null;
     },

@@ -44,7 +44,7 @@ function serializeToYamlValue(
       return "[]"; // Use flow style for empty arrays for simplicity
     }
     // Determine indentation for list items (base + 2 spaces)
-    const itemIndentation = baseIndentation + "  ";
+    const itemIndentation = `${baseIndentation}  `;
     // Format each item recursively, preceded by '- ' marker
     return "\n" +
       value.map((item) =>
@@ -55,7 +55,7 @@ function serializeToYamlValue(
   } else if (typeof value === "object" && value !== null) {
     // Basic object serialization (not requested, but good to consider)
     // This is highly simplified and doesn't handle nesting well without more context
-    const itemIndentation = baseIndentation + "  ";
+    const itemIndentation = `${baseIndentation}  `;
     const entries = Object.entries(value);
     if (entries.length === 0) return "{}"; // Flow style empty objects
     return "\n" +
@@ -89,7 +89,7 @@ export function applyPatches(
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         const trimmedLine = line.trim();
-        if (trimmedLine.startsWith(key + ":")) {
+        if (trimmedLine.startsWith(`${key}:`)) {
           keyLineIndex = i;
           startDeleteIndex = i;
           endDeleteIndex = i;
@@ -203,7 +203,7 @@ export function applyPatches(
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       const trimmedLine = line.trim();
-      if (trimmedLine.startsWith(key + ":")) {
+      if (trimmedLine.startsWith(`${key}:`)) {
         keyLineIndex = i;
         // Extract inline comment if present
         const commentMatch = line.match(/#.*$/);
@@ -214,7 +214,7 @@ export function applyPatches(
         for (let j = i - 1; j >= 0; j--) {
           const prevLine = lines[j].trim();
           if (prevLine.startsWith("#")) {
-            commentBlock = lines[j] + "\n" + commentBlock;
+            commentBlock = `${lines[j]}\n${commentBlock}`;
           } else if (prevLine !== "") {
             break;
           }
@@ -223,7 +223,7 @@ export function applyPatches(
         for (let j = i + 1; j < lines.length; j++) {
           const nextLine = lines[j].trim();
           if (nextLine.startsWith("#")) {
-            trailingComments += lines[j] + "\n";
+            trailingComments += `${lines[j]}\n`;
           } else if (nextLine !== "") {
             break;
           }
@@ -243,7 +243,7 @@ export function applyPatches(
     } else {
       // For scalars, format as key: value
       replacementLine = `${key}: ${serializedNewValue}${
-        inlineComment ? " " + inlineComment : ""
+        inlineComment ? ` ${inlineComment}` : ""
       }`;
     }
 
@@ -267,14 +267,14 @@ export function applyPatches(
       ];
 
       // Join lines and ensure proper newlines
-      currentYaml = newContent.join("\n").replace(/\n*$/, "\n") + "\n";
+      currentYaml = `${newContent.join("\n").replace(/\n*$/, "\n")}\n`;
     } else {
       // Key not found: Add the new key-value pair to the end
       const newLineBlock = replacementLine;
       if (currentYaml.trim() === "") {
-        currentYaml = newLineBlock + "\n";
+        currentYaml = `${newLineBlock}\n`;
       } else {
-        currentYaml = currentYaml.replace(/\n*$/, "\n") + newLineBlock + "\n";
+        currentYaml = `${currentYaml.replace(/\n*$/, "\n") + newLineBlock}\n`;
       }
     }
   }

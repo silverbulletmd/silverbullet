@@ -159,9 +159,9 @@ export async function moveToLineCommand() {
     return;
   }
   let column = 1;
-  const line = parseInt(match[1]);
+  const line = parseInt(match[1], 10);
   if (match[2]) {
-    column = parseInt(match[2]);
+    column = parseInt(match[2], 10);
   }
   await editor.moveCursorToLine(line, column, true); // showing the movement for better UX
 }

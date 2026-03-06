@@ -742,7 +742,7 @@ test("aggregate: custom concat with finish", async () => {
         state.rawSet("s", String(value));
         state.rawSet("first", false);
       } else {
-        state.rawSet("s", state.rawGet("s") + ", " + String(value));
+        state.rawSet("s", `${state.rawGet("s")}, ${String(value)}`);
       }
       return state;
     }),

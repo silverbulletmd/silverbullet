@@ -95,7 +95,7 @@ export function isValidPath(path: string): path is Path {
  * TO THE INNER WORKINGS OF SILVERBULLET AND CHANGES COULD INTRODUCE MAJOR BUGS
  */
 const refRegex =
-  /^(?<meta>\^)?(?<path>(?!.*\.[a-zA-Z0-9]+\.md$)(?!\/?(\.|\^))(?!.*(?:\/|^)\.{1,2}(?:\/|$)|.*\/{2})(?!.*(?:\]\]|\[\[))[^@#\|<>]*)(@(?<pos>\d+)|@[Ll](?<line>\d+)(?:[Cc](?<col>\d+))?|#\s*(?<header>.*))?$/;
+  /^(?<meta>\^)?(?<path>(?!.*\.[a-zA-Z0-9]+\.md$)(?!\/?(\.|\^))(?!.*(?:\/|^)\.{1,2}(?:\/|$)|.*\/{2})(?!.*(?:\]\]|\[\[))[^@#|<>]*)(@(?<pos>\d+)|@[Ll](?<line>\d+)(?:[Cc](?<col>\d+))?|#\s*(?<header>.*))?$/;
 
 /**
  * Parses a reference string into a ref object.
@@ -118,13 +118,13 @@ export function parseToRef(stringRef: string): Ref | null {
   if (groups.pos !== undefined) {
     ref.details = {
       type: "position",
-      pos: parseInt(groups.pos),
+      pos: parseInt(groups.pos, 10),
     };
   } else if (groups.line !== undefined) {
     ref.details = {
       type: "linecolumn",
-      line: parseInt(groups.line),
-      column: groups.col !== undefined ? parseInt(groups.col) : 1,
+      line: parseInt(groups.line, 10),
+      column: groups.col !== undefined ? parseInt(groups.col, 10) : 1,
     };
   } else if (groups.header !== undefined) {
     ref.details = {

@@ -20,31 +20,29 @@ type MiniEditorEvents = {
   onKeyDown?: (view: EditorView, event: KeyboardEvent) => boolean;
 };
 
-export function MiniEditor(
-  {
-    text,
-    placeholderText,
-    vimMode,
-    darkMode,
-    vimStartInInsertMode,
-    onBlur,
-    onEscape,
-    onKeyUp,
-    onKeyDown,
-    onEnter,
-    onChange,
-    focus,
-    editable,
-  }: {
-    text: string;
-    placeholderText?: string;
-    vimMode: boolean;
-    darkMode?: boolean;
-    vimStartInInsertMode?: boolean;
-    focus?: boolean;
-    editable: boolean;
-  } & MiniEditorEvents,
-) {
+export function MiniEditor({
+  text,
+  placeholderText,
+  vimMode,
+  darkMode,
+  vimStartInInsertMode,
+  onBlur,
+  onEscape,
+  onKeyUp,
+  onKeyDown,
+  onEnter,
+  onChange,
+  focus,
+  editable,
+}: {
+  text: string;
+  placeholderText?: string;
+  vimMode: boolean;
+  darkMode?: boolean;
+  vimStartInInsertMode?: boolean;
+  focus?: boolean;
+  editable: boolean;
+} & MiniEditorEvents) {
   const editorDiv = useRef<HTMLDivElement>(null);
   const editorViewRef = useRef<EditorView>();
   const vimModeRef = useRef<string>("normal");
@@ -106,8 +104,6 @@ export function MiniEditor(
     }
   }, [text, vimMode]);
 
-  let onBlurred = false, onEntered = false;
-
   return (
     <div
       class="sb-mini-editor"
@@ -152,34 +148,33 @@ export function MiniEditor(
         // in normal mode. See editor_state.ts for more details.
         createCommandKeyBindings(globalThis.client),
         // Enable vim mode, or not
-        [...vimMode ? [vim()] : []],
+        [...(vimMode ? [vim()] : [])],
         [
-          ...editable
+          ...(editable
             ? []
-            : [EditorView.editable.of(false), EditorState.readOnly.of(true)],
+            : [EditorView.editable.of(false), EditorState.readOnly.of(true)]),
         ],
         history(),
-        [...placeholderText ? [placeholder(placeholderText)] : []],
+        [...(placeholderText ? [placeholder(placeholderText)] : [])],
         keymap.of([
           {
             key: "Enter",
             run: (view) => {
-              onEnter(view, false);
+              onEnter(view.state.sliceDoc(), false);
               return true;
             },
           },
           {
             key: "Shift-Enter",
             run: (view) => {
-              onEnter(view, true);
+              onEnter(view.state.sliceDoc(), true);
               return true;
             },
           },
           {
             key: "Escape",
             run: (view) => {
-              callbacksRef.current!.onEscape &&
-                callbacksRef.current!.onEscape(view.state.sliceDoc());
+              callbacksRef.current!.onEscape?.(view.state.sliceDoc());
               return true;
             },
           },
@@ -199,7 +194,7 @@ export function MiniEditor(
               // Enter should be handled by the keymap, except when in Vim normal mode
               // because then it's disabled
               if (vimMode && vimModeRef.current === "normal") {
-                onEnter(view, event.shiftKey);
+                onEnter(view.state.sliceDoc(), event.shiftKey);
                 return true;
               }
               return false;
@@ -210,7 +205,7 @@ export function MiniEditor(
             return false;
           },
           blur: (_e, view) => {
-            onBlur(view);
+            onBlur?.(view.state.sliceDoc());
           },
         }),
 
@@ -218,44 +213,12 @@ export function MiniEditor(
           class {
             update(update: ViewUpdate): void {
               if (update.docChanged) {
-                callbacksRef.current!.onChange &&
-                  callbacksRef.current!.onChange(update.state.sliceDoc());
+                callbacksRef.current!.onChange?.(update.state.sliceDoc());
               }
             }
           },
         ),
       ],
     });
-
-    // Avoid double triggering these events (may happen due to onkeypress vs onkeyup delay)
-    function onEnter(view: EditorView, shiftDown: boolean) {
-      if (onEntered) {
-        return;
-      }
-      onEntered = true;
-      callbacksRef.current!.onEnter(view.state.sliceDoc(), shiftDown);
-      // Event may occur again in 500ms
-      setTimeout(() => {
-        onEntered = false;
-      }, 500);
-    }
-
-    function onBlur(view: EditorView) {
-      if (onBlurred || onEntered) {
-        return;
-      }
-      onBlurred = true;
-      if (callbacksRef.current!.onBlur) {
-        Promise.resolve(callbacksRef.current!.onBlur(view.state.sliceDoc()))
-          .catch(() => {
-            // Reset the state
-            view.setState(buildEditorState());
-          });
-      }
-      // Event may occur again in 500ms
-      setTimeout(() => {
-        onBlurred = false;
-      }, 500);
-    }
   }
 }

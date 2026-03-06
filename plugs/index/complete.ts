@@ -23,7 +23,7 @@ export async function attributeCompletion(
         label: attr,
         type: `attribute`,
         detail: `for #${tag} (type: ${humanReadableSchemaType(def)})${
-          def.description ? ": " + def.description : ""
+          def.description ? `: ${def.description}` : ""
         }`,
         apply: `${attr}: `,
       });
@@ -50,7 +50,7 @@ function humanReadableSchemaType(type: any): string {
  * Task state completion
  */
 export async function completeTaskState(completeEvent: CompleteEvent) {
-  const taskMatch = /([\-\*]\s+\[)([^\[\]]+)$/.exec(
+  const taskMatch = /([-*]\s+\[)([^[\]]+)$/.exec(
     completeEvent.linePrefix,
   );
   if (!taskMatch) {

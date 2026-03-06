@@ -16,21 +16,15 @@ test("Test Lua parser", () => {
   parse(`e([[hel]lo]], "Grinny face\\u{1F600}")`);
   parse(`e([=[Hello page [[index]] end scene]=], [[yo]])`);
 
-  // console.log(
-  //   JSON.stringify(
-  parse(`e([==[Hello page [[index]] end scene]==], [==[yo]==])`),
-    // null,
-    // 2,
-    //   ),
-    // );
-    console.log(
-      JSON.stringify(
-        parse(`e([==[Hello page [[bla]]
+  parse(`e([==[Hello page [[index]] end scene]==], [==[yo]==])`);
+  console.log(
+    JSON.stringify(
+      parse(`e([==[Hello page [[bla]]
 ]==])`),
-        null,
-        2,
-      ),
-    );
+      null,
+      2,
+    ),
+  );
 
   parse(`e(10 << 10, 10 >> 10, 10 & 10, 10 | 10, 10 ~ 10)`);
 
@@ -162,7 +156,8 @@ test("Test numeric constant parsing", () => {
   expect((parseExpressionString(`0xBEBADA`) as LuaNumberLiteral).value).toEqual(0xBEBADA,
   );
   expect((parseExpressionString(`3.0`) as LuaNumberLiteral).value).toEqual(3.0);
-  expect((parseExpressionString(`3.1416`) as LuaNumberLiteral).value).toEqual(3.1416,
+  expect((parseExpressionString(`3.1416`) as LuaNumberLiteral).value)// biome-ignore lint/suspicious/noApproximativeNumericConstant: testing exact value 3.1416, not Math.PI
+  .toEqual(3.1416,
   );
   expect((parseExpressionString(`314.16e-2`) as LuaNumberLiteral).value).toEqual(314.16e-2,
   );

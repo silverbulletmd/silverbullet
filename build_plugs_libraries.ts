@@ -26,8 +26,8 @@ if (isMain) {
     strict: false,
   });
 
-  const manifests = builtinPlugNames.map((name) =>
-    `./plugs/${name}/${name}.plug.yaml`
+  const manifests = builtinPlugNames.map(
+    (name) => `./plugs/${name}/${name}.plug.yaml`,
   );
 
   const plugBundlePath = "client_bundle/base_fs";
@@ -44,14 +44,10 @@ if (isMain) {
   });
 
   // Build the plugs
-  await compileManifests(
-    manifests,
-    targetDir,
-    {
-      debug: args.debug as boolean | undefined,
-      info: args.info as boolean | undefined,
-    },
-  );
+  await compileManifests(manifests, targetDir, {
+    debug: args.debug as boolean | undefined,
+    info: args.info as boolean | undefined,
+  });
   esbuild.stop();
 }
 
@@ -62,14 +58,9 @@ export async function updateVersionFile() {
     });
 
     let stdout = "";
-    let stderr = "";
 
     gitProcess.stdout?.on("data", (data) => {
       stdout += data.toString();
-    });
-
-    gitProcess.stderr?.on("data", (data) => {
-      stderr += data.toString();
     });
 
     gitProcess.on("close", async (code) => {
@@ -82,9 +73,11 @@ export async function updateVersionFile() {
 
       const versionFilePath = "./public_version.ts";
       // Write version to file with date in YYYY-MM-DDTHH-MM-SSZ format attached to the version
-      const versionContent = `export const publicVersion = "${commitVersion}-${
-        new Date().toISOString().split(".")[0].replaceAll(":", "-").concat("Z")
-      }";`;
+      const versionContent = `export const publicVersion = "${commitVersion}-${new Date()
+        .toISOString()
+        .split(".")[0]
+        .replaceAll(":", "-")
+        .concat("Z")}";`;
 
       try {
         await writeFile(versionFilePath, versionContent, "utf-8");

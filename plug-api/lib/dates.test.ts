@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { test } from "vitest";
 import { localDateString } from "./dates.ts";
 
 test("Dates", () => {

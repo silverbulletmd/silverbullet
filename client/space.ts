@@ -106,7 +106,7 @@ export class Space {
         let text = `**Error:** Header not found: ${desiredHeaderText}`;
         let offset = 0;
         traverseTree(tree, (n) => {
-          if (n.type && n.type.startsWith("ATXHeading")) {
+          if (n.type?.startsWith("ATXHeading")) {
             const level = +n.type!.substring("ATXHeading".length);
             const headerText = renderToText(n).slice(level + 1);
             let endPos = pageText.length;

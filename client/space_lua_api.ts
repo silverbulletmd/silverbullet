@@ -75,7 +75,7 @@ export async function handleLuaError(e: LuaRuntimeError, system: System<any>) {
     e.message,
     e.sf?.astCtx,
   );
-  if (e.sf?.astCtx && e.sf.astCtx.ref) {
+  if (e.sf?.astCtx?.ref) {
     // We got an error and actually know where it came from, let's navigate there to help debugging
     await system.localSyscall(
       "editor.flashNotification",

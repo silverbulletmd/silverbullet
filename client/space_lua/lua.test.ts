@@ -3,9 +3,9 @@ import { parse } from "./parse.ts";
 import { luaBuildStandardEnv } from "./stdlib.ts";
 import { LuaEnv, LuaRuntimeError, LuaStackFrame } from "./runtime.ts";
 import { evalStatement } from "./eval.ts";
-import { readFile, readdir } from "node:fs/promises";
+import { readFile, } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { dirname, } from "node:path";
 import { readdirSync } from "node:fs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

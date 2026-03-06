@@ -130,7 +130,7 @@ export class ObjectIndex {
     };
   }
 
-  getObjectByRef<T>(page: string, tag: string, ref: string) {
+  getObjectByRef<_T>(page: string, tag: string, ref: string) {
     return this.ds.get([indexKey, tag, this.cleanKey(ref, page), page]);
   }
 

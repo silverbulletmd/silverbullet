@@ -66,7 +66,7 @@ export function TopBar({
                 : unsavedChanges
                 ? "sb-unsaved"
                 : "sb-saved") +
-                (cssClass ? " sb-decorated-object " + cssClass : "")}
+                (cssClass ? ` sb-decorated-object ${cssClass}` : "")}
             >
               <MiniEditor
                 text={pageName ?? ""}

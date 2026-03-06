@@ -94,10 +94,9 @@ export class WorkerSandbox<HookT> implements Sandbox<HookT> {
         const resultCbs = this.outstandingInvocations.get(data.id!);
         this.outstandingInvocations.delete(data.id!);
         if (data.error) {
-          resultCbs &&
-            resultCbs.reject(new Error(data.error));
+          resultCbs?.reject(new Error(data.error));
         } else {
-          resultCbs && resultCbs.resolve(data.result);
+          resultCbs?.resolve(data.result);
         }
         break;
       }

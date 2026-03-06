@@ -14,7 +14,7 @@ function tempFilePath(): string {
 }
 
 test("MemoryKvPrimitives loads from non-existent file without error", async () => {
-  const tempPath = tempFilePath() + "_nonexistent";
+  const tempPath = `${tempFilePath()}_nonexistent`;
   // Disable throttling for tests
   const store = new MemoryKvPrimitives(tempPath, { throttleMs: 0 });
   await store.init();

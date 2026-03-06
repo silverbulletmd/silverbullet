@@ -17,7 +17,7 @@ export function lineWrapper(wrapElements: WrapElement[]) {
     syntaxTree(state).iterate({
       enter: ({ type, from, to }) => {
         for (const wrapElement of wrapElements) {
-          if (type.name == wrapElement.selector) {
+          if (type.name === wrapElement.selector) {
             if (wrapElement.nesting) {
               elementStack.push(type.name);
             }
@@ -40,7 +40,7 @@ export function lineWrapper(wrapElements: WrapElement[]) {
       },
       leave({ type }) {
         for (const wrapElement of wrapElements) {
-          if (type.name == wrapElement.selector && wrapElement.nesting) {
+          if (type.name === wrapElement.selector && wrapElement.nesting) {
             elementStack.pop();
           }
         }

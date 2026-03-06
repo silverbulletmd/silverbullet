@@ -110,7 +110,7 @@ export async function saveFile(file: UploadFile) {
       documentMarkdown = `[${finalFilePath}](${encodePageURI(finalFilePath)})`;
     }
     if (file.contentType.startsWith("image/")) {
-      documentMarkdown = "!" + documentMarkdown;
+      documentMarkdown = `!${documentMarkdown}`;
     }
     editor.insertAtCursor(documentMarkdown);
   }

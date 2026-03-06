@@ -4,7 +4,6 @@ import { ArrayQueryCollection } from "./query_collection.ts";
 import {
   LuaEnv,
   LuaNativeJSFunction,
-  LuaRuntimeError,
   LuaStackFrame,
 } from "./runtime.ts";
 
@@ -13,7 +12,7 @@ test("ArrayQueryCollection", async () => {
   rootEnv.setLocal(
     "build_name",
     new LuaNativeJSFunction((a, b) => {
-      return Promise.resolve(a + " " + b);
+      return Promise.resolve(`${a} ${b}`);
     }),
   );
 

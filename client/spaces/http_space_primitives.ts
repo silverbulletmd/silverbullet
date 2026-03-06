@@ -189,9 +189,9 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       "Content-Type": "application/octet-stream",
     };
     if (meta) {
-      headers["X-Created"] = "" + meta.created;
-      headers["X-Last-Modified"] = "" + meta.lastModified;
-      headers["X-Perm"] = "" + meta.perm;
+      headers["X-Created"] = `${meta.created}`;
+      headers["X-Last-Modified"] = `${meta.lastModified}`;
+      headers["X-Perm"] = `${meta.perm}`;
     }
 
     const res = await this.authenticatedFetch(

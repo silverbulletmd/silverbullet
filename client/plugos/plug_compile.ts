@@ -6,7 +6,6 @@ import * as YAML from "js-yaml";
 import * as esbuild from "esbuild";
 import { bundleAssets } from "../asset_bundle/builder.ts";
 import type { Manifest } from "./types.ts";
-import { version } from "../../version.ts";
 
 import { existsSync } from "node:fs";
 

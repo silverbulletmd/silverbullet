@@ -81,7 +81,7 @@ function lintYamlBlock(
 ): LintDiagnostic | undefined {
   try {
     const parsed = YAML.load(yamlText) as any;
-    if (pageName && parsed.name && parsed.name != pageName) {
+    if (pageName && parsed.name && parsed.name !== pageName) {
       return {
         from: startPos,
         to: startPos + yamlText.length,

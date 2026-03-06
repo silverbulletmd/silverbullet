@@ -30,10 +30,10 @@ export async function pageComplete(completeEvent: CompleteEvent) {
   let isWikilink = true;
   // This negative lookbehind is to prevent matching query[[. This requires negative lookbehind, which generally supported now (it seems), in versions of iOS Safari 13.1 and later
   // https://caniuse.com/js-regexp-lookbehind
-  let match = /(?<!query)\[\[([^\]@$#:\{}]*)$/.exec(completeEvent.linePrefix);
+  let match = /(?<!query)\[\[([^\]@$#:{}]*)$/.exec(completeEvent.linePrefix);
   if (!match) {
     // Try to match [markdown link]()
-    match = /\[.*\]\(([^\]\)@$#:\{}]*)$/.exec(completeEvent.linePrefix);
+    match = /\[.*\]\(([^\])@$#:{}]*)$/.exec(completeEvent.linePrefix);
     isWikilink = false;
   }
   if (!match) {
@@ -50,7 +50,7 @@ export async function pageComplete(completeEvent: CompleteEvent) {
     // Let's prefix the names with a caret to make them match
     allPages = allPages.map((page) => ({
       ...page,
-      name: "^" + page.name,
+      name: `^${page.name}`,
     }));
   } else {
     // This is the most common case, we're combining three types of completions here:
@@ -88,7 +88,7 @@ export async function pageComplete(completeEvent: CompleteEvent) {
 
   return {
     from: completeEvent.pos - prefix.length,
-    options: allPages.map((pageMeta) => {
+    options: allPages.flatMap((pageMeta) => {
       const completions: any[] = [];
       const namePrefix = (pageMeta as PageMeta).pageDecoration?.prefix || "";
       const cssClass = ((pageMeta as PageMeta).pageDecoration?.cssClasses || [])
@@ -121,7 +121,7 @@ export async function pageComplete(completeEvent: CompleteEvent) {
           for (const alias of pageMeta.aliases) {
             const decoratedName = namePrefix + alias;
             completions.push({
-              label: "" + alias,
+              label: `${alias}`,
               displayLabel: decoratedName,
               boost: new Date(pageMeta.lastModified).getTime(),
               apply: pageMeta.tag === "template"
@@ -154,19 +154,19 @@ export async function pageComplete(completeEvent: CompleteEvent) {
           boost = boost * 1.1;
         } else {
           // Absolute path otherwise
-          labelText = "/" + labelText;
+          labelText = `/${labelText}`;
         }
         completions.push({
           label: labelText,
           displayLabel: namePrefix + labelText,
           boost: boost,
-          apply: labelText.includes(" ") ? "<" + labelText + ">" : labelText,
+          apply: labelText.includes(" ") ? `<${labelText}>` : labelText,
           type: "page",
           cssClass,
         });
       }
       return completions;
-    }).flat(),
+    }),
   };
 }
 

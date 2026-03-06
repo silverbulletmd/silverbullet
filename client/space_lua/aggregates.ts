@@ -119,7 +119,6 @@ const noCtx = {};
 function buildAggCtx(name: string): LuaTable {
   const ctx = new LuaTable();
   ctx.rawSet("name", name);
-  // @ts-ignore: Hack to access client via the browser
   const clientConfig = globalThis.client?.config;
   const aggConfig = clientConfig
     ? clientConfig.get(`aggregateConfig.${name}`, {})
@@ -129,7 +128,6 @@ function buildAggCtx(name: string): LuaTable {
 }
 
 export function getAggregateSpec(name: string): AggregateSpec | null {
-  // @ts-ignore: Hack to access client via the browser
   const clientConfig = globalThis.client?.config;
   if (clientConfig) {
     const spec: any = clientConfig.get(`aggregates.${name}`, null);

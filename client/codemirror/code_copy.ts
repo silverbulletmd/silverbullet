@@ -21,7 +21,7 @@ class CodeCopyWidget extends WidgetType {
   }
 
   override eq(other: CodeCopyWidget) {
-    return other.value == this.value;
+    return other.value === this.value;
   }
 
   toDOM() {
@@ -68,7 +68,7 @@ function codeCopyDecoration(
       from,
       to,
       enter: (node) => {
-        if (node.name == "FencedCode") {
+        if (node.name === "FencedCode") {
           const textNodes = node.node.getChildren("CodeText");
           const infoNode = node.node.getChild("CodeInfo");
 
@@ -116,7 +116,7 @@ export const codeCopyPlugin = (client: Client) => {
       update(update: ViewUpdate) {
         if (
           update.docChanged || update.viewportChanged ||
-          syntaxTree(update.startState) != syntaxTree(update.state)
+          syntaxTree(update.startState) !== syntaxTree(update.state)
         ) {
           this.decorations = codeCopyDecoration(update.view, client);
         }

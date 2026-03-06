@@ -51,7 +51,7 @@ export async function allTests(db: KvPrimitives) {
   // Set a large batch
   const largeBatch: KV[] = [];
   for (let i = 0; i < 50; i++) {
-    largeBatch.push({ key: ["test", "test" + i], value: "Hello" });
+    largeBatch.push({ key: ["test", `test${i}`], value: "Hello" });
   }
   await db.batchSet(largeBatch);
   const largeBatchResult: KV[] = [];

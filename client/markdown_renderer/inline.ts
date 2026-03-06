@@ -208,7 +208,7 @@ export function inlineContentFromURL(
 
   // If the URL is a local, prefix it with /.fs and encode the : so that it's not interpreted as a protocol
   const sanitizedFsUrl = isLocalURL(transclusion.url)
-    ? fsEndpoint.slice(1) + "/" + transclusion.url.replace(":", "%3A")
+    ? `${fsEndpoint.slice(1)}/${transclusion.url.replace(":", "%3A")}`
     : transclusion.url;
 
   if (mimeType.startsWith("image/")) {

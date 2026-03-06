@@ -143,7 +143,7 @@ export async function indentItem() {
     const currentItemBounds = determineItemBounds(text, cursorPos);
     const itemText = text.slice(currentItemBounds.from, currentItemBounds.to);
     const newText = itemText.split("\n").map((line) =>
-      line ? "  " + line : line
+      line ? `  ${line}` : line
     ).join("\n");
     const preText = text.slice(currentItemBounds.from, cursorPos);
     const newCursorPos = cursorPos + preText.split("\n").length * 2;
@@ -198,7 +198,7 @@ export async function outdentItem() {
 
 export function ensureNewLine(s: string) {
   if (!s.endsWith("\n")) {
-    return s + "\n";
+    return `${s}\n`;
   } else {
     return s;
   }

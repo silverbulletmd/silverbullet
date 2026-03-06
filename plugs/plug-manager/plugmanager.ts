@@ -91,7 +91,7 @@ export async function updatePlugsCommand() {
         typeof manifest.name !== "string"
       ) {
         // Try taking a good guess at a name if it isn't provided
-        const match = /\/([^\/]+)\.plug\.js$/.exec(plugUri);
+        const match = /\/([^/]+)\.plug\.js$/.exec(plugUri);
         if (!match) {
           console.error(
             `No plug name provided and could not extract name from ${plugUri} ignoring...`,
@@ -140,7 +140,7 @@ export async function updatePlugsCommand() {
     await editor.flashNotification("All done!");
     system.reloadPlugs();
   } catch (e: any) {
-    editor.flashNotification("Error updating plugs: " + e.message, "error");
+    editor.flashNotification(`Error updating plugs: ${e.message}`, "error");
   }
 }
 

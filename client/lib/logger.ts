@@ -109,7 +109,7 @@ export class Logger {
 }
 
 // Global logger instance
-let globalLogger: Logger | undefined = undefined;
+let globalLogger: Logger | undefined ;
 
 export function initLogger(prefix: string = ""): Logger {
   globalLogger = new Logger(prefix);

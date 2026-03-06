@@ -62,7 +62,7 @@ function keyBindingForQuote(
             ),
           };
         } else {
-          const quote = (/\W/.exec(chBefore) && !/[!\?,\.\-=“]/.exec(chBefore))
+          const quote = (/\W/.exec(chBefore) && !/[!?,.\-=“]/.exec(chBefore))
             ? left
             : right;
 

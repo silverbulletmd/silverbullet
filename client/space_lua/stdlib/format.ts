@@ -128,8 +128,8 @@ function pad(s: string, width: number, flags: number, numPad: boolean): string {
 }
 
 function addSign(s: string, flags: number): string {
-  if (flags & FLAG_PLUS) return "+" + s;
-  if (flags & FLAG_SPACE) return " " + s;
+  if (flags & FLAG_PLUS) return `+${s}`;
+  if (flags & FLAG_SPACE) return ` ${s}`;
   return s;
 }
 
@@ -200,7 +200,7 @@ function formatInt(n: number, spec: FormatSpec): string {
 
   let result: string;
   if (neg) {
-    result = "-" + prefix + digits;
+    result = `-${prefix}${digits}`;
   } else {
     result = addSign(prefix + digits, spec.flags);
   }
@@ -216,7 +216,7 @@ function formatFloat(n: number, spec: FormatSpec): string {
   const lower = code | 32; // to lowercase
 
   // Lua convention
-  if (!isFinite(n)) {
+  if (!Number.isFinite(n)) {
     let s: string;
     if (n !== n) {
       s = upper ? "-NAN" : "-nan";
@@ -275,9 +275,9 @@ function formatFloat(n: number, spec: FormatSpec): string {
       const EIdx = body.indexOf("E");
       const expIdx = eIdx !== -1 ? eIdx : EIdx;
       if (expIdx !== -1) {
-        body = body.slice(0, expIdx) + "." + body.slice(expIdx);
+        body = `${body.slice(0, expIdx)}.${body.slice(expIdx)}`;
       } else {
-        body = body + ".";
+        body = `${body}.`;
       }
     }
   }
@@ -287,16 +287,16 @@ function formatFloat(n: number, spec: FormatSpec): string {
     if (body.indexOf(".") === -1) {
       const expIdx = findExpIndex(body);
       if (expIdx !== -1) {
-        body = body.slice(0, expIdx) + "." + body.slice(expIdx);
+        body = `${body.slice(0, expIdx)}.${body.slice(expIdx)}`;
       } else {
-        body = body + ".";
+        body = `${body}.`;
       }
     }
   }
 
   let result: string;
   if (neg) {
-    result = "-" + body;
+    result = `-${body}`;
   } else {
     result = addSign(body, spec.flags);
   }
@@ -322,7 +322,7 @@ function ensureExpTwoDigits(s: string): string {
   const digitStart = signIdx + 1;
   const expLen = s.length - digitStart;
   if (expLen < 2) {
-    return s.slice(0, digitStart) + "0" + s.slice(digitStart);
+    return `${s.slice(0, digitStart)}0${s.slice(digitStart)}`;
   }
   return s;
 }
@@ -353,7 +353,7 @@ function formatHexFloat(n: number, spec: FormatSpec): string {
   const code = spec.spec;
   const upper = code === 65; // 'A'
 
-  if (!isFinite(n)) {
+  if (!Number.isFinite(n)) {
     let s: string;
     if (n !== n) {
       s = upper ? "-NAN" : "-nan";
@@ -373,7 +373,7 @@ function formatHexFloat(n: number, spec: FormatSpec): string {
   if (abs === 0) {
     const prec = spec.hasPrec ? spec.prec : 0;
     if (prec > 0) {
-      body = "0x0." + "0".repeat(prec) + "p+0";
+      body = `0x0.${"0".repeat(prec)}p+0`;
     } else {
       body = "0x0p+0";
     }
@@ -395,14 +395,14 @@ function formatHexFloat(n: number, spec: FormatSpec): string {
         }
       }
       if (!hasDot) {
-        body = body.slice(0, pIdx) + "." + body.slice(pIdx);
+        body = `${body.slice(0, pIdx)}.${body.slice(pIdx)}`;
       }
     }
   }
 
   let result: string;
   if (neg) {
-    result = "-" + body;
+    result = `-${body}`;
   } else {
     result = addSign(body, spec.flags);
   }
@@ -474,9 +474,9 @@ function hexFloatBody(abs: number, spec: FormatSpec): string {
 
   const expSign = exponent >= 0 ? "+" : "";
   if (fracHex.length > 0) {
-    return "0x" + firstDigit + "." + fracHex + "p" + expSign + exponent;
+    return `0x${firstDigit}.${fracHex}p${expSign}${exponent}`;
   }
-  return "0x" + firstDigit + "p" + expSign + exponent;
+  return `0x${firstDigit}p${expSign}${exponent}`;
 }
 
 // Convert 52-bit value to 13 hex digits, zero-padded
@@ -581,7 +581,7 @@ function quoteString(s: string): string {
         if (ds.length < 3) out += "0".repeat(3 - ds.length);
         out += ds;
       } else {
-        out += "\\" + c.toString();
+        out += `\\${c.toString()}`;
       }
     } else {
       out += String.fromCharCode(c);
@@ -643,7 +643,7 @@ function toPointer(v: unknown): string {
       id = nextId++;
       stringIds.set(key, id);
     }
-    return "0x" + id.toString(16).padStart(14, "0");
+    return `0x${id.toString(16).padStart(14, "0")}`;
   }
 
   const obj = v as object;
@@ -652,7 +652,7 @@ function toPointer(v: unknown): string {
     id = nextId++;
     objectIds.set(obj, id);
   }
-  return "0x" + id.toString(16).padStart(14, "0");
+  return `0x${id.toString(16).padStart(14, "0")}`;
 }
 
 function formatPointer(v: unknown, spec: FormatSpec): string {

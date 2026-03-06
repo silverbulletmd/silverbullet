@@ -24,13 +24,13 @@ export async function listifySelection() {
   const selection = await editor.getSelection();
 
   //if very first of doc, just add a bullet and end
-  if (selection.to == 0 && selection.from == 0) {
+  if (selection.to === 0 && selection.from === 0) {
     await editor.insertAtCursor("* ");
     return;
   }
 
   let from = selection.from;
-  if (text[from] == "\n") {
+  if (text[from] === "\n") {
     //end of line, need to find previous line break
     from--;
   }

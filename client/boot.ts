@@ -235,7 +235,6 @@ safeRun(async () => {
       logger.postToServer(".logs", "client");
     }, 1000);
   }
-  // @ts-ignore: on purpose
   globalThis.client = client;
   clientProxy.setTarget(client);
   await client.init(encryptionKey);

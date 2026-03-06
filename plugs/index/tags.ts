@@ -67,7 +67,7 @@ export async function tagComplete(completeEvent: CompleteEvent) {
     return null;
   }
 
-  const match = /#[^#\s\[\]]+\w*$/.exec(completeEvent.linePrefix);
+  const match = /#[^#\s[\]]+\w*$/.exec(completeEvent.linePrefix);
   if (!match) {
     return null;
   }
@@ -104,7 +104,7 @@ export function updateITags<T>(obj: ObjectValue<T>, frontmatter: FrontMatter) {
 /** Get markup for a hashtag name with # prefix and angle brackets if necessary */
 export function renderHashtag(name: string): string {
   // detect with the same regex as the parser
-  const simple: string = "#" + name;
+  const simple: string = `#${name}`;
   const match = simple.match(tagRegex);
   if (!match || match[0].length !== simple.length) {
     return `#<${name}>`;

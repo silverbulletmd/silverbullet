@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { test } from "vitest";
 import "fake-indexeddb/auto";
 import { IndexedDBKvPrimitives } from "../data/indexeddb_kv_primitives.ts";
 import { DataStoreSpacePrimitives } from "./datastore_space_primitives.ts";

@@ -1,6 +1,6 @@
 export function throttle(func: () => void, limit: number): () => void {
   let timer: any = null;
-  return function () {
+  return () => {
     if (!timer) {
       timer = setTimeout(() => {
         func();
@@ -15,7 +15,7 @@ export function throttleImmediately(
   limit: number,
 ): () => void {
   let timer: any = null;
-  return function () {
+  return () => {
     if (!timer) {
       func();
       timer = setTimeout(() => {

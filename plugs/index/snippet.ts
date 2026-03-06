@@ -51,7 +51,7 @@ export function extractSnippet(
 
     // Find tasks that don't have a page reference, and add one
     const taskMatch = line.match(
-      /^(\s*)([\*\-]\s+\[[^\]]+\]\s+)([^\[][^\[].+)$/,
+      /^(\s*)([*-]\s+\[[^\]]+\]\s+)([^[][^[].+)$/,
     );
     if (taskMatch) {
       const pos = lineLengths.slice(0, i).reduce((acc, len) =>
