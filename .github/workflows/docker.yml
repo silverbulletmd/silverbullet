@@ -60,7 +60,7 @@ jobs:
       - name: Build binaries for multiple platforms
         run: |
           make build-for-docker
-  
+
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v4.4.0
