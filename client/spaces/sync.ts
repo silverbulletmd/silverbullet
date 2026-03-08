@@ -153,7 +153,7 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
     } finally {
       this.isSyncing = false;
       if (operations > 0) {
-        this.emit("snapshotUpdated", snapshot);
+        void this.emit("snapshotUpdated", snapshot);
       }
     }
 
@@ -210,7 +210,7 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
     } finally {
       this.isSyncing = false;
       if (operations > 0) {
-        this.emit("snapshotUpdated", snapshot);
+        void this.emit("snapshotUpdated", snapshot);
       }
     }
 

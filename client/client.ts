@@ -289,7 +289,7 @@ export class Client {
 
     // Kick off a cron event interval
     setInterval(() => {
-      this.dispatchAppEvent("cron:secondPassed");
+      void this.dispatchAppEvent("cron:secondPassed");
     }, 1000);
 
     // We can load custom styles async
@@ -335,7 +335,7 @@ export class Client {
 
     // Kick off a regular file listing request to trigger events
     setInterval(() => {
-      this.eventedSpacePrimitives.fetchFileList();
+      void this.eventedSpacePrimitives.fetchFileList();
     }, fetchFileListInterval + jitter());
 
     this.eventHook.addLocalListener(
@@ -396,7 +396,7 @@ export class Client {
           this.flashNotification(
             "Page or document changed elsewhere, reloading",
           );
-          this.reloadEditor();
+          void this.reloadEditor();
         }
       },
     );
@@ -477,7 +477,7 @@ export class Client {
 
           if (this.isDocumentEditor()) {
             console.log("Requesting save for document", this.currentPath());
-            this.dispatchAppEvent(
+            void this.dispatchAppEvent(
               "editor:documentSaving",
               this.currentPath(),
             );
@@ -488,7 +488,7 @@ export class Client {
             return resolve();
           } else {
             console.log("Saving page", this.currentPath());
-            this.dispatchAppEvent(
+            void this.dispatchAppEvent(
               "editor:pageSaving",
               this.currentName(),
             );
@@ -568,7 +568,7 @@ export class Client {
       this.flashNotification(`Lua error: ${e.message}`, "error");
       const origin = resolveASTReference(e.sf.astCtx!);
       if (origin) {
-        client.navigate(origin);
+        void client.navigate(origin);
       }
     } else {
       this.flashNotification(`Error: ${e.message}`, "error");
@@ -662,7 +662,7 @@ export class Client {
     });
 
     // Async kick-off file listing to bring listing up to date
-    this.space.spacePrimitives.fetchFileList();
+    void this.space.spacePrimitives.fetchFileList();
   }
 
   async updateDocumentListCache() {

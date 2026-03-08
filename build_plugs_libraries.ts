@@ -48,7 +48,7 @@ if (isMain) {
     debug: args.debug as boolean | undefined,
     info: args.info as boolean | undefined,
   });
-  esbuild.stop();
+  await esbuild.stop();
 }
 
 export async function updateVersionFile() {

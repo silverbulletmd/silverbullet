@@ -502,7 +502,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
         key,
         value,
       });
-      client.reloadEditor();
+      void client.reloadEditor();
     },
     "editor.vimEx": (_ctx, exCommand: string) => {
       const cm = vimGetCm(client.editorView);
@@ -592,7 +592,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
       client.startPageNavigate(mode);
     },
     "editor.openCommandPalette": () => {
-      client.startCommandPalette();
+      void client.startCommandPalette();
     },
     "editor.deleteLine": () => {
       deleteLine(client.editorView);

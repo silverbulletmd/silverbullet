@@ -80,7 +80,7 @@ export function TopBar({
                   }
                 }}
                 onEnter={(newName) => {
-                  onRename(newName);
+                  void onRename(newName);
                 }}
                 editable={!client.ui.viewState.uiOptions.forcedROMode &&
                   !client.bootConfig.readOnly}

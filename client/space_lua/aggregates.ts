@@ -118,12 +118,12 @@ const noCtx = {};
 
 function buildAggCtx(name: string): LuaTable {
   const ctx = new LuaTable();
-  ctx.rawSet("name", name);
+  void ctx.rawSet("name", name);
   const clientConfig = globalThis.client?.config;
   const aggConfig = clientConfig
     ? clientConfig.get(`aggregateConfig.${name}`, {})
     : {};
-  ctx.rawSet("config", aggConfig);
+  void ctx.rawSet("config", aggConfig);
   return ctx;
 }
 

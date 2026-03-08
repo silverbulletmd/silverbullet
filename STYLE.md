@@ -106,6 +106,10 @@ this.eventHook.dispatchEvent(...);
 export class Client {
 ```
 
+### Promise Handling
+
+Use `void` to mark intentionally fire-and-forget promises. This satisfies the `noFloatingPromises` lint rule and signals that the unawaited call is deliberate.
+
 ### Code Patterns
 
 **Definite assignment for late initialization:**

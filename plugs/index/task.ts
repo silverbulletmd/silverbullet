@@ -223,7 +223,7 @@ export async function updateTaskState(
     taskStateNode.children![1].text = newState;
     text = renderToText(referenceMdTree);
     await space.writePage(pageName, text);
-    sync.performFileSync(`${pageName}.md`);
+    void sync.performFileSync(`${pageName}.md`);
   }
 }
 
@@ -292,7 +292,7 @@ export async function taskCycleCommand() {
     return;
   }
 
-  convertListItemToTask(listItem);
+  await convertListItemToTask(listItem);
 }
 
 export async function removeCompletedTasksCommand() {

@@ -58,7 +58,7 @@ export class PromiseQueue {
     return new Promise((resolve, reject) => {
       this.queue.push({ fn, resolve, reject });
       if (!this.processing) {
-        this.process();
+        void this.process();
       }
     });
   }
@@ -79,7 +79,7 @@ export class PromiseQueue {
       reject(error);
     }
 
-    this.process(); // Continue processing the next promise in the queue
+    void this.process(); // Continue processing the next promise in the queue
   }
 }
 

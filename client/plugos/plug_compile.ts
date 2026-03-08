@@ -196,6 +196,6 @@ export async function plugCompileCommand(
       info: info,
     },
   );
-  esbuild.stop();
+  await esbuild.stop();
   process.exit(0);
 }

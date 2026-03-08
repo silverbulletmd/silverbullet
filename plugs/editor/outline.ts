@@ -11,7 +11,7 @@ export async function moveItemUp() {
     } catch {
       // If `determineItemBounds()` throws, that likely means the cursor is NOT in a bullet list,
       // so we fall back to `moveLineUp()`
-      editor.moveLineUp();
+      void editor.moveLineUp();
       return;
     }
     let previousItemBounds: ReturnType<typeof determineItemBounds> | undefined;
@@ -83,7 +83,7 @@ export async function moveItemDown() {
     } catch {
       // If `determineItemBounds()` throws, that likely means the cursor is NOT in a bullet list,
       // so we fall back to `moveLineDown()`
-      editor.moveLineDown();
+      void editor.moveLineDown();
       return;
     }
     let nextItemBounds: ReturnType<typeof determineItemBounds> | undefined;

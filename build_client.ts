@@ -89,5 +89,5 @@ async function buildCopyBundleAssets() {
 const isMain = process.argv[1] === fileURLToPath(import.meta.url);
 if (isMain) {
   await bundleAll();
-  esbuild.stop();
+  await esbuild.stop();
 }

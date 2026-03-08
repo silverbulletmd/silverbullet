@@ -15,7 +15,7 @@ test("Test data augmentation", async () => {
     name: "Mary",
     age: 5678,
   };
-  ds.batchSet([{
+  await ds.batchSet([{
     key: ["john"],
     value: john,
   }, {

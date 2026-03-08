@@ -788,13 +788,13 @@ export function evalExpression(
             switch (field.type) {
               case "PropField": {
                 const value = await evalExpression(field.value, env, sf);
-                table.set(field.key, singleResult(value), sf);
+                void table.set(field.key, singleResult(value), sf);
                 break;
               }
               case "DynamicField": {
                 const key = await evalExpression(field.key, env, sf);
                 const value = await evalExpression(field.value, env, sf);
-                table.set(singleResult(key), singleResult(value), sf);
+                void table.set(singleResult(key), singleResult(value), sf);
                 break;
               }
               case "ExpressionField": {

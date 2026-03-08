@@ -50,7 +50,7 @@ export class QueueWorker {
           await this.callback(messages);
         } else {
           // No messages, wait to be woken up or a timeout
-          this.mq.eventHook.dispatchEvent(
+          void this.mq.eventHook.dispatchEvent(
             `mq:emptyQueue:${this.queue}`,
             this.queue,
           );
@@ -226,7 +226,7 @@ export class DataStoreMQ {
   ): QueueWorker {
     const worker = new QueueWorker(this, queue, options, callback);
     // Start the worker asynchronously
-    worker.run();
+    void worker.run();
     return worker;
   }
 

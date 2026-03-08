@@ -50,7 +50,7 @@ export function cleanModePlugins(client: Client) {
           pos: pos,
         };
         // Propagate click event from checkbox
-        client.dispatchClickEvent(clickEvent);
+        void client.dispatchClickEvent(clickEvent);
       },
     }),
     listBulletPlugin(),

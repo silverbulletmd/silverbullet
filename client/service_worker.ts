@@ -209,7 +209,7 @@ self.addEventListener("message", async (event: any) => {
 
         if (config.logPush) {
           setInterval(() => {
-            logger.postToServer(".logs", "service_worker");
+            void logger.postToServer(".logs", "service_worker");
           }, 1000);
         }
 
@@ -264,7 +264,7 @@ self.addEventListener("message", async (event: any) => {
         proxyRouter.on({
           observedRequest: (path) => {
             // This is triggered for the currently open file, we want to proactively sync it to keep it up to date
-            syncEngine.syncSingleFile(path);
+            void syncEngine.syncSingleFile(path);
           },
           onlineStatusUpdated: (isOnline) => {
             broadcastMessage({

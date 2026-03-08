@@ -60,7 +60,7 @@ export class WorkerSandbox<HookT> implements Sandbox<HookT> {
             return resolve();
           }
 
-          this.onMessage(ev.data);
+          void this.onMessage(ev.data);
         };
       }),
     ]);

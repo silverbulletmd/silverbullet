@@ -53,7 +53,7 @@ class TableViewWidget extends WidgetType {
       });
     });
 
-    expandMarkdown(
+    void expandMarkdown(
       client.space,
       client.currentName(),
       this.t,

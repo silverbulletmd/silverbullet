@@ -138,9 +138,9 @@ export async function updatePlugsCommand() {
       }
     }
     await editor.flashNotification("All done!");
-    system.reloadPlugs();
+    void system.reloadPlugs();
   } catch (e: any) {
-    editor.flashNotification(`Error updating plugs: ${e.message}`, "error");
+    void editor.flashNotification(`Error updating plugs: ${e.message}`, "error");
   }
 }
 

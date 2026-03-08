@@ -40,7 +40,7 @@ export async function renamePageCommand(cmdDef: any) {
   }
   newName = newName.trim();
   if (newName === "") {
-    editor.flashNotification("Must provide a non-empty page title.", "error");
+    void editor.flashNotification("Must provide a non-empty page title.", "error");
     return false;
   }
   const pageList: [string, string][] = [[`${oldName}.md`, `${newName}.md`]];
@@ -77,7 +77,7 @@ export async function renamePageLinkCommand() {
   }
   newName = newName.trim();
   if (newName === "") {
-    editor.flashNotification("Must provide a non-empty page title.", "error");
+    void editor.flashNotification("Must provide a non-empty page title.", "error");
     return false;
   }
   const pageList: [string, string][] = [[`${oldName}.md`, `${newName}.md`]];
@@ -101,7 +101,7 @@ export async function renameDocumentCommand(cmdDef: any) {
   }
   newName = newName.trim();
   if (newName === "") {
-    editor.flashNotification(
+    void editor.flashNotification(
       "Must provide a non-empty document name.",
       "error",
     );
@@ -325,7 +325,7 @@ export async function renamePrefixCommand(cmdDef: any) {
   // actually want to add or remove white space. They can also input an empty
   // string for the new prefix to remove the old prefix.
   if (oldPrefix === "") {
-    editor.flashNotification("Must provide a non-empty prefix.", "error");
+    void editor.flashNotification("Must provide a non-empty prefix.", "error");
     return false;
   }
   const newPrefix = cmdDef.newPrefix ??
@@ -377,7 +377,7 @@ export async function extractToPageCommand() {
   }
   newName = newName.trim();
   if (newName === "") {
-    editor.flashNotification("Must provide a non-empty page title.", "error");
+    void editor.flashNotification("Must provide a non-empty page title.", "error");
   }
 
   try {

@@ -188,8 +188,8 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     if (!plug) {
       return;
     }
-    plug.stop();
-    this.emit("plugUnloaded", name);
+    void plug.stop();
+    void this.emit("plugUnloaded", name);
     this.plugs.delete(name);
   }
 

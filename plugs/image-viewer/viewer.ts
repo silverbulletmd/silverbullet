@@ -166,5 +166,5 @@ globalThis.silverbullet.addEventListener("flash-info", () => {
 }
 
 export function showInfoMessage() {
-  editor.sendMessage("flash-info");
+  void editor.sendMessage("flash-info");
 }

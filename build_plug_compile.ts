@@ -38,4 +38,4 @@ if (result.metafile) {
 //   "utf-8",
 // );
 console.log("Output in dist");
-esbuild.stop();
+await esbuild.stop();

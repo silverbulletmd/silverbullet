@@ -330,14 +330,14 @@ export async function evalExpressionWithAggregates(
         case "PropField": {
           const pf = field as LuaPropField;
           const value = await recurse(pf.value);
-          table.set(pf.key, value, sf);
+          void table.set(pf.key, value, sf);
           break;
         }
         case "DynamicField": {
           const df = field as LuaDynamicField;
           const key = await evalExpression(df.key, env, sf);
           const value = await recurse(df.value);
-          table.set(key, value, sf);
+          void table.set(key, value, sf);
           break;
         }
         case "ExpressionField": {
@@ -447,14 +447,14 @@ function normalizeSelectResults(results: any[]): any[] {
     const rebuilt = new LuaTable();
     for (const k of canonicalKeys) {
       const v = item.rawGet(k);
-      rebuilt.rawSet(
+      void rebuilt.rawSet(
         k,
         (v === undefined || v === null) ? LIQ_NULL : v,
       );
     }
     for (const k of luaKeys(item)) {
       if (typeof k !== "string") {
-        rebuilt.rawSet(k, item.rawGet(k));
+        void rebuilt.rawSet(k, item.rawGet(k));
       }
     }
     results[i] = rebuilt;
@@ -714,7 +714,7 @@ export async function applyQuery(
           }
           // Additionally set named fields for Variable/PropertyAccess exprs
           for (const name in keyRecord) {
-            kt.rawSet(name, keyRecord[name]);
+            void kt.rawSet(name, keyRecord[name]);
           }
           keyVal = kt;
         }
@@ -741,8 +741,8 @@ export async function applyQuery(
         );
       }
       const row = new LuaTable();
-      row.rawSet("key", key);
-      row.rawSet("group", groupTable);
+      void row.rawSet("key", key);
+      void row.rawSet("group", groupTable);
       results.push(row);
     }
   }

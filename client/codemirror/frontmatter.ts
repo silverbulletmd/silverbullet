@@ -158,7 +158,7 @@ export function frontmatterPlugin(client: Client) {
                       client.focus();
                       return;
                     }
-                    client.navigate(
+                    void client.navigate(
                       ref,
                       false,
                       e.ctrlKey || e.metaKey,

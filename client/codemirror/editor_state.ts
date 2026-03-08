@@ -290,10 +290,10 @@ export function createEditorState(
               for (const tr of update.transactions) {
                 for (const e of tr.effects) {
                   if (e.is(foldEffect)) {
-                    client.dispatchAppEvent("editor:fold", e.value);
+                    void client.dispatchAppEvent("editor:fold", e.value);
                   }
                   if (e.is(unfoldEffect)) {
-                    client.dispatchAppEvent("editor:unfold", e.value);
+                    void client.dispatchAppEvent("editor:unfold", e.value);
                   }
                 }
               }
@@ -313,7 +313,7 @@ export function createEditorState(
                   newRange: { from: fromB, to: toB },
                 })
               );
-              client.dispatchAppEvent("editor:pageModified", { changes });
+              void client.dispatchAppEvent("editor:pageModified", { changes });
               client.ui.viewDispatch({ type: "page-changed" });
               client.debouncedUpdateEvent();
               client.save().catch((e) => console.error("Error saving", e));
@@ -359,7 +359,7 @@ export function createCommandKeyBindings(client: Client): Extension {
             return false;
           }
         }
-        Promise.resolve([])
+        void Promise.resolve([])
           .then(def.run)
           .catch((e: any) => {
             client.reportError(e, "key");

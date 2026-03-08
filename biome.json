@@ -28,6 +28,9 @@
 			},
 			"correctness": {
 				"noInnerDeclarations": "off"
+			},
+			"nursery": {
+				"noFloatingPromises": "error"
 			}
 		}
 	},
