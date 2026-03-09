@@ -734,3 +734,144 @@ Deno.test("List marker variants", async (t) => {
     assertEquals(detect("> - |^|item one\n> - item two\n")?.type, "listItem");
   });
 });
+
+// Table Rows: Move Up/Down
+Deno.test("Table row move up/down", async (t) => {
+  await t.step("swap two data rows", () => {
+    assertEquals(
+      applyOp(
+        moveUp,
+        `| A | B |
+| --- | --- |
+| 1 | 2 |
+| 3|^| | 4 |
+`,
+      ),
+      `| A | B |
+| --- | --- |
+| 3|^| | 4 |
+| 1 | 2 |
+`,
+    );
+    assertEquals(
+      applyOp(
+        moveDown,
+        `| A | B |
+| --- | --- |
+| 1|^| | 2 |
+| 3 | 4 |
+`,
+      ),
+      `| A | B |
+| --- | --- |
+| 3 | 4 |
+| 1|^| | 2 |
+`,
+    );
+  });
+
+  await t.step("first data row can't move up", () => {
+    const input = `| A | B |
+| --- | --- |
+| 1|^| | 2 |
+| 3 | 4 |
+`;
+    assertEquals(applyOp(moveUp, input), input);
+  });
+
+  await t.step("last data row can't move down", () => {
+    const input = `| A | B |
+| --- | --- |
+| 1 | 2 |
+| 3|^| | 4 |
+`;
+    assertEquals(applyOp(moveDown, input), input);
+  });
+
+  await t.step("header row is not movable", () => {
+    const input = `| A|^| | B |
+| --- | --- |
+| 1 | 2 |
+`;
+    assertEquals(applyOp(moveUp, input), input);
+    assertEquals(applyOp(moveDown, input), input);
+  });
+
+  await t.step("three rows, swap middle", () => {
+    assertEquals(
+      applyOp(
+        moveUp,
+        `| H1 | H2 |
+| --- | --- |
+| a | b |
+| c|^| | d |
+| e | f |
+`,
+      ),
+      `| H1 | H2 |
+| --- | --- |
+| c|^| | d |
+| a | b |
+| e | f |
+`,
+    );
+    assertEquals(
+      applyOp(
+        moveDown,
+        `| H1 | H2 |
+| --- | --- |
+| a | b |
+| c|^| | d |
+| e | f |
+`,
+      ),
+      `| H1 | H2 |
+| --- | --- |
+| a | b |
+| e | f |
+| c|^| | d |
+`,
+    );
+  });
+
+  await t.step("indent/outdent on table row is no-op", () => {
+    const input = `| A | B |
+| --- | --- |
+| 1|^| | 2 |
+`;
+    assertEquals(applyOp(indent, input), input);
+    assertEquals(applyOp(outdent, input), input);
+  });
+});
+
+// Table Rows: Context Detection
+Deno.test("Table row context detection", async (t) => {
+  await t.step("cursor in data row detects tableRow", () => {
+    const ctx = detect(`| A | B |
+| --- | --- |
+| 1|^| | 2 |
+`);
+    assertEquals(ctx?.type, "tableRow");
+  });
+
+  await t.step("cursor in header row detects tableRow with isHeader", () => {
+    const ctx = detect(`| A|^| | B |
+| --- | --- |
+| 1 | 2 |
+`);
+    assertEquals(ctx?.type, "tableRow");
+    if (ctx?.type === "tableRow") {
+      assertEquals(ctx.isHeader, true);
+    }
+  });
+
+  await t.step("cursor on delimiter row returns null", () => {
+    assertEquals(
+      detect(`| A | B |
+| --|^|- | --- |
+| 1 | 2 |
+`),
+      null,
+    );
+  });
+});

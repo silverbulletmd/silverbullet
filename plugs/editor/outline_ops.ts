@@ -34,13 +34,26 @@ export type ParagraphContext = {
   doc: ParseTree;
 };
 
-export type CursorContext = ListContext | HeadingContext | ParagraphContext;
+export type TableRowContext = {
+  type: "tableRow";
+  row: ParseTree; // TableRow or TableHeader node
+  rowIndex: number; // index in Table.children
+  isHeader: boolean; // true if cursor is on the TableHeader
+  table: ParseTree;
+};
+
+export type CursorContext =
+  | ListContext
+  | HeadingContext
+  | ParagraphContext
+  | TableRowContext;
 
 /**
- * Classifies the cursor position as a listItem, heading, or paragraph context
- * for outline operations. At node boundaries, resolves to the preceding typed
- * node (drilling into nested children). Returns null for positions where no
- * outline operation applies (code blocks, frontmatter, past end of document).
+ * Classifies the cursor position as a listItem, heading, tableRow, or
+ * paragraph context for outline operations. At node boundaries, resolves to
+ * the preceding typed node (drilling into nested children). Returns null for
+ * positions where no outline operation applies (code blocks, frontmatter,
+ * past end of document).
  */
 export function detectContext(
   tree: ParseTree,
@@ -120,6 +133,20 @@ export function detectContext(
       }
       return { type: "heading", level, sectionStart, sectionEnd, doc };
     }
+  }
+
+  // Check if we're in a table row or header
+  const tableRow = node.type === "TableRow" || node.type === "TableHeader"
+    ? node
+    : findParentMatching(
+      node,
+      (n) => n.type === "TableRow" || n.type === "TableHeader",
+    );
+  if (tableRow && tableRow.parent?.type === "Table") {
+    const table = tableRow.parent;
+    const rowIndex = table.children!.indexOf(tableRow);
+    const isHeader = tableRow.type === "TableHeader";
+    return { type: "tableRow", row: tableRow, rowIndex, isHeader, table };
   }
 
   // Check if we're in a paragraph at the Document level
@@ -219,6 +246,8 @@ function move(
       return moveHeading(text, cursor, ctx, direction) ?? "blocked";
     case "paragraph":
       return moveParagraph(text, cursor, ctx, direction) ?? "blocked";
+    case "tableRow":
+      return moveTableRow(text, cursor, ctx, direction) ?? "blocked";
   }
 }
 
@@ -249,6 +278,7 @@ function adjustLevel(
     case "heading":
       return adjustHeadingLevel(text, cursor, ctx, delta) ?? "blocked";
     case "paragraph":
+    case "tableRow":
       return "blocked";
   }
 }
@@ -558,6 +588,56 @@ function adjustHeadingLevel(
   const newText = text.slice(0, sectionFrom) + newSectionText +
     text.slice(sectionTo);
   return { text: newText, cursor: cursor + cursorAdjust };
+}
+
+/**
+ * Swaps a table data row with the adjacent data row. Header rows are blocked.
+ */
+function moveTableRow(
+  text: string,
+  cursor: number,
+  ctx: TableRowContext,
+  direction: "up" | "down",
+): OutlineResult {
+  if (ctx.isHeader) {
+    return null;
+  }
+
+  const { row, table } = ctx;
+  const children = table.children!;
+
+  // Collect indices of TableRow children (not TableHeader or TableDelimiter)
+  const rowIndices: number[] = [];
+  for (let i = 0; i < children.length; i++) {
+    if (children[i].type === "TableRow") {
+      rowIndices.push(i);
+    }
+  }
+
+  const rowPos = rowIndices.indexOf(ctx.rowIndex);
+  if (direction === "up" && rowPos <= 0) {
+    return null;
+  }
+  if (direction === "down" && rowPos >= rowIndices.length - 1) {
+    return null;
+  }
+
+  const otherPos = direction === "up" ? rowPos - 1 : rowPos + 1;
+  const otherRow = children[rowIndices[otherPos]];
+
+  const first = direction === "up" ? otherRow : row;
+  const second = direction === "up" ? row : otherRow;
+
+  return swapRegions(
+    text,
+    cursor,
+    row.from!,
+    direction,
+    first.from!,
+    first.to!,
+    second.from!,
+    second.to!,
+  );
 }
 
 /**
