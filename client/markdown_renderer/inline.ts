@@ -153,6 +153,26 @@ type OffsetText = {
   offset: number;
 };
 
+type MimeLinkMatcher = {
+  pattern: RegExp;
+  onMatch: (match: Array<string>) => string | null;
+};
+
+const MimeLinkMatchers: Array<MimeLinkMatcher> = [
+  // Kroki like URL ie: https://kroki.example.com/plantuml/svg/[base64]
+  {
+    pattern: /https?:\/\/kroki.*\/plantuml\/([^\/]+)/,
+    onMatch: (match) => {
+      switch (match[1]) {
+        case "svg":
+          return "image/svg+xml";
+        default:
+          return `image/${match[1]}`;
+      }
+    },
+  },
+];
+
 /**
  * Function to generate HTML or markdown for a ![[<link>]] type transclusion.
  * @param space space object to use to retrieve content (readRef)
@@ -180,7 +200,8 @@ export function inlineContentFromURL(
     //    have to wait for all HEAD request, for your `markdownToHtml` to
     //    complete. This could take a noticeable amount of time.
     // For this reason we will stick to doing it the `dumb` way by just getting
-    // it from the URL extension
+    // it from the URL extension, or additionally from a set of predefined link
+    // matchers
     const extension = URL.parse(transclusion.url)?.pathname.split(".").pop();
     if (extension) {
       mimeType = mime.getType(extension);
@@ -192,6 +213,15 @@ export function inlineContentFromURL(
     }
 
     mimeType = mime.getType(getPathExtension(ref.path));
+  }
+
+  for (const matcher of MimeLinkMatchers) {
+    const match = matcher.pattern.exec(transclusion.url);
+
+    if (match && match.length !== 0) {
+      mimeType = matcher.onMatch(match);
+      break;
+    }
   }
 
   if (!mimeType) {
