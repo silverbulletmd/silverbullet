@@ -309,6 +309,9 @@ function renderCellContent(
   renderInline: InlineRenderer,
 ): Promise<string> {
   if (isEmpty(v)) return Promise.resolve("");
+  if (isTaggedFloat(v)) {
+    return Promise.resolve(renderInline(luaFormatNumber(v.value, "float")));
+  }
   if (v instanceof LuaTable) {
     if (v.empty()) return Promise.resolve(`<table data-table-empty></table>`);
     return renderLuaTableToHtml(v, renderInline);
