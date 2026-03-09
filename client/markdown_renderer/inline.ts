@@ -12,12 +12,11 @@ import {
 } from "@silverbulletmd/silverbullet/lib/ref";
 import { isLocalURL } from "@silverbulletmd/silverbullet/lib/resolve";
 import { mime } from "mimetypes";
-import { LuaStackFrame, LuaTable } from "../space_lua/runtime.ts";
+import { LuaEnv, LuaStackFrame, LuaTable, singleResult } from "../space_lua/runtime.ts";
 import { parseMarkdown } from "../markdown_parser/parser.ts";
 import { renderExpressionResult } from "./result_render.ts";
-import { parseExpressionString } from "../space_lua/parse.ts";
-import { evalExpression } from "../space_lua/eval.ts";
-import type { LuaExpression } from "../space_lua/ast.ts";
+import { parseInterpolationBlock } from "../space_lua/parse.ts";
+import { evalBlockForValue } from "../space_lua/eval.ts";
 
 import { fsEndpoint } from "../spaces/constants.ts";
 import {
@@ -52,6 +51,10 @@ export async function expandMarkdown(
   processedPages: Set<string> = new Set(),
 ): Promise<ParseTree> {
   addParentPointers(mdTree);
+
+  // Page-scoped env (reads chain to global, writes stop here)
+  const pageEnv = new LuaEnv(sle.env, true);
+
   await replaceNodesMatchingAsync(mdTree, async (n) => {
     if (n.type === "Image" && options.expandTransclusions !== false) {
       // Let's scan for ![[embeds]] that are codified as Images, confusingly
@@ -92,7 +95,7 @@ export async function expandMarkdown(
       n.type === "LuaDirective" && options.expandLuaDirectives !== false
     ) {
       const expr = findNodeOfType(n, "LuaExpressionDirective") as
-        | LuaExpression
+        | ParseTree
         | null;
       if (!expr) {
         return;
@@ -102,10 +105,11 @@ export async function expandMarkdown(
       try {
         const sf = LuaStackFrame.createWithGlobalEnv(sle.env);
 
-        let result = await evalExpression(
-          parseExpressionString(exprText),
-          sle.env,
-          sf,
+        const parsedBlock = parseInterpolationBlock(exprText);
+        // Block-local env on top of page-scoped env
+        const blockEnv = new LuaEnv(pageEnv);
+        let result = singleResult(
+          await evalBlockForValue(parsedBlock, blockEnv, sf),
         );
 
         if (result?.markdown) {

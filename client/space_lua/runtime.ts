@@ -261,7 +261,7 @@ export class LuaEnv implements ILuaSettable, ILuaGettable {
   private readonly consts = new Set<string>();
   private readonly numericTypes = new Map<string, NumericType>();
 
-  constructor(readonly parent?: LuaEnv) {
+  constructor(readonly parent?: LuaEnv, readonly boundary = false) {
   }
 
   setLocal(name: string, value: LuaValue, numType?: NumericType) {
@@ -289,7 +289,7 @@ export class LuaEnv implements ILuaSettable, ILuaGettable {
     sf?: LuaStackFrame,
     numType?: NumericType,
   ): void {
-    if (this.variables.has(key) || !this.parent) {
+    if (this.variables.has(key) || !this.parent || this.boundary) {
       if (this.consts.has(key)) {
         throw new LuaRuntimeError(
           `attempt to assign to const variable '${key}'`,
