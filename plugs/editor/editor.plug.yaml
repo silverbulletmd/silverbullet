@@ -379,12 +379,6 @@ functions:
       mac: "Cmd-f"
       requireEditor: page
 
-  # Outline helper functions
-  determineItemBounds:
-    path: ./outline.ts:determineItemBounds
-  ensureNewLine:
-    path: ./outline.ts:ensureNewLine
-
   # Undo/redo
   undoCommand:
     path: ./editor.ts:undoCommand
