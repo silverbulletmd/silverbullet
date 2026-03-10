@@ -60,8 +60,8 @@ import { DataStore } from "./data/datastore.ts";
 import { IndexedDBKvPrimitives } from "./data/indexeddb_kv_primitives.ts";
 import { DataStoreMQ } from "./data/mq.datastore.ts";
 
-import { LimitedMap } from "@silverbulletmd/silverbullet/lib/limited_map";
 import { fsEndpoint } from "./spaces/constants.ts";
+import { WidgetCache } from "./widget_cache.ts";
 import { diffAndPrepareChanges } from "./codemirror/cm_util.ts";
 import { DocumentEditor } from "./document_editor.ts";
 import { parseExpressionString } from "./space_lua/parse.ts";
@@ -96,12 +96,6 @@ const fetchFileListInterval = 10000;
 declare global {
   var client: Client;
 }
-
-type WidgetCacheItem = {
-  html: string;
-  block?: boolean;
-  copyContent?: string;
-};
 
 // TODO: Clean this up, this has become a god class...
 export class Client {
@@ -149,18 +143,7 @@ export class Client {
   // Progress circle handling
   private progressTimeout?: ReturnType<typeof setTimeout>;
   // Widget and image height caching
-  private widgetCache = new LimitedMap<WidgetCacheItem>(100); // bodyText -> WidgetCacheItem
-  debouncedWidgetCacheFlush = throttle(() => {
-    this.ds
-      .set(["cache", "widgets"], this.widgetCache.toJSON())
-      .catch(console.error);
-  }, 2000);
-  private widgetHeightCache = new LimitedMap<number>(1000); // bodytext -> height
-  debouncedWidgetHeightCacheFlush = throttle(() => {
-    this.ds
-      .set(["cache", "widgetHeight"], this.widgetHeightCache.toJSON())
-      .catch(console.error);
-  }, 2000);
+  widgetCache!: WidgetCache;
   objectIndex!: ObjectIndex;
 
   constructor(
@@ -204,6 +187,8 @@ export class Client {
 
     // Setup message queue on top of that
     this.mq = new DataStoreMQ(this.ds, this.eventHook);
+
+    this.widgetCache = new WidgetCache(this.ds);
 
     this.objectIndex = new ObjectIndex(
       this.ds,
@@ -255,7 +240,7 @@ export class Client {
       }
     }
 
-    await this.loadCaches();
+    await this.widgetCache.load();
 
     // Let's ping the remote space to ensure we're authenticated properly, if not will result in a redirect to auth page
     try {
@@ -1310,33 +1295,6 @@ export class Client {
       return syntaxTree(state).resolveInner(selection.from).type.name;
     }
     return;
-  }
-
-  async loadCaches() {
-    const [widgetHeightCache, widgetCache] = await this.ds.batchGet([
-      ["cache", "widgetHeight"],
-      ["cache", "widgets"],
-    ]);
-    this.widgetHeightCache = new LimitedMap(1000, widgetHeightCache || {});
-    this.widgetCache = new LimitedMap(100, widgetCache || {});
-  }
-
-  setCachedWidgetHeight(bodyText: string, height: number) {
-    this.widgetHeightCache.set(bodyText, height);
-    this.debouncedWidgetHeightCacheFlush();
-  }
-
-  getCachedWidgetHeight(bodyText: string): number {
-    return this.widgetHeightCache.get(bodyText) ?? -1;
-  }
-
-  setWidgetCache(key: string, cacheItem: WidgetCacheItem) {
-    this.widgetCache.set(key, cacheItem);
-    this.debouncedWidgetCacheFlush();
-  }
-
-  getWidgetCache(key: string): WidgetCacheItem | undefined {
-    return this.widgetCache.get(key);
   }
 
   async handleServiceWorkerMessage(message: ServiceWorkerSourceMessage) {

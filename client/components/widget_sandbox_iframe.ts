@@ -157,7 +157,7 @@ export function mountIFrame(
               // iframe.height = data.height + "px";
               iframe.style.height = `${data.height}px`;
               if (widgetHeightCacheKey) {
-                client.setCachedWidgetHeight(widgetHeightCacheKey, data.height);
+                client.widgetCache.setCachedWidgetHeight(widgetHeightCacheKey, data.height);
               }
               break;
             default:
@@ -192,7 +192,7 @@ export function mountIFrame(
           if (resolvedContent.height) {
             iframe.style.height = `${resolvedContent.height}px`;
             if (widgetHeightCacheKey) {
-              client.setCachedWidgetHeight(
+              client.widgetCache.setCachedWidgetHeight(
                 widgetHeightCacheKey!,
                 resolvedContent.height,
               );

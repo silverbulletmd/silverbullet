@@ -20,7 +20,7 @@ export class IFrameWidget extends WidgetType {
   }
 
   override get estimatedHeight(): number {
-    const cachedHeight = this.client.getCachedWidgetHeight(this.bodyText);
+    const cachedHeight = this.client.widgetCache.getCachedWidgetHeight(this.bodyText);
     // console.log("Calling estimated height", this.bodyText, cachedHeight);
     return cachedHeight > 0 ? cachedHeight : 150;
   }

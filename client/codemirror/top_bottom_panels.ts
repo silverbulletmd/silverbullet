@@ -18,7 +18,7 @@ class ArrayWidget extends WidgetType {
   }
 
   override get estimatedHeight(): number {
-    return this.client.getCachedWidgetHeight(this.cacheKey);
+    return this.client.widgetCache.getCachedWidgetHeight(this.cacheKey);
   }
 
   toDOM(): HTMLElement {
@@ -28,7 +28,7 @@ class ArrayWidget extends WidgetType {
     div.className = "sb-widget-array";
 
     // This doesn't do that much, but it also doesn't really hurt
-    const cacheItem = this.client.getWidgetCache(this.cacheKey);
+    const cacheItem = this.client.widgetCache.getWidgetCache(this.cacheKey);
     if (cacheItem) {
       div.innerHTML = cacheItem.html;
     }
@@ -91,11 +91,11 @@ class ArrayWidget extends WidgetType {
 
     // Wait for the clientHeight to settle
     setTimeout(() => {
-      this.client.setWidgetCache(this.cacheKey, {
+      this.client.widgetCache.setWidgetCache(this.cacheKey, {
         block: true,
         html: div.innerHTML,
       });
-      this.client.setCachedWidgetHeight(this.cacheKey, div.clientHeight);
+      this.client.widgetCache.setCachedWidgetHeight(this.cacheKey, div.clientHeight);
     });
   }
 

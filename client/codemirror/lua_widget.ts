@@ -68,7 +68,7 @@ export class LuaWidget extends WidgetType {
   }
 
   override get estimatedHeight(): number {
-    return this.client.getCachedWidgetHeight(this.cacheKey);
+    return this.client.widgetCache.getCachedWidgetHeight(this.cacheKey);
   }
 
   toDOM(): HTMLElement {
@@ -76,7 +76,7 @@ export class LuaWidget extends WidgetType {
     wrapperSpan.className = "sb-lua-wrapper";
     const innerDiv = document.createElement("div");
     wrapperSpan.appendChild(innerDiv);
-    const cacheItem = this.client.getWidgetCache(this.cacheKey);
+    const cacheItem = this.client.widgetCache.getWidgetCache(this.cacheKey);
     if (cacheItem) {
       if (cacheItem.block) {
         innerDiv.className += " sb-lua-directive-block";
@@ -126,8 +126,8 @@ export class LuaWidget extends WidgetType {
     if (widgetContent === null || widgetContent === undefined) {
       if (!this.renderEmpty) {
         div.innerHTML = "";
-        this.client.setWidgetCache(this.cacheKey, { html: "", block: false });
-        this.client.setCachedWidgetHeight(this.cacheKey, div.clientHeight);
+        this.client.widgetCache.setWidgetCache(this.cacheKey, { html: "", block: false });
+        this.client.widgetCache.setCachedWidgetHeight(this.cacheKey, div.clientHeight);
         return;
       }
       widgetContent = { markdown: "nil", _isWidget: true };
@@ -195,8 +195,8 @@ export class LuaWidget extends WidgetType {
       if (!trimmedMarkdown) {
         // Net empty result after expansion
         div.innerHTML = "";
-        this.client.setWidgetCache(this.cacheKey, { html: "", block: false });
-        this.client.setCachedWidgetHeight(this.cacheKey, div.clientHeight);
+        this.client.widgetCache.setWidgetCache(this.cacheKey, { html: "", block: false });
+        this.client.widgetCache.setCachedWidgetHeight(this.cacheKey, div.clientHeight);
         return;
       }
 
@@ -245,12 +245,12 @@ export class LuaWidget extends WidgetType {
 
     // Let's give it a tick, then measure and cache
     setTimeout(() => {
-      this.client.setWidgetCache(this.cacheKey, {
+      this.client.widgetCache.setWidgetCache(this.cacheKey, {
         html: html?.outerHTML || "",
         block,
         copyContent: copyContent,
       });
-      this.client.setCachedWidgetHeight(this.cacheKey, div.offsetHeight);
+      this.client.widgetCache.setCachedWidgetHeight(this.cacheKey, div.offsetHeight);
       // Because of the rejiggering of the DOM, we need to do a no-op cursor move to make sure it's positioned correctly
       this.client.editorView.dispatch({
         selection: this.client.editorView.state.selection,
