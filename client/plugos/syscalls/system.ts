@@ -66,9 +66,8 @@ export function systemSyscalls(
     },
     "system.listSyscalls": (): SyscallMeta[] => {
       const syscalls: SyscallMeta[] = [];
-      for (
-        const [name, info] of client.clientSystem.system.registeredSyscalls
-      ) {
+      for (const [name, info] of client.clientSystem.system
+        .registeredSyscalls) {
         syscalls.push({
           name,
           requiredPermissions: info.requiredPermissions,

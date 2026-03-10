@@ -57,7 +57,8 @@ function preprocess(t: ParseTree) {
         const prevNodeIdx = node.parent!.children!.indexOf(node) - 1;
         const prevNodeType = node.parent!.children![prevNodeIdx]?.type;
         if (
-          prevNodeType?.includes("Heading") || prevNodeType?.includes("Table")
+          prevNodeType?.includes("Heading") ||
+          prevNodeType?.includes("Table")
         ) {
           node.text = node.text.slice(1);
         }
@@ -90,10 +91,7 @@ function posPreservingRender(
   return tag;
 }
 
-function render(
-  t: ParseTree,
-  options: MarkdownRenderOptions = {},
-): Tag | null {
+function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
   if (t.type?.endsWith("Mark") || t.type?.endsWith("Delimiter")) {
     return null;
   }
@@ -301,9 +299,8 @@ function render(
     // Custom stuff
     case "WikiLink": {
       const link = findNodeOfType(t, "WikiLinkPage")!.children![0].text!;
-      let linkText = options.shortWikiLinks === true
-        ? link.split("/").pop()!
-        : link;
+      let linkText =
+        options.shortWikiLinks === true ? link.split("/").pop()! : link;
       const aliasNode = findNodeOfType(t, "WikiLinkAlias");
       if (aliasNode) {
         linkText = aliasNode.children![0].text!;
@@ -358,7 +355,8 @@ function render(
         const ref = parseToRef(wikilink.children![0].text!);
 
         if (
-          !externalTaskRef && ref &&
+          !externalTaskRef &&
+          ref &&
           (ref.details?.type === "position" ||
             ref.details?.type === "linecolumn")
         ) {
@@ -370,8 +368,8 @@ function render(
         name: "span",
         attrs: externalTaskRef
           ? {
-            "data-external-task-ref": externalTaskRef,
-          }
+              "data-external-task-ref": externalTaskRef,
+            }
           : {},
         body: cleanTags(mapRender(t.children!)),
       };
@@ -501,10 +499,7 @@ function render(
   }
 }
 
-function traverseTag(
-  t: Tag,
-  fn: (t: Tag) => void,
-) {
+function traverseTag(t: Tag, fn: (t: Tag) => void) {
   fn(t);
   if (typeof t === "string") {
     return;
@@ -542,21 +537,23 @@ export function renderMarkdownToHtml(
             return;
           }
 
-          const pageMeta = allPages.find((p) =>
-            ref.path === parseToRef(p.ref)?.path
+          const pageMeta = allPages.find(
+            (p) => ref.path === parseToRef(p.ref)?.path,
           );
           if (
             pageMeta &&
-            !(ref.details?.type === "position" ||
-              ref.details?.type === "linecolumn")
+            !(
+              ref.details?.type === "position" ||
+              ref.details?.type === "linecolumn"
+            )
           ) {
             t.body = [(pageMeta.pageDecoration?.prefix ?? "") + t.body];
             if (pageMeta.pageDecoration?.cssClasses) {
-              t.attrs!.class += " sb-decorated-object " +
-                pageMeta.pageDecoration.cssClasses.join(" ").replaceAll(
-                  /[^a-zA-Z0-9-_ ]/g,
-                  "",
-                );
+              t.attrs!.class +=
+                " sb-decorated-object " +
+                pageMeta.pageDecoration.cssClasses
+                  .join(" ")
+                  .replaceAll(/[^a-zA-Z0-9-_ ]/g, "");
             }
           }
         }

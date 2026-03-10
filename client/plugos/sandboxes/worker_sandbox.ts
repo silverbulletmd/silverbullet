@@ -22,8 +22,7 @@ export class WorkerSandbox<HookT> implements Sandbox<HookT> {
     readonly plug: Plug<HookT>,
     public workerUrl: URL,
     private workerOptions = {},
-  ) {
-  }
+  ) {}
 
   /**
    * Should only invoked lazily (either by invoke, or by a ManifestCache to load the manifest)
@@ -43,7 +42,7 @@ export class WorkerSandbox<HookT> implements Sandbox<HookT> {
     return race([
       // We're adding a timeout of 5s here to handle the case where a plug blows up during initialization
       timeout(5000).catch((_) =>
-        Promise.reject(new Error("Plug timed out during creation"))
+        Promise.reject(new Error("Plug timed out during creation")),
       ),
       new Promise((resolve) => {
         this.worker!.onmessage = (ev) => {
@@ -54,7 +53,7 @@ export class WorkerSandbox<HookT> implements Sandbox<HookT> {
 
             // Set assets in the plug
             this.plug.assets = new AssetBundle(
-              this.manifest?.assets ? this.manifest.assets as AssetJson : {},
+              this.manifest?.assets ? (this.manifest.assets as AssetJson) : {},
             );
 
             return resolve();
@@ -76,18 +75,20 @@ export class WorkerSandbox<HookT> implements Sandbox<HookT> {
         try {
           const result = await this.plug.syscall(data.name!, data.args!);
 
-          this.worker && this.worker!.postMessage({
-            type: "sysr",
-            id: data.id,
-            result: result,
-          } as WorkerMessage);
+          this.worker &&
+            this.worker!.postMessage({
+              type: "sysr",
+              id: data.id,
+              result: result,
+            } as WorkerMessage);
         } catch (e: any) {
           // console.error("Syscall fail", e);
-          this.worker && this.worker!.postMessage({
-            type: "sysr",
-            id: data.id,
-            error: e.message,
-          } as WorkerMessage);
+          this.worker &&
+            this.worker!.postMessage({
+              type: "sysr",
+              id: data.id,
+              error: e.message,
+            } as WorkerMessage);
         }
         break;
       case "invr": {

@@ -7,10 +7,7 @@ import {
   renderToText,
 } from "@silverbulletmd/silverbullet/lib/tree";
 
-export type OutlineResult =
-  | { text: string; cursor: number }
-  | "blocked"
-  | null;
+export type OutlineResult = { text: string; cursor: number } | "blocked" | null;
 
 export type ListContext = {
   type: "listItem";
@@ -89,17 +86,15 @@ export function detectContext(
   // Check if we're in a list item
   // If nodeAtPos landed on a BulletList/OrderedList itself (i.e. on separator
   // whitespace between items), don't walk up — cursor isn't on any item.
-  const listItem = node.type === "ListItem"
-    ? node
-    : (node.type === "BulletList" || node.type === "OrderedList")
-    ? null
-    : findParentMatching(node, (n) => n.type === "ListItem");
+  const listItem =
+    node.type === "ListItem"
+      ? node
+      : node.type === "BulletList" || node.type === "OrderedList"
+        ? null
+        : findParentMatching(node, (n) => n.type === "ListItem");
   if (listItem) {
     const list = listItem.parent;
-    if (
-      list &&
-      (list.type === "BulletList" || list.type === "OrderedList")
-    ) {
+    if (list && (list.type === "BulletList" || list.type === "OrderedList")) {
       const itemIndex = list.children!.indexOf(listItem);
       return { type: "listItem", item: listItem, itemIndex, list };
     }
@@ -109,9 +104,9 @@ export function detectContext(
   const heading = node.type?.startsWith("ATXHeading")
     ? node
     : findParentMatching(
-      node,
-      (n) => n.type?.startsWith("ATXHeading") ?? false,
-    );
+        node,
+        (n) => n.type?.startsWith("ATXHeading") ?? false,
+      );
   if (heading?.type) {
     const level = parseInt(heading.type.replace("ATXHeading", ""), 10);
     const doc = heading.parent!;
@@ -122,9 +117,7 @@ export function detectContext(
       for (let i = headingIndex + 1; i < doc.children.length; i++) {
         const child = doc.children[i];
         if (child.type?.startsWith("ATXHeading")) {
-          const childLevel = parseInt(
-            child.type.replace("ATXHeading", ""), 10
-          );
+          const childLevel = parseInt(child.type.replace("ATXHeading", ""), 10);
           if (childLevel <= level) {
             sectionEnd = i;
             break;
@@ -136,12 +129,13 @@ export function detectContext(
   }
 
   // Check if we're in a table row or header
-  const tableRow = node.type === "TableRow" || node.type === "TableHeader"
-    ? node
-    : findParentMatching(
-      node,
-      (n) => n.type === "TableRow" || n.type === "TableHeader",
-    );
+  const tableRow =
+    node.type === "TableRow" || node.type === "TableHeader"
+      ? node
+      : findParentMatching(
+          node,
+          (n) => n.type === "TableRow" || n.type === "TableHeader",
+        );
   if (tableRow && tableRow.parent?.type === "Table") {
     const table = tableRow.parent;
     const rowIndex = table.children!.indexOf(tableRow);
@@ -150,9 +144,10 @@ export function detectContext(
   }
 
   // Check if we're in a paragraph at the Document level
-  const para = node.type === "Paragraph"
-    ? node
-    : findParentMatching(node, (n) => n.type === "Paragraph");
+  const para =
+    node.type === "Paragraph"
+      ? node
+      : findParentMatching(node, (n) => n.type === "Paragraph");
   if (para && para.parent?.type === "Document") {
     const doc = para.parent;
     const blockIndex = doc.children!.indexOf(para);
@@ -196,12 +191,17 @@ function swapRegions(
   const firstContent = text.slice(firstFrom, firstTo);
   const separator = text.slice(firstTo, secondFrom);
   const secondContent = text.slice(secondFrom, secondTo);
-  const newText = text.slice(0, firstFrom) + secondContent + separator +
-    firstContent + text.slice(secondTo);
+  const newText =
+    text.slice(0, firstFrom) +
+    secondContent +
+    separator +
+    firstContent +
+    text.slice(secondTo);
   const offsetInCurr = cursor - currFrom;
-  const newCursor = direction === "up"
-    ? firstFrom + offsetInCurr
-    : firstFrom + secondContent.length + separator.length + offsetInCurr;
+  const newCursor =
+    direction === "up"
+      ? firstFrom + offsetInCurr
+      : firstFrom + secondContent.length + separator.length + offsetInCurr;
   return { text: newText, cursor: newCursor };
 }
 
@@ -216,12 +216,9 @@ function renumberOrderedList(
 ): string {
   const listText = text.slice(listFrom, listTo);
   let num = 1;
-  const renumbered = listText.replace(
-    /^(\s*)(\d+)\./gm,
-    (_match, indent) => {
-      return `${indent}${num++}.`;
-    },
-  );
+  const renumbered = listText.replace(/^(\s*)(\d+)\./gm, (_match, indent) => {
+    return `${indent}${num++}.`;
+  });
   return text.slice(0, listFrom) + renumbered + text.slice(listTo);
 }
 
@@ -272,9 +269,11 @@ function adjustLevel(
   }
   switch (ctx.type) {
     case "listItem":
-      return (delta === 1
-        ? indentListItem(text, cursor, ctx)
-        : outdentListItem(text, cursor, ctx)) ?? "blocked";
+      return (
+        (delta === 1
+          ? indentListItem(text, cursor, ctx)
+          : outdentListItem(text, cursor, ctx)) ?? "blocked"
+      );
     case "heading":
       return adjustHeadingLevel(text, cursor, ctx, delta) ?? "blocked";
     case "paragraph":
@@ -392,9 +391,10 @@ function indentListItem(
   const lineTo = item.to!;
   const itemLines = text.slice(lineFrom, lineTo);
 
-  const indented = itemLines.split("\n").map((line) =>
-    line ? indentStr + line : line
-  ).join("\n");
+  const indented = itemLines
+    .split("\n")
+    .map((line) => (line ? indentStr + line : line))
+    .join("\n");
 
   const newText = text.slice(0, lineFrom) + indented + text.slice(lineTo);
 
@@ -425,16 +425,19 @@ function outdentListItem(
 
   const indentWidth = listIndentWidth(list);
 
-  const outdented = itemLines.split("\n").map((line) => {
-    if (line.startsWith(" ".repeat(indentWidth))) {
-      return line.substring(indentWidth);
-    }
-    let removed = 0;
-    while (removed < indentWidth && line[removed] === " ") {
-      removed++;
-    }
-    return line.substring(removed);
-  }).join("\n");
+  const outdented = itemLines
+    .split("\n")
+    .map((line) => {
+      if (line.startsWith(" ".repeat(indentWidth))) {
+        return line.substring(indentWidth);
+      }
+      let removed = 0;
+      while (removed < indentWidth && line[removed] === " ") {
+        removed++;
+      }
+      return line.substring(removed);
+    })
+    .join("\n");
 
   const newText = text.slice(0, lineFrom) + outdented + text.slice(lineTo);
 
@@ -517,9 +520,10 @@ function moveHeading(
   }
 
   // Normalize to [first, second] order
-  const [firstStart, firstEnd, secondStart, secondEnd] = direction === "up"
-    ? [adjSectionStart, adjSectionEnd, sectionStart, sectionEnd]
-    : [sectionStart, sectionEnd, adjSectionStart, adjSectionEnd];
+  const [firstStart, firstEnd, secondStart, secondEnd] =
+    direction === "up"
+      ? [adjSectionStart, adjSectionEnd, sectionStart, sectionEnd]
+      : [sectionStart, sectionEnd, adjSectionStart, adjSectionEnd];
 
   return swapRegions(
     text,
@@ -585,8 +589,8 @@ function adjustHeadingLevel(
   }
   newSectionText += sectionText.slice(pos);
 
-  const newText = text.slice(0, sectionFrom) + newSectionText +
-    text.slice(sectionTo);
+  const newText =
+    text.slice(0, sectionFrom) + newSectionText + text.slice(sectionTo);
   return { text: newText, cursor: cursor + cursorAdjust };
 }
 

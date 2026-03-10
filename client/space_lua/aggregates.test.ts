@@ -174,10 +174,26 @@ test("aggregate: min/max on empty group", async () => {
   const env = new LuaEnv();
   const expr = parseExpressionString("_.v");
   expect(
-    await executeAggregate(minSpec, items, expr, undefined, env, sf, evalExpression),
+    await executeAggregate(
+      minSpec,
+      items,
+      expr,
+      undefined,
+      env,
+      sf,
+      evalExpression,
+    ),
   ).toBeNull();
   expect(
-    await executeAggregate(maxSpec, items, expr, undefined, env, sf, evalExpression),
+    await executeAggregate(
+      maxSpec,
+      items,
+      expr,
+      undefined,
+      env,
+      sf,
+      evalExpression,
+    ),
   ).toBeNull();
 });
 
@@ -381,7 +397,10 @@ test("evalExpressionWithAggregates: binary comparison (count > N)", async () => 
 test("evalExpressionWithAggregates: binary arithmetic (sum + sum)", async () => {
   const cleanup = installFakeConfig();
   try {
-    const groupItems = luaArray([{ a: 10, b: 5 }, { a: 20, b: 15 }]);
+    const groupItems = luaArray([
+      { a: 10, b: 5 },
+      { a: 20, b: 15 },
+    ]);
     const env = new LuaEnv();
     const result = await evalExpressionWithAggregates(
       parseExpressionString("sum(_.a) + sum(_.b)"),
@@ -733,8 +752,8 @@ test("applyQuery: select with aggregate division (float result)", async () => {
 test("aggregate: custom concat with finish", async () => {
   const concatSpec: AggregateSpec = {
     name: "concat",
-    initialize: new LuaBuiltinFunction((_sf) =>
-      new LuaTable({ first: true, s: "" })
+    initialize: new LuaBuiltinFunction(
+      (_sf) => new LuaTable({ first: true, s: "" }),
     ),
     iterate: new LuaBuiltinFunction((_sf, state: any, value: any) => {
       if (value === null || value === undefined) return state;

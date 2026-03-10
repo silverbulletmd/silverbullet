@@ -4,9 +4,11 @@ import type { Path } from "@silverbulletmd/silverbullet/lib/ref";
  * Determines wether a url points into the world wide web or to the local SB instance
  */
 export function isLocalURL(url: string): boolean {
-  return !url.includes("://") &&
+  return (
+    !url.includes("://") &&
     !url.startsWith("mailto:") &&
-    !url.startsWith("tel:");
+    !url.startsWith("tel:")
+  );
 }
 
 /**
@@ -22,10 +24,7 @@ export function fileName(name: string | Path): string | Path {
   return name.split("/").pop()!;
 }
 
-const builtinPrefixes = [
-  "tag:",
-  "search:",
-];
+const builtinPrefixes = ["tag:", "search:"];
 
 /**
  * Builtin pages are pages which SB should automatically consider as existing
@@ -51,11 +50,8 @@ export function resolveMarkdownLink(
   if (relative.startsWith("/")) {
     return relative.slice(1);
   } else {
-    const splitAbsolute = absolute
-      .split("/")
-      .slice(0, -1);
-    const splitRelative = relative
-      .split("/");
+    const splitAbsolute = absolute.split("/").slice(0, -1);
+    const splitRelative = relative.split("/");
 
     while (splitRelative && splitRelative[0] === "..") {
       splitAbsolute.pop();

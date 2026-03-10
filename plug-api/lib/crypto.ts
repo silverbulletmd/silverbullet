@@ -42,9 +42,8 @@ export async function hashSHA256(
 ): Promise<string> {
   // Transform the string into an ArrayBuffer
   const encoder = new TextEncoder();
-  const data: Uint8Array = typeof message === "string"
-    ? encoder.encode(message)
-    : message;
+  const data: Uint8Array =
+    typeof message === "string" ? encoder.encode(message) : message;
 
   // Generate the hash
   const hashBuffer = await globalThis.crypto.subtle.digest(
@@ -53,9 +52,9 @@ export async function hashSHA256(
   );
 
   // Transform the hash into a hex string
-  return Array.from(new Uint8Array(hashBuffer)).map((b) =>
-    b.toString(16).padStart(2, "0")
-  ).join("");
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 /**

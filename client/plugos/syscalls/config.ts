@@ -23,11 +23,7 @@ export function configSyscalls(config: Config): SysCallMapping {
       keyOrValues = await luaValueToJS(keyOrValues, LuaStackFrame.lostFrame);
       config.set(keyOrValues as any, value);
     },
-    "config.insert": (
-      _ctx,
-      key: string | string[],
-      value: any,
-    ) => {
+    "config.insert": (_ctx, key: string | string[], value: any) => {
       config.insert(key, value);
     },
     "config.has": (_ctx, path: string) => {

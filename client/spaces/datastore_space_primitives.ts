@@ -8,10 +8,7 @@ const filesMetaPrefix = ["meta"];
 const filesContentPrefix = ["content"];
 
 export class DataStoreSpacePrimitives implements SpacePrimitives {
-  constructor(
-    private kv: KvPrimitives,
-  ) {
-  }
+  constructor(private kv: KvPrimitives) {}
 
   async fetchFileList(): Promise<FileMeta[]> {
     const fileMetas: FileMeta[] = [];
@@ -22,19 +19,11 @@ export class DataStoreSpacePrimitives implements SpacePrimitives {
     return fileMetas;
   }
 
-  async readFile(
-    path: string,
-  ): Promise<{ data: Uint8Array; meta: FileMeta }> {
+  async readFile(path: string): Promise<{ data: Uint8Array; meta: FileMeta }> {
     // Fetch content and metadata in parallel
     const [fileMeta, fileContent] = await this.kv.batchGet([
-      [
-        ...filesMetaPrefix,
-        path,
-      ],
-      [
-        ...filesContentPrefix,
-        path,
-      ],
+      [...filesMetaPrefix, path],
+      [...filesContentPrefix, path],
     ]);
     if (!fileMeta) {
       throw notFoundError;
@@ -91,9 +80,7 @@ export class DataStoreSpacePrimitives implements SpacePrimitives {
   }
 
   async deleteFile(path: string): Promise<void> {
-    const [fileMeta] = await this.kv.batchGet([
-      [...filesMetaPrefix, path],
-    ]);
+    const [fileMeta] = await this.kv.batchGet([[...filesMetaPrefix, path]]);
     if (!fileMeta) {
       throw notFoundError;
     }

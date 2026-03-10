@@ -27,7 +27,10 @@ type FunctionMeta = {
 };
 
 class LabelResolveError extends Error {
-  constructor(msg: string, public astCtx: ASTCtx) {
+  constructor(
+    msg: string,
+    public astCtx: ASTCtx,
+  ) {
     super(msg);
   }
 }
@@ -70,14 +73,7 @@ type ValidationCtx = {
   closeLocals: Set<LocalID>;
 };
 
-type BlockRole =
-  | "Root"
-  | "Do"
-  | "If"
-  | "While"
-  | "Repeat"
-  | "For"
-  | "ForIn";
+type BlockRole = "Root" | "Do" | "If" | "While" | "Repeat" | "For" | "ForIn";
 
 function resolveFunction(root: LuaBlock): FunctionMeta {
   const existing = functionMetaByRoot.get(root);
@@ -282,8 +278,7 @@ function processBlock(
           curActive.add(id);
 
           const isClose =
-            l.names[j].attributes?.includes(LuaAttribute.Close) ===
-              true;
+            l.names[j].attributes?.includes(LuaAttribute.Close) === true;
           if (isClose) {
             vctx.closeLocals.add(id);
           }

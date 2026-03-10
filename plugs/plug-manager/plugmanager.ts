@@ -109,14 +109,10 @@ export async function updatePlugsCommand() {
 
       // Validate the extracted path
       if (builtinPlugPaths.includes(path)) {
-        throw new Error(
-          `Plug '${path}' is conflicting with a built-in plug`,
-        );
+        throw new Error(`Plug '${path}' is conflicting with a built-in plug`);
       }
       if (allCustomPlugPaths.includes(path)) {
-        throw new Error(
-          `Plug '${path}' defined by more than one URI`,
-        );
+        throw new Error(`Plug '${path}' defined by more than one URI`);
       }
 
       allCustomPlugPaths.push(path);
@@ -140,7 +136,10 @@ export async function updatePlugsCommand() {
     await editor.flashNotification("All done!");
     void system.reloadPlugs();
   } catch (e: any) {
-    void editor.flashNotification(`Error updating plugs: ${e.message}`, "error");
+    void editor.flashNotification(
+      `Error updating plugs: ${e.message}`,
+      "error",
+    );
   }
 }
 
@@ -183,9 +182,7 @@ export async function getPlugGithubRelease(
     );
   }
   if (req.status !== 200) {
-    throw new Error(
-      `Could not fetch release manifest from ${identifier}`,
-    );
+    throw new Error(`Could not fetch release manifest from ${identifier}`);
   }
   releaseInfo = await req.json();
   version = releaseInfo.tag_name;
@@ -198,7 +195,7 @@ export async function getPlugGithubRelease(
   for (const asset of releaseInfo.assets ?? []) {
     if (
       asset.name === `${repo}.plug.js` ||
-      shortName && asset.name === `${shortName}.plug.js`
+      (shortName && asset.name === `${shortName}.plug.js`)
     ) {
       assetName = asset.name;
       break;
@@ -212,8 +209,7 @@ export async function getPlugGithubRelease(
     );
   }
 
-  const finalUrl =
-    `//github.com/${owner}/${repo}/releases/download/${version}/${assetName}`;
+  const finalUrl = `//github.com/${owner}/${repo}/releases/download/${version}/${assetName}`;
   const code = await getPlugHTTPS(finalUrl);
   return {
     code: typeof code === "string" ? code : code.code,

@@ -12,10 +12,7 @@ export function serviceRegistrySyscalls(
     /**
      * Define a Lua event listener
      */
-    "service.define": (
-      _ctx,
-      def: ServiceSpec,
-    ) => {
+    "service.define": (_ctx, def: ServiceSpec) => {
       return serviceRegistry.define(def);
     },
     "service.discover": (

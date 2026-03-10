@@ -25,11 +25,7 @@ test("Test header indexing", async () => {
     perm: "rw",
   };
 
-  const headers = await indexHeaders(
-    pageMeta,
-    frontmatter,
-    tree,
-  );
+  const headers = await indexHeaders(pageMeta, frontmatter, tree);
   // 1 data 1 tag
   expect(headers.length).toEqual(3);
 

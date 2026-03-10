@@ -35,12 +35,10 @@ export function indexHeaders(
 ): Promise<HeaderObject[]> {
   const headers: ObjectValue<HeaderObject>[] = [];
 
-  for (
-    const n of collectNodesMatching(
-      tree,
-      (t) => !!t.type?.startsWith("ATXHeading"),
-    )
-  ) {
+  for (const n of collectNodesMatching(
+    tree,
+    (t) => !!t.type?.startsWith("ATXHeading"),
+  )) {
     const level = +n.type!.substring("ATXHeading".length);
     const name = renderToText(n).slice(level + 1);
     const tags = collectTags(n);

@@ -32,13 +32,11 @@ export type ItemObject = ObjectValue<
 
 export type TaskObject = ObjectValue<
   // "Inherit" everyting from item
-  & ItemObject
-  // And add a few more attributes
-  & {
+  ItemObject & {
+    // And add a few more attributes
     done: boolean;
     state: string;
-  }
-  & Record<string, any>
+  } & Record<string, any>
 >;
 
 const completeStates = ["x", "X"];
@@ -48,14 +46,8 @@ export async function indexItems(
   frontmatter: FrontMatter,
   tree: ParseTree,
 ) {
-  const shouldIndexAllItems = await system.getConfig(
-    "index.item.all",
-    true,
-  );
-  const shouldIndexAllTasks = await system.getConfig(
-    "index.task.all",
-    true,
-  );
+  const shouldIndexAllItems = await system.getConfig("index.item.all", true);
+  const shouldIndexAllTasks = await system.getConfig("index.task.all", true);
 
   let items: ObjectValue<ItemObject | TaskObject>[] = [];
 
@@ -69,11 +61,7 @@ export async function indexItems(
       return true;
     }
 
-    items.push(extractItemFromNode(
-      pageMeta.name,
-      n,
-      frontmatter,
-    ));
+    items.push(extractItemFromNode(pageMeta.name, n, frontmatter));
 
     // Traversal continue into child items (potentially)
     return false;
@@ -175,17 +163,14 @@ export function enrichItemFromParents(
     // Merge tags
     item.itags = [
       ...new Set([
-        ...item.itags || [],
-        ...(parentItem.itags!.filter((t) => !["item", "task"].includes(t))),
+        ...(item.itags || []),
+        ...parentItem.itags!.filter((t) => !["item", "task"].includes(t)),
       ]),
     ];
 
     // And links
     const ilinks = [
-      ...new Set([
-        ...item.ilinks || [],
-        ...parentItem.ilinks || [],
-      ]),
+      ...new Set([...(item.ilinks || []), ...(parentItem.ilinks || [])]),
     ];
     if (ilinks.length > 0) {
       item.ilinks = ilinks;

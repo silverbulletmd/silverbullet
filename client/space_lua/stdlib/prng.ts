@@ -10,7 +10,7 @@ export class LuaPRNG {
 
   private rotl(x: bigint, k: number): bigint {
     k = k & 63;
-    return ((x << BigInt(k)) | (x >> BigInt(64 - k))) & 0xFFFFFFFFFFFFFFFFn;
+    return ((x << BigInt(k)) | (x >> BigInt(64 - k))) & 0xffffffffffffffffn;
   }
 
   private nextrand(): bigint {
@@ -20,10 +20,11 @@ export class LuaPRNG {
     const s2 = s[2];
     const s3 = s[3];
 
-    const res = this.rotl((s1 * 5n) & 0xFFFFFFFFFFFFFFFFn, 7) * 9n &
-      0xFFFFFFFFFFFFFFFFn;
+    const res =
+      (this.rotl((s1 * 5n) & 0xffffffffffffffffn, 7) * 9n) &
+      0xffffffffffffffffn;
 
-    const t = (s1 << 17n) & 0xFFFFFFFFFFFFFFFFn;
+    const t = (s1 << 17n) & 0xffffffffffffffffn;
     s[2] = s2 ^ s0;
     s[3] = s3 ^ s1;
     s[1] = s1 ^ s[2];
@@ -35,17 +36,17 @@ export class LuaPRNG {
   }
 
   public setSeed(seed1: bigint, seed2: bigint = 0n): [bigint, bigint] {
-    const MASK = 0xFFFFFFFFFFFFFFFFn;
+    const MASK = 0xffffffffffffffffn;
     const s = this.state;
 
     const sm64 = (x: bigint): bigint => {
-      x = (x ^ (x >> 30n)) * 0xBF58476D1CE4E5B9n & MASK;
-      x = (x ^ (x >> 27n)) * 0x94D049BB133111EBn & MASK;
+      x = ((x ^ (x >> 30n)) * 0xbf58476d1ce4e5b9n) & MASK;
+      x = ((x ^ (x >> 27n)) * 0x94d049bb133111ebn) & MASK;
       return (x ^ (x >> 31n)) & MASK;
     };
 
     s[0] = sm64(seed1 & MASK);
-    s[1] = sm64((seed1 & MASK) | 0xFFn);
+    s[1] = sm64((seed1 & MASK) | 0xffn);
     s[2] = sm64(seed2 & MASK);
     s[3] = sm64(0n);
 
@@ -101,9 +102,8 @@ export class LuaPRNG {
     if (arg2 === undefined) {
       if (arg1 === 0) {
         // Raw 64-bit as signed bigint
-        const signed = rv > 0x7FFFFFFFFFFFFFFFn
-          ? rv - 0x10000000000000000n
-          : rv;
+        const signed =
+          rv > 0x7fffffffffffffffn ? rv - 0x10000000000000000n : rv;
         return signed;
       }
       if (arg1 < 1) {
@@ -133,7 +133,10 @@ export class LuaPRNG {
         "bad argument #1 to 'randomseed' (number has no integer representation)",
       );
     }
-    if (arg2 !== undefined && (!Number.isFinite(arg2) || !Number.isInteger(arg2))) {
+    if (
+      arg2 !== undefined &&
+      (!Number.isFinite(arg2) || !Number.isInteger(arg2))
+    ) {
       throw new Error(
         "bad argument #2 to 'randomseed' (number has no integer representation)",
       );

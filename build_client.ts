@@ -1,6 +1,6 @@
 import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { dirname, } from "node:path";
+import { dirname } from "node:path";
 import * as sass from "sass";
 
 import * as esbuild from "esbuild";

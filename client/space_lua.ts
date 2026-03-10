@@ -16,7 +16,10 @@ import type { ObjectIndex } from "./data/object_index.ts";
 export class SpaceLuaEnvironment {
   env: LuaEnv;
 
-  constructor(private system: System<any>, private objectIndex: ObjectIndex) {
+  constructor(
+    private system: System<any>,
+    private objectIndex: ObjectIndex,
+  ) {
     this.env = buildLuaEnv(system);
   }
 
@@ -30,14 +33,17 @@ export class SpaceLuaEnvironment {
       "space-lua",
       {
         objectVariable: "script",
-        orderBy: [{
-          expr: parseExpressionString("script.priority or 0"),
-          desc: true,
-          nulls: "first",
-        }, {
-          expr: parseExpressionString("script.ref"),
-          desc: false,
-        }],
+        orderBy: [
+          {
+            expr: parseExpressionString("script.priority or 0"),
+            desc: true,
+            nulls: "first",
+          },
+          {
+            expr: parseExpressionString("script.ref"),
+            desc: false,
+          },
+        ],
       } as LuaCollectionQuery,
     );
     try {
@@ -57,9 +63,9 @@ export class SpaceLuaEnvironment {
             const origin = resolveASTReference(e.sf.astCtx!);
             if (origin) {
               console.error(
-                `Error evaluating script: ${e.message} at [[${
-                  encodeRef(origin)
-                }]]`,
+                `Error evaluating script: ${e.message} at [[${encodeRef(
+                  origin,
+                )}]]`,
               );
               continue;
             }
@@ -88,9 +94,8 @@ export function resolveASTReference(ctx?: ASTCtx): Ref | null {
   }
 
   if (ref.details?.type === "position") {
-    ref.details.pos = (ref.details.pos as number) +
-      "```space-lua\n".length +
-      ctx.from!;
+    ref.details.pos =
+      (ref.details.pos as number) + "```space-lua\n".length + ctx.from!;
   }
 
   return ref;

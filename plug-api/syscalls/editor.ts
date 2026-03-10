@@ -77,9 +77,11 @@ export function getCursor(): Promise<number> {
 /**
  * Returns the line number and column number of the cursor in the editor
  */
-export function getSelection(): Promise<
-  { from: number; to: number; text: string }
-> {
+export function getSelection(): Promise<{
+  from: number;
+  to: number;
+  text: string;
+}> {
   return syscall("editor.getSelection");
 }
 
@@ -259,9 +261,7 @@ export function showPanel(
  * Hides a panel in the editor
  * @param id the location of the panel to hide
  */
-export function hidePanel(
-  id: "lhs" | "rhs" | "bhs" | "modal",
-): Promise<void> {
+export function hidePanel(id: "lhs" | "rhs" | "bhs" | "modal"): Promise<void> {
   return syscall("editor.hidePanel", id);
 }
 
@@ -360,9 +360,7 @@ export function prompt(
  * @param message the message to show in the confirmation dialog
  * @returns
  */
-export function confirm(
-  message: string,
-): Promise<boolean> {
+export function confirm(message: string): Promise<boolean> {
   return syscall("editor.confirm", message);
 }
 
@@ -371,9 +369,7 @@ export function confirm(
  * @param message the message to show in the confirmation dialog
  * @returns
  */
-export function alert(
-  message: string,
-): Promise<boolean> {
+export function alert(message: string): Promise<boolean> {
   return syscall("editor.alert", message);
 }
 

@@ -23,9 +23,7 @@ export class AssetBundle {
     return Object.keys(this.bundle);
   }
 
-  readFileSync(
-    path: string,
-  ): Uint8Array {
+  readFileSync(path: string): Uint8Array {
     const content = this.bundle[path];
     if (!content) {
       throw new Error(`No such file ${path}`);
@@ -42,15 +40,11 @@ export class AssetBundle {
     return content.data;
   }
 
-  readTextFileSync(
-    path: string,
-  ): string {
+  readTextFileSync(path: string): string {
     return new TextDecoder().decode(this.readFileSync(path));
   }
 
-  getMimeType(
-    path: string,
-  ): string {
+  getMimeType(path: string): string {
     const entry = this.bundle[path];
     if (!entry) {
       throw new Error(`No such file ${path}`);

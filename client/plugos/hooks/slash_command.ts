@@ -23,8 +23,7 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
     this.buildAllCommands();
   }, 200);
 
-  constructor(private client: Client) {
-  }
+  constructor(private client: Client) {}
 
   buildAllCommands() {
     const clientSystem = this.client.clientSystem;
@@ -32,11 +31,9 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
 
     this.slashCommands = [];
     for (const plug of system.loadedPlugs.values()) {
-      for (
-        const [name, functionDef] of Object.entries(
-          plug.manifest!.functions,
-        )
-      ) {
+      for (const [name, functionDef] of Object.entries(
+        plug.manifest!.functions,
+      )) {
         if (!functionDef.slashCommand) {
           continue;
         }
@@ -50,14 +47,9 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
       }
     }
     // Iterate over script defined slash commands
-    for (
-      const command of Object.values(
-        this.client.config.get<Record<string, SlashCommand>>(
-          "slashCommands",
-          {},
-        ),
-      )
-    ) {
+    for (const command of Object.values(
+      this.client.config.get<Record<string, SlashCommand>>("slashCommands", {}),
+    )) {
       this.slashCommands.push(command);
     }
   }
@@ -88,14 +80,14 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
       if (
         def.onlyContexts &&
         !def.onlyContexts.some((context) =>
-          parentNodes.some((node) => node.startsWith(context))
+          parentNodes.some((node) => node.startsWith(context)),
         )
       ) {
         continue;
       }
       if (
-        def.exceptContexts?.some(
-          (context) => parentNodes.some((node) => node.startsWith(context)),
+        def.exceptContexts?.some((context) =>
+          parentNodes.some((node) => node.startsWith(context)),
         )
       ) {
         continue;
@@ -123,17 +115,10 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
     }
 
     const slashCompletions: CompletionResult | SlashCompletions | null =
-      await this.client
-        .completeWithEvent(
-          ctx,
-          "slash:complete",
-        );
+      await this.client.completeWithEvent(ctx, "slash:complete");
 
     if (slashCompletions) {
-      for (
-        const slashCompletion of slashCompletions
-          .options as SlashCompletionOption[]
-      ) {
+      for (const slashCompletion of slashCompletions.options as SlashCompletionOption[]) {
         options.push({
           label: slashCompletion.label,
           detail: slashCompletion.detail,

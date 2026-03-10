@@ -37,15 +37,12 @@ import { isTaggedFloat, makeLuaFloat } from "./numeric.ts";
 import { isPromise } from "./rp.ts";
 
 const printFunction = new LuaBuiltinFunction(async (_sf, ...args) => {
-  console.log(
-    "[Lua]",
-    ...(await Promise.all(args.map((v) => luaToString(v)))),
-  );
+  console.log("[Lua]", ...(await Promise.all(args.map((v) => luaToString(v)))));
 });
 
 const assertFunction = new LuaBuiltinFunction(
   async (sf, value: any, message?: string) => {
-    if (!await value) {
+    if (!(await value)) {
       throw new LuaRuntimeError(`Assertion failed: ${message}`, sf);
     }
   },
@@ -143,10 +140,7 @@ const tostringFunction = new LuaBuiltinFunction(
         const unwrap = (v: any): string => {
           const s = singleResult(v);
           if (typeof s !== "string") {
-            throw new LuaRuntimeError(
-              "'__tostring' must return a string",
-              sf,
-            );
+            throw new LuaRuntimeError("'__tostring' must return a string", sf);
           }
           return s;
         };
@@ -203,10 +197,7 @@ async function pcallBoundary(
   sf: LuaStackFrame,
   fn: ILuaFunction,
   args: LuaValue[],
-): Promise<
-  | { ok: true; values: LuaValue[] }
-  | { ok: false; message: string }
-> {
+): Promise<{ ok: true; values: LuaValue[] } | { ok: false; message: string }> {
   const closeStack = luaEnsureCloseStack(sf);
   const mark = closeStack.length;
 
@@ -274,11 +265,9 @@ const setmetatableFunction = new LuaBuiltinFunction(
   },
 );
 
-const rawlenFunction = new LuaBuiltinFunction(
-  (_sf, value: LuaValue) => {
-    return luaLen(value, _sf, true);
-  },
-);
+const rawlenFunction = new LuaBuiltinFunction((_sf, value: LuaValue) => {
+  return luaLen(value, _sf, true);
+});
 
 const rawsetFunction = new LuaBuiltinFunction(
   (_sf, table: LuaTable, key: LuaValue, value: LuaValue) => {
@@ -290,7 +279,8 @@ const rawgetFunction = new LuaBuiltinFunction(
   (_sf, table: any, key: LuaValue) => {
     const isArray = Array.isArray(table);
 
-    const isPlainObj = typeof table === "object" &&
+    const isPlainObj =
+      typeof table === "object" &&
       table !== null &&
       (table as any).constructor === Object;
 
@@ -339,13 +329,11 @@ const rawgetFunction = new LuaBuiltinFunction(
   },
 );
 
-const rawequalFunction = new LuaBuiltinFunction(
-  (_sf, a: any, b: any) => {
-    const av = isTaggedFloat(a) ? a.value : a;
-    const bv = isTaggedFloat(b) ? b.value : b;
-    return av === bv;
-  },
-);
+const rawequalFunction = new LuaBuiltinFunction((_sf, a: any, b: any) => {
+  const av = isTaggedFloat(a) ? a.value : a;
+  const bv = isTaggedFloat(b) ? b.value : b;
+  return av === bv;
+});
 
 const getmetatableFunction = new LuaBuiltinFunction((_sf, table: LuaTable) => {
   return (table as any).metatable;
@@ -353,12 +341,12 @@ const getmetatableFunction = new LuaBuiltinFunction((_sf, table: LuaTable) => {
 
 const dofileFunction = new LuaBuiltinFunction(async (sf, filename: string) => {
   const global = sf.threadLocal.get("_GLOBAL") as LuaEnv;
-  const file = await luaCall(
+  const file = (await luaCall(
     (global.get("space") as any).get("readFile"),
     [filename],
     sf.astCtx!,
     sf,
-  ) as Uint8Array;
+  )) as Uint8Array;
   const code = new TextDecoder().decode(file);
   try {
     const parsedExpr = parse(code);
@@ -434,7 +422,8 @@ const nextFunction = new LuaBuiltinFunction(
     }
     // Find index in the key list
     const idx = keys.indexOf(index);
-    if (idx === -1) { // Not found
+    if (idx === -1) {
+      // Not found
       throw new LuaRuntimeError("invalid key to 'next': key not found", sf);
     }
     const key = keys[idx + 1];

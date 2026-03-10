@@ -1,11 +1,7 @@
 import { expect, test } from "vitest";
 import { parseExpressionString } from "./parse.ts";
 import { ArrayQueryCollection } from "./query_collection.ts";
-import {
-  LuaEnv,
-  LuaNativeJSFunction,
-  LuaStackFrame,
-} from "./runtime.ts";
+import { LuaEnv, LuaNativeJSFunction, LuaStackFrame } from "./runtime.ts";
 
 test("ArrayQueryCollection", async () => {
   const rootEnv = new LuaEnv();
@@ -16,10 +12,14 @@ test("ArrayQueryCollection", async () => {
     }),
   );
 
-  const collection = new ArrayQueryCollection([{ x: 1, y: 1 }, { x: 2, y: 2 }, {
-    x: 3,
-    y: 3,
-  }]);
+  const collection = new ArrayQueryCollection([
+    { x: 1, y: 1 },
+    { x: 2, y: 2 },
+    {
+      x: 3,
+      y: 3,
+    },
+  ]);
   const result = await collection.query(
     {
       objectVariable: "p",
@@ -300,11 +300,13 @@ test("ArrayQueryCollection - nulls ordering", async () => {
   const r3 = await collection.query(
     {
       objectVariable: "p",
-      orderBy: [{
-        expr: parseExpressionString("p.priority"),
-        desc: true,
-        nulls: "last",
-      }],
+      orderBy: [
+        {
+          expr: parseExpressionString("p.priority"),
+          desc: true,
+          nulls: "last",
+        },
+      ],
     },
     rootEnv,
     LuaStackFrame.lostFrame,
@@ -320,11 +322,13 @@ test("ArrayQueryCollection - nulls ordering", async () => {
   const r4 = await collection.query(
     {
       objectVariable: "p",
-      orderBy: [{
-        expr: parseExpressionString("p.priority"),
-        desc: false,
-        nulls: "first",
-      }],
+      orderBy: [
+        {
+          expr: parseExpressionString("p.priority"),
+          desc: false,
+          nulls: "first",
+        },
+      ],
     },
     rootEnv,
     LuaStackFrame.lostFrame,
@@ -339,10 +343,7 @@ test("ArrayQueryCollection - nulls ordering", async () => {
 
 test("ArrayQueryCollection - SWO violation detection", async () => {
   const rootEnv = new LuaEnv();
-  rootEnv.setLocal(
-    "badCmp",
-    new LuaNativeJSFunction((a, b) => a <= b),
-  );
+  rootEnv.setLocal("badCmp", new LuaNativeJSFunction((a, b) => a <= b));
 
   const collection = new ArrayQueryCollection([
     { name: "alice", score: 10 },
@@ -354,11 +355,13 @@ test("ArrayQueryCollection - SWO violation detection", async () => {
     collection.query(
       {
         objectVariable: "p",
-        orderBy: [{
-          expr: parseExpressionString("p.score"),
-          desc: false,
-          using: "badCmp",
-        }],
+        orderBy: [
+          {
+            expr: parseExpressionString("p.score"),
+            desc: false,
+            using: "badCmp",
+          },
+        ],
       },
       rootEnv,
       LuaStackFrame.lostFrame,

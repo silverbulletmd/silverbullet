@@ -134,10 +134,7 @@ export class Config {
     }
   }
 
-  insert<T>(
-    key: string | string[],
-    value?: T,
-  ): void {
+  insert<T>(key: string | string[], value?: T): void {
     if (typeof key === "string") {
       key = key.split(".");
     }

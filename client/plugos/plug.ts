@@ -26,10 +26,7 @@ export class Plug<HookT> {
     cacheHash: number,
     sandboxFactory: SandboxFactory<HookT>,
   ): Promise<Plug<HookT>> {
-    const plug = new Plug(
-      system,
-      sandboxFactory,
-    );
+    const plug = new Plug(system, sandboxFactory);
 
     // Retrieve the manifest, which may either come from a cache or be loaded from the worker
     plug.manifest = await system.options.manifestCache!.getManifest(
@@ -83,7 +80,7 @@ export class Plug<HookT> {
       }
       return plug.invoke(name, args);
     }
-    if (!await this.canInvoke(name)) {
+    if (!(await this.canInvoke(name))) {
       throw new Error(
         `Function ${name} is not available in ${this.runtimeEnv}`,
       );

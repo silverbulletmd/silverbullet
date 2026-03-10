@@ -153,7 +153,9 @@ export async function updateTaskState(
   const ref = parseToRef(path);
 
   if (
-    !ref || !ref.details || !isMarkdownPath(ref.path) ||
+    !ref ||
+    !ref.details ||
+    !isMarkdownPath(ref.path) ||
     (ref.details.type !== "linecolumn" && ref.details.type !== "position")
   ) {
     console.log("No position found in page ref, skipping", ref);
@@ -164,13 +166,14 @@ export async function updateTaskState(
     // In current page, just update the task marker with dispatch
     const editorText = await editor.getText();
 
-    const targetPos = ref.details.type === "position"
-      ? ref.details.pos
-      : getOffsetFromLineColumn(
-        editorText,
-        ref.details.line,
-        ref.details.column,
-      );
+    const targetPos =
+      ref.details.type === "position"
+        ? ref.details.pos
+        : getOffsetFromLineColumn(
+            editorText,
+            ref.details.line,
+            ref.details.column,
+          );
 
     // Check if the task state marker is still there
     const targetText = editorText.substring(
@@ -178,10 +181,7 @@ export async function updateTaskState(
       targetPos + 3 + oldState.length,
     );
     if (targetText !== oldState) {
-      console.error(
-        "Reference not a task marker, out of date?",
-        targetText,
-      );
+      console.error("Reference not a task marker, out of date?", targetText);
       return;
     }
     await editor.dispatch({
@@ -196,28 +196,19 @@ export async function updateTaskState(
     let text = await space.readPage(pageName);
 
     const referenceMdTree = await markdown.parseMarkdown(text);
-    const targetPos = ref.details.type === "position"
-      ? ref.details.pos
-      : getOffsetFromLineColumn(
-        text,
-        ref.details.line,
-        ref.details.column,
-      );
+    const targetPos =
+      ref.details.type === "position"
+        ? ref.details.pos
+        : getOffsetFromLineColumn(text, ref.details.line, ref.details.column);
 
     const itemNode = nodeAtPos(referenceMdTree, targetPos + 1);
     if (!itemNode) {
-      console.error(
-        "Reference not a valid item, out of date?",
-        itemNode,
-      );
+      console.error("Reference not a valid item, out of date?", itemNode);
       return;
     }
     const taskStateNode = findNodeOfType(itemNode, "TaskState");
     if (!taskStateNode) {
-      console.error(
-        "Cannot find a task state",
-        taskStateNode,
-      );
+      console.error("Cannot find a task state", taskStateNode);
       return;
     }
     taskStateNode.children![1].text = newState;
@@ -262,9 +253,10 @@ export async function taskCycleCommand() {
     await editor.flashNotification("No task at cursor");
     return;
   }
-  const taskNode = node.type === "Task"
-    ? node
-    : findParentMatching(node!, (n) => n.type === "Task");
+  const taskNode =
+    node.type === "Task"
+      ? node
+      : findParentMatching(node!, (n) => n.type === "Task");
 
   if (taskNode) {
     const taskState = findNodeOfType(taskNode!, "TaskState");
@@ -304,8 +296,10 @@ export function removeCompletedTasksFromTree(
   // Just finding and removing one task at a time and then repeating until nothing changes
   while (true) {
     const completedTaskNode = findNodeMatching(tree, (node) => {
-      return node.type === "Task" &&
-        allCompletedStates.includes(node.children![0].children![1].text!);
+      return (
+        node.type === "Task" &&
+        allCompletedStates.includes(node.children![0].children![1].text!)
+      );
     });
     if (completedTaskNode) {
       // Ok got one, let's remove it
@@ -316,14 +310,15 @@ export function removeCompletedTasksFromTree(
       // Also remove the adjacent whitespace/newline separator text node.
       // Prefer the following separator; if none, remove the preceding one.
       const nextChild = bulletListNode.children![listItemIdx + 1];
-      const prevChild = listItemIdx > 0
-        ? bulletListNode.children![listItemIdx - 1]
-        : undefined;
+      const prevChild =
+        listItemIdx > 0 ? bulletListNode.children![listItemIdx - 1] : undefined;
       if (nextChild && !nextChild.type && nextChild.text?.startsWith("\n")) {
         // Remove item and following separator
         bulletListNode.children!.splice(listItemIdx, 2);
       } else if (
-        prevChild && !prevChild.type && prevChild.text?.startsWith("\n")
+        prevChild &&
+        !prevChild.type &&
+        prevChild.text?.startsWith("\n")
       ) {
         // Remove preceding separator and item
         bulletListNode.children!.splice(listItemIdx - 1, 2);
@@ -345,9 +340,7 @@ export function removeCompletedTasksFromTree(
         if (blNext && !blNext.type && blNext.text?.startsWith("\n")) {
           // Remove BulletList and following separator
           parentChildren.splice(blIdx, 2);
-        } else if (
-          blPrev && !blPrev.type && blPrev.text?.startsWith("\n")
-        ) {
+        } else if (blPrev && !blPrev.type && blPrev.text?.startsWith("\n")) {
           // Remove preceding separator and BulletList
           parentChildren.splice(blIdx - 1, 2);
         } else {
@@ -366,9 +359,9 @@ export async function removeCompletedTasksCommand() {
   addParentPointers(tree);
 
   const allCompletedStates = completeStates.concat(
-    Object.values(await config.get("taskStates", {})).filter((ts: any) =>
-      ts.done
-    ).map((ts: any) => ts.name),
+    Object.values(await config.get("taskStates", {}))
+      .filter((ts: any) => ts.done)
+      .map((ts: any) => ts.name),
   );
 
   removeCompletedTasksFromTree(tree, allCompletedStates);

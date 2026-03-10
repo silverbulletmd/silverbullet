@@ -73,7 +73,8 @@ function getOption(
   fmt: string,
   pos: number,
   h: Header,
-): [KOption, number, number] { // [opt, size, newPos]
+): [KOption, number, number] {
+  // [opt, size, newPos]
   const c = fmt[pos++];
   switch (c) {
     case "b":
@@ -171,7 +172,10 @@ function getDetails(
 
   let ntoalign = 0;
   if (
-    opt !== "char" && opt !== "nop" && opt !== "padding" && opt !== "paddalign"
+    opt !== "char" &&
+    opt !== "nop" &&
+    opt !== "padding" &&
+    opt !== "paddalign"
   ) {
     const realign = Math.min(align, h.maxalign);
     if (realign > 0) {
@@ -381,7 +385,9 @@ export const strUnpackFn = new LuaBuiltinFunction(
 
       if (opt.ntoalign + opt.size > buf.length - pos) {
         if (
-          opt.opt !== "nop" && opt.opt !== "paddalign" && opt.opt !== "padding"
+          opt.opt !== "nop" &&
+          opt.opt !== "paddalign" &&
+          opt.opt !== "padding"
         ) {
           throw new LuaRuntimeError("data string too short", sf);
         }
@@ -464,23 +470,21 @@ export const strUnpackFn = new LuaBuiltinFunction(
   },
 );
 
-export const strPackSizeFn = new LuaBuiltinFunction(
-  (_sf, fmt: string) => {
-    const h = makeHeader();
-    let totalsize = 0;
-    let pos = 0;
+export const strPackSizeFn = new LuaBuiltinFunction((_sf, fmt: string) => {
+  const h = makeHeader();
+  let totalsize = 0;
+  let pos = 0;
 
-    while (pos < fmt.length) {
-      let opt: ParsedOption;
-      [opt, pos] = getDetails(fmt, pos, h, totalsize);
+  while (pos < fmt.length) {
+    let opt: ParsedOption;
+    [opt, pos] = getDetails(fmt, pos, h, totalsize);
 
-      if (opt.opt === "string" || opt.opt === "zstr") {
-        throw new LuaRuntimeError("variable-length format", _sf);
-      }
-
-      totalsize += opt.ntoalign + opt.size;
+    if (opt.opt === "string" || opt.opt === "zstr") {
+      throw new LuaRuntimeError("variable-length format", _sf);
     }
 
-    return totalsize;
-  },
-);
+    totalsize += opt.ntoalign + opt.size;
+  }
+
+  return totalsize;
+});

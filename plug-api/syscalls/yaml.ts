@@ -10,9 +10,7 @@ import { syscall } from "../syscall.ts";
  * @param text the YAML text to parse
  * @returns a JavaScript object representation of the YAML text
  */
-export function parse(
-  text: string,
-): Promise<any> {
+export function parse(text: string): Promise<any> {
   return syscall("yaml.parse", text);
 }
 
@@ -21,8 +19,6 @@ export function parse(
  * @param obj the object to stringify
  * @returns a YAML string representation of the object
  */
-export function stringify(
-  obj: any,
-): Promise<string> {
+export function stringify(obj: any): Promise<string> {
   return syscall("yaml.stringify", obj);
 }

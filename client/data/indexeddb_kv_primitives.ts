@@ -10,10 +10,7 @@ const objectStoreName = "data";
 export class IndexedDBKvPrimitives implements KvPrimitives {
   db!: IDBPDatabase<any>;
 
-  constructor(
-    private dbName: string,
-  ) {
-  }
+  constructor(private dbName: string) {}
 
   async init() {
     this.db = await openDB(this.dbName, 1, {
@@ -31,7 +28,7 @@ export class IndexedDBKvPrimitives implements KvPrimitives {
 
     // Clear each object store in parallel
     const clearPromises = Array.from(objectStoreNames).map((storeName) =>
-      tx.objectStore(storeName).clear()
+      tx.objectStore(storeName).clear(),
     );
 
     // Wait for all clears to complete
@@ -50,7 +47,7 @@ export class IndexedDBKvPrimitives implements KvPrimitives {
     const tx = this.db.transaction(objectStoreName, "readwrite");
     await Promise.all([
       ...entries.map(({ key, value }) =>
-        tx.store.put(value, this.buildKey(key))
+        tx.store.put(value, this.buildKey(key)),
       ),
       tx.done,
     ]);
@@ -69,12 +66,12 @@ export class IndexedDBKvPrimitives implements KvPrimitives {
   async *query({ prefix }: KvQueryOptions): AsyncIterableIterator<KV> {
     const tx = this.db.transaction(objectStoreName, "readonly");
     prefix = prefix || [];
-    for await (
-      const entry of tx.store.iterate(IDBKeyRange.bound(
+    for await (const entry of tx.store.iterate(
+      IDBKeyRange.bound(
         this.buildKey([...prefix, ""]),
         this.buildKey([...prefix, "\uffff"]),
-      ))
-    ) {
+      ),
+    )) {
       yield { key: this.extractKey(entry.key), value: entry.value };
     }
   }
@@ -82,10 +79,12 @@ export class IndexedDBKvPrimitives implements KvPrimitives {
   countQuery({ prefix }: KvQueryOptions): Promise<number> {
     const tx = this.db.transaction(objectStoreName, "readonly");
     prefix = prefix || [];
-    return tx.store.count(IDBKeyRange.bound(
-      this.buildKey([...prefix, ""]),
-      this.buildKey([...prefix, "\uffff"]),
-    ));
+    return tx.store.count(
+      IDBKeyRange.bound(
+        this.buildKey([...prefix, ""]),
+        this.buildKey([...prefix, "\uffff"]),
+      ),
+    );
   }
 
   close() {

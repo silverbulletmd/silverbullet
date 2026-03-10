@@ -61,12 +61,14 @@ export function TopBar({
             <div className="sb-page-prefix">{pageNamePrefix}</div>
             <span
               id="sb-current-page"
-              className={(isLoading
-                ? "sb-loading"
-                : unsavedChanges
-                ? "sb-unsaved"
-                : "sb-saved") +
-                (cssClass ? ` sb-decorated-object ${cssClass}` : "")}
+              className={
+                (isLoading
+                  ? "sb-loading"
+                  : unsavedChanges
+                    ? "sb-unsaved"
+                    : "sb-saved") +
+                (cssClass ? ` sb-decorated-object ${cssClass}` : "")
+              }
             >
               <MiniEditor
                 text={pageName ?? ""}
@@ -82,8 +84,10 @@ export function TopBar({
                 onEnter={(newName) => {
                   void onRename(newName);
                 }}
-                editable={!client.ui.viewState.uiOptions.forcedROMode &&
-                  !client.bootConfig.readOnly}
+                editable={
+                  !client.ui.viewState.uiOptions.forcedROMode &&
+                  !client.bootConfig.readOnly
+                }
               />
             </span>
             {notifications.length > 0 && (
@@ -99,24 +103,24 @@ export function TopBar({
               </div>
             )}
             <div className="sb-sync-progress">
-              {progressPercentage !== undefined &&
-                (
+              {progressPercentage !== undefined && (
+                <div
+                  className="progress-wrapper"
+                  title={`${progressType} progress: ${progressPercentage}%`}
+                >
                   <div
-                    className="progress-wrapper"
-                    title={`${progressType} progress: ${progressPercentage}%`}
+                    className="progress-bar"
+                    style={`background: radial-gradient(closest-side, var(--top-background-color) 79%, transparent 80% 100%), conic-gradient(var(--progress-${progressType}-color) ${progressPercentage}%, var(--progress-background-color) 0);`}
                   >
-                    <div
-                      className="progress-bar"
-                      style={`background: radial-gradient(closest-side, var(--top-background-color) 79%, transparent 80% 100%), conic-gradient(var(--progress-${progressType}-color) ${progressPercentage}%, var(--progress-background-color) 0);`}
-                    >
-                      {progressPercentage}
-                    </div>
+                    {progressPercentage}
                   </div>
-                )}
+                </div>
+              )}
             </div>
             <div
-              className={"sb-actions " +
-                (mobileMenuStyle ? mobileMenuStyle : "")}
+              className={
+                "sb-actions " + (mobileMenuStyle ? mobileMenuStyle : "")
+              }
             >
               {actionButtons.map((actionButton) => {
                 const button = (
@@ -130,7 +134,8 @@ export function TopBar({
                     onBlur={() => {
                       // Close the hamburger menu in mobile mode if the action button loses focus after callback
                       if (mobileMenuStyle === "hamburger") {
-                        document.querySelector("#sb-top .sb-actions.hamburger")
+                        document
+                          .querySelector("#sb-top .sb-actions.hamburger")
                           ?.classList.remove("open");
                       }
                     }}
@@ -141,13 +146,13 @@ export function TopBar({
                   </button>
                 );
 
-                return actionButton.href
-                  ? (
-                    <a href={actionButton.href} key={actionButton.href}>
-                      {button}
-                    </a>
-                  )
-                  : button;
+                return actionButton.href ? (
+                  <a href={actionButton.href} key={actionButton.href}>
+                    {button}
+                  </a>
+                ) : (
+                  button
+                );
               })}
             </div>
           </div>

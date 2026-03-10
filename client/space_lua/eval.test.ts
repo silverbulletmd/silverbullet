@@ -17,11 +17,7 @@ const sf = LuaStackFrame.lostFrame;
 function evalExpr(s: string, e = new LuaEnv(), sf?: LuaStackFrame): any {
   const node = parse(`e(${s})`).statements[0] as LuaFunctionCallStatement;
   sf = sf || new LuaStackFrame(e, node.ctx);
-  return evalExpression(
-    node.call.args[0],
-    e,
-    sf,
-  );
+  return evalExpression(node.call.args[0], e, sf);
 }
 
 async function evalBlock(s: string, e = new LuaEnv()): Promise<void> {
@@ -107,14 +103,12 @@ test("Evaluator test", async () => {
 });
 
 test("Parser rejects unary plus - parenthesized", () => {
-  for (
-    const src of [
-      "return +(1)",
-      "return +((1))",
-      "return +(1 + 2)",
-      "return +({})",
-    ]
-  ) {
+  for (const src of [
+    "return +(1)",
+    "return +((1))",
+    "return +(1 + 2)",
+    "return +({})",
+  ]) {
     let err: any = null;
     try {
       parse(src);
@@ -129,15 +123,13 @@ test("Parser rejects unary plus - parenthesized", () => {
 });
 
 test("Parser rejects unary plus - variables and calls", () => {
-  for (
-    const src of [
-      "return +(a)",
-      "return +(a.b)",
-      "return +(a[1])",
-      "return +f()",
-      "return +(f())",
-    ]
-  ) {
+  for (const src of [
+    "return +(a)",
+    "return +(a.b)",
+    "return +(a[1])",
+    "return +f()",
+    "return +(f())",
+  ]) {
     let err: any = null;
     try {
       parse(src);
@@ -152,14 +144,12 @@ test("Parser rejects unary plus - variables and calls", () => {
 });
 
 test("Parser rejects unary plus - whitespace/newlines", () => {
-  for (
-    const src of [
-      "return + 1",
-      "return +\n1",
-      "return +\t(1)",
-      "return \n+\n(1)",
-    ]
-  ) {
+  for (const src of [
+    "return + 1",
+    "return +\n1",
+    "return +\t(1)",
+    "return \n+\n(1)",
+  ]) {
     let err: any = null;
     try {
       parse(src);

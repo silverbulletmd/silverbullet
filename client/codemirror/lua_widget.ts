@@ -31,19 +31,21 @@ export type EventPayLoad = {
   data: any;
 };
 
-export type LuaWidgetContent = {
-  // Magic marker
-  _isWidget?: true;
-  // Render as HTML
-  html?: string | HTMLElement;
-  // Render as markdown
-  markdown?: string;
-  // CSS classes for wrapper
-  cssClasses?: string[];
-  display?: "block" | "inline";
-  // Event handlers
-  events?: Record<string, (event: EventPayLoad) => void>;
-} | string;
+export type LuaWidgetContent =
+  | {
+      // Magic marker
+      _isWidget?: true;
+      // Render as HTML
+      html?: string | HTMLElement;
+      // Render as markdown
+      markdown?: string;
+      // CSS classes for wrapper
+      cssClasses?: string[];
+      display?: "block" | "inline";
+      // Event handlers
+      events?: Record<string, (event: EventPayLoad) => void>;
+    }
+  | string;
 
 export class LuaWidget extends WidgetType {
   public dom?: HTMLElement;
@@ -97,38 +99,34 @@ export class LuaWidget extends WidgetType {
   private buildInlineRenderer(): (text: string) => string {
     return (text: string): string => {
       const mdTree = parse(extendedMarkdownLanguage, text);
-      return renderMarkdownToHtml(mdTree, {
-        shortWikiLinks: this.client.config.get("shortWikiLinks", false),
-        translateUrls: (url) => {
-          if (isLocalURL(url)) {
-            url = resolveMarkdownLink(
-              this.client.currentName(),
-              decodeURI(url),
-            );
-          }
-          return url;
+      return renderMarkdownToHtml(
+        mdTree,
+        {
+          shortWikiLinks: this.client.config.get("shortWikiLinks", false),
+          translateUrls: (url) => {
+            if (isLocalURL(url)) {
+              url = resolveMarkdownLink(
+                this.client.currentName(),
+                decodeURI(url),
+              );
+            }
+            return url;
+          },
+          preserveAttributes: true,
         },
-        preserveAttributes: true,
-      }, this.client.ui.viewState.allPages);
+        this.client.ui.viewState.allPages,
+      );
     };
   }
 
-  async renderContent(
-    div: HTMLElement,
-  ) {
+  async renderContent(div: HTMLElement) {
     const currentName = this.client.currentName();
-    let widgetContent = await this.callback(
-      this.expressionText,
-      currentName,
-    );
+    let widgetContent = await this.callback(this.expressionText, currentName);
     activeWidgets.add(this);
     if (widgetContent === null || widgetContent === undefined) {
       if (!this.renderEmpty) {
         div.innerHTML = "";
-        this.client.setWidgetCache(
-          this.cacheKey,
-          { html: "", block: false },
-        );
+        this.client.setWidgetCache(this.cacheKey, { html: "", block: false });
         this.client.setCachedWidgetHeight(this.cacheKey, div.clientHeight);
         return;
       }
@@ -137,7 +135,7 @@ export class LuaWidget extends WidgetType {
 
     let html: HTMLElement | undefined;
     let block = false;
-    let copyContent: string | undefined ;
+    let copyContent: string | undefined;
 
     // Normalization (non-widget results go through dual-path rendering)
     if (typeof widgetContent === "string" || !widgetContent._isWidget) {
@@ -153,9 +151,8 @@ export class LuaWidget extends WidgetType {
       widgetContent = {
         _isWidget: true,
         html: `<span data-type="${dataType}">${displayHtml}</span>`,
-        display: (dataType === "table" || dataType === "list")
-          ? "block"
-          : "inline",
+        display:
+          dataType === "table" || dataType === "list" ? "block" : "inline",
       };
       copyContent = markdownCopy;
     }
@@ -183,10 +180,7 @@ export class LuaWidget extends WidgetType {
       }
     }
     if (wc.markdown) {
-      let mdTree = parse(
-        extendedMarkdownLanguage,
-        wc.markdown || "",
-      );
+      let mdTree = parse(extendedMarkdownLanguage, wc.markdown || "");
 
       mdTree = await expandMarkdown(
         client.space,
@@ -201,15 +195,13 @@ export class LuaWidget extends WidgetType {
       if (!trimmedMarkdown) {
         // Net empty result after expansion
         div.innerHTML = "";
-        this.client.setWidgetCache(
-          this.cacheKey,
-          { html: "", block: false },
-        );
+        this.client.setWidgetCache(this.cacheKey, { html: "", block: false });
         this.client.setCachedWidgetHeight(this.cacheKey, div.clientHeight);
         return;
       }
 
-      block = wc._isWidget && wc.display === "block" ||
+      block =
+        (wc._isWidget && wc.display === "block") ||
         isBlockMarkdown(trimmedMarkdown);
       if (block) {
         div.className += " sb-lua-directive-block";
@@ -218,25 +210,28 @@ export class LuaWidget extends WidgetType {
       }
 
       // Parse the markdown again after trimming
-      mdTree = parse(
-        extendedMarkdownLanguage,
-        trimmedMarkdown,
+      mdTree = parse(extendedMarkdownLanguage, trimmedMarkdown);
+
+      html = parseHtmlString(
+        renderMarkdownToHtml(
+          mdTree,
+          {
+            shortWikiLinks: this.client.config.get("shortWikiLinks", false),
+            translateUrls: (url) => {
+              if (isLocalURL(url)) {
+                url = resolveMarkdownLink(
+                  this.client.currentName(),
+                  decodeURI(url),
+                );
+              }
+
+              return url;
+            },
+            preserveAttributes: true,
+          },
+          this.client.ui.viewState.allPages,
+        ),
       );
-
-      html = parseHtmlString(renderMarkdownToHtml(mdTree, {
-        shortWikiLinks: this.client.config.get("shortWikiLinks", false),
-        translateUrls: (url) => {
-          if (isLocalURL(url)) {
-            url = resolveMarkdownLink(
-              this.client.currentName(),
-              decodeURI(url),
-            );
-          }
-
-          return url;
-        },
-        preserveAttributes: true,
-      }, this.client.ui.viewState.allPages));
     }
     if (html) {
       div.replaceChildren(this.wrapHtml(block, html, copyContent));
@@ -250,14 +245,11 @@ export class LuaWidget extends WidgetType {
 
     // Let's give it a tick, then measure and cache
     setTimeout(() => {
-      this.client.setWidgetCache(
-        this.cacheKey,
-        {
-          html: html?.outerHTML || "",
-          block,
-          copyContent: copyContent,
-        },
-      );
+      this.client.setWidgetCache(this.cacheKey, {
+        html: html?.outerHTML || "",
+        block,
+        copyContent: copyContent,
+      });
       this.client.setCachedWidgetHeight(this.cacheKey, div.offsetHeight);
       // Because of the rejiggering of the DOM, we need to do a no-op cursor move to make sure it's positioned correctly
       this.client.editorView.dispatch({
@@ -281,13 +273,15 @@ export class LuaWidget extends WidgetType {
     const buttonBar = document.createElement("div");
     buttonBar.className = "button-bar";
 
-    const createButton = (
-      { title, icon, listener }: {
-        title: string;
-        icon: string;
-        listener: (event: MouseEvent) => void;
-      },
-    ) => {
+    const createButton = ({
+      title,
+      icon,
+      listener,
+    }: {
+      title: string;
+      icon: string;
+      listener: (event: MouseEvent) => void;
+    }) => {
       const button = document.createElement("button");
       button.setAttribute("data-button", title.toLowerCase());
       button.setAttribute("title", title);
@@ -297,64 +291,58 @@ export class LuaWidget extends WidgetType {
       return button;
     };
 
-    buttonBar.appendChild(createButton(
-      {
+    buttonBar.appendChild(
+      createButton({
         title: "Reload",
-        icon:
-          '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-refresh-cw"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>',
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-refresh-cw"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>',
         listener: (e) => {
           e.stopPropagation();
-          this.client.clientSystem.localSyscall(
-            "system.invokeFunction",
-            ["index.refreshWidgets"],
-          ).catch(console.error);
+          this.client.clientSystem
+            .localSyscall("system.invokeFunction", ["index.refreshWidgets"])
+            .catch(console.error);
         },
-      },
-    ));
+      }),
+    );
 
     if (copyContent) {
-      buttonBar.appendChild(createButton(
-        {
+      buttonBar.appendChild(
+        createButton({
           title: "Copy",
-          icon:
-            `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-copy"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`,
+          icon: `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-copy"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`,
           listener: (e) => {
             e.stopPropagation();
-            this.client.clientSystem.localSyscall(
-              "editor.copyToClipboard",
-              [copyContent],
-            ).catch(console.error);
+            this.client.clientSystem
+              .localSyscall("editor.copyToClipboard", [copyContent])
+              .catch(console.error);
           },
-        },
-      ));
+        }),
+      );
     }
 
     if (this.inPage) {
-      buttonBar.appendChild(createButton(
-        {
+      buttonBar.appendChild(
+        createButton({
           title: "Edit",
-          icon:
-            '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>',
+          icon: '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>',
           listener: (e) => {
             e.stopPropagation();
             moveCursorIntoText(this.client, this.codeText);
           },
-        },
-      ));
+        }),
+      );
     }
 
     if (this.openRef) {
-      buttonBar.appendChild(createButton(
-        {
+      buttonBar.appendChild(
+        createButton({
           title: "Open",
-          icon:
-            '<svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="css-i6dzq1"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>',
+          icon: '<svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="css-i6dzq1"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>',
           listener: (e) => {
             e.stopPropagation();
             void this.client.navigate(this.openRef!);
           },
-        },
-      ));
+        }),
+      );
     }
 
     const content = document.createElement("div");

@@ -84,15 +84,21 @@ test("parseToRef() link cases", () => {
 test("encodeRef() cases", () => {
   // Encoding
   expect(encodeRef({ path: "foo.md" })).toEqual("foo");
-  expect(encodeRef({ path: "foo.md", details: { type: "position", pos: 10 } })).toEqual("foo@10");
-  expect(encodeRef({
-    path: "foo.md",
-    details: { type: "linecolumn", line: 10, column: 69 },
-  })).toEqual("foo@L10C69");
-  expect(encodeRef({
-    path: "foo.md",
-    details: { type: "header", header: "bar" },
-  })).toEqual("foo#bar");
+  expect(
+    encodeRef({ path: "foo.md", details: { type: "position", pos: 10 } }),
+  ).toEqual("foo@10");
+  expect(
+    encodeRef({
+      path: "foo.md",
+      details: { type: "linecolumn", line: 10, column: 69 },
+    }),
+  ).toEqual("foo@L10C69");
+  expect(
+    encodeRef({
+      path: "foo.md",
+      details: { type: "header", header: "bar" },
+    }),
+  ).toEqual("foo#bar");
 });
 
 test("isValidPath() and isValidName()", () => {

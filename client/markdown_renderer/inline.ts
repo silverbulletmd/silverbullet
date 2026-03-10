@@ -89,11 +89,13 @@ export async function expandMarkdown(
         return parseMarkdown(`**Error:** ${e.message}`);
       }
     } else if (
-      n.type === "LuaDirective" && options.expandLuaDirectives !== false
+      n.type === "LuaDirective" &&
+      options.expandLuaDirectives !== false
     ) {
-      const expr = findNodeOfType(n, "LuaExpressionDirective") as
-        | LuaExpression
-        | null;
+      const expr = findNodeOfType(
+        n,
+        "LuaExpressionDirective",
+      ) as LuaExpression | null;
       if (!expr) {
         return;
       }
@@ -123,25 +125,30 @@ export async function expandMarkdown(
       // Add a task reference to this based on the current page name if there's not one already
       const existingLink = findNodeOfType(n, "WikiLink");
       if (!existingLink) {
-        n.children!.splice(1, 0, {
-          "text": " ",
-        }, {
-          "type": "WikiLink",
-          "children": [
-            {
-              "type": "WikiLinkMark",
-              "children": [{ "text": "[[" }],
-            },
-            {
-              "type": "WikiLinkPage",
-              "children": [{ "text": `${pageName}@${n.parent!.from!}` }],
-            },
-            {
-              "type": "WikiLinkMark",
-              "children": [{ "text": "]]" }],
-            },
-          ],
-        });
+        n.children!.splice(
+          1,
+          0,
+          {
+            text: " ",
+          },
+          {
+            type: "WikiLink",
+            children: [
+              {
+                type: "WikiLinkMark",
+                children: [{ text: "[[" }],
+              },
+              {
+                type: "WikiLinkPage",
+                children: [{ text: `${pageName}@${n.parent!.from!}` }],
+              },
+              {
+                type: "WikiLinkMark",
+                children: [{ text: "]]" }],
+              },
+            ],
+          },
+        );
       }
     }
   });
@@ -198,7 +205,8 @@ export function inlineContentFromURL(
     throw Error(`Failed to determine mime type for ${transclusion.url}`);
   }
 
-  const style = `max-width: 100%;` +
+  const style =
+    `max-width: 100%;` +
     (transclusion.dimension?.width
       ? `width: ${transclusion.dimension.width}px;`
       : "") +

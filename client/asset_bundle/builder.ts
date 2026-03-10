@@ -26,9 +26,7 @@ export async function bundleAssets(
     return bundle;
   }
   const isMatch = picomatch(patterns);
-  for await (
-    const file of walk(rootPath)
-  ) {
+  for await (const file of walk(rootPath)) {
     const cleanPath = file.path.substring(rootPath.length + 1);
     // console.log("Considering", rootPath, file.path, cleanPath);
     if (isMatch(cleanPath)) {

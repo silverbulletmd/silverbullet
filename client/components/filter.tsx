@@ -44,10 +44,7 @@ export function FilterList({
 }) {
   const [text, setText] = useState("");
   const [matchingOptions, setMatchingOptions] = useState(
-    fuzzySearchAndSort(
-      preFilter ? preFilter(options, "") : options,
-      "",
-    ),
+    fuzzySearchAndSort(preFilter ? preFilter(options, "") : options, ""),
   );
   const [selectedOption, setSelectionOption] = useState(0);
 
@@ -61,8 +58,8 @@ export function FilterList({
       originalPhrase = phrasePreprocessor(originalPhrase);
     }
     const results = fuzzySearchAndSort(prefilteredOptions, originalPhrase);
-    const foundExactMatch = !!results.find((result) =>
-      result.name === originalPhrase
+    const foundExactMatch = !!results.find(
+      (result) => result.name === originalPhrase,
     );
     if (allowNew && !foundExactMatch && originalPhrase) {
       results.splice(1, 0, {
@@ -153,15 +150,9 @@ export function FilterList({
             return false;
           }}
           onKeyDown={(view, e) => {
-            if (
-              e.key === "ArrowUp" ||
-              e.ctrlKey && e.key === "p"
-            ) {
+            if (e.key === "ArrowUp" || (e.ctrlKey && e.key === "p")) {
               setSelectionOption(Math.max(0, selectedOption - 1));
-            } else if (
-              e.key === "ArrowDown" ||
-              e.ctrlKey && e.key === "n"
-            ) {
+            } else if (e.key === "ArrowDown" || (e.ctrlKey && e.key === "n")) {
               setSelectionOption(
                 Math.min(matchingOptions.length - 1, selectedOption + 1),
               );
@@ -176,8 +167,9 @@ export function FilterList({
             } else if (e.key === "End") {
               setSelectionOption(matchingOptions.length - 1);
             } else if (
-              (e.key === " ") && completePrefix &&
-              (view.state.sliceDoc() === "")
+              e.key === " " &&
+              completePrefix &&
+              view.state.sliceDoc() === ""
             ) {
               setText(completePrefix);
             } else {
@@ -198,62 +190,65 @@ export function FilterList({
       <div
         className="sb-help-text"
         dangerouslySetInnerHTML={{ __html: helpText }}
-      >
-      </div>
+      ></div>
       <div className="sb-result-list" tabIndex={-1}>
         {matchingOptions && matchingOptions.length > 0
           ? (() => {
-            let optionIndex = 0;
+              let optionIndex = 0;
 
-            return matchingOptions.map((option) => {
-              const currentOptionIndex = optionIndex;
-              optionIndex++;
+              return matchingOptions.map((option) => {
+                const currentOptionIndex = optionIndex;
+                optionIndex++;
 
-              return (
-                <div
-                  key={`option-${currentOptionIndex}`}
-                  ref={selectedOption === currentOptionIndex
-                    ? selectedElementRef
-                    : undefined}
-                  className={(selectedOption === currentOptionIndex
-                    ? "sb-option sb-selected-option"
-                    : "sb-option") +
-                    (option.cssClass
-                      ? ` sb-decorated-object ${option.cssClass}`
-                      : "")}
-                  onMouseMove={() => {
-                    if (selectedOption !== currentOptionIndex) {
-                      setSelectionOption(currentOptionIndex);
+                return (
+                  <div
+                    key={`option-${currentOptionIndex}`}
+                    ref={
+                      selectedOption === currentOptionIndex
+                        ? selectedElementRef
+                        : undefined
                     }
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSelect(option);
-                  }}
-                >
-                  {Icon && (
-                    <span className="sb-icon">
-                      <Icon width={16} height={16} />
+                    className={
+                      (selectedOption === currentOptionIndex
+                        ? "sb-option sb-selected-option"
+                        : "sb-option") +
+                      (option.cssClass
+                        ? ` sb-decorated-object ${option.cssClass}`
+                        : "")
+                    }
+                    onMouseMove={() => {
+                      if (selectedOption !== currentOptionIndex) {
+                        setSelectionOption(currentOptionIndex);
+                      }
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelect(option);
+                    }}
+                  >
+                    {Icon && (
+                      <span className="sb-icon">
+                        <Icon width={16} height={16} />
+                      </span>
+                    )}
+                    <span className="sb-name">
+                      {(option.prefix ?? "") + option.name}
                     </span>
-                  )}
-                  <span className="sb-name">
-                    {(option.prefix ?? "") + option.name}
-                  </span>
-                  {option.hint && (
-                    <span
-                      className={"sb-hint" +
-                        (option.hintInactive ? " sb-hint-inactive" : "")}
-                    >
-                      {option.hint}
-                    </span>
-                  )}
-                  <div className="sb-description">
-                    {option.description}
+                    {option.hint && (
+                      <span
+                        className={
+                          "sb-hint" +
+                          (option.hintInactive ? " sb-hint-inactive" : "")
+                        }
+                      >
+                        {option.hint}
+                      </span>
+                    )}
+                    <div className="sb-description">{option.description}</div>
                   </div>
-                </div>
-              );
-            });
-          })()
+                );
+              });
+            })()
           : null}
       </div>
     </AlwaysShownModal>

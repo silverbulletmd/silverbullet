@@ -17,19 +17,13 @@ import { allIndexers } from "./indexer.ts";
 /**
  * Lint YAML syntax in frontmatter and fenced code blocks
  */
-export function lintYAML(
-  { tree, name }: LintEvent,
-): LintDiagnostic[] {
+export function lintYAML({ tree, name }: LintEvent): LintDiagnostic[] {
   const diagnostics: LintDiagnostic[] = [];
 
   traverseTree(tree, (node) => {
     if (node.type === "FrontMatterCode") {
       const yamlText = renderToText(node);
-      const lintResult = lintYamlBlock(
-        yamlText,
-        node.from!,
-        name,
-      );
+      const lintResult = lintYamlBlock(yamlText, node.from!, name);
       if (lintResult) {
         diagnostics.push(lintResult);
       }
@@ -42,18 +36,13 @@ export function lintYAML(
       }
       const codeLang = codeInfo.children![0].text!;
       // All known YAML formats
-      if (
-        ["yaml"].includes(codeLang) || codeLang.startsWith("#")
-      ) {
+      if (["yaml"].includes(codeLang) || codeLang.startsWith("#")) {
         const codeText = findNodeOfType(node, "CodeText");
         if (!codeText) {
           return true;
         }
         const yamlCode = renderToText(codeText);
-        const lintResult = lintYamlBlock(
-          yamlCode,
-          codeText.from!,
-        );
+        const lintResult = lintYamlBlock(yamlCode, codeText.from!);
         if (lintResult) {
           diagnostics.push(lintResult);
         }
@@ -164,24 +153,33 @@ export async function lintLua({ tree }: LintEvent): Promise<LintDiagnostic[]> {
 /**
  * Lint objects in the page
  */
-export async function lintObjects(
-  { tree, pageMeta: meta, text, name }: LintEvent,
-): Promise<LintDiagnostic[]> {
+export async function lintObjects({
+  tree,
+  pageMeta: meta,
+  text,
+  name,
+}: LintEvent): Promise<LintDiagnostic[]> {
   const frontmatter = extractFrontMatter(tree);
 
   // Index the page
-  const allObjects = (await Promise.all(allIndexers.map((indexer) => {
-    return indexer(meta, frontmatter, tree, text);
-  }))).flat();
+  const allObjects = (
+    await Promise.all(
+      allIndexers.map((indexer) => {
+        return indexer(meta, frontmatter, tree, text);
+      }),
+    )
+  ).flat();
   const result = await index.validateObjects(name, allObjects);
   // If validation failed, return the error
   if (result?.object?.range) {
-    return [{
-      from: result.object.range[0],
-      to: result.object.range[1],
-      severity: "error",
-      message: result.error,
-    }];
+    return [
+      {
+        from: result.object.range[0],
+        to: result.object.range[1],
+        severity: "error",
+        message: result.error,
+      },
+    ];
   }
   return [];
 }

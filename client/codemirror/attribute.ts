@@ -22,10 +22,9 @@ export function attributePlugin() {
           1,
           attributeText.indexOf(":"),
         );
-        const attributeValue = attributeText.slice(
-          attributeText.indexOf(":") + 1,
-          attributeText.length - 1,
-        ).trim();
+        const attributeValue = attributeText
+          .slice(attributeText.indexOf(":") + 1, attributeText.length - 1)
+          .trim();
 
         // Wrap the tag in html anchor element
         widgets.push(

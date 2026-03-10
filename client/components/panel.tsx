@@ -72,8 +72,9 @@ function IFramePanel({
       switch (data.type) {
         case "syscall": {
           const { id, name, args } = data;
-          editor.clientSystem.localSyscall(name, args).then(
-            (result) => {
+          editor.clientSystem
+            .localSyscall(name, args)
+            .then((result) => {
               if (!iFrameRef.current?.contentWindow) {
                 // iFrame already went away
                 return;
@@ -83,18 +84,18 @@ function IFramePanel({
                 id,
                 result,
               });
-            },
-          ).catch((e: any) => {
-            if (!iFrameRef.current?.contentWindow) {
-              // iFrame already went away
-              return;
-            }
-            iFrameRef.current!.contentWindow!.postMessage({
-              type: "syscall-response",
-              id,
-              error: e.message,
+            })
+            .catch((e: any) => {
+              if (!iFrameRef.current?.contentWindow) {
+                // iFrame already went away
+                return;
+              }
+              iFrameRef.current!.contentWindow!.postMessage({
+                type: "syscall-response",
+                id,
+                error: e.message,
+              });
             });
-          });
           break;
         }
       }
@@ -111,17 +112,13 @@ function IFramePanel({
         srcDoc={html}
         ref={iFrameRef}
         style={{ visibility: "hidden" }}
-        onLoad={() => iFrameRef.current!.style.visibility = "visible"}
+        onLoad={() => (iFrameRef.current!.style.visibility = "visible")}
       />
     </div>
   );
 }
 
-function ShadowPanel({
-  config,
-}: {
-  config: PanelConfig;
-}) {
+function ShadowPanel({ config }: { config: PanelConfig }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const shadowRef = useRef<ShadowRoot>(null);
   function updateContent() {
@@ -159,10 +156,6 @@ function ShadowPanel({
   }, [config.html, config.script]);
 
   return (
-    <div
-      className="sb-panel"
-      style={{ flex: config.mode }}
-      ref={panelRef}
-    />
+    <div className="sb-panel" style={{ flex: config.mode }} ref={panelRef} />
   );
 }

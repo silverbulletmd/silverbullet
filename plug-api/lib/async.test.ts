@@ -162,23 +162,29 @@ test("processWithConcurrency test - performance with concurrency", async () => {
 
   // Parallel should be significantly faster than sequential
   // Allow some margin for timing variations
-  expect(
-    parallel < sequential * 0.8,
-  ).toBeTruthy(); // `Parallel (${parallel}ms) should be faster than sequential (${sequential}ms)`
+  expect(parallel < sequential * 0.8).toBeTruthy(); // `Parallel (${parallel}ms) should be faster than sequential (${sequential}ms)`
 });
 
 test("Batch test", async () => {
   // Generate an array with numbers up to 100
   const elements = Array.from(Array(100).keys());
-  const multiplied = await batchRequests(elements, async (batch) => {
-    await sleep(2);
-    // Batches should be 9 or smaller (last batch will be smaller)
-    expect(batch.length <= 9).toBeTruthy();
-    return batch.map((e) => e * 2);
-  }, 9);
+  const multiplied = await batchRequests(
+    elements,
+    async (batch) => {
+      await sleep(2);
+      // Batches should be 9 or smaller (last batch will be smaller)
+      expect(batch.length <= 9).toBeTruthy();
+      return batch.map((e) => e * 2);
+    },
+    9,
+  );
   expect(multiplied).toEqual(elements.map((e) => e * 2));
-  const multiplied2 = await batchRequests(elements, (batch) => {
-    return Promise.resolve(batch.map((e) => e * 2));
-  }, 10000);
+  const multiplied2 = await batchRequests(
+    elements,
+    (batch) => {
+      return Promise.resolve(batch.map((e) => e * 2));
+    },
+    10000,
+  );
   expect(multiplied2).toEqual(elements.map((e) => e * 2));
 });

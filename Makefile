@@ -32,10 +32,14 @@ check:
 	npm run check
 	# Frontend lint
 	npx biome lint .
+	# Frontend format check
+	npx biome format .
 	# Backend lint
 	go vet
 
 fmt:
+	# Reformat frontend
+	npx biome format --write .
 	# Reformat backend
 	go fmt
 

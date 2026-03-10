@@ -41,22 +41,25 @@ export const allIndexers: IndexerFunction[] = [
  * Ad-hoc index a piece of markdown text
  * @return a list of indexed objects
  */
-export async function indexMarkdown(text: string, pageMeta: PageMeta = {
-  ref: "",
-  tag: "",
-  name: "",
-  perm: "ro",
-  lastModified: "",
-  created: "",
-}): Promise<ObjectValue<any>> {
+export async function indexMarkdown(
+  text: string,
+  pageMeta: PageMeta = {
+    ref: "",
+    tag: "",
+    name: "",
+    perm: "ro",
+    lastModified: "",
+    created: "",
+  },
+): Promise<ObjectValue<any>> {
   const tree = await markdown.parseMarkdown(text);
   const frontmatter = extractFrontMatter(tree);
   const index = await Promise.all(
-    allIndexers.filter((indexer) => indexer !== pageIndexPage).map(
-      (indexer) => {
+    allIndexers
+      .filter((indexer) => indexer !== pageIndexPage)
+      .map((indexer) => {
         return indexer(pageMeta, frontmatter, tree, text);
-      },
-    ),
+      }),
   );
   return index.flat();
 }
@@ -67,9 +70,11 @@ export async function indexPage({ name, tree, meta, text }: IndexTreeEvent) {
   // console.log("Now going to index page", name);
 
   // Index the page
-  const indexResults = await Promise.all(allIndexers.map((indexer) => {
-    return indexer(meta, frontmatter, tree, text);
-  }));
+  const indexResults = await Promise.all(
+    allIndexers.map((indexer) => {
+      return indexer(meta, frontmatter, tree, text);
+    }),
+  );
 
   // console.log("Found these objects", index.flat());
 

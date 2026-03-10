@@ -16,17 +16,17 @@ export function justifiedTableRender(
  * @argument t ParseTree - A markdown table's `ParseTree`
  */
 function getTableJustification(t: ParseTree): Justification[] {
-  const delimiter = t.children?.find((child) =>
-    child.type === "TableDelimiter"
+  const delimiter = t.children?.find(
+    (child) => child.type === "TableDelimiter",
   );
   const delimiterText = delimiter?.children?.at(0)?.text;
 
   if (!delimiterText) return [];
 
   // Split at "|" and filter out empty strings (from leading/trailing |)
-  const columnDelimiters = delimiterText.split("|").filter((part) =>
-    part.trim() !== ""
-  );
+  const columnDelimiters = delimiterText
+    .split("|")
+    .filter((part) => part.trim() !== "");
 
   return columnDelimiters.map(parseColumnAlignment);
 }

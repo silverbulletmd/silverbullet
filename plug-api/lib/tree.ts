@@ -79,7 +79,7 @@ export async function collectNodesMatchingAsync(
     for (const child of tree.children) {
       results = [
         ...results,
-        ...await collectNodesMatchingAsync(child, matchFn),
+        ...(await collectNodesMatchingAsync(child, matchFn)),
       ];
     }
   }
@@ -255,9 +255,7 @@ export function renderToText(tree?: ParseTree): string {
 
 export function cleanTree(tree: ParseTree, omitTrimmable = true): ParseTree {
   if (tree.type === "⚠") {
-    throw new Error(
-      `Parse error at pos ${tree.from}`,
-    );
+    throw new Error(`Parse error at pos ${tree.from}`);
   }
   if (tree.text !== undefined) {
     return tree;
@@ -272,7 +270,7 @@ export function cleanTree(tree: ParseTree, omitTrimmable = true): ParseTree {
     if (node.type && node.type !== "Comment") {
       ast.children!.push(cleanTree(node, omitTrimmable));
     }
-    if (node.text && (omitTrimmable && node.text.trim() || !omitTrimmable)) {
+    if (node.text && ((omitTrimmable && node.text.trim()) || !omitTrimmable)) {
       ast.children!.push(node);
     }
   }

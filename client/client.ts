@@ -147,20 +147,15 @@ export class Client {
   // Widget and image height caching
   private widgetCache = new LimitedMap<WidgetCacheItem>(100); // bodyText -> WidgetCacheItem
   debouncedWidgetCacheFlush = throttle(() => {
-    this.ds.set(["cache", "widgets"], this.widgetCache.toJSON())
-      .catch(
-        console.error,
-      );
+    this.ds
+      .set(["cache", "widgets"], this.widgetCache.toJSON())
+      .catch(console.error);
   }, 2000);
   private widgetHeightCache = new LimitedMap<number>(1000); // bodytext -> height
   debouncedWidgetHeightCacheFlush = throttle(() => {
-    this.ds.set(
-      ["cache", "widgetHeight"],
-      this.widgetHeightCache.toJSON(),
-    )
-      .catch(
-        console.error,
-      );
+    this.ds
+      .set(["cache", "widgetHeight"], this.widgetHeightCache.toJSON())
+      .catch(console.error);
   }, 2000);
   objectIndex!: ObjectIndex;
 
@@ -193,10 +188,7 @@ export class Client {
 
     // See if we need to encrypt this
     if (encryptionKey) {
-      kvPrimitives = new EncryptedKvPrimitives(
-        kvPrimitives,
-        encryptionKey,
-      );
+      kvPrimitives = new EncryptedKvPrimitives(kvPrimitives, encryptionKey);
       await (kvPrimitives as EncryptedKvPrimitives).init();
       console.log("Enabled client-side encryption");
     }
@@ -338,21 +330,13 @@ export class Client {
       void this.eventedSpacePrimitives.fetchFileList();
     }, fetchFileListInterval + jitter());
 
-    this.eventHook.addLocalListener(
-      "file:changed",
-      async (
-        name: string,
-      ) => {
-        console.log("Queueing index for", name);
-        await this.objectIndex.clearFileIndex(name);
-        await this.mq.send("indexQueue", name);
-      },
-    );
+    this.eventHook.addLocalListener("file:changed", async (name: string) => {
+      console.log("Queueing index for", name);
+      await this.objectIndex.clearFileIndex(name);
+      await this.mq.send("indexQueue", name);
+    });
 
-    const space = new Space(
-      this.eventedSpacePrimitives,
-      this.eventHook,
-    );
+    const space = new Space(this.eventedSpacePrimitives, this.eventHook);
 
     this.space = space;
 
@@ -374,16 +358,13 @@ export class Client {
 
     this.eventHook.addLocalListener(
       "file:changed",
-      (
-        path: string,
-        oldHash: number,
-        newHash: number,
-      ) => {
+      (path: string, oldHash: number, newHash: number) => {
         // Only reload when watching the current page or document (to avoid reloading when switching pages)
         if (
-          this.space.watchInterval && this.currentPath() === path &&
+          this.space.watchInterval &&
+          this.currentPath() === path &&
           // Avoid reloading if the page was just saved (5s window)
-          (!lastSaveTimestamp || (lastSaveTimestamp < Date.now() - 5000)) &&
+          (!lastSaveTimestamp || lastSaveTimestamp < Date.now() - 5000) &&
           // Avoid reloading if the previous hash was undefined (first load)
           oldHash !== undefined
         ) {
@@ -410,17 +391,14 @@ export class Client {
     this.eventHook.addLocalListener("file:deleted", (fileName: string) => {
       this.clientSystem.allKnownFiles.delete(fileName);
     });
-    this.eventHook.addLocalListener(
-      "file:listed",
-      (allFiles: FileMeta[]) => {
-        // Update list of known pages
-        this.clientSystem.allKnownFiles.clear();
-        allFiles.forEach((f) => {
-          this.clientSystem.allKnownFiles.add(f.name);
-        });
-        this.clientSystem.knownFilesLoaded = true;
-      },
-    );
+    this.eventHook.addLocalListener("file:listed", (allFiles: FileMeta[]) => {
+      // Update list of known pages
+      this.clientSystem.allKnownFiles.clear();
+      allFiles.forEach((f) => {
+        this.clientSystem.allKnownFiles.add(f.name);
+      });
+      this.clientSystem.knownFilesLoaded = true;
+    });
 
     this.space.watch();
   }
@@ -467,10 +445,7 @@ export class Client {
       }
       this.saveTimeout = setTimeout(
         () => {
-          if (
-            !this.ui.viewState.unsavedChanges ||
-            this.isReadOnlyMode()
-          ) {
+          if (!this.ui.viewState.unsavedChanges || this.isReadOnlyMode()) {
             // No unsaved changes, or read-only mode, not gonna save
             return resolve();
           }
@@ -488,15 +463,9 @@ export class Client {
             return resolve();
           } else {
             console.log("Saving page", this.currentPath());
-            void this.dispatchAppEvent(
-              "editor:pageSaving",
-              this.currentName(),
-            );
+            void this.dispatchAppEvent("editor:pageSaving", this.currentName());
             this.space
-              .writePage(
-                this.currentName(),
-                this.editorView.state.sliceDoc(0),
-              )
+              .writePage(this.currentName(), this.editorView.state.sliceDoc(0))
               .then(async (meta) => {
                 this.ui.viewDispatch({ type: "page-saved" });
                 await this.dispatchAppEvent(
@@ -599,15 +568,13 @@ export class Client {
   async updatePageListCache() {
     console.log("Updating page list cache");
     // Check if the initial sync has been completed
-    const initialIndexCompleted = await this.objectIndex
-      .hasFullIndexCompleted();
+    const initialIndexCompleted =
+      await this.objectIndex.hasFullIndexCompleted();
 
     let allPages: PageMeta[] = [];
 
     if (initialIndexCompleted) {
-      console.log(
-        "Initial index complete, loading full page list via index.",
-      );
+      console.log("Initial index complete, loading full page list via index.");
       // Fetch indexed pages
       allPages = await this.queryLuaObjects<PageMeta>("page", {});
       // Overlay augmented meta values
@@ -621,15 +588,17 @@ export class Client {
       // this.clientSystem.ds.query({prefix: })
       // Map and push aspiring pages directly into allPages
       allPages.push(
-        ...aspiringPageNames.map((name): PageMeta => ({
-          ref: name,
-          tag: "page",
-          _isAspiring: true,
-          name: name,
-          created: "", // Aspiring pages don't have timestamps yet
-          lastModified: "", // Aspiring pages don't have timestamps yet
-          perm: "rw",
-        })),
+        ...aspiringPageNames.map(
+          (name): PageMeta => ({
+            ref: name,
+            tag: "page",
+            _isAspiring: true,
+            name: name,
+            created: "", // Aspiring pages don't have timestamps yet
+            lastModified: "", // Aspiring pages don't have timestamps yet
+            perm: "rw",
+          }),
+        ),
       );
     } else {
       console.log(
@@ -649,10 +618,7 @@ export class Client {
       } catch (e) {
         console.error("Failed to list pages directly from space:", e);
         // Handle error, maybe show notification or leave list empty
-        this.flashNotification(
-          "Could not fetch page list directly.",
-          "error",
-        );
+        this.flashNotification("Could not fetch page list directly.", "error");
       }
     }
 
@@ -707,14 +673,11 @@ export class Client {
     if (this.progressTimeout) {
       clearTimeout(this.progressTimeout);
     }
-    this.progressTimeout = setTimeout(
-      () => {
-        this.ui.viewDispatch({
-          type: "set-progress",
-        });
-      },
-      5000,
-    );
+    this.progressTimeout = setTimeout(() => {
+      this.ui.viewDispatch({
+        type: "set-progress",
+      });
+    }, 5000);
   }
 
   // Various UI elements
@@ -740,10 +703,7 @@ export class Client {
     });
   }
 
-  prompt(
-    message: string,
-    defaultValue = "",
-  ): Promise<string | undefined> {
+  prompt(message: string, defaultValue = ""): Promise<string | undefined> {
     return new Promise((resolve) => {
       this.ui.viewDispatch({
         type: "show-prompt",
@@ -758,9 +718,7 @@ export class Client {
     });
   }
 
-  confirm(
-    message: string,
-  ): Promise<boolean> {
+  confirm(message: string): Promise<boolean> {
     return new Promise((resolve) => {
       this.ui.viewDispatch({
         type: "show-confirm",
@@ -853,8 +811,7 @@ export class Client {
   }
 
   isReadOnlyMode(): boolean {
-    return this.bootConfig.readOnly ||
-      this.currentPageMeta()?.perm === "ro";
+    return this.bootConfig.readOnly || this.currentPageMeta()?.perm === "ro";
   }
 
   public extractParentNodes(editorState: EditorState, currentNode: SyntaxNode) {
@@ -877,12 +834,11 @@ export class Client {
     return parentNodes;
   }
 
-  editorComplete(
-    context: CompletionContext,
-  ): Promise<CompletionResult | null> {
-    return this.completeWithEvent(context, "editor:complete") as Promise<
-      CompletionResult | null
-    >;
+  editorComplete(context: CompletionContext): Promise<CompletionResult | null> {
+    return this.completeWithEvent(
+      context,
+      "editor:complete",
+    ) as Promise<CompletionResult | null>;
   }
 
   async reloadEditor() {
@@ -931,11 +887,7 @@ export class Client {
     return parseToRef(this.bootConfig.indexPage) || { path: "index.md" };
   }
 
-  async navigate(
-    ref: Ref | null,
-    replaceState = false,
-    newWindow = false,
-  ) {
+  async navigate(ref: Ref | null, replaceState = false, newWindow = false) {
     ref ??= this.getIndexRef();
 
     if (newWindow) {
@@ -953,10 +905,7 @@ export class Client {
       return;
     }
 
-    await this.pageNavigator!.navigate(
-      ref,
-      replaceState,
-    );
+    await this.pageNavigator!.navigate(ref, replaceState);
     this.focus();
   }
 
@@ -966,9 +915,9 @@ export class Client {
 
     const previousPath = this.ui.viewState.current?.path;
     const loadingDifferentPath = previousPath
-      ? (previousPath !== path)
-      // Always load as different editor if editor is loaded from scratch
-      : true;
+      ? previousPath !== path
+      : // Always load as different editor if editor is loaded from scratch
+        true;
 
     if (previousPath) {
       this.space.unwatchFile(previousPath);
@@ -1012,13 +961,15 @@ export class Client {
       path: path,
     });
 
-    this.eventHook.dispatchEvent(
-      loadingDifferentPath
-        ? "editor:documentLoaded"
-        : "editor:documentReloaded",
-      path,
-      previousPath,
-    ).catch(console.error);
+    this.eventHook
+      .dispatchEvent(
+        loadingDifferentPath
+          ? "editor:documentLoaded"
+          : "editor:documentReloaded",
+        path,
+        previousPath,
+      )
+      .catch(console.error);
   }
 
   async loadPage(
@@ -1030,9 +981,9 @@ export class Client {
 
     const previousPath = this.ui.viewState.current?.path;
     const loadingDifferentPath = previousPath
-      ? (previousPath !== path)
-      // Always load as different page if page is loaded from scratch
-      : true;
+      ? previousPath !== path
+      : // Always load as different page if page is loaded from scratch
+        true;
     const pageName = getNameFromPath(path);
 
     if (previousPath) {
@@ -1083,10 +1034,9 @@ export class Client {
       };
 
       // Let's dispatch a editor:pageCreating event to see if anybody wants to do something before the page is created
-      const results = await this.dispatchAppEvent(
-        "editor:pageCreating",
-        { name: pageName } as PageCreatingEvent,
-      ) as PageCreatingContent[];
+      const results = (await this.dispatchAppEvent("editor:pageCreating", {
+        name: pageName,
+      } as PageCreatingEvent)) as PageCreatingContent[];
 
       if (results.length === 1) {
         doc.text = results[0].text;
@@ -1096,8 +1046,8 @@ export class Client {
         const idx = doc.text.indexOf(cursorMarker);
         if (idx !== -1) {
           markerIndex = idx;
-          doc.text = doc.text.slice(0, idx) +
-            doc.text.slice(idx + cursorMarker.length);
+          doc.text =
+            doc.text.slice(0, idx) + doc.text.slice(idx + cursorMarker.length);
         }
       } else if (results.length > 1) {
         console.error(
@@ -1123,11 +1073,9 @@ export class Client {
     // decorations
     if (await this.objectIndex.hasFullIndexCompleted()) {
       try {
-        const enrichedMeta = await this.objectIndex.getObjectByRef(
-          pageName,
-          "page",
-          pageName,
-        ) ?? doc.meta;
+        const enrichedMeta =
+          (await this.objectIndex.getObjectByRef(pageName, "page", pageName)) ??
+          doc.meta;
 
         const body = document.body;
         body.removeAttribute("class");
@@ -1177,11 +1125,13 @@ export class Client {
       }
     }
     // Note: these events are dispatched asynchronously deliberately (not waiting for results)
-    this.eventHook.dispatchEvent(
-      loadingDifferentPath ? "editor:pageLoaded" : "editor:pageReloaded",
-      pageName,
-      previousPath ? getNameFromPath(previousPath) : undefined,
-    ).catch(console.error);
+    this.eventHook
+      .dispatchEvent(
+        loadingDifferentPath ? "editor:pageLoaded" : "editor:pageReloaded",
+        pageName,
+        previousPath ? getNameFromPath(previousPath) : undefined,
+      )
+      .catch(console.error);
 
     // If a cursor marker was found for a newly-created page, place the
     // cursor there now (after navigateWithinPage so it doesn't get
@@ -1238,11 +1188,7 @@ export class Client {
           .then(async (meta) => {
             this.ui.viewDispatch({ type: "document-editor-saved" });
 
-            await this.dispatchAppEvent(
-              "editor:documentSaved",
-              path,
-              meta,
-            );
+            await this.dispatchAppEvent("editor:documentSaved", path, meta);
           })
           .catch(() => {
             this.flashNotification(
@@ -1287,31 +1233,30 @@ export class Client {
       console.warn("Not loading custom styles, since space style is disabled");
       return;
     }
-    if (!await this.objectIndex.hasFullIndexCompleted()) {
+    if (!(await this.objectIndex.hasFullIndexCompleted())) {
       console.warn(
         "Not loading custom styles, since full indexing has not completed yet",
       );
       return;
     }
 
-    const spaceStyles = await this.queryLuaObjects<StyleObject>(
-      "space-style",
-      {
-        objectVariable: "_",
-        orderBy: [{
+    const spaceStyles = await this.queryLuaObjects<StyleObject>("space-style", {
+      objectVariable: "_",
+      orderBy: [
+        {
           expr: parseExpressionString("_.priority"),
           desc: true,
-        }],
-      },
-    );
+        },
+      ],
+    });
     if (!spaceStyles) {
       return;
     }
 
     // Prepare separate <style> tag per custom style (for robustness)
-    const customStylesContent = spaceStyles.map((s) =>
-      `<style>${s.style}</style>`
-    ).join("\n\n");
+    const customStylesContent = spaceStyles
+      .map((s) => `<style>${s.style}</style>`)
+      .join("\n\n");
     this.ui.viewDispatch({
       type: "set-ui-option",
       key: "customStyles",
@@ -1333,9 +1278,7 @@ export class Client {
     }
   }
 
-  getCommandsByContext(
-    state: AppViewState,
-  ): Map<string, Command> {
+  getCommandsByContext(state: AppViewState): Map<string, Command> {
     const currentEditor = client.documentEditor?.name;
     const commands = new Map(state.commands);
     for (const [k, v] of state.commands.entries()) {
@@ -1366,11 +1309,10 @@ export class Client {
   }
 
   async loadCaches() {
-    const [widgetHeightCache, widgetCache] = await this
-      .ds.batchGet([[
-        "cache",
-        "widgetHeight",
-      ], ["cache", "widgets"]]);
+    const [widgetHeightCache, widgetCache] = await this.ds.batchGet([
+      ["cache", "widgetHeight"],
+      ["cache", "widgets"],
+    ]);
     this.widgetHeightCache = new LimitedMap(1000, widgetHeightCache || {});
     this.widgetCache = new LimitedMap(100, widgetCache || {});
   }
@@ -1431,7 +1373,7 @@ export class Client {
     if (!isMarkdownPath(pageState.path)) return;
 
     // We can't use getOffsetFromRef here, because it is asyncronous.
-    let pos: number | undefined ;
+    let pos: number | undefined;
 
     // Don't use getOffsetFromRef, so we can show error messages
     if (pageState.details?.type === "header") {
@@ -1531,19 +1473,14 @@ export class Client {
       }
 
       // Persist this page as the last opened page, we'll use this for cold start PWA loads
-      await this.ds.set(
-        ["client", "lastOpenedPath"],
-        locationState.path,
-      );
+      await this.ds.set(["client", "lastOpenedPath"], locationState.path);
     });
 
     // Initial navigation
     let ref = this.onLoadRef;
 
     if (ref.details?.type === "header" && ref.details.header === "boot") {
-      const path = await this.ds.get(
-        ["client", "lastOpenedPath"],
-      ) as Path;
+      const path = (await this.ds.get(["client", "lastOpenedPath"])) as Path;
 
       if (path) {
         console.log("Navigating to last opened page", getNameFromPath(path));
@@ -1581,8 +1518,8 @@ export class Client {
             console.log(
               "Got data wipe confirm, uninstalling service worker now",
             );
-            const registrations = await navigator.serviceWorker
-              .getRegistrations();
+            const registrations =
+              await navigator.serviceWorker.getRegistrations();
             for (const registration of registrations) {
               await registration.unregister();
             }
@@ -1596,9 +1533,9 @@ export class Client {
             "Sending data wipe request to service worker",
             registration,
           );
-          registration?.active?.postMessage(
-            { type: "wipe-data" } as ServiceWorkerTargetMessage,
-          );
+          registration?.active?.postMessage({
+            type: "wipe-data",
+          } as ServiceWorkerTargetMessage);
         });
       });
     } else {

@@ -15,13 +15,16 @@ test("Test data augmentation", async () => {
     name: "Mary",
     age: 5678,
   };
-  await ds.batchSet([{
-    key: ["john"],
-    value: john,
-  }, {
-    key: ["mary"],
-    value: mary,
-  }]);
+  await ds.batchSet([
+    {
+      key: ["john"],
+      value: john,
+    },
+    {
+      key: ["mary"],
+      value: mary,
+    },
+  ]);
   const augm = new Augmenter(ds, ["aug"]);
   // Augment only john
   await augm.setAugmentation("john", { augmented: true });

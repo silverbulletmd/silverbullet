@@ -11,8 +11,7 @@ import { TaskStateTag } from "./customtags.ts";
 // Taken from https://github.com/lezer-parser/markdown/blob/main/src/extension.ts and adapted
 
 class MultiStatusTaskParser implements LeafBlockParser {
-  constructor(private status: string) {
-  }
+  constructor(private status: string) {}
 
   nextLine() {
     return false;
@@ -46,16 +45,17 @@ export const TaskList: MarkdownConfig = {
     { name: "TaskMark", style: t.atom },
     { name: "TaskState", style: TaskStateTag },
   ],
-  parseBlock: [{
-    name: "TaskList",
-    leaf(cx, leaf) {
-      // Note: task states cannot contain : to avoid ambiguity with attribute syntax
-      const match = /^\[([^\]:]+)\][ \t]/.exec(leaf.content);
-      return match &&
-          cx.parentType().name === "ListItem"
-        ? new MultiStatusTaskParser(match[1])
-        : null;
+  parseBlock: [
+    {
+      name: "TaskList",
+      leaf(cx, leaf) {
+        // Note: task states cannot contain : to avoid ambiguity with attribute syntax
+        const match = /^\[([^\]:]+)\][ \t]/.exec(leaf.content);
+        return match && cx.parentType().name === "ListItem"
+          ? new MultiStatusTaskParser(match[1])
+          : null;
+      },
+      after: "SetextHeading",
     },
-    after: "SetextHeading",
-  }],
+  ],
 };

@@ -102,8 +102,7 @@ export const initialViewState: AppViewState = {
   showFilterBox: false,
   filterBoxHelpText: "",
   filterBoxLabel: "",
-  filterBoxOnSelect: () => {
-  },
+  filterBoxOnSelect: () => {},
   filterBoxOptions: [],
   filterBoxPlaceHolder: "",
 
@@ -125,47 +124,47 @@ export type Action =
   | { type: "start-navigate"; mode: "page" | "meta" | "document" | "all" }
   | { type: "stop-navigate" }
   | {
-    type: "update-commands";
-    commands: Map<string, Command>;
-  }
+      type: "update-commands";
+      commands: Map<string, Command>;
+    }
   | { type: "show-palette"; context?: string; commands: Map<string, Command> }
   | { type: "hide-palette" }
   | { type: "show-notification"; notification: Notification }
   | { type: "dismiss-notification"; id: number }
   | {
-    type: "show-panel";
-    id: "rhs" | "lhs" | "bhs" | "modal";
-    config: PanelConfig;
-  }
+      type: "show-panel";
+      id: "rhs" | "lhs" | "bhs" | "modal";
+      config: PanelConfig;
+    }
   | { type: "hide-panel"; id: string }
   | {
-    type: "show-filterbox";
-    options: FilterOption[];
-    placeHolder: string;
-    helpText: string;
-    label: string;
-    onSelect: (option: FilterOption | undefined) => void;
-  }
+      type: "show-filterbox";
+      options: FilterOption[];
+      placeHolder: string;
+      helpText: string;
+      label: string;
+      onSelect: (option: FilterOption | undefined) => void;
+    }
   | { type: "hide-filterbox" }
   | {
-    type: "show-prompt";
-    message: string;
-    defaultValue: string;
-    callback: (value: string | undefined) => void;
-  }
+      type: "show-prompt";
+      message: string;
+      defaultValue: string;
+      callback: (value: string | undefined) => void;
+    }
   | { type: "hide-prompt" }
   | {
-    type: "show-confirm";
-    message: string;
-    callback: (value: boolean) => void;
-  }
+      type: "show-confirm";
+      message: string;
+      callback: (value: boolean) => void;
+    }
   | { type: "hide-confirm" }
   | { type: "set-ui-option"; key: string; value: any }
   | {
-    type: "set-progress";
-    progressPercentage?: number;
-    progressType?: string;
-  };
+      type: "set-progress";
+      progressPercentage?: number;
+      progressType?: string;
+    };
 
 /**
  * Client configuration that is set at boot time, doesn't change at runtime
@@ -193,8 +192,8 @@ export type BootConfig = {
  */
 export type ServiceWorkerTargetMessage =
   | {
-    type: "skip-waiting";
-  }
+      type: "skip-waiting";
+    }
   | { type: "config"; config: BootConfig }
   | { type: "flush-cache" }
   | { type: "shutdown" }
@@ -207,36 +206,47 @@ export type ServiceWorkerTargetMessage =
 /**
  * Events received from the service worker -> client
  */
-export type ServiceWorkerSourceMessage = {
-  type: "sync-status";
-  status: Omit<SyncStatus, "snapshot">;
-} | {
-  type: "sync-conflict";
-  path: string;
-} | {
-  type: "space-sync-complete";
-  operations: number;
-} | {
-  type: "file-sync-complete";
-  path: string;
-  operations: number;
-} | {
-  type: "sync-error";
-  message: string;
-} | {
-  type: "online-status";
-  isOnline: boolean;
-} | {
-  type: "auth-error";
-  message: string;
-  actionOrRedirectHeader: string;
-} | {
-  type: "cacheFlushed";
-} | {
-  type: "dataWiped";
-} | {
-  type: "service-worker-started";
-} | {
-  type: "encryption-key";
-  key: string;
-};
+export type ServiceWorkerSourceMessage =
+  | {
+      type: "sync-status";
+      status: Omit<SyncStatus, "snapshot">;
+    }
+  | {
+      type: "sync-conflict";
+      path: string;
+    }
+  | {
+      type: "space-sync-complete";
+      operations: number;
+    }
+  | {
+      type: "file-sync-complete";
+      path: string;
+      operations: number;
+    }
+  | {
+      type: "sync-error";
+      message: string;
+    }
+  | {
+      type: "online-status";
+      isOnline: boolean;
+    }
+  | {
+      type: "auth-error";
+      message: string;
+      actionOrRedirectHeader: string;
+    }
+  | {
+      type: "cacheFlushed";
+    }
+  | {
+      type: "dataWiped";
+    }
+  | {
+      type: "service-worker-started";
+    }
+  | {
+      type: "encryption-key";
+      key: string;
+    };

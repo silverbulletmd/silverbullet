@@ -154,7 +154,8 @@ test("Logger handles complex objects", () => {
   expect(capturedLogs.length).toEqual(2);
 
   // First log should handle complex object properly
-  expect(capturedLogs[0].message).toEqual(`Complex object: {"name":"test","nested":{"value":42},"array":[1,2,3]}`,
+  expect(capturedLogs[0].message).toEqual(
+    `Complex object: {"name":"test","nested":{"value":42},"array":[1,2,3]}`,
   );
 
   // Second log should handle circular reference gracefully

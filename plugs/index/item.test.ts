@@ -42,7 +42,8 @@ test("Test item indexing", async () => {
 
   expect(items[1].name).toEqual("Item 1.1");
   expect(new Set(items[1].tags)).toEqual(new Set(["tag3", "tag1"]));
-  expect(new Set(items[1].itags)).toEqual(new Set(["tag3", "tag2", "tag1", "item"]),
+  expect(new Set(items[1].itags)).toEqual(
+    new Set(["tag3", "tag2", "tag1", "item"]),
   );
   expect(items[1].parent).toEqual(items[0].ref);
 

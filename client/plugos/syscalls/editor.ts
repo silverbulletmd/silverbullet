@@ -51,8 +51,8 @@ export function editorSyscalls(client: Client): SysCallMapping {
       return client.documentEditor?.name || "page";
     },
     "editor.getRecentlyOpenedPages": (): PageMeta[] => {
-      return client.ui.viewState.allPages.sort((a, b) =>
-        (b.lastOpened || 0) - (a.lastOpened || 0)
+      return client.ui.viewState.allPages.sort(
+        (a, b) => (b.lastOpened || 0) - (a.lastOpened || 0),
       );
     },
     "editor.getText": () => {
@@ -68,7 +68,9 @@ export function editorSyscalls(client: Client): SysCallMapping {
       const line = client.editorView.state.doc.lineAt(pos);
       return {
         ...line,
-        textWithCursor: line.text.slice(0, pos - line.from) + "|^|" +
+        textWithCursor:
+          line.text.slice(0, pos - line.from) +
+          "|^|" +
           line.text.slice(pos - line.from),
       };
     },
@@ -127,7 +129,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
 
         legacyRef.kind ??= "page";
 
-        let details: Ref["details"] ;
+        let details: Ref["details"];
 
         if (typeof legacyRef.pos === "number") {
           details = {
@@ -160,13 +162,9 @@ export function editorSyscalls(client: Client): SysCallMapping {
       // some validation library. Didn't want to use jsonschemas here tho.
       // Ideally this would be moved into a function too
       if (!isValidPath(ref.path) && ref.path !== "") {
-        throw new Error(
-          "Path passed in ref to `editor.navigate` is invalid",
-        );
+        throw new Error("Path passed in ref to `editor.navigate` is invalid");
       } else if (typeof ref.meta !== "boolean" && ref.meta !== undefined) {
-        throw new Error(
-          "ref.meta has to be of type `boolean`",
-        );
+        throw new Error("ref.meta has to be of type `boolean`");
       } else if (ref.details !== undefined && typeof ref.details !== "object") {
         throw new Error(
           "ref.details has to be of type `object` or `undefined`",
@@ -181,17 +179,15 @@ export function editorSyscalls(client: Client): SysCallMapping {
       }
 
       if (
-        ref.details?.type === "position" && typeof ref.details.pos !== "number"
+        ref.details?.type === "position" &&
+        typeof ref.details.pos !== "number"
       ) {
-        throw new Error(
-          "ref.details.pos has to be of type `number`",
-        );
+        throw new Error("ref.details.pos has to be of type `number`");
       } else if (
-        ref.details?.type === "header" && typeof ref.details.header !== "string"
+        ref.details?.type === "header" &&
+        typeof ref.details.header !== "string"
       ) {
-        throw new Error(
-          "ref.details.header has to be of type `string`",
-        );
+        throw new Error("ref.details.header has to be of type `string`");
       } else if (
         ref.details?.type === "linecolumn" &&
         typeof ref.details.line !== "number" &&
@@ -214,10 +210,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
       client.rebuildEditorState();
     },
     "editor.reloadConfigAndCommands": async () => {
-      await client.clientSystem.system.localSyscall(
-        "system.loadScripts",
-        [],
-      );
+      await client.clientSystem.system.localSyscall("system.loadScripts", []);
       await client.clientSystem.system.localSyscall(
         "system.loadSpaceStyles",
         [],
@@ -351,7 +344,8 @@ export function editorSyscalls(client: Client): SysCallMapping {
       if (cursorPlaceHolder) {
         cursorPlaceholderPos = text.indexOf("|^|");
         if (cursorPlaceholderPos !== -1) {
-          text = text.slice(0, cursorPlaceholderPos) +
+          text =
+            text.slice(0, cursorPlaceholderPos) +
             text.slice(cursorPlaceholderPos + 3);
         } else {
           cursorPlaceHolder = false;
@@ -369,9 +363,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
           selection: {
             anchor: cursorPos,
           },
-          effects: [
-            EditorView.scrollIntoView(cursorPos),
-          ],
+          effects: [EditorView.scrollIntoView(cursorPos)],
         });
       }
     },
@@ -385,7 +377,8 @@ export function editorSyscalls(client: Client): SysCallMapping {
       let cursorPlaceholderPos = -1;
       if (cursorPlaceHolder) {
         cursorPlaceholderPos = text.indexOf("|^|");
-        text = text.slice(0, cursorPlaceholderPos) +
+        text =
+          text.slice(0, cursorPlaceholderPos) +
           text.slice(cursorPlaceholderPos + 3);
       }
       client.editorView.dispatch({
@@ -401,9 +394,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
           selection: {
             anchor: cursorPos,
           },
-          effects: [
-            EditorView.scrollIntoView(cursorPos),
-          ],
+          effects: [EditorView.scrollIntoView(cursorPos)],
         });
       }
     },
@@ -416,12 +407,9 @@ export function editorSyscalls(client: Client): SysCallMapping {
       if (center) {
         client.editorView.dispatch({
           effects: [
-            EditorView.scrollIntoView(
-              pos,
-              {
-                y: "center",
-              },
-            ),
+            EditorView.scrollIntoView(pos, {
+              y: "center",
+            }),
           ],
         });
       }
@@ -459,7 +447,8 @@ export function editorSyscalls(client: Client): SysCallMapping {
       const from = editorView.state.selection.main.from;
       const cursorPlaceholderPos = text.indexOf("|^|");
       if (cursorPlaceHolder && cursorPlaceholderPos !== -1) {
-        text = text.slice(0, cursorPlaceholderPos) +
+        text =
+          text.slice(0, cursorPlaceholderPos) +
           text.slice(cursorPlaceholderPos + 3);
       } else {
         cursorPlaceHolder = false;
@@ -566,15 +555,11 @@ export function editorSyscalls(client: Client): SysCallMapping {
           }
         });
         config.map?.forEach(({ map, to, mode }) => {
-          console.log(
-            `Mapping ${map} to ${to} for ${mode ?? "normal"}`,
-          );
+          console.log(`Mapping ${map} to ${to} for ${mode ?? "normal"}`);
           Vim.map(map, to, mode ?? "normal");
         });
         config.noremap?.forEach(({ map, to, mode }) => {
-          console.log(
-            `Noremapping ${map} to ${to} for ${mode ?? "normal"}`,
-          );
+          console.log(`Noremapping ${map} to ${to} for ${mode ?? "normal"}`);
           Vim.noremap(map, to, mode ?? "normal");
         });
         config.commands?.forEach(({ ex, command }) => {

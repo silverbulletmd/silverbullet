@@ -113,10 +113,7 @@ export function luaTypeName(val: any): LuaType {
 }
 
 // Check whether a value is callable without invoking it.
-export function luaIsCallable(
-  v: LuaValue,
-  sf: LuaStackFrame,
-): boolean {
+export function luaIsCallable(v: LuaValue, sf: LuaStackFrame): boolean {
   if (v === null || v === undefined) {
     return false;
   }
@@ -137,9 +134,7 @@ export function luaIsCallable(
 }
 
 // In Lua, `__close` must be a function (no `__call` fallback).
-function luaIsCloseMethod(
-  v: LuaValue,
-): boolean {
+function luaIsCloseMethod(v: LuaValue): boolean {
   return typeof v === "function" || isILuaFunction(v);
 }
 
@@ -261,8 +256,7 @@ export class LuaEnv implements ILuaSettable, ILuaGettable {
   private readonly consts = new Set<string>();
   private readonly numericTypes = new Map<string, NumericType>();
 
-  constructor(readonly parent?: LuaEnv) {
-  }
+  constructor(readonly parent?: LuaEnv) {}
 
   setLocal(name: string, value: LuaValue, numType?: NumericType) {
     this.variables.set(name, value);
@@ -327,10 +321,7 @@ export class LuaEnv implements ILuaSettable, ILuaGettable {
     return false;
   }
 
-  get(
-    name: string,
-    _sf?: LuaStackFrame,
-  ): Promise<LuaValue> | LuaValue | null {
+  get(name: string, _sf?: LuaStackFrame): Promise<LuaValue> | LuaValue | null {
     if (this.variables.has(name)) {
       return this.variables.get(name);
     }
@@ -378,8 +369,7 @@ export class LuaStackFrame {
     readonly parent?: LuaStackFrame,
     readonly currentFunction?: LuaFunction,
     readonly threadState: LuaThreadState = { closeStack: undefined },
-  ) {
-  }
+  ) {}
 
   static createWithGlobalEnv(
     globalEnv: LuaEnv,
@@ -458,7 +448,10 @@ export class LuaFunction implements ILuaFunction {
   private capturedEnv: LuaEnv;
   funcHasGotos?: boolean;
 
-  constructor(readonly body: LuaFunctionBody, closure: LuaEnv) {
+  constructor(
+    readonly body: LuaFunctionBody,
+    closure: LuaEnv,
+  ) {
     this.capturedEnv = closure;
   }
 
@@ -549,8 +542,7 @@ function mapFunctionReturnValue(values: any[]): any {
 }
 
 export class LuaNativeJSFunction implements ILuaFunction {
-  constructor(readonly fn: (...args: JSValue[]) => JSValue) {
-  }
+  constructor(readonly fn: (...args: JSValue[]) => JSValue) {}
 
   // Performs automatic conversion between Lua and JS values for arguments, but not for return values
   call(sf: LuaStackFrame, ...args: LuaValue[]): Promise<LuaValue> | LuaValue {
@@ -574,8 +566,7 @@ export class LuaNativeJSFunction implements ILuaFunction {
 export class LuaBuiltinFunction implements ILuaFunction {
   constructor(
     readonly fn: (sf: LuaStackFrame, ...args: LuaValue[]) => LuaValue,
-  ) {
-  }
+  ) {}
 
   call(sf: LuaStackFrame, ...args: LuaValue[]): Promise<LuaValue> | LuaValue {
     // _CTX is already available via the stack frame
@@ -727,7 +718,8 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     const normalizedKey = LuaTable.normalizeNumericKey(key);
 
     if (
-      typeof normalizedKey === "number" && Number.isInteger(normalizedKey) &&
+      typeof normalizedKey === "number" &&
+      Number.isInteger(normalizedKey) &&
       normalizedKey >= 1
     ) {
       const idx = normalizedKey - 1;
@@ -835,7 +827,8 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     }
 
     if (
-      typeof normalizedKey === "number" && Number.isInteger(normalizedKey) &&
+      typeof normalizedKey === "number" &&
+      Number.isInteger(normalizedKey) &&
       normalizedKey >= 1
     ) {
       const idx = normalizedKey - 1;
@@ -928,17 +921,11 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     const ctx = sf?.astCtx ?? EMPTY_CTX;
 
     if (key === null || key === undefined) {
-      throw new LuaRuntimeError(
-        "table index is nil",
-        errSf,
-      );
+      throw new LuaRuntimeError("table index is nil", errSf);
     }
 
     if (typeof key === "number" && Number.isNaN(key)) {
-      throw new LuaRuntimeError(
-        "table index is NaN",
-        errSf,
-      );
+      throw new LuaRuntimeError("table index is NaN", errSf);
     }
 
     if (this.has(key)) {
@@ -1037,7 +1024,8 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     }
 
     if (
-      typeof normalizedKey === "number" && Number.isInteger(normalizedKey) &&
+      typeof normalizedKey === "number" &&
+      Number.isInteger(normalizedKey) &&
       normalizedKey >= 1
     ) {
       const idx = normalizedKey - 1;
@@ -1111,10 +1099,7 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
 
         const s = singleResult(v);
         if (typeof s !== "string") {
-          throw new LuaRuntimeError(
-            "'__tostring' must return a string",
-            sf,
-          );
+          throw new LuaRuntimeError("'__tostring' must return a string", sf);
         }
         return s;
       }
@@ -1227,10 +1212,7 @@ export async function luaSet(
   numType?: NumericType,
 ): Promise<void> {
   if (!obj) {
-    throw new LuaRuntimeError(
-      `Not a settable object: nil`,
-      sf,
-    );
+    throw new LuaRuntimeError(`Not a settable object: nil`, sf);
   }
 
   const normKey = isTaggedFloat(key) ? key.value : key;
@@ -1252,10 +1234,7 @@ export function luaGet(
   const errSf = ctx ? sf.withCtx(ctx) : sf;
 
   if (obj === null || obj === undefined) {
-    throw new LuaRuntimeError(
-      `attempt to index a nil value`,
-      errSf,
-    );
+    throw new LuaRuntimeError(`attempt to index a nil value`, errSf);
   }
 
   // In Lua reading with a nil key returns nil silently
@@ -1344,7 +1323,7 @@ export function luaCall(
 
     if (isPromise(jsArgs)) {
       return jsArgs.then((resolved) =>
-        (callee as (...a: any[]) => any)(...resolved)
+        (callee as (...a: any[]) => any)(...resolved),
       );
     }
     return (callee as (...a: any[]) => any)(...jsArgs);
@@ -1384,13 +1363,9 @@ export function luaCall(
   // ILuaFunction (LuaFunction/LuaBuiltinFunction/LuaNativeJSFunction/etc.)
   if (isILuaFunction(callee)) {
     const base = (sf || LuaStackFrame.lostFrame).withCtx(ctx);
-    const frameForCall = callee instanceof LuaFunction
-      ? base.withFunction(callee)
-      : base;
-    return callee.call(
-      frameForCall,
-      ...args,
-    );
+    const frameForCall =
+      callee instanceof LuaFunction ? base.withFunction(callee) : base;
+    return callee.call(frameForCall, ...args);
   }
 
   throw new LuaRuntimeError(
@@ -1494,7 +1469,8 @@ export class LuaRuntimeError extends Error {
       // Add position indicator
       const pointer = `${" ".repeat(column)}^`;
 
-      traceStr += `* ${ctx.ref || "(unknown source)"} @ ${line}:${column}:\n` +
+      traceStr +=
+        `* ${ctx.ref || "(unknown source)"} @ ${line}:${column}:\n` +
         `   ${codeLine}\n` +
         `   ${pointer}\n`;
       current = current.parent;
@@ -1613,7 +1589,7 @@ export function luaFormatNumber(n: number, kind?: "int" | "float"): string {
   if (n === Infinity) return "inf";
   if (n === -Infinity) return "-inf";
   if (n === 0) {
-    return (1 / n === -Infinity) ? "-0.0" : "0.0";
+    return 1 / n === -Infinity ? "-0.0" : "0.0";
   }
   // Delegate to luaFormat for `%.14g`
   const s = luaFormat("%.14g", n);
@@ -1709,13 +1685,12 @@ export function luaValueToJS(value: any, sf: LuaStackFrame): any {
     return value.toJS(sf);
   }
   if (
-    value instanceof LuaNativeJSFunction || value instanceof LuaFunction ||
+    value instanceof LuaNativeJSFunction ||
+    value instanceof LuaFunction ||
     value instanceof LuaBuiltinFunction
   ) {
     return (...args: any[]) => {
-      const jsArgs = rpAll(
-        args.map((v) => luaValueToJS(v, sf)),
-      );
+      const jsArgs = rpAll(args.map((v) => luaValueToJS(v, sf)));
       if (isPromise(jsArgs)) {
         return luaValueToJS(
           jsArgs.then((jsArgs) => (value as ILuaFunction).call(sf, ...jsArgs)),

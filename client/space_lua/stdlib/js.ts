@@ -12,13 +12,9 @@ export const jsApi = new LuaTable({
    * @param args - The arguments to pass to the constructor.
    * @returns The new instance.
    */
-  new: new LuaBuiltinFunction(
-    (sf, constructorFn: any, ...args) => {
-      return new constructorFn(
-        ...args.map((v) => luaValueToJS(v, sf)),
-      );
-    },
-  ),
+  new: new LuaBuiltinFunction((sf, constructorFn: any, ...args) => {
+    return new constructorFn(...args.map((v) => luaValueToJS(v, sf)));
+  }),
   /**
    * Imports a JavaScript module.
    * @param url - The URL of the module to import.

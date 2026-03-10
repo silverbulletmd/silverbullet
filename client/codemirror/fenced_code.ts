@@ -22,9 +22,8 @@ export function fencedCodePlugin(client: Client) {
           }
           const text = state.sliceDoc(from, to);
           const [_, lang] = text.match(/^(?:```+|~~~+)(\w+)?/)!;
-          const codeWidgetCallback = client.clientSystem.codeWidgetHook
-            .codeWidgetCallbacks
-            .get(lang);
+          const codeWidgetCallback =
+            client.clientSystem.codeWidgetHook.codeWidgetCallbacks.get(lang);
           // Only custom render when we have a custom renderer, and the current page is not a template
           if (codeWidgetCallback && shouldRenderWidgets(client)) {
             // We got a custom renderer!
@@ -40,7 +39,8 @@ export function fencedCodePlugin(client: Client) {
               fromIt += line.length + 1;
             }
 
-            const firstLine = lines[0], lastLine = lines[lines.length - 1];
+            const firstLine = lines[0],
+              lastLine = lines[lines.length - 1];
 
             // In case of doubt, back out
             if (!firstLine || !lastLine) return;
@@ -48,9 +48,7 @@ export function fencedCodePlugin(client: Client) {
             widgets.push(
               invisibleDecoration.range(firstLine.from, firstLine.to),
             );
-            widgets.push(
-              invisibleDecoration.range(lastLine.from, lastLine.to),
-            );
+            widgets.push(invisibleDecoration.range(lastLine.from, lastLine.to));
             widgets.push(
               Decoration.line({
                 class: "sb-fenced-code-iframe",
@@ -86,9 +84,7 @@ export function fencedCodePlugin(client: Client) {
           }
           return true;
         }
-        if (
-          name === "CodeMark"
-        ) {
+        if (name === "CodeMark") {
           const parent = node.parent!;
           // Hide ONLY if CodeMark is not insine backticks (InlineCode) and the cursor is placed outside
           if (

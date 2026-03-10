@@ -7,16 +7,15 @@ import type { LintEvent } from "@silverbulletmd/silverbullet/type/client";
 export function plugLinter(client: Client) {
   return linter(async (view): Promise<Diagnostic[]> => {
     const text = view.state.sliceDoc();
-    const tree = parse(
-      extendedMarkdownLanguage,
-      text,
-    );
-    const results = (await client.dispatchAppEvent("editor:lint", {
-      name: client.currentName(),
-      pageMeta: client.currentPageMeta(),
-      tree,
-      text,
-    } as LintEvent)).flat();
+    const tree = parse(extendedMarkdownLanguage, text);
+    const results = (
+      await client.dispatchAppEvent("editor:lint", {
+        name: client.currentName(),
+        pageMeta: client.currentPageMeta(),
+        tree,
+        text,
+      } as LintEvent)
+    ).flat();
     return results;
   });
 }

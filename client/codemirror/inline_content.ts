@@ -42,8 +42,8 @@ export function inlineContentPlugin(client: Client) {
           return;
         }
 
-        const renderingSyntax = client.ui.viewState.uiOptions
-          .markdownSyntaxRendering;
+        const renderingSyntax =
+          client.ui.viewState.uiOptions.markdownSyntaxRendering;
         const cursorIsInRange = isCursorInRange(state, [from, to]);
         if (cursorIsInRange) {
           return;
@@ -65,18 +65,19 @@ export function inlineContentPlugin(client: Client) {
                     client.space,
                     transclusion,
                   );
-                  const content = result.text !== undefined
-                    ? {
-                      markdown: renderToText(
-                        await expandMarkdown(
-                          client.space,
-                          nameFromTransclusion(transclusion),
-                          parseMarkdown(result.text, result.offset),
-                          client.clientSystem.spaceLuaEnv,
-                        ),
-                      ),
-                    }
-                    : { html: result };
+                  const content =
+                    result.text !== undefined
+                      ? {
+                          markdown: renderToText(
+                            await expandMarkdown(
+                              client.space,
+                              nameFromTransclusion(transclusion),
+                              parseMarkdown(result.text, result.offset),
+                              client.clientSystem.spaceLuaEnv,
+                            ),
+                          ),
+                        }
+                      : { html: result };
 
                   return {
                     _isWidget: true,

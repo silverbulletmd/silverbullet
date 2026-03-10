@@ -28,8 +28,7 @@ export class QueueWorker {
     readonly queue: string,
     readonly options: MQSubscribeOptions,
     private callback: (messages: MQMessage[]) => Promise<void> | void,
-  ) {
-  }
+  ) {}
 
   /**
    * This is the main loop of the worker, whenever it exits the loop it means the worker has stopped
@@ -97,14 +96,13 @@ export class DataStoreMQ {
 
   queueWaiters = new Map<
     string,
-    ({ resolve: () => void; reject: (e: any) => void })[]
+    { resolve: () => void; reject: (e: any) => void }[]
   >();
 
   constructor(
     private ds: DataStore,
     public eventHook: EventHook,
-  ) {
-  }
+  ) {}
 
   /// Worker management
   public queueWorker(
@@ -307,11 +305,11 @@ export class DataStoreMQ {
   }
 
   async fetchDLQMessages(): Promise<ProcessingMessage[]> {
-    return (await this.ds.luaQuery<ProcessingMessage>(dlqPrefix, {}));
+    return await this.ds.luaQuery<ProcessingMessage>(dlqPrefix, {});
   }
 
   async fetchProcessingMessages(): Promise<ProcessingMessage[]> {
-    return (await this.ds.luaQuery<ProcessingMessage>(processingPrefix, {}));
+    return await this.ds.luaQuery<ProcessingMessage>(processingPrefix, {});
   }
 
   async flushDLQ(): Promise<void> {
@@ -328,28 +326,22 @@ export class DataStoreMQ {
    */
   async flushQueue(queue: string): Promise<void> {
     const ids: KvKey[] = [];
-    for (
-      const item of await this.ds.luaQuery<MQMessage>(
-        [...queuedPrefix, queue],
-        {},
-      )
-    ) {
+    for (const item of await this.ds.luaQuery<MQMessage>(
+      [...queuedPrefix, queue],
+      {},
+    )) {
       ids.push([...queuedPrefix, queue, item.id]);
     }
-    for (
-      const item of await this.ds.luaQuery<ProcessingMessage>([
-        ...processingPrefix,
-        queue,
-      ], {})
-    ) {
+    for (const item of await this.ds.luaQuery<ProcessingMessage>(
+      [...processingPrefix, queue],
+      {},
+    )) {
       ids.push([...processingPrefix, queue, item.id]);
     }
-    for (
-      const item of await this.ds.luaQuery<ProcessingMessage>([
-        ...dlqPrefix,
-        queue,
-      ], {})
-    ) {
+    for (const item of await this.ds.luaQuery<ProcessingMessage>(
+      [...dlqPrefix, queue],
+      {},
+    )) {
       ids.push([...dlqPrefix, queue, item.id]);
     }
     await this.ds.batchDelete(ids);

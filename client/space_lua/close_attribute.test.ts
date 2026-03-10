@@ -311,7 +311,9 @@ test("close: reassign after implicit nil errors", async () => {
   );
 
   expect(e).toBeInstanceOf(LuaRuntimeError);
-  expect((e as LuaRuntimeError).message).toContain("attempt to assign to const variable 'a'",);
+  expect((e as LuaRuntimeError).message).toContain(
+    "attempt to assign to const variable 'a'",
+  );
 });
 
 test("close: reassign after explicit nil errors", async () => {
@@ -326,7 +328,9 @@ test("close: reassign after explicit nil errors", async () => {
   );
 
   expect(e).toBeInstanceOf(LuaRuntimeError);
-  expect((e as LuaRuntimeError).message).toContain("attempt to assign to const variable 'a'",);
+  expect((e as LuaRuntimeError).message).toContain(
+    "attempt to assign to const variable 'a'",
+  );
 });
 
 test("close: reassign after false is non-closable", async () => {
@@ -359,7 +363,9 @@ test("close: reassign after closable value errors", async () => {
   );
 
   expect(e).toBeInstanceOf(LuaRuntimeError);
-  expect((e as LuaRuntimeError).message).toContain("attempt to assign to const variable 'a'",);
+  expect((e as LuaRuntimeError).message).toContain(
+    "attempt to assign to const variable 'a'",
+  );
 });
 
 test("close: reassignment through closure is non-closable", async () => {

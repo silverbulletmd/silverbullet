@@ -34,7 +34,7 @@ export async function indexPage(
     ...pageMeta,
   };
 
-  combinedPageMeta.tags = [...new Set([...frontmatter.tags || []])];
+  combinedPageMeta.tags = [...new Set([...(frontmatter.tags || [])])];
 
   combinedPageMeta.tag = "page";
 
@@ -95,7 +95,8 @@ export async function lintFrontmatter(): Promise<LintDiagnostic[]> {
       const codeLang = codeInfo.children![0].text!;
       // All known YAML formats
       if (
-        codeLang === "template" || codeLang === "yaml" ||
+        codeLang === "template" ||
+        codeLang === "yaml" ||
         codeLang.startsWith("#")
       ) {
         const codeText = findNodeOfType(node, "CodeText");
@@ -153,15 +154,14 @@ export async function loadPageObject(pageName?: string): Promise<PageMeta> {
       created: "",
     } as PageMeta;
   }
-  return (await index.getObjectByRef<PageMeta>(
-    pageName,
-    "page",
-    pageName,
-  )) || {
-    ref: pageName,
-    name: pageName,
-    tags: ["page"],
-    lastModified: "",
-    created: "",
-  } as PageMeta;
+  return (
+    (await index.getObjectByRef<PageMeta>(pageName, "page", pageName)) ||
+    ({
+      ref: pageName,
+      name: pageName,
+      tags: ["page"],
+      lastModified: "",
+      created: "",
+    } as PageMeta)
+  );
 }

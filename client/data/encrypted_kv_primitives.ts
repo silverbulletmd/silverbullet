@@ -62,9 +62,11 @@ export class EncryptedKvPrimitives implements KvPrimitives {
   }
 
   async batchGet(keys: KvKey[]): Promise<any[]> {
-    const encryptedKeys: KvKey[] = await Promise.all(keys.map((key) => {
-      return this.encryptKey(key);
-    }));
+    const encryptedKeys: KvKey[] = await Promise.all(
+      keys.map((key) => {
+        return this.encryptKey(key);
+      }),
+    );
     const encryptedValues = await this.wrapped.batchGet(encryptedKeys);
     return Promise.all(
       encryptedValues.map((value) => this.decryptValue(value)),
@@ -92,11 +94,9 @@ export class EncryptedKvPrimitives implements KvPrimitives {
   async *query({ prefix }: KvQueryOptions): AsyncIterableIterator<KV> {
     const encryptedResults: KV[] = [];
     // Collect all results first
-    for await (
-      const entry of this.wrapped.query({
-        prefix: prefix ? await this.encryptKey(prefix) : undefined,
-      })
-    ) {
+    for await (const entry of this.wrapped.query({
+      prefix: prefix ? await this.encryptKey(prefix) : undefined,
+    })) {
       encryptedResults.push(entry);
     }
 

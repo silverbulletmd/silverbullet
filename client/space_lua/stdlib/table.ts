@@ -84,9 +84,8 @@ export const tableApi = new LuaTable({
           return luaFormatNumber(v.value, "float");
         }
 
-        const ty = typeof v === "object" && v instanceof LuaTable
-          ? "table"
-          : typeof v;
+        const ty =
+          typeof v === "object" && v instanceof LuaTable ? "table" : typeof v;
         throw new LuaRuntimeError(
           `invalid value (${ty}) at index ${idx} in table for 'concat'`,
           sf,
@@ -301,10 +300,7 @@ export const tableApi = new LuaTable({
 
         const ta = typeof av;
         const tb = typeof bv;
-        throw new LuaRuntimeError(
-          `attempt to compare ${ta} with ${tb}`,
-          sf,
-        );
+        throw new LuaRuntimeError(`attempt to compare ${ta} with ${tb}`, sf);
       };
 
       const sorted = await asyncQuickSort(values, cmp);
@@ -410,7 +406,7 @@ export const tableApi = new LuaTable({
    */
   unpack: new LuaBuiltinFunction(
     async (sf, tbl: LuaTable | any[], i?: number, j?: number) => {
-      i = (i === undefined || i === null) ? 1 : i;
+      i = i === undefined || i === null ? 1 : i;
       if (j === undefined || j === null) {
         j = Array.isArray(tbl)
           ? tbl.length

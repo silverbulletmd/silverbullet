@@ -17,9 +17,9 @@ export class SyscallHook implements Hook<SyscallHookT> {
     for (const plug of system.loadedPlugs.values()) {
       const syscalls: SysCallMapping = {};
 
-      for (
-        const [name, functionDef] of Object.entries(plug.manifest!.functions)
-      ) {
+      for (const [name, functionDef] of Object.entries(
+        plug.manifest!.functions,
+      )) {
         if (!functionDef.syscall) {
           continue;
         }

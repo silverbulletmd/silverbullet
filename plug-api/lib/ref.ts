@@ -77,8 +77,9 @@ export function isValidName(name: string): boolean {
   // If the name, parses as a link and doesn't provide any other info we can be
   // sure it was only parsed as a path and that the path then conforms to all
   // the requirements
-  return !!ref && !ref.details && !ref.meta && name !== "" &&
-    encodeRef(ref) === name;
+  return (
+    !!ref && !ref.details && !ref.meta && name !== "" && encodeRef(ref) === name
+  );
 }
 
 /**
@@ -206,23 +207,22 @@ export function getOffsetFromHeader(
   parseTree: ParseTree,
   header: string,
 ): number {
-  const node = findNodeMatching(
-    parseTree,
-    (subTree) => {
-      if (!subTree.type || !subTree.type.startsWith("ATXHeading")) {
-        return false;
-      }
+  const node = findNodeMatching(parseTree, (subTree) => {
+    if (!subTree.type || !subTree.type.startsWith("ATXHeading")) {
+      return false;
+    }
 
-      const mark = findNodeOfType(subTree, "HeaderMark");
-      if (!mark || mark.from === undefined || mark.to === undefined) {
-        return false;
-      }
+    const mark = findNodeOfType(subTree, "HeaderMark");
+    if (!mark || mark.from === undefined || mark.to === undefined) {
+      return false;
+    }
 
-      return renderToText(subTree)
+    return (
+      renderToText(subTree)
         .slice(mark.to - mark.from)
-        .trimStart() === header.trim();
-    },
-  );
+        .trimStart() === header.trim()
+    );
+  });
 
   if (!node) {
     return -1;

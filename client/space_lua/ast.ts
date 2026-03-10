@@ -255,10 +255,7 @@ export type LuaTableConstructor = {
   fields: LuaTableField[];
 } & ASTContext;
 
-export type LuaTableField =
-  | LuaDynamicField
-  | LuaPropField
-  | LuaExpressionField;
+export type LuaTableField = LuaDynamicField | LuaPropField | LuaExpressionField;
 
 export type LuaDynamicField = {
   type: "DynamicField";

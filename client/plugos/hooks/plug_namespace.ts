@@ -30,11 +30,9 @@ export class PlugNamespaceHook implements Hook<PlugNamespaceHookT> {
     this.spaceFunctions = [];
     for (const plug of system.loadedPlugs.values()) {
       if (plug.manifest?.functions) {
-        for (
-          const [funcName, funcDef] of Object.entries(
-            plug.manifest.functions,
-          )
-        ) {
+        for (const [funcName, funcDef] of Object.entries(
+          plug.manifest.functions,
+        )) {
           if (funcDef.pageNamespace) {
             this.spaceFunctions.push({
               operation: funcDef.pageNamespace.operation,

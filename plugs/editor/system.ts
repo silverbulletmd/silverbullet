@@ -17,9 +17,9 @@ export async function parsePageCommand() {
 
 export async function wipeClientCommand() {
   if (
-    !await editor.confirm(
+    !(await editor.confirm(
       "Are you sure you want to wipe the client? This will clean the local cache.",
-    )
+    ))
   ) {
     return;
   }

@@ -16,9 +16,7 @@ function weekNumber(
 
   if (iso) {
     const target = new Date(date);
-    target.setUTCDate(
-      target.getUTCDate() + 3 - ((target.getUTCDay() + 6) % 7),
-    );
+    target.setUTCDate(target.getUTCDate() + 3 - ((target.getUTCDay() + 6) % 7));
 
     const yearStart = new Date(Date.UTC(target.getUTCFullYear(), 0, 4));
     const weekStart = new Date(yearStart);
@@ -34,11 +32,10 @@ function weekNumber(
   const offset = (7 + (startDay - weekStartDay)) % 7;
   const firstWeekStart = new Date(yearStart);
 
-  firstWeekStart.setUTCDate(yearStart.getUTCDate() + (7 - offset) % 7);
+  firstWeekStart.setUTCDate(yearStart.getUTCDate() + ((7 - offset) % 7));
 
   if (date < firstWeekStart) return 0;
-  return 1 +
-    Math.floor((date.getTime() - firstWeekStart.getTime()) / ONE_WEEK);
+  return 1 + Math.floor((date.getTime() - firstWeekStart.getTime()) / ONE_WEEK);
 }
 
 function dayOfYear(d: Date, utc: boolean): number {
@@ -47,25 +44,25 @@ function dayOfYear(d: Date, utc: boolean): number {
 
   const current = utc
     ? new Date(
-      Date.UTC(
-        year,
-        d.getUTCMonth(),
-        d.getUTCDate(),
-        d.getUTCHours(),
-        d.getUTCMinutes(),
-        d.getUTCSeconds(),
-      ),
-    )
+        Date.UTC(
+          year,
+          d.getUTCMonth(),
+          d.getUTCDate(),
+          d.getUTCHours(),
+          d.getUTCMinutes(),
+          d.getUTCSeconds(),
+        ),
+      )
     : new Date(
-      Date.UTC(
-        year,
-        d.getMonth(),
-        d.getDate(),
-        d.getHours(),
-        d.getMinutes(),
-        d.getSeconds(),
-      ),
-    );
+        Date.UTC(
+          year,
+          d.getMonth(),
+          d.getDate(),
+          d.getHours(),
+          d.getMinutes(),
+          d.getSeconds(),
+        ),
+      );
 
   return Math.floor((current.getTime() - start.getTime()) / ONE_DAY);
 }
@@ -76,9 +73,7 @@ function isoWeekYear(d: Date, utc: boolean): number {
   const day = utc ? d.getUTCDate() : d.getDate();
   const target = new Date(Date.UTC(year, month, day));
 
-  target.setUTCDate(
-    target.getUTCDate() + 3 - ((target.getUTCDay() + 6) % 7),
-  );
+  target.setUTCDate(target.getUTCDate() + 3 - ((target.getUTCDay() + 6) % 7));
 
   return target.getUTCFullYear();
 }
@@ -146,107 +141,104 @@ function dateTable(d: Date, utc: boolean): LuaTable {
 
 // Build the specifier map for a given `Date` and `utc` flag.
 // Returns a record mapping single-char specifier to its output string.
-function buildSpecMap(
-  d: Date,
-  utc: boolean,
-): Record<string, () => string> {
+function buildSpecMap(d: Date, utc: boolean): Record<string, () => string> {
   const h = () => hr(d, utc);
   const h12 = () => h() % 12 || 12;
   const dow = () => wd(d, utc);
 
   return {
     // Date
-    "Y": () => yr(d, utc).toString(),
-    "y": () => pad2(yr(d, utc) % 100),
-    "C": () => pad2(Math.floor(yr(d, utc) / 100)),
-    "m": () => pad2(mo(d, utc) + 1),
-    "d": () => pad2(da(d, utc)),
-    "e": () => da(d, utc).toString().padStart(2, " "),
-    "j": () => pad3(dayOfYear(d, utc)),
+    Y: () => yr(d, utc).toString(),
+    y: () => pad2(yr(d, utc) % 100),
+    C: () => pad2(Math.floor(yr(d, utc) / 100)),
+    m: () => pad2(mo(d, utc) + 1),
+    d: () => pad2(da(d, utc)),
+    e: () => da(d, utc).toString().padStart(2, " "),
+    j: () => pad3(dayOfYear(d, utc)),
 
     // Time
-    "H": () => pad2(h()),
-    "I": () => pad2(h12()),
-    "M": () => pad2(mi(d, utc)),
-    "S": () => pad2(sc(d, utc)),
-    "p": () => h() >= 12 ? "PM" : "AM",
+    H: () => pad2(h()),
+    I: () => pad2(h12()),
+    M: () => pad2(mi(d, utc)),
+    S: () => pad2(sc(d, utc)),
+    p: () => (h() >= 12 ? "PM" : "AM"),
 
     // Weekday
-    "A": () =>
+    A: () =>
       d.toLocaleString("en-US", {
         weekday: "long",
         ...(utc ? { timeZone: "UTC" } : {}),
       }),
-    "a": () =>
+    a: () =>
       d.toLocaleString("en-US", {
         weekday: "short",
         ...(utc ? { timeZone: "UTC" } : {}),
       }),
-    "w": () => dow().toString(),
-    "u": () => (dow() === 0 ? 7 : dow()).toString(),
+    w: () => dow().toString(),
+    u: () => (dow() === 0 ? 7 : dow()).toString(),
 
     // Month name
-    "b": () =>
+    b: () =>
       d.toLocaleString("en-US", {
         month: "short",
         ...(utc ? { timeZone: "UTC" } : {}),
       }),
-    "h": () =>
+    h: () =>
       d.toLocaleString("en-US", {
         month: "short",
         ...(utc ? { timeZone: "UTC" } : {}),
       }),
-    "B": () =>
+    B: () =>
       d.toLocaleString("en-US", {
         month: "long",
         ...(utc ? { timeZone: "UTC" } : {}),
       }),
 
     // Week number
-    "U": () => pad2(weekNumber(d, utc, 0, false)),
-    "W": () => pad2(weekNumber(d, utc, 1, false)),
-    "V": () => pad2(weekNumber(d, utc, 1, true)),
-    "G": () => isoWeekYear(d, utc).toString(),
-    "g": () => pad2(isoWeekYear(d, utc) % 100),
+    U: () => pad2(weekNumber(d, utc, 0, false)),
+    W: () => pad2(weekNumber(d, utc, 1, false)),
+    V: () => pad2(weekNumber(d, utc, 1, true)),
+    G: () => isoWeekYear(d, utc).toString(),
+    g: () => pad2(isoWeekYear(d, utc) % 100),
 
     // Composite specifiers
-    "c": () =>
+    c: () =>
       d.toLocaleString("en-US", {
         ...(utc ? { timeZone: "UTC" } : {}),
       }),
-    "x": () =>
+    x: () =>
       d.toLocaleDateString("en-US", {
         ...(utc ? { timeZone: "UTC" } : {}),
       }),
-    "X": () =>
+    X: () =>
       d.toLocaleTimeString("en-US", {
         ...(utc ? { timeZone: "UTC" } : {}),
       }),
-    "D": () =>
+    D: () =>
       `${pad2(mo(d, utc) + 1)}/${pad2(da(d, utc))}/${pad2(yr(d, utc) % 100)}`,
-    "F": () =>
+    F: () =>
       `${yr(d, utc).toString()}-${pad2(mo(d, utc) + 1)}-${pad2(da(d, utc))}`,
-    "R": () => `${pad2(h())}:${pad2(mi(d, utc))}`,
-    "T": () => `${pad2(h())}:${pad2(mi(d, utc))}:${pad2(sc(d, utc))}`,
-    "r": () =>
+    R: () => `${pad2(h())}:${pad2(mi(d, utc))}`,
+    T: () => `${pad2(h())}:${pad2(mi(d, utc))}:${pad2(sc(d, utc))}`,
+    r: () =>
       `${pad2(h12())}:${pad2(mi(d, utc))}:${pad2(sc(d, utc))} ${
         h() >= 12 ? "PM" : "AM"
       }`,
 
     // Epoch
-    "s": () => Math.floor(d.getTime() / 1000).toString(),
+    s: () => Math.floor(d.getTime() / 1000).toString(),
 
     // Whitespace
-    "n": () => "\n",
-    "t": () => "\t",
+    n: () => "\n",
+    t: () => "\t",
 
     // Timezone
-    "Z": () => {
+    Z: () => {
       if (utc) return "UTC";
       const match = d.toTimeString().match(/\((.*)\)/);
       return match ? match[1] : "";
     },
-    "z": () => {
+    z: () => {
       if (utc) return "+0000";
       const offset = -d.getTimezoneOffset();
       const sign = offset >= 0 ? "+" : "-";
@@ -344,27 +336,26 @@ export const osApi = new LuaTable({
   // Otherwise, format specifiers follow ISO C `strftime`.
   //
   // If format is absent, it defaults to `%c`.
-  date: new LuaBuiltinFunction(
-    (_sf, format?: string, timestamp?: number) => {
-      let fmt = format ?? "%c";
-      let utc = false;
+  date: new LuaBuiltinFunction((_sf, format?: string, timestamp?: number) => {
+    let fmt = format ?? "%c";
+    let utc = false;
 
-      if (fmt.startsWith("!")) {
-        utc = true;
-        fmt = fmt.slice(1);
-      }
+    if (fmt.startsWith("!")) {
+      utc = true;
+      fmt = fmt.slice(1);
+    }
 
-      const d = timestamp !== undefined && timestamp !== null
+    const d =
+      timestamp !== undefined && timestamp !== null
         ? new Date(timestamp * 1000)
         : new Date();
 
-      if (fmt === "*t") {
-        return dateTable(d, utc);
-      }
+    if (fmt === "*t") {
+      return dateTable(d, utc);
+    }
 
-      return luaFormatTime(fmt, d, utc);
-    },
-  ),
+    return luaFormatTime(fmt, d, utc);
+  }),
 
   // Returns an approximation of CPU time used by the program in seconds.
   clock: new LuaBuiltinFunction((_sf): number => {

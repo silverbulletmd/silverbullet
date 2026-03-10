@@ -67,8 +67,7 @@ export class Space {
 
   async listPlugs(): Promise<FileMeta[]> {
     const files = await this.deduplicatedFileList();
-    return files
-      .filter((fileMeta) => fileMeta.name.endsWith(".plug.js"));
+    return files.filter((fileMeta) => fileMeta.name.endsWith(".plug.js"));
   }
 
   async readPage(name: string): Promise<{ text: string; meta: PageMeta }> {
@@ -153,10 +152,7 @@ export class Space {
     return { text: "", offset: 0 };
   }
 
-  async writePage(
-    name: string,
-    text: string,
-  ): Promise<PageMeta> {
+  async writePage(name: string, text: string): Promise<PageMeta> {
     try {
       this.saving = true;
       const pageMeta = fileMetaToPageMeta(
@@ -181,8 +177,11 @@ export class Space {
   // - it's not a markdown file
   // - it's not a javascript of javascript source map (.map)
   isListedDocument(fileMeta: FileMeta): boolean {
-    return !this.isListedPage(fileMeta) && !fileMeta.name.endsWith(".js") &&
-      !fileMeta.name.endsWith(".map");
+    return (
+      !this.isListedPage(fileMeta) &&
+      !fileMeta.name.endsWith(".js") &&
+      !fileMeta.name.endsWith(".map")
+    );
   }
 
   async fetchPageList(): Promise<PageMeta[]> {
@@ -193,7 +192,7 @@ export class Space {
 
   async fetchDocumentList(): Promise<DocumentMeta[]> {
     return (await this.deduplicatedFileList()).flatMap((fileMeta) =>
-      this.isListedDocument(fileMeta) ? [fileMetaToDocumentMeta(fileMeta)] : []
+      this.isListedDocument(fileMeta) ? [fileMetaToDocumentMeta(fileMeta)] : [],
     );
   }
 
@@ -226,15 +225,10 @@ export class Space {
   }
 
   async getDocumentMeta(name: string): Promise<DocumentMeta> {
-    return fileMetaToDocumentMeta(
-      await this.spacePrimitives.getFileMeta(name),
-    );
+    return fileMetaToDocumentMeta(await this.spacePrimitives.getFileMeta(name));
   }
 
-  async writeDocument(
-    name: string,
-    data: Uint8Array,
-  ): Promise<DocumentMeta> {
+  async writeDocument(name: string, data: Uint8Array): Promise<DocumentMeta> {
     return fileMetaToDocumentMeta(
       await this.spacePrimitives.writeFile(name, data),
     );
@@ -297,9 +291,7 @@ export function fileMetaToPageMeta(fileMeta: FileMeta): PageMeta {
   }
 }
 
-export function fileMetaToDocumentMeta(
-  fileMeta: FileMeta,
-): DocumentMeta {
+export function fileMetaToDocumentMeta(fileMeta: FileMeta): DocumentMeta {
   try {
     return {
       ...fileMeta,

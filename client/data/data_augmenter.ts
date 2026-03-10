@@ -13,16 +13,12 @@ export class Augmenter {
   constructor(
     private ds: DataStore,
     private augmentationNamespace: KvKey,
-  ) {
-  }
+  ) {}
 
   /**
    * Augments objects additional attributes pulled from a data source
    */
-  async augmentObjectArray(
-    objects: any[],
-    keyField: string,
-  ): Promise<void> {
+  async augmentObjectArray(objects: any[], keyField: string): Promise<void> {
     const objectMap = new Map<string, any>();
     // create a lookup map based on objects
     for (const obj of objects) {
@@ -33,11 +29,9 @@ export class Augmenter {
 
   async augmentObjectMap(objectMap: Map<string, any>) {
     // Now augment
-    for await (
-      const augmentation of this.ds.query({
-        prefix: this.augmentationNamespace,
-      })
-    ) {
+    for await (const augmentation of this.ds.query({
+      prefix: this.augmentationNamespace,
+    })) {
       const obj = objectMap.get(
         augmentation.key[this.augmentationNamespace.length],
       );

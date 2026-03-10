@@ -50,9 +50,7 @@ function humanReadableSchemaType(type: any): string {
  * Task state completion
  */
 export async function completeTaskState(completeEvent: CompleteEvent) {
-  const taskMatch = /([-*]\s+\[)([^[\]]+)$/.exec(
-    completeEvent.linePrefix,
-  );
+  const taskMatch = /([-*]\s+\[)([^[\]]+)$/.exec(completeEvent.linePrefix);
   if (!taskMatch) {
     return null;
   }

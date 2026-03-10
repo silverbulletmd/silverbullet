@@ -15,7 +15,11 @@ program
   .option("--debug", "Do not minify code", false)
   .option("--info", "Print out size info per function", false)
   .option("-w, --watch", "Watch for changes and rebuild", false)
-  .option("--dist <path>", "Folder to put the resulting .plug.json file into", ".")
+  .option(
+    "--dist <path>",
+    "Folder to put the resulting .plug.json file into",
+    ".",
+  )
   .action(async (manifestPaths: string[], options: any) => {
     await plugCompileCommand(
       {

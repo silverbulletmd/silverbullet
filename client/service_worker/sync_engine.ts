@@ -100,10 +100,7 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
     this.syncAccepts = config.syncIgnore
       ? gitIgnoreCompiler(config.syncIgnore).accepts
       : () => true;
-    console.log(
-      "[sync] Updated sync config:",
-      this.syncConfig,
-    );
+    console.log("[sync] Updated sync config:", this.syncConfig);
   }
 
   isSyncCandidate(path: string): boolean {
@@ -161,10 +158,12 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
    * @param snapshot A map of sync status items.
    */
   saveSnapshot(snapshot: SyncSnapshot) {
-    return this.kv.batchSet([{
-      key: syncSnapshotKey,
-      value: snapshot.toJSON(),
-    }]);
+    return this.kv.batchSet([
+      {
+        key: syncSnapshotKey,
+        value: snapshot.toJSON(),
+      },
+    ]);
   }
 
   async wipe() {
@@ -205,20 +204,11 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
       "will pick the version from secondary and be done with it.",
     );
     // Read file from secondary
-    const { data, meta } = await secondary.readFile(
-      name,
-    );
+    const { data, meta } = await secondary.readFile(name);
     // Write file to primary
-    const newMeta = await primary.writeFile(
-      name,
-      data,
-      meta,
-    );
+    const newMeta = await primary.writeFile(name, data, meta);
     // Update snapshot
-    snapshot.files.set(name, [
-      newMeta.lastModified,
-      meta.lastModified,
-    ]);
+    snapshot.files.set(name, [newMeta.lastModified, meta.lastModified]);
 
     return 1;
   }

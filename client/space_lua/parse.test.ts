@@ -60,9 +60,7 @@ test("Test Lua parser", () => {
         goto hello`);
   parse(`while true do print() end`);
   parse(`repeat print() until false`);
-  parse(
-    `if 1 == 2 then print() elseif 1 < 2 then print2() else print3() end`,
-  );
+  parse(`if 1 == 2 then print() elseif 1 < 2 then print2() else print3() end`);
   parse(`if true then print() end`);
   parse(`if true then print() else print2() end`);
   parse(`if true then print() elseif false then print2() end`);
@@ -116,9 +114,11 @@ hello
   const code2 = stripLuaComments(code);
   expect(code2.length).toEqual(code.length);
   console.log(code2);
-  console.log(stripLuaComments(`e([==[
+  console.log(
+    stripLuaComments(`e([==[
     --- Hello
-  ]==])`));
+  ]==])`),
+  );
 });
 
 test("Test query parsing", () => {
@@ -131,13 +131,9 @@ test("Test query parsing", () => {
   );
   parse(`_(query[[from p = index.tag("page") order by p.lastModified]])`);
   // group by single key
-  parse(
-    `_(query[[from p = index.tag("page") group by p.category]])`,
-  );
+  parse(`_(query[[from p = index.tag("page") group by p.category]])`);
   // group by multiple keys
-  parse(
-    `_(query[[from p = index.tag("page") group by p.category, p.status]])`,
-  );
+  parse(`_(query[[from p = index.tag("page") group by p.category, p.status]])`);
   // group by + having
   parse(
     `_(query[[from p = index.tag("page") group by p.category having #group > 1]])`,
@@ -152,17 +148,22 @@ test("Test numeric constant parsing", () => {
   // Examples from Lua 5.4 Reference Manual, except hexadecimal constants with fractional part
   expect((parseExpressionString(`3`) as LuaNumberLiteral).value).toEqual(3);
   expect((parseExpressionString(`345`) as LuaNumberLiteral).value).toEqual(345);
-  expect((parseExpressionString(`0xff`) as LuaNumberLiteral).value).toEqual(0xff);
-  expect((parseExpressionString(`0xBEBADA`) as LuaNumberLiteral).value).toEqual(0xBEBADA,
+  expect((parseExpressionString(`0xff`) as LuaNumberLiteral).value).toEqual(
+    0xff,
+  );
+  expect((parseExpressionString(`0xBEBADA`) as LuaNumberLiteral).value).toEqual(
+    0xbebada,
   );
   expect((parseExpressionString(`3.0`) as LuaNumberLiteral).value).toEqual(3.0);
-  expect((parseExpressionString(`3.1416`) as LuaNumberLiteral).value)// biome-ignore lint/suspicious/noApproximativeNumericConstant: testing exact value 3.1416, not Math.PI
-  .toEqual(3.1416,
-  );
-  expect((parseExpressionString(`314.16e-2`) as LuaNumberLiteral).value).toEqual(314.16e-2,
-  );
-  expect((parseExpressionString(`0.31416E1`) as LuaNumberLiteral).value).toEqual(0.31416E1,
-  );
-  expect((parseExpressionString(`34e1`) as LuaNumberLiteral).value).toEqual(34e1,
+  expect((parseExpressionString(`3.1416`) as LuaNumberLiteral).value) // biome-ignore lint/suspicious/noApproximativeNumericConstant: testing exact value 3.1416, not Math.PI
+    .toEqual(3.1416);
+  expect(
+    (parseExpressionString(`314.16e-2`) as LuaNumberLiteral).value,
+  ).toEqual(314.16e-2);
+  expect(
+    (parseExpressionString(`0.31416E1`) as LuaNumberLiteral).value,
+  ).toEqual(0.31416e1);
+  expect((parseExpressionString(`34e1`) as LuaNumberLiteral).value).toEqual(
+    34e1,
   );
 });

@@ -58,17 +58,19 @@ export class Logger {
     const entry: LogEntry = {
       level,
       timestamp: Date.now(),
-      message: args.map((arg) => {
-        if (typeof arg === "string") {
-          return arg;
-        }
-        try {
-          return JSON.stringify(arg);
-        } catch {
-          // Handle circular references or other JSON.stringify failures
-          return String(arg);
-        }
-      }).join(" "),
+      message: args
+        .map((arg) => {
+          if (typeof arg === "string") {
+            return arg;
+          }
+          try {
+            return JSON.stringify(arg);
+          } catch {
+            // Handle circular references or other JSON.stringify failures
+            return String(arg);
+          }
+        })
+        .join(" "),
     };
 
     this.logBuffer.push(entry);
@@ -109,7 +111,7 @@ export class Logger {
 }
 
 // Global logger instance
-let globalLogger: Logger | undefined ;
+let globalLogger: Logger | undefined;
 
 export function initLogger(prefix: string = ""): Logger {
   globalLogger = new Logger(prefix);

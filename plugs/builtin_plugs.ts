@@ -9,6 +9,6 @@ export const builtinPlugNames = [
   "image-viewer",
 ];
 
-export const builtinPlugPaths = builtinPlugNames.map((name) =>
-  `Library/Std/Plugs/${name}.plug.js`
+export const builtinPlugPaths = builtinPlugNames.map(
+  (name) => `Library/Std/Plugs/${name}.plug.js`,
 );

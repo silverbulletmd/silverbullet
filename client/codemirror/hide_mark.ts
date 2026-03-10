@@ -52,10 +52,7 @@ export function hideMarksPlugin() {
           // There can be a possibility that the current node is a
           // child eg. a bold node in a emphasis node, so check
           // for that or else save the node range
-          if (
-            parentRange &&
-            checkRangeOverlap([from, to], parentRange)
-          ) {
+          if (parentRange && checkRangeOverlap([from, to], parentRange)) {
             return;
           } else parentRange = [from, to];
           if (isCursorInRange(state, [from, to])) return;
@@ -66,10 +63,7 @@ export function hideMarksPlugin() {
               // decoration
               if (!markTypes.includes(type.name)) return;
               widgets.push(
-                invisibleDecoration.range(
-                  from + markFrom,
-                  from + markTo,
-                ),
+                invisibleDecoration.range(from + markFrom, from + markTo),
               );
             },
           });
@@ -115,12 +109,7 @@ export function hideHeaderMarkPlugin() {
           // Not complete header
           return;
         }
-        widgets.push(
-          invisibleDecoration.range(
-            from,
-            from + spacePos + 1,
-          ),
-        );
+        widgets.push(invisibleDecoration.range(from, from + spacePos + 1));
       },
     });
     return Decoration.set(widgets, true);

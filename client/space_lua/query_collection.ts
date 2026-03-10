@@ -58,9 +58,8 @@ function buildGroupItemEnv(
   if (item instanceof LuaTable) {
     const keyVal = item.rawGet("key");
     const groupVal = item.rawGet("group");
-    const firstItem = (groupVal instanceof LuaTable)
-      ? groupVal.rawGet(1)
-      : undefined;
+    const firstItem =
+      groupVal instanceof LuaTable ? groupVal.rawGet(1) : undefined;
 
     if (firstItem) {
       for (const k of luaKeys(firstItem)) {
@@ -176,8 +175,7 @@ export interface LuaQueryCollection {
  * Implements a query collection for a regular JavaScript array
  */
 export class ArrayQueryCollection<T> implements LuaQueryCollection {
-  constructor(private readonly array: T[]) {
-  }
+  constructor(private readonly array: T[]) {}
   query(
     query: LuaCollectionQuery,
     env: LuaEnv,
@@ -209,8 +207,10 @@ function containsAggregate(expr: LuaExpression): boolean {
       if (fc.prefix.type === "Variable" && getAggregateSpec(fc.prefix.name)) {
         return true;
       }
-      return containsAggregate(fc) ||
-        containsAggregate((expr as LuaFilteredCallExpression).filter);
+      return (
+        containsAggregate(fc) ||
+        containsAggregate((expr as LuaFilteredCallExpression).filter)
+      );
     }
     case "FunctionCall": {
       const fc = expr as LuaFunctionCallExpression;
@@ -365,30 +365,16 @@ export async function evalExpressionWithAggregates(
     }
     const left = singleResult(await recurse(bin.left));
     const right = singleResult(await recurse(bin.right));
-    return luaOp(
-      bin.operator,
-      left,
-      right,
-      undefined,
-      undefined,
-      expr.ctx,
-      sf,
-    );
+    return luaOp(bin.operator, left, right, undefined, undefined, expr.ctx, sf);
   }
   if (expr.type === "Unary") {
     const un = expr as LuaUnaryExpression;
     const arg = singleResult(await recurse(un.argument));
     switch (un.operator) {
       case "-":
-        return typeof arg === "number" ? -arg : luaOp(
-          "-",
-          0,
-          arg,
-          undefined,
-          undefined,
-          expr.ctx,
-          sf,
-        );
+        return typeof arg === "number"
+          ? -arg
+          : luaOp("-", 0, arg, undefined, undefined, expr.ctx, sf);
       case "not":
         return !luaTruthy(arg);
       case "#":
@@ -447,10 +433,7 @@ function normalizeSelectResults(results: any[]): any[] {
     const rebuilt = new LuaTable();
     for (const k of canonicalKeys) {
       const v = item.rawGet(k);
-      void rebuilt.rawSet(
-        k,
-        (v === undefined || v === null) ? LIQ_NULL : v,
-      );
+      void rebuilt.rawSet(k, v === undefined || v === null ? LIQ_NULL : v);
     }
     for (const k of luaKeys(item)) {
       if (typeof k !== "string") {
@@ -487,14 +470,10 @@ async function usingCompare(
   keyIdx: number,
 ): Promise<number> {
   const res = luaTruthy(
-    singleResult(
-      await luaCall(luaCmp, [aVal, bVal], sf.astCtx ?? {}, sf),
-    ),
+    singleResult(await luaCall(luaCmp, [aVal, bVal], sf.astCtx ?? {}, sf)),
   );
   const reverseRes = luaTruthy(
-    singleResult(
-      await luaCall(luaCmp, [bVal, aVal], sf.astCtx ?? {}, sf),
-    ),
+    singleResult(await luaCall(luaCmp, [bVal, aVal], sf.astCtx ?? {}, sf)),
   );
 
   // both true means SWO violation
@@ -636,12 +615,7 @@ export async function applyQuery(
   if (query.where) {
     const filteredResults = [];
     for (const value of results) {
-      const itemEnv = buildItemEnvLocal(
-        query.objectVariable,
-        value,
-        env,
-        sf,
-      );
+      const itemEnv = buildItemEnvLocal(query.objectVariable, value, env, sf);
       if (await evalExpression(query.where, itemEnv, sf)) {
         filteredResults.push(value);
       }
@@ -656,29 +630,23 @@ export async function applyQuery(
 
   if (query.groupBy) {
     // Extract bare names from group-by expressions for local binding
-    groupByNames = query.groupBy.map((expr) => {
-      if (expr.type === "Variable") {
-        return expr.name;
-      }
-      if (expr.type === "PropertyAccess") {
-        return expr.property;
-      }
-      return undefined as unknown as string;
-    }).filter(Boolean);
+    groupByNames = query.groupBy
+      .map((expr) => {
+        if (expr.type === "Variable") {
+          return expr.name;
+        }
+        if (expr.type === "PropertyAccess") {
+          return expr.property;
+        }
+        return undefined as unknown as string;
+      })
+      .filter(Boolean);
 
-    const groups = new Map<
-      string,
-      { key: any; items: any[] }
-    >();
+    const groups = new Map<string, { key: any; items: any[] }>();
     const groupByExprs = query.groupBy as LuaExpression[];
 
     for (const item of results) {
-      const itemEnv = buildItemEnvLocal(
-        query.objectVariable,
-        item,
-        env,
-        sf,
-      );
+      const itemEnv = buildItemEnvLocal(query.objectVariable, item, env, sf);
 
       const keyParts: any[] = [];
       const keyRecord: Record<string, any> = {};
@@ -698,9 +666,10 @@ export async function applyQuery(
         }
       }
 
-      const compositeKey = keyParts.length === 1
-        ? generateKey(keyParts[0])
-        : JSON.stringify(keyParts.map(generateKey));
+      const compositeKey =
+        keyParts.length === 1
+          ? generateKey(keyParts[0])
+          : JSON.stringify(keyParts.map(generateKey));
       let entry = groups.get(compositeKey);
       if (!entry) {
         let keyVal: any;
@@ -734,8 +703,7 @@ export async function applyQuery(
         const item = items[i];
         groupTable.rawSetArrayIndex(
           i + 1,
-          (item instanceof LuaTable || typeof item !== "object" ||
-              item === null)
+          item instanceof LuaTable || typeof item !== "object" || item === null
             ? item
             : jsToLuaValue(item),
         );
@@ -769,12 +737,7 @@ export async function applyQuery(
           env,
         );
       } else {
-        const itemEnv = buildItemEnvLocal(
-          query.objectVariable,
-          value,
-          env,
-          sf,
-        );
+        const itemEnv = buildItemEnvLocal(query.objectVariable, value, env, sf);
         condResult = await evalExpression(query.having, itemEnv, sf);
       }
       if (condResult) {
@@ -785,12 +748,8 @@ export async function applyQuery(
   }
 
   const mkEnv = grouped
-    ? (
-      ov: string | undefined,
-      item: any,
-      e: LuaEnv,
-      s: LuaStackFrame,
-    ) => buildGroupItemEnv(ov, groupByNames, item, e, s)
+    ? (ov: string | undefined, item: any, e: LuaEnv, s: LuaStackFrame) =>
+        buildGroupItemEnv(ov, groupByNames, item, e, s)
     : buildItemEnvLocal;
 
   let selectResults: any[] | undefined;
@@ -855,7 +814,8 @@ export async function applyQuery(
         resolvedUsing,
         violated,
         sf,
-      ));
+      ),
+    );
 
     // Check for SWO violations in comparators
     for (let i = 0; i < violated.length; i++) {
@@ -944,9 +904,7 @@ export async function queryLua<T = any>(
   enricher?: (key: KvKey, item: any) => any,
 ): Promise<T[]> {
   const results: T[] = [];
-  for await (
-    let { key, value } of kv.query({ prefix })
-  ) {
+  for await (let { key, value } of kv.query({ prefix })) {
     if (enricher) {
       value = enricher(key, value);
     }
@@ -979,8 +937,8 @@ function luaTableToJSWithNulls(
         isSqlNull(v)
           ? "__SQL_NULL__"
           : v instanceof LuaTable
-          ? luaTableToJSWithNulls(v, sf)
-          : v,
+            ? luaTableToJSWithNulls(v, sf)
+            : v,
       );
     }
     return arr;
@@ -991,8 +949,8 @@ function luaTableToJSWithNulls(
     obj[key] = isSqlNull(v)
       ? "__SQL_NULL__"
       : v instanceof LuaTable
-      ? luaTableToJSWithNulls(v, sf)
-      : v;
+        ? luaTableToJSWithNulls(v, sf)
+        : v;
   }
   return obj;
 }

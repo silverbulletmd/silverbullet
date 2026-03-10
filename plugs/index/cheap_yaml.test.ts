@@ -6,8 +6,14 @@ test("cheap yaml", () => {
   expect(determineTags("hank: bla")).toEqual([]);
   expect(determineTags("tags: template")).toEqual(["template"]);
   expect(determineTags("tags: bla,template")).toEqual(["bla", "template"]);
-  expect(determineTags("tags:\n- bla\n- template")).toEqual(["bla", "template"]);
+  expect(determineTags("tags:\n- bla\n- template")).toEqual([
+    "bla",
+    "template",
+  ]);
   expect(determineTags(`tags: "#bla,#template"`)).toEqual(["bla", "template"]);
   expect(determineTags(`tags: '#bla, #template'`)).toEqual(["bla", "template"]);
-  expect(determineTags(`tags:\n- "#bla"\n- template`)).toEqual(["bla", "template"]);
+  expect(determineTags(`tags:\n- "#bla"\n- template`)).toEqual([
+    "bla",
+    "template",
+  ]);
 });

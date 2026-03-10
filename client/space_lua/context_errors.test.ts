@@ -45,7 +45,6 @@ test("Context error: indexing nil value includes message and ref", async () => {
   assertCtxErrorContains(e, code, ref, "attempt to index a nil value");
 });
 
-
 test("Context error: calling nil includes message and ref", async () => {
   const { e, code, ref } = await runAndCatch(
     `
@@ -94,12 +93,7 @@ test("Context error: __index metamethod must be function or table", async () => 
   `,
     "meta_index_wrong.lua",
   );
-  assertCtxErrorContains(
-    e,
-    code,
-    ref,
-    "attempt to index a number value",
-  );
+  assertCtxErrorContains(e, code, ref, "attempt to index a number value");
 });
 
 test("Context error: __call metamethod must be a function", async () => {
@@ -111,12 +105,7 @@ test("Context error: __call metamethod must be a function", async () => {
   `,
     "meta_call_wrong.lua",
   );
-  assertCtxErrorContains(
-    e,
-    code,
-    ref,
-    "attempt to call a number value",
-  );
+  assertCtxErrorContains(e, code, ref, "attempt to call a number value");
 });
 
 test("Context error: length operator wrong type (number)", async () => {

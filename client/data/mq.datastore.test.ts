@@ -16,10 +16,7 @@ test("DataStore MQ", async () => {
   system.addHook(eventHook);
 
   try {
-    const mq = new DataStoreMQ(
-      new DataStore(db),
-      eventHook,
-    );
+    const mq = new DataStoreMQ(new DataStore(db), eventHook);
 
     let messages: MQMessage[];
 
@@ -88,10 +85,7 @@ test("DataStore MQ - Scale test with multiple subscribers", async () => {
   system.addHook(eventHook);
 
   try {
-    const mq = new DataStoreMQ(
-      new DataStore(db),
-      eventHook,
-    );
+    const mq = new DataStoreMQ(new DataStore(db), eventHook);
 
     const queueName = "scale-test";
     const totalMessages = 1000;
@@ -206,8 +200,9 @@ test("DataStore MQ - Scale test with multiple subscribers", async () => {
     expect(totalProcessedAcrossSubscribers).toEqual(totalMessages);
 
     // Verify at least one subscriber processed messages (relaxed requirement since MQ may favor one worker)
-    const activeSubscribers =
-      Array.from(subscriberStats.values()).filter((count) => count > 0).length;
+    const activeSubscribers = Array.from(subscriberStats.values()).filter(
+      (count) => count > 0,
+    ).length;
     expect(activeSubscribers >= 1).toBe(true);
 
     // Stop all workers

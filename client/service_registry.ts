@@ -15,26 +15,29 @@ export type ServiceSpec = {
 };
 
 export class ServiceRegistry {
-  constructor(private eventHook: EventHook, private config: Config) {
-  }
+  constructor(
+    private eventHook: EventHook,
+    private config: Config,
+  ) {}
 
   public define(spec: ServiceSpec): void {
     const id = globalThis.crypto.randomUUID();
     // Register with discover:* event
-    this.config.insert([
-      "eventListeners",
-      `discover:${spec.selector}`,
-    ], async (e: any) => {
-      const matchResult = typeof spec.match === "function"
-        ? await spec.match(e.data)
-        : spec.match;
-      if (matchResult) {
-        return {
-          ...matchResult,
-          id,
-        };
-      }
-    });
+    this.config.insert(
+      ["eventListeners", `discover:${spec.selector}`],
+      async (e: any) => {
+        const matchResult =
+          typeof spec.match === "function"
+            ? await spec.match(e.data)
+            : spec.match;
+        if (matchResult) {
+          return {
+            ...matchResult,
+            id,
+          };
+        }
+      },
+    );
     // Register callback when invoked
     this.config.insert(["eventListeners", `service:${id}`], (e: any) => {
       return spec.run(e.data);

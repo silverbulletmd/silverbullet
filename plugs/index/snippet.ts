@@ -26,11 +26,7 @@ export function extractSnippet(
   const snippetLines = [targetLine.substring(targetIndent)];
 
   // Add all subsequent lines that have greater indentation than the target line
-  for (
-    let i = targetLineIndex + 1;
-    i < lines.length;
-    i++
-  ) {
+  for (let i = targetLineIndex + 1; i < lines.length; i++) {
     let line = lines[i];
     const lineIndent = getIndentationLevel(line);
 
@@ -50,15 +46,13 @@ export function extractSnippet(
     }
 
     // Find tasks that don't have a page reference, and add one
-    const taskMatch = line.match(
-      /^(\s*)([*-]\s+\[[^\]]+\]\s+)([^[][^[].+)$/,
-    );
+    const taskMatch = line.match(/^(\s*)([*-]\s+\[[^\]]+\]\s+)([^[][^[].+)$/);
     if (taskMatch) {
-      const pos = lineLengths.slice(0, i).reduce((acc, len) =>
-        acc + len + 1, 0) +
+      const pos =
+        lineLengths.slice(0, i).reduce((acc, len) => acc + len + 1, 0) +
         taskMatch[1].length;
-      line = taskMatch[1] + taskMatch[2] + `[[${pageName}@${pos}]] ` +
-        taskMatch[3];
+      line =
+        taskMatch[1] + taskMatch[2] + `[[${pageName}@${pos}]] ` + taskMatch[3];
     }
     snippetLines.push(line.substring(targetIndent));
   }

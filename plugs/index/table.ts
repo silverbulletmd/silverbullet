@@ -15,13 +15,12 @@ import type {
 import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 import type { FrontMatter } from "./frontmatter.ts";
 
-type TableRowObject =
-  & ObjectValue<{
-    tableref: string;
-    page: string;
-    pos: number;
-  }>
-  & Record<string, any>;
+type TableRowObject = ObjectValue<{
+  tableref: string;
+  page: string;
+  pos: number;
+}> &
+  Record<string, any>;
 
 /**
  * Replace any invalid characters in a string so it can serve as indexed field name in a query
@@ -38,7 +37,10 @@ function cleanHeaderFieldName(str: string): string {
  * @returns text of all child nodes
  */
 function concatChildrenTexts(nodes: ParseTree[]): string {
-  return nodes.map((c) => c.text).join("").trim();
+  return nodes
+    .map((c) => c.text)
+    .join("")
+    .trim();
 }
 
 /**
@@ -47,7 +49,10 @@ function concatChildrenTexts(nodes: ParseTree[]): string {
  * @returns text, preserving links, of all child nodes
  */
 function concatChildrenTextsPreserveLinks(nodes: ParseTree[]): string {
-  return nodes.map((c) => renderToText(c)).join("").trim();
+  return nodes
+    .map((c) => renderToText(c))
+    .join("")
+    .trim();
 }
 
 export function indexTables(
@@ -60,50 +65,48 @@ export function indexTables(
   collectNodesMatching(
     tree,
     (t) => !!t.type?.startsWith("Table") && t.type !== "TableConstructor",
-  ).forEach(
-    (table) => {
-      const rows = collectNodesOfType(table, "TableRow");
-      const header = collectNodesOfType(table, "TableHeader")[0];
-      normalizeTableRow(header);
-      const headerHasLeadingDelim =
-        header.children?.[0]?.type === "TableDelimiter";
-      const headerLabels = collectNodesOfType(header, "TableCell").map((cell) =>
-        concatChildrenTexts(cell.children!)
-      ).map(cleanHeaderFieldName);
+  ).forEach((table) => {
+    const rows = collectNodesOfType(table, "TableRow");
+    const header = collectNodesOfType(table, "TableHeader")[0];
+    normalizeTableRow(header);
+    const headerHasLeadingDelim =
+      header.children?.[0]?.type === "TableDelimiter";
+    const headerLabels = collectNodesOfType(header, "TableCell")
+      .map((cell) => concatChildrenTexts(cell.children!))
+      .map(cleanHeaderFieldName);
 
-      for (const row of rows) {
-        const tags = new Set<string>();
-        collectNodesOfType(row, "Hashtag").forEach((h) => {
-          tags.add(extractHashtag(h.children![0].text!));
+    for (const row of rows) {
+      const tags = new Set<string>();
+      collectNodesOfType(row, "Hashtag").forEach((h) => {
+        tags.add(extractHashtag(h.children![0].text!));
+      });
+
+      normalizeTableRow(row, headerLabels.length, headerHasLeadingDelim);
+
+      const cells = collectNodesOfType(row, "TableCell");
+
+      const tableRow: TableRowObject = {
+        tableref: `${pageMeta.name}@${table.from}`,
+        ref: `${pageMeta.name}@${row.from}`,
+        tag: "table",
+        tags: [...tags],
+        page: pageMeta.name,
+        pos: row.from!,
+        range: [row.from!, row.to!],
+      };
+      cells.forEach((c, i) => {
+        replaceNodesMatching(c, (tree) => {
+          if (tree.type === "Hashtag") {
+            return null;
+          }
         });
-
-        normalizeTableRow(row, headerLabels.length, headerHasLeadingDelim);
-
-        const cells = collectNodesOfType(row, "TableCell");
-
-        const tableRow: TableRowObject = {
-          tableref: `${pageMeta.name}@${table.from}`,
-          ref: `${pageMeta.name}@${row.from}`,
-          tag: "table",
-          tags: [...tags],
-          page: pageMeta.name,
-          pos: row.from!,
-          range: [row.from!, row.to!],
-        };
-        cells.forEach((c, i) => {
-          replaceNodesMatching(c, (tree) => {
-            if (tree.type === "Hashtag") {
-              return null;
-            }
-          });
-          const content = concatChildrenTextsPreserveLinks(c.children!);
-          const label = headerLabels[i];
-          tableRow[label!] = content;
-        });
-        result.push(tableRow);
-      }
-    },
-  );
+        const content = concatChildrenTextsPreserveLinks(c.children!);
+        const label = headerLabels[i];
+        tableRow[label!] = content;
+      });
+      result.push(tableRow);
+    }
+  });
 
   return Promise.resolve(result);
 }

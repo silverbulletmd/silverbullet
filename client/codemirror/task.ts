@@ -34,9 +34,11 @@ class CheckboxWidget extends WidgetType {
   }
 }
 
-export function taskListPlugin(
-  { onCheckboxClick }: { onCheckboxClick: (pos: number) => void },
-) {
+export function taskListPlugin({
+  onCheckboxClick,
+}: {
+  onCheckboxClick: (pos: number) => void;
+}) {
   return decoratorStateField((state) => {
     const widgets: any[] = [];
     syntaxTree(state).iterate({

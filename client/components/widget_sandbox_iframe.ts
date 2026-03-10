@@ -29,7 +29,8 @@ function updatePool(exclude?: PreloadedIFrame) {
     }
     if (
       // Is this iframe in use, but has it since been removed from the DOM?
-      preloadedIframe.used && !document.body.contains(preloadedIframe.iframe)
+      preloadedIframe.used &&
+      !document.body.contains(preloadedIframe.iframe)
     ) {
       // Ditch it
       // console.log("Garbage collecting iframe", preloadedIframe);
@@ -111,97 +112,99 @@ export function mountIFrame(
 ) {
   const iframe = preloadedIFrame.iframe;
 
-  preloadedIFrame.ready.then(async () => {
-    const messageListener = (evt: any) => {
-      (async () => {
-        if (evt.source !== iframe.contentWindow) {
-          return;
-        }
-        const data = evt.data;
-        if (!data) {
-          return;
-        }
-        switch (data.type) {
-          case "syscall": {
-            const { id, name, args } = data;
-            try {
-              const result = await client.clientSystem.localSyscall(name, args);
-              if (!iframe.contentWindow) {
-                // iFrame already went away
-                return;
-              }
-              iframe.contentWindow!.postMessage({
-                type: "syscall-response",
-                id,
-                result,
-              });
-            } catch (e: any) {
-              if (!iframe.contentWindow) {
-                // iFrame already went away
-                return;
-              }
-              iframe.contentWindow!.postMessage({
-                type: "syscall-response",
-                id,
-                error: e.message,
-              });
-            }
-            break;
+  preloadedIFrame.ready
+    .then(async () => {
+      const messageListener = (evt: any) => {
+        (async () => {
+          if (evt.source !== iframe.contentWindow) {
+            return;
           }
-          case "setHeight":
-            // iframe.height = data.height + "px";
-            iframe.style.height = `${data.height}px`;
+          const data = evt.data;
+          if (!data) {
+            return;
+          }
+          switch (data.type) {
+            case "syscall": {
+              const { id, name, args } = data;
+              try {
+                const result = await client.clientSystem.localSyscall(
+                  name,
+                  args,
+                );
+                if (!iframe.contentWindow) {
+                  // iFrame already went away
+                  return;
+                }
+                iframe.contentWindow!.postMessage({
+                  type: "syscall-response",
+                  id,
+                  result,
+                });
+              } catch (e: any) {
+                if (!iframe.contentWindow) {
+                  // iFrame already went away
+                  return;
+                }
+                iframe.contentWindow!.postMessage({
+                  type: "syscall-response",
+                  id,
+                  error: e.message,
+                });
+              }
+              break;
+            }
+            case "setHeight":
+              // iframe.height = data.height + "px";
+              iframe.style.height = `${data.height}px`;
+              if (widgetHeightCacheKey) {
+                client.setCachedWidgetHeight(widgetHeightCacheKey, data.height);
+              }
+              break;
+            default:
+              if (onMessage) {
+                onMessage(data);
+              }
+          }
+        })().catch((e) => {
+          console.error("Message listener error", e);
+        });
+      };
+
+      // Subscribe to message event on global object (to receive messages from iframe)
+      globalThis.addEventListener("message", messageListener);
+      // Only run this code once
+      iframe.onload = null;
+      const resolvedContent = await Promise.resolve(content);
+      if (!iframe.contentWindow) {
+        console.warn("Iframe went away or content was not loaded");
+        return;
+      }
+      if (resolvedContent) {
+        if (resolvedContent.html) {
+          iframe.contentWindow!.postMessage({
+            type: "html",
+            html: resolvedContent.html,
+            script: resolvedContent.script,
+            theme: document.getElementsByTagName("html")[0].dataset.theme,
+          });
+        } else if (resolvedContent.url) {
+          iframe.contentWindow!.location.href = resolvedContent.url;
+          if (resolvedContent.height) {
+            iframe.style.height = `${resolvedContent.height}px`;
             if (widgetHeightCacheKey) {
               client.setCachedWidgetHeight(
-                widgetHeightCacheKey,
-                data.height,
+                widgetHeightCacheKey!,
+                resolvedContent.height,
               );
             }
-            break;
-          default:
-            if (onMessage) {
-              onMessage(data);
-            }
-        }
-      })().catch((e) => {
-        console.error("Message listener error", e);
-      });
-    };
-
-    // Subscribe to message event on global object (to receive messages from iframe)
-    globalThis.addEventListener("message", messageListener);
-    // Only run this code once
-    iframe.onload = null;
-    const resolvedContent = await Promise.resolve(content);
-    if (!iframe.contentWindow) {
-      console.warn("Iframe went away or content was not loaded");
-      return;
-    }
-    if (resolvedContent) {
-      if (resolvedContent.html) {
-        iframe.contentWindow!.postMessage({
-          type: "html",
-          html: resolvedContent.html,
-          script: resolvedContent.script,
-          theme: document.getElementsByTagName("html")[0].dataset.theme,
-        });
-      } else if (resolvedContent.url) {
-        iframe.contentWindow!.location.href = resolvedContent.url;
-        if (resolvedContent.height) {
-          iframe.style.height = `${resolvedContent.height}px`;
-          if (widgetHeightCacheKey) {
-            client.setCachedWidgetHeight(
-              widgetHeightCacheKey!,
-              resolvedContent.height,
-            );
+          }
+          if (resolvedContent.width) {
+            iframe.width = `${resolvedContent.width}px`;
           }
         }
-        if (resolvedContent.width) {
-          iframe.width = `${resolvedContent.width}px`;
-        }
       }
-    }
-  }).catch(console.error);
+    })
+    .catch(console.error);
 }
 
 export function createWidgetSandboxIFrame(

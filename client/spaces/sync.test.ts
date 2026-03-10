@@ -19,7 +19,8 @@ test("Test sync with no filtering", async () => {
   console.log("Initial sync ops", await doSync());
 
   expect((await secondary.fetchFileList()).length).toEqual(1);
-  expect((await secondary.readFile("index.md")).data).toEqual(stringToBytes("Hello"),
+  expect((await secondary.readFile("index.md")).data).toEqual(
+    stringToBytes("Hello"),
   );
 
   // Should be a no-op
@@ -39,7 +40,8 @@ test("Test sync with no filtering", async () => {
   expect((await primary.fetchFileList()).length).toEqual(2);
   expect((await secondary.fetchFileList()).length).toEqual(2);
 
-  expect((await primary.readFile("index.md")).data).toEqual(stringToBytes("Hello!!"),
+  expect((await primary.readFile("index.md")).data).toEqual(
+    stringToBytes("Hello!!"),
   );
 
   // Let's make some random edits on both ends
@@ -86,7 +88,8 @@ test("Test sync with no filtering", async () => {
 
   await doSync();
 
-  expect((await primary.readFile("index.md")).data).toEqual(stringToBytes("I'm back"),
+  expect((await primary.readFile("index.md")).data).toEqual(
+    stringToBytes("I'm back"),
   );
 
   // Cause a conflict
@@ -100,9 +103,11 @@ test("Test sync with no filtering", async () => {
   await doSync();
 
   // Verify that primary won
-  expect((await primary.readFile("index.md")).data).toEqual(stringToBytes("Hello 1"),
+  expect((await primary.readFile("index.md")).data).toEqual(
+    stringToBytes("Hello 1"),
   );
-  expect((await secondary.readFile("index.md")).data).toEqual(stringToBytes("Hello 1"),
+  expect((await secondary.readFile("index.md")).data).toEqual(
+    stringToBytes("Hello 1"),
   );
 
   // test + index + index.conflicting copy
@@ -132,14 +137,10 @@ test("Test sync with filtering", async () => {
   const secondary = new DataStoreSpacePrimitives(new MemoryKvPrimitives());
 
   const snapshot = new SyncSnapshot();
-  let sync = new SpaceSync(
-    primary,
-    secondary,
-    {
-      conflictResolver: SpaceSync.primaryConflictResolver,
-      isSyncCandidate: (path) => path.endsWith(".md"), // Only sync .md files
-    },
-  );
+  let sync = new SpaceSync(primary, secondary, {
+    conflictResolver: SpaceSync.primaryConflictResolver,
+    isSyncCandidate: (path) => path.endsWith(".md"), // Only sync .md files
+  });
 
   console.log(
     "Write one non-sync file on the primary, which SHOULD sync to the secondary",
@@ -152,7 +153,8 @@ test("Test sync with filtering", async () => {
   expect(snapshot.nonSyncedFiles.size).toEqual(0);
 
   expect((await secondary.fetchFileList()).length).toEqual(1);
-  expect((await secondary.readFile("index.txt")).data).toEqual(stringToBytes("Hello"),
+  expect((await secondary.readFile("index.txt")).data).toEqual(
+    stringToBytes("Hello"),
   );
 
   console.log("Updating on secondary");
@@ -205,14 +207,10 @@ test("Test sync with filtering", async () => {
   ////////////
   // Now let's start another sync session, but now wanting to sync everything
   console.log("Going to switch to syncing everything now");
-  sync = new SpaceSync(
-    primary,
-    secondary,
-    {
-      conflictResolver: SpaceSync.primaryConflictResolver,
-      isSyncCandidate: () => true,
-    },
-  );
+  sync = new SpaceSync(primary, secondary, {
+    conflictResolver: SpaceSync.primaryConflictResolver,
+    isSyncCandidate: () => true,
+  });
 
   ops = await doSync();
   // This should pull 2 files from remote to local
@@ -221,14 +219,10 @@ test("Test sync with filtering", async () => {
   expect((await secondary.fetchFileList()).length).toEqual(3);
 
   console.log("And now to syncing nothing");
-  sync = new SpaceSync(
-    primary,
-    secondary,
-    {
-      conflictResolver: SpaceSync.primaryConflictResolver,
-      isSyncCandidate: () => false,
-    },
-  );
+  sync = new SpaceSync(primary, secondary, {
+    conflictResolver: SpaceSync.primaryConflictResolver,
+    isSyncCandidate: () => false,
+  });
 
   ops = await doSync();
   // This should delete 3 files from the primary
@@ -239,14 +233,10 @@ test("Test sync with filtering", async () => {
   expect((await secondary.fetchFileList()).length).toEqual(3);
 
   // Ok, now we're going to sync everything again
-  sync = new SpaceSync(
-    primary,
-    secondary,
-    {
-      conflictResolver: SpaceSync.primaryConflictResolver,
-      isSyncCandidate: () => true,
-    },
-  );
+  sync = new SpaceSync(primary, secondary, {
+    conflictResolver: SpaceSync.primaryConflictResolver,
+    isSyncCandidate: () => true,
+  });
   // await secondary.
   ops = await doSync();
   expect(ops).toEqual(3);
@@ -279,7 +269,8 @@ test("Local push sync", async () => {
   await primary.writeFile("index.md", stringToBytes("Hello"));
   expect(1).toEqual(await sync.syncSingleFile("index.md", snapshot));
 
-  expect((await secondary.readFile("index.md")).data).toEqual(stringToBytes("Hello"),
+  expect((await secondary.readFile("index.md")).data).toEqual(
+    stringToBytes("Hello"),
   );
 
   console.log("Let's write a new file on primary that is not a sync candidate");

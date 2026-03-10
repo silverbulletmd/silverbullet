@@ -43,7 +43,8 @@ export class MainUI {
           return;
         } else if (
           target.className === "cm-textfield" ||
-          target.closest(".cm-content") || target.closest(".cm-vim-panel")
+          target.closest(".cm-content") ||
+          target.closest(".cm-vim-panel")
         ) {
           // In some cm element, let's back out
           return;
@@ -76,8 +77,7 @@ export class MainUI {
     });
   }
 
-  viewDispatch: (action: Action) => void = () => {
-  };
+  viewDispatch: (action: Action) => void = () => {};
 
   ViewComponent() {
     const [viewState, dispatch] = useReducer(reducer, initialViewState);
@@ -101,9 +101,10 @@ export class MainUI {
 
     useEffect(() => {
       const updateTheme = () => {
-        const darkMode = viewState.uiOptions.darkMode === undefined
-          ? globalThis.matchMedia("(prefers-color-scheme: dark)").matches
-          : viewState.uiOptions.darkMode;
+        const darkMode =
+          viewState.uiOptions.darkMode === undefined
+            ? globalThis.matchMedia("(prefers-color-scheme: dark)").matches
+            : viewState.uiOptions.darkMode;
 
         document.documentElement.dataset.theme = darkMode ? "dark" : "light";
 
@@ -127,8 +128,10 @@ export class MainUI {
     }, [viewState.uiOptions.darkMode]);
 
     useEffect(() => {
-      document.documentElement.dataset.markdownSyntaxRendering =
-        viewState.uiOptions.markdownSyntaxRendering ? "on" : "off";
+      document.documentElement.dataset.markdownSyntaxRendering = viewState
+        .uiOptions.markdownSyntaxRendering
+        ? "on"
+        : "off";
     }, [viewState.uiOptions.markdownSyntaxRendering]);
 
     useEffect(() => {
@@ -145,11 +148,13 @@ export class MainUI {
           <AnythingPicker
             allDocuments={viewState.allDocuments}
             allPages={viewState.allPages}
-            extensions={new Set(
-              Array.from(
-                client.clientSystem.documentEditorHook.documentEditors.values(),
-              ).flatMap(({ extensions }) => extensions),
-            )}
+            extensions={
+              new Set(
+                Array.from(
+                  client.clientSystem.documentEditorHook.documentEditors.values(),
+                ).flatMap(({ extensions }) => extensions),
+              )
+            }
             currentPath={client.currentPath()}
             mode={viewState.pageNavigatorMode}
             vimMode={viewState.uiOptions.vimMode}
@@ -209,10 +214,9 @@ export class MainUI {
                 if (
                   !isMarkdownPath(ref.path) &&
                   !Array.from(
-                    client.clientSystem.documentEditorHook.documentEditors
-                      .values(),
+                    client.clientSystem.documentEditorHook.documentEditors.values(),
                   ).some(({ extensions }) =>
-                    extensions.includes(getPathExtension(ref.path))
+                    extensions.includes(getPathExtension(ref.path)),
                   )
                 ) {
                   await this.promptDocumentOperation(
@@ -285,9 +289,9 @@ export class MainUI {
           />
         )}
         <TopBar
-          pageName={!viewState.current
-            ? ""
-            : getNameFromPath(viewState.current.path)}
+          pageName={
+            !viewState.current ? "" : getNameFromPath(viewState.current.path)
+          }
           notifications={viewState.notifications}
           isOnline={viewState.isOnline}
           unsavedChanges={viewState.unsavedChanges}
@@ -330,30 +334,34 @@ export class MainUI {
           actionButtons={[
             // Vertical menu button
             ...(viewState.isMobile &&
-                client.config.get<string>("mobileMenuStyle", "hamburger")
-                  .includes(
-                    "hamburger",
-                  ))
-              ? [{
-                icon: featherIcons.MoreVertical,
-                description: "Open Menu",
-                class: "expander",
-                callback: () => {
-                  // Make the expander button open/close the menu via toggling the CSS class "open"
-                  document.querySelector("#sb-top .sb-actions.hamburger")
-                    ?.classList.toggle("open");
-                },
-              }]
-              : [],
+            client.config
+              .get<string>("mobileMenuStyle", "hamburger")
+              .includes("hamburger")
+              ? [
+                  {
+                    icon: featherIcons.MoreVertical,
+                    description: "Open Menu",
+                    class: "expander",
+                    callback: () => {
+                      // Make the expander button open/close the menu via toggling the CSS class "open"
+                      document
+                        .querySelector("#sb-top .sb-actions.hamburger")
+                        ?.classList.toggle("open");
+                    },
+                  },
+                ]
+              : []),
             // Custom action buttons
-            ...actionButtons.filter(( // Filter out buttons without icons (invalid) and mobile buttons when not in mobile mode
-              button,
-            ) =>
-              button.icon && (
-                (typeof button.mobile === "undefined") ||
-                (button.mobile === viewState.isMobile)
+            ...actionButtons
+              .filter(
+                (
+                  // Filter out buttons without icons (invalid) and mobile buttons when not in mobile mode
+                  button,
+                ) =>
+                  button.icon &&
+                  (typeof button.mobile === "undefined" ||
+                    button.mobile === viewState.isMobile),
               )
-            )
               // Then ensure all buttons have a priority set (by default based on array index)
               .map((button, index) => ({
                 ...button,
@@ -362,55 +370,64 @@ export class MainUI {
               .sort((a, b) => b.priority - a.priority)
               .map((button) => {
                 const mdiIcon = (mdi as any)[kebabToCamel(button.icon)];
-                let featherIcon =
-                  (featherIcons as any)[kebabToCamel(button.icon)];
+                let featherIcon = (featherIcons as any)[
+                  kebabToCamel(button.icon)
+                ];
                 if (!featherIcon) {
                   featherIcon = featherIcons.HelpCircle;
                 }
                 return {
                   icon: mdiIcon ? mdiIcon : featherIcon,
                   description: button.description || "",
-                  callback: button.run || (() => {
-                    client.flashNotification(
-                      "actionButton did not specify a run() callback",
-                      "error",
-                    );
-                  }),
+                  callback:
+                    button.run ||
+                    (() => {
+                      client.flashNotification(
+                        "actionButton did not specify a run() callback",
+                        "error",
+                      );
+                    }),
                   href: "",
                 };
               }),
           ]}
-          rhs={!!viewState.panels.rhs.mode && (
-            <div
-              className="panel"
-              style={{ flex: viewState.panels.rhs.mode }}
-            />
-          )}
-          lhs={!!viewState.panels.lhs.mode && (
-            <div
-              className="panel"
-              style={{ flex: viewState.panels.lhs.mode }}
-            />
-          )}
-          pageNamePrefix={client.currentPageMeta()?.pageDecoration?.prefix ??
-            ""}
+          rhs={
+            !!viewState.panels.rhs.mode && (
+              <div
+                className="panel"
+                style={{ flex: viewState.panels.rhs.mode }}
+              />
+            )
+          }
+          lhs={
+            !!viewState.panels.lhs.mode && (
+              <div
+                className="panel"
+                style={{ flex: viewState.panels.lhs.mode }}
+              />
+            )
+          }
+          pageNamePrefix={
+            client.currentPageMeta()?.pageDecoration?.prefix ?? ""
+          }
           cssClass={(client.currentPageMeta()?.pageDecoration?.cssClasses ?? [])
-            .join(" ").replaceAll(/[^a-zA-Z0-9-_ ]/g, "")}
+            .join(" ")
+            .replaceAll(/[^a-zA-Z0-9-_ ]/g, "")}
           mobileMenuStyle={client.config.get<string>(
             "mobileMenuStyle",
             "hamburger",
           )}
         />
         <div id="sb-main">
-          {(viewState.panels.lhs.mode !== undefined) && (
+          {viewState.panels.lhs.mode !== undefined && (
             <Panel config={viewState.panels.lhs} editor={client} />
           )}
           <div id="sb-editor" />
-          {(viewState.panels.rhs.mode !== undefined) && (
+          {viewState.panels.rhs.mode !== undefined && (
             <Panel config={viewState.panels.rhs} editor={client} />
           )}
         </div>
-        {(viewState.panels.modal.mode !== undefined) && (
+        {viewState.panels.modal.mode !== undefined && (
           <div
             className="sb-modal"
             style={{ inset: `${viewState.panels.modal.mode}px` }}
@@ -418,7 +435,7 @@ export class MainUI {
             <Panel config={viewState.panels.modal} editor={client} />
           </div>
         )}
-        {(viewState.panels.bhs.mode !== undefined) && (
+        {viewState.panels.bhs.mode !== undefined && (
           <div className="sb-bhs">
             <Panel config={viewState.panels.bhs} editor={client} />
           </div>
@@ -438,7 +455,7 @@ export class MainUI {
 
     const option = await client.filterBox(
       "Modify",
-      options.map((x) => ({ name: x } as FilterOption)),
+      options.map((x) => ({ name: x }) as FilterOption),
       msg,
     );
     if (!option) return;
@@ -491,8 +508,7 @@ type ActionButton = {
 };
 
 function kebabToCamel(str: string) {
-  return str.replace(/-([a-z])/g, (g) => g[1].toUpperCase()).replace(
-    /^./,
-    (g) => g.toUpperCase(),
-  );
+  return str
+    .replace(/-([a-z])/g, (g) => g[1].toUpperCase())
+    .replace(/^./, (g) => g.toUpperCase());
 }

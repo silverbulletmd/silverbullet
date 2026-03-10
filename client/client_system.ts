@@ -113,10 +113,7 @@ export class ClientSystem {
     this.system.addHook(this.documentEditorHook);
 
     // Command hook
-    this.commandHook = new CommandHook(
-      this.readOnlyMode,
-      this.scriptCommands,
-    );
+    this.commandHook = new CommandHook(this.readOnlyMode, this.scriptCommands);
     this.commandHook.on({
       commandsUpdated: (commandMap) => {
         this.client.ui?.viewDispatch({
@@ -178,20 +175,14 @@ export class ClientSystem {
 
     if (!this.readOnlyMode) {
       // Write syscalls
-      this.system.registerSyscalls(
-        [],
-        spaceWriteSyscalls(this.client),
-      );
+      this.system.registerSyscalls([], spaceWriteSyscalls(this.client));
       // Syscalls that require some additional permissions
       this.system.registerSyscalls(
         ["fetch"],
         sandboxFetchSyscalls(this.client),
       );
 
-      this.system.registerSyscalls(
-        ["shell"],
-        shellSyscalls(this.client),
-      );
+      this.system.registerSyscalls(["shell"], shellSyscalls(this.client));
     }
   }
 
@@ -200,7 +191,7 @@ export class ClientSystem {
       console.info("Space Lua scripts are disabled, skipping loading scripts");
       return;
     }
-    if (!await this.objectIndex.hasFullIndexCompleted()) {
+    if (!(await this.objectIndex.hasFullIndexCompleted())) {
       console.info(
         "Not loading space scripts, since full indexing has not completed yet",
       );
@@ -215,11 +206,9 @@ export class ClientSystem {
 
     // Reset the space script commands
     this.scriptCommands.clear();
-    for (
-      const [name, command] of Object.entries(
-        this.client.config.get<Record<string, Command>>("commands", {}),
-      )
-    ) {
+    for (const [name, command] of Object.entries(
+      this.client.config.get<Record<string, Command>>("commands", {}),
+    )) {
       this.scriptCommands.set(name, command);
     }
 
@@ -244,17 +233,21 @@ export class ClientSystem {
       console.warn("Not loading custom plugs as `disablePlugs` has been set");
     }
 
-    await Promise.all(allPlugs.map((fileMeta) =>
-      this.system.loadPlug(
-        createWorkerSandboxFromLocalPath(fileMeta.name),
-        fileMeta.name,
-        fileMeta.lastModified,
-      ).catch((e) =>
-        console.error(
-          `Could not load plug ${fileMeta.name} error: ${e.message}`,
-        )
-      )
-    ));
+    await Promise.all(
+      allPlugs.map((fileMeta) =>
+        this.system
+          .loadPlug(
+            createWorkerSandboxFromLocalPath(fileMeta.name),
+            fileMeta.name,
+            fileMeta.lastModified,
+          )
+          .catch((e) =>
+            console.error(
+              `Could not load plug ${fileMeta.name} error: ${e.message}`,
+            ),
+          ),
+      ),
+    );
   }
 
   localSyscall(name: string, args: any[]) {

@@ -82,7 +82,8 @@ test("Smart hard break test", () => {
     failOnUnknown: true,
     smartHardBreak: true,
   });
-  expect(html).toEqual(`<span class="p"><strong>Hello</strong><br><em>world!</em></span>`,
+  expect(html).toEqual(
+    `<span class="p"><strong>Hello</strong><br><em>world!</em></span>`,
   );
 
   const example2 = `This is going to be a text. With a new line.

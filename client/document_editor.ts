@@ -16,15 +16,13 @@ export class DocumentEditor {
     readonly parent: HTMLElement,
     readonly client: Client,
     readonly saveMethod: (path: string, content: Uint8Array) => void,
-  ) {
-  }
+  ) {}
 
   async init(extension: string) {
     this.extension = extension;
 
     const entry = Array.from(
-      this.client.clientSystem.documentEditorHook.documentEditors
-        .entries(),
+      this.client.clientSystem.documentEditorHook.documentEditors.entries(),
     ).find(([_, { extensions }]) => extensions.includes(this.extension));
 
     if (!entry) {
@@ -59,11 +57,7 @@ export class DocumentEditor {
     this.sendMessage(message);
   }
 
-  openFile(
-    data: Uint8Array,
-    meta: DocumentMeta,
-    details: Ref["details"],
-  ) {
+  openFile(data: Uint8Array, meta: DocumentMeta, details: Ref["details"]) {
     this.sendMessage({
       type: "file-open",
       data: {
@@ -99,10 +93,7 @@ export class DocumentEditor {
   private async waitForSave() {
     if (this.savePromise) {
       try {
-        await Promise.race([
-          this.savePromise.promise,
-          timeout(2500),
-        ]);
+        await Promise.race([this.savePromise.promise, timeout(2500)]);
       } catch {
         this.savePromise.resolve();
         this.savePromise = null;
@@ -114,9 +105,11 @@ export class DocumentEditor {
     }
   }
 
-  private sendMessage(
-    message: { type: string; internal?: boolean; data?: any },
-  ) {
+  private sendMessage(message: {
+    type: string;
+    internal?: boolean;
+    data?: any;
+  }) {
     if (!this.iframe?.contentWindow) return;
     message.internal ??= false;
     this.iframe.contentWindow.postMessage(message);
@@ -187,9 +180,10 @@ export class DocumentEditor {
     });
   }
 
-  private static createIframe(
-    content: DocumentEditorContent,
-  ): { iframe: HTMLIFrameElement; ready: Promise<void> } {
+  private static createIframe(content: DocumentEditorContent): {
+    iframe: HTMLIFrameElement;
+    ready: Promise<void>;
+  } {
     const doc = new DOMParser().parseFromString(content.html, "text/html");
 
     // This is only for legacy support

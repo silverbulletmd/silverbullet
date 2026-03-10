@@ -21,7 +21,9 @@ export type EventSubscription = EventSubscriptionDef & {
   run: (...args: any[]) => Promise<any>;
 };
 
-export type ResolvedPlug = {
-  code: string;
-  name?: string; // This will only dictate the filename
-} | string;
+export type ResolvedPlug =
+  | {
+      code: string;
+      name?: string; // This will only dictate the filename
+    }
+  | string;

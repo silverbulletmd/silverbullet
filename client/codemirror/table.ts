@@ -34,9 +34,7 @@ class TableViewWidget extends WidgetType {
   }
 
   override get estimatedHeight(): number {
-    return this.client.getCachedWidgetHeight(
-      `table:${this.tableBodyText}`,
-    );
+    return this.client.getCachedWidgetHeight(`table:${this.tableBodyText}`);
   }
 
   toDOM(): HTMLElement {
@@ -119,7 +117,8 @@ export function tablePlugin(editor: Client) {
           fromIt += line.length + 1;
         }
 
-        const firstLine = lines[0], lastLine = lines[lines.length - 1];
+        const firstLine = lines[0],
+          lastLine = lines[lines.length - 1];
 
         // In case of doubt, back out
         if (!firstLine || !lastLine) return;
