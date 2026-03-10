@@ -2,10 +2,10 @@ The easiest way to get started is to click the “Use this template” on the [s
 
 Generally, every plug consists of a YAML manifest file named `yourplugname.plug.yaml`. This file defines all functions that form your plug. To be loadable by SilverBullet, it needs to be compiled into a bundle (ending with `.plug.js`).
 
-For this you need to have [Deno](https://deno.com) installed, after which you can run the `deno task build` command specified in the plug template repo:
+To compile it, run the build command specified in the plug template repo:
 
 ```shell
-deno task build
+npm run build
 ```
 
 For development it’s easiest to simply copy the `.plug.js` file into your space’s `_plug/` folder after it’s built:

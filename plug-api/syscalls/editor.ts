@@ -1,5 +1,9 @@
 import { syscall } from "../syscall.ts";
-import type { FilterOption, UploadFile } from "../../plug-api/types/client.ts";
+import type {
+  FilterOption,
+  NotificationType,
+  UploadFile,
+} from "../../plug-api/types/client.ts";
 import type { Path, Ref } from "../lib/ref.ts";
 import type { PageMeta } from "../../plug-api/types/index.ts";
 
@@ -220,7 +224,7 @@ export function uploadFile(
  */
 export function flashNotification(
   message: string,
-  type: "info" | "error" = "info",
+  type: NotificationType = "info",
 ): Promise<void> {
   return syscall("editor.flashNotification", message, type);
 }

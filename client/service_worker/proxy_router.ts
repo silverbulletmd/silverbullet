@@ -80,9 +80,19 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
   async checkOnline() {
     if (this.syncEngine) {
       try {
-        await this.syncEngine.remote.ping();
+        const serverVersion = await this.syncEngine.remote.ping();
         // If the ping is successful, we are online
         this.online = true;
+
+        if (serverVersion) {
+          const clients = await (self as any).clients.matchAll();
+          for (const client of clients) {
+            client.postMessage({
+              type: "server-version",
+              serverVersion,
+            });
+          }
+        }
       } catch {
         // Otherwise we're not
         this.online = false;

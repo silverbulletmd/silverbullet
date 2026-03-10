@@ -229,7 +229,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   }
 
   // If not: throws an error or invokes a redirect
-  async ping() {
+  async ping(): Promise<string | undefined> {
     const parentEndpoint = `${this.url.split("/").slice(0, -1).join("/")}/.ping`;
     const resp = await this.authenticatedFetch(
       parentEndpoint,
@@ -248,7 +248,11 @@ export class HttpSpacePrimitives implements SpacePrimitives {
 
     await this.validateSpacePathFromHeaders(resp);
 
+    const serverVersion = resp.headers.get("X-Server-Version") ?? undefined;
+
     // Consume the response body to avoid leaks
     await resp.text();
+
+    return serverVersion;
   }
 }

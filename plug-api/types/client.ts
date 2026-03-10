@@ -11,10 +11,18 @@ export type FilterOption = {
   prefix?: string;
 } & Record<string, any>;
 
+export type NotificationType = "info" | "error" | "warning";
+
+export const notificationDismissTimeouts: Record<NotificationType, number> = {
+  info: 4000,
+  error: 5000,
+  warning: 8000,
+};
+
 export type Notification = {
   id: number;
   message: string;
-  type: "info" | "error";
+  type: NotificationType;
   date: Date;
 };
 

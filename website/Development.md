@@ -26,8 +26,8 @@ The SilverBullet server is written in [Go](https://go.dev/).
 * `website/`: silverbullet.md website content
 
 # Development
-Requirements: 
-* [Deno](https://deno.land/) 2.4 or newer.
+Requirements:
+* [Node.js](https://nodejs.org/) 24.13 or newer (see `.nvmrc`)
 * [Go](https://go.dev/) 1.25 or newer
 * Make
 
@@ -78,7 +78,7 @@ make test
 ```
 
 ### Build a docker container
-Note, you do not need Deno nor Go locally installed for this to work:
+Note, you do not need Node.js nor Go locally installed for this to work:
 
 ```shell
 docker build -t silverbullet .

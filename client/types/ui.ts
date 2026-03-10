@@ -249,4 +249,8 @@ export type ServiceWorkerSourceMessage =
   | {
       type: "encryption-key";
       key: string;
+    }
+  | {
+      type: "server-version";
+      serverVersion: string;
     };

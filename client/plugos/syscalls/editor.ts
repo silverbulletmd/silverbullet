@@ -22,6 +22,7 @@ import { getCM as vimGetCm, Vim } from "@replit/codemirror-vim";
 import type { SysCallMapping } from "../system.ts";
 import type {
   FilterOption,
+  NotificationType,
   UploadFile,
 } from "@silverbulletmd/silverbullet/type/client";
 import { openSearchPanel } from "@codemirror/search";
@@ -287,7 +288,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
     "editor.flashNotification": (
       _ctx,
       message: string,
-      type: "error" | "info" = "info",
+      type: NotificationType = "info",
     ) => {
       client.flashNotification(message, type);
     },

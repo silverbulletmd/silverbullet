@@ -18,6 +18,8 @@ type ServerConfig struct {
 	HostURLPrefix string
 
 	ClientBundle SpacePrimitives
+
+	Version string
 }
 
 type UserPasswordAuthorizer func(username, password string) bool

@@ -14,8 +14,11 @@ import type {
   CompleteEvent,
   EnrichedClickEvent,
   FilterOption,
+  NotificationType,
   SlashCompletions,
 } from "@silverbulletmd/silverbullet/type/client";
+import { notificationDismissTimeouts } from "@silverbulletmd/silverbullet/type/client";
+import { publicVersion } from "../public_version.ts";
 import { EventHook } from "./plugos/hooks/event.ts";
 import type { Command } from "./types/command.ts";
 import {
@@ -135,6 +138,7 @@ export class Client {
   }, 1000);
   // Track if plugs have been updated since sync cycle
   fullSyncCompleted = false;
+  private versionMismatchNotified = false;
 
   // Set to true once the system is ready (plugs loaded)
   public systemReady: boolean = false;
@@ -508,7 +512,7 @@ export class Client {
     });
   }
 
-  flashNotification(message: string, type: "info" | "error" = "info") {
+  flashNotification(message: string, type: NotificationType = "info") {
     const id = Math.floor(Math.random() * 1000000);
     this.ui.viewDispatch({
       type: "show-notification",
@@ -526,7 +530,7 @@ export class Client {
           id: id,
         });
       },
-      type === "info" ? 4000 : 5000,
+      notificationDismissTimeouts[type],
     );
   }
 
@@ -1357,6 +1361,19 @@ export class Client {
           location.href = message.actionOrRedirectHeader;
         } else {
           location.reload();
+        }
+        break;
+      }
+      case "server-version": {
+        if (
+          message.serverVersion !== publicVersion &&
+          !this.versionMismatchNotified
+        ) {
+          this.versionMismatchNotified = true;
+          this.flashNotification(
+            "A new version of SilverBullet is available. Reload to update.",
+            "warning",
+          );
         }
         break;
       }
