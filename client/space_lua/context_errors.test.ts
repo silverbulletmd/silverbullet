@@ -1,8 +1,8 @@
+import { expect, test } from "vitest";
 import { parse } from "./parse.ts";
 import { evalStatement } from "./eval.ts";
 import { LuaEnv, LuaRuntimeError, LuaStackFrame } from "./runtime.ts";
 import { luaBuildStandardEnv } from "./stdlib.ts";
-import { assertInstanceOf, assertStringIncludes } from "@std/assert";
 
 async function runAndCatch(code: string, ref = "ctx_test.lua") {
   const ast = parse(code, { ref });
@@ -24,17 +24,17 @@ function assertCtxErrorContains(
   ref: string,
   msgIncludes: string,
 ) {
-  assertInstanceOf(e, LuaRuntimeError);
+  expect(e).toBeInstanceOf(LuaRuntimeError);
   const err = e as LuaRuntimeError;
-  assertStringIncludes(err.message, msgIncludes);
+  expect(err.message).toContain(msgIncludes);
   const pretty = err.toPrettyString(code);
-  assertStringIncludes(pretty, msgIncludes);
-  assertStringIncludes(pretty, ref);
+  expect(pretty).toContain(msgIncludes);
+  expect(pretty).toContain(ref);
   // caret presence sanity check
-  assertStringIncludes(pretty, "^");
+  expect(pretty).toContain("^");
 }
 
-Deno.test("Context error: indexing nil value includes message and ref", async () => {
+test("Context error: indexing nil value includes message and ref", async () => {
   const { e, code, ref } = await runAndCatch(
     `
     local t = nil
@@ -45,7 +45,8 @@ Deno.test("Context error: indexing nil value includes message and ref", async ()
   assertCtxErrorContains(e, code, ref, "attempt to index a nil value");
 });
 
-Deno.test("Context error: calling nil includes message and ref", async () => {
+
+test("Context error: calling nil includes message and ref", async () => {
   const { e, code, ref } = await runAndCatch(
     `
     local f = nil
@@ -56,7 +57,7 @@ Deno.test("Context error: calling nil includes message and ref", async () => {
   assertCtxErrorContains(e, code, ref, "attempt to call a nil value");
 });
 
-Deno.test("Context error: modulo by zero includes message and ref", async () => {
+test("Context error: modulo by zero includes message and ref", async () => {
   const { e, code, ref } = await runAndCatch(
     `
     local a = 1
@@ -68,7 +69,7 @@ Deno.test("Context error: modulo by zero includes message and ref", async () => 
   assertCtxErrorContains(e, code, ref, "attempt to perform 'n%0'");
 });
 
-Deno.test("Context error: type mismatch in comparison includes message and ref", async () => {
+test("Context error: type mismatch in comparison includes message and ref", async () => {
   const { e, code, ref } = await runAndCatch(
     `
     local x = "a" < 1
@@ -84,7 +85,7 @@ Deno.test("Context error: type mismatch in comparison includes message and ref",
  * - __call metamethod wrong type (non-callable)
  * - length operator on unsupported type
  */
-Deno.test("Context error: __index metamethod must be function or table", async () => {
+test("Context error: __index metamethod must be function or table", async () => {
   const { e, code, ref } = await runAndCatch(
     `
     local t = {}
@@ -101,7 +102,7 @@ Deno.test("Context error: __index metamethod must be function or table", async (
   );
 });
 
-Deno.test("Context error: __call metamethod must be a function", async () => {
+test("Context error: __call metamethod must be a function", async () => {
   const { e, code, ref } = await runAndCatch(
     `
     local t = {}
@@ -118,7 +119,7 @@ Deno.test("Context error: __call metamethod must be a function", async () => {
   );
 });
 
-Deno.test("Context error: length operator wrong type (number)", async () => {
+test("Context error: length operator wrong type (number)", async () => {
   const { e, code, ref } = await runAndCatch(
     `
     local x = #1

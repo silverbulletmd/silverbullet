@@ -4,6 +4,7 @@ import {
   cleanTree,
   type ParseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
+// @ts-expect-error - Local generated JavaScript file without type definitions
 import { parser } from "./parse-lua.js";
 import { styleTags, tags as t } from "@lezer/highlight";
 import { indentNodeProp, LRLanguage } from "@codemirror/language";
@@ -585,7 +586,7 @@ function parseBlock(t: ParseTree, ctx: ASTCtx): LuaBlock {
   if (t.type !== "Block") {
     throw new Error(`Expected Block, got ${t.type}`);
   }
-  const stmtNodes = t.children!.filter((c) => c && c.type);
+  const stmtNodes = t.children!.filter((c) => c?.type);
   const statements = stmtNodes.map((s) => parseStatement(s, ctx));
   const block: LuaBlock = { type: "Block", statements, ctx: context(t, ctx) };
 
@@ -813,7 +814,7 @@ function parseStatement(t: ParseTree, ctx: ASTCtx): LuaStatement {
         from?: number;
         to?: number;
       }[] = [];
-      let elseBlock: LuaBlock | undefined = undefined;
+      let elseBlock: LuaBlock | undefined ;
       for (let i = 0; i < t.children!.length; i += 4) {
         const child = t.children![i];
         if (!child || !child.children || !child.children[0]) {
@@ -948,7 +949,7 @@ function parseStatement(t: ParseTree, ctx: ASTCtx): LuaStatement {
       console.error(t);
       throw new Error(
         `Unknown statement type: ${
-          t.children![0] && t.children![0].text
+          t.children![0]?.text
             ? t.children![0].text
             : String(t.type)
         }`,
@@ -1043,7 +1044,7 @@ function parseFunctionName(t: ParseTree, ctx: ASTCtx): LuaFunctionName {
     throw new Error(`Expected FunctionName, got ${t.type}`);
   }
   const propNames: string[] = [];
-  let colonName: string | undefined = undefined;
+  let colonName: string | undefined ;
   for (let i = 0; i < t.children!.length; i += 2) {
     const prop = t.children![i];
     propNames.push(prop.children![0].text!);
@@ -1151,8 +1152,9 @@ function parseExpression(t: ParseTree, ctx: ASTCtx): LuaExpression {
       return {
         type: "Number",
         // Use the integer parser fox 0x literals
+        // biome-ignore lint/correctness/useParseIntRadix: hex strings need auto-detect radix
         value: text.includes("x") ? parseInt(text) : parseFloat(text),
-        numericType: /[\.eEpP]/.test(text) ? "float" : "int",
+        numericType: /[.eEpP]/.test(text) ? "float" : "int",
         ctx: context(t, ctx),
       };
     }
@@ -1474,7 +1476,7 @@ export function stripLuaComments(s: string): string {
       if (s[j] === "[") {
         // Found long string start
         const openBracket = s.substring(i, j + 1);
-        const closeBracket = "]" + "=".repeat(equalsCount) + "]";
+        const closeBracket = `]${"=".repeat(equalsCount)}]`;
         result += openBracket;
         i = j + 1;
 
@@ -1527,7 +1529,7 @@ export function stripLuaComments(s: string): string {
         }
         if (s[j] === "[") {
           // Found long comment start
-          const closeBracket = "]" + "=".repeat(equalsCount) + "]";
+          const closeBracket = `]${"=".repeat(equalsCount)}]`;
           // Replace opening bracket with spaces
           result += " ".repeat(j - i + 1);
           i = j + 1;

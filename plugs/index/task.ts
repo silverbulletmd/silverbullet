@@ -44,7 +44,7 @@ async function convertListItemToTask(node: ParseTree) {
   let taskMarker: string;
   if (originalMark.match(/^\d+\./)) {
     // Numbered list: preserve the number
-    taskMarker = originalMark + " [ ]";
+    taskMarker = `${originalMark} [ ]`;
   } else {
     // Bullet list: use standard bullet
     taskMarker = "* [ ]";
@@ -223,7 +223,7 @@ export async function updateTaskState(
     taskStateNode.children![1].text = newState;
     text = renderToText(referenceMdTree);
     await space.writePage(pageName, text);
-    sync.performFileSync(`${pageName}.md`);
+    void sync.performFileSync(`${pageName}.md`);
   }
 }
 
@@ -292,7 +292,7 @@ export async function taskCycleCommand() {
     return;
   }
 
-  convertListItemToTask(listItem);
+  await convertListItemToTask(listItem);
 }
 
 // Core logic extracted for testability. Mutates tree in place.

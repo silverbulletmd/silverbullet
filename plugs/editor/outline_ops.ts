@@ -112,8 +112,8 @@ export function detectContext(
       node,
       (n) => n.type?.startsWith("ATXHeading") ?? false,
     );
-  if (heading && heading.type) {
-    const level = parseInt(heading.type.replace("ATXHeading", ""));
+  if (heading?.type) {
+    const level = parseInt(heading.type.replace("ATXHeading", ""), 10);
     const doc = heading.parent!;
     if (doc.type === "Document" && doc.children) {
       const headingIndex = doc.children.indexOf(heading);
@@ -123,7 +123,7 @@ export function detectContext(
         const child = doc.children[i];
         if (child.type?.startsWith("ATXHeading")) {
           const childLevel = parseInt(
-            child.type.replace("ATXHeading", ""),
+            child.type.replace("ATXHeading", ""), 10
           );
           if (childLevel <= level) {
             sectionEnd = i;
@@ -484,7 +484,7 @@ function moveHeading(
   for (let i = searchFrom; i !== searchTo; i += step) {
     const child = children[i];
     if (child.type?.startsWith("ATXHeading")) {
-      const childLevel = parseInt(child.type.replace("ATXHeading", ""));
+      const childLevel = parseInt(child.type.replace("ATXHeading", ""), 10);
       if (childLevel === level) {
         adjSectionStart = i;
         break;
@@ -507,7 +507,7 @@ function moveHeading(
     for (let i = adjSectionStart + 1; i < children.length; i++) {
       const child = children[i];
       if (child.type?.startsWith("ATXHeading")) {
-        const childLevel = parseInt(child.type.replace("ATXHeading", ""));
+        const childLevel = parseInt(child.type.replace("ATXHeading", ""), 10);
         if (childLevel <= level) {
           adjSectionEnd = i;
           break;
@@ -562,7 +562,7 @@ function adjustHeadingLevel(
   for (let i = sectionStart; i < sectionEnd; i++) {
     const child = children[i];
     if (child.type?.startsWith("ATXHeading")) {
-      const childLevel = parseInt(child.type.replace("ATXHeading", ""));
+      const childLevel = parseInt(child.type.replace("ATXHeading", ""), 10);
       if (childLevel === limitLevel) {
         continue;
       }
@@ -572,7 +572,7 @@ function adjustHeadingLevel(
 
       newSectionText += sectionText.slice(pos, childFrom);
       if (delta === 1) {
-        newSectionText += "#" + sectionText.slice(childFrom, childTo);
+        newSectionText += `#${sectionText.slice(childFrom, childTo)}`;
       } else {
         newSectionText += sectionText.slice(childFrom + 1, childTo);
       }

@@ -44,7 +44,7 @@ export class IFrameWidget extends WidgetType {
 
             break;
           case "reload":
-            this.codeWidgetCallback(
+            void this.codeWidgetCallback(
               this.bodyText,
               this.client.currentName(),
             )

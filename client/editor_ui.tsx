@@ -65,7 +65,7 @@ export class MainUI {
       if (ev.touches.length === 3) {
         ev.stopPropagation();
         ev.preventDefault();
-        client.startCommandPalette();
+        void client.startCommandPalette();
       }
     });
 
@@ -95,8 +95,8 @@ export class MainUI {
     }, [viewState.current]);
 
     useEffect(() => {
-      this.client.rebuildEditorState();
-      this.client.dispatchAppEvent("editor:modeswitch");
+      void this.client.rebuildEditorState();
+      void this.client.dispatchAppEvent("editor:modeswitch");
     }, [viewState.uiOptions.vimMode]);
 
     useEffect(() => {
@@ -220,7 +220,7 @@ export class MainUI {
                     "This file cannot be edited, select your desired action.",
                   );
                 } else {
-                  client.navigate(ref);
+                  void client.navigate(ref);
                 }
               });
             }}

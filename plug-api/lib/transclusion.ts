@@ -45,19 +45,19 @@ export function parseDimensionFromAlias(
     const [width, height] = dimPart.split("x");
     dim = {};
     if (width) {
-      dim.width = parseInt(width);
+      dim.width = parseInt(width, 10);
     }
     if (height) {
-      dim.height = parseInt(height);
+      dim.height = parseInt(height, 10);
     }
   } else if (/^[x\d]/.test(text)) {
     const [width, height] = text.split("x");
     dim = {};
     if (width) {
-      dim.width = parseInt(width);
+      dim.width = parseInt(width, 10);
     }
     if (height) {
-      dim.height = parseInt(height);
+      dim.height = parseInt(height, 10);
     }
     alias = "";
   } else {
@@ -74,7 +74,7 @@ export function parseDimensionFromAlias(
 export function parseTransclusion(
   text: string,
 ): Transclusion | null {
-  let url, alias = undefined;
+  let url, alias ;
   let linktype: LinkType = "markdownlink";
   // TODO: Take in the tree and use tree nodes to get url and alias (Applies to all regex uses)
   mdLinkRegex.lastIndex = 0;

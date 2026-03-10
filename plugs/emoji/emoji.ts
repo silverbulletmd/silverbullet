@@ -11,7 +11,7 @@ const emojis = emojiBlob.split("|").map((line) => line.split(" "));
 export function emojiCompleter(
   { linePrefix, pos, parentNodes }: CompleteEvent,
 ) {
-  updateConfig(); // no need to await, will be ready for completion by next keystrokes
+  void updateConfig(); // no need to await, will be ready for completion by next keystrokes
 
   const match = /:([\w]+)$/.exec(linePrefix);
   if (!match) {
@@ -85,7 +85,7 @@ async function updateConfig() {
   }
   if (badAliases.length > 0) {
     await editor.flashNotification(
-      errorMsg + `, need to fix: ${badAliases.join(",")}`,
+      `${errorMsg}, need to fix: ${badAliases.join(",")}`,
       "error",
     );
   }

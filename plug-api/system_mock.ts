@@ -71,7 +71,6 @@ export function createMockSystem() {
     systemSyscalls(clientMock, false),
   );
 
-  // @ts-ignore: global
   globalThis.syscall = (name: string, ...args: any): Promise<any> => {
     return system.localSyscall(name, args);
   };

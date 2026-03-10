@@ -1,4 +1,4 @@
-// deno-lint-ignore-file ban-types
+
 import type { Manifest } from "../types.ts";
 import type { System } from "../system.ts";
 import type { EventHookI } from "../eventhook.ts";

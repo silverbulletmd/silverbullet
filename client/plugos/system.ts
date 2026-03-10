@@ -188,13 +188,13 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     if (!plug) {
       return;
     }
-    plug.stop();
-    this.emit("plugUnloaded", name);
+    void plug.stop();
+    void this.emit("plugUnloaded", name);
     this.plugs.delete(name);
   }
 
-  unloadAll(): Promise<void[]> {
-    return Promise.all(
+  async unloadAll(): Promise<void> {
+    await Promise.all(
       Array.from(this.plugs.keys()).map(this.unload.bind(this)),
     );
   }

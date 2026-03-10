@@ -76,7 +76,7 @@ export default function reducer(
       let currPageMeta: PageMeta | undefined;
       for (const pageMeta of action.allPages) {
         const oldPageMetaItem = oldPageMeta.get(pageMeta.name);
-        if (oldPageMetaItem && oldPageMetaItem.lastOpened) {
+        if (oldPageMetaItem?.lastOpened) {
           pageMeta.lastOpened = oldPageMetaItem.lastOpened;
         }
         if (parseToRef(pageMeta.name)?.path === state.current?.path) {

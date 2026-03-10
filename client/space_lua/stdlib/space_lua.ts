@@ -137,17 +137,12 @@ export const spaceluaApi = new LuaTable({
     },
   ),
   /**
-   * Returns your SilverBullet instance's base URL, or `undefined` when run on the server
+   * Returns your SilverBullet instance's base URL
    */
   baseUrl: new LuaBuiltinFunction(
     () => {
-      // Deal with Deno
-      if (typeof location === "undefined") {
-        return null;
-      } else {
-        //NOTE: Removing trailing slash to stay compatible with original code: `location.protocol + "//" + location.host;`
-        return document.baseURI.replace(/\/*$/, "");
-      }
+      //NOTE: Removing trailing slash to stay compatible with original code: `location.protocol + "//" + location.host;`
+      return document.baseURI.replace(/\/*$/, "");
     },
   ),
 });

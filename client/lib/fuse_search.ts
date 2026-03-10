@@ -1,4 +1,4 @@
-import Fuse from "fuse";
+import Fuse from "fuse.js";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 import { fileName } from "@silverbulletmd/silverbullet/lib/resolve";
 

@@ -33,7 +33,7 @@ export async function saveFile(file: UploadFile) {
     );
   }
   if (file.content.length > maxSize * 1024 * 1024) {
-    editor.flashNotification(
+    void editor.flashNotification(
       `Document is too large, maximum is ${maxSize}MiB`,
       "error",
     );
@@ -53,7 +53,7 @@ export async function saveFile(file: UploadFile) {
   }
   desiredFilePath = desiredFilePath.trim();
   if (!isValidPath(desiredFilePath)) {
-    editor.flashNotification(invalidPathMessage, "error");
+    void editor.flashNotification(invalidPathMessage, "error");
     return;
   }
 
@@ -75,12 +75,12 @@ export async function saveFile(file: UploadFile) {
         // Unlike the initial filename prompt, we're inside a workflow here
         // and should be explicit that the user action cancelled the whole
         // operation.
-        editor.flashNotification("Upload cancelled by user", "info");
+        void editor.flashNotification("Upload cancelled by user", "info");
         return;
       }
       confirmedFilePath = confirmedFilePath.trim();
       if (!isValidPath(confirmedFilePath)) {
-        editor.flashNotification(invalidPathMessage, "error");
+        void editor.flashNotification(invalidPathMessage, "error");
         return;
       }
       if (desiredFilePath === confirmedFilePath) {
@@ -110,9 +110,9 @@ export async function saveFile(file: UploadFile) {
       documentMarkdown = `[${finalFilePath}](${encodePageURI(finalFilePath)})`;
     }
     if (file.contentType.startsWith("image/")) {
-      documentMarkdown = "!" + documentMarkdown;
+      documentMarkdown = `!${documentMarkdown}`;
     }
-    editor.insertAtCursor(documentMarkdown);
+    void editor.insertAtCursor(documentMarkdown);
   }
 }
 

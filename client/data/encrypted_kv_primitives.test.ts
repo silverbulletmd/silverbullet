@@ -1,9 +1,9 @@
-import { assert, assertEquals } from "@std/assert";
+import { expect, test } from "vitest";
 import { EncryptedKvPrimitives } from "./encrypted_kv_primitives.ts";
 import { MemoryKvPrimitives } from "./memory_kv_primitives.ts";
 import { deriveCTRKeyFromPassword } from "@silverbulletmd/silverbullet/lib/crypto";
 
-Deno.test("Test Encrypted KV Primitives", async () => {
+test("Test Encrypted KV Primitives", async () => {
   const memoryKv = new MemoryKvPrimitives();
   const salt = new Uint8Array(32);
   const key = await deriveCTRKeyFromPassword("test", salt);
@@ -13,13 +13,13 @@ Deno.test("Test Encrypted KV Primitives", async () => {
   // Store a basic key
   await kv.batchSet([{ key: ["key"], value: 10 }]);
   const [value] = await kv.batchGet([["key"]]);
-  assertEquals(value, 10);
+  expect(value).toEqual(10);
 
   // Store a binary blob
   const blob = new Uint8Array([1, 2, 3, 4, 5]);
   await kv.batchSet([{ key: ["blob"], value: blob }]);
   const [blobValue] = await kv.batchGet([["blob"]]);
-  assertEquals(blobValue, blob);
+  expect(blobValue).toEqual(blob);
 
   // Store a nested JSON and blob structure
   const nested = {
@@ -28,7 +28,7 @@ Deno.test("Test Encrypted KV Primitives", async () => {
   };
   await kv.batchSet([{ key: ["nested"], value: nested }]);
   const [nestedValue] = await kv.batchGet([["nested"]]);
-  assertEquals(nestedValue, nested);
+  expect(nestedValue).toEqual(nested);
 
   // Put a few objects with a person prefix
   await kv.batchSet([
@@ -39,18 +39,18 @@ Deno.test("Test Encrypted KV Primitives", async () => {
   // Then query based on the prefix
   let counter = 0;
   for await (const { key, value } of kv.query({ prefix: ["person"] })) {
-    assertEquals(key[0], "person");
-    assert(key[1] === "alice" || key[1] === "bob");
-    assert(value.age);
+    expect(key[0]).toEqual("person");
+    expect(key[1] === "alice" || key[1] === "bob").toBeTruthy();
+    expect(value.age).toBeTruthy();
     counter++;
   }
-  assertEquals(counter, 2);
+  expect(counter).toEqual(2);
 
   // Delete something
   await kv.batchDelete([["person", "alice"]]);
   // Check it's gone
   const [deletedValue] = await kv.batchGet([["person", "alice"]]);
-  assertEquals(deletedValue, undefined);
+  expect(deletedValue).toEqual(undefined);
 
   console.log(memoryKv);
 
@@ -60,5 +60,5 @@ Deno.test("Test Encrypted KV Primitives", async () => {
   for await (const _ of kv.query({ prefix: ["person"] })) {
     counter++;
   }
-  assertEquals(counter, 0);
+  expect(counter).toEqual(0);
 });

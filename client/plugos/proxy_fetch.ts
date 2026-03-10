@@ -39,7 +39,7 @@ export async function performLocalFetch(
       method: req.method,
       headers: req.headers,
       body: req.base64Body && base64Decode(req.base64Body),
-      // Casting  to "any" for now, since of weird Deno typing
+      // Casting to any due to TypeScript fetch type limitations
     } as any,
   );
   return {

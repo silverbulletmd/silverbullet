@@ -189,9 +189,9 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       "Content-Type": "application/octet-stream",
     };
     if (meta) {
-      headers["X-Created"] = "" + meta.created;
-      headers["X-Last-Modified"] = "" + meta.lastModified;
-      headers["X-Perm"] = "" + meta.perm;
+      headers["X-Created"] = `${meta.created}`;
+      headers["X-Last-Modified"] = `${meta.lastModified}`;
+      headers["X-Perm"] = `${meta.perm}`;
     }
 
     const res = await this.authenticatedFetch(
@@ -199,7 +199,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       {
         method: "PUT",
         headers,
-        // Casting to any because of weird Deno typing
+        // Casting to any due to TypeScript fetch type limitations
         body: data as any,
       },
     );

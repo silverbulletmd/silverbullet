@@ -15,33 +15,13 @@ let workerPostMessage = (_msg: ControllerMessage): void => {
   throw new Error("Not initialized yet");
 };
 
-// Are we running in a (web) worker?
-
-// Determines if we're running in a web worker environment (Deno or browser)
-// - in a browser's main threads, typeof window is "object"
+// Determines if we're running in a web worker environment
+// - in a browser's main thread, typeof window is "object"
 // - in a browser's worker threads, typeof window === "undefined"
-// - in Deno's main thread typeof window === "object"
-// - in Deno's workers typeof window === "undefined
 // - in Cloudflare workers typeof window === "undefined", but typeof globalThis.WebSocketPair is defined
 const runningAsWebWorker = typeof window === "undefined" &&
-  // @ts-ignore: globalThis
+  // @ts-expect-error: globalThis
   typeof globalThis.WebSocketPair === "undefined";
-
-if (typeof Deno === "undefined") {
-  // @ts-ignore: Deno hack
-  self.Deno = {
-    args: [],
-    // @ts-ignore: Deno hack
-    build: {
-      arch: "x86_64",
-    },
-    env: {
-      // @ts-ignore: Deno hack
-      get() {
-      },
-    },
-  };
-}
 
 const pendingRequests = new Map<
   number,
@@ -156,17 +136,16 @@ export async function sandboxFetch(
   return syscall("sandboxFetch.fetch", reqInfo, options);
 }
 
-// @ts-ignore: monkey patching fetch
 globalThis.nativeFetch = globalThis.fetch;
 
 // Monkey patch fetch()
 export function monkeyPatchFetch() {
-  // @ts-ignore: monkey patching fetch
-  globalThis.fetch = async function (
+  // @ts-expect-error: monkey patching fetch
+  globalThis.fetch = async (
     reqInfo: RequestInfo,
     init?: RequestInit,
-  ): Promise<Response> {
-    const encodedBody = init && init.body
+  ): Promise<Response> => {
+    const encodedBody = init?.body
       ? base64Encode(
         new Uint8Array(await (new Response(init.body)).arrayBuffer()),
       )
@@ -179,7 +158,7 @@ export function monkeyPatchFetch() {
         base64Body: encodedBody,
       },
     );
-    // Casting the response to "any" for now, since of weird Deno typing
+    // Casting to any due to TypeScript fetch type limitations
     return new Response(
       (r.base64Body ? base64Decode(r.base64Body) : null) as any,
       {

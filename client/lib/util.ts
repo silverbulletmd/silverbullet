@@ -11,11 +11,11 @@ export function authCookieName(host: string) {
 export function fileMetaToHeaders(fileMeta: FileMeta) {
   return {
     "Content-Type": fileMeta.contentType,
-    "X-Last-Modified": "" + fileMeta.lastModified,
-    "X-Created": "" + fileMeta.created,
+    "X-Last-Modified": `${fileMeta.lastModified}`,
+    "X-Created": `${fileMeta.created}`,
     "Cache-Control": "no-cache",
     "X-Permission": fileMeta.perm,
-    "X-Content-Length": "" + fileMeta.size,
+    "X-Content-Length": `${fileMeta.size}`,
   };
 }
 

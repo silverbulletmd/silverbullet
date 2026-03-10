@@ -67,7 +67,7 @@ export class ObjectIndex {
     });
 
     // Handle initial index completion
-    this.hasFullIndexCompleted().then((hasCompleted) => {
+    void this.hasFullIndexCompleted().then((hasCompleted) => {
       if (!hasCompleted) {
         const emptyQueueHandler = async () => {
           console.log("Index queue empty, checking if index is complete");
@@ -84,7 +84,7 @@ export class ObjectIndex {
               emptyQueueHandler,
             );
             // Trigger an editor:reloadState event to reload the editor state (render widgets etc.)
-            this.eventHook.dispatchEvent("editor:reloadState");
+            void this.eventHook.dispatchEvent("editor:reloadState");
           }
         };
         this.eventHook.addLocalListener(
@@ -130,7 +130,7 @@ export class ObjectIndex {
     };
   }
 
-  getObjectByRef<T>(page: string, tag: string, ref: string) {
+  getObjectByRef(page: string, tag: string, ref: string) {
     return this.ds.get([indexKey, tag, this.cleanKey(ref, page), page]);
   }
 
@@ -158,7 +158,7 @@ export class ObjectIndex {
       await this.reindexSpace(space);
 
       // Dispatch an editor:reloadState event to reload the editor state (render widgets etc.)
-      this.eventHook.dispatchEvent("editor:reloadState");
+      void this.eventHook.dispatchEvent("editor:reloadState");
     }
   }
 

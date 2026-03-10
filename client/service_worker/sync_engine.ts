@@ -66,14 +66,14 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
 
     this.spaceSync.on({
       syncProgress: async (status, snapshot) => {
-        this.emit("syncProgress", status, snapshot);
+        void this.emit("syncProgress", status, snapshot);
         await this.saveSnapshot(snapshot);
       },
       snapshotUpdated: this.saveSnapshot.bind(this),
     });
 
     // Start the sync loop
-    this.run();
+    void this.run();
   }
 
   stop() {
@@ -124,11 +124,11 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
       const operations = await this.spaceSync.syncFiles(this.snapshot);
       if (operations !== -1) {
         // emit successful sync event (not when operations === -1, because that means another sync was ongoing)
-        this.emit("spaceSyncComplete", operations);
+        void this.emit("spaceSyncComplete", operations);
       }
       return operations;
     } catch (e) {
-      this.emit("syncError", e);
+      void this.emit("syncError", e);
       throw e;
     }
   }
@@ -139,10 +139,10 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
         path,
         this.snapshot,
       );
-      this.emit("fileSyncComplete", path, operations);
+      void this.emit("fileSyncComplete", path, operations);
       return operations;
     } catch (e) {
-      this.emit("syncError", e);
+      void this.emit("syncError", e);
       throw e;
     }
   }
@@ -193,7 +193,7 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
 
       if (operations > 0) {
         // Something happened -> conflict copy generated, let's report it
-        this.emit("syncConflict", name);
+        void this.emit("syncConflict", name);
       }
 
       return operations;

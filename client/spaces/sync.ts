@@ -55,8 +55,6 @@ export type SyncOptions = {
   isSyncCandidate: (path: string) => boolean;
 };
 
-type SyncDirection = "primary->secondary" | "secondary->primary";
-
 export type SyncEvents = {
   syncProgress: (
     syncStatus: SyncStatus,
@@ -150,12 +148,12 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
         "Completed:",
         operations,
         "operations in",
-        ((Date.now() - startTime) / 1000) + "s",
+        `${(Date.now() - startTime) / 1000}s`,
       );
     } finally {
       this.isSyncing = false;
       if (operations > 0) {
-        this.emit("snapshotUpdated", snapshot);
+        void this.emit("snapshotUpdated", snapshot);
       }
     }
 
@@ -212,7 +210,7 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
     } finally {
       this.isSyncing = false;
       if (operations > 0) {
-        this.emit("snapshotUpdated", snapshot);
+        void this.emit("snapshotUpdated", snapshot);
       }
     }
 

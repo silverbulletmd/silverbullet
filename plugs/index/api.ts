@@ -38,7 +38,7 @@ export async function patchFrontmatter(
     // No frontmatter found, create from patches
     const patchedFrontmatter = applyPatches("", patches).trim();
     if (patchedFrontmatter) {
-      return "---\n" + patchedFrontmatter + "\n---\n" + text;
+      return `---\n${patchedFrontmatter}\n---\n${text}`;
     } else {
       return text;
     }

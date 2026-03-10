@@ -1,30 +1,27 @@
-import { assertEquals } from "@std/assert";
+import { expect, test } from "vitest";
 import { extractSpaceLuaFromPageText, loadConfig } from "./boot_config.ts";
 
-Deno.test("Test boot config", () => {
+test("Test boot config", () => {
   // One block present
-  assertEquals(
+  expect(
     extractSpaceLuaFromPageText("Hello\n\n```space-lua\ntest()\n```\nMore"),
-    "test()",
-  );
+  ).toEqual("test()");
   // Two blocks present
-  assertEquals(
+  expect(
     extractSpaceLuaFromPageText(
       "Hello\n\n```space-lua\ntest()\n```\nMore\n\n```space-lua\ntest2()\n```",
     ),
-    "test()\ntest2()",
-  );
+  ).toEqual("test()\ntest2()");
   // No lua present
-  assertEquals(
+  expect(
     extractSpaceLuaFromPageText("Hello\n\n```lua\ntest()\n```\nMore"),
-    "",
-  );
+  ).toEqual("");
 });
 
-Deno.test("Test CONFIG lua eval", async () => {
+test("Test CONFIG lua eval", async () => {
   // Test base case: no config code
   let config = await loadConfig("", {});
-  assertEquals(config.values, {});
+  expect(config.values).toEqual({});
 
   // Check a few config sets
   config = await loadConfig(
@@ -36,7 +33,7 @@ Deno.test("Test CONFIG lua eval", async () => {
 `,
     {},
   );
-  assertEquals(config.values, {
+  expect(config.values).toEqual({
     option1: "pete",
     optionObj: {
       nested: 5,
@@ -57,7 +54,7 @@ Deno.test("Test CONFIG lua eval", async () => {
 `,
     {},
   );
-  assertEquals(config.values, {
+  expect(config.values).toEqual({
     option1: "pete",
     optionObj: {
       nested: 5,

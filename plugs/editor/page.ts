@@ -37,7 +37,7 @@ export async function copyPage(
   }
   newName = newName.trim();
   if (newName === "") {
-    editor.flashNotification("Must provide a non-empty page name.", "error");
+    void editor.flashNotification("Must provide a non-empty page name.", "error");
     return;
   }
 

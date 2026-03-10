@@ -1,8 +1,8 @@
+import { expect, test } from "vitest";
 import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
 import { createMockSystem } from "../../plug-api/system_mock.ts";
 import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 import { extractFrontMatter } from "./frontmatter.ts";
-import { assertEquals } from "@std/assert";
 import { indexHeaders } from "./header.ts";
 
 const testPage = `
@@ -11,7 +11,7 @@ const testPage = `
 # Header 2 [testAttr: 10]
 `.trim();
 
-Deno.test("Test header indexing", async () => {
+test("Test header indexing", async () => {
   createMockSystem();
   const tree = parseMarkdown(testPage);
   const frontmatter = await extractFrontMatter(tree);
@@ -31,10 +31,10 @@ Deno.test("Test header indexing", async () => {
     tree,
   );
   // 1 data 1 tag
-  assertEquals(headers.length, 3);
+  expect(headers.length).toEqual(3);
 
-  assertEquals(headers[0].name, "Header 1");
-  assertEquals(headers[0].level, 1);
-  assertEquals(headers[1].name, "Header 1.1");
-  assertEquals(headers[1].level, 2);
+  expect(headers[0].name).toEqual("Header 1");
+  expect(headers[0].level).toEqual(1);
+  expect(headers[1].name).toEqual("Header 1.1");
+  expect(headers[1].level).toEqual(2);
 });

@@ -17,7 +17,7 @@ export function mqSyscalls(
       _ctx,
       def: MQListenerSpec,
     ) => {
-      def.autoAck = def.autoAck != false;
+      def.autoAck = def.autoAck !== false;
       // console.log("Registering Lua event listener: ", def.name);
       client.config.insert([
         "mqSubscriptions",

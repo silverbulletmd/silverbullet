@@ -106,7 +106,7 @@ export function AnythingPicker({
           aliases = aliases.concat(pageMeta.aliases);
         }
         if (aliases.length > 0) {
-          description = "(a.k.a. " + aliases.join(", ") + ") ";
+          description = `(a.k.a. ${aliases.join(", ")}) `;
         }
         if (pageMeta.tags) {
           description = (description || "") +
@@ -158,7 +158,7 @@ export function AnythingPicker({
   }
 
   const completePrefix =
-    (folderName(currentPath) || getNameFromPath(currentPath)) + "/";
+    `${folderName(currentPath) || getNameFromPath(currentPath)}/`;
 
   const allowNew = mode !== "document";
   const creatablePageNoun = mode !== "all" ? mode : "page";

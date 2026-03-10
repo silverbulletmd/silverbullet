@@ -59,7 +59,7 @@ function parseRow(
       }
     }
 
-    if (next == 124 /* '|' */ && !esc && !inWikilink && !inCommandButton) {
+    if (next === 124 /* '|' */ && !esc && !inWikilink && !inCommandButton) {
       if (!first || cellStart > -1) count++;
       first = false;
       if (elts) {
@@ -67,11 +67,11 @@ function parseRow(
         elts.push(cx.elt("TableDelimiter", i + offset, i + offset + 1));
       }
       cellStart = cellEnd = -1;
-    } else if (esc || next != 32 && next != 9) {
+    } else if (esc || next !== 32 && next !== 9) {
       if (cellStart < 0) cellStart = i;
       cellEnd = i + 1;
     }
-    esc = !esc && next == 92;
+    esc = !esc && next === 92;
   }
   if (cellStart > -1) {
     count++;
@@ -83,8 +83,8 @@ function parseRow(
 function hasPipe(str: string, start: number) {
   for (let i = start; i < str.length; i++) {
     const next = str.charCodeAt(i);
-    if (next == 124 /* '|' */) return true;
-    if (next == 92 /* '\\' */) i++;
+    if (next === 124 /* '|' */) return true;
+    if (next === 92 /* '\\' */) i++;
   }
   return false;
 }
@@ -102,12 +102,12 @@ class TableParser implements LeafBlockParser {
       this.rows = false;
       let lineText;
       if (
-        (line.next == 45 || line.next == 58 || line.next == 124 /* '-:|' */) &&
+        (line.next === 45 || line.next === 58 || line.next === 124 /* '-:|' */) &&
         delimiterLine.test(lineText = line.text.slice(line.pos))
       ) {
         const firstRow: Element[] = [],
           firstCount = parseRow(cx, leaf.content, 0, firstRow, leaf.start);
-        if (firstCount == parseRow(cx, lineText, line.pos)) {
+        if (firstCount === parseRow(cx, lineText, line.pos)) {
           this.rows = [
             cx.elt(
               "TableHeader",
@@ -180,10 +180,10 @@ export const Table: MarkdownConfig = {
         leaf.parsers.some((p) => p instanceof TableParser) ||
         !hasPipe(line.text, line.basePos)
       ) return false;
-      // @ts-ignore: internal
+      // @ts-expect-error: internal
       const next = cx.scanLine(cx.absoluteLineEnd + 1).text;
       return delimiterLine.test(next) &&
-        parseRow(cx, line.text, line.basePos) ==
+        parseRow(cx, line.text, line.basePos) ===
           parseRow(cx, next, line.basePos);
     },
     before: "SetextHeading",

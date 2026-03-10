@@ -33,11 +33,11 @@ export function renderHtml(t: Tag | null): string {
     return htmlEscape(t);
   }
   const attrs = t.attrs
-    ? " " + Object.entries(t.attrs)
+    ? ` ${Object.entries(t.attrs)
       .filter(([, value]) => value !== undefined)
       .map(([k, v]) => `${k}="${htmlEscape(v!)}"`).join(
         " ",
-      )
+      )}`
     : "";
   const body = typeof t.body === "string"
     ? htmlEscape(t.body)

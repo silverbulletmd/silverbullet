@@ -8,11 +8,11 @@ export function syncSyscalls(client: Client): SysCallMapping {
       return client.fullSyncCompleted;
     },
     "sync.performFileSync": (_ctx, path: string): Promise<void> => {
-      client.postServiceWorkerMessage({ type: "perform-file-sync", path });
+      void client.postServiceWorkerMessage({ type: "perform-file-sync", path });
       return waitForServiceWorkerActivation(path);
     },
     "sync.performSpaceSync": (): Promise<number> => {
-      client.postServiceWorkerMessage({ type: "perform-space-sync" });
+      void client.postServiceWorkerMessage({ type: "perform-space-sync" });
       return waitForServiceWorkerActivation();
     },
   };

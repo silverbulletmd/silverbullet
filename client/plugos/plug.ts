@@ -70,7 +70,6 @@ export class Plug<HookT> {
     const sandbox = this.sandbox!;
     if (funDef.redirect) {
       // Function redirect, look up
-      // deno-lint-ignore no-this-alias
       let plug: Plug<HookT> | undefined = this;
       if (funDef.redirect.indexOf(".") !== -1) {
         const [plugName, functionName] = funDef.redirect.split(".");

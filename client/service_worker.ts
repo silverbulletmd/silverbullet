@@ -64,7 +64,7 @@ const proxyRouter = new ProxyRouter(
 // Configuration mutex
 let configuring = false;
 
-// @ts-ignore: debugging
+// @ts-expect-error: debugging
 globalThis.proxyRouter = proxyRouter;
 
 // This is the in-memory store of an encryption key that SB clients and the index engine can share without asking for it constantly
@@ -72,7 +72,7 @@ let encryptionKeyMemoryStore: CryptoKey | undefined;
 
 // Let's clean this encryptionKey if there's no more clients left for a little while, asking to re-enter
 setInterval(() => {
-  // @ts-ignore: service worker API
+  // @ts-expect-error: service worker API
   globalThis.clients.matchAll().then((clients) => {
     if (clients.length === 0 && encryptionKeyMemoryStore) {
       console.info("No more clients, flushing encryption key");
@@ -86,7 +86,7 @@ self.addEventListener("message", async (event: any) => {
   const message: ServiceWorkerTargetMessage = event.data;
   switch (message.type) {
     case "skip-waiting": {
-      // @ts-ignore: Skip waiting to activate this service worker immediately
+      // @ts-expect-error: Skip waiting to activate this service worker immediately
       self.skipWaiting();
       break;
     }
@@ -209,7 +209,7 @@ self.addEventListener("message", async (event: any) => {
 
         if (config.logPush) {
           setInterval(() => {
-            logger.postToServer(".logs", "service_worker");
+            void logger.postToServer(".logs", "service_worker");
           }, 1000);
         }
 
@@ -264,7 +264,7 @@ self.addEventListener("message", async (event: any) => {
         proxyRouter.on({
           observedRequest: (path) => {
             // This is triggered for the currently open file, we want to proactively sync it to keep it up to date
-            syncEngine.syncSingleFile(path);
+            void syncEngine.syncSingleFile(path);
           },
           onlineStatusUpdated: (isOnline) => {
             broadcastMessage({
@@ -317,7 +317,7 @@ self.addEventListener("message", async (event: any) => {
 });
 
 function broadcastMessage(message: ServiceWorkerSourceMessage) {
-  // @ts-ignore: service worker API
+  // @ts-expect-error: service worker API
   const clients: any = self.clients;
   // Find all windows attached to this service worker
   clients.matchAll({
@@ -364,7 +364,7 @@ self.addEventListener("install", (event: any) => {
         Object.keys(precacheFiles).length,
         "client files cached",
       );
-      // @ts-ignore: Force the waiting service worker to become the active service worker
+      // @ts-expect-error: Force the waiting service worker to become the active service worker
       await self.skipWaiting();
     })(),
   );
@@ -389,7 +389,7 @@ self.addEventListener("activate", (event: any) => {
           }
         }),
       );
-      // @ts-ignore: Take control of all clients as soon as the service worker activates
+      // @ts-expect-error: Take control of all clients as soon as the service worker activates
       await clients.claim();
     })(),
   );

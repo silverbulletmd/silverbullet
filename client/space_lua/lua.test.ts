@@ -1,101 +1,24 @@
+import { expect, test } from "vitest";
 import { parse } from "./parse.ts";
 import { luaBuildStandardEnv } from "./stdlib.ts";
 import { LuaEnv, LuaRuntimeError, LuaStackFrame } from "./runtime.ts";
 import { evalStatement } from "./eval.ts";
-import { assert } from "@std/assert/assert";
+import { readFile, } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
+import { dirname, } from "node:path";
+import { readdirSync } from "node:fs";
 
-Deno.test("[Lua] Core language", async () => {
-  await runLuaTest("./language_core_test.lua");
-});
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
-Deno.test("[Lua] Core language (labels and goto)", async () => {
-  await runLuaTest("./goto_test.lua");
-});
+const testFiles = readdirSync(__dirname, { recursive: true })
+  .filter((f): f is string => typeof f === "string" && f.endsWith("_test.lua"))
+  .sort();
 
-Deno.test("[Lua] Core language (length)", async () => {
-  await runLuaTest("./len_test.lua");
-});
-
-Deno.test("[Lua] Core language (truthiness)", async () => {
-  await runLuaTest("./truthiness_test.lua");
-});
-
-Deno.test("[Lua] Core language (arithmetic)", async () => {
-  await runLuaTest("./arithmetic_test.lua");
-});
-
-Deno.test("[Lua] Core language (metamethods)", async () => {
-  await runLuaTest("./metamethods_test.lua");
-});
-
-Deno.test("[Lua] Load tests", async () => {
-  await runLuaTest("./stdlib/load_test.lua");
-});
-
-Deno.test("[Lua] Core language (truthiness)", async () => {
-  await runLuaTest("./stdlib/table_test.lua");
-});
-
-Deno.test("[Lua] Core language (length)", async () => {
-  await runLuaTest("./len_test.lua");
-});
-
-Deno.test("[Lua] Format tests", async () => {
-  await runLuaTest("./stdlib/format_test.lua");
-});
-
-Deno.test("[Lua] String to number tests", async () => {
-  await runLuaTest("./tonumber_test.lua");
-});
-
-Deno.test("[Lua] Pattern tests", async () => {
-  await runLuaTest("./stdlib/pattern_test.lua");
-});
-
-Deno.test("[Lua] String tests", async () => {
-  await runLuaTest("./stdlib/string_test.lua");
-});
-
-Deno.test("[Lua] String pack/unpack/packsize tests", async () => {
-  await runLuaTest("./stdlib/string_pack_test.lua");
-});
-
-Deno.test("[Lua] Space Lua tests", async () => {
-  await runLuaTest("./stdlib/space_lua_test.lua");
-});
-
-Deno.test("[Lua] OS tests", async () => {
-  await runLuaTest("./stdlib/os_test.lua");
-});
-
-Deno.test("[Lua] Math tests", async () => {
-  await runLuaTest("./stdlib/math_test.lua");
-});
-
-Deno.test("[Lua] JS tests", async () => {
-  await runLuaTest("./stdlib/js_test.lua");
-});
-
-Deno.test("[Lua] Global functions tests", async () => {
-  await runLuaTest("./stdlib/global_test.lua");
-});
-
-Deno.test("[Lua] Encoding functions tests", async () => {
-  await runLuaTest("./stdlib/encoding_test.lua");
-});
-
-Deno.test("[Lua] Crypto functions tests", async () => {
-  await runLuaTest("./stdlib/crypto_test.lua");
-});
-
-Deno.test("[Lua] Lume functions tests", async () => {
-  await runLuaTest("./lume_test.lua");
-});
-
-Deno.test("[Lua] Lua Integrated Query tests", async () => {
-  await runLuaTest("./query_test.lua");
-});
+for (const file of testFiles) {
+  test(`[Lua] ${file}`, async () => {
+    await runLuaTest(`./${file}`);
+  });
+}
 
 async function runLuaTest(luaPath: string) {
   if (
@@ -131,8 +54,9 @@ async function runLuaTest(luaPath: string) {
     };
   }
 
-  const luaFile = await Deno.readTextFile(
+  const luaFile = await readFile(
     fileURLToPath(new URL(luaPath, import.meta.url)),
+    "utf-8",
   );
   const chunk = parse(luaFile, {});
   const env = new LuaEnv(luaBuildStandardEnv());
@@ -146,6 +70,6 @@ async function runLuaTest(luaPath: string) {
     } else {
       console.error(`Error evaluating script:`, e);
     }
-    assert(false);
+    expect(false).toBeTruthy();
   }
 }

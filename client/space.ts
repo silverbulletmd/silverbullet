@@ -34,7 +34,7 @@ export class Space {
   // We do watch files in the background to detect changes
   // This set of pages should only ever contain 1 page
   watchedFiles = new Set<string>();
-  watchInterval?: number;
+  watchInterval?: ReturnType<typeof setInterval>;
 
   // private initialPageListLoad = true;
   private saving = false;
@@ -106,7 +106,7 @@ export class Space {
         let text = `**Error:** Header not found: ${desiredHeaderText}`;
         let offset = 0;
         traverseTree(tree, (n) => {
-          if (n.type && n.type.startsWith("ATXHeading")) {
+          if (n.type?.startsWith("ATXHeading")) {
             const level = +n.type!.substring("ATXHeading".length);
             const headerText = renderToText(n).slice(level + 1);
             let endPos = pageText.length;

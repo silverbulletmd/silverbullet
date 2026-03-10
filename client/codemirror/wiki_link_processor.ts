@@ -121,7 +121,7 @@ export function processWikiLink(options: WikiLinkProcessorOptions): any[] {
         text: linkText,
         title: helpText,
         href: ref ? encodePageURI(encodeRef(ref)) : undefined,
-        cssClass: "sb-wiki-link " + css,
+        cssClass: `sb-wiki-link ${css}`,
         from: matchFrom,
         callback: (e) => callback(e, ref),
       }),

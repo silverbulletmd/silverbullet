@@ -50,7 +50,7 @@ export function attachWidgetEventHandlers(
       }
       e.preventDefault();
       e.stopPropagation();
-      client.navigate(
+      void client.navigate(
         parseToRef(el.dataset.ref!),
         false,
         e.ctrlKey || e.metaKey,

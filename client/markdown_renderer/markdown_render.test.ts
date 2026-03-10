@@ -1,8 +1,8 @@
+import { expect, test } from "vitest";
 import { parse } from "../markdown_parser/parse_tree.ts";
 
 import { renderMarkdownToHtml } from "./markdown_render.ts";
 import { extendedMarkdownLanguage } from "../markdown_parser/parser.ts";
-import { assertEquals } from "@std/assert";
 
 const sampleMarkdown = `---
 name: Sup
@@ -67,14 +67,14 @@ Here is something
 A new thing.
 `;
 
-Deno.test("Markdown render", () => {
+test("Markdown render", () => {
   const tree = parse(extendedMarkdownLanguage, sampleMarkdown);
   renderMarkdownToHtml(tree, {
     failOnUnknown: true,
   });
 });
 
-Deno.test("Smart hard break test", () => {
+test("Smart hard break test", () => {
   const example = `**Hello**
 *world!*`;
   const tree = parse(extendedMarkdownLanguage, example);
@@ -82,9 +82,7 @@ Deno.test("Smart hard break test", () => {
     failOnUnknown: true,
     smartHardBreak: true,
   });
-  assertEquals(
-    html,
-    `<span class="p"><strong>Hello</strong><br><em>world!</em></span>`,
+  expect(html).toEqual(`<span class="p"><strong>Hello</strong><br><em>world!</em></span>`,
   );
 
   const example2 = `This is going to be a text. With a new line.

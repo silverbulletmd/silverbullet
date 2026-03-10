@@ -7,9 +7,6 @@ export class CodeWidgetHook implements Hook<CodeWidgetT> {
   codeWidgetCallbacks = new Map<string, CodeWidgetCallback>();
   codeWidgetModes = new Map<string, "markdown" | "iframe">();
 
-  constructor() {
-  }
-
   collectAllCodeWidgets(system: System<CodeWidgetT>) {
     this.codeWidgetCallbacks.clear();
     for (const plug of system.loadedPlugs.values()) {

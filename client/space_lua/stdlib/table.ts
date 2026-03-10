@@ -399,7 +399,7 @@ export const tableApi = new LuaTable({
     for (let i = 0; i < n; i++) {
       await luaSet(tbl, i + 1, args[i], sf);
     }
-    tbl.rawSet("n", n);
+    void tbl.rawSet("n", n);
     return tbl;
   }),
 

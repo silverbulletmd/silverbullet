@@ -22,7 +22,7 @@ export async function setEditorMode() {
     await editor.alert(
       "Client needs reloading to update the cache, required syscalls are not available in this version. This message may appear a few times. Reloading now.",
     );
-    editor.reloadUI();
+    void editor.reloadUI();
   }
 
   if (await clientStore.get("vimMode")) {
@@ -115,7 +115,7 @@ export async function moveToPosCommand() {
   }
   posString = posString.trim();
   if (posString === "") {
-    editor.flashNotification("Must provide a position.", "error");
+    void editor.flashNotification("Must provide a position.", "error");
     return;
   }
   const pos = +posString;
@@ -145,7 +145,7 @@ export async function moveToLineCommand() {
   }
   lineString = lineString.trim();
   if (lineString === "") {
-    editor.flashNotification("Must provide a line number.", "error");
+    void editor.flashNotification("Must provide a line number.", "error");
     return;
   }
   // Match sequence of digits at the start, optionally another sequence
@@ -159,9 +159,9 @@ export async function moveToLineCommand() {
     return;
   }
   let column = 1;
-  const line = parseInt(match[1]);
+  const line = parseInt(match[1], 10);
   if (match[2]) {
-    column = parseInt(match[2]);
+    column = parseInt(match[2], 10);
   }
   await editor.moveCursorToLine(line, column, true); // showing the movement for better UX
 }
@@ -178,7 +178,7 @@ export async function reloadSystem() {
 }
 
 export function refreshAllWidgets() {
-  codeWidget.refreshAll();
+  void codeWidget.refreshAll();
 }
 
 export async function findInPageCommand() {

@@ -53,7 +53,7 @@ function formatScalar(v: any): string {
   if (isTaggedFloat(v)) return luaFormatNumber(v.value, "float");
   if (typeof v === "number") return luaFormatNumber(v);
   if (typeof v === "boolean") return v ? "true" : "false";
-  return "" + v;
+  return `${v}`;
 }
 
 /**
@@ -140,7 +140,7 @@ export async function renderResultToHtml(
     };
   }
   return {
-    html: renderInline("" + result),
+    html: renderInline(`${result}`),
     dataType: "string",
   };
 }
@@ -281,7 +281,7 @@ async function renderTdHtml(
   if (isEmpty(v)) {
     attrs.push("data-table-cell-empty");
   }
-  const attrStr = attrs.length > 0 ? " " + attrs.join(" ") : "";
+  const attrStr = attrs.length > 0 ? ` ${attrs.join(" ")}` : "";
   const content = await renderCellContent(v, renderInline);
   return `<td${attrStr}>${content}</td>`;
 }
@@ -298,7 +298,7 @@ async function renderLiHtml(
   if (isEmpty(v)) {
     attrs.push("data-list-item-empty");
   }
-  const attrStr = attrs.length > 0 ? " " + attrs.join(" ") : "";
+  const attrStr = attrs.length > 0 ? ` ${attrs.join(" ")}` : "";
   const content = await renderCellContent(v, renderInline);
   return `<li${attrStr}>${content}</li>`;
 }

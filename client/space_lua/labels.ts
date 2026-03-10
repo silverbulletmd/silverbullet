@@ -122,7 +122,7 @@ function resolveFunction(root: LuaBlock): FunctionMeta {
 
     while (searchBlock) {
       const meta = blockMeta.get(searchBlock);
-      if (meta && meta.labels.has(target)) {
+      if (meta?.labels.has(target)) {
         labelIndex = meta.labels.get(target);
         labelDefBlock = searchBlock;
         break;

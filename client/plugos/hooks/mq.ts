@@ -1,4 +1,4 @@
-// deno-lint-ignore-file ban-types
+
 import type { Hook, Manifest } from "../types.ts";
 import type { System } from "../system.ts";
 import { throttle } from "@silverbulletmd/silverbullet/lib/async";

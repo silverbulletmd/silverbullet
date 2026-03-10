@@ -110,7 +110,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
       }
 
       if (
-        // @ts-ignore: Legacy support
+        // @ts-expect-error: Legacy support
         ref.page !== undefined
       ) {
         console.warn(
@@ -127,7 +127,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
 
         legacyRef.kind ??= "page";
 
-        let details: Ref["details"] = undefined;
+        let details: Ref["details"] ;
 
         if (typeof legacyRef.pos === "number") {
           details = {
@@ -232,7 +232,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
     "editor.newWindow": () => {
       globalThis.open(
         location.href,
-        "rnd" + Math.random(),
+        `rnd${Math.random()}`,
         `width=${globalThis.innerWidth},heigh=${globalThis.innerHeight}`,
       );
     },
@@ -268,7 +268,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
             const reader = new FileReader();
             reader.readAsArrayBuffer(file);
             reader.onloadend = async (evt) => {
-              if (evt.target?.readyState == FileReader.DONE) {
+              if (evt.target?.readyState === FileReader.DONE) {
                 resolve({
                   name: file.name,
                   contentType: file.type,
@@ -502,11 +502,11 @@ export function editorSyscalls(client: Client): SysCallMapping {
         key,
         value,
       });
-      client.reloadEditor();
+      void client.reloadEditor();
     },
     "editor.vimEx": (_ctx, exCommand: string) => {
       const cm = vimGetCm(client.editorView);
-      if (cm && cm.state.vim) {
+      if (cm?.state.vim) {
         return Vim.handleEx(cm as any, exCommand);
       } else {
         throw new Error("Vim mode not active or not initialized.");
@@ -555,30 +555,30 @@ export function editorSyscalls(client: Client): SysCallMapping {
       if (config) {
         config.unmap?.forEach((binding) => {
           if (typeof binding === "string") {
-            console.log("Unmapping " + binding);
-            // @ts-ignore: unmap expects a string for the mode, this is problematic with Ex mappings which requires undefined or false
+            console.log(`Unmapping ${binding}`);
+            // @ts-expect-error: unmap expects a string for the mode, this is problematic with Ex mappings which requires undefined or false
             Vim.unmap(binding, undefined);
           } else if (binding.key) {
             console.log(
-              "Unmapping " + binding.key + " in " + (binding.mode ?? "normal"),
+              `Unmapping ${binding.key} in ${binding.mode ?? "normal"}`,
             );
             Vim.unmap(binding.key, binding.mode ?? "normal");
           }
         });
         config.map?.forEach(({ map, to, mode }) => {
           console.log(
-            "Mapping " + map + " to " + to + " for " + (mode ?? "normal"),
+            `Mapping ${map} to ${to} for ${mode ?? "normal"}`,
           );
           Vim.map(map, to, mode ?? "normal");
         });
         config.noremap?.forEach(({ map, to, mode }) => {
           console.log(
-            "Noremapping " + map + " to " + to + " for " + (mode ?? "normal"),
+            `Noremapping ${map} to ${to} for ${mode ?? "normal"}`,
           );
           Vim.noremap(map, to, mode ?? "normal");
         });
         config.commands?.forEach(({ ex, command }) => {
-          console.log("Mapping command '" + command + "' to Ex " + ex);
+          console.log(`Mapping command '${command}' to Ex ${ex}`);
           Vim.defineEx(ex, "", () => client.runCommandByName(command));
         });
       } else {
@@ -592,7 +592,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
       client.startPageNavigate(mode);
     },
     "editor.openCommandPalette": () => {
-      client.startCommandPalette();
+      void client.startCommandPalette();
     },
     "editor.deleteLine": () => {
       deleteLine(client.editorView);

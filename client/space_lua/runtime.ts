@@ -128,7 +128,7 @@ export function luaIsCallable(
   }
   if (v instanceof LuaTable) {
     const mt = getMetatable(v, sf);
-    if (mt && mt.has("__call")) {
+    if (mt?.has("__call")) {
       const mm = mt.get("__call", sf);
       return !!mm && (typeof mm === "function" || isILuaFunction(mm));
     }
@@ -614,7 +614,7 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
 
     if (init && !Array.isArray(init)) {
       for (const k in init) {
-        if (Object.prototype.hasOwnProperty.call(init, k)) {
+        if (Object.hasOwn(init, k)) {
           this.stringKeys[k] = (init as any)[k];
         }
       }
@@ -689,7 +689,7 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
   keys(): any[] {
     const keys: any[] = [];
     for (const k in this.stringKeys) {
-      if (Object.prototype.hasOwnProperty.call(this.stringKeys, k)) {
+      if (Object.hasOwn(this.stringKeys, k)) {
         keys.push(k);
       }
     }
@@ -706,7 +706,7 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
 
   empty(): boolean {
     for (const k in this.stringKeys) {
-      if (Object.prototype.hasOwnProperty.call(this.stringKeys, k)) {
+      if (Object.hasOwn(this.stringKeys, k)) {
         return false;
       }
     }
@@ -934,7 +934,7 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
       );
     }
 
-    if (typeof key === "number" && isNaN(key)) {
+    if (typeof key === "number" && Number.isNaN(key)) {
       throw new LuaRuntimeError(
         "table index is NaN",
         errSf,
@@ -1135,9 +1135,9 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
       if (typeof key === "string") {
         result += key;
       } else {
-        result += "[" + key + "]";
+        result += `[${key}]`;
       }
-      result += " = " + await luaToString(this.get(key));
+      result += ` = ${await luaToString(this.get(key))}`;
     }
     result += "}";
     return result;
@@ -1492,7 +1492,7 @@ export class LuaRuntimeError extends Error {
       );
 
       // Add position indicator
-      const pointer = " ".repeat(column) + "^";
+      const pointer = `${" ".repeat(column)}^`;
 
       traceStr += `* ${ctx.ref || "(unknown source)"} @ ${line}:${column}:\n` +
         `   ${codeLine}\n` +
@@ -1579,7 +1579,7 @@ export function luaToString(
           const strVal = await luaToString(val, visited);
           result += strVal;
         }
-        return result + "}";
+        return `${result}}`;
       }
 
       // Handle objects
@@ -1606,7 +1606,7 @@ export function luaToString(
 }
 
 export function luaFormatNumber(n: number, kind?: "int" | "float"): string {
-  if (kind !== "float" && Number.isInteger(n) && isFinite(n)) {
+  if (kind !== "float" && Number.isInteger(n) && Number.isFinite(n)) {
     return String(n);
   }
   if (n !== n) return "-nan";
@@ -1619,7 +1619,7 @@ export function luaFormatNumber(n: number, kind?: "int" | "float"): string {
   const s = luaFormat("%.14g", n);
   // Guarantee `.01 suffix for integer-valued floats
   if (s.indexOf(".") === -1 && s.indexOf("e") === -1) {
-    return s + ".0";
+    return `${s}.0`;
   }
   return s;
 }
@@ -1643,7 +1643,7 @@ export function getMetatable(
       }
 
       const stringMetatable = new LuaTable();
-      stringMetatable.set("__index", (globalEnv as any).get("string"));
+      void stringMetatable.set("__index", (globalEnv as any).get("string"));
       thread.setLocal("_STRING_MT", stringMetatable);
 
       return stringMetatable;
@@ -1673,24 +1673,24 @@ export function jsToLuaValue(value: any): any {
     const regexMatch = value as RegExpMatchArray;
     const regexMatchTable = new LuaTable();
     for (let i = 0; i < regexMatch.length; i++) {
-      regexMatchTable.set(i + 1, regexMatch[i]);
+      void regexMatchTable.set(i + 1, regexMatch[i]);
     }
-    regexMatchTable.set("index", regexMatch.index);
-    regexMatchTable.set("input", regexMatch.input);
-    regexMatchTable.set("groups", regexMatch.groups);
+    void regexMatchTable.set("index", regexMatch.index);
+    void regexMatchTable.set("input", regexMatch.input);
+    void regexMatchTable.set("groups", regexMatch.groups);
     return regexMatchTable;
   }
   if (Array.isArray(value)) {
     const table = new LuaTable();
     for (let i = 0; i < value.length; i++) {
-      table.set(i + 1, jsToLuaValue(value[i]));
+      void table.set(i + 1, jsToLuaValue(value[i]));
     }
     return table;
   }
   if (typeof value === "object") {
     const table = new LuaTable();
     for (const key in value) {
-      table.set(key, jsToLuaValue((value as any)[key]));
+      void table.set(key, jsToLuaValue((value as any)[key]));
     }
     return table;
   }

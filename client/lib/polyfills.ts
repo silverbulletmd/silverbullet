@@ -1,8 +1,8 @@
 // Source: https://github.com/ungap/with-resolvers/blob/main/index.js
-// @ts-ignore This is fine
+// @ts-expect-error This is fine
 Promise.withResolvers || (Promise.withResolvers = function withResolvers() {
   let a, b;
-  const c = new this(function (resolve, reject) {
+  const c = new this((resolve, reject) => {
     a = resolve;
     b = reject;
   });

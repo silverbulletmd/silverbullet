@@ -40,10 +40,10 @@ export async function renamePageCommand(cmdDef: any) {
   }
   newName = newName.trim();
   if (newName === "") {
-    editor.flashNotification("Must provide a non-empty page title.", "error");
+    void editor.flashNotification("Must provide a non-empty page title.", "error");
     return false;
   }
-  const pageList: [string, string][] = [[oldName + ".md", newName + ".md"]];
+  const pageList: [string, string][] = [[`${oldName}.md`, `${newName}.md`]];
   await batchRenameFiles(pageList);
   return true;
 }
@@ -77,10 +77,10 @@ export async function renamePageLinkCommand() {
   }
   newName = newName.trim();
   if (newName === "") {
-    editor.flashNotification("Must provide a non-empty page title.", "error");
+    void editor.flashNotification("Must provide a non-empty page title.", "error");
     return false;
   }
-  const pageList: [string, string][] = [[oldName + ".md", newName + ".md"]];
+  const pageList: [string, string][] = [[`${oldName}.md`, `${newName}.md`]];
   await batchRenameFiles(pageList);
 }
 
@@ -101,7 +101,7 @@ export async function renameDocumentCommand(cmdDef: any) {
   }
   newName = newName.trim();
   if (newName === "") {
-    editor.flashNotification(
+    void editor.flashNotification(
       "Must provide a non-empty document name.",
       "error",
     );
@@ -225,7 +225,7 @@ async function renamePage(oldName: string, newName: string) {
         newTail = newTail.replace(/^.*?(?=@\d*|#|\$|\))/, newLink);
         // Wrap in <> if link has spaces
         if (newLink.includes(" ")) {
-          newTail = "<" + newTail.replace(")", ">)");
+          newTail = `<${newTail.replace(")", ">)")}`;
         }
         text = text.substring(0, link.pos) + newTail;
       }
@@ -239,7 +239,7 @@ async function renamePage(oldName: string, newName: string) {
   const batchRenameDocuments: [string, string][] = [];
   for (const document of documentsToMove) {
     const newAttName = oldFolder.length === 0
-      ? newFolder + "/" + document
+      ? `${newFolder}/${document}`
       : document.replace(oldFolder, newFolder).replace(/^\//, "");
     batchRenameDocuments.push([document, newAttName]);
   }
@@ -325,7 +325,7 @@ export async function renamePrefixCommand(cmdDef: any) {
   // actually want to add or remove white space. They can also input an empty
   // string for the new prefix to remove the old prefix.
   if (oldPrefix === "") {
-    editor.flashNotification("Must provide a non-empty prefix.", "error");
+    void editor.flashNotification("Must provide a non-empty prefix.", "error");
     return false;
   }
   const newPrefix = cmdDef.newPrefix ??
@@ -340,7 +340,7 @@ export async function renamePrefixCommand(cmdDef: any) {
     file,
   ) => file.startsWith(oldPrefix));
   allAffectedFiles = allAffectedFiles.concat(
-    allPages.map((page) => page.name + ".md").filter((page) =>
+    allPages.map((page) => `${page.name}.md`).filter((page) =>
       page.startsWith(oldPrefix)
     ),
   );
@@ -377,7 +377,7 @@ export async function extractToPageCommand() {
   }
   newName = newName.trim();
   if (newName === "") {
-    editor.flashNotification("Must provide a non-empty page title.", "error");
+    void editor.flashNotification("Must provide a non-empty page title.", "error");
   }
 
   try {
@@ -452,7 +452,7 @@ async function updateBacklinks(
         // Is [Markdown link]()
         if (newTail.startsWith("/") || newTail.startsWith("</")) {
           // Is absolute mdlink, update with full path with leading /
-          newLink = "/" + newLink;
+          newLink = `/${newLink}`;
         } else {
           // Is relative mdlink
           newLink = absoluteToRelativePath(pageToEdit, newLink);
@@ -461,7 +461,7 @@ async function updateBacklinks(
 
         // Wrap in <> if link has spaces
         if (newLink.includes(" ")) {
-          newTail = "<" + newTail.replace(")", ">)");
+          newTail = `<${newTail.replace(")", ">)")}`;
         }
       } else {
         // Is wikilink, replace with full path

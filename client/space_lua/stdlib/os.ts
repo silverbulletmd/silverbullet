@@ -138,7 +138,7 @@ function dateTable(d: Date, utc: boolean): LuaTable {
   });
 
   if (!utc) {
-    tbl.rawSet("isdst", isDST(d));
+    void tbl.rawSet("isdst", isDST(d));
   }
 
   return tbl;

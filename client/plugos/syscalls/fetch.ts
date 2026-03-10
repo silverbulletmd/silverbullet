@@ -82,7 +82,7 @@ export function sandboxFetchSyscalls(
       fetchOptions.headers = buildProxyHeaders(options?.headers);
       const resp = await client.httpSpacePrimitives.authenticatedFetch(
         buildProxyUrl(client, url),
-        // Casting this to any because of weird Deno typing
+        // Casting to any due to TypeScript fetch type limitations
         fetchOptions as any,
       );
       const statusCode = +(resp.headers.get("x-proxy-status-code") || "200");

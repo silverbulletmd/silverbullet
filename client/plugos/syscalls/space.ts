@@ -32,7 +32,7 @@ export function spaceReadSyscalls(client: Client): SysCallMapping {
       return (await client.space.readRef(ref)).text;
     },
     "space.pageExists": (_ctx, name: string): boolean => {
-      return client.clientSystem.allKnownFiles.has(name + ".md");
+      return client.clientSystem.allKnownFiles.has(`${name}.md`);
     },
     "space.getPageMeta": (_ctx, name: string): Promise<PageMeta> => {
       return client.space.getPageMeta(name);

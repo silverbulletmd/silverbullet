@@ -66,7 +66,7 @@ export function TopBar({
                 : unsavedChanges
                 ? "sb-unsaved"
                 : "sb-saved") +
-                (cssClass ? " sb-decorated-object " + cssClass : "")}
+                (cssClass ? ` sb-decorated-object ${cssClass}` : "")}
             >
               <MiniEditor
                 text={pageName ?? ""}
@@ -80,7 +80,7 @@ export function TopBar({
                   }
                 }}
                 onEnter={(newName) => {
-                  onRename(newName);
+                  void onRename(newName);
                 }}
                 editable={!client.ui.viewState.uiOptions.forcedROMode &&
                   !client.bootConfig.readOnly}

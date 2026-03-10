@@ -11,7 +11,7 @@ export function createWorkerSandboxFromLocalPath<HookT>(
       plug,
       new URL(
         name,
-        document.baseURI.slice(0, -1) + fsEndpoint + "/", // We're NOT striping trailing '/', this used to be `location.origin`
+        `${document.baseURI.slice(0, -1) + fsEndpoint}/`, // We're NOT striping trailing '/', this used to be `location.origin`
       ),
     );
 }

@@ -1,4 +1,4 @@
-import { assertEquals } from "@std/assert";
+import { describe, expect, test } from "vitest";
 import {
   type CursorContext,
   detectContext,
@@ -34,164 +34,140 @@ function detect(marked: string): CursorContext | null {
 }
 
 // Bullet Lists: Move Up/Down
-Deno.test("Bullet list move up/down", async (t) => {
-  await t.step("swap two flat bullets", () => {
-    assertEquals(
-      applyOp(
+describe("Bullet list move up/down", () => {
+  test("swap two flat bullets", () => {
+    expect(applyOp(
         moveUp,
         `- first
 - sec|^|ond
 `,
-      ),
-      `- sec|^|ond
+      )).toEqual(`- sec|^|ond
 - first
-`,
-    );
-    assertEquals(
-      applyOp(
+`,);
+    expect(applyOp(
         moveDown,
         `- fir|^|st
 - second
 `,
-      ),
-      `- second
+      )).toEqual(`- second
 - fir|^|st
-`,
-    );
+`,);
   });
 
-  await t.step("boundary bullet is no-op", () => {
+  test("boundary bullet is no-op", () => {
     const upInput = `- fir|^|st
 - second
 `;
-    assertEquals(applyOp(moveUp, upInput), upInput);
+    expect(applyOp(moveUp, upInput)).toEqual(upInput);
     const downInput = `- first
 - sec|^|ond
 `;
-    assertEquals(applyOp(moveDown, downInput), downInput);
+    expect(applyOp(moveDown, downInput)).toEqual(downInput);
   });
 
-  await t.step("item with children moves as unit", () => {
-    assertEquals(
-      applyOp(
+  test("item with children moves as unit", () => {
+    expect(applyOp(
         moveUp,
         `- first
 - sec|^|ond
   - child
 `,
-      ),
-      `- sec|^|ond
+      )).toEqual(`- sec|^|ond
   - child
 - first
-`,
-    );
-    assertEquals(
-      applyOp(
+`,);
+    expect(applyOp(
         moveDown,
         `- fir|^|st
   - child
 - second
 `,
-      ),
-      `- second
+      )).toEqual(`- second
 - fir|^|st
   - child
-`,
-    );
+`,);
   });
 
-  await t.step("nested child: boundary no-op and swap", () => {
+  test("nested child: boundary no-op and swap", () => {
     const upBoundary = `- parent
   - child |^|one
   - child two
 `;
-    assertEquals(applyOp(moveUp, upBoundary), upBoundary);
+    expect(applyOp(moveUp, upBoundary)).toEqual(upBoundary);
     const downBoundary = `- parent
   - child one
   - child |^|two
 `;
-    assertEquals(applyOp(moveDown, downBoundary), downBoundary);
+    expect(applyOp(moveDown, downBoundary)).toEqual(downBoundary);
 
-    assertEquals(
-      applyOp(
+    expect(applyOp(
         moveUp,
         `- parent
   - child one
   - child |^|two
 `,
-      ),
-      `- parent
+      )).toEqual(`- parent
   - child |^|two
   - child one
-`,
-    );
-    assertEquals(
-      applyOp(
+`,);
+    expect(applyOp(
         moveDown,
         `- parent
   - child |^|one
   - child two
 `,
-      ),
-      `- parent
+      )).toEqual(`- parent
   - child two
   - child |^|one
-`,
-    );
+`,);
   });
 
-  await t.step("three items, swap adjacent", () => {
-    assertEquals(
-      applyOp(
+  test("three items, swap adjacent", () => {
+    expect(applyOp(
         moveUp,
         `- first
 - second
 - th|^|ird
 `,
-      ),
-      `- first
+      )).toEqual(`- first
 - th|^|ird
 - second
-`,
-    );
-    assertEquals(
-      applyOp(
+`,);
+    expect(applyOp(
         moveDown,
         `- fir|^|st
 - second
 - third
 `,
-      ),
-      `- second
+      )).toEqual(`- second
 - fir|^|st
 - third
-`,
-    );
+`,);
   });
 });
 
 // Bullet Lists: Indent/Outdent
-Deno.test("Bullet list indent/outdent", async (t) => {
-  await t.step("indent then outdent flat bullet", () => {
+describe("Bullet list indent/outdent", () => {
+  test("indent then outdent flat bullet", () => {
     const flat = `- first
 - sec|^|ond
 `;
     const nested = `- first
   - sec|^|ond
 `;
-    assertEquals(applyOp(indent, flat), nested);
-    assertEquals(applyOp(outdent, nested), flat);
+    expect(applyOp(indent, flat)).toEqual(nested);
+    expect(applyOp(outdent, nested)).toEqual(flat);
   });
 
-  await t.step("boundary no-ops", () => {
+  test("boundary no-ops", () => {
     const input = `- fir|^|st
 - second
 `;
-    assertEquals(applyOp(indent, input), input);
-    assertEquals(applyOp(outdent, input), input);
+    expect(applyOp(indent, input)).toEqual(input);
+    expect(applyOp(outdent, input)).toEqual(input);
   });
 
-  await t.step("with children", () => {
+  test("with children", () => {
     const flat = `- first
 - sec|^|ond
   - child
@@ -200,211 +176,175 @@ Deno.test("Bullet list indent/outdent", async (t) => {
   - sec|^|ond
     - child
 `;
-    assertEquals(applyOp(indent, flat), nested);
-    assertEquals(applyOp(outdent, nested), flat);
+    expect(applyOp(indent, flat)).toEqual(nested);
+    expect(applyOp(outdent, nested)).toEqual(flat);
   });
 
-  await t.step("already nested item indents further", () => {
-    assertEquals(
-      applyOp(
+  test("already nested item indents further", () => {
+    expect(applyOp(
         indent,
         `- first
   - sec|^|ond
 `,
-      ),
-      `- first
+      )).toEqual(`- first
     - sec|^|ond
-`,
-    );
+`,);
   });
 
-  await t.step("deeply nested item outdents one level", () => {
-    assertEquals(
-      applyOp(
+  test("deeply nested item outdents one level", () => {
+    expect(applyOp(
         outdent,
         `- first
   - second
     - th|^|ird
 `,
-      ),
-      `- first
+      )).toEqual(`- first
   - second
   - th|^|ird
-`,
-    );
+`,);
   });
 });
 
 // Headers: Move Up/Down
-Deno.test("Heading move up/down", async (t) => {
-  await t.step("swap two h2 sections", () => {
-    assertEquals(
-      applyOp(
+describe("Heading move up/down", () => {
+  test("swap two h2 sections", () => {
+    expect(applyOp(
         moveUp,
         `## First
 Content one
 ## Sec|^|ond
 Content two
 `,
-      ),
-      `## Sec|^|ond
+      )).toEqual(`## Sec|^|ond
 Content two
 ## First
 Content one
-`,
-    );
-    assertEquals(
-      applyOp(
+`,);
+    expect(applyOp(
         moveDown,
         `## Fir|^|st
 Content one
 ## Second
 Content two
 `,
-      ),
-      `## Second
+      )).toEqual(`## Second
 Content two
 ## Fir|^|st
 Content one
-`,
-    );
+`,);
   });
 
-  await t.step("boundary heading is no-op", () => {
+  test("boundary heading is no-op", () => {
     const upInput = `## Fir|^|st
 Content
 ## Second
 `;
-    assertEquals(applyOp(moveUp, upInput), upInput);
+    expect(applyOp(moveUp, upInput)).toEqual(upInput);
     const downInput = `## First
 ## Sec|^|ond
 `;
-    assertEquals(applyOp(moveDown, downInput), downInput);
+    expect(applyOp(moveDown, downInput)).toEqual(downInput);
   });
 
-  await t.step("h2 with sub-headings moves entire section", () => {
-    assertEquals(
-      applyOp(
+  test("h2 with sub-headings moves entire section", () => {
+    expect(applyOp(
         moveUp,
         `## First
 ### Sub one
 ## Sec|^|ond
 ### Sub two
 `,
-      ),
-      `## Sec|^|ond
+      )).toEqual(`## Sec|^|ond
 ### Sub two
 ## First
 ### Sub one
-`,
-    );
-    assertEquals(
-      applyOp(
+`,);
+    expect(applyOp(
         moveDown,
         `## Fir|^|st
 ### Sub one
 ## Second
 ### Sub two
 `,
-      ),
-      `## Second
+      )).toEqual(`## Second
 ### Sub two
 ## Fir|^|st
 ### Sub one
-`,
-    );
+`,);
   });
 
-  await t.step("h3 swaps only within parent h2 scope", () => {
-    assertEquals(
-      applyOp(
+  test("h3 swaps only within parent h2 scope", () => {
+    expect(applyOp(
         moveUp,
         `## Parent
 ### Sub one
 ### Sub |^|two
 `,
-      ),
-      `## Parent
+      )).toEqual(`## Parent
 ### Sub |^|two
 ### Sub one
-`,
-    );
+`,);
   });
 
-  await t.step("headings with no body text", () => {
-    assertEquals(
-      applyOp(
+  test("headings with no body text", () => {
+    expect(applyOp(
         moveUp,
         `## First
 ## Sec|^|ond
 `,
-      ),
-      `## Sec|^|ond
+      )).toEqual(`## Sec|^|ond
 ## First
-`,
-    );
+`,);
   });
 
-  await t.step("no trailing newline preserves content", () => {
-    assertEquals(
-      applyOp(
+  test("no trailing newline preserves content", () => {
+    expect(applyOp(
         moveUp,
         `## First
 Body
 ## Sec|^|ond
 End`,
-      ),
-      `## Sec|^|ond
+      )).toEqual(`## Sec|^|ond
 End
 ## First
-Body`,
-    );
-    assertEquals(
-      applyOp(
+Body`,);
+    expect(applyOp(
         moveDown,
         `## Fir|^|st
 Body
 ## Second
 End`,
-      ),
-      `## Second
+      )).toEqual(`## Second
 End
 ## Fir|^|st
-Body`,
-    );
+Body`,);
   });
 
-  await t.step("empty body section swap preserves structure", () => {
-    assertEquals(
-      applyOp(
+  test("empty body section swap preserves structure", () => {
+    expect(applyOp(
         moveDown,
         `## |^|A
 ## B
 Body B
 `,
-      ),
-      `## B
+      )).toEqual(`## B
 Body B
 ## |^|A
-`,
-    );
+`,);
   });
 
-  await t.step("no trailing newline, first has no body", () => {
-    assertEquals(
-      applyOp(
+  test("no trailing newline, first has no body", () => {
+    expect(applyOp(
         moveDown,
         `## |^|A
 ## B
 Body`,
-      ),
-      `## B
+      )).toEqual(`## B
 Body
-## |^|A`,
-    );
+## |^|A`,);
   });
 
-  await t.step("roundtrip: move down then up returns to original", () => {
+  test("roundtrip: move down then up returns to original", () => {
     const original = `## First
 Body 1a
 Body 1b
@@ -413,276 +353,255 @@ Body 2a
 `;
     const after = moveDown(original, 4);
     if (after === null || after === "blocked") {
-      throw new Error("moveDown returned " + after);
+      throw new Error(`moveDown returned ${after}`);
     }
     const back = moveUp(after.text, after.cursor);
     if (back === null || back === "blocked") {
-      throw new Error("moveUp returned " + back);
+      throw new Error(`moveUp returned ${back}`);
     }
-    assertEquals(back.text, original);
+    expect(back.text).toEqual(original);
   });
 });
 
 // Headers: Indent/Outdent
-Deno.test("Heading indent/outdent", async (t) => {
-  await t.step("basic", () => {
+describe("Heading indent/outdent", () => {
+  test("basic", () => {
     const h2 = `## He|^|ading
 `;
     const h3 = `### He|^|ading
 `;
-    assertEquals(applyOp(indent, h2), h3);
-    assertEquals(applyOp(outdent, h3), h2);
+    expect(applyOp(indent, h2)).toEqual(h3);
+    expect(applyOp(outdent, h3)).toEqual(h2);
   });
 
-  await t.step("level limit no-ops", () => {
+  test("level limit no-ops", () => {
     const h6 = `###### He|^|ading
 `;
-    assertEquals(applyOp(indent, h6), h6);
+    expect(applyOp(indent, h6)).toEqual(h6);
     const h1 = `# He|^|ading
 `;
-    assertEquals(applyOp(outdent, h1), h1);
+    expect(applyOp(outdent, h1)).toEqual(h1);
   });
 
-  await t.step("with sub-headings", () => {
+  test("with sub-headings", () => {
     const shallow = `## Ma|^|in
 ### Sub
 `;
     const deep = `### Ma|^|in
 #### Sub
 `;
-    assertEquals(applyOp(indent, shallow), deep);
-    assertEquals(applyOp(outdent, deep), shallow);
+    expect(applyOp(indent, shallow)).toEqual(deep);
+    expect(applyOp(outdent, deep)).toEqual(shallow);
   });
 });
 
 // Paragraphs: Move Up/Down
-Deno.test("Paragraph operations", async (t) => {
-  await t.step("swap two consecutive paragraphs", () => {
-    assertEquals(
-      applyOp(
+describe("Paragraph operations", () => {
+  test("swap two consecutive paragraphs", () => {
+    expect(applyOp(
         moveUp,
         `First para.
 
 Second |^|para.
 `,
-      ),
-      `Second |^|para.
+      )).toEqual(`Second |^|para.
 
 First para.
-`,
-    );
+`,);
   });
 
-  await t.step("boundary no-ops", () => {
+  test("boundary no-ops", () => {
     const upInput = `First |^|para.
 
 Second para.
 `;
-    assertEquals(applyOp(moveUp, upInput), upInput);
+    expect(applyOp(moveUp, upInput)).toEqual(upInput);
     const downInput = `First para.
 
 Second |^|para.
 `;
-    assertEquals(applyOp(moveDown, downInput), downInput);
+    expect(applyOp(moveDown, downInput)).toEqual(downInput);
   });
 
-  await t.step("moves past an adjacent list block", () => {
-    assertEquals(
-      applyOp(
+  test("moves past an adjacent list block", () => {
+    expect(applyOp(
         moveDown,
         `Some |^|text.
 
 - item one
 - item two
 `,
-      ),
-      `- item one
+      )).toEqual(`- item one
 - item two
 
 Some |^|text.
-`,
-    );
+`,);
   });
 });
 
 // Ordered Lists: all operations
-Deno.test("Ordered list operations", async (t) => {
-  await t.step("move up", () => {
-    assertEquals(
-      applyOp(
+describe("Ordered list operations", () => {
+  test("move up", () => {
+    expect(applyOp(
         moveUp,
         `1. first
 2. sec|^|ond
 `,
-      ),
-      `1. sec|^|ond
+      )).toEqual(`1. sec|^|ond
 2. first
-`,
-    );
+`,);
   });
 
-  await t.step("move down", () => {
-    assertEquals(
-      applyOp(
+  test("move down", () => {
+    expect(applyOp(
         moveDown,
         `1. fir|^|st
 2. second
 `,
-      ),
-      `1. second
+      )).toEqual(`1. second
 2. fir|^|st
-`,
-    );
+`,);
   });
 
-  await t.step("indent", () => {
-    assertEquals(
-      applyOp(
+  test("indent", () => {
+    expect(applyOp(
         indent,
         `1. first
 2. sec|^|ond
 `,
-      ),
-      `1. first
+      )).toEqual(`1. first
    2. sec|^|ond
-`,
-    );
+`,);
   });
 
-  await t.step("outdent", () => {
-    assertEquals(
-      applyOp(
+  test("outdent", () => {
+    expect(applyOp(
         outdent,
         `1. first
    2. sec|^|ond
 `,
-      ),
-      `1. first
+      )).toEqual(`1. first
 2. sec|^|ond
-`,
-    );
+`,);
   });
 });
 
 // Edge Cases
-Deno.test("Edge cases", async (t) => {
-  await t.step("empty and single-item no-ops", () => {
+describe("Edge cases", () => {
+  test("empty and single-item no-ops", () => {
     const empty = `|^|`;
-    assertEquals(applyOp(moveUp, empty), empty);
-    assertEquals(applyOp(moveDown, empty), empty);
-    assertEquals(applyOp(indent, empty), empty);
-    assertEquals(applyOp(outdent, empty), empty);
+    expect(applyOp(moveUp, empty)).toEqual(empty);
+    expect(applyOp(moveDown, empty)).toEqual(empty);
+    expect(applyOp(indent, empty)).toEqual(empty);
+    expect(applyOp(outdent, empty)).toEqual(empty);
 
     const single = `- on|^|ly
 `;
-    assertEquals(applyOp(moveUp, single), single);
-    assertEquals(applyOp(moveDown, single), single);
+    expect(applyOp(moveUp, single)).toEqual(single);
+    expect(applyOp(moveDown, single)).toEqual(single);
   });
 
-  await t.step("nested boundary no-ops", async (t) => {
-    await t.step("move down last item with sub-items", () => {
+  describe("nested boundary no-ops", () => {
+    test("move down last item with sub-items", () => {
       const input = "- a\n- b|^|\n  - sub1\n  - sub2";
-      assertEquals(applyOp(moveDown, input), input);
+      expect(applyOp(moveDown, input)).toEqual(input);
     });
 
-    await t.step("move down last nested item", () => {
+    test("move down last nested item", () => {
       const input = "- a\n- b\n  - sub1\n  - sub2|^|";
-      assertEquals(applyOp(moveDown, input), input);
+      expect(applyOp(moveDown, input)).toEqual(input);
     });
 
-    await t.step("move up first item with sub-items", () => {
+    test("move up first item with sub-items", () => {
       const input = "- a|^|\n  - sub\n- b";
-      assertEquals(applyOp(moveUp, input), input);
+      expect(applyOp(moveUp, input)).toEqual(input);
     });
 
-    await t.step("cursor at end of last nested item blocks move down", () => {
+    test("cursor at end of last nested item blocks move down", () => {
       const input = "- a\n- b\n  - sub1\n  - sub2|^|\n- c";
-      assertEquals(applyOp(moveDown, input), input);
+      expect(applyOp(moveDown, input)).toEqual(input);
     });
   });
 
-  await t.step("cursor on leading whitespace of nested item is no-op", () => {
+  test("cursor on leading whitespace of nested item is no-op", () => {
     const input = "  - a\n  - b\n    - sub1\n  |^|  - sub2\n  - c";
-    assertEquals(applyOp(moveDown, input), input);
+    expect(applyOp(moveDown, input)).toEqual(input);
   });
 
-  await t.step("cursor at end of nested item moves within nested list", () => {
-    assertEquals(
-      applyOp(moveDown, "- a\n- b\n  - sub1|^|\n  - sub2\n- c"),
-      "- a\n- b\n  - sub2\n  - sub1|^|\n- c",
-    );
+  test("cursor at end of nested item moves within nested list", () => {
+    expect(applyOp(moveDown, "- a\n- b\n  - sub1|^|\n  - sub2\n- c")).toEqual("- a\n- b\n  - sub2\n  - sub1|^|\n- c",);
   });
 });
 
 // Context Detection
-Deno.test("Cursor positions in bullet list", async (t) => {
-  await t.step("on list marker", () => {
+describe("Cursor positions in bullet list", () => {
+  test("on list marker", () => {
     const ctx = detect("|^|- one\n- two\n");
-    assertEquals(ctx?.type, "listItem");
-    assertEquals(ctx && "list" in ctx ? ctx.list.type : null, "BulletList");
+    expect(ctx?.type).toEqual("listItem");
+    expect(ctx && "list" in ctx ? ctx.list.type : null).toEqual("BulletList");
   });
 
-  await t.step("on space after marker", () => {
-    assertEquals(detect("-|^| one\n- two\n")?.type, "listItem");
+  test("on space after marker", () => {
+    expect(detect("-|^| one\n- two\n")?.type).toEqual("listItem");
   });
 
-  await t.step("on newline between items", () => {
-    assertEquals(detect("- one|^|\n- two\n")?.type, "listItem");
+  test("on newline between items", () => {
+    expect(detect("- one|^|\n- two\n")?.type).toEqual("listItem");
   });
 
-  await t.step("at last char of item text", () => {
+  test("at last char of item text", () => {
     const ctx = detect("- on|^|e\n- two\n");
-    assertEquals(ctx?.type, "listItem");
+    expect(ctx?.type).toEqual("listItem");
     if (ctx?.type === "listItem") {
-      assertEquals(ctx.itemIndex, 0);
+      expect(ctx.itemIndex).toEqual(0);
     }
   });
 
-  await t.step("past end of document", () => {
-    assertEquals(detect("- one\n- two\n|^|"), null);
+  test("past end of document", () => {
+    expect(detect("- one\n- two\n|^|")).toEqual(null);
   });
 });
 
-Deno.test("Cursor positions on heading", async (t) => {
-  await t.step("on heading marker", () => {
+describe("Cursor positions on heading", () => {
+  test("on heading marker", () => {
     const ctx = detect("|^|## Heading\nBody\n");
-    assertEquals(ctx?.type, "heading");
+    expect(ctx?.type).toEqual("heading");
     if (ctx?.type === "heading") {
-      assertEquals(ctx.level, 2);
+      expect(ctx.level).toEqual(2);
     }
   });
 
-  await t.step("on newline after heading", () => {
-    assertEquals(detect("## Heading|^|\nBody\n")?.type, "heading");
+  test("on newline after heading", () => {
+    expect(detect("## Heading|^|\nBody\n")?.type).toEqual("heading");
   });
 });
 
-Deno.test("Context detection edge cases", async (t) => {
-  await t.step("code block returns null", () => {
-    assertEquals(detect("```\n|^|some code\n```\n"), null);
+describe("Context detection edge cases", () => {
+  test("code block returns null", () => {
+    expect(detect("```\n|^|some code\n```\n")).toEqual(null);
   });
 
-  await t.step("frontmatter returns null", () => {
-    assertEquals(detect("---\n|^|title: Test\n---\nContent\n"), null);
+  test("frontmatter returns null", () => {
+    expect(detect("---\n|^|title: Test\n---\nContent\n")).toEqual(null);
   });
 
-  await t.step("between paragraphs resolves to preceding paragraph", () => {
-    assertEquals(detect("Para one.|^|\n\nPara two.\n")?.type, "paragraph");
-    assertEquals(detect("Para one.\n|^|\nPara two.\n"), null);
+  test("between paragraphs resolves to preceding paragraph", () => {
+    expect(detect("Para one.|^|\n\nPara two.\n")?.type).toEqual("paragraph");
+    expect(detect("Para one.\n|^|\nPara two.\n")).toEqual(null);
   });
 
-  await t.step("paragraph inside list item detects list item", () => {
-    assertEquals(detect("- ite|^|m text\n")?.type, "listItem");
+  test("paragraph inside list item detects list item", () => {
+    expect(detect("- ite|^|m text\n")?.type).toEqual("listItem");
   });
 
-  await t.step("heading section boundaries are correct", () => {
+  test("heading section boundaries are correct", () => {
     const ctx = detect("## |^|H2a\nBody\n### H3\nSub\n## H2b\n");
-    assertEquals(ctx?.type, "heading");
+    expect(ctx?.type).toEqual("heading");
     if (ctx?.type === "heading") {
-      assertEquals(ctx.level, 2);
+      expect(ctx.level).toEqual(2);
       const types = ctx.doc.children!.slice(ctx.sectionStart, ctx.sectionEnd)
         .filter((c) => c.type).map((c) => c.type);
-      assertEquals(types, [
+      expect(types).toEqual([
         "ATXHeading2",
         "Paragraph",
         "ATXHeading3",
@@ -691,115 +610,105 @@ Deno.test("Context detection edge cases", async (t) => {
     }
   });
 
-  await t.step("deeply nested list item detects innermost list", () => {
+  test("deeply nested list item detects innermost list", () => {
     const ctx = detect("- parent\n  - child\n    - gra|^|ndchild\n");
-    assertEquals(ctx?.type, "listItem");
+    expect(ctx?.type).toEqual("listItem");
     if (ctx?.type === "listItem") {
-      assertEquals(ctx.list.type, "BulletList");
-      assertEquals(ctx.item.from, 23);
+      expect(ctx.list.type).toEqual("BulletList");
+      expect(ctx.item.from).toEqual(23);
     }
   });
 
-  await t.step("paragraph after heading detects paragraph", () => {
-    assertEquals(
-      detect("## Heading\nBody|^| text here.\n")?.type,
-      "paragraph",
-    );
+  test("paragraph after heading detects paragraph", () => {
+    expect(detect("## Heading\nBody|^| text here.\n")?.type).toEqual("paragraph",);
   });
 
-  await t.step("single heading with no following content", () => {
+  test("single heading with no following content", () => {
     const ctx = detect("## On|^|ly heading\n");
-    assertEquals(ctx?.type, "heading");
+    expect(ctx?.type).toEqual("heading");
     if (ctx?.type === "heading") {
-      assertEquals(ctx.sectionStart, 0);
-      assertEquals(ctx.sectionEnd, ctx.doc.children!.length);
+      expect(ctx.sectionStart).toEqual(0);
+      expect(ctx.sectionEnd).toEqual(ctx.doc.children!.length);
     }
   });
 });
 
-Deno.test("List marker variants", async (t) => {
-  await t.step("ordered list", () => {
+describe("List marker variants", () => {
+  test("ordered list", () => {
     const ctx = detect("|^|1. first\n2. second\n");
-    assertEquals(ctx?.type, "listItem");
-    assertEquals(ctx && "list" in ctx ? ctx.list.type : null, "OrderedList");
+    expect(ctx?.type).toEqual("listItem");
+    expect(ctx && "list" in ctx ? ctx.list.type : null).toEqual("OrderedList");
   });
 
-  await t.step("* bullet", () => {
+  test("* bullet", () => {
     const ctx = detect("|^|* item one\n* item two\n");
-    assertEquals(ctx?.type, "listItem");
-    assertEquals(ctx && "list" in ctx ? ctx.list.type : null, "BulletList");
+    expect(ctx?.type).toEqual("listItem");
+    expect(ctx && "list" in ctx ? ctx.list.type : null).toEqual("BulletList");
   });
 
-  await t.step("blockquote list", () => {
-    assertEquals(detect("> - |^|item one\n> - item two\n")?.type, "listItem");
+  test("blockquote list", () => {
+    expect(detect("> - |^|item one\n> - item two\n")?.type).toEqual("listItem");
   });
 });
 
 // Table Rows: Move Up/Down
-Deno.test("Table row move up/down", async (t) => {
-  await t.step("swap two data rows", () => {
-    assertEquals(
-      applyOp(
+describe("Table row move up/down", () => {
+  test("swap two data rows", () => {
+    expect(applyOp(
         moveUp,
         `| A | B |
 | --- | --- |
 | 1 | 2 |
 | 3|^| | 4 |
 `,
-      ),
-      `| A | B |
+      )).toEqual(`| A | B |
 | --- | --- |
 | 3|^| | 4 |
 | 1 | 2 |
-`,
-    );
-    assertEquals(
-      applyOp(
+`,);
+    expect(applyOp(
         moveDown,
         `| A | B |
 | --- | --- |
 | 1|^| | 2 |
 | 3 | 4 |
 `,
-      ),
-      `| A | B |
+      )).toEqual(`| A | B |
 | --- | --- |
 | 3 | 4 |
 | 1|^| | 2 |
-`,
-    );
+`,);
   });
 
-  await t.step("first data row can't move up", () => {
+  test("first data row can't move up", () => {
     const input = `| A | B |
 | --- | --- |
 | 1|^| | 2 |
 | 3 | 4 |
 `;
-    assertEquals(applyOp(moveUp, input), input);
+    expect(applyOp(moveUp, input)).toEqual(input);
   });
 
-  await t.step("last data row can't move down", () => {
+  test("last data row can't move down", () => {
     const input = `| A | B |
 | --- | --- |
 | 1 | 2 |
 | 3|^| | 4 |
 `;
-    assertEquals(applyOp(moveDown, input), input);
+    expect(applyOp(moveDown, input)).toEqual(input);
   });
 
-  await t.step("header row is not movable", () => {
+  test("header row is not movable", () => {
     const input = `| A|^| | B |
 | --- | --- |
 | 1 | 2 |
 `;
-    assertEquals(applyOp(moveUp, input), input);
-    assertEquals(applyOp(moveDown, input), input);
+    expect(applyOp(moveUp, input)).toEqual(input);
+    expect(applyOp(moveDown, input)).toEqual(input);
   });
 
-  await t.step("three rows, swap middle", () => {
-    assertEquals(
-      applyOp(
+  test("three rows, swap middle", () => {
+    expect(applyOp(
         moveUp,
         `| H1 | H2 |
 | --- | --- |
@@ -807,16 +716,13 @@ Deno.test("Table row move up/down", async (t) => {
 | c|^| | d |
 | e | f |
 `,
-      ),
-      `| H1 | H2 |
+      )).toEqual(`| H1 | H2 |
 | --- | --- |
 | c|^| | d |
 | a | b |
 | e | f |
-`,
-    );
-    assertEquals(
-      applyOp(
+`,);
+    expect(applyOp(
         moveDown,
         `| H1 | H2 |
 | --- | --- |
@@ -824,54 +730,49 @@ Deno.test("Table row move up/down", async (t) => {
 | c|^| | d |
 | e | f |
 `,
-      ),
-      `| H1 | H2 |
+      )).toEqual(`| H1 | H2 |
 | --- | --- |
 | a | b |
 | e | f |
 | c|^| | d |
-`,
-    );
+`,);
   });
 
-  await t.step("indent/outdent on table row is no-op", () => {
+  test("indent/outdent on table row is no-op", () => {
     const input = `| A | B |
 | --- | --- |
 | 1|^| | 2 |
 `;
-    assertEquals(applyOp(indent, input), input);
-    assertEquals(applyOp(outdent, input), input);
+    expect(applyOp(indent, input)).toEqual(input);
+    expect(applyOp(outdent, input)).toEqual(input);
   });
 });
 
 // Table Rows: Context Detection
-Deno.test("Table row context detection", async (t) => {
-  await t.step("cursor in data row detects tableRow", () => {
+describe("Table row context detection", () => {
+  test("cursor in data row detects tableRow", () => {
     const ctx = detect(`| A | B |
 | --- | --- |
 | 1|^| | 2 |
 `);
-    assertEquals(ctx?.type, "tableRow");
+    expect(ctx?.type).toEqual("tableRow");
   });
 
-  await t.step("cursor in header row detects tableRow with isHeader", () => {
+  test("cursor in header row detects tableRow with isHeader", () => {
     const ctx = detect(`| A|^| | B |
 | --- | --- |
 | 1 | 2 |
 `);
-    assertEquals(ctx?.type, "tableRow");
+    expect(ctx?.type).toEqual("tableRow");
     if (ctx?.type === "tableRow") {
-      assertEquals(ctx.isHeader, true);
+      expect(ctx.isHeader).toEqual(true);
     }
   });
 
-  await t.step("cursor on delimiter row returns null", () => {
-    assertEquals(
-      detect(`| A | B |
+  test("cursor on delimiter row returns null", () => {
+    expect(detect(`| A | B |
 | --|^|- | --- |
 | 1 | 2 |
-`),
-      null,
-    );
+`)).toEqual(null,);
   });
 });

@@ -66,7 +66,7 @@ export const netApi = new LuaTable({
     (uri: string, options: { uri?: string; encoding?: string } = {}) => {
       options.uri = uri;
       return client.clientSystem.serviceRegistry.invokeBestMatch(
-        "net.readURI:" + uri,
+        `net.readURI:${uri}`,
         options,
       );
     },
@@ -74,7 +74,7 @@ export const netApi = new LuaTable({
   writeURI: new LuaNativeJSFunction(
     (uri: string, content: string | Uint8Array) => {
       return client.clientSystem.serviceRegistry.invokeBestMatch(
-        "net.writeURI:" + uri,
+        `net.writeURI:${uri}`,
         { uri, content },
       );
     },

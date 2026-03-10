@@ -92,7 +92,7 @@ export class LuaPRNG {
       return Number(rv >> 11n) * (1.0 / 9007199254740992.0);
     }
 
-    if (!isFinite(arg1) || !Number.isInteger(arg1)) {
+    if (!Number.isFinite(arg1) || !Number.isInteger(arg1)) {
       throw new Error(
         "bad argument #1 to 'random' (number has no integer representation)",
       );
@@ -112,7 +112,7 @@ export class LuaPRNG {
       return Number(this.project(rv, BigInt(arg1) - 1n) + 1n);
     }
 
-    if (!isFinite(arg2) || !Number.isInteger(arg2)) {
+    if (!Number.isFinite(arg2) || !Number.isInteger(arg2)) {
       throw new Error(
         "bad argument #2 to 'random' (number has no integer representation)",
       );
@@ -128,12 +128,12 @@ export class LuaPRNG {
     if (arg1 === undefined) {
       return this.autoSeed();
     }
-    if (!isFinite(arg1) || !Number.isInteger(arg1)) {
+    if (!Number.isFinite(arg1) || !Number.isInteger(arg1)) {
       throw new Error(
         "bad argument #1 to 'randomseed' (number has no integer representation)",
       );
     }
-    if (arg2 !== undefined && (!isFinite(arg2) || !Number.isInteger(arg2))) {
+    if (arg2 !== undefined && (!Number.isFinite(arg2) || !Number.isInteger(arg2))) {
       throw new Error(
         "bad argument #2 to 'randomseed' (number has no integer representation)",
       );

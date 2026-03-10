@@ -1,22 +1,35 @@
-import * as path from "@std/path";
-import * as YAML from "@std/yaml";
-import { denoPlugin, esbuild } from "../../build_deps.ts";
+import * as path from "node:path";
+import { readFile, writeFile, mkdtemp, rm, mkdir } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import * as YAML from "js-yaml";
+
+import * as esbuild from "esbuild";
 import { bundleAssets } from "../asset_bundle/builder.ts";
 import type { Manifest } from "./types.ts";
-import { version } from "../../version.ts";
 
-// const workerRuntimeUrl = new URL(
-//   "../lib/plugos/worker_runtime.ts",
-//   import.meta.url,
-// );
-const workerRuntimeUrl =
-  `https://deno.land/x/silverbullet@${version}/client/plugos/worker_runtime.ts`;
+import { existsSync } from "node:fs";
+
+// Resolve the pre-built worker_runtime bundle path
+// When running from source: ../../dist/worker_runtime_bundle.js (from client/plugos/)
+// When bundled: ./worker_runtime_bundle.js (from dist/)
+const currentDir = import.meta.dirname;
+const bundledPath = path.join(currentDir, "worker_runtime_bundle.js");
+const sourcePath = path.join(currentDir, "../../dist/worker_runtime_bundle.js");
+const workerRuntimeBundlePath = existsSync(bundledPath)
+  ? bundledPath
+  : sourcePath;
+
+const workerRuntimePlugin: esbuild.Plugin = {
+  name: "worker-runtime",
+  setup(build) {
+    build.onResolve({ filter: /^worker-runtime$/ }, () => ({
+      path: workerRuntimeBundlePath,
+    }));
+  },
+};
 
 export type CompileOptions = {
   debug?: boolean;
-  runtimeUrl?: string;
-  // path to config file
-  configPath?: string;
   // Print info on bundle size
   info?: boolean;
 };
@@ -27,9 +40,8 @@ export async function compileManifest(
   options: CompileOptions = {},
 ): Promise<string> {
   const rootPath = path.dirname(manifestPath);
-  const manifest = YAML.parse(
-    await Deno.readTextFile(manifestPath),
-  ) as Manifest<any>;
+  const manifestContent = await readFile(manifestPath, "utf-8");
+  const manifest = YAML.load(manifestContent) as Manifest<any>;
 
   if (!manifest.name) {
     throw new Error(`Missing 'name' in ${manifestPath}`);
@@ -48,9 +60,7 @@ export async function compileManifest(
   }
 
   const jsFile = `
-import { setupMessageListener } from "${
-    options.runtimeUrl || workerRuntimeUrl
-  }";
+import { setupMessageListener } from "worker-runtime";
 
 // Imports
 ${
@@ -62,7 +72,7 @@ ${
       // Resolve path
       filePath = path.join(rootPath, filePath);
 
-      return `import {${jsFunctionName} as ${funcName}} from "file://${
+      return `import {${jsFunctionName} as ${funcName}} from "${
         // Replacing \ with / for Windows
         path.resolve(filePath).replaceAll(
           "\\",
@@ -93,9 +103,10 @@ setupMessageListener(functionMapping, manifest, self.postMessage);
 
   // console.log("Code:", jsFile);
 
-  const inFile = await Deno.makeTempFile({ suffix: ".js" });
+  const tempDir = await mkdtemp(path.join(tmpdir(), "plug-compile-"));
+  const inFile = path.join(tempDir, "input.js");
   const outFile = `${destPath}/${manifest.name}.plug.js`;
-  await Deno.writeTextFile(inFile, jsFile);
+  await writeFile(inFile, jsFile, "utf-8");
 
   const result = await esbuild.build({
     entryPoints: [inFile],
@@ -108,12 +119,7 @@ setupMessageListener(functionMapping, manifest, self.postMessage);
     outfile: outFile,
     metafile: options.info,
     treeShaking: true,
-    plugins: [
-      denoPlugin({
-        configPath: options.configPath &&
-          path.resolve(Deno.cwd(), options.configPath),
-      }),
-    ],
+    plugins: [workerRuntimePlugin],
   });
 
   if (options.info) {
@@ -121,9 +127,13 @@ setupMessageListener(functionMapping, manifest, self.postMessage);
     console.log("Bundle info for", manifestPath, text);
   }
 
-  let jsCode = await Deno.readTextFile(outFile);
-  jsCode = patchDenoLibJS(jsCode);
-  await Deno.writeTextFile(outFile, jsCode);
+  let jsCode = await readFile(outFile, "utf-8");
+  jsCode = patchBundledJS(jsCode);
+  await writeFile(outFile, jsCode, "utf-8");
+  
+  // Clean up temp directory
+  await rm(tempDir, { recursive: true, force: true });
+  
   console.log(`Plug ${manifest.name} written to ${outFile}.`);
   return outFile;
 }
@@ -142,7 +152,7 @@ export async function compileManifests(
     }
     console.log("Building", manifestFiles);
     building = true;
-    Deno.mkdirSync(dist, { recursive: true });
+    await mkdir(dist, { recursive: true });
     const startTime = Date.now();
     // Build all plugs in parallel
     await Promise.all(manifestFiles.map(async (plugManifestPath) => {
@@ -165,18 +175,16 @@ export async function compileManifests(
   await buildAll();
 }
 
-export function patchDenoLibJS(code: string): string {
-  // The Deno std lib has one occurence of a regex that Webkit JS doesn't (yet parse), we'll strip it because it's likely never invoked anyway, YOLO
+export function patchBundledJS(code: string): string {
+  // One bundled dependency has a lookbehind regex that WebKit can't parse; replace it with a no-op
   return code.replaceAll("/(?<=\\n)/", "/()/");
 }
 
 export async function plugCompileCommand(
-  { dist, debug, info, config, runtimeUrl }: {
+  { dist, debug, info }: {
     dist: string;
     debug: boolean;
     info: boolean;
-    config?: string;
-    runtimeUrl?: string;
   },
   ...manifestPaths: string[]
 ) {
@@ -186,10 +194,8 @@ export async function plugCompileCommand(
     {
       debug: debug,
       info: info,
-      runtimeUrl,
-      configPath: config,
     },
   );
-  esbuild.stop();
-  Deno.exit(0);
+  await esbuild.stop();
+  process.exit(0);
 }

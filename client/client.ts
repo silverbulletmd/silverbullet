@@ -127,7 +127,7 @@ export class Client {
 
   // Document editor
   documentEditor: DocumentEditor | null = null;
-  saveTimeout?: number;
+  saveTimeout?: ReturnType<typeof setTimeout>;
   debouncedUpdateEvent = throttle(() => {
     this.eventHook
       .dispatchEvent("editor:updated")
@@ -140,8 +140,10 @@ export class Client {
   public systemReady: boolean = false;
   private pageNavigator!: PathPageNavigator;
   private onLoadRef: Ref;
+  dbPrefix?: string;
+  syncMode = false;
   // Progress circle handling
-  private progressTimeout?: number;
+  private progressTimeout?: ReturnType<typeof setTimeout>;
   // Widget and image height caching
   private widgetCache = new LimitedMap<WidgetCacheItem>(100); // bodyText -> WidgetCacheItem
   debouncedWidgetCacheFlush = throttle(() => {
@@ -287,7 +289,7 @@ export class Client {
 
     // Kick off a cron event interval
     setInterval(() => {
-      this.dispatchAppEvent("cron:secondPassed");
+      void this.dispatchAppEvent("cron:secondPassed");
     }, 1000);
 
     // We can load custom styles async
@@ -333,7 +335,7 @@ export class Client {
 
     // Kick off a regular file listing request to trigger events
     setInterval(() => {
-      this.eventedSpacePrimitives.fetchFileList();
+      void this.eventedSpacePrimitives.fetchFileList();
     }, fetchFileListInterval + jitter());
 
     this.eventHook.addLocalListener(
@@ -394,7 +396,7 @@ export class Client {
           this.flashNotification(
             "Page or document changed elsewhere, reloading",
           );
-          this.reloadEditor();
+          void this.reloadEditor();
         }
       },
     );
@@ -475,7 +477,7 @@ export class Client {
 
           if (this.isDocumentEditor()) {
             console.log("Requesting save for document", this.currentPath());
-            this.dispatchAppEvent(
+            void this.dispatchAppEvent(
               "editor:documentSaving",
               this.currentPath(),
             );
@@ -486,7 +488,7 @@ export class Client {
             return resolve();
           } else {
             console.log("Saving page", this.currentPath());
-            this.dispatchAppEvent(
+            void this.dispatchAppEvent(
               "editor:pageSaving",
               this.currentName(),
             );
@@ -507,9 +509,7 @@ export class Client {
                 resolve();
 
                 // In the background we'll fetch any enriched meta data, if any
-                const enrichedMeta = await this.objectIndex.getObjectByRef<
-                  PageMeta
-                >(
+                const enrichedMeta = await this.objectIndex.getObjectByRef(
                   this.currentName(),
                   "page",
                   this.currentName(),
@@ -568,7 +568,7 @@ export class Client {
       this.flashNotification(`Lua error: ${e.message}`, "error");
       const origin = resolveASTReference(e.sf.astCtx!);
       if (origin) {
-        client.navigate(origin);
+        void client.navigate(origin);
       }
     } else {
       this.flashNotification(`Error: ${e.message}`, "error");
@@ -662,7 +662,7 @@ export class Client {
     });
 
     // Async kick-off file listing to bring listing up to date
-    this.space.spacePrimitives.fetchFileList();
+    void this.space.spacePrimitives.fetchFileList();
   }
 
   async updateDocumentListCache() {
@@ -989,7 +989,7 @@ export class Client {
         // If there is no document editor we will open the file raw
         if (e.message.includes("Couldn't find")) {
           this.openUrl(
-            document.baseURI.replace(/\/*$/, "") + fsEndpoint + "/" + path,
+            `${document.baseURI.replace(/\/*$/, "") + fsEndpoint}/${path}`,
             !previousPath,
           );
         }
@@ -1123,7 +1123,7 @@ export class Client {
     // decorations
     if (await this.objectIndex.hasFullIndexCompleted()) {
       try {
-        const enrichedMeta = await this.objectIndex.getObjectByRef<PageMeta>(
+        const enrichedMeta = await this.objectIndex.getObjectByRef(
           pageName,
           "page",
           pageName,
@@ -1212,7 +1212,7 @@ export class Client {
 
     // Deliberately not awaiting this function as destroying & last-save can be handled in the background
     this.documentEditor.destroy();
-    // @ts-ignore: This is there the hacked type-guard from isDocumentEditor fails
+    // @ts-expect-error: This is there the hacked type-guard from isDocumentEditor fails
     this.documentEditor = null;
 
     this.rebuildEditorState();
@@ -1310,7 +1310,7 @@ export class Client {
 
     // Prepare separate <style> tag per custom style (for robustness)
     const customStylesContent = spaceStyles.map((s) =>
-      "<style>" + s.style + "</style>"
+      `<style>${s.style}</style>`
     ).join("\n\n");
     this.ui.viewDispatch({
       type: "set-ui-option",
@@ -1431,7 +1431,7 @@ export class Client {
     if (!isMarkdownPath(pageState.path)) return;
 
     // We can't use getOffsetFromRef here, because it is asyncronous.
-    let pos: number | undefined = undefined;
+    let pos: number | undefined ;
 
     // Don't use getOffsetFromRef, so we can show error messages
     if (pageState.details?.type === "header") {
@@ -1577,7 +1577,7 @@ export class Client {
       await new Promise<void>((resolve) => {
         navigator.serviceWorker.addEventListener("message", async (e: any) => {
           const message: ServiceWorkerSourceMessage = e.data;
-          if (message.type == "dataWiped") {
+          if (message.type === "dataWiped") {
             console.log(
               "Got data wipe confirm, uninstalling service worker now",
             );

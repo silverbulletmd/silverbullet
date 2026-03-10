@@ -23,7 +23,7 @@ export function defaultTransformer(v: any, _k: string): Promise<string> {
   if (typeof v === "number") {
     return Promise.resolve(luaFormatNumber(v));
   }
-  return Promise.resolve("" + v);
+  return Promise.resolve(`${v}`);
 }
 
 export function refCellTransformer(v: any, k: string) {
@@ -47,18 +47,18 @@ function escapeRegularPipes(s: string) {
   let isInCommandButton = false;
 
   for (let i = 0; i < s.length; i++) {
-    if (s[i] == "[" && s[i + 1] == "[") {
+    if (s[i] === "[" && s[i + 1] === "[") {
       isInWikiLink = true;
-    } else if (s[i] == "]" && s[i + 1] == "]" && isInWikiLink) {
+    } else if (s[i] === "]" && s[i + 1] === "]" && isInWikiLink) {
       isInWikiLink = false;
     }
-    if (s[i] == "{" && s[i + 1] == "[") {
+    if (s[i] === "{" && s[i + 1] === "[") {
       isInCommandButton = true;
     } else if (
-      (s[i] == "]" || s[i] == ")") && s[i + 1] == "}" && isInCommandButton
+      (s[i] === "]" || s[i] === ")") && s[i + 1] === "}" && isInCommandButton
     ) {
       isInCommandButton = false;
-    } else if (s[i] == "|" && !isInWikiLink && !isInCommandButton) {
+    } else if (s[i] === "|" && !isInWikiLink && !isInCommandButton) {
       result += "\\";
     }
 
@@ -81,7 +81,7 @@ export async function jsonToMDTable(
   }
 
   // Handle empty case manually, instead of three lines of ||
-  if (headers.size == 0) {
+  if (headers.size === 0) {
     return "*(empty table)*";
   }
 
@@ -109,7 +109,7 @@ export async function jsonToMDTable(
       const s = await valueTransformer(val[prop], prop);
       el.push(s);
     }
-    lines.push("|" + el.join("|") + "|");
+    lines.push(`|${el.join("|")}|`);
   }
   return lines.join("\n");
 }
@@ -159,7 +159,7 @@ export function renderExpressionResult(
     }
     return renderListItems(result, cellTransformer, false);
   } else {
-    return Promise.resolve("" + result);
+    return Promise.resolve(`${result}`);
   }
 }
 
@@ -200,15 +200,15 @@ async function renderLuaTableToMarkdown(
   const allHeaders: string[] = keys.map(String);
 
   const lines: string[] = [
-    "|" + allHeaders.join("|") + "|",
-    "|" + allHeaders.map(() => "--").join("|") + "|",
+    `|${allHeaders.join("|")}|`,
+    `|${allHeaders.map(() => "--").join("|")}|`,
   ];
   const cells: string[] = [];
   for (const k of keys) {
     const v = tbl.rawGet(k);
     cells.push(await cellTransformer(v, String(k)));
   }
-  lines.push("|" + cells.join("|") + "|");
+  lines.push(`|${cells.join("|")}|`);
   return lines.join("\n");
 }
 
@@ -271,7 +271,7 @@ function renderItemToMarkdown(
     return Promise.resolve(luaFormatNumber(item.value, "float"));
   }
   if (typeof item === "number") return Promise.resolve(luaFormatNumber(item));
-  return Promise.resolve("" + item);
+  return Promise.resolve(`${item}`);
 }
 
 function isPlainObjectHelper(v: any): v is Record<string, any> {
@@ -292,8 +292,8 @@ async function renderLuaTableArrayToMarkdown(
   const headers = [...headerSet];
 
   const lines: string[] = [
-    "|" + headers.join("|") + "|",
-    "|" + headers.map(() => "--").join("|") + "|",
+    `|${headers.join("|")}|`,
+    `|${headers.map(() => "--").join("|")}|`,
   ];
   for (const tbl of tables) {
     const cells: string[] = [];
@@ -302,7 +302,7 @@ async function renderLuaTableArrayToMarkdown(
       const v = tbl.rawGet(key);
       cells.push(await cellTransformer(v, h));
     }
-    lines.push("|" + cells.join("|") + "|");
+    lines.push(`|${cells.join("|")}|`);
   }
   return lines.join("\n");
 }
@@ -316,5 +316,5 @@ export function isBlockMarkdown(s: string) {
     return true;
   }
   // If it contains something resembling a list
-  return !!s.match(/[\-\*]\s+/);
+  return !!s.match(/[-*]\s+/);
 }

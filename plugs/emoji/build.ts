@@ -1,8 +1,10 @@
 // Generates emoji.json from emoji-data.txt
+import { readFileSync, writeFileSync } from "node:fs";
+
 const emojiRe = /#\s([^\s]+)\s+E[^\s]+\s+(.+)$/;
 
-const text = Deno.readTextFileSync("emoji-data.txt");
-const lines = text.split("\n").filter((line) => !line.startsWith("#"));
+const text = readFileSync("emoji-data.txt", "utf-8");
+const lines = text.split("\n").filter((line: string) => !line.startsWith("#"));
 
 const emojis: string[] = [];
 for (const line of lines) {
@@ -14,7 +16,4 @@ for (const line of lines) {
   }
 }
 
-Deno.writeFileSync(
-  "emoji.json",
-  new TextEncoder().encode(JSON.stringify(emojis.join("|"))),
-);
+writeFileSync("emoji.json", JSON.stringify(emojis.join("|")), "utf-8");

@@ -42,9 +42,9 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
   ) {
     super();
     // Actively check if we're online by pinging the server
-    this.checkOnline();
+    void this.checkOnline();
     setInterval(() => {
-      this.checkOnline();
+      void this.checkOnline();
     }, pingInterval);
   }
 
@@ -87,7 +87,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
         // Otherwise we're not
         this.online = false;
       } finally {
-        this.emit("onlineStatusUpdated", this.online);
+        void this.emit("onlineStatusUpdated", this.online);
       }
     } else {
       console.info(
@@ -255,7 +255,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
         if (request.headers.has("x-observing")) {
           setTimeout(() => {
             // Next tick
-            this.emit("observedRequest", path);
+            void this.emit("observedRequest", path);
           });
         }
         return new Response(null, {

@@ -450,7 +450,7 @@ const nextFunction = new LuaBuiltinFunction(
 const someFunction = new LuaBuiltinFunction(async (_sf, value: any) => {
   switch (await luaTypeOf(value)) {
     case "number":
-      if (!isFinite(value)) return null;
+      if (!Number.isFinite(value)) return null;
       break;
     case "string":
       if (value.trim() === "") return null;

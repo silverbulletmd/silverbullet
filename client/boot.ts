@@ -112,7 +112,7 @@ safeRun(async () => {
                 "message",
                 keyListener,
               );
-              importKey(e.data.key).then((key) => {
+              void importKey(e.data.key).then((key) => {
                 encryptionKey = key;
                 resolve();
               });
@@ -232,16 +232,15 @@ safeRun(async () => {
   );
   if (bootConfig!.logPush) {
     setInterval(() => {
-      logger.postToServer(".logs", "client");
+      void logger.postToServer(".logs", "client");
     }, 1000);
   }
-  // @ts-ignore: on purpose
   globalThis.client = client;
   clientProxy.setTarget(client);
   await client.init(encryptionKey);
   if (navigator.serviceWorker) {
     navigator.serviceWorker.addEventListener("message", (event) => {
-      client.handleServiceWorkerMessage(event.data);
+      void client.handleServiceWorkerMessage(event.data);
     });
   }
 });
