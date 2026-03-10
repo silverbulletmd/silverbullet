@@ -42,7 +42,8 @@
       "!**/dist",
       "!**/client_bundle",
       "!**/website_build",
-      "!**/*.html"
+      "!**/*.html",
+      "!public_version.ts"
     ]
   }
 }

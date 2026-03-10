@@ -89,8 +89,8 @@ export async function jsonToMDTable(
 
   const headerList = [...headers];
   const lines = [];
-  lines.push("|" + headerList.map((headerName) => headerName).join("|") + "|");
-  lines.push("|" + headerList.map(() => "--").join("|") + "|");
+  lines.push(`|${headerList.map((headerName) => headerName).join("|")}|`);
+  lines.push(`|${headerList.map(() => "--").join("|")}|`);
   for (const val of jsonArray) {
     const el = [];
     for (const prop of headerList) {
@@ -213,7 +213,7 @@ async function renderListItems(
     const md = await renderItemToMarkdown(item, cellTransformer, nested);
     if (md.includes("\n")) {
       const lines = md.split("\n");
-      rendered.push("-\n" + lines.map((l) => `  ${l}`).join("\n"));
+      rendered.push(`-\n${lines.map((l) => `  ${l}`).join("\n")}`);
     } else {
       rendered.push(`- ${md}`);
     }

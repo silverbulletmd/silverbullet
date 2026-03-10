@@ -230,8 +230,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
 
   // If not: throws an error or invokes a redirect
   async ping() {
-    const parentEndpoint =
-      this.url.split("/").slice(0, -1).join("/") + "/.ping";
+    const parentEndpoint = `${this.url.split("/").slice(0, -1).join("/")}/.ping`;
     const resp = await this.authenticatedFetch(
       parentEndpoint,
       {

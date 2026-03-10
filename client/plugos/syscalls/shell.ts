@@ -32,7 +32,5 @@ export function shellSyscalls(client: Client): SysCallMapping {
 
 function buildShellUrl(client: Client) {
   // Strip off the /.fs and replace with /.shell
-  return (
-    client.httpSpacePrimitives.url.slice(0, -fsEndpoint.length) + "/.shell"
-  );
+  return `${client.httpSpacePrimitives.url.slice(0, -fsEndpoint.length)}/.shell`;
 }

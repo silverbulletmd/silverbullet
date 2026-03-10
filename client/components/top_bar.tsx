@@ -118,9 +118,7 @@ export function TopBar({
               )}
             </div>
             <div
-              className={
-                "sb-actions " + (mobileMenuStyle ? mobileMenuStyle : "")
-              }
+              className={`sb-actions ${mobileMenuStyle ? mobileMenuStyle : ""}`}
             >
               {actionButtons.map((actionButton) => {
                 const button = (

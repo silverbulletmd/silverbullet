@@ -51,8 +51,7 @@ export function extractSnippet(
       const pos =
         lineLengths.slice(0, i).reduce((acc, len) => acc + len + 1, 0) +
         taskMatch[1].length;
-      line =
-        taskMatch[1] + taskMatch[2] + `[[${pageName}@${pos}]] ` + taskMatch[3];
+      line = `${taskMatch[1] + taskMatch[2]}[[${pageName}@${pos}]] ${taskMatch[3]}`;
     }
     snippetLines.push(line.substring(targetIndent));
   }
