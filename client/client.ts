@@ -13,11 +13,8 @@ import type {
   ClickEvent,
   CompleteEvent,
   EnrichedClickEvent,
-  FilterOption,
-  NotificationType,
   SlashCompletions,
 } from "@silverbulletmd/silverbullet/type/client";
-import { notificationDismissTimeouts } from "@silverbulletmd/silverbullet/type/client";
 import { publicVersion } from "../public_version.ts";
 import { EventHook } from "./plugos/hooks/event.ts";
 import type { Command } from "./types/command.ts";
@@ -114,8 +111,6 @@ export class Client {
   private onLoadRef: Ref;
   dbPrefix?: string;
   syncMode = false;
-  // Progress circle handling
-  private progressTimeout?: ReturnType<typeof setTimeout>;
   // Widget and image height caching
   widgetCache!: WidgetCache;
   objectIndex!: ObjectIndex;
@@ -338,7 +333,7 @@ export class Client {
             "new hash",
             newHash,
           );
-          this.flashNotification(
+          this.ui.flashNotification(
             "Page or document changed elsewhere, reloading",
           );
           void this.reloadEditor();
@@ -405,36 +400,17 @@ export class Client {
     return this.contentManager.save(immediate);
   }
 
-  flashNotification(message: string, type: NotificationType = "info") {
-    const id = Math.floor(Math.random() * 1000000);
-    this.ui.viewDispatch({
-      type: "show-notification",
-      notification: {
-        id,
-        type,
-        message,
-        date: new Date(),
-      },
-    });
-    setTimeout(() => {
-      this.ui.viewDispatch({
-        type: "dismiss-notification",
-        id: id,
-      });
-    }, notificationDismissTimeouts[type]);
-  }
-
   reportError(e: any, context: string = "") {
     console.error(`Error during ${context}:`, e);
 
     if (e instanceof LuaRuntimeError) {
-      this.flashNotification(`Lua error: ${e.message}`, "error");
+      this.ui.flashNotification(`Lua error: ${e.message}`, "error");
       const origin = resolveASTReference(e.sf.astCtx!);
       if (origin) {
         void client.navigate(origin);
       }
     } else {
-      this.flashNotification(`Error: ${e.message}`, "error");
+      this.ui.flashNotification(`Error: ${e.message}`, "error");
     }
   }
 
@@ -512,7 +488,10 @@ export class Client {
       } catch (e) {
         console.error("Failed to list pages directly from space:", e);
         // Handle error, maybe show notification or leave list empty
-        this.flashNotification("Could not fetch page list directly.", "error");
+        this.ui.flashNotification(
+          "Could not fetch page list directly.",
+          "error",
+        );
       }
     }
 
@@ -554,75 +533,6 @@ export class Client {
   async registerCommandRun(name: string) {
     await this.commandAugmenter.setAugmentation(name, {
       lastRun: Date.now(),
-    });
-  }
-
-  showProgress(progressPercentage?: number, progressType?: "sync" | "index") {
-    // console.log("Showing progress", progressPercentage, progressType);
-    this.ui.viewDispatch({
-      type: "set-progress",
-      progressPercentage,
-      progressType,
-    });
-    if (this.progressTimeout) {
-      clearTimeout(this.progressTimeout);
-    }
-    this.progressTimeout = setTimeout(() => {
-      this.ui.viewDispatch({
-        type: "set-progress",
-      });
-    }, 5000);
-  }
-
-  // Various UI elements
-  filterBox(
-    label: string,
-    options: FilterOption[],
-    helpText = "",
-    placeHolder = "",
-  ): Promise<FilterOption | undefined> {
-    return new Promise((resolve) => {
-      this.ui.viewDispatch({
-        type: "show-filterbox",
-        label,
-        options,
-        placeHolder,
-        helpText,
-        onSelect: (option: any) => {
-          this.ui.viewDispatch({ type: "hide-filterbox" });
-          this.focus();
-          resolve(option);
-        },
-      });
-    });
-  }
-
-  prompt(message: string, defaultValue = ""): Promise<string | undefined> {
-    return new Promise((resolve) => {
-      this.ui.viewDispatch({
-        type: "show-prompt",
-        message,
-        defaultValue,
-        callback: (value: string | undefined) => {
-          this.ui.viewDispatch({ type: "hide-prompt" });
-          this.focus();
-          resolve(value);
-        },
-      });
-    });
-  }
-
-  confirm(message: string): Promise<boolean> {
-    return new Promise((resolve) => {
-      this.ui.viewDispatch({
-        type: "show-confirm",
-        message,
-        callback: (value: boolean) => {
-          this.ui.viewDispatch({ type: "hide-confirm" });
-          this.focus();
-          resolve(value);
-        },
-      });
     });
   }
 
@@ -911,7 +821,7 @@ export class Client {
           !this.versionMismatchNotified
         ) {
           this.versionMismatchNotified = true;
-          this.flashNotification(
+          this.ui.flashNotification(
             "A new version of SilverBullet is available. Reload to update.",
             "warning",
           );

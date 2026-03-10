@@ -34,7 +34,9 @@ class TableViewWidget extends WidgetType {
   }
 
   override get estimatedHeight(): number {
-    return this.client.widgetCache.getCachedWidgetHeight(`table:${this.tableBodyText}`);
+    return this.client.widgetCache.getCachedWidgetHeight(
+      `table:${this.tableBodyText}`,
+    );
   }
 
   toDOM(): HTMLElement {

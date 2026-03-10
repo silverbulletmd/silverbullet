@@ -157,7 +157,10 @@ export function mountIFrame(
               // iframe.height = data.height + "px";
               iframe.style.height = `${data.height}px`;
               if (widgetHeightCacheKey) {
-                client.widgetCache.setCachedWidgetHeight(widgetHeightCacheKey, data.height);
+                client.widgetCache.setCachedWidgetHeight(
+                  widgetHeightCacheKey,
+                  data.height,
+                );
               }
               break;
             default:

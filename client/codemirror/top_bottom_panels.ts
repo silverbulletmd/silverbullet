@@ -95,7 +95,10 @@ class ArrayWidget extends WidgetType {
         block: true,
         html: div.innerHTML,
       });
-      this.client.widgetCache.setCachedWidgetHeight(this.cacheKey, div.clientHeight);
+      this.client.widgetCache.setCachedWidgetHeight(
+        this.cacheKey,
+        div.clientHeight,
+      );
     });
   }
 

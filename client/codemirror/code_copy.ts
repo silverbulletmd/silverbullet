@@ -44,13 +44,13 @@ class CodeCopyWidget extends WidgetType {
       navigator.clipboard
         .writeText(this.value)
         .catch((err) => {
-          this.client.flashNotification(
+          this.client.ui.flashNotification(
             `Error copying to clipboard: ${err}`,
             "error",
           );
         })
         .then(() => {
-          this.client.flashNotification("Copied to clipboard", "info");
+          this.client.ui.flashNotification("Copied to clipboard", "info");
         });
     };
 

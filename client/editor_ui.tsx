@@ -18,7 +18,11 @@ import { runScopeHandlers } from "@codemirror/view";
 import type { Client } from "./client.ts";
 import { Panel } from "./components/panel.tsx";
 import { safeRun } from "@silverbulletmd/silverbullet/lib/async";
-import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
+import type {
+  FilterOption,
+  NotificationType,
+} from "@silverbulletmd/silverbullet/type/client";
+import { notificationDismissTimeouts } from "@silverbulletmd/silverbullet/type/client";
 import {
   getNameFromPath,
   getPathExtension,
@@ -77,7 +81,96 @@ export class MainUI {
     });
   }
 
+  // Progress circle handling
+  private progressTimeout?: ReturnType<typeof setTimeout>;
+
   viewDispatch: (action: Action) => void = () => {};
+
+  flashNotification(message: string, type: NotificationType = "info") {
+    const id = Math.floor(Math.random() * 1000000);
+    this.viewDispatch({
+      type: "show-notification",
+      notification: {
+        id,
+        type,
+        message,
+        date: new Date(),
+      },
+    });
+    setTimeout(() => {
+      this.viewDispatch({
+        type: "dismiss-notification",
+        id: id,
+      });
+    }, notificationDismissTimeouts[type]);
+  }
+
+  showProgress(progressPercentage?: number, progressType?: "sync" | "index") {
+    this.viewDispatch({
+      type: "set-progress",
+      progressPercentage,
+      progressType,
+    });
+    if (this.progressTimeout) {
+      clearTimeout(this.progressTimeout);
+    }
+    this.progressTimeout = setTimeout(() => {
+      this.viewDispatch({
+        type: "set-progress",
+      });
+    }, 5000);
+  }
+
+  filterBox(
+    label: string,
+    options: FilterOption[],
+    helpText = "",
+    placeHolder = "",
+  ): Promise<FilterOption | undefined> {
+    return new Promise((resolve) => {
+      this.viewDispatch({
+        type: "show-filterbox",
+        label,
+        options,
+        placeHolder,
+        helpText,
+        onSelect: (option: any) => {
+          this.viewDispatch({ type: "hide-filterbox" });
+          this.client.focus();
+          resolve(option);
+        },
+      });
+    });
+  }
+
+  prompt(message: string, defaultValue = ""): Promise<string | undefined> {
+    return new Promise((resolve) => {
+      this.viewDispatch({
+        type: "show-prompt",
+        message,
+        defaultValue,
+        callback: (value: string | undefined) => {
+          this.viewDispatch({ type: "hide-prompt" });
+          this.client.focus();
+          resolve(value);
+        },
+      });
+    });
+  }
+
+  confirm(message: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      this.viewDispatch({
+        type: "show-confirm",
+        message,
+        callback: (value: boolean) => {
+          this.viewDispatch({ type: "hide-confirm" });
+          this.client.focus();
+          resolve(value);
+        },
+      });
+    });
+  }
 
   ViewComponent() {
     const [viewState, dispatch] = useReducer(reducer, initialViewState);
@@ -202,7 +295,7 @@ export class MainUI {
                       `'${name}.md' has an invalid name. You can now modify it`,
                     );
                   } else {
-                    client.flashNotification(
+                    this.flashNotification(
                       `Couldn't create page ${name}, name is invalid`,
                       "error",
                     );
@@ -382,7 +475,7 @@ export class MainUI {
                   callback:
                     button.run ||
                     (() => {
-                      client.flashNotification(
+                      this.flashNotification(
                         "actionButton did not specify a run() callback",
                         "error",
                       );
@@ -453,7 +546,7 @@ export class MainUI {
   async promptDocumentOperation(path: Path, msg: string) {
     const options: string[] = ["View", "Delete", "Rename"];
 
-    const option = await client.filterBox(
+    const option = await this.filterBox(
       "Modify",
       options.map((x) => ({ name: x }) as FilterOption),
       msg,
@@ -462,31 +555,31 @@ export class MainUI {
 
     switch (option.name) {
       case "View": {
-        await client.navigate({ path: path });
+        await this.client.navigate({ path: path });
         break;
       }
       case "Delete": {
         if (
-          await client.confirm(
+          await this.confirm(
             `Are you sure you would like delete ${getNameFromPath(path)}?`,
           )
         ) {
           if (isMarkdownPath(path)) {
-            await client.space.deletePage(getNameFromPath(path));
+            await this.client.space.deletePage(getNameFromPath(path));
           } else {
-            await client.space.deleteDocument(getNameFromPath(path));
+            await this.client.space.deleteDocument(getNameFromPath(path));
           }
         }
         break;
       }
       case "Rename": {
         if (isMarkdownPath(path)) {
-          await client.clientSystem.system.invokeFunction(
+          await this.client.clientSystem.system.invokeFunction(
             "index.renamePageCommand",
             [{ oldPage: getNameFromPath(path) }],
           );
         } else {
-          await client.clientSystem.system.invokeFunction(
+          await this.client.clientSystem.system.invokeFunction(
             "index.renameDocumentCommand",
             [{ oldDocument: getNameFromPath(path) }],
           );

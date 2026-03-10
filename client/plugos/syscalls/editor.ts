@@ -290,7 +290,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
       message: string,
       type: NotificationType = "info",
     ) => {
-      client.flashNotification(message, type);
+      client.ui.flashNotification(message, type);
     },
     "editor.filterBox": (
       _ctx,
@@ -299,7 +299,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
       helpText = "",
       placeHolder = "",
     ): Promise<FilterOption | undefined> => {
-      return client.filterBox(label, options, helpText, placeHolder);
+      return client.ui.filterBox(label, options, helpText, placeHolder);
     },
     "editor.showPanel": (
       _ctx,
@@ -333,7 +333,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
       progressPercentage?: number,
       progressType?: "sync" | "index",
     ) => {
-      client.showProgress(progressPercentage, progressType);
+      client.ui.showProgress(progressPercentage, progressType);
     },
     "editor.insertAtPos": (
       _ctx,
@@ -475,10 +475,10 @@ export function editorSyscalls(client: Client): SysCallMapping {
       message: string,
       defaultValue = "",
     ): Promise<string | undefined> => {
-      return client.prompt(message, defaultValue);
+      return client.ui.prompt(message, defaultValue);
     },
     "editor.confirm": (_ctx, message: string): Promise<boolean> => {
-      return client.confirm(message);
+      return client.ui.confirm(message);
     },
     "editor.alert": (_ctx, message: string) => {
       alert(message);
@@ -637,7 +637,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
         }
       } catch (e) {
         console.error(e);
-        client.flashNotification(`Could not copy to clipboard: ${e}`);
+        client.ui.flashNotification(`Could not copy to clipboard: ${e}`);
       }
     },
     "editor.sendMessage": (_ctx, type: string, data: any) => {

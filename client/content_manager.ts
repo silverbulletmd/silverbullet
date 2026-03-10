@@ -113,7 +113,7 @@ export class ContentManager {
                 }
               })
               .catch((e) => {
-                this.client.flashNotification(
+                this.client.ui.flashNotification(
                   "Could not save page, retrying again in 10 seconds",
                   "error",
                 );
@@ -437,7 +437,7 @@ export class ContentManager {
             );
           })
           .catch(() => {
-            this.client.flashNotification(
+            this.client.ui.flashNotification(
               "Could not save document, retrying again in 10 seconds",
               "error",
             );
@@ -479,7 +479,7 @@ export class ContentManager {
       );
 
       if (pos === -1) {
-        this.client.flashNotification(
+        this.client.ui.flashNotification(
           `Could not find header "${pageState.details.header}"`,
           "error",
         );

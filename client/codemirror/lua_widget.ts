@@ -126,8 +126,14 @@ export class LuaWidget extends WidgetType {
     if (widgetContent === null || widgetContent === undefined) {
       if (!this.renderEmpty) {
         div.innerHTML = "";
-        this.client.widgetCache.setWidgetCache(this.cacheKey, { html: "", block: false });
-        this.client.widgetCache.setCachedWidgetHeight(this.cacheKey, div.clientHeight);
+        this.client.widgetCache.setWidgetCache(this.cacheKey, {
+          html: "",
+          block: false,
+        });
+        this.client.widgetCache.setCachedWidgetHeight(
+          this.cacheKey,
+          div.clientHeight,
+        );
         return;
       }
       widgetContent = { markdown: "nil", _isWidget: true };
@@ -195,8 +201,14 @@ export class LuaWidget extends WidgetType {
       if (!trimmedMarkdown) {
         // Net empty result after expansion
         div.innerHTML = "";
-        this.client.widgetCache.setWidgetCache(this.cacheKey, { html: "", block: false });
-        this.client.widgetCache.setCachedWidgetHeight(this.cacheKey, div.clientHeight);
+        this.client.widgetCache.setWidgetCache(this.cacheKey, {
+          html: "",
+          block: false,
+        });
+        this.client.widgetCache.setCachedWidgetHeight(
+          this.cacheKey,
+          div.clientHeight,
+        );
         return;
       }
 
@@ -250,7 +262,10 @@ export class LuaWidget extends WidgetType {
         block,
         copyContent: copyContent,
       });
-      this.client.widgetCache.setCachedWidgetHeight(this.cacheKey, div.offsetHeight);
+      this.client.widgetCache.setCachedWidgetHeight(
+        this.cacheKey,
+        div.offsetHeight,
+      );
       // Because of the rejiggering of the DOM, we need to do a no-op cursor move to make sure it's positioned correctly
       this.client.editorView.dispatch({
         selection: this.client.editorView.state.selection,
