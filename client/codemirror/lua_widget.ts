@@ -13,15 +13,13 @@ import {
   moveCursorIntoText,
 } from "./widget_util.ts";
 import { expandMarkdown } from "../markdown_renderer/inline.ts";
-import { luaFormatNumber, LuaTable } from "../space_lua/runtime.ts";
-import { isTaggedFloat } from "../space_lua/numeric.ts";
 import {
   isBlockMarkdown,
-  jsonToMDTable,
-  refCellTransformer,
+  renderExpressionResult,
 } from "../markdown_renderer/result_render.ts";
 import { activeWidgets } from "./code_widget.ts";
 import type { Ref } from "@silverbulletmd/silverbullet/lib/ref";
+import { renderResultToHtml } from "../space_lua/render_lua_html.ts";
 
 export type LuaWidgetCallback = (
   bodyText: string,
@@ -95,6 +93,26 @@ export class LuaWidget extends WidgetType {
     return wrapperSpan;
   }
 
+  // Build an inline Markdown renderer bound to the current client context
+  private buildInlineRenderer(): (text: string) => string {
+    return (text: string): string => {
+      const mdTree = parse(extendedMarkdownLanguage, text);
+      return renderMarkdownToHtml(mdTree, {
+        shortWikiLinks: this.client.config.get("shortWikiLinks", false),
+        translateUrls: (url) => {
+          if (isLocalURL(url)) {
+            url = resolveMarkdownLink(
+              this.client.currentName(),
+              decodeURI(url),
+            );
+          }
+          return url;
+        },
+        preserveAttributes: true,
+      }, this.client.ui.viewState.allPages);
+    };
+  }
+
   async renderContent(
     div: HTMLElement,
   ) {
@@ -121,38 +139,53 @@ export class LuaWidget extends WidgetType {
     let block = false;
     let copyContent: string | undefined ;
 
-    // Normalization
+    // Normalization (non-widget results go through dual-path rendering)
     if (typeof widgetContent === "string" || !widgetContent._isWidget) {
-      // Apply heuristic to render the object as a markdown table
+      // HTML path for display (with data attributes, nested structures)
+      const inlineRenderer = this.buildInlineRenderer();
+      const { html: displayHtml, dataType } = await renderResultToHtml(
+        widgetContent,
+        inlineRenderer,
+      );
+      // Markdown path for copy button (flat tables, `{...}` for nested)
+      const markdownCopy = await renderExpressionResult(widgetContent);
+
       widgetContent = {
         _isWidget: true,
-        markdown: await renderExpressionResult(widgetContent),
+        html: `<span data-type="${dataType}">${displayHtml}</span>`,
+        display: (dataType === "table" || dataType === "list")
+          ? "block"
+          : "inline",
       };
+      copyContent = markdownCopy;
     }
 
-    if (widgetContent.cssClasses) {
-      div.className = widgetContent.cssClasses.join(" ");
+    // After normalization `widgetContent` is always the object form
+    const wc = widgetContent as Exclude<LuaWidgetContent, string>;
+
+    if (wc.cssClasses) {
+      div.className = wc.cssClasses.join(" ");
     }
-    if (widgetContent.html) {
-      if (typeof widgetContent.html === "string") {
-        html = parseHtmlString(widgetContent.html);
-        copyContent = widgetContent.html;
+    if (wc.html) {
+      if (typeof wc.html === "string") {
+        html = parseHtmlString(wc.html);
+        if (!copyContent) copyContent = wc.html;
       } else {
-        html = widgetContent.html;
-        copyContent = widgetContent.html.outerHTML;
+        html = wc.html;
+        if (!copyContent) copyContent = wc.html.outerHTML;
       }
 
-      block = widgetContent.display === "block";
+      block = wc.display === "block";
       if (block) {
         div.className += " sb-lua-directive-block";
       } else {
         div.className += " sb-lua-directive-inline";
       }
     }
-    if (widgetContent.markdown) {
+    if (wc.markdown) {
       let mdTree = parse(
         extendedMarkdownLanguage,
-        widgetContent.markdown || "",
+        wc.markdown || "",
       );
 
       mdTree = await expandMarkdown(
@@ -176,7 +209,7 @@ export class LuaWidget extends WidgetType {
         return;
       }
 
-      block = widgetContent._isWidget && widgetContent.display === "block" ||
+      block = wc._isWidget && wc.display === "block" ||
         isBlockMarkdown(trimmedMarkdown);
       if (block) {
         div.className += " sb-lua-directive-block";
@@ -211,7 +244,7 @@ export class LuaWidget extends WidgetType {
         div,
         this.client,
         this.inPage ? this.codeText : undefined,
-        widgetContent._isWidget && widgetContent.events,
+        wc._isWidget && wc.events,
       );
     }
 
@@ -340,42 +373,6 @@ export class LuaWidget extends WidgetType {
       other.expressionText === this.expressionText &&
       other.cacheKey === this.cacheKey
     );
-  }
-}
-
-export function renderExpressionResult(result: any): Promise<string> {
-  if (result instanceof LuaTable) {
-    result = result.toJS();
-  }
-  // Must check before object/array checks — tagged floats are plain objects
-  if (isTaggedFloat(result)) {
-    return Promise.resolve(luaFormatNumber(result.value, "float"));
-  }
-  if (typeof result === "number") {
-    return Promise.resolve(luaFormatNumber(result));
-  }
-  if (
-    Array.isArray(result) && result.length > 0 && typeof result[0] === "object"
-  ) {
-    // If result is an array of objects, render as a Markdown table
-    try {
-      return jsonToMDTable(result, refCellTransformer);
-    } catch (e: any) {
-      console.error(
-        `Error rendering expression directive: ${e.message} for value ${
-          JSON.stringify(result)
-        }`,
-      );
-      return Promise.resolve(JSON.stringify(result));
-    }
-  } else if (typeof result === "object" && result.constructor === Object) {
-    // If result is a plain object, render as a Markdown table
-    return jsonToMDTable([result], refCellTransformer);
-  } else if (Array.isArray(result)) {
-    // Not-object array, let's render it as a Markdown list
-    return Promise.resolve(result.map((item) => `- ${item}`).join("\n"));
-  } else {
-    return Promise.resolve(`${result}`);
   }
 }
 

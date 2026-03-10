@@ -9,10 +9,10 @@ import {
 } from "./util.ts";
 import type { Client } from "../client.ts";
 import {
+  frontmatterMailtoRegex,
   frontmatterQuotesRegex,
   frontmatterUrlRegex,
   frontmatterWikiLinkRegex,
-  frontmatterMailtoRegex,
 } from "../markdown_parser/constants.ts";
 import { processWikiLink, type WikiLinkMatch } from "./wiki_link_processor.ts";
 

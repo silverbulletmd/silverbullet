@@ -295,17 +295,13 @@ export async function taskCycleCommand() {
   await convertListItemToTask(listItem);
 }
 
-export async function removeCompletedTasksCommand() {
-  const tree = await markdown.parseMarkdown(await editor.getText());
-  addParentPointers(tree);
-
+// Core logic extracted for testability. Mutates tree in place.
+export function removeCompletedTasksFromTree(
+  tree: ParseTree,
+  allCompletedStates: string[],
+) {
   // Taking this ugly approach because the tree is modified in place
   // Just finding and removing one task at a time and then repeating until nothing changes
-  const allCompletedStates = completeStates.concat(
-    Object.values(await config.get("taskStates", {})).filter((ts: any) =>
-      ts.done
-    ).map((ts: any) => ts.name),
-  );
   while (true) {
     const completedTaskNode = findNodeMatching(tree, (node) => {
       return node.type === "Task" &&
@@ -317,16 +313,65 @@ export async function removeCompletedTasksCommand() {
       const bulletListNode = listItemNode.parent!;
       // Remove the list item
       const listItemIdx = bulletListNode.children!.indexOf(listItemNode);
-      let removeItems = 1;
-      if (bulletListNode.children![listItemIdx + 1]?.text === "\n") {
-        removeItems++;
+      // Also remove the adjacent whitespace/newline separator text node.
+      // Prefer the following separator; if none, remove the preceding one.
+      const nextChild = bulletListNode.children![listItemIdx + 1];
+      const prevChild = listItemIdx > 0
+        ? bulletListNode.children![listItemIdx - 1]
+        : undefined;
+      if (nextChild && !nextChild.type && nextChild.text?.startsWith("\n")) {
+        // Remove item and following separator
+        bulletListNode.children!.splice(listItemIdx, 2);
+      } else if (
+        prevChild && !prevChild.type && prevChild.text?.startsWith("\n")
+      ) {
+        // Remove preceding separator and item
+        bulletListNode.children!.splice(listItemIdx - 1, 2);
+      } else {
+        // No separator to remove, just remove the item
+        bulletListNode.children!.splice(listItemIdx, 1);
       }
-      bulletListNode.children!.splice(listItemIdx, removeItems);
+      // If the BulletList now has no ListItem children, remove it and any
+      // adjacent whitespace/newline text node from its parent. This prevents
+      // blank lines left behind when all items in a nested list are completed.
+      if (
+        bulletListNode.parent &&
+        !bulletListNode.children!.some((c) => c.type === "ListItem")
+      ) {
+        const parentChildren = bulletListNode.parent.children!;
+        const blIdx = parentChildren.indexOf(bulletListNode);
+        const blNext = parentChildren[blIdx + 1];
+        const blPrev = blIdx > 0 ? parentChildren[blIdx - 1] : undefined;
+        if (blNext && !blNext.type && blNext.text?.startsWith("\n")) {
+          // Remove BulletList and following separator
+          parentChildren.splice(blIdx, 2);
+        } else if (
+          blPrev && !blPrev.type && blPrev.text?.startsWith("\n")
+        ) {
+          // Remove preceding separator and BulletList
+          parentChildren.splice(blIdx - 1, 2);
+        } else {
+          parentChildren.splice(blIdx, 1);
+        }
+      }
     } else {
       // No completed tasks left, we're done
       break;
     }
   }
+}
+
+export async function removeCompletedTasksCommand() {
+  const tree = await markdown.parseMarkdown(await editor.getText());
+  addParentPointers(tree);
+
+  const allCompletedStates = completeStates.concat(
+    Object.values(await config.get("taskStates", {})).filter((ts: any) =>
+      ts.done
+    ).map((ts: any) => ts.name),
+  );
+
+  removeCompletedTasksFromTree(tree, allCompletedStates);
 
   await editor.setText(renderToText(tree));
 }
