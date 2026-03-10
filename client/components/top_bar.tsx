@@ -18,6 +18,7 @@ export function TopBar({
   isLoading,
   notifications,
   onRename,
+  onDismissNotification,
   actionButtons,
   darkMode,
   vimMode,
@@ -40,6 +41,7 @@ export function TopBar({
   progressPercentage?: number;
   progressType?: string;
   onRename: (newName?: string) => Promise<void>;
+  onDismissNotification: (id: number) => void;
   onClick: () => void;
   actionButtons: ActionButton[];
   lhs?: ComponentChildren;
@@ -97,7 +99,36 @@ export function TopBar({
                     key={notification.id}
                     className={`sb-notification-${notification.type}`}
                   >
-                    {notification.message}
+                    <span className="sb-notification-message">
+                      {notification.message}
+                    </span>
+                    {notification.actions && notification.actions.length > 0 && (
+                      <span className="sb-notification-actions">
+                        {notification.actions.map((action, i) => (
+                          <button
+                            key={i}
+                            className="sb-button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              action.run();
+                            }}
+                          >
+                            {action.name}
+                          </button>
+                        ))}
+                      </span>
+                    )}
+                    {notification.persistent && (
+                      <button
+                        className="sb-notification-dismiss"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDismissNotification(notification.id);
+                        }}
+                      >
+                        &times;
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>

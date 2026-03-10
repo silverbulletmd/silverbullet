@@ -822,8 +822,12 @@ export class Client {
         ) {
           this.versionMismatchNotified = true;
           this.ui.flashNotification(
-            "A new version of SilverBullet is available. Reload to update.",
+            "A new version of SilverBullet client is available. A reload or two is required to update.",
             "warning",
+            {
+              timeout: 0,
+              actions: [{ name: "Reload", run: () => location.reload() }],
+            },
           );
         }
         break;

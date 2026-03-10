@@ -20,6 +20,7 @@ import { Panel } from "./components/panel.tsx";
 import { safeRun } from "@silverbulletmd/silverbullet/lib/async";
 import type {
   FilterOption,
+  NotificationAction,
   NotificationType,
 } from "@silverbulletmd/silverbullet/type/client";
 import { notificationDismissTimeouts } from "@silverbulletmd/silverbullet/type/client";
@@ -86,8 +87,26 @@ export class MainUI {
 
   viewDispatch: (action: Action) => void = () => {};
 
-  flashNotification(message: string, type: NotificationType = "info") {
+  flashNotification(
+    message: string,
+    type: NotificationType = "info",
+    options?: {
+      timeout?: number;
+      actions?: NotificationAction[];
+    },
+  ) {
     const id = Math.floor(Math.random() * 1000000);
+    const dismiss = () => {
+      this.viewDispatch({ type: "dismiss-notification", id });
+    };
+    const persistent = options?.timeout === 0;
+    const actions = options?.actions?.map((action) => ({
+      name: action.name,
+      run: () => {
+        action.run();
+        dismiss();
+      },
+    }));
     this.viewDispatch({
       type: "show-notification",
       notification: {
@@ -95,14 +114,14 @@ export class MainUI {
         type,
         message,
         date: new Date(),
+        actions,
+        persistent,
       },
     });
-    setTimeout(() => {
-      this.viewDispatch({
-        type: "dismiss-notification",
-        id: id,
-      });
-    }, notificationDismissTimeouts[type]);
+    if (!persistent) {
+      const timeout = options?.timeout ?? notificationDismissTimeouts[type];
+      setTimeout(dismiss, timeout);
+    }
   }
 
   showProgress(progressPercentage?: number, progressType?: "sync" | "index") {
@@ -386,6 +405,9 @@ export class MainUI {
             !viewState.current ? "" : getNameFromPath(viewState.current.path)
           }
           notifications={viewState.notifications}
+          onDismissNotification={(id) => {
+            dispatch({ type: "dismiss-notification", id });
+          }}
           isOnline={viewState.isOnline}
           unsavedChanges={viewState.unsavedChanges}
           isLoading={viewState.isLoading}

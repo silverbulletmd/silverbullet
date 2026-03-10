@@ -22,6 +22,7 @@ import { getCM as vimGetCm, Vim } from "@replit/codemirror-vim";
 import type { SysCallMapping } from "../system.ts";
 import type {
   FilterOption,
+  NotificationAction,
   NotificationType,
   UploadFile,
 } from "@silverbulletmd/silverbullet/type/client";
@@ -289,8 +290,9 @@ export function editorSyscalls(client: Client): SysCallMapping {
       _ctx,
       message: string,
       type: NotificationType = "info",
+      options?: { timeout?: number; actions?: NotificationAction[] },
     ) => {
-      client.ui.flashNotification(message, type);
+      client.ui.flashNotification(message, type, options);
     },
     "editor.filterBox": (
       _ctx,

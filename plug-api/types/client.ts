@@ -19,11 +19,18 @@ export const notificationDismissTimeouts: Record<NotificationType, number> = {
   warning: 8000,
 };
 
+export type NotificationAction = {
+  name: string;
+  run: () => void;
+};
+
 export type Notification = {
   id: number;
   message: string;
   type: NotificationType;
   date: Date;
+  actions?: NotificationAction[];
+  persistent?: boolean;
 };
 
 export type PanelMode = number;
