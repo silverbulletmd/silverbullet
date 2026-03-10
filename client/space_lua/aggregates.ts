@@ -21,6 +21,7 @@ import {
 } from "./runtime.ts";
 import type { LuaExpression } from "./ast.ts";
 import { buildItemEnv } from "./query_env.ts";
+import type { Config } from "../config.ts";
 
 export interface AggregateSpec {
   name: string;
@@ -116,21 +117,19 @@ const builtinAggregates: Record<string, AggregateSpec> = {
 
 const noCtx = {};
 
-function buildAggCtx(name: string): LuaTable {
+function buildAggCtx(name: string, config: Config): LuaTable {
   const ctx = new LuaTable();
   void ctx.rawSet("name", name);
-  const clientConfig = globalThis.client?.config;
-  const aggConfig = clientConfig
-    ? clientConfig.get(`aggregateConfig.${name}`, {})
-    : {};
-  void ctx.rawSet("config", aggConfig);
+  void ctx.rawSet("config", config.get(`aggregateConfig.${name}`, {}));
   return ctx;
 }
 
-export function getAggregateSpec(name: string): AggregateSpec | null {
-  const clientConfig = globalThis.client?.config;
-  if (clientConfig) {
-    const spec: any = clientConfig.get(`aggregates.${name}`, null);
+export function getAggregateSpec(
+  name: string,
+  config?: Config,
+): AggregateSpec | null {
+  if (config) {
+    const spec: any = config.get(`aggregates.${name}`, null);
     if (spec) {
       let candidate: AggregateSpec | null = null;
       if (spec instanceof LuaTable) {
@@ -169,9 +168,10 @@ export async function executeAggregate(
     env: LuaEnv,
     sf: LuaStackFrame,
   ) => Promise<LuaValue> | LuaValue,
+  config: Config,
   filterExpr?: LuaExpression,
 ): Promise<LuaValue> {
-  const ctx = buildAggCtx(spec.name);
+  const ctx = buildAggCtx(spec.name, config);
 
   // Initialize
   let state = await luaCall(spec.initialize, [ctx], noCtx, sf);

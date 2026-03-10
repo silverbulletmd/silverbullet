@@ -1,8 +1,4 @@
 import {
-  isLocalURL,
-  resolveMarkdownLink,
-} from "@silverbulletmd/silverbullet/lib/resolve";
-import {
   mdLinkRegex,
   wikiLinkRegex,
 } from "../../client/markdown_parser/constants.ts";
@@ -82,9 +78,6 @@ export function parseTransclusion(text: string): Transclusion | null {
   if ((match = mdLinkRegex.exec(text)) && match.groups) {
     ({ url, title: alias } = match.groups);
 
-    if (isLocalURL(url)) {
-      url = resolveMarkdownLink(client.currentName(), decodeURI(url));
-    }
     linktype = "markdownlink";
   } else if ((match = wikiLinkRegex.exec(text)) && match.groups) {
     ({ stringRef: url, alias } = match.groups);

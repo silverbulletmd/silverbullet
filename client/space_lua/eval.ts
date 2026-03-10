@@ -895,7 +895,9 @@ export function evalExpression(
             }
 
             // Always use the possibly-wrapped collection
-            return (collection as any).query(query, env, sf).then(jsToLuaValue);
+            return (collection as any)
+              .query(query, env, sf, globalThis.client?.config)
+              .then(jsToLuaValue);
           },
         );
       }

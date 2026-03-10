@@ -54,10 +54,10 @@ class TableViewWidget extends WidgetType {
     });
 
     void expandMarkdown(
-      client.space,
-      client.currentName(),
+      this.client.space,
+      this.client.currentName(),
       this.t,
-      client.clientSystem.spaceLuaEnv,
+      this.client.clientSystem.spaceLuaEnv,
     ).then((t) => {
       dom.innerHTML = renderMarkdownToHtml(t, {
         // Annotate every element with its position so we can use it to put

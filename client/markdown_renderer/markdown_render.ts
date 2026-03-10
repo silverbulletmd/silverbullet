@@ -18,7 +18,7 @@ import * as TagConstants from "../../plugs/index/constants.ts";
 import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 import { justifiedTableRender } from "./justified_tables.ts";
 import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
-import { inlineContentFromURL } from "./inline.ts";
+import { createMediaElement } from "./inline.ts";
 import { parseTransclusion } from "@silverbulletmd/silverbullet/lib/transclusion";
 
 export type MarkdownRenderOptions = {
@@ -263,22 +263,14 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
       }
 
       try {
-        const result = inlineContentFromURL(client.space, transclusion);
-        if (result instanceof Promise) {
-          // console.warn(
-          //   `Unsupported inline in markdown render context: ${transclusion.url}`,
-          // );
-          // Can't support promises in this context, returning original text
-          return text;
-        }
-        // Running in non-browser context
-        if (!globalThis.HTMLElement || !(result instanceof HTMLElement)) {
+        const element = createMediaElement(transclusion);
+        if (!element) {
           return text;
         }
 
         return {
-          name: result.tagName,
-          attrs: Array.from(result.attributes).reduce(
+          name: element.tagName,
+          attrs: Array.from(element.attributes).reduce(
             (obj, attr) => {
               obj[attr.name] = attr.value;
               return obj;

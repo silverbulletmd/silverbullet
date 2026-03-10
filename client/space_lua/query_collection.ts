@@ -35,6 +35,7 @@ import type { QueryCollationConfig } from "../../plug-api/types/config.ts";
 import type { KvKey } from "../../plug-api/types/datastore.ts";
 
 import { executeAggregate, getAggregateSpec } from "./aggregates.ts";
+import { Config } from "../config.ts";
 
 // Sentinel value representing SQL NULL in query results.
 export const LIQ_NULL = Symbol.for("silverbullet.sqlNull");
@@ -168,6 +169,7 @@ export interface LuaQueryCollection {
     query: LuaCollectionQuery,
     env: LuaEnv,
     sf: LuaStackFrame,
+    config?: Config,
   ): Promise<any[]>;
 }
 
@@ -180,9 +182,9 @@ export class ArrayQueryCollection<T> implements LuaQueryCollection {
     query: LuaCollectionQuery,
     env: LuaEnv,
     sf: LuaStackFrame,
-    collation?: QueryCollationConfig,
+    config?: Config,
   ): Promise<any[]> {
-    return applyQuery(this.array, query, env, sf, collation);
+    return applyQuery(this.array, query, env, sf, config);
   }
 }
 
@@ -265,6 +267,7 @@ export async function evalExpressionWithAggregates(
   groupItems: LuaTable,
   objectVariable: string | undefined,
   outerEnv: LuaEnv,
+  config: Config,
 ): Promise<LuaValue> {
   if (!containsAggregate(expr)) {
     return evalExpression(expr, env, sf);
@@ -277,6 +280,7 @@ export async function evalExpressionWithAggregates(
       groupItems,
       objectVariable,
       outerEnv,
+      config,
     );
 
   if (expr.type === "FilteredCall") {
@@ -284,7 +288,7 @@ export async function evalExpressionWithAggregates(
     const fc = filtered.call;
     if (fc.prefix.type === "Variable") {
       const name = fc.prefix.name;
-      const spec = getAggregateSpec(name);
+      const spec = getAggregateSpec(name, config);
       if (spec) {
         const valueExpr = fc.args.length > 0 ? fc.args[0] : null;
         return executeAggregate(
@@ -295,6 +299,7 @@ export async function evalExpressionWithAggregates(
           outerEnv,
           sf,
           evalExpression,
+          config,
           filtered.filter,
         );
       }
@@ -307,7 +312,7 @@ export async function evalExpressionWithAggregates(
     const fc = expr as LuaFunctionCallExpression;
     if (fc.prefix.type === "Variable") {
       const name = fc.prefix.name;
-      const spec = getAggregateSpec(name);
+      const spec = getAggregateSpec(name, config);
       if (spec) {
         const valueExpr = fc.args.length > 0 ? fc.args[0] : null;
         return executeAggregate(
@@ -318,6 +323,7 @@ export async function evalExpressionWithAggregates(
           outerEnv,
           sf,
           evalExpression,
+          config,
         );
       }
     }
@@ -505,6 +511,7 @@ async function precomputeSortKeys(
   sf: LuaStackFrame,
   grouped: boolean,
   selectResults: any[] | undefined,
+  config: Config,
 ): Promise<any[][]> {
   const allKeys: any[][] = new Array(results.length);
   for (let i = 0; i < results.length; i++) {
@@ -530,6 +537,7 @@ async function precomputeSortKeys(
           groupTable,
           objectVariable,
           env,
+          config,
         );
       } else {
         keys[j] = await evalExpression(orderBy[j].expr, itemEnv, sf);
@@ -609,7 +617,7 @@ export async function applyQuery(
   query: LuaCollectionQuery,
   env: LuaEnv,
   sf: LuaStackFrame,
-  collation?: QueryCollationConfig,
+  config: Config = new Config(),
 ): Promise<any[]> {
   results = results.slice();
   if (query.where) {
@@ -735,6 +743,7 @@ export async function applyQuery(
           groupTable,
           query.objectVariable,
           env,
+          config,
         );
       } else {
         const itemEnv = buildItemEnvLocal(query.objectVariable, value, env, sf);
@@ -766,6 +775,7 @@ export async function applyQuery(
         groupTable,
         query.objectVariable,
         env,
+        config,
       );
       selectResults.push(selected);
     }
@@ -773,10 +783,7 @@ export async function applyQuery(
   }
 
   if (query.orderBy) {
-    if (collation === undefined) {
-      const config = globalThis.client.config;
-      collation = config.get("queryCollation", {});
-    }
+    const collation = config.get<QueryCollationConfig>("queryCollation", {});
     const collator = Intl.Collator(collation?.locale, collation?.options);
 
     const resolvedUsing: (LuaValue | null)[] = [];
@@ -796,6 +803,7 @@ export async function applyQuery(
       sf,
       grouped,
       selectResults,
+      config,
     );
 
     // Tag each result with its original index for stable sorting
@@ -860,6 +868,7 @@ export async function applyQuery(
               groupTable,
               query.objectVariable,
               env,
+              config,
             ),
           );
         } else {
@@ -902,6 +911,7 @@ export async function queryLua<T = any>(
   env: LuaEnv,
   sf: LuaStackFrame = LuaStackFrame.lostFrame,
   enricher?: (key: KvKey, item: any) => any,
+  config?: Config,
 ): Promise<T[]> {
   const results: T[] = [];
   for await (let { key, value } of kv.query({ prefix })) {
@@ -910,7 +920,7 @@ export async function queryLua<T = any>(
     }
     results.push(value);
   }
-  return applyQuery(results, query, env, sf);
+  return applyQuery(results, query, env, sf, config);
 }
 
 function generateKey(value: any) {
@@ -964,7 +974,16 @@ export class DataStoreQueryCollection implements LuaQueryCollection {
     query: LuaCollectionQuery,
     env: LuaEnv,
     sf: LuaStackFrame,
+    config?: Config,
   ): Promise<any[]> {
-    return queryLua(this.dataStore.kv, this.prefix, query, env, sf);
+    return queryLua(
+      this.dataStore.kv,
+      this.prefix,
+      query,
+      env,
+      sf,
+      undefined,
+      config,
+    );
   }
 }
