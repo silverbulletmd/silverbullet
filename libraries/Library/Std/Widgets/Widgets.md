@@ -80,6 +80,27 @@ end
 ```
 
 ## Table of contents
+```space-style
+.sb-toc-summary {
+  cursor: pointer;
+  font-weight: bold;
+  user-select: none;
+  padding: 15px 10px;
+  margin: -10px;
+  background-color: var(--editor-widget-background-color);
+}
+.sb-toc-content {
+  padding-top: 0.5rem;
+}
+.sb-toc-item {
+  padding: 0.1rem 0;
+}
+.sb-toc-link {
+  cursor: pointer;
+  text-decoration: none;
+}
+```
+
 ```space-lua
 -- priority: 10
 widgets = widgets or {}
@@ -102,9 +123,14 @@ config.set("std.widgets.toc", {
 function widgets.toc(options)
   options = options or config.get("std.widgets.toc")
   options.minHeaders = options.minHeaders or 3
+  options.minLevel = options.minLevel or 1
+  options.header = options.header or "Table of Contents"
+  local defaultOpen = (options.defaultOpen ~= false) or nil
+
   local text = editor.getText()
   local pageName = editor.getCurrentPage()
   local parsedMarkdown = markdown.parseMarkdown(text)
+
   -- Collect all headers
   local headers = {}
   for topLevelChild in parsedMarkdown.children do
@@ -129,27 +155,57 @@ function widgets.toc(options)
       end
     end
   end
+
   if options.minHeaders and options.minHeaders > #headers then
     return widget.new{}
   end
+
+  -- Filter headers to display
+  local headersToDisplay = {}
+  for _, header in ipairs(headers) do
+    if not (options.maxHeader and header.level > options.maxHeader or
+            header.level < options.minLevel) then
+      table.insert(headersToDisplay, header)
+    end
+  end
+  
   -- Find min level
   local minLevel = 6
-  for _, header in ipairs(headers) do
-    if header.level < minLevel then
-      minLevel = header.level
-    end
+  for _, header in ipairs(headersToDisplay) do
+    minLevel = math.min(minLevel, header.level)
   end
-  -- Build up markdown
-  local md = (options.header or "# Table of Contents") .. "\n"
-  for _, header in ipairs(headers) do
-    if not(options.maxHeader and header.level > options.maxHeader or
-           options.minLevel and header.level < options.minLevel) then
-      md = md .. string.rep(" ", (header.level - minLevel) * 2) ..
-         "* [[" .. pageName .. "@" .. header.pos .. "|" .. header.name .. "]]\n"
-    end
+
+  -- Build TOC entries as DOM elements
+  local tocItems = {}
+  for _, header in ipairs(headersToDisplay) do
+    local indent = (header.level - minLevel) * 1.5
+    table.insert(tocItems, dom.div {
+      class = "sb-toc-item",
+      style = "margin-left: " .. indent .. "rem;",
+      dom.a {
+        onclick = function()
+          editor.navigate({ page = pageName, pos = header.pos })
+        end,
+        class = "sb-toc-link",
+        "- " .. header.name
+      }
+    })
   end
+
+  -- Wrap in a <details> element for native show/hide toggle
   return widget.new {
-    markdown = md
+    html = dom.details {
+      open = defaultOpen,
+      dom.summary {
+        class = "sb-toc-summary",
+        options.header
+      },
+      dom.div {
+        class = "sb-toc-content",
+        table.unpack(tocItems)
+      }
+    },
+    display = "block"
   }
 end
 ```
