@@ -532,6 +532,8 @@ export class MainUI {
             "mobileMenuStyle",
             "hamburger",
           )}
+          readOnly={viewState.uiOptions.forcedROMode ||
+            client.bootConfig.readOnly}
         />
         <div id="sb-main">
           {viewState.panels.lhs.mode !== undefined && (

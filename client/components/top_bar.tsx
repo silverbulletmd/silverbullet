@@ -11,6 +11,138 @@ export type ActionButton = {
   mobile?: boolean;
 };
 
+function pageNameClass(
+  isLoading: boolean,
+  unsavedChanges: boolean,
+  cssClass?: string,
+): string {
+  const state = isLoading
+    ? "sb-loading"
+    : unsavedChanges
+      ? "sb-unsaved"
+      : "sb-saved";
+  return cssClass ? `${state} sb-decorated-object ${cssClass}` : state;
+}
+
+function NotificationPanel({
+  notifications,
+  onDismiss,
+}: {
+  notifications: Notification[];
+  onDismiss: (id: number) => void;
+}) {
+  if (notifications.length === 0) return null;
+  return (
+    <div className="sb-notifications">
+      {notifications.map((notification) => (
+        <div
+          key={notification.id}
+          className={`sb-notification-${notification.type}`}
+        >
+          <span className="sb-notification-message">
+            {notification.message}
+          </span>
+          {notification.actions && notification.actions.length > 0 && (
+            <span className="sb-notification-actions">
+              {notification.actions.map((action, i) => (
+                <button
+                  key={i}
+                  className="sb-button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    action.run();
+                  }}
+                >
+                  {action.name}
+                </button>
+              ))}
+            </span>
+          )}
+          {notification.persistent && (
+            <button
+              className="sb-notification-dismiss"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDismiss(notification.id);
+              }}
+            >
+              &times;
+            </button>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SyncProgressIndicator({
+  percentage,
+  type,
+}: {
+  percentage?: number;
+  type?: string;
+}) {
+  if (percentage === undefined) return null;
+  return (
+    <div className="sb-sync-progress">
+      <div
+        className="progress-wrapper"
+        title={`${type} progress: ${percentage}%`}
+      >
+        <div
+          className="progress-bar"
+          style={`background: radial-gradient(closest-side, var(--top-background-color) 79%, transparent 80% 100%), conic-gradient(var(--progress-${type}-color) ${percentage}%, var(--progress-background-color) 0);`}
+        >
+          {percentage}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ActionButtons({
+  buttons,
+  mobileMenuStyle,
+}: {
+  buttons: ActionButton[];
+  mobileMenuStyle?: string;
+}) {
+  return (
+    <div className={`sb-actions ${mobileMenuStyle ?? ""}`}>
+      {buttons.map((actionButton) => {
+        const btn = (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              actionButton.callback();
+            }}
+            onBlur={() => {
+              if (mobileMenuStyle === "hamburger") {
+                document
+                  .querySelector("#sb-top .sb-actions.hamburger")
+                  ?.classList.remove("open");
+              }
+            }}
+            title={actionButton.description}
+            className={actionButton.class}
+          >
+            <actionButton.icon size={18} />
+          </button>
+        );
+        return actionButton.href ? (
+          <a href={actionButton.href} key={actionButton.href}>
+            {btn}
+          </a>
+        ) : (
+          btn
+        );
+      })}
+    </div>
+  );
+}
+
 export function TopBar({
   pageName,
   unsavedChanges,
@@ -30,6 +162,7 @@ export function TopBar({
   pageNamePrefix,
   cssClass,
   mobileMenuStyle,
+  readOnly,
 }: {
   pageName?: string;
   unsavedChanges: boolean;
@@ -49,6 +182,7 @@ export function TopBar({
   pageNamePrefix?: string;
   cssClass?: string;
   mobileMenuStyle?: string;
+  readOnly: boolean;
 }) {
   return (
     <div
@@ -63,14 +197,7 @@ export function TopBar({
             <div className="sb-page-prefix">{pageNamePrefix}</div>
             <span
               id="sb-current-page"
-              className={
-                (isLoading
-                  ? "sb-loading"
-                  : unsavedChanges
-                    ? "sb-unsaved"
-                    : "sb-saved") +
-                (cssClass ? ` sb-decorated-object ${cssClass}` : "")
-              }
+              className={pageNameClass(isLoading, unsavedChanges, cssClass)}
             >
               <MiniEditor
                 text={pageName ?? ""}
@@ -86,104 +213,21 @@ export function TopBar({
                 onEnter={(newName) => {
                   void onRename(newName);
                 }}
-                editable={
-                  !client.ui.viewState.uiOptions.forcedROMode &&
-                  !client.bootConfig.readOnly
-                }
+                editable={!readOnly}
               />
             </span>
-            {notifications.length > 0 && (
-              <div className="sb-notifications">
-                {notifications.map((notification) => (
-                  <div
-                    key={notification.id}
-                    className={`sb-notification-${notification.type}`}
-                  >
-                    <span className="sb-notification-message">
-                      {notification.message}
-                    </span>
-                    {notification.actions && notification.actions.length > 0 && (
-                      <span className="sb-notification-actions">
-                        {notification.actions.map((action, i) => (
-                          <button
-                            key={i}
-                            className="sb-button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              action.run();
-                            }}
-                          >
-                            {action.name}
-                          </button>
-                        ))}
-                      </span>
-                    )}
-                    {notification.persistent && (
-                      <button
-                        className="sb-notification-dismiss"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDismissNotification(notification.id);
-                        }}
-                      >
-                        &times;
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-            <div className="sb-sync-progress">
-              {progressPercentage !== undefined && (
-                <div
-                  className="progress-wrapper"
-                  title={`${progressType} progress: ${progressPercentage}%`}
-                >
-                  <div
-                    className="progress-bar"
-                    style={`background: radial-gradient(closest-side, var(--top-background-color) 79%, transparent 80% 100%), conic-gradient(var(--progress-${progressType}-color) ${progressPercentage}%, var(--progress-background-color) 0);`}
-                  >
-                    {progressPercentage}
-                  </div>
-                </div>
-              )}
-            </div>
-            <div
-              className={`sb-actions ${mobileMenuStyle ? mobileMenuStyle : ""}`}
-            >
-              {actionButtons.map((actionButton) => {
-                const button = (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      actionButton.callback();
-                    }}
-                    onBlur={() => {
-                      // Close the hamburger menu in mobile mode if the action button loses focus after callback
-                      if (mobileMenuStyle === "hamburger") {
-                        document
-                          .querySelector("#sb-top .sb-actions.hamburger")
-                          ?.classList.remove("open");
-                      }
-                    }}
-                    title={actionButton.description}
-                    className={actionButton.class}
-                  >
-                    <actionButton.icon size={18} />
-                  </button>
-                );
-
-                return actionButton.href ? (
-                  <a href={actionButton.href} key={actionButton.href}>
-                    {button}
-                  </a>
-                ) : (
-                  button
-                );
-              })}
-            </div>
+            <NotificationPanel
+              notifications={notifications}
+              onDismiss={onDismissNotification}
+            />
+            <SyncProgressIndicator
+              percentage={progressPercentage}
+              type={progressType}
+            />
+            <ActionButtons
+              buttons={actionButtons}
+              mobileMenuStyle={mobileMenuStyle}
+            />
           </div>
         </div>
       </div>
