@@ -5,7 +5,7 @@ import type {
 import type { Compartment, EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
-import { history, isolateHistory } from "@codemirror/commands";
+import { history } from "@codemirror/commands";
 import type { SyntaxNode } from "@lezer/common";
 import { Space } from "./space.ts";
 import type {
@@ -21,11 +21,7 @@ import { notificationDismissTimeouts } from "@silverbulletmd/silverbullet/type/c
 import { publicVersion } from "../public_version.ts";
 import { EventHook } from "./plugos/hooks/event.ts";
 import type { Command } from "./types/command.ts";
-import {
-  type LocationState,
-  parseRefFromURI,
-  PathPageNavigator,
-} from "./navigator.ts";
+import { parseRefFromURI, PathPageNavigator } from "./navigator.ts";
 
 import type {
   AppViewState,
@@ -34,20 +30,14 @@ import type {
   ServiceWorkerTargetMessage,
 } from "./types/ui.ts";
 
-import type {
-  PageCreatingContent,
-  PageCreatingEvent,
-} from "@silverbulletmd/silverbullet/type/event";
 import type { StyleObject } from "../plugs/index/space_style.ts";
-import { jitter, throttle } from "@silverbulletmd/silverbullet/lib/async";
+import { jitter } from "@silverbulletmd/silverbullet/lib/async";
 import { EventedSpacePrimitives } from "./spaces/evented_space_primitives.ts";
 import { HttpSpacePrimitives } from "./spaces/http_space_primitives.ts";
 import {
   encodePageURI,
   encodeRef,
   getNameFromPath,
-  getOffsetFromHeader,
-  getOffsetFromLineColumn,
   isMarkdownPath,
   parseToRef,
   type Path,
@@ -62,8 +52,7 @@ import { DataStoreMQ } from "./data/mq.datastore.ts";
 
 import { fsEndpoint } from "./spaces/constants.ts";
 import { WidgetCache } from "./widget_cache.ts";
-import { diffAndPrepareChanges } from "./codemirror/cm_util.ts";
-import { DocumentEditor } from "./document_editor.ts";
+import { ContentManager } from "./content_manager.ts";
 import { parseExpressionString } from "./space_lua/parse.ts";
 import type { Config } from "./config.ts";
 import type {
@@ -71,12 +60,7 @@ import type {
   FileMeta,
   PageMeta,
 } from "@silverbulletmd/silverbullet/type/index";
-import { parseMarkdown } from "./markdown_parser/parser.ts";
 import { CheckedSpacePrimitives } from "./spaces/checked_space_primitives.ts";
-import {
-  notFoundError,
-  offlineError,
-} from "@silverbulletmd/silverbullet/constants";
 import { Augmenter } from "./data/data_augmenter.ts";
 import { EncryptedKvPrimitives } from "./data/encrypted_kv_primitives.ts";
 import type { KvPrimitives } from "./data/kv_primitives.ts";
@@ -85,10 +69,6 @@ import { LuaRuntimeError } from "./space_lua/runtime.ts";
 import { resolveASTReference } from "./space_lua.ts";
 import { ObjectIndex } from "./data/object_index.ts";
 import type { LuaCollectionQuery } from "./space_lua/query_collection.ts";
-
-const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
-
-const autoSaveInterval = 1000;
 
 // Fetch the file list ever so often, this will implicitly kick off a snapshot comparison resulting in the indexing of changed pages
 const fetchFileListInterval = 10000;
@@ -122,14 +102,8 @@ export class Client {
   indentUnitCompartment?: Compartment;
   undoHistoryCompartment?: Compartment;
 
-  // Document editor
-  documentEditor: DocumentEditor | null = null;
-  saveTimeout?: ReturnType<typeof setTimeout>;
-  debouncedUpdateEvent = throttle(() => {
-    this.eventHook
-      .dispatchEvent("editor:updated")
-      .catch((e) => console.error("Error dispatching editor:updated event", e));
-  }, 1000);
+  // Content manager: handles page/document loading, saving, and editor mode switching
+  contentManager!: ContentManager;
   // Track if plugs have been updated since sync cycle
   fullSyncCompleted = false;
   private versionMismatchNotified = false;
@@ -189,6 +163,7 @@ export class Client {
     this.mq = new DataStoreMQ(this.ds, this.eventHook);
 
     this.widgetCache = new WidgetCache(this.ds);
+    this.contentManager = new ContentManager(this);
 
     this.objectIndex = new ObjectIndex(
       this.ds,
@@ -426,75 +401,8 @@ export class Client {
     return this.dispatchAppEvent("page:click", enrichedEvent);
   }
 
-  // Save the current page
   save(immediate = false): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (this.saveTimeout) {
-        clearTimeout(this.saveTimeout);
-      }
-      this.saveTimeout = setTimeout(
-        () => {
-          if (!this.ui.viewState.unsavedChanges || this.isReadOnlyMode()) {
-            // No unsaved changes, or read-only mode, not gonna save
-            return resolve();
-          }
-
-          if (this.isDocumentEditor()) {
-            console.log("Requesting save for document", this.currentPath());
-            void this.dispatchAppEvent(
-              "editor:documentSaving",
-              this.currentPath(),
-            );
-
-            // Only thing we can really do is request a save
-            this.documentEditor.requestSave();
-
-            return resolve();
-          } else {
-            console.log("Saving page", this.currentPath());
-            void this.dispatchAppEvent("editor:pageSaving", this.currentName());
-            this.space
-              .writePage(this.currentName(), this.editorView.state.sliceDoc(0))
-              .then(async (meta) => {
-                this.ui.viewDispatch({ type: "page-saved" });
-                await this.dispatchAppEvent(
-                  "editor:pageSaved",
-                  this.currentName(),
-                  meta,
-                );
-
-                // At this all the essential stuff is done, let's proceed
-                resolve();
-
-                // In the background we'll fetch any enriched meta data, if any
-                const enrichedMeta = await this.objectIndex.getObjectByRef(
-                  this.currentName(),
-                  "page",
-                  this.currentName(),
-                );
-                if (enrichedMeta) {
-                  this.ui.viewDispatch({
-                    type: "update-current-page-meta",
-                    meta: enrichedMeta,
-                  });
-
-                  // Trigger editor re-render to update Lua widgets with the new metadata
-                  this.editorView.dispatch({});
-                }
-              })
-              .catch((e) => {
-                this.flashNotification(
-                  "Could not save page, retrying again in 10 seconds",
-                  "error",
-                );
-                this.saveTimeout = setTimeout(this.save.bind(this), 10000);
-                reject(e);
-              });
-          }
-        },
-        immediate ? 0 : autoSaveInterval,
-      );
-    });
+    return this.contentManager.save(immediate);
   }
 
   flashNotification(message: string, type: NotificationType = "info") {
@@ -508,15 +416,12 @@ export class Client {
         date: new Date(),
       },
     });
-    setTimeout(
-      () => {
-        this.ui.viewDispatch({
-          type: "dismiss-notification",
-          id: id,
-        });
-      },
-      notificationDismissTimeouts[type],
-    );
+    setTimeout(() => {
+      this.ui.viewDispatch({
+        type: "dismiss-notification",
+        id: id,
+      });
+    }, notificationDismissTimeouts[type]);
   }
 
   reportError(e: any, context: string = "") {
@@ -830,22 +735,8 @@ export class Client {
     ) as Promise<CompletionResult | null>;
   }
 
-  async reloadEditor() {
-    if (!this.systemReady) return;
-
-    console.log("Reloading editor");
-    clearTimeout(this.saveTimeout);
-
-    try {
-      if (isMarkdownPath(this.currentPath())) {
-        await this.loadPage({ path: this.currentPath() }, false);
-      } else {
-        await this.loadDocumentEditor({ path: this.currentPath() });
-      }
-    } catch {
-      console.log(this.currentPath());
-      console.error("There was an error during reload");
-    }
+  reloadEditor() {
+    return this.contentManager.reloadEditor();
   }
 
   // Focus the editor
@@ -865,8 +756,8 @@ export class Client {
       return;
     }
 
-    if (this.isDocumentEditor()) {
-      this.documentEditor.focus();
+    if (this.contentManager.isDocumentEditor()) {
+      this.contentManager.documentEditor.focus();
     } else {
       this.editorView.focus();
     }
@@ -896,314 +787,6 @@ export class Client {
 
     await this.pageNavigator!.navigate(ref, replaceState);
     this.focus();
-  }
-
-  async loadDocumentEditor(locationState: LocationState) {
-    const path = locationState.path;
-    if (isMarkdownPath(path)) throw Error("This is a markdown path");
-
-    const previousPath = this.ui.viewState.current?.path;
-    const loadingDifferentPath = previousPath
-      ? previousPath !== path
-      : // Always load as different editor if editor is loaded from scratch
-        true;
-
-    if (previousPath) {
-      this.space.unwatchFile(previousPath);
-      await this.save(true);
-    }
-
-    // This can throw, but that will be catched and handled upstream.
-    const doc = await this.space.readDocument(path);
-
-    // Create the document editor if it doesn't already exist
-    if (
-      !this.isDocumentEditor() ||
-      this.documentEditor.extension !== doc.meta.extension
-    ) {
-      try {
-        await this.switchToDocumentEditor(doc.meta.extension);
-      } catch (e: any) {
-        // If there is no document editor we will open the file raw
-        if (e.message.includes("Couldn't find")) {
-          this.openUrl(
-            `${document.baseURI.replace(/\/*$/, "") + fsEndpoint}/${path}`,
-            !previousPath,
-          );
-        }
-
-        throw e;
-      }
-
-      if (!this.isDocumentEditor()) {
-        throw new Error("Problem setting up document editor");
-      }
-    }
-
-    this.documentEditor!.openFile(doc.data, doc.meta, locationState.details);
-
-    this.space.watchFile(path);
-
-    this.ui.viewDispatch({
-      type: "document-editor-loaded",
-      meta: doc.meta,
-      path: path,
-    });
-
-    this.eventHook
-      .dispatchEvent(
-        loadingDifferentPath
-          ? "editor:documentLoaded"
-          : "editor:documentReloaded",
-        path,
-        previousPath,
-      )
-      .catch(console.error);
-  }
-
-  async loadPage(
-    locationState: LocationState,
-    navigateWithinPage: boolean = true,
-  ) {
-    const path = locationState.path;
-    if (!isMarkdownPath(path)) throw Error("This is not a markdown path");
-
-    const previousPath = this.ui.viewState.current?.path;
-    const loadingDifferentPath = previousPath
-      ? previousPath !== path
-      : // Always load as different page if page is loaded from scratch
-        true;
-    const pageName = getNameFromPath(path);
-
-    if (previousPath) {
-      this.space.unwatchFile(previousPath);
-      await this.save(true);
-    }
-
-    // Fetch next page to open
-    let doc;
-    let markerIndex = -1;
-    try {
-      doc = await this.space.readPage(pageName);
-    } catch (e: any) {
-      if (
-        e.message !== notFoundError.message &&
-        e.message !== offlineError.message
-      ) {
-        // If the error is not a "not found" or "offline" error, rethrow it
-        throw e;
-      }
-
-      if (e.message === offlineError.message) {
-        console.info(
-          "Currently offline, will assume page doesn't exist:",
-          pageName,
-        );
-      }
-
-      // Scenarios:
-      // 1. We got a not found error -> Create an empty page
-      // 2. We got a offline error (which meant that the service worker didn't locally retrieve the page either so likely it doesn't exist) -> Create a new page
-      // Either way... we create an empty page!
-
-      console.log(`Page doesn't exist, creating new page: ${pageName}`);
-
-      // Mock up the page. We won't yet safe it, because the user may not even
-      // want to create that page
-      doc = {
-        text: "",
-        meta: {
-          ref: pageName,
-          tags: ["page"],
-          name: pageName,
-          lastModified: "",
-          created: "",
-          perm: "rw",
-        } as PageMeta,
-      };
-
-      // Let's dispatch a editor:pageCreating event to see if anybody wants to do something before the page is created
-      const results = (await this.dispatchAppEvent("editor:pageCreating", {
-        name: pageName,
-      } as PageCreatingEvent)) as PageCreatingContent[];
-
-      if (results.length === 1) {
-        doc.text = results[0].text;
-        doc.meta.perm = results[0].perm;
-        // check for |^| and remove it; record position to place cursor later
-        const cursorMarker = "|^|";
-        const idx = doc.text.indexOf(cursorMarker);
-        if (idx !== -1) {
-          markerIndex = idx;
-          doc.text =
-            doc.text.slice(0, idx) + doc.text.slice(idx + cursorMarker.length);
-        }
-      } else if (results.length > 1) {
-        console.error(
-          "Multiple responses for editor:pageCreating event, this is not supported",
-        );
-      }
-    }
-
-    // This could create an invalid editor state, but that doesn't matter, we'll update it later
-    this.switchToPageEditor();
-
-    await this.pageMetaAugmenter.setAugmentation(pageName, {
-      lastOpened: Date.now(),
-    });
-
-    this.ui.viewDispatch({
-      type: "page-loaded",
-      meta: doc.meta,
-      path: path,
-    });
-
-    // Fetch the meta which includes the possibly indexed stuff, like page
-    // decorations
-    if (await this.objectIndex.hasFullIndexCompleted()) {
-      try {
-        const enrichedMeta =
-          (await this.objectIndex.getObjectByRef(pageName, "page", pageName)) ??
-          doc.meta;
-
-        const body = document.body;
-        body.removeAttribute("class");
-
-        if (enrichedMeta.pageDecoration?.cssClasses) {
-          body.className = enrichedMeta.pageDecoration.cssClasses
-            .join(" ")
-            .replaceAll(/[^a-zA-Z0-9-_ ]/g, "");
-        }
-
-        this.ui.viewDispatch({
-          type: "update-current-page-meta",
-          meta: enrichedMeta,
-        });
-
-        // Trigger editor re-render to update Lua widgets with the new metadata
-        this.editorView.dispatch({});
-      } catch (e: any) {
-        console.log(
-          `There was an error trying to fetch enriched metadata: ${e.message}`,
-        );
-      }
-    }
-
-    // When loading a different page OR if the page is read-only (in which case we don't want to apply local patches, because there's no point)
-    if (loadingDifferentPath || doc.meta.perm === "ro") {
-      const editorState = createEditorState(
-        this,
-        pageName,
-        doc.text,
-        doc.meta.perm === "ro",
-      );
-      this.editorView.setState(editorState);
-    } else {
-      // Just apply minimal patches so that the cursor is preserved
-      this.setEditorText(doc.text, true);
-    }
-
-    this.space.watchFile(path);
-
-    if (navigateWithinPage) {
-      // Setup scroll position, cursor position, etc
-      try {
-        this.navigateWithinPage(locationState);
-      } catch {
-        // We don't really care if this fails.
-      }
-    }
-    // Note: these events are dispatched asynchronously deliberately (not waiting for results)
-    this.eventHook
-      .dispatchEvent(
-        loadingDifferentPath ? "editor:pageLoaded" : "editor:pageReloaded",
-        pageName,
-        previousPath ? getNameFromPath(previousPath) : undefined,
-      )
-      .catch(console.error);
-
-    // If a cursor marker was found for a newly-created page, place the
-    // cursor there now (after navigateWithinPage so it doesn't get
-    // overwritten by default positioning).
-    if (markerIndex !== -1) {
-      try {
-        const pos = Math.max(
-          0,
-          Math.min(markerIndex, this.editorView.state.doc.length),
-        );
-        this.editorView.dispatch({
-          selection: { anchor: pos },
-          effects: [EditorView.scrollIntoView(pos, { y: "center" })],
-        });
-        this.editorView.focus();
-      } catch (e) {
-        console.error("Failed to set cursor at cursor marker:", e);
-      }
-    }
-  }
-
-  isDocumentEditor(): this is { documentEditor: DocumentEditor } & this {
-    return this.documentEditor !== null;
-  }
-
-  switchToPageEditor() {
-    if (!this.isDocumentEditor()) return;
-
-    // Deliberately not awaiting this function as destroying & last-save can be handled in the background
-    this.documentEditor.destroy();
-    // @ts-expect-error: This is there the hacked type-guard from isDocumentEditor fails
-    this.documentEditor = null;
-
-    this.rebuildEditorState();
-
-    document.getElementById("sb-editor")!.classList.remove("hide-cm");
-  }
-
-  async switchToDocumentEditor(extension: string) {
-    if (this.documentEditor) {
-      // Deliberately not awaiting this function as destroying & last-save can be handled in the background
-      this.documentEditor.destroy();
-    }
-
-    // This is probably not the best way to hide the codemirror editor, but it works
-    document.getElementById("sb-editor")!.classList.add("hide-cm");
-
-    this.documentEditor = new DocumentEditor(
-      document.getElementById("sb-editor")!,
-      this,
-      (path, content) => {
-        this.space
-          .writeDocument(path, content)
-          .then(async (meta) => {
-            this.ui.viewDispatch({ type: "document-editor-saved" });
-
-            await this.dispatchAppEvent("editor:documentSaved", path, meta);
-          })
-          .catch(() => {
-            this.flashNotification(
-              "Could not save document, retrying again in 10 seconds",
-              "error",
-            );
-            this.saveTimeout = setTimeout(this.save.bind(this), 10000);
-          });
-      },
-    );
-
-    await this.documentEditor.init(extension);
-
-    // We have to rebuild the editor state here to update the keymap correctly
-    // This is a little hacky but any other solution would pose a larger rewrite
-    this.rebuildEditorState();
-    this.editorView.contentDOM.blur();
-  }
-
-  setEditorText(newText: string, shouldIsolateHistory = false) {
-    const currentText = this.editorView.state.sliceDoc();
-    const allChanges = diffAndPrepareChanges(currentText, newText);
-    client.editorView.dispatch({
-      changes: allChanges,
-      annotations: shouldIsolateHistory ? isolateHistory.of("full") : undefined,
-    });
   }
 
   openUrl(url: string, existingWindow = false) {
@@ -1268,7 +851,7 @@ export class Client {
   }
 
   getCommandsByContext(state: AppViewState): Map<string, Command> {
-    const currentEditor = client.documentEditor?.name;
+    const currentEditor = client.contentManager.documentEditor?.name;
     const commands = new Map(state.commands);
     for (const [k, v] of state.commands.entries()) {
       if (
@@ -1344,97 +927,6 @@ export class Client {
     );
   }
 
-  private navigateWithinPage(pageState: LocationState) {
-    if (!isMarkdownPath(pageState.path)) return;
-
-    // We can't use getOffsetFromRef here, because it is asyncronous.
-    let pos: number | undefined;
-
-    // Don't use getOffsetFromRef, so we can show error messages
-    if (pageState.details?.type === "header") {
-      const pageText = this.editorView.state.sliceDoc();
-
-      pos = getOffsetFromHeader(
-        parseMarkdown(pageText),
-        pageState.details.header,
-      );
-
-      if (pos === -1) {
-        this.flashNotification(
-          `Could not find header "${pageState.details.header}"`,
-          "error",
-        );
-
-        pos = undefined;
-      }
-    } else if (pageState.details?.type === "position") {
-      pos = Math.max(
-        0,
-        Math.min(pageState.details.pos, this.editorView.state.doc.length),
-      );
-    } else if (pageState.details?.type === "linecolumn") {
-      const pageText = this.editorView.state.sliceDoc();
-
-      pos = getOffsetFromLineColumn(
-        pageText,
-        pageState.details.line,
-        pageState.details.column,
-      );
-    }
-
-    if (pos !== undefined) {
-      this.editorView.dispatch({
-        selection: { anchor: pos },
-        effects: EditorView.scrollIntoView(pos, {
-          y: "start",
-          yMargin: 5,
-        }),
-      });
-
-      // If a position was specified, we bail out and ignore any cached state
-      return;
-    }
-
-    let adjustedPosition = false;
-
-    // Was a particular scroll position persisted?
-    if (pageState.scrollTop && pageState.scrollTop > 0) {
-      setTimeout(() => {
-        this.editorView.scrollDOM.scrollTop = pageState.scrollTop!;
-      });
-      adjustedPosition = true;
-    }
-
-    // Was a particular cursor/selection set?
-    if (pageState.selection?.anchor) {
-      this.editorView.dispatch({
-        selection: pageState.selection,
-      });
-      adjustedPosition = true;
-    }
-
-    // If not: just put the cursor at the top of the page, right after the frontmatter
-    if (!adjustedPosition) {
-      // Somewhat ad-hoc way to determine if the document contains frontmatter and if so, putting the cursor _after it_.
-      const pageText = this.editorView.state.sliceDoc();
-
-      // Default the cursor to be at position 0
-      let initialCursorPos = 0;
-      const match = frontMatterRegex.exec(pageText);
-      if (match) {
-        // Frontmatter found, put cursor after it
-        initialCursorPos = match[0].length;
-      }
-      // By default scroll to the top
-      this.editorView.scrollDOM.scrollTop = 0;
-      this.editorView.dispatch({
-        selection: { anchor: initialCursorPos },
-        // And then scroll down if required
-        scrollIntoView: true,
-      });
-    }
-  }
-
   private async initNavigator() {
     this.pageNavigator = new PathPageNavigator(this);
 
@@ -1442,9 +934,9 @@ export class Client {
       console.log(`Now navigating to ${encodeRef(locationState)}`);
 
       if (isMarkdownPath(locationState.path)) {
-        await this.loadPage(locationState);
+        await this.contentManager.loadPage(locationState);
       } else {
-        await this.loadDocumentEditor(locationState);
+        await this.contentManager.loadDocumentEditor(locationState);
       }
 
       // Persist this page as the last opened page, we'll use this for cold start PWA loads

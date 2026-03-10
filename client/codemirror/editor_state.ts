@@ -313,7 +313,7 @@ export function createEditorState(
               );
               void client.dispatchAppEvent("editor:pageModified", { changes });
               client.ui.viewDispatch({ type: "page-changed" });
-              client.debouncedUpdateEvent();
+              client.contentManager.debouncedUpdateEvent();
               client.save().catch((e) => console.error("Error saving", e));
             }
           }
@@ -347,7 +347,7 @@ export function createCommandKeyBindings(client: Client): Extension {
   for (const def of client.clientSystem.commandHook
     .buildAllCommands()
     .values()) {
-    const currentEditor = client.documentEditor?.name;
+    const currentEditor = client.contentManager.documentEditor?.name;
     const requiredEditor = def.requireEditor;
 
     if ((def.key || def.mac) && isValidEditor(currentEditor, requiredEditor)) {
@@ -400,7 +400,7 @@ export function createCommandKeyBindings(client: Client): Extension {
 }
 
 export function createRegularKeyBindings(client: Client): Extension {
-  if (client.isDocumentEditor()) {
+  if (client.contentManager.isDocumentEditor()) {
     return keymap.of([]);
   } else {
     return keymap.of([

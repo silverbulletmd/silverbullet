@@ -49,7 +49,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
       return client.currentPath();
     },
     "editor.getCurrentEditor": (): string => {
-      return client.documentEditor?.name || "page";
+      return client.contentManager.documentEditor?.name || "page";
     },
     "editor.getRecentlyOpenedPages": (): PageMeta[] => {
       return client.ui.viewState.allPages.sort(
@@ -76,7 +76,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
       };
     },
     "editor.setText": (_ctx, newText: string, shouldIsolateHistory = false) => {
-      client.setEditorText(newText, shouldIsolateHistory);
+      client.contentManager.setEditorText(newText, shouldIsolateHistory);
     },
     "editor.getCursor": (): number => {
       return client.editorView.state.selection.main.from;
@@ -641,9 +641,9 @@ export function editorSyscalls(client: Client): SysCallMapping {
       }
     },
     "editor.sendMessage": (_ctx, type: string, data: any) => {
-      if (!client.isDocumentEditor()) return;
+      if (!client.contentManager.isDocumentEditor()) return;
 
-      client.documentEditor.sendPublicMessage({
+      client.contentManager.documentEditor.sendPublicMessage({
         type,
         data,
       });

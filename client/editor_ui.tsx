@@ -108,8 +108,8 @@ export class MainUI {
 
         document.documentElement.dataset.theme = darkMode ? "dark" : "light";
 
-        if (this.client.isDocumentEditor()) {
-          this.client.documentEditor.updateTheme();
+        if (this.client.contentManager.isDocumentEditor()) {
+          this.client.contentManager.documentEditor.updateTheme();
         }
       };
 
@@ -301,12 +301,12 @@ export class MainUI {
           progressPercentage={viewState.progressPercentage}
           progressType={viewState.progressType}
           onClick={() => {
-            if (!client.isDocumentEditor()) {
+            if (!client.contentManager.isDocumentEditor()) {
               client.editorView.scrollDOM.scrollTop = 0;
             }
           }}
           onRename={async (newName) => {
-            if (client.isDocumentEditor()) {
+            if (client.contentManager.isDocumentEditor()) {
               if (!newName) return;
 
               console.log("Now renaming document to...", newName);
