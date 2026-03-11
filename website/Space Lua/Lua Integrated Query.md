@@ -44,6 +44,13 @@ If an aggregate function call is used for projection (`select`), the general syn
 
 See [[Space Lua/Lua Integrated Query/Aggregating]] for details.
 
+Aggregate functions support an optional intra-aggregate `order by` and/or `filter` clause:
+
+    <aggregate>(<expression> [order by <expr> [asc|desc] [nulls {first|last}], ...])
+    <aggregate>(<expression> ...) filter(where <condition>)
+
+These can be combined. See [[Space Lua/Lua Integrated Query/Aggregating]] for details.
+
 LIQ operates on any Lua collection.
 
 For instance, to sort a list of numbers in descending order:
