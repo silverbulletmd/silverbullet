@@ -8,7 +8,7 @@ import {
   ViewPlugin,
   type ViewUpdate,
 } from "@codemirror/view";
-import { getCM as vimGetCm, Vim, vim } from "@replit/codemirror-vim";
+import { getVimModule } from "../vim_loader.ts";
 import { createCommandKeyBindings } from "../codemirror/editor_state.ts";
 
 type MiniEditorEvents = {
@@ -131,15 +131,16 @@ export function MiniEditor({
     // When vim mode is active, we need for CM to have created the new state
     // and the subscribe to the vim mode's events
     // This needs to happen in the next tick, so we wait a tick with setTimeout
-    if (vimMode) {
+    const vimMod = getVimModule();
+    if (vimMode && vimMod) {
       // Only applies to vim mode
       setTimeout(() => {
-        const cm = vimGetCm(editorViewRef.current!)!;
+        const cm = vimMod.getCM(editorViewRef.current!)!;
         cm.on("vim-mode-change", ({ mode }: { mode: string }) => {
           vimModeRef.current = mode;
         });
         if (vimStartInInsertMode) {
-          Vim.handleKey(cm, "i", "+input");
+          vimMod.Vim.handleKey(cm, "i", "+input");
         }
       });
     }
@@ -150,8 +151,8 @@ export function MiniEditor({
         // Insert command bindings before vim-mode to ensure they're available
         // in normal mode. See editor_state.ts for more details.
         createCommandKeyBindings(globalThis.client),
-        // Enable vim mode, or not
-        [...(vimMode ? [vim()] : [])],
+        // Enable vim mode, or not (uses already-loaded module if available)
+        [...(vimMode && vimMod ? [vimMod.vim()] : [])],
         [
           ...(editable
             ? []

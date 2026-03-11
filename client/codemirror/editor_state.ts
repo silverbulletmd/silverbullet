@@ -34,9 +34,9 @@ import {
   ViewPlugin,
   type ViewUpdate,
 } from "@codemirror/view";
-import { vim } from "@replit/codemirror-vim";
 import { markdown } from "@codemirror/lang-markdown";
 import type { Client } from "../client.ts";
+import { loadVim } from "../vim_loader.ts";
 import { inlineContentPlugin } from "./inline_content.ts";
 import { cleanModePlugins } from "./clean.ts";
 import { lineWrapper } from "./line_wrapper.ts";
@@ -63,6 +63,7 @@ export function createEditorState(
   // Ugly: keep the commandKeyHandler compartment in the client, to be replaced
   // later once more commands are loaded
   client.commandKeyHandlerCompartment = new Compartment();
+  client.vimCompartment = new Compartment();
   const commandKeyBindings = client.commandKeyHandlerCompartment.of(
     createCommandKeyBindings(client),
   );
@@ -75,6 +76,13 @@ export function createEditorState(
 
   client.undoHistoryCompartment = new Compartment();
   const undoHistory = client.undoHistoryCompartment.of([history()]);
+
+  const vimMode = client.ui.viewState.uiOptions.vimMode;
+
+  // If vim mode is requested, load it async and reconfigure the compartment
+  if (vimMode) {
+    void enableVimMode(client);
+  }
 
   return EditorState.create({
     doc: text,
@@ -93,15 +101,8 @@ export function createEditorState(
       // bindings wont trigger if they have the same keys.
       commandKeyBindings,
 
-      // Enable vim mode, or not
-      [
-        ...(client.ui.viewState.uiOptions.vimMode
-          ? [
-              vim({ status: true }),
-              EditorState.allowMultipleSelections.of(true),
-            ]
-          : []),
-      ],
+      // Vim mode compartment — starts empty, loaded async if needed
+      client.vimCompartment.of([]),
       [
         ...(readOnly ||
         client.ui.viewState.uiOptions.forcedROMode ||
@@ -422,6 +423,18 @@ export function createRegularKeyBindings(client: Client): Extension {
       { key: "Tab", run: acceptCompletion },
       indentWithTab,
     ]);
+  }
+}
+
+async function enableVimMode(client: Client) {
+  const { vim } = await loadVim();
+  if (client.editorView && client.vimCompartment) {
+    client.editorView.dispatch({
+      effects: client.vimCompartment.reconfigure([
+        vim({ status: true }),
+        EditorState.allowMultipleSelections.of(true),
+      ]),
+    });
   }
 }
 

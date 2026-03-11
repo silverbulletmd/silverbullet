@@ -18,7 +18,7 @@ import {
 } from "@codemirror/commands";
 import type { Transaction } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { getCM as vimGetCm, Vim } from "@replit/codemirror-vim";
+import { getVimModule } from "../../vim_loader.ts";
 import type { SysCallMapping } from "../system.ts";
 import type {
   FilterOption,
@@ -497,14 +497,23 @@ export function editorSyscalls(client: Client): SysCallMapping {
       void client.reloadEditor();
     },
     "editor.vimEx": (_ctx, exCommand: string) => {
-      const cm = vimGetCm(client.editorView);
+      const vimMod = getVimModule();
+      if (!vimMod) {
+        throw new Error("Vim module not loaded.");
+      }
+      const cm = vimMod.getCM(client.editorView);
       if (cm?.state.vim) {
-        return Vim.handleEx(cm as any, exCommand);
+        return vimMod.Vim.handleEx(cm as any, exCommand);
       } else {
         throw new Error("Vim mode not active or not initialized.");
       }
     },
     "editor.configureVimMode": () => {
+      const vimMod = getVimModule();
+      if (!vimMod) {
+        throw new Error("Vim module not loaded.");
+      }
+      const { Vim } = vimMod;
       // Override the default "o" binding to be more intelligent and follow the markdown editor's behavior
       Vim.mapCommand("o", "action", "newline-continue-markup", {}, {});
       Vim.mapCommand("O", "action", "back-newline-continue-markup", {}, {});

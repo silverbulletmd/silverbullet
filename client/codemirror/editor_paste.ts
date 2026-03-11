@@ -2,12 +2,6 @@ import { syntaxTree } from "@codemirror/language";
 import { EditorView, ViewPlugin, type ViewUpdate } from "@codemirror/view";
 import type { Client } from "../client.ts";
 
-// We use turndown to convert HTML to Markdown
-import TurndownService from "turndown";
-
-// With tables and task notation as well
-// @ts-expect-error - No type definitions available for this package
-import { tables, taskListItems } from "@joplin/turndown-plugin-gfm";
 import { lezerToParseTree } from "../markdown_parser/parse_tree.ts";
 import {
   addParentPointers,
@@ -21,17 +15,30 @@ import { localDateString } from "@silverbulletmd/silverbullet/lib/dates";
 import type { UploadFile } from "@silverbulletmd/silverbullet/type/client";
 import { isValidName, isValidPath } from "@silverbulletmd/silverbullet/lib/ref";
 
-const turndownService = new TurndownService({
-  hr: "---",
-  codeBlockStyle: "fenced",
-  headingStyle: "atx",
-  emDelimiter: "*",
-  bulletListMarker: "*", // Duh!
-  strongDelimiter: "**",
-  linkStyle: "inlined",
-});
-turndownService.use(taskListItems);
-turndownService.use(tables);
+// Dynamically load the turndown service (only used for clipboard pasete)
+let turndownService: any = null;
+async function getTurndownService() {
+  if (!turndownService) {
+    const [{ default: TurndownService }, { tables, taskListItems }] =
+      await Promise.all([
+        import("turndown"),
+        // @ts-expect-error - No type definitions available for this package
+        import("@joplin/turndown-plugin-gfm"),
+      ]);
+    turndownService = new TurndownService({
+      hr: "---",
+      codeBlockStyle: "fenced",
+      headingStyle: "atx",
+      emDelimiter: "*",
+      bulletListMarker: "*", // Duh!
+      strongDelimiter: "**",
+      linkStyle: "inlined",
+    });
+    turndownService.use(taskListItems);
+    turndownService.use(tables);
+  }
+  return turndownService;
+}
 
 function striptHtmlComments(s: string): string {
   return s.replace(/<!--[\s\S]*?-->/g, "");
@@ -137,7 +144,7 @@ export function documentExtension(editor: Client) {
 
       // Only do rich text paste if shift is NOT down
       if (richText && !shiftDown) {
-        // Are we in a fencede code block?
+        // Are we in a fenced code block?
         const editorText = editor.editorView.state.sliceDoc();
         const tree = lezerToParseTree(
           editorText,
@@ -161,23 +168,26 @@ export function documentExtension(editor: Client) {
           }
         }
 
-        const markdown = striptHtmlComments(
-          turndownService.turndown(richText),
-        ).trim();
+        // Prevent default immediately, then do async turndown conversion
+        event.preventDefault();
         const view = editor.editorView;
         const selection = view.state.selection.main;
-        view.dispatch({
-          changes: [
-            {
-              from: selection.from,
-              to: selection.to,
-              insert: markdown,
+        safeRun(async () => {
+          const td = await getTurndownService();
+          const markdown = striptHtmlComments(td.turndown(richText)).trim();
+          view.dispatch({
+            changes: [
+              {
+                from: selection.from,
+                to: selection.to,
+                insert: markdown,
+              },
+            ],
+            selection: {
+              anchor: selection.from + markdown.length,
             },
-          ],
-          selection: {
-            anchor: selection.from + markdown.length,
-          },
-          scrollIntoView: true,
+            scrollIntoView: true,
+          });
         });
         return true;
       }
