@@ -23,6 +23,13 @@ General syntax:
       select <expression>
     ]]
 
+Aggregate functions support an optional intra-aggregate `order by` and/or `filter` clause:
+
+    <aggregate>(<expression> [order by <expr> [asc|desc] [nulls {first|last}], ...])
+    <aggregate>(<expression> ...) filter(where <condition>)
+
+These can be combined. See [[Space Lua/Lua Integrated Query/Aggregating]] for details.
+
 LIQ operates on any Lua collection.
 
 For instance, to sort a list of numbers in descending order:
@@ -244,7 +251,7 @@ ${query[[from {1, 2, 3, 4, 5} limit 3, 2]]}
 ## `select`
 The `select` clause allows you to transform each item in the result set. If omitted, it defaults to returning the item itself.
 
-When used with `group by`, aggregate functions like `sum()`, `count()`, `min()`, `max()`, and `avg()` can be used in the `select` expression to compute values across each group. See [[Space Lua/Lua Integrated Query/Aggregating]] for details.
+When used with `group by`, aggregate functions like `sum()`, `count()`, `min()`, `max()`, `avg()`, and `array_agg()` can be used in the `select` expression to compute values across each group. Aggregates also support intra-aggregate `order by` to control the order in which values are processed, and `filter(where ...)` to restrict which rows contribute. See [[Space Lua/Lua Integrated Query/Aggregating]] for details.
 
 Some examples:
 
