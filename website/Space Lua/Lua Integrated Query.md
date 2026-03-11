@@ -6,22 +6,43 @@ Lua Integrated Query (LIQ) is a SilverBullet specific Lua extension. It adds a c
 
 The syntax for LIQ is `query[[my query]]`. In regular Lua `[[my query]]` is just another way of writing `"my query"` (it is an alternative string syntax). Function calls that only take a string argument can omit parentheses, therefore `query[[my query]]` is equivalent to `query("my query")`.
 
-However, in [[Space Lua]] it is interpreted as an SQL (and [LINQ](https://learn.microsoft.com/en-us/dotnet/csharp/linq/))-inspired integrated query language.
+However, in [[Space Lua]] it is interpreted as an SQL- and [LINQ](https://learn.microsoft.com/en-us/dotnet/csharp/linq/)-inspired integrated query language.
 
 General syntax:
 
-    query [[
-      from <expression>
-      where <expression>
-      group by <expression>[, ...]
-      having <expression>
-      order by <expression>
-        [asc | desc | using <comparator>]
-        [nulls { first | last }]
-        [, ...]
-      limit <expression>[, ...]
-      select <expression>
-    ]]
+```postgres
+query [[
+    from <<expression>>
+    [ where <<expression>> ]
+    [ group by <<expression>> [, ...] ]
+    [ having <<expression>> ]
+    [ order by <<sort_expression>> [, ...] ]
+    [ limit <<expression>> [, <<expression>>] ]
+    [ offset <<expression>> ]
+    [ select <<expression>> ]
+]]
+```
+
+Unlike in SQL where clauses must be written in a particular order, LIQ clauses can be written in any order, and the only mandatory clause is the `from` clause.
+
+The `order by` clause uses `<<sort_expression>>`:
+
+```postgres
+<<expression>>
+    [ asc | desc | using <<comparator>> ]
+    [ nulls { first | last } ]
+```
+
+If an aggregate function call is used for projection (`select`), the general syntax is:
+
+```postgres
+<<aggregator>>( <<expression>> [, ...]
+    [ order by <<sort_expression>> [, ...] ]
+    [ filter (where <<expression>>) ]
+)
+```
+
+See [[Space Lua/Lua Integrated Query/Aggregating]] for details.
 
 Aggregate functions support an optional intra-aggregate `order by` and/or `filter` clause:
 
@@ -238,15 +259,34 @@ ${query [[
 The query engine uses a *stable merge sort* algorithm with guaranteed performance. Items that compare as equal preserve their original order and an invalid comparator cannot cause an infinite loop or crash — the violation is detected and reported as an error.
 
 ## `limit`
-The `limit` clause allows you to limit the number of results, optionally with an offset.
+The `limit` clause allows you to limit the number of results, optionally with an inline offset.
 
 Example:
 
 ${query[[from {1, 2, 3, 4, 5} limit 3]]}
 
-You can also specify an offset to skip some results:
+You can also specify an offset as a second argument to skip some results:
 
 ${query[[from {1, 2, 3, 4, 5} limit 3, 2]]}
+
+> **note** Note
+> If both an inline offset (`limit 3, 2`) and a standalone `offset` clause are present, the last one encountered wins.
+
+## `offset`
+The `offset` clause skips a number of rows from the beginning of the result set. It can be used with or without `limit`.
+
+Skip the first 2 results:
+
+${query[[from {1, 2, 3, 4, 5} offset 2]]}
+
+Combined with `limit`:
+
+${query[[from {1, 2, 3, 4, 5} offset 2 limit 3]]}
+
+If the offset is larger than the number of available rows, the result is empty — this is not an error, matching PostgreSQL semantics.
+
+> **note** Note
+> If both a standalone `offset` clause and an inline offset in `limit` (`limit 3, 2`) are present, the last one encountered wins.
 
 ## `select`
 The `select` clause allows you to transform each item in the result set. If omitted, it defaults to returning the item itself.
