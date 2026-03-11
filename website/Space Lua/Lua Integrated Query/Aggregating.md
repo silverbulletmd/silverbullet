@@ -103,6 +103,68 @@ ${query [[
 
 The filter clause works with all aggregate functions: `count`, `sum`, `min`, `max`, `avg`, `array_agg`, and custom aggregates.  When no rows match the filter condition, aggregates return their identity value: `0` for `count` and `sum`, `nil` for `min`, `max`, and `avg`, and an empty table `{}` for `array_agg`.
 
+## Intra-aggregate `order by`
+Aggregate functions can include an `order by` clause **inside** the function call to control the order in which values are processed.
+
+For commutative aggregates like `sum`, `count`, `min`, `max`, and `avg`, the intra-aggregate `order by` has no effect on the result because the value is the same regardless of iteration order. It is only meaningful for order-dependent aggregates like `array_agg`.
+
+### Basic example
+
+Collect page names sorted alphabetically within each group:
+
+${query [[
+  from
+    p = index.tag 'page'
+  group by
+    p.tags[1]
+  select {
+    tag = key,
+    names_asc  = array_agg(p.name order by p.name asc),
+    names_desc = array_agg(p.name order by p.name desc)
+  }
+  order by
+    tag
+  limit
+    5
+]]}
+
+### Combined with `filter(where ...)`
+The `order by` and `filter` clauses can be used together. The filter is applied first (excluding rows), then the remaining rows are sorted before iteration:
+
+${query [[
+  from
+    p = index.tag 'page'
+  group by
+    p.tags[1]
+  select {
+    tag = key,
+    big_by_size = array_agg(p.name order by p.size desc) filter(where p.size > 5)
+  }
+  order by
+    tag
+  limit
+    5
+]]}
+
+### Null handling
+The `nulls first` and `nulls last` modifiers work inside intra-aggregate `order by` the same way they do in the query-level `order by`:
+
+```lua
+query [[
+  from
+    p = data
+  group
+    by p.category
+  select {
+    cat = key,
+    items = array_agg(p.name
+      order by
+        p.priority asc nulls last
+    )
+  }
+]]
+```
+
 ## Field access after grouping
 Non-aggregated field references, such as `name` in `select`, refer to the first item in the group, matching common SQL and MySQL semantics.
 

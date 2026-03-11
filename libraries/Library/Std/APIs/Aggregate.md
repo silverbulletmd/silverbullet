@@ -22,6 +22,16 @@ Optional keys:
 * `description`: description of the aggregate
 * `finish`: `function(state)` that transforms the final state into the result
 
+### Extra arguments
+
+Aggregate functions can accept additional arguments beyond the first value expression. When called as `my_agg(expr, arg2, arg3)`, the extra arguments (`arg2`, `arg3`) are evaluated once before iteration and forwarded to all three callbacks:
+
+* `initialize(ctx, ...extraArgs)` — receives extra args after the context table
+* `iterate(state, value, ctx, ...extraArgs)` — receives extra args after the context table
+* `finish(state, ctx, ...extraArgs)` — receives extra args after the context table
+
+This allows parameterized aggregates, for example a separator argument for string concatenation.
+
 ## aggregate.update(spec)
 
 Updates an existing aggregate definition. Same keys as `aggregate.define`. Only the provided keys are overwritten.
@@ -30,23 +40,41 @@ Updates an existing aggregate definition. Same keys as `aggregate.define`. Only 
 
 ## Define a custom aggregate
 
-Define a custom aggregate `concat` that concatenates strings.
+Define a custom aggregate `concat` that concatenates strings with a configurable separator (defaulting to `", "`):
 
 ```lua
 aggregate.define {
   name = 'concat',
 
-  initialize = function()
-    return ''
+  initialize = function(ctx, sep)
+    return { sep = sep or ', ', parts = {} }
   end,
 
-  iterate = function(state, value)
-    if state == '' then
-      return tostring(value)
+  iterate = function(state, value, ctx, sep)
+    if value ~= nil then
+      state.parts[#state.parts + 1] = tostring(value)
     end
-    return state .. ', ' .. tostring(value)
+    return state
+  end,
+
+  finish = function(state)
+    return table.concat(state.parts, state.sep)
   end,
 }
+```
+
+Usage in a query:
+
+```lua
+query [[
+  from p = data
+  group by p.category
+  select {
+    cat        = key,
+    names      = concat(p.name),
+    names_dash = concat(p.name, " - ")
+  }
+]]
 ```
 
 ## Update an existing aggregate

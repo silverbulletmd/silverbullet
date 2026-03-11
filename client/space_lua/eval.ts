@@ -970,6 +970,16 @@ function evalPrefixExpression(
 
     case "FunctionCall": {
       const fc = asFunctionCall(e);
+
+      // `order by` inside function arguments is only valid for aggregate
+      // calls evaluated by the query engine
+      if (fc.orderBy && fc.orderBy.length > 0) {
+        throw new LuaRuntimeError(
+          `'order by' is not allowed in non-aggregate function calls`,
+          sf.withCtx(fc.ctx),
+        );
+      }
+
       const prefixValue = evalPrefixExpression(fc.prefix, env, sf);
       if (prefixValue === null || prefixValue === undefined) {
         const nilMsg =
