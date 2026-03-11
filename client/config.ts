@@ -1,4 +1,80 @@
-import { Ajv } from "ajv";
+import { type OutputUnit, Validator, format } from "@cfworker/json-schema";
+
+// Register custom formats (shared with jsonschema.ts)
+format.email = (data: string) => data.includes("@");
+format["page-ref"] = (data: string) =>
+  data.startsWith("[[") && data.endsWith("]]");
+
+function cfwFormatErrors(errors: OutputUnit[]): string {
+  // Filter out "properties" wrapper errors, keep only the specific leaf errors
+  const leafErrors = errors.filter((e) => e.keyword !== "properties");
+  const errorsToUse = leafErrors.length > 0 ? leafErrors : errors;
+
+  return errorsToUse.map((e) => {
+    // Convert instanceLocation from "#/foo/bar" to "foo.bar"
+    const path = e.instanceLocation === "#"
+      ? ""
+      : e.instanceLocation.slice(2).replaceAll("/", ".");
+    return path ? `${path}: ${e.error}` : e.error;
+  }).join(", ");
+}
+
+/**
+ * Validates that a value looks like a valid JSON schema.
+ * Uses a lightweight structural check rather than full meta-schema validation.
+ */
+function isValidJsonSchema(schema: any): { valid: boolean; error?: string } {
+  if (schema === null || schema === undefined) {
+    return { valid: false, error: "schema must not be null or undefined" };
+  }
+  if (typeof schema === "boolean") {
+    return { valid: true };
+  }
+  if (typeof schema !== "object" || Array.isArray(schema)) {
+    return { valid: false, error: "schema must be an object or boolean" };
+  }
+  // Check that type, if specified, is valid
+  if (schema.type !== undefined) {
+    const validTypes = [
+      "string",
+      "number",
+      "integer",
+      "boolean",
+      "object",
+      "array",
+      "null",
+    ];
+    const types = Array.isArray(schema.type) ? schema.type : [schema.type];
+    for (const t of types) {
+      if (!validTypes.includes(t)) {
+        return {
+          valid: false,
+          error: `schema.type must be one of ${validTypes.join(", ")}`,
+        };
+      }
+    }
+  }
+  return { valid: true };
+}
+
+/**
+ * Deep-clone a value, replacing any functions with null.
+ * JSON schema can't validate functions, so we strip them before validation.
+ */
+function stripFunctions(value: any): any {
+  if (typeof value === "function") return null;
+  if (value === null || value === undefined || typeof value !== "object") {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map(stripFunctions);
+  }
+  const result: Record<string, any> = {};
+  for (const key of Object.keys(value)) {
+    result[key] = stripFunctions(value[key]);
+  }
+  return result;
+}
 
 /**
  * Configuration management (config.* APIs) for the client
@@ -8,23 +84,8 @@ export class Config {
     type: "object",
     properties: {},
   };
-  private ajv = new Ajv();
 
   constructor(public values: Record<string, any> = {}) {
-    // Add the same formats as in jsonschema.ts
-    this.ajv.addFormat("email", {
-      validate: (data: string) => {
-        return data.includes("@");
-      },
-      async: false,
-    });
-
-    this.ajv.addFormat("page-ref", {
-      validate: (data: string) => {
-        return data.startsWith("[[") && data.endsWith("]]");
-      },
-      async: false,
-    });
   }
 
   public clear() {
@@ -42,10 +103,9 @@ export class Config {
    */
   define(key: string | string[], schema: any): void {
     // Validate the schema itself first
-    const valid = this.ajv.validateSchema(schema);
-    if (!valid) {
-      const errorText = this.ajv.errorsText(this.ajv.errors);
-      throw new Error(`Invalid schema for key ${key}: ${errorText}`);
+    const result = isValidJsonSchema(schema);
+    if (!result.valid) {
+      throw new Error(`Invalid schema for key ${key}: ${result.error}`);
     }
 
     if (typeof key === "string") {
@@ -188,11 +248,10 @@ export class Config {
       if (schema) {
         const valueAtPath = this.get(schemaPath, undefined);
         if (valueAtPath !== undefined) {
-          const validate = this.ajv.compile(schema);
-          if (!validate(valueAtPath)) {
-            let errorText = this.ajv.errorsText(validate.errors);
-            errorText = errorText.replaceAll("/", ".");
-            errorText = errorText.replace(/^data\.?/, "");
+          const validator = new Validator(schema, "7");
+          const result = validator.validate(stripFunctions(valueAtPath));
+          if (!result.valid) {
+            const errorText = cfwFormatErrors(result.errors);
             throw new Error(
               `Validation error for ${schemaPath.join(".")}:> ${errorText}`,
             );

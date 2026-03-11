@@ -40,19 +40,10 @@ const basePathName = location.pathname.substring(
 );
 
 const precacheFiles = Object.fromEntries(
-  [
-    "/",
-    "/.client/client.js",
-    "/.client/favicon.png",
-    "/.client/iAWriterMonoS-Bold.woff2",
-    "/.client/iAWriterMonoS-BoldItalic.woff2",
-    "/.client/iAWriterMonoS-Italic.woff2",
-    "/.client/iAWriterMonoS-Regular.woff2",
-    "/.client/logo.png",
-    "/.client/logo-dock.png",
-    "/.client/main.css",
-    "/.client/manifest.json",
-  ].map((path) => [path, `${baseURI}${path}?v=${CACHE_NAME}`, path]),
+  // Dynamically replaced during build
+  "{{PRECACHE_FILES}}"
+    .split(",")
+    .map((path) => [path, `${baseURI}${path}?v=${CACHE_NAME}`, path]),
 ); // Cache busting
 
 // Initially set to undefined, resulting in all "fetch" being proxied.

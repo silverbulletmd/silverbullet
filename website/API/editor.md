@@ -238,12 +238,35 @@ Example:
 editor.hidePanel("rhs")
 ```
 
-### editor.flashNotification(message, type)
+### editor.flashNotification(message, type, options?)
 Shows a flash notification.
+
+Parameters:
+- `message`: The message to display
+- `type`: Notification type — `"info"` (default), `"error"`, or `"warning"`
+- `options` (optional): Table with additional options:
+  - `timeout`: Dismiss timeout in milliseconds. Use `0` for persistent notifications (default: 4000/5000/8000 depending on type)
+  - `actions`: List of action buttons, each with:
+    - `name`: Button label
+    - `run`: Function to call when clicked (auto-dismisses the notification)
 
 Example:
 ```lua
+-- Simple notification
 editor.flashNotification("Operation completed", "info")
+
+-- Persistent notification with action button
+editor.flashNotification("Update available", "warning", {
+  timeout = 0,
+  actions = {
+    {
+      name = "Reload",
+      run = function()
+        editor.reloadUI()
+      end
+    }
+  }
+})
 ```
 
 ### editor.downloadFile(filename, dataUrl)

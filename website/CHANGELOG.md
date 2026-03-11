@@ -4,6 +4,7 @@ An attempt at documenting the changes/new features introduced in each release.
 Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
 * **Technical: Deno → Node.js migration**: The TypeScript/client codebase has been migrated from Deno to Node.js, now using vitest for tests. This _should_ purely be a tooling change, but may inadvertently have lead to regressions. Please report if you find anything.
+* `editor.flashNotification` now supports an optional third argument with `timeout` (use `0` for persistent notifications) and `actions` (buttons with callbacks).
 * [[Outlines]] commands have been thoroughly reworked. Should now be more robust and better tested outline move/indent operations. New features:
   * Now also works with numbered items (and renumbers them)
   * Now works with headers (moves around entire sections)

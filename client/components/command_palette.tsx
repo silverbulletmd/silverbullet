@@ -7,11 +7,9 @@ import { isMacLike } from "../codemirror/editor_state.ts";
 export function CommandPalette({
   commands,
   onTrigger,
-  vimMode,
   darkMode,
 }: {
   commands: Map<string, Command>;
-  vimMode: boolean;
   darkMode?: boolean;
   onTrigger: (command: Command | undefined) => void;
 }) {
@@ -36,7 +34,6 @@ export function CommandPalette({
       options={options}
       allowNew={false}
       icon={Terminal}
-      vimMode={vimMode}
       darkMode={darkMode}
       helpText="Start typing the command name to filter results, press <code>Enter</code> to run."
       onSelect={(opt) => {

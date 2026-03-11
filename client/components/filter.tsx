@@ -17,7 +17,6 @@ export function FilterList({
   label,
   onSelect,
   onKeyPress,
-  vimMode,
   darkMode,
   preFilter,
   phrasePreprocessor,
@@ -34,7 +33,6 @@ export function FilterList({
   onSelect: (option: FilterOption | undefined) => void;
   preFilter?: (options: FilterOption[], phrase: string) => FilterOption[];
   phrasePreprocessor?: (phrase: string) => string;
-  vimMode: boolean;
   darkMode?: boolean;
   allowNew?: boolean;
   completePrefix?: string;
@@ -107,8 +105,6 @@ export function FilterList({
         <label>{label}</label>
         <MiniEditor
           text={text}
-          vimMode={vimMode}
-          vimStartInInsertMode={true}
           focus={true}
           darkMode={darkMode}
           placeholderText={placeholder}
