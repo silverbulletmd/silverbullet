@@ -2887,3 +2887,222 @@ do
     "expected `order by` error, got: " .. tostring(err)
   )
 end
+
+-- 92. Standalone offset clause
+
+-- 92a. Offset only, bound
+do
+  local r = query [[
+    from
+      p = pages
+    select { name = p.name }
+    order by
+      p.name
+    offset
+      2
+  ]]
+  assertEquals(#r, 5)
+  assertEquals(r[1].name, "Carol")
+end
+
+-- 92b. Offset only, unbound
+do
+  local r = query [[
+    from
+      pages
+    order by
+      name
+    offset
+      5
+  ]]
+  assertEquals(#r, 2)
+  assertEquals(r[1].name, "Fran")
+  assertEquals(r[2].name, "Greg")
+end
+
+-- 92c. Offset 0 returns everything
+do
+  local r = query [[
+    from
+      pages
+    offset
+      0
+  ]]
+  assertEquals(#r, #pages)
+end
+
+-- 92d. Offset larger than dataset returns empty
+do
+  local r = query [[
+    from
+      pages
+    offset
+      100
+  ]]
+  assertEquals(#r, 0)
+end
+
+-- 92e. Offset equal to dataset size returns empty
+do
+  local r = query [[
+    from
+      pages
+    offset
+      7
+  ]]
+  assertEquals(#r, 0)
+end
+
+-- 93. Standalone offset + limit (separate clauses)
+
+-- 93a. Offset before limit
+do
+  local r = query [[
+    from
+      p = pages
+    select { name = p.name }
+    order by
+      p.name
+    offset
+      2
+    limit
+      3
+  ]]
+  -- skip 2, take 3 -> Carol, Dave, Ed
+  assertEquals(#r, 3)
+  assertEquals(r[1].name, "Carol")
+  assertEquals(r[2].name, "Dave")
+  assertEquals(r[3].name, "Ed")
+end
+
+-- 93b. Limit before offset (order of clauses doesn't matter)
+do
+  local r = query [[
+    from
+      p = pages
+    select { name = p.name }
+    order by
+      p.name
+    limit
+      3
+    offset
+      2
+  ]]
+  assertEquals(#r, 3)
+  assertEquals(r[1].name, "Carol")
+end
+
+-- 93c. Offset beyond available rows with limit returns empty
+do
+  local r = query [[
+    from
+      pages
+    limit
+      3
+    offset
+      100
+  ]]
+  assertEquals(#r, 0)
+end
+
+-- 93d. Limit larger than remaining after offset
+do
+  local r = query [[
+    from
+      p = pages
+    order by
+      p.name
+    offset
+      5
+    limit
+      100
+  ]]
+  assertEquals(#r, 2)
+end
+
+-- 94. Standalone offset with where + order by
+
+do
+  local r = query [[
+    from
+      p = pages
+    where
+      p.size >= 5
+    order by
+      p.size
+    select { name = p.name }
+    offset
+      1
+  ]]
+  assertEquals(#r, 3)
+  assertEquals(r[1].name, "Alice")
+  assertEquals(r[2].name, "Dave")
+  assertEquals(r[3].name, "Bob")
+end
+
+-- 95. Standalone offset with group by
+
+do
+  local r = query [[
+    from
+      p = pages
+    where
+      p.tags[1] ~= nil
+    group by
+      p.tags[1]
+    select {
+      tag = key,
+      n = count(),
+    }
+    order by
+      tag
+    offset
+      1
+  ]]
+  assertEquals(#r, 2)
+  assertEquals(r[1].tag, "random")
+  assertEquals(r[2].tag, "work")
+end
+
+-- 96. Standalone offset + limit with group by + having
+
+do
+  local r = query [[
+    from
+      p = pages
+    where
+      p.tags[1] ~= nil
+    group by
+      p.tags[1]
+    having
+      count() > 0
+    select {
+      tag = key,
+      n = count(),
+    }
+    order by
+      tag
+    offset
+      1
+    limit
+      1
+  ]]
+  assertEquals(#r, 1)
+  assertEquals(r[1].tag, "random")
+end
+
+-- 97. Standalone offset wins over inline offset (last one wins)
+do
+  local r = query [[
+    from
+      p = pages
+    order by
+      p.name
+    limit
+      3, 1
+    offset
+      2
+  ]]
+  assertEquals(#r, 3)
+  assertEquals(r[1].name, "Carol")
+end
