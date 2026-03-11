@@ -305,6 +305,7 @@ export type LuaQueryClause =
   | LuaFromClause
   | LuaWhereClause
   | LuaLimitClause
+  | LuaOffsetClause
   | LuaOrderByClause
   | LuaSelectClause
   | LuaGroupByClause
@@ -325,6 +326,11 @@ export type LuaLimitClause = {
   type: "Limit";
   limit: LuaExpression;
   offset?: LuaExpression;
+} & ASTContext;
+
+export type LuaOffsetClause = {
+  type: "Offset";
+  offset: LuaExpression;
 } & ASTContext;
 
 export type LuaOrderByClause = {

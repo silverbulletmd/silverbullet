@@ -36,7 +36,7 @@ const luaStyleTags = styleTags({
   CompareOp: t.operator,
   "true false": t.bool,
   Comment: t.lineComment,
-  "return break goto do end while repeat until function local if then else elseif in for nil or and not query from where limit select order by desc asc nulls first last group having filter using":
+  "return break goto do end while repeat until function local if then else elseif in for nil or and not query from where limit offset select order by desc asc nulls first last group having filter using":
     t.keyword,
 });
 
@@ -1344,6 +1344,13 @@ function parseQueryClause(t: ParseTree, ctx: ASTCtx): LuaQueryClause {
         type: "Limit",
         limit,
         offset,
+        ctx: context(t, ctx),
+      };
+    }
+    case "OffsetClause": {
+      return {
+        type: "Offset",
+        offset: parseExpression(t.children![1], ctx),
         ctx: context(t, ctx),
       };
     }

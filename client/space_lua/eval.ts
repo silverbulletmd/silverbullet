@@ -883,6 +883,15 @@ export function evalExpression(
                   }
                   break;
                 }
+                case "Offset": {
+                  const offsetVal = await evalExpression(
+                    clause.offset,
+                    env,
+                    sf,
+                  );
+                  query.offset = Number(offsetVal);
+                  break;
+                }
                 case "GroupBy": {
                   query.groupBy = clause.expressions;
                   break;
