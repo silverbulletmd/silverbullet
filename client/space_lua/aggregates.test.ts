@@ -29,7 +29,6 @@ function makeConfig(specs: Record<string, AggregateSpec> = {}): Config {
   return config;
 }
 
-
 function requireSpec(name: string): AggregateSpec {
   const spec = getAggregateSpec(name);
   if (!spec) throw new Error(`builtin aggregate "${name}" not found`);
@@ -317,7 +316,11 @@ test("aggregate: count with filter excludes all", async () => {
 test("aggregate: array_agg with order by asc", async () => {
   const result = await executeAggregate(
     arrayAggSpec,
-    jsToLuaValue([{ v: "c", k: 3 }, { v: "a", k: 1 }, { v: "b", k: 2 }]),
+    jsToLuaValue([
+      { v: "c", k: 3 },
+      { v: "a", k: 1 },
+      { v: "b", k: 2 },
+    ]),
     parseExpressionString("_.v"),
     [],
     undefined,
@@ -338,7 +341,11 @@ test("aggregate: array_agg with order by asc", async () => {
 test("aggregate: array_agg with order by desc", async () => {
   const result = await executeAggregate(
     arrayAggSpec,
-    jsToLuaValue([{ v: "c", k: 3 }, { v: "a", k: 1 }, { v: "b", k: 2 }]),
+    jsToLuaValue([
+      { v: "c", k: 3 },
+      { v: "a", k: 1 },
+      { v: "b", k: 2 },
+    ]),
     parseExpressionString("_.v"),
     [],
     undefined,
@@ -1134,7 +1141,11 @@ test("aggregate: extra args + order by", async () => {
 
   const resultNoOrder = await executeAggregate(
     concatSpec,
-    jsToLuaValue([{ v: "Carol", k: 3 }, { v: "Alice", k: 1 }, { v: "Bob", k: 2 }]),
+    jsToLuaValue([
+      { v: "Carol", k: 3 },
+      { v: "Alice", k: 1 },
+      { v: "Bob", k: 2 },
+    ]),
     parseExpressionString("_.v"),
     [],
     undefined,
@@ -1147,7 +1158,11 @@ test("aggregate: extra args + order by", async () => {
 
   const resultOrdered = await executeAggregate(
     concatSpec,
-    jsToLuaValue([{ v: "Carol", k: 3 }, { v: "Alice", k: 1 }, { v: "Bob", k: 2 }]),
+    jsToLuaValue([
+      { v: "Carol", k: 3 },
+      { v: "Alice", k: 1 },
+      { v: "Bob", k: 2 },
+    ]),
     parseExpressionString("_.v"),
     [],
     undefined,

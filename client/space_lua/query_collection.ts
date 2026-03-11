@@ -265,7 +265,7 @@ function containsAggregate(expr: LuaExpression): boolean {
 // Wrap a value for select result tables so that the column key survives
 // in the `LuaTable`
 function selectVal(v: LuaValue): LuaValue {
-  return (v === null || v === undefined) ? LIQ_NULL : v;
+  return v === null || v === undefined ? LIQ_NULL : v;
 }
 
 /**
@@ -343,9 +343,9 @@ export async function evalExpressionWithAggregates(
           outerEnv,
           sf,
           evalExpression,
-	  config,
-	  undefined,
-	  fc.orderBy,
+          config,
+          undefined,
+          fc.orderBy,
         );
       }
     }

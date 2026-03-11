@@ -166,9 +166,10 @@ function expressionHasFunctionDef(e: LuaExpression): boolean {
     case "AggregateCall":
       return (
         expressionHasFunctionDef((e as any).call) ||
-        ((e as any).orderBy as LuaOrderBy[]).some((ob) =>
-          expressionHasFunctionDef(ob.expression) ||
-          (ob.using && typeof ob.using !== "string")
+        ((e as any).orderBy as LuaOrderBy[]).some(
+          (ob) =>
+            expressionHasFunctionDef(ob.expression) ||
+            (ob.using && typeof ob.using !== "string"),
         )
       );
     default:

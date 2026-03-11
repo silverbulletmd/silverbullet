@@ -235,7 +235,12 @@ export async function executeAggregate(
       const itemEnv = buildItemEnv(objectVariable, item, env, sf);
       value = await evalExprFn(valueExpr, itemEnv, sf);
     }
-    state = await luaCall(spec.iterate, [state, value, ctx, ...extraArgs], noCtx, sf);
+    state = await luaCall(
+      spec.iterate,
+      [state, value, ctx, ...extraArgs],
+      noCtx,
+      sf,
+    );
   }
 
   // Finish
