@@ -7,24 +7,30 @@ import * as esbuild from "esbuild";
 import { bundleAssets } from "../asset_bundle/builder.ts";
 import type { Manifest } from "./types.ts";
 
-import { existsSync } from "node:fs";
-
-// Resolve the pre-built worker_runtime bundle path
-// When running from source: ../../dist/worker_runtime_bundle.js (from client/plugos/)
-// When bundled: ./worker_runtime_bundle.js (from dist/)
-const currentDir = import.meta.dirname;
-const bundledPath = path.join(currentDir, "worker_runtime_bundle.js");
-const sourcePath = path.join(currentDir, "../../dist/worker_runtime_bundle.js");
-const workerRuntimeBundlePath = existsSync(bundledPath)
-  ? bundledPath
-  : sourcePath;
+// When bundled by build_plug_compile.ts, this is replaced with the pre-bundled
+// worker runtime JS. When running from source, it's undefined and esbuild
+// resolves the .ts file directly (it handles TypeScript natively).
+declare const __EMBEDDED_WORKER_RUNTIME_JS__: string | undefined;
 
 const workerRuntimePlugin: esbuild.Plugin = {
   name: "worker-runtime",
   setup(build) {
-    build.onResolve({ filter: /^worker-runtime$/ }, () => ({
-      path: workerRuntimeBundlePath,
-    }));
+    if (typeof __EMBEDDED_WORKER_RUNTIME_JS__ !== "undefined") {
+      // Bundled CLI: serve pre-bundled JS from the embedded constant
+      build.onResolve({ filter: /^worker-runtime$/ }, () => ({
+        path: "worker-runtime",
+        namespace: "worker-runtime",
+      }));
+      build.onLoad(
+        { filter: /.*/, namespace: "worker-runtime" },
+        () => ({ contents: __EMBEDDED_WORKER_RUNTIME_JS__, loader: "js" }),
+      );
+    } else {
+      // From source: point directly at the .ts file, esbuild handles it
+      build.onResolve({ filter: /^worker-runtime$/ }, () => ({
+        path: path.join(import.meta.dirname, "worker_runtime.ts"),
+      }));
+    }
   },
 };
 

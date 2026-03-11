@@ -47,14 +47,13 @@
     "!client/space_lua/**/*.bench.ts",
     "client/markdown_parser/constants.ts",
     "plugs/builtin_plugs.ts",
-    "dist/plug-compile.js",
-    "dist/worker_runtime_bundle.js"
+    "dist/plug-compile.js"
   ],
   "scripts": {
-    "build": "tsx build_worker_runtime.ts && npm run build:plugs && npm run build:client",
-    "build:plugs": "tsx build_plugs_libraries.ts",
-    "build:client": "tsx build_client.ts",
-    "build:plug-compile": "tsx build_worker_runtime.ts && tsx build_plug_compile.ts",
+    "build": "npm run build:plugs && npm run build:client",
+    "build:plugs": "tsx build/build_plugs.ts",
+    "build:client": "tsx build/build_client.ts",
+    "build:plug-compile": "tsx build/build_plug_compile.ts",
     "prepublishOnly": "npm run build:plug-compile",
     "test": "vitest run",
     "check": "tsc --noEmit",
@@ -98,7 +97,6 @@
     "idb": "8.0.3",
     "js-yaml": "^4.1.1",
     "mime": "4.1.0",
-    "picomatch": "^4.0.3",
     "preact": "10.28.2",
     "preact-feather": "4.2.1",
     "react-icons": "5.5.0",
@@ -112,7 +110,7 @@
     "@types/gitignore-parser": "^0.0.3",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.0.0",
-    "@types/picomatch": "^4.0.2",
+
     "@types/turndown": "^5.0.6",
     "fake-indexeddb": "6.0.1",
     "tsx": "^4.19.0",
