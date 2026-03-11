@@ -1,44 +1,14 @@
 import { cp, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { dirname } from "node:path";
 import * as sass from "sass";
 
 import * as esbuild from "esbuild";
 
-import { patchBundledJS } from "./client/plugos/plug_compile.ts";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { patchBundledJS } from "../client/plugos/plug_compile.ts";
 
 // This builds the client and puts it into client_bundle/client
 
-export async function bundleAll(): Promise<void> {
-  await buildCopyBundleAssets();
-}
-
-export async function copyAssets(dist: string) {
-  await mkdir(dist, { recursive: true });
-  await cp("client/fonts", `${dist}`, { recursive: true });
-  await cp("client/html/index.html", `${dist}/index.html`);
-  await cp("client/html/auth.html", `${dist}/auth.html`);
-  await cp("client/images/favicon.png", `${dist}/favicon.png`);
-  await cp("client/images/logo.png", `${dist}/logo.png`);
-  await cp("client/images/logo-dock.png", `${dist}/logo-dock.png`);
-
-  const scssContent = await readFile("client/styles/main.scss", "utf-8");
-  const result = sass.compileString(scssContent, {
-    loadPaths: ["client/styles"],
-    style: "compressed",
-  });
-  await writeFile(`${dist}/main.css`, result.css, "utf-8");
-
-  // HACK: Patch the JS by removing an invalid regex
-  let bundleJs = await readFile(`${dist}/client.js`, "utf-8");
-  bundleJs = patchBundledJS(bundleJs);
-  await writeFile(`${dist}/client.js`, bundleJs, "utf-8");
-}
-
-async function buildCopyBundleAssets() {
+export async function buildClient(): Promise<void> {
   await mkdir("client_bundle/client", { recursive: true });
   await mkdir("client_bundle/base_fs", { recursive: true });
 
@@ -77,7 +47,33 @@ async function buildCopyBundleAssets() {
   }
 
   await copyAssets("client_bundle/client/.client");
+  await patchServiceWorker();
 
+  console.log("Built!");
+}
+
+async function copyAssets(dist: string) {
+  await mkdir(dist, { recursive: true });
+  await cp("client/fonts", dist, { recursive: true });
+  await cp("client/html", dist, { recursive: true });
+  await cp("client/images/favicon.png", `${dist}/favicon.png`);
+  await cp("client/images/logo.png", `${dist}/logo.png`);
+  await cp("client/images/logo-dock.png", `${dist}/logo-dock.png`);
+
+  const scssContent = await readFile("client/styles/main.scss", "utf-8");
+  const result = sass.compileString(scssContent, {
+    loadPaths: ["client/styles"],
+    style: "compressed",
+  });
+  await writeFile(`${dist}/main.css`, result.css, "utf-8");
+
+  // HACK: Patch the JS by removing an invalid regex
+  let bundleJs = await readFile(`${dist}/client.js`, "utf-8");
+  bundleJs = patchBundledJS(bundleJs);
+  await writeFile(`${dist}/client.js`, bundleJs, "utf-8");
+}
+
+async function patchServiceWorker() {
   // Scan .client/ directory to build the full precache file list
   const clientDir = "client_bundle/client/.client";
   const allFiles = await readdir(clientDir);
@@ -104,12 +100,10 @@ async function buildCopyBundleAssets() {
   swCode = swCode.replaceAll("{{CACHE_NAME}}", `cache-${Date.now()}`);
   swCode = swCode.replaceAll("{{PRECACHE_FILES}}", precacheFilesStr);
   await writeFile("client_bundle/client/service_worker.js", swCode, "utf-8");
-
-  console.log("Built!");
 }
 
 const isMain = process.argv[1] === fileURLToPath(import.meta.url);
 if (isMain) {
-  await bundleAll();
+  await buildClient();
   await esbuild.stop();
 }

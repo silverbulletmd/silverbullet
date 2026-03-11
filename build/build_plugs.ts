@@ -6,26 +6,16 @@ import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 import * as esbuild from "esbuild";
 
-import { compileManifests } from "./client/plugos/plug_compile.ts";
-import { builtinPlugNames } from "./plugs/builtin_plugs.ts";
-import { version } from "./version.ts";
+import { compileManifests } from "../client/plugos/plug_compile.ts";
+import { builtinPlugNames } from "../plugs/builtin_plugs.ts";
+import { version } from "../version.ts";
 
 // This builds all built-in plugs and libraries and puts them into client_bundle/base_fs
 
-const isMain = process.argv[1] === fileURLToPath(import.meta.url);
-if (isMain) {
-  await updateVersionFile();
-  const { values: args } = parseArgs({
-    args: process.argv.slice(2),
-    options: {
-      debug: { type: "boolean" },
-      reload: { type: "boolean" },
-      info: { type: "boolean" },
-      watch: { type: "boolean", short: "w" },
-    },
-    strict: false,
-  });
-
+export async function buildPlugsAndLibraries(options?: {
+  debug?: boolean;
+  info?: boolean;
+}): Promise<void> {
   const manifests = builtinPlugNames.map(
     (name) => `./plugs/${name}/${name}.plug.yaml`,
   );
@@ -45,13 +35,12 @@ if (isMain) {
 
   // Build the plugs
   await compileManifests(manifests, targetDir, {
-    debug: args.debug as boolean | undefined,
-    info: args.info as boolean | undefined,
+    debug: options?.debug,
+    info: options?.info,
   });
-  await esbuild.stop();
 }
 
-export async function updateVersionFile() {
+export function updateVersionFile(): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     const gitProcess = spawn("git", ["describe", "--tags", "--long"], {
       stdio: ["ignore", "pipe", "pipe"],
@@ -89,4 +78,23 @@ export async function updateVersionFile() {
 
     gitProcess.on("error", reject);
   });
+}
+
+const isMain = process.argv[1] === fileURLToPath(import.meta.url);
+if (isMain) {
+  const { values: args } = parseArgs({
+    args: process.argv.slice(2),
+    options: {
+      debug: { type: "boolean" },
+      info: { type: "boolean" },
+    },
+    strict: false,
+  });
+
+  await updateVersionFile();
+  await buildPlugsAndLibraries({
+    debug: args.debug as boolean | undefined,
+    info: args.info as boolean | undefined,
+  });
+  await esbuild.stop();
 }

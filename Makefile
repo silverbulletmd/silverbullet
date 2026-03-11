@@ -1,5 +1,7 @@
 LDFLAGS = -X main.buildTime=$$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
+.PHONY: build build-for-docker docker build-server-releases clean check fmt test bench generate website
+
 build:
 	# Build client
 	npm run build
@@ -47,7 +49,6 @@ test:
 	# Run backend tests
 	go test ./server/...
 
-.PHONY: bench
 bench:
 	# Run frontend benchmarks
 	npm run bench
@@ -56,6 +57,5 @@ generate:
 	# Regenerate the Lua parser from the the grammar
 	npx @lezer/generator@1.5.1 client/space_lua/lua.grammar -o client/space_lua/parse-lua.js
 
-.PHONY: website
 website: build
 	SB_INDEX_PAGE=SilverBullet ./silverbullet -p 3001 website

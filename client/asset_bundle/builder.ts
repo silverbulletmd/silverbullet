@@ -1,6 +1,5 @@
-import picomatch from "picomatch";
 import { readFile, readdir } from "node:fs/promises";
-import { join } from "node:path";
+import { join, matchesGlob } from "node:path";
 import mime from "mime";
 
 import { AssetBundle } from "./bundle.ts";
@@ -25,11 +24,9 @@ export async function bundleAssets(
   if (patterns.length === 0) {
     return bundle;
   }
-  const isMatch = picomatch(patterns);
   for await (const file of walk(rootPath)) {
     const cleanPath = file.path.substring(rootPath.length + 1);
-    // console.log("Considering", rootPath, file.path, cleanPath);
-    if (isMatch(cleanPath)) {
+    if (patterns.some((p) => matchesGlob(cleanPath, p))) {
       bundle.writeFileSync(
         cleanPath,
         mime.getType(cleanPath) || "application/octet-stream",
