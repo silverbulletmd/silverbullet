@@ -2163,3 +2163,727 @@ do
   assertEquals(r[3].name, "d")
   assertEquals(r[4].name, "c")
 end
+
+-- 67. Intra-aggregate order by: array_agg asc
+
+do
+  local data = {
+    { grp = "a", name = "cherry", val = 3 },
+    { grp = "a", name = "apple",  val = 1 },
+    { grp = "a", name = "banana", val = 2 },
+  }
+  local r = query [[
+    from
+      p = data
+    group by
+      p.grp
+    select {
+      names = array_agg(p.name order by p.val asc),
+    }
+  ]]
+  assertEquals(#r, 1)
+  assertEquals(r[1].names[1], "apple")
+  assertEquals(r[1].names[2], "banana")
+  assertEquals(r[1].names[3], "cherry")
+end
+
+-- 68. Intra-aggregate order by: array_agg desc
+
+do
+  local data = {
+    { grp = "a", name = "cherry", val = 3 },
+    { grp = "a", name = "apple",  val = 1 },
+    { grp = "a", name = "banana", val = 2 },
+  }
+  local r = query [[
+    from
+      p = data
+    group by
+      p.grp
+    select {
+      names = array_agg(p.name order by p.val desc),
+    }
+  ]]
+  assertEquals(r[1].names[1], "cherry")
+  assertEquals(r[1].names[2], "banana")
+  assertEquals(r[1].names[3], "apple")
+end
+
+-- 69. Intra-aggregate order by: same aggregate, asc vs desc in one select
+
+do
+  local data = {
+    { grp = "x", name = "c", val = 3 },
+    { grp = "x", name = "a", val = 1 },
+    { grp = "x", name = "b", val = 2 },
+  }
+  local r = query [[
+    from
+      p = data
+    group by
+      p.grp
+    select {
+      asc_names = array_agg(p.name order by p.val asc),
+      desc_names = array_agg(p.name order by p.val desc),
+    }
+  ]]
+  assertEquals(r[1].asc_names[1], "a")
+  assertEquals(r[1].asc_names[3], "c")
+  assertEquals(r[1].desc_names[1], "c")
+  assertEquals(r[1].desc_names[3], "a")
+end
+
+-- 70. Intra-aggregate order by: unbound access
+
+do
+  local data = {
+    { grp = "x", name = "c", val = 3 },
+    { grp = "x", name = "a", val = 1 },
+    { grp = "x", name = "b", val = 2 },
+  }
+  local r = query [[
+    from
+      data
+    group by
+      grp
+    select {
+      names = array_agg(name order by val asc),
+    }
+  ]]
+  assertEquals(r[1].names[1], "a")
+  assertEquals(r[1].names[2], "b")
+  assertEquals(r[1].names[3], "c")
+end
+
+-- 71. Intra-aggregate order by: order by the aggregated expression itself
+
+do
+  local data = {
+    { grp = "x", name = "cherry" },
+    { grp = "x", name = "apple"  },
+    { grp = "x", name = "banana" },
+  }
+  local r = query [[
+    from
+      p = data
+    group by
+      p.grp
+    select {
+      names = array_agg(p.name order by p.name asc),
+    }
+  ]]
+  assertEquals(r[1].names[1], "apple")
+  assertEquals(r[1].names[2], "banana")
+  assertEquals(r[1].names[3], "cherry")
+end
+
+-- 72. Intra-aggregate order by: multiple sort keys
+
+do
+  local data = {
+    { grp = "x", name = "a2", cat = 1, pri = 2 },
+    { grp = "x", name = "b1", cat = 2, pri = 1 },
+    { grp = "x", name = "a1", cat = 1, pri = 1 },
+    { grp = "x", name = "b2", cat = 2, pri = 2 },
+  }
+  local r = query [[
+    from
+      p = data
+    group by
+      p.grp
+    select {
+      names = array_agg(p.name order by p.cat asc, p.pri desc),
+    }
+  ]]
+  assertEquals(r[1].names[1], "a2")
+  assertEquals(r[1].names[2], "a1")
+  assertEquals(r[1].names[3], "b2")
+  assertEquals(r[1].names[4], "b1")
+end
+
+-- 73. Intra-aggregate order by: with nulls in sort key
+
+do
+  local data = {
+    { grp = "x", name = "b", val = 2 },
+    { grp = "x", name = "n" },
+    { grp = "x", name = "a", val = 1 },
+  }
+  local r = query [[
+    from
+      p = data
+    group by
+      p.grp
+    select {
+      names = array_agg(p.name order by p.val asc),
+    }
+  ]]
+  assertEquals(r[1].names[1], "a")
+  assertEquals(r[1].names[2], "b")
+  assertEquals(r[1].names[3], "n")
+end
+
+-- 74. Intra-aggregate order by: nulls first
+
+do
+  local data = {
+    { grp = "x", name = "b", val = 2 },
+    { grp = "x", name = "n" },
+    { grp = "x", name = "a", val = 1 },
+  }
+  local r = query [[
+    from
+      p = data
+    group by
+      p.grp
+    select {
+      names = array_agg(p.name order by p.val asc nulls first),
+    }
+  ]]
+  assertEquals(r[1].names[1], "n")
+  assertEquals(r[1].names[2], "a")
+  assertEquals(r[1].names[3], "b")
+end
+
+-- 75. Intra-aggregate order by: nulls last explicit on desc
+
+do
+  local data = {
+    { grp = "x", name = "b", val = 2 },
+    { grp = "x", name = "n" },
+    { grp = "x", name = "a", val = 1 },
+  }
+  local r = query [[
+    from
+      p = data
+    group by
+      p.grp
+    select {
+      names = array_agg(p.name order by p.val desc nulls last),
+    }
+  ]]
+  assertEquals(r[1].names[1], "b")
+  assertEquals(r[1].names[2], "a")
+  assertEquals(r[1].names[3], "n")
+end
+
+-- 76. Intra-aggregate order by: multiple groups
+
+do
+  local data = {
+    { grp = "a", name = "z", val = 3 },
+    { grp = "a", name = "x", val = 1 },
+    { grp = "b", name = "m", val = 2 },
+    { grp = "b", name = "k", val = 4 },
+    { grp = "a", name = "y", val = 2 },
+  }
+  local r = query [[
+    from
+      p = data
+    group by
+      p.grp
+    select {
+      g = key,
+      names = array_agg(p.name order by p.val asc),
+    }
+    order by
+      g
+  ]]
+  assertEquals(#r, 2)
+
+  assertEquals(r[1].names[1], "x")
+  assertEquals(r[1].names[2], "y")
+  assertEquals(r[1].names[3], "z")
+
+  assertEquals(r[2].names[1], "m")
+  assertEquals(r[2].names[2], "k")
+end
+
+-- 77. Intra-aggregate order by combined with filter
+
+do
+  local data = {
+    { grp = "a", name = "d", val = 4, big = true },
+    { grp = "a", name = "a", val = 1, big = false },
+    { grp = "a", name = "c", val = 3, big = true },
+    { grp = "a", name = "b", val = 2, big = false },
+  }
+  local r = query [[
+    from
+      p = data
+    group by
+      p.grp
+    select {
+      all_sorted = array_agg(p.name order by p.val asc),
+      big_sorted = array_agg(p.name order by p.val desc)
+                       filter(where p.big),
+      small_sorted = array_agg(p.name order by p.name asc)
+                       filter(where not p.big),
+    }
+  ]]
+  assertEquals(r[1].all_sorted[1], "a")
+  assertEquals(r[1].all_sorted[4], "d")
+
+  assertEquals(r[1].big_sorted[1], "d")
+  assertEquals(r[1].big_sorted[2], "c")
+
+  assertEquals(r[1].small_sorted[1], "a")
+  assertEquals(r[1].small_sorted[2], "b")
+end
+
+-- 78. Intra-aggregate order by: sum is unaffected (order doesn't change sum)
+
+do
+  local data = {
+    { grp = "a", val = 10 },
+    { grp = "a", val = 30 },
+    { grp = "a", val = 20 },
+  }
+  local r = query [[
+    from
+      p = data
+    group by
+      p.grp
+    select {
+      s1 = sum(p.val order by p.val asc),
+      s2 = sum(p.val order by p.val desc),
+      s3 = sum(p.val),
+    }
+  ]]
+  assertEquals(r[1].s1, 60)
+  assertEquals(r[1].s2, 60)
+  assertEquals(r[1].s3, 60)
+end
+
+-- 79. Intra-aggregate order by: count is unaffected
+
+do
+  local data = {
+    { grp = "a", name = "c", val = 3 },
+    { grp = "a", name = "a", val = 1 },
+    { grp = "a", name = "b", val = 2 },
+  }
+  local r = query [[
+    from
+      p = data
+    group by
+      p.grp
+    select {
+      c1 = count(p.name order by p.val asc),
+      c2 = count(p.name order by p.val desc),
+      c3 = count(p.name),
+    }
+  ]]
+  assertEquals(r[1].c1, 3)
+  assertEquals(r[1].c2, 3)
+  assertEquals(r[1].c3, 3)
+end
+
+-- 80. Intra-aggregate order by on pages dataset
+
+do
+  local r = query [[
+    from
+      p = pages
+    where
+      p.tags[1] ~= nil
+    group by
+      p.tags[1]
+    select {
+      tag = key,
+      names_asc = array_agg(p.name order by p.name asc),
+      names_desc = array_agg(p.name order by p.name desc),
+    }
+    order by
+      tag
+  ]]
+  assertEquals(r[1].tag, "personal")
+  assertEquals(r[1].names_asc[1], "Carol")
+  assertEquals(r[1].names_asc[2], "Dave")
+  assertEquals(r[1].names_desc[1], "Dave")
+  assertEquals(r[1].names_desc[2], "Carol")
+
+  assertEquals(r[2].tag, "random")
+  assertEquals(r[2].names_asc[1], "Fran")
+
+  assertEquals(r[3].tag, "work")
+  assertEquals(r[3].names_asc[1], "Alice")
+  assertEquals(r[3].names_asc[2], "Bob")
+  assertEquals(r[3].names_asc[3], "Greg")
+  assertEquals(r[3].names_desc[1], "Greg")
+  assertEquals(r[3].names_desc[2], "Bob")
+  assertEquals(r[3].names_desc[3], "Alice")
+end
+
+-- 81. Intra-aggregate order by on pages dataset, order by size
+
+do
+  local r = query [[
+    from
+      p = pages
+    where
+      p.tags[1] ~= nil
+    group by
+      p.tags[1]
+    select {
+      tag = key,
+      by_size_asc = array_agg(p.name order by p.size asc),
+      by_size_desc = array_agg(p.name order by p.size desc),
+    }
+    order by
+      tag
+  ]]
+  -- work: Greg(2), Alice(10), Bob(20)
+  assertEquals(r[3].tag, "work")
+  assertEquals(r[3].by_size_asc[1], "Greg")
+  assertEquals(r[3].by_size_asc[2], "Alice")
+  assertEquals(r[3].by_size_asc[3], "Bob")
+  assertEquals(r[3].by_size_desc[1], "Bob")
+  assertEquals(r[3].by_size_desc[2], "Alice")
+  assertEquals(r[3].by_size_desc[3], "Greg")
+end
+
+-- 82. Intra-aggregate order by + filter on pages dataset
+
+do
+  local r = query [[
+    from
+      p = pages
+    where
+      p.tags[1] ~= nil
+    group by
+      p.tags[1]
+    select {
+      tag = key,
+      big_by_age = array_agg(p.name order by p.age desc) filter(where p.size>2),
+    }
+    order by
+      tag
+  ]]
+  assertEquals(r[1].tag, "personal")
+  assertEquals(r[1].big_by_age[1], "Dave")
+  assertEquals(r[1].big_by_age[2], "Carol")
+
+  assertEquals(r[2].tag, "random")
+  assertEquals(#r[2].big_by_age, 0)
+
+  assertEquals(r[3].tag, "work")
+  assertEquals(#r[3].big_by_age, 2)
+  assertEquals(r[3].big_by_age[1], "Alice") -- age 31 > 25
+  assertEquals(r[3].big_by_age[2], "Bob")
+end
+
+-- 83. Intra-aggregate order by with group by "all"
+
+do
+  local r = query [[
+    from
+      p = pages
+    group by
+      "all"
+    select {
+      youngest_first = array_agg(p.name order by p.age asc),
+      oldest_first = array_agg(p.name order by p.age desc),
+    }
+  ]]
+  assertEquals(#r, 1)
+
+  assertEquals(r[1].youngest_first[1], "Ed")
+  assertEquals(r[1].youngest_first[7], "Greg")
+  assertEquals(r[1].oldest_first[1], "Greg")
+  assertEquals(r[1].oldest_first[7], "Ed")
+end
+
+-- 84. Intra-aggregate order by: empty group produces empty array
+
+do
+  local data = {
+    { grp = "a", name = "x", val = 1 },
+  }
+  local r = query [[
+    from
+      p = data
+    group by
+      p.grp
+    select {
+      filtered = array_agg(p.name order by p.val asc) filter(where p.val>100),
+    }
+  ]]
+  assertEquals(#r[1].filtered, 0)
+end
+
+-- 85. Full pipeline
+
+do
+  local r = query [[
+    from
+      p = pages
+    where
+      p.tags[1] ~= nil
+    group by
+      p.tags[1]
+    having
+      count() > 1
+    select {
+      tag = key,
+      total = count(),
+      sorted_names = array_agg(p.name order by p.age desc),
+      young_names = array_agg(p.name order by p.name asc)
+        filter(where p.age < 40),
+      oldest = max(p.age),
+    }
+    order by
+      total desc, tag
+    limit
+      2
+  ]]
+  assertEquals(#r, 2)
+
+  assertEquals(r[1].tag, "work")
+  assertEquals(r[1].total, 3)
+
+  assertEquals(r[1].sorted_names[1], "Greg")
+  assertEquals(r[1].sorted_names[2], "Alice")
+  assertEquals(r[1].sorted_names[3], "Bob")
+
+  assertEquals(r[1].young_names[1], "Alice")
+  assertEquals(r[1].young_names[2], "Bob")
+  assertEquals(r[1].oldest, 63)
+
+  assertEquals(r[2].tag, "personal")
+  assertEquals(r[2].total, 2)
+
+  assertEquals(r[2].sorted_names[1], "Dave")
+  assertEquals(r[2].sorted_names[2], "Carol")
+
+  assertEquals(#r[2].young_names, 0)
+  assertEquals(r[2].oldest, 52)
+end
+
+-- 86. Full pipeline with composite group by + intra-aggregate order by
+
+do
+  local data = {
+    { dept = "eng",   level = "sr", name = "Alice", salary = 100 },
+    { dept = "eng",   level = "sr", name = "Bob",   salary = 120 },
+    { dept = "eng",   level = "jr", name = "Carol", salary = 60  },
+    { dept = "sales", level = "sr", name = "Dave",  salary = 90  },
+    { dept = "sales", level = "jr", name = "Eve",   salary = 50  },
+    { dept = "sales", level = "jr", name = "Fran",  salary = 55  },
+  }
+  local r = query [[
+    from
+      p = data
+    group by
+      p.dept, p.level
+    having
+      count() > 1
+    select {
+      dept = key[1],
+      level = key[2],
+      n = count(),
+      names_by_salary = array_agg(p.name order by p.salary desc),
+      total_salary = sum(p.salary),
+      top_earner = max(p.salary),
+    }
+    order by
+      dept, level
+  ]]
+  assertEquals(#r, 2)
+
+  assertEquals(r[1].dept, "eng")
+  assertEquals(r[1].level, "sr")
+  assertEquals(r[1].n, 2)
+  assertEquals(r[1].names_by_salary[1], "Bob")   -- 120
+  assertEquals(r[1].names_by_salary[2], "Alice") -- 100
+  assertEquals(r[1].total_salary, 220)
+  assertEquals(r[1].top_earner, 120)
+
+  assertEquals(r[2].dept, "sales")
+  assertEquals(r[2].level, "jr")
+  assertEquals(r[2].n, 2)
+  assertEquals(r[2].names_by_salary[1], "Fran") -- 55
+  assertEquals(r[2].names_by_salary[2], "Eve")  -- 50
+  assertEquals(r[2].total_salary, 105)
+  assertEquals(r[2].top_earner, 55)
+end
+
+-- 87. Intra-aggregate order by with unbound access, full pipeline
+
+do
+  local r = query [[
+    from
+      pages
+    where
+      tags[1] ~= nil
+    group by
+      tags[1]
+    having
+      count() >= 2
+    select {
+      tag = key,
+      by_age = array_agg(name order by age asc),
+      by_size = array_agg(name order by size desc),
+    }
+    order by
+      tag
+    limit
+      2
+  ]]
+  assertEquals(#r, 2)
+
+  assertEquals(r[1].tag, "personal")
+  assertEquals(r[1].by_age[1], "Carol")
+  assertEquals(r[1].by_age[2], "Dave")
+
+  assertEquals(r[1].by_size[1], "Dave")
+  assertEquals(r[1].by_size[2], "Carol")
+
+  assertEquals(r[2].tag, "work")
+  assertEquals(r[2].by_age[1], "Bob")
+  assertEquals(r[2].by_age[2], "Alice")
+  assertEquals(r[2].by_age[3], "Greg")
+
+  assertEquals(r[2].by_size[1], "Bob")
+  assertEquals(r[2].by_size[2], "Alice")
+  assertEquals(r[2].by_size[3], "Greg")
+end
+
+-- 88. Intra-aggregate order by does not affect min/max/avg results
+
+do
+  local data = {
+    { grp = "a", val = 30 },
+    { grp = "a", val = 10 },
+    { grp = "a", val = 20 },
+  }
+  local r = query [[
+    from
+      p = data
+    group by
+      p.grp
+    select {
+      mn1 = min(p.val order by p.val asc),
+      mn2 = min(p.val order by p.val desc),
+      mx1 = max(p.val order by p.val asc),
+      mx2 = max(p.val order by p.val desc),
+      av1 = avg(p.val order by p.val asc),
+      av2 = avg(p.val order by p.val desc),
+    }
+  ]]
+  assertEquals(r[1].mn1, 10)
+  assertEquals(r[1].mn2, 10)
+  assertEquals(r[1].mx1, 30)
+  assertEquals(r[1].mx2, 30)
+  assertEquals(r[1].av1, 20)
+  assertEquals(r[1].av2, 20)
+end
+
+-- 89. Intra-aggregate order by + filter + outer order by + offset
+
+do
+  local r = query [[
+    from
+      p = pages
+    where
+      p.tags[1] ~= nil
+    group by
+      p.tags[1]
+    select {
+      tag = key,
+      names = array_agg(p.name order by p.size asc) filter(where p.size > 1),
+    }
+    order by
+      tag
+    limit
+      2, 1
+  ]]
+  assertEquals(#r, 2)
+  assertEquals(r[1].tag, "random")
+  assertEquals(r[2].tag, "work")
+  assertEquals(r[2].names[1], "Greg")
+  assertEquals(r[2].names[2], "Alice")
+  assertEquals(r[2].names[3], "Bob")
+end
+
+-- 90. Complex full pipeline
+
+do
+  local data = {
+    { dept = "eng",   name = "Alice", salary = 100, active = true  },
+    { dept = "eng",   name = "Bob",   salary = 150, active = true  },
+    { dept = "eng",   name = "Carol", salary = 80,  active = false },
+    { dept = "sales", name = "Dave",  salary = 90,  active = true  },
+    { dept = "sales", name = "Eve",   salary = 70,  active = true  },
+    { dept = "sales", name = "Fran",  salary = 60,  active = false },
+    { dept = "hr",    name = "Greg",  salary = 50,  active = true  },
+  }
+
+  local function salaryDesc(a, b)
+    return a > b
+  end
+
+  local r = query [[
+    from
+      p = data
+    where
+      p.active
+    group by
+      p.dept
+    having
+      count() >= 2
+    select {
+      dept = key,
+      headcount = count(),
+      total_salary = sum(p.salary),
+      avg_salary = avg(p.salary),
+      top_salary = max(p.salary),
+      names_by_sal = array_agg(p.name order by p.salary desc),
+      cheap_names = array_agg(p.name order by p.name asc)
+        filter(where p.salary < 100),
+    }
+    order by
+      total_salary using salaryDesc
+    limit
+      2
+  ]]
+
+  assertEquals(#r, 2)
+
+  assertEquals(r[1].dept, "eng")
+  assertEquals(r[1].headcount, 2)
+  assertEquals(r[1].total_salary, 250)
+  assertEquals(r[1].avg_salary, 125)
+  assertEquals(r[1].top_salary, 150)
+  assertEquals(r[1].names_by_sal[1], "Bob")   -- 150
+  assertEquals(r[1].names_by_sal[2], "Alice") -- 100
+  assertEquals(#r[1].cheap_names, 0)
+
+  assertEquals(r[2].dept, "sales")
+  assertEquals(r[2].headcount, 2)
+  assertEquals(r[2].total_salary, 160)
+  assertEquals(r[2].avg_salary, 80)
+  assertEquals(r[2].top_salary, 90)
+  assertEquals(r[2].names_by_sal[1], "Dave") -- 90
+  assertEquals(r[2].names_by_sal[2], "Eve")  -- 70
+  assertEquals(r[2].cheap_names[1], "Dave")
+  assertEquals(r[2].cheap_names[2], "Eve")
+end
+
+-- 91. Attempt to use `order by` in non-aggregate function call errors
+
+do
+  local ok, err = pcall(function()
+    local r = query [[
+      from
+        p = pages
+      select
+        tostring(p.name order by p.name)
+    ]]
+  end)
+  assertEquals(ok, false)
+  assertTrue(
+    string.find(tostring(err), "'order by' is not allowed") ~= nil,
+    "expected `order by` error, got: " .. tostring(err)
+  )
+end
