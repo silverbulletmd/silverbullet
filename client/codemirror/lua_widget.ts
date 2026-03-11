@@ -154,11 +154,13 @@ export class LuaWidget extends WidgetType {
       // Markdown path for copy button (flat tables, `{...}` for nested)
       const markdownCopy = await renderExpressionResult(widgetContent);
 
+      const isBlock = dataType === "table" || dataType === "list" ||
+        (typeof widgetContent === "string" && isBlockMarkdown(widgetContent));
+
       widgetContent = {
         _isWidget: true,
         html: `<span data-type="${dataType}">${displayHtml}</span>`,
-        display:
-          dataType === "table" || dataType === "list" ? "block" : "inline",
+        display: isBlock ? "block" : "inline",
       };
       copyContent = markdownCopy;
     }
