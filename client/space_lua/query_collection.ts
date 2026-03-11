@@ -1,4 +1,5 @@
 import type {
+  LuaAggregateCallExpression,
   LuaBinaryExpression,
   LuaDynamicField,
   LuaExpression,
@@ -212,6 +213,14 @@ function containsAggregate(expr: LuaExpression): boolean {
       return containsAggregate(fc) ||
         containsAggregate((expr as LuaFilteredCallExpression).filter);
     }
+    case "AggregateCall": {
+      const ac = expr as LuaAggregateCallExpression;
+      const fc = ac.call;
+      if (fc.prefix.type === "Variable" && getAggregateSpec(fc.prefix.name)) {
+        return true;
+      }
+      return containsAggregate(fc);
+    }
     case "FunctionCall": {
       const fc = expr as LuaFunctionCallExpression;
       if (fc.prefix.type === "Variable" && getAggregateSpec(fc.prefix.name)) {
@@ -251,6 +260,12 @@ function containsAggregate(expr: LuaExpression): boolean {
   }
 }
 
+// Wrap a value for select result tables so that the column key survives
+// in the `LuaTable`
+function selectVal(v: LuaValue): LuaValue {
+  return (v === null || v === undefined) ? LIQ_NULL : v;
+}
+
 /**
  * Evaluate an expression in aggregate-aware mode.
  *
@@ -287,15 +302,18 @@ export async function evalExpressionWithAggregates(
       const spec = getAggregateSpec(name);
       if (spec) {
         const valueExpr = fc.args.length > 0 ? fc.args[0] : null;
+        const extraArgExprs = fc.args.length > 1 ? fc.args.slice(1) : [];
         return executeAggregate(
           spec,
           groupItems,
           valueExpr,
+          extraArgExprs,
           objectVariable,
           outerEnv,
           sf,
           evalExpression,
           filtered.filter,
+          fc.orderBy,
         );
       }
     }
@@ -310,14 +328,41 @@ export async function evalExpressionWithAggregates(
       const spec = getAggregateSpec(name);
       if (spec) {
         const valueExpr = fc.args.length > 0 ? fc.args[0] : null;
+        const extraArgExprs = fc.args.length > 1 ? fc.args.slice(1) : [];
         return executeAggregate(
           spec,
           groupItems,
           valueExpr,
+          extraArgExprs,
           objectVariable,
           outerEnv,
           sf,
           evalExpression,
+          undefined,
+          fc.orderBy,
+        );
+      }
+    }
+  }
+  if (expr.type === "FunctionCall") {
+    const fc = expr as LuaFunctionCallExpression;
+    if (fc.prefix.type === "Variable") {
+      const name = fc.prefix.name;
+      const spec = getAggregateSpec(name);
+      if (spec) {
+        const valueExpr = fc.args.length > 0 ? fc.args[0] : null;
+        const extraArgExprs = fc.args.length > 1 ? fc.args.slice(1) : [];
+        return executeAggregate(
+          spec,
+          groupItems,
+          valueExpr,
+          extraArgExprs,
+          objectVariable,
+          outerEnv,
+          sf,
+          evalExpression,
+          undefined,
+          fc.orderBy,
         );
       }
     }
@@ -330,20 +375,20 @@ export async function evalExpressionWithAggregates(
         case "PropField": {
           const pf = field as LuaPropField;
           const value = await recurse(pf.value);
-          void table.set(pf.key, value, sf);
+          void table.set(pf.key, selectVal(value), sf);
           break;
         }
         case "DynamicField": {
           const df = field as LuaDynamicField;
           const key = await evalExpression(df.key, env, sf);
           const value = await recurse(df.value);
-          void table.set(key, value, sf);
+          void table.set(key, selectVal(value), sf);
           break;
         }
         case "ExpressionField": {
           const ef = field as LuaExpressionField;
           const value = await recurse(ef.value);
-          table.rawSetArrayIndex(nextArrayIndex, value);
+          table.rawSetArrayIndex(nextArrayIndex, selectVal(value));
           nextArrayIndex++;
           break;
         }
@@ -625,6 +670,23 @@ async function sortKeyCompare(
   return 0;
 }
 
+// Build a select-result table from a non-aggregate select expression
+async function evalSelectExpression(
+  selectExpr: LuaExpression,
+  itemEnv: LuaEnv,
+  sf: LuaStackFrame,
+): Promise<LuaValue> {
+  const result = await evalExpression(selectExpr, itemEnv, sf);
+  if (!(result instanceof LuaTable)) return result;
+  for (const k of luaKeys(result)) {
+    const v = result.rawGet(k);
+    if (v === null || v === undefined) {
+      void result.rawSet(k, LIQ_NULL);
+    }
+  }
+  return result;
+}
+
 export async function applyQuery(
   results: any[],
   query: LuaCollectionQuery,
@@ -903,7 +965,7 @@ export async function applyQuery(
             ),
           );
         } else {
-          newResult.push(await evalExpression(query.select, itemEnv, sf));
+          newResult.push(await evalSelectExpression(query.select, itemEnv, sf));
         }
       }
       results = newResult;

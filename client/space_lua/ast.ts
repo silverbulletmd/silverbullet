@@ -176,7 +176,8 @@ export type LuaExpression =
   | LuaTableConstructor
   | LuaFunctionDefinition
   | LuaQueryExpression
-  | LuaFilteredCallExpression;
+  | LuaFilteredCallExpression
+  | LuaAggregateCallExpression;
 
 export type LuaNilLiteral = {
   type: "Nil";
@@ -235,6 +236,7 @@ export type LuaFunctionCallExpression = {
   prefix: LuaPrefixExpression;
   name?: string;
   args: LuaExpression[];
+  orderBy?: LuaOrderBy[];
 } & ASTContext;
 
 export type LuaBinaryExpression = {
@@ -287,6 +289,13 @@ export type LuaFilteredCallExpression = {
   type: "FilteredCall";
   call: LuaFunctionCallExpression;
   filter: LuaExpression;
+} & ASTContext;
+
+// Aggregate call with intra-aggregate order by
+export type LuaAggregateCallExpression = {
+  type: "AggregateCall";
+  call: LuaFunctionCallExpression;
+  orderBy: LuaOrderBy[];
 } & ASTContext;
 
 // Query stuff

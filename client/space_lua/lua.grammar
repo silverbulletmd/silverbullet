@@ -109,6 +109,8 @@ SelectClause { ckw<"select"> exp }
 GroupByClause { ckw<"group"> ckw<"by"> list<exp> }
 HavingClause { ckw<"having"> exp }
 
+AggOrderBy { ckw<"order"> ckw<"by"> list<OrderBy> }
+
 
 field[@isGroup=Field] {
   FieldDynamic { "[" exp "]" "=" exp } |
@@ -126,7 +128,7 @@ FunctionCall { prefixexp (":" Name)? !call args }
 args {
   LiteralString |
   TableConstructor |
-  funcParams[@dynamicPrecedence=1] { "(" list<exp>? ")" ~parens }
+  funcParams[@dynamicPrecedence=1] { "(" list<exp>? AggOrderBy? ")" ~parens }
 }
 
 var {

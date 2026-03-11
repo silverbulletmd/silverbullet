@@ -21,6 +21,7 @@ import {
 } from "./runtime.ts";
 import type { LuaExpression } from "./ast.ts";
 import { buildItemEnv } from "./query_env.ts";
+import { asyncMergeSort } from "./util.ts";
 
 export interface AggregateSpec {
   name: string;
@@ -161,6 +162,7 @@ export async function executeAggregate(
   spec: AggregateSpec,
   items: LuaTable,
   valueExpr: LuaExpression | null,
+  extraArgExprs: LuaExpression[],
   objectVariable: string | undefined,
   env: LuaEnv,
   sf: LuaStackFrame,
@@ -170,13 +172,21 @@ export async function executeAggregate(
     sf: LuaStackFrame,
   ) => Promise<LuaValue> | LuaValue,
   filterExpr?: LuaExpression,
+  orderBy?: import("./ast.ts").LuaOrderBy[],
 ): Promise<LuaValue> {
   const ctx = buildAggCtx(spec.name);
 
+  // Evaluate extra args once (before the loop)
+  const extraArgs: LuaValue[] = [];
+  for (const argExpr of extraArgExprs) {
+    extraArgs.push(await evalExprFn(argExpr, env, sf));
+  }
+
   // Initialize
-  let state = await luaCall(spec.initialize, [ctx], noCtx, sf);
+  let state = await luaCall(spec.initialize, [ctx, ...extraArgs], noCtx, sf);
 
   // Iterate
+  const filteredItems: LuaValue[] = [];
   const len = items.length;
   for (let i = 1; i <= len; i++) {
     const item = items.rawGet(i);
@@ -189,7 +199,35 @@ export async function executeAggregate(
         continue;
       }
     }
+    filteredItems.push(item);
+  }
 
+  // Intra-aggregate ordering
+  if (orderBy && orderBy.length > 0) {
+    await asyncMergeSort(filteredItems, async (a: any, b: any) => {
+      for (const ob of orderBy) {
+        const envA = buildItemEnv(objectVariable, a, env, sf);
+        const envB = buildItemEnv(objectVariable, b, env, sf);
+        const valA = await evalExprFn(ob.expression, envA, sf);
+        const valB = await evalExprFn(ob.expression, envB, sf);
+        const aNull = valA === null || valA === undefined;
+        const bNull = valB === null || valB === undefined;
+        if (aNull && bNull) continue;
+        if (aNull) return ob.nulls === "first" ? -1 : 1;
+        if (bNull) return ob.nulls === "first" ? 1 : -1;
+        let cmp = 0;
+        if (valA < valB) cmp = -1;
+        else if (valA > valB) cmp = 1;
+        if (cmp !== 0) {
+          return ob.direction === "desc" ? -cmp : cmp;
+        }
+      }
+      return 0;
+    });
+  }
+
+  // Iterate
+  for (const item of filteredItems) {
     let value: LuaValue;
     if (valueExpr === null) {
       value = item;
@@ -197,12 +235,12 @@ export async function executeAggregate(
       const itemEnv = buildItemEnv(objectVariable, item, env, sf);
       value = await evalExprFn(valueExpr, itemEnv, sf);
     }
-    state = await luaCall(spec.iterate, [state, value, ctx], noCtx, sf);
+    state = await luaCall(spec.iterate, [state, value, ctx, ...extraArgs], noCtx, sf);
   }
 
   // Finish
   if (spec.finish) {
-    state = await luaCall(spec.finish, [state, ctx], noCtx, sf);
+    state = await luaCall(spec.finish, [state, ctx, ...extraArgs], noCtx, sf);
   }
 
   return state;

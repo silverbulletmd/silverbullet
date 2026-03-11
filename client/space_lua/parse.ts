@@ -164,6 +164,14 @@ function expressionHasFunctionDef(e: LuaExpression): boolean {
         expressionHasFunctionDef(e.call) ||
         expressionHasFunctionDef(e.filter)
       );
+    case "AggregateCall":
+      return (
+        expressionHasFunctionDef((e as any).call) ||
+        ((e as any).orderBy as LuaOrderBy[]).some((ob) =>
+          expressionHasFunctionDef(ob.expression) ||
+          (ob.using && typeof ob.using !== "string")
+        )
+      );
     default:
       return false;
   }
@@ -263,6 +271,15 @@ function exprReferencesNames(e: LuaExpression, names: Set<string>): boolean {
         exprReferencesNames(e.call, names) ||
         exprReferencesNames(e.filter, names)
       );
+    case "AggregateCall": {
+      const ac = e as any;
+      if (exprReferencesNames(ac.call, names)) return true;
+      for (const ob of ac.orderBy as LuaOrderBy[]) {
+        if (exprReferencesNames(ob.expression, names)) return true;
+        if (typeof ob.using === "string" && names.has(ob.using)) return true;
+      }
+      return false;
+    }
     default:
       return false;
   }
@@ -577,6 +594,18 @@ function exprCapturesNames(e: LuaExpression, names: Set<string>): boolean {
         exprCapturesNames(e.call, names) ||
         exprCapturesNames(e.filter, names)
       );
+    case "AggregateCall": {
+      const ac = e as any;
+      if (exprCapturesNames(ac.call, names)) return true;
+      for (const ob of ac.orderBy as LuaOrderBy[]) {
+        if (exprCapturesNames(ob.expression, names)) return true;
+        const u = ob.using;
+        if (u && typeof u !== "string") {
+          if (functionBodyCapturesNames(u, names)) return true;
+        }
+      }
+      return false;
+    }
     default:
       return false;
   }
@@ -962,20 +991,36 @@ function parseFunctionCall(
   ctx: ASTCtx,
 ): LuaFunctionCallExpression {
   if (t.children![1] && t.children![1].type === ":") {
-    return {
+    const { args, aggOrderBy } = parseFunctionArgsWithOrderBy(
+      t.children!.slice(3),
+      ctx,
+    );
+    const result: LuaFunctionCallExpression = {
       type: "FunctionCall",
       prefix: parsePrefixExpression(t.children![0], ctx),
       name: t.children![2].children![0].text!,
-      args: parseFunctionArgs(t.children!.slice(3), ctx),
+      args,
       ctx: context(t, ctx),
     };
+    if (aggOrderBy) {
+      (result as any).orderBy = aggOrderBy;
+    }
+    return result;
   }
-  return {
+  const { args, aggOrderBy } = parseFunctionArgsWithOrderBy(
+    t.children!.slice(1),
+    ctx,
+  );
+  const result: LuaFunctionCallExpression = {
     type: "FunctionCall",
     prefix: parsePrefixExpression(t.children![0], ctx),
-    args: parseFunctionArgs(t.children!.slice(1), ctx),
+    args,
     ctx: context(t, ctx),
   };
+  if (aggOrderBy) {
+    (result as any).orderBy = aggOrderBy;
+  }
+  return result;
 }
 
 function parseAttNames(t: ParseTree, ctx: ASTCtx): LuaAttName[] {
@@ -1300,36 +1345,7 @@ function parseQueryClause(t: ParseTree, ctx: ASTCtx): LuaQueryClause {
       const orderBy: LuaOrderBy[] = [];
       for (const child of t.children!) {
         if (child.type === "OrderBy") {
-          const kids = child.children!;
-          let direction: "asc" | "desc" = "asc";
-          let nulls: "first" | "last" | undefined;
-          let usingVal: string | LuaFunctionBody | undefined;
-          for (let i = 1; i < kids.length; i++) {
-            const typ = kids[i].type;
-            if (typ === "desc") direction = "desc";
-            else if (typ === "asc") direction = "asc";
-            else if (typ === "first") nulls = "first";
-            else if (typ === "last") nulls = "last";
-            else if (typ === "using") {
-              const next = kids[i + 1];
-              if (next.type === "function") {
-                usingVal = parseFunctionBody(kids[i + 2], ctx);
-                i += 2;
-              } else {
-                usingVal = next.children![0].text!;
-                i++;
-              }
-            }
-          }
-          const ob: LuaOrderBy = {
-            type: "Order",
-            expression: parseExpression(kids[0], ctx),
-            direction,
-            ctx: context(child, ctx),
-          };
-          if (nulls) ob.nulls = nulls;
-          if (usingVal !== undefined) ob.using = usingVal;
-          orderBy.push(ob);
+          orderBy.push(parseOrderByNode(child, ctx));
         }
       }
       return {
@@ -1372,10 +1388,70 @@ function parseQueryClause(t: ParseTree, ctx: ASTCtx): LuaQueryClause {
   }
 }
 
-function parseFunctionArgs(ts: ParseTree[], ctx: ASTCtx): LuaExpression[] {
-  return ts
-    .filter((t) => t.type && ![",", "(", ")"].includes(t.type))
-    .map((e) => parseExpression(e, ctx));
+// Parse a single OrderBy node (shared by query OrderByClause and AggOrderBy)
+function parseOrderByNode(child: ParseTree, ctx: ASTCtx): LuaOrderBy {
+  const kids = child.children!;
+  let direction: "asc" | "desc" = "asc";
+  let nulls: "first" | "last" | undefined;
+  let usingVal: string | LuaFunctionBody | undefined;
+  for (let i = 1; i < kids.length; i++) {
+    const typ = kids[i].type;
+    if (typ === "desc") direction = "desc";
+    else if (typ === "asc") direction = "asc";
+    else if (typ === "first") nulls = "first";
+    else if (typ === "last") nulls = "last";
+    else if (typ === "using") {
+      const next = kids[i + 1];
+      if (next.type === "function") {
+        usingVal = parseFunctionBody(kids[i + 2], ctx);
+        i += 2;
+      } else {
+        usingVal = next.children![0].text!;
+        i++;
+      }
+    }
+  }
+  const ob: LuaOrderBy = {
+    type: "Order",
+    expression: parseExpression(kids[0], ctx),
+    direction,
+    ctx: context(child, ctx),
+  };
+  if (nulls) ob.nulls = nulls;
+  if (usingVal !== undefined) ob.using = usingVal;
+  return ob;
+}
+
+// Parse an AggOrderBy node into LuaOrderBy[]
+function parseAggOrderBy(t: ParseTree, ctx: ASTCtx): LuaOrderBy[] {
+  if (t.type !== "AggOrderBy") {
+    throw new Error(`Expected AggOrderBy, got ${t.type}`);
+  }
+  const orderBy: LuaOrderBy[] = [];
+  for (const child of t.children!) {
+    if (child.type === "OrderBy") {
+      orderBy.push(parseOrderByNode(child, ctx));
+    }
+  }
+  return orderBy;
+}
+
+// Parse function args, extracting AggOrderBy if present inside funcParams
+function parseFunctionArgsWithOrderBy(
+  ts: ParseTree[],
+  ctx: ASTCtx,
+): { args: LuaExpression[]; aggOrderBy?: LuaOrderBy[] } {
+  let aggOrderBy: LuaOrderBy[] | undefined;
+  const args: LuaExpression[] = [];
+  for (const t of ts) {
+    if (!t.type || [",", "(", ")"].includes(t.type)) continue;
+    if (t.type === "AggOrderBy") {
+      aggOrderBy = parseAggOrderBy(t, ctx);
+    } else {
+      args.push(parseExpression(t, ctx));
+    }
+  }
+  return { args, aggOrderBy };
 }
 
 function parseFunctionBody(t: ParseTree, ctx: ASTCtx): LuaFunctionBody {
