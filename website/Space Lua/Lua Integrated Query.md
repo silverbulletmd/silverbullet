@@ -17,16 +17,21 @@ General syntax:
       having <expression>
       order by <expression>
         [asc | desc | using <comparator>]
-        [nulls { first | last }]
+        [nulls {first | last}]
         [, ...]
-      limit <expression>[, ...]
+      limit <expression> [, <offset>]
+      offset <expression>
       select <expression>
     ]]
 
 Aggregate functions support an optional intra-aggregate `order by` and/or `filter` clause:
 
-    <aggregate>(<expression> [order by <expr> [asc|desc] [nulls {first|last}], ...])
-    <aggregate>(<expression> ...) filter(where <condition>)
+    <aggregate>(<expression> [, ...]
+      [order by <expression>
+        [asc | desc | using <comparator>]
+        [nulls {first | last}]
+        [, ...]]
+      [filter(where <expression>)])
 
 These can be combined. See [[Space Lua/Lua Integrated Query/Aggregating]] for details.
 
@@ -238,15 +243,34 @@ ${query [[
 The query engine uses a *stable merge sort* algorithm with guaranteed performance. Items that compare as equal preserve their original order and an invalid comparator cannot cause an infinite loop or crash — the violation is detected and reported as an error.
 
 ## `limit`
-The `limit` clause allows you to limit the number of results, optionally with an offset.
+The `limit` clause allows you to limit the number of results, optionally with an inline offset.
 
 Example:
 
 ${query[[from {1, 2, 3, 4, 5} limit 3]]}
 
-You can also specify an offset to skip some results:
+You can also specify an offset as a second argument to skip some results:
 
 ${query[[from {1, 2, 3, 4, 5} limit 3, 2]]}
+
+> **note** Note
+> If both an inline offset (`limit 3, 2`) and a standalone `offset` clause are present, the last one encountered wins.
+
+## `offset`
+The `offset` clause skips a number of rows from the beginning of the result set. It can be used with or without `limit`.
+
+Skip the first 2 results:
+
+${query[[from {1, 2, 3, 4, 5} offset 2]]}
+
+Combined with `limit`:
+
+${query[[from {1, 2, 3, 4, 5} offset 2 limit 3]]}
+
+If the offset is larger than the number of available rows, the result is empty — this is not an error, matching PostgreSQL semantics.
+
+> **note** Note
+> If both a standalone `offset` clause and an inline offset in `limit` (`limit 3, 2`) are present, the last one encountered wins.
 
 ## `select`
 The `select` clause allows you to transform each item in the result set. If omitted, it defaults to returning the item itself.
