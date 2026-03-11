@@ -12,9 +12,7 @@ export function codeWidgetSyscalls(
       body: string,
       pageName: string,
     ): Promise<CodeWidgetContent | null> => {
-      const langCallback = codeWidgetHook.codeWidgetCallbacks.get(
-        lang,
-      );
+      const langCallback = codeWidgetHook.codeWidgetCallbacks.get(lang);
       if (!langCallback) {
         throw new Error(`Code widget ${lang} not found`);
       }

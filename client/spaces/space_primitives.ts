@@ -13,9 +13,7 @@ export interface SpacePrimitives {
    */
   getFileMeta(path: string, observing?: boolean): Promise<FileMeta>;
 
-  readFile(
-    path: string,
-  ): Promise<{ data: Uint8Array; meta: FileMeta }>;
+  readFile(path: string): Promise<{ data: Uint8Array; meta: FileMeta }>;
 
   writeFile(
     path: string,

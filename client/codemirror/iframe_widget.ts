@@ -20,7 +20,9 @@ export class IFrameWidget extends WidgetType {
   }
 
   override get estimatedHeight(): number {
-    const cachedHeight = this.client.getCachedWidgetHeight(this.bodyText);
+    const cachedHeight = this.client.widgetCache.getCachedWidgetHeight(
+      this.bodyText,
+    );
     // console.log("Calling estimated height", this.bodyText, cachedHeight);
     return cachedHeight > 0 ? cachedHeight : 150;
   }
@@ -30,10 +32,7 @@ export class IFrameWidget extends WidgetType {
     const iframe = createWidgetSandboxIFrame(
       this.client,
       this.bodyText,
-      this.codeWidgetCallback(
-        this.bodyText,
-        this.client.currentName(),
-      ),
+      this.codeWidgetCallback(this.bodyText, this.client.currentName()),
       (message) => {
         switch (message.type) {
           case "blur":
@@ -47,27 +46,22 @@ export class IFrameWidget extends WidgetType {
             void this.codeWidgetCallback(
               this.bodyText,
               this.client.currentName(),
-            )
-              .then(
-                (widgetContent: CodeWidgetContent | null) => {
-                  if (widgetContent === null) {
-                    iframe.contentWindow!.postMessage({
-                      type: "html",
-                      html: "",
-                      theme:
-                        document.getElementsByTagName("html")[0].dataset.theme,
-                    });
-                  } else {
-                    iframe.contentWindow!.postMessage({
-                      type: "html",
-                      html: widgetContent.html,
-                      script: widgetContent.script,
-                      theme:
-                        document.getElementsByTagName("html")[0].dataset.theme,
-                    });
-                  }
-                },
-              );
+            ).then((widgetContent: CodeWidgetContent | null) => {
+              if (widgetContent === null) {
+                iframe.contentWindow!.postMessage({
+                  type: "html",
+                  html: "",
+                  theme: document.getElementsByTagName("html")[0].dataset.theme,
+                });
+              } else {
+                iframe.contentWindow!.postMessage({
+                  type: "html",
+                  html: widgetContent.html,
+                  script: widgetContent.script,
+                  theme: document.getElementsByTagName("html")[0].dataset.theme,
+                });
+              }
+            });
             break;
         }
       },
@@ -80,9 +74,6 @@ export class IFrameWidget extends WidgetType {
   }
 
   override eq(other: WidgetType): boolean {
-    return (
-      other instanceof IFrameWidget &&
-      other.bodyText === this.bodyText
-    );
+    return other instanceof IFrameWidget && other.bodyText === this.bodyText;
   }
 }

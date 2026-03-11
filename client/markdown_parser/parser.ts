@@ -90,18 +90,14 @@ const LuaDirectives: MarkdownConfig = {
       name: "LuaDirective",
       parse(cx, next, pos) {
         const textFromPos = cx.slice(pos, cx.end);
-        if (
-          next !== 36 /* '$' */ ||
-          cx.slice(pos, pos + 2) !== "${"
-        ) {
+        if (next !== 36 /* '$' */ || cx.slice(pos, pos + 2) !== "${") {
           return -1;
         }
 
         let bracketNestingDepth = 0;
         let valueLength = 0;
         // We need to ensure balanced { and } pairs
-        loopLabel:
-        for (; valueLength < textFromPos.length; valueLength++) {
+        loopLabel: for (; valueLength < textFromPos.length; valueLength++) {
           switch (textFromPos[valueLength]) {
             case "{":
               bracketNestingDepth++;
@@ -134,12 +130,9 @@ const LuaDirectives: MarkdownConfig = {
         if (!node) {
           return -1;
         }
-        const bodyEl = cx.elt(
-          "LuaExpressionDirective",
-          pos + 2,
-          endPos - 1,
-          [cx.elt(node.toTree()!, pos + 2 + whiteSpaceOffset)],
-        );
+        const bodyEl = cx.elt("LuaExpressionDirective", pos + 2, endPos - 1, [
+          cx.elt(node.toTree()!, pos + 2 + whiteSpaceOffset),
+        ]);
 
         return cx.addElement(
           cx.elt("LuaDirective", pos, endPos, [
@@ -205,8 +198,7 @@ export const Attribute: MarkdownConfig = {
         const [fullMatch, attributeName, attributeColon] = match;
         let bracketNestingDepth = 1;
         let valueLength = fullMatch.length;
-        loopLabel:
-        for (; valueLength < textFromPos.length; valueLength++) {
+        loopLabel: for (; valueLength < textFromPos.length; valueLength++) {
           switch (textFromPos[valueLength]) {
             case "[":
               bracketNestingDepth++;
@@ -285,13 +277,11 @@ function regexParser({
   };
 }
 
-const NakedURL = regexParser(
-  {
-    firstCharCode: 104, // h
-    regex: new RegExp(`^${nakedUrlRegex.source}`),
-    nodeType: "NakedURL",
-  },
-);
+const NakedURL = regexParser({
+  firstCharCode: 104, // h
+  regex: new RegExp(`^${nakedUrlRegex.source}`),
+  nodeType: "NakedURL",
+});
 
 const Hashtag = regexParser({
   firstCharCode: 35, // #
@@ -309,57 +299,61 @@ export const FrontMatter: MarkdownConfig = {
     { name: "FrontMatterMarker" },
     { name: "FrontMatterCode" },
   ],
-  parseBlock: [{
-    name: "FrontMatter",
-    parse: (cx, line: Line) => {
-      if (cx.parsedPos !== 0) {
-        return false;
-      }
-      if (line.text !== "---") {
-        return false;
-      }
-      const frontStart = cx.parsedPos;
-      const elts = [
-        cx.elt(
-          "FrontMatterMarker",
-          cx.parsedPos,
-          cx.parsedPos + line.text.length + 1,
-        ),
-      ];
-      cx.nextLine();
-      const startPos = cx.parsedPos;
-      let endPos = startPos;
-      let text = "";
-      let lastPos = cx.parsedPos;
-      do {
-        text += `${line.text}\n`;
-        endPos += line.text.length + 1;
-        cx.nextLine();
-        if (cx.parsedPos === lastPos) {
-          // End of file, no progress made, there may be a better way to do this but :shrug:
+  parseBlock: [
+    {
+      name: "FrontMatter",
+      parse: (cx, line: Line) => {
+        if (cx.parsedPos !== 0) {
           return false;
         }
-        lastPos = cx.parsedPos;
-      } while (line.text !== "---");
-      const yamlTree = yamlLang.parser.parse(text);
+        if (line.text !== "---") {
+          return false;
+        }
+        const frontStart = cx.parsedPos;
+        const elts = [
+          cx.elt(
+            "FrontMatterMarker",
+            cx.parsedPos,
+            cx.parsedPos + line.text.length + 1,
+          ),
+        ];
+        cx.nextLine();
+        const startPos = cx.parsedPos;
+        let endPos = startPos;
+        let text = "";
+        let lastPos = cx.parsedPos;
+        do {
+          text += `${line.text}\n`;
+          endPos += line.text.length + 1;
+          cx.nextLine();
+          if (cx.parsedPos === lastPos) {
+            // End of file, no progress made, there may be a better way to do this but :shrug:
+            return false;
+          }
+          lastPos = cx.parsedPos;
+        } while (line.text !== "---");
+        const yamlTree = yamlLang.parser.parse(text);
 
-      elts.push(
-        cx.elt("FrontMatterCode", startPos, endPos, [
-          cx.elt(yamlTree, startPos),
-        ]),
-      );
-      endPos = cx.parsedPos + line.text.length;
-      elts.push(cx.elt(
-        "FrontMatterMarker",
-        cx.parsedPos,
-        cx.parsedPos + line.text.length,
-      ));
-      cx.nextLine();
-      cx.addElement(cx.elt("FrontMatter", frontStart, endPos, elts));
-      return true;
+        elts.push(
+          cx.elt("FrontMatterCode", startPos, endPos, [
+            cx.elt(yamlTree, startPos),
+          ]),
+        );
+        endPos = cx.parsedPos + line.text.length;
+        elts.push(
+          cx.elt(
+            "FrontMatterMarker",
+            cx.parsedPos,
+            cx.parsedPos + line.text.length,
+          ),
+        );
+        cx.nextLine();
+        cx.addElement(cx.elt("FrontMatter", frontStart, endPos, elts));
+        return true;
+      },
+      before: "HorizontalRule",
     },
-    before: "HorizontalRule",
-  }],
+  ],
 };
 
 export const extendedMarkdownLanguage = markdown({

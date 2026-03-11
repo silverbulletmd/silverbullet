@@ -63,9 +63,7 @@ export function cleanWikiLinkPlugin(client: Client) {
               altKey: e.altKey,
               pos: from,
             };
-            client.dispatchClickEvent(clickEvent).catch(
-              console.error,
-            );
+            client.dispatchClickEvent(clickEvent).catch(console.error);
           },
         });
 

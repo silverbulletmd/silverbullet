@@ -4,7 +4,9 @@ import { notFoundError } from "@silverbulletmd/silverbullet/constants";
 export async function deletePage() {
   const pageName = await editor.getCurrentPage();
   if (
-    !await editor.confirm(`Are you sure you would like to delete ${pageName}?`)
+    !(await editor.confirm(
+      `Are you sure you would like to delete ${pageName}?`,
+    ))
   ) {
     return;
   }
@@ -37,7 +39,10 @@ export async function copyPage(
   }
   newName = newName.trim();
   if (newName === "") {
-    void editor.flashNotification("Must provide a non-empty page name.", "error");
+    void editor.flashNotification(
+      "Must provide a non-empty page name.",
+      "error",
+    );
     return;
   }
 

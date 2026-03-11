@@ -44,7 +44,7 @@ export function AnythingPicker({
 
       let orderId = isViewable
         ? -new Date(documentMeta.lastModified).getTime()
-        : (Number.MAX_VALUE - new Date(documentMeta.lastModified).getTime());
+        : Number.MAX_VALUE - new Date(documentMeta.lastModified).getTime();
 
       if (currentPath === documentMeta.name) {
         orderId = Infinity;
@@ -53,7 +53,8 @@ export function AnythingPicker({
       // Can't really add tags to document as of right now, but maybe in the future
       let description: string | undefined;
       if (documentMeta.tags) {
-        description = (description || "") +
+        description =
+          (description || "") +
           documentMeta.tags.map((tag) => `#${tag}`).join(" ");
       }
 
@@ -86,13 +87,12 @@ export function AnythingPicker({
         orderId = -pageMeta.lastOpened;
       }
       // Or it's the currently open page
-      if (
-        currentPath === `${pageMeta.name}.md` || pageMeta._isAspiring
-      ) {
+      if (currentPath === `${pageMeta.name}.md` || pageMeta._isAspiring) {
         // ... then we put it all the way to the end
         orderId = Infinity;
       }
-      const cssClass = (pageMeta.pageDecoration?.cssClasses || []).join(" ")
+      const cssClass = (pageMeta.pageDecoration?.cssClasses || [])
+        .join(" ")
         .replaceAll(/[^a-zA-Z0-9-_ ]/g, "");
 
       if (mode === "page") {
@@ -109,7 +109,8 @@ export function AnythingPicker({
           description = `(a.k.a. ${aliases.join(", ")}) `;
         }
         if (pageMeta.tags) {
-          description = (description || "") +
+          description =
+            (description || "") +
             pageMeta.tags.map((tag) => `#${tag}`).join(" ");
         }
         options.push({
@@ -139,7 +140,8 @@ export function AnythingPicker({
           orderId: orderId,
           cssClass,
         });
-      } else { // all
+      } else {
+        // all
         // In mode "all" just show the full path and all tags
         let description: string | undefined;
         if (pageMeta.tags) {
@@ -157,8 +159,7 @@ export function AnythingPicker({
     }
   }
 
-  const completePrefix =
-    `${folderName(currentPath) || getNameFromPath(currentPath)}/`;
+  const completePrefix = `${folderName(currentPath) || getNameFromPath(currentPath)}/`;
 
   const allowNew = mode !== "document";
   const creatablePageNoun = mode !== "all" ? mode : "page";
@@ -166,13 +167,15 @@ export function AnythingPicker({
 
   return (
     <FilterList
-      placeholder={mode === "page"
-        ? "Page"
-        : (mode === "meta"
-          ? "#meta page"
-          : (mode === "document"
-            ? "Document"
-            : "Any page or Document, also hidden"))}
+      placeholder={
+        mode === "page"
+          ? "Page"
+          : mode === "meta"
+            ? "#meta page"
+            : mode === "document"
+              ? "Document"
+              : "Any page or Document, also hidden"
+      }
       label="Open"
       options={options}
       vimMode={vimMode}
@@ -215,8 +218,8 @@ export function AnythingPicker({
               }
               return filterTags.every((tag) =>
                 page.meta.tags.find((itemTag: string) =>
-                  itemTag.startsWith(tag)
-                )
+                  itemTag.startsWith(tag),
+                ),
               );
             });
           }
@@ -229,17 +232,19 @@ export function AnythingPicker({
 
         if (mode !== "all") {
           // Filter out hidden pages
-          options = options.filter((page) =>
-            !(page.meta.pageDecoration?.hide === true)
+          options = options.filter(
+            (page) => !(page.meta.pageDecoration?.hide === true),
           );
         }
         return options;
       }}
       allowNew={allowNew}
-      helpText={`Press <code>Enter</code> to open the selected ${openablePageNoun}` +
+      helpText={
+        `Press <code>Enter</code> to open the selected ${openablePageNoun}` +
         (allowNew
           ? `, or <code>Shift-Enter</code> to create a new ${creatablePageNoun} with this exact name.`
-          : "")}
+          : "")
+      }
       newHint={`Create ${creatablePageNoun}`}
       completePrefix={completePrefix}
       onSelect={(opt) => {
@@ -258,6 +263,8 @@ export function AnythingPicker({
 }
 
 function isMetaPageOption(page: FilterOption) {
-  return page.meta.tags?.includes("template") ||
-    page.meta.tags?.find((tag: string) => tag.startsWith("meta"));
+  return (
+    page.meta.tags?.includes("template") ||
+    page.meta.tags?.find((tag: string) => tag.startsWith("meta"))
+  );
 }

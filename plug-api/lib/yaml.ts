@@ -25,7 +25,9 @@ function serializeToYamlScalar(
     // Simple strings without special chars/meaning don't need quotes
     return value;
   } else if (
-    typeof value === "number" || typeof value === "boolean" || value === null
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    value === null
   ) {
     return String(value);
   }
@@ -46,10 +48,15 @@ function serializeToYamlValue(
     // Determine indentation for list items (base + 2 spaces)
     const itemIndentation = `${baseIndentation}  `;
     // Format each item recursively, preceded by '- ' marker
-    return "\n" +
-      value.map((item) =>
-        `${itemIndentation}- ${serializeToYamlValue(item, itemIndentation)}`
-      ).join("\n");
+    return (
+      "\n" +
+      value
+        .map(
+          (item) =>
+            `${itemIndentation}- ${serializeToYamlValue(item, itemIndentation)}`,
+        )
+        .join("\n")
+    );
     // Note: serializeToYamlValue is used recursively here to handle nested arrays/objects if needed in future
     // However, the current `applyMinimalSetKeyPatches` only handles top-level keys.
   } else if (typeof value === "object" && value !== null) {
@@ -58,22 +65,25 @@ function serializeToYamlValue(
     const itemIndentation = `${baseIndentation}  `;
     const entries = Object.entries(value);
     if (entries.length === 0) return "{}"; // Flow style empty objects
-    return "\n" +
-      entries.map(([key, val]) =>
-        `${itemIndentation}${key}: ${
-          serializeToYamlValue(val, itemIndentation)
-        }`
-      ).join("\n");
+    return (
+      "\n" +
+      entries
+        .map(
+          ([key, val]) =>
+            `${itemIndentation}${key}: ${serializeToYamlValue(
+              val,
+              itemIndentation,
+            )}`,
+        )
+        .join("\n")
+    );
   } else {
     // Handle scalars using the dedicated function
     return serializeToYamlScalar(value);
   }
 }
 
-export function applyPatches(
-  yamlString: string,
-  patches: YamlPatch[],
-): string {
+export function applyPatches(yamlString: string, patches: YamlPatch[]): string {
   let currentYaml = yamlString;
 
   for (const patch of patches) {

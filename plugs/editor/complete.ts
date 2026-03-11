@@ -54,31 +54,34 @@ export async function pageComplete(completeEvent: CompleteEvent) {
     }));
   } else {
     // This is the most common case, we're combining three types of completions here:
-    allPages = (await Promise.all([
-      // All non-meta pages
-      index.queryLuaObjects<PageMeta>("page", isntMetaPageQuery),
-      // All documents
-      index.queryLuaObjects<DocumentMeta>("document", isDocumentQuery),
-      // And all links to non-existing pages (to augment the existing ones)
-      index.queryLuaObjects<string>(
-        "aspiring-page",
-        {
-          select: { type: "Variable", name: "name", ctx: {} as any },
-          distinct: true,
-        },
-      ).then((aspiringPages) =>
-        // Rewrite them to PageMeta shaped objects
-        aspiringPages.map((aspiringPage: string): PageMeta => ({
-          ref: aspiringPage,
-          tag: "page",
-          tags: ["non-existing"], // Picked up later in completion
-          name: aspiringPage,
-          created: "",
-          lastModified: "",
-          perm: "rw",
-        }))
-      ),
-    ])).flat();
+    allPages = (
+      await Promise.all([
+        // All non-meta pages
+        index.queryLuaObjects<PageMeta>("page", isntMetaPageQuery),
+        // All documents
+        index.queryLuaObjects<DocumentMeta>("document", isDocumentQuery),
+        // And all links to non-existing pages (to augment the existing ones)
+        index
+          .queryLuaObjects<string>("aspiring-page", {
+            select: { type: "Variable", name: "name", ctx: {} as any },
+            distinct: true,
+          })
+          .then((aspiringPages) =>
+            // Rewrite them to PageMeta shaped objects
+            aspiringPages.map(
+              (aspiringPage: string): PageMeta => ({
+                ref: aspiringPage,
+                tag: "page",
+                tags: ["non-existing"], // Picked up later in completion
+                name: aspiringPage,
+                created: "",
+                lastModified: "",
+                perm: "rw",
+              }),
+            ),
+          ),
+      ])
+    ).flat();
   }
 
   // Don't complete hidden pages
@@ -92,7 +95,8 @@ export async function pageComplete(completeEvent: CompleteEvent) {
       const completions: any[] = [];
       const namePrefix = (pageMeta as PageMeta).pageDecoration?.prefix || "";
       const cssClass = ((pageMeta as PageMeta).pageDecoration?.cssClasses || [])
-        .join(" ").replaceAll(/[^a-zA-Z0-9-_ ]/g, "");
+        .join(" ")
+        .replaceAll(/[^a-zA-Z0-9-_ ]/g, "");
 
       if (isWikilink) {
         // A [[wikilink]]
@@ -107,9 +111,10 @@ export async function pageComplete(completeEvent: CompleteEvent) {
             label: linkAlias,
             displayLabel: decoratedName,
             boost,
-            apply: pageMeta.tag === "template"
-              ? pageMeta.name
-              : `${pageMeta.name}|${linkAlias}`,
+            apply:
+              pageMeta.tag === "template"
+                ? pageMeta.name
+                : `${pageMeta.name}|${linkAlias}`,
             detail: pageMeta.linkName
               ? `linkName for: ${pageMeta.name}`
               : `displayName for: ${pageMeta.name}`,
@@ -124,9 +129,10 @@ export async function pageComplete(completeEvent: CompleteEvent) {
               label: `${alias}`,
               displayLabel: decoratedName,
               boost: new Date(pageMeta.lastModified).getTime(),
-              apply: pageMeta.tag === "template"
-                ? pageMeta.name
-                : `${pageMeta.name}|${alias}`,
+              apply:
+                pageMeta.tag === "template"
+                  ? pageMeta.name
+                  : `${pageMeta.name}|${alias}`,
               detail: `alias to: ${pageMeta.name}`,
               type: "page",
               cssClass,
@@ -171,9 +177,7 @@ export async function pageComplete(completeEvent: CompleteEvent) {
 }
 
 export async function languageComplete(completeEvent: CompleteEvent) {
-  const languagePrefix = /^(?:```+|~~~+)(\w*)$/.exec(
-    completeEvent.linePrefix,
-  );
+  const languagePrefix = /^(?:```+|~~~+)(\w*)$/.exec(completeEvent.linePrefix);
   if (!languagePrefix) {
     return null;
   }
@@ -181,11 +185,9 @@ export async function languageComplete(completeEvent: CompleteEvent) {
   const allLanguages = await language.listLanguages();
   return {
     from: completeEvent.pos - languagePrefix[1].length,
-    options: allLanguages.map(
-      (lang) => ({
-        label: lang,
-        type: "language",
-      }),
-    ),
+    options: allLanguages.map((lang) => ({
+      label: lang,
+      type: "language",
+    })),
   };
 }

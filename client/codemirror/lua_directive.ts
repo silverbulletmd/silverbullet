@@ -33,9 +33,7 @@ export function luaDirectivePlugin(client: Client) {
     let shouldRender = true;
 
     // Don't render Lua directives of federated pages (security)
-    if (
-      !client.clientSystem.scriptsLoaded
-    ) {
+    if (!client.clientSystem.scriptsLoaded) {
       return Decoration.none;
     }
 
@@ -88,20 +86,21 @@ export function luaDirectivePlugin(client: Client) {
                 }
                 try {
                   const parsedLua = parseLua(`_(${bodyText})`) as LuaBlock;
-                  const expr =
-                    (parsedLua.statements[0] as LuaFunctionCallStatement).call
-                      .args[0];
+                  const expr = (
+                    parsedLua.statements[0] as LuaFunctionCallStatement
+                  ).call.args[0];
 
                   const tl = new LuaEnv();
                   tl.setLocal(
                     "currentPage",
-                    currentPageMeta || (client.ui.viewState.current
-                      ? {
-                        name: getNameFromPath(
-                          client.ui.viewState.current.path,
-                        ),
-                      }
-                      : undefined),
+                    currentPageMeta ||
+                      (client.ui.viewState.current
+                        ? {
+                            name: getNameFromPath(
+                              client.ui.viewState.current.path,
+                            ),
+                          }
+                        : undefined),
                   );
                   const sf = LuaStackFrame.createWithGlobalEnv(
                     client.clientSystem.spaceLuaEnv.env,
@@ -112,15 +111,12 @@ export function luaDirectivePlugin(client: Client) {
                   );
                   threadLocalizedEnv.setLocal("_CTX", tl);
                   const rawResult = singleResult(
-                    await evalExpression(
-                      expr,
-                      threadLocalizedEnv,
-                      sf,
-                    ),
+                    await evalExpression(expr, threadLocalizedEnv, sf),
                   );
                   // keep tagged floats as-is for proper formatting
                   if (
-                    isTaggedFloat(rawResult) || typeof rawResult === "number"
+                    isTaggedFloat(rawResult) ||
+                    typeof rawResult === "number"
                   ) {
                     return rawResult;
                   }
@@ -138,9 +134,9 @@ export function luaDirectivePlugin(client: Client) {
                       const source = resolveASTReference(e.sf.astCtx);
                       if (source) {
                         // We know the origin node of the error, let's reference it
-                        return `**Lua error:** ${e.message} (Origin: [[${
-                          encodeRef(source)
-                        }]])`;
+                        return `**Lua error:** ${e.message} (Origin: [[${encodeRef(
+                          source,
+                        )}]])`;
                       }
                     }
                   }

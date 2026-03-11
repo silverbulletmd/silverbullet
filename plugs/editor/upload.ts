@@ -98,7 +98,7 @@ export async function saveFile(file: UploadFile) {
 
   await space.writeDocument(finalFilePath, file.content);
 
-  if (await editor.getCurrentEditor() === "page") {
+  if ((await editor.getCurrentEditor()) === "page") {
     const linkStyle = await system.getConfig(
       "defaultLinkStyle",
       defaultLinkStyle,

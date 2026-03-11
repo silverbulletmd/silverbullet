@@ -1,11 +1,15 @@
 import { expect, test } from "vitest";
 import { parseExpressionString } from "./parse.ts";
 import { ArrayQueryCollection } from "./query_collection.ts";
-import {
-  LuaEnv,
-  LuaNativeJSFunction,
-  LuaStackFrame,
-} from "./runtime.ts";
+import { LuaEnv, LuaNativeJSFunction, LuaStackFrame } from "./runtime.ts";
+import { Config } from "../config.ts";
+import type { QueryCollationConfig } from "../../plug-api/types/config.ts";
+
+function configWithCollation(collation: QueryCollationConfig): Config {
+  const config = new Config();
+  config.set("queryCollation", collation);
+  return config;
+}
 
 test("ArrayQueryCollection", async () => {
   const rootEnv = new LuaEnv();
@@ -16,10 +20,14 @@ test("ArrayQueryCollection", async () => {
     }),
   );
 
-  const collection = new ArrayQueryCollection([{ x: 1, y: 1 }, { x: 2, y: 2 }, {
-    x: 3,
-    y: 3,
-  }]);
+  const collection = new ArrayQueryCollection([
+    { x: 1, y: 1 },
+    { x: 2, y: 2 },
+    {
+      x: 3,
+      y: 3,
+    },
+  ]);
   const result = await collection.query(
     {
       objectVariable: "p",
@@ -27,7 +35,6 @@ test("ArrayQueryCollection", async () => {
     },
     rootEnv,
     LuaStackFrame.lostFrame,
-    {}, // Default collation configuration, since the config API is unavailable
   );
   // console.log(result);
   expect(result.length === 2).toBeTruthy();
@@ -52,7 +59,6 @@ test("ArrayQueryCollection", async () => {
     },
     rootEnv,
     LuaStackFrame.lostFrame,
-    {},
   );
   expect(result3.length === 2).toBeTruthy();
   expect(result3[0].x === 2).toBeTruthy();
@@ -65,7 +71,6 @@ test("ArrayQueryCollection", async () => {
     },
     rootEnv,
     LuaStackFrame.lostFrame,
-    {},
   );
   expect(result4.length === 3).toBeTruthy();
   expect(result4[0].x === 1).toBeTruthy();
@@ -80,7 +85,6 @@ test("ArrayQueryCollection", async () => {
     },
     rootEnv,
     LuaStackFrame.lostFrame,
-    {},
   );
   expect(result5.length === 3).toBeTruthy();
   expect(result5[0].x === 3).toBeTruthy();
@@ -104,7 +108,6 @@ test("ArrayQueryCollection", async () => {
     },
     rootEnv,
     LuaStackFrame.lostFrame,
-    {},
   );
   expect(result6[0].firstName).toEqual("John");
   expect(result6[0].lastName).toEqual("Doe");
@@ -123,7 +126,6 @@ test("ArrayQueryCollection", async () => {
     },
     rootEnv,
     LuaStackFrame.lostFrame,
-    {},
   );
   expect(result8[0]).toEqual("John Doe");
   expect(result8[1]).toEqual("Alice Johnson");
@@ -137,7 +139,6 @@ test("ArrayQueryCollection", async () => {
     },
     rootEnv,
     LuaStackFrame.lostFrame,
-    {},
   );
   expect(result9[0]).toEqual("John Doe");
   expect(result9[1]).toEqual("Alice Johnson");
@@ -163,7 +164,6 @@ test("ArrayQueryCollection", async () => {
     },
     rootEnv,
     LuaStackFrame.lostFrame,
-    {},
   );
   expect(distinctResult.length).toEqual(2);
   expect(distinctResult.includes("fruit")).toEqual(true);
@@ -180,7 +180,6 @@ test("ArrayQueryCollection", async () => {
     },
     rootEnv,
     LuaStackFrame.lostFrame,
-    {},
   );
   expect(distinctObjectsResult.length).toEqual(4);
 
@@ -200,7 +199,7 @@ test("ArrayQueryCollection", async () => {
     },
     rootEnv,
     LuaStackFrame.lostFrame,
-    { enabled: false },
+    configWithCollation({ enabled: false }),
   );
   expect(resultCodepoint[0].letter).toEqual("Z");
   expect(resultCodepoint[1].letter).toEqual("a");
@@ -215,7 +214,7 @@ test("ArrayQueryCollection", async () => {
     },
     rootEnv,
     LuaStackFrame.lostFrame,
-    { enabled: true, locale: "de" },
+    configWithCollation({ enabled: true, locale: "de" }),
   );
   expect(resultGerman[0].letter).toEqual("a");
   expect(resultGerman[1].letter).toEqual("ä");
@@ -230,7 +229,7 @@ test("ArrayQueryCollection", async () => {
     },
     rootEnv,
     LuaStackFrame.lostFrame,
-    { enabled: true, locale: "sv" },
+    configWithCollation({ enabled: true, locale: "sv" }),
   );
   expect(resultSwedish[0].letter).toEqual("a");
   expect(resultSwedish[1].letter).toEqual("z");
@@ -245,7 +244,11 @@ test("ArrayQueryCollection", async () => {
     },
     rootEnv,
     LuaStackFrame.lostFrame,
-    { enabled: true, locale: "de", options: { caseFirst: "upper" } },
+    configWithCollation({
+      enabled: true,
+      locale: "de",
+      options: { caseFirst: "upper" },
+    }),
   );
   expect(resultUpper[0].letter).toEqual("a");
   expect(resultUpper[1].letter).toEqual("ä");
@@ -272,7 +275,6 @@ test("ArrayQueryCollection - nulls ordering", async () => {
     },
     rootEnv,
     LuaStackFrame.lostFrame,
-    {},
   );
   expect(r1[0].name).toBe("eve");
   expect(r1[1].name).toBe("alice");
@@ -288,7 +290,6 @@ test("ArrayQueryCollection - nulls ordering", async () => {
     },
     rootEnv,
     LuaStackFrame.lostFrame,
-    {},
   );
   expect(r2[0].priority).toBeUndefined();
   expect(r2[1].priority).toBeUndefined();
@@ -300,15 +301,16 @@ test("ArrayQueryCollection - nulls ordering", async () => {
   const r3 = await collection.query(
     {
       objectVariable: "p",
-      orderBy: [{
-        expr: parseExpressionString("p.priority"),
-        desc: true,
-        nulls: "last",
-      }],
+      orderBy: [
+        {
+          expr: parseExpressionString("p.priority"),
+          desc: true,
+          nulls: "last",
+        },
+      ],
     },
     rootEnv,
     LuaStackFrame.lostFrame,
-    {},
   );
   expect(r3[0].name).toBe("carol");
   expect(r3[1].name).toBe("alice");
@@ -320,15 +322,16 @@ test("ArrayQueryCollection - nulls ordering", async () => {
   const r4 = await collection.query(
     {
       objectVariable: "p",
-      orderBy: [{
-        expr: parseExpressionString("p.priority"),
-        desc: false,
-        nulls: "first",
-      }],
+      orderBy: [
+        {
+          expr: parseExpressionString("p.priority"),
+          desc: false,
+          nulls: "first",
+        },
+      ],
     },
     rootEnv,
     LuaStackFrame.lostFrame,
-    {},
   );
   expect(r4[0].priority).toBeUndefined();
   expect(r4[1].priority).toBeUndefined();
@@ -339,10 +342,7 @@ test("ArrayQueryCollection - nulls ordering", async () => {
 
 test("ArrayQueryCollection - SWO violation detection", async () => {
   const rootEnv = new LuaEnv();
-  rootEnv.setLocal(
-    "badCmp",
-    new LuaNativeJSFunction((a, b) => a <= b),
-  );
+  rootEnv.setLocal("badCmp", new LuaNativeJSFunction((a, b) => a <= b));
 
   const collection = new ArrayQueryCollection([
     { name: "alice", score: 10 },
@@ -354,15 +354,16 @@ test("ArrayQueryCollection - SWO violation detection", async () => {
     collection.query(
       {
         objectVariable: "p",
-        orderBy: [{
-          expr: parseExpressionString("p.score"),
-          desc: false,
-          using: "badCmp",
-        }],
+        orderBy: [
+          {
+            expr: parseExpressionString("p.score"),
+            desc: false,
+            using: "badCmp",
+          },
+        ],
       },
       rootEnv,
       LuaStackFrame.lostFrame,
-      {},
     ),
   ).rejects.toThrow("strict weak ordering");
 });

@@ -38,22 +38,28 @@ export const fuzzySearchAndSort = (
   });
 
   const fuse = new Fuse(enrichedArr, {
-    keys: [{
-      name: "name",
-      weight: 2,
-    }, {
-      name: "baseName",
-      weight: 3,
-    }, {
-      name: "displayName",
-      weight: 2,
-    }, {
-      name: "aliases",
-      weight: 2,
-    }, {
-      name: "description",
-      weight: 1,
-    }],
+    keys: [
+      {
+        name: "name",
+        weight: 2,
+      },
+      {
+        name: "baseName",
+        weight: 3,
+      },
+      {
+        name: "displayName",
+        weight: 2,
+      },
+      {
+        name: "aliases",
+        weight: 2,
+      },
+      {
+        name: "description",
+        weight: 1,
+      },
+    ],
     isCaseSensitive: false,
     ignoreDiacritics: true,
     shouldSort: true,

@@ -34,7 +34,7 @@ class TableViewWidget extends WidgetType {
   }
 
   override get estimatedHeight(): number {
-    return this.client.getCachedWidgetHeight(
+    return this.client.widgetCache.getCachedWidgetHeight(
       `table:${this.tableBodyText}`,
     );
   }
@@ -54,10 +54,10 @@ class TableViewWidget extends WidgetType {
     });
 
     void expandMarkdown(
-      client.space,
-      client.currentName(),
+      this.client.space,
+      this.client.currentName(),
       this.t,
-      client.clientSystem.spaceLuaEnv,
+      this.client.clientSystem.spaceLuaEnv,
     ).then((t) => {
       dom.innerHTML = renderMarkdownToHtml(t, {
         // Annotate every element with its position so we can use it to put
@@ -80,7 +80,7 @@ class TableViewWidget extends WidgetType {
         // Give it a tick to render
         attachWidgetEventHandlers(dom, this.client, this.tableBodyText);
 
-        this.client.setCachedWidgetHeight(
+        this.client.widgetCache.setCachedWidgetHeight(
           `table:${this.tableBodyText}`,
           dom.clientHeight,
         );
@@ -119,7 +119,8 @@ export function tablePlugin(editor: Client) {
           fromIt += line.length + 1;
         }
 
-        const firstLine = lines[0], lastLine = lines[lines.length - 1];
+        const firstLine = lines[0],
+          lastLine = lines[lines.length - 1];
 
         // In case of doubt, back out
         if (!firstLine || !lastLine) return;

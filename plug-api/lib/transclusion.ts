@@ -1,8 +1,4 @@
 import {
-  isLocalURL,
-  resolveMarkdownLink,
-} from "@silverbulletmd/silverbullet/lib/resolve";
-import {
   mdLinkRegex,
   wikiLinkRegex,
 } from "../../client/markdown_parser/constants.ts";
@@ -34,9 +30,10 @@ export type ContentDimensions = {
  * Parse an alias, possibly containing dimensions into an object
  * @example "alias", "alias|100", "alias|100x200", "100", "100x200"
  */
-export function parseDimensionFromAlias(
-  text: string,
-): { alias: string; dimension?: ContentDimensions } {
+export function parseDimensionFromAlias(text: string): {
+  alias: string;
+  dimension?: ContentDimensions;
+} {
   let alias: string;
   let dim: ContentDimensions | undefined;
   if (text.includes("|")) {
@@ -71,10 +68,8 @@ export function parseDimensionFromAlias(
  * Parses a transclusion of the type `![[]]` or `![]()`
  * @param text
  */
-export function parseTransclusion(
-  text: string,
-): Transclusion | null {
-  let url, alias ;
+export function parseTransclusion(text: string): Transclusion | null {
+  let url, alias;
   let linktype: LinkType = "markdownlink";
   // TODO: Take in the tree and use tree nodes to get url and alias (Applies to all regex uses)
   mdLinkRegex.lastIndex = 0;
@@ -83,12 +78,6 @@ export function parseTransclusion(
   if ((match = mdLinkRegex.exec(text)) && match.groups) {
     ({ url, title: alias } = match.groups);
 
-    if (isLocalURL(url)) {
-      url = resolveMarkdownLink(
-        client.currentName(),
-        decodeURI(url),
-      );
-    }
     linktype = "markdownlink";
   } else if ((match = wikiLinkRegex.exec(text)) && match.groups) {
     ({ stringRef: url, alias } = match.groups);

@@ -38,7 +38,7 @@ export function timeout(ms: number): Promise<never> {
   return new Promise((_resolve, reject) =>
     setTimeout(() => {
       reject(new Error("timeout"));
-    }, ms)
+    }, ms),
   );
 }
 
@@ -105,7 +105,8 @@ export async function batchRequests<I, O>(
   const batchResults = await Promise.all(batches.map(fn));
   // Flatten the results
   for (const batchResult of batchResults) {
-    if (Array.isArray(batchResult)) { // If fn returns an array, collect them
+    if (Array.isArray(batchResult)) {
+      // If fn returns an array, collect them
       results.push(...batchResult);
     }
   }

@@ -49,8 +49,7 @@ export async function patchFrontmatter(
 
     if (patchedFrontmatter) {
       // Replace the frontmatter with the patched frontmatter in the original string
-      return "---\n" + patchedFrontmatter + "\n---" +
-        text.slice(frontmatter[0].to);
+      return `---\n${patchedFrontmatter}\n---${text.slice(frontmatter[0].to)}`;
     } else {
       // Nothing left, let's just return the text content
       return text.slice(frontmatter[0].to! + 1); // +1 to skip the initial \n

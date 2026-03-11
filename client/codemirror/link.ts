@@ -43,19 +43,11 @@ export function linkPlugin(client: Client) {
         let url = groups.url;
 
         if (isLocalURL(url)) {
-          url = resolveMarkdownLink(
-            client.currentName(),
-            decodeURI(url),
-          );
+          url = resolveMarkdownLink(client.currentName(), decodeURI(url));
         }
 
         // Hide the start [
-        widgets.push(
-          invisibleDecoration.range(
-            from,
-            from + 1,
-          ),
-        );
+        widgets.push(invisibleDecoration.range(from, from + 1));
         // Wrap the link in a href
         widgets.push(
           Decoration.mark({
@@ -69,10 +61,7 @@ export function linkPlugin(client: Client) {
         );
         // Hide the tail end of the link
         widgets.push(
-          invisibleDecoration.range(
-            from + 1 + groups.title.length,
-            to,
-          ),
+          invisibleDecoration.range(from + 1 + groups.title.length, to),
         );
       },
     });

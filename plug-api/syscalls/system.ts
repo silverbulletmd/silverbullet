@@ -13,10 +13,7 @@ import type { SyscallMeta } from "@silverbulletmd/silverbullet/type/index";
  * @param args arguments to pass to the function
  * @returns
  */
-export function invokeFunction(
-  name: string,
-  ...args: any[]
-): Promise<any> {
+export function invokeFunction(name: string, ...args: any[]): Promise<any> {
   return syscall("system.invokeFunction", name, ...args);
 }
 

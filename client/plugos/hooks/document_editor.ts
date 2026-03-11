@@ -12,11 +12,9 @@ export class DocumentEditorHook implements Hook<DocumentEditorT> {
   collectAllDocumentEditors(system: System<DocumentEditorT>) {
     this.documentEditors.clear();
     for (const plug of system.loadedPlugs.values()) {
-      for (
-        const [name, functionDef] of Object.entries(
-          plug.manifest!.functions,
-        )
-      ) {
+      for (const [name, functionDef] of Object.entries(
+        plug.manifest!.functions,
+      )) {
         if (!functionDef.editor) {
           continue;
         }
@@ -25,9 +23,9 @@ export class DocumentEditorHook implements Hook<DocumentEditorT> {
           ? functionDef.editor
           : [functionDef.editor];
 
-        const conflict = Array.from(this.documentEditors.entries()).find((
-          [_, { extensions }],
-        ) => keys.some((key) => extensions.includes(key)));
+        const conflict = Array.from(this.documentEditors.entries()).find(
+          ([_, { extensions }]) => keys.some((key) => extensions.includes(key)),
+        );
 
         if (conflict) {
           console.log(
@@ -37,10 +35,10 @@ export class DocumentEditorHook implements Hook<DocumentEditorT> {
           );
         }
 
-        this.documentEditors.set(
-          name,
-          { extensions: keys, callback: () => plug.invoke(name, []) },
-        );
+        this.documentEditors.set(name, {
+          extensions: keys,
+          callback: () => plug.invoke(name, []),
+        });
       }
     }
   }

@@ -10,9 +10,14 @@ import {
 import type { Client } from "../client.ts";
 import { LuaWidget } from "./lua_widget.ts";
 import {
+  createMediaElement,
   expandMarkdown,
-  inlineContentFromURL,
+  readTransclusionContent,
 } from "../markdown_renderer/inline.ts";
+import {
+  isLocalURL,
+  resolveMarkdownLink,
+} from "@silverbulletmd/silverbullet/lib/resolve";
 import { parseMarkdown } from "../markdown_parser/parser.ts";
 import { renderToText } from "@silverbulletmd/silverbullet/lib/tree";
 import {
@@ -42,8 +47,8 @@ export function inlineContentPlugin(client: Client) {
           return;
         }
 
-        const renderingSyntax = client.ui.viewState.uiOptions
-          .markdownSyntaxRendering;
+        const renderingSyntax =
+          client.ui.viewState.uiOptions.markdownSyntaxRendering;
         const cursorIsInRange = isCursorInRange(state, [from, to]);
         if (cursorIsInRange) {
           return;
@@ -60,13 +65,22 @@ export function inlineContentPlugin(client: Client) {
               text,
               text,
               async () => {
-                try {
-                  const result: any = await inlineContentFromURL(
-                    client.space,
-                    transclusion,
+                // Resolve local URLs
+                if (isLocalURL(transclusion.url)) {
+                  transclusion.url = resolveMarkdownLink(
+                    client.currentName(),
+                    decodeURI(transclusion.url),
                   );
-                  const content = result.text !== undefined
-                    ? {
+                }
+
+                try {
+                  let content;
+                  try {
+                    const result = await readTransclusionContent(
+                      client.space,
+                      transclusion,
+                    );
+                    content = {
                       markdown: renderToText(
                         await expandMarkdown(
                           client.space,
@@ -75,8 +89,16 @@ export function inlineContentPlugin(client: Client) {
                           client.clientSystem.spaceLuaEnv,
                         ),
                       ),
+                    };
+                  } catch {
+                    const element = createMediaElement(transclusion);
+                    if (!element) {
+                      throw new Error(
+                        `Unsupported content: ${transclusion.url}`,
+                      );
                     }
-                    : { html: result };
+                    content = { html: element };
+                  }
 
                   return {
                     _isWidget: true,

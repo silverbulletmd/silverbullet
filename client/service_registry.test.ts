@@ -66,7 +66,11 @@ test("Test services", async () => {
   expect(matchesMulti[1].priority).toEqual(1);
 
   expect(await registry.invoke(matches[0], "Pete")).toEqual("Hello Pete!");
-  expect(await registry.invokeBestMatch("greeter", "Pete")).toEqual("Hello Pete!");
+  expect(await registry.invokeBestMatch("greeter", "Pete")).toEqual(
+    "Hello Pete!",
+  );
 
-  expect(await registry.invokeBestMatch("greeter-multi", "Pete")).toEqual("Hello 2 Pete!");
+  expect(await registry.invokeBestMatch("greeter-multi", "Pete")).toEqual(
+    "Hello 2 Pete!",
+  );
 });

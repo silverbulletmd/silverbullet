@@ -62,18 +62,15 @@ function keyBindingForQuote(
             ),
           };
         } else {
-          const quote = (/\W/.exec(chBefore) && !/[!?,.\-=“]/.exec(chBefore))
-            ? left
-            : right;
+          const quote =
+            /\W/.exec(chBefore) && !/[!?,.\-=“]/.exec(chBefore) ? left : right;
 
           return {
             changes: {
               insert: quote,
               from: cursorPos,
             },
-            range: EditorSelection.cursor(
-              range.anchor + quote.length,
-            ),
+            range: EditorSelection.cursor(range.anchor + quote.length),
           };
         }
       });
@@ -86,9 +83,7 @@ function keyBindingForQuote(
 
 export function createSmartQuoteKeyBindings(client: Client): KeyBinding[] {
   const smartQuotes = client.config.get<SmartQuotesConfig>("smartQuotes", {});
-  if (
-    smartQuotes.enabled === false
-  ) {
+  if (smartQuotes.enabled === false) {
     return [];
   }
 

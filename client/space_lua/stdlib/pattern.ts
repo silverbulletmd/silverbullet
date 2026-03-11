@@ -54,7 +54,7 @@ function toBytes(s: string): Uint8Array {
   const len = s.length;
   const arr = new Uint8Array(len);
   for (let i = 0; i < len; i++) {
-    arr[i] = s.charCodeAt(i) & 0xFF;
+    arr[i] = s.charCodeAt(i) & 0xff;
   }
   return arr;
 }
@@ -79,8 +79,11 @@ function matchClass(c: number, cl: number): boolean {
       res = c >= 97 && c <= 122;
       break;
     case 112: // 'p'
-      res = (c >= 33 && c <= 47) || (c >= 58 && c <= 64) ||
-        (c >= 91 && c <= 96) || (c >= 123 && c <= 126);
+      res =
+        (c >= 33 && c <= 47) ||
+        (c >= 58 && c <= 64) ||
+        (c >= 91 && c <= 96) ||
+        (c >= 123 && c <= 126);
       break;
     case 115: // 's'
       res = c === 32 || (c >= 9 && c <= 13);
@@ -89,12 +92,12 @@ function matchClass(c: number, cl: number): boolean {
       res = c >= 65 && c <= 90;
       break;
     case 119: // 'w'
-      res = (c >= 65 && c <= 90) || (c >= 97 && c <= 122) ||
-        (c >= 48 && c <= 57);
+      res =
+        (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || (c >= 48 && c <= 57);
       break;
     case 120: // 'x'
-      res = (c >= 48 && c <= 57) || (c >= 65 && c <= 70) ||
-        (c >= 97 && c <= 102);
+      res =
+        (c >= 48 && c <= 57) || (c >= 65 && c <= 70) || (c >= 97 && c <= 102);
       break;
     case 122: // 'z'
       res = c === 0;
@@ -102,7 +105,7 @@ function matchClass(c: number, cl: number): boolean {
     default:
       return cl === c;
   }
-  return (cl >= 97 && cl <= 122) ? res : !res;
+  return cl >= 97 && cl <= 122 ? res : !res;
 }
 
 function classEnd(p: Uint8Array, plen: number, pi: number): number {
@@ -150,9 +153,7 @@ function matchBracketClass(
     if (pch === CH_ESC) {
       pi++;
       if (matchClass(c, p[pi])) return sig;
-    } else if (
-      pi + 2 < ec && p[pi + 1] === CH_DASH
-    ) {
+    } else if (pi + 2 < ec && p[pi + 1] === CH_DASH) {
       pi += 2;
       if (pch <= c && c <= p[pi]) return sig;
     } else if (pch === c) {
@@ -182,11 +183,7 @@ function singleMatch(
   return pch === c;
 }
 
-function matchBalance(
-  ms: MatchState,
-  si: number,
-  pi: number,
-): number {
+function matchBalance(ms: MatchState, si: number, pi: number): number {
   if (pi >= ms.plen - 1) {
     throw new Error("malformed pattern (missing arguments to '%b')");
   }
@@ -209,12 +206,7 @@ function matchBalance(
   return -1;
 }
 
-function maxExpand(
-  ms: MatchState,
-  si: number,
-  pi: number,
-  ep: number,
-): number {
+function maxExpand(ms: MatchState, si: number, pi: number, ep: number): number {
   let i = 0;
   while (singleMatch(ms, si + i, pi, ep)) i++;
   while (i >= 0) {
@@ -225,12 +217,7 @@ function maxExpand(
   return -1;
 }
 
-function minExpand(
-  ms: MatchState,
-  si: number,
-  pi: number,
-  ep: number,
-): number {
+function minExpand(ms: MatchState, si: number, pi: number, ep: number): number {
   for (;;) {
     const res = match(ms, si, ep + 1);
     if (res >= 0) return res;
@@ -326,7 +313,8 @@ function match(ms: MatchState, si: number, pi: number): number {
     }
     if (pch === CH_ESC && pi + 1 < ms.plen) {
       const next = ms.p[pi + 1];
-      if (next === 98) { // 'b'
+      if (next === 98) {
+        // 'b'
         si = matchBalance(ms, si, pi + 2);
         if (si >= 0) {
           pi += 4;
@@ -335,7 +323,8 @@ function match(ms: MatchState, si: number, pi: number): number {
         ms.matchdepth++;
         return -1;
       }
-      if (next === 102) { // 'f'
+      if (next === 102) {
+        // 'f'
         pi += 2;
         if (pi >= ms.plen || ms.p[pi] !== CH_LBRACKET) {
           throw new Error("missing '[' after '%f' in pattern");
@@ -370,7 +359,9 @@ function match(ms: MatchState, si: number, pi: number): number {
       if (ep < ms.plen) {
         const suffix = ms.p[ep];
         if (
-          suffix === CH_STAR || suffix === CH_QUESTION || suffix === CH_DASH
+          suffix === CH_STAR ||
+          suffix === CH_QUESTION ||
+          suffix === CH_DASH
         ) {
           pi = ep + 1;
           continue;
@@ -614,10 +605,12 @@ function expandReplacementString(
       } else if (rc === CH_0) {
         parts.push(ms.src.substring(matchStart, matchEnd));
       } else if (rc >= 49 && rc <= CH_9) {
-        parts.push(getRawCaptureString(
-          ms,
-          getOneRawCapture(ms, rc - 49, matchStart, matchEnd),
-        ));
+        parts.push(
+          getRawCaptureString(
+            ms,
+            getOneRawCapture(ms, rc - 49, matchStart, matchEnd),
+          ),
+        );
       } else {
         throw new Error("invalid use of '%' in replacement string");
       }

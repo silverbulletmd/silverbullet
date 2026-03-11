@@ -9,10 +9,11 @@ export async function allTests(db: KvPrimitives) {
     { key: ["kv", "test1"], value: "Hello1" },
     { key: ["other", "random"], value: "Hello3" },
   ]);
-  const result = await db.batchGet([["kv", "test1"], ["kv", "test2"], [
-    "kv",
-    "test3",
-  ]]);
+  const result = await db.batchGet([
+    ["kv", "test1"],
+    ["kv", "test2"],
+    ["kv", "test3"],
+  ]);
   expect(result.length).toEqual(3);
   expect(result[0]).toEqual("Hello1");
   expect(result[1]).toEqual("Hello2");
@@ -33,11 +34,15 @@ export async function allTests(db: KvPrimitives) {
   expect(counter).toEqual(2);
 
   // Delete a few keys
-  await db.batchDelete([["kv", "test1"], ["other", "random"]]);
-  const result2 = await db.batchGet([["kv", "test1"], ["kv", "test2"], [
-    "other",
-    "random",
-  ]]);
+  await db.batchDelete([
+    ["kv", "test1"],
+    ["other", "random"],
+  ]);
+  const result2 = await db.batchGet([
+    ["kv", "test1"],
+    ["kv", "test2"],
+    ["other", "random"],
+  ]);
   expect(result2.length).toEqual(3);
   expect(result2[0]).toEqual(undefined);
   expect(result2[1]).toEqual("Hello2");

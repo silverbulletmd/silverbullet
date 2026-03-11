@@ -3,8 +3,10 @@
 import type { ASTCtx, LuaExpression, LuaLValue, LuaStatement } from "./ast.ts";
 
 // Extract by `type` discriminant
-type NarrowByType<U, K extends U extends { type: infer T } ? T : never> =
-  Extract<U, { type: K }>;
+type NarrowByType<
+  U,
+  K extends U extends { type: infer T } ? T : never,
+> = Extract<U, { type: K }>;
 
 // Expressions
 export const asStringExpr = (e: LuaExpression) =>

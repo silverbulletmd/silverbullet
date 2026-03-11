@@ -18,7 +18,11 @@ import { runScopeHandlers } from "@codemirror/view";
 import type { Client } from "./client.ts";
 import { Panel } from "./components/panel.tsx";
 import { safeRun } from "@silverbulletmd/silverbullet/lib/async";
-import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
+import type {
+  FilterOption,
+  NotificationType,
+} from "@silverbulletmd/silverbullet/type/client";
+import { notificationDismissTimeouts } from "@silverbulletmd/silverbullet/type/client";
 import {
   getNameFromPath,
   getPathExtension,
@@ -43,7 +47,8 @@ export class MainUI {
           return;
         } else if (
           target.className === "cm-textfield" ||
-          target.closest(".cm-content") || target.closest(".cm-vim-panel")
+          target.closest(".cm-content") ||
+          target.closest(".cm-vim-panel")
         ) {
           // In some cm element, let's back out
           return;
@@ -76,8 +81,96 @@ export class MainUI {
     });
   }
 
-  viewDispatch: (action: Action) => void = () => {
-  };
+  // Progress circle handling
+  private progressTimeout?: ReturnType<typeof setTimeout>;
+
+  viewDispatch: (action: Action) => void = () => {};
+
+  flashNotification(message: string, type: NotificationType = "info") {
+    const id = Math.floor(Math.random() * 1000000);
+    this.viewDispatch({
+      type: "show-notification",
+      notification: {
+        id,
+        type,
+        message,
+        date: new Date(),
+      },
+    });
+    setTimeout(() => {
+      this.viewDispatch({
+        type: "dismiss-notification",
+        id: id,
+      });
+    }, notificationDismissTimeouts[type]);
+  }
+
+  showProgress(progressPercentage?: number, progressType?: "sync" | "index") {
+    this.viewDispatch({
+      type: "set-progress",
+      progressPercentage,
+      progressType,
+    });
+    if (this.progressTimeout) {
+      clearTimeout(this.progressTimeout);
+    }
+    this.progressTimeout = setTimeout(() => {
+      this.viewDispatch({
+        type: "set-progress",
+      });
+    }, 5000);
+  }
+
+  filterBox(
+    label: string,
+    options: FilterOption[],
+    helpText = "",
+    placeHolder = "",
+  ): Promise<FilterOption | undefined> {
+    return new Promise((resolve) => {
+      this.viewDispatch({
+        type: "show-filterbox",
+        label,
+        options,
+        placeHolder,
+        helpText,
+        onSelect: (option: any) => {
+          this.viewDispatch({ type: "hide-filterbox" });
+          this.client.focus();
+          resolve(option);
+        },
+      });
+    });
+  }
+
+  prompt(message: string, defaultValue = ""): Promise<string | undefined> {
+    return new Promise((resolve) => {
+      this.viewDispatch({
+        type: "show-prompt",
+        message,
+        defaultValue,
+        callback: (value: string | undefined) => {
+          this.viewDispatch({ type: "hide-prompt" });
+          this.client.focus();
+          resolve(value);
+        },
+      });
+    });
+  }
+
+  confirm(message: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      this.viewDispatch({
+        type: "show-confirm",
+        message,
+        callback: (value: boolean) => {
+          this.viewDispatch({ type: "hide-confirm" });
+          this.client.focus();
+          resolve(value);
+        },
+      });
+    });
+  }
 
   ViewComponent() {
     const [viewState, dispatch] = useReducer(reducer, initialViewState);
@@ -101,14 +194,15 @@ export class MainUI {
 
     useEffect(() => {
       const updateTheme = () => {
-        const darkMode = viewState.uiOptions.darkMode === undefined
-          ? globalThis.matchMedia("(prefers-color-scheme: dark)").matches
-          : viewState.uiOptions.darkMode;
+        const darkMode =
+          viewState.uiOptions.darkMode === undefined
+            ? globalThis.matchMedia("(prefers-color-scheme: dark)").matches
+            : viewState.uiOptions.darkMode;
 
         document.documentElement.dataset.theme = darkMode ? "dark" : "light";
 
-        if (this.client.isDocumentEditor()) {
-          this.client.documentEditor.updateTheme();
+        if (this.client.contentManager.isDocumentEditor()) {
+          this.client.contentManager.documentEditor.updateTheme();
         }
       };
 
@@ -127,8 +221,10 @@ export class MainUI {
     }, [viewState.uiOptions.darkMode]);
 
     useEffect(() => {
-      document.documentElement.dataset.markdownSyntaxRendering =
-        viewState.uiOptions.markdownSyntaxRendering ? "on" : "off";
+      document.documentElement.dataset.markdownSyntaxRendering = viewState
+        .uiOptions.markdownSyntaxRendering
+        ? "on"
+        : "off";
     }, [viewState.uiOptions.markdownSyntaxRendering]);
 
     useEffect(() => {
@@ -145,11 +241,13 @@ export class MainUI {
           <AnythingPicker
             allDocuments={viewState.allDocuments}
             allPages={viewState.allPages}
-            extensions={new Set(
-              Array.from(
-                client.clientSystem.documentEditorHook.documentEditors.values(),
-              ).flatMap(({ extensions }) => extensions),
-            )}
+            extensions={
+              new Set(
+                Array.from(
+                  client.clientSystem.documentEditorHook.documentEditors.values(),
+                ).flatMap(({ extensions }) => extensions),
+              )
+            }
             currentPath={client.currentPath()}
             mode={viewState.pageNavigatorMode}
             vimMode={viewState.uiOptions.vimMode}
@@ -197,7 +295,7 @@ export class MainUI {
                       `'${name}.md' has an invalid name. You can now modify it`,
                     );
                   } else {
-                    client.flashNotification(
+                    this.flashNotification(
                       `Couldn't create page ${name}, name is invalid`,
                       "error",
                     );
@@ -209,10 +307,9 @@ export class MainUI {
                 if (
                   !isMarkdownPath(ref.path) &&
                   !Array.from(
-                    client.clientSystem.documentEditorHook.documentEditors
-                      .values(),
+                    client.clientSystem.documentEditorHook.documentEditors.values(),
                   ).some(({ extensions }) =>
-                    extensions.includes(getPathExtension(ref.path))
+                    extensions.includes(getPathExtension(ref.path)),
                   )
                 ) {
                   await this.promptDocumentOperation(
@@ -285,9 +382,9 @@ export class MainUI {
           />
         )}
         <TopBar
-          pageName={!viewState.current
-            ? ""
-            : getNameFromPath(viewState.current.path)}
+          pageName={
+            !viewState.current ? "" : getNameFromPath(viewState.current.path)
+          }
           notifications={viewState.notifications}
           isOnline={viewState.isOnline}
           unsavedChanges={viewState.unsavedChanges}
@@ -297,12 +394,12 @@ export class MainUI {
           progressPercentage={viewState.progressPercentage}
           progressType={viewState.progressType}
           onClick={() => {
-            if (!client.isDocumentEditor()) {
+            if (!client.contentManager.isDocumentEditor()) {
               client.editorView.scrollDOM.scrollTop = 0;
             }
           }}
           onRename={async (newName) => {
-            if (client.isDocumentEditor()) {
+            if (client.contentManager.isDocumentEditor()) {
               if (!newName) return;
 
               console.log("Now renaming document to...", newName);
@@ -330,30 +427,34 @@ export class MainUI {
           actionButtons={[
             // Vertical menu button
             ...(viewState.isMobile &&
-                client.config.get<string>("mobileMenuStyle", "hamburger")
-                  .includes(
-                    "hamburger",
-                  ))
-              ? [{
-                icon: featherIcons.MoreVertical,
-                description: "Open Menu",
-                class: "expander",
-                callback: () => {
-                  // Make the expander button open/close the menu via toggling the CSS class "open"
-                  document.querySelector("#sb-top .sb-actions.hamburger")
-                    ?.classList.toggle("open");
-                },
-              }]
-              : [],
+            client.config
+              .get<string>("mobileMenuStyle", "hamburger")
+              .includes("hamburger")
+              ? [
+                  {
+                    icon: featherIcons.MoreVertical,
+                    description: "Open Menu",
+                    class: "expander",
+                    callback: () => {
+                      // Make the expander button open/close the menu via toggling the CSS class "open"
+                      document
+                        .querySelector("#sb-top .sb-actions.hamburger")
+                        ?.classList.toggle("open");
+                    },
+                  },
+                ]
+              : []),
             // Custom action buttons
-            ...actionButtons.filter(( // Filter out buttons without icons (invalid) and mobile buttons when not in mobile mode
-              button,
-            ) =>
-              button.icon && (
-                (typeof button.mobile === "undefined") ||
-                (button.mobile === viewState.isMobile)
+            ...actionButtons
+              .filter(
+                (
+                  // Filter out buttons without icons (invalid) and mobile buttons when not in mobile mode
+                  button,
+                ) =>
+                  button.icon &&
+                  (typeof button.mobile === "undefined" ||
+                    button.mobile === viewState.isMobile),
               )
-            )
               // Then ensure all buttons have a priority set (by default based on array index)
               .map((button, index) => ({
                 ...button,
@@ -362,55 +463,64 @@ export class MainUI {
               .sort((a, b) => b.priority - a.priority)
               .map((button) => {
                 const mdiIcon = (mdi as any)[kebabToCamel(button.icon)];
-                let featherIcon =
-                  (featherIcons as any)[kebabToCamel(button.icon)];
+                let featherIcon = (featherIcons as any)[
+                  kebabToCamel(button.icon)
+                ];
                 if (!featherIcon) {
                   featherIcon = featherIcons.HelpCircle;
                 }
                 return {
                   icon: mdiIcon ? mdiIcon : featherIcon,
                   description: button.description || "",
-                  callback: button.run || (() => {
-                    client.flashNotification(
-                      "actionButton did not specify a run() callback",
-                      "error",
-                    );
-                  }),
+                  callback:
+                    button.run ||
+                    (() => {
+                      this.flashNotification(
+                        "actionButton did not specify a run() callback",
+                        "error",
+                      );
+                    }),
                   href: "",
                 };
               }),
           ]}
-          rhs={!!viewState.panels.rhs.mode && (
-            <div
-              className="panel"
-              style={{ flex: viewState.panels.rhs.mode }}
-            />
-          )}
-          lhs={!!viewState.panels.lhs.mode && (
-            <div
-              className="panel"
-              style={{ flex: viewState.panels.lhs.mode }}
-            />
-          )}
-          pageNamePrefix={client.currentPageMeta()?.pageDecoration?.prefix ??
-            ""}
+          rhs={
+            !!viewState.panels.rhs.mode && (
+              <div
+                className="panel"
+                style={{ flex: viewState.panels.rhs.mode }}
+              />
+            )
+          }
+          lhs={
+            !!viewState.panels.lhs.mode && (
+              <div
+                className="panel"
+                style={{ flex: viewState.panels.lhs.mode }}
+              />
+            )
+          }
+          pageNamePrefix={
+            client.currentPageMeta()?.pageDecoration?.prefix ?? ""
+          }
           cssClass={(client.currentPageMeta()?.pageDecoration?.cssClasses ?? [])
-            .join(" ").replaceAll(/[^a-zA-Z0-9-_ ]/g, "")}
+            .join(" ")
+            .replaceAll(/[^a-zA-Z0-9-_ ]/g, "")}
           mobileMenuStyle={client.config.get<string>(
             "mobileMenuStyle",
             "hamburger",
           )}
         />
         <div id="sb-main">
-          {(viewState.panels.lhs.mode !== undefined) && (
+          {viewState.panels.lhs.mode !== undefined && (
             <Panel config={viewState.panels.lhs} editor={client} />
           )}
           <div id="sb-editor" />
-          {(viewState.panels.rhs.mode !== undefined) && (
+          {viewState.panels.rhs.mode !== undefined && (
             <Panel config={viewState.panels.rhs} editor={client} />
           )}
         </div>
-        {(viewState.panels.modal.mode !== undefined) && (
+        {viewState.panels.modal.mode !== undefined && (
           <div
             className="sb-modal"
             style={{ inset: `${viewState.panels.modal.mode}px` }}
@@ -418,7 +528,7 @@ export class MainUI {
             <Panel config={viewState.panels.modal} editor={client} />
           </div>
         )}
-        {(viewState.panels.bhs.mode !== undefined) && (
+        {viewState.panels.bhs.mode !== undefined && (
           <div className="sb-bhs">
             <Panel config={viewState.panels.bhs} editor={client} />
           </div>
@@ -436,40 +546,40 @@ export class MainUI {
   async promptDocumentOperation(path: Path, msg: string) {
     const options: string[] = ["View", "Delete", "Rename"];
 
-    const option = await client.filterBox(
+    const option = await this.filterBox(
       "Modify",
-      options.map((x) => ({ name: x } as FilterOption)),
+      options.map((x) => ({ name: x }) as FilterOption),
       msg,
     );
     if (!option) return;
 
     switch (option.name) {
       case "View": {
-        await client.navigate({ path: path });
+        await this.client.navigate({ path: path });
         break;
       }
       case "Delete": {
         if (
-          await client.confirm(
+          await this.confirm(
             `Are you sure you would like delete ${getNameFromPath(path)}?`,
           )
         ) {
           if (isMarkdownPath(path)) {
-            await client.space.deletePage(getNameFromPath(path));
+            await this.client.space.deletePage(getNameFromPath(path));
           } else {
-            await client.space.deleteDocument(getNameFromPath(path));
+            await this.client.space.deleteDocument(getNameFromPath(path));
           }
         }
         break;
       }
       case "Rename": {
         if (isMarkdownPath(path)) {
-          await client.clientSystem.system.invokeFunction(
+          await this.client.clientSystem.system.invokeFunction(
             "index.renamePageCommand",
             [{ oldPage: getNameFromPath(path) }],
           );
         } else {
-          await client.clientSystem.system.invokeFunction(
+          await this.client.clientSystem.system.invokeFunction(
             "index.renameDocumentCommand",
             [{ oldDocument: getNameFromPath(path) }],
           );
@@ -491,8 +601,7 @@ type ActionButton = {
 };
 
 function kebabToCamel(str: string) {
-  return str.replace(/-([a-z])/g, (g) => g[1].toUpperCase()).replace(
-    /^./,
-    (g) => g.toUpperCase(),
-  );
+  return str
+    .replace(/-([a-z])/g, (g) => g[1].toUpperCase())
+    .replace(/^./, (g) => g.toUpperCase());
 }

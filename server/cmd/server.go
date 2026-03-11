@@ -240,13 +240,18 @@ func ServerCommand(bundledFiles fs.FS, versionFileText string, buildTime string)
 	var port int
 	var c = &cobra.Command{
 		Use:   "silverbullet",
-		Short: "Run the Silverbullet server",
+		Short: "Run the SilverBullet server",
 		Args:  cobra.MinimumNArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
 			if version, err := server.ParseVersionFromTypeScript(versionFileText); err == nil {
 				log.Printf("Starting SilverBullet version %s", version)
 			}
 			serverConfig := buildConfig(bundledFiles, args, buildTime)
+			version, err := server.ParseVersionFromTypeScript(versionFileText)
+			if err != nil {
+				log.Fatal("Could not parse version from version file, this should never happen.")
+			}
+			serverConfig.Version = version
 			if port != 3000 {
 				serverConfig.Port = port
 			}

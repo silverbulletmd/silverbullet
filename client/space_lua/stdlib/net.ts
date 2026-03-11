@@ -14,17 +14,18 @@ export const netApi = new LuaTable({
     ): Promise<ProxyFetchResponse> => {
       // JSONify any non-serializable body
       if (
-        options?.body && typeof options.body !== "string" &&
+        options?.body &&
+        typeof options.body !== "string" &&
         !(options.body instanceof Uint8Array)
       ) {
         options.body = JSON.stringify(options.body);
       }
       const fetchOptions = options
         ? {
-          method: options.method,
-          headers: {} as Record<string, string>,
-          body: options.body,
-        }
+            method: options.method,
+            headers: {} as Record<string, string>,
+            body: options.body,
+          }
         : {};
       fetchOptions.headers = buildProxyHeaders(options.headers);
       const resp = await client.httpSpacePrimitives.authenticatedFetch(
@@ -41,7 +42,8 @@ export const netApi = new LuaTable({
       }
       // Do sensible things with the body based on the content type
       let body: any;
-      const contentTypeHeader = options.responseEncoding ||
+      const contentTypeHeader =
+        options.responseEncoding ||
         resp.headers.get("x-proxy-header-content-type");
       const statusCode = +(resp.headers.get("x-proxy-status-code") || "200");
       if (contentTypeHeader?.startsWith("application/json")) {
@@ -85,8 +87,11 @@ export const netApi = new LuaTable({
 function buildProxyUrl(client: Client, url: string) {
   url = url.replace(/^https?:\/\//, "");
   // Strip off the /.fs and replace with /.proxy
-  return client.httpSpacePrimitives.url.slice(0, -fsEndpoint.length) +
-    "/.proxy/" + url;
+  return (
+    client.httpSpacePrimitives.url.slice(0, -fsEndpoint.length) +
+    "/.proxy/" +
+    url
+  );
 }
 
 function buildProxyHeaders(headers?: Record<string, any>): Record<string, any> {
@@ -100,9 +105,7 @@ function buildProxyHeaders(headers?: Record<string, any>): Record<string, any> {
   return newHeaders;
 }
 
-function extractProxyHeaders(
-  headers: Headers,
-): Record<string, any> {
+function extractProxyHeaders(headers: Headers): Record<string, any> {
   const newHeaders: Record<string, any> = {};
   for (const [key, value] of headers.entries()) {
     if (key.toLowerCase().startsWith("x-proxy-header-")) {

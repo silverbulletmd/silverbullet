@@ -52,11 +52,17 @@ export function deepEqual(a: any, b: any): boolean {
 export function cleanStringDate(d: Date): string {
   // If no significant time, return a date string only
   if (
-    d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0
+    d.getUTCHours() === 0 &&
+    d.getUTCMinutes() === 0 &&
+    d.getUTCSeconds() === 0
   ) {
-    return d.getUTCFullYear() + "-" +
-      String(d.getUTCMonth() + 1).padStart(2, "0") + "-" +
-      String(d.getUTCDate()).padStart(2, "0");
+    return (
+      d.getUTCFullYear() +
+      "-" +
+      String(d.getUTCMonth() + 1).padStart(2, "0") +
+      "-" +
+      String(d.getUTCDate()).padStart(2, "0")
+    );
   } else {
     return d.toISOString();
   }

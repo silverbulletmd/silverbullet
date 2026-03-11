@@ -61,7 +61,8 @@ export function extractFrontMatter(
           collectedTags.add(tagname);
 
           if (
-            options.removeTags === true || options.removeTags?.includes(tagname)
+            options.removeTags === true ||
+            options.removeTags?.includes(tagname)
           ) {
             // Ugly hack to remove the hashtag
             child.children![0].text = "";
@@ -114,7 +115,8 @@ export function extractFrontMatter(
         }
         // If nothing is left, let's just delete this whole block
         if (
-          Object.keys(newData).length === 0 || options.removeFrontMatterSection
+          Object.keys(newData).length === 0 ||
+          options.removeFrontMatterSection
         ) {
           return null;
         }
@@ -145,12 +147,14 @@ export function extractFrontMatter(
 
   try {
     frontmatter.tags = [
-      ...new Set([...tags.map((t) => {
-        // Always treat tags as strings
-        const tagAsString = String(t);
-        // Strip # from tags
-        return tagAsString.replace(/^#/, "");
-      })]),
+      ...new Set([
+        ...tags.map((t) => {
+          // Always treat tags as strings
+          const tagAsString = String(t);
+          // Strip # from tags
+          return tagAsString.replace(/^#/, "");
+        }),
+      ]),
     ];
   } catch (e) {
     console.error("Error while processing tags", e);
@@ -166,7 +170,7 @@ const attributeRegex = /^[\w\-_]+$/;
 
 export async function frontmatterComplete(completeEvent: CompleteEvent) {
   const frontmatterCode = completeEvent.parentNodes.find((nt) =>
-    nt.startsWith("FrontMatter:")
+    nt.startsWith("FrontMatter:"),
   );
 
   if (!frontmatterCode) {

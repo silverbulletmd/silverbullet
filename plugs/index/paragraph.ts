@@ -28,10 +28,7 @@ export async function indexParagraphs(
   frontmatter: FrontMatter,
   tree: ParseTree,
 ) {
-  const shouldIndexAll = await system.getConfig(
-    "index.paragraph.all",
-    false,
-  );
+  const shouldIndexAll = await system.getConfig("index.paragraph.all", false);
 
   const objects: ParagraphObject[] = [];
 

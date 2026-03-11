@@ -59,6 +59,8 @@
     "test": "vitest run",
     "check": "tsc --noEmit",
     "lint": "biome lint .",
+    "fmt": "biome format --write .",
+    "fmt:check": "biome format .",
     "bench": "vitest bench"
   },
   "dependencies": {

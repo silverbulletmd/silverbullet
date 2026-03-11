@@ -21,7 +21,11 @@ function parseRow(
   elts?: Element[],
   offset = 0,
 ) {
-  let count = 0, first = true, cellStart = -1, cellEnd = -1, esc = false;
+  let count = 0,
+    first = true,
+    cellStart = -1,
+    cellEnd = -1,
+    esc = false;
   const parseCell = () => {
     elts!.push(
       cx.elt(
@@ -67,7 +71,7 @@ function parseRow(
         elts.push(cx.elt("TableDelimiter", i + offset, i + offset + 1));
       }
       cellStart = cellEnd = -1;
-    } else if (esc || next !== 32 && next !== 9) {
+    } else if (esc || (next !== 32 && next !== 9)) {
       if (cellStart < 0) cellStart = i;
       cellEnd = i + 1;
     }
@@ -98,12 +102,15 @@ class TableParser implements LeafBlockParser {
   rows: false | null | Element[] = null;
 
   nextLine(cx: BlockContext, line: Line, leaf: LeafBlock) {
-    if (this.rows == null) { // Second line
+    if (this.rows == null) {
+      // Second line
       this.rows = false;
       let lineText;
       if (
-        (line.next === 45 || line.next === 58 || line.next === 124 /* '-:|' */) &&
-        delimiterLine.test(lineText = line.text.slice(line.pos))
+        (line.next === 45 ||
+          line.next === 58 ||
+          line.next === 124) /* '-:|' */ &&
+        delimiterLine.test((lineText = line.text.slice(line.pos)))
       ) {
         const firstRow: Element[] = [],
           firstCount = parseRow(cx, leaf.content, 0, firstRow, leaf.start);
@@ -123,7 +130,8 @@ class TableParser implements LeafBlockParser {
           ];
         }
       }
-    } else if (this.rows) { // Line after the second
+    } else if (this.rows) {
+      // Line after the second
       const content: Element[] = [];
       parseRow(cx, line.text, line.pos, content, cx.lineStart);
       this.rows.push(
@@ -170,22 +178,27 @@ export const Table: MarkdownConfig = {
     { name: "TableCell", style: t.content },
     { name: "TableDelimiter", style: t.processingInstruction },
   ],
-  parseBlock: [{
-    name: "Table",
-    leaf(_, leaf) {
-      return hasPipe(leaf.content, 0) ? new TableParser() : null;
+  parseBlock: [
+    {
+      name: "Table",
+      leaf(_, leaf) {
+        return hasPipe(leaf.content, 0) ? new TableParser() : null;
+      },
+      endLeaf(cx, line, leaf) {
+        if (
+          leaf.parsers.some((p) => p instanceof TableParser) ||
+          !hasPipe(line.text, line.basePos)
+        )
+          return false;
+        // @ts-expect-error: internal
+        const next = cx.scanLine(cx.absoluteLineEnd + 1).text;
+        return (
+          delimiterLine.test(next) &&
+          parseRow(cx, line.text, line.basePos) ===
+            parseRow(cx, next, line.basePos)
+        );
+      },
+      before: "SetextHeading",
     },
-    endLeaf(cx, line, leaf) {
-      if (
-        leaf.parsers.some((p) => p instanceof TableParser) ||
-        !hasPipe(line.text, line.basePos)
-      ) return false;
-      // @ts-expect-error: internal
-      const next = cx.scanLine(cx.absoluteLineEnd + 1).text;
-      return delimiterLine.test(next) &&
-        parseRow(cx, line.text, line.basePos) ===
-          parseRow(cx, next, line.basePos);
-    },
-    before: "SetextHeading",
-  }],
+  ],
 };

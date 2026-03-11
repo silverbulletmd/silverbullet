@@ -45,7 +45,9 @@ test("Test parsing", () => {
   // console.log(JSON.stringify(mdTree, null, 2));
   const wikiLink = nodeAtPos(mdTree, mdTest1.indexOf("Wiki Page"))!;
   expect(wikiLink.type).toEqual("WikiLinkPage");
-  expect(findParentMatching(wikiLink, (n) => n.type === "BulletList")).not.toEqual(null);
+  expect(
+    findParentMatching(wikiLink, (n) => n.type === "BulletList"),
+  ).not.toEqual(null);
 
   const allTodos = collectNodesMatching(mdTree, (n) => n.type === "Task");
   expect(allTodos.length).toEqual(2);

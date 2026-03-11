@@ -47,16 +47,18 @@ export function indexTags(
       tags.add(`${tagName}:page`);
     }
   });
-  return Promise.resolve([...tags].map((tag) => {
-    const [tagName, parent] = tag.split(":");
-    return {
-      ref: tag,
-      tag: "tag",
-      name: tagName,
-      page: pageMeta.name,
-      parent,
-    };
-  }));
+  return Promise.resolve(
+    [...tags].map((tag) => {
+      const [tagName, parent] = tag.split(":");
+      return {
+        ref: tag,
+        tag: "tag",
+        name: tagName,
+        page: pageMeta.name,
+        parent,
+      };
+    }),
+  );
 }
 
 export async function tagComplete(completeEvent: CompleteEvent) {
@@ -73,13 +75,10 @@ export async function tagComplete(completeEvent: CompleteEvent) {
   }
 
   // Query all tags with a matching parent
-  const allTags: string[] = await index.queryLuaObjects<string>(
-    "tag",
-    {
-      distinct: true,
-      select: { type: "Variable", name: "name", ctx: {} as any },
-    },
-  );
+  const allTags: string[] = await index.queryLuaObjects<string>("tag", {
+    distinct: true,
+    select: { type: "Variable", name: "name", ctx: {} as any },
+  });
 
   return {
     from: completeEvent.pos - match[0].length,
@@ -91,7 +90,7 @@ export async function tagComplete(completeEvent: CompleteEvent) {
 }
 
 export function updateITags<T>(obj: ObjectValue<T>, frontmatter: FrontMatter) {
-  const itags = new Set<string>([obj.tag, ...frontmatter.tags || []]);
+  const itags = new Set<string>([obj.tag, ...(frontmatter.tags || [])]);
   for (const tag of obj.tags || []) {
     itags.add(tag);
   }

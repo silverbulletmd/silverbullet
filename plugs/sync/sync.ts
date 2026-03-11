@@ -26,14 +26,12 @@ export async function spaceSyncComplete(message: { operations: number }) {
   void index.ensureFullIndex();
 }
 
-export async function updateSyncStatus(
-  event: {
-    status: {
-      filesProcessed: number;
-      totalFiles: number;
-    };
-  },
-) {
+export async function updateSyncStatus(event: {
+  status: {
+    filesProcessed: number;
+    totalFiles: number;
+  };
+}) {
   // Update the status in the UI
   const percentage = Math.round(
     (event.status.filesProcessed / event.status.totalFiles) * 100,
@@ -42,10 +40,7 @@ export async function updateSyncStatus(
     // Just hide it
     await editor.showProgress();
   } else {
-    await editor.showProgress(
-      percentage,
-      "sync",
-    );
+    await editor.showProgress(percentage, "sync");
   }
 }
 

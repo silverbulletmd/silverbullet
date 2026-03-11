@@ -35,12 +35,13 @@ export async function performLocalFetch(
 ): Promise<ProxyFetchResponse64> {
   const result = await fetch(
     url,
-    req && {
-      method: req.method,
-      headers: req.headers,
-      body: req.base64Body && base64Decode(req.base64Body),
-      // Casting to any due to TypeScript fetch type limitations
-    } as any,
+    req &&
+      ({
+        method: req.method,
+        headers: req.headers,
+        body: req.base64Body && base64Decode(req.base64Body),
+        // Casting to any due to TypeScript fetch type limitations
+      } as any),
   );
   return {
     ok: result.ok,

@@ -230,14 +230,14 @@ export function documentExtension(editor: Client) {
       "Unable to upload file, invalid target filename or path";
 
     if (file.content.length > maxSize * 1024 * 1024) {
-      editor.flashNotification(
+      editor.ui.flashNotification(
         `Document is too large, maximum is ${maxSize}MiB`,
         "error",
       );
       return;
     }
 
-    let desiredFilePath = await editor.prompt(
+    let desiredFilePath = await editor.ui.prompt(
       "File name for pasted document",
       resolveMarkdownLink(
         client.currentPath(),
@@ -250,7 +250,7 @@ export function documentExtension(editor: Client) {
     }
     desiredFilePath = desiredFilePath.trim();
     if (!isValidName(desiredFilePath)) {
-      editor.flashNotification(invalidPathMessage, "error");
+      editor.ui.flashNotification(invalidPathMessage, "error");
       return;
     }
 
@@ -261,7 +261,7 @@ export function documentExtension(editor: Client) {
     let finalFilePath = null;
     while (finalFilePath == null) {
       if (await doesFileExist(editor, desiredFilePath)) {
-        let confirmedFilePath = await editor.prompt(
+        let confirmedFilePath = await editor.ui.prompt(
           "A file with that name already exists, keep the same name to replace it, or rename your file",
           resolveMarkdownLink(
             client.currentPath(),
@@ -272,12 +272,12 @@ export function documentExtension(editor: Client) {
           // Unlike the initial filename prompt, we're inside a workflow here
           // and should be explicit that the user action cancelled the whole
           // operation.
-          editor.flashNotification("Upload cancelled by user", "info");
+          editor.ui.flashNotification("Upload cancelled by user", "info");
           return;
         }
         confirmedFilePath = confirmedFilePath.trim();
         if (!isValidPath(confirmedFilePath)) {
-          editor.flashNotification(invalidPathMessage, "error");
+          editor.ui.flashNotification(invalidPathMessage, "error");
           return;
         }
         if (desiredFilePath === confirmedFilePath) {

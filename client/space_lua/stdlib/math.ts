@@ -60,7 +60,8 @@ export const mathApi = new LuaTable({
     }
     if (typeof x === "string") {
       const n = untagNumber(x); // Number(x) coerces the string
-      if (Number.isNaN(n) || !Number.isFinite(n) || !Number.isInteger(n)) return null;
+      if (Number.isNaN(n) || !Number.isFinite(n) || !Number.isInteger(n))
+        return null;
       return n;
     }
     return null;
@@ -100,15 +101,15 @@ export const mathApi = new LuaTable({
   ceil: new LuaBuiltinFunction((_sf, x: number) => Math.ceil(untagNumber(x))),
   floor: new LuaBuiltinFunction((_sf, x: number) => Math.floor(untagNumber(x))),
   max: new LuaBuiltinFunction((_sf, ...args: number[]) =>
-    Math.max(...args.map(untagNumber))
+    Math.max(...args.map(untagNumber)),
   ),
   min: new LuaBuiltinFunction((_sf, ...args: number[]) =>
-    Math.min(...args.map(untagNumber))
+    Math.min(...args.map(untagNumber)),
   ),
 
   // Rounding and remainder
-  fmod: new LuaBuiltinFunction((_sf, x: number, y: number) =>
-    untagNumber(x) % untagNumber(y)
+  fmod: new LuaBuiltinFunction(
+    (_sf, x: number, y: number) => untagNumber(x) % untagNumber(y),
   ),
   modf: new LuaBuiltinFunction((_sf, x: number) => {
     const xn = untagNumber(x);
@@ -141,8 +142,8 @@ export const mathApi = new LuaTable({
   }),
 
   // Returns m * 2^e (the inverse of frexp).  Mirrors C99/Lua.
-  ldexp: new LuaBuiltinFunction((_sf, m: number, e: number) =>
-    untagNumber(m) * 2 ** untagNumber(e)
+  ldexp: new LuaBuiltinFunction(
+    (_sf, m: number, e: number) => untagNumber(m) * 2 ** untagNumber(e),
   ),
 
   // Power and logarithms
@@ -154,8 +155,8 @@ export const mathApi = new LuaTable({
     return Math.log(untagNumber(x)) / Math.log(untagNumber(base));
   }),
   // Power function (deprecated in Lua 5.4 but retained for compatibility)
-  pow: new LuaBuiltinFunction((_sf, x: number, y: number) =>
-    untagNumber(x) ** untagNumber(y)
+  pow: new LuaBuiltinFunction(
+    (_sf, x: number, y: number) => untagNumber(x) ** untagNumber(y),
   ),
   sqrt: new LuaBuiltinFunction((_sf, x: number) => Math.sqrt(untagNumber(x))),
 
@@ -178,14 +179,14 @@ export const mathApi = new LuaTable({
   tanh: new LuaBuiltinFunction((_sf, x: number) => Math.tanh(untagNumber(x))),
 
   // Additional utility
-  deg: new LuaBuiltinFunction((_sf, x: number) =>
-    untagNumber(x) * 180 / Math.PI
+  deg: new LuaBuiltinFunction(
+    (_sf, x: number) => (untagNumber(x) * 180) / Math.PI,
   ),
-  rad: new LuaBuiltinFunction((_sf, x: number) =>
-    untagNumber(x) * Math.PI / 180
+  rad: new LuaBuiltinFunction(
+    (_sf, x: number) => (untagNumber(x) * Math.PI) / 180,
   ),
   ult: new LuaBuiltinFunction((_sf, m: number, n: number) => {
-    return (untagNumber(m) >>> 0) < (untagNumber(n) >>> 0);
+    return untagNumber(m) >>> 0 < untagNumber(n) >>> 0;
   }),
 
   // Keep the cosineSimilarity utility function

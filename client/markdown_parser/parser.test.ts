@@ -148,7 +148,8 @@ test("Test hashtag helper functions", () => {
   expect(extractHashtag("#name")).toEqual("name");
   expect(extractHashtag("#123-content")).toEqual("123-content");
   expect(extractHashtag("#<escaped tag>")).toEqual("escaped tag");
-  expect(extractHashtag("#<allow < and # inside>")).toEqual("allow < and # inside",
+  expect(extractHashtag("#<allow < and # inside>")).toEqual(
+    "allow < and # inside",
   );
 
   expect(renderHashtag("simple")).toEqual("#simple");

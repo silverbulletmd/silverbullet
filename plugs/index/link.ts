@@ -216,7 +216,7 @@ export async function indexLinks(
   // Now let's check which are aspiring pages
   for (const link of objects.slice()) {
     if (link.toPage) {
-      if (!await space.fileExists(`${link.toPage}.md`)) {
+      if (!(await space.fileExists(`${link.toPage}.md`))) {
         objects.push({
           ref: `${name}@${link.pos}`,
           tag: "aspiring-page",
@@ -259,13 +259,15 @@ export function collectPageLinks(n: ParseTree): string[] {
   return [...links];
 }
 
-export async function getBackLinks(
-  name: string,
-): Promise<LinkObject[]> {
-  return (await index.queryLuaObjects<LinkObject>("link", {
-    objectVariable: "_",
-    where: await lua.parseExpression(`_.toPage == name or _.toFile == name`),
-  }, {
-    name,
-  }));
+export async function getBackLinks(name: string): Promise<LinkObject[]> {
+  return await index.queryLuaObjects<LinkObject>(
+    "link",
+    {
+      objectVariable: "_",
+      where: await lua.parseExpression(`_.toPage == name or _.toFile == name`),
+    },
+    {
+      name,
+    },
+  );
 }

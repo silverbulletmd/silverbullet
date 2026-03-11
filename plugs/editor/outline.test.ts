@@ -22,8 +22,11 @@ function applyOp(
   if (result === null || result === "blocked") {
     return input; // no-op returns unchanged
   }
-  return result.text.slice(0, result.cursor) + CURSOR +
-    result.text.slice(result.cursor);
+  return (
+    result.text.slice(0, result.cursor) +
+    CURSOR +
+    result.text.slice(result.cursor)
+  );
 }
 
 function detect(marked: string): CursorContext | null {
@@ -36,22 +39,26 @@ function detect(marked: string): CursorContext | null {
 // Bullet Lists: Move Up/Down
 describe("Bullet list move up/down", () => {
   test("swap two flat bullets", () => {
-    expect(applyOp(
+    expect(
+      applyOp(
         moveUp,
         `- first
 - sec|^|ond
 `,
-      )).toEqual(`- sec|^|ond
+      ),
+    ).toEqual(`- sec|^|ond
 - first
-`,);
-    expect(applyOp(
+`);
+    expect(
+      applyOp(
         moveDown,
         `- fir|^|st
 - second
 `,
-      )).toEqual(`- second
+      ),
+    ).toEqual(`- second
 - fir|^|st
-`,);
+`);
   });
 
   test("boundary bullet is no-op", () => {
@@ -66,26 +73,30 @@ describe("Bullet list move up/down", () => {
   });
 
   test("item with children moves as unit", () => {
-    expect(applyOp(
+    expect(
+      applyOp(
         moveUp,
         `- first
 - sec|^|ond
   - child
 `,
-      )).toEqual(`- sec|^|ond
+      ),
+    ).toEqual(`- sec|^|ond
   - child
 - first
-`,);
-    expect(applyOp(
+`);
+    expect(
+      applyOp(
         moveDown,
         `- fir|^|st
   - child
 - second
 `,
-      )).toEqual(`- second
+      ),
+    ).toEqual(`- second
 - fir|^|st
   - child
-`,);
+`);
   });
 
   test("nested child: boundary no-op and swap", () => {
@@ -100,49 +111,57 @@ describe("Bullet list move up/down", () => {
 `;
     expect(applyOp(moveDown, downBoundary)).toEqual(downBoundary);
 
-    expect(applyOp(
+    expect(
+      applyOp(
         moveUp,
         `- parent
   - child one
   - child |^|two
 `,
-      )).toEqual(`- parent
+      ),
+    ).toEqual(`- parent
   - child |^|two
   - child one
-`,);
-    expect(applyOp(
+`);
+    expect(
+      applyOp(
         moveDown,
         `- parent
   - child |^|one
   - child two
 `,
-      )).toEqual(`- parent
+      ),
+    ).toEqual(`- parent
   - child two
   - child |^|one
-`,);
+`);
   });
 
   test("three items, swap adjacent", () => {
-    expect(applyOp(
+    expect(
+      applyOp(
         moveUp,
         `- first
 - second
 - th|^|ird
 `,
-      )).toEqual(`- first
+      ),
+    ).toEqual(`- first
 - th|^|ird
 - second
-`,);
-    expect(applyOp(
+`);
+    expect(
+      applyOp(
         moveDown,
         `- fir|^|st
 - second
 - third
 `,
-      )).toEqual(`- second
+      ),
+    ).toEqual(`- second
 - fir|^|st
 - third
-`,);
+`);
   });
 });
 
@@ -181,57 +200,65 @@ describe("Bullet list indent/outdent", () => {
   });
 
   test("already nested item indents further", () => {
-    expect(applyOp(
+    expect(
+      applyOp(
         indent,
         `- first
   - sec|^|ond
 `,
-      )).toEqual(`- first
+      ),
+    ).toEqual(`- first
     - sec|^|ond
-`,);
+`);
   });
 
   test("deeply nested item outdents one level", () => {
-    expect(applyOp(
+    expect(
+      applyOp(
         outdent,
         `- first
   - second
     - th|^|ird
 `,
-      )).toEqual(`- first
+      ),
+    ).toEqual(`- first
   - second
   - th|^|ird
-`,);
+`);
   });
 });
 
 // Headers: Move Up/Down
 describe("Heading move up/down", () => {
   test("swap two h2 sections", () => {
-    expect(applyOp(
+    expect(
+      applyOp(
         moveUp,
         `## First
 Content one
 ## Sec|^|ond
 Content two
 `,
-      )).toEqual(`## Sec|^|ond
+      ),
+    ).toEqual(`## Sec|^|ond
 Content two
 ## First
 Content one
-`,);
-    expect(applyOp(
+`);
+    expect(
+      applyOp(
         moveDown,
         `## Fir|^|st
 Content one
 ## Second
 Content two
 `,
-      )).toEqual(`## Second
+      ),
+    ).toEqual(`## Second
 Content two
 ## Fir|^|st
 Content one
-`,);
+`);
   });
 
   test("boundary heading is no-op", () => {
@@ -247,101 +274,117 @@ Content
   });
 
   test("h2 with sub-headings moves entire section", () => {
-    expect(applyOp(
+    expect(
+      applyOp(
         moveUp,
         `## First
 ### Sub one
 ## Sec|^|ond
 ### Sub two
 `,
-      )).toEqual(`## Sec|^|ond
+      ),
+    ).toEqual(`## Sec|^|ond
 ### Sub two
 ## First
 ### Sub one
-`,);
-    expect(applyOp(
+`);
+    expect(
+      applyOp(
         moveDown,
         `## Fir|^|st
 ### Sub one
 ## Second
 ### Sub two
 `,
-      )).toEqual(`## Second
+      ),
+    ).toEqual(`## Second
 ### Sub two
 ## Fir|^|st
 ### Sub one
-`,);
+`);
   });
 
   test("h3 swaps only within parent h2 scope", () => {
-    expect(applyOp(
+    expect(
+      applyOp(
         moveUp,
         `## Parent
 ### Sub one
 ### Sub |^|two
 `,
-      )).toEqual(`## Parent
+      ),
+    ).toEqual(`## Parent
 ### Sub |^|two
 ### Sub one
-`,);
+`);
   });
 
   test("headings with no body text", () => {
-    expect(applyOp(
+    expect(
+      applyOp(
         moveUp,
         `## First
 ## Sec|^|ond
 `,
-      )).toEqual(`## Sec|^|ond
+      ),
+    ).toEqual(`## Sec|^|ond
 ## First
-`,);
+`);
   });
 
   test("no trailing newline preserves content", () => {
-    expect(applyOp(
+    expect(
+      applyOp(
         moveUp,
         `## First
 Body
 ## Sec|^|ond
 End`,
-      )).toEqual(`## Sec|^|ond
+      ),
+    ).toEqual(`## Sec|^|ond
 End
 ## First
-Body`,);
-    expect(applyOp(
+Body`);
+    expect(
+      applyOp(
         moveDown,
         `## Fir|^|st
 Body
 ## Second
 End`,
-      )).toEqual(`## Second
+      ),
+    ).toEqual(`## Second
 End
 ## Fir|^|st
-Body`,);
+Body`);
   });
 
   test("empty body section swap preserves structure", () => {
-    expect(applyOp(
+    expect(
+      applyOp(
         moveDown,
         `## |^|A
 ## B
 Body B
 `,
-      )).toEqual(`## B
+      ),
+    ).toEqual(`## B
 Body B
 ## |^|A
-`,);
+`);
   });
 
   test("no trailing newline, first has no body", () => {
-    expect(applyOp(
+    expect(
+      applyOp(
         moveDown,
         `## |^|A
 ## B
 Body`,
-      )).toEqual(`## B
+      ),
+    ).toEqual(`## B
 Body
-## |^|A`,);
+## |^|A`);
   });
 
   test("roundtrip: move down then up returns to original", () => {
@@ -398,16 +441,18 @@ describe("Heading indent/outdent", () => {
 // Paragraphs: Move Up/Down
 describe("Paragraph operations", () => {
   test("swap two consecutive paragraphs", () => {
-    expect(applyOp(
+    expect(
+      applyOp(
         moveUp,
         `First para.
 
 Second |^|para.
 `,
-      )).toEqual(`Second |^|para.
+      ),
+    ).toEqual(`Second |^|para.
 
 First para.
-`,);
+`);
   });
 
   test("boundary no-ops", () => {
@@ -424,65 +469,75 @@ Second |^|para.
   });
 
   test("moves past an adjacent list block", () => {
-    expect(applyOp(
+    expect(
+      applyOp(
         moveDown,
         `Some |^|text.
 
 - item one
 - item two
 `,
-      )).toEqual(`- item one
+      ),
+    ).toEqual(`- item one
 - item two
 
 Some |^|text.
-`,);
+`);
   });
 });
 
 // Ordered Lists: all operations
 describe("Ordered list operations", () => {
   test("move up", () => {
-    expect(applyOp(
+    expect(
+      applyOp(
         moveUp,
         `1. first
 2. sec|^|ond
 `,
-      )).toEqual(`1. sec|^|ond
+      ),
+    ).toEqual(`1. sec|^|ond
 2. first
-`,);
+`);
   });
 
   test("move down", () => {
-    expect(applyOp(
+    expect(
+      applyOp(
         moveDown,
         `1. fir|^|st
 2. second
 `,
-      )).toEqual(`1. second
+      ),
+    ).toEqual(`1. second
 2. fir|^|st
-`,);
+`);
   });
 
   test("indent", () => {
-    expect(applyOp(
+    expect(
+      applyOp(
         indent,
         `1. first
 2. sec|^|ond
 `,
-      )).toEqual(`1. first
+      ),
+    ).toEqual(`1. first
    2. sec|^|ond
-`,);
+`);
   });
 
   test("outdent", () => {
-    expect(applyOp(
+    expect(
+      applyOp(
         outdent,
         `1. first
    2. sec|^|ond
 `,
-      )).toEqual(`1. first
+      ),
+    ).toEqual(`1. first
 2. sec|^|ond
-`,);
+`);
   });
 });
 
@@ -529,7 +584,9 @@ describe("Edge cases", () => {
   });
 
   test("cursor at end of nested item moves within nested list", () => {
-    expect(applyOp(moveDown, "- a\n- b\n  - sub1|^|\n  - sub2\n- c")).toEqual("- a\n- b\n  - sub2\n  - sub1|^|\n- c",);
+    expect(applyOp(moveDown, "- a\n- b\n  - sub1|^|\n  - sub2\n- c")).toEqual(
+      "- a\n- b\n  - sub2\n  - sub1|^|\n- c",
+    );
   });
 });
 
@@ -599,8 +656,10 @@ describe("Context detection edge cases", () => {
     expect(ctx?.type).toEqual("heading");
     if (ctx?.type === "heading") {
       expect(ctx.level).toEqual(2);
-      const types = ctx.doc.children!.slice(ctx.sectionStart, ctx.sectionEnd)
-        .filter((c) => c.type).map((c) => c.type);
+      const types = ctx.doc
+        .children!.slice(ctx.sectionStart, ctx.sectionEnd)
+        .filter((c) => c.type)
+        .map((c) => c.type);
       expect(types).toEqual([
         "ATXHeading2",
         "Paragraph",
@@ -620,7 +679,9 @@ describe("Context detection edge cases", () => {
   });
 
   test("paragraph after heading detects paragraph", () => {
-    expect(detect("## Heading\nBody|^| text here.\n")?.type).toEqual("paragraph",);
+    expect(detect("## Heading\nBody|^| text here.\n")?.type).toEqual(
+      "paragraph",
+    );
   });
 
   test("single heading with no following content", () => {
@@ -654,30 +715,34 @@ describe("List marker variants", () => {
 // Table Rows: Move Up/Down
 describe("Table row move up/down", () => {
   test("swap two data rows", () => {
-    expect(applyOp(
+    expect(
+      applyOp(
         moveUp,
         `| A | B |
 | --- | --- |
 | 1 | 2 |
 | 3|^| | 4 |
 `,
-      )).toEqual(`| A | B |
+      ),
+    ).toEqual(`| A | B |
 | --- | --- |
 | 3|^| | 4 |
 | 1 | 2 |
-`,);
-    expect(applyOp(
+`);
+    expect(
+      applyOp(
         moveDown,
         `| A | B |
 | --- | --- |
 | 1|^| | 2 |
 | 3 | 4 |
 `,
-      )).toEqual(`| A | B |
+      ),
+    ).toEqual(`| A | B |
 | --- | --- |
 | 3 | 4 |
 | 1|^| | 2 |
-`,);
+`);
   });
 
   test("first data row can't move up", () => {
@@ -708,7 +773,8 @@ describe("Table row move up/down", () => {
   });
 
   test("three rows, swap middle", () => {
-    expect(applyOp(
+    expect(
+      applyOp(
         moveUp,
         `| H1 | H2 |
 | --- | --- |
@@ -716,13 +782,15 @@ describe("Table row move up/down", () => {
 | c|^| | d |
 | e | f |
 `,
-      )).toEqual(`| H1 | H2 |
+      ),
+    ).toEqual(`| H1 | H2 |
 | --- | --- |
 | c|^| | d |
 | a | b |
 | e | f |
-`,);
-    expect(applyOp(
+`);
+    expect(
+      applyOp(
         moveDown,
         `| H1 | H2 |
 | --- | --- |
@@ -730,12 +798,13 @@ describe("Table row move up/down", () => {
 | c|^| | d |
 | e | f |
 `,
-      )).toEqual(`| H1 | H2 |
+      ),
+    ).toEqual(`| H1 | H2 |
 | --- | --- |
 | a | b |
 | e | f |
 | c|^| | d |
-`,);
+`);
   });
 
   test("indent/outdent on table row is no-op", () => {
@@ -770,9 +839,11 @@ describe("Table row context detection", () => {
   });
 
   test("cursor on delimiter row returns null", () => {
-    expect(detect(`| A | B |
+    expect(
+      detect(`| A | B |
 | --|^|- | --- |
 | 1 | 2 |
-`)).toEqual(null,);
+`),
+    ).toEqual(null);
   });
 });

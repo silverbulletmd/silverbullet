@@ -6,8 +6,7 @@ export class BoxProxy {
    * Initializes a new instance of the BoxProxy class.
    * @param target The initial target object
    */
-  constructor(private target: any) {
-  }
+  constructor(private target: any) {}
 
   /**
    * Swaps out the target object :magic:

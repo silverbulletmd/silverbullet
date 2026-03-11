@@ -20,9 +20,7 @@ type LinkOptions = {
 };
 
 export class LinkWidget extends WidgetType {
-  constructor(
-    readonly options: LinkOptions,
-  ) {
+  constructor(readonly options: LinkOptions) {
     super();
   }
 
@@ -64,11 +62,13 @@ export class LinkWidget extends WidgetType {
   }
 
   override eq(other: WidgetType): boolean {
-    return other instanceof LinkWidget &&
+    return (
+      other instanceof LinkWidget &&
       this.options.from === other.options.from &&
       this.options.text === other.options.text &&
       this.options.href === other.options.href &&
-      this.options.title === other.options.title;
+      this.options.title === other.options.title
+    );
   }
 }
 
@@ -170,7 +170,7 @@ export function checkRangeSubset(
  */
 export function isCursorInRange(state: EditorState, range: [number, number]) {
   return state.selection.ranges.some((selection) =>
-    checkRangeOverlap(range, [selection.from, selection.to])
+    checkRangeOverlap(range, [selection.from, selection.to]),
   );
 }
 
@@ -180,6 +180,8 @@ export function isCursorInRange(state: EditorState, range: [number, number]) {
 export const invisibleDecoration = Decoration.replace({});
 
 export function shouldRenderWidgets(client: Client) {
-  return client.systemReady &&
-    client.currentPageMeta()?.pageDecoration?.renderWidgets !== false;
+  return (
+    client.systemReady &&
+    client.currentPageMeta()?.pageDecoration?.renderWidgets !== false
+  );
 }

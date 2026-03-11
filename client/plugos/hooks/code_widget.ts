@@ -10,11 +10,9 @@ export class CodeWidgetHook implements Hook<CodeWidgetT> {
   collectAllCodeWidgets(system: System<CodeWidgetT>) {
     this.codeWidgetCallbacks.clear();
     for (const plug of system.loadedPlugs.values()) {
-      for (
-        const [name, functionDef] of Object.entries(
-          plug.manifest!.functions,
-        )
-      ) {
+      for (const [name, functionDef] of Object.entries(
+        plug.manifest!.functions,
+      )) {
         if (!functionDef.codeWidget) {
           continue;
         }

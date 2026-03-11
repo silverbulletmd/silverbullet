@@ -181,9 +181,7 @@ description: A sample package
 author: John Doe  # Main author
 `;
 
-  const patches: YamlPatch[] = [
-    { op: "delete-key", path: "version" },
-  ];
+  const patches: YamlPatch[] = [{ op: "delete-key", path: "version" }];
 
   const result = applyPatches(initialYaml, patches);
 
@@ -214,9 +212,7 @@ dependencies:
 author: John Doe
 `;
 
-  const patches: YamlPatch[] = [
-    { op: "delete-key", path: "tags" },
-  ];
+  const patches: YamlPatch[] = [{ op: "delete-key", path: "tags" }];
 
   const result = applyPatches(initialYaml, patches);
 
@@ -246,9 +242,7 @@ config:
 author: John Doe
 `;
 
-  const patches: YamlPatch[] = [
-    { op: "delete-key", path: "config" },
-  ];
+  const patches: YamlPatch[] = [{ op: "delete-key", path: "config" }];
 
   const result = applyPatches(initialYaml, patches);
 
@@ -270,9 +264,7 @@ name: my-package
 version: 1.0.0
 `;
 
-  const patches: YamlPatch[] = [
-    { op: "delete-key", path: "nonexistent" },
-  ];
+  const patches: YamlPatch[] = [{ op: "delete-key", path: "nonexistent" }];
 
   const result = applyPatches(initialYaml, patches);
 
@@ -341,9 +333,7 @@ description: A sample package
 license: MIT
 `;
 
-  const patches: YamlPatch[] = [
-    { op: "delete-key", path: "version" },
-  ];
+  const patches: YamlPatch[] = [{ op: "delete-key", path: "version" }];
 
   const result = applyPatches(initialYaml, patches);
 

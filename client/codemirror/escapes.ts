@@ -8,21 +8,16 @@ import {
 } from "./util.ts";
 
 export function cleanEscapePlugin() {
-  return decoratorStateField(
-    (state: EditorState) => {
-      const widgets: any[] = [];
+  return decoratorStateField((state: EditorState) => {
+    const widgets: any[] = [];
 
-      syntaxTree(state).iterate({
-        enter({ type, from, to }) {
-          if (
-            type.name === "Escape" &&
-            !isCursorInRange(state, [from, to])
-          ) {
-            widgets.push(invisibleDecoration.range(from, from + 1));
-          }
-        },
-      });
-      return Decoration.set(widgets, true);
-    },
-  );
+    syntaxTree(state).iterate({
+      enter({ type, from, to }) {
+        if (type.name === "Escape" && !isCursorInRange(state, [from, to])) {
+          widgets.push(invisibleDecoration.range(from, from + 1));
+        }
+      },
+    });
+    return Decoration.set(widgets, true);
+  });
 }

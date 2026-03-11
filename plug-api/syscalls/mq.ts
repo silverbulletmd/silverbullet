@@ -21,10 +21,7 @@ export function send(queue: string, body: any): Promise<void> {
  * @param queue the name of the queue
  * @param bodies the bodies of the messages to send
  */
-export function batchSend(
-  queue: string,
-  bodies: any[],
-): Promise<void> {
+export function batchSend(queue: string, bodies: any[]): Promise<void> {
   return syscall("mq.batchSend", queue, bodies);
 }
 

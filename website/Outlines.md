@@ -1,4 +1,4 @@
-While SilverBullet is not a “proper” outliner like e.g. [LogSeq](https://logseq.com), it does offer a useful commands to manage outlines.
+While SilverBullet is not a “proper” outliner like e.g. [LogSeq](https://logseq.com), it does offer useful commands to manage outlines.
 
 An outline is simply a (nested) bulleted list, for instance:
 
@@ -20,15 +20,23 @@ An outline is simply a (nested) bulleted list, for instance:
 * Conclusion
 
 # Commands
-SilverBullet offers a number of `Outline` commands to make manipulating such outlines easier, they are (note that on Mac `Mod` binds to `Cmd`, on Linux and Windows it’s `Ctrl`):
+SilverBullet offers a number of `Outline` commands to make manipulating content easier. Note that on Mac `Mod` binds to `Cmd`, on Linux and Windows it’s `Ctrl`.
 
-* `Outline: Move Up` (`Alt-ArrowUp`): moves the current item and its children up
-* `Outline: Move Down` (`Alt-ArrowDown`): moves the current item and its children down
-* `Outline: Move Right` (`Mod-. l`): indents the current item and its children one level deeper
-* `Outline: Move Left` (`Mod-. h`): outdents the current item and its children one level higher
+These commands work on different types of content depending on where your cursor is:
 
+* **List items** (bullet and ordered): moves/indents the item and its children
+* **Headings**: moves entire sections (heading + all content until the next heading at the same or higher level); indent/outdent adjusts heading level (e.g. `##` to `###`)
+* **Table rows**: moves data rows up/down within the table (header row cannot be moved)
+* **Paragraphs**: moves top-level paragraphs up/down relative to adjacent blocks
 
-And for folding outlines:
+## Move and indent
+
+* `Outline: Move Up` (`Alt-ArrowUp`): moves the current element up
+* `Outline: Move Down` (`Alt-ArrowDown`): moves the current element down
+* `Outline: Move Right` (`Mod-. l`): indents the current element one level deeper
+* `Outline: Move Left` (`Mod-. h`): outdents the current element one level higher
+
+## Folding
 
 * `Outline: Fold`: folds the current item’s children
 * `Outline: Unfold`: unfolds the current item’s children

@@ -44,9 +44,7 @@ export function pageExists(name: string): Promise<boolean> {
  * @param name the name of the page to read
  * @returns the text of the page
  */
-export function readPage(
-  name: string,
-): Promise<string> {
+export function readPage(name: string): Promise<string> {
   return syscall("space.readPage", name);
 }
 
@@ -111,9 +109,7 @@ export function getDocumentMeta(name: string): Promise<DocumentMeta> {
  * @param name path of the document to read
  * @returns the document data as a UInt8Array
  */
-export function readDocument(
-  name: string,
-): Promise<Uint8Array> {
+export function readDocument(name: string): Promise<Uint8Array> {
   return syscall("space.readDocument", name);
 }
 
@@ -192,10 +188,7 @@ export function getFileMeta(name: string): Promise<FileMeta> {
  * @param data the data of the file to write
  * @returns the metadata for the written file
  */
-export function writeFile(
-  name: string,
-  data: Uint8Array,
-): Promise<FileMeta> {
+export function writeFile(name: string, data: Uint8Array): Promise<FileMeta> {
   return syscall("space.writeFile", name, data);
 }
 

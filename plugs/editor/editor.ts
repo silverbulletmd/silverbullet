@@ -12,8 +12,8 @@ export async function setEditorMode() {
   // TODO: Remove at some point: temporary upgrade code
   const allSyscalls = await system.listSyscalls();
   // console.log("All syscalls", allSyscalls);
-  const queryLuaObjects = allSyscalls.find((sc) =>
-    sc.name === "index.queryLuaObjects"
+  const queryLuaObjects = allSyscalls.find(
+    (sc) => sc.name === "index.queryLuaObjects",
   );
 
   // console.log(readPageWithMetaCall);
@@ -61,10 +61,12 @@ export async function openMetaNavigator() {
 
 export async function openTagNavigator() {
   // Query all tags with a matching parent
-  const allTags: FilterOption[] = (await index.queryLuaObjects<string>("tag", {
-    select: { type: "Variable", name: "name", ctx: {} as any },
-    distinct: true,
-  })).map((name) => ({ name }));
+  const allTags: FilterOption[] = (
+    await index.queryLuaObjects<string>("tag", {
+      select: { type: "Variable", name: "name", ctx: {} as any },
+      distinct: true,
+    })
+  ).map((name) => ({ name }));
 
   const selectedTag = await editor.filterBox(
     "Open",
@@ -94,9 +96,7 @@ export async function toggleDarkMode() {
 }
 
 export async function toggleMarkdownSyntaxRendering() {
-  let renderingSyntax = await editor.getUiOption(
-    "markdownSyntaxRendering",
-  );
+  let renderingSyntax = await editor.getUiOption("markdownSyntaxRendering");
   renderingSyntax = !renderingSyntax;
   await clientStore.set("markdownSyntaxRendering", renderingSyntax);
   await editor.setUiOption("markdownSyntaxRendering", renderingSyntax);
@@ -137,9 +137,7 @@ export async function copyLinkCommand() {
 }
 
 export async function moveToLineCommand() {
-  let lineString = await editor.prompt(
-    "Move to line (and optionally column):",
-  );
+  let lineString = await editor.prompt("Move to line (and optionally column):");
   if (lineString === undefined) {
     return;
   }

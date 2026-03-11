@@ -46,32 +46,32 @@ test("readRef checks", async () => {
 
   // Reference to a header
   expect(await space.readRef(parseToRef("test#Header 1")!)).toEqual({
-      text: "# Header 1\nSome text\n\n",
-      offset: testPage.indexOf("# Header 1"),
-    },
-  );
+    text: "# Header 1\nSome text\n\n",
+    offset: testPage.indexOf("# Header 1"),
+  });
   expect(await space.readRef(parseToRef("test#Header 2")!)).toEqual({
-      text:
-        "# Header 2\n* Item 1\n  * Sub item\n* [ ] Task 1\n  * Sub item 2\n    * Sub-sub item",
-      offset: testPage.indexOf("# Header 2"),
-    },
-  );
+    text: "# Header 2\n* Item 1\n  * Sub item\n* [ ] Task 1\n  * Sub item 2\n    * Sub-sub item",
+    offset: testPage.indexOf("# Header 2"),
+  });
 
   // Reference to an item should get item and children
   const itemPos = testPage.indexOf("* Item 1");
-  expect(await space.readRef(parseToRef(`test@${itemPos}`)!)).toEqual({ text: "* Item 1\n  * Sub item", offset: itemPos },
-  );
+  expect(await space.readRef(parseToRef(`test@${itemPos}`)!)).toEqual({
+    text: "* Item 1\n  * Sub item",
+    offset: itemPos,
+  });
 
   // Reference to a task should get item and children
   const taskPos = testPage.indexOf("* [ ] Task 1");
   expect(await space.readRef(parseToRef(`test@${taskPos}`)!)).toEqual({
-      text: "* [ ] Task 1\n  * Sub item 2\n    * Sub-sub item",
-      offset: taskPos,
-    },
-  );
+    text: "* [ ] Task 1\n  * Sub item 2\n    * Sub-sub item",
+    offset: taskPos,
+  });
 
   // Check left shift in case of jumping into nested item
   const subItemPos = testPage.indexOf("* Sub item 2");
-  expect(await space.readRef(parseToRef(`test@${subItemPos}`)!)).toEqual({ text: "* Sub item 2\n  * Sub-sub item", offset: subItemPos },
-  );
+  expect(await space.readRef(parseToRef(`test@${subItemPos}`)!)).toEqual({
+    text: "* Sub item 2\n  * Sub-sub item",
+    offset: subItemPos,
+  });
 });

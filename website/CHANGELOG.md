@@ -3,7 +3,22 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
-* Nothing new yet
+* **Technical: Deno → Node.js migration**: The TypeScript/client codebase has been migrated from Deno to Node.js, now using vitest for tests. This _should_ purely be a tooling change, but may inadvertently have lead to regressions. Please report if you find anything.
+* [[Outlines]] commands have been thoroughly reworked. Should now be more robust and better tested outline move/indent operations. New features:
+  * Now also works with numbered items (and renumbers them)
+  * Now works with headers (moves around entire sections)
+  * Now works with table rows
+  * Now works with paragraphs
+* The [[^Library/Std/Widgets/Widgets#Table of contents]] widget is now **collapsible**, defaults to open (by [Dobli](https://github.com/Dobli)).
+* Client upgrade notification: if the server is updated but the client version doesn't match, a notification will appear instructing the user to reload.
+* [Improved Lua widget rendering](https://github.com/silverbulletmd/silverbullet/pull/1876) (by [Matouš Jan Fialka](https://github.com/mjf)): `${...}` expressions now render scalars, arrays, records, and arrays-of-tables with better HTML and markdown output.
+* [[Task]] `Task: Clean Completed` now handles more scenarios, and leaves a cleaner outline.
+* [Panels now use Shadow DOM elements instead of iframes](https://github.com/silverbulletmd/silverbullet/pull/1819) (by [onespaceman](https://github.com/onespaceman)).
+* Fix: [table cell alignment for missing and misaligned cells](https://github.com/silverbulletmd/silverbullet/pull/1873) 
+* Fix: [handle tagged floats before plain object check in `renderCellContent`](https://github.com/silverbulletmd/silverbullet/pull/1876) (by [Matouš Jan Fialka](https://github.com/mjf)).
+* Fix: document file opening with URL prefix.
+* Fix: autofocus on authentication page.
+* Fix: mini editor regressions.
 
 ## 2.5.0
 * Changed keyboard bindings (sorry!). CodeMirror no longer directly allows `Alt-<letter>` and `Alt-<special-character>` [[Keyboard Shortcuts]], meaning I had to **remap a few key bindings**. It’s basically a mission impossible to pick great ones, but here are the new defaults:

@@ -55,7 +55,9 @@ function escapeRegularPipes(s: string) {
     if (s[i] === "{" && s[i + 1] === "[") {
       isInCommandButton = true;
     } else if (
-      (s[i] === "]" || s[i] === ")") && s[i + 1] === "}" && isInCommandButton
+      (s[i] === "]" || s[i] === ")") &&
+      s[i + 1] === "}" &&
+      isInCommandButton
     ) {
       isInCommandButton = false;
     } else if (s[i] === "|" && !isInWikiLink && !isInCommandButton) {
@@ -87,22 +89,8 @@ export async function jsonToMDTable(
 
   const headerList = [...headers];
   const lines = [];
-  lines.push(
-    "|" +
-      headerList
-        .map(
-          (headerName) => headerName,
-        )
-        .join("|") +
-      "|",
-  );
-  lines.push(
-    "|" +
-      headerList
-        .map(() => "--")
-        .join("|") +
-      "|",
-  );
+  lines.push(`|${headerList.map((headerName) => headerName).join("|")}|`);
+  lines.push(`|${headerList.map(() => "--").join("|")}|`);
   for (const val of jsonArray) {
     const el = [];
     for (const prop of headerList) {
@@ -135,16 +123,18 @@ export function renderExpressionResult(
     return Promise.resolve(luaFormatNumber(result));
   }
   if (
-    Array.isArray(result) && result.length > 0 && typeof result[0] === "object"
+    Array.isArray(result) &&
+    result.length > 0 &&
+    typeof result[0] === "object"
   ) {
     // If result is an array of objects, render as a Markdown table
     try {
       return jsonToMDTable(result, cellTransformer);
     } catch (e: any) {
       console.error(
-        `Error rendering expression directive: ${e.message} for value ${
-          JSON.stringify(result)
-        }`,
+        `Error rendering expression directive: ${e.message} for value ${JSON.stringify(
+          result,
+        )}`,
       );
       return Promise.resolve(JSON.stringify(result));
     }
@@ -223,10 +213,7 @@ async function renderListItems(
     const md = await renderItemToMarkdown(item, cellTransformer, nested);
     if (md.includes("\n")) {
       const lines = md.split("\n");
-      rendered.push(
-        "-\n" +
-          lines.map((l) => `  ${l}`).join("\n"),
-      );
+      rendered.push(`-\n${lines.map((l) => `  ${l}`).join("\n")}`);
     } else {
       rendered.push(`- ${md}`);
     }
@@ -275,8 +262,12 @@ function renderItemToMarkdown(
 }
 
 function isPlainObjectHelper(v: any): v is Record<string, any> {
-  return typeof v === "object" && v !== null && !Array.isArray(v) &&
-    v.constructor === Object;
+  return (
+    typeof v === "object" &&
+    v !== null &&
+    !Array.isArray(v) &&
+    v.constructor === Object
+  );
 }
 
 // Array of record-like `LuaTables` to multi-row Markdown table

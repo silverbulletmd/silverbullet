@@ -37,8 +37,12 @@ function isEmpty(v: any): boolean {
 }
 
 function isPlainObject(v: any): v is Record<string, any> {
-  return typeof v === "object" && v !== null && !Array.isArray(v) &&
-    v.constructor === Object;
+  return (
+    typeof v === "object" &&
+    v !== null &&
+    !Array.isArray(v) &&
+    v.constructor === Object
+  );
 }
 
 function hasStringKeys(tbl: LuaTable): boolean {

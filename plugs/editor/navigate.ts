@@ -23,17 +23,9 @@ async function actionClickOrActionEnter(
     return;
   }
   const navigationNodeFinder = (t: ParseTree) =>
-    [
-      "WikiLink",
-      "Link",
-      "Image",
-      "Autolink",
-      "NakedURL",
-      "Hashtag",
-    ]
-      .includes(
-        t.type!,
-      );
+    ["WikiLink", "Link", "Image", "Autolink", "NakedURL", "Hashtag"].includes(
+      t.type!,
+    );
   if (!navigationNodeFinder(mdTree)) {
     mdTree = findParentMatching(mdTree, navigationNodeFinder);
     if (!mdTree) {
@@ -109,11 +101,7 @@ async function actionClickOrActionEnter(
     }
     case "Hashtag": {
       const hashtag = extractHashtag(mdTree.children![0].text!);
-      await editor.navigate(
-        `${tagPrefix}${hashtag}`,
-        false,
-        inNewWindow,
-      );
+      await editor.navigate(`${tagPrefix}${hashtag}`, false, inNewWindow);
       break;
     }
   }

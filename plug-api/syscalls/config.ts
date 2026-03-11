@@ -31,10 +31,7 @@ export function set<T>(
 /**
  * Inserts a config value into an array
  */
-export function insert<T>(
-  path: string | string[],
-  value: T,
-): Promise<void> {
+export function insert<T>(path: string | string[], value: T): Promise<void> {
   return syscall("config.insert", path, value);
 }
 

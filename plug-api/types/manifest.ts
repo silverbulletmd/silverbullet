@@ -81,15 +81,14 @@ export type DocumentEditorT = {
  *
  * related: plugos/ui_types.ts#FunctionDef
  */
-export type SilverBulletHooks =
-  & CommandHookT
-  & SlashCommandHookT
-  & MQHookT
-  & EventHookT
-  & CodeWidgetT
-  & PlugNamespaceHookT
-  & DocumentEditorT
-  & SyscallHookT;
+export type SilverBulletHooks = CommandHookT &
+  SlashCommandHookT &
+  MQHookT &
+  EventHookT &
+  CodeWidgetT &
+  PlugNamespaceHookT &
+  DocumentEditorT &
+  SyscallHookT;
 
 /** A plug manifest configures hooks, declares syntax extensions, and describes plug metadata.
  *

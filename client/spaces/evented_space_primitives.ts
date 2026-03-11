@@ -30,8 +30,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     private eventHook: EventHook,
     private ds: DataStore,
     private snapshotKey = ["$spaceSnapshot"],
-  ) {
-  }
+  ) {}
 
   async enable() {
     console.log("Loading snapshot and enabling events");
@@ -103,14 +102,10 @@ export class EventedSpacePrimitives implements SpacePrimitives {
 
         // Check what happened to the file
         if (
-          (
-            // New file scenario
-            !oldHash
-          ) || (
-            // Changed file scenario
-            oldHash &&
-            oldHash !== newHash
-          )
+          // New file scenario
+          !oldHash ||
+          // Changed file scenario
+          (oldHash && oldHash !== newHash)
         ) {
           console.log(
             "Detected file change during listing",
@@ -118,12 +113,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
             oldHash,
             newHash,
           );
-          await this.dispatchEvent(
-            "file:changed",
-            meta.name,
-            oldHash,
-            newHash,
-          );
+          await this.dispatchEvent("file:changed", meta.name, oldHash, newHash);
         }
         // Page found, not deleted
         deletedFiles.delete(meta.name);
@@ -147,9 +137,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     }
   }
 
-  async readFile(
-    path: string,
-  ): Promise<{ data: Uint8Array; meta: FileMeta }> {
+  async readFile(path: string): Promise<{ data: Uint8Array; meta: FileMeta }> {
     if (!this.enabled) {
       return this.wrapped.readFile(path);
     }
@@ -181,11 +169,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     const wasFetching = this.operationInProgress;
     this.operationInProgress = true;
     try {
-      const newMeta = await this.wrapped.writeFile(
-        path,
-        data,
-        meta,
-      );
+      const newMeta = await this.wrapped.writeFile(path, data, meta);
       if (!wasFetching) {
         await this.triggerEventsAndCache(path, newMeta.lastModified);
       }

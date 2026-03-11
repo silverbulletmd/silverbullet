@@ -18,19 +18,16 @@ export function eventSyscalls(
     /**
      * Define a Lua event listener
      */
-    "event.listen": (
-      _ctx,
-      def: EventSubscription,
-    ) => {
+    "event.listen": (_ctx, def: EventSubscription) => {
       // console.log("Registering Lua event listener: ", def.name);
-      client.config.insert([
-        "eventListeners",
-        def.name,
-      ], async (...args: any[]) => {
-        // Convert return value to JS
-        const val = await def.run(...args);
-        return luaValueToJS(val, LuaStackFrame.lostFrame);
-      });
+      client.config.insert(
+        ["eventListeners", def.name],
+        async (...args: any[]) => {
+          // Convert return value to JS
+          const val = await def.run(...args);
+          return luaValueToJS(val, LuaStackFrame.lostFrame);
+        },
+      );
     },
   };
 }

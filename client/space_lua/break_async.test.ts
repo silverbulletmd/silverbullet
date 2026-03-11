@@ -54,10 +54,7 @@ test("Nested for loops: inner break (sync body)", async () => {
 
 test("Nested for loops: inner break with async call in body (Promise path)", async () => {
   const env = new LuaEnv(luaBuildStandardEnv());
-  env.set(
-    "asyncOne",
-    new LuaNativeJSFunction(() => Promise.resolve(1)),
-  );
+  env.set("asyncOne", new LuaNativeJSFunction(() => Promise.resolve(1)));
   await evalBlock(
     `
       local t = {1,2,3}
@@ -79,10 +76,7 @@ test("Nested for loops: inner break with async call in body (Promise path)", asy
 test("While: Promise condition, break inside body", async () => {
   const env = new LuaEnv(luaBuildStandardEnv());
   // asyncTrue returns a truthy value via Promise to trigger Promise-based while path
-  env.set(
-    "asyncTrue",
-    new LuaNativeJSFunction(() => Promise.resolve(1)),
-  );
+  env.set("asyncTrue", new LuaNativeJSFunction(() => Promise.resolve(1)));
   await evalBlock(
     `
       cnt = 0
@@ -107,10 +101,7 @@ test("While: Promise condition, break inside body", async () => {
 
 test("Repeat-until: body goes Promise once, break handled locally", async () => {
   const env = new LuaEnv(luaBuildStandardEnv());
-  env.set(
-    "asyncOne",
-    new LuaNativeJSFunction(() => Promise.resolve(1)),
-  );
+  env.set("asyncOne", new LuaNativeJSFunction(() => Promise.resolve(1)));
   await evalBlock(
     `
       n = 0
@@ -128,10 +119,7 @@ test("Repeat-until: body goes Promise once, break handled locally", async () => 
 
 test("For-in: custom iterator, Promise in body before break", async () => {
   const env = new LuaEnv(luaBuildStandardEnv());
-  env.set(
-    "asyncOne",
-    new LuaNativeJSFunction(() => Promise.resolve(1)),
-  );
+  env.set("asyncOne", new LuaNativeJSFunction(() => Promise.resolve(1)));
   await evalBlock(
     `
       function gen(n)
@@ -157,10 +145,7 @@ test("For-in: custom iterator, Promise in body before break", async () => {
 
 test("Jaro-like inner-window matching: inner break with occasional Promise", async () => {
   const env = new LuaEnv(luaBuildStandardEnv());
-  env.set(
-    "tick",
-    new LuaNativeJSFunction(() => Promise.resolve(true)),
-  );
+  env.set("tick", new LuaNativeJSFunction(() => Promise.resolve(true)));
   await evalBlock(
     `
       local s1 = "#aa"

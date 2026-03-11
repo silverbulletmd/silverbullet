@@ -16,15 +16,14 @@ export class MemoryKvPrimitives implements KvPrimitives {
   ) {
     // Set up throttled persistence if throttleMs is provided or default to 1000ms
     if (this.filePath) {
-      const throttleMs = options.throttleMs !== undefined
-        ? options.throttleMs
-        : 1000;
+      const throttleMs =
+        options.throttleMs !== undefined ? options.throttleMs : 1000;
 
       // If throttleMs is 0, persistence will happen immediately without throttling
       if (throttleMs > 0) {
         this.throttledPersist = throttle(() => {
           this.persistToDisk().catch((err) =>
-            console.error(`Error persisting to disk: ${err}`)
+            console.error(`Error persisting to disk: ${err}`),
           );
         }, throttleMs);
       }

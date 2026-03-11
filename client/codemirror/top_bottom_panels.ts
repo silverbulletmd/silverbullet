@@ -11,16 +11,14 @@ class ArrayWidget extends WidgetType {
   constructor(
     readonly client: Client,
     readonly cacheKey: string,
-    readonly callback: (
-      pageName: string,
-    ) => Promise<LuaWidgetContent[] | null>,
+    readonly callback: (pageName: string) => Promise<LuaWidgetContent[] | null>,
     readonly childClass: string,
   ) {
     super();
   }
 
   override get estimatedHeight(): number {
-    return this.client.getCachedWidgetHeight(this.cacheKey);
+    return this.client.widgetCache.getCachedWidgetHeight(this.cacheKey);
   }
 
   toDOM(): HTMLElement {
@@ -30,7 +28,7 @@ class ArrayWidget extends WidgetType {
     div.className = "sb-widget-array";
 
     // This doesn't do that much, but it also doesn't really hurt
-    const cacheItem = this.client.getWidgetCache(this.cacheKey);
+    const cacheItem = this.client.widgetCache.getWidgetCache(this.cacheKey);
     if (cacheItem) {
       div.innerHTML = cacheItem.html;
     }
@@ -41,9 +39,7 @@ class ArrayWidget extends WidgetType {
     return div;
   }
 
-  async renderContent(
-    div: HTMLElement,
-  ) {
+  async renderContent(div: HTMLElement) {
     const content = await this.callback(this.client.currentName());
     if (!content) return;
 
@@ -58,7 +54,8 @@ class ArrayWidget extends WidgetType {
         (widgetContent instanceof Object &&
           !widgetContent.markdown &&
           !widgetContent.html)
-      ) continue;
+      )
+        continue;
 
       const widget = new LuaWidget(
         this.client,
@@ -94,11 +91,14 @@ class ArrayWidget extends WidgetType {
 
     // Wait for the clientHeight to settle
     setTimeout(() => {
-      this.client.setWidgetCache(this.cacheKey, {
+      this.client.widgetCache.setWidgetCache(this.cacheKey, {
         block: true,
         html: div.innerHTML,
       });
-      this.client.setCachedWidgetHeight(this.cacheKey, div.clientHeight);
+      this.client.widgetCache.setCachedWidgetHeight(
+        this.cacheKey,
+        div.clientHeight,
+      );
     });
   }
 
@@ -109,9 +109,7 @@ class ArrayWidget extends WidgetType {
   }
 }
 
-export function postScriptPrefacePlugin(
-  editor: Client,
-) {
+export function postScriptPrefacePlugin(editor: Client) {
   return decoratorStateField((state: EditorState) => {
     if (!editor.clientSystem.scriptsLoaded) {
       // console.info("System not yet ready, not rendering panel widgets.");
@@ -124,10 +122,7 @@ export function postScriptPrefacePlugin(
         widget: new ArrayWidget(
           editor,
           `top:lua:${editor.currentPath()}`,
-          async () =>
-            await client.dispatchAppEvent(
-              "hooks:renderTopWidgets",
-            ),
+          async () => await client.dispatchAppEvent("hooks:renderTopWidgets"),
           "sb-lua-top-widget",
         ),
         side: -1,
@@ -141,9 +136,7 @@ export function postScriptPrefacePlugin(
           editor,
           `bottom:lua:${editor.currentPath()}`,
           async () =>
-            await client.dispatchAppEvent(
-              "hooks:renderBottomWidgets",
-            ),
+            await client.dispatchAppEvent("hooks:renderBottomWidgets"),
           "sb-lua-bottom-widget",
         ),
         side: 1,

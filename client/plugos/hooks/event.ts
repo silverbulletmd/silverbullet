@@ -1,4 +1,3 @@
-
 import type { Manifest } from "../types.ts";
 import type { System } from "../system.ts";
 import type { EventHookI } from "../eventhook.ts";
@@ -12,8 +11,7 @@ export class EventHook implements EventHookI {
   private system?: System<EventHookT>;
   private localListeners: Map<string, ((...args: any[]) => any)[]> = new Map();
 
-  constructor(readonly config?: Config) {
-  }
+  constructor(readonly config?: Config) {}
 
   addLocalListener(eventName: string, callback: (...args: any[]) => any) {
     if (!this.localListeners.has(eventName)) {
@@ -74,29 +72,28 @@ export class EventHook implements EventHookI {
     const promises: Promise<any>[] = [];
     for (const plug of this.system.loadedPlugs.values()) {
       const manifest = plug.manifest;
-      for (
-        const [name, functionDef] of Object.entries(
-          manifest!.functions,
-        )
-      ) {
+      for (const [name, functionDef] of Object.entries(manifest!.functions)) {
         if (functionDef.events) {
           for (const event of functionDef.events) {
             if (
-              event === eventName || eventNameToRegex(event).test(eventName)
+              event === eventName ||
+              eventNameToRegex(event).test(eventName)
             ) {
               // Only dispatch functions that can run in this environment
               if (plug.canInvoke(name)) {
                 // Queue the promise
-                promises.push((async () => {
-                  try {
-                    return await plug.invoke(name, args);
-                  } catch (e: any) {
-                    console.error(
-                      `Error dispatching event ${eventName} to ${plug.manifest.name}.${name}: ${e.message}`,
-                    );
-                    throw e;
-                  }
-                })());
+                promises.push(
+                  (async () => {
+                    try {
+                      return await plug.invoke(name, args);
+                    } catch (e: any) {
+                      console.error(
+                        `Error dispatching event ${eventName} to ${plug.manifest.name}.${name}: ${e.message}`,
+                      );
+                      throw e;
+                    }
+                  })(),
+                );
               }
             }
           }
@@ -109,9 +106,11 @@ export class EventHook implements EventHookI {
       if (eventNameToRegex(name).test(eventName)) {
         for (const localListener of localListeners) {
           // Queue the promise
-          promises.push((async () => {
-            return await Promise.resolve(localListener(...args));
-          })());
+          promises.push(
+            (async () => {
+              return await Promise.resolve(localListener(...args));
+            })(),
+          );
         }
       }
     }
@@ -125,15 +124,17 @@ export class EventHook implements EventHookI {
       for (const [name, listeners] of Object.entries(configListeners)) {
         if (eventNameToRegex(name).test(eventName)) {
           for (const listener of listeners) {
-            promises.push((async () => {
-              return await Promise.resolve(
-                listener({
-                  name: eventName,
-                  // Most events have a single argument, so let's optimize for that, otherwise pass all arguments as an array
-                  data: args.length === 1 ? args[0] : args,
-                }),
-              );
-            })());
+            promises.push(
+              (async () => {
+                return await Promise.resolve(
+                  listener({
+                    name: eventName,
+                    // Most events have a single argument, so let's optimize for that, otherwise pass all arguments as an array
+                    data: args.length === 1 ? args[0] : args,
+                  }),
+                );
+              })(),
+            );
           }
         }
       }
@@ -167,11 +168,7 @@ export class EventHook implements EventHookI {
 
   validateManifest(manifest: Manifest<EventHookT>): string[] {
     const errors = [];
-    for (
-      const [_, functionDef] of Object.entries(
-        manifest.functions || {},
-      )
-    ) {
+    for (const [_, functionDef] of Object.entries(manifest.functions || {})) {
       if (functionDef.events && !Array.isArray(functionDef.events)) {
         errors.push("'events' key must be an array of strings");
       }

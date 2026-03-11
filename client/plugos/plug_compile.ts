@@ -50,7 +50,7 @@ export async function compileManifest(
   // Assets
   const assetsBundle = await bundleAssets(
     path.resolve(rootPath),
-    manifest.assets as string[] || [],
+    (manifest.assets as string[]) || [],
   );
   manifest.assets = assetsBundle.toJSON();
 
@@ -63,34 +63,32 @@ export async function compileManifest(
 import { setupMessageListener } from "worker-runtime";
 
 // Imports
-${
-    Object.entries(manifest.functions).map(([funcName, def]) => {
-      if (!def.path) {
-        return "";
-      }
-      let [filePath, jsFunctionName] = def.path.split(":");
-      // Resolve path
-      filePath = path.join(rootPath, filePath);
+${Object.entries(manifest.functions)
+  .map(([funcName, def]) => {
+    if (!def.path) {
+      return "";
+    }
+    let [filePath, jsFunctionName] = def.path.split(":");
+    // Resolve path
+    filePath = path.join(rootPath, filePath);
 
-      return `import {${jsFunctionName} as ${funcName}} from "${
-        // Replacing \ with / for Windows
-        path.resolve(filePath).replaceAll(
-          "\\",
-          "\\\\",
-        )}";\n`;
-    }).join("")
-  }
+    return `import {${jsFunctionName} as ${funcName}} from "${
+      // Replacing \ with / for Windows
+      path.resolve(filePath).replaceAll("\\", "\\\\")
+    }";\n`;
+  })
+  .join("")}
 
 // Function mapping
 const functionMapping = {
-${
-    Object.entries(manifest.functions).map(([funcName, def]) => {
-      if (!def.path) {
-        return "";
-      }
-      return `  ${funcName}: ${funcName},\n`;
-    }).join("")
-  }
+${Object.entries(manifest.functions)
+  .map(([funcName, def]) => {
+    if (!def.path) {
+      return "";
+    }
+    return `  ${funcName}: ${funcName},\n`;
+  })
+  .join("")}
 };
 
 // Manifest
@@ -130,10 +128,10 @@ setupMessageListener(functionMapping, manifest, self.postMessage);
   let jsCode = await readFile(outFile, "utf-8");
   jsCode = patchBundledJS(jsCode);
   await writeFile(outFile, jsCode, "utf-8");
-  
+
   // Clean up temp directory
   await rm(tempDir, { recursive: true, force: true });
-  
+
   console.log(`Plug ${manifest.name} written to ${outFile}.`);
   return outFile;
 }
@@ -155,19 +153,17 @@ export async function compileManifests(
     await mkdir(dist, { recursive: true });
     const startTime = Date.now();
     // Build all plugs in parallel
-    await Promise.all(manifestFiles.map(async (plugManifestPath) => {
-      const manifestPath = plugManifestPath as string;
-      try {
-        await compileManifest(
-          manifestPath,
-          dist,
-          options,
-        );
-      } catch (e: any) {
-        console.error(`Error building ${manifestPath}:`, e.message);
-        throw e;
-      }
-    }));
+    await Promise.all(
+      manifestFiles.map(async (plugManifestPath) => {
+        const manifestPath = plugManifestPath as string;
+        try {
+          await compileManifest(manifestPath, dist, options);
+        } catch (e: any) {
+          console.error(`Error building ${manifestPath}:`, e.message);
+          throw e;
+        }
+      }),
+    );
     console.log(`Done building plugs in ${Date.now() - startTime}ms`);
     building = false;
   }
@@ -181,21 +177,21 @@ export function patchBundledJS(code: string): string {
 }
 
 export async function plugCompileCommand(
-  { dist, debug, info }: {
+  {
+    dist,
+    debug,
+    info,
+  }: {
     dist: string;
     debug: boolean;
     info: boolean;
   },
   ...manifestPaths: string[]
 ) {
-  await compileManifests(
-    manifestPaths,
-    dist,
-    {
-      debug: debug,
-      info: info,
-    },
-  );
+  await compileManifests(manifestPaths, dist, {
+    debug: debug,
+    info: info,
+  });
   await esbuild.stop();
   process.exit(0);
 }

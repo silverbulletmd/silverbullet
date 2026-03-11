@@ -32,15 +32,18 @@ import { notFoundError } from "@silverbulletmd/silverbullet/constants";
  * @returns True if the rename succeeded; otherwise, false.
  */
 export async function renamePageCommand(cmdDef: any) {
-  const oldName: string = cmdDef.oldPage || await editor.getCurrentPage();
-  let newName: string = cmdDef.page ||
-    await editor.prompt(`Rename ${oldName} to:`, oldName);
+  const oldName: string = cmdDef.oldPage || (await editor.getCurrentPage());
+  let newName: string =
+    cmdDef.page || (await editor.prompt(`Rename ${oldName} to:`, oldName));
   if (newName === undefined) {
     return false;
   }
   newName = newName.trim();
   if (newName === "") {
-    void editor.flashNotification("Must provide a non-empty page title.", "error");
+    void editor.flashNotification(
+      "Must provide a non-empty page title.",
+      "error",
+    );
     return false;
   }
   const pageList: [string, string][] = [[`${oldName}.md`, `${newName}.md`]];
@@ -77,7 +80,10 @@ export async function renamePageLinkCommand() {
   }
   newName = newName.trim();
   if (newName === "") {
-    void editor.flashNotification("Must provide a non-empty page title.", "error");
+    void editor.flashNotification(
+      "Must provide a non-empty page title.",
+      "error",
+    );
     return false;
   }
   const pageList: [string, string][] = [[`${oldName}.md`, `${newName}.md`]];
@@ -93,9 +99,9 @@ export async function renamePageLinkCommand() {
  * @returns True if the rename succeeded; otherwise, false.
  */
 export async function renameDocumentCommand(cmdDef: any) {
-  const oldName: string = cmdDef.oldDocument || await editor.getCurrentPath();
-  let newName: string = cmdDef.document ||
-    await editor.prompt(`Rename ${oldName} to:`, oldName);
+  const oldName: string = cmdDef.oldDocument || (await editor.getCurrentPath());
+  let newName: string =
+    cmdDef.document || (await editor.prompt(`Rename ${oldName} to:`, oldName));
   if (newName === undefined) {
     return false;
   }
@@ -132,26 +138,28 @@ export async function batchRenameFiles(fileList: [string, string][]) {
 
   try {
     // Pre-flight checks
-    await Promise.all(fileList.map(async ([_oldName, newName]) => {
-      try {
-        // It's a FILEname not a PAGEname.
-        if (!isValidPath(newName)) {
-          throw new Error(`Name invalid: ${newName}`);
+    await Promise.all(
+      fileList.map(async ([_oldName, newName]) => {
+        try {
+          // It's a FILEname not a PAGEname.
+          if (!isValidPath(newName)) {
+            throw new Error(`Name invalid: ${newName}`);
+          }
+          // Check if target file already exists
+          await space.getFileMeta(newName);
+          // If we got here, the file exists, so we error out
+          throw new Error(
+            `${newName} already exists, cannot rename to existing file.`,
+          );
+        } catch (e: any) {
+          if (e.message === notFoundError.message) {
+            // Expected not found error, so we can continue
+          } else {
+            throw e;
+          }
         }
-        // Check if target file already exists
-        await space.getFileMeta(newName);
-        // If we got here, the file exists, so we error out
-        throw new Error(
-          `${newName} already exists, cannot rename to existing file.`,
-        );
-      } catch (e: any) {
-        if (e.message === notFoundError.message) {
-          // Expected not found error, so we can continue
-        } else {
-          throw e;
-        }
-      }
-    }));
+      }),
+    );
 
     // All new names are available, proceeding with rename
     for (const [oldName, newName] of fileList) {
@@ -188,12 +196,16 @@ async function renamePage(oldName: string, newName: string) {
   const documentsToMove = new Set<string>();
   // Links only need to be updated if the folder changes
   if (oldFolder !== newFolder) {
-    const linksInPage = await index.queryLuaObjects<LinkObject>("link", {
-      objectVariable: "_",
-      where: await lua.parseExpression(`_.page == oldName`),
-    }, {
-      oldName,
-    });
+    const linksInPage = await index.queryLuaObjects<LinkObject>(
+      "link",
+      {
+        objectVariable: "_",
+        where: await lua.parseExpression(`_.page == oldName`),
+      },
+      {
+        oldName,
+      },
+    );
 
     const linksToUpdate: ObjectValue<LinkObject>[] = [];
     for (const link of linksInPage) {
@@ -238,9 +250,10 @@ async function renamePage(oldName: string, newName: string) {
   // Move documents along with page
   const batchRenameDocuments: [string, string][] = [];
   for (const document of documentsToMove) {
-    const newAttName = oldFolder.length === 0
-      ? `${newFolder}/${document}`
-      : document.replace(oldFolder, newFolder).replace(/^\//, "");
+    const newAttName =
+      oldFolder.length === 0
+        ? `${newFolder}/${document}`
+        : document.replace(oldFolder, newFolder).replace(/^\//, "");
     batchRenameDocuments.push([document, newAttName]);
   }
   if (batchRenameDocuments.length > 0) {
@@ -258,7 +271,7 @@ async function renamePage(oldName: string, newName: string) {
   const updatedRefences = await updateBacklinks(oldName, newName);
 
   // Navigate to new page if currently viewing old page
-  if (await editor.getCurrentPage() === oldName) {
+  if ((await editor.getCurrentPage()) === oldName) {
     // Wait for index queue to be processed so that widgets are updated with up-to-date information
     await mq.awaitEmptyQueue("indexQueue");
     await editor.navigate(newName, true);
@@ -275,15 +288,12 @@ async function renamePage(oldName: string, newName: string) {
 }
 
 // Rename a document and update any backlinks
-async function renameDocument(
-  oldPath: string,
-  newPath: string,
-) {
+async function renameDocument(oldPath: string, newPath: string) {
   // Move the file
   const oldFile = await space.readDocument(oldPath);
   const newFileMeta = await space.writeDocument(newPath, oldFile);
 
-  if (await editor.getCurrentPath() === oldPath) {
+  if ((await editor.getCurrentPath()) === oldPath) {
     await editor.navigate(newPath, true);
   }
 
@@ -316,8 +326,8 @@ async function renameDocument(
  * @returns True if the rename succeeded; otherwise, false.
  */
 export async function renamePrefixCommand(cmdDef: any) {
-  const oldPrefix = cmdDef.oldPrefix ??
-    await editor.prompt("Prefix to rename:", "");
+  const oldPrefix =
+    cmdDef.oldPrefix ?? (await editor.prompt("Prefix to rename:", ""));
   if (oldPrefix === undefined) {
     return false;
   }
@@ -328,33 +338,37 @@ export async function renamePrefixCommand(cmdDef: any) {
     void editor.flashNotification("Must provide a non-empty prefix.", "error");
     return false;
   }
-  const newPrefix = cmdDef.newPrefix ??
-    await editor.prompt("New prefix:", oldPrefix);
+  const newPrefix =
+    cmdDef.newPrefix ?? (await editor.prompt("New prefix:", oldPrefix));
   if (newPrefix === undefined) {
     return false;
   }
 
   const allDocuments = await space.listDocuments();
   const allPages = await space.listPages();
-  let allAffectedFiles = allDocuments.map((file) => file.name).filter((
-    file,
-  ) => file.startsWith(oldPrefix));
+  let allAffectedFiles = allDocuments
+    .map((file) => file.name)
+    .filter((file) => file.startsWith(oldPrefix));
   allAffectedFiles = allAffectedFiles.concat(
-    allPages.map((page) => `${page.name}.md`).filter((page) =>
-      page.startsWith(oldPrefix)
-    ),
+    allPages
+      .map((page) => `${page.name}.md`)
+      .filter((page) => page.startsWith(oldPrefix)),
   );
 
   if (
-    cmdDef.disableConfirmation !== true && !(await editor.confirm(
+    cmdDef.disableConfirmation !== true &&
+    !(await editor.confirm(
       `This will affect ${allAffectedFiles.length} files. Are you sure?`,
     ))
   ) {
     return false;
   }
 
-  const allNewNames: [string, string][] = allAffectedFiles.map((name) => // This may seem naive, but it's actually fine, because we're only renaming the first occurrence (which will be the prefix)
-  [name, name.replace(oldPrefix, newPrefix)]);
+  const allNewNames: [string, string][] = allAffectedFiles.map(
+    (
+      name, // This may seem naive, but it's actually fine, because we're only renaming the first occurrence (which will be the prefix)
+    ) => [name, name.replace(oldPrefix, newPrefix)],
+  );
   await batchRenameFiles(allNewNames);
 }
 
@@ -377,7 +391,10 @@ export async function extractToPageCommand() {
   }
   newName = newName.trim();
   if (newName === "") {
-    void editor.flashNotification("Must provide a non-empty page title.", "error");
+    void editor.flashNotification(
+      "Must provide a non-empty page title.",
+      "error",
+    );
   }
 
   try {

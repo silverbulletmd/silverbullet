@@ -6,8 +6,7 @@ export class FilteredSpacePrimitives implements SpacePrimitives {
     private wrapped: SpacePrimitives,
     private filterFn: (name: FileMeta) => boolean,
     private onFetchList?: () => Promise<void>,
-  ) {
-  }
+  ) {}
 
   async fetchFileList(): Promise<FileMeta[]> {
     if (this.onFetchList) {

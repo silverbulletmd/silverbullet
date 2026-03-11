@@ -36,6 +36,8 @@ check:
 	go vet
 
 fmt:
+	# Reformat frontend
+	npx biome format --write .
 	# Reformat backend
 	go fmt
 

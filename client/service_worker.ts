@@ -39,27 +39,25 @@ const basePathName = location.pathname.substring(
   location.pathname.length - workerFilename.length - 1,
 );
 
-const precacheFiles = Object.fromEntries([
-  "/",
-  "/.client/client.js",
-  "/.client/favicon.png",
-  "/.client/iAWriterMonoS-Bold.woff2",
-  "/.client/iAWriterMonoS-BoldItalic.woff2",
-  "/.client/iAWriterMonoS-Italic.woff2",
-  "/.client/iAWriterMonoS-Regular.woff2",
-  "/.client/logo.png",
-  "/.client/logo-dock.png",
-  "/.client/main.css",
-  "/.client/manifest.json",
-].map((path) => [path, `${baseURI}${path}?v=${CACHE_NAME}`, path])); // Cache busting
+const precacheFiles = Object.fromEntries(
+  [
+    "/",
+    "/.client/client.js",
+    "/.client/favicon.png",
+    "/.client/iAWriterMonoS-Bold.woff2",
+    "/.client/iAWriterMonoS-BoldItalic.woff2",
+    "/.client/iAWriterMonoS-Italic.woff2",
+    "/.client/iAWriterMonoS-Regular.woff2",
+    "/.client/logo.png",
+    "/.client/logo-dock.png",
+    "/.client/main.css",
+    "/.client/manifest.json",
+  ].map((path) => [path, `${baseURI}${path}?v=${CACHE_NAME}`, path]),
+); // Cache busting
 
 // Initially set to undefined, resulting in all "fetch" being proxied.
 // Once the service worker is configured, this will be set and the proxy will handle fetches.
-const proxyRouter = new ProxyRouter(
-  basePathName,
-  baseURI,
-  precacheFiles,
-);
+const proxyRouter = new ProxyRouter(basePathName, baseURI, precacheFiles);
 
 // Configuration mutex
 let configuring = false;
@@ -123,9 +121,7 @@ self.addEventListener("message", async (event: any) => {
     }
     case "perform-file-sync": {
       if (proxyRouter.syncEngine) {
-        await proxyRouter.syncEngine.syncSingleFile(
-          message.path,
-        );
+        await proxyRouter.syncEngine.syncSingleFile(message.path);
       } else {
         console.warn(
           "Ignoring perform-file-sync request, proxy not configured yet",
@@ -147,8 +143,9 @@ self.addEventListener("message", async (event: any) => {
     case "get-encryption-key": {
       event.source.postMessage({
         type: "encryption-key",
-        key: encryptionKeyMemoryStore &&
-          await exportKey(encryptionKeyMemoryStore),
+        key:
+          encryptionKeyMemoryStore &&
+          (await exportKey(encryptionKeyMemoryStore)),
       } as ServiceWorkerSourceMessage);
       break;
     }
@@ -320,19 +317,21 @@ function broadcastMessage(message: ServiceWorkerSourceMessage) {
   // @ts-expect-error: service worker API
   const clients: any = self.clients;
   // Find all windows attached to this service worker
-  clients.matchAll({
-    type: "window",
-  }).then((clients: any[]) => {
-    clients.forEach((client) => {
-      client.postMessage(message);
+  clients
+    .matchAll({
+      type: "window",
+    })
+    .then((clients: any[]) => {
+      clients.forEach((client) => {
+        client.postMessage(message);
+      });
+      if (clients.length === 0) {
+        console.info(
+          "No clients are listening for messages, dropping message",
+          message,
+        );
+      }
     });
-    if (clients.length === 0) {
-      console.info(
-        "No clients are listening for messages, dropping message",
-        message,
-      );
-    }
-  });
 }
 
 const throttledServiceWorkerStarted = throttleImmediately(() => {
@@ -356,14 +355,9 @@ self.addEventListener("install", (event: any) => {
   event.waitUntil(
     (async () => {
       const cache = await caches.open(CACHE_NAME);
-      console.log(
-        "Now pre-caching client files",
-      );
+      console.log("Now pre-caching client files");
       await cache.addAll(Object.values(precacheFiles));
-      console.log(
-        Object.keys(precacheFiles).length,
-        "client files cached",
-      );
+      console.log(Object.keys(precacheFiles).length, "client files cached");
       // @ts-expect-error: Force the waiting service worker to become the active service worker
       await self.skipWaiting();
     })(),

@@ -5,8 +5,10 @@ import { throttle } from "@silverbulletmd/silverbullet/lib/async";
 import type { Command, CommandHookEvents } from "../../types/command.ts";
 import type { CommandHookT } from "@silverbulletmd/silverbullet/type/manifest";
 
-export class CommandHook extends EventEmitter<CommandHookEvents>
-  implements Hook<CommandHookT> {
+export class CommandHook
+  extends EventEmitter<CommandHookEvents>
+  implements Hook<CommandHookT>
+{
   system?: System<CommandHookT>;
   public throttledBuildAllCommandsAndEmit = throttle(() => {
     this.buildAllCommandsAndEmit();
@@ -30,11 +32,9 @@ export class CommandHook extends EventEmitter<CommandHookEvents>
       return commands;
     }
     for (const plug of this.system.loadedPlugs.values()) {
-      for (
-        const [name, functionDef] of Object.entries(
-          plug.manifest!.functions,
-        )
-      ) {
+      for (const [name, functionDef] of Object.entries(
+        plug.manifest!.functions,
+      )) {
         if (!functionDef.command) {
           continue;
         }
@@ -46,7 +46,7 @@ export class CommandHook extends EventEmitter<CommandHookEvents>
         commands.set(cmd.name, {
           ...cmd,
           run: (args?: string[]) => {
-            return plug.invoke(name, [cmd, ...args ?? []]);
+            return plug.invoke(name, [cmd, ...(args ?? [])]);
           },
         });
       }

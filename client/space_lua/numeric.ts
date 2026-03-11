@@ -31,10 +31,7 @@ function makeFloat(n: number): LuaTaggedFloat {
 }
 
 // Box a zero with a given kind tag.
-export function makeLuaZero(
-  n: number,
-  numericType: NumericType,
-): any {
+export function makeLuaZero(n: number, numericType: NumericType): any {
   if (n !== 0) {
     return n;
   }
@@ -107,9 +104,7 @@ export function combineNumericTypes(
   return "int";
 }
 
-export function getNumericKind(
-  n: unknown,
-): NumericType | undefined {
+export function getNumericKind(n: unknown): NumericType | undefined {
   if (typeof n === "number") {
     return inferNumericType(n);
   }
@@ -174,7 +169,9 @@ export function coerceNumericPair(
       right: b,
       resultType: forceFloat
         ? "float"
-        : ((lt === "float" || rt === "float") ? "float" : "int"),
+        : lt === "float" || rt === "float"
+          ? "float"
+          : "int",
     };
   }
 

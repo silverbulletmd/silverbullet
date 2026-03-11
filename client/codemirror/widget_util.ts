@@ -67,13 +67,8 @@ export function attachWidgetEventHandlers(
       el.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
-        console.info(
-          "Command link clicked in widget, running",
-          parsedOnclick,
-        );
-        client.runCommandByName(command, parsedOnclick[2]).catch(
-          console.error,
-        );
+        console.info("Command link clicked in widget, running", parsedOnclick);
+        client.runCommandByName(command, parsedOnclick[2]).catch(console.error);
       });
     }
   });
@@ -83,30 +78,26 @@ export function attachWidgetEventHandlers(
     const taskRef = el.dataset.externalTaskRef;
     const input = el.querySelector("input[type=checkbox]");
     if (input) {
-      input.addEventListener(
-        "click",
-        (e: any) => {
-          // Avoid triggering the click on the parent
-          e.stopPropagation();
-        },
-      );
-      input.addEventListener(
-        "change",
-        (e: any) => {
-          e.stopPropagation();
-          const oldState = e.target.dataset.state;
-          const newState = oldState === " " ? "x" : " ";
-          // Update state in DOM as well for future toggles
-          e.target.dataset.state = newState;
-          console.log("Toggling task", taskRef);
-          client.clientSystem.localSyscall(
-            "system.invokeFunction",
-            ["index.updateTaskState", taskRef, oldState, newState],
-          ).catch(
-            console.error,
-          );
-        },
-      );
+      input.addEventListener("click", (e: any) => {
+        // Avoid triggering the click on the parent
+        e.stopPropagation();
+      });
+      input.addEventListener("change", (e: any) => {
+        e.stopPropagation();
+        const oldState = e.target.dataset.state;
+        const newState = oldState === " " ? "x" : " ";
+        // Update state in DOM as well for future toggles
+        e.target.dataset.state = newState;
+        console.log("Toggling task", taskRef);
+        client.clientSystem
+          .localSyscall("system.invokeFunction", [
+            "index.updateTaskState",
+            taskRef,
+            oldState,
+            newState,
+          ])
+          .catch(console.error);
+      });
     }
   });
 

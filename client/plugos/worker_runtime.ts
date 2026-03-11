@@ -19,7 +19,8 @@ let workerPostMessage = (_msg: ControllerMessage): void => {
 // - in a browser's main thread, typeof window is "object"
 // - in a browser's worker threads, typeof window === "undefined"
 // - in Cloudflare workers typeof window === "undefined", but typeof globalThis.WebSocketPair is defined
-const runningAsWebWorker = typeof window === "undefined" &&
+const runningAsWebWorker =
+  typeof window === "undefined" &&
   // @ts-expect-error: globalThis
   typeof globalThis.WebSocketPair === "undefined";
 
@@ -147,8 +148,8 @@ export function monkeyPatchFetch() {
   ): Promise<Response> => {
     const encodedBody = init?.body
       ? base64Encode(
-        new Uint8Array(await (new Response(init.body)).arrayBuffer()),
-      )
+          new Uint8Array(await new Response(init.body).arrayBuffer()),
+        )
       : undefined;
     const r = await sandboxFetch(
       reqInfo,

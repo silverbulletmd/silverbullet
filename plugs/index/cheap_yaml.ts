@@ -19,9 +19,7 @@ export function determineTags(yamlText: string): string[] {
         inTagsSection = true;
         // 'template' there? Yay!
         if (value) {
-          tags.push(
-            ...value.split(/,\s*|\s+/).map((t) => t.replace(/^#/, "")),
-          );
+          tags.push(...value.split(/,\s*|\s+/).map((t) => t.replace(/^#/, "")));
         }
       } else {
         inTagsSection = false;

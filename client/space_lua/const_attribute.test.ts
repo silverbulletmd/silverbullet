@@ -79,7 +79,9 @@ test("const: Initialization ok, reassignment error", async () => {
     x = 2
   `);
   expect(e).toBeInstanceOf(LuaRuntimeError);
-  expect((e as LuaRuntimeError).message).toContain("attempt to assign to const variable 'x'",);
+  expect((e as LuaRuntimeError).message).toContain(
+    "attempt to assign to const variable 'x'",
+  );
 });
 
 test("const: Initialization to nil ok, reassignment error", async () => {
@@ -88,7 +90,9 @@ test("const: Initialization to nil ok, reassignment error", async () => {
     x = 2
   `);
   expect(e).toBeInstanceOf(LuaRuntimeError);
-  expect((e as LuaRuntimeError).message).toContain("attempt to assign to const variable 'x'",);
+  expect((e as LuaRuntimeError).message).toContain(
+    "attempt to assign to const variable 'x'",
+  );
 });
 
 test("const: Multi-declaration and missing RHS", async () => {
@@ -117,7 +121,9 @@ test("const: Multi-assignment after declaration fails", async () => {
     a, b = 3, 4
   `);
   expect(e).toBeInstanceOf(LuaRuntimeError);
-  expect((e as LuaRuntimeError).message).toContain("attempt to assign to const variable 'a'",);
+  expect((e as LuaRuntimeError).message).toContain(
+    "attempt to assign to const variable 'a'",
+  );
 });
 
 test("const: Second position", async () => {
@@ -126,7 +132,9 @@ test("const: Second position", async () => {
     b = 3
   `);
   expect(e).toBeInstanceOf(LuaRuntimeError);
-  expect((e as LuaRuntimeError).message).toContain("attempt to assign to const variable 'b'",);
+  expect((e as LuaRuntimeError).message).toContain(
+    "attempt to assign to const variable 'b'",
+  );
 });
 
 test("const: Initialization from function returns", async () => {
@@ -152,7 +160,9 @@ test("const: Initialization from function returns", async () => {
     a = 2
   `);
   expect(e).toBeInstanceOf(LuaRuntimeError);
-  expect((e as LuaRuntimeError).message).toContain("attempt to assign to const variable 'a'",);
+  expect((e as LuaRuntimeError).message).toContain(
+    "attempt to assign to const variable 'a'",
+  );
 });
 
 test("const: Shadowing", async () => {
@@ -166,7 +176,9 @@ test("const: Shadowing", async () => {
       end
     `);
     expect(e).toBeInstanceOf(LuaRuntimeError);
-    expect((e as LuaRuntimeError).message).toContain("attempt to assign to const variable 'a'",);
+    expect((e as LuaRuntimeError).message).toContain(
+      "attempt to assign to const variable 'a'",
+    );
   }
 
   {
@@ -226,7 +238,9 @@ test("const: Rebinding table fails", async () => {
     "const_table_rebind.lua",
   );
   expect(e).toBeInstanceOf(LuaRuntimeError);
-  expect((e as LuaRuntimeError).message).toContain("attempt to assign to const variable 't'",);
+  expect((e as LuaRuntimeError).message).toContain(
+    "attempt to assign to const variable 't'",
+  );
 });
 
 test("const: Inner block reassignment", async () => {
@@ -237,7 +251,9 @@ test("const: Inner block reassignment", async () => {
     end
   `);
   expect(e).toBeInstanceOf(LuaRuntimeError);
-  expect((e as LuaRuntimeError).message).toContain("attempt to assign to const variable 'a'",);
+  expect((e as LuaRuntimeError).message).toContain(
+    "attempt to assign to const variable 'a'",
+  );
 });
 
 test("const: Closure reassignment", async () => {
@@ -251,7 +267,9 @@ test("const: Closure reassignment", async () => {
     f()
   `);
   expect(e).toBeInstanceOf(LuaRuntimeError);
-  expect((e as LuaRuntimeError).message).toContain("attempt to assign to const variable 'a'",);
+  expect((e as LuaRuntimeError).message).toContain(
+    "attempt to assign to const variable 'a'",
+  );
 });
 
 test("const: Closure mutates table", async () => {

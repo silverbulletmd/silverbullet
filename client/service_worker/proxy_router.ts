@@ -80,9 +80,19 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
   async checkOnline() {
     if (this.syncEngine) {
       try {
-        await this.syncEngine.remote.ping();
+        const serverVersion = await this.syncEngine.remote.ping();
         // If the ping is successful, we are online
         this.online = true;
+
+        if (serverVersion) {
+          const clients = await (self as any).clients.matchAll();
+          for (const client of clients) {
+            client.postMessage({
+              type: "server-version",
+              serverVersion,
+            });
+          }
+        }
       } catch {
         // Otherwise we're not
         this.online = false;
@@ -132,7 +142,8 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
 
           if (
             // Not yet configured -> Proxy
-            !this.localSpacePrimitives || !this.syncEngine ||
+            !this.localSpacePrimitives ||
+            !this.syncEngine ||
             // Not fully synced but online -> Proxy
             (!this.fullSyncConfirmed && this.online) ||
             // A path we always need to proxy -> Proxy
@@ -168,8 +179,9 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
             return this.handleRequest(pathname, request);
           } else {
             // Fallback to the app shell for all other requests (SPA)
-            return (await caches.match(this.precacheFiles["/"])) ||
-              fetch(request);
+            return (
+              (await caches.match(this.precacheFiles["/"])) || fetch(request)
+            );
           }
         } catch (e: any) {
           console.warn("Fetch failed for", request.url, "error:", e.message);
@@ -182,16 +194,15 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
     );
   }
 
-  handleRequest(
-    pathname: string,
-    request: Request,
-  ): Promise<Response> {
+  handleRequest(pathname: string, request: Request): Promise<Response> {
     const path = decodePageURI(pathname.slice(fsEndpoint.length + 1));
     switch (request.method) {
       case "GET": {
-        if (!path) { // .fs GET
+        if (!path) {
+          // .fs GET
           return this.handleFileListing();
-        } else { // .fs/* GET
+        } else {
+          // .fs/* GET
           return this.handleGet(path, request);
         }
       }
@@ -222,25 +233,19 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
 
     const files = await this.localSpacePrimitives.fetchFileList();
     // Now augment this with non-synced file metadata
-    for (
-      const nonSyncedFile of this.nonSyncedFiles
-        .values()
-    ) {
-      const existingFile = files.find((file) =>
-        file.name === nonSyncedFile.name
+    for (const nonSyncedFile of this.nonSyncedFiles.values()) {
+      const existingFile = files.find(
+        (file) => file.name === nonSyncedFile.name,
       );
       if (!existingFile) {
         files.push(nonSyncedFile);
       }
     }
-    return new Response(
-      JSON.stringify(files),
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
+    return new Response(JSON.stringify(files), {
+      headers: {
+        "Content-Type": "application/json",
       },
-    );
+    });
   }
 
   async handleGet(path: string, request: Request): Promise<Response> {

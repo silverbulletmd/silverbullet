@@ -24,9 +24,8 @@ export function CommandPalette({
     options.push({
       name: name,
       hint: keyboardHint(def),
-      orderId: def.lastRun !== undefined
-        ? -def.lastRun
-        : def.priority || Infinity,
+      orderId:
+        def.lastRun !== undefined ? -def.lastRun : def.priority || Infinity,
     });
     // console.log("Options", options);
   }

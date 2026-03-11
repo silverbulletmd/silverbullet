@@ -40,7 +40,10 @@ type TagDefinition = {
 };
 
 export class ObjectValidationError extends Error {
-  constructor(message: string, readonly object: ObjectValue) {
+  constructor(
+    message: string,
+    readonly object: ObjectValue,
+  ) {
     super(message);
   }
 }
@@ -74,9 +77,7 @@ export class ObjectIndex {
           // Theoretically we could get empty queue notifications before the file:listed event has been triggered, so let's account for this
           if (indexStarted) {
             // Indexing has just finished for the first time for this client
-            console.info(
-              "Initial index complete, reloading editor state",
-            );
+            console.info("Initial index complete, reloading editor state");
             await this.markFullIndexComplete();
             // Unsubscribe yourself
             this.eventHook.removeLocalListener(
@@ -146,7 +147,7 @@ export class ObjectIndex {
       // If the index version is less than the desired version
       currentIndexVersion < desiredIndexVersion &&
       // And the index queue is empty (meaning no indexing is ongoing)
-      await this.mq.isQueueEmpty("indexQueue")
+      (await this.mq.isQueueEmpty("indexQueue"))
     ) {
       console.info(
         "[index]",
@@ -172,7 +173,10 @@ export class ObjectIndex {
     console.log("Queing", files.length, "pages to be indexed.");
     // Queue all file names to be indexed
     const startTime = Date.now();
-    await this.mq.batchSend("indexQueue", files.map((file) => file.name));
+    await this.mq.batchSend(
+      "indexQueue",
+      files.map((file) => file.name),
+    );
     await this.mq.awaitEmptyQueue("indexQueue");
     await this.markFullIndexComplete();
     console.log("Full index completed after", Date.now() - startTime, "ms");
@@ -208,9 +212,7 @@ export class ObjectIndex {
     query: LuaCollectionQuery,
     scopedVariables?: Record<string, any>,
   ): Promise<ObjectValue<T>[]> {
-    const sf = LuaStackFrame.createWithGlobalEnv(
-      globalEnv,
-    );
+    const sf = LuaStackFrame.createWithGlobalEnv(globalEnv);
     let env = globalEnv;
     if (scopedVariables) {
       env = new LuaEnv(globalEnv);
@@ -224,13 +226,16 @@ export class ObjectIndex {
   batchSet(page: string, kvs: KV[]): Promise<void> {
     const finalBatch: KV[] = [];
     for (const { key, value } of kvs) {
-      finalBatch.push({
-        key: [indexKey, ...key, page],
-        value,
-      }, {
-        key: [pageKey, page, ...key],
-        value: true,
-      });
+      finalBatch.push(
+        {
+          key: [indexKey, ...key, page],
+          value,
+        },
+        {
+          key: [pageKey, page, ...key],
+          value: true,
+        },
+      );
     }
     return this.ds.batchSet(finalBatch);
   }
@@ -253,11 +258,9 @@ export class ObjectIndex {
     }
     // console.log("Clearing index for", file);
     const allKeys: KvKey[] = [];
-    for await (
-      const { key } of this.ds.query({
-        prefix: [pageKey, file],
-      })
-    ) {
+    for await (const { key } of this.ds.query({
+      prefix: [pageKey, file],
+    })) {
       allKeys.push(key);
       allKeys.push([indexKey, ...key.slice(2), file]);
     }
@@ -269,14 +272,10 @@ export class ObjectIndex {
    */
   public async clearIndex(): Promise<void> {
     const allKeys: KvKey[] = [];
-    for await (
-      const { key } of this.ds.query({ prefix: [indexKey] })
-    ) {
+    for await (const { key } of this.ds.query({ prefix: [indexKey] })) {
       allKeys.push(key);
     }
-    for await (
-      const { key } of this.ds.query({ prefix: [pageKey] })
-    ) {
+    for await (const { key } of this.ds.query({ prefix: [pageKey] })) {
       allKeys.push(key);
     }
     await this.ds.batchDelete(allKeys);
@@ -326,7 +325,7 @@ export class ObjectIndex {
         continue;
       }
       // Index as all the tag + any additional tags specified
-      const allTags = [obj.tag, ...obj.tags || []];
+      const allTags = [obj.tag, ...(obj.tags || [])];
       for (const tag of allTags) {
         const tagDefinition = tagDefinitions[tag];
         // Validate object based on schema if required
@@ -431,11 +430,7 @@ export class ObjectIndex {
     return kvs;
   }
 
-  deleteObject(
-    page: string,
-    tag: string,
-    ref: string,
-  ): Promise<void> {
+  deleteObject(page: string, tag: string, ref: string): Promise<void> {
     return this.batchDelete(page, [[tag, this.cleanKey(ref, page)]]);
   }
 }

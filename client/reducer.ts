@@ -49,7 +49,7 @@ export default function reducer(
       state.allPages = state.allPages.map((pageMeta) =>
         pageMeta.name === action.meta.name
           ? { ...action.meta, lastOpened: Date.now() }
-          : pageMeta
+          : pageMeta,
       );
       // Can't update page meta if not on a page
       if (!state.current || !isMarkdownPath(state.current.path)) {
@@ -177,8 +177,7 @@ export default function reducer(
         showCommandPalette: false,
         showPageNavigator: false,
         showFilterBox: false,
-        filterBoxOnSelect: () => {
-        },
+        filterBoxOnSelect: () => {},
         filterBoxPlaceHolder: "",
         filterBoxOptions: [],
         filterBoxHelpText: "",

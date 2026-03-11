@@ -71,9 +71,7 @@ export function createEditorState(
   const regularKeyBindings = createRegularKeyBindings(client);
 
   client.indentUnitCompartment = new Compartment();
-  const indentUnits = client.indentUnitCompartment.of(
-    indentUnit.of("  "),
-  );
+  const indentUnits = client.indentUnitCompartment.of(indentUnit.of("  "));
 
   client.undoHistoryCompartment = new Compartment();
   const undoHistory = client.undoHistoryCompartment.of([history()]);
@@ -82,9 +80,12 @@ export function createEditorState(
     doc: text,
     extensions: [
       // Not using CM theming right now, but some extensions depend on the "dark" thing
-      EditorView.theme({}, {
-        dark: client.ui.viewState.uiOptions.darkMode,
-      }),
+      EditorView.theme(
+        {},
+        {
+          dark: client.ui.viewState.uiOptions.darkMode,
+        },
+      ),
 
       // Insert our command key bindings *before* vim mode. Vim in normal-mode is
       // greedy and captures all key events, preventing them from reaching our
@@ -94,19 +95,19 @@ export function createEditorState(
 
       // Enable vim mode, or not
       [
-        ...client.ui.viewState.uiOptions.vimMode
+        ...(client.ui.viewState.uiOptions.vimMode
           ? [
-            vim({ status: true }),
-            EditorState.allowMultipleSelections.of(true),
-          ]
-          : [],
+              vim({ status: true }),
+              EditorState.allowMultipleSelections.of(true),
+            ]
+          : []),
       ],
       [
         ...(readOnly ||
-            client.ui.viewState.uiOptions.forcedROMode ||
-            client.bootConfig.readOnly)
+        client.ui.viewState.uiOptions.forcedROMode ||
+        client.bootConfig.readOnly
           ? [EditorView.editable.of(false), EditorState.readOnly.of(true)]
-          : [],
+          : []),
       ],
 
       // The uber markdown mode
@@ -127,12 +128,9 @@ export function createEditorState(
       }),
       extendedMarkdownLanguage.data.of({
         closeBrackets: {
-          brackets: client.config.get<string | undefined>(
-            "autoCloseBrackets",
-            undefined,
-          )?.split(
-            "",
-          ),
+          brackets: client.config
+            .get<string | undefined>("autoCloseBrackets", undefined)
+            ?.split(""),
         },
       }),
       syntaxHighlighting(customMarkdownStyle()),
@@ -311,11 +309,11 @@ export function createEditorState(
                   inserted: inserted.toString(),
                   oldRange: { from: fromA, to: toA },
                   newRange: { from: fromB, to: toB },
-                })
+                }),
               );
               void client.dispatchAppEvent("editor:pageModified", { changes });
               client.ui.viewDispatch({ type: "page-changed" });
-              client.debouncedUpdateEvent();
+              client.contentManager.debouncedUpdateEvent();
               client.save().catch((e) => console.error("Error saving", e));
             }
           }
@@ -333,22 +331,23 @@ export function isValidEditor(
   currentEditor: string | undefined,
   requiredEditor: string | undefined,
 ): boolean {
-  return (requiredEditor === undefined) ||
-    (currentEditor === undefined &&
-      requiredEditor === "page") ||
-    (requiredEditor === "any") ||
-    (currentEditor === requiredEditor) ||
-    (currentEditor !== undefined && requiredEditor === "notpage");
+  return (
+    requiredEditor === undefined ||
+    (currentEditor === undefined && requiredEditor === "page") ||
+    requiredEditor === "any" ||
+    currentEditor === requiredEditor ||
+    (currentEditor !== undefined && requiredEditor === "notpage")
+  );
 }
 
 export function createCommandKeyBindings(client: Client): Extension {
   const commandKeyBindings: KeyBinding[] = [];
 
   // Then add bindings for plug commands
-  for (
-    const def of client.clientSystem.commandHook.buildAllCommands().values()
-  ) {
-    const currentEditor = client.documentEditor?.name;
+  for (const def of client.clientSystem.commandHook
+    .buildAllCommands()
+    .values()) {
+    const currentEditor = client.contentManager.documentEditor?.name;
     const requiredEditor = def.requireEditor;
 
     if ((def.key || def.mac) && isValidEditor(currentEditor, requiredEditor)) {
@@ -363,7 +362,8 @@ export function createCommandKeyBindings(client: Client): Extension {
           .then(def.run)
           .catch((e: any) => {
             client.reportError(e, "key");
-          }).then((returnValue: any) => {
+          })
+          .then((returnValue: any) => {
             // Always be focusing the editor after running a command UNLESS it returns false
             if (returnValue !== false) {
               client.focus();
@@ -396,30 +396,28 @@ export function createCommandKeyBindings(client: Client): Extension {
     }
   }
 
-  return keymap.of([
-    ...commandKeyBindings,
-  ]);
+  return keymap.of([...commandKeyBindings]);
 }
 
 export function createRegularKeyBindings(client: Client): Extension {
-  if (client.isDocumentEditor()) {
+  if (client.contentManager.isDocumentEditor()) {
     return keymap.of([]);
   } else {
     return keymap.of([
       ...createSmartQuoteKeyBindings(client),
       ...closeBracketsKeymap,
-      ...client.ui.viewState.uiOptions.vimMode
+      ...(client.ui.viewState.uiOptions.vimMode
         ? [
-          // Workaround for https://github.com/replit/codemirror-vim/issues/182;
-          // without this, Enter does nothing for ordinary paragraphs in insert
-          // mode.
-          {
-            key: "Enter",
-            run: insertNewlineAndIndent,
-            shift: insertNewlineAndIndent,
-          },
-        ]
-        : standardKeymap,
+            // Workaround for https://github.com/replit/codemirror-vim/issues/182;
+            // without this, Enter does nothing for ordinary paragraphs in insert
+            // mode.
+            {
+              key: "Enter",
+              run: insertNewlineAndIndent,
+              shift: insertNewlineAndIndent,
+            },
+          ]
+        : standardKeymap),
       ...completionKeymap,
       { key: "Tab", run: acceptCompletion },
       indentWithTab,

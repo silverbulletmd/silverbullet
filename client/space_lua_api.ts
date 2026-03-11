@@ -38,11 +38,11 @@ export function exposeSyscalls(env: LuaEnv, system: System<any>) {
     }
     const luaFn = isLuaNativeSyscall
       ? new LuaBuiltinFunction((_sf, ...args) => {
-        return system.localSyscall(syscallName, args);
-      })
+          return system.localSyscall(syscallName, args);
+        })
       : new LuaNativeJSFunction((...args) => {
-        return system.localSyscall(syscallName, args);
-      });
+          return system.localSyscall(syscallName, args);
+        });
     env.get(ns, nativeFs).set(fn, luaFn, nativeFs);
   }
 }
@@ -70,31 +70,21 @@ export async function buildThreadLocalEnv(
 }
 
 export async function handleLuaError(e: LuaRuntimeError, system: System<any>) {
-  console.error(
-    "Lua eval exception",
-    e.message,
-    e.sf?.astCtx,
-  );
+  console.error("Lua eval exception", e.message, e.sf?.astCtx);
   if (e.sf?.astCtx?.ref) {
     // We got an error and actually know where it came from, let's navigate there to help debugging
-    await system.localSyscall(
-      "editor.flashNotification",
-      [
-        `Lua error: ${e.message}`,
-        "error",
-      ],
-    );
+    await system.localSyscall("editor.flashNotification", [
+      `Lua error: ${e.message}`,
+      "error",
+    ]);
 
     const ref = resolveASTReference(e.sf.astCtx);
     if (!ref) return;
 
-    await system.localSyscall(
-      "editor.flashNotification",
-      [
-        `Navigating to the place in the code where this error occurred in ${ref.path}`,
-        "info",
-      ],
-    );
+    await system.localSyscall("editor.flashNotification", [
+      `Navigating to the place in the code where this error occurred in ${ref.path}`,
+      "info",
+    ]);
     await system.localSyscall("editor.navigate", [ref]);
   }
 }

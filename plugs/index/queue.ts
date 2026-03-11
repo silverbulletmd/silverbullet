@@ -67,7 +67,8 @@ async function updateIndexProgressInUI() {
   let totalQueued = await totalItemsQueued();
   while (totalQueued > 0) {
     const percentage = Math.round(
-      (maximumObservedQueueSize - totalQueued) / maximumObservedQueueSize * 100,
+      ((maximumObservedQueueSize - totalQueued) / maximumObservedQueueSize) *
+        100,
     );
     if (percentage > 0 && percentage <= 99) {
       await editor.showProgress(percentage, "index");

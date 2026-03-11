@@ -11,11 +11,9 @@ test("Test Lua Rutime", async () => {
   // Test LuaMultires
   expect(new LuaMultiRes([]).flatten().values).toEqual([]);
   expect(new LuaMultiRes([1, 2, 3]).flatten().values).toEqual([1, 2, 3]);
-  expect(new LuaMultiRes([1, new LuaMultiRes([2, 3])]).flatten().values).toEqual([
-    1,
-    2,
-    3,
-  ]);
+  expect(
+    new LuaMultiRes([1, new LuaMultiRes([2, 3])]).flatten().values,
+  ).toEqual([1, 2, 3]);
 
   // Test JavaScript to Lua conversion
   expect(jsToLuaValue(1)).toEqual(1);
@@ -39,7 +37,9 @@ test("Test Lua Rutime", async () => {
   expect(luaVal.get(2).get("name")).toEqual("John");
   // Functions in objects
   luaVal = jsToLuaValue({ name: "Pete", first: (l: any[]) => l[0] });
-  expect(luaVal.get("first").call(LuaStackFrame.lostFrame, [1, 2, 3])).toEqual(1);
+  expect(luaVal.get("first").call(LuaStackFrame.lostFrame, [1, 2, 3])).toEqual(
+    1,
+  );
 
   // Test luaToString
   expect(await luaToString(new Promise((resolve) => resolve(1)))).toEqual("1");

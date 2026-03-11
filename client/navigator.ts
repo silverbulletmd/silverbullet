@@ -24,9 +24,7 @@ export class PathPageNavigator {
 
   openLocations = new Map<string, LocationState>();
 
-  constructor(
-    private client: Client,
-  ) {
+  constructor(private client: Client) {
     this.indexRef = this.client.getIndexRef();
   }
 
@@ -36,10 +34,7 @@ export class PathPageNavigator {
    * @param replaceState whether to update the state in place (rather than to
    * push a new state)
    */
-  async navigate(
-    ref: Ref,
-    replaceState = false,
-  ) {
+  async navigate(ref: Ref, replaceState = false) {
     // We are already navigating, let's wait
     if (this.navigationPromise) {
       await this.navigationPromise.promise;
@@ -87,16 +82,15 @@ export class PathPageNavigator {
     if (error !== null) {
       // The navigation failed, let's revert everything we've done (This could
       // e.g. be a document editor which doesn't exist)
-      this.client.flashNotification(`Failed to navigate: ${error}`, "error");
+      this.client.ui.flashNotification(`Failed to navigate: ${error}`, "error");
 
       if (!replaceState) {
         history.go(-1);
       } else {
         // This can e.g. happen on the first navigate. We obviously can't fall back to the same path, so fallback to the indexpage
 
-        const newState: LocationState = currentState.path === ref.path
-          ? this.indexRef
-          : currentState;
+        const newState: LocationState =
+          currentState.path === ref.path ? this.indexRef : currentState;
 
         globalThis.history.replaceState(
           newState,
@@ -144,22 +138,16 @@ export class PathPageNavigator {
     return locationState;
   }
 
-  subscribe(
-    pageLoadCallback: (
-      locationState: LocationState,
-    ) => Promise<void>,
-  ) {
+  subscribe(pageLoadCallback: (locationState: LocationState) => Promise<void>) {
     globalThis.addEventListener("popstate", async (event: PopStateEvent) => {
       const state: LocationState = event.state
         ? event.state
-        // The popstate event can be fired in a whole list of weird situations
-        // (see MDN). Try to do our best if it's fired without the state
-        : parseRefFromURI() || this.indexRef;
+        : // The popstate event can be fired in a whole list of weird situations
+          // (see MDN). Try to do our best if it's fired without the state
+          parseRefFromURI() || this.indexRef;
 
       // Try filling in the ref using the openLocation cache
-      if (
-        !state.details && !state.selection && !state.scrollTop
-      ) {
+      if (!state.details && !state.selection && !state.scrollTop) {
         const openLocation = this.openLocations.get(state.path);
         if (openLocation) {
           state.selection = openLocation.selection;
@@ -170,19 +158,20 @@ export class PathPageNavigator {
       // For some (propably smart) reason the reject() function on a
       // Promise.withResolvers, also throws. This is hugely annoying here, so
       // let's resolve for both cases
-      await pageLoadCallback(state)
-        .then(
-          () => this.navigationPromise?.resolve(null),
-          (e) => this.navigationPromise?.resolve(e.message),
-        );
+      await pageLoadCallback(state).then(
+        () => this.navigationPromise?.resolve(null),
+        (e) => this.navigationPromise?.resolve(e.message),
+      );
     });
   }
 }
 
 export function parseRefFromURI(): Ref | null {
-  const locationRef = parseToRef(decodeURIComponent(
-    location.href.substring(document.baseURI.length), //this essentially returns location with prefix and leading slash removed (equivalent to location.pathname.substring(prefix.length).substring(1)),
-  ));
+  const locationRef = parseToRef(
+    decodeURIComponent(
+      location.href.substring(document.baseURI.length), //this essentially returns location with prefix and leading slash removed (equivalent to location.pathname.substring(prefix.length).substring(1)),
+    ),
+  );
 
   if (locationRef && location.hash) {
     locationRef.details = {

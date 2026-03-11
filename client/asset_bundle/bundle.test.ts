@@ -11,6 +11,8 @@ test("Asset bundle", () => {
   buf[1] = 2;
   buf[2] = 3;
   assetBundle.writeFileSync("test.bin", "application/octet-stream", buf);
-  expect("application/octet-stream").toEqual(assetBundle.getMimeType("test.bin"));
+  expect("application/octet-stream").toEqual(
+    assetBundle.getMimeType("test.bin"),
+  );
   expect(buf).toEqual(assetBundle.readFileSync("test.bin"));
 });

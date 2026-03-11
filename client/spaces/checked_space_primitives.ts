@@ -11,12 +11,11 @@ export class CheckedSpacePrimitives implements SpacePrimitives {
   constructor(
     private wrapped: SpacePrimitives,
     private readOnly: boolean,
-  ) {
-  }
+  ) {}
 
   async fetchFileList(): Promise<FileMeta[]> {
     return (await this.wrapped.fetchFileList()).filter(({ name }) =>
-      this.isReadable(name)
+      this.isReadable(name),
     );
   }
 
@@ -39,7 +38,7 @@ export class CheckedSpacePrimitives implements SpacePrimitives {
     data: Uint8Array,
     meta?: FileMeta,
   ): Promise<FileMeta> {
-    if (!await this.isWritable(path)) {
+    if (!(await this.isWritable(path))) {
       throw new Error("Couldn't write file, path is not writable");
     }
     return this.wrapped.writeFile(path, data, meta);
@@ -49,7 +48,7 @@ export class CheckedSpacePrimitives implements SpacePrimitives {
     // We allow deletion of paths we can't write to. This is for the case when
     // the user has an invalidly named file in their space and they need to
     // remove it/rename it
-    if (!await this.isWritable(path)) {
+    if (!(await this.isWritable(path))) {
       throw new Error("Couldn't delete file, path is not writable");
     }
     return this.wrapped.deleteFile(path);

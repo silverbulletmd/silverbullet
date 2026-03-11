@@ -2,9 +2,7 @@ import type { SysCallMapping } from "../system.ts";
 import type { Client } from "../../client.ts";
 import { fsEndpoint } from "../../spaces/constants.ts";
 
-export function shellSyscalls(
-  client: Client,
-): SysCallMapping {
+export function shellSyscalls(client: Client): SysCallMapping {
   return {
     "shell.run": async (
       _ctx,
@@ -34,6 +32,5 @@ export function shellSyscalls(
 
 function buildShellUrl(client: Client) {
   // Strip off the /.fs and replace with /.shell
-  return client.httpSpacePrimitives.url.slice(0, -fsEndpoint.length) +
-    "/.shell";
+  return `${client.httpSpacePrimitives.url.slice(0, -fsEndpoint.length)}/.shell`;
 }

@@ -34,18 +34,17 @@ safeRun(async () => {
   // Try loading config and scripts
   try {
     let configJSONText: string;
-    [configJSONText, ...bootstrapLuaScriptPages] = await Promise
-      .all([
-        cachedFetch(".config"),
-        // Some minimal bootstrap Lua: schema definition
-        cachedFetch(".fs/Library/Std/APIs/Schema.md"),
-        // Configuration option definitions and defaults
-        cachedFetch(".fs/Library/Std/Config.md"),
-        // Tag definition API
-        cachedFetch(".fs/Library/Std/APIs/Tag.md"),
-        // Custom configuration
-        cachedFetch(".fs/CONFIG.md"),
-      ]);
+    [configJSONText, ...bootstrapLuaScriptPages] = await Promise.all([
+      cachedFetch(".config"),
+      // Some minimal bootstrap Lua: schema definition
+      cachedFetch(".fs/Library/Std/APIs/Schema.md"),
+      // Configuration option definitions and defaults
+      cachedFetch(".fs/Library/Std/Config.md"),
+      // Tag definition API
+      cachedFetch(".fs/Library/Std/APIs/Tag.md"),
+      // Custom configuration
+      cachedFetch(".fs/CONFIG.md"),
+    ]);
     bootConfig = JSON.parse(configJSONText);
   } catch (e: any) {
     if (e.message === offlineError.message) {
@@ -59,9 +58,7 @@ safeRun(async () => {
   // Concatenate and evaluate
   try {
     config = await loadConfig(
-      bootstrapLuaScriptPages.map(
-        extractSpaceLuaFromPageText,
-      ).join("\n"),
+      bootstrapLuaScriptPages.map(extractSpaceLuaFromPageText).join("\n"),
       clientProxy.buildProxy(),
     );
   } catch (e: any) {
@@ -72,10 +69,10 @@ safeRun(async () => {
     try {
       config = await loadConfig(
         // Everything but CONFIG (at the end)
-        bootstrapLuaScriptPages.slice(0, bootstrapLuaScriptPages.length - 1)
-          .map(
-            extractSpaceLuaFromPageText,
-          ).join("\n"),
+        bootstrapLuaScriptPages
+          .slice(0, bootstrapLuaScriptPages.length - 1)
+          .map(extractSpaceLuaFromPageText)
+          .join("\n"),
         clientProxy.buildProxy(),
       );
     } catch (e: any) {
@@ -101,9 +98,9 @@ safeRun(async () => {
       console.log(
         "Service worker already running, querying it for an encryption key",
       );
-      swController.postMessage(
-        { type: "get-encryption-key" } as ServiceWorkerTargetMessage,
-      );
+      swController.postMessage({
+        type: "get-encryption-key",
+      } as ServiceWorkerTargetMessage);
       await race([
         new Promise<void>((resolve) => {
           function keyListener(e: any) {

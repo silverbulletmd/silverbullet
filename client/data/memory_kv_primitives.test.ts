@@ -8,7 +8,10 @@ import { allTests } from "./kv_primitives.test.ts";
 import type { KV } from "../../plug-api/types/datastore.ts";
 
 function tempFilePath(): string {
-  const path = join(tmpdir(), `test-${Date.now()}-${Math.random().toString(36)}.json`);
+  const path = join(
+    tmpdir(),
+    `test-${Date.now()}-${Math.random().toString(36)}.json`,
+  );
   onTestFinished(() => rm(path, { force: true }));
   return path;
 }
@@ -51,7 +54,10 @@ test("MemoryKvPrimitives persists and loads data", async () => {
   await store2.init();
 
   // Check if data was loaded correctly
-  const results = await store2.batchGet([["test", "key1"], ["test", "key2"]]);
+  const results = await store2.batchGet([
+    ["test", "key1"],
+    ["test", "key2"],
+  ]);
   expect(results).toEqual(["value1", "value2"]);
 });
 
@@ -91,7 +97,10 @@ test("MemoryKvPrimitives persists delete operations", async () => {
   await store2.init();
 
   // Check if delete was persisted
-  const results = await store2.batchGet([["test", "key1"], ["test", "key2"]]);
+  const results = await store2.batchGet([
+    ["test", "key1"],
+    ["test", "key2"],
+  ]);
   expect(results).toEqual([undefined, "value2"]);
 });
 

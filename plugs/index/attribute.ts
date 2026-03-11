@@ -14,9 +14,7 @@ import YAML from "js-yaml";
  * @param tree to clean attributes from
  * @return
  */
-export function collectAttributes(
-  tree: ParseTree,
-): Record<string, any> {
+export function collectAttributes(tree: ParseTree): Record<string, any> {
   const attributes: Record<string, any> = {};
 
   traverseTree(tree, (n) => {

@@ -59,10 +59,7 @@ export function jsonschemaSyscalls(): SysCallMapping {
     ): undefined | string => {
       return validateObject(schema, object);
     },
-    "jsonschema.validateSchema": (
-      _ctx,
-      schema: any,
-    ): undefined | string => {
+    "jsonschema.validateSchema": (_ctx, schema: any): undefined | string => {
       return validateSchema(schema);
     },
   };

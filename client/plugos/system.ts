@@ -24,9 +24,7 @@ export type SyscallContext = {
   plug?: string;
 };
 
-type SyscallSignature = (
-  ...args: any[]
-) => Promise<any> | any;
+type SyscallSignature = (...args: any[]) => Promise<any> | any;
 
 type Syscall = {
   requiredPermissions: string[];
@@ -112,11 +110,7 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
     return this.syscall({}, name, args);
   }
 
-  syscall(
-    ctx: SyscallContext,
-    name: string,
-    args: any[],
-  ): Promise<any> {
+  syscall(ctx: SyscallContext, name: string, args: any[]): Promise<any> {
     const syscall = this.registeredSyscalls.get(name);
     if (!syscall) {
       throw Error(`Unregistered syscall ${name}`);

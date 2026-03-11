@@ -1,8 +1,6 @@
 import type { SpacePrimitives } from "./space_primitives.ts";
 import { encodePageURI } from "@silverbulletmd/silverbullet/lib/ref";
-import {
-  flushCachesAndUnregisterServiceWorker,
-} from "../../client/service_worker/util.ts";
+import { flushCachesAndUnregisterServiceWorker } from "../../client/service_worker/util.ts";
 import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
 import {
   notFoundError,
@@ -20,8 +18,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     readonly expectedSpacePath: string,
     private authErrorCallback: (message: string, ...args: any[]) => void,
     private bearerToken?: string,
-  ) {
-  }
+  ) {}
 
   public async authenticatedFetch(
     url: string,
@@ -38,7 +35,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
     if (this.bearerToken) {
       options.headers = {
         ...options.headers,
-        "Authorization": `Bearer ${this.bearerToken}`,
+        Authorization: `Bearer ${this.bearerToken}`,
       };
     }
 
@@ -118,11 +115,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
         errorMessage.includes("load failed") ||
         errorMessage.includes("unavailable")
       ) {
-        console.error(
-          "Got error fetching, throwing offline",
-          url,
-          e.message,
-        );
+        console.error("Got error fetching, throwing offline", url, e.message);
         throw offlineError;
       }
       throw e;
@@ -151,16 +144,11 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       console.log("Expected space path", this.expectedSpacePath);
       console.log("Got space path", resp.headers.get("X-Space-Path"));
       await flushCachesAndUnregisterServiceWorker();
-      this.authErrorCallback(
-        wrongSpacePathError.message,
-        "reload",
-      );
+      this.authErrorCallback(wrongSpacePathError.message, "reload");
     }
   }
 
-  async readFile(
-    path: string,
-  ): Promise<{ data: Uint8Array; meta: FileMeta }> {
+  async readFile(path: string): Promise<{ data: Uint8Array; meta: FileMeta }> {
     const res = await this.authenticatedFetch(
       `${this.url}/${encodePageURI(path)}`,
       {
@@ -241,15 +229,18 @@ export class HttpSpacePrimitives implements SpacePrimitives {
   }
 
   // If not: throws an error or invokes a redirect
-  async ping() {
-    const parentEndpoint = this.url.split("/").slice(0, -1).join("/") +
-      "/.ping";
-    const resp = await this.authenticatedFetch(parentEndpoint, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
+  async ping(): Promise<string | undefined> {
+    const parentEndpoint = `${this.url.split("/").slice(0, -1).join("/")}/.ping`;
+    const resp = await this.authenticatedFetch(
+      parentEndpoint,
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
       },
-    }, pingTimeout);
+      pingTimeout,
+    );
 
     if (!resp.ok) {
       throw new Error(`Ping failed: ${resp.status} ${resp.statusText}`);
@@ -257,7 +248,11 @@ export class HttpSpacePrimitives implements SpacePrimitives {
 
     await this.validateSpacePathFromHeaders(resp);
 
+    const serverVersion = resp.headers.get("X-Server-Version") ?? undefined;
+
     // Consume the response body to avoid leaks
     await resp.text();
+
+    return serverVersion;
   }
 }

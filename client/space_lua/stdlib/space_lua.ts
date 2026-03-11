@@ -89,10 +89,7 @@ export async function interpolateLuaString(
       const luaResult = singleResult(await evalExpression(parsedExpr, env, sf));
       result += await luaToString(luaResult);
     } catch (e: any) {
-      throw new LuaRuntimeError(
-        `Error evaluating "${expr}": ${e.message}`,
-        sf,
-      );
+      throw new LuaRuntimeError(`Error evaluating "${expr}": ${e.message}`, sf);
     }
 
     currentIndex = endIndex + 1;
@@ -109,11 +106,9 @@ export const spaceluaApi = new LuaTable({
    * @param luaExpression - The lua expression to parse.
    * @returns The parsed expression.
    */
-  parseExpression: new LuaBuiltinFunction(
-    (_sf, luaExpression: string) => {
-      return parseExpressionString(luaExpression);
-    },
-  ),
+  parseExpression: new LuaBuiltinFunction((_sf, luaExpression: string) => {
+    return parseExpressionString(luaExpression);
+  }),
   /**
    * Evaluates a parsed lua expression and returns the result.
    *
@@ -139,10 +134,8 @@ export const spaceluaApi = new LuaTable({
   /**
    * Returns your SilverBullet instance's base URL
    */
-  baseUrl: new LuaBuiltinFunction(
-    () => {
-      //NOTE: Removing trailing slash to stay compatible with original code: `location.protocol + "//" + location.host;`
-      return document.baseURI.replace(/\/*$/, "");
-    },
-  ),
+  baseUrl: new LuaBuiltinFunction(() => {
+    //NOTE: Removing trailing slash to stay compatible with original code: `location.protocol + "//" + location.host;`
+    return document.baseURI.replace(/\/*$/, "");
+  }),
 });

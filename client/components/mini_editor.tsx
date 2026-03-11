@@ -104,7 +104,8 @@ export function MiniEditor({
     }
   }, [text, vimMode]);
 
-  let onBlurred = false, onEntered = false;
+  let onBlurred = false,
+    onEntered = false;
 
   return (
     <div
@@ -242,11 +243,12 @@ export function MiniEditor({
       }
       onBlurred = true;
       if (callbacksRef.current!.onBlur) {
-        Promise.resolve(callbacksRef.current!.onBlur(view.state.sliceDoc()))
-          .catch(() => {
-            // Reset the state
-            view.setState(buildEditorState());
-          });
+        Promise.resolve(
+          callbacksRef.current!.onBlur(view.state.sliceDoc()),
+        ).catch(() => {
+          // Reset the state
+          view.setState(buildEditorState());
+        });
       }
       // Event may occur again in 500ms
       setTimeout(() => {

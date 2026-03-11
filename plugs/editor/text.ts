@@ -53,12 +53,10 @@ export async function numberListifySelection() {
   from++;
   text = text.slice(from, selection.to);
   let counter = 1;
-  text = `1. ${
-    text.replaceAll(/\n(?!\n)/g, () => {
-      counter++;
-      return `\n${counter}. `;
-    })
-  }`;
+  text = `1. ${text.replaceAll(/\n(?!\n)/g, () => {
+    counter++;
+    return `\n${counter}. `;
+  })}`;
   await editor.replaceRange(from, selection.to, text);
 }
 

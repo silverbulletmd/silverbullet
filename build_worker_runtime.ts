@@ -3,7 +3,11 @@ import { fileURLToPath } from "node:url";
 
 // Build worker_runtime.ts into a standalone JS file
 await esbuild.build({
-  entryPoints: [fileURLToPath(new URL("./client/plugos/worker_runtime.ts", import.meta.url))],
+  entryPoints: [
+    fileURLToPath(
+      new URL("./client/plugos/worker_runtime.ts", import.meta.url),
+    ),
+  ],
   bundle: true,
   format: "esm",
   platform: "browser",

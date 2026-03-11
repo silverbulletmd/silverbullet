@@ -24,9 +24,7 @@ function capturesToLua(caps: CaptureResult[]): any {
     const c = caps[0];
     return "s" in c ? c.s : c.position;
   }
-  return new LuaMultiRes(
-    caps.map((c) => ("s" in c ? c.s : c.position)),
-  );
+  return new LuaMultiRes(caps.map((c) => ("s" in c ? c.s : c.position)));
 }
 
 export const stringApi = new LuaTable({
@@ -72,13 +70,7 @@ export const stringApi = new LuaTable({
     },
   ),
   gsub: new LuaBuiltinFunction(
-    async (
-      sf,
-      s: string,
-      pattern: string,
-      repl: any,
-      n?: number,
-    ) => {
+    async (sf, s: string, pattern: string, repl: any, n?: number) => {
       const callbacks: GsubCallbacks = {};
       if (typeof repl === "string") {
         callbacks.replString = repl;
@@ -121,13 +113,11 @@ export const stringApi = new LuaTable({
   upper: new LuaBuiltinFunction((_sf, s: string) => {
     return luaToString(s.toUpperCase());
   }),
-  match: new LuaBuiltinFunction(
-    (_sf, s: string, pattern: string, init = 1) => {
-      const caps = patternMatch(s, pattern, init);
-      if (!caps) return null;
-      return capturesToLua(caps);
-    },
-  ),
+  match: new LuaBuiltinFunction((_sf, s: string, pattern: string, init = 1) => {
+    const caps = patternMatch(s, pattern, init);
+    if (!caps) return null;
+    return capturesToLua(caps);
+  }),
   rep: new LuaBuiltinFunction((_sf, s: string, n: number, sep?: string) => {
     if (n <= 0) return "";
     sep = sep ?? "";

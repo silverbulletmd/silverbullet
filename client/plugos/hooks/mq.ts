@@ -1,4 +1,3 @@
-
 import type { Hook, Manifest } from "../types.ts";
 import type { System } from "../system.ts";
 import { throttle } from "@silverbulletmd/silverbullet/lib/async";
@@ -10,13 +9,11 @@ import type {
 } from "@silverbulletmd/silverbullet/type/datastore";
 import type { Config } from "../../config.ts";
 
-export type MQListenerSpec =
-  & MQSubscribeOptions
-  & {
-    queue: string;
-    autoAck?: boolean;
-    run: Function;
-  };
+export type MQListenerSpec = MQSubscribeOptions & {
+  queue: string;
+  autoAck?: boolean;
+  run: Function;
+};
 
 export class MQHook implements Hook<MQHookT> {
   subscriptions: QueueWorker[] = [];
@@ -28,8 +25,7 @@ export class MQHook implements Hook<MQHookT> {
     private system: System<MQHookT>,
     readonly mq: DataStoreMQ,
     readonly config: Config,
-  ) {
-  }
+  ) {}
 
   apply(system: System<MQHookT>): void {
     this.system = system;
@@ -57,11 +53,9 @@ export class MQHook implements Hook<MQHookT> {
       if (!plug.manifest) {
         continue;
       }
-      for (
-        const [name, functionDef] of Object.entries(
-          plug.manifest.functions,
-        )
-      ) {
+      for (const [name, functionDef] of Object.entries(
+        plug.manifest.functions,
+      )) {
         if (!functionDef.mqSubscriptions) {
           continue;
         }
@@ -79,7 +73,10 @@ export class MQHook implements Hook<MQHookT> {
                 try {
                   await plug.invoke(name, [messages]);
                   if (subscriptionDef.autoAck) {
-                    await this.mq.batchAck(queue, messages.map((m) => m.id));
+                    await this.mq.batchAck(
+                      queue,
+                      messages.map((m) => m.id),
+                    );
                   }
                 } catch (e: any) {
                   console.error(
@@ -118,7 +115,10 @@ export class MQHook implements Hook<MQHookT> {
               try {
                 await listener.run(messages);
                 if (listener.autoAck) {
-                  await this.mq.batchAck(queue, messages.map((m) => m.id));
+                  await this.mq.batchAck(
+                    queue,
+                    messages.map((m) => m.id),
+                  );
                 }
               } catch (e: any) {
                 console.error(

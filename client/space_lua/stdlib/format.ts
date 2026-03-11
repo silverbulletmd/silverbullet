@@ -58,7 +58,8 @@ function parseSpec(
 
   // Parse width
   let width = 0;
-  if (i < len && fmt.charCodeAt(i) === 42) { // '*'
+  if (i < len && fmt.charCodeAt(i) === 42) {
+    // '*'
     width = -1;
     i++;
   } else {
@@ -71,10 +72,12 @@ function parseSpec(
   // Parse precision
   let hasPrec = false;
   let prec = 0;
-  if (i < len && fmt.charCodeAt(i) === 46) { // '.'
+  if (i < len && fmt.charCodeAt(i) === 46) {
+    // '.'
     hasPrec = true;
     i++;
-    if (i < len && fmt.charCodeAt(i) === 42) { // '*'
+    if (i < len && fmt.charCodeAt(i) === 42) {
+      // '*'
       prec = -1;
       i++;
     } else {
@@ -109,9 +112,10 @@ function parseSpec(
 function pad(s: string, width: number, flags: number, numPad: boolean): string {
   if (width <= 0 || s.length >= width) return s;
   const n = width - s.length;
-  if (numPad && (flags & FLAG_ZERO) && !(flags & FLAG_MINUS)) {
+  if (numPad && flags & FLAG_ZERO && !(flags & FLAG_MINUS)) {
     let signLen = 0;
-    if (s.charCodeAt(0) === 45 || s.charCodeAt(0) === 43) { // '-' or '+'
+    if (s.charCodeAt(0) === 45 || s.charCodeAt(0) === 43) {
+      // '-' or '+'
       signLen = 1;
     } else if (
       s.charCodeAt(0) === 48 &&
@@ -235,14 +239,17 @@ function formatFloat(n: number, spec: FormatSpec): string {
 
   let body: string;
 
-  if (lower === 102) { // 'f'
+  if (lower === 102) {
+    // 'f'
     body = abs.toFixed(prec);
-  } else if (lower === 101) { // 'e'
+  } else if (lower === 101) {
+    // 'e'
     body = abs.toExponential(prec);
     // Ensure exponent has at least 2 digits
     body = ensureExpTwoDigits(body);
-  } else { // 'g'
-    const gPrec = (prec === 0) ? 1 : prec;
+  } else {
+    // 'g'
+    const gPrec = prec === 0 ? 1 : prec;
     if (abs === 0) {
       body = "0";
     } else {
@@ -268,7 +275,7 @@ function formatFloat(n: number, spec: FormatSpec): string {
   }
 
   // Alt flag for 'f'/'e': ensure decimal point exists
-  if ((spec.flags & FLAG_HASH) && lower !== 103) {
+  if (spec.flags & FLAG_HASH && lower !== 103) {
     if (body.indexOf(".") === -1) {
       // Insert dot before 'e' if present, else append
       const eIdx = body.indexOf("e");
@@ -283,7 +290,7 @@ function formatFloat(n: number, spec: FormatSpec): string {
   }
 
   // Alt flag for 'g': keep trailing zeros but ensure decimal point
-  if ((spec.flags & FLAG_HASH) && lower === 103) {
+  if (spec.flags & FLAG_HASH && lower === 103) {
     if (body.indexOf(".") === -1) {
       const expIdx = findExpIndex(body);
       if (expIdx !== -1) {
@@ -337,7 +344,8 @@ function stripTrailingZerosG(s: string): string {
   if (dotIdx === -1) return s; // nothing to strip
 
   let end = mantissa.length;
-  while (end > dotIdx + 1 && mantissa.charCodeAt(end - 1) === 48) { // '0'
+  while (end > dotIdx + 1 && mantissa.charCodeAt(end - 1) === 48) {
+    // '0'
     end--;
   }
   // Remove dot if nothing after it
@@ -389,7 +397,8 @@ function formatHexFloat(n: number, spec: FormatSpec): string {
     if (pIdx !== -1) {
       let hasDot = false;
       for (let k = 0; k < pIdx; k++) {
-        if (body.charCodeAt(k) === 46) { // '.'
+        if (body.charCodeAt(k) === 46) {
+          // '.'
           hasDot = true;
           break;
         }
@@ -436,8 +445,8 @@ function hexFloatBody(abs: number, spec: FormatSpec): string {
   const view = new DataView(buf.buffer);
   view.setFloat64(0, abs);
   const bits = view.getBigUint64(0);
-  const biasedExp = Number((bits >> 52n) & 0x7FFn);
-  const frac = bits & 0xFFFFFFFFFFFFFn;
+  const biasedExp = Number((bits >> 52n) & 0x7ffn);
+  const frac = bits & 0xfffffffffffffn;
 
   let exponent: number;
   let mantBits: bigint;
@@ -557,7 +566,8 @@ function padHexRight(s: string, len: number): string {
 
 function stripHexTrailingZeros(s: string): string {
   let end = s.length;
-  while (end > 0 && s.charCodeAt(end - 1) === 48) { // '0'
+  while (end > 0 && s.charCodeAt(end - 1) === 48) {
+    // '0'
     end--;
   }
   if (end === s.length) return s;
@@ -669,7 +679,8 @@ export function luaFormat(fmt: string, ...args: any[]): string {
 
   while (i < len) {
     const c = fmt.charCodeAt(i);
-    if (c !== 37) { // not '%'
+    if (c !== 37) {
+      // not '%'
       // Fast path: scan for next '%' or end
       let j = i + 1;
       while (j < len && fmt.charCodeAt(j) !== 37) j++;
@@ -743,15 +754,18 @@ export function luaFormat(fmt: string, ...args: any[]): string {
           false,
         );
         break;
-      case 112: { // 'p'
+      case 112: {
+        // 'p'
         out += formatPointer(args[ai++], spec);
         break;
       }
-      case 113: { // 'q'
+      case 113: {
+        // 'q'
         out += formatQ(args[ai++]);
         break;
       }
-      case 115: { // 's'
+      case 115: {
+        // 's'
         let s = String(args[ai++]);
         if (spec.hasPrec && s.length > spec.prec) {
           s = s.slice(0, spec.prec);

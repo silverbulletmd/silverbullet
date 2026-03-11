@@ -44,10 +44,7 @@ function makeEnv(): { global: LuaEnv; sf: LuaStackFrame } {
 
   global.setLocal("string", stringLib);
 
-  global.setLocal(
-    "type",
-    new LuaBuiltinFunction((_sf, v) => luaTypeOf(v)),
-  );
+  global.setLocal("type", new LuaBuiltinFunction((_sf, v) => luaTypeOf(v)));
 
   const sf = LuaStackFrame.createWithGlobalEnv(global);
 
@@ -65,7 +62,7 @@ async function run(ast: any) {
     if (e instanceof LuaRuntimeError) {
       throw e;
     }
-    throw new Error(`Lua execution error: ${e && (e as any).message || e}`);
+    throw new Error(`Lua execution error: ${(e && (e as any).message) || e}`);
   }
 }
 
@@ -176,8 +173,8 @@ const luaTableDotMissRead = `
 `;
 
 // The truthiness_test.lua uses the `string.format`.
-const truthinessPath =
-  new URL("./truthiness_test.lua", import.meta.url).pathname;
+const truthinessPath = new URL("./truthiness_test.lua", import.meta.url)
+  .pathname;
 const truthinessCode = await readFile(truthinessPath, "utf-8");
 
 const astWhileSync = parseLua(luaWhileSync);

@@ -61,7 +61,7 @@ export function dataStoreReadSyscalls(
         }
       }
       return (await queryLua<any>(ds.kv, prefix, query, env, sf)).map((item) =>
-        luaValueToJS(item, sf)
+        luaValueToJS(item, sf),
       );
     },
   };

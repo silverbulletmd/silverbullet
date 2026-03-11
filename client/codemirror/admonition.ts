@@ -93,8 +93,13 @@ export function admonitionPlugin() {
           // icon further down.
           const iconRange = {
             from: from + 2,
-            to: from + preSpaces.length + 2 + admonitionType.length +
-              postSyntax.length + 1,
+            to:
+              from +
+              preSpaces.length +
+              2 +
+              admonitionType.length +
+              postSyntax.length +
+              1,
           };
 
           // The first div is the title, attach title css class

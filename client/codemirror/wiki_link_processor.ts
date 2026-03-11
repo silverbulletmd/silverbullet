@@ -47,8 +47,8 @@ export function processWikiLink(options: WikiLinkProcessorOptions): any[] {
   } else if (ref.path === "" || isBuiltinPath(ref.path)) {
     linkStatus = "default";
   } else if (
-    Array.from(client.clientSystem.allKnownFiles).some((file) =>
-      file === ref.path
+    Array.from(client.clientSystem.allKnownFiles).some(
+      (file) => file === ref.path,
     )
   ) {
     linkStatus = "default";
@@ -58,8 +58,8 @@ export function processWikiLink(options: WikiLinkProcessorOptions): any[] {
 
   let css = {
     "file-missing": "sb-wiki-link-missing",
-    "invalid": "sb-wiki-link-invalid",
-    "default": "",
+    invalid: "sb-wiki-link-invalid",
+    default: "",
   }[linkStatus];
 
   const renderingSyntax = client.ui.viewState.uiOptions.markdownSyntaxRendering;
@@ -78,17 +78,17 @@ export function processWikiLink(options: WikiLinkProcessorOptions): any[] {
 
   const cleanedPath = ref ? getNameFromPath(ref.path) : stringRef;
   const helpText = {
-    "default": `Navigate to ${cleanedPath}`,
+    default: `Navigate to ${cleanedPath}`,
     "file-missing": `Create ${cleanedPath}`,
-    "invalid": `Cannot create invalid file ${cleanedPath}`,
+    invalid: `Cannot create invalid file ${cleanedPath}`,
   }[linkStatus];
 
   let linkText = alias || stringRef;
 
   // The `&& ref` is only there to make typescript happy
   if (linkStatus === "default" && ref) {
-    const meta = client.ui.viewState.allPages.find((p) =>
-      parseToRef(p.ref)?.path === ref.path
+    const meta = client.ui.viewState.allPages.find(
+      (p) => parseToRef(p.ref)?.path === ref.path,
     );
 
     const renderedRef = structuredClone(ref);
@@ -100,15 +100,16 @@ export function processWikiLink(options: WikiLinkProcessorOptions): any[] {
       ? fileName(renderedRef.path)
       : renderedRef.path;
 
-    const prefix = (ref.details?.type === "position" ||
-        ref.details?.type === "linecolumn")
-      ? ""
-      : (meta?.pageDecoration?.prefix ?? "");
+    const prefix =
+      ref.details?.type === "position" || ref.details?.type === "linecolumn"
+        ? ""
+        : (meta?.pageDecoration?.prefix ?? "");
 
-    linkText = alias || (prefix + encodeRef(renderedRef));
+    linkText = alias || prefix + encodeRef(renderedRef);
 
     if (meta?.pageDecoration?.cssClasses) {
-      css += " sb-decorated-object " +
+      css +=
+        " sb-decorated-object " +
         meta.pageDecoration.cssClasses
           .join(" ")
           .replaceAll(/[^a-zA-Z0-9-_ ]/g, "");

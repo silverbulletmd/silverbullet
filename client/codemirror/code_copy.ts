@@ -16,7 +16,10 @@ const ICON_SVG =
 const EXCLUDE_LANGUAGES = ["template", "include", "query", "toc", "embed"];
 
 class CodeCopyWidget extends WidgetType {
-  constructor(readonly value: string, readonly client: Client) {
+  constructor(
+    readonly value: string,
+    readonly client: Client,
+  ) {
     super();
   }
 
@@ -38,15 +41,16 @@ class CodeCopyWidget extends WidgetType {
     button.onclick = (e) => {
       e.stopPropagation();
       e.preventDefault();
-      navigator.clipboard.writeText(this.value)
+      navigator.clipboard
+        .writeText(this.value)
         .catch((err) => {
-          this.client.flashNotification(
+          this.client.ui.flashNotification(
             `Error copying to clipboard: ${err}`,
             "error",
           );
         })
         .then(() => {
-          this.client.flashNotification("Copied to clipboard", "info");
+          this.client.ui.flashNotification("Copied to clipboard", "info");
         });
     };
 
@@ -58,10 +62,7 @@ class CodeCopyWidget extends WidgetType {
   }
 }
 
-function codeCopyDecoration(
-  view: EditorView,
-  client: Client,
-) {
+function codeCopyDecoration(view: EditorView, client: Client) {
   const widgets: Range<Decoration>[] = [];
   for (const { from, to } of view.visibleRanges) {
     syntaxTree(view.state).iterate({
@@ -77,10 +78,7 @@ function codeCopyDecoration(
           }
 
           const language = infoNode
-            ? view.state.doc.sliceString(
-              infoNode.from,
-              infoNode.to,
-            )
+            ? view.state.doc.sliceString(infoNode.from, infoNode.to)
             : undefined;
 
           if (language && EXCLUDE_LANGUAGES.includes(language)) {
@@ -115,7 +113,8 @@ export const codeCopyPlugin = (client: Client) => {
 
       update(update: ViewUpdate) {
         if (
-          update.docChanged || update.viewportChanged ||
+          update.docChanged ||
+          update.viewportChanged ||
           syntaxTree(update.startState) !== syntaxTree(update.state)
         ) {
           this.decorations = codeCopyDecoration(update.view, client);

@@ -12,10 +12,7 @@ import type { KV, KvKey } from "../../plug-api/types/datastore.ts";
  * in a more user-friendly way
  */
 export class DataStore {
-  constructor(
-    readonly kv: KvPrimitives,
-  ) {
-  }
+  constructor(readonly kv: KvPrimitives) {}
 
   async get<T = any>(key: KvKey): Promise<T | null> {
     return (await this.batchGet([key]))[0];
