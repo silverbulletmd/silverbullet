@@ -6,34 +6,43 @@ Lua Integrated Query (LIQ) is a SilverBullet specific Lua extension. It adds a c
 
 The syntax for LIQ is `query[[my query]]`. In regular Lua `[[my query]]` is just another way of writing `"my query"` (it is an alternative string syntax). Function calls that only take a string argument can omit parentheses, therefore `query[[my query]]` is equivalent to `query("my query")`.
 
-However, in [[Space Lua]] it is interpreted as an SQL (and [LINQ](https://learn.microsoft.com/en-us/dotnet/csharp/linq/))-inspired integrated query language.
+However, in [[Space Lua]] it is interpreted as an SQL- and [LINQ](https://learn.microsoft.com/en-us/dotnet/csharp/linq/)-inspired integrated query language.
 
 General syntax:
 
-    query [[
-      from <expression>
-      where <expression>
-      group by <expression>[, ...]
-      having <expression>
-      order by <expression>
-        [asc | desc | using <comparator>]
-        [nulls {first | last}]
-        [, ...]
-      limit <expression> [, <offset>]
-      offset <expression>
-      select <expression>
-    ]]
+```postgres
+query [[
+    from <<expression>>
+    [ where <<expression>> ]
+    [ group by <<expression>> [, ...] ]
+    [ having <<expression>> ]
+    [ order by <<sort_expression>> [, ...] ]
+    [ limit <<expression>> [, <<expression>>] ]
+    [ offset <<expression>> ]
+    [ select <<expression>> ]
+]]
+```
 
-Aggregate functions support an optional intra-aggregate `order by` and/or `filter` clause:
+Unlike in SQL where clauses must be written in a particular order, LIQ clauses can be written in any order, and the only mandatory clause is the `from` clause.
 
-    <aggregate>(<expression> [, ...]
-      [order by <expression>
-        [asc | desc | using <comparator>]
-        [nulls {first | last}]
-        [, ...]]
-      [filter(where <expression>)])
+The `order by` clause uses `<<sort_expression>>`:
 
-These can be combined. See [[Space Lua/Lua Integrated Query/Aggregating]] for details.
+```postgres
+<<expression>>
+    [ asc | desc | using <<comparator>> ]
+    [ nulls { first | last } ]
+```
+
+If an aggregate function call is used for projection (`select`), the general syntax is:
+
+```postgres
+<<aggregator>>( <<expression>> [, ...]
+    [ order by <<sort_expression>> [, ...] ]
+    [ filter (where <<expression>>) ]
+)
+```
+
+See [[Space Lua/Lua Integrated Query/Aggregating]] for details.
 
 LIQ operates on any Lua collection.
 
