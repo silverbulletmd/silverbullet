@@ -153,7 +153,6 @@ export function TopBar({
   onDismissNotification,
   actionButtons,
   darkMode,
-  vimMode,
   progressPercentage,
   progressType,
   lhs,
@@ -170,7 +169,6 @@ export function TopBar({
   isLoading: boolean;
   notifications: Notification[];
   darkMode?: boolean;
-  vimMode: boolean;
   progressPercentage?: number;
   progressType?: string;
   onRename: (newName?: string) => Promise<void>;
@@ -201,7 +199,6 @@ export function TopBar({
             >
               <MiniEditor
                 text={pageName ?? ""}
-                vimMode={vimMode}
                 darkMode={darkMode}
                 onBlur={(newName) => {
                   if (newName !== pageName) {

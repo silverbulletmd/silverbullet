@@ -8,7 +8,6 @@ import {
   ViewPlugin,
   type ViewUpdate,
 } from "@codemirror/view";
-import { getVimModule } from "../vim_loader.ts";
 import { createCommandKeyBindings } from "../codemirror/editor_state.ts";
 
 type MiniEditorEvents = {
@@ -23,9 +22,7 @@ type MiniEditorEvents = {
 export function MiniEditor({
   text,
   placeholderText,
-  vimMode,
   darkMode,
-  vimStartInInsertMode,
   onBlur,
   onEscape,
   onKeyUp,
@@ -37,15 +34,12 @@ export function MiniEditor({
 }: {
   text: string;
   placeholderText?: string;
-  vimMode: boolean;
   darkMode?: boolean;
-  vimStartInInsertMode?: boolean;
   focus?: boolean;
   editable: boolean;
 } & MiniEditorEvents) {
   const editorDiv = useRef<HTMLDivElement>(null);
   const editorViewRef = useRef<EditorView>();
-  const vimModeRef = useRef<string>("normal");
   // TODO: This super duper ugly, but I don't know how to avoid it
   // Due to how MiniCodeEditor is built, it captures the closures of all callback functions
   // which results in them pointing to old state variables, to avoid this we do this...
@@ -102,7 +96,7 @@ export function MiniEditor({
         });
       }
     }
-  }, [text, vimMode]);
+  }, [text]);
 
   let onBlurred = false,
     onEntered = false;
@@ -128,31 +122,11 @@ export function MiniEditor({
   );
 
   function buildEditorState() {
-    // When vim mode is active, we need for CM to have created the new state
-    // and the subscribe to the vim mode's events
-    // This needs to happen in the next tick, so we wait a tick with setTimeout
-    const vimMod = getVimModule();
-    if (vimMode && vimMod) {
-      // Only applies to vim mode
-      setTimeout(() => {
-        const cm = vimMod.getCM(editorViewRef.current!)!;
-        cm.on("vim-mode-change", ({ mode }: { mode: string }) => {
-          vimModeRef.current = mode;
-        });
-        if (vimStartInInsertMode) {
-          vimMod.Vim.handleKey(cm, "i", "+input");
-        }
-      });
-    }
     return EditorState.create({
       doc: text,
       extensions: [
         EditorView.theme({}, { dark: darkMode }),
-        // Insert command bindings before vim-mode to ensure they're available
-        // in normal mode. See editor_state.ts for more details.
         createCommandKeyBindings(globalThis.client),
-        // Enable vim mode, or not (uses already-loaded module if available)
-        [...(vimMode && vimMod ? [vimMod.vim()] : [])],
         [
           ...(editable
             ? []
@@ -195,12 +169,7 @@ export function MiniEditor({
               return false;
             }
             if (event.key === "Enter") {
-              // Enter should be handled by the keymap, except when in Vim normal mode
-              // because then it's disabled
-              if (vimMode && vimModeRef.current === "normal") {
-                onEnterHandler(view, event.shiftKey);
-                return true;
-              }
+              // Enter should be handled by the keymap
               return false;
             }
             if (callbacksRef.current!.onKeyUp) {

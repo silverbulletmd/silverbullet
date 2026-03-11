@@ -5,13 +5,11 @@ import type { ComponentChildren, Ref } from "preact";
 export function Prompt({
   message,
   defaultValue,
-  vimMode,
   darkMode,
   callback,
 }: {
   message: string;
   defaultValue?: string;
-  vimMode: boolean;
   darkMode: boolean | undefined;
   callback: (value?: string) => void;
 }) {
@@ -26,8 +24,6 @@ export function Prompt({
         <label>{message}</label>
         <MiniEditor
           text={defaultValue || ""}
-          vimMode={vimMode}
-          vimStartInInsertMode={true}
           focus={true}
           darkMode={darkMode}
           onEnter={(text) => {

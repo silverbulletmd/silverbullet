@@ -21,7 +21,6 @@ export function AnythingPicker({
   extensions,
   onNavigate,
   onModeSwitch,
-  vimMode,
   mode,
   darkMode,
   currentPath,
@@ -29,7 +28,6 @@ export function AnythingPicker({
   allDocuments: DocumentMeta[];
   allPages: PageMeta[];
   extensions: Set<string>;
-  vimMode: boolean;
   darkMode?: boolean;
   mode: "page" | "meta" | "document" | "all";
   onNavigate: (name: string | null) => void;
@@ -178,7 +176,6 @@ export function AnythingPicker({
       }
       label="Open"
       options={options}
-      vimMode={vimMode}
       darkMode={darkMode}
       phrasePreprocessor={(phrase) => {
         phrase = phrase.replaceAll(tagRegex, "").trim();

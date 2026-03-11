@@ -269,7 +269,6 @@ export class MainUI {
             }
             currentPath={client.currentPath()}
             mode={viewState.pageNavigatorMode}
-            vimMode={viewState.uiOptions.vimMode}
             darkMode={viewState.uiOptions.darkMode}
             onModeSwitch={(mode) => {
               dispatch({ type: "stop-navigate" });
@@ -363,7 +362,6 @@ export class MainUI {
               });
             }}
             commands={client.getCommandsByContext(viewState)}
-            vimMode={viewState.uiOptions.vimMode}
             darkMode={viewState.uiOptions.darkMode}
           />
         )}
@@ -372,7 +370,6 @@ export class MainUI {
             label={viewState.filterBoxLabel}
             placeholder={viewState.filterBoxPlaceHolder}
             options={viewState.filterBoxOptions}
-            vimMode={viewState.uiOptions.vimMode}
             darkMode={viewState.uiOptions.darkMode}
             allowNew={false}
             helpText={viewState.filterBoxHelpText}
@@ -383,7 +380,6 @@ export class MainUI {
           <Prompt
             message={viewState.promptMessage!}
             defaultValue={viewState.promptDefaultValue}
-            vimMode={viewState.uiOptions.vimMode}
             darkMode={viewState.uiOptions.darkMode}
             callback={(value) => {
               dispatch({ type: "hide-prompt" });
@@ -411,7 +407,6 @@ export class MainUI {
           isOnline={viewState.isOnline}
           unsavedChanges={viewState.unsavedChanges}
           isLoading={viewState.isLoading}
-          vimMode={viewState.uiOptions.vimMode}
           darkMode={viewState.uiOptions.darkMode}
           progressPercentage={viewState.progressPercentage}
           progressType={viewState.progressType}
