@@ -363,6 +363,10 @@ config.define("actionButtons", {
         type = "boolean",
         description = "Optional boolean indicating if the action button is applicable for mobile"
       },
+      standalone = {
+        type = "boolean",
+        description = "Optional: when set to true, button only appears in standalone/PWA mode; when false, only in browser mode"
+      },
       dropdown = {
         type = "boolean",
         description = "Optional: set to false to keep this button outside the dropdown menu on mobile (default: true)"
@@ -412,6 +416,26 @@ config.set {
       priority = 1,
       run = function()
         editor.invokeCommand "Open Command Palette"
+      end,
+    },
+    {
+      icon = "chevron-left",
+      description = "Go back",
+      standalone = true,
+      dropdown = false,
+      priority = 0,
+      run = function()
+        editor.goHistory(-1)
+      end,
+    },
+    {
+      icon = "chevron-right",
+      description = "Go forward",
+      standalone = true,
+      dropdown = false,
+      priority = -1,
+      run = function()
+        editor.goHistory(1)
       end,
     }
   },

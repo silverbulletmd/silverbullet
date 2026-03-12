@@ -470,7 +470,9 @@ export class MainUI {
                 ) =>
                   button.icon &&
                   (typeof button.mobile === "undefined" ||
-                    button.mobile === viewState.isMobile),
+                    button.mobile === viewState.isMobile) &&
+                  (typeof button.standalone === "undefined" ||
+                    button.standalone === viewState.isStandalone),
               )
               // Then ensure all buttons have a priority set (by default based on array index)
               .map((button, index) => ({
@@ -619,6 +621,7 @@ type ActionButton = {
   icon: string;
   description?: string;
   mobile?: boolean;
+  standalone?: boolean;
   dropdown?: boolean;
   priority?: number;
   run: () => void;

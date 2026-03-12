@@ -29,6 +29,7 @@ export type AppViewState = {
 
   isLoading: boolean;
   isMobile: boolean;
+  isStandalone: boolean;
   showPageNavigator: boolean;
   showCommandPalette: boolean;
   showCommandPaletteContext?: string;
@@ -88,6 +89,7 @@ export const initialViewState: AppViewState = {
     forcedROMode: false,
   },
   isMobile: false,
+  isStandalone: false,
   panels: {
     lhs: {},
     rhs: {},
