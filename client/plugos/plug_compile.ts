@@ -21,10 +21,10 @@ const workerRuntimePlugin: esbuild.Plugin = {
         path: "worker-runtime",
         namespace: "worker-runtime",
       }));
-      build.onLoad(
-        { filter: /.*/, namespace: "worker-runtime" },
-        () => ({ contents: __EMBEDDED_WORKER_RUNTIME_JS__, loader: "js" }),
-      );
+      build.onLoad({ filter: /.*/, namespace: "worker-runtime" }, () => ({
+        contents: __EMBEDDED_WORKER_RUNTIME_JS__,
+        loader: "js",
+      }));
     } else {
       // From source: point directly at the .ts file, esbuild handles it
       build.onResolve({ filter: /^worker-runtime$/ }, () => ({

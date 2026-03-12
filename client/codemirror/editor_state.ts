@@ -46,7 +46,7 @@ import type { TextChange } from "./change.ts";
 import { postScriptPrefacePlugin } from "./top_bottom_panels.ts";
 import { languageFor } from "../languages.ts";
 import { plugLinter } from "./lint.ts";
-import { extendedMarkdownLanguage } from "../markdown_parser/parser.ts";
+import { buildExtendedMarkdownLanguage } from "../markdown_parser/parser.ts";
 import { safeRun } from "@silverbulletmd/silverbullet/lib/async";
 import { codeCopyPlugin } from "../codemirror/code_copy.ts";
 import { disableSpellcheck } from "../codemirror/spell_checking.ts";
@@ -77,12 +77,25 @@ export function createEditorState(
   client.undoHistoryCompartment = new Compartment();
   const undoHistory = client.undoHistoryCompartment.of([history()]);
 
+  // Build the markdown language with any custom syntax extensions
+  client.markdownLanguageCompartment = new Compartment();
+  const markdownLanguageExtension = client.markdownLanguageCompartment.of(
+    buildMarkdownLanguageExtension(client),
+  );
+
   const vimMode = client.ui.viewState.uiOptions.vimMode;
 
   // If vim mode is requested, load it async and reconfigure the compartment
   if (vimMode) {
     void enableVimMode(client);
   }
+
+  const readOnlyExtensions: Extension[] =
+    readOnly ||
+    client.ui.viewState.uiOptions.forcedROMode ||
+    client.bootConfig.readOnly
+      ? [EditorView.editable.of(false), EditorState.readOnly.of(true)]
+      : [];
 
   return EditorState.create({
     doc: text,
@@ -103,37 +116,10 @@ export function createEditorState(
 
       // Vim mode compartment — starts empty, loaded async if needed
       client.vimCompartment.of([]),
-      [
-        ...(readOnly ||
-        client.ui.viewState.uiOptions.forcedROMode ||
-        client.bootConfig.readOnly
-          ? [EditorView.editable.of(false), EditorState.readOnly.of(true)]
-          : []),
-      ],
+      readOnlyExtensions,
 
-      // The uber markdown mode
-      markdown({
-        base: extendedMarkdownLanguage,
-        codeLanguages: (info) => {
-          const lang = languageFor(info);
-          if (lang) {
-            return LanguageDescription.of({
-              name: info,
-              support: new LanguageSupport(lang),
-            });
-          }
-
-          return null;
-        },
-        addKeymap: true,
-      }),
-      extendedMarkdownLanguage.data.of({
-        closeBrackets: {
-          brackets: client.config
-            .get<string | undefined>("autoCloseBrackets", undefined)
-            ?.split(""),
-        },
-      }),
+      // The uber markdown mode (in a compartment so it can be reconfigured on reload)
+      markdownLanguageExtension,
       syntaxHighlighting(customMarkdownStyle()),
       autocompletion({
         override: [
@@ -443,3 +429,31 @@ async function enableVimMode(client: Client) {
  * @returns A boolean indicating if the platform is Mac-like.
  */
 export const isMacLike = /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform);
+
+export function buildMarkdownLanguageExtension(client: Client): Extension[] {
+  const syntaxExtensions = client.config.get("syntaxExtensions", {});
+  const markdownLanguage = buildExtendedMarkdownLanguage(syntaxExtensions);
+  return [
+    markdown({
+      base: markdownLanguage,
+      codeLanguages: (info) => {
+        const lang = languageFor(info);
+        if (lang) {
+          return LanguageDescription.of({
+            name: info,
+            support: new LanguageSupport(lang),
+          });
+        }
+        return null;
+      },
+      addKeymap: true,
+    }),
+    markdownLanguage.data.of({
+      closeBrackets: {
+        brackets: client.config
+          .get<string | undefined>("autoCloseBrackets", undefined)
+          ?.split(""),
+      },
+    }),
+  ];
+}

@@ -47,28 +47,37 @@ export type LuaWidgetContent =
     }
   | string;
 
+export interface LuaWidgetOptions {
+  client: Client;
+  /** Key to use for caching */
+  cacheKey: string;
+  /** Body text to send to widget renderer */
+  expressionText: string;
+  callback: LuaWidgetCallback;
+  inPage: boolean;
+  /** Code as it appears in the page (used to find when hitting the "edit" button) */
+  codeText?: string;
+  renderEmpty?: boolean;
+  openRef?: Ref | null;
+}
+
 export class LuaWidget extends WidgetType {
   public dom?: HTMLElement;
 
-  constructor(
-    readonly client: Client,
-    // key to use for caching
-    readonly cacheKey: string,
-    // body text to send to widget renderer
-    readonly expressionText: string,
-    // code as it appears in the page (used to find when hitting the "edit" button)
-    readonly codeText: string,
-    readonly callback: LuaWidgetCallback,
-    private renderEmpty: boolean,
-    readonly inPage: boolean,
-    // Add open ref option
-    private openRef: Ref | null,
-  ) {
+  constructor(readonly opts: LuaWidgetOptions) {
     super();
+    this.opts = {
+      codeText: "",
+      renderEmpty: false,
+      openRef: null,
+      ...opts,
+    };
   }
 
   override get estimatedHeight(): number {
-    return this.client.widgetCache.getCachedWidgetHeight(this.cacheKey);
+    return this.opts.client.widgetCache.getCachedWidgetHeight(
+      this.opts.cacheKey,
+    );
   }
 
   toDOM(): HTMLElement {
@@ -76,7 +85,9 @@ export class LuaWidget extends WidgetType {
     wrapperSpan.className = "sb-lua-wrapper";
     const innerDiv = document.createElement("div");
     wrapperSpan.appendChild(innerDiv);
-    const cacheItem = this.client.widgetCache.getWidgetCache(this.cacheKey);
+    const cacheItem = this.opts.client.widgetCache.getWidgetCache(
+      this.opts.cacheKey,
+    );
     if (cacheItem) {
       if (cacheItem.block) {
         innerDiv.className += " sb-lua-directive-block";
@@ -86,6 +97,11 @@ export class LuaWidget extends WidgetType {
       // This is to make the initial render faster, will later be replaced by the actual content
       innerDiv.replaceChildren(
         this.wrapHtml(!!cacheItem.block, cacheItem.html, cacheItem.copyContent),
+      );
+      attachWidgetEventHandlers(
+        innerDiv,
+        this.opts.client,
+        this.opts.inPage ? this.opts.codeText : undefined,
       );
     }
 
@@ -102,11 +118,11 @@ export class LuaWidget extends WidgetType {
       return renderMarkdownToHtml(
         mdTree,
         {
-          shortWikiLinks: this.client.config.get("shortWikiLinks", false),
+          shortWikiLinks: this.opts.client.config.get("shortWikiLinks", false),
           translateUrls: (url) => {
             if (isLocalURL(url)) {
               url = resolveMarkdownLink(
-                this.client.currentName(),
+                this.opts.client.currentName(),
                 decodeURI(url),
               );
             }
@@ -114,24 +130,27 @@ export class LuaWidget extends WidgetType {
           },
           preserveAttributes: true,
         },
-        this.client.ui.viewState.allPages,
+        this.opts.client.ui.viewState.allPages,
       );
     };
   }
 
   async renderContent(div: HTMLElement) {
-    const currentName = this.client.currentName();
-    let widgetContent = await this.callback(this.expressionText, currentName);
+    const currentName = this.opts.client.currentName();
+    let widgetContent = await this.opts.callback(
+      this.opts.expressionText,
+      currentName,
+    );
     activeWidgets.add(this);
     if (widgetContent === null || widgetContent === undefined) {
-      if (!this.renderEmpty) {
+      if (!this.opts.renderEmpty) {
         div.innerHTML = "";
-        this.client.widgetCache.setWidgetCache(this.cacheKey, {
+        this.opts.client.widgetCache.setWidgetCache(this.opts.cacheKey, {
           html: "",
           block: false,
         });
-        this.client.widgetCache.setCachedWidgetHeight(
-          this.cacheKey,
+        this.opts.client.widgetCache.setCachedWidgetHeight(
+          this.opts.cacheKey,
           div.clientHeight,
         );
         return;
@@ -154,7 +173,9 @@ export class LuaWidget extends WidgetType {
       // Markdown path for copy button (flat tables, `{...}` for nested)
       const markdownCopy = await renderExpressionResult(widgetContent);
 
-      const isBlock = dataType === "table" || dataType === "list" ||
+      const isBlock =
+        dataType === "table" ||
+        dataType === "list" ||
         (typeof widgetContent === "string" && isBlockMarkdown(widgetContent));
 
       widgetContent = {
@@ -191,10 +212,10 @@ export class LuaWidget extends WidgetType {
       let mdTree = parse(extendedMarkdownLanguage, wc.markdown || "");
 
       mdTree = await expandMarkdown(
-        client.space,
+        this.opts.client.space,
         currentName,
         mdTree,
-        client.clientSystem.spaceLuaEnv,
+        this.opts.client.clientSystem.spaceLuaEnv,
       );
       const trimmedMarkdown = renderToText(mdTree).trim();
 
@@ -203,12 +224,12 @@ export class LuaWidget extends WidgetType {
       if (!trimmedMarkdown) {
         // Net empty result after expansion
         div.innerHTML = "";
-        this.client.widgetCache.setWidgetCache(this.cacheKey, {
+        this.opts.client.widgetCache.setWidgetCache(this.opts.cacheKey, {
           html: "",
           block: false,
         });
-        this.client.widgetCache.setCachedWidgetHeight(
-          this.cacheKey,
+        this.opts.client.widgetCache.setCachedWidgetHeight(
+          this.opts.cacheKey,
           div.clientHeight,
         );
         return;
@@ -230,11 +251,14 @@ export class LuaWidget extends WidgetType {
         renderMarkdownToHtml(
           mdTree,
           {
-            shortWikiLinks: this.client.config.get("shortWikiLinks", false),
+            shortWikiLinks: this.opts.client.config.get(
+              "shortWikiLinks",
+              false,
+            ),
             translateUrls: (url) => {
               if (isLocalURL(url)) {
                 url = resolveMarkdownLink(
-                  this.client.currentName(),
+                  this.opts.client.currentName(),
                   decodeURI(url),
                 );
               }
@@ -243,7 +267,7 @@ export class LuaWidget extends WidgetType {
             },
             preserveAttributes: true,
           },
-          this.client.ui.viewState.allPages,
+          this.opts.client.ui.viewState.allPages,
         ),
       );
     }
@@ -251,26 +275,26 @@ export class LuaWidget extends WidgetType {
       div.replaceChildren(this.wrapHtml(block, html, copyContent));
       attachWidgetEventHandlers(
         div,
-        this.client,
-        this.inPage ? this.codeText : undefined,
+        this.opts.client,
+        this.opts.inPage ? this.opts.codeText : undefined,
         wc._isWidget && wc.events,
       );
     }
 
     // Let's give it a tick, then measure and cache
     setTimeout(() => {
-      this.client.widgetCache.setWidgetCache(this.cacheKey, {
+      this.opts.client.widgetCache.setWidgetCache(this.opts.cacheKey, {
         html: html?.outerHTML || "",
         block,
         copyContent: copyContent,
       });
-      this.client.widgetCache.setCachedWidgetHeight(
-        this.cacheKey,
+      this.opts.client.widgetCache.setCachedWidgetHeight(
+        this.opts.cacheKey,
         div.offsetHeight,
       );
       // Because of the rejiggering of the DOM, we need to do a no-op cursor move to make sure it's positioned correctly
-      this.client.editorView.dispatch({
-        selection: this.client.editorView.state.selection,
+      this.opts.client.editorView.dispatch({
+        selection: this.opts.client.editorView.state.selection,
       });
     });
   }
@@ -314,7 +338,7 @@ export class LuaWidget extends WidgetType {
         icon: '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-refresh-cw"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>',
         listener: (e) => {
           e.stopPropagation();
-          this.client.clientSystem
+          this.opts.client.clientSystem
             .localSyscall("system.invokeFunction", ["index.refreshWidgets"])
             .catch(console.error);
         },
@@ -328,7 +352,8 @@ export class LuaWidget extends WidgetType {
           icon: `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-copy"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`,
           listener: (e) => {
             e.stopPropagation();
-            this.client.clientSystem
+
+            this.opts.client.clientSystem
               .localSyscall("editor.copyToClipboard", [copyContent])
               .catch(console.error);
           },
@@ -336,27 +361,27 @@ export class LuaWidget extends WidgetType {
       );
     }
 
-    if (this.inPage) {
+    if (this.opts.inPage) {
       buttonBar.appendChild(
         createButton({
           title: "Edit",
           icon: '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>',
           listener: (e) => {
             e.stopPropagation();
-            moveCursorIntoText(this.client, this.codeText);
+            moveCursorIntoText(this.opts.client, this.opts.codeText!);
           },
         }),
       );
     }
 
-    if (this.openRef) {
+    if (this.opts.openRef) {
       buttonBar.appendChild(
         createButton({
           title: "Open",
           icon: '<svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="css-i6dzq1"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>',
           listener: (e) => {
             e.stopPropagation();
-            void this.client.navigate(this.openRef!);
+            void this.opts.client.navigate(this.opts.openRef!);
           },
         }),
       );
@@ -375,9 +400,13 @@ export class LuaWidget extends WidgetType {
   override eq(other: WidgetType): boolean {
     return (
       other instanceof LuaWidget &&
-      other.expressionText === this.expressionText &&
-      other.cacheKey === this.cacheKey
+      other.opts.expressionText === this.opts.expressionText &&
+      other.opts.cacheKey === this.opts.cacheKey
     );
+  }
+
+  override ignoreEvent() {
+    return true;
   }
 }
 

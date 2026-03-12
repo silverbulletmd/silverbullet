@@ -17,7 +17,10 @@ test("Config - basic get/set/has/insert", () => {
 });
 
 test("Config - object-based and dot-notation setting", () => {
-  const config = new Config({ simple: "value", nested: { key: "nestedValue" } });
+  const config = new Config({
+    simple: "value",
+    nested: { key: "nestedValue" },
+  });
 
   expect(config.get("simple", null)).toEqual("value");
   expect(config.get("nested.key", null)).toEqual("nestedValue");
@@ -33,7 +36,10 @@ test("Config - object-based and dot-notation setting", () => {
 
   config.set(["user", "name"], "Pete");
   expect(config.get(["user", "name"], null)).toEqual("Pete");
-  expect(config.get("user", {})).toEqual({ name: "Pete", profile: { age: 30 } });
+  expect(config.get("user", {})).toEqual({
+    name: "Pete",
+    profile: { age: 30 },
+  });
 });
 
 test("Config - edge cases", () => {
@@ -69,24 +75,29 @@ test("Config - schema validation", () => {
   config.set("user.name", "John");
 
   // Missing required field
-  expect(() => config.set("user", { name: "John" }))
-    .toThrow("Validation error for user");
+  expect(() => config.set("user", { name: "John" })).toThrow(
+    "Validation error for user",
+  );
 
   // Wrong type
-  expect(() => config.set("user", { name: "John", age: "thirty" }))
-    .toThrow("Validation error for user");
+  expect(() => config.set("user", { name: "John", age: "thirty" })).toThrow(
+    "Validation error for user",
+  );
 
   // Wrong type via path
-  expect(() => config.set(["user", "name"], 22))
-    .toThrow("Validation error for user");
+  expect(() => config.set(["user", "name"], 22)).toThrow(
+    "Validation error for user",
+  );
 
   // Invalid format (email without @)
-  expect(() => config.set("user", { name: "John", age: 30, email: "not-an-email" }))
-    .toThrow("Validation error for user");
+  expect(() =>
+    config.set("user", { name: "John", age: 30, email: "not-an-email" }),
+  ).toThrow("Validation error for user");
 
   // Value below minimum
-  expect(() => config.set("user", { name: "John", age: -1 }))
-    .toThrow("Validation error for user");
+  expect(() => config.set("user", { name: "John", age: -1 })).toThrow(
+    "Validation error for user",
+  );
 });
 
 test("Config - nested schema definitions", () => {
@@ -108,19 +119,23 @@ test("Config - nested schema definitions", () => {
   config.set("system.config.version", "1.0.0");
   config.set("system.config.enabled", true);
 
-  expect(() => config.set("a.b.user.name", 22))
-    .toThrow("Validation error for a.b.user");
-  expect(() => config.set("system.config.enabled", "not-boolean"))
-    .toThrow("Validation error for system.config");
+  expect(() => config.set("a.b.user.name", 22)).toThrow(
+    "Validation error for a.b.user",
+  );
+  expect(() => config.set("system.config.enabled", "not-boolean")).toThrow(
+    "Validation error for system.config",
+  );
 });
 
 test("Config - define() rejects invalid schemas", () => {
   const config = new Config();
 
-  expect(() => config.define("bad", { type: "invalid-type" }))
-    .toThrow(/^Invalid schema for key bad: /);
-  expect(() => config.define(["a", "b"], { type: "bogus" }))
-    .toThrow(/^Invalid schema for key a,b: /);
+  expect(() => config.define("bad", { type: "invalid-type" })).toThrow(
+    /^Invalid schema for key bad: /,
+  );
+  expect(() => config.define(["a", "b"], { type: "bogus" })).toThrow(
+    /^Invalid schema for key a,b: /,
+  );
 });
 
 test("Config - custom format validation", () => {
@@ -133,8 +148,10 @@ test("Config - custom format validation", () => {
   });
 
   config.set("link", { ref: "[[my page]]" });
-  expect(() => config.set("link", { ref: "not a ref" }))
-    .toThrow("Validation error for link");
-  expect(() => config.set("link", { ref: "[[no close" }))
-    .toThrow("Validation error for link");
+  expect(() => config.set("link", { ref: "not a ref" })).toThrow(
+    "Validation error for link",
+  );
+  expect(() => config.set("link", { ref: "[[no close" })).toThrow(
+    "Validation error for link",
+  );
 });

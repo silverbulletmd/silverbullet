@@ -59,12 +59,15 @@ export function inlineContentPlugin(client: Client) {
 
         widgets.push(
           Decoration.widget({
-            widget: new LuaWidget(
+            widget: new LuaWidget({
               client,
-              `widget:${client.currentPath()}:${text}`,
-              text,
-              text,
-              async () => {
+              cacheKey: `widget:${client.currentPath()}:${text}`,
+              expressionText: text,
+              codeText: text,
+              renderEmpty: true,
+              inPage: true,
+              openRef: parseToRef(transclusion.url),
+              callback: async () => {
                 // Resolve local URLs
                 if (isLocalURL(transclusion.url)) {
                   transclusion.url = resolveMarkdownLink(
@@ -115,10 +118,7 @@ export function inlineContentPlugin(client: Client) {
                   };
                 }
               },
-              true,
-              true,
-              parseToRef(transclusion.url),
-            ),
+            }),
             block: true,
           }).range(from),
         );

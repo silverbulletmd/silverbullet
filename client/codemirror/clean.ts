@@ -16,6 +16,7 @@ import { luaDirectivePlugin } from "./lua_directive.ts";
 import { hashtagPlugin } from "./hashtag.ts";
 import type { ClickEvent } from "@silverbulletmd/silverbullet/type/client";
 import { attributePlugin } from "./attribute.ts";
+import { customSyntaxPlugin } from "./custom_syntax_widget.ts";
 
 export function cleanModePlugins(client: Client) {
   const pluginsNeededEvenWhenRenderingSyntax = [
@@ -24,6 +25,7 @@ export function cleanModePlugins(client: Client) {
     hashtagPlugin(),
     attributePlugin(),
     frontmatterPlugin(client),
+    customSyntaxPlugin(client),
   ];
 
   if (client.ui.viewState.uiOptions.markdownSyntaxRendering) {

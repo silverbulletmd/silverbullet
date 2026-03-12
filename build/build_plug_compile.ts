@@ -35,12 +35,7 @@ export async function buildPlugCompile(): Promise<void> {
       __EMBEDDED_WORKER_RUNTIME_JS__: JSON.stringify(workerRuntimeJS),
     },
     // Mark all npm packages as external - they'll be installed by npm
-    external: [
-      "esbuild",
-      "commander",
-      "js-yaml",
-      "sass",
-    ],
+    external: ["esbuild", "commander", "js-yaml", "sass"],
   });
   if (result.metafile) {
     const text = await esbuild.analyzeMetafile(result.metafile!);
