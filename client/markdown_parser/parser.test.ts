@@ -210,3 +210,104 @@ test("Test table parser", () => {
   expect(wikiName!.children![0].text).toEqual("Wiki");
   expect(wikiAlias!.children![0].text).toEqual("Alias");
 });
+
+// Table parsing: bracket-depth pipe protection
+const tableEdgeCases = `
+| Col A | Col B | Col C |
+|-------|-------|-------|
+| [[page|alias]] | **bold** | plain |
+| [[page]] | #tag | [attr: val] |
+| [attr: a|b] | [[w|x]] | text |
+| [arr: [1, 2|3]] | normal | end |
+| \\| escaped | col2 | col3 |
+| mixed [[l|a]] and [x: y|z] | last | cell |
+| **b** *i* ~s~ | \`code\\|pipe\` | end |
+`;
+
+test("Test table parser with bracket-depth pipe protection", () => {
+  const tree = parseMarkdown(tableEdgeCases);
+  const rows = collectNodesOfType(tree, "TableRow");
+  expect(rows.length).toBe(7);
+
+  const cells = collectNodesOfType(tree, "TableCell");
+
+  // Row 1: [[page|alias]] | **bold** | plain
+  const row1Cells = collectNodesOfType(rows[0], "TableCell");
+  expect(row1Cells.length).toBe(3);
+
+  const wl = findNodeOfType(row1Cells[0], "WikiLink");
+  expect(wl).not.toBeUndefined();
+  expect(findNodeOfType(wl!, "WikiLinkPage")!.children![0].text).toBe("page");
+  expect(findNodeOfType(wl!, "WikiLinkAlias")!.children![0].text).toBe("alias");
+
+  const bold = findNodeOfType(row1Cells[1], "StrongEmphasis");
+  expect(bold).not.toBeUndefined();
+
+  expect(renderToText(row1Cells[2]).trim()).toBe("plain");
+
+  // Row 2: [[page]] | #tag | [attr: val]
+  const row2Cells = collectNodesOfType(rows[1], "TableCell");
+  expect(row2Cells.length).toBe(3);
+  expect(findNodeOfType(row2Cells[0], "WikiLink")).not.toBeUndefined();
+  expect(findNodeOfType(row2Cells[1], "Hashtag")).not.toBeUndefined();
+  expect(findNodeOfType(row2Cells[2], "Attribute")).not.toBeUndefined();
+  const an = findNodeOfType(row2Cells[2], "AttributeName");
+  expect(an!.children![0].text).toBe("attr");
+  const av = findNodeOfType(row2Cells[2], "AttributeValue");
+  expect(av!.children![0].text).toBe("val");
+
+  // Row 3: [attr: a|b] | [[w|x]] | text
+  const row3Cells = collectNodesOfType(rows[2], "TableCell");
+  expect(row3Cells.length).toBe(3);
+  const attr3 = findNodeOfType(row3Cells[0], "Attribute");
+  expect(attr3).not.toBeUndefined();
+  expect(findNodeOfType(attr3!, "AttributeValue")!.children![0].text).toBe(
+    "a|b",
+  );
+  const wl3 = findNodeOfType(row3Cells[1], "WikiLink");
+  expect(wl3).not.toBeUndefined();
+  expect(findNodeOfType(wl3!, "WikiLinkAlias")!.children![0].text).toBe("x");
+
+  // Row 4: [arr: [1, 2|3]] | normal | end
+  const row4Cells = collectNodesOfType(rows[3], "TableCell");
+  expect(row4Cells.length).toBe(3);
+  const attr4 = findNodeOfType(row4Cells[0], "Attribute");
+  expect(attr4).not.toBeUndefined();
+  expect(findNodeOfType(attr4!, "AttributeValue")!.children![0].text).toBe(
+    "[1, 2|3]",
+  );
+
+  // Row 5: \| escaped | col2 | col3
+  const row5Cells = collectNodesOfType(rows[4], "TableCell");
+  expect(row5Cells.length).toBe(3);
+  expect(renderToText(row5Cells[0])).toContain("|");
+
+  // Row 6: mixed [[l|a]] and [x: y|z] | last | cell
+  const row6Cells = collectNodesOfType(rows[5], "TableCell");
+  expect(row6Cells.length).toBe(3);
+  expect(findNodeOfType(row6Cells[0], "WikiLink")).not.toBeUndefined();
+  expect(findNodeOfType(row6Cells[0], "Attribute")).not.toBeUndefined();
+
+  // Row 7: **b** *i* ~s~ | `code\|pipe` | end
+  const row7Cells = collectNodesOfType(rows[6], "TableCell");
+  expect(row7Cells.length).toBe(3);
+  expect(findNodeOfType(row7Cells[0], "StrongEmphasis")).not.toBeUndefined();
+  expect(findNodeOfType(row7Cells[0], "Emphasis")).not.toBeUndefined();
+  expect(findNodeOfType(row7Cells[1], "InlineCode")).not.toBeUndefined();
+});
+
+const tableNoCmdButton = `
+| A | B |
+|---|---|
+| {[not|cmd]} | text |
+`;
+
+test("Test table parser does not treat {[...]} specially", () => {
+  const tree = parseMarkdown(tableNoCmdButton);
+  const rows = collectNodesOfType(tree, "TableRow");
+  expect(rows.length).toBe(1);
+  // The pipe in {[not|cmd]} is inside brackets, so bracket-depth protects it
+  // but only because of the [ — not because of {[ special-casing
+  const row1Cells = collectNodesOfType(rows[0], "TableCell");
+  expect(row1Cells.length).toBe(2);
+});
