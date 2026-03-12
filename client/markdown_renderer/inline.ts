@@ -65,8 +65,8 @@ export async function expandMarkdown(
         return n;
       }
 
-      // Resolve local URLs
-      if (isLocalURL(transclusion.url)) {
+      // Resolve local URLs (only for markdown links, wikilinks are absolute)
+      if (isLocalURL(transclusion.url) && transclusion.linktype !== "wikilink") {
         transclusion.url = resolveMarkdownLink(
           pageName,
           decodeURI(transclusion.url),

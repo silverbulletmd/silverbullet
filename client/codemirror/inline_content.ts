@@ -68,8 +68,8 @@ export function inlineContentPlugin(client: Client) {
               inPage: true,
               openRef: parseToRef(transclusion.url),
               callback: async () => {
-                // Resolve local URLs
-                if (isLocalURL(transclusion.url)) {
+                // Resolve local URLs (only for markdown links, wikilinks are absolute)
+                if (isLocalURL(transclusion.url) && transclusion.linktype !== "wikilink") {
                   transclusion.url = resolveMarkdownLink(
                     client.currentName(),
                     decodeURI(transclusion.url),
