@@ -882,6 +882,9 @@ export class Client {
       if (path) {
         console.log("Navigating to last opened page", getNameFromPath(path));
         ref = { path };
+      } else {
+        // Strip the #boot detail — it's not a real header
+        delete ref.details;
       }
     }
 
