@@ -50,7 +50,7 @@ export const TaskList: MarkdownConfig = {
       name: "TaskList",
       leaf(cx, leaf) {
         // Note: task states cannot contain : to avoid ambiguity with attribute syntax
-        const match = /^\[([^\]:]+)\][ \t]/.exec(leaf.content);
+        const match = /^\[([^\]:]+)\](?:[ \t]|$)/.exec(leaf.content);
         return match && cx.parentType().name === "ListItem"
           ? new MultiStatusTaskParser(match[1])
           : null;
