@@ -8,12 +8,6 @@ import type {
 } from "@lezer/markdown";
 import { tags as t } from "@lezer/highlight";
 
-// Forked from https://github.com/lezer-parser/markdown/blob/main/src/extension.ts
-// MIT License
-// Author: Marijn Haverbeke
-// Change made: Avoid wiki links and commands with aliases [[link|alias]], {[My: Command|alias]}
-//  from being parsed as table row separators
-
 function parseRow(
   cx: BlockContext,
   line: string,
@@ -40,30 +34,19 @@ function parseRow(
     );
   };
 
-  let inWikilink = false;
-  let inCommandButton = false;
+  // Track bracket nesting depth to protect `|` inside `[[wikilink]]`s,
+  // `[attribute: value]`s (and any future bracket-delimited syntax).
+  let bracketDepth = 0;
   for (let i = startI; i < line.length; i++) {
     const next = line.charCodeAt(i);
 
-    if (line[i] === "[" && line.charAt(i + 1) === "[") {
-      inWikilink = true;
-    } else if (line[i] === "]" && line.charAt(i - 1) === "]" && inWikilink) {
-      inWikilink = false;
+    if (next === 91 /* '[' */) {
+      bracketDepth++;
+    } else if (next === 93 /* ']' */) {
+      if (bracketDepth > 0) bracketDepth--;
     }
 
-    if (line[i] === "{" && line.charAt(i + 1) === "[") {
-      inCommandButton = true;
-    } else if (inCommandButton) {
-      if (line[i] === "}" && line.charAt(i - 1) === "]") {
-        // Command button without arguments: {[My Command: BeepBoop|Alias]}
-        inCommandButton = false;
-      } else if (line[i] === "}" && line.charAt(i - 1) === ")") {
-        // Command button with arguments: {[My Command: BeepBoop|Alias]("args")}
-        inCommandButton = false;
-      }
-    }
-
-    if (next === 124 /* '|' */ && !esc && !inWikilink && !inCommandButton) {
+    if (next === 124 /* '|' */ && !esc && bracketDepth === 0) {
       if (!first || cellStart > -1) count++;
       first = false;
       if (elts) {
