@@ -75,12 +75,12 @@ export function luaDirectivePlugin(client: Client) {
         const currentPageMeta = client.currentPageMeta();
         widgets.push(
           Decoration.widget({
-            widget: new LuaWidget(
+            widget: new LuaWidget({
               client,
-              `lua:${expressionText}:${currentPageMeta?.name}`,
+              cacheKey: `lua:${expressionText}:${currentPageMeta?.name}`,
               expressionText,
               codeText,
-              async (bodyText) => {
+              callback: async (bodyText) => {
                 if (bodyText.trim().length === 0) {
                   return "**Error:** Empty Lua expression";
                 }
@@ -143,10 +143,9 @@ export function luaDirectivePlugin(client: Client) {
                   return `**Lua error:** ${e.message}`;
                 }
               },
-              true,
-              true,
-              null,
-            ),
+              renderEmpty: true,
+              inPage: true,
+            }),
           }).range(node.to),
         );
 

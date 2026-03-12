@@ -57,16 +57,13 @@ class ArrayWidget extends WidgetType {
       )
         continue;
 
-      const widget = new LuaWidget(
-        this.client,
-        `${this.cacheKey}:${i}`,
-        "",
-        "",
-        () => Promise.resolve(widgetContent),
-        false,
-        false,
-        null,
-      );
+      const widget = new LuaWidget({
+        client: this.client,
+        cacheKey: `${this.cacheKey}:${i}`,
+        expressionText: "",
+        callback: () => Promise.resolve(widgetContent),
+        inPage: false,
+      });
 
       // Throw away the wrapper, as it only causes trouble and we are rewrapping
       // anyways

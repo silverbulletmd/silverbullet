@@ -23,21 +23,24 @@ export function attachWidgetEventHandlers(
   widgetText?: string,
   events?: Record<string, (event: EventPayLoad) => void>,
 ) {
-  div.addEventListener("mousedown", (e) => {
-    if (e.altKey && widgetText) {
-      // Move cursor there
-      moveCursorIntoText(client, widgetText);
-      e.preventDefault();
-    }
-    // CodeMirror overrides mousedown on parent elements to implement its own selection highlighting.
-    // That's nice, but not for markdown widgets, so let's not propagate the event to CodeMirror here.
-    e.stopPropagation();
-  });
+  if (!div.dataset.handlersAttached) {
+    div.dataset.handlersAttached = "true";
+    div.addEventListener("mousedown", (e) => {
+      if (e.altKey && widgetText) {
+        // Move cursor there
+        moveCursorIntoText(client, widgetText);
+        e.preventDefault();
+      }
+      // CodeMirror overrides mousedown on parent elements to implement its own selection highlighting.
+      // That's nice, but not for markdown widgets, so let's not propagate the event to CodeMirror here.
+      e.stopPropagation();
+    });
 
-  div.addEventListener("mouseup", (e) => {
-    // Same as above
-    e.stopPropagation();
-  });
+    div.addEventListener("mouseup", (e) => {
+      // Same as above
+      e.stopPropagation();
+    });
+  }
 
   // Override wiki links with local navigate (faster)
   div.querySelectorAll("a[data-ref]").forEach((el_) => {

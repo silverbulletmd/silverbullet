@@ -28,7 +28,6 @@ function makeConfig(specs: Record<string, AggregateSpec> = {}): Config {
   return config;
 }
 
-
 function requireSpec(name: string): AggregateSpec {
   const spec = getAggregateSpec(name);
   if (!spec) throw new Error(`builtin aggregate "${name}" not found`);

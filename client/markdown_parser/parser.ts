@@ -16,6 +16,10 @@ import { nakedUrlRegex, pWikiLinkRegex, tagRegex } from "./constants.ts";
 import { parse } from "./parse_tree.ts";
 import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
 import { luaLanguage } from "../space_lua/parse.ts";
+import {
+  buildCustomSyntaxExtensions,
+  type CustomSyntaxSpecs,
+} from "./custom_syntax.ts";
 
 const WikiLink: MarkdownConfig = {
   defineNodes: [
@@ -356,57 +360,71 @@ export const FrontMatter: MarkdownConfig = {
   ],
 };
 
-export const extendedMarkdownLanguage = markdown({
-  extensions: [
-    WikiLink,
-    Attribute,
-    FrontMatter,
-    TaskList,
-    Highlight,
-    LuaDirectives,
-    Strikethrough,
-    Table,
-    NakedURL,
-    Hashtag,
-    Superscript,
-    Subscript,
-    {
-      props: [
-        foldNodeProp.add({
-          // Don't fold at the list level
-          BulletList: () => null,
-          OrderedList: () => null,
-          // Fold list items
-          ListItem: (tree, state) => ({
-            from: state.doc.lineAt(tree.from).to,
-            to: tree.to,
-          }),
-          // Fold frontmatter
-          FrontMatter: (tree) => ({
-            from: tree.from,
-            to: tree.to,
-          }),
+const baseMarkdownExtensions: MarkdownConfig[] = [
+  WikiLink,
+  Attribute,
+  FrontMatter,
+  TaskList,
+  Highlight,
+  LuaDirectives,
+  Strikethrough,
+  Table,
+  NakedURL,
+  Hashtag,
+  Superscript,
+  Subscript,
+  {
+    props: [
+      foldNodeProp.add({
+        // Don't fold at the list level
+        BulletList: () => null,
+        OrderedList: () => null,
+        // Fold list items
+        ListItem: (tree, state) => ({
+          from: state.doc.lineAt(tree.from).to,
+          to: tree.to,
         }),
+        // Fold frontmatter
+        FrontMatter: (tree) => ({
+          from: tree.from,
+          to: tree.to,
+        }),
+      }),
 
-        styleTags({
-          Task: ct.TaskTag,
-          TaskMark: ct.TaskMarkTag,
-          Comment: ct.CommentTag,
-          Subscript: ct.SubscriptTag,
-          Superscript: ct.SuperscriptTag,
-          "TableDelimiter StrikethroughMark": t.processingInstruction,
-          "TableHeader/...": t.heading,
-          TableCell: t.content,
-          CodeInfo: ct.CodeInfoTag,
-          HorizontalRule: ct.HorizontalRuleTag,
-          Hashtag: ct.HashtagTag,
-          NakedURL: ct.NakedURLTag,
-          NamedAnchor: ct.NamedAnchorTag,
-        }),
-      ],
-    },
-  ],
+      styleTags({
+        Task: ct.TaskTag,
+        TaskMark: ct.TaskMarkTag,
+        Comment: ct.CommentTag,
+        Subscript: ct.SubscriptTag,
+        Superscript: ct.SuperscriptTag,
+        "TableDelimiter StrikethroughMark": t.processingInstruction,
+        "TableHeader/...": t.heading,
+        TableCell: t.content,
+        CodeInfo: ct.CodeInfoTag,
+        HorizontalRule: ct.HorizontalRuleTag,
+        Hashtag: ct.HashtagTag,
+        NakedURL: ct.NakedURLTag,
+        NamedAnchor: ct.NamedAnchorTag,
+      }),
+    ],
+  },
+];
+
+export const extendedMarkdownLanguage = markdown({
+  extensions: baseMarkdownExtensions,
 }).language;
+
+export function buildExtendedMarkdownLanguage(
+  syntaxExtensions?: CustomSyntaxSpecs,
+) {
+  if (!syntaxExtensions || Object.keys(syntaxExtensions).length === 0) {
+    return extendedMarkdownLanguage;
+  }
+  const customConfigs = buildCustomSyntaxExtensions(syntaxExtensions);
+  return markdown({
+    extensions: [...baseMarkdownExtensions, ...customConfigs],
+  }).language;
+}
 
 export function parseMarkdown(text: string, offset?: number): ParseTree {
   return parse(extendedMarkdownLanguage, text, offset);

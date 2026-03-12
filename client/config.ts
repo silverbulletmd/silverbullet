@@ -10,13 +10,16 @@ function cfwFormatErrors(errors: OutputUnit[]): string {
   const leafErrors = errors.filter((e) => e.keyword !== "properties");
   const errorsToUse = leafErrors.length > 0 ? leafErrors : errors;
 
-  return errorsToUse.map((e) => {
-    // Convert instanceLocation from "#/foo/bar" to "foo.bar"
-    const path = e.instanceLocation === "#"
-      ? ""
-      : e.instanceLocation.slice(2).replaceAll("/", ".");
-    return path ? `${path}: ${e.error}` : e.error;
-  }).join(", ");
+  return errorsToUse
+    .map((e) => {
+      // Convert instanceLocation from "#/foo/bar" to "foo.bar"
+      const path =
+        e.instanceLocation === "#"
+          ? ""
+          : e.instanceLocation.slice(2).replaceAll("/", ".");
+      return path ? `${path}: ${e.error}` : e.error;
+    })
+    .join(", ");
 }
 
 /**
@@ -85,8 +88,7 @@ export class Config {
     properties: {},
   };
 
-  constructor(public values: Record<string, any> = {}) {
-  }
+  constructor(public values: Record<string, any> = {}) {}
 
   public clear() {
     this.schemas = {

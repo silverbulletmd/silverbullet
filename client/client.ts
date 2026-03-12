@@ -41,7 +41,11 @@ import {
   type Ref,
 } from "@silverbulletmd/silverbullet/lib/ref";
 import { ClientSystem } from "./client_system.ts";
-import { createEditorState, isValidEditor } from "./codemirror/editor_state.ts";
+import {
+  buildMarkdownLanguageExtension,
+  createEditorState,
+  isValidEditor,
+} from "./codemirror/editor_state.ts";
 import { MainUI } from "./editor_ui.tsx";
 import { DataStore } from "./data/datastore.ts";
 import { IndexedDBKvPrimitives } from "./data/indexeddb_kv_primitives.ts";
@@ -99,6 +103,7 @@ export class Client {
   vimCompartment?: Compartment;
   indentUnitCompartment?: Compartment;
   undoHistoryCompartment?: Compartment;
+  markdownLanguageCompartment?: Compartment;
 
   // Content manager: handles page/document loading, saving, and editor mode switching
   contentManager!: ContentManager;
@@ -540,6 +545,16 @@ export class Client {
   async loadPlugs() {
     await this.clientSystem.reloadPlugsFromSpace(this.space);
     await this.dispatchAppEvent("plugs:loaded");
+  }
+
+  reconfigureLanguage() {
+    if (this.markdownLanguageCompartment) {
+      this.editorView.dispatch({
+        effects: this.markdownLanguageCompartment.reconfigure(
+          buildMarkdownLanguageExtension(this),
+        ),
+      });
+    }
   }
 
   rebuildEditorState() {
