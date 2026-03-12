@@ -35,32 +35,22 @@ export function refCellTransformer(v: any, k: string) {
 
 /**
  * Escapes all pipes that would inadvertently delimit a markdown table column.
- * Does not escape columns that are used for aliasing in WikiLinks or Commands:
- * `[[WikiLink|Alias]]` and `{[Command: Name|Click Me!]("args")}`
+ * Does not escape pipes inside bracket-delimited constructs such as
+ * `[[WikiLink|Alias]]` or `[attribute: a|b]`.
  * @param s The text to replace
- * @returns The text where the pipes outside of silverbullet specific context is
+ * @returns The text where the pipes outside of bracket context are
  *  replaced with an escaped pipe.
  */
 function escapeRegularPipes(s: string) {
   let result = "";
-  let isInWikiLink = false;
-  let isInCommandButton = false;
+  let bracketDepth = 0;
 
   for (let i = 0; i < s.length; i++) {
-    if (s[i] === "[" && s[i + 1] === "[") {
-      isInWikiLink = true;
-    } else if (s[i] === "]" && s[i + 1] === "]" && isInWikiLink) {
-      isInWikiLink = false;
-    }
-    if (s[i] === "{" && s[i + 1] === "[") {
-      isInCommandButton = true;
-    } else if (
-      (s[i] === "]" || s[i] === ")") &&
-      s[i + 1] === "}" &&
-      isInCommandButton
-    ) {
-      isInCommandButton = false;
-    } else if (s[i] === "|" && !isInWikiLink && !isInCommandButton) {
+    if (s[i] === "[") {
+      bracketDepth++;
+    } else if (s[i] === "]") {
+      if (bracketDepth > 0) bracketDepth--;
+    } else if (s[i] === "|" && bracketDepth === 0) {
       result += "\\";
     }
 

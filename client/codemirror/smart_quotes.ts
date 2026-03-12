@@ -13,7 +13,6 @@ const straightQuoteContexts = [
   "InlineCode",
   "FrontMatterCode",
   "Attribute",
-  "CommandLink",
   "LuaDirective",
 ];
 
