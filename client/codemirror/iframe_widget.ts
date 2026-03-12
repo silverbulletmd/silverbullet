@@ -10,8 +10,6 @@ export class IFrameWidget extends WidgetType {
   iframe?: HTMLIFrameElement;
 
   constructor(
-    readonly from: number,
-    readonly to: number,
     readonly client: Client,
     readonly bodyText: string,
     readonly codeWidgetCallback: CodeWidgetCallback,
@@ -28,20 +26,21 @@ export class IFrameWidget extends WidgetType {
   }
 
   toDOM(): HTMLElement {
-    const from = this.from;
     const iframe = createWidgetSandboxIFrame(
       this.client,
       this.bodyText,
       this.codeWidgetCallback(this.bodyText, this.client.currentName()),
       (message) => {
         switch (message.type) {
-          case "blur":
+          case "blur": {
+            const pos = this.client.editorView.posAtDOM(iframe, 0);
             this.client.editorView.dispatch({
-              selection: { anchor: from },
+              selection: { anchor: pos },
             });
             this.client.focus();
 
             break;
+          }
           case "reload":
             void this.codeWidgetCallback(
               this.bodyText,

@@ -2,18 +2,27 @@ import { parseToRef } from "@silverbulletmd/silverbullet/lib/ref";
 import type { Client } from "../client.ts";
 import type { EventPayLoad } from "./lua_widget.ts";
 
-export function moveCursorIntoText(client: Client, textToFind: string) {
-  const allText = client.editorView.state.sliceDoc();
-  const pos = allText.indexOf(textToFind);
-  if (pos === -1) {
-    console.error("Could not find position of widget in text", textToFind);
-    return;
+export function moveCursorToWidgetStart(
+  client: Client,
+  widgetDom: HTMLElement,
+  widgetText?: string,
+) {
+  const view = client.editorView;
+  const pos = view.posAtDOM(widgetDom, 0);
+
+  let anchor = pos;
+  if (widgetText) {
+    // The widget decoration may be placed at the end of the source range
+    // (node.to). Search near posAtDOM for the actual text to find its start.
+    const searchFrom = Math.max(0, pos - widgetText.length);
+    const region = view.state.sliceDoc(searchFrom, pos + widgetText.length);
+    const idx = region.lastIndexOf(widgetText);
+    if (idx !== -1) {
+      anchor = searchFrom + idx;
+    }
   }
-  client.editorView.dispatch({
-    selection: {
-      anchor: pos,
-    },
-  });
+
+  view.dispatch({ selection: { anchor } });
   client.focus();
 }
 
@@ -28,7 +37,7 @@ export function attachWidgetEventHandlers(
     div.addEventListener("mousedown", (e) => {
       if (e.altKey && widgetText) {
         // Move cursor there
-        moveCursorIntoText(client, widgetText);
+        moveCursorToWidgetStart(client, div, widgetText);
         e.preventDefault();
       }
       // CodeMirror overrides mousedown on parent elements to implement its own selection highlighting.

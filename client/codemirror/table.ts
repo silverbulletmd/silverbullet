@@ -25,7 +25,6 @@ class TableViewWidget extends WidgetType {
   tableBodyText: string;
 
   constructor(
-    readonly pos: number,
     readonly client: Client,
     readonly t: ParseTree,
   ) {
@@ -46,9 +45,10 @@ class TableViewWidget extends WidgetType {
       // Pulling data-pos to put the cursor in the right place, falling back
       // to the start of the table.
       const dataAttributes = (e.target as any).dataset;
+      const fallbackPos = this.client.editorView.posAtDOM(dom, 0);
       this.client.editorView.dispatch({
         selection: {
-          anchor: dataAttributes.pos ? +dataAttributes.pos : this.pos,
+          anchor: dataAttributes.pos ? +dataAttributes.pos : fallbackPos,
         },
       });
     });
@@ -138,7 +138,6 @@ export function tablePlugin(editor: Client) {
         widgets.push(
           Decoration.widget({
             widget: new TableViewWidget(
-              from,
               editor,
               lezerToParseTree(text, node.node),
             ),
