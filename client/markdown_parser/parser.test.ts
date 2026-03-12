@@ -229,8 +229,6 @@ test("Test table parser with bracket-depth pipe protection", () => {
   const rows = collectNodesOfType(tree, "TableRow");
   expect(rows.length).toBe(7);
 
-  const cells = collectNodesOfType(tree, "TableCell");
-
   // Row 1: [[page|alias]] | **bold** | plain
   const row1Cells = collectNodesOfType(rows[0], "TableCell");
   expect(row1Cells.length).toBe(3);

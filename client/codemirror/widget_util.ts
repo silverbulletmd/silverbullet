@@ -88,6 +88,8 @@ export function attachWidgetEventHandlers(
   // Implement task toggling
   div.querySelectorAll("span[data-external-task-ref]").forEach((el: any) => {
     const taskRef = el.dataset.externalTaskRef;
+
+    // Standard checkbox tasks
     const input = el.querySelector("input[type=checkbox]");
     if (input) {
       input.addEventListener("click", (e: any) => {
@@ -101,6 +103,28 @@ export function attachWidgetEventHandlers(
         // Update state in DOM as well for future toggles
         e.target.dataset.state = newState;
         console.log("Toggling task", taskRef);
+        client.clientSystem
+          .localSyscall("system.invokeFunction", [
+            "index.updateTaskState",
+            taskRef,
+            oldState,
+            newState,
+          ])
+          .catch(console.error);
+      });
+    }
+
+    // Extended state task
+    const taskStateSpan = el.querySelector("span.task-state[data-state]");
+    if (taskStateSpan) {
+      taskStateSpan.style.cursor = "pointer";
+      taskStateSpan.addEventListener("click", (e: any) => {
+        e.stopPropagation();
+        const oldState = taskStateSpan.dataset.state;
+        const newState = oldState === " " ? "x" : " ";
+        taskStateSpan.dataset.state = newState;
+        taskStateSpan.textContent = newState;
+        console.log("Toggling extended task", taskRef);
         client.clientSystem
           .localSyscall("system.invokeFunction", [
             "index.updateTaskState",

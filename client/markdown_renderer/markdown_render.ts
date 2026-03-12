@@ -375,16 +375,33 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
             type: "checkbox",
             checked: stateText !== " " ? "checked" : undefined,
             "data-state": stateText,
+	    disabled: "true",
           },
           body: "",
         };
       }
       return {
-        name: "span",
-        attrs: {
-          class: "task-state",
-        },
-        body: stateText,
+        name: Fragment,
+        body: [
+          {
+            name: "span",
+            attrs: { class: "sb-task-mark" },
+            body: "[",
+          },
+          {
+            name: "span",
+            attrs: {
+              class: "sb-task-state",
+              "data-state": stateText,
+            },
+            body: stateText,
+          },
+          {
+            name: "span",
+            attrs: { class: "sb-task-mark" },
+            body: "]",
+          },
+        ],
       };
     }
 
@@ -431,9 +448,9 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
       const nameNode = findNodeOfType(t, "AttributeName");
       const valueNode = findNodeOfType(t, "AttributeValue");
       const colonNode = findNodeOfType(t, "AttributeColon");
-      const attrName = nameNode?.children![0].text ?? "";
-      const attrValue = valueNode?.children![0].text ?? "";
-      const attrColon = colonNode?.children![0].text ?? ": ";
+      const attrName = nameNode?.children?.[0].text ?? "";
+      const attrValue = valueNode?.children?.[0].text ?? "";
+      const attrColon = colonNode?.children?.[0].text ?? ": ";
       return {
         name: "span",
         attrs: {
