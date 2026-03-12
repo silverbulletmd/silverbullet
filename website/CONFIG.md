@@ -42,6 +42,7 @@ config.set {
     {
       icon = "book",
       description = "Open page",
+      dropdown = false,
       run = function()
         editor.invokeCommand("Navigate: Page Picker")
       end

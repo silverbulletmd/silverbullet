@@ -9,6 +9,7 @@ export type ActionButton = {
   callback: () => void;
   href?: string;
   mobile?: boolean;
+  dropdown?: boolean;
 };
 
 function pageNameClass(
@@ -221,10 +222,23 @@ export function TopBar({
               percentage={progressPercentage}
               type={progressType}
             />
-            <ActionButtons
-              buttons={actionButtons}
-              mobileMenuStyle={mobileMenuStyle}
-            />
+            {mobileMenuStyle
+              ? (
+                <>
+                  <ActionButtons
+                    buttons={actionButtons.filter((b) =>
+                      b.dropdown === false
+                    )}
+                  />
+                  <ActionButtons
+                    buttons={actionButtons.filter((b) =>
+                      b.dropdown !== false
+                    )}
+                    mobileMenuStyle={mobileMenuStyle}
+                  />
+                </>
+              )
+              : <ActionButtons buttons={actionButtons} />}
           </div>
         </div>
       </div>

@@ -489,6 +489,7 @@ export class MainUI {
                 return {
                   icon: mdiIcon ? mdiIcon : featherIcon,
                   description: button.description || "",
+                  dropdown: button.dropdown,
                   callback:
                     button.run ||
                     (() => {
@@ -523,10 +524,12 @@ export class MainUI {
           cssClass={(client.currentPageMeta()?.pageDecoration?.cssClasses ?? [])
             .join(" ")
             .replaceAll(/[^a-zA-Z0-9-_ ]/g, "")}
-          mobileMenuStyle={client.config.get<string>(
-            "mobileMenuStyle",
-            "hamburger",
-          )}
+          mobileMenuStyle={viewState.isMobile
+            ? client.config.get<string>(
+              "mobileMenuStyle",
+              "hamburger",
+            )
+            : undefined}
           readOnly={
             viewState.uiOptions.forcedROMode || client.bootConfig.readOnly
           }
@@ -616,6 +619,7 @@ type ActionButton = {
   icon: string;
   description?: string;
   mobile?: boolean;
+  dropdown?: boolean;
   priority?: number;
   run: () => void;
 };

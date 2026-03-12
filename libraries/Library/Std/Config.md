@@ -363,6 +363,10 @@ config.define("actionButtons", {
         type = "boolean",
         description = "Optional boolean indicating if the action button is applicable for mobile"
       },
+      dropdown = {
+        type = "boolean",
+        description = "Optional: set to false to keep this button outside the dropdown menu on mobile (default: true)"
+      },
       run = schema.func(),
     },
     required = {"icon", "run"},
@@ -397,6 +401,7 @@ config.set {
       icon = "book",
       description = "Open page",
       priority = 2,
+      dropdown = false,
       run = function()
         editor.invokeCommand "Navigate: Page Picker"
       end

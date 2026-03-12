@@ -132,15 +132,7 @@
     position: relative;
   }
 
-  #sb-top .sb-sync-progress:has(~ .hamburger) {
-    margin-right: 1.8em;
-  }
-
   #sb-top .sb-actions.hamburger {
-    position: absolute;
-
-    top: 3px;
-    right: 20px;
     border-radius: 5px;
     border: 1px solid #444;
     width: 2.8rem;

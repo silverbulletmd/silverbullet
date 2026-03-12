@@ -14,6 +14,7 @@ Keys to define:
 * `description` (optional): description of button (appears on hover)
 * `priority` (optional): determines priority of button (the higher, the earlier in the list)
 * `mobile`: when set to `true` this button will only appear on mobile devices
+* `dropdown` (optional): when set to `false`, the button stays visible outside the dropdown menu on mobile (default: `true`)
 
 # Example
 ```lua
