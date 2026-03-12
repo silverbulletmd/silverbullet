@@ -74,7 +74,6 @@ class TableViewWidget extends WidgetType {
 
           return url;
         },
-        preserveAttributes: true,
       });
       setTimeout(() => {
         // Give it a tick to render

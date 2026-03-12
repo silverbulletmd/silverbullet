@@ -112,7 +112,6 @@ export class LuaWidget extends WidgetType {
             }
             return url;
           },
-          preserveAttributes: true,
         },
         this.client.ui.viewState.allPages,
       );
@@ -154,7 +153,9 @@ export class LuaWidget extends WidgetType {
       // Markdown path for copy button (flat tables, `{...}` for nested)
       const markdownCopy = await renderExpressionResult(widgetContent);
 
-      const isBlock = dataType === "table" || dataType === "list" ||
+      const isBlock =
+        dataType === "table" ||
+        dataType === "list" ||
         (typeof widgetContent === "string" && isBlockMarkdown(widgetContent));
 
       widgetContent = {
@@ -241,7 +242,6 @@ export class LuaWidget extends WidgetType {
 
               return url;
             },
-            preserveAttributes: true,
           },
           this.client.ui.viewState.allPages,
         ),

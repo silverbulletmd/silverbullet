@@ -25,7 +25,6 @@ export type MarkdownRenderOptions = {
   failOnUnknown?: true;
   smartHardBreak?: true;
   annotationPositions?: true;
-  preserveAttributes?: true;
   shortWikiLinks?: boolean;
   // When defined, use to inline images as data: urls
   translateUrls?: (url: string, type: "link" | "image") => string;
@@ -428,17 +427,48 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
         body: cleanTags(mapRender(t.children!), true),
       };
     }
-    case "Attribute":
-      if (options.preserveAttributes) {
-        return {
-          name: "span",
-          attrs: {
-            class: "attribute",
+    case "Attribute": {
+      const nameNode = findNodeOfType(t, "AttributeName");
+      const valueNode = findNodeOfType(t, "AttributeValue");
+      const colonNode = findNodeOfType(t, "AttributeColon");
+      const attrName = nameNode?.children![0].text ?? "";
+      const attrValue = valueNode?.children![0].text ?? "";
+      const attrColon = colonNode?.children![0].text ?? ": ";
+      return {
+        name: "span",
+        attrs: {
+          class: "sb-attribute",
+          ...(attrName ? { [`data-${attrName}`]: attrValue } : {}),
+        },
+        body: [
+          {
+            name: "span",
+            attrs: { class: "sb-frontmatter sb-meta" },
+            body: "[",
           },
-          body: renderToText(t),
-        };
-      }
-      return null;
+          {
+            name: "span",
+            attrs: { class: "sb-frontmatter sb-attribute-name" },
+            body: attrName,
+          },
+          {
+            name: "span",
+            attrs: { class: "sb-frontmatter sb-meta" },
+            body: attrColon,
+          },
+          {
+            name: "span",
+            attrs: { class: "sb-frontmatter sb-attribute-value" },
+            body: attrValue,
+          },
+          {
+            name: "span",
+            attrs: { class: "sb-frontmatter sb-meta" },
+            body: "]",
+          },
+        ],
+      };
+    }
     case "Escape": {
       return {
         name: "span",
