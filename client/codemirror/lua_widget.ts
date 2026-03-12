@@ -128,7 +128,6 @@ export class LuaWidget extends WidgetType {
             }
             return url;
           },
-          preserveAttributes: true,
         },
         this.opts.client.ui.viewState.allPages,
       );
@@ -265,7 +264,6 @@ export class LuaWidget extends WidgetType {
 
               return url;
             },
-            preserveAttributes: true,
           },
           this.opts.client.ui.viewState.allPages,
         ),
