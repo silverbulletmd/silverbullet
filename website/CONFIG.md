@@ -2,66 +2,49 @@ This is where you configure SilverBullet to your liking. See [[^Library/Std/Conf
 
 # Main configuration
 ```space-lua
-config.set {
-  actionButtons = {
-    {
-      icon = "home",
-      description = "Go to the index page",
-      run = function()
-        editor.invokeCommand("Navigate: Home")
-      end
-    },
-    {
-      icon = "activity",
-      description = "What's new",
-      run = function()
-        editor.navigate "CHANGELOG"
-      end
-    },
-    {
-      icon = "message-circle",
-      description = "Community",
-      run = function()
-        editor.openUrl "https://community.silverbullet.md"
-      end
-    },
-    {
-      icon = "github",
-      description = "Github",
-      run = function()
-        editor.openUrl "https://github.com/silverbulletmd/silverbullet"
-      end
-    },
-    {
-      icon = "heart",
-      description = "Funding",
-      run = function()
-        editor.navigate "Funding"
-      end
-    },
-    {
-      icon = "book",
-      description = "Open page",
-      dropdown = false,
-      run = function()
-        editor.invokeCommand("Navigate: Page Picker")
-      end
-    },
-    {
-      icon = "search",
-      description = "Search",
-      run = function()
-        editor.invokeCommand("Silversearch: Search")
-      end
-    },
-    {
-      icon = "terminal",
-      description = "Run command",
-      run = function()
-        editor.invokeCommand "Open Command Palette"
-      end,
-    }
-  }
+actionButton.define {
+  icon = "activity",
+  description = "What's new",
+  priority = 2.8,
+  run = function()
+    editor.navigate "CHANGELOG"
+  end
+}
+
+actionButton.define {
+  icon = "message-circle",
+  description = "Community",
+  priority = 2.7,
+  run = function()
+    editor.openUrl "https://community.silverbullet.md"
+  end
+}
+
+actionButton.define {
+  icon = "github",
+  description = "Github",
+  priority = 2.6,
+  run = function()
+    editor.openUrl "https://github.com/silverbulletmd/silverbullet"
+  end
+}
+
+actionButton.define {
+  icon = "heart",
+  description = "Funding",
+  priority = 2.5,
+  run = function()
+    editor.navigate "Funding"
+  end
+}
+
+actionButton.define {
+  icon = "search",
+  description = "Search",
+  priority = 1.5,
+  run = function()
+    editor.invokeCommand("Silversearch: Search")
+  end
 }
 ```
 
