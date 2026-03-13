@@ -3,7 +3,7 @@ description: Helper functions for building JSON Schema objects in Lua
 tags: meta/api
 ---
 
-Helper functions for succinctly defining JSON Schema types in Lua. Used with [[API/tag#tag.define(spec)]] and [[API/config#config.define(key, schema)]].
+Helper functions for succinctly defining JSON Schema types in Lua.
 
 # API
 

@@ -3,7 +3,7 @@ description: APIs to define custom aggregate functions for LIQ
 tags: meta/api
 ---
 
-APIs to define and override aggregate functions used in [[Space Lua/Lua Integrated Query|LIQ]] `select` and `having` clauses after `group by`.
+APIs to define and override aggregate functions used in LIQ `select` and `having` clauses after `group by`.
 
 Built-in aggregates: `count`, `sum`, `min`, `max`, `avg` and `array_agg`.
 
