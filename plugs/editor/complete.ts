@@ -189,7 +189,7 @@ export async function footnoteComplete(completeEvent: CompleteEvent) {
     const label = m[1];
     let body = m[2].trim();
     if (body.length > 50) {
-      body = body.slice(0, 50) + "\u2026";
+      body = `${body.slice(0, 50)}\u2026`;
     }
     options.push({
       label,

@@ -1,5 +1,5 @@
 import { tags as t } from "@lezer/highlight";
-import { type Line, type MarkdownConfig } from "@lezer/markdown";
+import type { Line, MarkdownConfig } from "@lezer/markdown";
 import * as ct from "./customtags.ts";
 
 const footnoteRefRegex = /^\[\^([^\]\s]+)\]/;
@@ -23,10 +23,12 @@ export const FootnoteRef: MarkdownConfig = {
         }
         // If followed by ':', this is a definition, not a reference
         const afterMatch = pos + match[0].length;
-        if (afterMatch < cx.end && cx.slice(afterMatch, afterMatch + 1) === ":") {
+        if (
+          afterMatch < cx.end &&
+          cx.slice(afterMatch, afterMatch + 1) === ":"
+        ) {
           return -1;
         }
-        const label = match[1];
         const endPos = pos + match[0].length;
         return cx.addElement(
           cx.elt("FootnoteRef", pos, endPos, [
@@ -67,8 +69,8 @@ export const FootnoteDefinition: MarkdownConfig = {
         // Consume continuation lines (indented by 4+ spaces or tab)
         // Blank lines are allowed between continuation paragraphs
         while (cx.nextLine()) {
-          if (/^(?:    |\t)/.test(line.text)) {
-            bodyText += "\n" + line.text;
+          if (/^(?: {4}|\t)/.test(line.text)) {
+            bodyText += `\n${line.text}`;
             endPos = cx.parsedPos + line.text.length + 1;
           } else if (line.text.trim() === "") {
             // Blank line: peek ahead to see if next line is indented
@@ -110,9 +112,7 @@ export const FootnoteDefinition: MarkdownConfig = {
             ),
           );
         }
-        cx.addElement(
-          cx.elt("FootnoteDefinition", startPos, bodyEnd, elts),
-        );
+        cx.addElement(cx.elt("FootnoteDefinition", startPos, bodyEnd, elts));
         return true;
       },
       before: "LinkReference",

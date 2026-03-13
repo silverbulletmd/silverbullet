@@ -20,7 +20,7 @@ test("Test boot config", () => {
 
 test("Test CONFIG lua eval", async () => {
   // Test base case: no config code
-  let config = await loadConfig("", {});
+  let config = await loadConfig("", {}, false);
   expect(config.values).toEqual({});
 
   // Check a few config sets
@@ -32,6 +32,7 @@ test("Test CONFIG lua eval", async () => {
     config.set("optionObj.nested", 5)
 `,
     {},
+    false,
   );
   expect(config.values).toEqual({
     option1: "pete",
@@ -53,6 +54,7 @@ test("Test CONFIG lua eval", async () => {
     end
 `,
     {},
+    false,
   );
   expect(config.values).toEqual({
     option1: "pete",

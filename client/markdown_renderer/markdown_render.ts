@@ -431,9 +431,9 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
       const nameNode = findNodeOfType(t, "AttributeName");
       const valueNode = findNodeOfType(t, "AttributeValue");
       const colonNode = findNodeOfType(t, "AttributeColon");
-      const attrName = nameNode?.children![0].text ?? "";
-      const attrValue = valueNode?.children![0].text ?? "";
-      const attrColon = colonNode?.children![0].text ?? ": ";
+      const attrName = nameNode?.children?.[0].text ?? "";
+      const attrValue = valueNode?.children?.[0].text ?? "";
+      const attrColon = colonNode?.children?.[0].text ?? ": ";
       return {
         name: "span",
         attrs: {

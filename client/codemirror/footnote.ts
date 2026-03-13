@@ -1,5 +1,5 @@
 import { syntaxTree } from "@codemirror/language";
-import { Decoration, EditorView, WidgetType } from "@codemirror/view";
+import { Decoration, type EditorView, WidgetType } from "@codemirror/view";
 import { hoverTooltip } from "@codemirror/view";
 import type { EditorState, Extension } from "@codemirror/state";
 import { decoratorStateField, isCursorInRange } from "./util.ts";
@@ -7,7 +7,7 @@ import { parseMarkdown } from "../markdown_parser/parser.ts";
 import { renderMarkdownToHtml } from "../markdown_renderer/markdown_render.ts";
 
 function outdentFootnoteBody(text: string): string {
-  return text.replace(/^(?:    |\t)/gm, "");
+  return text.replace(/^(?: {4}|\t)/gm, "");
 }
 
 function renderMarkdownTooltip(markdownText: string): HTMLElement {
@@ -79,7 +79,7 @@ function findFootnoteDef(
 ): FootnoteDefInfo {
   let result: FootnoteDefInfo = null;
   syntaxTree(state).iterate({
-    enter: ({ type, from, to, node }) => {
+    enter: ({ type, from, node }) => {
       if (type.name === "FootnoteDefinition" && !result) {
         const cursor = node.cursor();
         cursor.firstChild();
