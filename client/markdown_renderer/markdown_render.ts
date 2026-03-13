@@ -380,11 +380,16 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
         };
       }
       return {
-        name: "span",
-        attrs: {
-          class: "task-state",
-        },
-        body: stateText,
+        name: Fragment,
+        body: [
+          { name: "span", attrs: { class: "sb-task-mark" }, body: "[" },
+          {
+            name: "span",
+            attrs: { class: "sb-task-state", "data-state": stateText },
+            body: stateText,
+          },
+          { name: "span", attrs: { class: "sb-task-mark" }, body: "]" },
+        ],
       };
     }
 

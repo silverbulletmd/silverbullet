@@ -111,6 +111,35 @@ export function attachWidgetEventHandlers(
           .catch(console.error);
       });
     }
+
+    // Extended task states (e.g. [PLANNED], [TODO])
+    const taskStateSpan = el.querySelector("span.sb-task-state[data-state]");
+    if (taskStateSpan) {
+      taskStateSpan.style.cursor = "pointer";
+      taskStateSpan.addEventListener("click", (e: any) => {
+        e.stopPropagation();
+        const oldState = taskStateSpan.dataset.state;
+        console.log("Cycling extended task", taskRef, oldState);
+        client.clientSystem
+          .localSyscall("system.invokeFunction", [
+            "index.cycleTaskStateByRef",
+            taskRef,
+            oldState,
+          ])
+          .then((newState: string) => {
+            taskStateSpan.dataset.state = newState;
+            taskStateSpan.textContent = newState;
+          })
+          .catch(console.error);
+      });
+    }
+  });
+
+  // Disable non-referenced task checkboxes
+  div.querySelectorAll("input[type=checkbox]").forEach((cb) => {
+    if (!cb.closest("span[data-external-task-ref]")) {
+      cb.setAttribute("disabled", "disabled");
+    }
   });
 
   if (events) {

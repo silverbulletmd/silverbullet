@@ -6,20 +6,24 @@ Implements APIs for defining custom task states. Currently extremely basic.
 
 ## taskState.define(def)
 Defines a custom task state. Options:
-* `name`: name of the state
-* `done`: whether or not the state should be considered "done" or not, used by the `Task: Remove Completed` command
+* `name` _(required)_: name of the state
+* `done`: whether or not the state should be considered "done", used by the `Task: Remove Completed` command and for filtering via `t.done` in queries
+* `order`: numeric value controlling the cycle order when toggling between states (lower values come first)
 
 # Example
 ```lua
 taskState.define {
-  name = "TO DO"
+  name  = "PLANNED",
+  order = 1,
 }
 taskState.define {
-  name = "IN PROGRESS"
+  name  = "IN PROGRESS",
+  order = 2,
 }
 taskState.define {
-  name = "DONE",
-  done = true
+  name  = "FINISHED",
+  order = 3,
+  done  = true,
 }
 ```
 

@@ -49,6 +49,14 @@ export async function indexItems(
   const shouldIndexAllItems = await system.getConfig("index.item.all", true);
   const shouldIndexAllTasks = await system.getConfig("index.task.all", true);
 
+  // Build complete list of "done" states
+  const taskStates = await system.getConfig("taskStates", {});
+  const allCompleteStates = completeStates.concat(
+    Object.values(taskStates)
+      .filter((ts: any) => ts.done)
+      .map((ts: any) => ts.name),
+  );
+
   let items: ObjectValue<ItemObject | TaskObject>[] = [];
 
   traverseTree(tree, (n) => {
@@ -61,7 +69,15 @@ export async function indexItems(
       return true;
     }
 
-    items.push(extractItemFromNode(pageMeta.name, n, frontmatter));
+    items.push(
+      extractItemFromNode(
+        pageMeta.name,
+        n,
+        frontmatter,
+        true,
+        allCompleteStates,
+      ),
+    );
 
     // Traversal continue into child items (potentially)
     return false;
@@ -82,6 +98,7 @@ export function extractItemFromNode(
   itemNode: ParseTree,
   frontmatter: FrontMatter,
   withParents = true,
+  allCompleteStates: string[] = completeStates,
 ): ItemObject | TaskObject {
   const item: ItemObject | TaskObject = {
     ref: `${name}@${itemNode.from}`,
@@ -102,7 +119,7 @@ export function extractItemFromNode(
   if (taskNode) {
     item.tag = "task";
     item.state = taskNode.children![0].children![1].text!;
-    item.done = completeStates.includes(item.state);
+    item.done = allCompleteStates.includes(item.state);
     // Fake a paragraph node for text rendering later
     nameNode = { type: "Paragraph", children: taskNode.children!.slice(1) };
   }
@@ -135,7 +152,7 @@ export function extractItemFromNode(
   updateITags(item, frontmatter);
 
   if (withParents) {
-    enrichItemFromParents(itemNode, item, name, frontmatter);
+    enrichItemFromParents(itemNode, item, name, frontmatter, allCompleteStates);
   }
 
   return item;
@@ -146,6 +163,7 @@ export function enrichItemFromParents(
   item: ItemObject,
   pageName: string,
   frontmatter: FrontMatter,
+  allCompleteStates: string[] = completeStates,
 ) {
   let directParent = true;
   let parentItemNode = findParentMatching(n, (n) => n.type === "ListItem");
@@ -155,6 +173,7 @@ export function enrichItemFromParents(
       parentItemNode,
       frontmatter,
       false,
+      allCompleteStates,
     );
     if (directParent) {
       item.parent = parentItem.ref;
