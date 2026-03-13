@@ -318,8 +318,11 @@ config.define("taskStates", {
   additionalProperties = {
     type = "object",
     properties = {
-      -- for future use
+      name = schema.string(),
+      done = schema.nullable "boolean",
+      order = schema.nullable "number",
     },
+    required = {"name"},
   },
 })
 

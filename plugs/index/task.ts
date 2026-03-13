@@ -36,6 +36,12 @@ export function taskToggle(event: ClickEvent) {
   return taskCycleAtPos(event.pos);
 }
 
+function sortedTaskStateNames(allStates: Record<string, any>): string[] {
+  return Object.entries(allStates)
+    .sort(([, a]: any, [, b]: any) => (a.order ?? 0) - (b.order ?? 0))
+    .map(([name]) => name);
+}
+
 async function convertListItemToTask(node: ParseTree) {
   const listMark = node.children![0];
   const originalMark = renderToText(listMark);
@@ -105,10 +111,8 @@ async function cycleTaskState(
   } else {
     // Not a checkbox, but a custom state
     const allStates = await config.get("taskStates", {});
-    const states = Object.keys(allStates);
+    const states = sortedTaskStateNames(allStates);
     console.log("All states", states);
-    states.sort();
-    // Select a next state
     let currentStateIndex = states.indexOf(stateText);
     if (currentStateIndex === -1) {
       console.error("Unknown state", stateText);
@@ -367,4 +371,29 @@ export async function removeCompletedTasksCommand() {
   removeCompletedTasksFromTree(tree, allCompletedStates);
 
   await editor.setText(renderToText(tree));
+}
+
+export async function cycleTaskStateByRef(
+  path: string,
+  oldState: string,
+): Promise<string> {
+  let newState: string;
+  if (completeStates.includes(oldState)) {
+    newState = " ";
+  } else if (incompleteStates.includes(oldState)) {
+    newState = "x";
+  } else {
+    const allStates = await config.get("taskStates", {});
+    const states = sortedTaskStateNames(allStates);
+    let idx = states.indexOf(oldState);
+    if (idx === -1) {
+      idx = 0;
+    }
+    newState = states[(idx + 1) % states.length];
+  }
+  await updateTaskState(path, oldState, newState);
+  await events.dispatchEvent("task:stateChange", {
+    newState,
+  });
+  return newState;
 }

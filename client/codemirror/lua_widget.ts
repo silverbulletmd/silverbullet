@@ -215,6 +215,9 @@ export class LuaWidget extends WidgetType {
         currentName,
         mdTree,
         this.opts.client.clientSystem.spaceLuaEnv,
+        {
+          rewriteTasks: false,
+        },
       );
       const trimmedMarkdown = renderToText(mdTree).trim();
 

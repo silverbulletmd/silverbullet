@@ -127,6 +127,8 @@ functions:
     path: "./task.ts:taskToggle"
     events:
       - page:click
+  cycleTaskStateByRef:
+    path: ./task.ts:cycleTaskStateByRef
   taskToggleCommand:
     path: ./task.ts:taskCycleCommand
     command:
