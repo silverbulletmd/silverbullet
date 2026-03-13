@@ -7,12 +7,30 @@ export function syncSyscalls(client: Client): SysCallMapping {
     "sync.hasInitialSyncCompleted": (): boolean => {
       return client.fullSyncCompleted;
     },
-    "sync.performFileSync": (_ctx, path: string): Promise<void> => {
-      void client.postServiceWorkerMessage({ type: "perform-file-sync", path });
+    "sync.performFileSync": async (_ctx, path: string): Promise<void> => {
+      try {
+        await client.postServiceWorkerMessage({
+          type: "perform-file-sync",
+          path,
+        });
+      } catch (e: any) {
+        console.warn(
+          "No service worker available, so sync is inactive",
+          e.message,
+        );
+        return;
+      }
       return waitForServiceWorkerActivation(path);
     },
-    "sync.performSpaceSync": (): Promise<number> => {
-      void client.postServiceWorkerMessage({ type: "perform-space-sync" });
+    "sync.performSpaceSync": async (): Promise<number> => {
+      try {
+        await client.postServiceWorkerMessage({
+          type: "perform-space-sync",
+        });
+      } catch (e: any) {
+        console.warn("No service worker available, so sync is inactive", e);
+        return 0;
+      }
       return waitForServiceWorkerActivation();
     },
   };
