@@ -1,5 +1,5 @@
 import { folderName } from "@silverbulletmd/silverbullet/lib/resolve";
-import { index, language, lua } from "@silverbulletmd/silverbullet/syscalls";
+import { editor, index, language, lua } from "@silverbulletmd/silverbullet/syscalls";
 import type {
   DocumentMeta,
   PageMeta,
@@ -173,6 +173,34 @@ export async function pageComplete(completeEvent: CompleteEvent) {
       }
       return completions;
     }),
+  };
+}
+
+export async function footnoteComplete(completeEvent: CompleteEvent) {
+  const match = /\[\^([^\]\s]*)$/.exec(completeEvent.linePrefix);
+  if (!match) return null;
+
+  // Rudamentary scan of full editor text to quickly find all footnote definitions
+  const text = await editor.getText();
+  const defRegex = /^\[\^([^\]\s]+)\]:\s?(.*)$/gm;
+  const options = [];
+  let m;
+  while ((m = defRegex.exec(text)) !== null) {
+    const label = m[1];
+    let body = m[2].trim();
+    if (body.length > 50) {
+      body = body.slice(0, 50) + "\u2026";
+    }
+    options.push({
+      label,
+      detail: body,
+      type: "footnote",
+    });
+  }
+
+  return {
+    from: completeEvent.pos - match[1].length,
+    options,
   };
 }
 

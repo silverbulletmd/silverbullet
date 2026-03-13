@@ -29,3 +29,7 @@ export const DirectiveTag = Tag.define();
 
 export const SubscriptTag = Tag.define();
 export const SuperscriptTag = Tag.define();
+
+export const FootnoteRefTag = Tag.define();
+export const FootnoteDefTag = Tag.define();
+export const InlineFootnoteTag = Tag.define();

@@ -17,6 +17,7 @@ import { hashtagPlugin } from "./hashtag.ts";
 import type { ClickEvent } from "@silverbulletmd/silverbullet/type/client";
 import { attributePlugin } from "./attribute.ts";
 import { customSyntaxPlugin } from "./custom_syntax_widget.ts";
+import { footnotePlugin } from "./footnote.ts";
 
 export function cleanModePlugins(client: Client) {
   const pluginsNeededEvenWhenRenderingSyntax = [
@@ -58,5 +59,6 @@ export function cleanModePlugins(client: Client) {
     listBulletPlugin(),
     tablePlugin(client),
     cleanEscapePlugin(),
+    ...footnotePlugin(() => client.editorView),
   ] as Extension[];
 }

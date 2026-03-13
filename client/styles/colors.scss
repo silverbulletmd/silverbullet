@@ -427,7 +427,8 @@ a,
   color: var(--editor-link-url-color);
 }
 
-.sb-atom, .sb-attribute-name {
+.sb-atom,
+.sb-attribute-name {
   color: var(--editor-code-atom-color);
 }
 
@@ -452,6 +453,33 @@ a.sb-wiki-link-invalid,
 
 .sb-task-state {
   color: var(--editor-task-state-color);
+}
+
+.sb-footnote-def-line {
+  font-size: 80%;
+}
+
+.sb-footnote-ref {
+  color: var(--meta-subtle-color);
+  border: 1px solid var(--meta-subtle-color);
+  border-radius: 3px;
+  padding: 0 2px;
+  font-size: 0.75em;
+  background-color: #f3eeee;
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+.sb-footnote-ref-unresolved {
+  color: var(--editor-error-color, #d32f2f);
+  border-color: var(--editor-error-color, #d32f2f);
+  background-color: rgba(211, 47, 47, 0.1);
+}
+
+.sb-footnote-tooltip-error {
+  color: var(--editor-error-color, #d32f2f);
 }
 
 .sb-line-comment {

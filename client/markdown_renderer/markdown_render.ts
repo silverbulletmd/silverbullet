@@ -491,6 +491,60 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
         name: "sub",
         body: cleanTags(mapRender(t.children!)),
       };
+    case "FootnoteRef": {
+      const label = findNodeOfType(t, "FootnoteRefLabel")!.children![0].text!;
+      return {
+        name: "sup",
+        attrs: {
+          class: "sb-rendered-footnote-ref",
+        },
+        body: label,
+      };
+    }
+    case "FootnoteDefinition": {
+      const label = findNodeOfType(t, "FootnoteDefLabel")!.children![0].text!;
+      const body = findNodeOfType(t, "FootnoteDefBody");
+      return {
+        name: "div",
+        attrs: {
+          class: "sb-rendered-footnote-def",
+          id: `fn-${label}`,
+        },
+        body: [
+          {
+            name: "span",
+            attrs: { class: "sb-rendered-footnote-def-label" },
+            body: `${label}. `,
+          },
+          ...(body ? cleanTags(mapRender(body.children!)) : []),
+        ],
+      };
+    }
+    case "FootnoteDefBody":
+      return {
+        name: Fragment,
+        body: cleanTags(mapRender(t.children!)),
+      };
+    case "InlineFootnote": {
+      const content = findNodeOfType(t, "InlineFootnoteContent")!.children![0]
+        .text!;
+      return {
+        name: "sup",
+        attrs: {
+          class: "sb-rendered-footnote-ref",
+        },
+        body: [
+          {
+            name: "span",
+            attrs: {
+              class: "sb-rendered-inline-footnote-content",
+              title: content,
+            },
+            body: "*",
+          },
+        ],
+      };
+    }
     case "LuaDirective":
       return {
         name: "span",

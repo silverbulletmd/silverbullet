@@ -1,6 +1,7 @@
 import { editor, markdown, space } from "@silverbulletmd/silverbullet/syscalls";
 import {
   addParentPointers,
+  collectNodesOfType,
   findNodeOfType,
   findParentMatching,
   nodeAtPos,
@@ -23,9 +24,15 @@ async function actionClickOrActionEnter(
     return;
   }
   const navigationNodeFinder = (t: ParseTree) =>
-    ["WikiLink", "Link", "Image", "Autolink", "NakedURL", "Hashtag"].includes(
-      t.type!,
-    );
+    [
+      "WikiLink",
+      "Link",
+      "Image",
+      "Autolink",
+      "NakedURL",
+      "Hashtag",
+      "FootnoteRef",
+    ].includes(t.type!);
   if (!navigationNodeFinder(mdTree)) {
     mdTree = findParentMatching(mdTree, navigationNodeFinder);
     if (!mdTree) {
@@ -102,6 +109,29 @@ async function actionClickOrActionEnter(
     case "Hashtag": {
       const hashtag = extractHashtag(mdTree.children![0].text!);
       await editor.navigate(`${tagPrefix}${hashtag}`, false, inNewWindow);
+      break;
+    }
+    case "FootnoteRef": {
+      const label = findNodeOfType(mdTree, "FootnoteRefLabel")!.children![0]
+        .text!;
+      // Walk up to root and find the matching definition in the parse tree
+      let root: ParseTree = mdTree;
+      while (root.parent) {
+        root = root.parent;
+      }
+      const defs = collectNodesOfType(root, "FootnoteDefinition");
+      const def = defs.find((d) => {
+        const defLabel = findNodeOfType(d, "FootnoteDefLabel");
+        return defLabel?.children?.[0]?.text === label;
+      });
+      if (def) {
+        await editor.moveCursor(def.from!);
+      } else {
+        await editor.flashNotification(
+          `Footnote [^${label}] is not defined`,
+          "error",
+        );
+      }
       break;
     }
   }

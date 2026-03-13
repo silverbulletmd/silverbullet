@@ -12,6 +12,7 @@ import { foldNodeProp, StreamLanguage } from "@codemirror/language";
 import * as ct from "./customtags.ts";
 import { TaskList } from "./extended_task.ts";
 import { Table } from "./table_parser.ts";
+import { FootnoteDefinition, FootnoteRef, InlineFootnote } from "./footnote.ts";
 import { nakedUrlRegex, pWikiLinkRegex, tagRegex } from "./constants.ts";
 import { parse } from "./parse_tree.ts";
 import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
@@ -367,6 +368,9 @@ const baseMarkdownExtensions: MarkdownConfig[] = [
   TaskList,
   Highlight,
   LuaDirectives,
+  FootnoteRef,
+  FootnoteDefinition,
+  InlineFootnote,
   Strikethrough,
   Table,
   NakedURL,

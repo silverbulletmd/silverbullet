@@ -92,6 +92,11 @@ functions:
       name: "Widgets: Refresh All"
       requireEditor: page
 
+  footnoteComplete:
+    path: complete.ts:footnoteComplete
+    events:
+      - editor:complete
+
   languageComplete:
     path: complete.ts:languageComplete
     events:
