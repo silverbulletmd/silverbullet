@@ -422,7 +422,6 @@ config.set {
       icon = "chevron-left",
       description = "Go back",
       standalone = true,
-      dropdown = false,
       priority = 0,
       run = function()
         editor.goHistory(-1)
@@ -432,7 +431,6 @@ config.set {
       icon = "chevron-right",
       description = "Go forward",
       standalone = true,
-      dropdown = false,
       priority = -1,
       run = function()
         editor.goHistory(1)
