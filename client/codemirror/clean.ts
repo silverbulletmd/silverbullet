@@ -55,12 +55,6 @@ export function cleanModePlugins(client: Client) {
         // Propagate click event from checkbox
         void client.dispatchClickEvent(clickEvent);
       },
-      onStateChange: (pos, endPos, _oldState, newState) => {
-        client.editorView.dispatch({
-          changes: { from: pos, to: endPos, insert: newState },
-        });
-      },
-      client,
     }),
     listBulletPlugin(),
     tablePlugin(client),
