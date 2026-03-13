@@ -25,11 +25,11 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
 * [[Space Lua/Lua Integrated Query]] improvements:
   * `offset` clause support
   * Intra-aggregate `order by` support
+* Mobile: "lock" button to toggle read-only, useful for navigating without accidentally editing.
 * Action Button enhancements:
   * `standalone` option: only show certain action buttons in standalone/PWA mode (e.g. forward/back navigation buttons)
   * Support for opting out action buttons from the mobile dropdown menu
 * **Bundle size optimization**: chunked builds with ESBuild, JIT loading of large modules (Turndown, Vim mode), replaced AJV with lighter JSON schema library.
-* Removed vim mode from mini-editor (it didn't work properly).
 * Fix: "No such header #boot" errors in PWA mode.
 * Fix: Edit buttons now work correctly for Lua expressions and code widgets whose bodies appear multiple times in the same page.
 * Fix: [attribute rendering](https://github.com/silverbulletmd/silverbullet/pull/1880).
