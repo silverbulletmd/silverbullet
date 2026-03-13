@@ -218,7 +218,10 @@ export async function updateTaskState(
     taskStateNode.children![1].text = newState;
     text = renderToText(referenceMdTree);
     await space.writePage(pageName, text);
-    void sync.performFileSync(`${pageName}.md`);
+    // Best-effort sync; will catch up on next cycle if SW is unavailable
+    sync.performFileSync(`${pageName}.md`).catch((e) => {
+      console.warn("File sync after task update failed:", e.message);
+    });
   }
 }
 

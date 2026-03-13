@@ -954,8 +954,9 @@ export class Client {
   public async postServiceWorkerMessage(message: ServiceWorkerTargetMessage) {
     const registration = await navigator.serviceWorker.getRegistration();
     if (!registration?.active) {
-      throw new Error("No active service worker to post message to");
+      console.warn("No active service worker, skipping message:", message.type);
+      return;
     }
-    registration?.active?.postMessage(message);
+    registration.active.postMessage(message);
   }
 }
