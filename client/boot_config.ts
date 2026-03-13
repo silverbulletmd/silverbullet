@@ -15,6 +15,7 @@ import { editorSyscalls } from "./plugos/syscalls/editor.ts";
 import { markdownSyscalls } from "./plugos/syscalls/markdown.ts";
 import { languageSyscalls } from "./plugos/syscalls/language.ts";
 import { jsonschemaSyscalls } from "./plugos/syscalls/jsonschema.ts";
+import { systemSyscalls } from "./plugos/syscalls/system.ts";
 
 /**
  * Parses a page (CONFIG in practice) and extracts all space-lua code
@@ -43,6 +44,7 @@ export function extractSpaceLuaFromPageText(text: string): string {
 export async function loadConfig(
   luaCode: string,
   lateBoundClient: any,
+  readOnly: boolean,
 ): Promise<Config> {
   const config = new Config();
 
@@ -54,6 +56,7 @@ export async function loadConfig(
   // Only expose a limited set of syscalls that we can offer at this point
   bootSystem.registerSyscalls(
     [],
+    systemSyscalls(lateBoundClient, readOnly),
     // Collecting the config.* calls is basically what we're here for
     configSyscalls(config),
     // This offers calls like isMobile() which will be useful, and late binding for e.g. to make actionButtons run() work immediately on boot

@@ -60,6 +60,7 @@ safeRun(async () => {
     config = await loadConfig(
       bootstrapLuaScriptPages.map(extractSpaceLuaFromPageText).join("\n"),
       clientProxy.buildProxy(),
+      !!bootConfig?.readOnly,
     );
   } catch (e: any) {
     alert(
@@ -74,6 +75,7 @@ safeRun(async () => {
           .map(extractSpaceLuaFromPageText)
           .join("\n"),
         clientProxy.buildProxy(),
+        false,
       );
     } catch (e: any) {
       console.error("Boot error", e);
