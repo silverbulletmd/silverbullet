@@ -12,3 +12,4 @@ In addition to supporting [[Markdown/Basics|markdown basics]] as standardized by
 * [Highlight](https://www.markdownguide.org/extended-syntax/#highlight)
 * [Automatic URL linking](https://www.markdownguide.org/extended-syntax/#automatic-url-linking)
 * [Subscript](https://www.markdownguide.org/extended-syntax/#subscript) and [superscript](https://www.markdownguide.org/extended-syntax/#superscript)
+* [Footnotes](https://www.markdownlang.com/extended/footnotes.html)

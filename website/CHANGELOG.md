@@ -10,6 +10,7 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
   * Now works with headers (moves around entire sections)
   * Now works with table rows
   * Now works with paragraphs
+* [Footnote support](https://www.markdownlang.com/extended/footnotes.html): both reference-style (`[^1]`) and inline (`^[text]`) footnotes with syntax highlighting, live preview on hover, reference completion, and invalid reference linting.
 * The [[^Library/Std/Widgets/Widgets#Table of contents]] widget is now **collapsible**, defaults to open (by [Dobli](https://github.com/Dobli)).
 * Client upgrade notification: if the server is updated but the client version doesn't match, a notification will appear instructing the user to reload.
 * [Improved Lua widget rendering](https://github.com/silverbulletmd/silverbullet/pull/1876) (by [Matouš Jan Fialka](https://github.com/mjf)): `${...}` expressions now render scalars, arrays, records, and arrays-of-tables with better HTML and markdown output.
@@ -20,6 +21,19 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
 * Fix: document file opening with URL prefix.
 * Fix: autofocus on authentication page.
 * Fix: mini editor regressions.
+* [Custom markdown syntax extensions](https://github.com/silverbulletmd/silverbullet/pull/1881) (EXPERIMENTAL): define custom inline syntax via [[API/syntax]] that gets parsed, highlighted, and rendered in live preview.
+* [[Space Lua/Lua Integrated Query]] improvements:
+  * `offset` clause support
+  * Intra-aggregate `order by` support
+* Action Button enhancements:
+  * `standalone` option: only show certain action buttons in standalone/PWA mode (e.g. forward/back navigation buttons)
+  * Support for opting out action buttons from the mobile dropdown menu
+* **Bundle size optimization**: chunked builds with ESBuild, JIT loading of large modules (Turndown, Vim mode), replaced AJV with lighter JSON schema library.
+* Removed vim mode from mini-editor (it didn't work properly).
+* Fix: "No such header #boot" errors in PWA mode.
+* Fix: Edit buttons now work correctly for Lua expressions and code widgets whose bodies appear multiple times in the same page.
+* Fix: [attribute rendering](https://github.com/silverbulletmd/silverbullet/pull/1880).
+* Fix: [Markdown table rendering](https://github.com/silverbulletmd/silverbullet/pull/1879) and removal of deprecated command button remnants.
 
 ## 2.5.0
 * Changed keyboard bindings (sorry!). CodeMirror no longer directly allows `Alt-<letter>` and `Alt-<special-character>` [[Keyboard Shortcuts]], meaning I had to **remap a few key bindings**. It’s basically a mission impossible to pick great ones, but here are the new defaults:
