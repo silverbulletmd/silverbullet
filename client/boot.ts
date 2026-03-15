@@ -148,7 +148,13 @@ safeRun(async () => {
   console.log("Booting SilverBullet client");
   console.log("Boot config", bootConfig, config.values);
 
-  if (localStorage.getItem("enableSW") !== "0" && navigator.serviceWorker) {
+  // If Tauri: then no SW
+  const isTauri = !!(window as any).__TAURI__;
+  if (
+    !isTauri &&
+    localStorage.getItem("enableSW") !== "0" &&
+    navigator.serviceWorker
+  ) {
     // Register service worker
     const workerURL = new URL("service_worker.js", document.baseURI);
     let startNotificationCount = 0;
