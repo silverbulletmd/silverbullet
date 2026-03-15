@@ -284,7 +284,10 @@ export function editorSyscalls(client: Client): SysCallMapping {
           reject(e);
         };
 
+        input.style.display = "none";
+        document.body.appendChild(input);
         input.click();
+        setTimeout(() => document.body.removeChild(input), 1000);
       });
     },
     "editor.flashNotification": (
