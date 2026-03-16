@@ -225,19 +225,27 @@ export async function updateTaskState(
   }
 }
 
-export async function taskCycleAtPos(pos: number) {
-  const text = await editor.getText();
-  const mdTree = await markdown.parseMarkdown(text);
-  addParentPointers(mdTree);
+let taskCycleLock = false;
 
-  let node = nodeAtPos(mdTree, pos);
-  if (node) {
-    if (node.type === "TaskMark") {
-      node = node.parent!;
+export async function taskCycleAtPos(pos: number) {
+  if (taskCycleLock) return;
+  taskCycleLock = true;
+  try {
+    const text = await editor.getText();
+    const mdTree = await markdown.parseMarkdown(text);
+    addParentPointers(mdTree);
+
+    let node = nodeAtPos(mdTree, pos);
+    if (node) {
+      if (node.type === "TaskMark") {
+        node = node.parent!;
+      }
+      if (node.type === "TaskState") {
+        await cycleTaskState(node, false);
+      }
     }
-    if (node.type === "TaskState") {
-      await cycleTaskState(node, false);
-    }
+  } finally {
+    taskCycleLock = false;
   }
 }
 
