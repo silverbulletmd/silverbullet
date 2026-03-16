@@ -190,6 +190,10 @@ export class ObjectIndex {
     return this.ds.get(indexVersionKey);
   }
 
+  async awaitIndexQueueDrain(): Promise<void> {
+    await this.mq.awaitEmptyQueue("indexQueue");
+  }
+
   async markFullIndexComplete() {
     await this.ds.set(indexVersionKey, desiredIndexVersion);
   }

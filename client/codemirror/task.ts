@@ -1,5 +1,5 @@
 import { syntaxTree } from "@codemirror/language";
-import { Decoration, WidgetType } from "@codemirror/view";
+import { Decoration, type EditorView, WidgetType } from "@codemirror/view";
 import type { NodeType } from "@lezer/common";
 import { decoratorStateField, isCursorInRange } from "./util.ts";
 
@@ -7,10 +7,13 @@ import { decoratorStateField, isCursorInRange } from "./util.ts";
  * Widget to render checkbox for a task list item.
  */
 class CheckboxWidget extends WidgetType {
+  private dom?: HTMLElement;
+
   constructor(
     public checked: boolean,
-    readonly pos: number,
+    readonly fallbackPos: number,
     readonly clickCallback: (pos: number) => void,
+    readonly getView: () => EditorView | null,
   ) {
     super();
   }
@@ -27,17 +30,55 @@ class CheckboxWidget extends WidgetType {
     });
     checkbox.addEventListener("mouseup", (e) => {
       e.stopPropagation();
-      this.clickCallback(this.pos);
+      // Resolve the current document position at click time which
+      // prevents stale position corruption when the document has been
+      // edited since the decoration was created
+      let pos = this.fallbackPos;
+      const view = this.getView();
+      if (view && this.dom) {
+        try {
+          const domPos = view.posAtDOM(this.dom, 0);
+          pos = domPos + 1;
+        } catch {
+          // Use fallback
+        }
+      }
+      this.clickCallback(pos);
+    });
+    // Touch handling for mobile
+    let touchCount = 0;
+    checkbox.addEventListener("touchmove", () => {
+      touchCount++;
+    });
+    checkbox.addEventListener("touchend", (e) => {
+      if (touchCount === 0) {
+        e.stopPropagation();
+        e.preventDefault();
+        let pos = this.fallbackPos;
+        const view = this.getView();
+        if (view && this.dom) {
+          try {
+            pos = view.posAtDOM(this.dom, 0) + 1;
+          } catch {
+            // use fallback
+          }
+        }
+        this.clickCallback(pos);
+      }
+      touchCount = 0;
     });
     wrap.appendChild(checkbox);
+    this.dom = wrap;
     return wrap;
   }
 }
 
 export function taskListPlugin({
   onCheckboxClick,
+  getView,
 }: {
   onCheckboxClick: (pos: number) => void;
+  getView: () => EditorView | null;
 }) {
   return decoratorStateField((state) => {
     const widgets: any[] = [];
@@ -78,6 +119,7 @@ export function taskListPlugin({
               checkboxStatus,
               from + nfrom + 1,
               onCheckboxClick,
+              getView,
             ),
           });
           widgets.push(dec.range(from + nfrom, from + nto));

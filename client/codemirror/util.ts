@@ -103,6 +103,15 @@ export function decoratorStateField(
     },
 
     update(value: DecorationSet, tr: Transaction) {
+      // Avoid full recomputation of decorations during IME composition
+      // but map existing decoration ranges through the changes instead.
+      if (tr.isUserEvent("input.type.compose")) {
+        if (tr.docChanged) {
+          return value.map(tr.changes);
+        }
+        return value;
+      }
+
       if (tr.isUserEvent("select.pointer")) return value;
       return stateToDecoratorMapper(tr.state);
     },
