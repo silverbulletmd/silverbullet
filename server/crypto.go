@@ -152,3 +152,12 @@ func (j *Authenticator) VerifyAndDecodeJWT(tokenString string) (map[string]any, 
 
 	return nil, fmt.Errorf("invalid token")
 }
+
+// generateRandomToken generates a cryptographically random hex-encoded token
+func generateRandomToken(numBytes int) (string, error) {
+	b := make([]byte, numBytes)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
+}

@@ -6,9 +6,7 @@ dist
 *.js.map
 env.sh
 node_modules
-test_space
 silverbullet
-silverbullet-*
 deploy.json
 *.generated
 tmp_playground
