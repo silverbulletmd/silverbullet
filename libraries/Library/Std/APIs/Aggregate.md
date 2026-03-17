@@ -200,9 +200,9 @@ function aggregate.alias(name, target, description)
   config.setLuaValue({'aggregates', name}, entry)
 end
 
--- Standard aliases (previously hardcoded in TypeScript)
-aggregate.alias("every",    "bool_and")
-aggregate.alias("std",      "stddev_pop")
-aggregate.alias("stddev",   "stddev_pop")
-aggregate.alias("variance", "var_pop")
+-- Standard aliases
+aggregate.alias('every', 'bool_and')
+aggregate.alias('std', 'stddev_pop')
+aggregate.alias('stddev', 'stddev_pop')
+aggregate.alias('variance', 'var_pop')
 ```
