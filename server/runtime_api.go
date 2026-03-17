@@ -39,9 +39,10 @@ func NewRuntimeBridge(config *HeadlessConfig) *RuntimeBridge {
 	}
 }
 
-// EnsureRunning starts the headless browser if not already running.
-// Multiple concurrent callers coalesce on the starting channel.
-func (b *RuntimeBridge) EnsureRunning(ctx context.Context) error {
+// ensureLaunched starts the headless browser if not already launched.
+// Returns as soon as the browser process is running and collecting logs,
+// but the client may not be fully ready for eval yet.
+func (b *RuntimeBridge) ensureLaunched(ctx context.Context) error {
 	if b.config == nil {
 		return nil // headless disabled, nothing to start
 	}
@@ -82,6 +83,18 @@ func (b *RuntimeBridge) EnsureRunning(ctx context.Context) error {
 	b.mu.Unlock()
 
 	return err
+}
+
+// EnsureRunning starts the headless browser and waits for the client to be fully ready.
+func (b *RuntimeBridge) EnsureRunning(ctx context.Context) error {
+	if err := b.ensureLaunched(ctx); err != nil {
+		return err
+	}
+	browser := b.getBrowser()
+	if browser == nil {
+		return nil
+	}
+	return browser.WaitReady(ctx)
 }
 
 // SetBrowser sets the headless browser instance on the bridge (used in tests).
@@ -183,14 +196,16 @@ func (b *RuntimeBridge) HandleScreenshot(w http.ResponseWriter, r *http.Request)
 }
 
 // HandleConsoleLogs returns recent console log entries from the headless browser.
+// Unlike other runtime endpoints, this does not wait for the client to be fully ready,
+// so it can return boot logs while the client is still loading.
 func (b *RuntimeBridge) HandleConsoleLogs(w http.ResponseWriter, r *http.Request) {
-	if err := b.EnsureRunning(r.Context()); err != nil {
+	if err := b.ensureLaunched(r.Context()); err != nil {
 		writeJSON(w, http.StatusServiceUnavailable, map[string]any{"error": fmt.Sprintf("Failed to start headless browser: %v", err)})
 		return
 	}
 	browser := b.getBrowser()
 	if browser == nil {
-		writeJSON(w, http.StatusServiceUnavailable, map[string]any{"error": "No headless browser running"})
+		writeJSON(w, http.StatusOK, map[string]any{"logs": []ConsoleLogEntry{}})
 		return
 	}
 	limit := 100
