@@ -270,7 +270,7 @@ func (hb *HeadlessBrowser) Logs(limit int, since int64) []ConsoleLogEntry {
 	// If since is set, filter to entries after that timestamp
 	if since > 0 {
 		if len(hb.logs) == 0 || hb.logs[len(hb.logs)-1].Timestamp <= since {
-			return nil
+			return []ConsoleLogEntry{}
 		}
 		start := len(hb.logs)
 		for i := len(hb.logs) - 1; i >= 0; i-- {
