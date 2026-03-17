@@ -78,7 +78,7 @@ func buildConfig(bundledFiles fs.FS, args []string, buildTime string) *server.Se
 	var spacePrimitives server.SpacePrimitives
 	spacePrimitives, err := server.NewDiskSpacePrimitives(rootSpaceConfig.SpaceFolderPath, rootSpaceConfig.GitIgnore)
 
-	rootSpaceConfig.ReadOnlyMode = os.Getenv("SB_READ_ONLY") != ""
+	rootSpaceConfig.ReadOnlyMode = os.Getenv("SB_READ_ONLY") == "true"
 
 	if rootSpaceConfig.ReadOnlyMode {
 		log.Println("Starting in read-only mode.")
