@@ -139,6 +139,12 @@ safeRun(async () => {
 
   await augmentBootConfig(bootConfig!, config!);
 
+  const isHeadless = new URLSearchParams(location.search).has("headless");
+  // Expose headless flag globally so client.init() can detect it after URL params are stripped
+  if (isHeadless) {
+    (globalThis as any).__sbHeadless = true;
+  }
+
   // Update the browser URL to no longer contain the query parameters using pushState
   if (location.search) {
     const newURL = new URL(location.href);
@@ -148,7 +154,14 @@ safeRun(async () => {
   console.log("Booting SilverBullet client");
   console.log("Boot config", bootConfig, config.values);
 
-  if (localStorage.getItem("enableSW") !== "0" && navigator.serviceWorker) {
+  // If Tauri or headless: skip service worker
+  const isTauri = !!(window as any).__TAURI__;
+  if (
+    !isHeadless &&
+    !isTauri &&
+    localStorage.getItem("enableSW") !== "0" &&
+    navigator.serviceWorker
+  ) {
     // Register service worker
     const workerURL = new URL("service_worker.js", document.baseURI);
     let startNotificationCount = 0;

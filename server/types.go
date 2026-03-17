@@ -20,6 +20,17 @@ type ServerConfig struct {
 	ClientBundle SpacePrimitives
 
 	Version string
+
+	// HeadlessConfig holds configuration for the headless browser (nil = disabled)
+	HeadlessConfig *HeadlessConfig
+
+	// RuntimeBridge manages the Runtime API bridge to the headless browser.
+	// Created in RunServer before Router; Router falls back to NewRuntimeBridge(nil) if nil.
+	RuntimeBridge *RuntimeBridge
+
+	// HeadlessToken is a random token generated at startup for headless browser auth.
+	// The headless browser passes this token via URL query param to auto-authenticate.
+	HeadlessToken string
 }
 
 type UserPasswordAuthorizer func(username, password string) bool
@@ -47,6 +58,9 @@ type SpaceConfig struct {
 
 	// Shell configuration
 	ShellBackend ShellBackend
+
+	// Runtime API: enables Runtime API endpoints for Lua evaluation
+	EnableRuntimeAPI bool
 
 	// Auth temporary objects
 	JwtIssuer    *Authenticator

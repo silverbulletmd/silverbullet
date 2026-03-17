@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -29,6 +30,7 @@ type BootConfig struct {
 
 	// Encryption
 	EnableClientEncryption bool `json:"enableClientEncryption"`
+
 }
 
 func Router(config *ServerConfig) chi.Router {
@@ -88,6 +90,28 @@ func Router(config *ServerConfig) chi.Router {
 	// Log collection endpoint
 	routes.Post("/.logs", handleLogsEndpoint)
 
+	// Runtime API: Lua evaluation endpoints (via CDP to headless Chrome)
+	bridge := config.RuntimeBridge
+	if bridge == nil {
+		bridge = NewRuntimeBridge(nil)
+	}
+	routes.Group(func(r chi.Router) {
+		r.Use(func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				spaceConfig := spaceConfigFromContext(r.Context())
+				if !spaceConfig.EnableRuntimeAPI {
+					writeJSON(w, http.StatusServiceUnavailable, map[string]any{"error": "Runtime API is not enabled"})
+					return
+				}
+				next.ServeHTTP(w, r)
+			})
+		})
+		r.Post("/.runtime/lua", bridge.HandleLuaAPI)
+		r.Post("/.runtime/lua_script", bridge.HandleLuaScriptAPI)
+		r.Get("/.runtime/screenshot", bridge.HandleScreenshot)
+		r.Get("/.runtime/logs", bridge.HandleConsoleLogs)
+	})
+
 	// Proxy endpoint
 	routes.HandleFunc("/.proxy/*", proxyHandler)
 
@@ -127,7 +151,32 @@ func Router(config *ServerConfig) chi.Router {
 }
 
 func RunServer(config *ServerConfig) error {
+	// Set up headless config runtime values and create RuntimeBridge
+	if config.HeadlessConfig != nil {
+		config.HeadlessConfig.ServerURL = fmt.Sprintf("http://127.0.0.1:%d%s", config.Port, config.HostURLPrefix)
+
+		// Generate a random token for headless browser authentication
+		token, err := generateRandomToken(32)
+		if err != nil {
+			log.Printf("[Headless] Warning: failed to generate auth token: %v", err)
+		} else {
+			config.HeadlessToken = token
+			config.HeadlessConfig.HeadlessToken = token
+		}
+
+		config.RuntimeBridge = NewRuntimeBridge(config.HeadlessConfig)
+	} else {
+		config.RuntimeBridge = NewRuntimeBridge(nil)
+	}
+
 	r := Router(config)
+
+	addr := fmt.Sprintf("%s:%d", config.BindHost, config.Port)
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		return fmt.Errorf("failed to listen on %s: %w", addr, err)
+	}
+
 	// Display the final server running message
 	visibleHostname := config.BindHost
 	if config.BindHost == "127.0.0.1" {
@@ -136,14 +185,13 @@ func RunServer(config *ServerConfig) error {
 	log.Printf("SilverBullet is now running: http://%s:%d", visibleHostname, config.Port)
 
 	server := &http.Server{
-		Addr:    fmt.Sprintf("%s:%d", config.BindHost, config.Port),
 		Handler: r,
 	}
 
 	shutdownChannel := make(chan bool, 1)
 
 	go func() {
-		if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+		if err := server.Serve(listener); !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("HTTP server error: %v", err)
 		}
 		log.Println("Stopped serving new connections.")
@@ -157,6 +205,9 @@ func RunServer(config *ServerConfig) error {
 	// Block on incoming signals.
 	s := <-signalChannel
 	log.Println("Received signal:", s)
+
+	// Stop headless browser (if running) before server shutdown
+	config.RuntimeBridge.Stop()
 
 	shutdownCtx, shutdownRelease := context.WithTimeout(context.Background(), 10*time.Second)
 	defer shutdownRelease()

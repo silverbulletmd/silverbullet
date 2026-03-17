@@ -200,6 +200,30 @@ func authMiddleware(config *ServerConfig) func(http.Handler) http.Handler {
 			path := removeURLPrefix(r.URL.Path, config.HostURLPrefix)
 			host := extractHost(r)
 
+			// Headless token authentication: issue a JWT cookie and proceed.
+			// This runs before the excluded-path check so the cookie gets set
+			// on the initial page load (path="/"), which is normally excluded.
+			if config.HeadlessToken != "" {
+				if queryToken := r.URL.Query().Get("token"); queryToken == config.HeadlessToken {
+					if err := spaceConfig.InitAuth(); err != nil {
+						http.Error(w, "Failed to initialize authentication", http.StatusInternalServerError)
+						return
+					}
+					jwt, err := spaceConfig.JwtIssuer.CreateJWT(map[string]any{"username": "headless"})
+					if err != nil {
+						log.Printf("[Headless] Failed to create JWT: %v", err)
+						http.Error(w, "Internal server error", http.StatusInternalServerError)
+						return
+					}
+					cookieOptions := CookieOptions{
+						Path: fmt.Sprintf("%s/", config.HostURLPrefix),
+					}
+					setCookie(w, authCookieName(host), jwt, cookieOptions)
+					next.ServeHTTP(w, r)
+					return
+				}
+			}
+
 			if isExcludedPath(path) {
 				next.ServeHTTP(w, r)
 				return
