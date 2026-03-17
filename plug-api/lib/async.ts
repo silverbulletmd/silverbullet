@@ -1,6 +1,9 @@
-export function throttle(func: () => void, limit: number): () => void {
+export function throttle(
+  func: () => void,
+  limit: number,
+): (() => void) & { flush(): void } {
   let timer: any = null;
-  return () => {
+  const throttled = () => {
     if (!timer) {
       timer = setTimeout(() => {
         func();
@@ -8,6 +11,15 @@ export function throttle(func: () => void, limit: number): () => void {
       }, limit);
     }
   };
+  // Immediately execute any pending call and cancel the timer
+  throttled.flush = () => {
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+      func();
+    }
+  };
+  return throttled;
 }
 
 export function throttleImmediately(

@@ -74,6 +74,16 @@ export class ContentManager {
 
             return resolve();
           } else {
+            // Do not save while IME composition is active
+            if (this.client.editorView.composing) {
+              // Re-schedule save after composition likely ends
+              this.saveTimeout = setTimeout(
+                this.save.bind(this),
+                autoSaveInterval,
+              );
+              return resolve();
+            }
+
             console.log("Saving page", this.client.currentPath());
             void this.client.dispatchAppEvent(
               "editor:pageSaving",
@@ -108,8 +118,12 @@ export class ContentManager {
                     meta: enrichedMeta,
                   });
 
-                  // Trigger editor re-render to update Lua widgets with the new metadata
-                  this.client.editorView.dispatch({});
+                  // Skip during IME composition
+                  if (!this.client.editorView.composing) {
+                    // Trigger editor re-render to update Lua widgets
+                    // with the new metadata
+                    this.client.editorView.dispatch({});
+                  }
                 }
               })
               .catch((e) => {
@@ -158,6 +172,7 @@ export class ContentManager {
     if (previousPath) {
       this.client.space.unwatchFile(previousPath);
       await this.save(true);
+      await this.client.objectIndex.awaitIndexQueueDrain();
     }
 
     // This can throw, but that will be catched and handled upstream.
@@ -225,6 +240,7 @@ export class ContentManager {
     if (previousPath) {
       this.client.space.unwatchFile(previousPath);
       await this.save(true);
+      await this.client.objectIndex.awaitIndexQueueDrain();
     }
 
     // Fetch next page to open

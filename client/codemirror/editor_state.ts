@@ -270,6 +270,9 @@ export function createEditorState(
       }),
       ViewPlugin.fromClass(
         class {
+          // Track file changed during an IME composition session
+          private composingDirty = false;
+
           update(update: ViewUpdate): void {
             if (update.transactions.length > 0) {
               for (const tr of update.transactions) {
@@ -290,6 +293,15 @@ export function createEditorState(
               ) {
                 return;
               }
+
+              // Defer save and event dispatch during IME composition
+              if (update.view.composing) {
+                // Mark dirty so we flush when composition ends
+                this.composingDirty = true;
+                client.ui.viewDispatch({ type: "page-changed" });
+                return;
+              }
+
               const changes: TextChange[] = [];
               update.changes.iterChanges((fromA, toA, fromB, toB, inserted) =>
                 changes.push({
@@ -300,6 +312,12 @@ export function createEditorState(
               );
               void client.dispatchAppEvent("editor:pageModified", { changes });
               client.ui.viewDispatch({ type: "page-changed" });
+              client.contentManager.debouncedUpdateEvent();
+              client.save().catch((e) => console.error("Error saving", e));
+              this.composingDirty = false;
+            } else if (this.composingDirty && !update.view.composing) {
+              // Flush now because composition ended without file changes
+              this.composingDirty = false;
               client.contentManager.debouncedUpdateEvent();
               client.save().catch((e) => console.error("Error saving", e));
             }
