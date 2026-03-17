@@ -94,6 +94,33 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: "Runtime API: Extract metadata"
+        id: rc_meta
+        uses: docker/metadata-action@v4.4.0
+        with:
+          images: |
+            ${{ env.NAMESPACE_DOCKER }}/${{ env.IMAGE_NAME }}
+            ghcr.io/${{ env.NAMESPACE_GITHUB }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{raw}}-runtime-api,enable=true
+            type=semver,pattern=latest,value=latest-runtime-api,enable=true
+            type=raw,value=v2-runtime-api,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: "Runtime API: Build and push"
+        uses: docker/build-push-action@v6.18.0
+        with:
+          context: .
+          platforms: ${{ env.ARCHITECTURES }}
+          push: true
+          file: Dockerfile.ci.runtime-api
+          provenance: false
+          build-args: |
+            BASE_IMAGE=ghcr.io/${{ env.NAMESPACE_GITHUB }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+          tags: ${{ steps.rc_meta.outputs.tags }}
+          labels: ${{ steps.rc_meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
       - name: "Website: Extract metadata (tags, labels) for docker"
         id: website_meta
         uses: docker/metadata-action@v4.4.0

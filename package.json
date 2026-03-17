@@ -31,7 +31,8 @@
     "./type/index": "./plug-api/types/index.ts"
   },
   "bin": {
-    "plug-compile": "dist/plug-compile.js"
+    "plug-compile": "dist/plug-compile.js",
+    "silverbullet-cli": "dist/silverbullet-cli.js"
   },
   "files": [
     "plug-api/**/*.ts",
@@ -47,14 +48,17 @@
     "!client/space_lua/**/*.bench.ts",
     "client/markdown_parser/constants.ts",
     "plugs/builtin_plugs.ts",
-    "dist/plug-compile.js"
+    "dist/plug-compile.js",
+    "dist/silverbullet-cli.js"
   ],
   "scripts": {
     "build": "npm run build:plugs && npm run build:client",
     "build:plugs": "tsx build/build_plugs.ts",
     "build:client": "tsx build/build_client.ts",
     "build:plug-compile": "tsx build/build_plug_compile.ts",
-    "prepublishOnly": "npm run build:plug-compile",
+    "build:cli": "tsx build/build_cli.ts",
+    "cli": "node dist/silverbullet-cli.js",
+    "prepublishOnly": "npm run build:plug-compile && npm run build:cli",
     "test": "vitest run",
     "check": "tsc --noEmit",
     "lint": "biome lint .",

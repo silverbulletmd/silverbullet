@@ -9,6 +9,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -187,6 +190,37 @@ func buildConfig(bundledFiles fs.FS, args []string, buildTime string) *server.Se
 		log.Println("SilverBullet will only be available locally, to allow outside connections, pass -L0.0.0.0 as a flag, and put a TLS terminator on top.")
 	}
 
+	// Runtime API: auto-enable if Chrome is available, unless explicitly disabled or read-only
+	runtimeAPIEnv := os.Getenv("SB_RUNTIME_API")
+	if runtimeAPIEnv == "0" || runtimeAPIEnv == "false" {
+		log.Println("Runtime API explicitly disabled via SB_RUNTIME_API=0")
+	} else if rootSpaceConfig.ReadOnlyMode {
+		log.Println("Runtime API is not available in read-only mode")
+	} else {
+		chromePath := os.Getenv("SB_CHROME_PATH")
+		if chromePath == "" {
+			chromePath = os.Getenv("CHROMIUM_PATH")
+		}
+		if chromePath == "" {
+			chromePath = findChrome()
+		}
+		if chromePath != "" {
+			rootSpaceConfig.EnableRuntimeAPI = true
+			chromeDataDir := os.Getenv("SB_CHROME_DATA_DIR")
+			if chromeDataDir == "" {
+				chromeDataDir = filepath.Join(rootSpaceConfig.SpaceFolderPath, ".chrome-data")
+			}
+			serverConfig.HeadlessConfig = &server.HeadlessConfig{
+				ChromePath:  chromePath,
+				ShowBrowser: os.Getenv("SB_CHROME_SHOW") != "",
+				UserDataDir: chromeDataDir,
+			}
+			log.Printf("Runtime API enabled (Chrome: %s, data: %s)", chromePath, chromeDataDir)
+		} else {
+			log.Println("Runtime API disabled: Chrome/Chromium not found. Install Chrome or set SB_CHROME_PATH to enable.")
+		}
+	}
+
 	// Initialize shell backend
 	backendConfig := os.Getenv("SB_SHELL_BACKEND")
 	if backendConfig == "" && !rootSpaceConfig.ReadOnlyMode {
@@ -233,6 +267,43 @@ func ensureIndexAndConfig(rootSpaceConfig *server.SpaceConfig) {
 			log.Fatalf("Could not write config page %s: %v", configPagePath, err)
 		}
 	}
+}
+
+func findChrome() string {
+	var candidates []string
+	switch runtime.GOOS {
+	case "darwin":
+		candidates = []string{
+			"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+			"/Applications/Chromium.app/Contents/MacOS/Chromium",
+		}
+	case "windows":
+		candidates = []string{
+			"chrome",
+			"chrome.exe",
+			`C:\Program Files (x86)\Google\Chrome\Application\chrome.exe`,
+			`C:\Program Files\Google\Chrome\Application\chrome.exe`,
+			filepath.Join(os.Getenv("USERPROFILE"), `AppData\Local\Google\Chrome\Application\chrome.exe`),
+			filepath.Join(os.Getenv("USERPROFILE"), `AppData\Local\Chromium\Application\chrome.exe`),
+		}
+	default:
+		candidates = []string{
+			"headless_shell",
+			"headless-shell",
+			"chromium",
+			"chromium-browser",
+			"google-chrome",
+			"google-chrome-stable",
+			"/usr/bin/google-chrome",
+			"/snap/bin/chromium",
+		}
+	}
+	for _, c := range candidates {
+		if found, err := exec.LookPath(c); err == nil {
+			return found
+		}
+	}
+	return ""
 }
 
 func ServerCommand(bundledFiles fs.FS, versionFileText string, buildTime string) *cobra.Command {

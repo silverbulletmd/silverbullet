@@ -35,6 +35,9 @@ Some functionality is exposed as RPC-style calls
   * Upstream response headers are returned with an `x-proxy-header-` prefix.
   * The `x-proxy-status-code` header contains the actual upstream HTTP status code; the proxy response itself always returns 200 to avoid interference.
 
+## Runtime API
+Enabled automatically when Chrome/Chromium is detected (set `SB_RUNTIME_API=0` to disable). See [[Runtime API]] for full documentation, setup instructions, and examples.
+
 # Client
 * `GET /.config`: Retrieve client configuration, JSON with the following keys:
   * `readOnly`: Run the client in read-only mode

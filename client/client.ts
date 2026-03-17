@@ -2,12 +2,22 @@ import type {
   CompletionContext,
   CompletionResult,
 } from "@codemirror/autocomplete";
+import { history } from "@codemirror/commands";
+import { syntaxTree } from "@codemirror/language";
 import type { Compartment, EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { syntaxTree } from "@codemirror/language";
-import { history } from "@codemirror/commands";
 import type { SyntaxNode } from "@lezer/common";
-import { Space } from "./space.ts";
+import { jitter } from "@silverbulletmd/silverbullet/lib/async";
+import { deriveDbName } from "@silverbulletmd/silverbullet/lib/crypto";
+import {
+  encodePageURI,
+  encodeRef,
+  getNameFromPath,
+  isMarkdownPath,
+  type Path,
+  parseToRef,
+  type Ref,
+} from "@silverbulletmd/silverbullet/lib/ref";
 import type {
   AppEvent,
   ClickEvent,
@@ -15,61 +25,54 @@ import type {
   EnrichedClickEvent,
   SlashCompletions,
 } from "@silverbulletmd/silverbullet/type/client";
-import { publicVersion } from "../public_version.ts";
-import { EventHook } from "./plugos/hooks/event.ts";
-import type { Command } from "./types/command.ts";
-import { parseRefFromURI, PathPageNavigator } from "./navigator.ts";
-
 import type {
-  AppViewState,
-  BootConfig,
-  ServiceWorkerSourceMessage,
-  ServiceWorkerTargetMessage,
-} from "./types/ui.ts";
-
+  DocumentMeta,
+  FileMeta,
+  PageMeta,
+} from "@silverbulletmd/silverbullet/type/index";
 import type { StyleObject } from "../plugs/index/space_style.ts";
-import { jitter } from "@silverbulletmd/silverbullet/lib/async";
-import { EventedSpacePrimitives } from "./spaces/evented_space_primitives.ts";
-import { HttpSpacePrimitives } from "./spaces/http_space_primitives.ts";
-import {
-  encodePageURI,
-  encodeRef,
-  getNameFromPath,
-  isMarkdownPath,
-  parseToRef,
-  type Path,
-  type Ref,
-} from "@silverbulletmd/silverbullet/lib/ref";
+import { publicVersion } from "../public_version.ts";
 import { ClientSystem } from "./client_system.ts";
 import {
   buildMarkdownLanguageExtension,
   createEditorState,
   isValidEditor,
 } from "./codemirror/editor_state.ts";
-import { MainUI } from "./editor_ui.tsx";
-import { DataStore } from "./data/datastore.ts";
-import { IndexedDBKvPrimitives } from "./data/indexeddb_kv_primitives.ts";
-import { DataStoreMQ } from "./data/mq.datastore.ts";
-
-import { fsEndpoint } from "./spaces/constants.ts";
-import { WidgetCache } from "./widget_cache.ts";
-import { ContentManager } from "./content_manager.ts";
-import { parseExpressionString } from "./space_lua/parse.ts";
 import type { Config } from "./config.ts";
-import type {
-  DocumentMeta,
-  FileMeta,
-  PageMeta,
-} from "@silverbulletmd/silverbullet/type/index";
-import { CheckedSpacePrimitives } from "./spaces/checked_space_primitives.ts";
+import { ContentManager } from "./content_manager.ts";
 import { Augmenter } from "./data/data_augmenter.ts";
+import { DataStore } from "./data/datastore.ts";
 import { EncryptedKvPrimitives } from "./data/encrypted_kv_primitives.ts";
+import { IndexedDBKvPrimitives } from "./data/indexeddb_kv_primitives.ts";
 import type { KvPrimitives } from "./data/kv_primitives.ts";
-import { deriveDbName } from "@silverbulletmd/silverbullet/lib/crypto";
-import { LuaRuntimeError } from "./space_lua/runtime.ts";
-import { resolveASTReference } from "./space_lua.ts";
+import { DataStoreMQ } from "./data/mq.datastore.ts";
 import { ObjectIndex } from "./data/object_index.ts";
+import { MainUI } from "./editor_ui.tsx";
+import { PathPageNavigator, parseRefFromURI } from "./navigator.ts";
+import { EventHook } from "./plugos/hooks/event.ts";
+import { Space } from "./space.ts";
+import { evalStatement } from "./space_lua/eval.ts";
+import { parseExpressionString, parse as parseLua } from "./space_lua/parse.ts";
 import type { LuaCollectionQuery } from "./space_lua/query_collection.ts";
+import {
+  LuaEnv,
+  LuaRuntimeError,
+  LuaStackFrame,
+  luaValueToJS,
+} from "./space_lua/runtime.ts";
+import { resolveASTReference } from "./space_lua.ts";
+import { CheckedSpacePrimitives } from "./spaces/checked_space_primitives.ts";
+import { fsEndpoint } from "./spaces/constants.ts";
+import { EventedSpacePrimitives } from "./spaces/evented_space_primitives.ts";
+import { HttpSpacePrimitives } from "./spaces/http_space_primitives.ts";
+import type { Command } from "./types/command.ts";
+import type {
+  AppViewState,
+  BootConfig,
+  ServiceWorkerSourceMessage,
+  ServiceWorkerTargetMessage,
+} from "./types/ui.ts";
+import { WidgetCache } from "./widget_cache.ts";
 
 // Fetch the file list ever so often, this will implicitly kick off a snapshot comparison resulting in the indexing of changed pages
 const fetchFileListInterval = 10000;
@@ -240,6 +243,8 @@ export class Client {
     // await this.initSync();
     await this.eventHook.dispatchEvent("system:ready");
     this.systemReady = true;
+
+    this.initHeadlessRuntime();
 
     // Load space snapshot and enable events
     await this.eventedSpacePrimitives.enable();
@@ -439,6 +444,63 @@ export class Client {
       query,
       scopedVariables,
     );
+  }
+
+  /**
+   * In headless mode, expose Lua eval functions on globalThis for CDP access
+   * and signal readiness once the full index is complete.
+   */
+  private initHeadlessRuntime() {
+    if (!(globalThis as any).__sbHeadless) {
+      return;
+    }
+    console.log("[RuntimeAPI] Headless mode, exposing eval functions");
+    const spaceLuaEnv = this.clientSystem.spaceLuaEnv;
+
+    const evalLuaCode = async (code: string) => {
+      const ast = parseLua(code);
+      const scriptEnv = new LuaEnv(spaceLuaEnv.env);
+      const tl = new LuaEnv();
+      tl.setLocal("_GLOBAL", spaceLuaEnv.env);
+      const sf = new LuaStackFrame(tl, ast.ctx);
+      const result = await evalStatement(ast, scriptEnv, sf);
+      const returnValue =
+        result &&
+        typeof result === "object" &&
+        "ctrl" in result &&
+        result.ctrl === "return" &&
+        Array.isArray(result.values)
+          ? result.values[0]
+          : result;
+      return (await Promise.resolve(luaValueToJS(returnValue, sf))) ?? null;
+    };
+
+    (globalThis as any).__sbEvalLua = (expr: string) =>
+      evalLuaCode(`return ${expr}`);
+    (globalThis as any).__sbEvalLuaScript = evalLuaCode;
+
+    // Signal readiness after full index is complete
+    void this.waitForFullIndex().then(() => {
+      console.log(
+        "[RuntimeAPI] Ready (eval functions exposed + index complete)",
+      );
+      (globalThis as any).__sbRuntimeAPIReady = true;
+    });
+  }
+
+  private async waitForFullIndex(): Promise<void> {
+    while (!(await this.objectIndex.hasFullIndexCompleted())) {
+      await new Promise<void>((resolve) => {
+        const handler = () => {
+          this.eventHook.removeLocalListener(
+            "mq:emptyQueue:indexQueue",
+            handler,
+          );
+          resolve();
+        };
+        this.eventHook.addLocalListener("mq:emptyQueue:indexQueue", handler);
+      });
+    }
   }
 
   async updatePageListCache() {
