@@ -5,7 +5,29 @@ tags: meta/api
 
 APIs to define and override aggregate functions used in LIQ `select` and `having` clauses after `group by`.
 
-Built-in aggregates: `count`, `sum`, `min`, `max`, `avg` and `array_agg`.
+Built-in aggregates: `count()`, `sum(expr)`, `avg(expr)`, `min(expr)`, `max(expr)`, `product(expr)`, `array_agg(expr)`, `string_agg(expr, sep?)`, `yaml_agg(expr)`, `json_agg(expr)`, `bit_and(expr)`, `bit_or(expr)`, `bit_xor(expr)`, `bool_and(expr)`, `bool_or(expr)`, `stddev_pop(expr)`, `stddev_samp(expr)`, `var_pop(expr)` and `var_samp(expr)`.
+
+All aggregates skip null/nil values. Empty groups return null (except `count` which returns 0 and `string_agg` which returns `""`).
+
+# Querying available aggregates
+
+All aggregates (built-in, user-defined, and aliases) are queryable via `index.aggregates()`:
+
+```lua
+-- List all
+${query[[from index.aggregates()]]}
+
+-- Only builtins
+${query[[from index.aggregates() where builtin]]}
+
+-- Only aliases
+${query[[from index.aggregates() where alias]]}
+
+-- Only user-defined (non-builtin, non-alias)
+${query[[from index.aggregates() where not builtin and not alias]]}
+```
+
+Every row contains all columns: `builtin`, `name`, `description`, `initialize`, `iterate`, `finish`, `alias`.
 
 # API
 
@@ -35,6 +57,15 @@ This allows parameterized aggregates, for example a separator argument for strin
 ## aggregate.update(spec)
 
 Updates an existing aggregate definition. Same keys as `aggregate.define`. Only the provided keys are overwritten.
+
+## aggregate.alias(name, target, description?)
+
+Creates an alias so that `name` resolves to `target` at query time. The target may be a builtin, a user-defined aggregate, or another alias (chains are followed with cycle detection).
+
+```lua
+aggregate.alias("total", "sum")
+aggregate.alias("stdev", "stddev_pop", "My stddev alias")
+```
 
 # Examples
 
@@ -88,6 +119,13 @@ aggregate.update {
     return state + 1
   end,
 }
+```
+
+## Create an alias
+
+```lua
+aggregate.alias("total", "sum")
+aggregate.alias("stdev", "stddev_pop", "Shorthand for population stddev")
 ```
 
 # Implementation
@@ -147,4 +185,24 @@ function aggregate.update(spec)
 
   config.set({'aggregates', spec.name}, existing)
 end
+
+function aggregate.alias(name, target, description)
+  if not name or not target then
+    error('aggregate.alias: both name and target are required')
+  end
+  if name == target then
+    error('aggregate.alias: name and target must differ')
+  end
+  local entry = { alias = target }
+  if description then
+    entry.description = description
+  end
+  config.set({'aggregates', name}, entry)
+end
+
+-- Standard aliases (previously hardcoded in TypeScript)
+aggregate.alias("every",    "bool_and")
+aggregate.alias("std",      "stddev_pop")
+aggregate.alias("stddev",   "stddev_pop")
+aggregate.alias("variance", "var_pop")
 ```

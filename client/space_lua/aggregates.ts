@@ -1,9 +1,11 @@
 /**
  * Aggregate function definitions and execution for LIQ.
  *
- * Built-in aggregates (sum, count, min, max, avg, array_agg) are
- * implemented in TypeScript for speed.  Users can override any builtin
- * via `aggregate.define` or `aggregate.update`.
+ * Built-in aggregates (sum, count, min, max, avg, array_agg, product,
+ * string_agg, yaml_agg, json_agg, bit_and, bit_or, bit_xor, bool_and,
+ * bool_or, stddev_pop, stddev_samp, var_pop, var_samp) are implemented
+ * in TypeScript for speed.  Users can override any builtin via
+ * `aggregate.define` or `aggregate.update`.
  *
  * Builtins implement ILuaFunction via plain objects rather than
  * LuaBuiltinFunction instances.  This avoids ES module TDZ issues:
@@ -17,12 +19,14 @@ import {
   type LuaEnv,
   LuaTable,
   luaTruthy,
+  luaValueToJS,
   type LuaValue,
 } from "./runtime.ts";
 import type { LuaExpression } from "./ast.ts";
 import { buildItemEnv } from "./query_env.ts";
 import { asyncMergeSort } from "./util.ts";
 import type { Config } from "../config.ts";
+import YAML from "js-yaml";
 
 export interface AggregateSpec {
   name: string;
@@ -45,6 +49,28 @@ function aggFn(
       return "<builtin aggregate>";
     },
   };
+}
+
+// Welford's online algorithm (for variance and standard deviation)
+interface WelfordState {
+  n: number;
+  mean: number;
+  m2: number;
+}
+
+function welfordInit(): WelfordState {
+  return { n: 0, mean: 0, m2: 0 };
+}
+
+function welfordIterate(state: WelfordState, value: any): WelfordState {
+  if (value === null || value === undefined) return state;
+  const x = value as number;
+  state.n += 1;
+  const delta = x - state.mean;
+  state.mean += delta / state.n;
+  const delta2 = x - state.mean;
+  state.m2 += delta * delta2;
+  return state;
 }
 
 // Built-in aggregate specs
@@ -114,6 +140,185 @@ const builtinAggregates: Record<string, AggregateSpec> = {
       return state;
     }),
   },
+  product: {
+    name: "product",
+    description: "Product of numeric values; nulls are skipped",
+    initialize: aggFn((_sf) => ({ result: 1, hasValue: false })),
+    iterate: aggFn((_sf, state: any, value: any) => {
+      if (value === null || value === undefined) return state;
+      state.result *= value as number;
+      state.hasValue = true;
+      return state;
+    }),
+    finish: aggFn((_sf, state: any) => {
+      return state.hasValue ? state.result : null;
+    }),
+  },
+  string_agg: {
+    name: "string_agg",
+    description: "Concatenate values with a separator (default: ',')",
+    initialize: aggFn((_sf, _ctx: any, sep: any) => {
+      return { sep: sep ?? ",", parts: [] as string[] };
+    }),
+    iterate: aggFn((_sf, state: any, value: any) => {
+      if (value === null || value === undefined) return state;
+      state.parts.push(String(value));
+      return state;
+    }),
+    finish: aggFn((_sf, state: any) => {
+      return state.parts.join(state.sep);
+    }),
+  },
+  yaml_agg: {
+    name: "yaml_agg",
+    description: "Collect values into a YAML string",
+    initialize: aggFn((_sf) => [] as any[]),
+    iterate: aggFn((sf, state: any, value: any) => {
+      if (value instanceof LuaTable) {
+        state.push(luaValueToJS(value, sf));
+      } else {
+        state.push(value);
+      }
+      return state;
+    }),
+    finish: aggFn((_sf, state: any) => {
+      return YAML.dump(state, { quotingType: '"', noCompatMode: true });
+    }),
+  },
+  json_agg: {
+    name: "json_agg",
+    description: "Collect values into a JSON string",
+    initialize: aggFn((_sf) => [] as any[]),
+    iterate: aggFn((sf, state: any, value: any) => {
+      if (value instanceof LuaTable) {
+        state.push(luaValueToJS(value, sf));
+      } else {
+        state.push(value);
+      }
+      return state;
+    }),
+    finish: aggFn((_sf, state: any) => {
+      return JSON.stringify(state);
+    }),
+  },
+  bit_and: {
+    name: "bit_and",
+    description: "Bitwise AND of integer values",
+    initialize: aggFn((_sf) => ({ result: ~0, hasValue: false })),
+    iterate: aggFn((_sf, state: any, value: any) => {
+      if (value === null || value === undefined) return state;
+      state.result &= value as number;
+      state.hasValue = true;
+      return state;
+    }),
+    finish: aggFn((_sf, state: any) => {
+      return state.hasValue ? state.result : null;
+    }),
+  },
+  bit_or: {
+    name: "bit_or",
+    description: "Bitwise OR of integer values",
+    initialize: aggFn((_sf) => ({ result: 0, hasValue: false })),
+    iterate: aggFn((_sf, state: any, value: any) => {
+      if (value === null || value === undefined) return state;
+      state.result |= value as number;
+      state.hasValue = true;
+      return state;
+    }),
+    finish: aggFn((_sf, state: any) => {
+      return state.hasValue ? state.result : null;
+    }),
+  },
+  bit_xor: {
+    name: "bit_xor",
+    description: "Bitwise XOR of integer values",
+    initialize: aggFn((_sf) => ({ result: 0, hasValue: false })),
+    iterate: aggFn((_sf, state: any, value: any) => {
+      if (value === null || value === undefined) return state;
+      state.result ^= value as number;
+      state.hasValue = true;
+      return state;
+    }),
+    finish: aggFn((_sf, state: any) => {
+      return state.hasValue ? state.result : null;
+    }),
+  },
+  bool_and: {
+    name: "bool_and",
+    description: "True if all non-null values are truthy",
+    initialize: aggFn((_sf) => ({ result: true, hasValue: false })),
+    iterate: aggFn((_sf, state: any, value: any) => {
+      if (value === null || value === undefined) return state;
+      state.result = state.result && !!value;
+      state.hasValue = true;
+      return state;
+    }),
+    finish: aggFn((_sf, state: any) => {
+      return state.hasValue ? state.result : null;
+    }),
+  },
+  bool_or: {
+    name: "bool_or",
+    description: "True if any non-null value is truthy",
+    initialize: aggFn((_sf) => ({ result: false, hasValue: false })),
+    iterate: aggFn((_sf, state: any, value: any) => {
+      if (value === null || value === undefined) return state;
+      state.result = state.result || !!value;
+      state.hasValue = true;
+      return state;
+    }),
+    finish: aggFn((_sf, state: any) => {
+      return state.hasValue ? state.result : null;
+    }),
+  },
+  stddev_pop: {
+    name: "stddev_pop",
+    description: "Population standard deviation",
+    initialize: aggFn((_sf) => welfordInit()),
+    iterate: aggFn((_sf, state: any, value: any) =>
+      welfordIterate(state, value),
+    ),
+    finish: aggFn((_sf, state: any) => {
+      if (state.n === 0) return null;
+      return Math.sqrt(state.m2 / state.n);
+    }),
+  },
+  stddev_samp: {
+    name: "stddev_samp",
+    description: "Sample standard deviation",
+    initialize: aggFn((_sf) => welfordInit()),
+    iterate: aggFn((_sf, state: any, value: any) =>
+      welfordIterate(state, value),
+    ),
+    finish: aggFn((_sf, state: any) => {
+      if (state.n < 2) return null;
+      return Math.sqrt(state.m2 / (state.n - 1));
+    }),
+  },
+  var_pop: {
+    name: "var_pop",
+    description: "Population variance",
+    initialize: aggFn((_sf) => welfordInit()),
+    iterate: aggFn((_sf, state: any, value: any) =>
+      welfordIterate(state, value),
+    ),
+    finish: aggFn((_sf, state: any) => {
+      if (state.n === 0) return null;
+      return state.m2 / state.n;
+    }),
+  },
+  var_samp: {
+    name: "var_samp",
+    description: "Sample variance",
+    initialize: aggFn((_sf) => welfordInit()),
+    iterate: aggFn((_sf, state: any, value: any) =>
+      welfordIterate(state, value),
+    ),
+    finish: aggFn((_sf, state: any) => {
+      if (state.n < 2) return null;
+      return state.m2 / (state.n - 1);
+    }),
+  },
 };
 
 const noCtx = {};
@@ -125,33 +330,67 @@ function buildAggCtx(name: string, config: Config): LuaTable {
   return ctx;
 }
 
+/**
+ * Resolve name through config following alias chains (cycles detected)
+ */
 export function getAggregateSpec(
   name: string,
   config?: Config,
 ): AggregateSpec | null {
-  if (config) {
-    const spec: any = config.get(`aggregates.${name}`, null);
-    if (spec) {
-      let candidate: AggregateSpec | null = null;
-      if (spec instanceof LuaTable) {
-        const init = spec.rawGet("initialize");
-        const iter = spec.rawGet("iterate");
-        if (init && iter) {
-          candidate = {
-            name: spec.rawGet("name") ?? name,
-            description: spec.rawGet("description"),
-            initialize: init,
-            iterate: iter,
-            finish: spec.rawGet("finish"),
-          };
-        }
-      } else if (spec.initialize && spec.iterate) {
-        candidate = spec as AggregateSpec;
-      }
-      if (candidate) return candidate;
+  const visited = new Set<string>();
+  let current = name;
+
+  while (config) {
+    if (visited.has(current)) return null; // cycle
+    visited.add(current);
+
+    const spec: any = config.get(`aggregates.${current}`, null);
+    if (!spec) break;
+
+    // Check for alias redirect
+    const alias = spec instanceof LuaTable ? spec.rawGet("alias") : spec.alias;
+    if (typeof alias === "string") {
+      current = alias;
+      continue;
     }
+
+    // Full definition in config
+    let candidate: AggregateSpec | null = null;
+    if (spec instanceof LuaTable) {
+      const init = spec.rawGet("initialize");
+      const iter = spec.rawGet("iterate");
+      if (init && iter) {
+        candidate = {
+          name: spec.rawGet("name") ?? current,
+          description: spec.rawGet("description"),
+          initialize: init,
+          iterate: iter,
+          finish: spec.rawGet("finish"),
+        };
+      }
+    } else if (spec.initialize && spec.iterate) {
+      candidate = spec as AggregateSpec;
+    }
+    if (candidate) return candidate;
+    break;
   }
-  return builtinAggregates[name] ?? null;
+
+  return builtinAggregates[current] ?? null;
+}
+
+/**
+ * Returns info about all built-in aggregates
+ */
+export function getBuiltinAggregateEntries(): {
+  name: string;
+  description: string;
+  hasFinish: boolean;
+}[] {
+  return Object.values(builtinAggregates).map((spec) => ({
+    name: spec.name,
+    description: spec.description ?? "",
+    hasFinish: !!spec.finish,
+  }));
 }
 
 /**

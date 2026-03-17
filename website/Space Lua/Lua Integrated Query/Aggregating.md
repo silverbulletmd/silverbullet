@@ -14,6 +14,14 @@ Field names used in `group by` are exposed as locals in `having`, `select`, and 
 > **note** Note
 > The `having` clause acts only on grouped output. For filtering individual items, use `where` prior to grouping.
 
+# Available aggregates
+
+All registered aggregate functions — built-in, user-defined, and aliases — can be listed via `index.aggregates()`:
+
+${query[[from index.aggregates() order by name]]}
+
+See [[Library/Std/APIs/Aggregate|Aggregate API]] for how to define custom aggregates and aliases.
+
 # Examples
 All example queries operate on `tags.page`, but will work with any query collection. As always, to see the underlying query, hover over the result table and click the _Edit_ button to see the underlying query.
 

@@ -1,14 +1,15 @@
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 import type { Config } from "../config.ts";
-import type {
-  LuaCollectionQuery,
-  LuaQueryCollection,
+import {
+  ArrayQueryCollection,
+  type LuaCollectionQuery,
+  type LuaQueryCollection,
 } from "../space_lua/query_collection.ts";
 import {
   jsToLuaValue,
   LuaEnv,
   LuaStackFrame,
-  type LuaTable,
+  LuaTable,
 } from "../space_lua/runtime.ts";
 import type { DataStore } from "./datastore.ts";
 import type { KV, KvKey } from "@silverbulletmd/silverbullet/type/datastore";
@@ -16,6 +17,10 @@ import type { EventHook } from "../plugos/hooks/event.ts";
 import type { DataStoreMQ } from "./mq.datastore.ts";
 import type { Space } from "../space.ts";
 import { validateObject } from "../plugos/syscalls/jsonschema.ts";
+import {
+  getAggregateSpec,
+  getBuiltinAggregateEntries,
+} from "../space_lua/aggregates.ts";
 
 const indexKey = "idx";
 const pageKey = "ridx";
@@ -129,6 +134,77 @@ export class ObjectIndex {
         );
       },
     };
+  }
+
+  /**
+   * Returns a queryable collection of all aggregate functions:
+   *
+   * - builtin,
+   * - user-defined, and
+   * - aliases.
+   *
+   * Every row has all columns: `builtin`, `name`, `description`,
+   * `initialize`, `iterate`, `finish`, `alias`.
+   */
+  aggregates(): LuaQueryCollection {
+    const entries: Record<string, any>[] = [];
+
+    // Builtins are always listed (even if overridden)
+    for (const entry of getBuiltinAggregateEntries()) {
+      entries.push({
+        builtin: true,
+        name: entry.name,
+        description: entry.description,
+        initialize: true,
+        iterate: true,
+        finish: entry.hasFinish,
+        alias: null,
+      });
+    }
+
+    // Config entries (user-defined overrides and aliases)
+    const userAggs: Record<string, any> = this.config.get("aggregates", {});
+    for (const [key, spec] of Object.entries(userAggs)) {
+      const aliasTarget = spec?.alias ?? null;
+      if (typeof aliasTarget === "string") {
+        const resolved = getAggregateSpec(aliasTarget, this.config);
+        entries.push({
+          builtin: false,
+          name: aliasTarget,
+          description: spec?.description ?? resolved?.description ?? "",
+          initialize: resolved ? !!resolved.initialize : false,
+          iterate: resolved ? !!resolved.iterate : false,
+          finish: resolved ? !!resolved.finish : false,
+          alias: key,
+        });
+      } else {
+        let hasInit = false;
+        let hasIter = false;
+        let hasFin = false;
+        let desc = "";
+        if (spec instanceof LuaTable) {
+          hasInit = !!spec.rawGet("initialize");
+          hasIter = !!spec.rawGet("iterate");
+          hasFin = !!spec.rawGet("finish");
+          desc = spec.rawGet("description") ?? "";
+        } else if (spec) {
+          hasInit = !!spec.initialize;
+          hasIter = !!spec.iterate;
+          hasFin = !!spec.finish;
+          desc = spec.description ?? "";
+        }
+        entries.push({
+          builtin: false,
+          name: key,
+          description: desc,
+          initialize: hasInit,
+          iterate: hasIter,
+          finish: hasFin,
+          alias: null,
+        });
+      }
+    }
+    return new ArrayQueryCollection(entries);
   }
 
   getObjectByRef(page: string, tag: string, ref: string) {
