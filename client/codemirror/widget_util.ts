@@ -116,7 +116,20 @@ export function attachWidgetEventHandlers(
     const taskStateSpan = el.querySelector("span.sb-task-state[data-state]");
     if (taskStateSpan) {
       taskStateSpan.style.cursor = "pointer";
+      taskStateSpan.addEventListener("mousedown", (e: any) => {
+        if (e.altKey) {
+          // Pass to the mouse down handler for Alt+Click cursor move
+          return;
+        }
+        // Prevent CodeMirror from moving selection to widget source
+        e.preventDefault();
+        e.stopPropagation();
+      });
       taskStateSpan.addEventListener("click", (e: any) => {
+        if (e.altKey) {
+          // Alt+Click is for cursor positioning
+          return;
+        }
         e.stopPropagation();
         const oldState = taskStateSpan.dataset.state;
         console.log("Cycling extended task", taskRef, oldState);

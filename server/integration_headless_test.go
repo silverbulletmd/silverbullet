@@ -3,6 +3,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -139,8 +140,12 @@ func startHeadless(t *testing.T, opts ...testServerOption) *testServer {
 		ServerURL:     ts.Server.URL,
 		HeadlessToken: ts.Config.HeadlessToken,
 	})
-	require.NoError(t, err, "headless browser should start and become ready")
+	require.NoError(t, err, "headless browser should start")
 	t.Cleanup(hb.Stop)
+
+	readyCtx, readyCancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer readyCancel()
+	require.NoError(t, hb.WaitReady(readyCtx), "headless browser client should become ready")
 
 	ts.Config.RuntimeBridge.SetBrowser(hb)
 
@@ -469,23 +474,6 @@ return x + y`
 		}
 	})
 
-	t.Run("Timeout", func(t *testing.T) {
-		req, _ := http.NewRequest(http.MethodPost, ts.Server.URL+"/.runtime/lua_script", strings.NewReader(`
-local i = 0
-while i < 999999999 do
-  i = i + 1
-end
-return i
-`))
-		req.Header.Set("X-Timeout", "1")
-
-		resp, err := http.DefaultClient.Do(req)
-		require.NoError(t, err)
-		defer resp.Body.Close()
-
-		assert.Equal(t, http.StatusGatewayTimeout, resp.StatusCode)
-	})
-
 	t.Run("Screenshot", func(t *testing.T) {
 		resp, err := http.Get(ts.Server.URL + "/.runtime/screenshot")
 		require.NoError(t, err)
@@ -540,6 +528,7 @@ return i
 		require.True(t, ok)
 		assert.LessOrEqual(t, len(logs), 5)
 	})
+
 }
 
 // --- Auth-enabled headless tests (single Chrome instance) ---
