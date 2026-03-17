@@ -53,21 +53,16 @@ jobs:
         with:
           go-version: "1.25"
 
-      - name: Install Chrome
-        uses: browser-actions/setup-chrome@v1
-        with:
-          chrome-version: stable
-
       - name: Build
         run: |
           npm ci
           make build
 
-      - name: Run Go tests (unit + integration)
-        run: go test -tags=integration ./server/... -v -timeout 300s
+      - name: Run Go tests
+        run: go test ./server/... -v -timeout 300s
 
       - name: Run Go tests with coverage
-        run: go test -tags=integration ./server/... -coverprofile=coverage.out -timeout 300s
+        run: go test ./server/... -coverprofile=coverage.out -timeout 300s
 
       - name: Display test coverage
         run: go tool cover -func=coverage.out

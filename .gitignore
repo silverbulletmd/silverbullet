@@ -6,7 +6,6 @@ dist
 *.js.map
 env.sh
 node_modules
-test_space
 silverbullet
 deploy.json
 *.generated
