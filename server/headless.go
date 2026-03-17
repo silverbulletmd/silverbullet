@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -40,10 +42,14 @@ type HeadlessBrowser struct {
 	logsMu  sync.Mutex
 	logs    []ConsoleLogEntry
 	maxLogs int // ring buffer capacity
+
+	readyCh  chan struct{} // closed when client eval functions are ready
+	readyErr error         // non-nil if client failed to become ready
 }
 
 // StartHeadlessBrowser launches a headless Chrome browser and navigates to the SilverBullet URL.
-// It returns after the client's eval functions are ready, or returns an error on failure.
+// It returns as soon as the browser is navigating and collecting logs. The client may not be
+// fully ready yet; call WaitReady to block until eval functions are available.
 func StartHeadlessBrowser(config *HeadlessConfig) (*HeadlessBrowser, error) {
 	hb := &HeadlessBrowser{
 		config:  config,
@@ -59,6 +65,16 @@ func StartHeadlessBrowser(config *HeadlessConfig) (*HeadlessBrowser, error) {
 	go hb.monitor()
 
 	return hb, nil
+}
+
+// WaitReady blocks until the client's eval functions are ready, or ctx is cancelled.
+func (hb *HeadlessBrowser) WaitReady(ctx context.Context) error {
+	select {
+	case <-hb.readyCh:
+		return hb.readyErr
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 func (hb *HeadlessBrowser) launch() error {
@@ -78,6 +94,12 @@ func (hb *HeadlessBrowser) launch() error {
 	}
 
 	if hb.config.UserDataDir != "" {
+		// Remove stale lock file left behind if the server was hard-killed.
+		// Chrome refuses to start when a SingletonLock exists from a dead process.
+		lockFile := filepath.Join(hb.config.UserDataDir, "SingletonLock")
+		if err := os.Remove(lockFile); err == nil {
+			log.Println("[Headless] Removed stale Chrome lock file")
+		}
 		opts = append(opts, chromedp.UserDataDir(hb.config.UserDataDir))
 		log.Printf("[Headless] Using persistent Chrome profile: %s", hb.config.UserDataDir)
 	}
@@ -134,17 +156,22 @@ func (hb *HeadlessBrowser) launch() error {
 		return fmt.Errorf("failed to navigate: %w", err)
 	}
 
-	// Wait for the client eval functions to be ready
-	readyCtx, readyCancel := context.WithTimeout(ctx, 60*time.Second)
-	defer readyCancel()
+	// Wait for client readiness in the background so logs are available immediately
+	readyCh := make(chan struct{})
+	hb.readyCh = readyCh
+	hb.readyErr = nil
+	go func() {
+		defer close(readyCh)
+		readyCtx, readyCancel := context.WithTimeout(ctx, 60*time.Second)
+		defer readyCancel()
+		if err := waitForClientReady(readyCtx); err != nil {
+			hb.readyErr = fmt.Errorf("client did not become ready: %w", err)
+			log.Printf("[Headless] %v", hb.readyErr)
+		} else {
+			log.Println("[Headless] Browser client connected successfully")
+		}
+	}()
 
-	if err := waitForClientReady(readyCtx); err != nil {
-		cancel()
-		allocCancel()
-		return fmt.Errorf("client did not become ready: %w", err)
-	}
-
-	log.Println("[Headless] Browser client connected successfully")
 	return nil
 }
 
@@ -203,7 +230,13 @@ func (hb *HeadlessBrowser) monitor() {
 			continue
 		}
 
-		// Success - reset backoff
+		// Wait for client to become fully ready before declaring success
+		if err := hb.WaitReady(hb.ctx); err != nil {
+			log.Printf("[Headless] Restart client readiness failed: %v", err)
+			backoff = min(backoff*2, maxBackoff)
+			continue
+		}
+
 		log.Println("[Headless] Restart successful")
 		backoff = 2 * time.Second
 	}
@@ -237,7 +270,7 @@ func (hb *HeadlessBrowser) Logs(limit int, since int64) []ConsoleLogEntry {
 	// If since is set, filter to entries after that timestamp
 	if since > 0 {
 		if len(hb.logs) == 0 || hb.logs[len(hb.logs)-1].Timestamp <= since {
-			return nil
+			return []ConsoleLogEntry{}
 		}
 		start := len(hb.logs)
 		for i := len(hb.logs) - 1; i >= 0; i-- {
