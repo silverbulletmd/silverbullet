@@ -110,6 +110,7 @@ export class ObjectIndex {
         query: LuaCollectionQuery,
         env: LuaEnv,
         sf: LuaStackFrame,
+        config?: Config,
       ): Promise<any[]> => {
         return this.ds.luaQuery(
           ["idx", tagName],
@@ -131,6 +132,7 @@ export class ObjectIndex {
             value.metatable = mt;
             return value;
           },
+          config,
         );
       },
     };
