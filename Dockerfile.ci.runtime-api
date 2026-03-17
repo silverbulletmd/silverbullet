@@ -1,0 +1,6 @@
+ARG BASE_IMAGE=silverbullet-base
+FROM ${BASE_IMAGE}
+
+RUN apk add --no-cache chromium
+
+ENV CHROMIUM_PATH=/usr/bin/chromium-browser

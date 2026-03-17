@@ -34,6 +34,7 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
 * Fix: Edit buttons now work correctly for Lua expressions and code widgets whose bodies appear multiple times in the same page.
 * Fix: [attribute rendering](https://github.com/silverbulletmd/silverbullet/pull/1880).
 * Fix: [Markdown table rendering](https://github.com/silverbulletmd/silverbullet/pull/1879) and removal of deprecated command button remnants.
+* **[[Runtime API]]** (==Experimental==): programmatically interact with SilverBullet over HTTP — evaluate Lua expressions, run scripts, take screenshots, and retrieve console logs. Powered by a headless Chrome instance running the full SilverBullet client via CDP, so all results reflect live client state. Auto-enables when Chrome/Chromium is detected; a `-runtime-api` Docker image variant with bundled Chromium is also available. See [[Runtime API]] for full documentation.
 
 ## 2.5.0
 * Changed keyboard bindings (sorry!). CodeMirror no longer directly allows `Alt-<letter>` and `Alt-<special-character>` [[Keyboard Shortcuts]], meaning I had to **remap a few key bindings**. It’s basically a mission impossible to pick great ones, but here are the new defaults:

@@ -35,6 +35,12 @@ This is the default and simplest backend to use: a folder on disk. It is configu
 # Run mode
 * `SB_READ_ONLY` (==Experimental==): If you want to run the SilverBullet client and server in read-only mode (you get the full SilverBullet client, but all edit functionality and commands are disabled), you can do this by setting this environment variable to `true`. Upon the server start a full space index will happen, after which all write operations will be disabled.
 
+# Runtime API
+* `SB_RUNTIME_API`: The [[Runtime API]] is enabled automatically when Chrome/Chromium is detected on the system. Set to `0` to explicitly disable. Not available in read-only mode.
+* `SB_CHROME_PATH`: Optional explicit path to the Chrome/Chromium binary. Falls back to the `CHROMIUM_PATH` environment variable (pre-set in the `-runtime-api` Docker image), then auto-detection.
+* `SB_CHROME_SHOW`: Set to any non-empty value to run Chrome with a visible window instead of headless (useful for debugging).
+* `SB_CHROME_DATA_DIR`: Path to persist the Chrome user profile between restarts. When not set, defaults to `.chrome-data` inside the space folder.
+
 # Security
 SilverBullet enables plugs to run shell commands. This is potentially unsafe. If you don’t need this, you can disable this functionality:
 

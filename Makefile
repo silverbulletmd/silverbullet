@@ -1,12 +1,14 @@
 LDFLAGS = -X main.buildTime=$$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
-.PHONY: build build-for-docker docker build-server-releases clean check fmt test bench generate website
+.PHONY: build build-for-docker docker build-server-releases clean check fmt test test-integration bench generate website
 
 build:
 	# Build client
 	npm run build
 	# Build plug-compile
 	npm run build:plug-compile
+	# Build CLI
+	npm run build:cli
 	# Build server
 	go build -ldflags "$(LDFLAGS)"
 
@@ -48,6 +50,10 @@ test:
 	npx vitest run
 	# Run backend tests
 	go test ./server/...
+
+test-integration:
+	# Run headless Chrome integration tests (requires Chrome installed)
+	go test -tags=integration ./server/... -v -timeout 300s
 
 bench:
 	# Run frontend benchmarks
