@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -92,6 +94,12 @@ func (hb *HeadlessBrowser) launch() error {
 	}
 
 	if hb.config.UserDataDir != "" {
+		// Remove stale lock file left behind if the server was hard-killed.
+		// Chrome refuses to start when a SingletonLock exists from a dead process.
+		lockFile := filepath.Join(hb.config.UserDataDir, "SingletonLock")
+		if err := os.Remove(lockFile); err == nil {
+			log.Println("[Headless] Removed stale Chrome lock file")
+		}
 		opts = append(opts, chromedp.UserDataDir(hb.config.UserDataDir))
 		log.Printf("[Headless] Using persistent Chrome profile: %s", hb.config.UserDataDir)
 	}
