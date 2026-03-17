@@ -159,7 +159,7 @@ function aggregate.define(spec)
     error('aggregate.define: ' .. validationResult)
   end
 
-  config.set({'aggregates', spec.name}, spec)
+  config.setLuaValue({'aggregates', spec.name}, spec)
 end
 
 function aggregate.update(spec)
@@ -183,7 +183,7 @@ function aggregate.update(spec)
       .. spec.name .. ' has no iterate after merge')
   end
 
-  config.set({'aggregates', spec.name}, existing)
+  config.setLuaValue({'aggregates', spec.name}, existing)
 end
 
 function aggregate.alias(name, target, description)
@@ -197,7 +197,7 @@ function aggregate.alias(name, target, description)
   if description then
     entry.description = description
   end
-  config.set({'aggregates', name}, entry)
+  config.setLuaValue({'aggregates', name}, entry)
 end
 
 -- Standard aliases (previously hardcoded in TypeScript)
