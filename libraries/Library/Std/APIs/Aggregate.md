@@ -27,7 +27,7 @@ ${query[[from index.aggregates() where alias]]}
 ${query[[from index.aggregates() where not builtin and not alias]]}
 ```
 
-Every row contains all columns: `builtin`, `name`, `description`, `initialize`, `iterate`, `finish`, `alias`.
+Every row contains all columns: `builtin`, `name`, `description`, `initialize`, `iterate`, `finish` and `target`.
 
 # API
 

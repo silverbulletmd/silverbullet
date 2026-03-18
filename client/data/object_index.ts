@@ -146,7 +146,7 @@ export class ObjectIndex {
    * - aliases.
    *
    * Every row has all columns: `builtin`, `name`, `description`,
-   * `initialize`, `iterate`, `finish`, `alias`.
+   * `initialize`, `iterate`, `finish` and `target`.
    */
   aggregates(): LuaQueryCollection {
     const entries: Record<string, any>[] = [];
@@ -160,7 +160,7 @@ export class ObjectIndex {
         initialize: true,
         iterate: true,
         finish: entry.hasFinish,
-        alias: null,
+        target: null,
       });
     }
 
@@ -181,7 +181,7 @@ export class ObjectIndex {
           initialize: resolved ? !!resolved.initialize : false,
           iterate: resolved ? !!resolved.iterate : false,
           finish: resolved ? !!resolved.finish : false,
-          alias: aliasTarget,
+          target: aliasTarget,
         });
       } else {
         let hasInit = false;
@@ -206,7 +206,7 @@ export class ObjectIndex {
           initialize: hasInit,
           iterate: hasIter,
           finish: hasFin,
-          alias: null,
+          target: null,
         });
       }
     }
