@@ -471,8 +471,8 @@ export async function executeAggregate(
         const envB = buildItemEnv(objectVariable, b, env, sf);
         const valA = await evalExprFn(ob.expression, envA, sf);
         const valB = await evalExprFn(ob.expression, envB, sf);
-        const aNull = valA === null || valA === undefined;
-        const bNull = valB === null || valB === undefined;
+        const aNull = valA === null || valA === undefined || isSqlNull(valA);
+        const bNull = valB === null || valB === undefined || isSqlNull(valB);
         if (aNull && bNull) continue;
         if (aNull) return ob.nulls === "first" ? -1 : 1;
         if (bNull) return ob.nulls === "first" ? 1 : -1;
