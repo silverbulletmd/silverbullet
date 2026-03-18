@@ -601,8 +601,8 @@ async function sortKeyCompare(
     const bVal = bKeys[idx];
 
     // Handle nulls positioning
-    const aIsNull = aVal === null || aVal === undefined;
-    const bIsNull = bVal === null || bVal === undefined;
+    const aIsNull = aVal === null || aVal === undefined || isSqlNull(aVal);
+    const bIsNull = bVal === null || bVal === undefined || isSqlNull(bVal);
     if (aIsNull || bIsNull) {
       if (aIsNull && bIsNull) continue;
       // Default: nulls last for asc, nulls first for desc
