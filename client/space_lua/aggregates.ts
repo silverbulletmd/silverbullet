@@ -158,7 +158,7 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     iterate: aggFn((_sf, state: any, value: any) => {
       (state as LuaTable).rawSetArrayIndex(
         (state as LuaTable).length + 1,
-        value,
+        isSqlNull(value) ? null : value,
       );
       return state;
     }),
