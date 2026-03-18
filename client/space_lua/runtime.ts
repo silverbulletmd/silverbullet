@@ -3,6 +3,7 @@ import { evalStatement } from "./eval.ts";
 import { asyncQuickSort } from "./util.ts";
 import { isPromise, rpAll } from "./rp.ts";
 import { isNegativeZero, isTaggedFloat } from "./numeric.ts";
+import { isSqlNull } from "./liq_null.ts";
 import { luaFormat } from "./stdlib/format.ts";
 
 export type LuaType =
@@ -1153,6 +1154,7 @@ export function luaIndexValue(
     if (t instanceof LuaTable) {
       const raw = t.rawGet(key);
       if (raw !== undefined) {
+        if (isSqlNull(raw)) return null;
         return raw;
       }
       // If no metatable, raw miss => nil

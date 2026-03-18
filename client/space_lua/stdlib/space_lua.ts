@@ -11,6 +11,7 @@ import {
   luaValueToJS,
   singleResult,
 } from "../runtime.ts";
+import { isSqlNull } from "../liq_null.ts";
 
 /**
  * These are Space Lua specific functions that are available to all scripts, but are not part of the standard Lua language.
@@ -31,7 +32,8 @@ function createAugmentedEnv(
   if (envAugmentation) {
     env.setLocal("_", envAugmentation);
     for (const key of envAugmentation.keys()) {
-      env.setLocal(key, envAugmentation.rawGet(key));
+      const v = envAugmentation.rawGet(key);
+      env.setLocal(key, isSqlNull(v) ? null : v);
     }
   }
   return env;

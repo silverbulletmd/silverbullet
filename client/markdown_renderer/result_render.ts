@@ -4,7 +4,7 @@ import {
   luaToString,
 } from "../space_lua/runtime.ts";
 import { isTaggedFloat } from "../space_lua/numeric.ts";
-import { isSqlNull } from "../space_lua/query_collection.ts";
+import { isSqlNull } from "../space_lua/liq_null.ts";
 
 export function defaultTransformer(v: any, _k: string): Promise<string> {
   if (v === undefined || isSqlNull(v)) {

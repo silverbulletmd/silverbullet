@@ -83,19 +83,29 @@ const builtinAggregates: Record<string, AggregateSpec> = {
   sum: {
     name: "sum",
     description: "Arithmetic sum of all non-null input values",
-    initialize: aggFn((_sf) => 0),
+    initialize: aggFn((_sf) => ({ result: 0, hasValue: false })),
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined) return state;
-      return (state as number) + (value as number);
+      state.result += value as number;
+      state.hasValue = true;
+      return state;
+    }),
+    finish: aggFn((_sf, state: any) => {
+      return state.hasValue ? state.result : null;
     }),
   },
   product: {
     name: "product",
     description: "Product of all non-null input values",
-    initialize: aggFn((_sf) => 1),
+    initialize: aggFn((_sf) => ({ result: 1, hasValue: false })),
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined) return state;
-      return (state as number) * (value as number);
+      state.result *= value as number;
+      state.hasValue = true;
+      return state;
+    }),
+    finish: aggFn((_sf, state: any) => {
+      return state.hasValue ? state.result : null;
     }),
   },
   min: {
