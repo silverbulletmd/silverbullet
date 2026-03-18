@@ -16,6 +16,7 @@ import {
   luaValueToJS,
   type LuaValue,
 } from "./runtime.ts";
+import { isSqlNull } from "./liq_null.ts";
 import type { LuaExpression } from "./ast.ts";
 import { buildItemEnv } from "./query_env.ts";
 import { asyncMergeSort } from "./util.ts";
@@ -57,7 +58,7 @@ function welfordInit(): WelfordState {
 }
 
 function welfordIterate(state: WelfordState, value: any): WelfordState {
-  if (value === null || value === undefined) return state;
+  if (value === null || value === undefined || isSqlNull(value)) return state;
   const x = value as number;
   state.n += 1;
   const delta = x - state.mean;
@@ -76,7 +77,8 @@ const builtinAggregates: Record<string, AggregateSpec> = {
       "Non-null row count for arguments; total row count without argument",
     initialize: aggFn((_sf) => 0),
     iterate: aggFn((_sf, state: any, value: any) => {
-      if (value === null || value === undefined) return state;
+      if (value === null || value === undefined || isSqlNull(value))
+        return state;
       return (state as number) + 1;
     }),
   },
@@ -85,7 +87,8 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     description: "Arithmetic sum of all non-null input values",
     initialize: aggFn((_sf) => ({ result: 0, hasValue: false })),
     iterate: aggFn((_sf, state: any, value: any) => {
-      if (value === null || value === undefined) return state;
+      if (value === null || value === undefined || isSqlNull(value))
+        return state;
       state.result += value as number;
       state.hasValue = true;
       return state;
@@ -99,7 +102,8 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     description: "Product of all non-null input values",
     initialize: aggFn((_sf) => ({ result: 1, hasValue: false })),
     iterate: aggFn((_sf, state: any, value: any) => {
-      if (value === null || value === undefined) return state;
+      if (value === null || value === undefined || isSqlNull(value))
+        return state;
       state.result *= value as number;
       state.hasValue = true;
       return state;
@@ -113,7 +117,8 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     description: "Minimum value among non-null inputs",
     initialize: aggFn((_sf) => null),
     iterate: aggFn((_sf, state: any, value: any) => {
-      if (value === null || value === undefined) return state;
+      if (value === null || value === undefined || isSqlNull(value))
+        return state;
       if (state === null || value < state) return value;
       return state;
     }),
@@ -123,7 +128,8 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     description: "Maximum value among non-null inputs",
     initialize: aggFn((_sf) => null),
     iterate: aggFn((_sf, state: any, value: any) => {
-      if (value === null || value === undefined) return state;
+      if (value === null || value === undefined || isSqlNull(value))
+        return state;
       if (state === null || value > state) return value;
       return state;
     }),
@@ -133,7 +139,8 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     description: "Arithmetic mean of all non-null input values",
     initialize: aggFn((_sf) => ({ sum: 0, count: 0 })),
     iterate: aggFn((_sf, state: any, value: any) => {
-      if (value === null || value === undefined) return state;
+      if (value === null || value === undefined || isSqlNull(value))
+        return state;
       state.sum += value as number;
       state.count += 1;
       return state;
@@ -163,7 +170,8 @@ const builtinAggregates: Record<string, AggregateSpec> = {
       return { sep: sep ?? ",", parts: [] as string[] };
     }),
     iterate: aggFn((_sf, state: any, value: any) => {
-      if (value === null || value === undefined) return state;
+      if (value === null || value === undefined || isSqlNull(value))
+        return state;
       state.parts.push(String(value));
       return state;
     }),
@@ -209,7 +217,8 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     description: "Bitwise AND of all non-null input values",
     initialize: aggFn((_sf) => ({ result: ~0, hasValue: false })),
     iterate: aggFn((_sf, state: any, value: any) => {
-      if (value === null || value === undefined) return state;
+      if (value === null || value === undefined || isSqlNull(value))
+        return state;
       state.result &= value as number;
       state.hasValue = true;
       return state;
@@ -223,7 +232,8 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     description: "Bitwise OR of all non-null input values",
     initialize: aggFn((_sf) => ({ result: 0, hasValue: false })),
     iterate: aggFn((_sf, state: any, value: any) => {
-      if (value === null || value === undefined) return state;
+      if (value === null || value === undefined || isSqlNull(value))
+        return state;
       state.result |= value as number;
       state.hasValue = true;
       return state;
@@ -237,7 +247,8 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     description: "Bitwise exclusive OR of all non-null input values",
     initialize: aggFn((_sf) => ({ result: 0, hasValue: false })),
     iterate: aggFn((_sf, state: any, value: any) => {
-      if (value === null || value === undefined) return state;
+      if (value === null || value === undefined || isSqlNull(value))
+        return state;
       state.result ^= value as number;
       state.hasValue = true;
       return state;
@@ -251,7 +262,8 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     description: "True if all non-null inputs are true, otherwise false",
     initialize: aggFn((_sf) => ({ result: true, hasValue: false })),
     iterate: aggFn((_sf, state: any, value: any) => {
-      if (value === null || value === undefined) return state;
+      if (value === null || value === undefined || isSqlNull(value))
+        return state;
       state.result = state.result && !!value;
       state.hasValue = true;
       return state;
@@ -265,7 +277,8 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     description: "True if at least one non-null input is true, otherwise false",
     initialize: aggFn((_sf) => ({ result: false, hasValue: false })),
     iterate: aggFn((_sf, state: any, value: any) => {
-      if (value === null || value === undefined) return state;
+      if (value === null || value === undefined || isSqlNull(value))
+        return state;
       state.result = state.result || !!value;
       state.hasValue = true;
       return state;
