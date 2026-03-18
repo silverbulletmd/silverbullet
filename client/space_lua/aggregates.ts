@@ -184,7 +184,9 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     description: "Input values aggregated into a YAML string",
     initialize: aggFn((_sf) => [] as any[]),
     iterate: aggFn((sf, state: any, value: any) => {
-      if (value instanceof LuaTable) {
+      if (isSqlNull(value)) {
+        state.push(null);
+      } else if (value instanceof LuaTable) {
         state.push(luaValueToJS(value, sf));
       } else {
         state.push(value);
