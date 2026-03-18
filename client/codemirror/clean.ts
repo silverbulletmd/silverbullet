@@ -55,6 +55,7 @@ export function cleanModePlugins(client: Client) {
         // Propagate click event from checkbox
         void client.dispatchClickEvent(clickEvent);
       },
+      getView: () => client.editorView,
     }),
     listBulletPlugin(),
     tablePlugin(client),

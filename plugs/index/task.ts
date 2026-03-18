@@ -225,73 +225,84 @@ export async function updateTaskState(
   }
 }
 
-export async function taskCycleAtPos(pos: number) {
-  const text = await editor.getText();
-  const mdTree = await markdown.parseMarkdown(text);
-  addParentPointers(mdTree);
+// Prevent concurrent task cycling
+let taskCycleLock = false;
 
-  let node = nodeAtPos(mdTree, pos);
-  if (node) {
-    if (node.type === "TaskMark") {
-      node = node.parent!;
+export async function taskCycleAtPos(pos: number) {
+  if (taskCycleLock) return;
+  taskCycleLock = true;
+  try {
+    const text = await editor.getText();
+    const mdTree = await markdown.parseMarkdown(text);
+    addParentPointers(mdTree);
+
+    let node = nodeAtPos(mdTree, pos);
+    if (node) {
+      if (node.type === "TaskMark") {
+        node = node.parent!;
+      }
+      if (node.type === "TaskState") {
+        await cycleTaskState(node, false);
+      }
     }
-    if (node.type === "TaskState") {
-      await cycleTaskState(node, false);
-    }
+  } finally {
+    taskCycleLock = false;
   }
 }
 
 export async function taskCycleCommand() {
-  const text = await editor.getText();
-  const pos = await editor.getCursor();
-  const tree = await markdown.parseMarkdown(text);
-  addParentPointers(tree);
+  if (taskCycleLock) return;
+  taskCycleLock = true;
+  try {
+    const text = await editor.getText();
+    const pos = await editor.getCursor();
+    const tree = await markdown.parseMarkdown(text);
+    addParentPointers(tree);
 
-  let node = nodeAtPos(tree, pos);
-  if (!node) {
-    await editor.flashNotification("No task at cursor");
-    return;
-  }
-  if (["BulletList", "Document"].includes(node.type!)) {
-    // Likely at the end of the line, let's back up a position
-    node = nodeAtPos(tree, pos - 1);
-  }
-  if (!node) {
-    await editor.flashNotification("No task at cursor");
-    return;
-  }
-  const taskNode =
-    node.type === "Task"
-      ? node
-      : findParentMatching(node!, (n) => n.type === "Task");
-
-  if (taskNode) {
-    const taskState = findNodeOfType(taskNode!, "TaskState");
-    if (taskState) {
-      // Cycle states: [ ] -> [x] -> (remove checkbox) -> [ ]
-      await cycleTaskState(taskState, true);
+    let node = nodeAtPos(tree, pos);
+    if (!node) {
+      await editor.flashNotification("No task at cursor");
+      return;
     }
-    return;
-  }
-
-  // Convert a bullet point to a task
-  const listItem = findParentMatching(node!, (n) => n.type === "ListItem");
-  if (!listItem) {
-    await editor.flashNotification("No task at cursor");
-    return;
-  }
-
-  // Check if this ListItem already contains a Task (cursor might be at beginning of line)
-  const existingTask = findNodeOfType(listItem, "Task");
-  if (existingTask) {
-    const taskState = findNodeOfType(existingTask, "TaskState");
-    if (taskState) {
-      await cycleTaskState(taskState, true);
+    if (["BulletList", "Document"].includes(node.type!)) {
+      node = nodeAtPos(tree, pos - 1);
     }
-    return;
-  }
+    if (!node) {
+      await editor.flashNotification("No task at cursor");
+      return;
+    }
+    const taskNode =
+      node.type === "Task"
+        ? node
+        : findParentMatching(node!, (n) => n.type === "Task");
 
-  await convertListItemToTask(listItem);
+    if (taskNode) {
+      const taskState = findNodeOfType(taskNode!, "TaskState");
+      if (taskState) {
+        await cycleTaskState(taskState, true);
+      }
+      return;
+    }
+
+    const listItem = findParentMatching(node!, (n) => n.type === "ListItem");
+    if (!listItem) {
+      await editor.flashNotification("No task at cursor");
+      return;
+    }
+
+    const existingTask = findNodeOfType(listItem, "Task");
+    if (existingTask) {
+      const taskState = findNodeOfType(existingTask, "TaskState");
+      if (taskState) {
+        await cycleTaskState(taskState, true);
+      }
+      return;
+    }
+
+    await convertListItemToTask(listItem);
+  } finally {
+    taskCycleLock = false;
+  }
 }
 
 // Core logic extracted for testability. Mutates tree in place.

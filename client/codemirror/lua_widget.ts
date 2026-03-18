@@ -293,10 +293,14 @@ export class LuaWidget extends WidgetType {
         this.opts.cacheKey,
         div.offsetHeight,
       );
-      // Because of the rejiggering of the DOM, we need to do a no-op cursor move to make sure it's positioned correctly
-      this.opts.client.editorView.dispatch({
-        selection: this.opts.client.editorView.state.selection,
-      });
+      // Skip during IME composition to avoid caret jumps
+      if (!this.opts.client.editorView.composing) {
+        // Because of the rejiggering of the DOM, we need to do a no-op
+        // cursor move to make sure it's positioned correctly
+        this.opts.client.editorView.dispatch({
+          selection: this.opts.client.editorView.state.selection,
+        });
+      }
     });
   }
 
