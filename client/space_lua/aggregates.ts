@@ -75,27 +75,48 @@ function welfordIterate(state: WelfordState, value: any): WelfordState {
 
 // Built-in aggregate specs
 const builtinAggregates: Record<string, AggregateSpec> = {
-  sum: {
-    name: "sum",
-    description: "Sum of numeric values",
-    initialize: aggFn((_sf) => 0),
-    iterate: aggFn((_sf, state: any, value: any) => {
-      if (value === null || value === undefined) return state;
-      return (state as number) + (value as number);
-    }),
-  },
+  // General purpose
   count: {
     name: "count",
-    description: "Count of values; count() with no argument counts all rows",
+    description:
+      "Non-null row count for arguments; total row count without argument",
     initialize: aggFn((_sf) => 0),
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined) return state;
       return (state as number) + 1;
     }),
   },
+  sum: {
+    name: "sum",
+    description: "Arithmetic sum of all non-null input values",
+    initialize: aggFn((_sf) => ({ result: 0, hasValue: false })),
+    iterate: aggFn((_sf, state: any, value: any) => {
+      if (value === null || value === undefined) return state;
+      state.result += value as number;
+      state.hasValue = true;
+      return state;
+    }),
+    finish: aggFn((_sf, state: any) => {
+      return state.hasValue ? state.result : null;
+    }),
+  },
+  product: {
+    name: "product",
+    description: "Product of all non-null input values",
+    initialize: aggFn((_sf) => ({ result: 1, hasValue: false })),
+    iterate: aggFn((_sf, state: any, value: any) => {
+      if (value === null || value === undefined) return state;
+      state.result *= value as number;
+      state.hasValue = true;
+      return state;
+    }),
+    finish: aggFn((_sf, state: any) => {
+      return state.hasValue ? state.result : null;
+    }),
+  },
   min: {
     name: "min",
-    description: "Minimum value",
+    description: "Minimum value among non-null inputs",
     initialize: aggFn((_sf) => null),
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined) return state;
@@ -105,7 +126,7 @@ const builtinAggregates: Record<string, AggregateSpec> = {
   },
   max: {
     name: "max",
-    description: "Maximum value",
+    description: "Maximum value among non-null inputs",
     initialize: aggFn((_sf) => null),
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined) return state;
@@ -115,7 +136,7 @@ const builtinAggregates: Record<string, AggregateSpec> = {
   },
   avg: {
     name: "avg",
-    description: "Average of numeric values",
+    description: "Arithmetic mean of all non-null input values",
     initialize: aggFn((_sf) => ({ sum: 0, count: 0 })),
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined) return state;
@@ -128,9 +149,10 @@ const builtinAggregates: Record<string, AggregateSpec> = {
       return state.sum / state.count;
     }),
   },
+  // Collection and format
   array_agg: {
     name: "array_agg",
-    description: "Collect values into an array",
+    description: "Input values concatenated into an array",
     initialize: aggFn((_sf) => new LuaTable()),
     iterate: aggFn((_sf, state: any, value: any) => {
       (state as LuaTable).rawSetArrayIndex(
@@ -140,23 +162,9 @@ const builtinAggregates: Record<string, AggregateSpec> = {
       return state;
     }),
   },
-  product: {
-    name: "product",
-    description: "Product of numeric values; nulls are skipped",
-    initialize: aggFn((_sf) => ({ result: 1, hasValue: false })),
-    iterate: aggFn((_sf, state: any, value: any) => {
-      if (value === null || value === undefined) return state;
-      state.result *= value as number;
-      state.hasValue = true;
-      return state;
-    }),
-    finish: aggFn((_sf, state: any) => {
-      return state.hasValue ? state.result : null;
-    }),
-  },
   string_agg: {
     name: "string_agg",
-    description: "Concatenate values with a separator (default: ',')",
+    description: "Concatenated non-null values; delimited by ',' by default",
     initialize: aggFn((_sf, _ctx: any, sep: any) => {
       return { sep: sep ?? ",", parts: [] as string[] };
     }),
@@ -171,7 +179,7 @@ const builtinAggregates: Record<string, AggregateSpec> = {
   },
   yaml_agg: {
     name: "yaml_agg",
-    description: "Collect values into a YAML string",
+    description: "Input values aggregated into a YAML string",
     initialize: aggFn((_sf) => [] as any[]),
     iterate: aggFn((sf, state: any, value: any) => {
       if (value instanceof LuaTable) {
@@ -187,7 +195,7 @@ const builtinAggregates: Record<string, AggregateSpec> = {
   },
   json_agg: {
     name: "json_agg",
-    description: "Collect values into a JSON string",
+    description: "Input values aggregated into a JSON string",
     initialize: aggFn((_sf) => [] as any[]),
     iterate: aggFn((sf, state: any, value: any) => {
       if (value instanceof LuaTable) {
@@ -201,9 +209,10 @@ const builtinAggregates: Record<string, AggregateSpec> = {
       return JSON.stringify(state);
     }),
   },
+  // Bitwise and boolean
   bit_and: {
     name: "bit_and",
-    description: "Bitwise AND of integer values",
+    description: "Bitwise AND of all non-null input values",
     initialize: aggFn((_sf) => ({ result: ~0, hasValue: false })),
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined) return state;
@@ -217,7 +226,7 @@ const builtinAggregates: Record<string, AggregateSpec> = {
   },
   bit_or: {
     name: "bit_or",
-    description: "Bitwise OR of integer values",
+    description: "Bitwise OR of all non-null input values",
     initialize: aggFn((_sf) => ({ result: 0, hasValue: false })),
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined) return state;
@@ -231,7 +240,7 @@ const builtinAggregates: Record<string, AggregateSpec> = {
   },
   bit_xor: {
     name: "bit_xor",
-    description: "Bitwise XOR of integer values",
+    description: "Bitwise exclusive OR of all non-null input values",
     initialize: aggFn((_sf) => ({ result: 0, hasValue: false })),
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined) return state;
@@ -245,7 +254,7 @@ const builtinAggregates: Record<string, AggregateSpec> = {
   },
   bool_and: {
     name: "bool_and",
-    description: "True if all non-null values are truthy",
+    description: "True if all non-null inputs are true, otherwise false",
     initialize: aggFn((_sf) => ({ result: true, hasValue: false })),
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined) return state;
@@ -259,7 +268,7 @@ const builtinAggregates: Record<string, AggregateSpec> = {
   },
   bool_or: {
     name: "bool_or",
-    description: "True if any non-null value is truthy",
+    description: "True if at least one non-null input is true, otherwise false",
     initialize: aggFn((_sf) => ({ result: false, hasValue: false })),
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined) return state;
@@ -271,9 +280,10 @@ const builtinAggregates: Record<string, AggregateSpec> = {
       return state.hasValue ? state.result : null;
     }),
   },
+  // Statistical
   stddev_pop: {
     name: "stddev_pop",
-    description: "Population standard deviation",
+    description: "Population standard deviation of non-null inputs",
     initialize: aggFn((_sf) => welfordInit()),
     iterate: aggFn((_sf, state: any, value: any) =>
       welfordIterate(state, value),
@@ -285,7 +295,7 @@ const builtinAggregates: Record<string, AggregateSpec> = {
   },
   stddev_samp: {
     name: "stddev_samp",
-    description: "Sample standard deviation",
+    description: "Sample standard deviation of non-null inputs",
     initialize: aggFn((_sf) => welfordInit()),
     iterate: aggFn((_sf, state: any, value: any) =>
       welfordIterate(state, value),
@@ -297,7 +307,8 @@ const builtinAggregates: Record<string, AggregateSpec> = {
   },
   var_pop: {
     name: "var_pop",
-    description: "Population variance",
+    description:
+      "Population variance (square of population standard deviation)",
     initialize: aggFn((_sf) => welfordInit()),
     iterate: aggFn((_sf, state: any, value: any) =>
       welfordIterate(state, value),
@@ -309,7 +320,7 @@ const builtinAggregates: Record<string, AggregateSpec> = {
   },
   var_samp: {
     name: "var_samp",
-    description: "Sample variance",
+    description: "Sample variance (square of sample standard deviation)",
     initialize: aggFn((_sf) => welfordInit()),
     iterate: aggFn((_sf, state: any, value: any) =>
       welfordIterate(state, value),
