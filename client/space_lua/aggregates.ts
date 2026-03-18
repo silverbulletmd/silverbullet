@@ -1,12 +1,6 @@
 /**
  * Aggregate function definitions and execution for LIQ.
  *
- * Built-in aggregates (sum, count, min, max, avg, array_agg, product,
- * string_agg, yaml_agg, json_agg, bit_and, bit_or, bit_xor, bool_and,
- * bool_or, stddev_pop, stddev_samp, var_pop, var_samp) are implemented
- * in TypeScript for speed.  Users can override any builtin via
- * `aggregate.define` or `aggregate.update`.
- *
  * Builtins implement ILuaFunction via plain objects rather than
  * LuaBuiltinFunction instances.  This avoids ES module TDZ issues:
  * `class` exports are not available during circular module init,
@@ -89,29 +83,19 @@ const builtinAggregates: Record<string, AggregateSpec> = {
   sum: {
     name: "sum",
     description: "Arithmetic sum of all non-null input values",
-    initialize: aggFn((_sf) => ({ result: 0, hasValue: false })),
+    initialize: aggFn((_sf) => 0),
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined) return state;
-      state.result += value as number;
-      state.hasValue = true;
-      return state;
-    }),
-    finish: aggFn((_sf, state: any) => {
-      return state.hasValue ? state.result : null;
+      return (state as number) + (value as number);
     }),
   },
   product: {
     name: "product",
     description: "Product of all non-null input values",
-    initialize: aggFn((_sf) => ({ result: 1, hasValue: false })),
+    initialize: aggFn((_sf) => 1),
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined) return state;
-      state.result *= value as number;
-      state.hasValue = true;
-      return state;
-    }),
-    finish: aggFn((_sf, state: any) => {
-      return state.hasValue ? state.result : null;
+      return (state as number) * (value as number);
     }),
   },
   min: {
