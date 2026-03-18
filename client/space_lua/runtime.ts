@@ -1635,6 +1635,9 @@ export function getMetatable(
 }
 
 export function jsToLuaValue(value: any): any {
+  if (value === null || value === undefined) {
+    return value;
+  }
   if (isPromise(value)) {
     return (value as Promise<any>).then(jsToLuaValue);
   }
