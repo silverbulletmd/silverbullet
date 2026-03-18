@@ -5,9 +5,7 @@ tags: meta/api
 
 APIs to define and override aggregate functions used in LIQ `select` and `having` clauses after `group by`.
 
-Built-in aggregates: `count()`, `sum(expr)`, `avg(expr)`, `min(expr)`, `max(expr)`, `product(expr)`, `array_agg(expr)`, `string_agg(expr, sep?)`, `yaml_agg(expr)`, `json_agg(expr)`, `bit_and(expr)`, `bit_or(expr)`, `bit_xor(expr)`, `bool_and(expr)`, `bool_or(expr)`, `stddev_pop(expr)`, `stddev_samp(expr)`, `var_pop(expr)` and `var_samp(expr)`.
-
-All aggregates skip null/nil values. Empty groups return null (except `count` which returns 0 and `string_agg` which returns `""`).
+All aggregates skip null/nil values. Empty groups return null (except `count` which returns 0 and `string_agg` which returns empty string).
 
 # Querying available aggregates
 
@@ -21,13 +19,13 @@ ${query[[from index.aggregates()]]}
 ${query[[from index.aggregates() where builtin]]}
 
 -- Only aliases
-${query[[from index.aggregates() where alias]]}
+${query[[from index.aggregates() where target]]}
 
 -- Only user-defined (non-builtin, non-alias)
-${query[[from index.aggregates() where not builtin and not alias]]}
+${query[[from index.aggregates() where not builtin and not target]]}
 ```
 
-Every row contains all columns: `builtin`, `name`, `description`, `initialize`, `iterate`, `finish` and `target`.
+Each row includes the following columns: `builtin`, `name`, `description`, `initialize`, `iterate`, `finish`, and `target`. The `initialize`, `iterate`, and `finish` columns are represented by boolean values.
 
 # API
 
