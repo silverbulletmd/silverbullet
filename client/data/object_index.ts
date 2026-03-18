@@ -167,17 +167,21 @@ export class ObjectIndex {
     // Config entries (user-defined overrides and aliases)
     const userAggs: Record<string, any> = this.config.get("aggregates", {});
     for (const [key, spec] of Object.entries(userAggs)) {
-      const aliasTarget = spec?.alias ?? null;
+      const aliasTarget = spec instanceof LuaTable
+        ? spec.rawGet("alias")
+        : spec?.alias ?? null;
       if (typeof aliasTarget === "string") {
         const resolved = getAggregateSpec(aliasTarget, this.config);
         entries.push({
           builtin: false,
-          name: aliasTarget,
-          description: spec?.description ?? resolved?.description ?? "",
+          name: key,
+          description: spec instanceof LuaTable
+            ? spec.rawGet("description") ?? resolved?.description ?? ""
+            : spec?.description ?? resolved?.description ?? "",
           initialize: resolved ? !!resolved.initialize : false,
           iterate: resolved ? !!resolved.iterate : false,
           finish: resolved ? !!resolved.finish : false,
-          alias: key,
+          alias: aliasTarget,
         });
       } else {
         let hasInit = false;
