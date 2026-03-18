@@ -80,7 +80,7 @@ function isLuaNumber(v: any): boolean {
 }
 
 export function luaTypeName(val: any): LuaType {
-  if (val === null || val === undefined) {
+  if (val === null || val === undefined || isSqlNull(val)) {
     return "nil";
   }
 
@@ -1393,7 +1393,7 @@ export function luaKeys(val: any): any[] {
 }
 
 export function luaTypeOf(val: any): LuaType | Promise<LuaType> {
-  if (val === null || val === undefined) {
+  if (val === null || val === undefined || isSqlNull(val)) {
     return "nil";
   }
   if (isPromise(val)) {
@@ -1505,7 +1505,7 @@ export function luaToString(
   value: any,
   visited: Set<any> = new Set(),
 ): string | Promise<string> {
-  if (value === null || value === undefined) {
+  if (value === null || value === undefined || isSqlNull(value)) {
     return "nil";
   }
   if (isPromise(value)) {
