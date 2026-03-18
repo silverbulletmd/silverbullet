@@ -972,9 +972,11 @@ function evalPrefixExpression(
       // Sync-first: evaluate object; avoid Promise when object is sync.
       const objV = evalPrefixExpression(pa.object, env, sf);
       if (!isPromise(objV)) {
-        return luaGet(objV, pa.property, pa.ctx, sf);
+        return luaGet(singleResult(objV), pa.property, pa.ctx, sf);
       }
-      return rpThen(objV, (obj) => luaGet(obj, pa.property, pa.ctx, sf));
+      return rpThen(objV, (obj) =>
+        luaGet(singleResult(obj), pa.property, pa.ctx, sf),
+      );
     }
 
     case "FunctionCall": {
