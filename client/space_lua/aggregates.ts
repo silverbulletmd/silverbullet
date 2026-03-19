@@ -124,7 +124,6 @@ const quantileNameDefaults: Record<string, QuantileMethod> = {
 function quantileFinish(state: QuantileState): number | null {
   const { values, q, method } = state;
   if (values.length === 0) return null;
-  values.sort((a, b) => a - b);
   const n = values.length;
   if (n === 1) return values[0];
   const idx = q * (n - 1);
@@ -490,15 +489,15 @@ const builtinAggregates: Record<string, AggregateSpec> = {
   // Quantile and percentile
   quantile: makeQuantileSpec(
     "quantile",
-    "Quantile of non-null inputs; arguments: value, quantile (0-1), interpolation ('lower', 'higher', 'nearest', 'midpoint' and default: 'linear')",
+    "Quantile of ordered set of non-null inputs; arguments: value, quantile (0-1), interpolation ('lower', 'higher', 'nearest', 'midpoint' and default: 'linear')",
   ),
   percentile_cont: makeQuantileSpec(
     "percentile_cont",
-    "Continuous percentile (linear interpolation) on non-null inputs; arguments: value, fraction (0-1)",
+    "Continuous percentile (linear interpolation) on ordered set of non-null inputs; arguments: value, fraction (0-1)",
   ),
   percentile_disc: makeQuantileSpec(
     "percentile_disc",
-    "Discrete percentile (nearest lower value) on non-null inputs; arguments: value, fraction (0-1)",
+    "Discrete percentile (nearest lower value) on ordered set of non-null inputs; arguments: value, fraction (0-1)",
   ),
 };
 
@@ -631,7 +630,10 @@ export async function executeAggregate(
     filteredItems.push(item);
   }
 
-  // Intra-aggregate ordering
+  // Intra-aggregate ordering: sorts items before iteration.
+  // This is required for ordered-set aggregates (quantile, percentile_cont,
+  // percentile_disc) which expect values in a specific order. The user
+  // must provide `order by` for these aggregates to produce correct results.
   if (orderBy && orderBy.length > 0) {
     await asyncMergeSort(filteredItems, async (a: any, b: any) => {
       for (const ob of orderBy) {
