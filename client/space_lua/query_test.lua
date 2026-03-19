@@ -620,6 +620,402 @@ do
   assertTrue(type(r[1].arr) == "table" or r[1].arr == nil)
 end
 
+-- 8f. product
+do
+  local r = query [[
+    from
+      p = pages
+    where
+      p.tags[1] ~= nil
+    group by
+      p.tags[1]
+    select {
+      prod = product(p.size),
+    }
+  ]]
+  for _, row in ipairs(r) do
+    assertTrue(type(row.prod) == "number" or row.prod == nil)
+  end
+end
+
+-- 8g. string_agg
+do
+  local r = query [[
+    from
+      p = pages
+    where
+      p.tags[1] ~= nil
+    group by
+      p.tags[1]
+    select {
+      names = string_agg(p.name),
+    }
+  ]]
+  for _, row in ipairs(r) do
+    assertTrue(type(row.names) == "string")
+  end
+end
+
+-- 8h. string_agg with custom separator
+do
+  local r = query [[
+    from
+      p = pages
+    where
+      p.tags[1] ~= nil
+    group by
+      p.tags[1]
+    select {
+      names = string_agg(p.name, " | "),
+    }
+  ]]
+  for _, row in ipairs(r) do
+    assertTrue(type(row.names) == "string")
+  end
+end
+
+-- 8i. yaml_agg
+do
+  local r = query [[
+    from
+      p = pages
+    where
+      p.tags[1] ~= nil
+    group by
+      p.tags[1]
+    select {
+      y = yaml_agg(p.name),
+    }
+  ]]
+  for _, row in ipairs(r) do
+    assertTrue(type(row.y) == "string")
+  end
+end
+
+-- 8j. json_agg
+do
+  local r = query [[
+    from
+      p = pages
+    where
+      p.tags[1] ~= nil
+    group by
+      p.tags[1]
+    select {
+      j = json_agg(p.name),
+    }
+  ]]
+  for _, row in ipairs(r) do
+    assertTrue(type(row.j) == "string")
+  end
+end
+
+-- 8k. bool_and, bool_or
+do
+  local r = query [[
+    from
+      p = pages
+    where
+      p.tags[1] ~= nil
+    group by
+      p.tags[1]
+    select {
+      all_big = bool_and(p.size > 5),
+      any_big = bool_or(p.size > 5),
+    }
+  ]]
+  for _, row in ipairs(r) do
+    assertTrue(
+      type(row.all_big) == "boolean" or row.all_big == nil,
+      "bool_and must return boolean or nil"
+    )
+    assertTrue(
+      type(row.any_big) == "boolean" or row.any_big == nil,
+      "bool_or must return boolean or nil"
+    )
+  end
+end
+
+-- 8l. stddev_pop, var_pop
+do
+  local r = query [[
+    from
+      p = pages
+    where
+      p.tags[1] ~= nil
+    group by
+      p.tags[1]
+    select {
+      sd = stddev_pop(p.size),
+      vr = var_pop(p.size),
+    }
+  ]]
+  for _, row in ipairs(r) do
+    assertTrue(type(row.sd) == "number" or row.sd == nil)
+    assertTrue(type(row.vr) == "number" or row.vr == nil)
+  end
+end
+
+-- 8m. stddev_samp, var_samp (nil for single-element groups)
+do
+  local r = query [[
+    from
+      p = pages
+    where
+      p.tags[1] ~= nil
+    group by
+      p.tags[1]
+    select {
+      k = key,
+      sd = stddev_samp(p.size),
+      vr = var_samp(p.size),
+      n = count(p.name),
+    }
+  ]]
+  for _, row in ipairs(r) do
+    if row.n >= 2 then
+      assertTrue(type(row.sd) == "number", "stddev_samp >= 2 items")
+      assertTrue(type(row.vr) == "number", "var_samp >= 2 items")
+    else
+      -- single-element group -> nil
+      assertEquals(row.sd, nil)
+      assertEquals(row.vr, nil)
+    end
+  end
+end
+
+-- 8n. percentile_cont (needs order by ... asc inside aggregate)
+do
+  local r = query [[
+    from
+      p = pages
+    where
+      p.tags[1] ~= nil
+    group by
+      p.tags[1]
+    select {
+      k = key,
+      med = percentile_cont(p.size, 0.5 order by p.size asc),
+    }
+  ]]
+  for _, row in ipairs(r) do
+    assertTrue(type(row.med) == "number" or row.med == nil)
+  end
+end
+
+-- 8o. percentile_disc (needs order by ... asc inside aggregate)
+do
+  local r = query [[
+    from
+      p = pages
+    where
+      p.tags[1] ~= nil
+    group by
+      p.tags[1]
+    select {
+      k = key,
+      pd = percentile_disc(p.size, 0.5 order by p.size asc),
+    }
+  ]]
+  for _, row in ipairs(r) do
+    assertTrue(type(row.pd) == "number" or row.pd == nil)
+  end
+end
+
+-- 8p. quantile with explicit method (needs order by ... asc)
+do
+  local r = query [[
+    from
+      p = pages
+    where
+      p.tags[1] ~= nil
+    group by
+      p.tags[1]
+    select {
+      k = key,
+      q = quantile(p.size, 0.25, "lower" order by p.size asc),
+    }
+  ]]
+  for _, row in ipairs(r) do
+    assertTrue(type(row.q) == "number" or row.q == nil)
+  end
+end
+
+-- 8q. percentile_cont on known data for exact value check
+do
+  local scores = {
+    { g = "a", v = 10 },
+    { g = "a", v = 20 },
+    { g = "a", v = 30 },
+    { g = "a", v = 40 },
+  }
+  local r = query [[
+    from
+      s = scores
+    group by
+      s.g
+    select {
+      med = percentile_cont(s.v, 0.5 order by s.v asc),
+    }
+  ]]
+  -- [10,20,30,40] q=0.5 -> idx=1.5 -> 20 + 0.5*(30-20) = 25
+  assertEquals(r[1].med, 25)
+end
+
+-- 8r. percentile_disc on known data for exact value check
+do
+  local scores = {
+    { g = "a", v = 10 },
+    { g = "a", v = 20 },
+    { g = "a", v = 30 },
+    { g = "a", v = 40 },
+    { g = "a", v = 50 },
+  }
+  local r = query [[
+    from
+      s = scores
+    group by
+      s.g
+    select {
+      p25 = percentile_disc(s.v, 0.25 order by s.v asc),
+    }
+  ]]
+  -- [10,20,30,40,50] q=0.25 -> idx=1.0 -> lower -> values[1] = 20
+  assertEquals(r[1].p25, 20)
+end
+
+-- 8s. mode: most frequent tag in dataset
+do
+  local data = {
+    { g = "a", v = "x" },
+    { g = "a", v = "y" },
+    { g = "a", v = "x" },
+    { g = "a", v = "x" },
+    { g = "a", v = "y" },
+    { g = "b", v = "q" },
+  }
+  local r = query [[
+    from
+      d = data
+    group by
+      d.g
+    select {
+      k = key,
+      m = mode(d.v),
+    }
+    order by
+      k
+  ]]
+  -- group "a": x=3, y=2 -> mode = "x"
+  assertEquals(r[1].m, "x")
+  -- group "b": q=1 -> mode = "q"
+  assertEquals(r[2].m, "q")
+end
+
+-- 8t. first / last with intra-aggregate order by
+do
+  local data = {
+    { g = "a", v = "c", k = 3 },
+    { g = "a", v = "a", k = 1 },
+    { g = "a", v = "b", k = 2 },
+  }
+  local r = query [[
+    from
+      d = data
+    group by
+      d.g
+    select {
+      f = first(d.v order by d.k asc),
+      l = last(d.v order by d.k asc),
+    }
+  ]]
+  assertEquals(r[1].f, "a")
+  assertEquals(r[1].l, "c")
+end
+
+-- 8u. first / last without order by (iteration order)
+do
+  local data = {
+    { g = "x", v = 10 },
+    { g = "x", v = 20 },
+    { g = "x", v = 30 },
+  }
+  local r = query [[
+    from
+      d = data
+    group by
+      d.g
+    select {
+      f = first(d.v),
+      l = last(d.v),
+    }
+  ]]
+  assertEquals(r[1].f, 10)
+  assertEquals(r[1].l, 30)
+end
+
+-- 8v. median on known data (odd)
+do
+  local data = {
+    { g = "a", v = 30 },
+    { g = "a", v = 10 },
+    { g = "a", v = 20 },
+  }
+  local r = query [[
+    from
+      d = data
+    group by
+      d.g
+    select {
+      med = median(d.v order by d.v asc),
+    }
+  ]]
+  assertEquals(r[1].med, 20)
+end
+
+-- 8w. median on known data (even, interpolated)
+do
+  local data = {
+    { g = "a", v = 10 },
+    { g = "a", v = 20 },
+    { g = "a", v = 30 },
+    { g = "a", v = 40 },
+  }
+  local r = query [[
+    from
+      d = data
+    group by
+      d.g
+    select {
+      med = median(d.v order by d.v asc),
+    }
+  ]]
+  -- [10,20,30,40] -> 25
+  assertEquals(r[1].med, 25)
+end
+
+-- 8x. first / last with filter
+do
+  local data = {
+    { g = "a", v = 1,  big = false },
+    { g = "a", v = 10, big = true  },
+    { g = "a", v = 2,  big = false },
+    { g = "a", v = 20, big = true  },
+  }
+  local r = query [[
+    from
+      d = data
+    group by
+      d.g
+    select {
+      fb = first(d.v order by d.v asc) filter(where d.big),
+      lb = last(d.v order by d.v asc) filter(where d.big),
+    }
+  ]]
+  assertEquals(r[1].fb, 10)
+  assertEquals(r[1].lb, 20)
+end
+
 -- 9. Having
 
 -- 9a. Having with aggregate, unbound

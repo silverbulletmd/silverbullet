@@ -256,6 +256,30 @@ const builtinAggregates: Record<string, AggregateSpec> = {
       return state.sum / state.count;
     }),
   },
+  first: {
+    name: "first",
+    description: "First non-null input value (iteration order)",
+    initialize: aggFn((_sf) => ({ value: null, found: false })),
+    iterate: aggFn((_sf, state: any, value: any) => {
+      if (state.found) return state;
+      if (value === null || value === undefined || isSqlNull(value))
+        return state;
+      state.value = value;
+      state.found = true;
+      return state;
+    }),
+    finish: aggFn((_sf, state: any) => state.value),
+  },
+  last: {
+    name: "last",
+    description: "Last non-null input value (iteration order)",
+    initialize: aggFn((_sf) => null),
+    iterate: aggFn((_sf, state: any, value: any) => {
+      if (value === null || value === undefined || isSqlNull(value))
+        return state;
+      return value;
+    }),
+  },
   // Collection and format
   array_agg: {
     name: "array_agg",
@@ -486,6 +510,29 @@ const builtinAggregates: Record<string, AggregateSpec> = {
       return state.c / denom;
     }),
   },
+  mode: {
+    name: "mode",
+    description: "Most frequent non-null input value",
+    initialize: aggFn((_sf) => ({
+      freq: new Map<LuaValue, number>(),
+      best: null as LuaValue,
+      bestCount: 0,
+    })),
+    iterate: aggFn((_sf, state: any, value: any) => {
+      if (value === null || value === undefined || isSqlNull(value))
+        return state;
+      const c = (state.freq.get(value) ?? 0) + 1;
+      state.freq.set(value, c);
+      if (c > state.bestCount) {
+        state.bestCount = c;
+        state.best = value;
+      }
+      return state;
+    }),
+    finish: aggFn((_sf, state: any) => {
+      return state.bestCount > 0 ? state.best : null;
+    }),
+  },
   // Quantile and percentile
   quantile: makeQuantileSpec(
     "quantile",
@@ -499,6 +546,22 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     "percentile_disc",
     "Discrete percentile (nearest lower value) on ordered set of non-null inputs; arguments: value, fraction (0-1)",
   ),
+  median: {
+    name: "median",
+    description: "Median of non-null inputs (continuous percentile at 0.5)",
+    initialize: aggFn((_sf) => ({
+      values: [] as number[],
+      q: 0.5,
+      method: "linear" as QuantileMethod,
+    })),
+    iterate: aggFn((_sf, state: any, value: any) => {
+      if (value === null || value === undefined || isSqlNull(value))
+        return state;
+      state.values.push(value as number);
+      return state;
+    }),
+    finish: aggFn((_sf, state: any) => quantileFinish(state as QuantileState)),
+  },
 };
 
 const noCtx = {};
