@@ -116,6 +116,8 @@ Aggregate functions can include an `order by` clause **inside** the function cal
 
 For commutative aggregates like `sum`, `count`, `min`, `max`, and `avg`, the intra-aggregate `order by` has no effect on the result because the value is the same regardless of iteration order. It is only meaningful for order-dependent aggregates like `array_agg`.
 
+Ordered-set aggregates such as `quantile`, `percentile_cont`, and `percentile_disc` require an intra-aggregate `order by` clause to produce correct results, as they depend on the iteration order of input values. Without `order by`, results are undefined.
+
 ### Basic example
 
 Collect page names sorted alphabetically within each group:
