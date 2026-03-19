@@ -68,6 +68,113 @@ function welfordIterate(state: WelfordState, value: any): WelfordState {
   return state;
 }
 
+interface CovarState extends WelfordState {
+  meanY: number;
+  m2y: number;
+  c: number; // co-moment
+}
+
+function covarInit(): CovarState {
+  return { n: 0, mean: 0, m2: 0, meanY: 0, m2y: 0, c: 0 };
+}
+
+function covarIterate(state: CovarState, x: any, y: any): CovarState {
+  if (
+    x === null ||
+    x === undefined ||
+    isSqlNull(x) ||
+    y === null ||
+    y === undefined ||
+    isSqlNull(y)
+  )
+    return state;
+  state.n += 1;
+  const dx = (x as number) - state.mean;
+  state.mean += dx / state.n;
+  const dy = (y as number) - state.meanY;
+  state.meanY += dy / state.n;
+  const dx2 = (x as number) - state.mean;
+  const dy2 = (y as number) - state.meanY;
+  state.c += dx * dy2;
+  state.m2 += dx * dx2;
+  state.m2y += dy * dy2;
+  return state;
+}
+
+// Quantile interpolation methods
+type QuantileMethod =
+  | "linear" // percentile_cont
+  | "lower" // percentile_disc
+  | "higher"
+  | "nearest"
+  | "midpoint";
+
+interface QuantileState {
+  values: number[];
+  q: number;
+  method: QuantileMethod;
+}
+
+// Default method based on aggregate invocation name
+const quantileNameDefaults: Record<string, QuantileMethod> = {
+  percentile_cont: "linear",
+  percentile_disc: "lower",
+};
+
+function quantileFinish(state: QuantileState): number | null {
+  const { values, q, method } = state;
+  if (values.length === 0) return null;
+  values.sort((a, b) => a - b);
+  const n = values.length;
+  if (n === 1) return values[0];
+  const idx = q * (n - 1);
+  const lo = Math.floor(idx);
+  const hi = Math.ceil(idx);
+  switch (method) {
+    case "lower":
+      return values[lo];
+    case "higher":
+      return values[hi];
+    case "nearest":
+      return idx - lo <= 0.5 ? values[lo] : values[hi];
+    case "midpoint":
+      return (values[lo] + values[hi]) / 2;
+    case "linear": {
+      if (lo === hi) return values[lo];
+      const frac = idx - lo;
+      return values[lo] + frac * (values[hi] - values[lo]);
+    }
+    default:
+      throw new Error(`quantile: unsupported interpolation method '${method}'`);
+  }
+}
+
+// Shared spec — branching on `ctx.name` for the default method
+function makeQuantileSpec(name: string, description: string): AggregateSpec {
+  return {
+    name,
+    description,
+    initialize: aggFn((_sf, ctx: any, q: any, method: any) => {
+      const qVal = q ?? 0.5;
+      if (typeof qVal !== "number" || qVal < 0 || qVal > 1) {
+        throw new Error(`${name}: quantile must be between 0 and 1`);
+      }
+      const ctxName = ctx instanceof LuaTable ? ctx.rawGet("name") : name;
+      const m = (method ??
+        quantileNameDefaults[ctxName] ??
+        "linear") as QuantileMethod;
+      return { values: [] as number[], q: qVal, method: m } as QuantileState;
+    }),
+    iterate: aggFn((_sf, state: any, value: any) => {
+      if (value === null || value === undefined || isSqlNull(value))
+        return state;
+      state.values.push(value as number);
+      return state;
+    }),
+    finish: aggFn((_sf, state: any) => quantileFinish(state as QuantileState)),
+  };
+}
+
 // Built-in aggregate specs
 const builtinAggregates: Record<string, AggregateSpec> = {
   // General purpose
@@ -165,7 +272,8 @@ const builtinAggregates: Record<string, AggregateSpec> = {
   },
   string_agg: {
     name: "string_agg",
-    description: "Concatenated non-null values; delimited by ',' by default",
+    description:
+      "Concatenated non-null values; argument: delimiter (default: ',')",
     initialize: aggFn((_sf, _ctx: any, sep: any) => {
       return { sep: sep ?? ",", parts: [] as string[] };
     }),
@@ -341,6 +449,57 @@ const builtinAggregates: Record<string, AggregateSpec> = {
       return state.m2 / (state.n - 1);
     }),
   },
+  covar_pop: {
+    name: "covar_pop",
+    description: "Population covariance of non-null input pairs",
+    initialize: aggFn((_sf) => covarInit()),
+    iterate: aggFn((_sf, state: any, y: any, _ctx: any, x: any) =>
+      covarIterate(state, x, y),
+    ),
+    finish: aggFn((_sf, state: any) => {
+      if (state.n === 0) return null;
+      return state.c / state.n;
+    }),
+  },
+  covar_samp: {
+    name: "covar_samp",
+    description: "Sample covariance of non-null input pairs",
+    initialize: aggFn((_sf) => covarInit()),
+    iterate: aggFn((_sf, state: any, y: any, _ctx: any, x: any) =>
+      covarIterate(state, x, y),
+    ),
+    finish: aggFn((_sf, state: any) => {
+      if (state.n < 2) return null;
+      return state.c / (state.n - 1);
+    }),
+  },
+  corr: {
+    name: "corr",
+    description: "Correlation coefficient of non-null input pairs",
+    initialize: aggFn((_sf) => covarInit()),
+    iterate: aggFn((_sf, state: any, y: any, _ctx: any, x: any) =>
+      covarIterate(state, x, y),
+    ),
+    finish: aggFn((_sf, state: any) => {
+      if (state.n < 2) return null;
+      const denom = Math.sqrt(state.m2 * state.m2y);
+      if (denom === 0) return null;
+      return state.c / denom;
+    }),
+  },
+  // Quantile and percentile
+  quantile: makeQuantileSpec(
+    "quantile",
+    "Quantile of non-null inputs; arguments: value, quantile (0-1), interpolation ('lower', 'higher', 'nearest', 'midpoint' and default: 'linear')",
+  ),
+  percentile_cont: makeQuantileSpec(
+    "percentile_cont",
+    "Continuous percentile (linear interpolation) on non-null inputs; arguments: value, fraction (0-1)",
+  ),
+  percentile_disc: makeQuantileSpec(
+    "percentile_disc",
+    "Discrete percentile (nearest lower value) on non-null inputs; arguments: value, fraction (0-1)",
+  ),
 };
 
 const noCtx = {};
@@ -437,16 +596,25 @@ export async function executeAggregate(
 ): Promise<LuaValue> {
   const ctx = buildAggCtx(spec.name, config);
 
-  // Evaluate extra args once (before the loop)
+  // Evaluate extra args using the first item's env so that references
+  // to the object variable (e.g. `data.x`) resolve correctly.
+  // These are used for initialize and finish; iterate re-evaluates per-item.
   const extraArgs: LuaValue[] = [];
-  for (const argExpr of extraArgExprs) {
-    extraArgs.push(await evalExprFn(argExpr, env, sf));
+  if (extraArgExprs.length > 0) {
+    const firstItem = items.length > 0 ? items.rawGet(1) : undefined;
+    const firstEnv =
+      firstItem !== undefined
+        ? buildItemEnv(objectVariable, firstItem, env, sf)
+        : env;
+    for (const argExpr of extraArgExprs) {
+      extraArgs.push(await evalExprFn(argExpr, firstEnv, sf));
+    }
   }
 
   // Initialize
   let state = await luaCall(spec.initialize, [ctx, ...extraArgs], noCtx, sf);
 
-  // Iterate
+  // Collect filtered items
   const filteredItems: LuaValue[] = [];
   const len = items.length;
   for (let i = 1; i <= len; i++) {
@@ -489,16 +657,21 @@ export async function executeAggregate(
 
   // Iterate
   for (const item of filteredItems) {
+    const itemEnv = buildItemEnv(objectVariable, item, env, sf);
     let value: LuaValue;
     if (valueExpr === null) {
       value = item;
     } else {
-      const itemEnv = buildItemEnv(objectVariable, item, env, sf);
       value = await evalExprFn(valueExpr, itemEnv, sf);
+    }
+    // Evaluate extra args per-item so they can reference item fields
+    const iterExtraArgs: LuaValue[] = [];
+    for (const argExpr of extraArgExprs) {
+      iterExtraArgs.push(await evalExprFn(argExpr, itemEnv, sf));
     }
     state = await luaCall(
       spec.iterate,
-      [state, value, ctx, ...extraArgs],
+      [state, value, ctx, ...iterExtraArgs],
       noCtx,
       sf,
     );
