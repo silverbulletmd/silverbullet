@@ -71,7 +71,7 @@ function template.each(tbl, fn)
   for _, item in ipairs(tbl) do
       table.insert(result, fn(item))
   end
-  return table.concat(result)
+  return #result > 0 and table.concat(result) or nil
 end
 
 -- Creates a new template function from a string template
