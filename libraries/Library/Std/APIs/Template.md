@@ -65,13 +65,13 @@ template = template or {}
 templates = {}
 
 -- Iterates over a table/array and applies a function to each element,
--- concatenating the results
+-- concatenating the results; returns nil if the results are empty.
 function template.each(tbl, fn)
   local result = {}
   for _, item in ipairs(tbl) do
       table.insert(result, fn(item))
   end
-  return table.concat(result)
+  return #result > 0 and table.concat(result) or nil
 end
 
 -- Creates a new template function from a string template
