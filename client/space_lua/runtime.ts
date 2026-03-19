@@ -3,6 +3,7 @@ import { evalStatement } from "./eval.ts";
 import { asyncQuickSort } from "./util.ts";
 import { isPromise, rpAll } from "./rp.ts";
 import { isNegativeZero, isTaggedFloat } from "./numeric.ts";
+import { isSqlNull } from "./liq_null.ts";
 import { luaFormat } from "./stdlib/format.ts";
 
 export type LuaType =
@@ -79,7 +80,7 @@ function isLuaNumber(v: any): boolean {
 }
 
 export function luaTypeName(val: any): LuaType {
-  if (val === null || val === undefined) {
+  if (val === null || val === undefined || isSqlNull(val)) {
     return "nil";
   }
 
@@ -1153,6 +1154,7 @@ export function luaIndexValue(
     if (t instanceof LuaTable) {
       const raw = t.rawGet(key);
       if (raw !== undefined) {
+        if (isSqlNull(raw)) return null;
         return raw;
       }
       // If no metatable, raw miss => nil
@@ -1391,7 +1393,7 @@ export function luaKeys(val: any): any[] {
 }
 
 export function luaTypeOf(val: any): LuaType | Promise<LuaType> {
-  if (val === null || val === undefined) {
+  if (val === null || val === undefined || isSqlNull(val)) {
     return "nil";
   }
   if (isPromise(val)) {
@@ -1503,7 +1505,7 @@ export function luaToString(
   value: any,
   visited: Set<any> = new Set(),
 ): string | Promise<string> {
-  if (value === null || value === undefined) {
+  if (value === null || value === undefined || isSqlNull(value)) {
     return "nil";
   }
   if (isPromise(value)) {
@@ -1635,6 +1637,9 @@ export function getMetatable(
 }
 
 export function jsToLuaValue(value: any): any {
+  if (value === null || value === undefined) {
+    return value;
+  }
   if (isPromise(value)) {
     return (value as Promise<any>).then(jsToLuaValue);
   }

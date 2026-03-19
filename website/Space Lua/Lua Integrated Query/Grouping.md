@@ -10,7 +10,7 @@ After `group by`, each result row has two fields:
 The field names used in `group by` are also available as bare variables in `having`, `select`, and `order by`. Use `#group` to count items per group.
 
 > **note** Note
-> `having` can only reference group key fields, `key`, `group`, and aggregates like `#group`. To filter individual rows, use `where`.
+> `having` can only reference group key fields, `key`, `group`, aggregate expressions like `#group`, and aggregate functions like `count()`. To filter individual rows, use `where`.
 
 # Examples
 

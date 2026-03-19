@@ -5,7 +5,27 @@ tags: meta/api
 
 APIs to define and override aggregate functions used in LIQ `select` and `having` clauses after `group by`.
 
-Built-in aggregates: `count`, `sum`, `min`, `max`, `avg` and `array_agg`.
+All aggregates skip null/nil values by convention. Empty groups return null (except `count` which returns 0 and `string_agg` which returns an empty string).
+
+# Querying available aggregates
+
+All aggregates (built-in, user-defined, and aliases) are queryable via `index.aggregates()`:
+
+```lua
+-- List all
+${query[[from index.aggregates()]]}
+
+-- Only builtins
+${query[[from index.aggregates() where builtin]]}
+
+-- Only aliases
+${query[[from index.aggregates() where target]]}
+
+-- Only user-defined (non-builtin, non-alias)
+${query[[from index.aggregates() where not builtin and not target]]}
+```
+
+Each row includes the following columns: `builtin`, `name`, `description`, `initialize`, `iterate`, `finish`, and `target`. The `initialize`, `iterate`, and `finish` columns are represented by boolean values.
 
 # API
 
@@ -30,15 +50,24 @@ Aggregate functions can accept additional arguments beyond the first value expre
 * `iterate(state, value, ctx, ...extraArgs)` — receives extra args after the context table
 * `finish(state, ctx, ...extraArgs)` — receives extra args after the context table
 
-This allows parameterized aggregates, for example a separator argument for string concatenation.
+This allows parameterized aggregates, for example a separator argument for string concatenation or boundary arguments for clamped sums.
 
 ## aggregate.update(spec)
 
 Updates an existing aggregate definition. Same keys as `aggregate.define`. Only the provided keys are overwritten.
 
+## aggregate.alias(name, target, description?)
+
+Creates an alias so that `name` resolves to `target` at query time. The target may be a builtin, a user-defined aggregate, or another alias (chains are followed with cycle detection).
+
+```lua
+aggregate.alias("total", "sum")
+aggregate.alias("stdev", "stddev_pop", "My stddev alias")
+```
+
 # Examples
 
-## Define a custom aggregate
+## Define a custom aggregate with one extra argument
 
 Define a custom aggregate `concat` that concatenates strings with a configurable separator (defaulting to `", "`):
 
@@ -50,7 +79,7 @@ aggregate.define {
     return { sep = sep or ', ', parts = {} }
   end,
 
-  iterate = function(state, value, ctx, sep)
+  iterate = function(state, value)
     if value ~= nil then
       state.parts[#state.parts + 1] = tostring(value)
     end
@@ -77,6 +106,55 @@ query [[
 ]]
 ```
 
+## Define a custom aggregate with two extra arguments
+
+Define a custom aggregate `clamp_sum` that sums non-null inputs and clamps the result to a `[min, max]` range:
+
+```lua
+aggregate.define {
+  name = 'clamp_sum',
+  description = 'Sum of non-null inputs clamped to [min, max]',
+
+  initialize = function(ctx, lo, hi)
+    return { total = 0, lo = lo or -math.huge, hi = hi or math.huge }
+  end,
+
+  iterate = function(state, value)
+    if value ~= nil then
+      state.total = state.total + value
+    end
+    return state
+  end,
+
+  finish = function(state)
+    if state.total < state.lo then return state.lo end
+    if state.total > state.hi then return state.hi end
+    return state.total
+  end,
+}
+```
+
+Usage in a query:
+
+```lua
+query [[
+  from
+    d = {
+      { dept = "eng",   hours = 12 },
+      { dept = "eng",   hours = 35 },
+      { dept = "sales", hours = 8  },
+      { dept = "sales", hours = 6  },
+    }
+  group by d.dept
+  select {
+    dept  = d.dept,
+    total = clamp_sum(d.hours, 0, 40),
+  }
+]]
+```
+
+Here `eng` sums to 47 but is clamped to `40`, while `sales` sums to `14` which is within range.
+
 ## Update an existing aggregate
 
 ```lua
@@ -88,6 +166,13 @@ aggregate.update {
     return state + 1
   end,
 }
+```
+
+## Create an alias
+
+```lua
+aggregate.alias("total", "sum")
+aggregate.alias("stdev", "stddev_pop", "Shorthand for population stddev")
 ```
 
 # Implementation
@@ -121,7 +206,7 @@ function aggregate.define(spec)
     error('aggregate.define: ' .. validationResult)
   end
 
-  config.set({'aggregates', spec.name}, spec)
+  config.setLuaValue({'aggregates', spec.name}, spec)
 end
 
 function aggregate.update(spec)
@@ -145,6 +230,26 @@ function aggregate.update(spec)
       .. spec.name .. ' has no iterate after merge')
   end
 
-  config.set({'aggregates', spec.name}, existing)
+  config.setLuaValue({'aggregates', spec.name}, existing)
 end
+
+function aggregate.alias(name, target, description)
+  if not name or not target then
+    error('aggregate.alias: both name and target are required')
+  end
+  if name == target then
+    error('aggregate.alias: name and target must differ')
+  end
+  local entry = { alias = target }
+  if description then
+    entry.description = description
+  end
+  config.setLuaValue({'aggregates', name}, entry)
+end
+
+-- Standard aliases
+aggregate.alias('every', 'bool_and')
+aggregate.alias('std', 'stddev_pop')
+aggregate.alias('stddev', 'stddev_pop')
+aggregate.alias('variance', 'var_pop')
 ```

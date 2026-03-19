@@ -26,6 +26,7 @@ import {
   type LuaValue,
   singleResult,
 } from "./runtime.ts";
+import { isSqlNull, LIQ_NULL } from "./liq_null.ts";
 import { evalExpression, luaOp } from "./eval.ts";
 import { asyncMergeSort } from "./util.ts";
 import type { DataStore } from "../data/datastore.ts";
@@ -37,13 +38,6 @@ import type { KvKey } from "../../plug-api/types/datastore.ts";
 
 import { executeAggregate, getAggregateSpec } from "./aggregates.ts";
 import { Config } from "../config.ts";
-
-// Sentinel value representing SQL NULL in query results.
-export const LIQ_NULL = Symbol.for("silverbullet.sqlNull");
-
-export function isSqlNull(v: any): boolean {
-  return v === LIQ_NULL;
-}
 
 // Build environment for post-`group by` clauses. Injects `key` and `group`
 // as top-level variables. Unpacks first group item fields and group-by key
@@ -203,56 +197,71 @@ export function toCollection(obj: any): LuaQueryCollection {
   return new ArrayQueryCollection([obj]);
 }
 
-function containsAggregate(expr: LuaExpression): boolean {
+function containsAggregate(expr: LuaExpression, config?: Config): boolean {
   switch (expr.type) {
     case "FilteredCall": {
       const fc = (expr as LuaFilteredCallExpression).call;
-      if (fc.prefix.type === "Variable" && getAggregateSpec(fc.prefix.name)) {
+      if (
+        fc.prefix.type === "Variable" &&
+        getAggregateSpec(fc.prefix.name, config)
+      ) {
         return true;
       }
       return (
-        containsAggregate(fc) ||
-        containsAggregate((expr as LuaFilteredCallExpression).filter)
+        containsAggregate(fc, config) ||
+        containsAggregate((expr as LuaFilteredCallExpression).filter, config)
       );
     }
     case "AggregateCall": {
       const ac = expr as LuaAggregateCallExpression;
       const fc = ac.call;
-      if (fc.prefix.type === "Variable" && getAggregateSpec(fc.prefix.name)) {
+      if (
+        fc.prefix.type === "Variable" &&
+        getAggregateSpec(fc.prefix.name, config)
+      ) {
         return true;
       }
-      return containsAggregate(fc);
+      return containsAggregate(fc, config);
     }
     case "FunctionCall": {
       const fc = expr as LuaFunctionCallExpression;
-      if (fc.prefix.type === "Variable" && getAggregateSpec(fc.prefix.name)) {
+      if (
+        fc.prefix.type === "Variable" &&
+        getAggregateSpec(fc.prefix.name, config)
+      ) {
         return true;
       }
-      return fc.args.some(containsAggregate);
+      return fc.args.some((a) => containsAggregate(a, config));
     }
     case "Binary": {
       const bin = expr as LuaBinaryExpression;
-      return containsAggregate(bin.left) || containsAggregate(bin.right);
+      return (
+        containsAggregate(bin.left, config) ||
+        containsAggregate(bin.right, config)
+      );
     }
     case "Unary": {
       const un = expr as LuaUnaryExpression;
-      return containsAggregate(un.argument);
+      return containsAggregate(un.argument, config);
     }
     case "Parenthesized": {
       const p = expr as LuaParenthesizedExpression;
-      return containsAggregate(p.expression);
+      return containsAggregate(p.expression, config);
     }
     case "TableConstructor":
       return expr.fields.some((f) => {
         switch (f.type) {
           case "PropField":
-            return containsAggregate((f as LuaPropField).value);
+            return containsAggregate((f as LuaPropField).value, config);
           case "DynamicField": {
             const df = f as LuaDynamicField;
-            return containsAggregate(df.key) || containsAggregate(df.value);
+            return (
+              containsAggregate(df.key, config) ||
+              containsAggregate(df.value, config)
+            );
           }
           case "ExpressionField":
-            return containsAggregate((f as LuaExpressionField).value);
+            return containsAggregate((f as LuaExpressionField).value, config);
           default:
             return false;
         }
@@ -284,7 +293,7 @@ export async function evalExpressionWithAggregates(
   outerEnv: LuaEnv,
   config: Config,
 ): Promise<LuaValue> {
-  if (!containsAggregate(expr)) {
+  if (!containsAggregate(expr, config)) {
     return evalExpression(expr, env, sf);
   }
   const recurse = (e: LuaExpression) =>
@@ -592,8 +601,8 @@ async function sortKeyCompare(
     const bVal = bKeys[idx];
 
     // Handle nulls positioning
-    const aIsNull = aVal === null || aVal === undefined;
-    const bIsNull = bVal === null || bVal === undefined;
+    const aIsNull = aVal === null || aVal === undefined || isSqlNull(aVal);
+    const bIsNull = bVal === null || bVal === undefined || isSqlNull(bVal);
     if (aIsNull || bIsNull) {
       if (aIsNull && bIsNull) continue;
       // Default: nulls last for asc, nulls first for desc

@@ -4,10 +4,10 @@ import {
   luaToString,
 } from "../space_lua/runtime.ts";
 import { isTaggedFloat } from "../space_lua/numeric.ts";
-import { isSqlNull } from "../space_lua/query_collection.ts";
+import { isSqlNull } from "../space_lua/liq_null.ts";
 
 export function defaultTransformer(v: any, _k: string): Promise<string> {
-  if (v === undefined || isSqlNull(v)) {
+  if (v === undefined || v === null || isSqlNull(v)) {
     return Promise.resolve("");
   }
   if (typeof v === "string") {
@@ -98,7 +98,7 @@ export function renderExpressionResult(
   result: any,
   cellTransformer: (v: any, k: string) => Promise<string> = refCellTransformer,
 ): Promise<string> {
-  if (result === undefined || result === null) {
+  if (result === undefined || result === null || isSqlNull(result)) {
     return Promise.resolve("nil");
   }
   // LuaTable: render natively without `.toJS`
@@ -217,7 +217,9 @@ function renderItemToMarkdown(
   cellTransformer: (v: any, k: string) => Promise<string>,
   nested: boolean,
 ): Promise<string> {
-  if (item === undefined || item === null) return Promise.resolve("");
+  if (item === undefined || item === null || isSqlNull(item)) {
+    return Promise.resolve("");
+  }
   if (item instanceof LuaTable) {
     if (item.empty()) return Promise.resolve("*(empty table)*");
     if (nested) {

@@ -14,6 +14,28 @@ Field names used in `group by` are exposed as locals in `having`, `select`, and 
 > **note** Note
 > The `having` clause acts only on grouped output. For filtering individual items, use `where` prior to grouping.
 
+# Available aggregates
+
+All registered aggregate functions — built-in, user-defined, and aliases — can be listed via `index.aggregates()`:
+
+${query[[
+  select
+  {
+    Name = '`' .. name .. '`',
+    Description = description,
+    Kind =
+      (builtin and 'builtin' or 'custom') ..
+      (target and ' alias for ' .. '`' .. target .. '`' or ''),
+  }
+  from
+    index.aggregates()
+  order by
+    builtin desc,
+    name
+]]}
+
+See [[Library/Std/APIs/Aggregate|Aggregate API]] for how to define custom aggregates and aliases.
+
 # Examples
 All example queries operate on `tags.page`, but will work with any query collection. As always, to see the underlying query, hover over the result table and click the _Edit_ button to see the underlying query.
 
@@ -101,12 +123,14 @@ ${query [[
     tag
 ]]}
 
-The filter clause works with all aggregate functions: `count`, `sum`, `min`, `max`, `avg`, `array_agg`, and custom aggregates.  When no rows match the filter condition, aggregates return their identity value: `0` for `count` and `sum`, `nil` for `min`, `max`, and `avg`, and an empty table `{}` for `array_agg`.
+The filter clause works with all aggregate functions: `count`, `sum`, `min`, `max`, `avg`, `array_agg`, and custom aggregates.  When no rows match the filter condition, aggregates return their empty-group value: `0` for `count`, `nil` for `sum`, `min`, `max`, and `avg`, and an empty table `{}` for `array_agg`.
 
 ## Intra-aggregate `order by`
 Aggregate functions can include an `order by` clause **inside** the function call to control the order in which values are processed.
 
 For commutative aggregates like `sum`, `count`, `min`, `max`, and `avg`, the intra-aggregate `order by` has no effect on the result because the value is the same regardless of iteration order. It is only meaningful for order-dependent aggregates like `array_agg`.
+
+Ordered-set aggregates such as `quantile`, `percentile_cont`, and `percentile_disc` require an intra-aggregate `order by` clause to produce correct results, as they depend on the iteration order of input values. Without `order by`, results are undefined.
 
 ### Basic example
 
@@ -185,4 +209,4 @@ Custom aggregator functions may be defined by the user using [[Library/Std/APIs/
 
 # See also
 * [[Space Lua/Lua Integrated Query/Grouping]] — grouping queries without aggregation
-* [[Space Lua/Lua Integrated Query]] — full LIQ language reference and listing available aggregators
+* [[Space Lua/Lua Integrated Query]] — full LIQ language reference and listing available aggregates

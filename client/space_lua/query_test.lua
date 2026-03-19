@@ -1787,9 +1787,9 @@ do
       assertEquals(row.total_size, 20)
       assertEquals(row.big_size, 15)
     elseif row.tag == "random" then
-      -- Fran(1) total=1, big: 0 (none pass)
+      -- Fran(1) total=1, big: nil (none pass)
       assertEquals(row.total_size, 1)
-      assertEquals(row.big_size, 0)
+      assertEquals(row.big_size, nil)
     end
   end
 end
@@ -1906,7 +1906,7 @@ do
     }
   ]]
   assertEquals(r[1].n, 0)
-  assertEquals(r[1].s, 0)
+  assertEquals(r[1].s, nil)
 end
 
 -- 53. Multiple filters in one select

@@ -35,6 +35,7 @@ import { cryptoApi } from "./stdlib/crypto.ts";
 import { netApi } from "./stdlib/net.ts";
 import { isTaggedFloat, makeLuaFloat } from "./numeric.ts";
 import { isPromise } from "./rp.ts";
+import { isSqlNull } from "./liq_null.ts";
 
 const printFunction = new LuaBuiltinFunction(async (_sf, ...args) => {
   console.log("[Lua]", ...(await Promise.all(args.map((v) => luaToString(v)))));
@@ -310,7 +311,7 @@ const rawgetFunction = new LuaBuiltinFunction(
 
     if (isLuaTable(table)) {
       const v = table.rawGet(key);
-      return v === undefined ? null : v;
+      return v === undefined || isSqlNull(v) ? null : v;
     }
 
     const k = isTaggedFloat(key) ? key.value : key;

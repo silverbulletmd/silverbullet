@@ -20,6 +20,9 @@ export function indexSyscalls(
     "index.tag": (_ctx, tagName: string): LuaQueryCollection => {
       return objectIndex.tag(tagName);
     },
+    "index.aggregates": (_ctx): LuaQueryCollection => {
+      return objectIndex.aggregates();
+    },
     "index.ensureFullIndex": (_ctx) => {
       return objectIndex.ensureFullIndex(client.space);
     },

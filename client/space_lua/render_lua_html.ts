@@ -1,6 +1,6 @@
 import { luaFormatNumber, LuaTable } from "../space_lua/runtime.ts";
 import { isTaggedFloat } from "../space_lua/numeric.ts";
-import { isSqlNull } from "../space_lua/query_collection.ts";
+import { isSqlNull } from "../space_lua/liq_null.ts";
 
 function escapeHtml(s: string): string {
   return s

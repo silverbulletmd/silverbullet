@@ -4,6 +4,7 @@ import {
 } from "../space_lua/query_collection.ts";
 import { LuaEnv, LuaStackFrame } from "../space_lua/runtime.ts";
 import type { KvPrimitives, KvQueryOptions } from "./kv_primitives.ts";
+import type { Config } from "../config.ts";
 
 import type { KV, KvKey } from "../../plug-api/types/datastore.ts";
 
@@ -76,7 +77,8 @@ export class DataStore {
     env: LuaEnv = new LuaEnv(),
     sf: LuaStackFrame = LuaStackFrame.lostFrame,
     enricher?: (key: KvKey, item: any) => any,
+    config?: Config,
   ): Promise<T[]> {
-    return queryLua(this.kv, prefix, query, env, sf, enricher);
+    return queryLua(this.kv, prefix, query, env, sf, enricher, config);
   }
 }
