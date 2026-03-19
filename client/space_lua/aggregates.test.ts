@@ -75,6 +75,10 @@ const corrSpec = requireSpec("corr");
 const quantileSpec = requireSpec("quantile");
 const percentileContSpec = requireSpec("percentile_cont");
 const percentileDiscSpec = requireSpec("percentile_disc");
+const modeSpec = requireSpec("mode");
+const firstSpec = requireSpec("first");
+const lastSpec = requireSpec("last");
+const medianSpec = requireSpec("median");
 
 const sf = LuaStackFrame.lostFrame;
 const emptyConfig = new Config();
@@ -2090,4 +2094,280 @@ test("aggregate: extra args forwarded to finish", async () => {
     emptyConfig,
   );
   expect(result2).toBe("[x, y]");
+});
+
+test("aggregate: mode returns most frequent value", async () => {
+  const result = await executeAggregate(
+    modeSpec,
+    jsToLuaValue([{ v: "a" }, { v: "b" }, { v: "a" }, { v: "c" }, { v: "a" }]),
+    parseExpressionString("_.v"),
+    [],
+    undefined,
+    new LuaEnv(),
+    sf,
+    evalExpression,
+    emptyConfig,
+  );
+  expect(result).toBe("a");
+});
+
+test("aggregate: mode with tie returns first to reach max", async () => {
+  // a appears at index 1,3 ; b at index 2,4 — a reaches count=2 first
+  const result = await executeAggregate(
+    modeSpec,
+    jsToLuaValue([{ v: "a" }, { v: "b" }, { v: "a" }, { v: "b" }]),
+    parseExpressionString("_.v"),
+    [],
+    undefined,
+    new LuaEnv(),
+    sf,
+    evalExpression,
+    emptyConfig,
+  );
+  expect(result).toBe("a");
+});
+
+test("aggregate: mode on empty group", async () => {
+  const result = await executeAggregate(
+    modeSpec,
+    new LuaTable(),
+    parseExpressionString("_.v"),
+    [],
+    undefined,
+    new LuaEnv(),
+    sf,
+    evalExpression,
+    emptyConfig,
+  );
+  expect(result).toBeNull();
+});
+
+test("aggregate: mode skips nulls", async () => {
+  const result = await executeAggregate(
+    modeSpec,
+    jsToLuaValue([{ v: "x" }, { z: 1 }, { z: 2 }, { v: "x" }]),
+    parseExpressionString("_.v"),
+    [],
+    undefined,
+    new LuaEnv(),
+    sf,
+    evalExpression,
+    emptyConfig,
+  );
+  expect(result).toBe("x");
+});
+
+test("aggregate: mode with numbers", async () => {
+  const result = await executeAggregate(
+    modeSpec,
+    jsToLuaValue([{ v: 3 }, { v: 1 }, { v: 3 }, { v: 2 }, { v: 1 }, { v: 3 }]),
+    parseExpressionString("_.v"),
+    [],
+    undefined,
+    new LuaEnv(),
+    sf,
+    evalExpression,
+    emptyConfig,
+  );
+  expect(result).toBe(3);
+});
+
+// first
+
+test("aggregate: first returns first non-null value", async () => {
+  const result = await executeAggregate(
+    firstSpec,
+    jsToLuaValue([{ v: "a" }, { v: "b" }, { v: "c" }]),
+    parseExpressionString("_.v"),
+    [],
+    undefined,
+    new LuaEnv(),
+    sf,
+    evalExpression,
+    emptyConfig,
+  );
+  expect(result).toBe("a");
+});
+
+test("aggregate: first skips leading nulls", async () => {
+  const result = await executeAggregate(
+    firstSpec,
+    jsToLuaValue([{ z: 1 }, { z: 2 }, { v: "found" }, { v: "skip" }]),
+    parseExpressionString("_.v"),
+    [],
+    undefined,
+    new LuaEnv(),
+    sf,
+    evalExpression,
+    emptyConfig,
+  );
+  expect(result).toBe("found");
+});
+
+test("aggregate: first on empty group", async () => {
+  const result = await executeAggregate(
+    firstSpec,
+    new LuaTable(),
+    parseExpressionString("_.v"),
+    [],
+    undefined,
+    new LuaEnv(),
+    sf,
+    evalExpression,
+    emptyConfig,
+  );
+  expect(result).toBeNull();
+});
+
+test("aggregate: first with order by", async () => {
+  const result = await executeAggregate(
+    firstSpec,
+    jsToLuaValue([
+      { v: "c", k: 3 },
+      { v: "a", k: 1 },
+      { v: "b", k: 2 },
+    ]),
+    parseExpressionString("_.v"),
+    [],
+    undefined,
+    new LuaEnv(),
+    sf,
+    evalExpression,
+    emptyConfig,
+    undefined,
+    [makeOrderBy("_.k", "asc")],
+  );
+  expect(result).toBe("a");
+});
+
+test("aggregate: last returns last non-null value", async () => {
+  const result = await executeAggregate(
+    lastSpec,
+    jsToLuaValue([{ v: "a" }, { v: "b" }, { v: "c" }]),
+    parseExpressionString("_.v"),
+    [],
+    undefined,
+    new LuaEnv(),
+    sf,
+    evalExpression,
+    emptyConfig,
+  );
+  expect(result).toBe("c");
+});
+
+test("aggregate: last skips trailing nulls", async () => {
+  const result = await executeAggregate(
+    lastSpec,
+    jsToLuaValue([{ v: "a" }, { v: "last" }, { z: 1 }, { z: 2 }]),
+    parseExpressionString("_.v"),
+    [],
+    undefined,
+    new LuaEnv(),
+    sf,
+    evalExpression,
+    emptyConfig,
+  );
+  expect(result).toBe("last");
+});
+
+test("aggregate: last on empty group", async () => {
+  const result = await executeAggregate(
+    lastSpec,
+    new LuaTable(),
+    parseExpressionString("_.v"),
+    [],
+    undefined,
+    new LuaEnv(),
+    sf,
+    evalExpression,
+    emptyConfig,
+  );
+  expect(result).toBeNull();
+});
+
+test("aggregate: last with order by desc", async () => {
+  const result = await executeAggregate(
+    lastSpec,
+    jsToLuaValue([
+      { v: "c", k: 3 },
+      { v: "a", k: 1 },
+      { v: "b", k: 2 },
+    ]),
+    parseExpressionString("_.v"),
+    [],
+    undefined,
+    new LuaEnv(),
+    sf,
+    evalExpression,
+    emptyConfig,
+    undefined,
+    [makeOrderBy("_.k", "desc")],
+  );
+  // desc order: c(3), b(2), a(1) -> last = "a"
+  expect(result).toBe("a");
+});
+
+test("aggregate: median of odd count", async () => {
+  const result = await executeAggregate(
+    medianSpec,
+    jsToLuaValue([{ v: 30 }, { v: 10 }, { v: 20 }]),
+    parseExpressionString("_.v"),
+    [],
+    undefined,
+    new LuaEnv(),
+    sf,
+    evalExpression,
+    emptyConfig,
+    undefined,
+    [makeOrderBy("_.v", "asc")],
+  );
+  expect(result).toBe(20);
+});
+
+test("aggregate: median of even count (interpolated)", async () => {
+  const result = await executeAggregate(
+    medianSpec,
+    jsToLuaValue([{ v: 10 }, { v: 20 }, { v: 30 }, { v: 40 }]),
+    parseExpressionString("_.v"),
+    [],
+    undefined,
+    new LuaEnv(),
+    sf,
+    evalExpression,
+    emptyConfig,
+    undefined,
+    [makeOrderBy("_.v", "asc")],
+  );
+  // [10,20,30,40] q=0.5 -> idx=1.5 -> 20 + 0.5*(30-20) = 25
+  expect(result).toBe(25);
+});
+
+test("aggregate: median on empty group", async () => {
+  const result = await executeAggregate(
+    medianSpec,
+    new LuaTable(),
+    parseExpressionString("_.v"),
+    [],
+    undefined,
+    new LuaEnv(),
+    sf,
+    evalExpression,
+    emptyConfig,
+  );
+  expect(result).toBeNull();
+});
+
+test("aggregate: median single element", async () => {
+  const result = await executeAggregate(
+    medianSpec,
+    jsToLuaValue([{ v: 42 }]),
+    parseExpressionString("_.v"),
+    [],
+    undefined,
+    new LuaEnv(),
+    sf,
+    evalExpression,
+    emptyConfig,
+  );
+  expect(result).toBe(42);
 });

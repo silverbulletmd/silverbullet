@@ -884,6 +884,138 @@ do
   assertEquals(r[1].p25, 20)
 end
 
+-- 8s. mode: most frequent tag in dataset
+do
+  local data = {
+    { g = "a", v = "x" },
+    { g = "a", v = "y" },
+    { g = "a", v = "x" },
+    { g = "a", v = "x" },
+    { g = "a", v = "y" },
+    { g = "b", v = "q" },
+  }
+  local r = query [[
+    from
+      d = data
+    group by
+      d.g
+    select {
+      k = key,
+      m = mode(d.v),
+    }
+    order by
+      k
+  ]]
+  -- group "a": x=3, y=2 -> mode = "x"
+  assertEquals(r[1].m, "x")
+  -- group "b": q=1 -> mode = "q"
+  assertEquals(r[2].m, "q")
+end
+
+-- 8t. first / last with intra-aggregate order by
+do
+  local data = {
+    { g = "a", v = "c", k = 3 },
+    { g = "a", v = "a", k = 1 },
+    { g = "a", v = "b", k = 2 },
+  }
+  local r = query [[
+    from
+      d = data
+    group by
+      d.g
+    select {
+      f = first(d.v order by d.k asc),
+      l = last(d.v order by d.k asc),
+    }
+  ]]
+  assertEquals(r[1].f, "a")
+  assertEquals(r[1].l, "c")
+end
+
+-- 8u. first / last without order by (iteration order)
+do
+  local data = {
+    { g = "x", v = 10 },
+    { g = "x", v = 20 },
+    { g = "x", v = 30 },
+  }
+  local r = query [[
+    from
+      d = data
+    group by
+      d.g
+    select {
+      f = first(d.v),
+      l = last(d.v),
+    }
+  ]]
+  assertEquals(r[1].f, 10)
+  assertEquals(r[1].l, 30)
+end
+
+-- 8v. median on known data (odd)
+do
+  local data = {
+    { g = "a", v = 30 },
+    { g = "a", v = 10 },
+    { g = "a", v = 20 },
+  }
+  local r = query [[
+    from
+      d = data
+    group by
+      d.g
+    select {
+      med = median(d.v order by d.v asc),
+    }
+  ]]
+  assertEquals(r[1].med, 20)
+end
+
+-- 8w. median on known data (even, interpolated)
+do
+  local data = {
+    { g = "a", v = 10 },
+    { g = "a", v = 20 },
+    { g = "a", v = 30 },
+    { g = "a", v = 40 },
+  }
+  local r = query [[
+    from
+      d = data
+    group by
+      d.g
+    select {
+      med = median(d.v order by d.v asc),
+    }
+  ]]
+  -- [10,20,30,40] -> 25
+  assertEquals(r[1].med, 25)
+end
+
+-- 8x. first / last with filter
+do
+  local data = {
+    { g = "a", v = 1,  big = false },
+    { g = "a", v = 10, big = true  },
+    { g = "a", v = 2,  big = false },
+    { g = "a", v = 20, big = true  },
+  }
+  local r = query [[
+    from
+      d = data
+    group by
+      d.g
+    select {
+      fb = first(d.v order by d.v asc) filter(where d.big),
+      lb = last(d.v order by d.v asc) filter(where d.big),
+    }
+  ]]
+  assertEquals(r[1].fb, 10)
+  assertEquals(r[1].lb, 20)
+end
+
 -- 9. Having
 
 -- 9a. Having with aggregate, unbound

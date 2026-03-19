@@ -252,4 +252,5 @@ aggregate.alias('every', 'bool_and')
 aggregate.alias('std', 'stddev_pop')
 aggregate.alias('stddev', 'stddev_pop')
 aggregate.alias('variance', 'var_pop')
+aggregate.alias('group_concat', 'string_agg')
 ```
