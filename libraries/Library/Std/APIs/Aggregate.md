@@ -5,7 +5,7 @@ tags: meta/api
 
 APIs to define and override aggregate functions used in LIQ `select` and `having` clauses after `group by`.
 
-All aggregates skip null/nil values. Empty groups return null (except `count` which returns 0 and `string_agg` which returns empty string).
+All aggregates skip null/nil values by convention. Empty groups return null (except `count` which returns 0 and `string_agg` which returns an empty string).
 
 # Querying available aggregates
 
@@ -50,7 +50,7 @@ Aggregate functions can accept additional arguments beyond the first value expre
 * `iterate(state, value, ctx, ...extraArgs)` — receives extra args after the context table
 * `finish(state, ctx, ...extraArgs)` — receives extra args after the context table
 
-This allows parameterized aggregates, for example a separator argument for string concatenation.
+This allows parameterized aggregates, for example a separator argument for string concatenation or boundary arguments for clamped sums.
 
 ## aggregate.update(spec)
 
@@ -67,7 +67,7 @@ aggregate.alias("stdev", "stddev_pop", "My stddev alias")
 
 # Examples
 
-## Define a custom aggregate
+## Define a custom aggregate with one extra argument
 
 Define a custom aggregate `concat` that concatenates strings with a configurable separator (defaulting to `", "`):
 
@@ -79,7 +79,7 @@ aggregate.define {
     return { sep = sep or ', ', parts = {} }
   end,
 
-  iterate = function(state, value, ctx, sep)
+  iterate = function(state, value)
     if value ~= nil then
       state.parts[#state.parts + 1] = tostring(value)
     end
@@ -105,6 +105,55 @@ query [[
   }
 ]]
 ```
+
+## Define a custom aggregate with two extra arguments
+
+Define a custom aggregate `clamp_sum` that sums non-null inputs and clamps the result to a `[min, max]` range:
+
+```lua
+aggregate.define {
+  name = 'clamp_sum',
+  description = 'Sum of non-null inputs clamped to [min, max]',
+
+  initialize = function(ctx, lo, hi)
+    return { total = 0, lo = lo or -math.huge, hi = hi or math.huge }
+  end,
+
+  iterate = function(state, value)
+    if value ~= nil then
+      state.total = state.total + value
+    end
+    return state
+  end,
+
+  finish = function(state)
+    if state.total < state.lo then return state.lo end
+    if state.total > state.hi then return state.hi end
+    return state.total
+  end,
+}
+```
+
+Usage in a query:
+
+```lua
+query [[
+  from
+    d = {
+      { dept = "eng",   hours = 12 },
+      { dept = "eng",   hours = 35 },
+      { dept = "sales", hours = 8  },
+      { dept = "sales", hours = 6  },
+    }
+  group by d.dept
+  select {
+    dept  = d.dept,
+    total = clamp_sum(d.hours, 0, 40),
+  }
+]]
+```
+
+Here `eng` sums to 47 but is clamped to `40`, while `sales` sums to `14` which is within range.
 
 ## Update an existing aggregate
 

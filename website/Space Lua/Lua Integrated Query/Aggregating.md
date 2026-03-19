@@ -109,7 +109,7 @@ ${query [[
     tag
 ]]}
 
-The filter clause works with all aggregate functions: `count`, `sum`, `min`, `max`, `avg`, `array_agg`, and custom aggregates.  When no rows match the filter condition, aggregates return their identity value: `0` for `count` and `sum`, `nil` for `min`, `max`, and `avg`, and an empty table `{}` for `array_agg`.
+The filter clause works with all aggregate functions: `count`, `sum`, `min`, `max`, `avg`, `array_agg`, and custom aggregates.  When no rows match the filter condition, aggregates return their empty-group value: `0` for `count`, `nil` for `sum`, `min`, `max`, and `avg`, and an empty table `{}` for `array_agg`.
 
 ## Intra-aggregate `order by`
 Aggregate functions can include an `order by` clause **inside** the function call to control the order in which values are processed.
@@ -193,4 +193,4 @@ Custom aggregator functions may be defined by the user using [[Library/Std/APIs/
 
 # See also
 * [[Space Lua/Lua Integrated Query/Grouping]] — grouping queries without aggregation
-* [[Space Lua/Lua Integrated Query]] — full LIQ language reference and listing available aggregators
+* [[Space Lua/Lua Integrated Query]] — full LIQ language reference and listing available aggregates
