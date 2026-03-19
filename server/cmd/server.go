@@ -103,7 +103,7 @@ func buildConfig(bundledFiles fs.FS, args []string, buildTime string) *server.Se
 	}
 
 	if os.Getenv("SB_USER") != "" {
-		pieces := strings.Split(os.Getenv("SB_USER"), ":")
+		pieces := strings.SplitN(os.Getenv("SB_USER"), ":", 2)
 		if len(pieces) != 2 {
 			log.Fatal("SB_USER must be in the format user:pass")
 		}

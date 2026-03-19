@@ -33,7 +33,7 @@ This is the default and simplest backend to use: a folder on disk. It is configu
 
 
 # Run mode
-* `SB_READ_ONLY` (==Experimental==): If you want to run the SilverBullet client and server in read-only mode (you get the full SilverBullet client, but all edit functionality and commands are disabled), you can do this by setting this environment variable to `true`. Upon the server start a full space index will happen, after which all write operations will be disabled.
+* `SB_READ_ONLY` (==Experimental==): If you want to run the SilverBullet client and server in read-only mode (you get the full SilverBullet client, but all edit functionality and commands are disabled), you can do this by setting this environment variable to a non-empty value. Upon the server start a full space index will happen, after which all write operations will be disabled.
 
 # Runtime API
 * `SB_RUNTIME_API`: The [[Runtime API]] is enabled automatically when Chrome/Chromium is detected on the system. Set to `0` to explicitly disable. Not available in read-only mode.
