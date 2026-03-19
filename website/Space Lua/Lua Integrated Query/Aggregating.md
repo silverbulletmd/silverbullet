@@ -18,7 +18,21 @@ Field names used in `group by` are exposed as locals in `having`, `select`, and 
 
 All registered aggregate functions — built-in, user-defined, and aliases — can be listed via `index.aggregates()`:
 
-${query[[from index.aggregates() order by name]]}
+${query[[
+  select
+  {
+    Name = '`' .. name .. '`',
+    Description = description,
+    Kind =
+      (builtin and 'builtin' or 'custom') ..
+      (target and ' alias for ' .. '`' .. target .. '`' or ''),
+  }
+  from
+    index.aggregates()
+  order by
+    builtin desc,
+    name
+]]}
 
 See [[Library/Std/APIs/Aggregate|Aggregate API]] for how to define custom aggregates and aliases.
 
