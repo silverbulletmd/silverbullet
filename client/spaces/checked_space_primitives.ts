@@ -21,14 +21,14 @@ export class CheckedSpacePrimitives implements SpacePrimitives {
 
   readFile(path: string): Promise<{ data: Uint8Array; meta: FileMeta }> {
     if (!this.isReadable(path)) {
-      throw new Error("Couldn't write file, path isn't writable");
+      throw new Error("Couldn't read file, path isn't readable");
     }
     return this.wrapped.readFile(path);
   }
 
   getFileMeta(path: string, observing?: boolean): Promise<FileMeta> {
     if (!this.isReadable(path)) {
-      throw new Error("Couldn't get file meta, path isn't writable");
+      throw new Error("Couldn't get file meta, path isn't readable");
     }
     return this.wrapped.getFileMeta(path, observing);
   }

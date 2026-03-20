@@ -116,12 +116,13 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
       ]);
 
       const sortedPaths = [...allFilesToProcess];
-      sortedPaths.sort((a) => {
-        // Just make sure that plug files appear first
+      sortedPaths.sort((a, b) => {
+        // Make sure that plug files appear first
         // This is important for the initial sync: plugs are loaded the moment they are pulled into the space,
         // which would activate e.g. any indexing logic for the remaining space content
-        // TODO: To verify if this is still true today
-        return a.endsWith(".plug.js") ? -1 : 1;
+        const aIsPlug = a.endsWith(".plug.js") ? 0 : 1;
+        const bIsPlug = b.endsWith(".plug.js") ? 0 : 1;
+        return aIsPlug - bIsPlug;
       });
       // console.log("[sync]", "Iterating over all files");
       let filesProcessed = 0;
@@ -160,9 +161,9 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
       );
     } finally {
       this.isSyncing = false;
-      if (operations > 0) {
-        void this.emit("snapshotUpdated", snapshot);
-      }
+      // Always persist the snapshot, even when operations === 0,
+      // because nonSyncedFiles metadata may have been updated
+      void this.emit("snapshotUpdated", snapshot);
     }
 
     return operations;
@@ -197,7 +198,16 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
     let operations = 0;
 
     try {
-      const primaryMeta = await this.primary.getFileMeta(path);
+      let primaryMeta: FileMeta | undefined;
+      try {
+        primaryMeta = await this.primary.getFileMeta(path);
+      } catch (e: any) {
+        if (e.message === notFoundError.message) {
+          // File doesn't exist locally (e.g., was just deleted), that's ok
+        } else {
+          throw e;
+        }
+      }
       let secondaryMeta: FileMeta | undefined;
       try {
         secondaryMeta = await this.secondary.getFileMeta(path);
