@@ -105,7 +105,7 @@ export function extractItemFromNode(
   itemCache?: Map<number, ItemObject | TaskObject>,
 ): ItemObject | TaskObject {
   // Check cache first to avoid redundant extraction
-  if (itemCache && itemCache.has(itemNode.from!)) {
+  if (itemCache?.has(itemNode.from!)) {
     return itemCache.get(itemNode.from!)!;
   }
   const item: ItemObject | TaskObject = {

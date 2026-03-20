@@ -17,7 +17,6 @@ import {
 import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
 import {
   lezerToParseTree,
-  parse,
 } from "../../client/markdown_parser/parse_tree.ts";
 import { extendedMarkdownLanguage } from "../../client/markdown_parser/parser.ts";
 
