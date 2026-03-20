@@ -225,8 +225,20 @@
       color: var(--editor-completion-detail-color);
     }
 
-    li[aria-selected] .cm-completionDetail {
+    li[aria-selected] .cm-completionDetail,
+    li:hover .cm-completionDetail {
       color: var(--editor-completion-detail-selected-color);
+    }
+
+    ul:hover li[aria-selected] {
+      background: transparent;
+      color: var(--modal-color);
+    }
+
+    ul li:hover,
+    ul li[aria-selected]:hover {
+      background: #17c;
+      color: white;
     }
   }
 
