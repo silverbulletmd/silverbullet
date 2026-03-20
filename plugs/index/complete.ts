@@ -50,15 +50,32 @@ function humanReadableSchemaType(type: any): string {
  * Task state completion
  */
 export async function completeTaskState(completeEvent: CompleteEvent) {
-  const taskMatch = /([-*]\s+\[)([^[\]]+)$/.exec(completeEvent.linePrefix);
+  const taskMatch = /([-*]\s+\[)([^[\]]*)$/.exec(completeEvent.linePrefix);
   if (!taskMatch) {
     return null;
   }
   const allStates = Object.keys(await config.get("taskStates", {}));
+  const typed = taskMatch[2];
+
+  let options: string[];
+  if (!typed) {
+    // Nothing typed — show all
+    options = allStates;
+  } else if (allStates.includes(typed)) {
+    // Exact match (dropdown click on existing state) — show all
+    options = allStates;
+  } else {
+    // Partial typing — filter by prefix, fall back to all if nothing matches
+    const filtered = allStates.filter((s) =>
+      s.toLowerCase().startsWith(typed.toLowerCase()),
+    );
+    options = filtered.length > 0 ? filtered : allStates;
+  }
 
   return {
-    from: completeEvent.pos - taskMatch[2].length,
-    options: allStates.map((state) => ({
+    from: completeEvent.pos - typed.length,
+    filter: false,
+    options: options.map((state) => ({
       label: state,
     })),
   };

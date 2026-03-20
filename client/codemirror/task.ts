@@ -1,4 +1,5 @@
 import { syntaxTree } from "@codemirror/language";
+import { startCompletion, completionStatus } from "@codemirror/autocomplete";
 import { Decoration, type EditorView, WidgetType } from "@codemirror/view";
 import type { NodeType } from "@lezer/common";
 import { decoratorStateField, isCursorInRange } from "./util.ts";
@@ -73,12 +74,56 @@ class CheckboxWidget extends WidgetType {
   }
 }
 
+/**
+ * Tiny widget placed right after an extended task's `]`.
+ * Click places cursor inside `[...]` and triggers autocomplete.
+ */
+class TaskDropdownWidget extends WidgetType {
+  constructor(
+    // Absolute position of the `[` (start of state content inside brackets)
+    readonly stateFrom: number,
+    // Absolute position of the `]` (end of TaskState node)
+    readonly stateTo: number,
+    readonly getView: () => EditorView | null,
+  ) {
+    super();
+  }
+
+  toDOM(): HTMLElement {
+    const span = document.createElement("span");
+    span.className = "sb-task-dropdown";
+    span.textContent = "\u25BE"; // Black Down-Pointing Small Triangle
+    span.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    });
+    span.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const view = this.getView();
+      if (!view) return;
+      const cursorPos = this.stateTo - 1;
+      view.dispatch({
+        selection: { anchor: cursorPos },
+      });
+      view.focus();
+      startCompletion(view);
+    });
+    return span;
+  }
+
+  eq(other: TaskDropdownWidget): boolean {
+    return this.stateFrom === other.stateFrom && this.stateTo === other.stateTo;
+  }
+}
+
 export function taskListPlugin({
   onCheckboxClick,
   getView,
+  doneStates,
 }: {
   onCheckboxClick: (pos: number) => void;
   getView: () => EditorView | null;
+  doneStates?: Set<string>;
 }) {
   return decoratorStateField((state) => {
     const widgets: any[] = [];
@@ -87,33 +132,62 @@ export function taskListPlugin({
         if (type.name !== "Task") return;
         // true/false if this is a checkbox, undefined when it's a custom-status task
         let checkboxStatus: boolean | undefined;
-        // Iterate inside the task node to find the checkbox
+        // Track TaskState end position for strikethrough start
+        let taskStateEnd = -1;
+
         node.toTree().iterate({
           enter: (ref) => iterateInner(ref.type, ref.from, ref.to),
         });
+
         if (checkboxStatus === true) {
-          widgets.push(
-            Decoration.mark({
-              tagName: "span",
-              class: "cm-task-checked",
-            }).range(from, to),
-          );
+          // Skip whitespace after TaskState
+          let strikeFrom = taskStateEnd !== -1 ? taskStateEnd : from;
+          while (
+            strikeFrom < to &&
+            " \t".includes(state.sliceDoc(strikeFrom, strikeFrom + 1))
+          ) {
+            strikeFrom++;
+          }
+          if (strikeFrom < to) {
+            widgets.push(
+              Decoration.mark({
+                tagName: "span",
+                class: "cm-task-checked",
+              }).range(strikeFrom, to),
+            );
+          }
         }
 
         function iterateInner(type: NodeType, nfrom: number, nto: number) {
           if (type.name !== "TaskState") return;
-          if (isCursorInRange(state, [from + nfrom, from + nto])) return;
+          taskStateEnd = from + nto;
           const checkbox = state.sliceDoc(from + nfrom, from + nto);
-          // Checkbox is checked if it has a 'x' in between the []
           if (checkbox === "[x]" || checkbox === "[X]") {
             checkboxStatus = true;
           } else if (checkbox === "[ ]") {
             checkboxStatus = false;
           }
           if (checkboxStatus === undefined) {
-            // Not replacing it with a widget
+            const stateText = checkbox.slice(1, -1);
+            if (doneStates?.has(stateText)) {
+              checkboxStatus = true;
+            }
+            // Mark the full TaskState node
+            widgets.push(
+              Decoration.mark({
+                attributes: { "data-task-state": stateText },
+              }).range(from + nfrom, from + nto),
+            );
+            // Always show dropdown
+            const absTo = from + nto;
+            const dec = Decoration.widget({
+              widget: new TaskDropdownWidget(from + nfrom, absTo, getView),
+              side: 1,
+            });
+            widgets.push(dec.range(absTo));
             return;
           }
+          if (isCursorInRange(state, [from + nfrom, from + nto])) return;
           const dec = Decoration.replace({
             widget: new CheckboxWidget(
               checkboxStatus,
