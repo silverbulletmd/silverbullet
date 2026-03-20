@@ -101,32 +101,12 @@ class TaskDropdownWidget extends WidgetType {
       e.stopPropagation();
       const view = this.getView();
       if (!view) return;
-
-      const clearFrom = this.stateFrom + 1;
-      const clearTo = this.stateTo - 1;
-      const originalText = view.state.sliceDoc(clearFrom, clearTo);
-
+      const cursorPos = this.stateTo - 1;
       view.dispatch({
-        changes: { from: clearFrom, to: clearTo, insert: "" },
-        selection: { anchor: clearFrom },
+        selection: { anchor: cursorPos },
       });
       view.focus();
       startCompletion(view);
-
-      const checkRestore = () => {
-        const status = completionStatus(view.state);
-        if (status) {
-          requestAnimationFrame(checkRestore);
-          return;
-        }
-        const current = view.state.sliceDoc(clearFrom, clearFrom + 1);
-        if (current === "]") {
-          view.dispatch({
-            changes: { from: clearFrom, to: clearFrom, insert: originalText },
-          });
-        }
-      };
-      requestAnimationFrame(checkRestore);
     });
     return span;
   }

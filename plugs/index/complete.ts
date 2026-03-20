@@ -55,10 +55,21 @@ export async function completeTaskState(completeEvent: CompleteEvent) {
     return null;
   }
   const allStates = Object.keys(await config.get("taskStates", {}));
+  const typed = taskMatch[2];
+
+  // If typed text exactly matches a known state, show all (dropdown click).
+  // Otherwise filter by prefix (user is typing).
+  const isExactMatch = allStates.some((s) => s === typed);
+  const options = isExactMatch
+    ? allStates
+    : typed
+      ? allStates.filter((s) => s.toLowerCase().startsWith(typed.toLowerCase()))
+      : allStates;
 
   return {
-    from: completeEvent.pos - taskMatch[2].length,
-    options: allStates.map((state) => ({
+    from: completeEvent.pos - typed.length,
+    filter: false,
+    options: options.map((state) => ({
       label: state,
     })),
   };
