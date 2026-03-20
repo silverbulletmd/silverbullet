@@ -78,9 +78,16 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       // Some other operation (read, write, list, meta) is already going on
       // this will likely trigger events, so let's not worry about any of that and avoid race condition and inconsistent data.
       console.info(
-        "alreadyFetching is on, skipping even triggering for fetchFileList.",
+        "operationInProgress, deferring event processing for fetchFileList.",
       );
-      return this.wrapped.fetchFileList();
+      const result = await this.wrapped.fetchFileList();
+      // Schedule a retry after current operation completes
+      setTimeout(() => {
+        if (!this.operationInProgress) {
+          void this.fetchFileList();
+        }
+      }, 50);
+      return result;
     }
     if (!this.enabled) {
       return this.wrapped.fetchFileList();

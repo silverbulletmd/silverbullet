@@ -26,6 +26,15 @@ export async function spaceSyncComplete(message: { operations: number }) {
   void index.ensureFullIndex();
 }
 
+export async function fileSyncComplete(
+  message: { path: string; operations: number },
+) {
+  if (message.operations > 0) {
+    // Re-read the specific file's metadata to trigger file:changed event
+    await space.getFileMeta(message.path);
+  }
+}
+
 export async function updateSyncStatus(event: {
   status: {
     filesProcessed: number;
