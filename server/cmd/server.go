@@ -2,7 +2,6 @@ package cmd
 
 import (
 	_ "embed"
-	"errors"
 	"fmt"
 	"html/template"
 	"io/fs"
@@ -183,6 +182,10 @@ func buildConfig(bundledFiles fs.FS, args []string, buildTime string) *server.Se
 		bundlePathDate = time.Now()
 	}
 
+	// Ensure template files exist before wrapping with base_fs fallthrough,
+	// because the fallthrough layer includes .md files that would make the space appear non-empty.
+	ensureIndexAndConfig(spacePrimitives, rootSpaceConfig.IndexPage)
+
 	serverConfig.ClientBundle = server.NewReadOnlyFallthroughSpacePrimitives(bundledFiles, "client", bundlePathDate, nil)
 	rootSpaceConfig.SpacePrimitives = server.NewReadOnlyFallthroughSpacePrimitives(bundledFiles, "base_fs", bundlePathDate, spacePrimitives)
 
@@ -236,9 +239,6 @@ func buildConfig(bundledFiles fs.FS, args []string, buildTime string) *server.Se
 		rootSpaceConfig.ShellBackend = server.NewNotSupportedShell()
 	}
 
-	// Ensure at least the index page and config page exist
-	ensureIndexAndConfig(rootSpaceConfig)
-
 	return serverConfig
 }
 
@@ -248,24 +248,27 @@ var indexPageContent []byte
 //go:embed space_template/CONFIG.md
 var configPageContent []byte
 
-func ensureIndexAndConfig(rootSpaceConfig *server.SpaceConfig) {
-	// Index page first
-	indexPagePath := fmt.Sprintf("%s.md", rootSpaceConfig.IndexPage)
-	_, err := rootSpaceConfig.SpacePrimitives.GetFileMeta(indexPagePath)
-	if err == server.ErrNotFound {
-		log.Printf("Index page %s does not yet exist, creating...", indexPagePath)
-		if _, err := rootSpaceConfig.SpacePrimitives.WriteFile(indexPagePath, indexPageContent, nil); err != nil {
-			log.Fatalf("Could not write index page %s: %v", indexPagePath, err)
+func ensureIndexAndConfig(sp server.SpacePrimitives, indexPage string) {
+	// Only create template files in truly empty spaces (no .md files yet)
+	files, err := sp.FetchFileList()
+	if err != nil {
+		log.Printf("Warning: could not check space state: %v", err)
+		return
+	}
+	for _, f := range files {
+		if strings.HasSuffix(f.Name, ".md") {
+			// Space has existing content, don't inject templates
+			return
 		}
 	}
-	// Now let's check for a CONFIG.md
-	configPagePath := "CONFIG.md"
-	_, err = rootSpaceConfig.SpacePrimitives.GetFileMeta(configPagePath)
-	if errors.Is(err, server.ErrNotFound) {
-		log.Printf("Config page %s does not yet exist, creating...", configPagePath)
-		if _, err := rootSpaceConfig.SpacePrimitives.WriteFile(configPagePath, configPageContent, nil); err != nil {
-			log.Fatalf("Could not write config page %s: %v", configPagePath, err)
-		}
+
+	indexPagePath := fmt.Sprintf("%s.md", indexPage)
+	log.Printf("Empty space detected, creating %s and CONFIG.md", indexPagePath)
+	if _, err := sp.WriteFile(indexPagePath, indexPageContent, nil); err != nil {
+		log.Fatalf("Could not write index page %s: %v", indexPagePath, err)
+	}
+	if _, err := sp.WriteFile("CONFIG.md", configPageContent, nil); err != nil {
+		log.Fatalf("Could not write config page: %v", err)
 	}
 }
 

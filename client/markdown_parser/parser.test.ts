@@ -49,11 +49,11 @@ test("Test parser", () => {
 
   // Find frontmatter
   let node = findNodeOfType(tree, "FrontMatter");
-  expect(node).not.toEqual(undefined);
+  expect(node).not.toBeNull();
   tree = parseMarkdown(sampleInvalid1);
   node = findNodeOfType(tree, "FrontMatter");
   // console.log("Invalid node", node);
-  expect(node).toEqual(undefined);
+  expect(node).toBeNull();
 });
 
 const inlineAttributeSample = `

@@ -25,7 +25,7 @@ import type {
   ObjectValue,
   PageMeta,
 } from "@silverbulletmd/silverbullet/type/index";
-import { extractSnippet } from "./snippet.ts";
+import { buildLineIndex, extractSnippet } from "./snippet.ts";
 
 export type LinkObject = ObjectValue<{
   // Common to all links
@@ -70,6 +70,8 @@ export async function indexLinks(
   }
 
   const name = pageMeta.name;
+  // Pre-compute line index for efficient snippet extraction
+  const lineIndex = buildLineIndex(pageText);
 
   traverseTree(tree, (n): boolean => {
     // Index [[WikiLinks]]
@@ -83,7 +85,7 @@ export async function indexLinks(
         ref: `${name}@${pos}`,
         type: "page", // can be swapped later
         tag: "link",
-        snippet: extractSnippet(name, pageText, pos),
+        snippet: extractSnippet(name, lineIndex, pos),
         pos,
         range: [n.from!, n.to!],
         page: name,
@@ -129,7 +131,7 @@ export async function indexLinks(
         ref: `${name}@${pos}`,
         tag: "link",
         type: "page", // swapped out later if needed
-        snippet: extractSnippet(name, pageText, pos),
+        snippet: extractSnippet(name, lineIndex, pos),
         pos,
         range: [n.from!, n.to!],
         page: name,
@@ -181,7 +183,7 @@ export async function indexLinks(
             tag: "link",
             type: "page", // final value set later
             page: name,
-            snippet: extractSnippet(name, pageText, pos),
+            snippet: extractSnippet(name, lineIndex, pos),
             pos: pos,
             range: [
               textNode.from! + match.index!,
@@ -214,25 +216,35 @@ export async function indexLinks(
   });
 
   // Now let's check which are aspiring pages
-  for (const link of objects.slice()) {
-    if (link.toPage) {
-      if (!(await space.fileExists(`${link.toPage}.md`))) {
-        objects.push({
-          ref: `${name}@${link.pos}`,
-          tag: "aspiring-page",
-          page: name,
-          pos: link.pos,
-          range: link.range,
-          name: link.toPage,
-        } as AspiringPageObject);
-        console.info(
-          "Link from",
-          name,
-          "to",
-          link.toPage,
-          "is broken, indexing as aspiring page",
-        );
-      }
+  // Collect unique target pages and check existence in parallel
+  const pageLinks = objects.filter(
+    (link): link is LinkObject => !!link.toPage,
+  );
+  const uniqueTargets = [...new Set(pageLinks.map((link) => link.toPage!))];
+  const existenceResults = await Promise.all(
+    uniqueTargets.map((target) => space.fileExists(`${target}.md`)),
+  );
+  const missingPages = new Set(
+    uniqueTargets.filter((_, i) => !existenceResults[i]),
+  );
+
+  for (const link of pageLinks) {
+    if (missingPages.has(link.toPage!)) {
+      objects.push({
+        ref: `${name}@${link.pos}`,
+        tag: "aspiring-page",
+        page: name,
+        pos: link.pos,
+        range: link.range,
+        name: link.toPage,
+      } as AspiringPageObject);
+      console.info(
+        "Link from",
+        name,
+        "to",
+        link.toPage,
+        "is broken, indexing as aspiring page",
+      );
     }
   }
 

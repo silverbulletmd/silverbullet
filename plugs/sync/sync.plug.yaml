@@ -15,6 +15,10 @@ functions:
     path: "./sync.ts:spaceSyncComplete"
     events:
       - "service-worker:space-sync-complete"
+  fileSyncComplete:
+    path: "./sync.ts:fileSyncComplete"
+    events:
+      - "service-worker:file-sync-complete"
   updateSyncStatus:
     path: "./sync.ts:updateSyncStatus"
     events:

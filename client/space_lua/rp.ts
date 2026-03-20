@@ -2,12 +2,11 @@
 
 export type RP<T> = T | Promise<T>;
 
-// Returns true when v is a Promise or a has a then function.
+// Returns true when v is a Promise or has a then function.
+// Optimized: skip the property access for primitives (number, string, boolean, null, undefined).
 export function isPromise<T>(v: RP<T>): v is Promise<T> {
   return (
-    v !== null &&
-    (typeof v === "object" || typeof v === "function") &&
-    typeof (v as any).then === "function"
+    typeof v === "object" && v !== null && typeof (v as any).then === "function"
   );
 }
 
