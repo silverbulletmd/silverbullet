@@ -57,14 +57,20 @@ export async function completeTaskState(completeEvent: CompleteEvent) {
   const allStates = Object.keys(await config.get("taskStates", {}));
   const typed = taskMatch[2];
 
-  // If typed text exactly matches a known state, show all (dropdown click).
-  // Otherwise filter by prefix (user is typing).
-  const isExactMatch = allStates.some((s) => s === typed);
-  const options = isExactMatch
-    ? allStates
-    : typed
-      ? allStates.filter((s) => s.toLowerCase().startsWith(typed.toLowerCase()))
-      : allStates;
+  let options: string[];
+  if (!typed) {
+    // Nothing typed — show all
+    options = allStates;
+  } else if (allStates.includes(typed)) {
+    // Exact match (dropdown click on existing state) — show all
+    options = allStates;
+  } else {
+    // Partial typing — filter by prefix, fall back to all if nothing matches
+    const filtered = allStates.filter((s) =>
+      s.toLowerCase().startsWith(typed.toLowerCase()),
+    );
+    options = filtered.length > 0 ? filtered : allStates;
+  }
 
   return {
     from: completeEvent.pos - typed.length,
