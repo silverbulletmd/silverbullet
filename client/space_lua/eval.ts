@@ -252,65 +252,54 @@ export function luaOp(
   sf: LuaStackFrame,
 ): any {
   switch (op) {
-    case "+":
-    case "-":
-    case "*":
+    case "+": {
+      // Ultra-fast path: both plain numbers with no float type annotation (int + int)
+      if (
+        typeof left === "number" && typeof right === "number" &&
+        leftType !== "float" && rightType !== "float"
+      ) {
+        return left + right;
+      }
+      return luaArithGeneric("+", left, right, leftType, rightType, ctx, sf);
+    }
+    case "-": {
+      if (
+        typeof left === "number" && typeof right === "number" &&
+        leftType !== "float" && rightType !== "float"
+      ) {
+        const r = left - right;
+        // Integer subtraction can produce -0 (e.g. 0 - 0), normalize to +0
+        return r === 0 ? 0 : r;
+      }
+      return luaArithGeneric("-", left, right, leftType, rightType, ctx, sf);
+    }
+    case "*": {
+      if (
+        typeof left === "number" && typeof right === "number" &&
+        leftType !== "float" && rightType !== "float"
+      ) {
+        const r = left * right;
+        // Integer multiplication can produce -0 (e.g. 0 * -1), normalize to +0
+        return r === 0 ? 0 : r;
+      }
+      return luaArithGeneric("*", left, right, leftType, rightType, ctx, sf);
+    }
     case "/":
     case "^": {
-      const ar = numericArith[op as NumericArithOp];
-      try {
-        const {
-          left: l,
-          right: r,
-          resultType,
-        } = coerceNumericPair(left, right, leftType, rightType, op);
-
-        let result = ar.f(l, r);
-
-        if (
-          ar.special === "sub" &&
-          result === 0 &&
-          isNegativeZero(result) &&
-          resultType === "float"
-        ) {
-          const rhsIsIntZero = r === 0 && rightType === "int";
-          if (rhsIsIntZero) {
-            result = 0;
-          }
-        }
-
-        const normalized = normalizeArithmeticResult(result, resultType);
-
-        // Operators `/` and `^` produce float, wrap only if needed.
-        if (op === "/" || op === "^") {
-          if (normalized === 0) {
-            return makeLuaZero(normalized, "float");
-          }
-          if (!Number.isFinite(normalized)) {
-            return normalized;
-          }
-          if (!Number.isInteger(normalized)) {
-            return normalized;
-          }
-          return makeLuaFloat(normalized);
-        }
-
-        if (normalized === 0) {
-          return makeLuaZero(normalized, resultType);
-        }
-        if (resultType === "float" && Number.isInteger(normalized)) {
-          return makeLuaFloat(normalized);
-        }
-        return normalized;
-      } catch (e: any) {
-        const meta = evalMetamethod(left, right, ar.metaMethod, ctx, sf);
-        if (meta !== undefined) {
-          return meta;
-        }
-        return arithCoercionErrorOrThrow(op, left, right, ctx, sf, e);
-      }
+      return luaArithGeneric(op as NumericArithOp, left, right, leftType, rightType, ctx, sf);
     }
     case "..": {
+      // Fast path: string .. string (most common in SilverBullet — key building, templates)
+      if (typeof left === "string" && typeof right === "string") {
+        return left + right;
+      }
+      // Fast path: string .. number or number .. string
+      if (typeof left === "string" && typeof right === "number") {
+        return left + luaFormatNumber(right);
+      }
+      if (typeof left === "number" && typeof right === "string") {
+        return luaFormatNumber(left) + right;
+      }
       try {
         const coerce = (v: any): string => {
           if (v === null || v === undefined) {
@@ -344,27 +333,48 @@ export function luaOp(
       }
     }
     case "==": {
+      // Fast path for same-type primitives
+      if (typeof left === typeof right && typeof left !== "object") {
+        return left === right;
+      }
       if (luaEquals(left, right)) return true;
       return luaEqWithMetamethod(left, right, ctx, sf);
     }
     case "~=":
     case "!=": {
+      if (typeof left === typeof right && typeof left !== "object") {
+        return left !== right;
+      }
       if (luaEquals(left, right)) {
         return false;
       }
       return !luaEqWithMetamethod(left, right, ctx, sf);
     }
     case "<": {
+      // Fast path: both plain numbers
+      if (typeof left === "number" && typeof right === "number") {
+        return left < right;
+      }
+      // Fast path: both strings
+      if (typeof left === "string" && typeof right === "string") {
+        return left < right;
+      }
       return luaRelWithMetamethod("<", left, right, ctx, sf);
     }
     case "<=": {
+      if (typeof left === "number" && typeof right === "number") return left <= right;
+      if (typeof left === "string" && typeof right === "string") return left <= right;
       return luaRelWithMetamethod("<=", left, right, ctx, sf);
     }
     // Lua: `a>b` is `b<a`, `a>=b` is `b<=a`
     case ">": {
+      if (typeof left === "number" && typeof right === "number") return left > right;
+      if (typeof left === "string" && typeof right === "string") return left > right;
       return luaRelWithMetamethod("<", right, left, ctx, sf);
     }
     case ">=": {
+      if (typeof left === "number" && typeof right === "number") return left >= right;
+      if (typeof left === "string" && typeof right === "string") return left >= right;
       return luaRelWithMetamethod("<=", right, left, ctx, sf);
     }
   }
@@ -390,6 +400,69 @@ export function luaOp(
       if (meta !== undefined) {
         return meta;
       }
+    }
+    return arithCoercionErrorOrThrow(op, left, right, ctx, sf, e);
+  }
+}
+
+function luaArithGeneric(
+  op: NumericArithOp,
+  left: any,
+  right: any,
+  leftType: NumericType | undefined,
+  rightType: NumericType | undefined,
+  ctx: ASTCtx,
+  sf: LuaStackFrame,
+): any {
+  const ar = numericArith[op];
+  try {
+    const {
+      left: l,
+      right: r,
+      resultType,
+    } = coerceNumericPair(left, right, leftType, rightType, op);
+
+    let result = ar.f(l, r);
+
+    if (
+      ar.special === "sub" &&
+      result === 0 &&
+      isNegativeZero(result) &&
+      resultType === "float"
+    ) {
+      const rhsIsIntZero = r === 0 && rightType === "int";
+      if (rhsIsIntZero) {
+        result = 0;
+      }
+    }
+
+    const normalized = normalizeArithmeticResult(result, resultType);
+
+    // Operators `/` and `^` produce float, wrap only if needed.
+    if (op === "/" || op === "^") {
+      if (normalized === 0) {
+        return makeLuaZero(normalized, "float");
+      }
+      if (!Number.isFinite(normalized)) {
+        return normalized;
+      }
+      if (!Number.isInteger(normalized)) {
+        return normalized;
+      }
+      return makeLuaFloat(normalized);
+    }
+
+    if (normalized === 0) {
+      return makeLuaZero(normalized, resultType);
+    }
+    if (resultType === "float" && Number.isInteger(normalized)) {
+      return makeLuaFloat(normalized);
+    }
+    return normalized;
+  } catch (e: any) {
+    const meta = evalMetamethod(left, right, ar.metaMethod, ctx, sf);
+    if (meta !== undefined) {
+      return meta;
     }
     return arithCoercionErrorOrThrow(op, left, right, ctx, sf, e);
   }
@@ -760,31 +833,63 @@ export function evalExpression(
       }
       case "TableConstructor": {
         const tc = asTableConstructor(e);
-        return Promise.resolve().then(async () => {
-          const table = new LuaTable();
-          // Expression fields assign consecutive integer keys starting
-          // at 1 and advance even when the value is `nil`.
-          let nextArrayIndex = 1;
-          for (const field of tc.fields) {
+        const table = new LuaTable();
+        // Expression fields assign consecutive integer keys starting
+        // at 1 and advance even when the value is `nil`.
+        let nextArrayIndex = 1;
+
+        const processField = (
+          fieldIdx: number,
+        ): LuaTable | Promise<LuaTable> => {
+          for (let fi = fieldIdx; fi < tc.fields.length; fi++) {
+            const field = tc.fields[fi];
             switch (field.type) {
               case "PropField": {
-                const value = await evalExpression(field.value, env, sf);
+                const value = evalExpression(field.value, env, sf);
+                if (isPromise(value)) {
+                  return (value as Promise<any>).then((v) => {
+                    void table.set(field.key, singleResult(v), sf);
+                    return processField(fi + 1);
+                  });
+                }
                 void table.set(field.key, singleResult(value), sf);
                 break;
               }
               case "DynamicField": {
-                const key = await evalExpression(field.key, env, sf);
-                const value = await evalExpression(field.value, env, sf);
-                void table.set(singleResult(key), singleResult(value), sf);
+                const key = evalExpression(field.key, env, sf);
+                const val = evalExpression(field.value, env, sf);
+                if (isPromise(key) || isPromise(val)) {
+                  return rpThen(key, (k) =>
+                    rpThen(val, (v) => {
+                      void table.set(singleResult(k), singleResult(v), sf);
+                      return processField(fi + 1);
+                    }),
+                  ) as Promise<LuaTable>;
+                }
+                void table.set(singleResult(key), singleResult(val), sf);
                 break;
               }
               case "ExpressionField": {
-                const value = await evalExpression(field.value, env, sf);
-
+                const value = evalExpression(field.value, env, sf);
+                if (isPromise(value)) {
+                  return (value as Promise<any>).then((v) => {
+                    if (v instanceof LuaMultiRes) {
+                      const flat = v.flatten();
+                      for (let j = 0; j < flat.values.length; j++) {
+                        table.rawSetArrayIndex(nextArrayIndex, flat.values[j]);
+                        nextArrayIndex++;
+                      }
+                    } else {
+                      table.rawSetArrayIndex(nextArrayIndex, singleResult(v));
+                      nextArrayIndex++;
+                    }
+                    return processField(fi + 1);
+                  });
+                }
                 if (value instanceof LuaMultiRes) {
                   const flat = value.flatten();
-                  for (let i = 0; i < flat.values.length; i++) {
-                    table.rawSetArrayIndex(nextArrayIndex, flat.values[i]);
+                  for (let j = 0; j < flat.values.length; j++) {
+                    table.rawSetArrayIndex(nextArrayIndex, flat.values[j]);
                     nextArrayIndex++;
                   }
                 } else {
@@ -796,7 +901,9 @@ export function evalExpression(
             }
           }
           return table;
-        });
+        };
+
+        return processField(0);
       }
       case "FunctionDefinition": {
         const fd = asFunctionDef(e);
@@ -1002,30 +1109,52 @@ function evalPrefixExpression(
         throw new LuaRuntimeError(nilMsg, sf.withCtx(fc.prefix.ctx));
       }
 
-      let selfArgs: LuaValue[] = [];
+      // Fast path: non-method call with sync prefix
+      if (!fc.name && !isPromise(prefixValue)) {
+        const argsVal = evalExpressions(fc.args, env, sf);
+        if (!isPromise(argsVal)) {
+          return luaCall(prefixValue, argsVal as LuaValue[], fc.ctx, sf);
+        }
+        return (argsVal as Promise<LuaValue[]>).then((args) =>
+          luaCall(prefixValue, args, fc.ctx, sf),
+        );
+      }
 
       const handleFunctionCall = (
         calleeVal: LuaValue,
+        selfArgs: LuaValue[],
       ): LuaValue | Promise<LuaValue> => {
         // Normal argument handling for hello:there(a, b, c) type calls
         if (fc.name) {
-          selfArgs = [calleeVal];
+          const self = calleeVal;
           calleeVal = luaIndexValue(calleeVal, fc.name, sf);
 
           if (isPromise(calleeVal)) {
-            return (calleeVal as Promise<any>).then(handleFunctionCall);
+            return (calleeVal as Promise<any>).then((cv) =>
+              handleFunctionCall(cv, [self]),
+            );
           }
+          selfArgs = [self];
         }
 
         const argsVal = evalExpressions(fc.args, env, sf);
-
-        const thenCall = (args: LuaValue[]) =>
-          luaCall(calleeVal, [...selfArgs, ...args], fc.ctx, sf);
-
-        return rpThen(argsVal, thenCall);
+        if (!isPromise(argsVal)) {
+          const allArgs = selfArgs.length > 0
+            ? [...selfArgs, ...(argsVal as LuaValue[])]
+            : argsVal as LuaValue[];
+          return luaCall(calleeVal, allArgs, fc.ctx, sf);
+        }
+        return (argsVal as Promise<LuaValue[]>).then((args) =>
+          luaCall(calleeVal, selfArgs.length > 0 ? [...selfArgs, ...args] : args, fc.ctx, sf),
+        );
       };
 
-      return rpThen(prefixValue, handleFunctionCall);
+      if (isPromise(prefixValue)) {
+        return (prefixValue as Promise<any>).then((pv) =>
+          handleFunctionCall(pv, []),
+        );
+      }
+      return handleFunctionCall(prefixValue, []);
     }
 
     default: {
@@ -1175,22 +1304,34 @@ function evalBinaryWithLR(
     : undefined;
   const leftVal = evalExpression(leftExpr, env, sf);
 
-  const applyLeft = (lv: any) => {
+  // Sync-first fast path: avoid closure allocation when both operands are sync
+  if (!isPromise(leftVal)) {
     const rightVal = evalExpression(rightExpr, env, sf);
-    const applyRight = (rv: any) => {
+    if (!isPromise(rightVal)) {
       return luaOp(
         op,
-        singleResult(lv),
-        singleResult(rv),
+        singleResult(leftVal),
+        singleResult(rightVal),
         leftType,
         rightType,
         ctx,
         sf,
       );
-    };
-    return rpThen(rightVal, applyRight);
-  };
-  return rpThen(leftVal, applyLeft);
+    }
+    return (rightVal as Promise<any>).then((rv) =>
+      luaOp(op, singleResult(leftVal), singleResult(rv), leftType, rightType, ctx, sf),
+    );
+  }
+
+  return (leftVal as Promise<any>).then((lv) => {
+    const rightVal = evalExpression(rightExpr, env, sf);
+    if (!isPromise(rightVal)) {
+      return luaOp(op, singleResult(lv), singleResult(rightVal), leftType, rightType, ctx, sf);
+    }
+    return (rightVal as Promise<any>).then((rv) =>
+      luaOp(op, singleResult(lv), singleResult(rv), leftType, rightType, ctx, sf),
+    );
+  });
 }
 
 function createBitwiseError(
@@ -1377,22 +1518,26 @@ function evalExpressions(
   env: LuaEnv,
   sf: LuaStackFrame,
 ): Promise<LuaValue[]> | LuaValue[] {
-  // Evaluate all arguments first (sync-first); do not allocate a Promise if all are sync.
-  const parts = es.map((arg) => evalExpression(arg, env, sf));
+  const len = es.length;
+  if (len === 0) return [];
+
+  // Evaluate all arguments (sync-first); avoid .map() closure overhead
+  const parts = new Array(len);
+  for (let i = 0; i < len; i++) {
+    parts[i] = evalExpression(es[i], env, sf);
+  }
   const argsVal = rpAll(parts);
 
   // In Lua multi-returns propagate only in tail position of an expression list.
   const finalize = (argsResolved: any[]) => {
-    if (argsResolved.length === 0) {
-      return [];
-    }
     const out: LuaValue[] = [];
+    const lastIdx = argsResolved.length - 1;
     // All but last expression produce a single value
-    for (let i = 0; i < argsResolved.length - 1; i++) {
+    for (let i = 0; i < lastIdx; i++) {
       out.push(singleResult(argsResolved[i]));
     }
     // Last expression preserves multiple results
-    const last = argsResolved[argsResolved.length - 1];
+    const last = argsResolved[lastIdx];
     if (last instanceof LuaMultiRes) {
       out.push(...last.flatten().values);
     } else {
@@ -1616,13 +1761,15 @@ export function evalStatement(
       );
 
       const apply = (values: LuaValue[], lvalues: { env: any; key: any }[]) => {
+        // Create the error-reporting frame once, not per-lvalue
+        let errSf: LuaStackFrame | undefined;
         const ps: Promise<any>[] = [];
         for (let i = 0; i < lvalues.length; i++) {
           const r = luaSet(
             lvalues[i].env,
             lvalues[i].key,
             values[i],
-            sf.withCtx(a.ctx),
+            errSf || (errSf = sf.withCtx(a.ctx)),
           );
 
           if (isPromise(r)) {
@@ -1827,128 +1974,79 @@ export function evalStatement(
     case "While": {
       const w = asWhile(s);
 
-      const runAsync = async (): Promise<undefined | ControlSignal> => {
+      // Sync-first loop that re-enters sync mode after each async iteration
+      const runSyncFirst = (): undefined | ControlSignal | Promise<undefined | ControlSignal> => {
         while (true) {
-          const c = await evalExpression(w.condition, env, sf);
-          if (!luaTruthy(c)) {
-            break;
+          const c = evalExpression(w.condition, env, sf);
+          if (isPromise(c)) {
+            return (c as Promise<any>).then((cv) => {
+              if (!luaTruthy(cv)) return;
+              return rpThen(
+                evalStatement(w.block, env, sf, returnOnReturn),
+                (res) => {
+                  if (res !== undefined) {
+                    return isBreakSignal(res) ? undefined : res;
+                  }
+                  return runSyncFirst();
+                },
+              );
+            });
           }
+          if (!luaTruthy(c)) break;
           const r = evalStatement(w.block, env, sf, returnOnReturn);
-          const res = isPromise(r) ? await r : r;
-          if (res !== undefined) {
-            if (isBreakSignal(res)) {
-              break;
-            }
-            return res;
+          if (isPromise(r)) {
+            return (r as Promise<any>).then((res) => {
+              if (res !== undefined) {
+                return isBreakSignal(res) ? undefined : res;
+              }
+              return runSyncFirst();
+            });
+          }
+          if (r !== undefined) {
+            if (isBreakSignal(r)) break;
+            return r;
           }
         }
         return;
       };
 
-      while (true) {
-        const c = evalExpression(w.condition, env, sf);
-        if (isPromise(c)) {
-          return (c as Promise<any>).then((cv) => {
-            if (!luaTruthy(cv)) {
-              return;
-            }
-            const r = evalStatement(w.block, env, sf, returnOnReturn);
-            if (isPromise(r)) {
-              return (r as Promise<any>).then((res) => {
-                if (res !== undefined) {
-                  if (isBreakSignal(res)) {
-                    return;
-                  }
-                  return res;
-                }
-                return runAsync();
-              });
-            }
-            if (r !== undefined) {
-              if (isBreakSignal(r)) {
-                return;
-              }
-              return r;
-            }
-            return runAsync();
-          });
-        }
-        if (!luaTruthy(c)) {
-          break;
-        }
-        const r = evalStatement(w.block, env, sf, returnOnReturn);
-        if (isPromise(r)) {
-          return (r as Promise<any>).then((res) => {
-            if (res !== undefined) {
-              if (isBreakSignal(res)) {
-                return;
-              }
-              return res;
-            }
-            return runAsync();
-          });
-        }
-        if (r !== undefined) {
-          if (isBreakSignal(r)) {
-            break;
-          }
-          return r;
-        }
-      }
-      return;
+      return runSyncFirst();
     }
     case "Repeat": {
-      const r = asRepeat(s);
+      const rep = asRepeat(s);
 
-      const runAsync = async (): Promise<undefined | ControlSignal> => {
+      // Sync-first loop that re-enters sync mode after each async iteration
+      const runSyncFirst = (): undefined | ControlSignal | Promise<undefined | ControlSignal> => {
         while (true) {
-          const rr = evalStatement(r.block, env, sf, returnOnReturn);
-          const res = isPromise(rr) ? await rr : rr;
-          if (res !== undefined) {
-            if (isBreakSignal(res)) {
-              break;
-            }
-            return res;
+          const rr = evalStatement(rep.block, env, sf, returnOnReturn);
+          if (isPromise(rr)) {
+            return (rr as Promise<any>).then((res) => {
+              if (res !== undefined) {
+                return isBreakSignal(res) ? undefined : res;
+              }
+              return rpThen(
+                evalExpression(rep.condition, env, sf),
+                (cv) => luaTruthy(cv) ? undefined : runSyncFirst(),
+              );
+            });
           }
-          const c = await evalExpression(r.condition, env, sf);
-          if (luaTruthy(c)) {
-            break;
+          if (rr !== undefined) {
+            if (isBreakSignal(rr)) return;
+            return rr;
           }
+
+          const c = evalExpression(rep.condition, env, sf);
+          if (isPromise(c)) {
+            return (c as Promise<any>).then((cv) =>
+              luaTruthy(cv) ? undefined : runSyncFirst(),
+            );
+          }
+          if (luaTruthy(c)) break;
         }
         return;
       };
 
-      while (true) {
-        const rr = evalStatement(r.block, env, sf, returnOnReturn);
-        if (isPromise(rr)) {
-          return (rr as Promise<any>).then((res) => {
-            if (res !== undefined) {
-              if (isBreakSignal(res)) {
-                return;
-              }
-              return res;
-            }
-            return runAsync();
-          });
-        }
-        if (rr !== undefined) {
-          if (isBreakSignal(rr)) {
-            return;
-          }
-          return rr;
-        }
-
-        const c = evalExpression(r.condition, env, sf);
-        if (isPromise(c)) {
-          return (c as Promise<any>).then((cv) =>
-            luaTruthy(cv) ? undefined : runAsync(),
-          );
-        }
-        if (luaTruthy(c)) {
-          break;
-        }
-      }
-      return;
+      return runSyncFirst();
     }
     case "Break": {
       return { ctrl: "break" };
@@ -2078,13 +2176,14 @@ export function evalStatement(
             return evalStatement(fr.block, localEnv, sf, returnOnReturn);
           };
 
-      const runAsync = async (
+      // Continuation that re-enters sync mode after each async iteration
+      const runFromIndex = (
         loopEnv: LuaEnv,
         end: number,
         step: number,
         startIndex: number,
         loopType: NumericType,
-      ) => {
+      ): undefined | ControlSignal | Promise<undefined | ControlSignal> => {
         if (step === 0) {
           throw new LuaRuntimeError("'for' step is zero", sf.withCtx(fr.ctx));
         }
@@ -2094,14 +2193,20 @@ export function evalStatement(
 
         for (let i = startIndex; shouldContinue(i); i += step) {
           const r = executeIteration(loopEnv, i, loopType);
-          const res = isPromise(r) ? await r : r;
-          if (res !== undefined) {
-            if (isBreakSignal(res)) {
-              return;
-            }
-            return res;
+          if (isPromise(r)) {
+            return (r as Promise<any>).then((res) => {
+              if (res !== undefined) {
+                return isBreakSignal(res) ? undefined : res;
+              }
+              return runFromIndex(loopEnv, end, step, i + step, loopType);
+            });
+          }
+          if (r !== undefined) {
+            if (isBreakSignal(r)) return;
+            return r;
           }
         }
+        return;
       };
 
       const runSyncFirst = (
@@ -2129,7 +2234,7 @@ export function evalStatement(
                 }
                 return res;
               }
-              return runAsync(loopEnv, end, step, i + step, loopType);
+              return runFromIndex(loopEnv, end, step, i + step, loopType);
             });
           }
           if (r !== undefined) {
@@ -2243,39 +2348,8 @@ export function evalStatement(
           return new LuaEnv(env);
         };
 
-        try {
-          const runAsync = async () => {
-            while (true) {
-              const callRes = luaCall(
-                iteratorValue,
-                [state, control],
-                fi.ctx,
-                sf,
-              );
-              const iterResult = new LuaMultiRes(
-                isPromise(callRes) ? await callRes : callRes,
-              ).flatten();
-              const nextControl = iterResult.values[0];
-              if (nextControl === null || nextControl === undefined) {
-                break;
-              }
-              control = nextControl;
-
-              const localEnv = makeIterEnv();
-              setIterVars(localEnv, fi.names, iterResult.values);
-
-              const r = evalStatement(fi.block, localEnv, sf, returnOnReturn);
-              const res = isPromise(r) ? await r : r;
-              if (res !== undefined) {
-                if (isBreakSignal(res)) {
-                  break;
-                }
-                return await finish(res);
-              }
-            }
-            return await finish(undefined);
-          };
-
+        // Sync-first loop that re-enters sync mode after each async iteration
+        const runSyncFirst = (): any => {
           while (true) {
             const iterCall = luaCall(
               iteratorValue,
@@ -2283,58 +2357,45 @@ export function evalStatement(
               fi.ctx,
               sf,
             );
+
+            const afterIterCall = (itv: any): any => {
+              const iterResult = new LuaMultiRes(itv).flatten();
+              const nextControl = iterResult.values[0];
+              if (nextControl === null || nextControl === undefined) {
+                return finish(undefined);
+              }
+              control = nextControl;
+
+              const localEnv = makeIterEnv();
+              setIterVars(localEnv, fi.names, iterResult.values);
+
+              const r = evalStatement(
+                fi.block,
+                localEnv,
+                sf,
+                returnOnReturn,
+              );
+              return rpThen(r, (res) => {
+                if (res !== undefined) {
+                  if (isBreakSignal(res)) {
+                    return finish(undefined);
+                  }
+                  return rpThen(finish(undefined), () => res);
+                }
+                return runSyncFirst();
+              });
+            };
+
             if (isPromise(iterCall)) {
               return (iterCall as Promise<any>)
-                .then((itv) => {
-                  const iterResult = new LuaMultiRes(itv).flatten();
-                  const nextControl = iterResult.values[0];
-                  if (nextControl === null || nextControl === undefined) {
-                    const r = finish(undefined);
-                    if (isPromise(r))
-                      return (r as Promise<void>).then(() => {});
-                    return;
-                  }
-                  control = nextControl;
-
-                  const localEnv = makeIterEnv();
-                  setIterVars(localEnv, fi.names, iterResult.values);
-
-                  const r = evalStatement(
-                    fi.block,
-                    localEnv,
-                    sf,
-                    returnOnReturn,
-                  );
-                  if (isPromise(r)) {
-                    return (r as Promise<any>).then((res) => {
-                      if (res !== undefined) {
-                        if (isBreakSignal(res)) {
-                          return finish(undefined);
-                        }
-                        return rpThen(finish(undefined), () => res);
-                      }
-                      return runAsync();
-                    });
-                  }
-                  if (r !== undefined) {
-                    if (isBreakSignal(r)) {
-                      return finish(undefined);
-                    }
-                    return rpThen(finish(undefined), () => r);
-                  }
-                  return runAsync();
-                })
+                .then(afterIterCall)
                 .catch((e: any) => finishErr(e));
             }
 
             const iterResult = new LuaMultiRes(iterCall).flatten();
             const nextControl = iterResult.values[0];
             if (nextControl === null || nextControl === undefined) {
-              const r = finish(undefined);
-              if (isPromise(r)) {
-                return r as Promise<void>;
-              }
-              return;
+              return finish(undefined);
             }
             control = nextControl;
 
@@ -2351,7 +2412,7 @@ export function evalStatement(
                     }
                     return rpThen(finish(undefined), () => res);
                   }
-                  return runAsync();
+                  return runSyncFirst();
                 })
                 .catch((e: any) => finishErr(e));
             }
@@ -2362,6 +2423,10 @@ export function evalStatement(
               return rpThen(finish(undefined), () => r);
             }
           }
+        };
+
+        try {
+          return runSyncFirst();
         } catch (e: any) {
           return finishErr(e);
         }

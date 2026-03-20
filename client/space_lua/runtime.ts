@@ -261,9 +261,9 @@ export class LuaEnv implements ILuaSettable, ILuaGettable {
 
   setLocal(name: string, value: LuaValue, numType?: NumericType) {
     this.variables.set(name, value);
-    if (isLuaNumber(value) && numType) {
+    if (numType) {
       this.numericTypes.set(name, numType);
-    } else {
+    } else if (this.numericTypes.size > 0) {
       this.numericTypes.delete(name);
     }
   }
@@ -271,9 +271,9 @@ export class LuaEnv implements ILuaSettable, ILuaGettable {
   setLocalConst(name: string, value: LuaValue, numType?: NumericType) {
     this.variables.set(name, value);
     this.consts.add(name);
-    if (isLuaNumber(value) && numType) {
+    if (numType) {
       this.numericTypes.set(name, numType);
-    } else {
+    } else if (this.numericTypes.size > 0) {
       this.numericTypes.delete(name);
     }
   }
@@ -292,9 +292,9 @@ export class LuaEnv implements ILuaSettable, ILuaGettable {
         );
       }
       this.variables.set(key, value);
-      if (isLuaNumber(value) && numType) {
+      if (numType) {
         this.numericTypes.set(key, numType);
-      } else {
+      } else if (this.numericTypes.size > 0) {
         this.numericTypes.delete(key);
       }
     } else {
@@ -323,9 +323,14 @@ export class LuaEnv implements ILuaSettable, ILuaGettable {
   }
 
   get(name: string, _sf?: LuaStackFrame): Promise<LuaValue> | LuaValue | null {
-    if (this.variables.has(name)) {
-      return this.variables.get(name);
+    // Fast path: single Map.get() instead of has() + get() for the common case
+    // where the variable exists and has a non-undefined value (null = Lua nil is fine).
+    const v = this.variables.get(name);
+    if (v !== undefined) {
+      return v;
     }
+    // Variable set to null (Lua nil) returns null from Map.get() which is !== undefined,
+    // so it's handled above. Only fall through when the key is truly absent.
     if (this.parent) {
       return this.parent.get(name, _sf);
     }
@@ -459,39 +464,61 @@ export class LuaFunction implements ILuaFunction {
   call(sf: LuaStackFrame, ...args: LuaValue[]): Promise<LuaValue> | LuaValue {
     // Create a new environment that chains to the captured environment
     const env = new LuaEnv(this.capturedEnv);
-    if (!sf) {
-      console.trace(sf);
-    }
     // Set _CTX to the thread local environment from the stack frame
     env.setLocal("_CTX", sf.threadLocal);
 
     // Eval using a stack frame that knows the current function
     const sfWithFn = sf.currentFunction === this ? sf : sf.withFunction(this);
 
+    const params = this.body.parameters;
+    const hasVarargs = params.length > 0 && params[params.length - 1] === "...";
+
     // Resolve args (sync-first)
     const argsRP = rpAll(args as any[]);
     const resolveArgs = (resolvedArgs: any[]) => {
-      // Assign parameter values to variable names in env
-      let varargs: LuaValue[] = [];
-      for (let i = 0; i < this.body.parameters.length; i++) {
-        const paramName = this.body.parameters[i];
-        if (paramName === "...") {
-          // Vararg parameter, let's collect the remainder of the resolved args into the varargs array
-          varargs = resolvedArgs.slice(i);
-          // Done, break out of this loop
-          break;
+      if (hasVarargs) {
+        // Variadic function: bind named params, collect rest into varargs
+        const varargStart = params.length - 1;
+        for (let i = 0; i < varargStart; i++) {
+          env.setLocal(params[i], resolvedArgs[i] ?? null);
         }
-        env.setLocal(paramName, resolvedArgs[i] ?? null);
+        env.setLocal(
+          "...",
+          new LuaMultiRes(resolvedArgs.slice(varargStart)),
+        );
+      } else {
+        // Non-variadic: bind all named params directly
+        for (let i = 0; i < params.length; i++) {
+          env.setLocal(params[i], resolvedArgs[i] ?? null);
+        }
       }
-      env.setLocal("...", new LuaMultiRes(varargs));
 
       // Evaluate the function body with returnOnReturn set to true
       const r = evalStatement(this.body.block, env, sfWithFn, true);
 
-      const map = (val: any) => {
-        if (val === undefined) {
-          return;
+      if (!isPromise(r)) {
+        // Fast path: synchronous result
+        if (r === undefined) return;
+        if (r && typeof r === "object" && r.ctrl === "return") {
+          return mapFunctionReturnValue(r.values);
         }
+        if (r && typeof r === "object" && r.ctrl === "break") {
+          throw new LuaRuntimeError(
+            "break outside loop",
+            sfWithFn.withCtx(this.body.block.ctx),
+          );
+        }
+        if (r && typeof r === "object" && r.ctrl === "goto") {
+          throw new LuaRuntimeError(
+            "unexpected goto signal",
+            sfWithFn.withCtx(this.body.block.ctx),
+          );
+        }
+        return;
+      }
+
+      return r.then((val: any) => {
+        if (val === undefined) return;
         if (val && typeof val === "object" && val.ctrl === "return") {
           return mapFunctionReturnValue(val.values);
         }
@@ -507,12 +534,7 @@ export class LuaFunction implements ILuaFunction {
             sfWithFn.withCtx(this.body.block.ctx),
           );
         }
-      };
-
-      if (isPromise(r)) {
-        return r.then(map);
-      }
-      return map(r);
+      });
     };
 
     if (isPromise(argsRP)) {
@@ -547,12 +569,20 @@ export class LuaNativeJSFunction implements ILuaFunction {
 
   // Performs automatic conversion between Lua and JS values for arguments, but not for return values
   call(sf: LuaStackFrame, ...args: LuaValue[]): Promise<LuaValue> | LuaValue {
-    const jsArgsRP = args.map((v) => luaValueToJS(v, sf));
-    const resolved = rpAll(jsArgsRP);
-    if (isPromise(resolved)) {
-      return resolved.then((jsArgs) => this.fn(...jsArgs));
+    // Avoid .map() allocation: convert in-place and check for promises
+    const len = args.length;
+    let hasAsync = false;
+    for (let i = 0; i < len; i++) {
+      const converted = luaValueToJS(args[i], sf);
+      args[i] = converted;
+      if (!hasAsync && isPromise(converted)) {
+        hasAsync = true;
+      }
     }
-    return this.fn(...resolved);
+    if (hasAsync) {
+      return Promise.all(args).then((jsArgs) => this.fn(...jsArgs));
+    }
+    return this.fn(...args);
   }
 
   asString(): string {
@@ -798,12 +828,12 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     if (typeof key === "string") {
       if (value === null || value === undefined) {
         delete this.stringKeys[key];
-        this.stringKeyTypes.delete(key);
+        if (this.stringKeyTypes.size > 0) this.stringKeyTypes.delete(key);
       } else {
         this.stringKeys[key] = value;
-        if (isLuaNumber(value) && numType) {
+        if (numType) {
           this.stringKeyTypes.set(key, numType);
-        } else {
+        } else if (this.stringKeyTypes.size > 0) {
           this.stringKeyTypes.delete(key);
         }
       }
@@ -918,17 +948,21 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     sf?: LuaStackFrame,
     numType?: NumericType,
   ): Promise<void> | void {
-    const errSf = sf || LuaStackFrame.lostFrame;
-    const ctx = sf?.astCtx ?? EMPTY_CTX;
-
     if (key === null || key === undefined) {
-      throw new LuaRuntimeError("table index is nil", errSf);
+      throw new LuaRuntimeError(
+        "table index is nil",
+        sf || LuaStackFrame.lostFrame,
+      );
     }
 
     if (typeof key === "number" && Number.isNaN(key)) {
-      throw new LuaRuntimeError("table index is NaN", errSf);
+      throw new LuaRuntimeError(
+        "table index is NaN",
+        sf || LuaStackFrame.lostFrame,
+      );
     }
 
+    // Fast path: key exists or no metatable — skip metamethod machinery
     if (this.has(key)) {
       return this.rawSet(key, value, numType);
     }
@@ -943,6 +977,9 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
       return this.rawSet(key, value, numType);
     }
 
+    // Slow path: __newindex metamethod chain (rare)
+    const errSf = sf || LuaStackFrame.lostFrame;
+    const ctx = sf?.astCtx ?? EMPTY_CTX;
     const k: LuaValue = key;
     const v: LuaValue = value;
     const nt: NumericType | undefined = numType;
@@ -1018,6 +1055,19 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
       return this.stringKeys[key];
     }
 
+    // Fast path for plain integer keys (common in for loops)
+    if (typeof key === "number") {
+      if (key >= 1 && (key | 0) === key) {
+        const v = this.arrayPart[key - 1];
+        if (v !== undefined) return v;
+        if (this.otherKeys) return this.otherKeys.get(key);
+        return undefined;
+      }
+      // Non-integer or zero/negative number keys
+      if (this.otherKeys) return this.otherKeys.get(key);
+      return undefined;
+    }
+
     const normalizedKey = LuaTable.normalizeNumericKey(key);
 
     if (typeof normalizedKey === "string") {
@@ -1047,6 +1097,11 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
   }
 
   get(key: LuaValue, sf?: LuaStackFrame): LuaValue | Promise<LuaValue> | null {
+    // Fast path: no metatable means rawGet is the final answer (most tables in SilverBullet)
+    if (this.metatable === null) {
+      const raw = this.rawGet(key);
+      return raw !== undefined ? raw : null;
+    }
     return luaIndexValue(this, key, sf);
   }
 
@@ -1206,13 +1261,13 @@ export function luaIndexValue(
 
 export type LuaLValueContainer = { env: ILuaSettable; key: LuaValue };
 
-export async function luaSet(
+export function luaSet(
   obj: any,
   key: any,
   value: any,
   sf: LuaStackFrame,
   numType?: NumericType,
-): Promise<void> {
+): void | Promise<void> {
   if (!obj) {
     throw new LuaRuntimeError(`Not a settable object: nil`, sf);
   }
@@ -1220,10 +1275,18 @@ export async function luaSet(
   const normKey = isTaggedFloat(key) ? key.value : key;
 
   if (obj instanceof LuaTable || obj instanceof LuaEnv) {
-    await obj.set(normKey, value, sf, numType);
+    return obj.set(normKey, value, sf, numType);
   } else {
     const k = toNumKey(normKey);
-    (obj as Record<string | number, any>)[k] = await luaValueToJS(value, sf);
+    const jsVal = luaValueToJS(value, sf);
+    if (isPromise(jsVal)) {
+      return (jsVal as Promise<any>).then(
+        (v) => {
+          (obj as Record<string | number, any>)[k] = v;
+        },
+      );
+    }
+    (obj as Record<string | number, any>)[k] = jsVal;
   }
 }
 
@@ -1233,10 +1296,11 @@ export function luaGet(
   ctx: ASTCtx | null,
   sf: LuaStackFrame,
 ): Promise<any> | any {
-  const errSf = ctx ? sf.withCtx(ctx) : sf;
-
   if (obj === null || obj === undefined) {
-    throw new LuaRuntimeError(`attempt to index a nil value`, errSf);
+    throw new LuaRuntimeError(
+      `attempt to index a nil value`,
+      ctx ? sf.withCtx(ctx) : sf,
+    );
   }
 
   // In Lua reading with a nil key returns nil silently
@@ -1319,16 +1383,23 @@ export function luaCall(
 
   // Fast path: native JS function
   if (typeof callee === "function") {
-    const jsArgs = rpAll(
-      args.map((v) => luaValueToJS(v, sf || LuaStackFrame.lostFrame)),
-    );
+    const baseSf = sf || LuaStackFrame.lostFrame;
+    const len = args.length;
+    let hasAsync = false;
+    for (let i = 0; i < len; i++) {
+      const converted = luaValueToJS(args[i], baseSf);
+      args[i] = converted;
+      if (!hasAsync && isPromise(converted)) {
+        hasAsync = true;
+      }
+    }
 
-    if (isPromise(jsArgs)) {
-      return jsArgs.then((resolved) =>
+    if (hasAsync) {
+      return Promise.all(args).then((resolved) =>
         (callee as (...a: any[]) => any)(...resolved),
       );
     }
-    return (callee as (...a: any[]) => any)(...jsArgs);
+    return (callee as (...a: any[]) => any)(...args);
   }
 
   // Lua table: may be callable via __call metamethod
@@ -1364,6 +1435,16 @@ export function luaCall(
 
   // ILuaFunction (LuaFunction/LuaBuiltinFunction/LuaNativeJSFunction/etc.)
   if (isILuaFunction(callee)) {
+    // Fast path for builtins: skip withFunction, defer withCtx
+    if (callee instanceof LuaBuiltinFunction) {
+      const base = sf || LuaStackFrame.lostFrame;
+      return callee.call(base, ...args);
+    }
+    // Fast path for native JS functions: skip withCtx/withFunction
+    if (callee instanceof LuaNativeJSFunction) {
+      const base = sf || LuaStackFrame.lostFrame;
+      return callee.call(base, ...args);
+    }
     const base = (sf || LuaStackFrame.lostFrame).withCtx(ctx);
     const frameForCall =
       callee instanceof LuaFunction ? base.withFunction(callee) : base;
@@ -1377,8 +1458,17 @@ export function luaCall(
 }
 
 export function luaEquals(a: any, b: any): boolean {
-  const an = isTaggedFloat(a) ? a.value : a;
-  const bn = isTaggedFloat(b) ? b.value : b;
+  // Normalize nil variants (null, undefined, SQL NULL) to null
+  const an = (a === null || a === undefined || isSqlNull(a))
+    ? null
+    : isTaggedFloat(a)
+    ? a.value
+    : a;
+  const bn = (b === null || b === undefined || isSqlNull(b))
+    ? null
+    : isTaggedFloat(b)
+    ? b.value
+    : b;
   return an === bn;
 }
 
