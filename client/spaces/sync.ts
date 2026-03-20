@@ -473,6 +473,23 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
       await this.primary.deleteFile(path);
       snapshot.nonSyncedFiles.set(path, secondaryMeta);
       operations += 1;
+    } else if (
+      primaryMeta && secondaryMeta && snapshot.files.has(path) &&
+      primaryMeta.size !== secondaryMeta.size
+    ) {
+      // Sizes differ despite matching timestamps — silent content change
+      // (e.g. file truncated without mtime update). Treat as conflict.
+      console.warn(
+        "[sync]",
+        `Size mismatch despite matching timestamps (${primaryMeta.size} vs ${secondaryMeta.size} bytes), forcing conflict resolution:`,
+        path,
+      );
+      operations += await this.options.conflictResolver(
+        path,
+        snapshot,
+        this.primary,
+        this.secondary,
+      );
     } else {
       // Nothing needs to happen
       if (!syncBack && secondaryMeta) {
