@@ -56,6 +56,17 @@ export function cleanModePlugins(client: Client) {
         void client.dispatchClickEvent(clickEvent);
       },
       getView: () => client.editorView,
+      doneStates: (() => {
+        const taskStates = client.config.get("taskStates", {});
+        const done = new Set<string>();
+        for (const [name, spec] of Object.entries(taskStates) as [
+          string,
+          any,
+        ][]) {
+          if (spec.done) done.add(name);
+        }
+        return done;
+      })(),
     }),
     listBulletPlugin(),
     tablePlugin(client),
