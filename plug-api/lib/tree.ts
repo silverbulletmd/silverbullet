@@ -1,5 +1,3 @@
-import { deepClone } from "@silverbulletmd/silverbullet/lib/json";
-
 export type ParseTree = {
   type?: string; // undefined === text node
   from?: number;
@@ -21,7 +19,7 @@ export function addParentPointers(tree: ParseTree) {
 }
 
 export function removeParentPointers(tree: ParseTree) {
-  delete tree.parent;
+  tree.parent = undefined;
   if (!tree.children) {
     return;
   }
@@ -51,38 +49,53 @@ export function collectNodesOfType(
   return collectNodesMatching(tree, (n) => n.type === nodeType);
 }
 
+function collectNodesMatchingInternal(
+  tree: ParseTree,
+  matchFn: (tree: ParseTree) => boolean,
+  results: ParseTree[],
+): void {
+  if (matchFn(tree)) {
+    results.push(tree);
+    return;
+  }
+  if (tree.children) {
+    for (const child of tree.children) {
+      collectNodesMatchingInternal(child, matchFn, results);
+    }
+  }
+}
+
 export function collectNodesMatching(
   tree: ParseTree,
   matchFn: (tree: ParseTree) => boolean,
 ): ParseTree[] {
-  if (matchFn(tree)) {
-    return [tree];
+  const results: ParseTree[] = [];
+  collectNodesMatchingInternal(tree, matchFn, results);
+  return results;
+}
+
+async function collectNodesMatchingAsyncInternal(
+  tree: ParseTree,
+  matchFn: (tree: ParseTree) => Promise<boolean>,
+  results: ParseTree[],
+): Promise<void> {
+  if (await matchFn(tree)) {
+    results.push(tree);
+    return;
   }
-  let results: ParseTree[] = [];
   if (tree.children) {
     for (const child of tree.children) {
-      results = [...results, ...collectNodesMatching(child, matchFn)];
+      await collectNodesMatchingAsyncInternal(child, matchFn, results);
     }
   }
-  return results;
 }
 
 export async function collectNodesMatchingAsync(
   tree: ParseTree,
   matchFn: (tree: ParseTree) => Promise<boolean>,
 ): Promise<ParseTree[]> {
-  if (await matchFn(tree)) {
-    return [tree];
-  }
-  let results: ParseTree[] = [];
-  if (tree.children) {
-    for (const child of tree.children) {
-      results = [
-        ...results,
-        ...(await collectNodesMatchingAsync(child, matchFn)),
-      ];
-    }
-  }
+  const results: ParseTree[] = [];
+  await collectNodesMatchingAsyncInternal(tree, matchFn, results);
   return results;
 }
 
@@ -92,19 +105,22 @@ export function replaceNodesMatching(
   substituteFn: (tree: ParseTree) => ParseTree | null | undefined,
 ) {
   if (tree?.children) {
-    const children = tree.children.slice();
-    for (const child of children) {
+    let i = 0;
+    while (i < tree.children.length) {
+      const child = tree.children[i];
       const subst = substituteFn(child);
       if (subst !== undefined) {
-        const pos = tree.children.indexOf(child);
         if (subst) {
-          tree.children.splice(pos, 1, subst);
+          tree.children[i] = subst;
+          i++;
         } else {
           // null = delete
-          tree.children.splice(pos, 1);
+          tree.children.splice(i, 1);
+          // don't increment i — next child shifted into this position
         }
       } else {
         replaceNodesMatching(child, substituteFn);
+        i++;
       }
     }
   }
@@ -115,19 +131,21 @@ export async function replaceNodesMatchingAsync(
   substituteFn: (tree: ParseTree) => Promise<ParseTree | null | undefined>,
 ) {
   if (tree.children) {
-    const children = tree.children.slice();
-    for (const child of children) {
+    let i = 0;
+    while (i < tree.children.length) {
+      const child = tree.children[i];
       const subst = await substituteFn(child);
       if (subst !== undefined) {
-        const pos = tree.children.indexOf(child);
         if (subst) {
-          tree.children.splice(pos, 1, subst);
+          tree.children[i] = subst;
+          i++;
         } else {
           // null = delete
-          tree.children.splice(pos, 1);
+          tree.children.splice(i, 1);
         }
       } else {
         await replaceNodesMatchingAsync(child, substituteFn);
+        i++;
       }
     }
   }
@@ -137,36 +155,88 @@ export function findNodeMatching(
   tree: ParseTree,
   matchFn: (tree: ParseTree) => boolean,
 ): ParseTree | null {
-  return collectNodesMatching(tree, matchFn)[0];
+  if (matchFn(tree)) {
+    return tree;
+  }
+  if (tree.children) {
+    for (const child of tree.children) {
+      const result = findNodeMatching(child, matchFn);
+      if (result) {
+        return result;
+      }
+    }
+  }
+  return null;
 }
 
 export function findNodeOfType(
   tree: ParseTree,
   nodeType: string,
 ): ParseTree | null {
-  return collectNodesMatching(tree, (n) => n.type === nodeType)[0];
+  if (tree.type === nodeType) {
+    return tree;
+  }
+  if (tree.children) {
+    for (const child of tree.children) {
+      const result = findNodeOfType(child, nodeType);
+      if (result) {
+        return result;
+      }
+    }
+  }
+  return null;
 }
 
 export function traverseTree(
   tree: ParseTree,
-  // Return value = should stop traversal?
+  // Return value = should stop traversal into children?
   matchFn: (tree: ParseTree) => boolean,
 ): void {
-  // Do a collect, but ignore the result
-  collectNodesMatching(tree, matchFn);
+  if (matchFn(tree)) {
+    return;
+  }
+  if (tree.children) {
+    for (const child of tree.children) {
+      traverseTree(child, matchFn);
+    }
+  }
 }
 
 export async function traverseTreeAsync(
   tree: ParseTree,
-  // Return value = should stop traversal?
+  // Return value = should stop traversal into children?
   matchFn: (tree: ParseTree) => Promise<boolean>,
 ): Promise<void> {
-  // Do a collect, but ignore the result
-  await collectNodesMatchingAsync(tree, matchFn);
+  if (await matchFn(tree)) {
+    return;
+  }
+  if (tree.children) {
+    for (const child of tree.children) {
+      await traverseTreeAsync(child, matchFn);
+    }
+  }
 }
 
 export function cloneTree(tree: ParseTree): ParseTree {
-  return deepClone(tree, ["parent"]);
+  if (tree.text !== undefined) {
+    return {
+      from: tree.from,
+      to: tree.to,
+      text: tree.text,
+    };
+  }
+  const clone: ParseTree = {
+    type: tree.type,
+    from: tree.from,
+    to: tree.to,
+  };
+  if (tree.children) {
+    clone.children = new Array(tree.children.length);
+    for (let i = 0; i < tree.children.length; i++) {
+      clone.children[i] = cloneTree(tree.children[i]);
+    }
+  }
+  return clone;
 }
 
 // Finds non-text node at position
@@ -243,14 +313,18 @@ export function renderToText(tree?: ParseTree): string {
   if (!tree) {
     return "";
   }
-  const pieces: string[] = [];
   if (tree.text !== undefined) {
     return tree.text;
   }
-  for (const child of tree.children!) {
-    pieces.push(renderToText(child));
+  const children = tree.children!;
+  if (children.length === 1) {
+    return renderToText(children[0]);
   }
-  return pieces.join("");
+  let result = "";
+  for (const child of children) {
+    result += renderToText(child);
+  }
+  return result;
 }
 
 export function cleanTree(tree: ParseTree, omitTrimmable = true): ParseTree {

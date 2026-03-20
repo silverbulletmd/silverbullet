@@ -59,14 +59,16 @@ export async function indexPage(
     },
     { pageRef: pageMeta.name },
   );
-  for (const aspiringPage of aspiringPages) {
-    console.log("Deleting aspiring page", aspiringPage);
-    await index.deleteObject(
-      "aspiring-page",
-      aspiringPage.page,
-      aspiringPage.ref,
-    );
-  }
+  await Promise.all(
+    aspiringPages.map((aspiringPage) => {
+      console.log("Deleting aspiring page", aspiringPage);
+      return index.deleteObject(
+        "aspiring-page",
+        aspiringPage.page,
+        aspiringPage.ref,
+      );
+    }),
+  );
 
   return [combinedPageMeta];
 }

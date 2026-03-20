@@ -1,24 +1,71 @@
 /**
+ * Pre-computed line data for efficient repeated snippet extraction from the same text.
+ */
+export interface LineIndex {
+  lines: string[];
+  // Cumulative character offsets: lineOffsets[i] = char position where line i starts
+  lineOffsets: number[];
+}
+
+/**
+ * Build a LineIndex for a given text, allowing multiple extractSnippet calls
+ * without repeatedly splitting the text.
+ */
+export function buildLineIndex(text: string): LineIndex {
+  const lines = text.split("\n");
+  const lineOffsets: number[] = new Array(lines.length);
+  let offset = 0;
+  for (let i = 0; i < lines.length; i++) {
+    lineOffsets[i] = offset;
+    offset += lines[i].length + 1; // +1 for the newline
+  }
+  return { lines, lineOffsets };
+}
+
+/**
  * Extracts a snippet around a given index in markdown text based on indentation rules.
  *
  * If the line at the given index is indented, the snippet will include:
  * - The entire line containing the index
  * - All subsequent lines with indentation level greater than the current line
  *
- * @param text - The full markdown text
+ * @param pageName - The name of the page
+ * @param textOrLineIndex - The full markdown text or a pre-computed LineIndex
  * @param index - The position within the text where extraction should be centered
- * @param maxLines - Maximum number of lines to include in the snippet (default: Infinity)
+ * @param maxLines - Maximum number of lines to include in the snippet (default: 10)
  * @returns The extracted snippet
  */
 export function extractSnippet(
   pageName: string,
-  text: string,
+  textOrLineIndex: string | LineIndex,
   index: number,
   maxLines: number = 10,
 ): string {
-  const lines = text.split("\n");
-  const lineLengths = lines.map((line) => line.length);
-  const targetLineIndex = text.substring(0, index).split("\n").length - 1;
+  let lines: string[];
+  let lineOffsets: number[];
+
+  if (typeof textOrLineIndex === "string") {
+    const li = buildLineIndex(textOrLineIndex);
+    lines = li.lines;
+    lineOffsets = li.lineOffsets;
+  } else {
+    lines = textOrLineIndex.lines;
+    lineOffsets = textOrLineIndex.lineOffsets;
+  }
+
+  // Binary search for the target line
+  let lo = 0;
+  let hi = lines.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (lineOffsets[mid] <= index) {
+      lo = mid;
+    } else {
+      hi = mid - 1;
+    }
+  }
+  const targetLineIndex = lo;
+
   const targetLine = lines[targetLineIndex];
   const targetIndent = getIndentationLevel(targetLine);
 
@@ -48,9 +95,7 @@ export function extractSnippet(
     // Find tasks that don't have a page reference, and add one
     const taskMatch = line.match(/^(\s*)([*-]\s+\[[^\]]+\]\s+)([^[][^[].+)$/);
     if (taskMatch) {
-      const pos =
-        lineLengths.slice(0, i).reduce((acc, len) => acc + len + 1, 0) +
-        taskMatch[1].length;
+      const pos = lineOffsets[i] + taskMatch[1].length;
       line = `${taskMatch[1] + taskMatch[2]}[[${pageName}@${pos}]] ${taskMatch[3]}`;
     }
     snippetLines.push(line.substring(targetIndent));

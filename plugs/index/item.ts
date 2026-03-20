@@ -58,6 +58,8 @@ export async function indexItems(
   );
 
   let items: ObjectValue<ItemObject | TaskObject>[] = [];
+  // Cache extracted items by node position to avoid re-extracting parents
+  const itemCache = new Map<number, ItemObject | TaskObject>();
 
   traverseTree(tree, (n) => {
     if (n.type !== "ListItem") {
@@ -76,6 +78,7 @@ export async function indexItems(
         frontmatter,
         true,
         allCompleteStates,
+        itemCache,
       ),
     );
 
@@ -99,7 +102,12 @@ export function extractItemFromNode(
   frontmatter: FrontMatter,
   withParents = true,
   allCompleteStates: string[] = completeStates,
+  itemCache?: Map<number, ItemObject | TaskObject>,
 ): ItemObject | TaskObject {
+  // Check cache first to avoid redundant extraction
+  if (itemCache && itemCache.has(itemNode.from!)) {
+    return itemCache.get(itemNode.from!)!;
+  }
   const item: ItemObject | TaskObject = {
     ref: `${name}@${itemNode.from}`,
     tag: "item",
@@ -152,7 +160,19 @@ export function extractItemFromNode(
   updateITags(item, frontmatter);
 
   if (withParents) {
-    enrichItemFromParents(itemNode, item, name, frontmatter, allCompleteStates);
+    enrichItemFromParents(
+      itemNode,
+      item,
+      name,
+      frontmatter,
+      allCompleteStates,
+      itemCache,
+    );
+  }
+
+  // Store in cache after full extraction (including parent enrichment)
+  if (itemCache) {
+    itemCache.set(itemNode.from!, item);
   }
 
   return item;
@@ -164,6 +184,7 @@ export function enrichItemFromParents(
   pageName: string,
   frontmatter: FrontMatter,
   allCompleteStates: string[] = completeStates,
+  itemCache?: Map<number, ItemObject | TaskObject>,
 ) {
   let directParent = true;
   let parentItemNode = findParentMatching(n, (n) => n.type === "ListItem");
@@ -174,6 +195,7 @@ export function enrichItemFromParents(
       frontmatter,
       false,
       allCompleteStates,
+      itemCache,
     );
     if (directParent) {
       item.parent = parentItem.ref;
