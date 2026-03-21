@@ -7,6 +7,7 @@ import {
 import { parseMarkdown } from "./parser.ts";
 import { extractHashtag } from "../../plug-api/lib/tags.ts";
 import { renderHashtag } from "../../plugs/index/tags.ts";
+import { mdLinkRegex } from "./constants.ts";
 
 const sample1 = `---
 type: page
@@ -308,4 +309,75 @@ test("Test table parser does not treat {[...]} specially", () => {
   // but only because of the [ — not because of {[ special-casing
   const row1Cells = collectNodesOfType(rows[0], "TableCell");
   expect(row1Cells.length).toBe(2);
+});
+
+// Links with escaped square brackets
+test("Test markdown links with escaped square brackets", () => {
+  // Parser should produce a Link node for escaped brackets
+  const tree = parseMarkdown(`[\\[link\\]](address)`);
+  const links = collectNodesOfType(tree, "Link");
+  expect(links.length).toBe(1);
+
+  // Should contain Escape nodes for the brackets
+  const escapes = collectNodesOfType(links[0], "Escape");
+  expect(escapes.length).toBe(2);
+  expect(escapes[0].children![0].text).toBe("\\[");
+  expect(escapes[1].children![0].text).toBe("\\]");
+
+  // Should have a URL node
+  const urlNode = findNodeOfType(links[0], "URL");
+  expect(urlNode).not.toBeUndefined();
+  expect(urlNode!.children![0].text).toBe("address");
+
+  // Full roundtrip
+  expect(renderToText(tree)).toBe(`[\\[link\\]](address)`);
+});
+
+test("Test mdLinkRegex with escaped square brackets", () => {
+  // Normal link
+  mdLinkRegex.lastIndex = 0;
+  let match = mdLinkRegex.exec("[link](address)");
+  expect(match).not.toBeNull();
+  expect(match!.groups!.title).toBe("link");
+  expect(match!.groups!.url).toBe("address");
+
+  // Escaped brackets in link text (issue #1896)
+  mdLinkRegex.lastIndex = 0;
+  match = mdLinkRegex.exec("[\\[link\\]](address)");
+  expect(match).not.toBeNull();
+  expect(match!.groups!.title).toBe("\\[link\\]");
+  expect(match!.groups!.url).toBe("address");
+
+  // Escaped brackets with other text
+  mdLinkRegex.lastIndex = 0;
+  match = mdLinkRegex.exec("[see \\[ref\\] here](http://example.com)");
+  expect(match).not.toBeNull();
+  expect(match!.groups!.title).toBe("see \\[ref\\] here");
+  expect(match!.groups!.url).toBe("http://example.com");
+
+  // Image with escaped brackets
+  mdLinkRegex.lastIndex = 0;
+  match = mdLinkRegex.exec("![\\[img\\]](image.png)");
+  expect(match).not.toBeNull();
+  expect(match!.groups!.title).toBe("\\[img\\]");
+  expect(match!.groups!.url).toBe("image.png");
+
+  // Other escaped characters (backslash itself)
+  mdLinkRegex.lastIndex = 0;
+  match = mdLinkRegex.exec("[a\\\\b](url)");
+  expect(match).not.toBeNull();
+  expect(match!.groups!.title).toBe("a\\\\b");
+  expect(match!.groups!.url).toBe("url");
+
+  // Normal link still works (no regressions)
+  mdLinkRegex.lastIndex = 0;
+  match = mdLinkRegex.exec("[simple text](http://example.com)");
+  expect(match).not.toBeNull();
+  expect(match!.groups!.title).toBe("simple text");
+
+  // Empty title still works
+  mdLinkRegex.lastIndex = 0;
+  match = mdLinkRegex.exec("[](url)");
+  expect(match).not.toBeNull();
+  expect(match!.groups!.title).toBe("");
 });
