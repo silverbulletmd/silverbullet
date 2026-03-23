@@ -1,4 +1,5 @@
-FROM zefhemel/silverbullet:v2
+ARG BASE_IMAGE=zefhemel/silverbullet:v2
+FROM ${BASE_IMAGE}
 
 # Set some environment variables
 ENV SB_INDEX_PAGE=SilverBullet

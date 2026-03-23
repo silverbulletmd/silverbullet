@@ -1,0 +1,45 @@
+name: Docker Website (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Website image tag to build"
+        required: true
+        default: "edge"
+        type: choice
+        options:
+          - edge
+          - latest
+      base_image:
+        description: "Base SilverBullet image (e.g. zefhemel/silverbullet:v2)"
+        required: true
+        default: "zefhemel/silverbullet:v2"
+
+env:
+  WEBSITE_IMAGE: zefhemel/silverbullet-website
+
+jobs:
+  docker-website:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: "Website: Build and push"
+        uses: docker/build-push-action@v6.18.0
+        with:
+          context: .
+          file: Dockerfile.website
+          push: true
+          provenance: false
+          build-args: |
+            BASE_IMAGE=${{ inputs.base_image }}
+          tags: ${{ env.WEBSITE_IMAGE }}:${{ inputs.tag }}
