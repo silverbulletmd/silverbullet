@@ -113,7 +113,9 @@ export function attachWidgetEventHandlers(
     }
 
     // Extended task states (e.g. [PLANNED], [TODO])
-    const taskStateSpan = el.querySelector("span.sb-task-state[data-state]");
+    const taskStateSpan = el.querySelector(
+      "span.sb-task-state[data-task-state]",
+    );
     if (taskStateSpan) {
       taskStateSpan.style.cursor = "pointer";
       taskStateSpan.addEventListener("mousedown", (e: any) => {
@@ -131,7 +133,7 @@ export function attachWidgetEventHandlers(
           return;
         }
         e.stopPropagation();
-        const oldState = taskStateSpan.dataset.state;
+        const oldState = taskStateSpan.dataset.taskState;
         console.log("Cycling extended task", taskRef, oldState);
         client.clientSystem
           .localSyscall("system.invokeFunction", [
@@ -140,7 +142,7 @@ export function attachWidgetEventHandlers(
             oldState,
           ])
           .then((newState: string) => {
-            taskStateSpan.dataset.state = newState;
+            taskStateSpan.dataset.taskState = newState;
             taskStateSpan.textContent = newState;
           })
           .catch(console.error);
