@@ -4,6 +4,7 @@ import type {
   LuaExpression,
   LuaLValue,
   LuaStatement,
+  LuaTableField,
   NumericType,
 } from "./ast.ts";
 import { LuaAttribute } from "./ast.ts";
@@ -38,7 +39,7 @@ import {
   luaValueToJS,
   singleResult,
 } from "./runtime.ts";
-import { type LuaCollectionQuery, toCollection } from "./query_collection.ts";
+import { type LuaCollectionQuery, type LuaGroupByEntry, toCollection } from "./query_collection.ts";
 import {
   coerceNumericPair,
   coerceToNumber,
@@ -669,6 +670,75 @@ const operatorsMetaMethods: Record<
   },
 };
 
+function deriveFieldName(e: LuaExpression): string | undefined {
+  switch (e.type) {
+    case "Variable":
+      return e.name;
+    case "PropertyAccess":
+      return e.property;
+    case "FunctionCall":
+      if (e.name) return e.name;
+      if (e.prefix.type === "Variable") return e.prefix.name;
+      if (e.prefix.type === "PropertyAccess") return e.prefix.property;
+      return undefined;
+    case "FilteredCall":
+      return deriveFieldName(e.call);
+    case "AggregateCall":
+      return deriveFieldName((e as any).call);
+    default:
+      return undefined;
+  }
+}
+
+function fieldsToExpression(
+  fields: LuaTableField[],
+  ctx: ASTCtx,
+): LuaExpression {
+  if (fields.length === 1 && fields[0].type === "ExpressionField") {
+    return fields[0].value;
+  }
+  const promoted: LuaTableField[] = fields.map((f) => {
+    if (f.type !== "ExpressionField") return f;
+    const key = deriveFieldName(f.value);
+    if (key) {
+      return { type: "PropField", key, value: f.value, ctx: f.ctx } as LuaTableField;
+    }
+    return f;
+  });
+  return { type: "TableConstructor", fields: promoted, ctx };
+}
+
+function fieldsToGroupByEntries(fields: LuaTableField[]): LuaGroupByEntry[] {
+  return fields.map((f) => {
+    switch (f.type) {
+      case "PropField":
+        return { expr: f.value, alias: f.key };
+      case "ExpressionField":
+        return { expr: f.value };
+      case "DynamicField":
+        return { expr: f.value };
+    }
+  });
+}
+
+function fromFieldsToSource(
+  fields: LuaTableField[],
+  ctx: ASTCtx,
+): { objectVariable?: string; expression: LuaExpression } {
+  if (fields.length === 1) {
+    const f = fields[0];
+    if (f.type === "ExpressionField") {
+      return { expression: f.value };
+    }
+    if (f.type === "PropField") {
+      return { objectVariable: f.key, expression: f.value };
+    }
+  }
+  return {
+    expression: { type: "TableConstructor", fields, ctx },
+  };
+}
+
 export function evalExpression(
   e: LuaExpression,
   env: LuaEnv,
@@ -915,8 +985,8 @@ export function evalExpression(
         if (!findFromClause) {
           throw new LuaRuntimeError("No from clause found", sf.withCtx(q.ctx));
         }
-        const objectVariable = findFromClause.name;
-        const objectExpression = findFromClause.expression;
+        const { objectVariable, expression: objectExpression } =
+          fromFieldsToSource(findFromClause.fields, findFromClause.ctx);
         return Promise.resolve(evalExpression(objectExpression, env, sf)).then(
           async (collection: LuaValue) => {
             if (!collection) {
@@ -974,7 +1044,7 @@ export function evalExpression(
                   break;
                 }
                 case "Select": {
-                  query.select = clause.expression;
+                  query.select = fieldsToExpression(clause.fields, clause.ctx);
                   break;
                 }
                 case "Limit": {
@@ -1000,7 +1070,7 @@ export function evalExpression(
                   break;
                 }
                 case "GroupBy": {
-                  query.groupBy = clause.expressions;
+                  query.groupBy = fieldsToGroupByEntries(clause.fields);
                   break;
                 }
                 case "Having": {

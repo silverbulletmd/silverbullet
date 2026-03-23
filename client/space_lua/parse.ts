@@ -127,10 +127,22 @@ function expressionHasFunctionDef(e: LuaExpression): boolean {
         const c = e.clauses[i];
         switch (c.type) {
           case "From":
-            if (expressionHasFunctionDef(c.expression)) return true;
+          case "Select":
+          case "GroupBy":
+            for (const f of c.fields) {
+              switch (f.type) {
+                case "DynamicField":
+                  if (expressionHasFunctionDef(f.key)) return true;
+                  if (expressionHasFunctionDef(f.value)) return true;
+                  break;
+                case "PropField":
+                case "ExpressionField":
+                  if (expressionHasFunctionDef(f.value)) return true;
+                  break;
+              }
+            }
             break;
           case "Where":
-          case "Select":
           case "Having":
             if (expressionHasFunctionDef(c.expression)) return true;
             break;
@@ -149,11 +161,6 @@ function expressionHasFunctionDef(e: LuaExpression): boolean {
               ) {
                 return true;
               }
-            }
-            break;
-          case "GroupBy":
-            for (let j = 0; j < c.expressions.length; j++) {
-              if (expressionHasFunctionDef(c.expressions[j])) return true;
             }
             break;
         }
@@ -238,10 +245,22 @@ function exprReferencesNames(e: LuaExpression, names: Set<string>): boolean {
         const c = e.clauses[i];
         switch (c.type) {
           case "From":
-            if (exprReferencesNames(c.expression, names)) return true;
+          case "Select":
+          case "GroupBy":
+            for (const f of c.fields) {
+              switch (f.type) {
+                case "DynamicField":
+                  if (exprReferencesNames(f.key, names)) return true;
+                  if (exprReferencesNames(f.value, names)) return true;
+                  break;
+                case "PropField":
+                case "ExpressionField":
+                  if (exprReferencesNames(f.value, names)) return true;
+                  break;
+              }
+            }
             break;
           case "Where":
-          case "Select":
           case "Having":
             if (exprReferencesNames(c.expression, names)) return true;
             break;
@@ -260,11 +279,6 @@ function exprReferencesNames(e: LuaExpression, names: Set<string>): boolean {
               ) {
                 return true;
               }
-            }
-            break;
-          case "GroupBy":
-            for (let j = 0; j < c.expressions.length; j++) {
-              if (exprReferencesNames(c.expressions[j], names)) return true;
             }
             break;
         }
@@ -564,10 +578,22 @@ function exprCapturesNames(e: LuaExpression, names: Set<string>): boolean {
         const c = e.clauses[i];
         switch (c.type) {
           case "From":
-            if (exprCapturesNames(c.expression, names)) return true;
+          case "Select":
+          case "GroupBy":
+            for (const f of c.fields) {
+              switch (f.type) {
+                case "DynamicField":
+                  if (exprCapturesNames(f.key, names)) return true;
+                  if (exprCapturesNames(f.value, names)) return true;
+                  break;
+                case "PropField":
+                case "ExpressionField":
+                  if (exprCapturesNames(f.value, names)) return true;
+                  break;
+              }
+            }
             break;
           case "Where":
-          case "Select":
           case "Having":
             if (exprCapturesNames(c.expression, names)) return true;
             break;
@@ -584,11 +610,6 @@ function exprCapturesNames(e: LuaExpression, names: Set<string>): boolean {
               if (u && typeof u !== "string") {
                 if (functionBodyCapturesNames(u, names)) return true;
               }
-            }
-            break;
-          case "GroupBy":
-            for (let j = 0; j < c.expressions.length; j++) {
-              if (exprCapturesNames(c.expressions[j], names)) return true;
             }
             break;
         }
@@ -1307,6 +1328,17 @@ function parseExpression(t: ParseTree, ctx: ASTCtx): LuaExpression {
   }
 }
 
+function parseFieldList(t: ParseTree, ctx: ASTCtx): LuaTableField[] {
+  if (t.type !== "FieldList") {
+    throw new Error(`Expected FieldList, got ${t.type}`);
+  }
+  return t
+    .children!.filter((c) =>
+      c.type === "FieldExp" || c.type === "FieldProp" || c.type === "FieldDynamic",
+    )
+    .map((c) => parseTableField(c, ctx));
+}
+
 function parseQueryClause(t: ParseTree, ctx: ASTCtx): LuaQueryClause {
   if (t.type !== "QueryClause") {
     throw new Error(`Expected QueryClause, got ${t.type}`);
@@ -1314,18 +1346,14 @@ function parseQueryClause(t: ParseTree, ctx: ASTCtx): LuaQueryClause {
   t = t.children![0];
   switch (t.type) {
     case "FromClause": {
-      if (t.children!.length === 4) {
-        // From clause with a name
-        return {
-          type: "From",
-          name: t.children![1].children![0].text!,
-          expression: parseExpression(t.children![3], ctx),
-          ctx: context(t, ctx),
-        };
+      // children: ckw<"from">, FieldList
+      const fieldListNode = t.children!.find((c) => c.type === "FieldList");
+      if (!fieldListNode) {
+        throw new Error("FromClause missing FieldList");
       }
       return {
         type: "From",
-        expression: parseExpression(t.children![1], ctx),
+        fields: parseFieldList(fieldListNode, ctx),
         ctx: context(t, ctx),
       };
     }
@@ -1368,26 +1396,26 @@ function parseQueryClause(t: ParseTree, ctx: ASTCtx): LuaQueryClause {
       };
     }
     case "SelectClause": {
+      // children: ckw<"select">, FieldList
+      const fieldListNode = t.children!.find((c) => c.type === "FieldList");
+      if (!fieldListNode) {
+        throw new Error("SelectClause missing FieldList");
+      }
       return {
         type: "Select",
-        expression: parseExpression(t.children![1], ctx),
+        fields: parseFieldList(fieldListNode, ctx),
         ctx: context(t, ctx),
       };
     }
     case "GroupByClause": {
-      // children: ckw<"group">, ckw<"by">, exp, ",", exp, ...
-      const expressions: LuaExpression[] = t
-        .children!.filter(
-          (c) =>
-            c.type !== undefined &&
-            c.type !== "group" &&
-            c.type !== "by" &&
-            c.type !== ",",
-        )
-        .map((c) => parseExpression(c, ctx));
+      // children: ckw<"group">, ckw<"by">, FieldList
+      const fieldListNode = t.children!.find((c) => c.type === "FieldList");
+      if (!fieldListNode) {
+        throw new Error("GroupByClause missing FieldList");
+      }
       return {
         type: "GroupBy",
-        expressions,
+        fields: parseFieldList(fieldListNode, ctx),
         ctx: context(t, ctx),
       };
     }

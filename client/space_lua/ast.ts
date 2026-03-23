@@ -311,10 +311,10 @@ export type LuaQueryClause =
   | LuaGroupByClause
   | LuaHavingClause;
 
+// Field list used by from, select, group by clauses
 export type LuaFromClause = {
   type: "From";
-  name?: string;
-  expression: LuaExpression;
+  fields: LuaTableField[];
 } & ASTContext;
 
 export type LuaWhereClause = {
@@ -348,12 +348,12 @@ export type LuaOrderBy = {
 
 export type LuaSelectClause = {
   type: "Select";
-  expression: LuaExpression;
+  fields: LuaTableField[];
 } & ASTContext;
 
 export type LuaGroupByClause = {
   type: "GroupBy";
-  expressions: LuaExpression[];
+  fields: LuaTableField[];
 } & ASTContext;
 
 export type LuaHavingClause = {

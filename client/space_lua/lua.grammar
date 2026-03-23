@@ -73,6 +73,9 @@ AttNameList { list<AttName> }
 AttName { Name Attrib }
 Attrib { ( "<" Name ">" )? }
 
+// Bare field list (same content as between { } but no trailing separator)
+FieldList { field ("," field)* }
+
 exp {
   kw<"nil"> | kw<"true"> | kw<"false"> | "..." |
   Number |
@@ -101,14 +104,14 @@ QueryClause {
   HavingClause
 }
 
-FromClause { ckw<"from"> (Name "=")? exp }
+FromClause { ckw<"from"> FieldList }
 WhereClause { ckw<"where"> exp }
 LimitClause { ckw<"limit"> exp ("," exp)? }
 OffsetClause { ckw<"offset"> exp }
 OrderByClause { ckw<"order">  ckw<"by"> list<OrderBy> }
 OrderBy { exp (ckw<"desc"> | ckw<"asc"> | kw<"using"> (Name | kw<"function"> FuncBody))? (ckw<"nulls"> (ckw<"first"> | ckw<"last">))? }
-SelectClause { ckw<"select"> exp }
-GroupByClause { ckw<"group"> ckw<"by"> list<exp> }
+SelectClause { ckw<"select"> FieldList }
+GroupByClause { ckw<"group"> ckw<"by"> FieldList }
 HavingClause { ckw<"having"> exp }
 
 AggOrderBy { ckw<"order"> ckw<"by"> list<OrderBy> }

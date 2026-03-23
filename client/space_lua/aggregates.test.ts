@@ -1602,7 +1602,7 @@ test("applyQuery: group by + select with aggregates", async () => {
       data,
       {
         objectVariable: "p",
-        groupBy: [parseExpressionString("p.dept")],
+        groupBy: [{ expr: parseExpressionString("p.dept") }],
         select: parseExpressionString(
           "{ dept = key, total = sum(p.salary), n = count(p.salary) }",
         ),
@@ -1633,7 +1633,7 @@ test("applyQuery: group by + having with aggregate", async () => {
       data,
       {
         objectVariable: "p",
-        groupBy: [parseExpressionString("p.dept")],
+        groupBy: [{ expr: parseExpressionString("p.dept") }],
         having: parseExpressionString("count(p.name) > 1"),
       },
       new LuaEnv(),
@@ -1655,7 +1655,7 @@ test("applyQuery: group by without aggregates still works", async () => {
       data,
       {
         objectVariable: "p",
-        groupBy: [parseExpressionString("p.dept")],
+        groupBy: [{ expr: parseExpressionString("p.dept") }],
         select: parseExpressionString("key"),
       },
       new LuaEnv(),
@@ -1678,7 +1678,7 @@ test("applyQuery: having with compound expression", async () => {
       data,
       {
         objectVariable: "p",
-        groupBy: [parseExpressionString("p.dept")],
+        groupBy: [{ expr: parseExpressionString("p.dept") }],
         having: parseExpressionString("sum(p.salary) > 100"),
         select: parseExpressionString("{ dept = key, total = sum(p.salary) }"),
       },
@@ -1703,7 +1703,7 @@ test("applyQuery: implicit _ with group by + multiple aggregates", async () => {
     const results = await applyQuery(
       data,
       {
-        groupBy: [parseExpressionString("_.category")],
+        groupBy: [{ expr: parseExpressionString("_.category") }],
         select: parseExpressionString(
           "{ cat = key, total = sum(_.price), best = max(_.price) }",
         ),
@@ -1737,7 +1737,7 @@ test("applyQuery: group by + having + order by + limit", async () => {
       data,
       {
         objectVariable: "t",
-        groupBy: [parseExpressionString("t.tag")],
+        groupBy: [{ expr: parseExpressionString("t.tag") }],
         having: parseExpressionString("count(t.page) > 1"),
         orderBy: [{ expr: parseExpressionString("key"), desc: false }],
         select: parseExpressionString("key"),
@@ -1761,7 +1761,7 @@ test("applyQuery: select with aggregate division (float result)", async () => {
       data,
       {
         objectVariable: "p",
-        groupBy: [parseExpressionString("p.dept")],
+        groupBy: [{ expr: parseExpressionString("p.dept") }],
         select: parseExpressionString(
           "{ dept = key, avg_salary = sum(p.salary) / count(p.salary) }",
         ),
