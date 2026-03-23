@@ -17,7 +17,7 @@ type SyncEngineEvents = {
   // A single file syncle has completed
   fileSyncComplete: (path: string, operations: number) => void | Promise<void>;
 
-  syncError: (error: Error) => void | Promise<void>;
+  syncError: (error: Error, path?: string) => void | Promise<void>;
 
   // Sync conflict occurred
   syncConflict: (path: string) => void | Promise<void>;
@@ -139,7 +139,7 @@ export class SyncEngine extends EventEmitter<SyncEngineEvents> {
       void this.emit("fileSyncComplete", path, operations);
       return operations;
     } catch (e) {
-      void this.emit("syncError", e);
+      void this.emit("syncError", e, path);
       throw e;
     }
   }

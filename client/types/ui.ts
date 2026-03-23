@@ -229,6 +229,7 @@ export type ServiceWorkerSourceMessage =
   | {
       type: "sync-error";
       message: string;
+      path?: string;
     }
   | {
       type: "online-status";

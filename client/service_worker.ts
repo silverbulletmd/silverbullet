@@ -288,10 +288,11 @@ self.addEventListener("message", async (event: any) => {
               operations,
             });
           },
-          syncError: (error) => {
+          syncError: (error, path) => {
             broadcastMessage({
               type: "sync-error",
               message: error.message,
+              path,
             });
           },
         });

@@ -233,11 +233,9 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
 
     const files = await this.localSpacePrimitives.fetchFileList();
     // Now augment this with non-synced file metadata
+    const localFileNames = new Set(files.map((f) => f.name));
     for (const nonSyncedFile of this.nonSyncedFiles.values()) {
-      const existingFile = files.find(
-        (file) => file.name === nonSyncedFile.name,
-      );
-      if (!existingFile) {
+      if (!localFileNames.has(nonSyncedFile.name)) {
         files.push(nonSyncedFile);
       }
     }

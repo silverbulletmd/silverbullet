@@ -14,10 +14,13 @@ import type { DataStore } from "../data/datastore.ts";
  * - page:deleted (string)
  */
 export class EventedSpacePrimitives implements SpacePrimitives {
-  // Various operations may be going on at the same time, and we don't want to trigger events unnessarily.
-  // Therefore, we use this variable to track if any operation is in flight, and if so, we skip event triggering.
-  // This is ok, because any event will be picked up in a following iteration.
-  operationInProgress = false;
+  // Various operations may be going on at the same time, and we don't want to trigger events unnecessarily.
+  // Therefore, we use this counter to track how many operations are in flight, and if so, we skip event triggering.
+  private operationCount = 0;
+
+  // When a fetchFileList is requested while operations are in flight, we defer it
+  // so that synced changes are not missed.
+  private deferredFetchFileList = false;
 
   private enabled = false;
 
@@ -65,6 +68,20 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     }
   }
 
+  /**
+   * Called when an operation completes. If a fetchFileList was deferred
+   * because operations were in flight, trigger it now.
+   */
+  private checkDeferredFetchFileList() {
+    if (this.deferredFetchFileList && this.operationCount === 0) {
+      this.deferredFetchFileList = false;
+      // Schedule on next tick to avoid reentrancy
+      setTimeout(() => {
+        void this.fetchFileList();
+      });
+    }
+  }
+
   dispatchEvent(name: string, ...args: any[]): Promise<any[]> {
     if (!this.enabled) {
       return Promise.resolve([]);
@@ -74,27 +91,22 @@ export class EventedSpacePrimitives implements SpacePrimitives {
   }
 
   async fetchFileList(): Promise<FileMeta[]> {
-    if (this.operationInProgress) {
+    if (this.operationCount > 0) {
       // Some other operation (read, write, list, meta) is already going on
       // this will likely trigger events, so let's not worry about any of that and avoid race condition and inconsistent data.
+      // We mark a deferred flag so the next operation completion will trigger a fetchFileList.
       console.info(
-        "operationInProgress, deferring event processing for fetchFileList.",
+        "deferredFetchFileList: skipping event triggering for fetchFileList.",
       );
-      const result = await this.wrapped.fetchFileList();
-      // Schedule a retry after current operation completes
-      setTimeout(() => {
-        if (!this.operationInProgress) {
-          void this.fetchFileList();
-        }
-      }, 50);
-      return result;
+      this.deferredFetchFileList = true;
+      return this.wrapped.fetchFileList();
     }
     if (!this.enabled) {
       return this.wrapped.fetchFileList();
     }
     // console.log("Fetching file list");
     // Fetching mutex
-    this.operationInProgress = true;
+    this.operationCount++;
     try {
       // Fetch the list
       const newFileList = await this.wrapped.fetchFileList();
@@ -140,7 +152,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       return newFileList;
     } finally {
       await this.saveSnapshot();
-      this.operationInProgress = false;
+      this.operationCount--;
     }
   }
 
@@ -148,19 +160,17 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     if (!this.enabled) {
       return this.wrapped.readFile(path);
     }
+    this.operationCount++;
     try {
-      // Fetching mutex
-      const wasFetching = this.operationInProgress;
-      this.operationInProgress = true;
-
       // Fetch file
       const data = await this.wrapped.readFile(path);
-      if (!wasFetching) {
+      if (this.operationCount === 1) {
         await this.triggerEventsAndCache(path, data.meta.lastModified);
       }
       return data;
     } finally {
-      this.operationInProgress = false;
+      this.operationCount--;
+      this.checkDeferredFetchFileList();
     }
   }
 
@@ -173,11 +183,10 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       return this.wrapped.writeFile(path, data, meta);
     }
 
-    const wasFetching = this.operationInProgress;
-    this.operationInProgress = true;
+    this.operationCount++;
     try {
       const newMeta = await this.wrapped.writeFile(path, data, meta);
-      if (!wasFetching) {
+      if (this.operationCount === 1) {
         await this.triggerEventsAndCache(path, newMeta.lastModified);
       }
       if (path.endsWith(".md")) {
@@ -187,7 +196,8 @@ export class EventedSpacePrimitives implements SpacePrimitives {
 
       return newMeta;
     } finally {
-      this.operationInProgress = false;
+      this.operationCount--;
+      this.checkDeferredFetchFileList();
     }
   }
 
@@ -212,16 +222,16 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       return this.wrapped.getFileMeta(path, observing);
     }
 
+    this.operationCount++;
     try {
-      const wasFetching = this.operationInProgress;
-      this.operationInProgress = true;
       const newMeta = await this.wrapped.getFileMeta(path, observing);
-      if (!wasFetching) {
+      if (this.operationCount === 1) {
         await this.triggerEventsAndCache(path, newMeta.lastModified);
       }
       return newMeta;
     } finally {
-      this.operationInProgress = false;
+      this.operationCount--;
+      this.checkDeferredFetchFileList();
     }
   }
 
@@ -230,19 +240,19 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       return this.wrapped.deleteFile(path);
     }
 
+    this.operationCount++;
     try {
-      this.operationInProgress = true;
       if (path.endsWith(".md")) {
         const pageName = path.substring(0, path.length - 3);
         await this.dispatchEvent("page:deleted", pageName);
       }
-      // await this.getPageMeta(path); // Check if page exists, if not throws Error
       await this.wrapped.deleteFile(path);
       this.deleteFromSnapshot(path);
       await this.dispatchEvent("file:deleted", path);
     } finally {
       await this.saveSnapshot();
-      this.operationInProgress = false;
+      this.operationCount--;
+      this.checkDeferredFetchFileList();
     }
   }
 }
