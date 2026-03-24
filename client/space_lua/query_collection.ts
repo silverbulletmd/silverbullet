@@ -39,6 +39,9 @@ import type { KvKey } from "../../plug-api/types/datastore.ts";
 import { executeAggregate, getAggregateSpec } from "./aggregates.ts";
 import { Config } from "../config.ts";
 
+// Implicit single group map key (aggregates without `group by`)
+const IMPLICIT_GROUP_KEY: unique symbol = Symbol("implicit-group");
+
 // Build environment for post-`group by` clauses. Injects `key` and `group`
 // as top-level variables. Unpacks first group item fields and group-by key
 // fields as locals so that bare field access works after grouping.
@@ -679,6 +682,15 @@ export async function applyQuery(
     results = filteredResults;
   }
 
+  // Implicit single group
+  if (
+    !query.groupBy &&
+    ((query.select && containsAggregate(query.select, config)) ||
+      (query.having && containsAggregate(query.having, config)))
+  ) {
+    query = { ...query, groupBy: [] };
+  }
+
   const grouped = !!query.groupBy;
 
   // Collect group-by key names for unpacking into the post-group environment.
@@ -698,7 +710,7 @@ export async function applyQuery(
       })
       .filter(Boolean);
 
-    const groups = new Map<string, { key: any; items: any[] }>();
+    const groups = new Map<string | symbol, { key: any; items: any[] }>();
     const groupByExprs = query.groupBy as LuaExpression[];
 
     for (const item of results) {
@@ -722,14 +734,20 @@ export async function applyQuery(
         }
       }
 
-      const compositeKey =
-        keyParts.length === 1
-          ? generateKey(keyParts[0])
-          : JSON.stringify(keyParts.map(generateKey));
+      // Implicit single group uses a symbol key
+      const compositeKey: string | symbol =
+        keyParts.length === 0
+          ? IMPLICIT_GROUP_KEY
+          : keyParts.length === 1
+            ? generateKey(keyParts[0])
+            : JSON.stringify(keyParts.map(generateKey));
       let entry = groups.get(compositeKey);
       if (!entry) {
         let keyVal: any;
-        if (keyParts.length === 1) {
+        if (keyParts.length === 0) {
+          // Implicit single group — key is `nil`
+          keyVal = null;
+        } else if (keyParts.length === 1) {
           keyVal = keyParts[0];
         } else {
           const kt = new LuaTable();

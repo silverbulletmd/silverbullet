@@ -11,8 +11,37 @@ All aggregate functions (such as `count`, `sum`, `min`, `max`, `avg`, and custom
 
 Field names used in `group by` are exposed as locals in `having`, `select`, and `order by`. Use `#group` to obtain the item count per group.
 
+> **note** The `having` clause acts only on grouped output. For filtering individual items, use `where` prior to grouping.
+
+> **warning** Inside a grouped query bare function names that match registered aggregates are treated as aggregates! To call a global function with the same name, use qualified access (e.g., `_G.sum(x)`).
+
+# Aggregates without `group by`
+When an aggregate function appears in `select` or `having` but no `group by` clause is present, the entire result set is treated as a single implicit group. The `key` variable is `nil` in this case.
+
+This is useful for computing a single summary value over a collection:
+
+${query [[
+  from p = index.tag "page"
+  select { total = count(p.name), biggest = max(p.size) }
+]]}
+
+A simple sum over a list:
+
+${query [[
+  from n = {10, 20, 30}
+  select sum(n)
+]]}
+
+The `having` clause also works without `group by` — it filters the single implicit group:
+
+${query [[
+  from n = {1, 2, 3}
+  having sum(n) > 5
+  select sum(n)
+]]}
+
 > **note** Note
-> The `having` clause acts only on grouped output. For filtering individual items, use `where` prior to grouping.
+> Without `group by`, the query always returns at most one row. If `having` rejects the implicit group, the result is empty.
 
 # Available aggregates
 
