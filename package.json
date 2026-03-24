@@ -64,7 +64,9 @@
     "lint": "biome lint .",
     "fmt": "biome format --write .",
     "fmt:check": "biome format .",
-    "bench": "vitest bench"
+    "bench": "vitest bench",
+    "test:e2e": "npx playwright test",
+    "test:e2e:headed": "npx playwright test --headed"
   },
   "dependencies": {
     "@cfworker/json-schema": "^4.1.1",
@@ -110,11 +112,11 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.6",
+    "@playwright/test": "^1.58.2",
     "@preact/preset-vite": "^2.10.3",
     "@types/gitignore-parser": "^0.0.3",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.0.0",
-
     "@types/turndown": "^5.0.6",
     "fake-indexeddb": "6.0.1",
     "tsx": "^4.19.0",

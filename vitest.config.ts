@@ -42,6 +42,7 @@ export default defineConfig({
       "**/.opencode/**",
       "dist",
       "client_bundle",
+      "e2e",
       "website",
       "server",
       // Exclude helper test files (no test() blocks, only export helper functions)

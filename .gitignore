@@ -10,6 +10,8 @@ silverbullet
 deploy.json
 *.generated
 tmp_playground
+test-results
+playwright-report
 /public_version.ts
 website/_plug
 tmp

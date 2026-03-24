@@ -1,6 +1,6 @@
 LDFLAGS = -X main.buildTime=$$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
-.PHONY: build build-for-docker docker build-server-releases clean check fmt test test-integration bench generate website
+.PHONY: build build-for-docker docker build-server-releases clean check fmt test test-integration test-e2e bench generate website
 
 build:
 	# Build client
@@ -54,6 +54,9 @@ test:
 test-integration:
 	# Run headless Chrome integration tests (requires Chrome installed)
 	go test -tags=integration ./server/... -v -timeout 300s
+
+test-e2e: build
+	npx playwright test
 
 bench:
 	# Run frontend benchmarks
