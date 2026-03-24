@@ -1,5 +1,9 @@
 import { syntaxTree } from "@codemirror/language";
-import { startCompletion } from "@codemirror/autocomplete";
+import {
+  startCompletion,
+  closeCompletion,
+  completionStatus,
+} from "@codemirror/autocomplete";
 import { Decoration, type EditorView, WidgetType } from "@codemirror/view";
 import type { NodeType } from "@lezer/common";
 import { decoratorStateField, isCursorInRange } from "./util.ts";
@@ -101,6 +105,10 @@ class TaskDropdownWidget extends WidgetType {
       e.stopPropagation();
       const view = this.getView();
       if (!view) return;
+      if (completionStatus(view.state)) {
+        closeCompletion(view);
+        return;
+      }
       const cursorPos = this.stateTo - 1;
       view.dispatch({
         selection: { anchor: cursorPos },
@@ -172,19 +180,20 @@ export function taskListPlugin({
             if (doneStates?.has(stateText)) {
               checkboxStatus = true;
             }
-            // Mark the full TaskState node
+            // Mark only the inner state text, not the brackets
             widgets.push(
               Decoration.mark({
                 attributes: { "data-task-state": stateText },
-              }).range(from + nfrom, from + nto),
+              }).range(from + nfrom + 1, from + nto - 1),
             );
             // Always show dropdown
             const absTo = from + nto;
-            const dec = Decoration.widget({
-              widget: new TaskDropdownWidget(from + nfrom, absTo, getView),
-              side: 1,
-            });
-            widgets.push(dec.range(absTo));
+            widgets.push(
+              Decoration.widget({
+                widget: new TaskDropdownWidget(from + nfrom, absTo, getView),
+                side: 1,
+              }).range(absTo),
+            );
             return;
           }
           if (isCursorInRange(state, [from + nfrom, from + nto])) return;

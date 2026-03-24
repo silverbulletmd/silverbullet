@@ -385,7 +385,7 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
           { name: "span", attrs: { class: "sb-task-mark" }, body: "[" },
           {
             name: "span",
-            attrs: { class: "sb-task-state", "data-state": stateText },
+            attrs: { class: "sb-task-state", "data-task-state": stateText },
             body: stateText,
           },
           { name: "span", attrs: { class: "sb-task-mark" }, body: "]" },
