@@ -750,22 +750,110 @@ function fieldsToGroupByEntries(fields: LuaTableField[]): LuaGroupByEntry[] {
   });
 }
 
-function fromFieldsToSource(
-  fields: LuaTableField[],
-  ctx: ASTCtx,
-): { objectVariable?: string; expression: LuaExpression } {
+type FromSource =
+  | { kind: "single"; objectVariable?: string; expression: LuaExpression }
+  | { kind: "cross"; sources: { name: string; expression: LuaExpression }[] };
+
+function fromFieldsToSource(fields: LuaTableField[], ctx: ASTCtx): FromSource {
   if (fields.length === 1) {
     const f = fields[0];
     if (f.type === "ExpressionField") {
-      return { expression: f.value };
+      return { kind: "single", expression: f.value };
     }
     if (f.type === "PropField") {
-      return { objectVariable: f.key, expression: f.value };
+      return { kind: "single", objectVariable: f.key, expression: f.value };
     }
   }
-  return {
-    expression: { type: "TableConstructor", fields, ctx },
-  };
+
+  const sources: { name: string; expression: LuaExpression }[] = [];
+  for (const f of fields) {
+    if (f.type !== "PropField") {
+      throw new LuaRuntimeError("Multi-source 'from' requires named sources", {
+        ref: ctx,
+      } as any);
+    }
+    sources.push({ name: f.key, expression: f.value });
+  }
+  return { kind: "cross", sources };
+}
+
+async function normalizeToArray(
+  collection: LuaValue,
+  sf: LuaStackFrame,
+): Promise<any[]> {
+  if (collection instanceof LuaTable && collection.empty()) {
+    return [];
+  }
+  if (collection instanceof LuaTable) {
+    if (collection.length > 0) {
+      const arr: any[] = [];
+      for (let i = 1; i <= collection.length; i++) {
+        arr.push(collection.rawGet(i));
+      }
+      return arr;
+    }
+    return [collection];
+  }
+  if (Array.isArray(collection)) {
+    return collection;
+  }
+  if (
+    typeof collection === "object" &&
+    collection !== null &&
+    "query" in collection &&
+    typeof (collection as any).query === "function"
+  ) {
+    const allItems = await (collection as any).query(
+      { distinct: false },
+      new LuaEnv(),
+      sf,
+    );
+    return Array.isArray(allItems) ? allItems : [allItems];
+  }
+  const jsVal = luaValueToJS(collection, sf);
+  return Array.isArray(jsVal) ? jsVal : [jsVal];
+}
+
+async function evalCrossJoinSources(
+  sources: { name: string; expression: LuaExpression }[],
+  env: LuaEnv,
+  sf: LuaStackFrame,
+  ctx: ASTCtx,
+): Promise<LuaTable[]> {
+  // Evaluate each source and normalize to arrays
+  const arrays: { name: string; items: any[] }[] = [];
+  for (const src of sources) {
+    const val = await evalExpression(src.expression, env, sf);
+    if (val === null || val === undefined) {
+      throw new LuaRuntimeError(
+        `Cross-join source '${src.name}' is nil`,
+        sf.withCtx(ctx),
+      );
+    }
+    const items = await normalizeToArray(val, sf);
+    arrays.push({ name: src.name, items });
+  }
+
+  // Cartesian product
+  let product: Record<string, any>[] = [{}];
+  for (const { name, items } of arrays) {
+    const newProduct: Record<string, any>[] = [];
+    for (const combo of product) {
+      for (const item of items) {
+        newProduct.push({ ...combo, [name]: item });
+      }
+    }
+    product = newProduct;
+  }
+
+  // Convert each combination to a `LuaTable` row
+  return product.map((combo) => {
+    const row = new LuaTable();
+    for (const key in combo) {
+      void row.rawSet(key, combo[key]);
+    }
+    return row;
+  });
 }
 
 export function evalExpression(
@@ -1014,8 +1102,89 @@ export function evalExpression(
         if (!findFromClause) {
           throw new LuaRuntimeError("No from clause found", sf.withCtx(q.ctx));
         }
-        const { objectVariable, expression: objectExpression } =
-          fromFieldsToSource(findFromClause.fields, findFromClause.ctx);
+        const fromSource = fromFieldsToSource(
+          findFromClause.fields,
+          findFromClause.ctx,
+        );
+
+        if (fromSource.kind === "cross") {
+          // Materialize Cartesian product, then query
+          return (async () => {
+            const rows = await evalCrossJoinSources(
+              fromSource.sources,
+              env,
+              sf,
+              findFromClause.ctx,
+            );
+            const collection: any = toCollection(rows);
+
+            // Build up query object
+            const query: LuaCollectionQuery = {
+              objectVariable: undefined,
+              distinct: true,
+            };
+
+            // Map clauses to query parameters
+            for (const clause of q.clauses) {
+              switch (clause.type) {
+                case "Where": {
+                  query.where = clause.expression;
+                  break;
+                }
+                case "OrderBy": {
+                  query.orderBy = clause.orderBy.map((o) => ({
+                    expr: o.expression,
+                    desc: o.direction === "desc",
+                    nulls: o.nulls,
+                    using: o.using,
+                  }));
+                  break;
+                }
+                case "Select": {
+                  query.select = fieldsToExpression(clause.fields, clause.ctx);
+                  break;
+                }
+                case "Limit": {
+                  const limitVal = await evalExpression(clause.limit, env, sf);
+                  query.limit = Number(limitVal);
+                  if (clause.offset) {
+                    const offsetVal = await evalExpression(
+                      clause.offset,
+                      env,
+                      sf,
+                    );
+                    query.offset = Number(offsetVal);
+                  }
+                  break;
+                }
+                case "Offset": {
+                  const offsetVal = await evalExpression(
+                    clause.offset,
+                    env,
+                    sf,
+                  );
+                  query.offset = Number(offsetVal);
+                  break;
+                }
+                case "GroupBy": {
+                  query.groupBy = fieldsToGroupByEntries(clause.fields);
+                  break;
+                }
+                case "Having": {
+                  query.having = clause.expression;
+                  break;
+                }
+              }
+            }
+
+            return (collection as any)
+              .query(query, env, sf, globalThis.client?.config)
+              .then(jsToLuaValue);
+          })();
+        }
+
+        // Single-source
+        const { objectVariable, expression: objectExpression } = fromSource;
         return Promise.resolve(evalExpression(objectExpression, env, sf)).then(
           async (collection: LuaValue) => {
             if (!collection) {
