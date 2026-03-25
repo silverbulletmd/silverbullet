@@ -77,19 +77,32 @@ function buildGroupItemEnv(
       itemEnv.setLocal("group", groupVal);
     }
 
+    // Unpack named fields from multi-key LuaTable keys
     if (keyVal instanceof LuaTable) {
       for (const k of luaKeys(keyVal)) {
         if (typeof k !== "string") continue;
         itemEnv.setLocal(k, luaGet(keyVal, k, sf.astCtx ?? null, sf));
       }
     }
-    // For single-key group by, bind the key name as a local
-    if (
-      !(keyVal instanceof LuaTable) &&
-      groupByNames &&
-      groupByNames.length === 1
-    ) {
-      itemEnv.setLocal(groupByNames[0], keyVal);
+
+    // Bind all `group by` aliases/names to their key values.  For
+    // single key bind the name to the scalar `keyVal`.  For multi-key
+    // bind each name to the field from the key table.
+    if (groupByNames && groupByNames.length > 0) {
+      if (!(keyVal instanceof LuaTable)) {
+        // Bind all names to scalar
+        for (const gbn of groupByNames) {
+          itemEnv.setLocal(gbn, keyVal);
+        }
+      } else {
+        // Ensure every alias is bound even if `luaKeys` missed it
+        for (const gbn of groupByNames) {
+          const v = keyVal.rawGet(gbn);
+          if (v !== undefined) {
+            itemEnv.setLocal(gbn, v);
+          }
+        }
+      }
     }
   }
   return itemEnv;
@@ -139,6 +152,11 @@ export type LuaOrderBy = {
   using?: string | LuaFunctionBody;
 };
 
+export type LuaGroupByEntry = {
+  expr: LuaExpression;
+  alias?: string;
+};
+
 /**
  * Represents a query for a collection
  */
@@ -156,8 +174,8 @@ export type LuaCollectionQuery = {
   offset?: number;
   // Whether to return only distinct values
   distinct?: boolean;
-  // The group by expressions evaluated with Lua
-  groupBy?: LuaExpression[];
+  // The group by entries evaluated with Lua
+  groupBy?: LuaGroupByEntry[];
   // The having expression evaluated with Lua
   having?: LuaExpression;
 };
@@ -697,21 +715,20 @@ export async function applyQuery(
   let groupByNames: string[] | undefined;
 
   if (query.groupBy) {
-    // Extract bare names from group-by expressions for local binding
-    groupByNames = query.groupBy
-      .map((expr) => {
-        if (expr.type === "Variable") {
-          return expr.name;
-        }
-        if (expr.type === "PropertyAccess") {
-          return expr.property;
-        }
+    // Extract expressions and names from `group by` entries
+    const groupByEntries = query.groupBy;
+
+    // Derive canonical name (explicit alias first, or from expression)
+    groupByNames = groupByEntries
+      .map((entry) => {
+        if (entry.alias) return entry.alias;
+        if (entry.expr.type === "Variable") return entry.expr.name;
+        if (entry.expr.type === "PropertyAccess") return entry.expr.property;
         return undefined as unknown as string;
       })
       .filter(Boolean);
 
     const groups = new Map<string | symbol, { key: any; items: any[] }>();
-    const groupByExprs = query.groupBy as LuaExpression[];
 
     for (const item of results) {
       const itemEnv = buildItemEnvLocal(query.objectVariable, item, env, sf);
@@ -719,18 +736,19 @@ export async function applyQuery(
       const keyParts: any[] = [];
       const keyRecord: Record<string, any> = {};
 
-      for (const expr of groupByExprs) {
-        if (expr.type === "Variable") {
-          const v = await evalExpression(expr, itemEnv, sf);
-          keyParts.push(v);
-          keyRecord[expr.name] = v;
-        } else if (expr.type === "PropertyAccess") {
-          const v = await evalExpression(expr, itemEnv, sf);
-          keyParts.push(v);
-          keyRecord[expr.property] = v;
-        } else {
-          const v = await evalExpression(expr, itemEnv, sf);
-          keyParts.push(v);
+      for (let ei = 0; ei < groupByEntries.length; ei++) {
+        const entry = groupByEntries[ei];
+        const v = await evalExpression(entry.expr, itemEnv, sf);
+        keyParts.push(v);
+        // Use alias if provided, or from expression
+        const name =
+          entry.alias ??
+          (entry.expr.type === "Variable" ? entry.expr.name : undefined) ??
+          (entry.expr.type === "PropertyAccess"
+            ? entry.expr.property
+            : undefined);
+        if (name) {
+          keyRecord[name] = v;
         }
       }
 
@@ -829,13 +847,15 @@ export async function applyQuery(
 
   let selectResults: any[] | undefined;
 
+  // Pre-compute select for grouped + ordered queries
   if (grouped && query.select && query.orderBy) {
+    const selectExpr = query.select;
     selectResults = [];
     for (const item of results) {
       const itemEnv = mkEnv(query.objectVariable, item, env, sf);
       const groupTable = (item as LuaTable).rawGet("group");
       const selected = await evalExpressionWithAggregates(
-        query.select,
+        selectExpr,
         itemEnv,
         sf,
         groupTable,
@@ -918,6 +938,7 @@ export async function applyQuery(
   }
 
   if (query.select) {
+    const selectExpr = query.select;
     if (selectResults) {
       results = selectResults;
     } else {
@@ -928,7 +949,7 @@ export async function applyQuery(
           const groupTable = (item as LuaTable).rawGet("group");
           newResult.push(
             await evalExpressionWithAggregates(
-              query.select,
+              selectExpr,
               itemEnv,
               sf,
               groupTable,
