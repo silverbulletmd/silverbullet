@@ -311,7 +311,7 @@ export type LuaQueryClause =
   | LuaGroupByClause
   | LuaHavingClause;
 
-// Field list used by from, select, group by clauses
+// Field list used by `from`, `select` and `group by` clauses
 export type LuaFromClause = {
   type: "From";
   fields: LuaTableField[];

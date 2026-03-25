@@ -1333,8 +1333,11 @@ function parseFieldList(t: ParseTree, ctx: ASTCtx): LuaTableField[] {
     throw new Error(`Expected FieldList, got ${t.type}`);
   }
   return t
-    .children!.filter((c) =>
-      c.type === "FieldExp" || c.type === "FieldProp" || c.type === "FieldDynamic",
+    .children!.filter(
+      (c) =>
+        c.type === "FieldExp" ||
+        c.type === "FieldProp" ||
+        c.type === "FieldDynamic",
     )
     .map((c) => parseTableField(c, ctx));
 }

@@ -77,19 +77,32 @@ function buildGroupItemEnv(
       itemEnv.setLocal("group", groupVal);
     }
 
+    // Unpack named fields from multi-key LuaTable keys
     if (keyVal instanceof LuaTable) {
       for (const k of luaKeys(keyVal)) {
         if (typeof k !== "string") continue;
         itemEnv.setLocal(k, luaGet(keyVal, k, sf.astCtx ?? null, sf));
       }
     }
-    // For single-key group by, bind the key name as a local
-    if (
-      !(keyVal instanceof LuaTable) &&
-      groupByNames &&
-      groupByNames.length === 1
-    ) {
-      itemEnv.setLocal(groupByNames[0], keyVal);
+
+    // Bind all `group by` aliases/names to their key values.  For
+    // single key bind the name to the scalar `keyVal`.  For multi-key
+    // bind each name to the field from the key table.
+    if (groupByNames && groupByNames.length > 0) {
+      if (!(keyVal instanceof LuaTable)) {
+        // Bind all names to scalar
+        for (const gbn of groupByNames) {
+          itemEnv.setLocal(gbn, keyVal);
+        }
+      } else {
+        // Ensure every alias is bound even if `luaKeys` missed it
+        for (const gbn of groupByNames) {
+          const v = keyVal.rawGet(gbn);
+          if (v !== undefined) {
+            itemEnv.setLocal(gbn, v);
+          }
+        }
+      }
     }
   }
   return itemEnv;
@@ -702,10 +715,10 @@ export async function applyQuery(
   let groupByNames: string[] | undefined;
 
   if (query.groupBy) {
-    // Extract expressions and names from group-by entries
+    // Extract expressions and names from `group by` entries
     const groupByEntries = query.groupBy;
 
-    // Derive canonical name: explicit alias first, then infer from expression
+    // Derive canonical name (explicit alias first, or from expression)
     groupByNames = groupByEntries
       .map((entry) => {
         if (entry.alias) return entry.alias;
@@ -727,10 +740,13 @@ export async function applyQuery(
         const entry = groupByEntries[ei];
         const v = await evalExpression(entry.expr, itemEnv, sf);
         keyParts.push(v);
-        // Use alias if provided, otherwise infer from expression
-        const name = entry.alias
-          ?? (entry.expr.type === "Variable" ? entry.expr.name : undefined)
-          ?? (entry.expr.type === "PropertyAccess" ? entry.expr.property : undefined);
+        // Use alias if provided, or from expression
+        const name =
+          entry.alias ??
+          (entry.expr.type === "Variable" ? entry.expr.name : undefined) ??
+          (entry.expr.type === "PropertyAccess"
+            ? entry.expr.property
+            : undefined);
         if (name) {
           keyRecord[name] = v;
         }
@@ -753,9 +769,11 @@ export async function applyQuery(
           keyVal = keyParts[0];
         } else {
           const kt = new LuaTable();
+          // Always populate array indices from keyParts
           for (let i = 0; i < keyParts.length; i++) {
             kt.rawSetArrayIndex(i + 1, keyParts[i]);
           }
+          // Additionally set named fields for Variable/PropertyAccess exprs
           for (const name in keyRecord) {
             void kt.rawSet(name, keyRecord[name]);
           }

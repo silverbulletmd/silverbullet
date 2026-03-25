@@ -73,7 +73,6 @@ AttNameList { list<AttName> }
 AttName { Name Attrib }
 Attrib { ( "<" Name ">" )? }
 
-// Bare field list (same content as between { } but no trailing separator)
 FieldList { field ("," field)* }
 
 exp {

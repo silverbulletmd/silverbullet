@@ -39,7 +39,11 @@ import {
   luaValueToJS,
   singleResult,
 } from "./runtime.ts";
-import { type LuaCollectionQuery, type LuaGroupByEntry, toCollection } from "./query_collection.ts";
+import {
+  type LuaCollectionQuery,
+  type LuaGroupByEntry,
+  toCollection,
+} from "./query_collection.ts";
 import {
   coerceNumericPair,
   coerceToNumber,
@@ -256,8 +260,10 @@ export function luaOp(
     case "+": {
       // Ultra-fast path: both plain numbers with no float type annotation (int + int)
       if (
-        typeof left === "number" && typeof right === "number" &&
-        leftType !== "float" && rightType !== "float"
+        typeof left === "number" &&
+        typeof right === "number" &&
+        leftType !== "float" &&
+        rightType !== "float"
       ) {
         return left + right;
       }
@@ -265,8 +271,10 @@ export function luaOp(
     }
     case "-": {
       if (
-        typeof left === "number" && typeof right === "number" &&
-        leftType !== "float" && rightType !== "float"
+        typeof left === "number" &&
+        typeof right === "number" &&
+        leftType !== "float" &&
+        rightType !== "float"
       ) {
         const r = left - right;
         // Integer subtraction can produce -0 (e.g. 0 - 0), normalize to +0
@@ -276,8 +284,10 @@ export function luaOp(
     }
     case "*": {
       if (
-        typeof left === "number" && typeof right === "number" &&
-        leftType !== "float" && rightType !== "float"
+        typeof left === "number" &&
+        typeof right === "number" &&
+        leftType !== "float" &&
+        rightType !== "float"
       ) {
         const r = left * right;
         // Integer multiplication can produce -0 (e.g. 0 * -1), normalize to +0
@@ -287,7 +297,15 @@ export function luaOp(
     }
     case "/":
     case "^": {
-      return luaArithGeneric(op as NumericArithOp, left, right, leftType, rightType, ctx, sf);
+      return luaArithGeneric(
+        op as NumericArithOp,
+        left,
+        right,
+        leftType,
+        rightType,
+        ctx,
+        sf,
+      );
     }
     case "..": {
       // Fast path: string .. string (most common in SilverBullet — key building, templates)
@@ -363,19 +381,25 @@ export function luaOp(
       return luaRelWithMetamethod("<", left, right, ctx, sf);
     }
     case "<=": {
-      if (typeof left === "number" && typeof right === "number") return left <= right;
-      if (typeof left === "string" && typeof right === "string") return left <= right;
+      if (typeof left === "number" && typeof right === "number")
+        return left <= right;
+      if (typeof left === "string" && typeof right === "string")
+        return left <= right;
       return luaRelWithMetamethod("<=", left, right, ctx, sf);
     }
     // Lua: `a>b` is `b<a`, `a>=b` is `b<=a`
     case ">": {
-      if (typeof left === "number" && typeof right === "number") return left > right;
-      if (typeof left === "string" && typeof right === "string") return left > right;
+      if (typeof left === "number" && typeof right === "number")
+        return left > right;
+      if (typeof left === "string" && typeof right === "string")
+        return left > right;
       return luaRelWithMetamethod("<", right, left, ctx, sf);
     }
     case ">=": {
-      if (typeof left === "number" && typeof right === "number") return left >= right;
-      if (typeof left === "string" && typeof right === "string") return left >= right;
+      if (typeof left === "number" && typeof right === "number")
+        return left >= right;
+      if (typeof left === "string" && typeof right === "string")
+        return left >= right;
       return luaRelWithMetamethod("<=", right, left, ctx, sf);
     }
   }
@@ -701,7 +725,12 @@ function fieldsToExpression(
     if (f.type !== "ExpressionField") return f;
     const key = deriveFieldName(f.value);
     if (key) {
-      return { type: "PropField", key, value: f.value, ctx: f.ctx } as LuaTableField;
+      return {
+        type: "PropField",
+        key,
+        value: f.value,
+        ctx: f.ctx,
+      } as LuaTableField;
     }
     return f;
   });
@@ -1209,13 +1238,19 @@ function evalPrefixExpression(
 
         const argsVal = evalExpressions(fc.args, env, sf);
         if (!isPromise(argsVal)) {
-          const allArgs = selfArgs.length > 0
-            ? [...selfArgs, ...(argsVal as LuaValue[])]
-            : argsVal as LuaValue[];
+          const allArgs =
+            selfArgs.length > 0
+              ? [...selfArgs, ...(argsVal as LuaValue[])]
+              : (argsVal as LuaValue[]);
           return luaCall(calleeVal, allArgs, fc.ctx, sf);
         }
         return (argsVal as Promise<LuaValue[]>).then((args) =>
-          luaCall(calleeVal, selfArgs.length > 0 ? [...selfArgs, ...args] : args, fc.ctx, sf),
+          luaCall(
+            calleeVal,
+            selfArgs.length > 0 ? [...selfArgs, ...args] : args,
+            fc.ctx,
+            sf,
+          ),
         );
       };
 
@@ -1389,17 +1424,41 @@ function evalBinaryWithLR(
       );
     }
     return (rightVal as Promise<any>).then((rv) =>
-      luaOp(op, singleResult(leftVal), singleResult(rv), leftType, rightType, ctx, sf),
+      luaOp(
+        op,
+        singleResult(leftVal),
+        singleResult(rv),
+        leftType,
+        rightType,
+        ctx,
+        sf,
+      ),
     );
   }
 
   return (leftVal as Promise<any>).then((lv) => {
     const rightVal = evalExpression(rightExpr, env, sf);
     if (!isPromise(rightVal)) {
-      return luaOp(op, singleResult(lv), singleResult(rightVal), leftType, rightType, ctx, sf);
+      return luaOp(
+        op,
+        singleResult(lv),
+        singleResult(rightVal),
+        leftType,
+        rightType,
+        ctx,
+        sf,
+      );
     }
     return (rightVal as Promise<any>).then((rv) =>
-      luaOp(op, singleResult(lv), singleResult(rv), leftType, rightType, ctx, sf),
+      luaOp(
+        op,
+        singleResult(lv),
+        singleResult(rv),
+        leftType,
+        rightType,
+        ctx,
+        sf,
+      ),
     );
   });
 }
@@ -2045,7 +2104,10 @@ export function evalStatement(
       const w = asWhile(s);
 
       // Sync-first loop that re-enters sync mode after each async iteration
-      const runSyncFirst = (): undefined | ControlSignal | Promise<undefined | ControlSignal> => {
+      const runSyncFirst = ():
+        | undefined
+        | ControlSignal
+        | Promise<undefined | ControlSignal> => {
         while (true) {
           const c = evalExpression(w.condition, env, sf);
           if (isPromise(c)) {
@@ -2086,7 +2148,10 @@ export function evalStatement(
       const rep = asRepeat(s);
 
       // Sync-first loop that re-enters sync mode after each async iteration
-      const runSyncFirst = (): undefined | ControlSignal | Promise<undefined | ControlSignal> => {
+      const runSyncFirst = ():
+        | undefined
+        | ControlSignal
+        | Promise<undefined | ControlSignal> => {
         while (true) {
           const rr = evalStatement(rep.block, env, sf, returnOnReturn);
           if (isPromise(rr)) {
@@ -2094,9 +2159,8 @@ export function evalStatement(
               if (res !== undefined) {
                 return isBreakSignal(res) ? undefined : res;
               }
-              return rpThen(
-                evalExpression(rep.condition, env, sf),
-                (cv) => luaTruthy(cv) ? undefined : runSyncFirst(),
+              return rpThen(evalExpression(rep.condition, env, sf), (cv) =>
+                luaTruthy(cv) ? undefined : runSyncFirst(),
               );
             });
           }
@@ -2439,12 +2503,7 @@ export function evalStatement(
               const localEnv = makeIterEnv();
               setIterVars(localEnv, fi.names, iterResult.values);
 
-              const r = evalStatement(
-                fi.block,
-                localEnv,
-                sf,
-                returnOnReturn,
-              );
+              const r = evalStatement(fi.block, localEnv, sf, returnOnReturn);
               return rpThen(r, (res) => {
                 if (res !== undefined) {
                   if (isBreakSignal(res)) {
