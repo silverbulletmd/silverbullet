@@ -1,16 +1,16 @@
-Document editors allow users to not only view but also edit documents. This means that Silverbullet can (theoretically) be used for much more than just markdown, e.g. PDF, asciidoc, org and a lot more. Currently the feature is still very young and the only editors available are proof of concepts, but this should hopefully change soon. If you want to contribute and make your own editor look at [[#Internals]]
+Document editors allow you to not only view but also edit files other than markdown. By itself they are just [[Plugs|plugs]] which hook into Silverbullet and provide an editor based on the extension of the file. Silverbullet includes an image viewer by itself to view most image files (`jpg`, `png`, ...). If you are missing an editor and want to build your own look at [[#Development]].
 
 # Usage
-Document editors are provided by [[Plugs]]. To install a document editor just install the plug. The editor will then be available for documents with certain file extensions which are specified by the plug, e.g. an image viewer would be available for `jpg`, `jpeg` and `png`.
-To edit or view a document, use `Cmd-o` (Mac) or `Ctrl-o` (Windows, Linux) to open the document navigator. Files for which a document editor is available will have their extension highlighted in blue.
+To get started, you first need to install a plug that provides a document editor (for examples see [[#Available editors]]). Once installed and loaded, you can open the document navigator using `Cmd-o` (Mac) or `Ctrl-o` (Windows, Linux), which works similarly to the page navigator. The only difference is that files which you can open will have their extension highlighted in blue, files for which no document editor is loaded are gray.
 
 # Available editors
-Currently only small demos are available
-- [TXT editor](https://github.com/MrMugame/silverbullet-txt/)
+Currently only two major document editors exist (As well as the built-in image viewer). Both are installable through the [[Library Manager]].
+
 - [PDF viewer](https://github.com/MrMugame/silverbullet-pdf/)
+- [Excalidraw](https://github.com/LogeshG5/silverbullet-excalidraw)
 
 # Development
-First the editor is defined inside the plug manifest. The `editor` field is used to specify the file extensions this editor can handle.
+First the editor is defined inside the plug manifest. The `editor` field is used to specify the file extensions your editor can handle.
 
 ```yaml
 name: txteditor
@@ -41,7 +41,7 @@ window.silverbullet.addEventLister("file-open", (event) => {
 SB will dispatch the following events:
 - `file-open`: A file was just navigated to, the document editor needs to open it. The details contain the meta and data: `{ data: Uint8Array, meta: DocumentMeta }`
 - `request-save`: Silverbullet is requesting a save, you should send a `file-saved` event as soon as possible
-- `focus`: You should focus the editor if possible (i.e. highlight cursor)
+- `focus`: You should focus the editor if possible (i.e. highlight cursor). If you don't know how to handle this `window.focus()` is a good bet.
 
 To send events/messages like the `file-saved` message, you can use the `sendMessage` function.
 
