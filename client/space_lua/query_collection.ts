@@ -728,7 +728,7 @@ export async function applyQuery(
       })
       .filter(Boolean);
 
-    const groups = new Map<string, { key: any; items: any[] }>();
+    const groups = new Map<string | symbol, { key: any; items: any[] }>();
 
     for (const item of results) {
       const itemEnv = buildItemEnvLocal(query.objectVariable, item, env, sf);
