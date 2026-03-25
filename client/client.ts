@@ -414,6 +414,15 @@ export class Client {
   reportError(e: any, context: string = "") {
     console.error(`Error during ${context}:`, e);
 
+    // Don't show flash notifications for expected operational errors
+    if (
+      e.message === "Offline" ||
+      e.name === "AbortError" ||
+      e.name === "TimeoutError"
+    ) {
+      return;
+    }
+
     if (e instanceof LuaRuntimeError) {
       this.ui.flashNotification(`Lua error: ${e.message}`, "error");
       const origin = resolveASTReference(e.sf.astCtx!);
