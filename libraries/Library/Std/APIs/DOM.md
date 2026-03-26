@@ -10,8 +10,10 @@ dom.span {
   -- tag attributes can be set like this:
   class = "my-class",
   id = "my-id",
-  -- Plain text body elements can be added like this
+  -- Plain text body elements can be added like this (rendered as markdown)
   "Span content",
+  -- Use __rawText to add plain text without markdown processing
+  __rawText = "1. This won't become a list",
   -- And elements can be nested
   dom.strong { "I am strong" },
   -- Widgets can also be embedded
@@ -46,7 +48,9 @@ dom =  setmetatable({}, {
       for key, val in pairs(spec) do
         if type(key) == "string" then
           -- This is an attribute
-          if key:startsWith("on") then
+          if key == "__rawText" then
+            node.appendChild(js.window.document.createTextNode(val))
+          elseif key:startsWith("on") then
             node.addEventListener(key:sub(3), val)
           else
             node.setAttribute(key, val)

@@ -86,7 +86,7 @@ end
   font-weight: bold;
   user-select: none;
   padding: 15px 10px;
-  margin: -10px;
+  margin: -10px -10px 0 -10px;
   background-color: var(--editor-widget-background-color);
 }
 .sb-toc-content {
@@ -175,21 +175,44 @@ function widgets.toc(options)
     minLevel = math.min(minLevel, header.level)
   end
 
-  -- Build TOC entries as DOM elements
-  local tocItems = {}
-  for _, header in ipairs(headersToDisplay) do
-    local indent = (header.level - minLevel) * 1.5
-    table.insert(tocItems, dom.div {
-      class = "sb-toc-item",
-      style = "margin-left: " .. indent .. "rem;",
-      dom.a {
-        onclick = function()
-          editor.navigate({ page = pageName, pos = header.pos })
-        end,
-        class = "sb-toc-link",
-        "- " .. header.name
+  -- Build a nested ul/li structure based on heading levels
+  local function buildTocList(headers)
+    local root = dom.ul {  }
+    local stack = { { node = root, level = minLevel - 1, lastLi = nil } }
+
+    for _, header in ipairs(headers) do
+      -- Pop back up when heading is at same or higher level
+      while #stack > 1 and stack[#stack].level >= header.level do
+        table.remove(stack)
+      end
+
+      -- Open nested <ul>s for deeper headings
+      while stack[#stack].level < header.level - 1 do
+        local newUl = dom.ul {}
+        -- Attach nested list to the last <li> in the current level, or create one if needed
+        local parent = stack[#stack].lastLi or dom.li {}
+        if not stack[#stack].lastLi then
+          stack[#stack].node.appendChild(parent)
+        end
+        parent.appendChild(newUl)
+        table.insert(stack, { node = newUl, level = stack[#stack].level + 1, lastLi = nil })
+      end
+
+      -- Create the <li> with link
+      local li = dom.li {
+        dom.a {
+          onclick = function()
+            editor.navigate({ page = pageName, pos = header.pos })
+          end,
+          class = "sb-toc-link",
+          __rawText = header.name
+        }
       }
-    })
+      stack[#stack].node.appendChild(li)
+      stack[#stack].lastLi = li
+    end
+
+    return root
   end
 
   -- Wrap in a <details> element for native show/hide toggle
@@ -200,10 +223,7 @@ function widgets.toc(options)
         class = "sb-toc-summary",
         options.header
       },
-      dom.div {
-        class = "sb-toc-content",
-        table.unpack(tocItems)
-      }
+      buildTocList(headersToDisplay)
     },
     display = "block"
   }

@@ -55,14 +55,14 @@ The real power comes from linking journal entries to topic pages. Instead of pla
 
 Each `[[link]]` connects that journal entry (and its sub-items) to the referenced page.
 
-# 4. Watch topic pages come alive
+# 3. Watch topic pages come alive
 Navigate to Alice’s page. In the [[Linked Mention]] section at the bottom, you’ll see your journal entries that mention her — complete with the surrounding context and sub-items. Tomorrow’s journal entry mentioning Alice will appear there too.
 
 Over time, each topic page accumulates a reverse-chronological log of every journal entry that references it. You don’t maintain this log — it builds itself from your daily writing.
 
 This works for any kind of page: people, projects, concepts, books. Your journal becomes the connective tissue between all your topics.
 
-# 5. Query your journal
+# 4. Query your journal
 Use [[Space Lua/Lua Integrated Query]] to pull insights from your journal pages. For example, show recent journal entries on your [[Index Page]]:
 
 ```lua
