@@ -37,6 +37,7 @@ const autoSaveInterval = 1000;
 export class ContentManager {
   documentEditor: DocumentEditor | null = null;
   saveTimeout?: ReturnType<typeof setTimeout>;
+  private scrollRestoreCleanup?: () => void;
   debouncedUpdateEvent = throttle(() => {
     this.client.eventHook
       .dispatchEvent("editor:updated")
@@ -541,9 +542,7 @@ export class ContentManager {
 
     // Was a particular scroll position persisted?
     if (pageState.scrollTop && pageState.scrollTop > 0) {
-      setTimeout(() => {
-        this.client.editorView.scrollDOM.scrollTop = pageState.scrollTop!;
-      });
+      this.restoreScrollPosition(pageState.scrollTop);
       adjustedPosition = true;
     }
 
@@ -556,6 +555,11 @@ export class ContentManager {
     }
 
     // If not: just put the cursor at the top of the page, right after the frontmatter
+    if (!adjustedPosition && this.scrollRestoreCleanup) {
+      // No scroll position to restore, cancel any pending restoration
+      this.scrollRestoreCleanup();
+      this.scrollRestoreCleanup = undefined;
+    }
     if (!adjustedPosition) {
       // Somewhat ad-hoc way to determine if the document contains frontmatter and if so, putting the cursor _after it_.
       const pageText = this.client.editorView.state.sliceDoc();
@@ -575,5 +579,72 @@ export class ContentManager {
         scrollIntoView: true,
       });
     }
+  }
+
+  /**
+   * Restores scroll position after page navigation, accounting for async widget
+   * rendering that may change the page layout. Uses a MutationObserver to
+   * re-apply the scroll position whenever the DOM changes (e.g. widgets finish
+   * rendering), with a timeout to stop after the layout has stabilized.
+   */
+  private restoreScrollPosition(scrollTop: number) {
+    // Cancel any previous scroll restoration
+    if (this.scrollRestoreCleanup) {
+      this.scrollRestoreCleanup();
+    }
+
+    const scrollDOM = this.client.editorView.scrollDOM;
+    let settled = false;
+
+    const applyScroll = () => {
+      if (!settled) {
+        scrollDOM.scrollTop = scrollTop;
+      }
+    };
+
+    // Apply immediately on the next tick (as before)
+    setTimeout(applyScroll);
+
+    // Watch for DOM mutations (widget rendering) and re-apply scroll position
+    const observer = new MutationObserver(() => {
+      applyScroll();
+    });
+
+    observer.observe(scrollDOM, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      // Watch for style changes (widget height changes)
+      attributeFilter: ["style", "class"],
+    });
+
+    // Also handle user scroll: if the user manually scrolls, stop restoring
+    const onUserScroll = () => {
+      cleanup();
+    };
+    // Delay attaching the scroll listener so our own scroll assignments don't
+    // trigger it
+    const scrollListenerTimer = setTimeout(() => {
+      scrollDOM.addEventListener("scroll", onUserScroll, { once: true });
+    }, 100);
+
+    // Stop restoring after a reasonable timeout (widgets should be done by then)
+    const timeout = setTimeout(() => {
+      cleanup();
+    }, 2000);
+
+    const cleanup = () => {
+      if (settled) return;
+      settled = true;
+      observer.disconnect();
+      clearTimeout(timeout);
+      clearTimeout(scrollListenerTimer);
+      scrollDOM.removeEventListener("scroll", onUserScroll);
+      if (this.scrollRestoreCleanup === cleanup) {
+        this.scrollRestoreCleanup = undefined;
+      }
+    };
+
+    this.scrollRestoreCleanup = cleanup;
   }
 }
