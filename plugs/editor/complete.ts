@@ -17,13 +17,13 @@ export async function pageComplete(completeEvent: CompleteEvent) {
   const isMetaPageQuery = {
     objectVariable: "_",
     where: await lua.parseExpression(`table.find(_.tags, function(tag)
-           return string.startsWith(tag, "meta")
+           return tag == "meta" or string.startsWith(tag, "meta/")
           end)`),
   };
   const isntMetaPageQuery = {
     objectVariable: "_",
     where: await lua.parseExpression(`not table.find(_.tags, function(tag)
-           return string.startsWith(tag, "meta")
+           return tag == "meta" or string.startsWith(tag, "meta/")
           end)`),
   };
   // Try to match [[wikilink]]

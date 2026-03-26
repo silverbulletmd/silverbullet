@@ -1,7 +1,7 @@
 import { FilterList } from "./filter.tsx";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 import { tagRegex as mdTagRegex } from "../markdown_parser/constants.ts";
-import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
+import { extractHashtag, isMetaTag } from "@silverbulletmd/silverbullet/lib/tags";
 import type {
   DocumentMeta,
   PageMeta,
@@ -262,6 +262,6 @@ export function AnythingPicker({
 function isMetaPageOption(page: FilterOption) {
   return (
     page.meta.tags?.includes("template") ||
-    page.meta.tags?.find((tag: string) => tag.startsWith("meta"))
+    page.meta.tags?.find((tag: string) => isMetaTag(tag))
   );
 }

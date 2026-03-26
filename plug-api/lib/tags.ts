@@ -1,3 +1,8 @@
+/** Check if a tag marks a page as a meta page (exact "meta" or "meta/..." subtag) */
+export function isMetaTag(tag: string): boolean {
+  return tag === "meta" || tag.startsWith("meta/");
+}
+
 /** Extract the name from hashtag text, removing # prefix and <angle brackets> if necessary */
 export function extractHashtag(text: string): string {
   if (text[0] !== "#") {
