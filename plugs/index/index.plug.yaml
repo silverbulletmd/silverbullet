@@ -60,6 +60,11 @@ functions:
     events:
       - editor:complete
 
+  frontmatterTagComplete:
+    path: tags.ts:frontmatterTagComplete
+    events:
+      - editor:complete
+
   frontmatterComplete:
     path: frontmatter.ts:frontmatterComplete
     events:

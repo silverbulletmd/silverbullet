@@ -69,8 +69,12 @@ export async function tagComplete(completeEvent: CompleteEvent) {
     return null;
   }
 
-  const match = /#[^#\s[\]]+\w*$/.exec(completeEvent.linePrefix);
+  const match = /#[^#\s[\]]*$/.exec(completeEvent.linePrefix);
   if (!match) {
+    return null;
+  }
+  // Don't trigger on markdown headers (# Heading, ## Heading, etc.)
+  if (match.index === 0 && /^#{1,6}(\s|$)/.test(completeEvent.linePrefix)) {
     return null;
   }
 
@@ -84,6 +88,73 @@ export async function tagComplete(completeEvent: CompleteEvent) {
     from: completeEvent.pos - match[0].length,
     options: allTags.map((tag) => ({
       label: renderHashtag(tag),
+      type: "tag",
+    })),
+  };
+}
+
+export async function frontmatterTagComplete(completeEvent: CompleteEvent) {
+  // Only trigger inside frontmatter
+  const frontmatterNode = completeEvent.parentNodes.find((n) =>
+    n.startsWith("FrontMatter:")
+  );
+  if (!frontmatterNode) {
+    return null;
+  }
+
+  const fmContent = frontmatterNode.substring("FrontMatter:".length);
+
+  // Determine if the cursor line is within a tags section
+  // Pattern 1: tags: value or tags: [v1, v2, partial (comma or space separated)
+  const tagsLineMatch = /tags:\s+\[?(?:.*[,\s]\s*)?([^\s!@$%^&*(),.?":{}|<>\\[\]]*)$/.exec(
+    completeEvent.linePrefix,
+  );
+
+  let prefix = "";
+  if (tagsLineMatch) {
+    prefix = tagsLineMatch[1];
+  } else {
+    // Pattern 2: list item under a tags: key (e.g. "  - partial")
+    const listItemMatch = /^\s+-\s+([^\s!@$%^&*(),.?":{}|<>\\[\]]*)$/.exec(completeEvent.linePrefix);
+    if (!listItemMatch) {
+      return null;
+    }
+
+    // Check if this list item is under the tags: key using cheap YAML parsing
+    const lines = fmContent.split("\n");
+    const cursorLineText = completeEvent.linePrefix;
+    let inTagsSection = false;
+    let foundCursorInTags = false;
+
+    for (const line of lines) {
+      const kvMatch = /^\s*(\w+):/.exec(line);
+      if (kvMatch) {
+        inTagsSection = kvMatch[1] === "tags";
+      }
+      if (inTagsSection && line.trimEnd() === cursorLineText.trimEnd()) {
+        foundCursorInTags = true;
+        break;
+      }
+    }
+
+    if (!foundCursorInTags) {
+      return null;
+    }
+    prefix = listItemMatch[1];
+  }
+
+  // Strip # prefix if present (frontmatter tags can use #tag syntax)
+  const cleanPrefix = prefix.replace(/^#/, "");
+
+  const allTags: string[] = await index.queryLuaObjects<string>("tag", {
+    distinct: true,
+    select: { type: "Variable", name: "name", ctx: {} as any },
+  });
+
+  return {
+    from: completeEvent.pos - prefix.length,
+    options: allTags.map((tag) => ({
+      label: tag,
       type: "tag",
     })),
   };
