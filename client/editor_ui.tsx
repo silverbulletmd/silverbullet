@@ -449,7 +449,7 @@ export class MainUI {
               .includes("hamburger")
               ? [
                   {
-                    icon: featherIcons.MoreVertical,
+                    icon: featherIcons.Menu,
                     description: "Open Menu",
                     class: "expander",
                     callback: () => {
