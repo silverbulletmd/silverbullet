@@ -74,6 +74,15 @@ test("Markdown render", () => {
   });
 });
 
+test("Wiki link with embedded image path", () => {
+  // This particular one caused an infinite regex loop previously, adding it here as a regression to avoid in the future
+  const example = `![[Inbox/2026-01-08/CleanShot 2026-01-01 at 12.36.23.png]]`;
+  const tree = parse(extendedMarkdownLanguage, example);
+  renderMarkdownToHtml(tree, {
+    failOnUnknown: true,
+  });
+});
+
 test("Smart hard break test", () => {
   const example = `**Hello**
 *world!*`;
