@@ -400,6 +400,7 @@ config.set {
       icon = "home",
       description = "Go to the index page",
       priority = 3,
+      dropdown = false,
       run = function()
         editor.invokeCommand "Navigate: Home"
       end
