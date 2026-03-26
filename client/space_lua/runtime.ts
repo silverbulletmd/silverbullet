@@ -624,24 +624,16 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
   // When tables are used as arrays, we use a native JavaScript array for that
   private arrayPart: any[];
 
-  // Numeric type metadata at storage boundaries
-  private readonly stringKeyTypes = new Map<string, NumericType>();
+  // Numeric type metadata at storage boundaries (lazily allocated)
+  private stringKeyTypes: Map<string, NumericType> | null = null;
   private otherKeyTypes: Map<any, NumericType> | null = null;
-  private readonly arrayTypes: (NumericType | undefined)[] = [];
+  private arrayTypes: (NumericType | undefined)[] | null = null;
 
   constructor(init?: any[] | Record<string, any>) {
     // For efficiency and performance reasons we pre-allocate these (modern JS engines are very good at optimizing this)
     this.arrayPart = Array.isArray(init) ? init : [];
     this.stringKeys = init && !Array.isArray(init) ? init : {};
-
-    if (init && !Array.isArray(init)) {
-      for (const k in init) {
-        if (Object.hasOwn(init, k)) {
-          this.stringKeys[k] = (init as any)[k];
-        }
-      }
-    }
-    this.otherKeys = null; // Only create this when needed
+    this.otherKeys = null;
     this.metatable = null;
   }
 
@@ -746,6 +738,15 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
       return this.stringKeys[key] !== undefined;
     }
 
+    // Fast path for plain integer keys (common in for loops)
+    if (typeof key === "number") {
+      if (key >= 1 && (key | 0) === key) {
+        if (this.arrayPart[key - 1] !== undefined) return true;
+        return this.otherKeys ? this.otherKeys.has(key) : false;
+      }
+      return this.otherKeys ? this.otherKeys.has(key) : false;
+    }
+
     const normalizedKey = LuaTable.normalizeNumericKey(key);
 
     if (
@@ -782,8 +783,9 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
 
     this.arrayPart[idx] = value;
     if (isLuaNumber(value) && numType) {
+      if (!this.arrayTypes) this.arrayTypes = [];
       this.arrayTypes[idx] = numType;
-    } else {
+    } else if (this.arrayTypes) {
       this.arrayTypes[idx] = undefined;
     }
   }
@@ -808,7 +810,12 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
       }
 
       this.arrayPart.push(v);
-      this.arrayTypes.push(nt);
+      if (nt) {
+        if (!this.arrayTypes) this.arrayTypes = [];
+        this.arrayTypes.push(nt);
+      } else if (this.arrayTypes) {
+        this.arrayTypes.push(undefined);
+      }
     }
   }
 
@@ -828,12 +835,13 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     if (typeof key === "string") {
       if (value === null || value === undefined) {
         delete this.stringKeys[key];
-        if (this.stringKeyTypes.size > 0) this.stringKeyTypes.delete(key);
+        if (this.stringKeyTypes) this.stringKeyTypes.delete(key);
       } else {
         this.stringKeys[key] = value;
         if (numType) {
+          if (!this.stringKeyTypes) this.stringKeyTypes = new Map();
           this.stringKeyTypes.set(key, numType);
-        } else if (this.stringKeyTypes.size > 0) {
+        } else if (this.stringKeyTypes) {
           this.stringKeyTypes.delete(key);
         }
       }
@@ -845,12 +853,13 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
     if (typeof normalizedKey === "string") {
       if (value === null || value === undefined) {
         delete this.stringKeys[normalizedKey];
-        this.stringKeyTypes.delete(normalizedKey);
+        if (this.stringKeyTypes) this.stringKeyTypes.delete(normalizedKey);
       } else {
         this.stringKeys[normalizedKey] = value;
         if (isLuaNumber(value) && numType) {
+          if (!this.stringKeyTypes) this.stringKeyTypes = new Map();
           this.stringKeyTypes.set(normalizedKey, numType);
-        } else {
+        } else if (this.stringKeyTypes) {
           this.stringKeyTypes.delete(normalizedKey);
         }
       }
@@ -869,8 +878,9 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
       if (idx <= this.arrayPart.length) {
         this.arrayPart[idx] = value;
         if (isLuaNumber(value) && numType) {
+          if (!this.arrayTypes) this.arrayTypes = [];
           this.arrayTypes[idx] = numType;
-        } else {
+        } else if (this.arrayTypes) {
           this.arrayTypes[idx] = undefined;
         }
 
@@ -893,7 +903,7 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
           }
           if (n !== this.arrayPart.length) {
             this.arrayPart.length = n;
-            this.arrayTypes.length = n;
+            if (this.arrayTypes) this.arrayTypes.length = n;
           }
         }
 
@@ -962,12 +972,13 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
       );
     }
 
-    // Fast path: key exists or no metatable — skip metamethod machinery
-    if (this.has(key)) {
+    // Fast path: no metatable — skip has() check and metamethod machinery
+    if (this.metatable === null) {
       return this.rawSet(key, value, numType);
     }
 
-    if (this.metatable === null) {
+    // Key exists — rawSet directly, no metamethod needed
+    if (this.has(key)) {
       return this.rawSet(key, value, numType);
     }
 
@@ -1039,10 +1050,19 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
 
   getNumericType(key: LuaValue): NumericType | undefined {
     if (typeof key === "string") {
-      return this.stringKeyTypes.get(key);
+      return this.stringKeyTypes ? this.stringKeyTypes.get(key) : undefined;
+    }
+    // Fast path for plain integer keys
+    if (typeof key === "number") {
+      if (key >= 1 && (key | 0) === key) {
+        return this.arrayTypes ? this.arrayTypes[key - 1] : undefined;
+      }
+      return this.otherKeyTypes ? this.otherKeyTypes.get(key) : undefined;
     }
     if (LuaTable.isIntegerKey(key)) {
-      return this.arrayTypes[LuaTable.toIndex(key)];
+      return this.arrayTypes
+        ? this.arrayTypes[LuaTable.toIndex(key)]
+        : undefined;
     }
     if (this.otherKeyTypes) {
       return this.otherKeyTypes.get(key);
@@ -1125,8 +1145,21 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
 
   toJSObject(sf = LuaStackFrame.lostFrame): Record<string, any> {
     const result: Record<string, any> = {};
-    for (const key of this.keys()) {
-      result[key] = luaValueToJS(this.get(key, sf), sf);
+    // Direct access to stringKeys avoids keys() allocation and get() metatable checks
+    for (const k in this.stringKeys) {
+      if (Object.hasOwn(this.stringKeys, k)) {
+        result[k] = luaValueToJS(this.stringKeys[k], sf);
+      }
+    }
+    // Include array part with 1-based keys
+    for (let i = 0; i < this.arrayPart.length; i++) {
+      result[i + 1] = luaValueToJS(this.arrayPart[i], sf);
+    }
+    // Include other keys
+    if (this.otherKeys) {
+      for (const [key, val] of this.otherKeys) {
+        result[key] = luaValueToJS(val, sf);
+      }
     }
     return result;
   }
@@ -1752,18 +1785,18 @@ export function jsToLuaValue(value: any): any {
     return regexMatchTable;
   }
   if (Array.isArray(value)) {
-    const table = new LuaTable();
+    const converted = new Array(value.length);
     for (let i = 0; i < value.length; i++) {
-      void table.set(i + 1, jsToLuaValue(value[i]));
+      converted[i] = jsToLuaValue(value[i]);
     }
-    return table;
+    return new LuaTable(converted);
   }
   if (typeof value === "object") {
-    const table = new LuaTable();
+    const converted: Record<string, any> = {};
     for (const key in value) {
-      void table.set(key, jsToLuaValue((value as any)[key]));
+      converted[key] = jsToLuaValue((value as any)[key]);
     }
-    return table;
+    return new LuaTable(converted);
   }
   if (typeof value === "function") {
     return new LuaNativeJSFunction(value);
