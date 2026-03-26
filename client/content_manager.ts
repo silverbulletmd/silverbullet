@@ -5,7 +5,9 @@ import {
   getNameFromPath,
   getOffsetFromHeader,
   getOffsetFromLineColumn,
+  getPathExtension,
   isMarkdownPath,
+  type Path,
 } from "@silverbulletmd/silverbullet/lib/ref";
 import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 import type {
@@ -175,23 +177,22 @@ export class ContentManager {
       await this.client.objectIndex.awaitIndexQueueDrain();
     }
 
-    // This can throw, but that will be catched and handled upstream.
-    const doc = await this.client.space.readDocument(path);
+    const extension = getPathExtension(path as Path);
 
     // Create the document editor if it doesn't already exist
     if (
       !this.isDocumentEditor() ||
-      this.documentEditor.extension !== doc.meta.extension
+      this.documentEditor.extension !== extension
     ) {
       try {
-        await this.switchToDocumentEditor(doc.meta.extension);
+        await this.switchToDocumentEditor(extension);
       } catch (e: any) {
         // If there is no document editor we will open the file raw
         if (e.message.includes("Couldn't find")) {
           this.client.openUrl(
             `${document.baseURI.replace(/\/*$/, "") + fsEndpoint}/${path}`,
-            !previousPath,
           );
+          throw new Error("Opened externally");
         }
 
         throw e;
@@ -201,6 +202,9 @@ export class ContentManager {
         throw new Error("Problem setting up document editor");
       }
     }
+
+    // This can throw, but that will be catched and handled upstream.
+    const doc = await this.client.space.readDocument(path);
 
     this.documentEditor!.openFile(doc.data, doc.meta, locationState.details);
 
