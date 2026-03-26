@@ -35,6 +35,25 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
 * Fix: [attribute rendering](https://github.com/silverbulletmd/silverbullet/pull/1880).
 * Fix: [Markdown table rendering](https://github.com/silverbulletmd/silverbullet/pull/1879) and removal of deprecated command button remnants.
 * **[[Runtime API]]** (==Experimental==): programmatically interact with SilverBullet over HTTP — evaluate Lua expressions, run scripts, take screenshots, and retrieve console logs. Powered by a headless Chrome instance running the full SilverBullet client via CDP, so all results reflect live client state. Auto-enables when Chrome/Chromium is detected; a `-runtime-api` Docker image variant with bundled Chromium is also available. See [[Runtime API]] for full documentation.
+* [[Space Lua/Lua Integrated Query]] improvements (courtesy of [Matouš Jan Fialka](https://github.com/mjf)):
+  * [Unified field list syntax](https://github.com/silverbulletmd/silverbullet/pull/1909) for `from`, `select`, and `group by` clauses, enabling multi-source cross-joins
+  * [Implicit single group](https://github.com/silverbulletmd/silverbullet/pull/1907) for aggregates without `group by`
+  * [13 new aggregate functions](https://github.com/silverbulletmd/silverbullet/pull/1891) (`product`, `string_agg`, `yaml_agg`, `json_agg`, `bit_and`, `bit_or`, `bit_xor`, `bool_and`, `bool_or`, `stddev_pop`, `stddev_samp`, `var_pop`, `var_samp`), `aggregate.alias` API for custom aliases, and `index.aggregates` queryable collection
+* [[Task]] improvements (by [Matouš Jan Fialka](https://github.com/mjf)):
+  * [Dropdown picker for custom task states](https://github.com/silverbulletmd/silverbullet/pull/1900) with autocomplete and per-state CSS styling via `data-task-state` attribute
+  * [Improved task widget](https://github.com/silverbulletmd/silverbullet/pull/1905): toggle dropdown on re-click, narrowed decoration range for better cursor behavior
+* Performance: Lua interpreter hot-path optimizations, tree traversal and page index optimizations.
+* [[API/shell#shell.run(cmd, args, stdin?)]]: `shell.run` now accepts an optional `stdin` parameter (by [Brett Anthoine](https://github.com/banthoine)).
+* Sync: further edge case fixes (timestamp/content-length mismatch, service worker activation).
+* Potentiallly **breaking** change: `template.each` now returns an empty string on empty results instead of `nil`.
+* Fix: only `#meta` and `#meta/` prefixed tags are now considered meta tags, not e.g. `#metabase`.
+* Fix: TOC rendering when headers contain a numbered list item.
+* Fix: edge case where the markdown link regex could go into infinite loop (links with escaped square brackets).
+* Fix: unwrap multi-return values in PropertyAccess and method calls (by [Brett Anthoine](https://github.com/banthoine)).
+* Fix: allow colons in `SB_USER` password (by [Joshua Brunner](https://github.com/joshuabrunner)).
+* Fix: mobile tasks caret jumping and empty widgets on navigation.
+* Fix: extended task state widget click behavior and rendering in widgets.
+* Fix: safer handling of default template files in non-empty spaces.
 
 ## 2.5.0
 * Changed keyboard bindings (sorry!). CodeMirror no longer directly allows `Alt-<letter>` and `Alt-<special-character>` [[Keyboard Shortcuts]], meaning I had to **remap a few key bindings**. It’s basically a mission impossible to pick great ones, but here are the new defaults:
