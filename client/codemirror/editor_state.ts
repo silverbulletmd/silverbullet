@@ -44,7 +44,11 @@ import { createSmartQuoteKeyBindings } from "./smart_quotes.ts";
 import { documentExtension, pasteLinkExtension } from "./editor_paste.ts";
 import type { TextChange } from "./change.ts";
 import { postScriptPrefacePlugin } from "./top_bottom_panels.ts";
-import { languageFor } from "../languages.ts";
+import {
+  lazyLanguages,
+  languageFor,
+  loadLanguageFor,
+} from "../languages.ts";
 import { plugLinter } from "./lint.ts";
 import { buildExtendedMarkdownLanguage } from "../markdown_parser/parser.ts";
 import { safeRun } from "@silverbulletmd/silverbullet/lib/async";
@@ -460,6 +464,13 @@ export function buildMarkdownLanguageExtension(client: Client): Extension[] {
           return LanguageDescription.of({
             name: info,
             support: new LanguageSupport(lang),
+          });
+        }
+        if (info in lazyLanguages) {
+          return LanguageDescription.of({
+            name: info,
+            load: async () =>
+              new LanguageSupport((await loadLanguageFor(info))!),
           });
         }
         return null;
