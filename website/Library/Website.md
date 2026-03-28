@@ -35,4 +35,8 @@ event.listen {
   padding: 10px;
   margin: 0px !important;
 }
+
+html[data-theme="dark"] .website-warning {
+  background-color: #403521;
+}
 ```
