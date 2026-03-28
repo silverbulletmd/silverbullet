@@ -68,7 +68,9 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       if (isWebKit) {
         url = encodeExtensionDot(url);
       }
-      options.signal = AbortSignal.timeout(fetchTimeout);
+      if (fetchTimeout > 0) {
+        options.signal = AbortSignal.timeout(fetchTimeout);
+      }
       options.redirect = "manual";
       const result = await fetch(url, options);
       if (result.status >= 500 && result.status < 600) {
@@ -129,6 +131,12 @@ export class HttpSpacePrimitives implements SpacePrimitives {
       }
       return result;
     } catch (e: any) {
+      // AbortSignal.timeout() throws a DOMException with name "TimeoutError".
+      // This is NOT an offline condition — the network may be fine, just slow.
+      if (e.name === "TimeoutError") {
+        console.warn("Request timed out for", url);
+        throw new Error(`Request timed out after ${fetchTimeout}ms`);
+      }
       // Errors when there is no internet connection:
       //
       // * Firefox: NetworkError when attempting to fetch resource (with SW and without)
@@ -218,6 +226,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
         // Casting to any due to TypeScript fetch type limitations
         body: data as any,
       },
+      0, // No timeout for uploads — transfer time depends on file size and connection speed
     );
     return headersToFileMeta(path, res.headers)!;
   }
