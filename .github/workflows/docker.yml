@@ -9,7 +9,7 @@ on:
       - "*"
 env:
   # Docker & Registries
-  ARCHITECTURES: linux/arm64,linux/amd64
+  ARCHITECTURES: linux/arm64,linux/amd64,linux/arm/v7
   IMAGE_NAME: silverbullet
   WEBSITE_IMAGE: zefhemel/silverbullet-website
   NAMESPACE_GITHUB: silverbulletmd

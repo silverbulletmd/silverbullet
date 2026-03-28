@@ -6,7 +6,7 @@ ARG TARGETARCH
 ENV GO_VERSION=1.25.1
 
 # Install Go
-RUN set -e; actual_arch=${TARGETARCH:-$(dpkg --print-architecture)}; wget -P /tmp "https://dl.google.com/go/go${GO_VERSION}.linux-${actual_arch}.tar.gz"; tar -C /usr/local -xzf "/tmp/go${GO_VERSION}.linux-${actual_arch}.tar.gz"; rm "/tmp/go${GO_VERSION}.linux-${actual_arch}.tar.gz"
+RUN set -e; actual_arch=${TARGETARCH:-$(dpkg --print-architecture)}; case "$actual_arch" in arm) actual_arch=armv6l ;; esac; wget -P /tmp "https://dl.google.com/go/go${GO_VERSION}.linux-${actual_arch}.tar.gz"; tar -C /usr/local -xzf "/tmp/go${GO_VERSION}.linux-${actual_arch}.tar.gz"; rm "/tmp/go${GO_VERSION}.linux-${actual_arch}.tar.gz"
 
 ENV GOPATH=/go
 ENV PATH=$GOPATH/bin:/usr/local/go/bin:$PATH

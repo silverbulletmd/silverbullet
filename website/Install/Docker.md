@@ -6,8 +6,7 @@ Conveniently, SilverBullet is published as a [docker image on GHCR](https://gith
 
 * 64-bit Intel
 * 64-bit ARM (e.g. for Raspberry Pis and Apple Silicon macs)
-
-There is no 32-bit version of SilverBullet. Most people run 64-bit OSes these days, an exception may be Raspberry Pis. Recent (RPI 3 and later) can run 64-bit Linux as well.
+* 32-bit ARM (ARMv7, e.g. for older Raspberry Pis running 32-bit Linux)
 
 > **warning** Warning
 > To access SilverBullet outside of `localhost` you will need to set up [[TLS]].

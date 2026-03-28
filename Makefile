@@ -15,9 +15,10 @@ build:
 build-for-docker: build
 	GOOS=linux GOARCH=arm64 go build -ldflags "$(LDFLAGS)" -o silverbullet-arm64 .
 	GOOS=linux GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o silverbullet-amd64 .
+	GOOS=linux GOARCH=arm GOARM=7 go build -ldflags "$(LDFLAGS)" -o silverbullet-arm .
 
 docker: build-for-docker
-	docker buildx build --platform linux/arm64,linux/amd64 --push .
+	docker buildx build --platform linux/arm64,linux/amd64,linux/arm/v7 --push .
 
 build-server-releases:
 	GOOS=linux GOARCH=arm64 go build -ldflags "$(LDFLAGS)" -o silverbullet . && zip silverbullet-server-linux-aarch64.zip silverbullet
@@ -25,11 +26,12 @@ build-server-releases:
 	GOOS=darwin GOARCH=arm64 go build -ldflags "$(LDFLAGS)" -o silverbullet . && zip silverbullet-server-darwin-aarch64.zip silverbullet
 	GOOS=darwin GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o silverbullet . && zip silverbullet-server-darwin-x86_64.zip silverbullet
 	GOOS=windows GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o silverbullet.exe . && zip silverbullet-server-windows-x86_64.zip silverbullet.exe
+	GOOS=linux GOARCH=arm GOARM=7 go build -ldflags "$(LDFLAGS)" -o silverbullet . && zip silverbullet-server-linux-armv7.zip silverbullet
 	GOOS=freebsd GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o silverbullet . && zip silverbullet-server-freebsd-x86_64.zip silverbullet
 
 clean:
 	rm -rf  client_bundle/{base_fs,client} dist public_version.ts
-	rm -f silverbullet silverbullet-arm64 silverbullet-amd64 silverbullet.exe silverbullet-server-*.zip
+	rm -f silverbullet silverbullet-arm64 silverbullet-amd64 silverbullet-arm silverbullet.exe silverbullet-server-*.zip
 
 check:
 	# Frontend type check
