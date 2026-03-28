@@ -143,9 +143,6 @@ export async function frontmatterTagComplete(completeEvent: CompleteEvent) {
     prefix = listItemMatch[1];
   }
 
-  // Strip # prefix if present (frontmatter tags can use #tag syntax)
-  const cleanPrefix = prefix.replace(/^#/, "");
-
   const allTags: string[] = await index.queryLuaObjects<string>("tag", {
     distinct: true,
     select: { type: "Variable", name: "name", ctx: {} as any },
