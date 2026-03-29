@@ -10,13 +10,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Setup repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
       - name: Setup Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: "1.25.1"
       - name: Install dependencies
@@ -31,7 +31,7 @@ jobs:
           make build-cli-releases
 
       - name: Upload macOS binaries for signing
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: macos-unsigned
           path: |
@@ -39,17 +39,16 @@ jobs:
             silverbullet-cli-darwin-*.zip
           retention-days: 1
 
+      - name: Remove macOS zips before uploading non-macOS binaries
+        run: rm -f silverbullet-*-darwin-*.zip
+
       - name: Upload non-macOS binaries
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: other-binaries
           path: |
-            silverbullet-server-linux-*.zip
-            silverbullet-server-windows-*.zip
-            silverbullet-server-freebsd-*.zip
-            silverbullet-cli-linux-*.zip
-            silverbullet-cli-windows-*.zip
-            silverbullet-cli-freebsd-*.zip
+            silverbullet-*.zip
+            silverbullet-cli-*.zip
             dist/plug-compile.js
           retention-days: 1
 
@@ -58,7 +57,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Download unsigned macOS binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: macos-unsigned
 
@@ -135,7 +134,7 @@ jobs:
           rm -rf ~/private_keys
 
       - name: Upload signed macOS binaries
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: macos-signed
           path: |
@@ -151,17 +150,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download signed macOS binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: macos-signed
 
       - name: Download other binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: other-binaries
 
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
