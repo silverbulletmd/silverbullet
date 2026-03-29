@@ -1,16 +1,18 @@
 LDFLAGS = -X main.buildTime=$$(date -u +%Y-%m-%dT%H:%M:%SZ)
+CLI_VERSION = $$(sed -n 's/.*"\([^"]*\)".*/\1/p' public_version.ts)
+CLI_LDFLAGS = -X main.version=$(CLI_VERSION)
 
-.PHONY: build build-for-docker docker build-server-releases clean check fmt test test-integration test-e2e bench generate website
+.PHONY: build build-for-docker docker build-server-releases build-cli-releases clean check fmt test test-integration test-e2e bench generate website
 
 build:
 	# Build client
 	npm run build
 	# Build plug-compile
 	npm run build:plug-compile
-	# Build CLI
-	npm run build:cli
 	# Build server
 	go build -ldflags "$(LDFLAGS)"
+	# Build Go CLI
+	go build -ldflags "$(CLI_LDFLAGS)" -o silverbullet-cli ./cmd/cli
 
 build-for-docker: build
 	GOOS=linux GOARCH=arm64 go build -ldflags "$(LDFLAGS)" -o silverbullet-arm64 .
@@ -29,9 +31,19 @@ build-server-releases:
 	GOOS=linux GOARCH=arm GOARM=7 go build -ldflags "$(LDFLAGS)" -o silverbullet . && zip silverbullet-server-linux-armv7.zip silverbullet
 	GOOS=freebsd GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o silverbullet . && zip silverbullet-server-freebsd-x86_64.zip silverbullet
 
+build-cli-releases:
+	GOOS=linux GOARCH=arm64 go build -ldflags "$(CLI_LDFLAGS)" -o silverbullet-cli ./cmd/cli && zip silverbullet-cli-linux-aarch64.zip silverbullet-cli && rm silverbullet-cli
+	GOOS=linux GOARCH=amd64 go build -ldflags "$(CLI_LDFLAGS)" -o silverbullet-cli ./cmd/cli && zip silverbullet-cli-linux-x86_64.zip silverbullet-cli && rm silverbullet-cli
+	GOOS=linux GOARCH=arm GOARM=7 go build -ldflags "$(CLI_LDFLAGS)" -o silverbullet-cli ./cmd/cli && zip silverbullet-cli-linux-armv7.zip silverbullet-cli && rm silverbullet-cli
+	GOOS=darwin GOARCH=arm64 go build -ldflags "$(CLI_LDFLAGS)" -o silverbullet-cli ./cmd/cli && zip silverbullet-cli-darwin-aarch64.zip silverbullet-cli && rm silverbullet-cli
+	GOOS=darwin GOARCH=amd64 go build -ldflags "$(CLI_LDFLAGS)" -o silverbullet-cli ./cmd/cli && zip silverbullet-cli-darwin-x86_64.zip silverbullet-cli && rm silverbullet-cli
+	GOOS=windows GOARCH=amd64 go build -ldflags "$(CLI_LDFLAGS)" -o silverbullet-cli.exe ./cmd/cli && zip silverbullet-cli-windows-x86_64.zip silverbullet-cli.exe && rm silverbullet-cli.exe
+	GOOS=freebsd GOARCH=amd64 go build -ldflags "$(CLI_LDFLAGS)" -o silverbullet-cli ./cmd/cli && zip silverbullet-cli-freebsd-x86_64.zip silverbullet-cli && rm silverbullet-cli
+
 clean:
 	rm -rf  client_bundle/{base_fs,client} dist public_version.ts
 	rm -f silverbullet silverbullet-arm64 silverbullet-amd64 silverbullet-arm silverbullet.exe silverbullet-server-*.zip
+	rm -f silverbullet-cli silverbullet-cli.exe silverbullet-cli-*.zip
 
 check:
 	# Frontend type check
@@ -55,7 +67,7 @@ test:
 
 test-integration:
 	# Run headless Chrome integration tests (requires Chrome installed)
-	go test -tags=integration ./server/... -v -timeout 300s
+	go test -tags=integration ./server/... ./cli/... -v -timeout 300s
 
 test-e2e: build
 	npx playwright test
