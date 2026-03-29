@@ -44,20 +44,27 @@ export function sandboxFetchSyscalls(client: Client): SysCallMapping {
         fetchOptions,
       );
       // Do sensible things with the body based on the content type
+      // Read as ArrayBuffer first to safely handle empty responses (e.g.
+      // PUT/DELETE returning 204 with Content-Type: application/json).
+      // resp.arrayBuffer() never throws on an empty body, whereas
+      // resp.json() would throw a SyntaxError.
+      const rawBytes = new Uint8Array(await resp.arrayBuffer());
       let body: any;
       const contentTypeHeader =
         options.responseEncoding ||
         resp.headers.get("x-proxy-header-content-type");
       const statusCode = +(resp.headers.get("x-proxy-status-code") || "200");
-      if (contentTypeHeader?.startsWith("application/json")) {
-        body = await resp.json();
+      if (rawBytes.length === 0) {
+        body = null;
+      } else if (contentTypeHeader?.startsWith("application/json")) {
+        body = JSON.parse(new TextDecoder().decode(rawBytes));
       } else if (
         contentTypeHeader?.startsWith("application/xml") ||
         contentTypeHeader?.startsWith("text/")
       ) {
-        body = await resp.text();
+        body = new TextDecoder().decode(rawBytes);
       } else {
-        body = new Uint8Array(await resp.arrayBuffer());
+        body = rawBytes;
       }
       return {
         ok: resp.ok,
