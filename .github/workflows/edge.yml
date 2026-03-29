@@ -105,6 +105,7 @@ jobs:
 
           for zip_file in silverbullet-*-darwin-*.zip; do
             echo "=== Processing $zip_file ==="
+            zip_file="$(pwd)/$zip_file"
 
             WORK_DIR=$(mktemp -d)
             unzip -o "$zip_file" -d "$WORK_DIR"
@@ -127,7 +128,7 @@ jobs:
               --wait --timeout 10m
 
             rm "$zip_file"
-            (cd "$WORK_DIR" && zip "$(dirname "$zip_file")/$(basename "$zip_file")" "$BINARY")
+            (cd "$WORK_DIR" && zip "$zip_file" "$BINARY")
 
             rm -rf "$WORK_DIR"
           done
