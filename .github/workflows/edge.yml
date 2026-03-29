@@ -5,6 +5,9 @@ on:
     branches:
       - "main"
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -154,11 +157,13 @@ jobs:
         uses: actions/download-artifact@v5
         with:
           name: macos-signed
+          path: release
 
       - name: Download other binaries
         uses: actions/download-artifact@v5
         with:
           name: other-binaries
+          path: release
 
       - name: Update edge release
         uses: softprops/action-gh-release@v2
@@ -170,7 +175,7 @@ jobs:
           body: Automated build from commit ${{ github.sha }}
           prerelease: true
           files: |
-            website/CHANGELOG.md
-            dist/plug-compile.js
-            silverbullet-*.zip
-            silverbullet-cli-*.zip
+            release/website/CHANGELOG.md
+            release/dist/plug-compile.js
+            release/silverbullet-*.zip
+            release/silverbullet-cli-*.zip
