@@ -4,8 +4,9 @@ on:
   push:
     branches:
       - "main"
+
 jobs:
-  release:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Setup repo
@@ -25,7 +26,139 @@ jobs:
           npm run build
           npm run build:plug-compile
       - name: Build Go binaries for multiple platforms
-        run: make build-server-releases
+        run: |
+          make build-server-releases
+          make build-cli-releases
+
+      - name: Upload macOS binaries for signing
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-unsigned
+          path: |
+            silverbullet-server-darwin-*.zip
+            silverbullet-cli-darwin-*.zip
+          retention-days: 1
+
+      - name: Upload non-macOS binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: other-binaries
+          path: |
+            silverbullet-server-linux-*.zip
+            silverbullet-server-windows-*.zip
+            silverbullet-server-freebsd-*.zip
+            silverbullet-cli-linux-*.zip
+            silverbullet-cli-windows-*.zip
+            silverbullet-cli-freebsd-*.zip
+            website/CHANGELOG.md
+            dist/plug-compile.js
+          retention-days: 1
+
+  sign-macos:
+    needs: build
+    runs-on: macos-latest
+    steps:
+      - name: Download unsigned macOS binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-unsigned
+
+      - name: Import certificate into keychain
+        env:
+          APPLE_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          echo "$APPLE_CERTIFICATE_P12_BASE64" | base64 --decode > certificate.p12
+
+          KEYCHAIN_PATH="$RUNNER_TEMP/signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -hex 20)"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          security import certificate.p12 \
+            -P "$APPLE_CERTIFICATE_PASSWORD" \
+            -A \
+            -t cert \
+            -f pkcs12 \
+            -k "$KEYCHAIN_PATH"
+
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          rm certificate.p12
+
+      - name: Sign and notarize macOS binaries
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_KEY_ISSUER_ID: ${{ secrets.APPLE_API_KEY_ISSUER_ID }}
+          APPLE_API_KEY_P8_BASE64: ${{ secrets.APPLE_API_KEY_P8_BASE64 }}
+        run: |
+          mkdir -p ~/private_keys
+          echo "$APPLE_API_KEY_P8_BASE64" | base64 --decode \
+            > ~/private_keys/AuthKey_${APPLE_API_KEY_ID}.p8
+
+          IDENTITY="Developer ID Application: Zef Hemel ($APPLE_TEAM_ID)"
+
+          for zip_file in silverbullet-*-darwin-*.zip; do
+            echo "=== Processing $zip_file ==="
+
+            WORK_DIR=$(mktemp -d)
+            unzip -o "$zip_file" -d "$WORK_DIR"
+            BINARY=$(ls "$WORK_DIR")
+
+            codesign --force --options runtime \
+              --sign "$IDENTITY" \
+              --timestamp \
+              "$WORK_DIR/$BINARY"
+
+            codesign --verify --verbose "$WORK_DIR/$BINARY"
+
+            NOTARIZE_ZIP="$WORK_DIR/notarize.zip"
+            ditto -c -k --keepParent "$WORK_DIR/$BINARY" "$NOTARIZE_ZIP"
+
+            xcrun notarytool submit "$NOTARIZE_ZIP" \
+              --key ~/private_keys/AuthKey_${APPLE_API_KEY_ID}.p8 \
+              --key-id "$APPLE_API_KEY_ID" \
+              --issuer "$APPLE_API_KEY_ISSUER_ID" \
+              --wait --timeout 10m
+
+            rm "$zip_file"
+            (cd "$WORK_DIR" && zip "$(dirname "$zip_file")/$(basename "$zip_file")" "$BINARY")
+
+            rm -rf "$WORK_DIR"
+          done
+
+          rm -rf ~/private_keys
+
+      - name: Upload signed macOS binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-signed
+          path: |
+            silverbullet-*-darwin-*.zip
+
+      - name: Clean up keychain
+        if: always()
+        run: |
+          security delete-keychain "$RUNNER_TEMP/signing.keychain-db" 2>/dev/null || true
+
+  release:
+    needs: [build, sign-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download signed macOS binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-signed
+
+      - name: Download other binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: other-binaries
 
       - name: Update edge release
         uses: softprops/action-gh-release@v1
@@ -40,3 +173,4 @@ jobs:
             website/CHANGELOG.md
             dist/plug-compile.js
             silverbullet-*.zip
+            silverbullet-cli-*.zip

@@ -7,6 +7,8 @@ dist
 env.sh
 node_modules
 silverbullet
+silverbullet-cli
+silverbullet-cli-*.zip
 deploy.json
 *.generated
 tmp_playground

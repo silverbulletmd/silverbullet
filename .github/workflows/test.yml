@@ -59,10 +59,12 @@ jobs:
           make build
 
       - name: Run Go tests
-        run: go test ./server/... -v -timeout 300s
+        run: |
+          go test ./server/... -v -timeout 300s
+          go test ./cli/... -v -timeout 300s
 
       - name: Run Go tests with coverage
-        run: go test ./server/... -coverprofile=coverage.out -timeout 300s
+        run: go test ./server/... ./cli/... -coverprofile=coverage.out -timeout 300s
 
       - name: Display test coverage
         run: go tool cover -func=coverage.out
