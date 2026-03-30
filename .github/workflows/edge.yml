@@ -177,5 +177,5 @@ jobs:
           files: |
             release/website/CHANGELOG.md
             release/dist/plug-compile.js
-            release/silverbullet-*.zip
+            release/silverbullet-server-*.zip
             release/silverbullet-cli-*.zip

@@ -50,7 +50,7 @@ jobs:
         with:
           name: other-binaries
           path: |
-            silverbullet-*.zip
+            silverbullet-server-*.zip
             silverbullet-cli-*.zip
             dist/plug-compile.js
           retention-days: 1
@@ -172,5 +172,5 @@ jobs:
           draft: true
           files: |
             release/dist/plug-compile.js
-            release/silverbullet-*.zip
+            release/silverbullet-server-*.zip
             release/silverbullet-cli-*.zip
