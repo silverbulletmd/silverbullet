@@ -9,8 +9,8 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  release:
+    runs-on: macos-latest
     steps:
       - name: Setup repo
         uses: actions/checkout@v4
@@ -32,37 +32,6 @@ jobs:
         run: |
           make build-server-releases
           make build-cli-releases
-
-      - name: Upload macOS binaries for signing
-        uses: actions/upload-artifact@v5
-        with:
-          name: macos-unsigned
-          path: |
-            silverbullet-server-darwin-*.zip
-            silverbullet-cli-darwin-*.zip
-          retention-days: 1
-
-      - name: Remove macOS zips before uploading non-macOS binaries
-        run: rm -f silverbullet-*-darwin-*.zip
-
-      - name: Upload non-macOS binaries
-        uses: actions/upload-artifact@v5
-        with:
-          name: other-binaries
-          path: |
-            silverbullet-server-*.zip
-            silverbullet-cli-*.zip
-            dist/plug-compile.js
-          retention-days: 1
-
-  sign-macos:
-    needs: build
-    runs-on: macos-latest
-    steps:
-      - name: Download unsigned macOS binaries
-        uses: actions/download-artifact@v5
-        with:
-          name: macos-unsigned
 
       - name: Import certificate into keychain
         env:
@@ -136,33 +105,10 @@ jobs:
 
           rm -rf ~/private_keys
 
-      - name: Upload signed macOS binaries
-        uses: actions/upload-artifact@v5
-        with:
-          name: macos-signed
-          path: |
-            silverbullet-*-darwin-*.zip
-
       - name: Clean up keychain
         if: always()
         run: |
           security delete-keychain "$RUNNER_TEMP/signing.keychain-db" 2>/dev/null || true
-
-  release:
-    needs: [build, sign-macos]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download signed macOS binaries
-        uses: actions/download-artifact@v5
-        with:
-          name: macos-signed
-          path: release
-
-      - name: Download other binaries
-        uses: actions/download-artifact@v5
-        with:
-          name: other-binaries
-          path: release
 
       - name: Release
         uses: softprops/action-gh-release@v2
@@ -171,6 +117,6 @@ jobs:
         with:
           draft: true
           files: |
-            release/dist/plug-compile.js
-            release/silverbullet-server-*.zip
-            release/silverbullet-cli-*.zip
+            dist/plug-compile.js
+            silverbullet-server-*.zip
+            silverbullet-cli-*.zip
