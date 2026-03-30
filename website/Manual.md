@@ -25,6 +25,7 @@ ${embed.youtube "https://youtu.be/qkLJ3viVq8I"}
 
 # Installation and deployment
 * [[Install]]: Installation instructions for various setups
+* [[CLI]]: Command-line interface for interacting with SilverBullet (experimental)
 * [[Authentication]]: Securing your instance
 * [[TLS]]: the part where we walk through options to expose SilverBullet via HTTPS.
 * [[Troubleshooting]]: When things don't go as planned

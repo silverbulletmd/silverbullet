@@ -5,6 +5,9 @@ The Runtime API lets you interact with SilverBullet programmatically over HTTP â
 Requests are evaluated via Chrome DevTools Protocol (CDP) in a headless Chrome instance, which does the actual execution so all results reflect the live client state.
 
 > **note** Note
+> The [[CLI]] provides a convenient command-line interface for the Runtime API â€” evaluate Lua, run scripts, open a REPL, and more, without writing raw HTTP requests.
+
+> **note** Note
 > The Runtime API is not available in read-only mode (`SB_READ_ONLY`).
 
 # Setup
