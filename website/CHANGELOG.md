@@ -5,6 +5,7 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
 
 * **Technical: Deno → Node.js migration**: The TypeScript/client codebase has been migrated from Deno to Node.js, now using vitest for tests. This _should_ purely be a tooling change.
 * **[[Runtime API]]** and accompanying [[CLI]] (==Experimental==): programmatically interact with a (remote) SilverBullet server over via `silverbullet-cli` or a [[Runtime API|HTTP API]]: evaluate Lua expressions, run scripts, and retrieve console logs. Powered by a headless Chrome instance running the full SilverBullet client via CDP, so all results reflect live client state.
+* Live Preview for HTML tags: inline HTML in markdown (e.g. `<marquee>Hello **there**</marquee>`) now renders as actual HTML elements in the editor, with full markdown support inside the tags.
 * [[Outlines]] commands have been thoroughly reworked. Should now be more robust and better tested outline move/indent operations. New features:
   * Now also works with numbered items (and renumbers them)
   * Now works with headers (moves around entire sections)
@@ -22,7 +23,7 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
 * Fix: document file opening with URL prefix.
 * Fix: autofocus on authentication page.
 * Fix: mini editor regressions.
-* [Custom markdown syntax extensions](https://github.com/silverbulletmd/silverbullet/pull/1881) (EXPERIMENTAL): define custom inline syntax via [[API/syntax]] that gets parsed, highlighted, and rendered in live preview.
+* [Custom markdown syntax extensions](https://github.com/silverbulletmd/silverbullet/pull/1881) (==Experimental==): define custom inline syntax via [[API/syntax]] that gets parsed, highlighted, and rendered in live preview.
 * [[Space Lua/Lua Integrated Query]] improvements (courtesy of [Matouš Jan Fialka](https://github.com/mjf)):
   * [Unified field list syntax](https://github.com/silverbulletmd/silverbullet/pull/1909) for `from`, `select`, and `group by` clauses, enabling multi-source cross-joins
   * [Implicit single group](https://github.com/silverbulletmd/silverbullet/pull/1907) for aggregates without `group by`
