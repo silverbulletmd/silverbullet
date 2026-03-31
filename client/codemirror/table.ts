@@ -14,12 +14,11 @@ import {
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { lezerToParseTree } from "../markdown_parser/parse_tree.ts";
 import type { Client } from "../client.ts";
-import {
-  isLocalURL,
-  resolveMarkdownLink,
-} from "@silverbulletmd/silverbullet/lib/resolve";
 import { expandMarkdown } from "../markdown_renderer/inline.ts";
-import { attachWidgetEventHandlers } from "./widget_util.ts";
+import {
+  attachWidgetEventHandlers,
+  buildTranslateUrls,
+} from "./widget_util.ts";
 
 class TableViewWidget extends WidgetType {
   tableBodyText: string;
@@ -64,16 +63,7 @@ class TableViewWidget extends WidgetType {
         // the cursor there when the user clicks on the table.
         annotationPositions: true,
         shortWikiLinks: this.client.config.get("shortWikiLinks", false),
-        translateUrls: (url) => {
-          if (isLocalURL(url)) {
-            url = resolveMarkdownLink(
-              this.client.currentName(),
-              decodeURI(url),
-            );
-          }
-
-          return url;
-        },
+        translateUrls: buildTranslateUrls(this.client),
       });
       setTimeout(() => {
         // Give it a tick to render

@@ -20,6 +20,7 @@ import { justifiedTableRender } from "./justified_tables.ts";
 import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 import { createMediaElement } from "./inline.ts";
 import { parseTransclusion } from "@silverbulletmd/silverbullet/lib/transclusion";
+import { parseHtmlTag } from "../codemirror/html_element.ts";
 
 export type MarkdownRenderOptions = {
   failOnUnknown?: true;
@@ -135,14 +136,20 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
         name: "h6",
         body: cleanTags(mapRender(t.children!)),
       };
-    case "Paragraph":
+    case "Paragraph": {
+      const hasHtml = t.children!.some((c) => c.type === "HTMLTag");
       return {
         name: "span",
         attrs: {
           class: "p",
         },
-        body: cleanTags(mapRender(t.children!)),
+        body: cleanTags(
+          hasHtml
+            ? groupInlineHtml(t.children!, options, posPreservingRender)
+            : mapRender(t.children!),
+        ),
       };
+    }
     // Code blocks
     case "FencedCode":
     case "CodeBlock": {
@@ -559,6 +566,11 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
         body: renderToText(t),
       };
 
+    // Unmatched HTMLTag nodes render as literal text (matched ones are
+    // handled at the Paragraph level by groupInlineHtml)
+    case "HTMLTag":
+      return renderToText(t);
+
     // Text
     case undefined:
       return t.text!;
@@ -578,6 +590,75 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
   function mapRender(children: ParseTree[]) {
     return children.map((t) => posPreservingRender(t, options));
   }
+}
+
+type RenderFn = (
+  t: ParseTree,
+  options: MarkdownRenderOptions,
+) => Tag | null;
+
+function groupInlineHtml(
+  children: ParseTree[],
+  options: MarkdownRenderOptions,
+  renderFn: RenderFn,
+): (Tag | null)[] {
+  const result: (Tag | null)[] = [];
+  let i = 0;
+  while (i < children.length) {
+    const child = children[i];
+    if (child.type === "HTMLTag") {
+      const text = renderToText(child);
+      if (!text.startsWith("</")) {
+        const parsed = parseHtmlTag(text);
+        if (parsed && !parsed.isClosing) {
+          // Find matching closing tag
+          let depth = 1;
+          let j = i + 1;
+          for (; j < children.length; j++) {
+            if (children[j].type === "HTMLTag") {
+              const jText = renderToText(children[j]);
+              const jParsed = parseHtmlTag(jText);
+              if (!jParsed) continue;
+              if (
+                !jParsed.isClosing &&
+                jParsed.tagName.toLowerCase() === parsed.tagName.toLowerCase()
+              ) {
+                depth++;
+              } else if (
+                jParsed.isClosing &&
+                jParsed.tagName.toLowerCase() === parsed.tagName.toLowerCase()
+              ) {
+                depth--;
+                if (depth === 0) break;
+              }
+            }
+          }
+          if (j < children.length) {
+            const innerChildren = children.slice(i + 1, j);
+            const attrs = Object.keys(parsed.parsedAttrs).length > 0
+              ? parsed.parsedAttrs
+              : undefined;
+            result.push({
+              name: parsed.tagName,
+              attrs,
+              body: cleanTags(
+                groupInlineHtml(innerChildren, options, renderFn),
+              ),
+            });
+            i = j + 1;
+            continue;
+          }
+        }
+      }
+      // Unmatched tag — render as literal text
+      result.push(renderFn(child, options));
+      i++;
+      continue;
+    }
+    result.push(renderFn(child, options));
+    i++;
+  }
+  return result;
 }
 
 function traverseTag(t: Tag, fn: (t: Tag) => void) {

@@ -14,6 +14,7 @@ const straightQuoteContexts = [
   "FrontMatterCode",
   "Attribute",
   "LuaDirective",
+  "HTMLTag",
 ];
 
 // TODO: Add support for selection (put quotes around or create blockquote block?)
@@ -45,6 +46,17 @@ function keyBindingForQuote(
         } else {
           break;
         }
+      }
+
+      // Text-based fallback: detect if we're inside an unclosed HTML tag
+      // (handles incomplete tags like `<marquee class=` that the parser
+      // doesn't recognize as HTMLTag yet)
+      const line = target.state.doc.lineAt(cursorPos);
+      const textBefore = target.state.sliceDoc(line.from, cursorPos);
+      const lastOpen = textBefore.lastIndexOf("<");
+      const lastClose = textBefore.lastIndexOf(">");
+      if (lastOpen > lastClose) {
+        return false;
       }
 
       // Ok, still here, let's use a smart quote

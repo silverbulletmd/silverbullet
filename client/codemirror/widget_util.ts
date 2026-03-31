@@ -1,6 +1,21 @@
 import { parseToRef } from "@silverbulletmd/silverbullet/lib/ref";
 import type { Client } from "../client.ts";
 import type { EventPayLoad } from "./lua_widget.ts";
+import {
+  isLocalURL,
+  resolveMarkdownLink,
+} from "@silverbulletmd/silverbullet/lib/resolve";
+
+export function buildTranslateUrls(
+  client: Client,
+): (url: string) => string {
+  return (url: string) => {
+    if (isLocalURL(url)) {
+      return resolveMarkdownLink(client.currentName(), decodeURI(url));
+    }
+    return url;
+  };
+}
 
 export function moveCursorToWidgetStart(
   client: Client,

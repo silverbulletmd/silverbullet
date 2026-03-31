@@ -1,15 +1,12 @@
 import { WidgetType } from "@codemirror/view";
 import type { Client } from "../client.ts";
 import { renderMarkdownToHtml } from "../markdown_renderer/markdown_render.ts";
-import {
-  isLocalURL,
-  resolveMarkdownLink,
-} from "@silverbulletmd/silverbullet/lib/resolve";
 import { parse } from "../markdown_parser/parse_tree.ts";
 import { extendedMarkdownLanguage } from "../markdown_parser/parser.ts";
 import { renderToText } from "@silverbulletmd/silverbullet/lib/tree";
 import {
   attachWidgetEventHandlers,
+  buildTranslateUrls,
   moveCursorToWidgetStart,
 } from "./widget_util.ts";
 import { expandMarkdown } from "../markdown_renderer/inline.ts";
@@ -119,15 +116,7 @@ export class LuaWidget extends WidgetType {
         mdTree,
         {
           shortWikiLinks: this.opts.client.config.get("shortWikiLinks", false),
-          translateUrls: (url) => {
-            if (isLocalURL(url)) {
-              url = resolveMarkdownLink(
-                this.opts.client.currentName(),
-                decodeURI(url),
-              );
-            }
-            return url;
-          },
+          translateUrls: buildTranslateUrls(this.opts.client),
         },
         this.opts.client.ui.viewState.allPages,
       );
@@ -257,16 +246,7 @@ export class LuaWidget extends WidgetType {
               "shortWikiLinks",
               false,
             ),
-            translateUrls: (url) => {
-              if (isLocalURL(url)) {
-                url = resolveMarkdownLink(
-                  this.opts.client.currentName(),
-                  decodeURI(url),
-                );
-              }
-
-              return url;
-            },
+            translateUrls: buildTranslateUrls(this.opts.client),
           },
           this.opts.client.ui.viewState.allPages,
         ),

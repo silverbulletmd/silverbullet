@@ -115,3 +115,77 @@ And another
 
   console.log(html2);
 });
+
+test("Inline HTML tags render as proper elements", () => {
+  const tree = parse(extendedMarkdownLanguage, "<marquee>Hello</marquee>");
+  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
+  expect(html).toEqual(
+    '<span class="p"><marquee>Hello</marquee></span>',
+  );
+});
+
+test("Inline HTML tags with attributes", () => {
+  const tree = parse(
+    extendedMarkdownLanguage,
+    '<span style="color:red">red text</span>',
+  );
+  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
+  expect(html).toEqual(
+    '<span class="p"><span style="color:red">red text</span></span>',
+  );
+});
+
+test("Inline HTML tags with markdown content", () => {
+  const tree = parse(
+    extendedMarkdownLanguage,
+    '<marquee class="x">Hello **there**</marquee>',
+  );
+  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
+  expect(html).toEqual(
+    '<span class="p"><marquee class="x">Hello <strong>there</strong></marquee></span>',
+  );
+});
+
+test("Inline HTML mixed with text", () => {
+  const tree = parse(
+    extendedMarkdownLanguage,
+    "Before <b>bold</b> after",
+  );
+  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
+  expect(html).toEqual(
+    '<span class="p">Before <b>bold</b> after</span>',
+  );
+});
+
+test("Nested same-name HTML tags", () => {
+  const tree = parse(
+    extendedMarkdownLanguage,
+    "<b><b>nested</b></b>",
+  );
+  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
+  expect(html).toEqual(
+    '<span class="p"><b><b>nested</b></b></span>',
+  );
+});
+
+test("Inline HTML with wiki link", () => {
+  const tree = parse(
+    extendedMarkdownLanguage,
+    "<span>hello [[there]]</span>",
+  );
+  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
+  expect(html).toEqual(
+    '<span class="p"><span>hello <a href="/there" class="wiki-link" data-ref="there">there</a></span></span>',
+  );
+});
+
+test("Unmatched HTML tags render as literal text", () => {
+  const tree = parse(
+    extendedMarkdownLanguage,
+    "text <b>unclosed",
+  );
+  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
+  expect(html).toEqual(
+    '<span class="p">text &lt;b&gt;unclosed</span>',
+  );
+});
