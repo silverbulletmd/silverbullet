@@ -4,6 +4,12 @@ export const panelHtml = `<!DOCTYPE html>
     <meta charset="UTF-8">
     <base target="_top" href="{{.HostPrefix}}">
     <meta name='color-scheme' content='dark light'>
+    <style>
+      img {
+        max-width: 100%;
+        height: auto;
+      }
+    </style>
 <script>
 const pendingRequests = new Map();
 let syscallReqId = 0;
