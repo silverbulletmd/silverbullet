@@ -145,6 +145,7 @@ tag.define {
       name = readOnlyType("string"),
       text = readOnlyType("string"),
       parent = readOnlyType("string"),
+      pageLastModified = readOnlyType("string"),
       range = rangeType,
       -- deprecated in favor of range
       pos = readOnlyType("number"),
@@ -296,6 +297,7 @@ tag.define {
       text = readOnlyType("string"),
       state = readOnlyType("string"),
       done = readOnlyType("boolean"),
+      pageLastModified = readOnlyType("string"),
     },
   },
 }

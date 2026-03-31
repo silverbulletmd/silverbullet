@@ -27,6 +27,7 @@ export type ItemObject = ObjectValue<
     parent?: string;
     links?: string[];
     ilinks?: string[];
+    pageLastModified: string;
   } & Record<string, any>
 >;
 
@@ -79,6 +80,7 @@ export async function indexItems(
         true,
         allCompleteStates,
         itemCache,
+        pageMeta.lastModified,
       ),
     );
 
@@ -102,7 +104,8 @@ export function extractItemFromNode(
   frontmatter: FrontMatter,
   withParents = true,
   allCompleteStates: string[] = completeStates,
-  itemCache?: Map<number, ItemObject | TaskObject>,
+  itemCache: Map<number, ItemObject | TaskObject> | undefined,
+  pageLastModified: string,
 ): ItemObject | TaskObject {
   // Check cache first to avoid redundant extraction
   if (itemCache?.has(itemNode.from!)) {
@@ -117,6 +120,7 @@ export function extractItemFromNode(
     name: "", // to be replaced
     text: "", // to be replaced
     page: name,
+    pageLastModified: pageLastModified,
   };
 
   // This will only be valid for items, not task
@@ -167,6 +171,7 @@ export function extractItemFromNode(
       frontmatter,
       allCompleteStates,
       itemCache,
+      pageLastModified,
     );
   }
 
@@ -184,7 +189,8 @@ export function enrichItemFromParents(
   pageName: string,
   frontmatter: FrontMatter,
   allCompleteStates: string[] = completeStates,
-  itemCache?: Map<number, ItemObject | TaskObject>,
+  itemCache: Map<number, ItemObject | TaskObject> | undefined,
+  pageLastModified: string,
 ) {
   let directParent = true;
   let parentItemNode = findParentMatching(n, (n) => n.type === "ListItem");
@@ -196,6 +202,7 @@ export function enrichItemFromParents(
       false,
       allCompleteStates,
       itemCache,
+      pageLastModified,
     );
     if (directParent) {
       item.parent = parentItem.ref;
