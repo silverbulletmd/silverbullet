@@ -20,3 +20,8 @@ export type SmartQuotesConfig = {
   double?: { left?: string; right?: string };
   single?: { left?: string; right?: string };
 };
+export type SidePageConfig = {
+  page?: string;
+  position?: "left" | "right";
+  enabled?: boolean;
+};
