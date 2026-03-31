@@ -17,7 +17,8 @@ Registers a custom syntax extension. The extension will be active after the next
   * `endMarkerClass`: CSS class for the end marker
 * CSS styling applied when Live Previewing:
   * `renderClass`: CSS class applied to the rendered widget
-* `render` (required): Callback `function(body, pageName)` returning [[API/widget|widget]] content for live preview.
+* `renderWidget`: Callback `function(body, pageName)` returning [[API/widget|widget]] content for Live Preview.
+* `renderHtml`: Callback `function(body, pageName)` returning an HTML string or `HTMLElement` (e.g. via `dom.*`) for use when rendering to HTML.
 
 # Escaping
 Within the body of an inline syntax extension, backslash (`\`) acts as an escape character. Use `\` before the end marker to include it literally in the body. The render callback receives the **raw** body text with escape sequences intact; the renderer is responsible for unescaping if needed.
@@ -35,8 +36,11 @@ syntax.define {
   --bodyClass = "sb-latex-body",
   --endMarkerClass = "sb-latex-mark",
   renderClass = "sb-latex-inline-preview",
-  render = function(body, pageName)
+  renderWidget = function(body, pageName)
     return widget.html(dom.i { body })
+  end,
+  renderHtml = function(body, pageName)
+    return dom.i { body }
   end
 }
 ```
@@ -57,8 +61,11 @@ syntax.define {
   startMarkerClass = "sb-latex-mark",
   bodyClass = "sb-latex-body",
   endMarkerClass = "sb-latex-mark",
-  render = function(body, pageName)
+  renderWidget = function(body, pageName)
     return widget.htmlBlock(dom.marquee { body })
+  end,
+  renderHtml = function(body, pageName)
+    return dom.marquee { body }
   end
 }
 ```

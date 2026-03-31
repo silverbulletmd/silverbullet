@@ -1,4 +1,5 @@
 export const Fragment = "FRAGMENT";
+export const RawHtml = "RAW_HTML";
 
 export type Tag =
   | {
@@ -47,6 +48,14 @@ export function renderHtml(t: Tag | null): string {
       : t.body.map(renderHtml).join("");
   if (t.name === Fragment) {
     return body;
+  }
+  if (t.name === RawHtml) {
+    if (typeof t.body === "string") {
+      return t.body;
+    }
+    return t.body.map((c) =>
+      typeof c === "string" ? c : renderHtml(c)
+    ).join("");
   }
   return `<${t.name}${attrs}>${body}</${t.name}>`;
 }

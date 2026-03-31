@@ -5,6 +5,7 @@ import {
   renderToText,
   replaceNodesMatchingAsync,
 } from "@silverbulletmd/silverbullet/lib/tree";
+import { htmlEscape } from "./html_render.ts";
 import {
   getPathExtension,
   isMarkdownPath,
@@ -16,7 +17,9 @@ import {
 } from "@silverbulletmd/silverbullet/lib/resolve";
 import mime from "mime";
 import { LuaStackFrame, LuaTable } from "../space_lua/runtime.ts";
-import { parseMarkdown } from "../markdown_parser/parser.ts";
+import { buildExtendedMarkdownLanguage } from "../markdown_parser/parser.ts";
+import type { CustomSyntaxSpec } from "../markdown_parser/custom_syntax.ts";
+import { parse } from "../markdown_parser/parse_tree.ts";
 import { renderExpressionResult } from "./result_render.ts";
 import { parseExpressionString } from "../space_lua/parse.ts";
 import { evalExpression } from "../space_lua/eval.ts";
@@ -31,6 +34,17 @@ import {
 import type { Space } from "../space.ts";
 import type { SpaceLuaEnvironment } from "../space_lua.ts";
 
+// Synthetic node type used to represent pre-resolved custom syntax HTML in the parse tree
+export const CustomSyntaxRenderedHtmlType = "CustomSyntaxRenderedHtml";
+
+// Extends the parser spec with an optional renderHtml callback for HTML rendering
+export type CustomSyntaxHtmlRenderer = CustomSyntaxSpec & {
+  renderHtml?: (
+    body: string,
+    pageName: string,
+  ) => string | HTMLElement | Promise<string | HTMLElement>;
+};
+
 export type MarkdownExpandOptions = {
   // all options default to true, set to false to explicitly disable
   // Replace (markdown transclusions) with their content
@@ -39,6 +53,8 @@ export type MarkdownExpandOptions = {
   expandLuaDirectives?: boolean;
   // Rewrite tasks to include references so that they can be updated
   rewriteTasks?: boolean;
+  // Custom syntax extensions keyed by name, with optional renderHtml callbacks
+  syntaxExtensions?: Record<string, CustomSyntaxHtmlRenderer>;
 };
 
 /**
@@ -54,6 +70,7 @@ export async function expandMarkdown(
   options: MarkdownExpandOptions = {},
   processedPages: Set<string> = new Set(),
 ): Promise<ParseTree> {
+  const mdLang = buildExtendedMarkdownLanguage(options.syntaxExtensions);
   addParentPointers(mdTree);
   await replaceNodesMatchingAsync(mdTree, async (n) => {
     if (n.type === "Image" && options.expandTransclusions !== false) {
@@ -89,7 +106,7 @@ export async function expandMarkdown(
         // it so we won't touch it down the line and cause endless recursion
         processedPages.add(transclusion.url);
 
-        const tree = parseMarkdown(result.text);
+        const tree = parse(mdLang, result.text);
 
         // Recursively process
         return expandMarkdown(
@@ -101,7 +118,7 @@ export async function expandMarkdown(
           processedPages,
         );
       } catch (e: any) {
-        return parseMarkdown(`**Error:** ${e.message}`);
+        return parse(mdLang, `**Error:** ${e.message}`);
       }
     } else if (
       n.type === "LuaDirective" &&
@@ -130,11 +147,11 @@ export async function expandMarkdown(
         } else if (result instanceof LuaTable && result.has("markdown")) {
           result = result.get("markdown");
         }
-        return parseMarkdown(await renderExpressionResult(result));
+        return parse(mdLang, await renderExpressionResult(result));
       } catch (e: any) {
         // Reduce blast radius and give useful error message
         console.error("Error evaluating Lua directive", exprText, e);
-        return parseMarkdown(`**Error:** ${e.message}`);
+        return parse(mdLang, `**Error:** ${e.message}`);
       }
     } else if (n.type === "Task" && options.rewriteTasks !== false) {
       // Add a task reference to this based on the current page name if there's not one already
@@ -164,6 +181,30 @@ export async function expandMarkdown(
             ],
           },
         );
+      }
+    } else if (n.type && options.syntaxExtensions) {
+      // Resolve custom syntax renderHtml callbacks
+      const spec = options.syntaxExtensions[n.type];
+      if (!spec?.renderHtml) return;
+
+      const bodyNode = findNodeOfType(n, `${spec.name}Body`);
+      const bodyText = bodyNode ? renderToText(bodyNode) : "";
+
+      try {
+        let result = await spec.renderHtml(bodyText, pageName);
+        if (typeof result !== "string" && "outerHTML" in result) {
+          result = result.outerHTML;
+        }
+        return {
+          type: CustomSyntaxRenderedHtmlType,
+          children: [{ text: result }],
+        };
+      } catch (e: any) {
+        console.error(`Error in ${spec.name} renderHtml:`, e);
+        return {
+          type: CustomSyntaxRenderedHtmlType,
+          children: [{ text: `<span class="error">Error in ${htmlEscape(spec.name)} renderHtml: ${htmlEscape(e.message)}</span>` }],
+        };
       }
     }
   });

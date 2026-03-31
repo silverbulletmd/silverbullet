@@ -16,7 +16,8 @@ Available keys:
 * `bodyClass`: (optional) CSS class for the body content between markers
 * `endMarkerClass`: (optional) CSS class for the end marker
 * `renderClass`: (optional) CSS class applied to the rendered widget
-* `render`: (optional) Callback `function(body, pageName)` returning widget content for live preview
+* `renderWidget`: (optional) Callback `function(body, pageName)` returning widget content for live editor preview. Previously named `render`, which is still supported for backwards compatibility.
+* `renderHtml`: Callback `function(body, pageName)` returning an HTML string or `HTMLElement` (e.g. via `dom.*`) for use when rendering to HTML.
 
 # Implementation
 ```space-lua

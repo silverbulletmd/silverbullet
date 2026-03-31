@@ -90,6 +90,12 @@ export function inlineContentPlugin(client: Client) {
                           nameFromTransclusion(transclusion),
                           parseMarkdown(result.text, result.offset),
                           client.clientSystem.spaceLuaEnv,
+                          {
+                            syntaxExtensions: client.config.get(
+                              "syntaxExtensions",
+                              {},
+                            ),
+                          },
                         ),
                       ),
                     };

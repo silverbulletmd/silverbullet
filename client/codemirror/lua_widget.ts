@@ -2,8 +2,8 @@ import { WidgetType } from "@codemirror/view";
 import type { Client } from "../client.ts";
 import { renderMarkdownToHtml } from "../markdown_renderer/markdown_render.ts";
 import { parse } from "../markdown_parser/parse_tree.ts";
-import { extendedMarkdownLanguage } from "../markdown_parser/parser.ts";
-import { renderToText } from "@silverbulletmd/silverbullet/lib/tree";
+import { buildExtendedMarkdownLanguage } from "../markdown_parser/parser.ts";
+import { type ParseTree, renderToText } from "@silverbulletmd/silverbullet/lib/tree";
 import {
   attachWidgetEventHandlers,
   buildTranslateUrls,
@@ -108,10 +108,41 @@ export class LuaWidget extends WidgetType {
     return wrapperSpan;
   }
 
+  private get syntaxExtensions() {
+    return this.opts.client.config.get("syntaxExtensions", {});
+  }
+
+  // Parse and expand custom syntax in a markdown string (no transclusions/directives)
+  private async parseAndExpandCustomSyntax(
+    text: string,
+    pageName: string,
+  ): Promise<ParseTree> {
+    const syntaxExtensions = this.syntaxExtensions;
+    const mdTree = parse(
+      buildExtendedMarkdownLanguage(syntaxExtensions),
+      text,
+    );
+    return expandMarkdown(
+      this.opts.client.space,
+      pageName,
+      mdTree,
+      this.opts.client.clientSystem.spaceLuaEnv,
+      {
+        expandTransclusions: false,
+        expandLuaDirectives: false,
+        rewriteTasks: false,
+        syntaxExtensions,
+      },
+    );
+  }
+
   // Build an inline Markdown renderer bound to the current client context
-  private buildInlineRenderer(): (text: string) => string {
-    return (text: string): string => {
-      const mdTree = parse(extendedMarkdownLanguage, text);
+  private buildInlineRenderer(): (text: string) => Promise<string> {
+    return async (text: string): Promise<string> => {
+      const mdTree = await this.parseAndExpandCustomSyntax(
+        text,
+        this.opts.client.currentName(),
+      );
       return renderMarkdownToHtml(
         mdTree,
         {
@@ -197,7 +228,8 @@ export class LuaWidget extends WidgetType {
       }
     }
     if (wc.markdown) {
-      let mdTree = parse(extendedMarkdownLanguage, wc.markdown || "");
+      const syntaxExtensions = this.syntaxExtensions;
+      let mdTree = parse(buildExtendedMarkdownLanguage(syntaxExtensions), wc.markdown || "");
 
       mdTree = await expandMarkdown(
         this.opts.client.space,
@@ -206,6 +238,7 @@ export class LuaWidget extends WidgetType {
         this.opts.client.clientSystem.spaceLuaEnv,
         {
           rewriteTasks: false,
+          syntaxExtensions,
         },
       );
       const trimmedMarkdown = renderToText(mdTree).trim();
@@ -235,8 +268,10 @@ export class LuaWidget extends WidgetType {
         div.className += " sb-lua-directive-inline";
       }
 
-      // Parse the markdown again after trimming
-      mdTree = parse(extendedMarkdownLanguage, trimmedMarkdown);
+      mdTree = await this.parseAndExpandCustomSyntax(
+        trimmedMarkdown,
+        currentName,
+      );
 
       html = parseHtmlString(
         renderMarkdownToHtml(

@@ -57,6 +57,9 @@ class TableViewWidget extends WidgetType {
       this.client.currentName(),
       this.t,
       this.client.clientSystem.spaceLuaEnv,
+      {
+        syntaxExtensions: this.client.config.get("syntaxExtensions", {}),
+      },
     ).then((t) => {
       dom.innerHTML = renderMarkdownToHtml(t, {
         // Annotate every element with its position so we can use it to put

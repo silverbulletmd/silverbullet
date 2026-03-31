@@ -21,10 +21,20 @@ export type CustomSyntaxExtension = CustomSyntaxSpec & {
   // CSS class applied to the rendered widget when cursor is outside the region
   renderClass?: string;
   // Callback function(body, pageName) returning widget content for live preview
+  renderWidget?: (
+    body: string,
+    pageName: string,
+  ) => LuaWidgetContent | Promise<LuaWidgetContent>;
+  // Deprecated: use renderWidget instead (kept for backwards compatibility)
   render?: (
     body: string,
     pageName: string,
   ) => LuaWidgetContent | Promise<LuaWidgetContent>;
+  // Callback function(body, pageName) returning HTML for markdown-to-HTML rendering
+  renderHtml?: (
+    body: string,
+    pageName: string,
+  ) => string | HTMLElement | Promise<string | HTMLElement>;
 };
 
 export function customSyntaxPlugin(client: Client) {
@@ -84,7 +94,8 @@ export function customSyntaxPlugin(client: Client) {
         }
 
         // When cursor is outside and a render callback exists, show widget
-        if (spec.render && !isCursorInRange(state, [node.from, node.to])) {
+        const widgetRenderFn = spec.renderWidget ?? spec.render;
+        if (widgetRenderFn && !isCursorInRange(state, [node.from, node.to])) {
           const bodyText = bodyNode
             ? state.sliceDoc(bodyNode.from, bodyNode.to)
             : "";
@@ -99,7 +110,7 @@ export function customSyntaxPlugin(client: Client) {
                 codeText,
                 callback: async (body, pageName) => {
                   try {
-                    const result = await spec.render!(body, pageName);
+                    const result = await widgetRenderFn(body, pageName);
                     // Inject renderClass into widget content if configured
                     if (
                       spec.renderClass &&

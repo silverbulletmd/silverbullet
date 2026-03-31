@@ -11,7 +11,7 @@ function escapeHtml(s: string): string {
 }
 
 // Render inline Markdown to HTML (caller provides the implementation)
-export type InlineRenderer = (text: string) => string;
+export type InlineRenderer = (text: string) => string | Promise<string>;
 
 function defaultInlineRenderer(text: string): string {
   return escapeHtml(text);
@@ -80,7 +80,7 @@ export async function renderResultToHtml(
   }
   if (typeof result === "string") {
     return {
-      html: renderInline(result),
+      html: await renderInline(result),
       dataType: "string",
     };
   }
@@ -144,7 +144,7 @@ export async function renderResultToHtml(
     };
   }
   return {
-    html: renderInline(`${result}`),
+    html: await renderInline(`${result}`),
     dataType: "string",
   };
 }
@@ -308,13 +308,13 @@ async function renderLiHtml(
 }
 
 // Render a value content (recurse for nested tables/arrays)
-function renderCellContent(
+async function renderCellContent(
   v: any,
   renderInline: InlineRenderer,
 ): Promise<string> {
   if (isEmpty(v)) return Promise.resolve("");
   if (isTaggedFloat(v)) {
-    return Promise.resolve(renderInline(luaFormatNumber(v.value, "float")));
+    return renderInline(luaFormatNumber(v.value, "float"));
   }
   if (v instanceof LuaTable) {
     if (v.empty()) return Promise.resolve(`<table data-table-empty></table>`);
@@ -335,5 +335,5 @@ function renderCellContent(
     }
     return renderJsObjectArrayToHtml([v], renderInline);
   }
-  return Promise.resolve(renderInline(formatScalar(v)));
+  return renderInline(formatScalar(v));
 }

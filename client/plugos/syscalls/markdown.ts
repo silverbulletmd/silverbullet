@@ -4,7 +4,7 @@ import {
   type ParseTree,
   renderToText,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import { extendedMarkdownLanguage } from "../../markdown_parser/parser.ts";
+import { buildExtendedMarkdownLanguage } from "../../markdown_parser/parser.ts";
 import {
   expandMarkdown,
   type MarkdownExpandOptions,
@@ -22,7 +22,7 @@ import {
 export function markdownSyscalls(client: Client): SysCallMapping {
   return {
     "markdown.parseMarkdown": (_ctx, text: string): ParseTree => {
-      return parse(extendedMarkdownLanguage, text);
+      return parse(markdownLanguageWithUserExtensions(client), text);
     },
     "markdown.renderParseTree": (_ctx, tree: ParseTree): string => {
       return renderToText(tree);
@@ -34,7 +34,10 @@ export function markdownSyscalls(client: Client): SysCallMapping {
     ): Promise<ParseTree | string> => {
       const outputString = typeof treeOrText === "string";
       if (typeof treeOrText === "string") {
-        treeOrText = parse(extendedMarkdownLanguage, treeOrText);
+        treeOrText = parse(
+          markdownLanguageWithUserExtensions(client),
+          treeOrText,
+        );
       }
       const result = await expandMarkdownWithClient(
         client,
@@ -52,7 +55,7 @@ export function markdownSyscalls(client: Client): SysCallMapping {
       text: string,
       options: MarkdownRenderOptions = {},
     ) => {
-      let mdTree = parse(extendedMarkdownLanguage, text);
+      let mdTree = parse(markdownLanguageWithUserExtensions(client), text);
       if (options.expand) {
         mdTree = await expandMarkdownWithClient(client, mdTree);
       }
@@ -70,6 +73,12 @@ export function markdownSyscalls(client: Client): SysCallMapping {
   };
 }
 
+function markdownLanguageWithUserExtensions(client: Client) {
+  return buildExtendedMarkdownLanguage(
+    client.config.get("syntaxExtensions", {}),
+  );
+}
+
 function expandMarkdownWithClient(
   client: Client,
   tree: ParseTree,
@@ -80,6 +89,9 @@ function expandMarkdownWithClient(
     client.currentName(),
     tree,
     client.clientSystem.spaceLuaEnv,
-    options,
+    {
+      ...options,
+      syntaxExtensions: client.config.get("syntaxExtensions", {}),
+    },
   );
 }

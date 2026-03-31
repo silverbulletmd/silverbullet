@@ -13,7 +13,8 @@ import {
   encodeRef,
   parseToRef,
 } from "@silverbulletmd/silverbullet/lib/ref";
-import { Fragment, renderHtml, type Tag } from "./html_render.ts";
+import { Fragment, RawHtml, renderHtml, type Tag } from "./html_render.ts";
+import { CustomSyntaxRenderedHtmlType } from "./inline.ts";
 import * as TagConstants from "../../plugs/index/constants.ts";
 import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 import { justifiedTableRender } from "./justified_tables.ts";
@@ -557,6 +558,12 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
         ],
       };
     }
+    case CustomSyntaxRenderedHtmlType:
+      return {
+        name: RawHtml,
+        body: renderToText(t),
+      };
+
     case "LuaDirective":
       return {
         name: "span",
