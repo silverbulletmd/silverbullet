@@ -881,6 +881,9 @@ export class Client {
     switch (message.type) {
       case "space-sync-complete": {
         this.fullSyncCompleted = true;
+        // Trigger version-bump reindex if needed (must happen here, not in a plug,
+        // because the plug may not be loaded yet when the first sync completes)
+        void this.objectIndex.ensureFullIndex(this.space);
         break;
       }
       case "online-status": {
