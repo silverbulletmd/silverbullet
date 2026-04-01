@@ -11,6 +11,7 @@ import {
   LuaStackFrame,
   LuaTable,
 } from "../space_lua/runtime.ts";
+import { parseExpressionString } from "../space_lua/parse.ts";
 import type { DataStore } from "./datastore.ts";
 import type { KV, KvKey } from "@silverbulletmd/silverbullet/type/datastore";
 import type { EventHook } from "../plugos/hooks/event.ts";
@@ -31,6 +32,7 @@ const indexVersionKey = ["$indexVersion"];
 const desiredIndexVersion = 9;
 
 type TagDefinition = {
+  tagPage?: string;
   metatable?: any;
   mustValidate?: boolean;
   schema?: any;
@@ -101,37 +103,80 @@ export class ObjectIndex {
     });
   }
 
+  private enricher(key: KvKey, value: any): any {
+    const tag = key[1];
+    // See if we have a meta table defined, which we'll then slap on
+    const mt = this.config.get<LuaTable | undefined>(
+      ["tags", tag, "metatable"],
+      undefined,
+    );
+    if (!mt) {
+      // Return as is
+      return value;
+    }
+    // Convert to LuaTable
+    value = jsToLuaValue(value);
+    value.metatable = mt;
+    return value;
+  }
+
   tag(tagName: string): LuaQueryCollection {
     if (!tagName) {
       throw new Error("Tag name is required");
     }
     return {
-      query: (
-        query: LuaCollectionQuery,
-        env: LuaEnv,
-        sf: LuaStackFrame,
-        config?: Config,
-      ): Promise<any[]> => {
+      query: (query, env, sf, config?): Promise<any[]> => {
         return this.ds.luaQuery(
           ["idx", tagName],
           query,
           env,
           sf,
-          (key, value: any) => {
-            const tag = key[1];
-            const mt = this.config.get<LuaTable | undefined>(
-              ["tags", tag, "metatable"],
-              undefined,
-            );
-            if (!mt) {
-              // Return as is
-              return value;
+          (key, value) => this.enricher(key, value),
+          config,
+        );
+      },
+    };
+  }
+
+  contentPages(): LuaQueryCollection {
+    return this.filteredTag(
+      "page",
+      (varName) =>
+        `not table.find(${varName}.tags, function(tag) return tag == "meta" or string.startsWith(tag, "meta/") end)`,
+    );
+  }
+
+  metaPages(): LuaQueryCollection {
+    return this.filteredTag(
+      "page",
+      (varName) =>
+        `table.find(${varName}.tags, function(tag) return tag == "meta" or string.startsWith(tag, "meta/") end)`,
+    );
+  }
+
+  private filteredTag(
+    tagName: string,
+    buildFilterExpr: (varName: string) => string,
+  ): LuaQueryCollection {
+    return {
+      query: (query, env, sf, config?): Promise<any[]> => {
+        const varName = query.objectVariable || "_";
+        const filter = parseExpressionString(buildFilterExpr(varName));
+        const where = query.where
+          ? {
+              type: "Binary" as const,
+              operator: "and",
+              left: filter,
+              right: query.where,
+              ctx: {},
             }
-            // Convert to LuaTable
-            value = jsToLuaValue(value);
-            value.metatable = mt;
-            return value;
-          },
+          : filter;
+        return this.ds.luaQuery(
+          ["idx", tagName],
+          { ...query, where },
+          env,
+          sf,
+          (key, value) => this.enricher(key, value),
           config,
         );
       },
@@ -167,17 +212,17 @@ export class ObjectIndex {
     // Config entries (user-defined overrides and aliases)
     const userAggs: Record<string, any> = this.config.get("aggregates", {});
     for (const [key, spec] of Object.entries(userAggs)) {
-      const aliasTarget = spec instanceof LuaTable
-        ? spec.rawGet("alias")
-        : spec?.alias ?? null;
+      const aliasTarget =
+        spec instanceof LuaTable ? spec.rawGet("alias") : (spec?.alias ?? null);
       if (typeof aliasTarget === "string") {
         const resolved = getAggregateSpec(aliasTarget, this.config);
         entries.push({
           builtin: false,
           name: key,
-          description: spec instanceof LuaTable
-            ? spec.rawGet("description") ?? resolved?.description ?? ""
-            : spec?.description ?? resolved?.description ?? "",
+          description:
+            spec instanceof LuaTable
+              ? (spec.rawGet("description") ?? resolved?.description ?? "")
+              : (spec?.description ?? resolved?.description ?? ""),
           initialize: resolved ? !!resolved.initialize : false,
           iterate: resolved ? !!resolved.iterate : false,
           finish: resolved ? !!resolved.finish : false,

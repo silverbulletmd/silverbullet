@@ -3,6 +3,7 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
+* New query shortcuts: `index.contentPages()` (pages excluding meta pages) and `index.metaPages()` (only meta pages) for convenient querying without manual tag filtering.
 * **Technical: Deno → Node.js migration**: The TypeScript/client codebase has been migrated from Deno to Node.js, now using vitest for tests. This _should_ purely be a tooling change.
 * **[[Runtime API]]** and accompanying [[CLI]] (==Experimental==): programmatically interact with a (remote) SilverBullet server over via `silverbullet-cli` or a [[Runtime API|HTTP API]]: evaluate Lua expressions, run scripts, and retrieve console logs. Powered by a headless Chrome instance running the full SilverBullet client via CDP, so all results reflect live client state.
 * Live Preview for HTML tags: inline HTML in markdown (e.g. `<marquee>Hello **there**</marquee>`) now renders as actual HTML elements in the editor, with full markdown support inside the tags.
@@ -57,6 +58,7 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
 * Fix: extended task state widget click behavior and rendering in widgets.
 * Fix: safer handling of default template files in non-empty spaces.
 * Frontmatter `tags:` key now has autocomplete support.
+* [[API/tag#tag.define(spec)]]: new `tagPage` attribute to customize where clicking a tag navigates to (defaults to `tag:name`).
 * Fix: 32-bit ARM Docker builds.
 * Fix: reduce visual bouncing when navigating between pages.
 * Fix: encode URLs with dots in path names on WebKit/Safari (fixes opening e.g. PDF files).

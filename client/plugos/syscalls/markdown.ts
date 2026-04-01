@@ -18,6 +18,7 @@ import {
   jsonToMDTable,
   refCellTransformer,
 } from "../../markdown_renderer/result_render.ts";
+import * as TagConstants from "../../../plugs/index/constants.ts";
 
 export function markdownSyscalls(client: Client): SysCallMapping {
   return {
@@ -58,6 +59,14 @@ export function markdownSyscalls(client: Client): SysCallMapping {
       let mdTree = parse(markdownLanguageWithUserExtensions(client), text);
       if (options.expand) {
         mdTree = await expandMarkdownWithClient(client, mdTree);
+      }
+      if (!options.resolveTagHref) {
+        options.resolveTagHref = (tagName: string) => {
+          return client.config.get<string | null>(
+            ["tags", tagName, "tagPage"],
+            null,
+          ) ?? TagConstants.tagPrefix + tagName;
+        };
       }
       return renderMarkdownToHtml(mdTree, options);
     },

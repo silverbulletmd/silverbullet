@@ -1,4 +1,9 @@
-import { editor, markdown, space } from "@silverbulletmd/silverbullet/syscalls";
+import {
+  config,
+  editor,
+  markdown,
+  space,
+} from "@silverbulletmd/silverbullet/syscalls";
 import {
   addParentPointers,
   collectNodesOfType,
@@ -108,7 +113,15 @@ async function actionClickOrActionEnter(
     }
     case "Hashtag": {
       const hashtag = extractHashtag(mdTree.children![0].text!);
-      await editor.navigate(`${tagPrefix}${hashtag}`, false, inNewWindow);
+      const tagPage = await config.get(
+        ["tags", hashtag, "tagPage"],
+        null,
+      );
+      await editor.navigate(
+        tagPage ?? `${tagPrefix}${hashtag}`,
+        false,
+        inNewWindow,
+      );
       break;
     }
     case "FootnoteRef": {

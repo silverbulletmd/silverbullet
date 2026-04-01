@@ -24,7 +24,7 @@ export function cleanModePlugins(client: Client) {
   const pluginsNeededEvenWhenRenderingSyntax = [
     luaDirectivePlugin(client),
     cleanWikiLinkPlugin(client),
-    hashtagPlugin(),
+    hashtagPlugin(client),
     attributePlugin(),
     frontmatterPlugin(client),
     customSyntaxPlugin(client),

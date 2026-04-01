@@ -15,6 +15,7 @@ Defines a tag explicitly.
 
 `spec` is a table that can contain:
 * `name` (required) the name of the tag
+* `tagPage` page to navigate to when clicking the tag (defaults to `tag:name`)
 * `metatable` to set a custom Lua metatable for objects with this tag.
 * `mustValidate` a boolean defining whether or not schema validation must pass for the object to be indexed
 * `schema` [[Schema]] to validate against

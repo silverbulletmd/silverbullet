@@ -4,8 +4,9 @@ import { decoratorStateField } from "./util.ts";
 import * as Constants from "../../plugs/index/constants.ts";
 import { extractHashtag } from "../../plug-api/lib/tags.ts";
 import { encodePageURI } from "@silverbulletmd/silverbullet/lib/ref";
+import type { Client } from "../client.ts";
 
-export function hashtagPlugin() {
+export function hashtagPlugin(client: Client) {
   return decoratorStateField((state) => {
     const widgets: any[] = [];
 
@@ -23,6 +24,11 @@ export function hashtagPlugin() {
         }
 
         const tagName = extractHashtag(tag);
+        const tagPage = client.config.get<string | null>(
+          ["tags", tagName, "tagPage"],
+          null,
+        );
+        const target = tagPage ?? Constants.tagPrefix + tagName;
 
         // Wrap the tag in html anchor element
         widgets.push(
@@ -30,7 +36,7 @@ export function hashtagPlugin() {
             tagName: "a",
             class: "sb-hashtag",
             attributes: {
-              href: `/${encodePageURI(Constants.tagPrefix + tagName)}`,
+              href: `/${encodePageURI(target)}`,
               rel: "tag",
               "data-tag-name": tagName,
             },

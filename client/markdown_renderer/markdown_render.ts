@@ -30,6 +30,7 @@ export type MarkdownRenderOptions = {
   shortWikiLinks?: boolean;
   // When defined, use to inline images as data: urls
   translateUrls?: (url: string, type: "link" | "image") => string;
+  resolveTagHref?: (tagName: string) => string;
   expand?: true;
 };
 
@@ -336,12 +337,14 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
     }
     case "Hashtag": {
       const tagText: string = t.children![0].text!;
-      const link = TagConstants.tagPrefix + extractHashtag(tagText);
+      const tagName = extractHashtag(tagText);
+      const link = options.resolveTagHref?.(tagName) ??
+        TagConstants.tagPrefix + tagName;
       return {
         name: "a",
         attrs: {
           class: "hashtag sb-hashtag",
-          "data-tag-name": extractHashtag(tagText),
+          "data-tag-name": tagName,
           href: `/${encodePageURI(link)}`,
           "data-ref": link,
         },

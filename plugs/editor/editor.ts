@@ -1,6 +1,7 @@
 import {
   clientStore,
   codeWidget,
+  config,
   editor,
   index,
   system,
@@ -77,7 +78,11 @@ export async function openTagNavigator() {
   if (!selectedTag) {
     return;
   }
-  await editor.navigate(`tag:${selectedTag.name}`);
+  const tagPage = await config.get(
+    ["tags", selectedTag.name, "tagPage"],
+    null,
+  );
+  await editor.navigate(tagPage ?? `tag:${selectedTag.name}`);
 }
 
 export async function openDocumentNavigator() {
