@@ -2,6 +2,7 @@ import { parseExpressionString } from "../parse.ts";
 import type { LuaExpression } from "../ast.ts";
 import { evalExpression } from "../eval.ts";
 import {
+  jsToLuaValue,
   LuaBuiltinFunction,
   LuaEnv,
   LuaRuntimeError,
@@ -129,7 +130,10 @@ export const spaceluaApi = new LuaTable({
    * Interpolates a string with lua expressions and returns the result.
    */
   interpolate: new LuaBuiltinFunction(
-    (sf, template: string, envAugmentation?: LuaTable) => {
+    (sf, template: string, envAugmentation?: LuaTable | any) => {
+      if (envAugmentation && !(envAugmentation instanceof LuaTable)) {
+        envAugmentation = jsToLuaValue(envAugmentation);
+      }
       return interpolateLuaString(sf, template, envAugmentation);
     },
   ),
