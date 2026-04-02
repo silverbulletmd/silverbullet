@@ -6,7 +6,6 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
 * New query shortcuts: `index.contentPages()` (pages excluding meta pages) and `index.metaPages()` (only meta pages) for convenient querying without manual tag filtering.
 * **Technical: Deno → Node.js migration**: The TypeScript/client codebase has been migrated from Deno to Node.js, now using vitest for tests. This _should_ purely be a tooling change.
 * **[[Runtime API]]** and accompanying [[CLI]] (==Experimental==): programmatically interact with a (remote) SilverBullet server over via `silverbullet-cli` or a [[Runtime API|HTTP API]]: evaluate Lua expressions, run scripts, and retrieve console logs. Powered by a headless Chrome instance running the full SilverBullet client via CDP, so all results reflect live client state.
-* Live Preview for HTML tags: inline HTML in markdown (e.g. `<marquee>Hello **there**</marquee>`) now renders as actual HTML elements in the editor, with full markdown support inside the tags.
 * [[Outlines]] commands have been thoroughly reworked. Should now be more robust and better tested outline move/indent operations. New features:
   * Now also works with numbered items (and renumbers them)
   * Now works with headers (moves around entire sections)

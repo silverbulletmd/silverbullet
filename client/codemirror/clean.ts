@@ -18,7 +18,7 @@ import type { ClickEvent } from "@silverbulletmd/silverbullet/type/client";
 import { attributePlugin } from "./attribute.ts";
 import { customSyntaxPlugin } from "./custom_syntax_widget.ts";
 import { footnotePlugin } from "./footnote.ts";
-import { htmlElementPlugin } from "./html_element.ts";
+
 
 export function cleanModePlugins(client: Client) {
   const pluginsNeededEvenWhenRenderingSyntax = [
@@ -73,6 +73,5 @@ export function cleanModePlugins(client: Client) {
     tablePlugin(client),
     cleanEscapePlugin(),
     ...footnotePlugin(() => client.editorView),
-    htmlElementPlugin(client),
   ] as Extension[];
 }

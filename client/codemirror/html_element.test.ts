@@ -1,7 +1,5 @@
 import { expect, test } from "vitest";
 import { matchHtmlTagPairs, parseHtmlTag } from "./html_element.ts";
-import { parseMarkdown } from "../markdown_parser/parser.ts";
-import { collectNodesOfType } from "@silverbulletmd/silverbullet/lib/tree";
 
 test("parseHtmlTag - opening tag", () => {
   const result = parseHtmlTag("<marquee>");
@@ -135,15 +133,3 @@ test("matchHtmlTagPairs - interleaved tags", () => {
   expect(pairs[1].open.tagName).toBe("i");
 });
 
-test("parseMarkdown produces HTMLTag nodes for inline HTML", () => {
-  const tree = parseMarkdown("<marquee>Hello **there**</marquee>");
-  const htmlTags = collectNodesOfType(tree, "HTMLTag");
-  expect(htmlTags.length).toBe(2);
-  // Opening tag
-  expect(htmlTags[0].children![0].text).toBe("<marquee>");
-  // Closing tag
-  expect(htmlTags[1].children![0].text).toBe("</marquee>");
-  // Check that StrongEmphasis is also parsed
-  const strong = collectNodesOfType(tree, "StrongEmphasis");
-  expect(strong.length).toBe(1);
-});
