@@ -628,6 +628,11 @@
       background-color: var(--editor-code-background-color);
     }
 
+    button {
+      font-family: var(--editor-font);
+      font-size: inherit;
+    }
+
     // Only show the button bar on hover on non-touch devices
     &:hover .button-bar {
       display: block;
