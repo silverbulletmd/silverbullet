@@ -580,7 +580,9 @@ export function editorSyscalls(client: Client): SysCallMapping {
         });
         config.commands?.forEach(({ ex, command }) => {
           console.log(`Mapping command '${command}' to Ex ${ex}`);
-          Vim.defineEx(ex, "", () => client.runCommandByName(command));
+          Vim.defineEx(ex, "", (_, params) =>
+            client.runCommandByName(command, params.args),
+          );
         });
       } else {
         console.log("No vim config found");
