@@ -106,9 +106,9 @@ test("empty LuaTable", async () => {
 
 test("LuaTable array of scalars renders as <ul>", async () => {
   const tbl = new LuaTable();
-  tbl.rawSet(1, "alpha");
-  tbl.rawSet(2, "beta");
-  tbl.rawSet(3, "gamma");
+  void tbl.rawSet(1, "alpha");
+  void tbl.rawSet(2, "beta");
+  void tbl.rawSet(3, "gamma");
 
   const r = await renderResultToHtml(tbl);
   expect(r.dataType).toBe("list");
@@ -123,16 +123,16 @@ test("LuaTable array of scalars renders as <ul>", async () => {
 
 test("LuaTable array of LuaTables renders as multi-row table", async () => {
   const row1 = new LuaTable();
-  row1.rawSet("name", "Alice");
-  row1.rawSet("age", 30);
+  void row1.rawSet("name", "Alice");
+  void row1.rawSet("age", 30);
 
   const row2 = new LuaTable();
-  row2.rawSet("name", "Bob");
-  row2.rawSet("age", 25);
+  void row2.rawSet("name", "Bob");
+  void row2.rawSet("age", 25);
 
   const tbl = new LuaTable();
-  tbl.rawSet(1, row1);
-  tbl.rawSet(2, row2);
+  void tbl.rawSet(1, row1);
+  void tbl.rawSet(2, row2);
 
   const r = await renderResultToHtml(tbl);
   expect(r.dataType).toBe("list");
@@ -151,8 +151,8 @@ test("LuaTable array of LuaTables renders as multi-row table", async () => {
 
 test("LuaTable with string keys renders as single-row table", async () => {
   const tbl = new LuaTable();
-  tbl.rawSet("x", 10);
-  tbl.rawSet("y", 20);
+  void tbl.rawSet("x", 10);
+  void tbl.rawSet("y", 20);
 
   const r = await renderResultToHtml(tbl);
   expect(r.dataType).toBe("table");
@@ -171,8 +171,8 @@ test("LuaTable with string keys renders as single-row table", async () => {
 
 test("LuaTable with mixed keys uses keys order in header", async () => {
   const tbl = new LuaTable();
-  tbl.rawSet(1, "first");
-  tbl.rawSet("label", "test");
+  void tbl.rawSet(1, "first");
+  void tbl.rawSet("label", "test");
 
   const r = await renderResultToHtml(tbl);
   expect(r.dataType).toBe("table");
@@ -265,10 +265,10 @@ test("null item in a list gets data-list-item-empty", async () => {
 
 test("LIQ_NULL in LuaTable cell gets data-table-cell-empty", async () => {
   const row = new LuaTable();
-  row.rawSet("val", LIQ_NULL);
+  void row.rawSet("val", LIQ_NULL);
 
   const tbl = new LuaTable();
-  tbl.rawSet(1, row);
+  void tbl.rawSet(1, row);
 
   const r = await renderResultToHtml(tbl);
   expect(r.html).toContain("data-table-cell-empty");
@@ -293,14 +293,14 @@ test("JS object array with different keys shows union of headers", async () => {
 
 test("LuaTable array with different keys shows union of headers", async () => {
   const row1 = new LuaTable();
-  row1.rawSet("x", 1);
+  void row1.rawSet("x", 1);
 
   const row2 = new LuaTable();
-  row2.rawSet("y", 2);
+  void row2.rawSet("y", 2);
 
   const tbl = new LuaTable();
-  tbl.rawSet(1, row1);
-  tbl.rawSet(2, row2);
+  void tbl.rawSet(1, row1);
+  void tbl.rawSet(2, row2);
 
   const r = await renderResultToHtml(tbl);
   expect(r.html).toContain("<th>x</th>");
@@ -313,10 +313,10 @@ test("LuaTable array with different keys shows union of headers", async () => {
 
 test("nested LuaTable in a cell renders recursively", async () => {
   const inner = new LuaTable();
-  inner.rawSet("nested", "value");
+  void inner.rawSet("nested", "value");
 
   const tbl = new LuaTable();
-  tbl.rawSet("data", inner);
+  void tbl.rawSet("data", inner);
 
   const r = await renderResultToHtml(tbl);
   expect(r.dataType).toBe("table");
@@ -336,7 +336,7 @@ test("nested JS array in a plain object cell", async () => {
 
 test("nested empty LuaTable in a cell renders as empty table", async () => {
   const tbl = new LuaTable();
-  tbl.rawSet("child", new LuaTable());
+  void tbl.rawSet("child", new LuaTable());
 
   const r = await renderResultToHtml(tbl);
   expect(r.html).toContain("data-table-empty");
