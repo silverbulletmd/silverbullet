@@ -18,11 +18,12 @@ Let’s say you have documented a set of product features in individual pages th
 
 With a simple [[Space Lua/Lua Integrated Query|Query]] and [[Template]], you can now dynamically build a product feature list, ordered by _awesomeness_ (`Alt-click` or hover and click the edit button to see the underlying code):
 
-${template.each(query[[
-  from tags.feature
-  where tag == "page"
-  order by awesomeness desc
-]], templates.featureItem)}
+${query[[
+  from f = tags.feature
+  where f.tag == "page"
+  order by f.awesomeness desc
+  select templates.featureItem(f)
+]]}
 
 _(The template generating the feature bullet items can be found in [[^Library/Website Templates]])_
 
@@ -30,19 +31,21 @@ Neat huh? A few more use cases.
 
 ## Active pages
 Let’s say you want to have a list of your 5 modified pages. We can do that!
-${template.each(query[[
-  from tags.page
-  order by lastModified desc
+${query[[
+  from p = tags.page
+  order by p.lastModified desc
   limit 5
-]], templates.pageItem)}
+  select templates.pageItem(p)
+]]}
 
 ## To do items 
 Maybe you want to collect all [[Task|Tasks]] that you have not yet completed from across your space? No problem:
-${template.each(query[[
-  from index.tag "task"
-  where not _.done
+${query[[
+  from t = tags.task
+  where not t.done
   limit 3
-]], templates.taskItem)}
+  select templates.taskItem(t)
+]]}
 
 # Tour
 That all sounds nice, but what does that look like in practice? Well, if you’re wondering purely about _looks_: have a look around — this very website is hosted as a _read-only_ SilverBullet instance. You probably already figured this out.
