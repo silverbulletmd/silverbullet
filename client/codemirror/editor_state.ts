@@ -23,7 +23,12 @@ import {
   syntaxHighlighting,
   unfoldEffect,
 } from "@codemirror/language";
-import { Compartment, EditorState, type Extension } from "@codemirror/state";
+import {
+  Compartment,
+  EditorState,
+  type Extension,
+  Prec,
+} from "@codemirror/state";
 import {
   drawSelection,
   dropCursor,
@@ -34,7 +39,11 @@ import {
   ViewPlugin,
   type ViewUpdate,
 } from "@codemirror/view";
-import { markdown } from "@codemirror/lang-markdown";
+import {
+  deleteMarkupBackward,
+  markdown,
+} from "@codemirror/lang-markdown";
+import { customEnterCommand } from "./markdown_enter.ts";
 import type { Client } from "../client.ts";
 import { loadVim } from "../vim_loader.ts";
 import { inlineContentPlugin } from "./inline_content.ts";
@@ -44,11 +53,7 @@ import { createSmartQuoteKeyBindings } from "./smart_quotes.ts";
 import { documentExtension, pasteLinkExtension } from "./editor_paste.ts";
 import type { TextChange } from "./change.ts";
 import { postScriptPrefacePlugin } from "./top_bottom_panels.ts";
-import {
-  lazyLanguages,
-  languageFor,
-  loadLanguageFor,
-} from "../languages.ts";
+import { lazyLanguages, languageFor, loadLanguageFor } from "../languages.ts";
 import { plugLinter } from "./lint.ts";
 import { buildExtendedMarkdownLanguage } from "../markdown_parser/parser.ts";
 import { safeRun } from "@silverbulletmd/silverbullet/lib/async";
@@ -475,8 +480,17 @@ export function buildMarkdownLanguageExtension(client: Client): Extension[] {
         }
         return null;
       },
-      addKeymap: true,
+      addKeymap: false,
     }),
+    Prec.high(
+      keymap.of([
+        {
+          key: "Enter",
+          run: customEnterCommand,
+        },
+        { key: "Backspace", run: deleteMarkupBackward },
+      ]),
+    ),
     markdownLanguage.data.of({
       closeBrackets: {
         brackets: client.config
