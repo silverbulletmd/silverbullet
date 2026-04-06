@@ -14,6 +14,7 @@ import { TaskList } from "./extended_task.ts";
 import { Table } from "./table_parser.ts";
 import { FootnoteDefinition, FootnoteRef, InlineFootnote } from "./footnote.ts";
 import { nakedUrlRegex, pWikiLinkRegex, tagRegex } from "./constants.ts";
+import { HTMLBlockParsing } from "./html_block.ts";
 import { parse } from "./parse_tree.ts";
 import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
 import { luaLanguage } from "../space_lua/parse.ts";
@@ -362,6 +363,7 @@ export const FrontMatter: MarkdownConfig = {
 };
 
 const baseMarkdownExtensions: MarkdownConfig[] = [
+  HTMLBlockParsing,
   WikiLink,
   Attribute,
   FrontMatter,

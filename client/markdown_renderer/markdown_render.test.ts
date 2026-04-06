@@ -352,3 +352,117 @@ test("expandMarkdown skips custom syntax without renderHtml", async () => {
   // Should fall through to default rendering (raw text, HTML-escaped)
   expect(html).toContain("&lt;&lt;content&gt;&gt;");
 });
+
+// ── Block-level HTML rendering ─────────────────────────────────────
+
+test("Block HTML table renders correctly", () => {
+  const tree = parse(
+    extendedMarkdownLanguage,
+    "<table><tr><td>hello</td></tr></table>",
+  );
+  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
+  expect(html).toBe("<table><tr><td>hello</td></tr></table>");
+});
+
+test("Block HTML preserves data attributes", () => {
+  const tree = parse(
+    extendedMarkdownLanguage,
+    '<td data-table-cell-type="number">42</td>',
+  );
+  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
+  expect(html).toBe('<td data-table-cell-type="number">42</td>');
+});
+
+test("Markdown inside block HTML td is rendered", () => {
+  const tree = parse(
+    extendedMarkdownLanguage,
+    "<table><tr><td>hello **world**</td></tr></table>",
+  );
+  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
+  expect(html).toBe(
+    "<table><tr><td>hello <strong>world</strong></td></tr></table>",
+  );
+});
+
+test("Wiki link inside block HTML td is rendered", () => {
+  const tree = parse(
+    extendedMarkdownLanguage,
+    "<table><tr><td>see [[MyPage]]</td></tr></table>",
+  );
+  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
+  expect(html).toContain('<a href="/MyPage" class="wiki-link"');
+  expect(html).toContain("data-ref=\"MyPage\"");
+});
+
+test("Block HTML with self-closing tags", () => {
+  const tree = parse(
+    extendedMarkdownLanguage,
+    "<div><br /><hr /></div>",
+  );
+  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
+  expect(html).toBe("<div><br /><hr /></div>");
+});
+
+test("Multi-line block HTML table", () => {
+  const md = `<table>
+<thead><tr><th>name</th><th>age</th></tr></thead>
+<tbody>
+<tr><td>Alice</td><td>30</td></tr>
+</tbody>
+</table>`;
+  const tree = parse(extendedMarkdownLanguage, md);
+  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
+  expect(html).toContain("<thead><tr><th>name</th><th>age</th></tr></thead>");
+  expect(html).toContain("<td>Alice</td><td>30</td>");
+});
+
+test("Block HTML with data attributes and wiki links", () => {
+  const md = `<table>
+<thead><tr><th>name</th></tr></thead>
+<tbody>
+<tr><td data-table-cell-type="string">[[Alice]]</td></tr>
+</tbody>
+</table>`;
+  const tree = parse(extendedMarkdownLanguage, md);
+  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
+  expect(html).toContain('data-table-cell-type="string"');
+  expect(html).toContain('<a href="/Alice" class="wiki-link"');
+});
+
+test("Block HTML ul/li with data attributes", () => {
+  const tree = parse(
+    extendedMarkdownLanguage,
+    '<ul><li data-list-item-type="string">hello</li></ul>',
+  );
+  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
+  expect(html).toBe(
+    '<ul><li data-list-item-type="string">hello</li></ul>',
+  );
+});
+
+test("Nested block HTML tables", () => {
+  const tree = parse(
+    extendedMarkdownLanguage,
+    "<table><tr><td><table><tr><td>inner</td></tr></table></td></tr></table>",
+  );
+  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
+  expect(html).toContain("<table><tr><td>inner</td></tr></table>");
+  // Should have two table open/close pairs
+  expect(html.match(/<table>/g)).toHaveLength(2);
+  expect(html.match(/<\/table>/g)).toHaveLength(2);
+});
+
+test("Empty block HTML table", () => {
+  const tree = parse(
+    extendedMarkdownLanguage,
+    '<table data-table-empty></table>',
+  );
+  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
+  expect(html).toContain("data-table-empty");
+});
+
+test("HTML comment is still removed", () => {
+  const tree = parse(extendedMarkdownLanguage, "<!-- comment -->");
+  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
+  expect(html).toBe("");
+});
