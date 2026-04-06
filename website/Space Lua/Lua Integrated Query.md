@@ -308,10 +308,11 @@ ${query[[
 # Rendering the output
 To render the output as a template, you can rely on the fact that queries return Lua tables. For example, to apply a template to render every page as a link:
 
-${template.each(query[[
+${query[[
   from p = index.tag "page"
   order by p.lastModified desc
   limit 3
-]], templates.pageItem)}
+  select templates.pageItem(p)
+]]}
 
 To render pages as links with their full local URL, use `templates.fullPageItem`. For more information on available templates, see [[^Library/Std/Infrastructure/Query Templates]].
