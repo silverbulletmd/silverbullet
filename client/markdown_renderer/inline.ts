@@ -20,7 +20,7 @@ import { LuaStackFrame, LuaTable } from "../space_lua/runtime.ts";
 import { buildExtendedMarkdownLanguage } from "../markdown_parser/parser.ts";
 import type { CustomSyntaxSpec } from "../markdown_parser/custom_syntax.ts";
 import { parse } from "../markdown_parser/parse_tree.ts";
-import { renderExpressionResult } from "./result_render.ts";
+import { renderResultToMarkdown } from "../space_lua/render_lua_markdown.ts";
 import { parseExpressionString } from "../space_lua/parse.ts";
 import { evalExpression } from "../space_lua/eval.ts";
 import type { LuaExpression } from "../space_lua/ast.ts";
@@ -147,7 +147,7 @@ export async function expandMarkdown(
         } else if (result instanceof LuaTable && result.has("markdown")) {
           result = result.get("markdown");
         }
-        return parse(mdLang, await renderExpressionResult(result));
+        return parse(mdLang, renderResultToMarkdown(result).markdown);
       } catch (e: any) {
         // Reduce blast radius and give useful error message
         console.error("Error evaluating Lua directive", exprText, e);

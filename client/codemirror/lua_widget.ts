@@ -10,13 +10,10 @@ import {
   moveCursorToWidgetStart,
 } from "./widget_util.ts";
 import { expandMarkdown } from "../markdown_renderer/inline.ts";
-import {
-  isBlockMarkdown,
-  renderExpressionResult,
-} from "../markdown_renderer/result_render.ts";
+import { isBlockMarkdown } from "../space_lua/render_lua_markdown.ts";
 import { activeWidgets } from "./code_widget.ts";
 import type { Ref } from "@silverbulletmd/silverbullet/lib/ref";
-import { renderResultToHtml } from "../space_lua/render_lua_html.ts";
+import { renderResultToMarkdown } from "../space_lua/render_lua_markdown.ts";
 
 export type LuaWidgetCallback = (
   bodyText: string,
@@ -136,24 +133,6 @@ export class LuaWidget extends WidgetType {
     );
   }
 
-  // Build an inline Markdown renderer bound to the current client context
-  private buildInlineRenderer(): (text: string) => Promise<string> {
-    return async (text: string): Promise<string> => {
-      const mdTree = await this.parseAndExpandCustomSyntax(
-        text,
-        this.opts.client.currentName(),
-      );
-      return renderMarkdownToHtml(
-        mdTree,
-        {
-          shortWikiLinks: this.opts.client.config.get("shortWikiLinks", false),
-          translateUrls: buildTranslateUrls(this.opts.client),
-        },
-        this.opts.client.ui.viewState.allPages,
-      );
-    };
-  }
-
   async renderContent(div: HTMLElement) {
     const currentName = this.opts.client.currentName();
     let widgetContent = await this.opts.callback(
@@ -181,16 +160,9 @@ export class LuaWidget extends WidgetType {
     let block = false;
     let copyContent: string | undefined;
 
-    // Normalization (non-widget results go through dual-path rendering)
+    // Normalization (non-widget results go through markdown rendering)
     if (typeof widgetContent === "string" || !widgetContent._isWidget) {
-      // HTML path for display (with data attributes, nested structures)
-      const inlineRenderer = this.buildInlineRenderer();
-      const { html: displayHtml, dataType } = await renderResultToHtml(
-        widgetContent,
-        inlineRenderer,
-      );
-      // Markdown path for copy button (flat tables, `{...}` for nested)
-      const markdownCopy = await renderExpressionResult(widgetContent);
+      const { markdown, dataType } = renderResultToMarkdown(widgetContent);
 
       const isBlock =
         dataType === "table" ||
@@ -199,10 +171,10 @@ export class LuaWidget extends WidgetType {
 
       widgetContent = {
         _isWidget: true,
-        html: `<span data-type="${dataType}">${displayHtml}</span>`,
+        markdown: markdown,
         display: isBlock ? "block" : "inline",
       };
-      copyContent = markdownCopy;
+      copyContent = markdown;
     }
 
     // After normalization `widgetContent` is always the object form

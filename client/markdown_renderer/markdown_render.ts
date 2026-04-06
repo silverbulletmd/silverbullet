@@ -420,11 +420,17 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
           },
         ],
       };
-    case "TableCell":
+    case "TableCell": {
+      const cellHasHtml = t.children!.some((c) => c.type === "HTMLTag");
       return {
         name: "td",
-        body: cleanTags(mapRender(t.children!)),
+        body: cleanTags(
+          cellHasHtml
+            ? groupInlineHtml(t.children!, options, posPreservingRender)
+            : mapRender(t.children!),
+        ),
       };
+    }
     case "TableRow": {
       const table = t.parent;
       const header = table?.children?.find((c) => c.type === "TableHeader");
