@@ -31,7 +31,7 @@ function formatScalar(v: any): string {
   if (isTaggedFloat(v)) return luaFormatNumber(v.value, "float");
   if (typeof v === "number") return luaFormatNumber(v);
   if (typeof v === "boolean") return v ? "true" : "false";
-  return `${v}`;
+  return `${v}`.trim();
 }
 
 const emptyTable = "<table data-table-empty></table>";
@@ -81,9 +81,7 @@ function collectHeaders<T>(
  * renderer to produce final HTML, getting wiki links, hashtags,
  * formatting etc. for free.
  */
-export function renderResultToMarkdown(
-  result: any,
-): {
+export function renderResultToMarkdown(result: any): {
   markdown: string;
   dataType: string;
 } {
@@ -118,7 +116,11 @@ export function renderResultToMarkdown(
     if (result.every(isPlainObject)) {
       const headers = collectHeaders(result, Object.keys);
       return {
-        markdown: buildHtmlTable(headers, result.length, (i, h) => result[i][h]),
+        markdown: buildHtmlTable(
+          headers,
+          result.length,
+          (i, h) => result[i][h],
+        ),
         dataType: "table",
       };
     }
@@ -149,7 +151,10 @@ function renderLuaTable(tbl: LuaTable): { markdown: string; dataType: string } {
     const elements: any[] = [];
     for (let i = 1; i <= arrayLen; i++) elements.push(tbl.rawGet(i));
     if (elements.every((el) => el instanceof LuaTable)) {
-      return { markdown: renderLuaTableArray(elements as LuaTable[]), dataType: "list" };
+      return {
+        markdown: renderLuaTableArray(elements as LuaTable[]),
+        dataType: "list",
+      };
     }
     return { markdown: renderArrayToMarkdown(elements), dataType: "list" };
   }
