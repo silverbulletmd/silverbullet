@@ -21,6 +21,7 @@ import type { LuaExpression } from "./ast.ts";
 import { buildItemEnv } from "./query_env.ts";
 import { asyncMergeSort } from "./util.ts";
 import type { Config } from "../config.ts";
+import { coerceToNumber } from "./numeric.ts";
 import YAML from "js-yaml";
 
 export interface AggregateSpec {
@@ -46,6 +47,13 @@ function aggFn(
   };
 }
 
+// Coerce a value to a plain JS number for numeric aggregates.
+// Handles plain numbers, LuaTaggedFloat objects, and numeric strings.
+// Returns null for non-coercible values.
+function aggNum(value: any): number | null {
+  return coerceToNumber(value);
+}
+
 // Welford's online algorithm (for variance and standard deviation)
 interface WelfordState {
   n: number;
@@ -59,7 +67,8 @@ function welfordInit(): WelfordState {
 
 function welfordIterate(state: WelfordState, value: any): WelfordState {
   if (value === null || value === undefined || isSqlNull(value)) return state;
-  const x = value as number;
+  const x = aggNum(value);
+  if (x === null) return state;
   state.n += 1;
   const delta = x - state.mean;
   state.mean += delta / state.n;
@@ -88,13 +97,16 @@ function covarIterate(state: CovarState, x: any, y: any): CovarState {
     isSqlNull(y)
   )
     return state;
+  const xn = aggNum(x);
+  const yn = aggNum(y);
+  if (xn === null || yn === null) return state;
   state.n += 1;
-  const dx = (x as number) - state.mean;
+  const dx = xn - state.mean;
   state.mean += dx / state.n;
-  const dy = (y as number) - state.meanY;
+  const dy = yn - state.meanY;
   state.meanY += dy / state.n;
-  const dx2 = (x as number) - state.mean;
-  const dy2 = (y as number) - state.meanY;
+  const dx2 = xn - state.mean;
+  const dy2 = yn - state.meanY;
   state.c += dx * dy2;
   state.m2 += dx * dx2;
   state.m2y += dy * dy2;
@@ -167,7 +179,9 @@ function makeQuantileSpec(name: string, description: string): AggregateSpec {
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined || isSqlNull(value))
         return state;
-      state.values.push(value as number);
+      const n = aggNum(value);
+      if (n === null) return state;
+      state.values.push(n);
       return state;
     }),
     finish: aggFn((_sf, state: any) => quantileFinish(state as QuantileState)),
@@ -195,7 +209,9 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined || isSqlNull(value))
         return state;
-      state.result += value as number;
+      const n = aggNum(value);
+      if (n === null) return state;
+      state.result += n;
       state.hasValue = true;
       return state;
     }),
@@ -210,7 +226,9 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined || isSqlNull(value))
         return state;
-      state.result *= value as number;
+      const n = aggNum(value);
+      if (n === null) return state;
+      state.result *= n;
       state.hasValue = true;
       return state;
     }),
@@ -247,7 +265,9 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined || isSqlNull(value))
         return state;
-      state.sum += value as number;
+      const n = aggNum(value);
+      if (n === null) return state;
+      state.sum += n;
       state.count += 1;
       return state;
     }),
@@ -354,7 +374,9 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined || isSqlNull(value))
         return state;
-      state.result &= value as number;
+      const n = aggNum(value);
+      if (n === null) return state;
+      state.result &= n;
       state.hasValue = true;
       return state;
     }),
@@ -369,7 +391,9 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined || isSqlNull(value))
         return state;
-      state.result |= value as number;
+      const n = aggNum(value);
+      if (n === null) return state;
+      state.result |= n;
       state.hasValue = true;
       return state;
     }),
@@ -384,7 +408,9 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined || isSqlNull(value))
         return state;
-      state.result ^= value as number;
+      const n = aggNum(value);
+      if (n === null) return state;
+      state.result ^= n;
       state.hasValue = true;
       return state;
     }),
@@ -557,7 +583,9 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined || isSqlNull(value))
         return state;
-      state.values.push(value as number);
+      const n = aggNum(value);
+      if (n === null) return state;
+      state.values.push(n);
       return state;
     }),
     finish: aggFn((_sf, state: any) => quantileFinish(state as QuantileState)),
