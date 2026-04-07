@@ -72,9 +72,9 @@ class TableViewWidget extends WidgetType {
         // Give it a tick to render
         attachWidgetEventHandlers(dom, this.client, this.tableBodyText);
 
-        this.client.widgetCache.setCachedWidgetHeight(
+        this.client.widgetCache.setCachedWidgetMeta(
           `table:${this.tableBodyText}`,
-          dom.clientHeight,
+          { height: dom.clientHeight, block: true },
         );
       });
     });

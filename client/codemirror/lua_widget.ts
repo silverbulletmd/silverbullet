@@ -79,24 +79,21 @@ export class LuaWidget extends WidgetType {
     wrapperSpan.className = "sb-lua-wrapper";
     const innerDiv = document.createElement("div");
     wrapperSpan.appendChild(innerDiv);
-    const cacheItem = this.opts.client.widgetCache.getWidgetCache(
+    // On a cache hit, apply the correct block/inline class and reserve
+    // vertical space via min-height. We deliberately do NOT insert any
+    // cached HTML — re-parsing a cached HTML string produces a subtly
+    // different measured height than the fresh render, causing a brief
+    // border-position glitch on first paint.
+    const cachedMeta = this.opts.client.widgetCache.getCachedWidgetMeta(
       this.opts.cacheKey,
     );
-    if (cacheItem) {
-      if (cacheItem.block) {
-        innerDiv.className += " sb-lua-directive-block";
-      } else {
-        innerDiv.className += " sb-lua-directive-inline";
+    if (cachedMeta) {
+      innerDiv.className += cachedMeta.block
+        ? " sb-lua-directive-block"
+        : " sb-lua-directive-inline";
+      if (cachedMeta.height > 0) {
+        innerDiv.style.minHeight = `${cachedMeta.height}px`;
       }
-      // This is to make the initial render faster, will later be replaced by the actual content
-      innerDiv.replaceChildren(
-        this.wrapHtml(!!cacheItem.block, cacheItem.html, cacheItem.copyContent),
-      );
-      attachWidgetEventHandlers(
-        innerDiv,
-        this.opts.client,
-        this.opts.inPage ? this.opts.codeText : undefined,
-      );
     }
 
     // Async kick-off of content renderer
@@ -143,14 +140,8 @@ export class LuaWidget extends WidgetType {
     if (widgetContent === null || widgetContent === undefined) {
       if (!this.opts.renderEmpty) {
         div.innerHTML = "";
-        this.opts.client.widgetCache.setWidgetCache(this.opts.cacheKey, {
-          html: "",
-          block: false,
-        });
-        this.opts.client.widgetCache.setCachedWidgetHeight(
-          this.opts.cacheKey,
-          div.clientHeight,
-        );
+        div.style.minHeight = "";
+        this.opts.client.widgetCache.removeCachedWidgetMeta(this.opts.cacheKey);
         return;
       }
       widgetContent = { markdown: "nil", _isWidget: true };
@@ -220,14 +211,8 @@ export class LuaWidget extends WidgetType {
       if (!trimmedMarkdown) {
         // Net empty result after expansion
         div.innerHTML = "";
-        this.opts.client.widgetCache.setWidgetCache(this.opts.cacheKey, {
-          html: "",
-          block: false,
-        });
-        this.opts.client.widgetCache.setCachedWidgetHeight(
-          this.opts.cacheKey,
-          div.clientHeight,
-        );
+        div.style.minHeight = "";
+        this.opts.client.widgetCache.removeCachedWidgetMeta(this.opts.cacheKey);
         return;
       }
 
@@ -261,6 +246,7 @@ export class LuaWidget extends WidgetType {
     }
     if (html) {
       div.replaceChildren(this.wrapHtml(block, html, copyContent));
+      div.style.minHeight = "";
       attachWidgetEventHandlers(
         div,
         this.opts.client,
@@ -271,15 +257,10 @@ export class LuaWidget extends WidgetType {
 
     // Let's give it a tick, then measure and cache
     setTimeout(() => {
-      this.opts.client.widgetCache.setWidgetCache(this.opts.cacheKey, {
-        html: html?.innerHTML || "",
+      this.opts.client.widgetCache.setCachedWidgetMeta(this.opts.cacheKey, {
+        height: div.offsetHeight,
         block,
-        copyContent: copyContent,
       });
-      this.opts.client.widgetCache.setCachedWidgetHeight(
-        this.opts.cacheKey,
-        div.offsetHeight,
-      );
       // Skip during IME composition to avoid caret jumps
       if (!this.opts.client.editorView.composing) {
         // Because of the rejiggering of the DOM, we need to do a no-op

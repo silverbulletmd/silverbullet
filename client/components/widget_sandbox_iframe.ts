@@ -157,10 +157,10 @@ export function mountIFrame(
               // iframe.height = data.height + "px";
               iframe.style.height = `${data.height}px`;
               if (widgetHeightCacheKey) {
-                client.widgetCache.setCachedWidgetHeight(
-                  widgetHeightCacheKey,
-                  data.height,
-                );
+                client.widgetCache.setCachedWidgetMeta(widgetHeightCacheKey, {
+                  height: data.height,
+                  block: true,
+                });
               }
               break;
             default:
@@ -195,10 +195,10 @@ export function mountIFrame(
           if (resolvedContent.height) {
             iframe.style.height = `${resolvedContent.height}px`;
             if (widgetHeightCacheKey) {
-              client.widgetCache.setCachedWidgetHeight(
-                widgetHeightCacheKey!,
-                resolvedContent.height,
-              );
+              client.widgetCache.setCachedWidgetMeta(widgetHeightCacheKey, {
+                height: resolvedContent.height,
+                block: true,
+              });
             }
           }
           if (resolvedContent.width) {

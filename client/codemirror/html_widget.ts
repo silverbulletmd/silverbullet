@@ -67,10 +67,10 @@ class HtmlWidget extends WidgetType {
       });
       setTimeout(() => {
         attachWidgetEventHandlers(dom, this.client, this.sourceText);
-        this.client.widgetCache.setCachedWidgetHeight(
-          this.cacheKey,
-          dom.clientHeight,
-        );
+        this.client.widgetCache.setCachedWidgetMeta(this.cacheKey, {
+          height: dom.clientHeight,
+          block: true,
+        });
       });
     });
 

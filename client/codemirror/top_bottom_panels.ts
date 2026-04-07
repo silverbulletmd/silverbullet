@@ -27,10 +27,14 @@ class ArrayWidget extends WidgetType {
     const div = document.createElement("div");
     div.className = "sb-widget-array";
 
-    // This doesn't do that much, but it also doesn't really hurt
-    const cacheItem = this.client.widgetCache.getWidgetCache(this.cacheKey);
-    if (cacheItem) {
-      div.innerHTML = cacheItem.html;
+    // Reserve vertical space from the cached height so layout doesn't
+    // shift when async render fills in content (see lua_widget.ts for why
+    // we don't reinsert cached HTML).
+    const cachedHeight = this.client.widgetCache.getCachedWidgetHeight(
+      this.cacheKey,
+    );
+    if (cachedHeight > 0) {
+      div.style.minHeight = `${cachedHeight}px`;
     }
 
     // Async kick-off of content renderer
@@ -81,21 +85,19 @@ class ArrayWidget extends WidgetType {
 
     if (renderedWidgets.length === 0) {
       div.style.display = "none";
+      div.style.minHeight = "";
       return;
     }
 
     div.replaceChildren(...renderedWidgets);
+    div.style.minHeight = "";
 
     // Wait for the clientHeight to settle
     setTimeout(() => {
-      this.client.widgetCache.setWidgetCache(this.cacheKey, {
+      this.client.widgetCache.setCachedWidgetMeta(this.cacheKey, {
+        height: div.clientHeight,
         block: true,
-        html: div.innerHTML,
       });
-      this.client.widgetCache.setCachedWidgetHeight(
-        this.cacheKey,
-        div.clientHeight,
-      );
     });
   }
 
