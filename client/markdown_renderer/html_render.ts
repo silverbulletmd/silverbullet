@@ -19,7 +19,7 @@ export function htmlEscape(s: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
-    .replace(/\n/g, "<br>");
+    .replace(/\n/g, "<br/>");
 
   let oldS = s;
   do {

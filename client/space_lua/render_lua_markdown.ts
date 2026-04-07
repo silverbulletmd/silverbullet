@@ -204,7 +204,7 @@ function renderArrayToMarkdown(items: any[]): string {
 }
 
 function renderArrayToHtmlLines(items: any[]): string {
-  return items.map((item) => renderCellContent(item)).join("<br>");
+  return items.map((item) => renderCellContent(item)).join("<br/>");
 }
 
 /**

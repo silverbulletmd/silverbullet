@@ -331,7 +331,7 @@ test("nested scalar array in table cell renders as br-separated lines", async ()
   await tbl.rawSet(1, row);
 
   const r = renderResultToMarkdown(tbl);
-  expect(r.markdown).toContain("aaa<br>bbb");
+  expect(r.markdown).toContain("aaa<br/>bbb");
 });
 
 // ── Markdown in cell values ─────────────────────────────────────────
@@ -427,7 +427,7 @@ test("e2e: scalar list renders each item on its own line", async () => {
   await tbl.rawSet(3, "third");
 
   expect(toHtml(tbl)).toBe(
-    '<span class="p">first<br>second<br>third</span>',
+    '<span class="p">first<br/>second<br/>third</span>',
   );
 });
 
@@ -438,7 +438,7 @@ test("e2e: list with wiki links", async () => {
 
   expect(toHtml(tbl)).toBe(
     '<span class="p">' +
-      '<a href="/PageA" class="wiki-link" data-ref="PageA">PageA</a><br>' +
+      '<a href="/PageA" class="wiki-link" data-ref="PageA">PageA</a><br/>' +
       '<a href="/PageB" class="wiki-link" data-ref="PageB">PageB</a></span>',
   );
 });
@@ -487,7 +487,7 @@ test("e2e: nested array in table cell renders as br-separated lines", async () =
   expect(toHtml(tbl)).toBe(
     "<table><thead><tr><th>name</th><th>hello</th></tr></thead><tbody>" +
       '<tr><td data-table-cell-type="string">Sup</td>' +
-      '<td data-table-cell-type="array">aaa<br>bbb</br></td></tr></tbody></table>',
+      '<td data-table-cell-type="array">aaa<br/>bbb</td></tr></tbody></table>',
   );
 });
 
