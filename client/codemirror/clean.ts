@@ -18,6 +18,7 @@ import type { ClickEvent } from "@silverbulletmd/silverbullet/type/client";
 import { attributePlugin } from "./attribute.ts";
 import { customSyntaxPlugin } from "./custom_syntax_widget.ts";
 import { footnotePlugin } from "./footnote.ts";
+import { htmlBlockPlugin, htmlInlinePlugin } from "./html_widget.ts";
 
 
 export function cleanModePlugins(client: Client) {
@@ -70,6 +71,8 @@ export function cleanModePlugins(client: Client) {
       })(),
     }),
     listBulletPlugin(),
+    htmlInlinePlugin(client),
+    htmlBlockPlugin(client),
     tablePlugin(client),
     cleanEscapePlugin(),
     ...footnotePlugin(() => client.editorView),

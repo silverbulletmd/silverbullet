@@ -6,10 +6,11 @@ In addition to supporting [[Markdown/Basics|markdown basics]] as standardized by
 * [[Transclusions]] syntax
 * [[Markdown/Admonition]]
 * [[Markdown/Hashtags]]
+* [[Markdown/HTML]]
 * [[Space Lua]] expressions
 * [Tables](https://www.markdownguide.org/extended-syntax/#tables)
 * [Task lists](https://www.markdownguide.org/extended-syntax/#task-lists)
 * [Highlight](https://www.markdownguide.org/extended-syntax/#highlight)
 * [Automatic URL linking](https://www.markdownguide.org/extended-syntax/#automatic-url-linking)
 * [Subscript](https://www.markdownguide.org/extended-syntax/#subscript) and [superscript](https://www.markdownguide.org/extended-syntax/#superscript)
-* [Footnotes](https://www.markdownlang.com/extended/footnotes.html)
+* [[Markdown/Footnotes]]

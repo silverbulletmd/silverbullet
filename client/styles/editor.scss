@@ -401,6 +401,18 @@
     overflow: auto;
   }
 
+  .sb-html-widget {
+    font-weight: normal;
+  }
+
+  .sb-html-widget-inline {
+    display: inline;
+  }
+
+  div.sb-html-widget {
+    display: block;
+  }
+
   table {
     width: 100%;
     border-spacing: 0;
