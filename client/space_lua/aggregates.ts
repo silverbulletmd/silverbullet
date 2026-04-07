@@ -17,11 +17,11 @@ import {
   type LuaValue,
 } from "./runtime.ts";
 import { isSqlNull } from "./liq_null.ts";
-import type { LuaExpression } from "./ast.ts";
+import type { LuaExpression, LuaOrderBy } from "./ast.ts";
 import { buildItemEnv } from "./query_env.ts";
 import { asyncMergeSort } from "./util.ts";
 import type { Config } from "../config.ts";
-import { coerceToNumber } from "./numeric.ts";
+import { coerceToNumber, isTaggedFloat } from "./numeric.ts";
 import YAML from "js-yaml";
 
 export interface AggregateSpec {
@@ -52,6 +52,12 @@ function aggFn(
 // Returns null for non-coercible values.
 function aggNum(value: any): number | null {
   return coerceToNumber(value);
+}
+
+// Unwrap `LuaTaggedFloat` boxing to a plain JS number.
+// Leaves all other values (strings, tables, etc.) untouched.
+function unboxValue(value: LuaValue): LuaValue {
+  return isTaggedFloat(value) ? value.value : value;
 }
 
 // Welford's online algorithm (for variance and standard deviation)
@@ -682,7 +688,7 @@ export async function executeAggregate(
   ) => Promise<LuaValue> | LuaValue,
   config: Config,
   filterExpr?: LuaExpression,
-  orderBy?: import("./ast.ts").LuaOrderBy[],
+  orderBy?: LuaOrderBy[],
 ): Promise<LuaValue> {
   const ctx = buildAggCtx(spec.name, config);
 
@@ -757,10 +763,14 @@ export async function executeAggregate(
     } else {
       value = await evalExprFn(valueExpr, itemEnv, sf);
     }
+    // Unwrap internal `LuaTaggedFloat` boxing so that both builtin and
+    // user-defined iterate functions receive plain JS numbers instead
+    // of opaque `{value, isFloat}` objects.
+    value = unboxValue(value);
     // Evaluate extra args per-item so they can reference item fields
     const iterExtraArgs: LuaValue[] = [];
     for (const argExpr of extraArgExprs) {
-      iterExtraArgs.push(await evalExprFn(argExpr, itemEnv, sf));
+      iterExtraArgs.push(unboxValue(await evalExprFn(argExpr, itemEnv, sf)));
     }
     state = await luaCall(
       spec.iterate,
