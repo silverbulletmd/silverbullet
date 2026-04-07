@@ -272,7 +272,7 @@ export class LuaWidget extends WidgetType {
     // Let's give it a tick, then measure and cache
     setTimeout(() => {
       this.opts.client.widgetCache.setWidgetCache(this.opts.cacheKey, {
-        html: html?.outerHTML || "",
+        html: html?.innerHTML || "",
         block,
         copyContent: copyContent,
       });
