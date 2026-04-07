@@ -17,10 +17,11 @@ import {
   type LuaValue,
 } from "./runtime.ts";
 import { isSqlNull } from "./liq_null.ts";
-import type { LuaExpression } from "./ast.ts";
+import type { LuaExpression, LuaOrderBy } from "./ast.ts";
 import { buildItemEnv } from "./query_env.ts";
 import { asyncMergeSort } from "./util.ts";
 import type { Config } from "../config.ts";
+import { coerceToNumber, isTaggedFloat } from "./numeric.ts";
 import YAML from "js-yaml";
 
 export interface AggregateSpec {
@@ -46,6 +47,12 @@ function aggFn(
   };
 }
 
+// Unwrap `LuaTaggedFloat` boxing to a plain JS number.
+// Leaves all other values (strings, tables, etc.) untouched.
+function unboxValue(value: LuaValue): LuaValue {
+  return isTaggedFloat(value) ? value.value : value;
+}
+
 // Welford's online algorithm (for variance and standard deviation)
 interface WelfordState {
   n: number;
@@ -59,7 +66,8 @@ function welfordInit(): WelfordState {
 
 function welfordIterate(state: WelfordState, value: any): WelfordState {
   if (value === null || value === undefined || isSqlNull(value)) return state;
-  const x = value as number;
+  const x = coerceToNumber(value);
+  if (x === null) return state;
   state.n += 1;
   const delta = x - state.mean;
   state.mean += delta / state.n;
@@ -88,13 +96,16 @@ function covarIterate(state: CovarState, x: any, y: any): CovarState {
     isSqlNull(y)
   )
     return state;
+  const xn = coerceToNumber(x);
+  const yn = coerceToNumber(y);
+  if (xn === null || yn === null) return state;
   state.n += 1;
-  const dx = (x as number) - state.mean;
+  const dx = xn - state.mean;
   state.mean += dx / state.n;
-  const dy = (y as number) - state.meanY;
+  const dy = yn - state.meanY;
   state.meanY += dy / state.n;
-  const dx2 = (x as number) - state.mean;
-  const dy2 = (y as number) - state.meanY;
+  const dx2 = xn - state.mean;
+  const dy2 = yn - state.meanY;
   state.c += dx * dy2;
   state.m2 += dx * dx2;
   state.m2y += dy * dy2;
@@ -167,7 +178,9 @@ function makeQuantileSpec(name: string, description: string): AggregateSpec {
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined || isSqlNull(value))
         return state;
-      state.values.push(value as number);
+      const n = coerceToNumber(value);
+      if (n === null) return state;
+      state.values.push(n);
       return state;
     }),
     finish: aggFn((_sf, state: any) => quantileFinish(state as QuantileState)),
@@ -195,7 +208,9 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined || isSqlNull(value))
         return state;
-      state.result += value as number;
+      const n = coerceToNumber(value);
+      if (n === null) return state;
+      state.result += n;
       state.hasValue = true;
       return state;
     }),
@@ -210,7 +225,9 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined || isSqlNull(value))
         return state;
-      state.result *= value as number;
+      const n = coerceToNumber(value);
+      if (n === null) return state;
+      state.result *= n;
       state.hasValue = true;
       return state;
     }),
@@ -247,7 +264,9 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined || isSqlNull(value))
         return state;
-      state.sum += value as number;
+      const n = coerceToNumber(value);
+      if (n === null) return state;
+      state.sum += n;
       state.count += 1;
       return state;
     }),
@@ -354,7 +373,9 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined || isSqlNull(value))
         return state;
-      state.result &= value as number;
+      const n = coerceToNumber(value);
+      if (n === null) return state;
+      state.result &= n;
       state.hasValue = true;
       return state;
     }),
@@ -369,7 +390,9 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined || isSqlNull(value))
         return state;
-      state.result |= value as number;
+      const n = coerceToNumber(value);
+      if (n === null) return state;
+      state.result |= n;
       state.hasValue = true;
       return state;
     }),
@@ -384,7 +407,9 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined || isSqlNull(value))
         return state;
-      state.result ^= value as number;
+      const n = coerceToNumber(value);
+      if (n === null) return state;
+      state.result ^= n;
       state.hasValue = true;
       return state;
     }),
@@ -557,7 +582,9 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined || isSqlNull(value))
         return state;
-      state.values.push(value as number);
+      const n = coerceToNumber(value);
+      if (n === null) return state;
+      state.values.push(n);
       return state;
     }),
     finish: aggFn((_sf, state: any) => quantileFinish(state as QuantileState)),
@@ -654,7 +681,7 @@ export async function executeAggregate(
   ) => Promise<LuaValue> | LuaValue,
   config: Config,
   filterExpr?: LuaExpression,
-  orderBy?: import("./ast.ts").LuaOrderBy[],
+  orderBy?: LuaOrderBy[],
 ): Promise<LuaValue> {
   const ctx = buildAggCtx(spec.name, config);
 
@@ -729,10 +756,14 @@ export async function executeAggregate(
     } else {
       value = await evalExprFn(valueExpr, itemEnv, sf);
     }
+    // Unwrap internal `LuaTaggedFloat` boxing so that both builtin and
+    // user-defined iterate functions receive plain JS numbers instead
+    // of opaque `{value, isFloat}` objects.
+    value = unboxValue(value);
     // Evaluate extra args per-item so they can reference item fields
     const iterExtraArgs: LuaValue[] = [];
     for (const argExpr of extraArgExprs) {
-      iterExtraArgs.push(await evalExprFn(argExpr, itemEnv, sf));
+      iterExtraArgs.push(unboxValue(await evalExprFn(argExpr, itemEnv, sf)));
     }
     state = await luaCall(
       spec.iterate,
