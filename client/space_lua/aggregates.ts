@@ -47,13 +47,6 @@ function aggFn(
   };
 }
 
-// Coerce a value to a plain JS number for numeric aggregates.
-// Handles plain numbers, LuaTaggedFloat objects, and numeric strings.
-// Returns null for non-coercible values.
-function aggNum(value: any): number | null {
-  return coerceToNumber(value);
-}
-
 // Unwrap `LuaTaggedFloat` boxing to a plain JS number.
 // Leaves all other values (strings, tables, etc.) untouched.
 function unboxValue(value: LuaValue): LuaValue {
@@ -73,7 +66,7 @@ function welfordInit(): WelfordState {
 
 function welfordIterate(state: WelfordState, value: any): WelfordState {
   if (value === null || value === undefined || isSqlNull(value)) return state;
-  const x = aggNum(value);
+  const x = coerceToNumber(value);
   if (x === null) return state;
   state.n += 1;
   const delta = x - state.mean;
@@ -103,8 +96,8 @@ function covarIterate(state: CovarState, x: any, y: any): CovarState {
     isSqlNull(y)
   )
     return state;
-  const xn = aggNum(x);
-  const yn = aggNum(y);
+  const xn = coerceToNumber(x);
+  const yn = coerceToNumber(y);
   if (xn === null || yn === null) return state;
   state.n += 1;
   const dx = xn - state.mean;
@@ -185,7 +178,7 @@ function makeQuantileSpec(name: string, description: string): AggregateSpec {
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined || isSqlNull(value))
         return state;
-      const n = aggNum(value);
+      const n = coerceToNumber(value);
       if (n === null) return state;
       state.values.push(n);
       return state;
@@ -215,7 +208,7 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined || isSqlNull(value))
         return state;
-      const n = aggNum(value);
+      const n = coerceToNumber(value);
       if (n === null) return state;
       state.result += n;
       state.hasValue = true;
@@ -232,7 +225,7 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined || isSqlNull(value))
         return state;
-      const n = aggNum(value);
+      const n = coerceToNumber(value);
       if (n === null) return state;
       state.result *= n;
       state.hasValue = true;
@@ -271,7 +264,7 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined || isSqlNull(value))
         return state;
-      const n = aggNum(value);
+      const n = coerceToNumber(value);
       if (n === null) return state;
       state.sum += n;
       state.count += 1;
@@ -380,7 +373,7 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined || isSqlNull(value))
         return state;
-      const n = aggNum(value);
+      const n = coerceToNumber(value);
       if (n === null) return state;
       state.result &= n;
       state.hasValue = true;
@@ -397,7 +390,7 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined || isSqlNull(value))
         return state;
-      const n = aggNum(value);
+      const n = coerceToNumber(value);
       if (n === null) return state;
       state.result |= n;
       state.hasValue = true;
@@ -414,7 +407,7 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined || isSqlNull(value))
         return state;
-      const n = aggNum(value);
+      const n = coerceToNumber(value);
       if (n === null) return state;
       state.result ^= n;
       state.hasValue = true;
@@ -589,7 +582,7 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined || isSqlNull(value))
         return state;
-      const n = aggNum(value);
+      const n = coerceToNumber(value);
       if (n === null) return state;
       state.values.push(n);
       return state;
