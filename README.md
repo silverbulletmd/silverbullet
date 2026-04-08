@@ -63,10 +63,10 @@ Make sure your `$GOPATH/bin` is in your $PATH.
 First, install dependencies:
 
 ```shell
-npm install
+make setup
 ```
 
-To build everything and run the server:
+To build everything and run the server (which automatically restarts upon file changing):
 
 ```shell
 air <PATH-TO-YOUR-SPACE>
@@ -75,9 +75,7 @@ air <PATH-TO-YOUR-SPACE>
 Alternatively, to build:
 
 ```shell
-make build
-# or
-npm run build
+make
 ```
 
 To run the resulting server:

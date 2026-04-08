@@ -14,6 +14,10 @@ build:
 	# Build Go CLI
 	go build -ldflags "$(CLI_LDFLAGS)" -o silverbullet-cli ./cmd/cli
 
+setup:
+	npm install
+	npx playwright install
+
 build-for-docker: build
 	GOOS=linux GOARCH=arm64 go build -ldflags "$(LDFLAGS)" -o silverbullet-arm64 .
 	GOOS=linux GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o silverbullet-amd64 .
