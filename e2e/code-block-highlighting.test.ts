@@ -1,4 +1,4 @@
-import { expect, test } from "./fixtures.ts";
+import { expect, gotoSilverBulletPage, test } from "./fixtures.ts";
 
 test.describe("Code block syntax highlighting", () => {
 	test.use({
@@ -22,8 +22,7 @@ def greet(name):
 	});
 
 	test("javascript code block gets syntax highlighted", async ({ sbServer, page }) => {
-		await page.goto(`${sbServer.url}/CodeTest?enableSW=0`);
-		await page.locator("#sb-editor .cm-editor").waitFor({ state: "visible", timeout: 30_000 });
+		await gotoSilverBulletPage(page, sbServer, "CodeTest");
 		const editor = page.locator("#sb-editor .cm-content");
 
 		// Verify the code block content is rendered
@@ -49,8 +48,7 @@ def greet(name):
 	});
 
 	test("python code block gets syntax highlighted", async ({ sbServer, page }) => {
-		await page.goto(`${sbServer.url}/CodeTest?enableSW=0`);
-		await page.locator("#sb-editor .cm-editor").waitFor({ state: "visible", timeout: 30_000 });
+		await gotoSilverBulletPage(page, sbServer, "CodeTest");
 		const editor = page.locator("#sb-editor .cm-content");
 
 		await expect(editor).toContainText("def greet");

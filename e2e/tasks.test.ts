@@ -1,4 +1,9 @@
-import { expect, test, waitForSaveAndReadFromServer } from "./fixtures.ts";
+import {
+	expect,
+	gotoSilverBulletPage,
+	test,
+	waitForSaveAndReadFromServer,
+} from "./fixtures.ts";
 
 test.describe("Task management", () => {
 	test.use({
@@ -8,8 +13,7 @@ test.describe("Task management", () => {
 	});
 
 	test("task checkboxes render", async ({ sbServer, page }) => {
-		await page.goto(`${sbServer.url}/Tasks?enableSW=0`);
-		await page.locator("#sb-editor .cm-editor").waitFor({ state: "visible", timeout: 30_000 });
+		await gotoSilverBulletPage(page, sbServer, "Tasks");
 		const editor = page.locator("#sb-editor .cm-content");
 
 		await expect(page.locator("#sb-current-page")).toContainText("Tasks");
@@ -28,8 +32,7 @@ test.describe("Task management", () => {
 	});
 
 	test("toggle task state saves to server", async ({ sbServer, page }) => {
-		await page.goto(`${sbServer.url}/Tasks?enableSW=0`);
-		await page.locator("#sb-editor .cm-editor").waitFor({ state: "visible", timeout: 30_000 });
+		await gotoSilverBulletPage(page, sbServer, "Tasks");
 		const editor = page.locator("#sb-editor .cm-content");
 
 		await expect(editor).toContainText("Buy groceries");

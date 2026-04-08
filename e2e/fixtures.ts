@@ -105,8 +105,7 @@ export const test = base.extend<SBFixtures>({
 	},
 
 	sbPage: async ({ sbServer, page }, use) => {
-		await page.goto(`${sbServer.url}/?enableSW=0`);
-		await page.locator("#sb-editor .cm-editor").waitFor({ state: "visible", timeout: 30_000 });
+		await gotoSilverBulletPage(page, sbServer);
 		await use(page);
 	},
 
@@ -116,6 +115,25 @@ export const test = base.extend<SBFixtures>({
 		await use(page);
 	},
 });
+
+/**
+ * Navigate to a SilverBullet page in the test space and wait for the editor
+ * to be visible. Disables the service worker (`?enableSW=0`) to match how the
+ * `sbPage` fixture boots, so the test environment is consistent across tests.
+ *
+ * `pagePath` is the SilverBullet page name without the `.md` extension. Pass
+ * an empty string (the default) to land on the index page. Each path segment
+ * is URL-encoded so names with spaces or other special characters work.
+ */
+export async function gotoSilverBulletPage(
+	page: Page,
+	sbServer: SBServer,
+	pagePath = "",
+): Promise<void> {
+	const encoded = pagePath.split("/").map(encodeURIComponent).join("/");
+	await page.goto(`${sbServer.url}/${encoded}?enableSW=0`);
+	await page.locator("#sb-editor .cm-editor").waitFor({ state: "visible", timeout: 30_000 });
+}
 
 /**
  * Wait for the client to save (indicated by #sb-current-page having class "sb-saved"),

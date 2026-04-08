@@ -1,4 +1,10 @@
-import { expect, mod, test, waitForSaveAndReadFromServer } from "./fixtures.ts";
+import {
+	expect,
+	gotoSilverBulletPage,
+	mod,
+	test,
+	waitForSaveAndReadFromServer,
+} from "./fixtures.ts";
 
 test.describe("Wiki links", () => {
 	test.describe("cross-page navigation", () => {
@@ -10,8 +16,7 @@ test.describe("Wiki links", () => {
 		});
 
 		test("navigate between pages via wiki link click", async ({ sbServer, page }) => {
-			await page.goto(`${sbServer.url}/PageA?enableSW=0`);
-			await page.locator("#sb-editor .cm-editor").waitFor({ state: "visible", timeout: 30_000 });
+			await gotoSilverBulletPage(page, sbServer, "PageA");
 			const editor = page.locator("#sb-editor .cm-content");
 
 			await expect(page.locator("#sb-current-page")).toContainText("PageA");
