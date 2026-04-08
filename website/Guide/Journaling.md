@@ -3,7 +3,7 @@
 This guide sets up a daily journaling workflow. Each day you get a fresh journal page where you capture what's happening throughout the day. By linking to topic pages from your journal entries, those entries automatically appear on the topic page via [[Linked Mention|Linked Mentions]] — building a timeline of activity for every topic you care about.
 
 # 1. Create the journal template
-Create a page called `Library/Page Tempaltes/Journal` (or any name you like) with the following content:
+Create a page called `Library/Page Templates/Journal` (or any name you like) with the following content:
 
 ```
 ---

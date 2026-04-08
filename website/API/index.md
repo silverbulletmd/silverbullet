@@ -59,6 +59,7 @@ It returns a table with two keys:
 The `extractOptions` is an optional table that can contain the following keys (which will affect the returned `text`):
 - `removeKeys`: An array of keys to remove from the frontmatter.
 - `removeTags`: A boolean or array of tags to remove from the frontmatter.
+- `removeTagsPrefix`: An array of hierarchical tag prefixes whose body hashtag occurrences should be removed. A tag matches a prefix if it equals the prefix or starts with `${prefix}/`. For example, `{"meta/template"}` removes `#meta/template`, `#meta/template/page` and `#meta/template/slash`.
 - `removeFrontMatterSection`: A boolean to remove the frontmatter section from the document.
 
 Example applied to this page:
