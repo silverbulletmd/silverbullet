@@ -21,9 +21,19 @@ export type FrontMatter = {
 
 export type FrontMatterExtractOptions = {
   removeKeys?: string[];
-  removeTags?: string[] | true;
+  removeTags?: string[] | boolean;
+  removeTagsPrefix?: string[];
   removeFrontMatterSection?: boolean;
 };
+
+function tagMatchesPrefix(tag: string, prefixes: string[]): boolean {
+  for (const prefix of prefixes) {
+    if (tag === prefix || tag.startsWith(`${prefix}/`)) {
+      return true;
+    }
+  }
+  return false;
+}
 
 /**
  * Extracts frontmatter from a markdown tree, as well as extracting tags and attributes that are to apply to the page
@@ -62,7 +72,10 @@ export function extractFrontMatter(
 
           if (
             options.removeTags === true ||
-            options.removeTags?.includes(tagname)
+            (Array.isArray(options.removeTags) &&
+              options.removeTags.includes(tagname)) ||
+            (options.removeTagsPrefix &&
+              tagMatchesPrefix(tagname, options.removeTagsPrefix))
           ) {
             // Ugly hack to remove the hashtag
             child.children![0].text = "";

@@ -98,7 +98,7 @@ end
 function template.fromPage(name, raw)
   local fm = index.extractFrontmatter(space.readPage(name),  {
     removeFrontMatterSection = true,
-    removeTags = true
+    removeTagsPrefix = {"meta/template"}
   })
 
   local templateText = string.trimStart(fm.text)
