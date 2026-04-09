@@ -1,19 +1,26 @@
 import { WidgetType } from "@codemirror/view";
+import type { Ref } from "@silverbulletmd/silverbullet/lib/ref";
+import {
+  type ParseTree,
+  renderToText,
+} from "@silverbulletmd/silverbullet/lib/tree";
 import type { Client } from "../client.ts";
-import { renderMarkdownToHtml } from "../markdown_renderer/markdown_render.ts";
 import { parse } from "../markdown_parser/parse_tree.ts";
 import { buildExtendedMarkdownLanguage } from "../markdown_parser/parser.ts";
-import { type ParseTree, renderToText } from "@silverbulletmd/silverbullet/lib/tree";
+import { expandMarkdown } from "../markdown_renderer/inline.ts";
+import { renderMarkdownToHtml } from "../markdown_renderer/markdown_render.ts";
+import {
+  classifyResult,
+  isBlockMarkdown,
+  renderResultToCleanMarkdown,
+  renderResultToMarkdown,
+} from "../space_lua/render_lua_markdown.ts";
+import { activeWidgets } from "./code_widget.ts";
 import {
   attachWidgetEventHandlers,
   buildTranslateUrls,
   moveCursorToWidgetStart,
 } from "./widget_util.ts";
-import { expandMarkdown } from "../markdown_renderer/inline.ts";
-import { isBlockMarkdown } from "../space_lua/render_lua_markdown.ts";
-import { activeWidgets } from "./code_widget.ts";
-import type { Ref } from "@silverbulletmd/silverbullet/lib/ref";
-import { renderResultToMarkdown } from "../space_lua/render_lua_markdown.ts";
 
 export type LuaWidgetCallback = (
   bodyText: string,
@@ -112,10 +119,7 @@ export class LuaWidget extends WidgetType {
     pageName: string,
   ): Promise<ParseTree> {
     const syntaxExtensions = this.syntaxExtensions;
-    const mdTree = parse(
-      buildExtendedMarkdownLanguage(syntaxExtensions),
-      text,
-    );
+    const mdTree = parse(buildExtendedMarkdownLanguage(syntaxExtensions), text);
     return expandMarkdown(
       this.opts.client.space,
       pageName,
@@ -153,19 +157,26 @@ export class LuaWidget extends WidgetType {
 
     // Normalization (non-widget results go through markdown rendering)
     if (typeof widgetContent === "string" || !widgetContent._isWidget) {
-      const { markdown, dataType } = renderResultToMarkdown(widgetContent);
+      const rawResult = widgetContent;
+      // Classify once, share the result between the display and copy paths.
+      const classified = classifyResult(rawResult);
+      const { markdown, dataType } = renderResultToMarkdown(
+        rawResult,
+        classified,
+      );
 
       const isBlock =
         dataType === "table" ||
         dataType === "list" ||
-        (typeof widgetContent === "string" && isBlockMarkdown(widgetContent));
+        (typeof rawResult === "string" && isBlockMarkdown(rawResult));
 
       widgetContent = {
         _isWidget: true,
         markdown: markdown,
         display: isBlock ? "block" : "inline",
       };
-      copyContent = markdown;
+      // Copy button gets a clean GFM-style rendering, not the display markdown.
+      copyContent = await renderResultToCleanMarkdown(rawResult, classified);
     }
 
     // After normalization `widgetContent` is always the object form
@@ -192,7 +203,10 @@ export class LuaWidget extends WidgetType {
     }
     if (wc.markdown) {
       const syntaxExtensions = this.syntaxExtensions;
-      let mdTree = parse(buildExtendedMarkdownLanguage(syntaxExtensions), wc.markdown || "");
+      let mdTree = parse(
+        buildExtendedMarkdownLanguage(syntaxExtensions),
+        wc.markdown || "",
+      );
 
       mdTree = await expandMarkdown(
         this.opts.client.space,
@@ -206,7 +220,11 @@ export class LuaWidget extends WidgetType {
       );
       const trimmedMarkdown = renderToText(mdTree).trim();
 
-      copyContent = trimmedMarkdown;
+      // Fall back to the rendered markdown only if the raw-result path
+      // didn't already produce a clean copy string.
+      if (!copyContent) {
+        copyContent = trimmedMarkdown;
+      }
 
       if (!trimmedMarkdown) {
         // Net empty result after expansion

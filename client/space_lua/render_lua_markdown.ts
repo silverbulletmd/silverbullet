@@ -1,6 +1,11 @@
-import { luaFormatNumber, LuaTable } from "../space_lua/runtime.ts";
-import { isTaggedFloat } from "../space_lua/numeric.ts";
+import {
+  defaultTransformer,
+  escapeRegularPipes,
+  jsonToMDTable,
+} from "../markdown_renderer/result_render.ts";
 import { isSqlNull } from "../space_lua/liq_null.ts";
+import { isTaggedFloat } from "../space_lua/numeric.ts";
+import { LuaTable, luaFormatNumber } from "../space_lua/runtime.ts";
 
 /**
  * Applies some heuristics to figure out if a string should be rendered
@@ -71,6 +76,137 @@ function collectHeaders<T>(
 }
 
 /**
+ * Classification of a JS/Lua value that drives both the HTML and the
+ * clean-markdown renderers. Keeping this in one place ensures the two
+ * output paths stay in lock-step when new cases are added.
+ */
+export type Classified =
+  | { kind: "nil"; dataType: "nil" }
+  | {
+      kind: "scalar";
+      text: string;
+      dataType: "string" | "number" | "boolean";
+    }
+  | { kind: "emptyTable"; dataType: "table" }
+  | {
+      kind: "record";
+      headers: string[];
+      getCell: (header: string) => any;
+      dataType: "table";
+    }
+  | {
+      kind: "recordArray";
+      headers: string[];
+      rowCount: number;
+      getCell: (rowIndex: number, header: string) => any;
+      // LuaTable record-arrays are historically tagged as "list", while
+      // JS record-arrays are tagged as "table". Preserved for compatibility.
+      dataType: "table" | "list";
+    }
+  | { kind: "scalarArray"; items: any[]; dataType: "list" };
+
+export function classifyResult(result: any): Classified {
+  if (isEmpty(result)) return { kind: "nil", dataType: "nil" };
+  if (typeof result === "string") {
+    return { kind: "scalar", text: result, dataType: "string" };
+  }
+  if (isTaggedFloat(result)) {
+    return {
+      kind: "scalar",
+      text: luaFormatNumber(result.value, "float"),
+      dataType: "number",
+    };
+  }
+  if (typeof result === "number") {
+    return {
+      kind: "scalar",
+      text: luaFormatNumber(result),
+      dataType: "number",
+    };
+  }
+  if (typeof result === "boolean") {
+    return {
+      kind: "scalar",
+      text: result ? "true" : "false",
+      dataType: "boolean",
+    };
+  }
+
+  if (result instanceof LuaTable) {
+    if (result.empty()) return { kind: "emptyTable", dataType: "table" };
+    const keys = result.keys();
+    const arrayLen = result.length;
+    const hasStrKeys = keys.some((k) => typeof k === "string");
+
+    // Pure array
+    if (arrayLen > 0 && !hasStrKeys) {
+      const elements: any[] = [];
+      for (let i = 1; i <= arrayLen; i++) elements.push(result.rawGet(i));
+      if (elements.every((el) => el instanceof LuaTable)) {
+        const tables = elements as LuaTable[];
+        const headers = collectHeaders(tables, (t) => t.keys().map(String));
+        if (headers.length === 0) {
+          return { kind: "emptyTable", dataType: "table" };
+        }
+        return {
+          kind: "recordArray",
+          headers,
+          rowCount: tables.length,
+          getCell: (i, h) => {
+            const key = /^\d+$/.test(h) ? Number(h) : h;
+            return tables[i].rawGet(key);
+          },
+          dataType: "list",
+        };
+      }
+      return { kind: "scalarArray", items: elements, dataType: "list" };
+    }
+
+    // Has string keys (record or mixed) — single-row table
+    const headers = keys.map(String);
+    return {
+      kind: "record",
+      headers,
+      getCell: (h) => {
+        const key = keys[headers.indexOf(h)];
+        return result.rawGet(key);
+      },
+      dataType: "table",
+    };
+  }
+
+  if (Array.isArray(result)) {
+    if (result.length === 0) return { kind: "emptyTable", dataType: "table" };
+    if (result.every(isPlainObject)) {
+      const headers = collectHeaders(result, Object.keys);
+      return {
+        kind: "recordArray",
+        headers,
+        rowCount: result.length,
+        getCell: (i, h) => result[i][h],
+        dataType: "table",
+      };
+    }
+    return { kind: "scalarArray", items: result, dataType: "list" };
+  }
+
+  if (isPlainObject(result)) {
+    if (Object.keys(result).length === 0) {
+      return { kind: "emptyTable", dataType: "table" };
+    }
+    const headers = Object.keys(result);
+    return {
+      kind: "record",
+      headers,
+      getCell: (h) => result[h],
+      dataType: "table",
+    };
+  }
+
+  return { kind: "scalar", text: `${result}`, dataType: "string" };
+}
+
+/**
  * Render any Lua/JS value to a markdown string (with embedded HTML
  * for structured data like tables).
  *
@@ -81,102 +217,104 @@ function collectHeaders<T>(
  * renderer to produce final HTML, getting wiki links, hashtags,
  * formatting etc. for free.
  */
-export function renderResultToMarkdown(result: any): {
+export function renderResultToMarkdown(
+  result: any,
+  classified: Classified = classifyResult(result),
+): {
   markdown: string;
   dataType: string;
 } {
-  if (isEmpty(result)) {
-    return { markdown: "", dataType: "nil" };
-  }
-  if (typeof result === "string") {
-    return { markdown: result, dataType: "string" };
-  }
-  if (isTaggedFloat(result)) {
-    return {
-      markdown: luaFormatNumber(result.value, "float"),
-      dataType: "number",
-    };
-  }
-  if (typeof result === "number") {
-    return { markdown: luaFormatNumber(result), dataType: "number" };
-  }
-  if (typeof result === "boolean") {
-    return { markdown: result ? "true" : "false", dataType: "boolean" };
-  }
-  if (result instanceof LuaTable) {
-    if (result.empty()) {
+  switch (classified.kind) {
+    case "nil":
+      return { markdown: "", dataType: "nil" };
+    case "scalar":
+      return { markdown: classified.text, dataType: classified.dataType };
+    case "emptyTable":
       return { markdown: emptyTable, dataType: "table" };
-    }
-    return renderLuaTable(result);
-  }
-  if (Array.isArray(result)) {
-    if (result.length === 0) {
-      return { markdown: emptyTable, dataType: "table" };
-    }
-    if (result.every(isPlainObject)) {
-      const headers = collectHeaders(result, Object.keys);
+    case "record":
       return {
-        markdown: buildHtmlTable(
-          headers,
-          result.length,
-          (i, h) => result[i][h],
+        markdown: buildHtmlTable(classified.headers, 1, (_i, h) =>
+          classified.getCell(h),
         ),
         dataType: "table",
       };
-    }
-    return { markdown: renderArrayToMarkdown(result), dataType: "list" };
-  }
-  if (isPlainObject(result)) {
-    if (Object.keys(result).length === 0) {
-      return { markdown: emptyTable, dataType: "table" };
-    }
-    const headers = Object.keys(result);
-    return {
-      markdown: buildHtmlTable(headers, 1, (_i, h) => result[h]),
-      dataType: "table",
-    };
-  }
-  return { markdown: `${result}`, dataType: "string" };
-}
-
-function renderLuaTable(tbl: LuaTable): { markdown: string; dataType: string } {
-  const keys = tbl.keys();
-  if (keys.length === 0) return { markdown: emptyTable, dataType: "table" };
-
-  const arrayLen = tbl.length;
-  const hasStrKeys = keys.some((k) => typeof k === "string");
-
-  // Pure array
-  if (arrayLen > 0 && !hasStrKeys) {
-    const elements: any[] = [];
-    for (let i = 1; i <= arrayLen; i++) elements.push(tbl.rawGet(i));
-    if (elements.every((el) => el instanceof LuaTable)) {
+    case "recordArray":
       return {
-        markdown: renderLuaTableArray(elements as LuaTable[]),
+        markdown: buildHtmlTable(
+          classified.headers,
+          classified.rowCount,
+          classified.getCell,
+        ),
+        dataType: classified.dataType,
+      };
+    case "scalarArray":
+      return {
+        markdown: renderArrayToMarkdown(classified.items),
         dataType: "list",
       };
-    }
-    return { markdown: renderArrayToMarkdown(elements), dataType: "list" };
   }
-
-  // Has string keys (record or mixed) — single-row table
-  const headers = keys.map(String);
-  return {
-    markdown: buildHtmlTable(headers, 1, (_i, h) => {
-      const key = keys[headers.indexOf(h)];
-      return tbl.rawGet(key);
-    }),
-    dataType: "table",
-  };
 }
 
-function renderLuaTableArray(tables: LuaTable[]): string {
-  const headers = collectHeaders(tables, (t) => t.keys().map(String));
-  if (headers.length === 0) return emptyTable;
-  return buildHtmlTable(headers, tables.length, (i, h) => {
-    const key = /^\d+$/.test(h) ? Number(h) : h;
-    return tables[i].rawGet(key);
-  });
+/**
+ * Render any Lua/JS value as "clean" GFM-style markdown suitable for
+ * the Copy button. Tables render as pipe tables, scalar arrays as
+ * newline-joined lines, scalars as their plain text.
+ *
+ * Nested structures inside a table cell degrade to their Lua literal
+ * form (via `LuaTable.toStringAsync()` in `defaultTransformer`), since
+ * GFM table cells cannot contain block-level content.
+ */
+/**
+ * Cell transformer for the clean-markdown (copy) path. Renders:
+ *  - `ref` columns as wiki links,
+ *  - scalar arrays as `<br/>`-joined lines (mirrors the HTML display
+ *    path, and relies on the markdown renderer now handling self-closing
+ *    `<br/>` inside GFM table cells),
+ *  - everything else via `defaultTransformer` (which Lua-encodes nested
+ *    tables and escapes pipes for scalars).
+ */
+function cleanCellTransformer(v: any, k: string): Promise<string> {
+  if (k === "ref") return Promise.resolve(`[[${v}]]`);
+  const c = classifyResult(v);
+  if (c.kind === "scalarArray") {
+    return Promise.resolve(
+      c.items
+        .map(formatScalar)
+        .map((s) => escapeRegularPipes(s.replaceAll("\n", " ")))
+        .join("<br/>"),
+    );
+  }
+  return defaultTransformer(v, k);
+}
+
+export async function renderResultToCleanMarkdown(
+  result: any,
+  classified: Classified = classifyResult(result),
+): Promise<string> {
+  switch (classified.kind) {
+    case "nil":
+      return "";
+    case "scalar":
+      return classified.text;
+    case "emptyTable":
+      return "*(empty table)*";
+    case "record": {
+      const row: Record<string, any> = {};
+      for (const h of classified.headers) row[h] = classified.getCell(h);
+      return jsonToMDTable([row], cleanCellTransformer);
+    }
+    case "recordArray": {
+      const rows: Record<string, any>[] = [];
+      for (let i = 0; i < classified.rowCount; i++) {
+        const row: Record<string, any> = {};
+        for (const h of classified.headers) row[h] = classified.getCell(i, h);
+        rows.push(row);
+      }
+      return jsonToMDTable(rows, cleanCellTransformer);
+    }
+    case "scalarArray":
+      return classified.items.map(formatScalar).join("\n");
+  }
 }
 
 function luaTypeName(v: any): string | undefined {
@@ -210,37 +348,22 @@ function renderArrayToHtmlLines(items: any[]): string {
 /**
  * Render a value as cell content. Used inside HTML contexts (table
  * cells, nested structures) where markdown block syntax won't be
- * parsed, so arrays are rendered as HTML <ul> lists.
+ * parsed, so scalar arrays are joined with `<br/>` rather than newlines.
  */
 function renderCellContent(v: any): string {
-  if (isEmpty(v)) return "";
-  if (isTaggedFloat(v)) return luaFormatNumber(v.value, "float");
-  if (v instanceof LuaTable) {
-    if (v.empty()) return emptyTable;
-    const keys = v.keys();
-    const hasStrKeys = keys.some((k) => typeof k === "string");
-    if (!hasStrKeys && v.length > 0) {
-      const elements: any[] = [];
-      for (let i = 1; i <= v.length; i++) elements.push(v.rawGet(i));
-      if (elements.every((el) => el instanceof LuaTable)) {
-        return renderLuaTableArray(elements as LuaTable[]);
-      }
-      return renderArrayToHtmlLines(elements);
-    }
-    return renderLuaTable(v).markdown;
+  const c = classifyResult(v);
+  switch (c.kind) {
+    case "nil":
+      return "";
+    case "scalar":
+      return c.text;
+    case "emptyTable":
+      return emptyTable;
+    case "record":
+      return buildHtmlTable(c.headers, 1, (_i, h) => c.getCell(h));
+    case "recordArray":
+      return buildHtmlTable(c.headers, c.rowCount, c.getCell);
+    case "scalarArray":
+      return renderArrayToHtmlLines(c.items);
   }
-  if (Array.isArray(v)) {
-    if (v.length === 0) return emptyTable;
-    if (v.every(isPlainObject)) {
-      const headers = collectHeaders(v, Object.keys);
-      return buildHtmlTable(headers, v.length, (i, h) => v[i][h]);
-    }
-    return renderArrayToHtmlLines(v);
-  }
-  if (isPlainObject(v)) {
-    if (Object.keys(v).length === 0) return emptyTable;
-    const headers = Object.keys(v);
-    return buildHtmlTable(headers, 1, (_i, h) => v[h]);
-  }
-  return formatScalar(v);
 }

@@ -1,11 +1,14 @@
 import { expect, test } from "vitest";
-import { renderResultToMarkdown } from "./render_lua_markdown.ts";
-import { LuaTable } from "./runtime.ts";
-import { makeLuaFloat } from "./numeric.ts";
-import { LIQ_NULL } from "./liq_null.ts";
 import { parse } from "../markdown_parser/parse_tree.ts";
 import { extendedMarkdownLanguage } from "../markdown_parser/parser.ts";
 import { renderMarkdownToHtml } from "../markdown_renderer/markdown_render.ts";
+import { LIQ_NULL } from "./liq_null.ts";
+import { makeLuaFloat } from "./numeric.ts";
+import {
+  renderResultToCleanMarkdown,
+  renderResultToMarkdown,
+} from "./render_lua_markdown.ts";
+import { LuaTable } from "./runtime.ts";
 
 // Helper: render a value all the way to final HTML.
 function toHtml(value: any): string {
@@ -399,7 +402,7 @@ test("e2e: table with wiki links produces clickable links", async () => {
   await tbl.rawSet(1, row);
 
   expect(toHtml(tbl)).toBe(
-    '<table><thead><tr><th>name</th><th>age</th></tr></thead><tbody>' +
+    "<table><thead><tr><th>name</th><th>age</th></tr></thead><tbody>" +
       '<tr><td data-table-cell-type="string">' +
       '<a href="/Alice" class="wiki-link" data-ref="Alice">Alice</a></td>' +
       '<td data-table-cell-type="number">30</td></tr></tbody></table>',
@@ -426,9 +429,7 @@ test("e2e: scalar list renders each item on its own line", async () => {
   await tbl.rawSet(2, "second");
   await tbl.rawSet(3, "third");
 
-  expect(toHtml(tbl)).toBe(
-    '<span class="p">first<br/>second<br/>third</span>',
-  );
+  expect(toHtml(tbl)).toBe('<span class="p">first<br/>second<br/>third</span>');
 });
 
 test("e2e: list with wiki links", async () => {
@@ -527,4 +528,160 @@ test("e2e: nested table in cell renders full sub-table", async () => {
       '<td data-table-cell-type="number">2</td></tr></tbody></table></td>' +
       '<td data-table-cell-type="string">test</td></tr></tbody></table>',
   );
+});
+
+// ── Clean markdown (Copy button) output ─────────────────────────────
+
+test("clean: nil renders as empty string", async () => {
+  expect(await renderResultToCleanMarkdown(null)).toBe("");
+  expect(await renderResultToCleanMarkdown(undefined)).toBe("");
+});
+
+test("clean: scalar string is returned as-is", async () => {
+  expect(await renderResultToCleanMarkdown("hello world")).toBe("hello world");
+});
+
+test("clean: scalar number is formatted", async () => {
+  expect(await renderResultToCleanMarkdown(42)).toBe("42");
+});
+
+test("clean: scalar boolean is formatted", async () => {
+  expect(await renderResultToCleanMarkdown(true)).toBe("true");
+  expect(await renderResultToCleanMarkdown(false)).toBe("false");
+});
+
+test("clean: empty LuaTable renders as *(empty table)*", async () => {
+  expect(await renderResultToCleanMarkdown(new LuaTable())).toBe(
+    "*(empty table)*",
+  );
+});
+
+test("clean: empty array renders as *(empty table)*", async () => {
+  expect(await renderResultToCleanMarkdown([])).toBe("*(empty table)*");
+});
+
+test("clean: record LuaTable renders as single-row GFM table", async () => {
+  const row = new LuaTable();
+  await row.rawSet("name", "Alice");
+  await row.rawSet("age", 30);
+
+  expect(await renderResultToCleanMarkdown(row)).toBe(
+    "|name|age|\n|--|--|\n|Alice|30|",
+  );
+});
+
+test("clean: plain object renders as single-row GFM table", async () => {
+  expect(await renderResultToCleanMarkdown({ name: "Bob", age: 25 })).toBe(
+    "|name|age|\n|--|--|\n|Bob|25|",
+  );
+});
+
+test("clean: array of records renders as multi-row GFM table", async () => {
+  const row1 = new LuaTable();
+  await row1.rawSet("id", 1);
+  await row1.rawSet("name", "Alice");
+
+  const row2 = new LuaTable();
+  await row2.rawSet("id", 2);
+  await row2.rawSet("name", "Bob");
+
+  const tbl = new LuaTable();
+  await tbl.rawSet(1, row1);
+  await tbl.rawSet(2, row2);
+
+  expect(await renderResultToCleanMarkdown(tbl)).toBe(
+    "|id|name|\n|--|--|\n|1|Alice|\n|2|Bob|",
+  );
+});
+
+test("clean: scalar LuaTable array renders as newline-separated lines", async () => {
+  const tbl = new LuaTable();
+  await tbl.rawSet(1, "one");
+  await tbl.rawSet(2, "two");
+  await tbl.rawSet(3, "three");
+
+  expect(await renderResultToCleanMarkdown(tbl)).toBe("one\ntwo\nthree");
+});
+
+test("clean: scalar JS array renders as newline-separated lines", async () => {
+  expect(await renderResultToCleanMarkdown([1, 2, 3])).toBe("1\n2\n3");
+});
+
+test("clean: nested LuaTable in cell renders as Lua literal", async () => {
+  const inner = new LuaTable();
+  await inner.rawSet("a", 1);
+  await inner.rawSet("b", 2);
+
+  const outer = new LuaTable();
+  await outer.rawSet("info", inner);
+  await outer.rawSet("label", "test");
+
+  const result = await renderResultToCleanMarkdown(outer);
+  // The outer is a single-row table; the nested table cell should be
+  // a Lua literal, not an HTML fragment.
+  expect(result).toContain("|info|label|");
+  expect(result).not.toContain("<table");
+  expect(result).not.toContain("<td");
+  // Lua literal form (produced by LuaTable.toStringAsync)
+  expect(result).toMatch(/\{\s*a\s*=\s*1/);
+});
+
+test("clean: pipe in cell value is escaped", async () => {
+  const row = new LuaTable();
+  await row.rawSet("text", "a|b");
+
+  expect(await renderResultToCleanMarkdown(row)).toBe("|text|\n|--|\n|a\\|b|");
+});
+
+test("clean: wiki link syntax passes through cells untouched", async () => {
+  const row = new LuaTable();
+  await row.rawSet("page", "[[Alice]]");
+
+  const result = await renderResultToCleanMarkdown(row);
+  expect(result).toContain("[[Alice]]");
+});
+
+test("clean: ref column is rendered as wiki link", async () => {
+  const row = new LuaTable();
+  await row.rawSet("ref", "SomePage");
+  await row.rawSet("name", "Alice");
+
+  expect(await renderResultToCleanMarkdown(row)).toBe(
+    "|ref|name|\n|--|--|\n|[[SomePage]]|Alice|",
+  );
+});
+
+test("clean: scalar array in cell is joined with <br/>", async () => {
+  const tags = new LuaTable();
+  await tags.rawSet(1, "red");
+  await tags.rawSet(2, "green");
+  await tags.rawSet(3, "blue");
+
+  const row = new LuaTable();
+  await row.rawSet("name", "Alice");
+  await row.rawSet("tags", tags);
+
+  expect(await renderResultToCleanMarkdown(row)).toBe(
+    "|name|tags|\n|--|--|\n|Alice|red<br/>green<br/>blue|",
+  );
+});
+
+test("clean: scalar JS array in cell is joined with <br/>", async () => {
+  expect(
+    await renderResultToCleanMarkdown({ name: "Bob", tags: [1, 2, 3] }),
+  ).toBe("|name|tags|\n|--|--|\n|Bob|1<br/>2<br/>3|");
+});
+
+test("clean: pipe inside scalar array cell is escaped", async () => {
+  expect(
+    await renderResultToCleanMarkdown({ vals: ["a|b", "c"] }),
+  ).toBe("|vals|\n|--|\n|a\\|b<br/>c|");
+});
+
+test("clean: LIQ_NULL cell renders as empty", async () => {
+  const row = new LuaTable();
+  await row.rawSet("x", 42);
+  await row.rawSet("y", LIQ_NULL);
+
+  expect(await renderResultToCleanMarkdown(row)).toBe("|x|y|\n|--|--|\n|42||");
 });

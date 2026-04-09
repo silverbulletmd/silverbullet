@@ -384,6 +384,17 @@ test("Markdown inside block HTML td is rendered", () => {
   );
 });
 
+test("Self-closing <br/> inside block HTML td renders as HTML", () => {
+  const tree = parse(
+    extendedMarkdownLanguage,
+    "<table><tr><td>Hello<br/>there</td></tr></table>",
+  );
+  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
+  expect(html).toBe(
+    "<table><tr><td>Hello<br/>there</td></tr></table>",
+  );
+});
+
 test("Wiki link inside block HTML td is rendered", () => {
   const tree = parse(
     extendedMarkdownLanguage,

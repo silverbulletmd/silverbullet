@@ -40,7 +40,7 @@ export function refCellTransformer(v: any, k: string) {
  * @returns The text where the pipes outside of bracket context are
  *  replaced with an escaped pipe.
  */
-function escapeRegularPipes(s: string) {
+export function escapeRegularPipes(s: string) {
   let result = "";
   let bracketDepth = 0;
 

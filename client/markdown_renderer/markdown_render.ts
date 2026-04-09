@@ -734,6 +734,15 @@ function groupInlineHtml(
       const text = renderToText(child);
       if (!text.startsWith("</")) {
         const parsed = parseHtmlTag(text);
+        if (parsed?.isSelfClosing) {
+          // Void elements (<br/>, <hr/>, <img/>...) have no closer — emit
+          // as raw HTML to preserve the self-closing form. Must run before
+          // the pair-search below, which would otherwise fail to find a
+          // closer and fall through to text-escaping.
+          result.push({ name: RawHtml, body: text });
+          i++;
+          continue;
+        }
         if (parsed && !parsed.isClosing) {
           // Find matching closing tag
           let depth = 1;
