@@ -4,7 +4,7 @@ Welcome to the wondrous world of SilverBullet. A world that once you discover an
 
 _One of us!_
 
-If you’re confused and don’t know what to do, have a look at the [Manual](https://silverbullet.md/Manual) or the [Quick Start](https://silverbullet.md/Quick%20Start) page.
+If you’re confused and don’t know what to do, have a look at the [Manual](https://silverbullet.md/Manual).
 
 # Recent quick notes
 *Create:* ${widgets.commandButton "Quick Note"}
@@ -30,5 +30,5 @@ ${query[[
   from p = index.contentPages()
   order by p.lastModified desc
   limit 10
-  select templates.pageItem(p) 
+  select templates.fullPageItem(p) 
 ]]}
