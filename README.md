@@ -107,7 +107,6 @@ docker build -t silverbullet .
 ```
 
 To run:
-
 ```shell
 docker run -p 3000:3000 -v <PATH-TO-YOUR-SPACE>:/space silverbullet
 ```
