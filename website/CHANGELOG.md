@@ -64,6 +64,10 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
 * Fix: 32-bit ARM Docker builds.
 * Fix: reduce visual bouncing when navigating between pages.
 * Fix: encode URLs with dots in path names on WebKit/Safari (fixes opening e.g. PDF files).
+* [[Vim mode]]: [allow passing arguments to vim ex commands](https://github.com/silverbulletmd/silverbullet/pull/1924) (by [Felix Riedel](https://github.com/felixr)).
+* Tweaked default `index` and `CONFIG` pages for new installations.
+* Fix: tag stripping for page templates.
+* Fix: widget glitching — widget HTML content is no longer cached (only heights), reducing storage usage and WebKit rendering issues.
 
 ## 2.5.0
 * Changed keyboard bindings (sorry!). CodeMirror no longer directly allows `Alt-<letter>` and `Alt-<special-character>` [[Keyboard Shortcuts]], meaning I had to **remap a few key bindings**. It’s basically a mission impossible to pick great ones, but here are the new defaults:

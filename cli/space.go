@@ -162,8 +162,9 @@ func SpaceAddInteractive(presetURL *string) error {
 
 func spaceListCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "list",
-		Short: "List configured spaces",
+		Use:     "ls",
+		Aliases: []string{"list"},
+		Short:   "List configured spaces",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := LoadConfig()
 			if err != nil {
@@ -191,8 +192,9 @@ func spaceListCommand() *cobra.Command {
 
 func spaceRemoveCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "remove <name>",
-		Short: "Remove a space",
+		Use:     "rm <name>",
+		Aliases: []string{"remove"},
+		Short:   "Remove a space",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
