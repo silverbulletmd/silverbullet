@@ -14,31 +14,21 @@ import { resolveMarkdownLink } from "@silverbulletmd/silverbullet/lib/resolve";
 import { localDateString } from "@silverbulletmd/silverbullet/lib/dates";
 import type { UploadFile } from "@silverbulletmd/silverbullet/type/client";
 import { isValidName, isValidPath } from "@silverbulletmd/silverbullet/lib/ref";
+import TurndownService from "turndown";
+// @ts-expect-error - No type definitions available for this package
+import { tables, taskListItems } from "@joplin/turndown-plugin-gfm";
 
-// Dynamically load the turndown service (only used for clipboard pasete)
-let turndownService: any = null;
-async function getTurndownService() {
-  if (!turndownService) {
-    const [{ default: TurndownService }, { tables, taskListItems }] =
-      await Promise.all([
-        import("turndown"),
-        // @ts-expect-error - No type definitions available for this package
-        import("@joplin/turndown-plugin-gfm"),
-      ]);
-    turndownService = new TurndownService({
-      hr: "---",
-      codeBlockStyle: "fenced",
-      headingStyle: "atx",
-      emDelimiter: "*",
-      bulletListMarker: "*", // Duh!
-      strongDelimiter: "**",
-      linkStyle: "inlined",
-    });
-    turndownService.use(taskListItems);
-    turndownService.use(tables);
-  }
-  return turndownService;
-}
+const turndownService = new TurndownService({
+  hr: "---",
+  codeBlockStyle: "fenced",
+  headingStyle: "atx",
+  emDelimiter: "*",
+  bulletListMarker: "*", // Duh!
+  strongDelimiter: "**",
+  linkStyle: "inlined",
+});
+turndownService.use(taskListItems);
+turndownService.use(tables);
 
 function striptHtmlComments(s: string): string {
   return s.replace(/<!--[\s\S]*?-->/g, "");
@@ -168,26 +158,24 @@ export function documentExtension(editor: Client) {
           }
         }
 
-        // Prevent default immediately, then do async turndown conversion
         event.preventDefault();
+        const markdown = striptHtmlComments(
+          turndownService.turndown(richText),
+        ).trim();
         const view = editor.editorView;
         const selection = view.state.selection.main;
-        safeRun(async () => {
-          const td = await getTurndownService();
-          const markdown = striptHtmlComments(td.turndown(richText)).trim();
-          view.dispatch({
-            changes: [
-              {
-                from: selection.from,
-                to: selection.to,
-                insert: markdown,
-              },
-            ],
-            selection: {
-              anchor: selection.from + markdown.length,
+        view.dispatch({
+          changes: [
+            {
+              from: selection.from,
+              to: selection.to,
+              insert: markdown,
             },
-            scrollIntoView: true,
-          });
+          ],
+          selection: {
+            anchor: selection.from + markdown.length,
+          },
+          scrollIntoView: true,
         });
         return true;
       }
