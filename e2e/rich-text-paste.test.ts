@@ -26,8 +26,9 @@ test.describe("Rich text paste", () => {
 				const event = new ClipboardEvent("paste", {
 					bubbles: true,
 					cancelable: true,
-					clipboardData,
 				});
+				// Firefox ignores clipboardData in the constructor, so set it via defineProperty
+				Object.defineProperty(event, "clipboardData", { value: clipboardData });
 				document.querySelector("#sb-editor .cm-content")!
 					.dispatchEvent(event);
 			},
@@ -66,8 +67,9 @@ test.describe("Rich text paste", () => {
 				const event = new ClipboardEvent("paste", {
 					bubbles: true,
 					cancelable: true,
-					clipboardData,
 				});
+				// Firefox ignores clipboardData in the constructor, so set it via defineProperty
+				Object.defineProperty(event, "clipboardData", { value: clipboardData });
 				document.querySelector("#sb-editor .cm-content")!
 					.dispatchEvent(event);
 			},
