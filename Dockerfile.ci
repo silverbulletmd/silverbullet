@@ -1,8 +1,5 @@
 FROM alpine:latest
 
-# The volume that will keep the space data
-VOLUME /space
-
 ARG TARGETARCH
 
 # Either create a volume:

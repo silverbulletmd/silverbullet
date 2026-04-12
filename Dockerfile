@@ -23,9 +23,6 @@ RUN make build
 # Stage 2: Create the runtime from the build
 FROM alpine:latest
 
-# The volume that will keep the space data
-VOLUME /space
-
 # Either create a volume:
 #   docker volume create myspace
 # Then bind-mount it when running the container with the -v flag, e.g.:
