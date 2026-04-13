@@ -3,7 +3,6 @@
   padding: 0;
   width: 700px;
   max-width: 90%;
-
   border-radius: 8px;
   overflow: hidden;
 
@@ -13,6 +12,13 @@
     .cm-line {
       padding: 2px 0 0 3px;
     }
+  }
+
+  // Fix Safari layout bug: CodeMirror's .cm-scroller uses height: 100% which
+  // creates a circular height dependency inside flex <dialog>, causing extra
+  // whitespace. Setting height: auto breaks the cycle.
+  .cm-scroller {
+    height: auto;
   }
 
   .sb-header {
