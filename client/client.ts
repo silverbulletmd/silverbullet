@@ -880,10 +880,19 @@ export class Client {
   async handleServiceWorkerMessage(message: ServiceWorkerSourceMessage) {
     switch (message.type) {
       case "space-sync-complete": {
+        const isFirstSync = !this.fullSyncCompleted;
         this.fullSyncCompleted = true;
         // Trigger version-bump reindex if needed (must happen here, not in a plug,
         // because the plug may not be loaded yet when the first sync completes)
         void this.objectIndex.ensureFullIndex(this.space);
+
+        if (isFirstSync && message.operations > 0) {
+          // First sync pulled new content — reload the current page
+          // (it may have been empty because the file didn't exist locally yet)
+          void this.reloadEditor();
+          // Re-evaluate CONFIG and space scripts now that sync has pulled them
+          void this.clientSystem.reloadState();
+        }
         break;
       }
       case "online-status": {

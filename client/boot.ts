@@ -326,6 +326,11 @@ async function cachedFetch(path: string): Promise<string> {
         throw offlineError;
       }
     }
+    if (response.status === 404) {
+      // File doesn't exist yet (e.g., CONFIG.md before first sync)
+      // Return empty string without caching, so next boot re-fetches
+      return "";
+    }
     if (response.type === "opaqueredirect") {
       // We received an opaque redirect, there's little sensible we can do than unregister service workers and reload
       console.log(
