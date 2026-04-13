@@ -209,6 +209,10 @@ async function renamePage(oldName: string, newName: string) {
 
     const linksToUpdate: ObjectValue<LinkObject>[] = [];
     for (const link of linksInPage) {
+      if (!link.toPage && !link.toFile) {
+        // URL or other non-local link, no path to update
+        continue;
+      }
       if (link.toFile && folderName(link.toFile) === oldFolder) {
         const documentBackLinks = await getBackLinks(link.toFile);
         if (documentBackLinks.filter((a) => a.page !== oldName).length === 0) {
