@@ -162,21 +162,38 @@ export class ContentManager {
     }
   }
 
-  async loadDocumentEditor(locationState: LocationState) {
-    const path = locationState.path;
-    if (isMarkdownPath(path)) throw Error("This is a markdown path");
-
+  /**
+   * Cleanly leave the current page/document before navigating to a new one:
+   * unwatches the file, saves pending changes, and waits for index processing.
+   * Returns { previousPath, loadingDifferentPath }.
+   */
+  private async leaveCurrentPage(newPath: string) {
     const previousPath = this.client.ui.viewState.current?.path;
     const loadingDifferentPath = previousPath
-      ? previousPath !== path
-      : // Always load as different editor if editor is loaded from scratch
-        true;
+      ? previousPath !== newPath
+      : true;
 
     if (previousPath) {
       this.client.space.unwatchFile(previousPath);
       await this.save(true);
-      await this.client.objectIndex.awaitIndexQueueDrain();
+      // Wait for index to process the saved page so the next page renders
+      // with up-to-date widget data. Skip during initial indexing though:
+      // the queue may contain hundreds of files and blocking navigation on
+      // a full drain would make the app feel unresponsive.
+      if (await this.client.objectIndex.hasFullIndexCompleted()) {
+        await this.client.objectIndex.awaitIndexQueueDrain();
+      }
     }
+
+    return { previousPath, loadingDifferentPath };
+  }
+
+  async loadDocumentEditor(locationState: LocationState) {
+    const path = locationState.path;
+    if (isMarkdownPath(path)) throw Error("This is a markdown path");
+
+    const { previousPath, loadingDifferentPath } =
+      await this.leaveCurrentPage(path);
 
     const extension = getPathExtension(path as Path);
 
@@ -235,18 +252,9 @@ export class ContentManager {
     const path = locationState.path;
     if (!isMarkdownPath(path)) throw Error("This is not a markdown path");
 
-    const previousPath = this.client.ui.viewState.current?.path;
-    const loadingDifferentPath = previousPath
-      ? previousPath !== path
-      : // Always load as different page if page is loaded from scratch
-        true;
+    const { previousPath, loadingDifferentPath } =
+      await this.leaveCurrentPage(path);
     const pageName = getNameFromPath(path);
-
-    if (previousPath) {
-      this.client.space.unwatchFile(previousPath);
-      await this.save(true);
-      await this.client.objectIndex.awaitIndexQueueDrain();
-    }
 
     // Fetch next page to open
     let doc;
