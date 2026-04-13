@@ -152,43 +152,7 @@ export function AlwaysShownModal({
   useEffect(() => {
     const dialog = dialogRef.current;
     if (dialog) {
-      dialog.style.opacity = "0";
       dialog.showModal();
-
-      // Workaround for Safari layout bug: CodeMirror's flex sizing inside
-      // <dialog> creates a circular height dependency on first render.
-      // Watch for the .cm-editor to appear, then toggle a layout property
-      // to force Safari to recalculate correctly. Dialog stays hidden
-      // (opacity 0) until the fix has been applied to avoid visible reflow.
-      const fixSafariLayout = () => {
-        // Wait for Safari to paint the (wrong) layout, then force reflow
-        requestAnimationFrame(() => {
-          setTimeout(() => {
-            dialog.style.display = "flex";
-            void dialog.offsetHeight;
-            dialog.style.display = "";
-            dialog.style.opacity = "";
-          });
-        });
-      };
-
-      if (dialog.querySelector(".cm-editor")) {
-        fixSafariLayout();
-      } else {
-        const observer = new MutationObserver(() => {
-          if (dialog.querySelector(".cm-editor")) {
-            observer.disconnect();
-            fixSafariLayout();
-          }
-        });
-        observer.observe(dialog, { childList: true, subtree: true });
-        // Fallback: reveal dialog even if no .cm-editor appears (e.g.
-        // Confirm dialogs that don't use CodeMirror)
-        setTimeout(() => {
-          observer.disconnect();
-          dialog.style.opacity = "";
-        }, 500);
-      }
     }
   }, []);
 
