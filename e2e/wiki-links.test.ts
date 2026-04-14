@@ -44,7 +44,10 @@ test.describe("Wiki links", () => {
 		await sbPage.keyboard.press("Shift+Enter");
 		await expect(editor).toHaveText("");
 
-		// Type a wiki link to a page that doesn't exist
+		// Wait for the freshly-created page to finish loading (sb-saved class
+		// appears once loading completes). Otherwise the editor can remount
+		// mid-type and shuffle the cursor back to position 0, splitting input.
+		await sbPage.locator("#sb-current-page.sb-saved").waitFor({ state: "attached", timeout: 10_000 });
 		await editor.click();
 		await sbPage.keyboard.type("Check out [[Brand New Page]]", { delay: 20 });
 

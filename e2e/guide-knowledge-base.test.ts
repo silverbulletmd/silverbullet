@@ -80,8 +80,17 @@ test.describe("Guide: Knowledge Base", () => {
 		await expect(modal).not.toBeVisible();
 		await expect(editor).toHaveText("");
 
+		// Wait for the freshly-created page to settle before typing. Without
+		// this, CodeMirror reconfigures mid-type (plugs attaching late) and
+		// the cursor jumps back to position 0, splitting the typed input
+		// across the document. Neither `sb-saved` nor `cm-focused` nor a
+		// MutationObserver-based quiescence check is a reliable signal for
+		// this, so we wait a fixed period.
+		await sbPage.waitForTimeout(1000);
 		await editor.click();
 		await sbPage.keyboard.type("#concept", { delay: 20 });
+		await sbPage.keyboard.press("Escape");
+		await sbPage.keyboard.press("End");
 		await sbPage.keyboard.press("Enter");
 		await sbPage.keyboard.press("Enter");
 		await sbPage.keyboard.type("Atomic notes are focused on a single idea.", { delay: 20 });

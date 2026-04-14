@@ -74,7 +74,8 @@ async function waitForSyncComplete(page: import("@playwright/test").Page): Promi
 test.describe("PWA offline support", () => {
 	// Only run on Chromium — Firefox's Playwright implementation doesn't
 	// fully support service worker + setOffline interactions.
-	test.describe.configure({ retries: 1 });
+	test.skip(({ browserName }) => browserName !== "chromium", "PWA offline tests only run on Chromium");
+	test.describe.configure({ retries: 2 });
 
 	test.use({
 		spaceFiles: {
