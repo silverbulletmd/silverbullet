@@ -63,8 +63,8 @@ export async function indexPage(
     aspiringPages.map((aspiringPage) => {
       console.log("Deleting aspiring page", aspiringPage);
       return index.deleteObject(
-        "aspiring-page",
         aspiringPage.page,
+        "aspiring-page",
         aspiringPage.ref,
       );
     }),
