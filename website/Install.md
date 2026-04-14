@@ -2,6 +2,9 @@
 
 Excited to use SilverBullet? Here are three ways for you to deploy it. Also have a look at the note on [[#File systems]] at the end.
 
+> **note** Note
+> There is now also a [desktop edition](https://silverbullet.plus) of SilverBullet in beta that you may want to try. It does not rely on having to install a server yourself.
+
 # localhost (desktop, laptop)
 While this is not an ideal deployment (it limits accessing your space to _just your own machine_), it is an easy way to get started: simply run the SilverBullet server on your own laptop or desktop.
 

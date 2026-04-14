@@ -58,6 +58,9 @@ Want to see even more? Here is a whole [playlist with instruction videos](https:
 # [[Install]]
 As mentioned, SilverBullet is a [[Self Hosted]] web application. This is great if you care about [[Data Sovereignty]], but it does mean you need to [[Install]] it on a server yourself. Perhaps you do this on a Raspberry Pi you didn’t have a use for, or a VPS somewhere in the cloud. SilverBullet is distributed as a single self-contained server [[Install/Binary]] or [[Install/Docker]] container.
 
+> **note** Note
+> There is now also a [desktop edition](https://silverbullet.plus) of SilverBullet in beta that you may want to try.
+
 While this is a bit more complicated to set up than simply downloading desktop app or signing up for an account with some online service, self hosting is a path to both [[Data Sovereignty]] and to access your content from any device with a modern [[Browser]].
 
 Ready? Proceed to [[Install]].
