@@ -3,6 +3,7 @@ import { encodePageURI } from "@silverbulletmd/silverbullet/lib/ref";
 import { flushCachesAndUnregisterServiceWorker } from "../../client/service_worker/util.ts";
 import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
 import {
+  isNetworkError,
   notFoundError,
   offlineError,
   pingTimeout,
@@ -137,20 +138,7 @@ export class HttpSpacePrimitives implements SpacePrimitives {
         console.warn("Request timed out for", url);
         throw new Error(`Request timed out after ${fetchTimeout}ms`);
       }
-      // Errors when there is no internet connection:
-      //
-      // * Firefox: NetworkError when attempting to fetch resource (with SW and without)
-      // * Safari (service worker enabled): FetchEvent.respondWith received an error: TypeError: Load failed
-      // * Safari (no service worker): Load failed
-      // * Chrome: Failed to fetch
-      //
-      // Common substrings: "fetch" "load failed"
-      const errorMessage = e.message.toLowerCase();
-      if (
-        errorMessage.includes("fetch") ||
-        errorMessage.includes("load failed") ||
-        errorMessage.includes("unavailable")
-      ) {
+      if (isNetworkError(e)) {
         console.error("Got error fetching, throwing offline", url, e.message);
         throw offlineError;
       }

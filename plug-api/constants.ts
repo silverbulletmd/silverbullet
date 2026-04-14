@@ -8,3 +8,23 @@ export const wrongSpacePathError: Error = new Error(
 );
 export const pingTimeout: number = 2000;
 export const pingInterval: number = 5000;
+
+/**
+ * Determines if an error thrown by fetch() is a network-level error
+ * (as opposed to a server-side or application error).
+ *
+ * Browser-specific error messages when there is no internet connection:
+ * - Firefox: "NetworkError when attempting to fetch resource"
+ * - Safari (service worker): "FetchEvent.respondWith received an error: TypeError: Load failed"
+ * - Safari (no service worker): "Load failed"
+ * - Chrome: "Failed to fetch"
+ */
+export function isNetworkError(e: any): boolean {
+  const msg = (e?.message || "").toLowerCase();
+  return (
+    msg.includes("fetch") ||
+    msg.includes("load failed") ||
+    msg.includes("networkerror") ||
+    msg.includes("unavailable")
+  );
+}

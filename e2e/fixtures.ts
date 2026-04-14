@@ -12,6 +12,8 @@ export type SBServer = {
 	url: string;
 	port: number;
 	spaceDir: string;
+	/** Stop the server process (simulates "server down"). */
+	stop: () => Promise<void>;
 };
 
 type SBFixtures = {
@@ -87,20 +89,27 @@ export const test = base.extend<SBFixtures>({
 			throw new Error(`Server failed to start. Output:\n${serverOutput}\n${err}`);
 		}
 
-		await use({ url, port, spaceDir });
+		let stopped = false;
+		const stop = (): Promise<void> => {
+			if (stopped) return Promise.resolve();
+			stopped = true;
+			return new Promise<void>((resolve) => {
+				const timer = setTimeout(() => {
+					proc.kill("SIGKILL");
+					resolve();
+				}, 5000);
+				proc.on("exit", () => {
+					clearTimeout(timer);
+					resolve();
+				});
+				proc.kill("SIGTERM");
+			});
+		};
+
+		await use({ url, port, spaceDir, stop });
 
 		// Cleanup
-		proc.kill("SIGTERM");
-		await new Promise<void>((resolve) => {
-			const timer = setTimeout(() => {
-				proc.kill("SIGKILL");
-				resolve();
-			}, 5000);
-			proc.on("exit", () => {
-				clearTimeout(timer);
-				resolve();
-			});
-		});
+		await stop();
 		await rm(spaceDir, { recursive: true, force: true });
 	},
 

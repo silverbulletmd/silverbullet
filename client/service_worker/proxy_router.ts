@@ -3,6 +3,7 @@ import { decodePageURI } from "@silverbulletmd/silverbullet/lib/ref";
 import type { SpacePrimitives } from "../spaces/space_primitives.ts";
 import { fileMetaToHeaders, headersToFileMeta } from "../lib/util.ts";
 import {
+  isNetworkError,
   notFoundError,
   offlineError,
   pingInterval,
@@ -27,11 +28,27 @@ export type ProxyRouterEvents = {
 };
 
 /**
- * Implements a service worker level HTTP proxy (fetch requests) that serves /.fs calls locally for synced spaces
+ * Implements a service worker level HTTP proxy (fetch requests) that serves /.fs calls locally for synced spaces.
+ *
+ * Offline serving strategy:
+ * - Static client assets (HTML, JS, CSS) are always served from the pre-cache (populated on SW install).
+ * - File system (/.fs) requests are served locally from IndexedDB once a full sync has been confirmed.
+ * - Before a full sync is confirmed, requests are proxied to the server. If the server is unreachable
+ *   (network error), we fall through to serve locally so the app still works offline.
+ * - `fullSyncConfirmed` is restored from the persisted sync snapshot on SW restart, so previously
+ *   synced spaces serve locally immediately without needing a new sync cycle.
  */
 export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
+  // Tracks whether at least one full sync cycle has completed. Once true, /.fs
+  // requests are served from local IndexedDB instead of being proxied. On SW
+  // restart this is recovered from the persisted sync snapshot (see configure()).
   private fullSyncConfirmed = false;
+
+  // Assumed online until checkOnline() determines otherwise. In airplane mode
+  // the ping fails instantly; when the server is down but network is available
+  // the ping times out after `pingTimeout` ms (see constants.ts).
   online = true;
+
   localSpacePrimitives?: SpacePrimitives;
   syncEngine?: SyncEngine;
 
@@ -54,6 +71,20 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
   configure(syncEngine: SyncEngine) {
     this.localSpacePrimitives = syncEngine.local;
     this.syncEngine = syncEngine;
+
+    // If a previous sync snapshot exists with data, we can serve locally
+    // immediately instead of waiting for a new sync cycle to complete.
+    // This survives service worker restarts because the snapshot is
+    // persisted in IndexedDB.
+    if (syncEngine.snapshot.files.size > 0) {
+      this.fullSyncConfirmed = true;
+      console.log(
+        "Previous sync snapshot found with",
+        syncEngine.snapshot.files.size,
+        "files, serving requests locally immediately",
+      );
+    }
+
     syncEngine.on({
       spaceSyncComplete: () => {
         if (!this.fullSyncConfirmed) {
@@ -140,19 +171,36 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
             this.basePathName.length,
           );
 
-          if (
-            // Not yet configured -> Proxy
-            !this.localSpacePrimitives ||
-            !this.syncEngine ||
-            // Not fully synced but online -> Proxy
-            (!this.fullSyncConfirmed && this.online) ||
-            // A path we always need to proxy -> Proxy
-            alwaysProxy.find((prefix) => pathname.startsWith(prefix))
-          ) {
+          // Paths that can never be served locally (auth, shell, etc.) — always proxy.
+          // If the proxy fails, there's no local fallback, so let the outer catch
+          // return 503.
+          if (alwaysProxy.find((prefix) => pathname.startsWith(prefix))) {
+            return await fetch(request);
+          }
+
+          // Not yet configured (no sync engine / local storage) — must proxy.
+          // No local data exists to fall back to.
+          if (!this.localSpacePrimitives || !this.syncEngine) {
+            return await fetch(request);
+          }
+
+          // Configured but no full sync confirmed yet and we think we're online —
+          // try the server first. If it fails with a network error, fall through to
+          // serve from local data (which may exist from a previous session's
+          // snapshot). fullSyncConfirmed is recovered from the persisted snapshot on
+          // SW restart (see configure()), so this condition only applies when no
+          // previous sync data exists at all.
+          if (!this.fullSyncConfirmed && this.online) {
             try {
               return await fetch(request);
             } catch (e: any) {
-              if (e.message === "Offline") {
+              // When the proxy fetch fails due to a network error, mark offline
+              // and fall through to serve from local data instead of returning
+              // a hard 503. We check for both the wrapped "Offline" error (from
+              // HttpSpacePrimitives) and raw browser network errors (e.g.
+              // "Failed to fetch" in Chrome, "NetworkError..." in Firefox,
+              // "Load failed" in Safari) via isNetworkError().
+              if (e.message === "Offline" || isNetworkError(e)) {
                 console.info(
                   "Detected offline, marking offline and falling through",
                 );
@@ -163,7 +211,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
             }
           }
 
-          // We are now in a state we're configured and either a full sync cycle has complete (since boot) OR we're offline
+          // We are now in a state we're configured and either a full sync cycle has completed (since boot) OR we're offline
 
           if (
             pathname.startsWith(fsEndpoint) &&
