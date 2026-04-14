@@ -3,6 +3,7 @@ import {
 	gotoSilverBulletPage,
 	mod,
 	test,
+	waitForEditorReady,
 	waitForSaveAndReadFromServer,
 } from "./fixtures.ts";
 
@@ -44,10 +45,10 @@ test.describe("Wiki links", () => {
 		await sbPage.keyboard.press("Shift+Enter");
 		await expect(editor).toHaveText("");
 
-		// Wait for the freshly-created page to finish loading (sb-saved class
-		// appears once loading completes). Otherwise the editor can remount
-		// mid-type and shuffle the cursor back to position 0, splitting input.
-		await sbPage.locator("#sb-current-page.sb-saved").waitFor({ state: "attached", timeout: 10_000 });
+		// Wait for the editor to finish loading and any pageLoaded handlers
+		// to settle before typing. Otherwise CodeMirror reconfigures mid-type
+		// and the cursor jumps back to position 0, splitting input.
+		await waitForEditorReady(sbPage);
 		await editor.click();
 		await sbPage.keyboard.type("Check out [[Brand New Page]]", { delay: 20 });
 

@@ -140,7 +140,9 @@ export async function gotoSilverBulletPage(
 	pagePath = "",
 ): Promise<void> {
 	const encoded = pagePath.split("/").map(encodeURIComponent).join("/");
-	await page.goto(`${sbServer.url}/${encoded}?enableSW=0`);
+	// headless=1 makes the client expose `__sbRuntimeAPIReady` on window once
+	// the initial index completes — `waitForEditorReady` relies on it.
+	await page.goto(`${sbServer.url}/${encoded}?enableSW=0&headless=1`);
 	await page.locator("#sb-editor .cm-editor").waitFor({ state: "visible", timeout: 30_000 });
 }
 
@@ -161,6 +163,25 @@ export async function waitForSaveAndReadFromServer(
 		throw new Error(`Failed to read ${pagePath} from server: ${resp.status}`);
 	}
 	return resp.text();
+}
+
+/**
+ * Wait for the SilverBullet client's initial index to complete.
+ *
+ * The client sets `window.__sbRuntimeAPIReady = true` after its first full
+ * index drains (see `client/client.ts`). Completion of that index also
+ * triggers `editor:reloadState` → `rebuildEditorState()`, which resets the
+ * CodeMirror editor. If that reset fires mid-type, the cursor jumps to
+ * position 0 and synthetic input splits across the document. Waiting on
+ * this global before typing into a fresh page sidesteps the race without
+ * introducing test-only hooks into the client.
+ */
+export async function waitForEditorReady(page: Page): Promise<void> {
+	await page.waitForFunction(
+		() => (globalThis as any).__sbRuntimeAPIReady === true,
+		undefined,
+		{ timeout: 15_000 },
+	);
 }
 
 export { expect } from "@playwright/test";
