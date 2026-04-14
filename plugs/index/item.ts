@@ -143,10 +143,14 @@ export function extractItemFromNode(
 
   item.text = renderToText(nameNode).trim();
 
-  const nameNodeClone = cloneTree(nameNode!);
-  cleanTags(nameNodeClone);
-  cleanAttributes(nameNodeClone);
-  item.name = renderToText(nameNodeClone).trim();
+  if (nameNode) {
+    const nameNodeClone = cloneTree(nameNode);
+    cleanTags(nameNodeClone);
+    cleanAttributes(nameNodeClone);
+    item.name = renderToText(nameNodeClone).trim();
+  } else {
+    item.name = item.text;
+  }
 
   if (tags.length > 0) {
     item.tags = tags;

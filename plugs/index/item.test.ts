@@ -72,3 +72,35 @@ test("Test item indexing", async () => {
   expect(items[8].links).toEqual(["link 2"]);
   expect(new Set(items[8].ilinks)).toEqual(new Set(["link", "link 2"]));
 });
+
+// Regression test for https://github.com/silverbulletmd/silverbullet/issues/1932
+// and https://github.com/silverbulletmd/silverbullet/issues/1903
+const nestedListMd = `
+* 1. Foobar
+* Regular item
+- 2. second
+- - nested bullet
+- * mixed markers
+* - reverse mixed
+`;
+
+test("Test item indexing with nested lists in list items", async () => {
+  createMockSystem();
+  const tree = parseMarkdown(nestedListMd);
+  const frontmatter = extractFrontMatter(tree);
+  const pageMeta: PageMeta = {
+    ref: "test",
+    name: "test",
+    tag: "page",
+    created: "",
+    lastModified: "",
+    perm: "rw",
+  };
+  // Should not throw an error
+  const items = await indexItems(pageMeta, frontmatter, tree);
+  expect(items.length).toBeGreaterThan(0);
+
+  // The regular item should still be indexed correctly
+  const regularItem = items.find((i) => i.name === "Regular item");
+  expect(regularItem).toBeDefined();
+});
