@@ -120,7 +120,7 @@ func (hb *HeadlessBrowser) launch() error {
 	if hb.config.HeadlessToken != "" {
 		url += "&token=" + hb.config.HeadlessToken
 	}
-	log.Printf("[Headless] Navigating to %s", url)
+	log.Printf("[Headless] Navigating to %s", hb.config.ServerURL)
 
 	// Listen for console API calls from the browser
 	chromedp.ListenTarget(ctx, func(ev any) {

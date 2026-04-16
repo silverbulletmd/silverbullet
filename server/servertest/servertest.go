@@ -10,8 +10,8 @@ import (
 	"encoding/hex"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -61,33 +61,16 @@ func WithRuntimeAPI() Option {
 	}
 }
 
-// findModuleRoot walks up from the current working directory looking for go.mod.
-func findModuleRoot() (string, error) {
-	dir, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-	for {
-		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
-			return dir, nil
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			return "", os.ErrNotExist
-		}
-		dir = parent
-	}
-}
-
 // NewTestServer creates a server backed by a temp-dir copy of server/testdata/test_space.
 // The caller is responsible for calling ts.Server.Close().
 func NewTestServer(t *testing.T, opts ...Option) *TestServer {
 	t.Helper()
 
-	moduleRoot, err := findModuleRoot()
-	require.NoError(t, err, "could not find module root (go.mod)")
-
-	testSpacePath := filepath.Join(moduleRoot, "server", "testdata", "test_space")
+	// Use runtime.Caller to locate test data relative to this source file.
+	// This works regardless of which module (Core or App) invokes the test.
+	_, thisFile, _, _ := runtime.Caller(0)
+	serverDir := filepath.Dir(filepath.Dir(thisFile)) // up from servertest/ to server/
+	testSpacePath := filepath.Join(serverDir, "testdata", "test_space")
 	tmpDir := t.TempDir()
 
 	srcPrimitives, err := server.NewDiskSpacePrimitives(testSpacePath, "")

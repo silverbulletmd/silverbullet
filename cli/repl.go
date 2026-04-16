@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"time"
 
@@ -101,10 +102,7 @@ func startRepl(conn *SpaceConnection) error {
 					if err != nil {
 						fmt.Fprintf(rl.Stderr(), "Error: %s\n", err)
 					} else {
-						output := formatResult(result)
-						if output != "" {
-							fmt.Println(output)
-						}
+						FormatOutput(os.Stdout, result, OutputText)
 					}
 				}
 				continue
@@ -153,10 +151,7 @@ func startRepl(conn *SpaceConnection) error {
 		if err != nil {
 			fmt.Fprintf(rl.Stderr(), "Error: %s\n", err)
 		} else {
-			output := formatResult(result)
-			if output != "" {
-				fmt.Println(output)
-			}
+			FormatOutput(os.Stdout, result, OutputText)
 		}
 	}
 	fmt.Println()
