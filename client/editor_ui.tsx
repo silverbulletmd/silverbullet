@@ -1,5 +1,8 @@
 import { Confirm, Prompt } from "./components/basic_modals.tsx";
-import { CommandPalette } from "./components/command_palette.tsx";
+import {
+  CommandPalette,
+  keyboardHint,
+} from "./components/command_palette.tsx";
 import { FilterList } from "./components/filter.tsx";
 import { AnythingPicker } from "./components/anything_picker.tsx";
 import { TopBar } from "./components/top_bar.tsx";
@@ -488,18 +491,33 @@ export class MainUI {
                 if (!featherIcon) {
                   featherIcon = featherIcons.HelpCircle;
                 }
+                // Build description with keyboard shortcut hint
+                let description = button.description || "";
+                if (button.command) {
+                  const cmd = viewState.commands.get(button.command);
+                  if (cmd) {
+                    const hint = keyboardHint(cmd);
+                    if (hint) {
+                      description = description
+                        ? `${description} (${hint})`
+                        : hint;
+                    }
+                  }
+                }
+
                 return {
                   icon: mdiIcon ? mdiIcon : featherIcon,
-                  description: button.description || "",
+                  description,
                   dropdown: button.dropdown,
-                  callback:
-                    button.run ||
-                    (() => {
-                      this.flashNotification(
-                        "actionButton did not specify a run() callback",
-                        "error",
-                      );
-                    }),
+                  callback: button.command
+                    ? () => this.client.runCommandByName(button.command!)
+                    : button.run ||
+                      (() => {
+                        this.flashNotification(
+                          "actionButton did not specify a command or run() callback",
+                          "error",
+                        );
+                      }),
                   href: "",
                 };
               }),
@@ -620,11 +638,12 @@ export class MainUI {
 type ActionButton = {
   icon: string;
   description?: string;
+  command?: string;
   mobile?: boolean;
   standalone?: boolean;
   dropdown?: boolean;
   priority?: number;
-  run: () => void;
+  run?: () => void;
 };
 
 function kebabToCamel(str: string) {

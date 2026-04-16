@@ -358,6 +358,10 @@ config.define("actionButtons", {
         type = "string",
         description = "Optional description of the action button"
       },
+      command = {
+        type = "string",
+        description = "Optional command name to invoke when clicked (replaces run). The command's keyboard shortcut is automatically shown in the tooltip."
+      },
       priority = {
         type = "number",
         description = "Optional priority: the higher the earlier the button will appear in the list"
@@ -376,7 +380,7 @@ config.define("actionButtons", {
       },
       run = schema.func(),
     },
-    required = {"icon", "run"},
+    required = {"icon"},
     additionalProperties = false
   }
 })
@@ -399,28 +403,22 @@ config.set {
     {
       icon = "home",
       description = "Go to the index page",
+      command = "Navigate: Home",
       priority = 3,
       dropdown = false,
-      run = function()
-        editor.invokeCommand "Navigate: Home"
-      end
     },
     {
       icon = "book",
       description = "Open page",
+      command = "Navigate: Page Picker",
       priority = 2,
       dropdown = false,
-      run = function()
-        editor.invokeCommand "Navigate: Page Picker"
-      end
     },
     {
       icon = "terminal",
       description = "Run command",
+      command = "Open Command Palette",
       priority = 1,
-      run = function()
-        editor.invokeCommand "Open Command Palette"
-      end,
     },
     {
       icon = "chevron-left",

@@ -31,9 +31,7 @@ Optionally, you may also create an [[^Library/Std/APIs/Action Button]] in your t
 actionButton.define {
   icon = "pen-tool",
   priority = 3, -- or whatever order puts it in the spot you like
-  run = function()
-    editor.invokeCommand "Journal: Today"
-  end
+  command = "Journal: Today",
 }
 ```
 

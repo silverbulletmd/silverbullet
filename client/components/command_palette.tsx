@@ -47,7 +47,7 @@ export function CommandPalette({
   );
 }
 
-function keyboardHint(def: Command): string | undefined {
+export function keyboardHint(def: { key?: string | string[]; mac?: string | string[] }): string | undefined {
   const shortcuts: string[] = [];
   if (isMacLike && def.mac) {
     if (Array.isArray(def.mac)) {
