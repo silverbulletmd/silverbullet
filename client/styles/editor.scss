@@ -636,6 +636,7 @@
     button {
       font-family: var(--editor-font);
       font-size: inherit;
+      white-space: nowrap;
     }
 
     // Only show the button bar on hover on non-touch devices

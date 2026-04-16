@@ -120,6 +120,7 @@
   border-radius: 0.5em;
   padding: 0.2em 0.5em;
   font-size: 0.9em;
+  white-space: nowrap;
 
   &:hover {
     background-color: var(--hover-background-color);
