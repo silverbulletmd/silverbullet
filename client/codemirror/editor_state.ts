@@ -1,17 +1,13 @@
 import customMarkdownStyle from "../style.ts";
 import {
   history,
-  indentWithTab,
   insertNewlineAndIndent,
   isolateHistory,
-  standardKeymap,
 } from "@codemirror/commands";
 import {
-  acceptCompletion,
   autocompletion,
   closeBrackets,
   closeBracketsKeymap,
-  completionKeymap,
 } from "@codemirror/autocomplete";
 import {
   codeFolding,
@@ -354,8 +350,12 @@ export function isValidEditor(
   );
 }
 
-export function createCommandKeyBindings(client: Client): Extension {
+export function createCommandKeyBindings(
+  client: Client,
+  options: { miniEditor?: boolean } = {},
+): Extension {
   const commandKeyBindings: KeyBinding[] = [];
+  const vimMode = client.ui.viewState.uiOptions.vimMode;
 
   // Then add bindings for plug commands
   for (const def of client.clientSystem.commandHook
@@ -363,6 +363,16 @@ export function createCommandKeyBindings(client: Client): Extension {
     .values()) {
     const currentEditor = client.contentManager.documentEditor?.name;
     const requiredEditor = def.requireEditor;
+
+    if (def.disableInVim && vimMode) {
+      continue;
+    }
+
+    // Mini editors (filter box / page picker) are not page editors, so
+    // commands that target the page document should not capture keys there.
+    if (options.miniEditor && requiredEditor === "page") {
+      continue;
+    }
 
     if ((def.key || def.mac) && isValidEditor(currentEditor, requiredEditor)) {
       const run = (): boolean => {
@@ -431,10 +441,7 @@ export function createRegularKeyBindings(client: Client): Extension {
               shift: insertNewlineAndIndent,
             },
           ]
-        : standardKeymap),
-      ...completionKeymap,
-      { key: "Tab", run: acceptCompletion },
-      indentWithTab,
+        : []),
     ]);
   }
 }

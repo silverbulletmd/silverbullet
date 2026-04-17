@@ -384,6 +384,40 @@ functions:
       mac: "Cmd-f"
       requireEditor: page
 
+  # Selection / indentation
+  selectAllCommand:
+    path: ./editor.ts:selectAllCommand
+    command:
+      name: "Editor: Select All"
+      key: "Ctrl-a"
+      mac: "Cmd-a"
+      requireEditor: page
+      disableInVim: true
+
+  indentCommand:
+    path: ./editor.ts:indentCommand
+    command:
+      name: "Editor: Indent"
+      key:
+        - "Ctrl-]"
+        - "Tab"
+      mac:
+        - "Cmd-]"
+        - "Tab"
+      requireMode: rw
+      requireEditor: page
+
+  outdentCommand:
+    path: ./editor.ts:outdentCommand
+    command:
+      name: "Editor: Outdent"
+      key: "Shift-Tab"
+      mac:
+        - "Cmd-["
+        - "Shift-Tab"
+      requireMode: rw
+      requireEditor: page
+
   # Undo/redo
   undoCommand:
     path: ./editor.ts:undoCommand
@@ -417,3 +451,344 @@ functions:
       name: "Document: Delete"
       requireMode: rw
       requireEditor: notpage
+
+  # Cursor motions (replacing standardKeymap)
+  cursorCharLeftCommand:
+    path: ./editor.ts:cursorCharLeftCommand
+    command:
+      name: "Editor: Cursor Char Left"
+      key: "ArrowLeft"
+      requireEditor: page
+      disableInVim: true
+  cursorCharRightCommand:
+    path: ./editor.ts:cursorCharRightCommand
+    command:
+      name: "Editor: Cursor Char Right"
+      key: "ArrowRight"
+      requireEditor: page
+      disableInVim: true
+  cursorGroupLeftCommand:
+    path: ./editor.ts:cursorGroupLeftCommand
+    command:
+      name: "Editor: Cursor Group Left"
+      key: "Ctrl-ArrowLeft"
+      mac: "Alt-ArrowLeft"
+      requireEditor: page
+      disableInVim: true
+  cursorGroupRightCommand:
+    path: ./editor.ts:cursorGroupRightCommand
+    command:
+      name: "Editor: Cursor Group Right"
+      key: "Ctrl-ArrowRight"
+      mac: "Alt-ArrowRight"
+      requireEditor: page
+      disableInVim: true
+  cursorLineBoundaryLeftCommand:
+    path: ./editor.ts:cursorLineBoundaryLeftCommand
+    command:
+      name: "Editor: Cursor Line Boundary Left"
+      mac: "Cmd-ArrowLeft"
+      requireEditor: page
+      disableInVim: true
+  cursorLineBoundaryRightCommand:
+    path: ./editor.ts:cursorLineBoundaryRightCommand
+    command:
+      name: "Editor: Cursor Line Boundary Right"
+      mac: "Cmd-ArrowRight"
+      requireEditor: page
+      disableInVim: true
+  cursorLineStartCommand:
+    path: ./editor.ts:cursorLineStartCommand
+    command:
+      name: "Editor: Cursor Line Start"
+      key: "Home"
+      requireEditor: page
+      disableInVim: true
+  cursorLineEndCommand:
+    path: ./editor.ts:cursorLineEndCommand
+    command:
+      name: "Editor: Cursor Line End"
+      key:
+        - "End"
+        - "Ctrl-e"
+      mac:
+        - "End"
+        - "Ctrl-e"
+      requireEditor: page
+      disableInVim: true
+  cursorDocStartCommand:
+    path: ./editor.ts:cursorDocStartCommand
+    command:
+      name: "Editor: Cursor Doc Start"
+      key: "Ctrl-Home"
+      mac:
+        - "Ctrl-Home"
+        - "Cmd-ArrowUp"
+      requireEditor: page
+      disableInVim: true
+  cursorDocEndCommand:
+    path: ./editor.ts:cursorDocEndCommand
+    command:
+      name: "Editor: Cursor Doc End"
+      key: "Ctrl-End"
+      mac:
+        - "Ctrl-End"
+        - "Cmd-ArrowDown"
+      requireEditor: page
+      disableInVim: true
+  cursorLineUpCommand:
+    path: ./editor.ts:cursorLineUpCommand
+    command:
+      name: "Editor: Cursor Line Up"
+      key:
+        - "ArrowUp"
+        - "Ctrl-p"
+      mac: "ArrowUp"
+      requireEditor: page
+      disableInVim: true
+  cursorLineDownCommand:
+    path: ./editor.ts:cursorLineDownCommand
+    command:
+      name: "Editor: Cursor Line Down"
+      key: "ArrowDown"
+      mac: "ArrowDown"
+      requireEditor: page
+      disableInVim: true
+  cursorPageUpCommand:
+    path: ./editor.ts:cursorPageUpCommand
+    command:
+      name: "Editor: Cursor Page Up"
+      key: "PageUp"
+      mac:
+        - "PageUp"
+        - "Ctrl-ArrowUp"
+      requireEditor: page
+      disableInVim: true
+  cursorPageDownCommand:
+    path: ./editor.ts:cursorPageDownCommand
+    command:
+      name: "Editor: Cursor Page Down"
+      key:
+        - "PageDown"
+        - "Ctrl-v"
+      mac:
+        - "PageDown"
+        - "Ctrl-v"
+        - "Ctrl-ArrowDown"
+      requireEditor: page
+      disableInVim: true
+
+  # Selection-extending motions
+  selectCharLeftCommand:
+    path: ./editor.ts:selectCharLeftCommand
+    command:
+      name: "Editor: Select Char Left"
+      key: "Shift-ArrowLeft"
+      requireEditor: page
+      disableInVim: true
+  selectCharRightCommand:
+    path: ./editor.ts:selectCharRightCommand
+    command:
+      name: "Editor: Select Char Right"
+      key: "Shift-ArrowRight"
+      requireEditor: page
+      disableInVim: true
+  selectGroupLeftCommand:
+    path: ./editor.ts:selectGroupLeftCommand
+    command:
+      name: "Editor: Select Group Left"
+      key: "Shift-Ctrl-ArrowLeft"
+      mac: "Shift-Alt-ArrowLeft"
+      requireEditor: page
+      disableInVim: true
+  selectGroupRightCommand:
+    path: ./editor.ts:selectGroupRightCommand
+    command:
+      name: "Editor: Select Group Right"
+      key: "Shift-Ctrl-ArrowRight"
+      mac: "Shift-Alt-ArrowRight"
+      requireEditor: page
+      disableInVim: true
+  selectLineBoundaryLeftCommand:
+    path: ./editor.ts:selectLineBoundaryLeftCommand
+    command:
+      name: "Editor: Select Line Boundary Left"
+      mac: "Shift-Cmd-ArrowLeft"
+      requireEditor: page
+      disableInVim: true
+  selectLineBoundaryRightCommand:
+    path: ./editor.ts:selectLineBoundaryRightCommand
+    command:
+      name: "Editor: Select Line Boundary Right"
+      mac: "Shift-Cmd-ArrowRight"
+      requireEditor: page
+      disableInVim: true
+  selectLineStartCommand:
+    path: ./editor.ts:selectLineStartCommand
+    command:
+      name: "Editor: Select Line Start"
+      key: "Shift-Home"
+      requireEditor: page
+      disableInVim: true
+  selectLineEndCommand:
+    path: ./editor.ts:selectLineEndCommand
+    command:
+      name: "Editor: Select Line End"
+      key:
+        - "Shift-End"
+        - "Shift-Ctrl-e"
+      mac:
+        - "Shift-End"
+        - "Shift-Ctrl-e"
+      requireEditor: page
+      disableInVim: true
+  selectDocStartCommand:
+    path: ./editor.ts:selectDocStartCommand
+    command:
+      name: "Editor: Select Doc Start"
+      key: "Shift-Ctrl-Home"
+      mac:
+        - "Shift-Ctrl-Home"
+        - "Shift-Cmd-ArrowUp"
+      requireEditor: page
+      disableInVim: true
+  selectDocEndCommand:
+    path: ./editor.ts:selectDocEndCommand
+    command:
+      name: "Editor: Select Doc End"
+      key: "Shift-Ctrl-End"
+      mac:
+        - "Shift-Ctrl-End"
+        - "Shift-Cmd-ArrowDown"
+      requireEditor: page
+      disableInVim: true
+  selectLineUpCommand:
+    path: ./editor.ts:selectLineUpCommand
+    command:
+      name: "Editor: Select Line Up"
+      key:
+        - "Shift-ArrowUp"
+        - "Shift-Ctrl-p"
+      mac: "Shift-ArrowUp"
+      requireEditor: page
+      disableInVim: true
+  selectLineDownCommand:
+    path: ./editor.ts:selectLineDownCommand
+    command:
+      name: "Editor: Select Line Down"
+      key: "Shift-ArrowDown"
+      mac: "Shift-ArrowDown"
+      requireEditor: page
+      disableInVim: true
+  selectPageUpCommand:
+    path: ./editor.ts:selectPageUpCommand
+    command:
+      name: "Editor: Select Page Up"
+      key: "Shift-PageUp"
+      mac:
+        - "Shift-PageUp"
+        - "Shift-Ctrl-ArrowUp"
+      requireEditor: page
+      disableInVim: true
+  selectPageDownCommand:
+    path: ./editor.ts:selectPageDownCommand
+    command:
+      name: "Editor: Select Page Down"
+      key: "Shift-PageDown"
+      mac:
+        - "Shift-PageDown"
+        - "Shift-Ctrl-ArrowDown"
+      requireEditor: page
+      disableInVim: true
+
+  # Edit / delete
+  insertNewlineCommand:
+    path: ./editor.ts:insertNewlineCommand
+    command:
+      name: "Editor: Insert Newline"
+      key: "Enter"
+      mac: "Enter"
+      requireMode: rw
+      requireEditor: page
+      disableInVim: true
+  deleteCharBackwardCommand:
+    path: ./editor.ts:deleteCharBackwardCommand
+    command:
+      name: "Editor: Delete Char Backward"
+      key:
+        - "Backspace"
+        - "Ctrl-h"
+      mac:
+        - "Backspace"
+        - "Ctrl-h"
+      requireMode: rw
+      requireEditor: page
+      disableInVim: true
+  deleteCharForwardCommand:
+    path: ./editor.ts:deleteCharForwardCommand
+    command:
+      name: "Editor: Delete Char Forward"
+      key: "Delete"
+      mac: "Delete"
+      requireMode: rw
+      requireEditor: page
+      disableInVim: true
+  deleteGroupBackwardCommand:
+    path: ./editor.ts:deleteGroupBackwardCommand
+    command:
+      name: "Editor: Delete Group Backward"
+      key: "Ctrl-Backspace"
+      mac: "Alt-Backspace"
+      requireMode: rw
+      requireEditor: page
+      disableInVim: true
+  deleteGroupForwardCommand:
+    path: ./editor.ts:deleteGroupForwardCommand
+    command:
+      name: "Editor: Delete Group Forward"
+      key: "Ctrl-Delete"
+      mac: "Alt-Delete"
+      requireMode: rw
+      requireEditor: page
+      disableInVim: true
+  deleteLineBoundaryBackwardCommand:
+    path: ./editor.ts:deleteLineBoundaryBackwardCommand
+    command:
+      name: "Editor: Delete Line Boundary Backward"
+      mac: "Cmd-Backspace"
+      requireMode: rw
+      requireEditor: page
+      disableInVim: true
+  deleteLineBoundaryForwardCommand:
+    path: ./editor.ts:deleteLineBoundaryForwardCommand
+    command:
+      name: "Editor: Delete Line Boundary Forward"
+      mac: "Cmd-Delete"
+      requireMode: rw
+      requireEditor: page
+      disableInVim: true
+  transposeCharsCommand:
+    path: ./editor.ts:transposeCharsCommand
+    command:
+      name: "Editor: Transpose Chars"
+      key: "Ctrl-t"
+      mac: "Ctrl-t"
+      requireMode: rw
+      requireEditor: page
+      disableInVim: true
+
+  # Completion popup
+  startCompletionCommand:
+    path: ./editor.ts:startCompletionCommand
+    command:
+      name: "Editor: Start Completion"
+      key: "Ctrl-Space"
+      requireEditor: page
+      disableInVim: true
+  closeCompletionCommand:
+    path: ./editor.ts:closeCompletionCommand
+    command:
+      name: "Editor: Close Completion"
+      key: "Escape"
+      requireEditor: page
+      disableInVim: true

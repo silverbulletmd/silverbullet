@@ -7,15 +7,59 @@ import {
   unfoldCode,
 } from "@codemirror/language";
 import {
+  cursorCharLeft,
+  cursorCharRight,
+  cursorDocEnd,
+  cursorDocStart,
+  cursorGroupLeft,
+  cursorGroupRight,
+  cursorLineBoundaryLeft,
+  cursorLineBoundaryRight,
+  cursorLineDown,
+  cursorLineEnd,
+  cursorLineStart,
+  cursorLineUp,
+  cursorPageDown,
+  cursorPageUp,
+  deleteCharBackward,
+  deleteCharForward,
+  deleteGroupBackward,
+  deleteGroupForward,
   deleteLine,
+  deleteLineBoundaryBackward,
+  deleteLineBoundaryForward,
+  indentLess,
+  indentMore,
   insertNewline,
   insertNewlineAndIndent,
   moveLineDown,
   moveLineUp,
   redo,
+  selectAll,
+  selectCharLeft,
+  selectCharRight,
+  selectDocEnd,
+  selectDocStart,
+  selectGroupLeft,
+  selectGroupRight,
+  selectLineBoundaryLeft,
+  selectLineBoundaryRight,
+  selectLineDown,
+  selectLineEnd,
+  selectLineStart,
+  selectLineUp,
+  selectPageDown,
+  selectPageUp,
   toggleComment,
+  transposeChars,
   undo,
 } from "@codemirror/commands";
+import {
+  acceptCompletion,
+  closeCompletion,
+  moveCompletionSelection,
+  startCompletion,
+} from "@codemirror/autocomplete";
 import type { Transaction } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { getVimModule } from "../../vim_loader.ts";
@@ -600,6 +644,24 @@ export function editorSyscalls(client: Client): SysCallMapping {
     "editor.deleteLine": () => {
       deleteLine(client.editorView);
     },
+    "editor.selectAll": () => {
+      return selectAll({
+        state: client.editorView.state,
+        dispatch: client.editorView.dispatch,
+      });
+    },
+    "editor.indentMore": () => {
+      return indentMore({
+        state: client.editorView.state,
+        dispatch: client.editorView.dispatch,
+      });
+    },
+    "editor.indentLess": () => {
+      return indentLess({
+        state: client.editorView.state,
+        dispatch: client.editorView.dispatch,
+      });
+    },
     "editor.toggleComment": () => {
       return toggleComment({
         state: client.editorView.state,
@@ -640,6 +702,77 @@ export function editorSyscalls(client: Client): SysCallMapping {
     "editor.redo": () => {
       return redo(client.editorView);
     },
+    // Cursor motion syscalls
+    "editor.cursorCharLeft": () => cursorCharLeft(client.editorView),
+    "editor.cursorCharRight": () => cursorCharRight(client.editorView),
+    "editor.cursorGroupLeft": () => cursorGroupLeft(client.editorView),
+    "editor.cursorGroupRight": () => cursorGroupRight(client.editorView),
+    "editor.cursorLineBoundaryLeft": () =>
+      cursorLineBoundaryLeft(client.editorView),
+    "editor.cursorLineBoundaryRight": () =>
+      cursorLineBoundaryRight(client.editorView),
+    "editor.cursorLineStart": () => cursorLineStart(client.editorView),
+    "editor.cursorLineEnd": () => cursorLineEnd(client.editorView),
+    "editor.cursorDocStart": () => cursorDocStart(client.editorView),
+    "editor.cursorDocEnd": () => cursorDocEnd(client.editorView),
+    // Cursor motions that also navigate the completion popup if it's open
+    "editor.cursorLineUp": () => {
+      const view = client.editorView;
+      if (moveCompletionSelection(false)(view)) return true;
+      return cursorLineUp(view);
+    },
+    "editor.cursorLineDown": () => {
+      const view = client.editorView;
+      if (moveCompletionSelection(true)(view)) return true;
+      return cursorLineDown(view);
+    },
+    "editor.cursorPageUp": () => {
+      const view = client.editorView;
+      if (moveCompletionSelection(false, "page")(view)) return true;
+      return cursorPageUp(view);
+    },
+    "editor.cursorPageDown": () => {
+      const view = client.editorView;
+      if (moveCompletionSelection(true, "page")(view)) return true;
+      return cursorPageDown(view);
+    },
+    // Selection-extending motions
+    "editor.selectCharLeft": () => selectCharLeft(client.editorView),
+    "editor.selectCharRight": () => selectCharRight(client.editorView),
+    "editor.selectGroupLeft": () => selectGroupLeft(client.editorView),
+    "editor.selectGroupRight": () => selectGroupRight(client.editorView),
+    "editor.selectLineBoundaryLeft": () =>
+      selectLineBoundaryLeft(client.editorView),
+    "editor.selectLineBoundaryRight": () =>
+      selectLineBoundaryRight(client.editorView),
+    "editor.selectLineStart": () => selectLineStart(client.editorView),
+    "editor.selectLineEnd": () => selectLineEnd(client.editorView),
+    "editor.selectDocStart": () => selectDocStart(client.editorView),
+    "editor.selectDocEnd": () => selectDocEnd(client.editorView),
+    "editor.selectLineUp": () => selectLineUp(client.editorView),
+    "editor.selectLineDown": () => selectLineDown(client.editorView),
+    "editor.selectPageUp": () => selectPageUp(client.editorView),
+    "editor.selectPageDown": () => selectPageDown(client.editorView),
+    // Delete
+    "editor.deleteCharBackward": () => deleteCharBackward(client.editorView),
+    "editor.deleteCharForward": () => deleteCharForward(client.editorView),
+    "editor.deleteGroupBackward": () => deleteGroupBackward(client.editorView),
+    "editor.deleteGroupForward": () => deleteGroupForward(client.editorView),
+    "editor.deleteLineBoundaryBackward": () =>
+      deleteLineBoundaryBackward(client.editorView),
+    "editor.deleteLineBoundaryForward": () =>
+      deleteLineBoundaryForward(client.editorView),
+    "editor.transposeChars": () => transposeChars(client.editorView),
+    // Enter: accept completion if popup is open, else newline-and-indent
+    "editor.insertNewline": () => {
+      const view = client.editorView;
+      if (acceptCompletion(view)) return true;
+      return insertNewlineAndIndent(view);
+    },
+    // Completion popup control
+    "editor.acceptCompletion": () => acceptCompletion(client.editorView),
+    "editor.startCompletion": () => startCompletion(client.editorView),
+    "editor.closeCompletion": () => closeCompletion(client.editorView),
     "editor.openSearchPanel": () => {
       openSearchPanel(client.editorView);
     },

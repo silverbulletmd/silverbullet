@@ -21,6 +21,10 @@ export type CommandDef = {
   hide?: boolean;
   requireMode?: "rw" | "ro";
   requireEditor?: "any" | "page" | "notpage" | string;
+
+  // When true, this binding is NOT registered while vim mode is active,
+  // so the key falls through to vim.
+  disableInVim?: boolean;
 };
 export type CommandHookT = {
   command?: CommandDef;

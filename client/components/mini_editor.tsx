@@ -126,7 +126,7 @@ export function MiniEditor({
       doc: text,
       extensions: [
         EditorView.theme({}, { dark: darkMode }),
-        createCommandKeyBindings(globalThis.client),
+        createCommandKeyBindings(globalThis.client, { miniEditor: true }),
         [
           ...(editable
             ? []

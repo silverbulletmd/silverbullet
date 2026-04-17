@@ -467,6 +467,27 @@ export function deleteLine(): Promise<void> {
 }
 
 /**
+ * Select the entire document
+ */
+export function selectAll(): Promise<void> {
+  return syscall("editor.selectAll");
+}
+
+/**
+ * Increase indentation of the current line or selection
+ */
+export function indentMore(): Promise<void> {
+  return syscall("editor.indentMore");
+}
+
+/**
+ * Decrease indentation of the current line or selection
+ */
+export function indentLess(): Promise<void> {
+  return syscall("editor.indentLess");
+}
+
+/**
  * Comment or uncomment the current line in the editor
  */
 export function toggleComment(): Promise<void> {
@@ -479,6 +500,133 @@ export function moveLineUp(): Promise<void> {
 
 export function moveLineDown(): Promise<void> {
   return syscall("editor.moveLineDown");
+}
+
+// Cursor motion syscalls (wrappers around @codemirror/commands functions)
+export function cursorCharLeft(): Promise<void> {
+  return syscall("editor.cursorCharLeft");
+}
+export function cursorCharRight(): Promise<void> {
+  return syscall("editor.cursorCharRight");
+}
+export function cursorGroupLeft(): Promise<void> {
+  return syscall("editor.cursorGroupLeft");
+}
+export function cursorGroupRight(): Promise<void> {
+  return syscall("editor.cursorGroupRight");
+}
+export function cursorLineBoundaryLeft(): Promise<void> {
+  return syscall("editor.cursorLineBoundaryLeft");
+}
+export function cursorLineBoundaryRight(): Promise<void> {
+  return syscall("editor.cursorLineBoundaryRight");
+}
+export function cursorLineStart(): Promise<void> {
+  return syscall("editor.cursorLineStart");
+}
+export function cursorLineEnd(): Promise<void> {
+  return syscall("editor.cursorLineEnd");
+}
+export function cursorDocStart(): Promise<void> {
+  return syscall("editor.cursorDocStart");
+}
+export function cursorDocEnd(): Promise<void> {
+  return syscall("editor.cursorDocEnd");
+}
+export function cursorLineUp(): Promise<void> {
+  return syscall("editor.cursorLineUp");
+}
+export function cursorLineDown(): Promise<void> {
+  return syscall("editor.cursorLineDown");
+}
+export function cursorPageUp(): Promise<void> {
+  return syscall("editor.cursorPageUp");
+}
+export function cursorPageDown(): Promise<void> {
+  return syscall("editor.cursorPageDown");
+}
+
+// Selection-extending motions
+export function selectCharLeft(): Promise<void> {
+  return syscall("editor.selectCharLeft");
+}
+export function selectCharRight(): Promise<void> {
+  return syscall("editor.selectCharRight");
+}
+export function selectGroupLeft(): Promise<void> {
+  return syscall("editor.selectGroupLeft");
+}
+export function selectGroupRight(): Promise<void> {
+  return syscall("editor.selectGroupRight");
+}
+export function selectLineBoundaryLeft(): Promise<void> {
+  return syscall("editor.selectLineBoundaryLeft");
+}
+export function selectLineBoundaryRight(): Promise<void> {
+  return syscall("editor.selectLineBoundaryRight");
+}
+export function selectLineStart(): Promise<void> {
+  return syscall("editor.selectLineStart");
+}
+export function selectLineEnd(): Promise<void> {
+  return syscall("editor.selectLineEnd");
+}
+export function selectDocStart(): Promise<void> {
+  return syscall("editor.selectDocStart");
+}
+export function selectDocEnd(): Promise<void> {
+  return syscall("editor.selectDocEnd");
+}
+export function selectLineUp(): Promise<void> {
+  return syscall("editor.selectLineUp");
+}
+export function selectLineDown(): Promise<void> {
+  return syscall("editor.selectLineDown");
+}
+export function selectPageUp(): Promise<void> {
+  return syscall("editor.selectPageUp");
+}
+export function selectPageDown(): Promise<void> {
+  return syscall("editor.selectPageDown");
+}
+
+// Delete
+export function deleteCharBackward(): Promise<void> {
+  return syscall("editor.deleteCharBackward");
+}
+export function deleteCharForward(): Promise<void> {
+  return syscall("editor.deleteCharForward");
+}
+export function deleteGroupBackward(): Promise<void> {
+  return syscall("editor.deleteGroupBackward");
+}
+export function deleteGroupForward(): Promise<void> {
+  return syscall("editor.deleteGroupForward");
+}
+export function deleteLineBoundaryBackward(): Promise<void> {
+  return syscall("editor.deleteLineBoundaryBackward");
+}
+export function deleteLineBoundaryForward(): Promise<void> {
+  return syscall("editor.deleteLineBoundaryForward");
+}
+export function transposeChars(): Promise<void> {
+  return syscall("editor.transposeChars");
+}
+
+// Enter: accepts completion if popup open, else inserts newline
+export function insertNewline(): Promise<void> {
+  return syscall("editor.insertNewline");
+}
+
+// Completion popup
+export function acceptCompletion(): Promise<boolean> {
+  return syscall("editor.acceptCompletion");
+}
+export function startCompletion(): Promise<void> {
+  return syscall("editor.startCompletion");
+}
+export function closeCompletion(): Promise<void> {
+  return syscall("editor.closeCompletion");
 }
 
 // Vim-mode specific syscalls

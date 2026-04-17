@@ -47,6 +47,18 @@ export function CommandPalette({
   );
 }
 
+function prettifyShortcut(shortcut: string): string {
+  if (!isMacLike) return shortcut;
+  const pretty = shortcut
+    .replace(/Mod-/g, "⌘")
+    .replace(/Cmd-/g, "⌘")
+    .replace(/Ctrl-/g, "⌃")
+    .replace(/Alt-/g, "⌥")
+    .replace(/Shift-/g, "⇧");
+  // Capitalize the final key character (e.g. ⌘b → ⌘B)
+  return pretty.replace(/([⌘⌃⌥⇧])([a-z])$/, (_, mod, key) => mod + key.toUpperCase());
+}
+
 export function keyboardHint(def: { key?: string | string[]; mac?: string | string[] }): string | undefined {
   const shortcuts: string[] = [];
   if (isMacLike && def.mac) {
@@ -62,5 +74,7 @@ export function keyboardHint(def: { key?: string | string[]; mac?: string | stri
       shortcuts.push(def.key);
     }
   }
-  return shortcuts.length > 0 ? shortcuts.join(" | ") : undefined;
+  return shortcuts.length > 0
+    ? shortcuts.map(prettifyShortcut).join(" | ")
+    : undefined;
 }

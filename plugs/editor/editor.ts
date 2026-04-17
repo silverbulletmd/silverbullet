@@ -201,6 +201,142 @@ export function deleteLineCommand() {
   return editor.deleteLine();
 }
 
+export function selectAllCommand() {
+  return editor.selectAll();
+}
+
+export async function indentCommand() {
+  // Accept completion popup suggestion if open, else indent
+  if (await editor.acceptCompletion()) return;
+  await editor.indentMore();
+}
+
+export function outdentCommand() {
+  return editor.indentLess();
+}
+
 export function newWindowCommand() {
   return editor.newWindow();
+}
+
+// Cursor motions
+export function cursorCharLeftCommand() {
+  return editor.cursorCharLeft();
+}
+export function cursorCharRightCommand() {
+  return editor.cursorCharRight();
+}
+export function cursorGroupLeftCommand() {
+  return editor.cursorGroupLeft();
+}
+export function cursorGroupRightCommand() {
+  return editor.cursorGroupRight();
+}
+export function cursorLineBoundaryLeftCommand() {
+  return editor.cursorLineBoundaryLeft();
+}
+export function cursorLineBoundaryRightCommand() {
+  return editor.cursorLineBoundaryRight();
+}
+export function cursorLineStartCommand() {
+  return editor.cursorLineStart();
+}
+export function cursorLineEndCommand() {
+  return editor.cursorLineEnd();
+}
+export function cursorDocStartCommand() {
+  return editor.cursorDocStart();
+}
+export function cursorDocEndCommand() {
+  return editor.cursorDocEnd();
+}
+export function cursorLineUpCommand() {
+  return editor.cursorLineUp();
+}
+export function cursorLineDownCommand() {
+  return editor.cursorLineDown();
+}
+export function cursorPageUpCommand() {
+  return editor.cursorPageUp();
+}
+export function cursorPageDownCommand() {
+  return editor.cursorPageDown();
+}
+
+// Selection-extending motions
+export function selectCharLeftCommand() {
+  return editor.selectCharLeft();
+}
+export function selectCharRightCommand() {
+  return editor.selectCharRight();
+}
+export function selectGroupLeftCommand() {
+  return editor.selectGroupLeft();
+}
+export function selectGroupRightCommand() {
+  return editor.selectGroupRight();
+}
+export function selectLineBoundaryLeftCommand() {
+  return editor.selectLineBoundaryLeft();
+}
+export function selectLineBoundaryRightCommand() {
+  return editor.selectLineBoundaryRight();
+}
+export function selectLineStartCommand() {
+  return editor.selectLineStart();
+}
+export function selectLineEndCommand() {
+  return editor.selectLineEnd();
+}
+export function selectDocStartCommand() {
+  return editor.selectDocStart();
+}
+export function selectDocEndCommand() {
+  return editor.selectDocEnd();
+}
+export function selectLineUpCommand() {
+  return editor.selectLineUp();
+}
+export function selectLineDownCommand() {
+  return editor.selectLineDown();
+}
+export function selectPageUpCommand() {
+  return editor.selectPageUp();
+}
+export function selectPageDownCommand() {
+  return editor.selectPageDown();
+}
+
+// Delete / edit
+export function deleteCharBackwardCommand() {
+  return editor.deleteCharBackward();
+}
+export function deleteCharForwardCommand() {
+  return editor.deleteCharForward();
+}
+export function deleteGroupBackwardCommand() {
+  return editor.deleteGroupBackward();
+}
+export function deleteGroupForwardCommand() {
+  return editor.deleteGroupForward();
+}
+export function deleteLineBoundaryBackwardCommand() {
+  return editor.deleteLineBoundaryBackward();
+}
+export function deleteLineBoundaryForwardCommand() {
+  return editor.deleteLineBoundaryForward();
+}
+export function transposeCharsCommand() {
+  return editor.transposeChars();
+}
+export function insertNewlineCommand() {
+  return editor.insertNewline();
+}
+
+// Completion popup
+export function startCompletionCommand() {
+  return editor.startCompletion();
+}
+export function closeCompletionCommand() {
+  return editor.closeCompletion();
 }
