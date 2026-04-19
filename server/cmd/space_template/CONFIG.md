@@ -1,5 +1,11 @@
-This is where you configure SilverBullet to your liking. See [[^Library/Std/Config]] for a full list of configuration options.
+#meta
+
+This is where you configure SilverBullet to your liking. 
+
+${widgets.commandButton("Configuration", "Configuration: Open")} for a convenient way to edit this.
+
+See [[^Library/Std/Config]] for a full list of configuration options.
 
 ```space-lua
-config.set("std.widgets.toc.enabled", true)
+-- managed-by: configuration-ui
 ```

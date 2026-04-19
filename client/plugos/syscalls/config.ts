@@ -1,6 +1,7 @@
 import type { SysCallMapping } from "../system.ts";
 import type { Config } from "../../config.ts";
 import { LuaStackFrame, luaValueToJS } from "../../space_lua/runtime.ts";
+import { stripFunctions } from "../util.ts";
 
 export function configSyscalls(config: Config): SysCallMapping {
   return {
@@ -33,10 +34,10 @@ export function configSyscalls(config: Config): SysCallMapping {
       config.define(key, schema);
     },
     "config.getValues": () => {
-      return config.values;
+      return stripFunctions(config.values);
     },
     "config.getSchemas": () => {
-      return config.schemas;
+      return stripFunctions(config.schemas);
     },
   };
 }

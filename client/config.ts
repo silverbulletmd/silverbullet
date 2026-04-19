@@ -1,4 +1,5 @@
 import { type OutputUnit, Validator, format } from "@cfworker/json-schema";
+import { stripFunctions } from "./plugos/util.ts";
 
 // Register custom formats (shared with jsonschema.ts)
 format.email = (data: string) => data.includes("@");
@@ -61,25 +62,6 @@ function isValidJsonSchema(schema: any): { valid: boolean; error?: string } {
 }
 
 /**
- * Deep-clone a value, replacing any functions with null.
- * JSON schema can't validate functions, so we strip them before validation.
- */
-function stripFunctions(value: any): any {
-  if (typeof value === "function") return null;
-  if (value === null || value === undefined || typeof value !== "object") {
-    return value;
-  }
-  if (Array.isArray(value)) {
-    return value.map(stripFunctions);
-  }
-  const result: Record<string, any> = {};
-  for (const key of Object.keys(value)) {
-    result[key] = stripFunctions(value[key]);
-  }
-  return result;
-}
-
-/**
  * Configuration management (config.* APIs) for the client
  */
 export class Config {
@@ -130,6 +112,26 @@ export class Config {
     // Store the schema at the final key
     const finalKey = key[key.length - 1];
     current.properties[finalKey] = schema;
+
+    // Apply default values from schema for any properties not currently set
+    this.applySchemaDefaults(key, schema);
+  }
+
+  /**
+   * Recursively applies default values from a schema definition.
+   * Only sets a value if none exists at that path.
+   */
+  private applySchemaDefaults(path: string[], schema: any): void {
+    if ("default" in schema) {
+      if (!this.has(path)) {
+        this.set(path, structuredClone(schema.default));
+      }
+    }
+    if (schema.properties) {
+      for (const [propKey, propSchema] of Object.entries(schema.properties)) {
+        this.applySchemaDefaults([...path, propKey], propSchema as any);
+      }
+    }
   }
 
   /**

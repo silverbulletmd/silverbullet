@@ -1,5 +1,6 @@
 import type { SysCallMapping } from "../system.ts";
 import { type OutputUnit, Validator, format } from "@cfworker/json-schema";
+import { stripFunctions } from "../util.ts";
 
 // Register custom formats
 format.email = (data: string) => data.includes("@");
@@ -7,25 +8,6 @@ format["page-ref"] = (data: string) =>
   data.startsWith("[[") && data.endsWith("]]");
 
 const schemaCache = new Map<string, Validator>();
-
-/**
- * Deep-clone a value, replacing any functions with null.
- * JSON schema can't validate functions, so we strip them before validation.
- */
-function stripFunctions(value: any): any {
-  if (typeof value === "function") return null;
-  if (value === null || value === undefined || typeof value !== "object") {
-    return value;
-  }
-  if (Array.isArray(value)) {
-    return value.map(stripFunctions);
-  }
-  const result: Record<string, any> = {};
-  for (const key of Object.keys(value)) {
-    result[key] = stripFunctions(value[key]);
-  }
-  return result;
-}
 
 function formatErrors(errors: OutputUnit[]): string {
   // Filter out "properties" wrapper errors, keep only the specific leaf errors

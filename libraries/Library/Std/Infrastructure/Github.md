@@ -36,6 +36,29 @@ config.set("github.email", "john@doe.com")
 ```space-lua
 -- priority: 50
 github = {}
+
+config.define("github", {
+  description = "GitHub integration settings",
+  type = "object",
+  properties = {
+    name = {
+      type = "string",
+      description = "Author name for Git commits",
+      ui = { category = "GitHub", label = "Author name", order = 1 },
+    },
+    email = {
+      type = "string",
+      description = "Author email for Git commits",
+      ui = { category = "GitHub", label = "Author email", order = 2 },
+    },
+    token = {
+      type = "string",
+      description = "Personal access token for GitHub API",
+      ui = { category = "GitHub", label = "GitHub token", order = 3, inputType = "password" },
+    },
+  },
+  additionalProperties = false,
+})
 ```
 
 ## Github Repo Files

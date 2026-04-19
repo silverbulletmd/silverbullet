@@ -109,15 +109,19 @@ widgets = widgets or {}
 config.define("std.widgets.toc", {
   type = "object",
   properties = {
-    enabled = schema.boolean(),
-    minHeaders = schema.number(),
+    enabled = {
+      type = "boolean",
+      default = true,
+      description = "Show a table of contents at the top of pages",
+      ui = { category = "Widgets", label = "Table of Contents", order = 1 },
+    },
+    minHeaders = {
+      type = "number",
+      default = 3,
+      description = "Minimum number of headers required to show the TOC",
+      ui = { category = "Widgets", label = "Minimum headers for TOC", order = 2 },
+    },
   }
-})
-
--- configuration default values
-config.set("std.widgets.toc", {
-  enabled = true,
-  minHeaders = 3
 })
 
 function widgets.toc(options)
@@ -263,13 +267,13 @@ ${_.snippet}
 config.define("std.widgets.linkedMentions", {
   type = "object",
   properties = {
-    enabled = schema.boolean(),
+    enabled = {
+      type = "boolean",
+      default = true,
+      description = "Show linked mentions at the bottom of pages",
+      ui = { category = "Widgets", label = "Linked mentions", order = 3 },
+    },
   }
-})
-
--- configuration default values
-config.set("std.widgets.linkedMentions", {
-  enabled = true,
 })
 
 function widgets.linkedMentions(pageName)
@@ -309,13 +313,13 @@ end
 config.define("std.widgets.linkedTasks", {
   type = "object",
   properties = {
-    enabled = schema.boolean(),
+    enabled = {
+      type = "boolean",
+      default = true,
+      description = "Show linked tasks at the top of pages",
+      ui = { category = "Widgets", label = "Linked tasks", order = 4 },
+    },
   }
-})
-
--- configuration default values
-config.set("std.widgets.linkedTasks", {
-  enabled = true,
 })
 
 function widgets.linkedTasks(pageName)

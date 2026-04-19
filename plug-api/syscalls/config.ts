@@ -53,3 +53,19 @@ export function has(path: string): Promise<boolean> {
 export function define(key: string, schema: any): Promise<void> {
   return syscall("config.define", key, schema);
 }
+
+/**
+ * Gets all config values as a single object.
+ * @returns The entire config values object
+ */
+export function getValues(): Promise<Record<string, any>> {
+  return syscall("config.getValues");
+}
+
+/**
+ * Gets all defined config schemas.
+ * @returns The schema definitions object
+ */
+export function getSchemas(): Promise<Record<string, any>> {
+  return syscall("config.getSchemas");
+}

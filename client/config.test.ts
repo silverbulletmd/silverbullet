@@ -138,6 +138,69 @@ test("Config - define() rejects invalid schemas", () => {
   );
 });
 
+test("Config - schema defaults", () => {
+  const config = new Config();
+
+  // Default applied when no value exists
+  config.define("feature.enabled", { type: "boolean", default: true });
+  expect(config.get("feature.enabled", null)).toEqual(true);
+
+  // Existing value is not overwritten by default
+  const config2 = new Config({ feature: { enabled: false } });
+  config2.define("feature.enabled", { type: "boolean", default: true });
+  expect(config2.get("feature.enabled", null)).toEqual(false);
+
+  // Nested defaults from object properties
+  const config3 = new Config();
+  config3.define("widgets", {
+    type: "object",
+    properties: {
+      toc: {
+        type: "object",
+        properties: {
+          enabled: { type: "boolean", default: true },
+          minHeaders: { type: "number", default: 3 },
+        },
+      },
+    },
+  });
+  expect(config3.get("widgets.toc.enabled", null)).toEqual(true);
+  expect(config3.get("widgets.toc.minHeaders", null)).toEqual(3);
+
+  // Partial override: only unset leaves get defaults
+  const config4 = new Config({ widgets: { toc: { minHeaders: 5 } } });
+  config4.define("widgets", {
+    type: "object",
+    properties: {
+      toc: {
+        type: "object",
+        properties: {
+          enabled: { type: "boolean", default: true },
+          minHeaders: { type: "number", default: 3 },
+        },
+      },
+    },
+  });
+  expect(config4.get("widgets.toc.enabled", null)).toEqual(true);
+  expect(config4.get("widgets.toc.minHeaders", null)).toEqual(5);
+
+  // No default key means no value is set
+  const config5 = new Config();
+  config5.define("optional", { type: "string" });
+  expect(config5.has("optional")).toBeFalsy();
+
+  // Object/array defaults are deep-cloned so mutations don't leak
+  const config6 = new Config();
+  const defaultList = ["a", "b"];
+  config6.define("items", {
+    type: "array",
+    default: defaultList,
+  });
+  const stored = config6.get<string[]>("items", []);
+  stored.push("c");
+  expect(defaultList).toEqual(["a", "b"]);
+});
+
 test("Config - custom format validation", () => {
   const config = new Config();
 

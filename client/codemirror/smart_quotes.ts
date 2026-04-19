@@ -97,26 +97,8 @@ export function createSmartQuoteKeyBindings(client: Client): KeyBinding[] {
   if (smartQuotes.enabled === false) {
     return [];
   }
-
-  let doubleLeft = "“";
-  let doubleRight = "”";
-  let singleLeft = "‘";
-  let singleRight = "’";
-  if (typeof smartQuotes.double?.left === "string") {
-    doubleLeft = smartQuotes.double!.left;
-  }
-  if (typeof smartQuotes.double?.right === "string") {
-    doubleRight = smartQuotes.double!.right;
-  }
-  if (typeof smartQuotes.single?.left === "string") {
-    singleLeft = smartQuotes.single!.left;
-  }
-  if (typeof smartQuotes.single?.right === "string") {
-    singleRight = smartQuotes.single!.right;
-  }
-
   return [
-    keyBindingForQuote('"', doubleLeft, doubleRight),
-    keyBindingForQuote("'", singleLeft, singleRight),
+    keyBindingForQuote('"', smartQuotes.double!.left!, smartQuotes.double!.right!),
+    keyBindingForQuote("'", smartQuotes.single!.left!, smartQuotes.single!.right!),
   ];
 }

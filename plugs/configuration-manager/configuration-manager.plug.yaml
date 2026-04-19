@@ -1,0 +1,12 @@
+name: configuration-manager
+assets:
+  - "assets/*"
+functions:
+  openConfiguration:
+    path: ./configuration.ts:openConfiguration
+    command:
+      name: "Configuration: Open"
+      key: "Ctrl-,"
+      mac: "Cmd-,"
+  saveConfiguration:
+    path: ./configuration.ts:saveConfiguration
