@@ -44,6 +44,7 @@ import { DocumentEditorHook } from "./plugos/hooks/document_editor.ts";
 import type { Command } from "./types/command.ts";
 import { SpaceLuaEnvironment } from "./space_lua.ts";
 import { builtinPlugPaths } from "../plugs/builtin_plugs.ts";
+import { registerEditorCommands } from "./editor_commands.ts";
 import { ServiceRegistry } from "./service_registry.ts";
 import { serviceRegistrySyscalls } from "./plugos/syscalls/service_registry.ts";
 import type { ObjectIndex } from "./data/object_index.ts";
@@ -114,6 +115,7 @@ export class ClientSystem {
 
     // Command hook
     this.commandHook = new CommandHook(this.readOnlyMode, this.scriptCommands);
+    registerEditorCommands(client, this.commandHook);
     this.commandHook.on({
       commandsUpdated: (commandMap) => {
         this.client.ui?.viewDispatch({

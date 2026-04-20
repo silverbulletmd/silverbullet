@@ -14,6 +14,8 @@ export class CommandHook
     this.buildAllCommandsAndEmit();
   }, 200);
 
+  private registeredCommands = new Map<string, Command>();
+
   constructor(
     private readOnly: boolean,
     private additionalCommands: Map<string, Command>,
@@ -22,10 +24,50 @@ export class CommandHook
   }
 
   /**
+   * Register a command directly with the hook. Intended for client-side code
+   * that wants to define commands without going through a plug manifest.
+   * Overwrites any previously-registered command with the same name.
+   */
+  registerCommand(command: Command): void {
+    this.registeredCommands.set(command.name, command);
+    this.throttledBuildAllCommandsAndEmit();
+  }
+
+  private mergeCommand(
+    commands: Map<string, Command>,
+    name: string,
+    cmd: Command,
+  ) {
+    if (commands.has(name)) {
+      // Existing command, let's do some inline patching
+      const existingCommand = commands.get(name)!;
+      const command: Command = {
+        ...existingCommand,
+        ...cmd,
+      };
+      if (cmd.run) {
+        command.run = cmd.run;
+      }
+      commands.set(name, command);
+    } else {
+      commands.set(name, cmd);
+    }
+  }
+
+  /**
    * Build the command map
    */
   buildAllCommands(): Map<string, Command> {
     const commands = new Map<string, Command>();
+    // Start with directly-registered commands (built-in client commands).
+    // These form the base layer and can be overridden by plug commands or
+    // script commands further down.
+    for (const [name, cmd] of this.registeredCommands) {
+      if (cmd.requireMode === "rw" && this.readOnly) {
+        continue;
+      }
+      commands.set(name, cmd);
+    }
     // Add commands from plugs
     if (!this.system) {
       // Not initialized yet
@@ -43,7 +85,7 @@ export class CommandHook
           // Bit hacky, but don't expose commands that require write mode in read-only mode
           continue;
         }
-        commands.set(cmd.name, {
+        this.mergeCommand(commands, cmd.name, {
           ...cmd,
           run: (args?: string[]) => {
             return plug.invoke(name, [cmd, ...(args ?? [])]);
@@ -51,22 +93,10 @@ export class CommandHook
         });
       }
     }
+    // Script commands come last — they always win over built-ins and plugs,
+    // so users can rebind keys / replace run bodies from Lua.
     for (const [name, cmd] of this.additionalCommands) {
-      if (commands.has(name)) {
-        // Existing command, let's do some inline patching
-        const existingCommand = commands.get(name)!;
-        const command: Command = {
-          ...existingCommand,
-          ...cmd,
-        };
-        if (cmd.run) {
-          command.run = cmd.run;
-        }
-        commands.set(name, command);
-      } else {
-        // New command, let's just set
-        commands.set(name, cmd);
-      }
+      this.mergeCommand(commands, name, cmd);
     }
     return commands;
   }
