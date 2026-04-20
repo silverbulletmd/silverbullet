@@ -55,6 +55,18 @@ export function define(key: string, schema: any): Promise<void> {
 }
 
 /**
+ * Defines (or updates) a UI category for the configuration manager. Categories
+ * are referenced by name from a schema field's `ui.category` and are sorted in
+ * ascending `order` (default 0); unknown categories fall to the bottom in
+ * alphabetical order.
+ */
+export function defineCategory(
+  definition: { name: string; description?: string; order?: number },
+): Promise<void> {
+  return syscall("config.defineCategory", definition);
+}
+
+/**
  * Gets all config values as a single object.
  * @returns The entire config values object
  */
@@ -68,4 +80,13 @@ export function getValues(): Promise<Record<string, any>> {
  */
 export function getSchemas(): Promise<Record<string, any>> {
   return syscall("config.getSchemas");
+}
+
+/**
+ * Gets all registered UI categories for the configuration manager.
+ */
+export function getCategories(): Promise<
+  Record<string, { name: string; description?: string; order?: number }>
+> {
+  return syscall("config.getCategories");
 }

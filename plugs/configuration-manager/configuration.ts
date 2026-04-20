@@ -1,4 +1,5 @@
 import {
+  asset,
   config,
   editor,
   mq,
@@ -7,7 +8,7 @@ import {
   system,
 } from "@silverbulletmd/silverbullet/syscalls";
 import { buildConfigurationHtml } from "./configuration_html.ts";
-import { toLua } from "./lua_serialize.ts";
+import { parseManagedBlock, toLua } from "./lua.ts";
 import {
   findManagedBlock,
   MANAGED_MARKER,
@@ -15,58 +16,35 @@ import {
 } from "./config_block.ts";
 
 const CONFIG_PAGE = "CONFIG";
+const PLUG_NAME = "configuration-manager";
 
-// Only handles the literals toLua() emits; complex values are not persisted
-// through the UI and fall back to undefined.
-function parseLuaLiteral(s: string): any {
-  s = s.trim();
-  if (s === "true") return true;
-  if (s === "false") return false;
-  if (s === "nil") return undefined;
-  if (/^-?\d+(\.\d+)?$/.test(s)) return Number(s);
-  const strMatch = s.match(/^"([^"]*)"$/);
-  if (strMatch) return strMatch[1];
-  return undefined;
+// Seeded on first save when CONFIG doesn't yet exist. The managed fence is
+// pre-placed so replaceManagedBlock updates it in-situ rather than appending.
+async function readDefaultConfigTemplate(): Promise<string> {
+  const template = await asset.readAsset(
+    PLUG_NAME,
+    "assets/config-template.md",
+  );
+  return template.replaceAll("{{MANAGED_MARKER}}", MANAGED_MARKER);
 }
 
-// Parses only the exact shape emitted by saveConfiguration() — the regex
-// assumes strings without embedded quotes, braces, or parens.
-function parseManagedBlock(blockContent: string): {
-  configOverrides: Record<string, any>;
-  commandOverrides: Record<string, { key?: string; mac?: string }>;
-} {
-  const configOverrides: Record<string, any> = {};
-  const commandOverrides: Record<string, { key?: string; mac?: string }> = {};
-
-  const configRe = /config\.set\("([^"]+)",\s*(.+)\)/g;
-  let m: RegExpExecArray | null;
-  while ((m = configRe.exec(blockContent)) !== null) {
-    configOverrides[m[1]] = parseLuaLiteral(m[2]);
+// space.readPage rejects with "Not found" when the page doesn't exist yet;
+// treat that as an empty page rather than bubbling the error up to the user.
+async function readConfigPage(): Promise<string> {
+  try {
+    return await space.readPage(CONFIG_PAGE);
+  } catch {
+    return "";
   }
-
-  const cmdRe = /command\.update\s*\{([^}]+)\}/g;
-  while ((m = cmdRe.exec(blockContent)) !== null) {
-    const body = m[1];
-    const nameMatch = body.match(/name\s*=\s*"([^"]*)"/);
-    if (!nameMatch) continue;
-    const name = nameMatch[1];
-    const entry: { key?: string; mac?: string } = {};
-    const keyMatch = body.match(/key\s*=\s*"([^"]*)"/);
-    const macMatch = body.match(/mac\s*=\s*"([^"]*)"/);
-    if (keyMatch) entry.key = keyMatch[1];
-    if (macMatch) entry.mac = macMatch[1];
-    commandOverrides[name] = entry;
-  }
-
-  return { configOverrides, commandOverrides };
 }
 
 export async function openConfiguration() {
-  const [schemas, values, commands, configText] = await Promise.all([
+  const [schemas, values, categories, commands, configText] = await Promise.all([
     config.getSchemas(),
     config.getValues(),
+    config.getCategories(),
     system.listCommands(),
-    space.readPage(CONFIG_PAGE),
+    readConfigPage(),
   ]);
 
   let configOverrides: Record<string, any> = {};
@@ -82,14 +60,15 @@ export async function openConfiguration() {
     globalThis.navigator?.userAgent || "",
   );
 
-  const { html, script } = await buildConfigurationHtml(
+  const { html, script } = await buildConfigurationHtml({
     schemas,
     values,
+    categories,
     commands,
     commandOverrides,
     configOverrides,
     isMac,
-  );
+  });
   await editor.showPanel("modal", 100, html, script);
 }
 
@@ -114,7 +93,8 @@ export async function saveConfiguration(
 
   const blockContent = lines.join("\n");
 
-  const configText = await space.readPage(CONFIG_PAGE);
+  const configText = (await readConfigPage()) ||
+    (await readDefaultConfigTemplate());
 
   const hasContent = Object.keys(pendingConfig).length > 0 ||
     Object.keys(pendingShortcuts).length > 0;
@@ -126,7 +106,7 @@ export async function saveConfiguration(
 
   await space.writePage(CONFIG_PAGE, newText);
 
-  await sync.performFileSync(CONFIG_PAGE + ".md");
+  await sync.performFileSync(`${CONFIG_PAGE}.md`);
   await mq.awaitEmptyQueue("indexQueue");
   await editor.reloadUI();
 }

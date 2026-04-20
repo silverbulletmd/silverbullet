@@ -33,11 +33,17 @@ export function configSyscalls(config: Config): SysCallMapping {
     "config.define": (_ctx, key: string, schema: any) => {
       config.define(key, schema);
     },
+    "config.defineCategory": (_ctx, definition: any) => {
+      config.defineCategory(definition);
+    },
     "config.getValues": () => {
       return stripFunctions(config.values);
     },
     "config.getSchemas": () => {
       return stripFunctions(config.schemas);
+    },
+    "config.getCategories": () => {
+      return { ...config.categories };
     },
   };
 }

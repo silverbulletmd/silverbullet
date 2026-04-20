@@ -1,30 +1,23 @@
-const SCHEMAS = /*INJECT:SCHEMAS*/null;
-const VALUES = /*INJECT:VALUES*/null;
-const COMMANDS = /*INJECT:COMMANDS*/null;
-const COMMAND_OVERRIDES = /*INJECT:COMMAND_OVERRIDES*/null;
-const CONFIG_OVERRIDES = /*INJECT:CONFIG_OVERRIDES*/null;
-const IS_MAC = /*INJECT:IS_MAC*/false;
+// __CFG is prepended by configuration_html.ts as a single JSON object.
+// `lit` is the global exposed by the vendored lit-html IIFE bundle.
+const { html, render, nothing, repeat, classMap } = lit;
 
-const currentConfig = {};
-const pendingShortcuts = {};
+const {
+  schemas: SCHEMAS,
+  values: VALUES,
+  categories: CATEGORIES,
+  commands: COMMANDS,
+  commandOverrides: COMMAND_OVERRIDES,
+  configOverrides: CONFIG_OVERRIDES,
+  isMac: IS_MAC,
+} = __CFG;
 
-const modifiedConfigPaths = new Set(Object.keys(CONFIG_OVERRIDES || {}));
-
-for (const [name, override] of Object.entries(COMMAND_OVERRIDES || {})) {
-  pendingShortcuts[name] = { ...override };
-}
-let activeTab = "configuration";
-let recordingCell = null;
-let categoryMap = {};
-
-function escapeHtml(s) {
-  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
+// ---- Pure helpers --------------------------------------------------------
 
 function collectUiSchemas(schemaNode, path, results) {
   if (!schemaNode || !schemaNode.properties) return;
   for (const [key, prop] of Object.entries(schemaNode.properties)) {
-    const fullPath = path ? path + "." + key : key;
+    const fullPath = path ? `${path}.${key}` : key;
     if (prop.ui) {
       results.push({ path: fullPath, schema: prop });
     }
@@ -48,119 +41,53 @@ function getSchemaAtPath(path) {
   const parts = path.split(".");
   let current = SCHEMAS;
   for (const part of parts) {
-    if (!current || !current.properties || !current.properties[part]) return undefined;
+    if (!current || !current.properties || !current.properties[part]) {
+      return undefined;
+    }
     current = current.properties[part];
   }
   return current;
 }
 
-
-function buildCategories() {
+function buildCategoryMap() {
   const items = [];
   collectUiSchemas(SCHEMAS, "", items);
 
-  categoryMap = {};
+  const initialConfig = {};
+  const map = {};
   for (const item of items) {
     if (item.schema.type === "object" && item.schema.properties) {
-      const hasChildUi = Object.values(item.schema.properties).some(p => p.ui);
+      const hasChildUi = Object.values(item.schema.properties).some((p) =>
+        p.ui
+      );
       if (hasChildUi) continue;
     }
     const cat = item.schema.ui.category;
-    if (!categoryMap[cat]) categoryMap[cat] = [];
-    categoryMap[cat].push(item);
-
-    currentConfig[item.path] = getValueAtPath(VALUES, item.path);
+    (map[cat] ||= []).push(item);
+    initialConfig[item.path] = getValueAtPath(VALUES, item.path);
   }
-
-  for (const fields of Object.values(categoryMap)) {
+  for (const fields of Object.values(map)) {
     fields.sort((a, b) => (a.schema.ui.order || 0) - (b.schema.ui.order || 0));
   }
+  return { categoryMap: map, initialConfig };
 }
 
-function renderConfigurationTab() {
-  let html = '<input type="text" id="cfg-config-search" placeholder="Search settings...">';
-  for (const category of Object.keys(categoryMap).sort()) {
-    const fields = categoryMap[category];
-    if (!fields || fields.length === 0) continue;
-    html += '<div class="cfg-category" data-category="' + escapeHtml(category) + '">';
-    html += '<h2 class="cfg-category-title">' + escapeHtml(category) + '</h2>';
-    for (const field of fields) {
-      html += renderField(field.path, field.schema);
-    }
-    html += '</div>';
-  }
-  return html;
-}
+const { categoryMap: CATEGORY_MAP, initialConfig: INITIAL_CONFIG } =
+  buildCategoryMap();
 
-function renderField(path, schema) {
-  const currentValue = currentConfig[path];
-  const label = schema.ui?.label || path;
-  const description = schema.description || "";
-  const searchText = (label + " " + description + " " + path).toLowerCase();
-  let control = "";
+const SORTED_CATEGORY_NAMES = (() => {
+  const defaultOrder = Number.POSITIVE_INFINITY;
+  return Object.keys(CATEGORY_MAP).sort((a, b) => {
+    const oa = CATEGORIES?.[a]?.order ?? defaultOrder;
+    const ob = CATEGORIES?.[b]?.order ?? defaultOrder;
+    if (oa !== ob) return oa - ob;
+    return a.localeCompare(b);
+  });
+})();
 
-  if (schema.type === "boolean") {
-    const checked = currentValue ? "checked" : "";
-    control = '<input type="checkbox" class="cfg-checkbox" data-path="' +
-      escapeHtml(path) + '" ' + checked + '>';
-  } else if (schema.type === "string" && schema.enum) {
-    control = '<select data-path="' + escapeHtml(path) + '">';
-    for (const opt of schema.enum) {
-      const selected = opt === currentValue ? " selected" : "";
-      control += '<option value="' + escapeHtml(opt) + '"' + selected + '>' + escapeHtml(opt) + '</option>';
-    }
-    control += '</select>';
-  } else if (schema.type === "string" && schema.ui?.inputType === "password") {
-    control = '<input type="password" data-path="' + escapeHtml(path) + '" value="' + escapeHtml(currentValue || "") + '">';
-  } else if (schema.type === "string") {
-    control = '<input type="text" data-path="' + escapeHtml(path) + '" value="' + escapeHtml(currentValue || "") + '">';
-  } else if (schema.type === "number") {
-    control = '<input type="number" data-path="' + escapeHtml(path) + '" value="' + escapeHtml(String(currentValue ?? "")) + '">';
-  } else {
-    control = '<span class="cfg-hint">Configure manually in CONFIG</span>';
-  }
-
-  const isModified = modifiedConfigPaths.has(path);
-  const resetBtn = '<button class="cfg-field-reset' + (isModified ? '' : ' hidden') +
-    '" data-path="' + escapeHtml(path) + '" title="Reset to default">Reset</button>';
-
-  return '<div class="cfg-field" data-search="' + escapeHtml(searchText) + '">' +
-    '<div class="cfg-field-info">' +
-    '<div class="cfg-field-label">' + escapeHtml(label) + '</div>' +
-    (description ? '<div class="cfg-field-description">' + escapeHtml(description) + '</div>' : '') +
-    '</div>' +
-    '<div class="cfg-field-control">' + control + resetBtn + '</div></div>';
-}
-
-function renderShortcutsTab() {
-  let html = '<input type="text" id="cfg-shortcuts-search" placeholder="Search commands...">';
-  html += '<table id="cfg-shortcuts-table"><thead><tr>';
-  html += '<th>Command</th><th>' + (IS_MAC ? 'Shortcut' : 'Key Binding') + '</th><th></th>';
-  html += '</tr></thead><tbody>';
-
-  const sortedNames = Object.keys(COMMANDS).filter(name => !COMMANDS[name].hide).sort();
-
-  for (const name of sortedNames) {
-    const cmd = COMMANDS[name];
-    const binding = IS_MAC ? (cmd.mac || cmd.key || "") : (cmd.key || "");
-    const displayBinding = Array.isArray(binding) ? binding.join(" / ") : (binding || "");
-    const isModified = name in pendingShortcuts;
-    const pendingBinding = isModified
-      ? (IS_MAC ? (pendingShortcuts[name].mac ?? displayBinding) : (pendingShortcuts[name].key ?? displayBinding))
-      : displayBinding;
-
-    html += '<tr class="' + (isModified ? 'modified' : '') + '" data-cmd="' + escapeHtml(name) + '">';
-    html += '<td>' + escapeHtml(name) + '</td>';
-    html += '<td><span class="cfg-shortcut-cell' + (isModified ? ' modified' : '') +
-      '" data-cmd="' + escapeHtml(name) + '">' +
-      (pendingBinding ? escapeHtml(pendingBinding) : '<span class="cfg-shortcut-empty">none</span>') +
-      '</span></td>';
-    html += '<td><button class="cfg-reset-btn" data-cmd="' + escapeHtml(name) + '">Reset</button></td>';
-    html += '</tr>';
-  }
-  html += '</tbody></table>';
-  return html;
-}
+const SORTED_COMMAND_NAMES = Object.keys(COMMANDS)
+  .filter((name) => !COMMANDS[name].hide)
+  .sort();
 
 function keyEventToNotation(e) {
   const parts = [];
@@ -173,9 +100,20 @@ function keyEventToNotation(e) {
   if (["Control", "Alt", "Shift", "Meta"].includes(key)) return null;
 
   const keyMap = {
-    "ArrowUp": "ArrowUp", "ArrowDown": "ArrowDown", "ArrowLeft": "ArrowLeft", "ArrowRight": "ArrowRight",
-    "Enter": "Enter", "Escape": "Escape", "Backspace": "Backspace", "Delete": "Delete",
-    "Tab": "Tab", " ": "Space", "Home": "Home", "End": "End", "PageUp": "PageUp", "PageDown": "PageDown",
+    "ArrowUp": "ArrowUp",
+    "ArrowDown": "ArrowDown",
+    "ArrowLeft": "ArrowLeft",
+    "ArrowRight": "ArrowRight",
+    "Enter": "Enter",
+    "Escape": "Escape",
+    "Backspace": "Backspace",
+    "Delete": "Delete",
+    "Tab": "Tab",
+    " ": "Space",
+    "Home": "Home",
+    "End": "End",
+    "PageUp": "PageUp",
+    "PageDown": "PageDown",
   };
 
   let keyName = keyMap[key] || key;
@@ -184,178 +122,401 @@ function keyEventToNotation(e) {
   return parts.join("-");
 }
 
-function startRecording(cell) {
-  if (recordingCell) stopRecording(recordingCell);
-  recordingCell = cell;
-  cell.classList.add("recording");
-  cell.textContent = "Press a key combination...";
-
-  cell._keyHandler = function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.key === "Escape") { stopRecording(cell); renderTab(); return; }
-    if (e.key === "Backspace" || e.key === "Delete") {
-      const cmdName = cell.dataset.cmd;
-      if (!pendingShortcuts[cmdName]) pendingShortcuts[cmdName] = {};
-      if (IS_MAC) { pendingShortcuts[cmdName].mac = ""; }
-      else { pendingShortcuts[cmdName].key = ""; }
-      stopRecording(cell);
-      renderTab();
-      return;
-    }
-    const notation = keyEventToNotation(e);
-    if (!notation) return;
-    const cmdName = cell.dataset.cmd;
-    if (!pendingShortcuts[cmdName]) pendingShortcuts[cmdName] = {};
-    if (IS_MAC) { pendingShortcuts[cmdName].mac = notation; }
-    else { pendingShortcuts[cmdName].key = notation; }
-    stopRecording(cell);
-    renderTab();
-  };
-  document.addEventListener("keydown", cell._keyHandler, true);
+function commandBinding(name) {
+  const cmd = COMMANDS[name];
+  const raw = IS_MAC ? (cmd.mac || cmd.key || "") : (cmd.key || "");
+  return Array.isArray(raw) ? raw.join(" / ") : (raw || "");
 }
 
-function stopRecording(cell) {
-  cell.classList.remove("recording");
-  if (cell._keyHandler) {
-    document.removeEventListener("keydown", cell._keyHandler, true);
-    cell._keyHandler = null;
-  }
-  recordingCell = null;
-}
+// ---- State + render loop -------------------------------------------------
 
-function renderTab() {
-  const content = document.getElementById("cfg-content");
-  if (activeTab === "shortcuts") {
-    content.innerHTML = renderShortcutsTab();
-    attachShortcutListeners();
-  } else {
-    content.innerHTML = renderConfigurationTab();
-    attachGeneralListeners();
-  }
-}
+let state = {
+  tab: "configuration",
+  pendingConfig: { ...INITIAL_CONFIG },
+  pendingShortcuts: Object.fromEntries(
+    Object.entries(COMMAND_OVERRIDES || {}).map(([k, v]) => [k, { ...v }]),
+  ),
+  modifiedConfigPaths: new Set(Object.keys(CONFIG_OVERRIDES || {})),
+  search: "",
+  shortcutSearch: "",
+  recordingCmd: null,
+  saving: false,
+};
 
-function attachGeneralListeners() {
-  for (const input of document.querySelectorAll("[data-path]")) {
-    const path = input.dataset.path;
-    if (input.type === "checkbox") {
-      input.addEventListener("change", () => { currentConfig[path] = input.checked; updateResetVisibility(path); });
-    } else if (input.type === "number") {
-      input.addEventListener("input", () => {
-        currentConfig[path] = input.value === "" ? undefined : Number(input.value);
-        updateResetVisibility(path);
-      });
-    } else {
-      input.addEventListener("input", () => { currentConfig[path] = input.value; updateResetVisibility(path); });
-    }
-  }
-  for (const btn of document.querySelectorAll(".cfg-field-reset")) {
-    btn.addEventListener("click", () => {
-      const path = btn.dataset.path;
-      modifiedConfigPaths.delete(path);
-      const schema = getSchemaAtPath(path);
-      currentConfig[path] = schema?.default;
-      renderTab();
-    });
-  }
-  const search = document.getElementById("cfg-config-search");
-  if (search) {
-    search.addEventListener("input", () => {
-      const query = search.value.toLowerCase().trim();
-      for (const category of document.querySelectorAll(".cfg-category")) {
-        let anyVisible = false;
-        for (const field of category.querySelectorAll(".cfg-field")) {
-          const matches = !query || (field.dataset.search || "").includes(query);
-          field.style.display = matches ? "" : "none";
-          if (matches) anyVisible = true;
-        }
-        category.style.display = anyVisible ? "" : "none";
-      }
-    });
-  }
-}
-
-function updateResetVisibility(path) {
-  const current = currentConfig[path];
-  const schema = getSchemaAtPath(path);
-  const schemaDefault = schema?.default;
-  const normalizedDefault = (schema && schema.type === "boolean" && schemaDefault == null) ? false : schemaDefault;
-  const normalizedCurrent = (schema && schema.type === "boolean" && current == null) ? false : current;
-
-  const btn = document.querySelector('.cfg-field-reset[data-path="' + path + '"]');
-  if (normalizedCurrent === normalizedDefault) {
-    modifiedConfigPaths.delete(path);
-    if (btn) btn.classList.add("hidden");
-  } else {
-    modifiedConfigPaths.add(path);
-    if (btn) btn.classList.remove("hidden");
-  }
-}
-
-function attachShortcutListeners() {
-  for (const cell of document.querySelectorAll(".cfg-shortcut-cell")) {
-    cell.addEventListener("click", () => startRecording(cell));
-  }
-  for (const btn of document.querySelectorAll(".cfg-reset-btn")) {
-    btn.addEventListener("click", () => { delete pendingShortcuts[btn.dataset.cmd]; renderTab(); });
-  }
-  const search = document.getElementById("cfg-shortcuts-search");
-  if (search) {
-    search.addEventListener("input", () => {
-      const query = search.value.toLowerCase();
-      for (const row of document.querySelectorAll("#cfg-shortcuts-table tbody tr")) {
-        row.style.display = (row.dataset.cmd?.toLowerCase() || "").includes(query) ? "" : "none";
-      }
-    });
-  }
-}
-
-buildCategories();
-const tabsContainer = document.getElementById("cfg-tabs");
-const tabs = [
-  { id: "configuration", label: "Configuration" },
-  { id: "shortcuts", label: "Keyboard Shortcuts" },
-];
-for (const { id, label } of tabs) {
-  const btn = document.createElement("button");
-  btn.className = "cfg-tab";
-  btn.dataset.tab = id;
-  btn.textContent = label;
-  if (id === activeTab) btn.classList.add("active");
-  tabsContainer.appendChild(btn);
-}
-
-for (const tab of tabsContainer.querySelectorAll(".cfg-tab")) {
-  tab.addEventListener("click", () => {
-    tabsContainer.querySelector(".cfg-tab.active")?.classList.remove("active");
-    tab.classList.add("active");
-    activeTab = tab.dataset.tab;
-    renderTab();
+let renderQueued = false;
+function setState(patch) {
+  state = typeof patch === "function" ? patch(state) : { ...state, ...patch };
+  if (renderQueued) return;
+  renderQueued = true;
+  queueMicrotask(() => {
+    renderQueued = false;
+    render(App(state), document.getElementById("cfg-root"));
   });
 }
 
-document.getElementById("cfg-close").addEventListener("click", () => { syscall("editor.hidePanel", "modal"); });
-document.getElementById("cfg-cancel").addEventListener("click", () => { syscall("editor.hidePanel", "modal"); });
+// ---- Field change handling ----------------------------------------------
 
-document.getElementById("cfg-save").addEventListener("click", async () => {
+function setField(path, value) {
+  setState((s) => {
+    const pendingConfig = { ...s.pendingConfig, [path]: value };
+    const modified = new Set(s.modifiedConfigPaths);
+    const schema = getSchemaAtPath(path);
+    const def = schema?.default;
+    const normDef = (schema?.type === "boolean" && def == null) ? false : def;
+    const normCur = (schema?.type === "boolean" && value == null) ? false : value;
+    if (normCur === normDef) modified.delete(path);
+    else modified.add(path);
+    return { ...s, pendingConfig, modifiedConfigPaths: modified };
+  });
+}
+
+function resetField(path) {
+  setState((s) => {
+    const pendingConfig = { ...s.pendingConfig };
+    const schema = getSchemaAtPath(path);
+    pendingConfig[path] = schema?.default;
+    const modified = new Set(s.modifiedConfigPaths);
+    modified.delete(path);
+    return { ...s, pendingConfig, modifiedConfigPaths: modified };
+  });
+}
+
+// ---- Shortcut recording --------------------------------------------------
+
+let activeKeyHandler = null;
+
+function startRecording(name) {
+  setState({ recordingCmd: name });
+}
+
+function stopRecording() {
+  setState({ recordingCmd: null });
+}
+
+function setShortcut(name, notation) {
+  setState((s) => {
+    const pendingShortcuts = { ...s.pendingShortcuts };
+    const entry = { ...(pendingShortcuts[name] || {}) };
+    if (IS_MAC) entry.mac = notation;
+    else entry.key = notation;
+    pendingShortcuts[name] = entry;
+    return { ...s, pendingShortcuts, recordingCmd: null };
+  });
+}
+
+function resetShortcut(name) {
+  setState((s) => {
+    const pendingShortcuts = { ...s.pendingShortcuts };
+    delete pendingShortcuts[name];
+    return { ...s, pendingShortcuts };
+  });
+}
+
+function syncRecordingHandler() {
+  // Install/remove a document-level keydown listener that captures the next
+  // keystroke for the currently-recording command.
+  const recordingCmd = state.recordingCmd;
+  if (recordingCmd && !activeKeyHandler) {
+    activeKeyHandler = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const cmdName = state.recordingCmd;
+      if (!cmdName) return;
+      if (e.key === "Escape") {
+        stopRecording();
+        return;
+      }
+      if (e.key === "Backspace" || e.key === "Delete") {
+        setShortcut(cmdName, "");
+        return;
+      }
+      const notation = keyEventToNotation(e);
+      if (!notation) return;
+      setShortcut(cmdName, notation);
+    };
+    document.addEventListener("keydown", activeKeyHandler, true);
+  } else if (!recordingCmd && activeKeyHandler) {
+    document.removeEventListener("keydown", activeKeyHandler, true);
+    activeKeyHandler = null;
+  }
+}
+
+// ---- Save / cancel -------------------------------------------------------
+
+async function save() {
+  if (state.saving) return;
+  setState({ saving: true });
   try {
     const allConfig = {};
-    for (const path of modifiedConfigPaths) {
-      const value = currentConfig[path];
+    for (const path of state.modifiedConfigPaths) {
+      const value = state.pendingConfig[path];
       if (value === undefined) continue;
       allConfig[path] = value;
     }
-    await syscall("system.invokeFunction", "configuration-manager.saveConfiguration", allConfig, pendingShortcuts);
+    await syscall(
+      "system.invokeFunction",
+      "configuration-manager.saveConfiguration",
+      allConfig,
+      state.pendingShortcuts,
+    );
     await syscall("editor.hidePanel", "modal");
     await syscall("editor.flashNotification", "Configuration saved");
   } catch (e) {
     console.error("Save failed:", e);
-    await syscall("editor.flashNotification", "Failed to save: " + e.message, "error");
+    await syscall(
+      "editor.flashNotification",
+      `Failed to save: ${e.message}`,
+      "error",
+    );
+    setState({ saving: false });
+  }
+}
+
+function close() {
+  syscall("editor.hidePanel", "modal");
+}
+
+// ---- Templates -----------------------------------------------------------
+
+const TABS = [
+  { id: "configuration", label: "Configuration" },
+  { id: "shortcuts", label: "Keyboard Shortcuts" },
+];
+
+const Header = (s) => html`
+  <div id="cfg-header">
+    <h1>Configuration</h1>
+    <button id="cfg-close" title="Close" @click=${close}>×</button>
+    <div id="cfg-tabs">
+      ${TABS.map((t) => html`
+        <button
+          class=${classMap({ "cfg-tab": true, active: s.tab === t.id })}
+          @click=${() => setState({ tab: t.id })}
+        >${t.label}</button>
+      `)}
+    </div>
+  </div>
+`;
+
+const Footer = (s) => html`
+  <div id="cfg-footer">
+    <button
+      class="cfg-btn"
+      id="cfg-cancel"
+      ?disabled=${s.saving}
+      @click=${close}
+    >
+      Cancel
+    </button>
+    <button
+      class="cfg-btn cfg-btn-primary"
+      id="cfg-save"
+      ?disabled=${s.saving}
+      @click=${save}
+    >
+      ${s.saving
+        ? html`<span class="cfg-spinner"></span>Saving…`
+        : html`Save &amp; Apply`}
+    </button>
+  </div>
+`;
+
+function fieldMatches(path, schema, query) {
+  if (!query) return true;
+  const label = schema.ui?.label || path;
+  const description = schema.description || "";
+  return (`${label} ${description} ${path}`).toLowerCase().includes(query);
+}
+
+const Control = (path, schema, value) => {
+  if (schema.type === "boolean") {
+    return html`<input
+      type="checkbox"
+      class="cfg-checkbox"
+      ?checked=${!!value}
+      @change=${(e) => setField(path, e.target.checked)}
+    >`;
+  }
+  if (schema.type === "string" && schema.enum) {
+    return html`<select
+      @change=${(e) => setField(path, e.target.value)}
+    >
+      ${schema.enum.map((opt) => html`
+        <option value=${opt} ?selected=${opt === value}>${opt}</option>
+      `)}
+    </select>`;
+  }
+  if (schema.type === "string") {
+    const inputType = schema.ui?.inputType === "password" ? "password" : "text";
+    return html`<input
+      type=${inputType}
+      .value=${value ?? ""}
+      @input=${(e) => setField(path, e.target.value)}
+    >`;
+  }
+  if (schema.type === "number") {
+    return html`<input
+      type="number"
+      .value=${value == null ? "" : String(value)}
+      @input=${(e) =>
+        setField(path, e.target.value === "" ? undefined : Number(e.target.value))}
+    >`;
+  }
+  return html`<span class="cfg-hint">Configure manually in CONFIG</span>`;
+};
+
+const Field = (path, schema, value, modified) => html`
+  <div class="cfg-field">
+    <div class="cfg-field-info">
+      <div class="cfg-field-label">${schema.ui?.label || path}</div>
+      ${
+  schema.description
+    ? html`<div class="cfg-field-description">${schema.description}</div>`
+    : nothing
+}
+    </div>
+    <div class="cfg-field-control">
+      ${Control(path, schema, value)}
+      <button
+        class=${classMap({
+  "cfg-field-reset": true,
+  hidden: !modified,
+})}
+        title="Reset to default"
+        @click=${() => resetField(path)}
+      >Reset</button>
+    </div>
+  </div>
+`;
+
+const Category = (name, fields, query, s) => {
+  const visible = fields.filter((f) => fieldMatches(f.path, f.schema, query));
+  if (visible.length === 0) return nothing;
+  const description = CATEGORIES?.[name]?.description;
+  return html`
+    <div class="cfg-category">
+      <h2 class="cfg-category-title">${name}</h2>
+      ${
+    description
+      ? html`<div class="cfg-category-description">${description}</div>`
+      : nothing
+  }
+      ${
+    visible.map((f) =>
+      Field(f.path, f.schema, s.pendingConfig[f.path], s.modifiedConfigPaths.has(f.path))
+    )
+  }
+    </div>
+  `;
+};
+
+const ConfigurationTab = (s) => {
+  const query = s.search.toLowerCase().trim();
+  return html`
+    <input
+      type="text"
+      id="cfg-config-search"
+      placeholder="Search settings..."
+      .value=${s.search}
+      @input=${(e) => setState({ search: e.target.value })}
+    >
+    ${
+    SORTED_CATEGORY_NAMES.map((name) =>
+      Category(name, CATEGORY_MAP[name], query, s)
+    )
+  }
+  `;
+};
+
+const ShortcutRow = (name, s) => {
+  const isModified = name in s.pendingShortcuts;
+  const fallback = commandBinding(name);
+  const pending = isModified
+    ? (IS_MAC
+      ? (s.pendingShortcuts[name].mac ?? fallback)
+      : (s.pendingShortcuts[name].key ?? fallback))
+    : fallback;
+  const isRecording = s.recordingCmd === name;
+  return html`
+    <tr class=${classMap({ modified: isModified })}>
+      <td>${name}</td>
+      <td>
+        <span
+          class=${classMap({
+    "cfg-shortcut-cell": true,
+    modified: isModified,
+    recording: isRecording,
+  })}
+          @click=${() => startRecording(name)}
+        >
+          ${
+    isRecording
+      ? "Press a key combination..."
+      : (pending
+        ? pending
+        : html`<span class="cfg-shortcut-empty">none</span>`)
+  }
+        </span>
+      </td>
+      <td>
+        <button
+          class="cfg-reset-btn"
+              @click=${() => resetShortcut(name)}
+        >Reset</button>
+      </td>
+    </tr>
+  `;
+};
+
+const ShortcutsTab = (s) => {
+  const query = s.shortcutSearch.toLowerCase();
+  const visible = SORTED_COMMAND_NAMES.filter((n) =>
+    !query || n.toLowerCase().includes(query)
+  );
+  return html`
+    <input
+      type="text"
+      id="cfg-shortcuts-search"
+      placeholder="Search commands..."
+      .value=${s.shortcutSearch}
+      @input=${(e) => setState({ shortcutSearch: e.target.value })}
+    >
+    <table id="cfg-shortcuts-table">
+      <thead>
+        <tr>
+          <th>Command</th>
+          <th>${IS_MAC ? "Shortcut" : "Key Binding"}</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${repeat(visible, (n) => n, (n) => ShortcutRow(n, s))}
+      </tbody>
+    </table>
+  `;
+};
+
+const App = (s) => {
+  // Side-effect: install/remove the keydown listener whenever recording state
+  // changes. Doing this inside render keeps the listener tied to state.
+  syncRecordingHandler();
+  return html`
+    ${Header(s)}
+    <div id="cfg-content">
+      ${s.tab === "configuration" ? ConfigurationTab(s) : ShortcutsTab(s)}
+    </div>
+    ${Footer(s)}
+  `;
+};
+
+// ---- Initial mount + global keybindings ---------------------------------
+
+const root = document.getElementById("cfg-root");
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !state.recordingCmd) {
+    syscall("editor.hidePanel", "modal");
   }
 });
 
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && !recordingCell) { syscall("editor.hidePanel", "modal"); }
-});
-
-renderTab();
+render(App(state), root);

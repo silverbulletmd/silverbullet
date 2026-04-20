@@ -48,7 +48,7 @@ export function replaceManagedBlock(
       if (start > 0 && text[start - 1] === "\n") start--;
       return text.slice(0, start) + text.slice(end);
     }
-    const replacement = "```space-lua\n" + newContent + "\n```";
+    const replacement = `\`\`\`space-lua\n${newContent}\n\`\`\``;
     return text.slice(0, existing.start) + replacement +
       text.slice(existing.end);
   }
@@ -56,7 +56,7 @@ export function replaceManagedBlock(
   if (!newContent) return text;
 
   // Append new block at end
-  const block = "```space-lua\n" + newContent + "\n```\n";
+  const block = `\`\`\`space-lua\n${newContent}\n\`\`\`\n`;
   const separator = text.endsWith("\n") ? "\n" : "\n\n";
   return text + separator + block;
 }

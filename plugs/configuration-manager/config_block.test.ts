@@ -75,7 +75,7 @@ config.set("manual", true)
     const result = replaceManagedBlock(text, newContent);
     expect(result).toContain("manual");
     expect(result).toContain('"ui", true');
-    expect(result).toContain("\`\`\`space-lua\n" + newContent + "\n\`\`\`");
+    expect(result).toContain(`\`\`\`space-lua\n${newContent}\n\`\`\``);
   });
 
   test("removes managed block when new content is empty", () => {

@@ -1,6 +1,6 @@
 name: configuration-manager
 assets:
-  - "assets/*"
+  - "assets/**"
 functions:
   openConfiguration:
     path: ./configuration.ts:openConfiguration
@@ -8,5 +8,6 @@ functions:
       name: "Configuration: Open"
       key: "Ctrl-,"
       mac: "Cmd-,"
+      requireMode: rw
   saveConfiguration:
     path: ./configuration.ts:saveConfiguration

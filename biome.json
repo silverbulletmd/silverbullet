@@ -41,6 +41,7 @@
       "!**/node_modules",
       "!**/dist",
       "!**/client_bundle",
+      "!**/vendor",
       "!**/website_build",
       "!**/*.html",
       "!public_version.ts"

@@ -18,6 +18,33 @@ This defines the [JSON schema](https://json-schema.org/) for built-in configurat
 ```space-lua
 -- priority: 100
 
+-- UI categories for the configuration manager, listed in display order.
+config.defineCategory {
+  name = "Editor",
+  description = "Behavior of the page editor: brackets, wiki link rendering, emoji aliases, and similar editing affordances.",
+  order = 10,
+}
+config.defineCategory {
+  name = "Smart Quotes",
+  description = "Replace straight quotes with typographic ones as you type, and pick which characters are used.",
+  order = 20,
+}
+config.defineCategory {
+  name = "Sync",
+  description = "Control how this client synchronizes pages and documents with the server.",
+  order = 30,
+}
+config.defineCategory {
+  name = "Indexing",
+  description = "Choose which kinds of content (paragraphs, items, tasks) are indexed for queries.",
+  order = 40,
+}
+config.defineCategory {
+  name = "Query",
+  description = "Configure how queries collate and compare strings, including locale-aware sorting.",
+  order = 50,
+}
+
 config.define("sync", {
   description = "Configure sync",
   type = "object",
@@ -96,7 +123,6 @@ config.define("autoCloseBrackets", {
   description = "List of opening bracket characters to auto-close",
   type = "string",
   default = "([{",
-  ui = { category = "Editor", label = "Auto-close brackets", order = 2 },
 })
 
 config.define("shortWikiLinks", {
@@ -120,12 +146,11 @@ config.define("emoji", {
 config.define("smartQuotes", {
   description = "Configure smart quotes",
   type = "object",
-  ui = { category = "Editor", label = "Smart quotes", order = 3 },
   properties = {
     enabled = {
       type = "boolean",
       description = "Indicates whether smart quotes are enabled",
-      ui = { category = "Editor", label = "Enable smart quotes", order = 1 },
+      ui = { category = "Smart Quotes", label = "Enable smart quotes", order = 1 },
       default = true,
     },
     double = {
@@ -135,13 +160,13 @@ config.define("smartQuotes", {
           type = "string",
           default = "“",
           description = "Character for the left double quote",
-          ui = { category = "Editor", label = "Double quote left", order = 2 },
+          ui = { category = "Smart Quotes", label = "Double quote left", order = 2 },
         },
         right = {
           type = "string",
           default = "”",
           description = "Character for the right double quote",
-          ui = { category = "Editor", label = "Double quote right", order = 3 },
+          ui = { category = "Smart Quotes", label = "Double quote right", order = 3 },
         }
       },
       additionalProperties = false
@@ -153,13 +178,13 @@ config.define("smartQuotes", {
           type = "string",
           default = "‘",
           description = "Character for the left single quote",
-          ui = { category = "Editor", label = "Single quote left", order = 4 },
+          ui = { category = "Smart Quotes", label = "Single quote left", order = 4 },
         },
         right = {
           type = "string",
           default = "’",
           description = "Character for the right single quote",
-          ui = { category = "Editor", label = "Single quote right", order = 5 },
+          ui = { category = "Smart Quotes", label = "Single quote right", order = 5 },
         }
       },
       additionalProperties = false

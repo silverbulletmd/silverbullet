@@ -2,7 +2,7 @@ LDFLAGS = -X main.buildTime=$$(date -u +%Y-%m-%dT%H:%M:%SZ)
 CLI_VERSION = $$(sed -n 's/.*"\([^"]*\)".*/\1/p' public_version.ts)
 CLI_LDFLAGS = -X main.version=$(CLI_VERSION)
 
-.PHONY: build build-for-docker docker build-server-releases build-cli-releases clean check fmt test test-integration test-e2e bench generate website
+.PHONY: build build-for-docker docker build-server-releases build-cli-releases clean check fmt test test-integration test-e2e bench generate website vendor-lit-html
 
 build:
 	# Build client
@@ -86,3 +86,19 @@ generate:
 
 website: build
 	SB_INDEX_PAGE=SilverBullet ./silverbullet -p 3001 website
+
+# Re-bundle the vendored lit-html IIFE used by the configuration-manager plug.
+vendor-lit-html:
+	@TMPDIR=$$(mktemp -d) && \
+		cd $$TMPDIR && \
+		printf '%s\n' \
+			"export { html, render, nothing, svg } from 'lit-html';" \
+			"export { repeat } from 'lit-html/directives/repeat.js';" \
+			"export { when } from 'lit-html/directives/when.js';" \
+			"export { classMap } from 'lit-html/directives/class-map.js';" \
+			"export { ref, createRef } from 'lit-html/directives/ref.js';" \
+			> lit-entry.js && \
+		npm install --silent --no-save --no-package-lock lit-html@latest esbuild@latest && \
+		./node_modules/.bin/esbuild lit-entry.js --bundle --format=iife --global-name=lit --minify \
+			--outfile=$(CURDIR)/plugs/configuration-manager/assets/vendor/lit-html.js && \
+		rm -rf $$TMPDIR

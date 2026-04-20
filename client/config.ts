@@ -64,11 +64,24 @@ function isValidJsonSchema(schema: any): { valid: boolean; error?: string } {
 /**
  * Configuration management (config.* APIs) for the client
  */
+export type CategoryDefinition = {
+  name: string;
+  description?: string;
+  order?: number;
+};
+
 export class Config {
   public schemas: Record<string, any> = {
     type: "object",
     properties: {},
   };
+
+  /**
+   * Registered UI categories for the configuration manager. Categories appear
+   * in the UI in ascending `order`; categories referenced by a schema's
+   * `ui.category` but never registered fall to the bottom in alphabetical order.
+   */
+  public categories: Record<string, CategoryDefinition> = {};
 
   constructor(public values: Record<string, any> = {}) {}
 
@@ -78,6 +91,19 @@ export class Config {
       properties: {},
     };
     this.values = {};
+    this.categories = {};
+  }
+
+  /**
+   * Defines (or updates) a UI category for the configuration manager. The
+   * category's `name` is the same string used in a schema field's
+   * `ui.category`.
+   */
+  defineCategory(definition: CategoryDefinition): void {
+    if (typeof definition?.name !== "string" || !definition.name) {
+      throw new Error("defineCategory requires a non-empty name");
+    }
+    this.categories[definition.name] = { ...definition };
   }
 
   /**

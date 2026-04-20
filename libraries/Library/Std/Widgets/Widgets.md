@@ -105,6 +105,12 @@ end
 -- priority: 10
 widgets = widgets or {}
 
+config.defineCategory {
+  name = "Widgets",
+  description = "Enable and configure built-in widgets (table of contents, linked mentions, etc.)",
+  order = 15,
+}
+
 -- configuration schema
 config.define("std.widgets.toc", {
   type = "object",
@@ -118,7 +124,7 @@ config.define("std.widgets.toc", {
     minHeaders = {
       type = "number",
       default = 3,
-      description = "Minimum number of headers required to show the TOC",
+      description = "Minimum number of headers required before rendering a table of contents at all.",
       ui = { category = "Widgets", label = "Minimum headers for TOC", order = 2 },
     },
   }
