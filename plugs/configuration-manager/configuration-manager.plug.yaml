@@ -1,0 +1,27 @@
+name: configuration-manager
+build:
+  - in: ./ui/index.tsx
+    out: ./assets/configuration.js
+  - type: sass
+    in: ./ui/configuration.scss
+    out: ./assets/configuration.css
+  - type: copy
+    in: ./template/CONFIG.md
+    out: ./assets/CONFIG.md
+assets:
+  - "assets/**"
+functions:
+  openConfiguration:
+    path: ./configuration.ts:openConfiguration
+    command:
+      name: "Configuration: Open"
+      key: "Ctrl-,"
+      mac: "Cmd-,"
+      requireMode: rw
+  openShortcuts:
+    path: ./configuration.ts:openShortcuts
+    command:
+      name: "Configuration: Keyboard Shortcuts"
+      requireMode: rw
+  saveConfiguration:
+    path: ./configuration.ts:saveConfiguration
