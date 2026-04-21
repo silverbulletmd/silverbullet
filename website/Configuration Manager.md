@@ -13,7 +13,6 @@ Lists every [[Command]] in the system and lets you rebind its shortcut. Features
 
 * A **chord recorder**: click the record button, then press the key combination you want — including multi-stroke chords like `Ctrl-q q`.
 * Multiple **alternate bindings** per command.
-* Works together with the [[#510]] rework that made almost all built-in editor shortcuts rebindable.
 
 ## Libraries
 Manages installed [[Library|Libraries]].
