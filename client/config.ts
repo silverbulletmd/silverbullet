@@ -1,4 +1,5 @@
 import { type OutputUnit, Validator, format } from "@cfworker/json-schema";
+import { stripFunctions } from "./plugos/util.ts";
 
 // Register custom formats (shared with jsonschema.ts)
 format.email = (data: string) => data.includes("@");
@@ -61,32 +62,26 @@ function isValidJsonSchema(schema: any): { valid: boolean; error?: string } {
 }
 
 /**
- * Deep-clone a value, replacing any functions with null.
- * JSON schema can't validate functions, so we strip them before validation.
- */
-function stripFunctions(value: any): any {
-  if (typeof value === "function") return null;
-  if (value === null || value === undefined || typeof value !== "object") {
-    return value;
-  }
-  if (Array.isArray(value)) {
-    return value.map(stripFunctions);
-  }
-  const result: Record<string, any> = {};
-  for (const key of Object.keys(value)) {
-    result[key] = stripFunctions(value[key]);
-  }
-  return result;
-}
-
-/**
  * Configuration management (config.* APIs) for the client
  */
+export type CategoryDefinition = {
+  name: string;
+  description?: string;
+  order?: number;
+};
+
 export class Config {
   public schemas: Record<string, any> = {
     type: "object",
     properties: {},
   };
+
+  /**
+   * Registered UI categories for the configuration manager. Categories appear
+   * in the UI in ascending `order`; categories referenced by a schema's
+   * `ui.category` but never registered fall to the bottom in alphabetical order.
+   */
+  public categories: Record<string, CategoryDefinition> = {};
 
   constructor(public values: Record<string, any> = {}) {}
 
@@ -96,6 +91,19 @@ export class Config {
       properties: {},
     };
     this.values = {};
+    this.categories = {};
+  }
+
+  /**
+   * Defines (or updates) a UI category for the configuration manager. The
+   * category's `name` is the same string used in a schema field's
+   * `ui.category`.
+   */
+  defineCategory(definition: CategoryDefinition): void {
+    if (typeof definition?.name !== "string" || !definition.name) {
+      throw new Error("defineCategory requires a non-empty name");
+    }
+    this.categories[definition.name] = { ...definition };
   }
 
   /**
@@ -130,6 +138,26 @@ export class Config {
     // Store the schema at the final key
     const finalKey = key[key.length - 1];
     current.properties[finalKey] = schema;
+
+    // Apply default values from schema for any properties not currently set
+    this.applySchemaDefaults(key, schema);
+  }
+
+  /**
+   * Recursively applies default values from a schema definition.
+   * Only sets a value if none exists at that path.
+   */
+  private applySchemaDefaults(path: string[], schema: any): void {
+    if ("default" in schema) {
+      if (!this.has(path)) {
+        this.set(path, structuredClone(schema.default));
+      }
+    }
+    if (schema.properties) {
+      for (const [propKey, propSchema] of Object.entries(schema.properties)) {
+        this.applySchemaDefaults([...path, propKey], propSchema as any);
+      }
+    }
   }
 
   /**
