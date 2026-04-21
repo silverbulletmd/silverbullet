@@ -2,7 +2,7 @@ import { FilterList } from "./filter.tsx";
 import { Terminal } from "preact-feather";
 import type { Command } from "../types/command.ts";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
-import { isMacLike } from "../codemirror/editor_state.ts";
+import { isMacLike, prettifyShortcut } from "../../plug-api/lib/shortcut.ts";
 
 export function CommandPalette({
   commands,
@@ -45,18 +45,6 @@ export function CommandPalette({
       }}
     />
   );
-}
-
-function prettifyShortcut(shortcut: string): string {
-  if (!isMacLike) return shortcut;
-  const pretty = shortcut
-    .replace(/Mod-/g, "⌘")
-    .replace(/Cmd-/g, "⌘")
-    .replace(/Ctrl-/g, "⌃")
-    .replace(/Alt-/g, "⌥")
-    .replace(/Shift-/g, "⇧");
-  // Capitalize the final key character (e.g. ⌘b → ⌘B)
-  return pretty.replace(/([⌘⌃⌥⇧])([a-z])$/, (_, mod, key) => mod + key.toUpperCase());
 }
 
 export function keyboardHint(def: { key?: string | string[]; mac?: string | string[] }): string | undefined {
