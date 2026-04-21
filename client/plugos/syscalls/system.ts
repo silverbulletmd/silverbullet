@@ -82,6 +82,14 @@ export function systemSyscalls(
       }
       return client.loadPlugs();
     },
+    "system.loadPlug": async (_ctx, path: string) => {
+      const meta = await client.space.spacePrimitives.getFileMeta(path);
+      await client.clientSystem.loadPlugFromPath(path, meta.lastModified);
+      await client.dispatchAppEvent("plugs:loaded");
+    },
+    "system.unloadPlug": (_ctx, path: string) => {
+      return client.clientSystem.system.unloadByPath(path);
+    },
     "system.reloadConfig": (): Record<string, any> => {
       console.warn("system.reloadConfig is deprecated, it's now a no-op");
       return client.config.values;

@@ -2,8 +2,9 @@ import type { Manifest } from "../types.ts";
 import type { ControllerMessage, WorkerMessage } from "../protocol.ts";
 import type { Plug } from "../plug.ts";
 import { AssetBundle, type AssetJson } from "../../asset_bundle/bundle.ts";
-import type { Sandbox } from "./sandbox.ts";
+import type { Sandbox, SandboxFactory } from "./sandbox.ts";
 import { race, timeout } from "@silverbulletmd/silverbullet/lib/async";
+import { fsEndpoint } from "../../spaces/constants.ts";
 
 /**
  * Represents a "safe" execution environment for plug code
@@ -23,6 +24,15 @@ export class WorkerSandbox<HookT> implements Sandbox<HookT> {
     public workerUrl: URL,
     private workerOptions = {},
   ) {}
+
+  /** Factory producing a WorkerSandbox for a plug file at a local space path. */
+  static forPath<HookT>(path: string): SandboxFactory<HookT> {
+    return (plug) =>
+      new WorkerSandbox(
+        plug,
+        new URL(path, `${document.baseURI.slice(0, -1) + fsEndpoint}/`),
+      );
+  }
 
   /**
    * Should only invoked lazily (either by invoke, or by a ManifestCache to load the manifest)

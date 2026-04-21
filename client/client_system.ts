@@ -1,7 +1,7 @@
 import { PlugNamespaceHook } from "./plugos/hooks/plug_namespace.ts";
 import type { SilverBulletHooks } from "@silverbulletmd/silverbullet/type/manifest";
 import type { EventHook } from "./plugos/hooks/event.ts";
-import { createWorkerSandboxFromLocalPath } from "./plugos/sandboxes/web_worker_sandbox.ts";
+import { WorkerSandbox } from "./plugos/sandboxes/worker_sandbox.ts";
 
 import assetSyscalls from "./plugos/syscalls/asset.ts";
 import { System } from "./plugos/system.ts";
@@ -222,6 +222,14 @@ export class ClientSystem {
     this.scriptsLoaded = true;
   }
 
+  async loadPlugFromPath(path: string, lastModified: number) {
+    await this.system.loadPlug(
+      WorkerSandbox.forPath(path),
+      path,
+      lastModified,
+    );
+  }
+
   async reloadPlugsFromSpace(space: Space) {
     console.log("(Re)loading plugs");
     await this.system.unloadAll();
@@ -237,17 +245,12 @@ export class ClientSystem {
 
     await Promise.all(
       allPlugs.map((fileMeta) =>
-        this.system
-          .loadPlug(
-            createWorkerSandboxFromLocalPath(fileMeta.name),
-            fileMeta.name,
-            fileMeta.lastModified,
-          )
-          .catch((e) =>
+        this.loadPlugFromPath(fileMeta.name, fileMeta.lastModified).catch(
+          (e) =>
             console.error(
               `Could not load plug ${fileMeta.name} error: ${e.message}`,
             ),
-          ),
+        ),
       ),
     );
   }

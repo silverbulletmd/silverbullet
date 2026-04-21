@@ -11,6 +11,8 @@ export class Plug<HookT> {
 
   public manifest!: Manifest<HookT>;
   public assets?: AssetBundle;
+  // File path the plug was loaded from; also used as the manifest cache key.
+  public path!: string;
 
   constructor(
     readonly system: System<HookT>,
@@ -22,16 +24,17 @@ export class Plug<HookT> {
 
   static async createLazily<HookT>(
     system: System<HookT>,
-    cacheKey: string,
+    path: string,
     cacheHash: number,
     sandboxFactory: SandboxFactory<HookT>,
   ): Promise<Plug<HookT>> {
     const plug = new Plug(system, sandboxFactory);
+    plug.path = path;
 
     // Retrieve the manifest, which may either come from a cache or be loaded from the worker
     plug.manifest = await system.options.manifestCache!.getManifest(
       plug,
-      cacheKey,
+      path,
       cacheHash,
     );
 

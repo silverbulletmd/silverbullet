@@ -52,6 +52,21 @@ export function reloadPlugs(): Promise<void> {
 }
 
 /**
+ * Load (or reload) a single plug from a space file path.
+ */
+export function loadPlug(path: string): Promise<void> {
+  return syscall("system.loadPlug", path);
+}
+
+/**
+ * Unload a plug previously loaded from the given space file path.
+ * Returns true if a plug was unloaded.
+ */
+export function unloadPlug(path: string): Promise<boolean> {
+  return syscall("system.unloadPlug", path);
+}
+
+/**
  * Returns the current mode of the system, either "ro" (read-only) or "rw" (read-write)
  */
 export function getMode(): Promise<"ro" | "rw"> {

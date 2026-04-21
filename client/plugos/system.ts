@@ -133,26 +133,20 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
   }
 
   /**
-   * @param cacheKey Used to cache the manifest of the worker. Should be equal to the filepath
+   * @param path The plug file's space path; also used as the manifest cache key.
    * @param cacheHash Used to determine if the manifest is up to date. Should be `lastModified`
    */
   async loadPlug(
     sandboxFactory: SandboxFactory<HookT>,
-    cacheKey: string,
+    path: string,
     cacheHash: number = -1,
   ): Promise<Plug<HookT>> {
-    const plug = await Plug.createLazily(
-      this,
-      cacheKey,
-      cacheHash,
-      sandboxFactory,
-    );
+    const plug = await Plug.createLazily(this, path, cacheHash, sandboxFactory);
 
     const manifest = plug.manifest;
 
-    // This depends on cacheKey being the file path
     if (
-      !builtinPlugPaths.includes(cacheKey) &&
+      !builtinPlugPaths.includes(path) &&
       builtinPlugNames.includes(manifest.name)
     ) {
       plug.stop();
@@ -175,6 +169,16 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
 
     await this.emit("plugLoaded", plug);
     return plug;
+  }
+
+  unloadByPath(path: string): boolean {
+    for (const [name, plug] of this.plugs) {
+      if (plug.path === path) {
+        this.unload(name);
+        return true;
+      }
+    }
+    return false;
   }
 
   unload(name: string) {
