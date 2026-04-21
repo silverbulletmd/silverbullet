@@ -1,4 +1,5 @@
-import { editor } from "@silverbulletmd/silverbullet/syscalls";
+import { editor, markdown } from "@silverbulletmd/silverbullet/syscalls";
+import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
 import {
   indent as indentOp,
   moveDown as moveDownOp,
@@ -9,13 +10,15 @@ import {
 async function applyOutlineOp(
   op: (
     text: string,
+    tree: ParseTree,
     cursor: number,
   ) => { text: string; cursor: number } | "blocked" | null,
   fallback?: () => void,
 ) {
   const cursorPos = await editor.getCursor();
   const text = await editor.getText();
-  const result = op(text, cursorPos);
+  const tree = await markdown.parseMarkdown(text);
+  const result = op(text, tree, cursorPos);
   if (result === "blocked") {
     await editor.flashNotification("Cannot move item further", "error");
     return;

@@ -13,12 +13,17 @@ import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
 const CURSOR = "|^|";
 
 function applyOp(
-  op: (text: string, cursor: number) => OutlineResult,
+  op: (
+    text: string,
+    tree: ReturnType<typeof parseMarkdown>,
+    cursor: number,
+  ) => OutlineResult,
   input: string,
 ): string {
   const pos = input.indexOf(CURSOR);
   const clean = input.slice(0, pos) + input.slice(pos + CURSOR.length);
-  const result = op(clean, pos);
+  const tree = parseMarkdown(clean);
+  const result = op(clean, tree, pos);
   if (result === null || result === "blocked") {
     return input; // no-op returns unchanged
   }
@@ -394,11 +399,11 @@ Body 1b
 ## Second
 Body 2a
 `;
-    const after = moveDown(original, 4);
+    const after = moveDown(original, parseMarkdown(original), 4);
     if (after === null || after === "blocked") {
       throw new Error(`moveDown returned ${after}`);
     }
-    const back = moveUp(after.text, after.cursor);
+    const back = moveUp(after.text, parseMarkdown(after.text), after.cursor);
     if (back === null || back === "blocked") {
       throw new Error(`moveUp returned ${back}`);
     }

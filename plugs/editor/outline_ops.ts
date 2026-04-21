@@ -1,4 +1,3 @@
-import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
 import {
   addParentPointers,
   findParentMatching,
@@ -228,10 +227,10 @@ function renumberOrderedList(
  */
 function move(
   text: string,
+  tree: ParseTree,
   cursor: number,
   direction: "up" | "down",
 ): OutlineResult {
-  const tree = parseMarkdown(text);
   const ctx = detectContext(tree, cursor);
   if (!ctx) {
     return null;
@@ -248,10 +247,10 @@ function move(
   }
 }
 
-export const moveUp = (text: string, cursor: number) =>
-  move(text, cursor, "up");
-export const moveDown = (text: string, cursor: number) =>
-  move(text, cursor, "down");
+export const moveUp = (text: string, tree: ParseTree, cursor: number) =>
+  move(text, tree, cursor, "up");
+export const moveDown = (text: string, tree: ParseTree, cursor: number) =>
+  move(text, tree, cursor, "down");
 
 /**
  * Indents or outdents the outline element at cursor, dispatching to the
@@ -259,10 +258,10 @@ export const moveDown = (text: string, cursor: number) =>
  */
 function adjustLevel(
   text: string,
+  tree: ParseTree,
   cursor: number,
   delta: 1 | -1,
 ): OutlineResult {
-  const tree = parseMarkdown(text);
   const ctx = detectContext(tree, cursor);
   if (!ctx) {
     return null;
@@ -282,10 +281,10 @@ function adjustLevel(
   }
 }
 
-export const indent = (text: string, cursor: number) =>
-  adjustLevel(text, cursor, 1);
-export const outdent = (text: string, cursor: number) =>
-  adjustLevel(text, cursor, -1);
+export const indent = (text: string, tree: ParseTree, cursor: number) =>
+  adjustLevel(text, tree, cursor, 1);
+export const outdent = (text: string, tree: ParseTree, cursor: number) =>
+  adjustLevel(text, tree, cursor, -1);
 
 /**
  * Swaps a list item with its adjacent sibling, renumbering if in an ordered
