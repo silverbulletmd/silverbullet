@@ -1,11 +1,19 @@
 import * as path from "node:path";
-import { readFile, writeFile, mkdtemp, rm, mkdir } from "node:fs/promises";
+import {
+  copyFile,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import * as YAML from "js-yaml";
 
 import * as esbuild from "esbuild";
+import * as sass from "sass";
 import { bundleAssets } from "../asset_bundle/builder.ts";
-import type { Manifest } from "./types.ts";
+import type { BuildStep, Manifest } from "./types.ts";
 
 // When bundled by build_plug_compile.ts, this is replaced with the pre-bundled
 // worker runtime JS. When running from source, it's undefined and esbuild
@@ -51,6 +59,15 @@ export async function compileManifest(
 
   if (!manifest.name) {
     throw new Error(`Missing 'name' in ${manifestPath}`);
+  }
+
+  // Build steps (run before asset bundling so produced files can be picked
+  // up by the `assets` glob).
+  if (manifest.build) {
+    await Promise.all(
+      manifest.build.map((step) => runBuildStep(step, rootPath, options)),
+    );
+    delete manifest.build;
   }
 
   // Assets
@@ -175,6 +192,39 @@ export async function compileManifests(
   }
 
   await buildAll();
+}
+
+async function runBuildStep(
+  step: BuildStep,
+  rootPath: string,
+  options: CompileOptions,
+) {
+  const type = step.type ?? "esbuild";
+  const inFile = path.resolve(rootPath, step.in);
+  const outFile = path.resolve(rootPath, step.out);
+  await mkdir(path.dirname(outFile), { recursive: true });
+  if (type === "esbuild") {
+    await esbuild.build({
+      entryPoints: [inFile],
+      bundle: true,
+      format: "iife",
+      platform: "browser",
+      minify: !options.debug,
+      outfile: outFile,
+      treeShaking: true,
+    });
+  } else if (type === "sass") {
+    const scss = await readFile(inFile, "utf-8");
+    const result = sass.compileString(scss, {
+      loadPaths: [path.dirname(inFile)],
+      style: options.debug ? "expanded" : "compressed",
+    });
+    await writeFile(outFile, result.css, "utf-8");
+  } else if (type === "copy") {
+    await copyFile(inFile, outFile);
+  } else {
+    throw new Error(`Unsupported build step type: ${type}`);
+  }
 }
 
 export function patchBundledJS(code: string): string {

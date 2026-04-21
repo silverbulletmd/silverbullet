@@ -48,6 +48,8 @@ clean:
 	rm -rf  client_bundle/{base_fs,client} dist public_version.ts
 	rm -f silverbullet silverbullet-arm64 silverbullet-amd64 silverbullet-arm silverbullet.exe silverbullet-server-*.zip
 	rm -f silverbullet-cli silverbullet-cli.exe silverbullet-cli-*.zip
+	# Plug build outputs (see each plug's .plug.yaml `build:` section)
+	rm -rf plugs/configuration-manager/assets
 
 check:
 	# Frontend type check
@@ -86,3 +88,4 @@ generate:
 
 website: build
 	SB_INDEX_PAGE=SilverBullet ./silverbullet -p 3001 website
+

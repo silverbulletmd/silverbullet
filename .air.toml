@@ -8,7 +8,9 @@ tmp_dir = "tmp"
   # delay = 10000
   exclude_dir = ["node_modules", "website", "scripts", "client_bundle", "dist"]
   exclude_file = ["public_version.ts"]
-  exclude_regex = ["_test.go", ".test.ts"]
+  # Per-plug `assets/` folders are build outputs (see each plug's .plug.yaml
+  # `build:` section); watching them would cause a rebuild loop.
+  exclude_regex = ["_test.go", ".test.ts", "plugs/[^/]+/assets/"]
   exclude_unchanged = false
   follow_symlink = false
   full_bin = ""

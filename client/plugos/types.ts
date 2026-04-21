@@ -34,6 +34,31 @@ export interface Manifest<HookT> {
    * A map of configuration options for the plug (to be merged with the system configuration).
    */
   config?: any;
+
+  /** Build steps run before asset bundling. Each step transforms an `in` file
+   * into an `out` file, which is then picked up by the `assets` glob.
+   *
+   * Currently only `type: "esbuild"` is supported (the default when omitted),
+   * which runs esbuild in bundle mode on `in` and writes the result to `out`.
+   */
+  build?: BuildStep[];
+}
+
+/** A pre-asset-bundling transformation, e.g. bundling a TypeScript entry point
+ * into a single JS file that is then loaded from plug assets.
+ *
+ * Supported types:
+ *   - `esbuild` (default): bundle `in` into `out` as a minified browser IIFE.
+ *   - `sass`: compile an SCSS/SASS file at `in` to CSS at `out`.
+ *   - `copy`: copy `in` verbatim to `out`.
+ */
+export interface BuildStep {
+  /** Transformation type. Defaults to "esbuild" when omitted. */
+  type?: "esbuild" | "sass" | "copy";
+  /** Input path relative to the manifest. */
+  in: string;
+  /** Output path relative to the manifest. */
+  out: string;
 }
 
 /** Associates hooks with a function. This is the generic base structure, that identifies the function. Hooks are defined by the type parameter. */
