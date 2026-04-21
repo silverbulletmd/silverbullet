@@ -269,6 +269,13 @@ export function hidePanel(id: "lhs" | "rhs" | "bhs" | "modal"): Promise<void> {
   return syscall("editor.hidePanel", id);
 }
 
+/**
+ * Returns focus to the main editor.
+ */
+export function focus(): Promise<void> {
+  return syscall("editor.focus");
+}
+
 export function showProgress(
   progressPercentage?: number,
   progressType?: string,

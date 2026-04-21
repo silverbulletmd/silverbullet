@@ -368,6 +368,9 @@ export function editorSyscalls(client: Client): SysCallMapping {
         client.editorView.dispatch({});
       });
     },
+    "editor.focus": () => {
+      client.focus();
+    },
     "editor.hidePanel": (_ctx, id: string) => {
       client.ui.viewDispatch({
         type: "hide-panel",
