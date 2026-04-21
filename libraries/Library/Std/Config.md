@@ -18,12 +18,43 @@ This defines the [JSON schema](https://json-schema.org/) for built-in configurat
 ```space-lua
 -- priority: 100
 
+-- UI categories for the configuration manager, listed in display order.
+config.defineCategory {
+  name = "Editor",
+  description = "Behavior of the page editor: brackets, wiki link rendering, emoji aliases, and similar editing affordances.",
+  order = 10,
+}
+config.defineCategory {
+  name = "Smart Quotes",
+  description = "Replace straight quotes with typographic ones as you type, and pick which characters are used.",
+  order = 20,
+}
+config.defineCategory {
+  name = "Sync",
+  description = "Control how this client synchronizes pages and documents with the server.",
+  order = 30,
+}
+config.defineCategory {
+  name = "Indexing",
+  description = "Choose which kinds of content (paragraphs, items, tasks) are indexed for queries.",
+  order = 40,
+}
+config.defineCategory {
+  name = "Query",
+  description = "Configure how queries collate and compare strings, including locale-aware sorting.",
+  order = 50,
+}
+
 config.define("sync", {
   description = "Configure sync",
   type = "object",
   properties = {
-    -- Defaults to false
-    documents = schema.boolean(),
+    documents = {
+      type = "boolean",
+      default = false,
+      description = "Sync document files (non-markdown) to the server",
+      ui = { category = "Sync", label = "Sync documents", order = 1 },
+    },
     -- In .gitignore format, either in a single string, or as a list of strings
     ignore = {
       oneOf = {
@@ -42,22 +73,34 @@ config.define("index", {
     paragraph = {
       type = "object",
       properties = {
-        -- Index paragraphs without a hashtag
-        all = schema.boolean(),
+        all = {
+          type = "boolean",
+          default = false,
+          description = "Index paragraphs without a hashtag",
+          ui = { category = "Indexing", label = "Index all paragraphs", order = 1 },
+        },
       },
     },
     item = {
       type = "object",
       properties = {
-        -- Index items without a hashtag
-        all = schema.boolean(),
+        all = {
+          type = "boolean",
+          default = true,
+          description = "Index items without a hashtag",
+          ui = { category = "Indexing", label = "Index all items", order = 2 },
+        },
       },
     },
     task = {
       type = "object",
       properties = {
-        -- Index tasks without a hashtag
-        all = schema.boolean(),
+        all = {
+          type = "boolean",
+          default = true,
+          description = "Index tasks without a hashtag",
+          ui = { category = "Indexing", label = "Index all tasks", order = 3 },
+        },
       },
     },
   },
@@ -77,13 +120,16 @@ config.define("plugs", {
 
 -- Editor configuration options
 config.define("autoCloseBrackets", {
-  description = "List of brackets to auto close",
+  description = "List of opening bracket characters to auto-close",
   type = "string",
+  default = "([{",
 })
 
 config.define("shortWikiLinks", {
   description = "Render wiki links to just the last segment, e.g. Person/John becomes John",
-  type = "boolean"
+  type = "boolean",
+  default = true,
+  ui = { category = "Editor", label = "Short wiki links", order = 1 },
 })
 
 config.define("emoji", {
@@ -103,18 +149,24 @@ config.define("smartQuotes", {
   properties = {
     enabled = {
       type = "boolean",
-      description = "Indicates whether smart quotes are enabled"
+      description = "Indicates whether smart quotes are enabled",
+      ui = { category = "Smart Quotes", label = "Enable smart quotes", order = 1 },
+      default = true,
     },
     double = {
       type = "object",
       properties = {
         left = {
           type = "string",
-          description = "Character for the left double quote"
+          default = "“",
+          description = "Character for the left double quote",
+          ui = { category = "Smart Quotes", label = "Double quote left", order = 2 },
         },
         right = {
           type = "string",
-          description = "Character for the right double quote"
+          default = "”",
+          description = "Character for the right double quote",
+          ui = { category = "Smart Quotes", label = "Double quote right", order = 3 },
         }
       },
       additionalProperties = false
@@ -124,11 +176,15 @@ config.define("smartQuotes", {
       properties = {
         left = {
           type = "string",
-          description = "Character for the left single quote"
+          default = "‘",
+          description = "Character for the left single quote",
+          ui = { category = "Smart Quotes", label = "Single quote left", order = 4 },
         },
         right = {
           type = "string",
-          description = "Character for the right single quote"
+          default = "’",
+          description = "Character for the right single quote",
+          ui = { category = "Smart Quotes", label = "Single quote right", order = 5 },
         }
       },
       additionalProperties = false
@@ -221,14 +277,18 @@ config.define("vim", {
 config.define("queryCollation", {
   description = "Configure string ordering in queries",
   type = "object",
+  ui = { category = "Query", label = "Query collation", order = 1 },
   properties = {
     enabled = {
       type = "boolean",
-      description = "Indicates whether string collation should be used instead of simple codepoint ordering"
+      default = false,
+      description = "Indicates whether string collation should be used instead of simple codepoint ordering",
+      ui = { category = "Query", label = "Enable collation", order = 1 },
     },
     locale = {
       type = "string",
-      description = "Language tag to specify sorting rules (from BCP 47)"
+      description = "Language tag to specify sorting rules (from BCP 47)",
+      ui = { category = "Query", label = "Locale", order = 2 },
     },
     options = {
       type = "object",
@@ -315,6 +375,7 @@ config.define("mqSubscriptions", {
 -- Task states
 config.define("taskStates", {
   type = "object",
+  default = {},
   additionalProperties = {
     type = "object",
     properties = {
@@ -387,57 +448,48 @@ config.define("actionButtons", {
 ```
 
 # Default values
-Default values for built-in configuration options.
+Default values that cannot be expressed as schema defaults (e.g. because they contain functions).
 
 ```space-lua
 -- priority: 99
-config.set {
-  index = {
-    paragraph = { all = false },
-    item = { all = true },
-    task = { all = true },
+config.set("actionButtons", {
+  {
+    icon = "home",
+    description = "Go to the index page",
+    command = "Navigate: Home",
+    priority = 3,
+    dropdown = false,
   },
-  taskStates = {},
-  shortWikiLinks = true,
-  actionButtons = {
-    {
-      icon = "home",
-      description = "Go to the index page",
-      command = "Navigate: Home",
-      priority = 3,
-      dropdown = false,
-    },
-    {
-      icon = "book",
-      description = "Open page",
-      command = "Navigate: Page Picker",
-      priority = 2,
-      dropdown = false,
-    },
-    {
-      icon = "terminal",
-      description = "Run command",
-      command = "Open Command Palette",
-      priority = 1,
-    },
-    {
-      icon = "chevron-left",
-      description = "Go back",
-      standalone = true,
-      priority = 0,
-      run = function()
-        editor.goHistory(-1)
-      end,
-    },
-    {
-      icon = "chevron-right",
-      description = "Go forward",
-      standalone = true,
-      priority = -1,
-      run = function()
-        editor.goHistory(1)
-      end,
-    }
+  {
+    icon = "book",
+    description = "Open page",
+    command = "Navigate: Page Picker",
+    priority = 2,
+    dropdown = false,
   },
-}
+  {
+    icon = "terminal",
+    description = "Run command",
+    command = "Open Command Palette",
+    priority = 1,
+  },
+  {
+    icon = "chevron-left",
+    description = "Go back",
+    standalone = true,
+    priority = 0,
+    run = function()
+      editor.goHistory(-1)
+    end,
+  },
+  {
+    icon = "chevron-right",
+    description = "Go forward",
+    standalone = true,
+    priority = -1,
+    run = function()
+      editor.goHistory(1)
+    end,
+  }
+})
 ```
