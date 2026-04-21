@@ -237,6 +237,11 @@ functions:
     command:
       name: "Client: Reload UI"
 
+  reloadPlugsCommand:
+    path: ./system.ts:reloadPlugsCommand
+    command:
+      name: "Plugs: Reload"
+
   wipeClientCommand:
     path: ./system.ts:wipeClientCommand
     command:

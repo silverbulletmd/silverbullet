@@ -33,3 +33,7 @@ export async function wipeAndLogoutCommand() {
 export async function reloadUICommand() {
   await editor.reloadUI();
 }
+
+export async function reloadPlugsCommand() {
+  await system.reloadPlugs();
+}
