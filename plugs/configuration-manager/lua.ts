@@ -143,7 +143,7 @@ export function parseManagedBlock(blockContent: string): {
       continue;
     }
     let depth = 0;
-    let bodyStart = i + 1;
+    const bodyStart = i + 1;
     let bodyEnd = -1;
     for (; i < blockContent.length; i++) {
       const ch = blockContent[i];

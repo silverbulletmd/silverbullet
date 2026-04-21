@@ -44,6 +44,8 @@
       "!**/vendor",
       "!**/website_build",
       "!**/*.html",
+      "!**/*.plug.js",
+      "!plugs/*/assets",
       "!public_version.ts"
     ]
   }

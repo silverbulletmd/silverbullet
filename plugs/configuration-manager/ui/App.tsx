@@ -17,7 +17,7 @@ const TABS: { id: TabId; label: string }[] = [
 ];
 
 function close() {
-  editor.hidePanel("modal");
+  void editor.hidePanel("modal");
 }
 
 async function openConfigPage() {
@@ -60,7 +60,7 @@ function Footer(
         id="cfg-edit-config"
         onClick={(e) => {
           e.preventDefault();
-          openConfigPage();
+          void openConfigPage();
         }}
       >
         Changes will be reflected in CONFIG.md
