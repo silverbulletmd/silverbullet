@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
-import { useCfg } from "./CfgContext.tsx";
-import { keyEventToNotation, tokenHasRealModifier } from "./keys.ts";
-import type { Conflicts } from "./keys.ts";
+import { useCfg } from "../cfg_context.tsx";
+import { keyEventToNotation, tokenHasRealModifier } from "../keys.ts";
+import type { Conflicts } from "../keys.ts";
 import { RecordingPreview } from "./chord_display.tsx";
 
 type Props = {

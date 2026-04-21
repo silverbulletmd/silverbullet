@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "preact/hooks";
-import { useCfg } from "./CfgContext.tsx";
-import { useConfig } from "./EditorsContext.tsx";
+import { RotateCcw } from "preact-feather";
+import { useCfg } from "../cfg_context.tsx";
+import { useConfig } from "../editors_context.tsx";
 import { cls } from "./chord_display.tsx";
-import type { UiSchema } from "./schema.ts";
+import type { UiSchema } from "../schema.ts";
 
 function Control(
   { path, schema, value }: { path: string; schema: any; value: any },
@@ -77,6 +78,7 @@ function Field(
           title="Reset to default"
           onClick={() => config.resetField(path)}
         >
+          <RotateCcw size={12} />
           Reset
         </button>
       </div>

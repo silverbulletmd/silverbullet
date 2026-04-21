@@ -14,22 +14,17 @@ import {
   MANAGED_MARKER,
   replaceManagedBlock,
 } from "./config_block.ts";
+import { listLibraries } from "./libraries.ts";
+import type { LibrariesFocus, TabId } from "./ui/types.ts";
 
 const CONFIG_PAGE = "CONFIG";
 const PLUG_NAME = "configuration-manager";
 
-// Seeded on first save when CONFIG doesn't yet exist. The managed fence is
-// pre-placed so replaceManagedBlock updates it in-situ rather than appending.
 async function readDefaultConfigTemplate(): Promise<string> {
-  const template = await asset.readAsset(
-    PLUG_NAME,
-    "assets/CONFIG.md",
-  );
+  const template = await asset.readAsset(PLUG_NAME, "assets/CONFIG.md");
   return template.replaceAll("{{MANAGED_MARKER}}", MANAGED_MARKER);
 }
 
-// space.readPage rejects with "Not found" when the page doesn't exist yet;
-// treat that as an empty page rather than bubbling the error up to the user.
 async function readConfigPage(): Promise<string> {
   try {
     return await space.readPage(CONFIG_PAGE);
@@ -46,19 +41,38 @@ export async function openShortcuts() {
   await openPanel("shortcuts");
 }
 
-// Command hook invokes function with the command def as the first argument, so
-// command-entry functions can't rely on parameter defaults. The tab argument
-// is passed here by those wrappers instead.
-async function openPanel(initialTab: "configuration" | "shortcuts") {
-  const [schemas, values, categories, commands, configText] = await Promise.all(
-    [
+export async function openLibraries() {
+  await openPanel("libraries");
+}
+
+// Legacy slash-command aliases — each opens the Libraries tab with a specific
+// focus hint so the UI can auto-trigger the matching action/form.
+export async function openLibrariesLegacyManager() {
+  await openPanel("libraries", "manager");
+}
+export async function openLibrariesInstall() {
+  await openPanel("libraries", "install");
+}
+export async function openLibrariesAddRepo() {
+  await openPanel("libraries", "addRepository");
+}
+export async function openLibrariesUpdateAll() {
+  await openPanel("libraries", "updateAll");
+}
+export async function openLibrariesUpdateAllRepos() {
+  await openPanel("libraries", "updateAllRepositories");
+}
+
+async function openPanel(initialTab: TabId, librariesFocus?: LibrariesFocus) {
+  const [schemas, values, categories, commands, configText, libraries] =
+    await Promise.all([
       config.getSchemas(),
       config.getValues(),
       config.getCategories(),
       system.listCommands(),
       readConfigPage(),
-    ],
-  );
+      listLibraries(),
+    ]);
 
   let configOverrides: Record<string, any> = {};
   let commandOverrides: Record<string, CommandOverride> = {};
@@ -80,6 +94,8 @@ async function openPanel(initialTab: "configuration" | "shortcuts") {
     configOverrides,
     isMac,
     initialTab,
+    libraries,
+    librariesFocus,
   });
   await editor.showPanel("modal", 100, html, script);
 }

@@ -1,8 +1,9 @@
 import { useCallback, useMemo, useState } from "preact/hooks";
-import { useCfg } from "./CfgContext.tsx";
-import { useShortcuts } from "./EditorsContext.tsx";
+import { Plus, RotateCcw, X } from "preact-feather";
+import { useCfg } from "../cfg_context.tsx";
+import { useShortcuts } from "../editors_context.tsx";
 import { ChordChips, cls } from "./chord_display.tsx";
-import { RecordingChord } from "./RecordingChord.tsx";
+import { RecordingChord } from "./recording_chord.tsx";
 
 type RecordingTarget = { name: string; slot: number } | null;
 
@@ -29,7 +30,7 @@ function ShortcutCell(
             shortcuts.deleteSlot(name, slot);
           }}
         >
-          ×
+          <X size={14} />
         </button>
       )}
     </>
@@ -111,7 +112,7 @@ function ShortcutRow(
               onClick={() =>
                 setRecording({ name, slot: shortcuts.alternateSlot(name) })}
             >
-              +
+              <Plus size={14} />
             </button>
           )}
         </div>
@@ -122,6 +123,7 @@ function ShortcutRow(
           disabled={!isModified}
           onClick={() => shortcuts.reset(name)}
         >
+          <RotateCcw size={12} />
           Reset
         </button>
       </td>

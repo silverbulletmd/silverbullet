@@ -39,6 +39,14 @@ export function keyEventToNotation(
   };
 
   let keyName = keyMap[key] || key;
+  // On macOS, Option+<letter> rewrites e.key to an alternate glyph (e.g.
+  // Option+R → "®"). Fall back to e.code for letters/digits so the binding
+  // records the physical key the user pressed.
+  if (isMac && e.altKey && !keyMap[key]) {
+    const code = e.code;
+    if (/^Key[A-Z]$/.test(code)) keyName = code.slice(3);
+    else if (/^Digit[0-9]$/.test(code)) keyName = code.slice(5);
+  }
   if (keyName.length === 1) keyName = keyName.toLowerCase();
   parts.push(keyName);
   return parts.join("-");

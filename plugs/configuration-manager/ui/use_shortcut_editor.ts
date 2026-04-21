@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useReducer } from "preact/hooks";
-import { useCfg } from "./CfgContext.tsx";
+import { useCfg } from "./cfg_context.tsx";
 import {
   allActiveBindings,
   findConflicts,

@@ -111,7 +111,7 @@ describe("toLua / parseLuaLiteral round-trip (supported scalars)", () => {
 
 describe("parseManagedBlock", () => {
   test("parses config.set lines", () => {
-    const block = `-- managed-by: configuration-ui
+    const block = `-- managed-by: configuration-manager
 config.set("shortWikiLinks", false)
 config.set("smartQuotes.enabled", true)
 config.set("autoCloseBrackets", "([{")`;
@@ -177,7 +177,7 @@ command.update { name = "Other", key = "Ctrl-y" }`;
       "Other": { key: "Ctrl-y" },
     };
 
-    const lines: string[] = ["-- managed-by: configuration-ui"];
+    const lines: string[] = ["-- managed-by: configuration-manager"];
     for (const [path, value] of Object.entries(configOverrides)) {
       lines.push(`config.set(${toLua(path)}, ${toLua(value)})`);
     }

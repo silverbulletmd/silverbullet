@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { findManagedBlock, replaceManagedBlock } from "./config_block.ts";
 
-const MARKER = "-- managed-by: configuration-ui";
+const MARKER = "-- managed-by: configuration-manager";
 
 describe("findManagedBlock", () => {
   test("finds block in simple config page", () => {

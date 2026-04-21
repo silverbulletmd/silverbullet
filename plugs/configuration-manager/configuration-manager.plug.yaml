@@ -23,5 +23,39 @@ functions:
     command:
       name: "Configuration: Keyboard Shortcuts"
       requireMode: rw
+  openLibraries:
+    path: ./configuration.ts:openLibraries
+    command:
+      name: "Libraries: Manager"
+      requireMode: rw
+  openLibrariesLegacyManager:
+    path: ./configuration.ts:openLibrariesLegacyManager
+    command:
+      name: "Library: Manager"
+      requireMode: rw
+  openLibrariesInstall:
+    path: ./configuration.ts:openLibrariesInstall
+    command:
+      name: "Library: Install"
+      requireMode: rw
+  openLibrariesAddRepo:
+    path: ./configuration.ts:openLibrariesAddRepo
+    command:
+      name: "Library: Add Repository"
+      requireMode: rw
+  openLibrariesUpdateAll:
+    path: ./configuration.ts:openLibrariesUpdateAll
+    command:
+      name: "Library: Update All"
+      requireMode: rw
+  openLibrariesUpdateAllRepos:
+    path: ./configuration.ts:openLibrariesUpdateAllRepos
+    command:
+      name: "Library: Update All Repositories"
+      requireMode: rw
   saveConfiguration:
     path: ./configuration.ts:saveConfiguration
+  librariesAction:
+    path: ./libraries.ts:librariesAction
+  librariesRefresh:
+    path: ./libraries.ts:librariesRefresh

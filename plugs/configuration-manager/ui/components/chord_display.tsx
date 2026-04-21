@@ -1,6 +1,7 @@
 import { Fragment } from "preact";
 import type { ComponentChildren } from "preact";
-import type { Conflicts } from "./keys.ts";
+import type { Conflicts } from "../keys.ts";
+import { prettifyShortcut } from "../../../../plug-api/lib/shortcut.ts";
 
 export function cls(map: Record<string, boolean>): string {
   return Object.entries(map).filter(([, v]) => v).map(([k]) => k).join(" ");
@@ -12,7 +13,7 @@ export function ChordTokens({ tokens }: { tokens: string[] }) {
       {tokens.map((t, i) => (
         <Fragment key={i}>
           {i > 0 && <span class="cfg-chord-sep">then</span>}
-          <kbd class="cfg-chord-key">{t}</kbd>
+          <kbd class="cfg-chord-key">{prettifyShortcut(t)}</kbd>
         </Fragment>
       ))}
     </>

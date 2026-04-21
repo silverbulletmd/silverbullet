@@ -1,6 +1,6 @@
 import { render } from "preact";
-import { App } from "./App.tsx";
-import { CfgContext } from "./CfgContext.tsx";
+import { App } from "./components/app.tsx";
+import { CfgContext } from "./cfg_context.tsx";
 import { buildSchemaIndex } from "./schema.ts";
 import type { ConfigurationViewModel } from "./types.ts";
 

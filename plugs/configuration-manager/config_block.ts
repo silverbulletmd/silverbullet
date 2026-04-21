@@ -1,4 +1,4 @@
-export const MANAGED_MARKER = "-- managed-by: configuration-ui";
+export const MANAGED_MARKER = "-- managed-by: configuration-manager";
 
 export interface ManagedBlock {
   /** Start index of the opening ``` fence line in the full text */
