@@ -1,4 +1,5 @@
 import type { ComponentChildren, FunctionalComponent } from "preact";
+import { createPortal } from "preact/compat";
 import type { Notification } from "@silverbulletmd/silverbullet/type/client";
 import { MiniEditor } from "./mini_editor.tsx";
 
@@ -33,7 +34,7 @@ function NotificationPanel({
   onDismiss: (id: number) => void;
 }) {
   if (notifications.length === 0) return null;
-  return (
+  return createPortal(
     <div className="sb-notifications">
       {notifications.map((notification) => (
         <div
@@ -72,7 +73,8 @@ function NotificationPanel({
           )}
         </div>
       ))}
-    </div>
+    </div>,
+    document.body,
   );
 }
 
