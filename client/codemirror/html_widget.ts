@@ -62,7 +62,7 @@ class HtmlWidget extends WidgetType {
     ).then((t) => {
       dom.innerHTML = renderMarkdownToHtml(t, {
         annotationPositions: true,
-        shortWikiLinks: this.client.config.get("shortWikiLinks", false),
+        shortWikiLinks: this.client.config.get("shortWikiLinks", true),
         translateUrls: buildTranslateUrls(this.client),
       });
       setTimeout(() => {

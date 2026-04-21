@@ -254,7 +254,7 @@ export class LuaWidget extends WidgetType {
           {
             shortWikiLinks: this.opts.client.config.get(
               "shortWikiLinks",
-              false,
+              true,
             ),
             translateUrls: buildTranslateUrls(this.opts.client),
           },

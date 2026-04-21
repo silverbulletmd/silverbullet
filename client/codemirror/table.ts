@@ -65,7 +65,7 @@ class TableViewWidget extends WidgetType {
         // Annotate every element with its position so we can use it to put
         // the cursor there when the user clicks on the table.
         annotationPositions: true,
-        shortWikiLinks: this.client.config.get("shortWikiLinks", false),
+        shortWikiLinks: this.client.config.get("shortWikiLinks", true),
         translateUrls: buildTranslateUrls(this.client),
       });
       setTimeout(() => {

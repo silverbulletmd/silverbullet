@@ -41,7 +41,7 @@ event.listen {
   name = "editor:pageCreating",
   run = function(e)
     local pageName = e.data.name
-    for _, def in pairs(config.get("virtualPages")) do
+    for _, def in pairs(config.get("virtualPages", {})) do
       local match = pageName:match(def.pattern)
       if match != nil then
         -- we got an actual match

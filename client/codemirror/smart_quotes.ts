@@ -93,7 +93,11 @@ function keyBindingForQuote(
 }
 
 export function createSmartQuoteKeyBindings(client: Client): KeyBinding[] {
-  const smartQuotes = client.config.get<SmartQuotesConfig>("smartQuotes", {});
+  const smartQuotes = client.config.get<SmartQuotesConfig>("smartQuotes", {
+    enabled: true,
+    double: { left: "“", right: "”" },
+    single: { left: "‘", right: "’" },
+  });
   if (smartQuotes.enabled === false) {
     return [];
   }
