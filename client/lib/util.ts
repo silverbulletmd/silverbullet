@@ -31,7 +31,7 @@ export function headersToFileMeta(
       size: headers.has("X-Content-Length")
         ? +headers.get("X-Content-Length")!
         : +headers.get("Content-Length")!,
-      contentType: headers.get("Content-type")!,
+      contentType: headers.get("X-Content-Type") ?? headers.get("Content-type")!,
       created: +(headers.get("X-Created") || "0"),
       lastModified: +(headers.get("X-Last-Modified") || "0"),
       perm: (headers.get("X-Permission") as "rw" | "ro") || "ro",

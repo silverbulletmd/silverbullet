@@ -135,6 +135,7 @@ func handleFsDelete(w http.ResponseWriter, r *http.Request) {
 // setFileMetaHeaders sets HTTP headers based on FileMeta
 func setFileMetaHeaders(w http.ResponseWriter, meta FileMeta) {
 	w.Header().Set("Content-Type", meta.ContentType)
+	w.Header().Set("X-Content-Type", meta.ContentType)
 	w.Header().Set("X-Created", strconv.FormatInt(meta.Created, 10))
 	w.Header().Set("X-Last-Modified", strconv.FormatInt(meta.LastModified, 10))
 	w.Header().Set("X-Content-Length", strconv.FormatInt(meta.Size, 10))
@@ -146,9 +147,13 @@ func setFileMetaHeaders(w http.ResponseWriter, meta FileMeta) {
 func getFileMetaFromHeaders(h http.Header, path string) *FileMeta {
 	var err error
 
+	contentType := h.Get("X-Content-Type")
+	if contentType == "" {
+		contentType = h.Get("Content-Type")
+	}
 	fm := &FileMeta{
 		Name:        path,
-		ContentType: h.Get("Content-Type"),
+		ContentType: contentType,
 		Perm:        h.Get("X-Permission"),
 	}
 	if fm.Perm == "" {
