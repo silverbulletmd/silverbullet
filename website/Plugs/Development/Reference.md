@@ -3,13 +3,11 @@ This page is the reference surface for plug authors: the `*.plug.yaml` manifest,
 # Manifest
 A plug is described by a single YAML file, conventionally named `{plugname}.plug.yaml`. Top-level keys:
 
-| Key | Description |
-|-----|-------------|
-| `name` | Plug name (required, must be unique). |
-| `requiredPermissions` | List of permissions this plug may use. Recognized values: `fetch`, `shell`. |
-| `functions` | Map of function-name → [FunctionDef](#function-definitions) — the heart of the manifest. |
-| `assets` | Glob patterns of files to bundle into the plug. Readable at runtime via the `asset` syscall. |
-| `build` | Optional pre-bundle transforms (`esbuild` / `sass` / `copy`). Rarely needed. |
+* `name`: Plug name (required, must be unique)
+* `requiredPermissions`: List of permissions this plug may use. Recognized values: `fetch`, `shell`.
+* `functions`: function-name to [[#Function definitions|function mappings]] — the heart of the manifest.
+* `assets`: Glob patterns of files to bundle into the plug. Readable at runtime via [[API/asset]] calls.
+* `build`: Optional pre-bundle transforms (`esbuild` / `sass` / `copy`). Rarely needed.
 
 ## Function definitions
 Each entry under `functions:` is one exported plug function. Fields:
@@ -19,7 +17,7 @@ Each entry under `functions:` is one exported plug function. Fields:
 | `path` | `"file.ts:exportedFunction"` — the TypeScript source to bundle. |
 | `redirect` | `"otherPlug.function"` — alias to another plug’s function (no local code). |
 | `syscall` | `"myplug.foo"` — expose this function as a syscall callable from other plugs and from [[Space Lua]]. |
-| _hook fields_ | Zero or more of `command`, `slashCommand`, `events`, `mqSubscriptions`, `codeWidget`, `editor`, `pageNamespace` — each wires this function into an editor event. See [Hooks](#hooks) below. |
+| _hook fields_ | Zero or more of `command`, `slashCommand`, `events`, `mqSubscriptions`, `codeWidget`, `editor`, `pageNamespace` — each wires this function into an editor event. See [[#Hooks]] below. |
 
 A function with only a `syscall` field (no other hooks) is a pure library function; a function with one or more hook fields is triggered when the corresponding event fires.
 
@@ -217,7 +215,7 @@ All syscalls available to plugs are documented on pages tagged `#api/syscall`:
 ${template.each(query[[ from p = tags["api/syscall"] where p.tag == "page" order by p.name ]], templates.pageItem)}
 
 ## Declaring your own syscall
-Any plug function can be exposed as a syscall by adding `syscall: yourplug.foo` to its manifest entry. Other plugs can then call it (via the `system` syscall or the function’s syscall name), and Space Lua code can call it as `yourplug.foo(...)`. See the [`syscall` hook](#syscall) above.
+Any plug function can be exposed as a syscall by adding `syscall: yourplug.foo` to its manifest entry. Other plugs can then call it (via the `system` syscall or the function’s syscall name), and Space Lua code can call it as `yourplug.foo(...)`. See the [[#Syscalls]] above.
 
 ## Bundling assets
 The `assets:` manifest key bundles files into the plug binary. Read them at runtime with the [[API/asset|asset]] syscall:

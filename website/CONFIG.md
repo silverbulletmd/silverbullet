@@ -94,3 +94,10 @@ tag.define {
   end
 }
 ```
+
+```space-lua
+-- managed-by: configuration-manager
+config.set("shortWikiLinks", false)
+config.set("smartQuotes.enabled", false)
+config.set("std.widgets.linkedMentions.enabled", false)
+```

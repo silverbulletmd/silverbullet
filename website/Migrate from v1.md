@@ -38,16 +38,7 @@ _Snippets_ can be implemented as follows: [[Library/Std/Infrastructure/Slash Tem
 _Page templates_ now work slightly differently: [[^Library/Std/Infrastructure/Page Templates]].
 
 # Plugs
-Many existing plugs _should_ keep working, but some may need updating.
-However, since Space Config is removed. You now specify the plugs you like to use with Space Lua + the [[API/config]] API:
-
-```lua
-config.set("plugs", {
-  "github:joekrill/silverbullet-treeview/treeview.plug.js"
-})
-```
-
-After which you run the `Plugs: Update` to download and/or update them. `Plugs: Add` has not been (re)implemented, so you have to do this in code.
+Many existing plugs _should_ keep working, but some may need updating. Plug installation is now handled through the Configuration Manager (open with `Client: Configuration` or `Ctrl/Cmd-,`) under the **Libraries** tab. Legacy `plugs:` config entries are ignored — install plugs from the Libraries UI instead.
 
 # Other changes
 * Since no database is kept on the server, you can safely delete any `.silverbullet.db` file from your space — this isn’t used anymore.

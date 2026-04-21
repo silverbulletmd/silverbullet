@@ -3,7 +3,26 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
-* Fix: page rename failed when the page contains external URL links
+* [[Configuration Manager]]: new UI for editing configuration, accessed via the `Configuration: Open` command (`Ctrl/Cmd-,`) and `Configuration: Key Bindings` command. It currently supports:
+  * Changing (common) configuration options
+  * Key binding management (oh my!)
+  * A Library manager, superseding the old Library Manager UI (which now has been removed)
+* The legacy `plug-manager` has now been replace (superseded by the Library manager part of the Configuration Manager UI)
+* API extensions for [[API/config]]: `config.define` now propagates schema `default` values. New `config.defineCategory` / `config.getCategories` APIs, plus UI annotations for the configuration manager.
+* Server no longer generates a default `CONFIG.md` in empty spaces, this page is now auto created by the configuration manager when required.
+* Rebindable built-in keyboard shortcuts: almost all built-in keyboard shortcuts are now proper SilverBullet commands and can be rebound. 
+* [[Plugs/Development]] (now with new docs!) gains an optional `build:` section in manifests, running `esbuild`, `sass`, or `copy` transforms before asset bundling — enables plugs to ship bundled TSX/SCSS UIs.
+* Action buttons: new `command` attribute for `actionButton.define`.
+* [[Runtime API|CLI]] iteration: renamed `lua` → `eval` and `luascript` → `script`, and added a new `describe` command that describes LIQ and lists tags with defined schemas.
+* HTTP: content type is now also exposed via the `X-Content-Type` header.
+* Docker: removed `VOLUME` declaration from the Dockerfile (it gave a false sense of persistence `/space` must be explicitly mounted, as documented). This also fixed the silverbullet-website repo.
+* Fix: [[Sync]] now falls through to local data on browser-native network errors instead of returning 503; previously synced spaces serve locally immediately after a service worker restart.
+* Fix: navigation no longer blocks while the initial index is still running.
+* Fix: rich text paste only worked on the second try
+* Fix: indexing blew up with malformed bullet list items
+* Fix: regression where aspiring pages were not deleted once the page was created.
+* Fix: page rename failed when the page contains external URL links.
+* Fix: too-tall mini editor in various pickers on Safari.
 
 ## 2.6.1
 * **Technical: Deno → Node.js migration**: The TypeScript/client codebase has been migrated from Deno to Node.js, now using vitest for tests.
@@ -67,7 +86,7 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
 * Fix: 32-bit ARM Docker builds.
 * Fix: reduce visual bouncing when navigating between pages.
 * Fix: encode URLs with dots in path names on WebKit/Safari (fixes opening e.g. PDF files).
-* [[Vim mode]]: [allow passing arguments to vim ex commands](https://github.com/silverbulletmd/silverbullet/pull/1924) (by [Felix Riedel](https://github.com/felixr)).
+* [[Vim]] mode: [allow passing arguments to vim ex commands](https://github.com/silverbulletmd/silverbullet/pull/1924) (by [Felix Riedel](https://github.com/felixr)).
 * Tweaked default `index` and `CONFIG` pages for new installations.
 * Fix: tag stripping for page templates.
 * Fix: widget glitching — widget HTML content is no longer cached (only heights), reducing storage usage and WebKit rendering issues.
@@ -134,7 +153,7 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
 * Configuration:
   * New `shortWikiLinks` config (defaulting to `true`) that decides whether a wiki link should be rendered in its short form (rendering just the last segment, e.g. `Person/John` would show as `John`). To always render the full name, put `config.set(“shortWikiLinks”, false)` in your [[CONFIG]].
   * [[Authentication]]: how long “remember me” works is now configurable (by [Metin Yazici](https://github.com/silverbulletmd/silverbullet/pull/1796)) via [[Install/Configuration]] and more reliably persisted.
-* [[Library Manager]]: SilverBullet now navigates to library page after installing one.
+* Library Manager: SilverBullet now navigates to library page after installing one.
 * Now excluding `.plug.js` and `.js.map` files from the document list.
 * Fix: bring back [[Virtual Pages]].
 
@@ -182,12 +201,12 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
 * Lua widgets “flapping” should now be less
 
 ## 2.3.0
-This release (re)introduces [[Share]], formalizes [[Library]], and introduces in initial version of the [[Library Manager]], a type of package manager for SilverBullet. It also progresses on Lua 5.4 compatibility.
+This release (re)introduces [[Share]], formalizes [[Library]], and introduces in initial version of the Library Manager, a type of package manager for SilverBullet. It also progresses on Lua 5.4 compatibility.
 
 Here’s what’s new:
 
 * [[Share]]: a new mechanism to push content to external places and pull external content in (also used as the foundation of [[Library]]). This partially replaces many [[Export]] use cases. Export will be more for one-off use cases.
-* [[Library]]: are now a more “real” thing, and can be distributed via the [[Library Manager]] and curated with [[Repository]]. For instructions on how to build your own libraries, see [[Library/Development]]. Eventually, this mechanism will succeed the `plugs` configuration and `Plugs: Update` mechanism. Plug authors can already start to update their plugs to get ready, usually all that needs to be done is to add a `PLUG.md` file to their repository: [example](https://github.com/silverbulletmd/silverbullet-mermaid/blob/main/PLUG.md).
+* [[Library]]: are now a more “real” thing, and can be distributed via the Library Manager and curated with [[Repository]]. For instructions on how to build your own libraries, see [[Library/Development]]. Eventually, this mechanism will succeed the `plugs` configuration and `Plugs: Update` mechanism. Plug authors can already start to update their plugs to get ready, usually all that needs to be done is to add a `PLUG.md` file to their repository: [example](https://github.com/silverbulletmd/silverbullet-mermaid/blob/main/PLUG.md).
 * [[Service]]: a new mechanism used behind the scenes to power [[Share]], but also [[Export]] and likely other features in the future. Built on top of [[Event]].
 * [[URI]] are now a more formalized and centralized mechanism, used by [[Share]] and likely other features in the future.
 * Removed “Import” support, succeeded by [[Share]].
