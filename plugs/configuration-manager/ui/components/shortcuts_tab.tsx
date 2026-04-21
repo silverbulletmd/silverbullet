@@ -154,7 +154,7 @@ export function ShortcutsTab() {
       <input
         type="text"
         id="cfg-shortcuts-search"
-        placeholder="Search commands..."
+        placeholder="Filter commands..."
         value={search}
         onInput={(e) =>
           setSearch((e.currentTarget as HTMLInputElement).value)}
