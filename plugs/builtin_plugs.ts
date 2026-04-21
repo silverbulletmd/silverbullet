@@ -4,7 +4,6 @@ export const builtinPlugNames = [
   "editor",
   "index",
   "sync",
-  "plug-manager",
   "emoji",
   "image-viewer",
   "configuration-manager",

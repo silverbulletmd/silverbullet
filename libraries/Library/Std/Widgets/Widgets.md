@@ -131,7 +131,7 @@ config.define("std.widgets.toc", {
 })
 
 function widgets.toc(options)
-  options = options or config.get("std.widgets.toc")
+  options = options or config.get("std.widgets.toc", {})
   options.minHeaders = options.minHeaders or 3
   options.minLevel = options.minLevel or 1
   options.header = options.header or "Table of Contents"
@@ -243,7 +243,7 @@ end
 ### Top widget
 ```space-lua
 -- priority: -1
-if config.get("std.widgets.toc.enabled") then
+if config.get("std.widgets.toc.enabled", true) then
   event.listen {
     name = "hooks:renderTopWidgets",
     run = function(e)
@@ -301,7 +301,7 @@ end
 ### Bottom widget
 ```space-lua
 -- priority: -1
-if config.get("std.widgets.linkedMentions.enabled") then
+if config.get("std.widgets.linkedMentions.enabled", true) then
   event.listen {
     name = "hooks:renderBottomWidgets",
     run = function(e)
@@ -351,7 +351,7 @@ end
 ### Top widget
 ```space-lua
 -- priority: -1
-if config.get("std.widgets.linkedTasks.enabled") then
+if config.get("std.widgets.linkedTasks.enabled", true) then
   event.listen {
     name = "hooks:renderTopWidgets",
     run = function(e)

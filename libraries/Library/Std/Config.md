@@ -107,17 +107,6 @@ config.define("index", {
   additionalProperties = true
 })
 
-config.define("plugs", {
-  description = "List of plugs to enable",
-  oneOf = {
-    schema.array "string",
-    { -- only as a fallback for an empty table in Lua
-      type = "object",
-    }
-  },
-})
-
-
 -- Editor configuration options
 config.define("autoCloseBrackets", {
   description = "List of opening bracket characters to auto-close",
