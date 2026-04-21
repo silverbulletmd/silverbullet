@@ -1,10 +1,52 @@
 #development
 
 Here is a big-picture (conceptual) architecture of SilverBullet:
-```excalidraw
-url:architecture.excalidraw
-height:800px
+```mermaid
+graph TB
+    subgraph Client["Client (one instance per browser tab)"]
+        Editor["Editor<br/>(CodeMirror)"]
+        Syscalls(["Syscalls"])
+        subgraph SpaceLua["Space Lua Sandbox"]
+            LuaStd["Lua 5.4 APIs"]
+            LuaSB["Space Lua APIs"]
+        end
+        subgraph Plugs["Plug sandboxes (Web Workers)"]
+            Plug1["Plug"]
+            Plug2["Plug"]
+        end
+        Services["Services"]
+        Events["Events"]
+        subgraph Datastore["Datastore"]
+            MQ["Message Queue"]
+            Index["Index"]
+            KV["KV Primitives (IndexedDB)"]
+        end
+
+        Editor --- Syscalls
+        SpaceLua --- Syscalls
+        Plugs --- Syscalls
+        Syscalls --- Services
+        Syscalls --- Events
+        Syscalls --- Datastore
+        MQ --- KV
+        Index --- KV
+    end
+
+    subgraph SW["Service Worker (one instance per browser)"]
+        Synced["Synced files<br/>(IndexedDB)"]
+        Bundle["Client bundle cache<br/>(JS, CSS, HTML)"]
+    end
+
+    subgraph Server["Server"]
+        Files["Space files<br/>(file system)"]
+        RPC["File access /<br/>RPC (shell, HTTP proxy)"]
+    end
+
+    Client -->|"HTTP API"| SW
+    SW -->|"HTTP API"| Server
+    Client -.->|"direct (online)"| Server
 ```
+
 
 # Client
 The client is what you see when you open SilverBullet in a browser tab or window. It renders the UI, interacts with the user and runs most of the logic. 90%+ of logic in SilverBullet lives here.

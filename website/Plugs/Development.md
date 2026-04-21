@@ -1,30 +1,53 @@
-The easiest way to get started is to click the “Use this template” on the [silverbullet-plug-template](https://github.com/silverbulletmd/silverbullet-plug-template) repo.
+A **plug** is a self-contained JavaScript bundle (`*.plug.js`) that extends SilverBullet. It runs inside a sandboxed [Web Worker](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers), talks to the editor via [[API|syscalls]], and hooks into SilverBullet through commands, events, slash commands, message queues, and more.
 
-Generally, every plug consists of a YAML manifest file named `yourplugname.plug.yaml`. This file defines all functions that form your plug. To be loadable by SilverBullet, it needs to be compiled into a bundle (ending with `.plug.js`).
+A big chunk of SilverBullet itself is implemented as a mix of [[Space Lua]] and built-in plugs, so it’s also worth exploring [built-in plugs source code](https://github.com/silverbulletmd/silverbullet/tree/main/plugs) to get a feel for how things work.
 
-To compile it, run the build command specified in the plug template repo:
+This section covers the basics to build, test, and distribute your own plug:
+
+* [[Plugs/Development/Architecture]]: how plugs are loaded, executed, and sandboxed
+* [[Plugs/Development/Reference]]: `*.plug.yaml` manifests, hook types, and the syscall catalog
+* [[Plugs/Development/Distribution and Testing]]: packaging a plug as a [[Library]], testing, debugging
+
+# Quick start
+The easiest way to start is to click the “Use this template” button on the [silverbullet-plug-template](https://github.com/silverbulletmd/silverbullet-plug-template) repo. Then:
 
 ```shell
+npm install
 npm run build
 ```
 
-For development it’s easiest to simply copy the `.plug.js` file into your space’s `_plug/` folder after it’s built:
+This produces a `yourplug.plug.js` bundle. For development, copy somewhere in your [[Space]] (it doesn’t really matter where):
 
 ```shell
-cp myplug.plug.js ~/myspace/_plug/
+cp yourplug.plug.js ~/myspace/
 ```
 
-Within seconds (watch your browser’s JavaScript console), your plug should be picked up both on the server and, synced to your browser and loaded. No need to even reload the page.
+Within a few seconds watch your browser’s JavaScript console — the plug file should be synced locally. You can now run the `Plugs: Reload` command to “hot” reload it, without a full page.
 
-## Debugging
-Since plugs run in your browser, you can use the usual browser debugging tools. When you `console.log` things, these logs will appear in your browser’s JavaScript console.
+# Hello world
+A minimal plug consists of two files: a YAML manifest and the TypeScript source it references.
 
-## Distribution
-Once you’re happy with your plug, you can distribute it in various ways:
+**`hello.plug.yaml`**
 
-- You can put it on github by simply committing the resulting `.plug.js` file there and instructing users to point to by adding
-  `- github:yourgithubuser/yourrepo/yourplugname.plug.js` to their `PLUGS` file
-- Add a release in your github repo and instruct users to add the release as `- ghr:yourgithubuser/yourrepo` or if they need a specific release `- ghr:yourgithubuser/yourrepo/release-name`
-  - You need to upload the plug file as asset in the release, with a name matching your repository, e.g, `yourrepo.plug.js`
-  - If your repository name starts with "silverbullet-", like `silverbullet-foo`, both `silverbullet-foo.plug.js` and `foo.plug.js` asset names will be tried
-- You can put it on any other web server, and tell people to load it via https, e.g., `- https://mydomain.com/mypugname.plug.js`.
+```yaml
+name: hello
+functions:
+  helloCommand:
+    path: "./hello.ts:helloCommand"
+    command:
+      name: "Hello: World"
+```
+
+**`hello.ts`**
+
+```typescript
+import { editor } from "@silverbulletmd/silverbullet/syscalls";
+
+export async function helloCommand() {
+  await editor.flashNotification("Hello, world!");
+}
+```
+
+Build, copy into your space, plug reload, and a `Hello: World` should now be available as a command from the [[Command Palette]]. When it’s run you should see a “Hello world!” message flash.
+
+From here, read [[Plugs/Development/Architecture]] to understand what’s happening under the hood, then [[Plugs/Development/Reference]] for the full manifest/hook/syscall surface.
