@@ -184,7 +184,7 @@ func buildConfig(bundledFiles fs.FS, args []string, buildTime string) *server.Se
 
 	// Ensure template files exist before wrapping with base_fs fallthrough,
 	// because the fallthrough layer includes .md files that would make the space appear non-empty.
-	ensureIndexAndConfig(spacePrimitives, rootSpaceConfig.IndexPage)
+	ensureIndex(spacePrimitives, rootSpaceConfig.IndexPage)
 
 	serverConfig.ClientBundle = server.NewReadOnlyFallthroughSpacePrimitives(bundledFiles, "client", bundlePathDate, nil)
 	rootSpaceConfig.SpacePrimitives = server.NewReadOnlyFallthroughSpacePrimitives(bundledFiles, "base_fs", bundlePathDate, spacePrimitives)
@@ -245,11 +245,8 @@ func buildConfig(bundledFiles fs.FS, args []string, buildTime string) *server.Se
 //go:embed space_template/index.md
 var indexPageContent []byte
 
-//go:embed space_template/CONFIG.md
-var configPageContent []byte
-
-func ensureIndexAndConfig(sp server.SpacePrimitives, indexPage string) {
-	// Only create template files in truly empty spaces (no .md files yet)
+func ensureIndex(sp server.SpacePrimitives, indexPage string) {
+	// Only create the index page in truly empty spaces (no .md files yet)
 	files, err := sp.FetchFileList()
 	if err != nil {
 		log.Printf("Warning: could not check space state: %v", err)
@@ -257,18 +254,15 @@ func ensureIndexAndConfig(sp server.SpacePrimitives, indexPage string) {
 	}
 	for _, f := range files {
 		if strings.HasSuffix(f.Name, ".md") {
-			// Space has existing content, don't inject templates
+			// Space has existing content, don't inject template
 			return
 		}
 	}
 
 	indexPagePath := fmt.Sprintf("%s.md", indexPage)
-	log.Printf("Empty space detected, creating %s and CONFIG.md", indexPagePath)
+	log.Printf("Empty space detected, creating %s", indexPagePath)
 	if _, err := sp.WriteFile(indexPagePath, indexPageContent, nil); err != nil {
 		log.Fatalf("Could not write index page %s: %v", indexPagePath, err)
-	}
-	if _, err := sp.WriteFile("CONFIG.md", configPageContent, nil); err != nil {
-		log.Fatalf("Could not write config page: %v", err)
 	}
 }
 
