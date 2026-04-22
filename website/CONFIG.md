@@ -1,3 +1,5 @@
+#meta
+
 This is where you configure SilverBullet to your liking. See [[^Library/Std/Config]] for a full list of configuration options. 
 
 # Main configuration
@@ -95,9 +97,9 @@ tag.define {
 }
 ```
 
+# Configuration manager
+Managed by [[Configuration Manager]]
 ```space-lua
 -- managed-by: configuration-manager
-config.set("shortWikiLinks", false)
 config.set("smartQuotes.enabled", false)
-config.set("std.widgets.linkedMentions.enabled", false)
 ```
