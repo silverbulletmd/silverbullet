@@ -263,7 +263,7 @@ export function registerEditorCommands(
   });
   hook.registerCommand({
     name: "Editor: Cursor Page Down",
-    key: ["PageDown", "Ctrl-v"],
+    key: "PageDown",
     mac: ["PageDown", "Ctrl-v", "Ctrl-ArrowDown"],
     requireEditor: "page",
     disableInVim: true,
