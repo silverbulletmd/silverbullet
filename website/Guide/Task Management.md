@@ -58,7 +58,7 @@ Navigate to your "Website Redesign" page. At the top, the **[[Linked Tasks]]** w
 You can check off a linked task from either page; the state change propagates. No manual copying or moving of tasks needed.
 
 # 6. Build a dashboard
-Create a "Dashboard" page that pulls everything together using [[Space Lua/Lua Integrated Query]]:
+Create a "Dashboard" page that pulls everything together using [[Space Lua/Integrated Query]]:
 
 ```lua
 # Active projects

@@ -12,7 +12,7 @@ import {
   luaValueToJS,
   singleResult,
 } from "../runtime.ts";
-import { isSqlNull } from "../liq_null.ts";
+import { isSqlNull } from "../sliq_null.ts";
 
 /**
  * These are Space Lua specific functions that are available to all scripts, but are not part of the standard Lua language.

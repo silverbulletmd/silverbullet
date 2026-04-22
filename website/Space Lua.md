@@ -42,7 +42,7 @@ local myCodeHere
 
 Scripts are loaded in _reverse priority_ order. When you set no priority (the default) your scripts will be run last.
 
-The order used is determined by this [[Space Lua/Lua Integrated Query|query]] (also part of your [[^Library/Std/Pages/Space Overview]]) page:
+The order used is determined by this [[Space Lua/Integrated Query|query]] (also part of your [[^Library/Std/Pages/Space Overview]]) page:
 
     query[[
       from t = index.tag "space-lua"
@@ -65,7 +65,7 @@ One SilverBullet specific [[Markdown]] [[Markdown/Extensions]] is the `${lua exp
 
 For example: 10 + 2 = ${adder(10, 2)} (Alt-click, or select to see the expression) is using the just defined `adder` function.
 
-This mechanism is often used in conjunction with [[Space Lua/Lua Integrated Query]] and [[API/widget|Widgets]].
+This mechanism is often used in conjunction with [[Space Lua/Integrated Query]] and [[API/widget|Widgets]].
 
 # API
 ![[API]]
@@ -76,5 +76,5 @@ While the aim is to be 95% (let’s say) compatible with regular Lua, there are 
 
 In addition to quirks, Space introduces a (minimal) set of new features on top core Lua:
 
-1. [[Space Lua/Lua Integrated Query]], embedding a query language into Lua itself
+1. [[Space Lua/Integrated Query]], embedding a query language into Lua itself
 2. [[Space Lua/Thread Locals]]

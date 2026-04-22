@@ -45,7 +45,7 @@ status: reading
 Now this page is tagged `book` and has queryable `author` and `status` attributes. You can add tags to a page either with the `#book` syntax, or via a [[Frontmatter]] attribute.
 
 # 5. Query your knowledge
-[[Space Lua/Lua Integrated Query]] lets you pull live data from your pages. Create a “Currently Reading” page with a query:
+[[Space Lua/Integrated Query]] lets you pull live data from your pages. Create a “Currently Reading” page with a query:
 
 ```lua
 ${template.each(query[[

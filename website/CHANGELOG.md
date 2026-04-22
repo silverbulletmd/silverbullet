@@ -13,7 +13,8 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
 * Rebindable built-in keyboard shortcuts: almost all built-in keyboard shortcuts are now proper SilverBullet commands and can be rebound. 
 * [[Plugs/Development]] (now with new docs!) gains an optional `build:` section in manifests, running `esbuild`, `sass`, or `copy` transforms before asset bundling — enables plugs to ship bundled TSX/SCSS UIs.
 * Action buttons: new `command` attribute for `actionButton.define`.
-* [[Runtime API|CLI]] iteration: renamed `lua` → `eval` and `luascript` → `script`, and added a new `describe` command that describes LIQ and lists tags with defined schemas.
+* [[Runtime API|CLI]] iteration: renamed `lua` → `eval` and `luascript` → `script`, and added a new `describe` command that describes SLIQ and lists tags with defined schemas.
+* Rebrand: “Lua Integrated Query” (LIQ) is now called [[Space Lua/Integrated Query|Space Lua Integrated Query]] (_SLIQ!_) (as coined by Matouš Jan Fialka)
 * HTTP: content type is now also exposed via the `X-Content-Type` header.
 * Docker: removed `VOLUME` declaration from the Dockerfile (it gave a false sense of persistence `/space` must be explicitly mounted, as documented). This also fixed the silverbullet-website repo.
 * Fix: [[Sync]] now falls through to local data on browser-native network errors instead of returning 503; previously synced spaces serve locally immediately after a service worker restart.
@@ -41,7 +42,7 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
 * [[Space Lua]] enhancements:
   * Performance: Lua interpreter hot-path optimizations, tree traversal and page index optimizations.
   * Performance: `LuaTable` internals tuned for faster Lua execution.
-* [[Space Lua/Lua Integrated Query]] improvements (courtesy of [Matouš Jan Fialka](https://github.com/mjf)):
+* [[Space Lua/Integrated Query]] improvements (courtesy of [Matouš Jan Fialka](https://github.com/mjf)):
   * [Unified field list syntax](https://github.com/silverbulletmd/silverbullet/pull/1909) for `from`, `select`, and `group by` clauses, enabling multi-source cross-joins
   * [Implicit single group](https://github.com/silverbulletmd/silverbullet/pull/1907) for aggregates without `group by`
   * `offset` clause support
@@ -113,8 +114,8 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
   * Sync snapshots are now persisted after every file sync, reducing (and hopefully eliminating) edge cases where the sync engine is killed mid-sync (for whatever reason) and the snapshot becomes of sync with “reality”.
   * The index status progress indicator (blue circle) should now be more reliably reflect the actual indexing status.
   * HTTP status codes >= 500 are now treated as offline (better offline detection).
-* [[Space Lua/Lua Integrated Query]] improvements (courtesy of [Matouš Jan Fialka](https://github.com/mjf)):
-  * [[Space Lua/Lua Integrated Query/Grouping|group by]] and `having` clauses with [[Space Lua/Lua Integrated Query/Aggregating|aggregator]] support
+* [[Space Lua/Integrated Query]] improvements (courtesy of [Matouš Jan Fialka](https://github.com/mjf)):
+  * [[Space Lua/Integrated Query/Grouping|group by]] and `having` clauses with [[Space Lua/Integrated Query/Aggregating|aggregator]] support
   * `filter(where <cond>)` clause for per-row aggregate filtering
   * `nulls first`/`nulls last` in `order by`
   * Null/missing query cells now render as empty
@@ -127,7 +128,7 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
   * Implement `string.pack`, `string.unpack` and `string.packsize`
   * Implement `math.random`, `math.randomseed`, `math.tointeger`, `math.frexp` and `math.ldexp`
   * Implement `table.move`; align `table.pack` and `table.unpack` with Lua semantics
-  * [[API/table#table.select(table, keys...)]] (non-standard in Lua) API, convenient to use in [[Space Lua/Lua Integrated Query]] `select` clauses, see example in docs.
+  * [[API/table#table.select(table, keys...)]] (non-standard in Lua) API, convenient to use in [[Space Lua/Integrated Query]] `select` clauses, see example in docs.
   * [Extend `os` module](https://github.com/silverbulletmd/silverbullet/pull/1836)
   * Add `_VERSION` environment variable
   * `tostring()` now respects `__tostring` metamethod; `#` operator now respects `__len` metamethod
@@ -135,7 +136,7 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
   * **Load order** of scripts is now well defined: `order by (script.priority or 0) desc, script.ref`
 * New _experimental_ API: [[API/tag#tag.define(spec)]], see linked page for docs and example uses. Brings back ability to define 📅 deadlines for tasks (see example). Another part of this is [[Schema]] support for [[Tag|tags]]. When a schema is defined for a tag, you get:
   * [[Frontmatter]] **attribute completion and linting** (in-editor error indicators) for attributes defined as part of the tag’s schema.
-  * [[Space Lua/Lua Integrated Query]] **attribute code completion** _if_ you use the `from v = index.tag(“bla”)` style syntax (so explicitly bind your iterator variable).
+  * [[Space Lua/Integrated Query]] **attribute code completion** _if_ you use the `from v = index.tag(“bla”)` style syntax (so explicitly bind your iterator variable).
   * Item-level linting (highlights the object in-line in case of validation errors).
 * Tag schema updates:
   * `pos` (present in link, item and some other tags) is now _deprecated_, use `range` instead
@@ -190,7 +191,7 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
   * `Navigate: Copy Ref To Current Position`
   * `Navigate: Copy Link To Current Position`
 * Lua:
-  * [LIQ fix](https://github.com/silverbulletmd/silverbullet/issues/1705)
+  * [SLIQ fix](https://github.com/silverbulletmd/silverbullet/issues/1705)
   * [Ctrl-click](https://github.com/silverbulletmd/silverbullet/pull/1713) navigate to definition on non-Mac operating systems
   * Support for `<const>` in Lua (by [Matouš Jan Fialka](https://github.com/silverbulletmd/silverbullet/pull/1715))
 * Production builds now include sourcemaps for easier debugging in browser DevTools. If you don't want to serve sourcemaps publicly, you can block `*.js.map` files at your reverse proxy level (see [[TLS#Blocking sourcemaps]]).

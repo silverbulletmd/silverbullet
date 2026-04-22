@@ -1,9 +1,9 @@
 ---
-description: APIs to define custom aggregate functions for LIQ
+description: APIs to define custom aggregate functions for SLIQ
 tags: meta/api
 ---
 
-APIs to define and override aggregate functions used in LIQ `select` and `having` clauses after `group by`.
+APIs to define and override aggregate functions used in SLIQ `select` and `having` clauses after `group by`.
 
 All aggregates skip null/nil values by convention. Empty groups return null (except `count` which returns 0 and `string_agg` which returns an empty string).
 

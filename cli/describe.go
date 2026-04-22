@@ -68,7 +68,7 @@ for name, def in pairs(tags) do
 end
 table.sort(result, function(a, b) return a.name < b.name end)
 
-local page = space.readPage("Library/Std/Docs/LIQ Reference")
+local page = space.readPage("Library/Std/Docs/SLIQ Reference")
 local parsed = index.extractFrontmatter(page, {removeFrontMatterSection = true})
 
 return { tags = result, syntax = parsed.text }

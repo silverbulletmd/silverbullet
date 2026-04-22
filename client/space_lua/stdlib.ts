@@ -35,7 +35,7 @@ import { cryptoApi } from "./stdlib/crypto.ts";
 import { netApi } from "./stdlib/net.ts";
 import { isTaggedFloat, makeLuaFloat } from "./numeric.ts";
 import { isPromise } from "./rp.ts";
-import { isSqlNull } from "./liq_null.ts";
+import { isSqlNull } from "./sliq_null.ts";
 
 const printFunction = new LuaBuiltinFunction(async (_sf, ...args) => {
   console.log("[Lua]", ...(await Promise.all(args.map((v) => luaToString(v)))));

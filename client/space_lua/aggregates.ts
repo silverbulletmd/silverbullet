@@ -1,5 +1,5 @@
 /**
- * Aggregate function definitions and execution for LIQ.
+ * Aggregate function definitions and execution for SLIQ.
  *
  * Builtins implement ILuaFunction via plain objects rather than
  * LuaBuiltinFunction instances.  This avoids ES module TDZ issues:
@@ -16,7 +16,7 @@ import {
   luaValueToJS,
   type LuaValue,
 } from "./runtime.ts";
-import { isSqlNull } from "./liq_null.ts";
+import { isSqlNull } from "./sliq_null.ts";
 import type { LuaExpression, LuaOrderBy } from "./ast.ts";
 import { buildItemEnv } from "./query_env.ts";
 import { asyncMergeSort } from "./util.ts";

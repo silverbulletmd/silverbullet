@@ -42,7 +42,7 @@ tags: project
 These attributes become queryable, which we’re going to do next.
 
 # 5. Run your first queries
-Pages in SilverBullet can use [[Space Lua]] and [[Space Lua/Lua Integrated Query]] feature specifically to dynamically generate content. Add this to any page:
+Pages in SilverBullet can use [[Space Lua]] and [[Space Lua/Integrated Query]] feature specifically to dynamically generate content. Add this to any page:
 
 ```lua
 ${query[[from tags.page limit 5]]}

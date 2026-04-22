@@ -25,7 +25,7 @@ config.set("std.widgets.linkedMentions.enabled", false)
 ```
 
 # Programmatic access
-You can query linked mentions directly using [[Space Lua/Lua Integrated Query]]:
+You can query linked mentions directly using [[Space Lua/Integrated Query]]:
 
 ```lua
 query[[

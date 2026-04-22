@@ -3,7 +3,7 @@ import {
   escapeRegularPipes,
   jsonToMDTable,
 } from "../markdown_renderer/result_render.ts";
-import { isSqlNull } from "../space_lua/liq_null.ts";
+import { isSqlNull } from "../space_lua/sliq_null.ts";
 import { isTaggedFloat } from "../space_lua/numeric.ts";
 import { LuaTable, luaFormatNumber } from "../space_lua/runtime.ts";
 

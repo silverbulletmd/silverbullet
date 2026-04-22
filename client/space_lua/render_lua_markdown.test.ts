@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 import { parse } from "../markdown_parser/parse_tree.ts";
 import { extendedMarkdownLanguage } from "../markdown_parser/parser.ts";
 import { renderMarkdownToHtml } from "../markdown_renderer/markdown_render.ts";
-import { LIQ_NULL } from "./liq_null.ts";
+import { SLIQ_NULL } from "./sliq_null.ts";
 import { makeLuaFloat } from "./numeric.ts";
 import {
   renderResultToCleanMarkdown,
@@ -29,8 +29,8 @@ test("undefined renders as empty markdown with dataType nil", async () => {
   expect(r).toEqual({ markdown: "", dataType: "nil" });
 });
 
-test("LIQ_NULL (SQL NULL) renders as empty markdown with dataType nil", async () => {
-  const r = renderResultToMarkdown(LIQ_NULL);
+test("SLIQ_NULL (SQL NULL) renders as empty markdown with dataType nil", async () => {
+  const r = renderResultToMarkdown(SLIQ_NULL);
   expect(r).toEqual({ markdown: "", dataType: "nil" });
 });
 
@@ -188,10 +188,10 @@ test("LuaTable with mixed keys uses keys order in header", async () => {
 
 // ── Null / empty values inside cells ────────────────────────────────
 
-test("LIQ_NULL value in a table cell renders as empty td", async () => {
+test("SLIQ_NULL value in a table cell renders as empty td", async () => {
   const row = new LuaTable();
   await row.rawSet("a", 1);
-  await row.rawSet("b", LIQ_NULL);
+  await row.rawSet("b", SLIQ_NULL);
 
   const tbl = new LuaTable();
   await tbl.rawSet(1, row);
@@ -201,9 +201,9 @@ test("LIQ_NULL value in a table cell renders as empty td", async () => {
   expect(r.markdown).toContain("<td data-table-cell-empty></td>");
 });
 
-test("LIQ_NULL in a table cell renders as empty td", async () => {
+test("SLIQ_NULL in a table cell renders as empty td", async () => {
   const row = new LuaTable();
-  await row.rawSet("val", LIQ_NULL);
+  await row.rawSet("val", SLIQ_NULL);
 
   const tbl = new LuaTable();
   await tbl.rawSet(1, row);
@@ -212,10 +212,10 @@ test("LIQ_NULL in a table cell renders as empty td", async () => {
   expect(r.markdown).toContain("<td data-table-cell-empty></td>");
 });
 
-test("LIQ_NULL item in a list renders as empty bullet", async () => {
+test("SLIQ_NULL item in a list renders as empty bullet", async () => {
   const tbl = new LuaTable();
   await tbl.rawSet(1, 1);
-  await tbl.rawSet(2, LIQ_NULL);
+  await tbl.rawSet(2, SLIQ_NULL);
   await tbl.rawSet(3, 3);
 
   const r = renderResultToMarkdown(tbl);
@@ -499,7 +499,7 @@ test("e2e: empty table preserves data-table-empty attribute", async () => {
 test("e2e: data attributes survive the pipeline", async () => {
   const row = new LuaTable();
   await row.rawSet("x", 42);
-  await row.rawSet("y", LIQ_NULL);
+  await row.rawSet("y", SLIQ_NULL);
 
   const tbl = new LuaTable();
   await tbl.rawSet(1, row);
@@ -678,10 +678,10 @@ test("clean: pipe inside scalar array cell is escaped", async () => {
   ).toBe("|vals|\n|--|\n|a\\|b<br/>c|");
 });
 
-test("clean: LIQ_NULL cell renders as empty", async () => {
+test("clean: SLIQ_NULL cell renders as empty", async () => {
   const row = new LuaTable();
   await row.rawSet("x", 42);
-  await row.rawSet("y", LIQ_NULL);
+  await row.rawSet("y", SLIQ_NULL);
 
   expect(await renderResultToCleanMarkdown(row)).toBe("|x|y|\n|--|--|\n|42||");
 });

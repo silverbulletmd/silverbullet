@@ -15,7 +15,7 @@ which renders as follows:
 
 SilverBullet allows you to simply toggle the complete state of a task by clicking the checkbox.
 
-All tasks across your space are automatically [[Object/task|indexed]] and can therefore be [[Space Lua/Lua Integrated Query|queried]].
+All tasks across your space are automatically [[Object/task|indexed]] and can therefore be [[Space Lua/Integrated Query|queried]].
 
 # Custom states
 Tasks support the default `x` and ` ` states (done and not done), but custom states as well. Support for this is still basic, however.

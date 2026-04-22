@@ -124,9 +124,9 @@ func LuaScriptCommand() *cobra.Command {
 
 func QueryCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "query <liq-expression>",
+		Use:   "query <sliq-expression>",
 		Short: "Run a query (wraps in query[[...]])",
-		Long:  "Evaluate a Lua Integrated Query. The argument is the query body.\nExample: silverbullet-cli query 'from t = index.tag \"task\" where not t.done'",
+		Long:  "Evaluate a Space Lua Integrated Query. The argument is the query body.\nExample: silverbullet-cli query 'from t = index.tag \"task\" where not t.done'",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			conn, err := connFromFlags(cmd)

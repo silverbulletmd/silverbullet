@@ -1,7 +1,7 @@
 ---
 tags: meta
 ---
-Lua Integrated Query (LIQ) — query syntax for SilverBullet data.
+Space Lua Integrated Query (SLIQ) — query syntax for SilverBullet data.
 
 Syntax:
   from <var> = index.tag "<type>"

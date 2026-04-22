@@ -26,7 +26,7 @@ import {
   type LuaValue,
   singleResult,
 } from "./runtime.ts";
-import { isSqlNull, LIQ_NULL } from "./liq_null.ts";
+import { isSqlNull, SLIQ_NULL } from "./sliq_null.ts";
 import { evalExpression, luaOp } from "./eval.ts";
 import { asyncMergeSort } from "./util.ts";
 import type { DataStore } from "../data/datastore.ts";
@@ -295,7 +295,7 @@ function containsAggregate(expr: LuaExpression, config?: Config): boolean {
 // Wrap a value for select result tables so that the column key survives
 // in the `LuaTable`
 function selectVal(v: LuaValue): LuaValue {
-  return v === null || v === undefined ? LIQ_NULL : v;
+  return v === null || v === undefined ? SLIQ_NULL : v;
 }
 
 /**
@@ -491,7 +491,7 @@ function normalizeSelectResults(results: any[]): any[] {
     const rebuilt = new LuaTable();
     for (const k of canonicalKeys) {
       const v = item.rawGet(k);
-      void rebuilt.rawSet(k, v === undefined || v === null ? LIQ_NULL : v);
+      void rebuilt.rawSet(k, v === undefined || v === null ? SLIQ_NULL : v);
     }
     for (const k of luaKeys(item)) {
       if (typeof k !== "string") {
@@ -675,7 +675,7 @@ async function evalSelectExpression(
   for (const k of luaKeys(result)) {
     const v = result.rawGet(k);
     if (v === null || v === undefined) {
-      void result.rawSet(k, LIQ_NULL);
+      void result.rawSet(k, SLIQ_NULL);
     }
   }
   return result;

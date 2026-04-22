@@ -4,7 +4,7 @@ The `index` API provides functions for interacting with SilverBullet's [[Object|
 
 ## Object Operations
 ## index.tag(name)
-Returns a given [[Object#Tags]] as a query collection, to be queried using [[Space Lua/Lua Integrated Query]].
+Returns a given [[Object#Tags]] as a query collection, to be queried using [[Space Lua/Integrated Query]].
 
 Example:
 ${query[[from index.tag("page") limit 1]]}

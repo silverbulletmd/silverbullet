@@ -7,7 +7,7 @@ Let’s get more specific.
 
 In SilverBullet you keep your content as a collection of [[Markdown]] [[Page|Pages]] (called a [[Space]]). You navigate your space using the [[Page Picker]] like a traditional notes app, or through [[Link|Links]] like a wiki (except they are [[Linked Mention|bi-directional]]).
 
-If you are the **writer** type, you’ll appreciate SilverBullet as a clean [[Markdown]] editor with [[Live Preview]]. If you have more of an **outliner** personality, SilverBullet has [[Outlines|Outlining]] tools for you. Productivity freak? Have a look at [[Task|Tasks]]. More of a **database** person? You will appreciate [[Object|Objects]] and [[Space Lua/Lua Integrated Query|Queries]]. 
+If you are the **writer** type, you’ll appreciate SilverBullet as a clean [[Markdown]] editor with [[Live Preview]]. If you have more of an **outliner** personality, SilverBullet has [[Outlines|Outlining]] tools for you. Productivity freak? Have a look at [[Task|Tasks]]. More of a **database** person? You will appreciate [[Object|Objects]] and [[Space Lua/Integrated Query|Queries]]. 
 
 And if you are comfortable **programming** a little bit — now we’re really talking. You will love _dynamically generating content_ with [[Space Lua]] (SilverBullet’s [[Lua]] dialect), or to use it to create custom [[Command|Commands]], [[Page Template|Page Templates]] or [[API/widget|Widgets]].
 
@@ -16,7 +16,7 @@ Dynamically generating content, _programmable notes_... why would you want that,
 
 Let’s say you have documented a set of product features in individual pages that you’ve [[Tag|tagged]] with a #feature tag, and annotated with a few custom [[Frontmatter]] [[Attribute|Attributes]].
 
-With a simple [[Space Lua/Lua Integrated Query|Query]] and [[Template]], you can now dynamically build a product feature list, ordered by _awesomeness_ (`Alt-click` or hover and click the edit button to see the underlying code):
+With a simple [[Space Lua/Integrated Query|Query]] and [[Template]], you can now dynamically build a product feature list, ordered by _awesomeness_ (`Alt-click` or hover and click the edit button to see the underlying code):
 
 ${query[[
   from f = tags.feature

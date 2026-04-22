@@ -21,7 +21,7 @@ somestyle {
 }
 ```
 
-The following [[Space Lua/Lua Integrated Query]] is used to determine the order in which Space Style is loaded:
+The following [[Space Lua/Integrated Query]] is used to determine the order in which Space Style is loaded:
 
 ```lua
 query[[from index.tag "space-style" order by _.priority desc]]

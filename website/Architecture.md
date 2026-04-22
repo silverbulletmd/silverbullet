@@ -73,7 +73,7 @@ Syscalls (system calls) are the abstraction used in SilverBullet to cleanly crea
 ## Datastore
 The DataStore is an (IndexedDB-backed) key-value store that lives in the browser. It serves as the local persistence layer for everything the client needs to keep track of:
 
-* **Object index**: All indexed objects (pages, tasks, items, links, tags, etc.) are stored here, enabling fast local queries via [[Space Lua/Lua Integrated Query]].
+* **Object index**: All indexed objects (pages, tasks, items, links, tags, etc.) are stored here, enabling fast local queries via [[Space Lua/Integrated Query]].
 * **File cache**: The [[Sync]] engine stores a local copy of all space files, enabling offline access.
 * **Configuration**: Runtime configuration and state.
 * **Message queue**: An internal message queue (MQ) used for asynchronous operations.

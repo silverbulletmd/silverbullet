@@ -229,8 +229,8 @@ func TestIntegration_Describe_Text(t *testing.T) {
 	assert.Contains(t, out, "from <var> = index.tag")
 }
 
-func TestIntegration_LIQ_Reference_Page(t *testing.T) {
-	out := runCLI(t, "--text", "script", `return space.readPage("Library/Std/Docs/LIQ Reference")`)
+func TestIntegration_SLIQ_Reference_Page(t *testing.T) {
+	out := runCLI(t, "--text", "script", `return space.readPage("Library/Std/Docs/SLIQ Reference")`)
 	assert.Contains(t, out, "from <var> = index.tag")
 	assert.Contains(t, out, "table.select")
 	assert.Contains(t, out, "array_agg")

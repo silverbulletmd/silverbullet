@@ -3,10 +3,10 @@ SilverBullet v2 removed a slew of features that were still present in the 0.x se
 Here are some pointers on what was removed and how to adapt.
 
 # Queries
-v2 does not have support for old-style [queries](https://v1.silverbullet.md/Query%20Language) (live queries) anymore. They have been replaced with [[Space Lua/Lua Integrated Query]]. Give the linked page a read, but generally there’s a few differences:
+v2 does not have support for old-style [queries](https://v1.silverbullet.md/Query%20Language) (live queries) anymore. They have been replaced with [[Space Lua/Integrated Query]]. Give the linked page a read, but generally there’s a few differences:
 
-1. Lua Integrated Queries tend to start with `from index.tag "tag-name"` instead of plain `tag-name`. This is a bit longer, but since whatever comes after `from` is a Lua expression, you can not just query [[Object]], you can query any Lua table as well in the same way.
-2. In the old query language, you access attribute simply by their name, this works in LIQ too, but stylistically it’s nicer to use either `_.attribute`, or to give the object you’re iterating over a name, using `from page = index.tag "page"`, for instance.
+1. Space Lua Integrated Queries tend to start with `from index.tag "tag-name"` instead of plain `tag-name`. This is a bit longer, but since whatever comes after `from` is a Lua expression, you can not just query [[Object]], you can query any Lua table as well in the same way.
+2. In the old query language, you access attribute simply by their name, this works in SLIQ too, but stylistically it’s nicer to use either `_.attribute`, or to give the object you’re iterating over a name, using `from page = index.tag "page"`, for instance.
 3. The `=` equals operator is `==` in Lua 😄
 
 # Templates

@@ -21,7 +21,7 @@ Slash commands are quick ways to perform repetitive tasks. You trigger them by t
 # Slash templates
 Most slash commands are implemented as [[Slash Templates]] — pages tagged with `#meta/template/slash` whose content is inserted at the cursor. The standard library includes slash templates for:
 
-* `/query` — insert a LIQ query block
+* `/query` — insert a SLIQ query block
 * `/lua-query` — insert a Lua query expression
 * `/code` — insert a fenced code block
 * `/table` — insert a Markdown table

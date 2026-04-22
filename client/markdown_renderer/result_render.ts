@@ -3,7 +3,7 @@ import {
   LuaTable,
   luaToString,
 } from "../space_lua/runtime.ts";
-import { isSqlNull } from "../space_lua/liq_null.ts";
+import { isSqlNull } from "../space_lua/sliq_null.ts";
 
 export function defaultTransformer(v: any, _k: string): Promise<string> {
   if (v === undefined || v === null || isSqlNull(v)) {

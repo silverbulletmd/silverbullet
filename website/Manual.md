@@ -79,7 +79,7 @@ The main ways to roam your space, beside following page links, are:
   * [[Attribute]]
 * [[Space Lua]]
   * [[Space Lua/Standard Library]]
-  * [[Space Lua/Lua Integrated Query]]
+  * [[Space Lua/Integrated Query]]
   * [[Space Lua/DOM]]
   * [[Space Lua/JavaScript Interop]]
 * [[Template]]

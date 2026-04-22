@@ -61,7 +61,7 @@ Over time, each topic page accumulates a reverse-chronological log of every jour
 This works for any kind of page: people, projects, concepts, books. Your journal becomes the connective tissue between all your topics.
 
 # 4. Query your journal
-Use [[Space Lua/Lua Integrated Query]] to pull insights from your journal pages. For example, show recent journal entries on your [[Index Page]]:
+Use [[Space Lua/Integrated Query]] to pull insights from your journal pages. For example, show recent journal entries on your [[Index Page]]:
 
 ```lua
 ${template.each(query[[
