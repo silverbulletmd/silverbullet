@@ -23,7 +23,7 @@ else
     echo "Creating 'silverbullet' group (with GID $PGID) and 'silverbullet' user (with UID $PUID) inside container"
     # Create silverbullet user and group ad-hoc mapped to PUID and PGID if they don't already exist
     getent group silverbullet > /dev/null || addgroup -g $PGID silverbullet
-    getent passwd silverbullet > /dev/null || adduser -D -H -G silverbullet -u $PUID silverbullet
+    getent passwd silverbullet > /dev/null || adduser -D -G silverbullet -u $PUID silverbullet
     args="$@"
     # And run via su as requested PUID
     echo "Running SilverBullet as user configured with PUID $PUID and PGID $PGID"
