@@ -1,11 +1,13 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -78,9 +80,21 @@ func (hb *HeadlessBrowser) WaitReady(ctx context.Context) error {
 }
 
 func (hb *HeadlessBrowser) launch() error {
+	// Pre-flight: verify the Chrome binary is actually executable
+	if hb.config.ChromePath != "" {
+		if _, err := exec.LookPath(hb.config.ChromePath); err != nil {
+			return fmt.Errorf("chrome binary not usable at %q: %w", hb.config.ChromePath, err)
+		}
+	}
+
+	// Capture Chrome's stderr/stdout so we can surface it when Chrome fails to start
+	var chromeBuf bytes.Buffer
+
 	// Various options to reduce memory consumption, primarily
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
+		chromedp.CombinedOutput(&chromeBuf),
 		chromedp.Flag("no-sandbox", true),
+		chromedp.Flag("disable-dev-shm-usage", true),
 		chromedp.Flag("disable-extensions", true),
 		chromedp.Flag("disable-gpu", true),
 		chromedp.Flag("in-process-gpu", true),
@@ -153,6 +167,11 @@ func (hb *HeadlessBrowser) launch() error {
 	); err != nil {
 		cancel()
 		allocCancel()
+		chromeOutput := strings.TrimSpace(chromeBuf.String())
+		if chromeOutput != "" {
+			log.Printf("[Headless] Chrome process output:\n%s", chromeOutput)
+			return fmt.Errorf("failed to navigate: %w\nChrome output:\n%s", err, chromeOutput)
+		}
 		return fmt.Errorf("failed to navigate: %w", err)
 	}
 
