@@ -87,7 +87,10 @@ const WikiLink: MarkdownConfig = {
 
 const LuaDirectives: MarkdownConfig = {
   defineNodes: [
-    { name: "LuaDirective" },
+    {
+      name: "LuaDirective",
+      style: { "LuaDirective/...": ct.DirectiveTag },
+    },
     { name: "LuaExpressionDirective" },
     { name: "LuaDirectiveMark", style: ct.DirectiveMarkTag },
   ],
