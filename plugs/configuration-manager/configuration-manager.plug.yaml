@@ -18,16 +18,21 @@ functions:
       key: "Ctrl-,"
       mac: "Cmd-,"
       requireMode: rw
+      menuMac: { location: app, group: "4_prefs", order: 1, label: "Configuration..." }
+      menu: { location: file, group: "7_settings", order: 1, label: "Configuration..." }
   openShortcuts:
     path: ./configuration.ts:openShortcuts
     command:
       name: "Configuration: Keyboard Shortcuts"
       requireMode: rw
+      menuMac: { location: app, group: "4_prefs", order: 2, label: "Keyboard Shortcuts..." }
+      menu: { location: file, group: "7_settings", order: 2, label: "Keyboard Shortcuts..." }
   openLibraries:
     path: ./configuration.ts:openLibraries
     command:
       name: "Libraries: Manager"
       requireMode: rw
+      menu: { location: space, group: "3_libs", label: "Libraries..." }
   openLibrariesLegacyManager:
     path: ./configuration.ts:openLibrariesLegacyManager
     command:

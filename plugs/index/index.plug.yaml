@@ -30,6 +30,7 @@ functions:
     path: "./command.ts:reindexCommand"
     command:
       name: "Space: Reindex"
+      menu: { location: space, group: "2_index", order: 1 }
 
   processIndexQueue:
     path: ./queue.ts:processIndexQueue
@@ -74,6 +75,7 @@ functions:
     path: "./refactor.ts:renamePageCommand"
     command:
       name: "Page: Rename"
+      menu: { location: file, group: "4_page", order: 1 }
       page: ""
       requireMode: rw
       requireEditor: page

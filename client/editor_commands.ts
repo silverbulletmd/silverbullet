@@ -469,28 +469,39 @@ export function registerEditorCommands(
     name: "Open Command Palette",
     key: "Ctrl-/",
     mac: "Cmd-/",
+    menu: { location: "file", group: "3_palette", label: "Command Palette..." },
     run: async () => client.startCommandPalette(),
   });
   hook.registerCommand({
     name: "Navigate: Page Picker",
     key: "Ctrl-k",
     mac: "Cmd-k",
+    menu: [
+      { location: "file", group: "1_new", order: 2, label: "Open Page..." },
+      { location: "navigate", group: "2_picker", order: 1, label: "Page..." },
+    ],
     run: async () => client.startPageNavigate("page"),
   });
   hook.registerCommand({
     name: "Navigate: Meta Picker",
     key: "Ctrl-Shift-k",
     mac: "Cmd-Shift-k",
+    menu: { location: "navigate", group: "2_picker", order: 4, label: "Meta Page..." },
     run: async () => client.startPageNavigate("meta"),
   });
   hook.registerCommand({
     name: "Navigate: Document Picker",
     key: "Ctrl-o",
     mac: "Cmd-o",
+    menu: [
+      { location: "file", group: "1_new", order: 3, label: "Open Document..." },
+      { location: "navigate", group: "2_picker", order: 2, label: "Document..." },
+    ],
     run: async () => client.startPageNavigate("document"),
   });
   hook.registerCommand({
     name: "Navigate: Anything Picker",
+    menu: { location: "navigate", group: "2_picker", order: 5, label: "Everything..." },
     run: async () => client.startPageNavigate("all"),
   });
   hook.registerCommand({
@@ -498,6 +509,7 @@ export function registerEditorCommands(
     key: "Ctrl-f",
     mac: "Cmd-f",
     requireEditor: "page",
+    menu: { location: "edit", group: "3_find" },
     run: async () => {
       openSearchPanel(view());
       return false; // keep focus on search panel, not the editor
@@ -507,6 +519,7 @@ export function registerEditorCommands(
     name: "Editor: New Window",
     key: "Ctrl-n",
     mac: "Cmd-n",
+    menu: { location: "file", group: "1_new", order: 1 },
     run: async () => {
       globalThis.open(
         location.href,
@@ -518,6 +531,7 @@ export function registerEditorCommands(
   hook.registerCommand({
     name: "Widgets: Refresh All",
     requireEditor: "page",
+    menu: { location: "space", group: "2_index", order: 3 },
     run: async () => {
       broadcastReload();
       return reloadAllWidgets();

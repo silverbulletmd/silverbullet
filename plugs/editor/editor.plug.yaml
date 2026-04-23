@@ -10,15 +10,18 @@ functions:
     path: "./editor.ts:toggleDarkMode"
     command:
       name: "Editor: Toggle Dark Mode"
+      menu: { location: view, group: "1_toggle", order: 1 }
   toggleMarkdownSyntaxRendering:
     path: "./editor.ts:toggleMarkdownSyntaxRendering"
     command:
       name: "Editor: Toggle Markdown Syntax Rendering"
+      menu: { location: view, group: "1_toggle", order: 2 }
   openTagNavigator:
     path: editor.ts:openTagNavigator
     command:
       name: "Navigate: Tag Picker"
       key: "Ctrl-Alt-t"
+      menu: { location: navigate, group: "2_picker", order: 3, label: "Tag..." }
 
   # Page operations
   deletePage:
@@ -27,6 +30,7 @@ functions:
       name: "Page: Delete"
       requireMode: rw
       requireEditor: page
+      menu: { location: file, group: "4_page", order: 2 }
   copyPage:
     path: "./page.ts:copyPage"
     command:
@@ -45,6 +49,7 @@ functions:
     command:
       name: "System: Reload"
       key: Ctrl-Alt-r
+      menu: { location: space, group: "4_system", order: 1 }
 
   footnoteComplete:
     path: complete.ts:footnoteComplete
@@ -65,6 +70,7 @@ functions:
       mac: "Cmd-Shift-Enter"
       requireEditor: page
       requireMode: rw
+      menu: { location: navigate, group: "3_jump", order: 2, label: "Create Page Under Cursor" }
 
   # Navigation
   linkNavigate:
@@ -74,6 +80,7 @@ functions:
       key: Ctrl-Enter
       mac: Cmd-Enter
       requireEditor: page
+      menu: { location: navigate, group: "3_jump", order: 1, label: "Go to Page Under Cursor" }
 
   clickNavigate:
     path: "./navigate.ts:clickNavigate"
@@ -84,8 +91,10 @@ functions:
     path: "./navigate.ts:navigateCommand"
     command:
       name: "Navigate: Home"
-      key: "Ctrl-g h"
+      key: ["Ctrl-g h", "Ctrl-Shift-h"]
+      mac: ["Cmd-g h", "Cmd-Shift-h"]
       page: ""
+      menu: { location: navigate, group: "1_home" }
 
   moveToPos:
     path: "./editor.ts:moveToPosCommand"
@@ -110,6 +119,7 @@ functions:
     command:
       name: "Navigate: To Line"
       requireEditor: page
+      menu: { location: navigate, group: "3_jump", order: 3, label: "Go to Line..." }
 
   navigateToPage:
     path: "./navigate.ts:navigateToPage"
@@ -127,11 +137,13 @@ functions:
     path: "./navigate.ts:navigateBack"
     command:
       name: "Navigate: Back in History"
+      menu: { location: navigate, group: "4_history", order: 1, label: "Back" }
 
   navigateForward:
     path: "./navigate.ts:navigateForward"
     command:
       name: "Navigate: Forward in History"
+      menu: { location: navigate, group: "4_history", order: 2, label: "Forward" }
 
   # Text editing commands
   quoteSelectionCommand:
@@ -142,6 +154,7 @@ functions:
       mac: "Cmd-Shift-."
       requireMode: rw
       requireEditor: page
+      menu: { location: edit.format, group: "2_block", order: 3, label: "Quote" }
   listifySelection:
     path: ./text.ts:listifySelection
     command:
@@ -150,12 +163,14 @@ functions:
       mac: "Cmd-Shift-8"
       requireMode: rw
       requireEditor: page
+      menu: { location: edit.format, group: "2_block", order: 1, label: "Bullet List" }
   numberListifySelection:
     path: ./text.ts:numberListifySelection
     command:
       name: "Text: Number Listify Selection"
       requireMode: rw
       requireEditor: page
+      menu: { location: edit.format, group: "2_block", order: 2, label: "Numbered List" }
   linkSelection:
     path: ./text.ts:linkSelection
     command:
@@ -171,6 +186,7 @@ functions:
       wrapper: "**"
       requireMode: rw
       requireEditor: page
+      menu: { location: edit.format, group: "1_inline", order: 1 }
   italic:
     path: ./text.ts:wrapSelection
     command:
@@ -180,6 +196,7 @@ functions:
       wrapper: "_"
       requireMode: rw
       requireEditor: page
+      menu: { location: edit.format, group: "1_inline", order: 2 }
   strikethrough:
     path: ./text.ts:wrapSelection
     command:
@@ -188,6 +205,7 @@ functions:
       wrapper: "~~"
       requireMode: rw
       requireEditor: page
+      menu: { location: edit.format, group: "1_inline", order: 3 }
   marker:
     path: ./text.ts:wrapSelection
     command:
@@ -196,6 +214,7 @@ functions:
       wrapper: "=="
       requireMode: rw
       requireEditor: page
+      menu: { location: edit.format, group: "1_inline", order: 4, label: "Highlight" }
   centerCursor:
     path: "./editor.ts:centerCursorCommand"
     command:
@@ -216,6 +235,7 @@ functions:
     command:
       name: "Editor: Toggle Vim Mode"
       requireEditor: page
+      menu: { location: view, group: "1_toggle", order: 3 }
   loadVimConfig:
     path: "./vim.ts:loadVimConfig"
     command:
@@ -230,17 +250,20 @@ functions:
     command:
       name: "Stats: Show"
       requireEditor: page
+      menu: { location: space, group: "5_info", label: "Statistics" }
 
   # Client commands
   reloadUICommand:
     path: ./system.ts:reloadUICommand
     command:
       name: "Client: Reload UI"
+      menu: { location: view, group: "3_reload", order: 2 }
 
   reloadPlugsCommand:
     path: ./system.ts:reloadPlugsCommand
     command:
       name: "Plugs: Reload"
+      menu: { location: space, group: "2_index", order: 2 }
 
   wipeClientCommand:
     path: ./system.ts:wipeClientCommand
@@ -262,6 +285,7 @@ functions:
     command:
       name: "Upload: File"
       requireMode: rw
+      menu: { location: file, group: "5_insert", label: "Insert File..." }
 
   # Outline commands
   outlineMoveUp:
@@ -273,6 +297,7 @@ functions:
         - "Mod-. k"
       requireMode: rw
       requireEditor: page
+      menu: { location: edit.outline, group: "1_move", order: 1 }
 
   outlineMoveDown:
     path: ./outline.ts:moveItemDown
@@ -283,6 +308,7 @@ functions:
         - "Mod-. j"
       requireMode: rw
       requireEditor: page
+      menu: { location: edit.outline, group: "1_move", order: 2 }
 
   outlineIndent:
     path: ./outline.ts:indentItem
@@ -291,6 +317,7 @@ functions:
       key: "Mod-. l"
       requireMode: rw
       requireEditor: page
+      menu: { location: edit.outline, group: "1_move", order: 4, label: "Move Right (Indent)" }
 
   outlineOutdent:
     path: ./outline.ts:outdentItem
@@ -299,6 +326,7 @@ functions:
       key: "Mod-. h"
       requireMode: rw
       requireEditor: page
+      menu: { location: edit.outline, group: "1_move", order: 3, label: "Move Left (Outdent)" }
 
   # Outline folding commands
   foldCommand:
@@ -322,11 +350,13 @@ functions:
     command:
       name: "Outline: Fold All"
       requireEditor: page
+      menu: { location: view, group: "2_outline", order: 1 }
   unfoldAllCommand:
     path: ./outline.ts:unfoldAllCommand
     command:
       name: "Outline: Unfold All"
       requireEditor: page
+      menu: { location: view, group: "2_outline", order: 2 }
   # Demo
   customFlashMessage:
     path: editor.ts:customFlashMessage

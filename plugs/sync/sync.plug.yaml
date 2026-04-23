@@ -5,11 +5,19 @@ functions:
     path: "./sync.ts:syncSpaceCommand"
     command:
       name: "Sync: Space"
+      menu:
+        location: space
+        group: "1_sync"
+        order: 1
 
   syncFileCommand:
     path: "./sync.ts:syncFileCommand"
     command:
       name: "Sync: File"
+      menu:
+        location: space
+        group: "1_sync"
+        order: 2
 
   spaceSyncComplete:
     path: "./sync.ts:spaceSyncComplete"
