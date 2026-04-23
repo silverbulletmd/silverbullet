@@ -60,6 +60,11 @@ export function systemSyscalls(
           mac: def.mac,
           hide: def.hide,
           requireMode: def.requireMode,
+          requireEditor: def.requireEditor,
+          menu: def.menu,
+          menuMac: def.menuMac,
+          menuWindows: def.menuWindows,
+          menuLinux: def.menuLinux,
         };
       }
       return allCommands;

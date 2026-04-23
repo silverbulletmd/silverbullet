@@ -6,6 +6,48 @@ export type CodeWidgetT = {
   renderMode?: "iframe";
 };
 
+/**
+ * Predefined native menu items. Ignored in PWA builds; used by the
+ * SilverBullet desktop app to emit OS-native menu items (Cut/Copy/Paste,
+ * Quit, About, etc.) instead of a command-dispatching item.
+ */
+export type PredefinedMenuKind =
+  | "quit" | "about" | "services" | "hide" | "hideOthers" | "showAll"
+  | "closeWindow" | "minimize" | "maximize" | "fullscreen"
+  | "separator"
+  | "undo" | "redo" | "cut" | "copy" | "paste" | "selectAll";
+
+/**
+ * A single native-menu placement for a command or submenu.
+ * Desktop-app only; ignored in PWA builds.
+ *
+ * - `location`: id of the target menu or submenu (e.g. "file",
+ *   "edit.format").
+ * - `group`: sort-prefix convention "1_new", "2_dashboard", "9_close". Items
+ *   are partitioned by group within a location; groups sort alphabetically
+ *   with separators auto-inserted between them.
+ * - `order`: ascending within a group; tiebreak by label.
+ * - `label`: overrides the command's display label in the menu only.
+ * - `predefined`: emit an OS-native predefined item instead of a
+ *   command-dispatching item.
+ * - `icon`: optional icon identifier; platform support varies.
+ */
+export type MenuContribution = {
+  location: string;
+  group?: string;
+  order?: number;
+  label?: string;
+  predefined?: PredefinedMenuKind;
+  icon?: string;
+};
+
+/**
+ * A menu placement value: a single contribution, an array (multiple
+ * placements), or `null` (hide this entry on the matching platform).
+ * Desktop-app only.
+ */
+export type MenuPlacement = MenuContribution | MenuContribution[] | null;
+
 export type CommandDef = {
   name: string;
 
@@ -25,6 +67,23 @@ export type CommandDef = {
   // When true, this binding is NOT registered while vim mode is active,
   // so the key falls through to vim.
   disableInVim?: boolean;
+
+  /**
+   * Desktop-app only. Native menu placement for this command.
+   *
+   * Naming note: the existing `key`/`mac` pair uses a bare platform name
+   * for the override. That pattern doesn't extend cleanly here — bare
+   * `mac` is already taken by the keybinding override, and `windows` /
+   * `linux` as top-level fields would be ambiguous. The `menu` + capital
+   * platform suffix pattern keeps overrides unambiguous.
+   */
+  menu?: MenuPlacement;
+  /** Platform-specific override: replaces `menu` on macOS. */
+  menuMac?: MenuPlacement;
+  /** Platform-specific override: replaces `menu` on Windows. */
+  menuWindows?: MenuPlacement;
+  /** Platform-specific override: replaces `menu` on Linux. */
+  menuLinux?: MenuPlacement;
 };
 export type CommandHookT = {
   command?: CommandDef;
