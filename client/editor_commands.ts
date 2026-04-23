@@ -397,8 +397,8 @@ export function registerEditorCommands(
   });
   hook.registerCommand({
     name: "Editor: Indent",
-    key: ["Ctrl-]", "Tab"],
-    mac: ["Cmd-]", "Tab"],
+    key: "Tab",
+    mac: "Tab",
     requireMode: "rw",
     requireEditor: "page",
     run: async () => {
@@ -411,7 +411,7 @@ export function registerEditorCommands(
   hook.registerCommand({
     name: "Editor: Outdent",
     key: "Shift-Tab",
-    mac: ["Cmd-[", "Shift-Tab"],
+    mac: "Shift-Tab",
     requireMode: "rw",
     requireEditor: "page",
     run: async () => {
