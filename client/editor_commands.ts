@@ -427,6 +427,7 @@ export function registerEditorCommands(
     mac: "Cmd-z",
     requireMode: "rw",
     requireEditor: "page",
+    menu: { location: "edit", group: "1_undo", order: 1, label: "Undo" },
     run: async () => undo(view()),
   });
   hook.registerCommand({
@@ -435,6 +436,7 @@ export function registerEditorCommands(
     mac: "Cmd-Shift-z",
     requireMode: "rw",
     requireEditor: "page",
+    menu: { location: "edit", group: "1_undo", order: 2, label: "Redo" },
     run: async () => redo(view()),
   });
 
@@ -501,7 +503,6 @@ export function registerEditorCommands(
   });
   hook.registerCommand({
     name: "Navigate: Anything Picker",
-    menu: { location: "navigate", group: "2_picker", order: 5, label: "Everything..." },
     run: async () => client.startPageNavigate("all"),
   });
   hook.registerCommand({
@@ -509,7 +510,7 @@ export function registerEditorCommands(
     key: "Ctrl-f",
     mac: "Cmd-f",
     requireEditor: "page",
-    menu: { location: "edit", group: "3_find" },
+    menu: { location: "edit", group: "3_find", label: "Find in Page..." },
     run: async () => {
       openSearchPanel(view());
       return false; // keep focus on search panel, not the editor
@@ -519,7 +520,6 @@ export function registerEditorCommands(
     name: "Editor: New Window",
     key: "Ctrl-n",
     mac: "Cmd-n",
-    menu: { location: "file", group: "1_new", order: 1 },
     run: async () => {
       globalThis.open(
         location.href,
@@ -531,7 +531,6 @@ export function registerEditorCommands(
   hook.registerCommand({
     name: "Widgets: Refresh All",
     requireEditor: "page",
-    menu: { location: "space", group: "2_index", order: 3 },
     run: async () => {
       broadcastReload();
       return reloadAllWidgets();

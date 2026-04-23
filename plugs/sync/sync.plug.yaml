@@ -9,6 +9,7 @@ functions:
         location: space
         group: "1_sync"
         order: 1
+        label: "Sync Space"
 
   syncFileCommand:
     path: "./sync.ts:syncFileCommand"
@@ -18,6 +19,7 @@ functions:
         location: space
         group: "1_sync"
         order: 2
+        label: "Sync File"
 
   spaceSyncComplete:
     path: "./sync.ts:spaceSyncComplete"
