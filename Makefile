@@ -5,13 +5,9 @@ CLI_LDFLAGS = -X main.version=$(CLI_VERSION)
 .PHONY: build build-for-docker docker build-server-releases build-cli-releases clean check fmt test test-integration test-e2e bench generate website
 
 build:
-	# Build client
 	npm run build
-	# Build plug-compile
 	npm run build:plug-compile
-	# Build server
 	go build -ldflags "$(LDFLAGS)"
-	# Build Go CLI
 	go build -ldflags "$(CLI_LDFLAGS)" -o silverbullet-cli ./cmd/cli
 
 setup:
@@ -48,42 +44,31 @@ clean:
 	rm -rf  client_bundle/{base_fs,client} dist public_version.ts
 	rm -f silverbullet silverbullet-arm64 silverbullet-amd64 silverbullet-arm silverbullet.exe silverbullet-server-*.zip
 	rm -f silverbullet-cli silverbullet-cli.exe silverbullet-cli-*.zip
-	# Plug build outputs (see each plug's .plug.yaml `build:` section)
 	rm -rf plugs/configuration-manager/assets
 
 check:
-	# Frontend type check
 	npm run check
-	# Frontend lint
 	npx biome lint .
-	# Backend lint
 	go vet
 
 fmt:
-	# Reformat frontend
 	npx biome format --write .
-	# Reformat backend
 	go fmt
 
 test:
-	# Run frontend tests
 	npx vitest run
-	# Run backend tests
 	go test ./server/...
 
 test-integration:
-	# Run headless Chrome integration tests (requires Chrome installed)
 	go test -tags=integration ./server/... ./cli/... -v -timeout 300s
 
 test-e2e: build
 	npx playwright test
 
 bench:
-	# Run frontend benchmarks
 	npm run bench
 
 generate:
-	# Regenerate the Lua parser from the the grammar
 	npx @lezer/generator@1.5.1 client/space_lua/lua.grammar -o client/space_lua/parse-lua.js
 
 website: build
