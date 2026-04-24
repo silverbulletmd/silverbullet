@@ -221,6 +221,13 @@
     /* U+2022 BULLET */
   }
 
+  // Keep the layout prefix (leading whitespace + bullet/quote/task
+  // marker + trailing space) on a single line. See
+  // silverbulletmd/silverbullet#1829.
+  .sb-layout-prefix {
+    white-space: nowrap;
+  }
+
   .cm-task-checked,
   .sb-line-task:has(.cm-task-checked) .sb-wiki-link {
     text-decoration: line-through !important;

@@ -4,6 +4,7 @@ import { blockquotePlugin } from "./block_quote.ts";
 import { admonitionPlugin } from "./admonition.ts";
 import { hideHeaderMarkPlugin, hideMarksPlugin } from "./hide_mark.ts";
 import { cleanBlockPlugin } from "./block.ts";
+import { layoutPrefixPlugin } from "./layout_prefix.ts";
 import { linkPlugin } from "./link.ts";
 import { listBulletPlugin } from "./list.ts";
 import { tablePlugin } from "./table.ts";
@@ -29,6 +30,7 @@ export function cleanModePlugins(client: Client) {
     attributePlugin(),
     frontmatterPlugin(client),
     customSyntaxPlugin(client),
+    layoutPrefixPlugin(),
   ];
 
   if (client.ui.viewState.uiOptions.markdownSyntaxRendering) {
