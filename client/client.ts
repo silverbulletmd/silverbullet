@@ -284,6 +284,12 @@ export class Client {
           location.href = actionOrRedirectHeader;
         }
       },
+      // Bearer token injected by an embedder (e.g. the Tauri App) as
+      // `globalThis.silverbullet.bearerToken` before the bundle loads.
+      // Undefined in a normal browser deployment, which leaves
+      // HttpSpacePrimitives in its default cookie-only auth mode.
+      (globalThis as { silverbullet?: { bearerToken?: string } }).silverbullet
+        ?.bearerToken,
     );
 
     this.eventedSpacePrimitives = new EventedSpacePrimitives(

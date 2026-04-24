@@ -26,9 +26,12 @@ func utcDateString(mtime int64) string {
 // setCookie sets an HTTP cookie
 func setCookie(w http.ResponseWriter, name, value string, options CookieOptions) {
 	cookie := &http.Cookie{
-		Name:  name,
-		Value: value,
-		Path:  options.Path,
+		Name:     name,
+		Value:    value,
+		Path:     options.Path,
+		HttpOnly: options.HttpOnly,
+		Secure:   options.Secure,
+		SameSite: parseSameSite(options.SameSite),
 	}
 
 	if !options.Expires.IsZero() {
@@ -50,13 +53,40 @@ func getCookie(r *http.Request, name string) string {
 // deleteCookie deletes an HTTP cookie
 func deleteCookie(w http.ResponseWriter, name string, options CookieOptions) {
 	cookie := &http.Cookie{
-		Name:    name,
-		Value:   "",
-		Path:    options.Path,
-		Expires: time.Unix(0, 0),
-		MaxAge:  -1,
+		Name:     name,
+		Value:    "",
+		Path:     options.Path,
+		Expires:  time.Unix(0, 0),
+		MaxAge:   -1,
+		HttpOnly: options.HttpOnly,
+		Secure:   options.Secure,
+		SameSite: parseSameSite(options.SameSite),
 	}
 	http.SetCookie(w, cookie)
+}
+
+// parseSameSite maps a CookieOptions.SameSite string to the net/http enum.
+// Unrecognized or empty values fall back to SameSiteDefaultMode.
+func parseSameSite(value string) http.SameSite {
+	switch strings.ToLower(value) {
+	case "strict":
+		return http.SameSiteStrictMode
+	case "lax":
+		return http.SameSiteLaxMode
+	case "none":
+		return http.SameSiteNoneMode
+	default:
+		return http.SameSiteDefaultMode
+	}
+}
+
+// isSecureRequest reports whether the request was received over TLS,
+// accounting for a reverse proxy terminating TLS upstream.
+func isSecureRequest(r *http.Request) bool {
+	if r.TLS != nil {
+		return true
+	}
+	return strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https")
 }
 
 // CookieOptions represents cookie configuration options

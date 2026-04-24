@@ -31,7 +31,10 @@ func addAuthEndpoints(r chi.Router, config *ServerConfig) {
 	r.Get("/.logout", func(w http.ResponseWriter, r *http.Request) {
 		host := extractHost(r)
 		cookieOptions := CookieOptions{
-			Path: fmt.Sprintf("%s/", config.HostURLPrefix),
+			Path:     fmt.Sprintf("%s/", config.HostURLPrefix),
+			HttpOnly: true,
+			Secure:   isSecureRequest(r),
+			SameSite: "Lax",
 		}
 
 		deleteCookie(w, authCookieName(host), cookieOptions)
@@ -132,8 +135,11 @@ func addAuthEndpoints(r chi.Router, config *ServerConfig) {
 			expires := time.Now().Add(time.Duration(expirySeconds) * time.Second)			
 
 			cookieOptions := CookieOptions{
-				Path:    fmt.Sprintf("%s/", config.HostURLPrefix),
-				Expires: expires,
+				Path:     fmt.Sprintf("%s/", config.HostURLPrefix),
+				Expires:  expires,
+				HttpOnly: true,
+				Secure:   isSecureRequest(r),
+				SameSite: "Lax",
 			}
 
 			setCookie(w, authCookieName(host), jwt, cookieOptions)
@@ -216,7 +222,10 @@ func authMiddleware(config *ServerConfig) func(http.Handler) http.Handler {
 						return
 					}
 					cookieOptions := CookieOptions{
-						Path: fmt.Sprintf("%s/", config.HostURLPrefix),
+						Path:     fmt.Sprintf("%s/", config.HostURLPrefix),
+						HttpOnly: true,
+						Secure:   isSecureRequest(r),
+						SameSite: "Lax",
 					}
 					setCookie(w, authCookieName(host), jwt, cookieOptions)
 					next.ServeHTTP(w, r)
@@ -305,8 +314,11 @@ func refreshLogin(w http.ResponseWriter, r *http.Request, config *ServerConfig, 
 
 	expires := time.Now().Add(time.Duration(expirySeconds) * time.Second)
 	cookieOptions := CookieOptions{
-		Path:    fmt.Sprintf("%s/", config.HostURLPrefix),
-		Expires: expires,
+		Path:     fmt.Sprintf("%s/", config.HostURLPrefix),
+		Expires:  expires,
+		HttpOnly: true,
+		Secure:   isSecureRequest(r),
+		SameSite: "Lax",
 	}
 
 	setCookie(w, authCookieName(host), newJwt, cookieOptions)
