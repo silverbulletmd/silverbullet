@@ -42,7 +42,7 @@ func CreateAuthenticator(path string, authOptions *AuthOptions) (*Authenticator,
 	var auth Authenticator
 	auth.path = path
 	if err := json.Unmarshal(jsonBytes, &auth); err != nil {
-		log.Printf("Could not parse .silverbullet.auth.json, resetting")
+		return nil, fmt.Errorf("could not parse %s: %w (remove or fix the file to proceed)", path, err)
 	}
 	if err := auth.init(authOptions); err != nil {
 		return nil, err
