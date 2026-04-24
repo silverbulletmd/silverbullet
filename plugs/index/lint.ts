@@ -19,11 +19,21 @@ import { allIndexers } from "./indexer.ts";
  */
 export function lintYAML({ tree, name }: LintEvent): LintDiagnostic[] {
   const diagnostics: LintDiagnostic[] = [];
+  // The `name` frontmatter attribute is only required to match the page path
+  // for library pages, where it acts as the import name. Read tags straight
+  // from the tree so edits in progress take effect immediately, rather than
+  // waiting for the indexer to refresh pageMeta.
+  const frontmatter = extractFrontMatter(tree);
+  const isLibraryPage = frontmatter.tags?.includes("meta/library") ?? false;
 
   traverseTree(tree, (node) => {
     if (node.type === "FrontMatterCode") {
       const yamlText = renderToText(node);
-      const lintResult = lintYamlBlock(yamlText, node.from!, name);
+      const lintResult = lintYamlBlock(
+        yamlText,
+        node.from!,
+        isLibraryPage ? name : undefined,
+      );
       if (lintResult) {
         diagnostics.push(lintResult);
       }
@@ -75,7 +85,8 @@ function lintYamlBlock(
         from: startPos,
         to: startPos + yamlText.length,
         severity: "error",
-        message: "'name' attribute has to match page name",
+        message:
+          "For library pages, the 'name' attribute must match the page path",
       };
     }
   } catch (e: any) {
