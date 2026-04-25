@@ -33,7 +33,7 @@ export async function buildClient(): Promise<void> {
     minify: true,
     jsxFactory: "h",
     // metafile: true,
-    splitting: true,
+    splitting: false,
     format: "esm",
     chunkNames: ".client/[name]-[hash]",
     jsx: "automatic",
