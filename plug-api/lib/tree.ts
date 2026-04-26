@@ -199,7 +199,7 @@ export function traverseTree(
     try {
       stop = matchFn(tree);
     } catch (e: any) {
-      console.warn(
+      console.error(
         `traverseTree visitor failed at node ${tree.type}@${tree.from}:`,
         e?.stack ?? e,
       );
