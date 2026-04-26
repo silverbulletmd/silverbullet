@@ -14,17 +14,7 @@ export async function buildClient(): Promise<void> {
 
   console.log("Now ESBuilding the client and service workers...");
 
-  const result = await esbuild.build({
-    entryPoints: [
-      {
-        in: "client/boot.ts",
-        out: ".client/client",
-      },
-      {
-        in: "client/service_worker.ts",
-        out: "service_worker",
-      },
-    ],
+  const baseBuildConfig: esbuild.BuildOptions = {
     outdir: "client_bundle/client",
     absWorkingDir: process.cwd(),
     bundle: true,
@@ -33,17 +23,43 @@ export async function buildClient(): Promise<void> {
     minify: true,
     jsxFactory: "h",
     // metafile: true,
-    splitting: false,
     format: "esm",
     chunkNames: ".client/[name]-[hash]",
     jsx: "automatic",
     jsxFragment: "Fragment",
     jsxImportSource: "preact",
-  });
+  }
 
-  if (result.metafile) {
-    const text = await esbuild.analyzeMetafile(result.metafile!);
-    console.log("Bundle info", text);
+  const buildConfigs: Array<[String, esbuild.BuildOptions]> = [
+    ["client", {
+      ...baseBuildConfig,
+      entryPoints: [
+        {
+          in: "client/boot.ts",
+          out: ".client/client",
+        }
+      ],
+      splitting: true
+    }],
+    ["service worker", {
+      ...baseBuildConfig,
+      entryPoints: [
+        {
+          in: "client/service_worker.ts",
+          out: "service_worker",
+        },
+      ],
+      splitting: false
+    }]
+  ]
+
+  for (const [buildName, buildConfig] of buildConfigs) {
+    const result = await esbuild.build(buildConfig)
+
+    if (result.metafile) {
+      const text = await esbuild.analyzeMetafile(result.metafile!);
+      console.log(`Bundle info for ${buildName}`, text);
+    }
   }
 
   await copyAssets("client_bundle/client/.client");
