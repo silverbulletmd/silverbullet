@@ -233,6 +233,169 @@ describe("Bullet list indent/outdent", () => {
   });
 });
 
+// Bullet Lists: Mixed markers (issue #1936)
+// CommonMark splits runs of list items into separate BulletLists whenever the
+// marker character changes. The outline operations should still treat such a
+// run as a single logical list.
+describe("Bullet list mixed markers", () => {
+  test("move up across marker change (- then *)", () => {
+    expect(
+      applyOp(
+        moveUp,
+        `- first
+* sec|^|ond
+`,
+      ),
+    ).toEqual(`* sec|^|ond
+- first
+`);
+  });
+
+  test("move down across marker change (* then -)", () => {
+    expect(
+      applyOp(
+        moveDown,
+        `* fir|^|st
+- second
+`,
+      ),
+    ).toEqual(`- second
+* fir|^|st
+`);
+  });
+
+  test("move through a run of three different markers", () => {
+    expect(
+      applyOp(
+        moveUp,
+        `- first
+* second
++ thi|^|rd
+`,
+      ),
+    ).toEqual(`- first
++ thi|^|rd
+* second
+`);
+    expect(
+      applyOp(
+        moveDown,
+        `- fir|^|st
+* second
++ third
+`,
+      ),
+    ).toEqual(`* second
+- fir|^|st
++ third
+`);
+  });
+
+  test("boundary no-ops across mixed markers", () => {
+    const upInput = `- fir|^|st
+* second
+- third
+`;
+    expect(applyOp(moveUp, upInput)).toEqual(upInput);
+    const downInput = `- first
+* second
+- thi|^|rd
+`;
+    expect(applyOp(moveDown, downInput)).toEqual(downInput);
+  });
+
+  test("item with children moves as unit across markers", () => {
+    expect(
+      applyOp(
+        moveUp,
+        `- first
+* sec|^|ond
+  - child
+`,
+      ),
+    ).toEqual(`* sec|^|ond
+  - child
+- first
+`);
+  });
+
+  test("mixed markers still move normally within same marker run", () => {
+    expect(
+      applyOp(
+        moveUp,
+        `- first
+- second
+* thi|^|rd
+* fourth
+`,
+      ),
+    ).toEqual(`- first
+* thi|^|rd
+- second
+* fourth
+`);
+  });
+
+  test("indent item that is first of its marker run but has preceding sibling", () => {
+    expect(
+      applyOp(
+        indent,
+        `- first
+* sec|^|ond
+`,
+      ),
+    ).toEqual(`- first
+  * sec|^|ond
+`);
+  });
+
+  test("outdent item across mixed markers", () => {
+    expect(
+      applyOp(
+        outdent,
+        `- first
+  * sec|^|ond
+`,
+      ),
+    ).toEqual(`- first
+* sec|^|ond
+`);
+  });
+
+  test("true first item across mixed markers cannot indent", () => {
+    const input = `- fir|^|st
+* second
+`;
+    expect(applyOp(indent, input)).toEqual(input);
+  });
+
+  test("mixed markers inside a nested list", () => {
+    expect(
+      applyOp(
+        moveUp,
+        `- parent
+  - child one
+  * child |^|two
+`,
+      ),
+    ).toEqual(`- parent
+  * child |^|two
+  - child one
+`);
+  });
+
+  test("adjacent ordered list does not merge with bullet list", () => {
+    // An OrderedList sibling breaks the bullet-list run — the cursor item is
+    // alone in its BulletList so it must not move across the OrderedList.
+    const input = `1. one
+* tw|^|o
+1. three
+`;
+    expect(applyOp(moveUp, input)).toEqual(input);
+    expect(applyOp(moveDown, input)).toEqual(input);
+  });
+});
+
 // Headers: Move Up/Down
 describe("Heading move up/down", () => {
   test("swap two h2 sections", () => {

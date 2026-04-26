@@ -158,19 +158,62 @@ export function detectContext(
 }
 
 /**
- * Returns indices of ListItem children in list.children, skipping separator text nodes.
+ * CommonMark starts a new BulletList whenever the marker character changes
+ * (e.g. a `-` item followed by a `*` item), even with no blank line between
+ * them. For outline operations we want to treat such runs of adjacent
+ * BulletLists as a single logical list so items can move across the marker
+ * boundary. Returns the sequence of BulletList siblings that are separated
+ * from `list` only by whitespace text nodes in the shared parent. OrderedLists
+ * and other block types break the run.
  */
-function listItemIndices(list: ParseTree): number[] {
-  const indices: number[] = [];
-  if (!list.children) {
-    return indices;
+function adjacentBulletListGroup(list: ParseTree): ParseTree[] {
+  if (list.type !== "BulletList") {
+    return [list];
   }
-  for (let i = 0; i < list.children.length; i++) {
-    if (list.children[i].type === "ListItem") {
-      indices.push(i);
+  const parent = list.parent;
+  if (!parent?.children) {
+    return [list];
+  }
+  const siblings = parent.children;
+  const idx = siblings.indexOf(list);
+  const group: ParseTree[] = [list];
+
+  for (let i = idx - 1; i >= 0; i--) {
+    const s = siblings[i];
+    if (!s.type) continue; // separator text nodes
+    if (s.type === "BulletList") {
+      group.unshift(s);
+    } else {
+      break;
     }
   }
-  return indices;
+  for (let i = idx + 1; i < siblings.length; i++) {
+    const s = siblings[i];
+    if (!s.type) continue;
+    if (s.type === "BulletList") {
+      group.push(s);
+    } else {
+      break;
+    }
+  }
+  return group;
+}
+
+/**
+ * Returns all ListItem nodes from `list` and any adjacent BulletList siblings
+ * (see `adjacentBulletListGroup`), in document order.
+ */
+function combinedListItems(list: ParseTree): ParseTree[] {
+  const items: ParseTree[] = [];
+  for (const l of adjacentBulletListGroup(list)) {
+    if (!l.children) continue;
+    for (const c of l.children) {
+      if (c.type === "ListItem") {
+        items.push(c);
+      }
+    }
+  }
+  return items;
 }
 
 /**
@@ -297,19 +340,17 @@ function moveListItem(
   direction: "up" | "down",
 ): OutlineResult {
   const { item, list } = ctx;
-  const indices = listItemIndices(list);
-  const itemPos = indices.indexOf(ctx.itemIndex);
+  const items = combinedListItems(list);
+  const itemPos = items.indexOf(item);
 
   if (direction === "up" && itemPos <= 0) {
     return null;
   }
-  if (direction === "down" && itemPos >= indices.length - 1) {
+  if (direction === "down" && itemPos >= items.length - 1) {
     return null;
   }
 
-  const otherPos = direction === "up" ? itemPos - 1 : itemPos + 1;
-  const otherIndex = indices[otherPos];
-  const otherItem = list.children![otherIndex];
+  const otherItem = items[direction === "up" ? itemPos - 1 : itemPos + 1];
 
   const first = direction === "up" ? otherItem : item;
   const second = direction === "up" ? item : otherItem;
@@ -373,10 +414,11 @@ function indentListItem(
   ctx: ListContext,
 ): OutlineResult {
   const { item, list } = ctx;
-  const indices = listItemIndices(list);
-  const itemPos = indices.indexOf(ctx.itemIndex);
+  const items = combinedListItems(list);
+  const itemPos = items.indexOf(item);
 
-  // Can indent if: has preceding sibling, or list is already nested
+  // Can indent if: has preceding sibling (possibly in an adjacent BulletList
+  // with a different marker), or list is already nested
   const isNested = list.parent?.type === "ListItem";
   if (itemPos <= 0 && !isNested) {
     return null;
