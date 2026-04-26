@@ -86,7 +86,7 @@ export async function indexItems(
 
     // Traversal continue into child items (potentially)
     return false;
-  });
+  }, true);
 
   if (!shouldIndexAllItems) {
     items = items.filter((item) => item.tag !== "item" || item.tags?.length);

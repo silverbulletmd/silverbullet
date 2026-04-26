@@ -213,7 +213,7 @@ export async function indexLinks(
       }
     }
     return false;
-  });
+  }, true);
 
   // Now let's check which are aspiring pages
   // Collect unique target pages and check existence in parallel
@@ -267,7 +267,7 @@ export function collectPageLinks(n: ParseTree): string[] {
       return true;
     }
     return false;
-  });
+  }, true);
   return [...links];
 }
 

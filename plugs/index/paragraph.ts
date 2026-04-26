@@ -86,7 +86,7 @@ export async function indexParagraphs(
 
     // stop on every element except document, including paragraphs
     return true;
-  });
+  }, true);
 
   return objects;
 }

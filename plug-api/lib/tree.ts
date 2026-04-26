@@ -191,13 +191,29 @@ export function traverseTree(
   tree: ParseTree,
   // Return value = should stop traversal into children?
   matchFn: (tree: ParseTree) => boolean,
+  // Just log errors on exceptions, but don't stop traversal
+  catchVisitorErrors = false,
 ): void {
-  if (matchFn(tree)) {
+  let stop = false;
+  if (catchVisitorErrors) {
+    try {
+      stop = matchFn(tree);
+    } catch (e: any) {
+      console.warn(
+        `traverseTree visitor failed at node ${tree.type}@${tree.from}:`,
+        e?.stack ?? e,
+      );
+      return;
+    }
+  } else {
+    stop = matchFn(tree);
+  }
+  if (stop) {
     return;
   }
   if (tree.children) {
     for (const child of tree.children) {
-      traverseTree(child, matchFn);
+      traverseTree(child, matchFn, catchVisitorErrors);
     }
   }
 }
@@ -206,13 +222,28 @@ export async function traverseTreeAsync(
   tree: ParseTree,
   // Return value = should stop traversal into children?
   matchFn: (tree: ParseTree) => Promise<boolean>,
+  catchVisitorErrors = false,
 ): Promise<void> {
-  if (await matchFn(tree)) {
+  let stop = false;
+  if (catchVisitorErrors) {
+    try {
+      stop = await matchFn(tree);
+    } catch (e: any) {
+      console.error(
+        `traverseTreeAsync visitor failed at node ${tree.type}@${tree.from}:`,
+        e?.stack ?? e,
+      );
+      return;
+    }
+  } else {
+    stop = await matchFn(tree);
+  }
+  if (stop) {
     return;
   }
   if (tree.children) {
     for (const child of tree.children) {
-      await traverseTreeAsync(child, matchFn);
+      await traverseTreeAsync(child, matchFn, catchVisitorErrors);
     }
   }
 }

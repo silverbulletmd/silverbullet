@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import {
   addParentPointers,
   cleanTree,
@@ -15,6 +15,7 @@ import {
   renderToText,
   replaceNodesMatching,
   traverseTree,
+  traverseTreeAsync,
 } from "./tree.ts";
 import { parse } from "../../client/markdown_parser/parse_tree.ts";
 import { extendedMarkdownLanguage } from "../../client/markdown_parser/parser.ts";
@@ -107,6 +108,72 @@ test("traverseTree visits all nodes when callback returns false", () => {
   expect(types.has("Document")).toBe(true);
   expect(types.has("WikiLinkPage")).toBe(true);
   expect(types.has("ATXHeading1")).toBe(true);
+});
+
+test("traverseTree isolates visitor errors per-node when opted in", () => {
+  const mdTree = parse(extendedMarkdownLanguage, mdTest1);
+  const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  try {
+    const seenHeadings: string[] = [];
+    traverseTree(mdTree, (n) => {
+      if (n.type === "ATXHeading1") {
+        throw new Error("boom on first heading");
+      }
+      if (n.type === "ATXHeading2") {
+        seenHeadings.push(n.type);
+      }
+      return false;
+    }, true);
+    expect(seenHeadings).toContain("ATXHeading2");
+    expect(errorSpy).toHaveBeenCalled();
+  } finally {
+    errorSpy.mockRestore();
+  }
+});
+
+test("traverseTree propagates visitor errors by default", () => {
+  const mdTree = parse(extendedMarkdownLanguage, mdTest1);
+  expect(() =>
+    traverseTree(mdTree, (n) => {
+      if (n.type === "ATXHeading1") {
+        throw new Error("boom on first heading");
+      }
+      return false;
+    })
+  ).toThrow("boom on first heading");
+});
+
+test("traverseTreeAsync isolates visitor errors per-node when opted in", async () => {
+  const mdTree = parse(extendedMarkdownLanguage, mdTest1);
+  const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  try {
+    const seenHeadings: string[] = [];
+    await traverseTreeAsync(mdTree, (n) => {
+      if (n.type === "ATXHeading1") {
+        return Promise.reject(new Error("boom on first heading"));
+      }
+      if (n.type === "ATXHeading2") {
+        seenHeadings.push(n.type);
+      }
+      return Promise.resolve(false);
+    }, true);
+    expect(seenHeadings).toContain("ATXHeading2");
+    expect(errorSpy).toHaveBeenCalled();
+  } finally {
+    errorSpy.mockRestore();
+  }
+});
+
+test("traverseTreeAsync propagates visitor errors by default", async () => {
+  const mdTree = parse(extendedMarkdownLanguage, mdTest1);
+  await expect(
+    traverseTreeAsync(mdTree, (n) => {
+      if (n.type === "ATXHeading1") {
+        return Promise.reject(new Error("boom on first heading"));
+      }
+      return Promise.resolve(false);
+    }),
+  ).rejects.toThrow("boom on first heading");
 });
 
 test("collectNodesOfType collects all nodes of given type", () => {

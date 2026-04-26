@@ -194,7 +194,7 @@ export function collectTags(n: ParseTree): string[] {
       return true;
     }
     return false;
-  });
+  }, true);
   return [...tags];
 }
 

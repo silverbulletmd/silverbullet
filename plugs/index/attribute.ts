@@ -37,7 +37,7 @@ export function collectAttributes(tree: ParseTree): Record<string, any> {
       return true;
     }
     return false;
-  });
+  }, true);
 
   return attributes;
 }
