@@ -3,12 +3,12 @@
 The SilverBullet CLI is a companion command-line tool for interacting with a running SilverBullet instance from your terminal. It communicates with the server via the [[Runtime API]], letting you evaluate Lua expressions, run scripts, open an interactive REPL, tail logs, and more — without touching a browser.
 
 # Installation
-The CLI binary (`silverbullet-cli`) is available alongside the server binary on the [GitHub releases page](https://github.com/silverbulletmd/silverbullet/releases) (or the [edge](https://github.com/silverbulletmd/silverbullet/releases/tag/edge) build). Download the version matching your platform.
+The CLI binary (`sb`) is available alongside the server binary on the [GitHub releases page](https://github.com/silverbulletmd/silverbullet/releases) (or the [edge](https://github.com/silverbulletmd/silverbullet/releases/tag/edge) build). Download the version matching your platform.
 
 Once installed, it can self-update:
 ```bash
-silverbullet-cli upgrade       # latest stable release
-silverbullet-cli upgrade-edge  # latest edge (main branch) build
+sb upgrade       # latest stable release
+sb upgrade-edge  # latest edge (main branch) build
 ```
 
 # Configuring spaces
@@ -16,7 +16,7 @@ Before using the CLI, connect it to a SilverBullet instance. The CLI stores spac
 
 ## Adding a space
 ```bash
-silverbullet-cli space add
+sb space add
 ```
 This interactive wizard will prompt for:
 1. A **name** for the space (alphanumeric and hyphens)
@@ -25,8 +25,8 @@ This interactive wizard will prompt for:
 
 ## Listing and removing spaces
 ```bash
-silverbullet-cli space list
-silverbullet-cli space remove <name>
+sb space list
+sb space remove <name>
 ```
 
 # Global flags
@@ -46,10 +46,10 @@ Note that the first call may take a few seconds, since the [[Runtime API]] will 
 Evaluate a single Lua expression and print the result.
 
 ```bash
-silverbullet-cli lua "1 + 1"
+sb lua "1 + 1"
 # => 2
 
-silverbullet-cli lua "editor.getCurrentPage()"
+sb lua "editor.getCurrentPage()"
 # => "index"
 ```
 
@@ -57,17 +57,17 @@ silverbullet-cli lua "editor.getCurrentPage()"
 Execute a multi-line Lua script from a file or stdin.
 
 ```bash
-silverbullet-cli lua-script myscript.lua
+sb lua-script myscript.lua
 
 # Or pipe from stdin:
-echo 'local x = 40; return x + 2' | silverbullet-cli lua-script
+echo 'local x = 40; return x + 2' | sb lua-script
 ```
 
 ## `repl`
 Open an interactive Lua REPL with multi-line support.
 
 ```bash
-silverbullet-cli repl
+sb repl
 ```
 
 Special commands inside the REPL:
@@ -81,9 +81,9 @@ The REPL automatically detects incomplete expressions (unclosed brackets, blocks
 Show console logs from the headless browser client.
 
 ```bash
-silverbullet-cli logs              # last 100 entries
-silverbullet-cli logs -n 20        # last 20 entries
-silverbullet-cli logs -f           # follow (tail) mode
+sb logs              # last 100 entries
+sb logs -n 20        # last 20 entries
+sb logs -f           # follow (tail) mode
 ```
 
 | Flag | Description |
@@ -95,8 +95,8 @@ silverbullet-cli logs -f           # follow (tail) mode
 Capture a PNG screenshot of the headless client viewport.
 
 ```bash
-silverbullet-cli screenshot page.png  # save to file
-silverbullet-cli screenshot > page.png  # or pipe to stdout
+sb screenshot page.png  # save to file
+sb screenshot > page.png  # or pipe to stdout
 ```
 
 ## `version`
@@ -118,15 +118,15 @@ Credentials are encrypted at rest using AES-256-GCM with PBKDF2 key derivation.
 
 Query your space for recent pages:
 ```bash
-silverbullet-cli lua 'query[[from tags.page order by lastModified desc limit 5 select name]]'
+sb lua 'query[[from tags.page order by lastModified desc limit 5 select name]]'
 ```
 
 Run a script that lists all tasks:
 ```bash
-echo 'return query[[from tags.task where not done select ref, name]]' | silverbullet-cli lua-script
+echo 'return query[[from tags.task where not done select ref, name]]' | sb lua-script
 ```
 
 Tail logs while debugging:
 ```bash
-silverbullet-cli logs -f
+sb logs -f
 ```

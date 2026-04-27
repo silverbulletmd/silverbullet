@@ -10,9 +10,9 @@ var version string
 
 func main() {
 	root := &cobra.Command{
-		Use:   "silverbullet-cli",
+		Use:   "sb",
 		Short: "SilverBullet CLI",
-		Long:  "SilverBullet CLI — interact with your spaces from the command line.\n\nRun 'silverbullet-cli describe' to see available data types and query syntax.",
+		Long:  "SilverBullet CLI — interact with your spaces from the command line.\n\nRun 'sb describe' to see available data types and query syntax.",
 	}
 
 	cli.AddSpaceFlags(root)

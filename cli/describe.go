@@ -151,7 +151,7 @@ func describeAll(conn *SpaceConnection, mode OutputMode) error {
 	}
 
 	fmt.Println()
-	fmt.Printf("Run 'silverbullet-cli describe <type>' for full schema.\n")
+	fmt.Printf("Run 'sb describe <type>' for full schema.\n")
 
 	if result.Syntax != "" {
 		fmt.Println()

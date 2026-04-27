@@ -13,9 +13,11 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
 * Rebindable built-in keyboard shortcuts: almost all built-in keyboard shortcuts are now proper SilverBullet commands and can be rebound. 
 * [[Plugs/Development]] (now with new docs!) gains an optional `build:` section in manifests, running `esbuild`, `sass`, or `copy` transforms before asset bundling — enables plugs to ship bundled TSX/SCSS UIs.
 * Action buttons: new `command` attribute for `actionButton.define`.
-* [[Runtime API|CLI]] iteration: renamed `lua` → `eval` and `luascript` → `script`, and added a new `describe` command that describes SLIQ and lists tags with defined schemas.
 * Rebrand: “Lua Integrated Query” (LIQ) is now called [[Space Lua/Integrated Query|Space Lua Integrated Query]] (_SLIQ!_) (as coined by Matouš Jan Fialka)
-* HTTP: content type is now also exposed via the `X-Content-Type` header.
+* [[Runtime API|CLI]] renamed from `silverbullet-cli` to `sb`, in addition:
+  * renamed `lua` → `eval`
+  * `luascript` → `script`
+  * a new `describe` command that describes SLIQ and lists tags with defined schemas.
 * Docker: removed `VOLUME` declaration from the Dockerfile (it gave a false sense of persistence `/space` must be explicitly mounted, as documented). This also fixed the silverbullet-website repo.
 * Fix: [[Sync]] now falls through to local data on browser-native network errors instead of returning 503; previously synced spaces serve locally immediately after a service worker restart.
 * Fix: navigation no longer blocks while the initial index is still running.
@@ -24,6 +26,19 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
 * Fix: regression where aspiring pages were not deleted once the page was created.
 * Fix: page rename failed when the page contains external URL links.
 * Fix: too-tall mini editor in various pickers on Safari.
+* **Security**: auth cookies now set stricter security flags (HttpOnly, Secure, SameSite); auth config file corruption no longer fails silently.
+* Potentially **breaking** CSS change for theme authors: `.sb-notifications` has moved in the DOM (notifications now portal to `document.body`).
+* New [[API/system]] syscalls `system.loadPlug` / `system.unloadPlug` for per-path plug (re)loading.
+* New [[API/editor]] syscall `editor.focus` for explicitly focusing the editor.
+* Configuration Manager: Key Bindings tab now says "Filter commands" instead of "Search commands".
+* More sensible fallback values for config options before the initial index has populated defaults.
+* Lint: the `name` attribute uniqueness check is now limited to `#meta/library` pages.
+* Removed indent/outdent key bindings that clashed with browser forward/backward navigation; the `Ctrl-v` page-down binding is now restricted to macOS only.
+* [[Runtime API]]: better debug output when the headless Chrome instance fails to boot.
+* Fix: more robust markdown tree traversal in the face of invalid markdown trees.
+* Fix: [outline operation edge cases](https://github.com/silverbulletmd/silverbullet/issues/1936).
+* Fix: button text wrapping.
+* Fix: Runtime API fixed for users using PUID and PGUID users (by [Luminiferous348](https://github.com/Luminiferous348)).
 
 ## 2.6.1
 * **Technical: Deno → Node.js migration**: The TypeScript/client codebase has been migrated from Deno to Node.js, now using vitest for tests.

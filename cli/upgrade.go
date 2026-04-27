@@ -25,7 +25,7 @@ func UpgradeCommand() *cobra.Command {
 		Use:   "upgrade",
 		Short: "Upgrade to the latest stable release",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Println("Upgrading silverbullet-cli...")
+			fmt.Println("Upgrading sb...")
 			return upgradeCLI("https://github.com/silverbulletmd/silverbullet/releases/latest/download")
 		},
 	}
@@ -36,7 +36,7 @@ func UpgradeEdgeCommand() *cobra.Command {
 		Use:   "upgrade-edge",
 		Short: "Upgrade to the latest edge release",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Println("Upgrading silverbullet-cli to edge...")
+			fmt.Println("Upgrading sb to edge...")
 			return upgradeCLI("https://github.com/silverbulletmd/silverbullet/releases/download/edge")
 		},
 	}
@@ -51,7 +51,7 @@ func upgradeCLI(urlPrefix string) error {
 
 	fmt.Println("Install dir:", installDir)
 
-	tmpDir, err := os.MkdirTemp("", "silverbullet-cli-upgrade")
+	tmpDir, err := os.MkdirTemp("", "sb-upgrade")
 	if err != nil {
 		return fmt.Errorf("failed to create temp dir: %w", err)
 	}
@@ -61,8 +61,8 @@ func upgradeCLI(urlPrefix string) error {
 	if !ok {
 		return fmt.Errorf("unsupported architecture: %s", runtime.GOARCH)
 	}
-	zipURL := fmt.Sprintf("%s/silverbullet-cli-%s-%s.zip", urlPrefix, runtime.GOOS, arch)
-	zipPath := filepath.Join(tmpDir, "silverbullet-cli.zip")
+	zipURL := fmt.Sprintf("%s/sb-%s-%s.zip", urlPrefix, runtime.GOOS, arch)
+	zipPath := filepath.Join(tmpDir, "sb.zip")
 
 	fmt.Println("Downloading from", zipURL)
 
@@ -88,13 +88,13 @@ func upgradeCLI(urlPrefix string) error {
 	}
 	zipFile.Close()
 
-	fmt.Printf("Replacing silverbullet-cli binary in %s\n", installDir)
+	fmt.Printf("Replacing sb binary in %s\n", installDir)
 
 	if err := extractZip(zipPath, installDir); err != nil {
 		return fmt.Errorf("failed to extract zip: %w", err)
 	}
 
-	binaryName := "silverbullet-cli"
+	binaryName := "sb"
 	if runtime.GOOS == "windows" {
 		binaryName += ".exe"
 	}

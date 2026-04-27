@@ -123,4 +123,4 @@ jobs:
             website/CHANGELOG.md
             dist/plug-compile.js
             silverbullet-server-*.zip
-            silverbullet-cli-*.zip
+            sb-*.zip

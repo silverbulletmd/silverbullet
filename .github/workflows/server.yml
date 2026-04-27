@@ -119,4 +119,4 @@ jobs:
           files: |
             dist/plug-compile.js
             silverbullet-server-*.zip
-            silverbullet-cli-*.zip
+            sb-*.zip

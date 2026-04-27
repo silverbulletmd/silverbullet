@@ -32,7 +32,7 @@ func TestMain(m *testing.M) {
 	}
 	defer os.RemoveAll(tmp)
 
-	cliBinary = filepath.Join(tmp, "silverbullet-cli")
+	cliBinary = filepath.Join(tmp, "sb")
 
 	_, thisFile, _, _ := runtime.Caller(0)
 	cliDir := filepath.Join(filepath.Dir(filepath.Dir(thisFile)), "cmd", "cli")

@@ -8,7 +8,7 @@ build:
 	npm run build
 	npm run build:plug-compile
 	go build -ldflags "$(LDFLAGS)"
-	go build -ldflags "$(CLI_LDFLAGS)" -o silverbullet-cli ./cmd/cli
+	go build -ldflags "$(CLI_LDFLAGS)" -o sb ./cmd/cli
 
 setup:
 	npm install
@@ -32,18 +32,18 @@ build-server-releases:
 	GOOS=freebsd GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o silverbullet . && zip silverbullet-server-freebsd-x86_64.zip silverbullet
 
 build-cli-releases:
-	GOOS=linux GOARCH=arm64 go build -ldflags "$(CLI_LDFLAGS)" -o silverbullet-cli ./cmd/cli && zip silverbullet-cli-linux-aarch64.zip silverbullet-cli && rm silverbullet-cli
-	GOOS=linux GOARCH=amd64 go build -ldflags "$(CLI_LDFLAGS)" -o silverbullet-cli ./cmd/cli && zip silverbullet-cli-linux-x86_64.zip silverbullet-cli && rm silverbullet-cli
-	GOOS=linux GOARCH=arm GOARM=7 go build -ldflags "$(CLI_LDFLAGS)" -o silverbullet-cli ./cmd/cli && zip silverbullet-cli-linux-armv7.zip silverbullet-cli && rm silverbullet-cli
-	GOOS=darwin GOARCH=arm64 go build -ldflags "$(CLI_LDFLAGS)" -o silverbullet-cli ./cmd/cli && zip silverbullet-cli-darwin-aarch64.zip silverbullet-cli && rm silverbullet-cli
-	GOOS=darwin GOARCH=amd64 go build -ldflags "$(CLI_LDFLAGS)" -o silverbullet-cli ./cmd/cli && zip silverbullet-cli-darwin-x86_64.zip silverbullet-cli && rm silverbullet-cli
-	GOOS=windows GOARCH=amd64 go build -ldflags "$(CLI_LDFLAGS)" -o silverbullet-cli.exe ./cmd/cli && zip silverbullet-cli-windows-x86_64.zip silverbullet-cli.exe && rm silverbullet-cli.exe
-	GOOS=freebsd GOARCH=amd64 go build -ldflags "$(CLI_LDFLAGS)" -o silverbullet-cli ./cmd/cli && zip silverbullet-cli-freebsd-x86_64.zip silverbullet-cli && rm silverbullet-cli
+	GOOS=linux GOARCH=arm64 go build -ldflags "$(CLI_LDFLAGS)" -o sb ./cmd/cli && zip sb-linux-aarch64.zip sb && rm sb
+	GOOS=linux GOARCH=amd64 go build -ldflags "$(CLI_LDFLAGS)" -o sb ./cmd/cli && zip sb-linux-x86_64.zip sb && rm sb
+	GOOS=linux GOARCH=arm GOARM=7 go build -ldflags "$(CLI_LDFLAGS)" -o sb ./cmd/cli && zip sb-linux-armv7.zip sb && rm sb
+	GOOS=darwin GOARCH=arm64 go build -ldflags "$(CLI_LDFLAGS)" -o sb ./cmd/cli && zip sb-darwin-aarch64.zip sb && rm sb
+	GOOS=darwin GOARCH=amd64 go build -ldflags "$(CLI_LDFLAGS)" -o sb ./cmd/cli && zip sb-darwin-x86_64.zip sb && rm sb
+	GOOS=windows GOARCH=amd64 go build -ldflags "$(CLI_LDFLAGS)" -o sb.exe ./cmd/cli && zip sb-windows-x86_64.zip sb.exe && rm sb.exe
+	GOOS=freebsd GOARCH=amd64 go build -ldflags "$(CLI_LDFLAGS)" -o sb ./cmd/cli && zip sb-freebsd-x86_64.zip sb && rm sb
 
 clean:
 	rm -rf  client_bundle/{base_fs,client} dist public_version.ts
 	rm -f silverbullet silverbullet-arm64 silverbullet-amd64 silverbullet-arm silverbullet.exe silverbullet-server-*.zip
-	rm -f silverbullet-cli silverbullet-cli.exe silverbullet-cli-*.zip
+	rm -f sb sb.exe sb-*.zip
 	rm -rf plugs/configuration-manager/assets
 
 check:
