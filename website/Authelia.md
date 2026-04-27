@@ -16,8 +16,7 @@ access_control:
   rules:
     - domain: silverbullet.yourdomain.com
       resources:
-        - '/\.client/manifest\.json$'
-        - '/\.client/[a-zA-Z0-9_-]+\.png$'
+        - '/\.client/.*$'
         - '/service_worker\.js$'
       policy: bypass
     - domain: yourdomain.com
