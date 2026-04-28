@@ -311,8 +311,9 @@ async function cachedFetch(path: string): Promise<string> {
     const response = await fetch(path, {
       // We don't want to follow redirects, we want to get the redirect header in case of auth issues
       redirect: "manual",
-      // Add short timeout in case of a bad internet connection, this would block loading of the UI
-      signal: AbortSignal.timeout(1000),
+      // Tinyauth/forward-auth can take longer than 1s on cold or remote auth checks.
+      // Keep this bounded, but do not abort normal authenticated startup requests too aggressively.
+      signal: AbortSignal.timeout(10000),
       headers: {
         "X-Sync-Mode": "1",
       },
