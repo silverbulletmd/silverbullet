@@ -119,6 +119,12 @@ body {
       background-color: initial;
     }
   }
+
+  @media only screen and (max-width: 600px) {
+    // On narrow screens override the inline `inset` that plugs pass to
+    // showPanel("modal", N) so the modal goes nearly edge-to-edge.
+    inset: 8px !important;
+  }
 }
 
 .sb-page-prefix {

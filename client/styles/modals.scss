@@ -6,6 +6,14 @@
   border-radius: 8px;
   overflow: hidden;
 
+  @media only screen and (max-width: 600px) {
+    margin-top: 8px;
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100vh - 16px);
+    border-radius: 0;
+  }
+
   .cm-content {
     padding: 0;
 

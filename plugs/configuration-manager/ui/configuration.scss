@@ -389,3 +389,32 @@ html[data-theme="dark"] .lib-danger:hover { background: #3a1f1f; }
   text-overflow: ellipsis;
   max-width: 240px;
 }
+
+@media only screen and (max-width: 600px) {
+  #cfg-header { padding: 12px 14px 0; }
+  #cfg-content { padding: 14px; }
+  #cfg-footer { padding: 10px 14px; flex-wrap: wrap; gap: 8px; }
+  #cfg-close { top: 8px; right: 8px; }
+
+  .cfg-field {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .cfg-field-control {
+    margin-left: 0;
+    justify-content: flex-end;
+  }
+  .cfg-field-control input[type="text"],
+  .cfg-field-control input[type="password"],
+  .cfg-field-control select {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .lib-row { flex-direction: column; align-items: stretch; }
+  .lib-uri { max-width: 100%; }
+  .lib-footer-note { margin-right: 0; flex-basis: 100%; }
+
+  #cfg-shortcuts-table { display: block; overflow-x: auto; }
+}
