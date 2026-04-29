@@ -140,7 +140,7 @@ function ShadowPanel({ config }: { config: PanelConfig }) {
   useEffect(() => {
     if (!panelRef.current) return;
 
-    shadowRef.current = panelRef.current.attachShadow({ mode: "closed" });
+    shadowRef.current = panelRef.current.attachShadow({ mode: "open" });
 
     const container = document.createElement("div");
     container.id = "panel-root";
