@@ -1,9 +1,5 @@
 import customMarkdownStyle from "../style.ts";
-import {
-  history,
-  insertNewlineAndIndent,
-  isolateHistory,
-} from "@codemirror/commands";
+import { history, insertNewlineAndIndent } from "@codemirror/commands";
 import {
   autocompletion,
   closeBrackets,
@@ -20,6 +16,7 @@ import {
   unfoldEffect,
 } from "@codemirror/language";
 import {
+  Annotation,
   Compartment,
   EditorState,
   type Extension,
@@ -56,6 +53,11 @@ import { safeRun } from "@silverbulletmd/silverbullet/lib/async";
 import { codeCopyPlugin } from "../codemirror/code_copy.ts";
 import { disableSpellcheck } from "../codemirror/spell_checking.ts";
 import type { ClickEvent } from "@silverbulletmd/silverbullet/type/client";
+
+// Annotation marking a transaction whose changes came from outside the
+// editor's edit stream (e.g. a page re-fetch from storage), so the
+// save-on-change handler can skip it and avoid an immediate re-save loop.
+export const externalUpdate = Annotation.define<boolean>();
 
 export function createEditorState(
   client: Client,
@@ -292,9 +294,9 @@ export function createEditorState(
               }
             }
             if (update.docChanged) {
-              // Find if there's a history isolate in the transaction, if so it came from a local reload and we don't do anything
+              // Skip saving if the change came from outside the editor (e.g. storage reload)
               if (
-                update.transactions.some((t) => t.annotation(isolateHistory))
+                update.transactions.some((t) => t.annotation(externalUpdate))
               ) {
                 return;
               }

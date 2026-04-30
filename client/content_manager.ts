@@ -18,7 +18,10 @@ import {
   notFoundError,
   offlineError,
 } from "@silverbulletmd/silverbullet/constants";
-import { createEditorState } from "./codemirror/editor_state.ts";
+import {
+  createEditorState,
+  externalUpdate,
+} from "./codemirror/editor_state.ts";
 import { diffAndPrepareChanges } from "./codemirror/cm_util.ts";
 import { DocumentEditor } from "./document_editor.ts";
 import { fsEndpoint } from "./spaces/constants.ts";
@@ -382,7 +385,7 @@ export class ContentManager {
       this.client.editorView.setState(editorState);
     } else {
       // Just apply minimal patches so that the cursor is preserved
-      this.setEditorText(doc.text, true);
+      this.applyExternalPatches(doc.text);
     }
 
     this.client.space.watchFile(path);
@@ -489,6 +492,18 @@ export class ContentManager {
     this.client.editorView.dispatch({
       changes: allChanges,
       annotations: shouldIsolateHistory ? isolateHistory.of("full") : undefined,
+    });
+  }
+
+  // Like setEditorText, but marks the transaction as an external update (e.g.
+  // a page re-fetch from storage) so the save-on-change handler skips it and
+  // we avoid an immediate re-save loop.
+  private applyExternalPatches(newText: string) {
+    const currentText = this.client.editorView.state.sliceDoc();
+    const allChanges = diffAndPrepareChanges(currentText, newText);
+    this.client.editorView.dispatch({
+      changes: allChanges,
+      annotations: [isolateHistory.of("full"), externalUpdate.of(true)],
     });
   }
 
