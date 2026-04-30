@@ -66,7 +66,9 @@ export class SlashCommandHook implements Hook<SlashCommandHookT> {
     const options: Completion[] = [];
 
     // No slash commands in comment blocks (queries and such) or links
-    const currentNode = syntaxTree(ctx.state).resolveInner(ctx.pos);
+    // Pass -1 so we resolve into the node ending at the cursor: when typing,
+    // the user is referring to preceding text, not what comes after.
+    const currentNode = syntaxTree(ctx.state).resolveInner(ctx.pos, -1);
     if (
       currentNode.type.name === "CommentBlock" ||
       currentNode.type.name === "Link"
