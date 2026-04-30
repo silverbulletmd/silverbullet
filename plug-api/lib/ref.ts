@@ -23,7 +23,8 @@ export type Ref = {
   details?:
     | { type: "position"; pos: number }
     | { type: "linecolumn"; line: number; column: number }
-    | { type: "header"; header: string };
+    | { type: "header"; header: string }
+    | { type: "anchor"; name: string };
 };
 
 /**
@@ -96,7 +97,7 @@ export function isValidPath(path: string): path is Path {
  * TO THE INNER WORKINGS OF SILVERBULLET AND CHANGES COULD INTRODUCE MAJOR BUGS
  */
 const refRegex =
-  /^(?<meta>\^)?(?<path>(?!.*\.[a-zA-Z0-9]+\.md$)(?!\/?(\.|\^))(?!.*(?:\/|^)\.{1,2}(?:\/|$)|.*\/{2})(?!.*(?:\]\]|\[\[))[^@#|<>]*)(@(?<pos>\d+)|@[Ll](?<line>\d+)(?:[Cc](?<col>\d+))?|#\s*(?<header>.*))?$/;
+  /^(?<meta>\^)?(?<path>(?!.*\.[a-zA-Z0-9]+\.md$)(?!\/?(\.|\^))(?!.*(?:\/|^)\.{1,2}(?:\/|$)|.*\/{2})(?!.*(?:\]\]|\[\[))[^@#|<>$]*)(@(?<pos>\d+)|@[Ll](?<line>\d+)(?:[Cc](?<col>\d+))?|#\s*(?<header>.*)|\$(?<anchor>[A-Za-z_][A-Za-z0-9_/:-]*))?$/;
 
 /**
  * Parses a reference string into a ref object.
@@ -132,6 +133,8 @@ export function parseToRef(stringRef: string): Ref | null {
       type: "header",
       header: groups.header,
     };
+  } else if (groups.anchor !== undefined) {
+    ref.details = { type: "anchor", name: groups.anchor };
   }
 
   return ref;
@@ -158,6 +161,8 @@ export function encodeRef(ref: Ref): string {
     stringRef += `@${ref.details.pos}`;
   } else if (ref.details?.type === "header") {
     stringRef += `#${ref.details.header}`;
+  } else if (ref.details?.type === "anchor") {
+    stringRef += `$${ref.details.name}`;
   }
 
   return stringRef;
@@ -191,6 +196,8 @@ export function getOffsetFromRef(
     case "header": {
       return getOffsetFromHeader(parseTree, ref.details.header);
     }
+    case "anchor":
+      return -1;
   }
 }
 

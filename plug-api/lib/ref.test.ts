@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { describe, expect, test } from "vitest";
 import {
   decodePageURI,
   encodePageURI,
@@ -115,6 +115,50 @@ test("isValidPath() and isValidName()", () => {
   // Disallow < and > in ref names
   expect(!isValidName("hello<there")).toBeTruthy();
   expect(!isValidName("hello>there")).toBeTruthy();
+});
+
+describe("anchor refs", () => {
+  test("parseToRef bare anchor", () => {
+    expect(parseToRef("$pete")).toEqual({
+      path: "",
+      details: { type: "anchor", name: "pete" },
+    });
+  });
+
+  test("parseToRef page-qualified anchor", () => {
+    expect(parseToRef("Some Page$pete")).toEqual({
+      path: "Some Page.md",
+      details: { type: "anchor", name: "pete" },
+    });
+  });
+
+  test("parseToRef accepts allowed character classes", () => {
+    for (const name of ["toc1", "tasks/7", "a:b", "a-b", "_foo"]) {
+      const ref = parseToRef("$" + name);
+      expect(ref?.details).toEqual({ type: "anchor", name });
+    }
+  });
+
+  test("parseToRef rejects digit-leading anchors", () => {
+    // "$100" should NOT be parsed as an anchor; falling through to
+    // the path branch should fail because the path would be "$100"
+    // which is not a valid path either.
+    expect(parseToRef("$100")).toBeNull();
+  });
+
+  test("encodeRef round-trips bare anchor", () => {
+    expect(encodeRef({ path: "", details: { type: "anchor", name: "pete" } }))
+      .toBe("$pete");
+  });
+
+  test("encodeRef round-trips page-qualified anchor", () => {
+    expect(
+      encodeRef({
+        path: "Some Page.md",
+        details: { type: "anchor", name: "pete" },
+      }),
+    ).toBe("Some Page$pete");
+  });
 });
 
 test("Page URI encoding", () => {
