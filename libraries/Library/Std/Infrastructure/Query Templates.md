@@ -15,19 +15,22 @@ templates.fullPageItem = template.new([==[
 * [[${name}|${name}]]
 ]==])
 
--- Renders a task object as a togglable task
+-- Renders a task object as a togglable task. Anchor refs are bare names
+-- (no @ or #) — prefix them with $ so the resulting wikilink resolves
+-- through the anchor index. Position/header refs already contain @ or #
+-- and pass through unchanged.
 templates.taskItem = template.new([==[
-* [${state}] [[${ref}]] ${name}
+* [${state}] [[${string.find(ref, "[@#]") and ref or "$" .. ref}]] ${name}
 ]==])
 
 -- Renders an item object
 templates.itemItem = template.new([==[
-* [[${ref}]] ${name}
+* [[${string.find(ref, "[@#]") and ref or "$" .. ref}]] ${name}
 ]==])
 
 -- Renders a paragraph object
 templates.paragraphItem = template.new([==[
-* [[${ref}]] ${text}
+* [[${string.find(ref, "[@#]") and ref or "$" .. ref}]] ${text}
 ]==])
 
 -- Renders a tag object
