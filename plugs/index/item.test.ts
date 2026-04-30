@@ -73,6 +73,53 @@ test("Test item indexing", async () => {
   expect(new Set(items[8].ilinks)).toEqual(new Set(["link", "link 2"]));
 });
 
+// --- Anchor tests ---
+
+async function indexItemsForTest(
+  md: string,
+  pageName = "TestPage",
+): Promise<ReturnType<typeof indexItems> extends Promise<infer T> ? T : never> {
+  createMockSystem();
+  const tree = parseMarkdown(md);
+  const frontmatter = extractFrontMatter(tree);
+  const pageMeta: PageMeta = {
+    ref: pageName,
+    name: pageName,
+    tag: "page",
+    created: "",
+    lastModified: "",
+    perm: "rw",
+  };
+  return indexItems(pageMeta, frontmatter, tree);
+}
+
+test("list item with $anchor uses anchor as ref", async () => {
+  const items = await indexItemsForTest("- Item with anchor $foo here\n");
+  const item = items.find((i) => i.tag === "item")!;
+  expect(item.ref).toBe("foo");
+  expect(item.name).not.toContain("$foo");
+});
+
+test("task with $anchor uses anchor as ref", async () => {
+  const items = await indexItemsForTest("- [ ] Task body $bar\n");
+  const task = items.find((i) => i.tag === "task")!;
+  expect(task.tag).toBe("task");
+  expect(task.ref).toBe("bar");
+  expect(task.name).not.toContain("$bar");
+});
+
+test("item without anchor keeps Page@pos ref", async () => {
+  const items = await indexItemsForTest("- Plain item #tag\n", "MyPage");
+  const item = items.find((i) => i.tag === "item")!;
+  expect(item.ref).toMatch(/^MyPage@\d+$/);
+});
+
+test("task without anchor keeps Page@pos ref", async () => {
+  const items = await indexItemsForTest("- [ ] Plain task #tag\n", "MyPage");
+  const task = items.find((i) => i.tag === "task")!;
+  expect(task.ref).toMatch(/^MyPage@\d+$/);
+});
+
 // Regression test for https://github.com/silverbulletmd/silverbullet/issues/1932
 // and https://github.com/silverbulletmd/silverbullet/issues/1903
 const nestedListMd = `

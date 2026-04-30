@@ -6,6 +6,7 @@ import {
   traverseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { cleanTags, collectTags, updateITags } from "./tags.ts";
+import { cleanAnchor, collectAnchor } from "./anchor.ts";
 import type { FrontMatter } from "./frontmatter.ts";
 import type {
   ObjectValue,
@@ -46,9 +47,10 @@ export async function indexParagraphs(
 
     // Collect tags
     const tags = collectTags(p);
+    const anchor = collectAnchor(p);
 
-    if (tags.length === 0 && !shouldIndexAll) {
-      // Don't index paragraphs without a hashtag
+    if (tags.length === 0 && !anchor && !shouldIndexAll) {
+      // Don't index paragraphs without a hashtag or anchor
       return true;
     }
 
@@ -59,18 +61,21 @@ export async function indexParagraphs(
     const pClone = cloneTree(p);
     cleanTags(pClone);
     cleanAttributes(pClone);
-    const text = renderToText(pClone);
+    cleanAnchor(pClone);
+    const cleanedText = renderToText(pClone);
 
-    if (!text.trim()) {
-      // Empty paragraph, just tags and attributes maybe
+    if (!cleanedText.trim() && !anchor) {
+      // Empty paragraph, just tags, attributes, and/or anchor maybe
       return true;
     }
 
     const pos = p.from!;
     const paragraph: ParagraphObject = {
       tag: "paragraph",
-      ref: `${pageMeta.name}@${pos}`,
-      text: fullText,
+      // "First anchor wins" anchor.duplicateInHost is intentionally ignored
+      // here. lint flags multi-anchor hosts at edit time.
+      ref: anchor ? anchor.name : `${pageMeta.name}@${pos}`,
+      text: anchor ? cleanedText : fullText,
       page: pageMeta.name,
       pos,
       range: [p.from!, p.to!],

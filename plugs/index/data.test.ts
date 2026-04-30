@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { describe, expect, test } from "vitest";
 import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
 import { createMockSystem } from "../../plug-api/system_mock.ts";
 import type {
@@ -21,6 +21,25 @@ name: Hank
 age: 101
 \`\`\`
 `.trim();
+
+const defaultPageMeta: PageMeta = {
+  ref: "Page",
+  name: "Page",
+  tag: "page",
+  created: "",
+  lastModified: "",
+  perm: "rw",
+};
+
+async function indexDataForTest(
+  markdown: string,
+  pageName = "Page",
+): Promise<ObjectValue<any>[]> {
+  const meta: PageMeta = { ...defaultPageMeta, ref: pageName, name: pageName };
+  const tree = parseMarkdown(markdown);
+  const frontmatter = extractFrontMatter(tree);
+  return indexData(meta, frontmatter, tree);
+}
 
 test("Test indexers", async () => {
   createMockSystem();
@@ -55,4 +74,37 @@ test("Test indexers", async () => {
   expect(datas[1].itags).toEqual(["superduper", "data"]);
   expect(datas[1].name).toEqual("Hank");
   expect(datas[1].age).toEqual(101);
+});
+
+describe("$ref anchor in fenced data blocks", () => {
+  test("$ref field becomes ref and is stripped from the object", async () => {
+    createMockSystem();
+    const md = `\`\`\`#person\nname: Pete\n$ref: pete\n\`\`\``;
+    const results = await indexDataForTest(md);
+    const person = results.find((o) => o.tag === "person")!;
+    expect(person).toBeTruthy();
+    expect(person.tag).toBe("person");
+    expect(person.ref).toBe("pete");
+    expect(person.name).toBe("Pete");
+    expect("$ref" in person).toBe(false);
+  });
+
+  test("regression: block without $ref retains Page@docStart ref", async () => {
+    createMockSystem();
+    const md = `\`\`\`#person\nname: Alice\n\`\`\``;
+    const results = await indexDataForTest(md, "Page");
+    const person = results.find((o) => o.tag === "person")!;
+    expect(person).toBeTruthy();
+    expect(person.ref).toMatch(/^Page@\d+$/);
+  });
+
+  test("invalid $ref (digit-leading) is ignored; ref falls back to Page@docStart", async () => {
+    createMockSystem();
+    const md = `\`\`\`#person\nname: Bob\n$ref: 1bad\n\`\`\``;
+    const results = await indexDataForTest(md, "Page");
+    const person = results.find((o) => o.tag === "person")!;
+    expect(person).toBeTruthy();
+    expect(person.ref).toMatch(/^Page@\d+$/);
+    expect("$ref" in person).toBe(false);
+  });
 });

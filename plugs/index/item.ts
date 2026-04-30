@@ -6,6 +6,7 @@ import {
   traverseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { cleanTags, collectTags, updateITags } from "./tags.ts";
+import { cleanAnchor, collectAnchor } from "./anchor.ts";
 import type { FrontMatter } from "./frontmatter.ts";
 import type {
   ObjectValue,
@@ -136,6 +137,10 @@ export function extractItemFromNode(
     nameNode = { type: "Paragraph", children: taskNode.children!.slice(1) };
   }
 
+  // Collect anchor from nameNode only (not the whole itemNode) so that
+  // child sublist anchors don't bleed into the parent item's ref.
+  const anchor = nameNode ? collectAnchor(nameNode) : null;
+
   // Now let's extract tags and attributes
   const tags = collectTags(itemNode);
   const attributes = collectAttributes(itemNode);
@@ -147,9 +152,15 @@ export function extractItemFromNode(
     const nameNodeClone = cloneTree(nameNode);
     cleanTags(nameNodeClone);
     cleanAttributes(nameNodeClone);
+    cleanAnchor(nameNodeClone);
     item.name = renderToText(nameNodeClone).trim();
   } else {
     item.name = item.text;
+  }
+
+  // First anchor wins; T12 lint flags duplicates.
+  if (anchor) {
+    item.ref = anchor.name;
   }
 
   if (tags.length > 0) {

@@ -17,6 +17,7 @@ import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
 import type { FrontMatter } from "./frontmatter.ts";
 import { cleanAttributes, collectAttributes } from "./attribute.ts";
 import { cleanTags, collectTags } from "./tags.ts";
+import { cleanAnchor, collectAnchor } from "./anchor.ts";
 
 type HeaderObject = ObjectValue<
   {
@@ -40,16 +41,20 @@ export function indexHeaders(
     (t) => !!t.type?.startsWith("ATXHeading"),
   )) {
     const level = +n.type!.substring("ATXHeading".length);
-    const name = renderToText(n).slice(level + 1);
     const tags = collectTags(n);
+    const anchor = collectAnchor(n);
     const attributes = collectAttributes(n);
     const nClone = cloneTree(n);
     cleanTags(nClone);
     cleanAttributes(nClone);
-    const text = renderToText(nClone).slice(level + 1);
+    cleanAnchor(nClone); // strip $anchor token from clone
+    // Compute name from the cleaned tree so $anchor is stripped from both name and text.
+    const name = renderToText(nClone).slice(level + 1);
+    const text = name;
 
     headers.push({
-      ref: `${pageMeta.name}@${n.from}`,
+      // First anchor wins; T12 lint flags duplicates.
+      ref: anchor ? anchor.name : `${pageMeta.name}@${n.from}`,
       tag: "header",
       tags: [...tags],
       level,

@@ -5,6 +5,25 @@ import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 import { extractFrontMatter } from "./frontmatter.ts";
 import { indexParagraphs } from "./paragraph.ts";
 
+async function indexParagraphsForTest(
+  text: string,
+  pageName = "TestPage",
+) {
+  const { config } = createMockSystem();
+  config.set("index.paragraph.all", false);
+  const tree = parseMarkdown(text);
+  const frontmatter = extractFrontMatter(tree);
+  const pageMeta: PageMeta = {
+    ref: pageName,
+    name: pageName,
+    tag: "page",
+    created: "",
+    lastModified: "",
+    perm: "rw",
+  };
+  return indexParagraphs(pageMeta, frontmatter, tree);
+}
+
 const testPage = `
 #tag-only
 
@@ -44,4 +63,29 @@ test("Test paragraph indexing", async () => {
 
   paragraphs = await indexParagraphs(pageMeta, frontmatter, tree);
   expect(paragraphs.length).toEqual(1);
+});
+
+test("paragraph with $anchor uses anchor as ref", async () => {
+  const objects = await indexParagraphsForTest(
+    `Paragraph with anchor $pete here. #marker`,
+  );
+  const para = objects.find((o) => o.tag === "paragraph")!;
+  expect(para.ref).toBe("pete");
+  expect(para.text).not.toContain("$pete");
+});
+
+test("standalone-line $anchor still indexes the paragraph", async () => {
+  const objects = await indexParagraphsForTest(`$standalone\n`);
+  const para = objects.find((o) => o.tag === "paragraph");
+  expect(para).toBeDefined();
+  expect(para!.ref).toBe("standalone");
+});
+
+test("paragraph without anchor keeps Page@pos ref", async () => {
+  const objects = await indexParagraphsForTest(
+    `Tagged paragraph without anchor #foo`,
+    "MyPage",
+  );
+  const para = objects.find((o) => o.tag === "paragraph")!;
+  expect(para.ref).toMatch(/^MyPage@\d+$/);
 });

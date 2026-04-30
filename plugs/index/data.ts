@@ -11,6 +11,7 @@ import type {
   ObjectValue,
   PageMeta,
 } from "@silverbulletmd/silverbullet/type/index";
+import { isValidAnchorName } from "./anchor.ts";
 
 type DataObject = ObjectValue<
   {
@@ -56,8 +57,21 @@ export function indexData(
           cursor += docs[i].length;
           continue;
         }
+        // Extract $ref anchor from the YAML doc. Lint surfaces duplicate
+        // names; the indexer accepts the first valid value here.
+        let anchorName: string | undefined;
+        if (typeof doc === "object") {
+          const d = doc as Record<string, unknown>;
+          if ("$ref" in d) {
+            const candidate = d.$ref;
+            if (typeof candidate === "string" && isValidAnchorName(candidate)) {
+              anchorName = candidate;
+            }
+            delete d.$ref;
+          }
+        }
         const dataObj = {
-          ref: `${pageMeta.name}@${docStart}`,
+          ref: anchorName ?? `${pageMeta.name}@${docStart}`,
           tag: dataType,
           itags: ["data"],
           pos: docStart,
