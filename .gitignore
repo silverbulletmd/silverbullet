@@ -7,7 +7,7 @@ dist
 env.sh
 node_modules
 silverbullet
-sb
+/sb
 silverbullet-cli-*.zip
 deploy.json
 *.generated
