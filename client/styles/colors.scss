@@ -275,6 +275,16 @@
   cursor: pointer;
 }
 
+// Anchor styling — mark and text colored independently so themes can
+// diverge them later. Default: both get the link color.
+.sb-named-anchor {
+  color: var(--editor-link-color);
+}
+
+.sb-named-anchor-mark {
+  color: var(--editor-link-color);
+}
+
 .sb-line-hr {
   border-top: var(--editor-ruler-color) solid 1px;
 }

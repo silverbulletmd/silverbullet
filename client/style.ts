@@ -47,6 +47,8 @@ export default function highlightStyles() {
     { tag: t.punctuation, class: "sb-punctuation" },
     { tag: ct.HorizontalRuleTag, class: "sb-hr" },
     { tag: ct.HashtagTag, class: "sb-hashtag-text" },
+    { tag: ct.NamedAnchorTag, class: "sb-named-anchor" },
+    { tag: ct.NamedAnchorMarkTag, class: "sb-named-anchor-mark" },
     { tag: ct.NakedURLTag, class: "sb-naked-url" },
     { tag: ct.TaskDeadlineTag, class: "sb-task-deadline" },
     { tag: ct.SubscriptTag, class: "sb-sub" },
