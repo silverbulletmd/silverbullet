@@ -9,6 +9,12 @@ import type {
   LintDiagnostic,
   LintEvent,
 } from "@silverbulletmd/silverbullet/type/client";
+import {
+  getNameFromPath,
+  parseToRef,
+} from "@silverbulletmd/silverbullet/lib/ref";
+import { isValidAnchorName } from "./anchor.ts";
+import { resolveAnchor, type ResolveAnchorResult } from "./api.ts";
 
 import YAML from "js-yaml";
 import { extractFrontMatter } from "./frontmatter.ts";
@@ -193,4 +199,260 @@ export async function lintObjects({
     ];
   }
   return [];
+}
+
+/**
+ * Lint anchor-related issues on the current page.
+ *
+ * Six rules:
+ * – Invalid anchor name
+ * – Multiple NamedAnchor nodes inside a single host block
+ * – Anchor defined on this page also exists on another page (cross-page duplicate)
+ * – Same anchor name defined twice on this page in different blocks
+ * – WikiLink whose ref targets a missing anchor
+ * – WikiLink whose ref targets an ambiguous (duplicate) anchor
+ */
+export async function lintAnchors({
+  tree,
+  name: pageName,
+}: LintEvent): Promise<LintDiagnostic[]> {
+  const diagnostics: LintDiagnostic[] = [];
+
+  // Map from anchor name to list of node positions
+  const anchorNodesByName = new Map<
+    string,
+    Array<{ from: number; to: number }>
+  >();
+  // All NamedAnchor nodes in document order
+  const allAnchorNodes: Array<{ name: string; from: number; to: number }> = [];
+
+  traverseTree(tree, (node) => {
+    if (node.type === "NamedAnchor") {
+      const literal = renderToText(node);
+      const anchorName = literal.slice(1); // strip leading $
+      const entry = { from: node.from!, to: node.to! };
+      allAnchorNodes.push({ name: anchorName, ...entry });
+      if (!anchorNodesByName.has(anchorName)) {
+        anchorNodesByName.set(anchorName, []);
+      }
+      anchorNodesByName.get(anchorName)!.push(entry);
+      return true; // NamedAnchor has no interesting children
+    }
+    return false;
+  });
+
+  // Page-level anchor from frontmatter $ref. Track it so duplicate
+  // checks (rules C and C2) include this page's anchor name.
+  const frontmatter = extractFrontMatter(tree);
+  const fmAnchor = (frontmatter as any).$ref;
+  if (typeof fmAnchor === "string" && isValidAnchorName(fmAnchor)) {
+    const fmNode = findNodeOfType(tree, "FrontMatter");
+    const fmRange = fmNode
+      ? { from: fmNode.from!, to: fmNode.to! }
+      : { from: 0, to: 0 };
+    if (!anchorNodesByName.has(fmAnchor)) {
+      anchorNodesByName.set(fmAnchor, []);
+    }
+    anchorNodesByName.get(fmAnchor)!.push(fmRange);
+  }
+
+  // Invalid anchor name
+  for (const node of allAnchorNodes) {
+    if (!isValidAnchorName(node.name)) {
+      diagnostics.push({
+        from: node.from,
+        to: node.to,
+        severity: "error",
+        message: `Invalid anchor name: "$${node.name}"`,
+      });
+    }
+  }
+
+  // Multiple anchors per host block
+  const hostTypes = new Set([
+    "Paragraph",
+    "ListItem",
+    "Task",
+    "ATXHeading1",
+    "ATXHeading2",
+    "ATXHeading3",
+    "ATXHeading4",
+    "ATXHeading5",
+    "ATXHeading6",
+  ]);
+
+  traverseTree(tree, (node) => {
+    if (!hostTypes.has(node.type!)) {
+      return false;
+    }
+
+    // Collect NamedAnchor descendants without crossing into nested ListItems
+    const anchorsInHost: Array<{ from: number; to: number; name: string }> = [];
+
+    traverseTree(node, (child) => {
+      // Don't descend into nested list items (avoid double-counting)
+      if (child !== node && child.type === "ListItem") {
+        return true; // stop recursion into nested list items
+      }
+      if (child.type === "NamedAnchor") {
+        const literal = renderToText(child);
+        anchorsInHost.push({
+          from: child.from!,
+          to: child.to!,
+          name: literal.slice(1),
+        });
+        return true;
+      }
+      return false;
+    });
+
+    // Flag every anchor after the first
+    for (let i = 1; i < anchorsInHost.length; i++) {
+      const extra = anchorsInHost[i];
+      diagnostics.push({
+        from: extra.from,
+        to: extra.to,
+        severity: "error",
+        message:
+          `Multiple anchors in the same block: "$${extra.name}" is the ${i + 1}st anchor here. A block may only carry one anchor.`,
+      });
+    }
+
+    return true;
+  });
+
+  // Batch resolve all anchor names referenced on page
+
+  // Unique names defined on this page
+  const definedAnchorNames = new Set(anchorNodesByName.keys());
+
+  // Unique anchor link targets from WikiLinks
+  type AnchorLinkRef = {
+    name: string;
+    page?: string;
+    from: number;
+    to: number;
+  };
+  const anchorLinks: AnchorLinkRef[] = [];
+
+  traverseTree(tree, (node) => {
+    if (node.type === "WikiLink") {
+      const wikiLinkPage = findNodeOfType(node, "WikiLinkPage");
+      if (!wikiLinkPage) return true;
+      const url = wikiLinkPage.children![0].text!;
+      const ref = parseToRef(url);
+      if (ref?.details?.type === "anchor") {
+        const linkedPage = ref.path
+          ? getNameFromPath(ref.path)
+          : undefined;
+        anchorLinks.push({
+          name: ref.details.name,
+          page: linkedPage || undefined,
+          from: node.from!,
+          to: node.to!,
+        });
+      }
+      return true;
+    }
+    return false;
+  });
+
+  // Build a set of unique lookup keys to resolve in parallel
+  // Key format: "name" for bare anchors, "page\0name" for page-qualified
+  type LookupKey = string;
+  const toResolve = new Map<LookupKey, { name: string; page?: string }>();
+
+  for (const name of definedAnchorNames) {
+    // Bare lookup — finds duplicates across all pages
+    const key: LookupKey = name;
+    if (!toResolve.has(key)) {
+      toResolve.set(key, { name });
+    }
+  }
+
+  for (const link of anchorLinks) {
+    const key: LookupKey = link.page ? `${link.page}\0${link.name}` : link.name;
+    if (!toResolve.has(key)) {
+      toResolve.set(key, { name: link.name, page: link.page });
+    }
+  }
+
+  // Resolve all in parallel
+  const resolved = new Map<LookupKey, ResolveAnchorResult>();
+  await Promise.all(
+    [...toResolve.entries()].map(async ([key, { name, page }]) => {
+      const result = await resolveAnchor(name, page);
+      resolved.set(key, result);
+    }),
+  );
+
+  // Same-page duplicate
+  // The index storage key collapses same-page same-name records, so rule C
+  // (cross-page) can't catch this. Detect from the tree directly.
+  for (const [anchorName, nodes] of anchorNodesByName) {
+    if (nodes.length > 1) {
+      for (const node of nodes) {
+        diagnostics.push({
+          from: node.from,
+          to: node.to,
+          severity: "error",
+          message:
+            `Duplicate anchor "$${anchorName}" — defined ${nodes.length} times on this page.`,
+        });
+      }
+    }
+  }
+
+  // Duplicate anchor defined on this page
+  for (const anchorName of definedAnchorNames) {
+    const key: LookupKey = anchorName;
+    const result = resolved.get(key);
+    if (result && !result.ok && result.reason === "duplicate") {
+      const otherPages = result.hits
+        .filter((h) => h.page !== pageName)
+        .map((h) => h.page);
+      const nodes = anchorNodesByName.get(anchorName) ?? [];
+      for (const node of nodes) {
+        diagnostics.push({
+          from: node.from,
+          to: node.to,
+          severity: "error",
+          message:
+            `Duplicate anchor "$${anchorName}" — also defined on: ${otherPages.join(", ")}`,
+        });
+      }
+    }
+  }
+
+  // Broken / ambiguous anchor links
+  for (const link of anchorLinks) {
+    const key: LookupKey = link.page
+      ? `${link.page}\0${link.name}`
+      : link.name;
+    const result = resolved.get(key);
+    if (!result || result.ok) {
+      continue; // resolved fine — no diagnostic
+    }
+
+    if (result.reason === "missing") {
+      diagnostics.push({
+        from: link.from,
+        to: link.to,
+        severity: "error",
+        message: `Anchor not found: "$${link.name}"${link.page ? ` on page "${link.page}"` : ""}`,
+      });
+    } else if (result.reason === "duplicate") {
+      // Ambiguous (duplicate) anchor link
+      const pages = result.hits.map((h) => h.page).join(", ");
+      diagnostics.push({
+        from: link.from,
+        to: link.to,
+        severity: "error",
+        message:
+          `Ambiguous anchor "$${link.name}" — found on multiple pages: ${pages}`,
+      });
+    }
+  }
+
+  return diagnostics;
 }
