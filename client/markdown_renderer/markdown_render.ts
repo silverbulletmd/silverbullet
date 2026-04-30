@@ -351,6 +351,23 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
         body: tagText,
       };
     }
+    case "NamedAnchor": {
+      // Render the `$` sigil in its own span so themes can color just
+      // the marker; the name reads as plain text.
+      const literal = renderToText(t);
+      return {
+        name: "span",
+        attrs: { class: "sb-named-anchor" },
+        body: [
+          {
+            name: "span",
+            attrs: { class: "sb-named-anchor-mark" },
+            body: "$",
+          },
+          literal.slice(1),
+        ],
+      };
+    }
     case "Task": {
       let externalTaskRef = "";
       collectNodesOfType(t, "WikiLinkPage").forEach((wikilink) => {
@@ -360,7 +377,8 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
           !externalTaskRef &&
           ref &&
           (ref.details?.type === "position" ||
-            ref.details?.type === "linecolumn")
+            ref.details?.type === "linecolumn" ||
+            ref.details?.type === "anchor")
         ) {
           externalTaskRef = wikilink.children![0].text!;
         }

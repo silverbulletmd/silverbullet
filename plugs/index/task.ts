@@ -2,6 +2,7 @@ import {
   config,
   editor,
   events,
+  index,
   markdown,
   space,
   sync,
@@ -156,8 +157,27 @@ export async function updateTaskState(
   const currentPath = await editor.getCurrentPath();
   const ref = parseToRef(path);
 
+  if (!ref) {
+    console.log("Could not parse task ref, skipping", path);
+    return;
+  }
+
+  // Anchor refs need resolving to a concrete page+position before we can
+  // edit the task marker.
+  if (ref.details?.type === "anchor") {
+    const pageFilter = ref.path
+      ? ref.path.endsWith(".md") ? ref.path.slice(0, -3) : ref.path
+      : undefined;
+    const result = await index.resolveAnchor(ref.details.name, pageFilter);
+    if (!result.ok) {
+      console.log("Could not resolve task anchor, skipping", path, result);
+      return;
+    }
+    ref.path = `${result.page}.md`;
+    ref.details = { type: "position", pos: result.range[0] };
+  }
+
   if (
-    !ref ||
     !ref.details ||
     !isMarkdownPath(ref.path) ||
     (ref.details.type !== "linecolumn" && ref.details.type !== "position")

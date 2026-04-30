@@ -1,6 +1,7 @@
 import {
   config,
   editor,
+  index,
   markdown,
   space,
 } from "@silverbulletmd/silverbullet/syscalls";
@@ -56,6 +57,33 @@ async function actionClickOrActionEnter(
           `Couldn't navigate to ${link}, WikiLink is invalid`,
           "error",
         );
+      }
+
+      // Resolve anchor refs ($name) into a concrete page+position before
+      // delegating to editor.navigate (which doesn't know about anchors).
+      if (ref.details?.type === "anchor") {
+        const anchorName = ref.details.name;
+        const pageFilter = ref.path
+          ? ref.path.endsWith(".md") ? ref.path.slice(0, -3) : ref.path
+          : undefined;
+        const result = await index.resolveAnchor(anchorName, pageFilter);
+        if (!result.ok) {
+          if (result.reason === "missing") {
+            return editor.flashNotification(
+              `Anchor not found: $${anchorName}`,
+              "error",
+            );
+          }
+          return editor.flashNotification(
+            `Duplicate anchor $${anchorName} on pages: ${
+              result.hits.map((h) => h.page).join(", ")
+            }`,
+            "error",
+          );
+        }
+        ref.path = `${result.page}.md`;
+        ref.details = { type: "position", pos: result.range[0] };
+        return editor.navigate(ref, false, inNewWindow);
       }
 
       if (ref.path === "") {
