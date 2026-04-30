@@ -43,6 +43,7 @@
       "!**/client_bundle",
       "!**/vendor",
       "!**/website_build",
+      "!**/test-results",
       "!**/*.html",
       "!**/*.plug.js",
       "!plugs/*/assets",

@@ -65,7 +65,7 @@ export async function anchorComplete(completeEvent: CompleteEvent) {
   // which is generally supported now (it seems), in versions of iOS Safari 13.1 and later
   // https://caniuse.com/js-regexp-lookbehind
   const anchorMatch =
-    /(?<!query)\[\[(?<page>[^\]\$]*)\$(?<prefix>[A-Za-z0-9_/:-]*)$/.exec(
+    /(?<!query)\[\[(?<page>[^\]$]*)\$(?<prefix>[A-Za-z0-9_/:-]*)$/.exec(
       completeEvent.linePrefix,
     );
   if (!anchorMatch) {

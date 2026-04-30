@@ -134,7 +134,7 @@ describe("anchor refs", () => {
 
   test("parseToRef accepts allowed character classes", () => {
     for (const name of ["toc1", "tasks/7", "a:b", "a-b", "_foo"]) {
-      const ref = parseToRef("$" + name);
+      const ref = parseToRef(`$${name}`);
       expect(ref?.details).toEqual({ type: "anchor", name });
     }
   });
