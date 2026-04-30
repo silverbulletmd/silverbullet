@@ -312,7 +312,12 @@ export class Client {
       await this.mq.send("indexQueue", name);
     });
 
-    const space = new Space(this.eventedSpacePrimitives, this.eventHook);
+    const space = new Space(
+      this.eventedSpacePrimitives,
+      this.eventHook,
+      (name, page) =>
+        this.clientSystem.localSyscall("index.resolveAnchor", [name, page]),
+    );
 
     this.space = space;
 

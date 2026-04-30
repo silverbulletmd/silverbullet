@@ -21,6 +21,12 @@ import {
   renderToText,
   traverseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
+import type { ResolveAnchorResult } from "../plugs/index/types.ts";
+
+export type AnchorResolver = (
+  name: string,
+  page?: string,
+) => Promise<ResolveAnchorResult>;
 
 const pageWatchInterval = 3000; // + jitter
 
@@ -42,6 +48,7 @@ export class Space {
   constructor(
     readonly spacePrimitives: SpacePrimitives,
     eventHook: EventHook,
+    private anchorResolver?: AnchorResolver,
   ) {
     eventHook.addLocalListener("file:deleted", (fileName: string) => {
       if (this.watchedFiles.has(fileName)) {
@@ -79,6 +86,31 @@ export class Space {
   }
 
   async readRef(ref: Ref): Promise<{ offset: number; text: string }> {
+    if (ref.details?.type === "anchor") {
+      if (!this.anchorResolver) {
+        throw new Error("Anchor resolver not configured");
+      }
+      const anchorName = ref.details.name;
+      const filterPage = ref.path
+        ? ref.path.endsWith(".md") ? ref.path.slice(0, -3) : ref.path
+        : undefined;
+      const result = await this.anchorResolver(anchorName, filterPage);
+      if (!result.ok) {
+        if (result.reason === "missing") {
+          throw new Error(`Anchor not found: $${anchorName}`);
+        }
+        const pages = result.hits.map((h) => h.page).join(", ");
+        throw new Error(`Duplicate anchor $${anchorName} on pages: ${pages}`);
+      }
+      const pageText = (await this.readPage(result.page)).text;
+      // Page-level anchors don't have a meaningful range — return the
+      // whole page (matches the behaviour for refs with no details).
+      if (result.hostTag === "page") {
+        return { offset: 0, text: pageText };
+      }
+      const [from, to] = result.range;
+      return { offset: from, text: pageText.slice(from, to) };
+    }
     if (!ref.path.endsWith(".md")) {
       throw new Error("Not supported");
     }
