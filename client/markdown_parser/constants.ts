@@ -12,3 +12,4 @@ export const frontmatterWikiLinkRegex =
   /(?<leadingTrivia>!?\[\[)(?<stringRef>.*?)(?:\|(?<alias>.*?))?(?<trailingTrivia>\]\])/g;
 export const frontmatterMailtoRegex = /(mailto:[^@\s]+@[^@\s"']+)/gi;
 export const pWikiLinkRegex = new RegExp(`^${wikiLinkRegex.source}`); // Modified regex used only in parser
+export const anchorRegex = /\$[A-Za-z_][A-Za-z0-9_/:-]*/;

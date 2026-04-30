@@ -13,7 +13,7 @@ import * as ct from "./customtags.ts";
 import { TaskList } from "./extended_task.ts";
 import { Table } from "./table_parser.ts";
 import { FootnoteDefinition, FootnoteRef, InlineFootnote } from "./footnote.ts";
-import { nakedUrlRegex, pWikiLinkRegex, tagRegex } from "./constants.ts";
+import { anchorRegex, nakedUrlRegex, pWikiLinkRegex, tagRegex } from "./constants.ts";
 import { HTMLBlockParsing } from "./html_block.ts";
 import { parse } from "./parse_tree.ts";
 import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
@@ -295,6 +295,34 @@ const Hashtag = regexParser({
   nodeType: "Hashtag",
 });
 
+// NamedAnchor: $name with the leading `$` exposed as a NamedAnchorMark
+// child node so live-preview / HTML render can style the sigil
+// distinctly from the name.
+const namedAnchorRegex = new RegExp(`^${anchorRegex.source}`);
+const NamedAnchor: MarkdownConfig = {
+  defineNodes: ["NamedAnchor", "NamedAnchorMark"],
+  parseInline: [
+    {
+      name: "NamedAnchor",
+      parse(cx, next, pos) {
+        if (next !== 36 /* $ */) {
+          return -1;
+        }
+        const match = namedAnchorRegex.exec(cx.slice(pos, cx.end));
+        if (!match) {
+          return -1;
+        }
+        const end = pos + match[0].length;
+        return cx.addElement(
+          cx.elt("NamedAnchor", pos, end, [
+            cx.elt("NamedAnchorMark", pos, pos + 1),
+          ]),
+        );
+      },
+    },
+  ],
+};
+
 // FrontMatter parser
 
 const yamlLang = StreamLanguage.define(yamlLanguage);
@@ -377,6 +405,7 @@ const baseMarkdownExtensions: MarkdownConfig[] = [
   Table,
   NakedURL,
   Hashtag,
+  NamedAnchor,
   Superscript,
   Subscript,
   {
@@ -411,6 +440,7 @@ const baseMarkdownExtensions: MarkdownConfig[] = [
         Hashtag: ct.HashtagTag,
         NakedURL: ct.NakedURLTag,
         NamedAnchor: ct.NamedAnchorTag,
+        NamedAnchorMark: ct.NamedAnchorMarkTag,
       }),
     ],
   },

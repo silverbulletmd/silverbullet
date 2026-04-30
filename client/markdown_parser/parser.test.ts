@@ -333,6 +333,33 @@ test("Test markdown links with escaped square brackets", () => {
   expect(renderToText(tree)).toBe(`[\\[link\\]](address)`);
 });
 
+test("Anchor parsing", () => {
+  const tree = parseMarkdown(
+    `
+This paragraph carries an anchor $toc1 inline.
+
+- Item with anchor $tasks/7
+
+- [ ] Task body $work-1
+
+# Header with anchor $sec1
+
+Inline code with \`$ignored\` should not parse as anchor.
+
+\`\`\`
+fenced $alsoIgnored
+\`\`\`
+
+Bare $ alone is not an anchor.
+
+A $100 dollar bill (digit-leading is not an anchor).
+`,
+  );
+  const anchors = collectNodesOfType(tree, "NamedAnchor")
+    .map((n) => renderToText(n));
+  expect(anchors).toEqual(["$toc1", "$tasks/7", "$work-1", "$sec1"]);
+});
+
 test("Test mdLinkRegex with escaped square brackets", () => {
   // Normal link
   mdLinkRegex.lastIndex = 0;
