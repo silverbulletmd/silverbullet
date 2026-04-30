@@ -272,6 +272,24 @@ tag.define {
   },
 }
 
+-- anchor
+tag.define {
+  name = "anchor",
+  schema = {
+    type = "object",
+    properties = {
+      -- The anchor name itself (e.g. "tsk1" for $tsk1).
+      ref = readOnlyType("string"),
+      tag = readOnlyType("string"),
+      -- The page on which the anchor was defined.
+      page = readOnlyType("string"),
+      -- The tag of the host object the anchor attaches to (e.g.
+      -- "paragraph", "task", "header", or any user-defined data tag).
+      hostTag = readOnlyType("string"),
+    },
+  },
+}
+
 -- task
 tag.define {
   name = "task",

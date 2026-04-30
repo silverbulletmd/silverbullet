@@ -9,5 +9,5 @@ See [[Markdown/Extensions]] for more details on these SilverBullet-specific exte
 More about markdown:
 
 * [[Markdown/Basics]]: learn some the markdown basics
-* [[Markdown/Extensions]]: learn about SilverBullet’s set of markdown extensions
+* [[Markdown/Extensions]]: learn about SilverBullet’s set of markdown extensions, including [[Markdown/Hashtags]] and [[Markdown/Anchor]]
 * [[Markdown/Syntax Highlighting]]: languages that SilverBullet supports syntax highlighting for

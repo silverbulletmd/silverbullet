@@ -6,6 +6,7 @@ In addition to supporting [[Markdown/Basics|markdown basics]] as standardized by
 * [[Transclusions]] syntax
 * [[Markdown/Admonition]]
 * [[Markdown/Hashtags]]
+* [[Markdown/Anchor]]
 * [[Markdown/HTML]]
 * [[Space Lua]] expressions
 * [Tables](https://www.markdownguide.org/extended-syntax/#tables)
