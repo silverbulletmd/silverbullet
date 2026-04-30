@@ -3,7 +3,7 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
-* New [[Markdown/Anchor]] syntax (`$name`) — a stable, space-globally unique name for any [[Object]], referenced from links via `[[$name]]`. Includes autocomplete and lint.
+* New [[Markdown/Anchor]] syntax (`$name`): a stable, space-globally unique name for (almost) any [[Object]], referenced from links via `[[$name]]`.
 * [[Configuration Manager]]: new UI for editing configuration, accessed via the `Configuration: Open` command (`Ctrl/Cmd-,`) and `Configuration: Key Bindings` command. It currently supports:
   * Changing (common) configuration options
   * Key binding management (oh my!)

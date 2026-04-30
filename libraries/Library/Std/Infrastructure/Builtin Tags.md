@@ -283,8 +283,7 @@ tag.define {
       tag = readOnlyType("string"),
       -- The page on which the anchor was defined.
       page = readOnlyType("string"),
-      -- The tag of the host object the anchor attaches to (e.g.
-      -- "paragraph", "task", "header", or any user-defined data tag).
+      -- The tag of object the anchor attaches to
       hostTag = readOnlyType("string"),
     },
   },
