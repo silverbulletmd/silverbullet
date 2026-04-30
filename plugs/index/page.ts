@@ -13,8 +13,12 @@ import {
   traverseTreeAsync,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { updateITags } from "./tags.ts";
+import { isValidAnchorName } from "./anchor.ts";
 import type { AspiringPageObject } from "./link.ts";
-import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
+import type {
+  ObjectValue,
+  PageMeta,
+} from "@silverbulletmd/silverbullet/type/index";
 import type { LintDiagnostic } from "@silverbulletmd/silverbullet/type/client";
 
 import YAML from "js-yaml";
@@ -70,7 +74,25 @@ export async function indexPage(
     }),
   );
 
-  return [combinedPageMeta];
+  // Page-level $anchor: when a page declares `$ref: <name>` in
+  // frontmatter, emit a parallel anchor record so [[$name]] resolves
+  // to this page. The page object's own ref (= page name) is left
+  // untouched so existing page lookups keep working.
+  const results: ObjectValue<any>[] = [combinedPageMeta];
+  const frontmatterAnchor = (frontmatter as any).$ref;
+  if (
+    typeof frontmatterAnchor === "string" &&
+    isValidAnchorName(frontmatterAnchor)
+  ) {
+    results.push({
+      tag: "anchor",
+      ref: frontmatterAnchor,
+      page: pageMeta.name,
+      hostTag: "page",
+    });
+  }
+
+  return results;
 }
 
 export async function lintFrontmatter(): Promise<LintDiagnostic[]> {
