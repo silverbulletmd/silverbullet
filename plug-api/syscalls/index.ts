@@ -75,3 +75,21 @@ export function deleteObject(
 ): Promise<void> {
   return syscall("index.deleteObject", page, tag, ref);
 }
+
+export type {
+  AnchorHit,
+  ResolveAnchorResult,
+} from "../../plugs/index/types.ts";
+import type { ResolveAnchorResult } from "../../plugs/index/types.ts";
+
+/**
+ * Resolves a `$name` anchor to its host. Returns `ok: true` with page +
+ * hostTag + range on success, or `ok: false` with `missing`/`duplicate`
+ * reason. When `page` is provided, the lookup is filtered to that page.
+ */
+export function resolveAnchor(
+  name: string,
+  page?: string,
+): Promise<ResolveAnchorResult> {
+  return syscall("index.resolveAnchor", name, page);
+}

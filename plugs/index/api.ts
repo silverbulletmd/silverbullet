@@ -1,4 +1,4 @@
-import { index, markdown } from "@silverbulletmd/silverbullet/syscalls";
+import { index, lua, markdown } from "@silverbulletmd/silverbullet/syscalls";
 import {
   extractFrontMatter as extractFrontmatterFromTree,
   type FrontMatter,
@@ -11,6 +11,8 @@ import {
 import { applyPatches, type YamlPatch } from "../../plug-api/lib/yaml.ts";
 import type { LuaCollectionQuery } from "../../client/space_lua/query_collection.ts";
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
+import type { ResolveAnchorResult } from "./types.ts";
+export type { AnchorHit, ResolveAnchorResult } from "./types.ts";
 
 /*
  * Key namespace:
@@ -55,6 +57,62 @@ export async function patchFrontmatter(
       return text.slice(frontmatter[0].to! + 1); // +1 to skip the initial \n
     }
   }
+}
+
+export async function resolveAnchor(
+  name: string,
+  page?: string,
+): Promise<ResolveAnchorResult> {
+  const candidates = await index.queryLuaObjects<{
+    ref: string;
+    page: string;
+    hostTag: string;
+  }>(
+    "anchor",
+    {
+      objectVariable: "_",
+      where: page
+        ? await lua.parseExpression(`_.ref == name and _.page == p`)
+        : await lua.parseExpression(`_.ref == name`),
+    },
+    page ? { name, p: page } : { name },
+  );
+
+  if (candidates.length === 0) {
+    return { ok: false, reason: "missing" };
+  }
+  if (candidates.length > 1) {
+    return {
+      ok: false,
+      reason: "duplicate",
+      hits: candidates.map((c) => ({ page: c.page, hostTag: c.hostTag })),
+    };
+  }
+  const hit = candidates[0];
+  // Page-level anchors don't have a host with a `range`; the anchor
+  // points at the whole page. Resolve to position 0.
+  if (hit.hostTag === "page") {
+    return {
+      ok: true,
+      page: hit.page,
+      hostTag: "page",
+      range: [0, 0],
+    };
+  }
+  const host = await index.getObjectByRef<{ range: [number, number] }>(
+    hit.page,
+    hit.hostTag,
+    name,
+  );
+  if (!host) {
+    return { ok: false, reason: "missing" };
+  }
+  return {
+    ok: true,
+    page: hit.page,
+    hostTag: hit.hostTag,
+    range: host.range,
+  };
 }
 
 // DEPRECATED: use index.queryLuaObjects directly
