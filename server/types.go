@@ -24,6 +24,13 @@ type ServerConfig struct {
 	// HeadlessConfig holds configuration for the headless browser (nil = disabled)
 	HeadlessConfig *HeadlessConfig
 
+	// NodeBridgeConfig holds configuration for the Node.js agent bridge (nil = disabled)
+	NodeBridgeConfig *NodeBridgeConfig
+
+	// NodeBridge manages the Node.js agent bridge sidecar process.
+	// Created in RunServer before Router; nil if not configured.
+	NodeBridge *NodeBridge
+
 	// RuntimeBridge manages the Runtime API bridge to the headless browser.
 	// Created in RunServer before Router; Router falls back to NewRuntimeBridge(nil) if nil.
 	RuntimeBridge *RuntimeBridge

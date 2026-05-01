@@ -224,6 +224,41 @@ func buildConfig(bundledFiles fs.FS, args []string, buildTime string) *server.Se
 		}
 	}
 
+	// Agent Bridge: auto-enable if Node.js and agent-bridge script are available
+	agentBridgeEnv := os.Getenv("SB_AGENT_BRIDGE")
+	if agentBridgeEnv != "0" && agentBridgeEnv != "false" && !rootSpaceConfig.ReadOnlyMode {
+		nodePath := os.Getenv("SB_NODE_PATH")
+		if nodePath == "" {
+			nodePath, _ = exec.LookPath("node")
+		}
+		if nodePath != "" {
+			scriptPath := os.Getenv("SB_AGENT_BRIDGE_PATH")
+			if scriptPath == "" {
+				// Look relative to the executable first, then working directory
+				if exePath, err := os.Executable(); err == nil {
+					candidate := filepath.Join(filepath.Dir(exePath), "agent-bridge", "index.mjs")
+					if _, err := os.Stat(candidate); err == nil {
+						scriptPath = candidate
+					}
+				}
+				if scriptPath == "" {
+					scriptPath = "agent-bridge/index.mjs"
+				}
+			}
+			if _, err := os.Stat(scriptPath); err == nil {
+				serverConfig.NodeBridgeConfig = &server.NodeBridgeConfig{
+					NodePath:   nodePath,
+					ScriptPath: scriptPath,
+				}
+				log.Printf("Agent bridge enabled (Node: %s, script: %s)", nodePath, scriptPath)
+			} else {
+				log.Println("Agent bridge disabled: agent-bridge/index.mjs not found")
+			}
+		} else {
+			log.Println("Agent bridge disabled: Node.js not found")
+		}
+	}
+
 	// Initialize shell backend
 	backendConfig := os.Getenv("SB_SHELL_BACKEND")
 	if backendConfig == "" && !rootSpaceConfig.ReadOnlyMode {

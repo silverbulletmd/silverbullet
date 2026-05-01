@@ -87,6 +87,9 @@ func Router(config *ServerConfig) chi.Router {
 	// Shell endpoint
 	routes.Post("/.shell", handleShellEndpoint)
 
+	// Claude agent bridge (Anthropic Messages API via Claude Agent SDK)
+	routes.Mount("/.claude", buildClaudeBridgeRoutes(config.NodeBridge))
+
 	// Log collection endpoint
 	routes.Post("/.logs", handleLogsEndpoint)
 
@@ -169,6 +172,20 @@ func RunServer(config *ServerConfig) error {
 		config.RuntimeBridge = NewRuntimeBridge(nil)
 	}
 
+	// Start Node agent bridge if configured
+	if config.NodeBridgeConfig != nil {
+		bridge, err := StartNodeBridge(config.NodeBridgeConfig)
+		if err != nil {
+			log.Printf("[AgentBridge] Failed to start: %v (Claude bridge will be unavailable)", err)
+		} else {
+			if err := bridge.WaitReady(); err != nil {
+				log.Printf("[AgentBridge] Failed to become ready: %v", err)
+			} else {
+				config.NodeBridge = bridge
+			}
+		}
+	}
+
 	r := Router(config)
 
 	addr := fmt.Sprintf("%s:%d", config.BindHost, config.Port)
@@ -205,6 +222,11 @@ func RunServer(config *ServerConfig) error {
 	// Block on incoming signals.
 	s := <-signalChannel
 	log.Println("Received signal:", s)
+
+	// Stop Node agent bridge (if running) before server shutdown
+	if config.NodeBridge != nil {
+		config.NodeBridge.Stop()
+	}
 
 	// Stop headless browser (if running) before server shutdown
 	config.RuntimeBridge.Stop()
