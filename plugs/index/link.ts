@@ -12,6 +12,7 @@ import {
 import type { FrontMatter } from "./frontmatter.ts";
 import { updateITags } from "./tags.ts";
 import {
+  encodeRef,
   getNameFromPath,
   isMarkdownPath,
   parseToRef,
@@ -35,6 +36,8 @@ export type LinkObject = ObjectValue<{
   snippet: string;
   alias?: string;
   pageLastModified: string;
+  // Complete ref to the destination, except for external links where it's just the url
+  destination: string;
   // Page Link
   toPage?: string;
   // File Link
@@ -81,6 +84,12 @@ export async function indexLinks(
       const url = wikiLinkPage.children![0].text!;
       const pos = wikiLinkPage.from!;
 
+      const ref = parseToRef(url);
+      if (!ref) {
+        // Invalid links aren't indexed
+        return true;
+      }
+
       const link: LinkObject = {
         ref: `${name}@${pos}`,
         type: "page", // can be swapped later
@@ -90,13 +99,10 @@ export async function indexLinks(
         range: [n.from!, n.to!],
         page: name,
         pageLastModified: pageMeta.lastModified,
+        destination: encodeRef(ref),
       };
 
-      const ref = parseToRef(url);
-      if (!ref) {
-        // Invalid links aren't indexed
-        return true;
-      } else if (isMarkdownPath(ref.path)) {
+      if (isMarkdownPath(ref.path)) {
         link.toPage = getNameFromPath(ref.path);
         link.type = "page";
       } else {
@@ -136,6 +142,7 @@ export async function indexLinks(
         range: [n.from!, n.to!],
         page: name,
         pageLastModified: pageMeta.lastModified,
+        destination: url,
       };
 
       if (isLocalURL(url)) {
@@ -150,10 +157,14 @@ export async function indexLinks(
           link.toFile = ref.path;
           link.type = "file";
         }
+
+        link.destination = encodeRef(ref);
       } else {
         // External URL
         link.type = "url";
         link.toURL = url;
+
+        link.destination = url;
       }
 
       if (alias) {
@@ -178,6 +189,13 @@ export async function indexLinks(
         if (match?.groups && match[0] === trimmed) {
           const { leadingTrivia, stringRef, alias } = match.groups;
           const pos = textNode.from! + match.index! + leadingTrivia.length;
+
+          const ref = parseToRef(stringRef);
+          if (!ref) {
+            // Invalid links aren't indexed
+            return true;
+          }
+
           const link: LinkObject = {
             ref: `${name}@${pos}`,
             tag: "link",
@@ -190,13 +208,10 @@ export async function indexLinks(
               textNode.from! + match.index! + match[0].length,
             ],
             pageLastModified: pageMeta.lastModified,
+            destination: encodeRef(ref)
           };
 
-          const ref = parseToRef(stringRef);
-          if (!ref) {
-            // Invalid links aren't indexed
-            return true;
-          } else if (isMarkdownPath(ref.path)) {
+          if (isMarkdownPath(ref.path)) {
             link.toPage = getNameFromPath(ref.path);
             link.type = "page";
           } else {
