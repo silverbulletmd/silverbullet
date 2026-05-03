@@ -214,6 +214,13 @@ export class Config {
         throw new Error(`Invalid key ${key}`);
       }
 
+      // Re-apply nested schema defaults so partial object writes don't wipe
+      // out defaults for nested properties the user didn't specify.
+      const schema = this.getSchemaAtPath(key);
+      if (schema) {
+        this.applySchemaDefaults(key, schema);
+      }
+
       // Find and validate only the relevant schema
       this.validatePath(key);
     } else {

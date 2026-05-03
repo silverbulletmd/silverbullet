@@ -201,6 +201,46 @@ test("Config - schema defaults", () => {
   expect(defaultList).toEqual(["a", "b"]);
 });
 
+test("Config - partial object set preserves nested defaults", () => {
+  const config = new Config();
+
+  config.define("smartQuotes", {
+    type: "object",
+    properties: {
+      enabled: { type: "boolean", default: true },
+      double: {
+        type: "object",
+        properties: {
+          left: { type: "string", default: "“" },
+          right: { type: "string", default: "”" },
+        },
+      },
+      single: {
+        type: "object",
+        properties: {
+          left: { type: "string", default: "‘" },
+          right: { type: "string", default: "’" },
+        },
+      },
+    },
+  });
+
+  // Partial object set should not wipe out nested defaults
+  config.set("smartQuotes", { enabled: true });
+  expect(config.get("smartQuotes.double.left", null)).toEqual("“");
+  expect(config.get("smartQuotes.double.right", null)).toEqual("”");
+  expect(config.get("smartQuotes.single.left", null)).toEqual("‘");
+  expect(config.get("smartQuotes.single.right", null)).toEqual("’");
+  expect(config.get("smartQuotes.enabled", null)).toEqual(true);
+
+  // User-specified values are preserved; missing siblings get defaults
+  config.set("smartQuotes", { double: { left: "<<" } });
+  expect(config.get("smartQuotes.double.left", null)).toEqual("<<");
+  expect(config.get("smartQuotes.double.right", null)).toEqual("”");
+  expect(config.get("smartQuotes.single.left", null)).toEqual("‘");
+  expect(config.get("smartQuotes.enabled", null)).toEqual(true);
+});
+
 test("Config - custom format validation", () => {
   const config = new Config();
 
