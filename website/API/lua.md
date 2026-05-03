@@ -1,4 +1,4 @@
-#api/space-lua
+#api/syscall
 
 The Lua API provides functions for parsing and evaluating Lua code.
 
