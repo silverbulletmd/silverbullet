@@ -295,13 +295,19 @@ func (d *DiskSpacePrimitives) DeleteFile(path string) error {
 	return nil
 }
 
-// cleanOrphaned removes empty parent directories up to rootPath
+// cleanOrphaned removes empty parent directories up to rootPath. Symlinks are
+// left alone: os.Remove on a symlink to a directory deletes the symlink itself
+// regardless of whether the target directory is empty, which would silently
+// remove links to non-empty content from the space.
 func (d *DiskSpacePrimitives) cleanOrphaned(deletedFilePath string) {
 	current := filepath.Dir(deletedFilePath)
 
 	for strings.HasPrefix(current, d.rootPath) && current != d.rootPath {
-		err := os.Remove(current)
-		if err != nil {
+		info, err := os.Lstat(current)
+		if err != nil || info.Mode()&os.ModeSymlink != 0 {
+			break
+		}
+		if err := os.Remove(current); err != nil {
 			// Directory not empty or other error, stop cleaning
 			break
 		}
