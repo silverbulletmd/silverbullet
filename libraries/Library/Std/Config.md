@@ -22,27 +22,27 @@ This defines the [JSON schema](https://json-schema.org/) for built-in configurat
 config.defineCategory {
   name = "Editor",
   description = "Behavior of the page editor: brackets, wiki link rendering, emoji aliases, and similar editing affordances.",
-  order = 10,
+  priority = 50,
 }
 config.defineCategory {
   name = "Smart Quotes",
   description = "Replace straight quotes with typographic ones as you type, and pick which characters are used.",
-  order = 20,
+  priority = 40,
 }
 config.defineCategory {
   name = "Sync",
   description = "Control how this client synchronizes pages and documents with the server.",
-  order = 30,
+  priority = 30,
 }
 config.defineCategory {
   name = "Indexing",
   description = "Choose which kinds of content (paragraphs, items, tasks) are indexed for queries.",
-  order = 40,
+  priority = 20,
 }
 config.defineCategory {
   name = "Query",
   description = "Configure how queries collate and compare strings, including locale-aware sorting.",
-  order = 50,
+  priority = 10,
 }
 
 config.define("sync", {
@@ -53,7 +53,7 @@ config.define("sync", {
       type = "boolean",
       default = false,
       description = "Sync document files (non-markdown) to the server",
-      ui = { category = "Sync", label = "Sync documents", order = 1 },
+      ui = { category = "Sync", label = "Sync documents", priority = 1 },
     },
     -- In .gitignore format, either in a single string, or as a list of strings
     ignore = {
@@ -77,7 +77,7 @@ config.define("index", {
           type = "boolean",
           default = false,
           description = "Index paragraphs without a hashtag",
-          ui = { category = "Indexing", label = "Index all paragraphs", order = 1 },
+          ui = { category = "Indexing", label = "Index all paragraphs", priority = 3 },
         },
       },
     },
@@ -88,7 +88,7 @@ config.define("index", {
           type = "boolean",
           default = true,
           description = "Index items without a hashtag",
-          ui = { category = "Indexing", label = "Index all items", order = 2 },
+          ui = { category = "Indexing", label = "Index all items", priority = 2 },
         },
       },
     },
@@ -99,7 +99,7 @@ config.define("index", {
           type = "boolean",
           default = true,
           description = "Index tasks without a hashtag",
-          ui = { category = "Indexing", label = "Index all tasks", order = 3 },
+          ui = { category = "Indexing", label = "Index all tasks", priority = 1 },
         },
       },
     },
@@ -118,7 +118,7 @@ config.define("shortWikiLinks", {
   description = "Render wiki links to just the last segment, e.g. Person/John becomes John",
   type = "boolean",
   default = true,
-  ui = { category = "Editor", label = "Short wiki links", order = 1 },
+  ui = { category = "Editor", label = "Short wiki links", priority = 1 },
 })
 
 config.define("emoji", {
@@ -139,7 +139,7 @@ config.define("smartQuotes", {
     enabled = {
       type = "boolean",
       description = "Indicates whether smart quotes are enabled",
-      ui = { category = "Smart Quotes", label = "Enable smart quotes", order = 1 },
+      ui = { category = "Smart Quotes", label = "Enable smart quotes", priority = 5 },
       default = true,
     },
     double = {
@@ -149,13 +149,13 @@ config.define("smartQuotes", {
           type = "string",
           default = "“",
           description = "Character for the left double quote",
-          ui = { category = "Smart Quotes", label = "Double quote left", order = 2 },
+          ui = { category = "Smart Quotes", label = "Double quote left", priority = 4 },
         },
         right = {
           type = "string",
           default = "”",
           description = "Character for the right double quote",
-          ui = { category = "Smart Quotes", label = "Double quote right", order = 3 },
+          ui = { category = "Smart Quotes", label = "Double quote right", priority = 3 },
         }
       },
       additionalProperties = false
@@ -167,13 +167,13 @@ config.define("smartQuotes", {
           type = "string",
           default = "‘",
           description = "Character for the left single quote",
-          ui = { category = "Smart Quotes", label = "Single quote left", order = 4 },
+          ui = { category = "Smart Quotes", label = "Single quote left", priority = 2 },
         },
         right = {
           type = "string",
           default = "’",
           description = "Character for the right single quote",
-          ui = { category = "Smart Quotes", label = "Single quote right", order = 5 },
+          ui = { category = "Smart Quotes", label = "Single quote right", priority = 1 },
         }
       },
       additionalProperties = false
@@ -266,18 +266,18 @@ config.define("vim", {
 config.define("queryCollation", {
   description = "Configure string ordering in queries",
   type = "object",
-  ui = { category = "Query", label = "Query collation", order = 1 },
+  ui = { category = "Query", label = "Query collation", priority = 1 },
   properties = {
     enabled = {
       type = "boolean",
       default = false,
       description = "Indicates whether string collation should be used instead of simple codepoint ordering",
-      ui = { category = "Query", label = "Enable collation", order = 1 },
+      ui = { category = "Query", label = "Enable collation", priority = 2 },
     },
     locale = {
       type = "string",
       description = "Language tag to specify sorting rules (from BCP 47)",
-      ui = { category = "Query", label = "Locale", order = 2 },
+      ui = { category = "Query", label = "Locale", priority = 1 },
     },
     options = {
       type = "object",

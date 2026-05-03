@@ -69,14 +69,16 @@ export function buildSchemaIndex(cfg: ConfigurationViewModel): SchemaIndex {
     initialConfig[item.path] = getValueAtPath(cfg.values, item.path);
   }
   for (const fields of Object.values(categoryMap)) {
-    fields.sort((a, b) => (a.schema.ui.order || 0) - (b.schema.ui.order || 0));
+    fields.sort(
+      (a, b) => (b.schema.ui.priority || 0) - (a.schema.ui.priority || 0),
+    );
   }
 
-  const defaultOrder = Number.POSITIVE_INFINITY;
+  const defaultPriority = Number.NEGATIVE_INFINITY;
   const sortedCategoryNames = Object.keys(categoryMap).sort((a, b) => {
-    const oa = cfg.categories?.[a]?.order ?? defaultOrder;
-    const ob = cfg.categories?.[b]?.order ?? defaultOrder;
-    if (oa !== ob) return oa - ob;
+    const pa = cfg.categories?.[a]?.priority ?? defaultPriority;
+    const pb = cfg.categories?.[b]?.priority ?? defaultPriority;
+    if (pa !== pb) return pb - pa;
     return a.localeCompare(b);
   });
 

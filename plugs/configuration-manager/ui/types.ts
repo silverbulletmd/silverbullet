@@ -19,7 +19,7 @@ export type ConfigurationViewModel = {
   values: Record<string, any>;
   categories: Record<
     string,
-    { name: string; description?: string; order?: number }
+    { name: string; description?: string; priority?: number }
   >;
   commands: Record<string, any>;
   commandOverrides: Record<string, CommandOverride>;

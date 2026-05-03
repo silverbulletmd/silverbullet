@@ -44,17 +44,17 @@ config.define("github", {
     name = {
       type = "string",
       description = "Author name for Git commits",
-      ui = { category = "GitHub", label = "Author name", order = 1 },
+      ui = { category = "GitHub", label = "Author name", priority = 3 },
     },
     email = {
       type = "string",
       description = "Author email for Git commits",
-      ui = { category = "GitHub", label = "Author email", order = 2 },
+      ui = { category = "GitHub", label = "Author email", priority = 2 },
     },
     token = {
       type = "string",
       description = "Personal access token for GitHub API",
-      ui = { category = "GitHub", label = "GitHub token", order = 3, inputType = "password" },
+      ui = { category = "GitHub", label = "GitHub token", priority = 1, inputType = "password" },
     },
   },
   additionalProperties = false,

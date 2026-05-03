@@ -67,7 +67,7 @@ function isValidJsonSchema(schema: any): { valid: boolean; error?: string } {
 export type CategoryDefinition = {
   name: string;
   description?: string;
-  order?: number;
+  priority?: number;
 };
 
 export class Config {
@@ -78,8 +78,9 @@ export class Config {
 
   /**
    * Registered UI categories for the configuration manager. Categories appear
-   * in the UI in ascending `order`; categories referenced by a schema's
-   * `ui.category` but never registered fall to the bottom in alphabetical order.
+   * in the UI in descending `priority` (higher first); categories referenced
+   * by a schema's `ui.category` but never registered fall to the bottom in
+   * alphabetical order.
    */
   public categories: Record<string, CategoryDefinition> = {};
 

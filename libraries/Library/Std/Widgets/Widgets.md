@@ -108,7 +108,7 @@ widgets = widgets or {}
 config.defineCategory {
   name = "Widgets",
   description = "Enable and configure built-in widgets (table of contents, linked mentions, etc.)",
-  order = 15,
+  priority = 45,
 }
 
 -- configuration schema
@@ -119,13 +119,13 @@ config.define("std.widgets.toc", {
       type = "boolean",
       default = true,
       description = "Show a table of contents at the top of pages",
-      ui = { category = "Widgets", label = "Table of Contents", order = 1 },
+      ui = { category = "Widgets", label = "Table of Contents", priority = 4 },
     },
     minHeaders = {
       type = "number",
       default = 3,
       description = "Minimum number of headers required before rendering a table of contents at all.",
-      ui = { category = "Widgets", label = "Minimum headers for TOC", order = 2 },
+      ui = { category = "Widgets", label = "Minimum headers for TOC", priority = 3 },
     },
   }
 })
@@ -277,7 +277,7 @@ config.define("std.widgets.linkedMentions", {
       type = "boolean",
       default = true,
       description = "Show linked mentions at the bottom of pages",
-      ui = { category = "Widgets", label = "Linked mentions", order = 3 },
+      ui = { category = "Widgets", label = "Linked mentions", priority = 2 },
     },
   }
 })
@@ -323,7 +323,7 @@ config.define("std.widgets.linkedTasks", {
       type = "boolean",
       default = true,
       description = "Show linked tasks at the top of pages",
-      ui = { category = "Widgets", label = "Linked tasks", order = 4 },
+      ui = { category = "Widgets", label = "Linked tasks", priority = 1 },
     },
   }
 })

@@ -99,6 +99,7 @@ tag.define {
 
 # Configuration manager
 Managed by [[Configuration Manager]]
+
 ```space-lua
 -- managed-by: configuration-manager
 config.set("smartQuotes.enabled", false)
