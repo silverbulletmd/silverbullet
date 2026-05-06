@@ -22,7 +22,10 @@ Optional keys you can set in the page’s frontmatter:
 * `command`: expose the page template as a command with this name.
 * `key`: Bind the snippet to a keyboard shortcut (note: this requires to _also_ specify the `command` configuration).
 * `mac`: Bind the snippet to a Mac-specific keyboard shortcut.
-* `frontmatter`: Frontmatter (encoded as a string) to set in the resulting page.
+* `frontmatter`: Frontmatter to set in the resulting page. Use a YAML literal block scalar
+  (`frontmatter: |`) so that the value is passed as a string and `${...}` Lua interpolation
+  works. A nested YAML mapping is also accepted (and serialized verbatim), but interpolation
+  will be skipped in that case.
 * `priority`: Similar to how space lua scripts are loaded, this controls the order in which page template _commands_ are
   created (see "overriding page templates" below)
 
@@ -93,8 +96,16 @@ local function createPageFromTemplate(templatePage, pageName, openIfExists)
   local tpl, fm = template.fromPage(templatePage)
   local initialText = ""
   if fm.frontmatter then
+    local frontmatterText
+    if type(fm.frontmatter) == "string" then
+      -- String form: supports `${...}` Lua interpolation
+      frontmatterText = template.new(fm.frontmatter)()
+    else
+      -- Table form (e.g. nested YAML mapping): encode as YAML
+      frontmatterText = yaml.stringify(fm.frontmatter)
+    end
     initialText = "---\n"
-      .. string.trim(template.new(fm.frontmatter)())
+      .. string.trim(frontmatterText)
       .. "\n---\n"
   end
   -- Write an empty page to start
@@ -156,7 +167,7 @@ command.define {
       return
     end
     local pageName
-    if selected.suggestedName then
+    if selected.suggestedName ~= nil then
       pageName = (template.new(selected.suggestedName))()
     end
     pageName = string.trim(some(editor.prompt("Page name", pageName)) or "")

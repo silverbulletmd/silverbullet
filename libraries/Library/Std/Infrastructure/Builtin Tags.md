@@ -331,7 +331,7 @@ tag.define {
           schema.string(),
         },
       },
-      frontmatter = schema.string(),
+      frontmatter = anyOf = { schema.string(), schema.object() },
       suggestedName = schema.string(),
       confirmName = schema.boolean(),
       openIfExists = schema.boolean(),

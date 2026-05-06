@@ -3,6 +3,7 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
+* Fix: [[Page Template]]s are now fixed (required specifying of `suggestedName` before), now also supports objects as frontmatter
 
 ## 2.7.0
 * [[Configuration Manager]]: new UI for editing configuration, accessed via the `Configuration: Open` command (`Ctrl/Cmd-,`) and `Configuration: Key Bindings` commands. This is a work in progress, but should already be a big improvement over the old ways. It currently supports:
