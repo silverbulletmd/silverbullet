@@ -56,7 +56,7 @@ function buildHtmlTable(
   parts.push("</tr></thead><tbody>");
   for (let i = 0; i < rowCount; i++) {
     parts.push("<tr>");
-    for (const h of headers) parts.push(renderTd(getCell(i, h)));
+    for (const h of headers) parts.push(renderTd(getCell(i, h), h));
     parts.push("</tr>");
   }
   parts.push("</tbody></table>");
@@ -330,10 +330,16 @@ function luaTypeName(v: any): string | undefined {
   return "string";
 }
 
-function renderTd(v: any): string {
+function renderTd(v: any, header?: string): string {
   if (isEmpty(v)) return "<td data-table-cell-empty></td>";
   const type = luaTypeName(v);
   const attr = type ? ` data-table-cell-type="${type}"` : "";
+  // `ref` columns hold a page name by convention — wrap scalars in
+  // wiki-link syntax so the markdown renderer turns them into clickable
+  // page links (mirrors the clean-markdown copy path).
+  if (header === "ref" && (type === "string" || type === "number")) {
+    return `<td${attr}>[[${formatScalar(v)}]]</td>`;
+  }
   return `<td${attr}>${renderCellContent(v)}</td>`;
 }
 
