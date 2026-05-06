@@ -99,6 +99,18 @@ export const pasteLinkExtension = ViewPlugin.fromClass(
 
 export function documentExtension(editor: Client) {
   let shiftDown = false;
+
+  // Public embedder API: dispatch a `silverbullet:upload-files` CustomEvent
+  // on `document` with `{ files: File[] }` in `detail` to hand the editor
+  // a list of files. A bit hacky but required for correct Tauri operation.
+  document.addEventListener("silverbullet:upload-files", (event) => {
+    const files = (event as CustomEvent<{ files?: File[] }>).detail?.files;
+    if (!files?.length) return;
+    safeRun(async () => {
+      await processFileTransfer(files);
+    });
+  });
+
   return EditorView.domEventHandlers({
     dragover: (event) => {
       event.preventDefault();
@@ -123,6 +135,9 @@ export function documentExtension(editor: Client) {
         if (!payload.length) {
           return;
         }
+        // Without this the browser falls through to its default action
+        // (navigating to the dropped file)
+        event.preventDefault();
         safeRun(async () => {
           await processFileTransfer(payload);
         });
