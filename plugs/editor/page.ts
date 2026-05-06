@@ -10,18 +10,13 @@ export async function deletePage() {
   ) {
     return;
   }
-  // Query for last
+  // The recently opened list already comes from viewState.allPages (existing pages),
+  // so no need for a separate space.listPages() roundtrip to check existence.
   const recentlyOpenedPages = await editor.getRecentlyOpenedPages();
-  const allPages = await space.listPages();
-  const existingPageNames = new Set(allPages.map((p) => p.name));
-
-  // Find the first recently opened page that still exists and is not the current page
-  const firstRecentlyOpenedPage = recentlyOpenedPages.find(
-    (page) => page.name !== pageName && existingPageNames.has(page.name),
-  );
+  const target = recentlyOpenedPages.find((p) => p.name !== pageName);
   await space.deletePage(pageName);
   console.log("Navigating to previous page");
-  await editor.navigate(firstRecentlyOpenedPage?.name || "");
+  await editor.navigate(target?.name || "");
 }
 
 export async function copyPage(

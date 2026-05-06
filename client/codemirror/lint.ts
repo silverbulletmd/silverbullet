@@ -6,12 +6,16 @@ import type { LintEvent } from "@silverbulletmd/silverbullet/type/client";
 
 export function plugLinter(client: Client) {
   return linter(async (view): Promise<Diagnostic[]> => {
+    const pageMeta = client.currentPageMeta();
+    if (!pageMeta) {
+      return [];
+    }
     const text = view.state.sliceDoc();
     const tree = parse(extendedMarkdownLanguage, text);
     const results = (
       await client.dispatchAppEvent("editor:lint", {
         name: client.currentName(),
-        pageMeta: client.currentPageMeta(),
+        pageMeta,
         tree,
         text,
       } as LintEvent)

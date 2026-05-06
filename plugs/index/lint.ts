@@ -176,6 +176,9 @@ export async function lintObjects({
   text,
   name,
 }: LintEvent): Promise<LintDiagnostic[]> {
+  if (!meta) {
+    return [];
+  }
   const frontmatter = extractFrontMatter(tree);
 
   // Index the page
@@ -411,6 +414,9 @@ export async function lintAnchors({
       const otherPages = result.hits
         .filter((h) => h.page !== pageName)
         .map((h) => h.page);
+      // Skip if all duplicates are on the current page — already handled
+      // by rule C2 (same-page duplicate detection from the tree).
+      if (otherPages.length === 0) continue;
       const nodes = anchorNodesByName.get(anchorName) ?? [];
       for (const node of nodes) {
         diagnostics.push({

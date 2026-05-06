@@ -72,6 +72,8 @@ export class ClientSystem {
   spaceLuaEnv: SpaceLuaEnvironment;
   readonly scriptCommands = new Map<string, Command>();
   scriptsLoaded: boolean = false;
+  // Serializes loadLuaScripts — concurrent runs interleave clear/reload and duplicate event.listen registrations
+  private loadLuaScriptsChain: Promise<void> = Promise.resolve();
 
   // Known files (for UI)
   readonly allKnownFiles = new Set<string>();
@@ -188,14 +190,21 @@ export class ClientSystem {
     }
   }
 
-  async loadLuaScripts() {
+  loadLuaScripts(): Promise<void> {
+    this.loadLuaScriptsChain = this.loadLuaScriptsChain
+      .catch(() => {})
+      .then(() => this.loadLuaScriptsInner());
+    return this.loadLuaScriptsChain;
+  }
+
+  private async loadLuaScriptsInner() {
     if (this.client.bootConfig.disableSpaceLua) {
       console.info("Space Lua scripts are disabled, skipping loading scripts");
       return;
     }
-    if (!(await this.objectIndex.hasFullIndexCompleted())) {
+    if (!(await this.objectIndex.hasPass1Completed())) {
       console.info(
-        "Not loading space scripts, since full indexing has not completed yet",
+        "Not loading space scripts, since Pass-1 indexing has not completed yet",
       );
       return;
     }
@@ -266,5 +275,7 @@ export class ClientSystem {
     await this.loadLuaScripts();
     await this.client.loadCustomStyles();
     this.client.rebuildEditorState();
+    this.client.updatePageListCache().catch(console.error);
+    this.client.updateDocumentListCache().catch(console.error);
   }
 }

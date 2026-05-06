@@ -4,6 +4,7 @@ import {
   isMarkdownPath,
   parseToRef,
 } from "@silverbulletmd/silverbullet/lib/ref";
+import { localDateString } from "@silverbulletmd/silverbullet/lib/dates";
 
 export default function reducer(
   state: AppViewState,
@@ -21,8 +22,9 @@ export default function reducer(
       };
     case "page-loaded": {
       const mouseDetected = globalThis.matchMedia("(pointer:fine)").matches;
-      const isBrowser = globalThis.matchMedia("(display-mode: browser)")
-        .matches;
+      const isBrowser = globalThis.matchMedia(
+        "(display-mode: browser)",
+      ).matches;
       return {
         ...state,
         isLoading: false,
@@ -51,7 +53,7 @@ export default function reducer(
       // Update in the allPages list as well
       state.allPages = state.allPages.map((pageMeta) =>
         pageMeta.name === action.meta.name
-          ? { ...action.meta, lastOpened: Date.now() }
+          ? { ...action.meta, lastAccessed: localDateString(new Date()) }
           : pageMeta,
       );
       // Can't update page meta if not on a page
@@ -72,15 +74,17 @@ export default function reducer(
         isOnline: action.isOnline,
       };
     case "update-page-list": {
-      // Let's move over any "lastOpened" times to the "allPages" list
+      // Carry over `lastAccessed` from the previous allPages list so that
+      // session-local page-open events remain visible even when the augmenter
+      // hasn't yet been overlaid by the upstream page query.
       const oldPageMeta = new Map(
         [...state.allPages].map((pm) => [pm.name, pm]),
       );
       let currPageMeta: PageMeta | undefined;
       for (const pageMeta of action.allPages) {
         const oldPageMetaItem = oldPageMeta.get(pageMeta.name);
-        if (oldPageMetaItem?.lastOpened) {
-          pageMeta.lastOpened = oldPageMetaItem.lastOpened;
+        if (oldPageMetaItem?.lastAccessed && !pageMeta.lastAccessed) {
+          pageMeta.lastAccessed = oldPageMetaItem.lastAccessed;
         }
         if (parseToRef(pageMeta.name)?.path === state.current?.path) {
           currPageMeta = pageMeta;

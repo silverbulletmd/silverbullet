@@ -38,6 +38,19 @@ export class EventedSpacePrimitives implements SpacePrimitives {
   async enable() {
     console.log("Loading snapshot and enabling events");
     this.spaceSnapshot = (await this.ds.get(this.snapshotKey)) || {};
+
+    if (Object.keys(this.spaceSnapshot).length === 0) {
+      // Fresh client or post-wipe: seed the snapshot from a file listing so
+      // the first enabled fetchFileList does not treat every file as "new"
+      // and re-queue indexing for the entire space.
+      const files = await this.wrapped.fetchFileList();
+      for (const meta of files) {
+        this.spaceSnapshot[meta.name] = meta.lastModified;
+      }
+      this.snapshotChanged = true;
+      await this.saveSnapshot();
+    }
+
     this.snapshotChanged = false;
     this.enabled = true;
   }

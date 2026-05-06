@@ -196,6 +196,9 @@ local aggregateSchema = {
     initialize = schema.func(),
     iterate = schema.func(),
     finish = schema.func(),
+    -- Enable wildcard calls like `my_agg(t.*)` and `my_agg(*)`.
+    -- Note: Set to `true` only if `iterate` handles whole rows!
+    acceptsWildcardArg = schema.boolean(),
   }
 }
 

@@ -15,7 +15,8 @@ import {
 import { isSqlNull } from "../sliq_null.ts";
 
 /**
- * These are Space Lua specific functions that are available to all scripts, but are not part of the standard Lua language.
+ * These are Space Lua specific functions that are available to all
+ * scripts, but are not part of the standard Lua language.
  */
 
 /**
@@ -141,7 +142,8 @@ export const spaceluaApi = new LuaTable({
    * Returns your SilverBullet instance's base URL
    */
   baseUrl: new LuaBuiltinFunction(() => {
-    //NOTE: Removing trailing slash to stay compatible with original code: `location.protocol + "//" + location.host;`
+    // Note: Removing trailing slash to stay compatible with original
+    // code: `location.protocol + "//" + location.host;`
     return document.baseURI.replace(/\/*$/, "");
   }),
 });

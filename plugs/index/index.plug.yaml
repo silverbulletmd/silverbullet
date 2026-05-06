@@ -39,7 +39,14 @@ functions:
     path: ./queue.ts:processIndexQueue
     mqSubscriptions:
       - queue: indexQueue
-        batchSize: 3
+        batchSize: 15
+        autoAck: true
+
+  processIndexQueuePass1:
+    path: ./queue.ts:processIndexQueuePass1
+    mqSubscriptions:
+      - queue: indexQueuePass1
+        batchSize: 15
         autoAck: true
 
   indexDocument:
@@ -51,6 +58,11 @@ functions:
     path: indexer.ts:indexPage
     events:
       - page:index
+
+  indexPagePass1:
+    path: indexer.ts:indexPagePass1
+    events:
+      - page:indexPass1
 
   # Headers
   headerComplete:

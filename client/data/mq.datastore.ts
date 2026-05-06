@@ -9,6 +9,13 @@ import type {
   MQSubscribeOptions,
 } from "../../plug-api/types/datastore.ts";
 import { race, sleep } from "@silverbulletmd/silverbullet/lib/async";
+
+export class AbortError extends Error {
+  constructor(message = "Aborted") {
+    super(message);
+    this.name = "AbortError";
+  }
+}
 import type { EventHook } from "../plugos/hooks/event.ts";
 
 export type ProcessingMessage = MQMessage & {
@@ -156,21 +163,34 @@ export class DataStoreMQ {
    * @param bodies the bodies of the messages to send
    * @returns
    */
-  async batchSend(queue: string, bodies: any[]): Promise<void> {
+  async batchSend(
+    queue: string,
+    bodies: any[],
+    signal?: AbortSignal,
+  ): Promise<void> {
     if (bodies.length === 0) {
       return;
     }
+    if (signal?.aborted) {
+      throw new AbortError();
+    }
 
-    const messages: KV<MQMessage>[] = bodies.map((body) => {
-      const id = `${Date.now()}-${String(++this.seq).padStart(6, "0")}`;
-      const key = [...queuedPrefix, queue, id];
-      return {
-        key,
-        value: { id, queue, body },
-      };
-    });
-
-    await this.ds.batchSet(messages);
+    const CHUNK = 1000;
+    for (let i = 0; i < bodies.length; i += CHUNK) {
+      if (signal?.aborted) {
+        throw new AbortError();
+      }
+      const chunk = bodies.slice(i, i + CHUNK);
+      const messages: KV<MQMessage>[] = chunk.map((body) => {
+        const id = `${Date.now()}-${String(++this.seq).padStart(6, "0")}`;
+        const key = [...queuedPrefix, queue, id];
+        return {
+          key,
+          value: { id, queue, body },
+        };
+      });
+      await this.ds.batchSet(messages);
+    }
 
     this.wakeupWorker(queue);
   }
@@ -376,12 +396,47 @@ export class DataStoreMQ {
     return stats.queued === 0 && stats.processing === 0;
   }
 
-  public async awaitEmptyQueue(queue: string): Promise<void> {
-    while (true) {
-      if (await this.isQueueEmpty(queue)) {
-        break;
-      }
-      await sleep(200);
+  public async awaitEmptyQueue(
+    queue: string,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    if (signal?.aborted) {
+      throw new AbortError();
     }
+    if (await this.isQueueEmpty(queue)) {
+      return;
+    }
+    return new Promise<void>((resolve, reject) => {
+      let settled = false;
+      const eventName = `mq:emptyQueue:${queue}`;
+      const onEmpty = async () => {
+        if (settled) return;
+        if (await this.isQueueEmpty(queue)) {
+          if (settled) return;
+          settled = true;
+          cleanup();
+          resolve();
+        }
+      };
+      const onAbort = () => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        reject(new AbortError());
+      };
+      const cleanup = () => {
+        this.eventHook.removeLocalListener(eventName, onEmpty);
+        signal?.removeEventListener("abort", onAbort);
+      };
+      this.eventHook.addLocalListener(eventName, onEmpty);
+      signal?.addEventListener("abort", onAbort, { once: true });
+      void this.isQueueEmpty(queue).then((empty) => {
+        if (empty && !settled) {
+          settled = true;
+          cleanup();
+          resolve();
+        }
+      });
+    });
   }
 }

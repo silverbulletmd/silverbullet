@@ -28,6 +28,7 @@ import { fsEndpoint } from "./spaces/constants.ts";
 import { parseMarkdown } from "./markdown_parser/parser.ts";
 import type { Client } from "./client.ts";
 import type { LocationState } from "./navigator.ts";
+import { localDateString } from "@silverbulletmd/silverbullet/lib/dates";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -231,6 +232,10 @@ export class ContentManager {
 
     this.client.space.watchFile(path);
 
+    await this.client.documentMetaAugmenter.setAugmentation(path, {
+      lastAccessed: localDateString(new Date()),
+    });
+
     this.client.ui.viewDispatch({
       type: "document-editor-loaded",
       meta: doc.meta,
@@ -331,7 +336,7 @@ export class ContentManager {
     this.switchToPageEditor();
 
     await this.client.pageMetaAugmenter.setAugmentation(pageName, {
-      lastOpened: Date.now(),
+      lastAccessed: localDateString(new Date()),
     });
 
     this.client.ui.viewDispatch({
@@ -341,8 +346,9 @@ export class ContentManager {
     });
 
     // Fetch the meta which includes the possibly indexed stuff, like page
-    // decorations
-    if (await this.client.objectIndex.hasFullIndexCompleted()) {
+    // decorations. Pass-1 indexes the page tag so this works as soon as
+    // Pass-1 is done; Pass-2 reload will refresh again later.
+    if (await this.client.objectIndex.hasPass1Completed()) {
       try {
         const enrichedMeta =
           (await this.client.objectIndex.getObjectByRef(

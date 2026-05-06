@@ -21,7 +21,13 @@ export type PageMeta = ObjectValue<
     created: string; // indexing it as a string
     lastModified: string; // indexing it as a string
     perm: "ro" | "rw";
-    lastOpened?: number;
+    /**
+     * Per-client time the page was last opened. Sourced from the page-meta
+     * augmenter (out-of-band, not bitmap-indexed), but exposed as a virtual
+     * column on the `page` tag for LIQ queries. Uses the same
+     * `localDateString` format as `created` and `lastModified`.
+     */
+    lastAccessed?: string;
     pageDecoration?: PageDecoration;
   } & Record<string, any>
 >;
@@ -34,6 +40,8 @@ export type DocumentMeta = ObjectValue<
     size: number;
     perm: "ro" | "rw";
     extension: string;
+    /** See `PageMeta.lastAccessed`. */
+    lastAccessed?: string;
   } & Record<string, any>
 >;
 export type SyscallMeta = {

@@ -95,9 +95,12 @@ export class Client {
   ui!: MainUI;
   ds!: DataStore;
   mq!: DataStoreMQ;
-  // Used to store additional pageMeta outside the page index itself persistent between client runs (specifically: lastOpened)
+  // Stores per-page mutable metadata not in the index (e.g. `lastAccessed`).
+  // Surfaced as a virtual column on the `page` tag via ObjectIndex.
   pageMetaAugmenter!: Augmenter;
-  // Used to store additional command data outside the objects themselves persistent between client rusn (specifically: lastRun)
+  // Same for documents — virtual column provider for the `document` tag.
+  documentMetaAugmenter!: Augmenter;
+  // Stores per-command metadata (e.g. `lastRun`) used by the command palette.
   commandAugmenter!: Augmenter;
 
   // CodeMirror editor
@@ -160,8 +163,21 @@ export class Client {
     // Wrap it in a datastore
     this.ds = new DataStore(kvPrimitives);
 
-    this.pageMetaAugmenter = new Augmenter(this.ds, ["aug", "pageMeta"]);
-    this.commandAugmenter = new Augmenter(this.ds, ["aug", "command"]);
+    this.pageMetaAugmenter = new Augmenter(
+      this.ds,
+      ["aug", "pageMeta"],
+      ["lastAccessed"],
+    );
+    this.documentMetaAugmenter = new Augmenter(
+      this.ds,
+      ["aug", "documentMeta"],
+      ["lastAccessed"],
+    );
+    this.commandAugmenter = new Augmenter(
+      this.ds,
+      ["aug", "command"],
+      ["lastRun"],
+    );
 
     // Setup message queue on top of that
     this.mq = new DataStoreMQ(this.ds, this.eventHook);
@@ -175,6 +191,12 @@ export class Client {
       this.eventHook,
       this.mq,
     );
+    // Register augmenters as virtual-column providers BEFORE bitmap state is
+    // loaded — load order is irrelevant, but keeping registration adjacent to
+    // construction makes the data flow obvious.
+    this.objectIndex.registerAugmenter("page", this.pageMetaAugmenter);
+    this.objectIndex.registerAugmenter("document", this.documentMetaAugmenter);
+    await this.objectIndex.loadPersistedBitmapState();
 
     // Instantiate a PlugOS system
     this.clientSystem = new ClientSystem(
@@ -235,27 +257,52 @@ export class Client {
       );
     }
 
-    // Load plugs
+    // Load plugs first: the index plug registers the indexQueue and
+    // indexQueuePass1 consumers that the indexer depends on.
     await this.loadPlugs();
 
-    await this.clientSystem.loadLuaScripts();
+    // Enable evented space primitives BEFORE indexing so the file list is
+    // fetched once with events flowing, and incremental file:changed events
+    // produced during Pass-2 can be picked up by the steady-state listener.
+    await this.eventedSpacePrimitives.enable();
+
+    // Pass-1: index space-lua + space-style + page + tag for every .md file
+    // (worker filters by fence detection). After this returns, Lua scripts
+    // and custom styles can be evaluated.
+    try {
+      await this.objectIndex.ensureBootstrapIndexed(this.space);
+    } catch (e: any) {
+      if (e?.name !== "AbortError") throw e;
+      console.warn(
+        "[boot] Pass-1 indexing was aborted; retrying once",
+      );
+      await this.objectIndex.ensureBootstrapIndexed(this.space);
+    }
+
+    if (!this.clientSystem.scriptsLoaded) {
+      await this.clientSystem.loadLuaScripts();
+    }
+    this.loadCustomStyles().catch(console.error);
+
+    // Pass-2: full indexing in background. UI is interactive while this runs;
+    // queries return partial results until pass2Complete.
+    void this.objectIndex
+      .ensureFullIndex(this.space)
+      .catch((e: any) => {
+        if (e?.name !== "AbortError") {
+          console.error("[boot] Pass-2 indexing failed:", e);
+        }
+      });
+
     await this.initNavigator();
-    // await this.initSync();
     await this.eventHook.dispatchEvent("system:ready");
     this.systemReady = true;
 
     this.initHeadlessRuntime();
 
-    // Load space snapshot and enable events
-    await this.eventedSpacePrimitives.enable();
-
-    // Kick off a cron event interval
     setInterval(() => {
       void this.dispatchAppEvent("cron:secondPassed");
     }, 1000);
-
-    // We can load custom styles async
-    this.loadCustomStyles().catch(console.error);
 
     await this.dispatchAppEvent("editor:init");
 
@@ -267,9 +314,6 @@ export class Client {
       effects: client.undoHistoryCompartment?.reconfigure([history()]),
     });
 
-    // Asynchronously update caches
-    this.updatePageListCache().catch(console.error);
-    this.updateDocumentListCache().catch(console.error);
   }
 
   initSpace() {
@@ -525,9 +569,8 @@ export class Client {
 
   async updatePageListCache() {
     console.log("Updating page list cache");
-    // Check if the initial sync has been completed
     const initialIndexCompleted =
-      await this.objectIndex.hasFullIndexCompleted();
+      await this.objectIndex.hasPass1Completed();
 
     let allPages: PageMeta[] = [];
 
@@ -542,8 +585,6 @@ export class Client {
         "aspiring-page",
         { select: parseExpressionString("name"), distinct: true },
       );
-      // Fetch any augmented page meta data (for now only lastOpened)
-      // this.clientSystem.ds.query({prefix: })
       // Map and push aspiring pages directly into allPages
       allPages.push(
         ...aspiringPageNames.map(
@@ -813,9 +854,9 @@ export class Client {
       console.warn("Not loading custom styles, since space style is disabled");
       return;
     }
-    if (!(await this.objectIndex.hasFullIndexCompleted())) {
+    if (!(await this.objectIndex.hasPass1Completed())) {
       console.warn(
-        "Not loading custom styles, since full indexing has not completed yet",
+        "Not loading custom styles, since Pass-1 indexing has not completed yet",
       );
       return;
     }
@@ -1042,6 +1083,15 @@ export class Client {
 
     console.log("Clearing data store");
     await this.ds.kv.clear();
+    await this.objectIndex.clearIndex();
+    await this.widgetCache.load();
+    // reindexSpace cancels any in-flight indexing started before the wipe
+    // and kicks off a fresh Pass-1 + Pass-2 from scratch.
+    void this.objectIndex.reindexSpace(this.space).catch((e: any) => {
+      if (e?.name !== "AbortError") {
+        console.error("[wipe] post-wipe reindex failed:", e);
+      }
+    });
     console.log("Clearing complete.");
   }
 

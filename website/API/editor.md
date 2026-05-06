@@ -28,6 +28,31 @@ local editorName = editor.getCurrentEditor()
 print(editorName)
 ```
 
+### editor.getRecentlyOpenedPages(limit?)
+Returns pages that have been opened in this client, sorted by open time
+(most recent first). Only pages with a recorded `lastAccessed` are returned.
+
+`lastAccessed` uses the same `localDateString` format as `created` and
+`lastModified`, so it's also queryable via [[Space Lua/Lua Integrated Query]]:
+
+```lua
+-- 5 most recently accessed pages, names only
+template.each(editor.getRecentlyOpenedPages(5), template.new[==[* [[${name}]]
+]==])
+```
+
+Equivalent SLIQ form (also queries the document tag):
+
+```lua
+query[[
+  from p = index.tag "page"
+  where p.lastAccessed != nil
+  order by p.lastAccessed desc
+  limit 5
+  select p.name
+]]
+```
+
 ### editor.getText()
 Returns the full text of the currently open page.
 

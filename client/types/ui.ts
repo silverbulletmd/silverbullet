@@ -76,7 +76,7 @@ export type AppViewState = {
 };
 
 export const initialViewState: AppViewState = {
-  isLoading: false,
+  isLoading: true,
   showPageNavigator: false,
   showCommandPalette: false,
   pageNavigatorMode: "page",
