@@ -134,6 +134,16 @@
             .checkbox-wrapper input[type="checkbox"] {
                 margin: 0;
             }
+
+            .password-field {
+                display: flex;
+                gap: 0.5rem;
+                align-items: center;
+            }
+
+            .password-field input {
+                flex: 1;
+            }
         </style>
     </head>
 
@@ -160,7 +170,10 @@
                     </div>
                     <div>
                         <label for="password">Password</label>
-                        <input id="password" name="password" type="password" />
+                        <div class="password-field">
+                            <input id="password" name="password" type="password" />
+                            <button id="togglePassword" type="button">Show</button>
+                        </div>
                     </div>
                     <div class="checkbox-wrapper">
                         <input
@@ -196,6 +209,15 @@ navigator.serviceWorker.register(workerURL, {
   scope: workerURL.pathname.substring(0, workerURL.pathname.lastIndexOf("/") + 1),
 }).then(() => {
   console.log("Service worker registered");
+});
+
+const passwordInput = document.getElementById("password");
+const togglePasswordButton = document.getElementById("togglePassword");
+
+togglePasswordButton.addEventListener("click", () => {
+  const showPassword = passwordInput.type === "password";
+  passwordInput.type = showPassword ? "text" : "password";
+  togglePasswordButton.textContent = showPassword ? "Hide" : "Show";
 });
 
 document.getElementById("login").addEventListener("submit", (e) => {
