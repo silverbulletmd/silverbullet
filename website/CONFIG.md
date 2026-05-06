@@ -2,7 +2,7 @@
 
 This is where you configure SilverBullet to your liking. See [[^Library/Std/Config]] for a full list of configuration options. 
 
-# Main configuration
+# Site configuration
 ```space-lua
 actionButton.define {
   icon = "activity",
@@ -97,10 +97,3 @@ tag.define {
 }
 ```
 
-# Configuration manager
-Managed by [[Configuration Manager]]
-
-```space-lua
--- managed-by: configuration-manager
-config.set("smartQuotes.enabled", false)
-```

@@ -3,27 +3,30 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
-* [[Configuration Manager]]: new UI for editing configuration, accessed via the `Configuration: Open` command (`Ctrl/Cmd-,`) and `Configuration: Key Bindings` command. This is a work in progress, but should be a big improvement over the old ways. It currently supports:
+
+## 2.7.0
+* [[Configuration Manager]]: new UI for editing configuration, accessed via the `Configuration: Open` command (`Ctrl/Cmd-,`) and `Configuration: Key Bindings` commands. This is a work in progress, but should already be a big improvement over the old ways. It currently supports:
   * Changing (common) configuration options
   * Key binding management (oh my!)
   * A Library manager, superseding the old Library Manager UI (which now has been removed)
-* New [[Markdown/Anchor]] syntax (`$name`): a stable, space-globally unique name for (almost) any [[Object]], referenced from links via `[[$name]]`.
+* [[Runtime API|CLI]] renamed from `silverbullet-cli` to `sb`, in addition:
+  * renamed `lua` → `eval`
+  * `luascript` → `script`
+  * a new `describe` command that describes SLIQ and lists tags with defined schemas.
+* New (experimental) [[Markdown/Anchor]] syntax (`$name`): a stable, space-globally unique name for (almost) any [[Object]], referenced from links via `[[$name]]`.
+* Rebrand: “Lua Integrated Query” (LIQ) is now called [[Space Lua/Integrated Query|Space Lua Integrated Query]] (_SLIQ!_) (as coined by Matouš Jan Fialka)
 * API extensions for [[API/config]]: `config.define` now propagates schema `default` values. New `config.defineCategory` / `config.getCategories` APIs, plus UI annotations for the configuration manager. The `ui.order` schema annotation and `config.defineCategory`'s `order` field have been renamed to `priority` and now sort *descending* (higher = appears earlier), matching the rest of SilverBullet's `priority` conventions.
 * Server no longer generates a default `CONFIG.md` in empty spaces, this page is now auto created by the configuration manager when required.
 * The legacy `plug-manager` has now been removed (superseded by the Library manager part of the Configuration Manager UI)
 * [[Plugs/Development]] (now with new docs!) gains an optional `build:` section in manifests, running `esbuild`, `sass`, or `copy` transforms before asset bundling — enables plugs to ship bundled TSX/SCSS UIs.
 * Action buttons: new `command` attribute for `actionButton.define`. When using this instead of a `run` callback, keyboard bindings will appear in the tooltip.
-* Rebrand: “Lua Integrated Query” (LIQ) is now called [[Space Lua/Integrated Query|Space Lua Integrated Query]] (_SLIQ!_) (as coined by Matouš Jan Fialka)
-* [[Runtime API|CLI]] renamed from `silverbullet-cli` to `sb`, in addition:
-  * renamed `lua` → `eval`
-  * `luascript` → `script`
-  * a new `describe` command that describes SLIQ and lists tags with defined schemas.
 * Docker: removed `VOLUME` declaration from the Dockerfile (it gave a false sense of persistence `/space` must be explicitly mounted, as documented). This also fixed the silverbullet-website repo.
 * Fix: [[Sync]] now falls through to local data on browser-native network errors instead of returning 503; previously synced spaces serve locally immediately after a service worker restart.
 * Fix: navigation no longer blocks while the initial index is still running.
 * Fix: rich text paste only worked on the second try
 * Fix: indexing blew up with malformed bullet list items
 * Fix: regression where aspiring pages were not deleted once the page was created.
+* Fix: auto complete of meta pages was broken
 * Fix: page rename failed when the page contains external URL links.
 * Fix: too-tall mini editor in various pickers on Safari.
 * Security fix: auth cookies now set stricter security flags (HttpOnly, Secure, SameSite); auth config file corruption no longer fails silently.
