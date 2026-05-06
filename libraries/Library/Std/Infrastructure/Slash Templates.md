@@ -31,6 +31,25 @@ ${template.each(query[[
 # Implementation
 
 ```space-lua
+tag.define {
+  name = "meta/template/slash",
+  schema = {
+    type = "object",
+    properties = {
+      tags = {
+        anyOf = {
+          { type = "array", items = schema.string() },
+          schema.string(),
+        },
+      },
+      description = schema.string(),
+      priority = schema.number(),
+      onlyContexts = schema.array("string"),
+      exceptContexts = schema.array("string"),
+    },
+  }
+}
+
 for st in query[[
     from index.tag "meta/template/slash"
     where _.tag == "page"
