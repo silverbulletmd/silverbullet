@@ -156,7 +156,7 @@ export async function indexPagePass1({
         return indexer(meta, frontmatter, tree, text);
       }),
     );
-    await index.indexObjects<any>(name, appendAnchorRecords(indexResults.flat()));
+    await index.indexObjects<any>(name, indexResults.flat());
   } catch (e: any) {
     console.error(
       `[index] Failed to index page "${name}" (Pass-1): ${e?.message ?? e}`,
