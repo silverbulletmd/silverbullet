@@ -277,5 +277,35 @@ export class ClientSystem {
     this.client.rebuildEditorState();
     this.client.updatePageListCache().catch(console.error);
     this.client.updateDocumentListCache().catch(console.error);
+
+    // Fetch current page meta from index after Pass-2, apply CSS classes
+    // and re-render.
+    const currentPage = this.client.currentName();
+    if (currentPage) {
+      try {
+        const enrichedMeta = await this.objectIndex.getObjectByRef(
+          currentPage,
+          "page",
+          currentPage,
+        );
+        if (enrichedMeta) {
+          this.client.ui.viewDispatch({
+            type: "update-current-page-meta",
+            meta: enrichedMeta,
+          });
+          if (enrichedMeta.pageDecoration?.cssClasses) {
+            document.body.className = enrichedMeta.pageDecoration.cssClasses
+              .join(" ")
+              .replaceAll(/[^a-zA-Z0-9-_ ]/g, "");
+          }
+          // Trigger editor re-render to pick up the updated meta
+          this.client.editorView.dispatch({});
+        }
+      } catch (e: any) {
+        console.log(
+          `There was an error trying to fetch enriched metadata: ${e.message}`,
+        );
+      }
+    }
   }
 }
