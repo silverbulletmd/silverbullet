@@ -177,7 +177,10 @@ export async function pageComplete(completeEvent: CompleteEvent) {
 }
 
 export async function footnoteComplete(completeEvent: CompleteEvent) {
-  const match = /\[\^([^\]\s]*)$/.exec(completeEvent.linePrefix);
+  // Negative lookbehind avoids matching `[[^...` (a meta-page wikilink), which
+  // would otherwise collide with pageComplete's result on a different `from`
+  // position and cause the merged completion to be dropped.
+  const match = /(?<!\[)\[\^([^\]\s]*)$/.exec(completeEvent.linePrefix);
   if (!match) return null;
 
   // Rudamentary scan of full editor text to quickly find all footnote definitions

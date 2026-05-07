@@ -22,7 +22,10 @@ Optional keys you can set in the page’s frontmatter:
 * `command`: expose the page template as a command with this name.
 * `key`: Bind the snippet to a keyboard shortcut (note: this requires to _also_ specify the `command` configuration).
 * `mac`: Bind the snippet to a Mac-specific keyboard shortcut.
-* `frontmatter`: Frontmatter (encoded as a string) to set in the resulting page.
+* `frontmatter`: Frontmatter to set in the resulting page. Use a YAML literal block scalar
+  (`frontmatter: |`) so that the value is passed as a string and `${...}` Lua interpolation
+  works. A nested YAML mapping is also accepted (and serialized verbatim), but interpolation
+  will be skipped in that case.
 * `priority`: Similar to how space lua scripts are loaded, this controls the order in which page template _commands_ are
   created (see "overriding page templates" below)
 

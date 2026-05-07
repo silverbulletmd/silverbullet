@@ -1,6 +1,6 @@
 {
   "name": "@silverbulletmd/silverbullet",
-  "version": "2.6.1",
+  "version": "2.7.0",
   "type": "module",
   "description": "A self-hosted, web-based note taking app",
   "publishConfig": {

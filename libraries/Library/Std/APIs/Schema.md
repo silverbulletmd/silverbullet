@@ -43,6 +43,9 @@ An array of the given type, or null.
 ## schema.func()
 Marker for function-typed values.
 
+## schema.object()
+Marker for any object values.
+
 ## schema.schema()
 Marker for schema-typed values.
 
@@ -123,6 +126,10 @@ end
 
 -- Used to specify we're expecting a schema, but doesn't deeply validate
 function schema.schema()
+  return { type = "object" }
+end
+
+function schema.object()
   return { type = "object" }
 end
 
