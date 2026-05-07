@@ -20,6 +20,7 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
 * Server no longer generates a default `CONFIG.md` in empty spaces, this page is now auto created by the configuration manager when required.
 * The legacy `plug-manager` has now been removed (superseded by the Library manager part of the Configuration Manager UI)
 * [[Plugs/Development]] (now with new docs!) gains an optional `build:` section in manifests, running `esbuild`, `sass`, or `copy` transforms before asset bundling — enables plugs to ship bundled TSX/SCSS UIs.
+* Keyboard shortcut for `Navigate: Home` changed to `Ctrl-Shift-h`/`Cmd-Shift-h`
 * Action buttons: new `command` attribute for `actionButton.define`. When using this instead of a `run` callback, keyboard bindings will appear in the tooltip.
 * Docker: removed `VOLUME` declaration from the Dockerfile (it gave a false sense of persistence `/space` must be explicitly mounted, as documented). This also fixed the silverbullet-website repo.
 * Fix: [[Sync]] now falls through to local data on browser-native network errors instead of returning 503; previously synced spaces serve locally immediately after a service worker restart.
