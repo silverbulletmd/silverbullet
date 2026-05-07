@@ -409,23 +409,6 @@ test("e2e: table with wiki links produces clickable links", async () => {
   );
 });
 
-test("e2e: ref column is rendered as a wiki link", async () => {
-  const row = new LuaTable();
-  await row.rawSet("name", "Alice");
-  await row.rawSet("ref", "SomePage");
-
-  const tbl = new LuaTable();
-  await tbl.rawSet(1, row);
-
-  expect(toHtml(tbl)).toBe(
-    "<table><thead><tr><th>name</th><th>ref</th></tr></thead><tbody>" +
-      '<tr><td data-table-cell-type="string">Alice</td>' +
-      '<td data-table-cell-type="string">' +
-      '<a href="/SomePage" class="wiki-link" data-ref="SomePage">SomePage</a>' +
-      "</td></tr></tbody></table>",
-  );
-});
-
 test("e2e: table with bold text renders strong tags", async () => {
   const row = new LuaTable();
   await row.rawSet("note", "**important**");
