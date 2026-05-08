@@ -11,7 +11,7 @@ import { TaskStateTag } from "./customtags.ts";
 // Taken from https://github.com/lezer-parser/markdown/blob/main/src/extension.ts and adapted
 
 class MultiStatusTaskParser implements LeafBlockParser {
-  constructor(private status: string) { }
+  constructor(private status: string) {}
 
   nextLine() {
     return false;

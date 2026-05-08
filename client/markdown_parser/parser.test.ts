@@ -361,8 +361,9 @@ Bare $ alone is not an anchor.
 A $100 dollar bill (digit-leading is not an anchor).
 `,
   );
-  const anchors = collectNodesOfType(tree, "NamedAnchor")
-    .map((n) => renderToText(n));
+  const anchors = collectNodesOfType(tree, "NamedAnchor").map((n) =>
+    renderToText(n),
+  );
   expect(anchors).toEqual(["$toc1", "$tasks/7", "$work-1", "$sec1"]);
 });
 
