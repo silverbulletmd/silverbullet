@@ -1,0 +1,53 @@
+// X-Ray lens: suppresses CM lint's wavy underline; styles hover tooltip cards.
+
+.cm-lintRange.sb-xray-range {
+  background-image: none;
+  text-decoration: underline dotted;
+  text-decoration-color: var(--editor-accent-muted, rgba(128, 128, 128, 0.6));
+  text-underline-offset: 2px;
+  padding-bottom: 0;
+}
+
+.cm-tooltip-lint {
+  max-width: 480px;
+  max-height: 260px;
+  overflow-y: scroll;
+  overflow-x: auto;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.25) transparent;
+}
+
+.sb-xray-card {
+  margin: 0 0 6px;
+}
+
+.sb-xray-card:last-child {
+  margin-bottom: 0;
+}
+
+.sb-xray-tooltip-tag {
+  font-size: 11px;
+  font-weight: 600;
+  margin: 0 0 2px;
+  opacity: 0.7;
+}
+
+.sb-xray-tooltip-body {
+  margin: 0;
+  font-family: var(--editor-monospace-font, monospace);
+  white-space: pre-wrap;
+  font-size: 11px;
+  line-height: 1.3;
+}

@@ -140,6 +140,18 @@ functions:
     events:
       - editor:lint
 
+  # X-Ray editor lens
+  xrayInfo:
+    path: xray.ts:xrayInfo
+    events:
+      - editor:lint
+
+  toggleXRayMode:
+    path: xray.ts:toggleXRayMode
+    command:
+      name: "Editor: Toggle X-Ray"
+      requireEditor: page
+
   # Tasks
   updateTaskState:
     path: task.ts:updateTaskState
