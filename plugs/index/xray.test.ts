@@ -74,7 +74,7 @@ describe("renderObjectYaml", () => {
       tags: ["a", "b"],
     } as any);
     expect(out).toContain("attrs:");
-    expect(out).toContain("  state: ' '");
+    expect(out).toContain('  state: " "');
     expect(out).toContain("tags:");
     expect(out).toContain("  - a");
     expect(out).toContain("  - b");
