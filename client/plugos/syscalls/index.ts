@@ -61,6 +61,13 @@ export function indexSyscalls(
         }
       }
     },
+    "index.previewProcessedObjects": (
+      _ctx,
+      page: string,
+      objects: ObjectValue[],
+    ): Promise<{ tag: string; object: ObjectValue }[]> => {
+      return objectIndex.previewProcessedObjects(page, objects);
+    },
     "index.getObjectByRef": (
       _ctx,
       page: string,

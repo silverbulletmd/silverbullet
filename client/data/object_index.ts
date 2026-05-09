@@ -438,6 +438,22 @@ export class ObjectIndex {
     await this.processObjectsToKVs(page, objects, true);
   }
 
+  /**
+   * Run the full indexing pipeline (validation, multi-tag expansion,
+   * tag transforms) and return the resulting objects each paired with
+   * the tag they're indexed under. Read-only: no DB writes.
+   */
+  public async previewProcessedObjects(
+    page: string,
+    objects: ObjectValue[],
+  ): Promise<{ tag: string; object: ObjectValue }[]> {
+    const kvs = await this.processObjectsToKVs(page, objects, false);
+    return kvs.map((kv) => ({
+      tag: kv.key[0],
+      object: kv.value,
+    }));
+  }
+
   private async processObjectsToKVs<T>(
     page: string,
     objects: ObjectValue<T>[],

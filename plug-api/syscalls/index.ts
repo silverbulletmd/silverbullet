@@ -28,6 +28,18 @@ export function validateObjects<T>(
 }
 
 /**
+ * Run the full indexing pipeline (validation, multi-tag expansion,
+ * tag transforms) and return the resulting objects each paired with
+ * the tag they're indexed under. Read-only — no DB writes.
+ */
+export function previewProcessedObjects(
+  page: string,
+  objects: ObjectValue[],
+): Promise<{ tag: string; object: ObjectValue }[]> {
+  return syscall("index.previewProcessedObjects", page, objects);
+}
+
+/**
  * Queries objects using a Lua-based collection query
  * @param tag - The tag to filter objects by
  * @param query - Lua query parameters to filter objects
