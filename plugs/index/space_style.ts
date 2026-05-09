@@ -46,7 +46,7 @@ export function indexSpaceStyle(
     allStyles.push({
       ref: `${pageMeta.name}@${t.from!}`,
       tag: "space-style",
-      range: [t.from!, t.to!],
+      range: [codeTextNode.from!, codeTextNode.to!],
       style: codeText,
       priority: priority !== undefined ? +priority : undefined,
     });

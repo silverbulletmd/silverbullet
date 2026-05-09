@@ -108,3 +108,37 @@ describe("$ref anchor in fenced data blocks", () => {
     expect("$ref" in person).toBe(false);
   });
 });
+
+describe("range covers the YAML content, not the fence markers", () => {
+  test("single-doc block: range bounds the inner YAML exactly", async () => {
+    createMockSystem();
+    const content = "name: Pete\nage: 100";
+    const md = `\`\`\`#person\n${content}\n\`\`\``;
+    const results = await indexDataForTest(md, "Page");
+    const person = results.find((o) => o.tag === "person")!;
+    const [from, to] = person.range as [number, number];
+    expect(md.slice(from, to)).toBe(content);
+    // sanity: not picking up the fence markers
+    expect(md.slice(from, to)).not.toContain("```");
+  });
+
+  test("multi-doc block: doc 1 starts after doc 0's end + separator length", async () => {
+    createMockSystem();
+    const md = [
+      "```#person",
+      "name: Pete",
+      "age: 100",
+      "---",
+      "name: Hank",
+      "age: 101",
+      "```",
+    ].join("\n");
+    const results = await indexDataForTest(md, "Page");
+    const persons = results.filter((o) => o.tag === "person");
+    expect(persons).toHaveLength(2);
+    const [a, b] = persons;
+    expect(b.range[0]).toBe(a.range[1] + "---".length);
+    expect(md.slice(a.range[0], a.range[1])).toContain("Pete");
+    expect(md.slice(b.range[0], b.range[1])).toContain("Hank");
+  });
+});

@@ -41,7 +41,7 @@ export function indexSpaceLua(
     allSpaceLuas.push({
       ref: `${pageMeta.name}@${t.from!}`,
       tag: "space-lua",
-      range: [t.from!, t.to!],
+      range: [codeTextNode.from!, codeTextNode.to!],
       script: codeText,
       priority: priority !== undefined ? +priority : undefined,
     });

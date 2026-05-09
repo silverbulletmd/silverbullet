@@ -38,4 +38,11 @@ test("Test space lua indexing", async () => {
   expect(objects.length).toEqual(2);
   expect(objects[0].priority).toEqual(undefined);
   expect(objects[1].priority).toEqual(10);
+
+  // range covers the inner code text, not the ``` fences
+  for (const o of objects) {
+    const [from, to] = o.range as unknown as [number, number];
+    expect(testPage.slice(from, to)).toBe(o.script);
+    expect(testPage.slice(from, to)).not.toContain("```");
+  }
 });

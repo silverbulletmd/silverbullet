@@ -46,11 +46,12 @@ export function indexData(
     const codeText = codeTextNode.children![0].text!;
     const dataType = fenceType === "data" ? "data" : fenceType.substring(1);
     try {
+      const codeFrom = codeTextNode.from!;
       const docs = codeText.split(separator);
       let cursor = 0;
       // We support multiple YAML documents in one block
       for (let i = 0; i < docs.length; i++) {
-        const docStart = t.from! + cursor;
+        const docStart = codeFrom + cursor;
         const docEnd = docStart + docs[i].length;
         const doc = YAML.load(docs[i]);
         if (!doc) {
@@ -81,7 +82,7 @@ export function indexData(
         };
         updateITags(dataObj, frontmatter);
         dataObjects.push(dataObj);
-        cursor += docs[i].length;
+        cursor += docs[i].length + separator.length;
       }
       tagObjects.set(dataType, {
         ref: dataType,
