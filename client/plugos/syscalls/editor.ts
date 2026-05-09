@@ -71,6 +71,8 @@ import type {
   UploadFile,
 } from "@silverbulletmd/silverbullet/type/client";
 import { openSearchPanel } from "@codemirror/search";
+import { forceLinting } from "@codemirror/lint";
+import { refreshLintEffect } from "../../codemirror/lint.ts";
 import {
   isValidPath,
   parseToRef,
@@ -248,6 +250,15 @@ export function editorSyscalls(client: Client): SysCallMapping {
     },
     "editor.reloadPage": async () => {
       await client.reloadEditor();
+    },
+    "editor.forceLint": () => {
+      // `forceLinting` alone is a no-op on unchanged content after the
+      // linter's internal "scheduled" flag has been cleared; the effect
+      // re-arms it via `needsRefresh`.
+      client.editorView.dispatch({
+        effects: refreshLintEffect.of(null),
+      });
+      forceLinting(client.editorView);
     },
     "editor.reloadUI": () => {
       location.reload();

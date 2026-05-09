@@ -153,6 +153,11 @@ export function reloadPage(): Promise<void> {
   return syscall("editor.reloadPage");
 }
 
+/** Useful when a plug toggles a piece of state that lint subscribers consult. */
+export function forceLint(): Promise<void> {
+  return syscall("editor.forceLint");
+}
+
 /**
  * Force reloads the browser UI
  */

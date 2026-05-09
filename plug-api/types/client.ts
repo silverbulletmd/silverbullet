@@ -54,6 +54,18 @@ export type LintDiagnostic = {
   to: number;
   severity: "error" | "warning" | "info" | "hint";
   message: string;
+  /**
+   * Optional HTML rendered into the hover tooltip for this diagnostic.
+   * When present, takes precedence over `message` for tooltip display.
+   * `message` is still used as a plain-text fallback (e.g. in the lint
+   * panel) and as the diagnostic's accessible label.
+   */
+  messageHtml?: string;
+  /**
+   * Optional CSS class added to the inline range mark for this diagnostic,
+   * in addition to CodeMirror's default `.cm-lintRange-<severity>` class.
+   */
+  markClass?: string;
 };
 
 export type UploadFile = {
