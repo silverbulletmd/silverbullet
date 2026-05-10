@@ -171,18 +171,29 @@ func RunServer(config *ServerConfig) error {
 
 	r := Router(config)
 
+	network := "tcp"
 	addr := fmt.Sprintf("%s:%d", config.BindHost, config.Port)
-	listener, err := net.Listen("tcp", addr)
+
+	if config.UnixSocket != "" {
+		network = "unix"
+		addr = config.UnixSocket
+	}
+
+	listener, err := net.Listen(network, addr)
 	if err != nil {
 		return fmt.Errorf("failed to listen on %s: %w", addr, err)
 	}
 
 	// Display the final server running message
-	visibleHostname := config.BindHost
+	visibleAddr := "http://" + addr
 	if config.BindHost == "127.0.0.1" {
-		visibleHostname = "localhost"
+		visibleAddr = fmt.Sprintf("http://localhost:%d", config.Port)
 	}
-	log.Printf("SilverBullet is now running: http://%s:%d", visibleHostname, config.Port)
+
+	if config.UnixSocket != "" {
+		visibleAddr = "unix://" + config.UnixSocket
+	}
+	log.Printf("SilverBullet is now running: %s", visibleAddr)
 
 	server := &http.Server{
 		Handler: r,
