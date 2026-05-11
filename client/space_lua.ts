@@ -47,10 +47,23 @@ export class SpaceLuaEnvironment {
       } as LuaCollectionQuery,
     );
     try {
+      const seenRefs = new Set<string>();
+      const uniqueScripts = allScripts.filter((script) => {
+        const r = script.ref;
+        if (typeof r !== "string" || r === "") {
+          return true;
+        }
+        if (seenRefs.has(r)) {
+          return false;
+        }
+        seenRefs.add(r);
+        return true;
+      });
+
       this.env = buildLuaEnv(this.system);
       const tl = new LuaEnv();
       tl.setLocal("_GLOBAL", this.env);
-      for (const script of allScripts) {
+      for (const script of uniqueScripts) {
         try {
           console.log("Now evaluating", script.ref);
           const ast = parseLua(script.script, { ref: script.ref });
@@ -77,7 +90,7 @@ export class SpaceLuaEnvironment {
         }
       }
 
-      console.log("[Lua] Loaded", allScripts.length, "scripts");
+      console.log("[Lua] Loaded", uniqueScripts.length, "scripts");
     } catch (e: any) {
       console.error("Error reloading Lua scripts:", e.message);
     }

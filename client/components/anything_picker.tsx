@@ -1,7 +1,10 @@
 import { FilterList } from "./filter.tsx";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 import { tagRegex as mdTagRegex } from "../markdown_parser/constants.ts";
-import { extractHashtag, isMetaTag } from "@silverbulletmd/silverbullet/lib/tags";
+import {
+  extractHashtag,
+  isMetaTag,
+} from "@silverbulletmd/silverbullet/lib/tags";
 import type {
   DocumentMeta,
   PageMeta,
@@ -78,11 +81,12 @@ export function AnythingPicker({
       if (!pageMeta.name) {
         pageMeta.name = pageMeta.ref;
       }
-      // Order by last modified date in descending order
+      // Order by last modified date in descending order. `lastModified` and
+      // `lastAccessed` are both `localDateString` (lexically sortable),
+      // so Date.parse gives a comparable epoch we can negate for descending.
       let orderId = -new Date(pageMeta.lastModified).getTime();
-      // Unless it was opened in this session
-      if (pageMeta.lastOpened) {
-        orderId = -pageMeta.lastOpened;
+      if (pageMeta.lastAccessed) {
+        orderId = -new Date(pageMeta.lastAccessed).getTime();
       }
       // Or it's the currently open page
       if (currentPath === `${pageMeta.name}.md` || pageMeta._isAspiring) {

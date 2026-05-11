@@ -80,6 +80,27 @@ export const allIndexers: IndexerFunction[] = [
 ];
 
 /**
+ * Pass-1 indexers run during the bootstrap phase, before Lua scripts are
+ * evaluated and custom styles applied. They produce a usable Lua + style
+ * runtime: the page object itself (so `index.tag 'page'` queries work),
+ * tags (frontmatter / hashtag), and the lua/style fence content.
+ */
+export const pass1Indexers: IndexerFunction[] = [
+  pageIndexPage,
+  indexTags,
+  indexSpaceLua,
+  indexSpaceStyle,
+];
+
+/**
+ * Pass-2 indexers run after the UI is interactive. They cover the bulk of
+ * indexable content — links, headers, paragraphs, items, tables, data —
+ * and are the same set as `allIndexers` so a Pass-2 reindex produces the
+ * full, queryable index.
+ */
+export const pass2Indexers: IndexerFunction[] = allIndexers;
+
+/**
  * Ad-hoc index a piece of markdown text
  * @return a list of indexed objects
  */
@@ -107,18 +128,38 @@ export async function indexMarkdown(
 }
 
 export async function indexPage({ name, tree, meta, text }: IndexTreeEvent) {
-  const frontmatter = extractFrontMatter(tree);
+  try {
+    const frontmatter = extractFrontMatter(tree);
+    const indexResults = await Promise.all(
+      allIndexers.map((indexer) => {
+        return indexer(meta, frontmatter, tree, text);
+      }),
+    );
+    await index.indexObjects<any>(name, appendAnchorRecords(indexResults.flat()));
+  } catch (e: any) {
+    console.error(
+      `[index] Failed to index page "${name}": ${e?.message ?? e}`,
+    );
+  }
+}
 
-  // console.log("Now going to index page", name);
-
-  // Index the page
-  const indexResults = await Promise.all(
-    allIndexers.map((indexer) => {
-      return indexer(meta, frontmatter, tree, text);
-    }),
-  );
-
-  // console.log("Found these objects", index.flat());
-
-  await index.indexObjects<any>(name, appendAnchorRecords(indexResults.flat()));
+export async function indexPagePass1({
+  name,
+  tree,
+  meta,
+  text,
+}: IndexTreeEvent) {
+  try {
+    const frontmatter = extractFrontMatter(tree);
+    const indexResults = await Promise.all(
+      pass1Indexers.map((indexer) => {
+        return indexer(meta, frontmatter, tree, text);
+      }),
+    );
+    await index.indexObjects<any>(name, indexResults.flat());
+  } catch (e: any) {
+    console.error(
+      `[index] Failed to index page "${name}" (Pass-1): ${e?.message ?? e}`,
+    );
+  }
 }

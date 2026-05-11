@@ -55,10 +55,6 @@ export class Space {
         this.watchedFiles.delete(fileName);
       }
     });
-    setTimeout(async () => {
-      // The only reason to do this is to trigger events
-      await this.spacePrimitives.fetchFileList();
-    });
   }
 
   async deletePage(name: string): Promise<void> {

@@ -98,10 +98,14 @@ export function editorSyscalls(client: Client): SysCallMapping {
     "editor.getCurrentEditor": (): string => {
       return client.contentManager.documentEditor?.name || "page";
     },
-    "editor.getRecentlyOpenedPages": (): PageMeta[] => {
-      return client.ui.viewState.allPages.sort(
-        (a, b) => (b.lastOpened || 0) - (a.lastOpened || 0),
+    "editor.getRecentlyOpenedPages": (_ctx, limit?: number): PageMeta[] => {
+      // `lastAccessed` is a `localDateString` (ISO-shaped) — lexicographic
+      // ordering matches chronological ordering, so a string compare suffices.
+      const opened = client.ui.viewState.allPages.filter((p) => p.lastAccessed);
+      opened.sort((a, b) =>
+        (b.lastAccessed ?? "").localeCompare(a.lastAccessed ?? ""),
       );
+      return limit ? opened.slice(0, limit) : opened;
     },
     "editor.getText": () => {
       return client.editorView.state.sliceDoc();

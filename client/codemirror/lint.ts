@@ -13,12 +13,16 @@ export const refreshLintEffect = StateEffect.define<null>();
 
 export function plugLinter(client: Client) {
   return linter(async (view): Promise<Diagnostic[]> => {
+    const pageMeta = client.currentPageMeta();
+    if (!pageMeta) {
+      return [];
+    }
     const text = view.state.sliceDoc();
     const tree = parse(extendedMarkdownLanguage, text);
     const results: LintDiagnostic[] = (
       await client.dispatchAppEvent("editor:lint", {
         name: client.currentName(),
-        pageMeta: client.currentPageMeta(),
+        pageMeta,
         tree,
         text,
       } as LintEvent)

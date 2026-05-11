@@ -1,7 +1,14 @@
 import { expect, test } from "vitest";
+import { computeResultColumns } from "./join_planner.ts";
 import { parseExpressionString } from "./parse.ts";
 import { ArrayQueryCollection } from "./query_collection.ts";
-import { LuaEnv, LuaNativeJSFunction, LuaStackFrame } from "./runtime.ts";
+import {
+  LuaEnv,
+  LuaNativeJSFunction,
+  LuaStackFrame,
+  LuaTable,
+} from "./runtime.ts";
+import { isSqlNull } from "./sliq_null.ts";
 import { Config } from "../config.ts";
 import type { QueryCollationConfig } from "../../plug-api/types/config.ts";
 
@@ -338,6 +345,59 @@ test("ArrayQueryCollection - nulls ordering", async () => {
   expect(r4[2].name).toBe("eve");
   expect(r4[3].name).toBe("alice");
   expect(r4[4].name).toBe("carol");
+});
+
+test("ArrayQueryCollection - select preserves nil columns before distinct", async () => {
+  const collection = new ArrayQueryCollection([
+    { dia: "2026-04-08", proj: "teste" },
+    { dia: "2026-04-08", hist: "teste", doc: 2 },
+    { dia: "2026-04-08", proj: "novo", hist: "novo" },
+    { dia: "2026-04-08", rs: 30 },
+  ]);
+
+  const result = await collection.query(
+    {
+      objectVariable: "i",
+      select: parseExpressionString(
+        "{ dia = i.dia, proj = i.proj, hist = i.hist, doc = i.doc, rs = i.rs }",
+      ),
+      distinct: true,
+    },
+    new LuaEnv(),
+    LuaStackFrame.lostFrame,
+  );
+
+  expect(result).toHaveLength(4);
+  expect(computeResultColumns(result)).toEqual([
+    "dia",
+    "proj",
+    "hist",
+    "doc",
+    "rs",
+  ]);
+
+  for (const row of result) {
+    expect(row).toBeInstanceOf(LuaTable);
+    expect((row as LuaTable).keys()).toEqual([
+      "dia",
+      "proj",
+      "hist",
+      "doc",
+      "rs",
+    ]);
+  }
+
+  const first = result[0] as LuaTable;
+  expect(first.rawGet("proj")).toBe("teste");
+  expect(isSqlNull(first.rawGet("hist"))).toBe(true);
+  expect(isSqlNull(first.rawGet("doc"))).toBe(true);
+  expect(isSqlNull(first.rawGet("rs"))).toBe(true);
+
+  const last = result[3] as LuaTable;
+  expect(isSqlNull(last.rawGet("proj"))).toBe(true);
+  expect(isSqlNull(last.rawGet("hist"))).toBe(true);
+  expect(isSqlNull(last.rawGet("doc"))).toBe(true);
+  expect(last.rawGet("rs")).toBe(30);
 });
 
 test("ArrayQueryCollection - SWO violation detection", async () => {

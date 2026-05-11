@@ -142,6 +142,23 @@ test("Test query parsing", () => {
   parse(
     `_(query[[from p = index.tag("page") group by p.category, p.status having #group > 2 select { key = key, count = #group }]])`,
   );
+  // Wildcards inside select { ... } / group by { ... } brace form
+  parse(`_(query[[from p = index.tag("page") select { p.* }]])`);
+  parse(`_(query[[from p = index.tag("page") select { *.name }]])`);
+  parse(`_(query[[from p = index.tag("page") select { * }]])`);
+  parse(
+    `_(query[[from p = index.tag("page"), q = index.tag("task") select { *.* }]])`,
+  );
+  parse(`_(query[[from p = index.tag("page") select { *, n = count(p.*) }]])`);
+  parse(
+    `_(query[[from p = index.tag("page") group by p.tag select { p.*, n = count() }]])`,
+  );
+});
+
+test("wildcards rejected in plain Lua TableConstructor", () => {
+  expect(() => parse(`local t = { p.* }`)).toThrow(/wildcard is only allowed/);
+  expect(() => parse(`local t = { *.x }`)).toThrow(/wildcard is only allowed/);
+  expect(() => parse(`local t = { * }`)).toThrow(/wildcard is only allowed/);
 });
 
 test("Test numeric constant parsing", () => {

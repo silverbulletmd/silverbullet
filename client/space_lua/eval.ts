@@ -2,62 +2,15 @@ import type {
   ASTCtx,
   LuaBlock,
   LuaExpression,
+  LuaFromField,
+  LuaFunctionCallExpression,
   LuaLValue,
+  LuaLeadingClause,
   LuaStatement,
   LuaTableField,
   NumericType,
 } from "./ast.ts";
 import { LuaAttribute } from "./ast.ts";
-import { evalPromiseValues } from "./util.ts";
-import {
-  getMetatable,
-  type ILuaFunction,
-  type ILuaGettable,
-  isILuaFunction,
-  jsToLuaValue,
-  luaCall,
-  luaCloseFromMark,
-  luaEnsureCloseStack,
-  LuaEnv,
-  luaEquals,
-  luaFormatNumber,
-  LuaFunction,
-  luaGet,
-  luaIndexValue,
-  type LuaLValueContainer,
-  luaMarkToBeClosed,
-  LuaMultiRes,
-  LuaRuntimeError,
-  luaSet,
-  type LuaStackFrame,
-  LuaTable,
-  luaTruthy,
-  type LuaType,
-  luaTypeName,
-  luaTypeOf,
-  type LuaValue,
-  luaValueToJS,
-  singleResult,
-} from "./runtime.ts";
-import {
-  type LuaCollectionQuery,
-  type LuaGroupByEntry,
-  toCollection,
-} from "./query_collection.ts";
-import {
-  coerceNumericPair,
-  coerceToNumber,
-  inferNumericType,
-  isNegativeZero,
-  isTaggedFloat,
-  luaStringCoercionError,
-  makeLuaFloat,
-  makeLuaZero,
-  normalizeArithmeticResult,
-  toInteger,
-  untagNumber,
-} from "./numeric.ts";
-import { isPromise, rpAll, rpThen } from "./rp.ts";
 import {
   asAssignment,
   asBinary,
@@ -87,7 +40,100 @@ import {
   asVariable,
   asWhile,
 } from "./ast_narrow.ts";
+import {
+  applyPushedFilters,
+  attachAnalyzeQueryOpStats,
+  buildExplainScanNode,
+  buildJoinTree,
+  buildLeadingHintInfo,
+  buildNormalizationInfoBySource,
+  computeResultColumns,
+  type ExplainNode,
+  type ExplainOptions,
+  type ExplainResult,
+  executeAndInstrument,
+  executeJoinTree,
+  explainJoinTree,
+  exprToDisplayString,
+  exprToString,
+  extractEquiPredicates,
+  extractRangePredicates,
+  extractSingleSourceFilters,
+  formatExplainOutput,
+  formatPrunedConjuncts,
+  generateTransitivePredicates,
+  pruneAlwaysTrueConjuncts,
+  type JoinPlannerConfig,
+  type JoinSource,
+  type SourceNormalizationInfo,
+  stripUsedJoinPredicates,
+  validatePostJoinSourceReferences,
+  wrapPlanWithQueryOps,
+} from "./join_planner.ts";
 import { getBlockGotoMeta } from "./labels.ts";
+import {
+  coerceNumericPair,
+  coerceToNumber,
+  inferNumericType,
+  isNegativeZero,
+  isTaggedFloat,
+  luaStringCoercionError,
+  makeLuaFloat,
+  makeLuaZero,
+  normalizeArithmeticResult,
+  toInteger,
+  untagNumber,
+} from "./numeric.ts";
+import {
+  collectionHasPlannerCapability,
+  computeStatsFromArray,
+  makeExecutionCapabilities,
+  toCollection,
+  type AggregateRuntimeInstrumentation,
+  type CollectionStats,
+  type EngineDispatchReport,
+  type LuaCollectionQuery,
+  type LuaGroupByEntry,
+  type PushdownNarrowingReport,
+  type QueryEngineCapability,
+  type QueryInstrumentation,
+  type QueryStageStat,
+} from "./query_collection.ts";
+import { ARRAY_SCAN_ENGINE_CAPABILITY } from "./array_scan_engine.ts";
+import { COMPUTE_FALLBACK_ENGINE_CAPABILITY } from "./compute_fallback_engine.ts";
+import { isPromise, rpAll, rpThen } from "./rp.ts";
+import {
+  getMetatable,
+  type ILuaFunction,
+  type ILuaGettable,
+  isILuaFunction,
+  jsToLuaValue,
+  LuaEnv,
+  LuaFunction,
+  type LuaLValueContainer,
+  LuaMultiRes,
+  LuaRuntimeError,
+  type LuaStackFrame,
+  LuaTable,
+  type LuaType,
+  type LuaValue,
+  luaCall,
+  luaCloseFromMark,
+  luaEnsureCloseStack,
+  luaEquals,
+  luaFormatNumber,
+  luaGet,
+  luaIndexValue,
+  luaKeys,
+  luaMarkToBeClosed,
+  luaSet,
+  luaTruthy,
+  luaTypeName,
+  luaTypeOf,
+  luaValueToJS,
+  singleResult,
+} from "./runtime.ts";
+import { evalPromiseValues } from "./util.ts";
 
 const astNumberKindCache = new WeakMap<LuaExpression, NumericType>();
 
@@ -277,7 +323,6 @@ export function luaOp(
         rightType !== "float"
       ) {
         const r = left - right;
-        // Integer subtraction can produce -0 (e.g. 0 - 0), normalize to +0
         return r === 0 ? 0 : r;
       }
       return luaArithGeneric("-", left, right, leftType, rightType, ctx, sf);
@@ -290,7 +335,6 @@ export function luaOp(
         rightType !== "float"
       ) {
         const r = left * right;
-        // Integer multiplication can produce -0 (e.g. 0 * -1), normalize to +0
         return r === 0 ? 0 : r;
       }
       return luaArithGeneric("*", left, right, leftType, rightType, ctx, sf);
@@ -694,11 +738,25 @@ const operatorsMetaMethods: Record<
   },
 };
 
-function deriveFieldName(e: LuaExpression): string | undefined {
+// Multi-source: qualify as `src_col`; single-source: bare property names.
+function deriveFieldName(
+  e: LuaExpression,
+  sourceNames: readonly string[] | undefined,
+): string | undefined {
   switch (e.type) {
     case "Variable":
       return e.name;
     case "PropertyAccess":
+      if (e.object.type === "Variable") {
+        const obj = e.object.name;
+        if (
+          sourceNames &&
+          sourceNames.length > 1 &&
+          sourceNames.includes(obj)
+        ) {
+          return `${obj}_${e.property}`;
+        }
+      }
       return e.property;
     case "FunctionCall":
       if (e.name) return e.name;
@@ -706,9 +764,9 @@ function deriveFieldName(e: LuaExpression): string | undefined {
       if (e.prefix.type === "PropertyAccess") return e.prefix.property;
       return undefined;
     case "FilteredCall":
-      return deriveFieldName(e.call);
+      return deriveFieldName(e.call, sourceNames);
     case "AggregateCall":
-      return deriveFieldName((e as any).call);
+      return deriveFieldName((e as any).call, sourceNames);
     default:
       return undefined;
   }
@@ -717,143 +775,484 @@ function deriveFieldName(e: LuaExpression): string | undefined {
 function fieldsToExpression(
   fields: LuaTableField[],
   ctx: ASTCtx,
+  sourceNames?: readonly string[],
 ): LuaExpression {
   if (fields.length === 1 && fields[0].type === "ExpressionField") {
     return fields[0].value;
   }
+  const used = new Set<string>();
+  for (const f of fields) {
+    if (f.type === "PropField") {
+      used.add(f.key);
+    } else if (f.type === "DynamicField" && f.key.type === "String") {
+      used.add(f.key.value);
+    }
+  }
   const promoted: LuaTableField[] = fields.map((f) => {
     if (f.type !== "ExpressionField") return f;
-    const key = deriveFieldName(f.value);
-    if (key) {
-      return {
-        type: "PropField",
-        key,
-        value: f.value,
-        ctx: f.ctx,
-      } as LuaTableField;
+    const base = deriveFieldName(f.value, sourceNames);
+    if (!base) return f;
+    let key = base;
+    let n = 2;
+    while (used.has(key)) {
+      key = `${base}_${n++}`;
     }
-    return f;
+    used.add(key);
+    return {
+      type: "PropField",
+      key,
+      value: f.value,
+      ctx: f.ctx,
+    } as LuaTableField;
   });
   return { type: "TableConstructor", fields: promoted, ctx };
 }
 
-function fieldsToGroupByEntries(fields: LuaTableField[]): LuaGroupByEntry[] {
+function functionNameForSqlError(fc: LuaFunctionCallExpression): string {
+  if (fc.prefix.type === "Variable") {
+    const base = asVariable(fc.prefix).name;
+    return fc.name ? `${base}.${fc.name}` : base;
+  }
+  return "(function)";
+}
+
+function fieldsToGroupByEntries(
+  fields: LuaTableField[],
+  sf: LuaStackFrame,
+): LuaGroupByEntry[] {
   return fields.map((f) => {
     switch (f.type) {
       case "PropField":
-        return { expr: f.value, alias: f.key };
+        return { kind: "expr", expr: f.value, alias: f.key };
       case "ExpressionField":
-        return { expr: f.value };
+        return { kind: "expr", expr: f.value };
       case "DynamicField":
-        return { expr: f.value };
+        throw new LuaRuntimeError(
+          "dynamic entry in 'group by' clause is not allowed",
+          sf.withCtx(f.ctx),
+        );
+      case "StarField":
+        return { kind: "wildcardAll" };
+      case "StarSourceField":
+        return { kind: "wildcardSource", source: f.source };
+      case "StarColumnField":
+        throw new LuaRuntimeError(
+          "wildcard column reference is not allowed in 'group by' clause",
+          sf.withCtx(f.ctx),
+        );
     }
   });
 }
 
 type FromSource =
-  | { kind: "single"; objectVariable?: string; expression: LuaExpression }
-  | { kind: "cross"; sources: { name: string; expression: LuaExpression }[] };
+  | {
+      kind: "single";
+      objectVariable?: string;
+      expression: LuaExpression;
+      materialized?: boolean;
+      withHints?: LuaFromField["withHints"];
+    }
+  | {
+      kind: "cross";
+      sources: JoinSource[];
+    };
 
-function fromFieldsToSource(fields: LuaTableField[], ctx: ASTCtx): FromSource {
+function fromFieldsToSource(fields: LuaFromField[], ctx: ASTCtx): FromSource {
   if (fields.length === 1) {
     const f = fields[0];
     if (f.type === "ExpressionField") {
-      return { kind: "single", expression: f.value };
+      return {
+        kind: "single",
+        expression: f.value,
+        materialized: f.materialized === true,
+        withHints: f.withHints,
+      };
     }
     if (f.type === "PropField") {
-      return { kind: "single", objectVariable: f.key, expression: f.value };
+      return {
+        kind: "single",
+        objectVariable: f.key,
+        expression: f.value,
+        materialized: f.materialized === true,
+        withHints: f.withHints,
+      };
     }
   }
 
-  const sources: { name: string; expression: LuaExpression }[] = [];
+  const sources: JoinSource[] = [];
   for (const f of fields) {
     if (f.type !== "PropField") {
-      throw new LuaRuntimeError("Multi-source 'from' requires named sources", {
-        ref: ctx,
-      } as any);
+      throw new LuaRuntimeError(
+        "each 'from' clause entry must be a named source (alias = expression)",
+        {
+          ref: ctx,
+        } as any,
+      );
     }
-    sources.push({ name: f.key, expression: f.value });
+    sources.push({
+      name: f.key,
+      expression: f.value,
+      hint: f.joinHint,
+      materialized: f.materialized === true,
+      withHints: f.withHints,
+    });
   }
   return { kind: "cross", sources };
 }
 
-async function normalizeToArray(
-  collection: LuaValue,
-  sf: LuaStackFrame,
-): Promise<any[]> {
-  if (collection instanceof LuaTable && collection.empty()) {
-    return [];
-  }
-  if (collection instanceof LuaTable) {
-    if (collection.length > 0) {
-      const arr: any[] = [];
-      for (let i = 1; i <= collection.length; i++) {
-        arr.push(collection.rawGet(i));
-      }
-      return arr;
-    }
-    return [collection];
-  }
-  if (Array.isArray(collection)) {
-    return collection;
-  }
+/**
+ * Walk wrapper nodes (Limit, Sort, GroupAggregate, Filter, Unique) to find the
+ * underlying join/scan plan that executeAndInstrument operates on.
+ */
+function unwrapToJoinPlan(node: ExplainNode): ExplainNode {
   if (
-    typeof collection === "object" &&
-    collection !== null &&
-    "query" in collection &&
-    typeof (collection as any).query === "function"
+    node.nodeType === "Limit" ||
+    node.nodeType === "Sort" ||
+    node.nodeType === "GroupAggregate" ||
+    node.nodeType === "Filter" ||
+    node.nodeType === "Project" ||
+    node.nodeType === "Unique"
   ) {
-    const allItems = await (collection as any).query(
-      { distinct: false },
-      new LuaEnv(),
-      sf,
-    );
-    return Array.isArray(allItems) ? allItems : [allItems];
+    return unwrapToJoinPlan(node.children[0]);
   }
-  const jsVal = luaValueToJS(collection, sf);
-  return Array.isArray(jsVal) ? jsVal : [jsVal];
+  return node;
 }
 
-async function evalCrossJoinSources(
-  sources: { name: string; expression: LuaExpression }[],
+function collectExplainWrapperNodes(plan: ExplainNode): ExplainNode[] {
+  const nodes: ExplainNode[] = [];
+
+  const visit = (node: ExplainNode): void => {
+    if (node.children.length > 0) {
+      visit(node.children[0]);
+    }
+
+    switch (node.nodeType) {
+      case "Filter":
+      case "GroupAggregate":
+      case "Project":
+      case "Unique":
+      case "Sort":
+      case "Limit":
+        nodes.push(node);
+        break;
+    }
+  };
+
+  visit(plan);
+  return nodes;
+}
+
+function wrapperNodeStageName(
+  node: ExplainNode,
+): QueryStageStat["stage"] | null {
+  switch (node.nodeType) {
+    case "Filter":
+      return node.havingExpr ? "having" : node.whereExpr ? "where" : null;
+    case "GroupAggregate":
+      return "groupBy";
+    case "Project":
+      return "select";
+    case "Unique":
+      return "distinct";
+    case "Sort":
+      return "orderBy";
+    case "Limit":
+      return "limit";
+    default:
+      return null;
+  }
+}
+
+// Wrapper stats align with pipeline order:
+// where -> group -> having -> distinct -> order -> limit
+function annotateExplainWrappersFromStageStats(
+  plan: ExplainNode,
+  stageStats: QueryStageStat[],
+  execStartedAt: number,
+  opts: ExplainOptions,
+): void {
+  const wrapperNodes = collectExplainWrapperNodes(plan);
+  const used = new Set<number>();
+
+  for (const node of wrapperNodes) {
+    const wantedStage = wrapperNodeStageName(node);
+    if (!wantedStage) continue;
+
+    const statIdx = stageStats.findIndex(
+      (s, i) => !used.has(i) && s.stage === wantedStage,
+    );
+    if (statIdx === -1) continue;
+
+    used.add(statIdx);
+    const stat = stageStats[statIdx];
+
+    node.actualRows = stat.outputRows;
+    node.actualLoops = 1;
+
+    if (wantedStage === "where" || wantedStage === "having") {
+      node.rowsRemovedByFilter = stat.rowsRemoved;
+    }
+
+    if (wantedStage === "where" && stat.inlineFilteredRows) {
+      node.rowsRemovedByInlineFilter = stat.inlineFilteredRows;
+    }
+
+    if (wantedStage === "distinct") {
+      node.rowsRemovedByUnique = stat.rowsRemoved;
+    }
+
+    if (wantedStage === "orderBy") {
+      node.memoryRows = stat.memoryRows ?? stat.inputRows;
+    }
+
+    if (opts.timing) {
+      const startup =
+        Math.round((stat.startTimeMs - execStartedAt) * 1000) / 1000;
+      const total = Math.round((stat.endTimeMs - execStartedAt) * 1000) / 1000;
+      node.actualStartupTimeMs = startup;
+      node.actualTimeMs = total;
+    }
+  }
+
+  for (const node of wrapperNodes) {
+    if (node.actualLoops !== undefined) continue;
+    const child = node.children[0];
+    if (!child || child.actualLoops === undefined) continue;
+    node.actualRows = child.actualRows;
+    node.actualLoops = child.actualLoops;
+    if (opts.timing) {
+      node.actualStartupTimeMs = child.actualTimeMs;
+      node.actualTimeMs = child.actualTimeMs;
+    }
+  }
+}
+
+/**
+ * Build a LuaCollectionQuery from query clauses.  Shared by EXPLAIN,
+ * EXPLAIN ANALYZE, and normal execution paths to ensure plan fidelity.
+ *
+ * When `overrides.where` is provided it replaces the 'where' clause expression
+ * (used by the cross-join path to substitute the residual 'where' after
+ * join-predicate stripping).
+ */
+async function buildQueryFromClauses(
+  q: ReturnType<typeof asQueryExpr>,
   env: LuaEnv,
   sf: LuaStackFrame,
-  ctx: ASTCtx,
-): Promise<LuaTable[]> {
-  // Evaluate each source and normalize to arrays
-  const arrays: { name: string; items: any[] }[] = [];
-  for (const src of sources) {
-    const val = await evalExpression(src.expression, env, sf);
-    if (val === null || val === undefined) {
-      throw new LuaRuntimeError(
-        `Cross-join source '${src.name}' is nil`,
-        sf.withCtx(ctx),
-      );
-    }
-    const items = await normalizeToArray(val, sf);
-    arrays.push({ name: src.name, items });
-  }
+  overrides?: { where?: LuaExpression },
+): Promise<LuaCollectionQuery> {
+  const query: LuaCollectionQuery = {
+    distinct: true,
+  };
 
-  // Cartesian product
-  let product: Record<string, any>[] = [{}];
-  for (const { name, items } of arrays) {
-    const newProduct: Record<string, any>[] = [];
-    for (const combo of product) {
-      for (const item of items) {
-        newProduct.push({ ...combo, [name]: item });
+  const fromClause = q.clauses.find((c) => c.type === "From");
+  const fromSourceNames: string[] = fromClause
+    ? fromClause.fields.flatMap((f) => (f.type === "PropField" ? [f.key] : []))
+    : [];
+
+  for (const clause of q.clauses) {
+    switch (clause.type) {
+      case "Where":
+        query.where =
+          overrides && "where" in overrides
+            ? overrides.where
+            : clause.expression;
+        break;
+      case "OrderBy":
+        query.orderBy = clause.orderBy.map((o) => {
+          const desc = o.direction === "desc";
+          if (o.wildcard) {
+            return {
+              wildcard: o.wildcard,
+              desc,
+              nulls: o.nulls,
+              using: o.using,
+              ctx: o.ctx,
+            };
+          }
+          return {
+            expr: o.expression!,
+            desc,
+            nulls: o.nulls,
+            using: o.using,
+            ctx: o.ctx,
+          };
+        });
+        break;
+      case "Limit": {
+        const lv = await evalExpression(clause.limit, env, sf);
+        query.limit = Number(lv);
+        if (clause.offset) {
+          const ov = await evalExpression(clause.offset, env, sf);
+          query.offset = Number(ov);
+        }
+        break;
       }
+      case "Offset": {
+        const ov = await evalExpression(clause.offset, env, sf);
+        query.offset = Number(ov);
+        break;
+      }
+      case "GroupBy":
+        query.groupBy = fieldsToGroupByEntries(clause.fields, sf);
+        break;
+      case "Having":
+        query.having = clause.expression;
+        break;
+      case "Select":
+        query.select = fieldsToExpression(
+          clause.fields,
+          clause.ctx,
+          fromSourceNames,
+        );
+        query.distinct = clause.distinct !== false;
+        break;
     }
-    product = newProduct;
   }
 
-  // Convert each combination to a `LuaTable` row
-  return product.map((combo) => {
-    const row = new LuaTable();
-    for (const key in combo) {
-      void row.rawSet(key, combo[key]);
+  if (!query.select) {
+    const fromClause = q.clauses.find((c) => c.type === "From");
+    if (fromClause && fromClause.fields.length > 1) {
+      query.select = {
+        type: "TableConstructor",
+        fields: [{ type: "StarField", ctx: fromClause.ctx }],
+        ctx: fromClause.ctx,
+      };
     }
-    return row;
+  }
+
+  return query;
+}
+
+function unknownDefaultStats(): CollectionStats {
+  return {
+    rowCount: 100,
+    ndv: new Map(),
+    avgColumnCount: 5,
+    statsSource: "unknown-default",
+    executionCapabilities: makeExecutionCapabilities("kv", ["scan-kv"]),
+  };
+}
+
+function normalizeProvidedStats(stats: CollectionStats): CollectionStats {
+  if (stats.statsSource) {
+    return stats;
+  }
+
+  return {
+    ...stats,
+    statsSource: "source-provided-unknown",
+  };
+}
+
+async function getStatsForValue(
+  val: LuaValue,
+  _env: LuaEnv,
+  _sf: LuaStackFrame,
+): Promise<CollectionStats> {
+  if (
+    val &&
+    typeof val === "object" &&
+    "getStats" in val &&
+    typeof (val as any).getStats === "function"
+  ) {
+    const stats = await (val as any).getStats();
+    if (stats) {
+      return normalizeProvidedStats(stats);
+    }
+  }
+
+  if (
+    val &&
+    typeof val === "object" &&
+    "query" in val &&
+    typeof (val as any).query === "function"
+  ) {
+    return unknownDefaultStats();
+  }
+
+  if (val === null || val === undefined) {
+    return computeStatsFromArray([]);
+  }
+
+  if (Array.isArray(val)) {
+    return computeStatsFromArray(val);
+  }
+
+  if (val instanceof LuaTable) {
+    return computeStatsFromArray(luaTableToArray(val));
+  }
+
+  return computeStatsFromArray([val]);
+}
+
+function explainSingleSource(
+  sourceName: string,
+  sourceExpression: LuaExpression,
+  stats?: CollectionStats,
+  withHints?: LuaFromField["withHints"],
+  materialized?: boolean,
+  pushedFilterExpr?: string,
+  normalizationInfo?: SourceNormalizationInfo,
+): ExplainNode {
+  return buildExplainScanNode({
+    sourceName,
+    sourceExpression,
+    stats,
+    withHints,
+    materialized,
+    pushedFilterExpr,
+    normalizationInfo,
   });
+}
+
+/**
+ * Convert a LuaTable to a flat JS array.  Array-like tables (length > 0)
+ * are unpacked; empty tables yield []; record-like tables are singletons.
+ */
+export function luaTableToArray(t: LuaTable): any[] {
+  if (t.empty()) return [];
+  if (t.length > 0) {
+    const arr: any[] = [];
+    for (let i = 1; i <= t.length; i++) {
+      arr.push(t.rawGet(i));
+    }
+    return arr;
+  }
+  return [t];
+}
+
+async function materializeValueAsItems(
+  val: LuaValue,
+  env: LuaEnv,
+  sf: LuaStackFrame,
+): Promise<any[]> {
+  if (val === null || val === undefined) return [];
+  if (Array.isArray(val)) return val;
+  if (val instanceof LuaTable) return luaTableToArray(val);
+  if (
+    typeof val === "object" &&
+    "query" in val &&
+    typeof (val as any).query === "function"
+  ) {
+    return (val as any).query({}, env, sf);
+  }
+  return [val];
+}
+
+function collectionSupportsPredicateDelegation(
+  stats: CollectionStats | undefined,
+): boolean {
+  return (
+    collectionHasPlannerCapability(stats, "stage-where") &&
+    (collectionHasPlannerCapability(stats, "pred-eq") ||
+      collectionHasPlannerCapability(stats, "pred-neq") ||
+      collectionHasPlannerCapability(stats, "pred-lt") ||
+      collectionHasPlannerCapability(stats, "pred-lte") ||
+      collectionHasPlannerCapability(stats, "pred-gt") ||
+      collectionHasPlannerCapability(stats, "pred-gte") ||
+      collectionHasPlannerCapability(stats, "pred-in"))
+  );
 }
 
 export function evalExpression(
@@ -1012,6 +1411,65 @@ export function evalExpression(
 
         return rpThen(value, applyUnary);
       }
+      case "QueryIn": {
+        const leftVal = evalExpression(e.left, env, sf);
+        const rightVal = evalExpression(e.right, env, sf);
+
+        const applyIn = (left: LuaValue, right: LuaValue): LuaValue => {
+          const leftSingle = singleResult(left);
+          const rightSingle = singleResult(right);
+
+          if (rightSingle instanceof LuaTable) {
+            for (let i = 1; i <= rightSingle.length; i++) {
+              const candidate = rightSingle.rawGet(i);
+              if (candidate === leftSingle) {
+                return true;
+              }
+            }
+
+            for (const key of luaKeys(rightSingle)) {
+              if (typeof key === "number" && Number.isInteger(key)) {
+                continue;
+              }
+              const candidate = rightSingle.rawGet(key);
+              if (candidate === leftSingle) {
+                return true;
+              }
+            }
+
+            return false;
+          }
+
+          if (Array.isArray(rightSingle)) {
+            return rightSingle.some((candidate) => candidate === leftSingle);
+          }
+
+          throw new LuaRuntimeError(
+            "'in' requires a table or array on the right side",
+            sf.withCtx(e.ctx),
+          );
+        };
+
+        if (!isPromise(leftVal) && !isPromise(rightVal)) {
+          return applyIn(leftVal, rightVal);
+        }
+
+        if (isPromise(leftVal) && !isPromise(rightVal)) {
+          return (leftVal as Promise<LuaValue>).then((lv) =>
+            applyIn(lv, rightVal),
+          );
+        }
+
+        if (!isPromise(leftVal) && isPromise(rightVal)) {
+          return (rightVal as Promise<LuaValue>).then((rv) =>
+            applyIn(leftVal, rv),
+          );
+        }
+
+        return (leftVal as Promise<LuaValue>).then((lv) =>
+          (rightVal as Promise<LuaValue>).then((rv) => applyIn(lv, rv)),
+        );
+      }
       case "Variable":
       case "FunctionCall":
       case "TableAccess":
@@ -1021,8 +1479,6 @@ export function evalExpression(
       case "TableConstructor": {
         const tc = asTableConstructor(e);
         const table = new LuaTable();
-        // Expression fields assign consecutive integer keys starting
-        // at 1 and advance even when the value is `nil`.
         let nextArrayIndex = 1;
 
         const processField = (
@@ -1100,185 +1556,796 @@ export function evalExpression(
         const q = asQueryExpr(e);
         const findFromClause = q.clauses.find((c) => c.type === "From");
         if (!findFromClause) {
-          throw new LuaRuntimeError("No from clause found", sf.withCtx(q.ctx));
+          throw new LuaRuntimeError(
+            "query has no 'from' clause",
+            sf.withCtx(q.ctx),
+          );
         }
         const fromSource = fromFieldsToSource(
           findFromClause.fields,
           findFromClause.ctx,
         );
+        const explainClause = q.clauses.find((c) => c.type === "Explain");
+        const explainOpts: ExplainOptions | undefined = explainClause
+          ? {
+              analyze: explainClause.analyze,
+              costs: explainClause.costs,
+              summary: explainClause.summary,
+              timing: explainClause.timing,
+              verbose: explainClause.verbose,
+              hints: explainClause.hints,
+            }
+          : undefined;
 
         if (fromSource.kind === "cross") {
-          // Materialize Cartesian product, then query
           return (async () => {
-            const rows = await evalCrossJoinSources(
-              fromSource.sources,
-              env,
-              sf,
-              findFromClause.ctx,
-            );
-            const collection: any = toCollection(rows);
+            const planT0 = performance.now();
 
-            // Build up query object
-            const query: LuaCollectionQuery = {
-              objectVariable: undefined,
-              distinct: true,
-            };
+            const planClause = q.clauses.find((c) => c.type === "Leading") as
+              | LuaLeadingClause
+              | undefined;
+            const planOrder = planClause?.fields.map((f) => {
+              if (f.type === "ExpressionField" && f.value.type === "Variable") {
+                return f.value.name;
+              }
+              throw new LuaRuntimeError(
+                "each entry in 'leading' clause must be a relation name",
+                sf.withCtx(planClause!.ctx),
+              );
+            });
 
-            // Map clauses to query parameters
-            for (const clause of q.clauses) {
-              switch (clause.type) {
-                case "Where": {
-                  query.where = clause.expression;
-                  break;
+            const materializedOverrides = new Map<string, any[]>();
+
+            for (const src of fromSource.sources) {
+              const val = await evalExpression(src.expression, env, sf);
+
+              if (src.materialized) {
+                const items = await materializeValueAsItems(val, env, sf);
+                materializedOverrides.set(src.name, items);
+                // Materialised array source: no pushdown, no overlay.
+                // Uses the canonical ArrayScanEngine spec so EXPLAIN and
+                // the engine implementation share one source of truth.
+                src.stats = {
+                  ...computeStatsFromArray(items),
+                  statsSource: "recomputed-materialized-exact",
+                  executionCapabilities: {
+                    engines: [ARRAY_SCAN_ENGINE_CAPABILITY],
+                  },
+                };
+                continue;
+              }
+
+              if (
+                val &&
+                typeof val === "object" &&
+                val.getStats &&
+                typeof val.getStats === "function"
+              ) {
+                const stats = await val.getStats();
+                if (stats) {
+                  src.stats = normalizeProvidedStats(stats);
                 }
-                case "OrderBy": {
-                  query.orderBy = clause.orderBy.map((o) => ({
+              } else if (Array.isArray(val)) {
+                src.stats = computeStatsFromArray(val);
+              } else if (val instanceof LuaTable) {
+                src.stats = computeStatsFromArray(luaTableToArray(val));
+              }
+            }
+
+            const whereClause = q.clauses.find((c) => c.type === "Where");
+
+	    // Fold trivial true conjuncts (e.g. literal `true`, `not
+	    // false`, `not nil`) out of the WHERE before any pushdown
+	    // classification or join-predicate extraction runs to not
+	    // inflate plan complexity.
+            const { expr: prunedWhereExpr, pruned: prunedWhereConjuncts } =
+              pruneAlwaysTrueConjuncts(whereClause?.expression);
+
+            const sourceNames = new Set(fromSource.sources.map((s) => s.name));
+            const equiPreds = extractEquiPredicates(
+              prunedWhereExpr,
+              sourceNames,
+            );
+
+            const rangePreds = extractRangePredicates(
+              prunedWhereExpr,
+              sourceNames,
+            );
+
+            const { pushed: pushedFilters, residual: pushdownResidualWhere } =
+              extractSingleSourceFilters(prunedWhereExpr, sourceNames);
+
+            const transitiveFilters = generateTransitivePredicates(
+              pushedFilters,
+              equiPreds,
+              sourceNames,
+            );
+            if (transitiveFilters.length > 0) {
+              pushedFilters.push(...transitiveFilters);
+            }
+
+            const pushedFilterExprBySource = new Map<string, string>();
+            for (const src of fromSource.sources) {
+              const srcFilters = pushedFilters.filter(
+                (f) => f.sourceName === src.name,
+              );
+              if (srcFilters.length === 0) continue;
+
+              const combined =
+                srcFilters.length === 1
+                  ? exprToDisplayString(srcFilters[0].expression)
+                  : srcFilters
+                      .map((f) => `(${exprToString(f.expression)})`)
+                      .join(" and ");
+
+              pushedFilterExprBySource.set(src.name, combined);
+            }
+
+            const normalizationInfoBySource: Map<
+              string,
+              SourceNormalizationInfo
+            > = buildNormalizationInfoBySource(prunedWhereExpr, sourceNames);
+
+            for (const src of fromSource.sources) {
+              const srcFilters = pushedFilters.filter(
+                (f) => f.sourceName === src.name,
+              );
+              if (srcFilters.length === 0) {
+                continue;
+              }
+
+              const val = await evalExpression(src.expression, env, sf);
+
+              const canDelegate =
+                collectionSupportsPredicateDelegation(src.stats) &&
+                val &&
+                typeof val === "object" &&
+                "query" in val &&
+                typeof (val as any).query === "function";
+
+              const dispatchReports: EngineDispatchReport[] = [];
+
+              let filtered: any[];
+              let pushdownNarrowing: PushdownNarrowingReport | undefined;
+
+              // Pre-pass wall-clock window (DONT move around!)
+              let prepassStartedAtMs: number | undefined;
+              let prepassFinishedAtMs: number | undefined;
+
+              if (canDelegate) {
+                const combinedWhere: LuaExpression =
+                  srcFilters.length === 1
+                    ? srcFilters[0].expression
+                    : srcFilters.slice(1).reduce<LuaExpression>(
+                        (acc, f) => ({
+                          type: "Binary" as const,
+                          operator: "and" as const,
+                          left: acc,
+                          right: f.expression,
+                          ctx: f.expression.ctx,
+                        }),
+                        srcFilters[0].expression,
+                      );
+
+                const engineCaptureInstrumentation: QueryInstrumentation = {
+                  onEngineDispatch(reports) {
+                    dispatchReports.push(...reports);
+                  },
+                  onPushdownNarrowed(info) {
+                    pushdownNarrowing = info;
+                  },
+                };
+
+                prepassStartedAtMs = performance.now();
+                filtered = await (val as any).query(
+                  { where: combinedWhere, objectVariable: src.name },
+                  env,
+                  sf,
+                  globalThis.client?.config,
+                  engineCaptureInstrumentation,
+                );
+                prepassFinishedAtMs = performance.now();
+              } else {
+                const items = await materializeValueAsItems(val, env, sf);
+                prepassStartedAtMs = performance.now();
+                filtered = await applyPushedFilters(
+                  items,
+                  src.name,
+                  srcFilters,
+                  env,
+                  sf,
+                );
+                prepassFinishedAtMs = performance.now();
+              }
+
+              const originalRowCount = src.stats?.rowCount;
+              const originalNdv = src.stats?.ndv;
+              const originalMcv = src.stats?.mcv;
+              const filteredStats = computeStatsFromArray(filtered);
+
+              const filteredRowCount = filteredStats.rowCount;
+              let finalNdv = filteredStats.ndv;
+              let finalMcv = filteredStats.mcv;
+
+              if (originalNdv && originalNdv.size > 0) {
+                finalNdv = new Map<string, number>();
+                for (const [col, ndv] of originalNdv) {
+                  finalNdv.set(col, Math.min(ndv, filteredRowCount));
+                }
+              }
+
+              if (originalMcv && originalMcv.size > 0) {
+                finalMcv = originalMcv;
+              }
+
+              // Derive the post-filter engine list from the dispatcher's
+              // run reports. Real engine ids survive into EXPLAIN.
+              const originalEngines: QueryEngineCapability[] =
+                src.stats?.executionCapabilities?.engines ?? [];
+              const originalAugmenterEngines = originalEngines.filter((e) =>
+                e.id.startsWith("augmenter-overlay-"),
+              );
+              const originalVirtualColumns = src.stats?.virtualColumns;
+              const postFilterEngines: QueryEngineCapability[] = (() => {
+                if (canDelegate && dispatchReports.length > 0) {
+                  const byId = new Map(originalEngines.map((e) => [e.id, e]));
+                  const engines: QueryEngineCapability[] = [];
+                  const seen = new Set<string>();
+                  for (const r of dispatchReports) {
+                    if (seen.has(r.engineId)) continue;
+                    seen.add(r.engineId);
+                    const orig = byId.get(r.engineId);
+                    const base: QueryEngineCapability = orig ?? {
+                      id: r.engineId,
+                      name: r.engineName,
+                      kind: r.engineKind,
+                      capabilities: [],
+                      baseCostWeight: r.baseCostWeight,
+                      priority: r.priority,
+                    };
+                    engines.push({
+                      ...base,
+                      runtimeStats: r.runtimeStats,
+                      executeMs: r.executeMs,
+                    });
+                  }
+                  return engines;
+                }
+
+                if (canDelegate) {
+                  return [
+                    {
+                      id: "delegated-filter",
+                      name: "Delegated filtered source",
+                      kind: "index",
+                      capabilities: [
+                        "scan-bitmap",
+                        "stage-where",
+                        "stats-row-count",
+                        ...(collectionHasPlannerCapability(src.stats, "pred-eq")
+                          ? (["pred-eq"] as const)
+                          : []),
+                        ...(collectionHasPlannerCapability(
+                          src.stats,
+                          "pred-neq",
+                        )
+                          ? (["pred-neq"] as const)
+                          : []),
+                        ...(collectionHasPlannerCapability(src.stats, "pred-lt")
+                          ? (["pred-lt"] as const)
+                          : []),
+                        ...(collectionHasPlannerCapability(
+                          src.stats,
+                          "pred-lte",
+                        )
+                          ? (["pred-lte"] as const)
+                          : []),
+                        ...(collectionHasPlannerCapability(src.stats, "pred-gt")
+                          ? (["pred-gt"] as const)
+                          : []),
+                        ...(collectionHasPlannerCapability(
+                          src.stats,
+                          "pred-gte",
+                        )
+                          ? (["pred-gte"] as const)
+                          : []),
+                        ...(collectionHasPlannerCapability(src.stats, "pred-in")
+                          ? (["pred-in"] as const)
+                          : []),
+                        ...(collectionHasPlannerCapability(
+                          src.stats,
+                          "bool-and",
+                        )
+                          ? (["bool-and"] as const)
+                          : []),
+                        ...(collectionHasPlannerCapability(src.stats, "bool-or")
+                          ? (["bool-or"] as const)
+                          : []),
+                        ...(collectionHasPlannerCapability(
+                          src.stats,
+                          "bool-not",
+                        )
+                          ? (["bool-not"] as const)
+                          : []),
+                        ...(collectionHasPlannerCapability(
+                          src.stats,
+                          "expr-literal",
+                        )
+                          ? (["expr-literal"] as const)
+                          : []),
+                        ...(collectionHasPlannerCapability(
+                          src.stats,
+                          "expr-column-qualified",
+                        )
+                          ? (["expr-column-qualified"] as const)
+                          : []),
+                        ...(collectionHasPlannerCapability(
+                          src.stats,
+                          "expr-column-unqualified",
+                        )
+                          ? (["expr-column-unqualified"] as const)
+                          : []),
+                      ],
+                      baseCostWeight: 0.6,
+                      priority: 20,
+                    },
+                    ...originalAugmenterEngines,
+                  ];
+                }
+
+                // Materialised path
+                return [
+                  COMPUTE_FALLBACK_ENGINE_CAPABILITY,
+                  ...originalAugmenterEngines,
+                ];
+              })();
+
+              src.stats = {
+                ...filteredStats,
+                ndv: finalNdv,
+                mcv: finalMcv,
+                unfilteredRowCount: originalRowCount,
+                pushdownNarrowedRowCount: pushdownNarrowing?.narrowedRowCount,
+                prepassStartedAtMs,
+                prepassFinishedAtMs,
+                statsSource: "recomputed-filtered-exact",
+                virtualColumns: originalVirtualColumns,
+                executionCapabilities: { engines: postFilterEngines },
+              };
+
+              materializedOverrides.set(src.name, filtered);
+            }
+
+            const plannerConfig: JoinPlannerConfig | undefined = globalThis
+              .client?.config
+              ? {
+                  watchdogLimit: globalThis.client.config.get(
+                    "joinWatchdogLimit",
+                    undefined,
+                  ),
+                  yieldChunk: globalThis.client.config.get(
+                    "joinYieldChunk",
+                    undefined,
+                  ),
+                  smallTableThreshold: globalThis.client.config.get(
+                    "joinSmallTableThreshold",
+                    undefined,
+                  ),
+                  mergeJoinThreshold: globalThis.client.config.get(
+                    "joinMergeThreshold",
+                    undefined,
+                  ),
+                  widthWeight: globalThis.client.config.get(
+                    "joinWidthWeight",
+                    undefined,
+                  ),
+                  candidateWidthWeight: globalThis.client.config.get(
+                    "joinCandidateWidthWeight",
+                    undefined,
+                  ),
+                }
+              : undefined;
+
+            const joinTree = buildJoinTree(
+              fromSource.sources,
+              planOrder,
+              equiPreds,
+              rangePreds,
+              pushdownResidualWhere,
+              plannerConfig,
+            );
+
+            const residualWhere = stripUsedJoinPredicates(
+              pushdownResidualWhere,
+              joinTree,
+            );
+
+            const selectClauseForValidation = q.clauses.find(
+              (c) => c.type === "Select",
+            );
+            const orderByClauseForValidation = q.clauses.find(
+              (c) => c.type === "OrderBy",
+            );
+            const groupByClauseForValidation = q.clauses.find(
+              (c) => c.type === "GroupBy",
+            );
+            const havingClauseForValidation = q.clauses.find(
+              (c) => c.type === "Having",
+            );
+
+            validatePostJoinSourceReferences(
+              joinTree,
+              {
+                where: residualWhere,
+                groupBy:
+                  groupByClauseForValidation?.fields.flatMap((f) => {
+                    // Wildcards are validated by the group-by evaluator.
+                    if (
+                      f.type === "StarField" ||
+                      f.type === "StarSourceField" ||
+                      f.type === "StarColumnField"
+                    ) {
+                      return [];
+                    }
+                    if (f.type === "PropField") {
+                      return [{ expr: f.value, alias: f.key }];
+                    }
+                    return [{ expr: f.value }];
+                  }) ?? undefined,
+                having: havingClauseForValidation?.expression,
+                select: selectClauseForValidation
+                  ? fieldsToExpression(
+                      selectClauseForValidation.fields,
+                      selectClauseForValidation.ctx,
+                      fromSource.sources.map((s) => s.name),
+                    )
+                  : undefined,
+                orderBy:
+                  orderByClauseForValidation?.orderBy.map((o) => ({
                     expr: o.expression,
                     desc: o.direction === "desc",
                     nulls: o.nulls,
                     using: o.using,
-                  }));
-                  break;
-                }
-                case "Select": {
-                  query.select = fieldsToExpression(clause.fields, clause.ctx);
-                  break;
-                }
-                case "Limit": {
-                  const limitVal = await evalExpression(clause.limit, env, sf);
-                  query.limit = Number(limitVal);
-                  if (clause.offset) {
-                    const offsetVal = await evalExpression(
-                      clause.offset,
-                      env,
-                      sf,
-                    );
-                    query.offset = Number(offsetVal);
-                  }
-                  break;
-                }
-                case "Offset": {
-                  const offsetVal = await evalExpression(
-                    clause.offset,
-                    env,
-                    sf,
-                  );
-                  query.offset = Number(offsetVal);
-                  break;
-                }
-                case "GroupBy": {
-                  query.groupBy = fieldsToGroupByEntries(clause.fields);
-                  break;
-                }
-                case "Having": {
-                  query.having = clause.expression;
-                  break;
-                }
-              }
+                    ctx: o.ctx,
+                  })) ?? undefined,
+              },
+              sf,
+            );
+
+            let explainPlan: ExplainNode | undefined;
+            if (explainOpts) {
+              const explainQuery = await buildQueryFromClauses(q, env, sf, {
+                where: residualWhere,
+              });
+              const explainSourceStats = new Map<string, CollectionStats>(
+                fromSource.sources
+                  .filter(
+                    (s): s is JoinSource & { stats: CollectionStats } =>
+                      s.stats !== undefined,
+                  )
+                  .map((s) => [s.name, s.stats]),
+              );
+              const joinRootNdv =
+                joinTree.kind === "join" ? joinTree.estimatedNdv : undefined;
+              explainPlan = wrapPlanWithQueryOps(
+                explainJoinTree(
+                  joinTree,
+                  explainOpts,
+                  pushedFilterExprBySource,
+                  normalizationInfoBySource,
+                ),
+                {
+                  ...explainQuery,
+                  leading: planOrder,
+                },
+                explainSourceStats,
+                joinRootNdv,
+                plannerConfig,
+                globalThis.client?.config,
+              );
             }
 
-            return (collection as any)
+            const planEndT = performance.now();
+
+            const originalSourceOrder = fromSource.sources.map((s) => s.name);
+
+            if (explainOpts && !explainOpts.analyze) {
+              const result: ExplainResult = {
+                plan: explainPlan!,
+                planningTimeMs: Math.round((planEndT - planT0) * 1000) / 1000,
+                leadingHint: buildLeadingHintInfo(
+                  planOrder,
+                  originalSourceOrder,
+                  explainPlan!,
+                ),
+                prunedPredicates:
+                  prunedWhereConjuncts.length > 0
+                    ? formatPrunedConjuncts(prunedWhereConjuncts)
+                    : undefined,
+              };
+              return formatExplainOutput(result, explainOpts);
+            }
+
+            if (explainOpts?.analyze) {
+              const execT0 = performance.now();
+              const joinPlan = unwrapToJoinPlan(explainPlan!);
+              const joinRows = await executeAndInstrument(
+                joinTree,
+                joinPlan,
+                env,
+                sf,
+                explainOpts,
+                plannerConfig,
+                materializedOverrides,
+                execT0,
+              );
+
+              const joinedCollection = toCollection(joinRows);
+
+              const analyzeQuery = await buildQueryFromClauses(q, env, sf, {
+                where: residualWhere,
+              });
+              analyzeQuery.objectVariable = undefined;
+              // Mirror the non-analyze cross-join path: wildcard expansion
+              // (`select t.*`, `select *`, `select *.col`, etc.) needs to
+              // resolve `t`/`p` against the joined sources!
+              analyzeQuery.sourceNames = fromSource.sources.map((s) => s.name);
+
+              const stageStats: QueryStageStat[] = [];
+              const instrumentation: QueryInstrumentation = {
+                onStage: (stat) => {
+                  stageStats.push(stat);
+                },
+              };
+              const aggregateInstrumentation: AggregateRuntimeInstrumentation =
+                {
+                  stats: {
+                    rowsRemovedByAggregateFilter: 0,
+                  },
+                };
+
+              const finalRows = await (joinedCollection as any).query(
+                analyzeQuery,
+                env,
+                sf,
+                globalThis.client?.config,
+                instrumentation,
+                aggregateInstrumentation,
+              );
+
+              explainPlan!.actualRows = finalRows.length;
+              explainPlan!.actualLoops = 1;
+
+              annotateExplainWrappersFromStageStats(
+                explainPlan!,
+                stageStats,
+                execT0,
+                explainOpts,
+              );
+
+              attachAnalyzeQueryOpStats(
+                explainPlan!,
+                aggregateInstrumentation.stats,
+              );
+
+              const execEndT = performance.now();
+              const result: ExplainResult = {
+                plan: explainPlan!,
+                planningTimeMs: Math.round((planEndT - planT0) * 1000) / 1000,
+                executionTimeMs: Math.round((execEndT - execT0) * 1000) / 1000,
+                leadingHint: buildLeadingHintInfo(
+                  planOrder,
+                  originalSourceOrder,
+                  explainPlan!,
+                ),
+                resultColumns: computeResultColumns(finalRows),
+                prunedPredicates:
+                  prunedWhereConjuncts.length > 0
+                    ? formatPrunedConjuncts(prunedWhereConjuncts)
+                    : undefined,
+              };
+              return formatExplainOutput(result, explainOpts);
+            }
+
+            const result = await executeJoinTree(
+              joinTree,
+              env,
+              sf,
+              plannerConfig,
+              materializedOverrides,
+            );
+
+            const joinedCollection = toCollection(result);
+
+            const query = await buildQueryFromClauses(q, env, sf, {
+              where: residualWhere,
+            });
+            query.objectVariable = undefined;
+            query.sourceNames = fromSource.sources.map((s) => s.name);
+
+            return joinedCollection
               .query(query, env, sf, globalThis.client?.config)
               .then(jsToLuaValue);
           })();
         }
 
         // Single-source
-        const { objectVariable, expression: objectExpression } = fromSource;
+        const {
+          objectVariable,
+          expression: objectExpression,
+          materialized: forceMaterialized,
+        } = fromSource;
+        const sourceEvalT0 = performance.now();
         return Promise.resolve(evalExpression(objectExpression, env, sf)).then(
           async (collection: LuaValue) => {
+            const sourceEvalElapsedMs = performance.now() - sourceEvalT0;
+            const planT0 = performance.now();
+
             if (!collection) {
-              throw new LuaRuntimeError("Collection is nil", sf.withCtx(q.ctx));
+              throw new LuaRuntimeError(
+                "'from' clause source evaluated to null",
+                sf.withCtx(q.ctx),
+              );
             }
 
-            // If already a queryable collection (e.g. DataStoreQueryCollection),
-            // use directly - skip all LuaTable/JS conversion.
-            if (
+            if (forceMaterialized) {
+              const items = await materializeValueAsItems(collection, env, sf);
+              collection = toCollection(items);
+            } else if (
               typeof collection === "object" &&
               collection !== null &&
               "query" in collection &&
               typeof (collection as any).query === "function"
             ) {
-              // Already queryable, use as-is
             } else if (collection instanceof LuaTable && collection.empty()) {
-              // Empty table → empty array
               collection = toCollection([]);
             } else if (collection instanceof LuaTable) {
               if (collection.length > 0) {
-                // Array-like table: extract array items, keep as LuaTables
                 const arr: any[] = [];
                 for (let i = 1; i <= collection.length; i++) {
                   arr.push(collection.rawGet(i));
                 }
                 collection = toCollection(arr);
               } else {
-                // Record-like table (no array part): treat as singleton
                 collection = toCollection([collection]);
               }
             } else {
               collection = toCollection(luaValueToJS(collection, sf));
             }
 
-            // Build up query object
-            const query: LuaCollectionQuery = {
-              objectVariable,
-              distinct: true,
-            };
-
-            // Map clauses to query parameters
-            for (const clause of q.clauses) {
-              switch (clause.type) {
-                case "Where": {
-                  query.where = clause.expression;
-                  break;
-                }
-                case "OrderBy": {
-                  query.orderBy = clause.orderBy.map((o) => ({
-                    expr: o.expression,
-                    desc: o.direction === "desc",
-                    nulls: o.nulls,
-                    using: o.using,
-                  }));
-                  break;
-                }
-                case "Select": {
-                  query.select = fieldsToExpression(clause.fields, clause.ctx);
-                  break;
-                }
-                case "Limit": {
-                  const limitVal = await evalExpression(clause.limit, env, sf);
-                  query.limit = Number(limitVal);
-                  if (clause.offset) {
-                    const offsetVal = await evalExpression(
-                      clause.offset,
-                      env,
-                      sf,
-                    );
-                    query.offset = Number(offsetVal);
-                  }
-                  break;
-                }
-                case "Offset": {
-                  const offsetVal = await evalExpression(
-                    clause.offset,
-                    env,
-                    sf,
-                  );
-                  query.offset = Number(offsetVal);
-                  break;
-                }
-                case "GroupBy": {
-                  query.groupBy = fieldsToGroupByEntries(clause.fields);
-                  break;
-                }
-                case "Having": {
-                  query.having = clause.expression;
-                  break;
-                }
-              }
+            const query = await buildQueryFromClauses(q, env, sf);
+            query.objectVariable = objectVariable;
+            query.sourceNames = objectVariable ? [objectVariable] : [];
+            const { expr: prunedSingleWhere, pruned: prunedWhereConjuncts } =
+              pruneAlwaysTrueConjuncts(query.where);
+            query.where = prunedSingleWhere;
+            const stats = await getStatsForValue(collection, env, sf);
+            const sourceName = objectVariable ?? "_";
+            const singleSourceNames = new Set([sourceName]);
+            const normalizationInfoBySource = buildNormalizationInfoBySource(
+              query.where,
+              singleSourceNames,
+            );
+            const pushedFilterExprBySource = new Map<string, string>();
+            const normalizationInfo = normalizationInfoBySource.get(sourceName);
+            if (
+              normalizationInfo &&
+              normalizationInfo.pushdownExpr !== "none"
+            ) {
+              pushedFilterExprBySource.set(
+                sourceName,
+                normalizationInfo.pushdownExpr,
+              );
             }
 
-            // Always use the possibly-wrapped collection
+            let explainPlan: ExplainNode | undefined;
+            if (explainOpts) {
+              const explainQuery = await buildQueryFromClauses(q, env, sf, {
+                where: query.where,
+              });
+              const explainSourceStats = new Map<string, CollectionStats>([
+                [sourceName, stats],
+              ]);
+              explainPlan = wrapPlanWithQueryOps(
+                explainSingleSource(
+                  sourceName,
+                  objectExpression,
+                  stats,
+                  fromSource.withHints,
+                  fromSource.materialized,
+                  pushedFilterExprBySource.get(sourceName),
+                  normalizationInfo,
+                ),
+                explainQuery,
+                explainSourceStats,
+                undefined,
+                undefined,
+                globalThis.client?.config,
+              );
+            }
+
+            const planEndT = performance.now();
+
+            if (explainOpts && !explainOpts.analyze) {
+              const result: ExplainResult = {
+                plan: explainPlan!,
+                planningTimeMs: Math.round((planEndT - planT0) * 1000) / 1000,
+                prunedPredicates:
+                  prunedWhereConjuncts.length > 0
+                    ? formatPrunedConjuncts(prunedWhereConjuncts)
+                    : undefined,
+              };
+              return formatExplainOutput(result, explainOpts);
+            }
+
+            if (explainOpts?.analyze) {
+              const execT0 = sourceEvalT0;
+              void sourceEvalElapsedMs;
+              const stageStats: QueryStageStat[] = [];
+              const instrumentation: QueryInstrumentation = {
+                onStage: (stat) => {
+                  stageStats.push(stat);
+                },
+              };
+
+              const aggregateInstrumentation: AggregateRuntimeInstrumentation =
+                {
+                  stats: {
+                    rowsRemovedByAggregateFilter: 0,
+                  },
+                };
+
+              const finalRows = await (collection as any).query(
+                query,
+                env,
+                sf,
+                globalThis.client?.config,
+                instrumentation,
+                aggregateInstrumentation,
+              );
+
+              annotateExplainWrappersFromStageStats(
+                explainPlan!,
+                stageStats,
+                execT0,
+                explainOpts,
+              );
+
+              const scanPlan = unwrapToJoinPlan(explainPlan!);
+              scanPlan.actualRows = stats.rowCount;
+              scanPlan.actualLoops = 1;
+              if (explainOpts.timing) {
+                const scanEndMs =
+                  stageStats.length > 0
+                    ? stageStats[0].startTimeMs
+                    : performance.now();
+                const total = Math.round((scanEndMs - execT0) * 1000) / 1000;
+                scanPlan.actualStartupTimeMs = 0;
+                scanPlan.actualTimeMs = total;
+              }
+
+              explainPlan!.actualRows = finalRows.length;
+              explainPlan!.actualLoops = 1;
+
+              attachAnalyzeQueryOpStats(
+                explainPlan!,
+                aggregateInstrumentation.stats,
+              );
+
+              const execEndT = performance.now();
+              const result: ExplainResult = {
+                plan: explainPlan!,
+                planningTimeMs: Math.round((planEndT - planT0) * 1000) / 1000,
+                executionTimeMs: Math.round((execEndT - execT0) * 1000) / 1000,
+                resultColumns: computeResultColumns(finalRows),
+                prunedPredicates:
+                  prunedWhereConjuncts.length > 0
+                    ? formatPrunedConjuncts(prunedWhereConjuncts)
+                    : undefined,
+              };
+              return formatExplainOutput(result, explainOpts);
+            }
+
             return (collection as any)
               .query(query, env, sf, globalThis.client?.config)
               .then(jsToLuaValue);
@@ -1357,11 +2424,19 @@ function evalPrefixExpression(
     case "FunctionCall": {
       const fc = asFunctionCall(e);
 
-      // `order by` inside function arguments is only valid for aggregate
-      // calls evaluated by the query engine
       if (fc.orderBy && fc.orderBy.length > 0) {
         throw new LuaRuntimeError(
-          `'order by' is not allowed in non-aggregate function calls`,
+          `'order by' specified, but ${functionNameForSqlError(fc)} is not an aggregate function`,
+          sf.withCtx(fc.ctx),
+        );
+      }
+
+      if (fc.wildcardArg) {
+        const fn = functionNameForSqlError(fc);
+        const starArg =
+          fc.wildcardArg.kind === "all" ? "*" : `${fc.wildcardArg.source}.*`;
+        throw new LuaRuntimeError(
+          `${fn}(${starArg}) specified, but ${fn} is not an aggregate function`,
           sf.withCtx(fc.ctx),
         );
       }

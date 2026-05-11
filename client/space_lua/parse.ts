@@ -13,17 +13,21 @@ import type {
   LuaAttName,
   LuaBlock,
   LuaExpression,
+  LuaFromField,
   LuaFunctionBody,
   LuaFunctionCallExpression,
   LuaFunctionCallStatement,
   LuaFunctionName,
   LuaIfStatement,
+  LuaJoinHint,
   LuaLValue,
   LuaOrderBy,
+  LuaOrderBySelectKeyExpression,
   LuaPrefixExpression,
   LuaQueryClause,
   LuaStatement,
   LuaTableField,
+  LuaWithHints,
 } from "./ast.ts";
 import { LuaAttribute } from "./ast.ts";
 import { getBlockGotoMeta } from "./labels.ts";
@@ -36,7 +40,7 @@ const luaStyleTags = styleTags({
   CompareOp: t.operator,
   "true false": t.bool,
   Comment: t.lineComment,
-  "return break goto do end while repeat until function local if then else elseif in for nil or and not query from where limit offset select order by desc asc nulls first last group having filter using":
+  "return break goto do end while repeat until function local if then else elseif in for nil or and not query from materialized with rows width cost where limit offset select order by desc asc nulls first last group having filter using leading inner semi anti hash loop merge all distinct explain analyze costs summary timing verbose hints":
     t.keyword,
 });
 
@@ -129,6 +133,7 @@ function expressionHasFunctionDef(e: LuaExpression): boolean {
           case "From":
           case "Select":
           case "GroupBy":
+          case "Leading":
             for (const f of c.fields) {
               switch (f.type) {
                 case "DynamicField":
@@ -152,7 +157,8 @@ function expressionHasFunctionDef(e: LuaExpression): boolean {
             break;
           case "OrderBy":
             for (let j = 0; j < c.orderBy.length; j++) {
-              if (expressionHasFunctionDef(c.orderBy[j].expression)) {
+              const e = c.orderBy[j].expression;
+              if (e && expressionHasFunctionDef(e)) {
                 return true;
               }
               if (
@@ -162,6 +168,8 @@ function expressionHasFunctionDef(e: LuaExpression): boolean {
                 return true;
               }
             }
+            break;
+          case "Explain":
             break;
         }
       }
@@ -175,7 +183,8 @@ function expressionHasFunctionDef(e: LuaExpression): boolean {
         expressionHasFunctionDef((e as any).call) ||
         ((e as any).orderBy as LuaOrderBy[]).some(
           (ob) =>
-            expressionHasFunctionDef(ob.expression) ||
+            (ob.expression !== undefined &&
+              expressionHasFunctionDef(ob.expression)) ||
             (ob.using && typeof ob.using !== "string"),
         )
       );
@@ -247,6 +256,7 @@ function exprReferencesNames(e: LuaExpression, names: Set<string>): boolean {
           case "From":
           case "Select":
           case "GroupBy":
+          case "Leading":
             for (const f of c.fields) {
               switch (f.type) {
                 case "DynamicField":
@@ -270,7 +280,8 @@ function exprReferencesNames(e: LuaExpression, names: Set<string>): boolean {
             break;
           case "OrderBy":
             for (let j = 0; j < c.orderBy.length; j++) {
-              if (exprReferencesNames(c.orderBy[j].expression, names)) {
+              const e = c.orderBy[j].expression;
+              if (e && exprReferencesNames(e, names)) {
                 return true;
               }
               if (
@@ -280,6 +291,8 @@ function exprReferencesNames(e: LuaExpression, names: Set<string>): boolean {
                 return true;
               }
             }
+            break;
+          case "Explain":
             break;
         }
       }
@@ -293,7 +306,9 @@ function exprReferencesNames(e: LuaExpression, names: Set<string>): boolean {
       const ac = e as any;
       if (exprReferencesNames(ac.call, names)) return true;
       for (const ob of ac.orderBy as LuaOrderBy[]) {
-        if (exprReferencesNames(ob.expression, names)) return true;
+        if (ob.expression && exprReferencesNames(ob.expression, names)) {
+          return true;
+        }
         if (typeof ob.using === "string" && names.has(ob.using)) return true;
       }
       return false;
@@ -580,6 +595,7 @@ function exprCapturesNames(e: LuaExpression, names: Set<string>): boolean {
           case "From":
           case "Select":
           case "GroupBy":
+          case "Leading":
             for (const f of c.fields) {
               switch (f.type) {
                 case "DynamicField":
@@ -603,7 +619,8 @@ function exprCapturesNames(e: LuaExpression, names: Set<string>): boolean {
             break;
           case "OrderBy":
             for (let j = 0; j < c.orderBy.length; j++) {
-              if (exprCapturesNames(c.orderBy[j].expression, names)) {
+              const e = c.orderBy[j].expression;
+              if (e && exprCapturesNames(e, names)) {
                 return true;
               }
               const u = c.orderBy[j].using;
@@ -623,7 +640,9 @@ function exprCapturesNames(e: LuaExpression, names: Set<string>): boolean {
       const ac = e as any;
       if (exprCapturesNames(ac.call, names)) return true;
       for (const ob of ac.orderBy as LuaOrderBy[]) {
-        if (exprCapturesNames(ob.expression, names)) return true;
+        if (ob.expression && exprCapturesNames(ob.expression, names)) {
+          return true;
+        }
         const u = ob.using;
         if (u && typeof u !== "string") {
           if (functionBodyCapturesNames(u, names)) return true;
@@ -1016,10 +1035,8 @@ function parseFunctionCall(
   ctx: ASTCtx,
 ): LuaFunctionCallExpression {
   if (t.children![1] && t.children![1].type === ":") {
-    const { args, aggOrderBy } = parseFunctionArgsWithOrderBy(
-      t.children!.slice(3),
-      ctx,
-    );
+    const { args, aggOrderBy, argModifier, wildcardArg } =
+      parseFunctionArgsWithOrderBy(t.children!.slice(3), ctx);
     const result: LuaFunctionCallExpression = {
       type: "FunctionCall",
       prefix: parsePrefixExpression(t.children![0], ctx),
@@ -1030,12 +1047,16 @@ function parseFunctionCall(
     if (aggOrderBy) {
       (result as any).orderBy = aggOrderBy;
     }
+    if (argModifier) {
+      result.argModifier = argModifier;
+    }
+    if (wildcardArg) {
+      result.wildcardArg = wildcardArg;
+    }
     return result;
   }
-  const { args, aggOrderBy } = parseFunctionArgsWithOrderBy(
-    t.children!.slice(1),
-    ctx,
-  );
+  const { args, aggOrderBy, argModifier, wildcardArg } =
+    parseFunctionArgsWithOrderBy(t.children!.slice(1), ctx);
   const result: LuaFunctionCallExpression = {
     type: "FunctionCall",
     prefix: parsePrefixExpression(t.children![0], ctx),
@@ -1044,6 +1065,12 @@ function parseFunctionCall(
   };
   if (aggOrderBy) {
     (result as any).orderBy = aggOrderBy;
+  }
+  if (argModifier) {
+    result.argModifier = argModifier;
+  }
+  if (wildcardArg) {
+    result.wildcardArg = wildcardArg;
   }
   return result;
 }
@@ -1230,14 +1257,47 @@ function parseExpression(t: ParseTree, ctx: ASTCtx): LuaExpression {
         ctx: context(t, ctx),
       };
     }
-    case "BinaryExpression":
+    case "BinaryExpression": {
+      const operator = t.children![1].children![0].text!;
+
+      if (operator === "in") {
+        const left = parseExpression(t.children![0], ctx);
+        const right = parseExpression(t.children![2], ctx);
+
+        // Normalize:
+        //   not a in b
+        // into:
+        //   not (a in b)
+        if (left.type === "Unary" && left.operator === "not") {
+          return {
+            type: "Unary",
+            operator: "not",
+            argument: {
+              type: "QueryIn",
+              left: left.argument,
+              right,
+              ctx: context(t, ctx),
+            },
+            ctx: context(t, ctx),
+          };
+        }
+
+        return {
+          type: "QueryIn",
+          left,
+          right,
+          ctx: context(t, ctx),
+        };
+      }
+
       return {
         type: "Binary",
-        operator: t.children![1].children![0].text!,
+        operator,
         left: parseExpression(t.children![0], ctx),
         right: parseExpression(t.children![2], ctx),
         ctx: context(t, ctx),
       };
+    }
     case "UnaryExpression": {
       const op = t.children![0].children![0].text!;
       if (op === "+") {
@@ -1293,25 +1353,103 @@ function parseExpression(t: ParseTree, ctx: ASTCtx): LuaExpression {
       return { type: "Boolean", value: true, ctx: context(t, ctx) };
     case "false":
       return { type: "Boolean", value: false, ctx: context(t, ctx) };
-    case "TableConstructor":
+    case "TableConstructor": {
+      const fieldNodes = t
+        .children!.slice(1, -1)
+        .filter((c) =>
+          [
+            "FieldExp",
+            "FieldProp",
+            "FieldDynamic",
+            "FieldStar",
+            "FieldStarStar",
+            "FieldStarSource",
+            "FieldStarColumn",
+          ].includes(c.type!),
+        );
+      // Wildcard fields are accepted by the grammar so that `select { t.* }`
+      // can round-trip through Lezer, but they are SLIQ-only — reject them
+      // in any TableConstructor that surfaces as a plain Lua expression.
+      // `parseSelectFieldList` lifts the `select { ... }` form before this
+      // path is reached, so wildcards inside the brace form never end up
+      // here.
+      for (const fn of fieldNodes) {
+        if (
+          fn.type === "FieldStar" ||
+          fn.type === "FieldStarStar" ||
+          fn.type === "FieldStarSource" ||
+          fn.type === "FieldStarColumn"
+        ) {
+          throw new Error(
+            "wildcard is only allowed inside `query [[ ... ]]` 'select' / 'group by' / aggregate-function args",
+          );
+        }
+      }
       return {
         type: "TableConstructor",
-        fields: t
-          .children!.slice(1, -1)
-          .filter((c) =>
-            ["FieldExp", "FieldProp", "FieldDynamic"].includes(c.type!),
-          )
-          .map((tf) => parseTableField(tf, ctx)),
+        fields: fieldNodes.map((tf) => parseTableField(tf, ctx)),
         ctx: context(t, ctx),
       };
+    }
     case "nil":
       return { type: "Nil", ctx: context(t, ctx) };
-    case "Query":
+    case "Query": {
+      const clauses = t
+        .children!.slice(2, -1)
+        .map((c) => parseQueryClause(c, ctx));
+
+      const fromClause = clauses.find((c) => c.type === "From");
+      const leadingClauses = clauses.filter((c) => c.type === "Leading");
+
+      if (leadingClauses.length > 1) {
+        throw new Error("at most one 'leading' clause may be specified");
+      }
+
+      if (leadingClauses.length > 0) {
+        if (!fromClause || fromClause.fields.length < 2) {
+          throw new Error(
+            "'leading' clause is only valid when the 'from' list has multiple sources",
+          );
+        }
+
+        const leadingClause = leadingClauses[0];
+        if (leadingClause.fields.length === 0) {
+          throw new Error("'leading' clause must name at least one relation");
+        }
+
+        const fromNames = new Set<string>();
+        for (const f of fromClause.fields) {
+          if (f.type !== "PropField") {
+            throw new Error(
+              "'leading' requires each 'from' entry to use alias = expression form",
+            );
+          }
+          fromNames.add(f.key);
+        }
+
+        const seen = new Set<string>();
+        for (const f of leadingClause.fields) {
+          const name = getLeadingNameFromField(f);
+          if (seen.has(name)) {
+            throw new Error(
+              `relation "${name}" appears more than once in 'leading'`,
+            );
+          }
+          seen.add(name);
+          if (!fromNames.has(name)) {
+            throw new Error(
+              `missing 'from' clause entry for table "${name}" in 'leading'`,
+            );
+          }
+        }
+      }
+
       return {
         type: "Query",
-        clauses: t.children!.slice(2, -1).map((c) => parseQueryClause(c, ctx)),
+        clauses,
         ctx: context(t, ctx),
       };
+    }
     case "FilteredCall": {
       const call = parseFunctionCall(t.children![0], ctx);
       const filterExpr = parseExpression(t.children![4], ctx);
@@ -1342,6 +1480,54 @@ function parseFieldList(t: ParseTree, ctx: ASTCtx): LuaTableField[] {
     .map((c) => parseTableField(c, ctx));
 }
 
+const FIELD_NODE_TYPES = new Set([
+  "FieldExp",
+  "FieldProp",
+  "FieldDynamic",
+  "FieldStar",
+  "FieldStarStar",
+  "FieldStarSource",
+  "FieldStarColumn",
+]);
+
+// 'select'/'group by' field list; wildcard entries become `Star*Field`s.
+//
+// The grammar accepts two surface forms (both also for `group by`):
+//
+// 1. `select x = 1, t.*`: bare list (one `field` per entry);
+//
+// 2. `select { x = 1, t.* }`: brace form (a single `FieldExp` whose
+//    expression is a `TableConstructor`).
+//
+// To keep the two forms semantically identical (and to let wildcards work
+// inside the brace form), the brace form is "lifted" here: when the field
+// list is exactly one `FieldExp(TableConstructor)`, the table's fields
+// become the select fields directly. As a side effect this aligns the
+// positional brace form (`select { x }`) with the bare form (`select x`).
+function parseSelectFieldList(t: ParseTree, ctx: ASTCtx): LuaTableField[] {
+  if (t.type !== "SelectFieldList") {
+    throw new Error(`Expected SelectFieldList, got ${t.type}`);
+  }
+  const fieldNodes = t.children!.filter((c) => FIELD_NODE_TYPES.has(c.type!));
+  if (fieldNodes.length === 1 && fieldNodes[0].type === "FieldExp") {
+    const expChild = fieldNodes[0].children?.[0];
+    if (expChild?.type === "TableConstructor") {
+      const inner = expChild.children!.filter((c) =>
+        FIELD_NODE_TYPES.has(c.type!),
+      );
+      return inner.map((c) => parseTableField(c, ctx));
+    }
+  }
+  return fieldNodes.map((c) => parseTableField(c, ctx));
+}
+
+function getLeadingNameFromField(field: LuaTableField): string {
+  if (field.type === "ExpressionField" && field.value.type === "Variable") {
+    return field.value.name;
+  }
+  throw new Error("each entry in 'leading' clause must be a relation name");
+}
+
 function parseQueryClause(t: ParseTree, ctx: ASTCtx): LuaQueryClause {
   if (t.type !== "QueryClause") {
     throw new Error(`Expected QueryClause, got ${t.type}`);
@@ -1349,14 +1535,17 @@ function parseQueryClause(t: ParseTree, ctx: ASTCtx): LuaQueryClause {
   t = t.children![0];
   switch (t.type) {
     case "FromClause": {
-      // children: ckw<"from">, FieldList
-      const fieldListNode = t.children!.find((c) => c.type === "FieldList");
+      // children: ckw<"from">, FromFieldList
+      const fieldListNode = t.children!.find((c) => c.type === "FromFieldList");
       if (!fieldListNode) {
-        throw new Error("FromClause missing FieldList");
+        throw new Error("'from' clause must contain at least one source");
       }
+
+      const fields = parseFromFieldList(fieldListNode, ctx);
+
       return {
         type: "From",
-        fields: parseFieldList(fieldListNode, ctx),
+        fields,
         ctx: context(t, ctx),
       };
     }
@@ -1399,26 +1588,37 @@ function parseQueryClause(t: ParseTree, ctx: ASTCtx): LuaQueryClause {
       };
     }
     case "SelectClause": {
-      // children: ckw<"select">, FieldList
-      const fieldListNode = t.children!.find((c) => c.type === "FieldList");
-      if (!fieldListNode) {
-        throw new Error("SelectClause missing FieldList");
+      let distinct: boolean | undefined;
+      let fieldListNode: ParseTree | undefined;
+      for (const c of t.children!) {
+        if (c.type === "distinct") distinct = true;
+        else if (c.type === "all") distinct = false;
+        else if (c.type === "SelectFieldList") fieldListNode = c;
       }
-      return {
+      if (!fieldListNode) {
+        throw new Error("'select' clause must specify a column list");
+      }
+      const result: LuaQueryClause = {
         type: "Select",
-        fields: parseFieldList(fieldListNode, ctx),
+        fields: parseSelectFieldList(fieldListNode, ctx),
         ctx: context(t, ctx),
       };
+      if (distinct !== undefined) (result as any).distinct = distinct;
+      return result;
     }
     case "GroupByClause": {
-      // children: ckw<"group">, ckw<"by">, FieldList
-      const fieldListNode = t.children!.find((c) => c.type === "FieldList");
+      const fieldListNode = t.children!.find(
+        (c) => c.type === "SelectFieldList",
+      );
       if (!fieldListNode) {
-        throw new Error("GroupByClause missing FieldList");
+        throw new Error("'group by' clause must specify a column list");
       }
+      const fields = parseSelectFieldList(fieldListNode, ctx);
+      // Validation of forbidden field kinds in GROUP BY is deferred to
+      // `fieldsToGroupByEntries` so pcall can catch the error at runtime.
       return {
         type: "GroupBy",
-        fields: parseFieldList(fieldListNode, ctx),
+        fields,
         ctx: context(t, ctx),
       };
     }
@@ -1429,10 +1629,348 @@ function parseQueryClause(t: ParseTree, ctx: ASTCtx): LuaQueryClause {
         ctx: context(t, ctx),
       };
     }
+    case "LeadingClause": {
+      // children: ckw<"leading">, FieldList
+      const fieldListNode = t.children!.find((c) => c.type === "FieldList");
+      if (!fieldListNode) {
+        throw new Error("'leading' clause must list relation names");
+      }
+
+      const fields = parseFieldList(fieldListNode, ctx);
+      for (const field of fields) {
+        if (
+          !(field.type === "ExpressionField" && field.value.type === "Variable")
+        ) {
+          throw new Error(
+            "each entry in 'leading' clause must be a plain relation name",
+          );
+        }
+      }
+
+      return {
+        type: "Leading",
+        fields,
+        ctx: context(t, ctx),
+      };
+    }
+    case "ExplainClause": {
+      const explicit = new Set<string>();
+      const options: Record<string, boolean> = {
+        analyze: false,
+        costs: true,
+        summary: false,
+        timing: false,
+        verbose: false,
+        hints: false,
+      };
+
+      const parseBoolValue = (node: ParseTree): boolean => {
+        const text =
+          node.children?.[0]?.children?.[0]?.text ?? node.children?.[0]?.text;
+        return text !== "false" && text !== "off" && text !== "0";
+      };
+
+      const processEntry = (child: ParseTree) => {
+        const nameNode = child.children?.find(
+          (c) => c.type === "ExplainOptionName",
+        );
+        const valNode = child.children?.find(
+          (c) => c.type === "ExplainBoolValue",
+        );
+        const name =
+          nameNode?.children?.[0]?.children?.[0]?.text ??
+          nameNode?.children?.[0]?.text;
+        if (name && name in options) {
+          explicit.add(name);
+          options[name] = valNode ? parseBoolValue(valNode) : true;
+        }
+      };
+
+      for (const child of t.children!) {
+        if (child.type === "ExplainBareEntry") {
+          processEntry(child);
+        }
+      }
+
+      const optList = t.children!.find((c) => c.type === "ExplainOptionList");
+      if (optList) {
+        for (const child of optList.children!) {
+          if (child.type === "ExplainParenEntry") {
+            processEntry(child);
+          }
+        }
+      }
+
+      // Defaults: timing and summary default to true when analyze is on
+      if (options.analyze && !explicit.has("timing")) {
+        options.timing = true;
+      }
+      if (options.analyze && !explicit.has("summary")) {
+        options.summary = true;
+      }
+      if (!options.analyze && !explicit.has("summary")) {
+        options.summary = false;
+      }
+
+      return {
+        type: "Explain",
+        analyze: options.analyze,
+        verbose: options.verbose,
+        summary: options.summary,
+        costs: options.costs,
+        timing: options.timing,
+        hints: options.hints,
+        ctx: context(t, ctx),
+      };
+    }
     default:
       console.error(t);
       throw new Error(`Unknown query clause type: ${t.type}`);
   }
+}
+
+// Parse a `UsingClause` node (shared by `OrderBy` and `JoinHint`)
+function parseUsingClause(t: ParseTree, ctx: ASTCtx): string | LuaFunctionBody {
+  if (t.type !== "UsingClause") {
+    throw new Error(`Expected UsingClause, got ${t.type}`);
+  }
+  // children: kw<"using">, (Name | kw<"function">, FuncBody)
+  const kids = t.children!;
+  const next = kids[1];
+  if (next.type === "function") {
+    return parseFunctionBody(kids[2], ctx);
+  }
+  // Name
+  return next.children![0].text!;
+}
+
+// Parse a `JoinHint` node
+function parseJoinHint(t: ParseTree, ctx: ASTCtx): LuaJoinHint {
+  if (t.type !== "JoinHint") {
+    throw new Error(`Expected JoinHint, got ${t.type}`);
+  }
+
+  let joinType: "inner" | "semi" | "anti" | undefined;
+  let kind: "hash" | "loop" | "merge" | undefined;
+  let using: string | LuaFunctionBody | undefined;
+
+  const visit = (node: ParseTree) => {
+    if (node.type === "JoinType") {
+      const text =
+        node.children?.[0]?.children?.[0]?.text ??
+        node.children?.[0]?.text ??
+        node.text;
+      if (text === "inner" || text === "semi" || text === "anti") {
+        joinType = text;
+      }
+    } else if (node.type === "JoinMethod") {
+      const text =
+        node.children?.[0]?.children?.[0]?.text ??
+        node.children?.[0]?.text ??
+        node.text;
+      if (text === "hash" || text === "loop" || text === "merge") {
+        kind = text;
+      }
+    } else if (node.type === "UsingClause") {
+      using = parseUsingClause(node, ctx);
+    }
+
+    for (const child of node.children ?? []) {
+      visit(child);
+    }
+  };
+
+  visit(t);
+
+  if (!kind) {
+    throw new Error(
+      "'join' hint must specify method: 'hash', 'loop', or 'merge'",
+    );
+  }
+
+  if (using && kind !== "loop") {
+    throw new Error("'using' clause is only valid with 'loop' join method");
+  }
+
+  const hint: LuaJoinHint = {
+    type: "JoinHint",
+    kind,
+    ctx: context(t, ctx),
+  };
+  if (joinType) hint.joinType = joinType;
+  if (using !== undefined) hint.using = using;
+  return hint;
+}
+
+function parseFromFieldList(t: ParseTree, ctx: ASTCtx): LuaFromField[] {
+  if (t.type !== "FromFieldList") {
+    throw new Error(`Expected FromFieldList, got ${t.type}`);
+  }
+
+  const fromFieldTypes = new Set([
+    "FieldExp",
+    "FieldProp",
+    "FieldDynamic",
+    "FieldExpMaterialized",
+    "FieldPropMaterialized",
+    "FieldDynamicMaterialized",
+  ]);
+
+  const fields: LuaFromField[] = t
+    .children!.filter((c) => fromFieldTypes.has(c.type!))
+    .map((c) => {
+      const fieldType = c.type!;
+      const materialized = fieldType.endsWith("Materialized");
+
+      const joinHintNode = c.children?.find((ch) => ch.type === "JoinHint");
+      const withNode = c.children?.find((ch) => ch.type === "WithClause");
+
+      const baseChildren = c.children!.filter(
+        (ch) =>
+          ch.type !== "materialized" &&
+          ch.type !== "JoinHint" &&
+          ch.type !== "WithClause",
+      );
+
+      const baseNode = {
+        ...c,
+        type: materialized ? fieldType.replace("Materialized", "") : fieldType,
+        children: baseChildren,
+      } as ParseTree;
+
+      const base = parseTableField(baseNode, ctx);
+      const joinHint = joinHintNode
+        ? parseJoinHint(joinHintNode, ctx)
+        : undefined;
+      const withHints = withNode ? parseWithClause(withNode) : undefined;
+
+      return {
+        ...base,
+        materialized,
+        joinHint,
+        withHints,
+      };
+    });
+
+  if (fields.length < 2) {
+    for (const f of fields) {
+      if (f.joinHint) {
+        throw new Error(
+          "'join' hint is only valid when the 'from' list has multiple sources",
+        );
+      }
+    }
+  }
+
+  return fields;
+}
+
+function parseWithClause(t: ParseTree): LuaWithHints {
+  if (t.type !== "WithClause") {
+    throw new Error(`Expected WithClause, got ${t.type}`);
+  }
+
+  const hints: LuaWithHints = {};
+
+  const parseEntry = (entry: ParseTree) => {
+    const nameNode = entry.children?.find((c) => c.type === "WithOptionName");
+    const valueNode = entry.children?.find((c) => c.type === "WithValue");
+
+    const key =
+      nameNode?.children?.[0]?.children?.[0]?.text ??
+      nameNode?.children?.[0]?.text ??
+      nameNode?.text;
+    const valueText =
+      valueNode?.children?.[0]?.children?.[0]?.text ??
+      valueNode?.children?.[0]?.text ??
+      valueNode?.text;
+
+    if (!key || !valueText) {
+      throw new Error("'with' option requires a name and numeric value");
+    }
+
+    const value = Number(valueText);
+    if (!Number.isFinite(value)) {
+      throw new Error(`'with' option "${key}" must be numeric`);
+    }
+    if (value <= 0) {
+      throw new Error(`'with' option "${key}" must be greater than zero`);
+    }
+
+    if (key === "rows" || key === "width") {
+      if (!Number.isInteger(value)) {
+        throw new Error(`'with' option "${key}" must be an integer`);
+      }
+      hints[key] = value;
+      return;
+    }
+
+    if (key === "cost") {
+      hints.cost = value;
+      return;
+    }
+
+    throw new Error(`unrecognized 'with' option "${key}"`);
+  };
+
+  const walk = (node: ParseTree) => {
+    if (node.type === "WithBareEntry" || node.type === "WithParenEntry") {
+      parseEntry(node);
+      return;
+    }
+
+    for (const child of node.children ?? []) {
+      walk(child);
+    }
+  };
+
+  walk(t);
+
+  if (
+    hints.rows === undefined &&
+    hints.width === undefined &&
+    hints.cost === undefined
+  ) {
+    throw new Error("'with' clause must specify at least one planner hint");
+  }
+
+  return hints;
+}
+
+function parseOrderByExpression(t: ParseTree, ctx: ASTCtx): LuaExpression {
+  if (t.type !== "OrderByExpr") {
+    return parseExpression(t, ctx);
+  }
+
+  const child = t.children?.[0];
+  if (!child) {
+    throw new Error("'order by' expression is missing a subexpression");
+  }
+
+  if (child.type === "OrderBySelectKey") {
+    const keyExprNode = child.children?.find(
+      (c) => c.type && c.type !== "[" && c.type !== "]",
+    );
+    if (!keyExprNode) {
+      throw new Error("'order by' select key is missing a key expression");
+    }
+
+    const key = parseExpression(keyExprNode, ctx);
+    if (key.type !== "String") {
+      throw new Error(
+        "'order by' projected column key must be a string literal",
+      );
+    }
+
+    const expr: LuaOrderBySelectKeyExpression = {
+      type: "OrderBySelectKey",
+      key,
+      ctx: context(child, ctx),
+    };
+    return expr;
+  }
+
+  return parseExpression(child, ctx);
 }
 
 // Parse a single OrderBy node (shared by query OrderByClause and AggOrderBy)
@@ -1441,32 +1979,75 @@ function parseOrderByNode(child: ParseTree, ctx: ASTCtx): LuaOrderBy {
   let direction: "asc" | "desc" = "asc";
   let nulls: "first" | "last" | undefined;
   let usingVal: string | LuaFunctionBody | undefined;
+
   for (let i = 1; i < kids.length; i++) {
     const typ = kids[i].type;
     if (typ === "desc") direction = "desc";
     else if (typ === "asc") direction = "asc";
     else if (typ === "first") nulls = "first";
     else if (typ === "last") nulls = "last";
-    else if (typ === "using") {
-      const next = kids[i + 1];
-      if (next.type === "function") {
-        usingVal = parseFunctionBody(kids[i + 2], ctx);
-        i += 2;
-      } else {
-        usingVal = next.children![0].text!;
-        i++;
-      }
+    else if (typ === "UsingClause") {
+      usingVal = parseUsingClause(kids[i], ctx);
     }
   }
+
+  const exprNode = kids.find((k) => k.type === "OrderByExpr") ?? kids[0];
+
+  const wildcard = detectOrderByWildcard(exprNode);
+  if (wildcard) {
+    const ob: LuaOrderBy = {
+      type: "Order",
+      wildcard,
+      direction,
+      ctx: context(child, ctx),
+    };
+    if (nulls) ob.nulls = nulls;
+    if (usingVal !== undefined) ob.using = usingVal;
+    return ob;
+  }
+
   const ob: LuaOrderBy = {
     type: "Order",
-    expression: parseExpression(kids[0], ctx),
+    expression: parseOrderByExpression(exprNode, ctx),
     direction,
     ctx: context(child, ctx),
   };
   if (nulls) ob.nulls = nulls;
   if (usingVal !== undefined) ob.using = usingVal;
   return ob;
+}
+
+// Returns the wildcard descriptor for wildcard `OrderByExpr` subtrees,
+// undefined for regular expressions.
+function detectOrderByWildcard(
+  t: ParseTree,
+): LuaOrderBy["wildcard"] | undefined {
+  if (!t) return undefined;
+  const child = t.type === "OrderByExpr" ? t.children?.[0] : t;
+  if (!child) return undefined;
+  switch (child.type) {
+    case "OrderByStar":
+    case "OrderByStarStar":
+      return { kind: "all" };
+    case "OrderByStarSource": {
+      const nameNode = child.children?.find((c) => c.type === "Name");
+      if (!nameNode) return undefined;
+      return {
+        kind: "source",
+        source: nameNode.children![0].text!,
+      };
+    }
+    case "OrderByStarColumn": {
+      const nameNode = child.children?.find((c) => c.type === "Name");
+      if (!nameNode) return undefined;
+      return {
+        kind: "column",
+        column: nameNode.children![0].text!,
+      };
+    }
+    default:
+      return undefined;
+  }
 }
 
 // Parse an AggOrderBy node into LuaOrderBy[]
@@ -1483,22 +2064,60 @@ function parseAggOrderBy(t: ParseTree, ctx: ASTCtx): LuaOrderBy[] {
   return orderBy;
 }
 
-// Parse function args, extracting AggOrderBy if present inside funcParams
+// Parse function args plus optional AggOrderBy and wildcard arg
+// (`count(*)`, `count(src.*)`).
 function parseFunctionArgsWithOrderBy(
   ts: ParseTree[],
   ctx: ASTCtx,
-): { args: LuaExpression[]; aggOrderBy?: LuaOrderBy[] } {
+): {
+  args: LuaExpression[];
+  aggOrderBy?: LuaOrderBy[];
+  argModifier?: "distinct" | "all";
+  wildcardArg?: LuaFunctionCallExpression["wildcardArg"];
+} {
   let aggOrderBy: LuaOrderBy[] | undefined;
+  let argModifier: "distinct" | "all" | undefined;
+  let wildcardArg: LuaFunctionCallExpression["wildcardArg"] | undefined;
   const args: LuaExpression[] = [];
   for (const t of ts) {
     if (!t.type || [",", "(", ")"].includes(t.type)) continue;
     if (t.type === "AggOrderBy") {
       aggOrderBy = parseAggOrderBy(t, ctx);
+    } else if (t.type === "distinct") {
+      argModifier = "distinct";
+    } else if (t.type === "all") {
+      argModifier = "all";
+    } else if (t.type === "FuncStarArg" || t.type === "FuncStarStarArg") {
+      if (wildcardArg || args.length > 0) {
+        throw new Error(
+          "aggregate call cannot combine wildcard argument with other arguments",
+        );
+      }
+      wildcardArg = { kind: "all" };
+    } else if (t.type === "FuncSourceStarArg") {
+      if (wildcardArg || args.length > 0) {
+        throw new Error(
+          "aggregate call cannot combine wildcard argument with other arguments",
+        );
+      }
+      const nameNode = t.children!.find((c) => c.type === "Name");
+      if (!nameNode) {
+        throw new Error("missing relation name in qualified reference");
+      }
+      wildcardArg = {
+        kind: "source",
+        source: nameNode.children![0].text!,
+      };
     } else {
+      if (wildcardArg) {
+        throw new Error(
+          "aggregate call cannot combine wildcard argument with other arguments",
+        );
+      }
       args.push(parseExpression(t, ctx));
     }
   }
-  return { args, aggOrderBy };
+  return { args, aggOrderBy, argModifier, wildcardArg };
 }
 
 function parseFunctionBody(t: ParseTree, ctx: ASTCtx): LuaFunctionBody {
@@ -1572,13 +2191,51 @@ function parseTableField(t: ParseTree, ctx: ASTCtx): LuaTableField {
         value: parseExpression(t.children![2], ctx),
         ctx: context(t, ctx),
       };
-    case "FieldDynamic":
+    case "FieldDynamic": {
+      const exprChildren = t.children!.filter(
+        (c) => c.type && c.type !== "[" && c.type !== "]" && c.type !== "=",
+      );
+
+      if (exprChildren.length < 2) {
+        throw new Error("FieldDynamic requires key and value expressions");
+      }
+
       return {
         type: "DynamicField",
-        key: parseExpression(t.children![1], ctx),
-        value: parseExpression(t.children![4], ctx),
+        key: parseExpression(exprChildren[0], ctx),
+        value: parseExpression(exprChildren[1], ctx),
         ctx: context(t, ctx),
       };
+    }
+    // `*` and `*.*` collapse into the same AST (identical semantics).
+    case "FieldStar":
+    case "FieldStarStar":
+      return {
+        type: "StarField",
+        ctx: context(t, ctx),
+      };
+    case "FieldStarSource": {
+      const nameNode = t.children!.find((c) => c.type === "Name");
+      if (!nameNode) {
+        throw new Error("missing relation name in qualified reference");
+      }
+      return {
+        type: "StarSourceField",
+        source: nameNode.children![0].text!,
+        ctx: context(t, ctx),
+      };
+    }
+    case "FieldStarColumn": {
+      const nameNode = t.children!.find((c) => c.type === "Name");
+      if (!nameNode) {
+        throw new Error("missing column name in wildcard reference");
+      }
+      return {
+        type: "StarColumnField",
+        column: nameNode.children![0].text!,
+        ctx: context(t, ctx),
+      };
+    }
     default:
       console.error(t);
       throw new Error(`Unknown table field type: ${t.type}`);

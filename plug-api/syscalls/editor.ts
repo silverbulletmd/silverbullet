@@ -38,11 +38,13 @@ export function getCurrentPath(): Promise<Path> {
 }
 
 /**
- * Returns the names of the pages that have been recently opened
- * @returns the names of the recently opened pages
+ * Returns pages that have been recently opened, sorted by open time (most recent first).
+ * Only pages with a recorded open time are included.
+ * @param limit optional maximum number of results
+ * @returns recently opened pages
  */
-export function getRecentlyOpenedPages(): Promise<PageMeta[]> {
-  return syscall("editor.getRecentlyOpenedPages");
+export function getRecentlyOpenedPages(limit?: number): Promise<PageMeta[]> {
+  return syscall("editor.getRecentlyOpenedPages", limit);
 }
 
 /**

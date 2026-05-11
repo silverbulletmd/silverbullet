@@ -1,10 +1,21 @@
 import { LuaEnv, luaGet, luaKeys, type LuaStackFrame } from "./runtime.ts";
 
-/**
- * Build an environment for evaluating per-item expressions in queries.
- * Extracted to its own module to avoid circular imports between
- * query_collection.ts and aggregates.ts.
- */
+function shouldExposeAllItemKeys(
+  objectVariable: string | undefined,
+  item: any,
+): boolean {
+  if (!objectVariable) return true;
+  if (!(item && typeof item === "object")) return false;
+  if (!(item instanceof Object)) return false;
+
+  const keys = luaKeys(item).filter((k): k is string => typeof k === "string");
+  if (keys.length === 0) return false;
+
+  return (
+    keys.includes(objectVariable) && keys.some((k) => k !== objectVariable)
+  );
+}
+
 export function buildItemEnv(
   objectVariable: string | undefined,
   item: any,
@@ -12,12 +23,24 @@ export function buildItemEnv(
   sf: LuaStackFrame,
 ): LuaEnv {
   const itemEnv = new LuaEnv(env);
-  if (!objectVariable) {
-    // Inject all item keys as variables
+  const exposeAll = shouldExposeAllItemKeys(objectVariable, item);
+  if (exposeAll) {
     for (const key of luaKeys(item)) {
       itemEnv.setLocal(key, luaGet(item, key, sf.astCtx ?? null, sf));
     }
-    // As well as _
+    itemEnv.setLocal("_", item);
+    if (objectVariable) {
+      const obj = luaGet(item, objectVariable, sf.astCtx ?? null, sf);
+      if (obj !== null && obj !== undefined) {
+        itemEnv.setLocal(objectVariable, obj);
+      }
+    }
+    return itemEnv;
+  }
+  if (!objectVariable) {
+    for (const key of luaKeys(item)) {
+      itemEnv.setLocal(key, luaGet(item, key, sf.astCtx ?? null, sf));
+    }
     itemEnv.setLocal("_", item);
   } else {
     itemEnv.setLocal(objectVariable, item);

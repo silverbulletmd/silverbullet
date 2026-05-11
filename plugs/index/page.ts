@@ -53,16 +53,28 @@ export async function indexPage(
 
   updateITags(combinedPageMeta, frontmatter);
 
-  // Make sure this page is no (longer) in the aspiring pages list
-  // TODO: This can possibly done more optimally
+  // During reindex, aspiring-page tag has 0 rows
   const aspiringPages = await index.queryLuaObjects<AspiringPageObject>(
     "aspiring-page",
     {
       objectVariable: "_",
       where: await lua.parseExpression(`_.name == pageRef`),
+      limit: 1, // just check if any exist
     },
     { pageRef: pageMeta.name },
   );
+  if (aspiringPages.length > 0) {
+    // Only if found, do the full delete
+    await Promise.all(
+      aspiringPages.map((aspiringPage) => {
+        return index.deleteObject(
+          "aspiring-page",
+          aspiringPage.page,
+          aspiringPage.ref,
+        );
+      }),
+    );
+  }
   await Promise.all(
     aspiringPages.map((aspiringPage) => {
       console.log("Deleting aspiring page", aspiringPage);

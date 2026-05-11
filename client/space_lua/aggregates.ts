@@ -9,6 +9,7 @@
 
 import type { ILuaFunction, LuaStackFrame } from "./runtime.ts";
 import {
+  LuaRuntimeError,
   luaCall,
   type LuaEnv,
   LuaTable,
@@ -20,9 +21,84 @@ import { isSqlNull } from "./sliq_null.ts";
 import type { LuaExpression, LuaOrderBy } from "./ast.ts";
 import { buildItemEnv } from "./query_env.ts";
 import { asyncMergeSort } from "./util.ts";
+import { untagNumber } from "./numeric.ts";
 import type { Config } from "../config.ts";
-import { coerceToNumber, isTaggedFloat } from "./numeric.ts";
 import YAML from "js-yaml";
+
+// Coerce a Lua aggregate input to a plain JS number.
+function numericValue(value: any): number | null {
+  if (value === null || value === undefined || isSqlNull(value)) return null;
+  return untagNumber(value);
+}
+
+// Stable comparison used by `min`/`max` (including their wildcard forms)
+function compareLuaValues(a: any, b: any): number {
+  const aNull = a === null || a === undefined || isSqlNull(a);
+  const bNull = b === null || b === undefined || isSqlNull(b);
+  if (aNull && bNull) return 0;
+  if (aNull) return 1;
+  if (bNull) return -1;
+  if (a instanceof LuaTable && b instanceof LuaTable) {
+    return compareLuaRecords(a, b);
+  }
+  const ua = untagNumber(a);
+  const ub = untagNumber(b);
+  if (typeof ua === "number" && typeof ub === "number") {
+    return ua < ub ? -1 : ua > ub ? 1 : 0;
+  }
+  if (typeof ua === "string" && typeof ub === "string") {
+    return ua < ub ? -1 : ua > ub ? 1 : 0;
+  }
+  const sa = String(ua);
+  const sb = String(ub);
+  return sa < sb ? -1 : sa > sb ? 1 : 0;
+}
+
+/**
+ * Lex-compare two records column-by-column. Walks `a`'s keys first (preserving
+ * insertion order), then any keys in `b` not present in `a`. Missing keys in
+ * the other side compare as null. Posgres-aligned for record `min` / `max`.
+ */
+function compareLuaRecords(a: LuaTable, b: LuaTable): number {
+  const seen = new Set<any>();
+  const ordered: any[] = [];
+  for (const k of a.keys()) {
+    if (!seen.has(k)) {
+      seen.add(k);
+      ordered.push(k);
+    }
+  }
+  for (const k of b.keys()) {
+    if (!seen.has(k)) {
+      seen.add(k);
+      ordered.push(k);
+    }
+  }
+  for (const k of ordered) {
+    const c = compareLuaValues(a.rawGet(k), b.rawGet(k));
+    if (c !== 0) return c;
+  }
+  return 0;
+}
+
+/**
+ * Postgres-aligned record-null check. A composite/record value is null iff
+ * every column is null. Empty records (no columns) are also treated as null
+ * (no non-null columns means nothing to be non-null about).
+ *
+ * Drives strict null semantics for `<agg>(t.*)` calls: rows whose
+ * `t`-projection is all-null are skipped, just like in Postgres.
+ */
+export function isRecordNull(v: any): boolean {
+  if (!(v instanceof LuaTable)) return false;
+  const keys = v.keys();
+  if (keys.length === 0) return true;
+  for (const k of keys) {
+    const val = v.rawGet(k);
+    if (val !== null && val !== undefined && !isSqlNull(val)) return false;
+  }
+  return true;
+}
 
 export interface AggregateSpec {
   name: string;
@@ -30,6 +106,8 @@ export interface AggregateSpec {
   initialize: LuaValue; // ILuaFunction
   iterate: LuaValue; // ILuaFunction
   finish?: LuaValue; // ILuaFunction | undefined
+  // Whether the aggregate accepts a wildcard argument (`*` or `<source>.*`)
+  acceptsWildcardArg?: boolean;
 }
 
 // Helper to build an ILuaFunction from a plain function.  Equivalent to
@@ -47,12 +125,6 @@ function aggFn(
   };
 }
 
-// Unwrap `LuaTaggedFloat` boxing to a plain JS number.
-// Leaves all other values (strings, tables, etc.) untouched.
-function unboxValue(value: LuaValue): LuaValue {
-  return isTaggedFloat(value) ? value.value : value;
-}
-
 // Welford's online algorithm (for variance and standard deviation)
 interface WelfordState {
   n: number;
@@ -65,8 +137,7 @@ function welfordInit(): WelfordState {
 }
 
 function welfordIterate(state: WelfordState, value: any): WelfordState {
-  if (value === null || value === undefined || isSqlNull(value)) return state;
-  const x = coerceToNumber(value);
+  const x = numericValue(value);
   if (x === null) return state;
   state.n += 1;
   const delta = x - state.mean;
@@ -87,17 +158,8 @@ function covarInit(): CovarState {
 }
 
 function covarIterate(state: CovarState, x: any, y: any): CovarState {
-  if (
-    x === null ||
-    x === undefined ||
-    isSqlNull(x) ||
-    y === null ||
-    y === undefined ||
-    isSqlNull(y)
-  )
-    return state;
-  const xn = coerceToNumber(x);
-  const yn = coerceToNumber(y);
+  const xn = numericValue(x);
+  const yn = numericValue(y);
   if (xn === null || yn === null) return state;
   state.n += 1;
   const dx = xn - state.mean;
@@ -176,11 +238,9 @@ function makeQuantileSpec(name: string, description: string): AggregateSpec {
       return { values: [] as number[], q: qVal, method: m } as QuantileState;
     }),
     iterate: aggFn((_sf, state: any, value: any) => {
-      if (value === null || value === undefined || isSqlNull(value))
-        return state;
-      const n = coerceToNumber(value);
-      if (n === null) return state;
-      state.values.push(n);
+      const x = numericValue(value);
+      if (x === null) return state;
+      state.values.push(x);
       return state;
     }),
     finish: aggFn((_sf, state: any) => quantileFinish(state as QuantileState)),
@@ -194,6 +254,7 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     name: "count",
     description:
       "Non-null row count for arguments; total row count without argument",
+    acceptsWildcardArg: true,
     initialize: aggFn((_sf) => 0),
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined || isSqlNull(value))
@@ -206,11 +267,9 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     description: "Arithmetic sum of all non-null input values",
     initialize: aggFn((_sf) => ({ result: 0, hasValue: false })),
     iterate: aggFn((_sf, state: any, value: any) => {
-      if (value === null || value === undefined || isSqlNull(value))
-        return state;
-      const n = coerceToNumber(value);
-      if (n === null) return state;
-      state.result += n;
+      const x = numericValue(value);
+      if (x === null) return state;
+      state.result += x;
       state.hasValue = true;
       return state;
     }),
@@ -223,11 +282,9 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     description: "Product of all non-null input values",
     initialize: aggFn((_sf) => ({ result: 1, hasValue: false })),
     iterate: aggFn((_sf, state: any, value: any) => {
-      if (value === null || value === undefined || isSqlNull(value))
-        return state;
-      const n = coerceToNumber(value);
-      if (n === null) return state;
-      state.result *= n;
+      const x = numericValue(value);
+      if (x === null) return state;
+      state.result *= x;
       state.hasValue = true;
       return state;
     }),
@@ -238,23 +295,25 @@ const builtinAggregates: Record<string, AggregateSpec> = {
   min: {
     name: "min",
     description: "Minimum value among non-null inputs",
+    acceptsWildcardArg: true,
     initialize: aggFn((_sf) => null),
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined || isSqlNull(value))
         return state;
-      if (state === null || value < state) return value;
-      return state;
+      if (state === null) return value;
+      return compareLuaValues(value, state) < 0 ? value : state;
     }),
   },
   max: {
     name: "max",
     description: "Maximum value among non-null inputs",
+    acceptsWildcardArg: true,
     initialize: aggFn((_sf) => null),
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined || isSqlNull(value))
         return state;
-      if (state === null || value > state) return value;
-      return state;
+      if (state === null) return value;
+      return compareLuaValues(value, state) > 0 ? value : state;
     }),
   },
   avg: {
@@ -262,11 +321,9 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     description: "Arithmetic mean of all non-null input values",
     initialize: aggFn((_sf) => ({ sum: 0, count: 0 })),
     iterate: aggFn((_sf, state: any, value: any) => {
-      if (value === null || value === undefined || isSqlNull(value))
-        return state;
-      const n = coerceToNumber(value);
-      if (n === null) return state;
-      state.sum += n;
+      const x = numericValue(value);
+      if (x === null) return state;
+      state.sum += x;
       state.count += 1;
       return state;
     }),
@@ -278,6 +335,7 @@ const builtinAggregates: Record<string, AggregateSpec> = {
   first: {
     name: "first",
     description: "First non-null input value (iteration order)",
+    acceptsWildcardArg: true,
     initialize: aggFn((_sf) => ({ value: null, found: false })),
     iterate: aggFn((_sf, state: any, value: any) => {
       if (state.found) return state;
@@ -292,6 +350,7 @@ const builtinAggregates: Record<string, AggregateSpec> = {
   last: {
     name: "last",
     description: "Last non-null input value (iteration order)",
+    acceptsWildcardArg: true,
     initialize: aggFn((_sf) => null),
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined || isSqlNull(value))
@@ -303,6 +362,7 @@ const builtinAggregates: Record<string, AggregateSpec> = {
   array_agg: {
     name: "array_agg",
     description: "Input values concatenated into an array",
+    acceptsWildcardArg: true,
     initialize: aggFn((_sf) => new LuaTable()),
     iterate: aggFn((_sf, state: any, value: any) => {
       (state as LuaTable).rawSetArrayIndex(
@@ -322,7 +382,7 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined || isSqlNull(value))
         return state;
-      state.parts.push(String(value));
+      state.parts.push(String(untagNumber(value)));
       return state;
     }),
     finish: aggFn((_sf, state: any) => {
@@ -332,6 +392,7 @@ const builtinAggregates: Record<string, AggregateSpec> = {
   yaml_agg: {
     name: "yaml_agg",
     description: "Input values aggregated into a YAML string",
+    acceptsWildcardArg: true,
     initialize: aggFn((_sf) => [] as any[]),
     iterate: aggFn((sf, state: any, value: any) => {
       if (isSqlNull(value)) {
@@ -350,6 +411,7 @@ const builtinAggregates: Record<string, AggregateSpec> = {
   json_agg: {
     name: "json_agg",
     description: "Input values aggregated into a JSON string",
+    acceptsWildcardArg: true,
     initialize: aggFn((_sf) => [] as any[]),
     iterate: aggFn((sf, state: any, value: any) => {
       if (isSqlNull(value)) {
@@ -371,11 +433,9 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     description: "Bitwise AND of all non-null input values",
     initialize: aggFn((_sf) => ({ result: ~0, hasValue: false })),
     iterate: aggFn((_sf, state: any, value: any) => {
-      if (value === null || value === undefined || isSqlNull(value))
-        return state;
-      const n = coerceToNumber(value);
-      if (n === null) return state;
-      state.result &= n;
+      const x = numericValue(value);
+      if (x === null) return state;
+      state.result &= x;
       state.hasValue = true;
       return state;
     }),
@@ -388,11 +448,9 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     description: "Bitwise OR of all non-null input values",
     initialize: aggFn((_sf) => ({ result: 0, hasValue: false })),
     iterate: aggFn((_sf, state: any, value: any) => {
-      if (value === null || value === undefined || isSqlNull(value))
-        return state;
-      const n = coerceToNumber(value);
-      if (n === null) return state;
-      state.result |= n;
+      const x = numericValue(value);
+      if (x === null) return state;
+      state.result |= x;
       state.hasValue = true;
       return state;
     }),
@@ -405,11 +463,9 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     description: "Bitwise exclusive OR of all non-null input values",
     initialize: aggFn((_sf) => ({ result: 0, hasValue: false })),
     iterate: aggFn((_sf, state: any, value: any) => {
-      if (value === null || value === undefined || isSqlNull(value))
-        return state;
-      const n = coerceToNumber(value);
-      if (n === null) return state;
-      state.result ^= n;
+      const x = numericValue(value);
+      if (x === null) return state;
+      state.result ^= x;
       state.hasValue = true;
       return state;
     }),
@@ -546,11 +602,14 @@ const builtinAggregates: Record<string, AggregateSpec> = {
     iterate: aggFn((_sf, state: any, value: any) => {
       if (value === null || value === undefined || isSqlNull(value))
         return state;
-      const c = (state.freq.get(value) ?? 0) + 1;
-      state.freq.set(value, c);
+      // Untag so two `LuaTaggedFloat` instances of the same number key the
+      // map identically (otherwise `Map` would treat them as distinct).
+      const key = untagNumber(value);
+      const c = (state.freq.get(key) ?? 0) + 1;
+      state.freq.set(key, c);
       if (c > state.bestCount) {
         state.bestCount = c;
-        state.best = value;
+        state.best = key;
       }
       return state;
     }),
@@ -580,11 +639,9 @@ const builtinAggregates: Record<string, AggregateSpec> = {
       method: "linear" as QuantileMethod,
     })),
     iterate: aggFn((_sf, state: any, value: any) => {
-      if (value === null || value === undefined || isSqlNull(value))
-        return state;
-      const n = coerceToNumber(value);
-      if (n === null) return state;
-      state.values.push(n);
+      const x = numericValue(value);
+      if (x === null) return state;
+      state.values.push(x);
       return state;
     }),
     finish: aggFn((_sf, state: any) => quantileFinish(state as QuantileState)),
@@ -636,6 +693,7 @@ export function getAggregateSpec(
           initialize: init,
           iterate: iter,
           finish: spec.rawGet("finish"),
+          acceptsWildcardArg: !!spec.rawGet("acceptsWildcardArg"),
         };
       }
     } else if (spec.initialize && spec.iterate) {
@@ -664,8 +722,55 @@ export function getBuiltinAggregateEntries(): {
 }
 
 /**
- * Execute an aggregate function over a group of items.
+ * Reject `<agg>(*)` / `<agg>(t.*)` for aggregates that do not opt into
+ * `acceptsWildcardArg`. Mirrors Postgres, where `sum(t.*)`, `avg(t.*)`,
+ * `string_agg(t.*, sep)`, etc. raise "function does not exist". In SLIQ the
+ * value would otherwise be coerced to garbage by the iterator (`0 + {}` etc.).
+ *
+ * `count(*)` is not routed here - it is handled by the parser as a
+ * `wildcardArg` of kind "all" and consumed in the same place as `<src>.*`.
+ *
+ * Aggregates that do accept wildcards (`count`, `first`, `last`, `array_agg`,
+ * `yaml_agg`, `json_agg`) opt in via the spec.
  */
+export function validateAggregateWildcardArg(
+  spec: AggregateSpec,
+  wildcardArg: { kind: "all" } | { kind: "source"; source: string } | undefined,
+  sf: LuaStackFrame,
+): void {
+  if (!wildcardArg) return;
+  if (spec.acceptsWildcardArg) return;
+  const arg = wildcardArg.kind === "all" ? "*" : `${wildcardArg.source}.*`;
+  throw new LuaRuntimeError(
+    `aggregate '${spec.name}' does not accept a wildcard argument '${arg}'; ` +
+      `pass a column expression like ${spec.name}(<source>.<column>)`,
+    sf,
+  );
+}
+
+/**
+ * Result of executing an aggregate, including the computed value
+ * and optional instrumentation counters.
+ */
+export type AggregateResult = {
+  value: LuaValue;
+  rowsFiltered?: number;
+};
+
+/**
+ * Execute an aggregate function over a group of items.
+ *
+ * Returns an `AggregateResult` when `instrumented` is true, otherwise
+ * returns the raw `LuaValue` for backward compatibility.
+ *
+ * `wildcardArg` carries through the call's wildcard form (`*` or `<src>.*`)
+ * so we can apply Postgres' strict null-record semantics for `<agg>(t.*)`:
+ * rows whose `t`-projection is all-null are treated as null and skipped by
+ * the iterator. `count(*)` (kind "all") preserves Postgres behaviour and
+ * counts every row regardless of contents.
+ */
+export type WildcardArg = { kind: "all" } | { kind: "source"; source: string };
+
 export async function executeAggregate(
   spec: AggregateSpec,
   items: LuaTable,
@@ -682,7 +787,8 @@ export async function executeAggregate(
   config: Config,
   filterExpr?: LuaExpression,
   orderBy?: LuaOrderBy[],
-): Promise<LuaValue> {
+  wildcardArg?: WildcardArg,
+): Promise<AggregateResult> {
   const ctx = buildAggCtx(spec.name, config);
 
   // Evaluate extra args using the first item's env so that references
@@ -705,6 +811,7 @@ export async function executeAggregate(
 
   // Collect filtered items
   const filteredItems: LuaValue[] = [];
+  let rowsFiltered = 0;
   const len = items.length;
   for (let i = 1; i <= len; i++) {
     const item = items.rawGet(i);
@@ -714,6 +821,7 @@ export async function executeAggregate(
       const filterEnv = buildItemEnv(objectVariable, item, env, sf);
       const filterResult = await evalExprFn(filterExpr, filterEnv, sf);
       if (!luaTruthy(filterResult)) {
+        rowsFiltered++;
         continue;
       }
     }
@@ -725,8 +833,20 @@ export async function executeAggregate(
   // percentile_disc) which expect values in a specific order. The user
   // must provide `order by` for these aggregates to produce correct results.
   if (orderBy && orderBy.length > 0) {
+    // Wildcards in aggregate 'order by' have no stable meaning — rejected
+    // early to avoid unstable output.
+    type ConcreteOrderBy = LuaOrderBy & { expression: LuaExpression };
+    const concreteOrderBy: ConcreteOrderBy[] = orderBy.map((ob) => {
+      if (!ob.expression) {
+        throw new LuaRuntimeError(
+          "'order by' in aggregate with wildcard sort keys is not supported",
+          sf,
+        );
+      }
+      return ob as ConcreteOrderBy;
+    });
     await asyncMergeSort(filteredItems, async (a: any, b: any) => {
-      for (const ob of orderBy) {
+      for (const ob of concreteOrderBy) {
         const envA = buildItemEnv(objectVariable, a, env, sf);
         const envB = buildItemEnv(objectVariable, b, env, sf);
         const valA = await evalExprFn(ob.expression, envA, sf);
@@ -747,6 +867,11 @@ export async function executeAggregate(
     });
   }
 
+  // Strict null-record semantics for `<agg>(<src>.*)`: rows whose `<src>`
+  // projection is an all-null record are treated as null. `count(*)` (kind
+  // "all") preserves Postgres behaviour and counts every row regardless.
+  const recordNullSemantics = wildcardArg?.kind === "source";
+
   // Iterate
   for (const item of filteredItems) {
     const itemEnv = buildItemEnv(objectVariable, item, env, sf);
@@ -756,14 +881,13 @@ export async function executeAggregate(
     } else {
       value = await evalExprFn(valueExpr, itemEnv, sf);
     }
-    // Unwrap internal `LuaTaggedFloat` boxing so that both builtin and
-    // user-defined iterate functions receive plain JS numbers instead
-    // of opaque `{value, isFloat}` objects.
-    value = unboxValue(value);
+    if (recordNullSemantics && isRecordNull(value)) {
+      value = null;
+    }
     // Evaluate extra args per-item so they can reference item fields
     const iterExtraArgs: LuaValue[] = [];
     for (const argExpr of extraArgExprs) {
-      iterExtraArgs.push(unboxValue(await evalExprFn(argExpr, itemEnv, sf)));
+      iterExtraArgs.push(await evalExprFn(argExpr, itemEnv, sf));
     }
     state = await luaCall(
       spec.iterate,
@@ -778,5 +902,8 @@ export async function executeAggregate(
     state = await luaCall(spec.finish, [state, ctx, ...extraArgs], noCtx, sf);
   }
 
-  return state;
+  return {
+    value: state,
+    rowsFiltered: filterExpr ? rowsFiltered : undefined,
+  };
 }

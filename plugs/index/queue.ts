@@ -8,34 +8,91 @@ import {
 import { sleep } from "@silverbulletmd/silverbullet/lib/async";
 import type { MQMessage } from "@silverbulletmd/silverbullet/type/datastore";
 import type { IndexTreeEvent } from "@silverbulletmd/silverbullet/type/event";
+import { hasAnyFence } from "../../client/lib/fence_detector.ts";
+
+const PASS1_FENCE_TYPES = ["space-lua", "space-style"] as const;
 
 /// QUEUE PROCESSING
 
 export async function processIndexQueue(messages: MQMessage[]) {
-  for (const message of messages) {
-    const path: string = message.body;
-    console.log("[index]", `Indexing file ${path}`);
-    await indexFile(path);
+  const fileContents = (
+    await Promise.all(
+      messages.map(async (message) => {
+        const path: string = message.body;
+        if (!path.endsWith(".md")) {
+          return {
+            path,
+            kind: "document" as const,
+            text: "",
+            meta: null,
+            tree: null,
+          };
+        }
+        const name = path.slice(0, -3);
+        try {
+          const { text, meta } = await space.readPageWithMeta(name);
+          if (!meta) {
+            console.warn(`[index] Skipping "${path}": could not read page meta`);
+            return null;
+          }
+          const tree = await markdown.parseMarkdown(text);
+          return { path, kind: "page" as const, name, text, meta, tree };
+        } catch (e: any) {
+          console.error(`[index] Could not read "${path}": ${e?.message ?? e}`);
+          return null;
+        }
+      }),
+    )
+  ).filter((f) => f !== null);
+
+  for (const file of fileContents) {
+    if (file.kind === "document") {
+      await events.dispatchEvent("document:index", file.path);
+    } else {
+      await events.dispatchEvent("page:index", {
+        name: file.name,
+        meta: file.meta,
+        tree: file.tree,
+        text: file.text,
+      } as IndexTreeEvent);
+    }
   }
 }
 
-async function indexFile(path: string) {
-  if (path.endsWith(".md")) {
-    // Page
-    const name = path.slice(0, -3);
-    // Read and parse the file
-    const { text, meta } = await space.readPageWithMeta(name);
-    const tree = await markdown.parseMarkdown(text);
+export async function processIndexQueuePass1(messages: MQMessage[]) {
+  const fileContents = await Promise.all(
+    messages.map(async (message) => {
+      const path: string = message.body;
+      if (!path.endsWith(".md")) {
+        return null;
+      }
+      const name = path.slice(0, -3);
+      try {
+        const { text, meta } = await space.readPageWithMeta(name);
+        if (!meta) {
+          console.warn(`[index] Skipping "${path}" (Pass-1): could not read page meta`);
+          return null;
+        }
+        if (!hasAnyFence(text, PASS1_FENCE_TYPES)) {
+          return null;
+        }
+        const tree = await markdown.parseMarkdown(text);
+        return { path, name, text, meta, tree };
+      } catch (e: any) {
+        console.error(`[index] Could not read "${path}" (Pass-1): ${e?.message ?? e}`);
+        return null;
+      }
+    }),
+  );
 
-    // Emit the event which will be picked up by indexers
-    await events.dispatchEvent("page:index", {
-      name,
-      meta,
-      tree,
-      text,
+  for (const file of fileContents) {
+    if (!file) continue;
+    await events.dispatchEvent("page:indexPass1", {
+      name: file.name,
+      meta: file.meta,
+      tree: file.tree,
+      text: file.text,
     } as IndexTreeEvent);
-  } else {
-    await events.dispatchEvent("document:index", path);
   }
 }
 

@@ -1,4 +1,3 @@
-/* Based on: https://github.com/R167/lezer-lua */
 @precedence {
   call,
   power @right,
@@ -11,6 +10,7 @@
   xor @left,
   bitor @left,
   compare @left,
+  in @left,
   and @left,
   or @left
 }
@@ -20,6 +20,7 @@
 kw<term> { @specialize[@name={term}]<identifier, term> }
 ckw<term> { @extend[@name={term}]<identifier, term> }
 list<term> { term ("," term)* }
+setQuantifier[@dynamicPrecedence=2] { ckw<"distinct"> | ckw<"all"> }
 
 Block { statement* ReturnStatement? }
 
@@ -74,6 +75,7 @@ AttName { Name Attrib }
 Attrib { ( "<" Name ">" )? }
 
 FieldList { field ("," field)* }
+SelectFieldList { field ("," field)* }
 
 exp {
   kw<"nil"> | kw<"true"> | kw<"false"> | "..." |
@@ -88,6 +90,7 @@ exp {
   FilteredCall { FunctionCall ckw<"filter"> "(" ckw<"where"> exp ")" }
 }
 
+
 Query {
   kw<"query"> "[[" QueryClause* "]]"
 }
@@ -100,26 +103,120 @@ QueryClause {
   LimitClause |
   OffsetClause |
   GroupByClause |
-  HavingClause
+  HavingClause |
+  LeadingClause |
+  ExplainClause
 }
 
-FromClause { ckw<"from"> FieldList }
+ExplainClause {
+  ckw<"explain"> ExplainBareEntry* ExplainOptionList?
+}
+
+ExplainBareEntry {
+  ExplainOptionName ExplainBoolValue?
+}
+
+ExplainOptionList {
+  "(" list<ExplainParenEntry> ")"
+}
+
+ExplainParenEntry {
+  ExplainOptionName ExplainBoolValue?
+}
+
+ExplainOptionName {
+  ckw<"analyze"> |
+  ckw<"costs">   |
+  ckw<"summary"> |
+  ckw<"timing">  |
+  ckw<"verbose"> |
+  ckw<"hints">
+}
+
+ExplainBoolValue {
+  kw<"true"> | kw<"false"> | ckw<"on"> | ckw<"off"> |
+  @extend[@name=ExplainOne]<Number, "1"> |
+  @extend[@name=ExplainZero]<Number, "0">
+}
+
+FromClause { ckw<"from"> FromFieldList }
+FromFieldList { fromField ("," fromField)* }
+
+fromField[@isGroup=Field] {
+  FieldDynamicMaterialized { kw<"materialized"> JoinHint? "[" exp "]" "=" exp WithClause? } |
+  FieldPropMaterialized { kw<"materialized"> JoinHint? Name "=" exp WithClause? } |
+  FieldExpMaterialized { kw<"materialized"> JoinHint? exp WithClause? } |
+  FieldDynamic { JoinHint? "[" exp "]" "=" exp WithClause? } |
+  FieldProp { JoinHint? Name "=" exp WithClause? } |
+  FieldExp { JoinHint? exp WithClause? }
+}
+
+WithClause { ckw<"with"> WithHintGroup+ }
+
+WithHintGroup {
+  WithBareEntry |
+  WithOptionList
+}
+
+WithBareEntry { WithOptionName WithValue }
+
+WithOptionList {
+  "(" list<WithParenEntry> ")"
+}
+
+WithParenEntry { WithOptionName WithValue }
+
+WithOptionName {
+  ckw<"rows"> |
+  ckw<"width"> |
+  ckw<"cost">
+}
+
+WithValue { Number }
+
+LeadingClause { ckw<"leading"> FieldList }
+
 WhereClause { ckw<"where"> exp }
 LimitClause { ckw<"limit"> exp ("," exp)? }
 OffsetClause { ckw<"offset"> exp }
-OrderByClause { ckw<"order">  ckw<"by"> list<OrderBy> }
-OrderBy { exp (ckw<"desc"> | ckw<"asc"> | kw<"using"> (Name | kw<"function"> FuncBody))? (ckw<"nulls"> (ckw<"first"> | ckw<"last">))? }
-SelectClause { ckw<"select"> FieldList }
-GroupByClause { ckw<"group"> ckw<"by"> FieldList }
+
+OrderByExpr {
+  exp |
+  OrderBySelectKey { "[" exp "]" } |
+  OrderByStarStar { "*" DotStar } |
+  OrderByStarColumn { "*" "." Name } |
+  OrderByStar { "*" } |
+  OrderByStarSource { Name DotStar }
+}
+
+OrderByClause { ckw<"order"> ckw<"by"> list<OrderBy> }
+
+OrderBy { OrderByExpr (ckw<"desc"> | ckw<"asc"> | UsingClause)? (ckw<"nulls"> (ckw<"first"> | ckw<"last">))? }
+
+SelectClause { ckw<"select"> setQuantifier? SelectFieldList }
+GroupByClause { ckw<"group"> ckw<"by"> SelectFieldList }
 HavingClause { ckw<"having"> exp }
 
 AggOrderBy { ckw<"order"> ckw<"by"> list<OrderBy> }
 
+UsingClause { kw<"using"> (Name | kw<"function"> FuncBody) }
+
+JoinHint {
+  JoinType JoinMethod? |
+  JoinMethod JoinType?
+}
+
+JoinType { ckw<"inner"> | ckw<"semi"> | ckw<"anti"> }
+JoinMethod { ckw<"hash"> | ckw<"merge"> | ckw<"loop"> UsingClause? }
 
 field[@isGroup=Field] {
   FieldDynamic { "[" exp "]" "=" exp } |
   FieldProp { Name "=" exp } |
-  FieldExp { exp }
+  FieldExp { exp } |
+  FieldStarStar { "*" DotStar } |
+  FieldStarColumn { "*" "." Name } |
+  FieldStar { "*" } |
+  FieldStarSource { Name DotStar }
 }
 
 prefixexp {
@@ -132,7 +229,14 @@ FunctionCall { prefixexp (":" Name)? !call args }
 args {
   LiteralString |
   TableConstructor |
-  funcParams[@dynamicPrecedence=1] { "(" list<exp>? AggOrderBy? ")" ~parens }
+  funcParams[@dynamicPrecedence=1] { "(" setQuantifier? (argItem ("," argItem)*)? AggOrderBy? ")" ~parens }
+}
+
+argItem {
+  FuncStarStarArg { "*" DotStar } |
+  FuncStarArg { "*" } |
+  FuncSourceStarArg { Name DotStar } |
+  exp
 }
 
 var {
@@ -146,6 +250,7 @@ LiteralString { simpleString }
 BinaryExpression {
   exp !or kw<"or"> exp |
   exp !and kw<"and"> exp |
+  exp !in kw<"in"> exp |
   exp !compare CompareOp exp |
   exp !bitor BitOp{"|"} exp |
   exp !bitand BitOp{"&"} exp |
@@ -209,6 +314,8 @@ TableConstructor { "{" (field (fieldsep field)* fieldsep?)? "}" }
 
   "..."[@name=Ellipsis]
   ".."[@name=Concat]
+  // Disambiguates `name.*` (wildcard) from `name.prop` (property access).
+  DotStar { "." "*" }
 
   @precedence { Comment, minus }
 

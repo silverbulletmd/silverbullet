@@ -482,10 +482,7 @@ export class LuaFunction implements ILuaFunction {
         for (let i = 0; i < varargStart; i++) {
           env.setLocal(params[i], resolvedArgs[i] ?? null);
         }
-        env.setLocal(
-          "...",
-          new LuaMultiRes(resolvedArgs.slice(varargStart)),
-        );
+        env.setLocal("...", new LuaMultiRes(resolvedArgs.slice(varargStart)));
       } else {
         // Non-variadic: bind all named params directly
         for (let i = 0; i < params.length; i++) {
@@ -1313,11 +1310,9 @@ export function luaSet(
     const k = toNumKey(normKey);
     const jsVal = luaValueToJS(value, sf);
     if (isPromise(jsVal)) {
-      return (jsVal as Promise<any>).then(
-        (v) => {
-          (obj as Record<string | number, any>)[k] = v;
-        },
-      );
+      return (jsVal as Promise<any>).then((v) => {
+        (obj as Record<string | number, any>)[k] = v;
+      });
     }
     (obj as Record<string | number, any>)[k] = jsVal;
   }
@@ -1492,16 +1487,18 @@ export function luaCall(
 
 export function luaEquals(a: any, b: any): boolean {
   // Normalize nil variants (null, undefined, SQL NULL) to null
-  const an = (a === null || a === undefined || isSqlNull(a))
-    ? null
-    : isTaggedFloat(a)
-    ? a.value
-    : a;
-  const bn = (b === null || b === undefined || isSqlNull(b))
-    ? null
-    : isTaggedFloat(b)
-    ? b.value
-    : b;
+  const an =
+    a === null || a === undefined || isSqlNull(a)
+      ? null
+      : isTaggedFloat(a)
+        ? a.value
+        : a;
+  const bn =
+    b === null || b === undefined || isSqlNull(b)
+      ? null
+      : isTaggedFloat(b)
+        ? b.value
+        : b;
   return an === bn;
 }
 

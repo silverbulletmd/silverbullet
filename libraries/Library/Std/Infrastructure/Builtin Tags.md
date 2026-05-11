@@ -72,7 +72,9 @@ tag.define {
         readOnly = true,
         enum = { "ro", "rw" },
       },
-      lastOpened = readOnlyType("number"),
+      -- Virtual column overlaid from the page-meta augmenter (not indexed).
+      -- Same format as `created` and `lastModified`.
+      lastAccessed = readOnlyType("string"),
     },
   },
 }
@@ -121,6 +123,9 @@ tag.define {
       lastModified = readOnlyType("string"),
       perm = readOnlyType("string"),
       extension = readOnlyType("string"),
+      -- Virtual column overlaid from the document-meta augmenter (not indexed).
+      -- Same format as `created` and `lastModified`.
+      lastAccessed = readOnlyType("string"),
     },
   },
 }

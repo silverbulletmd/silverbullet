@@ -4,6 +4,7 @@ import {
   type AggregateSpec,
   executeAggregate,
   getAggregateSpec,
+  validateAggregateWildcardArg,
 } from "./aggregates.ts";
 import {
   applyQuery,
@@ -86,7 +87,7 @@ const emptyConfig = new Config();
 // Unit tests per builtin
 
 test("aggregate: sum", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     sumSpec,
     jsToLuaValue([{ v: 10 }, { v: 20 }, { v: 30 }]),
     parseExpressionString("_.v"),
@@ -101,7 +102,7 @@ test("aggregate: sum", async () => {
 });
 
 test("aggregate: sum with nils", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     sumSpec,
     jsToLuaValue([{ v: 5 }, { x: 1 }, { v: 15 }]),
     parseExpressionString("_.v"),
@@ -116,7 +117,7 @@ test("aggregate: sum with nils", async () => {
 });
 
 test("aggregate: sum empty group", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     sumSpec,
     new LuaTable(),
     parseExpressionString("_.v"),
@@ -131,7 +132,7 @@ test("aggregate: sum empty group", async () => {
 });
 
 test("aggregate: count with expression", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     countSpec,
     jsToLuaValue([{ v: 1 }, { v: 2 }, { v: 3 }]),
     parseExpressionString("_.v"),
@@ -146,7 +147,7 @@ test("aggregate: count with expression", async () => {
 });
 
 test("aggregate: count with no argument (count(*))", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     countSpec,
     jsToLuaValue([{ v: 1 }, { v: 2 }, { v: 3 }, { v: 4 }]),
     null,
@@ -161,7 +162,7 @@ test("aggregate: count with no argument (count(*))", async () => {
 });
 
 test("aggregate: min", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     minSpec,
     jsToLuaValue([{ v: 30 }, { v: 10 }, { v: 20 }]),
     parseExpressionString("_.v"),
@@ -176,7 +177,7 @@ test("aggregate: min", async () => {
 });
 
 test("aggregate: max", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     maxSpec,
     jsToLuaValue([{ v: 30 }, { v: 10 }, { v: 20 }]),
     parseExpressionString("_.v"),
@@ -191,7 +192,7 @@ test("aggregate: max", async () => {
 });
 
 test("aggregate: avg", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     avgSpec,
     jsToLuaValue([{ v: 10 }, { v: 20 }, { v: 30 }]),
     parseExpressionString("_.v"),
@@ -206,7 +207,7 @@ test("aggregate: avg", async () => {
 });
 
 test("aggregate: avg empty group", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     avgSpec,
     new LuaTable(),
     parseExpressionString("_.v"),
@@ -225,35 +226,39 @@ test("aggregate: min/max on empty group", async () => {
   const env = new LuaEnv();
   const expr = parseExpressionString("_.v");
   expect(
-    await executeAggregate(
-      minSpec,
-      items,
-      expr,
-      [],
-      undefined,
-      env,
-      sf,
-      evalExpression,
-      emptyConfig,
-    ),
+    (
+      await executeAggregate(
+        minSpec,
+        items,
+        expr,
+        [],
+        undefined,
+        env,
+        sf,
+        evalExpression,
+        emptyConfig,
+      )
+    ).value,
   ).toBeNull();
   expect(
-    await executeAggregate(
-      maxSpec,
-      items,
-      expr,
-      [],
-      undefined,
-      env,
-      sf,
-      evalExpression,
-      emptyConfig,
-    ),
+    (
+      await executeAggregate(
+        maxSpec,
+        items,
+        expr,
+        [],
+        undefined,
+        env,
+        sf,
+        evalExpression,
+        emptyConfig,
+      )
+    ).value,
   ).toBeNull();
 });
 
 test("aggregate: array_agg", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     arrayAggSpec,
     jsToLuaValue([{ v: "a" }, { v: "b" }, { v: "c" }]),
     parseExpressionString("_.v"),
@@ -271,7 +276,7 @@ test("aggregate: array_agg", async () => {
 });
 
 test("aggregate: product", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     productSpec,
     jsToLuaValue([{ v: 2 }, { v: 3 }, { v: 5 }]),
     parseExpressionString("_.v"),
@@ -286,7 +291,7 @@ test("aggregate: product", async () => {
 });
 
 test("aggregate: product with nils", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     productSpec,
     jsToLuaValue([{ v: 4 }, { x: 1 }, { v: 5 }]),
     parseExpressionString("_.v"),
@@ -301,7 +306,7 @@ test("aggregate: product with nils", async () => {
 });
 
 test("aggregate: product empty group", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     productSpec,
     new LuaTable(),
     parseExpressionString("_.v"),
@@ -316,7 +321,7 @@ test("aggregate: product empty group", async () => {
 });
 
 test("aggregate: string_agg", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     stringAggSpec,
     jsToLuaValue([{ v: "a" }, { v: "b" }, { v: "c" }]),
     parseExpressionString("_.v"),
@@ -331,7 +336,7 @@ test("aggregate: string_agg", async () => {
 });
 
 test("aggregate: string_agg with custom separator", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     stringAggSpec,
     jsToLuaValue([{ v: "x" }, { v: "y" }]),
     parseExpressionString("_.v"),
@@ -346,7 +351,7 @@ test("aggregate: string_agg with custom separator", async () => {
 });
 
 test("aggregate: string_agg skips nils", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     stringAggSpec,
     jsToLuaValue([{ v: "a" }, { x: 1 }, { v: "b" }]),
     parseExpressionString("_.v"),
@@ -361,7 +366,7 @@ test("aggregate: string_agg skips nils", async () => {
 });
 
 test("aggregate: yaml_agg", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     yamlAggSpec,
     jsToLuaValue([{ v: 1 }, { v: 2 }]),
     parseExpressionString("_.v"),
@@ -377,7 +382,7 @@ test("aggregate: yaml_agg", async () => {
 });
 
 test("aggregate: json_agg", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     jsonAggSpec,
     jsToLuaValue([{ v: 1 }, { v: "hello" }, { v: true }]),
     parseExpressionString("_.v"),
@@ -392,7 +397,7 @@ test("aggregate: json_agg", async () => {
 });
 
 test("aggregate: bit_and", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     bitAndSpec,
     jsToLuaValue([{ v: 0b1111 }, { v: 0b1010 }, { v: 0b1100 }]),
     parseExpressionString("_.v"),
@@ -407,7 +412,7 @@ test("aggregate: bit_and", async () => {
 });
 
 test("aggregate: bit_and empty group", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     bitAndSpec,
     new LuaTable(),
     parseExpressionString("_.v"),
@@ -422,7 +427,7 @@ test("aggregate: bit_and empty group", async () => {
 });
 
 test("aggregate: bit_or", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     bitOrSpec,
     jsToLuaValue([{ v: 0b0001 }, { v: 0b0010 }, { v: 0b0100 }]),
     parseExpressionString("_.v"),
@@ -437,7 +442,7 @@ test("aggregate: bit_or", async () => {
 });
 
 test("aggregate: bit_or empty group", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     bitOrSpec,
     new LuaTable(),
     parseExpressionString("_.v"),
@@ -452,7 +457,7 @@ test("aggregate: bit_or empty group", async () => {
 });
 
 test("aggregate: bit_xor", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     bitXorSpec,
     jsToLuaValue([{ v: 0b1010 }, { v: 0b1100 }]),
     parseExpressionString("_.v"),
@@ -467,7 +472,7 @@ test("aggregate: bit_xor", async () => {
 });
 
 test("aggregate: bit_xor empty group", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     bitXorSpec,
     new LuaTable(),
     parseExpressionString("_.v"),
@@ -482,7 +487,7 @@ test("aggregate: bit_xor empty group", async () => {
 });
 
 test("aggregate: bool_and all true", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     boolAndSpec,
     jsToLuaValue([{ v: true }, { v: true }, { v: true }]),
     parseExpressionString("_.v"),
@@ -497,7 +502,7 @@ test("aggregate: bool_and all true", async () => {
 });
 
 test("aggregate: bool_and with false", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     boolAndSpec,
     jsToLuaValue([{ v: true }, { v: false }, { v: true }]),
     parseExpressionString("_.v"),
@@ -512,7 +517,7 @@ test("aggregate: bool_and with false", async () => {
 });
 
 test("aggregate: bool_and empty group", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     boolAndSpec,
     new LuaTable(),
     parseExpressionString("_.v"),
@@ -527,7 +532,7 @@ test("aggregate: bool_and empty group", async () => {
 });
 
 test("aggregate: bool_or all false", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     boolOrSpec,
     jsToLuaValue([{ v: false }, { v: false }]),
     parseExpressionString("_.v"),
@@ -542,7 +547,7 @@ test("aggregate: bool_or all false", async () => {
 });
 
 test("aggregate: bool_or with true", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     boolOrSpec,
     jsToLuaValue([{ v: false }, { v: true }, { v: false }]),
     parseExpressionString("_.v"),
@@ -557,7 +562,7 @@ test("aggregate: bool_or with true", async () => {
 });
 
 test("aggregate: bool_or empty group", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     boolOrSpec,
     new LuaTable(),
     parseExpressionString("_.v"),
@@ -573,7 +578,7 @@ test("aggregate: bool_or empty group", async () => {
 
 test("aggregate: stddev_pop", async () => {
   // values: 2, 4, 4, 4, 5, 5, 7, 9 yields: mean=5, var_pop=4, stddev_pop=2
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     stddevPopSpec,
     jsToLuaValue([
       { v: 2 },
@@ -597,7 +602,7 @@ test("aggregate: stddev_pop", async () => {
 });
 
 test("aggregate: stddev_pop empty group", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     stddevPopSpec,
     new LuaTable(),
     parseExpressionString("_.v"),
@@ -613,7 +618,7 @@ test("aggregate: stddev_pop empty group", async () => {
 
 test("aggregate: stddev_samp", async () => {
   // values: 2, 4, 4, 4, 5, 5, 7, 9 yields: var_samp = 32/7, stddev_samp = sqrt(32/7)
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     stddevSampSpec,
     jsToLuaValue([
       { v: 2 },
@@ -637,7 +642,7 @@ test("aggregate: stddev_samp", async () => {
 });
 
 test("aggregate: stddev_samp single element", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     stddevSampSpec,
     jsToLuaValue([{ v: 42 }]),
     parseExpressionString("_.v"),
@@ -653,7 +658,7 @@ test("aggregate: stddev_samp single element", async () => {
 
 test("aggregate: var_pop", async () => {
   // values: 2, 4, 4, 4, 5, 5, 7, 9 yields: var_pop = 4
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     varPopSpec,
     jsToLuaValue([
       { v: 2 },
@@ -677,7 +682,7 @@ test("aggregate: var_pop", async () => {
 });
 
 test("aggregate: var_pop empty group", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     varPopSpec,
     new LuaTable(),
     parseExpressionString("_.v"),
@@ -693,7 +698,7 @@ test("aggregate: var_pop empty group", async () => {
 
 test("aggregate: var_samp", async () => {
   // values: 2, 4, 4, 4, 5, 5, 7, 9 yields: var_samp = 32/7
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     varSampSpec,
     jsToLuaValue([
       { v: 2 },
@@ -717,7 +722,7 @@ test("aggregate: var_samp", async () => {
 });
 
 test("aggregate: var_samp single element", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     varSampSpec,
     jsToLuaValue([{ v: 42 }]),
     parseExpressionString("_.v"),
@@ -733,7 +738,7 @@ test("aggregate: var_samp single element", async () => {
 
 test("aggregate: covar_pop", async () => {
   // x: 1,2,3,4,5  y: 2,4,5,4,5 yields: covar_pop = 6/5 = 1.2
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     covarPopSpec,
     jsToLuaValue([
       { x: 1, y: 2 },
@@ -754,7 +759,7 @@ test("aggregate: covar_pop", async () => {
 });
 
 test("aggregate: covar_pop empty group", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     covarPopSpec,
     new LuaTable(),
     parseExpressionString("_.y"),
@@ -769,7 +774,7 @@ test("aggregate: covar_pop empty group", async () => {
 });
 
 test("aggregate: covar_pop skips null pairs", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     covarPopSpec,
     jsToLuaValue([
       { x: 1, y: 2 },
@@ -794,7 +799,7 @@ test("aggregate: covar_pop skips null pairs", async () => {
 
 test("aggregate: covar_samp", async () => {
   // x: 1,2,3,4,5  y: 2,4,5,4,5 yields: covar_samp = 6/4 = 1.5
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     covarSampSpec,
     jsToLuaValue([
       { x: 1, y: 2 },
@@ -815,7 +820,7 @@ test("aggregate: covar_samp", async () => {
 });
 
 test("aggregate: covar_samp single element", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     covarSampSpec,
     jsToLuaValue([{ x: 1, y: 2 }]),
     parseExpressionString("_.y"),
@@ -831,7 +836,7 @@ test("aggregate: covar_samp single element", async () => {
 
 test("aggregate: corr", async () => {
   // x: 1,2,3,4,5  y: 2,4,6,8,10  (perfect positive linear)
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     corrSpec,
     jsToLuaValue([
       { x: 1, y: 2 },
@@ -852,7 +857,7 @@ test("aggregate: corr", async () => {
 });
 
 test("aggregate: corr single element", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     corrSpec,
     jsToLuaValue([{ x: 1, y: 2 }]),
     parseExpressionString("_.y"),
@@ -868,7 +873,7 @@ test("aggregate: corr single element", async () => {
 
 test("aggregate: corr constant x returns null", async () => {
   // All x identical yields: zero variance in x yields: denom = 0 yields: null
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     corrSpec,
     jsToLuaValue([
       { x: 3, y: 1 },
@@ -888,7 +893,7 @@ test("aggregate: corr constant x returns null", async () => {
 
 test("aggregate: quantile (linear, default)", async () => {
   // Pre-sorted input; median of [1,2,3,4,5] at q=0.5 yields: 3
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     quantileSpec,
     jsToLuaValue([{ v: 1 }, { v: 2 }, { v: 3 }, { v: 4 }, { v: 5 }]),
     parseExpressionString("_.v"),
@@ -905,7 +910,7 @@ test("aggregate: quantile (linear, default)", async () => {
 });
 
 test("aggregate: quantile empty group", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     quantileSpec,
     new LuaTable(),
     parseExpressionString("_.v"),
@@ -921,7 +926,7 @@ test("aggregate: quantile empty group", async () => {
 
 test("aggregate: quantile with lower method", async () => {
   // [10, 20, 30, 40] q=0.3 yields: idx=0.9, lower yields: values[0] = 10
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     quantileSpec,
     jsToLuaValue([{ v: 10 }, { v: 20 }, { v: 30 }, { v: 40 }]),
     parseExpressionString("_.v"),
@@ -939,7 +944,7 @@ test("aggregate: quantile with lower method", async () => {
 
 test("aggregate: quantile with higher method", async () => {
   // [10, 20, 30, 40] q=0.3 yields: idx=0.9, higher yields: values[1] = 20
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     quantileSpec,
     jsToLuaValue([{ v: 10 }, { v: 20 }, { v: 30 }, { v: 40 }]),
     parseExpressionString("_.v"),
@@ -957,7 +962,7 @@ test("aggregate: quantile with higher method", async () => {
 
 test("aggregate: quantile with midpoint method", async () => {
   // [10, 20, 30, 40] q=0.3 yields: idx=0.9, midpoint yields: (10+20)/2 = 15
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     quantileSpec,
     jsToLuaValue([{ v: 10 }, { v: 20 }, { v: 30 }, { v: 40 }]),
     parseExpressionString("_.v"),
@@ -975,7 +980,7 @@ test("aggregate: quantile with midpoint method", async () => {
 
 test("aggregate: quantile with nearest method", async () => {
   // [10, 20, 30, 40] q=0.3 yields: idx=0.9 (0.9-0=0.9 > 0.5 yields: higher) yields: 20
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     quantileSpec,
     jsToLuaValue([{ v: 10 }, { v: 20 }, { v: 30 }, { v: 40 }]),
     parseExpressionString("_.v"),
@@ -993,7 +998,7 @@ test("aggregate: quantile with nearest method", async () => {
 
 test("aggregate: percentile_cont", async () => {
   // [1,2,3,4,5] q=0.25 yields: idx=1.0 yields: values[1]=2 (linear, exact)
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     percentileContSpec,
     jsToLuaValue([{ v: 1 }, { v: 2 }, { v: 3 }, { v: 4 }, { v: 5 }]),
     parseExpressionString("_.v"),
@@ -1011,7 +1016,7 @@ test("aggregate: percentile_cont", async () => {
 
 test("aggregate: percentile_cont interpolation", async () => {
   // [10, 20, 30, 40] q=0.5 yields: idx=1.5 yields: 20 + 0.5*(30-20) = 25
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     percentileContSpec,
     jsToLuaValue([{ v: 10 }, { v: 20 }, { v: 30 }, { v: 40 }]),
     parseExpressionString("_.v"),
@@ -1029,7 +1034,7 @@ test("aggregate: percentile_cont interpolation", async () => {
 
 test("aggregate: percentile_disc", async () => {
   // [1,2,3,4,5] q=0.4 yields: idx=1.6, lower yields: values[1]=2
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     percentileDiscSpec,
     jsToLuaValue([{ v: 1 }, { v: 2 }, { v: 3 }, { v: 4 }, { v: 5 }]),
     parseExpressionString("_.v"),
@@ -1047,7 +1052,7 @@ test("aggregate: percentile_disc", async () => {
 
 test("aggregate: percentile_disc at boundary", async () => {
   // [10, 20, 30] q=0 yields: idx=0, lower yields: values[0]=10
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     percentileDiscSpec,
     jsToLuaValue([{ v: 10 }, { v: 20 }, { v: 30 }]),
     parseExpressionString("_.v"),
@@ -1064,7 +1069,7 @@ test("aggregate: percentile_disc at boundary", async () => {
 });
 
 test("aggregate: sum with objectVariable", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     sumSpec,
     jsToLuaValue([{ v: 3 }, { v: 7 }]),
     parseExpressionString("p.v"),
@@ -1089,7 +1094,7 @@ test("aggregate: user-defined overrides builtin", async () => {
   };
   const config = makeConfig({ sum: customSum });
   const spec = getAggregateSpec("sum", config)!;
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     spec,
     jsToLuaValue([{ v: 1 }, { v: 2 }]),
     parseExpressionString("_.v"),
@@ -1113,7 +1118,7 @@ test("aggregate: builtin available without config", () => {
 });
 
 test("aggregate: sum with filter", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     sumSpec,
     jsToLuaValue([{ v: 10 }, { v: 20 }, { v: 30 }]),
     parseExpressionString("_.v"),
@@ -1129,7 +1134,7 @@ test("aggregate: sum with filter", async () => {
 });
 
 test("aggregate: count with filter excludes all", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     countSpec,
     jsToLuaValue([{ v: 1 }, { v: 2 }]),
     parseExpressionString("_.v"),
@@ -1145,7 +1150,7 @@ test("aggregate: count with filter excludes all", async () => {
 });
 
 test("aggregate: array_agg with order by asc", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     arrayAggSpec,
     jsToLuaValue([
       { v: "c", k: 3 },
@@ -1170,7 +1175,7 @@ test("aggregate: array_agg with order by asc", async () => {
 });
 
 test("aggregate: array_agg with order by desc", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     arrayAggSpec,
     jsToLuaValue([
       { v: "c", k: 3 },
@@ -1195,7 +1200,7 @@ test("aggregate: array_agg with order by desc", async () => {
 });
 
 test("aggregate: array_agg with order by + filter combined", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     arrayAggSpec,
     jsToLuaValue([
       { v: "d", k: 4 },
@@ -1222,7 +1227,7 @@ test("aggregate: array_agg with order by + filter combined", async () => {
 });
 
 test("aggregate: order by with nulls first", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     arrayAggSpec,
     jsToLuaValue([{ v: "b", k: 2 }, { v: "x" }, { v: "a", k: 1 }]),
     parseExpressionString("_.v"),
@@ -1242,7 +1247,7 @@ test("aggregate: order by with nulls first", async () => {
 });
 
 test("aggregate: order by with nulls last", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     arrayAggSpec,
     jsToLuaValue([{ v: "b", k: 2 }, { v: "x" }, { v: "a", k: 1 }]),
     parseExpressionString("_.v"),
@@ -1262,7 +1267,7 @@ test("aggregate: order by with nulls last", async () => {
 });
 
 test("aggregate: order by multiple keys", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     arrayAggSpec,
     jsToLuaValue([
       { v: "c1", g: 2, k: 1 },
@@ -1305,7 +1310,7 @@ test("aggregate: extra args passed to initialize/iterate/finish", async () => {
     }),
   };
 
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     mulSumSpec,
     jsToLuaValue([{ v: 2 }, { v: 3 }, { v: 5 }]),
     parseExpressionString("_.v"),
@@ -1330,7 +1335,7 @@ test("aggregate: extra args with no value expr", async () => {
     }),
   };
 
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     basedCount,
     jsToLuaValue([{ v: 1 }, { v: 2 }, { v: 3 }]),
     null,
@@ -1794,7 +1799,7 @@ test("aggregate: custom concat with finish", async () => {
     }),
     finish: new LuaBuiltinFunction((_sf, state: any) => state.rawGet("s")),
   };
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     concatSpec,
     jsToLuaValue([{ v: "a" }, { v: "b" }, { v: "c" }]),
     parseExpressionString("_.v"),
@@ -1827,7 +1832,7 @@ test("aggregate: extra args - no extra args (default)", async () => {
     }),
   };
 
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     concatSpec,
     jsToLuaValue([{ v: "Alice" }, { v: "Bob" }, { v: "Carol" }]),
     parseExpressionString("_.v"),
@@ -1860,7 +1865,7 @@ test("aggregate: extra args - single extra arg (custom separator)", async () => 
     }),
   };
 
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     concatSpec,
     jsToLuaValue([{ v: "Alice" }, { v: "Bob" }, { v: "Carol" }]),
     parseExpressionString("_.v"),
@@ -1899,7 +1904,7 @@ test("aggregate: extra args - two extra args (separator + prefix)", async () => 
     }),
   };
 
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     concat2Spec,
     jsToLuaValue([{ v: "Alice" }, { v: "Bob" }, { v: "Carol" }]),
     parseExpressionString("_.v"),
@@ -1932,7 +1937,7 @@ test("aggregate: extra args + filter", async () => {
     }),
   };
 
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     concatSpec,
     jsToLuaValue([
       { v: "Alice", age: 31 },
@@ -1970,7 +1975,7 @@ test("aggregate: extra args + order by", async () => {
     }),
   };
 
-  const resultNoOrder = await executeAggregate(
+  const { value: resultNoOrder } = await executeAggregate(
     concatSpec,
     jsToLuaValue([
       { v: "Carol", k: 3 },
@@ -1987,7 +1992,7 @@ test("aggregate: extra args + order by", async () => {
   );
   expect(resultNoOrder).toBe("Carol, Alice, Bob");
 
-  const resultOrdered = await executeAggregate(
+  const { value: resultOrdered } = await executeAggregate(
     concatSpec,
     jsToLuaValue([
       { v: "Carol", k: 3 },
@@ -2026,7 +2031,7 @@ test("aggregate: extra args + order by + filter combined", async () => {
     }),
   };
 
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     concatSpec,
     jsToLuaValue([
       { v: "Carol", k: 3, age: 41 },
@@ -2069,7 +2074,7 @@ test("aggregate: extra args forwarded to finish", async () => {
     ),
   };
 
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     wrapSpec,
     jsToLuaValue([{ v: "a" }, { v: "b" }, { v: "c" }]),
     parseExpressionString("_.v"),
@@ -2082,7 +2087,7 @@ test("aggregate: extra args forwarded to finish", async () => {
   );
   expect(result).toBe("(a, b, c)");
 
-  const result2 = await executeAggregate(
+  const { value: result2 } = await executeAggregate(
     wrapSpec,
     jsToLuaValue([{ v: "x" }, { v: "y" }]),
     parseExpressionString("_.v"),
@@ -2097,7 +2102,7 @@ test("aggregate: extra args forwarded to finish", async () => {
 });
 
 test("aggregate: mode returns most frequent value", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     modeSpec,
     jsToLuaValue([{ v: "a" }, { v: "b" }, { v: "a" }, { v: "c" }, { v: "a" }]),
     parseExpressionString("_.v"),
@@ -2113,7 +2118,7 @@ test("aggregate: mode returns most frequent value", async () => {
 
 test("aggregate: mode with tie returns first to reach max", async () => {
   // a appears at index 1,3 ; b at index 2,4 — a reaches count=2 first
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     modeSpec,
     jsToLuaValue([{ v: "a" }, { v: "b" }, { v: "a" }, { v: "b" }]),
     parseExpressionString("_.v"),
@@ -2128,7 +2133,7 @@ test("aggregate: mode with tie returns first to reach max", async () => {
 });
 
 test("aggregate: mode on empty group", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     modeSpec,
     new LuaTable(),
     parseExpressionString("_.v"),
@@ -2143,7 +2148,7 @@ test("aggregate: mode on empty group", async () => {
 });
 
 test("aggregate: mode skips nulls", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     modeSpec,
     jsToLuaValue([{ v: "x" }, { z: 1 }, { z: 2 }, { v: "x" }]),
     parseExpressionString("_.v"),
@@ -2158,7 +2163,7 @@ test("aggregate: mode skips nulls", async () => {
 });
 
 test("aggregate: mode with numbers", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     modeSpec,
     jsToLuaValue([{ v: 3 }, { v: 1 }, { v: 3 }, { v: 2 }, { v: 1 }, { v: 3 }]),
     parseExpressionString("_.v"),
@@ -2175,7 +2180,7 @@ test("aggregate: mode with numbers", async () => {
 // first
 
 test("aggregate: first returns first non-null value", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     firstSpec,
     jsToLuaValue([{ v: "a" }, { v: "b" }, { v: "c" }]),
     parseExpressionString("_.v"),
@@ -2190,7 +2195,7 @@ test("aggregate: first returns first non-null value", async () => {
 });
 
 test("aggregate: first skips leading nulls", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     firstSpec,
     jsToLuaValue([{ z: 1 }, { z: 2 }, { v: "found" }, { v: "skip" }]),
     parseExpressionString("_.v"),
@@ -2205,7 +2210,7 @@ test("aggregate: first skips leading nulls", async () => {
 });
 
 test("aggregate: first on empty group", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     firstSpec,
     new LuaTable(),
     parseExpressionString("_.v"),
@@ -2220,7 +2225,7 @@ test("aggregate: first on empty group", async () => {
 });
 
 test("aggregate: first with order by", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     firstSpec,
     jsToLuaValue([
       { v: "c", k: 3 },
@@ -2241,7 +2246,7 @@ test("aggregate: first with order by", async () => {
 });
 
 test("aggregate: last returns last non-null value", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     lastSpec,
     jsToLuaValue([{ v: "a" }, { v: "b" }, { v: "c" }]),
     parseExpressionString("_.v"),
@@ -2256,7 +2261,7 @@ test("aggregate: last returns last non-null value", async () => {
 });
 
 test("aggregate: last skips trailing nulls", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     lastSpec,
     jsToLuaValue([{ v: "a" }, { v: "last" }, { z: 1 }, { z: 2 }]),
     parseExpressionString("_.v"),
@@ -2271,7 +2276,7 @@ test("aggregate: last skips trailing nulls", async () => {
 });
 
 test("aggregate: last on empty group", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     lastSpec,
     new LuaTable(),
     parseExpressionString("_.v"),
@@ -2286,7 +2291,7 @@ test("aggregate: last on empty group", async () => {
 });
 
 test("aggregate: last with order by desc", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     lastSpec,
     jsToLuaValue([
       { v: "c", k: 3 },
@@ -2308,7 +2313,7 @@ test("aggregate: last with order by desc", async () => {
 });
 
 test("aggregate: median of odd count", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     medianSpec,
     jsToLuaValue([{ v: 30 }, { v: 10 }, { v: 20 }]),
     parseExpressionString("_.v"),
@@ -2325,7 +2330,7 @@ test("aggregate: median of odd count", async () => {
 });
 
 test("aggregate: median of even count (interpolated)", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     medianSpec,
     jsToLuaValue([{ v: 10 }, { v: 20 }, { v: 30 }, { v: 40 }]),
     parseExpressionString("_.v"),
@@ -2343,7 +2348,7 @@ test("aggregate: median of even count (interpolated)", async () => {
 });
 
 test("aggregate: median on empty group", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     medianSpec,
     new LuaTable(),
     parseExpressionString("_.v"),
@@ -2358,7 +2363,7 @@ test("aggregate: median on empty group", async () => {
 });
 
 test("aggregate: median single element", async () => {
-  const result = await executeAggregate(
+  const { value: result } = await executeAggregate(
     medianSpec,
     jsToLuaValue([{ v: 42 }]),
     parseExpressionString("_.v"),
@@ -2370,4 +2375,105 @@ test("aggregate: median single element", async () => {
     emptyConfig,
   );
   expect(result).toBe(42);
+});
+
+// Custom-aggregate wildcard contract: same opt-in default as the built-ins.
+// Aggregates without `acceptsWildcardArg` reject `<agg>(*)` / `<agg>(t.*)`,
+// protecting naive `state += value` iterators from JS string coercion.
+
+test("aggregate: custom without acceptsWildcardArg rejects wildcards", () => {
+  const scalarSum: AggregateSpec = {
+    name: "scalar_sum",
+    initialize: new LuaBuiltinFunction((_sf) => 0),
+    iterate: new LuaBuiltinFunction((_sf, state: any, value: any) => {
+      if (value === null || value === undefined) return state;
+      return (state as number) + (value as number);
+    }),
+  };
+  const config = makeConfig({ scalar_sum: scalarSum });
+  const spec = getAggregateSpec("scalar_sum", config)!;
+  expect(spec.acceptsWildcardArg).toBeFalsy();
+
+  // `*` is rejected
+  expect(() =>
+    validateAggregateWildcardArg(spec, { kind: "all" }, sf),
+  ).toThrowError(/aggregate 'scalar_sum'.*'\*'/);
+
+  // `<src>.*` is rejected, error names the offending wildcard.
+  expect(() =>
+    validateAggregateWildcardArg(spec, { kind: "source", source: "t" }, sf),
+  ).toThrowError(/aggregate 'scalar_sum'.*'t\.\*'/);
+});
+
+test("aggregate: custom with acceptsWildcardArg accepts wildcards", async () => {
+  const rowCount: AggregateSpec = {
+    name: "row_count",
+    acceptsWildcardArg: true,
+    initialize: new LuaBuiltinFunction((_sf) => 0),
+    iterate: new LuaBuiltinFunction((_sf, state: any, value: any) => {
+      if (value === null || value === undefined) return state;
+      return (state as number) + 1;
+    }),
+  };
+  const config = makeConfig({ row_count: rowCount });
+  const spec = getAggregateSpec("row_count", config)!;
+  expect(spec.acceptsWildcardArg).toBe(true);
+
+  // Both wildcard kinds pass validation -- no throw.
+  expect(() =>
+    validateAggregateWildcardArg(spec, { kind: "all" }, sf),
+  ).not.toThrow();
+  expect(() =>
+    validateAggregateWildcardArg(spec, { kind: "source", source: "t" }, sf),
+  ).not.toThrow();
+
+  // And the aggregate runs end-to-end over whole rows, returning a row count
+  // including the all-null record (PG strict-null filtering only kicks in
+  // when called via `<src>.*`, which `executeAggregate` learns through the
+  // `wildcardArg` parameter; here we exercise the no-wildcardArg path).
+  const { value: result } = await executeAggregate(
+    spec,
+    jsToLuaValue([{ a: 1 }, { a: 2 }, {}]),
+    null,
+    [],
+    undefined,
+    new LuaEnv(),
+    sf,
+    evalExpression,
+    config,
+  );
+  expect(result).toBe(3);
+});
+
+test("aggregate: custom acceptsWildcardArg flag survives LuaTable registration", () => {
+  // The Lua-facing `aggregate.define` path stores the spec as a LuaTable.
+  // `getAggregateSpec` must read `acceptsWildcardArg` from `rawGet` so the
+  // flag round-trips through `config.setLuaValue({'aggregates', name}, spec)`.
+  const config = new Config();
+  config.set(
+    "aggregates.row_table_agg",
+    new LuaTable({
+      name: "row_table_agg",
+      acceptsWildcardArg: true,
+      initialize: new LuaBuiltinFunction((_sf) => 0),
+      iterate: new LuaBuiltinFunction(
+        (_sf, state: any, _value: any) => (state as number) + 1,
+      ),
+    }),
+  );
+  const spec = getAggregateSpec("row_table_agg", config)!;
+  expect(spec.acceptsWildcardArg).toBe(true);
+
+  config.set(
+    "aggregates.scalar_table_agg",
+    new LuaTable({
+      name: "scalar_table_agg",
+      initialize: new LuaBuiltinFunction((_sf) => 0),
+      iterate: new LuaBuiltinFunction(
+        (_sf, state: any, _value: any) => (state as number) + 1,
+      ),
+    }),
+  );
+  const scalarSpec = getAggregateSpec("scalar_table_agg", config)!;
+  expect(scalarSpec.acceptsWildcardArg).toBe(false);
 });

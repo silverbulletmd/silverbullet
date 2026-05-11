@@ -176,8 +176,10 @@ export type LuaExpression =
   | LuaTableConstructor
   | LuaFunctionDefinition
   | LuaQueryExpression
+  | LuaQueryInExpression
   | LuaFilteredCallExpression
-  | LuaAggregateCallExpression;
+  | LuaAggregateCallExpression
+  | LuaOrderBySelectKeyExpression;
 
 export type LuaNilLiteral = {
   type: "Nil";
@@ -237,6 +239,9 @@ export type LuaFunctionCallExpression = {
   name?: string;
   args: LuaExpression[];
   orderBy?: LuaOrderBy[];
+  argModifier?: "distinct" | "all";
+  // `count(*)` / `count(src.*)`. Aggregates only; `args` is empty when set.
+  wildcardArg?: { kind: "all" } | { kind: "source"; source: string };
 } & ASTContext;
 
 export type LuaBinaryExpression = {
@@ -257,7 +262,13 @@ export type LuaTableConstructor = {
   fields: LuaTableField[];
 } & ASTContext;
 
-export type LuaTableField = LuaDynamicField | LuaPropField | LuaExpressionField;
+export type LuaTableField =
+  | LuaDynamicField
+  | LuaPropField
+  | LuaExpressionField
+  | LuaStarField
+  | LuaStarSourceField
+  | LuaStarColumnField;
 
 export type LuaDynamicField = {
   type: "DynamicField";
@@ -274,6 +285,23 @@ export type LuaPropField = {
 export type LuaExpressionField = {
   type: "ExpressionField";
   value: LuaExpression;
+} & ASTContext;
+
+// `*` / `*.*`
+export type LuaStarField = {
+  type: "StarField";
+} & ASTContext;
+
+// `<source>.*`
+export type LuaStarSourceField = {
+  type: "StarSourceField";
+  source: string;
+} & ASTContext;
+
+// `*.<column>` — multi-source keys are prefixed with source name.
+export type LuaStarColumnField = {
+  type: "StarColumnField";
+  column: string;
 } & ASTContext;
 
 export type LuaFunctionDefinition = {
@@ -295,10 +323,57 @@ export type LuaAggregateCallExpression = {
   orderBy: LuaOrderBy[];
 } & ASTContext;
 
+export type LuaOrderBySelectKeyExpression = {
+  type: "OrderBySelectKey";
+  key: LuaExpression;
+  ctx: ASTCtx;
+} & ASTContext;
+
+export type LuaQueryInExpression = {
+  type: "QueryIn";
+  left: LuaExpression;
+  right: LuaExpression;
+  ctx: ASTCtx;
+} & ASTContext;
+
+// Join hint attached to a from-clause source binding
+export type JoinHintKind = "hash" | "loop" | "merge";
+
+export type LuaJoinHint = {
+  type: "JoinHint";
+  kind: JoinHintKind;
+  joinType?: "inner" | "semi" | "anti";
+  // Only valid for the loop physical operator
+  using?: string | LuaFunctionBody;
+} & ASTContext;
+
+export type LuaWithHints = {
+  rows?: number;
+  width?: number;
+  cost?: number;
+};
+
+// From-clause field: a table field extended with optional source modifiers
+export type LuaFromField = LuaTableField & {
+  joinHint?: LuaJoinHint;
+  materialized?: boolean;
+  withHints?: LuaWithHints;
+};
+
 // Query stuff
 export type LuaQueryExpression = {
   type: "Query";
   clauses: LuaQueryClause[];
+} & ASTContext;
+
+export type LuaExplainClause = {
+  type: "Explain";
+  analyze: boolean;
+  verbose: boolean;
+  summary: boolean;
+  costs: boolean;
+  timing: boolean;
+  hints: boolean;
 } & ASTContext;
 
 export type LuaQueryClause =
@@ -309,11 +384,18 @@ export type LuaQueryClause =
   | LuaOrderByClause
   | LuaSelectClause
   | LuaGroupByClause
-  | LuaHavingClause;
+  | LuaHavingClause
+  | LuaLeadingClause
+  | LuaExplainClause;
 
 // Field list used by `from`, `select` and `group by` clauses
 export type LuaFromClause = {
   type: "From";
+  fields: LuaFromField[];
+} & ASTContext;
+
+export type LuaLeadingClause = {
+  type: "Leading";
   fields: LuaTableField[];
 } & ASTContext;
 
@@ -338,9 +420,15 @@ export type LuaOrderByClause = {
   orderBy: LuaOrderBy[];
 } & ASTContext;
 
+// Either `expression` or `wildcard` is set; wildcards are expanded at
+// runtime into one sort key per column.
 export type LuaOrderBy = {
   type: "Order";
-  expression: LuaExpression;
+  expression?: LuaExpression;
+  wildcard?:
+    | { kind: "all" }
+    | { kind: "source"; source: string }
+    | { kind: "column"; column: string };
   direction: "asc" | "desc";
   nulls?: "first" | "last";
   using?: string | LuaFunctionBody;
@@ -349,6 +437,7 @@ export type LuaOrderBy = {
 export type LuaSelectClause = {
   type: "Select";
   fields: LuaTableField[];
+  distinct?: boolean;
 } & ASTContext;
 
 export type LuaGroupByClause = {
