@@ -4,16 +4,12 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/user"
 	"path/filepath"
 	"strings"
-
-	"golang.org/x/crypto/pbkdf2"
 )
 
 type AuthConfig struct {
@@ -187,20 +183,39 @@ func NewUUID() string {
 		uuid[0:4], uuid[4:6], uuid[6:8], uuid[8:10], uuid[10:16])
 }
 
-// Encryption: AES-256-GCM with PBKDF2 key derivation.
-func deriveKey() []byte {
-	hostname, _ := os.Hostname()
-	u, _ := user.Current()
-	username := ""
-	if u != nil {
-		username = u.Username
+func keyFilePath() string {
+	return filepath.Join(ConfigDir(), "key")
+}
+
+func loadOrCreateKey() ([]byte, error) {
+	path := keyFilePath()
+	if data, err := os.ReadFile(path); err == nil {
+		if len(data) != 32 {
+			return nil, fmt.Errorf("key file %s has wrong length: expected 32, got %d", path, len(data))
+		}
+		return data, nil
+	} else if !os.IsNotExist(err) {
+		return nil, fmt.Errorf("reading key file %s: %w", path, err)
 	}
-	material := hostname + username + "silverbullet-cli"
-	return pbkdf2.Key([]byte(material), []byte("silverbullet-cli-salt"), 100000, 32, sha256.New)
+
+	if err := os.MkdirAll(ConfigDir(), 0o700); err != nil {
+		return nil, fmt.Errorf("creating config dir: %w", err)
+	}
+	key := make([]byte, 32)
+	if _, err := rand.Read(key); err != nil {
+		return nil, fmt.Errorf("generating key: %w", err)
+	}
+	if err := os.WriteFile(path, key, 0o600); err != nil {
+		return nil, fmt.Errorf("writing key file %s: %w", path, err)
+	}
+	return key, nil
 }
 
 func Encrypt(plaintext string) (string, error) {
-	key := deriveKey()
+	key, err := loadOrCreateKey()
+	if err != nil {
+		return "", err
+	}
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return "", err
@@ -226,6 +241,21 @@ func Encrypt(plaintext string) (string, error) {
 	), nil
 }
 
+type ErrDecryptFailed struct {
+	Inner error
+}
+
+func (e *ErrDecryptFailed) Error() string {
+	return fmt.Sprintf("decryption failed: %v\n\n"+
+		"This usually means the encryption key file at %s was regenerated\n"+
+		"or the stored secret was encrypted on a different machine.\n"+
+		"To recover, re-add credentials for the affected space:\n"+
+		"  sb space remove <name>\n"+
+		"  sb space add <name> --url <url>", e.Inner, keyFilePath())
+}
+
+func (e *ErrDecryptFailed) Unwrap() error { return e.Inner }
+
 func Decrypt(encoded string) (string, error) {
 	parts := strings.SplitN(encoded, ":", 3)
 	if len(parts) != 3 {
@@ -244,7 +274,10 @@ func Decrypt(encoded string) (string, error) {
 		return "", fmt.Errorf("decoding ciphertext: %w", err)
 	}
 
-	key := deriveKey()
+	key, err := loadOrCreateKey()
+	if err != nil {
+		return "", err
+	}
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return "", err
@@ -257,7 +290,7 @@ func Decrypt(encoded string) (string, error) {
 	sealed := append(ciphertext, tag...)
 	plaintext, err := gcm.Open(nil, iv, sealed, nil)
 	if err != nil {
-		return "", fmt.Errorf("decryption failed: %w", err)
+		return "", &ErrDecryptFailed{Inner: err}
 	}
 	return string(plaintext), nil
 }
