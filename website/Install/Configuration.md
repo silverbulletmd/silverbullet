@@ -12,6 +12,7 @@ SilverBullet is primarily configured via environment variables. This page gives 
 # Network
 * `SB_HOSTNAME`: Set to the hostname to bind to (defaults to `127.0.0.0`, set to `0.0.0.0` to accept outside connections for the local setup, defaults to `0.0.0.0` for docker)
 * `SB_PORT`: Sets the port to listen to, e.g. `SB_PORT=1234`, default is `3000`
+* `SB_UNIX_SOCKET`: Instead of listening to a TCP port, listen to a Unix socket at the specified path, e.g. `SB_UNIX_SOCKET=/tmp/silverbullet.sock`. Note: when this is set, `SB_HOSTNAME` and `SB_PORT` are ignored.
 * `SB_URL_PREFIX`: Host SilverBullet on a particular URL prefix, e.g. `SB_URL_PREFIX=/notes`
 
 # Authentication

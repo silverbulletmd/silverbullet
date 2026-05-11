@@ -12,6 +12,7 @@ type ServerConfig struct {
 
 	BindHost          string
 	Port              int
+	UnixSocket        string
 	MetricsPort       int
 	EnableHTTPLogging bool
 	// TODO: Ideally this is configurable per space, but kinda hard

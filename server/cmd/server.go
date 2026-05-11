@@ -49,6 +49,10 @@ func buildConfig(bundledFiles fs.FS, args []string, buildTime string) *server.Se
 		serverConfig.Port = int(port)
 	}
 
+	if os.Getenv("SB_UNIX_SOCKET") != "" {
+		serverConfig.UnixSocket = os.Getenv("SB_UNIX_SOCKET")
+	}
+
 	if os.Getenv("SB_INDEX_PAGE") != "" {
 		rootSpaceConfig.IndexPage = os.Getenv("SB_INDEX_PAGE")
 	}
