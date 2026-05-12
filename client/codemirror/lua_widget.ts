@@ -95,6 +95,10 @@ export class LuaWidget extends WidgetType {
     );
   }
 
+  invalidatePrewarm() {
+    this.opts.client.widgetCache.invalidatePrewarm(this.opts.cacheKey);
+  }
+
   toDOM(): HTMLElement {
     const wrapperSpan = document.createElement("span");
     wrapperSpan.className = "sb-lua-wrapper";

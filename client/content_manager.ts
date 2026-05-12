@@ -188,6 +188,13 @@ export class ContentManager {
       }
     }
 
+    if (loadingDifferentPath) {
+      // Drop session prewarmed widget results: iframe widgets key prewarms
+      // by bodyText alone, so without this the next page would reuse the
+      // previous page's query results.
+      this.client.widgetCache.clearPrewarm();
+    }
+
     return { previousPath, loadingDifferentPath };
   }
 

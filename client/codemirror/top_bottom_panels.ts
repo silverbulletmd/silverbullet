@@ -21,6 +21,13 @@ class ArrayWidget extends WidgetType {
     return this.client.widgetCache.getCachedWidgetHeight(this.cacheKey);
   }
 
+  invalidatePrewarm() {
+    // ArrayWidget doesn't itself go through the prewarm cache (its callback
+    // runs directly in renderContent), and the inner LuaWidgets it creates
+    // get fresh prewarms via their constructors against a cleared cache, so
+    // nothing to do here.
+  }
+
   toDOM(): HTMLElement {
     activeWidgets.add(this);
 

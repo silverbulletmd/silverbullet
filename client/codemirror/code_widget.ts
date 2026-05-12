@@ -3,6 +3,10 @@ export const activeWidgets = new Set<DomWidget>();
 export interface DomWidget {
   dom?: HTMLElement;
 
+  // Drop any prewarmed callback result so the next renderContent runs the
+  // callback fresh. Used by reloadAllWidgets so refresh forces fresh data.
+  invalidatePrewarm(): void;
+
   renderContent(
     div: HTMLElement,
     cachedHtml: string | undefined,
@@ -15,6 +19,7 @@ export async function reloadAllWidgets() {
       activeWidgets.delete(widget);
       continue;
     }
+    widget.invalidatePrewarm();
     // Create an empty widget DIV node
     const newEl = document.createElement("div");
     await widget.renderContent(newEl, undefined);
