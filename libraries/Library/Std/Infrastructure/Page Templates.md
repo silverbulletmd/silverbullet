@@ -118,7 +118,7 @@ tag.define {
   }
 }
 
-local function createPageFromTemplate(templatePage, pageName, openIfExists)
+function template.createPageFromTemplate(templatePage, pageName, openIfExists)
   -- Won't override an existing page
   if space.pageExists(pageName) then
     if openIfExists then
@@ -173,7 +173,7 @@ for pt in query[[
         editor.flashNotification("No page name given for '" .. pt.command .. "', unable to continue.", "error")
         return
       end
-      createPageFromTemplate(pt.name, pageName, pt.openIfExists)
+      template.createPageFromTemplate(pt.name, pageName, pt.openIfExists)
     end
   }
 end
@@ -211,7 +211,7 @@ command.define {
       editor.flashNotification("No page name given for template '" .. cleanName(selected.fullName) .. "', unable to continue.", "error")
       return
     end
-    createPageFromTemplate(selected.fullName, pageName, selected.openIfExists)
+    template.createPageFromTemplate(selected.fullName, pageName, selected.openIfExists)
   end
 }
 ```
