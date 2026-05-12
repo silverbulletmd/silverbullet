@@ -31,6 +31,9 @@ type BootConfig struct {
 	// Encryption
 	EnableClientEncryption bool `json:"enableClientEncryption"`
 
+	// When true, the client skips service worker registration and
+	// unregisters/flushes any previously-installed service worker.
+	DisableServiceWorker bool `json:"disableServiceWorker,omitempty"`
 }
 
 func Router(config *ServerConfig) chi.Router {
@@ -78,6 +81,7 @@ func Router(config *ServerConfig) chi.Router {
 			LogPush:         spaceConfig.LogPush,
 			// Client encryption is offered as an option when auth is enabled only
 			EnableClientEncryption: spaceConfig.Auth != nil,
+			DisableServiceWorker:   spaceConfig.DisableServiceWorker,
 		}
 
 		w.Header().Set("Cache-Control", "no-cache")

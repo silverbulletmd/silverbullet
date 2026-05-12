@@ -68,6 +68,11 @@ func buildConfig(bundledFiles fs.FS, args []string, buildTime string) *server.Se
 		log.Println("Client log push enabled")
 	}
 
+	if os.Getenv("SB_DISABLE_SERVICE_WORKER") != "" {
+		rootSpaceConfig.DisableServiceWorker = true
+		log.Println("Service worker disabled via SB_DISABLE_SERVICE_WORKER")
+	}
+
 	rootSpaceConfig.GitIgnore = os.Getenv("SB_SPACE_IGNORE")
 
 	if os.Getenv("SB_SPACE_IGNORE") != "" {

@@ -50,6 +50,10 @@ type SpaceConfig struct {
 	ReadOnlyMode    bool
 	LogPush         bool
 
+	// When true, the client will skip service worker registration and
+	// tear down any previously-installed service worker on boot.
+	DisableServiceWorker bool
+
 	// Used for the PWA manifest and login page
 	SpaceName        string
 	SpaceDescription string
