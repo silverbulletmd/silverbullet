@@ -1,27 +1,11 @@
 import type { Page } from "@playwright/test";
 import { expect, mod, test, waitForSaveAndReadFromServer } from "./fixtures.ts";
 
-// This file exercises the workflow described in website/Guide/Journaling.md
-// end-to-end. Each test seeds a space with the exact template shown in the
-// guide, then drives the UI the way a user following the guide would.
-//
-// Notes for maintainers: if the guide is updated, update the constants below
-// to match, so these tests remain a faithful executable version of the guide.
+// This file exercises the workflow described in website/Journal.md end-to-end.
+// The Journal feature is built in: the `Journal: Today` command and the
+// default template at `Library/Std/Journal/Template` ship with SilverBullet.
 
-const JOURNAL_TEMPLATE = `---
-command: "Journal: Today"
-key: "Ctrl-q t"
-suggestedName: "Journal/\${os.date('%Y-%m-%d')}"
-confirmName: false
-tags: meta/template/page
-openIfExists: true
----
-#journal
-
-* |^|
-`;
-
-/** Today's date as YYYY-MM-DD, matching the template's suggestedName. */
+/** Today's date as YYYY-MM-DD, matching the default journal page name. */
 function today(): string {
 	const d = new Date();
 	const yyyy = d.getFullYear();
@@ -63,34 +47,33 @@ test.describe("Guide: Journaling", () => {
 	test.use({
 		spaceFiles: {
 			"index.md": "# Welcome\nA fresh space, ready to journal.",
-			"Library/Page Templates/Journal.md": JOURNAL_TEMPLATE,
 		},
 	});
 
 	test("running 'Journal: Today' from the command palette creates today's journal page", async ({ sbPage }) => {
 		await runJournalToday(sbPage);
 
-		// The editor should show the template body, including the #journal tag
+		// The editor should show the template body — frontmatter sets
+		// `tags: journal` (from the built-in template at
+		// Library/Std/Journal/Template).
 		const editor = sbPage.locator("#sb-editor .cm-content");
-		await expect(editor).toContainText("#journal");
+		await expect(editor).toContainText("tags: journal");
 	});
 
-	test("created journal page is tagged #journal on disk", async ({ sbPage, sbServer }) => {
+	test("created journal page is tagged journal on disk", async ({ sbPage, sbServer }) => {
 		await runJournalToday(sbPage);
 
-		// The file on disk must contain the #journal tag from the template body.
-		// This is the bug reported in the community:
-		//   https://community.silverbullet.md/t/setting-up-new-space-with-journaling/4015
-		// The user reported that #journal does not get copied from the template
-		// to the newly created page, so the query over `tags.journal` returns
-		// nothing.
+		// The file on disk must contain the `journal` tag from the template
+		// frontmatter, so queries over `index.tag("journal")` (used by the
+		// built-in `Journal: Previous Day` / `Next Day` commands and the
+		// default index-page section) return this entry.
 		const expectedPage = `Journal/${today()}`;
 		const content = await waitForSaveAndReadFromServer(
 			sbPage,
 			sbServer,
 			`${expectedPage}.md`,
 		);
-		expect(content).toContain("#journal");
+		expect(content).toContain("tags: journal");
 	});
 
 	test("new journal entry mentioning a topic shows up under that topic's Linked Mentions", async ({ sbPage, sbServer }) => {
