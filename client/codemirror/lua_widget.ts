@@ -73,20 +73,17 @@ export class LuaWidget extends WidgetType {
       openRef: null,
       ...opts,
     };
-    // Eagerly kick off the widget callback so the query result is ready
-    // (or close to it) by the time CodeMirror mounts the widget. Idempotent
-    // on cacheKey — the decorator state field rebuilds widgets on every
-    // editor update, but only the first construction per cacheKey starts
-    // the actual fetch.
-    this.opts.client.widgetCache.prewarmResult(this.opts.cacheKey, () =>
-      this.opts.callback(
-        this.opts.expressionText,
-        this.opts.client.currentName(),
-      ),
-    ).catch(() => {
-      // Ignore: renderContent re-awaits the same promise and handles
-      // errors via its own catch path.
-    });
+    if (this.opts.inPage) {
+      this.opts.client.widgetCache.prewarmResult(this.opts.cacheKey, () =>
+        this.opts.callback(
+          this.opts.expressionText,
+          this.opts.client.currentName(),
+        ),
+      ).catch(() => {
+        // Ignore: renderContent re-awaits the same promise and handles
+        // errors via its own catch path.
+      });
+    }
   }
 
   override get estimatedHeight(): number {
@@ -154,10 +151,12 @@ export class LuaWidget extends WidgetType {
 
   async renderContent(div: HTMLElement) {
     const currentName = this.opts.client.currentName();
-    let widgetContent = await this.opts.client.widgetCache.prewarmResult(
-      this.opts.cacheKey,
-      () => this.opts.callback(this.opts.expressionText, currentName),
-    );
+    let widgetContent = this.opts.inPage
+      ? await this.opts.client.widgetCache.prewarmResult(
+          this.opts.cacheKey,
+          () => this.opts.callback(this.opts.expressionText, currentName),
+        )
+      : await this.opts.callback(this.opts.expressionText, currentName);
     activeWidgets.add(this);
     if (widgetContent === null || widgetContent === undefined) {
       if (!this.opts.renderEmpty) {
