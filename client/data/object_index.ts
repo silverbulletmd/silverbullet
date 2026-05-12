@@ -471,7 +471,13 @@ export class ObjectIndex {
         console.error("Object has no tag", obj, "this shouldn't happen");
         continue;
       }
-      // Index as all the tag + any additional tags specified
+      // Run validations and transforms first, tracking the final value
+      // (transforms may mutate the obj in place, or return a fresh object
+      // with the same ref). Only after all tag iterations finish do we
+      // emit kvs — so tags without a transform write the same final state
+      // as tags with one, instead of an earlier snapshot.
+      let current: ObjectValue<T> = obj;
+      const tagsToWrite: string[] = [];
       const allTags = [obj.tag, ...(obj.tags || [])];
       for (const tag of allTags) {
         const tagDefinition = tagDefinitions[tag];
@@ -480,18 +486,21 @@ export class ObjectIndex {
           tagDefinition?.schema &&
           (tagDefinition?.mustValidate || throwOnValidationErrors)
         ) {
-          const validationError = validateObject(tagDefinition?.schema, obj);
+          const validationError = validateObject(
+            tagDefinition?.schema,
+            current,
+          );
           if (validationError) {
             if (!throwOnValidationErrors) {
               console.warn(
                 `Object failed ${tag} validation so won't be indexed:`,
-                obj,
+                current,
                 "Validation error:",
                 validationError,
               );
               continue;
             } else {
-              throw new ObjectValidationError(validationError, obj);
+              throw new ObjectValidationError(validationError, current);
             }
           }
         }
@@ -500,18 +509,18 @@ export class ObjectIndex {
           tagDefinition?.validate &&
           (tagDefinition?.mustValidate || throwOnValidationErrors)
         ) {
-          const validationError = await tagDefinition.validate(obj);
+          const validationError = await tagDefinition.validate(current);
           if (validationError) {
             if (!throwOnValidationErrors) {
               console.warn(
                 `Object failed ${tag} validation so won't be indexed:`,
-                obj,
+                current,
                 "Validation error:",
                 validationError,
               );
               continue;
             } else {
-              throw new ObjectValidationError(validationError, obj);
+              throw new ObjectValidationError(validationError, current);
             }
           }
         }
@@ -519,17 +528,14 @@ export class ObjectIndex {
         if (tagDefinition?.transform) {
           let newObjects;
           try {
-            newObjects = await tagDefinition.transform(obj);
+            newObjects = await tagDefinition.transform(current);
           } catch (e: any) {
-            throw new ObjectValidationError(e.message, obj);
+            throw new ObjectValidationError(e.message, current);
           }
 
           if (!newObjects) {
             // null value returned, just index as usual
-            kvs.push({
-              key: [tag, this.cleanKey(obj.ref, page)],
-              value: obj,
-            });
+            tagsToWrite.push(tag);
             continue;
           }
 
@@ -548,15 +554,13 @@ export class ObjectIndex {
               );
               continue;
             }
-            if (newObj.ref === obj.ref) {
-              // Got the same object back here, let's just index it without further processing
-              kvs.push({
-                key: [tag, this.cleanKey(newObj.ref, page)],
-                value: newObj,
-              });
+            if (newObj.ref === current.ref) {
+              // Same-ref result: adopt as the new current value so subsequent
+              // transforms (and the final kv writes) see the transformed state.
+              current = newObj;
               foundAssignedRef = true;
             } else {
-              // Some other object
+              // Some other object — needs its own processing pass
               objects.push(newObj);
             }
           }
@@ -565,13 +569,19 @@ export class ObjectIndex {
               `transform() result objects for ${tag} did not contain result with original ref.`,
             );
           }
+          tagsToWrite.push(tag);
         } else {
-          // Just insert it directly
-          kvs.push({
-            key: [tag, this.cleanKey(obj.ref, page)],
-            value: obj,
-          });
+          tagsToWrite.push(tag);
         }
+      }
+      // Emit kvs with the final transformed value so every tag's row shares
+      // the same post-transform state.
+      const refKey = this.cleanKey(current.ref, page);
+      for (const tag of tagsToWrite) {
+        kvs.push({
+          key: [tag, refKey],
+          value: current,
+        });
       }
     }
     return kvs;
