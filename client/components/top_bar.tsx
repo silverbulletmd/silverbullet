@@ -159,7 +159,6 @@ export function TopBar({
   progressPercentage,
   progressType,
   lhs,
-  onClick,
   rhs,
   pageNamePrefix,
   cssClass,
@@ -176,7 +175,6 @@ export function TopBar({
   progressType?: string;
   onRename: (newName?: string) => Promise<void>;
   onDismissNotification: (id: number) => void;
-  onClick: () => void;
   actionButtons: ActionButton[];
   lhs?: ComponentChildren;
   rhs?: ComponentChildren;
@@ -189,7 +187,6 @@ export function TopBar({
     <div
       id="sb-top"
       className={isOnline ? undefined : "sb-sync-error"}
-      onClick={onClick}
     >
       {lhs}
       <div className="main">

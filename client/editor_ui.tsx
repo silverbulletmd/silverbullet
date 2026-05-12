@@ -413,11 +413,6 @@ export class MainUI {
           darkMode={viewState.uiOptions.darkMode}
           progressPercentage={viewState.progressPercentage}
           progressType={viewState.progressType}
-          onClick={() => {
-            if (!client.contentManager.isDocumentEditor()) {
-              client.editorView.scrollDOM.scrollTop = 0;
-            }
-          }}
           onRename={async (newName) => {
             if (client.contentManager.isDocumentEditor()) {
               if (!newName) return;
