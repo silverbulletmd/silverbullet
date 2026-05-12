@@ -54,6 +54,8 @@ export function prepareSandboxIFrame(): PreloadedIFrame {
   // This one works in all browsers, although it's probably less secure
   iframe.src = "about:blank";
   iframe.style.visibility = "hidden";
+  iframe.allow =
+    "accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture; web-share";
 
   const ready = new Promise<void>((resolve) => {
     iframe.onload = () => {

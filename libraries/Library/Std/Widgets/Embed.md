@@ -55,7 +55,9 @@ function embed.youtube(specOrUrl)
     src="https://www.youtube.com/embed/" .. videoId,
     style="width: " .. width .. "; height: " .. height,
     class = "sb-video-embed",
-    referrerpolicy = "strict-origin-when-cross-origin"
+    referrerpolicy = "strict-origin-when-cross-origin",
+    allow = "accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture; web-share",
+    allowfullscreen = "true",
   })
 end
 
