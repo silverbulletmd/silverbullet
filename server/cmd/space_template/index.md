@@ -7,7 +7,7 @@ _One of us!_
 If you’re confused and don’t know what to do, have a look at the [Manual](https://silverbullet.md/Manual).
 
 # Recent quick notes
-*Create:* ${widgets.commandButton "Quick Note"}
+${widgets.commandButton "Quick Note"}
 
 ${some(query[[
   from p = tags.page
@@ -15,6 +15,17 @@ ${some(query[[
   order by p.lastModified desc
   limit 10 select templates.fullPageItem(p)
 ]]) or "_No quick notes yet!_"}
+
+# Recent journal entries
+${widgets.commandButton "Journal: Today"}
+
+${some(query[[
+  from j = index.tag(config.get("journal.tag"))
+  where j.tag == "page"
+  order by j.date desc
+  limit 14
+  select templates.pageItem(j)
+]]) or "_No journal entries yet!_"}
 
 # Recent incomplete tasks
 ${some(query[[

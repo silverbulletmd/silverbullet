@@ -78,7 +78,7 @@ ${query[[
 # What’s next?
 You now have a very basic personal CRM: person pages with structured data, meeting notes that link to attendees, tasks that reference people, and automatic activity logs via linked mentions and linked tasks.
 
-* [[Guide/Journaling]] — set up a daily journal
+* [[Journal]] — set up a daily journal
 * [[Guide/Knowledge Base]] — build a personal knowledge base
 * [[Guide/Task Management]] — track projects and tasks
 * [[Manual]] — the full user manual

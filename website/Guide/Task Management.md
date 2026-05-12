@@ -94,7 +94,7 @@ Each section updates live as you add, complete, or modify tasks across your spac
 # What's next?
 You now have a project tracking system: project pages with frontmatter, tasks scattered naturally across pages, linked tasks that connect everything, and a dashboard for the big picture.
 
-* [[Guide/Journaling]] — set up a daily journal
+* [[Journal]] — set up a daily journal
 * [[Guide/Knowledge Base]] — build a personal knowledge base
 * [[Guide/People Notes]] — keep track of people and conversations
 * [[Manual]] — the full user manual

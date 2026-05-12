@@ -86,7 +86,7 @@ ${template.each(query[[
 # What's next?
 Now that you know the basics, explore these guides for real-world workflows:
 
-* [[Guide/Journaling]] — set up a daily journal
+* [[Journal]] — set up a daily journal
 * [[Guide/Knowledge Base]] — build a personal knowledge base
 * [[Guide/Task Management]] — track projects and tasks
 * [[Guide/People Notes]] — keep track of people and conversations
