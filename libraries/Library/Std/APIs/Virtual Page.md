@@ -23,6 +23,10 @@ virtualPage.define {
 ```
 
 # Implementation
+Resolution happens in the client (TypeScript), so this Lua API only needs to
+record definitions. SilverBullet reads `config.virtualPages` directly when a
+page is being loaded — see `client/virtual_pages.ts`.
+
 ```space-lua
 -- priority: 99
 virtualPage = virtualPage or {}
@@ -33,24 +37,4 @@ virtualPage = virtualPage or {}
 function virtualPage.define(def)
   config.set({"virtualPages", def.pattern}, def)
 end
-```
-
-```space-lua
--- priority: -1
-event.listen {
-  name = "editor:pageCreating",
-  run = function(e)
-    local pageName = e.data.name
-    for _, def in pairs(config.get("virtualPages", {})) do
-      local match = pageName:match(def.pattern)
-      if match != nil then
-        -- we got an actual match
-        return {
-          text = def.run(match),
-          perm = "ro"
-        }
-      end
-    end
-  end
-}
 ```

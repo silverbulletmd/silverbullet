@@ -70,6 +70,8 @@ virtualPage.define {
 ```
 
 # How it works under the hood
-Virtual page definitions are stored in the config system under the `virtualPages` key. When a page is being created, SilverBullet fires the `editor:pageCreating` event. The standard library's event listener checks all registered patterns against the page name. If a match is found, the corresponding `run` function is called, and its return value becomes the page content with read-only permissions.
+Virtual page definitions are stored in the config system under the `virtualPages` key. When you navigate to a page, SilverBullet first tries to load it as a real file; only if that lookup misses does it check the registered patterns against the page name. If a pattern matches, the corresponding `run` function is called and its return value becomes the page content with read-only permissions.
+
+This means a real file always shadows a matching virtual page — for example, creating `tag:my-tag.md` overrides the default tag virtual page just for that one tag.
 
 See also: [[API/event]], [[API/config]]
