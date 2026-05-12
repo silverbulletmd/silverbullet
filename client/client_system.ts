@@ -160,7 +160,7 @@ export class ClientSystem {
       markdownSyscalls(client),
       assetSyscalls(this.system),
       codeWidgetSyscalls(this.codeWidgetHook),
-      clientCodeWidgetSyscalls(),
+      clientCodeWidgetSyscalls(this.client),
       languageSyscalls(),
       jsonschemaSyscalls(),
       indexSyscalls(this.objectIndex, this.client),

@@ -15,6 +15,13 @@ export class IFrameWidget extends WidgetType {
     readonly codeWidgetCallback: CodeWidgetCallback,
   ) {
     super();
+    // Eagerly kick off the callback so the result is in flight before
+    // CodeMirror mounts the widget. Idempotent on bodyText.
+    this.client.widgetCache.prewarmResult(this.bodyText, () =>
+      this.codeWidgetCallback(this.bodyText, this.client.currentName()),
+    ).catch(() => {
+      // renderContent / iframe message handler will surface errors.
+    });
   }
 
   override get estimatedHeight(): number {
@@ -29,7 +36,9 @@ export class IFrameWidget extends WidgetType {
     const iframe = createWidgetSandboxIFrame(
       this.client,
       this.bodyText,
-      this.codeWidgetCallback(this.bodyText, this.client.currentName()),
+      this.client.widgetCache.prewarmResult(this.bodyText, () =>
+        this.codeWidgetCallback(this.bodyText, this.client.currentName()),
+      ),
       (message) => {
         switch (message.type) {
           case "blur": {
@@ -42,6 +51,8 @@ export class IFrameWidget extends WidgetType {
             break;
           }
           case "reload":
+            // Force-refresh: drop any prewarmed result and re-run.
+            this.client.widgetCache.invalidatePrewarm(this.bodyText);
             void this.codeWidgetCallback(
               this.bodyText,
               this.client.currentName(),

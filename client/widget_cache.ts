@@ -9,6 +9,12 @@ export type WidgetMeta = {
 
 export class WidgetCache {
   private widgetMetaCache = new LimitedMap<WidgetMeta>(1000);
+  // Session-only cache of in-flight or completed widget callback results.
+  // Used to kick off widget queries before CodeMirror actually mounts the
+  // widget (e.g. when scrolling fast past widgets that haven't entered the
+  // viewport yet), so renderContent can synchronously await a result that's
+  // already been computed.
+  private pendingResults = new LimitedMap<Promise<any>>(1000);
 
   private debouncedWidgetMetaCacheFlush = throttle(() => {
     this.ds
@@ -47,5 +53,26 @@ export class WidgetCache {
     if (!this.widgetMetaCache.get(key)) return;
     this.widgetMetaCache.remove(key);
     this.debouncedWidgetMetaCacheFlush();
+  }
+
+  // Pre-execute (or return the in-flight/completed result of) a widget
+  // callback. Subsequent calls with the same key return the same promise,
+  // so calling this from a widget's constructor is safe even when the
+  // CodeMirror decoration field re-builds widgets on every state update.
+  prewarmResult<T>(key: string, fn: () => Promise<T>): Promise<T> {
+    let p = this.pendingResults.get(key) as Promise<T> | undefined;
+    if (!p) {
+      p = fn();
+      this.pendingResults.set(key, p);
+    }
+    return p;
+  }
+
+  invalidatePrewarm(key: string) {
+    this.pendingResults.remove(key);
+  }
+
+  clearPrewarm() {
+    this.pendingResults = new LimitedMap(1000);
   }
 }

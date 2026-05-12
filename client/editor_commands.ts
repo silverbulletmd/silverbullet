@@ -532,6 +532,7 @@ export function registerEditorCommands(
     name: "Widgets: Refresh All",
     requireEditor: "page",
     run: async () => {
+      client.widgetCache.clearPrewarm();
       broadcastReload();
       return reloadAllWidgets();
     },
