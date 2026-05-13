@@ -6,9 +6,10 @@ import {
   decoratorStateField,
   invisibleDecoration,
   isCursorInRange,
-  shouldRenderWidgets,
+  widgetRenderMode,
 } from "./util.ts";
 import { IFrameWidget } from "./iframe_widget.ts";
+import { LoadingWidget } from "./loading_widget.ts";
 
 export function fencedCodePlugin(client: Client) {
   return decoratorStateField((state: EditorState) => {
@@ -24,8 +25,9 @@ export function fencedCodePlugin(client: Client) {
           const [_, lang] = text.match(/^(?:```+|~~~+)(\w+)?/)!;
           const codeWidgetCallback =
             client.clientSystem.codeWidgetHook.codeWidgetCallbacks.get(lang);
+          const renderMode = widgetRenderMode(client);
           // Only custom render when we have a custom renderer, and the current page is not a template
-          if (codeWidgetCallback && shouldRenderWidgets(client)) {
+          if (codeWidgetCallback && renderMode !== "disabled") {
             // We got a custom renderer!
             const lineStrings = text.split("\n");
 
@@ -68,11 +70,13 @@ export function fencedCodePlugin(client: Client) {
               );
             });
 
-            const widget = new IFrameWidget(
-              client,
-              lineStrings.slice(1, lineStrings.length - 1).join("\n"),
-              codeWidgetCallback,
-            );
+            const widget = renderMode === "loading"
+              ? new LoadingWidget(true)
+              : new IFrameWidget(
+                  client,
+                  lineStrings.slice(1, lineStrings.length - 1).join("\n"),
+                  codeWidgetCallback,
+                );
             widgets.push(
               Decoration.widget({
                 widget: widget,

@@ -116,6 +116,12 @@ export class Client {
 
   // Set to true once the system is ready (plugs loaded)
   public systemReady: boolean = false;
+  // Set to true once the object index has been fully built at least once
+  public fullIndexCompleted: boolean = false;
+  // Set to true once viewState.allPages has been populated from the index
+  public pageListLoaded: boolean = false;
+  // Guard so we only fire the loading→ready editor:reloadState once.
+  private widgetReadyDispatched: boolean = false;
   private pageNavigator!: PathPageNavigator;
   private onLoadRef: Ref;
   dbPrefix?: string;
@@ -175,6 +181,39 @@ export class Client {
       this.eventHook,
       this.mq,
     );
+
+    // Seed the full-index readiness flag from persistent state so a
+    // warm reload doesn't unnecessarily flash loading spinners.
+    this.fullIndexCompleted = await this.objectIndex.hasFullIndexCompleted();
+
+    // After the initial index completes (object_index.ts dispatches this),
+    // mark the flag and — if the page list cache previously took the
+    // fallback branch (so `pageListLoaded` stayed false) — re-run it
+    // so it reflects the now-indexed, transform-applied values. The
+    // editor itself will be rebuilt by client_system's listener for
+    // the same event; we don't need to dispatch a fresh one here.
+    this.eventHook.addLocalListener("editor:reloadState", () => {
+      this.fullIndexCompleted = true;
+      if (!this.pageListLoaded) {
+        this.updatePageListCache().catch(console.error);
+      }
+    });
+
+    // If widget rendering is still gated waiting on a full index, the
+    // initial-index handler in ObjectIndex may have unsubscribed or
+    // never fired for this client. After any indexing pass empties the
+    // queue, refresh the page list cache so its index-backed branch
+    // can flip pageListLoaded and unblock widget rendering.
+    this.eventHook.addLocalListener("mq:emptyQueue:indexQueue", async () => {
+      if (this.widgetReadyDispatched) return;
+      if (
+        !this.pageListLoaded &&
+        (await this.objectIndex.hasFullIndexCompleted())
+      ) {
+        this.fullIndexCompleted = true;
+        await this.updatePageListCache();
+      }
+    });
 
     // Instantiate a PlugOS system
     this.clientSystem = new ClientSystem(
@@ -243,6 +282,7 @@ export class Client {
     // await this.initSync();
     await this.eventHook.dispatchEvent("system:ready");
     this.systemReady = true;
+    this.maybeDispatchWidgetsReady();
 
     this.initHeadlessRuntime();
 
@@ -588,8 +628,36 @@ export class Client {
       allPages: allPages,
     });
 
+    // Only flip the readiness flag if allPages reflects the indexed,
+    // transform-applied values (the index branch). The fallback branch
+    // produces raw page meta without pageDecoration, so we keep
+    // showing loading widgets until the index is back.
+    if (initialIndexCompleted) {
+      this.pageListLoaded = true;
+      this.maybeDispatchWidgetsReady();
+    }
+
     // Async kick-off file listing to bring listing up to date
     void this.space.spacePrimitives.fetchFileList();
+  }
+
+  /**
+   * If we just transitioned from "loading" to "ready" for widget
+   * rendering, dispatch editor:reloadState so the editor rebuilds and
+   * the loading placeholders get replaced with real widgets. Fires at
+   * most once per session.
+   */
+  public maybeDispatchWidgetsReady() {
+    if (this.widgetReadyDispatched) return;
+    if (
+      this.systemReady &&
+      this.clientSystem.scriptsLoaded &&
+      this.fullIndexCompleted &&
+      this.pageListLoaded
+    ) {
+      this.widgetReadyDispatched = true;
+      void this.eventHook.dispatchEvent("editor:reloadState");
+    }
   }
 
   async updateDocumentListCache() {

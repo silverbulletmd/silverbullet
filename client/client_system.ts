@@ -220,6 +220,7 @@ export class ClientSystem {
     this.mqHook.throttledReloadQueues();
 
     this.scriptsLoaded = true;
+    this.client.maybeDispatchWidgetsReady();
   }
 
   async loadPlugFromPath(path: string, lastModified: number) {

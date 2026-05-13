@@ -188,9 +188,27 @@ export function isCursorInRange(state: EditorState, range: [number, number]) {
  */
 export const invisibleDecoration = Decoration.replace({});
 
-export function shouldRenderWidgets(client: Client) {
-  return (
-    client.systemReady &&
-    client.currentPageMeta()?.pageDecoration?.renderWidgets !== false
-  );
+export type WidgetRenderMode = "ready" | "loading" | "disabled";
+
+/**
+ * Returns the render mode for widgets on the current page:
+ *  - "disabled": user/page opted out of widget rendering — show raw source.
+ *  - "loading":  widget rendering is wanted but required state isn't ready
+ *                yet (system ready, scripts loaded, full index, page list).
+ *                Callers should render LoadingWidget placeholders.
+ *  - "ready":    render real widgets.
+ */
+export function widgetRenderMode(client: Client): WidgetRenderMode {
+  if (client.currentPageMeta()?.pageDecoration?.renderWidgets === false) {
+    return "disabled";
+  }
+  if (
+    !client.systemReady ||
+    !client.clientSystem.scriptsLoaded ||
+    !client.fullIndexCompleted ||
+    !client.pageListLoaded
+  ) {
+    return "loading";
+  }
+  return "ready";
 }

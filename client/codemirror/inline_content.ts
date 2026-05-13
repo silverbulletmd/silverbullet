@@ -5,10 +5,11 @@ import {
   decoratorStateField,
   invisibleDecoration,
   isCursorInRange,
-  shouldRenderWidgets,
+  widgetRenderMode,
 } from "./util.ts";
 import type { Client } from "../client.ts";
 import { LuaWidget } from "./lua_widget.ts";
+import { LoadingWidget } from "./loading_widget.ts";
 import {
   createMediaElement,
   expandMarkdown,
@@ -29,8 +30,8 @@ import { parseToRef } from "@silverbulletmd/silverbullet/lib/ref";
 export function inlineContentPlugin(client: Client) {
   return decoratorStateField((state: EditorState) => {
     const widgets: Range<Decoration>[] = [];
-    if (!shouldRenderWidgets(client)) {
-      // console.info("Not rendering widgets");
+    const renderMode = widgetRenderMode(client);
+    if (renderMode === "disabled") {
       return Decoration.set([]);
     }
 
@@ -55,6 +56,16 @@ export function inlineContentPlugin(client: Client) {
         }
         if (!renderingSyntax && !cursorIsInRange) {
           widgets.push(invisibleDecoration.range(from, to));
+        }
+
+        if (renderMode === "loading") {
+          widgets.push(
+            Decoration.widget({
+              widget: new LoadingWidget(true),
+              block: true,
+            }).range(from),
+          );
+          return;
         }
 
         widgets.push(

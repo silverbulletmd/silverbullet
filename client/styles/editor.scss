@@ -336,6 +336,35 @@
     margin: -1em 0;
   }
 
+  .sb-loading-widget {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    color: var(--top-loading-color, #888);
+    opacity: 0.7;
+    vertical-align: middle;
+  }
+
+  .sb-loading-widget-block {
+    display: flex;
+    padding: 0.2em 0;
+  }
+
+  .sb-loading-spinner {
+    display: inline-block;
+    width: 0.9em;
+    height: 0.9em;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: sb-loading-spin 0.8s linear infinite;
+    box-sizing: border-box;
+  }
+
+  @keyframes sb-loading-spin {
+    to { transform: rotate(360deg); }
+  }
+
   .sb-widget-array {
     display: flex;
     flex-direction: column;
