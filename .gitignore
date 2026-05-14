@@ -1,4 +1,5 @@
 .env
+.chrome-data
 .DS_Store
 client_bundle/client
 client_bundle/base_fs
