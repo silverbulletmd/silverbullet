@@ -333,7 +333,17 @@
 
   .sb-lua-directive-block {
     display: block;
-    margin: -1em 0;
+  }
+
+  // Block lua widgets are CodeMirror inline widgets, so their DOM is a
+  // `<span>` wrapping a `display: block` div. A negative margin anywhere
+  // inside that subtree triggers a WebKit first-paint rendering bug
+  // (border drawn at the wrong position until any subsequent layout
+  // invalidation). Apply the line-height compression on the .cm-line
+  // outside the widget DOM instead, where WebKit handles it correctly.
+  .cm-line:has(.sb-lua-directive-block) {
+    margin-top: -1em;
+    margin-bottom: -1em;
   }
 
   .sb-loading-widget {
