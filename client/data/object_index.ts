@@ -399,6 +399,20 @@ export class ObjectIndex {
   }
 
   /**
+   * Returns distinct user-defined tag names — i.e. hashtags declared on pages,
+   * tasks or items, plus frontmatter tags. Built-in object types
+   * (`page`, `task`, `item`, …) are implicit and not listed here.
+   */
+  public async tagNames(): Promise<string[]> {
+    const names = new Set<string>();
+    for await (const entry of this.ds.query({ prefix: [indexKey, "tag"] })) {
+      const value = entry.value as { name?: unknown } | undefined;
+      if (value && typeof value.name === "string") names.add(value.name);
+    }
+    return [...names].sort((a, b) => a.localeCompare(b));
+  }
+
+  /**
    * Clears the entire index
    */
   public async clearIndex(): Promise<void> {
