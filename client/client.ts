@@ -651,9 +651,8 @@ export class Client {
       this.pageListLoaded
     ) {
       this.widgetReadyDispatched = true;
-      void this.eventHook
-        .dispatchEvent("editor:reloadState")
-        .finally(() => this.resolveWidgetsReady());
+      this.rebuildEditorState();
+      this.resolveWidgetsReady();
     }
   }
 
