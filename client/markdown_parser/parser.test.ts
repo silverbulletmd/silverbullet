@@ -104,6 +104,12 @@ test("Test multi-status tasks", () => {
   expect(tasks[2].children![0].children![1].text).toEqual("TODO");
 });
 
+test("Test escaped brackets in list item does not parse as task", () => {
+  const tree = parseMarkdown(`- [\\[Sample Text\\]](https://example.org/)`);
+  const tasks = collectNodesOfType(tree, "Task");
+  expect(tasks.length).toEqual(0);
+});
+
 test("Test lua directive parser", () => {
   const simpleExample = `Simple \${query_coll("something")}`;
   console.log(JSON.stringify(parseMarkdown(simpleExample), null, 2));
@@ -355,8 +361,9 @@ Bare $ alone is not an anchor.
 A $100 dollar bill (digit-leading is not an anchor).
 `,
   );
-  const anchors = collectNodesOfType(tree, "NamedAnchor")
-    .map((n) => renderToText(n));
+  const anchors = collectNodesOfType(tree, "NamedAnchor").map((n) =>
+    renderToText(n),
+  );
   expect(anchors).toEqual(["$toc1", "$tasks/7", "$work-1", "$sec1"]);
 });
 
