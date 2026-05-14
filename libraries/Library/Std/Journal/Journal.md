@@ -91,12 +91,16 @@ function journal.neighbor(direction)
   end
   if direction == "previous" then
     for _, e in ipairs(entries) do
-      if e.date < pivot then return e end
+      if e.date < pivot then
+        return e
+      end
     end
   else
     local result
     for _, e in ipairs(entries) do
-      if e.date > pivot then result = e end
+      if e.date and e.date > pivot then
+        result = e
+      end
     end
     return result
   end
