@@ -166,19 +166,10 @@ export async function waitForSaveAndReadFromServer(
 
 /**
  * Wait for the SilverBullet client to finish booting widgets.
- *
- * The client sets `window.__sbRuntimeAPIReady = true` once its widget
- * readiness transition has settled (full index complete, space-lua
- * scripts loaded, page list cache populated, and the resulting
- * `editor:reloadState` rebuild finished — see `client/client.ts`). The
- * final rebuild resets the CodeMirror editor; typing before it lands
- * causes the cursor to jump and input to split. Waiting on this global
- * before typing sidesteps that race without introducing test-only
- * hooks into the client.
  */
 export async function waitForEditorReady(page: Page): Promise<void> {
 	await page.waitForFunction(
-		() => (globalThis as any).__sbRuntimeAPIReady === true,
+		() => (globalThis as any).sbRuntime?.ready === true,
 		undefined,
 		{ timeout: 15_000 },
 	);

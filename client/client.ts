@@ -73,12 +73,23 @@ import type {
   ServiceWorkerTargetMessage,
 } from "./types/ui.ts";
 import { WidgetCache } from "./widget_cache.ts";
+import { handleObjectsRequest } from "./runtime_api/objects_api.ts";
 
 // Fetch the file list ever so often, this will implicitly kick off a snapshot comparison resulting in the indexing of changed pages
 const fetchFileListInterval = 10000;
 
+// Runtime API bridge: written by the client when running headless to evaluate Lua and invoke the objects API in the live client.
+export type SBRuntime = {
+  headless?: boolean;
+  ready?: boolean;
+  evalLua?: (expr: string) => Promise<unknown>;
+  evalLuaScript?: (script: string) => Promise<unknown>;
+  objectsAPI?: (reqJson: string) => Promise<string>;
+};
+
 declare global {
   var client: Client;
+  var sbRuntime: SBRuntime;
 }
 
 // TODO: Clean this up, this has become a god class...
@@ -519,7 +530,7 @@ export class Client {
    * and signal readiness once the full index is complete.
    */
   private initHeadlessRuntime() {
-    if (!(globalThis as any).__sbHeadless) {
+    if (!globalThis.sbRuntime.headless) {
       return;
     }
     console.log("[RuntimeAPI] Headless mode, exposing eval functions");
@@ -543,9 +554,32 @@ export class Client {
       return (await Promise.resolve(luaValueToJS(returnValue, sf))) ?? null;
     };
 
-    (globalThis as any).__sbEvalLua = (expr: string) =>
+    globalThis.sbRuntime.evalLua = (expr: string) =>
       evalLuaCode(`return ${expr}`);
-    (globalThis as any).__sbEvalLuaScript = evalLuaCode;
+    globalThis.sbRuntime.evalLuaScript = evalLuaCode;
+
+    globalThis.sbRuntime.objectsAPI = async (
+      reqJson: string,
+    ): Promise<string> => {
+      try {
+        const req = JSON.parse(reqJson);
+        const scriptEnv = new LuaEnv(spaceLuaEnv.env);
+        const tl = new LuaEnv();
+        tl.setLocal("_GLOBAL", spaceLuaEnv.env);
+        const sf = new LuaStackFrame(tl, null);
+        const response = await handleObjectsRequest(
+          { objectIndex: this.objectIndex, env: scriptEnv, stackFrame: sf },
+          req,
+        );
+        return JSON.stringify(response);
+      } catch (e: unknown) {
+        return JSON.stringify({
+          ok: false,
+          code: "internal_error",
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
+    };
 
     // Signal readiness after widgets are fully ready (index complete +
     // editor state rebuild settled). Waiting on the widget-ready
@@ -554,7 +588,7 @@ export class Client {
       console.log(
         "[RuntimeAPI] Ready (eval functions exposed + widgets ready)",
       );
-      (globalThis as any).__sbRuntimeAPIReady = true;
+      globalThis.sbRuntime.ready = true;
     });
   }
 

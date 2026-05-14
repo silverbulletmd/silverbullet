@@ -260,7 +260,7 @@ func (b *RuntimeBridge) HandleLuaAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	b.evalAndRespond(w, r, "__sbEvalLua", expr)
+	b.evalAndRespond(w, r, "sbRuntime.evalLua", expr)
 }
 
 // HandleLuaScriptAPI handles POST /.runtime/lua_script — evaluates a Lua script block.
@@ -277,5 +277,5 @@ func (b *RuntimeBridge) HandleLuaScriptAPI(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	b.evalAndRespond(w, r, "__sbEvalLuaScript", script)
+	b.evalAndRespond(w, r, "sbRuntime.evalLuaScript", script)
 }

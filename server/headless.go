@@ -313,7 +313,7 @@ func (hb *HeadlessBrowser) Logs(limit int, since int64) []ConsoleLogEntry {
 	return result
 }
 
-// evalViaGlobal calls a global async JS function (e.g. __sbEvalLua) with the given code
+// evalViaGlobal calls a global async JS function (e.g. sbRuntime.evalLua) with the given code
 // string via CDP runtime.Evaluate, awaiting the promise and returning the result.
 func (hb *HeadlessBrowser) evalViaGlobal(ctx context.Context, fnName string, code string) (any, error) {
 	// JSON-encode the code string to safely embed it in JS
@@ -337,14 +337,14 @@ func (hb *HeadlessBrowser) evalViaGlobal(ctx context.Context, fnName string, cod
 	return result, nil
 }
 
-// EvalLua evaluates a Lua expression via the browser's global __sbEvalLua function.
+// EvalLua evaluates a Lua expression via the browser's runtime bridge.
 func (hb *HeadlessBrowser) EvalLua(ctx context.Context, expr string) (any, error) {
-	return hb.evalViaGlobal(ctx, "__sbEvalLua", expr)
+	return hb.evalViaGlobal(ctx, "sbRuntime.evalLua", expr)
 }
 
-// EvalLuaScript evaluates a Lua script via the browser's global __sbEvalLuaScript function.
+// EvalLuaScript evaluates a Lua script via the browser's runtime bridge.
 func (hb *HeadlessBrowser) EvalLuaScript(ctx context.Context, script string) (any, error) {
-	return hb.evalViaGlobal(ctx, "__sbEvalLuaScript", script)
+	return hb.evalViaGlobal(ctx, "sbRuntime.evalLuaScript", script)
 }
 
 // waitForClientReady polls until the SilverBullet client's eval functions are ready
@@ -377,7 +377,7 @@ func waitForClientReady(ctx context.Context) error {
 			// Check the global readiness flag (set after WS connected + index complete)
 			var ready bool
 			err := chromedp.Run(ctx,
-				chromedp.Evaluate(`!!globalThis.__sbRuntimeAPIReady`, &ready),
+				chromedp.Evaluate(`!!(globalThis.sbRuntime && globalThis.sbRuntime.ready)`, &ready),
 			)
 			if err != nil {
 				continue

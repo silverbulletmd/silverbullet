@@ -16,6 +16,11 @@ import type { BootConfig, ServiceWorkerTargetMessage } from "./types/ui.ts";
 import { BoxProxy } from "./lib/box_proxy.ts";
 import { importKey } from "@silverbulletmd/silverbullet/lib/crypto";
 import "./debug.ts";
+
+// Initialize the runtime-bridge namespace. `??=` preserves any value an
+// earlier init script may have already installed (desktop wrapper does this)
+globalThis.sbRuntime ??= {};
+
 const logger = initLogger("[Client]");
 
 if (!crypto.subtle) {
@@ -140,9 +145,10 @@ safeRun(async () => {
   await augmentBootConfig(bootConfig!, config!);
 
   const isHeadless = new URLSearchParams(location.search).has("headless");
-  // Expose headless flag globally so client.init() can detect it after URL params are stripped
+  // Expose headless flag on the runtime bridge so client.init() can detect
+  // it after URL params are stripped.
   if (isHeadless) {
-    (globalThis as any).__sbHeadless = true;
+    globalThis.sbRuntime.headless = true;
   }
 
   // Update the browser URL to no longer contain the query parameters using pushState
