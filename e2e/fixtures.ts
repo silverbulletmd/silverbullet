@@ -140,10 +140,9 @@ export async function gotoSilverBulletPage(
 	pagePath = "",
 ): Promise<void> {
 	const encoded = pagePath.split("/").map(encodeURIComponent).join("/");
-	// headless=1 makes the client expose `__sbRuntimeAPIReady` on window once
-	// the initial index completes — `waitForEditorReady` relies on it.
 	await page.goto(`${sbServer.url}/${encoded}?enableSW=0&headless=1`);
 	await page.locator("#sb-editor .cm-editor").waitFor({ state: "visible", timeout: 30_000 });
+	await waitForEditorReady(page);
 }
 
 /**
@@ -166,15 +165,16 @@ export async function waitForSaveAndReadFromServer(
 }
 
 /**
- * Wait for the SilverBullet client's initial index to complete.
+ * Wait for the SilverBullet client to finish booting widgets.
  *
- * The client sets `window.__sbRuntimeAPIReady = true` after its first full
- * index drains (see `client/client.ts`). Completion of that index also
- * triggers `editor:reloadState` → `rebuildEditorState()`, which resets the
- * CodeMirror editor. If that reset fires mid-type, the cursor jumps to
- * position 0 and synthetic input splits across the document. Waiting on
- * this global before typing into a fresh page sidesteps the race without
- * introducing test-only hooks into the client.
+ * The client sets `window.__sbRuntimeAPIReady = true` once its widget
+ * readiness transition has settled (full index complete, space-lua
+ * scripts loaded, page list cache populated, and the resulting
+ * `editor:reloadState` rebuild finished — see `client/client.ts`). The
+ * final rebuild resets the CodeMirror editor; typing before it lands
+ * causes the cursor to jump and input to split. Waiting on this global
+ * before typing sidesteps that race without introducing test-only
+ * hooks into the client.
  */
 export async function waitForEditorReady(page: Page): Promise<void> {
 	await page.waitForFunction(

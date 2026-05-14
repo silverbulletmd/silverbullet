@@ -122,6 +122,11 @@ export class Client {
   public pageListLoaded: boolean = false;
   // Guard so we only fire the loading→ready editor:reloadState once.
   private widgetReadyDispatched: boolean = false;
+  // Resolves once the widget-ready transition has been dispatched and the
+  // resulting editor state rebuild has settled. Headless tests wait on
+  // this to avoid typing into the editor mid-rebuild.
+  public widgetsReady!: Promise<void>;
+  private resolveWidgetsReady!: () => void;
   private pageNavigator!: PathPageNavigator;
   private onLoadRef: Ref;
   dbPrefix?: string;
@@ -138,6 +143,9 @@ export class Client {
     this.eventHook = new EventHook(this.config);
     // The third case should only ever happen when the user provides an invalid index env variable
     this.onLoadRef = parseRefFromURI() || this.getIndexRef();
+    this.widgetsReady = new Promise<void>((resolve) => {
+      this.resolveWidgetsReady = resolve;
+    });
   }
 
   /**
@@ -539,28 +547,15 @@ export class Client {
       evalLuaCode(`return ${expr}`);
     (globalThis as any).__sbEvalLuaScript = evalLuaCode;
 
-    // Signal readiness after full index is complete
-    void this.waitForFullIndex().then(() => {
+    // Signal readiness after widgets are fully ready (index complete +
+    // editor state rebuild settled). Waiting on the widget-ready
+    // transition ensures tests don't type into the editor mid-rebuild.
+    void this.widgetsReady.then(() => {
       console.log(
-        "[RuntimeAPI] Ready (eval functions exposed + index complete)",
+        "[RuntimeAPI] Ready (eval functions exposed + widgets ready)",
       );
       (globalThis as any).__sbRuntimeAPIReady = true;
     });
-  }
-
-  private async waitForFullIndex(): Promise<void> {
-    while (!(await this.objectIndex.hasFullIndexCompleted())) {
-      await new Promise<void>((resolve) => {
-        const handler = () => {
-          this.eventHook.removeLocalListener(
-            "mq:emptyQueue:indexQueue",
-            handler,
-          );
-          resolve();
-        };
-        this.eventHook.addLocalListener("mq:emptyQueue:indexQueue", handler);
-      });
-    }
   }
 
   async updatePageListCache() {
@@ -656,7 +651,9 @@ export class Client {
       this.pageListLoaded
     ) {
       this.widgetReadyDispatched = true;
-      void this.eventHook.dispatchEvent("editor:reloadState");
+      void this.eventHook
+        .dispatchEvent("editor:reloadState")
+        .finally(() => this.resolveWidgetsReady());
     }
   }
 
