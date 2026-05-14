@@ -13,6 +13,7 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
 * Fix: [[Page Template]]s are now fixed (required specifying of `suggestedName` before), now also supports objects as frontmatter
 * Removed: tapping the top bar (page name / action buttons area) no longer scrolls the editor to the top.
 * Fix: page decoration prefixes now consistently appear in query-driven lists
+* Fix: Safari/WebKit no longer renders block lua widget (queries, etc.) borders at the wrong position on first paint (previously required hovering or resizing the window to clean up).
 
 ## 2.7.0
 * [[Configuration Manager]]: new UI for editing configuration, accessed via the `Configuration: Open` command (`Ctrl/Cmd-,`) and `Configuration: Key Bindings` commands. This is a work in progress, but should already be a big improvement over the old ways. It currently supports:
