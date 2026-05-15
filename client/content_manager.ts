@@ -28,6 +28,7 @@ import { fsEndpoint } from "./spaces/constants.ts";
 import { parseMarkdown } from "./markdown_parser/parser.ts";
 import type { Client } from "./client.ts";
 import type { LocationState } from "./navigator.ts";
+import { resolveVirtualPage } from "./virtual_pages.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -269,6 +270,7 @@ export class ContentManager {
     // Fetch next page to open
     let doc;
     let markerIndex = -1;
+    let isVirtual = false;
     try {
       doc = await this.client.space.readPage(pageName);
     } catch (e: any) {
@@ -286,12 +288,24 @@ export class ContentManager {
           pageName,
         );
       }
+    }
 
+    // Check for matching virtual page before creating empty page
+    if (!doc) {
+      const virtual = await resolveVirtualPage(this.client, pageName);
+      if (virtual) {
+        doc = virtual.doc;
+        markerIndex = virtual.markerIndex;
+        isVirtual = true;
+      }
+    }
+
+    if (!doc) {
       // Scenarios:
       // 1. We got a not found error -> Create an empty page
       // 2. We got a offline error (which meant that the service worker didn't locally retrieve the page either so likely it doesn't exist) -> Create a new page
-      // Either way... we create an empty page!
-
+      // plus -- No virtual page matches the pattern
+      // so, either way... we create an empty page!
       console.log(`Page doesn't exist, creating new page: ${pageName}`);
 
       // Mock up the page. We won't yet safe it, because the user may not even
@@ -395,7 +409,10 @@ export class ContentManager {
       this.applyExternalPatches(doc.text);
     }
 
-    this.client.space.watchFile(path);
+    // Don't watch virtual pages (there's nothing to watch)
+    if (!isVirtual) {
+      this.client.space.watchFile(path);
+    }
 
     if (navigateWithinPage) {
       // Setup scroll position, cursor position, etc
