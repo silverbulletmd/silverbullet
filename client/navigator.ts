@@ -50,11 +50,15 @@ export class PathPageNavigator {
 
     this.openLocations.set(currentState.path, currentState);
 
+    // history.state intentionally carries only the Ref (path + details).
+    // Ephemeral position (scrollTop, selection) lives exclusively in
+    // openLocations, which is refreshed on every popstate.
+    const currentRef: Ref = { path: currentState.path };
     if (!replaceState) {
       globalThis.history.replaceState(
-        currentState,
+        currentRef,
         "",
-        `${document.baseURI}${this.pathToURI(currentState.path)}`,
+        `${document.baseURI}${this.pathToURI(currentRef.path)}`,
       );
       globalThis.history.pushState(
         ref,
@@ -94,18 +98,19 @@ export class PathPageNavigator {
       } else {
         // This can e.g. happen on the first navigate. We obviously can't fall back to the same path, so fallback to the indexpage
 
-        const newState: LocationState =
-          currentState.path === ref.path ? this.indexRef : currentState;
+        const newRef: Ref = currentState.path === ref.path
+          ? this.indexRef
+          : { path: currentState.path };
 
         globalThis.history.replaceState(
-          newState,
+          newRef,
           "",
-          `${document.baseURI}${this.pathToURI(newState.path)}`,
+          `${document.baseURI}${this.pathToURI(newRef.path)}`,
         );
 
         globalThis.dispatchEvent(
           new PopStateEvent("popstate", {
-            state: newState,
+            state: newRef,
           }),
         );
 
@@ -128,36 +133,49 @@ export class PathPageNavigator {
     if (locationState.path === "") {
       locationState.path = this.indexRef.path;
     }
-
     if (isMarkdownPath(locationState.path)) {
-      const editorView = this.client.editorView;
-
-      const mainSelection = editorView.state.selection.main;
-      locationState.scrollTop = editorView.scrollDOM.scrollTop;
-      locationState.selection = {
-        head: mainSelection.head,
-        anchor: mainSelection.anchor,
-      };
+      Object.assign(locationState, this.captureEditorPosition());
     }
-
     return locationState;
+  }
+
+  /**
+   * Snapshot the current editor's scrollTop and selection. Only meaningful
+   * when the editor is currently showing a markdown page.
+   */
+  private captureEditorPosition(): Pick<LocationState, "scrollTop" | "selection"> {
+    const editorView = this.client.editorView;
+    const mainSelection = editorView.state.selection.main;
+    return {
+      scrollTop: editorView.scrollDOM.scrollTop,
+      selection: { head: mainSelection.head, anchor: mainSelection.anchor },
+    };
   }
 
   subscribe(pageLoadCallback: (locationState: LocationState) => Promise<void>) {
     globalThis.addEventListener("popstate", async (event: PopStateEvent) => {
+      // Browser back/forward bypasses navigate(), so capture the leaving
+      // page's position into openLocations here. (navigate() itself does the
+      // same on line above; a synthetic popstate redundantly re-saves the
+      // same value, which is cheap and harmless.)
+      const leavingPath = this.client.currentPath();
+      if (leavingPath && isMarkdownPath(leavingPath)) {
+        this.openLocations.set(leavingPath, {
+          path: leavingPath,
+          ...this.captureEditorPosition(),
+        });
+      }
+
       const state: LocationState = event.state
         ? event.state
         : // The popstate event can be fired in a whole list of weird situations
           // (see MDN). Try to do our best if it's fired without the state
           parseRefFromURI() || this.indexRef;
 
-      // Try filling in the ref using the openLocation cache
-      if (!state.details && !state.selection && !state.scrollTop) {
-        const openLocation = this.openLocations.get(state.path);
-        if (openLocation) {
-          state.selection = openLocation.selection;
-          state.scrollTop = openLocation.scrollTop;
-        }
+      const openLocation = this.openLocations.get(state.path);
+      if (openLocation) {
+        state.scrollTop = openLocation.scrollTop;
+        state.selection = openLocation.selection;
       }
 
       // For some (propably smart) reason the reject() function on a

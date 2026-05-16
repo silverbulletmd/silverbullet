@@ -627,13 +627,23 @@ export class ContentManager {
     let settled = false;
 
     const applyScroll = () => {
-      if (!settled) {
+      if (settled) return;
+      // Skip no-op writes so the observer below doesn't fight CodeMirror's
+      // own scroll-anchoring on widget-unrelated mutations.
+      if (scrollDOM.scrollTop !== scrollTop) {
         scrollDOM.scrollTop = scrollTop;
       }
     };
 
-    // Apply immediately on the next tick (as before)
-    setTimeout(applyScroll);
+    // Hide the editor until CodeMirror has done its first measure pass: a
+    // sync set after setState gets clamped to 0 because scrollHeight isn't
+    // established yet, and without hiding the browser paints once at 0.
+    scrollDOM.style.visibility = "hidden";
+    applyScroll();
+    requestAnimationFrame(() => {
+      applyScroll();
+      scrollDOM.style.visibility = "";
+    });
 
     // Watch for DOM mutations (widget rendering) and re-apply scroll position
     const observer = new MutationObserver(() => {
@@ -666,6 +676,7 @@ export class ContentManager {
     const cleanup = () => {
       if (settled) return;
       settled = true;
+      scrollDOM.style.visibility = "";
       observer.disconnect();
       clearTimeout(timeout);
       clearTimeout(scrollListenerTimer);

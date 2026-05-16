@@ -529,6 +529,113 @@ return x + y`
 		assert.LessOrEqual(t, len(logs), 5)
 	})
 
+	// getJSON issues an unauthenticated GET and returns (body, statusCode).
+	getJSON := func(t *testing.T, u string) (string, int) {
+		t.Helper()
+		resp, err := http.Get(u)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+		body, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		return string(body), resp.StatusCode
+	}
+
+	// Ensure the space is indexed so the objects API can find pages/tags.
+	// The headless client doesn't auto-index a fresh test space; trigger it
+	// synchronously via the Lua bridge before running the objects subtests.
+	t.Run("Objects_ReindexSetup", func(t *testing.T) {
+		resp, err := http.Post(ts.Server.URL+"/.runtime/lua", "text/plain",
+			strings.NewReader(`index.reindexSpace()`))
+		require.NoError(t, err)
+		defer resp.Body.Close()
+		body, _ := io.ReadAll(resp.Body)
+		require.Equalf(t, http.StatusOK, resp.StatusCode, "reindex failed: %s", string(body))
+	})
+
+	t.Run("Objects_ListTags", func(t *testing.T) {
+		body, status := getJSON(t, ts.Server.URL+"/.runtime/objects")
+		if status != 200 {
+			t.Fatalf("status=%d body=%s", status, body)
+		}
+		var tags []string
+		if err := json.Unmarshal([]byte(body), &tags); err != nil {
+			t.Fatalf("unmarshal: %v body=%s", err, body)
+		}
+		seen := map[string]bool{}
+		for _, name := range tags {
+			seen[name] = true
+		}
+		// tagNames returns user-defined hashtag names (not built-in object
+		// types like "page"). The website fixture declares a number of these
+		// via frontmatter and inline hashtags; "meta" is one of the stablest.
+		if !seen["meta"] {
+			t.Fatalf("expected `meta` tag in %v", seen)
+		}
+	})
+
+	t.Run("Objects_GetPage", func(t *testing.T) {
+		body, status := getJSON(t, ts.Server.URL+"/.runtime/objects/page/"+url.PathEscape("index"))
+		if status != 200 {
+			t.Fatalf("status=%d body=%s", status, body)
+		}
+		var obj map[string]any
+		if err := json.Unmarshal([]byte(body), &obj); err != nil {
+			t.Fatalf("unmarshal: %v body=%s", err, body)
+		}
+		if obj["tag"] != "page" {
+			t.Fatalf("unexpected object: %v", obj)
+		}
+	})
+
+	t.Run("Objects_Get_NotFound", func(t *testing.T) {
+		body, status := getJSON(t, ts.Server.URL+"/.runtime/objects/page/zzz-does-not-exist")
+		if status != 404 {
+			t.Fatalf("status=%d body=%s", status, body)
+		}
+	})
+
+	t.Run("Objects_List_Filter_Order_Limit", func(t *testing.T) {
+		u := ts.Server.URL + "/.runtime/objects/page?order=name&limit=2"
+		body, status := getJSON(t, u)
+		if status != 200 {
+			t.Fatalf("status=%d body=%s", status, body)
+		}
+		var arr []map[string]any
+		if err := json.Unmarshal([]byte(body), &arr); err != nil {
+			t.Fatalf("unmarshal: %v body=%s", err, body)
+		}
+		if len(arr) > 2 {
+			t.Fatalf("expected <=2 results, got %d", len(arr))
+		}
+	})
+
+	t.Run("Objects_List_TagWithSlash", func(t *testing.T) {
+		// `meta/library` is a real declared tag in the website fixture;
+		// the slash in the tag must be percent-encoded by the client.
+		u := ts.Server.URL + "/.runtime/objects/" + url.PathEscape("meta/library") + "?limit=1"
+		body, status := getJSON(t, u)
+		if status != 200 {
+			t.Fatalf("status=%d body=%s", status, body)
+		}
+		var arr []map[string]any
+		if err := json.Unmarshal([]byte(body), &arr); err != nil {
+			t.Fatalf("unmarshal: %v body=%s", err, body)
+		}
+		// Just make sure routing worked and we got a tag-shaped response.
+		if len(arr) > 0 {
+			if tag, _ := arr[0]["tag"].(string); tag == "" {
+				t.Fatalf("expected each object to carry a tag field: %v", arr[0])
+			}
+		}
+	})
+
+	t.Run("Objects_List_BadField", func(t *testing.T) {
+		_, status := getJSON(t, ts.Server.URL+`/.runtime/objects/page?where%5B1bad%5D=v`)
+		if status != 400 {
+			t.Fatalf("expected 400, got %d", status)
+		}
+	})
+
 }
 
 // --- Auth-enabled headless tests (single Chrome instance) ---

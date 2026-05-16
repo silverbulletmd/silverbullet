@@ -23,7 +23,7 @@ ${widgets.commandButton("System: Reload")}
 * Linked mentions: show a list of links that link to the current page, at the bottom of your page
 * Linked tasks: shows a list of tasks that link to the current page, at the top of the page
 
-These can each be individually enabled/disabled and configured in your [[CONFIG]] page (use `space-lua` instead of `lua`):
+These can each be individually enabled/disabled and configured in your `CONFIG` page (use `space-lua` instead of `lua`):
 
 ```lua
 -- Disable TOC altogether

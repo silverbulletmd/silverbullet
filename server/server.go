@@ -114,6 +114,10 @@ func Router(config *ServerConfig) chi.Router {
 		r.Post("/.runtime/lua_script", bridge.HandleLuaScriptAPI)
 		r.Get("/.runtime/screenshot", bridge.HandleScreenshot)
 		r.Get("/.runtime/logs", bridge.HandleConsoleLogs)
+		r.Get("/.runtime/objects", bridge.HandleObjectsListTags)
+		// Wildcard route + manual path split (see HandleObjectsByPath) so
+		// tags and refs containing `/` work when percent-encoded as `%2F`.
+		r.Get("/.runtime/objects/*", bridge.HandleObjectsByPath)
 	})
 
 	// Proxy endpoint

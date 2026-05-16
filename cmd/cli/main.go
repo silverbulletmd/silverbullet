@@ -25,6 +25,7 @@ func main() {
 		cli.ScriptCommand(),
 		cli.LuaScriptCommand(), // hidden alias
 		cli.QueryCommand(),
+		cli.GetCommand(),
 		cli.DescribeCommand(),
 		cli.LogsCommand(),
 		cli.ScreenshotCommand(),

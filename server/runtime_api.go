@@ -140,39 +140,61 @@ func (b *RuntimeBridge) getBrowser() *HeadlessBrowser {
 	return b.browser
 }
 
-// evalAndRespond evaluates Lua via CDP and writes the HTTP response.
-func (b *RuntimeBridge) evalAndRespond(w http.ResponseWriter, r *http.Request, fnName string, code string) {
+// withBridge ensures the headless browser is up (if configured), then runs fn
+// with a per-request timeout. Writes the appropriate error response when the
+// bridge isn't available, the browser failed to start, or fn timed out.
+// Returns false if the response was already written.
+func (b *RuntimeBridge) withBridge(
+	w http.ResponseWriter,
+	r *http.Request,
+	fn func(ctx context.Context, browser *HeadlessBrowser) (any, error),
+) (any, bool) {
 	runtimeAPIRequestsTotal.Inc()
-
-	// Lazy-start headless browser if configured
 	if b.config != nil {
 		if err := b.EnsureRunning(r.Context()); err != nil {
-			writeJSON(w, http.StatusServiceUnavailable, map[string]any{"error": fmt.Sprintf("Failed to start headless browser: %v", err)})
-			return
+			writeJSON(w, http.StatusServiceUnavailable, map[string]any{
+				"error": fmt.Sprintf("Failed to start headless browser: %v", err),
+				"code":  "bridge_unavailable",
+			})
+			return nil, false
 		}
 	}
-
 	browser := b.getBrowser()
 	if browser == nil {
-		writeJSON(w, http.StatusServiceUnavailable, map[string]any{"error": "No headless browser running"})
-		return
+		writeJSON(w, http.StatusServiceUnavailable, map[string]any{
+			"error": "No headless browser running",
+			"code":  "bridge_unavailable",
+		})
+		return nil, false
 	}
-
 	timeout := parseTimeout(r)
 	ctx, cancel := context.WithTimeout(browser.ctx, timeout)
 	defer cancel()
-
-	result, err := browser.evalViaGlobal(ctx, fnName, code)
+	res, err := fn(ctx, browser)
 	if err != nil {
 		if ctx.Err() != nil {
-			writeJSON(w, http.StatusGatewayTimeout, map[string]any{"error": "Request timed out"})
-			return
+			writeJSON(w, http.StatusGatewayTimeout, map[string]any{
+				"error": "Request timed out", "code": "timeout",
+			})
+			return nil, false
 		}
-		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
+		writeJSON(w, http.StatusInternalServerError, map[string]any{
+			"error": err.Error(), "code": "internal_error",
+		})
+		return nil, false
+	}
+	return res, true
+}
+
+// evalAndRespond evaluates Lua via CDP and writes the HTTP response.
+func (b *RuntimeBridge) evalAndRespond(w http.ResponseWriter, r *http.Request, fnName string, code string) {
+	res, ok := b.withBridge(w, r, func(ctx context.Context, browser *HeadlessBrowser) (any, error) {
+		return browser.evalViaGlobal(ctx, fnName, code)
+	})
+	if !ok {
 		return
 	}
-
-	writeJSON(w, http.StatusOK, map[string]any{"result": result})
+	writeJSON(w, http.StatusOK, map[string]any{"result": res})
 }
 
 // HandleScreenshot captures a screenshot from the headless browser and returns it as PNG.
@@ -238,7 +260,7 @@ func (b *RuntimeBridge) HandleLuaAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	b.evalAndRespond(w, r, "__sbEvalLua", expr)
+	b.evalAndRespond(w, r, "sbRuntime.evalLua", expr)
 }
 
 // HandleLuaScriptAPI handles POST /.runtime/lua_script — evaluates a Lua script block.
@@ -255,5 +277,5 @@ func (b *RuntimeBridge) HandleLuaScriptAPI(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	b.evalAndRespond(w, r, "__sbEvalLuaScript", script)
+	b.evalAndRespond(w, r, "sbRuntime.evalLuaScript", script)
 }
