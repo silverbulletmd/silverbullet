@@ -2,7 +2,7 @@
 description: The inline rendering of Markdown formatting as you type.
 tags: glossary
 ---
-SilverBullet uses a “live preview” markdown editor. This mechanism is heavily inspired by [Obsidian's live preview mode](https://help.obsidian.md/Live+preview+update).
+SilverBullet uses a “live preview” markdown editor. This mechanism is heavily inspired by [Obsidian's live preview mode](https://obsidian.md/help/edit-and-read#Live+Preview).
 
 It reduces visual noise by not constantly showing [[Markdown]] formatting codes such as `[SilverBullet website](https://silverbullet.md)`, only showing the underlying Markdown formatting when the cursor is placed inside.
 

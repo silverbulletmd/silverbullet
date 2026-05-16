@@ -22,7 +22,7 @@ This produces a `yourplug.plug.js` bundle. For development, copy somewhere in yo
 cp yourplug.plug.js ~/myspace/
 ```
 
-Within a few seconds watch your browser’s JavaScript console — the plug file should be synced locally. You can now run the `Plugs: Reload` command to “hot” reload it, without a full page.
+Within a few seconds watch your browser’s JavaScript console — the plug file should be synced locally. You can now run the `Plugs: Reload` command to “hot” reload it, without a full page refresh.
 
 # Hello world
 A minimal plug consists of two files: a YAML manifest and the TypeScript source it references.
