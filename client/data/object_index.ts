@@ -1,4 +1,5 @@
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
+import { compile as gitIgnoreCompiler } from "gitignore-parser";
 import type { Config } from "../config.ts";
 import {
   ArrayQueryCollection,
@@ -56,6 +57,21 @@ export class ObjectValidationError extends Error {
 }
 
 export class ObjectIndex {
+  private _indexIgnorePattern = "";
+  private _indexAccepts: ((path: string) => boolean) | null = null;
+
+  isIndexCandidate(path: string): boolean {
+    const raw = this.config.get<string | string[]>(["index", "ignore"], "");
+    const pattern = Array.isArray(raw) ? raw.join("\n") : raw;
+    if (pattern !== this._indexIgnorePattern) {
+      this._indexIgnorePattern = pattern;
+      this._indexAccepts = pattern
+        ? gitIgnoreCompiler(pattern).accepts
+        : null;
+    }
+    return this._indexAccepts ? this._indexAccepts(path) : true;
+  }
+
   constructor(
     private ds: DataStore,
     private config: Config,
@@ -295,7 +311,9 @@ export class ObjectIndex {
     await this.clearIndex();
     await this.markFullIndexInComplete();
 
-    const files = await space.deduplicatedFileList();
+    const files = (await space.deduplicatedFileList()).filter((f) =>
+      this.isIndexCandidate(f.name)
+    );
 
     console.log("Queing", files.length, "pages to be indexed.");
     // Queue all file names to be indexed
