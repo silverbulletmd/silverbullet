@@ -39,6 +39,8 @@ html, body { height: 100%; background: var(--cfg-bg); color: var(--cfg-color); }
 #cfg-root {
   display: flex; flex-direction: column; height: 100%;
   border: 1px solid var(--cfg-border);
+  border-radius: 6px;
+  overflow: hidden;
 }
 
 #cfg-header {
