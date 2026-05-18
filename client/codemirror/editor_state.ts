@@ -19,6 +19,7 @@ import {
   Annotation,
   Compartment,
   EditorState,
+  type EditorSelection,
   type Extension,
   Prec,
 } from "@codemirror/state";
@@ -64,6 +65,7 @@ export function createEditorState(
   pageName: string,
   text: string,
   readOnly: boolean,
+  selection?: EditorSelection,
 ): EditorState {
   let touchCount = 0;
 
@@ -106,6 +108,7 @@ export function createEditorState(
 
   return EditorState.create({
     doc: text,
+    selection,
     extensions: [
       // Not using CM theming right now, but some extensions depend on the "dark" thing
       EditorView.theme(

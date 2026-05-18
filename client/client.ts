@@ -739,6 +739,21 @@ export class Client {
 
   rebuildEditorState() {
     const editorView = this.editorView;
+    // Preserve selection + scroll across the rebuild — this fires on
+    // widget loading→ready transitions after the editor is already
+    // interactive, so a reset to pos 0 / scrollTop 0 is jarring.
+    const previousSelection = editorView.state.selection;
+    const previousScrollTop = editorView.scrollDOM.scrollTop;
+
+    let cursorWasVisible = false;
+    try {
+      const block = editorView.lineBlockAt(previousSelection.main.head);
+      const scrollBottom = previousScrollTop + editorView.scrollDOM.clientHeight;
+      cursorWasVisible =
+        block.bottom > previousScrollTop && block.top < scrollBottom;
+    } catch {
+      // fall back to no-scroll
+    }
 
     editorView.setState(
       createEditorState(
@@ -746,8 +761,16 @@ export class Client {
         this.currentName(),
         editorView.state.sliceDoc(),
         this.currentPageMeta()?.perm === "ro",
+        previousSelection,
       ),
     );
+    editorView.scrollDOM.scrollTop = previousScrollTop;
+
+    if (cursorWasVisible) {
+      editorView.dispatch({
+        effects: EditorView.scrollIntoView(previousSelection.main.head),
+      });
+    }
   }
 
   // Code completion support

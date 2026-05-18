@@ -3,6 +3,7 @@
 // License: Apache License 2.0.
 import {
   type EditorState,
+  type Range,
   StateField,
   type Transaction,
 } from "@codemirror/state";
@@ -187,6 +188,37 @@ export function isCursorInRange(state: EditorState, range: [number, number]) {
  * Decoration to simply hide anything.
  */
 export const invisibleDecoration = Decoration.replace({});
+
+const hiddenLineDecoration = Decoration.line({
+  class: "sb-line-table-outside",
+});
+
+/**
+ * Hide a source range that may span multiple lines, line-by-line.
+ *
+ * A single `Decoration.replace` across a multi-line range is atomic in
+ * CodeMirror — arrow-key entry from below snaps to the range start
+ * rather than the last line. Hiding each line separately keeps each
+ * line independently addressable while still rendering nothing.
+ */
+export function hideBlockSource(
+  widgets: Range<Decoration>[],
+  state: EditorState,
+  from: number,
+  to: number,
+) {
+  const fromLine = state.doc.lineAt(from);
+  const toLine = state.doc.lineAt(to);
+  if (fromLine.number === toLine.number) {
+    widgets.push(invisibleDecoration.range(from, to));
+    return;
+  }
+  widgets.push(invisibleDecoration.range(from, fromLine.to));
+  for (let n = fromLine.number + 1; n < toLine.number; n++) {
+    widgets.push(hiddenLineDecoration.range(state.doc.line(n).from));
+  }
+  widgets.push(invisibleDecoration.range(toLine.from, to));
+}
 
 export type WidgetRenderMode = "ready" | "loading" | "disabled";
 

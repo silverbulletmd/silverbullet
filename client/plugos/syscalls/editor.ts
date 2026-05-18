@@ -464,20 +464,14 @@ export function editorSyscalls(client: Client): SysCallMapping {
       }
     },
     "editor.moveCursor": (_ctx, pos: number, center = false) => {
+      // Always scroll into view so callers don't strand the cursor
+      // off-screen; `nearest` (default) is a no-op when already visible.
       client.editorView.dispatch({
-        selection: {
-          anchor: pos,
-        },
+        selection: { anchor: pos },
+        effects: [
+          EditorView.scrollIntoView(pos, center ? { y: "center" } : {}),
+        ],
       });
-      if (center) {
-        client.editorView.dispatch({
-          effects: [
-            EditorView.scrollIntoView(pos, {
-              y: "center",
-            }),
-          ],
-        });
-      }
       client.editorView.focus();
     },
     "editor.moveCursorToLine": (

@@ -3,7 +3,7 @@ import { syntaxTree } from "@codemirror/language";
 import { Decoration } from "@codemirror/view";
 import {
   decoratorStateField,
-  invisibleDecoration,
+  hideBlockSource,
   isCursorInRange,
   widgetRenderMode,
 } from "./util.ts";
@@ -72,15 +72,18 @@ export function luaDirectivePlugin(client: Client) {
           return;
         }
 
+        const hideSource = () => {
+          if (client.ui.viewState.uiOptions.markdownSyntaxRendering) return;
+          hideBlockSource(widgets, state, node.from, node.to);
+        };
+
         if (renderMode === "loading") {
           widgets.push(
             Decoration.widget({
               widget: new LoadingWidget(false),
             }).range(node.to),
           );
-          if (!client.ui.viewState.uiOptions.markdownSyntaxRendering) {
-            widgets.push(invisibleDecoration.range(node.from, node.to));
-          }
+          hideSource();
           return;
         }
 
@@ -163,9 +166,7 @@ export function luaDirectivePlugin(client: Client) {
           }).range(node.to),
         );
 
-        if (!client.ui.viewState.uiOptions.markdownSyntaxRendering) {
-          widgets.push(invisibleDecoration.range(node.from, node.to));
-        }
+        hideSource();
       },
     });
 

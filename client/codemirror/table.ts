@@ -3,7 +3,7 @@ import { syntaxTree } from "@codemirror/language";
 import { Decoration, WidgetType } from "@codemirror/view";
 import {
   decoratorStateField,
-  invisibleDecoration,
+  hideBlockSource,
   isCursorInRange,
 } from "./util.ts";
 
@@ -98,35 +98,8 @@ export function tablePlugin(editor: Client) {
         if (name !== "Table") return;
         if (isCursorInRange(state, [from, to])) return;
 
-        const tableText = state.sliceDoc(from, to);
-        const lineStrings = tableText.split("\n");
+        hideBlockSource(widgets, state, from, to);
 
-        const lines: { from: number; to: number }[] = [];
-        let fromIt = from;
-        for (const line of lineStrings) {
-          lines.push({
-            from: fromIt,
-            to: fromIt + line.length,
-          });
-          fromIt += line.length + 1;
-        }
-
-        const firstLine = lines[0],
-          lastLine = lines[lines.length - 1];
-
-        // In case of doubt, back out
-        if (!firstLine || !lastLine) return;
-
-        widgets.push(invisibleDecoration.range(firstLine.from, firstLine.to));
-        widgets.push(invisibleDecoration.range(lastLine.from, lastLine.to));
-
-        lines.slice(1, lines.length - 1).forEach((line) => {
-          widgets.push(
-            Decoration.line({ class: "sb-line-table-outside" }).range(
-              line.from,
-            ),
-          );
-        });
         const text = state.sliceDoc(0, to);
         widgets.push(
           Decoration.widget({
