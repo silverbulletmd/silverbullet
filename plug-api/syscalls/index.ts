@@ -65,6 +65,20 @@ export function subPages(pageName: string): Promise<LuaQueryCollection> {
 }
 
 /**
+ * Returns all documents as a query collection.
+ */
+export function documents(): Promise<LuaQueryCollection> {
+  return syscall("index.documents");
+}
+
+/**
+ * Returns all links as a query collection.
+ */
+export function links(): Promise<LuaQueryCollection> {
+  return syscall("index.links");
+}
+
+/**
  * Returns all tasks (optionally filtered by an additional tag) as a query collection.
  */
 export function tasks(tagName?: string): Promise<LuaQueryCollection> {
@@ -104,6 +118,13 @@ export function tables(tagName?: string): Promise<LuaQueryCollection> {
  */
 export function aspiringPages(): Promise<LuaQueryCollection> {
   return syscall("index.aspiringPages");
+}
+
+/**
+ * Returns all tag objects as a query collection.
+ */
+export function tags(): Promise<LuaQueryCollection> {
+  return syscall("index.tags");
 }
 
 /**

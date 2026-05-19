@@ -31,6 +31,12 @@ export function indexSyscalls(
     "index.subPages": (_ctx, pageName: string): LuaQueryCollection => {
       return objectIndex.subPages(pageName);
     },
+    "index.documents": (): LuaQueryCollection => {
+      return objectIndex.objectsWithTag("document");
+    },
+    "index.links": (): LuaQueryCollection => {
+      return objectIndex.objectsWithTag("link");
+    },
     "index.contentPages": (): LuaQueryCollection => {
       return objectIndex.contentPages();
     },
@@ -51,6 +57,9 @@ export function indexSyscalls(
     },
     "index.tables": (_ctx, tagName?: string): LuaQueryCollection => {
       return objectIndex.rootTaggedObjects("table", tagName);
+    },
+    "index.tags": (): LuaQueryCollection => {
+      return objectIndex.objectsWithTag("tag");
     },
     "index.aspiringPages": (): LuaQueryCollection => {
       return objectIndex.aspiringPages();
