@@ -2,4 +2,4 @@ Every page in your space is available via the `page` tag. You can attach _additi
 
 In addition to `ref` and `tags`, the `page` tag defines a bunch of additional attributes as can be seen in this example query:
 
-${query[[from index.tag "page" where name == _CTX.currentPage.name]]}
+${query[[from index.pages() where name == _CTX.currentPage.name]]}

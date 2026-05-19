@@ -31,7 +31,7 @@ $ref: pete
 
 In addition, all anchors are queryable via [[Object/anchor]]:
 
-${query[[from o = index.tag "anchor"]]}
+${query[[from o = index.objects("anchor")]]}
 
 # Linking
 Anchors are referenced from a [[Link]] just like a page or header:

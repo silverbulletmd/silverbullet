@@ -2,10 +2,12 @@
 
 API docs for Space Lua's `string` module.
 
-**Note:** since string values set `string` as their meta table, these APIs can also be called as method calls on strings directly. For instance: `someString:startsWith("h")` is equivalent to `string.startsWith(someString, "h")`.
+> **note** Note
+> Since string values set `string` as their meta table, these APIs can also be called as method calls on strings directly. For instance: `someString:startsWith("h")` is equivalent to `string.startsWith(someString, "h")`.
+
+# Lua standard library
 
 ## Lua Pattern Matching
-
 Lua patterns are not regular expressions. Space Lua makes a good effort at translating Lua patterns to regex to run in a Javascript environment, but there are two main differences:
 
 1. Magic characters `^$()%.[]*+-?` must be escaped to represent their character. Standard Lua patterns do not require escaping magic characters when they are not contextually magic (e.g. `%d--` is a valid Lua pattern where the second hyphen is not magic). Space Lua may have unexpected results when expecting an un-escaped magic character to behave like a character.
@@ -33,7 +35,6 @@ print(string.match("2024-03-14", "%d+-(%d+)-%d+"))
 ```
 
 ## String Operations
-
 ### string.byte(s, i?, j?)
 Returns the numeric codes of characters in string `s` from position `i` to `j`. If `j` is not provided, defaults to `i`.
 
@@ -190,6 +191,7 @@ end
 ```
 
 # Non-standard Extensions
+## JavaScript inspired
 ### string.startsWith(s, prefix)
 Returns true if string `s` starts with `prefix`.
 

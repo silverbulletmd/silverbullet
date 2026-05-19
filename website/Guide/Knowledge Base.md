@@ -48,11 +48,12 @@ Now this page is tagged `book` and has queryable `author` and `status` attribute
 [[Space Lua/Integrated Query]] lets you pull live data from your pages. Create a “Currently Reading” page with a query:
 
 ```lua
-${template.each(query[[
-  from b = tags.book
+${query[[
+  from b = index.pages("book")
   where b.status == "reading"
   order by b.lastModified desc
-]], templates.pageItem)}
+  select templates.pageItem(b)
+]]}
 ```
 
 See [[Template]] for more rendering options.

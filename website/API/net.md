@@ -2,7 +2,7 @@
 
 Network-related APIs.
 
-### net.proxyFetch(url, options?)
+## net.proxyFetch(url, options?)
 Performs a HTTP call, proxied via the server (to avoid CORS issues, see [[HTTP API]]).
 
 Options:

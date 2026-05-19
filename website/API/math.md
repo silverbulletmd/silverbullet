@@ -2,6 +2,8 @@
 
 API docs for Lua's `math` module.
 
+# Standard library
+
 ## math.random(m?, n?)
 Returns a random number.
 - `random()` returns a random float in range [0,1)

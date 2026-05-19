@@ -21,6 +21,6 @@ Iterates over a collection and renders a template for each item.
 
 Example:
 
-${template.each(query[[from index.tag "page" limit 3]], template.new[==[
+${template.each(query[[from index.pages() limit 3]], template.new[==[
     * ${name}
 ]==])}

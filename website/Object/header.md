@@ -2,4 +2,4 @@ Headers (lines starting with `#`, `##` etc.) are indexed as well and queryable v
 
 ### Test header
 
-${query[[from index.tag "header" where page == _CTX.currentPage.name limit 3]]}
+${query[[from index.headers() where page == _CTX.currentPage.name limit 3]]}

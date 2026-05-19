@@ -7,4 +7,4 @@ In addition, the `snippet` attribute attempts to capture a little bit of context
 
 Here is a query that shows some links that appear in the [[Object]] page:
 
-${query[[from index.tag "link" where page == "Object"]]}
+${query[[from index.objects("link") where page == "Object"]]}

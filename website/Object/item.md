@@ -6,8 +6,7 @@ Here is an example of a #quote item using a custom [[Attribute|attribute]]:
 
 And then queried via the #quote tag:
 ${query[[
-  from index.tag "quote"
-  where table.includes(_.itags, "item")
+  from index.items("quote")
 ]]}
 
 Additional attributes:
@@ -18,4 +17,4 @@ Additional attributes:
 * `itags` will also inherit their ancestors’ tags
 
 Example query showing all attributes of items on this page:
-${query[[from index.tag "item" where _.page == editor.getCurrentPage()]]}
+${query[[from index.items() where _.page == editor.getCurrentPage()]]}

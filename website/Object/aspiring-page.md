@@ -4,4 +4,4 @@ Internally SilverBullet uses these in [[^Library/Std/Pages/Maintenance]], page c
 
 Example query (lists all aspiring pages in this space, which should just be the one created at the top of this page):
 
-${query[[from index.tag "aspiring-page"]]}
+${query[[from index.aspiringPages()]]}

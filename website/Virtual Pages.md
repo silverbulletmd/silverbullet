@@ -42,7 +42,7 @@ virtualPage.define {
   run = function(count)
     local n = tonumber(count)
     local pages = query[[
-      from index.tag "page"
+      from index.pages()
       order by lastModified desc
       limit n
     ]]

@@ -10,4 +10,4 @@ The host object itself (paragraph, task, header, item, or any user-defined `#tag
 Position and range are deliberately not stored on the anchor record. The resolver looks the host up via `getObjectByRef(page, hostTag, ref)` and reads `range` from the host itself, which avoids drift between the two records on edits.
 
 # All anchors in this space
-${query[[from index.tag "anchor"]]}
+${query[[from index.objects("anchor")]]}

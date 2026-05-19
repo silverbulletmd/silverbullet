@@ -1,6 +1,8 @@
 #api/lua
 
-These are Lua functions defined in the `table` namespace:
+These are Lua functions defined in the `table` namespace.
+
+# Lua standard library
 
 ## table.concat(table, sep?, i?, j?)
 Concatenates the elements of a table into a string using a separator.
@@ -121,7 +123,7 @@ Returns a new table from an old one, only with selected keys.
 
 Example:
 ${query[[
-  from p = index.tag "page"
+  from p = index.pages()
   limit 3
   select table.select(p, "name", "lastModified")
 ]]}
