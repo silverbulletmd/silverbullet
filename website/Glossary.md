@@ -1,8 +1,9 @@
 A quick-reference guide to SilverBullet-specific terminology:
-${template.each(query[[
+${query[[
   from p = tags.glossary
   where p.tag == "page"
   order by p.name
-]], template.new [==[
+  select template.new[==[
     - [[${name}]]: ${description}
-]==])}
+]==](p)
+]]}

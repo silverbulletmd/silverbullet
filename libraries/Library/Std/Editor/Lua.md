@@ -67,7 +67,7 @@ local function augmentGlobal(localCode)
   end
   -- Then approximate specific local tag-based object declarations in queries and add them
   -- matches `tags.something`, `index.tag "something"` and `index.tag("something")` patterns only
-  for m in string.matchRegexAll(localCode, "(?:from|local)\\s+(\\w+)\\s+=\\s*(?:index\\.tag\\s*\"(\\w+)\"|index\\.tag\\s*\\(\"(\\w+)\"\\)|tags\\.(\\w+))") do
+  for m in string.matchRegexAll(localCode, "(?:from|local)\\s+(\\w+)\\s+=\\s*(?:index\\.objects\\s*\"(\\w+)\"|index\\.objects\\s*\\(\"(\\w+)\"\\)|tags\\.(\\w+))") do
     local tag
     for i, t in ipairs(m) do
       if i > 2 and t then

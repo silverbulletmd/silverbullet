@@ -17,7 +17,6 @@ Dynamically generating content, _programmable notes_... why would you want that,
 Let’s say you have documented a set of product features in individual pages that you’ve [[Tag|tagged]] with a #feature tag, and annotated with a few custom [[Frontmatter]] [[Attribute|Attributes]].
 
 With a simple [[Space Lua/Integrated Query|Query]] and [[Template]], you can now dynamically build a product feature list, ordered by _awesomeness_ (`Alt-click` or hover and click the edit button to see the underlying code):
-
 ${query[[
   from f = tags.feature
   where f.tag == "page"
@@ -30,7 +29,7 @@ _(The template generating the feature bullet items can be found in [[^Library/We
 Neat huh? A few more use cases.
 
 ## Active pages
-Let’s say you want to have a list of your 5 modified pages. We can do that!
+Let’s say you want to have a list of your 5 modified pages. We can do that:
 ${query[[
   from p = tags.page
   order by p.lastModified desc
@@ -59,7 +58,7 @@ Want to see even more? Here is a whole [playlist with instruction videos](https:
 As mentioned, SilverBullet is a [[Self Hosted]] web application. This is great if you care about [[Data Sovereignty]], but it does mean you need to [[Install]] it on a server yourself. Perhaps you do this on a Raspberry Pi you didn’t have a use for, or a VPS somewhere in the cloud. SilverBullet is distributed as a single self-contained server [[Install/Binary]] or [[Install/Docker]] container.
 
 > **note** Note
-> There is now also a [desktop edition](https://silverbullet.plus) of SilverBullet in beta that you may want to try.
+> Alternatively, there is now also a [desktop edition](https://silverbullet.plus) named “SilverBullet+“ that you may want to try.
 
 While this is a bit more complicated to set up than simply downloading desktop app or signing up for an account with some online service, self hosting is a path to both [[Data Sovereignty]] and to access your content from any device with a modern [[Browser]].
 
@@ -68,7 +67,6 @@ Ready? Proceed to [[Install]].
 # [[Architecture]]
 The SilverBullet client is built as a [[Local First]], [[PWA|Progressive Web Application]], syncing all your content into your browser’s local storage, enabling **instant access** to your entire space whether you are **online** or **offline**. Simply opt to “Install SilverBullet” from your browser (in any Chrome-based browser), add it to your Dock or home screen (Safari and Android), and voila: SilverBullet becomes indistinguishable from a regular desktop or mobile app. You can try it right here on silverbullet.md.
 ![[pwa-screenshot.png]]
-
 Unplug your (hypothetical) network cable, and everything still works!
 
 Learn more about SilverBullet’s technical [[Architecture]].

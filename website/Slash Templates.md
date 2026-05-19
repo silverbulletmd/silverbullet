@@ -32,9 +32,9 @@ You can configure these optional [[Frontmatter]] keys:
 * `exceptContexts` (advanced): Show the command everywhere _except_ in these AST node contexts
 
 # Currently active slash templates
-${template.each(query[[
-  from index.tag "meta/template/slash"
-  where _.tag == "page"
-]], templates.fullPageItem)}
+${query[[
+  from p = index.pages("meta/template/slash")
+  select templates.fullPageItem(p)
+]]}
 
 See also: [[Slash Command]], [[Template]], [[Page Template]]

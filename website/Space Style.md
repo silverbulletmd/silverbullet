@@ -24,7 +24,7 @@ somestyle {
 The following [[Space Lua/Integrated Query]] is used to determine the order in which Space Style is loaded:
 
 ```lua
-query[[from index.tag "space-style" order by _.priority desc]]
+query[[from index.objects("space-style") order by _.priority desc]]
 ```
 
 # Tag Styling

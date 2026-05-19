@@ -23,10 +23,10 @@ Optional keys:
 
 # Currently active slash templates
 
-${template.each(query[[
-  from index.tag "meta/template/slash"
-  where _.tag == "page"
-]], templates.fullPageItem)}
+${query[[
+  from p = index.pages("meta/template/slash")
+  select templates.fullPageItem(p)
+]]}
 
 # Implementation
 
@@ -51,8 +51,7 @@ tag.define {
 }
 
 for st in query[[
-    from index.tag "meta/template/slash"
-    where _.tag == "page"
+    from index.pages("meta/template/slash")
   ]] do
   local components = st.name:split("/")
   local name = components[#components]

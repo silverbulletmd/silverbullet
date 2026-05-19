@@ -71,11 +71,11 @@ function widgets.commandButton(text, commandName, args)
 end
 
 function widgets.subPages(pageName)
-  local prefix = (pageName or editor.getCurrentPage()) .. "/"
-  return widget.markdown(template.each(query[[
-    from index.tag "page"
-    where string.startsWith(_.name, prefix)
-  ]], templates.pageItem))
+  pageName = pageName or editor.getCurrentPage()
+  return widget.markdown(table.concat(query[[
+    from p = index.subPages(pageName)
+    select templates.pageItem(p)
+  ]]))
 end
 ```
 
@@ -285,14 +285,14 @@ config.define("std.widgets.linkedMentions", {
 function widgets.linkedMentions(pageName)
   pageName = pageName or editor.getCurrentPage()
   local linkedMentions = query[[
-    from l = index.tag "link"
+    from l = index.links()
     where l.page != pageName and l.toPage == pageName
     order by l.pageLastModified desc, l.pos
+    select mentionTemplate(l)
   ]]
   if #linkedMentions > 0 then
     return widget.new {
-      markdown = "# Linked Mentions\n"
-        .. template.each(linkedMentions, mentionTemplate)
+      markdown = "# Linked Mentions\n" .. table.concat(linkedMentions)
     }
   end
 end
@@ -331,14 +331,14 @@ config.define("std.widgets.linkedTasks", {
 function widgets.linkedTasks(pageName)
   pageName = pageName or editor.getCurrentPage()
   local tasks = query[[
-    from t = index.tag "task"
+    from t = index.tasks()
     where not t.done and table.includes(t.ilinks, pageName)
     order by t.page
+    select templates.taskItem(t)
   ]]
   local md = ""
   if #tasks > 0 then
-    md = "# Linked Tasks\n"
-       .. template.each(tasks, templates.taskItem)
+    md = "# Linked Tasks\n" .. table.concat(tasks)
   else
     md = ""
   end

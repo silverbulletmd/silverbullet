@@ -3,8 +3,8 @@
 This page compiles some useful stats about your space. You may also like the [[^Library/Std/Pages/Maintenance]] page.
 
 # Stats
-**Total pages:** ${#query[[from index.tag "page" select name]]}
-**Total documents:** ${#query[[from index.tag "document" select name]]}
+**Total pages:** ${#query[[from index.pages() select name]]}
+**Total documents:** ${#query[[from index.documents() select name]]}
 
 # Active Plugs
 These are all the plugs currently active in your space:
@@ -15,16 +15,17 @@ ${query[[
 
 # Active Space Lua
 These are all Space Lua scripts and the order in which they are loaded:
-${template.each(query[[
-  from script = index.tag "space-lua"
+${query[[
+  from script = index.objects("space-lua")
   order by (script.priority or 0) desc, script.ref
-]], template.new[==[
+  select template.new[==[
     * [[${ref}]] (priority: ${priority or "default"})
-]==])}
+]==](script)
+]]}
 
 # Active Space Style
-${template.each(query[[
-  from index.tag "space-style"
-  order by _.priority desc
-  select {name=ref}
-]], templates.pageItem)}
+${query[[
+  from s = index.objects("space-style")
+  order by s.priority desc
+  select templates.pageItem({name = s.ref})
+]]}

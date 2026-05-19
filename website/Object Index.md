@@ -2,11 +2,9 @@
 description: The local index that makes objects queryable.
 tags: glossary
 ---
-
 The Object Index stores [[Object|Objects]] found in your [[Space]].
 
 You interact with it in a few ways:
-
 * Indirectly via various other SilverBullet features such as [[Page Picker]], [[Meta Picker]], [[Linked Mention]] etc.
 * Via the [[API/index]] API directly
 
@@ -40,8 +38,7 @@ The indexObject API looks at the `tags` of the found objects, and for each tag:
 The Object Index is generally queried using [[Space Lua/Integrated Query]]. 
 
 Entry points are:
-
-* [[API/index#index.tag(name)]], e.g.: `index.tag "page"`
-* `tags.*`: as a convenience — `tags.page` is equivalent to `index.tag "page"`
+* [[API/index#index.objects(tag)]], e.g.: `index.objects("page")` (or the convenience wrappers like `index.pages()`, `index.tasks()`, etc.)
+* `tags.*`: as a convenience — `tags.page` is equivalent to `index.objects("page")`
 
 If a `metatable` is defined for a particular tag with [[API/tag#tag.define(spec)]], the metatable is set for each object for the tag.

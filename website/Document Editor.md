@@ -4,7 +4,7 @@ Document editors allow you to not only view but also edit files other than markd
 To get started, you first need to install a plug that provides a document editor (for examples see [[#Available editors]]). Once installed and loaded, you can open the document navigator using `Cmd-o` (Mac) or `Ctrl-o` (Windows, Linux), which works similarly to the page navigator. The only difference is that files which you can open will have their extension highlighted in blue, files for which no document editor is loaded are gray.
 
 # Available editors
-Currently only two major document editors exist (As well as the built-in image viewer). Both are installable through the [[Library Manager]].
+Currently only two major document editors exist (As well as the built-in image viewer). Both are installable through the [[Configuration Manager#Libraries|Library Manager]].
 
 - [PDF viewer](https://github.com/MrMugame/silverbullet-pdf/)
 - [Excalidraw](https://github.com/LogeshG5/silverbullet-excalidraw)

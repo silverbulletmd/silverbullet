@@ -45,7 +45,7 @@ Scripts are loaded in _reverse priority_ order. When you set no priority (the de
 The order used is determined by this [[Space Lua/Integrated Query|query]] (also part of your [[^Library/Std/Pages/Space Overview]]) page:
 
     query[[
-      from t = index.tag "space-lua"
+      from t = index.objects("space-lua")
       order by t.priority desc
     ]]
 

@@ -45,7 +45,7 @@ These attributes become queryable, which we’re going to do next.
 Pages in SilverBullet can use [[Space Lua]] and [[Space Lua/Integrated Query]] feature specifically to dynamically generate content. Add this to any page:
 
 ```lua
-${query[[from tags.page limit 5]]}
+${query[[from index.contentPages()]]}
 ```
 
 As you move your mouse cursor outside this code fragment, it renders a live table of your pages, right inline. Queries update as your space changes dynamically.
@@ -53,7 +53,7 @@ As you move your mouse cursor outside this code fragment, it renders a live tabl
 Now, let’s write a query that finds all your pages tagged with `#project` (as done in the previous step) filtered on only high priority ones:
 
 ```lua
-${query[[from p = tags.project where p.priority == "high"]]}
+${query[[from p = index.pages("project") where p.priority == "high"]]}
 ```
 
 # 6. Use a template to customize query rendering
@@ -61,11 +61,12 @@ By default, queries are rendered as tables, however you can render them in other
 
 ```lua
 # High qriority projects
-${template.each(query[[
-  from p = tags.project
+${query[[
+  from p = index.pages("project")
   where p.priority == "high"
   order by p.lastModified desc
-]], templates.pageItem)}
+  select templates.pageItem(p)
+]]}
 ```
 
 This renders your 5 most recently updated high-priority projects as a bulleted list (an `item` in SilverBullet parlance).
@@ -74,13 +75,14 @@ Of course, you can also create custom templates. Either as reusable Lua function
 
 ```lua
 # High qriority projects
-${template.each(query[[
-  from p = tags.project
+${query[[
+  from p = index.pages("project")
   where p.priority == "high"
   order by p.lastModified desc
-]], template.new[==[
+  select template.new[==[
     * ${name} (status: ${status})
-]==])}
+]==](p)
+]]}
 ```
 
 # What's next?

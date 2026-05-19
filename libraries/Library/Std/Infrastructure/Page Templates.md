@@ -46,11 +46,10 @@ tags: meta/template/page
 ~~~
 
 # Currently active page templates
-
-${template.each(query[[
-  from index.tag "meta/template/page"
-  where _.tag == "page"
-]], templates.fullPageItem)}
+${query[[
+  from p = index.pages("meta/template/page")
+  select templates.fullPageItem(p)
+]]}
 
 # Instantiating page templates
 
@@ -153,9 +152,9 @@ end
 
 -- Create commands for all page templates with a command key in frontmatter
 for pt in query[[
-    from index.tag "meta/template/page"
-    where _.tag == "page" and _.command
-    order by _.priority desc
+    from tp = index.pages("meta/template/page")
+    where tp.command
+    order by tp.priority desc
   ]] do
   command.define {
     name = pt.command,
@@ -189,8 +188,7 @@ command.define {
   key = "Ctrl-q t",
   run = function()
     local pageTemplates = query[[
-      from index.tag "meta/template/page"
-      where _.tag == "page"
+      from index.pages("meta/template/page")
       select {
         name = cleanName(_.name),
         fullName = _.name,

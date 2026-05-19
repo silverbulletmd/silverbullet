@@ -45,10 +45,10 @@ tags: meta/template/page
 
 # Currently active page templates
 
-${template.each(query[[
-  from index.tag "meta/template/page"
-  where _.tag == "page"
-]], templates.fullPageItem)}
+${query[[
+  from p = index.pages("meta/template/page")
+  select templates.fullPageItem(p)
+]]}
 
 # Instantiating page templates
 

@@ -6,4 +6,4 @@ exceptContexts:
 - "LuaDirective"
 raw: true
 ---
-${query[[from o = index.tag "|^|"]]}
+${query[[from o = index.objects("|^|")]]}

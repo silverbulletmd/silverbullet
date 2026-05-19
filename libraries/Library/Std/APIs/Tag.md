@@ -4,7 +4,7 @@ Implements convenience functions for accessing tag objects.
 
 Currently:
 
-* `tags.someTag` is an alias for `index.tag "someTag`
+* `tags.someTag` is an alias for `index.objects("someTag")`
 
 Example:
 
@@ -35,7 +35,7 @@ end
 -- Set up tags.* short cut via meta tables
 tags = setmetatable({}, {
   __index = function(self, tag)
-    return index.tag(tag)
+    return index.objects(tag)
   end
 })
 ```

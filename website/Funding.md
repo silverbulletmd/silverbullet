@@ -6,8 +6,9 @@ If you are a SilverBullet user, consider sponsoring the project financially. You
 While the project is largely a labor of love, and a lot of volunteers contribute significantly, it does benefit from funding. The more funding, the more time can be spent to make this product as good as it can be and to recoup some of its costs.
 
 # How?
-There are a few ways to financially support the project at the moment, ordered by preference:
+SilverBullet has a commercial desktop edition named [SilverBullet+](https://silverbullet.plus/), that you may like. Buying SilverBullet+ is one way to support the project financially.
 
+Not a SilverBullet+ user? Here are a few ways to financially support the project at the moment, ordered by preference:
 1. [LiberaPay](https://liberapay.com/zef) (preferred)
 2. [Github sponsors](https://github.com/sponsors/silverbulletmd)
 3. [Patreon](https://www.patreon.com/cw/silverbulletmd)

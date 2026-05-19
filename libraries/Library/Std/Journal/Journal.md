@@ -70,10 +70,8 @@ function journal.openOrCreate(dateStr)
 end
 
 function journal.entries()
-  local tagName = config.get("journal.tag")
   return query[[
-    from j = index.tag(tagName)
-    where j.tag == "page"
+    from j = index.pages(config.get("journal.tag"))
     order by j.date desc
   ]]
 end

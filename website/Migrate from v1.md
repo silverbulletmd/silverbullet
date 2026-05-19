@@ -5,8 +5,8 @@ Here are some pointers on what was removed and how to adapt.
 # Queries
 v2 does not have support for old-style [queries](https://v1.silverbullet.md/Query%20Language) (live queries) anymore. They have been replaced with [[Space Lua/Integrated Query]]. Give the linked page a read, but generally there’s a few differences:
 
-1. Space Lua Integrated Queries tend to start with `from index.tag "tag-name"` instead of plain `tag-name`. This is a bit longer, but since whatever comes after `from` is a Lua expression, you can not just query [[Object]], you can query any Lua table as well in the same way.
-2. In the old query language, you access attribute simply by their name, this works in SLIQ too, but stylistically it’s nicer to use either `_.attribute`, or to give the object you’re iterating over a name, using `from page = index.tag "page"`, for instance.
+1. Space Lua Integrated Queries tend to start with `from index.objects("tag-name")` instead of plain `tag-name`. This is a bit longer, but since whatever comes after `from` is a Lua expression, you can not just query [[Object]], you can query any Lua table as well in the same way.
+2. In the old query language, you access attribute simply by their name, this works in SLIQ too, but stylistically it’s nicer to use either `_.attribute`, or to give the object you’re iterating over a name, using `from page = index.pages()`, for instance.
 3. The `=` equals operator is `==` in Lua 😄
 
 # Templates
@@ -17,7 +17,7 @@ In v1 there were various types of templates:
 * [Snippets](https://v1.silverbullet.md/Snippets) (using special [[Frontmatter]]-based hooks)
 * [Page Templates](https://v1.silverbullet.md/Page%20Templates) (using special [[Frontmatter]]-based hooks)
 
-_Live templates_ are now better expressed by simply putting `${lua expressions}` in text. Iterating and rendering queries using templates is generally done using the `${template.each(query[[...]], someTemplateExpression)}` pattern.
+_Live templates_ are now better expressed by simply putting `${lua expressions}` in text. Iterating and rendering queries using templates is generally done by selecting a template call in the query itself: `${query[[ from ... select someTemplate(...) ]]}`.
 
 _Live Template Widgets_ can now be implemented using an event listener:
 ```lua

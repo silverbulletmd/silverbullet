@@ -10,8 +10,7 @@ If you’re confused and don’t know what to do, have a look at the [Manual](ht
 ${widgets.commandButton "Quick Note"}
 
 ${some(query[[
-  from p = tags.page
-  where p.name:startsWith("Inbox/")
+  from p = index.subPages("Inbox")
   order by p.lastModified desc
   limit 10 select templates.fullPageItem(p)
 ]]) or "_No quick notes yet!_"}
@@ -20,7 +19,7 @@ ${some(query[[
 ${widgets.commandButton "Journal: Today"}
 
 ${some(query[[
-  from j = index.tag(config.get("journal.tag"))
+  from j = index.pages(config.get("journal.tag"))
   where j.tag == "page"
   order by j.date desc
   limit 14
@@ -29,7 +28,7 @@ ${some(query[[
 
 # Recent incomplete tasks
 ${some(query[[
-  from t = tags.task
+  from t = index.tasks()
   where not t.done
   order by t.pageLastModified
   desc limit 10

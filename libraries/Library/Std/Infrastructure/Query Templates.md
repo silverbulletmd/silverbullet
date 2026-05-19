@@ -41,21 +41,21 @@ templates.tagItem = template.new([==[
 
 # Examples
 `template.pageItem`:
-${template.each(query[[from index.tag "page" limit 3]], templates.pageItem)}
+${query[[from p = index.pages() limit 3 select templates.pageItem(p)]]}
 
 `template.taskItem`:
 
     * [ ] Task 1
     * [ ] Task 2
 
-${template.each(query[[from index.tag "task" where page == _CTX.currentPage.name]], templates.taskItem)}
+${query[[from t = index.tasks() where t.page == _CTX.currentPage.name select templates.taskItem(t)]]}
 
 `template.itemItem`:
 
     * Item 1
     * Item 2
 
-${template.each(query[[from index.tag "item" where page == _CTX.currentPage.name]], templates.itemItem)}
+${query[[from i = index.items() where i.page == _CTX.currentPage.name select templates.itemItem(i)]]}
 
 `template.tagItem`:
 
@@ -63,4 +63,4 @@ ${template.each(query[[from index.tag "item" where page == _CTX.currentPage.name
     * #tag2
     * #tag3
 
-${template.each(query[[from index.tag "tag" where page == _CTX.currentPage.name]], templates.tagItem)}
+${query[[from t = index.objects("tag") where t.page == _CTX.currentPage.name select templates.tagItem(t)]]}

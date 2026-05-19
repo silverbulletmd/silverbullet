@@ -13,7 +13,7 @@ Sharing may be desirable in different directions:
   * Social network posts
   * [[Library]] you want to distribute to others
 * _Pull_: pull in content from an external location and import it into your space and be able to keep pulling in new versions on demand. Use cases:
-  * [[Library]] that you install, e.g. via the [[Library Manager]]
+  * [[Library]] that you install
 * _Sync_: For bi-directional push and pull. Example use cases:
   * Collaborate on a page with other SilverBullet users (not implemented yet)
 

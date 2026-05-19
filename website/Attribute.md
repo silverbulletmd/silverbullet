@@ -39,7 +39,7 @@ However, usually, [[Frontmatter]] is used for this purpose instead.
 Example query:
 
 ${query[[
-  from index.tag "page"
+  from index.pages()
   where _.name == editor.getCurrentPage()
   select {name=_.name, pageAttribute=_.pageAttribute}
 ]]}
@@ -51,7 +51,7 @@ This attaches an attribute to an item:
 Example query:
 
 ${query[[
-  from index.tag "specialitem"
+  from index.items("specialitem")
   where itemAttribute == "hello"
   select {
     name = _.name,
@@ -66,7 +66,7 @@ This attaches an attribute to a task:
 Example query:
 
 ${query[[
-  from index.tag "task"
+  from index.tasks()
   where taskAttribute == "hello"
   select {
     name = _.name,

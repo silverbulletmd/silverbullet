@@ -25,24 +25,24 @@ Which elsewhere can be used, either directly:
 ${templates.greet {name = "Pete"}}
 ```
 
-or together with `template.each` (see below):
+or directly in a query’s `select` clause:
 
 ```lua
-${template.each(query[[from tags.page limit 3]], templates.greet)}
+${query[[from p = index.contentPages() limit 3 select templates.greet(p)]]}
 ```
 
 Resulting in something along the lines of `Hello index!Hello CONFIG!...`
 
 
 ## template.each(collection, fn)
-Iterates over a collection and applies a template to each element, concatenating the results. Commonly used to render query results.
+Iterates over a collection and applies a template to each element, concatenating the results. While this API still works, but for queries the recommended approach is to call the template in the `select` clause directly (as shown above).
 
 Example:
 
 ```lua
-${template.each(query[[from index.tag "page" limit 3]], template.new [==[
+${query[[from p = index.contentPages() limit 3 select template.new[==[
     * [[${name}]]
-]==])}
+]==](p)]]}
 ```
 
 # Pre-built templates

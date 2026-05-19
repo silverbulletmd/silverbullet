@@ -4,7 +4,8 @@ tags: meta
 Space Lua Integrated Query (SLIQ) — query syntax for SilverBullet data.
 
 Syntax:
-  from <var> = index.tag "<type>"
+
+  from <var> = index.objects("<type>")
   [where <condition>]
   [order by <expr> [asc|desc] [nulls first|last] [, ...]]
   [group by <expr> [, ...]]
@@ -14,7 +15,10 @@ Syntax:
   [offset <n>]
 
 Clauses can appear in any order. Only `from` is required.
-Always use variable binding: `from p = index.tag "page"` (not `from index.tag "page"`).
+Always use variable binding: `from p = index.pages()` (not `from index.pages()`).
+Type-specific helpers: `index.pages(tag?)`, `index.contentPages()`, `index.metaPages()`,
+`index.aspiringPages()`, `index.tasks(tag?)`, `index.headers(tag?)`, `index.items(tag?)`,
+`index.paragraphs(tag?)`, `index.tables(tag?)`; otherwise `index.objects("tag")`.
 
 Operators: ==, ~= (not equal), <, >, <=, >=, and, or, not
 String: s:startsWith("x"), s:endsWith("x"), s:contains("x")
@@ -36,8 +40,9 @@ Projection:
   select table.select(p, "name", "tags")     -- pick specific fields from object
 
 Examples:
-  query 'from t = index.tag "task" where not t.done'
-  query 'from p = index.tag "page" order by p.lastModified desc limit 10'
-  query 'from t = index.tag "task" group by t.page select {page=key, count=#group}'
-  query 'from p = index.tag "page" select table.select(p, "name", "lastModified") limit 5'
-  query 'from l = index.tag "link" where l.toPage == "MyPage"'
+  query 'from t = index.tasks() where not t.done'
+  query 'from p = index.pages() order by p.lastModified desc limit 10'
+  query 'from t = index.tasks() group by t.page select {page=key, count=#group}'
+  query 'from p = index.pages() select table.select(p, "name", "lastModified") limit 5'
+  query 'from l = index.objects("link") where l.toPage == "MyPage"'
+  query 'from p = index.pages() order by p.lastModified desc limit 5 select templates.pageItem(p)'

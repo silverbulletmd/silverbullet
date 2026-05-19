@@ -26,7 +26,7 @@ virtualPage.define {
   run = function(tagName)
     local text = "# Objects tagged with " .. tagName .. "\n"
     local allObjects = query[[
-      from index.tag(tagName)
+      from index.objects(tagName)
       order by ref
     ]]
     local tagParts = tagName:split("/")
@@ -39,37 +39,34 @@ virtualPage.define {
     end
     if #parentTags > 0 then
       text = text .. "## Parent tags\n"
-        .. template.each(parentTags, templates.tagItem)
+        .. table.concat(query[[from t = parentTags select templates.tagItem(t)]])
     end
     local subTags = query[[
-      from index.tag "tag"
+      from index.tags()
       where string.startsWith(_.name, tagName .. "/")
       select {name=_.name}
     ]]
     if #subTags > 0 then
       text = text .. "## Child tags\n"
-        .. template.each(subTags, templates.tagItem)
+        .. table.concat(query[[from t = subTags select templates.tagItem(t)]])
     end
     local taggedPages = query[[
-      from allObjects where table.includes(_.itags, "page")
+      from o = allObjects where table.includes(o.itags, "page") select templates.pageItem(o)
     ]]
     if #taggedPages > 0 then
-      text = text .. "## Pages\n"
-        .. template.each(taggedPages, templates.pageItem)
+      text = text .. "## Pages\n" .. table.concat(taggedPages)
     end
     local taggedTasks = query[[
-      from allObjects where table.includes(_.itags, "task")
+      from o = allObjects where table.includes(o.itags, "task") select templates.taskItem(o)
     ]]
     if #taggedTasks > 0 then
-      text = text .. "## Tasks\n"
-        .. template.each(taggedTasks, templates.taskItem)
+      text = text .. "## Tasks\n" .. table.concat(taggedTasks)
     end
     local taggedItems = query[[
-      from allObjects where table.includes(_.itags, "item")
+      from o = allObjects where table.includes(o.itags, "item") select templates.itemItem(o)
     ]]
     if #taggedItems > 0 then
-      text = text .. "## Items\n"
-        .. template.each(taggedItems, templates.itemItem)
+      text = text .. "## Items\n" .. table.concat(taggedItems)
     end
     local taggedData = query[[
       from allObjects where table.includes(_.itags, "data")
@@ -79,11 +76,10 @@ virtualPage.define {
         .. markdown.objectsToTable(taggedData) .. "\n"
     end
     local taggedParagraphs = query[[
-      from allObjects where table.includes(_.itags, "paragraph")
+      from o = allObjects where table.includes(o.itags, "paragraph") select templates.paragraphItem(o)
     ]]
     if #taggedParagraphs > 0 then
-      text = text .. "## Paragraphs\n"
-        .. template.each(taggedParagraphs, templates.paragraphItem)
+      text = text .. "## Paragraphs\n" .. table.concat(taggedParagraphs)
     end
     return text
   end
