@@ -1,4 +1,7 @@
-import type { LuaCollectionQuery } from "../../client/space_lua/query_collection.ts";
+import type {
+  LuaCollectionQuery,
+  LuaQueryCollection,
+} from "../../client/space_lua/query_collection.ts";
 import { syscall } from "@silverbulletmd/silverbullet/syscall";
 import type { ObjectValue } from "../../plug-api/types/index.ts";
 
@@ -37,6 +40,62 @@ export function previewProcessedObjects(
   objects: ObjectValue[],
 ): Promise<{ tag: string; object: ObjectValue }[]> {
   return syscall("index.previewProcessedObjects", page, objects);
+}
+
+/**
+ * Returns objects carrying the given tag as a query collection.
+ */
+export function objects(tagName: string): Promise<LuaQueryCollection> {
+  return syscall("index.objects", tagName);
+}
+
+/**
+ * Returns all pages (optionally filtered by an additional tag) as a query collection.
+ */
+export function pages(tagName?: string): Promise<LuaQueryCollection> {
+  return syscall("index.pages", tagName);
+}
+
+/**
+ * Returns all tasks (optionally filtered by an additional tag) as a query collection.
+ */
+export function tasks(tagName?: string): Promise<LuaQueryCollection> {
+  return syscall("index.tasks", tagName);
+}
+
+/**
+ * Returns all headers (optionally filtered by an additional tag) as a query collection.
+ */
+export function headers(tagName?: string): Promise<LuaQueryCollection> {
+  return syscall("index.headers", tagName);
+}
+
+/**
+ * Returns all list items (optionally filtered by an additional tag) as a query collection.
+ */
+export function items(tagName?: string): Promise<LuaQueryCollection> {
+  return syscall("index.items", tagName);
+}
+
+/**
+ * Returns all paragraphs (optionally filtered by an additional tag) as a query collection.
+ */
+export function paragraphs(tagName?: string): Promise<LuaQueryCollection> {
+  return syscall("index.paragraphs", tagName);
+}
+
+/**
+ * Returns all tables (optionally filtered by an additional tag) as a query collection.
+ */
+export function tables(tagName?: string): Promise<LuaQueryCollection> {
+  return syscall("index.tables", tagName);
+}
+
+/**
+ * Returns all aspiring (referenced but not yet created) pages as a query collection.
+ */
+export function aspiringPages(): Promise<LuaQueryCollection> {
+  return syscall("index.aspiringPages");
 }
 
 /**

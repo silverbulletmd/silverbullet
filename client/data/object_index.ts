@@ -120,7 +120,11 @@ export class ObjectIndex {
     return value;
   }
 
-  tag(tagName: string): LuaQueryCollection {
+  /**
+   * Returns a LuaQueryCollection representation of all objects with a specific tag
+   * @param tagName name of the tag
+   */
+  objectsWithTag(tagName: string): LuaQueryCollection {
     if (!tagName) {
       throw new Error("Tag name is required");
     }
@@ -154,6 +158,20 @@ export class ObjectIndex {
     );
   }
 
+  aspiringPages(): LuaQueryCollection {
+    return this.objectsWithTag("aspiring-page");
+  }
+
+  rootTaggedObjects(rootTag: string, tag?: string): LuaQueryCollection {
+    if (tag) {
+      return this.filteredTag(
+        tag, (varName) => `${varName}.tag == "${rootTag}"`
+      );
+    } else {
+      return this.objectsWithTag(rootTag);
+    }
+  }
+
   private filteredTag(
     tagName: string,
     buildFilterExpr: (varName: string) => string,
@@ -164,12 +182,12 @@ export class ObjectIndex {
         const filter = parseExpressionString(buildFilterExpr(varName));
         const where = query.where
           ? {
-              type: "Binary" as const,
-              operator: "and",
-              left: filter,
-              right: query.where,
-              ctx: {},
-            }
+            type: "Binary" as const,
+            operator: "and",
+            left: filter,
+            right: query.where,
+            ctx: {},
+          }
           : filter;
         return this.ds.luaQuery(
           ["idx", tagName],
@@ -362,7 +380,7 @@ export class ObjectIndex {
           key: [indexKey, ...key, page],
           value,
         },
-        {
+        { // Reverse key storage for quick deletions
           key: [pageKey, page, ...key],
           value: true,
         },
