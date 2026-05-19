@@ -20,9 +20,9 @@ The recipe mirrors [[Library/Development]]:
 2. Drop the compiled `yourthing.plug.js` next to the library page — e.g. `Library/yourname/yourthing.plug.js`. The `files:` list tells the library system to ship the plug along with the page when somebody installs it.
 3. Publish the library page with the ${widgets.commandButton "Share: Page"} command (GitHub file, Gist, etc.), which gives the page a public [[URI]].
 4. End users install it with ${widgets.commandButton "Library: Install"} using that URI, or discover it through a [[Repository]].
-5. Updates: push new versions of the library page via `Share: Page`; installed users pull via the [[Library Manager]].
+5. Updates: push new versions of the library page via `Share: Page`.
 
-See [[Library]], [[Library/Development]], [[Share]], [[Repository]], and [[Library Manager]] for the broader library system.
+See [[Library]], [[Library/Development]], [[Share]], [[Repository]], and [[Configuration Manager#Libraries]] for the broader library system.
 
 # Testing & debugging
 ## Browser console

@@ -5,10 +5,10 @@ Every task in your space is tagged with the `task` tag by default. You tag it wi
 And can then be queried via either `task` or `upnext`. 
 
 The following query shows all attributes available for tasks:
-${query[[from index.tag "upnext"]]}
+${query[[from index.tasks("upnext")]]}
 
 Although you may want to render it using a template instead:
-${template.each(query[[from index.tag "upnext"]], templates.taskItem)}
+${query[[from index.tasks("upnext") select templates.taskItem(_)]]}
 
 Specific attributes:
 * `done`: set to true of the state of the task is “checked”

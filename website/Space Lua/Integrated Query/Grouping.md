@@ -107,7 +107,7 @@ Filter to page parents first, then group by `name`:
 
 ${query [[
   from
-    tags.tag
+    index.tags()
   where
     parent == 'page'
   group by
@@ -119,7 +119,7 @@ ${query [[
 Filter to page parents, group by `name`, keep groups with 2+ items:
 ${query [[
   from
-    index.tag 'tag'
+    index.tags()
   where
     parent == 'page'
   group by
@@ -133,7 +133,7 @@ ${query [[
 Project each group into a table with `name` and `count`:
 ${query [[
   from
-    index.tag 'tag'
+    index.tags()
   group by
     name
   select {
@@ -148,7 +148,7 @@ Project both key parts and count:
 
 ${query [[
   from
-    index.tag 'tag'
+    index.tags()
   group by
     name,
     parent
@@ -165,7 +165,7 @@ Filter, group, filter groups, then project:
 
 ${query [[
   from
-    index.tag 'tag'
+    index.tags()
   where
     parent == 'page' or
     parent == 'task'
@@ -185,7 +185,7 @@ Sort groups by size, largest first:
 
 ${query [[
   from
-    index.tag 'tag'
+    index.tags()
   group by
     name
   order by
@@ -197,7 +197,7 @@ ${query [[
 Tags with 2+ occurrences, sorted by count, projected:
 ${query [[
   from
-    index.tag 'tag'
+    index.tags()
   group by
     name
   having
@@ -213,7 +213,7 @@ ${query [[
 ## Top N groups with `limit`
 ${query [[
   from
-    index.tag 'tag'
+    index.tags()
   group by
     name
   order by
@@ -226,7 +226,7 @@ ${query [[
 Top 5 tags with 2+ uses, showing name and count:
 ${query [[
   from
-    p = index.tag 'tag'
+    index.tags()
   group by
     p.name
   having
@@ -242,7 +242,7 @@ Full pipeline with `p =` binding and two group keys:
 
 ${query [[
   from
-    p = index.tag 'tag'
+    index.tags()
   where
     p.parent == 'page'
   group by
@@ -264,7 +264,7 @@ ${query [[
 For single-key grouping, `key` holds the value directly:
 ${query [[
   from
-    index.tag 'tag'
+    index.tags()
   group by
     name
   having
@@ -276,7 +276,7 @@ ${query [[
 For multi-key grouping, `key` is a table indexed from 1:
 ${query [[
   from
-    index.tag 'tag'
+    index.tags()
   group by
     name,
     parent

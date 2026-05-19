@@ -212,7 +212,7 @@ Under the hood, each of these calls `globalThis.syscall("editor.flashNotificatio
 ## Available syscalls
 All syscalls available to plugs are documented on pages tagged `#api/syscall`:
 
-${template.each(query[[ from p = tags["api/syscall"] where p.tag == "page" order by p.name ]], templates.pageItem)}
+${query[[ from p = index.pages("api/syscall") where p.tag == "page" order by p.name select templates.pageItem(p) ]]}
 
 ## Declaring your own syscall
 Any plug function can be exposed as a syscall by adding `syscall: yourplug.foo` to its manifest entry. Other plugs can then call it (via the `system` syscall or the function’s syscall name), and Space Lua code can call it as `yourplug.foo(...)`. See the [[#Syscalls]] above.

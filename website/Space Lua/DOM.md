@@ -64,7 +64,7 @@ A common pattern is building HTML tables from query results:
 
 ```lua
 local rows = {}
-for page in query[[ from index.tag "page" limit 5 ]] do
+for page in query[[ from index.pages() limit 5 ]] do
   table.insert(rows, dom.tr {
     dom.td { "[[" .. page.name .. "]]" },
     dom.td { os.date("%Y-%m-%d", page.lastModified) }

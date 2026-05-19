@@ -8,4 +8,4 @@ config.set("index.paragraph.all", true)
 
 Example query, querying a paragraph with a #paragraph-tag:
 
-${query[[from index.tag "paragraph-tag"]]}
+${query[[from index.paragraphs("paragraph-tag")]]}

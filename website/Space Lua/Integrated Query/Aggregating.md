@@ -21,7 +21,7 @@ When an aggregate function appears in `select` or `having` but no `group by` cla
 This is useful for computing a single summary value over a collection:
 
 ${query [[
-  from p = index.tag "page"
+  from p = index.pages()
   select { total = count(p.name), biggest = max(p.size) }
 ]]}
 
@@ -139,7 +139,7 @@ Unlike `where` (which filters rows before grouping) and `having` (which filters 
 
 ${query [[
   from
-    p = index.tag 'page'
+    p = index.pages()
   group by
     p.tags[1]
   select {
@@ -167,7 +167,7 @@ Collect page names sorted alphabetically within each group:
 
 ${query [[
   from
-    p = index.tag 'page'
+    p = index.pages()
   group by
     p.tags[1]
   select {
@@ -186,7 +186,7 @@ The `order by` and `filter` clauses can be used together. The filter is applied 
 
 ${query [[
   from
-    p = index.tag 'page'
+    p = index.pages()
   group by
     p.tags[1]
   select {

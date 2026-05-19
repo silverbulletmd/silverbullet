@@ -56,10 +56,10 @@ SLIQ operates on any Lua collection.
 For instance, to sort a list of numbers in descending order:
 ${query[[from n = {1, 2, 3} order by n desc]]}
 
-However, in most cases you’ll use it in conjunction with [[API/index#index.tag(name)]]. Here’s an example querying the 3 pages that were last modified:
+However, in most cases you’ll use it in conjunction with [[API/index#index.objects(tag)]] (or one of its convenience wrappers like `index.pages()`). Here’s an example querying the 3 pages that were last modified:
 
 ${query[[
-  from p = index.tag "page"
+  from p = index.pages()
   order by p.lastModified desc
   select p.name
   limit 3
@@ -68,7 +68,7 @@ ${query[[
 Note that the query returns a regular Lua table, so it can be part of a bigger expression:
 
 ${some(query[[
-  from p = index.tag "page"
+  from p = index.pages()
   limit 0
 ]]) or "Matched no pages"}
 
@@ -101,8 +101,8 @@ ${query[[from {1, 2, 3} select _]]}
 With variable binding:
 ${query[[from n = {1, 2, 3} select n]]}
 
-A more realistic example using `index.tag`:
-${query[[from p = index.tag "page" order by p.lastModified select p.name limit 3]]}
+A more realistic example using `index.pages`:
+${query[[from p = index.pages() order by p.lastModified select p.name limit 3]]}
 
 ## `where`
 The `where` clause allows you to filter data. When the expression evaluated to a truthy value, the item is included in the result.
@@ -113,11 +113,11 @@ ${query[[from n = {1, 2, 3, 4, 5} where n > 2]]}
 
 Or to select 5 pages tagged with `#meta`:
 
-${query[[from p = index.tag "page" where table.includes(p.tags, "meta") limit 5]]}
+${query[[from p = index.pages() where table.includes(p.tags, "meta") limit 5]]}
 
 Or select based on name (including folder) and a [[API/string|string function]]:
 
-${query[[from p = index.tag "page" where p.name:startsWith("Person")]]}
+${query[[from p = index.pages() where p.name:startsWith("Person")]]}
 
 ## `group by`
 The `group by` clause groups results by one or more key expressions. After grouping, each result row becomes a table with two fields:
@@ -130,7 +130,7 @@ The `group by` field names are also available as bare variables in `having`, `se
 Example:
 
 ${query[[
-  from p = index.tag "tag"
+  from p = index.objects("tag")
   group by p.name
   select { name = name, count = #group }
   limit 5
@@ -146,7 +146,7 @@ Aggregate functions like `count()`, `sum()`, `min()`, `max()`, and `avg()` can b
 Example:
 
 ${query[[
-  from p = index.tag "tag"
+  from p = index.objects("tag")
   group by p.name
   having #group > 2
   select { name = name, count = #group }
@@ -162,7 +162,7 @@ The `order by` clause sorts results by one or more expressions. By default, sort
 As an example, the last 3 modified pages:
 
 ${query[[
-  from p = index.tag "page"
+  from p = index.pages()
   order by p.lastModified desc
   select p.name
   limit 3
@@ -171,7 +171,7 @@ ${query[[
 You can sort by multiple expressions separated by commas. Each key is evaluated left to right — the second key only matters when the first compares as equal:
 
 ${query[[
-  from p = index.tag "page"
+  from p = index.pages()
   order by p.lastModified desc, p.name
   select p.name
   limit 3
@@ -191,7 +191,7 @@ query[[
 By default, `nil` values follow SQL conventions: they appear **last** for ascending order and **first** for descending order. You can override this per key with `nulls first` or `nulls last`:
 
 ${query[[
-  from p = index.tag "page"
+  from p = index.pages()
   order by p.priority desc nulls last
   select { name = p.name, priority = p.priority }
   limit 3
@@ -213,7 +213,7 @@ end
 
 ```lua
 query [[
-  from p = index.tag "page"
+  from p = index.pages()
   order by p.name using byLength
   select p.name
   limit 5
@@ -300,7 +300,7 @@ ${query[[from n = {1, 2, 3} select n * 2]]}
 
 It is convenient to combine it with the [[API/table#table.select(table, keys...)]] API:
 ${query[[
-  from p = index.tag "page"
+  from p = index.pages()
   select table.select(p, "name", "lastModified")
   limit 3
 ]]}
@@ -309,7 +309,7 @@ ${query[[
 To render the output as a template, you can rely on the fact that queries return Lua tables. For example, to apply a template to render every page as a link:
 
 ${query[[
-  from p = index.tag "page"
+  from p = index.pages()
   order by p.lastModified desc
   limit 3
   select templates.pageItem(p)
