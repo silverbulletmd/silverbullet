@@ -46,8 +46,6 @@ graph TB
     SW -->|"HTTP API"| Server
     Client -.->|"direct (online)"| Server
 ```
-
-
 # Client
 The client is what you see when you open SilverBullet in a browser tab or window. It renders the UI, interacts with the user and runs most of the logic. 90%+ of logic in SilverBullet lives here.
 

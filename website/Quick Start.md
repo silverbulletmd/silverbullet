@@ -21,7 +21,7 @@ Now open http://localhost:3000 in your browser.
 > For a full breakdown of installation options, see [[Install]].
 
 # 2. Create your first page
-Click the page icon in the [[Top Bar]] (or press `Cmd-k` / `Ctrl-k`) to open the [[Page Picker]]. Type a page name like "My First Page" and press Enter — SilverBullet creates it instantly.
+Click the book icon in the [[Top Bar]] (or press `Cmd-k` / `Ctrl-k`) to open the [[Page Picker]]. Type a page name like "My First Page" and press Enter — SilverBullet creates it instantly.
 
 Start typing. Everything is [[Markdown]].
 

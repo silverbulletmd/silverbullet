@@ -144,9 +144,8 @@ The `having` clause filters groups **after** `group by`. It follows SQL semantic
 Aggregate functions like `count()`, `sum()`, `min()`, `max()`, and `avg()` can be used in `having` expressions. See [[Space Lua/Integrated Query/Aggregating]] for details.
 
 Example:
-
 ${query[[
-  from p = index.objects("tag")
+  from p = index.tags()
   group by p.name
   having #group > 2
   select { name = name, count = #group }
