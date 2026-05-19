@@ -339,8 +339,13 @@ async function cachedFetch(path: string): Promise<string> {
       }
     }
     if (response.status === 404) {
-      // File doesn't exist yet (e.g., CONFIG.md before first sync)
-      // Return empty string without caching, so next boot re-fetches
+      // File doesn't exist yet (e.g., CONFIG.md before first sync).
+      // Cache the empty body so that, when offline next time, the fallback
+      // path can serve "" instead of throwing a raw fetch error (which the
+      // boot's outer catch would otherwise silently swallow). The cache is
+      // only consulted on network failure, so caching this won't mask a
+      // later 200 response when online.
+      localStorage.setItem(cacheKey, "");
       return "";
     }
     if (response.type === "opaqueredirect") {
@@ -368,13 +373,16 @@ async function cachedFetch(path: string): Promise<string> {
     return text;
   } catch (e: any) {
     console.info("Falling back to cache for", path);
-    // We may be offline, let's see if we have a cached config
+    // We may be offline, let's see if we have a cached copy
     const text = localStorage.getItem(cacheKey);
-    if (text) {
-      // Yep! Let's use it
+    if (text !== null) {
+      // Cache hit (including a cached empty body) — use it
       return text;
     } else {
-      throw e;
+      // No cache and the network is unreachable: treat as offline so the
+      // boot path can take its offline-handling branch instead of silently
+      // swallowing the raw fetch error.
+      throw offlineError;
     }
   }
 }
