@@ -28,6 +28,9 @@ export function indexSyscalls(
     "index.pages": (_ctx, tagName?: string): LuaQueryCollection => {
       return objectIndex.rootTaggedObjects("page", tagName);
     },
+    "index.subPages": (_ctx, pageName: string): LuaQueryCollection => {
+      return objectIndex.subPages(pageName);
+    },
     "index.contentPages": (): LuaQueryCollection => {
       return objectIndex.contentPages();
     },

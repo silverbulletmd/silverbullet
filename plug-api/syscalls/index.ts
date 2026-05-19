@@ -57,6 +57,14 @@ export function pages(tagName?: string): Promise<LuaQueryCollection> {
 }
 
 /**
+ * Returns all sub-pages of the given page (pages whose name starts with `<pageName>/`)
+ * as a query collection.
+ */
+export function subPages(pageName: string): Promise<LuaQueryCollection> {
+  return syscall("index.subPages", pageName);
+}
+
+/**
  * Returns all tasks (optionally filtered by an additional tag) as a query collection.
  */
 export function tasks(tagName?: string): Promise<LuaQueryCollection> {
