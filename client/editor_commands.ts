@@ -49,10 +49,50 @@ import {
   startCompletion,
 } from "@codemirror/autocomplete";
 import { openSearchPanel } from "@codemirror/search";
+import { EditorSelection } from "@codemirror/state";
+import { type EditorView } from "@codemirror/view";
 import { reloadAllWidgets } from "./codemirror/code_widget.ts";
 import { broadcastReload } from "./components/widget_sandbox_iframe.ts";
 import type { Client } from "./client.ts";
 import type { CommandHook } from "./plugos/hooks/command.ts";
+
+/**
+ * Block widgets (queries, tables, …) hide their multi-line source via
+ * `hideBlockSource`: one line stays visible to host the widget, the rest
+ * collapse to zero height with `display:none`. CodeMirror's geometric
+ * `cursorLineUp/Down` then lands on whichever line is visible — so the
+ * cursor appears to jump several document lines when entering the block.
+ *
+ * After the default motion, if the cursor jumped more than one document
+ * line in the intended direction, re-snap to the adjacent line. That
+ * lands cursor on the first hidden source line when going down, and the
+ * last one when going up. Either entry expands the block (via
+ * `isCursorInRange`) so the source becomes editable.
+ */
+function withCollapsedBlockSnap(
+  motion: (v: EditorView) => boolean,
+  forward: boolean,
+): (v: EditorView) => boolean {
+  return (v: EditorView) => {
+    const prev = v.state.selection.main;
+    const prevLine = v.state.doc.lineAt(prev.head).number;
+    const result = motion(v);
+    const next = v.state.selection.main;
+    if (next.head === prev.head) return result;
+    const newLine = v.state.doc.lineAt(next.head).number;
+    const diff = forward ? newLine - prevLine : prevLine - newLine;
+    if (diff <= 1) return result;
+    const targetLineNo = forward ? prevLine + 1 : prevLine - 1;
+    const targetPos = v.state.doc.line(targetLineNo).from;
+    v.dispatch({
+      selection: prev.empty
+        ? EditorSelection.cursor(targetPos)
+        : EditorSelection.range(prev.anchor, targetPos),
+      scrollIntoView: true,
+    });
+    return result;
+  };
+}
 
 /**
  * Registers client-side editor commands with the CommandHook. These were
@@ -225,6 +265,11 @@ export function registerEditorCommands(
     disableInVim: true,
     run: async () => cursorDocEnd(view()),
   });
+  const cursorLineUpSnap = withCollapsedBlockSnap(cursorLineUp, false);
+  const cursorLineDownSnap = withCollapsedBlockSnap(cursorLineDown, true);
+  const selectLineUpSnap = withCollapsedBlockSnap(selectLineUp, false);
+  const selectLineDownSnap = withCollapsedBlockSnap(selectLineDown, true);
+
   hook.registerCommand({
     name: "Editor: Cursor Line Up",
     key: ["ArrowUp", "Ctrl-p"],
@@ -234,7 +279,7 @@ export function registerEditorCommands(
     run: async () => {
       const v = view();
       if (moveCompletionSelection(false)(v)) return true;
-      return cursorLineUp(v);
+      return cursorLineUpSnap(v);
     },
   });
   hook.registerCommand({
@@ -246,7 +291,7 @@ export function registerEditorCommands(
     run: async () => {
       const v = view();
       if (moveCompletionSelection(true)(v)) return true;
-      return cursorLineDown(v);
+      return cursorLineDownSnap(v);
     },
   });
   hook.registerCommand({
@@ -356,7 +401,7 @@ export function registerEditorCommands(
     mac: "Shift-ArrowUp",
     requireEditor: "page",
     disableInVim: true,
-    run: async () => selectLineUp(view()),
+    run: async () => selectLineUpSnap(view()),
   });
   hook.registerCommand({
     name: "Editor: Select Line Down",
@@ -364,7 +409,7 @@ export function registerEditorCommands(
     mac: "Shift-ArrowDown",
     requireEditor: "page",
     disableInVim: true,
-    run: async () => selectLineDown(view()),
+    run: async () => selectLineDownSnap(view()),
   });
   hook.registerCommand({
     name: "Editor: Select Page Up",

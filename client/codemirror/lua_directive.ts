@@ -74,14 +74,14 @@ export function luaDirectivePlugin(client: Client) {
 
         const hideSource = () => {
           if (client.ui.viewState.uiOptions.markdownSyntaxRendering) return;
-          hideBlockSource(widgets, state, node.from, node.to);
+          hideBlockSource(widgets, state, node.from, node.to, "start");
         };
 
         if (renderMode === "loading") {
           widgets.push(
             Decoration.widget({
               widget: new LoadingWidget(false),
-            }).range(node.to),
+            }).range(node.from),
           );
           hideSource();
           return;
@@ -163,7 +163,7 @@ export function luaDirectivePlugin(client: Client) {
               renderEmpty: true,
               inPage: true,
             }),
-          }).range(node.to),
+          }).range(node.from),
         );
 
         hideSource();
