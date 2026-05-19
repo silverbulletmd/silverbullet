@@ -213,7 +213,11 @@ export function hideBlockSource(
     widgets.push(invisibleDecoration.range(from, to));
     return;
   }
-  widgets.push(invisibleDecoration.range(from, fromLine.to));
+  if (from === fromLine.from) {
+    widgets.push(hiddenLineDecoration.range(fromLine.from));
+  } else {
+    widgets.push(invisibleDecoration.range(from, fromLine.to));
+  }
   for (let n = fromLine.number + 1; n < toLine.number; n++) {
     widgets.push(hiddenLineDecoration.range(state.doc.line(n).from));
   }
