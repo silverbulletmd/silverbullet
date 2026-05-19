@@ -47,6 +47,68 @@ function cleanTags(values: (Tag | null)[], cleanWhitespace = false): Tag[] {
   return result;
 }
 
+// Markdown node types whose rendered output is block-level (renders with its
+// own line box / margins) and therefore doesn't need explicit `<br>`
+// separators around it.
+const blockTypes = new Set([
+  "ATXHeading1",
+  "ATXHeading2",
+  "ATXHeading3",
+  "ATXHeading4",
+  "ATXHeading5",
+  "ATXHeading6",
+  "SetextHeading1",
+  "SetextHeading2",
+  "BulletList",
+  "OrderedList",
+  "TaskList",
+  "Table",
+  "Blockquote",
+  "FencedCode",
+  "CodeBlock",
+  "HorizontalRule",
+  "HTMLBlock",
+  "LuaDirective",
+  "CommentBlock",
+  "FrontMatter",
+]);
+
+function isBlockNode(node: ParseTree | undefined): boolean {
+  return !!node?.type && blockTypes.has(node.type);
+}
+
+// ATX headings include the space after the `#` marker in their child text
+// (e.g. `# Heading` parses to a text child of ` Heading`). Strip that.
+function trimLeadingSpace(tags: Tag[]): Tag[] {
+  if (tags.length === 0) return tags;
+  const first = tags[0];
+  if (typeof first === "string" && first.startsWith(" ")) {
+    const trimmed = first.replace(/^ +/, "");
+    return trimmed ? [trimmed, ...tags.slice(1)] : tags.slice(1);
+  }
+  return tags;
+}
+
+/**
+ * Drop whitespace-only text nodes from Document-level children when both
+ * neighbours are block-level.
+ */
+function collapseBlockWhitespace(
+  children: ParseTree[],
+  rendered: (Tag | null)[],
+): (Tag | null)[] {
+  return rendered.map((tag, i) => {
+    if (typeof tag !== "string" || !/^\s+$/.test(tag)) return tag;
+    const prev = children[i - 1];
+    const next = children[i + 1];
+    // Drop the whitespace if at least one neighbour is block-level.
+    if (!prev || !next || isBlockNode(prev) || isBlockNode(next)) {
+      return null;
+    }
+    return tag;
+  });
+}
+
 /**
  * Cleans up a markdown tree. Side effect: adds parent pointers
  */
@@ -101,7 +163,9 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
     case "Document":
       return {
         name: Fragment,
-        body: cleanTags(mapRender(t.children!)),
+        body: cleanTags(
+          collapseBlockWhitespace(t.children!, mapRender(t.children!)),
+        ),
       };
     case "FrontMatter":
       return null;
@@ -111,32 +175,32 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
     case "ATXHeading1":
       return {
         name: "h1",
-        body: cleanTags(mapRender(t.children!)),
+        body: trimLeadingSpace(cleanTags(mapRender(t.children!))),
       };
     case "ATXHeading2":
       return {
         name: "h2",
-        body: cleanTags(mapRender(t.children!)),
+        body: trimLeadingSpace(cleanTags(mapRender(t.children!))),
       };
     case "ATXHeading3":
       return {
         name: "h3",
-        body: cleanTags(mapRender(t.children!)),
+        body: trimLeadingSpace(cleanTags(mapRender(t.children!))),
       };
     case "ATXHeading4":
       return {
         name: "h4",
-        body: cleanTags(mapRender(t.children!)),
+        body: trimLeadingSpace(cleanTags(mapRender(t.children!))),
       };
     case "ATXHeading5":
       return {
         name: "h5",
-        body: cleanTags(mapRender(t.children!)),
+        body: trimLeadingSpace(cleanTags(mapRender(t.children!))),
       };
     case "ATXHeading6":
       return {
         name: "h6",
-        body: cleanTags(mapRender(t.children!)),
+        body: trimLeadingSpace(cleanTags(mapRender(t.children!))),
       };
     case "Paragraph": {
       const hasHtml = t.children!.some((c) => c.type === "HTMLTag");
@@ -388,8 +452,8 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
         name: "span",
         attrs: externalTaskRef
           ? {
-              "data-external-task-ref": externalTaskRef,
-            }
+            "data-external-task-ref": externalTaskRef,
+          }
           : {},
         body: cleanTags(mapRender(t.children!)),
       };

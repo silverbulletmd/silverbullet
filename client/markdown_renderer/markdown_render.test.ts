@@ -477,3 +477,101 @@ test("HTML comment is still removed", () => {
   const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
   expect(html).toBe("");
 });
+
+test("Whitespace between block siblings is dropped (no spurious <br>)", () => {
+  const tree = parse(
+    extendedMarkdownLanguage,
+    "# Heading\n\n- item one\n- item two\n\n# Next heading\n",
+  );
+  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
+  expect(html).toBe(
+    "<h1>Heading</h1>" +
+    '<ul><li><span class="p">item one</span></li>' +
+    '<li><span class="p">item two</span></li></ul>' +
+    "<h1>Next heading</h1>",
+  );
+});
+
+test("Whitespace between paragraphs is preserved as <br/>", () => {
+  const tree = parse(
+    extendedMarkdownLanguage,
+    "Hello there\n\nThis is cool\n",
+  );
+  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
+  expect(html).toBe(
+    '<span class="p">Hello there</span>' +
+    "<br/><br/>" +
+    '<span class="p">This is cool</span>',
+  );
+});
+
+test("Whitespace between paragraph and heading is dropped", () => {
+  const tree = parse(
+    extendedMarkdownLanguage,
+    "Intro paragraph\n\n# Heading\n",
+  );
+  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
+  expect(html).toBe(
+    '<span class="p">Intro paragraph</span><h1>Heading</h1>',
+  );
+});
+
+test("Whitespace between heading and paragraph is dropped", () => {
+  const tree = parse(
+    extendedMarkdownLanguage,
+    "# Heading\n\nIntro paragraph\n",
+  );
+  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
+  expect(html).toBe(
+    '<h1>Heading</h1><span class="p">Intro paragraph</span>',
+  );
+});
+
+test("Multiple blank lines between blocks collapse to nothing", () => {
+  const tree = parse(
+    extendedMarkdownLanguage,
+    "# A\n\n\n\n# B\n",
+  );
+  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
+  expect(html).toBe("<h1>A</h1><h1>B</h1>");
+});
+
+test("Heading then list then heading (transclusion shape)", () => {
+  // Mirrors the transcluded API page: heading, query result (bullet list),
+  // heading, query result (bullet list). The bug being guarded against here
+  // is the original symptom: bare <br>...<br><br><br> between sections.
+  const tree = parse(
+    extendedMarkdownLanguage,
+    "# Lua Standard Library\n" +
+    "- one\n- two\n\n" +
+    "# Space Lua APIs\n" +
+    "- three\n- four\n",
+  );
+  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
+  expect(html).toBe(
+    "<h1>Lua Standard Library</h1>" +
+    '<ul><li><span class="p">one</span></li>' +
+    '<li><span class="p">two</span></li></ul>' +
+    "<h1>Space Lua APIs</h1>" +
+    '<ul><li><span class="p">three</span></li>' +
+    '<li><span class="p">four</span></li></ul>',
+  );
+});
+
+test("Paragraph between two blocks keeps its surrounding breaks where needed", () => {
+  // # heading\n\npara1\n\npara2\n\n# heading2
+  // Whitespace adjacent to a paragraph stays (paragraphs are inline);
+  // whitespace between two block-level siblings is dropped.
+  const tree = parse(
+    extendedMarkdownLanguage,
+    "# H1\n\npara1\n\npara2\n\n# H2\n",
+  );
+  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
+  expect(html).toBe(
+    "<h1>H1</h1>" +
+    '<span class="p">para1</span>' +
+    "<br/><br/>" +
+    '<span class="p">para2</span>' +
+    "<h1>H2</h1>",
+  );
+});
