@@ -200,12 +200,18 @@ const hiddenLineDecoration = Decoration.line({
  * CodeMirror — arrow-key entry from below snaps to the range start
  * rather than the last line. Hiding each line separately keeps each
  * line independently addressable while still rendering nothing.
+ *
+ * `widgetAt` indicates which end of the range hosts a point widget so
+ * that line stays in the DOM via `Decoration.replace` (content erased
+ * but the line still renders). Other lines use a `display: none` line
+ * class so they take no vertical space.
  */
 export function hideBlockSource(
   widgets: Range<Decoration>[],
   state: EditorState,
   from: number,
   to: number,
+  widgetAt: "start" | "end" = "end",
 ) {
   const fromLine = state.doc.lineAt(from);
   const toLine = state.doc.lineAt(to);
@@ -213,7 +219,9 @@ export function hideBlockSource(
     widgets.push(invisibleDecoration.range(from, to));
     return;
   }
-  if (from === fromLine.from) {
+  if (widgetAt === "start") {
+    widgets.push(invisibleDecoration.range(from, fromLine.to));
+  } else if (from === fromLine.from) {
     widgets.push(hiddenLineDecoration.range(fromLine.from));
   } else {
     widgets.push(invisibleDecoration.range(from, fromLine.to));
@@ -221,7 +229,13 @@ export function hideBlockSource(
   for (let n = fromLine.number + 1; n < toLine.number; n++) {
     widgets.push(hiddenLineDecoration.range(state.doc.line(n).from));
   }
-  widgets.push(invisibleDecoration.range(toLine.from, to));
+  if (widgetAt === "end") {
+    widgets.push(invisibleDecoration.range(toLine.from, to));
+  } else if (to === toLine.to) {
+    widgets.push(hiddenLineDecoration.range(toLine.from));
+  } else {
+    widgets.push(invisibleDecoration.range(toLine.from, to));
+  }
 }
 
 export type WidgetRenderMode = "ready" | "loading" | "disabled";

@@ -98,7 +98,7 @@ export function tablePlugin(editor: Client) {
         if (name !== "Table") return;
         if (isCursorInRange(state, [from, to])) return;
 
-        hideBlockSource(widgets, state, from, to);
+        hideBlockSource(widgets, state, from, to, "start");
 
         const text = state.sliceDoc(0, to);
         widgets.push(
