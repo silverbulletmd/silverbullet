@@ -50,7 +50,7 @@ import {
 } from "@codemirror/autocomplete";
 import { openSearchPanel } from "@codemirror/search";
 import { EditorSelection } from "@codemirror/state";
-import { type EditorView } from "@codemirror/view";
+import type { EditorView } from "@codemirror/view";
 import { reloadAllWidgets } from "./codemirror/code_widget.ts";
 import { broadcastReload } from "./components/widget_sandbox_iframe.ts";
 import type { Client } from "./client.ts";
