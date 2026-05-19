@@ -90,8 +90,10 @@ function trimLeadingSpace(tags: Tag[]): Tag[] {
 }
 
 /**
- * Drop whitespace-only text nodes from Document-level children when both
- * neighbours are block-level.
+ * Drop whitespace-only text nodes from Document-level children only when
+ * BOTH neighbours are block-level (so they already have their own margins
+ * and don't need explicit `<br/>` separators). Trailing/leading whitespace
+ * (no neighbour on one side) is also dropped.
  */
 function collapseBlockWhitespace(
   children: ParseTree[],
@@ -101,10 +103,13 @@ function collapseBlockWhitespace(
     if (typeof tag !== "string" || !/^\s+$/.test(tag)) return tag;
     const prev = children[i - 1];
     const next = children[i + 1];
-    // Drop the whitespace if at least one neighbour is block-level.
-    if (!prev || !next || isBlockNode(prev) || isBlockNode(next)) {
-      return null;
-    }
+    if (!prev || !next) return null;
+    if (isBlockNode(prev) && isBlockNode(next)) return null;
+    // Block - inline: the block side already contributes its own margin,
+    // so a single <br/> is enough to mirror the paragraph-paragraph gap
+    // without piling up extra space. Collapse any multi-newline whitespace
+    // to one newline.
+    if (isBlockNode(prev) || isBlockNode(next)) return "\n";
     return tag;
   });
 }

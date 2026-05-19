@@ -505,25 +505,45 @@ test("Whitespace between paragraphs is preserved as <br/>", () => {
   );
 });
 
-test("Whitespace between paragraph and heading is dropped", () => {
+test("Whitespace between paragraph and heading is preserved", () => {
+  // Paragraph renders as an inline `<span class="p">`, so a blank line
+  // before a following block (heading) must still produce a visible gap.
   const tree = parse(
     extendedMarkdownLanguage,
     "Intro paragraph\n\n# Heading\n",
   );
   const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
   expect(html).toBe(
-    '<span class="p">Intro paragraph</span><h1>Heading</h1>',
+    '<span class="p">Intro paragraph</span><br/><h1>Heading</h1>',
   );
 });
 
-test("Whitespace between heading and paragraph is dropped", () => {
+test("Whitespace between heading and paragraph is preserved", () => {
+  // Symmetric to the previous case: block-then-paragraph keeps its break.
+  // Note: the heading consumes the newline that terminates its own line, so
+  // the whitespace text node between heading and paragraph is a single `\n`,
+  // not the `\n\n` of the markdown source.
   const tree = parse(
     extendedMarkdownLanguage,
     "# Heading\n\nIntro paragraph\n",
   );
   const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
   expect(html).toBe(
-    '<h1>Heading</h1><span class="p">Intro paragraph</span>',
+    '<h1>Heading</h1><br/><span class="p">Intro paragraph</span>',
+  );
+});
+
+test("Whitespace between bullet list and paragraph is preserved", () => {
+  const tree = parse(
+    extendedMarkdownLanguage,
+    "- item one\n- item two\n\nOther text\n",
+  );
+  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
+  expect(html).toBe(
+    '<ul><li><span class="p">item one</span></li>' +
+    '<li><span class="p">item two</span></li></ul>' +
+    "<br/>" +
+    '<span class="p">Other text</span>',
   );
 });
 
@@ -569,9 +589,11 @@ test("Paragraph between two blocks keeps its surrounding breaks where needed", (
   const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
   expect(html).toBe(
     "<h1>H1</h1>" +
+    "<br/>" +
     '<span class="p">para1</span>' +
     "<br/><br/>" +
     '<span class="p">para2</span>' +
+    "<br/>" +
     "<h1>H2</h1>",
   );
 });
