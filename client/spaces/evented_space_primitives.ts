@@ -33,7 +33,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     private eventHook: EventHook,
     private ds: DataStore,
     private snapshotKey = ["$spaceSnapshot"],
-  ) {}
+  ) { }
 
   async enable() {
     console.log("Loading snapshot and enabling events");
@@ -119,13 +119,8 @@ export class EventedSpacePrimitives implements SpacePrimitives {
         // Update in snapshot
         this.updateInSnapshot(meta.name, newHash);
 
-        // Check what happened to the file
-        if (
-          // New file scenario
-          !oldHash ||
-          // Changed file scenario
-          (oldHash && oldHash !== newHash)
-        ) {
+        // Check what happened to the file.
+        if (oldHash === undefined || oldHash !== newHash) {
           console.log(
             "Detected file change during listing",
             meta.name,
