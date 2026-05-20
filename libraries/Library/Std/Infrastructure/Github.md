@@ -63,6 +63,7 @@ config.define("github", {
 
 ## Github Repo Files
 ```space-lua
+-- priority: 10
 -- returns (something/bla, branch, path)
 function github.extractData(url)
   if url == nil then
@@ -297,6 +298,7 @@ service.define {
 
 ## Gists
 ```space-lua
+-- priority: 10
 local function extractGistId(url)
   if not url:startsWith("https://gist.github.com/") then
     return nil

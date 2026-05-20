@@ -18,6 +18,7 @@ Flow:
 
 # Implementation
 ```space-lua
+-- priority: 10
 command.define {
   name = "Export: Page Or Selection",
   key = "Ctrl-e",
@@ -52,6 +53,7 @@ Implements two exporters:
 * Copy clean markdown
 
 ```space-lua
+-- priority: 10
 service.define {
   selector = "export",
   match = {

@@ -3,6 +3,7 @@
 Adds commands and an action button (on mobile) for toggling read-only mode.
 
 ```space-lua
+-- priority: 10
 function toggleReadOnlyMode()
   local ro = editor.getUiOption("forcedROMode")
   ro = not ro

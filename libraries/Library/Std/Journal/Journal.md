@@ -59,6 +59,7 @@ config.define("journal", {
 # API
 
 ```space-lua
+-- priority: 10
 function journal.openOrCreate(dateStr)
   local pageName = config.get("journal.prefix") .. dateStr
   if space.pageExists(pageName) then

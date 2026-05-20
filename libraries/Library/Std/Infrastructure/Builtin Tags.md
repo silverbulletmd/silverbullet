@@ -5,6 +5,7 @@ tags: meta
 Defined via [[^Library/Std/APIs/Tag]].
 
 ```space-lua
+-- priority: 10
 local function readOnlyType(type)
   return {
     type = type,

@@ -6,6 +6,7 @@ Implements utilities for working with Markdown tables
 ## Commands
 
 ```space-lua
+-- priority: 10
 command.define {
   name = "Table: Format",
   run = function()
@@ -24,6 +25,7 @@ command.define {
 ## Implementation
 
 ```space-lua
+-- priority: 10
 -- Find outermost node of given type that contains the position
 -- similar to plug-api/lib/tree.ts nodeAtPos
 function nodeParentOfType(tree, position, nodeType)
@@ -45,6 +47,7 @@ end
 ```
 
 ```space-lua
+-- priority: 10
 function formatMarkdownTable(tree)
 
   -- First find the desired length for each column
