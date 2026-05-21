@@ -1,80 +1,47 @@
 import { bench, describe } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
 import { createMockSystem } from "../../plug-api/system_mock.ts";
-import { extractFrontMatter } from "./frontmatter.ts";
+import { extractFrontMatter, type FrontMatter } from "./frontmatter.ts";
 import { indexPage as pageIndexPage } from "./page.ts";
 import { indexData } from "./data.ts";
 import { indexItems } from "./item.ts";
 import { indexHeaders } from "./header.ts";
 import { indexParagraphs } from "./paragraph.ts";
-import { indexLinks } from "./link.ts";
+import { indexRelations } from "./relation.ts";
 import { indexTables } from "./table.ts";
 import { indexSpaceLua } from "./space_lua.ts";
 import { indexSpaceStyle } from "./space_style.ts";
 import { indexTags } from "./tags.ts";
+import { allIndexers } from "./indexer.ts";
+import {
+  type CorpusPage,
+  loadMarkdownFiles,
+  stubPageMeta,
+  websiteDir,
+} from "./test_corpus.ts";
 import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
-import type { FrontMatter } from "./frontmatter.ts";
-import { allIndexers } from "./indexer.ts";
-
-// --- Load all website markdown files ---
-const __dirname = fileURLToPath(new URL(".", import.meta.url));
-const websiteDir = join(__dirname, "../../website");
-
-interface PageData {
-  name: string;
-  text: string;
-}
-
-function loadMarkdownFiles(dir: string, base = ""): PageData[] {
-  const pages: PageData[] = [];
-  for (const entry of readdirSync(dir)) {
-    const fullPath = join(dir, entry);
-    const relativePath = base ? `${base}/${entry}` : entry;
-    const stat = statSync(fullPath);
-    if (stat.isDirectory()) {
-      pages.push(...loadMarkdownFiles(fullPath, relativePath));
-    } else if (entry.endsWith(".md")) {
-      pages.push({
-        name: relativePath.replace(/\.md$/, ""),
-        text: readFileSync(fullPath, "utf-8"),
-      });
-    }
-  }
-  return pages;
-}
 
 const pages = loadMarkdownFiles(websiteDir);
 
-// Pre-parse trees for indexer-only benchmarks
-interface ParsedPage extends PageData {
+// Pre-parse trees for indexer-only benchmarks.
+type ParsedPage = CorpusPage & {
   tree: ParseTree;
   frontmatter: FrontMatter;
   pageMeta: PageMeta;
-}
+};
 
-function buildParsedPages(): ParsedPage[] {
-  return pages.map((p) => {
-    const tree = parseMarkdown(p.text);
-    const frontmatter = extractFrontMatter(tree);
-    const pageMeta: PageMeta = {
-      ref: p.name,
-      name: p.name,
-      tag: "page",
-      created: "",
-      lastModified: "",
-      perm: "rw",
-    };
-    return { ...p, tree, frontmatter, pageMeta };
-  });
-}
-
-// Setup mock system (registers syscalls globally)
 createMockSystem();
-const parsedPages = buildParsedPages();
+
+const parsedPages: ParsedPage[] = pages.map((p) => {
+  const tree = parseMarkdown(p.text);
+  return {
+    ...p,
+    tree,
+    frontmatter: extractFrontMatter(tree),
+    pageMeta: stubPageMeta(p.name),
+  };
+});
 
 // --- Benchmarks ---
 
@@ -93,12 +60,11 @@ describe("Page Indexing Benchmarks", () => {
     }
   });
 
-  bench("indexLinks (all pages)", async () => {
+  bench("indexRelations (all pages)", async () => {
     for (const p of parsedPages) {
-      // Re-parse to get a fresh tree (extractFrontMatter adds parent pointers)
       const tree = parseMarkdown(p.text);
       const fm = extractFrontMatter(tree);
-      await indexLinks(p.pageMeta, fm, tree, p.text);
+      await indexRelations(p.pageMeta, fm, tree, p.text);
     }
   });
 
@@ -178,18 +144,9 @@ describe("Page Indexing Benchmarks", () => {
     for (const p of pages) {
       const tree = parseMarkdown(p.text);
       const frontmatter = extractFrontMatter(tree);
-      const pageMeta: PageMeta = {
-        ref: p.name,
-        name: p.name,
-        tag: "page",
-        created: "",
-        lastModified: "",
-        perm: "rw",
-      };
+      const meta = stubPageMeta(p.name);
       await Promise.all(
-        allIndexers.map((indexer) =>
-          indexer(pageMeta, frontmatter, tree, p.text)
-        ),
+        allIndexers.map((indexer) => indexer(meta, frontmatter, tree, p.text)),
       );
     }
   });

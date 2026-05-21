@@ -61,6 +61,7 @@
     "fmt": "biome format --write .",
     "fmt:check": "biome format .",
     "bench": "vitest bench",
+    "index-stats": "tsx plugs/index/index_stats.ts",
     "test:e2e": "npx playwright test",
     "test:e2e:headed": "npx playwright test --headed"
   },
