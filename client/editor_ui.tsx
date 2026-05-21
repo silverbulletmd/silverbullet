@@ -136,11 +136,13 @@ export class MainUI {
     if (this.progressTimeout) {
       clearTimeout(this.progressTimeout);
     }
-    this.progressTimeout = setTimeout(() => {
-      this.viewDispatch({
-        type: "set-progress",
-      });
-    }, 5000);
+    if (progressPercentage !== undefined) {
+      this.progressTimeout = setTimeout(() => {
+        this.viewDispatch({
+          type: "set-progress",
+        });
+      }, 5000);
+    }
   }
 
   filterBox(

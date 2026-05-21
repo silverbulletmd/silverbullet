@@ -470,6 +470,30 @@ export class ObjectIndex {
     await this.ds.batchDelete(allKeys);
   }
 
+  public async batchClearFileIndexes(files: string[]): Promise<void> {
+    const allKeys: KvKey[] = [];
+    const chunkSize = 128;
+    for (let i = 0; i < files.length; i += chunkSize) {
+      const chunk = files.slice(i, i + chunkSize);
+      await Promise.all(
+        chunk.map(async (file) => {
+          if (file.endsWith(".md")) {
+            file = file.replace(/\.md$/, "");
+          }
+          for await (const { key } of this.ds.query({
+            prefix: [pageKey, file],
+          })) {
+            allKeys.push(key);
+            allKeys.push([indexKey, ...key.slice(2), file]);
+          }
+        }),
+      );
+    }
+    if (allKeys.length > 0) {
+      await this.ds.batchDelete(allKeys);
+    }
+  }
+
   /**
    * Returns distinct user-defined tag names — i.e. hashtags declared on pages,
    * tasks or items, plus frontmatter tags. Built-in object types

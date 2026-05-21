@@ -146,6 +146,10 @@ export class Client {
   widgetCache!: WidgetCache;
   objectIndex!: ObjectIndex;
 
+  private maxIndexQueueSize = 0;
+  private indexingQueuingCount = 0;
+  private indexProgressInterval: any = null;
+
   constructor(
     private parent: Element,
     public bootConfig: BootConfig,
@@ -319,12 +323,15 @@ export class Client {
     await this.dispatchAppEvent("editor:init");
 
     // Reset Undo History after editor initialization.
-    client.editorView.dispatch({
-      effects: client.undoHistoryCompartment?.reconfigure([]),
+    this.editorView.dispatch({
+      effects: this.undoHistoryCompartment?.reconfigure([]),
     });
-    client.editorView.dispatch({
-      effects: client.undoHistoryCompartment?.reconfigure([history()]),
+    this.editorView.dispatch({
+      effects: this.undoHistoryCompartment?.reconfigure([history()]),
     });
+
+    // Start tracking indexing progress in the background
+    this.startIndexProgressTracker();
 
     // Asynchronously update caches
     this.updatePageListCache().catch(console.error);
@@ -365,10 +372,16 @@ export class Client {
       void this.eventedSpacePrimitives.fetchFileList();
     }, fetchFileListInterval + jitter());
 
-    this.eventHook.addLocalListener("file:changed", async (name: string) => {
-      console.log("Queueing index for", name);
-      await this.objectIndex.clearFileIndex(name);
-      await this.mq.send("indexQueue", name);
+    this.eventHook.addLocalListener("files:changed", async (names: string[]) => {
+      console.log("Queueing index for", names.length, "files");
+      this.indexingQueuingCount += names.length;
+      this.maxIndexQueueSize += names.length;
+      try {
+        await this.objectIndex.batchClearFileIndexes(names);
+        await this.mq.batchSend("indexQueue", names);
+      } finally {
+        this.indexingQueuingCount -= names.length;
+      }
     });
 
     const space = new Space(
@@ -497,7 +510,7 @@ export class Client {
       this.ui.flashNotification(`Lua error: ${e.message}`, "error");
       const origin = resolveASTReference(e.sf.astCtx!);
       if (origin) {
-        void client.navigate(origin);
+        void this.navigate(origin);
       }
     } else {
       this.ui.flashNotification(`Error: ${e.message}`, "error");
@@ -709,7 +722,7 @@ export class Client {
     this.ui.viewDispatch({
       type: "show-palette",
       commands,
-      context: client.getContext(),
+      context: this.getContext(),
     });
   }
 
@@ -929,6 +942,34 @@ export class Client {
     }
   }
 
+  startIndexProgressTracker() {
+    if (this.indexProgressInterval) return;
+
+    const check = () => {
+      const size = this.mq.getQueueSizeInMemory("indexQueue") + this.indexingQueuingCount;
+      if (size > 0) {
+        if (size > this.maxIndexQueueSize) {
+          this.maxIndexQueueSize = size;
+        }
+        const percentage = Math.round(
+          ((this.maxIndexQueueSize - size) / this.maxIndexQueueSize) * 100
+        );
+        const safePercentage = Math.max(0, Math.min(99, percentage));
+        console.log(`[startIndexProgressTracker] Index progress: ${safePercentage}%, size: ${size}, max: ${this.maxIndexQueueSize}`);
+        this.ui.showProgress(safePercentage, "index");
+      } else {
+        if (this.maxIndexQueueSize > 0) {
+          console.log(`[startIndexProgressTracker] Index complete, clearing progress.`);
+          this.maxIndexQueueSize = 0;
+          this.ui.showProgress(undefined);
+        }
+      }
+    };
+
+    check();
+    this.indexProgressInterval = setInterval(check, 200);
+  }
+
   async loadCustomStyles() {
     if (this.bootConfig.disableSpaceStyle) {
       console.warn("Not loading custom styles, since space style is disabled");
@@ -980,7 +1021,7 @@ export class Client {
   }
 
   getCommandsByContext(state: AppViewState): Map<string, Command> {
-    const currentEditor = client.contentManager.documentEditor?.name;
+    const currentEditor = this.contentManager.documentEditor?.name;
     const commands = new Map(state.commands);
     for (const [k, v] of state.commands.entries()) {
       if (

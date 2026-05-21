@@ -215,3 +215,144 @@ test("DataStore MQ - Scale test with multiple subscribers", async () => {
     vi.useRealTimers();
   }
 });
+
+test("DataStore MQ - In-Memory Queue size optimization", async () => {
+  const db = new MemoryKvPrimitives();
+  const ds = new DataStore(db);
+  const eventHook = new EventHook();
+  const mq = new DataStoreMQ(ds, eventHook);
+
+  try {
+    const queue = "test-optimization";
+
+    // Spy on countQuery
+    const countQuerySpy = vi.spyOn(ds.kv, "countQuery");
+
+    // 1. Initially check queue status
+    const isEmptyInitial = await mq.isQueueEmpty(queue);
+    expect(isEmptyInitial).toBe(true);
+    expect(countQuerySpy).toHaveBeenCalledTimes(3); // First check should initialize counts from DB
+
+    countQuerySpy.mockClear();
+
+    // 2. Checking again should NOT query DB (in-memory cache is used)
+    const isEmptyAgain = await mq.isQueueEmpty(queue);
+    expect(isEmptyAgain).toBe(true);
+    expect(countQuerySpy).toHaveBeenCalledTimes(0);
+
+    // 3. Send message
+    await mq.send(queue, "task1");
+    // Since queue is initialized, queued count should update in memory
+    const isEmptyAfterSend = await mq.isQueueEmpty(queue);
+    expect(isEmptyAfterSend).toBe(false);
+    expect(countQuerySpy).toHaveBeenCalledTimes(0);
+
+    // 4. Poll message
+    const msgs = await mq.poll(queue, 1);
+    expect(msgs.length).toBe(1);
+    const isEmptyAfterPoll = await mq.isQueueEmpty(queue);
+    expect(isEmptyAfterPoll).toBe(false); // queued is 0, but processing is 1
+    expect(countQuerySpy).toHaveBeenCalledTimes(0);
+
+    // 5. Ack message
+    await mq.ack(queue, msgs[0].id);
+    const isEmptyAfterAck = await mq.isQueueEmpty(queue);
+    expect(isEmptyAfterAck).toBe(true); // both 0
+    expect(countQuerySpy).toHaveBeenCalledTimes(0);
+
+    // 6. Test flushQueue resets cache
+    await mq.send(queue, "task2");
+    await mq.flushQueue(queue);
+    expect(await mq.isQueueEmpty(queue)).toBe(true);
+    expect(countQuerySpy).toHaveBeenCalledTimes(0);
+  } finally {
+    await db.close();
+  }
+});
+
+test("DataStore MQ - Queue Pause Throttling", async () => {
+  vi.useFakeTimers();
+  const db = new MemoryKvPrimitives();
+  const ds = new DataStore(db);
+  const eventHook = new EventHook();
+  const system = new System<EventHookT>();
+  system.addHook(eventHook);
+  const mq = new DataStoreMQ(ds, eventHook);
+
+
+  try {
+    const queue = "test-pause";
+    let processed = false;
+
+    // Subscribe to the queue
+    const worker = mq.subscribe(queue, {}, () => {
+      processed = true;
+    });
+
+    // Pause the queue
+    mq.setQueuePaused(queue, true);
+    expect(mq.isQueuePaused(queue)).toBe(true);
+
+    // Send a message
+    await mq.send(queue, "hello");
+
+    // Advance time and check that subscriber did NOT run
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(processed).toBe(false);
+
+    // Unpause the queue
+    mq.setQueuePaused(queue, false);
+    expect(mq.isQueuePaused(queue)).toBe(false);
+
+    // Advance time, now it should run
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(processed).toBe(true);
+
+    worker.stop();
+  } finally {
+    await db.close();
+    vi.useRealTimers();
+  }
+});
+
+test("DataStore MQ - In-Memory Queue size retrieval", async () => {
+  const db = new MemoryKvPrimitives();
+  const ds = new DataStore(db);
+  const eventHook = new EventHook();
+  const mq = new DataStoreMQ(ds, eventHook);
+
+  try {
+    const queue = "test-in-memory-size";
+
+    // Initially getQueueSizeInMemory triggers ensureQueueInitialized
+    let size = mq.getQueueSizeInMemory(queue);
+    expect(size).toBe(0); // initially 0 because initialization is async
+
+    // Wait for queue initialization
+    await mq.isQueueEmpty(queue);
+
+    // Send messages
+    await mq.send(queue, "task1");
+    await mq.send(queue, "task2");
+
+    size = mq.getQueueSizeInMemory(queue);
+    expect(size).toBe(2);
+
+    // Poll one
+    const msgs = await mq.poll(queue, 1);
+    expect(msgs.length).toBe(1);
+
+    // Size should still be 2 (1 queued + 1 processing)
+    size = mq.getQueueSizeInMemory(queue);
+    expect(size).toBe(2);
+
+    // Ack one
+    await mq.ack(queue, msgs[0].id);
+    size = mq.getQueueSizeInMemory(queue);
+    expect(size).toBe(1);
+  } finally {
+    await db.close();
+  }
+});
+
+

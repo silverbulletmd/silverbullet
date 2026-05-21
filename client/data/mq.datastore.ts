@@ -99,6 +99,50 @@ export class DataStoreMQ {
     { resolve: () => void; reject: (e: any) => void }[]
   >();
 
+
+  private initializingPromises = new Map<string, Promise<void>>();
+  private initializedQueues = new Set<string>();
+  private queuedCounts = new Map<string, number>();
+  private processingCounts = new Map<string, number>();
+  private pausedQueues = new Set<string>();
+
+  public setQueuePaused(queue: string, paused: boolean) {
+    if (paused) {
+      this.pausedQueues.add(queue);
+    } else {
+      this.pausedQueues.delete(queue);
+      // Wake up any waiting workers if we unpause
+      this.wakeupWorker(queue);
+    }
+  }
+
+  public isQueuePaused(queue: string): boolean {
+    return this.pausedQueues.has(queue);
+  }
+
+  public getQueueSizeInMemory(queue: string): number {
+    if (!this.initializedQueues.has(queue)) {
+      void this.ensureQueueInitialized(queue);
+      return 0;
+    }
+    return (this.queuedCounts.get(queue) || 0) + (this.processingCounts.get(queue) || 0);
+  }
+
+  private ensureQueueInitialized(queue: string): Promise<void> {
+    let promise = this.initializingPromises.get(queue);
+    if (!promise) {
+      promise = (async () => {
+        const stats = await this.getQueueStats(queue);
+        this.queuedCounts.set(queue, stats.queued);
+        this.processingCounts.set(queue, stats.processing);
+        this.initializedQueues.add(queue);
+      })();
+      this.initializingPromises.set(queue, promise);
+    }
+    return promise;
+  }
+
+
   constructor(
     private ds: DataStore,
     public eventHook: EventHook,

@@ -1,6 +1,6 @@
 local function assertEqual(a, b, message)
     if a ~= b then
-        error("Assertion failed: " .. a .. " is not equal to " .. b .. " " .. message)
+        error("Assertion failed: " .. a .. " is not equal to " .. b .. " " .. (message or ""))
     end
 end
 

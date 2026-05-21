@@ -113,6 +113,8 @@ export class EventedSpacePrimitives implements SpacePrimitives {
 
       // Now we have the list, let's compare it to the snapshot and trigger events appropriately
       const deletedFiles = new Set<string>(Object.keys(this.spaceSnapshot));
+      const changedFiles: string[] = [];
+      const changePromises: Promise<any>[] = [];
       for (const meta of newFileList) {
         const oldHash = this.spaceSnapshot[meta.name];
         const newHash = meta.lastModified;
@@ -127,10 +129,21 @@ export class EventedSpacePrimitives implements SpacePrimitives {
             oldHash,
             newHash,
           );
-          await this.dispatchEvent("file:changed", meta.name, oldHash, newHash);
+          changedFiles.push(meta.name);
+          changePromises.push(
+            this.dispatchEvent("file:changed", meta.name, oldHash, newHash)
+          );
         }
         // Page found, not deleted
         deletedFiles.delete(meta.name);
+      }
+
+      if (changePromises.length > 0) {
+        await Promise.all(changePromises);
+      }
+
+      if (changedFiles.length > 0) {
+        await this.dispatchEvent("files:changed", changedFiles);
       }
 
       for (const deletedFile of deletedFiles) {
@@ -207,6 +220,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     if (oldHash !== newHash) {
       // Page changed since last cached metadata, trigger event
       await this.dispatchEvent("file:changed", name, oldHash, newHash);
+      await this.dispatchEvent("files:changed", [name]);
     }
     this.updateInSnapshot(name, newHash);
     await this.saveSnapshot();
