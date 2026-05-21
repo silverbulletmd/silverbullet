@@ -193,7 +193,7 @@ export interface LuaQueryCollection {
  * Implements a query collection for a regular JavaScript array
  */
 export class ArrayQueryCollection<T> implements LuaQueryCollection {
-  constructor(private readonly array: T[]) {}
+  constructor(private readonly array: T[]) { }
   query(
     query: LuaCollectionQuery,
     env: LuaEnv,
@@ -842,7 +842,7 @@ export async function applyQuery(
 
   const mkEnv = grouped
     ? (ov: string | undefined, item: any, e: LuaEnv, s: LuaStackFrame) =>
-        buildGroupItemEnv(ov, groupByNames, item, e, s)
+      buildGroupItemEnv(ov, groupByNames, item, e, s)
     : buildItemEnvLocal;
 
   let selectResults: any[] | undefined;
@@ -915,9 +915,7 @@ export async function applyQuery(
     for (let i = 0; i < violated.length; i++) {
       if (violated[i]) {
         throw new LuaRuntimeError(
-          `order by #${
-            i + 1
-          }: 'using' comparator violates strict weak ordering`,
+          `order by #${i + 1}: 'using' comparator violates strict weak ordering`,
           sf,
         );
       }
@@ -1004,6 +1002,8 @@ export async function queryLua<T = any>(
   for await (let { key, value } of kv.query({ prefix })) {
     if (enricher) {
       value = enricher(key, value);
+      // Enrichers may return undefined to filter a row out 
+      if (value === undefined) continue;
     }
     results.push(value);
   }
@@ -1056,7 +1056,7 @@ export class DataStoreQueryCollection implements LuaQueryCollection {
   constructor(
     private readonly dataStore: DataStore,
     readonly prefix: string[],
-  ) {}
+  ) { }
   query(
     query: LuaCollectionQuery,
     env: LuaEnv,

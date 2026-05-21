@@ -10,7 +10,7 @@ import { indexData } from "./data.ts";
 import { indexItems } from "./item.ts";
 import { indexHeaders } from "./header.ts";
 import { indexParagraphs } from "./paragraph.ts";
-import { indexLinks } from "./link.ts";
+import { indexRelations } from "./relation.ts";
 import { indexTables } from "./table.ts";
 import { indexSpaceLua } from "./space_lua.ts";
 import { indexSpaceStyle } from "./space_style.ts";
@@ -72,7 +72,7 @@ export const allIndexers: IndexerFunction[] = [
   indexItems,
   indexHeaders,
   indexParagraphs,
-  indexLinks,
+  indexRelations,
   indexTables,
   indexSpaceLua,
   indexSpaceStyle,
@@ -99,26 +99,18 @@ export async function indexMarkdown(
   const indexResults = await Promise.all(
     allIndexers
       .filter((indexer) => indexer !== pageIndexPage)
-      .map((indexer) => {
-        return indexer(pageMeta, frontmatter, tree, text);
-      }),
+      .map((indexer) => indexer(pageMeta, frontmatter, tree, text)),
   );
   return appendAnchorRecords(indexResults.flat());
 }
 
 export async function indexPage({ name, tree, meta, text }: IndexTreeEvent) {
   const frontmatter = extractFrontMatter(tree);
-
-  // console.log("Now going to index page", name);
-
-  // Index the page
   const indexResults = await Promise.all(
-    allIndexers.map((indexer) => {
-      return indexer(meta, frontmatter, tree, text);
-    }),
+    allIndexers.map((indexer) => indexer(meta, frontmatter, tree, text)),
   );
-
-  // console.log("Found these objects", index.flat());
-
-  await index.indexObjects<any>(name, appendAnchorRecords(indexResults.flat()));
+  await index.indexObjects<any>(
+    name,
+    appendAnchorRecords(indexResults.flat()),
+  );
 }

@@ -22,6 +22,7 @@ import {
   getAggregateSpec,
   getBuiltinAggregateEntries,
 } from "../space_lua/aggregates.ts";
+import { relationToLink } from "../../plugs/index/link.ts";
 
 const indexKey = "idx";
 const pageKey = "ridx";
@@ -128,6 +129,10 @@ export class ObjectIndex {
     if (!tagName) {
       throw new Error("Tag name is required");
     }
+    if (tagName === "link") {
+      // Special handling of deprecated "link" (virtual collection implementation)
+      return this.linkObjects();
+    }
     return {
       query: (query, env, sf, config?): Promise<any[]> => {
         return this.ds.luaQuery(
@@ -136,6 +141,29 @@ export class ObjectIndex {
           env,
           sf,
           (key, value) => this.enricher(key, value),
+          config,
+        );
+      },
+    };
+  }
+
+  /**
+   * Virtual `link` collection for backwards compatibility: scans `relation` records, projecting each
+   * into the legacy `link` shape via `relationToLink`.
+   */
+  linkObjects(): LuaQueryCollection {
+    return {
+      query: (query, env, sf, config?): Promise<any[]> => {
+        return this.ds.luaQuery(
+          ["idx", "relation"],
+          query,
+          env,
+          sf,
+          (key, value) => {
+            const link = relationToLink(value);
+            if (!link) return undefined;
+            return this.enricher(key, link);
+          },
           config,
         );
       },
@@ -284,7 +312,19 @@ export class ObjectIndex {
     return new ArrayQueryCollection(entries);
   }
 
-  getObjectByRef(page: string, tag: string, ref: string) {
+  async getObjectByRef(page: string, tag: string, ref: string) {
+    if (tag === "link") {
+      // Look up the corresponding relation and project it. Relation
+      // refs are bare `page@pos`, matching what virtual link records
+      // expose, so the lookup key transfers as-is.
+      const rel = await this.ds.get([
+        indexKey,
+        "relation",
+        this.cleanKey(ref, page),
+        page,
+      ]);
+      return rel ? relationToLink(rel) : undefined;
+    }
     return this.ds.get([indexKey, tag, this.cleanKey(ref, page), page]);
   }
 
@@ -376,6 +416,12 @@ export class ObjectIndex {
       for (const [key, value] of Object.entries(scopedVariables)) {
         env.setLocal(key, jsToLuaValue(value));
       }
+    }
+    if (tag === "link") {
+      // Route through the virtual link collection 
+      return this.linkObjects().query(query, env, sf) as Promise<
+        ObjectValue<T>[]
+      >;
     }
     return this.ds.luaQuery([indexKey, tag], query, env, sf);
   }

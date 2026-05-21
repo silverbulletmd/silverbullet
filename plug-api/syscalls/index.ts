@@ -79,6 +79,13 @@ export function links(): Promise<LuaQueryCollection> {
 }
 
 /**
+ * Returns all relation objects as a query collection.
+ */
+export function relations(): Promise<LuaQueryCollection> {
+  return syscall("index.relations");
+}
+
+/**
  * Returns all tasks (optionally filtered by an additional tag) as a query collection.
  */
 export function tasks(tagName?: string): Promise<LuaQueryCollection> {

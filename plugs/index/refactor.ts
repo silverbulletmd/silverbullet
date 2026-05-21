@@ -6,7 +6,11 @@ import {
   mq,
   space,
 } from "@silverbulletmd/silverbullet/syscalls";
-import { getBackLinks, type LinkObject } from "./link.ts";
+import {
+  getTextualBackRelations,
+  type RelationObject,
+} from "./relation.ts";
+import { spliceReference } from "./refactor_splice.ts";
 import {
   absoluteToRelativePath,
   folderName,
@@ -18,7 +22,6 @@ import {
   findParentMatching,
   nodeAtPos,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 import { isValidPath } from "@silverbulletmd/silverbullet/lib/ref";
 import { notFoundError } from "@silverbulletmd/silverbullet/constants";
 
@@ -196,55 +199,53 @@ async function renamePage(oldName: string, newName: string) {
   const documentsToMove = new Set<string>();
   // Links only need to be updated if the folder changes
   if (oldFolder !== newFolder) {
-    const linksInPage = await index.queryLuaObjects<LinkObject>(
-      "link",
+    // Pull every relation on this page that points at a page or file —
+    // these are the candidates whose relative-path form may need to be
+    // rewritten when the page moves between folders.
+    const relsInPage = await index.queryLuaObjects<RelationObject>(
+      "relation",
       {
         objectVariable: "_",
-        where: await lua.parseExpression(`_.page == oldName`),
+        where: await lua.parseExpression(
+          `_.page == oldName and (_.kind == "mention" or _.kind == "document" or _.kind == "frontmatter")`,
+        ),
       },
-      {
-        oldName,
-      },
+      { oldName },
     );
 
-    const linksToUpdate: ObjectValue<LinkObject>[] = [];
-    for (const link of linksInPage) {
-      if (!link.toPage && !link.toFile) {
-        // URL or other non-local link, no path to update
-        continue;
-      }
-      if (link.toFile && folderName(link.toFile) === oldFolder) {
-        const documentBackLinks = await getBackLinks(link.toFile);
-        if (documentBackLinks.filter((a) => a.page !== oldName).length === 0) {
-          // Documents is in the same folder as the page
-          // and is only linked to on this page, move it along with the page
-          documentsToMove.add(link.toFile);
+    const linksToUpdate: RelationObject[] = [];
+    for (const rel of relsInPage) {
+      if (rel.kind === "document" && folderName(rel.to) === oldFolder) {
+        const backRels = await getTextualBackRelations(rel.to);
+        if (backRels.filter((a) => a.page !== oldName).length === 0) {
+          // Document is in the same folder as the page and is only
+          // linked from this page — move it along with the page.
+          documentsToMove.add(rel.to);
           continue;
         }
       }
-      linksToUpdate.push(link);
+      linksToUpdate.push(rel);
     }
 
-    // Sort links by position
-    linksToUpdate.sort((a, b) => {
-      // Backwards to prevent errors from position changes
-      return b.pos - a.pos;
-    });
+    // Sort backwards by position so earlier splices don't shift later ones.
+    linksToUpdate.sort((a, b) => b.range[0] - a.range[0]);
 
-    for (const link of linksToUpdate) {
-      let newLink = link.toPage || link.toFile!;
-      let newTail = text.substring(link.pos);
+    for (const rel of linksToUpdate) {
+      const pos = rel.range[0];
+      // Only markdown-link forms `[text](path)` have a relative path to
+      // rewrite. Wikilinks (`[[...]]`) reference targets by absolute
+      // name and need no path rewrite when the source page moves.
+      if (text.substring(pos, pos + 2) === "[[") continue;
 
-      // Only relative links need to be updated
-      if (text.substring(link.pos - 2, link.pos) !== "[[") {
-        newLink = absoluteToRelativePath(newName, newLink);
-        newTail = newTail.replace(/^.*?(?=@\d*|#|\$|\))/, newLink);
-        // Wrap in <> if link has spaces
-        if (newLink.includes(" ")) {
-          newTail = `<${newTail.replace(")", ">)")}`;
-        }
-        text = text.substring(0, link.pos) + newTail;
+      const newLink = absoluteToRelativePath(newName, rel.to);
+      let newTail = text.substring(pos).replace(
+        /^.*?(?=@\d*|#|\$|\))/,
+        newLink,
+      );
+      if (newLink.includes(" ")) {
+        newTail = `<${newTail.replace(")", ">)")}`;
       }
+      text = text.substring(0, pos) + newTail;
     }
   }
 
@@ -434,22 +435,22 @@ async function updateBacklinks(
   newName: string,
 ): Promise<number> {
   // This is the bit where we update all the links
-  const backLinks = await getBackLinks(oldName);
+  const backRelations = await getTextualBackRelations(oldName);
   let updatedReferences = 0;
 
   // Group by page to edit entire page at once
-  const backLinksByPage = backLinks.reduce(
-    (group: Record<string, LinkObject[]>, link) => {
-      const { page } = link;
+  const byPage = backRelations.reduce(
+    (group: Record<string, RelationObject[]>, rec) => {
+      const { page } = rec;
       group[page] = group[page] ?? [];
-      group[page].push(link);
+      group[page].push(rec);
       return group;
     },
     {},
   );
 
-  console.log("All pages containing backlinks", backLinks);
-  for (const [pageToEdit, linksInPage] of Object.entries(backLinksByPage)) {
+  console.log("All pages containing backlinks", backRelations);
+  for (const [pageToEdit, recsInPage] of Object.entries(byPage)) {
     if (pageToEdit === oldName) {
       continue;
     }
@@ -460,37 +461,21 @@ async function updateBacklinks(
       continue;
     }
 
-    // Use indexed positions to replace links
-    linksInPage.sort((a, b) => {
-      // Backwards to prevent errors from position changes
-      return b.pos - a.pos;
-    });
+    // Apply in descending range order so earlier splices don't shift
+    // later positions.
+    recsInPage.sort((a, b) => (b.range?.[0] ?? 0) - (a.range?.[0] ?? 0));
 
-    for (const link of linksInPage) {
-      let newTail = text.substring(link.pos);
-      let newLink = newName;
-      if (text.substring(link.pos - 2, link.pos) !== "[[") {
-        // Is [Markdown link]()
-        if (newTail.startsWith("/") || newTail.startsWith("</")) {
-          // Is absolute mdlink, update with full path with leading /
-          newLink = `/${newLink}`;
-        } else {
-          // Is relative mdlink
-          newLink = absoluteToRelativePath(pageToEdit, newLink);
-        }
-        newTail = newTail.replace(/^.*?(?=@\d*|#|\$|\))/, newLink);
-
-        // Wrap in <> if link has spaces
-        if (newLink.includes(" ")) {
-          newTail = `<${newTail.replace(")", ">)")}`;
-        }
-      } else {
-        // Is wikilink, replace with full path
-        newTail = newLink + newTail.slice(oldName.length);
-      }
-
-      text = text.substring(0, link.pos) + newTail;
-      updatedReferences++;
+    for (const rec of recsInPage) {
+      if (!rec.range) continue;
+      const before = text;
+      text = spliceReference({
+        text,
+        range: rec.range,
+        oldName,
+        newName,
+        pageToEdit,
+      });
+      if (text !== before) updatedReferences++;
     }
     await space.writePage(pageToEdit, text);
   }

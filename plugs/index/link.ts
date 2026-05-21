@@ -1,300 +1,83 @@
-import {
-  collectNodesOfType,
-  findNodeOfType,
-  type ParseTree,
-  renderToText,
-  traverseTree,
-} from "@silverbulletmd/silverbullet/lib/tree";
-import {
-  isLocalURL,
-  resolveMarkdownLink,
-} from "@silverbulletmd/silverbullet/lib/resolve";
-import type { FrontMatter } from "./frontmatter.ts";
-import { updateITags } from "./tags.ts";
-import {
-  encodeRef,
-  getNameFromPath,
-  isMarkdownPath,
-  parseToRef,
-} from "@silverbulletmd/silverbullet/lib/ref";
-import {
-  mdLinkRegex,
-  wikiLinkRegex,
-} from "../../client/markdown_parser/constants.ts";
-import { index, lua, space } from "@silverbulletmd/silverbullet/syscalls";
-import type {
-  ObjectValue,
-  PageMeta,
-} from "@silverbulletmd/silverbullet/type/index";
-import { buildLineIndex, extractSnippet } from "./snippet.ts";
+import { encodeRef } from "@silverbulletmd/silverbullet/lib/ref";
+import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 
+// The legacy `link` indexer has been retired in favor of `relation`.
+
+// For projection only
 export type LinkObject = ObjectValue<{
-  // Common to all links
   page: string;
   pos: number;
   type: "page" | "file" | "url";
   snippet: string;
   alias?: string;
   pageLastModified: string;
-  // Complete ref to the destination, except for external links where it's just the url
+  /** Complete ref to the destination, except for URLs (verbatim). */
   destination: string;
-  // Page Link
+  /** Page link. */
   toPage?: string;
-  // File Link
+  /** File link. */
   toFile?: string;
-  // External URL
+  /** External URL. */
   toURL?: string;
 }>;
 
-/**
- * Represents a page that does not yet exist, but is being linked to. A page "aspiring" to be created.
- */
-export type AspiringPageObject = ObjectValue<{
-  // ref: page@pos
-  // The page the link appears on
-  page: string;
-  // And the position
-  pos: number;
-  // The page the link points to
-  name: string;
-}>;
-
-export async function indexLinks(
-  pageMeta: PageMeta,
-  frontmatter: FrontMatter,
-  tree: ParseTree,
-  pageText: string,
-) {
-  const objects: ObjectValue<any>[] = [];
-
-  // If this is a meta template page, we don't want to index links
-  if (frontmatter.tags?.find((t) => t.startsWith("meta/template"))) {
-    return [];
-  }
-
-  const name = pageMeta.name;
-  // Pre-compute line index for efficient snippet extraction
-  const lineIndex = buildLineIndex(pageText);
-
-  traverseTree(tree, (n): boolean => {
-    // Index [[WikiLinks]]
-    if (n.type === "WikiLink") {
-      const wikiLinkPage = findNodeOfType(n, "WikiLinkPage")!;
-      const wikiLinkAlias = findNodeOfType(n, "WikiLinkAlias");
-      const url = wikiLinkPage.children![0].text!;
-      const pos = wikiLinkPage.from!;
-
-      const ref = parseToRef(url);
-      if (!ref) {
-        // Invalid links aren't indexed
-        return true;
-      }
-
-      const link: LinkObject = {
-        ref: `${name}@${pos}`,
-        type: "page", // can be swapped later
-        tag: "link",
-        snippet: extractSnippet(name, lineIndex, pos),
-        pos,
-        range: [n.from!, n.to!],
-        page: name,
-        pageLastModified: pageMeta.lastModified,
-        destination: encodeRef(ref),
-      };
-
-      if (isMarkdownPath(ref.path)) {
-        link.toPage = getNameFromPath(ref.path);
-        link.type = "page";
-      } else {
-        link.toFile = ref.path;
-        link.type = "file";
-      }
-
-      if (wikiLinkAlias) {
-        link.alias = wikiLinkAlias.children![0].text!;
-      }
-      updateITags(link as LinkObject, frontmatter);
-      objects.push(link);
-      return true;
-    }
-
-    // Index [markdown style]() links
-    if (n.type === "Link" || n.type === "Image") {
-      // The [[Wiki links]] also have a wrapping Image node, but this just fails at the regex
-      mdLinkRegex.lastIndex = 0;
-      const match = mdLinkRegex.exec(renderToText(n));
-      if (!match) {
-        return false;
-      }
-      const { title: alias, url } = match.groups as {
-        url: string;
-        title: string;
-      };
-
-      // Check if local link
-      const pos = n.from!;
-      const link: LinkObject = {
-        ref: `${name}@${pos}`,
-        tag: "link",
-        type: "page", // swapped out later if needed
-        snippet: extractSnippet(name, lineIndex, pos),
-        pos,
-        range: [n.from!, n.to!],
-        page: name,
-        pageLastModified: pageMeta.lastModified,
-        destination: url,
-      };
-
-      if (isLocalURL(url)) {
-        const ref = parseToRef(resolveMarkdownLink(name, decodeURI(url)));
-        if (!ref) {
-          // Invalid links aren't indexed
-          return true;
-        } else if (isMarkdownPath(ref.path)) {
-          link.toPage = getNameFromPath(ref.path);
-          link.type = "page";
-        } else {
-          link.toFile = ref.path;
-          link.type = "file";
-        }
-
-        link.destination = encodeRef(ref);
-      } else {
-        // External URL
-        link.type = "url";
-        link.toURL = url;
-
-        link.destination = url;
-      }
-
-      if (alias) {
-        link.alias = alias;
-      }
-      updateITags(link as LinkObject, frontmatter);
-      objects.push(link);
-      return true;
-    }
-
-    // Also index links used inside quoted frontmatter strings like "[[Page]]"
-    // must match the full string node, only allowing for quotes and whitespace around it
-    if (n.type === "FrontMatter") {
-      // The YAML in frontmatter is parsed by CodeMirror itself
-      for (const textNode of collectNodesOfType(n, "string")) {
-        const text = textNode.children![0].text!;
-        const trimmed = text.replace(/^["'\s]*/, "").replace(/["'\s]*$/, "");
-        // Make sure we search from the beginning, when reusing a Regex object with global flag
-        wikiLinkRegex.lastIndex = 0;
-        const match = wikiLinkRegex.exec(text);
-        // Search in entire node text to get correct position, but check for full match against trimmed
-        if (match?.groups && match[0] === trimmed) {
-          const { leadingTrivia, stringRef, alias } = match.groups;
-          const pos = textNode.from! + match.index! + leadingTrivia.length;
-
-          const ref = parseToRef(stringRef);
-          if (!ref) {
-            // Invalid links aren't indexed
-            return true;
-          }
-
-          const link: LinkObject = {
-            ref: `${name}@${pos}`,
-            tag: "link",
-            type: "page", // final value set later
-            page: name,
-            snippet: extractSnippet(name, lineIndex, pos),
-            pos: pos,
-            range: [
-              textNode.from! + match.index!,
-              textNode.from! + match.index! + match[0].length,
-            ],
-            pageLastModified: pageMeta.lastModified,
-            destination: encodeRef(ref)
-          };
-
-          if (isMarkdownPath(ref.path)) {
-            link.toPage = getNameFromPath(ref.path);
-            link.type = "page";
-          } else {
-            link.toFile = ref.path;
-            link.type = "file";
-          }
-
-          if (alias) {
-            link.alias = alias;
-          }
-          updateITags(link, frontmatter);
-          objects.push(link);
-        }
-      }
-    }
-    return false;
-  }, true);
-
-  // Now let's check which are aspiring pages
-  // Collect unique target pages and check existence in parallel
-  const pageLinks = objects.filter(
-    (link): link is LinkObject => !!link.toPage,
-  );
-  const uniqueTargets = [...new Set(pageLinks.map((link) => link.toPage!))];
-  const existenceResults = await Promise.all(
-    uniqueTargets.map((target) => space.fileExists(`${target}.md`)),
-  );
-  const missingPages = new Set(
-    uniqueTargets.filter((_, i) => !existenceResults[i]),
-  );
-
-  for (const link of pageLinks) {
-    if (missingPages.has(link.toPage!)) {
-      objects.push({
-        ref: `${name}@${link.pos}`,
-        tag: "aspiring-page",
-        page: name,
-        pos: link.pos,
-        range: link.range,
-        name: link.toPage,
-      } as AspiringPageObject);
-      console.info(
-        "Link from",
-        name,
-        "to",
-        link.toPage,
-        "is broken, indexing as aspiring page",
-      );
-    }
-  }
-
-  return objects;
-}
+const LINK_COMPATIBLE_RELATION_KINDS = new Set([
+  "mention",
+  "frontmatter",
+  "url",
+  "document",
+]);
 
 /**
- * Collects wiki links from a tree
- * @param n
- * @return found links
+ * Project a `relation` record into the legacy `link` shape. Returns
+ * `undefined` for relation kinds that were never represented in the
+ * legacy `link` index (`attribute`, `data`, `co-mention`).
  */
-export function collectPageLinks(n: ParseTree): string[] {
-  const links = new Set<string>();
-  traverseTree(n, (n) => {
-    if (n.type === "WikiLink") {
-      links.add(findNodeOfType(n, "WikiLinkPage")!.children![0].text!);
-      return true;
-    } else if (n.type === "OrderedList" || n.type === "BulletList") {
-      // Don't traverse into sub-lists
-      return true;
-    }
-    return false;
-  }, true);
-  return [...links];
-}
+export function relationToLink(rel: any): LinkObject | undefined {
+  if (!rel || typeof rel !== "object") return undefined;
+  if (!LINK_COMPATIBLE_RELATION_KINDS.has(rel.kind)) return undefined;
 
-export async function getBackLinks(name: string): Promise<LinkObject[]> {
-  return await index.queryLuaObjects<LinkObject>(
-    "link",
-    {
-      objectVariable: "_",
-      where: await lua.parseExpression(`_.toPage == name or _.toFile == name`),
-    },
-    {
-      name,
-    },
-  );
+  const type: LinkObject["type"] = rel.kind === "url"
+    ? "url"
+    : rel.kind === "document"
+      ? "file"
+      : "page";
+
+  const pos: number | undefined = Array.isArray(rel.range)
+    ? rel.range[0]
+    : undefined;
+  if (typeof pos !== "number") return undefined;
+
+  const link: LinkObject = {
+    ref: rel.ref,
+    tag: "link",
+    type,
+    page: rel.page,
+    pos,
+    range: rel.range,
+    snippet: rel.snippet ?? "",
+    pageLastModified: rel.pageLastModified,
+    destination: "",
+  };
+
+  if (type === "url") {
+    link.toURL = rel.to;
+    link.destination = rel.to;
+  } else if (type === "file") {
+    link.toFile = rel.to;
+    link.destination = encodeRef({ path: rel.to });
+  } else {
+    link.toPage = rel.to;
+    link.destination = encodeRef({ path: `${rel.to}.md` });
+  }
+
+  if (rel.alias) link.alias = rel.alias;
+  if (Array.isArray(rel.itags)) {
+    (link as any).itags = [
+      ...new Set<string>(
+        rel.itags.map((t: string) => (t === "relation" ? "link" : t)),
+      ),
+    ];
+  }
+  return link;
 }

@@ -264,7 +264,7 @@ end
 widgets = widgets or {}
 
 local mentionTemplate = template.new [==[
-**[[${_.ref}|${_.ref}]]**:
+**[[${_.page}@${_.start}]]**:
 ${_.snippet}
 
 ]==]
@@ -285,10 +285,16 @@ config.define("std.widgets.linkedMentions", {
 function widgets.linkedMentions(pageName)
   pageName = pageName or editor.getCurrentPage()
   local linkedMentions = query[[
-    from l = index.links()
-    where l.page != pageName and l.toPage == pageName
-    order by l.pageLastModified desc, l.pos
-    select mentionTemplate(l)
+    from r = index.relations()
+    where r.page != pageName
+      and r.to == pageName
+      and r.kind != "co-mention"
+    order by r.pageLastModified desc, r.range[1]
+    select mentionTemplate({
+      page = r.page,
+      snippet = r.snippet,
+      start = r.range[1],
+    })
   ]]
   if #linkedMentions > 0 then
     return widget.new {
