@@ -1,17 +1,18 @@
-import type { System } from "./plugos/system.ts";
-import type { SpaceLuaObject } from "../plugs/index/space_lua.ts";
-import { LuaEnv, LuaRuntimeError, LuaStackFrame } from "./space_lua/runtime.ts";
-import { parse as parseLua, parseExpressionString } from "./space_lua/parse.ts";
-import { evalStatement } from "./space_lua/eval.ts";
+import { sleep } from "@silverbulletmd/silverbullet/lib/async";
 import {
   encodeRef,
   parseToRef,
   type Ref,
 } from "@silverbulletmd/silverbullet/lib/ref";
-import type { ASTCtx } from "./space_lua/ast.ts";
-import { buildLuaEnv } from "./space_lua_api.ts";
-import type { LuaCollectionQuery } from "./space_lua/query_collection.ts";
+import type { SpaceLuaObject } from "../plugs/index/space_lua.ts";
 import type { ObjectIndex } from "./data/object_index.ts";
+import type { System } from "./plugos/system.ts";
+import type { ASTCtx } from "./space_lua/ast.ts";
+import { evalStatement } from "./space_lua/eval.ts";
+import { parseExpressionString, parse as parseLua } from "./space_lua/parse.ts";
+import type { LuaCollectionQuery } from "./space_lua/query_collection.ts";
+import { LuaEnv, LuaRuntimeError, LuaStackFrame } from "./space_lua/runtime.ts";
+import { buildLuaEnv } from "./space_lua_api.ts";
 
 export class SpaceLuaEnvironment {
   env: LuaEnv;
@@ -51,6 +52,7 @@ export class SpaceLuaEnvironment {
       const tl = new LuaEnv();
       tl.setLocal("_GLOBAL", this.env);
       for (const script of allScripts) {
+        await sleep(0);
         try {
           console.log("Now evaluating", script.ref);
           const ast = parseLua(script.script, { ref: script.ref });

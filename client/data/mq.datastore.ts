@@ -1,6 +1,4 @@
-import type { DataStore } from "./datastore.ts";
-import { parseExpressionString } from "../space_lua/parse.ts";
-import { LuaEnv } from "../space_lua/runtime.ts";
+import { race, sleep } from "@silverbulletmd/silverbullet/lib/async";
 import type {
   KV,
   KvKey,
@@ -8,8 +6,10 @@ import type {
   MQStats,
   MQSubscribeOptions,
 } from "../../plug-api/types/datastore.ts";
-import { race, sleep } from "@silverbulletmd/silverbullet/lib/async";
 import type { EventHook } from "../plugos/hooks/event.ts";
+import { parseExpressionString } from "../space_lua/parse.ts";
+import { LuaEnv } from "../space_lua/runtime.ts";
+import type { DataStore } from "./datastore.ts";
 
 export type ProcessingMessage = MQMessage & {
   ts: number;
@@ -39,14 +39,23 @@ export class QueueWorker {
         if (this.stopping) {
           break;
         }
+        if (this.mq.isQueuePaused(this.queue)) {
+          await sleep(500);
+          continue;
+        }
         // Poll for messages
         const messages = await this.mq.poll(
           this.queue,
           this.options.batchSize || 1,
         );
         if (messages.length > 0) {
-          // We have messages, process them, then immediately loop to poll again
+          // We have messages, process them
           await this.callback(messages);
+          // Yield to the event loop between batches so other async work
+          // (main-thread IDB reads, UI rendering) can run. A small mandatory
+          // pause prevents a busy queue from starving everything else.
+          const delay = this.options.interBatchDelay ?? 0;
+          await sleep(delay);
         } else {
           // No messages, wait to be woken up or a timeout
           void this.mq.eventHook.dispatchEvent(
@@ -98,6 +107,40 @@ export class DataStoreMQ {
     string,
     { resolve: () => void; reject: (e: any) => void }[]
   >();
+
+  private initializingPromises = new Map<string, Promise<void>>();
+  private initializedQueues = new Set<string>();
+  private queuedCounts = new Map<string, number>();
+  private processingCounts = new Map<string, number>();
+  private pausedQueues = new Set<string>();
+
+  public setQueuePaused(queue: string, paused: boolean) {
+    if (paused) {
+      this.pausedQueues.add(queue);
+    } else {
+      this.pausedQueues.delete(queue);
+      // Wake up any waiting workers if we unpause
+      this.wakeupWorker(queue);
+    }
+  }
+
+  public isQueuePaused(queue: string): boolean {
+    return this.pausedQueues.has(queue);
+  }
+
+  private ensureQueueInitialized(queue: string): Promise<void> {
+    let promise = this.initializingPromises.get(queue);
+    if (!promise) {
+      promise = (async () => {
+        const stats = await this.getQueueStats(queue);
+        this.queuedCounts.set(queue, stats.queued);
+        this.processingCounts.set(queue, stats.processing);
+        this.initializedQueues.add(queue);
+      })();
+      this.initializingPromises.set(queue, promise);
+    }
+    return promise;
+  }
 
   constructor(
     private ds: DataStore,
@@ -161,6 +204,8 @@ export class DataStoreMQ {
       return;
     }
 
+    await this.ensureQueueInitialized(queue);
+
     const messages: KV<MQMessage>[] = bodies.map((body) => {
       const id = `${Date.now()}-${String(++this.seq).padStart(6, "0")}`;
       const key = [...queuedPrefix, queue, id];
@@ -172,6 +217,11 @@ export class DataStoreMQ {
 
     await this.ds.batchSet(messages);
 
+    this.queuedCounts.set(
+      queue,
+      (this.queuedCounts.get(queue) || 0) + bodies.length,
+    );
+
     this.wakeupWorker(queue);
   }
 
@@ -180,6 +230,8 @@ export class DataStoreMQ {
   }
 
   async poll(queue: string, maxItems: number): Promise<MQMessage[]> {
+    await this.ensureQueueInitialized(queue);
+
     // Note: this is not happening in a transactional way, so we may get duplicate message delivery
     // Retrieve a batch of messages
     const messages = await this.ds.luaQuery<MQMessage>(
@@ -206,6 +258,11 @@ export class DataStoreMQ {
     await this.ds.batchDelete(
       messages.map((m) => [...queuedPrefix, queue, m.id]),
     );
+
+    const qCount = this.queuedCounts.get(queue) || 0;
+    const pCount = this.processingCounts.get(queue) || 0;
+    this.queuedCounts.set(queue, Math.max(0, qCount - messages.length));
+    this.processingCounts.set(queue, pCount + messages.length);
 
     // Return them
     return messages;
@@ -236,9 +293,13 @@ export class DataStoreMQ {
     if (ids.length === 0) {
       return;
     }
+    await this.ensureQueueInitialized(queue);
+
     await this.ds.batchDelete(
       ids.map((id) => [...processingPrefix, queue, id]),
     );
+    const pCount = this.processingCounts.get(queue) || 0;
+    this.processingCounts.set(queue, Math.max(0, pCount - ids.length));
   }
 
   async requeueTimeouts(
@@ -265,6 +326,7 @@ export class DataStoreMQ {
     );
     const newMessages: KV<ProcessingMessage>[] = [];
     for (const m of messages) {
+      await this.ensureQueueInitialized(m.queue);
       const retries = (m.retries || 0) + 1;
       if (maxRetries && retries > maxRetries) {
         if (disableDLQ) {
@@ -290,6 +352,8 @@ export class DataStoreMQ {
             },
           });
         }
+        const pCount = this.processingCounts.get(m.queue) || 0;
+        this.processingCounts.set(m.queue, Math.max(0, pCount - 1));
       } else {
         console.info("[mq]", "Message ack timed out, requeueing", m);
         newMessages.push({
@@ -299,6 +363,10 @@ export class DataStoreMQ {
             retries,
           },
         });
+        const qCount = this.queuedCounts.get(m.queue) || 0;
+        const pCount = this.processingCounts.get(m.queue) || 0;
+        this.queuedCounts.set(m.queue, qCount + 1);
+        this.processingCounts.set(m.queue, Math.max(0, pCount - 1));
       }
     }
     await this.ds.batchSet(newMessages);
@@ -325,6 +393,8 @@ export class DataStoreMQ {
    * @param queue
    */
   async flushQueue(queue: string): Promise<void> {
+    await this.ensureQueueInitialized(queue);
+
     const ids: KvKey[] = [];
     for (const item of await this.ds.luaQuery<MQMessage>(
       [...queuedPrefix, queue],
@@ -345,12 +415,19 @@ export class DataStoreMQ {
       ids.push([...dlqPrefix, queue, item.id]);
     }
     await this.ds.batchDelete(ids);
+
+    this.queuedCounts.set(queue, 0);
+    this.processingCounts.set(queue, 0);
   }
 
   /**
    * Flushes all queues
    */
   flushAllQueues() {
+    this.queuedCounts.clear();
+    this.processingCounts.clear();
+    this.initializedQueues.clear();
+    this.initializingPromises.clear();
     return this.ds.batchDeletePrefix(["mq"]);
   }
 
@@ -372,16 +449,43 @@ export class DataStoreMQ {
   }
 
   public async isQueueEmpty(queue: string): Promise<boolean> {
-    const stats = await this.getQueueStats(queue);
-    return stats.queued === 0 && stats.processing === 0;
+    await this.ensureQueueInitialized(queue);
+    return (
+      (this.queuedCounts.get(queue) || 0) === 0 &&
+      (this.processingCounts.get(queue) || 0) === 0
+    );
   }
 
+  /**
+   * Waits until the queue is empty. Uses event-driven signalling (mq:emptyQueue)
+   * instead of polling, so it resolves as soon as the QueueWorker reports empty.
+   */
   public async awaitEmptyQueue(queue: string): Promise<void> {
-    while (true) {
-      if (await this.isQueueEmpty(queue)) {
-        break;
-      }
-      await sleep(200);
+    if (await this.isQueueEmpty(queue)) {
+      return;
     }
+    await new Promise<void>((resolve) => {
+      const handler = async () => {
+        if (await this.isQueueEmpty(queue)) {
+          this.eventHook.removeLocalListener(`mq:emptyQueue:${queue}`, handler);
+          resolve();
+        }
+      };
+      this.eventHook.addLocalListener(`mq:emptyQueue:${queue}`, handler);
+    });
+  }
+
+  /**
+   * Like awaitEmptyQueue but resolves after timeoutMs even if the queue is
+   * not empty yet. Used during navigation to avoid blocking the UI.
+   */
+  public async awaitEmptyQueueWithTimeout(
+    queue: string,
+    timeoutMs: number,
+  ): Promise<void> {
+    if (await this.isQueueEmpty(queue)) {
+      return;
+    }
+    await race([this.awaitEmptyQueue(queue), sleep(timeoutMs)]);
   }
 }

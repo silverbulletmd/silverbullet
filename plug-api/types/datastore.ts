@@ -13,6 +13,9 @@ export type MQStats = {
 export type MQSubscribeOptions = {
   batchSize?: number;
   pollInterval?: number;
+  /** Minimum delay in ms between processing batches when queue is non-empty.
+   * Yields the event loop so other async work (UI, IDB reads) can run. */
+  interBatchDelay?: number;
 };
 
 // KV types

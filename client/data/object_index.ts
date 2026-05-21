@@ -1,5 +1,14 @@
+import type { KV, KvKey } from "@silverbulletmd/silverbullet/type/datastore";
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 import type { Config } from "../config.ts";
+import type { EventHook } from "../plugos/hooks/event.ts";
+import { validateObject } from "../plugos/syscalls/jsonschema.ts";
+import type { Space } from "../space.ts";
+import {
+  getAggregateSpec,
+  getBuiltinAggregateEntries,
+} from "../space_lua/aggregates.ts";
+import { parseExpressionString } from "../space_lua/parse.ts";
 import {
   ArrayQueryCollection,
   type LuaCollectionQuery,
@@ -11,17 +20,8 @@ import {
   LuaStackFrame,
   LuaTable,
 } from "../space_lua/runtime.ts";
-import { parseExpressionString } from "../space_lua/parse.ts";
 import type { DataStore } from "./datastore.ts";
-import type { KV, KvKey } from "@silverbulletmd/silverbullet/type/datastore";
-import type { EventHook } from "../plugos/hooks/event.ts";
 import type { DataStoreMQ } from "./mq.datastore.ts";
-import type { Space } from "../space.ts";
-import { validateObject } from "../plugos/syscalls/jsonschema.ts";
-import {
-  getAggregateSpec,
-  getBuiltinAggregateEntries,
-} from "../space_lua/aggregates.ts";
 import { relationToLink } from "../../plugs/index/link.ts";
 
 const indexKey = "idx";
@@ -384,7 +384,23 @@ export class ObjectIndex {
   }
 
   async awaitIndexQueueDrain(): Promise<void> {
-    await this.mq.awaitEmptyQueue("indexQueue");
+    // Temporarily unpause the queue if it was paused, to allow the saved page
+    // to index immediately, then restore the pause state if needed.
+    const wasPaused = this.mq.isQueuePaused("indexQueue");
+    if (wasPaused) {
+      this.mq.setQueuePaused("indexQueue", false);
+    }
+    try {
+      // Cap navigation blocking at 2 seconds. The event-driven wait resolves
+      // immediately once the QueueWorker signals the queue is empty, so in
+      // the common case (queue was empty already or clears quickly) this is
+      // instant. The 2s timeout prevents a deep backlog from freezing navigation.
+      await this.mq.awaitEmptyQueueWithTimeout("indexQueue", 2000);
+    } finally {
+      if (wasPaused) {
+        this.mq.setQueuePaused("indexQueue", true);
+      }
+    }
   }
 
   async markFullIndexComplete() {
@@ -468,6 +484,30 @@ export class ObjectIndex {
       allKeys.push([indexKey, ...key.slice(2), file]);
     }
     await this.ds.batchDelete(allKeys);
+  }
+
+  public async batchClearFileIndexes(files: string[]): Promise<void> {
+    const allKeys: KvKey[] = [];
+    const chunkSize = 128;
+    for (let i = 0; i < files.length; i += chunkSize) {
+      const chunk = files.slice(i, i + chunkSize);
+      await Promise.all(
+        chunk.map(async (file) => {
+          if (file.endsWith(".md")) {
+            file = file.replace(/\.md$/, "");
+          }
+          for await (const { key } of this.ds.query({
+            prefix: [pageKey, file],
+          })) {
+            allKeys.push(key);
+            allKeys.push([indexKey, ...key.slice(2), file]);
+          }
+        }),
+      );
+    }
+    if (allKeys.length > 0) {
+      await this.ds.batchDelete(allKeys);
+    }
   }
 
   /**
