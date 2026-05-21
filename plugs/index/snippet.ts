@@ -1,11 +1,11 @@
 /**
  * Pre-computed line data for efficient repeated snippet extraction from the same text.
  */
-export interface LineIndex {
+export type LineIndex = {
   lines: string[];
   // Cumulative character offsets: lineOffsets[i] = char position where line i starts
   lineOffsets: number[];
-}
+};
 
 /**
  * Build a LineIndex for a given text, allowing multiple extractSnippet calls
