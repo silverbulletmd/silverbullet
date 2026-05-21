@@ -246,7 +246,7 @@ export async function indexRelations(
       const ref = parseToRef(wikiLinkPage.children![0].text!);
       if (!ref) return true;
       const { from, fromTag } = innermostContainer(n, pageMeta.name);
-      const alias = findNodeOfType(n, "WikiLinkAlias")?.children![0].text;
+      const alias = findNodeOfType(n, "WikiLinkAlias")?.children?.[0].text;
       // Same-page wikilinks (`[[#Heading]]`, `[[@123]]`, `[[$anchor]]`).
       // Only `$anchor` points at an indexed object — items and headers
       // with `$name` are stored under `ref = name`. The header/position
