@@ -11,38 +11,31 @@ ${embed.youtube "https://youtu.be/bZ79-RbyNoU"}
 ${embed.youtube "https://www.youtube.com/watch?v=Of7zE0AVApc"}
 ${embed.youtube "https://www.youtube.com/watch?v=cH9cs8fowhY"}
 ${embed.youtube "https://youtu.be/qkLJ3viVq8I"}
-
-**New here?** Start with [[Install]], followed by [[Quick Start]]. These will walk through the basics.
+# Getting started
+Start with [[Install]], followed by [[Getting Started]]. These will walk through the basics.
 
 # Guides
 Practical walkthroughs for common workflows:
-
-* [[Journal]] — set up a daily journal
-* [[Guide/Knowledge Base]] — build a personal knowledge base
-* [[Guide/Task Management]] — track projects and tasks
-* [[Guide/People Notes]] — keep track of people and conversations
-
-# Keeping up-to-date
-* [[CHANGELOG]]: what’s new in SilverBullet? This page will give you the latest details. It’s worth monitoring this page.
+${query[[from g = index.pages("guide") select templates.pageItem(g)]]}
 
 # Installation and deployment
 * [[Install]]: Installation instructions for various setups
-* [[CLI]]: Command-line interface for interacting with SilverBullet
 * [[Authentication]]: Securing your instance
 * [[TLS]]: the part where we walk through options to expose SilverBullet via HTTPS.
 * [[Troubleshooting]]: When things don't go as planned
+* [[CLI]]: Command-line interface for interacting with SilverBullet
 
 For additional guides, check out [our community guides](https://community.silverbullet.md/c/guides/6).
 
 # Core Concepts
-These are the core concepts used in SilverBullet:
-* [[Glossary]]
+These are the core concepts used in SilverBullet (also see the [[Glossary]]):
 * [[Space]]
 * [[Page]] (and [[Meta Page]])
   * [[Frontmatter]]
-  * [[Names]]
-* [[Folder]]
+* [[Link]]
 * [[Document]]
+* [[Folder]]
+* [[Library]]
 
 # User interface
 SilverBullet’s UI is minimalist by design. Let’s look at the few UI elements and how to use them.

@@ -6,9 +6,9 @@ tags: glossary
 Page templates can be used to automate or simplify the creation of pages based on a template.
 
 # Creating a page template
-To create a page template, create a page and tag it with `#meta/template/page`.
-
-The last component of the page name will be used as the template name.
+1. Run the `Page: From Template` command
+2. Select “Page Template”
+3. Pick a name, the last component of the page name will be used as the template name.
 
 ## Cursor placement
 In the template’s body text, you can optionally use `|^|` as a placeholder for where the cursor should be after creating the page.
@@ -44,22 +44,18 @@ tags: meta/template/page
 ~~~
 
 # Currently active page templates
-
 ${query[[
   from p = index.pages("meta/template/page")
   select templates.fullPageItem(p)
 ]]}
 
 # Instantiating page templates
-
 You can create a page based on a page template via the ${widgets.commandButton("Page: From Template")} command, or via the command name that you defined in your template’s frontmatter.
 
 # Overriding page templates
-
 If you would like to override an existing page template (for instance the Quick Note) template with your own, you can take advantage of the load order determined by the `priority` frontmatter. Built in page templates will have a priority set that is higher than the default. Therefore, their commands and keybindings will be set early. Therefore, by simply defining your own version of the page template _with the same command name_ will let that version override the versions that are built in.
 
 ## Example: overriding the Quick Note template
-
 ~~~
 ---
 command: Quick Note

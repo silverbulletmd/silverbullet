@@ -1,44 +1,40 @@
 #getting-started
 
-Excited to use SilverBullet? Here are three ways for you to deploy it. Also have a look at the note on [[#File systems]] at the end.
+Excited to use SilverBullet? Here are three ways for you to deploy it. 
 
 > **note** Note
-> There is now a [desktop app](https://silverbullet.plus) version of SilverBullet that you may want to try. It does not rely on having to install a server yourself.
+> There is now a fourth option: the (commercial) [desktop app](https://silverbullet.plus) version of SilverBullet.
 
 # localhost (desktop, laptop)
-While this is not an ideal deployment (it limits accessing your space to _just your own machine_), it is an easy way to get started: simply run the SilverBullet server on your own laptop or desktop.
+While this is not an ideal deployment (it limits accessing your space to _just your own machine_), it is an easy way to get started (although [SilverBullet+](https://silverbullet.plus) may be an even lower-friction option to consider): simply run the SilverBullet server on your own laptop or desktop.
 
 Steps:
-1. Install SilverBullet either as a single [[Install/Binary]] or run it as a [[Install/Docker]] container
-2. Access it via `http://localhost:3000`
-3. Follow the [[Quick Start]] to learn the basics
+1. Install SilverBullet following the instructions of one of these options:
+   * [[Install/Binary]] — a single self-contained binary
+   * [[Install/Docker]] — a docker container
+3. Access it via `http://localhost:3000`
+4. Follow [[Getting Started]] to learn the basics
 
 Is that working out for you? Great, then proceed to deploy SilverBullet _properly_ on a server so you can also access it from other devices (like your phone).
 
 # Self hosted (server)
 You can self host SilverBullet on essentially any Intel-compatible 64-bit or ARM 64-bit machine you have terminal access to. The server needs very limited resources (a few hundred megabytes of RAM is sufficient), so even a Raspberry Pi (with a 64-bit OS) is sufficient.
 
-There are three things to take care of, in this order:
+There are three things to take care of, in this order (follow the links in each for instructions):
 
-1. **Install and run SilverBullet itself** — pick [[Install/Binary]] (a single executable) or [[Install/Docker]] (a container). Both pages walk through the full command, including the folder to point at and the port to bind to.
-2. **Turn on [[Authentication]]** — by default the server is wide open. Set `SB_USER=username:password` before exposing it anywhere beyond `localhost`.
-3. **Put [[TLS]] in front of it** — browsers require `https://` (or `localhost`) for SilverBullet’s service worker, crypto, and clipboard APIs to work, so you cannot reach a remote server over plain `http://`.
-4. Follow the [[Quick Start]] to learn the basics.
-
-## TLS / networking guides
-The [[TLS]] page covers the main options. For end-to-end walkthroughs of specific setups, the community has written several [guides](https://community.silverbullet.md/c/guides/6):
-
-* [Cloudflare Zero Trust](https://community.silverbullet.md/t/use-silverbullet-with-cloudflare-zero-trust/3618): requires a (free) Cloudflare account and domain name, covers TLS and tunneling.
-* [Tailscale](https://community.silverbullet.md/t/install-silverbullet-on-a-64-bit-debian-ubuntu-raspianos-internet-accessible-via-tailscale/48): requires a (free) Tailscale account, covers TLS and tunneling and VPN access.
-* [Caddy and self-signed certificates](https://community.silverbullet.md/t/level-1-local-https-with-caddy-and-self-signed-certificates/3531): no accounts required, but requires manually accepting certificates.
-* [Twingate](https://community.silverbullet.md/t/level-1-access-your-silverbullet-from-outside-your-home-network-using-twingate/3541): requires a Twingate account, covers TLS and tunneling.
+1. Install SilverBullet:
+   * [[Install/Binary]] — a single self-contained binary
+   * [[Install/Docker]] — a docker container
+2. Be sure you enable [[Authentication]] for security
+3. Deploy a [[TLS]] layer front of SilverBullet: browsers require `https://` (or `localhost`) for SilverBullet’s service worker, crypto, and clipboard APIs to work, so _you cannot_ reach a remote SilverBullet server over plain `http://`.
+5. Once that’s all set up, follow [[Getting Started]] to learn the basics of using SilverBullet itself.
 
 # Cloud
-While [[Self Hosted]] is the intended path, if this is too much hassle for you. There is a simpler option by using [PikaPods](https://www.pikapods.com/pods?run=silverbullet). For a small fee (about $1.50 per month and you get $5 in credit signing up, so the first months are _free_), you can run your instance there. PikaPods handles deployment, upgrades and backups and exposes SilverBullet securely via TLS.
+While [[Self Hosted]] is the intended path, if this is too much hassle for you. There is a simpler option by using [PikaPods](https://www.pikapods.com/pods?run=silverbullet). For a small fee (about $1.50 per month), you can run your instance there. PikaPods handles deployment, upgrades and backups and exposes SilverBullet securely via TLS.
 
 PikaPods contribute a part of their revenue back to the projects they host, so it’s a source of [[Funding]] for SilverBullet itself.
 
-# File systems
+# Notes on file systems
 ## Case insensitive file systems (Mac and Windows)
 It is _highly discouraged_ to run SilverBullet (in real use) on a _case insensitive_ file system. SilverBullet assumes your file system is _case sensitive_ and acts accordingly.
 

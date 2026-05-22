@@ -109,4 +109,4 @@ If you would like to install additional packages into your docker container (e.g
 In practice, you’ll likely want to put `apk add` commands install the (Alpine) packages you would like to install.
 
 # What next
-After your container is running, head over to `http://localhost:3000` (or whatever port you have configured) and proceed to [[Quick Start]].
+After your container is running, head over to `http://localhost:3000` (or whatever port you have configured) and proceed to [[Getting Started]].

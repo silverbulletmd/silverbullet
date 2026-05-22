@@ -4,6 +4,8 @@ tags: glossary
 ---
 A template in SilverBullet is a string that contains `${expression}` placeholders, which get evaluated using [[Space Lua]]. Templates are a mechanism for dynamically rendering content in your pages.
 
+They are often used in [[Slash Templates]] and [[Page Template]].
+
 # Creating templates
 Use `template.new` to create a template function from a string. By convention, template strings use `[==[` and `]==]` as delimiters:
 

@@ -40,7 +40,7 @@ And to bind on an address other than `127.0.0.1` (e.g. to make it reachable on y
 > **note** Note
 > If you want to access SilverBullet from another machine, you need [[TLS]] _and_ you should enable [[Authentication]] first.
 
-Now, open `http://localhost:3000` in your browser and head to [[Quick Start]] to learn the basics.
+Now, open `http://localhost:3000` in your browser and head to [[Getting Started]] to learn the basics.
 
 # Authentication
 By default the server runs **unauthenticated** — anyone who can reach the port can read and write your space. This is fine for `localhost`, but as soon as you expose the server to anything else, set the `SB_USER` environment variable:

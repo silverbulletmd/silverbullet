@@ -61,22 +61,12 @@ As mentioned, SilverBullet is a [[Self Hosted]] web application. This is great i
 
 While this is a bit more complicated to set up than simply downloading desktop app or signing up for an account with some online service, self hosting is a path to both [[Data Sovereignty]] and to access your content from any device with a modern [[Browser]].
 
-Ready? Proceed to [[Install]], then follow the [[Quick Start]] to learn the basics.
-
-# [[Architecture]]
-The SilverBullet client is built as a [[Local First]], [[PWA|Progressive Web Application]], syncing all your content into your browser’s local storage, enabling **instant access** to your entire space whether you are **online** or **offline**. Simply opt to “Install SilverBullet” from your browser (in any Chrome-based browser), add it to your Dock or home screen (Safari and Android), and voila: SilverBullet becomes indistinguishable from a regular desktop or mobile app. You can try it right here on silverbullet.md.
-![[pwa-screenshot.png]]
-Unplug your (hypothetical) network cable, and everything still works!
-
-Learn more about SilverBullet’s technical [[Architecture]].
-
-# Project status
-SilverBullet has been in development since early 2022, but is ever evolving. The current iteration is **SilverBullet v2**. We had a little bit of a reboot, rebuilding some of the foundations, and replacing some of the previous ([v1](https://v1.silverbullet.md)) features. 
+Ready? Proceed to [[Install]], then follow [[Getting Started]] to learn the basics.
 
 # What’s next?
-* [[Quick Start]]: Get up and running in five minutes.
 * [[Manual]]: SilverBullet’s official manual.
 * [[CHANGELOG]]: we’re in active development, so things change rapidly. Watch this page to keep up.
+* [[Architecture]]: Learn more about how SilverBullet works
 * [Community](https://community.silverbullet.md): join our community: ask questions, share your experiences.
 * [Issues](https://github.com/silverbulletmd/silverbullet/issues): if you have ideas or find bugs, please report them.
 * [Mastodon](https://fosstodon.org/@silverbulletmd): follow SilverBullet development on [Mastodon](https://joinmastodon.org/).

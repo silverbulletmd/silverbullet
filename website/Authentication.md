@@ -1,5 +1,7 @@
 #getting-started
 
+To be secure it is recommended you enable authentication. Here are the options.
+
 # Default: no authentication
 Out of the box, SilverBullet runs **unauthenticated** — anyone who can reach the server’s port can read and write your entire space. There are no built-in default credentials. This is intentional: for `localhost` use it’s the simplest possible setup. As soon as your server is reachable from anywhere else, you need to turn authentication on yourself.
 
