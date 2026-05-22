@@ -90,14 +90,6 @@ async function actionClickOrActionEnter(
         ref.path = currentPath;
       }
 
-      // TODO: Navigate behind frontmatter?
-      // This is an explicit navigate, move to the top
-      if (!ref.details) {
-        ref.details = {
-          type: "position",
-          pos: 0,
-        };
-      }
       return editor.navigate(ref, false, inNewWindow);
     }
     // https://example.org
