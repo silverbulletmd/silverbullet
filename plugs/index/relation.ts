@@ -523,7 +523,7 @@ function emitCoMentions(ctx: EmitCtx, tree: ParseTree): void {
       if (sharedPos === undefined) continue;
 
       const via = `${ctx.pageMeta.name}@${sharedPos}`;
-      const key = `${a.rec.to}->${b.rec.to}@${via}`;
+      const key = `${a.rec.range![0]}->${b.rec.to}`;
       if (seenDirected.has(key)) continue;
       seenDirected.add(key);
 

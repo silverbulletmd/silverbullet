@@ -277,6 +277,25 @@ test("co-mention pairs attribute targets in the same item", async () => {
   expect(pairs.has("Super Team->Angela")).toBe(true);
 });
 
+test("co-mention emits unique refs when target appears multiple times in different scopes", async () => {
+  const { space } = createMockSystem();
+  await space.writePage("A", "");
+  await space.writePage("B", "");
+  // [[A]] shares a (nested) scope with both occurrences of [[B]]; without
+  // ref-granularity dedupe, both j-iterations would emit the same ref
+  // (A's position + B's name) but with different `via` scopes.
+  const text =
+    "* outer\n  * [[A]]\n    * [[B]]\n  * also [[B]] here\n";
+  const tree = parseMarkdown(text);
+  const fm = extractFrontMatter(tree);
+  const objects = await indexRelations(pageMeta("P"), fm, tree, text);
+  const coms = objects.filter((o) =>
+    o.tag === "relation" && o.kind === "co-mention"
+  );
+  const refs = coms.map((r) => r.ref);
+  expect(new Set(refs).size).toEqual(refs.length);
+});
+
 test("co-mention carries fromTag/toTag from target relations", async () => {
   const { space } = createMockSystem();
   await space.writePage("Jack", "");
