@@ -193,9 +193,9 @@ export class ClientSystem {
       console.info("Space Lua scripts are disabled, skipping loading scripts");
       return;
     }
-    if (!(await this.objectIndex.hasFullIndexCompleted())) {
+    if (!(await this.objectIndex.isIndexAvailable())) {
       console.info(
-        "Not loading space scripts, since full indexing has not completed yet",
+        "Not loading space scripts, since no index is available yet",
       );
       return;
     }

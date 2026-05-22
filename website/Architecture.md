@@ -90,8 +90,6 @@ It does this by intercepting HTTP calls coming from the client aimed at the serv
 
 The service worker embeds a [[Sync]] engine, that based on configuration constantly keeps a local copy of your files in sync with the server. To make the sync status visible, it emits events to the Client.
 
-For debugging purposes you can disable the service worker by adding `?enableSW=0` to your URL. This disabling is persistent, to re-enable it use `?enableSW=1`.
-
 # Server
 The server has only three jobs:
 

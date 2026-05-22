@@ -30,7 +30,7 @@ const pageKey = "ridx";
 const indexVersionKey = ["$indexVersion"];
 
 // Bump this one every time a full reindex is needed
-const desiredIndexVersion = 9;
+const desiredIndexVersion = 10;
 
 type TagDefinition = {
   tagPage?: string;
@@ -77,9 +77,9 @@ export class ObjectIndex {
       indexStarted = true;
     });
 
-    // Handle initial index completion
-    void this.hasFullIndexCompleted().then((hasCompleted) => {
-      if (!hasCompleted) {
+    // Handle initial index completion for fresh installs only.
+    void this.getCurrentIndexVersion().then((currentVersion) => {
+      if (currentVersion === undefined) {
         const emptyQueueHandler = async () => {
           console.log("Index queue empty, checking if index is complete");
           // Theoretically we could get empty queue notifications before the file:listed event has been triggered, so let's account for this
@@ -328,20 +328,39 @@ export class ObjectIndex {
     return this.ds.get([indexKey, tag, this.cleanKey(ref, page), page]);
   }
 
+  private reindexingForVersionBump = false;
+
   async ensureFullIndex(space: Space) {
     const currentIndexVersion = await this.getCurrentIndexVersion();
 
-    if (!currentIndexVersion) {
+    if (currentIndexVersion === undefined) {
       console.log("No index version found, assuming fresh install");
       return;
     }
 
-    if (
-      // If the index version is less than the desired version
-      currentIndexVersion < desiredIndexVersion &&
-      // And the index queue is empty (meaning no indexing is ongoing)
-      (await this.mq.isQueueEmpty("indexQueue"))
-    ) {
+    if (currentIndexVersion >= desiredIndexVersion) {
+      return;
+    }
+
+    // Guard against concurrent invocations (e.g. one from
+    // `space-sync-complete` and another from a follow-up `server-version`
+    // SW message) — only one version-bump reindex should run at a time.
+    if (this.reindexingForVersionBump) {
+      return;
+    }
+    this.reindexingForVersionBump = true;
+    try {
+      // Wait out any indexing currently in flight (e.g. just-synced files
+      // being indexed) so we don't fight the worker over the queue.
+      await this.mq.awaitEmptyQueue("indexQueue");
+
+      // Re-read the version in case a concurrent path already bumped it
+      // while we were waiting.
+      const versionNow = await this.getCurrentIndexVersion();
+      if (versionNow !== undefined && versionNow >= desiredIndexVersion) {
+        return;
+      }
+
       console.info(
         "[index]",
         "Performing a full space reindex, this could take a while...",
@@ -353,6 +372,8 @@ export class ObjectIndex {
 
       // Dispatch an editor:reloadState event to reload the editor state (render widgets etc.)
       void this.eventHook.dispatchEvent("editor:reloadState");
+    } finally {
+      this.reindexingForVersionBump = false;
     }
   }
 
@@ -379,8 +400,17 @@ export class ObjectIndex {
     return (await this.ds.get(indexVersionKey)) >= desiredIndexVersion;
   }
 
-  private getCurrentIndexVersion() {
-    return this.ds.get(indexVersionKey);
+  public getCurrentIndexVersion(): Promise<number | undefined> {
+    return this.ds.get(indexVersionKey) as Promise<number | undefined>;
+  }
+
+  /**
+   * True once any full indexing pass has ever completed for this
+   * space, regardless of whether the stored version matches the current
+   * `desiredIndexVersion`.
+   */
+  public async isIndexAvailable(): Promise<boolean> {
+    return (await this.getCurrentIndexVersion()) !== undefined;
   }
 
   async awaitIndexQueueDrain(): Promise<void> {
