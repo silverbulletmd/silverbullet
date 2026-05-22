@@ -23,7 +23,7 @@ export function CommandPalette({
       name: name,
       hint: keyboardHint(def),
       orderId:
-        def.lastRun !== undefined ? -def.lastRun : def.priority || Infinity,
+        def.lastRun !== undefined ? -def.lastRun : -(Number(def.priority) || 0),
     });
     // console.log("Options", options);
   }
