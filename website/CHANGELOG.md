@@ -4,7 +4,9 @@ An attempt at documenting the changes/new features introduced in each release.
 Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
 * New `relation` indexed object capturing generalized object-to-object relationships: typed edges from frontmatter, inline `[key: value]` attributes, and `#tag` fenced data blocks; untyped mentions; and co-mention edges between refs co-occurring in the same item, nested item, or paragraph. The (now) legacy `link` is reimplemented as a virtual collection on top of `relation` now and should keep acting as before.
-* **Important**: Run `Space: Reindex` after upgrading (just once) to this version to make linked mentions and other features work again
+* **Important**: Run `Space: Reindex` after upgrading (just once) to this version to make linked mentions and other features work again (this should be automatic, but just in case)
+* Fix: forced space reindex handling
+* Fix: clicking a wiki link to a page now places the cursor just after the page's frontmatter on first visit (matching fresh-load behavior), instead of at position 0. Pages already visited in the session still restore their previously saved cursor position.
 
 ## 2.8.1
 * Fix: cursor and clicks no longer drift by a line or two when working below a tall widget (e.g. arrow-up from a list under a `${query[[…]]}` now advances exactly one line). Some other cursor preservation issues addressed as well.
