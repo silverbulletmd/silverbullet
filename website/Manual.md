@@ -2,7 +2,17 @@ Welcome to the wonderful world of SilverBullet. The goal of this manual is to gi
 
 However, that is all unlikely to happen unless you understand what SilverBullet can actually do. So let's give you a bit of a sense.
 
-**New here?** Start with the [[Quick Start]], which will walk through the basics in just a few minutes.
+# Videos
+Are you a visual learning? Give these videos a watch:
+
+${embed.youtube "https://youtu.be/bb1USz_cEBY"}
+${embed.youtube "https://youtu.be/7hyLvEfw34w"}
+${embed.youtube "https://youtu.be/bZ79-RbyNoU"}
+${embed.youtube "https://www.youtube.com/watch?v=Of7zE0AVApc"}
+${embed.youtube "https://www.youtube.com/watch?v=cH9cs8fowhY"}
+${embed.youtube "https://youtu.be/qkLJ3viVq8I"}
+
+**New here?** Start with [[Install]], followed by [[Quick Start]]. These will walk through the basics.
 
 # Guides
 Practical walkthroughs for common workflows:
@@ -12,20 +22,12 @@ Practical walkthroughs for common workflows:
 * [[Guide/Task Management]] — track projects and tasks
 * [[Guide/People Notes]] — keep track of people and conversations
 
-# Videos
-${embed.youtube "https://youtu.be/bb1USz_cEBY"}
-${embed.youtube "https://youtu.be/7hyLvEfw34w"}
-${embed.youtube "https://youtu.be/bZ79-RbyNoU"}
-${embed.youtube "https://www.youtube.com/watch?v=Of7zE0AVApc"}
-${embed.youtube "https://www.youtube.com/watch?v=cH9cs8fowhY"}
-${embed.youtube "https://youtu.be/qkLJ3viVq8I"}
-
 # Keeping up-to-date
 * [[CHANGELOG]]: what’s new in SilverBullet? This page will give you the latest details. It’s worth monitoring this page.
 
 # Installation and deployment
 * [[Install]]: Installation instructions for various setups
-* [[CLI]]: Command-line interface for interacting with SilverBullet (experimental)
+* [[CLI]]: Command-line interface for interacting with SilverBullet
 * [[Authentication]]: Securing your instance
 * [[TLS]]: the part where we walk through options to expose SilverBullet via HTTPS.
 * [[Troubleshooting]]: When things don't go as planned
@@ -88,10 +90,10 @@ The main ways to roam your space, beside following page links, are:
 * [[Troubleshooting]]
 
 # Customization
-* [[^Library/Std/Config]]
+* [[Configuration Manager]]
+* [[Keyboard Shortcuts]]
 * [[Page Decorations]]
 * [[Space Style]]
-* [[Keyboard Shortcuts]]
 
 # Extending SilverBullet
 SilverBullet’s implementation is built on three things:

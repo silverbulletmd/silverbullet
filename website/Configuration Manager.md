@@ -1,8 +1,4 @@
----
-description: Manage your space configuration
-tags: maturity/beta glossary
----
-A built-in UI for editing your space's configuration without having to hand-edit [[Space Lua]] blocks in [[CONFIG]].
+A built-in UI for editing your space's configuration without having to hand-edit [[Space Lua]] blocks in [[CONFIG]]. Launch it via the `Configuration: Open` command (`Cmd-,` or `Ctrl-,`).
 
 # Sections
 ## Configuration

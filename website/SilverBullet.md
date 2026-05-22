@@ -51,7 +51,6 @@ That all sounds nice, but what does that look like in practice? Well, if you’r
 
 If you’d like a bit of a tour and demo, give this a watch:
 ${embed.youtube "https://www.youtube.com/watch?v=mik1EbTshX4"}
-
 Want to see even more? Here is a whole [playlist with instruction videos](https://www.youtube.com/watch?v=bb1USz_cEBY&list=PLxFAb_vXRcEp4465MVI6Ha9wzNiX5VevQ) that go more in depth.
 
 # [[Install]]
@@ -62,7 +61,7 @@ As mentioned, SilverBullet is a [[Self Hosted]] web application. This is great i
 
 While this is a bit more complicated to set up than simply downloading desktop app or signing up for an account with some online service, self hosting is a path to both [[Data Sovereignty]] and to access your content from any device with a modern [[Browser]].
 
-Ready? Proceed to [[Install]].
+Ready? Proceed to [[Install]], then follow the [[Quick Start]] to learn the basics.
 
 # [[Architecture]]
 The SilverBullet client is built as a [[Local First]], [[PWA|Progressive Web Application]], syncing all your content into your browser’s local storage, enabling **instant access** to your entire space whether you are **online** or **offline**. Simply opt to “Install SilverBullet” from your browser (in any Chrome-based browser), add it to your Dock or home screen (Safari and Android), and voila: SilverBullet becomes indistinguishable from a regular desktop or mobile app. You can try it right here on silverbullet.md.

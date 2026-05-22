@@ -11,19 +11,22 @@ While this is not an ideal deployment (it limits accessing your space to _just y
 Steps:
 1. Install SilverBullet either as a single [[Install/Binary]] or run it as a [[Install/Docker]] container
 2. Access it via `http://localhost:3000`
+3. Follow the [[Quick Start]] to learn the basics
 
 Is that working out for you? Great, then proceed to deploy SilverBullet _properly_ on a server so you can also access it from other devices (like your phone).
 
 # Self hosted (server)
 You can self host SilverBullet on essentially any Intel-compatible 64-bit or ARM 64-bit machine you have terminal access to. The server needs very limited resources (a few hundred megabytes of RAM is sufficient), so even a Raspberry Pi (with a 64-bit OS) is sufficient.
 
-The main hurdle to overcome in deploying SilverBullet on a server is that _it requires [[TLS]]_.
+There are three things to take care of, in this order:
 
-Steps:
-1. Login to your server of choice and install SilverBullet there as a single [[Install/Binary]] or as a [[Install/Docker]] container.
-2. Decide on your [[TLS]] approach to access it.
+1. **Install and run SilverBullet itself** — pick [[Install/Binary]] (a single executable) or [[Install/Docker]] (a container). Both pages walk through the full command, including the folder to point at and the port to bind to.
+2. **Turn on [[Authentication]]** — by default the server is wide open. Set `SB_USER=username:password` before exposing it anywhere beyond `localhost`.
+3. **Put [[TLS]] in front of it** — browsers require `https://` (or `localhost`) for SilverBullet’s service worker, crypto, and clipboard APIs to work, so you cannot reach a remote server over plain `http://`.
+4. Follow the [[Quick Start]] to learn the basics.
 
-Here are a few [community guides](https://community.silverbullet.md/c/guides/6) on how to setup SilverBullet in various (TLS-enabled) setups:
+## TLS / networking guides
+The [[TLS]] page covers the main options. For end-to-end walkthroughs of specific setups, the community has written several [guides](https://community.silverbullet.md/c/guides/6):
 
 * [Cloudflare Zero Trust](https://community.silverbullet.md/t/use-silverbullet-with-cloudflare-zero-trust/3618): requires a (free) Cloudflare account and domain name, covers TLS and tunneling.
 * [Tailscale](https://community.silverbullet.md/t/install-silverbullet-on-a-64-bit-debian-ubuntu-raspianos-internet-accessible-via-tailscale/48): requires a (free) Tailscale account, covers TLS and tunneling and VPN access.
