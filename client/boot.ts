@@ -160,11 +160,9 @@ safeRun(async () => {
   console.log("Booting SilverBullet client");
   console.log("Boot config", bootConfig, config.values);
 
-  // Skip (and tear down) the service worker when headless, when the server
-  // forbids it via BootConfig.disableServiceWorker, or when the user opted
-  // out locally with ?enableSW=0 (persisted to localStorage).
-  const swDisabled = !!bootConfig?.disableServiceWorker ||
-    localStorage.getItem("enableSW") === "0";
+  // Skip (and tear down) the service worker when headless or when the server
+  // forbids it via BootConfig.disableServiceWorker.
+  const swDisabled = !!bootConfig?.disableServiceWorker;
   if (swDisabled && navigator.serviceWorker) {
     await flushCachesAndUnregisterServiceWorker();
   }
@@ -300,13 +298,6 @@ async function augmentBootConfig(bootConfig: BootConfig, config: Config) {
   }
   if (urlParams.has("resetClient")) {
     bootConfig.performReset = true;
-  }
-  if (urlParams.has("enableSW")) {
-    const val = urlParams.get("enableSW")!;
-    localStorage.setItem("enableSW", val);
-    if (val === "0") {
-      await flushCachesAndUnregisterServiceWorker();
-    }
   }
 }
 
