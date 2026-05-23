@@ -7,6 +7,7 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
 * **Important**: Run `Space: Reindex` after upgrading (just once) to this version to make linked mentions and other features work again (this should be automatic, but just in case)
 * Fix: forced space reindex handling
 * Fix: clicking a wiki link to a page now places the cursor just after the page's frontmatter on first visit (matching fresh-load behavior), instead of at position 0. Pages already visited in the session still restore their previously saved cursor position.
+* Fix: `$`-anchor refs now resolve through the index from every navigation path
 
 ## 2.8.1
 * Fix: cursor and clicks no longer drift by a line or two when working below a tall widget (e.g. arrow-up from a list under a `${query[[…]]}` now advances exactly one line). Some other cursor preservation issues addressed as well.

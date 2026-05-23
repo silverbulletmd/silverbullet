@@ -31,6 +31,7 @@ import type {
   PageMeta,
 } from "@silverbulletmd/silverbullet/type/index";
 import type { StyleObject } from "../plugs/index/space_style.ts";
+import type { ResolveAnchorResult } from "../plugs/index/types.ts";
 import { publicVersion } from "../public_version.ts";
 import { ClientSystem } from "./client_system.ts";
 import {
@@ -759,7 +760,8 @@ export class Client {
     let cursorWasVisible = false;
     try {
       const block = editorView.lineBlockAt(previousSelection.main.head);
-      const scrollBottom = previousScrollTop + editorView.scrollDOM.clientHeight;
+      const scrollBottom =
+        previousScrollTop + editorView.scrollDOM.clientHeight;
       cursorWasVisible =
         block.bottom > previousScrollTop && block.top < scrollBottom;
     } catch {
@@ -909,6 +911,42 @@ export class Client {
 
   async navigate(ref: Ref | null, replaceState = false, newWindow = false) {
     ref ??= this.getIndexRef();
+
+    // Resolve $-anchor refs into a concrete page + position. The page
+    // navigator only knows about position/header/linecolumn details, so
+    // we have to translate here.
+    if (ref.details?.type === "anchor") {
+      const anchorName = ref.details.name;
+      const pageFilter = ref.path
+        ? ref.path.endsWith(".md")
+          ? ref.path.slice(0, -3)
+          : ref.path
+        : undefined;
+      const result: ResolveAnchorResult = await this.clientSystem.localSyscall(
+        "index.resolveAnchor",
+        [anchorName, pageFilter],
+      );
+      if (!result.ok) {
+        if (result.reason === "missing") {
+          this.ui.flashNotification(
+            `Anchor not found: $${anchorName}`,
+            "error",
+          );
+        } else {
+          const pages = result.hits.map((h) => h.page).join(", ");
+          this.ui.flashNotification(
+            `Duplicate anchor $${anchorName} on pages: ${pages}`,
+            "error",
+          );
+        }
+        return;
+      }
+      ref = {
+        ...ref,
+        path: `${result.page}.md`,
+        details: { type: "position", pos: result.range[0] },
+      };
+    }
 
     if (newWindow) {
       console.log(
