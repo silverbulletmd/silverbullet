@@ -7,7 +7,7 @@ export type QueryCollationConfig = {
   options?: object;
 };
 
-type vimMode = "normal" | "insert" | "visual";
+type vimMode = "normal" | "insert" | "visual" | "operator";
 
 export type VimConfig = {
   unmap?: (string | { key: string; mode?: vimMode })[];

@@ -202,7 +202,7 @@ config.define("vim", {
               key = { type = "string" },
               mode = {
                 type = "string",
-                enum = {"normal", "insert", "visual"}
+                enum = {"normal", "insert", "visual", "operator"}
               }
             },
             required = { "key" },
@@ -221,7 +221,7 @@ config.define("vim", {
           to = { type = "string" },
           mode = {
             type = "string",
-            enum = {"normal", "insert", "visual"}
+            enum = {"normal", "insert", "visual", "operator"}
           }
         },
         required = { "map", "to" },
@@ -238,7 +238,7 @@ config.define("vim", {
           to = { type = "string" },
           mode = {
             type = "string",
-            enum = {"normal", "insert", "visual"}
+            enum = {"normal", "insert", "visual", "operator"}
           }
         },
         required = { "map", "to" },
