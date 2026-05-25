@@ -12,13 +12,16 @@ import {
 //   • `header`    from "# XRay Test" (range: full heading node)
 //   • `paragraph` from the paragraph (range: full paragraph) — only indexed
 //                 when it has a hashtag; #alpha satisfies that condition
-//   • `link`      from [[Other]]       (range: the wikilink token only)
+//   • `relation`  from [[Other]]     (range: the wikilink token only). The
+//                 legacy `link` tag is a virtual view on top of `relation`,
+//                 so it doesn't appear as a separately-indexed object in
+//                 X-Ray's raw `allIndexers` output.
 //   • `task`      from the task item   (range: task body)
 //
 // Hovering the rendered wikilink anchor (`.sb-wiki-link`) fires CodeMirror's
 // hoverTooltip at the source position of `[[Other]]`, which falls inside both
-// the `link` range and the wider `paragraph` range — so the stacked tooltip
-// must contain both `tag: link` and `tag: paragraph`.
+// the `relation` range and the wider `paragraph` range — so the stacked
+// tooltip must contain both `tag: relation` and `tag: paragraph`.
 const XRAY_PAGE = `# XRay Test
 
 This paragraph links to [[Other]] and has a tag. #alpha
@@ -88,7 +91,7 @@ test.describe("X-Ray lens", () => {
 		await expect(tooltip).toBeVisible({ timeout: 5_000 });
 		// Body assertions: the `link` and `paragraph` objects must appear in
 		// the YAML rendered for their respective cards.
-		await expect(tooltip).toContainText("tag: link");
+		await expect(tooltip).toContainText("tag: relation");
 		await expect(tooltip).toContainText("tag: paragraph");
 		// Multi-tag expansion: the paragraph carries `#alpha`, so the index
 		// pipeline emits the same paragraph object once under `paragraph` and

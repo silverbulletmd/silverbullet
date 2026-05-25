@@ -208,6 +208,49 @@ tag.define {
   },
 }
 
+-- relation
+tag.define {
+  name = "relation",
+  schema = {
+    type = "object",
+    properties = {
+      ref = readOnlyType("string"),
+      tag = readOnlyType("string"),
+      tags = schema.array("string"),
+      itags = {
+        type = "array",
+        items = schema.string(),
+        nullable = true,
+        readOnly = true,
+      },
+      kind = {
+        type = "string",
+        readOnly = true,
+        enum = {
+          "mention",
+          "attribute",
+          "frontmatter",
+          "data",
+          "co-mention",
+          "url",
+          "document",
+        },
+      },
+      from = readOnlyType("string"),
+      fromTag = schema.nullable("string"),
+      to = readOnlyType("string"),
+      toTag = schema.nullable("string"),
+      type = schema.nullable("string"),
+      via = schema.nullable("string"),
+      alias = schema.nullable("string"),
+      snippet = schema.nullable("string"),
+      page = readOnlyType("string"),
+      range = rangeType,
+      pageLastModified = readOnlyType("string"),
+    },
+  },
+}
+
 -- header
 tag.define {
   name = "header",

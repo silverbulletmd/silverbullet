@@ -20,6 +20,7 @@ functions:
     command:
       name: "Navigate: Tag Picker"
       key: "Ctrl-Alt-t"
+      priority: 2
       menu: { location: navigate, group: "2_picker", order: 3, label: "Tag..." }
 
   # Page operations
@@ -29,6 +30,7 @@ functions:
       name: "Page: Delete"
       requireMode: rw
       requireEditor: page
+      priority: 1
       menu: { location: file, group: "4_page", order: 2, label: "Delete Page" }
   copyPage:
     path: "./page.ts:copyPage"

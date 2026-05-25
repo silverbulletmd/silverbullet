@@ -37,6 +37,9 @@ export function indexSyscalls(
     "index.links": (): LuaQueryCollection => {
       return objectIndex.objectsWithTag("link");
     },
+    "index.relations": (): LuaQueryCollection => {
+      return objectIndex.objectsWithTag("relation");
+    },
     "index.contentPages": (): LuaQueryCollection => {
       return objectIndex.contentPages();
     },

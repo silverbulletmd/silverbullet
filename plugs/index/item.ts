@@ -14,7 +14,7 @@ import type {
 } from "@silverbulletmd/silverbullet/type/index";
 import { system } from "@silverbulletmd/silverbullet/syscalls";
 import { cleanAttributes, collectAttributes } from "./attribute.ts";
-import { collectPageLinks } from "./link.ts";
+import { collectPageLinks } from "./relation.ts";
 
 export type ItemObject = ObjectValue<
   {

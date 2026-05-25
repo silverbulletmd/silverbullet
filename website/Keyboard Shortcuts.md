@@ -2,6 +2,8 @@
 
 SilverBullet uses [CodeMirror](https://codemirror.net) under the hood, which does the majority of the keyboard handling. In addition, it allows to for customization of (most) keys on a per-command basis. When you open the [[Command Palette]], you will see the currently assigned keyboard shortcut(s).
 
+It is by far the easiest to configure your keyboard shortcuts using the [[Configuration Manager]].
+
 # Modifier keys
 Your keyboard shortcut will typically consist of a combination of modifier keys as well as a letter or (special) character or number. The following modifier keys are supported:
 

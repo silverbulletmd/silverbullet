@@ -2,7 +2,7 @@
 
 SilverBullet relies on a few advanced browser features to operate (specifically service workers, crypto APIs and clipboard APIs). These features are _only_ enabled by browsers when websites are accessed via `http://localhost` or via [TLS](https://en.wikipedia.org/wiki/Transport_Layer_Security), that is — a `https://` URL.
 
-This is not a limitation imposed by SilverBullet, it is a restriction encoded in web standards. Therefore, to use SilverBullet you need to either access it via `localhost` or put a TLS certificate on it.
+This is not a limitation imposed by SilverBullet, it is a restriction encoded in web standards. Therefore, if you like it, you need to either access it via `localhost` or put a TLS certificate on it (as Beyoncé famously said).
 
 # localhost (http)
 You can do this in a few ways:
@@ -10,7 +10,7 @@ You can do this in a few ways:
 ## Run SilverBullet locally
 If you run SilverBullet _locally_ on your machine, this is the easiest option. Everything runs fine as long as the browser sees `localhost` or `127.0.0.1` appear in the URL, even with `http://`.
 
-The obvious drawback of this approach is that your SilverBullet instance is only accessible from the machine you run it on.
+The obvious drawback of this approach is that your SilverBullet instance is _only accessible from the machine you run it on_.
 
 ## SSH tunnel
 If you run SilverBullet on a remote server in your network that you have SSH access to, you can “fake” a localhost URL by creating an SSH tunnel.
@@ -43,6 +43,9 @@ For this, you need to get your hands on a TLS certificate.
 
 A few options:
 
+## Pangolin, Authelia, Authentik
+If you’re _already_ using a proxy like [Pangolin](https://pangolin.net/), [Authelia](https://www.authelia.com/) or [Authentik](https://goauthentik.io/), you are likely already set up with everything you need and can just reverse-proxy a subdomain to SilverBullet. Be sure to check the notes on using a [[Authentication Proxy]] on how to configure this.
+
 ## Tailscale SSL certificate
 If you’re a [Tailscale](https://tailscale.com/) user, this a simple solution. If not, you may consider becoming one — it’s a solid service, very friendly to [[Self Hosted|self hosters]], and _free_ for this use case.
 
@@ -74,5 +77,10 @@ Replace `silverbullet.mydomain.com` with any domain that you have configured to 
 
 Restart Caddy and access SilverBullet via `https://silverbullet.mydomain.com`. On first load, Caddy will work with Let’s Encrypt to issue a TLS certificate and install (and update) it automatically, this may take a minute, so be patient.
 
-## Self-signed certificate
-It is possible to self sign certificates and use those. Search the Internet for instructions on how to do this, [here is website that describes the way it works and how to do it](https://www.ssldragon.com/blog/what-is-self-signed-certificate/).
+## Community guides
+For end-to-end walkthroughs of specific setups, the community has written several [guides](https://community.silverbullet.md/c/guides/6):
+
+* [Cloudflare Zero Trust](https://community.silverbullet.md/t/use-silverbullet-with-cloudflare-zero-trust/3618): requires a (free) Cloudflare account and domain name, covers TLS and tunneling.
+* [Tailscale](https://community.silverbullet.md/t/install-silverbullet-on-a-64-bit-debian-ubuntu-raspianos-internet-accessible-via-tailscale/48): requires a (free) Tailscale account, covers TLS and tunneling and VPN access.
+* [Caddy and self-signed certificates](https://community.silverbullet.md/t/level-1-local-https-with-caddy-and-self-signed-certificates/3531): no accounts required, but requires manually accepting certificates.
+* [Twingate](https://community.silverbullet.md/t/level-1-access-your-silverbullet-from-outside-your-home-network-using-twingate/3541): requires a Twingate account, covers TLS and tunneling.

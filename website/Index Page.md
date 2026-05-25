@@ -11,7 +11,7 @@ Doing this can be achieved with some [[Space Lua]] magic (in the code below weâ€
 local function redirectToCustomIndex()
   if editor.getCurrentPage() == "index" then
     -- Change this to whatever page you want your index page to be
-    editor.navigate("Daily/" .. date.today())
+    editor.navigate("Journal/" .. date.today())
   end
 end
 

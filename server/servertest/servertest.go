@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
@@ -147,9 +148,14 @@ func StartHeadless(t *testing.T, opts ...Option) *TestServer {
 		ts.Config.HeadlessToken = hex.EncodeToString(b)
 	}
 
+	chromePath := os.Getenv("SB_CHROME_PATH")
+	if chromePath == "" {
+		chromePath = os.Getenv("CHROMIUM_PATH")
+	}
 	hb, err := server.StartHeadlessBrowser(&server.HeadlessConfig{
 		ServerURL:     ts.Server.URL,
 		HeadlessToken: ts.Config.HeadlessToken,
+		ChromePath:    chromePath,
 	})
 	require.NoError(t, err, "headless browser should start")
 	t.Cleanup(hb.Stop)

@@ -78,6 +78,8 @@ test.describe("PWA offline support", () => {
 	test.describe.configure({ retries: 2 });
 
 	test.use({
+		// This suite exercises real SW behavior, so it needs the SW running.
+		disableServiceWorker: false,
 		spaceFiles: {
 			"index.md": "# Offline Test Space\nThis content should survive offline.",
 			"TestPage.md": "# Test Page\nOffline page content here.",

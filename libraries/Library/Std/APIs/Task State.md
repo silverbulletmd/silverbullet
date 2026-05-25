@@ -1,4 +1,4 @@
-#meta/api #maturity/beta
+#meta/api
 
 Implements APIs for defining custom task states. Currently extremely basic.
 

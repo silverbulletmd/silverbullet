@@ -65,9 +65,14 @@ func startSharedServer() (*servertest.TestServer, func()) {
 	}
 	ts.Config.HeadlessToken = hex.EncodeToString(b)
 
+	chromePath := os.Getenv("SB_CHROME_PATH")
+	if chromePath == "" {
+		chromePath = os.Getenv("CHROMIUM_PATH")
+	}
 	hb, err := server.StartHeadlessBrowser(&server.HeadlessConfig{
 		ServerURL:     ts.Server.URL,
 		HeadlessToken: ts.Config.HeadlessToken,
+		ChromePath:    chromePath,
 	})
 	if err != nil {
 		panic("headless browser should start: " + err.Error())

@@ -14,7 +14,7 @@ import {
 } from "@silverbulletmd/silverbullet/lib/tree";
 import { updateITags } from "./tags.ts";
 import { isValidAnchorName } from "./anchor.ts";
-import type { AspiringPageObject } from "./link.ts";
+import type { AspiringPageObject } from "./relation.ts";
 import type {
   ObjectValue,
   PageMeta,

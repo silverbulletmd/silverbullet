@@ -115,8 +115,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          draft: true
+          draft: false
           files: |
-            dist/plug-compile.js
             silverbullet-server-*.zip
             sb-*.zip

@@ -533,6 +533,7 @@ export function registerEditorCommands(
     name: "Navigate: Meta Picker",
     key: "Ctrl-Shift-k",
     mac: "Cmd-Shift-k",
+    priority: 2,
     menu: { location: "navigate", group: "2_picker", order: 4, label: "Meta Page..." },
     run: async () => client.startPageNavigate("meta"),
   });
@@ -540,6 +541,7 @@ export function registerEditorCommands(
     name: "Navigate: Document Picker",
     key: "Ctrl-o",
     mac: "Cmd-o",
+    priority: 2,
     menu: [
       { location: "file", group: "1_new", order: 3, label: "Open Document..." },
       { location: "navigate", group: "2_picker", order: 2, label: "Document..." },

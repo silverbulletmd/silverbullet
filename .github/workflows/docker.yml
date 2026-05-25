@@ -103,7 +103,7 @@ jobs:
             ghcr.io/${{ env.NAMESPACE_GITHUB }}/${{ env.IMAGE_NAME }}
           tags: |
             type=semver,pattern={{raw}}-runtime-api,enable=true
-            type=semver,pattern=latest,value=latest-runtime-api,enable=true
+            type=semver,pattern=latest-runtime-api,enable=true
             type=raw,value=v2-runtime-api,enable=${{ github.ref == 'refs/heads/main' }}
 
       - name: "Runtime API: Build and push"

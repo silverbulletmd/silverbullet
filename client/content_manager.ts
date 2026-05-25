@@ -47,7 +47,7 @@ export class ContentManager {
       .catch((e) => console.error("Error dispatching editor:updated event", e));
   }, 1000);
 
-  constructor(private client: Client) {}
+  constructor(private client: Client) { }
 
   // Save the current page or document
   save(immediate = false): Promise<void> {
@@ -182,9 +182,14 @@ export class ContentManager {
       // Wait for index to process the saved page so the next page renders
       // with up-to-date widget data. Skip during initial indexing though:
       // the queue may contain hundreds of files and blocking navigation on
-      // a full drain would make the app feel unresponsive.
+      // a full drain would make the app feel unresponsive. Cap the wait so
+      // a backed-up queue (e.g. just after sync) doesn't stall navigation
+      // for many seconds: fresh widget data is a nice-to-have.
       if (await this.client.objectIndex.hasFullIndexCompleted()) {
-        await this.client.objectIndex.awaitIndexQueueDrain();
+        await Promise.race([
+          this.client.objectIndex.awaitIndexQueueDrain(),
+          new Promise<void>((resolve) => setTimeout(resolve, 2000)),
+        ]);
       }
     }
 

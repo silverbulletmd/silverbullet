@@ -1,4 +1,6 @@
-SilverBullet ships with basic support for (daily) journaling. Each day you get a fresh journal page (by running the `Journal: Today` command). On this page you can capture what’s happening throughout the day, typically as a bulleted list. By linking to (topic) pages from journal entries, those entries automatically appear on the topic page via [[Linked Mention|Linked Mentions]], building a timeline of activity for every topic you care about. You can freely mix this with a more [[Guide/Knowledge Base]] approach as you see fit.
+#guide
+
+SilverBullet ships with basic support for (daily) journaling. Each day you get a fresh journal page (by running the `Journal: Today` command). On this page you can capture what’s happening throughout the day, typically as a bulleted list. By linking to (topic) pages from journal entries, those entries automatically appear on the topic page via [[Linked Mention|Linked Mentions]], building a timeline of activity for every topic you care about. You can freely mix this with a more [[Knowledge Base]] approach as you see fit.
 
 As with anything in SilverBullet, this is a feature that’s fully optional to use. You can disable it wholesale in the [[Configuration Manager]].
 

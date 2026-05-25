@@ -31,6 +31,7 @@ import type {
   PageMeta,
 } from "@silverbulletmd/silverbullet/type/index";
 import type { StyleObject } from "../plugs/index/space_style.ts";
+import type { ResolveAnchorResult } from "../plugs/index/types.ts";
 import { publicVersion } from "../public_version.ts";
 import { ClientSystem } from "./client_system.ts";
 import {
@@ -124,6 +125,9 @@ export class Client {
   // Track if plugs have been updated since sync cycle
   fullSyncCompleted = false;
   private versionMismatchNotified = false;
+  // True once we've confirmed the server reports the same publicVersion as
+  // this client bundle and the plugs the server is shipping are aligned with the running build.
+  private versionsInSync = false;
 
   // Set to true once the system is ready (plugs loaded)
   public systemReady: boolean = false;
@@ -202,8 +206,11 @@ export class Client {
     );
 
     // Seed the full-index readiness flag from persistent state so a
-    // warm reload doesn't unnecessarily flash loading spinners.
-    this.fullIndexCompleted = await this.objectIndex.hasFullIndexCompleted();
+    // warm reload doesn't unnecessarily flash loading spinners. A stale
+    // stored version (older than `desiredIndexVersion`) still counts as
+    // ready: the entries are queryable while `ensureFullIndex` waits for
+    // sync + version confirmation. See `ObjectIndex.isIndexAvailable`.
+    this.fullIndexCompleted = await this.objectIndex.isIndexAvailable();
 
     // After the initial index completes (object_index.ts dispatches this),
     // mark the flag and — if the page list cache previously took the
@@ -302,6 +309,11 @@ export class Client {
     await this.eventHook.dispatchEvent("system:ready");
     this.systemReady = true;
     this.maybeDispatchWidgetsReady();
+
+    // When the service worker is disabled check for an up-to-date index immediately
+    if (this.bootConfig.disableServiceWorker) {
+      void this.objectIndex.ensureFullIndex(this.space);
+    }
 
     this.initHeadlessRuntime();
 
@@ -545,10 +557,10 @@ export class Client {
       const result = await evalStatement(ast, scriptEnv, sf);
       const returnValue =
         result &&
-        typeof result === "object" &&
-        "ctrl" in result &&
-        result.ctrl === "return" &&
-        Array.isArray(result.values)
+          typeof result === "object" &&
+          "ctrl" in result &&
+          result.ctrl === "return" &&
+          Array.isArray(result.values)
           ? result.values[0]
           : result;
       return (await Promise.resolve(luaValueToJS(returnValue, sf))) ?? null;
@@ -594,13 +606,13 @@ export class Client {
 
   async updatePageListCache() {
     console.log("Updating page list cache");
-    // Check if the initial sync has been completed
-    const initialIndexCompleted =
-      await this.objectIndex.hasFullIndexCompleted();
+    // Use the looser `isIndexAvailable` check: stale-but-present index
+    // entries are still queryable, so we can take the index branch.
+    const indexAvailable = await this.objectIndex.isIndexAvailable();
 
     let allPages: PageMeta[] = [];
 
-    if (initialIndexCompleted) {
+    if (indexAvailable) {
       console.log("Initial index complete, loading full page list via index.");
       // Fetch indexed pages
       allPages = await this.queryLuaObjects<PageMeta>("page", {});
@@ -661,7 +673,7 @@ export class Client {
     // transform-applied values (the index branch). The fallback branch
     // produces raw page meta without pageDecoration, so we keep
     // showing loading widgets until the index is back.
-    if (initialIndexCompleted) {
+    if (indexAvailable) {
       this.pageListLoaded = true;
       this.maybeDispatchWidgetsReady();
     }
@@ -748,7 +760,8 @@ export class Client {
     let cursorWasVisible = false;
     try {
       const block = editorView.lineBlockAt(previousSelection.main.head);
-      const scrollBottom = previousScrollTop + editorView.scrollDOM.clientHeight;
+      const scrollBottom =
+        previousScrollTop + editorView.scrollDOM.clientHeight;
       cursorWasVisible =
         block.bottom > previousScrollTop && block.top < scrollBottom;
     } catch {
@@ -899,6 +912,42 @@ export class Client {
   async navigate(ref: Ref | null, replaceState = false, newWindow = false) {
     ref ??= this.getIndexRef();
 
+    // Resolve $-anchor refs into a concrete page + position. The page
+    // navigator only knows about position/header/linecolumn details, so
+    // we have to translate here.
+    if (ref.details?.type === "anchor") {
+      const anchorName = ref.details.name;
+      const pageFilter = ref.path
+        ? ref.path.endsWith(".md")
+          ? ref.path.slice(0, -3)
+          : ref.path
+        : undefined;
+      const result: ResolveAnchorResult = await this.clientSystem.localSyscall(
+        "index.resolveAnchor",
+        [anchorName, pageFilter],
+      );
+      if (!result.ok) {
+        if (result.reason === "missing") {
+          this.ui.flashNotification(
+            `Anchor not found: $${anchorName}`,
+            "error",
+          );
+        } else {
+          const pages = result.hits.map((h) => h.page).join(", ");
+          this.ui.flashNotification(
+            `Duplicate anchor $${anchorName} on pages: ${pages}`,
+            "error",
+          );
+        }
+        return;
+      }
+      ref = {
+        ...ref,
+        path: `${result.page}.md`,
+        details: { type: "position", pos: result.range[0] },
+      };
+    }
+
     if (newWindow) {
       console.log(
         "Navigating to new page in new window",
@@ -934,9 +983,9 @@ export class Client {
       console.warn("Not loading custom styles, since space style is disabled");
       return;
     }
-    if (!(await this.objectIndex.hasFullIndexCompleted())) {
+    if (!(await this.objectIndex.isIndexAvailable())) {
       console.warn(
-        "Not loading custom styles, since full indexing has not completed yet",
+        "Not loading custom styles, since no index is available yet",
       );
       return;
     }
@@ -1014,9 +1063,13 @@ export class Client {
       case "space-sync-complete": {
         const isFirstSync = !this.fullSyncCompleted;
         this.fullSyncCompleted = true;
-        // Trigger version-bump reindex if needed (must happen here, not in a plug,
-        // because the plug may not be loaded yet when the first sync completes)
-        void this.objectIndex.ensureFullIndex(this.space);
+        // Only trigger a version-bump reindex once we've also confirmed the
+        // server is on the same publicVersion as this client — otherwise the
+        // reindex could run against stale plug code that's about to be
+        // replaced by the in-progress upgrade.
+        if (this.versionsInSync) {
+          void this.objectIndex.ensureFullIndex(this.space);
+        }
 
         if (isFirstSync && message.operations > 0) {
           // First sync pulled new content — reload the current page
@@ -1047,10 +1100,15 @@ export class Client {
         break;
       }
       case "server-version": {
-        if (
-          message.serverVersion !== publicVersion &&
-          !this.versionMismatchNotified
-        ) {
+        if (message.serverVersion === publicVersion) {
+          const wasInSync = this.versionsInSync;
+          this.versionsInSync = true;
+          // If sync already completed before we learned versions were aligned,
+          // kick off the deferred reindex check now.
+          if (!wasInSync && this.fullSyncCompleted) {
+            void this.objectIndex.ensureFullIndex(this.space);
+          }
+        } else if (!this.versionMismatchNotified) {
           this.versionMismatchNotified = true;
           this.ui.flashNotification(
             "A new version of SilverBullet client is available. A reload or two is required to update.",

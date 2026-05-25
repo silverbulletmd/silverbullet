@@ -6,4 +6,4 @@ exceptContexts:
 - "LuaDirective"
 raw: true
 ---
-${query[[from o = index.objects("|^|")]]}
+${query[[from p = index.pages("|^|") select templates.pageItem(p)]]}

@@ -6,6 +6,14 @@ import type {
 } from "@silverbulletmd/silverbullet/type/index";
 import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
 
+// Map a page's last-modified time to a small, monotone-decreasing boost
+function recencyToBoost(lastModified: string): number {
+  const days = (Date.now() - new Date(lastModified).getTime()) / 86_400_000;
+  if (isNaN(days)) return -Infinity; // unknown timestamp → sort to bottom
+  if (days < 0) return 0; // future timestamp (clock skew) → treat as "now"
+  return -Math.log2(days + 1);
+}
+
 // Page completion
 export async function pageComplete(completeEvent: CompleteEvent) {
   const isDocumentQuery = {
@@ -73,6 +81,7 @@ export async function pageComplete(completeEvent: CompleteEvent) {
                 ref: aspiringPage,
                 tag: "page",
                 tags: ["non-existing"], // Picked up later in completion
+                _isAspiring: true,
                 name: aspiringPage,
                 created: "",
                 lastModified: "",
@@ -101,16 +110,15 @@ export async function pageComplete(completeEvent: CompleteEvent) {
       if (isWikilink) {
         // A [[wikilink]]
         const linkAlias = pageMeta.linkName || pageMeta.displayName;
+        const recencyBoost = pageMeta._isAspiring
+          ? -Infinity
+          : recencyToBoost(pageMeta.lastModified);
         if (linkAlias) {
           const decoratedName = namePrefix + linkAlias;
-          let boost = new Date(pageMeta.lastModified).getTime();
-          if (pageMeta._isAspiring) {
-            boost = -Infinity;
-          }
           completions.push({
             label: linkAlias,
             displayLabel: decoratedName,
-            boost,
+            boost: recencyBoost,
             apply:
               pageMeta.tag === "template"
                 ? pageMeta.name
@@ -128,7 +136,7 @@ export async function pageComplete(completeEvent: CompleteEvent) {
             completions.push({
               label: `${alias}`,
               displayLabel: decoratedName,
-              boost: new Date(pageMeta.lastModified).getTime(),
+              boost: recencyBoost,
               apply:
                 pageMeta.tag === "template"
                   ? pageMeta.name
@@ -143,7 +151,7 @@ export async function pageComplete(completeEvent: CompleteEvent) {
         completions.push({
           label: pageMeta.name,
           displayLabel: decoratedName,
-          boost: new Date(pageMeta.lastModified).getTime(),
+          boost: recencyBoost,
           detail: pageMeta.tags?.includes("non-existing")
             ? "Linked but not created"
             : undefined,
@@ -153,11 +161,11 @@ export async function pageComplete(completeEvent: CompleteEvent) {
       } else {
         // A markdown link []()
         let labelText = pageMeta.name;
-        let boost = new Date(pageMeta.lastModified).getTime();
+        let boost = recencyToBoost(pageMeta.lastModified);
         // Relative path if in the same folder or a subfolder
         if (folder.length > 0 && labelText.startsWith(folder)) {
           labelText = labelText.slice(folder.length + 1);
-          boost = boost * 1.1;
+          boost += 5;
         } else {
           // Absolute path otherwise
           labelText = `/${labelText}`;

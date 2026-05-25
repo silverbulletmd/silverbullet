@@ -2,10 +2,13 @@
 
 This guide walks you through building a personal knowledge base with SilverBullet. You’ll learn how pages, links, tags, queries, and transclusions work together to create an interconnected web of knowledge.
 
-# Create your first topic pages
-Start with 3–4 pages on topics you know well: a programming language, a recipe, a book you've read. Open the [[Page Picker]] (`Cmd-k` / `Ctrl-k`), type a name, and press Enter.
+> **note** Note
+> This workflow works well with [[Journal]], where you link out to knowledge base topic pages from your journal pages.
 
-Keep each page focused on one topic. A page about “Rust” covers Rust. A page about “Ownership” covers ownership. This “atomic note” approach makes pages easy to link and reuse.
+# Create your first topic pages
+Start with 3–4 “topic pages” on topics you know well: a programming language, a recipe, a book you've read. Open the [[Page Picker]] (`Cmd-k` / `Ctrl-k`), type a name, and press Enter.
+
+Keep each page focused on one topic. A page about “Rust” covers Rust. A page about “Ownership” covers ownership. This topic page approach makes pages easy to link and reuse.
 
 Write freely — a paragraph or two is enough to get started.
 
@@ -16,24 +19,24 @@ As you write on one page, naturally reference another. Type `[[` and SilverBulle
 Rust's [[Ownership]] model prevents data races at compile time.
 ```
 
-Don’t worry about organizing pages into the “right” folder structure upfront (or at all). Just write and link. The structure emerges from the connections.
+Don’t worry about organizing pages into a folder structure, just put everything at the top level (see [[Best Practices]]). Just write and link. Structure emerges from connections.
 
 # Discover connections via backlinks
-Navigate to one of your linked pages (click a `[[link]]` or use the Page Picker). Scroll to the bottom and look for the **Linked Mentions** section.
+Navigate to one of your linked pages (click a `[[link]]` or use the Page Picker). Scroll to the bottom and look for the [[Linked Mention]] section.
 
 This shows every page that links _to_ the current page — connections you didn't have to manually create. For example, your “Ownership” page will show that your “Rust” page mentions it.
 
-This is how a knowledge base builds itself: write naturally, link as you go, and let [[Linked Mention|linked mentions]] surface the connections.
+This is how a knowledge base builds itself: write naturally, link as you go, and let linked mentions surface the connections.
 
-# Add structure when it's useful
+# Add structure when useful
 When you want to categorize or query pages, add some structure.
 
-**Hashtags** on an empty line tag the page (see [[Markdown/Hashtags#Scope rules]]):
+[[Markdown/Hashtags]] on an empty line tag the page (see [[Markdown/Hashtags#Scope rules]]):
 ```markdown
 #concept
 ```
 
-**[[Frontmatter]]** at the top of a page adds structured data:
+**[[Frontmatter]]** at the top of a page adds structured data and also be used as an alternative way to attach tags to a page:
 ```yaml
 ---
 tags: book
@@ -70,5 +73,4 @@ You now have the core pattern: create pages, link them, add structure with tags 
 
 * [[Journal]] — set up a daily journal
 * [[Guide/Task Management]] — track projects and tasks
-* [[Guide/People Notes]] — keep track of people and conversations
 * [[Manual]] — the full user manual
