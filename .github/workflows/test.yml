@@ -58,12 +58,24 @@ jobs:
           npm ci
           make build
 
+      - name: Install Playwright Chromium (with system deps)
+        run: npx playwright install --with-deps chromium
+
+      - name: Resolve Chromium path
+        id: chromium
+        run: |
+          echo "path=$(node -e 'console.log(require("@playwright/test").chromium.executablePath())')" >> "$GITHUB_OUTPUT"
+
       - name: Run Go tests
+        env:
+          SB_CHROME_PATH: ${{ steps.chromium.outputs.path }}
         run: |
           go test ./server/... -v -timeout 300s
           go test ./cli/... -v -timeout 300s
 
       - name: Run Go tests with coverage
+        env:
+          SB_CHROME_PATH: ${{ steps.chromium.outputs.path }}
         run: go test ./server/... ./cli/... -coverprofile=coverage.out -timeout 300s
 
       - name: Display test coverage
