@@ -39,7 +39,7 @@ func handleFsList(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		w.Header().Set("X-Space-Path", spaceConfig.SpaceFolderPath)
+		w.Header().Set("X-Space-Path", url.PathEscape(spaceConfig.SpaceFolderPath))
 		w.Header().Set("Cache-Control", "no-cache")
 		render.JSON(w, r, files)
 	} else {

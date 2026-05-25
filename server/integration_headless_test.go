@@ -221,7 +221,10 @@ func TestIntegration_Headless(t *testing.T) {
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 		body, _ := io.ReadAll(resp.Body)
 		assert.Equal(t, "OK", string(body))
-		assert.Equal(t, ts.SpaceConfig.SpaceFolderPath, resp.Header.Get("X-Space-Path"))
+		assert.Equal(
+      t,
+      url.PathUnescape(ts.SpaceConfig.SpaceFolderPath, resp.Header.Get("X-Space-Path"))
+    )
 	})
 
 	t.Run("Config", func(t *testing.T) {
