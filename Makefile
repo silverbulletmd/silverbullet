@@ -2,7 +2,12 @@ LDFLAGS = -X main.buildTime=$$(date -u +%Y-%m-%dT%H:%M:%SZ)
 CLI_VERSION = $$(sed -n 's/.*"\([^"]*\)".*/\1/p' public_version.ts)
 CLI_LDFLAGS = -X main.version=$(CLI_VERSION)
 
-.PHONY: build build-for-docker docker build-server-releases build-cli-releases clean check fmt test test-integration test-e2e bench generate website
+# Where `make install` symlinks the `silverbullet` server binary. Defaults to
+# Go's bin directory (GOBIN, or GOPATH/bin), which is typically already on your
+# PATH. Override with INSTALL_DIR=/some/dir if you prefer another location.
+INSTALL_DIR ?= $(or $(shell go env GOBIN),$(shell go env GOPATH)/bin)
+
+.PHONY: build build-for-docker docker build-server-releases build-cli-releases clean check fmt test test-integration test-e2e bench generate website install uninstall
 
 build:
 	npm run build
@@ -13,6 +18,18 @@ build:
 setup:
 	npm install
 	npx playwright install
+
+# Symlink the freshly built server binary into INSTALL_DIR so you can run
+# `silverbullet` from anywhere. Because it's a symlink (not a copy), later
+# `make build` runs update the installed binary automatically.
+install: build
+	mkdir -p "$(INSTALL_DIR)"
+	ln -sf "$(CURDIR)/silverbullet" "$(INSTALL_DIR)/silverbullet"
+	@echo "Symlinked $(CURDIR)/silverbullet -> $(INSTALL_DIR)/silverbullet"
+
+uninstall:
+	rm -f "$(INSTALL_DIR)/silverbullet"
+	@echo "Removed $(INSTALL_DIR)/silverbullet"
 
 build-for-docker: build
 	GOOS=linux GOARCH=arm64 go build -ldflags "$(LDFLAGS)" -o silverbullet-arm64 .
