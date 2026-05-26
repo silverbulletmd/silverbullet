@@ -4,32 +4,31 @@ Here are a few vetted libraries to get you started.
 
 ```#meta/library/remote
 name: Git
-description: Rudamentary Git integration into SilverBullet
+description: Rudamentary Git integration
 author: Zef Hemel
 uri: https://github.com/zefhemel/silverbullet-libraries/blob/main/Git.md
 ---
 name: Mermaid diagrams
 author: Zef Hemel
-description: Mermaid diagram support for SilverBullet
+description: Mermaid diagram support
 uri: https://github.com/silverbulletmd/silverbullet-mermaid/blob/main/PLUG.md
 ---
 name: Excalidraw diagrams
 author: Logesh
-website: https://github.com/LogeshG5/silverbullet-excalidraw
 description: Support for [Excalidraw](https://excalidraw.com/) in SilverBullet.
+website: https://github.com/LogeshG5/silverbullet-excalidraw
 uri: https://github.com/LogeshG5/silverbullet-excalidraw/blob/main/PLUG.md
 ---
 name: Silversearch
 author: MrMugame
-description: Powerful full-text search engine for SilverBullet
+description: Powerful full-text search engine
 website: https://github.com/MrMugame/silversearch
 uri: ghr:MrMugame/silversearch/PLUG.md
 ---
-name: TreeView
-author: Joe Krill
-description: Adds a tree view that allows you to navigate your SilverBullet pages hierarchically
-website: https://github.com/joekrill/silverbullet-treeview
-uri: https://github.com/joekrill/silverbullet-treeview/blob/main/PLUG.md
+name: Document Explorer
+author: Mr.Red
+description: Adds a tree view that allows you to navigate your space hierarchially
+uri: https://github.com/Mr-xRed/silverbullet-libraries/blob/main/DocumentExplorer.md
 ---
 name: PDF Viewer
 author: MrMugame
@@ -37,10 +36,22 @@ website: https://github.com/MrMugame/silverbullet-pdf
 description: PDF Viewer for Silverbullet
 uri: ghr:MrMugame/silverbullet-pdf/PLUG.md
 ---
-name: Math
+name: LaTeX Math
 author: MrMugame
-description: LaTeX-style math widgets for SilverBullet
+description: LaTeX math support
 uri: https://github.com/MrMugame/silverbullet-math/blob/main/Math.md
+---
+name: Markdown Prettify
+author: Zef Hemel
+description: Reformats markdown in a "SilverBullet"-y style
+website: https://github.com/silverbulletmd/silverbullet-markdown-prettify
+uri: https://github.com/silverbulletmd/silverbullet-markdown-prettify/blob/main/Prettify.md
+---
+name: Object Graph
+author: Zef Hemel
+description: Object Graph view
+website: https://github.com/silverbulletmd/silverbullet-object-graph
+uri: ghr:silverbulletmd/silverbullet-object-graph@edge/ObjectGraph.md
 ---
 name: Basic Full-Text Search
 author: Zef Hemel
