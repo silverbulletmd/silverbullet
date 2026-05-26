@@ -7,6 +7,6 @@ exceptContexts:
 raw: true
 ---
 ${query[[
-  from p = index.pages(|^|)
+  from p = index.contentPages(|^|)
   select templates.pageItem(p)
 ]]}
