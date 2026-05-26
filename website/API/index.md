@@ -25,8 +25,8 @@ Returns all sub-pages of `pageName` (pages whose name starts with `${pageName}/`
 Example:
 ${query[[from p = index.subPages("API") limit 3 select p.name]]}
 
-## index.contentPages()
-Returns all content [[Object/page]]s (all pages excluding [[Meta Page|Meta Pages]]) as a query collection.
+## index.contentPages(tag?)
+Returns all content [[Object/page]]s (all pages excluding [[Meta Page|Meta Pages]]) as a query collection. Optionally filtered by an additional `tag`.
 
 Example:
 ${query[[from index.contentPages() limit 1]]}

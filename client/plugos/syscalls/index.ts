@@ -40,8 +40,8 @@ export function indexSyscalls(
     "index.relations": (): LuaQueryCollection => {
       return objectIndex.objectsWithTag("relation");
     },
-    "index.contentPages": (): LuaQueryCollection => {
-      return objectIndex.contentPages();
+    "index.contentPages": (_ctx, tagName?: string): LuaQueryCollection => {
+      return objectIndex.contentPages(tagName);
     },
     "index.metaPages": (): LuaQueryCollection => {
       return objectIndex.metaPages();

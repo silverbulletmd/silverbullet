@@ -170,12 +170,16 @@ export class ObjectIndex {
     };
   }
 
-  contentPages(): LuaQueryCollection {
-    return this.filteredTag(
-      "page",
-      (varName) =>
-        `not table.find(${varName}.tags, function(tag) return tag == "meta" or string.startsWith(tag, "meta/") end)`,
-    );
+  contentPages(tagName?: string): LuaQueryCollection {
+    const notMeta = (varName: string) =>
+      `not table.find(${varName}.tags, function(tag) return tag == "meta" or string.startsWith(tag, "meta/") end)`;
+    if (tagName) {
+      return this.filteredTag(
+        tagName,
+        (varName) => `${varName}.tag == "page" and ${notMeta(varName)}`,
+      );
+    }
+    return this.filteredTag("page", notMeta);
   }
 
   metaPages(): LuaQueryCollection {
