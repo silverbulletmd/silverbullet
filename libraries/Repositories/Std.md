@@ -45,13 +45,13 @@ name: Markdown Prettify
 author: Zef Hemel
 description: Reformats markdown in a "SilverBullet"-y style
 website: https://github.com/silverbulletmd/silverbullet-markdown-prettify
-uri: https://github.com/silverbulletmd/silverbullet-markdown-prettify/blob/main/Prettify.md
+uri: ghr:silverbulletmd/silverbullet-markdown-prettify/Prettify.md
 ---
 name: Object Graph
 author: Zef Hemel
 description: Object Graph view
 website: https://github.com/silverbulletmd/silverbullet-object-graph
-uri: ghr:silverbulletmd/silverbullet-object-graph@edge/ObjectGraph.md
+uri: ghr:silverbulletmd/silverbullet-object-graph/ObjectGraph.md
 ---
 name: Basic Full-Text Search
 author: Zef Hemel
