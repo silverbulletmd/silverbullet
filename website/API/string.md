@@ -240,7 +240,7 @@ Matches string `s` against a JavaScript regular expression pattern and returns t
 Example:
 ```lua
 local match = string.matchRegex("hello123", "([a-z]+)([0-9]+)")
-print(match[1], match[2])  -- prints: hello 123
+print(match[1], match[2], match[3])  -- prints: hello123 hello 123
 ```
 
 ### string.matchRegexAll(s, pattern)
@@ -249,7 +249,7 @@ Returns an iterator that finds all matches of a JavaScript regular expression pa
 Example:
 ```lua
 for match in string.matchRegexAll("a1b2c3", "([a-z])([0-9])") do
-    print(match[0], match[1], match[2])  -- prints each full match and its capture groups
+    print(match[1], match[2], match[3])  -- prints each full match and its capture groups
 end
 -- Output:
 -- a1 a 1
