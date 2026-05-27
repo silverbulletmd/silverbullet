@@ -69,12 +69,11 @@ export function attachWidgetEventHandlers(
   // Override wiki links with local navigate (faster)
   div.querySelectorAll("a[data-ref]").forEach((el_) => {
     const el = el_ as HTMLElement;
-    // Override default click behavior with a local navigate (faster)
+    // Override default click behavior with a local navigate (faster).
+    // Ctrl/meta-click navigates in a new window: we can't rely on the
+    // browser's native "open in new tab" for the anchor's href, because
+    // inside the desktop app's webview that just navigates in place.
     el.addEventListener("click", (e) => {
-      if (e.ctrlKey || e.metaKey) {
-        // Don't do anything special for ctrl/meta clicks
-        return;
-      }
       e.preventDefault();
       e.stopPropagation();
       void client.navigate(
