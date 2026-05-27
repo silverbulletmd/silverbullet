@@ -178,9 +178,29 @@ Ctrl/Cmd-click navigation to Lua function definition.
 ```space-lua
 -- priority: 10
 local function inLuaContext(parentNodes)
+  if not parentNodes then
+    return false
+  end
   for _, node in ipairs(parentNodes) do
     if node == "LuaDirective"
       or node:startsWith("FencedCode:space-lua") then
+      return true
+    end
+  end
+  return false
+end
+
+-- Clicks on actual links (wiki links, markdown links, URLs, hashtags, etc.)
+-- must be left to the regular navigation handler so they can be opened
+-- (in a new window/tab on Cmd/Ctrl-click), even inside a Lua block.
+local function onLink(parentNodes)
+  if not parentNodes then
+    return false
+  end
+  for _, node in ipairs(parentNodes) do
+    if node == "WikiLink" or node == "Link" or node == "Image"
+      or node == "Autolink" or node == "NakedURL" or node == "Hashtag"
+      or node == "FootnoteRef" then
       return true
     end
   end
@@ -200,8 +220,14 @@ event.listen {
     if not (e.data.metaKey or e.data.ctrlKey) then
       return
     end
+    -- Don't capture clicks on links; let the normal navigation handler deal
+    -- with them.
+    if onLink(e.data.parentNodes) then
+      return
+    end
+    -- Only attempt to navigate to a definition from within Lua code.
     if not inLuaContext(e.data.parentNodes) then
-      return notDefinedinLua()
+      return
     end
 
     local pos = e.data.pos
