@@ -51,6 +51,10 @@ func Router(config *ServerConfig) chi.Router {
 
 	r.Use(httpStatsMiddleware(config))
 
+  // Enable support for additional HTTP methods
+  // PROPFIND (e.g. used by webdav)
+  chi.RegisterMethod("PROPFIND")
+
 	// Authentication middleware (applies to all routes after this point)
 	r.Use(authMiddleware(config))
 
