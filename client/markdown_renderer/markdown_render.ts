@@ -455,11 +455,12 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
 
       return {
         name: "span",
-        attrs: externalTaskRef
-          ? {
-            "data-external-task-ref": externalTaskRef,
-          }
-          : {},
+        attrs: {
+          class: "sb-task",
+          ...(externalTaskRef
+            ? { "data-external-task-ref": externalTaskRef }
+            : {}),
+        },
         body: cleanTags(mapRender(t.children!)),
       };
     }

@@ -183,8 +183,11 @@
   // renders the native control at a fixed ~13px regardless of CSS `width`,
   // leaving a wide visual gap between the glyph and the task text inside
   // the 3ch column. A custom box fills the column predictably across
-  // engines and renders the same on Chrome, Firefox, and Safari.
-  .sb-checkbox>input[type="checkbox"] {
+  // engines and renders the same on Chrome, Firefox, and Safari. The rule
+  // matches both the editor's `.sb-checkbox` widget and any checkbox
+  // produced by `renderMarkdownToHtml` (query/table/html/footnote widgets),
+  // so rendered task lists look identical to source-mode tasks.
+  input[type="checkbox"] {
     appearance: none;
     -webkit-appearance: none;
     display: inline-block;
@@ -201,7 +204,7 @@
     vertical-align: middle;
   }
 
-  .sb-checkbox>input[type="checkbox"]:checked::after {
+  input[type="checkbox"]:checked::after {
     content: "";
     position: absolute;
     left: 28%;
@@ -590,6 +593,18 @@
       width: 1em;
       /* Also needed for space (tweak if needed) */
       margin-left: -1em;
+    }
+
+    // Hanging-indent for task items so wrapped task text aligns with the
+    // first-line text (after the checkbox) instead of falling back under
+    // the bullet column.
+    li>.sb-task {
+      display: inline-block;
+      width: 100%;
+      box-sizing: border-box;
+      padding-left: 1.7em;
+      text-indent: -1.7em;
+      vertical-align: top;
     }
 
     h1,
