@@ -92,133 +92,13 @@
     border: 0;
   }
 
-  // Indentation of follow-up lines
-  @mixin lineOverflow($baseIndent, $bulletIndent: 0) {
-    text-indent: calc(-1 * (#{$baseIndent}ch + 2ch));
-    padding-left: calc(#{$baseIndent}ch + 2ch);
-
-    &.sb-line-task {
-      text-indent: calc(-1 * (#{$baseIndent}ch + 5ch));
-      padding-left: calc(#{$baseIndent}ch + 5ch);
-
-      .cm-list-bullet::after {
-        left: calc(#{$baseIndent}ch + 5ch);
-      }
-    }
-
-    &.sb-line-blockquote {
-      text-indent: calc(-1 * (#{$baseIndent}ch + 4ch));
-      padding-left: calc(#{$baseIndent}ch + 4ch);
-    }
-
-    .cm-list-bullet::after {
-      left: calc(#{$baseIndent}ch + #{$bulletIndent}ch + 2ch);
-    }
-  }
-
-  .sb-line-ul {
-    &.sb-line-li-1 {
-      @include lineOverflow(0);
-    }
-
-    &.sb-line-li-1.sb-line-li-2 {
-      @include lineOverflow(2);
-    }
-
-    &.sb-line-li-1.sb-line-li-2.sb-line-li-3 {
-      @include lineOverflow(4);
-    }
-
-    &.sb-line-li-1.sb-line-li-2.sb-line-li-3.sb-line-li-4 {
-      @include lineOverflow(6);
-    }
-
-    &.sb-line-li-1.sb-line-li-2.sb-line-li-3.sb-line-li-4.sb-line-li-5 {
-      @include lineOverflow(8);
-    }
-  }
-
-  .sb-line-ol {
-    &.sb-line-li-1 {
-      @include lineOverflow(1);
-    }
-
-    &.sb-line-li-1.sb-line-li-2 {
-      @include lineOverflow(4);
-    }
-
-    &.sb-line-li-1.sb-line-li-2.sb-line-li-3 {
-      @include lineOverflow(7);
-    }
-
-    &.sb-line-li-1.sb-line-li-2.sb-line-li-3.sb-line-li-4 {
-      @include lineOverflow(10);
-    }
-
-    &.sb-line-li-1.sb-line-li-2.sb-line-li-3.sb-line-li-4.sb-line-li-5 {
-      @include lineOverflow(13);
-    }
-  }
-
-  .sb-line-ol.sb-line-ul {
-    // &.sb-line-li-1 {
-    //   @include lineOverflow(1);
-    // }
-
-    &.sb-line-li-1.sb-line-li-2 {
-      @include lineOverflow(3);
-    }
-
-    &.sb-line-li-1.sb-line-li-2.sb-line-li-3 {
-      @include lineOverflow(6);
-    }
-
-    &.sb-line-li-1.sb-line-li-2.sb-line-li-3.sb-line-li-4 {
-      @include lineOverflow(9);
-    }
-
-    &.sb-line-li-1.sb-line-li-2.sb-line-li-3.sb-line-li-4.sb-line-li-5 {
-      @include lineOverflow(12);
-    }
-  }
-
-  .sb-line-blockquote {
-    &.sb-line-li-1 {
-      @include lineOverflow(-1, 2);
-    }
-
-    &.sb-line-li-1.sb-line-li-2 {
-      @include lineOverflow(1, 2);
-    }
-
-    &.sb-line-li-1.sb-line-li-2.sb-line-li-3 {
-      @include lineOverflow(4);
-    }
-
-    &.sb-line-li-1.sb-line-li-2.sb-line-li-3.sb-line-li-4 {
-      @include lineOverflow(6);
-    }
-
-    &.sb-line-li-1.sb-line-li-2.sb-line-li-3.sb-line-li-4.sb-line-li-5 {
-      @include lineOverflow(8);
-    }
-  }
-
   .sb-line-comment {
     text-indent: -1 * 3ch;
     padding-left: 3ch;
   }
 
   .cm-list-bullet {
-    position: relative;
-    visibility: hidden;
-  }
-
-  .cm-list-bullet::after {
-    visibility: visible;
-    position: absolute;
-    content: "\2022";
-    /* U+2022 BULLET */
+    color: var(--editor-list-bullet-color, inherit);
   }
 
   .cm-task-checked,
@@ -266,6 +146,18 @@
 
   .sb-header-inside.sb-line-h6 {
     text-indent: -7ch;
+  }
+
+  .sb-checkbox {
+    display: inline-block;
+    // 3 source columns ([, space, ]) → widget occupies the same 3ch so
+    // toggling cursor in/out doesn't cause a horizontal shift, and the
+    // wrapped-line hanging indent (computed at 6ch from `* [ ] `) lines
+    // up with the first line's text.
+    width: 3ch;
+    // Stop the inherited negative text-indent on list-item lines from
+    // dragging the inner <input> out of the checkbox's own box.
+    text-indent: 0;
   }
 
   .sb-checkbox > input[type="checkbox"] {
@@ -320,7 +212,12 @@
 
   .sb-wiki-link {
     border-radius: 5px;
+    // Horizontal-only chip gutter that doesn't take layout width or add
+    // vertical box height: 5px of padding on each side is cancelled by
+    // -5px margin, so the background extends visually around the text but
+    // adjacent inline content isn't pushed away.
     padding: 0 5px;
+    margin: 0 -5px;
     // white-space: nowrap;
     text-decoration: none;
     cursor: pointer;
@@ -369,13 +266,11 @@
     flex-direction: column;
   }
 
-  .sb-task-mark {
-    font-size: 91%;
-  }
-
-  .sb-task-state {
-    font-size: 91%;
-  }
+  // .sb-task-mark / .sb-task-state previously used font-size: 91% to make
+  // the `[`, ` `, `]` source chars visually subtle in cursor-in mode. That
+  // broke column-equivalence with the 3ch checkbox widget (cursor-out), so
+  // the size shrink is gone. Color/opacity rules in colors.scss continue to
+  // distinguish them visually.
 
   .sb-task-dropdown {
     cursor: pointer;

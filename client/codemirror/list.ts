@@ -26,7 +26,7 @@ export function listBulletPlugin() {
             const listMark = state.sliceDoc(from, to);
             if (bulletListMarkerRE.test(listMark)) {
               const dec = Decoration.replace({
-                widget: new ListBulletWidget(listMark),
+                widget: new ListBulletWidget(),
               });
               widgets.push(dec.range(from, to));
             } else {
@@ -46,16 +46,15 @@ export function listBulletPlugin() {
 }
 
 /**
- * Widget to render list bullet mark.
+ * Widget that renders the bullet glyph (`•`) inline at the source position of
+ * the markdown list marker (`*`, `-`, `+`). Uses no positioning tricks — the
+ * widget sits exactly where the source char would, so nested-list bullets
+ * step right naturally with their leading whitespace.
  */
 class ListBulletWidget extends WidgetType {
-  constructor(readonly bullet: string) {
-    super();
-  }
-
   toDOM(): HTMLElement {
     const listBullet = document.createElement("span");
-    listBullet.textContent = this.bullet;
+    listBullet.textContent = "•"; // U+2022 BULLET
     listBullet.className = "cm-list-bullet";
     return listBullet;
   }

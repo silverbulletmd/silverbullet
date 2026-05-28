@@ -6,6 +6,7 @@ import { hideHeaderMarkPlugin, hideMarksPlugin } from "./hide_mark.ts";
 import { cleanBlockPlugin } from "./block.ts";
 import { linkPlugin } from "./link.ts";
 import { listBulletPlugin } from "./list.ts";
+import { listIndentPlugin } from "./list_indent.ts";
 import { tablePlugin } from "./table.ts";
 import { taskListPlugin } from "./task.ts";
 import { cleanWikiLinkPlugin } from "./wiki_link.ts";
@@ -71,6 +72,7 @@ export function cleanModePlugins(client: Client) {
       })(),
     }),
     listBulletPlugin(),
+    listIndentPlugin(),
     htmlInlinePlugin(client),
     htmlBlockPlugin(client),
     tablePlugin(client),
