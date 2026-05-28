@@ -151,6 +151,22 @@
     text-indent: -7ch;
   }
 
+  // On narrow viewports (≤ default editor-width), the gutter to the left of
+  // `.cm-content` is gone, so the hanging `#`-markers would slide off-screen.
+  // Render them inline instead — the heading text shifts right by `Nch + 1`
+  // but stays fully visible. CSS variables can't be used in media queries,
+  // so this threshold tracks the default `--editor-width` (800px).
+  @media (max-width: 800px) {
+    .sb-header-inside.sb-line-h1,
+    .sb-header-inside.sb-line-h2,
+    .sb-header-inside.sb-line-h3,
+    .sb-header-inside.sb-line-h4,
+    .sb-header-inside.sb-line-h5,
+    .sb-header-inside.sb-line-h6 {
+      text-indent: 0;
+    }
+  }
+
   .sb-checkbox {
     display: inline-block;
     // 3 source columns ([, space, ]) → widget occupies the same 3ch so
