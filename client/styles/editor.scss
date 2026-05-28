@@ -24,7 +24,9 @@
     &.sb-line-h5,
     &.sb-line-h6 {
       font-weight: bold;
-      padding: 2px;
+      // Vertical breathing room above/below the heading without indenting
+      // the heading text away from the body column.
+      padding: 2px 0;
     }
   }
 
@@ -124,6 +126,7 @@
     }
   }
 
+  // Hanging-indent for the leading `#`-markers in cursor-in mode
   .sb-header-inside.sb-line-h1 {
     text-indent: -2ch;
   }
@@ -160,7 +163,7 @@
     text-indent: 0;
   }
 
-  .sb-checkbox > input[type="checkbox"] {
+  .sb-checkbox>input[type="checkbox"] {
     width: 3ch;
   }
 
@@ -258,7 +261,9 @@
   }
 
   @keyframes sb-loading-spin {
-    to { transform: rotate(360deg); }
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   .sb-widget-array {
@@ -387,7 +392,7 @@
     margin: 0 3px;
   }
 
-  .sb-code-copy-button > svg {
+  .sb-code-copy-button>svg {
     height: 1rem;
     width: 1rem;
   }
@@ -619,7 +624,7 @@
     border-radius: 0;
   }
 
-  .sb-inline-content > div > .content > * {
+  .sb-inline-content>div>.content>* {
     max-width: 100%;
     display: block;
   }
@@ -643,7 +648,7 @@
     }
   }
 
-  .sb-line-blockquote.sb-line-ul.sb-line-li > .sb-quote.sb-meta:first-child {
+  .sb-line-blockquote.sb-line-ul.sb-line-li>.sb-quote.sb-meta:first-child {
     margin-left: -1ch;
   }
 

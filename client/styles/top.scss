@@ -8,6 +8,8 @@
   .main {
     flex: 2;
     max-width: 100%;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
 
     .inner {
       // Hack to not have SCSS precompile this value but use proper CSS variables
@@ -85,6 +87,7 @@
 }
 
 @media only screen and (max-width: 600px) {
+
   /* Style the menu as a vertical fly-out */
   #sb-top .cm-scroller:has(.hamburger) {
     position: relative;
@@ -93,11 +96,9 @@
   #sb-top .sb-actions.hamburger {
     width: 2.8rem;
     margin-top: 2px;
-    background: color-mix(
-      in srgb,
-      var(--top-background-color) 90%,
-      transparent
-    );
+    background: color-mix(in srgb,
+        var(--top-background-color) 90%,
+        transparent);
     backdrop-filter: blur(20px);
     overflow: hidden;
     flex-direction: column;
@@ -183,7 +184,7 @@
   flex-direction: column;
   align-items: flex-end;
 
-  > div {
+  >div {
     padding: 3px 8px;
     margin-bottom: 3px;
     border-radius: 5px;
@@ -212,6 +213,7 @@
     font-size: 1.1em;
     padding: 0 2px;
     opacity: 0.7;
+
     &:hover {
       opacity: 1;
     }
