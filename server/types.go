@@ -57,6 +57,7 @@ type SpaceConfig struct {
 	// Used for the PWA manifest and login page
 	SpaceName        string
 	SpaceDescription string
+	ThemeColor       string
 
 	// Used to inject additional HTML into the <head> of index.html
 	AdditionalHeadHTML template.HTML
@@ -127,7 +128,7 @@ type AuthOptions struct {
 	AuthToken       string `json:"authToken,omitempty"`
 	User            string `json:"user"`
 	Pass            string `json:"pass"`
-	LockoutTime     int    `json:"lockoutTime"`  // in seconds
+	LockoutTime     int    `json:"lockoutTime"` // in seconds
 	LockoutLimit    int    `json:"lockoutLimit"`
 	RememberMeHours int    `json:"rememberMeHours"` // duration for "remember me" sessions
 }

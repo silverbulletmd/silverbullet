@@ -46,7 +46,7 @@ func manifestHandler(w http.ResponseWriter, r *http.Request) {
 		Display:         "standalone",
 		DisplayOverride: []string{"window-controls-overlay"},
 		Scope:           "/",
-		ThemeColor:      "#e1e1e1",
+		ThemeColor:      spaceConfig.ThemeColor,
 		Description:     spaceConfig.SpaceDescription,
 	}
 
