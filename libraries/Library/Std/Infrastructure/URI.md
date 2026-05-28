@@ -5,6 +5,7 @@ tags: meta
 
 # Implementation
 ```space-lua
+-- priority: 10
 -- Virtual page (uri:URI)
 virtualPage.define {
   pattern = "uri:.+",

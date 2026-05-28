@@ -5,6 +5,7 @@ tags: meta
 A work-in-progress library of generally useful templates for rendering queries.
 
 ```space-lua
+-- priority: 10
 -- Renders a page object as a linked list item
 templates.pageItem = template.new([==[
 * [[${name}]]

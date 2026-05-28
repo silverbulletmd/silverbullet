@@ -2,6 +2,7 @@
 
 # Implementation
 ```space-lua
+-- priority: 10
 share = {}
 
 local shareSchema = {

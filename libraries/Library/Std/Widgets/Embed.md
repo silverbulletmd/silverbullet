@@ -16,6 +16,7 @@ ${embed.vimeo "https://vimeo.com/1084537"}
 
 # Implementation
 ```space-lua
+-- priority: 10
 -- Schema
 local embedVideoSpecSchema = {
   type = "object",

@@ -31,6 +31,7 @@ ${query[[
 # Implementation
 
 ```space-lua
+-- priority: 10
 tag.define {
   name = "meta/template/slash",
   schema = {
