@@ -157,6 +157,7 @@
   // but stays fully visible. CSS variables can't be used in media queries,
   // so this threshold tracks the default `--editor-width` (800px).
   @media (max-width: 800px) {
+
     .sb-header-inside.sb-line-h1,
     .sb-header-inside.sb-line-h2,
     .sb-header-inside.sb-line-h3,
@@ -168,19 +169,48 @@
   }
 
   .sb-checkbox {
+
     display: inline-block;
-    // 3 source columns ([, space, ]) → widget occupies the same 3ch so
-    // toggling cursor in/out doesn't cause a horizontal shift, and the
-    // wrapped-line hanging indent (computed at 6ch from `* [ ] `) lines
-    // up with the first line's text.
+    text-align: center;
     width: 3ch;
     // Stop the inherited negative text-indent on list-item lines from
     // dragging the inner <input> out of the checkbox's own box.
     text-indent: 0;
+    line-height: 1;
   }
 
+  // Replace the native <input type=checkbox> with a CSS-drawn box. Safari
+  // renders the native control at a fixed ~13px regardless of CSS `width`,
+  // leaving a wide visual gap between the glyph and the task text inside
+  // the 3ch column. A custom box fills the column predictably across
+  // engines and renders the same on Chrome, Firefox, and Safari.
   .sb-checkbox>input[type="checkbox"] {
-    width: 3ch;
+    appearance: none;
+    -webkit-appearance: none;
+    display: inline-block;
+    box-sizing: border-box;
+    width: 1.3em;
+    height: 1.3em;
+    margin: 0;
+    padding: 0;
+    border: 1.5px solid currentColor;
+    border-radius: 3px;
+    background: transparent;
+    cursor: pointer;
+    position: relative;
+    vertical-align: middle;
+  }
+
+  .sb-checkbox>input[type="checkbox"]:checked::after {
+    content: "";
+    position: absolute;
+    left: 28%;
+    top: 8%;
+    width: 32%;
+    height: 64%;
+    border: solid currentColor;
+    border-width: 0 1.5px 1.5px 0;
+    transform: rotate(45deg);
   }
 
   .sb-hashtag,
@@ -286,12 +316,6 @@
     display: flex;
     flex-direction: column;
   }
-
-  // .sb-task-mark / .sb-task-state previously used font-size: 91% to make
-  // the `[`, ` `, `]` source chars visually subtle in cursor-in mode. That
-  // broke column-equivalence with the 3ch checkbox widget (cursor-out), so
-  // the size shrink is gone. Color/opacity rules in colors.scss continue to
-  // distinguish them visually.
 
   .sb-task-dropdown {
     cursor: pointer;
