@@ -147,17 +147,21 @@ export async function gotoSilverBulletPage(
 }
 
 /**
- * Wait for the client to save (indicated by #sb-current-page having class "sb-saved"),
- * then fetch the page content from the server's filesystem API.
+ * Wait for a full unsaved → saved transition on the current page, then fetch
+ * the page content from the server's filesystem API.
  */
 export async function waitForSaveAndReadFromServer(
 	page: Page,
 	sbServer: SBServer,
 	pagePath: string,
 ): Promise<string> {
-	// Wait for the save indicator — "sb-saved" class on the page name element
-	await page.locator("#sb-current-page.sb-saved").waitFor({ state: "attached", timeout: 10_000 });
-	// Fetch the file from the server
+	const pageNameSel = "#sb-current-page";
+	// Observe `sb-unsaved` first so we're past the edits the caller just made.
+	await page.locator(`${pageNameSel}.sb-unsaved`).waitFor({ state: "attached", timeout: 10_000 });
+	// Then wait for the round-trip back to `sb-saved` — this fires only after
+	// `space.writePage(...)` resolves, which in HTTP mode means after the
+	// server's PUT response.
+	await page.locator(`${pageNameSel}.sb-saved`).waitFor({ state: "attached", timeout: 10_000 });
 	const resp = await fetch(`${sbServer.url}/.fs/${pagePath}`);
 	if (!resp.ok) {
 		throw new Error(`Failed to read ${pagePath} from server: ${resp.status}`);
