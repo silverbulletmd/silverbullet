@@ -4,6 +4,7 @@ An attempt at documenting the changes/new features introduced in each release.
 Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
 * New `relation` indexed object capturing generalized object-to-object relationships: typed edges from frontmatter, inline `[key: value]` attributes, and `#tag` fenced data blocks; untyped mentions; and co-mention edges between refs co-occurring in the same item, nested item, or paragraph. The (now) legacy `link` is reimplemented as a virtual collection on top of `relation` now and should keep acting as before.
+* Fix: on narrow viewports (≤ 800px) header `#` markers no longer get pushed off-screen when the cursor enters a heading
 * Fix: List/outline alignment: bullets, checkboxes and ordered-list numbers now line up in a clean column regardless of nesting depth, list type, or whether items are tasks. 
   * Potentially **breaking** CSS change for theme authors: per-nesting-level indent values previously carried by `.sb-line-ul.sb-line-li-N`, `.sb-line-ol.sb-line-li-N`, `.sb-line-task` and `.sb-line-blockquote.sb-line-li-N` selectors have been removed.
 * `index.contentPages` now accepts an optional `tag` argument to filter content pages by an additional tag, matching the other type-specific [[API/index]] helpers.
