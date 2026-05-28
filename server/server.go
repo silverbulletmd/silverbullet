@@ -7,7 +7,6 @@ import (
 	"log"
 	"net"
 	"net/http"
-  "net/url"
 	"os"
 	"os/signal"
 	"syscall"
@@ -72,7 +71,7 @@ func Router(config *ServerConfig) chi.Router {
 	routes.Get("/.ping", func(w http.ResponseWriter, r *http.Request) {
 		spaceConfig := spaceConfigFromContext(r.Context())
 		w.Header().Set("Cache-Control", "no-cache")
-		w.Header().Set("X-Space-Path", url.PathEscape(spaceConfig.SpaceFolderPath))
+		w.Header().Set("X-Space-Path", spaceConfig.SpaceFolderPath)
 		w.Header().Set("X-Server-Version", config.Version)
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))

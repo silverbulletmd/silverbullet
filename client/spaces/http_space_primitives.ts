@@ -159,19 +159,14 @@ export class HttpSpacePrimitives implements SpacePrimitives {
    * The /.fs file listing and /.ping endpoints both expose the currently exposed space path, if this doesn't match what the client expects, the client has to restart
    */
   async validateSpacePathFromHeaders(resp: Response) {
-    if (resp.status !== 200 || this.expectedSpacePath === null) {
-      return;
-    }
-
-    const spacePathRaw = resp.headers.get("X-Space-Path");
-    if (spacePathRaw === null) {
-      return;
-    }
-
-    const spacePath = decodeURIComponent(spacePathRaw);
-    if (spacePath != this.expectedSpacePath) {
+    if (
+      resp.status === 200 &&
+      this.expectedSpacePath &&
+      resp.headers.get("X-Space-Path") &&
+      resp.headers.get("X-Space-Path") !== this.expectedSpacePath
+    ) {
       console.log("Expected space path", this.expectedSpacePath);
-      console.log("Got space path", spacePath);
+      console.log("Got space path", resp.headers.get("X-Space-Path"));
       await flushCachesAndUnregisterServiceWorker();
       this.authErrorCallback(wrongSpacePathError.message, "reload");
     }
