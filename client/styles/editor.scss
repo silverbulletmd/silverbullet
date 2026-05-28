@@ -502,9 +502,12 @@
   .sb-lua-top-widget h1,
   .sb-lua-bottom-widget h1 {
     margin: -10px -10px 10px -10px !important;
-    padding: 15px 10px !important;
+    // Vertical padding chosen so the rendered h1 strip has the same total
+    // height as the hover-revealed `.button-bar` overlay sitting on top of it
+    padding: 16px 10px !important;
     background-color: var(--editor-widget-background-color);
     font-size: 1.2em;
+    line-height: 1;
   }
 
   .sb-markdown-top-widget h1,
@@ -618,6 +621,7 @@
     a.wiki-link {
       border-radius: 5px;
       padding: 0 5px;
+      margin: 0 -5px;
       color: var(--editor-wiki-link-page-color);
       background-color: var(--editor-wiki-link-page-background-color);
       text-decoration: none;
@@ -738,6 +742,10 @@
     // Give some breathing space at the bottom of the screen
     padding-bottom: 20em;
   }
+}
+
+#sb-editor>.cm-editor>.cm-scroller {
+  scrollbar-gutter: stable;
 }
 
 div:not(.cm-focused).cm-fat-cursor {
