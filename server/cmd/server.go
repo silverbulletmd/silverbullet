@@ -163,6 +163,12 @@ func buildConfig(bundledFiles fs.FS, args []string, buildTime string) *server.Se
 		rootSpaceConfig.SpaceDescription = os.Getenv("SB_DESCRIPTION")
 	}
 
+	if os.Getenv("SB_THEME_COLOR") != "" {
+		rootSpaceConfig.ThemeColor = os.Getenv("SB_THEME_COLOR")
+	} else {
+		rootSpaceConfig.ThemeColor = "#e1e1e1"
+	}
+
 	rootSpaceConfig.AdditionalHeadHTML = template.HTML(os.Getenv("SB_HEAD_HTML"))
 
 	if os.Getenv("SB_URL_PREFIX") != "" {
