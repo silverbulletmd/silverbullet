@@ -88,6 +88,11 @@
 
 @media only screen and (max-width: 600px) {
 
+  /* Let the hamburger fly-out escape the top bar's scroll container */
+  #sb-top .main {
+    overflow: visible;
+  }
+
   /* Style the menu as a vertical fly-out */
   #sb-top .cm-scroller:has(.hamburger) {
     position: relative;
