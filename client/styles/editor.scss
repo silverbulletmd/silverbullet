@@ -366,9 +366,10 @@
 
 
   .sb-table-widget {
-    display: block;
+    display: inline-block;
+    vertical-align: top;
+    width: 100%;
     font-weight: normal;
-    margin-bottom: -3rem;
     overflow: auto;
   }
 
