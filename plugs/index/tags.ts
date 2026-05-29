@@ -77,6 +77,11 @@ export async function tagComplete(completeEvent: CompleteEvent) {
   if (match.index === 0 && /^#{1,6}(\s|$)/.test(completeEvent.linePrefix)) {
     return null;
   }
+  // Don't trigger when the # is preceded by another # (e.g. ##, ###) —
+  // that's a header prefix being typed, not a tag.
+  if (match.index > 0 && completeEvent.linePrefix[match.index - 1] === "#") {
+    return null;
+  }
 
   // Query all tags with a matching parent
   const allTags: string[] = await index.queryLuaObjects<string>("tag", {
