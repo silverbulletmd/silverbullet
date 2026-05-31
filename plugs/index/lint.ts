@@ -139,7 +139,7 @@ export async function lintLua({ tree }: LintEvent): Promise<LintDiagnostic[]> {
       }
       const luaCode = renderToText(codeText);
       try {
-        await lua.parse(luaCode);
+        await lua.parseBlock(luaCode);
       } catch (e: any) {
         const offset = codeText.from!;
         let from = codeText.from!;

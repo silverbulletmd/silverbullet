@@ -5,7 +5,7 @@ import {
   type LuaStackFrame,
   type LuaValue,
 } from "../runtime.ts";
-import { parse } from "../parse.ts";
+import { parseBlock } from "../parse.ts";
 import { evalStatement } from "../eval.ts";
 
 // Returns a function (callable chunk) or (nil, "error message") pair.
@@ -13,7 +13,7 @@ export function luaLoad(code: LuaValue, sf: LuaStackFrame): LuaValue {
   const s = typeof code === "string" ? code : String(code);
 
   try {
-    const block = parse(s, sf.astCtx || {});
+    const block = parseBlock(s, sf.astCtx || {});
     const globalEnvMaybe = sf.threadLocal.get("_GLOBAL");
 
     // Be vocal when no _GLOBAL is set

@@ -1,11 +1,11 @@
 import { expect, test } from "vitest";
-import { parse } from "./parse.ts";
+import { parseBlock } from "./parse.ts";
 import { evalStatement } from "./eval.ts";
 import { LuaEnv, LuaNativeJSFunction, LuaStackFrame } from "./runtime.ts";
 import { luaBuildStandardEnv } from "./stdlib.ts";
 
 async function evalBlock(code: string, env?: LuaEnv) {
-  const ast = parse(code);
+  const ast = parseBlock(code);
   // Use the same global env for both the base env's parent and the StackFrame's _GLOBAL
   const G = luaBuildStandardEnv();
   const base = env ?? new LuaEnv(G);

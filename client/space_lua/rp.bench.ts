@@ -27,7 +27,7 @@ import {
   LuaTable,
   luaTypeOf,
 } from "./runtime.ts";
-import { parse as parseLua } from "./parse.ts";
+import { parseBlock as parseLua } from "./parse.ts";
 
 const LOOP = 100000;
 const SMALL = 20000;

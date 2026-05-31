@@ -1,12 +1,12 @@
 import { expect, test } from "vitest";
 import { isPromise } from "./rp.ts";
-import { parse } from "./parse.ts";
+import { parseBlock } from "./parse.ts";
 import { evalStatement } from "./eval.ts";
 import { LuaEnv, LuaRuntimeError, LuaStackFrame } from "./runtime.ts";
 import { luaBuildStandardEnv } from "./stdlib.ts";
 
 async function evalBlock(code: string, env?: LuaEnv): Promise<LuaEnv> {
-  const ast = parse(code);
+  const ast = parseBlock(code);
   const G = luaBuildStandardEnv();
   const base = env ?? new LuaEnv(G);
   const sf = LuaStackFrame.createWithGlobalEnv(G, ast.ctx);
@@ -19,7 +19,7 @@ async function evalBlock(code: string, env?: LuaEnv): Promise<LuaEnv> {
 }
 
 async function runAndCatch(code: string, ref = "close_attribute.lua") {
-  const ast = parse(code, { ref });
+  const ast = parseBlock(code, { ref });
   const G = luaBuildStandardEnv();
   const env = new LuaEnv(G);
   const sf = LuaStackFrame.createWithGlobalEnv(G, ast.ctx);
@@ -36,7 +36,7 @@ async function runAndCatch(code: string, ref = "close_attribute.lua") {
 }
 
 async function runAndCatchEnv(code: string, ref = "close_attribute.lua") {
-  const ast = parse(code, { ref });
+  const ast = parseBlock(code, { ref });
   const G = luaBuildStandardEnv();
   const env = new LuaEnv(G);
   const sf = LuaStackFrame.createWithGlobalEnv(G, ast.ctx);
@@ -57,7 +57,7 @@ async function runAndCatchEnv(code: string, ref = "close_attribute.lua") {
 // 1. parsing and static validation
 
 test("close: parse ok", () => {
-  parse(
+  parseBlock(
     `
     local x<close> = {}
   `,
@@ -66,7 +66,7 @@ test("close: parse ok", () => {
 });
 
 test("close: parse ok without init", () => {
-  parse(
+  parseBlock(
     `
     do
       local x<close>
@@ -78,7 +78,7 @@ test("close: parse ok without init", () => {
 
 test("close: local list only one", () => {
   try {
-    parse(
+    parseBlock(
       `
       do
         local a<close>, b<close> = {}, {}
@@ -94,7 +94,7 @@ test("close: local list only one", () => {
 });
 
 test("close: <const> parse ok", () => {
-  parse(
+  parseBlock(
     `
     do
       local x<const> = 1
@@ -105,7 +105,7 @@ test("close: <const> parse ok", () => {
 });
 
 test("close: <const> and <close> parse ok", () => {
-  parse(
+  parseBlock(
     `
     do
       local x<const> = 1
@@ -121,7 +121,7 @@ test("close: <const> and <close> parse ok", () => {
 
 test("close: invalid goto into scope", () => {
   try {
-    parse(
+    parseBlock(
       `
       do
         goto L
@@ -552,7 +552,7 @@ test("close: async __close awaited on error unwind", async () => {
     end
   `;
 
-  const ast = parse(code, { ref: "close_async_unwind.lua" });
+  const ast = parseBlock(code, { ref: "close_async_unwind.lua" });
   const G = luaBuildStandardEnv();
   const env = new LuaEnv(G);
   const sf = LuaStackFrame.createWithGlobalEnv(G, ast.ctx);
@@ -985,7 +985,7 @@ test("close: async close error reported; later closers still run", async () => {
         })
       end
     `;
-    const ast = parse(code, { ref: "close_async_close_error.lua" });
+    const ast = parseBlock(code, { ref: "close_async_close_error.lua" });
     const sf = LuaStackFrame.createWithGlobalEnv(G, ast.ctx);
 
     let err: unknown = null;

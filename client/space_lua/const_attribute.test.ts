@@ -1,11 +1,11 @@
 import { expect, test } from "vitest";
-import { parse } from "./parse.ts";
+import { parseBlock } from "./parse.ts";
 import { evalStatement } from "./eval.ts";
 import { LuaEnv, LuaRuntimeError, LuaStackFrame } from "./runtime.ts";
 import { luaBuildStandardEnv } from "./stdlib.ts";
 
 async function evalBlock(code: string, env?: LuaEnv): Promise<LuaEnv> {
-  const ast = parse(code);
+  const ast = parseBlock(code);
   const G = luaBuildStandardEnv();
   const base = env ?? new LuaEnv(G);
   const sf = LuaStackFrame.createWithGlobalEnv(G, ast.ctx);
@@ -18,7 +18,7 @@ async function evalBlock(code: string, env?: LuaEnv): Promise<LuaEnv> {
 }
 
 async function runAndCatch(code: string, ref = "const_attribute.lua") {
-  const ast = parse(code, { ref });
+  const ast = parseBlock(code, { ref });
   const G = luaBuildStandardEnv();
   const env = new LuaEnv(G);
   const sf = LuaStackFrame.createWithGlobalEnv(G, ast.ctx);
@@ -37,7 +37,7 @@ async function runAndCatch(code: string, ref = "const_attribute.lua") {
 test("const: Unknown attribute (parse-time)", () => {
   let threw = false;
   try {
-    parse(`local x<nope> = 1`, { ref: "unknown_attribute.lua" });
+    parseBlock(`local x<nope> = 1`, { ref: "unknown_attribute.lua" });
   } catch (e: any) {
     threw = true;
     expect(String(e?.message ?? e)).toContain("unknown attribute 'nope'");
@@ -50,7 +50,7 @@ test("const: Unknown attribute (parse-time)", () => {
 test("const: Case-sensitive attribute (parse-time)", () => {
   let threw = false;
   try {
-    parse(`local x<Const> = 1`, { ref: "unknown_attribute.lua" });
+    parseBlock(`local x<Const> = 1`, { ref: "unknown_attribute.lua" });
   } catch (e: any) {
     threw = true;
     expect(String(e?.message ?? e)).toContain("unknown attribute 'Const'");

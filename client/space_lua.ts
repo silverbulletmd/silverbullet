@@ -1,7 +1,7 @@
 import type { System } from "./plugos/system.ts";
 import type { SpaceLuaObject } from "../plugs/index/space_lua.ts";
 import { LuaEnv, LuaRuntimeError, LuaStackFrame } from "./space_lua/runtime.ts";
-import { parse as parseLua, parseExpressionString } from "./space_lua/parse.ts";
+import { parseBlock, parseExpressionString } from "./space_lua/parse.ts";
 import { evalStatement } from "./space_lua/eval.ts";
 import {
   encodeRef,
@@ -53,7 +53,7 @@ export class SpaceLuaEnvironment {
       for (const script of allScripts) {
         try {
           console.log("Now evaluating", script.ref);
-          const ast = parseLua(script.script, { ref: script.ref });
+          const ast = parseBlock(script.script, { ref: script.ref });
           // We create a local scope for each script
           const scriptEnv = new LuaEnv(this.env);
           const sf = new LuaStackFrame(tl, ast.ctx);

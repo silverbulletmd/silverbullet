@@ -1,6 +1,11 @@
-import { parseExpressionString } from "../parse.ts";
-import type { LuaExpression } from "../ast.ts";
+import { parseBlock, parseExpressionString } from "../parse.ts";
+import type { LuaBlock, LuaExpression } from "../ast.ts";
 import { evalExpression } from "../eval.ts";
+import {
+  type PrintOptions,
+  prettyPrintBlock,
+  prettyPrintExpression,
+} from "../pretty_print.ts";
 import {
   jsToLuaValue,
   LuaBuiltinFunction,
@@ -101,6 +106,25 @@ export async function interpolateLuaString(
   return result;
 }
 
+/**
+ * Converts an optional Lua options table into a `PrintOptions` object,
+ * keeping only the recognised keys with the expected types.
+ */
+function toPrintOptions(
+  sf: LuaStackFrame,
+  opts?: LuaTable,
+): PrintOptions | undefined {
+  if (!opts) return undefined;
+  const js = luaValueToJS(opts, sf) as Record<string, unknown>;
+  const result: PrintOptions = {};
+  if (typeof js.indentWidth === "number") result.indentWidth = js.indentWidth;
+  if (js.quote === "double" || js.quote === "single") result.quote = js.quote;
+  if (typeof js.trailingComma === "boolean") {
+    result.trailingComma = js.trailingComma;
+  }
+  return result;
+}
+
 export const spaceluaApi = new LuaTable({
   /**
    * Parses a lua expression and returns the parsed expression.
@@ -112,6 +136,42 @@ export const spaceluaApi = new LuaTable({
   parseExpression: new LuaBuiltinFunction((_sf, luaExpression: string) => {
     return parseExpressionString(luaExpression);
   }),
+  /**
+   * Parses a lua chunk (block) and returns the parsed AST block.
+   *
+   * @param sf - The current space_lua state.
+   * @param code - The lua code to parse.
+   * @returns The parsed block.
+   */
+  parseBlock: new LuaBuiltinFunction((_sf, code: string): LuaBlock => {
+    return parseBlock(code);
+  }),
+  /**
+   * Pretty-prints a parsed lua block AST back to formatted source.
+   *
+   * @param sf - The current space_lua state.
+   * @param block - The parsed lua block.
+   * @param opts - Optional formatting options.
+   * @returns The formatted lua source.
+   */
+  prettyPrintBlock: new LuaBuiltinFunction(
+    (sf, block: LuaBlock, opts?: LuaTable): string => {
+      return prettyPrintBlock(block, toPrintOptions(sf, opts));
+    },
+  ),
+  /**
+   * Pretty-prints a parsed lua expression AST back to formatted source.
+   *
+   * @param sf - The current space_lua state.
+   * @param expr - The parsed lua expression.
+   * @param opts - Optional formatting options.
+   * @returns The formatted lua source.
+   */
+  prettyPrintExpression: new LuaBuiltinFunction(
+    (sf, expr: LuaExpression, opts?: LuaTable): string => {
+      return prettyPrintExpression(expr, toPrintOptions(sf, opts));
+    },
+  ),
   /**
    * Evaluates a parsed lua expression and returns the result.
    *

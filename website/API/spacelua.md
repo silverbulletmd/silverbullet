@@ -10,6 +10,49 @@ Example:
 local parsedExpression = spacelua.parseExpression("1 + 1")
 ```
 
+## spacelua.parseBlock(code)
+Parses a Lua chunk (a block of statements) and returns the parsed block as an AST.
+
+Example:
+```lua
+local parsedBlock = spacelua.parseBlock("local x = 1\nreturn x + 2")
+```
+
+## spacelua.prettyPrintExpression(parsedExpr, options?)
+Pretty-prints a parsed Lua expression AST back to formatted Lua source.
+
+The optional `options` table accepts:
+* `indentWidth` (number, default `2`): number of spaces per indentation level.
+* `quote` (`"double"` or `"single"`, default `"double"`): quote style for strings.
+* `trailingComma` (boolean, default `true`): whether multi-line tables get a trailing comma.
+
+> **note** Comments
+> The parser does not retain comments, so pretty-printing a parsed AST does not preserve any comments from the original source.
+
+Example:
+```lua
+local parsedExpr = spacelua.parseExpression("{a=1,b=2}")
+print(spacelua.prettyPrintExpression(parsedExpr))
+-- prints:
+-- {
+--   a = 1,
+--   b = 2,
+-- }
+```
+
+## spacelua.prettyPrintBlock(parsedBlock, options?)
+Pretty-prints a parsed Lua block AST back to formatted Lua source. Accepts the same `options` table as [[#spacelua.prettyPrintExpression(parsedExpr, options?)]].
+
+Reformatting a chunk of Lua source is a parse followed by a pretty-print:
+```lua
+local formatted = spacelua.prettyPrintBlock(spacelua.parseBlock("if a then return 1 end"))
+print(formatted)
+-- prints:
+-- if a then
+--   return 1
+-- end
+```
+
 ## spacelua.evalExpression(parsedExpr, envAugmentation?)
 Evaluates a parsed Lua expression and returns the result. Optionally accepts an environment table to augment the global environment.
 

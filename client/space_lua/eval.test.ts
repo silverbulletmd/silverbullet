@@ -7,7 +7,7 @@ import {
   luaValueToJS,
   singleResult,
 } from "./runtime.ts";
-import { parse } from "./parse.ts";
+import { parseBlock } from "./parse.ts";
 import type { LuaBlock, LuaFunctionCallStatement } from "./ast.ts";
 import { evalExpression, evalStatement } from "./eval.ts";
 import { luaBuildStandardEnv } from "./stdlib.ts";
@@ -15,13 +15,13 @@ import { luaBuildStandardEnv } from "./stdlib.ts";
 const sf = LuaStackFrame.lostFrame;
 
 function evalExpr(s: string, e = new LuaEnv(), sf?: LuaStackFrame): any {
-  const node = parse(`e(${s})`).statements[0] as LuaFunctionCallStatement;
+  const node = parseBlock(`e(${s})`).statements[0] as LuaFunctionCallStatement;
   sf = sf || new LuaStackFrame(e, node.ctx);
   return evalExpression(node.call.args[0], e, sf);
 }
 
 async function evalBlock(s: string, e = new LuaEnv()): Promise<void> {
-  const node = parse(s) as LuaBlock;
+  const node = parseBlock(s) as LuaBlock;
   const sf = new LuaStackFrame(e, node.ctx);
   await evalStatement(node, e, sf);
 }
@@ -111,7 +111,7 @@ test("Parser rejects unary plus - parenthesized", () => {
   ]) {
     let err: any = null;
     try {
-      parse(src);
+      parseBlock(src);
     } catch (e: any) {
       err = e;
     }
@@ -132,7 +132,7 @@ test("Parser rejects unary plus - variables and calls", () => {
   ]) {
     let err: any = null;
     try {
-      parse(src);
+      parseBlock(src);
     } catch (e: any) {
       err = e;
     }
@@ -152,7 +152,7 @@ test("Parser rejects unary plus - whitespace/newlines", () => {
   ]) {
     let err: any = null;
     try {
-      parse(src);
+      parseBlock(src);
     } catch (e: any) {
       err = e;
     }

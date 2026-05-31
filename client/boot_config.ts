@@ -8,7 +8,7 @@ import { configSyscalls } from "./plugos/syscalls/config.ts";
 import { Config } from "./config.ts";
 import { luaBuildStandardEnv } from "./space_lua/stdlib.ts";
 import { exposeSyscalls } from "./space_lua_api.ts";
-import { parse } from "./space_lua/parse.ts";
+import { parseBlock } from "./space_lua/parse.ts";
 import { LuaEnv, LuaStackFrame } from "./space_lua/runtime.ts";
 import { evalStatement } from "./space_lua/eval.ts";
 import { editorSyscalls } from "./plugos/syscalls/editor.ts";
@@ -70,7 +70,7 @@ export async function loadConfig(
   exposeSyscalls(rootEnv, bootSystem);
 
   // Parse the code
-  const chunk = parse(luaCode, {});
+  const chunk = parseBlock(luaCode, {});
   const sf = LuaStackFrame.createWithGlobalEnv(rootEnv, chunk.ctx);
 
   // And eval

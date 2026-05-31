@@ -1,11 +1,11 @@
 import { expect, test } from "vitest";
-import { parse } from "./parse.ts";
+import { parseBlock } from "./parse.ts";
 import { evalStatement } from "./eval.ts";
 import { LuaEnv, LuaRuntimeError, LuaStackFrame } from "./runtime.ts";
 import { luaBuildStandardEnv } from "./stdlib.ts";
 
 async function runAndCatch(code: string, ref = "ctx_test.lua") {
-  const ast = parse(code, { ref });
+  const ast = parseBlock(code, { ref });
   const global = luaBuildStandardEnv();
   const env = new LuaEnv(global);
   const sf = LuaStackFrame.createWithGlobalEnv(global, ast.ctx);

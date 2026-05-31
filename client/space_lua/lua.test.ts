@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { parse } from "./parse.ts";
+import { parseBlock } from "./parse.ts";
 import { luaBuildStandardEnv } from "./stdlib.ts";
 import { LuaEnv, LuaRuntimeError, LuaStackFrame } from "./runtime.ts";
 import { evalStatement } from "./eval.ts";
@@ -58,7 +58,7 @@ async function runLuaTest(luaPath: string) {
     fileURLToPath(new URL(luaPath, import.meta.url)),
     "utf-8",
   );
-  const chunk = parse(luaFile, {});
+  const chunk = parseBlock(luaFile, {});
   const env = new LuaEnv(luaBuildStandardEnv());
   const sf = LuaStackFrame.createWithGlobalEnv(env, chunk.ctx);
 

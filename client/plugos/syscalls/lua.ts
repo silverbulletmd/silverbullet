@@ -1,6 +1,11 @@
 import type { SysCallMapping } from "../system.ts";
 import { evalExpression } from "../../space_lua/eval.ts";
-import { parse, parseExpressionString } from "../../space_lua/parse.ts";
+import { parseBlock, parseExpressionString } from "../../space_lua/parse.ts";
+import {
+  type PrintOptions,
+  prettyPrintBlock,
+  prettyPrintExpression,
+} from "../../space_lua/pretty_print.ts";
 import {
   LuaStackFrame,
   luaToString,
@@ -13,11 +18,29 @@ import type { ClientSystem } from "../../client_system.ts";
 
 export function luaSyscalls(clientSystem: ClientSystem): SysCallMapping {
   return {
+    "lua.parseBlock": (_ctx, code: string): LuaBlock => {
+      return parseBlock(code);
+    },
+    // Deprecated alias for `lua.parseBlock`, kept for backwards compatibility.
     "lua.parse": (_ctx, code: string): LuaBlock => {
-      return parse(code);
+      return parseBlock(code);
     },
     "lua.parseExpression": (_ctx, expression: string): LuaExpression => {
       return parseExpressionString(expression);
+    },
+    "lua.prettyPrintBlock": (
+      _ctx,
+      block: LuaBlock,
+      opts?: PrintOptions,
+    ): string => {
+      return prettyPrintBlock(block, opts);
+    },
+    "lua.prettyPrintExpression": (
+      _ctx,
+      expression: LuaExpression,
+      opts?: PrintOptions,
+    ): string => {
+      return prettyPrintExpression(expression, opts);
     },
     /**
      * Evaluates a Lua expression and returns the result as a JavaScript value

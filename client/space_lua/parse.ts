@@ -67,7 +67,7 @@ function parseChunk(t: ParseTree, ctx: ASTCtx): LuaBlock {
   if (t.type !== "Chunk") {
     throw new Error(`Expected Chunk, got ${t.type}`);
   }
-  return parseBlock(t.children![0], ctx);
+  return parseBlockNode(t.children![0], ctx);
 }
 
 function hasCloseLocal(names: LuaAttName[] | undefined): boolean {
@@ -636,7 +636,7 @@ function exprCapturesNames(e: LuaExpression, names: Set<string>): boolean {
   }
 }
 
-function parseBlock(t: ParseTree, ctx: ASTCtx): LuaBlock {
+function parseBlockNode(t: ParseTree, ctx: ASTCtx): LuaBlock {
   if (t.type !== "Block") {
     throw new Error(`Expected Block, got ${t.type}`);
   }
@@ -846,20 +846,20 @@ function parseStatement(t: ParseTree, ctx: ASTCtx): LuaStatement {
         ctx: context(t, ctx),
       };
     case "Scope":
-      return parseBlock(t.children![1], ctx);
+      return parseBlockNode(t.children![1], ctx);
     case ";":
       return { type: "Semicolon", ctx: context(t, ctx) };
     case "WhileStatement":
       return {
         type: "While",
         condition: parseExpression(t.children![1], ctx),
-        block: parseBlock(t.children![3], ctx),
+        block: parseBlockNode(t.children![3], ctx),
         ctx: context(t, ctx),
       };
     case "RepeatStatement":
       return {
         type: "Repeat",
-        block: parseBlock(t.children![1], ctx),
+        block: parseBlockNode(t.children![1], ctx),
         condition: parseExpression(t.children![3], ctx),
         ctx: context(t, ctx),
       };
@@ -880,12 +880,12 @@ function parseStatement(t: ParseTree, ctx: ASTCtx): LuaStatement {
         if (token === "if" || token === "elseif") {
           conditions.push({
             condition: parseExpression(t.children![i + 1], ctx),
-            block: parseBlock(t.children![i + 3], ctx),
+            block: parseBlockNode(t.children![i + 3], ctx),
             from: child.from,
             to: child.to,
           });
         } else if (token === "else") {
-          elseBlock = parseBlock(t.children![i + 1], ctx);
+          elseBlock = parseBlockNode(t.children![i + 1], ctx);
         } else if (token === "end") {
           break;
         } else {
@@ -903,7 +903,7 @@ function parseStatement(t: ParseTree, ctx: ASTCtx): LuaStatement {
       if (t.children![1].type === "ForNumeric") {
         const forNumeric = t.children![1];
         const name = forNumeric.children![0].children![0].text!;
-        const block = parseBlock(t.children![3], ctx);
+        const block = parseBlockNode(t.children![3], ctx);
         const node: LuaStatement = {
           type: "For",
           name,
@@ -923,7 +923,7 @@ function parseStatement(t: ParseTree, ctx: ASTCtx): LuaStatement {
       }
       const forGeneric = t.children![1];
       const names = parseNameList(forGeneric.children![0]);
-      const block = parseBlock(t.children![3], ctx);
+      const block = parseBlockNode(t.children![3], ctx);
       const node: LuaStatement = {
         type: "ForIn",
         names,
@@ -1512,7 +1512,7 @@ function parseFunctionBody(t: ParseTree, ctx: ASTCtx): LuaFunctionBody {
         (c) => c.type && ["Name", "Ellipsis"].includes(c.type),
       )
       .map((c) => c.children![0].text!),
-    block: parseBlock(t.children![3], ctx),
+    block: parseBlockNode(t.children![3], ctx),
     ctx: context(t, ctx),
   };
 }
@@ -1686,7 +1686,7 @@ export function stripLuaComments(s: string): string {
   return result;
 }
 
-export function parse(s: string, ctx: ASTCtx = {}): LuaBlock {
+export function parseBlock(s: string, ctx: ASTCtx = {}): LuaBlock {
   try {
     const t = parseToAST(stripLuaComments(s));
     // console.log("Clean tree", JSON.stringify(t, null, 2));
@@ -1743,6 +1743,6 @@ function luaUnexpectedSymbolMessage(src: string, from: number): string {
  * Helper function to parse a Lua expression string
  */
 export function parseExpressionString(expr: string): LuaExpression {
-  const parsedLua = parse(`_(${expr})`) as LuaBlock;
+  const parsedLua = parseBlock(`_(${expr})`) as LuaBlock;
   return (parsedLua.statements[0] as LuaFunctionCallStatement).call.args[0];
 }

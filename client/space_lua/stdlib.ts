@@ -26,7 +26,7 @@ import { osApi } from "./stdlib/os.ts";
 import { jsApi } from "./stdlib/js.ts";
 import { spaceluaApi } from "./stdlib/space_lua.ts";
 import { mathApi } from "./stdlib/math.ts";
-import { parse } from "./parse.ts";
+import { parseBlock } from "./parse.ts";
 import { evalStatement } from "./eval.ts";
 import { encodingApi } from "./stdlib/encoding.ts";
 import { luaToNumberDetailed } from "./tonumber.ts";
@@ -350,7 +350,7 @@ const dofileFunction = new LuaBuiltinFunction(async (sf, filename: string) => {
   )) as Uint8Array;
   const code = new TextDecoder().decode(file);
   try {
-    const parsedExpr = parse(code);
+    const parsedExpr = parseBlock(code);
     const env = new LuaEnv(global);
     await evalStatement(parsedExpr, env, sf.withCtx(parsedExpr.ctx));
   } catch (e: any) {
