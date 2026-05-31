@@ -9,7 +9,7 @@ import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
 // Map a page's last-modified time to a small, monotone-decreasing boost
 function recencyToBoost(lastModified: string): number {
   const days = (Date.now() - new Date(lastModified).getTime()) / 86_400_000;
-  if (isNaN(days)) return -Infinity; // unknown timestamp → sort to bottom
+  if (Number.isNaN(days)) return -Infinity; // unknown timestamp → sort to bottom
   if (days < 0) return 0; // future timestamp (clock skew) → treat as "now"
   return -Math.log2(days + 1);
 }

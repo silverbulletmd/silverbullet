@@ -73,7 +73,7 @@ async function readFullIndexCompleted(page: Page): Promise<boolean | undefined> 
  */
 async function waitForWidgetsReady(page: Page, timeoutMs = 15_000): Promise<void> {
 	const deadline = Date.now() + timeoutMs;
-	let last: unknown = undefined;
+	let last: unknown ;
 	while (Date.now() < deadline) {
 		last = await page.evaluate(() => {
 			const client = (globalThis as any).client;
@@ -145,7 +145,7 @@ test.describe("index version upgrade (service worker disabled)", () => {
 			"index.md": "# Index\nFirst page in the upgrade-test space.",
 			"Other.md": "# Other\nSee [[index]] for the entry point.",
 			"Styles.md":
-				"# Styles\n\n```space-style\n/* " + SPACE_STYLE_MARKER + " */\n```\n",
+				`# Styles\n\n\`\`\`space-style\n/* ${SPACE_STYLE_MARKER} */\n\`\`\`\n`,
 		},
 	});
 
@@ -210,7 +210,7 @@ test.describe("index version upgrade (service worker enabled)", () => {
 			"index.md": "# Index\nFirst page in the SW-enabled upgrade test.",
 			"Other.md": "# Other\nLink back to [[index]].",
 			"Styles.md":
-				"# Styles\n\n```space-style\n/* " + SPACE_STYLE_MARKER + " */\n```\n",
+				`# Styles\n\n\`\`\`space-style\n/* ${SPACE_STYLE_MARKER} */\n\`\`\`\n`,
 		},
 	});
 

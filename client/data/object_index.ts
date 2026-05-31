@@ -205,7 +205,7 @@ export class ObjectIndex {
   }
 
   subPages(pageName: string): LuaQueryCollection {
-    const prefix = JSON.stringify(pageName + "/");
+    const prefix = JSON.stringify(`${pageName}/`);
     return this.filteredTag(
       "page",
       (varName) => `string.startsWith(${varName}.name, ${prefix})`,

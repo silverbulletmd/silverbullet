@@ -25,23 +25,23 @@ function assertSearch(
     JSON.stringify(names, null, 2)
   }`;
   if (expected.resultCount !== undefined) {
-    expect(results.length, "result count" + detail).toEqual(
+    expect(results.length, `result count${detail}`).toEqual(
       expected.resultCount,
     );
   }
   if (expected.topMatch !== undefined) {
-    expect(names[0], "top match" + detail).toEqual(expected.topMatch);
+    expect(names[0], `top match${detail}`).toEqual(expected.topMatch);
   }
   if (expected.mustIncludeInTopN) {
     const n = expected.n ?? expected.mustIncludeInTopN.length;
     const topN = names.slice(0, n);
     for (const name of expected.mustIncludeInTopN) {
-      expect(topN, `expected ${name} in top ${n}` + detail).toContain(name);
+      expect(topN, `expected ${name} in top ${n}${detail}`).toContain(name);
     }
   }
   if (expected.mustExclude) {
     for (const name of expected.mustExclude) {
-      expect(names, `expected ${name} excluded` + detail).not.toContain(name);
+      expect(names, `expected ${name} excluded${detail}`).not.toContain(name);
     }
   }
 }

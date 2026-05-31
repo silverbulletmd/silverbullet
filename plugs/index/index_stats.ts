@@ -118,7 +118,7 @@ async function main() {
     console.log(`  ${tag.padEnd(20)} ${String(count).padStart(5)}  (${pct}%)`);
   }
 
-  const relTotal = r.byTag["relation"] ?? 0;
+  const relTotal = r.byTag.relation ?? 0;
   if (relTotal > 0) {
     console.log(`\n=== RELATION RECORDS BY KIND ===`);
     for (
