@@ -8,8 +8,7 @@ import {
   widgetRenderMode,
 } from "./util.ts";
 import type { Client } from "../client.ts";
-import { parse as parseLua } from "../space_lua/parse.ts";
-import type { LuaBlock, LuaFunctionCallStatement } from "../space_lua/ast.ts";
+import { parseExpressionString } from "../space_lua/parse.ts";
 import { evalExpression } from "../space_lua/eval.ts";
 import {
   LuaEnv,
@@ -102,22 +101,19 @@ export function luaDirectivePlugin(client: Client) {
                   return "**Error:** Empty Lua expression";
                 }
                 try {
-                  const parsedLua = parseLua(`_(${bodyText})`) as LuaBlock;
-                  const expr = (
-                    parsedLua.statements[0] as LuaFunctionCallStatement
-                  ).call.args[0];
+                  const expr = parseExpressionString(bodyText);
 
                   const tl = new LuaEnv();
                   tl.setLocal(
                     "currentPage",
                     currentPageMeta ||
-                      (client.ui.viewState.current
-                        ? {
-                            name: getNameFromPath(
-                              client.ui.viewState.current.path,
-                            ),
-                          }
-                        : undefined),
+                    (client.ui.viewState.current
+                      ? {
+                        name: getNameFromPath(
+                          client.ui.viewState.current.path,
+                        ),
+                      }
+                      : undefined),
                   );
                   const sf = LuaStackFrame.createWithGlobalEnv(
                     client.clientSystem.spaceLuaEnv.env,
