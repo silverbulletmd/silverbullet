@@ -72,6 +72,7 @@ export type AppViewState = {
   // Confirm
   showConfirm: boolean;
   confirmMessage?: string;
+  confirmDestructive?: boolean;
   confirmCallback?: (value: boolean) => void;
 };
 
@@ -158,6 +159,7 @@ export type Action =
   | {
       type: "show-confirm";
       message: string;
+      destructive?: boolean;
       callback: (value: boolean) => void;
     }
   | { type: "hide-confirm" }

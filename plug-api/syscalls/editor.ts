@@ -374,10 +374,15 @@ export function prompt(
 /**
  * Prompt the user for confirmation
  * @param message the message to show in the confirmation dialog
+ * @param options optional settings; set `destructive: true` to style the
+ *   confirm button as a destructive (danger) action
  * @returns
  */
-export function confirm(message: string): Promise<boolean> {
-  return syscall("editor.confirm", message);
+export function confirm(
+  message: string,
+  options?: { destructive?: boolean },
+): Promise<boolean> {
+  return syscall("editor.confirm", message, options);
 }
 
 /**

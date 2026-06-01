@@ -180,11 +180,15 @@ export class MainUI {
     });
   }
 
-  confirm(message: string): Promise<boolean> {
+  confirm(
+    message: string,
+    options?: { destructive?: boolean },
+  ): Promise<boolean> {
     return new Promise((resolve) => {
       this.viewDispatch({
         type: "show-confirm",
         message,
+        destructive: options?.destructive,
         callback: (value: boolean) => {
           this.viewDispatch({ type: "hide-confirm" });
           this.client.focus();
@@ -393,6 +397,7 @@ export class MainUI {
         {viewState.showConfirm && (
           <Confirm
             message={viewState.confirmMessage!}
+            destructive={viewState.confirmDestructive}
             callback={(value) => {
               dispatch({ type: "hide-confirm" });
               viewState.confirmCallback!(value);
@@ -602,6 +607,7 @@ export class MainUI {
         if (
           await this.confirm(
             `Are you sure you would like delete ${getNameFromPath(path)}?`,
+            { destructive: true },
           )
         ) {
           if (isMarkdownPath(path)) {

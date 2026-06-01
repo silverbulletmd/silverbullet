@@ -364,6 +364,7 @@ export async function renamePrefixCommand(cmdDef: any) {
     cmdDef.disableConfirmation !== true &&
     !(await editor.confirm(
       `This will affect ${allAffectedFiles.length} files. Are you sure?`,
+      { destructive: true },
     ))
   ) {
     return false;

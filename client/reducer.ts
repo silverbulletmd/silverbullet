@@ -206,6 +206,7 @@ export default function reducer(
         ...state,
         showConfirm: true,
         confirmMessage: action.message,
+        confirmDestructive: action.destructive,
         confirmCallback: action.callback,
       };
     case "hide-confirm":
@@ -213,6 +214,7 @@ export default function reducer(
         ...state,
         showConfirm: false,
         confirmMessage: undefined,
+        confirmDestructive: undefined,
         confirmCallback: undefined,
       };
     case "set-ui-option":

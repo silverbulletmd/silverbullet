@@ -42,9 +42,10 @@
     background-color: var(--hover-background-color);
   }
 
-  &:focus {
-    outline: 2px solid var(--color);
-    outline-offset: -3px;
+  &:focus-visible {
+    // Subtle ring just outside the button (replaces the old thick inset ring).
+    outline: 2px solid var(--ui-accent-color);
+    outline-offset: 2px;
   }
 }
 
@@ -59,7 +60,9 @@
   white-space: nowrap;
   cursor: pointer;
 
-  &:hover { opacity: 0.9; }
+  // Subtle darken on hover (keeps it red — the base .sb-button:hover would
+  // otherwise repaint it with --button-hover-background-color).
+  &:hover { background-color: color-mix(in srgb, var(--danger-color), black 12%); }
   &:disabled { opacity: 0.5; cursor: default; }
 }
 
@@ -171,4 +174,12 @@
   height: 100%;
   background-color: var(--ui-accent-color);
   transition: width 150ms ease;
+}
+
+/* Inline keyboard-shortcut hint inside a button, e.g. "Cancel esc" / "Ok ⏎".
+   Subtle and inherits the button's text color. */
+.sb-kbd {
+  margin-left: 0.5em;
+  font-size: 0.85em;
+  opacity: 0.6;
 }

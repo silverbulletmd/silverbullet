@@ -17,12 +17,24 @@ export type ButtonProps =
     class?: string;
     /** Ref to the underlying <button> (Preact function components don't forward `ref`). */
     buttonRef?: Ref<HTMLButtonElement>;
+    /**
+     * Optional keyboard-shortcut hint rendered after the label (e.g. "esc",
+     * "⏎"). Only add it where that key actually triggers this button.
+     */
+    shortcut?: string;
     children?: ComponentChildren;
   };
 
 export function Button(
-  { variant = "default", class: extra, type, buttonRef, children, ...rest }:
-    ButtonProps,
+  {
+    variant = "default",
+    class: extra,
+    type,
+    buttonRef,
+    shortcut,
+    children,
+    ...rest
+  }: ButtonProps,
 ) {
   return (
     <button
@@ -32,6 +44,7 @@ export function Button(
       {...rest}
     >
       {children}
+      {shortcut ? <span class="sb-kbd">{shortcut}</span> : null}
     </button>
   );
 }

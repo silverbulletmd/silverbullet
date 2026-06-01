@@ -542,8 +542,12 @@ export function editorSyscalls(client: Client): SysCallMapping {
     ): Promise<string | undefined> => {
       return client.ui.prompt(message, defaultValue);
     },
-    "editor.confirm": (_ctx, message: string): Promise<boolean> => {
-      return client.ui.confirm(message);
+    "editor.confirm": (
+      _ctx,
+      message: string,
+      options?: { destructive?: boolean },
+    ): Promise<boolean> => {
+      return client.ui.confirm(message, options);
     },
     "editor.alert": (_ctx, message: string) => {
       alert(message);

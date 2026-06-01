@@ -5,6 +5,7 @@ export async function deleteDocument() {
   if (
     !(await editor.confirm(
       `Are you sure you would like to delete ${documentName}?`,
+      { destructive: true },
     ))
   ) {
     return;

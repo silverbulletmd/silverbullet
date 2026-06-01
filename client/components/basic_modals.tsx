@@ -41,16 +41,7 @@ export function Prompt({
         />
         <div className="sb-prompt-buttons">
           <Button
-            variant="primary"
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              callback(text);
-            }}
-          >
-            Ok
-          </Button>
-          <Button
+            shortcut="esc"
             onClick={(e) => {
               e.stopPropagation();
               e.preventDefault();
@@ -58,6 +49,17 @@ export function Prompt({
             }}
           >
             Cancel
+          </Button>
+          <Button
+            variant="primary"
+            shortcut="⏎"
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              callback(text);
+            }}
+          >
+            Ok
           </Button>
         </div>
       </div>
@@ -69,9 +71,11 @@ export function Prompt({
 
 export function Confirm({
   message,
+  destructive,
   callback,
 }: {
   message: string;
+  destructive?: boolean;
   callback: (value: boolean) => void;
 }) {
   const okButtonRef = useRef<HTMLButtonElement>(null);
@@ -88,17 +92,7 @@ export function Confirm({
         <label>{message}</label>
         <div className="sb-prompt-buttons">
           <Button
-            buttonRef={okButtonRef}
-            variant="primary"
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              callback(true);
-            }}
-          >
-            Ok
-          </Button>
-          <Button
+            shortcut="esc"
             onClick={(e) => {
               e.stopPropagation();
               e.preventDefault();
@@ -106,6 +100,19 @@ export function Confirm({
             }}
           >
             Cancel
+          </Button>
+          <Button
+            buttonRef={okButtonRef}
+            autofocus
+            variant={destructive ? "danger" : "primary"}
+            shortcut="⏎"
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              callback(true);
+            }}
+          >
+            Ok
           </Button>
         </div>
       </div>

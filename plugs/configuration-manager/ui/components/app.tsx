@@ -81,7 +81,7 @@ function SaveFooter({
         >
           Changes will be reflected in CONFIG.md
         </a>
-        <Button id="cfg-cancel" disabled={saving} onClick={close}>
+        <Button id="cfg-cancel" disabled={saving} onClick={close} shortcut="esc">
           Cancel
         </Button>
         <Button
@@ -109,7 +109,7 @@ function LibrariesFooter() {
       <span id="cfg-edit-config" class="lib-footer-note">
         Library changes are applied immediately.
       </span>
-      <Button onClick={close}>
+      <Button onClick={close} shortcut="esc">
         Close
       </Button>
     </div>

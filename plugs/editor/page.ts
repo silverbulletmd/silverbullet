@@ -6,6 +6,7 @@ export async function deletePage() {
   if (
     !(await editor.confirm(
       `Are you sure you would like to delete ${pageName}?`,
+      { destructive: true },
     ))
   ) {
     return;
