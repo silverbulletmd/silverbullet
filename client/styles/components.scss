@@ -1,5 +1,17 @@
 /* Shared UI components. Built on theme.scss tokens. Framework-independent. */
 
+/* Form/interactive elements don't inherit font-family, and plug iframes have no
+   global font reset — so pin the app UI font explicitly for consistency. */
+.sb-button,
+.sb-button-primary,
+.sb-button-danger,
+.sb-button-icon,
+.sb-input,
+.sb-select,
+.sb-tab {
+  font-family: var(--ui-font);
+}
+
 /* Button base (relocated from colors.scss so panels linking components.css get it) */
 .sb-button,
 .sb-button-primary {
@@ -22,7 +34,7 @@
 
   border: 1px solid var(--border-color);
   border-radius: 0.5em;
-  padding: 0.2em 0.5em;
+  padding: 0.35em 0.75em;
   font-size: 0.9em;
   white-space: nowrap;
 
@@ -42,7 +54,7 @@
   color: var(--danger-contrast-color);
   border: 1px solid var(--danger-color);
   border-radius: 0.5em;
-  padding: 0.2em 0.5em;
+  padding: 0.35em 0.75em;
   font-size: 0.9em;
   white-space: nowrap;
   cursor: pointer;
@@ -77,11 +89,10 @@
   font-size: 0.9em;
   background-color: var(--text-field-background-color);
   color: var(--root-color);
-  border: 1px solid var(--button-border-color);
+  border: 0;
   border-radius: 0.5em;
   outline: none;
 
-  &:focus { border-color: var(--input-focus-border-color); }
   &:disabled { opacity: 0.6; cursor: default; }
 }
 

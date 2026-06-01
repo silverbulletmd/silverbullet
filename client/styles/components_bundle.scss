@@ -1,3 +1,12 @@
 /* Standalone bundle for iframe panels: tokens + components only. */
 @use "theme";
 @use "components";
+
+/* Give panel iframes the same base font + size as Core (the iframe is a
+   separate document with no inherited typography), so all panel text and the
+   em-based component sizes match the rest of the app. Core uses the default
+   16px root; mirror it explicitly here. */
+html {
+  font-family: var(--ui-font);
+  font-size: 16px;
+}

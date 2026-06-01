@@ -4,6 +4,7 @@ import { useCfg } from "../cfg_context.tsx";
 import { useShortcuts } from "../editors_context.tsx";
 import { ChordChips, cls } from "./chord_display.tsx";
 import { RecordingChord } from "./recording_chord.tsx";
+import { Input } from "@silverbulletmd/silverbullet/ui";
 
 type RecordingTarget = { name: string; slot: number } | null;
 
@@ -151,9 +152,9 @@ export function ShortcutsTab() {
 
   return (
     <>
-      <input
+      <Input
+        class="cfg-search"
         type="text"
-        id="cfg-shortcuts-search"
         placeholder="Filter commands..."
         value={search}
         onInput={(e) =>

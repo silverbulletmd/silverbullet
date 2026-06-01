@@ -508,7 +508,7 @@ function AvailableSection({
           }}
         >
           <Input
-            ref={uriInput}
+            inputRef={uriInput}
             type="text"
             placeholder="Library or plug URI (https://… or github:…)"
             value={uri}
@@ -718,7 +718,7 @@ function RepoAddForm({ autoOpen }: { autoOpen: boolean }) {
           }}
         >
           <Input
-            ref={uriRef}
+            inputRef={uriRef}
             type="text"
             placeholder="Repository URI"
             value={uri}
@@ -839,9 +839,9 @@ export function LibrariesTab() {
 
   return (
     <>
-      <input
+      <Input
+        class="cfg-search"
         type="text"
-        id="cfg-config-search"
         placeholder="Filter libraries…"
         value={search}
         onInput={(e) => setSearch((e.currentTarget as HTMLInputElement).value)}

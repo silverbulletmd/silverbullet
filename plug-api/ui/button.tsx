@@ -1,4 +1,4 @@
-import type { ComponentChildren, JSX } from "preact";
+import type { ComponentChildren, JSX, Ref } from "preact";
 import { cx } from "./cx.ts";
 
 export type ButtonVariant = "default" | "primary" | "danger" | "icon";
@@ -11,14 +11,26 @@ const VARIANT_CLASS: Record<ButtonVariant, string> = {
 };
 
 export type ButtonProps =
-  & Omit<JSX.IntrinsicElements["button"], "class">
-  & { variant?: ButtonVariant; class?: string; children?: ComponentChildren };
+  & Omit<JSX.IntrinsicElements["button"], "class" | "ref">
+  & {
+    variant?: ButtonVariant;
+    class?: string;
+    /** Ref to the underlying <button> (Preact function components don't forward `ref`). */
+    buttonRef?: Ref<HTMLButtonElement>;
+    children?: ComponentChildren;
+  };
 
 export function Button(
-  { variant = "default", class: extra, type, children, ...rest }: ButtonProps,
+  { variant = "default", class: extra, type, buttonRef, children, ...rest }:
+    ButtonProps,
 ) {
   return (
-    <button type={type ?? "button"} class={cx(VARIANT_CLASS[variant], extra)} {...rest}>
+    <button
+      ref={buttonRef}
+      type={type ?? "button"}
+      class={cx(VARIANT_CLASS[variant], extra)}
+      {...rest}
+    >
       {children}
     </button>
   );

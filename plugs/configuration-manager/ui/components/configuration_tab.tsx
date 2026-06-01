@@ -127,10 +127,10 @@ export function ConfigurationTab() {
   const query = search.toLowerCase().trim();
   return (
     <>
-      <input
-        ref={inputRef}
+      <Input
+        inputRef={inputRef}
+        class="cfg-search"
         type="text"
-        id="cfg-config-search"
         placeholder="Filter configuration options..."
         value={search}
         onInput={(e) =>
