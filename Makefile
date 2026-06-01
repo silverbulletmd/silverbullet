@@ -89,5 +89,5 @@ generate:
 	npx @lezer/generator@1.5.1 client/space_lua/lua.grammar -o client/space_lua/parse-lua.js
 
 website: build
-	SB_INDEX_PAGE=SilverBullet ./silverbullet -p 3001 website
+	SB_INDEX_PAGE=SilverBullet SB_DISABLE_SERVICE_WORKER=1 ./silverbullet -p 3001 website
 
