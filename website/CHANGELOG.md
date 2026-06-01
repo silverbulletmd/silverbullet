@@ -3,21 +3,23 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
-* Shared UI components: new `.sb-*` component styles (buttons, inputs, selects, checkboxes, tabs, alerts, badges, progress bars), a lean `/.client/components.css` for styling panels, and a `@silverbulletmd/silverbullet/ui` package export providing optional Preact wrappers. Plug authors can link `.client/components.css` in panels and use the `.sb-*` classes (or import the wrappers) for a consistent look. The `panelStyles()` helper from `@silverbulletmd/silverbullet/ui` builds a ready-made preamble injecting both `components.css` and the user's space styles, so panels/widgets match the rest of SilverBullet.
-* Space Lua: added `spacelua.prettyPrintBlock` / `spacelua.prettyPrintExpression` to pretty-print a parsed Lua AST back to formatted source. Supports `indentWidth`, `quote` and `trailingComma` options. Comments are not preserved.
 * New [[Object/relation]] indexed object capturing generalized object-to-object relationships: typed edges from frontmatter, inline `[key: value]` attributes, and `#tag` fenced data blocks; untyped mentions; and co-mention edges between refs co-occurring in the same item, nested item, or paragraph. The (now) legacy `link` is reimplemented as a virtual collection on top of `relation` now and should keep acting as before.
 * Picker fuzzy search: replaced Fuse.js with a custom scorer that supports multi-token queries, path-aware ranking, and some typo tolerance.
-* UX: on narrow viewports (<800px) header `#` markers no longer get pushed off-screen when the cursor enters a heading
-* UX: task checkboxes are now drawn in CSS (`appearance: none` + bordered box + rotated-rectangle checkmark) instead of relying on the native checkboxes. Should improve rendering on webkit browsers.
-* Fix: List/outline alignment: bullets, checkboxes and ordered-list numbers now line up in a clean column regardless of nesting depth, list type, or whether items are tasks. 
-  * Potentially **breaking** CSS change for theme authors: per-nesting-level indent values previously carried by `.sb-line-ul.sb-line-li-N`, `.sb-line-ol.sb-line-li-N`, `.sb-line-task` and `.sb-line-blockquote.sb-line-li-N` selectors have been removed.
+* Start of shared UI components (between SB core and plugs): component styles (for buttons, inputs, selects, checkboxes, tabs, alerts, badges, progress bars), and a `@silverbulletmd/silverbullet/ui` package export providing optional Preact wrappers. See [[Plugs/Development/Reference]] for notes on how to use this as a plug author. Built-in plugs like [[Configuration Manager]] now also load [[Space Style]] inside the iframe, so components should become themable.
+* UX: a _lot_ of little visual tweaks and usability fixes all over the place that hopefully will trigger less of your OCD, including:
+  * On narrow viewports (<800px) header `#` markers no longer get pushed off-screen when the cursor enters a heading
+  * Positioning of the page title is now (more) left-aligned with editor text.
+  * List/outline alignment: bullets, checkboxes and ordered-list numbers now line up in a clean column regardless of nesting depth, list type, or whether items are tasks. 
+    * Potentially **breaking** CSS change for theme authors: per-nesting-level indent values previously carried by `.sb-line-ul.sb-line-li-N`, `.sb-line-ol.sb-line-li-N`, `.sb-line-task` and `.sb-line-blockquote.sb-line-li-N` selectors have been removed.
+  * Task checkboxes are now drawn in CSS (`appearance: none` + bordered box + rotated-rectangle checkmark) instead of relying on the native checkboxes. Should improve rendering on webkit browsers.
+  * Clicking a wiki link to a page now places the cursor just after the page's frontmatter on first visit (matching fresh-load behavior), instead of at position 0. Pages already visited in the session still restore their previously saved cursor position.
+* APIs:
+  * Space Lua: added `spacelua.prettyPrintBlock` / `spacelua.prettyPrintExpression` to pretty-print a parsed Lua AST back to formatted source. Supports `indentWidth`, `quote` and `trailingComma` options. In preparation of future functionality that will manipulate existing Lua code.
 * `index.contentPages` now accepts an optional `tag` argument to filter content pages by an additional tag, matching the other type-specific [[API/index]] helpers.
 * Fix: forced space reindex handling
-* Fix: clicking a wiki link to a page now places the cursor just after the page's frontmatter on first visit (matching fresh-load behavior), instead of at position 0. Pages already visited in the session still restore their previously saved cursor position.
 * Fix: `$`-anchor refs now resolve through the index from every navigation path
 * Fix: Ctrl/Cmd-clicking a link inside rendered widgets (query/template results) now navigates in a new window via the normal navigation path
 * Fix: tag autocomplete no longer triggers while typing markdown header prefixes (`##`, `###`, etc.)
-* Fix: wide tables that overflow horizontally no longer have their scrollbar overlap the content directly below them on Safari
 
 ## 2.8.1
 * Fix: cursor and clicks no longer drift by a line or two when working below a tall widget (e.g. arrow-up from a list under a `${query[[…]]}` now advances exactly one line). Some other cursor preservation issues addressed as well.

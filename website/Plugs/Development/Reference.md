@@ -228,8 +228,8 @@ const css = await asset.readAsset("myplug", "styles.css", "utf8");
 
 Useful for shipping CSS, templates, images, or any other binary blob alongside your code.
 
-## Styling panels with shared components
-Panels (opened via [[API/editor#editor.showPanel(id, mode, html, script)]]) can get SilverBullet's standard component styling by linking the shared stylesheet and using the `.sb-*` classes.
+# Shared Components
+Panels (opened via [[API/editor#editor.showPanel(id, mode, html, script)]]) can get SilverBullet's standard component styling by linking the shared stylesheet and using `.sb-*` classes.
 
 ```html
 <link rel="stylesheet" href=".client/components.css">
@@ -237,7 +237,7 @@ Panels (opened via [[API/editor#editor.showPanel(id, mode, html, script)]]) can 
 <input class="sb-input" placeholder="Name" />
 ```
 
-The easiest way to set this up is the `panelStyles()` helper from `@silverbulletmd/silverbullet/ui`, which builds a preamble injecting both `.client/components.css` and the user's space styles (custom theming), so panels match the rest of SilverBullet:
+The easiest way to set this up is the `panelStyles()` helper from `@silverbulletmd/silverbullet/ui`, which builds a preamble injecting both `.client/components.css` and the user’s [[Space Style]] (custom theming), so panels match the rest of SilverBullet:
 
 ```ts
 import { panelStyles } from "@silverbulletmd/silverbullet/ui";
