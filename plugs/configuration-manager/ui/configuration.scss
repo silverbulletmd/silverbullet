@@ -253,18 +253,6 @@ html[data-theme="dark"] .lib-badge-pull { background: #1f2a40; color: #89a0e5; }
   text-overflow: ellipsis; white-space: nowrap;
 }
 
-.lib-confirm-group { display: inline-flex; gap: 4px; }
-
-.lib-inline-form {
-  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
-  padding: 10px; margin: 8px 0;
-  background: var(--cfg-section-bg); border-radius: 4px;
-}
-.lib-inline-form input[type="text"] {
-  flex: 1;
-  min-width: 180px;
-}
-
 .lib-group { margin: 12px 0; }
 .lib-group-head {
   display: flex; align-items: center; gap: 6px; cursor: pointer;
