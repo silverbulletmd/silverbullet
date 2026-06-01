@@ -6,6 +6,10 @@
   border-radius: 8px;
   overflow: hidden;
 
+  &::backdrop {
+    background-color: var(--modal-backdrop-color);
+  }
+
   @media only screen and (max-width: 600px) {
     margin-top: 8px;
     width: 100%;

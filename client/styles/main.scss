@@ -110,11 +110,22 @@ body {
   }
 }
 
+// Full-screen dim behind a "modal" panel, matching the <dialog> backdrop used
+// by command-palette / prompt / confirm modals (.sb-modal-box).
+.sb-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background-color: var(--modal-backdrop-color);
+}
+
 .sb-modal {
   position: absolute;
-  z-index: 100;
+  border: var(--modal-border-color) 1px solid;
   border-radius: 8px;
   overflow: hidden;
+  // Match the .sb-modal-box drop shadow so plug modals look consistent.
+  box-shadow: rgba(0, 0, 0, 0.35) 0px 20px 20px;
 
   .sb-panel {
     height: 100%;
@@ -126,9 +137,9 @@ body {
 
   @media only screen and (max-width: 600px) {
     // On narrow screens override the inline `inset` that plugs pass to
-    // showPanel("modal", N) so the modal goes nearly edge-to-edge.
+    // showPanel("modal", N) so the modal sits closer to the edges. It keeps
+    // its rounded corners since (unlike .sb-modal-box) it isn't edge-to-edge.
     inset: 8px !important;
-    border-radius: 0;
   }
 }
 

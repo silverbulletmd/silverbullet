@@ -32,6 +32,7 @@ html {
   --modal-color: inherit;
   --modal-background-color: #fff;
   --modal-border-color: rgb(108, 108, 108);
+  --modal-backdrop-color: rgba(0, 0, 0, 0.15);
   --modal-header-label-color: var(--ui-accent-text-color);
   --modal-help-background-color: #eee;
   --modal-help-color: #555;
@@ -154,7 +155,6 @@ html {
   --danger-color: #dc3545;
   --danger-contrast-color: #fff;
   --success-color: #16a34a;
-  --input-focus-border-color: var(--ui-accent-color);
   --alert-error-background-color: #fef2f2;
   --alert-error-color: #dc3545;
   --alert-error-border-color: #fecaca;
@@ -212,6 +212,7 @@ html[data-theme="dark"] {
   --modal-color: #ccc;
   --modal-background-color: #262626;
   --modal-border-color: #6c6c6c;
+  --modal-backdrop-color: rgba(0, 0, 0, 0.45);
   --modal-header-label-color: var(--ui-accent-text-color);
   --modal-help-background-color: #333;
   --modal-help-color: #ccc;
@@ -325,7 +326,6 @@ html[data-theme="dark"] {
   --danger-color: #f87171;
   --danger-contrast-color: #fff;
   --success-color: #4ade80;
-  --input-focus-border-color: var(--ui-accent-color);
   --alert-error-background-color: rgba(220, 53, 69, 0.1);
   --alert-error-color: #f87171;
   --alert-error-border-color: rgba(220, 53, 69, 0.3);

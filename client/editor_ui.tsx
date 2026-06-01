@@ -559,11 +559,13 @@ export class MainUI {
           )}
         </div>
         {viewState.panels.modal.mode !== undefined && (
-          <div
-            className="sb-modal"
-            style={{ inset: `${viewState.panels.modal.mode}px` }}
-          >
-            <Panel config={viewState.panels.modal} editor={client} />
+          <div className="sb-modal-backdrop">
+            <div
+              className="sb-modal"
+              style={{ inset: `${viewState.panels.modal.mode}px` }}
+            >
+              <Panel config={viewState.panels.modal} editor={client} />
+            </div>
           </div>
         )}
         {viewState.panels.bhs.mode !== undefined && (
