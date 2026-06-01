@@ -227,3 +227,32 @@ const css = await asset.readAsset("myplug", "styles.css", "utf8");
 ```
 
 Useful for shipping CSS, templates, images, or any other binary blob alongside your code.
+
+## Styling panels with shared components
+Panels (opened via [[API/editor#editor.showPanel(id, mode, html, script)]]) can get SilverBullet's standard component styling by linking the shared stylesheet and using the `.sb-*` classes.
+
+```html
+<link rel="stylesheet" href=".client/components.css">
+<button class="sb-button sb-button-primary">Save</button>
+<input class="sb-input" placeholder="Name" />
+```
+
+The easiest way to set this up is the `panelStyles()` helper from `@silverbulletmd/silverbullet/ui`, which builds a preamble injecting both `.client/components.css` and the user's space styles (custom theming), so panels match the rest of SilverBullet:
+
+```ts
+import { panelStyles } from "@silverbulletmd/silverbullet/ui";
+const html = (await panelStyles()) + `<div id="root"></div>`;
+await editor.showPanel("modal", 100, html, script);
+```
+
+Pass options to opt out of either part: `panelStyles({ components: false })` skips the component stylesheet, `panelStyles({ spaceStyles: false })` skips the user's space styles. Append any plug-specific `<style>` after the helper's output so it takes precedence.
+
+`components.css` contains only the theme tokens and component rules (no editor styles), so it is lightweight and safe to include in an iframe. The available classes are:
+
+- **Buttons:** `sb-button`, `sb-button-primary`, `sb-button-danger`, `sb-button-icon`
+- **Inputs:** `sb-input`, `sb-select`, `sb-checkbox`
+- **Tabs:** `sb-tabs`, `sb-tab`, `sb-tab.sb-active`
+- **Alerts:** `sb-alert`, `sb-alert-error`, `sb-alert-warning`, `sb-alert-info`
+- **Misc:** `sb-badge`, `sb-progress`, `sb-progress-bar`
+
+Preact-based panels can instead import the typed wrappers from `@silverbulletmd/silverbullet/ui`, which apply the same classes internally.

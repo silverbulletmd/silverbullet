@@ -16,6 +16,13 @@ import { useCfg } from "../cfg_context.tsx";
 import { useLibraries } from "../editors_context.tsx";
 import type { LibrariesFocus } from "../types.ts";
 import { cls } from "./chord_display.tsx";
+import {
+  Alert,
+  Badge,
+  Button,
+  Input,
+  Progress,
+} from "@silverbulletmd/silverbullet/ui";
 
 function openPage(name: string) {
   void (async () => {
@@ -40,17 +47,12 @@ function InlineBanner({
 }) {
   if (!message) return null;
   return (
-    <div class={`lib-banner lib-${kind}`}>
+    <Alert variant={kind} class="cfg-banner">
       <span>{message}</span>
-      <button
-        type="button"
-        class="lib-banner-dismiss"
-        title="Dismiss"
-        onClick={onDismiss}
-      >
+      <Button variant="icon" title="Dismiss" onClick={onDismiss}>
         <X size={14} />
-      </button>
-    </div>
+      </Button>
+    </Alert>
   );
 }
 
@@ -90,36 +92,37 @@ function ConfirmIconButton({
   const [armed, setArmed] = useState(false);
   if (busy) {
     return (
-      <button class="lib-icon-btn" disabled>
+      <Button variant="icon" disabled>
         <Spinner />
-      </button>
+      </Button>
     );
   }
   if (!armed) {
     return (
-      <button
-        class="lib-icon-btn lib-danger"
+      <Button
+        variant="icon"
+        class="lib-icon-danger"
         title={title}
         onClick={() => setArmed(true)}
       >
         {icon}
-      </button>
+      </Button>
     );
   }
   return (
     <span class="lib-confirm-group">
-      <button
-        class="cfg-btn lib-danger"
+      <Button
+        variant="danger"
         onClick={() => {
           setArmed(false);
           onConfirm();
         }}
       >
         {confirmLabel}
-      </button>
-      <button class="cfg-btn" onClick={() => setArmed(false)}>
+      </Button>
+      <Button onClick={() => setArmed(false)}>
         Cancel
-      </button>
+      </Button>
     </span>
   );
 }
@@ -149,10 +152,10 @@ function InstalledRow({
           {lib.name}
         </a>
         {isBuiltin && (
-          <span class="lib-badge lib-badge-builtin">built-in</span>
+          <Badge class="lib-badge-builtin">built-in</Badge>
         )}
-        {isPush && <span class="lib-badge lib-badge-push">dev mode</span>}
-        {isPull && <span class="lib-badge lib-badge-pull">installed</span>}
+        {isPush && <Badge class="lib-badge-push">dev mode</Badge>}
+        {isPull && <Badge class="lib-badge-pull">installed</Badge>}
       </div>
       <div class="lib-row-actions">
         {lib.uri && /^https?:\/\//.test(lib.uri) && (
@@ -167,8 +170,8 @@ function InstalledRow({
           </a>
         )}
         {isPull && (
-          <button
-            class="lib-icon-btn"
+          <Button
+            variant="icon"
             title="Update"
             disabled={updateBusy || removeBusy}
             onClick={async () => {
@@ -186,7 +189,7 @@ function InstalledRow({
             }}
           >
             {updateBusy ? <Spinner /> : <RefreshCw size={16} />}
-          </button>
+          </Button>
         )}
         {isPull && (
           <ConfirmIconButton
@@ -213,7 +216,7 @@ function RoguePlugRow({ plug, query }: { plug: RoguePlug; query: string }) {
     <div class="lib-row">
       <div class="lib-row-main">
         <span>{plug.path}</span>
-        <span class="lib-badge lib-badge-push">Plug</span>
+        <Badge class="lib-badge-push">Plug</Badge>
       </div>
       <div class="lib-row-actions">
         <ConfirmIconButton
@@ -325,7 +328,7 @@ function UpdateAllButton() {
 
   return (
     <div class="lib-updateall">
-      <button class="cfg-btn" disabled={busy} onClick={() => void run()}>
+      <Button disabled={busy} onClick={() => void run()}>
         {busy ? (
           <>
             <Spinner />
@@ -334,23 +337,16 @@ function UpdateAllButton() {
         ) : (
           "Update all"
         )}
-      </button>
+      </Button>
       {busy && (
-        <div class="lib-progress">
-          <div
-            class="lib-progress-bar"
-            style={{
-              width: `${
-                progress.total === 0
-                  ? 0
-                  : Math.round((progress.done / progress.total) * 100)
-              }%`,
-            }}
+        <>
+          <Progress
+            value={progress.total === 0 ? 0 : progress.done / progress.total}
           />
           {progress.current && (
             <div class="lib-progress-label">{progress.current}</div>
           )}
-        </div>
+        </>
       )}
     </div>
   );
@@ -404,8 +400,8 @@ function AvailableCard({ lib }: { lib: InstallableLibrary }) {
             <strong>{lib.name}</strong>
           )}
         </div>
-        <button
-          class="cfg-btn cfg-btn-primary"
+        <Button
+          variant="primary"
           disabled={busy}
           onClick={() =>
             libs.run(key, "available", "install", { uri: lib.uri })
@@ -419,7 +415,7 @@ function AvailableCard({ lib }: { lib: InstallableLibrary }) {
           ) : (
             "Install"
           )}
-        </button>
+        </Button>
       </div>
       {lib.description && <MarkdownDescription text={lib.description} />}
     </div>
@@ -482,9 +478,9 @@ function AvailableSection({
       <div class="lib-section-header">
         <h2>Available</h2>
         {!showUriForm && (
-          <button class="cfg-btn" onClick={() => setShowUriForm(true)}>
+          <Button onClick={() => setShowUriForm(true)}>
             Install from URI…
-          </button>
+          </Button>
         )}
       </div>
       <SectionBanners section="available" />
@@ -511,7 +507,7 @@ function AvailableSection({
             }
           }}
         >
-          <input
+          <Input
             ref={uriInput}
             type="text"
             placeholder="Library or plug URI (https://… or github:…)"
@@ -522,7 +518,7 @@ function AvailableSection({
             }}
           />
           {isPlug && (
-            <input
+            <Input
               type="text"
               placeholder="Save plug as (path)"
               value={plugPathEdited ? plugPath : suggestedPlugPath}
@@ -532,8 +528,9 @@ function AvailableSection({
               }}
             />
           )}
-          <button
-            class="cfg-btn cfg-btn-primary"
+          <Button
+            type="submit"
+            variant="primary"
             disabled={
               installBusy ||
               !uri ||
@@ -548,10 +545,8 @@ function AvailableSection({
             ) : (
               "Install"
             )}
-          </button>
-          <button
-            type="button"
-            class="cfg-btn"
+          </Button>
+          <Button
             disabled={installBusy}
             onClick={() => {
               setUri("");
@@ -561,7 +556,7 @@ function AvailableSection({
             }}
           >
             Cancel
-          </button>
+          </Button>
         </form>
       )}
       {grouped.length === 0 && (
@@ -627,7 +622,7 @@ function RepoRow({ repo }: { repo: RepositoryInfo }) {
           </span>
         )}
         {!actionable && (
-          <span class="lib-badge lib-badge-builtin">built-in</span>
+          <Badge class="lib-badge-builtin">built-in</Badge>
         )}
       </div>
       <div class="lib-row-actions">
@@ -644,8 +639,8 @@ function RepoRow({ repo }: { repo: RepositoryInfo }) {
         )}
         {actionable && (
           <>
-            <button
-              class="lib-icon-btn"
+            <Button
+              variant="icon"
               title="Update"
               disabled={busy}
               onClick={async () => {
@@ -666,7 +661,7 @@ function RepoRow({ repo }: { repo: RepositoryInfo }) {
               }}
             >
               {busy ? <Spinner /> : <RefreshCw size={16} />}
-            </button>
+            </Button>
             <ConfirmIconButton
               icon={<Trash2 size={16} />}
               title="Remove repository"
@@ -700,9 +695,9 @@ function RepoAddForm({ autoOpen }: { autoOpen: boolean }) {
 
   return (
     <div>
-      <button class="cfg-btn" onClick={() => setOpen((v) => !v)}>
+      <Button onClick={() => setOpen((v) => !v)}>
         {open ? "Hide add form" : "Add repository…"}
-      </button>
+      </Button>
       {open && (
         <form
           class="lib-inline-form"
@@ -722,7 +717,7 @@ function RepoAddForm({ autoOpen }: { autoOpen: boolean }) {
             }
           }}
         >
-          <input
+          <Input
             ref={uriRef}
             type="text"
             placeholder="Repository URI"
@@ -733,7 +728,7 @@ function RepoAddForm({ autoOpen }: { autoOpen: boolean }) {
               if (v) setPage(`${REPO_PREFIX}${suggestRepoNameFromUri(v)}`);
             }}
           />
-          <input
+          <Input
             type="text"
             placeholder="Install into (page path)"
             value={page}
@@ -741,8 +736,9 @@ function RepoAddForm({ autoOpen }: { autoOpen: boolean }) {
               setPage((e.currentTarget as HTMLInputElement).value)
             }
           />
-          <button
-            class="cfg-btn cfg-btn-primary"
+          <Button
+            type="submit"
+            variant="primary"
             disabled={busy || !uri || !page}
           >
             {busy ? (
@@ -753,7 +749,7 @@ function RepoAddForm({ autoOpen }: { autoOpen: boolean }) {
             ) : (
               "Add"
             )}
-          </button>
+          </Button>
         </form>
       )}
     </div>
@@ -765,8 +761,7 @@ function RepoUpdateAllButton() {
   const key = "repo:updateAll";
   const busy = libs.isBusy(key);
   return (
-    <button
-      class="cfg-btn"
+    <Button
       disabled={busy}
       onClick={async () => {
         const r = await libs.run(
@@ -795,7 +790,7 @@ function RepoUpdateAllButton() {
       ) : (
         "Update all"
       )}
-    </button>
+    </Button>
   );
 }
 

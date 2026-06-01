@@ -149,6 +149,23 @@ html {
     "Segoe UI Symbol", "Noto Color Emoji";
   --editor-font: "iA-Mono", "Menlo";
   --editor-width: 800px;
+
+  /* Shared component tokens */
+  --danger-color: #dc3545;
+  --danger-contrast-color: #fff;
+  --success-color: #16a34a;
+  --input-focus-border-color: var(--ui-accent-color);
+  --alert-error-background-color: #fef2f2;
+  --alert-error-color: #dc3545;
+  --alert-error-border-color: #fecaca;
+  --alert-warning-background-color: #fffbeb;
+  --alert-warning-color: #b45309;
+  --alert-warning-border-color: #fde68a;
+  --alert-info-background-color: #eaf4fd;
+  --alert-info-color: #0b4a7a;
+  --alert-info-border-color: #cfe6fb;
+  --badge-background-color: #e8e8ff;
+  --badge-color: #464cfc;
 }
 
 html[data-theme="light"] {
@@ -303,6 +320,23 @@ html[data-theme="dark"] {
     #111,
     #333
   );
+
+  /* Shared component tokens */
+  --danger-color: #f87171;
+  --danger-contrast-color: #fff;
+  --success-color: #4ade80;
+  --input-focus-border-color: var(--ui-accent-color);
+  --alert-error-background-color: rgba(220, 53, 69, 0.1);
+  --alert-error-color: #f87171;
+  --alert-error-border-color: rgba(220, 53, 69, 0.3);
+  --alert-warning-background-color: rgba(180, 83, 9, 0.1);
+  --alert-warning-color: #fbbf24;
+  --alert-warning-border-color: rgba(180, 83, 9, 0.3);
+  --alert-info-background-color: #14324f;
+  --alert-info-color: #8fc4ef;
+  --alert-info-border-color: rgba(143, 196, 239, 0.3);
+  --badge-background-color: rgba(70, 76, 252, 0.2);
+  --badge-color: #8b8eff;
 }
 
 html[data-markdown-syntax-rendering="on"] {

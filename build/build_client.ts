@@ -83,6 +83,16 @@ async function copyAssets(dist: string) {
   });
   await writeFile(`${dist}/main.css`, result.css, "utf-8");
 
+  const componentsScss = await readFile(
+    "client/styles/components_bundle.scss",
+    "utf-8",
+  );
+  const componentsResult = sass.compileString(componentsScss, {
+    loadPaths: ["client/styles"],
+    style: "compressed",
+  });
+  await writeFile(`${dist}/components.css`, componentsResult.css, "utf-8");
+
   // HACK: Patch the JS by removing an invalid regex
   let bundleJs = await readFile(`${dist}/client.js`, "utf-8");
   bundleJs = patchBundledJS(bundleJs);

@@ -3,6 +3,11 @@ import { RotateCcw } from "preact-feather";
 import { useCfg } from "../cfg_context.tsx";
 import { useConfig } from "../editors_context.tsx";
 import { cls } from "./chord_display.tsx";
+import {
+  Checkbox,
+  Input,
+  Select,
+} from "@silverbulletmd/silverbullet/ui";
 import type { UiSchema } from "../schema.ts";
 
 function Control(
@@ -11,9 +16,7 @@ function Control(
   const config = useConfig();
   if (schema.type === "boolean") {
     return (
-      <input
-        type="checkbox"
-        class="cfg-checkbox"
+      <Checkbox
         checked={!!value}
         onChange={(e) =>
           config.setField(path, (e.currentTarget as HTMLInputElement).checked)}
@@ -22,20 +25,20 @@ function Control(
   }
   if (schema.type === "string" && schema.enum) {
     return (
-      <select
+      <Select
         onChange={(e) =>
           config.setField(path, (e.currentTarget as HTMLSelectElement).value)}
       >
         {schema.enum.map((opt: string) => (
           <option key={opt} value={opt} selected={opt === value}>{opt}</option>
         ))}
-      </select>
+      </Select>
     );
   }
   if (schema.type === "string") {
     const inputType = schema.ui?.inputType === "password" ? "password" : "text";
     return (
-      <input
+      <Input
         type={inputType}
         value={value ?? ""}
         onInput={(e) =>
@@ -45,8 +48,9 @@ function Control(
   }
   if (schema.type === "number") {
     return (
-      <input
+      <Input
         type="number"
+        class="cfg-number"
         value={value == null ? "" : String(value)}
         onInput={(e) => {
           const v = (e.currentTarget as HTMLInputElement).value;

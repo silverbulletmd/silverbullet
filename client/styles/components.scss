@@ -1,0 +1,163 @@
+/* Shared UI components. Built on theme.scss tokens. Framework-independent. */
+
+/* Button base (relocated from colors.scss so panels linking components.css get it) */
+.sb-button,
+.sb-button-primary {
+  --color: var(--button-color);
+  --background-color: var(--button-background-color);
+  --hover-background-color: var(--button-hover-background-color);
+  --border-color: var(--button-border-color);
+
+  &.sb-button-primary {
+    --color: var(--primary-button-color);
+    --background-color: var(--primary-button-background-color);
+    --hover-background-color: var(--primary-button-hover-background-color);
+    --border-color: var(--primary-button-border-color);
+  }
+
+  background-color: var(--background-color);
+  color: var(--color);
+
+  box-shadow: 0 0 0.2em rgba(0, 0, 0, 0.05);
+
+  border: 1px solid var(--border-color);
+  border-radius: 0.5em;
+  padding: 0.2em 0.5em;
+  font-size: 0.9em;
+  white-space: nowrap;
+
+  &:hover {
+    background-color: var(--hover-background-color);
+  }
+
+  &:focus {
+    outline: 2px solid var(--color);
+    outline-offset: -3px;
+  }
+}
+
+/* Button variants */
+.sb-button-danger {
+  background-color: var(--danger-color);
+  color: var(--danger-contrast-color);
+  border: 1px solid var(--danger-color);
+  border-radius: 0.5em;
+  padding: 0.2em 0.5em;
+  font-size: 0.9em;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover { opacity: 0.9; }
+  &:disabled { opacity: 0.5; cursor: default; }
+}
+
+.sb-button-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35em;
+  background: none;
+  border: none;
+  color: var(--subtle-color);
+  border-radius: 0.5em;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+
+  &:hover {
+    background-color: var(--subtle-background-color);
+    color: var(--button-color);
+  }
+  svg { display: block; }
+}
+
+/* Inputs & selects */
+.sb-input,
+.sb-select {
+  padding: 0.3em 0.6em;
+  font-size: 0.9em;
+  background-color: var(--text-field-background-color);
+  color: var(--root-color);
+  border: 1px solid var(--button-border-color);
+  border-radius: 0.5em;
+  outline: none;
+
+  &:focus { border-color: var(--input-focus-border-color); }
+  &:disabled { opacity: 0.6; cursor: default; }
+}
+
+.sb-checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--ui-accent-color);
+  cursor: pointer;
+}
+
+/* Tabs */
+.sb-tabs { display: flex; gap: 0; flex-wrap: wrap; }
+.sb-tab {
+  padding: 8px 16px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: var(--subtle-color);
+  font-size: 0.9em;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+
+  &:hover { color: var(--root-color); }
+  &.sb-active {
+    color: var(--ui-accent-color);
+    border-bottom-color: var(--ui-accent-color);
+    font-weight: 500;
+  }
+}
+
+/* Alerts / banners */
+.sb-alert {
+  padding: 8px 12px;
+  font-size: 0.85em;
+  border-radius: 0.5em;
+  border: 1px solid transparent;
+}
+.sb-alert-error {
+  background-color: var(--alert-error-background-color);
+  color: var(--alert-error-color);
+  border-color: var(--alert-error-border-color);
+}
+.sb-alert-warning {
+  background-color: var(--alert-warning-background-color);
+  color: var(--alert-warning-color);
+  border-color: var(--alert-warning-border-color);
+}
+.sb-alert-info {
+  background-color: var(--alert-info-background-color);
+  color: var(--alert-info-color);
+  border-color: var(--alert-info-border-color);
+}
+
+/* Badge */
+.sb-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 500;
+  background-color: var(--badge-background-color);
+  color: var(--badge-color);
+  border-radius: 4px;
+}
+
+/* Progress bar */
+.sb-progress {
+  width: 100%;
+  height: 4px;
+  background-color: var(--subtle-background-color);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.sb-progress-bar {
+  height: 100%;
+  background-color: var(--ui-accent-color);
+  transition: width 150ms ease;
+}

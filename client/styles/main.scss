@@ -4,6 +4,7 @@
 @use "colors";
 @use "top";
 @use "xray";
+@use "components";
 
 @font-face {
   font-family: "iA-Mono";
@@ -112,6 +113,8 @@ body {
 .sb-modal {
   position: absolute;
   z-index: 100;
+  border-radius: 8px;
+  overflow: hidden;
 
   .sb-panel {
     height: 100%;
@@ -125,6 +128,7 @@ body {
     // On narrow screens override the inline `inset` that plugs pass to
     // showPanel("modal", N) so the modal goes nearly edge-to-edge.
     inset: 8px !important;
+    border-radius: 0;
   }
 }
 

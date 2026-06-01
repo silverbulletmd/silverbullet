@@ -28,6 +28,10 @@ export default defineConfig({
         find: "@silverbulletmd/silverbullet/constants",
         replacement: path.resolve(__dirname, "plug-api/constants.ts"),
       },
+      {
+        find: "@silverbulletmd/silverbullet/ui",
+        replacement: path.resolve(__dirname, "plug-api/ui/index.ts"),
+      },
       // fuse → fuse.js
       {
         find: "fuse",

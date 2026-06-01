@@ -11,7 +11,7 @@ import { useGlobalEscape } from "../use_global_escape.ts";
 import { ConfigurationTab } from "./configuration_tab.tsx";
 import { ShortcutsTab } from "./shortcuts_tab.tsx";
 import { LibrariesTab } from "./libraries_tab.tsx";
-import { cls } from "./chord_display.tsx";
+import { Alert, Button, Tabs } from "@silverbulletmd/silverbullet/ui";
 import type { TabId } from "../types.ts";
 
 const TABS: { id: TabId; label: string }[] = [
@@ -38,17 +38,13 @@ function Header({ tab, setTab }: { tab: TabId; setTab: (t: TabId) => void }) {
       <button id="cfg-close" title="Close" onClick={close}>
         <X size={18} />
       </button>
-      <div id="cfg-tabs">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            class={cls({ "cfg-tab": true, active: tab === t.id })}
-            onClick={() => setTab(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        items={TABS.map((t) => ({
+          label: t.label,
+          active: tab === t.id,
+          onSelect: () => setTab(t.id),
+        }))}
+      />
     </div>
   );
 }
@@ -67,17 +63,12 @@ function SaveFooter({
   return (
     <>
       {error && (
-        <div class="lib-banner lib-error" id="cfg-save-error">
+        <Alert variant="error" class="cfg-banner">
           <span>{error}</span>
-          <button
-            type="button"
-            class="lib-banner-dismiss"
-            title="Dismiss"
-            onClick={dismissError}
-          >
+          <Button variant="icon" title="Dismiss" onClick={dismissError}>
             <X size={14} />
-          </button>
-        </div>
+          </Button>
+        </Alert>
       )}
       <div id="cfg-footer">
         <a
@@ -90,16 +81,11 @@ function SaveFooter({
         >
           Changes will be reflected in CONFIG.md
         </a>
-        <button
-          class="cfg-btn"
-          id="cfg-cancel"
-          disabled={saving}
-          onClick={close}
-        >
+        <Button id="cfg-cancel" disabled={saving} onClick={close}>
           Cancel
-        </button>
-        <button
-          class="cfg-btn cfg-btn-primary"
+        </Button>
+        <Button
+          variant="primary"
           id="cfg-save"
           disabled={saving}
           onClick={save}
@@ -111,7 +97,7 @@ function SaveFooter({
           ) : (
             <>Save &amp; Apply</>
           )}
-        </button>
+        </Button>
       </div>
     </>
   );
@@ -123,9 +109,9 @@ function LibrariesFooter() {
       <span id="cfg-edit-config" class="lib-footer-note">
         Library changes are applied immediately.
       </span>
-      <button class="cfg-btn" onClick={close}>
+      <Button onClick={close}>
         Close
-      </button>
+      </Button>
     </div>
   );
 }
