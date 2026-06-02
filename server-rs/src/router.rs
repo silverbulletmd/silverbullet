@@ -57,6 +57,19 @@ async fn require_authorization(
     }
 }
 
+/// Increment the HTTP request counter when metrics are enabled, then continue.
+/// A no-op (apart from the cheap `Option` check) when metrics are off.
+async fn count_requests(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    req: Request,
+    next: Next,
+) -> Response {
+    if let Some(metrics) = state.metrics.as_ref() {
+        metrics.http_requests.inc();
+    }
+    next.run(req).await
+}
+
 /// Build the HTTP router for the file/config/bundle endpoints. Protected routes
 /// require authorization when an authorizer is configured.
 pub fn build_router(state: Arc<AppState>) -> Router {
@@ -80,8 +93,41 @@ pub fn build_router(state: Arc<AppState>) -> Router {
 
     open.merge(protected)
         .fallback(get(bundle::handle_client_bundle))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            count_requests,
+        ))
         .layer(DefaultBodyLimit::disable())
         .with_state(state)
+}
+
+/// A minimal router exposing `/metrics` in Prometheus text format. The
+/// standalone binary binds this on its own port. Returns 503 when no metrics
+/// are configured.
+pub fn metrics_router(state: Arc<AppState>) -> Router {
+    Router::new()
+        .route("/metrics", get(handle_metrics))
+        .with_state(state)
+}
+
+async fn handle_metrics(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+) -> Response {
+    match state.metrics.as_ref() {
+        Some(metrics) => (
+            [(
+                axum::http::header::CONTENT_TYPE,
+                "text/plain; version=0.0.4",
+            )],
+            metrics.gather(),
+        )
+            .into_response(),
+        None => (
+            axum::http::StatusCode::SERVICE_UNAVAILABLE,
+            "Metrics disabled",
+        )
+            .into_response(),
+    }
 }
 
 #[cfg(test)]
@@ -238,5 +284,188 @@ mod auth_tests {
             .await
             .unwrap();
         assert_eq!(proxy.status(), StatusCode::UNAUTHORIZED, "/.proxy must 401");
+    }
+}
+
+#[cfg(test)]
+mod metrics_tests {
+    use crate::metrics::Metrics;
+    use crate::state::AppState;
+    use crate::test_support::test_state;
+    use axum::body::Body;
+    use axum::http::{Request, StatusCode};
+    use std::sync::Arc;
+    use tower::ServiceExt;
+
+    fn state_with_metrics() -> (Arc<AppState>, Arc<Metrics>) {
+        let metrics = Arc::new(Metrics::new());
+        let mut s = Arc::try_unwrap(test_state()).ok().expect("unique");
+        s.metrics = Some(metrics.clone());
+        (Arc::new(s), metrics)
+    }
+
+    #[tokio::test]
+    async fn counting_middleware_increments_http_requests() {
+        let (state, metrics) = state_with_metrics();
+        // Seed a bundle asset so the request is a clean 200.
+        state
+            .client_bundle
+            .as_ref()
+            .unwrap()
+            .write_file(".client/a.js", b"x", None)
+            .unwrap();
+        let before = metrics.http_requests.get();
+        let _ = crate::build_router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/.client/a.js")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(metrics.http_requests.get(), before + 1);
+    }
+
+    #[tokio::test]
+    async fn no_metrics_means_no_counting_and_no_panic() {
+        // Default test_state has metrics = None; a request must still succeed.
+        let state = test_state();
+        let resp = crate::build_router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/.ping")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn metrics_router_serves_exposition() {
+        let (state, metrics) = state_with_metrics();
+        metrics.http_requests.inc();
+        let resp = crate::metrics_router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/metrics")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let text = String::from_utf8(bytes.to_vec()).unwrap();
+        assert!(text.contains("silverbullet_http_requests"), "{text}");
+    }
+
+    #[tokio::test]
+    async fn metrics_router_without_metrics_is_503() {
+        let state = test_state(); // metrics = None
+        let resp = crate::metrics_router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/metrics")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::SERVICE_UNAVAILABLE);
+    }
+
+    #[tokio::test]
+    async fn shell_execution_increments_counter_on_run() {
+        // test_state's ShellConfig is enabled with an empty whitelist, which
+        // allows all commands, so this `echo` actually runs (or, on Windows,
+        // fails to spawn but still returns a response) → the counter ticks once.
+        let (state, metrics) = state_with_metrics();
+        let before = metrics.shell_executions.get();
+        let _ = crate::build_router(state)
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/.shell")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"cmd":"echo","args":["hi"]}"#))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(metrics.shell_executions.get(), before + 1);
+    }
+
+    #[tokio::test]
+    async fn rejected_shell_request_does_not_increment_counter() {
+        // A read-only space rejects the command before it runs → no increment
+        // (matching Go, which counts only executed commands).
+        let metrics = Arc::new(Metrics::new());
+        let mut s = Arc::try_unwrap(test_state()).ok().expect("unique");
+        s.metrics = Some(metrics.clone());
+        s.boot_config.read_only = true;
+        let state = Arc::new(s);
+        let before = metrics.shell_executions.get();
+        let _ = crate::build_router(state)
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/.shell")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"cmd":"echo","args":["hi"]}"#))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(metrics.shell_executions.get(), before);
+    }
+
+    #[tokio::test]
+    async fn proxy_increments_counter_only_on_successful_forward() {
+        // Throwaway upstream so the proxy reaches a real response.
+        let upstream = axum::routing::get(|| async { "ok" });
+        let app = axum::Router::new().route("/x", upstream);
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+        tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+
+        let (state, metrics) = state_with_metrics();
+        let before = metrics.proxy_requests.get();
+        let resp = crate::build_router(state)
+            .oneshot(
+                Request::builder()
+                    .uri(format!("/.proxy/127.0.0.1:{port}/x"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(metrics.proxy_requests.get(), before + 1);
+    }
+
+    #[tokio::test]
+    async fn read_only_proxy_does_not_increment_counter() {
+        let metrics = Arc::new(Metrics::new());
+        let mut s = Arc::try_unwrap(test_state()).ok().expect("unique");
+        s.metrics = Some(metrics.clone());
+        s.boot_config.read_only = true;
+        let state = Arc::new(s);
+        let before = metrics.proxy_requests.get();
+        let resp = crate::build_router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/.proxy/example.com/x")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::METHOD_NOT_ALLOWED);
+        assert_eq!(metrics.proxy_requests.get(), before);
     }
 }

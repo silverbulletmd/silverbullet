@@ -81,6 +81,11 @@ pub async fn handle_proxy(
 
     match rb.send().await {
         Ok(resp) => {
+            // Count only requests that reached upstream and returned a response,
+            // matching the Go server (which increments after a successful proxy).
+            if let Some(metrics) = state.metrics.as_ref() {
+                metrics.proxy_requests.inc();
+            }
             let status = resp.status().as_u16();
             let content_type = resp
                 .headers()

@@ -64,7 +64,14 @@ pub async fn handle_shell(
     let cwd = state.space_folder_path.clone();
     let result = run_blocking(move || Ok(run_command(request, &cwd))).await;
     match result {
-        Ok(resp) => (StatusCode::OK, axum::Json(resp)),
+        Ok(resp) => {
+            // Count only commands that passed validation and actually ran, matching
+            // the Go server (which increments after execution, not on every POST).
+            if let Some(metrics) = state.metrics.as_ref() {
+                metrics.shell_executions.inc();
+            }
+            (StatusCode::OK, axum::Json(resp))
+        }
         // run_blocking only errors on a join failure; surface as a shell error.
         Err(e) => err_response(StatusCode::OK, &e.to_string()),
     }

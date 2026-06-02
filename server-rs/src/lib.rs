@@ -6,11 +6,13 @@
 
 pub mod auth;
 pub mod handlers;
+pub mod metrics;
 pub mod router;
 pub mod shell;
+mod ssr;
 pub mod state;
 
-pub use router::build_router;
+pub use router::{build_router, metrics_router};
 pub use state::AppState;
 
 #[cfg(test)]
@@ -39,11 +41,14 @@ mod test_support {
             },
             space_folder_path: "/tmp".into(),
             version: "test-version".into(),
+            host_url_prefix: String::new(),
+            additional_head_html: String::new(),
             authorizer: None,
             shell: crate::shell::ShellConfig {
                 enabled: true,
                 whitelist: vec![],
             },
+            metrics: None,
         })
     }
 }

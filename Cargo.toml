@@ -30,6 +30,9 @@ reqwest = { version = "0.12", features = ["rustls-tls", "json", "blocking", "str
 base64 = "0.22"
 percent-encoding = "2"
 regex = "1"
+pulldown-cmark = { version = "0.12", default-features = false, features = ["html"] }
+minijinja = "2"
+prometheus = { version = "0.13", default-features = false }
 tracing = "0.1"
 axum = "0.8"
 tokio = { version = "1", default-features = false, features = ["rt-multi-thread", "macros", "sync"] }

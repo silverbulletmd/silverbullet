@@ -3,6 +3,7 @@ use std::sync::Arc;
 use silverbullet_common::{BootConfig, SpacePrimitives};
 
 use crate::auth::RequestAuthorizer;
+use crate::metrics::Metrics;
 use crate::shell::ShellConfig;
 
 /// Shared state for the HTTP server. Holds what the file/config/bundle
@@ -21,9 +22,17 @@ pub struct AppState {
     pub space_folder_path: String,
     /// Server version string, surfaced in `/.ping`'s `X-Server-Version`.
     pub version: String,
+    /// URL prefix the server is mounted under (e.g. `/wiki`), injected into the
+    /// `index.html` `<base href>`. Empty for a root-mounted server.
+    pub host_url_prefix: String,
+    /// Extra HTML injected into the `<head>` of the served `index.html`
+    /// (`SB_HEAD_HTML`). Empty by default.
+    pub additional_head_html: String,
     /// Authentication strategy for protected routes. `None` means the server is
     /// open (no authentication).
     pub authorizer: Option<Arc<dyn RequestAuthorizer>>,
     /// Shell-execution policy for `/.shell`.
     pub shell: ShellConfig,
+    /// Request metrics. `None` disables counting and `/metrics`.
+    pub metrics: Option<Arc<Metrics>>,
 }

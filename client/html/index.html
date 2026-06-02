@@ -6,7 +6,7 @@
             content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content"
             name="viewport"
         />
-        <base href="{{.HostPrefix}}/" />
+        <base href="{{ host_prefix | safe }}/" />
         <link href=".client/logo.png" rel="apple-touch-icon" />
         <meta
             content="#e1e1e1"
@@ -20,9 +20,9 @@
         />
         <meta content="no-referrer" name="referrer" />
 
-        <title>{{.Title}}</title>
+        <title>{{ title }}</title>
         <meta content=".client/logo.png" property="og:image" />
-        <meta content="{{.Description}}" property="og:description" />
+        <meta content="{{ description }}" property="og:description" />
 
         <link href=".client/main.css" rel="stylesheet" />
         <script src=".client/client.js" type="module"></script>
@@ -32,7 +32,7 @@
             rel="manifest"
         />
         <link href=".client/favicon.png" rel="icon" type="image/x-icon" />
-        {{.AdditionalHeadHTML}}
+        {{ additional_head_html | safe }}
     </head>
 
     <body>
@@ -40,7 +40,7 @@
             <div id="sb-main">
                 <div id="sb-editor">
                     <div class="cm-editor">
-                        <div class="cm-content">{{.Content | markdown}}</div>
+                        <div class="cm-content">{{ content | safe }}</div>
                     </div>
                 </div>
             </div>
