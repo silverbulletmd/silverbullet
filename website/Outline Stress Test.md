@@ -23,12 +23,12 @@
     * Level 3
       * Level 4
         * Level 5
-          * Level 6 — deeper than today's CSS covers
-            * Level 7 — long line that wraps so we can see the hanging indent at extreme depth
+          * Level 6: deeper than previously supported
+            * Level 7: long line that wraps so we can see the hanging indent at extreme depth
 
 # Ordered lists
 1. Short
-2. Long item that will wrap its line eventually when I keep typing, this will be good
+2. Long item that will wrap its line eventually when I keep typing, this will be good.
   1. Short sub-item
   2. Longer sub-item that will eventually wrap the line when I keep typing
 4. And a third
@@ -37,14 +37,14 @@
 7. Seven
 8. Eight
 9. Nine
-10. Ten — two-digit number, today's CSS reserves only 3ch
-11. Eleven — wraps if I keep typing to see the hanging indent
-100. Three-digit edge case — does it line up with the items above?
+10. Ten: two-digit number. Can’t fully align due to width of number.
+11. Eleven, wraps if I keep typing to see the hanging indent will keep going to the next line.
+100. Three-digit edge case, also wider.
 
 # Mixed ordered + unordered
 1. Numbered parent
    * Unordered child
-   * Another unordered child
+   * Another unordered child, now running over to the next line when I keep typing.
    * [ ] A task as ordered's child
 * Unordered parent
   1. Numbered child
