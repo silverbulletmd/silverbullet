@@ -1,0 +1,20 @@
+[package]
+name = "silverbullet-server"
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+silverbullet-common = { path = "../common" }
+axum = { workspace = true }
+tokio = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+silverbullet-common = { path = "../common", features = ["testing"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "sync"] }
+tower = { version = "0.5", features = ["util"] }

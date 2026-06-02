@@ -1,5 +1,5 @@
-//! Shared, Tauri-free building blocks for the SilverBullet server and CLI:
-//! the `SpacePrimitives` storage abstraction, its implementations, and the
+//! Shared building blocks for the SilverBullet server and CLI: the
+//! `SpacePrimitives` storage abstraction, its implementations, and the
 //! associated data types.
 
 pub mod space;
