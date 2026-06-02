@@ -104,10 +104,6 @@
   border: var(--modal-border-color) 1px solid;
   box-shadow: rgba(0, 0, 0, 0.35) 0px 20px 20px;
 
-  .cm-scroller {
-    font-family: var(--ui-font);
-  }
-
   .sb-header {
     border-bottom: 1px var(--modal-border-color) solid;
 
@@ -115,7 +111,7 @@
       color: var(--modal-header-label-color);
     }
 
-    .sb-mini-editor {
+    .sb-input {
       font-family: var(--ui-font);
     }
   }

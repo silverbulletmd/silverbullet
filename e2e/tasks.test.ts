@@ -16,7 +16,7 @@ test.describe("Task management", () => {
 		await gotoSilverBulletPage(page, sbServer, "Tasks");
 		const editor = page.locator("#sb-editor .cm-content");
 
-		await expect(page.locator("#sb-current-page")).toContainText("Tasks");
+		await expect(page.locator("#sb-current-page input.sb-input")).toHaveValue("Tasks");
 		await expect(editor).toContainText("Buy groceries");
 
 		// Task checkboxes render as <span class="sb-checkbox"><input type="checkbox"></span>

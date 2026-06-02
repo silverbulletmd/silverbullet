@@ -40,17 +40,25 @@
 
       -webkit-app-region: drag;
 
-      .cm-scroller {
+      .sb-input {
         font-family: var(--ui-font);
-        overflow-x: hidden;
-      }
-
-      .cm-content {
+        font-size: inherit;
+        // Match the line box the old CodeMirror title used so the text stays
+        // vertically centred in the bar (a native input defaults to a shorter
+        // `line-height: normal`, which pulls the title upward).
+        line-height: 1.4;
+        color: inherit;
+        background-color: transparent;
         padding: 0;
+        width: 100%;
+        border: 0;
+        border-radius: 0;
+        outline: none;
+        overflow-x: hidden;
+        caret-color: var(--editor-caret-color);
 
-        .cm-line {
-          padding: 0;
-          caret-color: var(--editor-caret-color);
+        &:focus {
+          box-shadow: none;
         }
       }
     }

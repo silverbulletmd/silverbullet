@@ -54,7 +54,7 @@ test.describe("X-Ray lens", () => {
 			await page.keyboard.press(`${mod}+/`);
 			const modal = page.locator(".sb-modal-box");
 			await expect(modal).toBeVisible();
-			const paletteInput = modal.locator(".cm-content");
+			const paletteInput = modal.locator("input.sb-input");
 			await paletteInput.click();
 			await page.keyboard.type("Toggle X-Ray", { delay: 30 });
 			const option = modal.locator(".sb-option .sb-name", {

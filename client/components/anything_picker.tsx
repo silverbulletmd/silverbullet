@@ -181,8 +181,8 @@ export function AnythingPicker({
         phrase = phrase.replaceAll(tagRegex, "").trim();
         return phrase;
       }}
-      onKeyPress={(view, event) => {
-        const text = view.state.sliceDoc();
+      onKeyPress={(value, event) => {
+        const text = value;
         // Pages cannot start with ^, as documented in Page Name Rules
         if (event.key === "^" && text === "^") {
           switch (mode) {

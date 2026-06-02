@@ -7,7 +7,7 @@ test.describe("Editor formatting", () => {
 
 		// Navigate to a fresh page
 		await sbPage.keyboard.press(`${mod}+k`);
-		await sbPage.locator(".sb-modal-box .cm-content").click();
+		await sbPage.locator(".sb-modal-box input.sb-input").click();
 		await sbPage.keyboard.type("Formatting Test", { delay: 30 });
 		await sbPage.keyboard.press("Shift+Enter");
 		await expect(editor).toHaveText("");
@@ -35,7 +35,7 @@ test.describe("Editor formatting", () => {
 		await expect(editor).toContainText("Welcome");
 
 		await sbPage.keyboard.press(`${mod}+k`);
-		await sbPage.locator(".sb-modal-box .cm-content").click();
+		await sbPage.locator(".sb-modal-box input.sb-input").click();
 		await sbPage.keyboard.type("Italic Test", { delay: 30 });
 		await sbPage.keyboard.press("Shift+Enter");
 		await expect(editor).toHaveText("");
@@ -56,7 +56,7 @@ test.describe("Editor formatting", () => {
 		await expect(editor).toContainText("Welcome");
 
 		await sbPage.keyboard.press(`${mod}+k`);
-		await sbPage.locator(".sb-modal-box .cm-content").click();
+		await sbPage.locator(".sb-modal-box input.sb-input").click();
 		await sbPage.keyboard.type("List Test", { delay: 30 });
 		await sbPage.keyboard.press("Shift+Enter");
 		await expect(editor).toHaveText("");

@@ -25,7 +25,7 @@ test.describe("Command palette", () => {
 		await expect(modal).toBeVisible();
 
 		// Type to filter
-		const paletteInput = modal.locator(".cm-content");
+		const paletteInput = modal.locator("input.sb-input");
 		await paletteInput.click();
 		await sbPage.keyboard.type("Stats", { delay: 30 });
 
@@ -42,7 +42,7 @@ test.describe("Command palette", () => {
 		// Open command palette and run "Stats: Show"
 		await sbPage.keyboard.press(`${mod}+/`);
 		const modal = sbPage.locator(".sb-modal-box");
-		const paletteInput = modal.locator(".cm-content");
+		const paletteInput = modal.locator("input.sb-input");
 		await paletteInput.click();
 		await sbPage.keyboard.type("Stats: Show", { delay: 30 });
 

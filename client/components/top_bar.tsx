@@ -1,7 +1,8 @@
 import type { ComponentChildren, FunctionalComponent } from "preact";
 import { createPortal } from "preact/compat";
+import { useEffect, useRef, useState } from "preact/hooks";
 import type { Notification } from "@silverbulletmd/silverbullet/type/client";
-import { MiniEditor } from "./mini_editor.tsx";
+import { Input } from "@silverbulletmd/silverbullet/ui";
 
 export type ActionButton = {
   icon: FunctionalComponent<any>;
@@ -146,6 +147,51 @@ function ActionButtons({
   );
 }
 
+function PageNameEditor({
+  pageName,
+  readOnly,
+  onRename,
+}: {
+  pageName?: string;
+  readOnly: boolean;
+  onRename: (newName?: string) => Promise<void>;
+}) {
+  const [name, setName] = useState(pageName ?? "");
+  // Guards against the blur that fires when a successful rename refocuses the
+  // editor, which would otherwise trigger a second (same-name) commit.
+  const committing = useRef(false);
+  // Re-sync when navigating to a different page.
+  useEffect(() => setName(pageName ?? ""), [pageName]);
+
+  const commit = (newName: string) => {
+    if (committing.current) {
+      return;
+    }
+    if (newName !== pageName) {
+      committing.current = true;
+      // On failure, restore the previous name
+      Promise.resolve(onRename(newName))
+        .catch(() => setName(pageName ?? ""))
+        .finally(() => {
+          committing.current = false;
+        });
+    } else {
+      void onRename();
+    }
+  };
+
+  return (
+    <Input
+      class="sb-page-name-editor"
+      value={name}
+      readOnly={readOnly}
+      onInput={(e) => setName(e.currentTarget.value)}
+      onConfirm={(value) => commit(value)}
+      onBlur={(e) => commit(e.currentTarget.value)}
+    />
+  );
+}
+
 export function TopBar({
   pageName,
   unsavedChanges,
@@ -155,7 +201,6 @@ export function TopBar({
   onRename,
   onDismissNotification,
   actionButtons,
-  darkMode,
   progressPercentage,
   progressType,
   lhs,
@@ -170,7 +215,6 @@ export function TopBar({
   isOnline: boolean;
   isLoading: boolean;
   notifications: Notification[];
-  darkMode?: boolean;
   progressPercentage?: number;
   progressType?: string;
   onRename: (newName?: string) => Promise<void>;
@@ -197,20 +241,10 @@ export function TopBar({
               id="sb-current-page"
               className={pageNameClass(isLoading, unsavedChanges, cssClass)}
             >
-              <MiniEditor
-                text={pageName ?? ""}
-                darkMode={darkMode}
-                onBlur={(newName) => {
-                  if (newName !== pageName) {
-                    return onRename(newName);
-                  } else {
-                    return onRename();
-                  }
-                }}
-                onEnter={(newName) => {
-                  void onRename(newName);
-                }}
-                editable={!readOnly}
+              <PageNameEditor
+                pageName={pageName}
+                readOnly={readOnly}
+                onRename={onRename}
               />
             </span>
             <NotificationPanel

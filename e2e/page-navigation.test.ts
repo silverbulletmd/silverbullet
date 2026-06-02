@@ -10,7 +10,7 @@ test.describe("Page navigation", () => {
 		await expect(sbPage.locator(".sb-modal-box")).toBeVisible();
 
 		// Type the new page name (with delay to avoid dropped keystrokes)
-		const pickerInput = sbPage.locator(".sb-modal-box .cm-content");
+		const pickerInput = sbPage.locator(".sb-modal-box input.sb-input");
 		await pickerInput.click();
 		await sbPage.keyboard.type("My New Page", { delay: 30 });
 
@@ -24,7 +24,7 @@ test.describe("Page navigation", () => {
 		await expect(sbPage.locator(".sb-modal-box")).not.toBeVisible();
 
 		// Page name should update in top bar
-		await expect(sbPage.locator("#sb-current-page")).toContainText("My New Page");
+		await expect(sbPage.locator("#sb-current-page input.sb-input")).toHaveValue("My New Page");
 
 		// Editor should be empty (new page)
 		await expect(editor).toHaveText("");
@@ -44,22 +44,22 @@ test.describe("Page navigation", () => {
 
 		// First, create and navigate to a new page
 		await sbPage.keyboard.press(`${mod}+k`);
-		const pickerInput = sbPage.locator(".sb-modal-box .cm-content");
+		const pickerInput = sbPage.locator(".sb-modal-box input.sb-input");
 		await pickerInput.click();
 		await sbPage.keyboard.type("Temporary Page", { delay: 30 });
 		await sbPage.keyboard.press("Shift+Enter");
-		await expect(sbPage.locator("#sb-current-page")).toContainText("Temporary Page");
+		await expect(sbPage.locator("#sb-current-page input.sb-input")).toHaveValue("Temporary Page");
 
 		// Now navigate back to index
 		await sbPage.keyboard.press(`${mod}+k`);
 		await expect(sbPage.locator(".sb-modal-box")).toBeVisible();
-		const pickerInput2 = sbPage.locator(".sb-modal-box .cm-content");
+		const pickerInput2 = sbPage.locator(".sb-modal-box input.sb-input");
 		await pickerInput2.click();
 		await sbPage.keyboard.type("index", { delay: 30 });
 		await sbPage.keyboard.press("Enter");
 
 		// Should be back on the index/welcome page
-		await expect(sbPage.locator("#sb-current-page")).toContainText("index");
+		await expect(sbPage.locator("#sb-current-page input.sb-input")).toHaveValue("index");
 		await expect(editor).toContainText("Welcome to the wondrous world of SilverBullet");
 	});
 
@@ -69,13 +69,13 @@ test.describe("Page navigation", () => {
 
 		// Open page picker and create a page with folder path
 		await sbPage.keyboard.press(`${mod}+k`);
-		const pickerInput = sbPage.locator(".sb-modal-box .cm-content");
+		const pickerInput = sbPage.locator(".sb-modal-box input.sb-input");
 		await pickerInput.click();
 		await sbPage.keyboard.type("Notes/My Subfolder Page", { delay: 30 });
 		await sbPage.keyboard.press("Shift+Enter");
 
 		// Page name should show the full path
-		await expect(sbPage.locator("#sb-current-page")).toContainText("Notes/My Subfolder Page");
+		await expect(sbPage.locator("#sb-current-page input.sb-input")).toHaveValue("Notes/My Subfolder Page");
 		await expect(editor).toHaveText("");
 
 		// Type something and verify it saves to server

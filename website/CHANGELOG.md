@@ -13,6 +13,11 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
     * Potentially **breaking** CSS change for theme authors: per-nesting-level indent values previously carried by `.sb-line-ul.sb-line-li-N`, `.sb-line-ol.sb-line-li-N`, `.sb-line-task` and `.sb-line-blockquote.sb-line-li-N` selectors have been removed.
   * Task checkboxes are now drawn in CSS (`appearance: none` + bordered box + rotated-rectangle checkmark) instead of relying on the native checkboxes. Should improve rendering on webkit browsers.
   * Clicking a wiki link to a page now places the cursor just after the page's frontmatter on first visit (matching fresh-load behavior), instead of at position 0. Pages already visited in the session still restore their previously saved cursor position.
+* Technical simplification: replaced the CodeMirror-based mini-editor used in the page/command picker, prompt dialogs, and the top-bar page-name field with native text inputs, improving accessibility, mobile keyboard behavior, and IME handling, and removing several Safari/layout hacks.
+  * Potentially **breaking** CSS change for theme authors: these three fields are no longer CodeMirror instances, so any styling that targeted them via `.sb-mini-editor`, the `.cm-content` / `.cm-line` / `.cm-scroller` rules inside `.sb-modal-box`, or the `.cm-scroller` / `.cm-content` rules under `#sb-current-page`, no longer applies. They are now native `<input>` elements sharing the `.sb-input` base class, each with a context-specific class to retarget:
+    * Picker / command-palette filter: `.sb-input.sb-filter-input` (inside `.sb-modal-box .sb-header`)
+    * Prompt dialog input: `.sb-input.sb-prompt-input` (inside `.sb-prompt`)
+    * Top-bar page title: `.sb-input.sb-page-name-editor` (inside `#sb-current-page`)
 * APIs:
   * Space Lua: added `spacelua.prettyPrintBlock` / `spacelua.prettyPrintExpression` to pretty-print a parsed Lua AST back to formatted source. Supports `indentWidth`, `quote` and `trailingComma` options. In preparation of future functionality that will manipulate existing Lua code.
 * `index.contentPages` now accepts an optional `tag` argument to filter content pages by an additional tag, matching the other type-specific [[API/index]] helpers.

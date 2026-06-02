@@ -27,7 +27,7 @@ async function runJournalToday(sbPage: Page): Promise<void> {
 	const modal = sbPage.locator(".sb-modal-box");
 	await expect(modal).toBeVisible();
 
-	const paletteInput = modal.locator(".cm-content");
+	const paletteInput = modal.locator("input.sb-input");
 	await paletteInput.click();
 	await sbPage.keyboard.type("Journal: Today", { delay: 30 });
 
@@ -40,7 +40,7 @@ async function runJournalToday(sbPage: Page): Promise<void> {
 	await expect(modal).not.toBeVisible();
 
 	const expectedPage = `Journal/${today()}`;
-	await expect(sbPage.locator("#sb-current-page")).toContainText(expectedPage);
+	await expect(sbPage.locator("#sb-current-page input.sb-input")).toHaveValue(expectedPage);
 }
 
 test.describe("Guide: Journaling", () => {
@@ -100,7 +100,7 @@ test.describe("Guide: Journaling", () => {
 		await expect(wikiLinkText).toBeVisible({ timeout: 10_000 });
 		await wikiLinkText.click();
 
-		await expect(sbPage.locator("#sb-current-page")).toContainText("Alice");
+		await expect(sbPage.locator("#sb-current-page input.sb-input")).toHaveValue("Alice");
 
 		// Alice's page should show a Linked Mentions section with the journal
 		// entry we just wrote. The widget is rendered by a built-in script.

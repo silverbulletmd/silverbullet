@@ -51,7 +51,7 @@ test.describe("Guide: Knowledge Base", () => {
 		await expect(ownershipLink).toBeVisible({ timeout: 10_000 });
 		await ownershipLink.click();
 
-		await expect(sbPage.locator("#sb-current-page")).toContainText("Ownership");
+		await expect(sbPage.locator("#sb-current-page input.sb-input")).toHaveValue("Ownership");
 		await expect(editor).toContainText("compile-time memory safety");
 	});
 
@@ -74,7 +74,7 @@ test.describe("Guide: Knowledge Base", () => {
 		await sbPage.keyboard.press(`${mod}+k`);
 		const modal = sbPage.locator(".sb-modal-box");
 		await expect(modal).toBeVisible();
-		const pickerInput = modal.locator(".cm-content");
+		const pickerInput = modal.locator("input.sb-input");
 		await pickerInput.click();
 		await sbPage.keyboard.type("Atomic Notes", { delay: 30 });
 		await sbPage.keyboard.press("Shift+Enter");

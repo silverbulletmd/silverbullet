@@ -357,7 +357,6 @@ export function isValidEditor(
 
 export function createCommandKeyBindings(
   client: Client,
-  options: { miniEditor?: boolean } = {},
 ): Extension {
   const commandKeyBindings: KeyBinding[] = [];
   const vimMode = client.ui.viewState.uiOptions.vimMode;
@@ -370,12 +369,6 @@ export function createCommandKeyBindings(
     const requiredEditor = def.requireEditor;
 
     if (def.disableInVim && vimMode) {
-      continue;
-    }
-
-    // Mini editors (filter box / page picker) are not page editors, so
-    // commands that target the page document should not capture keys there.
-    if (options.miniEditor && requiredEditor === "page") {
       continue;
     }
 

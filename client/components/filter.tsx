@@ -5,11 +5,10 @@ type FeatherProps = ComponentProps<typeof X>;
 import type { FunctionalComponent } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
-import { MiniEditor } from "./mini_editor.tsx";
+import { Input } from "@silverbulletmd/silverbullet/ui";
 import { fuzzySearchAndSort } from "../lib/fuzzy_search.ts";
 import { deepEqual } from "../../plug-api/lib/json.ts";
 import { AlwaysShownModal } from "./basic_modals.tsx";
-import type { EditorView } from "@codemirror/view";
 
 export function FilterList({
   placeholder,
@@ -17,7 +16,6 @@ export function FilterList({
   label,
   onSelect,
   onKeyPress,
-  darkMode,
   preFilter,
   phrasePreprocessor,
   allowNew = false,
@@ -29,7 +27,7 @@ export function FilterList({
   placeholder: string;
   options: FilterOption[];
   label: string;
-  onKeyPress?: (view: EditorView, event: KeyboardEvent) => boolean;
+  onKeyPress?: (value: string, event: KeyboardEvent) => boolean;
   onSelect: (option: FilterOption | undefined) => void;
   preFilter?: (options: FilterOption[], phrase: string) => FilterOption[];
   phrasePreprocessor?: (phrase: string) => string;
@@ -47,6 +45,10 @@ export function FilterList({
   const [selectedOption, setSelectionOption] = useState(0);
 
   const selectedElementRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
   function updateFilter(originalPhrase: string) {
     const prefilteredOptions = preFilter
@@ -103,49 +105,32 @@ export function FilterList({
         }}
       >
         <label>{label}</label>
-        <MiniEditor
-          text={text}
-          focus={true}
-          darkMode={darkMode}
-          placeholderText={placeholder}
-          onEnter={(_newText, shiftDown) => {
-            onSelect(
-              shiftDown
-                ? { name: text, type: "page" }
-                : matchingOptions[selectedOption],
-            );
-            return true;
-          }}
-          onEscape={() => {
-            onSelect(undefined);
-          }}
-          onChange={(text) => {
-            setText(text);
-          }}
-          onKeyUp={(view, e) => {
-            if (e.code === "Space" && e.altKey) {
-              if (matchingOptions.length > 0) {
-                const text = view.state.sliceDoc().trimEnd(); // space already added, remove it
-                const option = matchingOptions[0];
-                if (option.name.toLowerCase().startsWith(text.toLowerCase())) {
-                  // If the prefixes are the same, add one more segment
-                  let nextSlash = option.name.indexOf("/", text.length + 1);
-                  if (nextSlash === -1) {
-                    nextSlash = Infinity;
-                  }
-                  setText(option.name.slice(0, nextSlash));
-                } else {
-                  setText(`${option.name.split("/")[0]}/`);
-                }
-              }
-              return true;
+        <Input
+          inputRef={inputRef}
+          class="sb-filter-input"
+          value={text}
+          placeholder={placeholder}
+          onInput={(e) => setText(e.currentTarget.value)}
+          onKeyDown={(e) => {
+            // While composing with an IME (e.g. selecting a CJK candidate),
+            // let the input/IME handle every key — don't select/navigate.
+            if (e.isComposing) {
+              return;
             }
-            if (onKeyPress) {
-              return onKeyPress(view, e);
+            if (e.key === "Enter") {
+              e.preventDefault();
+              onSelect(
+                e.shiftKey
+                  ? { name: text, type: "page" }
+                  : matchingOptions[selectedOption],
+              );
+              return;
             }
-            return false;
-          }}
-          onKeyDown={(view, e) => {
+            if (e.key === "Escape") {
+              e.preventDefault();
+              onSelect(undefined);
+              return;
+            }
             if (e.key === "ArrowUp" || (e.ctrlKey && e.key === "p")) {
               setSelectionOption(Math.max(0, selectedOption - 1));
             } else if (e.key === "ArrowDown" || (e.ctrlKey && e.key === "n")) {
@@ -165,22 +150,38 @@ export function FilterList({
             } else if (
               e.key === " " &&
               completePrefix &&
-              view.state.sliceDoc() === ""
+              e.currentTarget.value === ""
             ) {
               setText(completePrefix);
             } else {
-              return false;
+              return;
             }
-
+            e.preventDefault();
             setTimeout(() => {
-              selectedElementRef.current?.scrollIntoView({
-                block: "nearest",
-              });
+              selectedElementRef.current?.scrollIntoView({ block: "nearest" });
             });
-
-            return true;
           }}
-          editable={true}
+          onKeyUp={(e) => {
+            if (e.code === "Space" && e.altKey) {
+              if (matchingOptions.length > 0) {
+                const value = e.currentTarget.value.trimEnd();
+                const option = matchingOptions[0];
+                if (option.name.toLowerCase().startsWith(value.toLowerCase())) {
+                  let nextSlash = option.name.indexOf("/", value.length + 1);
+                  if (nextSlash === -1) {
+                    nextSlash = Infinity;
+                  }
+                  setText(option.name.slice(0, nextSlash));
+                } else {
+                  setText(`${option.name.split("/")[0]}/`);
+                }
+              }
+              return;
+            }
+            if (onKeyPress) {
+              onKeyPress(e.currentTarget.value, e);
+            }
+          }}
         />
       </div>
       <div

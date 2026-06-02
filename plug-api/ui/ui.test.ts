@@ -30,6 +30,17 @@ test("Input renders sb-input with default type text", () => {
   expect(html).toContain('type="text"');
 });
 
+test("Input renders cleanly when onConfirm/onExit are provided", () => {
+  const html = render(
+    h(Input, { value: "hi", onConfirm: () => {}, onExit: () => {} }),
+  );
+  expect(html).toContain('class="sb-input"');
+  expect(html).toContain('value="hi"');
+  // Callback props must not leak as DOM attributes
+  expect(html).not.toContain("onConfirm");
+  expect(html).not.toContain("onExit");
+});
+
 test("Select wraps options", () => {
   const html = render(h(Select, {}, h("option", {}, "A")));
   expect(html).toContain('class="sb-select"');

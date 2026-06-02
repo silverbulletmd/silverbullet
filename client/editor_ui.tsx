@@ -56,6 +56,33 @@ export class MainUI {
         ) {
           // In some cm element, let's back out
           return;
+        } else if (
+          target.closest('input, textarea, select, [contenteditable="true"]')
+        ) {
+          // Focus is in a native form field (e.g. the top-bar page-name
+          // editor). Let the field own keys it handles natively — typing,
+          // caret navigation, and the standard clipboard/undo/select-all
+          // combos — but still forward genuine command shortcuts (e.g. Cmd-K)
+          // so they keep working from the field, like they did in the old
+          // CodeMirror mini-editor.
+          const cmd = ev.metaKey || ev.ctrlKey;
+          const key = ev.key.toLowerCase();
+          const fieldHandlesNatively = !cmd ||
+            ["a", "c", "v", "x", "z", "y"].includes(key) ||
+            [
+              "arrowleft",
+              "arrowright",
+              "arrowup",
+              "arrowdown",
+              "home",
+              "end",
+              "backspace",
+              "delete",
+            ].includes(key);
+          if (fieldHandlesNatively) {
+            return;
+          }
+          // Otherwise fall through and forward the shortcut to the editor.
         }
         if (runScopeHandlers(client.editorView, ev, "editor")) {
           ev.preventDefault();
@@ -415,7 +442,6 @@ export class MainUI {
           isOnline={viewState.isOnline}
           unsavedChanges={viewState.unsavedChanges}
           isLoading={viewState.isLoading}
-          darkMode={viewState.uiOptions.darkMode}
           progressPercentage={viewState.progressPercentage}
           progressType={viewState.progressType}
           onRename={async (newName) => {

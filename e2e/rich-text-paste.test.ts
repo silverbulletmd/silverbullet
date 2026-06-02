@@ -7,7 +7,7 @@ test.describe("Rich text paste", () => {
 
 		// Navigate to a fresh page
 		await sbPage.keyboard.press(`${mod}+k`);
-		await sbPage.locator(".sb-modal-box .cm-content").click();
+		await sbPage.locator(".sb-modal-box input.sb-input").click();
 		await sbPage.keyboard.type("Paste Test", { delay: 30 });
 		await sbPage.keyboard.press("Shift+Enter");
 		await expect(editor).toHaveText("");
@@ -51,7 +51,7 @@ test.describe("Rich text paste", () => {
 		await expect(editor).toContainText("Welcome");
 
 		await sbPage.keyboard.press(`${mod}+k`);
-		await sbPage.locator(".sb-modal-box .cm-content").click();
+		await sbPage.locator(".sb-modal-box input.sb-input").click();
 		await sbPage.keyboard.type("Paste Link Test", { delay: 30 });
 		await sbPage.keyboard.press("Shift+Enter");
 		await expect(editor).toHaveText("");
