@@ -4,6 +4,7 @@
 //! logic stays synchronous. The router is reusable, so an embedder can mount
 //! additional routes on top of it.
 
+pub mod auth;
 pub mod handlers;
 pub mod router;
 pub mod state;
