@@ -4,7 +4,7 @@ use axum::extract::DefaultBodyLimit;
 use axum::extract::Request;
 use axum::middleware::{self, Next};
 use axum::response::{IntoResponse, Response};
-use axum::routing::{delete, get, put};
+use axum::routing::{any, delete, get, post, put};
 use axum::Router;
 use silverbullet_common::SpaceError;
 
@@ -68,6 +68,8 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .route("/.fs/{*path}", get(fs::handle_fs_get))
         .route("/.fs/{*path}", put(fs::handle_fs_put))
         .route("/.fs/{*path}", delete(fs::handle_fs_delete))
+        .route("/.shell", post(crate::handlers::shell::handle_shell))
+        .route("/.proxy/{*path}", any(crate::handlers::proxy::handle_proxy))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             require_authorization,
@@ -207,5 +209,34 @@ mod auth_tests {
                 .status();
             assert_eq!(status, StatusCode::UNAUTHORIZED, "{method} {uri} must 401");
         }
+    }
+
+    /// `/.shell` and `/.proxy` are sensitive and must sit behind auth too
+    /// (ported from the App's `shell_requires_auth` / `proxy_requires_auth`).
+    #[tokio::test]
+    async fn shell_and_proxy_require_authorization() {
+        let st = state_with(Some(Arc::new(Always(false))));
+        let shell = crate::build_router(st.clone())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/.shell")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(shell.status(), StatusCode::UNAUTHORIZED, "/.shell must 401");
+
+        let proxy = crate::build_router(st)
+            .oneshot(
+                Request::builder()
+                    .uri("/.proxy/example.com/x")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(proxy.status(), StatusCode::UNAUTHORIZED, "/.proxy must 401");
     }
 }

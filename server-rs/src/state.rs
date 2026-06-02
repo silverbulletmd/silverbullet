@@ -3,6 +3,7 @@ use std::sync::Arc;
 use silverbullet_common::{BootConfig, SpacePrimitives};
 
 use crate::auth::RequestAuthorizer;
+use crate::shell::ShellConfig;
 
 /// Shared state for the HTTP server. Holds what the file/config/bundle
 /// endpoints need; further capabilities (auth, runtime evaluation) attach
@@ -23,4 +24,6 @@ pub struct AppState {
     /// Authentication strategy for protected routes. `None` means the server is
     /// open (no authentication).
     pub authorizer: Option<Arc<dyn RequestAuthorizer>>,
+    /// Shell-execution policy for `/.shell`.
+    pub shell: ShellConfig,
 }

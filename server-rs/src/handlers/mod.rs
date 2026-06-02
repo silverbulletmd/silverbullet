@@ -1,6 +1,8 @@
 pub mod bundle;
 pub mod control;
 pub mod fs;
+pub mod proxy;
+pub mod shell;
 
 use axum::body::Body;
 use axum::http::StatusCode;

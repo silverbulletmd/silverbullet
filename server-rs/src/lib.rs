@@ -7,6 +7,7 @@
 pub mod auth;
 pub mod handlers;
 pub mod router;
+pub mod shell;
 pub mod state;
 
 pub use router::build_router;
@@ -27,7 +28,7 @@ mod test_support {
             space: Box::new(MemorySpacePrimitives::new()),
             client_bundle: Some(Box::new(bundle)),
             boot_config: BootConfig {
-                space_folder_path: "/tmp/space".into(),
+                space_folder_path: "/tmp".into(),
                 space_name: "Test".into(),
                 index_page: "index".into(),
                 read_only: false,
@@ -36,9 +37,13 @@ mod test_support {
                 shell_backend: "local".into(),
                 disable_service_worker: true,
             },
-            space_folder_path: "/tmp/space".into(),
+            space_folder_path: "/tmp".into(),
             version: "test-version".into(),
             authorizer: None,
+            shell: crate::shell::ShellConfig {
+                enabled: true,
+                whitelist: vec![],
+            },
         })
     }
 }
