@@ -1,0 +1,30 @@
+[package]
+name = "silverbullet-common"
+edition.workspace = true
+license.workspace = true
+# Internal-only crate: never published, depended on by path. No version field
+# (defaults to 0.0.0); path deps ignore version, so nothing to ever bump.
+publish = false
+
+[features]
+# Exposes MemorySpacePrimitives for use in downstream crates' tests.
+testing = []
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+walkdir = { workspace = true }
+ignore = { workspace = true }
+mime_guess = { workspace = true }
+chrono = { workspace = true }
+filetime = { workspace = true }
+reqwest = { workspace = true }
+percent-encoding = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints]
+workspace = true

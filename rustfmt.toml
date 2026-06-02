@@ -1,0 +1,3 @@
+# Formatting for the Rust workspace. Enforced via `cargo fmt --check` in CI.
+# Defaults are used otherwise; only stable, intentional tweaks belong here.
+newline_style = "Unix"

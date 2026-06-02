@@ -67,14 +67,18 @@ check:
 	npm run check
 	npx biome lint .
 	go vet
+	cargo fmt --all --check
+	cargo clippy --workspace --all-targets --all-features -- -D warnings
 
 fmt:
 	npx biome format --write .
 	go fmt
+	cargo fmt --all
 
 test:
 	npx vitest run
 	go test ./server/...
+	cargo test --workspace --all-features
 
 test-integration:
 	go test -tags=integration ./server/... ./cli/... -v -timeout 300s
