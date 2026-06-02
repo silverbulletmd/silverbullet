@@ -1,4 +1,8 @@
+use std::sync::Arc;
+
 use silverbullet_common::{BootConfig, SpacePrimitives};
+
+use crate::auth::RequestAuthorizer;
 
 /// Shared state for the HTTP server. Holds what the file/config/bundle
 /// endpoints need; further capabilities (auth, runtime evaluation) attach
@@ -16,4 +20,7 @@ pub struct AppState {
     pub space_folder_path: String,
     /// Server version string, surfaced in `/.ping`'s `X-Server-Version`.
     pub version: String,
+    /// Authentication strategy for protected routes. `None` means the server is
+    /// open (no authentication).
+    pub authorizer: Option<Arc<dyn RequestAuthorizer>>,
 }

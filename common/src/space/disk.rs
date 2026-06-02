@@ -43,10 +43,6 @@ impl DiskSpacePrimitives {
     /// Symlinks are deliberately NOT resolved or blocked: linking an external
     /// file or folder into a space (e.g. `~/notes/shared -> /shared/docs`) is a
     /// supported workflow, so the OS follows symlinks on read/write as usual.
-    /// This matches the previous server, which validated paths lexically and let
-    /// the kernel resolve symlinks. (The HTTP write API cannot create symlinks —
-    /// it only writes file bytes — so any symlink in a space was placed there by
-    /// the user, intentionally.)
     pub fn safe_path(&self, path: &str) -> Result<PathBuf, SpaceError> {
         let clean = Path::new(path);
 

@@ -38,6 +38,7 @@ mod test_support {
             },
             space_folder_path: "/tmp/space".into(),
             version: "test-version".into(),
+            authorizer: None,
         })
     }
 }

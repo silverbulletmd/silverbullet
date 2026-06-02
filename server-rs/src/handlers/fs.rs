@@ -14,7 +14,10 @@ pub async fn handle_fs_list(State(state): State<Arc<AppState>>) -> impl IntoResp
     let state_inner = state.clone();
     match run_blocking(move || state_inner.space.fetch_file_list()).await {
         Ok(files) => {
-            let json = serde_json::to_string(&files).unwrap_or_else(|_| "[]".to_string());
+            let json = serde_json::to_string(&files).unwrap_or_else(|e| {
+                tracing::error!("failed to serialize file list: {e}");
+                "[]".to_string()
+            });
             Response::builder()
                 .status(StatusCode::OK)
                 .header("Content-Type", "application/json")

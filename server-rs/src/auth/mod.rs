@@ -4,9 +4,13 @@
 //! configured only from environment variables and that file.
 
 pub mod authenticator;
+pub mod authorizer;
 pub mod config;
+pub mod jwt_authorizer;
 pub mod lockout;
 
 pub use authenticator::Authenticator;
+pub use authorizer::{AuthContext, RequestAuthorizer};
 pub use config::AuthConfig;
+pub use jwt_authorizer::JwtAuthorizer;
 pub use lockout::LockoutTimer;
