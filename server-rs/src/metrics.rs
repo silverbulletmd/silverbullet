@@ -17,6 +17,8 @@ pub struct Metrics {
     pub shell_executions: IntCounter,
     /// Total `/.proxy` requests forwarded.
     pub proxy_requests: IntCounter,
+    /// Total `/.runtime/{lua,lua_script}` eval requests received.
+    pub runtime_api_requests: IntCounter,
 }
 
 impl Metrics {
@@ -44,14 +46,23 @@ impl Metrics {
         registry
             .register(Box::new(shell_executions.clone()))
             .expect("register shell");
+        let runtime_api_requests = IntCounter::new(
+            "silverbullet_runtime_api_requests_total",
+            "Total number of runtime API requests received",
+        )
+        .expect("counter opts");
         registry
             .register(Box::new(proxy_requests.clone()))
             .expect("register proxy");
+        registry
+            .register(Box::new(runtime_api_requests.clone()))
+            .expect("register runtime");
         Self {
             registry,
             http_requests,
             shell_executions,
             proxy_requests,
+            runtime_api_requests,
         }
     }
 
@@ -88,10 +99,15 @@ mod tests {
         let m = Metrics::new();
         m.shell_executions.inc();
         m.proxy_requests.inc();
+        m.runtime_api_requests.inc();
         let text = m.gather();
         assert!(text.contains("silverbullet_http_requests"), "{text}");
         assert!(text.contains("silverbullet_shell_executions"), "{text}");
         assert!(text.contains("silverbullet_proxy_requests"), "{text}");
+        assert!(
+            text.contains("silverbullet_runtime_api_requests_total"),
+            "{text}"
+        );
     }
 
     #[test]

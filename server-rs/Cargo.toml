@@ -20,9 +20,11 @@ base64 = { workspace = true }
 serde = { workspace = true }
 reqwest = { workspace = true }
 regex = { workspace = true }
+percent-encoding = { workspace = true }
 pulldown-cmark = { workspace = true }
 minijinja = { workspace = true }
 prometheus = { workspace = true }
+thiserror = { workspace = true }
 
 [dev-dependencies]
 silverbullet-common = { path = "../common", features = ["testing"] }

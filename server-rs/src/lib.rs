@@ -8,6 +8,7 @@ pub mod auth;
 pub mod handlers;
 pub mod metrics;
 pub mod router;
+pub mod runtime;
 pub mod shell;
 mod ssr;
 pub mod state;
@@ -20,15 +21,14 @@ mod test_support {
     use crate::state::AppState;
     use silverbullet_common::space::MemorySpacePrimitives;
     use silverbullet_common::BootConfig;
-    use std::sync::Arc;
 
     /// An `AppState` backed by a fresh in-memory space and a fresh in-memory
     /// "bundle" (also a MemorySpacePrimitives). Tests seed files as needed.
-    pub fn test_state() -> Arc<AppState> {
+    pub fn test_state() -> AppState {
         let bundle = MemorySpacePrimitives::new();
-        Arc::new(AppState {
+        AppState {
             space: Box::new(MemorySpacePrimitives::new()),
-            client_bundle: Some(Box::new(bundle)),
+            client_bundle: Box::new(bundle),
             boot_config: BootConfig {
                 space_folder_path: "/tmp".into(),
                 space_name: "Test".into(),
@@ -49,6 +49,7 @@ mod test_support {
                 whitelist: vec![],
             },
             metrics: None,
-        })
+            runtime: None,
+        }
     }
 }

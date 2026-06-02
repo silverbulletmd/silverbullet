@@ -18,19 +18,12 @@ pub async fn handle_client_bundle(
     State(state): State<Arc<AppState>>,
     req: axum::http::Request<Body>,
 ) -> impl IntoResponse {
-    if state.client_bundle.is_none() {
-        return Response::builder()
-            .status(StatusCode::NOT_FOUND)
-            .body(Body::from("No client bundle configured"))
-            .unwrap();
-    }
-
     let path = req.uri().path().trim_start_matches('/').to_string();
 
     // Try the requested asset first — served verbatim, no templating.
     let s = state.clone();
     let p = path.clone();
-    let direct = run_blocking(move || s.client_bundle.as_ref().unwrap().read_file(&p)).await;
+    let direct = run_blocking(move || s.client_bundle.read_file(&p)).await;
     if let Ok((data, meta)) = direct {
         return Response::builder()
             .status(StatusCode::OK)
@@ -41,13 +34,7 @@ pub async fn handle_client_bundle(
 
     // Fallback: the SPA shell (`.client/index.html`), templated.
     let s = state.clone();
-    let shell = run_blocking(move || {
-        s.client_bundle
-            .as_ref()
-            .unwrap()
-            .read_file(".client/index.html")
-    })
-    .await;
+    let shell = run_blocking(move || s.client_bundle.read_file(".client/index.html")).await;
     let shell = match shell {
         Ok((data, _)) => data,
         Err(_) => {
@@ -153,12 +140,7 @@ mod tests {
     use tower::ServiceExt;
 
     fn seed_bundle(state: &AppState, path: &str, body: &[u8]) {
-        state
-            .client_bundle
-            .as_ref()
-            .unwrap()
-            .write_file(path, body, None)
-            .unwrap();
+        state.client_bundle.write_file(path, body, None).unwrap();
     }
 
     fn seed_space(state: &AppState, path: &str, body: &[u8]) {
@@ -178,7 +160,7 @@ mod tests {
     async fn serves_a_bundle_asset_raw() {
         let state = test_state();
         seed_bundle(&state, ".client/app.js", b"console.log(1)");
-        let resp = crate::build_router(state)
+        let resp = crate::build_router(Arc::new(state))
             .oneshot(
                 Request::builder()
                     .uri("/.client/app.js")
@@ -196,7 +178,7 @@ mod tests {
         // Direct path: no templating (matches the legacy Go server).
         let state = test_state();
         seed_bundle(&state, "raw.html", b"<title>{{.Title}}</title>");
-        let resp = crate::build_router(state)
+        let resp = crate::build_router(Arc::new(state))
             .oneshot(
                 Request::builder()
                     .uri("/raw.html")
@@ -215,7 +197,7 @@ mod tests {
         let state = test_state();
         seed_bundle(&state, ".client/index.html", INDEX_TPL);
         seed_space(&state, "Home.md", b"# Should not render");
-        let resp = crate::build_router(state)
+        let resp = crate::build_router(Arc::new(state))
             .oneshot(Request::builder().uri("/Home").body(Body::empty()).unwrap())
             .await
             .unwrap();
@@ -231,7 +213,7 @@ mod tests {
     }
 
     fn read_only_public_state() -> Arc<AppState> {
-        let mut s = Arc::try_unwrap(test_state()).ok().expect("unique");
+        let mut s = test_state();
         s.boot_config.read_only = true;
         s.authorizer = None;
         Arc::new(s)
@@ -343,17 +325,5 @@ mod tests {
         let raw = br#"<html>{{ oops"#;
         let out = super::template_index_html(raw, "", "T", "", "");
         assert_eq!(out, raw);
-    }
-
-    #[tokio::test]
-    async fn no_bundle_configured_is_404() {
-        let mut s = Arc::try_unwrap(test_state()).ok().expect("unique");
-        s.client_bundle = None;
-        let state = Arc::new(s);
-        let resp = crate::build_router(state)
-            .oneshot(Request::builder().uri("/x").body(Body::empty()).unwrap())
-            .await
-            .unwrap();
-        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
     }
 }

@@ -161,7 +161,7 @@ mod tests {
     }
 
     fn state_read_only(read_only: bool) -> Arc<AppState> {
-        let mut s = Arc::try_unwrap(test_state()).ok().expect("unique");
+        let mut s = test_state();
         s.boot_config.read_only = read_only;
         Arc::new(s)
     }

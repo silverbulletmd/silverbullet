@@ -156,6 +156,8 @@ fn file_meta_from_headers(headers: &HeaderMap, path: &str) -> FileMeta {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use crate::test_support::test_state;
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
@@ -165,7 +167,7 @@ mod tests {
     async fn list_returns_written_files() {
         let state = test_state();
         state.space.write_file("a.md", b"hello", None).unwrap();
-        let resp = crate::build_router(state)
+        let resp = crate::build_router(Arc::new(state))
             .oneshot(Request::builder().uri("/.fs").body(Body::empty()).unwrap())
             .await
             .unwrap();
@@ -185,7 +187,7 @@ mod tests {
     async fn get_returns_bytes_and_headers() {
         let state = test_state();
         state.space.write_file("a.md", b"hello", None).unwrap();
-        let resp = crate::build_router(state)
+        let resp = crate::build_router(Arc::new(state))
             .oneshot(
                 Request::builder()
                     .uri("/.fs/a.md")
@@ -230,7 +232,7 @@ mod tests {
         // is preserved in X-Content-Type.
         let state = test_state();
         state.space.write_file("a.md", b"hello", None).unwrap();
-        let resp = crate::build_router(state)
+        let resp = crate::build_router(Arc::new(state))
             .oneshot(
                 Request::builder()
                     .uri("/.fs/a.md")
@@ -257,7 +259,7 @@ mod tests {
 
     #[tokio::test]
     async fn get_missing_is_404() {
-        let resp = crate::build_router(test_state())
+        let resp = crate::build_router(Arc::new(test_state()))
             .oneshot(
                 Request::builder()
                     .uri("/.fs/nope.md")
@@ -271,8 +273,7 @@ mod tests {
 
     #[tokio::test]
     async fn put_then_get_roundtrips() {
-        let state = test_state();
-        let app = crate::build_router(state);
+        let app = crate::build_router(Arc::new(test_state()));
         let put = app
             .clone()
             .oneshot(
@@ -305,7 +306,7 @@ mod tests {
     async fn delete_then_get_is_404() {
         let state = test_state();
         state.space.write_file("gone.md", b"x", None).unwrap();
-        let app = crate::build_router(state);
+        let app = crate::build_router(Arc::new(state));
         let del = app
             .clone()
             .oneshot(

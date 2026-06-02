@@ -83,6 +83,26 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .route("/.fs/{*path}", delete(fs::handle_fs_delete))
         .route("/.shell", post(crate::handlers::shell::handle_shell))
         .route("/.proxy/{*path}", any(crate::handlers::proxy::handle_proxy))
+        .route(
+            "/.runtime/lua",
+            post(crate::handlers::runtime::handle_runtime_lua),
+        )
+        .route(
+            "/.runtime/lua_script",
+            post(crate::handlers::runtime::handle_runtime_lua_script),
+        )
+        .route(
+            "/.runtime/logs",
+            get(crate::handlers::runtime::handle_runtime_logs),
+        )
+        .route(
+            "/.runtime/objects",
+            get(crate::handlers::runtime_objects::handle_objects_list_tags),
+        )
+        .route(
+            "/.runtime/objects/{*path}",
+            get(crate::handlers::runtime_objects::handle_objects_by_path),
+        )
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             require_authorization,
@@ -148,9 +168,7 @@ mod auth_tests {
     }
 
     fn state_with(authz: Option<Arc<dyn RequestAuthorizer>>) -> Arc<AppState> {
-        let mut s = std::sync::Arc::try_unwrap(test_state())
-            .ok()
-            .expect("unique");
+        let mut s = test_state();
         s.authorizer = authz;
         Arc::new(s)
     }
@@ -285,6 +303,30 @@ mod auth_tests {
             .unwrap();
         assert_eq!(proxy.status(), StatusCode::UNAUTHORIZED, "/.proxy must 401");
     }
+
+    /// `/.runtime/*` is sensitive and must sit behind auth too.
+    #[tokio::test]
+    async fn runtime_routes_require_authorization() {
+        let st = state_with(Some(Arc::new(Always(false))));
+        for (method, uri) in [
+            ("POST", "/.runtime/lua"),
+            ("POST", "/.runtime/lua_script"),
+            ("GET", "/.runtime/logs"),
+        ] {
+            let status = crate::build_router(st.clone())
+                .oneshot(
+                    Request::builder()
+                        .method(method)
+                        .uri(uri)
+                        .body(Body::empty())
+                        .unwrap(),
+                )
+                .await
+                .unwrap()
+                .status();
+            assert_eq!(status, StatusCode::UNAUTHORIZED, "{method} {uri} must 401");
+        }
+    }
 }
 
 #[cfg(test)]
@@ -299,7 +341,7 @@ mod metrics_tests {
 
     fn state_with_metrics() -> (Arc<AppState>, Arc<Metrics>) {
         let metrics = Arc::new(Metrics::new());
-        let mut s = Arc::try_unwrap(test_state()).ok().expect("unique");
+        let mut s = test_state();
         s.metrics = Some(metrics.clone());
         (Arc::new(s), metrics)
     }
@@ -310,8 +352,6 @@ mod metrics_tests {
         // Seed a bundle asset so the request is a clean 200.
         state
             .client_bundle
-            .as_ref()
-            .unwrap()
             .write_file(".client/a.js", b"x", None)
             .unwrap();
         let before = metrics.http_requests.get();
@@ -331,7 +371,7 @@ mod metrics_tests {
     async fn no_metrics_means_no_counting_and_no_panic() {
         // Default test_state has metrics = None; a request must still succeed.
         let state = test_state();
-        let resp = crate::build_router(state)
+        let resp = crate::build_router(Arc::new(state))
             .oneshot(
                 Request::builder()
                     .uri("/.ping")
@@ -366,8 +406,7 @@ mod metrics_tests {
 
     #[tokio::test]
     async fn metrics_router_without_metrics_is_503() {
-        let state = test_state(); // metrics = None
-        let resp = crate::metrics_router(state)
+        let resp = crate::metrics_router(Arc::new(test_state()))
             .oneshot(
                 Request::builder()
                     .uri("/metrics")
@@ -405,7 +444,7 @@ mod metrics_tests {
         // A read-only space rejects the command before it runs → no increment
         // (matching Go, which counts only executed commands).
         let metrics = Arc::new(Metrics::new());
-        let mut s = Arc::try_unwrap(test_state()).ok().expect("unique");
+        let mut s = test_state();
         s.metrics = Some(metrics.clone());
         s.boot_config.read_only = true;
         let state = Arc::new(s);
@@ -451,7 +490,7 @@ mod metrics_tests {
     #[tokio::test]
     async fn read_only_proxy_does_not_increment_counter() {
         let metrics = Arc::new(Metrics::new());
-        let mut s = Arc::try_unwrap(test_state()).ok().expect("unique");
+        let mut s = test_state();
         s.metrics = Some(metrics.clone());
         s.boot_config.read_only = true;
         let state = Arc::new(s);
@@ -467,5 +506,61 @@ mod metrics_tests {
             .unwrap();
         assert_eq!(resp.status(), StatusCode::METHOD_NOT_ALLOWED);
         assert_eq!(metrics.proxy_requests.get(), before);
+    }
+
+    #[tokio::test]
+    async fn runtime_eval_increments_counter_but_logs_does_not() {
+        use crate::runtime::{LogEntry, RuntimeBackend, RuntimeError};
+        use std::time::Duration;
+
+        struct Noop;
+        impl RuntimeBackend for Noop {
+            fn eval_global(
+                &self,
+                _fn_name: &str,
+                _arg: &str,
+                _t: Duration,
+            ) -> Result<serde_json::Value, RuntimeError> {
+                Ok(serde_json::json!({ "result": null }))
+            }
+            fn logs(&self, _l: usize, _s: Option<i64>) -> Vec<LogEntry> {
+                vec![]
+            }
+            fn ready(&self) -> bool {
+                true
+            }
+        }
+
+        let metrics = Arc::new(Metrics::new());
+        let mut s = test_state();
+        s.metrics = Some(metrics.clone());
+        s.runtime = Some(Box::new(Noop));
+        let state = Arc::new(s);
+
+        let before = metrics.runtime_api_requests.get();
+        // An eval request ticks the counter.
+        let _ = crate::build_router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/.runtime/lua")
+                    .body(Body::from("1 + 1"))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(metrics.runtime_api_requests.get(), before + 1);
+
+        // A logs request does NOT.
+        let _ = crate::build_router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/.runtime/logs")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(metrics.runtime_api_requests.get(), before + 1);
     }
 }

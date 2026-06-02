@@ -138,7 +138,7 @@ mod tests {
     use tower::ServiceExt;
 
     fn state_with(shell: ShellConfig, read_only: bool) -> Arc<AppState> {
-        let mut s = Arc::try_unwrap(test_state()).ok().expect("unique");
+        let mut s = test_state();
         s.shell = shell;
         s.boot_config.read_only = read_only;
         Arc::new(s)
@@ -235,7 +235,7 @@ mod tests {
 
     /// Build state whose space folder (the shell cwd) is `cwd`, with shell on.
     fn state_in_dir(cwd: &str) -> Arc<AppState> {
-        let mut s = Arc::try_unwrap(test_state()).ok().expect("unique");
+        let mut s = test_state();
         s.shell = ShellConfig {
             enabled: true,
             whitelist: vec![],

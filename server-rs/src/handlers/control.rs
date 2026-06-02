@@ -28,6 +28,8 @@ pub async fn handle_config(State(state): State<Arc<AppState>>) -> impl IntoRespo
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use crate::test_support::test_state;
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
@@ -35,7 +37,7 @@ mod tests {
 
     #[tokio::test]
     async fn ping_returns_version_header() {
-        let app = crate::build_router(test_state());
+        let app = crate::build_router(Arc::new(test_state()));
         let resp = app
             .oneshot(
                 Request::builder()
@@ -54,7 +56,7 @@ mod tests {
 
     #[tokio::test]
     async fn config_returns_boot_config_json() {
-        let app = crate::build_router(test_state());
+        let app = crate::build_router(Arc::new(test_state()));
         let resp = app
             .oneshot(
                 Request::builder()
