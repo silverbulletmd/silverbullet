@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["common", "server-rs"]
+members = ["common", "server-rs", "bin/silverbullet"]
 
 [workspace.package]
 edition = "2021"
@@ -39,3 +39,6 @@ tokio = { version = "1", default-features = false, features = ["rt-multi-thread"
 jsonwebtoken = "9"
 sha2 = "0.10"
 getrandom = "0.2"
+clap = { version = "4", features = ["derive", "env"] }
+rust-embed = { version = "8", features = ["interpolate-folder-path", "mime-guess"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
