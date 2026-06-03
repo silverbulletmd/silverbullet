@@ -14,7 +14,7 @@ mod ssr;
 pub mod state;
 
 pub use router::{build_router, metrics_router};
-pub use state::AppState;
+pub use state::{AppState, ServerVersion};
 
 #[cfg(test)]
 mod test_support {

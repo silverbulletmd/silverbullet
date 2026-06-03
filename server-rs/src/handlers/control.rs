@@ -12,7 +12,7 @@ pub async fn handle_ping(State(state): State<Arc<AppState>>) -> impl IntoRespons
         [
             ("Cache-Control", "no-cache".to_string()),
             ("X-Space-Path", state.space_folder_path.clone()),
-            ("X-Server-Version", state.version.clone()),
+            ("X-Server-Version", state.version.get()),
         ],
         "OK",
     )

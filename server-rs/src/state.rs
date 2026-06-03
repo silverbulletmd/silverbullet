@@ -7,6 +7,37 @@ use crate::metrics::Metrics;
 use crate::runtime::RuntimeBackend;
 use crate::shell::ShellConfig;
 
+/// The version string reported at `/.ping` (`X-Server-Version`). Normally
+/// `Static`. The standalone binary uses `Dynamic` in debug builds so the
+/// reported version follows a live-rebuilt client bundle (served from disk)
+/// without a server restart.
+pub enum ServerVersion {
+    Static(String),
+    Dynamic(Box<dyn Fn() -> String + Send + Sync>),
+}
+
+impl ServerVersion {
+    /// The current version string.
+    pub fn get(&self) -> String {
+        match self {
+            ServerVersion::Static(v) => v.clone(),
+            ServerVersion::Dynamic(f) => f(),
+        }
+    }
+}
+
+impl From<String> for ServerVersion {
+    fn from(v: String) -> Self {
+        ServerVersion::Static(v)
+    }
+}
+
+impl From<&str> for ServerVersion {
+    fn from(v: &str) -> Self {
+        ServerVersion::Static(v.to_string())
+    }
+}
+
 /// Shared state for the HTTP server. Holds what the file/config/bundle
 /// endpoints need; further capabilities (auth, runtime evaluation) attach
 /// additional state as they are introduced.
@@ -22,8 +53,10 @@ pub struct AppState {
     pub boot_config: BootConfig,
     /// Absolute path of the space folder, surfaced in `X-Space-Path` headers.
     pub space_folder_path: String,
-    /// Server version string, surfaced in `/.ping`'s `X-Server-Version`.
-    pub version: String,
+    /// Server version, surfaced in `/.ping`'s `X-Server-Version`. The client
+    /// compares this against its compiled-in `publicVersion`; a mismatch shows a
+    /// "new version available" banner, so it must track the served bundle.
+    pub version: ServerVersion,
     /// URL prefix the server is mounted under (e.g. `/wiki`), injected into the
     /// `index.html` `<base href>`. Empty for a root-mounted server.
     pub host_url_prefix: String,
