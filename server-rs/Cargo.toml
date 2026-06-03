@@ -20,6 +20,7 @@ base64 = { workspace = true }
 serde = { workspace = true }
 reqwest = { workspace = true }
 regex = { workspace = true }
+chrono = { workspace = true }
 percent-encoding = { workspace = true }
 pulldown-cmark = { workspace = true }
 minijinja = { workspace = true }

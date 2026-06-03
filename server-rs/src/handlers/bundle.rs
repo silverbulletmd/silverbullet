@@ -5,9 +5,22 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 
+use chrono::{TimeZone, Utc};
+
 use crate::router::run_blocking;
 use crate::ssr::{convert_wiki_links, render_markdown};
 use crate::state::AppState;
+
+/// Format a millisecond Unix timestamp as an HTTP-date (IMF-fixdate, GMT) for
+/// `Last-Modified`. Empty string if the timestamp is out of range. The value is
+/// echoed back verbatim by the browser in `If-Modified-Since`, so it only needs
+/// to be deterministic for the 304 comparison to work.
+fn http_date(ms: i64) -> String {
+    Utc.timestamp_millis_opt(ms)
+        .single()
+        .map(|dt| dt.format("%a, %d %b %Y %H:%M:%S GMT").to_string())
+        .unwrap_or_default()
+}
 
 /// SPA fallback: serve a bundle asset by request path verbatim, or fall back to
 /// the templated `index.html` shell for any unknown path (client-side routing).
@@ -18,18 +31,38 @@ pub async fn handle_client_bundle(
     State(state): State<Arc<AppState>>,
     req: axum::http::Request<Body>,
 ) -> impl IntoResponse {
+    // The browser echoes our `Last-Modified` verbatim in `If-Modified-Since`, so
+    // we string-compare (matching the legacy server) to answer 304s.
+    let if_modified_since = req
+        .headers()
+        .get(axum::http::header::IF_MODIFIED_SINCE)
+        .and_then(|v| v.to_str().ok())
+        .map(str::to_string);
+
     let path = req.uri().path().trim_start_matches('/').to_string();
 
-    // Try the requested asset first — served verbatim, no templating.
+    // Try the requested asset first — served verbatim, no templating. Static
+    // bundle assets carry a `Last-Modified` so browsers can revalidate with a 304.
     let s = state.clone();
     let p = path.clone();
     let direct = run_blocking(move || s.client_bundle.read_file(&p)).await;
     if let Ok((data, meta)) = direct {
-        return Response::builder()
+        let last_modified = http_date(meta.last_modified);
+        if !last_modified.is_empty() && if_modified_since.as_deref() == Some(last_modified.as_str())
+        {
+            return Response::builder()
+                .status(StatusCode::NOT_MODIFIED)
+                .header(axum::http::header::LAST_MODIFIED, &last_modified)
+                .body(Body::empty())
+                .unwrap();
+        }
+        let mut builder = Response::builder()
             .status(StatusCode::OK)
-            .header("Content-Type", &meta.content_type)
-            .body(Body::from(data))
-            .unwrap();
+            .header("Content-Type", &meta.content_type);
+        if !last_modified.is_empty() {
+            builder = builder.header(axum::http::header::LAST_MODIFIED, &last_modified);
+        }
+        return builder.body(Body::from(data)).unwrap();
     }
 
     // Fallback: the SPA shell (`.client/index.html`), templated.
@@ -171,6 +204,47 @@ mod tests {
             .unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
         assert_eq!(body_string(resp).await, "console.log(1)");
+    }
+
+    #[tokio::test]
+    async fn bundle_asset_supports_conditional_304() {
+        let state = Arc::new(test_state());
+        seed_bundle(&state, ".client/app.js", b"x");
+        // First request: 200 with a `Last-Modified` header.
+        let r1 = crate::build_router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .uri("/.client/app.js")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(r1.status(), StatusCode::OK);
+        let last_modified = r1
+            .headers()
+            .get("last-modified")
+            .expect("Last-Modified present")
+            .to_str()
+            .unwrap()
+            .to_string();
+        assert!(!last_modified.is_empty());
+        // Re-request echoing that value back: 304 Not Modified, empty body.
+        let r2 = crate::build_router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/.client/app.js")
+                    .header("if-modified-since", &last_modified)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(r2.status(), StatusCode::NOT_MODIFIED);
+        let body = axum::body::to_bytes(r2.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        assert!(body.is_empty());
     }
 
     #[tokio::test]
