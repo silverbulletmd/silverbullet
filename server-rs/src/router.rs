@@ -53,7 +53,16 @@ async fn require_authorization(
     if authorized {
         next.run(req).await
     } else {
-        (axum::http::StatusCode::UNAUTHORIZED, "Unauthorized").into_response()
+        // The client's boot code follows this `Location` to the login page; all
+        // protected routes are `/.`-prefixed, matching the legacy server's
+        // 401-with-Location branch.
+        let location = format!("{}/.auth", state.host_url_prefix);
+        (
+            axum::http::StatusCode::UNAUTHORIZED,
+            [(axum::http::header::LOCATION, location)],
+            "Unauthorized",
+        )
+            .into_response()
     }
 }
 
@@ -109,7 +118,14 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         ));
 
     // Open: liveness + the SPA shell/assets must always load.
-    let open = Router::new().route("/.ping", get(control::handle_ping));
+    let open = Router::new()
+        .route("/.ping", get(control::handle_ping))
+        .route(
+            "/.auth",
+            get(crate::handlers::auth::handle_auth_get)
+                .post(crate::handlers::auth::handle_auth_post),
+        )
+        .route("/.logout", get(crate::handlers::auth::handle_logout));
 
     open.merge(protected)
         .fallback(get(bundle::handle_client_bundle))
@@ -210,9 +226,9 @@ mod auth_tests {
         use crate::auth::authenticator::Authenticator;
         use crate::auth::JwtAuthorizer;
 
-        let auth = Authenticator::from_secret_bytes(vec![5u8; 32], "h".into());
+        let auth = std::sync::Arc::new(Authenticator::from_secret_bytes(vec![5u8; 32], "h".into()));
         let token = auth.issue_jwt("alice", 3600).unwrap();
-        let authz = JwtAuthorizer::new(auth, "tok".into(), "sb_auth".into());
+        let authz = JwtAuthorizer::new(auth, "tok".into());
         let st = state_with(Some(Arc::new(authz)));
 
         // No credential:  401.
@@ -240,7 +256,8 @@ mod auth_tests {
             .oneshot(
                 Request::builder()
                     .uri("/.fs")
-                    .header("cookie", format!("sb_auth={token}"))
+                    .header("host", "localhost")
+                    .header("cookie", format!("auth_localhost={token}"))
                     .body(Body::empty())
                     .unwrap(),
             )

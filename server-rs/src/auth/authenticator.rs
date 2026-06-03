@@ -16,8 +16,11 @@ pub struct Claims {
 /// Issues and verifies HS256 session tokens with a persisted signing secret.
 pub struct Authenticator {
     secret: Vec<u8>,
+    /// Base64 of 16 random bytes; stable across auth-config changes. Handed to
+    /// the login page so the browser can derive a content-encryption key.
+    salt: String,
     /// Hex SHA-256 of the auth config that produced this secret; used to detect
-    /// config changes (see Task 5).
+    /// config changes.
     #[allow(dead_code)]
     pub(crate) config_hash: String,
 }
@@ -30,18 +33,31 @@ struct AuthFile {
     secret: String,
     /// Hex SHA-256 of the auth config that generated `secret`.
     config_hash: String,
+    /// Base64 of 16 random bytes; stable across config changes.
+    #[serde(default)]
+    salt: String,
 }
 
 const AUTH_FILE_NAME: &str = ".silverbullet.auth.json";
 
 impl Authenticator {
-    /// Construct directly from raw secret bytes (used by tests and by the
-    /// file-backed constructor in Task 5).
+    /// Construct from raw secret bytes with an empty salt (test/legacy helper).
     pub fn from_secret_bytes(secret: Vec<u8>, config_hash: String) -> Self {
+        Self::from_parts(secret, String::new(), config_hash)
+    }
+
+    /// Construct from secret + base64 salt + config hash.
+    pub fn from_parts(secret: Vec<u8>, salt: String, config_hash: String) -> Self {
         Self {
             secret,
+            salt,
             config_hash,
         }
+    }
+
+    /// The base64 encryption salt handed to the login page.
+    pub fn salt(&self) -> &str {
+        &self.salt
     }
 
     /// Issue a token for `username` expiring `expiry_secs` from now.
@@ -90,9 +106,11 @@ impl Authenticator {
     /// Load the signing secret from `<space_dir>/.silverbullet.auth.json`,
     /// generating (and persisting) a fresh one when the file is absent or when
     /// the stored config hash no longer matches `config` (which invalidates all
-    /// previously-issued tokens). If the file cannot be written (e.g. a
-    /// read-only space) a fresh ephemeral secret is used and a warning is
-    /// logged — sessions then do not survive a restart.
+    /// previously-issued tokens). The salt is always read from the existing file
+    /// and only regenerated when it is absent — ensuring it survives config
+    /// changes. If the file cannot be written (e.g. a read-only space) a fresh
+    /// ephemeral secret is used and a warning is logged — sessions then do not
+    /// survive a restart.
     pub fn load_or_init(
         space_dir: &Path,
         config: &crate::auth::config::AuthConfig,
@@ -100,32 +118,58 @@ impl Authenticator {
         let path = space_dir.join(AUTH_FILE_NAME);
         let want_hash = config.security_hash();
 
-        if let Ok(bytes) = std::fs::read(&path) {
-            if let Ok(file) = serde_json::from_slice::<AuthFile>(&bytes) {
-                if file.config_hash == want_hash {
-                    if let Ok(secret) =
-                        base64::engine::general_purpose::STANDARD.decode(&file.secret)
-                    {
-                        return Ok(Self::from_secret_bytes(secret, want_hash));
-                    }
-                }
-            }
-            tracing::info!("auth config changed or file unreadable; regenerating signing secret");
-        }
+        let existing: Option<AuthFile> = std::fs::read(&path)
+            .ok()
+            .and_then(|bytes| serde_json::from_slice::<AuthFile>(&bytes).ok());
 
-        let secret = random_bytes(32);
-        let auth = Self::from_secret_bytes(secret.clone(), want_hash.clone());
-        let file = AuthFile {
-            secret: base64::engine::general_purpose::STANDARD.encode(&secret),
-            config_hash: want_hash,
+        let secret = existing
+            .as_ref()
+            .filter(|f| f.config_hash == want_hash)
+            .and_then(|f| {
+                base64::engine::general_purpose::STANDARD
+                    .decode(&f.secret)
+                    .ok()
+            });
+        let (secret, secret_fresh) = match secret {
+            Some(s) => (s, false),
+            None => {
+                if existing.is_some() {
+                    tracing::info!(
+                        "auth config changed or file unreadable; regenerating signing secret"
+                    );
+                }
+                (random_bytes(32), true)
+            }
         };
-        match serde_json::to_vec_pretty(&file)
-            .map_err(std::io::Error::other)
-            .and_then(|b| write_private(&path, &b))
-        {
-            Ok(()) => {}
-            Err(e) => {
-                tracing::warn!("could not persist {AUTH_FILE_NAME}: {e}; using an ephemeral secret")
+
+        let stored_salt = existing
+            .as_ref()
+            .map(|f| f.salt.clone())
+            .filter(|s| !s.is_empty());
+        let (salt, salt_fresh) = match stored_salt {
+            Some(s) => (s, false),
+            None => (
+                base64::engine::general_purpose::STANDARD.encode(random_bytes(16)),
+                true,
+            ),
+        };
+
+        let auth = Self::from_parts(secret.clone(), salt.clone(), want_hash.clone());
+
+        if existing.is_none() || secret_fresh || salt_fresh {
+            let file = AuthFile {
+                secret: base64::engine::general_purpose::STANDARD.encode(&secret),
+                config_hash: want_hash,
+                salt,
+            };
+            match serde_json::to_vec_pretty(&file)
+                .map_err(std::io::Error::other)
+                .and_then(|b| write_private(&path, &b))
+            {
+                Ok(()) => {}
+                Err(e) => tracing::warn!(
+                    "could not persist {AUTH_FILE_NAME}: {e}; using an ephemeral secret"
+                ),
             }
         }
         Ok(auth)
@@ -253,5 +297,31 @@ mod tests {
             0o600,
             "the persisted signing secret must not be world-readable"
         );
+    }
+
+    #[test]
+    fn salt_is_present_and_stable_across_reloads() {
+        let dir = tempdir().unwrap();
+        let c = cfg("t1");
+        let a1 = Authenticator::load_or_init(dir.path(), &c).unwrap();
+        let salt1 = a1.salt().to_string();
+        assert!(!salt1.is_empty(), "a fresh authenticator must have a salt");
+        let raw = base64::engine::general_purpose::STANDARD
+            .decode(&salt1)
+            .unwrap();
+        assert_eq!(raw.len(), 16);
+        let a2 = Authenticator::load_or_init(dir.path(), &c).unwrap();
+        assert_eq!(a2.salt(), salt1);
+    }
+
+    #[test]
+    fn salt_survives_a_config_change_even_though_secret_rotates() {
+        let dir = tempdir().unwrap();
+        let a1 = Authenticator::load_or_init(dir.path(), &cfg("t1")).unwrap();
+        let token = a1.issue_jwt("alice", 3600).unwrap();
+        let salt1 = a1.salt().to_string();
+        let a2 = Authenticator::load_or_init(dir.path(), &cfg("t2")).unwrap();
+        assert!(a2.verify_jwt(&token).is_err(), "secret must rotate");
+        assert_eq!(a2.salt(), salt1, "salt must be stable");
     }
 }

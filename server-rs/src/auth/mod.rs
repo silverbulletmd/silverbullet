@@ -6,11 +6,15 @@
 pub mod authenticator;
 pub mod authorizer;
 pub mod config;
+pub mod cookie;
 pub mod jwt_authorizer;
 pub mod lockout;
+pub mod login;
 
 pub use authenticator::Authenticator;
 pub use authorizer::{AuthContext, RequestAuthorizer};
 pub use config::AuthConfig;
+pub use cookie::{auth_cookie_name, is_secure_request, request_host, CookieOptions};
 pub use jwt_authorizer::JwtAuthorizer;
 pub use lockout::LockoutTimer;
+pub use login::LoginManager;

@@ -1,25 +1,26 @@
+use std::sync::Arc;
+
 use axum::http::HeaderMap;
 
 use crate::auth::authenticator::Authenticator;
 use crate::auth::authorizer::{AuthContext, RequestAuthorizer};
 use crate::auth::config::constant_time_eq;
+use crate::auth::cookie::{auth_cookie_name, request_host};
 
 /// The standalone server's authorizer: a request is authorized if it carries the
 /// configured bearer token (constant-time compared) or a valid session JWT in
-/// the auth cookie.
+/// the host-derived auth cookie (`auth_<cleanHost>`).
 pub struct JwtAuthorizer {
-    authenticator: Authenticator,
+    authenticator: Arc<Authenticator>,
     /// Optional bearer token (empty disables bearer auth).
     auth_token: String,
-    cookie_name: String,
 }
 
 impl JwtAuthorizer {
-    pub fn new(authenticator: Authenticator, auth_token: String, cookie_name: String) -> Self {
+    pub fn new(authenticator: Arc<Authenticator>, auth_token: String) -> Self {
         Self {
             authenticator,
             auth_token,
-            cookie_name,
         }
     }
 }
@@ -33,7 +34,8 @@ impl RequestAuthorizer for JwtAuthorizer {
                 }
             }
         }
-        if let Some(cookie) = cookie_value(ctx.headers, &self.cookie_name) {
+        let name = auth_cookie_name(&request_host(ctx.headers));
+        if let Some(cookie) = cookie_value(ctx.headers, &name) {
             if self.authenticator.verify_jwt(&cookie).is_ok() {
                 return true;
             }
@@ -73,7 +75,7 @@ mod tests {
 
     fn authz() -> JwtAuthorizer {
         let auth = Authenticator::from_secret_bytes(vec![3u8; 32], "h".into());
-        JwtAuthorizer::new(auth, "secret-token".into(), "sb_auth".into())
+        JwtAuthorizer::new(std::sync::Arc::new(auth), "secret-token".into())
     }
 
     fn ctx<'a>(headers: &'a HeaderMap) -> AuthContext<'a> {
@@ -104,23 +106,40 @@ mod tests {
 
     #[test]
     fn accepts_valid_jwt_cookie() {
-        let a = authz();
-        let token = {
-            let auth = Authenticator::from_secret_bytes(vec![3u8; 32], "h".into());
-            auth.issue_jwt("alice", 3600).unwrap()
-        };
+        let auth = std::sync::Arc::new(Authenticator::from_secret_bytes(vec![3u8; 32], "h".into()));
+        let token = auth.issue_jwt("alice", 3600).unwrap();
+        let a = JwtAuthorizer::new(auth, "secret-token".into());
         let mut h = HeaderMap::new();
+        h.insert("host", HeaderValue::from_static("localhost"));
         h.insert(
             "cookie",
-            HeaderValue::from_str(&format!("sb_auth={token}; other=1")).unwrap(),
+            HeaderValue::from_str(&format!("auth_localhost={token}; other=1")).unwrap(),
         );
         assert!(a.is_authorized(&ctx(&h)));
     }
 
     #[test]
+    fn rejects_cookie_under_wrong_host_name() {
+        let auth = std::sync::Arc::new(Authenticator::from_secret_bytes(vec![3u8; 32], "h".into()));
+        let token = auth.issue_jwt("alice", 3600).unwrap();
+        let a = JwtAuthorizer::new(auth, "secret-token".into());
+        let mut h = HeaderMap::new();
+        h.insert("host", HeaderValue::from_static("localhost"));
+        h.insert(
+            "cookie",
+            HeaderValue::from_str(&format!("auth_other={token}")).unwrap(),
+        );
+        assert!(!a.is_authorized(&ctx(&h)));
+    }
+
+    #[test]
     fn rejects_garbage_cookie() {
         let mut h = HeaderMap::new();
-        h.insert("cookie", HeaderValue::from_static("sb_auth=not-a-jwt"));
+        h.insert("host", HeaderValue::from_static("localhost"));
+        h.insert(
+            "cookie",
+            HeaderValue::from_static("auth_localhost=not-a-jwt"),
+        );
         assert!(!authz().is_authorized(&ctx(&h)));
     }
 

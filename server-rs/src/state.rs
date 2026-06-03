@@ -66,6 +66,10 @@ pub struct AppState {
     /// Authentication strategy for protected routes. `None` means the server is
     /// open (no authentication).
     pub authorizer: Option<Arc<dyn RequestAuthorizer>>,
+    /// The login flow's issuing side (standalone server). `None` mirrors
+    /// `authorizer == None` (an open server). Shares the `Authenticator` with
+    /// the `authorizer` via `Arc`.
+    pub login: Option<Arc<crate::auth::LoginManager>>,
     /// Shell-execution policy for `/.shell`.
     pub shell: ShellConfig,
     /// Request metrics. `None` disables counting and `/metrics`.

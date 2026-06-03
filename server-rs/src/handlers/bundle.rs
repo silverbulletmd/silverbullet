@@ -41,6 +41,22 @@ pub async fn handle_client_bundle(
 
     let path = req.uri().path().trim_start_matches('/').to_string();
 
+    // Authorization for the SPA-shell fallback. Real assets (served below)
+    // always load; only unknown / page paths are gated, matching the legacy
+    // server's allow-list intent.
+    let authorized = match state.authorizer.as_ref() {
+        Some(authz) => {
+            let ctx = crate::auth::AuthContext {
+                method: req.method(),
+                path: req.uri().path(),
+                query: req.uri().query(),
+                headers: req.headers(),
+            };
+            authz.is_authorized(&ctx)
+        }
+        None => true,
+    };
+
     // Try the requested asset first — served verbatim, no templating. Static
     // bundle assets carry a `Last-Modified` so browsers can revalidate with a 304.
     let s = state.clone();
@@ -77,6 +93,43 @@ pub async fn handle_client_bundle(
                 .unwrap();
         }
     };
+
+    // Unauthenticated page navigation → send the browser to the login page.
+    // `.md` paths get 401+Location (like API paths); other page paths get a 302
+    // with a percent-encoded `?from=` so login returns the user to where they
+    // were. The empty path ("/") is never redirected here — its shell loads and
+    // the client's `/.config` fetch triggers the redirect instead.
+    if !authorized && !path.is_empty() {
+        let prefix = &state.host_url_prefix;
+        if path.ends_with(".md") {
+            return Response::builder()
+                .status(StatusCode::UNAUTHORIZED)
+                .header(axum::http::header::LOCATION, format!("{prefix}/.auth"))
+                .body(Body::from("Unauthorized"))
+                .unwrap();
+        }
+        use percent_encoding::{utf8_percent_encode, AsciiSet, CONTROLS};
+        const FROM_SET: &AsciiSet = &CONTROLS
+            .add(b' ')
+            .add(b'"')
+            .add(b'#')
+            .add(b'%')
+            .add(b'<')
+            .add(b'>')
+            .add(b'?')
+            .add(b'`')
+            .add(b'{')
+            .add(b'}');
+        let from = utf8_percent_encode(&path, FROM_SET);
+        return Response::builder()
+            .status(StatusCode::FOUND)
+            .header(
+                axum::http::header::LOCATION,
+                format!("{prefix}/.auth?from=/{from}"),
+            )
+            .body(Body::empty())
+            .unwrap();
+    }
 
     let (title, content_html) = server_side_content(&state, &path).await;
     let body = template_index_html(
@@ -171,6 +224,75 @@ mod tests {
     use axum::http::{Request, StatusCode};
     use std::sync::Arc;
     use tower::ServiceExt;
+
+    use crate::auth::{AuthContext, RequestAuthorizer};
+
+    struct Deny;
+    impl RequestAuthorizer for Deny {
+        fn is_authorized(&self, _ctx: &AuthContext) -> bool {
+            false
+        }
+    }
+
+    fn gated_state() -> Arc<AppState> {
+        let mut s = test_state();
+        s.authorizer = Some(Arc::new(Deny));
+        seed_bundle(&s, ".client/index.html", INDEX_TPL);
+        seed_bundle(&s, ".client/app.js", b"asset");
+        Arc::new(s)
+    }
+
+    #[tokio::test]
+    async fn unauthenticated_page_navigation_redirects_to_auth() {
+        let resp = crate::build_router(gated_state())
+            .oneshot(
+                Request::builder()
+                    .uri("/SomePage")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::FOUND);
+        assert_eq!(
+            resp.headers().get("location").unwrap(),
+            "/.auth?from=/SomePage"
+        );
+    }
+
+    #[tokio::test]
+    async fn unauthenticated_md_path_is_401_with_location() {
+        let resp = crate::build_router(gated_state())
+            .oneshot(
+                Request::builder()
+                    .uri("/Page.md")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
+        assert_eq!(resp.headers().get("location").unwrap(), "/.auth");
+    }
+
+    #[tokio::test]
+    async fn assets_and_root_load_without_auth() {
+        let asset = crate::build_router(gated_state())
+            .oneshot(
+                Request::builder()
+                    .uri("/.client/app.js")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(asset.status(), StatusCode::OK);
+        let root = crate::build_router(gated_state())
+            .oneshot(Request::builder().uri("/").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+        assert_eq!(root.status(), StatusCode::OK);
+    }
 
     fn seed_bundle(state: &AppState, path: &str, body: &[u8]) {
         state.client_bundle.write_file(path, body, None).unwrap();

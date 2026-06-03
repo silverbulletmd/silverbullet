@@ -1,3 +1,4 @@
+pub mod auth;
 pub mod bundle;
 pub mod control;
 pub mod fs;

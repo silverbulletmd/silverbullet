@@ -44,6 +44,7 @@ mod test_support {
             host_url_prefix: String::new(),
             additional_head_html: String::new(),
             authorizer: None,
+            login: None,
             shell: crate::shell::ShellConfig {
                 enabled: true,
                 whitelist: vec![],
