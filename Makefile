@@ -7,7 +7,7 @@ CLI_LDFLAGS = -X main.version=$(CLI_VERSION)
 # PATH. Override with INSTALL_DIR=/some/dir if you prefer another location.
 INSTALL_DIR ?= $(or $(shell go env GOBIN),$(shell go env GOPATH)/bin)
 
-.PHONY: build build-for-docker docker build-server-releases build-cli-releases clean check fmt test test-integration test-e2e bench generate website install uninstall
+.PHONY: build build-for-docker docker build-server-releases build-cli-releases clean check fmt test test-integration test-e2e bench generate website install uninstall bundle build-rs run-rs
 
 build:
 	npm run build
@@ -56,6 +56,12 @@ build-cli-releases:
 	GOOS=darwin GOARCH=amd64 go build -ldflags "$(CLI_LDFLAGS)" -o sb ./cmd/cli && zip sb-darwin-x86_64.zip sb && rm sb
 	GOOS=windows GOARCH=amd64 go build -ldflags "$(CLI_LDFLAGS)" -o sb.exe ./cmd/cli && zip sb-windows-x86_64.zip sb.exe && rm sb.exe
 	GOOS=freebsd GOARCH=amd64 go build -ldflags "$(CLI_LDFLAGS)" -o sb ./cmd/cli && zip sb-freebsd-x86_64.zip sb && rm sb
+
+# --- Rust standalone server binary (bin/silverbullet) -----------------------
+build-rs:
+	npm run build
+	cargo build --release -p silverbullet
+	@echo "Built: target/release/silverbullet"
 
 clean:
 	rm -rf  client_bundle/{base_fs,client} dist public_version.ts
