@@ -34,6 +34,7 @@ pulldown-cmark = { version = "0.12", default-features = false, features = ["html
 minijinja = "2"
 prometheus = { version = "0.13", default-features = false }
 tracing = "0.1"
+tower-http = "0.6"
 axum = "0.8"
 tokio = { version = "1", default-features = false, features = ["rt-multi-thread", "macros", "sync"] }
 jsonwebtoken = "9"

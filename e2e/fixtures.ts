@@ -23,7 +23,7 @@ type SBFixtures = {
 	sbPage: Page;
 };
 
-async function getFreePort(): Promise<number> {
+export async function getFreePort(): Promise<number> {
 	return new Promise((resolve, reject) => {
 		const srv = net.createServer();
 		srv.listen(0, "127.0.0.1", () => {
@@ -34,7 +34,7 @@ async function getFreePort(): Promise<number> {
 	});
 }
 
-async function waitForServer(url: string, timeoutMs = 30_000): Promise<void> {
+export async function waitForServer(url: string, timeoutMs = 30_000): Promise<void> {
 	const deadline = Date.now() + timeoutMs;
 	while (Date.now() < deadline) {
 		try {

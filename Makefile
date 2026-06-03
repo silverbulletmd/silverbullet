@@ -7,7 +7,7 @@ CLI_LDFLAGS = -X main.version=$(CLI_VERSION)
 # PATH. Override with INSTALL_DIR=/some/dir if you prefer another location.
 INSTALL_DIR ?= $(or $(shell go env GOBIN),$(shell go env GOPATH)/bin)
 
-.PHONY: build build-for-docker docker build-server-releases build-cli-releases clean check fmt test test-integration test-e2e bench generate website install uninstall bundle build-rs run-rs
+.PHONY: build build-for-docker docker build-server-releases build-cli-releases clean check fmt test test-integration test-e2e test-e2e-release bench generate website install uninstall bundle build-rs run-rs
 
 build:
 	npm run build
@@ -91,6 +91,14 @@ test-integration:
 
 test-e2e: build
 	npx playwright test
+
+# Browser E2E tests against the standalone release binary, validating the
+# rust-embed embedded client bundle and the browser login flow. Requires a
+# release build first: run `make build-rs` to produce
+# `target/release/silverbullet`. Kept out of the default `test-e2e` so the
+# fast suite isn't blocked on a release build.
+test-e2e-release:
+	npx playwright test e2e/release-embedded.test.ts
 
 bench:
 	npm run bench
