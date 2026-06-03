@@ -7,7 +7,9 @@ dist
 *.js.map
 env.sh
 node_modules
-silverbullet
+# Anchored to the repo root so it ignores the built `./silverbullet` binary
+# WITHOUT also swallowing the `bin/silverbullet/` Rust crate directory.
+/silverbullet
 /sb
 silverbullet-cli-*.zip
 deploy.json

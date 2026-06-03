@@ -1,10 +1,15 @@
 name: Rust edge (early access)
 
-# Publishes EARLY-ACCESS Docker images of the Rust SilverBullet server on every
-# push to the `rust-backend` branch:
+# Builds EARLY-ACCESS Docker images of the Rust SilverBullet server on every
+# push to the `rust-backend` branch, for BOTH linux/amd64 and linux/arm64:
 #   :rust-edge              — base Alpine/musl image (no Chromium)
 #   :rust-edge-runtime-api  — base + Chromium, so /.runtime/* (server-side Lua) works
-# These never touch the stable :v2 / :edge / :latest images.
+#
+# The Dockerfile builds the Rust binary IN-image, so we build each arch on its
+# own NATIVE runner (amd64 on ubuntu-latest, arm64 on ubuntu-24.04-arm) instead
+# of emulating arm64 under QEMU — then a `manifest` job stitches the per-arch
+# images into multi-arch tags. Published to ghcr only (early access); never
+# touches the stable :v2 / :edge / :latest images.
 on:
   workflow_dispatch:
   push:
@@ -12,13 +17,24 @@ on:
       - "rust-backend"
 
 env:
-  IMAGE_NAME: silverbullet
-  NAMESPACE_GITHUB: silverbulletmd
-  NAMESPACE_DOCKER: zefhemel
+  IMAGE: ghcr.io/silverbulletmd/silverbullet
 
 jobs:
-  rust-edge:
-    runs-on: ubuntu-latest
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+            arch: amd64
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Setup repo
         uses: actions/checkout@v4
@@ -31,12 +47,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Log in to the ghcr Container registry
         uses: docker/login-action@v3
         with:
@@ -44,35 +54,52 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # amd64 only for early access — the Dockerfile builds the Rust binary
-      # in-image (musl-static on Alpine), and an arm64 build under QEMU would be
-      # very slow. arm64 can be added once cross-compilation (Project 4) lands.
-      - name: Build and push :rust-edge (base, no Chromium)
+      - name: Build and push base (${{ matrix.arch }})
         uses: docker/build-push-action@v6
         with:
           context: .
           file: Dockerfile.rust
-          platforms: linux/amd64
+          platforms: ${{ matrix.platform }}
           push: true
           provenance: false
-          tags: |
-            ${{ env.NAMESPACE_DOCKER }}/${{ env.IMAGE_NAME }}:rust-edge
-            ghcr.io/${{ env.NAMESPACE_GITHUB }}/${{ env.IMAGE_NAME }}:rust-edge
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: ${{ env.IMAGE }}:rust-edge-${{ matrix.arch }}
+          cache-from: type=gha,scope=base-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=base-${{ matrix.arch }}
 
-      - name: Build and push :rust-edge-runtime-api (base + Chromium)
+      - name: Build and push runtime-api (${{ matrix.arch }})
         uses: docker/build-push-action@v6
         with:
           context: .
           file: Dockerfile.rust.runtime-api
-          platforms: linux/amd64
+          platforms: ${{ matrix.platform }}
           push: true
           provenance: false
           build-args: |
-            BASE_IMAGE=ghcr.io/${{ env.NAMESPACE_GITHUB }}/${{ env.IMAGE_NAME }}:rust-edge
-          tags: |
-            ${{ env.NAMESPACE_DOCKER }}/${{ env.IMAGE_NAME }}:rust-edge-runtime-api
-            ghcr.io/${{ env.NAMESPACE_GITHUB }}/${{ env.IMAGE_NAME }}:rust-edge-runtime-api
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+            BASE_IMAGE=${{ env.IMAGE }}:rust-edge-${{ matrix.arch }}
+          tags: ${{ env.IMAGE }}:rust-edge-runtime-api-${{ matrix.arch }}
+          cache-from: type=gha,scope=rta-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=rta-${{ matrix.arch }}
+
+  # Stitch the per-arch images into multi-arch manifest tags.
+  manifest:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Log in to the ghcr Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create multi-arch manifests (:rust-edge, :rust-edge-runtime-api)
+        run: |
+          docker buildx imagetools create -t "$IMAGE:rust-edge" \
+            "$IMAGE:rust-edge-amd64" \
+            "$IMAGE:rust-edge-arm64"
+          docker buildx imagetools create -t "$IMAGE:rust-edge-runtime-api" \
+            "$IMAGE:rust-edge-runtime-api-amd64" \
+            "$IMAGE:rust-edge-runtime-api-arm64"
