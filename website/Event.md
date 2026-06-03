@@ -36,7 +36,7 @@ Here is a list of built-in events triggered by SilverBullet's core:
 * `editor:pageReloaded`: A page was reloaded (e.g. after being changed on disk)
 * `editor:pageSaving`: A page is about to be saved
 * `editor:pageSaved`: A page has been saved
-* `editor:pageCreating`: A page is being created (can return content — used by [[Virtual Pages]])
+* `editor:pageCreating`: A page is being created
 * `editor:pageModified`: A change was made to the document (fires in real-time)
 * `editor:documentSaving`: A document (non-page file) is about to be saved
 * `editor:documentSaved`: A document was saved
