@@ -90,16 +90,22 @@ async fn launch_once(
     ready: &Arc<AtomicBool>,
     logs: &LogBuffer,
 ) -> Result<(), String> {
+    // chromiumoxide's `.args()` expects BARE flag keys (no leading `--`) — it
+    // prepends the dashes itself when building the command line, so a value like
+    // `"--no-sandbox"` is mangled to `----no-sandbox` and silently ignored. Use
+    // the dedicated `.no_sandbox()` method (it emits the correct
+    // `--no-sandbox` + `--disable-setuid-sandbox`, required when running as root,
+    // e.g. inside a container) and pass the remaining flags as bare keys.
     let mut builder = BrowserConfig::builder()
         .chrome_executable(&config.chrome_path)
         .user_data_dir(&config.user_data_dir)
         .window_size(800, 600)
+        .no_sandbox()
         .args([
-            "--no-sandbox",
-            "--disable-dev-shm-usage",
-            "--disable-extensions",
-            "--disable-gpu",
-            "--in-process-gpu",
+            "disable-dev-shm-usage",
+            "disable-extensions",
+            "disable-gpu",
+            "in-process-gpu",
         ]);
     if config.show {
         builder = builder.with_head();

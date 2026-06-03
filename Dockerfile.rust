@@ -1,0 +1,58 @@
+# syntax=docker/dockerfile:1
+#
+# Early-access ALPINE image for the RUST SilverBullet server (the `rust-backend`
+# branch). The binary is built with the musl target ON Alpine, so it is fully
+# statically linked and runs on a bare Alpine runtime — matching the existing
+# Go images (no glibc shim needed).
+#
+# This is the BASE variant: no Chromium, so the headless-Chrome runtime API
+# (`/.runtime/*`) returns 503. Everything else — editing, sync, login, metrics,
+# HTTP logging — works. The `Dockerfile.rust.runtime-api` variant layers
+# Chromium on top of this image to enable the runtime API.
+#
+# Published as `:rust-edge` by `.github/workflows/rust-edge.yml` on pushes to
+# `rust-backend`. Explicitly early-access/unstable; never overwrites
+# `:v2` / `:edge` / `:latest`.
+
+# ---- Builder (Alpine / musl) -----------------------------------------------
+FROM node:24.13.0-alpine AS builder
+
+# Build deps: toolchain + the C deps aws-lc-rs (pulled via rustls) needs to
+# compile statically against musl (cmake/clang/llvm for its bindgen + build),
+# plus make/git for `make build-rs` and `public_version.ts` (git describe).
+RUN apk add --no-cache \
+        build-base musl-dev linux-headers \
+        cmake clang clang-dev llvm-dev perl \
+        make git curl bash pkgconfig
+
+# Rust toolchain. On this Alpine host the default target is
+# <arch>-unknown-linux-musl, and musl targets link the CRT statically, so a
+# plain `cargo build --release` produces a fully static binary.
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+    | sh -s -- -y --default-toolchain stable --profile minimal
+ENV PATH=/root/.cargo/bin:$PATH
+
+WORKDIR /app
+COPY . /app
+
+RUN npm ci
+# Builds the client bundle (also emits public_version.ts) + the static release
+# binary at /app/target/release/silverbullet.
+RUN make build-rs
+
+# ---- Runtime (Alpine) ------------------------------------------------------
+FROM alpine:latest
+
+RUN apk add --no-cache git curl bash tini
+
+ENV SB_HOSTNAME=0.0.0.0 \
+    SB_FOLDER=/space \
+    SB_PORT=3000
+
+EXPOSE 3000
+HEALTHCHECK CMD curl --fail "http://localhost:$SB_PORT$SB_URL_PREFIX/.ping" || exit 1
+
+COPY --from=builder /app/target/release/silverbullet /silverbullet
+
+# Extra args (e.g. `--user me:letmein`) are appended to the binary invocation.
+ENTRYPOINT ["/sbin/tini", "--", "/silverbullet"]

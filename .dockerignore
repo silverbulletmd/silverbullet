@@ -1,0 +1,8 @@
+# Keep the Docker build context small. `.git` is intentionally NOT ignored:
+# the build regenerates `public_version.ts` via `git describe`. The pre-built
+# `silverbullet-<arch>` binaries (used by Dockerfile.ci) are also NOT ignored.
+target/
+.cargo-target/
+node_modules/
+dist/
+*.log
