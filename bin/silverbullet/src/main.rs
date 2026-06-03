@@ -22,7 +22,13 @@ struct Cli {
 async fn main() -> std::process::ExitCode {
     tracing_subscriber::fmt()
         .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()),
+            // Default to `info`, but silence chromiumoxide's noisy `WARN`s. With
+            // current Chrome it floods the log with "WS Invalid message: data did
+            // not match any variant of untagged enum Message" for CDP events its
+            // bundled protocol types don't recognize — harmless (command
+            // responses still work), so keep only its errors. `RUST_LOG` overrides.
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "info,chromiumoxide=error".into()),
         )
         .init();
 

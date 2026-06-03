@@ -23,27 +23,30 @@ And if you are comfortable **programming** a little bit — now we’re really t
 Check out the [instructions](https://silverbullet.md/Install).
 
 ## Developing SilverBullet
-SilverBullet's frontend is written in [TypeScript](https://www.typescriptlang.org/) and built on top of the excellent [CodeMirror 6](https://codemirror.net/) editor component. Additional UI is built using [Preact](https://preactjs.com). [ESBuild](https://esbuild.github.io) is used to build the frontend.
+SilverBullet's frontend ("client") is written in [TypeScript](https://www.typescriptlang.org/) and built on top of the excellent [CodeMirror 6](https://codemirror.net/) editor component. Additional UI is built using [Preact](https://preactjs.com). [ESBuild](https://esbuild.github.io) is used to build the frontend.
 
-The server backend is written in Go.
+The server backend is written in [Rust](https://www.rust-lang.org/) (a Cargo workspace). It serves the pre-built client bundle, the file/space HTTP API, authentication, and a headless-Chrome runtime for server-side Lua.
 
 ## Code structure
 * `client/`: The SilverBullet client, implemented with TypeScript
-* `server/`: The SilverBullet server, written in Go
+* `server-rs/`: The SilverBullet server library (Rust): HTTP router, handlers, auth, runtime seam
+* `common/`: Shared Rust crate (space primitives, shared types)
+* `runtime-chrome/`: Headless-Chrome runtime backend (Rust)
+* `bin/silverbullet/`: The standalone server binary (Rust)
+* `bin/sb/`: The `sb` command-line client (Rust)
 * `plugs`: Set of built-in plugs that are distributed with SilverBullet
 * `libraries`: A set of libraries (space scripts, page templates, slash templates) distributed with SilverBullet
 * `plug-api/`: Useful APIs for use in plugs
   * `lib/`: Useful libraries to be used in plugs
   * `syscalls/`: TypeScript wrappers around syscalls
   * `types/`: Various (client) types that can be references from plugs
-* `bin`
-  * `plug_compile.ts` the plug compiler
+* `bin/plug-compile.ts`: the plug compiler
 * `scripts/`: Useful scripts
 * `website/`: silverbullet.md website content
 
 ### Requirements
-* [Node.js](https://nodejs.org/) 24+ and npm 10+: Used to build the frontend and plugs
-* [Go](https://go.dev/): Used to build the backend
+* [Node.js](https://nodejs.org/) 24+ and npm 10+: Used to build the frontend (client) and plugs
+* [Rust](https://www.rust-lang.org/tools/install) (stable, via `rustup`): Used to build the server
 
 The project includes `.nvmrc` and `.node-version` files. If you use [nvm](https://github.com/nvm-sh/nvm) or another Node version manager, it will automatically use the correct Node.js version:
 
@@ -51,35 +54,36 @@ The project includes `.nvmrc` and `.node-version` files. If you use [nvm](https:
 nvm use  # If using nvm
 ```
 
-It's convenient to also install [air](https://github.com/air-verse/air) for development, this will automatically rebuild both the frontend and backend when changes are made:
-
-```shell
-go install github.com/air-verse/air@latest
-```
-Make sure your `$GOPATH/bin` is in your $PATH.
-
 First, install dependencies:
 
 ```shell
 make setup
 ```
 
-To build everything and run the server (which automatically restarts upon file changing):
+### Development workflow: server vs. client
+
+SilverBullet has two halves you rebuild **independently** — knowing which one you changed saves a lot of time:
+
+* The **server** (Rust: `server-rs/`, `common/`, `runtime-chrome/`, `bin/silverbullet/`) is a compiled binary.
+* The **client** (TypeScript: `client/`) is built by ESBuild into `client_bundle/`, which the server then serves.
+
+Run the server in development with `cargo run`. A **debug** build serves the client bundle **live from `client_bundle/` on disk** (a release build embeds it instead):
 
 ```shell
-air <PATH-TO-YOUR-SPACE>
+cargo run -p silverbullet -- <PATH-TO-YOUR-SPACE>
 ```
 
-Alternatively, to build:
+**When you change only the client** (TypeScript in `client/`): you do **not** need to restart the server. Rebuild just the client bundle and reload the page in your browser — the debug server serves the freshly-built bundle straight from disk:
 
 ```shell
-make
+npm run build
 ```
 
-To run the resulting server:
+To build a self-contained **release** binary (with the client bundle embedded), and run it:
 
 ```shell
-./silverbullet <PATH-TO-YOUR-SPACE>
+make build-rs          # -> target/release/silverbullet
+./target/release/silverbullet <PATH-TO-YOUR-SPACE>
 ```
 
 ### Useful development tasks

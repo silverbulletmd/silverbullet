@@ -10,8 +10,12 @@ node_modules
 # Anchored to the repo root so it ignores the built `./silverbullet` binary
 # WITHOUT also swallowing the `bin/silverbullet/` Rust crate directory.
 /silverbullet
+# Cross-compiled musl binaries produced by the rust-edge Docker workflow.
+/silverbullet-amd64
+/silverbullet-arm64
 /sb
 silverbullet-cli-*.zip
+silverbullet-server-*.zip
 deploy.json
 *.generated
 tmp_playground

@@ -221,18 +221,25 @@ async fn page_is_alive(live_slot: &Arc<Mutex<Option<Live>>>) -> bool {
 /// drop any stale `Live`, and attempt `launch_once`. On success we reset the
 /// backoff to its floor and continue; on failure we sleep for the current
 /// backoff (2s, doubling up to 120s) before the next attempt. When the page is
-/// alive we sleep ~2s between liveness checks. The very first iteration sees an
-/// empty slot and so launches immediately — startup is *not* delayed by a
-/// pre-emptive backoff sleep.
+/// alive we sleep ~2s between liveness checks. The browser is launched LAZILY:
+/// the supervisor idles until the first runtime request (`requested`) before its
+/// first `launch_once`, so Chrome never starts while the runtime API is unused.
 pub async fn supervise(
     config: ChromeConfig,
     live_slot: Arc<Mutex<Option<Live>>>,
     ready: Arc<AtomicBool>,
     logs: LogBuffer,
+    requested: Arc<AtomicBool>,
 ) {
     const BACKOFF_FLOOR: Duration = Duration::from_secs(2);
     const BACKOFF_CAP: Duration = Duration::from_secs(120);
     const LIVENESS_INTERVAL: Duration = Duration::from_secs(2);
+
+    // Lazy launch: idle until the first runtime request, so Chrome is not
+    // started (and emits no CDP noise) when the runtime API is never used.
+    while !requested.load(Ordering::Relaxed) {
+        tokio::time::sleep(Duration::from_millis(200)).await;
+    }
 
     let mut backoff = BACKOFF_FLOOR;
     loop {

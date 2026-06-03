@@ -3,11 +3,13 @@
 //!
 //! `eval_js`/`wait_ready` are synchronous and block the calling thread (the
 //! server invokes them via `spawn_blocking`); they run their async work on the
-//! transport's owned runtime. Launch is tolerant: the browser is brought up and
-//! kept alive by the supervisor, so the server can finish binding its port
-//! before the headless page connects. Until the page reports
-//! `sbRuntime.ready`, `is_ready()` is false and eval/wait return
-//! `NotReady`/`Timeout` (→ the server answers 503/504).
+//! transport's owned runtime. Launch is LAZY and tolerant: the supervisor does
+//! not start Chrome until the first runtime request (`eval_js`/`wait_ready`),
+//! then brings the browser up and keeps it alive — so the server can finish
+//! binding its port before the headless page connects, and Chrome never runs
+//! while the runtime API is unused. Until the page reports `sbRuntime.ready`,
+//! `is_ready()` is false and eval/wait return `NotReady`/`Timeout` (→ the
+//! server answers 503/504).
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -25,6 +27,10 @@ pub struct ChromeTransport {
     rt: Runtime,
     live: Arc<Mutex<Option<Live>>>,
     ready: Arc<AtomicBool>,
+    /// Set on the first runtime request; the supervisor idles (does not launch
+    /// Chrome) until this flips true, so the browser only starts when the
+    /// runtime API is actually used.
+    requested: Arc<AtomicBool>,
     _supervisor: tokio::task::JoinHandle<()>,
 }
 
@@ -42,15 +48,24 @@ impl ChromeTransport {
             .map_err(|e| RuntimeError::Transport(format!("tokio runtime: {e}")))?;
         let live = Arc::new(Mutex::new(None));
         let ready = Arc::new(AtomicBool::new(false));
+        let requested = Arc::new(AtomicBool::new(false));
         let supervisor = {
-            let (live, ready, logs, config) =
-                (live.clone(), ready.clone(), logs.clone(), config.clone());
-            rt.spawn(crate::supervisor::supervise(config, live, ready, logs))
+            let (live, ready, logs, config, requested) = (
+                live.clone(),
+                ready.clone(),
+                logs.clone(),
+                config.clone(),
+                requested.clone(),
+            );
+            rt.spawn(crate::supervisor::supervise(
+                config, live, ready, logs, requested,
+            ))
         };
         Ok(Self {
             rt,
             live,
             ready,
+            requested,
             _supervisor: supervisor,
         })
     }
@@ -58,6 +73,8 @@ impl ChromeTransport {
 
 impl ClientTransport for ChromeTransport {
     fn eval_js(&self, js: &str, timeout: Duration) -> Result<Value, RuntimeError> {
+        // Any runtime use triggers the lazy browser launch.
+        self.requested.store(true, Ordering::Relaxed);
         let live = self.live.clone();
         let js = js.to_string();
         self.rt.block_on(async move {
@@ -71,6 +88,8 @@ impl ClientTransport for ChromeTransport {
     }
 
     fn wait_ready(&self, timeout: Duration) -> Result<(), RuntimeError> {
+        // First runtime request triggers the lazy browser launch.
+        self.requested.store(true, Ordering::Relaxed);
         if self.ready.load(Ordering::Relaxed) {
             return Ok(());
         }

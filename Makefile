@@ -7,7 +7,7 @@ CLI_LDFLAGS = -X main.version=$(CLI_VERSION)
 # PATH. Override with INSTALL_DIR=/some/dir if you prefer another location.
 INSTALL_DIR ?= $(or $(shell go env GOBIN),$(shell go env GOPATH)/bin)
 
-.PHONY: build build-for-docker docker build-server-releases build-cli-releases clean check fmt test test-integration test-e2e test-e2e-release bench generate website install uninstall bundle build-rs run-rs
+.PHONY: build build-for-docker docker build-server-releases build-server-releases-macos build-cli-releases clean check fmt test test-integration test-e2e test-e2e-release bench generate website install uninstall bundle build-rs run-rs
 
 build:
 	npm run build
@@ -40,13 +40,24 @@ docker: build-for-docker
 	docker buildx build --platform linux/arm64,linux/amd64,linux/arm/v7 --push .
 
 build-server-releases:
-	GOOS=linux GOARCH=arm64 go build -ldflags "$(LDFLAGS)" -o silverbullet . && zip silverbullet-server-linux-aarch64.zip silverbullet
-	GOOS=linux GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o silverbullet . && zip silverbullet-server-linux-x86_64.zip silverbullet
-	GOOS=darwin GOARCH=arm64 go build -ldflags "$(LDFLAGS)" -o silverbullet . && zip silverbullet-server-darwin-aarch64.zip silverbullet
-	GOOS=darwin GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o silverbullet . && zip silverbullet-server-darwin-x86_64.zip silverbullet
-	GOOS=windows GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o silverbullet.exe . && zip silverbullet-server-windows-x86_64.zip silverbullet.exe
-	GOOS=linux GOARCH=arm GOARM=7 go build -ldflags "$(LDFLAGS)" -o silverbullet . && zip silverbullet-server-linux-armv7.zip silverbullet
-	GOOS=freebsd GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o silverbullet . && zip silverbullet-server-freebsd-x86_64.zip silverbullet
+	npm run build
+	cargo zigbuild --release -p silverbullet --target x86_64-unknown-linux-musl
+	cp target/x86_64-unknown-linux-musl/release/silverbullet silverbullet && zip silverbullet-server-linux-x86_64.zip silverbullet && rm silverbullet
+	cargo zigbuild --release -p silverbullet --target aarch64-unknown-linux-musl
+	cp target/aarch64-unknown-linux-musl/release/silverbullet silverbullet && zip silverbullet-server-linux-aarch64.zip silverbullet && rm silverbullet
+	cargo zigbuild --release -p silverbullet --target armv7-unknown-linux-musleabihf
+	cp target/armv7-unknown-linux-musleabihf/release/silverbullet silverbullet && zip silverbullet-server-linux-armv7.zip silverbullet && rm silverbullet
+	cargo zigbuild --release -p silverbullet --target x86_64-pc-windows-gnu
+	cp target/x86_64-pc-windows-gnu/release/silverbullet.exe silverbullet.exe && zip silverbullet-server-windows-x86_64.zip silverbullet.exe && rm silverbullet.exe
+
+# macOS server release archives — run on a macOS host (native SDK), builds both arches.
+build-server-releases-macos:
+	npm run build
+	rustup target add aarch64-apple-darwin x86_64-apple-darwin
+	cargo build --release -p silverbullet --target aarch64-apple-darwin
+	cp target/aarch64-apple-darwin/release/silverbullet silverbullet && zip silverbullet-server-darwin-aarch64.zip silverbullet && rm silverbullet
+	cargo build --release -p silverbullet --target x86_64-apple-darwin
+	cp target/x86_64-apple-darwin/release/silverbullet silverbullet && zip silverbullet-server-darwin-x86_64.zip silverbullet && rm silverbullet
 
 build-cli-releases:
 	GOOS=linux GOARCH=arm64 go build -ldflags "$(CLI_LDFLAGS)" -o sb ./cmd/cli && zip sb-linux-aarch64.zip sb && rm sb
@@ -106,6 +117,6 @@ bench:
 generate:
 	npx @lezer/generator@1.5.1 client/space_lua/lua.grammar -o client/space_lua/parse-lua.js
 
-website: build
-	SB_INDEX_PAGE=SilverBullet SB_DISABLE_SERVICE_WORKER=1 ./silverbullet -p 3001 website
+website: build-rs
+	SB_INDEX_PAGE=SilverBullet SB_DISABLE_SERVICE_WORKER=1 ./target/release/silverbullet -p 3001 website
 

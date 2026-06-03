@@ -1,15 +1,4 @@
 name: Rust edge (early access)
-
-# Builds EARLY-ACCESS Docker images of the Rust SilverBullet server on every
-# push to the `rust-backend` branch, for BOTH linux/amd64 and linux/arm64:
-#   :rust-edge              — base Alpine/musl image (no Chromium)
-#   :rust-edge-runtime-api  — base + Chromium, so /.runtime/* (server-side Lua) works
-#
-# The Dockerfile builds the Rust binary IN-image, so we build each arch on its
-# own NATIVE runner (amd64 on ubuntu-latest, arm64 on ubuntu-24.04-arm) instead
-# of emulating arm64 under QEMU — then a `manifest` job stitches the per-arch
-# images into multi-arch tags. Published to ghcr only (early access); never
-# touches the stable :v2 / :edge / :latest images.
 on:
   workflow_dispatch:
   push:
@@ -20,18 +9,8 @@ env:
   IMAGE: ghcr.io/silverbulletmd/silverbullet
 
 jobs:
-  build:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: linux/amd64
-            runner: ubuntu-latest
-            arch: amd64
-          - platform: linux/arm64
-            runner: ubuntu-24.04-arm
-            arch: arm64
-    runs-on: ${{ matrix.runner }}
+  rust-edge:
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
@@ -39,10 +18,40 @@ jobs:
       - name: Setup repo
         uses: actions/checkout@v4
         with:
-          # Full history + tags so the in-image `git describe` produces a
-          # meaningful public_version.ts.
           fetch-depth: 0
           fetch-tags: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Setup Rust (with musl targets)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-musl,aarch64-unknown-linux-musl
+
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v2
+
+      - name: Install cargo-zigbuild
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-zigbuild
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Cross-compile static musl binaries (amd64 + arm64)
+        run: |
+          npm run build
+          cargo zigbuild --release -p silverbullet --target x86_64-unknown-linux-musl
+          cargo zigbuild --release -p silverbullet --target aarch64-unknown-linux-musl
+          cp target/x86_64-unknown-linux-musl/release/silverbullet silverbullet-amd64
+          cp target/aarch64-unknown-linux-musl/release/silverbullet silverbullet-arm64
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -54,52 +63,28 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push base (${{ matrix.arch }})
+      - name: Build and push :rust-edge (base, multi-arch)
         uses: docker/build-push-action@v6
         with:
           context: .
           file: Dockerfile.rust
-          platforms: ${{ matrix.platform }}
+          platforms: linux/amd64,linux/arm64
           push: true
           provenance: false
-          tags: ${{ env.IMAGE }}:rust-edge-${{ matrix.arch }}
-          cache-from: type=gha,scope=base-${{ matrix.arch }}
-          cache-to: type=gha,mode=max,scope=base-${{ matrix.arch }}
+          tags: ${{ env.IMAGE }}:rust-edge
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: Build and push runtime-api (${{ matrix.arch }})
+      - name: Build and push :rust-edge-runtime-api (base + Chromium, multi-arch)
         uses: docker/build-push-action@v6
         with:
           context: .
           file: Dockerfile.rust.runtime-api
-          platforms: ${{ matrix.platform }}
+          platforms: linux/amd64,linux/arm64
           push: true
           provenance: false
           build-args: |
-            BASE_IMAGE=${{ env.IMAGE }}:rust-edge-${{ matrix.arch }}
-          tags: ${{ env.IMAGE }}:rust-edge-runtime-api-${{ matrix.arch }}
-          cache-from: type=gha,scope=rta-${{ matrix.arch }}
-          cache-to: type=gha,mode=max,scope=rta-${{ matrix.arch }}
-
-  # Stitch the per-arch images into multi-arch manifest tags.
-  manifest:
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - name: Log in to the ghcr Container registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create multi-arch manifests (:rust-edge, :rust-edge-runtime-api)
-        run: |
-          docker buildx imagetools create -t "$IMAGE:rust-edge" \
-            "$IMAGE:rust-edge-amd64" \
-            "$IMAGE:rust-edge-arm64"
-          docker buildx imagetools create -t "$IMAGE:rust-edge-runtime-api" \
-            "$IMAGE:rust-edge-runtime-api-amd64" \
-            "$IMAGE:rust-edge-runtime-api-arm64"
+            BASE_IMAGE=${{ env.IMAGE }}:rust-edge
+          tags: ${{ env.IMAGE }}:rust-edge-runtime-api
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

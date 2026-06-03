@@ -9,59 +9,71 @@ SilverBullet’s client is written in [TypeScript](https://www.typescriptlang.or
 
 [[Plugs]] are also written in TypeScript.
 
-The SilverBullet server is written in [Go](https://go.dev/).
+The SilverBullet server is written in [Rust](https://www.rust-lang.org/) (a Cargo workspace).
 
 # Code structure
 * `client/`: The SilverBullet client, implemented with TypeScript
-* `server/`: The SilverBullet server, written in Go
+* `server-rs/`: The SilverBullet server library (Rust): HTTP router, handlers, auth, runtime seam
+* `common/`: Shared Rust crate (space primitives, shared types)
+* `runtime-chrome/`: Headless-Chrome runtime backend (Rust)
+* `bin/silverbullet/`: The standalone server binary (Rust)
+* `bin/sb/`: The `sb` command-line client (Rust)
 * `plugs`: Set of built-in plugs that are distributed with SilverBullet
 * `libraries`: A set of libraries (space scripts, page templates, slash templates) distributed with SilverBullet
 * `plug-api/`: Useful APIs for use in plugs
   * `lib/`: Useful libraries to be used in plugs
   * `syscalls/`: TypeScript wrappers around syscalls
   * `types/`: Various (client) types that can be references from plugs
-* `bin`
-  * `plug_compile.ts` the plug compiler
+* `bin/plug-compile.ts`: the plug compiler
 * `scripts/`: Useful scripts
 * `website/`: silverbullet.md website content
 
 # Development
 Requirements:
 * [Node.js](https://nodejs.org/) 24.13 or newer (see `.nvmrc`)
-* [Go](https://go.dev/) 1.25 or newer
+* [Rust](https://www.rust-lang.org/tools/install) (stable, via `rustup`)
 * Make
 
-It's convenient to also install [air](https://github.com/air-verse/air) for development, this tool will watch your code base for changes and automatically rebuild:
+Install dependencies once:
 
 ```shell
-go install github.com/air-verse/air@latest
+make setup
 ```
 
-Make sure your `$GOPATH/bin` is in your $PATH.
+## Server vs. client
 
-To build everything and run the server using air:
+SilverBullet has two halves you rebuild **independently** — knowing which one you changed saves time:
+
+* The **server** (Rust: `server-rs/`, `common/`, `runtime-chrome/`, `bin/silverbullet/`) is a compiled binary.
+* The **client** (TypeScript: `client/`) is built by ESBuild into `client_bundle/`, which the server serves.
+
+Run the server in development with `cargo run`. A **debug** build serves the client bundle **live from `client_bundle/` on disk** (a release build embeds it). Use `SB_DISABLE_SERVICE_WORKER=1` so the service worker doesn't cache stale assets:
 
 ```shell
-air <PATH-TO-YOUR-SPACE>
+SB_DISABLE_SERVICE_WORKER=1 cargo run -p silverbullet -- <PATH-TO-YOUR-SPACE>
 ```
 
-Note, that if you want to pass arguments to your SilverBullet binary like `-p` or `-L` you need to this as follows:
+To pass arguments like `-p` or `-L`, put them after `--`:
 
 ```shell
-air -- -L 0.0.0.0 <PATH-TO-YOUR-SPACE>
+SB_DISABLE_SERVICE_WORKER=1 cargo run -p silverbullet -- -L 0.0.0.0 <PATH-TO-YOUR-SPACE>
 ```
 
+**When you change the server** (any Rust code): rebuild **and restart** it — stop the process and re-run `cargo run` (it recompiles). A running server does *not* pick up source changes.
 
-Alternatively, to build the project without air:
+**When you change only the client** (TypeScript in `client/`): you do **not** need to restart the server. Rebuild just the client and reload the page in your browser — the debug server serves the new bundle from disk:
 
 ```shell
-make build
+npm run build:client   # rebuild only the client; then reload the page
 ```
 
-To run the resulting server:
+(For plugs, use `npm run build:plugs`; `npm run build` does both.)
+
+To build a self-contained **release** binary (with the client bundle embedded) and run it:
 
 ```shell
-./silverbullet <PATH-TO-YOUR-SPACE>
+make build-rs          # -> target/release/silverbullet
+./target/release/silverbullet <PATH-TO-YOUR-SPACE>
 ```
 
 ### Useful development tasks
@@ -77,16 +89,17 @@ make fmt
 make test
 ```
 
-### Build a docker container
-Note, you do not need Node.js nor Go locally installed for this to work:
+### Docker (early access)
+Multi-arch (amd64 + arm64) Docker images of the Rust server are published to the GitHub Container Registry on every push to the `rust-backend` branch (early access / unstable):
+
+* `ghcr.io/silverbulletmd/silverbullet:rust-edge` — the server (Alpine, static musl binary)
+* `ghcr.io/silverbulletmd/silverbullet:rust-edge-runtime-api` — the same, plus Chromium for the server-side Lua runtime (`/.runtime/*`)
+
+To run one:
 
 ```shell
-docker build -t silverbullet .
+docker run -p 3000:3000 -v <PATH-TO-YOUR-SPACE>:/space ghcr.io/silverbulletmd/silverbullet:rust-edge
 ```
 
-To run:
-
-```shell
-docker run -p 3000:3000 -v <PATH-TO-YOUR-SPACE>:/space silverbullet
-```
+These are built by `.github/workflows/rust-edge.yml`, which cross-compiles the binary (cargo-zigbuild) and copies it into a small Alpine image.
 
