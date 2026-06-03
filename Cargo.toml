@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["common", "server-rs", "bin/silverbullet", "bin/sb"]
+members = ["common", "server-rs", "runtime-chrome", "bin/silverbullet", "bin/sb"]
 
 [workspace.package]
 edition = "2021"
