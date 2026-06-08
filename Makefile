@@ -7,7 +7,7 @@ CLI_LDFLAGS = -X main.version=$(CLI_VERSION)
 # PATH. Override with INSTALL_DIR=/some/dir if you prefer another location.
 INSTALL_DIR ?= $(or $(shell go env GOBIN),$(shell go env GOPATH)/bin)
 
-.PHONY: build build-for-docker docker build-server-releases build-server-releases-macos build-cli-releases clean check fmt test test-integration test-e2e test-e2e-release bench generate website install uninstall bundle build-rs run-rs
+.PHONY: build build-for-docker docker build-server-releases build-server-releases-macos build-cli-releases build-cli-releases-rust build-cli-releases-rust-macos clean check fmt test test-integration test-e2e test-e2e-release bench generate website install uninstall bundle build-rs build-rs-cli run-rs
 
 build:
 	npm run build
@@ -73,6 +73,31 @@ build-rs:
 	npm run build
 	cargo build --release -p silverbullet
 	@echo "Built: target/release/silverbullet"
+
+# --- Rust standalone CLI client (bin/sb) ------------------------------------
+build-rs-cli:
+	cargo build --release -p sb
+	@echo "Built: target/release/sb"
+
+# Rust `sb` CLI release archives (cross-compiled via cargo-zigbuild). Asset
+# names match what `sb upgrade` downloads: sb-<os>-<arch>.zip with arch in
+# {x86_64, aarch64} (the arches `sb upgrade` supports). The Go `build-cli-releases`
+# target is kept until the Go CLI is retired (Project 2 → 1c-4 Task 4 / App switch).
+build-cli-releases-rust:
+	cargo zigbuild --release -p sb --target x86_64-unknown-linux-musl
+	cp target/x86_64-unknown-linux-musl/release/sb sb && zip sb-linux-x86_64.zip sb && rm sb
+	cargo zigbuild --release -p sb --target aarch64-unknown-linux-musl
+	cp target/aarch64-unknown-linux-musl/release/sb sb && zip sb-linux-aarch64.zip sb && rm sb
+	cargo zigbuild --release -p sb --target x86_64-pc-windows-gnu
+	cp target/x86_64-pc-windows-gnu/release/sb.exe sb.exe && zip sb-windows-x86_64.zip sb.exe && rm sb.exe
+
+# macOS `sb` CLI release archives — run on a macOS host (native SDK), both arches.
+build-cli-releases-rust-macos:
+	rustup target add aarch64-apple-darwin x86_64-apple-darwin
+	cargo build --release -p sb --target aarch64-apple-darwin
+	cp target/aarch64-apple-darwin/release/sb sb && zip sb-darwin-aarch64.zip sb && rm sb
+	cargo build --release -p sb --target x86_64-apple-darwin
+	cp target/x86_64-apple-darwin/release/sb sb && zip sb-darwin-x86_64.zip sb && rm sb
 
 clean:
 	rm -rf  client_bundle/{base_fs,client} dist public_version.ts

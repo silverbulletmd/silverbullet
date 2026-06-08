@@ -48,3 +48,4 @@ rustyline = "14"
 uuid = { version = "1", features = ["v4"] }
 aes-gcm = "0.10"
 tempfile = "3"
+zip = "2"

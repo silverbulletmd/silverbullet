@@ -26,6 +26,8 @@ aes-gcm = { workspace = true }
 uuid = { workspace = true }
 rustyline = { workspace = true }
 getrandom = { workspace = true }
+chrono = { workspace = true }
+zip = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }
