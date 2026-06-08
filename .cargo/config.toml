@@ -1,28 +1,32 @@
 # Cross-compilation toolchain wiring for the release targets.
 #
 # These settings only take effect when building the named `--target`, so a
-# normal host build (`cargo build`, tests, the default `x86_64`/`aarch64` host
-# triple) is completely unaffected. We cross-compile natively with `cargo build
-# --target …` (no `cargo-zigbuild`), so each target needs its C cross-compiler +
-# linker installed and on `PATH`:
+# normal host build (`cargo build`, tests, the default host triple) is
+# completely unaffected. We cross-compile natively with `cargo build --target …`
+# (no `cargo-zigbuild`). `ring` (the rustls crypto backend) compiles C + assembly
+# via its build script, so each target needs a matching C cross-compiler
+# (`CC_*`/`AR_*` below), not just a linker.
 #
-#   x86_64-unknown-linux-musl       musl-tools (apt)                  → musl-gcc
-#   aarch64-unknown-linux-musl      aarch64-linux-musl-cross (musl.cc)→ aarch64-linux-musl-gcc
-#   armv7-unknown-linux-musleabihf  armv7l-linux-musleabihf-cross     → armv7l-linux-musleabihf-gcc
-#   x86_64-pc-windows-gnu           gcc-mingw-w64-x86-64 (apt)         → x86_64-w64-mingw32-gcc
+# All toolchains are apt-installable on Debian/Ubuntu (no third-party downloads):
+#   x86_64-unknown-linux-musl       musl-tools                → musl-gcc
+#   aarch64-unknown-linux-musl      gcc-aarch64-linux-gnu     → aarch64-linux-gnu-gcc
+#   armv7-unknown-linux-musleabihf  gcc-arm-linux-gnueabihf   → arm-linux-gnueabihf-gcc
+#   x86_64-pc-windows-gnu           gcc-mingw-w64-x86-64      → x86_64-w64-mingw32-gcc
 #
-# `ring` (the rustls crypto backend) compiles C + assembly via its build script,
-# so each target needs a matching C cross-compiler (the `CC_*`/`AR_*` below),
-# not just a linker.
+# The ARM linux targets use the GNU cross-gcc only as the link driver / to
+# compile ring's C; Rust's `*-linux-musl` target supplies the static musl libc
+# itself (self-contained, crt-static by default), so the output is a fully
+# static musl binary that runs on bare Alpine — no aarch64/armv7 *musl* gcc
+# (e.g. the flaky musl.cc toolchains) is required.
 
 [target.x86_64-unknown-linux-musl]
 linker = "musl-gcc"
 
 [target.aarch64-unknown-linux-musl]
-linker = "aarch64-linux-musl-gcc"
+linker = "aarch64-linux-gnu-gcc"
 
 [target.armv7-unknown-linux-musleabihf]
-linker = "armv7l-linux-musleabihf-gcc"
+linker = "arm-linux-gnueabihf-gcc"
 
 [target.x86_64-pc-windows-gnu]
 linker = "x86_64-w64-mingw32-gcc"
@@ -31,8 +35,8 @@ linker = "x86_64-w64-mingw32-gcc"
 # / `AR_<triple>`). Only consulted when building the corresponding target.
 [env]
 CC_x86_64_unknown_linux_musl = "musl-gcc"
-CC_aarch64_unknown_linux_musl = "aarch64-linux-musl-gcc"
-AR_aarch64_unknown_linux_musl = "aarch64-linux-musl-ar"
-CC_armv7_unknown_linux_musleabihf = "armv7l-linux-musleabihf-gcc"
-AR_armv7_unknown_linux_musleabihf = "armv7l-linux-musleabihf-ar"
+CC_aarch64_unknown_linux_musl = "aarch64-linux-gnu-gcc"
+AR_aarch64_unknown_linux_musl = "aarch64-linux-gnu-ar"
+CC_armv7_unknown_linux_musleabihf = "arm-linux-gnueabihf-gcc"
+AR_armv7_unknown_linux_musleabihf = "arm-linux-gnueabihf-ar"
 CC_x86_64_pc_windows_gnu = "x86_64-w64-mingw32-gcc"

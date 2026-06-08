@@ -39,15 +39,14 @@ build-for-docker: build
 docker: build-for-docker
 	docker buildx build --platform linux/arm64,linux/amd64,linux/arm/v7 --push .
 
-# Cross-compiled (native `cargo build --target`, no cargo-zigbuild). Requires the
-# per-target C cross-toolchains on PATH; the linker/CC wiring is in
-# `.cargo/config.toml`. On Debian/Ubuntu:
-#   sudo apt-get install -y musl-tools gcc-mingw-w64-x86-64
-#   # apt has no aarch64/armv7 musl gcc — fetch prebuilt musl-cross toolchains:
-#   curl -fsSL https://musl.cc/aarch64-linux-musl-cross.tgz | tar -xz -C "$$HOME"
-#   curl -fsSL https://musl.cc/armv7l-linux-musleabihf-cross.tgz | tar -xz -C "$$HOME"
-#   export PATH="$$HOME/aarch64-linux-musl-cross/bin:$$HOME/armv7l-linux-musleabihf-cross/bin:$$PATH"
-# (rustup target add the four triples below first.)
+# Cross-compiled (native `cargo build --target`, no cargo-zigbuild). The linker/CC
+# wiring is in `.cargo/config.toml`; install the (apt-only) cross-toolchains
+# first. On Debian/Ubuntu:
+#   sudo apt-get install -y musl-tools gcc-aarch64-linux-gnu \
+#                           gcc-arm-linux-gnueabihf gcc-mingw-w64-x86-64
+# The ARM linux targets use the GNU cross-gcc to compile ring's C + drive the
+# link; Rust supplies the static musl libc itself (self-contained), so the
+# output is a static musl binary. (rustup target add the four triples below first.)
 build-server-releases:
 	npm run build
 	cargo build --release -p silverbullet --target x86_64-unknown-linux-musl
