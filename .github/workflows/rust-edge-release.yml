@@ -51,14 +51,6 @@ jobs:
                                   gcc-arm-linux-gnueabihf gcc-mingw-w64-x86-64 \
                                   clang lld llvm
 
-      - name: Fetch FreeBSD sysroot (for the FreeBSD CLI cross-build)
-        run: |
-          sudo mkdir -p /opt/freebsd-sysroot
-          # download.freebsd.org is reliable (unlike musl.cc); extract just the
-          # libc/crt + headers clang needs to link a FreeBSD binary.
-          curl -fsSL https://download.freebsd.org/releases/amd64/14.2-RELEASE/base.txz \
-            | sudo tar -xJf - -C /opt/freebsd-sysroot ./lib ./usr/lib ./usr/include
-
       - name: Install npm dependencies
         run: npm ci
 
@@ -68,11 +60,19 @@ jobs:
           make build-cli-releases-rust
 
       - name: Build FreeBSD sb CLI (experimental — best effort)
-        # FreeBSD cross is fiddly (clang + sysroot); don't let it block the rest
-        # of the release while it's being stabilised. The sb-freebsd zip is added
-        # to the release only when this succeeds.
+        # FreeBSD cross is fiddly (clang + sysroot). The sysroot fetch AND the
+        # build live together here under continue-on-error, AFTER the main build,
+        # so nothing FreeBSD-related can ever block the rest of the release. The
+        # sb-freebsd zip is added only when this whole step succeeds.
         continue-on-error: true
-        run: make build-cli-releases-freebsd
+        run: |
+          sudo mkdir -p /opt/freebsd-sysroot
+          # download.freebsd.org is reliable (unlike musl.cc); grab just the
+          # libc/crt + headers clang needs. Pin a CURRENT release (14.2 was
+          # retired → 404; releases get pruned, so bump this when it 404s).
+          curl -fsSL https://download.freebsd.org/releases/amd64/14.3-RELEASE/base.txz \
+            | sudo tar -xJf - -C /opt/freebsd-sysroot ./lib ./usr/lib ./usr/include
+          make build-cli-releases-freebsd
 
       - name: Upload linux/windows/freebsd artifacts
         uses: actions/upload-artifact@v4
