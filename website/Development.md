@@ -101,5 +101,5 @@ To run one:
 docker run -p 3000:3000 -v <PATH-TO-YOUR-SPACE>:/space ghcr.io/silverbulletmd/silverbullet:rust-edge
 ```
 
-These are built by `.github/workflows/rust-edge.yml`, which cross-compiles the binary (cargo-zigbuild) and copies it into a small Alpine image.
+These are built by `.github/workflows/rust-edge.yml`, which cross-compiles the binary natively (`cargo build --target` with installed musl cross-toolchains) and copies it into a small Alpine image.
 

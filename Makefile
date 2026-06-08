@@ -39,15 +39,24 @@ build-for-docker: build
 docker: build-for-docker
 	docker buildx build --platform linux/arm64,linux/amd64,linux/arm/v7 --push .
 
+# Cross-compiled (native `cargo build --target`, no cargo-zigbuild). Requires the
+# per-target C cross-toolchains on PATH; the linker/CC wiring is in
+# `.cargo/config.toml`. On Debian/Ubuntu:
+#   sudo apt-get install -y musl-tools gcc-mingw-w64-x86-64
+#   # apt has no aarch64/armv7 musl gcc — fetch prebuilt musl-cross toolchains:
+#   curl -fsSL https://musl.cc/aarch64-linux-musl-cross.tgz | tar -xz -C "$$HOME"
+#   curl -fsSL https://musl.cc/armv7l-linux-musleabihf-cross.tgz | tar -xz -C "$$HOME"
+#   export PATH="$$HOME/aarch64-linux-musl-cross/bin:$$HOME/armv7l-linux-musleabihf-cross/bin:$$PATH"
+# (rustup target add the four triples below first.)
 build-server-releases:
 	npm run build
-	cargo zigbuild --release -p silverbullet --target x86_64-unknown-linux-musl
+	cargo build --release -p silverbullet --target x86_64-unknown-linux-musl
 	cp target/x86_64-unknown-linux-musl/release/silverbullet silverbullet && zip silverbullet-server-linux-x86_64.zip silverbullet && rm silverbullet
-	cargo zigbuild --release -p silverbullet --target aarch64-unknown-linux-musl
+	cargo build --release -p silverbullet --target aarch64-unknown-linux-musl
 	cp target/aarch64-unknown-linux-musl/release/silverbullet silverbullet && zip silverbullet-server-linux-aarch64.zip silverbullet && rm silverbullet
-	cargo zigbuild --release -p silverbullet --target armv7-unknown-linux-musleabihf
+	cargo build --release -p silverbullet --target armv7-unknown-linux-musleabihf
 	cp target/armv7-unknown-linux-musleabihf/release/silverbullet silverbullet && zip silverbullet-server-linux-armv7.zip silverbullet && rm silverbullet
-	cargo zigbuild --release -p silverbullet --target x86_64-pc-windows-gnu
+	cargo build --release -p silverbullet --target x86_64-pc-windows-gnu
 	cp target/x86_64-pc-windows-gnu/release/silverbullet.exe silverbullet.exe && zip silverbullet-server-windows-x86_64.zip silverbullet.exe && rm silverbullet.exe
 
 # macOS server release archives — run on a macOS host (native SDK), builds both arches.
@@ -79,16 +88,17 @@ build-rs-cli:
 	cargo build --release -p sb
 	@echo "Built: target/release/sb"
 
-# Rust `sb` CLI release archives (cross-compiled via cargo-zigbuild). Asset
-# names match what `sb upgrade` downloads: sb-<os>-<arch>.zip with arch in
-# {x86_64, aarch64} (the arches `sb upgrade` supports). The Go `build-cli-releases`
-# target is kept until the Go CLI is retired (Project 2 → 1c-4 Task 4 / App switch).
+# Rust `sb` CLI release archives (native `cargo build --target`, no zigbuild —
+# same cross-toolchains as `build-server-releases`; see its comment). Asset names
+# match what `sb upgrade` downloads: sb-<os>-<arch>.zip with arch in {x86_64,
+# aarch64} (the arches `sb upgrade` supports). The Go `build-cli-releases` target
+# is kept until the Go CLI is retired (Project 2 → 1c-4 Task 4 / App switch).
 build-cli-releases-rust:
-	cargo zigbuild --release -p sb --target x86_64-unknown-linux-musl
+	cargo build --release -p sb --target x86_64-unknown-linux-musl
 	cp target/x86_64-unknown-linux-musl/release/sb sb && zip sb-linux-x86_64.zip sb && rm sb
-	cargo zigbuild --release -p sb --target aarch64-unknown-linux-musl
+	cargo build --release -p sb --target aarch64-unknown-linux-musl
 	cp target/aarch64-unknown-linux-musl/release/sb sb && zip sb-linux-aarch64.zip sb && rm sb
-	cargo zigbuild --release -p sb --target x86_64-pc-windows-gnu
+	cargo build --release -p sb --target x86_64-pc-windows-gnu
 	cp target/x86_64-pc-windows-gnu/release/sb.exe sb.exe && zip sb-windows-x86_64.zip sb.exe && rm sb.exe
 
 # macOS `sb` CLI release archives — run on a macOS host (native SDK), both arches.

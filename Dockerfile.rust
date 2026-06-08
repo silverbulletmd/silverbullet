@@ -2,7 +2,8 @@
 #
 # Base Alpine image for the RUST SilverBullet server (the `rust-backend` branch).
 # Copies a PRE-CROSS-COMPILED, statically-linked musl binary built on the CI
-# runner via cargo-zigbuild (see .github/workflows/rust-edge.yml). Because there is no
+# runner via native `cargo build --target` + installed musl cross-toolchains
+# (see .github/workflows/rust-edge.yml). Because there is no
 # in-image compilation, multi-arch `buildx` is fast (it only emulates the small
 # Alpine layers). The binary is static, so it runs on bare Alpine.
 #
