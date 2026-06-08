@@ -179,6 +179,9 @@ pub fn asset_url(url_prefix: &str, os: &str, arch: &str) -> Result<String, Strin
     let os = if os == "macos" { "darwin" } else { os };
     let arch = match arch {
         "x86_64" | "aarch64" => arch,
+        // Rust reports 32-bit ARM as "arm"; our release archives use the
+        // "armv7" label (e.g. sb-linux-armv7.zip).
+        "arm" => "armv7",
         other => return Err(format!("unsupported architecture: {other}")),
     };
     Ok(format!("{url_prefix}/sb-{os}-{arch}.zip"))
@@ -276,8 +279,20 @@ mod tests {
     }
 
     #[test]
+    fn asset_url_arm_maps_to_armv7() {
+        let url = asset_url("PRE", "linux", "arm").unwrap();
+        assert_eq!(url, "PRE/sb-linux-armv7.zip");
+    }
+
+    #[test]
+    fn asset_url_freebsd_x86_64() {
+        let url = asset_url("PRE", "freebsd", "x86_64").unwrap();
+        assert_eq!(url, "PRE/sb-freebsd-x86_64.zip");
+    }
+
+    #[test]
     fn asset_url_unsupported_arch() {
-        let err = asset_url("PRE", "linux", "arm").unwrap_err();
+        let err = asset_url("PRE", "linux", "powerpc64").unwrap_err();
         assert!(err.contains("unsupported architecture"), "error was: {err}");
     }
 

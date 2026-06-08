@@ -36,18 +36,28 @@ jobs:
         with:
           node-version-file: ".nvmrc"
 
-      - name: Setup Rust (linux musl + windows-gnu targets)
+      - name: Setup Rust (linux musl + windows-gnu + freebsd targets)
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: x86_64-unknown-linux-musl,aarch64-unknown-linux-musl,armv7-unknown-linux-musleabihf,x86_64-pc-windows-gnu
+          targets: x86_64-unknown-linux-musl,aarch64-unknown-linux-musl,armv7-unknown-linux-musleabihf,x86_64-pc-windows-gnu,x86_64-unknown-freebsd
 
       - name: Install cross-toolchains
         run: |
           sudo apt-get update
           # apt-only C cross-compilers; Rust supplies the static musl libc itself.
+          # clang/lld/llvm are for the FreeBSD cross-build (no apt freebsd gcc).
           # (linker/CC wiring lives in .cargo/config.toml)
           sudo apt-get install -y musl-tools gcc-aarch64-linux-gnu \
-                                  gcc-arm-linux-gnueabihf gcc-mingw-w64-x86-64
+                                  gcc-arm-linux-gnueabihf gcc-mingw-w64-x86-64 \
+                                  clang lld llvm
+
+      - name: Fetch FreeBSD sysroot (for the FreeBSD CLI cross-build)
+        run: |
+          sudo mkdir -p /opt/freebsd-sysroot
+          # download.freebsd.org is reliable (unlike musl.cc); extract just the
+          # libc/crt + headers clang needs to link a FreeBSD binary.
+          curl -fsSL https://download.freebsd.org/releases/amd64/14.2-RELEASE/base.txz \
+            | sudo tar -xJf - -C /opt/freebsd-sysroot ./lib ./usr/lib ./usr/include
 
       - name: Install npm dependencies
         run: npm ci
@@ -57,7 +67,14 @@ jobs:
           make build-server-releases
           make build-cli-releases-rust
 
-      - name: Upload linux/windows artifacts
+      - name: Build FreeBSD sb CLI (experimental — best effort)
+        # FreeBSD cross is fiddly (clang + sysroot); don't let it block the rest
+        # of the release while it's being stabilised. The sb-freebsd zip is added
+        # to the release only when this succeeds.
+        continue-on-error: true
+        run: make build-cli-releases-freebsd
+
+      - name: Upload linux/windows/freebsd artifacts
         uses: actions/upload-artifact@v4
         with:
           name: linux-binaries

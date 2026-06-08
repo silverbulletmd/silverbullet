@@ -7,7 +7,7 @@ CLI_LDFLAGS = -X main.version=$(CLI_VERSION)
 # PATH. Override with INSTALL_DIR=/some/dir if you prefer another location.
 INSTALL_DIR ?= $(or $(shell go env GOBIN),$(shell go env GOPATH)/bin)
 
-.PHONY: build build-for-docker docker build-server-releases build-server-releases-macos build-cli-releases build-cli-releases-rust build-cli-releases-rust-macos clean check fmt test test-integration test-e2e test-e2e-release bench generate website install uninstall bundle build-rs build-rs-cli run-rs
+.PHONY: build build-for-docker docker build-server-releases build-server-releases-macos build-cli-releases build-cli-releases-rust build-cli-releases-freebsd build-cli-releases-rust-macos clean check fmt test test-integration test-e2e test-e2e-release bench generate website install uninstall bundle build-rs build-rs-cli run-rs
 
 build:
 	npm run build
@@ -89,16 +89,25 @@ build-rs-cli:
 
 # Rust `sb` CLI release archives (native `cargo build --target`, no zigbuild —
 # same cross-toolchains as `build-server-releases`; see its comment). Asset names
-# match what `sb upgrade` downloads: sb-<os>-<arch>.zip with arch in {x86_64,
-# aarch64} (the arches `sb upgrade` supports). The Go `build-cli-releases` target
-# is kept until the Go CLI is retired (Project 2 → 1c-4 Task 4 / App switch).
+# match what `sb upgrade` downloads: sb-<os>-<arch>.zip. The Go `build-cli-releases`
+# target is kept until the Go CLI is retired (Project 2 → 1c-4 Task 4 / App switch).
 build-cli-releases-rust:
 	cargo build --release -p sb --target x86_64-unknown-linux-musl
 	cp target/x86_64-unknown-linux-musl/release/sb sb && zip sb-linux-x86_64.zip sb && rm sb
 	cargo build --release -p sb --target aarch64-unknown-linux-musl
 	cp target/aarch64-unknown-linux-musl/release/sb sb && zip sb-linux-aarch64.zip sb && rm sb
+	cargo build --release -p sb --target armv7-unknown-linux-musleabihf
+	cp target/armv7-unknown-linux-musleabihf/release/sb sb && zip sb-linux-armv7.zip sb && rm sb
 	cargo build --release -p sb --target x86_64-pc-windows-gnu
 	cp target/x86_64-pc-windows-gnu/release/sb.exe sb.exe && zip sb-windows-x86_64.zip sb.exe && rm sb.exe
+
+# FreeBSD `sb` CLI release archive — kept SEPARATE because it needs a clang +
+# FreeBSD-sysroot cross setup (no apt cross-gcc exists), unlike the apt-only
+# targets above. Requires: clang lld llvm + a FreeBSD base sysroot at
+# /opt/freebsd-sysroot (see rust-edge-release.yml / .cargo/config.toml).
+build-cli-releases-freebsd:
+	cargo build --release -p sb --target x86_64-unknown-freebsd
+	cp target/x86_64-unknown-freebsd/release/sb sb && zip sb-freebsd-x86_64.zip sb && rm sb
 
 # macOS `sb` CLI release archives — run on a macOS host (native SDK), both arches.
 build-cli-releases-rust-macos:

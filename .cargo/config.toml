@@ -31,6 +31,17 @@ linker = "arm-linux-gnueabihf-gcc"
 [target.x86_64-pc-windows-gnu]
 linker = "x86_64-w64-mingw32-gcc"
 
+# FreeBSD has no apt cross-gcc, so we cross with clang + a FreeBSD base sysroot
+# (extracted to /opt/freebsd-sysroot — see rust-edge-release.yml). clang is the
+# link driver (with lld); the sysroot supplies FreeBSD's libc/crt + headers.
+[target.x86_64-unknown-freebsd]
+linker = "clang"
+rustflags = [
+    "-Clink-arg=--target=x86_64-unknown-freebsd",
+    "-Clink-arg=--sysroot=/opt/freebsd-sysroot",
+    "-Clink-arg=-fuse-ld=lld",
+]
+
 # C cross-compilers for `ring`'s build script (the `cc` crate reads `CC_<triple>`
 # / `AR_<triple>`). Only consulted when building the corresponding target.
 [env]
@@ -40,3 +51,7 @@ AR_aarch64_unknown_linux_musl = "aarch64-linux-gnu-ar"
 CC_armv7_unknown_linux_musleabihf = "arm-linux-gnueabihf-gcc"
 AR_armv7_unknown_linux_musleabihf = "arm-linux-gnueabihf-ar"
 CC_x86_64_pc_windows_gnu = "x86_64-w64-mingw32-gcc"
+# FreeBSD: clang targets it directly given the sysroot (ring's C build).
+CC_x86_64_unknown_freebsd = "clang"
+AR_x86_64_unknown_freebsd = "llvm-ar"
+CFLAGS_x86_64_unknown_freebsd = "--target=x86_64-unknown-freebsd --sysroot=/opt/freebsd-sysroot"
