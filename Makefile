@@ -100,7 +100,7 @@ test:
 test-integration:
 	go test -tags=integration ./server/... ./cli/... -v -timeout 300s
 
-test-e2e: build
+test-e2e: build-rs
 	npx playwright test
 
 # Browser E2E tests against the standalone release binary, validating the

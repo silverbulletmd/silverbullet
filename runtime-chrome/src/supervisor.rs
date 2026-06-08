@@ -17,7 +17,7 @@ use chromiumoxide::page::Page;
 use futures::StreamExt;
 use serde_json::Value;
 use silverbullet_server::runtime::{LogBuffer, LogEntry, RuntimeError};
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, Notify};
 
 use crate::config::ChromeConfig;
 
@@ -229,17 +229,17 @@ pub async fn supervise(
     live_slot: Arc<Mutex<Option<Live>>>,
     ready: Arc<AtomicBool>,
     logs: LogBuffer,
-    requested: Arc<AtomicBool>,
+    trigger: Arc<Notify>,
 ) {
     const BACKOFF_FLOOR: Duration = Duration::from_secs(2);
     const BACKOFF_CAP: Duration = Duration::from_secs(120);
     const LIVENESS_INTERVAL: Duration = Duration::from_secs(2);
 
-    // Lazy launch: idle until the first runtime request, so Chrome is not
-    // started (and emits no CDP noise) when the runtime API is never used.
-    while !requested.load(Ordering::Relaxed) {
-        tokio::time::sleep(Duration::from_millis(200)).await;
-    }
+    // Lazy launch: park here until the first runtime request, so Chrome is not
+    // started (and emits no CDP noise) while the runtime API is unused. `Notify`
+    // suspends the task with no polling; if the request arrived first,
+    // `notify_one` already stored a permit so this returns immediately.
+    trigger.notified().await;
 
     let mut backoff = BACKOFF_FLOOR;
     loop {

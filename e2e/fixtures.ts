@@ -65,13 +65,19 @@ export const test = base.extend<SBFixtures>({
 		const port = await getFreePort();
 
 		const proc: ChildProcess = spawn(
-			"./silverbullet",
+			// The e2e suite runs against the Rust server (the release binary, with
+			// the client bundle embedded — built by `make build-rs`).
+			"./target/release/silverbullet",
 			[spaceDir, "-p", String(port), "-L", "127.0.0.1"],
 			{
 				cwd: join(import.meta.dirname, ".."),
 				stdio: ["ignore", "pipe", "pipe"],
 				env: {
 					...process.env,
+					// Disable the server-side headless-Chrome runtime API: in
+					// `?headless=1` the client uses its own in-page runtime, so the
+					// e2e servers never need to spawn Chrome (and don't require it).
+					SB_RUNTIME_API: "0",
 					...(disableServiceWorker
 						? { SB_DISABLE_SERVICE_WORKER: "1" }
 						: {}),

@@ -18,7 +18,7 @@ use std::time::Duration;
 use serde_json::Value;
 use silverbullet_server::runtime::{ClientTransport, LogBuffer, RuntimeError};
 use tokio::runtime::Runtime;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, Notify};
 
 use crate::config::ChromeConfig;
 use crate::supervisor::{eval_on_page, Live};
@@ -27,10 +27,10 @@ pub struct ChromeTransport {
     rt: Runtime,
     live: Arc<Mutex<Option<Live>>>,
     ready: Arc<AtomicBool>,
-    /// Set on the first runtime request; the supervisor idles (does not launch
-    /// Chrome) until this flips true, so the browser only starts when the
-    /// runtime API is actually used.
-    requested: Arc<AtomicBool>,
+    /// Notified on the first runtime request; the supervisor parks on this
+    /// before launching Chrome, so the browser only starts when the runtime API
+    /// is actually used.
+    trigger: Arc<Notify>,
     _supervisor: tokio::task::JoinHandle<()>,
 }
 
@@ -48,24 +48,24 @@ impl ChromeTransport {
             .map_err(|e| RuntimeError::Transport(format!("tokio runtime: {e}")))?;
         let live = Arc::new(Mutex::new(None));
         let ready = Arc::new(AtomicBool::new(false));
-        let requested = Arc::new(AtomicBool::new(false));
+        let trigger = Arc::new(Notify::new());
         let supervisor = {
-            let (live, ready, logs, config, requested) = (
+            let (live, ready, logs, config, trigger) = (
                 live.clone(),
                 ready.clone(),
                 logs.clone(),
                 config.clone(),
-                requested.clone(),
+                trigger.clone(),
             );
             rt.spawn(crate::supervisor::supervise(
-                config, live, ready, logs, requested,
+                config, live, ready, logs, trigger,
             ))
         };
         Ok(Self {
             rt,
             live,
             ready,
-            requested,
+            trigger,
             _supervisor: supervisor,
         })
     }
@@ -73,8 +73,8 @@ impl ChromeTransport {
 
 impl ClientTransport for ChromeTransport {
     fn eval_js(&self, js: &str, timeout: Duration) -> Result<Value, RuntimeError> {
-        // Any runtime use triggers the lazy browser launch.
-        self.requested.store(true, Ordering::Relaxed);
+        // Any runtime use wakes the supervisor to launch Chrome.
+        self.trigger.notify_one();
         let live = self.live.clone();
         let js = js.to_string();
         self.rt.block_on(async move {
@@ -88,8 +88,8 @@ impl ClientTransport for ChromeTransport {
     }
 
     fn wait_ready(&self, timeout: Duration) -> Result<(), RuntimeError> {
-        // First runtime request triggers the lazy browser launch.
-        self.requested.store(true, Ordering::Relaxed);
+        // First runtime request wakes the supervisor to launch Chrome.
+        self.trigger.notify_one();
         if self.ready.load(Ordering::Relaxed) {
             return Ok(());
         }
