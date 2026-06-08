@@ -21,7 +21,11 @@ use std::os::unix::fs::PermissionsExt;
 pub fn run(edge: bool) -> Result<(), String> {
     if edge {
         println!("Upgrading sb to edge...");
-        upgrade_cli("https://github.com/silverbulletmd/silverbullet/releases/download/edge")
+        // TRANSITIONAL: during the Rust early-access phase the Rust binaries live
+        // in the dedicated `edge-rust` prerelease (the `edge` release still holds
+        // the Go builds). Once Rust replaces Go on the main `edge`/`latest`
+        // releases, point this back at `releases/download/edge`.
+        upgrade_cli("https://github.com/silverbulletmd/silverbullet/releases/download/edge-rust")
     } else {
         println!("Upgrading sb...");
         upgrade_cli("https://github.com/silverbulletmd/silverbullet/releases/latest/download")
