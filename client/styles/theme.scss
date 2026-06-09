@@ -11,6 +11,16 @@ html {
   --subtle-color: #676767;
   --subtle-background-color: rgba(72, 72, 72, 0.1);
 
+  /* Shared panel-surface palette — chrome colors for plug panels (e.g.
+     Configuration Manager, Object Graph). Bundled into components.css, so
+     panels consume these instead of hardcoding their own light/dark values. */
+  --ui-surface-background-color: var(--root-background-color);
+  --ui-surface-color: var(--root-color);
+  --ui-surface-subtle-color: var(--subtle-color);
+  --ui-surface-border-color: #ddd;
+  --ui-surface-section-background-color: var(--subtle-background-color);
+  --ui-surface-hover-background-color: var(--subtle-background-color);
+
   --root-background-color: #fff;
   --root-color: inherit;
 
@@ -190,6 +200,10 @@ html[data-theme="dark"] {
   --meta-subtle-color: #959595;
   --subtle-color: #959595;
   --subtle-background-color: rgba(105, 105, 105, 0.1);
+
+  // Shared panel-surface palette (dark). Only the concrete border needs a
+  // dark value; the rest reference tokens that already flip with the theme.
+  --ui-surface-border-color: #444;
 
   --root-background-color: #111;
   --root-color: #fff;

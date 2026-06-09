@@ -1,5 +1,7 @@
 X-Ray is an editor lens that shows you the structure SilverBullet’s indexer sees in your document. When switched on, every text range the indexer extracts as an [[Object]] is underlined. When you hover your mouse over it, it will show you all the attributes extracted as [[YAML]].
 
+You may also be interested in the [[Object Graph]].
+
 # Activation
 Run ${widgets.commandButton "Editor: Toggle X-Ray"}. The setting is sticky, it persists across page navigations and reloads until you run the command again.
 

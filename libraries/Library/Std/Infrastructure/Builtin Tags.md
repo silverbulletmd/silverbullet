@@ -224,24 +224,14 @@ tag.define {
         nullable = true,
         readOnly = true,
       },
-      kind = {
-        type = "string",
-        readOnly = true,
-        enum = {
-          "mention",
-          "attribute",
-          "frontmatter",
-          "data",
-          "co-mention",
-          "url",
-          "document",
-        },
-      },
+      -- Either a reserved structural value ("mention", "co-mention") or a
+      -- user predicate (e.g. "spouse") taken from an attribute/frontmatter/
+      -- data-block key. Open-ended, so no enum.
+      kind = readOnlyType("string"),
       from = readOnlyType("string"),
       fromTag = schema.nullable("string"),
       to = readOnlyType("string"),
       toTag = schema.nullable("string"),
-      type = schema.nullable("string"),
       via = schema.nullable("string"),
       alias = schema.nullable("string"),
       snippet = schema.nullable("string"),

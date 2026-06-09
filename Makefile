@@ -107,6 +107,7 @@ clean:
 	rm -f silverbullet silverbullet-arm64 silverbullet-amd64 silverbullet-arm silverbullet.exe silverbullet-server-*.zip
 	rm -f sb sb.exe sb-*.zip
 	rm -rf plugs/configuration-manager/assets
+	rm -rf plugs/object-graph/assets
 
 check:
 	npm run check

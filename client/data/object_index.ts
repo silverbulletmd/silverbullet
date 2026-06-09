@@ -30,7 +30,7 @@ const pageKey = "ridx";
 const indexVersionKey = ["$indexVersion"];
 
 // Bump this one every time a full reindex is needed
-const desiredIndexVersion = 10;
+const desiredIndexVersion = 11;
 
 type TagDefinition = {
   tagPage?: string;

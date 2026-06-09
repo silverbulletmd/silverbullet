@@ -1,15 +1,19 @@
 # Introduction
-SilverBullet is a [[Programmable]], [[Private]], [[Browser]]-based, [[Open Source]], [[Self Hosted]], [[Personal]] [[Knowledge Management]] [[Platform]].
+SilverBullet is a [[Programmable]], [[Private]], [[Browser]]-based, [[Open Source]], [[Self Hosted]], [[Personal]] [[Knowledge Database]].
 
-_Yowza!_ That surely is a lot of adjectives to describe a browser-based [[Markdown]] editor programmable with [[Lua]].
+_Yowza!_ That surely is a lot of adjectives to describe, effectively, a browser-based [[Markdown]] editor programmable with [[Lua]].
 
 Let’s get more specific.
 
+SilverBullet combines a clean live-preview editor with wiki-style linking, a built-in database and query language, and a fully integrated [[Space Lua|Lua]] scripting environment — turning your notes into a programmable system that grows with you.
+
 In SilverBullet you keep your content as a collection of [[Markdown]] [[Page|Pages]] (called a [[Space]]). You navigate your space using the [[Page Picker]] like a traditional notes app, or through [[Link|Links]] like a wiki (except they are [[Linked Mention|bi-directional]]).
 
-If you are the **writer** type, you’ll appreciate SilverBullet as a clean [[Markdown]] editor with [[Live Preview]]. If you have more of an **outliner** personality, SilverBullet has [[Outlines|Outlining]] tools for you. Productivity freak? Have a look at [[Task|Tasks]]. More of a **database** person? You will appreciate [[Object|Objects]] and [[Space Lua/Integrated Query|Queries]]. 
+If you are the **writer** type, you’ll appreciate SilverBullet as a clean [[Markdown]] editor with [[Live Preview]]. If you have more of an **outliner** personality, SilverBullet has [[Outlines|Outlining]] tools for you. Productivity freak? Have a look at [[Task|Tasks]]. More of a **database** person? You will appreciate [[Object|Objects]] and [[Space Lua/Integrated Query|Queries]] (SLIQ). 
 
 And if you are comfortable **programming** a little bit — now we’re really talking. You will love _dynamically generating content_ with [[Space Lua]] (SilverBullet’s [[Lua]] dialect), or to use it to create custom [[Command|Commands]], [[Page Template|Page Templates]] or [[API/widget|Widgets]].
+
+You were told there’s no such thing as a silver bullet. You were told wrong.
 
 # Programmable notes
 Dynamically generating content, _programmable notes_... why would you want that, and how does it work?
