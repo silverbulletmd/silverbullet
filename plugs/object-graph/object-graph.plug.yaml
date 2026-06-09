@@ -1,0 +1,22 @@
+name: object-graph
+build:
+  - in: ./ui/index.tsx
+    out: ./assets/object-graph.js
+  - type: sass
+    in: ./ui/object-graph.scss
+    out: ./assets/object-graph.css
+assets:
+  - "assets/**"
+functions:
+  showGraph:
+    path: ./src/object_graph.ts:showGraph
+    command:
+      name: "Graph: Explore"
+      key: "Ctrl-Shift-g"
+      mac: "Cmd-Shift-g"
+  showGlobalGraph:
+    path: ./src/object_graph.ts:showGlobalGraph
+    command:
+      name: "Graph: Global Page Map"
+  expandObject:
+    path: ./src/object_graph.ts:expandObject

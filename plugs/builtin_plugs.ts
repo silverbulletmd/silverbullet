@@ -7,6 +7,7 @@ export const builtinPlugNames = [
   "emoji",
   "image-viewer",
   "configuration-manager",
+  "object-graph",
 ];
 
 export const builtinPlugPaths = builtinPlugNames.map(

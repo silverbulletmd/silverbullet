@@ -6,6 +6,10 @@ SilverBullet automatically maintains an [[Object Index]] extracted from all [[Ma
 
 Objects are a feature that powers a lot of SilverBullet functionality, including the [[Page Picker]], [[Linked Mention|Linked Mentions]] and many others. They can also be queried by the user directly, typically via [[Space Lua/Integrated Query]].
 
+There are various ways to visualize what objects exist:
+* [[X-Ray]]: an in-editor overlay visualizing indexed objects
+* [[Object Graph]]: a graph-style visualization of indexed objects and their relationships.
+
 # Terminology
 * [[Object]]: represent _things_ in your space at various level of granularity. Examples include [[Object/page]] at the highest level, but also more granular things like [[Object/task]] and [[Object/link]]. In relational database parlance, you can think of Objects as **database rows**.
 * [[Tag]]: represent Object **types** or **tables** (in relational database parlance). Every Object has at least one tag, but can have additional tags attached explicitly, usually through the [[Markdown/Hashtags]] syntax. 
