@@ -1,6 +1,6 @@
 //! `sb get` — list indexed tags, list objects of a tag, or fetch one object.
 //!
-//! This is a port of `cli/get.go`.  It owns its exit codes and prints its own
+//! It owns its exit codes and prints its own
 //! errors to stderr; the dispatch arm wraps the `ExitCode` in `Ok(...)`.
 
 use std::io::Write;
@@ -11,11 +11,11 @@ use crate::conn::SpaceConnection;
 use crate::output::{self, OutputMode};
 
 // ---------------------------------------------------------------------------
-// Percent-encoding helper (mirrors Go `url.PathEscape`)
+// Percent-encoding helper (RFC 3986 path-segment escaping)
 // ---------------------------------------------------------------------------
 
 /// Percent-encode a path segment, leaving only RFC 3986 unreserved characters
-/// unencoded (`A-Z a-z 0-9 - _ . ~`).  This mirrors Go's `url.PathEscape`.
+/// unencoded (`A-Z a-z 0-9 - _ . ~`).
 pub fn encode_path_segment(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for byte in s.bytes() {
@@ -124,7 +124,7 @@ pub fn build_query(args: &GetArgs) -> Result<Vec<(String, String)>, String> {
 }
 
 // ---------------------------------------------------------------------------
-// API error formatter (port of `apiError` in get.go)
+// API error formatter
 // ---------------------------------------------------------------------------
 
 fn api_error_msg(status: reqwest::StatusCode, body: &[u8]) -> String {
@@ -515,11 +515,11 @@ mod tests {
 
     // -----------------------------------------------------------------------
     // build_query — order of parameters (selector, wheres, sort, limit,
-    // offset, select, debug) — mirrors Go's append order
+    // offset, select, debug)
     // -----------------------------------------------------------------------
 
     #[test]
-    fn param_order_matches_go() {
+    fn param_order_is_stable() {
         let args = GetArgs {
             selector: vec!["tag=task".to_string()],
             where_: vec!["done=false".to_string()],

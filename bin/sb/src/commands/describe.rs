@@ -1,8 +1,7 @@
 //! `describe` command — show available query types and tag schemas.
 //!
-//! This is a Rust port of `cli/describe.go`.  The two embedded Lua scripts are
-//! copied byte-for-byte from that file; any whitespace change would break the
-//! server-side execution.
+//! The two embedded Lua scripts are byte-for-byte significant; any whitespace
+//! change would break the server-side execution.
 
 use std::io::Write;
 
@@ -12,11 +11,10 @@ use crate::conn::SpaceConnection;
 use crate::output::{self, OutputMode};
 
 // ---------------------------------------------------------------------------
-// Lua scripts — copied verbatim from cli/describe.go
+// Lua scripts — whitespace-significant, do not reformat
 // ---------------------------------------------------------------------------
 
 /// Shared Lua helper for extracting schema properties from a tag definition.
-/// Copied byte-for-byte from the `luaExtractProps` const in describe.go.
 const LUA_EXTRACT_PROPS: &str = "
 function extractProps(def)
   local props = {}
@@ -40,7 +38,6 @@ end
 ";
 
 /// Body of the "describe all" script (appended after LUA_EXTRACT_PROPS).
-/// Copied byte-for-byte from the `describeAllScript` body in describe.go.
 const DESCRIBE_ALL_BODY: &str = "
 local tags = config.get(\"tags\", {})
 local result = {}
@@ -61,7 +58,6 @@ return { tags = result, syntax = parsed.text }
 
 /// Body of the "describe tag" script (appended after LUA_EXTRACT_PROPS).
 /// Contains exactly one `%s` placeholder for the tag name.
-/// Copied byte-for-byte from the `describeTagScript` body in describe.go.
 const DESCRIBE_TAG_BODY: &str = "
 local tagName = \"%s\"
 local tags = config.get(\"tags\", {})
@@ -122,7 +118,7 @@ struct DescribeAllResult {
 }
 
 // ---------------------------------------------------------------------------
-// Tag name validation (mirrors Go's `validTagName` regexp)
+// Tag name validation
 // ---------------------------------------------------------------------------
 
 /// Returns true iff `name` matches `^[a-zA-Z_][a-zA-Z0-9_-]*$`.

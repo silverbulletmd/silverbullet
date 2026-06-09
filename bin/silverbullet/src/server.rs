@@ -20,7 +20,7 @@ use silverbullet_server::{metrics::Metrics, AppState, ServerVersion};
 use crate::config::Config;
 use crate::embed::{BaseFsAssets, ClientAssets, EmbeddedSpace};
 
-const DEFAULT_INDEX_MD: &str = include_str!("../../../server/cmd/space_template/index.md");
+const DEFAULT_INDEX_MD: &str = include_str!("../space_template/index.md");
 
 /// Absolute path to `public_version.ts` baked at compile time (dev machine).
 /// Used only by debug builds (see [`server_version`]).
@@ -176,9 +176,9 @@ fn build_state(config: &Config) -> Result<AppState, String> {
         index_page: config.index_page.clone(),
         read_only: config.read_only,
         log_push: config.log_push,
-        // Client encryption is offered whenever the space is authenticated
-        // (matching the legacy server); the client only activates it once the
-        // login page opts in, which lands with that page in a follow-up.
+        // Client encryption is offered whenever the space is authenticated;
+        // the client only activates it once the login page opts in, which
+        // lands with that page in a follow-up.
         enable_client_encryption: authorizer.is_some(),
         shell_backend: if config.read_only {
             "noop".into()

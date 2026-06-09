@@ -1,7 +1,6 @@
 //! Cookie-name derivation and `Set-Cookie` construction for the standalone
 //! server's session cookies. The cookie name is derived from the request
-//! `Host` (matching the legacy server) so a browser keeps one session per
-//! host:port.
+//! `Host` so a browser keeps one session per host:port.
 
 use axum::http::HeaderMap;
 use regex::Regex;
@@ -14,8 +13,7 @@ pub fn auth_cookie_name(host: &str) -> String {
     format!("auth_{}", re.replace_all(host, "_"))
 }
 
-/// The request `Host` header, or `""` when absent (matching the legacy
-/// server's `extractHost`).
+/// The request `Host` header, or `""` when absent.
 pub fn request_host(headers: &HeaderMap) -> String {
     headers
         .get(axum::http::header::HOST)
@@ -26,7 +24,7 @@ pub fn request_host(headers: &HeaderMap) -> String {
 
 /// Whether the request arrived over TLS, accounting for an upstream proxy that
 /// terminates TLS and forwards `X-Forwarded-Proto: https`. Direct-TLS detection
-/// (the legacy server's `r.TLS != nil`) is intentionally out of scope here: it
+/// is intentionally out of scope here: it
 /// is not observable from the request headers alone, and this server is meant to
 /// run behind a TLS-terminating proxy.
 pub fn is_secure_request(headers: &HeaderMap) -> bool {

@@ -1,6 +1,6 @@
 //! `sb logs` — show console logs from the running SilverBullet server.
 //!
-//! Mirrors the Go `cli/logs.go` behaviour:
+//! Behaviour:
 //!  - Initial fetch: `conn.logs(lines, None)`, print each entry as
 //!    `<RFC3339-UTC> [<level>] <text>`, track the highest timestamp seen.
 //!  - With `--follow`: loop every 500 ms, fetch `conn.logs(0, Some(last_ts))`,
@@ -16,8 +16,7 @@ use crate::conn::SpaceConnection;
 /// Format one log entry as `<RFC3339-UTC> [<level>] <text>`.
 ///
 /// The timestamp is epoch **milliseconds** (matching `LogEntry.timestamp`).
-/// UTC seconds precision with a `Z` suffix mirrors Go's
-/// `time.UnixMilli(ts).UTC().Format(time.RFC3339)`.
+/// Rendered at UTC seconds precision with a `Z` suffix.
 pub fn format_entry(entry: &LogEntry) -> String {
     let ts = chrono::DateTime::from_timestamp_millis(entry.timestamp)
         .unwrap_or_default()

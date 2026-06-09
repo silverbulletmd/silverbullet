@@ -1,71 +1,8 @@
 use clap::{Args, Parser, Subcommand};
 
-#[derive(Parser)]
-#[command(name = "sb", version = crate::VERSION, about = "SilverBullet CLI")]
-pub struct Cli {
-    #[command(flatten)]
-    pub global: GlobalFlags,
-    #[command(subcommand)]
-    pub command: Command,
-}
-
-/// The shared connection + output flags (`--space`, `--url`, `--token`,
-/// `--timeout`, `--json`, `--text`, `-o`).
-///
-/// Factored into its own `Args` struct — the Rust analog of Core's Go
-/// `AddSpaceFlags`/`AddOutputFlags` — so a downstream binary (the App's CLI)
-/// can `#[command(flatten)]` it into its own `clap` `Parser` and reuse
-/// [`crate::conn::resolve`] / the output-mode resolution unchanged. All fields
-/// are `global = true`, so they may appear before or after the subcommand.
-#[derive(Args, Clone, Debug)]
-pub struct GlobalFlags {
-    /// Named space from config.
-    #[arg(short = 's', long, global = true)]
-    pub space: Option<String>,
-    /// Direct server URL (skips config lookup).
-    #[arg(long, global = true)]
-    pub url: Option<String>,
-    /// Direct bearer token.
-    #[arg(long, global = true)]
-    pub token: Option<String>,
-    /// Request timeout in seconds.
-    #[arg(short = 't', long, global = true, default_value_t = 30)]
-    pub timeout: u64,
-    /// Shortcut for `-o json`.
-    #[arg(long, global = true)]
-    pub json: bool,
-    /// Shortcut for `-o text`.
-    #[arg(long, global = true)]
-    pub text: bool,
-    /// Output mode: auto|text|table|json|jsonl|yaml.
-    #[arg(short = 'o', long, global = true, default_value = "auto")]
-    pub output: String,
-}
-
-#[derive(Subcommand)]
-pub enum Command {
-    /// Manage saved space connections.
-    #[command(subcommand)]
-    Space(SpaceCmd),
-    /// Evaluate a Lua expression.
-    Eval { expression: String },
-    /// (hidden) alias of eval.
-    #[command(hide = true)]
-    Lua { expression: String },
-    /// Run a Lua script (from arg, --file, or stdin).
-    Script {
-        code: Option<String>,
-        #[arg(short = 'f', long)]
-        file: Option<String>,
-    },
-    /// (hidden) old file-arg form of script.
-    #[command(hide = true, name = "lua-script")]
-    LuaScript { file: Option<String> },
-    /// Run a SLIQ query.
-    Query { expression: String },
-    /// List indexed tags, list objects of a tag, or fetch one object (kubectl-style)
-    #[command(
-        long_about = "Retrieve indexed objects.
+/// Long help for `get` (kubectl-style object retrieval). Exposed so the App CLI
+/// can reuse it verbatim on its own `get` command (avoiding copy-paste drift).
+pub const GET_LONG_ABOUT: &str = "Retrieve indexed objects.
 
   sb get                 # list all used tag names
   sb get <tag>           # list all objects with this tag (paged, filtered)
@@ -147,8 +84,11 @@ EXIT CODES
 ALSO
 
   sb describe <tag>        show the field schema for a tag
-  sb query '<lua>'         full Lua collection query (for things REST can't express)",
-        after_help = "Examples:
+  sb query '<lua>'         full Lua collection query (for things REST can't express)";
+
+/// After-help examples for `get`. Exposed alongside [`GET_LONG_ABOUT`] so the
+/// App CLI can reuse it verbatim.
+pub const GET_AFTER_HELP: &str = "Examples:
   # List all known tag names
   sb get
 
@@ -156,8 +96,72 @@ ALSO
   sb get task
 
   # Unfinished tasks, highest priority first, top 20
-  sb get task -l done=false --sort-by priority:desc --limit 20"
-    )]
+  sb get task -l done=false --sort-by priority:desc --limit 20";
+
+#[derive(Parser)]
+#[command(name = "sb", version = crate::VERSION, about = "SilverBullet CLI")]
+pub struct Cli {
+    #[command(flatten)]
+    pub global: GlobalFlags,
+    #[command(subcommand)]
+    pub command: Command,
+}
+
+/// The shared connection + output flags (`--space`, `--url`, `--token`,
+/// `--timeout`, `--json`, `--text`, `-o`).
+///
+/// Factored into its own `Args` struct so a downstream binary (the App's CLI)
+/// can `#[command(flatten)]` it into its own `clap` `Parser` and reuse
+/// [`crate::conn::resolve`] / the output-mode resolution unchanged. All fields
+/// are `global = true`, so they may appear before or after the subcommand.
+#[derive(Args, Clone, Debug)]
+pub struct GlobalFlags {
+    /// Named space from config.
+    #[arg(short = 's', long, global = true)]
+    pub space: Option<String>,
+    /// Direct server URL (skips config lookup).
+    #[arg(long, global = true)]
+    pub url: Option<String>,
+    /// Direct bearer token.
+    #[arg(long, global = true)]
+    pub token: Option<String>,
+    /// Request timeout in seconds.
+    #[arg(short = 't', long, global = true, default_value_t = 30)]
+    pub timeout: u64,
+    /// Shortcut for `-o json`.
+    #[arg(long, global = true)]
+    pub json: bool,
+    /// Shortcut for `-o text`.
+    #[arg(long, global = true)]
+    pub text: bool,
+    /// Output mode: auto|text|table|json|jsonl|yaml.
+    #[arg(short = 'o', long, global = true, default_value = "auto")]
+    pub output: String,
+}
+
+#[derive(Subcommand)]
+pub enum Command {
+    /// Manage saved space connections.
+    #[command(subcommand)]
+    Space(SpaceCmd),
+    /// Evaluate a Lua expression.
+    Eval { expression: String },
+    /// (hidden) alias of eval.
+    #[command(hide = true)]
+    Lua { expression: String },
+    /// Run a Lua script (from arg, --file, or stdin).
+    Script {
+        code: Option<String>,
+        #[arg(short = 'f', long)]
+        file: Option<String>,
+    },
+    /// (hidden) old file-arg form of script.
+    #[command(hide = true, name = "lua-script")]
+    LuaScript { file: Option<String> },
+    /// Run a SLIQ query.
+    Query { expression: String },
+    /// List indexed tags, list objects of a tag, or fetch one object (kubectl-style)
+    #[command(long_about = GET_LONG_ABOUT, after_help = GET_AFTER_HELP)]
     Get(GetArgs),
     /// Describe query types / a tag's schema.
     Describe {

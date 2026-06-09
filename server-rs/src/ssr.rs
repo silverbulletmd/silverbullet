@@ -7,8 +7,8 @@ use pulldown_cmark::{html, Options, Parser};
 use regex::Regex;
 
 /// Rewrite `[[wiki links]]` into standard markdown `[wiki links](wiki links)`
-/// so the markdown renderer turns them into anchors. Crude on purpose — this
-/// matches the legacy Go behavior (link target == link text verbatim).
+/// so the markdown renderer turns them into anchors. Crude on purpose — the
+/// link target is the link text verbatim.
 pub fn convert_wiki_links(input: &str) -> String {
     // `[[...]]` with no `]` inside the brackets.
     let re = Regex::new(r"\[\[([^\]]+)\]\]").expect("static regex");
@@ -16,8 +16,8 @@ pub fn convert_wiki_links(input: &str) -> String {
 }
 
 /// Render markdown to an HTML fragment. Enables the common GitHub-ish
-/// extensions (tables, strikethrough, footnotes, task lists) to approximate
-/// the Go renderer's `CommonExtensions`. Empty input yields empty output.
+/// extensions (tables, strikethrough, footnotes, task lists). Empty input
+/// yields empty output.
 pub fn render_markdown(text: &str) -> String {
     if text.is_empty() {
         return String::new();

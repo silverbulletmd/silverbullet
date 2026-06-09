@@ -54,8 +54,8 @@ async fn require_authorization(
         next.run(req).await
     } else {
         // The client's boot code follows this `Location` to the login page; all
-        // protected routes are `/.`-prefixed, matching the legacy server's
-        // 401-with-Location branch.
+        // protected routes are `/.`-prefixed, hence the 401-with-Location
+        // branch.
         let location = format!("{}/.auth", state.host_url_prefix);
         (
             axum::http::StatusCode::UNAUTHORIZED,
@@ -459,7 +459,7 @@ mod metrics_tests {
     #[tokio::test]
     async fn rejected_shell_request_does_not_increment_counter() {
         // A read-only space rejects the command before it runs → no increment
-        // (matching Go, which counts only executed commands).
+        // (only executed commands are counted).
         let metrics = Arc::new(Metrics::new());
         let mut s = test_state();
         s.metrics = Some(metrics.clone());

@@ -9,8 +9,8 @@ pub struct ShellConfig {
 
 impl ShellConfig {
     /// Build from the environment. Shell running is enabled only when
-    /// `SB_SHELL_BACKEND` is unset AND the space is not read-only (matching the
-    /// legacy server); `SB_SHELL_WHITELIST` is a space-separated allow-list.
+    /// `SB_SHELL_BACKEND` is unset AND the space is not read-only;
+    /// `SB_SHELL_WHITELIST` is a space-separated allow-list.
     pub fn from_env(read_only: bool) -> Self {
         let backend = std::env::var("SB_SHELL_BACKEND")
             .ok()

@@ -19,8 +19,7 @@ fn main() {
     // timestamp string, e.g. "2.8.1-69-g3ee2d4ef-2026-06-02T07-02-04Z"). This MUST
     // match what the client is built with: the client compares the server's
     // reported version against its compiled-in `publicVersion`, and any mismatch
-    // shows a perpetual "a new version is available" banner. The legacy Go server
-    // embeds this same file (`//go:embed public_version.ts`). (`version.ts` holds
+    // shows a perpetual "a new version is available" banner. (`version.ts` holds
     // only the plain semver and must NOT be used here.)
     let version_ts = Path::new(manifest).join("../../public_version.ts");
     println!("cargo:rerun-if-changed=../../public_version.ts");
@@ -31,8 +30,8 @@ fn main() {
     println!("cargo:rustc-env=SB_VERSION={version}");
 }
 
-/// Extract the first double-quoted string literal (the version value), matching
-/// the Go server's `ParseVersionFromTypeScript` regex `"([^"]+)"`.
+/// Extract the first double-quoted string literal (the version value) — the
+/// `public_version.ts` version regex `"([^"]+)"`.
 fn parse_version(src: &str) -> Option<String> {
     let start = src.find('"')? + 1;
     let rest = &src[start..];

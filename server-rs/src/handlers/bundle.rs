@@ -32,7 +32,7 @@ pub async fn handle_client_bundle(
     req: axum::http::Request<Body>,
 ) -> impl IntoResponse {
     // The browser echoes our `Last-Modified` verbatim in `If-Modified-Since`, so
-    // we string-compare (matching the legacy server) to answer 304s.
+    // we string-compare to answer 304s.
     let if_modified_since = req
         .headers()
         .get(axum::http::header::IF_MODIFIED_SINCE)
@@ -188,8 +188,7 @@ async fn server_side_content(state: &Arc<AppState>, path: &str) -> (String, Stri
 /// own pages; do not reuse `render_markdown` for untrusted input.
 ///
 /// On a template error (e.g. a malformed shell) the raw shell bytes are served
-/// so the client JS can still boot, mirroring the legacy server's best-effort
-/// behavior.
+/// so the client JS can still boot — a best-effort fallback.
 fn template_index_html(
     shell: &[u8],
     host_prefix: &str,
@@ -371,7 +370,7 @@ mod tests {
 
     #[tokio::test]
     async fn html_assets_are_served_raw_on_the_direct_path() {
-        // Direct path: no templating (matches the legacy Go server).
+        // Direct path: no templating.
         let state = test_state();
         seed_bundle(&state, "raw.html", b"<title>{{.Title}}</title>");
         let resp = crate::build_router(Arc::new(state))

@@ -127,7 +127,12 @@ fn runtime_api_evaluates_lua_against_headless_chrome() {
         &mut server,
         "runtime never became ready (/.runtime/lua kept returning non-200)",
     );
-    assert_eq!(lua_result.trim(), "2", "1 + 1 should eval to 2");
+    let v: serde_json::Value = serde_json::from_str(lua_result.trim()).unwrap();
+    assert_eq!(
+        v,
+        serde_json::json!({ "result": 2 }),
+        "1 + 1 should eval to 2"
+    );
 
     // 3) lua_script: a full script (no implicit `return` prepended).
     let script = http
@@ -143,7 +148,8 @@ fn runtime_api_evaluates_lua_against_headless_chrome() {
             &format!("/.runtime/lua_script returned {status}: {body}"),
         );
     }
-    assert_eq!(script.text().unwrap().trim(), "2");
+    let v: serde_json::Value = serde_json::from_str(script.text().unwrap().trim()).unwrap();
+    assert_eq!(v, serde_json::json!({ "result": 2 }));
 
     // 4) objects → JSON array of tag names.
     let objects = http.get(format!("{base}/.runtime/objects")).send().unwrap();

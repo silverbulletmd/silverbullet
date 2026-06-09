@@ -1,8 +1,5 @@
 //! `space` subcommand implementations for the `sb` CLI.
 //!
-//! Mirrors Go `cli/space.go` (`SpaceAddInteractive`, `spaceListCommand`,
-//! `spaceRemoveCommand`).
-//!
 //! The interactive flow lives in [`space_add_interactive`], which is `pub`
 //! so the App's CLI can call it with a pre-set URL (skipping the URL prompt).
 
@@ -19,12 +16,12 @@ use crate::{
 // Pure helpers (tested)
 // ---------------------------------------------------------------------------
 
-/// Space names must be alphanumeric + hyphens (Go `^[a-zA-Z0-9-]+$`).
+/// Space names must be alphanumeric + hyphens (`^[a-zA-Z0-9-]+$`).
 pub fn is_valid_space_name(name: &str) -> bool {
     !name.is_empty() && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
 }
 
-/// Render the `ls` table (NAME/URL/AUTH) exactly like Go's `spaceListCommand`.
+/// Render the `ls` table (NAME/URL/AUTH).
 ///
 /// Returns the full block (leading blank line, header, 70 dashes, rows,
 /// trailing blank line), OR the "No spaces configured." line when empty.

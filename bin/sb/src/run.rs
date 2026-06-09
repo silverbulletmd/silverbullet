@@ -143,8 +143,7 @@ fn dispatch(cli: Cli) -> Result<ExitCode, String> {
 
 /// Resolve a connection from the shared flags.
 ///
-/// Avoids reading `config.json` when `--url` is supplied (mirrors Go
-/// `connFromFlags`).
+/// Avoids reading `config.json` when `--url` is supplied.
 pub fn resolve_conn(g: &GlobalFlags) -> Result<SpaceConnection, String> {
     let cfg: Config = if g.url.is_some() {
         Config::default()
@@ -164,8 +163,7 @@ fn read_file(path: &str) -> Result<String, String> {
     std::fs::read_to_string(path).map_err(|e| format!("reading {path}: {e}"))
 }
 
-/// Read all of stdin, printing a hint to stderr when stdin is a terminal
-/// (mirrors Go `readStdin`).
+/// Read all of stdin, printing a hint to stderr when stdin is a terminal.
 fn read_stdin() -> Result<String, String> {
     if std::io::stdin().is_terminal() {
         eprintln!("Reading from stdin, press Ctrl-D when done.");

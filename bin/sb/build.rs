@@ -11,8 +11,8 @@ fn main() {
     println!("cargo:rustc-env=SB_VERSION={version}");
 }
 
-/// Extract the first double-quoted string literal (the version value), matching
-/// the Go server's `ParseVersionFromTypeScript` regex `"([^"]+)"`.
+/// Extract the first double-quoted string literal (the version value) — the
+/// `public_version.ts` version regex `"([^"]+)"`.
 fn parse_version(src: &str) -> Option<String> {
     let start = src.find('"')? + 1;
     let rest = &src[start..];

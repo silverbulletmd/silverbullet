@@ -1,7 +1,5 @@
 //! `upgrade` and `upgrade-edge` command implementations for the `sb` CLI.
 //!
-//! Mirrors Go `cli/upgrade.go` (`upgradeCLI`, `extractZip`, `extractZipFile`).
-//!
 //! This module is intentionally free of async: we use `reqwest::blocking` which
 //! is already present in the workspace dependency graph.
 
@@ -21,11 +19,9 @@ use std::os::unix::fs::PermissionsExt;
 pub fn run(edge: bool) -> Result<(), String> {
     if edge {
         println!("Upgrading sb to edge...");
-        // TRANSITIONAL: during the Rust early-access phase the Rust binaries live
-        // in the dedicated `edge-rust` prerelease (the `edge` release still holds
-        // the Go builds). Once Rust replaces Go on the main `edge`/`latest`
-        // releases, point this back at `releases/download/edge`.
-        upgrade_cli("https://github.com/silverbulletmd/silverbullet/releases/download/edge-rust")
+        // The `edge` prerelease holds the latest Rust edge binaries (published by
+        // .github/workflows/rust-edge-release.yml on every push to `main`).
+        upgrade_cli("https://github.com/silverbulletmd/silverbullet/releases/download/edge")
     } else {
         println!("Upgrading sb...");
         upgrade_cli("https://github.com/silverbulletmd/silverbullet/releases/latest/download")
@@ -37,8 +33,6 @@ pub fn run(edge: bool) -> Result<(), String> {
 // ---------------------------------------------------------------------------
 
 /// Download and install the `sb` binary from a release zip at `url_prefix`.
-///
-/// Mirrors Go `upgradeCLI`.
 pub fn upgrade_cli(url_prefix: &str) -> Result<(), String> {
     let exec =
         std::env::current_exe().map_err(|e| format!("failed to get executable path: {e}"))?;
@@ -102,8 +96,6 @@ fn do_upgrade(url_prefix: &str, install_dir: &Path, tmp: &Path) -> Result<(), St
 // ---------------------------------------------------------------------------
 
 /// Extract all entries from the zip at `src` into `dest`.
-///
-/// Mirrors Go `extractZip` + `extractZipFile`.
 pub fn extract_zip(src: &Path, dest: &Path) -> Result<(), String> {
     let f = std::fs::File::open(src).map_err(|e| format!("failed to open zip: {e}"))?;
     let mut archive = zip::ZipArchive::new(f).map_err(|e| format!("failed to read zip: {e}"))?;
@@ -173,7 +165,7 @@ pub fn extract_zip(src: &Path, dest: &Path) -> Result<(), String> {
 
 /// Build the release-asset URL for this platform.
 ///
-/// Maps Rust's `std::env::consts` names to Go's GOOS/GOARCH naming:
+/// Maps Rust's `std::env::consts` names to the release-asset OS naming:
 /// - `"macos"` → `"darwin"` (other OSes pass through).
 /// - Only `"x86_64"` and `"aarch64"` are supported architectures.
 ///

@@ -81,8 +81,8 @@ pub async fn handle_proxy(
 
     match rb.send().await {
         Ok(resp) => {
-            // Count only requests that reached upstream and returned a response,
-            // matching the Go server (which increments after a successful proxy).
+            // Count only requests that reached upstream and returned a response
+            // (increment after a successful proxy).
             if let Some(metrics) = state.metrics.as_ref() {
                 metrics.proxy_requests.inc();
             }
@@ -135,7 +135,7 @@ mod tests {
 
     #[test]
     fn localhost_uses_http_others_https() {
-        // Matrix ported from the legacy server's `TestLocalhostRegex`.
+        // The localhost regex matrix.
         for host in [
             "localhost:8080/api",
             "127.0.0.1:8080/api",

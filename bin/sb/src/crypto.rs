@@ -6,9 +6,8 @@
 //! separately from the ciphertext (rather than appended, as the `aes-gcm`
 //! crate produces it). The IV/nonce is 12 bytes.
 //!
-//! This format is compatible with the Go implementation in `cli/config.go`
-//! (`Encrypt`/`Decrypt`), so tokens written by either tool can be read by the
-//! other when they share the same 32-byte key file.
+//! This is the on-disk credential format: tokens written by any tool sharing
+//! the same 32-byte key file are mutually readable.
 //!
 //! The 32-byte AES key is stored as raw bytes in `<config_dir>/key`
 //! (mode 0600 on unix), generated on first use.
@@ -38,7 +37,7 @@ pub fn encrypt_with_key(key: &[u8; 32], plaintext: &str) -> Result<String, Strin
         .map_err(|e| format!("aes-gcm encrypt: {e}"))?;
 
     // The `aes-gcm` crate appends the 16-byte tag to the ciphertext. Split it
-    // back out to match the Node.js/Go on-disk format.
+    // back out to match the on-disk format.
     let tag_start = sealed.len().saturating_sub(TAG_LEN);
     let (ct, tag) = sealed.split_at(tag_start);
 
@@ -188,13 +187,12 @@ mod tests {
     }
 
     // Frozen cross-impl fixture: a literal `base64(iv):base64(tag):base64(ct)`
-    // string that the Go `cli/config.go` `Encrypt` and the App's
-    // `src/auth_config.rs` `encrypt_with_key` both emit for this exact
-    // key+iv+plaintext. AES-256-GCM is fully deterministic given a fixed
-    // key+nonce, and all three impls share the identical byte layout (12-byte
+    // string that the App's `src/auth_config.rs` `encrypt_with_key` emits for
+    // this exact key+iv+plaintext. AES-256-GCM is fully deterministic given a
+    // fixed key+nonce, and the on-disk format has a fixed byte layout (12-byte
     // IV, 16-byte tag stored separately, STANDARD base64), so this literal is
-    // reproducible by any of them. Decrypting it here proves our byte layout
-    // matches the reference impls without needing to run them.
+    // reproducible by any conforming impl. Decrypting it here proves our byte
+    // layout matches the reference impls without needing to run them.
     //
     // Fixture parameters: key = [0x01; 32], iv = [0x02; 12],
     // plaintext = "hello world".

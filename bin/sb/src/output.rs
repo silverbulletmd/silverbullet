@@ -1,6 +1,6 @@
 //! Output-mode resolution and value formatting.
 //!
-//! This module is the Rust port of `cli/output.go`.  It is a pure library;
+//! This is a pure library;
 //! callers pass `is_tty` rather than probing the terminal themselves, so the
 //! App's CLI can reuse the resolution logic unchanged.
 
@@ -36,7 +36,7 @@ pub enum OutputMode {
 ///
 /// Precedence: `--json` > `--text` > `-o <output>` > TTY autodetect.
 /// `output` values `"auto"` and `""` fall through to TTY autodetect.
-/// Unknown `output` strings also fall through (mirrors Go's switch-default).
+/// Unknown `output` strings also fall through to TTY autodetect.
 pub fn resolve_mode(json: bool, text: bool, output: &str, is_tty: bool) -> OutputMode {
     if json {
         return OutputMode::Json;
@@ -288,9 +288,9 @@ fn sort_keys_preferred(keys: &mut [String]) {
 /// - `Bool` / `Number` → display string
 /// - `Array` / `Object` → compact JSON
 ///
-/// Whitespace runs are collapsed to single spaces (mirrors Go `strings.Fields`
-/// + join).  If the result exceeds `MAX_CELL_WIDTH` runes it is truncated to
-///   39 runes + `"…"` (U+2026).
+/// Whitespace runs are collapsed to single spaces (split on whitespace, then
+/// join with a single space).  If the result exceeds `MAX_CELL_WIDTH` runes it
+/// is truncated to 39 runes + `"…"` (U+2026).
 pub fn format_cell(v: Option<&Value>) -> String {
     let s = match v {
         None | Some(Value::Null) => String::new(),
@@ -302,7 +302,7 @@ pub fn format_cell(v: Option<&Value>) -> String {
         }
     };
 
-    // Collapse whitespace runs (mirrors Go strings.Fields + join).
+    // Collapse whitespace runs (split on whitespace, join with single space).
     let collapsed: String = s.split_whitespace().collect::<Vec<&str>>().join(" ");
 
     // Truncate to MAX_CELL_WIDTH runes.

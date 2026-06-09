@@ -25,6 +25,7 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
 * Fix: `$`-anchor refs now resolve through the index from every navigation path
 * Fix: Ctrl/Cmd-clicking a link inside rendered widgets (query/template results) now navigates in a new window via the normal navigation path
 * Fix: tag autocomplete no longer triggers while typing markdown header prefixes (`##`, `###`, etc.)
+* Internal: the legacy Go server and `sb` CLI have been removed. The Rust server (`silverbullet`) and Rust `sb` CLI are now the only implementations. No user-facing behavior change is expected.
 
 ## 2.8.1
 * Fix: cursor and clicks no longer drift by a line or two when working below a tall widget (e.g. arrow-up from a list under a `${query[[…]]}` now advances exactly one line). Some other cursor preservation issues addressed as well.

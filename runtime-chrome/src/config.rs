@@ -75,8 +75,7 @@ impl ChromeConfig {
     }
 }
 
-/// Find a Chrome/Chromium executable from platform-specific candidates,
-/// matching the legacy server's `findChrome()`.
+/// Find a Chrome/Chromium executable from platform-specific candidates.
 pub fn find_chrome() -> Option<String> {
     if cfg!(target_os = "macos") {
         let candidates: &[&str] = &[

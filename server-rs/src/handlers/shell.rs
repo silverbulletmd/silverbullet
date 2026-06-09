@@ -65,8 +65,8 @@ pub async fn handle_shell(
     let result = run_blocking(move || Ok(run_command(request, &cwd))).await;
     match result {
         Ok(resp) => {
-            // Count only commands that passed validation and actually ran, matching
-            // the Go server (which increments after execution, not on every POST).
+            // Count only commands that passed validation and actually ran
+            // (increment after execution, not on every POST).
             if let Some(metrics) = state.metrics.as_ref() {
                 metrics.shell_executions.inc();
             }
@@ -244,8 +244,7 @@ mod tests {
         Arc::new(s)
     }
 
-    // Ported from the legacy server's `TestLocalShell_HandleCommandWithStdin`
-    // sibling cases and the App's `test_shell_nonexistent_command`.
+    // A nonexistent command returns an exit code of -1 rather than erroring.
     #[tokio::test]
     async fn nonexistent_command_returns_minus_one() {
         let st = state_with(
@@ -266,7 +265,7 @@ mod tests {
     #[cfg(unix)]
     #[tokio::test]
     async fn whitelisted_command_is_allowed() {
-        // Legacy `TestLocalShell_HandleWithWhitelist` (allow side).
+        // A command on the whitelist is allowed to run.
         let st = state_with(
             ShellConfig {
                 enabled: true,
@@ -285,8 +284,7 @@ mod tests {
     #[cfg(unix)]
     #[tokio::test]
     async fn runs_in_the_space_folder() {
-        // Legacy `TestLocalShell_HandleWorkingDirectory`: the command's cwd is
-        // the space folder.
+        // The command's cwd is the space folder.
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join("marker.txt"), b"x").unwrap();
         let st = state_in_dir(dir.path().to_str().unwrap());
@@ -301,7 +299,7 @@ mod tests {
     #[cfg(unix)]
     #[tokio::test]
     async fn captures_both_stdout_and_stderr() {
-        // Legacy `TestLocalShell_HandleCommandWithBothStreams`.
+        // Both stdout and stderr are captured.
         let dir = tempfile::tempdir().unwrap();
         let script = dir.path().join("both.sh");
         std::fs::write(&script, b"#!/bin/sh\necho out\necho err >&2\nexit 0\n").unwrap();

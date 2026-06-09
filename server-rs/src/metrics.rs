@@ -1,6 +1,6 @@
-//! Prometheus request counters and text exposition. Mirrors the legacy Go
-//! server's counters (`silverbullet_http_requests`, `silverbullet_shell_executions`,
-//! `silverbullet_proxy_requests`). Each `Metrics` owns its own `Registry`, so
+//! Prometheus request counters and text exposition. Exposes the counters
+//! `silverbullet_http_requests`, `silverbullet_shell_executions`, and
+//! `silverbullet_proxy_requests`. Each `Metrics` owns its own `Registry`, so
 //! constructing more than one (e.g. across tests) never double-registers a
 //! global. The standalone binary serves `gather()` on a dedicated metrics port;
 //! `AppState` holds an `Option<Arc<Metrics>>` so metrics are off unless

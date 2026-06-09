@@ -1,8 +1,9 @@
 //! Runtime HTTP calls against a SilverBullet Rust server.
 //!
 //! All methods live on [`crate::conn::SpaceConnection`].  The Rust server
-//! does **not** wrap responses in a `{result, error}` envelope — see the
-//! per-method docs for exact response shapes.
+//! wraps eval responses in a `{ "result": <value> }` / `{ "error": <msg> }`
+//! envelope (see `website/Runtime API.md`) — see the per-method docs for exact
+//! response shapes.
 
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
@@ -68,8 +69,15 @@ impl SpaceConnection {
         let bytes = resp.bytes().map_err(|e| format!("reading body: {e}"))?;
 
         if status.is_success() {
-            // On 200, body IS the result JSON directly.
-            serde_json::from_slice(&bytes).map_err(|e| format!("parsing response JSON: {e}"))
+            // On 200, the body is the `{ "result": <value> }` envelope (Core's
+            // runtime handlers wrap eval results; see `website/Runtime API.md`).
+            // A Lua-level failure arrives as `{ "error": <msg> }`.
+            let v: Value = serde_json::from_slice(&bytes)
+                .map_err(|e| format!("parsing response JSON: {e}"))?;
+            if let Some(err) = v.get("error").and_then(|e| e.as_str()) {
+                return Err(err.to_string());
+            }
+            Ok(v.get("result").cloned().unwrap_or(Value::Null))
         } else {
             Err(runtime_error(status, &bytes))
         }
@@ -338,9 +346,9 @@ mod tests {
         let response = concat!(
             "HTTP/1.1 200 OK\r\n",
             "Content-Type: application/json\r\n",
-            "Content-Length: 1\r\n",
+            "Content-Length: 12\r\n",
             "\r\n",
-            "2",
+            r#"{"result":2}"#,
         );
         let (base_url, handle) = mock_server(response);
         let conn = bearer_conn(&base_url, "mytoken");

@@ -1,7 +1,6 @@
 //! Interactive Lua REPL for the `sb` CLI.
 //!
-//! This module is the Rust port of `cli/repl.go`.  It provides an interactive
-//! read-eval-print loop backed by `rustyline` (Go uses `chzyer/readline`).
+//! Provides an interactive read-eval-print loop backed by `rustyline`.
 
 use std::time::Duration;
 
@@ -17,17 +16,17 @@ use crate::output::{self, OutputMode};
 
 /// Heuristic: returns `true` if `code` has unclosed Lua blocks/brackets.
 ///
-/// Mirrors Go `isIncomplete`: whitespace-split tokens that EXACTLY equal
+/// Whitespace-split tokens that EXACTLY equal
 /// `do`/`function`/`if`/`repeat` add depth; `end`/`until` subtract; then
 /// every `(` `[` `{` char adds and `)` `]` `}` char subtracts.
 /// `depth > 0` → incomplete.
 ///
 /// Exact-token matching is intentional — `end)` is NOT counted as the `end`
-/// keyword; only its `)` char counts.  This replicates Go faithfully.
+/// keyword; only its `)` char counts.
 pub fn is_incomplete(code: &str) -> bool {
     let mut depth: i32 = 0;
 
-    // Pass 1: whole-word token scan (mirrors Go strings.Fields)
+    // Pass 1: whole-word token scan (split on whitespace)
     for word in code.split_whitespace() {
         match word {
             "do" | "function" | "if" | "repeat" => depth += 1,
@@ -57,8 +56,6 @@ pub fn is_incomplete(code: &str) -> bool {
 /// The connection is taken by value (owned + mut) because `.timeout` may be
 /// mutated by the `.timeout <n>` meta-command, which also rebuilds the
 /// underlying reqwest client.
-///
-/// Port of Go `startRepl`.
 pub fn run(mut conn: SpaceConnection) -> Result<(), String> {
     let mut rl = DefaultEditor::new().map_err(|e| e.to_string())?;
 
@@ -123,8 +120,7 @@ pub fn run(mut conn: SpaceConnection) -> Result<(), String> {
                         }
                         continue;
                     }
-                    // Append RAW line (not trimmed) + newline — matches Go
-                    // `scriptBuffer += line + "\n"`.
+                    // Append RAW line (not trimmed) + newline.
                     script_buffer.push_str(&line);
                     script_buffer.push('\n');
                     continue;
@@ -268,7 +264,7 @@ mod tests {
 
     /// Exact-token edge case: `end)` is NOT the `end` keyword (it's a different
     /// token), so depth comes only from the `)` char → depth == -1 → not >0 →
-    /// false.  Documents the Go-faithful heuristic.
+    /// false.  Documents the exact-token heuristic.
     #[test]
     fn end_paren_not_keyword() {
         assert!(!is_incomplete("end)"));

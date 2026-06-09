@@ -1,37 +1,106 @@
 name: Build & Release Edge
 
 on:
+  workflow_dispatch:
   push:
+    # TODO: switch rust-backend → main after merge
     branches:
-      - "main"
+      - "rust-backend"
+    tags:
+      - "*"
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  release:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Setup Rust (linux musl + windows-gnu + freebsd targets)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-musl,aarch64-unknown-linux-musl,armv7-unknown-linux-musleabihf,x86_64-pc-windows-gnu,x86_64-unknown-freebsd
+
+      - name: Install cross-toolchains
+        run: |
+          sudo apt-get update
+          # apt-only C cross-compilers; Rust supplies the static musl libc itself.
+          # clang/lld/llvm are for the FreeBSD cross-build (no apt freebsd gcc).
+          # (linker/CC wiring lives in .cargo/config.toml)
+          sudo apt-get install -y musl-tools gcc-aarch64-linux-gnu \
+                                  gcc-arm-linux-gnueabihf gcc-mingw-w64-x86-64 \
+                                  clang lld llvm
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Build server + CLI release archives (linux x3 musl + windows)
+        run: |
+          make build-server-releases
+          make build-cli-releases-rust
+
+      - name: Build FreeBSD sb CLI (experimental — best effort)
+        # FreeBSD cross is fiddly (clang + sysroot). The sysroot fetch AND the
+        # build live together here under continue-on-error, AFTER the main build,
+        # so nothing FreeBSD-related can ever block the rest of the release. The
+        # sb-freebsd zip is added only when this whole step succeeds.
+        continue-on-error: true
+        run: |
+          sudo mkdir -p /opt/freebsd-sysroot
+          # Resolve the LATEST FreeBSD release dynamically (older ones get pruned
+          # from the mirror → 404, which is what broke a pinned version). Grab just
+          # the libc/crt + headers clang needs to link a FreeBSD binary.
+          VER=$(curl -fsSL https://download.freebsd.org/releases/amd64/ \
+            | grep -oE '[0-9]+\.[0-9]+-RELEASE' | sort -V | uniq | tail -1)
+          echo "Latest FreeBSD release: $VER"
+          curl -fsSL "https://download.freebsd.org/releases/amd64/$VER/base.txz" \
+            | sudo tar -xJf - -C /opt/freebsd-sysroot ./lib ./usr/lib ./usr/include
+          make build-cli-releases-freebsd
+
+      - name: Upload linux/windows/freebsd artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-binaries
+          path: |
+            silverbullet-server-*.zip
+            sb-*.zip
+          if-no-files-found: error
+
+  build-macos:
     runs-on: macos-latest
     steps:
       - name: Setup repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version-file: '.nvmrc'
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.25.1"
-      - name: Install dependencies
+          node-version-file: ".nvmrc"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install npm dependencies
         run: npm ci
-      - name: Compile frontend and plug-compile
+
+      - name: Build server + CLI release archives (darwin x2)
         run: |
-          npm run build
-          npm run build:plug-compile
-      - name: Build Go binaries for multiple platforms
-        run: |
-          make build-server-releases
-          make build-cli-releases
+          make build-server-releases-macos
+          make build-cli-releases-rust-macos
 
       - name: Import certificate into keychain
         env:
@@ -73,7 +142,8 @@ jobs:
 
           IDENTITY="Developer ID Application: Zef Hemel ($APPLE_TEAM_ID)"
 
-          for zip_file in silverbullet-*-darwin-*.zip; do
+          # Both the server and the `sb` CLI darwin archives.
+          for zip_file in *-darwin-*.zip; do
             echo "=== Processing $zip_file ==="
             zip_file="$(pwd)/$zip_file"
 
@@ -110,17 +180,78 @@ jobs:
         run: |
           security delete-keychain "$RUNNER_TEMP/signing.keychain-db" 2>/dev/null || true
 
-      - name: Update edge release
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-binaries
+          path: |
+            silverbullet-server-darwin-*.zip
+            sb-darwin-*.zip
+          if-no-files-found: error
+
+  release:
+    needs: [build-linux, build-macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      # Reproduce the extra assets the Go edge.yml shipped alongside the
+      # binaries: the bundled plug-compile.js (built here) and the CHANGELOG
+      # (checked out above at website/CHANGELOG.md).
+      - name: Build plug-compile bundle
+        run: npm run build:plug-compile
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist-artifacts
+          merge-multiple: true
+
+      # On a push to `rust-backend` we refresh the `edge` *prerelease*; on a tag
+      # push we publish that tag's (non-pre) release. softprops/action-gh-release
+      # infers the tag from github.ref for tag pushes, so tag_name is only set
+      # for the edge case.
+      # TODO: switch rust-backend → main after merge
+      - name: Publish to the edge prerelease (branch)
+        if: github.ref == 'refs/heads/rust-backend'
         uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           draft: false
           tag_name: edge
+          name: Edge
           body: Automated build from commit ${{ github.sha }}
           prerelease: true
           files: |
             website/CHANGELOG.md
             dist/plug-compile.js
-            silverbullet-server-*.zip
-            sb-*.zip
+            dist-artifacts/silverbullet-server-*.zip
+            dist-artifacts/sb-*.zip
+
+      - name: Publish to the tagged release (tag push)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          draft: false
+          files: |
+            website/CHANGELOG.md
+            dist/plug-compile.js
+            dist-artifacts/silverbullet-server-*.zip
+            dist-artifacts/sb-*.zip

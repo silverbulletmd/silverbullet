@@ -1,6 +1,6 @@
 //! `/.runtime/{lua,lua_script,logs}` — bridge HTTP to the Lua `RuntimeBackend`.
 //! When no backend is configured the runtime API is "not enabled" and every
-//! endpoint returns 503, matching the legacy server's per-space gate.
+//! endpoint returns 503 (the per-space runtime gate).
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -79,7 +79,7 @@ async fn runtime_eval(
     body: Bytes,
     kind: EvalKind,
 ) -> Response {
-    // Counted on entry (the eval endpoints only), matching the Go `withBridge`.
+    // Counted on entry (the eval endpoints only).
     if let Some(metrics) = state.metrics.as_ref() {
         metrics.runtime_api_requests.inc();
     }
@@ -112,7 +112,7 @@ async fn runtime_eval(
     .await;
 
     match result {
-        Ok(Ok(value)) => (StatusCode::OK, Json(value)).into_response(),
+        Ok(Ok(value)) => (StatusCode::OK, Json(json!({ "result": value }))).into_response(),
         Ok(Err(e)) => runtime_error_response(e),
         Err(join) => (
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -232,7 +232,7 @@ mod tests {
 
     #[tokio::test]
     async fn eval_success_returns_envelope_200() {
-        let backend = Box::new(FakeBackend::returning(serde_json::json!({ "result": 2 })));
+        let backend = Box::new(FakeBackend::returning(serde_json::json!(2)));
         let (status, body) = post_lua(state_with_runtime(Some(backend)), "1 + 1").await;
         assert_eq!(status, StatusCode::OK);
         assert_eq!(body, r#"{"result":2}"#);

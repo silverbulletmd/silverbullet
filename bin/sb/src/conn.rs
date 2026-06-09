@@ -128,15 +128,14 @@ pub fn new_client(timeout: std::time::Duration) -> Result<Client, String> {
 ///
 /// Takes `&GlobalFlags` (not `&Cli`) so a downstream binary — the App's CLI —
 /// can flatten the same flags into its own parser and reuse this resolver
-/// unchanged (the Rust analog of Core Go's `connFromFlags`).
+/// unchanged.
 ///
-/// Resolution order (mirrors Go `connFromFlags` / `NewSpaceConnection`):
+/// Resolution order:
 /// 1. If `--url` is set, use it directly (with optional `--token`).
 /// 2. Otherwise, call [`config::resolve_space`] to find the configured space
 ///    and decrypt credentials.
 ///
-/// If `--token` is set even when resolving a named space, it takes priority
-/// (Go precedence).
+/// If `--token` is set even when resolving a named space, it takes priority.
 pub fn resolve(flags: &GlobalFlags, cfg: &Config) -> Result<SpaceConnection, String> {
     let timeout = Duration::from_secs(flags.timeout);
 
@@ -218,8 +217,8 @@ pub fn resolve(flags: &GlobalFlags, cfg: &Config) -> Result<SpaceConnection, Str
 // Helpers
 // ---------------------------------------------------------------------------
 
-/// Build a helpful error when a stored credential can't be decrypted, mirroring
-/// Go's `ErrDecryptFailed`: an authentication-tag failure almost always means
+/// Build a helpful error when a stored credential can't be decrypted: an
+/// authentication-tag failure almost always means
 /// the key file was regenerated, or the secret was encrypted on a different
 /// machine / an older SilverBullet that used the legacy hostname-derived key.
 /// Point the user at re-adding the space rather than leaving a bare `aead::Error`.

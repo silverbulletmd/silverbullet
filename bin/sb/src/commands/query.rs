@@ -5,8 +5,7 @@ use crate::output::OutputMode;
 
 use super::script;
 
-/// Wrap a SLIQ expression in `return query[[...]]`, matching Go's
-/// `"return query[[" + expr + "]]"`.
+/// Wrap a SLIQ expression in `return query[[...]]`.
 pub fn wrap_query(sliq: &str) -> String {
     format!("return query[[{sliq}]]")
 }
@@ -32,14 +31,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn wrap_query_matches_go_format() {
-        // Go: "return query[[" + expr + "]]"
+    fn wrap_query_format() {
         let expr = r#"from t = index.tag "task" where not t.done"#;
         let wrapped = wrap_query(expr);
         assert_eq!(
             wrapped,
             format!("return query[[{expr}]]"),
-            "wrap_query must match Go's string concatenation exactly"
+            "wrap_query must produce `return query[[...]]`"
         );
     }
 
