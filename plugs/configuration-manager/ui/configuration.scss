@@ -4,28 +4,23 @@ html {
   /* font-family and base font-size come from .client/components.css so the
      panel matches Core (var(--ui-font); 16px root like the rest of the app).
      Don't override them here. */
-  --cfg-bg: #fff;
-  --cfg-color: #333;
-  --cfg-color-muted: #777;
-  --cfg-border: #ddd;
-  --cfg-input-bg: #fff;
-  --cfg-input-border: #ccc;
-  --cfg-accent: #464cfc;
-  --cfg-section-bg: #f5f5f5;
-  --cfg-hover: #f0f0f0;
+  /* Chrome colors come from the shared panel-surface palette in
+     components.css; these are thin local aliases so existing rules read
+     cleanly and follow the user's theme (no hardcoded light/dark copies). */
+  --cfg-bg: var(--ui-surface-background-color);
+  --cfg-color: var(--ui-surface-color);
+  --cfg-color-muted: var(--ui-surface-subtle-color);
+  --cfg-border: var(--ui-surface-border-color);
+  --cfg-input-bg: var(--text-field-background-color);
+  --cfg-input-border: var(--ui-surface-border-color);
+  --cfg-accent: var(--ui-accent-color);
+  --cfg-section-bg: var(--ui-surface-section-background-color);
+  --cfg-hover: var(--ui-surface-hover-background-color);
   --cfg-recording-bg: #fff8e1;
 }
 
 html[data-theme="dark"] {
-  --cfg-bg: #1e1e1e;
-  --cfg-color: #ccc;
-  --cfg-color-muted: #888;
-  --cfg-border: #444;
-  --cfg-input-bg: #2a2a2a;
-  --cfg-input-border: #555;
-  --cfg-accent: #6e74ff;
-  --cfg-section-bg: #262626;
-  --cfg-hover: #333;
+  // Only the plug-specific recording highlight still needs a dark value.
   --cfg-recording-bg: #3a3520;
 }
 
