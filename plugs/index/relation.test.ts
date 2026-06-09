@@ -85,13 +85,15 @@ test("external markdown link emits url relation", async () => {
   const fm = extractFrontMatter(tree);
   const objects = await indexRelations(pageMeta("Source"), fm, tree, text);
 
-  const r = objects.find((o) => o.tag === "relation");
+  const r = objects.find((o) =>
+    o.tag === "relation" && o.to === "https://example.com"
+  );
   expect(r).toBeDefined();
-  expect(r!.kind).toEqual("url");
-  expect(r!.to).toEqual("https://example.com");
+  expect(r!.kind).toEqual("mention");
+  expect(r!.toTag).toEqual("url");
 });
 
-test("frontmatter scalar wikilink emits typed frontmatter relation", async () => {
+test("frontmatter scalar wikilink emits typed attribute relation", async () => {
   const { space } = createMockSystem();
   await space.writePage("Jack", "");
 
@@ -104,10 +106,9 @@ Body.`;
   const objects = await indexRelations(pageMeta("Linda"), fm, tree, text);
 
   const r = objects.find((o) =>
-    o.tag === "relation" && o.kind === "frontmatter"
+    o.tag === "relation" && o.kind === "spouse"
   );
   expect(r).toBeDefined();
-  expect(r!.type).toEqual("spouse");
   expect(r!.to).toEqual("Jack");
   expect(r!.from).toEqual("Linda");
   expect(r!.range).toBeDefined();
@@ -124,10 +125,9 @@ test("inline attribute with wikilink value emits typed attribute relation", asyn
   const objects = await indexRelations(pageMeta("Linda"), fm, tree, text);
 
   const r = objects.find((o) =>
-    o.tag === "relation" && o.kind === "attribute"
+    o.tag === "relation" && o.kind === "spouse"
   );
   expect(r).toBeDefined();
-  expect(r!.type).toEqual("spouse");
   expect(r!.to).toEqual("Jack");
   expect(r!.range).toBeDefined();
   expect(text.substring(r!.range![0], r!.range![0] + 2)).toEqual("[[");
@@ -141,7 +141,7 @@ test("inline attribute without a wikilink emits no relation", async () => {
   const objects = await indexRelations(pageMeta("X"), fm, tree, text);
 
   expect(
-    objects.filter((o) => o.tag === "relation" && o.kind === "attribute"),
+    objects.filter((o) => o.tag === "relation" && o.kind === "color"),
   ).toHaveLength(0);
 });
 
@@ -160,7 +160,7 @@ test("mention to a markdown page has toTag=page", async () => {
   expect(r!.toTag).toEqual("page");
 });
 
-test("url relation has no toTag", async () => {
+test("url relation has toTag=url", async () => {
   createMockSystem();
   const text = "[link](https://example.com)";
   const tree = parseMarkdown(text);
@@ -168,9 +168,11 @@ test("url relation has no toTag", async () => {
   const objects = await indexRelations(pageMeta("Src"), fm, tree, text);
 
   const r = objects.find((o) =>
-    o.tag === "relation" && o.kind === "url"
+    o.tag === "relation" && o.toTag === "url"
   );
-  expect(r!.toTag).toBeUndefined();
+  expect(r).toBeDefined();
+  expect(r!.kind).toEqual("mention");
+  expect(r!.toTag).toEqual("url");
 });
 
 test("two refs in same item emit co-mention edges in both directions", async () => {
@@ -331,7 +333,7 @@ test("tagged item with $anchor: from = anchor name", async () => {
   const objects = await indexRelations(pageMeta("People"), fm, tree, text);
 
   const attrs = objects.filter((o) =>
-    o.tag === "relation" && o.kind === "attribute"
+    o.tag === "relation" && (o.kind === "spouse" || o.kind === "team")
   );
   expect(attrs).toHaveLength(2);
   for (const r of attrs) {
@@ -409,11 +411,10 @@ test("anchor wikilink inside attribute value: to = anchor name", async () => {
   const fm = extractFrontMatter(tree);
   const objects = await indexRelations(pageMeta("People"), fm, tree, text);
   const attr = objects.find((o) =>
-    o.tag === "relation" && o.kind === "attribute"
+    o.tag === "relation" && o.kind === "friend"
   );
   expect(attr).toBeDefined();
   expect(attr!.to).toEqual("b");
-  expect(attr!.type).toEqual("friend");
   expect(attr!.from).toEqual("a");
 });
 
@@ -452,7 +453,7 @@ test("wikilink inside task: fromTag = task", async () => {
   expect(r!.from).toMatch(/^Today@\d+$/);
 });
 
-test("fenced #tag data block with wikilink value emits data relation", async () => {
+test("fenced #tag data block with wikilink value emits attribute relation", async () => {
   const { space } = createMockSystem();
   await space.writePage("Jack", "");
 
@@ -463,11 +464,12 @@ test("fenced #tag data block with wikilink value emits data relation", async () 
   const objects = await indexRelations(pageMeta("People"), fm, tree, text);
 
   const r = objects.find((o) =>
-    o.tag === "relation" && o.kind === "data"
+    o.tag === "relation" && o.kind === "spouse"
   );
   expect(r).toBeDefined();
-  expect(r!.type).toEqual("spouse");
   expect(r!.to).toEqual("Jack");
+  // `from` / `fromTag` still encode the data-block provenance.
+  expect(r!.fromTag).toEqual("person");
   expect(r!.range).toBeDefined();
   expect(text.substring(r!.range![0], r!.range![0] + 2)).toEqual("[[");
 });
@@ -479,9 +481,12 @@ test("document markdown link emits document relation", async () => {
   const fm = extractFrontMatter(tree);
   const objects = await indexRelations(pageMeta("Source"), fm, tree, text);
 
-  const r = objects.find((o) => o.tag === "relation");
+  const r = objects.find((o) =>
+    o.tag === "relation" && o.toTag === "document"
+  );
   expect(r).toBeDefined();
-  expect(r!.kind).toEqual("document");
+  expect(r!.kind).toEqual("mention");
+  expect(r!.toTag).toEqual("document");
   expect(r!.to).toEqual("attachment.pdf");
 });
 

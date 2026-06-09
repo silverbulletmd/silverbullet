@@ -30,15 +30,6 @@ import { collectAnchor } from "./anchor.ts";
 
 // ---- Types ----
 
-export type RelationKind =
-  | "mention"
-  | "attribute"
-  | "frontmatter"
-  | "data"
-  | "co-mention"
-  | "url"
-  | "document";
-
 /**
  * A page that does not yet exist but is being linked to. Emitted by
  * the relation indexer (see `emitAspiringPages` below).
@@ -55,8 +46,7 @@ export type RelationObject = ObjectValue<{
   fromTag?: string;
   to: string;
   toTag?: string;
-  kind: RelationKind;
-  type?: string;
+  kind: string;
   via?: string;
   page: string;
   range: [number, number];
@@ -72,29 +62,23 @@ type EmitCtx = {
 };
 
 type TextualEdgeArgs = {
-  kind: RelationKind;
+  kind: string;
   from: string;
   fromTag: string;
   to: string;
   toTag?: string;
   range: [number, number];
-  type?: string;
   alias?: string;
 };
 
 // ---- Constants ----
 
-// Textual relation kinds: those carrying `range` and a source form
-// that rename refactoring can splice. Also the set of relation kinds
-// that participate in co-mention generation (each has an object-shaped
-// target).
-const TEXTUAL_RELATION_KINDS: Set<RelationKind> = new Set([
-  "mention",
-  "attribute",
-  "frontmatter",
-  "data",
-  "document",
-]);
+// Textual edges: authored edges with an in-space target. They carry a
+// splice-able `range` and seed co-mention generation. Excludes derived
+// co-mentions and external URLs (whose target is not an in-space object).
+function isTextualEdge(r: { kind: string; toTag?: string }): boolean {
+  return r.kind !== "co-mention" && r.toTag !== "url";
+}
 
 // Tag used for `to` when a wikilink targets a `$anchor`. Anchors are
 // space-global identifiers — the definition may live on any page and
@@ -106,7 +90,7 @@ const ANCHOR_TARGET_TAG = "anchor";
 
 // Ref shape for relation records:
 //
-//   Textual edges (mention, attribute, frontmatter, data, url, document):
+//   Textual edges (kind "mention" or a user predicate, in-space target):
 //     `${page}@${range[0]}`                       e.g. "Diary@142"
 //
 //   Co-mention edges:
@@ -162,7 +146,7 @@ function emitWikiLinksInRange(
   ctx: EmitCtx,
   text: string,
   baseOffset: number,
-  edge: { kind: RelationKind; from: string; fromTag: string; type?: string },
+  edge: { kind: string; from: string; fromTag: string },
 ): void {
   wikiLinkRegex.lastIndex = 0;
   let m: RegExpExecArray | null;
@@ -212,7 +196,6 @@ function emitTextualEdge(ctx: EmitCtx, args: TextualEdgeArgs): void {
     snippet: extractSnippet(ctx.pageMeta.name, ctx.lineIndex, start),
     pageLastModified: ctx.pageMeta.lastModified,
   };
-  if (args.type) rec.type = args.type;
   if (args.toTag) rec.toTag = args.toTag;
   if (args.alias) rec.alias = args.alias;
   ctx.out.push(rec);
@@ -269,7 +252,7 @@ export async function indexRelations(
       emitTextualEdge(ctx, {
         // `[[X.jpg]]` (or any non-markdown target) is a document edge,
         // matching the legacy `link.type = "file"` classification.
-        kind: isPage ? "mention" : "document",
+        kind: "mention",
         from,
         fromTag,
         to: isPage ? getNameFromPath(ref.path) : ref.path,
@@ -296,7 +279,7 @@ export async function indexRelations(
         alias,
       };
       if (!isLocalURL(url)) {
-        emitTextualEdge(ctx, { ...base, kind: "url", to: url });
+        emitTextualEdge(ctx, { ...base, kind: "mention", to: url, toTag: "url" });
         return true;
       }
       const ref = parseToRef(
@@ -313,7 +296,7 @@ export async function indexRelations(
       } else {
         emitTextualEdge(ctx, {
           ...base,
-          kind: "document",
+          kind: "mention",
           to: ref.path,
           toTag: "document",
         });
@@ -339,10 +322,9 @@ export async function indexRelations(
         if (m) {
           const valueOffset = m[0].length - m[3].length;
           emitWikiLinksInRange(ctx, m[3], codeTextNode.from! + cursor + valueOffset, {
-            kind: "data",
+            kind: m[2].trim(),
             from: blockRef,
             fromTag: dataType,
-            type: m[2].trim(),
           });
         }
         cursor += line.length + 1;
@@ -356,10 +338,9 @@ export async function indexRelations(
       if (!nameNode || !valueNode) return true;
       const { from, fromTag } = innermostContainer(n, pageMeta.name);
       emitWikiLinksInRange(ctx, valueNode.children![0].text!, valueNode.from!, {
-        kind: "attribute",
+        kind: nameNode.children![0].text!,
         from,
         fromTag,
-        type: nameNode.children![0].text!,
       });
       return true;
     }
@@ -380,8 +361,7 @@ export async function indexRelations(
         const start = valueNode.from! + match.index!;
         const range: [number, number] = [start, start + match[0].length];
         const base = {
-          kind: "frontmatter" as const,
-          type: key,
+          kind: key,
           from: pageFrom,
           fromTag: pageFromTag,
           range,
@@ -417,12 +397,12 @@ export async function indexRelations(
 // Emits one `aspiring-page` record per (page-targeted) ref that does
 // not resolve to a real page in the space. Lives here because it
 // piggybacks on the relation indexer's page-resolution work — every
-// `mention` / `frontmatter` record with `toTag = "page"` is a
+// non-co-mention record with `toTag = "page"` is a
 // candidate. Mirrors the legacy `link.ts` behavior.
 async function emitAspiringPages(ctx: EmitCtx): Promise<void> {
   const candidates = ctx.out.filter(
     (r): r is RelationObject & { range: [number, number] } =>
-      (r.kind === "mention" || r.kind === "frontmatter") &&
+      r.kind !== "co-mention" &&
       r.toTag === "page" &&
       Array.isArray(r.range),
   );
@@ -462,8 +442,9 @@ async function emitAspiringPages(ctx: EmitCtx): Promise<void> {
 function emitCoMentions(ctx: EmitCtx, tree: ParseTree): void {
   // The parser does NOT emit WikiLink nodes inside AttributeValue (the
   // value is raw text), so we can't rely on a parent-pointer walk from
-  // a wikilink node — attribute/data relations don't have one to walk
-  // from. Instead, collect every ListItem / Paragraph range up front
+  // a wikilink node — inline-attribute and data-block relations don't
+  // have one to walk from. Instead, collect every ListItem / Paragraph
+  // range up front
   // and resolve each relation's containing scopes by range containment.
   type Scope = { from: number; to: number };
   const items: Scope[] = [];
@@ -495,7 +476,7 @@ function emitCoMentions(ctx: EmitCtx, tree: ParseTree): void {
   };
   const mentions: Mention[] = [];
   for (const rec of ctx.out) {
-    if (!TEXTUAL_RELATION_KINDS.has(rec.kind)) continue;
+    if (!isTextualEdge(rec)) continue;
     if (rec.range === undefined) continue;
     const { items: itemAncestors, paragraphs: paragraphAncestors } =
       ancestorsFor(rec.range[0]);
@@ -576,11 +557,7 @@ export async function getTextualBackRelations(
     {
       objectVariable: "_",
       where: await lua.parseExpression(
-        `_.to == name and (` +
-        [...TEXTUAL_RELATION_KINDS]
-          .map((k) => `_.kind == "${k}"`)
-          .join(" or ") +
-        `)`,
+        `_.to == name and _.kind ~= "co-mention" and _.toTag ~= "url"`,
       ),
     },
     { name: to },

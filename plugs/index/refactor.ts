@@ -207,7 +207,7 @@ async function renamePage(oldName: string, newName: string) {
       {
         objectVariable: "_",
         where: await lua.parseExpression(
-          `_.page == oldName and (_.kind == "mention" or _.kind == "document" or _.kind == "frontmatter")`,
+          `_.page == oldName and _.kind ~= "co-mention" and _.toTag ~= "url"`,
         ),
       },
       { oldName },
@@ -215,7 +215,7 @@ async function renamePage(oldName: string, newName: string) {
 
     const linksToUpdate: RelationObject[] = [];
     for (const rel of relsInPage) {
-      if (rel.kind === "document" && folderName(rel.to) === oldFolder) {
+      if (rel.toTag === "document" && folderName(rel.to) === oldFolder) {
         const backRels = await getTextualBackRelations(rel.to);
         if (backRels.filter((a) => a.page !== oldName).length === 0) {
           // Document is in the same folder as the page and is only

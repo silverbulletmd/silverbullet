@@ -129,7 +129,7 @@ test("virtual link shape: each record carries the legacy fields", async () => {
   }
 });
 
-test("virtual link skips kinds that were never in `link` (attribute, data, co-mention)", async () => {
+test("virtual link projects attribute relations but still skips co-mention", async () => {
   createMockSystem();
   const page = `Body [attr: "[[Jack]]"] with extra [[Jack]] and [[Linda]].
 
@@ -141,19 +141,38 @@ spouse: "[[Jack]]"
   const fm = extractFrontMatter(tree);
   const relations = await indexRelations(meta("People"), fm, tree, page);
 
-  // Verify the relation indexer actually emitted the skipped kinds.
+  // Inline attributes and `#tag` data blocks now carry the attribute key
+  // as their `kind` (e.g. `attr`, `spouse`), which projects into the
+  // legacy `link` index. Co-mentions still have no `link` representation.
   const kinds = new Set(
     relations
       .filter((o: any) => o.tag === "relation")
       .map((o: any) => o.kind),
   );
-  expect(kinds.has("attribute")).toBe(true);
-  expect(kinds.has("data")).toBe(true);
+  expect(kinds.has("attr")).toBe(true);
+  expect(kinds.has("spouse")).toBe(true);
   expect(kinds.has("co-mention")).toBe(true);
 
   const virtual = virtualLinks(relations);
   expect(virtual.every((l) => l.type === "page")).toBe(true);
-  expect(virtual.map((l) => l.toPage).sort()).toEqual(["Jack", "Linda"]);
+  // Both the inline attribute and the data block contribute a Jack link
+  // now, alongside the two prose mentions.
+  expect(new Set(virtual.map((l) => l.toPage))).toEqual(
+    new Set(["Jack", "Linda"]),
+  );
+  expect(virtual.filter((l) => l.toPage === "Jack").length).toBe(3);
+});
+
+test("attribute relation to a document projects as a file link", async () => {
+  createMockSystem();
+  const page = `\`\`\`#person\nresume: "[[cv.pdf]]"\n\`\`\`\n`;
+  const tree = parseMarkdown(page);
+  const fm = extractFrontMatter(tree);
+  const relations = await indexRelations(meta("People"), fm, tree, page);
+  const links = virtualLinks(relations);
+  const fileLink = links.find((l) => l.toFile === "cv.pdf");
+  expect(fileLink).toBeDefined();
+  expect(fileLink!.type).toBe("file");
 });
 
 test("aspiring-page set: broken wikilinks emit `aspiring-page` records", async () => {

@@ -21,25 +21,18 @@ export type LinkObject = ObjectValue<{
   toURL?: string;
 }>;
 
-const LINK_COMPATIBLE_RELATION_KINDS = new Set([
-  "mention",
-  "frontmatter",
-  "url",
-  "document",
-]);
-
 /**
  * Project a `relation` record into the legacy `link` shape. Returns
- * `undefined` for relation kinds that were never represented in the
- * legacy `link` index (`attribute`, `data`, `co-mention`).
+ * `undefined` for relations with no `link` representation (`co-mention`).
+ * The link `type` is derived from the target axis (`toTag`), not `kind`.
  */
 export function relationToLink(rel: any): LinkObject | undefined {
   if (!rel || typeof rel !== "object") return undefined;
-  if (!LINK_COMPATIBLE_RELATION_KINDS.has(rel.kind)) return undefined;
+  if (rel.kind === "co-mention") return undefined;
 
-  const type: LinkObject["type"] = rel.kind === "url"
+  const type: LinkObject["type"] = rel.toTag === "url"
     ? "url"
-    : rel.kind === "document"
+    : rel.toTag === "document"
       ? "file"
       : "page";
 
