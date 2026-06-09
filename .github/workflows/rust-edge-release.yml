@@ -67,10 +67,13 @@ jobs:
         continue-on-error: true
         run: |
           sudo mkdir -p /opt/freebsd-sysroot
-          # download.freebsd.org is reliable (unlike musl.cc); grab just the
-          # libc/crt + headers clang needs. Pin a CURRENT release (14.2 was
-          # retired → 404; releases get pruned, so bump this when it 404s).
-          curl -fsSL https://download.freebsd.org/releases/amd64/14.3-RELEASE/base.txz \
+          # Resolve the LATEST FreeBSD release dynamically (older ones get pruned
+          # from the mirror → 404, which is what broke a pinned version). Grab just
+          # the libc/crt + headers clang needs to link a FreeBSD binary.
+          VER=$(curl -fsSL https://download.freebsd.org/releases/amd64/ \
+            | grep -oE '[0-9]+\.[0-9]+-RELEASE' | sort -V | uniq | tail -1)
+          echo "Latest FreeBSD release: $VER"
+          curl -fsSL "https://download.freebsd.org/releases/amd64/$VER/base.txz" \
             | sudo tar -xJf - -C /opt/freebsd-sysroot ./lib ./usr/lib ./usr/include
           make build-cli-releases-freebsd
 
