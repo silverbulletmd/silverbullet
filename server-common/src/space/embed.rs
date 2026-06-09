@@ -45,8 +45,24 @@ impl ReadOnlyDirSpacePrimitives {
         })
     }
 
-    fn resolve_path(&self, path: &str) -> PathBuf {
-        self.root_path.join(path)
+    /// Resolve a request path under the root, rejecting lexical traversal
+    /// (absolute paths and `..` components) — the same guard
+    /// `DiskSpacePrimitives::safe_path` applies. Without it, a request path like
+    /// `../../etc/passwd` would `join` out of the root; this layer backs the
+    /// client bundle served by the (unauthenticated) SPA fallback and the
+    /// base_fs fall-through, so the guard must live here too. (The deleted Go
+    /// `embed.FS` implementation rejected `..` by spec; this restores that.)
+    fn resolve_path(&self, path: &str) -> Result<PathBuf, SpaceError> {
+        let clean = Path::new(path);
+        if clean.is_absolute() {
+            return Err(SpaceError::PathOutsideRoot);
+        }
+        for component in clean.components() {
+            if matches!(component, std::path::Component::ParentDir) {
+                return Err(SpaceError::PathOutsideRoot);
+            }
+        }
+        Ok(self.root_path.join(clean))
     }
 }
 
@@ -103,7 +119,7 @@ impl SpacePrimitives for ReadOnlyDirSpacePrimitives {
     }
 
     fn get_file_meta(&self, path: &str) -> Result<FileMeta, SpaceError> {
-        let full = self.resolve_path(path);
+        let full = self.resolve_path(path)?;
         let metadata = std::fs::metadata(&full).map_err(|_| SpaceError::NotFound)?;
         let last_modified = if is_plug(path) {
             file_mtime_millis(&metadata).unwrap_or(self.fixed_mtime)
@@ -121,7 +137,7 @@ impl SpacePrimitives for ReadOnlyDirSpacePrimitives {
     }
 
     fn read_file(&self, path: &str) -> Result<(Vec<u8>, FileMeta), SpaceError> {
-        let full = self.resolve_path(path);
+        let full = self.resolve_path(path)?;
         let data = std::fs::read(&full).map_err(|_| SpaceError::NotFound)?;
         let meta = self.get_file_meta(path)?;
         Ok((data, meta))
@@ -267,6 +283,24 @@ mod tests {
         let p: Box<dyn SpacePrimitives> =
             Box::new(ReadOnlyDirSpacePrimitives::new(td.path()).unwrap());
         (td, p)
+    }
+
+    #[test]
+    fn read_only_dir_rejects_path_traversal() {
+        // The read-only dir backs the (unauthenticated) client bundle, so a
+        // `..`/absolute request path must not escape the root.
+        let (_td, p) = make_readonly_with_file("ok.txt", b"hi");
+        assert!(p.read_file("ok.txt").is_ok());
+        for evil in ["../../etc/passwd", "/etc/passwd", "a/../../b"] {
+            assert!(
+                matches!(p.read_file(evil), Err(SpaceError::PathOutsideRoot)),
+                "read_file({evil:?}) must be PathOutsideRoot"
+            );
+            assert!(
+                matches!(p.get_file_meta(evil), Err(SpaceError::PathOutsideRoot)),
+                "get_file_meta({evil:?}) must be PathOutsideRoot"
+            );
+        }
     }
 
     #[test]

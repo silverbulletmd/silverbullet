@@ -4,7 +4,7 @@ use axum::body::Body;
 use axum::extract::{Path, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
-use silverbullet_common::FileMeta;
+use silverbullet_server_common::FileMeta;
 
 use crate::handlers::space_error_response;
 use crate::router::run_blocking;

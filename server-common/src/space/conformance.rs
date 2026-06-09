@@ -7,7 +7,7 @@
 //!
 //! ```ignore
 //! let sp = MyWritableSpacePrimitives::new(/* ... */);
-//! silverbullet_common::space::conformance::run_read_write_conformance(&sp);
+//! silverbullet_server_common::space::conformance::run_read_write_conformance(&sp);
 //! ```
 //!
 //! Enabled via the `testing` feature so downstream crates can depend on it.

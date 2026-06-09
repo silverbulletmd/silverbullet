@@ -65,7 +65,7 @@ fn dump_and_panic(server: &mut Server, msg: &str) -> ! {
 
 #[test]
 fn runtime_api_evaluates_lua_against_headless_chrome() {
-    if silverbullet_runtime_chrome::find_chrome().is_none() {
+    if silverbullet_server_runtime_chrome::find_chrome().is_none() {
         eprintln!("skipping runtime_e2e: no Chrome/Chromium found on this machine");
         return;
     }

@@ -15,12 +15,7 @@ fn main() {
     println!("cargo:rerun-if-changed=../../client_bundle/client");
     println!("cargo:rerun-if-changed=../../client_bundle/base_fs");
 
-    // Inject the version from `public_version.ts` (the git-describe-with-build-
-    // timestamp string, e.g. "2.8.1-69-g3ee2d4ef-2026-06-02T07-02-04Z"). This MUST
-    // match what the client is built with: the client compares the server's
-    // reported version against its compiled-in `publicVersion`, and any mismatch
-    // shows a perpetual "a new version is available" banner. (`version.ts` holds
-    // only the plain semver and must NOT be used here.)
+    // Inject the version from `public_version.ts`
     let version_ts = Path::new(manifest).join("../../public_version.ts");
     println!("cargo:rerun-if-changed=../../public_version.ts");
     let version = std::fs::read_to_string(&version_ts)

@@ -6,16 +6,16 @@ use std::sync::Arc;
 use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
 use tracing::Level;
 
-use silverbullet_common::space::{
-    DiskSpacePrimitives, FallthroughSpacePrimitives, ReadOnlySpacePrimitives,
-};
-use silverbullet_common::{BootConfig, SpacePrimitives};
 use silverbullet_server::auth::{
     AuthConfig, Authenticator, HeadlessTokenAuthorizer, JwtAuthorizer, LockoutTimer, LoginManager,
     RequestAuthorizer,
 };
 use silverbullet_server::shell::ShellConfig;
 use silverbullet_server::{metrics::Metrics, AppState, ServerVersion};
+use silverbullet_server_common::space::{
+    DiskSpacePrimitives, FallthroughSpacePrimitives, ReadOnlySpacePrimitives,
+};
+use silverbullet_server_common::{BootConfig, SpacePrimitives};
 
 use crate::config::Config;
 use crate::embed::{BaseFsAssets, ClientAssets, EmbeddedSpace};
@@ -116,14 +116,14 @@ fn build_runtime(
     headless_token: &str,
 ) -> Option<Box<dyn silverbullet_server::runtime::RuntimeBackend>> {
     let server_url = format!("http://127.0.0.1:{}{}", config.port, config.host_url_prefix);
-    let chrome_cfg = silverbullet_runtime_chrome::ChromeConfig::from_env(
+    let chrome_cfg = silverbullet_server_runtime_chrome::ChromeConfig::from_env(
         server_url,
         headless_token.to_string(),
         &config.space_folder,
         config.read_only,
     )?;
     let logs = silverbullet_server::runtime::LogBuffer::new();
-    match silverbullet_runtime_chrome::ChromeTransport::launch(chrome_cfg, logs.clone()) {
+    match silverbullet_server_runtime_chrome::ChromeTransport::launch(chrome_cfg, logs.clone()) {
         Ok(transport) => {
             tracing::info!("headless Chrome runtime enabled");
             Some(Box::new(silverbullet_server::runtime::ClientRuntime::new(

@@ -6,7 +6,7 @@ use axum::middleware::{self, Next};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{any, delete, get, post, put};
 use axum::Router;
-use silverbullet_common::SpaceError;
+use silverbullet_server_common::SpaceError;
 
 use crate::handlers::{bundle, control, fs};
 use crate::state::AppState;

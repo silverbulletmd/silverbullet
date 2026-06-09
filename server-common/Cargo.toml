@@ -1,5 +1,5 @@
 [package]
-name = "silverbullet-common"
+name = "silverbullet-server-common"
 edition.workspace = true
 license.workspace = true
 # Internal-only crate: never published, depended on by path. No version field

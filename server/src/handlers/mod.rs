@@ -10,7 +10,7 @@ pub mod shell;
 use axum::body::Body;
 use axum::http::StatusCode;
 use axum::response::Response;
-use silverbullet_common::SpaceError;
+use silverbullet_server_common::SpaceError;
 
 /// Map a `SpaceError` to an HTTP response, matching the client's expectations
 /// (missing files are a plain 404).

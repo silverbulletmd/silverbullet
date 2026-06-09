@@ -1,5 +1,5 @@
 //! The SilverBullet HTTP server library: an `axum` router over
-//! `silverbullet_common`'s synchronous `SpacePrimitives`. Handlers are thin
+//! `silverbullet_server_common`'s synchronous `SpacePrimitives`. Handlers are thin
 //! `async` wrappers that delegate storage I/O to `spawn_blocking` so business
 //! logic stays synchronous. The router is reusable, so an embedder can mount
 //! additional routes on top of it.
@@ -19,8 +19,8 @@ pub use state::{AppState, ServerVersion};
 #[cfg(test)]
 mod test_support {
     use crate::state::AppState;
-    use silverbullet_common::space::MemorySpacePrimitives;
-    use silverbullet_common::BootConfig;
+    use silverbullet_server_common::space::MemorySpacePrimitives;
+    use silverbullet_server_common::BootConfig;
 
     /// An `AppState` backed by a fresh in-memory space and a fresh in-memory
     /// "bundle" (also a MemorySpacePrimitives). Tests seed files as needed.

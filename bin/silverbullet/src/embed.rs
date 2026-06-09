@@ -4,7 +4,7 @@
 use std::marker::PhantomData;
 
 use rust_embed::RustEmbed;
-use silverbullet_common::{FileMeta, SpaceError, SpacePrimitives};
+use silverbullet_server_common::{FileMeta, SpaceError, SpacePrimitives};
 
 /// The built client web UI (`client_bundle/client`), served at the SPA fallback.
 #[derive(RustEmbed)]

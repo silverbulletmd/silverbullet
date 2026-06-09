@@ -1,5 +1,5 @@
 [package]
-name = "silverbullet-runtime-chrome"
+name = "silverbullet-server-runtime-chrome"
 edition.workspace = true
 license.workspace = true
 publish = false
@@ -8,7 +8,7 @@ publish = false
 workspace = true
 
 [dependencies]
-silverbullet-server = { path = "../server-rs" }
+silverbullet-server = { path = "../server" }
 # chromiumoxide (and futures) are used ONLY by this crate, so they're declared
 # here rather than in the workspace dependency table.
 chromiumoxide = { version = "0.9", default-features = false }

@@ -13,9 +13,9 @@ The SilverBullet server is written in [Rust](https://www.rust-lang.org/) (a Carg
 
 # Code structure
 * `client/`: The SilverBullet client, implemented with TypeScript
-* `server-rs/`: The SilverBullet server library (Rust): HTTP router, handlers, auth, runtime seam
-* `common/`: Shared Rust crate (space primitives, shared types)
-* `runtime-chrome/`: Headless-Chrome runtime backend (Rust)
+* `server/`: The SilverBullet server library (Rust): HTTP router, handlers, auth, runtime seam
+* `server-common/`: Shared Rust crate (space primitives, shared types)
+* `server-runtime-chrome/`: Headless-Chrome runtime backend (Rust)
 * `bin/silverbullet/`: The standalone server binary (Rust)
 * `bin/sb/`: The `sb` command-line client (Rust)
 * `plugs`: Set of built-in plugs that are distributed with SilverBullet
@@ -44,7 +44,7 @@ make setup
 
 SilverBullet has two halves you rebuild **independently** — knowing which one you changed saves time:
 
-* The **server** (Rust: `server-rs/`, `common/`, `runtime-chrome/`, `bin/silverbullet/`) is a compiled binary.
+* The **server** (Rust: `server/`, `server-common/`, `server-runtime-chrome/`, `bin/silverbullet/`) is a compiled binary.
 * The **client** (TypeScript: `client/`) is built by ESBuild into `client_bundle/`, which the server serves.
 
 Run the server in development with `cargo run`. A **debug** build serves the client bundle **live from `client_bundle/` on disk** (a release build embeds it). Use `SB_DISABLE_SERVICE_WORKER=1` so the service worker doesn't cache stale assets:

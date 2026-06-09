@@ -16,8 +16,6 @@ pub struct Config {
     pub log_push: bool,
     pub additional_head_html: String,
     pub host_url_prefix: String,
-    /// When true, a per-request log line (method, path, status, latency) is
-    /// emitted via the `tower_http::trace` target at INFO level.
     pub http_logging: bool,
 }
 

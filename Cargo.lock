@@ -2211,44 +2211,14 @@ dependencies = [
  "reqwest 0.12.28",
  "rust-embed",
  "serde_json",
- "silverbullet-common",
- "silverbullet-runtime-chrome",
  "silverbullet-server",
+ "silverbullet-server-common",
+ "silverbullet-server-runtime-chrome",
  "tempfile",
  "tokio",
  "tower-http",
  "tracing",
  "tracing-subscriber",
-]
-
-[[package]]
-name = "silverbullet-common"
-version = "0.0.0"
-dependencies = [
- "chrono",
- "filetime",
- "ignore",
- "mime_guess",
- "percent-encoding",
- "reqwest 0.12.28",
- "serde",
- "serde_json",
- "tempfile",
- "thiserror 2.0.18",
- "tracing",
- "walkdir",
-]
-
-[[package]]
-name = "silverbullet-runtime-chrome"
-version = "0.0.0"
-dependencies = [
- "chromiumoxide",
- "futures",
- "serde_json",
- "silverbullet-server",
- "tokio",
- "tracing",
 ]
 
 [[package]]
@@ -2269,11 +2239,41 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
- "silverbullet-common",
+ "silverbullet-server-common",
  "tempfile",
  "thiserror 2.0.18",
  "tokio",
  "tower",
+ "tracing",
+]
+
+[[package]]
+name = "silverbullet-server-common"
+version = "0.0.0"
+dependencies = [
+ "chrono",
+ "filetime",
+ "ignore",
+ "mime_guess",
+ "percent-encoding",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.18",
+ "tracing",
+ "walkdir",
+]
+
+[[package]]
+name = "silverbullet-server-runtime-chrome"
+version = "0.0.0"
+dependencies = [
+ "chromiumoxide",
+ "futures",
+ "serde_json",
+ "silverbullet-server",
+ "tokio",
  "tracing",
 ]
 

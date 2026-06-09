@@ -8,7 +8,7 @@ publish = false
 workspace = true
 
 [dependencies]
-silverbullet-common = { path = "../common" }
+silverbullet-server-common = { path = "../server-common" }
 axum = { workspace = true }
 tokio = { workspace = true }
 serde_json = { workspace = true }
@@ -28,7 +28,7 @@ prometheus = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]
-silverbullet-common = { path = "../common", features = ["testing"] }
+silverbullet-server-common = { path = "../server-common", features = ["testing"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "sync"] }
 tower = { version = "0.5", features = ["util"] }
 tempfile = "3"

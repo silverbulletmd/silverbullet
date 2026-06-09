@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use silverbullet_common::{BootConfig, SpacePrimitives};
+use silverbullet_server_common::{BootConfig, SpacePrimitives};
 
 use crate::auth::RequestAuthorizer;
 use crate::metrics::Metrics;
