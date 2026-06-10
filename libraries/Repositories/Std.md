@@ -47,12 +47,6 @@ description: Reformats markdown in a "SilverBullet"-y style
 website: https://github.com/silverbulletmd/silverbullet-markdown-prettify
 uri: ghr:silverbulletmd/silverbullet-markdown-prettify/Prettify.md
 ---
-name: Object Graph
-author: Zef Hemel
-description: Object Graph view
-website: https://github.com/silverbulletmd/silverbullet-object-graph
-uri: ghr:silverbulletmd/silverbullet-object-graph/ObjectGraph.md
----
 name: Basic Full-Text Search
 author: Zef Hemel
 description: Basic full-text search engine for SilverBullet (previously a built-in plug)

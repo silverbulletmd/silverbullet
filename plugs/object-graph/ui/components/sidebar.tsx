@@ -134,7 +134,15 @@ function ObjectSection({ selected }: { selected: ObjectNode | null }) {
 	useEffect(() => {
 		if (!selected) return;
 		let cancelled = false;
-		void syscall("yaml.stringify", selected.attributes).then((text: string) => {
+		// Always lead with the object's `tag`. Real page/item/block objects
+		// carry it in their indexed attributes; stub nodes (dangling refs,
+		// URL/file targets) don't, so fall back to the node's structural tag
+		// (or kind). Spreading `attributes` last keeps the real value when set.
+		const display = {
+			tag: selected.rootTag ?? selected.kind,
+			...selected.attributes,
+		};
+		void syscall("yaml.stringify", display).then((text: string) => {
 			if (!cancelled) setYamlText(text);
 		});
 		return () => {
