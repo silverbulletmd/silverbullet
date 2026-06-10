@@ -100,7 +100,7 @@
   }
 
   .cm-list-bullet {
-    color: var(--editor-list-bullet-color, inherit);
+    color: var(--editor-list-bullet-color, inherit);   white-space: nowrap; // Prevent bullet from being a line-wrap opportunity (fixes #1829)
   }
 
   .cm-task-checked,
