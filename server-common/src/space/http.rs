@@ -199,8 +199,17 @@ impl HttpSpacePrimitives {
 }
 
 /// Authenticate against a SilverBullet server using username/password, returning a JWT.
-/// Posts to `{base_url}/.auth` and extracts the `auth_*` cookie value from the response.
-fn authenticate_blocking(base_url: &str, username: &str, password: &str) -> Result<String, String> {
+/// Posts to `{base_url}/.auth` and extracts the `auth_*` cookie value from the response
+/// (servers name the cookie `auth_{sanitized_host}`, see `auth_cookie_header`).
+///
+/// This is the single implementation of the credential exchange; async callers
+/// should wrap it in `spawn_blocking`. Pair the returned JWT with
+/// `auth_cookie_header` to build a `Cookie` credential.
+pub fn authenticate_blocking(
+    base_url: &str,
+    username: &str,
+    password: &str,
+) -> Result<String, String> {
     let client = reqwest::blocking::Client::builder()
         .timeout(std::time::Duration::from_secs(10))
         .build()

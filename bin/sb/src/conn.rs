@@ -222,7 +222,7 @@ pub fn resolve(flags: &GlobalFlags, cfg: &Config) -> Result<SpaceConnection, Str
 /// the key file was regenerated, or the secret was encrypted on a different
 /// machine / an older SilverBullet that used the legacy hostname-derived key.
 /// Point the user at re-adding the space rather than leaving a bare `aead::Error`.
-fn decrypt_failure_msg(what: &str, space_name: &str, inner: String) -> String {
+fn decrypt_failure_msg(what: &str, space_name: &str, inner: impl std::fmt::Display) -> String {
     let key_path = config::config_dir().join("key");
     format!(
         "decrypting {what} for space \"{space_name}\" failed: {inner}\n\n\

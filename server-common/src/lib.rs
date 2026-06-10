@@ -2,6 +2,7 @@
 //! `SpacePrimitives` storage abstraction, its implementations, and the
 //! associated data types.
 
+pub mod crypto;
 pub mod space;
 pub mod types;
 

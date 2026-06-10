@@ -2038,16 +2038,14 @@ dependencies = [
 name = "sb"
 version = "0.0.0"
 dependencies = [
- "aes-gcm",
- "base64",
  "chrono",
  "clap",
- "getrandom 0.2.17",
  "reqwest 0.12.28",
  "rustyline",
  "serde",
  "serde_json",
  "serde_yaml",
+ "silverbullet-server-common",
  "tempfile",
  "uuid",
  "zip",
@@ -2251,6 +2249,8 @@ dependencies = [
 name = "silverbullet-server-common"
 version = "0.0.0"
 dependencies = [
+ "aes-gcm",
+ "base64",
  "chrono",
  "filetime",
  "ignore",
