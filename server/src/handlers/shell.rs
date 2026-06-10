@@ -77,10 +77,38 @@ pub async fn handle_shell(
     }
 }
 
+/// Upper bound on a shell command's runtime. A hung command would otherwise
+/// tie up a blocking-pool thread and its HTTP request indefinitely.
+const COMMAND_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(60);
+
+/// Read a child output pipe to completion on its own thread.
+fn drain_pipe<R: std::io::Read + Send + 'static>(
+    pipe: Option<R>,
+) -> std::thread::JoinHandle<Vec<u8>> {
+    std::thread::spawn(move || {
+        let mut buf = Vec::new();
+        if let Some(mut r) = pipe {
+            let _ = r.read_to_end(&mut buf);
+        }
+        buf
+    })
+}
+
 /// Run the command synchronously (on the blocking pool), capturing output.
+///
+/// stdin is fed from its own thread while stdout/stderr are drained
+/// concurrently: writing stdin inline before reading output can deadlock
+/// once the child fills the (~64KB) output pipe while still consuming its
+/// input. The child is killed if it outlives `COMMAND_TIMEOUT`.
 fn run_command(request: ShellRequest, cwd: &str) -> ShellResponse {
     use std::io::Write;
     use std::process::{Command, Stdio};
+
+    let spawn_failure = |e: std::io::Error| ShellResponse {
+        stdout: String::new(),
+        stderr: e.to_string(),
+        code: -1,
+    };
 
     tracing::info!("Running shell command: {} {:?}", request.cmd, request.args);
     let mut cmd = Command::new(&request.cmd);
@@ -91,36 +119,79 @@ fn run_command(request: ShellRequest, cwd: &str) -> ShellResponse {
         cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
     }
 
-    let output = if let Some(stdin_data) = request.stdin {
-        cmd.stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped());
-        let mut child = match cmd.spawn() {
-            Ok(c) => c,
-            Err(e) => {
-                return ShellResponse {
-                    stdout: String::new(),
-                    stderr: e.to_string(),
-                    code: -1,
-                }
-            }
-        };
-        if let Some(mut stdin) = child.stdin.take() {
-            let _ = stdin.write_all(stdin_data.as_bytes());
-        }
-        child.wait_with_output()
+    cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
+    cmd.stdin(if request.stdin.is_some() {
+        Stdio::piped()
     } else {
-        cmd.output()
+        Stdio::null()
+    });
+
+    let mut child = match cmd.spawn() {
+        Ok(c) => c,
+        Err(e) => return spawn_failure(e),
     };
 
-    match output {
-        Ok(o) => ShellResponse {
-            stdout: String::from_utf8_lossy(&o.stdout).into_owned(),
-            stderr: String::from_utf8_lossy(&o.stderr).into_owned(),
-            code: o.status.code().unwrap_or(-1),
+    let stdin_writer = request.stdin.and_then(|data| {
+        child.stdin.take().map(|mut stdin| {
+            std::thread::spawn(move || {
+                if let Err(e) = stdin.write_all(data.as_bytes()) {
+                    tracing::warn!("Failed to write shell command stdin: {e}");
+                }
+                // `stdin` drops here, closing the pipe so the child sees EOF.
+            })
+        })
+    });
+    let stdout_handle = drain_pipe(child.stdout.take());
+    let stderr_handle = drain_pipe(child.stderr.take());
+
+    let start = std::time::Instant::now();
+    let mut timed_out = false;
+    let status = loop {
+        match child.try_wait() {
+            Ok(Some(status)) => break Ok(status),
+            Ok(None) => {
+                if start.elapsed() >= COMMAND_TIMEOUT {
+                    timed_out = true;
+                    let _ = child.kill();
+                    break child.wait();
+                }
+                std::thread::sleep(std::time::Duration::from_millis(25));
+            }
+            Err(e) => break Err(e),
+        }
+    };
+
+    // Killing (or exiting) the child closes its pipes, so these all finish.
+    if let Some(h) = stdin_writer {
+        let _ = h.join();
+    }
+    let stdout = stdout_handle.join().unwrap_or_default();
+    let mut stderr = stderr_handle.join().unwrap_or_default();
+    if timed_out {
+        if !stderr.is_empty() {
+            stderr.push(b'\n');
+        }
+        stderr.extend_from_slice(
+            format!(
+                "Command timed out after {}s and was killed",
+                COMMAND_TIMEOUT.as_secs()
+            )
+            .as_bytes(),
+        );
+    }
+
+    match status {
+        Ok(status) => ShellResponse {
+            stdout: String::from_utf8_lossy(&stdout).into_owned(),
+            stderr: String::from_utf8_lossy(&stderr).into_owned(),
+            code: if timed_out {
+                -1
+            } else {
+                status.code().unwrap_or(-1)
+            },
         },
         Err(e) => ShellResponse {
-            stdout: String::new(),
+            stdout: String::from_utf8_lossy(&stdout).into_owned(),
             stderr: e.to_string(),
             code: -1,
         },
@@ -231,6 +302,29 @@ mod tests {
             "stdout should echo stdin: {body}"
         );
         assert!(body.contains("\"code\":0"), "got: {body}");
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn large_stdin_does_not_deadlock() {
+        // Regression: stdin used to be written to completion before any
+        // output was drained; with more than ~2 pipe buffers (~128KB)
+        // round-tripped through `cat`, parent and child would block on each
+        // other's full pipes forever. stdin now feeds from its own thread.
+        let st = state_with(
+            ShellConfig {
+                enabled: true,
+                whitelist: vec![],
+            },
+            false,
+        );
+        let big = "x".repeat(256 * 1024);
+        let cmd = serde_json::json!({"cmd":"cat","args":[],"stdin":big}).to_string();
+        let (status, body) = post_shell(st, &cmd).await;
+        assert_eq!(status, StatusCode::OK);
+        let v: serde_json::Value = serde_json::from_str(&body).unwrap();
+        assert_eq!(v["stdout"].as_str().unwrap().len(), 256 * 1024);
+        assert_eq!(v["code"], 0);
     }
 
     /// Build state whose space folder (the shell cwd) is `cwd`, with shell on.

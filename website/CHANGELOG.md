@@ -3,6 +3,9 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
+* Server: file write errors now return accurate HTTP status codes (403 for paths escaping the space root, 401 for unauthorized, 404 for missing) with the error message preserved in the body, instead of a generic 500 "Write failed".
+* Server: the `/.proxy` endpoint now reuses a pooled HTTP client across requests, so repeated plug/Lua fetches to the same host skip redundant TCP/TLS handshakes.
+* Server: shell commands (`/.shell`) no longer deadlock when piping large amounts of data through stdin/stdout, and a hung command is now killed after 60 seconds instead of hanging the request forever.
 * New [[Object/relation]] indexed object capturing generalized object-to-object relationships. This is a successor to [[Object/link]], which still exists as a virtual collection built on top of `relation`.
 * New experimental [[Object Graph]]: an interactive, force-directed graph explorer over the [[Object/relation]] index. Try it via ${widgets.commandButton("Graph: Explore")} and ${widgets.commandButton("Graph: Global Page Map")}.
 * Picker fuzzy search: replaced Fuse.js with a custom scorer that supports multi-token queries, path-aware ranking, and some typo tolerance.

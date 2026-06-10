@@ -11,7 +11,7 @@
 use std::io::{IsTerminal, Read};
 use std::process::ExitCode;
 
-use crate::cli::{Cli, Command, GlobalFlags};
+use crate::cli::{Cli, Command, CoreCommand, GlobalFlags};
 use crate::commands;
 use crate::config::{self, Config};
 use crate::conn::{self, SpaceConnection};
@@ -48,71 +48,6 @@ fn dispatch(cli: Cli) -> Result<ExitCode, String> {
             println!("{v}");
             Ok(ExitCode::SUCCESS)
         }
-
-        Command::Eval { expression } | Command::Lua { expression } => {
-            let conn = resolve_conn(&g)?;
-            let mode = resolve_out(&g);
-            let mut out = std::io::stdout().lock();
-            commands::eval::run(&conn, &expression, mode, &mut out)?;
-            Ok(ExitCode::SUCCESS)
-        }
-
-        Command::Script { code, file } => {
-            let conn = resolve_conn(&g)?;
-            let mode = resolve_out(&g);
-            let script = if let Some(f) = file {
-                read_file(&f)?
-            } else if let Some(c) = code {
-                c
-            } else {
-                read_stdin()?
-            };
-            let mut out = std::io::stdout().lock();
-            commands::script::run(&conn, &script, mode, &mut out)?;
-            Ok(ExitCode::SUCCESS)
-        }
-
-        Command::LuaScript { file } => {
-            // Hidden, old behavior: positional arg is a FILE path (not inline code).
-            let conn = resolve_conn(&g)?;
-            let mode = resolve_out(&g);
-            let script = if let Some(f) = file {
-                read_file(&f)?
-            } else {
-                read_stdin()?
-            };
-            let mut out = std::io::stdout().lock();
-            commands::script::run(&conn, &script, mode, &mut out)?;
-            Ok(ExitCode::SUCCESS)
-        }
-
-        Command::Query { expression } => {
-            let conn = resolve_conn(&g)?;
-            let mode = resolve_out(&g);
-            let mut out = std::io::stdout().lock();
-            commands::query::run(&conn, &expression, mode, &mut out)?;
-            Ok(ExitCode::SUCCESS)
-        }
-
-        Command::Get(args) => {
-            let conn = resolve_conn(&g)?;
-            let mode = resolve_out(&g);
-            let mut out = std::io::stdout().lock();
-            Ok(commands::get::run(&conn, &args, mode, &mut out))
-        }
-        Command::Describe { type_ } => {
-            let conn = resolve_conn(&g)?;
-            let mode = resolve_out(&g);
-            let mut out = std::io::stdout().lock();
-            commands::describe::run(&conn, type_.as_deref(), mode, &mut out)?;
-            Ok(ExitCode::SUCCESS)
-        }
-        Command::Logs { lines, follow } => {
-            let conn = resolve_conn(&g)?;
-            let mut out = std::io::stdout().lock();
-            commands::logs::run(&conn, lines, follow, &mut out)?;
-            Ok(ExitCode::SUCCESS)
-        }
         Command::Space(sub) => {
             match sub {
                 crate::cli::SpaceCmd::Add => commands::space::space_add_interactive(None)?,
@@ -121,17 +56,71 @@ fn dispatch(cli: Cli) -> Result<ExitCode, String> {
             }
             Ok(ExitCode::SUCCESS)
         }
-        Command::Repl => {
-            let conn = resolve_conn(&g)?;
-            commands::repl::run(conn)?;
-            Ok(ExitCode::SUCCESS)
-        }
-        Command::Upgrade => {
+        Command::Core(cmd) => run_core_command(&g, cmd),
+    }
+}
+
+/// Dispatch one of the [`CoreCommand`]s shared with the App CLI. The
+/// connection and output mode are resolved lazily from `g` — the upgrade
+/// variants never need one (check `CoreCommand::needs_connection`).
+pub fn run_core_command(g: &GlobalFlags, cmd: CoreCommand) -> Result<ExitCode, String> {
+    match cmd {
+        CoreCommand::Upgrade => {
             commands::upgrade::run(false)?;
             Ok(ExitCode::SUCCESS)
         }
-        Command::UpgradeEdge => {
+        CoreCommand::UpgradeEdge => {
             commands::upgrade::run(true)?;
+            Ok(ExitCode::SUCCESS)
+        }
+        CoreCommand::Repl => {
+            let conn = resolve_conn(g)?;
+            commands::repl::run(conn)?;
+            Ok(ExitCode::SUCCESS)
+        }
+        cmd => {
+            let conn = resolve_conn(g)?;
+            let mode = resolve_out(g);
+            let mut out = std::io::stdout().lock();
+            match cmd {
+                CoreCommand::Eval { expression } | CoreCommand::Lua { expression } => {
+                    commands::eval::run(&conn, &expression, mode, &mut out)?
+                }
+                CoreCommand::Script { code, file } => {
+                    let script = if let Some(f) = file {
+                        read_file(&f)?
+                    } else if let Some(c) = code {
+                        c
+                    } else {
+                        read_stdin()?
+                    };
+                    commands::script::run(&conn, &script, mode, &mut out)?
+                }
+                CoreCommand::LuaScript { file } => {
+                    // Hidden, old behavior: positional arg is a FILE path (not inline code).
+                    let script = if let Some(f) = file {
+                        read_file(&f)?
+                    } else {
+                        read_stdin()?
+                    };
+                    commands::script::run(&conn, &script, mode, &mut out)?
+                }
+                CoreCommand::Query { expression } => {
+                    commands::query::run(&conn, &expression, mode, &mut out)?
+                }
+                CoreCommand::Get(args) => {
+                    return Ok(commands::get::run(&conn, &args, mode, &mut out))
+                }
+                CoreCommand::Describe { type_ } => {
+                    commands::describe::run(&conn, type_.as_deref(), mode, &mut out)?
+                }
+                CoreCommand::Logs { lines, follow } => {
+                    commands::logs::run(&conn, lines, follow, &mut out)?
+                }
+                CoreCommand::Repl | CoreCommand::Upgrade | CoreCommand::UpgradeEdge => {
+                    unreachable!("handled above")
+                }
+            }
             Ok(ExitCode::SUCCESS)
         }
     }

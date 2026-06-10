@@ -110,10 +110,7 @@ pub async fn handle_fs_put(
         }
         Err(e) => {
             tracing::error!("write failed: {e}");
-            Response::builder()
-                .status(StatusCode::INTERNAL_SERVER_ERROR)
-                .body(Body::from("Write failed"))
-                .unwrap()
+            space_error_response(e)
         }
     }
 }

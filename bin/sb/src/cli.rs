@@ -144,6 +144,14 @@ pub enum Command {
     /// Manage saved space connections.
     #[command(subcommand)]
     Space(SpaceCmd),
+    /// Print the version.
+    Version,
+    #[command(flatten)]
+    Core(CoreCommand),
+}
+
+#[derive(Subcommand)]
+pub enum CoreCommand {
     /// Evaluate a Lua expression.
     Eval { expression: String },
     /// (hidden) alias of eval.
@@ -177,13 +185,20 @@ pub enum Command {
     },
     /// Interactive Lua REPL.
     Repl,
-    /// Print the version.
-    Version,
     /// Upgrade to the latest release.
     Upgrade,
     /// Upgrade to the edge release.
     #[command(name = "upgrade-edge")]
     UpgradeEdge,
+}
+
+impl CoreCommand {
+    /// Whether dispatching this command needs a resolved space connection.
+    /// Lets wrappers skip connection setup (e.g. cold-starting a local
+    /// space server) for commands that never talk to a space.
+    pub fn needs_connection(&self) -> bool {
+        !matches!(self, CoreCommand::Upgrade | CoreCommand::UpgradeEdge)
+    }
 }
 
 #[derive(Subcommand)]

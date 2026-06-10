@@ -65,7 +65,11 @@ pub async fn handle_proxy(
 
     // The proxy is pure network I/O at the edge (no business logic), so it uses
     // async `reqwest` directly rather than the sync-core `spawn_blocking` seam.
-    let client = reqwest::Client::new();
+    // One process-wide client so repeated fetches to the same host reuse
+    // pooled connections and TLS sessions (`Client` is an `Arc` internally).
+    static CLIENT: std::sync::LazyLock<reqwest::Client> =
+        std::sync::LazyLock::new(reqwest::Client::new);
+    let client = &*CLIENT;
     let rmethod =
         reqwest::Method::from_bytes(method.as_str().as_bytes()).unwrap_or(reqwest::Method::GET);
     let mut rb = client.request(rmethod, &target);
