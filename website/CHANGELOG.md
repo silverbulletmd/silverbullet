@@ -22,6 +22,8 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
   * Space Lua: added `spacelua.prettyPrintBlock` / `spacelua.prettyPrintExpression` to pretty-print a parsed Lua AST back to formatted source. Supports `indentWidth`, `quote` and `trailingComma` options. In preparation of future functionality that will manipulate existing Lua code.
 * `index.contentPages` now accepts an optional `tag` argument to filter content pages by an additional tag, matching the other type-specific [[API/index]] helpers.
 * Fix: forced space reindex handling
+* Fix: with two windows/tabs open on the same space, a full reindex (e.g. after an index-version bump) could deadlock IndexedDB.
+* Fix: an interrupted full reindex (e.g. the window closed mid-reindex) no longer leaves the space permanently un-indexed.
 * Fix: Clicking a wiki link to a page now places the cursor just after the page's frontmatter on first visit (matching fresh-load behavior), instead of at position 0. Pages already visited in the session still restore their previously saved cursor position.
 * Fix: `$`-anchor refs now resolve through the index from every navigation path
 * Fix: Ctrl/Cmd-clicking a link inside rendered widgets (query/template results) now navigates in a new window via the normal navigation path
