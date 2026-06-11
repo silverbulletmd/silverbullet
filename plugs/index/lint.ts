@@ -176,6 +176,10 @@ export async function lintObjects({
   text,
   name,
 }: LintEvent): Promise<LintDiagnostic[]> {
+  if (!meta) {
+    return [];
+  }
+
   const frontmatter = extractFrontMatter(tree);
 
   // Index the page
