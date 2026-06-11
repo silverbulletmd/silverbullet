@@ -342,9 +342,14 @@ export class ContentManager {
     // This could create an invalid editor state, but that doesn't matter, we'll update it later
     this.switchToPageEditor();
 
-    await this.client.pageMetaAugmenter.setAugmentation(pageName, {
-      lastOpened: Date.now(),
-    });
+    // Record last-opened time best-effort and non-blocking: this is a write
+    // to the shared index store, and awaiting it would stall navigation
+    // behind an in-progress reindex for no user-visible benefit.
+    void this.client.pageMetaAugmenter
+      .setAugmentation(pageName, { lastOpened: Date.now() })
+      .catch((e) =>
+        console.warn("Could not record lastOpened for", pageName, e),
+      );
 
     this.client.ui.viewDispatch({
       type: "page-loaded",

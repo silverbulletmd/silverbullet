@@ -29,8 +29,14 @@ const pageKey = "ridx";
 
 const indexVersionKey = ["$indexVersion"];
 
+// Set while a full reindex is running and cleared on completion. Survives
+// the version-key deletion a reindex performs at its start, so an
+// `undefined` index version can be disambiguated: a fresh install has no
+// marker, an interrupted reindex left one behind.
+const reindexInProgressKey = ["$reindexInProgress"];
+
 // Bump this one every time a full reindex is needed
-const desiredIndexVersion = 11;
+const desiredIndexVersion = 12;
 
 type TagDefinition = {
   tagPage?: string;
@@ -337,12 +343,27 @@ export class ObjectIndex {
   async ensureFullIndex(space: Space) {
     const currentIndexVersion = await this.getCurrentIndexVersion();
 
-    if (currentIndexVersion === undefined) {
-      console.log("No index version found, assuming fresh install");
+    // Fast path: the index is present and already at the desired version.
+    if (
+      currentIndexVersion !== undefined &&
+      currentIndexVersion >= desiredIndexVersion
+    ) {
       return;
     }
 
-    if (currentIndexVersion >= desiredIndexVersion) {
+    // An `undefined` version is ambiguous. A genuinely fresh install builds
+    // its index lazily as sync streams files in (handled by the
+    // constructor's one-shot empty-queue handler), so there's nothing to do
+    // here. But a reindex *also* deletes the version key at its start, so an
+    // `undefined` version that still carries the in-progress marker means a
+    // prior reindex was interrupted (e.g. the window was closed mid-reindex)
+    // and must be resumed — otherwise the index stays permanently empty and
+    // `ensureFullIndex` would keep mistaking it for a fresh install.
+    if (
+      currentIndexVersion === undefined &&
+      !(await this.isReindexInProgress())
+    ) {
+      console.log("No index version found, assuming fresh install");
       return;
     }
 
@@ -358,30 +379,54 @@ export class ObjectIndex {
       // being indexed) so we don't fight the worker over the queue.
       await this.mq.awaitEmptyQueue("indexQueue");
 
-      // Re-read the version in case a concurrent path already bumped it
-      // while we were waiting.
-      const versionNow = await this.getCurrentIndexVersion();
-      if (versionNow !== undefined && versionNow >= desiredIndexVersion) {
-        return;
-      }
+      // Serialize the reindex across every open window/tab: the whole
+      // space lives in a single shared IndexedDB object store, and two
+      // windows clearing + rewriting it concurrently serialize on that
+      // one store and can wedge each other (one window's `get` blocks
+      // forever behind the other's bulk delete).
+      await this.withLock(async () => {
+        // Re-read the version now that we hold the lock — another window
+        // (or a concurrent path here) may have already completed the bump
+        // while we were queued behind it.
+        const versionNow = await this.getCurrentIndexVersion();
+        if (versionNow !== undefined && versionNow >= desiredIndexVersion) {
+          return;
+        }
 
-      console.info(
-        "[index]",
-        "Performing a full space reindex, this could take a while...",
-        currentIndexVersion,
-        desiredIndexVersion,
-      );
+        console.info(
+          "[index]",
+          "Performing a full space reindex, this could take a while...",
+          currentIndexVersion,
+          desiredIndexVersion,
+        );
 
-      await this.reindexSpace(space);
+        await this.reindexSpaceUnlocked(space);
 
-      // Dispatch an editor:reloadState event to reload the editor state (render widgets etc.)
-      void this.eventHook.dispatchEvent("editor:reloadState");
+        // Dispatch an editor:reloadState event to reload the editor state (render widgets etc.)
+        void this.eventHook.dispatchEvent("editor:reloadState");
+      });
     } finally {
       this.reindexingForVersionBump = false;
     }
   }
 
-  async reindexSpace(space: Space) {
+  /**
+   * Full space reindex. Public entry point (used by the manual
+   * "Space: Reindex" command and the `index.reindexSpace` syscall) — takes
+   * the cross-window lock so it can't race a concurrent reindex (auto or
+   * manual) running in another window. The auto path (`ensureFullIndex`)
+   * already holds the lock, so it calls `reindexSpaceUnlocked` directly to
+   * avoid re-entering the (non-reentrant) lock and deadlocking on itself.
+   */
+  reindexSpace(space: Space): Promise<void> {
+    return this.withLock(() => this.reindexSpaceUnlocked(space));
+  }
+
+  private async reindexSpaceUnlocked(space: Space) {
+    // Record that a reindex is underway *before* we delete the version key,
+    // so an interruption between here and `markFullIndexComplete` is
+    // recoverable (see `ensureFullIndex`).
+    await this.markReindexInProgress();
     console.log("Clearing page index...");
     await this.clearIndex();
     await this.markFullIndexInComplete();
@@ -398,6 +443,18 @@ export class ObjectIndex {
     await this.mq.awaitEmptyQueue("indexQueue");
     await this.markFullIndexComplete();
     console.log("Full index completed after", Date.now() - startTime, "ms");
+  }
+
+  /**
+   * Cross-window mutual exclusion for global reindex work.
+   */
+  private withLock<T>(fn: () => Promise<T>): Promise<T> {
+    const locks = (navigator as any)?.locks;
+    if (!locks?.request) {
+      return fn();
+    }
+    const dbName = (this.ds.kv as any).dbName ?? "default";
+    return locks.request(`sb-reindex:${dbName}`, fn);
   }
 
   public async hasFullIndexCompleted() {
@@ -423,10 +480,20 @@ export class ObjectIndex {
 
   async markFullIndexComplete() {
     await this.ds.set(indexVersionKey, desiredIndexVersion);
+    // The index is whole again — drop the interrupted-reindex marker.
+    await this.ds.delete(reindexInProgressKey);
   }
 
   async markFullIndexInComplete() {
     await this.ds.delete(indexVersionKey);
+  }
+
+  private markReindexInProgress(): Promise<void> {
+    return this.ds.set(reindexInProgressKey, true);
+  }
+
+  private async isReindexInProgress(): Promise<boolean> {
+    return (await this.ds.get(reindexInProgressKey)) === true;
   }
 
   cleanKey(ref: string, page: string) {
@@ -529,7 +596,11 @@ export class ObjectIndex {
     for await (const { key } of this.ds.query({ prefix: [pageKey] })) {
       allKeys.push(key);
     }
-    await this.ds.batchDelete(allKeys);
+    // Delete in chunks rather than as one giant transaction.
+    const deleteChunkSize = 500;
+    for (let i = 0; i < allKeys.length; i += deleteChunkSize) {
+      await this.ds.batchDelete(allKeys.slice(i, i + deleteChunkSize));
+    }
     console.log("Deleted", allKeys.length, "keys from the index");
   }
 

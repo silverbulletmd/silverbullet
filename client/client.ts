@@ -310,8 +310,15 @@ export class Client {
     this.systemReady = true;
     this.maybeDispatchWidgetsReady();
 
-    // When the service worker is disabled check for an up-to-date index immediately
+    // When the service worker is disabled (desktop app / headless) there's no
+    // SW proxy performing the `server-version` handshake that normally sets
+    // `versionsInSync`. The bundled client and server are a matching set, so
+    // treat versions as in sync. This both lets us check the index immediately
+    // AND lets `space-sync-complete` signals — bridged in from the native sync
+    // engine — drive the version-bump reindex after each sync cycle (otherwise
+    // the gate in `handleServiceWorkerMessage` would stay permanently closed).
     if (this.bootConfig.disableServiceWorker) {
+      this.versionsInSync = true;
       void this.objectIndex.ensureFullIndex(this.space);
     }
 
