@@ -30,6 +30,9 @@ tower-http = { workspace = true, features = ["trace"] }
 tracing-subscriber = { workspace = true }
 serde_json = { workspace = true }
 
+[build-dependencies]
+serde_json = { workspace = true }
+
 [dev-dependencies]
 reqwest = { workspace = true }
 tempfile = "3"

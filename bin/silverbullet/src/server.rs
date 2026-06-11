@@ -22,35 +22,33 @@ use crate::embed::{BaseFsAssets, ClientAssets, EmbeddedSpace};
 
 const DEFAULT_INDEX_MD: &str = include_str!("../space_template/index.md");
 
-/// Absolute path to `public_version.ts` baked at compile time (dev machine).
-/// Used only by debug builds (see [`server_version`]).
-const PUBLIC_VERSION_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../public_version.ts");
+/// Absolute path to the generated `version.json` baked at compile time (dev
+/// machine). Used only by debug builds (see [`server_version`]).
+const VERSION_JSON_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../version.json");
 
 /// How `/.ping` reports the server version.
 ///
 /// Release builds embed the bundle and report the compile-time [`crate::VERSION`].
 /// Debug builds serve the bundle from disk (rust-embed reads it live), so a
 /// frontend rebuild swaps in a client with a new `publicVersion`; we therefore
-/// re-read `public_version.ts` on each ping so the reported version follows it
+/// re-read `version.json` on each ping so the reported version follows it
 /// without a server restart (otherwise the client shows a perpetual
 /// "new version available" banner). Falls back to the baked version on any error.
 fn server_version() -> ServerVersion {
     if cfg!(debug_assertions) {
         ServerVersion::Dynamic(Box::new(|| {
-            read_public_version().unwrap_or_else(|| crate::VERSION.to_string())
+            read_version().unwrap_or_else(|| crate::VERSION.to_string())
         }))
     } else {
         crate::VERSION.into()
     }
 }
 
-/// Read the first quoted string from `public_version.ts` (its `publicVersion`).
-fn read_public_version() -> Option<String> {
-    let src = std::fs::read_to_string(PUBLIC_VERSION_PATH).ok()?;
-    let start = src.find('"')? + 1;
-    let rest = &src[start..];
-    let end = rest.find('"')?;
-    let v = rest[..end].trim();
+/// Read `version` from the generated `version.json` (`{ "version": "…" }`).
+fn read_version() -> Option<String> {
+    let src = std::fs::read_to_string(VERSION_JSON_PATH).ok()?;
+    let value: serde_json::Value = serde_json::from_str(&src).ok()?;
+    let v = value.get("version")?.as_str()?.trim();
     (!v.is_empty()).then(|| v.to_string())
 }
 

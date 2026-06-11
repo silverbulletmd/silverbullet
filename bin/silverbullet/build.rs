@@ -15,22 +15,20 @@ fn main() {
     println!("cargo:rerun-if-changed=../../client_bundle/client");
     println!("cargo:rerun-if-changed=../../client_bundle/base_fs");
 
-    // Inject the version from `public_version.ts`
-    let version_ts = Path::new(manifest).join("../../public_version.ts");
-    println!("cargo:rerun-if-changed=../../public_version.ts");
-    let version = std::fs::read_to_string(&version_ts)
+    // Inject the version from the generated `version.json` (a language-neutral
+    // file shared with the TypeScript client).
+    let version_json = Path::new(manifest).join("../../version.json");
+    println!("cargo:rerun-if-changed=../../version.json");
+    let version = std::fs::read_to_string(&version_json)
         .ok()
         .and_then(|s| parse_version(&s))
         .unwrap_or_else(|| "0.0.0".to_string());
     println!("cargo:rustc-env=SB_VERSION={version}");
 }
 
-/// Extract the first double-quoted string literal (the version value) — the
-/// `public_version.ts` version regex `"([^"]+)"`.
+/// Extract `version` from `version.json` (`{ "version": "…" }`).
 fn parse_version(src: &str) -> Option<String> {
-    let start = src.find('"')? + 1;
-    let rest = &src[start..];
-    let end = rest.find('"')?;
-    let v = rest[..end].trim();
+    let value: serde_json::Value = serde_json::from_str(src).ok()?;
+    let v = value.get("version")?.as_str()?.trim();
     (!v.is_empty()).then(|| v.to_string())
 }

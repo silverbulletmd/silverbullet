@@ -21,7 +21,7 @@ deploy.json
 tmp_playground
 test-results
 playwright-report
-/public_version.ts
+/version.json
 website/_plug
 tmp
 .idea
