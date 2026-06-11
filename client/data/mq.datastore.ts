@@ -181,13 +181,20 @@ export class DataStoreMQ {
 
   async poll(queue: string, maxItems: number): Promise<MQMessage[]> {
     // Note: this is not happening in a transactional way, so we may get duplicate message delivery
-    // Retrieve a batch of messages
-    const messages = await this.ds.luaQuery<MQMessage>(
-      [...queuedPrefix, queue],
-      {
-        limit: maxItems,
-      },
-    );
+    // Retrieve a batch of messages with an early-terminating cursor scan.
+    // (luaQuery would materialize the ENTIRE queue before applying the
+    // limit — O(queue length) per poll, quadratic over a full space reindex.)
+    const messages: MQMessage[] = [];
+    for await (
+      const { value } of this.ds.query<MQMessage>({
+        prefix: [...queuedPrefix, queue],
+      })
+    ) {
+      messages.push(value);
+      if (messages.length >= maxItems) {
+        break;
+      }
+    }
     if (messages.length === 0) {
       return [];
     }
