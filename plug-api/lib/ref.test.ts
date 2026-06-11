@@ -16,7 +16,12 @@ test("parseToRef() default cases", () => {
   expect(parseToRef("foo.md")).toEqual({ path: "foo.md" });
   expect(parseToRef("foo.")).toEqual({ path: "foo..md" });
   expect(parseToRef("foo..")).toEqual({ path: "foo...md" });
-  expect(parseToRef(" .foo")).toEqual({ path: " .foo" });
+  // "foo" is not a known document extension, so this is a page name with a dot
+  expect(parseToRef(" .foo")).toEqual({ path: " .foo.md" });
+  // Page names ending in extension-like suffixes are pages, not documents
+  expect(parseToRef("Clippings/Article StrengthPlanet.com")).toEqual({
+    path: "Clippings/Article StrengthPlanet.com.md",
+  });
   expect(parseToRef("foo[bar")).toEqual({ path: "foo[bar.md" });
   expect(parseToRef("foo]bar")).toEqual({ path: "foo]bar.md" });
   expect(parseToRef("foo(bar")).toEqual({ path: "foo(bar.md" });

@@ -51,9 +51,72 @@ export function isMarkdownPath(path: Path): boolean {
   return getPathExtension(path) === "md";
 }
 
+// Dot-suffixes that denote actual (document) file types. A name ending in any
+// OTHER dot-suffix — e.g. a clipped web page titled "... StrengthPlanet.com" —
+// is a markdown page whose name merely contains a dot, and must get the `.md`
+// extension appended like any other page name.
+const knownFileExtensions = new Set([
+  "md",
+  "conflicted",
+  // images
+  "png",
+  "jpg",
+  "jpeg",
+  "jfif",
+  "gif",
+  "webp",
+  "svg",
+  "bmp",
+  "ico",
+  "avif",
+  // documents
+  "pdf",
+  "epub",
+  "txt",
+  "rtf",
+  "docx",
+  "xlsx",
+  "pptx",
+  "odt",
+  "csv",
+  "tsv",
+  // audio/video
+  "mp3",
+  "wav",
+  "ogg",
+  "m4a",
+  "flac",
+  "mp4",
+  "webm",
+  "mov",
+  "avi",
+  "mkv",
+  // web/code
+  "html",
+  "htm",
+  "css",
+  "js",
+  "json",
+  "yaml",
+  "yml",
+  "xml",
+  "map",
+  "lua",
+  "php",
+  // archives
+  "zip",
+  "tar",
+  "gz",
+  "7z",
+  "rar",
+  // silverbullet
+  "canvas",
+  "excalidraw",
+]);
+
 /**
- * Adds an `md` extension to any path without an extension or a path ending in
- * `.conflicted`, except to the empty path
+ * Adds an `md` extension to any path that does not end in a known document
+ * file extension (or `.conflicted`), except to the empty path
  * @param path The path to normalize. Cannot contain any position or header
  * addons
  */
@@ -62,7 +125,12 @@ function normalizePath(path: string): Path {
     path = path.slice(1);
   }
 
-  if (/.+\.[a-zA-Z0-9]+$/.test(path) || path === "") {
+  if (path === "") {
+    return path as Path;
+  }
+
+  const extMatch = /.+\.([a-zA-Z0-9]+)$/.exec(path);
+  if (extMatch && knownFileExtensions.has(extMatch[1].toLowerCase())) {
     return path as Path;
   }
 
