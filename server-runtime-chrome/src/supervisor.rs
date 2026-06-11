@@ -12,7 +12,10 @@ use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use chromiumoxide::browser::{Browser, BrowserConfig};
-use chromiumoxide::cdp::js_protocol::runtime::{EvaluateParams, EventConsoleApiCalled};
+use chromiumoxide::cdp::js_protocol::runtime::{
+    ConsoleApiCalledType, EvaluateParams, EventConsoleApiCalled,
+};
+use chromiumoxide::error::CdpError;
 use chromiumoxide::page::Page;
 use futures::StreamExt;
 use serde_json::Value;
@@ -41,11 +44,50 @@ pub(crate) async fn eval_on_page(page: &Page, js: &str) -> Result<Value, Runtime
         .return_by_value(true)
         .build()
         .map_err(RuntimeError::Transport)?;
-    let result = page
-        .evaluate(params)
-        .await
-        .map_err(|e| RuntimeError::Transport(e.to_string()))?;
+    let result = page.evaluate(params).await.map_err(cdp_error_to_runtime)?;
     Ok(result.value().cloned().unwrap_or(Value::Null))
+}
+
+/// Classify a chromiumoxide error from `page.evaluate`. A thrown client
+/// exception (a Lua error, or any uncaught JS) is a *user-level* `Eval` failure
+/// with a clean one-line message
+fn cdp_error_to_runtime(e: CdpError) -> RuntimeError {
+    match e {
+        CdpError::JavascriptException(details) => {
+            let description = details
+                .exception
+                .as_ref()
+                .and_then(|o| o.description.as_deref());
+            RuntimeError::Eval(clean_exception_message(&details.text, description))
+        }
+        other => RuntimeError::Transport(other.to_string()),
+    }
+}
+
+/// Reduce a V8 exception to a concise single line. Prefers `text` (e.g.
+/// `"Uncaught (in promise) Error: attempt to call a nil value"`), strips the
+/// `Uncaught …` framing and a leading `Error:` label so the underlying message
+/// stands alone, and drops any JS stack (the full detail still reaches the
+/// `runtime_console` log). Falls back to the object `description`'s first line.
+fn clean_exception_message(text: &str, description: Option<&str>) -> String {
+    let first_line = |s: &str| s.lines().next().unwrap_or("").trim().to_string();
+    let mut msg = first_line(text);
+    if msg.is_empty() {
+        msg = description.map(first_line).unwrap_or_default();
+    }
+    for prefix in ["Uncaught (in promise) ", "Uncaught "] {
+        if let Some(rest) = msg.strip_prefix(prefix) {
+            msg = rest.to_string();
+        }
+    }
+    if let Some(rest) = msg.strip_prefix("Error: ") {
+        msg = rest.to_string();
+    }
+    if msg.is_empty() {
+        "client evaluation error".to_string()
+    } else {
+        msg
+    }
 }
 
 /// Evaluate a *synchronous* JS expression (no promise awaiting) and return its
@@ -57,10 +99,7 @@ async fn eval_sync(page: &Page, js: &str) -> Result<Value, RuntimeError> {
         .return_by_value(true)
         .build()
         .map_err(RuntimeError::Transport)?;
-    let result = page
-        .evaluate(params)
-        .await
-        .map_err(|e| RuntimeError::Transport(e.to_string()))?;
+    let result = page.evaluate(params).await.map_err(cdp_error_to_runtime)?;
     Ok(result.value().cloned().unwrap_or(Value::Null))
 }
 
@@ -130,7 +169,7 @@ async fn launch_once(
         .await
         .map_err(|e| format!("new page: {e}"))?;
 
-    attach_console_capture(&page, logs)
+    attach_console_capture(&page, logs, config.log_console)
         .await
         .map_err(|e| format!("console capture: {e}"))?;
 
@@ -141,9 +180,26 @@ async fn launch_once(
     Ok(())
 }
 
+/// Map a console API call type to the `tracing` level used when forwarding it
+/// to the server log: errors → ERROR, warnings → WARN, everything else
+/// (log/info/debug/dir/trace/…) → INFO.
+fn console_level(t: &ConsoleApiCalledType) -> tracing::Level {
+    match t {
+        ConsoleApiCalledType::Error => tracing::Level::ERROR,
+        ConsoleApiCalledType::Warning => tracing::Level::WARN,
+        _ => tracing::Level::INFO,
+    }
+}
+
 /// Subscribe to `Runtime.consoleAPICalled` and push each call into the shared
 /// log buffer. The runtime domain must be enabled for these events to flow.
-async fn attach_console_capture(page: &Page, logs: &LogBuffer) -> Result<(), String> {
+/// When `log_console` is set, each entry is also emitted to `tracing` (under
+/// the `runtime_console` target) so it shows up in the server console.
+async fn attach_console_capture(
+    page: &Page,
+    logs: &LogBuffer,
+    log_console: bool,
+) -> Result<(), String> {
     page.enable_runtime()
         .await
         .map_err(|e| format!("enable runtime: {e}"))?;
@@ -164,6 +220,13 @@ async fn attach_console_capture(page: &Page, logs: &LogBuffer) -> Result<(), Str
                 })
                 .collect::<Vec<_>>()
                 .join(" ");
+            if log_console {
+                match console_level(&ev.r#type) {
+                    tracing::Level::ERROR => tracing::error!(target: "runtime_console", "{text}"),
+                    tracing::Level::WARN => tracing::warn!(target: "runtime_console", "{text}"),
+                    _ => tracing::info!(target: "runtime_console", "{text}"),
+                }
+            }
             logs.push(LogEntry {
                 level: format!("{:?}", ev.r#type),
                 text,
@@ -240,8 +303,13 @@ pub async fn supervise(
     // suspends the task with no polling; if the request arrived first,
     // `notify_one` already stored a permit so this returns immediately.
     trigger.notified().await;
+    tracing::info!(
+        "runtime API used; launching headless Chrome ({})",
+        config.chrome_path
+    );
 
     let mut backoff = BACKOFF_FLOOR;
+    let mut has_launched = false;
     loop {
         if page_is_alive(&live_slot).await {
             tokio::time::sleep(LIVENESS_INTERVAL).await;
@@ -249,13 +317,19 @@ pub async fn supervise(
         }
 
         // The page is dead (or never launched): mark not-ready and drop any
-        // stale browser before relaunching.
+        // stale browser before relaunching. A dead page *after* a successful
+        // launch is a crash/restart, worth flagging distinctly from first boot.
+        if has_launched {
+            tracing::warn!("headless Chrome page died; restarting");
+        }
         ready.store(false, Ordering::Relaxed);
         *live_slot.lock().await = None;
 
         match launch_once(&config, &live_slot, &ready, &logs).await {
             Ok(()) => {
+                has_launched = true;
                 backoff = BACKOFF_FLOOR;
+                tracing::info!("headless Chrome runtime ready");
             }
             Err(e) => {
                 tracing::warn!("headless chrome launch failed: {e}; retrying in {backoff:?}");
@@ -263,5 +337,67 @@ pub async fn supervise(
                 backoff = (backoff * 2).min(BACKOFF_CAP);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn console_level_maps_severity() {
+        assert_eq!(
+            console_level(&ConsoleApiCalledType::Error),
+            tracing::Level::ERROR
+        );
+        assert_eq!(
+            console_level(&ConsoleApiCalledType::Warning),
+            tracing::Level::WARN
+        );
+        assert_eq!(
+            console_level(&ConsoleApiCalledType::Log),
+            tracing::Level::INFO
+        );
+        assert_eq!(
+            console_level(&ConsoleApiCalledType::Debug),
+            tracing::Level::INFO
+        );
+        assert_eq!(
+            console_level(&ConsoleApiCalledType::Info),
+            tracing::Level::INFO
+        );
+    }
+
+    #[test]
+    fn clean_exception_message_strips_v8_framing() {
+        // The real shape for a thrown Lua error.
+        assert_eq!(
+            clean_exception_message(
+                "Uncaught (in promise) Error: attempt to call a nil value",
+                Some("y: attempt to call a nil value\n    at $ (client.js:66:35699)"),
+            ),
+            "attempt to call a nil value"
+        );
+    }
+
+    #[test]
+    fn clean_exception_message_drops_stack_and_handles_sync_uncaught() {
+        assert_eq!(
+            clean_exception_message("Uncaught Error: boom\n    at f (x.js:1:1)", None),
+            "boom"
+        );
+    }
+
+    #[test]
+    fn clean_exception_message_falls_back_to_description() {
+        assert_eq!(
+            clean_exception_message("", Some("Error: from description\nstack")),
+            "from description"
+        );
+    }
+
+    #[test]
+    fn clean_exception_message_never_empty() {
+        assert_eq!(clean_exception_message("", None), "client evaluation error");
     }
 }

@@ -1,5 +1,5 @@
-//! Wire `Config` + the embedded bundle into the server crate's `AppState`,
-//! then serve it (the listener is added in a follow-up step).
+//! Wire `Config` + the embedded bundle into the server crate's `ServerState`,
+//! then serve it.
 
 use std::sync::Arc;
 
@@ -11,7 +11,7 @@ use silverbullet_server::auth::{
     RequestAuthorizer,
 };
 use silverbullet_server::shell::ShellConfig;
-use silverbullet_server::{metrics::Metrics, AppState, ServerVersion};
+use silverbullet_server::{metrics::Metrics, ServerState, ServerVersion};
 use silverbullet_server_common::space::{
     DiskSpacePrimitives, FallthroughSpacePrimitives, ReadOnlySpacePrimitives,
 };
@@ -125,7 +125,7 @@ fn build_runtime(
     let logs = silverbullet_server::runtime::LogBuffer::new();
     match silverbullet_server_runtime_chrome::ChromeTransport::launch(chrome_cfg, logs.clone()) {
         Ok(transport) => {
-            tracing::info!("headless Chrome runtime enabled");
+            tracing::info!("headless Chrome runtime configured (launches on first runtime request)");
             Some(Box::new(silverbullet_server::runtime::ClientRuntime::new(
                 transport, logs,
             )))
@@ -137,8 +137,8 @@ fn build_runtime(
     }
 }
 
-/// Build the `AppState` for the configured space.
-fn build_state(config: &Config) -> Result<AppState, String> {
+/// Build the `ServerState` for the configured space.
+fn build_state(config: &Config) -> Result<ServerState, String> {
     // Disk space (the user's files), optionally read-only, with the embedded
     // base_fs as a read-only underlay (disk is primary + writable).
     let disk = DiskSpacePrimitives::new(&config.space_folder, &config.gitignore)
@@ -188,7 +188,7 @@ fn build_state(config: &Config) -> Result<AppState, String> {
         disable_service_worker: config.disable_service_worker,
     };
 
-    Ok(AppState {
+    Ok(ServerState {
         space,
         client_bundle: Box::new(EmbeddedSpace::<ClientAssets>::new()),
         boot_config,

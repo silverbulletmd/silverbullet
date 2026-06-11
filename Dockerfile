@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1
-#
 # Base Alpine image for the SilverBullet server.
 # Copies a PRE-CROSS-COMPILED, statically-linked musl binary built on the CI
 # runner via native `cargo build --target` + installed musl cross-toolchains

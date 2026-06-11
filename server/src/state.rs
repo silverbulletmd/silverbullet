@@ -41,13 +41,13 @@ impl From<&str> for ServerVersion {
 /// Shared state for the HTTP server. Holds what the file/config/bundle
 /// endpoints need; further capabilities (auth, runtime evaluation) attach
 /// additional state as they are introduced.
-pub struct AppState {
+pub struct ServerState {
     /// The space's file storage (user files, with the bundle/base_fs layers
     /// composed in by the caller).
     pub space: Box<dyn SpacePrimitives>,
     /// Read-only client bundle (HTML/CSS/JS) served at the SPA fallback. The
     /// server cannot serve a usable UI without it, so it is required — callers
-    /// must fail at startup rather than construct an `AppState` without one.
+    /// must fail at startup rather than construct an `ServerState` without one.
     pub client_bundle: Box<dyn SpacePrimitives>,
     /// Boot configuration returned from `/.config`.
     pub boot_config: BootConfig,

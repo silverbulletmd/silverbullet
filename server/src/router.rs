@@ -9,7 +9,7 @@ use axum::Router;
 use silverbullet_server_common::SpaceError;
 
 use crate::handlers::{bundle, control, fs};
-use crate::state::AppState;
+use crate::state::ServerState;
 
 /// Run a synchronous `SpacePrimitives` operation on the blocking thread pool so
 /// it never stalls an async worker. This is the single async↔sync seam; handler
@@ -34,7 +34,7 @@ where
 /// Reject unauthorized requests to protected routes with 401. When no
 /// authorizer is configured the server is open and every request passes.
 async fn require_authorization(
-    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::State(state): axum::extract::State<Arc<ServerState>>,
     req: Request,
     next: Next,
 ) -> Response {
@@ -69,7 +69,7 @@ async fn require_authorization(
 /// Increment the HTTP request counter when metrics are enabled, then continue.
 /// A no-op (apart from the cheap `Option` check) when metrics are off.
 async fn count_requests(
-    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::State(state): axum::extract::State<Arc<ServerState>>,
     req: Request,
     next: Next,
 ) -> Response {
@@ -81,7 +81,7 @@ async fn count_requests(
 
 /// Build the HTTP router for the file/config/bundle endpoints. Protected routes
 /// require authorization when an authorizer is configured.
-pub fn build_router(state: Arc<AppState>) -> Router {
+pub fn build_router(state: Arc<ServerState>) -> Router {
     // Protected: require authorization (when an authorizer is configured).
     let protected = Router::new()
         .route("/.config", get(control::handle_config))
@@ -140,14 +140,14 @@ pub fn build_router(state: Arc<AppState>) -> Router {
 /// A minimal router exposing `/metrics` in Prometheus text format. The
 /// standalone binary binds this on its own port. Returns 503 when no metrics
 /// are configured.
-pub fn metrics_router(state: Arc<AppState>) -> Router {
+pub fn metrics_router(state: Arc<ServerState>) -> Router {
     Router::new()
         .route("/metrics", get(handle_metrics))
         .with_state(state)
 }
 
 async fn handle_metrics(
-    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::State(state): axum::extract::State<Arc<ServerState>>,
 ) -> Response {
     match state.metrics.as_ref() {
         Some(metrics) => (
@@ -169,7 +169,7 @@ async fn handle_metrics(
 #[cfg(test)]
 mod auth_tests {
     use crate::auth::{AuthContext, RequestAuthorizer};
-    use crate::state::AppState;
+    use crate::state::ServerState;
     use crate::test_support::test_state;
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
@@ -183,13 +183,13 @@ mod auth_tests {
         }
     }
 
-    fn state_with(authz: Option<Arc<dyn RequestAuthorizer>>) -> Arc<AppState> {
+    fn state_with(authz: Option<Arc<dyn RequestAuthorizer>>) -> Arc<ServerState> {
         let mut s = test_state();
         s.authorizer = authz;
         Arc::new(s)
     }
 
-    async fn status(state: Arc<AppState>, uri: &str) -> StatusCode {
+    async fn status(state: Arc<ServerState>, uri: &str) -> StatusCode {
         crate::build_router(state)
             .oneshot(Request::builder().uri(uri).body(Body::empty()).unwrap())
             .await
@@ -349,14 +349,14 @@ mod auth_tests {
 #[cfg(test)]
 mod metrics_tests {
     use crate::metrics::Metrics;
-    use crate::state::AppState;
+    use crate::state::ServerState;
     use crate::test_support::test_state;
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
     use std::sync::Arc;
     use tower::ServiceExt;
 
-    fn state_with_metrics() -> (Arc<AppState>, Arc<Metrics>) {
+    fn state_with_metrics() -> (Arc<ServerState>, Arc<Metrics>) {
         let metrics = Arc::new(Metrics::new());
         let mut s = test_state();
         s.metrics = Some(metrics.clone());

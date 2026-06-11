@@ -9,11 +9,11 @@ use serde_json::json;
 
 use crate::auth::{auth_cookie_name, is_secure_request, request_host, CookieOptions};
 use crate::router::run_blocking;
-use crate::state::AppState;
+use crate::state::ServerState;
 
 /// `GET /.auth` — render the login page from `.client/auth.html`. Returns 403
 /// when authentication is not enabled (no `LoginManager`).
-pub async fn handle_auth_get(State(state): State<Arc<AppState>>) -> Response {
+pub async fn handle_auth_get(State(state): State<Arc<ServerState>>) -> Response {
     let Some(login) = state.login.clone() else {
         return (StatusCode::FORBIDDEN, "Authentication not enabled").into_response();
     };
@@ -80,7 +80,7 @@ pub struct LoginForm {
 /// "redirect": …}` or `{"status":"error","error": …}`. Lockout and empty-field
 /// cases are JSON errors.
 pub async fn handle_auth_post(
-    State(state): State<Arc<AppState>>,
+    State(state): State<Arc<ServerState>>,
     headers: HeaderMap,
     Form(form): Form<LoginForm>,
 ) -> Response {
@@ -146,7 +146,7 @@ fn append_cookie(resp: &mut Response, name: &str, value: &str, opts: &CookieOpti
 }
 
 /// `GET /.logout` — clear the session + refresh cookies and 302 to `/.auth`.
-pub async fn handle_logout(State(state): State<Arc<AppState>>, headers: HeaderMap) -> Response {
+pub async fn handle_logout(State(state): State<Arc<ServerState>>, headers: HeaderMap) -> Response {
     let prefix = state
         .login
         .as_ref()
@@ -178,7 +178,7 @@ pub async fn handle_logout(State(state): State<Arc<AppState>>, headers: HeaderMa
 mod tests {
     use crate::auth::lockout::LockoutTimer;
     use crate::auth::{AuthConfig, Authenticator, JwtAuthorizer, LoginManager};
-    use crate::state::AppState;
+    use crate::state::ServerState;
     use crate::test_support::test_state;
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
@@ -204,7 +204,7 @@ mod tests {
         assert!(html.contains("7 days"), "remember-me days rendered: {html}");
     }
 
-    fn auth_state(user_pass: &str) -> Arc<AppState> {
+    fn auth_state(user_pass: &str) -> Arc<ServerState> {
         let authenticator = Arc::new(Authenticator::from_parts(
             vec![4u8; 32],
             "c2FsdA==".into(),
@@ -233,7 +233,7 @@ mod tests {
         Arc::new(s)
     }
 
-    async fn post_login(state: Arc<AppState>, body: &'static str) -> axum::response::Response {
+    async fn post_login(state: Arc<ServerState>, body: &'static str) -> axum::response::Response {
         crate::build_router(state)
             .oneshot(
                 Request::builder()

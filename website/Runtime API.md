@@ -192,7 +192,7 @@ Status codes used across the Runtime API:
 
 * **400** — Empty request body or malformed query: `{"error": "Request body is required"}` / `{"error": "...", "code": "bad_query"}`
 * **404** — Object not found (object endpoints only): `{"error": "Not found", "code": "not_found"}`
-* **500** — Lua execution error or internal error: `{"error": "<error message>"}` / `{"code": "internal_error"}`
+* **500** — Lua/JS execution error (the evaluated code threw, e.g. a Lua error) or internal error: `{"error": "<error message>", "code": "script_error"}` / `{"code": "internal_error"}`. The execution-error message is the concise client error (e.g. `attempt to call a nil value`); the full stack is available in the runtime console log.
 * **503** — Runtime API not enabled or no headless browser running: `{"error": "No headless browser running", "code": "bridge_unavailable"}`
 * **504** — Timeout exceeded: `{"error": "Request timed out", "code": "timeout"}`
 

@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use crate::runtime::RuntimeError;
-use crate::state::AppState;
+use crate::state::ServerState;
 
 pub const DEFAULT_LIMIT: usize = 100;
 pub const MAX_LIMIT: usize = 1000;
@@ -258,7 +258,7 @@ fn client_error(resp: &ObjectsResponse) -> Response {
 /// Call `sbRuntime.objectsAPI(req)` through the runtime backend (on the blocking
 /// pool) and parse the `ObjectsResponse`. `Err` carries a ready HTTP response.
 async fn call_objects_api(
-    state: &Arc<AppState>,
+    state: &Arc<ServerState>,
     req: serde_json::Value,
     timeout: Duration,
 ) -> Result<ObjectsResponse, Response> {
@@ -289,6 +289,9 @@ async fn call_objects_api(
             let code = match e {
                 RuntimeError::NotReady | RuntimeError::Transport(_) => ErrorCode::BridgeUnavailable,
                 RuntimeError::Timeout => ErrorCode::Timeout,
+                // The client threw while handling the objects request. (objectsAPI
+                // catches its own errors, so this is the rare uncaught case.)
+                RuntimeError::Eval(_) => ErrorCode::Internal,
             };
             return Err(err(code, &e.to_string()));
         }
@@ -327,7 +330,7 @@ fn body_or(value: Option<serde_json::Value>, default: &str) -> String {
 
 /// GET `/.runtime/objects` — list known tags and their counts.
 pub async fn handle_objects_list_tags(
-    State(state): State<Arc<AppState>>,
+    State(state): State<Arc<ServerState>>,
     headers: HeaderMap,
 ) -> Response {
     let timeout = crate::handlers::runtime::parse_timeout(&headers);
@@ -370,7 +373,7 @@ fn split_objects_path(escaped_suffix: &str) -> Result<(String, Option<String>), 
 /// percent-decoding (rather than a `Path` extractor) so tags/refs may contain
 /// `/` as `%2F`.
 pub async fn handle_objects_by_path(
-    State(state): State<Arc<AppState>>,
+    State(state): State<Arc<ServerState>>,
     headers: HeaderMap,
     uri: Uri,
     Query(raw): Query<Vec<(String, String)>>,
@@ -437,7 +440,7 @@ pub async fn handle_objects_by_path(
 mod tests {
     use super::*;
     use crate::runtime::{LogEntry, RuntimeBackend};
-    use crate::state::AppState;
+    use crate::state::ServerState;
     use crate::test_support::test_state;
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
@@ -548,13 +551,13 @@ mod tests {
         }
     }
 
-    fn state_with(backend: Option<Box<dyn RuntimeBackend>>) -> Arc<AppState> {
+    fn state_with(backend: Option<Box<dyn RuntimeBackend>>) -> Arc<ServerState> {
         let mut s = test_state();
         s.runtime = backend;
         Arc::new(s)
     }
 
-    async fn get(state: Arc<AppState>, uri: &str) -> (StatusCode, String) {
+    async fn get(state: Arc<ServerState>, uri: &str) -> (StatusCode, String) {
         let resp = crate::build_router(state)
             .oneshot(Request::builder().uri(uri).body(Body::empty()).unwrap())
             .await

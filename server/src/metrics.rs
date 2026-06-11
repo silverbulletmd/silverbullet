@@ -3,7 +3,7 @@
 //! `silverbullet_proxy_requests`. Each `Metrics` owns its own `Registry`, so
 //! constructing more than one (e.g. across tests) never double-registers a
 //! global. The standalone binary serves `gather()` on a dedicated metrics port;
-//! `AppState` holds an `Option<Arc<Metrics>>` so metrics are off unless
+//! `ServerState` holds an `Option<Arc<Metrics>>` so metrics are off unless
 //! explicitly enabled.
 
 use prometheus::{IntCounter, Registry, TextEncoder};

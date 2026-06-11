@@ -13,7 +13,7 @@ use axum::Json;
 use serde_json::json;
 
 use crate::runtime::RuntimeError;
-use crate::state::AppState;
+use crate::state::ServerState;
 
 const DEFAULT_TIMEOUT_SECS: u64 = 30;
 
@@ -43,6 +43,9 @@ fn runtime_error_response(e: RuntimeError) -> Response {
             (StatusCode::SERVICE_UNAVAILABLE, "bridge_unavailable")
         }
         RuntimeError::Timeout => (StatusCode::GATEWAY_TIMEOUT, "timeout"),
+        // The evaluated code threw (e.g. a Lua error): a user-level failure, not
+        // a bridge outage — 500 with the clean message, per `Runtime API.md`.
+        RuntimeError::Eval(_) => (StatusCode::INTERNAL_SERVER_ERROR, "script_error"),
     };
     (
         status,
@@ -58,7 +61,7 @@ enum EvalKind {
 }
 
 pub async fn handle_runtime_lua(
-    State(state): State<Arc<AppState>>,
+    State(state): State<Arc<ServerState>>,
     headers: HeaderMap,
     body: Bytes,
 ) -> Response {
@@ -66,7 +69,7 @@ pub async fn handle_runtime_lua(
 }
 
 pub async fn handle_runtime_lua_script(
-    State(state): State<Arc<AppState>>,
+    State(state): State<Arc<ServerState>>,
     headers: HeaderMap,
     body: Bytes,
 ) -> Response {
@@ -74,7 +77,7 @@ pub async fn handle_runtime_lua_script(
 }
 
 async fn runtime_eval(
-    state: Arc<AppState>,
+    state: Arc<ServerState>,
     headers: HeaderMap,
     body: Bytes,
     kind: EvalKind,
@@ -129,7 +132,7 @@ pub struct LogsQuery {
 }
 
 pub async fn handle_runtime_logs(
-    State(state): State<Arc<AppState>>,
+    State(state): State<Arc<ServerState>>,
     Query(params): Query<LogsQuery>,
 ) -> Response {
     let Some(rt) = state.runtime.as_ref() else {
@@ -143,7 +146,7 @@ pub async fn handle_runtime_logs(
 #[cfg(test)]
 mod tests {
     use crate::runtime::{LogEntry, RuntimeBackend, RuntimeError};
-    use crate::state::AppState;
+    use crate::state::ServerState;
     use crate::test_support::test_state;
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
@@ -161,6 +164,7 @@ mod tests {
     enum RuntimeErrorKind {
         NotReady,
         Timeout,
+        Eval,
     }
     impl FakeBackend {
         fn returning(value: serde_json::Value) -> Self {
@@ -179,6 +183,9 @@ mod tests {
             match self.eval.as_ref().err().unwrap() {
                 RuntimeErrorKind::NotReady => RuntimeError::NotReady,
                 RuntimeErrorKind::Timeout => RuntimeError::Timeout,
+                RuntimeErrorKind::Eval => {
+                    RuntimeError::Eval("attempt to call a nil value".into())
+                }
             }
         }
     }
@@ -199,13 +206,13 @@ mod tests {
         }
     }
 
-    fn state_with_runtime(backend: Option<Box<dyn RuntimeBackend>>) -> Arc<AppState> {
+    fn state_with_runtime(backend: Option<Box<dyn RuntimeBackend>>) -> Arc<ServerState> {
         let mut s = test_state();
         s.runtime = backend;
         Arc::new(s)
     }
 
-    async fn post_lua(state: Arc<AppState>, body: &str) -> (StatusCode, String) {
+    async fn post_lua(state: Arc<ServerState>, body: &str) -> (StatusCode, String) {
         let resp = crate::build_router(state)
             .oneshot(
                 Request::builder()
@@ -251,6 +258,16 @@ mod tests {
         let (status, body) = post_lua(state_with_runtime(Some(backend)), "x").await;
         assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
         assert!(body.contains("bridge_unavailable"), "{body}");
+    }
+
+    #[tokio::test]
+    async fn eval_error_maps_to_500_with_clean_message() {
+        let backend = Box::new(FakeBackend::failing(RuntimeErrorKind::Eval));
+        let (status, body) = post_lua(state_with_runtime(Some(backend)), "editor.reload()").await;
+        assert_eq!(status, StatusCode::INTERNAL_SERVER_ERROR);
+        assert!(body.contains("script_error"), "{body}");
+        // The clean message flows verbatim into the `error` field (no Debug dump).
+        assert!(body.contains(r#""error":"attempt to call a nil value""#), "{body}");
     }
 
     #[tokio::test]

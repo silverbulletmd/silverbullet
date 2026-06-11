@@ -1,6 +1,6 @@
-//! The standalone SilverBullet server binary. Boots the embedded client bundle
+//! The standalone SilverBullet server binary. Serves the embedded client bundle
 //! against a folder space over HTTP. The actual server lives in the `silverbullet`
-//! library crate (`src/lib.rs`); this is just the CLI entry point.
+//! library crate (`src/lib.rs`), this is just the CLI entry point.
 
 use clap::Parser;
 use silverbullet::{server, VERSION};

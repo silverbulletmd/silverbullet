@@ -42,12 +42,26 @@ impl<T: ClientTransport> RuntimeBackend for ClientRuntime<T> {
         arg: &str,
         timeout: Duration,
     ) -> Result<serde_json::Value, RuntimeError> {
-        self.transport.wait_ready(timeout)?;
-        let js = build_global_call_js(fn_name, arg);
-        self.transport.eval_js(&js, timeout)
+        // Single choke point for every runtime API call (evalLua,
+        // evalLuaScript, objectsAPI), so a failure here — the runtime not
+        // coming up, a timeout, or a thrown error in the client (e.g. a Lua
+        // error) — always leaves a trace in the server log.
+        let result = self
+            .transport
+            .wait_ready(timeout)
+            .and_then(|()| self.transport.eval_js(&build_global_call_js(fn_name, arg), timeout));
+        if let Err(e) = &result {
+            tracing::warn!("runtime call {fn_name} failed: {e}");
+        }
+        result
     }
 
     fn logs(&self, limit: usize, since: Option<i64>) -> Vec<LogEntry> {
+        // Reading logs counts as using the runtime: nudge a lazily-launched
+        // transport to boot so console output actually starts flowing. Without
+        // this, `sb logs` (especially `--follow`) against a freshly-started
+        // server that has had no eval yet would sit on an empty buffer forever.
+        self.transport.ensure_started();
         self.logs.query(limit, since)
     }
 
@@ -59,6 +73,7 @@ impl<T: ClientTransport> RuntimeBackend for ClientRuntime<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Mutex;
 
     #[test]
@@ -81,6 +96,7 @@ mod tests {
         wait_result: Result<(), RuntimeError>,
         eval_result: Result<serde_json::Value, RuntimeError>,
         seen_js: Mutex<Vec<String>>,
+        started: AtomicBool,
     }
 
     impl FakeTransport {
@@ -90,6 +106,7 @@ mod tests {
                 wait_result: Ok(()),
                 eval_result: Ok(value),
                 seen_js: Mutex::new(Vec::new()),
+                started: AtomicBool::new(false),
             }
         }
     }
@@ -104,6 +121,7 @@ mod tests {
                     RuntimeError::NotReady => RuntimeError::NotReady,
                     RuntimeError::Timeout => RuntimeError::Timeout,
                     RuntimeError::Transport(s) => RuntimeError::Transport(s.clone()),
+                    RuntimeError::Eval(s) => RuntimeError::Eval(s.clone()),
                 })
         }
         fn wait_ready(&self, _timeout: Duration) -> Result<(), RuntimeError> {
@@ -112,10 +130,14 @@ mod tests {
                 Err(RuntimeError::NotReady) => Err(RuntimeError::NotReady),
                 Err(RuntimeError::Timeout) => Err(RuntimeError::Timeout),
                 Err(RuntimeError::Transport(s)) => Err(RuntimeError::Transport(s.clone())),
+                Err(RuntimeError::Eval(s)) => Err(RuntimeError::Eval(s.clone())),
             }
         }
         fn is_ready(&self) -> bool {
             self.ready
+        }
+        fn ensure_started(&self) {
+            self.started.store(true, Ordering::Relaxed);
         }
     }
 
@@ -178,6 +200,16 @@ mod tests {
         let got = rt.logs(100, None);
         assert_eq!(got.len(), 1);
         assert_eq!(got[0].text, "hello");
+    }
+
+    #[test]
+    fn logs_nudges_a_lazy_transport_to_start() {
+        // Reading logs must boot a lazily-launched runtime so console output
+        // starts flowing (the `sb logs`-on-a-fresh-server fix).
+        let logs = LogBuffer::new();
+        let rt = ClientRuntime::new(FakeTransport::ok(serde_json::json!(null)), logs);
+        let _ = rt.logs(100, None);
+        assert!(rt.transport.started.load(Ordering::Relaxed));
     }
 
     #[test]

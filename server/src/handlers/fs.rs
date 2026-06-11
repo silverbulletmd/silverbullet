@@ -8,9 +8,9 @@ use silverbullet_server_common::FileMeta;
 
 use crate::handlers::space_error_response;
 use crate::router::run_blocking;
-use crate::state::AppState;
+use crate::state::ServerState;
 
-pub async fn handle_fs_list(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+pub async fn handle_fs_list(State(state): State<Arc<ServerState>>) -> impl IntoResponse {
     let state_inner = state.clone();
     match run_blocking(move || state_inner.space.fetch_file_list()).await {
         Ok(files) => {
@@ -34,7 +34,7 @@ pub async fn handle_fs_list(State(state): State<Arc<AppState>>) -> impl IntoResp
 }
 
 pub async fn handle_fs_get(
-    State(state): State<Arc<AppState>>,
+    State(state): State<Arc<ServerState>>,
     Path(path): Path<String>,
     headers: HeaderMap,
 ) -> impl IntoResponse {
@@ -88,7 +88,7 @@ pub(crate) fn set_file_meta_headers(
 }
 
 pub async fn handle_fs_put(
-    State(state): State<Arc<AppState>>,
+    State(state): State<Arc<ServerState>>,
     Path(path): Path<String>,
     headers: HeaderMap,
     body: axum::body::Bytes,
@@ -116,7 +116,7 @@ pub async fn handle_fs_put(
 }
 
 pub async fn handle_fs_delete(
-    State(state): State<Arc<AppState>>,
+    State(state): State<Arc<ServerState>>,
     Path(path): Path<String>,
 ) -> impl IntoResponse {
     let state_inner = state.clone();

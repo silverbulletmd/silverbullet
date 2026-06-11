@@ -1,3 +1,4 @@
+# Docker image deployed to silverbullet.md
 ARG BASE_IMAGE=zefhemel/silverbullet:v2
 FROM ${BASE_IMAGE}
 

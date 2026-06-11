@@ -24,7 +24,7 @@ use crate::config::ChromeConfig;
 use crate::supervisor::{eval_on_page, Live};
 
 pub struct ChromeTransport {
-    rt: Runtime,
+    rt: Option<Runtime>,
     live: Arc<Mutex<Option<Live>>>,
     ready: Arc<AtomicBool>,
     /// Notified on the first runtime request; the supervisor parks on this
@@ -62,12 +62,26 @@ impl ChromeTransport {
             ))
         };
         Ok(Self {
-            rt,
+            rt: Some(rt),
             live,
             ready,
             trigger,
             _supervisor: supervisor,
         })
+    }
+
+    /// The owned runtime. Always present until `Drop`; the `Option` exists only
+    /// so `Drop` can take it.
+    fn rt(&self) -> &Runtime {
+        self.rt.as_ref().expect("runtime present until drop")
+    }
+}
+
+impl Drop for ChromeTransport {
+    fn drop(&mut self) {
+        if let Some(rt) = self.rt.take() {
+            rt.shutdown_background();
+        }
     }
 }
 
@@ -77,7 +91,7 @@ impl ClientTransport for ChromeTransport {
         self.trigger.notify_one();
         let live = self.live.clone();
         let js = js.to_string();
-        self.rt.block_on(async move {
+        self.rt().block_on(async move {
             let guard = live.lock().await;
             let live = guard.as_ref().ok_or(RuntimeError::NotReady)?;
             match tokio::time::timeout(timeout, eval_on_page(&live.page, &js)).await {
@@ -94,7 +108,7 @@ impl ClientTransport for ChromeTransport {
             return Ok(());
         }
         let ready = self.ready.clone();
-        self.rt.block_on(async move {
+        self.rt().block_on(async move {
             let deadline = tokio::time::Instant::now() + timeout;
             loop {
                 if ready.load(Ordering::Relaxed) {
@@ -111,12 +125,40 @@ impl ClientTransport for ChromeTransport {
     fn is_ready(&self) -> bool {
         self.ready.load(Ordering::Relaxed)
     }
+
+    fn ensure_started(&self) {
+        // Same lazy-launch nudge as eval/wait: wake the supervisor so a
+        // log read alone is enough to bring Chrome up.
+        self.trigger.notify_one();
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use silverbullet_server::runtime::LogBuffer;
+
+    /// Regression test for the Ctrl-C shutdown panic: the transport owns a
+    /// multi-thread runtime and is dropped while the outer server runtime is
+    /// still active (here, the multi-thread `#[tokio::test]` runtime, matching
+    /// `#[tokio::main]`).
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn dropping_transport_inside_async_context_does_not_panic() {
+        let cfg = crate::config::ChromeConfig::resolve(
+            Some("/nonexistent/chrome".into()),
+            None,
+            "http://127.0.0.1:0".into(),
+            String::new(),
+            "/tmp".into(),
+            false,
+            false,
+            false,
+            true,
+        )
+        .expect("config resolves with an explicit chrome path");
+        let transport = ChromeTransport::launch(cfg, LogBuffer::new()).unwrap();
+        drop(transport); // must not panic
+    }
 
     #[test]
     fn eval_against_live_server_when_configured() {
@@ -130,6 +172,7 @@ mod tests {
             url,
             String::new(),
             "/tmp/x".into(),
+            false,
             false,
             false,
             true,

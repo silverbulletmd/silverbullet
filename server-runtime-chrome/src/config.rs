@@ -11,6 +11,11 @@ pub struct ChromeConfig {
     pub headless_token: String,
     pub user_data_dir: String,
     pub show: bool,
+    /// Forward the headless page's captured `console.*` output to the server's
+    /// `tracing` log (under the `runtime_console` target) in addition to the
+    /// `/.runtime/logs` buffer. On by default; disabled with
+    /// `SB_CHROME_LOG_CONSOLE=0`.
+    pub log_console: bool,
 }
 
 impl ChromeConfig {
@@ -34,6 +39,9 @@ impl ChromeConfig {
             headless_token,
             space_folder.to_string(),
             env("SB_CHROME_SHOW").is_some(),
+            // On by default; disabled only with SB_CHROME_LOG_CONSOLE=0/false
+            // (matches the SB_RUNTIME_API opt-out convention).
+            !matches!(env("SB_CHROME_LOG_CONSOLE").as_deref(), Some("0") | Some("false")),
             read_only,
             runtime_api_enabled,
         )
@@ -49,6 +57,7 @@ impl ChromeConfig {
         headless_token: String,
         space_folder: String,
         show: bool,
+        log_console: bool,
         read_only: bool,
         runtime_api_enabled: bool,
     ) -> Option<Self> {
@@ -71,6 +80,7 @@ impl ChromeConfig {
             headless_token,
             user_data_dir,
             show,
+            log_console,
         })
     }
 }
@@ -164,6 +174,7 @@ mod tests {
             "/tmp/space".into(),
             false,
             false,
+            false,
             true,
         );
         assert_eq!(cfg.unwrap().chrome_path, "/custom/chrome");
@@ -177,6 +188,7 @@ mod tests {
             "u".into(),
             String::new(),
             "/s".into(),
+            false,
             false,
             false,
             true,
@@ -194,6 +206,7 @@ mod tests {
             "/s".into(),
             false,
             false,
+            false,
             false
         )
         .is_none());
@@ -203,6 +216,7 @@ mod tests {
             "u".into(),
             String::new(),
             "/s".into(),
+            false,
             false,
             true,
             true
@@ -220,6 +234,7 @@ mod tests {
             "/space".into(),
             false,
             false,
+            false,
             true,
         )
         .unwrap();
@@ -228,7 +243,7 @@ mod tests {
     }
 
     #[test]
-    fn token_and_show_flow_through() {
+    fn token_show_and_log_console_flow_through() {
         let cfg = ChromeConfig::resolve(
             Some("/x".into()),
             None,
@@ -236,11 +251,13 @@ mod tests {
             "tok123".into(),
             "/s".into(),
             true,
+            true,
             false,
             true,
         )
         .unwrap();
         assert_eq!(cfg.headless_token, "tok123");
         assert!(cfg.show);
+        assert!(cfg.log_console);
     }
 }

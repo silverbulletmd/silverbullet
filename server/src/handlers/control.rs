@@ -4,9 +4,9 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 
-use crate::state::AppState;
+use crate::state::ServerState;
 
-pub async fn handle_ping(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+pub async fn handle_ping(State(state): State<Arc<ServerState>>) -> impl IntoResponse {
     (
         StatusCode::OK,
         [
@@ -18,7 +18,7 @@ pub async fn handle_ping(State(state): State<Arc<AppState>>) -> impl IntoRespons
     )
 }
 
-pub async fn handle_config(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+pub async fn handle_config(State(state): State<Arc<ServerState>>) -> impl IntoResponse {
     (
         StatusCode::OK,
         [("Cache-Control", "no-cache")],

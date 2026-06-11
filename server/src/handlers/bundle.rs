@@ -9,12 +9,10 @@ use chrono::{TimeZone, Utc};
 
 use crate::router::run_blocking;
 use crate::ssr::{convert_wiki_links, render_markdown};
-use crate::state::AppState;
+use crate::state::ServerState;
 
 /// Format a millisecond Unix timestamp as an HTTP-date (IMF-fixdate, GMT) for
-/// `Last-Modified`. Empty string if the timestamp is out of range. The value is
-/// echoed back verbatim by the browser in `If-Modified-Since`, so it only needs
-/// to be deterministic for the 304 comparison to work.
+/// `Last-Modified`.
 fn http_date(ms: i64) -> String {
     Utc.timestamp_millis_opt(ms)
         .single()
@@ -28,7 +26,7 @@ fn http_date(ms: i64) -> String {
 /// page markdown (SEO); otherwise the empty shell is served and the JS client
 /// renders.
 pub async fn handle_client_bundle(
-    State(state): State<Arc<AppState>>,
+    State(state): State<Arc<ServerState>>,
     req: axum::http::Request<Body>,
 ) -> impl IntoResponse {
     // The browser echoes our `Last-Modified` verbatim in `If-Modified-Since`, so
@@ -149,7 +147,7 @@ pub async fn handle_client_bundle(
 /// Decide the `<title>` and content HTML for the fallback shell. Only a public
 /// (read-only, unauthenticated) space renders real page content; everything
 /// else gets the plain shell with an empty body for the JS client to take over.
-async fn server_side_content(state: &Arc<AppState>, path: &str) -> (String, String) {
+async fn server_side_content(state: &Arc<ServerState>, path: &str) -> (String, String) {
     let public = state.boot_config.read_only && state.authorizer.is_none();
     if !public {
         return ("SilverBullet".to_string(), String::new());
@@ -217,7 +215,7 @@ fn template_index_html(
 
 #[cfg(test)]
 mod tests {
-    use crate::state::AppState;
+    use crate::state::ServerState;
     use crate::test_support::test_state;
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
@@ -233,7 +231,7 @@ mod tests {
         }
     }
 
-    fn gated_state() -> Arc<AppState> {
+    fn gated_state() -> Arc<ServerState> {
         let mut s = test_state();
         s.authorizer = Some(Arc::new(Deny));
         seed_bundle(&s, ".client/index.html", INDEX_TPL);
@@ -293,11 +291,11 @@ mod tests {
         assert_eq!(root.status(), StatusCode::OK);
     }
 
-    fn seed_bundle(state: &AppState, path: &str, body: &[u8]) {
+    fn seed_bundle(state: &ServerState, path: &str, body: &[u8]) {
         state.client_bundle.write_file(path, body, None).unwrap();
     }
 
-    fn seed_space(state: &AppState, path: &str, body: &[u8]) {
+    fn seed_space(state: &ServerState, path: &str, body: &[u8]) {
         state.space.write_file(path, body, None).unwrap();
     }
 
@@ -407,7 +405,7 @@ mod tests {
         );
     }
 
-    fn read_only_public_state() -> Arc<AppState> {
+    fn read_only_public_state() -> Arc<ServerState> {
         let mut s = test_state();
         s.boot_config.read_only = true;
         s.authorizer = None;

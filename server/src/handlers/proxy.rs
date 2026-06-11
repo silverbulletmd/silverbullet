@@ -5,7 +5,7 @@ use axum::extract::{Path, State};
 use axum::http::{HeaderMap, Method, StatusCode};
 use axum::response::{IntoResponse, Response};
 
-use crate::state::AppState;
+use crate::state::ServerState;
 
 /// Derive the proxy target URL: `http://` for localhost-ish hosts, `https://`
 /// otherwise, with the original query string appended.
@@ -24,7 +24,7 @@ pub(crate) fn proxy_target_url(path: &str, query: Option<&str>) -> String {
 }
 
 pub async fn handle_proxy(
-    State(state): State<Arc<AppState>>,
+    State(state): State<Arc<ServerState>>,
     Path(path): Path<String>,
     method: Method,
     headers: HeaderMap,
@@ -130,7 +130,7 @@ pub async fn handle_proxy(
 #[cfg(test)]
 mod tests {
     use super::proxy_target_url;
-    use crate::state::AppState;
+    use crate::state::ServerState;
     use crate::test_support::test_state;
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
@@ -164,7 +164,7 @@ mod tests {
         );
     }
 
-    fn state_read_only(read_only: bool) -> Arc<AppState> {
+    fn state_read_only(read_only: bool) -> Arc<ServerState> {
         let mut s = test_state();
         s.boot_config.read_only = read_only;
         Arc::new(s)

@@ -5,7 +5,7 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 
 use crate::router::run_blocking;
-use crate::state::AppState;
+use crate::state::ServerState;
 
 #[derive(serde::Deserialize)]
 struct ShellRequest {
@@ -34,7 +34,7 @@ fn err_response(status: StatusCode, message: &str) -> (StatusCode, axum::Json<Sh
 }
 
 pub async fn handle_shell(
-    State(state): State<Arc<AppState>>,
+    State(state): State<Arc<ServerState>>,
     body: axum::body::Bytes,
 ) -> impl IntoResponse {
     if state.boot_config.read_only {
@@ -201,21 +201,21 @@ fn run_command(request: ShellRequest, cwd: &str) -> ShellResponse {
 #[cfg(test)]
 mod tests {
     use crate::shell::ShellConfig;
-    use crate::state::AppState;
+    use crate::state::ServerState;
     use crate::test_support::test_state;
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
     use std::sync::Arc;
     use tower::ServiceExt;
 
-    fn state_with(shell: ShellConfig, read_only: bool) -> Arc<AppState> {
+    fn state_with(shell: ShellConfig, read_only: bool) -> Arc<ServerState> {
         let mut s = test_state();
         s.shell = shell;
         s.boot_config.read_only = read_only;
         Arc::new(s)
     }
 
-    async fn post_shell(state: Arc<AppState>, json: &str) -> (StatusCode, String) {
+    async fn post_shell(state: Arc<ServerState>, json: &str) -> (StatusCode, String) {
         let resp = crate::build_router(state)
             .oneshot(
                 Request::builder()
@@ -328,7 +328,7 @@ mod tests {
     }
 
     /// Build state whose space folder (the shell cwd) is `cwd`, with shell on.
-    fn state_in_dir(cwd: &str) -> Arc<AppState> {
+    fn state_in_dir(cwd: &str) -> Arc<ServerState> {
         let mut s = test_state();
         s.shell = ShellConfig {
             enabled: true,

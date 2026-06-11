@@ -21,6 +21,8 @@ pub enum RuntimeError {
     /// The transport failed (e.g. the browser crashed, eval could not be sent).
     #[error("runtime transport error: {0}")]
     Transport(String),
+    #[error("{0}")]
+    Eval(String),
 }
 
 /// What the router/handlers call. A single primitive: evaluate one client

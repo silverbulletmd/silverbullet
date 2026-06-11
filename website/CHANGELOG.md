@@ -6,6 +6,9 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
 * Server: file write errors now return accurate HTTP status codes (403 for paths escaping the space root, 401 for unauthorized, 404 for missing) with the error message preserved in the body, instead of a generic 500 "Write failed".
 * Server: the `/.proxy` endpoint now reuses a pooled HTTP client across requests, so repeated plug/Lua fetches to the same host skip redundant TCP/TLS handshakes.
 * Server: shell commands (`/.shell`) no longer deadlock when piping large amounts of data through stdin/stdout, and a hung command is now killed after 60 seconds instead of hanging the request forever.
+* Server: the embedded headless-Chrome runtime now logs its lifecycle (when it launches on first use, when it becomes ready, and on crash/restart), and forwards the headless page's `console.*` output to the server log by default (disable with `SB_CHROME_LOG_CONSOLE=0`).
+* Server: failed runtime API calls (the runtime never becoming ready, a timeout, or an error thrown in the client such as a Lua error) are now logged on the server with a `WARN` instead of failing silently.
+* Runtime API: a Lua/JS execution error now returns a concise message (e.g. `attempt to call a nil value`) with HTTP 500 and `code: "script_error"`.
 
 ## 2.9.0
 * New [[Object/relation]] indexed object capturing generalized object-to-object relationships. This is a successor to [[Object/link]], which still exists as a virtual collection built on top of `relation`.

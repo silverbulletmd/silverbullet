@@ -32,19 +32,19 @@ SilverBullet's frontend ("client") is written in [TypeScript](https://www.typesc
 The server backend is written in [Rust](https://www.rust-lang.org/) (a Cargo workspace). It serves the pre-built client bundle, the file/space HTTP API, authentication, and a headless-Chrome runtime for server-side Lua.
 
 ## Code structure
-* `client/`: The SilverBullet client, implemented with TypeScript
+* `bin/silverbullet/`: The standalone `silverbullet` server binary (Rust) (this is the one you generally run)
+* `bin/sb/`: The `sb` CLI client (Rust)
+* `bin/plug-compile.ts`: the plug compiler
+* `client/`: The SilverBullet client (browser, TypeScript)
 * `server/`: The SilverBullet server library (Rust): HTTP router, handlers, auth, runtime seam
 * `server-common/`: Shared Rust crate (space primitives, shared types)
 * `server-runtime-chrome/`: Headless-Chrome runtime backend (Rust)
-* `bin/silverbullet/`: The standalone server binary (Rust)
-* `bin/sb/`: The `sb` command-line client (Rust)
-* `plugs`: Set of built-in plugs that are distributed with SilverBullet
-* `libraries`: A set of libraries (space scripts, page templates, slash templates) distributed with SilverBullet
-* `plug-api/`: Useful APIs for use in plugs
+* `plugs`: Set of built-in plugs (TypeScript) that are distributed with SilverBullet
+* `libraries`: A set of libraries (space scripts, page templates, slash templates) distributed with SilverBullet (Space Lua)
+* `plug-api/`: Useful APIs for use in plugs and published to NPM
   * `lib/`: Useful libraries to be used in plugs
   * `syscalls/`: TypeScript wrappers around syscalls
   * `types/`: Various (client) types that can be references from plugs
-* `bin/plug-compile.ts`: the plug compiler
 * `scripts/`: Useful scripts
 * `website/`: silverbullet.md website content
 
@@ -64,17 +64,25 @@ First, install dependencies:
 make setup
 ```
 
-### Development workflow: server vs. client
+To create a (release) build:
 
-SilverBullet has two halves you rebuild **independently** — knowing which one you changed saves a lot of time:
+```shell
+make
+```
 
-* The **server** (Rust: `server/`, `server-common/`, `server-runtime-chrome/`, `bin/silverbullet/`) is a compiled binary.
+This will produce `silverbullet` and `cli` binaries in `./target/release/`, run `./target/release/silverbullet` to run the server.
+
+### Development workflow
+
+SilverBullet has two halves you rebuild **independently**:
+
 * The **client** (TypeScript: `client/`) is built by ESBuild into `client_bundle/`, which the server then serves.
+* The **server** (Rust: `server/`, `server-common/`, `server-runtime-chrome/`, `bin/silverbullet/`) is a compiled binary.
 
 Run the server in development with `cargo run`. A **debug** build serves the client bundle **live from `client_bundle/` on disk** (a release build embeds it instead):
 
 ```shell
-cargo run -p silverbullet -- <PATH-TO-YOUR-SPACE>
+cargo run <PATH-TO-YOUR-SPACE>
 ```
 
 **When you change only the client** (TypeScript in `client/`): you do **not** need to restart the server. Rebuild just the client bundle and reload the page in your browser — the debug server serves the freshly-built bundle straight from disk:
@@ -86,7 +94,7 @@ npm run build
 To build a self-contained **release** binary (with the client bundle embedded), and run it:
 
 ```shell
-make build-rs          # -> target/release/silverbullet
+make
 ./target/release/silverbullet <PATH-TO-YOUR-SPACE>
 ```
 

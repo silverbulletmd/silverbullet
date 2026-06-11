@@ -14,19 +14,19 @@ mod ssr;
 pub mod state;
 
 pub use router::{build_router, metrics_router};
-pub use state::{AppState, ServerVersion};
+pub use state::{ServerState, ServerVersion};
 
 #[cfg(test)]
 mod test_support {
-    use crate::state::AppState;
+    use crate::state::ServerState;
     use silverbullet_server_common::space::MemorySpacePrimitives;
     use silverbullet_server_common::BootConfig;
 
-    /// An `AppState` backed by a fresh in-memory space and a fresh in-memory
+    /// An `ServerState` backed by a fresh in-memory space and a fresh in-memory
     /// "bundle" (also a MemorySpacePrimitives). Tests seed files as needed.
-    pub fn test_state() -> AppState {
+    pub fn test_state() -> ServerState {
         let bundle = MemorySpacePrimitives::new();
-        AppState {
+        ServerState {
             space: Box::new(MemorySpacePrimitives::new()),
             client_bundle: Box::new(bundle),
             boot_config: BootConfig {

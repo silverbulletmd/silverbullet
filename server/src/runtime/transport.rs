@@ -20,4 +20,5 @@ pub trait ClientTransport: Send + Sync {
 
     /// Non-blocking readiness check.
     fn is_ready(&self) -> bool;
+    fn ensure_started(&self) {}
 }
