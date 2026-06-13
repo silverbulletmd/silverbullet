@@ -128,7 +128,10 @@ jobs:
         run: make build
 
       - name: Install Playwright browsers
-        run: npx playwright install
+        # --with-deps installs the OS libraries the browsers need (esp. webkit,
+        # which otherwise fails to launch on ubuntu-latest with "Host system is
+        # missing dependencies to run browsers").
+        run: npx playwright install --with-deps
 
       - name: Run e2e tests
         run: npx playwright test
