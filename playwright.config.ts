@@ -6,6 +6,9 @@ export default defineConfig({
 	expect: { timeout: 30_000 },
 	fullyParallel: false,
 	workers: 1,
+	// Browsers occasionally crash at the process level in CI (notably a chromium
+	// renderer SEGV); retry there so a stray crash doesn't fail the whole gate.
+	retries: process.env.CI ? 2 : 0,
 	reporter: "list",
 	use: {
 		...devices["Desktop Chrome"],
@@ -16,7 +19,12 @@ export default defineConfig({
 	projects: [
 		{
 			name: "chromium",
-			use: { ...devices["Desktop Chrome"] },
+			use: {
+				...devices["Desktop Chrome"],
+				// CI runners have a small /dev/shm, which crashes the chromium
+				// renderer (SEGV); route shared memory to /tmp instead.
+				launchOptions: { args: ["--disable-dev-shm-usage"] },
+			},
 		},
 		{
 			name: "firefox",
