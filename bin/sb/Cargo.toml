@@ -1,0 +1,34 @@
+[package]
+name = "sb"
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[lib]
+name = "sb"
+path = "src/lib.rs"
+
+[[bin]]
+name = "sb"
+path = "src/main.rs"
+
+[dependencies]
+silverbullet-server-common = { path = "../../server-common" }
+clap = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+uuid = { workspace = true }
+rustyline = { workspace = true }
+chrono = { workspace = true }
+zip = { workspace = true }
+
+[build-dependencies]
+serde_json = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }

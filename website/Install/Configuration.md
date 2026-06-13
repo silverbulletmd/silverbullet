@@ -40,6 +40,7 @@ This is the default and simplest backend to use: a folder on disk. It is configu
 * `SB_CHROME_PATH`: Optional explicit path to the Chrome/Chromium binary. Falls back to the `CHROMIUM_PATH` environment variable (pre-set in the `-runtime-api` Docker image), then auto-detection.
 * `SB_CHROME_SHOW`: Set to any non-empty value to run Chrome with a visible window instead of headless (useful for debugging).
 * `SB_CHROME_DATA_DIR`: Path to persist the Chrome user profile between restarts. When not set, defaults to `.chrome-data` inside the space folder.
+* `SB_CHROME_LOG_CONSOLE`: Forward the headless Chrome page’s `console.*` output to the server log (so you can see what the runtime is doing). Enabled by default; set to `0` to disable. The same log is also available via `/.runtime/logs` (e.g. `sb logs`).
 
 # Security
 SilverBullet enables plugs to run shell commands. This is potentially unsafe. If you don’t need this, you can disable this functionality:

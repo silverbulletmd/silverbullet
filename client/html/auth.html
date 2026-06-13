@@ -6,9 +6,9 @@
             content="width=device-width, initial-scale=1, maximum-scale=1"
             name="viewport"
         />
-        <base href="{{.HostPrefix}}/" />
+        <base href="{{ host_prefix | safe }}/" />
         <link href="favicon.png" rel="icon" type="image/x-icon" />
-        <title>Login to {{.SpaceName}}</title>
+        <title>Login to {{ space_name }}</title>
         <style>
             *,
             *::before,
@@ -152,7 +152,7 @@
             <div class="flow floating-island">
                 <h1>
                     Login to <img src=".client/logo.png" style="height: 1ch" />
-                    {{.SpaceName}}
+                    {{ space_name }}
                 </h1>
                 <form class="flow" id="login" method="POST">
                     <div class="error-message"></div>
@@ -181,7 +181,7 @@
                             name="rememberMe"
                             type="checkbox"
                         />
-                        <label for="rememberMe">Remember me ({{.RememberMeDays}} days)</label>
+                        <label for="rememberMe">Remember me ({{ remember_me_days }} days)</label>
                     </div>
                     <div class="checkbox-wrapper">
                         <input
@@ -251,7 +251,7 @@ document.getElementById("login").addEventListener("submit", (e) => {
         localStorage.removeItem('enableEncryption');
       }
       if(enableEncryption) {
-        const salt = base64Decode({{.EncryptionSalt}});
+        const salt = base64Decode("{{ encryption_salt }}");
         const key = await deriveKey(`${username}:${password}`, salt);
         // Encode password to ArrayBuffer
         if(navigator.serviceWorker?.controller) {

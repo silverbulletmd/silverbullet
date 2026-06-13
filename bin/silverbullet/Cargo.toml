@@ -1,0 +1,39 @@
+[package]
+name = "silverbullet"
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[lib]
+name = "silverbullet"
+path = "src/lib.rs"
+
+[[bin]]
+name = "silverbullet"
+path = "src/main.rs"
+
+[dependencies]
+silverbullet-server-common = { path = "../../server-common" }
+silverbullet-server = { path = "../../server" }
+silverbullet-server-runtime-chrome = { path = "../../server-runtime-chrome" }
+getrandom = { workspace = true }
+axum = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "net", "signal"] }
+clap = { workspace = true }
+rust-embed = { workspace = true }
+mime_guess = { workspace = true }
+tracing = { workspace = true }
+tower-http = { workspace = true, features = ["trace"] }
+tracing-subscriber = { workspace = true }
+serde_json = { workspace = true }
+
+[build-dependencies]
+serde_json = { workspace = true }
+
+[dev-dependencies]
+reqwest = { workspace = true }
+tempfile = "3"
+silverbullet-server-runtime-chrome = { path = "../../server-runtime-chrome" }

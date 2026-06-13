@@ -48,7 +48,7 @@
       "!**/*.html",
       "!**/*.plug.js",
       "!plugs/*/assets",
-      "!public_version.ts"
+      "!version.json"
     ]
   }
 }

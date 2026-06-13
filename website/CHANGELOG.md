@@ -3,7 +3,13 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
-* Nothing new yet since 2.9.0
+* Backend and CLI (`silverbullet` and `sb` binaries) are now ported to Rust, both should be behavior preserving (that is: you shouldn’t really notice):
+  * The server backend (previously written in Go) has now been replaced by an adapted version of SilverBullet+‘s backend written in Rust, more unifying those code bases.
+  * CLI client also reimplemented/backported to Rust as well.
+  * This means the project is now all TypeScript + Rust.
+  * The goal is to make do this without regressions, but watch for any issues.
+* Runtime API: the embedded headless-Chrome runtime now logs its lifecycle (when it launches on first use, when it becomes ready, and on crash/restart), and forwards the headless page‘s `console.*` output to the server log by default (disable with `SB_CHROME_LOG_CONSOLE=0` see [[Install/Configuration]]).
+* Fix: on Safari/WebKit, the first keystroke right after a paste could be inserted at the wrong position (e.g. pasting a URL inside `[text]()` and then pressing `)` produced `[text]()url)` instead of typing over the closing bracket). WebKit left the typing caret at the pre-paste position; the editor now re-syncs it after a paste.
 
 ## 2.9.0
 * New [[Object/relation]] indexed object capturing generalized object-to-object relationships. This is a successor to [[Object/link]], which still exists as a virtual collection built on top of `relation`.
@@ -31,6 +37,7 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
 * Fix: `$`-anchor refs now resolve through the index from every navigation path
 * Fix: Ctrl/Cmd-clicking a link inside rendered widgets (query/template results) now navigates in a new window via the normal navigation path
 * Fix: tag autocomplete no longer triggers while typing markdown header prefixes (`##`, `###`, etc.)
+* Internal: the legacy Go server and `sb` CLI have been removed. The Rust server (`silverbullet`) and Rust `sb` CLI are now the only implementations. No user-facing behavior change is expected.
 
 ## 2.8.1
 * Fix: cursor and clicks no longer drift by a line or two when working below a tall widget (e.g. arrow-up from a list under a `${query[[…]]}` now advances exactly one line). Some other cursor preservation issues addressed as well.

@@ -1,0 +1,367 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  # Never cancel an in-flight tag (release) run; cancel superseded branch runs.
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  ARCHITECTURES: linux/arm64,linux/amd64,linux/arm/v7
+  IMAGE_NAME: silverbullet
+  WEBSITE_IMAGE: zefhemel/silverbullet-website
+  NAMESPACE_GITHUB: silverbulletmd
+  NAMESPACE_DOCKER: zefhemel
+
+permissions:
+  contents: read
+
+jobs:
+  # Single source of truth for branch/channel decisions. Post-merge flip lives
+  # entirely in the TRANSITION CONFIG block below.
+  config:
+    runs-on: ubuntu-latest
+    outputs:
+      publish: ${{ steps.cfg.outputs.publish }}
+      is_edge: ${{ steps.cfg.outputs.is_edge }}
+      is_tag: ${{ steps.cfg.outputs.is_tag }}
+      gh_release_tag: ${{ steps.cfg.outputs.gh_release_tag }}
+      gh_release_name: ${{ steps.cfg.outputs.gh_release_name }}
+      docker_edge_tag: ${{ steps.cfg.outputs.docker_edge_tag }}
+      docker_runtime_api_tag: ${{ steps.cfg.outputs.docker_runtime_api_tag }}
+      website_tag: ${{ steps.cfg.outputs.website_tag }}
+    steps:
+      - id: cfg
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          # ============ TRANSITION CONFIG (rust-backend → main) ============
+          # These values namespace the in-progress rust line so it never
+          # clobbers currently-published images/releases.
+          # POST-MERGE: set PUBLISH_BRANCH=main, GH_RELEASE_TAG=edge,
+          #   GH_RELEASE_NAME=Edge, DOCKER_EDGE_TAG=v2,
+          #   DOCKER_RUNTIME_API_TAG=v2-runtime-api, WEBSITE_TAG=v2,
+          #   then delete this comment.
+          PUBLISH_BRANCH="rust-backend"
+          GH_RELEASE_TAG="edge-rust"
+          GH_RELEASE_NAME="Edge (rust)"
+          DOCKER_EDGE_TAG="rust"
+          DOCKER_RUNTIME_API_TAG="rust-runtime-api"
+          WEBSITE_TAG="rust"
+          # =================================================================
+
+          is_tag=false
+          is_edge=false
+          publish=false
+          if [[ "$REF" == refs/tags/* ]]; then
+            is_tag=true
+            publish=true
+          elif [[ "$REF" == "refs/heads/$PUBLISH_BRANCH" ]]; then
+            is_edge=true
+            publish=true
+          elif [[ "$EVENT" == "workflow_dispatch" ]]; then
+            # Manual dispatch builds + publishes the edge channel.
+            is_edge=true
+            publish=true
+          fi
+
+          {
+            echo "publish=$publish"
+            echo "is_edge=$is_edge"
+            echo "is_tag=$is_tag"
+            echo "gh_release_tag=$GH_RELEASE_TAG"
+            echo "gh_release_name=$GH_RELEASE_NAME"
+            echo "docker_edge_tag=$DOCKER_EDGE_TAG"
+            echo "docker_runtime_api_tag=$DOCKER_RUNTIME_API_TAG"
+            echo "website_tag=$WEBSITE_TAG"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "publish=$publish is_edge=$is_edge is_tag=$is_tag"
+
+  test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run build
+        run: npm run build
+
+      - name: Run checks
+        run: |
+          npm run check
+          npm test
+
+  test-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: make build
+
+      - name: Install Playwright browsers
+        # --with-deps installs the OS libraries the browsers need (esp. webkit,
+        # which otherwise fails to launch on ubuntu-latest with "Host system is
+        # missing dependencies to run browsers").
+        run: npx playwright install --with-deps
+
+      - name: Run e2e tests
+        run: npx playwright test
+
+      - name: Upload test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: test-results/
+          retention-days: 7
+
+  build:
+    needs: [config, test-frontend, test-e2e]
+    if: needs.config.outputs.publish == 'true'
+    uses: ./.github/workflows/_build.yml
+    secrets: inherit
+
+  release:
+    needs: [config, build]
+    if: needs.config.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write # npm provenance / JSR auth on tag publishes
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Build plug-compile bundle
+        run: npm run build:plug-compile
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist-artifacts
+          pattern: release-zips-*
+          merge-multiple: true
+
+      # Branch / manual dispatch → refresh the namespaced edge prerelease.
+      - name: Publish edge prerelease
+        if: needs.config.outputs.is_edge == 'true'
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          draft: false
+          tag_name: ${{ needs.config.outputs.gh_release_tag }}
+          name: ${{ needs.config.outputs.gh_release_name }}
+          body: Automated build from commit ${{ github.sha }}
+          prerelease: true
+          files: |
+            website/CHANGELOG.md
+            dist/plug-compile.js
+            dist-artifacts/silverbullet-server-*.zip
+            dist-artifacts/sb-*.zip
+
+      # Tag push → publish that tag's (non-pre) release. Tag is inferred from ref.
+      - name: Publish tagged release
+        if: needs.config.outputs.is_tag == 'true'
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          draft: false
+          files: |
+            website/CHANGELOG.md
+            dist/plug-compile.js
+            dist-artifacts/silverbullet-server-*.zip
+            dist-artifacts/sb-*.zip
+
+      # npm publish ONLY on tag pushes.
+      - name: Build npm package
+        if: needs.config.outputs.is_tag == 'true'
+        run: npm run build
+
+      - name: Publish to npm
+        if: needs.config.outputs.is_tag == 'true'
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  docker:
+    needs: [config, build]
+    if: needs.config.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Download raw docker binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-binaries
+          path: .
+
+      - name: Verify binaries are static (no interpreter)
+        run: |
+          set -euo pipefail
+          for b in silverbullet-amd64 silverbullet-arm64 silverbullet-arm; do
+            echo "== $b =="; file "$b"
+            if file "$b" | grep -q "interpreter"; then
+              echo "ERROR: $b is dynamically linked (needs a loader); expected static musl"; exit 1
+            fi
+          done
+
+      - name: Set up QEMU for multi-arch builds with buildx
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: ${{ env.ARCHITECTURES }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          platforms: ${{ env.ARCHITECTURES }}
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Log in to the ghcr Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.NAMESPACE_DOCKER }}/${{ env.IMAGE_NAME }}
+            ghcr.io/${{ env.NAMESPACE_GITHUB }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{raw}},enable=true
+            type=semver,pattern=latest,enable=true
+            type=raw,value=${{ needs.config.outputs.docker_edge_tag }},enable=${{ needs.config.outputs.is_edge == 'true' }}
+
+      - name: Build and push main docker images
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ env.ARCHITECTURES }}
+          push: true
+          file: Dockerfile
+          provenance: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: "Runtime API: Extract metadata"
+        id: rc_meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.NAMESPACE_DOCKER }}/${{ env.IMAGE_NAME }}
+            ghcr.io/${{ env.NAMESPACE_GITHUB }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{raw}}-runtime-api,enable=true
+            type=semver,pattern=latest-runtime-api,enable=true
+            type=raw,value=${{ needs.config.outputs.docker_runtime_api_tag }},enable=${{ needs.config.outputs.is_edge == 'true' }}
+
+      - name: "Runtime API: Build and push"
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ env.ARCHITECTURES }}
+          push: true
+          file: Dockerfile.runtime-api
+          provenance: false
+          build-args: |
+            BASE_IMAGE=ghcr.io/${{ env.NAMESPACE_GITHUB }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+          tags: ${{ steps.rc_meta.outputs.tags }}
+          labels: ${{ steps.rc_meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  docker-website:
+    needs: [config, docker]
+    if: needs.config.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: "Website: Extract metadata (tags, labels) for docker"
+        id: website_meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.WEBSITE_IMAGE }}
+          tags: |
+            type=raw,value=${{ needs.config.outputs.website_tag }},enable=${{ needs.config.outputs.is_edge == 'true' }}
+            type=semver,pattern=latest,enable=true
+
+      - name: "Website: Build and push"
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.website
+          push: true
+          provenance: false
+          build-args: |
+            BASE_IMAGE=zefhemel/silverbullet:${{ needs.config.outputs.is_tag == 'true' && 'latest' || needs.config.outputs.docker_edge_tag }}
+          tags: ${{ steps.website_meta.outputs.tags }}
+          labels: ${{ steps.website_meta.outputs.labels }}

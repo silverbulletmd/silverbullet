@@ -1,0 +1,6 @@
+# Pins the toolchain for the Rust workspace and guarantees the lint/format
+# components are present, so `cargo clippy` and `cargo fmt` work out of the box
+# for every contributor and in CI (rustup auto-installs on first use).
+[toolchain]
+channel = "stable"
+components = ["clippy", "rustfmt"]

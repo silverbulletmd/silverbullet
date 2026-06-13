@@ -1,0 +1,13 @@
+# syntax=docker/dockerfile:1
+#
+# Runtime-API variant: the base `Dockerfile` image plus Chromium, so the
+# headless-Chrome runtime API (`/.runtime/{lua,lua_script,objects,logs}`) works.
+#
+# Published with the `-runtime-api` tag suffix by `.github/workflows/ci.yml`.
+ARG BASE_IMAGE=silverbullet:test
+FROM ${BASE_IMAGE}
+
+RUN apk add --no-cache chromium
+
+# The Rust server's Chrome discovery reads CHROMIUM_PATH (see ChromeConfig).
+ENV CHROMIUM_PATH=/usr/bin/chromium-browser
