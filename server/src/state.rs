@@ -74,6 +74,6 @@ pub struct ServerState {
     pub shell: ShellConfig,
     /// Request metrics. `None` disables counting and `/metrics`.
     pub metrics: Option<Arc<Metrics>>,
-    /// Lua runtime backend for `/.runtime/*`. `None` ⇒ those endpoints 503.
+    /// Lua runtime backend for `/.runtime/*`. May be disabled, when None: those endpoints 503.
     pub runtime: Option<Box<dyn RuntimeBackend>>,
 }

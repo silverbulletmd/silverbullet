@@ -1,16 +1,15 @@
-name: Build & Release Edge
+name: Build (reusable)
 
 on:
-  workflow_dispatch:
-  push:
-    # TODO: switch rust-backend → main after merge
-    branches:
-      - "rust-backend"
-    tags:
-      - "*"
+  workflow_call:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  # sccache caches compiled objects across Cargo.lock changes (rust-cache alone
+  # invalidates fully on dep changes). Valuable here: each job compiles several
+  # release targets.
+  SCCACHE_GHA_ENABLED: "true"
+  RUSTC_WRAPPER: sccache
 
 jobs:
   build-linux:
@@ -32,6 +31,28 @@ jobs:
         with:
           targets: x86_64-unknown-linux-musl,aarch64-unknown-linux-musl,armv7-unknown-linux-musleabihf,x86_64-pc-windows-gnu,x86_64-unknown-freebsd
 
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: linux-cross
+
+      - name: Setup sccache
+        uses: mozilla-actions/sccache-action@v0.0.10
+
+      # GHA Cache occasionally returns Azure edge errors; if the sccache daemon
+      # can't reach the backend it refuses to start, failing every rustc call.
+      # Probe once and disable for this job on outage — a slow build beats a
+      # failed release.
+      - name: Probe sccache backend, disable on outage
+        shell: bash
+        run: |
+          if sccache --start-server; then
+            echo "sccache backend reachable"
+          else
+            echo "::warning::sccache backend unreachable — disabling for this job"
+            echo "RUSTC_WRAPPER=" >> "$GITHUB_ENV"
+            echo "SCCACHE_GHA_ENABLED=false" >> "$GITHUB_ENV"
+          fi
+
       - name: Install cross-toolchains
         run: |
           sudo apt-get update
@@ -45,22 +66,17 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
-      - name: Build server + CLI release archives (linux x3 musl + windows)
-        run: |
-          make build-server-releases
-          make build-cli-releases-rust
+      - name: Build linux/windows binaries (compile once → raw + zips)
+        run: make build-linux-ci
 
       - name: Build FreeBSD sb CLI (experimental — best effort)
         # FreeBSD cross is fiddly (clang + sysroot). The sysroot fetch AND the
         # build live together here under continue-on-error, AFTER the main build,
-        # so nothing FreeBSD-related can ever block the rest of the release. The
-        # sb-freebsd zip is added only when this whole step succeeds.
+        # so nothing FreeBSD-related can ever block the release. The sb-freebsd
+        # zip is added only when this whole step succeeds.
         continue-on-error: true
         run: |
           sudo mkdir -p /opt/freebsd-sysroot
-          # Resolve the LATEST FreeBSD release dynamically (older ones get pruned
-          # from the mirror → 404, which is what broke a pinned version). Grab just
-          # the libc/crt + headers clang needs to link a FreeBSD binary.
           VER=$(curl -fsSL https://download.freebsd.org/releases/amd64/ \
             | grep -oE '[0-9]+\.[0-9]+-RELEASE' | sort -V | uniq | tail -1)
           echo "Latest FreeBSD release: $VER"
@@ -68,13 +84,23 @@ jobs:
             | sudo tar -xJf - -C /opt/freebsd-sysroot ./lib ./usr/lib ./usr/include
           make build-cli-releases-freebsd
 
-      - name: Upload linux/windows/freebsd artifacts
+      - name: Upload release zips (linux/windows/freebsd)
         uses: actions/upload-artifact@v4
         with:
-          name: linux-binaries
+          name: release-zips-linux
           path: |
             silverbullet-server-*.zip
             sb-*.zip
+          if-no-files-found: error
+
+      - name: Upload raw docker binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-binaries
+          path: |
+            silverbullet-amd64
+            silverbullet-arm64
+            silverbullet-arm
           if-no-files-found: error
 
   build-macos:
@@ -93,6 +119,24 @@ jobs:
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: macos
+
+      - name: Setup sccache
+        uses: mozilla-actions/sccache-action@v0.0.10
+
+      - name: Probe sccache backend, disable on outage
+        shell: bash
+        run: |
+          if sccache --start-server; then
+            echo "sccache backend reachable"
+          else
+            echo "::warning::sccache backend unreachable — disabling for this job"
+            echo "RUSTC_WRAPPER=" >> "$GITHUB_ENV"
+            echo "SCCACHE_GHA_ENABLED=false" >> "$GITHUB_ENV"
+          fi
 
       - name: Install npm dependencies
         run: npm ci
@@ -136,9 +180,9 @@ jobs:
           APPLE_API_KEY_ISSUER_ID: ${{ secrets.APPLE_API_KEY_ISSUER_ID }}
           APPLE_API_KEY_P8_BASE64: ${{ secrets.APPLE_API_KEY_P8_BASE64 }}
         run: |
-          mkdir -p ~/private_keys
+          mkdir -p "$HOME/private_keys"
           echo "$APPLE_API_KEY_P8_BASE64" | base64 --decode \
-            > ~/private_keys/AuthKey_${APPLE_API_KEY_ID}.p8
+            > "$HOME/private_keys/AuthKey_${APPLE_API_KEY_ID}.p8"
 
           IDENTITY="Developer ID Application: Zef Hemel ($APPLE_TEAM_ID)"
 
@@ -162,7 +206,7 @@ jobs:
             ditto -c -k --keepParent "$WORK_DIR/$BINARY" "$NOTARIZE_ZIP"
 
             xcrun notarytool submit "$NOTARIZE_ZIP" \
-              --key ~/private_keys/AuthKey_${APPLE_API_KEY_ID}.p8 \
+              --key "$HOME/private_keys/AuthKey_${APPLE_API_KEY_ID}.p8" \
               --key-id "$APPLE_API_KEY_ID" \
               --issuer "$APPLE_API_KEY_ISSUER_ID" \
               --wait --timeout 10m
@@ -173,85 +217,18 @@ jobs:
             rm -rf "$WORK_DIR"
           done
 
-          rm -rf ~/private_keys
+          rm -rf "$HOME/private_keys"
 
       - name: Clean up keychain
         if: always()
         run: |
           security delete-keychain "$RUNNER_TEMP/signing.keychain-db" 2>/dev/null || true
 
-      - name: Upload macOS artifacts
+      - name: Upload macOS release zips
         uses: actions/upload-artifact@v4
         with:
-          name: macos-binaries
+          name: release-zips-macos
           path: |
             silverbullet-server-darwin-*.zip
             sb-darwin-*.zip
           if-no-files-found: error
-
-  release:
-    needs: [build-linux, build-macos]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Setup repo
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          fetch-tags: true
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: ".nvmrc"
-
-      - name: Install npm dependencies
-        run: npm ci
-
-      # Reproduce the extra assets the Go edge.yml shipped alongside the
-      # binaries: the bundled plug-compile.js (built here) and the CHANGELOG
-      # (checked out above at website/CHANGELOG.md).
-      - name: Build plug-compile bundle
-        run: npm run build:plug-compile
-
-      - name: Download all build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: dist-artifacts
-          merge-multiple: true
-
-      # On a push to `rust-backend` we refresh the `edge` *prerelease*; on a tag
-      # push we publish that tag's (non-pre) release. softprops/action-gh-release
-      # infers the tag from github.ref for tag pushes, so tag_name is only set
-      # for the edge case.
-      # TODO: switch rust-backend → main after merge
-      - name: Publish to the edge prerelease (branch)
-        if: github.ref == 'refs/heads/rust-backend'
-        uses: softprops/action-gh-release@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          draft: false
-          tag_name: edge
-          name: Edge
-          body: Automated build from commit ${{ github.sha }}
-          prerelease: true
-          files: |
-            website/CHANGELOG.md
-            dist/plug-compile.js
-            dist-artifacts/silverbullet-server-*.zip
-            dist-artifacts/sb-*.zip
-
-      - name: Publish to the tagged release (tag push)
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          draft: false
-          files: |
-            website/CHANGELOG.md
-            dist/plug-compile.js
-            dist-artifacts/silverbullet-server-*.zip
-            dist-artifacts/sb-*.zip

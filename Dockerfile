@@ -1,14 +1,14 @@
 # Base Alpine image for the SilverBullet server.
 # Copies a PRE-CROSS-COMPILED, statically-linked musl binary built on the CI
 # runner via native `cargo build --target` + installed musl cross-toolchains
-# (see .github/workflows/docker.yml). Because there is no in-image compilation,
+# (see .github/workflows/ci.yml). Because there is no in-image compilation,
 # multi-arch `buildx` is fast (it only emulates the small Alpine layers). The
 # binary is static, so it runs on bare Alpine.
 #
 # This is the BASE variant: no Chromium, so `/.runtime/*` returns 503.
 # `Dockerfile.runtime-api` layers Chromium on top to enable the runtime API.
 #
-# Published by `.github/workflows/docker.yml`.
+# Published by `.github/workflows/ci.yml`.
 
 FROM alpine:latest
 
