@@ -74,15 +74,17 @@ export class LuaWidget extends WidgetType {
       ...opts,
     };
     if (this.opts.inPage) {
-      this.opts.client.widgetCache.prewarmResult(this.opts.cacheKey, () =>
-        this.opts.callback(
-          this.opts.expressionText,
-          this.opts.client.currentName(),
-        ),
-      ).catch(() => {
-        // Ignore: renderContent re-awaits the same promise and handles
-        // errors via its own catch path.
-      });
+      this.opts.client.widgetCache
+        .prewarmResult(this.opts.cacheKey, () =>
+          this.opts.callback(
+            this.opts.expressionText,
+            this.opts.client.currentName(),
+          ),
+        )
+        .catch(() => {
+          // Ignore: renderContent re-awaits the same promise and handles
+          // errors via its own catch path.
+        });
     }
   }
 
@@ -269,10 +271,7 @@ export class LuaWidget extends WidgetType {
         renderMarkdownToHtml(
           mdTree,
           {
-            shortWikiLinks: this.opts.client.config.get(
-              "shortWikiLinks",
-              true,
-            ),
+            shortWikiLinks: this.opts.client.config.get("shortWikiLinks", true),
             translateUrls: buildTranslateUrls(this.opts.client),
           },
           this.opts.client.ui.viewState.allPages,

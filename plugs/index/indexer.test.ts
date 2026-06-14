@@ -30,10 +30,10 @@ describe("anchor records", () => {
 
   test("emits no anchor records when no anchors present", async () => {
     createMockSystem();
-    const objects = await indexMarkdown(
-      `Plain paragraph #tag.\n`,
-      { ...defaultPageMeta, name: "Plain" },
-    );
+    const objects = await indexMarkdown(`Plain paragraph #tag.\n`, {
+      ...defaultPageMeta,
+      name: "Plain",
+    });
     const anchors = objects.filter((o: any) => o.tag === "anchor");
     expect(anchors).toEqual([]);
   });
@@ -42,10 +42,11 @@ describe("anchor records", () => {
     createMockSystem();
     // Page name "MyPage" passes isValidAnchorName; a naive filter would
     // incorrectly emit an anchor record pointing at the page itself.
-    const objects = await indexMarkdown(
-      `Paragraph #atag.\n`,
-      { ...defaultPageMeta, ref: "MyPage", name: "MyPage" },
-    );
+    const objects = await indexMarkdown(`Paragraph #atag.\n`, {
+      ...defaultPageMeta,
+      ref: "MyPage",
+      name: "MyPage",
+    });
     const anchors = objects.filter((o: any) => o.tag === "anchor");
     expect(anchors).toEqual([]);
   });

@@ -484,7 +484,9 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
       snapshot.nonSyncedFiles.set(path, secondaryMeta);
       operations += 1;
     } else if (
-      primaryMeta && secondaryMeta && snapshot.files.has(path) &&
+      primaryMeta &&
+      secondaryMeta &&
+      snapshot.files.has(path) &&
       primaryMeta.size !== secondaryMeta.size
     ) {
       // Sizes differ despite matching timestamps — silent content change

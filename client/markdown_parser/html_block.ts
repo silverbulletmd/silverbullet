@@ -64,10 +64,7 @@ function parseRawHtmlBlock(
 /**
  * Parse a structured HTML block (type 6/7) into tag + inline-content nodes.
  */
-function parseStructuredHtmlBlock(
-  cx: BlockContext,
-  line: Line,
-): true {
+function parseStructuredHtmlBlock(cx: BlockContext, line: Line): true {
   const startPos = cx.lineStart + line.pos;
   const lineText = line.text.slice(line.pos);
 

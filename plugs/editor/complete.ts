@@ -1,5 +1,10 @@
 import { folderName } from "@silverbulletmd/silverbullet/lib/resolve";
-import { editor, index, language, lua } from "@silverbulletmd/silverbullet/syscalls";
+import {
+  editor,
+  index,
+  language,
+  lua,
+} from "@silverbulletmd/silverbullet/syscalls";
 import type {
   DocumentMeta,
   PageMeta,

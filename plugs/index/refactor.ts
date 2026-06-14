@@ -6,10 +6,7 @@ import {
   mq,
   space,
 } from "@silverbulletmd/silverbullet/syscalls";
-import {
-  getTextualBackRelations,
-  type RelationObject,
-} from "./relation.ts";
+import { getTextualBackRelations, type RelationObject } from "./relation.ts";
 import { spliceReference } from "./refactor_splice.ts";
 import {
   absoluteToRelativePath,
@@ -238,10 +235,9 @@ async function renamePage(oldName: string, newName: string) {
       if (text.substring(pos, pos + 2) === "[[") continue;
 
       const newLink = absoluteToRelativePath(newName, rel.to);
-      let newTail = text.substring(pos).replace(
-        /^.*?(?=@\d*|#|\$|\))/,
-        newLink,
-      );
+      let newTail = text
+        .substring(pos)
+        .replace(/^.*?(?=@\d*|#|\$|\))/, newLink);
       if (newLink.includes(" ")) {
         newTail = `<${newTail.replace(")", ">)")}`;
       }

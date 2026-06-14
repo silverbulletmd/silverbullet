@@ -534,7 +534,12 @@ export function registerEditorCommands(
     key: "Ctrl-Shift-k",
     mac: "Cmd-Shift-k",
     priority: 2,
-    menu: { location: "navigate", group: "2_picker", order: 4, label: "Meta Page..." },
+    menu: {
+      location: "navigate",
+      group: "2_picker",
+      order: 4,
+      label: "Meta Page...",
+    },
     run: async () => client.startPageNavigate("meta"),
   });
   hook.registerCommand({
@@ -544,7 +549,12 @@ export function registerEditorCommands(
     priority: 2,
     menu: [
       { location: "file", group: "1_new", order: 3, label: "Open Document..." },
-      { location: "navigate", group: "2_picker", order: 2, label: "Document..." },
+      {
+        location: "navigate",
+        group: "2_picker",
+        order: 2,
+        label: "Document...",
+      },
     ],
     run: async () => client.startPageNavigate("document"),
   });

@@ -54,7 +54,11 @@ function InlineBanner({
   );
 }
 
-function SectionBanners({ section }: { section: "installed" | "available" | "repositories" }) {
+function SectionBanners({
+  section,
+}: {
+  section: "installed" | "available" | "repositories";
+}) {
   const libs = useLibraries();
   return (
     <>
@@ -148,9 +152,7 @@ function InstalledRow({
         <a class="lib-link" onClick={() => openPage(lib.name)}>
           {lib.name}
         </a>
-        {isBuiltin && (
-          <span class="lib-badge lib-badge-builtin">built-in</span>
-        )}
+        {isBuiltin && <span class="lib-badge lib-badge-builtin">built-in</span>}
         {isPush && <span class="lib-badge lib-badge-push">dev mode</span>}
         {isPull && <span class="lib-badge lib-badge-pull">installed</span>}
       </div>
@@ -375,10 +377,7 @@ function MarkdownDescription({ text }: { text: string }) {
     };
   }, [text]);
   return (
-    <div
-      class="lib-card-desc"
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+    <div class="lib-card-desc" dangerouslySetInnerHTML={{ __html: html }} />
   );
 }
 
@@ -494,9 +493,7 @@ function AvailableSection({
           onSubmit={async (e) => {
             e.preventDefault();
             if (!uri || installBusy) return;
-            const effectivePath = plugPathEdited
-              ? plugPath
-              : suggestedPlugPath;
+            const effectivePath = plugPathEdited ? plugPath : suggestedPlugPath;
             const result = isPlug
               ? await libs.run(installKey, "available", "installPlug", {
                   uri,
@@ -769,11 +766,7 @@ function RepoUpdateAllButton() {
       class="cfg-btn"
       disabled={busy}
       onClick={async () => {
-        const r = await libs.run(
-          key,
-          "repositories",
-          "updateAllRepositories",
-        );
+        const r = await libs.run(key, "repositories", "updateAllRepositories");
         if (r.ok) {
           const updated: string[] = r.data?.updated ?? [];
           libs.setSectionInfo(

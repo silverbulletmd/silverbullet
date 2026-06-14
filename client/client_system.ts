@@ -224,11 +224,7 @@ export class ClientSystem {
   }
 
   async loadPlugFromPath(path: string, lastModified: number) {
-    await this.system.loadPlug(
-      WorkerSandbox.forPath(path),
-      path,
-      lastModified,
-    );
+    await this.system.loadPlug(WorkerSandbox.forPath(path), path, lastModified);
   }
 
   async reloadPlugsFromSpace(space: Space) {
@@ -246,11 +242,10 @@ export class ClientSystem {
 
     await Promise.all(
       allPlugs.map((fileMeta) =>
-        this.loadPlugFromPath(fileMeta.name, fileMeta.lastModified).catch(
-          (e) =>
-            console.error(
-              `Could not load plug ${fileMeta.name} error: ${e.message}`,
-            ),
+        this.loadPlugFromPath(fileMeta.name, fileMeta.lastModified).catch((e) =>
+          console.error(
+            `Could not load plug ${fileMeta.name} error: ${e.message}`,
+          ),
         ),
       ),
     );

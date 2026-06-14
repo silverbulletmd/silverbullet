@@ -18,7 +18,10 @@ export function RecordingChord({ onCommit, onCancel, conflictCheck }: Props) {
   const { cfg } = useCfg();
   const [tokens, setTokens] = useState<string[]>([]);
   const [invalidFirstKey, setInvalidFirstKey] = useState<string | null>(null);
-  const conflict = useMemo(() => conflictCheck(tokens), [tokens, conflictCheck]);
+  const conflict = useMemo(
+    () => conflictCheck(tokens),
+    [tokens, conflictCheck],
+  );
 
   // Callbacks change identity on parent re-render; stash in refs so the
   // effect can bind once and always call the latest.

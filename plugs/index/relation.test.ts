@@ -103,8 +103,8 @@ Body.`;
   const fm = extractFrontMatter(tree);
   const objects = await indexRelations(pageMeta("Linda"), fm, tree, text);
 
-  const r = objects.find((o) =>
-    o.tag === "relation" && o.kind === "frontmatter"
+  const r = objects.find(
+    (o) => o.tag === "relation" && o.kind === "frontmatter",
   );
   expect(r).toBeDefined();
   expect(r!.type).toEqual("spouse");
@@ -123,9 +123,7 @@ test("inline attribute with wikilink value emits typed attribute relation", asyn
   const fm = extractFrontMatter(tree);
   const objects = await indexRelations(pageMeta("Linda"), fm, tree, text);
 
-  const r = objects.find((o) =>
-    o.tag === "relation" && o.kind === "attribute"
-  );
+  const r = objects.find((o) => o.tag === "relation" && o.kind === "attribute");
   expect(r).toBeDefined();
   expect(r!.type).toEqual("spouse");
   expect(r!.to).toEqual("Jack");
@@ -154,9 +152,7 @@ test("mention to a markdown page has toTag=page", async () => {
   const fm = extractFrontMatter(tree);
   const objects = await indexRelations(pageMeta("Src"), fm, tree, text);
 
-  const r = objects.find((o) =>
-    o.tag === "relation" && o.kind === "mention"
-  );
+  const r = objects.find((o) => o.tag === "relation" && o.kind === "mention");
   expect(r!.toTag).toEqual("page");
 });
 
@@ -167,9 +163,7 @@ test("url relation has no toTag", async () => {
   const fm = extractFrontMatter(tree);
   const objects = await indexRelations(pageMeta("Src"), fm, tree, text);
 
-  const r = objects.find((o) =>
-    o.tag === "relation" && o.kind === "url"
-  );
+  const r = objects.find((o) => o.tag === "relation" && o.kind === "url");
   expect(r!.toTag).toBeUndefined();
 });
 
@@ -183,8 +177,8 @@ test("two refs in same item emit co-mention edges in both directions", async () 
   const fm = extractFrontMatter(tree);
   const objects = await indexRelations(pageMeta("Diary"), fm, tree, text);
 
-  const coments = objects.filter((o) =>
-    o.tag === "relation" && o.kind === "co-mention"
+  const coments = objects.filter(
+    (o) => o.tag === "relation" && o.kind === "co-mention",
   );
   expect(coments).toHaveLength(2);
   const pairs = new Set(coments.map((r) => `${r.from}->${r.to}`));
@@ -203,8 +197,8 @@ test("nested-child refs co-mention with parent item", async () => {
   const fm = extractFrontMatter(tree);
   const objects = await indexRelations(pageMeta("Page"), fm, tree, text);
 
-  const coments = objects.filter((o) =>
-    o.tag === "relation" && o.kind === "co-mention"
+  const coments = objects.filter(
+    (o) => o.tag === "relation" && o.kind === "co-mention",
   );
   expect(coments).toHaveLength(2);
 });
@@ -219,8 +213,8 @@ test("two refs in same paragraph (no list) emit co-mention", async () => {
   const fm = extractFrontMatter(tree);
   const objects = await indexRelations(pageMeta("Page"), fm, tree, text);
 
-  const coments = objects.filter((o) =>
-    o.tag === "relation" && o.kind === "co-mention"
+  const coments = objects.filter(
+    (o) => o.tag === "relation" && o.kind === "co-mention",
   );
   expect(coments).toHaveLength(2);
 });
@@ -235,8 +229,8 @@ test("two refs in different paragraphs emit no co-mention", async () => {
   const fm = extractFrontMatter(tree);
   const objects = await indexRelations(pageMeta("Page"), fm, tree, text);
 
-  const coments = objects.filter((o) =>
-    o.tag === "relation" && o.kind === "co-mention"
+  const coments = objects.filter(
+    (o) => o.tag === "relation" && o.kind === "co-mention",
   );
   expect(coments).toHaveLength(0);
 });
@@ -250,9 +244,7 @@ test("wikilink inside list item: from = item ref, fromTag = item", async () => {
   const fm = extractFrontMatter(tree);
   const objects = await indexRelations(pageMeta("Diary"), fm, tree, text);
 
-  const r = objects.find((o) =>
-    o.tag === "relation" && o.kind === "mention"
-  );
+  const r = objects.find((o) => o.tag === "relation" && o.kind === "mention");
   expect(r).toBeDefined();
   expect(r!.from).toMatch(/^Diary@\d+$/);
   expect(r!.fromTag).toEqual("item");
@@ -263,14 +255,13 @@ test("co-mention pairs attribute targets in the same item", async () => {
   await space.writePage("Angela", "");
   await space.writePage("Super Team", "");
 
-  const text =
-    `* #contact $pete Pete [spouse: "[[Angela]]"] [team: "[[Super Team]]"]`;
+  const text = `* #contact $pete Pete [spouse: "[[Angela]]"] [team: "[[Super Team]]"]`;
   const tree = parseMarkdown(text);
   const fm = extractFrontMatter(tree);
   const objects = await indexRelations(pageMeta("People"), fm, tree, text);
 
-  const coms = objects.filter((o) =>
-    o.tag === "relation" && o.kind === "co-mention"
+  const coms = objects.filter(
+    (o) => o.tag === "relation" && o.kind === "co-mention",
   );
   const pairs = new Set(coms.map((r) => `${r.from}->${r.to}`));
   expect(pairs.has("Angela->Super Team")).toBe(true);
@@ -284,13 +275,12 @@ test("co-mention emits unique refs when target appears multiple times in differe
   // [[A]] shares a (nested) scope with both occurrences of [[B]]; without
   // ref-granularity dedupe, both j-iterations would emit the same ref
   // (A's position + B's name) but with different `via` scopes.
-  const text =
-    "* outer\n  * [[A]]\n    * [[B]]\n  * also [[B]] here\n";
+  const text = "* outer\n  * [[A]]\n    * [[B]]\n  * also [[B]] here\n";
   const tree = parseMarkdown(text);
   const fm = extractFrontMatter(tree);
   const objects = await indexRelations(pageMeta("P"), fm, tree, text);
-  const coms = objects.filter((o) =>
-    o.tag === "relation" && o.kind === "co-mention"
+  const coms = objects.filter(
+    (o) => o.tag === "relation" && o.kind === "co-mention",
   );
   const refs = coms.map((r) => r.ref);
   expect(new Set(refs).size).toEqual(refs.length);
@@ -304,8 +294,8 @@ test("co-mention carries fromTag/toTag from target relations", async () => {
   const tree = parseMarkdown(text);
   const fm = extractFrontMatter(tree);
   const objects = await indexRelations(pageMeta("Diary"), fm, tree, text);
-  const coms = objects.filter((o) =>
-    o.tag === "relation" && o.kind === "co-mention"
+  const coms = objects.filter(
+    (o) => o.tag === "relation" && o.kind === "co-mention",
   );
   expect(coms).toHaveLength(2);
   for (const r of coms) {
@@ -324,14 +314,13 @@ test("tagged item with $anchor: from = anchor name", async () => {
   await space.writePage("Angela", "");
   await space.writePage("Super Team", "");
 
-  const text =
-    `* #contact $pete Pete [spouse: "[[Angela]]"] [team: "[[Super Team]]"]`;
+  const text = `* #contact $pete Pete [spouse: "[[Angela]]"] [team: "[[Super Team]]"]`;
   const tree = parseMarkdown(text);
   const fm = extractFrontMatter(tree);
   const objects = await indexRelations(pageMeta("People"), fm, tree, text);
 
-  const attrs = objects.filter((o) =>
-    o.tag === "relation" && o.kind === "attribute"
+  const attrs = objects.filter(
+    (o) => o.tag === "relation" && o.kind === "attribute",
   );
   expect(attrs).toHaveLength(2);
   for (const r of attrs) {
@@ -342,13 +331,12 @@ test("tagged item with $anchor: from = anchor name", async () => {
 
 test("same-page anchor wikilink: to = anchor name, kind = mention", async () => {
   createMockSystem();
-  const text =
-    `* #contact $pete-ref Pete\n\nSee also [[$pete-ref]].\n`;
+  const text = `* #contact $pete-ref Pete\n\nSee also [[$pete-ref]].\n`;
   const tree = parseMarkdown(text);
   const fm = extractFrontMatter(tree);
   const objects = await indexRelations(pageMeta("People"), fm, tree, text);
-  const mentions = objects.filter((o) =>
-    o.tag === "relation" && o.kind === "mention"
+  const mentions = objects.filter(
+    (o) => o.tag === "relation" && o.kind === "mention",
   );
   expect(mentions).toHaveLength(1);
   expect(mentions[0].to).toEqual("pete-ref");
@@ -361,14 +349,15 @@ test("same-page anchor wikilink: to = anchor name, kind = mention", async () => 
 
 test("anchor wikilinks: toTag = 'anchor' regardless of host block type", async () => {
   createMockSystem();
-  const text =
-    `# $intro Intro\n\n* [ ] $todo Do something\n\nLinks: [[$intro]] [[$todo]] [[$elsewhere]]\n`;
+  const text = `# $intro Intro\n\n* [ ] $todo Do something\n\nLinks: [[$intro]] [[$todo]] [[$elsewhere]]\n`;
   const tree = parseMarkdown(text);
   const fm = extractFrontMatter(tree);
   const objects = await indexRelations(pageMeta("Notes"), fm, tree, text);
-  const anchorMentions = objects.filter((o) =>
-    o.tag === "relation" && o.kind === "mention" &&
-    ["intro", "todo", "elsewhere"].includes(o.to)
+  const anchorMentions = objects.filter(
+    (o) =>
+      o.tag === "relation" &&
+      o.kind === "mention" &&
+      ["intro", "todo", "elsewhere"].includes(o.to),
   );
   expect(anchorMentions).toHaveLength(3);
   for (const r of anchorMentions) {
@@ -393,9 +382,7 @@ test("cross-page anchor wikilink: to = page (anchor segment is UI nav)", async (
   const tree = parseMarkdown(text);
   const fm = extractFrontMatter(tree);
   const objects = await indexRelations(pageMeta("Notes"), fm, tree, text);
-  const r = objects.find((o) =>
-    o.tag === "relation" && o.kind === "mention"
-  );
+  const r = objects.find((o) => o.tag === "relation" && o.kind === "mention");
   expect(r).toBeDefined();
   expect(r!.to).toEqual("Other");
   expect(r!.toTag).toEqual("page");
@@ -403,13 +390,12 @@ test("cross-page anchor wikilink: to = page (anchor segment is UI nav)", async (
 
 test("anchor wikilink inside attribute value: to = anchor name", async () => {
   createMockSystem();
-  const text =
-    `* $a Alice [friend: "[[$b]]"]\n* $b Bob\n`;
+  const text = `* $a Alice [friend: "[[$b]]"]\n* $b Bob\n`;
   const tree = parseMarkdown(text);
   const fm = extractFrontMatter(tree);
   const objects = await indexRelations(pageMeta("People"), fm, tree, text);
-  const attr = objects.find((o) =>
-    o.tag === "relation" && o.kind === "attribute"
+  const attr = objects.find(
+    (o) => o.tag === "relation" && o.kind === "attribute",
   );
   expect(attr).toBeDefined();
   expect(attr!.to).toEqual("b");
@@ -428,9 +414,7 @@ test("anchor on sub-list item does not bleed into parent item ref", async () => 
   const fm = extractFrontMatter(tree);
   const objects = await indexRelations(pageMeta("Diary"), fm, tree, text);
 
-  const r = objects.find((o) =>
-    o.tag === "relation" && o.kind === "mention"
-  );
+  const r = objects.find((o) => o.tag === "relation" && o.kind === "mention");
   expect(r).toBeDefined();
   expect(r!.from).toMatch(/^Diary@\d+$/);
 });
@@ -444,9 +428,7 @@ test("wikilink inside task: fromTag = task", async () => {
   const fm = extractFrontMatter(tree);
   const objects = await indexRelations(pageMeta("Today"), fm, tree, text);
 
-  const r = objects.find((o) =>
-    o.tag === "relation" && o.kind === "mention"
-  );
+  const r = objects.find((o) => o.tag === "relation" && o.kind === "mention");
   expect(r).toBeDefined();
   expect(r!.fromTag).toEqual("task");
   expect(r!.from).toMatch(/^Today@\d+$/);
@@ -456,15 +438,12 @@ test("fenced #tag data block with wikilink value emits data relation", async () 
   const { space } = createMockSystem();
   await space.writePage("Jack", "");
 
-  const text =
-    "Header\n\n```#person\nname: Linda\nspouse: \"[[Jack]]\"\n```\n";
+  const text = 'Header\n\n```#person\nname: Linda\nspouse: "[[Jack]]"\n```\n';
   const tree = parseMarkdown(text);
   const fm = extractFrontMatter(tree);
   const objects = await indexRelations(pageMeta("People"), fm, tree, text);
 
-  const r = objects.find((o) =>
-    o.tag === "relation" && o.kind === "data"
-  );
+  const r = objects.find((o) => o.tag === "relation" && o.kind === "data");
   expect(r).toBeDefined();
   expect(r!.type).toEqual("spouse");
   expect(r!.to).toEqual("Jack");

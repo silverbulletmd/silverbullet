@@ -21,8 +21,9 @@ export default function reducer(
       };
     case "page-loaded": {
       const mouseDetected = globalThis.matchMedia("(pointer:fine)").matches;
-      const isBrowser = globalThis.matchMedia("(display-mode: browser)")
-        .matches;
+      const isBrowser = globalThis.matchMedia(
+        "(display-mode: browser)",
+      ).matches;
       return {
         ...state,
         isLoading: false,
@@ -229,10 +230,10 @@ export default function reducer(
         progressPercentage: action.progressPercentage,
         progressType: action.progressType,
       };
-		case "set-page-title":
-			return {
-			...state,
-			pageTitle: action.pageTitle,
-			};
+    case "set-page-title":
+      return {
+        ...state,
+        pageTitle: action.pageTitle,
+      };
   }
 }

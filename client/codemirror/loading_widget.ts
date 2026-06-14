@@ -17,7 +17,8 @@ export class LoadingWidget extends WidgetType {
 
   override toDOM(): HTMLElement {
     const wrapper = document.createElement("span");
-    wrapper.className = "sb-loading-widget " +
+    wrapper.className =
+      "sb-loading-widget " +
       (this.block ? "sb-loading-widget-block" : "sb-loading-widget-inline");
     const spinner = document.createElement("span");
     spinner.className = "sb-loading-spinner";

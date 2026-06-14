@@ -673,9 +673,9 @@ test("clean: scalar JS array in cell is joined with <br/>", async () => {
 });
 
 test("clean: pipe inside scalar array cell is escaped", async () => {
-  expect(
-    await renderResultToCleanMarkdown({ vals: ["a|b", "c"] }),
-  ).toBe("|vals|\n|--|\n|a\\|b<br/>c|");
+  expect(await renderResultToCleanMarkdown({ vals: ["a|b", "c"] })).toBe(
+    "|vals|\n|--|\n|a\\|b<br/>c|",
+  );
 });
 
 test("clean: SLIQ_NULL cell renders as empty", async () => {

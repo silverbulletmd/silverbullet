@@ -41,7 +41,11 @@ async function runLintForTest(
         perm: "rw",
       };
       const objects = await indexMarkdown(pageText, pm);
-      await (globalThis as any).syscall("index.indexObjects", pageName, objects);
+      await (globalThis as any).syscall(
+        "index.indexObjects",
+        pageName,
+        objects,
+      );
     }
   }
 
@@ -72,9 +76,7 @@ describe("lintAnchors", () => {
   });
 
   test("lint: single valid anchor — no diagnostics", async () => {
-    const diagnostics = await runLintForTest(
-      `This paragraph has $pete here.`,
-    );
+    const diagnostics = await runLintForTest(`This paragraph has $pete here.`);
     expect(diagnostics).toEqual([]);
   });
 
@@ -88,9 +90,7 @@ describe("lintAnchors", () => {
   });
 
   test("lint: multiple anchors in one paragraph (rule B)", async () => {
-    const diagnostics = await runLintForTest(
-      `Para $first and $second here.`,
-    );
+    const diagnostics = await runLintForTest(`Para $first and $second here.`);
     // Exactly one diagnostic, pointing at the second anchor
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0].message).toMatch(/multiple anchors/i);
@@ -109,18 +109,14 @@ describe("lintAnchors", () => {
   });
 
   test("lint: multiple anchors in a list item (rule B)", async () => {
-    const diagnostics = await runLintForTest(
-      `- Item $one and $two`,
-    );
+    const diagnostics = await runLintForTest(`- Item $one and $two`);
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0].message).toMatch(/multiple anchors/i);
   });
 
   test("lint: anchors in sibling list items do not cross-contaminate (rule B)", async () => {
     // Two separate items, each with exactly one anchor — no error
-    const diagnostics = await runLintForTest(
-      `- Item $one\n- Item $two`,
-    );
+    const diagnostics = await runLintForTest(`- Item $one\n- Item $two`);
     expect(diagnostics).toEqual([]);
   });
 
@@ -149,10 +145,9 @@ describe("lintAnchors", () => {
   });
 
   test("lint: duplicate anchor across pages (rule C)", async () => {
-    const diagnostics = await runLintForTest(
-      `Para $pete here.`,
-      { otherPages: { Other: `Other para $pete here` } },
-    );
+    const diagnostics = await runLintForTest(`Para $pete here.`, {
+      otherPages: { Other: `Other para $pete here` },
+    });
     // One NamedAnchor on this page, and it's a duplicate — one diagnostic
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0].message).toMatch(/duplicate/i);
@@ -160,10 +155,9 @@ describe("lintAnchors", () => {
   });
 
   test("lint: unique anchor across pages — no duplicate diagnostic (rule C)", async () => {
-    const diagnostics = await runLintForTest(
-      `Para $unique here.`,
-      { otherPages: { Other: `Other para $different.` } },
-    );
+    const diagnostics = await runLintForTest(`Para $unique here.`, {
+      otherPages: { Other: `Other para $different.` },
+    });
     // No duplicate, no diagnostics
     expect(diagnostics).toEqual([]);
   });
@@ -183,36 +177,32 @@ describe("lintAnchors", () => {
     );
     // The anchor is defined, no broken-link error
     const brokenLinks = diagnostics.filter((d) =>
-      /anchor not found/i.test(d.message)
+      /anchor not found/i.test(d.message),
     );
     expect(brokenLinks).toHaveLength(0);
   });
 
   test("lint: ambiguous bare anchor link (rule E)", async () => {
     // $shared exists on two different pages; [[$shared]] is ambiguous
-    const diagnostics = await runLintForTest(
-      `See [[$shared]].`,
-      {
-        otherPages: {
-          Other: `First $shared here`,
-          Another: `Second $shared here`,
-        },
+    const diagnostics = await runLintForTest(`See [[$shared]].`, {
+      otherPages: {
+        Other: `First $shared here`,
+        Another: `Second $shared here`,
       },
-    );
+    });
     // At least one diagnostic about ambiguity/duplicate
     const ambiguousDiags = diagnostics.filter((d) =>
-      /ambiguous|duplicate/i.test(d.message)
+      /ambiguous|duplicate/i.test(d.message),
     );
     expect(ambiguousDiags.length).toBeGreaterThanOrEqual(1);
   });
 
   test("lint: page-qualified link to existing anchor — no diagnostic (rule D/E)", async () => {
-    const diagnostics = await runLintForTest(
-      `See [[Other$pete]].`,
-      { otherPages: { Other: `Anchor $pete here` } },
-    );
+    const diagnostics = await runLintForTest(`See [[Other$pete]].`, {
+      otherPages: { Other: `Anchor $pete here` },
+    });
     const anchorDiags = diagnostics.filter((d) =>
-      /anchor not found|ambiguous|duplicate/i.test(d.message)
+      /anchor not found|ambiguous|duplicate/i.test(d.message),
     );
     expect(anchorDiags).toHaveLength(0);
   });

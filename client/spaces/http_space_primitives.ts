@@ -16,7 +16,8 @@ const defaultFetchTimeout = 30000; // 30 seconds
 // WebKit (Safari, WKWebView) strips custom response headers (X-Last-Modified,
 // etc.) when it recognizes a file extension in the URL. Encoding the last dot
 // as %2E prevents this; the server decodes it transparently.
-const isWebKit = typeof navigator !== "undefined" &&
+const isWebKit =
+  typeof navigator !== "undefined" &&
   /AppleWebKit/.test(navigator.userAgent) &&
   !/Chrome/.test(navigator.userAgent);
 
@@ -32,8 +33,13 @@ function encodeExtensionDot(url: string): string {
   const rest = qIdx >= 0 ? filePart.substring(qIdx) : "";
   const lastDot = path.lastIndexOf(".");
   if (lastDot > path.lastIndexOf("/")) {
-    return url.substring(0, afterFs) +
-      path.substring(0, lastDot) + "%2E" + path.substring(lastDot + 1) + rest;
+    return (
+      url.substring(0, afterFs) +
+      path.substring(0, lastDot) +
+      "%2E" +
+      path.substring(lastDot + 1) +
+      rest
+    );
   }
   return url;
 }

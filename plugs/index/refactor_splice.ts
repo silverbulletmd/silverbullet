@@ -3,7 +3,7 @@
 // Given the source text of a page, a single relation's `range`, the
 // old reference name, the new reference name, and the editing page's
 // name (for relative-path resolution), returns the source text with
-// that one reference rewritten in place. 
+// that one reference rewritten in place.
 
 // Forms handled:
 //
@@ -64,9 +64,7 @@ function spliceWikilink(
   // Strip a trailing `.md` if the user wrote one — wikilinks
   // conventionally omit the extension and the legacy refactor did
   // this too (the `link.toPage` was always without `.md`).
-  const stripped = basename.endsWith(".md")
-    ? basename.slice(0, -3)
-    : basename;
+  const stripped = basename.endsWith(".md") ? basename.slice(0, -3) : basename;
   if (stripped !== oldName) return text;
 
   const replacement = `[[${newName}${detail ?? ""}${aliasPart}]]`;
@@ -103,9 +101,13 @@ function spliceMarkdownLink(
   const needsWrap = !!openAngle || newUrl.includes(" ");
   const wrappedUrl = needsWrap ? `<${newUrl}>` : newUrl;
 
-  return text.substring(0, start) +
-    leftBracketText + wrappedUrl + closeParen +
-    text.substring(end);
+  return (
+    text.substring(0, start) +
+    leftBracketText +
+    wrappedUrl +
+    closeParen +
+    text.substring(end)
+  );
 }
 
 // Matches a trailing `@123` / `@L4C5` / `#header` / `$anchor` ref

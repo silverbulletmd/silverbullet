@@ -15,9 +15,7 @@ import {
   traverseTree,
 } from "./tree.ts";
 import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
-import {
-  lezerToParseTree,
-} from "../../client/markdown_parser/parse_tree.ts";
+import { lezerToParseTree } from "../../client/markdown_parser/parse_tree.ts";
 import { extendedMarkdownLanguage } from "../../client/markdown_parser/parser.ts";
 
 // --- Load all website markdown files ---

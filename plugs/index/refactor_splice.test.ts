@@ -29,14 +29,19 @@ function splice(
 
 describe("wikilinks", () => {
   test("bare wikilink", () => {
-    expect(
-      splice("Before [[Old]] after.", "[[Old]]", "Old", "New"),
-    ).toBe("Before [[New]] after.");
+    expect(splice("Before [[Old]] after.", "[[Old]]", "Old", "New")).toBe(
+      "Before [[New]] after.",
+    );
   });
 
   test("wikilink with alias", () => {
     expect(
-      splice("Before [[Old|the alias]] after.", "[[Old|the alias]]", "Old", "New"),
+      splice(
+        "Before [[Old|the alias]] after.",
+        "[[Old|the alias]]",
+        "Old",
+        "New",
+      ),
     ).toBe("Before [[New|the alias]] after.");
   });
 
@@ -47,9 +52,9 @@ describe("wikilinks", () => {
   });
 
   test("wikilink with position detail", () => {
-    expect(
-      splice("See [[Old@142]].", "[[Old@142]]", "Old", "New"),
-    ).toBe("See [[New@142]].");
+    expect(splice("See [[Old@142]].", "[[Old@142]]", "Old", "New")).toBe(
+      "See [[New@142]].",
+    );
   });
 
   test("wikilink with anchor detail", () => {
@@ -65,31 +70,31 @@ describe("wikilinks", () => {
   });
 
   test("wikilink at start of line", () => {
-    expect(
-      splice("[[Old]] starts the line.", "[[Old]]", "Old", "New"),
-    ).toBe("[[New]] starts the line.");
+    expect(splice("[[Old]] starts the line.", "[[Old]]", "Old", "New")).toBe(
+      "[[New]] starts the line.",
+    );
   });
 
   test("wikilink at end of file", () => {
-    expect(
-      splice("Trailing [[Old]]", "[[Old]]", "Old", "New"),
-    ).toBe("Trailing [[New]]");
+    expect(splice("Trailing [[Old]]", "[[Old]]", "Old", "New")).toBe(
+      "Trailing [[New]]",
+    );
   });
 
   test("wikilink with `.md` suffix is normalized", () => {
     // Conventionally wikilinks omit `.md`; the legacy refactor produced
     // a bare name and we preserve that behavior.
-    expect(
-      splice("See [[Old.md]].", "[[Old.md]]", "Old", "New"),
-    ).toBe("See [[New]].");
+    expect(splice("See [[Old.md]].", "[[Old.md]]", "Old", "New")).toBe(
+      "See [[New]].",
+    );
   });
 
   test("wikilink whose target doesn't match oldName is left alone", () => {
     // Defensive — index says this links to Old, but the source text
     // doesn't agree. Don't rewrite.
-    expect(
-      splice("See [[Different]].", "[[Different]]", "Old", "New"),
-    ).toBe("See [[Different]].");
+    expect(splice("See [[Different]].", "[[Different]]", "Old", "New")).toBe(
+      "See [[Different]].",
+    );
   });
 });
 
@@ -121,17 +126,17 @@ describe("markdown links (relative)", () => {
   });
 
   test("markdown link preserves [text] empty", () => {
-    expect(
-      splice("[](Old)", "[](Old)", "Old", "New", "Editor"),
-    ).toBe("[](New)");
+    expect(splice("[](Old)", "[](Old)", "Old", "New", "Editor")).toBe(
+      "[](New)",
+    );
   });
 });
 
 describe("markdown links (absolute)", () => {
   test("absolute path leading slash preserved", () => {
-    expect(
-      splice("See [t](/Old).", "[t](/Old)", "Old", "New", "Editor"),
-    ).toBe("See [t](/New).");
+    expect(splice("See [t](/Old).", "[t](/Old)", "Old", "New", "Editor")).toBe(
+      "See [t](/New).",
+    );
   });
 
   test("absolute path with detail", () => {
@@ -143,21 +148,21 @@ describe("markdown links (absolute)", () => {
 
 describe("markdown links (angle-wrapped)", () => {
   test("preserves angle wrapping when present", () => {
-    expect(
-      splice("[t](<Old>)", "[t](<Old>)", "Old", "New", "Editor"),
-    ).toBe("[t](<New>)");
+    expect(splice("[t](<Old>)", "[t](<Old>)", "Old", "New", "Editor")).toBe(
+      "[t](<New>)",
+    );
   });
 
   test("auto-wraps when the new name contains spaces", () => {
-    expect(
-      splice("[t](Old).", "[t](Old)", "Old", "New Name", "Editor"),
-    ).toBe("[t](<New Name>).");
+    expect(splice("[t](Old).", "[t](Old)", "Old", "New Name", "Editor")).toBe(
+      "[t](<New Name>).",
+    );
   });
 
   test("auto-wraps absolute path with spaces", () => {
-    expect(
-      splice("[t](/Old).", "[t](/Old)", "Old", "New Name", "Editor"),
-    ).toBe("[t](</New Name>).");
+    expect(splice("[t](/Old).", "[t](/Old)", "Old", "New Name", "Editor")).toBe(
+      "[t](</New Name>).",
+    );
   });
 });
 

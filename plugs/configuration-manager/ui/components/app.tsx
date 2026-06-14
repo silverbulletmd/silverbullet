@@ -135,10 +135,12 @@ export function App() {
   const config = useConfigEditor();
   const shortcuts = useShortcutEditor();
   const libraries = useLibrariesEditor(cfg.libraries);
-  const { save, saving, error: saveError, dismissError } = useSave(
-    config,
-    shortcuts,
-  );
+  const {
+    save,
+    saving,
+    error: saveError,
+    dismissError,
+  } = useSave(config, shortcuts);
   const [tab, setTab] = useState<TabId>(cfg.initialTab);
 
   useGlobalEscape(useCallback(() => close(), []));

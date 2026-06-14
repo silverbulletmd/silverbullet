@@ -313,8 +313,7 @@ export async function lintAnchors({
         from: extra.from,
         to: extra.to,
         severity: "error",
-        message:
-          `Multiple anchors in the same block: "$${extra.name}" is the ${i + 1}st anchor here. A block may only carry one anchor.`,
+        message: `Multiple anchors in the same block: "$${extra.name}" is the ${i + 1}st anchor here. A block may only carry one anchor.`,
       });
     }
 
@@ -342,9 +341,7 @@ export async function lintAnchors({
       const url = wikiLinkPage.children![0].text!;
       const ref = parseToRef(url);
       if (ref?.details?.type === "anchor") {
-        const linkedPage = ref.path
-          ? getNameFromPath(ref.path)
-          : undefined;
+        const linkedPage = ref.path ? getNameFromPath(ref.path) : undefined;
         anchorLinks.push({
           name: ref.details.name,
           page: linkedPage || undefined,
@@ -396,8 +393,7 @@ export async function lintAnchors({
           from: node.from,
           to: node.to,
           severity: "error",
-          message:
-            `Duplicate anchor "$${anchorName}" — defined ${nodes.length} times on this page.`,
+          message: `Duplicate anchor "$${anchorName}" — defined ${nodes.length} times on this page.`,
         });
       }
     }
@@ -417,8 +413,7 @@ export async function lintAnchors({
           from: node.from,
           to: node.to,
           severity: "error",
-          message:
-            `Duplicate anchor "$${anchorName}" — also defined on: ${otherPages.join(", ")}`,
+          message: `Duplicate anchor "$${anchorName}" — also defined on: ${otherPages.join(", ")}`,
         });
       }
     }
@@ -426,9 +421,7 @@ export async function lintAnchors({
 
   // Broken / ambiguous anchor links
   for (const link of anchorLinks) {
-    const key: LookupKey = link.page
-      ? `${link.page}\0${link.name}`
-      : link.name;
+    const key: LookupKey = link.page ? `${link.page}\0${link.name}` : link.name;
     const result = resolved.get(key);
     if (!result || result.ok) {
       continue; // resolved fine — no diagnostic
@@ -448,8 +441,7 @@ export async function lintAnchors({
         from: link.from,
         to: link.to,
         severity: "error",
-        message:
-          `Ambiguous anchor "$${link.name}" — found on multiple pages: ${pages}`,
+        message: `Ambiguous anchor "$${link.name}" — found on multiple pages: ${pages}`,
       });
     }
   }

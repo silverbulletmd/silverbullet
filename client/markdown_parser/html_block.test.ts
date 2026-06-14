@@ -37,9 +37,7 @@ test("simple table produces HTMLBlock with structured children", () => {
   const block = topNode(tree);
   expect(block.type).toBe("HTMLBlock");
 
-  const childTypes = block.children!
-    .filter((c) => c.type)
-    .map((c) => c.type);
+  const childTypes = block.children!.filter((c) => c.type).map((c) => c.type);
   expect(childTypes).toEqual([
     "HTMLOpenTag",
     "HTMLOpenTag",
@@ -67,9 +65,7 @@ test("tag text is preserved in children", () => {
 // ── Attributes on tags ──────────────────────────────────────────────
 
 test("attributes are preserved in HTMLOpenTag text", () => {
-  const tree = parseHtml(
-    '<td data-type="number" class="cell">42</td>',
-  );
+  const tree = parseHtml('<td data-type="number" class="cell">42</td>');
   const block = topNode(tree);
   const openTag = block.children!.find((c) => c.type === "HTMLOpenTag")!;
   expect(nodeText(openTag)).toBe('<td data-type="number" class="cell">');
@@ -167,7 +163,7 @@ test("table with data attributes and markdown in cells", () => {
   // Check data attributes are in tag text
   const openTags = block.children!.filter((c) => c.type === "HTMLOpenTag");
   const tdWithAttr = openTags.find((t) =>
-    nodeText(t).includes("data-table-cell-type")
+    nodeText(t).includes("data-table-cell-type"),
   );
   expect(tdWithAttr).toBeDefined();
   expect(nodeText(tdWithAttr!)).toContain('data-table-cell-type="string"');
@@ -256,7 +252,7 @@ test("table with empty cells", () => {
 });
 
 test("data-table-empty attribute on table", () => {
-  const tree = parseHtml('<table data-table-empty></table>');
+  const tree = parseHtml("<table data-table-empty></table>");
   const block = topNode(tree);
   expect(block.type).toBe("HTMLBlock");
   const openTag = block.children!.find((c) => c.type === "HTMLOpenTag")!;

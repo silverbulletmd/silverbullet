@@ -30,23 +30,25 @@ import { expect, test } from "./fixtures.ts";
  */
 
 /** Wait for the service worker to be active and controlling the page. */
-async function waitForServiceWorkerReady(page: import("@playwright/test").Page): Promise<void> {
-	await page.evaluate(async () => {
-		const reg = await navigator.serviceWorker.ready;
-		if (!navigator.serviceWorker.controller) {
-			// SW is active but not yet controlling this page — wait for it to claim.
-			await new Promise<void>((resolve) => {
-				navigator.serviceWorker.addEventListener(
-					"controllerchange",
-					() => resolve(),
-					{ once: true },
-				);
-				// Safety: if the controller appears between .ready and listener setup
-				if (navigator.serviceWorker.controller) resolve();
-			});
-		}
-		return reg.active?.state;
-	});
+async function waitForServiceWorkerReady(
+  page: import("@playwright/test").Page,
+): Promise<void> {
+  await page.evaluate(async () => {
+    const reg = await navigator.serviceWorker.ready;
+    if (!navigator.serviceWorker.controller) {
+      // SW is active but not yet controlling this page — wait for it to claim.
+      await new Promise<void>((resolve) => {
+        navigator.serviceWorker.addEventListener(
+          "controllerchange",
+          () => resolve(),
+          { once: true },
+        );
+        // Safety: if the controller appears between .ready and listener setup
+        if (navigator.serviceWorker.controller) resolve();
+      });
+    }
+    return reg.active?.state;
+  });
 }
 
 /**
@@ -58,113 +60,145 @@ async function waitForServiceWorkerReady(page: import("@playwright/test").Page):
  * the SW can proxy requests to the server while syncing in the background.
  * Going offline before sync completes means IndexedDB may be empty.
  */
-async function waitForSyncComplete(page: import("@playwright/test").Page): Promise<void> {
-	await page.evaluate(() => {
-		return new Promise<void>((resolve) => {
-			navigator.serviceWorker.addEventListener("message", function handler(event: MessageEvent) {
-				if (event.data?.type === "space-sync-complete") {
-					navigator.serviceWorker.removeEventListener("message", handler);
-					resolve();
-				}
-			});
-		});
-	});
+async function waitForSyncComplete(
+  page: import("@playwright/test").Page,
+): Promise<void> {
+  await page.evaluate(() => {
+    return new Promise<void>((resolve) => {
+      navigator.serviceWorker.addEventListener(
+        "message",
+        function handler(event: MessageEvent) {
+          if (event.data?.type === "space-sync-complete") {
+            navigator.serviceWorker.removeEventListener("message", handler);
+            resolve();
+          }
+        },
+      );
+    });
+  });
 }
 
 test.describe("PWA offline support", () => {
-	// Only run on Chromium — Firefox's Playwright implementation doesn't
-	// fully support service worker + setOffline interactions.
-	test.skip(({ browserName }) => browserName !== "chromium", "PWA offline tests only run on Chromium");
-	test.describe.configure({ retries: 2 });
+  // Only run on Chromium — Firefox's Playwright implementation doesn't
+  // fully support service worker + setOffline interactions.
+  test.skip(
+    ({ browserName }) => browserName !== "chromium",
+    "PWA offline tests only run on Chromium",
+  );
+  test.describe.configure({ retries: 2 });
 
-	test.use({
-		// This suite exercises real SW behavior, so it needs the SW running.
-		disableServiceWorker: false,
-		spaceFiles: {
-			"index.md": "# Offline Test Space\nThis content should survive offline.",
-			"TestPage.md": "# Test Page\nOffline page content here.",
-		},
-	});
+  test.use({
+    // This suite exercises real SW behavior, so it needs the SW running.
+    disableServiceWorker: false,
+    spaceFiles: {
+      "index.md": "# Offline Test Space\nThis content should survive offline.",
+      "TestPage.md": "# Test Page\nOffline page content here.",
+    },
+  });
 
-	test("app serves content offline in airplane mode", async ({ sbServer, page }) => {
-		// Load the app with service worker enabled
-		await page.goto(sbServer.url);
-		const editor = page.locator("#sb-editor .cm-content");
-		await editor.waitFor({ state: "visible", timeout: 30_000 });
+  test("app serves content offline in airplane mode", async ({
+    sbServer,
+    page,
+  }) => {
+    // Load the app with service worker enabled
+    await page.goto(sbServer.url);
+    const editor = page.locator("#sb-editor .cm-content");
+    await editor.waitFor({ state: "visible", timeout: 30_000 });
 
-		// Wait for the SW to be active, controlling this page, and synced
-		await waitForServiceWorkerReady(page);
-		await expect(editor).toContainText("This content should survive offline", { timeout: 30_000 });
-		await waitForSyncComplete(page);
+    // Wait for the SW to be active, controlling this page, and synced
+    await waitForServiceWorkerReady(page);
+    await expect(editor).toContainText("This content should survive offline", {
+      timeout: 30_000,
+    });
+    await waitForSyncComplete(page);
 
-		// Simulate airplane mode — all network requests from both the page
-		// and the service worker will fail instantly.
-		await page.context().setOffline(true);
+    // Simulate airplane mode — all network requests from both the page
+    // and the service worker will fail instantly.
+    await page.context().setOffline(true);
 
-		// Navigate to the same URL (not reload — see file header comment).
-		// The SW should serve the HTML shell from its pre-cache and /.fs
-		// requests from IndexedDB.
-		await page.goto(sbServer.url, { waitUntil: "domcontentloaded" });
+    // Navigate to the same URL (not reload — see file header comment).
+    // The SW should serve the HTML shell from its pre-cache and /.fs
+    // requests from IndexedDB.
+    await page.goto(sbServer.url, { waitUntil: "domcontentloaded" });
 
-		// Editor should re-appear with the same content from local data
-		await editor.waitFor({ state: "visible", timeout: 30_000 });
-		await expect(editor).toContainText("This content should survive offline", { timeout: 30_000 });
-	});
+    // Editor should re-appear with the same content from local data
+    await editor.waitFor({ state: "visible", timeout: 30_000 });
+    await expect(editor).toContainText("This content should survive offline", {
+      timeout: 30_000,
+    });
+  });
 
-	test("app serves content when server is down", async ({ sbServer, page }) => {
-		// Load the app with service worker enabled
-		await page.goto(sbServer.url);
-		const editor = page.locator("#sb-editor .cm-content");
-		await editor.waitFor({ state: "visible", timeout: 30_000 });
+  test("app serves content when server is down", async ({ sbServer, page }) => {
+    // Load the app with service worker enabled
+    await page.goto(sbServer.url);
+    const editor = page.locator("#sb-editor .cm-content");
+    await editor.waitFor({ state: "visible", timeout: 30_000 });
 
-		// Wait for the SW to be active, controlling, and fully synced.
-		// The sync wait is critical: content may appear from server proxy
-		// before sync writes to IndexedDB. Without it, IndexedDB would be
-		// empty when we kill the server.
-		await waitForServiceWorkerReady(page);
-		await expect(editor).toContainText("This content should survive offline", { timeout: 30_000 });
-		await waitForSyncComplete(page);
+    // Wait for the SW to be active, controlling, and fully synced.
+    // The sync wait is critical: content may appear from server proxy
+    // before sync writes to IndexedDB. Without it, IndexedDB would be
+    // empty when we kill the server.
+    await waitForServiceWorkerReady(page);
+    await expect(editor).toContainText("This content should survive offline", {
+      timeout: 30_000,
+    });
+    await waitForSyncComplete(page);
 
-		// Kill the server — network is still up but the server is unreachable.
-		// This is the scenario from issue #1923: PWA works in airplane mode
-		// but not when the server is specifically down.
-		await sbServer.stop();
+    // Kill the server — network is still up but the server is unreachable.
+    // This is the scenario from issue #1923: PWA works in airplane mode
+    // but not when the server is specifically down.
+    await sbServer.stop();
 
-		// Navigate to same URL. The SW's fetch() to the server will fail with
-		// browser native errors ("Failed to fetch", etc). With the
-		// isNetworkError() fix, the SW should detect this and fall through to
-		// local data for /.fs requests, while alwaysProxy paths (/.config)
-		// correctly return 503 so the client falls back to localStorage cache.
-		await page.goto(sbServer.url, { waitUntil: "domcontentloaded" });
+    // Navigate to same URL. The SW's fetch() to the server will fail with
+    // browser native errors ("Failed to fetch", etc). With the
+    // isNetworkError() fix, the SW should detect this and fall through to
+    // local data for /.fs requests, while alwaysProxy paths (/.config)
+    // correctly return 503 so the client falls back to localStorage cache.
+    await page.goto(sbServer.url, { waitUntil: "domcontentloaded" });
 
-		// Editor should re-appear with the same content from local IndexedDB
-		await editor.waitFor({ state: "visible", timeout: 30_000 });
-		await expect(editor).toContainText("This content should survive offline", { timeout: 30_000 });
-	});
+    // Editor should re-appear with the same content from local IndexedDB
+    await editor.waitFor({ state: "visible", timeout: 30_000 });
+    await expect(editor).toContainText("This content should survive offline", {
+      timeout: 30_000,
+    });
+  });
 
-	test("app navigates to another page while offline", async ({ sbServer, page }) => {
-		// Load the app with service worker enabled
-		await page.goto(sbServer.url);
-		const editor = page.locator("#sb-editor .cm-content");
-		await editor.waitFor({ state: "visible", timeout: 30_000 });
+  test("app navigates to another page while offline", async ({
+    sbServer,
+    page,
+  }) => {
+    // Load the app with service worker enabled
+    await page.goto(sbServer.url);
+    const editor = page.locator("#sb-editor .cm-content");
+    await editor.waitFor({ state: "visible", timeout: 30_000 });
 
-		// Wait for the SW and initial sync
-		await waitForServiceWorkerReady(page);
-		await expect(editor).toContainText("This content should survive offline", { timeout: 30_000 });
-		await waitForSyncComplete(page);
+    // Wait for the SW and initial sync
+    await waitForServiceWorkerReady(page);
+    await expect(editor).toContainText("This content should survive offline", {
+      timeout: 30_000,
+    });
+    await waitForSyncComplete(page);
 
-		// Navigate to TestPage to ensure it's synced locally, then back to index
-		await page.goto(`${sbServer.url}/TestPage`);
-		await expect(editor).toContainText("Offline page content here", { timeout: 30_000 });
-		await page.goto(sbServer.url);
-		await expect(editor).toContainText("This content should survive offline", { timeout: 30_000 });
+    // Navigate to TestPage to ensure it's synced locally, then back to index
+    await page.goto(`${sbServer.url}/TestPage`);
+    await expect(editor).toContainText("Offline page content here", {
+      timeout: 30_000,
+    });
+    await page.goto(sbServer.url);
+    await expect(editor).toContainText("This content should survive offline", {
+      timeout: 30_000,
+    });
 
-		// Go offline
-		await page.context().setOffline(true);
+    // Go offline
+    await page.context().setOffline(true);
 
-		// Navigate to TestPage while offline — the SW should serve it from IndexedDB
-		await page.goto(`${sbServer.url}/TestPage`, { waitUntil: "domcontentloaded" });
-		await editor.waitFor({ state: "visible", timeout: 30_000 });
-		await expect(editor).toContainText("Offline page content here", { timeout: 30_000 });
-	});
+    // Navigate to TestPage while offline — the SW should serve it from IndexedDB
+    await page.goto(`${sbServer.url}/TestPage`, {
+      waitUntil: "domcontentloaded",
+    });
+    await editor.waitFor({ state: "visible", timeout: 30_000 });
+    await expect(editor).toContainText("Offline page content here", {
+      timeout: 30_000,
+    });
+  });
 });

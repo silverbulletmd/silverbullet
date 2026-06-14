@@ -130,13 +130,12 @@ command.update { name = "Other", key = "Ctrl-y" }`;
     const { commandOverrides } = parseManagedBlock(block);
     expect(commandOverrides).toEqual({
       "Some: Command": { key: "Ctrl-x", mac: "Cmd-x" },
-      "Other": { key: "Ctrl-y" },
+      Other: { key: "Ctrl-y" },
     });
   });
 
   test("parses multi-stroke chord bindings", () => {
-    const block =
-      `command.update { name = "Save All", key = "Ctrl-x Ctrl-s", mac = "Cmd-x Cmd-s" }`;
+    const block = `command.update { name = "Save All", key = "Ctrl-x Ctrl-s", mac = "Cmd-x Cmd-s" }`;
     const { commandOverrides } = parseManagedBlock(block);
     expect(commandOverrides).toEqual({
       "Save All": { key: "Ctrl-x Ctrl-s", mac: "Cmd-x Cmd-s" },
@@ -144,20 +143,18 @@ command.update { name = "Other", key = "Ctrl-y" }`;
   });
 
   test("parses array bindings", () => {
-    const block =
-      `command.update { name = "Search", key = { "Ctrl-f", "Mod-s" }, mac = { "Cmd-f" } }`;
+    const block = `command.update { name = "Search", key = { "Ctrl-f", "Mod-s" }, mac = { "Cmd-f" } }`;
     const { commandOverrides } = parseManagedBlock(block);
     expect(commandOverrides).toEqual({
-      "Search": { key: ["Ctrl-f", "Mod-s"], mac: ["Cmd-f"] },
+      Search: { key: ["Ctrl-f", "Mod-s"], mac: ["Cmd-f"] },
     });
   });
 
   test("parses mixed scalar and array fields", () => {
-    const block =
-      `command.update { name = "Mixed", key = "Ctrl-a", mac = { "Cmd-a", "Cmd-A" } }`;
+    const block = `command.update { name = "Mixed", key = "Ctrl-a", mac = { "Cmd-a", "Cmd-A" } }`;
     const { commandOverrides } = parseManagedBlock(block);
     expect(commandOverrides).toEqual({
-      "Mixed": { key: "Ctrl-a", mac: ["Cmd-a", "Cmd-A"] },
+      Mixed: { key: "Ctrl-a", mac: ["Cmd-a", "Cmd-A"] },
     });
   });
 
@@ -174,7 +171,7 @@ command.update { name = "Other", key = "Ctrl-y" }`;
       "Some: Command": { key: "Ctrl-x", mac: "Cmd-x" },
       "Chord Cmd": { key: "Ctrl-x Ctrl-s", mac: "Cmd-x Cmd-s" },
       "Array Cmd": { key: ["Ctrl-y", "Ctrl-Y"] },
-      "Other": { key: "Ctrl-y" },
+      Other: { key: "Ctrl-y" },
     };
 
     const lines: string[] = ["-- managed-by: configuration-manager"];
@@ -183,8 +180,10 @@ command.update { name = "Other", key = "Ctrl-y" }`;
     }
     for (const [name, override] of Object.entries(commandOverrides)) {
       const parts = [`name = ${toLua(name)}`];
-      if (override.key !== undefined) parts.push(`key = ${toLua(override.key)}`);
-      if (override.mac !== undefined) parts.push(`mac = ${toLua(override.mac)}`);
+      if (override.key !== undefined)
+        parts.push(`key = ${toLua(override.key)}`);
+      if (override.mac !== undefined)
+        parts.push(`mac = ${toLua(override.mac)}`);
       lines.push(`command.update { ${parts.join(", ")} }`);
     }
 

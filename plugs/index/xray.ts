@@ -79,19 +79,18 @@ export function renderObjectYaml(obj: ObjectValue): string {
 }
 
 function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 function renderGroupHtml(group: ObjectGroup): string {
   const head = escapeHtml(group.tags.join(", "));
   const body = escapeHtml(renderObjectYaml(group.object));
-  return `<div class="sb-xray-card">` +
+  return (
+    `<div class="sb-xray-card">` +
     `<h4 class="sb-xray-tooltip-tag">${head}</h4>` +
     `<pre class="sb-xray-tooltip-body">${body}</pre>` +
-    `</div>`;
+    `</div>`
+  );
 }
 
 function renderGroupPlain(group: ObjectGroup): string {
@@ -106,10 +105,13 @@ function renderGroupPlain(group: ObjectGroup): string {
  * fills the lint hover tooltip with a card showing the indexing tag(s)
  * and the object's attributes as YAML.
  */
-export async function xrayInfo(
-  { tree, name, pageMeta, text }: LintEvent,
-): Promise<LintDiagnostic[]> {
-  if (!await clientStore.get(STORE_KEY)) return [];
+export async function xrayInfo({
+  tree,
+  name,
+  pageMeta,
+  text,
+}: LintEvent): Promise<LintDiagnostic[]> {
+  if (!(await clientStore.get(STORE_KEY))) return [];
   if (!pageMeta) return [];
 
   const frontmatter = extractFrontMatter(tree);
@@ -132,14 +134,16 @@ export async function xrayInfo(
   const ranged = filterRangedEntries(entries);
   const groups = groupByObject(ranged);
 
-  return groups.map((group): LintDiagnostic => ({
-    from: group.object.range[0],
-    to: group.object.range[1],
-    severity: "hint",
-    message: renderGroupPlain(group),
-    messageHtml: renderGroupHtml(group),
-    markClass: "sb-xray-range",
-  }));
+  return groups.map(
+    (group): LintDiagnostic => ({
+      from: group.object.range[0],
+      to: group.object.range[1],
+      severity: "hint",
+      message: renderGroupPlain(group),
+      messageHtml: renderGroupHtml(group),
+      markClass: "sb-xray-range",
+    }),
+  );
 }
 
 /**

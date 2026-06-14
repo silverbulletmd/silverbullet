@@ -197,7 +197,8 @@ export class ObjectIndex {
   rootTaggedObjects(rootTag: string, tag?: string): LuaQueryCollection {
     if (tag) {
       return this.filteredTag(
-        tag, (varName) => `${varName}.tag == "${rootTag}"`
+        tag,
+        (varName) => `${varName}.tag == "${rootTag}"`,
       );
     } else {
       return this.objectsWithTag(rootTag);
@@ -222,12 +223,12 @@ export class ObjectIndex {
         const filter = parseExpressionString(buildFilterExpr(varName));
         const where = query.where
           ? {
-            type: "Binary" as const,
-            operator: "and",
-            left: filter,
-            right: query.where,
-            ctx: {},
-          }
+              type: "Binary" as const,
+              operator: "and",
+              left: filter,
+              right: query.where,
+              ctx: {},
+            }
           : filter;
         return this.ds.luaQuery(
           ["idx", tagName],
@@ -452,7 +453,7 @@ export class ObjectIndex {
       }
     }
     if (tag === "link") {
-      // Route through the virtual link collection 
+      // Route through the virtual link collection
       return this.linkObjects().query(query, env, sf) as Promise<
         ObjectValue<T>[]
       >;
@@ -468,7 +469,8 @@ export class ObjectIndex {
           key: [indexKey, ...key, page],
           value,
         },
-        { // Reverse key storage for quick deletions
+        {
+          // Reverse key storage for quick deletions
           key: [pageKey, page, ...key],
           value: true,
         },

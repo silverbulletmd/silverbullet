@@ -33,10 +33,7 @@ import {
   ViewPlugin,
   type ViewUpdate,
 } from "@codemirror/view";
-import {
-  deleteMarkupBackward,
-  markdown,
-} from "@codemirror/lang-markdown";
+import { deleteMarkupBackward, markdown } from "@codemirror/lang-markdown";
 import { customEnterCommand } from "./markdown_enter.ts";
 import type { Client } from "../client.ts";
 import { loadVim } from "../vim_loader.ts";

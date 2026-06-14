@@ -21,9 +21,11 @@ function assertSearch(
 ): void {
   const results = fuzzySearchAndSort(corpus, query);
   const names = results.map((r) => r.name);
-  const detail = `\nQuery: ${JSON.stringify(query)}\nRanked: ${
-    JSON.stringify(names, null, 2)
-  }`;
+  const detail = `\nQuery: ${JSON.stringify(query)}\nRanked: ${JSON.stringify(
+    names,
+    null,
+    2,
+  )}`;
   if (expected.resultCount !== undefined) {
     expect(results.length, "result count" + detail).toEqual(
       expected.resultCount,
@@ -68,7 +70,7 @@ test("scoreToken: prefix at start scores 0.95 (always word boundary)", () => {
 
 test("scoreToken: substring scores 0.75 (plain) or 0.80 (word boundary)", () => {
   expect(scoreToken("ver", "Silver")).toBeCloseTo(0.75, 5);
-  expect(scoreToken("silver", "Some/Silver/Thing")).toBeCloseTo(0.80, 5);
+  expect(scoreToken("silver", "Some/Silver/Thing")).toBeCloseTo(0.8, 5);
 });
 
 test("scoreToken: no match returns 0 (before tiers 4/5 implemented)", () => {
@@ -176,11 +178,7 @@ test("seed 2: 'silverbullet' exact wins, all SilverBullet/* in top-3", () => {
 
 test("seed 3: 'pae' matches PageEditor via subsequence", () => {
   assertSearch(
-    [
-      { name: "PageEditor" },
-      { name: "PathEditor" },
-      { name: "Other" },
-    ],
+    [{ name: "PageEditor" }, { name: "PathEditor" }, { name: "Other" }],
     "pae",
     { mustIncludeInTopN: ["PageEditor", "PathEditor"], n: 2 },
   );
@@ -188,11 +186,7 @@ test("seed 3: 'pae' matches PageEditor via subsequence", () => {
 
 test("seed 4: 'slverbullet' typo matches SilverBullet", () => {
   assertSearch(
-    [
-      { name: "SilverBullet" },
-      { name: "Silver" },
-      { name: "Bullet" },
-    ],
+    [{ name: "SilverBullet" }, { name: "Silver" }, { name: "Bullet" }],
     "slverbullet",
     { topMatch: "SilverBullet" },
   );
@@ -218,11 +212,7 @@ test("seed 5: 'Co' prefers basename match", () => {
 
 test("seed 6: 'in' prefix beats subsequence; no typo tolerance on short", () => {
   assertSearch(
-    [
-      { name: "Inbox" },
-      { name: "In Progress" },
-      { name: "Index" },
-    ],
+    [{ name: "Inbox" }, { name: "In Progress" }, { name: "Index" }],
     "in",
     {
       mustIncludeInTopN: ["Inbox", "In Progress", "Index"],
@@ -233,21 +223,14 @@ test("seed 6: 'in' prefix beats subsequence; no typo tolerance on short", () => 
 
 test("seed 7: 'daily 02' matches Daily/2024-02-15", () => {
   assertSearch(
-    [
-      { name: "Daily/2024-01-15" },
-      { name: "Daily/2024-02-15" },
-    ],
+    [{ name: "Daily/2024-01-15" }, { name: "Daily/2024-02-15" }],
     "daily 02",
     { topMatch: "Daily/2024-02-15", resultCount: 1 },
   );
 });
 
 test("seed 8: no matches returns empty", () => {
-  assertSearch(
-    [{ name: "Foo" }, { name: "Bar" }],
-    "xyz",
-    { resultCount: 0 },
-  );
+  assertSearch([{ name: "Foo" }, { name: "Bar" }], "xyz", { resultCount: 0 });
 });
 
 test("seed 9: empty query sorts by orderId, aspiring (Infinity) last", () => {
@@ -268,14 +251,10 @@ test("seed 9: empty query sorts by orderId, aspiring (Infinity) last", () => {
 });
 
 test("seed 10: 'readme' case-insensitive matches both", () => {
-  assertSearch(
-    [{ name: "README" }, { name: "readme.md" }],
-    "readme",
-    {
-      mustIncludeInTopN: ["README", "readme.md"],
-      n: 2,
-    },
-  );
+  assertSearch([{ name: "README" }, { name: "readme.md" }], "readme", {
+    mustIncludeInTopN: ["README", "readme.md"],
+    n: 2,
+  });
 });
 
 test("seed 11: alias matching", () => {
@@ -290,11 +269,7 @@ test("seed 11: alias matching", () => {
 });
 
 test("seed 12: 1-2 char queries do not match via typo tolerance", () => {
-  assertSearch(
-    [{ name: "cat" }, { name: "dog" }],
-    "co",
-    { resultCount: 0 },
-  );
+  assertSearch([{ name: "cat" }, { name: "dog" }], "co", { resultCount: 0 });
 });
 
 test("preserves existing testFuzzyFilter behavior", () => {

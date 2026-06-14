@@ -2,11 +2,16 @@ import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 import { fileName } from "@silverbulletmd/silverbullet/lib/resolve";
 
 function normalize(s: string): string {
-  return s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+  return s
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
 }
 
 function tokenize(query: string): string[] {
-  return normalize(query).split(/\s+/).filter((t) => t.length > 0);
+  return normalize(query)
+    .split(/\s+/)
+    .filter((t) => t.length > 0);
 }
 
 const WORD_BOUNDARY_CHARS = new Set(["/", "-", "_", " ", ".", ":"]);
@@ -23,7 +28,8 @@ function isWordBoundaryAt(
   const origPrev = original[i - 1];
   const origCur = original[i];
   if (
-    origPrev && origCur &&
+    origPrev &&
+    origCur &&
     origPrev === origPrev.toLowerCase() &&
     origPrev !== origPrev.toUpperCase() &&
     origCur === origCur.toUpperCase() &&
@@ -34,11 +40,7 @@ function isWordBoundaryAt(
   return false;
 }
 
-function boundedDamerauLevenshtein(
-  a: string,
-  b: string,
-  max: number,
-): number {
+function boundedDamerauLevenshtein(a: string, b: string, max: number): number {
   // Returns edit distance if <= max, otherwise max + 1.
   const al = a.length;
   const bl = b.length;
@@ -55,16 +57,9 @@ function boundedDamerauLevenshtein(
     let rowMin = curr[0];
     for (let j = 1; j <= bl; j++) {
       const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      let v = Math.min(
-        prev[j] + 1,
-        curr[j - 1] + 1,
-        prev[j - 1] + cost,
-      );
+      let v = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
       // Damerau transposition
-      if (
-        i > 1 && j > 1 &&
-        a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]
-      ) {
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
         v = Math.min(v, prevPrev[j - 2] + 1);
       }
       curr[j] = v;
@@ -145,7 +140,7 @@ function subsequenceScore(
 
   // Weighted combination scaled into [0.30, 0.65]
   const raw = 0.5 * density + 0.3 * contiguityBonus + 0.2 * boundaryBonus;
-  return 0.30 + raw * 0.35;
+  return 0.3 + raw * 0.35;
 }
 
 export function scoreToken(token: string, candidate: string): number {
@@ -181,7 +176,7 @@ export function scoreToken(token: string, candidate: string): number {
       // For very short tokens (<=2 chars), only count substring matches at
       // word boundaries — otherwise short tokens generate too much noise.
       if (t.length > 2 || bestBoundary) {
-        return bestBoundary ? 0.80 : 0.75;
+        return bestBoundary ? 0.8 : 0.75;
       }
       // fall through for short non-boundary substring matches
     }
@@ -244,10 +239,7 @@ export function scoreCandidate(
   return Math.exp(logSum / perTokenBest.length);
 }
 
-function compareOrderId(
-  a: number | undefined,
-  b: number | undefined,
-): number {
+function compareOrderId(a: number | undefined, b: number | undefined): number {
   const aOrder = a ?? 0;
   const bOrder = b ?? 0;
   if (aOrder === Infinity && bOrder === Infinity) return 0;

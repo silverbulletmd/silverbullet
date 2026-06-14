@@ -1,10 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
-import {
-  cleanAnchor,
-  collectAnchor,
-  isValidAnchorName,
-} from "./anchor.ts";
+import { cleanAnchor, collectAnchor, isValidAnchorName } from "./anchor.ts";
 import { renderToText } from "@silverbulletmd/silverbullet/lib/tree";
 
 describe("anchor helpers", () => {

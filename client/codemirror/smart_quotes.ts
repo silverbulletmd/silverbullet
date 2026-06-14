@@ -102,7 +102,15 @@ export function createSmartQuoteKeyBindings(client: Client): KeyBinding[] {
     return [];
   }
   return [
-    keyBindingForQuote('"', smartQuotes.double!.left!, smartQuotes.double!.right!),
-    keyBindingForQuote("'", smartQuotes.single!.left!, smartQuotes.single!.right!),
+    keyBindingForQuote(
+      '"',
+      smartQuotes.double!.left!,
+      smartQuotes.double!.right!,
+    ),
+    keyBindingForQuote(
+      "'",
+      smartQuotes.single!.left!,
+      smartQuotes.single!.right!,
+    ),
   ];
 }

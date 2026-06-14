@@ -166,7 +166,9 @@ export async function updateTaskState(
   // edit the task marker.
   if (ref.details?.type === "anchor") {
     const pageFilter = ref.path
-      ? ref.path.endsWith(".md") ? ref.path.slice(0, -3) : ref.path
+      ? ref.path.endsWith(".md")
+        ? ref.path.slice(0, -3)
+        : ref.path
       : undefined;
     const result = await index.resolveAnchor(ref.details.name, pageFilter);
     if (!result.ok) {

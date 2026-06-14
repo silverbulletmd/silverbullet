@@ -95,15 +95,17 @@ test("virtual link inclusion: every classified target appears", async () => {
 
   expect(links).toHaveLength(expected.length);
 
-  const actual = links.map((l) => ({
-    type: l.type,
-    target: targetOf(l),
-    alias: l.alias,
-  })).sort((a, b) => a.target.localeCompare(b.target));
+  const actual = links
+    .map((l) => ({
+      type: l.type,
+      target: targetOf(l),
+      alias: l.alias,
+    }))
+    .sort((a, b) => a.target.localeCompare(b.target));
 
-  const expectedSorted = expected.slice().sort((a, b) =>
-    a.target.localeCompare(b.target)
-  );
+  const expectedSorted = expected
+    .slice()
+    .sort((a, b) => a.target.localeCompare(b.target));
   expect(actual).toEqual(expectedSorted);
 });
 
@@ -122,8 +124,8 @@ test("virtual link shape: each record carries the legacy fields", async () => {
     expect(Array.isArray(l.range)).toBe(true);
     expect(l.range![0]).toBe(l.pos);
     // Exactly one of the to{Page,File,URL} fields populated.
-    const populated = [l.toPage, l.toFile, l.toURL].filter((x) =>
-      x !== undefined
+    const populated = [l.toPage, l.toFile, l.toURL].filter(
+      (x) => x !== undefined,
     );
     expect(populated).toHaveLength(1);
   }
@@ -143,9 +145,7 @@ spouse: "[[Jack]]"
 
   // Verify the relation indexer actually emitted the skipped kinds.
   const kinds = new Set(
-    relations
-      .filter((o: any) => o.tag === "relation")
-      .map((o: any) => o.kind),
+    relations.filter((o: any) => o.tag === "relation").map((o: any) => o.kind),
   );
   expect(kinds.has("attribute")).toBe(true);
   expect(kinds.has("data")).toBe(true);

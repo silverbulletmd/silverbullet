@@ -12,24 +12,27 @@ import type {
 export const refreshLintEffect = StateEffect.define<null>();
 
 export function plugLinter(client: Client) {
-  return linter(async (view): Promise<Diagnostic[]> => {
-    const text = view.state.sliceDoc();
-    const tree = parse(extendedMarkdownLanguage, text);
-    const results: LintDiagnostic[] = (
-      await client.dispatchAppEvent("editor:lint", {
-        name: client.currentName(),
-        pageMeta: client.currentPageMeta(),
-        tree,
-        text,
-      } as LintEvent)
-    ).flat();
-    return results.map(toDiagnostic);
-  }, {
-    needsRefresh: (update) =>
-      update.transactions.some((tr) =>
-        tr.effects.some((e) => e.is(refreshLintEffect))
-      ),
-  });
+  return linter(
+    async (view): Promise<Diagnostic[]> => {
+      const text = view.state.sliceDoc();
+      const tree = parse(extendedMarkdownLanguage, text);
+      const results: LintDiagnostic[] = (
+        await client.dispatchAppEvent("editor:lint", {
+          name: client.currentName(),
+          pageMeta: client.currentPageMeta(),
+          tree,
+          text,
+        } as LintEvent)
+      ).flat();
+      return results.map(toDiagnostic);
+    },
+    {
+      needsRefresh: (update) =>
+        update.transactions.some((tr) =>
+          tr.effects.some((e) => e.is(refreshLintEffect)),
+        ),
+    },
+  );
 }
 
 function toDiagnostic(d: LintDiagnostic): Diagnostic {

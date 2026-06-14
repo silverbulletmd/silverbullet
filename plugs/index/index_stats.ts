@@ -111,9 +111,9 @@ async function main() {
   console.log(`Per page mean:  ${(r.total / pages.length).toFixed(1)}`);
 
   console.log(`\n=== OBJECTS BY TAG ===`);
-  for (
-    const [tag, count] of Object.entries(r.byTag).sort((a, b) => b[1] - a[1])
-  ) {
+  for (const [tag, count] of Object.entries(r.byTag).sort(
+    (a, b) => b[1] - a[1],
+  )) {
     const pct = ((count / r.total) * 100).toFixed(1);
     console.log(`  ${tag.padEnd(20)} ${String(count).padStart(5)}  (${pct}%)`);
   }
@@ -121,11 +121,9 @@ async function main() {
   const relTotal = r.byTag["relation"] ?? 0;
   if (relTotal > 0) {
     console.log(`\n=== RELATION RECORDS BY KIND ===`);
-    for (
-      const [kind, count] of Object.entries(r.relationByKind).sort(
-        (a, b) => b[1] - a[1],
-      )
-    ) {
+    for (const [kind, count] of Object.entries(r.relationByKind).sort(
+      (a, b) => b[1] - a[1],
+    )) {
       const pct = ((count / relTotal) * 100).toFixed(1);
       console.log(
         `  ${kind.padEnd(14)} ${String(count).padStart(5)}  (${pct}%)`,

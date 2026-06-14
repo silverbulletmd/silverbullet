@@ -62,10 +62,12 @@ export function markdownSyscalls(client: Client): SysCallMapping {
       }
       if (!options.resolveTagHref) {
         options.resolveTagHref = (tagName: string) => {
-          return client.config.get<string | null>(
-            ["tags", tagName, "tagPage"],
-            null,
-          ) ?? TagConstants.tagPrefix + tagName;
+          return (
+            client.config.get<string | null>(
+              ["tags", tagName, "tagPage"],
+              null,
+            ) ?? TagConstants.tagPrefix + tagName
+          );
         };
       }
       return renderMarkdownToHtml(mdTree, options);

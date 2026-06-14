@@ -28,33 +28,39 @@ export async function buildClient(): Promise<void> {
     jsx: "automatic",
     jsxFragment: "Fragment",
     jsxImportSource: "preact",
-  }
+  };
 
   const buildConfigs: Array<[String, esbuild.BuildOptions]> = [
-    ["client", {
-      ...baseBuildConfig,
-      entryPoints: [
-        {
-          in: "client/boot.ts",
-          out: ".client/client",
-        }
-      ],
-      splitting: true
-    }],
-    ["service worker", {
-      ...baseBuildConfig,
-      entryPoints: [
-        {
-          in: "client/service_worker.ts",
-          out: "service_worker",
-        },
-      ],
-      splitting: false
-    }]
-  ]
+    [
+      "client",
+      {
+        ...baseBuildConfig,
+        entryPoints: [
+          {
+            in: "client/boot.ts",
+            out: ".client/client",
+          },
+        ],
+        splitting: true,
+      },
+    ],
+    [
+      "service worker",
+      {
+        ...baseBuildConfig,
+        entryPoints: [
+          {
+            in: "client/service_worker.ts",
+            out: "service_worker",
+          },
+        ],
+        splitting: false,
+      },
+    ],
+  ];
 
   for (const [buildName, buildConfig] of buildConfigs) {
-    const result = await esbuild.build(buildConfig)
+    const result = await esbuild.build(buildConfig);
 
     if (result.metafile) {
       const text = await esbuild.analyzeMetafile(result.metafile!);

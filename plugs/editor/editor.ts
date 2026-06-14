@@ -66,10 +66,7 @@ export async function openTagNavigator() {
   if (!selectedTag) {
     return;
   }
-  const tagPage = await config.get(
-    ["tags", selectedTag.name, "tagPage"],
-    null,
-  );
+  const tagPage = await config.get(["tags", selectedTag.name, "tagPage"], null);
   await editor.navigate(tagPage ?? `tag:${selectedTag.name}`);
 }
 
@@ -159,4 +156,3 @@ export async function reloadSystem() {
   await codeWidget.refreshAll();
   await editor.flashNotification("System and widgets reloaded!");
 }
-

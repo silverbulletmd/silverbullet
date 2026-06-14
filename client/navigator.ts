@@ -98,9 +98,10 @@ export class PathPageNavigator {
       } else {
         // This can e.g. happen on the first navigate. We obviously can't fall back to the same path, so fallback to the indexpage
 
-        const newRef: Ref = currentState.path === ref.path
-          ? this.indexRef
-          : { path: currentState.path };
+        const newRef: Ref =
+          currentState.path === ref.path
+            ? this.indexRef
+            : { path: currentState.path };
 
         globalThis.history.replaceState(
           newRef,
@@ -143,7 +144,10 @@ export class PathPageNavigator {
    * Snapshot the current editor's scrollTop and selection. Only meaningful
    * when the editor is currently showing a markdown page.
    */
-  private captureEditorPosition(): Pick<LocationState, "scrollTop" | "selection"> {
+  private captureEditorPosition(): Pick<
+    LocationState,
+    "scrollTop" | "selection"
+  > {
     const editorView = this.client.editorView;
     const mainSelection = editorView.state.selection.main;
     return {

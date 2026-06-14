@@ -70,13 +70,14 @@ export function fencedCodePlugin(client: Client) {
               );
             });
 
-            const widget = renderMode === "loading"
-              ? new LoadingWidget(true)
-              : new IFrameWidget(
-                  client,
-                  lineStrings.slice(1, lineStrings.length - 1).join("\n"),
-                  codeWidgetCallback,
-                );
+            const widget =
+              renderMode === "loading"
+                ? new LoadingWidget(true)
+                : new IFrameWidget(
+                    client,
+                    lineStrings.slice(1, lineStrings.length - 1).join("\n"),
+                    codeWidgetCallback,
+                  );
             widgets.push(
               Decoration.widget({
                 widget: widget,

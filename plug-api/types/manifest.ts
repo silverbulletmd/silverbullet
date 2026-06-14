@@ -12,10 +12,23 @@ export type CodeWidgetT = {
  * Quit, About, etc.) instead of a command-dispatching item.
  */
 export type PredefinedMenuKind =
-  | "quit" | "about" | "services" | "hide" | "hideOthers" | "showAll"
-  | "closeWindow" | "minimize" | "maximize" | "fullscreen"
+  | "quit"
+  | "about"
+  | "services"
+  | "hide"
+  | "hideOthers"
+  | "showAll"
+  | "closeWindow"
+  | "minimize"
+  | "maximize"
+  | "fullscreen"
   | "separator"
-  | "undo" | "redo" | "cut" | "copy" | "paste" | "selectAll";
+  | "undo"
+  | "redo"
+  | "cut"
+  | "copy"
+  | "paste"
+  | "selectAll";
 
 /**
  * A single native-menu placement for a command or submenu.

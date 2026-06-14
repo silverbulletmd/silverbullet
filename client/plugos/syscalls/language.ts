@@ -14,7 +14,7 @@ export function languageSyscalls(): SysCallMapping {
       language: string,
       code: string,
     ): Promise<ParseTree> => {
-      const lang = languageFor(language) ?? await loadLanguageFor(language);
+      const lang = languageFor(language) ?? (await loadLanguageFor(language));
       if (!lang) {
         throw new Error(`Unknown language ${language}`);
       }

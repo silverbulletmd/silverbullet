@@ -28,10 +28,7 @@ describe("groupByObject", () => {
       { tag: "athing", object: { ref: "p1@0", range: [0, 40] } },
     ];
     const groups = groupByObject(stack as any);
-    expect(groups.map((g) => g.tags)).toEqual([
-      ["link"],
-      ["item", "athing"],
-    ]);
+    expect(groups.map((g) => g.tags)).toEqual([["link"], ["item", "athing"]]);
   });
 
   it("does not merge non-adjacent entries even when ref+range match", () => {
