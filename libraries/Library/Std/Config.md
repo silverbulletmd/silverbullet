@@ -121,6 +121,13 @@ config.define("shortWikiLinks", {
   ui = { category = "Editor", label = "Short wiki links", priority = 1 },
 })
 
+config.define("StripPagePathInTitle", {
+  description = "Page titles by default show the entire path to the page. This shows the name only.",
+  type = "boolean",
+  default = false,
+  ui = { category = "Editor", label = "Strip page path in title", priority = 1 },
+})
+
 config.define("emoji", {
   description = "Additional emoji aliases",
   type = "object",
