@@ -45,9 +45,12 @@ jobs:
           # ============ TRANSITION CONFIG (rust-backend → main) ============
           # These values namespace the in-progress rust line so it never
           # clobbers currently-published images/releases.
+          # NOTE: the website image intentionally diverges from the app image's
+          #   versioned channel — its edge channel is the plain :edge tag (not
+          #   :v2), with :latest reserved for tagged releases.
           # POST-MERGE: set PUBLISH_BRANCH=main, GH_RELEASE_TAG=edge,
           #   GH_RELEASE_NAME=Edge, DOCKER_EDGE_TAG=v2,
-          #   DOCKER_RUNTIME_API_TAG=v2-runtime-api, WEBSITE_TAG=v2,
+          #   DOCKER_RUNTIME_API_TAG=v2-runtime-api, WEBSITE_TAG=edge,
           #   then delete this comment.
           PUBLISH_BRANCH="rust-backend"
           GH_RELEASE_TAG="edge-rust"
