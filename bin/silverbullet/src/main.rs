@@ -30,6 +30,8 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Print the version.
+    Version,
     /// Upgrade to the latest stable release
     Upgrade,
     /// Upgrade to the latest edge release
@@ -52,11 +54,11 @@ fn main() -> std::process::ExitCode {
 
     let cli = Cli::parse();
 
-    // The `upgrade`/`upgrade-edge` subcommands self-replace this executable using
-    // `reqwest::blocking`, which panics inside a Tokio runtime — so handle them
-    // here, before the server path builds one.
+    // Subcommands run synchronously and outside a Tokio runtime — the upgrade
+    // variants self-replace this executable using `reqwest::blocking`, which
+    // panics inside a runtime. Handle them before the server path builds one.
     if let Some(command) = cli.command {
-        return run_upgrade(command);
+        return run_subcommand(command);
     }
 
     // Server path: build a multi-threaded Tokio runtime and serve until shutdown.
@@ -82,9 +84,14 @@ fn main() -> std::process::ExitCode {
     })
 }
 
-/// Run a self-upgrade and map the result to a process exit code.
-fn run_upgrade(command: Command) -> std::process::ExitCode {
+/// Run a non-server subcommand and map the result to a process exit code.
+fn run_subcommand(command: Command) -> std::process::ExitCode {
     let url_prefix = match command {
+        Command::Version => {
+            let v = if VERSION.is_empty() { "dev" } else { VERSION };
+            println!("{v}");
+            return std::process::ExitCode::SUCCESS;
+        }
         Command::Upgrade => {
             println!("Upgrading silverbullet...");
             STABLE_URL_PREFIX
