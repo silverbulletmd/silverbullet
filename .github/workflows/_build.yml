@@ -69,12 +69,10 @@ jobs:
       - name: Build linux/windows binaries (compile once → raw + zips)
         run: make build-linux-ci
 
-      - name: Build FreeBSD sb CLI (experimental — best effort)
-        # FreeBSD cross is fiddly (clang + sysroot). The sysroot fetch AND the
-        # build live together here under continue-on-error, AFTER the main build,
-        # so nothing FreeBSD-related can ever block the release. The sb-freebsd
-        # zip is added only when this whole step succeeds.
-        continue-on-error: true
+      - name: Build FreeBSD sb CLI
+        # FreeBSD cross is fiddly (clang + sysroot): this step fetches a FreeBSD
+        # base sysroot and cross-builds the `sb` CLI against it. It's a
+        # first-class build like the others — a failure here fails the job.
         run: |
           sudo mkdir -p /opt/freebsd-sysroot
           VER=$(curl -fsSL https://download.freebsd.org/releases/amd64/ \
