@@ -24,9 +24,10 @@ filetime = { workspace = true }
 reqwest = { workspace = true }
 percent-encoding = { workspace = true }
 tracing = { workspace = true }
-
-[dev-dependencies]
-tempfile = "3"
+# Self-upgrade engine (shared by the `sb` and `silverbullet` binaries): download
+# a release zip and extract it in place.
+zip = { workspace = true }
+tempfile = { workspace = true }
 
 [lints]
 workspace = true

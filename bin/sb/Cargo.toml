@@ -25,7 +25,6 @@ serde_yaml = { workspace = true }
 uuid = { workspace = true }
 rustyline = { workspace = true }
 chrono = { workspace = true }
-zip = { workspace = true }
 
 [build-dependencies]
 serde_json = { workspace = true }

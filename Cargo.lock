@@ -2048,7 +2048,6 @@ dependencies = [
  "silverbullet-server-common",
  "tempfile",
  "uuid",
- "zip",
 ]
 
 [[package]]
@@ -2263,6 +2262,7 @@ dependencies = [
  "thiserror 2.0.18",
  "tracing",
  "walkdir",
+ "zip",
 ]
 
 [[package]]

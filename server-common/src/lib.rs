@@ -5,5 +5,6 @@
 pub mod crypto;
 pub mod space;
 pub mod types;
+pub mod upgrade;
 
 pub use types::{BootConfig, FileMeta, SpaceError, SpacePrimitives};
