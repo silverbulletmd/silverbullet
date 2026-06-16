@@ -54,4 +54,8 @@ CC_x86_64_pc_windows_gnu = "x86_64-w64-mingw32-gcc"
 # FreeBSD: clang targets it directly given the sysroot (ring's C build).
 CC_x86_64_unknown_freebsd = "clang"
 AR_x86_64_unknown_freebsd = "llvm-ar"
-CFLAGS_x86_64_unknown_freebsd = "--target=x86_64-unknown-freebsd --sysroot=/opt/freebsd-sysroot"
+# `-Wno-implicit-function-declaration`: lzma-sys 0.1.20 bundles xz-5.2, whose
+# config.h doesn't declare `gettimeofday` for this cross target. Modern clang
+# makes implicit declarations a hard error by default (C99+), which broke the
+# whole FreeBSD build; the symbol exists in FreeBSD libc, so demoting it is safe.
+CFLAGS_x86_64_unknown_freebsd = "--target=x86_64-unknown-freebsd --sysroot=/opt/freebsd-sysroot -Wno-implicit-function-declaration"
