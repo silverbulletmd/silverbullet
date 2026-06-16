@@ -32,7 +32,7 @@ import type {
 } from "@silverbulletmd/silverbullet/type/index";
 import type { StyleObject } from "../plugs/index/space_style.ts";
 import type { ResolveAnchorResult } from "../plugs/index/types.ts";
-import { publicVersion } from "../public_version.ts";
+import { version as publicVersion } from "../version.json";
 import { ClientSystem } from "./client_system.ts";
 import {
   buildMarkdownLanguageExtension,

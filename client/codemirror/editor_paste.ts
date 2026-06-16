@@ -1,5 +1,6 @@
 import { syntaxTree } from "@codemirror/language";
 import { EditorView, ViewPlugin, type ViewUpdate } from "@codemirror/view";
+import { EditorSelection, Transaction } from "@codemirror/state";
 import type { Client } from "../client.ts";
 
 import { lezerToParseTree } from "../markdown_parser/parse_tree.ts";
@@ -56,6 +57,39 @@ async function doesFileExist(
 
 const urlRegexp =
   /^https?:\/\/[-a-zA-Z0-9@:%._+~#=]{1,256}([-a-zA-Z0-9()@:%_+.~#?&//=]*)/;
+
+// Safari/WebKit only: after a paste that triggers a decoration-driven DOM
+// rebuild (e.g. pasting a URL inside `[text]()` to complete a markdown link),
+// WebKit leaves the contentEditable typing caret at the *pre-paste* position.
+// `document.getSelection()` reports the correct post-paste position, so
+// CodeMirror thinks the DOM selection is already in sync and skips re-writing
+// it — and the next keystroke gets inserted at the stale caret. Forcing
+// CodeMirror to actually perform a DOM selection write makes WebKit re-resolve
+// its caret. We do that by briefly nudging the selection and restoring it once
+// the paste (and its decoration rebuild) has settled.
+const isWebKit = typeof navigator !== "undefined" &&
+  /Apple Computer/.test(navigator.vendor);
+
+function fixupWebKitCaretAfterPaste(view: EditorView): void {
+  if (!isWebKit) return;
+  // Run after the synchronous paste handling + decoration rebuild have
+  // settled, but before the user's next keystroke.
+  queueMicrotask(() => {
+    const sel = view.state.selection;
+    const head = sel.main.head;
+    const docLen = view.state.doc.length;
+    // Pick a different position to force a real DOM selection write.
+    const bump = head > 0 ? head - 1 : (docLen > 0 ? head + 1 : head);
+    if (bump === head) return; // empty document, nothing to re-resolve
+    const noHistory = Transaction.addToHistory.of(false);
+    view.dispatch({
+      selection: EditorSelection.cursor(bump),
+      annotations: noHistory,
+    });
+    // Restore the exact original selection (preserves multi-cursor ranges).
+    view.dispatch({ selection: sel, annotations: noHistory });
+  });
+}
 
 // Known iOS Safari paste issue (unrelated to this implementation): https://voxpelli.com/2015/03/ios-safari-url-copy-paste-bug/
 export const pasteLinkExtension = ViewPlugin.fromClass(
@@ -144,6 +178,11 @@ export function documentExtension(editor: Client) {
       }
     },
     paste: (event: ClipboardEvent) => {
+      // Schedule a WebKit caret re-sync regardless of which paste path runs
+      // below (or CodeMirror's own default paste handling, which fires after
+      // this handler returns a falsy value).
+      fixupWebKitCaretAfterPaste(editor.editorView);
+
       const payload = [...event.clipboardData!.items];
       const richText = event.clipboardData?.getData("text/html");
 

@@ -1,0 +1,55 @@
+[workspace]
+resolver = "2"
+members = ["server-common", "server", "server-runtime-chrome", "bin/silverbullet", "bin/sb"]
+# Make bare `cargo run` / `cargo build` target the silverbullet server binary.
+# CI's quality gates (clippy/test) pass `--workspace` explicitly, so they still
+# cover every member regardless of this default.
+default-members = ["bin/silverbullet"]
+
+[workspace.package]
+edition = "2021"
+license = "MIT"
+
+# Lint policy shared by every crate (each member opts in with
+# `[lints] workspace = true`). Configured here so the whole workspace lints
+# identically; CI runs `cargo clippy -- -D warnings` to make these hard errors.
+[workspace.lints.clippy]
+all = "warn"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+walkdir = "2"
+ignore = "0.4"
+mime_guess = "2"
+chrono = "0.4"
+filetime = "0.2"
+# Pinned to the 0.12 line on purpose: its `rustls-tls` feature uses the `ring`
+# crypto provider, which cross-compiles cleanly to every static-musl target
+# (including armv7 and freebsd). reqwest 0.13's rustls path switched to
+# aws-lc-rs (C/CMake), which is fragile to cross-compile for those arches.
+# Revisit only once the full cross-compile/release matrix is in place.
+reqwest = { version = "0.12", features = ["rustls-tls", "json", "blocking", "stream"], default-features = false }
+base64 = "0.22"
+percent-encoding = "2"
+regex = "1"
+pulldown-cmark = { version = "0.12", default-features = false, features = ["html"] }
+minijinja = "2"
+prometheus = { version = "0.13", default-features = false }
+tracing = "0.1"
+tower-http = "0.6"
+axum = "0.8"
+tokio = { version = "1", default-features = false, features = ["rt-multi-thread", "macros", "sync"] }
+jsonwebtoken = "9"
+sha2 = "0.10"
+getrandom = "0.2"
+clap = { version = "4", features = ["derive", "env"] }
+rust-embed = { version = "8", features = ["interpolate-folder-path", "mime-guess"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+serde_yaml = "0.9"
+rustyline = "14"
+uuid = { version = "1", features = ["v4"] }
+aes-gcm = "0.10"
+tempfile = "3"
+zip = "2"

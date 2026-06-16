@@ -7,17 +7,27 @@ dist
 *.js.map
 env.sh
 node_modules
-silverbullet
+# Anchored to the repo root so it ignores the built `./silverbullet` binary
+# WITHOUT also swallowing the `bin/silverbullet/` Rust crate directory.
+/silverbullet
+# Cross-compiled musl binaries produced by the CI Docker build (_build.yml).
+/silverbullet-amd64
+/silverbullet-arm64
 /sb
 silverbullet-cli-*.zip
+silverbullet-server-*.zip
 deploy.json
 *.generated
 tmp_playground
 test-results
 playwright-report
-/public_version.ts
+/version.json
 website/_plug
 tmp
 .idea
 .opencode
 AGENTS.md
+
+# Rust workspace build artifacts (Cargo.lock is intentionally tracked — this
+# workspace produces binaries)
+/target

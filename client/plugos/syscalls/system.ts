@@ -1,6 +1,6 @@
 import type { SysCallMapping } from "../system.ts";
 import type { Client } from "../../client.ts";
-import { publicVersion } from "../../../public_version.ts";
+import { version as publicVersion } from "../../../version.json";
 import type { CommandDef } from "@silverbulletmd/silverbullet/type/manifest";
 import type { SyscallMeta } from "@silverbulletmd/silverbullet/type/index";
 
