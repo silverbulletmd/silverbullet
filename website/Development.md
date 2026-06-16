@@ -89,17 +89,27 @@ make fmt
 make test
 ```
 
-### Docker (early access)
-Multi-arch (amd64 + arm64) Docker images of the Rust server are published to the GitHub Container Registry on every push to the `rust-backend` branch (early access / unstable):
+### Docker
+Multi-arch (amd64 + arm64 + arm/v7) Docker images are published to Docker Hub
+and the GitHub Container Registry. The **edge** channel is rebuilt on every push
+to `main`; **stable** images come from git tags:
 
-* `ghcr.io/silverbulletmd/silverbullet:rust-edge` — the server (Alpine, static musl binary)
-* `ghcr.io/silverbulletmd/silverbullet:rust-edge-runtime-api` — the same, plus Chromium for the server-side Lua runtime (`/.runtime/*`)
+* `zefhemel/silverbullet:v2` (edge) / `:latest` + `:X.Y.Z` (stable) — the server
+  (Alpine, static musl binary)
+* `…:v2-runtime-api` (edge) / `:latest-runtime-api` + `:X.Y.Z-runtime-api`
+  (stable) — the same, plus Chromium for the server-side Lua runtime
+  (`/.runtime/*`)
+
+Both images are mirrored to `ghcr.io/silverbulletmd/silverbullet` under the same
+tags.
 
 To run one:
 
 ```shell
-docker run -p 3000:3000 -v <PATH-TO-YOUR-SPACE>:/space ghcr.io/silverbulletmd/silverbullet:rust-edge
+docker run -p 3000:3000 -v <PATH-TO-YOUR-SPACE>:/space zefhemel/silverbullet:v2
 ```
 
-These are built by `.github/workflows/rust-edge.yml`, which cross-compiles the binary natively (`cargo build --target` with installed musl cross-toolchains) and copies it into a small Alpine image.
+These are built by `.github/workflows/ci.yml`, which cross-compiles the binary
+natively (`cargo build --target` with installed musl cross-toolchains) and copies
+it into a small Alpine image.
 

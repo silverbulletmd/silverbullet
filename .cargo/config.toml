@@ -32,7 +32,7 @@ linker = "arm-linux-gnueabihf-gcc"
 linker = "x86_64-w64-mingw32-gcc"
 
 # FreeBSD has no apt cross-gcc, so we cross with clang + a FreeBSD base sysroot
-# (extracted to /opt/freebsd-sysroot — see rust-edge-release.yml). clang is the
+# (extracted to /opt/freebsd-sysroot — see _build.yml). clang is the
 # link driver (with lld); the sysroot supplies FreeBSD's libc/crt + headers.
 [target.x86_64-unknown-freebsd]
 linker = "clang"

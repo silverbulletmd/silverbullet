@@ -19,8 +19,8 @@ use std::os::unix::fs::PermissionsExt;
 pub fn run(edge: bool) -> Result<(), String> {
     if edge {
         println!("Upgrading sb to edge...");
-        // The `edge` prerelease holds the latest Rust edge binaries (published by
-        // .github/workflows/rust-edge-release.yml on every push to `main`).
+        // The `edge` prerelease holds the latest edge binaries (published by
+        // .github/workflows/ci.yml on every push to `main`).
         upgrade_cli("https://github.com/silverbulletmd/silverbullet/releases/download/edge")
     } else {
         println!("Upgrading sb...");

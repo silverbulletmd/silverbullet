@@ -22,8 +22,7 @@ permissions:
   contents: read
 
 jobs:
-  # Single source of truth for branch/channel decisions. Post-merge flip lives
-  # entirely in the TRANSITION CONFIG block below.
+  # Single source of truth for branch/channel decisions.
   config:
     runs-on: ubuntu-latest
     outputs:
@@ -42,23 +41,17 @@ jobs:
           REF: ${{ github.ref }}
         run: |
           set -euo pipefail
-          # ============ TRANSITION CONFIG (rust-backend → main) ============
-          # These values namespace the in-progress rust line so it never
-          # clobbers currently-published images/releases.
-          # NOTE: the website image intentionally diverges from the app image's
-          #   versioned channel — its edge channel is the plain :edge tag (not
-          #   :v2), with :latest reserved for tagged releases.
-          # POST-MERGE: set PUBLISH_BRANCH=main, GH_RELEASE_TAG=edge,
-          #   GH_RELEASE_NAME=Edge, DOCKER_EDGE_TAG=v2,
-          #   DOCKER_RUNTIME_API_TAG=v2-runtime-api, WEBSITE_TAG=edge,
-          #   then delete this comment.
-          PUBLISH_BRANCH="rust-backend"
-          GH_RELEASE_TAG="edge-rust"
-          GH_RELEASE_NAME="Edge (rust)"
-          DOCKER_EDGE_TAG="rust"
-          DOCKER_RUNTIME_API_TAG="rust-runtime-api"
-          WEBSITE_TAG="rust"
-          # =================================================================
+          # Channel configuration. Pushes to PUBLISH_BRANCH and manual dispatches
+          # publish the edge channel; git tags publish stable releases.
+          # The website image intentionally diverges from the app image's
+          # versioned channel — its edge channel is the plain :edge tag (not
+          # :v2), with :latest reserved for tagged releases.
+          PUBLISH_BRANCH="main"
+          GH_RELEASE_TAG="edge"
+          GH_RELEASE_NAME="Edge"
+          DOCKER_EDGE_TAG="v2"
+          DOCKER_RUNTIME_API_TAG="v2-runtime-api"
+          WEBSITE_TAG="edge"
 
           is_tag=false
           is_edge=false
@@ -131,9 +124,6 @@ jobs:
         run: make build
 
       - name: Install Playwright browsers
-        # --with-deps installs the OS libraries the browsers need (esp. webkit,
-        # which otherwise fails to launch on ubuntu-latest with "Host system is
-        # missing dependencies to run browsers").
         run: npx playwright install --with-deps
 
       - name: Run e2e tests
@@ -186,7 +176,7 @@ jobs:
           pattern: release-zips-*
           merge-multiple: true
 
-      # Branch / manual dispatch → refresh the namespaced edge prerelease.
+      # Branch / manual dispatch → refresh the rolling edge prerelease.
       - name: Publish edge prerelease
         if: needs.config.outputs.is_edge == 'true'
         uses: softprops/action-gh-release@v2
