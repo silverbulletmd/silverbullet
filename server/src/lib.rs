@@ -43,6 +43,8 @@ mod test_support {
             version: "test-version".into(),
             host_url_prefix: String::new(),
             additional_head_html: String::new(),
+            theme_color: "#e1e1e1".into(),
+            space_description: "Powerful and programmable note taking app".into(),
             authorizer: None,
             login: None,
             shell: crate::shell::ShellConfig {

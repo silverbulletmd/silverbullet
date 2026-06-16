@@ -194,6 +194,8 @@ fn build_state(config: &Config) -> Result<ServerState, String> {
         version: server_version(),
         host_url_prefix: config.host_url_prefix.clone(),
         additional_head_html: config.additional_head_html.clone(),
+        theme_color: config.theme_color.clone(),
+        space_description: config.space_description.clone(),
         authorizer,
         login,
         // `ShellConfig::from_env` already disables shell running in read-only

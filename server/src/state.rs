@@ -63,6 +63,12 @@ pub struct ServerState {
     /// Extra HTML injected into the `<head>` of the served `index.html`
     /// (`SB_HEAD_HTML`). Empty by default.
     pub additional_head_html: String,
+    /// PWA theme color (`SB_THEME_COLOR`), surfaced in the generated
+    /// `manifest.json`. Defaults to `#e1e1e1`.
+    pub theme_color: String,
+    /// Space description (`SB_DESCRIPTION`), surfaced in the generated
+    /// `manifest.json`.
+    pub space_description: String,
     /// Authentication strategy for protected routes. `None` means the server is
     /// open (no authentication).
     pub authorizer: Option<Arc<dyn RequestAuthorizer>>,

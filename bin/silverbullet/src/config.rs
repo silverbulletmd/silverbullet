@@ -15,6 +15,8 @@ pub struct Config {
     pub disable_service_worker: bool,
     pub log_push: bool,
     pub additional_head_html: String,
+    pub theme_color: String,
+    pub space_description: String,
     pub host_url_prefix: String,
     pub http_logging: bool,
 }
@@ -88,6 +90,10 @@ impl Config {
             disable_service_worker: env_nonempty("SB_DISABLE_SERVICE_WORKER").is_some(),
             log_push: env_nonempty("SB_LOG_PUSH").is_some(),
             additional_head_html: env::var("SB_HEAD_HTML").unwrap_or_default(),
+            theme_color: env_nonempty("SB_THEME_COLOR")
+                .unwrap_or_else(|| "#e1e1e1".to_string()),
+            space_description: env_nonempty("SB_DESCRIPTION")
+                .unwrap_or_else(|| "Powerful and programmable note taking app".to_string()),
             host_url_prefix: normalize_prefix(&env::var("SB_URL_PREFIX").unwrap_or_default()),
             http_logging: env_nonempty("SB_HTTP_LOGGING").is_some(),
         })

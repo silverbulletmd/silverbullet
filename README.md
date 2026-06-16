@@ -82,6 +82,7 @@ SilverBullet has two halves you rebuild **independently**:
 Run the server in development with `cargo run`. A **debug** build serves the client bundle **live from `client_bundle/` on disk** (a release build embeds it instead):
 
 ```shell
+npm run build
 cargo run <PATH-TO-YOUR-SPACE>
 ```
 

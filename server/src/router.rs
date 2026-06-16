@@ -120,6 +120,7 @@ pub fn build_router(state: Arc<ServerState>) -> Router {
     // Open: liveness + the SPA shell/assets must always load.
     let open = Router::new()
         .route("/.ping", get(control::handle_ping))
+        .route("/.client/manifest.json", get(control::handle_manifest))
         .route(
             "/.auth",
             get(crate::handlers::auth::handle_auth_get)
