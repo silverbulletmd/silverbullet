@@ -72,7 +72,10 @@ async function copyAssets(dist: string) {
   await mkdir(dist, { recursive: true });
   await cp("client/fonts", dist, { recursive: true });
   await cp("client/html", dist, { recursive: true });
-  await cp("client/images/favicon.png", `${dist}/favicon.png`);
+  await cp("client/images/favicon-96x96.png", `${dist}/favicon-96x96.png`);
+  await cp("client/images/favicon.svg", `${dist}/favicon.svg`);
+  await cp("client/images/favicon.ico", `${dist}/favicon.ico`);
+  await cp("client/images/apple-touch-icon.png", `${dist}/apple-touch-icon.png`);
   await cp("client/images/logo.png", `${dist}/logo.png`);
   await cp("client/images/logo-dock.png", `${dist}/logo-dock.png`);
 

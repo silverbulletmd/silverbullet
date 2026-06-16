@@ -7,7 +7,7 @@
             name="viewport"
         />
         <base href="{{ host_prefix | safe }}/" />
-        <link href=".client/logo.png" rel="apple-touch-icon" />
+        <link href=".client/apple-touch-icon.png" rel="apple-touch-icon" sizes="180x180" />
         <meta
             content="#e1e1e1"
             media="(prefers-color-scheme: light)"
@@ -31,7 +31,9 @@
             href=".client/manifest.json"
             rel="manifest"
         />
-        <link href=".client/favicon.png" rel="icon" type="image/x-icon" />
+        <link rel="icon" type="image/png" href=".client/favicon-96x96.png" sizes="96x96" />
+        <link rel="icon" type="image/svg+xml" href=".client/favicon.svg" />
+        <link rel="shortcut icon" href=".client/favicon.ico" />
         {{ additional_head_html | safe }}
     </head>
 
