@@ -119,7 +119,7 @@ build-cli-releases-rust-macos:
 	cp target/x86_64-apple-darwin/release/sb sb && zip sb-darwin-x86_64.zip sb && rm sb
 
 clean:
-	rm -rf client_bundl dist target version.json
+	rm -rf client_bundle dist target version.json
 	rm -f silverbullet silverbullet-arm64 silverbullet-amd64 silverbullet-arm silverbullet.exe silverbullet-server-*.zip sb sb.exe sb-*.zip
 	rm -rf plugs/configuration-manager/assets
 	rm -rf plugs/object-graph/assets
