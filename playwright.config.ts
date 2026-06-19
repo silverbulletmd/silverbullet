@@ -5,7 +5,10 @@ export default defineConfig({
 	timeout: 60_000,
 	expect: { timeout: 30_000 },
 	fullyParallel: false,
-	workers: 1,
+	// Tests are fully isolated (unique temp space dir + dynamic port each), so
+	// they run in parallel across workers. "50%" leaves a core per worker for
+	// that worker's spawned server process; on CI it adapts to the runner size.
+	workers: process.env.CI ? "50%" : 1,
 	// Browsers occasionally crash at the process level in CI (notably a chromium
 	// renderer SEGV); retry there so a stray crash doesn't fail the whole gate.
 	retries: process.env.CI ? 2 : 0,
