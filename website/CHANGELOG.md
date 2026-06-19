@@ -10,6 +10,7 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
   * The goal is to make do this without regressions, but watch for any issues.
 * Runtime API: the embedded headless-Chrome runtime now logs its lifecycle (when it launches on first use, when it becomes ready, and on crash/restart), and forwards the headless page‘s `console.*` output to the server log by default (disable with `SB_CHROME_LOG_CONSOLE=0` see [[Install/Configuration]]).
 * Fix: on Safari/WebKit, the first keystroke right after a paste could be inserted at the wrong position (e.g. pasting a URL inside `[text]()` and then pressing `)` produced `[text]()url)` instead of typing over the closing bracket). WebKit left the typing caret at the pre-paste position; the editor now re-syncs it after a paste.
+* Navigating to a page via a link now always opens it fresh (at the top, or at an explicit `#header`/`@pos` pointer in the link) instead of restoring your previous cursor and scroll position. Returning to a page via browser Back/Forward or the [[Page Picker]] still restores where you were. Plugs/Lua can opt into restoring with the new `editor.open` syscall (see [[API/editor]]).
 
 ## 2.9.0
 * New [[Object/relation]] indexed object capturing generalized object-to-object relationships. This is a successor to [[Object/link]], which still exists as a virtual collection built on top of `relation`.

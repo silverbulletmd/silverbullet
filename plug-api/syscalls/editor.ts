@@ -130,6 +130,22 @@ export function navigate(
 }
 
 /**
+ * Opens the specified page reference, restoring the previous cursor and scroll
+ * position for that page when one is remembered from the current session. Like
+ * navigate(), an explicit pointer in the ref (e.g. `#header`, `@123`) still wins.
+ * @param ref the page reference to open
+ * @param replaceState whether to replace the current history state in the browser history
+ * @param newWindow whether to open the page in a new window
+ */
+export function open(
+  ref: Ref | string,
+  replaceState = false,
+  newWindow = false,
+): Promise<void> {
+  return syscall("editor.open", ref, replaceState, newWindow);
+}
+
+/**
  * Opens the page navigator
  * @param mode the mode to open the navigator in
  */

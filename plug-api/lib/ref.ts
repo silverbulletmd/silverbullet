@@ -141,6 +141,105 @@ export function parseToRef(stringRef: string): Ref | null {
 }
 
 /**
+ * Coerces a ref-or-string (including the legacy `{ page, pos, header }` shape)
+ * into a {@link Ref} and validates its structure, throwing on malformed input.
+ * Used wherever an external caller (e.g. a syscall) hands in a ref that may be a
+ * string or a legacy object.
+ */
+export function coerceAndValidateRef(ref: Ref | string): Ref {
+  if (typeof ref === "string") {
+    const parsedRef = parseToRef(ref);
+    if (!parsedRef) {
+      throw new Error("Unable to parse string as ref");
+    }
+    ref = parsedRef;
+  }
+
+  if (
+    // @ts-expect-error: Legacy support
+    ref.page !== undefined
+  ) {
+    console.warn(
+      "You are using legacy navigation syntax (`{ page, pos, header }`), this will be phased out in the future",
+    );
+
+    const legacyRef = ref as unknown as {
+      kind: "page" | "document";
+      page: string;
+      pos?: number | { line: number; column: number };
+      header?: string;
+      meta?: boolean;
+    };
+
+    legacyRef.kind ??= "page";
+
+    let details: Ref["details"];
+
+    if (typeof legacyRef.pos === "number") {
+      details = { type: "position", pos: legacyRef.pos };
+    } else if (legacyRef.pos) {
+      details = {
+        type: "linecolumn",
+        line: legacyRef.pos.line,
+        column: legacyRef.pos.column,
+      };
+    } else if (legacyRef.header) {
+      details = { type: "header", header: legacyRef.header };
+    }
+
+    ref = {
+      path: (legacyRef.kind === "page"
+        ? `${legacyRef.page}.md`
+        : legacyRef.page) as Path,
+      details,
+      meta: legacyRef.meta,
+    };
+  }
+
+  if (!isValidPath(ref.path) && ref.path !== "") {
+    throw new Error("Path passed in ref is invalid");
+  } else if (typeof ref.meta !== "boolean" && ref.meta !== undefined) {
+    throw new Error("ref.meta has to be of type `boolean`");
+  } else if (ref.details !== undefined && typeof ref.details !== "object") {
+    throw new Error("ref.details has to be of type `object` or `undefined`");
+  } else if (
+    ref.details &&
+    !["position", "linecolumn", "header", "anchor"].includes(ref.details.type)
+  ) {
+    throw new Error(
+      "ref.details.type has to be 'position', 'linecolumn', 'header' or 'anchor'",
+    );
+  }
+
+  if (
+    ref.details?.type === "position" &&
+    typeof ref.details.pos !== "number"
+  ) {
+    throw new Error("ref.details.pos has to be of type `number`");
+  } else if (
+    ref.details?.type === "header" &&
+    typeof ref.details.header !== "string"
+  ) {
+    throw new Error("ref.details.header has to be of type `string`");
+  } else if (
+    ref.details?.type === "linecolumn" &&
+    typeof ref.details.line !== "number" &&
+    typeof ref.details.column !== "number"
+  ) {
+    throw new Error(
+      "ref.details.line and ref.details.column has to be of type `number`",
+    );
+  } else if (
+    ref.details?.type === "anchor" &&
+    typeof ref.details.name !== "string"
+  ) {
+    throw new Error("ref.details.name has to be of type `string`");
+  }
+
+  return ref;
+}
+
+/**
  * The inverse of {@link parseToRef}, encodes a ref object into a reference string.
  * It tries to produce the shortest valid representation
  */

@@ -150,6 +150,23 @@ Example:
 editor.navigate("CHANGELOG@123")
 ```
 
+### editor.open(ref, replaceState?, newWindow?)
+Opens the specified page reference. Unlike `editor.navigate`, which always opens
+the page fresh (at the top, or at an explicit pointer such as `#header`/`@pos`),
+`editor.open` does a best-effort restore of the cursor and scroll position you
+last had on that page during this session. An explicit pointer in the ref still
+takes precedence.
+
+Parameters:
+- `ref`: The (string) reference to open, see [[../Link#Link syntax (String refs)|string refs]]
+- `replaceState`: Whether to replace the current history state
+- `newWindow`: Whether to open in a new window
+
+Example:
+```lua
+editor.open("CHANGELOG")
+```
+
 ### editor.openPageNavigator(mode)
 Opens the page navigator.
 

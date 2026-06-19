@@ -1,6 +1,7 @@
 .env
 .chrome-data
 .DS_Store
+.obsidian
 client_bundle/client
 client_bundle/base_fs
 dist

@@ -916,7 +916,26 @@ export class Client {
     return parseToRef(this.bootConfig.indexPage) || { path: "index.md" };
   }
 
-  async navigate(ref: Ref | null, replaceState = false, newWindow = false) {
+  /**
+   * Navigates the client to a particular ref (ingoring previous state)
+   */
+  navigate(ref: Ref | null, replaceState = false, newWindow = false) {
+    return this._navigate(ref, replaceState, newWindow, false);
+  }
+
+  /**
+   * Opens a particular ref in the client restoring previous state if available
+   */
+  open(ref: Ref | null, replaceState = false, newWindow = false) {
+    return this._navigate(ref, replaceState, newWindow, true);
+  }
+
+  private async _navigate(
+    ref: Ref | null,
+    replaceState = false,
+    newWindow = false,
+    restore = false,
+  ) {
     ref ??= this.getIndexRef();
 
     // Resolve $-anchor refs into a concrete page + position. The page
@@ -970,7 +989,7 @@ export class Client {
       return;
     }
 
-    await this.pageNavigator!.navigate(ref, replaceState);
+    await this.pageNavigator!.navigate(ref, replaceState, restore);
     this.focus();
   }
 

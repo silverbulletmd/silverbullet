@@ -369,7 +369,7 @@ export class MainUI {
                     "This file cannot be edited, select your desired action.",
                   );
                 } else {
-                  void client.navigate(ref);
+                  void client.open(ref);
                 }
               });
             }}
@@ -626,7 +626,7 @@ export class MainUI {
 
     switch (option.name) {
       case "View": {
-        await this.client.navigate({ path: path });
+        await this.client.open({ path: path });
         break;
       }
       case "Delete": {
