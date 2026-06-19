@@ -61,7 +61,7 @@ Based on your page’s markdown, an indexer produces a list of objects to be ind
 > `transform` will only be invoked when a page is indexed. This generally happens after making a change. To apply newly defined `transform` functionality to all pages in your space, you have to reindex the entire space using `Space: Reindex`.
 
 ### Example: adding [[Page Decorations]] dynamically
-The following dynamically adds a 🧑 prefix [[Page Decorations|page decoration]] to all pages tagged with `#person`, such as [[Person/John]] and [[Person/Zef]].
+The following dynamically adds a 🧑 prefix [[Page Decorations|page decoration]] to all pages tagged with `#person`, such as [[Person/John]].
 
 ```lua
 tag.define {

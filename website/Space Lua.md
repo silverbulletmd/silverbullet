@@ -70,7 +70,7 @@ This mechanism is often used in conjunction with [[Space Lua/Integrated Query]] 
 # API
 ![[API]]
 # Space Lua vs “OG” Lua
-Space Lua is a _custom Lua implementation_. It does not use the official [Lua](https://www.lua.org) nor [LuaJIT](https://luajit.org) implementations. Rather than using a WebAssembly or other implementation of Lua that could run in the browser, we have opted for a custom implementation. There are various (partially historical) reasons for this decision, but taking this path has given us a very smooth interoperability story allowing for very friction-free access to a lot of SilverBullet and browser functionality. It also enables relatively deep integration into the Lua runtime, enabling features like (some) code complete support, (some) jump to definition and various other features.
+Space Lua is a _custom Lua implementation_. It does not use the official [Lua](https://www.lua.org) nor [LuaJIT](https://luajit.org) implementations, nor a WebAssembly build of them. For the reasoning behind that choice — and its trade-offs — see [[ADR/005 Space Lua]].
 
 While the aim is to be 95% (let’s say) compatible with regular Lua, there are a few [[Space Lua/Quirks]] to be aware of.
 
