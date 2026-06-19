@@ -172,6 +172,25 @@ export function checkRangeSubset(
   return child[0] >= parent[0] && child[1] <= parent[1];
 }
 
+export const readOnlyCursorActive = StateField.define<boolean>({
+  create(state) {
+    const { from, to } = state.selection.main;
+    return from !== 0 || to !== 0;
+  },
+  update(value, tr) {
+    if (value) {
+      return true;
+    }
+    // Treat the cursor as active once a transaction *actually moves* the
+    // selection. We compare start/end positions because widgets dispatch a
+    // no-op `{ selection: currentSelection }` on render (to re-measure their
+    // DOM) — that carries `tr.selection` but doesn't move the caret, and must
+    // not count as a deliberate placement.
+    return tr.selection !== undefined &&
+      !tr.startState.selection.eq(tr.newSelection);
+  },
+});
+
 /**
  * Check if any of the editor cursors is in the given range
  * @param state - Editor state
@@ -179,6 +198,9 @@ export function checkRangeSubset(
  * @returns True if the cursor is in the range
  */
 export function isCursorInRange(state: EditorState, range: [number, number]) {
+  if (state.readOnly && !state.field(readOnlyCursorActive, false)) {
+    return false;
+  }
   return state.selection.ranges.some((selection) =>
     checkRangeOverlap(range, [selection.from, selection.to]),
   );

@@ -49,6 +49,7 @@ import type { TextChange } from "./change.ts";
 import { postScriptPrefacePlugin } from "./top_bottom_panels.ts";
 import { lazyLanguages, languageFor, loadLanguageFor } from "../languages.ts";
 import { plugLinter } from "./lint.ts";
+import { readOnlyCursorActive } from "./util.ts";
 import { buildExtendedMarkdownLanguage } from "../markdown_parser/parser.ts";
 import { safeRun } from "@silverbulletmd/silverbullet/lib/async";
 import { codeCopyPlugin } from "../codemirror/code_copy.ts";
@@ -101,9 +102,13 @@ export function createEditorState(
 
   const readOnlyExtensions: Extension[] =
     readOnly ||
-    client.ui.viewState.uiOptions.forcedROMode ||
-    client.bootConfig.readOnly
-      ? [EditorView.editable.of(false), EditorState.readOnly.of(true)]
+      client.ui.viewState.uiOptions.forcedROMode ||
+      client.bootConfig.readOnly
+      ? [
+        EditorView.editable.of(false),
+        EditorState.readOnly.of(true),
+        readOnlyCursorActive,
+      ]
       : [];
 
   return EditorState.create({
@@ -430,15 +435,15 @@ export function createRegularKeyBindings(client: Client): Extension {
       ...closeBracketsKeymap,
       ...(client.ui.viewState.uiOptions.vimMode
         ? [
-            // Workaround for https://github.com/replit/codemirror-vim/issues/182;
-            // without this, Enter does nothing for ordinary paragraphs in insert
-            // mode.
-            {
-              key: "Enter",
-              run: insertNewlineAndIndent,
-              shift: insertNewlineAndIndent,
-            },
-          ]
+          // Workaround for https://github.com/replit/codemirror-vim/issues/182;
+          // without this, Enter does nothing for ordinary paragraphs in insert
+          // mode.
+          {
+            key: "Enter",
+            run: insertNewlineAndIndent,
+            shift: insertNewlineAndIndent,
+          },
+        ]
         : []),
     ]);
   }
