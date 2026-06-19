@@ -117,17 +117,24 @@ jobs:
         with:
           node-version-file: ".nvmrc"
 
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: e2e-debug
+
       - name: Install dependencies
         run: npm ci
 
-      - name: Build
-        run: make build
+      # Debug server (serves the client bundle from disk) — far faster to compile
+      # than the release build. The embedded-bundle path is covered by the
+      # separate test-e2e-release job below.
+      - name: Build (debug server + client bundle)
+        run: make build-e2e
 
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps
+      - name: Install Playwright browser (chromium)
+        run: npx playwright install --with-deps chromium
 
       - name: Run e2e tests
-        run: npx playwright test
+        run: npx playwright test --project=chromium
 
       - name: Upload test results
         if: ${{ !cancelled() }}
@@ -137,14 +144,58 @@ jobs:
           path: test-results/
           retention-days: 7
 
+  # Validates the shipped release binary's rust-embed embedded bundle. Kept
+  # separate from test-e2e so the fast gate isn't blocked on a release compile;
+  # runs in parallel and gates release/docker.
+  test-e2e-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: e2e-release
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (release server with embedded bundle)
+        run: make build-rs
+
+      - name: Install Playwright browser (chromium)
+        run: npx playwright install --with-deps chromium
+
+      - name: Run embedded-bundle e2e tests
+        run: npx playwright test --project=release
+
+      - name: Upload test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-release
+          path: test-results/
+          retention-days: 7
+
+  # Compilation doesn't depend on the test suites, so the build runs in parallel
+  # with them instead of after — the test gate is enforced on the *publishing*
+  # jobs (release/docker) below, which keeps "nothing ships if tests fail".
   build:
-    needs: [config, test-frontend, test-e2e]
+    needs: [config]
     if: needs.config.outputs.publish == 'true'
     uses: ./.github/workflows/_build.yml
     secrets: inherit
 
   release:
-    needs: [config, build]
+    needs: [config, build, test-frontend, test-e2e, test-e2e-release]
     if: needs.config.outputs.publish == 'true'
     runs-on: ubuntu-latest
     permissions:
@@ -220,7 +271,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   docker:
-    needs: [config, build]
+    needs: [config, build, test-frontend, test-e2e, test-e2e-release]
     if: needs.config.outputs.publish == 'true'
     runs-on: ubuntu-latest
     permissions:

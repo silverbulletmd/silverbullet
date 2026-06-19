@@ -1,10 +1,18 @@
-.PHONY: build build-for-docker build-linux-ci docker build-server-releases build-server-releases-macos build-cli-releases-rust build-cli-releases-freebsd build-cli-releases-rust-macos clean check fmt test test-e2e test-e2e-release bench generate website install uninstall bundle build-rs build-rs-cli run-rs
+.PHONY: build build-e2e build-for-docker build-linux-ci docker build-server-releases build-server-releases-macos build-cli-releases-rust build-cli-releases-freebsd build-cli-releases-rust-macos clean check fmt test test-e2e test-e2e-release bench generate website install uninstall bundle build-rs build-rs-cli run-rs
 
 build:
 	npm run build
 	npm run build:plug-compile
 	cargo build --release -p silverbullet
 	cargo build --release -p sb
+
+# Fast build for the e2e suite: a debug server (rust-embed reads the client
+# bundle from disk in debug, so no embed step) plus the frontend bundle. Skips
+# the release compile, plug-compile, and the `sb` CLI — none are exercised by
+# the debug e2e suite. The embedded-bundle path is covered by `test-e2e-release`.
+build-e2e:
+	npm run build
+	cargo build -p silverbullet
 
 setup:
 	npm install
@@ -138,16 +146,15 @@ test:
 	npx vitest run
 	cargo test --workspace --all-features
 
-test-e2e: build-rs
-	npx playwright test
+test-e2e: build-e2e
+	npx playwright test --project=chromium
 
 # Browser E2E tests against the standalone release binary, validating the
-# rust-embed embedded client bundle and the browser login flow. Requires a
-# release build first: run `make build-rs` to produce
-# `target/release/silverbullet`. Kept out of the default `test-e2e` so the
-# fast suite isn't blocked on a release build.
-test-e2e-release:
-	npx playwright test e2e/release-embedded.test.ts
+# rust-embed embedded client bundle and the browser login flow. Builds the
+# release binary first (`target/release/silverbullet`). Kept out of the default
+# `test-e2e` so the fast suite isn't blocked on a release build.
+test-e2e-release: build-rs
+	npx playwright test --project=release
 
 bench:
 	npm run bench

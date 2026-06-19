@@ -19,6 +19,9 @@ export default defineConfig({
 	projects: [
 		{
 			name: "chromium",
+			// The embedded-bundle test needs the release binary; it runs as its
+			// own `release` project (see `make test-e2e-release`).
+			testIgnore: "**/release-embedded.test.ts",
 			use: {
 				...devices["Desktop Chrome"],
 				// CI runners have a small /dev/shm, which crashes the chromium
@@ -27,12 +30,12 @@ export default defineConfig({
 			},
 		},
 		{
-			name: "firefox",
-			use: { ...devices["Desktop Firefox"] },
-		},
-		{
-			name: "webkit",
-			use: { ...devices["Desktop Safari"] },
+			name: "release",
+			testMatch: "**/release-embedded.test.ts",
+			use: {
+				...devices["Desktop Chrome"],
+				launchOptions: { args: ["--disable-dev-shm-usage"] },
+			},
 		},
 	],
 });

@@ -65,9 +65,7 @@ export const test = base.extend<SBFixtures>({
 		const port = await getFreePort();
 
 		const proc: ChildProcess = spawn(
-			// The e2e suite runs against the Rust server (the release binary, with
-			// the client bundle embedded — built by `make build-rs`).
-			"./target/release/silverbullet",
+			"./target/debug/silverbullet",
 			[spaceDir, "-p", String(port), "-L", "127.0.0.1"],
 			{
 				cwd: join(import.meta.dirname, ".."),
