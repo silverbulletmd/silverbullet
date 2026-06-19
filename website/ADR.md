@@ -1,4 +1,4 @@
-Important [[Architecture]] decisions for SilverBullet are captured as [Architecture Decision Records](https://adr.github.io/) (template: [[^Library/Page Templates/ADR]]). See [[Maintenance]] for records due for review.
+Important [[Architecture]] decisions for SilverBullet are captured as [Architecture Decision Records](https://adr.github.io/) (template: [[^Library/Page Templates/ADR]]). See [[Health]] for records due for review.
 
 ## At a glance
 ${query[[

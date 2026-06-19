@@ -61,7 +61,7 @@
 # Task states
 * [ ] Open task
 * [x] Completed task
-* [ ] Task with **bold** and a [[WikiLink]] inside
+* [ ] Task with **bold** and a [[Link]] inside
 * [ ] Long task with formatting: **bold**, *italic*, `code`, [[Link]] — verify wrapped lines hang correctly
 
 # Code block inside list item
