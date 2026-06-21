@@ -7,6 +7,7 @@ use axum::response::{IntoResponse, Response};
 use axum::routing::{any, delete, get, post, put};
 use axum::Router;
 use silverbullet_server_common::SpaceError;
+use tower_http::compression::CompressionLayer;
 
 use crate::handlers::{bundle, control, fs};
 use crate::state::ServerState;
@@ -85,9 +86,22 @@ pub fn build_router(state: Arc<ServerState>) -> Router {
     // Protected: require authorization (when an authorizer is configured).
     let protected = Router::new()
         .route("/.config", get(control::handle_config))
-        .route("/.fs", get(fs::handle_fs_list))
-        .route("/.fs/", get(fs::handle_fs_list))
-        .route("/.fs/{*path}", get(fs::handle_fs_get))
+        // Gzip/brotli-compress file reads (Accept-Encoding aware). Big text
+        // assets like a self-hosted mermaid.min.js (~3.3 MB) transfer at
+        // ~0.9 MB. Scoped to GET so writes are untouched. The `x-content-length`
+        // metadata header still reflects the real (uncompressed) size.
+        .route(
+            "/.fs",
+            get(fs::handle_fs_list).layer(CompressionLayer::new()),
+        )
+        .route(
+            "/.fs/",
+            get(fs::handle_fs_list).layer(CompressionLayer::new()),
+        )
+        .route(
+            "/.fs/{*path}",
+            get(fs::handle_fs_get).layer(CompressionLayer::new()),
+        )
         .route("/.fs/{*path}", put(fs::handle_fs_put))
         .route("/.fs/{*path}", delete(fs::handle_fs_delete))
         .route("/.shell", post(crate::handlers::shell::handle_shell))

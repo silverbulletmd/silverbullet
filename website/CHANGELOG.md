@@ -3,6 +3,8 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
+* File reads over `/.fs` are now compressed (gzip/brotli, `Accept-Encoding`-aware), so large text files transfer much smaller — e.g. a 3.3 MB JavaScript asset goes out at ~0.86 MB. The `X-Content-Length` metadata header still reports the true uncompressed size, so nothing client-side changes.
+
 * Backend and CLI (`silverbullet` and `sb` binaries) are now ported to Rust, both should be behavior preserving (that is: you shouldn’t really notice):
   * The server backend (previously written in Go) has now been replaced by an adapted version of SilverBullet+‘s backend written in Rust, more unifying those code bases.
   * CLI client also reimplemented/backported to Rust as well.
