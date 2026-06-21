@@ -43,6 +43,7 @@ import { eventSyscalls } from "./plugos/syscalls/event.ts";
 import { DocumentEditorHook } from "./plugos/hooks/document_editor.ts";
 import type { Command } from "./types/command.ts";
 import { SpaceLuaEnvironment } from "./space_lua.ts";
+import type { ILuaFunction } from "./space_lua/runtime.ts";
 import { builtinPlugPaths } from "../plugs/builtin_plugs.ts";
 import { registerEditorCommands } from "./editor_commands.ts";
 import { ServiceRegistry } from "./service_registry.ts";
@@ -71,6 +72,11 @@ export class ClientSystem {
   // Space Lua
   spaceLuaEnv: SpaceLuaEnvironment;
   readonly scriptCommands = new Map<string, Command>();
+  // Code widgets registered from Space Lua (language -> definition)
+  readonly luaCodeWidgets = new Map<
+    string,
+    { language: string; render: ILuaFunction }
+  >();
   scriptsLoaded: boolean = false;
 
   // Known files (for UI)
@@ -212,6 +218,20 @@ export class ClientSystem {
       this.client.config.get<Record<string, Command>>("commands", {}),
     )) {
       this.scriptCommands.set(name, command);
+    }
+
+    // Reset + collect Space Lua code widgets
+    this.luaCodeWidgets.clear();
+    for (
+      const [language, def] of Object.entries(
+        this.client.config.get<
+          Record<string, { language: string; render: ILuaFunction }>
+        >("codeWidgets", {}),
+      )
+    ) {
+      if (def && typeof (def as any).render?.call === "function") {
+        this.luaCodeWidgets.set(language, def);
+      }
     }
 
     // Make scripted (slash) commands available

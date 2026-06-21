@@ -21,6 +21,7 @@ import {
   buildTranslateUrls,
   moveCursorToWidgetStart,
 } from "./widget_util.ts";
+import { createWidgetSandboxIFrame } from "../components/widget_sandbox_iframe.ts";
 
 export type LuaWidgetCallback = (
   bodyText: string,
@@ -45,6 +46,8 @@ export type LuaWidgetContent =
       display?: "block" | "inline";
       // Event handlers
       events?: Record<string, (event: EventPayLoad) => void>;
+      // when present, html+script render inside a sandbox iframe (see renderContent)
+      script?: string;
     }
   | string;
 
@@ -202,6 +205,46 @@ export class LuaWidget extends WidgetType {
     if (wc.cssClasses) {
       div.className = wc.cssClasses.join(" ");
     }
+
+    // When a script is present, render html+script inside a sandbox iframe
+    if (wc.script) {
+      div.className += " sb-lua-directive-block";
+      const iframeContent = {
+        html: typeof wc.html === "string" ? wc.html : "",
+        script: wc.script,
+      };
+      const iframe = createWidgetSandboxIFrame(
+        this.opts.client,
+        this.opts.cacheKey,
+        iframeContent,
+        (message) => {
+          switch (message.type) {
+            case "blur": {
+              const pos = this.opts.client.editorView.posAtDOM(iframe, 0);
+              this.opts.client.editorView.dispatch({
+                selection: { anchor: pos },
+              });
+              this.opts.client.focus();
+              break;
+            }
+          }
+        },
+      );
+      const cachedHeight = this.opts.client.widgetCache.getCachedWidgetHeight(
+        this.opts.cacheKey,
+      );
+      iframe.style.height = `${cachedHeight > 0 ? cachedHeight : 150}px`;
+      iframe.style.display = "block";
+      const wrapped = this.wrapHtml(true, iframe, wc.markdown);
+      div.replaceChildren(wrapped);
+      div.style.minHeight = "";
+      this.opts.client.widgetCache.setCachedWidgetMeta(this.opts.cacheKey, {
+        height: cachedHeight > 0 ? cachedHeight : 150,
+        block: true,
+      });
+      return;
+    }
+
     if (wc.html) {
       if (typeof wc.html === "string") {
         html = parseHtmlString(wc.html);
