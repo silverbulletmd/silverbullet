@@ -44,6 +44,7 @@ pub async fn handle_fs_get(
         let path_inner = path.clone();
         return match run_blocking(move || state_inner.space.get_file_meta(&path_inner)).await {
             Ok(meta) => set_file_meta_headers(Response::builder().status(StatusCode::OK), &meta)
+                .header("Cache-Control", "no-store")
                 .body(Body::empty())
                 .unwrap(),
             Err(e) => space_error_response(e),
@@ -89,10 +90,18 @@ pub async fn handle_fs_get(
             if force_octet_stream {
                 meta.content_type = "application/octet-stream".to_string();
             }
-            set_file_meta_headers(Response::builder().status(StatusCode::OK), &meta)
-                .header("X-Content-Type", &real_content_type)
-                .body(Body::from(data))
-                .unwrap()
+            let mut builder =
+                set_file_meta_headers(Response::builder().status(StatusCode::OK), &meta)
+                    .header("X-Content-Type", &real_content_type)
+                    // Mutable file: revalidate every load. The `Last-Modified`
+                    // validator lets the browser get a 304 (handled above)
+                    // instead of refetching the full body.
+                    .header("Cache-Control", "no-cache");
+            let last_modified = http_date(meta.last_modified);
+            if !last_modified.is_empty() {
+                builder = builder.header(axum::http::header::LAST_MODIFIED, &last_modified);
+            }
+            builder.body(Body::from(data)).unwrap()
         }
         Err(e) => space_error_response(e),
     }
@@ -103,20 +112,12 @@ pub(crate) fn set_file_meta_headers(
     builder: axum::http::response::Builder,
     meta: &FileMeta,
 ) -> axum::http::response::Builder {
-    let mut builder = builder
+    builder
         .header("Content-Type", &meta.content_type)
         .header("X-Created", meta.created.to_string())
         .header("X-Last-Modified", meta.last_modified.to_string())
         .header("X-Content-Length", meta.size.to_string())
         .header("X-Permission", &meta.perm)
-        .header("Cache-Control", "no-cache");
-    // Standard validator so the browser can revalidate `/.fs` files and get a
-    // 304 (handled in `handle_fs_get`) instead of refetching the full body.
-    let last_modified = http_date(meta.last_modified);
-    if !last_modified.is_empty() {
-        builder = builder.header(axum::http::header::LAST_MODIFIED, &last_modified);
-    }
-    builder
 }
 
 pub async fn handle_fs_put(
@@ -137,6 +138,7 @@ pub async fn handle_fs_put(
     {
         Ok(result_meta) => {
             set_file_meta_headers(Response::builder().status(StatusCode::OK), &result_meta)
+                .header("Cache-Control", "no-store")
                 .body(Body::from("OK"))
                 .unwrap()
         }
@@ -316,6 +318,69 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(&body[..], b"payload");
+    }
+
+    #[tokio::test]
+    async fn meta_probe_is_no_store_content_is_revalidatable() {
+        // Regression guard: the empty-body X-Get-Meta probe and the full-body
+        // content GET share the same URL. If the probe were cacheable, a browser
+        // would revalidate a later content read against the cached EMPTY body and
+        // serve nothing. So the probe MUST be `no-store`; the content GET stays a
+        // revalidatable `no-cache` + `Last-Modified`.
+        let state = Arc::new(test_state());
+        state.space.write_file("x.md", b"hello", None).unwrap();
+
+        // Metadata probe: no-store, empty body, but X-* metadata present.
+        let meta = crate::build_router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .uri("/.fs/x.md")
+                    .header("X-Get-Meta", "true")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(meta.status(), StatusCode::OK);
+        assert_eq!(
+            meta.headers()
+                .get("cache-control")
+                .unwrap()
+                .to_str()
+                .unwrap(),
+            "no-store"
+        );
+        assert!(meta.headers().get("X-Last-Modified").is_some());
+        let meta_body = axum::body::to_bytes(meta.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        assert!(meta_body.is_empty());
+
+        // Content GET: revalidatable, full body.
+        let content = crate::build_router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/.fs/x.md")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(content.status(), StatusCode::OK);
+        assert_eq!(
+            content
+                .headers()
+                .get("cache-control")
+                .unwrap()
+                .to_str()
+                .unwrap(),
+            "no-cache"
+        );
+        assert!(content.headers().get("last-modified").is_some());
+        let content_body = axum::body::to_bytes(content.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        assert_eq!(&content_body[..], b"hello");
     }
 
     #[tokio::test]
