@@ -1015,7 +1015,8 @@ export function evalExpression(
       case "Variable":
       case "FunctionCall":
       case "TableAccess":
-      case "PropertyAccess": {
+      case "PropertyAccess":
+      case "Parenthesized": {
         return evalPrefixExpression(e, env, sf);
       }
       case "TableConstructor": {
@@ -1318,7 +1319,7 @@ function evalPrefixExpression(
 
     case "Parenthesized": {
       const p = asParenthesized(e);
-      return evalExpression(p.expression, env, sf);
+      return rpThen(evalExpression(p.expression, env, sf), singleResult);
     }
 
     // <<expr>>[<<expr>>]

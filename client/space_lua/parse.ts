@@ -1269,7 +1269,11 @@ function parseExpression(t: ParseTree, ctx: ASTCtx): LuaExpression {
       };
 
     case "Parens":
-      return parseExpression(t.children![1], ctx);
+      return {
+        type: "Parenthesized",
+        expression: parseExpression(t.children![1], ctx),
+        ctx: context(t, ctx),
+      };
     case "FunctionCall": {
       return parseFunctionCall(t, ctx);
     }
