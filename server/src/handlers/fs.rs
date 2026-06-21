@@ -6,7 +6,7 @@ use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
 use silverbullet_server_common::FileMeta;
 
-use crate::handlers::space_error_response;
+use crate::handlers::{http_date, space_error_response};
 use crate::router::run_blocking;
 use crate::state::ServerState;
 
@@ -50,6 +50,31 @@ pub async fn handle_fs_get(
         };
     }
 
+    // Conditional request: `/.fs` serves mutable files with `Cache-Control:
+    // no-cache`, so the browser revalidates on every load. We emit a standard
+    // `Last-Modified` validator (see `set_file_meta_headers`) which the browser
+    // echoes back verbatim in `If-Modified-Since`; a string match means the file
+    // is unchanged and we can answer 304 without reading the (potentially large)
+    // body off disk — we only need a metadata-only `get_file_meta` probe here.
+    let if_modified_since = headers
+        .get(axum::http::header::IF_MODIFIED_SINCE)
+        .and_then(|v| v.to_str().ok())
+        .map(str::to_string);
+    if let Some(ims) = if_modified_since {
+        let state_inner = state.clone();
+        let path_inner = path.clone();
+        if let Ok(meta) = run_blocking(move || state_inner.space.get_file_meta(&path_inner)).await {
+            let last_modified = http_date(meta.last_modified);
+            if !last_modified.is_empty() && ims == last_modified {
+                return Response::builder()
+                    .status(StatusCode::NOT_MODIFIED)
+                    .header(axum::http::header::LAST_MODIFIED, &last_modified)
+                    .body(Body::empty())
+                    .unwrap();
+            }
+        }
+    }
+
     let force_octet_stream = headers
         .get("accept")
         .and_then(|v| v.to_str().ok())
@@ -78,13 +103,20 @@ pub(crate) fn set_file_meta_headers(
     builder: axum::http::response::Builder,
     meta: &FileMeta,
 ) -> axum::http::response::Builder {
-    builder
+    let mut builder = builder
         .header("Content-Type", &meta.content_type)
         .header("X-Created", meta.created.to_string())
         .header("X-Last-Modified", meta.last_modified.to_string())
         .header("X-Content-Length", meta.size.to_string())
         .header("X-Permission", &meta.perm)
-        .header("Cache-Control", "no-cache")
+        .header("Cache-Control", "no-cache");
+    // Standard validator so the browser can revalidate `/.fs` files and get a
+    // 304 (handled in `handle_fs_get`) instead of refetching the full body.
+    let last_modified = http_date(meta.last_modified);
+    if !last_modified.is_empty() {
+        builder = builder.header(axum::http::header::LAST_MODIFIED, &last_modified);
+    }
+    builder
 }
 
 pub async fn handle_fs_put(
@@ -220,6 +252,70 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(&bytes[..], b"hello");
+    }
+
+    #[tokio::test]
+    async fn fs_get_supports_conditional_304() {
+        let state = Arc::new(test_state());
+        state.space.write_file("big.js", b"payload", None).unwrap();
+        // First request: 200 with a standard `Last-Modified` header.
+        let r1 = crate::build_router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .uri("/.fs/big.js")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(r1.status(), StatusCode::OK);
+        let last_modified = r1
+            .headers()
+            .get("last-modified")
+            .expect("Last-Modified present")
+            .to_str()
+            .unwrap()
+            .to_string();
+        assert!(!last_modified.is_empty());
+
+        // Re-request echoing that value back: 304 Not Modified, empty body, but
+        // the `Last-Modified` validator is still present.
+        let r2 = crate::build_router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .uri("/.fs/big.js")
+                    .header("if-modified-since", &last_modified)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(r2.status(), StatusCode::NOT_MODIFIED);
+        assert_eq!(
+            r2.headers().get("last-modified").unwrap().to_str().unwrap(),
+            last_modified
+        );
+        let body = axum::body::to_bytes(r2.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        assert!(body.is_empty());
+
+        // A stale `If-Modified-Since` must still serve the full body with 200.
+        let r3 = crate::build_router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/.fs/big.js")
+                    .header("if-modified-since", "Tue, 01 Jan 1980 00:00:00 GMT")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(r3.status(), StatusCode::OK);
+        let body = axum::body::to_bytes(r3.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        assert_eq!(&body[..], b"payload");
     }
 
     #[tokio::test]

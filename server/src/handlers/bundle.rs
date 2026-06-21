@@ -5,20 +5,10 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 
-use chrono::{TimeZone, Utc};
-
+use crate::handlers::http_date;
 use crate::router::run_blocking;
 use crate::ssr::{convert_wiki_links, render_markdown};
 use crate::state::ServerState;
-
-/// Format a millisecond Unix timestamp as an HTTP-date (IMF-fixdate, GMT) for
-/// `Last-Modified`.
-fn http_date(ms: i64) -> String {
-    Utc.timestamp_millis_opt(ms)
-        .single()
-        .map(|dt| dt.format("%a, %d %b %Y %H:%M:%S GMT").to_string())
-        .unwrap_or_default()
-}
 
 /// SPA fallback: serve a bundle asset by request path verbatim, or fall back to
 /// the templated `index.html` shell for any unknown path (client-side routing).
