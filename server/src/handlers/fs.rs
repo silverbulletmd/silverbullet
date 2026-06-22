@@ -70,6 +70,7 @@ pub async fn handle_fs_get(
                 return Response::builder()
                     .status(StatusCode::NOT_MODIFIED)
                     .header(axum::http::header::LAST_MODIFIED, &last_modified)
+                    .header(axum::http::header::VARY, "Accept")
                     .body(Body::empty())
                     .unwrap();
             }
@@ -96,7 +97,10 @@ pub async fn handle_fs_get(
                     // Mutable file: revalidate every load. The `Last-Modified`
                     // validator lets the browser get a 304 (handled above)
                     // instead of refetching the full body.
-                    .header("Cache-Control", "no-cache");
+                    .header("Cache-Control", "no-cache")
+                    // The body's `Content-Type` depends on the request's `Accept`
+                    // (octet-stream vs the real type), so cache must key on it.
+                    .header(axum::http::header::VARY, "Accept");
             let last_modified = http_date(meta.last_modified);
             if !last_modified.is_empty() {
                 builder = builder.header(axum::http::header::LAST_MODIFIED, &last_modified);
@@ -377,6 +381,12 @@ mod tests {
             "no-cache"
         );
         assert!(content.headers().get("last-modified").is_some());
+        // Content varies by `Accept` (octet-stream vs real type), so the cache
+        // must key on it.
+        assert_eq!(
+            content.headers().get("vary").unwrap().to_str().unwrap(),
+            "Accept"
+        );
         let content_body = axum::body::to_bytes(content.into_body(), usize::MAX)
             .await
             .unwrap();
