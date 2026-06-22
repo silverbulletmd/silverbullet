@@ -17,6 +17,17 @@ local dateObj = momentLib("1995-12-25")
 print(dateObj.format("DD-MM-YYYY"))  -- prints: 25-12-1995
 ```
 
+## js.importFromSpace(path)
+Like [[#js.import(url)]], but takes a path to a file in the current space (rather than a full URL) and resolves it to the file's same-origin `/.fs` URL before importing. This lets a library load a JavaScript module it ships as a [[Frontmatter#files]] asset without hand-building the base URL (which varies by where the space is hosted). A sole `default` export is unwrapped, just like `js.import`.
+
+`path` is a space-relative path (a leading `/` is optional).
+
+Example:
+```lua
+local acme = js.importFromSpace("Library/acme/acme.js")
+acme.doSomething()
+```
+
 ## js.new(constructor, ...)
 Creates a new instance of a JavaScript class. Takes a constructor function and its arguments.
 
