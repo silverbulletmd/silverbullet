@@ -43,13 +43,41 @@ We can combine this with some [[Space Style]] to style it:
 
 This can be used as follows:
 ${marquee "Finally, marqeeeeeee!"}
+
+## Sandboxed widgets
+For widgets that need to run JavaScript, e.g. to drive a third-party rendering library, set a `script` key. The `html` and `script` then run together inside an **isolated sandbox iframe**, so the widget's scripts and styles can't interfere with the editor.
+
+Inside the sandbox the script has access to:
+* `syscall(name, ...args)` — call any [[API|syscall]] (returns a promise), e.g. `syscall("editor.navigate", "Some Page")`.
+* `loadJsByUrl(url)` — load an external classic script (returns a promise that resolves once loaded).
+* automatic height — the iframe sizes itself to its content.
+
+The widget's `markdown` value (if set) is what the **Copy** button copies — handy for exposing a scripted widget's source. Sandboxed widgets render as a block.
+
+```space-lua
+function clock()
+  return widget.sandbox {
+    html = [[<div id="t"></div>]],
+    markdown = "Not supported",
+    script = [[
+      var el = document.getElementById("t");
+      setInterval(() => { el.innerText = new Date().toLocaleTimeString(); }, 1000);
+    ]],
+  }
+end
+```
+
+${clock()}
+
 # API
 ## widget.new(spec)
 To render a widget, call `widget.new` with a `spec` table setting any of the following keys:
 
-* `markdown`: Renders the value as markdown
+* `markdown`: Renders the value as markdown. For `html`/`script` widgets it is not displayed but is used as the **Copy** button's content.
 * `html`: Renders a HTML DOM as a widget. It is usually used in conjunction with the [[API/dom]] API.
+* `script`: JavaScript to run alongside `html` inside a sandbox iframe (see [[#Sandboxed (scripted) widgets]]). When set, the widget renders in sandbox mode.
 * `display`: Render the value either `inline` or as a `block` (defaults to `inline`).
+* `cssClasses`: A list of CSS class names to set on the widget's wrapper element.
 
 ## widget.markdown(text)
 Shortcut for `widget.new { markdown = text }`
@@ -68,3 +96,13 @@ Block-level version of `widget.html`.
 Shortcut for `widget.new { markdown = text, display = "block" }`
 
 Block-level version of `widget.markdown`. Useful for content that needs to render as a block element (lists, tables, headings, etc.).
+
+## widget.sandbox(spec)
+Convenience wrapper for a [[#Sandboxed widgets|sandboxed]] widget.
+
+Keys:
+* `html`
+* `script`
+* `markdown` (Copy-button content)
+* `cssClasses`
+* `display` (defaults to `block`)

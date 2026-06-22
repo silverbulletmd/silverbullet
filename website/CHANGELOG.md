@@ -3,13 +3,13 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
-* File reads over `/.fs` are now compressed (gzip/brotli, `Accept-Encoding`-aware), so large text files transfer much smaller — e.g. a 3.3 MB JavaScript asset goes out at ~0.86 MB. The `X-Content-Length` metadata header still reports the true uncompressed size, so nothing client-side changes.
-
 * Backend and CLI (`silverbullet` and `sb` binaries) are now ported to Rust, both should be behavior preserving (that is: you shouldn’t really notice):
   * The server backend (previously written in Go) has now been replaced by an adapted version of SilverBullet+‘s backend written in Rust, more unifying those code bases.
   * CLI client also reimplemented/backported to Rust as well.
   * This means the project is now all TypeScript + Rust.
   * The goal is to make do this without regressions, but watch for any issues.
+* New [[API/codeWidget]] Lua API: register a renderer for a fenced code block language from Lua (e.g. ` ```mermaid `), no compiled plug required. A `render(body)` function receives the code block contents and returns a widget (or markdown/HTML).
+* Fix: Space Lua now correctly truncates a parenthesized expression to a single value (Lua 5.4 semantics). Previously `(string.gsub(...))` and other parenthesized multi-return calls leaked their extra return values into `return`, call-argument, and assignment positions (e.g. `table.insert(t, (string.gsub(...)))` inserted two elements). Parentheses now yield exactly one value.
 * Runtime API: the embedded headless-Chrome runtime now logs its lifecycle (when it launches on first use, when it becomes ready, and on crash/restart), and forwards the headless page‘s `console.*` output to the server log by default (disable with `SB_CHROME_LOG_CONSOLE=0` see [[Install/Configuration]]).
 * Fix: on Safari/WebKit, the first keystroke right after a paste could be inserted at the wrong position (e.g. pasting a URL inside `[text]()` and then pressing `)` produced `[text]()url)` instead of typing over the closing bracket). WebKit left the typing caret at the pre-paste position; the editor now re-syncs it after a paste.
 * Navigating to a page via a link now always opens it fresh (at the top, or at an explicit `#header`/`@pos` pointer in the link) instead of restoring your previous cursor and scroll position. Returning to a page via browser Back/Forward or the [[Page Picker]] still restores where you were. Plugs/Lua can opt into restoring with the new `editor.open` syscall (see [[API/editor]]).

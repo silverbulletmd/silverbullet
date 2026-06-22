@@ -35,7 +35,8 @@ local widgetSchema = {
     events = {
       type = "object",
       additionalProperties = true
-    }
+    },
+    script = { type = "string" },
   }
 }
 
@@ -76,6 +77,19 @@ function widget.markdownBlock(markdown)
   return widget.new {
     markdown = markdown,
     display = "block"
+  }
+end
+
+-- A sandboxed, scripted widget: html + script run inside an isolated iframe
+-- (the same machinery code widgets use). `script` has access to syscall(),
+-- loadJsByUrl, and auto height. The Copy button copies `markdown`.
+function widget.sandbox(spec)
+  return widget.new {
+    html = spec.html,
+    script = spec.script,
+    display = spec.display or "block",
+    markdown = spec.markdown,
+    cssClasses = spec.cssClasses,
   }
 end
 ```
