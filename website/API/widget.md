@@ -45,7 +45,7 @@ This can be used as follows:
 ${marquee "Finally, marqeeeeeee!"}
 
 ## Sandboxed widgets
-For widgets that need to run JavaScript, e.g. to drive a third-party rendering library, set a `script` key. The `html` and `script` then run together inside an **isolated sandbox iframe**, so the widget's scripts and styles can't interfere with the editor.
+For widgets that need to run JavaScript, e.g. to drive a third-party rendering library, set `sandbox = true`. The `html` (and the optional `script`) then run together inside an **isolated sandbox iframe**, so the widget's scripts and styles can't interfere with the editor. (`widget.sandbox` is a shortcut that sets this for you.)
 
 Inside the sandbox the script has access to:
 * `syscall(name, ...args)` — call any [[API|syscall]] (returns a promise), e.g. `syscall("editor.navigate", "Some Page")`.
@@ -73,9 +73,10 @@ ${clock()}
 ## widget.new(spec)
 To render a widget, call `widget.new` with a `spec` table setting any of the following keys:
 
-* `markdown`: Renders the value as markdown. For `html`/`script` widgets it is not displayed but is used as the **Copy** button's content.
+* `markdown`: Renders the value as markdown. For `html`/sandbox widgets it is not displayed but is used as the **Copy** button's content.
 * `html`: Renders a HTML DOM as a widget. It is usually used in conjunction with the [[API/dom]] API.
-* `script`: JavaScript to run alongside `html` inside a sandbox iframe (see [[#Sandboxed (scripted) widgets]]). When set, the widget renders in sandbox mode.
+* `sandbox`: When `true`, render `html` (and `script`) inside an isolated sandbox iframe (see [[#Sandboxed widgets]]).
+* `script`: JavaScript to run inside the sandbox iframe. Only runs when `sandbox = true`.
 * `display`: Render the value either `inline` or as a `block` (defaults to `inline`).
 * `cssClasses`: A list of CSS class names to set on the widget's wrapper element.
 
@@ -98,7 +99,7 @@ Shortcut for `widget.new { markdown = text, display = "block" }`
 Block-level version of `widget.markdown`. Useful for content that needs to render as a block element (lists, tables, headings, etc.).
 
 ## widget.sandbox(spec)
-Convenience wrapper for a [[#Sandboxed widgets|sandboxed]] widget.
+Convenience wrapper for a [[#Sandboxed widgets|sandboxed]] widget — equivalent to `widget.new` with `sandbox = true` (and `display = "block"` by default).
 
 Keys:
 * `html`

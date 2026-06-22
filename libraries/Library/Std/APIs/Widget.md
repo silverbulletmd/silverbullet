@@ -36,6 +36,8 @@ local widgetSchema = {
       type = "object",
       additionalProperties = true
     },
+    -- When true, html + script render inside an isolated sandbox iframe.
+    sandbox = { type = "boolean" },
     script = { type = "string" },
   }
 }
@@ -82,9 +84,11 @@ end
 
 -- A sandboxed, scripted widget: html + script run inside an isolated iframe
 -- (the same machinery code widgets use). `script` has access to syscall(),
--- loadJsByUrl, and auto height. The Copy button copies `markdown`.
+-- loadJsByUrl, and auto height. The Copy button copies `markdown`. Equivalent to
+-- `widget.new` with `sandbox = true`.
 function widget.sandbox(spec)
   return widget.new {
+    sandbox = true,
     html = spec.html,
     script = spec.script,
     display = spec.display or "block",

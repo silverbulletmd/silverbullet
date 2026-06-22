@@ -46,7 +46,9 @@ export type LuaWidgetContent =
       display?: "block" | "inline";
       // Event handlers
       events?: Record<string, (event: EventPayLoad) => void>;
-      // when present, html+script render inside a sandbox iframe (see renderContent)
+      // When true, html+script render inside a sandbox iframe (see renderContent).
+      sandbox?: boolean;
+      // Script to run inside the sandbox iframe (only used when `sandbox` is true).
       script?: string;
     }
   | string;
@@ -206,12 +208,13 @@ export class LuaWidget extends WidgetType {
       div.className = wc.cssClasses.join(" ");
     }
 
-    // When a script is present, render html+script inside a sandbox iframe
-    if (wc.script) {
+    // Explicit opt-in: when `sandbox` is true, render html+script inside a
+    // sandbox iframe (the script, if any, runs there).
+    if (wc.sandbox) {
       div.className += " sb-lua-directive-block";
       const iframeContent = {
         html: typeof wc.html === "string" ? wc.html : "",
-        script: wc.script,
+        script: typeof wc.script === "string" ? wc.script : "",
       };
       const iframe = createWidgetSandboxIFrame(
         this.opts.client,
