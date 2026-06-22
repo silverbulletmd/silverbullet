@@ -248,10 +248,18 @@ export class LuaWidget extends WidgetType {
     if (wc.html) {
       if (typeof wc.html === "string") {
         html = parseHtmlString(wc.html);
-        if (!copyContent) copyContent = wc.html;
       } else {
         html = wc.html;
-        if (!copyContent) copyContent = wc.html.outerHTML;
+      }
+
+      // When a widget provides both `html` and `markdown`, the `html` is the
+      // display and the `markdown` is what the Copy button should copy (e.g. a
+      // diagram renders to an SVG via `html` while exposing its source block via
+      // `markdown`). Only fall back to the html itself when no markdown is given.
+      if (!copyContent) {
+        copyContent = typeof wc.html === "string"
+          ? (wc.markdown ?? wc.html)
+          : (wc.markdown ?? wc.html.outerHTML);
       }
 
       block = wc.display === "block";
@@ -261,7 +269,9 @@ export class LuaWidget extends WidgetType {
         div.className += " sb-lua-directive-inline";
       }
     }
-    if (wc.markdown) {
+    // `markdown` is only used for display when there is no `html` to show; when
+    // both are present `markdown` is reserved for the Copy button (handled above).
+    if (!html && wc.markdown) {
       const syntaxExtensions = this.syntaxExtensions;
       let mdTree = parse(
         buildExtendedMarkdownLanguage(syntaxExtensions),
