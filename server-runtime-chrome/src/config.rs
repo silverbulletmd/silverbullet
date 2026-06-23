@@ -41,7 +41,10 @@ impl ChromeConfig {
             env("SB_CHROME_SHOW").is_some(),
             // On by default; disabled only with SB_CHROME_LOG_CONSOLE=0/false
             // (matches the SB_RUNTIME_API opt-out convention).
-            !matches!(env("SB_CHROME_LOG_CONSOLE").as_deref(), Some("0") | Some("false")),
+            !matches!(
+                env("SB_CHROME_LOG_CONSOLE").as_deref(),
+                Some("0") | Some("false")
+            ),
             read_only,
             runtime_api_enabled,
         )

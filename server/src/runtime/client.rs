@@ -46,10 +46,10 @@ impl<T: ClientTransport> RuntimeBackend for ClientRuntime<T> {
         // evalLuaScript, objectsAPI), so a failure here — the runtime not
         // coming up, a timeout, or a thrown error in the client (e.g. a Lua
         // error) — always leaves a trace in the server log.
-        let result = self
-            .transport
-            .wait_ready(timeout)
-            .and_then(|()| self.transport.eval_js(&build_global_call_js(fn_name, arg), timeout));
+        let result = self.transport.wait_ready(timeout).and_then(|()| {
+            self.transport
+                .eval_js(&build_global_call_js(fn_name, arg), timeout)
+        });
         if let Err(e) = &result {
             tracing::warn!("runtime call {fn_name} failed: {e}");
         }

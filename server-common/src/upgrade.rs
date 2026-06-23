@@ -88,7 +88,11 @@ fn do_upgrade(
         .map_err(|e| format!("failed to read response: {e}"))?;
     std::fs::write(&zip_path, &bytes).map_err(|e| format!("failed to save zip file: {e}"))?;
 
-    println!("Replacing {} binary in {}", spec.binary, install_dir.display());
+    println!(
+        "Replacing {} binary in {}",
+        spec.binary,
+        install_dir.display()
+    );
 
     extract_zip(&zip_path, install_dir)?;
 
