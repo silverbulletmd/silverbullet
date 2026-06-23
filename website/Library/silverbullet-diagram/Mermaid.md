@@ -1,11 +1,13 @@
 ---
-name: "Library/silverbullet-mermaid/Mermaid"
+name: "Library/silverbullet-diagram/Mermaid"
 tags: meta/library
+share.uri: "github:silverbulletmd/silverbullet-diagram@main/Mermaid.md"
+share.hash: "54928563"
+share.mode: pull
 ---
-This is a pure [Space Lua](https://silverbullet.md) library that adds [Mermaid](https://mermaid.js.org/) support to SilverBullet. There is no compiled plug — everything (the IR serializer, the dynamic diagram builders, and the static ` ```mermaid ` block renderer) is implemented in the Space Lua block on this page.
+This is a pure [Space Lua](https://silverbullet.md) library that adds [Mermaid](https://mermaid.js.org/) support to SilverBullet. 
 
-For example:
-
+Mermaid is a powerful graph rendering library, often used to render graphs like this using `mermaid` fenced code blocks:
 ```mermaid
 flowchart LR
 
@@ -15,26 +17,19 @@ C -->|One| D[Result 1]
 C -->|Two| E[Result 2]
 ```
 
-**Note:** by default diagrams load Mermaid from a **CDN** (jsDelivr) — there is nothing to copy into your space, and installing this page is enough to start drawing. If you'd rather not depend on the CDN (e.g. for offline use or a fully self-hosted space), run the **`Mermaid: Download bundle for offline use`** command: it fetches a self-contained `mermaid.bundle.js` (an esbuild-bundled ESM build of Mermaid, ~2.6 MB) into your space and, once present, the renderer uses that **local copy automatically** instead of the CDN. The module is loaded with `js.import` directly into the main client context — there is no sandbox iframe — and is loaded **once per page** (cached by the JS module loader) and shared by every diagram on that page. Both static ` ```mermaid ` blocks and the dynamic API below share this loading path.
+> **note** Note
+> By default diagrams load Mermaid from [esm.sh](https://esm.sh) (a CDN) — nothing is built or shipped with this library, and installing this single page is enough to start drawing. If you'd rather not depend on the CDN (e.g. for offline use or a fully self-hosted space), run the `Mermaid: Download bundle for offline use` command: it downloads the esm.sh bundle plus a tiny `process` shim into your space and, once present, the renderer uses that local copy automatically instead of the CDN.
 
-## Installation
-
-This is a **library** (a `meta/library` page), not a plug — there is nothing to add to your `CONFIG`. Install it through SilverBullet's built-in **Library
-Manager**:
+# Installation
+This is a SilverBullet library (hence the `meta/library` tag). It's a single page — there is no release or asset to fetch. Install it through SilverBullet's built-in **Library Manager**:
 
 1. Run the **`Library: Install`** command (or open the **Libraries** manager via the app menu / **`Libraries: Manager`** command and click **Install**).
-2. When prompted for a library URI, paste the URL to the released library page:
+2. When prompted for a library URI, paste: `github:silverbulletmd/silverbullet-diagram/Mermaid.md`
 
- https://github.com/silverbulletmd/silverbullet-mermaid/releases/download/edge/Mermaid.md
+If you need offline / CDN-free rendering, run the `Mermaid: Download bundle for offline use` command: it downloads the esm.sh bundle into your space, after which it’s used automatically.
 
-Core writes this page into your space (under its frontmatter `name`, `Library/silverbullet-mermaid/Mermaid`). That single page is the whole library — **no asset is auto-installed**, and diagrams work immediately via the CDN. The library records its source URI, so later you can re-run **`Library: Update All`** to pull in new versions. If you need offline / CDN-free rendering, run the **`Mermaid: Download bundle for offline use`** command (see the note above); it fetches `mermaid.bundle.js` from the GitHub release into your space, after which it's used automatically.
-
-> If you maintain a [Repository](https://silverbullet.md/Repository) that lists
-> this library, it will also show up under **Available** in the Libraries
-> manager, where it can be installed with one click.
-
+# Features
 ## Static diagrams
-
 Write a fenced `mermaid` block and move your cursor out of it to live-preview:
 
     ```mermaid
@@ -43,64 +38,77 @@ Write a fenced `mermaid` block and move your cursor out of it to live-preview:
     ```
 
 ## Dynamic diagrams (Space Lua API)
+Besides static ` ```mermaid ` blocks, this library exposes a [Space Lua](https://silverbullet.md) API for generating diagrams **at runtime from your space’s data** — they re-render when the data changes, exactly like query tables and lists.
 
-Besides static ` ```mermaid ` blocks, this library exposes a [Space Lua](https://silverbullet.md) API for generating diagrams **at runtime from your space's data** — they re-render when the data changes, exactly like query tables and lists.
-
-### Quick start
+# Quick start
 A raw Mermaid string:
 
 ${mermaid.diagram("flowchart LR\n  A[\"Hello\"] --> B[\"World\"]")}
 
-A relation graph built live from frontmatter (this is what the ADR board uses):
- ${mermaid.diagram(mermaid.relationGraph{
-      pages = query[[from index.pages("adr")]],
-      relations = {"dependsOn", "related", "supersededBy"},
-    })}
+A relation graph built live from frontmatter:
 
-### Functions
+${mermaid.diagram(mermaid.relationGraph{
+  pages = query[[from index.pages("adr")]],
+  relations = {"dependsOn", "related", "supersededBy"},
+})}
 
-* **`mermaid.diagram(input, opts)`** → a rendered widget. `input` is a raw Mermaid string *or* a diagram **IR** table (see below). The widget has a Copy button (copies the generated source) and clickable nodes (each `click` element navigates to the named page). `opts` *(optional)* may contain `width`, `height`, `maxWidth` — CSS lengths (e.g. `"600px"`, `"50%"`) merged into the rendered `<svg>`'s inline style to scale it; the viewBox preserves aspect ratio. When `input` is an IR table, its own `width`/`height`/`maxWidth` fields are used as defaults, and `opts` overrides them.
-* **`mermaid.toSource(input)`** → the Mermaid source string (no rendering) — useful for debugging or freezing a dynamic diagram into a static block. It delegates to `mermaid.serialize`, a **pure Lua** function defined in this library.
+# API
+## Core
+### mermaid.diagram(input, opts)
+Renders a mermaid widget. `input` is a raw Mermaid string *or* a diagram **IR** table (see below). The widget has a Copy button (copies the generated source) and clickable nodes (each `click` element navigates to the named page). `opts` *(optional)* may contain `width`, `height`, `maxWidth` — CSS lengths (e.g. `"600px"`, `"50%"`) merged into the rendered `<svg>`'s inline style to scale it; the viewBox preserves aspect ratio. When `input` is an IR table, its own `width`/`height`/`maxWidth` fields are used as defaults, and `opts` overrides them.
 
-The three `mermaid.*` builders all take a **`pages`** list — a page-object list, typically produced by a `query[[…]]` expression such as `query[[from index.pages("adr")]]` — rather than a tag string. Each returns a diagram IR you pass to `mermaid.diagram`. Each builder spec also accepts optional `width`, `height`, `maxWidth` (CSS lengths) that are threaded onto the returned IR and applied at render time; an `opts` table passed to `mermaid.diagram` overrides them.
+## mermaid.toSource(input)
+Renders the Mermaid source string from this library’s IR format — useful for debugging or freezing a dynamic diagram into a static block. It delegates to `mermaid.serialize`, a **pure Lua** function defined in this library.
 
-* **`mermaid.relationGraph{ pages, relations?, groupBy?, color?, direction?, max?, width?, height?, maxWidth? }`** → a flowchart IR. Node labels use the page's last path segment; clicking still navigates to the full page. Options:
+## Views
+The three `mermaid.*` builders all take a **`pages`** list — a page-object list, typically produced by a `query[[…]]` expression such as `query[[from index.pages("adr")]]` . Each returns a diagram IR you pass to `mermaid.diagram`. Each builder spec also accepts optional `width`, `height`, `maxWidth` (CSS lengths) that are threaded onto the returned IR and applied at render time; an `opts` table passed to `mermaid.diagram` overrides them.
+
+### mermaid.relationGraph(spec)
+A flowchart. Node labels use the page's last path segment; clicking still navigates to the full page.
+
+Spec keys:
  * `pages` — the page list to graph, e.g. `query[[from index.pages("adr")]]`.
  * `relations` *(optional)* — frontmatter fields holding `[[page]]` links to draw as edges, e.g. `{"dependsOn", "related"}`. A `supersededBy` relation is drawn dotted. **When omitted, all relations are auto-detected** — every frontmatter field whose value(s) are `[[links]]` to other pages in the set becomes an edge (labeled by the field name; the `groupBy` field is excluded, since it drives subgraph nesting). Pass an explicit `relations` list to restrict edges to specific fields.
  * `groupBy` *(optional)* — a frontmatter field naming a **container** page; members nest inside that container's **subgraph**. (The `Architecture` page uses `groupBy = "partOf"` to draw the Client / Service Worker / Server layers.)
  * `direction` *(optional)* — `"LR"` (default), `"TD"`, etc.
- * `color` *(optional)* — a frontmatter field whose value becomes a Mermaid CSS class on each node (e.g. `"status"`). Supply matching `classDef`s to style them; without them the nodes render unstyled. *(Auto-`classDef` from observed
- values is a planned enhancement.)*
+ * `color` *(optional)* — a frontmatter field whose value becomes a Mermaid CSS class on each node (e.g. `"status"`). Supply matching `classDef`s to style them; without them the nodes render unstyled. *Auto-`classDef` from observed values is a planned enhancement.)*
  * `max` *(optional, default 60)* — node cap; a "showing N of M" note is added when exceeded.
-* **`mermaid.timeline{ pages, dateField="date", groupBy="year"|"none", title?, labelField?, max?, width?, height?, maxWidth? }`** → a Mermaid `timeline` IR: pages laid out chronologically by a date field. (Mermaid timelines have no node click-through, so these entries are not clickable.) Options:
+
+### mermaid.timeline(spec)
+A mermaid `timeline`: pages laid out chronologically by a date field. (Mermaid timelines have no node click-through, so these entries are not clickable.)
+
+Spec keys:
  * `pages` — the page list to lay out, e.g. `query[[from index.pages("journal")]]`.
  * `dateField` *(default `"date"`)* — frontmatter field holding the date (`YYYY-MM-DD…`); pages without a parseable date are skipped.
  * `groupBy` *(default `"year"`)* — `"year"` groups events under their year; `"none"` emits one entry per date.
  * `labelField` *(optional)* — frontmatter field to use as the event label (defaults to the page's last path segment).
  * `title` *(optional)* — diagram title.
  * `max` *(optional, default 100)* — event cap; a "showing N of M" note is added when exceeded.
-* **`mermaid.distribution{ pages, by, title?, showData?, emptyLabel?, width?, height?, maxWidth? }`** → a Mermaid `pie` IR counting the given pages by a categorical frontmatter field (slices sorted count-descending). Options:
+
+### mermaid.distribution(spec)
+A pie counting the given pages by a categorical frontmatter field (slices sorted count-descending).
+
+Spec keys:
  * `pages` — the page list to count.
  * `by` *(required)* — the frontmatter field to count by, e.g. `"status"`.
  * `emptyLabel` *(optional)* — bucket label for pages missing/blank on `by`; omit to exclude them.
  * `title` *(optional)* — chart title.
  * `showData` *(optional)* — when truthy, renders the raw counts next to each slice (`pie showData`).
 
-### Diagram IR — build any diagram
+## Diagram IR — build any diagram
+For full control, pass a table instead of a string. It's a generic *element-stream*: a `type` plus an ordered list of `elements`. Because a `raw` element passes a literal Mermaid line through untouched, **any** diagram Mermaid supports is expressible, structured element kinds are just sugar for the common graph cases.
 
-For full control, pass a table instead of a string. It's a generic *element-stream*: a `type` plus an ordered list of `elements`. Because a `raw` element passes a literal Mermaid line through untouched, **any** diagram Mermaid supports is expressible — structured element kinds are just sugar for the common graph cases.
-
- ${mermaid.diagram{
-      type = "flowchart",
-      direction = "LR",
-      elements = {
-        { kind = "node", id = "a", label = "Start", shape = "rounded" },
-        { kind = "node", id = "b", label = "Done" },
-        { kind = "edge", from = "a", to = "b", label = "go", arrow = true },
-        { kind = "click", id = "a", target = "Some Page" },
-        { kind = "raw",  text = "%% any literal mermaid line" },
-      },
-    }}
+${mermaid.diagram{
+  type = "flowchart",
+  direction = "LR",
+  elements = {
+    { kind = "node", id = "a", label = "Start", shape = "rounded" },
+    { kind = "node", id = "b", label = "Done" },
+    { kind = "edge", from = "a", to = "b", label = "go", arrow = true },
+    { kind = "click", id = "a", target = "Some Page" },
+    { kind = "raw",  text = "%% any literal mermaid line" },
+  },
+}}
 
 Element kinds:
 
@@ -116,20 +124,37 @@ Element kinds:
 Top level: `type` (e.g. `"flowchart"` — any Mermaid type), `direction?` (`"LR"`/`"TD"`/…), `title?`, `elements`.
 
 ### How it works
-
 1. Your Lua builds the **IR** table (or a `mermaid.*` builder does, from a `pages` list you queried out of the object index).
-2. `mermaid.diagram` serializes the IR to Mermaid source via `mermaid.serialize` — a **pure Lua** function (no DOM, no syscall) that owns id-sanitization, label escaping, and validation.
-3. It loads Mermaid **in the main client context** (no sandbox iframe): it prefers a locally-installed `mermaid.bundle.js` when one is present in your space (offline / self-hosted), otherwise it imports from the CDN (jsDelivr). The module is cached by the loader, so Mermaid is loaded only **once per page** even with many diagrams. It calls `mermaid.render` to get an SVG string, injects `data-sb-ref` attributes onto clickable node groups, and returns a `widget.new{…}` whose `html` is that SVG.
-4. Node clicks are handled by the widget's delegated `click` event: it finds the nearest element carrying a `data-sb-ref` and calls `editor.navigate(ref)`. (The serializer still emits Mermaid `click` lines, but under `securityLevel = "strict"` those are inert — navigation goes entirely through `data-sb-ref`.)
-5. Static ` ```mermaid ` fenced blocks go through the very same path: at the end of this library's Space Lua block, `codeWidget.define{ language = "mermaid",
-   render = … }` registers a Core code widget whose `render` simply calls `mermaid.diagram(body)`. So static and dynamic diagrams share one renderer.
+2. `mermaid.diagram` serializes the IR to Mermaid source via `mermaid.serialize` that owns id-sanitization, label escaping, and validation.
+3. It calls `mermaid.render` to render it as a SVG.
+4. Node clicks are handled for navigation.
 
-So a diagram is just another **live view of the object index** — edit a page's frontmatter and the diagram redraws itself. The serializer owns the Mermaid syntax; the builders own the query and layout. 
+Static ` ```mermaid ` fenced blocks go through the very same path: at the end of this library's Space Lua block, `codeWidget.define{ language = "mermaid", render = ... }` registers a Core code widget whose `render` simply calls `mermaid.diagram(body)`. So static and dynamic diagrams share one renderer.
+
+# Configuration
+Everything works out of the box, but you can override the defaults via Space Lua config:
+
+```lua
+config.set("mermaid", {
+  -- ESM URL imported when no local bundle is installed (default: esm.sh).
+  -- Also the URL the "Download bundle for offline use" command fetches from:
+  cdnUrl = "https://esm.sh/mermaid@11.4.0?bundle",
+  -- Space path the offline bundle is written to / loaded from:
+  bundlePath = "Library/silverbullet-diagram/mermaid.bundle.js",
+})
+```
+
+All keys are optional. By default diagrams load from `cdnUrl`; once a bundle exists at `bundlePath` (e.g. after running **`Mermaid: Download bundle for offline use`**), the local copy is used automatically.
 
 # Implementation
 
 ```space-lua
 mermaid = mermaid or {}
+
+local MERMAID_DEFAULTS = {
+  cdnUrl = "https://esm.sh/mermaid@11.4.0?bundle",
+  bundlePath = "Library/silverbullet-diagram/mermaid.bundle.js",
+}
 
 local NODE_WRAP = {
   rect = {"[", "]"},
@@ -285,38 +310,35 @@ local function applySize(svg, width, height, maxWidth)
   return replaced
 end
 
-local MERMAID_DEFAULTS = {
-  cdnUrl = "https://cdn.jsdelivr.net/npm/mermaid@11.4.0/+esm",
-  bundlePath = "Library/silverbullet-mermaid/mermaid.bundle.js",
-  releaseUrl =
-    "https://github.com/silverbulletmd/silverbullet-mermaid/releases/download/edge/mermaid.bundle.js",
-}
-
 -- Merge user config (config.set("mermaid", {...})) over the defaults.
 local function mermaidConfig()
   local cfg = config.get("mermaid", {})
   return {
     cdnUrl = cfg.cdnUrl or MERMAID_DEFAULTS.cdnUrl,
     bundlePath = cfg.bundlePath or MERMAID_DEFAULTS.bundlePath,
-    releaseUrl = cfg.releaseUrl or MERMAID_DEFAULTS.releaseUrl,
   }
 end
 
--- Load the Mermaid ESM module: prefer a locally-installed bundle (offline,
--- self-hosted) when present, otherwise import from the CDN. The JS module loader
--- caches by URL, so this resolves+loads once per page.
+-- esm.sh's `?bundle` namespace exports BOTH `default` and named exports, so
+-- js.import (which only auto-unwraps a *sole* `default`) returns the namespace.
+-- Grab `.default` when the Mermaid API isn't on the namespace directly.
+local function asMermaid(m)
+  if m and type(m.initialize) ~= "function" and m.default then
+    return m.default
+  end
+  return m
+end
+
+-- Load the Mermaid ESM module: prefer a locally-installed bundle (offline, self-hosted) when present, otherwise import from the CDN. The JS module loader caches by URL, so this resolves+loads once per page.
 local function importMermaid()
   local cfg = mermaidConfig()
   if space.fileExists(cfg.bundlePath) then
-    return js.importFromSpace(cfg.bundlePath)
+    return asMermaid(js.importFromSpace(cfg.bundlePath))
   end
-  return js.import(cfg.cdnUrl)
+  return asMermaid(js.import(cfg.cdnUrl))
 end
 
--- IR table (or raw string) -> a rendered widget. Mermaid is imported into the
--- main client context via js.import (no sandbox iframe); we render to an SVG
--- string and inject `data-sb-ref` attributes onto node groups so clicks
--- navigate to the mapped page.
+-- IR table (or raw string) -> a rendered widget. Mermaid is imported into the main client context via js.import (no sandbox iframe); we render to an SVG string and inject `data-sb-ref` attributes onto node groups so clicks navigate to the mapped page.
 function mermaid.diagram(input, opts)
   opts = opts or {}
   local width = opts.width
@@ -401,19 +423,7 @@ function mermaid.diagram(input, opts)
   }
 end
 
--- Build a relation flowchart IR from frontmatter relations between tagged
--- pages.
--- spec: {
---   pages     = list,              -- page objects, e.g. query[[from index.pages("adr")]]
---   relations = {string, ...}?,    -- frontmatter fields holding [[links]] → edges;
---                                     omit to auto-detect every [[link]] field
---                                     (except groupBy) as an edge
---   groupBy   = string?,           -- frontmatter field naming a container page;
---                                     members nest inside that container's subgraph
---   color     = string?,           -- frontmatter field naming a classDef
---   direction = string?,           -- "LR" (default) | "TD" | ...
---   max       = number?,           -- node cap (default 60)
--- }
+-- Build a relation flowchart IR from frontmatter relations between tagged pages.
 function mermaid.relationGraph(spec)
   spec = spec or {}
   local groupBy = spec.groupBy
@@ -444,8 +454,7 @@ function mermaid.relationGraph(spec)
     order[#order + 1] = p
   end
 
-  -- Node labels use the last path segment (e.g. "Architecture/Editor" → "Editor")
-  -- for a clean diagram; click-through still targets the full page name.
+  -- Node labels use the last path segment for a clean diagram, click-through still targets the full page name.
   local function shortName(n)
     return (string.match(n, "[^/]+$")) or n
   end
@@ -465,8 +474,7 @@ function mermaid.relationGraph(spec)
   local elements = {}
 
   if groupBy then
-    -- Partition pages into containers (anything that is `groupBy`-linked to) and
-    -- their members; containers render as subgraphs wrapping their members.
+    -- Partition pages into containers (anything that is `groupBy`-linked to) and their members; containers render as subgraphs wrapping their members.
     local childrenOf, isContainer = {}, {}
     for _, p in ipairs(order) do
       local c = deref(p[groupBy])
@@ -491,7 +499,7 @@ function mermaid.relationGraph(spec)
         emitted[p.name] = true
       end
     end
-    -- Anything not nested in a rendered container → top-level node.
+    -- Anything not nested in a rendered container -> top-level node.
     for _, p in ipairs(order) do
       if not emitted[p.name] then
         elements[#elements + 1] = nodeEl(p)
@@ -505,9 +513,7 @@ function mermaid.relationGraph(spec)
     end
   end
 
-  -- Draw edges for one frontmatter field of a page. In auto mode (relations
-  -- omitted) only [[wiki-link]] values count as relations; in explicit mode any
-  -- value in the named field is dereferenced (preserving the prior behavior).
+  -- Draw edges for one frontmatter field of a page. In auto mode (relations omitted) only [[wiki-link]] values count as relations; in explicit mode any value in the named field is dereferenced (preserving the prior behavior).
   local function addEdges(fromId, field, value, requireLink)
     if type(value) == "string" then value = { value } end
     if type(value) ~= "table" then return end
@@ -538,8 +544,7 @@ function mermaid.relationGraph(spec)
           addEdges(fromId, rel, p[rel], false)
         end
       else
-        -- auto-detect: every [[link]] field pointing into the set, except the
-        -- groupBy field (which is rendered as subgraph nesting).
+        -- auto-detect: every [[link]] field pointing into the set, except the groupBy field (which is rendered as subgraph nesting).
         for key, value in pairs(p) do
           if type(key) == "string" and key ~= groupBy then
             addEdges(fromId, key, value, true)
@@ -567,18 +572,23 @@ function mermaid.relationGraph(spec)
 end
 
 -- Chronological timeline from a date-bearing page list.
--- spec: { pages, dateField="date", groupBy="year"|"none", title?, labelField?, max=100 }
 function mermaid.timeline(spec)
   spec = spec or {}
   local dateField = spec.dateField or "date"
   local groupBy = spec.groupBy or "year"
   local max = spec.max or 100
 
-  local function shortName(n) return (string.match(n, "[^/]+$")) or n end
+  local function shortName(n)
+    return (string.match(n, "[^/]+$")) or n
+  end
   -- a colon is the timeline field separator, so strip it from labels
-  local function clean(s) return (string.gsub(tostring(s), ":", " ")) end
+  local function clean(s)
+    return (string.gsub(tostring(s), ":", " "))
+  end
   local function labelOf(p)
-    if spec.labelField and p[spec.labelField] then return clean(p[spec.labelField]) end
+    if spec.labelField and p[spec.labelField] then
+      return clean(p[spec.labelField])
+    end
     return clean(shortName(p.name))
   end
 
@@ -589,7 +599,9 @@ function mermaid.timeline(spec)
       pages[#pages+1] = p
     end
   end
-  table.sort(pages, function(a, b) return a[dateField] < b[dateField] end)
+  table.sort(pages, function(a, b)
+    return a[dateField] < b[dateField]
+  end)
 
   local elements = {}
   if spec.title then
@@ -602,25 +614,34 @@ function mermaid.timeline(spec)
     for i = 1, shown do
       local p = pages[i]
       local year = string.sub(p[dateField], 1, 4)
-      if not byYear[year] then byYear[year] = {}; order[#order+1] = year end
-      -- Bind to a local first: passing labelOf(p) (whose value originates from
-      -- string.gsub's multi-return) directly as table.insert's last argument
-      -- drops the value under Space Lua's vararg handling.
+      if not byYear[year] then
+        byYear[year] = {}
+        order[#order+1] = year
+      end
       local label = labelOf(p)
       table.insert(byYear[year], label)
     end
     for _, year in ipairs(order) do
-      elements[#elements+1] = { kind = "raw", text = year .. " : " .. table.concat(byYear[year], " : ") }
+      elements[#elements+1] = {
+        kind = "raw",
+        text = year .. " : " .. table.concat(byYear[year], " : ")
+      }
     end
   else
     for i = 1, shown do
       local p = pages[i]
-      elements[#elements+1] = { kind = "raw", text = clean(p[dateField]) .. " : " .. labelOf(p) }
+      elements[#elements+1] = {
+        kind = "raw",
+        text = clean(p[dateField]) .. " : " .. labelOf(p)
+      }
     end
   end
 
   if shown < #pages then
-    elements[#elements+1] = { kind = "raw", text = "%% showing " .. shown .. " of " .. #pages }
+    elements[#elements+1] = {
+      kind = "raw",
+      text = "%% showing " .. shown .. " of " .. #pages
+    }
   end
 
   return {
@@ -673,36 +694,48 @@ function mermaid.distribution(spec)
   }
 end
 
--- Download the self-contained Mermaid bundle from the GitHub release into the
--- space, so diagrams render offline (and stop hitting the CDN). Renders use the
--- local copy automatically once present.
+-- Download the self-contained Mermaid bundle from esm.sh into the space
 command.define {
   name = "Mermaid: Download bundle for offline use",
   run = function()
     local cfg = mermaidConfig()
     editor.flashNotification("Downloading Mermaid bundle…")
-    local resp = net.proxyFetch(cfg.releaseUrl)
-    if not (resp and resp.ok) then
-      editor.flashNotification(
-        "Mermaid download failed: HTTP " .. tostring(resp and resp.status), "error")
+    local origin = string.match(cfg.cdnUrl, "^(https?://[^/]+)") or "https://esm.sh"
+    -- esm.sh ?bundle is a stub that re-exports from the real deep bundle.
+    local stub = net.proxyFetch(cfg.cdnUrl, { responseEncoding = "text/plain" })
+    if not (stub and stub.ok) then
+      editor.flashNotification("Mermaid download failed (stub): HTTP " .. tostring(stub and stub.status), "error")
       return
     end
-    local data = resp.body
-    if type(data) == "string" then
-      data = js.new(js.window.TextEncoder).encode(data)
+    local deepPath = string.match(stub.body, 'from%s*"([^"]+%.mjs)"')
+    if not deepPath then
+      editor.flashNotification("Could not resolve the esm.sh bundle URL", "error")
+      return
     end
-    space.writeFile(cfg.bundlePath, data)
+    local deep = net.proxyFetch(origin .. deepPath, { responseEncoding = "text/plain" })
+    if not (deep and deep.ok) then
+      editor.flashNotification("Mermaid download failed (bundle): HTTP " .. tostring(deep and deep.status), "error")
+      return
+    end
+    -- The bundle's only external is esm.sh's node `process` polyfill; the bundle
+    -- only reads env/cwd/platform from it, so a tiny local shim suffices (avoids
+    -- esm.sh's process->events->tty->async_hooks chain).
+    local bundle = string.gsub(deep.body, '"/node/process%.mjs"', '"./process.js"')
+    local processShim =
+      'export default { env: {}, cwd: function () { return "/"; }, platform: "" };\n'
+    local dir = string.gsub(cfg.bundlePath, "/[^/]+$", "")
+    local function enc(s) return js.new(js.window.TextEncoder).encode(s) end
+    space.writeFile(dir .. "/process.js", enc(processShim))
+    space.writeFile(cfg.bundlePath, enc(bundle))
     editor.flashNotification(
-      "Mermaid bundle installed — reload to use it offline.", "info", {
-        actions = {
-          { name = "Reload", run = function() editor.reloadUI() end },
-        },
-      })
+      "Mermaid bundle installed for offline use — reload to use it.",
+      "info",
+      { actions = { { name = "Reload", run = function() editor.reloadUI() end } } }
+    )
   end
 }
 
--- Render static ```mermaid fenced blocks via the dynamic engine (pure Lua,
--- replaces the legacy compiled plug). Requires Core's codeWidget.define API.
+-- Render static ```mermaid fenced blocks via the dynamic engine
 codeWidget.define {
   language = "mermaid",
   render = function(body)
@@ -710,21 +743,3 @@ codeWidget.define {
   end
 }
 ```
-
-## Configuration
-
-Everything works out of the box, but you can override the defaults via Space Lua config:
-
-```lua
-config.set("mermaid", {
-  -- ESM URL imported when no local bundle is installed (default: jsDelivr):
-  cdnUrl = "https://cdn.jsdelivr.net/npm/mermaid@11.4.0/+esm",
-  -- Space path the offline bundle is written to / loaded from:
-  bundlePath = "Library/silverbullet-mermaid/mermaid.bundle.js",
-  -- URL the "Download bundle for offline use" command fetches from:
-  releaseUrl =
-    "https://github.com/silverbulletmd/silverbullet-mermaid/releases/download/edge/mermaid.bundle.js",
-})
-```
-
-All keys are optional. By default diagrams load from `cdnUrl`; once a bundle exists at `bundlePath` (e.g. after running **`Mermaid: Download bundle for offline use`**), the local copy is used automatically.

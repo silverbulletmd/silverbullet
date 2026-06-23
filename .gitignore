@@ -23,7 +23,6 @@ tmp_playground
 test-results
 playwright-report
 /version.json
-website/_plug
 tmp
 .idea
 .opencode
