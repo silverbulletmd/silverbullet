@@ -5,7 +5,7 @@ import {
 	waitForSaveAndReadFromServer,
 } from "./fixtures.ts";
 
-// This file exercises the workflow described in website/Guide/Task Management.md
+// This file exercises the workflow described in docs/Guide/Task Management.md
 // end-to-end. It seeds a small project + task space and verifies the
 // load-bearing claims of the guide:
 //   - tasks on a project page render with checkboxes

@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 import { expect, mod, test, waitForSaveAndReadFromServer } from "./fixtures.ts";
 
-// This file exercises the workflow described in website/Journal.md end-to-end.
+// This file exercises the workflow described in docs/Journal.md end-to-end.
 // The Journal feature is built in: the `Journal: Today` command and the
 // default template at `Library/Std/Journal/Template` ship with SilverBullet.
 

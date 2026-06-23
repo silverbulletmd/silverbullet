@@ -7,7 +7,7 @@ ENV SB_INDEX_PAGE=SilverBullet
 ENV SB_READ_ONLY=1
 
 # Add the website content
-ADD website /space
+ADD docs /space
 
 # Add silversearch plug
 ADD https://github.com/MrMugame/silversearch/releases/download/edge/silversearch.plug.js /space/

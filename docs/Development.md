@@ -26,7 +26,7 @@ The SilverBullet server is written in [Rust](https://www.rust-lang.org/) (a Carg
   * `types/`: Various (client) types that can be references from plugs
 * `bin/plug-compile.ts`: the plug compiler
 * `scripts/`: Useful scripts
-* `website/`: silverbullet.md website content
+* `docs/`: silverbullet.md website content
 
 # Development
 Requirements:

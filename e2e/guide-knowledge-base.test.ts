@@ -7,7 +7,7 @@ import {
 	waitForSaveAndReadFromServer,
 } from "./fixtures.ts";
 
-// This file exercises the workflow described in website/Guide/Knowledge Base.md
+// This file exercises the workflow described in docs/Guide/Knowledge Base.md
 // end-to-end. It seeds a small interconnected knowledge base, then verifies
 // the load-bearing claims of the guide:
 //   - links create connections between pages

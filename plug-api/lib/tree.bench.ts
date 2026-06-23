@@ -1,7 +1,12 @@
-import { bench, describe } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { bench, describe } from "vitest";
+import { lezerToParseTree } from "../../client/markdown_parser/parse_tree.ts";
+import {
+  extendedMarkdownLanguage,
+  parseMarkdown,
+} from "../../client/markdown_parser/parser.ts";
 import {
   addParentPointers,
   cloneTree,
@@ -14,15 +19,10 @@ import {
   replaceNodesMatching,
   traverseTree,
 } from "./tree.ts";
-import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
-import {
-  lezerToParseTree,
-} from "../../client/markdown_parser/parse_tree.ts";
-import { extendedMarkdownLanguage } from "../../client/markdown_parser/parser.ts";
 
-// --- Load all website markdown files ---
+// --- Load all docs markdown files ---
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
-const websiteDir = join(__dirname, "../../website");
+const docsDir = join(__dirname, "../../docs");
 
 type PageData = {
   name: string;
@@ -47,7 +47,7 @@ function loadMarkdownFiles(dir: string, base = ""): PageData[] {
   return pages;
 }
 
-const pages = loadMarkdownFiles(websiteDir);
+const pages = loadMarkdownFiles(docsDir);
 
 // Pre-parse trees for tree-operation benchmarks
 const parsedTrees: ParseTree[] = pages.map((p) => parseMarkdown(p.text));

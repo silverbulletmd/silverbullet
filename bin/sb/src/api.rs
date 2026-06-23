@@ -2,7 +2,7 @@
 //!
 //! All methods live on [`crate::conn::SpaceConnection`].  The Rust server
 //! wraps eval responses in a `{ "result": <value> }` / `{ "error": <msg> }`
-//! envelope (see `website/Runtime API.md`) — see the per-method docs for exact
+//! envelope (see `docs/Runtime API.md`) — see the per-method docs for exact
 //! response shapes.
 
 use reqwest::StatusCode;
@@ -70,7 +70,7 @@ impl SpaceConnection {
 
         if status.is_success() {
             // On 200, the body is the `{ "result": <value> }` envelope (Core's
-            // runtime handlers wrap eval results; see `website/Runtime API.md`).
+            // runtime handlers wrap eval results; see `docs/Runtime API.md`).
             // A Lua-level failure arrives as `{ "error": <msg> }`.
             let v: Value = serde_json::from_slice(&bytes)
                 .map_err(|e| format!("parsing response JSON: {e}"))?;
