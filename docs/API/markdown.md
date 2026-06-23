@@ -54,6 +54,22 @@ local text = "This is a some lua ${os.time()}"
 print("Expanded markdown:", markdown.expandMarkdown(text))
 ```
 
+### markdown.bakeSections(text, pageName?)
+Re-bakes [[Baked Sections]] (`<!--#lua EXPR -->` ... `<!--/lua-->`) in `text` and returns the updated markdown.
+
+Sections whose expression can’t produce portable markdown (an evaluation error, or an HTML-only widget) are left unchanged.
+
+Example:
+```lua
+local text = [[
+Total: <!--#lua 1 + 2 -->
+old
+<!--/lua-->
+]]
+-- Returns the text with the body refreshed to "3"
+print(markdown.bakeSections(text))
+```
+
 ### markdown.objectsToTable(data, options?)
 Transforms a list of tables into a markdown table.
 

@@ -1,4 +1,5 @@
 import type { Client } from "../../client.ts";
+import { updateBakedSections } from "../../baked_sections/bake.ts";
 import {
   foldAll,
   foldCode,
@@ -185,6 +186,12 @@ export function editorSyscalls(client: Client): SysCallMapping {
     },
     "editor.invokeCommand": (_ctx, name: string, args?: string[]) => {
       return client.runCommandByName(name, args);
+    },
+    // Re-evaluate every baked section on the current page and rewrite each body
+    // with its latest output (same as the "Baked Sections: Update" command),
+    // exposed for programmatic use.
+    "editor.updateBakedSections": (): Promise<void> => {
+      return updateBakedSections(client);
     },
     "editor.openUrl": (_ctx, url: string, existingWindow = false) => {
       client.openUrl(url, existingWindow);

@@ -430,6 +430,7 @@ const baseMarkdownExtensions: MarkdownConfig[] = [
         Task: ct.TaskTag,
         TaskMark: ct.TaskMarkTag,
         Comment: ct.CommentTag,
+        CommentBlock: ct.CommentTag,
         Subscript: ct.SubscriptTag,
         Superscript: ct.SuperscriptTag,
         "TableDelimiter StrikethroughMark": t.processingInstruction,

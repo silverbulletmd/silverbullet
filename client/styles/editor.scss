@@ -445,6 +445,14 @@
     background-color: transparent;
   }
 
+  // HTML comments (inline + block, incl. baked-section `<!--#lua … -->`
+  // markers) render slightly smaller, reinforcing the subtle comment styling.
+  .sb-comment {
+    font-size: 0.9em;
+  }
+
+  // Comments inside fenced code keep the code block's sizing (more specific,
+  // so it overrides the general rule above).
   .sb-line-fenced-code .sb-comment {
     border-radius: 0;
     font-style: inherit;

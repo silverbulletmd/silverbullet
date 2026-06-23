@@ -37,7 +37,7 @@ ${query[[
 # Connections
 Dynamically generated from ADR defined relationships. Dotted edges mark supersession. Click a node to open the ADR.
 
-${mermaid.diagram(mermaid.relationGraph{
+${mermaid.diagram(mermaid.relationGraph {
   pages = query[[from index.pages("adr")]],
   direction = "TD",
 })}

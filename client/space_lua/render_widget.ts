@@ -18,6 +18,10 @@ import {
 } from "@silverbulletmd/silverbullet/lib/ref";
 import { resolveASTReference } from "../space_lua.ts";
 import type { Client } from "../client.ts";
+import {
+  classifyResult,
+  renderResultToCleanMarkdown,
+} from "./render_lua_markdown.ts";
 
 /**
  * Run a Space Lua computation and convert its result into something the
@@ -101,4 +105,54 @@ export async function renderLuaCallback(
     {} as ASTCtx,
     currentPageMeta,
   );
+}
+
+export type PortableMarkdownResult =
+  | { ok: true; markdown: string }
+  | { ok: false; reason: string };
+
+/**
+ * Evaluate a `${...}`-style expression and produce portable GFM markdown — the
+ * same clean rendering the Copy button uses — or report why it can't be baked.
+ * - nil/empty → ok with empty markdown
+ * - Lua error → not ok (the eval error string)
+ * - widget object: portable only if it exposes a `markdown` rendering;
+ *   html-only widgets are not bakeable
+ * - scalars / tables / arrays / strings → clean GFM
+ */
+export async function expressionToPortableMarkdown(
+  client: Client,
+  expressionText: string,
+  currentPageMeta?: { name: string } | undefined,
+): Promise<PortableMarkdownResult> {
+  const rawResult = await renderLuaExpression(
+    client,
+    expressionText,
+    currentPageMeta,
+  );
+  if (rawResult === null || rawResult === undefined) {
+    return { ok: true, markdown: "" };
+  }
+  // renderLuaExpression returns eval failures as markdown error strings.
+  if (
+    typeof rawResult === "string" &&
+    (rawResult.startsWith("**Lua error:**") ||
+      rawResult.startsWith("**Error:**"))
+  ) {
+    return { ok: false, reason: rawResult };
+  }
+  // Widget objects: portable only when they expose a `markdown` rendering.
+  if (typeof rawResult === "object" && (rawResult as any)._isWidget) {
+    const md = (rawResult as any).markdown;
+    if (typeof md === "string") {
+      return { ok: true, markdown: md.trim() };
+    }
+    return { ok: false, reason: "html-only widget (no markdown rendering)" };
+  }
+  // Scalars, tables, arrays, plain strings → clean GFM markdown.
+  const markdown = await renderResultToCleanMarkdown(
+    rawResult,
+    classifyResult(rawResult),
+  );
+  return { ok: true, markdown };
 }

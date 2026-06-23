@@ -3,8 +3,7 @@
 This page describes the big-picture view of SilverBullet, assembled from its [[#Components]]. Each component has its own page describing how it relates to the others, the diagram below is generated on-the-fly from the meta data in those pages.
 
 # Top-level Architecture
-
- ${mermaid.diagram(mermaid.relationGraph{
+${mermaid.diagram(mermaid.relationGraph{
   pages = query[[from index.pages("component")]],
   relations = {"connectsTo", "consumes"},
   groupBy = "partOf",

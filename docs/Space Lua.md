@@ -67,6 +67,8 @@ For example: 10 + 2 = ${adder(10, 2)} (Alt-click, or select to see the expressio
 
 This mechanism is often used in conjunction with [[Space Lua/Integrated Query]] and [[API/widget|Widgets]].
 
+Because `${...}` expressions are evaluated live, their output only exists inside SilverBullet, the markdown file just holds the source. If you want a page to render correctly *outside* SilverBullet too (on GitHub, in another editor), see [[Baked Sections]]: it writes a `${...}` expression’s rendered output into the page as plain markdown, while keeping it updatable.
+
 # API
 ![[API]]
 # Space Lua vs “OG” Lua

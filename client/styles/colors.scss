@@ -337,6 +337,13 @@ tbody tr:nth-of-type(even) {
   color: var(--editor-meta-color);
 }
 
+// HTML comments (inline `Comment` + block `CommentBlock`, e.g. baked-section
+// `<!--#lua … -->` markers) render in a subtle gray, like code comments. The
+// fenced-code-scoped rule above keeps comments inside code blocks code-sized.
+.sb-comment {
+  color: var(--editor-code-comment-color);
+}
+
 .sb-deleted {
   color: var(--editor-code-deleted-color, #dc2626);
   background-color: var(--editor-code-deleted-bg, rgba(254, 202, 202, 0.25));

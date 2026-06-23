@@ -19,8 +19,10 @@ import { activeWidgets } from "./code_widget.ts";
 import {
   attachWidgetEventHandlers,
   buildTranslateUrls,
+  findWidgetSourceRange,
   moveCursorToWidgetStart,
 } from "./widget_util.ts";
+import { escapeBakedBody } from "../baked_sections/regions.ts";
 import { createWidgetSandboxIFrame } from "../components/widget_sandbox_iframe.ts";
 
 export type LuaWidgetCallback = (
@@ -238,7 +240,12 @@ export class LuaWidget extends WidgetType {
       );
       iframe.style.height = `${cachedHeight > 0 ? cachedHeight : 150}px`;
       iframe.style.display = "block";
-      const wrapped = this.wrapHtml(true, iframe, wc.markdown);
+      const wrapped = this.wrapHtml(
+        true,
+        iframe,
+        wc.markdown,
+        typeof wc.markdown === "string" ? wc.markdown.trim() : undefined,
+      );
       div.replaceChildren(wrapped);
       div.style.minHeight = "";
       this.opts.client.widgetCache.setCachedWidgetMeta(this.opts.cacheKey, {
@@ -336,7 +343,12 @@ export class LuaWidget extends WidgetType {
       );
     }
     if (html) {
-      div.replaceChildren(this.wrapHtml(block, html, copyContent));
+      const bakeBody = wc.html
+        ? (typeof wc.markdown === "string" ? wc.markdown.trim() : undefined)
+        : copyContent;
+      div.replaceChildren(
+        this.wrapHtml(block, html, copyContent, bakeBody),
+      );
       div.style.minHeight = "";
       attachWidgetEventHandlers(
         div,
@@ -367,6 +379,7 @@ export class LuaWidget extends WidgetType {
     isBlock: boolean,
     html: string | HTMLElement,
     copyContent: string | undefined,
+    bakeBody?: string | undefined,
   ): HTMLElement {
     if (typeof html === "string") {
       html = parseHtmlString(html);
@@ -420,6 +433,38 @@ export class LuaWidget extends WidgetType {
             this.opts.client.clientSystem
               .localSyscall("editor.copyToClipboard", [copyContent])
               .catch(console.error);
+          },
+        }),
+      );
+    }
+
+    if (bakeBody !== undefined && this.opts.codeText) {
+      buttonBar.appendChild(
+        createButton({
+          title: "Bake",
+          icon:
+            '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-package"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>',
+          listener: (e) => {
+            e.stopPropagation();
+            const range = findWidgetSourceRange(
+              this.opts.client,
+              this.dom!,
+              this.opts.codeText!,
+            );
+            if (!range) {
+              this.opts.client.ui.flashNotification(
+                "Could not locate the directive to bake",
+                "error",
+              );
+              return;
+            }
+            const replacement = `<!--#lua ${this.opts.expressionText} -->\n${
+              escapeBakedBody(bakeBody).trim()
+            }\n<!--/lua-->`;
+            this.opts.client.editorView.dispatch({
+              changes: { from: range.from, to: range.to, insert: replacement },
+            });
+            this.opts.client.focus();
           },
         }),
       );
