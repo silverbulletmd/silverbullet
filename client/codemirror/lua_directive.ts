@@ -81,6 +81,8 @@ export function luaDirectivePlugin(client: Client) {
               cacheKey: `lua:${expressionText}:${currentPageMeta?.name}`,
               expressionText,
               codeText,
+              // Only `${…}` directives can be baked into `<!--#lua EXPR -->`.
+              bakeable: true,
               callback: (bodyText) =>
                 renderLuaExpression(client, bodyText, currentPageMeta),
               renderEmpty: true,

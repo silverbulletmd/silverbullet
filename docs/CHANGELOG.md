@@ -3,7 +3,7 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
-- **Baked sections**: bake `${…}` Lua expressions and widgets into
+*-* **Baked sections**: bake `${...}` Lua expressions and widgets into
   HTML-comment-delimited markdown (`<!--#lua EXPR -->` … `<!--/lua-->`) so
   power-feature pages render in GitHub and other markdown tools. A block `${…}`
   widget's **Bake** button (next to Copy) turns it into a baked section in
@@ -11,7 +11,7 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
   re-evaluates every baked section on the page and rewrites its body; and
   **"Baked Sections: Unbake Section At Cursor"** restores the section under the
   cursor to a live `${…}` directive for editing. See [[Baked Sections]].
-- HTML comments (both inline `<!-- … -->` and block comments, including the
+*  HTML comments (both inline `<!-- … -->` and block comments, including the
   baked-section `<!--#lua … -->` / `<!--/lua-->` markers) now render in a
   subtle gray and slightly smaller font in the editor, like code comments.
 * Backend and CLI (`silverbullet` and `sb` binaries) are now ported to Rust, both should be behavior preserving (that is: you shouldn’t really notice):

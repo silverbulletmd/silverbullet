@@ -65,6 +65,15 @@ export interface LuaWidgetOptions {
   inPage: boolean;
   /** Code as it appears in the page (used to find when hitting the "edit" button) */
   codeText?: string;
+  /**
+   * Whether this widget can be "baked" into a `<!--#lua EXPR -->` region. Only
+   * `${…}` Lua directives qualify, because baking rewrites the source to
+   * `<!--#lua EXPR -->` where `EXPR` is re-evaluated as a Lua expression. The
+   * body of a fenced code block (e.g. ```mermaid) is not a Lua expression, so
+   * those widgets never get a Bake button even though they render through the
+   * same pipeline.
+   */
+  bakeable?: boolean;
   renderEmpty?: boolean;
   openRef?: Ref | null;
 }
@@ -438,7 +447,7 @@ export class LuaWidget extends WidgetType {
       );
     }
 
-    if (bakeBody !== undefined && this.opts.codeText) {
+    if (this.opts.bakeable && bakeBody !== undefined && this.opts.codeText) {
       buttonBar.appendChild(
         createButton({
           title: "Bake",

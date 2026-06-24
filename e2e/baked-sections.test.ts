@@ -6,6 +6,12 @@ test.use({
       `Before\n\n<!--#lua 3 + 4 -->\nstale\n<!--/lua-->\n\nAfter\n`,
     "BakeButton.md":
       "Table:\n\n${ { {name = \"a\"}, {name = \"b\"} } }\n",
+    // A Lua-registered code widget that renders its body as block markdown.
+    // Its rendered block gets a button bar, but it must NOT get a Bake button:
+    // baking rewrites the source to `<!--#lua EXPR -->` where EXPR is a Lua
+    // expression, and a fenced block's body (here "world") is not one.
+    "FencedNoBake.md":
+      '```space-lua\nconfig.set({"codeWidgets", "greet"}, {\n  language = "greet",\n  render = function(bodyText)\n    return "## Hello " .. bodyText .. "\\n\\nA greeting block."\n  end\n})\n```\n\n```greet\nworld\n```\n',
   },
 });
 
@@ -101,4 +107,30 @@ test("bake button converts a ${} directive to comment form", async ({ sbServer, 
   expect(doc).toContain("|name|");
   expect(doc).toContain("|a|");
   expect(doc).not.toContain("${");
+});
+
+// Regression guard: the Bake button is for live `${…}` Lua directives only.
+// Widgets that originate from fenced code blocks (e.g. ```mermaid, ```greet)
+// must not get one — their body is not a Lua expression to re-evaluate.
+test("fenced code block widgets do not get a Bake button", async ({ sbServer, page }) => {
+  await gotoSilverBulletPage(page, sbServer, "FencedNoBake");
+
+  // Wait for the `greet` code widget to render as a block widget (this only
+  // happens once the space-lua `codeWidget.define` has loaded).
+  const widget = page
+    .locator("#sb-editor .sb-lua-directive-block")
+    .filter({ hasText: "Hello world" })
+    .first();
+  await widget.waitFor({ state: "visible", timeout: 15_000 });
+  await widget.hover();
+
+  // The button bar must have rendered (Reload is always present for a block
+  // widget), proving we're actually inspecting a real button bar...
+  await expect(
+    widget.locator('.button-bar button[data-button="reload"]'),
+  ).toHaveCount(1);
+  // ...but there must be no Bake button.
+  await expect(
+    widget.locator('.button-bar button[data-button="bake"]'),
+  ).toHaveCount(0);
 });
