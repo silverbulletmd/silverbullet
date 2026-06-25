@@ -447,7 +447,10 @@ export class LuaWidget extends WidgetType {
       );
     }
 
-    if (this.opts.bakeable && bakeBody !== undefined && this.opts.codeText) {
+    if (
+      this.opts.bakeable && bakeBody !== undefined && this.opts.codeText &&
+      !this.opts.client.isReadOnlyMode()
+    ) {
       buttonBar.appendChild(
         createButton({
           title: "Bake",

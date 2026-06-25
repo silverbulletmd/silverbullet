@@ -10,7 +10,13 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
   place; **"Baked Sections: Update"** (`Ctrl-Shift-b` / `Cmd-Shift-b`)
   re-evaluates every baked section on the page and rewrites its body; and
   **"Baked Sections: Unbake Section At Cursor"** restores the section under the
-  cursor to a live `${…}` directive for editing. See [[Baked Sections]].
+  cursor to a live `${…}` directive for editing. See [[Baked Sections]]. The
+  **Bake** button and these commands are hidden on read-only pages and in
+  read-only spaces.
+* Fix: write-mode commands (those requiring read-write, e.g. the baking
+  commands) are now hidden in the command palette and their keybindings disabled
+  on **per-page** read-only pages (`perm: ro`), not just in fully read-only
+  spaces.
 *  HTML comments (both inline `<!-- … -->` and block comments, including the
   baked-section `<!--#lua … -->` / `<!--/lua-->` markers) now render in a
   subtle gray and slightly smaller font in the editor, like code comments.

@@ -365,6 +365,7 @@ export function createCommandKeyBindings(
 ): Extension {
   const commandKeyBindings: KeyBinding[] = [];
   const vimMode = client.ui.viewState.uiOptions.vimMode;
+  const readOnly = client.isReadOnlyMode();
 
   // Then add bindings for plug commands
   for (const def of client.clientSystem.commandHook
@@ -374,6 +375,12 @@ export function createCommandKeyBindings(
     const requiredEditor = def.requireEditor;
 
     if (def.disableInVim && vimMode) {
+      continue;
+    }
+
+    // Don't bind write-mode commands when read-only (covers per-page read-only,
+    // which CommandHook's space-wide filter doesn't account for).
+    if (readOnly && def.requireMode === "rw") {
       continue;
     }
 

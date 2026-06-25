@@ -1056,6 +1056,7 @@ export class Client {
 
   getCommandsByContext(state: AppViewState): Map<string, Command> {
     const currentEditor = client.contentManager.documentEditor?.name;
+    const readOnly = this.isReadOnlyMode();
     const commands = new Map(state.commands);
     for (const [k, v] of state.commands.entries()) {
       if (
@@ -1068,6 +1069,13 @@ export class Client {
 
       const requiredEditor = v.requireEditor;
       if (!isValidEditor(currentEditor, requiredEditor)) {
+        commands.delete(k);
+      }
+
+      // Hide write-mode commands when the current page (or space) is read-only.
+      // CommandHook only filters on the space-wide read-only flag, so per-page
+      // read-only pages would otherwise still expose "rw" commands here.
+      if (readOnly && v.requireMode === "rw") {
         commands.delete(k);
       }
     }
