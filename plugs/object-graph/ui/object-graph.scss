@@ -171,6 +171,15 @@ html, body { height: 100%; background: var(--ui-surface-background-color); color
   min-height: 0;
   overflow: hidden;
 }
+.gv-body[data-sidebar-collapsed="true"] {
+  grid-template-columns: 0 0 minmax(0, 1fr);
+}
+.gv-body[data-sidebar-collapsed="true"] .gv-sidebar,
+.gv-body[data-sidebar-collapsed="true"] .gv-resizer {
+  visibility: hidden;
+  pointer-events: none;
+  overflow: hidden;
+}
 .gv-resizer {
   cursor: col-resize;
   background: transparent;
@@ -183,6 +192,7 @@ html, body { height: 100%; background: var(--ui-surface-background-color); color
   background: var(--ui-accent-color, rgba(70, 76, 252, 0.25));
 }
 .gv-canvas-wrap {
+  grid-column: 3;
   position: relative;
   min-width: 0;
   min-height: 0;
