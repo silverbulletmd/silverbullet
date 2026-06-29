@@ -1,4 +1,8 @@
-#meta
+---
+tags: meta
+references:
+- libraries/Library/Std/Infrastructure/Share.md
+---
 
 Some silverbullet.md specific widgets etc.
 

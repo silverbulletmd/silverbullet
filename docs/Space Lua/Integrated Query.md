@@ -1,6 +1,10 @@
 ---
 description: A Lua-embedded query syntax for selecting and transforming objects.
 tags: glossary
+references:
+- client/space_lua/query_collection.ts
+- client/space_lua/query_env.ts
+- client/space_lua/parse.ts
 ---
 Space Lua Integrated Query (SLIQ) is a SilverBullet specific Lua extension. It adds a convenient query syntax to the language in a backwards compatible way. It does so by overloading Lua’s default function call + single argument syntax when using `query` as the function call. As a result, Lua programs using SLIQ are still syntactically valid Lua.
 

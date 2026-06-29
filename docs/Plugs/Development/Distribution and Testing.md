@@ -1,3 +1,9 @@
+---
+references:
+- bin/plug-compile.ts
+- build/build_plugs.ts
+- plug-api/system_mock.ts
+---
 Once your plug works locally, you probably want to ship it to other people. This page covers both.
 
 # Distribution: ship your plug in a Library

@@ -1,3 +1,8 @@
+---
+references:
+- client/components/top_bar.tsx
+- client/editor_ui.tsx
+---
 The top bar contains:
 
 * [[Page Namer]]

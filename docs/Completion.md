@@ -1,3 +1,8 @@
+---
+references:
+- plugs/editor/complete.ts
+- plugs/index/complete.ts
+---
 SilverBullet provides context-aware autocomplete to help you write faster. Completions are triggered automatically or via keyboard shortcuts as you type.
 
 # Page link completion

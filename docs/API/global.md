@@ -1,4 +1,9 @@
-#api/lua
+---
+tags: api/lua
+references:
+- client/space_lua/stdlib.ts
+- client/space_lua/runtime.ts
+---
 
 These are Lua functions defined in the global namespace:
 

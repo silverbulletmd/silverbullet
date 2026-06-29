@@ -1,4 +1,9 @@
-#getting-started
+---
+tags: getting-started
+references:
+- Dockerfile
+- docker-entrypoint.sh
+---
 
 [Docker](https://www.docker.com/) is a convenient and secure way to install server applications either locally or on a server you control. If you don’t have docker already running on your machine and are macOS user, consider giving [OrbStack](https://orbstack.dev/) a try — it’s a super nice docker experience.
 

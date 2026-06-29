@@ -1,3 +1,8 @@
+---
+references:
+- client/baked_sections/bake.ts
+- client/baked_sections/regions.ts
+---
 A baked section is a piece of dynamic content whose rendered output has been written *into* the page as plain [[Markdown]], wrapped in HTML comments so SilverBullet can keep it up to date while other tools just see the result.
 
 # Why

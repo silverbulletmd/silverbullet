@@ -1,6 +1,9 @@
 ---
 description: "A /-triggered shortcut in the editor for inserting content or running actions."
 tags: glossary
+references:
+- client/plugos/hooks/slash_command.ts
+- libraries/Library/Std/APIs/Command.md
 ---
 Slash commands are quick ways to perform repetitive tasks. You trigger them by typing `/` in your text (after whitespace) followed by the command name — autocompletion will help you find the right one.
 

@@ -1,6 +1,9 @@
 ---
 description: A label applied to objects for grouping and querying.
 tags: glossary
+references:
+- plugs/index/tags.ts
+- libraries/Library/Std/APIs/Tag.md
 ---
 Tags in SilverBullet are used to encode types of [[Object|Objects]], they’re similar to tables in relational databases, or classes in object-oriented programming.
 

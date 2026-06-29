@@ -1,3 +1,8 @@
+---
+references:
+- plug-api/lib/ref.ts
+- plug-api/lib/resolve.ts
+---
 Every document or page in SilverBullet is identified by a path. The path represents the location where the corresponding page or document is stored inside your space folder. Paths are always absolute and always have to end in an [[#Extensions|extension]].
 
 # Extensions

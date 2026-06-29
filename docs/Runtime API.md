@@ -1,4 +1,10 @@
-#maturity/experimental
+---
+tags: maturity/experimental
+references:
+- bin/silverbullet/src/server.rs
+- bin/sb/src/commands/query.rs
+- client/runtime_api/objects_api.ts
+---
 
 The Runtime API lets you interact with SilverBullet programmatically over HTTP: evaluate Lua expressions and run scripts from the command line, scripts, or external tools.
 

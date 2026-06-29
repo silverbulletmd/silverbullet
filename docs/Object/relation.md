@@ -1,3 +1,8 @@
+---
+references:
+- plugs/index/relation.ts
+- plugs/object-graph/src/graph_builder.ts
+---
 Relation objects represent typed and untyped relationships between indexed [[Object|objects]] in the space. They are the source of truth for relationship queries (graph views, backlinks of non-page objects, typed-attribute edges). The legacy [[Object/link]] collection is now a virtual projection over `relation`.
 
 ## Attributes

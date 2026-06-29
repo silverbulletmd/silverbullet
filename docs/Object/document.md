@@ -1,3 +1,8 @@
+---
+references:
+- plugs/index/document.ts
+- server-common/src/types.rs
+---
 Every non-page file in your space (images, PDFs, attachments, etc.) is available via the `document` tag, they’re indexed purely from filesystem metadata.
 
 The `document` tag exposes the following attributes:

@@ -1,4 +1,8 @@
-#api/space-lua
+---
+tags: api/space-lua
+references:
+- client/space_lua/stdlib/encoding.ts
+---
 
 The `encoding` API implements a few useful functions to handle various types of encoding.
 

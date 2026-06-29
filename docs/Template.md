@@ -1,6 +1,9 @@
 ---
 description: Reusable content with placeholder expressions, used for page creation, slash commands, and more.
 tags: glossary
+references:
+- libraries/Library/Std/APIs/Template.md
+- client/space_lua/stdlib.ts
 ---
 A template in SilverBullet is a string that contains `${expression}` placeholders, which get evaluated using [[Space Lua]]. Templates are a mechanism for dynamically rendering content in your pages.
 

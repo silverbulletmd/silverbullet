@@ -1,3 +1,8 @@
+---
+references:
+- client/space_lua/stdlib.ts
+- client/space_lua/stdlib/load.ts
+---
 Space Lua includes a comprehensive standard library based on Lua 5.4, with additional non-standard extensions useful for text processing and note-taking workflows.
 
 This page gives an overview. Each module has its own detailed API reference page.

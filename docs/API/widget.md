@@ -1,4 +1,11 @@
-#api/space-lua
+---
+tags: api/space-lua
+references:
+- libraries/Library/Std/APIs/Widget.md
+- client/space_lua/render_widget.ts
+- client/codemirror/lua_widget.ts
+lastReviewed: "2026-06-29"
+---
 
 APIs to define widgets in SilverBullet, often used through [[Space Lua#Expressions]].
 

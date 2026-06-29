@@ -1,6 +1,9 @@
 ---
 description: "An inline $anchor that gives an object a space-globally unique name."
 tags: glossary maturity/experimental
+references:
+- plugs/index/anchor.ts
+- client/markdown_parser/constants.ts
 ---
 
 Anchor syntax (`$my-anchor`) gives the containing [[Object]] a stable, (potentially) meaningful, space-globally unique name. That name becomes the object's `ref`, and it can be linked to from any page using `[[$my-anchor]]`.

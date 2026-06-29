@@ -1,6 +1,10 @@
 ---
 description: A named signal that plugs and Lua scripts can listen to and react to.
 tags: glossary
+references:
+- client/plugos/event.ts
+- plug-api/types/event.ts
+- plug-api/syscalls/event.ts
 ---
 SilverBullet has its own event bus that allows different parts of the system to communicate. Events are the foundation for much of SilverBullet's extensibility — features like [[Service]], [[Virtual Pages]], widgets, and custom indexing are all built on top of events.
 

@@ -1,6 +1,9 @@
 ---
 description: "SilverBullet's installable web-app mode for offline access and native-like experience."
 tags: glossary
+references:
+- client/service_worker.ts
+- client/boot.ts
 ---
 
 SilverBullet is built as a [Progressive Web App](https://web.dev/progressive-web-apps/) (PWA) — a web application that works fully offline.

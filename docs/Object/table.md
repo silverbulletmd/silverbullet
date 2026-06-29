@@ -1,3 +1,8 @@
+---
+references:
+- plugs/index/table.ts
+- client/markdown_parser/table_parser.ts
+---
 Markdown table rows are indexed using the `table` tag, any additional tags can be added using [[Tag]] in any of its cells.
 
 | Title | Description Text |

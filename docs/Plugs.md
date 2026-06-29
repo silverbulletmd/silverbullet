@@ -1,3 +1,8 @@
+---
+references:
+- client/plugos/*
+- plugs/builtin_plugs.ts
+---
 SilverBullet at its core is bare bones in terms of functionality, most of its power it gains from **plugs** and [[Space Lua]].
 
 Plugs are an extension mechanism that runs “plug” code in the browser using [web workers](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers).

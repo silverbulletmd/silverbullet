@@ -1,6 +1,10 @@
 ---
 description: A definition that validates and constrains the shape of object attributes.
 tags: glossary
+references:
+- plug-api/syscalls/jsonschema.ts
+- client/plugos/syscalls/jsonschema.ts
+- libraries/Library/Std/APIs/Schema.md
 ---
 
 SilverBullet uses [JSON Schema](https://json-schema.org) for validation of structured data. Schemas ensure that [[Frontmatter]] attributes, [[Tag#Custom tags|custom tag]] fields, and configuration options conform to expected types and shapes.

@@ -1,6 +1,9 @@
 ---
 description: A template used to pre-populate new pages.
 tags: glossary
+references:
+- libraries/Library/Std/Infrastructure/Page Templates.md
+- libraries/Library/Std/Page Templates/Page Template.md
 ---
 
 Page templates can be used to automate or simplify the creation of pages based on a template.

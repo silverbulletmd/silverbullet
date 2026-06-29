@@ -4,6 +4,9 @@ status: deprecated
 date: "2023-07-04"
 deciders: "[[Zef Hemel]]"
 owner: "[[Zef Hemel]]"
+references:
+- plug-api/lib/resolve.ts
+- plug-api/syscalls/space.ts
 ---
 # Context
 Users wanted to reference and read pages from *other* spaces, shared libraries, public/published spaces without copying the content into their own.

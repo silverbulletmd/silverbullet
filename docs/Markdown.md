@@ -1,3 +1,8 @@
+---
+references:
+- client/markdown_parser/parser.ts
+- client/markdown_renderer/markdown_render.ts
+---
 Markdown is a plain text formatting system [originally developed by John Gruber](https://daringfireball.net/projects/markdown/). It has since been standardized into [CommonMark](https://commonmark.org/), which is what SilverBullet uses (with [[Markdown/Extensions]]). While a bit more technical than [WYSIWYG](https://pl.wikipedia.org/wiki/WYSIWYG)-style editing (like MS Word), the nice thing about markdown is that it is a relatively easy-to-learn format, and you can read files even without special tools (like SilverBullet). 
 
 This means that _you will always have access to your content_ even if you switch tools. It also means that you can use multiple tools at the same time to edit these files. You don’t have to use SilverBullet exclusively.

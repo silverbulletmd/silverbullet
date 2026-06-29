@@ -9,6 +9,10 @@ dependsOn:
   - "[[ADR/007 Core Application Logic on the Client]]"
 related:
   - "[[ADR/010 Rust Backend]]"
+references:
+- build/build_client.ts
+- build/build_plugs.ts
+- client/asset_bundle/builder.ts
 ---
 # Context
 Since [[ADR/007 Core Application Logic on the Client|v2]] the client is where all the logic lives, and it is built with TypeScript + ESBuild. For years that toolchain ran on **Deno**, chosen early when Deno's sandboxed-worker permissions also suited running [[Plugs|plugs]] on the server (see [[ADR/010 Rust Backend]]).

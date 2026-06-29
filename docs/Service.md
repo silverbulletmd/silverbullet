@@ -1,3 +1,8 @@
+---
+references:
+- client/service_registry.ts
+- client/plugos/syscalls/service_registry.ts
+---
 The SilverBullet service bus is an extension mechanism for defining and discovering pluggable behavior. It lets you register named services that can be discovered and invoked by other parts of SilverBullet or your own scripts. This enables a plugin-like architecture where multiple implementations can compete for the same operation, with the best match winning.
 
 # Concepts

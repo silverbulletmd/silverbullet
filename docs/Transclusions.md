@@ -1,6 +1,9 @@
 ---
 description: Inline embedding of one page's content inside another.
 tags: glossary
+references:
+- plug-api/lib/transclusion.ts
+- client/markdown_renderer/markdown_render.ts
 ---
 
 Transclusions are an extension of the [[Markdown]] syntax enabling inline embedding of content.

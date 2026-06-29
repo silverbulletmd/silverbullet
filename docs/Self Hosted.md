@@ -2,6 +2,9 @@
 description: Rather than relying on the servers of a third-party provider, you run SilverBullet on your own server.
 awesomeness: 10
 tags: feature
+references:
+- bin/silverbullet/src/server.rs
+- server-common/src/space/disk.rs
 ---
 According to [Wikipedia](https://en.wikipedia.org/wiki/Self-hosting_(web_services)):
 

@@ -1,6 +1,8 @@
 ---
 description: An aspiring page is a page that does not yet exist, but is already linked to.
 tags: glossary
+references:
+- plugs/index/relation.ts
 ---
 
 An aspiring page is a [[Page|page]] that does not yet exist, but is already linked to.

@@ -1,4 +1,10 @@
-#api/space-lua #maturity/experimental
+---
+tags: api/space-lua maturity/experimental
+references:
+- libraries/Library/Std/APIs/Syntax.md
+- client/markdown_parser/custom_syntax.ts
+- client/codemirror/custom_syntax_widget.ts
+---
 
 Enables defining simple custom syntax extensions to [[Markdown]]. Custom syntax lets you define new delimiter-based regions (both inline and block) that are recognized by the parser and can be styled or rendered as [[Space Lua/Widget|Widgets]].
 

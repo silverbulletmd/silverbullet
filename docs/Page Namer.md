@@ -1,3 +1,8 @@
+---
+references:
+- plugs/editor/page.ts
+- plug-api/lib/ref.ts
+---
 At the header of each page, you see the currently open page name. Let’s call this user interface element the “Page Namer.” This element of the user interface serves a few roles:
 
 * It indicates the **currently open name** (duh)

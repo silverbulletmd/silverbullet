@@ -1,3 +1,8 @@
+---
+references:
+- client/space_lua/stdlib/js.ts
+- client/space_lua/runtime.ts
+---
 Space Lua runs in the browser and has direct access to JavaScript APIs through the `js` module. This enables you to use the browser's native capabilities and import external JavaScript libraries. Use this functionality with caution. With great power comes comes great responsibility.
 
 The full API reference is at [[API/js]].

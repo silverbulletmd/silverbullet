@@ -1,6 +1,9 @@
 ---
 description: A named action you can invoke from the command palette or bind to a key.
 tags: glossary
+references:
+- libraries/Library/Std/APIs/Command.md
+- client/plugos/hooks/command.ts
 ---
 Commands define actions that SilverBullet can perform. They range from simple edit commands, such as `Text: Bold`, but may be more elaborate such as `Page: Rename`. 
 

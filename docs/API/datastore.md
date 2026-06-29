@@ -1,4 +1,10 @@
-#api/syscall
+---
+tags: api/syscall
+references:
+- plug-api/syscalls/datastore.ts
+- client/plugos/syscalls/datastore.ts
+- client/data/datastore.ts
+---
 
 The Datastore API provides functions for interacting with a key-value store that has query capabilities.
 

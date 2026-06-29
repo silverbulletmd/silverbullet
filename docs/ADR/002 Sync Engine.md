@@ -8,6 +8,10 @@ dependsOn:
   - "[[ADR/001 Offline-First PWA]]"
 related:
   - "[[ADR/010 Rust Backend]]"
+references:
+- client/spaces/sync.ts
+- client/service_worker/sync_engine.ts
+- plugs/sync/sync.ts
 ---
 # Context
 Because the client keeps a full local copy of the space ([[ADR/001 Offline-First PWA]]), it has to be reconciled with the server's copy. A [[Sync]] engine keeps the client's local copy and the server's files in agreement, in both directions, including after offline edits.

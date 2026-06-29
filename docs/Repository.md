@@ -1,4 +1,9 @@
-#maturity/beta
+---
+tags: maturity/beta
+references:
+- plugs/configuration-manager/libraries.ts
+- libraries/Library/Std/Infrastructure/Share.md
+---
 
 Repositories are a collection of _pointers_ to [[Library|Libraries]] to install. Their purpose is to offer a curated list of libraries to install.
 

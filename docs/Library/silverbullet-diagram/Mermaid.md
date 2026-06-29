@@ -4,6 +4,8 @@ tags: meta/library
 share.uri: "github:silverbulletmd/silverbullet-diagram@main/Mermaid.md"
 share.hash: "54928563"
 share.mode: pull
+references:
+- docs/Library/silverbullet-diagram/Mermaid.md
 ---
 This is a pure [Space Lua](https://silverbullet.md) library that adds [Mermaid](https://mermaid.js.org/) support to SilverBullet. 
 

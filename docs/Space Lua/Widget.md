@@ -1,6 +1,9 @@
 ---
 description: A rendered UI component (markdown or HTML).
 tags: glossary
+references:
+- client/space_lua/render_widget.ts
+- client/codemirror/lua_widget.ts
 ---
 The `${lua expression}` syntax can be used to implement custom widgets. If the Lua expression evaluates to a simple string, it will live preview as that string rendered as markdown. However, if the expression returns a `widget.new`-generated result value, you can do some fancier stuff.
 

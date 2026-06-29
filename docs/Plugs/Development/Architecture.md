@@ -1,3 +1,9 @@
+---
+references:
+- client/plugos/plug.ts
+- client/plugos/sandboxes/worker_sandbox.ts
+- client/plugos/manifest_cache.ts
+---
 This page explains how plugs are loaded, executed, and isolated within SilverBullet. If you just want to build a plug, you can skip ahead to [[Plugs/Development/Reference]] and come back here when you need to understand *why* something behaves the way it does.
 
 # Runtime model

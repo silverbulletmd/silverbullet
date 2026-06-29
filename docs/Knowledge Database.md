@@ -1,3 +1,8 @@
+---
+references:
+- client/data/datastore.ts
+- client/data/object_index.ts
+---
 A personal _knowledge database_ is a place where you not only _write things down_, but where everything you write may eventually become structured, linked and queryable data.
 
 In SilverBullet your notes are kept as a [[Space]] (folder) of [[Markdown]] [[Page|Pages]] on disk. As you write, SilverBullet continuously indexes your content — [[Page|pages]], [[Link|links]], [[Task|tasks]], list items and their [[Attribute|attributes]] — into queryable [[Object|Objects]]. You can then slice and reshape that data with [[Space Lua/Integrated Query|Queries]] (SLIQ) and surface the results right inside your notes.

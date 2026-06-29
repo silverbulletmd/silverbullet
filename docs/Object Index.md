@@ -1,6 +1,10 @@
 ---
 description: The local index that makes objects queryable.
 tags: glossary
+references:
+- client/data/object_index.ts
+- plugs/index/*
+- plug-api/syscalls/index.ts
 ---
 The Object Index stores [[Object|Objects]] found in your [[Space]].
 

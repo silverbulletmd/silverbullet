@@ -1,4 +1,9 @@
-#getting-started
+---
+tags: getting-started
+references:
+- bin/silverbullet/src/config.rs
+- bin/silverbullet/src/server.rs
+---
 
 To be secure it is recommended you enable authentication. Here are the options.
 

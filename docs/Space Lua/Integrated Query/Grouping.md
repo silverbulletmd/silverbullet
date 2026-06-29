@@ -1,4 +1,9 @@
-#maturity/experimental
+---
+tags: maturity/experimental
+references:
+- client/space_lua/query_collection.ts
+- client/space_lua/parse.ts
+---
 
 The `group by` and `having` clauses extend [[Space Lua/Integrated Query]] with SQL-style grouping and aggregate filtering.
 

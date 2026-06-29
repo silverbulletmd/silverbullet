@@ -1,4 +1,9 @@
-#getting-started
+---
+tags: getting-started
+references:
+- bin/silverbullet/src/main.rs
+- bin/silverbullet/build.rs
+---
 
 SilverBullet is distributed as a single server binary available for the following platforms:
 

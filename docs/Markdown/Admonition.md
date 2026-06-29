@@ -1,6 +1,9 @@
 ---
 description: A callout block rendered from a special blockquote syntax.
 tags: level/intermediate glossary
+references:
+- client/markdown_parser/custom_syntax.ts
+- client/markdown_renderer/markdown_render.ts
 ---
 
 Silverbullet supports [admonitions](https://github.com/community/community/discussions/16925) using GitHub syntax (`note` and `warning`).

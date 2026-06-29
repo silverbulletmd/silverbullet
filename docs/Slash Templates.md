@@ -1,6 +1,9 @@
 ---
 description: Templates invoked via slash commands to insert pre-defined content.
 tags: glossary
+references:
+- libraries/Library/Std/Infrastructure/Slash Templates.md
+- libraries/Library/Std/Slash Templates/tpl.md
 ---
 Slash templates are a quick way to define [[Slash Command|slash commands]] that insert templated content at the cursor position. They are defined as pages tagged with `#meta/template/slash`.
 

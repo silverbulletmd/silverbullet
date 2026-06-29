@@ -22,3 +22,13 @@ ${some(query[[
     * [[${p.name}]] — last reviewed _${p.lastReviewed}_
   ]==]({p=p})
 ]]) or "_Nothing overdue for review, nice job!_ 🥳"}
+
+# Code drift
+Pages whose referenced source files changed after the page was last updated:
+
+${codeLink.healthMarkdown()}
+
+# Broken code links
+`references:` entries that do not currently resolve to source files:
+
+${codeLink.referenceErrorsMarkdown()}

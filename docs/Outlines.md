@@ -1,3 +1,8 @@
+---
+references:
+- plugs/editor/outline.ts
+- plugs/editor/outline_ops.ts
+---
 While SilverBullet is not a “proper” outliner like e.g. [LogSeq](https://logseq.com), it does offer useful commands to manage outlines.
 
 An outline is simply a (nested) bulleted list, for instance:

@@ -1,3 +1,9 @@
+---
+references:
+- plug-api/types/manifest.ts
+- client/plugos/hooks/command.ts
+- client/plugos/hooks/syscall.ts
+---
 This page is the reference surface for plug authors: the `*.plug.yaml` manifest, every hook type, and the full syscall catalog.
 
 # Manifest

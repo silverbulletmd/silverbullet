@@ -1,3 +1,8 @@
+---
+references:
+- plug-api/lib/ref.ts
+- plugs/index/refactor.ts
+---
 In [[SilverBullet]] every [[Page|page]] or [[Document|document]] has a name. Names are (currently) unique, meaning no two pages or documents can share the same name.
 
 # Rules

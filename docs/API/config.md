@@ -1,4 +1,11 @@
-#api/syscall
+---
+tags: api/syscall
+references:
+- plug-api/syscalls/config.ts
+- client/plugos/syscalls/config.ts
+- client/config.ts
+- plugs/configuration-manager/configuration.ts
+---
 
 The Config API provides functions for managing configuration values, defining their JSON schemas, and exposing them in the [[Configuration Manager]] UI.
 

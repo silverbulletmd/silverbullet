@@ -1,3 +1,8 @@
+---
+references:
+- plugs/index/anchor.ts
+- plugs/index/resolve_anchor.test.ts
+---
 Every [[Markdown/Anchor]] (`$name`) defined in your [[Space]] also produces a small `anchor`-tagged object that maps the anchor name to the host object's location. 
 
 The host object itself (paragraph, task, header, item, or any user-defined `#tag` object) keeps its own record but with `ref` overridden to the anchor name. The dedicated `anchor` record carries only enough information to look the host up:

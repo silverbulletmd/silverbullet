@@ -1,6 +1,10 @@
 ---
 description: A wiki-link or Markdown link connecting pages in your space.
 tags: glossary
+references:
+- client/codemirror/wiki_link.ts
+- client/codemirror/wiki_link_processor.ts
+- plug-api/lib/ref.ts
 ---
 
 In SilverBullet, you can create links to pages or documents inside your space as well as to external resources, using different link formats.

@@ -1,3 +1,8 @@
+---
+references:
+- client/space_lua/parse.ts
+- client/space_lua/runtime.ts
+---
 A few notable [[Space Lua]] quirks.
 
 # Lua implementation notes

@@ -1,6 +1,10 @@
 ---
 description: A structured, queryable unit of data extracted from your pages (e.g. tasks, items, paragraphs).
 tags: glossary
+references:
+- client/data/object_index.ts
+- plugs/index/indexer.ts
+- plug-api/types/index.ts
 ---
 SilverBullet automatically maintains an [[Object Index]] extracted from all [[Markdown]] [[Page|pages]] in your [[Space|Space]].
 

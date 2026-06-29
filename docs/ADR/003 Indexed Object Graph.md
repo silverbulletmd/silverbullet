@@ -9,6 +9,10 @@ dependsOn:
 related:
   - "[[ADR/002 Sync Engine]]"
   - "[[ADR/005 Space Lua]]"
+references:
+- client/data/object_index.ts
+- plugs/index/indexer.ts
+- plugs/object-graph/src/graph_builder.ts
 ---
 # Context
 SilverBullet's power features — [[Space Lua/Integrated Query]], [[Linked Mention]], the [[Linked Tasks]], [[Object Graph]] — all need *structured, queryable* data. But the source of truth is plain markdown files. Something needs to turn that prose into queryable data without making the markdown any less plain.

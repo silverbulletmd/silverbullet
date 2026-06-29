@@ -6,6 +6,8 @@ pageDecoration:
   disableTOC: true
   cssClasses:
   - christmas-decoration
+references:
+- plugs/index/page.ts
 ---
 Page decorations allow you to “decorate” pages in various fun ways.
  

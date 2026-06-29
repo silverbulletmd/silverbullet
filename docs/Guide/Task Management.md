@@ -1,4 +1,9 @@
-#guide
+---
+tags: guide
+references:
+- plugs/index/task.ts
+- libraries/Library/Std/APIs/Task State.md
+---
 
 This guide walks you through a project and task management workflow. You'll learn how tasks, frontmatter, linked tasks, and queries combine into a lightweight project tracker — no extra tools needed.
 

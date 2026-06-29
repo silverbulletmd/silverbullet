@@ -1,4 +1,8 @@
-#api/space-lua
+---
+tags: api/space-lua
+references:
+- client/space_lua/stdlib/js.ts
+---
 
 API docs for Space Lua's `js` module, which provides JavaScript interoperability.
 

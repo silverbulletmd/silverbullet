@@ -1,6 +1,9 @@
 ---
 description: The quick-open dialog for navigating to any page.
 tags: glossary
+references:
+- client/components/anything_picker.tsx
+- plugs/editor/page.ts
 ---
 The page picker has two main functions:
 

@@ -1,6 +1,9 @@
 ---
 description: The top-level folder of Markdown files, assets, and configuration that SilverBullet serves.
 tags: glossary
+references:
+- client/spaces/space_primitives.ts
+- server-common/src/space.rs
 ---
 A _space_ is SilverBullet terminology for a workspace, or project, or instance. [Obsidian](https://obsidian.md/) calls this a vault, [LogSeq](https://logseq.com/) calls it a graph. You may think of it as a [[Folder]] or a directory — because in practical terms, that’s all it is.
 

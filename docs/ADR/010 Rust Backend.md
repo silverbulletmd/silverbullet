@@ -10,6 +10,10 @@ dependsOn:
 related:
   - "[[ADR/009 Client Build Toolchain]]"
   - "[[ADR/002 Sync Engine]]"
+references:
+- bin/silverbullet/src/server.rs
+- server-common/src/space.rs
+- server-runtime-chrome/src/supervisor.rs
 ---
 # Context
 The server does very little. Since [[ADR/007 Core Application Logic on the Client|all application logic moved to the client]], the server is primarily a file store: it lists, reads, writes and deletes files, handles authentication, serves the static client, and runs shell commands. When the [[Runtime API]] is enabled, it manages a Chrome sub-process and delegates calls to it. This makes the server's *implementation language* a relatively low-stakes, swappable choice, and over the project’s life it has changed several times.

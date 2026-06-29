@@ -1,4 +1,10 @@
-#development
+---
+tags: development
+references:
+- Makefile
+- build/build_client.ts
+- build/build_plugs.ts
+---
 
 SilverBullet development can happen at various level.
 

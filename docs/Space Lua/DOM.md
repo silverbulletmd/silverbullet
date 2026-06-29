@@ -1,3 +1,8 @@
+---
+references:
+- libraries/Library/Std/APIs/DOM.md
+- client/space_lua/render_widget.ts
+---
 The DOM builder API provides a clean, declarative way to construct HTML elements from [[Space Lua]]. It is typically used to build [[API/widget|Widgets]] for rendering dynamic UI in your pages.
 
 The full API reference is at [[API/dom]].

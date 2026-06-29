@@ -1,1 +1,6 @@
+---
+references:
+- plugs/index/space_lua.ts
+- client/space_lua.ts
+---
 Every `space-lua` block across your space is indexed with the `space-lua` tag. Upon client boot (or after using `System: Reload`), all space lua scripts are executed in sequence.

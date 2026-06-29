@@ -1,6 +1,9 @@
 ---
 description: Inline and block-level HTML tags inside markdown.
 tags: level/intermediate glossary
+references:
+- client/markdown_parser/html_block.ts
+- client/codemirror/html_element.ts
 ---
 
 SilverBullet supports embedding raw HTML tags inside your markdown — both **inline** (mid-paragraph, in headings, in table cells) and **block-level** (HTML on its own lines). As with other [[Live Preview]] features, it is rendered live in the editor when the cursor is outside the tag, and falls back to raw source when the cursor enters it. Markdown inside the HTML tag is parsed and rendered too.

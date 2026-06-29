@@ -1,3 +1,8 @@
+---
+references:
+- client/markdown_parser/custom_syntax.ts
+- client/markdown_parser/parser.ts
+---
 In addition to supporting [[Markdown/Basics|markdown basics]] as standardized by [CommonMark](https://commonmark.org/), SilverBullet relies on the following extensions:
 
 * [[Link]]

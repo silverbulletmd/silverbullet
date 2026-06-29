@@ -1,3 +1,8 @@
+---
+references:
+- bin/silverbullet/src/server.rs
+- server-common/src/space/http.rs
+---
 The server API is relatively small. The client primarily communicates with the server for file “CRUD” (Create, Read, Update, Delete) style operations.
 
 All API requests from the client will always set the `X-Sync-Mode` request header set to `true`. The server _will_ use this fact to distinguish between requests coming from the client and regular e.g. `GET` requests from the browser (through navigation) and redirect appropriately (for instance to the UI URL associated with a specific `.md` file).

@@ -2,6 +2,9 @@
 description: SilverBullet synchronizes all your content locally, allowing full access even when not connected to (reliable) Internet.
 awesomeness: 7
 tags: feature
+references:
+- client/service_worker.ts
+- client/spaces/sync.ts
 ---
 
 From the original [Local First](https://www.inkandswitch.com/essay/local-first/) article:

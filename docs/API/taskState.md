@@ -1,4 +1,10 @@
-#maturity/experimental #api/space-lua
+---
+tags: maturity/experimental api/space-lua
+references:
+- libraries/Library/Std/APIs/Task State.md
+- plugs/index/task.ts
+- plugs/index/item.ts
+---
 
 APIs to define [[Task#Custom states]].
 

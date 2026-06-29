@@ -1,3 +1,9 @@
+---
+references:
+- client/space_lua/stdlib.ts
+- client/plugos/syscalls/index.ts
+- plug-api/syscalls.ts
+---
 This describes the APIs available in [[Space Lua]]:
 
 # Lua Standard Library

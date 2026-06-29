@@ -1,3 +1,7 @@
+---
+references:
+- plugs/index/item.ts
+---
 List items (both bullet point and numbered items) are indexed with the `item` tag, additional tags can be added using [[Tag]].
 
 Here is an example of a #quote item using a custom [[Attribute|attribute]]:

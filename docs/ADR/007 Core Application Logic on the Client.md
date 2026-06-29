@@ -5,6 +5,10 @@ date: "2025-08-29"
 deciders: "[[Zef Hemel]]"
 owner: "[[Zef Hemel]]"
 lastReviewed: "2026-06-19"
+references:
+- client/client.ts
+- client/client_system.ts
+- client/service_worker.ts
 ---
 # Context
 SilverBullet's [[Plugs]] runtime was originally designed so that plugs could run **either on the server or in the client**. Through “v1” this surfaced as two switchable modes:

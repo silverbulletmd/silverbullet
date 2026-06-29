@@ -1,4 +1,10 @@
-#api/space-lua
+---
+tags: api/space-lua
+references:
+- plug-api/syscalls/mq.ts
+- client/plugos/syscalls/mq.ts
+- client/data/mq.datastore.ts
+---
 
 The Message Queue API provides functions for implementing a simple message queue system.
 

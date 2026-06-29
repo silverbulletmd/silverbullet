@@ -1,6 +1,8 @@
 ---
 description: "A page tagged with #meta that serves as tooling (configuration, extensions, templates) rather than regular content."
 tags: glossary
+references:
+- plugs/index/page.ts
 ---
 Meta pages are pages not core to your content, but function as a way to configure, or extend your [[Space]]. You can think of them as “tooling” pages. 
 

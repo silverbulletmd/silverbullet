@@ -1,3 +1,8 @@
+---
+references:
+- client/document_editor.ts
+- client/document_editor_js.ts
+---
 Document editors allow you to not only view but also edit files other than markdown. By itself they are just [[Plugs|plugs]] which hook into Silverbullet and provide an editor based on the extension of the file. Silverbullet includes an image viewer by itself to view most image files (`jpg`, `png`, ...). If you are missing an editor and want to build your own look at [[#Development]].
 
 # Usage

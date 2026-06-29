@@ -1,4 +1,10 @@
-#maturity/beta
+---
+tags: maturity/beta
+references:
+- client/data/encrypted_kv_primitives.ts
+- client/data/indexeddb_kv_primitives.ts
+- client/data/kv_primitives.ts
+---
 
 By default SilverBullet keeps a copy of all your files as well as the index, unencrypted in your browser’s IndexedDB. As long as you control your device and other people do not have access to it, this should be perfectly safe. Browsers do not allow access to these databases from other websites and domains.
 

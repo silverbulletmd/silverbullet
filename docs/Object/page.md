@@ -1,3 +1,8 @@
+---
+references:
+- plugs/index/page.ts
+- client/data/object_index.ts
+---
 Every page in your space is available via the `page` tag. You can attach _additional_ tags to a page, by either specifying them in the `tags` attribute [[Frontmatter]], or by putting additional [[Tag|tags]] in a standalone paragraph with no other (textual) content in them.
 
 In addition to `ref` and `tags`, the `page` tag defines a bunch of additional attributes as can be seen in this example query:

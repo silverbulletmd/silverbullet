@@ -7,6 +7,10 @@ owner: "[[Zef Hemel]]"
 lastReviewed: "2026-06-19"
 related:
   - "[[ADR/003 Indexed Object Graph]]"
+references:
+- client/space_lua.ts
+- client/space_lua/runtime.ts
+- client/space_lua/parse.ts
 ---
 # Context
 SilverBullet lets users put dynamic content: live queries, computed views, templated rendering, and custom logic directly in their pages. In v1 this was spread across **three separate mechanisms**, each with its own syntax:

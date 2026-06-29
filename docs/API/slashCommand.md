@@ -1,4 +1,10 @@
-#api/space-lua
+---
+tags: api/space-lua
+references:
+- libraries/Library/Std/APIs/Command.md
+- client/plugos/hooks/slash_command.ts
+- plug-api/types/manifest.ts
+---
 
 APIs to create [[Slash Command]]. For simple cases it is recommended to use [[Library/Std/Infrastructure/Slash Templates]] instead.
 

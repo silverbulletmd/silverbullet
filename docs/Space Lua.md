@@ -1,6 +1,9 @@
 ---
 description: "SilverBullet's embedded Lua scripting environment for extending functionality."
 tags: glossary
+references:
+- client/space_lua.ts
+- client/space_lua/*
 ---
 Space Lua is a custom dialect and implementation of the [Lua programming language](https://lua.org/), embedded in SilverBullet. It aims to be a largely complete Lua implementation, but adds a few non-standard features while remaining syntactically compatible with “real” Lua.
 

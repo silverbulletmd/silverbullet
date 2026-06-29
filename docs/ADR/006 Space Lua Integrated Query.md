@@ -7,6 +7,10 @@ owner: "[[Zef Hemel]]"
 dependsOn:
   - "[[ADR/005 Space Lua]]"
   - "[[ADR/003 Indexed Object Graph]]"
+references:
+- client/space_lua/query_collection.ts
+- client/space_lua/query_env.ts
+- client/space_lua/parse.ts
 ---
 # Context
 With [[ADR/005 Space Lua|Space Lua]] as the one embedded language and an [[ADR/003 Indexed Object Graph|object index]] to query, users still need an ergonomic way to *select and transform* objects, the single most common thing they do (RFC indexes, task rollups, dashboards). Plain imperative Lua (loops, filters, maps) works but reads poorly for what is fundamentally a declarative query, and a *separate* query language would reintroduce the second-language seam that adopting Lua removed.

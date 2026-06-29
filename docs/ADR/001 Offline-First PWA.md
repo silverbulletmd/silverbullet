@@ -8,6 +8,10 @@ lastReviewed: "2026-06-19"
 related:
   - "[[ADR/002 Sync Engine]]"
   - "[[ADR/007 Core Application Logic on the Client]]"
+references:
+- client/service_worker.ts
+- client/spaces/sync.ts
+- client/data/object_index.ts
 ---
 # Context
 SilverBullet aims to be **offline-first**: it should keep working with no network and feel instant. While we may reach a point in the state of the world some day where Internet connectivity is always available, we’re not there yet. You should be able to access your notes even when you’re in the middle of a dessert, top of a mountain, or 10km deep in the sea. For that, the client keeps a full local copy of your [[Space]] files and keeps working when the server is unreachable. (This offline-first stance later drove the v2 decision to run *all* application logic in the client — see [[ADR/007 Core Application Logic on the Client]].)

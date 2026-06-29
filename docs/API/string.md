@@ -1,4 +1,9 @@
-#api/lua
+---
+tags: api/lua
+references:
+- client/space_lua/stdlib/string.ts
+- client/space_lua/stdlib/string_pack.ts
+---
 
 API docs for Space Lua's `string` module.
 

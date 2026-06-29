@@ -1,4 +1,10 @@
-#api/space-lua #maturity/experimental
+---
+tags: api/space-lua maturity/experimental
+references:
+- libraries/Library/Std/APIs/Tag.md
+- plugs/index/tags.ts
+- client/data/object_index.ts
+---
 
 Enables customization of [[Tag|tags]] and its [[Object|objects]] in a few ways:
 

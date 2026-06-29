@@ -1,3 +1,7 @@
+---
+references:
+- libraries/Library/Std/Infrastructure/Export.md
+---
 If you would like to export content (a full page or a selection), you can use SilverBullet’s _Export_ functionality triggered with ${widgets.commandButton "Export: Page Or Selection"}.
 
 **Note:** Exports are one-offs. If you are interested in sharing content onto other platforms and keeping things in sync, have a look at [[Share]].

@@ -1,6 +1,8 @@
 ---
 description: The inline rendering of Markdown formatting as you type.
 tags: glossary
+references:
+- client/markdown_renderer/markdown_render.ts
 ---
 SilverBullet uses a “live preview” markdown editor. This mechanism is heavily inspired by [Obsidian's live preview mode](https://obsidian.md/help/edit-and-read#Live+Preview).
 

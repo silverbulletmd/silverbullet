@@ -1,4 +1,9 @@
-#api/space-lua
+---
+tags: api/space-lua
+references:
+- libraries/Library/Std/APIs/Template.md
+- client/space_lua/stdlib.ts
+---
 
 Template functions that use the [[API/template#template.new(template)]] function.
 

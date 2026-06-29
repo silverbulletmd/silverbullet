@@ -1,6 +1,9 @@
 ---
 description: A triple-backtick block that can render widgets, queries, or syntax-highlighted code.
 tags: glossary
+references:
+- client/codemirror/fenced_code.ts
+- client/markdown_parser/parser.ts
 ---
 
 Blocks use the fenced code block notation of [[Markdown]], and assign special behavior to it.

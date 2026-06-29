@@ -1,4 +1,9 @@
-#api/space-lua
+---
+tags: api/space-lua
+references:
+- client/space_lua/stdlib/net.ts
+- plug-api/lib/native_fetch.ts
+---
 
 HTTP APIs
 

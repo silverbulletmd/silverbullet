@@ -1,6 +1,8 @@
 ---
 description: A backlink reference showing everywhere a page is linked from.
 tags: glossary
+references:
+- plugs/index/relation.ts
 ---
 Linked mentions (also known as backlinks) show all pages that contain a [[Link|link]] to the current page. They appear as a "Linked Mentions" section at the bottom of every page that has incoming links.
 

@@ -2,6 +2,9 @@
 description: SilverBullet has been designed to be programmable from the ground up.
 awesomeness: 10
 tags: feature
+references:
+- client/space_lua.ts
+- client/plugos/plug.ts
 ---
 SilverBullet has been designed to be programmable from the ground up. The core of SilverBullet is relatively small, see [[Architecture]].
 

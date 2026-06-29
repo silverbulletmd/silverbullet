@@ -1,4 +1,8 @@
-#api/lua
+---
+tags: api/lua
+references:
+- client/space_lua/stdlib/table.ts
+---
 
 These are Lua functions defined in the `table` namespace.
 

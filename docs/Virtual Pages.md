@@ -1,6 +1,9 @@
 ---
 description: A page generated dynamically by code rather than stored as a file.
 tags: glossary
+references:
+- libraries/Library/Std/APIs/Virtual Page.md
+- plugs/editor/page.ts
 ---
 
 Virtual pages are read-only pages that don't exist as files in your space. Instead, they are generated dynamically when you navigate to them. This is useful for building pages whose content is computed on-the-fly — for example, pages that show all objects with a particular tag.

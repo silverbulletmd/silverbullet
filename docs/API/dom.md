@@ -1,4 +1,9 @@
-#api/space-lua
+---
+tags: api/space-lua
+references:
+- libraries/Library/Std/APIs/DOM.md
+- client/space_lua/render_widget.ts
+---
 
 An API to easily build DOM objects through the magic of Lua meta tables.
 

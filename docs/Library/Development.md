@@ -1,4 +1,9 @@
-#development
+---
+tags: development
+references:
+- plugs/configuration-manager/libraries.ts
+- libraries/Library/Std/Infrastructure/Github.md
+---
 
 To develop your own SilverBullet library follow these steps:
 

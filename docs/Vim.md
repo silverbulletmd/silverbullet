@@ -1,4 +1,9 @@
-#customization
+---
+tags: customization
+references:
+- plugs/editor/vim.ts
+- client/vim_loader.ts
+---
 
 SilverBullet has a basic Vim mode. You can toggle it using the ${widgets.commandButton("Editor: Toggle Vim Mode")} command.
 

@@ -1,6 +1,9 @@
 ---
+tags: glossary page-tag-example
 description: "An inline #tag that annotates a page or object for categorisation and querying."
-tags: glossary
+references:
+- client/codemirror/hashtag.ts
+- plugs/index/tags.ts
 ---
 
 Hashtag syntax (`#my-tag`) can be used to explicitly assign a [[Tag]] to an [[Object]].
@@ -13,7 +16,6 @@ Hashtag syntax (`#my-tag`) can be used to explicitly assign a [[Tag]] to an [[Ob
 * If you create a [[Markdown/Fenced Code Block]] with a hashtag as language, it applies the tag to that [[Object/data]].
 
 ## Examples
-#page-tag-example
 
 Paragraph #paragraph-tag-example
 

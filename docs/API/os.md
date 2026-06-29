@@ -1,4 +1,8 @@
-#api/lua
+---
+tags: api/lua
+references:
+- client/space_lua/stdlib/os.ts
+---
 
 API docs for Lua's `os` module.
 

@@ -1,4 +1,10 @@
-#api/syscall
+---
+tags: api/syscall
+references:
+- plug-api/syscalls/index.ts
+- client/plugos/syscalls/index.ts
+- client/data/object_index.ts
+---
 
 The `index` API provides convient functions for interacting with SilverBullet's [[Object Index]], allowing you to query indexed data.
 

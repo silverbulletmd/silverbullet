@@ -1,4 +1,10 @@
-#maturity/experimental
+---
+tags: maturity/experimental
+references:
+- bin/sb/src/cli.rs
+- bin/sb/src/commands/mod.rs
+- bin/sb/src/main.rs
+---
 
 > **note** Not the server
 > `sb` is the optional **CLI client** — it talks to an already-running SilverBullet instance over HTTP. If you’re looking for the actual server binary, that’s [[Install/Binary]] (`silverbullet`), not this. You do not need `sb` to use SilverBullet.

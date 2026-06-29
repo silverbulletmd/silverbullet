@@ -1,4 +1,9 @@
-#customization
+---
+tags: customization
+references:
+- plugs/configuration-manager/ui/components/shortcuts_tab.tsx
+- plugs/editor/editor.ts
+---
 
 SilverBullet uses [CodeMirror](https://codemirror.net) under the hood, which does the majority of the keyboard handling. In addition, it allows to for customization of (most) keys on a per-command basis. When you open the [[Command Palette]], you will see the currently assigned keyboard shortcut(s).
 

@@ -1,4 +1,9 @@
-#api/syscall
+---
+tags: api/syscall
+references:
+- client/service_registry.ts
+- client/plugos/syscalls/service_registry.ts
+---
 
 Exposes a simple service registry API leveraged by various parts of SilverBullet, see [[Service]].
 

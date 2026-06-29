@@ -1,3 +1,8 @@
+---
+references:
+- plugs/index/link.ts
+- plugs/index/relation.ts
+---
 All page _links_ are tagged with `link`. You cannot attach additional tags to links. The main two attributes of a link are:
 
 * `toPage` the page the link is linking _to_
