@@ -94,6 +94,19 @@
     border: 0;
   }
 
+  .cm-frontmatterFoldPlaceholder {
+    cursor: pointer;
+    float: right;
+    opacity: 0.8;
+    padding-right: 7px;
+    user-select: none;
+  }
+
+  .cm-frontmatterFoldPlaceholder:hover,
+  .cm-frontmatterFoldPlaceholder:focus-visible {
+    opacity: 1;
+  }
+
   .sb-line-comment {
     text-indent: -1 * 3ch;
     padding-left: 3ch;
@@ -742,9 +755,17 @@
   }
 
   .sb-frontmatter-marker {
+    cursor: pointer;
     float: right;
     font-size: 80%;
+    opacity: 0.8;
     padding-right: 7px;
+    user-select: none;
+  }
+
+  .sb-frontmatter-marker:hover,
+  .sb-frontmatter-marker:focus-visible {
+    opacity: 1;
   }
 
   .cm-scroller {

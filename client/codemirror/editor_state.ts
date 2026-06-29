@@ -55,6 +55,11 @@ import { safeRun } from "@silverbulletmd/silverbullet/lib/async";
 import { codeCopyPlugin } from "../codemirror/code_copy.ts";
 import { disableSpellcheck } from "../codemirror/spell_checking.ts";
 import type { ClickEvent } from "@silverbulletmd/silverbullet/type/client";
+import {
+  frontmatterFoldingExtension,
+  frontmatterFoldPlaceholderDOM,
+  prepareFrontmatterFoldPlaceholder,
+} from "./frontmatter_folding.ts";
 
 // Annotation marking a transaction whose changes came from outside the
 // editor's edit stream (e.g. a page re-fetch from storage), so the
@@ -162,8 +167,10 @@ export function createEditorState(
       undoHistory,
       dropCursor(),
       codeFolding({
-        placeholderText: "…",
+        preparePlaceholder: prepareFrontmatterFoldPlaceholder,
+        placeholderDOM: frontmatterFoldPlaceholderDOM,
       }),
+      frontmatterFoldingExtension(client),
       indentUnits,
       indentOnInput(),
       ...cleanModePlugins(client),

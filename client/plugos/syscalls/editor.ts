@@ -182,7 +182,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
         "system.loadSpaceStyles",
         [],
       );
-      client.reconfigureLanguage();
+      client.rebuildEditorState();
     },
     "editor.invokeCommand": (_ctx, name: string, args?: string[]) => {
       return client.runCommandByName(name, args);

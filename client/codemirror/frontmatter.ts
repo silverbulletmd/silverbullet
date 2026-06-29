@@ -1,9 +1,13 @@
 import type { EditorState } from "@codemirror/state";
-import { foldedRanges, syntaxTree } from "@codemirror/language";
-import { Decoration } from "@codemirror/view";
+import {
+  foldedRanges,
+  foldEffect,
+  syntaxTree,
+  unfoldEffect,
+} from "@codemirror/language";
+import { Decoration, type EditorView, WidgetType } from "@codemirror/view";
 import {
   decoratorStateField,
-  HtmlWidget,
   isCursorInRange,
   LinkWidget,
 } from "./util.ts";
@@ -16,6 +20,73 @@ import {
 } from "../markdown_parser/constants.ts";
 import { processWikiLink, type WikiLinkMatch } from "./wiki_link_processor.ts";
 
+class FrontmatterMarkerWidget extends WidgetType {
+  constructor(
+    private readonly from: number,
+    private readonly to: number,
+    private readonly folded: boolean,
+  ) {
+    super();
+  }
+
+  toDOM(view: EditorView): HTMLElement {
+    const marker = document.createElement("span");
+    marker.className = "sb-frontmatter-marker";
+    marker.role = "button";
+    marker.tabIndex = 0;
+    marker.title = this.folded ? "Unfold frontmatter" : "Fold frontmatter";
+    marker.setAttribute(
+      "aria-label",
+      this.folded ? "Unfold frontmatter" : "Fold frontmatter",
+    );
+    marker.textContent = `${this.folded ? "◂" : "▾"} frontmatter`;
+
+    const toggleFold = (event: Event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      view.dispatch({
+        effects: (this.folded ? unfoldEffect : foldEffect).of({
+          from: this.from,
+          to: this.to,
+        }),
+      });
+      view.focus();
+    };
+
+    marker.addEventListener("click", toggleFold);
+    marker.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        toggleFold(event);
+      }
+    });
+    return marker;
+  }
+
+  override eq(other: WidgetType): boolean {
+    return (
+      other instanceof FrontmatterMarkerWidget &&
+      other.from === this.from &&
+      other.to === this.to &&
+      other.folded === this.folded
+    );
+  }
+}
+
+function hasExactFoldedRange(
+  state: EditorState,
+  from: number,
+  to: number,
+): boolean {
+  const folded = foldedRanges(state).iter();
+  while (folded.value) {
+    if (folded.from === from && folded.to === to) {
+      return true;
+    }
+    folded.next();
+  }
+  return false;
+}
+
 export function frontmatterPlugin(client: Client) {
   return decoratorStateField((state: EditorState) => {
     const widgets: any[] = [];
@@ -26,6 +97,11 @@ export function frontmatterPlugin(client: Client) {
       enter(node) {
         if (node.name === "FrontMatterMarker") {
           const parent = node.node.parent!;
+          const frontmatterFolded = hasExactFoldedRange(
+            state,
+            parent.from,
+            parent.to,
+          );
 
           const folded = foldRanges.iter();
           let shouldShowFrontmatterBanner = false;
@@ -50,7 +126,11 @@ export function frontmatterPlugin(client: Client) {
             // Only put this on the first line of the frontmatter
             widgets.push(
               Decoration.widget({
-                widget: new HtmlWidget(`frontmatter`, "sb-frontmatter-marker"),
+                widget: new FrontmatterMarkerWidget(
+                  parent.from,
+                  parent.to,
+                  frontmatterFolded,
+                ),
               }).range(node.from),
             );
           }

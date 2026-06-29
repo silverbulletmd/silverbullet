@@ -121,6 +121,29 @@ config.define("shortWikiLinks", {
   ui = { category = "Editor", label = "Short wiki links", priority = 1 },
 })
 
+config.define("frontmatterFolding", {
+  description = "Configure folding behavior for YAML frontmatter at the top of pages",
+  type = "object",
+  properties = {
+    foldByDefault = {
+      type = "string",
+      enum = { "never", "long", "always" },
+      default = "long",
+      description = "When to automatically fold frontmatter when opening a page",
+      ui = { category = "Editor", label = "Auto-fold frontmatter", priority = 0 },
+    },
+    foldByDefaultLines = {
+      type = "number",
+      default = 5,
+      minimum = 1,
+      multipleOf = 1,
+      description = "Fold frontmatter automatically when it has more than this positive whole number of lines and auto-fold is set to long",
+      ui = { category = "Editor", label = "Frontmatter auto-fold lines", priority = -2 },
+    },
+  },
+  additionalProperties = false,
+})
+
 config.define("emoji", {
   description = "Additional emoji aliases",
   type = "object",

@@ -13,6 +13,10 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
   cursor to a live `${…}` directive for editing. See [[Baked Sections]]. The
   **Bake** button and these commands are hidden on read-only pages and in
   read-only spaces.
+* Frontmatter in the editor now has configurable folding: by default long
+  frontmatter blocks fold automatically, and `frontmatterFolding` options let
+  you disable auto-folding, always fold frontmatter, or change the line
+  threshold. A subtle right-side marker folds or unfolds the whole block.
 * Fix: write-mode commands (those requiring read-write, e.g. the baking
   commands) are now hidden in the command palette and their keybindings disabled
   on **per-page** read-only pages (`perm: ro`), not just in fully read-only
