@@ -1,6 +1,6 @@
 import { ensureSyntaxTree, foldEffect, syntaxTree } from "@codemirror/language";
 import type { EditorState, Extension } from "@codemirror/state";
-import { EditorView, ViewPlugin, type ViewUpdate } from "@codemirror/view";
+import { type EditorView, ViewPlugin, type ViewUpdate } from "@codemirror/view";
 import type { Client } from "../client.ts";
 
 export type FrontmatterFoldByDefault = "never" | "long" | "always";

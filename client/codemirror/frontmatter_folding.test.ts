@@ -12,7 +12,7 @@ import {
   selectionIntersectsRange,
   shouldAutoFoldFrontmatter,
 } from "./frontmatter_folding.ts";
-import { EditorView } from "@codemirror/view";
+import type { EditorView } from "@codemirror/view";
 import { foldService } from "@codemirror/language";
 
 function stateWithDoc(doc: string, selection = 0) {
