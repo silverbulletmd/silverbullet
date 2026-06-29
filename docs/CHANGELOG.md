@@ -13,6 +13,10 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
   cursor to a live `${…}` directive for editing. See [[Baked Sections]]. The
   **Bake** button and these commands are hidden on read-only pages and in
   read-only spaces.
+* Fix: frontmatter link live preview now follows the editor's regular markdown
+  preview behavior: raw YAML syntax stays visible when markdown syntax
+  rendering is enabled, and only the link currently being edited is revealed in
+  clean mode.
 * Frontmatter in the editor now has configurable folding: by default long
   frontmatter blocks fold automatically, and `frontmatterFolding` options let
   you disable auto-folding, always fold frontmatter, or change the line

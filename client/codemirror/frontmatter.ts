@@ -87,6 +87,21 @@ function hasExactFoldedRange(
   return false;
 }
 
+export function shouldRenderFrontmatterLivePreview({
+  state,
+  client,
+  from,
+  to,
+}: {
+  state: EditorState;
+  client: Client;
+  from: number;
+  to: number;
+}): boolean {
+  return !client.ui.viewState.uiOptions.markdownSyntaxRendering &&
+    !isCursorInRange(state, [from, to]);
+}
+
 export function frontmatterPlugin(client: Client) {
   return decoratorStateField((state: EditorState) => {
     const widgets: any[] = [];
@@ -140,11 +155,6 @@ export function frontmatterPlugin(client: Client) {
         if (node.name === "FrontMatterCode") {
           const oFrom = node.from;
           const oTo = node.to;
-
-          if (isCursorInRange(state, [oFrom, oTo])) {
-            return;
-          }
-
           const otext = state.sliceDoc(oFrom, oTo);
 
           let oMatch: RegExpExecArray | null;
@@ -160,6 +170,16 @@ export function frontmatterPlugin(client: Client) {
               const mFrom = from + (match.index ?? 0);
               const mTo = mFrom + match[0].length;
               const url = match[1];
+              if (
+                !shouldRenderFrontmatterLivePreview({
+                  state,
+                  client,
+                  from: mFrom,
+                  to: mTo,
+                })
+              ) {
+                continue;
+              }
               widgets.push(
                 Decoration.replace({
                   widget: new LinkWidget({
@@ -213,8 +233,8 @@ export function frontmatterPlugin(client: Client) {
               };
 
               const decorations = processWikiLink({
-                from,
-                to,
+                from: mFrom,
+                to: mTo,
                 match: wikiLinkMatch,
                 matchFrom: mFrom,
                 matchTo: mTo,
@@ -247,6 +267,16 @@ export function frontmatterPlugin(client: Client) {
               const mTo = mFrom + mMatch[0].length;
               const url = mMatch[1];
               const address = url.slice(7);
+              if (
+                !shouldRenderFrontmatterLivePreview({
+                  state,
+                  client,
+                  from: mFrom,
+                  to: mTo,
+                })
+              ) {
+                continue;
+              }
               widgets.push(
                 Decoration.replace({
                   widget: new LinkWidget({
