@@ -47,7 +47,7 @@ export default defineConfig({
       "dist",
       "client_bundle",
       "e2e",
-      "website",
+      "docs",
       "server",
       // Exclude helper test files (no test() blocks, only export helper functions)
       "client/data/kv_primitives.test.ts",

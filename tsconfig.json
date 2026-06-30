@@ -22,5 +22,5 @@
     "build_*.ts",
     "version.ts"
   ],
-  "exclude": ["node_modules", "dist", "client_bundle", "website"]
+  "exclude": ["node_modules", "dist", "client_bundle", "docs"]
 }

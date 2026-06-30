@@ -87,6 +87,12 @@ export function systemSyscalls(
       }
       return client.loadPlugs();
     },
+    "system.reboot": async () => {
+      await client.save(true);
+      await client.eventedSpacePrimitives.fetchFileListWhenIdle();
+      await client.mq.awaitEmptyQueue("indexQueue");
+      await client.clientSystem.reloadState();
+    },
     "system.loadPlug": async (_ctx, path: string) => {
       const meta = await client.space.spacePrimitives.getFileMeta(path);
       await client.clientSystem.loadPlugFromPath(path, meta.lastModified);

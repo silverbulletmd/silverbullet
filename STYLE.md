@@ -130,4 +130,4 @@ const { text, meta } = await this.space.readPage(name);
 Follow common Go conventions. `make fmt` also reformats Go code.
 
 ## Lua (libraries)
-See `website/Space Lua/Conventions`
+See `docs/Space Lua/Conventions`

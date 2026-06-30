@@ -140,6 +140,7 @@ export async function saveConfiguration(
   await space.writePage(CONFIG_PAGE, newText);
 
   await sync.performFileSync(`${CONFIG_PAGE}.md`);
+  await mq.send("indexQueue", `${CONFIG_PAGE}.md`);
   await mq.awaitEmptyQueue("indexQueue");
   await editor.reloadConfigAndCommands();
   await editor.rebuildEditorState();

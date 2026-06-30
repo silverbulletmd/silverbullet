@@ -66,7 +66,9 @@ export function buildSchemaIndex(cfg: ConfigurationViewModel): SchemaIndex {
     }
     const cat = item.schema.ui.category;
     (categoryMap[cat] ||= []).push(item);
-    initialConfig[item.path] = getValueAtPath(cfg.values, item.path);
+    initialConfig[item.path] = Object.hasOwn(cfg.configOverrides || {}, item.path)
+      ? cfg.configOverrides[item.path]
+      : getValueAtPath(cfg.values, item.path);
   }
   for (const fields of Object.values(categoryMap)) {
     fields.sort(

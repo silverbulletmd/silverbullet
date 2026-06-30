@@ -240,7 +240,7 @@ jobs:
           body: Automated build from commit ${{ github.sha }}
           prerelease: true
           files: |
-            website/CHANGELOG.md
+            docs/CHANGELOG.md
             dist/plug-compile.js
             dist-artifacts/silverbullet-server-*.zip
             dist-artifacts/sb-*.zip
@@ -254,7 +254,7 @@ jobs:
         with:
           draft: false
           files: |
-            website/CHANGELOG.md
+            docs/CHANGELOG.md
             dist/plug-compile.js
             dist-artifacts/silverbullet-server-*.zip
             dist-artifacts/sb-*.zip

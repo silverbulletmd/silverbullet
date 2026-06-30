@@ -1,27 +1,27 @@
 // Run with `npm run index-stats`.
 //
-// Indexes every Markdown page under `silverbullet/website/` and reports
+// Indexes every Markdown page under `silverbullet/docs/` and reports
 // total indexer wall time (mean over a few runs) and object counts
 // grouped by tag, with a sub-breakdown of relation records by kind.
 //
 // Parsing is hoisted out of the timing loop so the reported time
 // reflects the indexer pipeline itself, not Lezer parsing.
 
+import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
+import type {
+  ObjectValue,
+  PageMeta,
+} from "@silverbulletmd/silverbullet/type/index";
 import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
 import { createMockSystem } from "../../plug-api/system_mock.ts";
 import { extractFrontMatter, type FrontMatter } from "./frontmatter.ts";
 import { allIndexers } from "./indexer.ts";
 import {
   type CorpusPage,
+  docsDir,
   loadMarkdownFiles,
   stubPageMeta,
-  websiteDir,
 } from "./test_corpus.ts";
-import type {
-  ObjectValue,
-  PageMeta,
-} from "@silverbulletmd/silverbullet/type/index";
-import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
 
 createMockSystem();
 
@@ -72,8 +72,8 @@ async function runOnce(parsed: ParsedPage[]): Promise<RunResult> {
 }
 
 async function main() {
-  const pages = loadMarkdownFiles(websiteDir);
-  console.log(`Loaded ${pages.length} pages from ${websiteDir}`);
+  const pages = loadMarkdownFiles(docsDir);
+  console.log(`Loaded ${pages.length} pages from ${docsDir}`);
 
   const parsed: ParsedPage[] = pages.map((p) => {
     const tree = parseMarkdown(p.text);
@@ -111,9 +111,9 @@ async function main() {
   console.log(`Per page mean:  ${(r.total / pages.length).toFixed(1)}`);
 
   console.log(`\n=== OBJECTS BY TAG ===`);
-  for (
-    const [tag, count] of Object.entries(r.byTag).sort((a, b) => b[1] - a[1])
-  ) {
+  for (const [tag, count] of Object.entries(r.byTag).sort(
+    (a, b) => b[1] - a[1],
+  )) {
     const pct = ((count / r.total) * 100).toFixed(1);
     console.log(`  ${tag.padEnd(20)} ${String(count).padStart(5)}  (${pct}%)`);
   }
@@ -121,11 +121,9 @@ async function main() {
   const relTotal = r.byTag.relation ?? 0;
   if (relTotal > 0) {
     console.log(`\n=== RELATION RECORDS BY KIND ===`);
-    for (
-      const [kind, count] of Object.entries(r.relationByKind).sort(
-        (a, b) => b[1] - a[1],
-      )
-    ) {
+    for (const [kind, count] of Object.entries(r.relationByKind).sort(
+      (a, b) => b[1] - a[1],
+    )) {
       const pct = ((count / relTotal) * 100).toFixed(1);
       console.log(
         `  ${kind.padEnd(14)} ${String(count).padStart(5)}  (${pct}%)`,

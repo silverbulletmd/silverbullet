@@ -1,8 +1,6 @@
 //! `describe` command — show available query types and tag schemas.
-//!
-//! The two embedded Lua scripts are byte-for-byte significant; any whitespace
-//! change would break the server-side execution.
 
+use std::collections::HashMap;
 use std::io::Write;
 
 use serde::Deserialize;
@@ -11,110 +9,102 @@ use crate::conn::SpaceConnection;
 use crate::output::{self, OutputMode};
 
 // ---------------------------------------------------------------------------
-// Lua scripts — whitespace-significant, do not reformat
+// Lua scripts — call the index.* schema introspection API (single source of
+// truth in Core); whitespace-significant, do not reformat.
 // ---------------------------------------------------------------------------
 
-/// Shared Lua helper for extracting schema properties from a tag definition.
-const LUA_EXTRACT_PROPS: &str = "
-function extractProps(def)
-  local props = {}
-  if def.schema and def.schema.properties then
-    for pname, pdef in pairs(def.schema.properties) do
-      local typ = pdef.type or \"any\"
-      if type(typ) == \"table\" then typ = \"mixed\" end
-      local info = {
-        name = pname,
-        type = typ,
-        readOnly = pdef.readOnly or false,
-        nullable = pdef.nullable or false,
-      }
-      if pdef.enum then info.enum = pdef.enum end
-      table.insert(props, info)
-    end
-    table.sort(props, function(a, b) return a.name < b.name end)
-  end
-  return props
-end
-";
-
-/// Body of the "describe all" script (appended after LUA_EXTRACT_PROPS).
-const DESCRIBE_ALL_BODY: &str = "
-local tags = config.get(\"tags\", {})
-local result = {}
-for name, def in pairs(tags) do
-  table.insert(result, {
-    name = name,
-    properties = extractProps(def),
-    hasSchema = def.schema ~= nil,
-  })
-end
-table.sort(result, function(a, b) return a.name < b.name end)
-
+/// "describe all": raw JSON Schemas from the API plus the SLIQ reference syntax block.
+const DESCRIBE_ALL_SCRIPT: &str = "
 local page = space.readPage(\"Library/Std/Docs/SLIQ Reference\")
 local parsed = index.extractFrontmatter(page, {removeFrontMatterSection = true})
-
-return { tags = result, syntax = parsed.text }
+return { schemas = index.describeSchema(), syntax = parsed.text }
 ";
 
-/// Body of the "describe tag" script (appended after LUA_EXTRACT_PROPS).
-/// Contains exactly one `%s` placeholder for the tag name.
+/// "describe tag": one tag's raw JSON Schema (or nil). Exactly one `%s` for the tag name.
 const DESCRIBE_TAG_BODY: &str = "
-local tagName = \"%s\"
-local tags = config.get(\"tags\", {})
-local def = tags[tagName]
-if not def then
-  error(\"Unknown tag: \" .. tagName)
-end
-return {
-  name = tagName,
-  properties = extractProps(def),
-  hasSchema = def.schema ~= nil,
-  additionalProperties = def.schema and def.schema.additionalProperties or false,
-}
+return index.tagSchema(\"%s\")
 ";
 
 fn describe_all_script() -> String {
-    format!("{LUA_EXTRACT_PROPS}{DESCRIBE_ALL_BODY}")
+    DESCRIBE_ALL_SCRIPT.to_string()
 }
 
 fn describe_tag_script(tag: &str) -> String {
-    format!("{LUA_EXTRACT_PROPS}{DESCRIBE_TAG_BODY}").replacen("%s", tag, 1)
+    DESCRIBE_TAG_BODY.replacen("%s", tag, 1)
 }
 
 // ---------------------------------------------------------------------------
 // Typed shapes matching the Lua return values
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Deserialize)]
-struct TagProperty {
-    name: String,
-    #[serde(rename = "type")]
-    type_: String,
-    #[serde(default, rename = "readOnly")]
-    read_only: bool,
-    #[serde(default)]
-    nullable: bool,
-    #[serde(default, rename = "enum")]
-    enum_values: Vec<String>,
-}
-
-#[derive(Debug, Default, Deserialize)]
-struct TagInfo {
-    name: String,
-    #[serde(default)]
-    properties: Vec<TagProperty>,
-    #[serde(default, rename = "hasSchema")]
-    has_schema: bool,
-    #[serde(default, rename = "additionalProperties")]
-    additional_properties: bool,
-}
-
+/// Deserialized result of `describe all`: a map of tag name → JSON Schema plus
+/// the SLIQ reference syntax text.
 #[derive(Debug, Deserialize)]
 struct DescribeAllResult {
     #[serde(default)]
-    tags: Vec<TagInfo>,
+    schemas: HashMap<String, serde_json::Value>,
     #[serde(default)]
     syntax: String,
+}
+
+// ---------------------------------------------------------------------------
+// Internal property struct for text rendering (not from Lua)
+// ---------------------------------------------------------------------------
+
+/// A single property extracted from a JSON Schema `properties` object.
+#[derive(Debug)]
+struct TagProperty {
+    name: String,
+    type_: String,
+    read_only: bool,
+    nullable: bool,
+    enum_values: Vec<String>,
+}
+
+// ---------------------------------------------------------------------------
+// Presentation-layer extraction: JSON Schema → Vec<TagProperty>
+// ---------------------------------------------------------------------------
+
+/// Walk a JSON Schema object and extract its `properties` into a sorted Vec of
+/// `TagProperty`. This is the flattening logic that used to live in
+/// `schema_introspection.ts`.
+fn extract_properties_from_schema(schema: &serde_json::Value) -> Vec<TagProperty> {
+    let mut props = Vec::new();
+    if let Some(properties) = schema.get("properties").and_then(|p| p.as_object()) {
+        for (name, pdef) in properties {
+            let type_str = match pdef.get("type") {
+                Some(serde_json::Value::String(t)) => t.clone(),
+                Some(_) => "mixed".to_string(),
+                None => "any".to_string(),
+            };
+            let read_only = pdef
+                .get("readOnly")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false);
+            let nullable = pdef
+                .get("nullable")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false);
+            let enum_values: Vec<String> = pdef
+                .get("enum")
+                .and_then(|e| e.as_array())
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                        .collect()
+                })
+                .unwrap_or_default();
+            props.push(TagProperty {
+                name: name.clone(),
+                type_: type_str,
+                read_only,
+                nullable,
+                enum_values,
+            });
+        }
+        props.sort_by(|a, b| a.name.cmp(&b.name));
+    }
+    props
 }
 
 // ---------------------------------------------------------------------------
@@ -176,9 +166,14 @@ fn describe_all(
     writeln!(out).map_err(|e| e.to_string())?;
     writeln!(out, "Available object types:").map_err(|e| e.to_string())?;
 
-    for tag in &result.tags {
-        let props = summarize_props(tag);
-        writeln!(out, "  {:<18} {}", tag.name, props).map_err(|e| e.to_string())?;
+    let mut tag_names: Vec<&String> = result.schemas.keys().collect();
+    tag_names.sort();
+
+    for tag_name in &tag_names {
+        let schema = &result.schemas[*tag_name];
+        let props = extract_properties_from_schema(schema);
+        let summary = summarize_props(&props);
+        writeln!(out, "  {:<18} {}", tag_name, summary).map_err(|e| e.to_string())?;
     }
 
     writeln!(out).map_err(|e| e.to_string())?;
@@ -209,15 +204,22 @@ fn describe_tag(
 
     let raw = conn.eval_lua_script(&describe_tag_script(tag))?;
 
+    if raw.is_null() {
+        return Err(format!("Unknown tag: {tag}"));
+    }
+
     if mode == OutputMode::Json {
         return output::format(out, &raw, OutputMode::Json).map_err(|e| e.to_string());
     }
 
-    let tag_info: TagInfo =
-        serde_json::from_value(raw).map_err(|e| format!("parsing tag info: {e}"))?;
+    // `raw` is a raw JSON Schema value.
+    let additional_properties = raw
+        .get("additionalProperties")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
 
-    writeln!(out, "Type: {}", tag_info.name).map_err(|e| e.to_string())?;
-    if tag_info.additional_properties {
+    writeln!(out, "Type: {}", tag).map_err(|e| e.to_string())?;
+    if additional_properties {
         writeln!(
             out,
             "Accepts additional properties (e.g. frontmatter fields)"
@@ -226,13 +228,15 @@ fn describe_tag(
     }
     writeln!(out).map_err(|e| e.to_string())?;
 
-    if tag_info.properties.is_empty() {
+    let props = extract_properties_from_schema(&raw);
+
+    if props.is_empty() {
         writeln!(out, "No schema defined.").map_err(|e| e.to_string())?;
         return Ok(());
     }
 
     writeln!(out, "Properties:").map_err(|e| e.to_string())?;
-    for prop in &tag_info.properties {
+    for prop in &props {
         let mut flags: Vec<String> = Vec::new();
         if prop.read_only {
             flags.push("read-only".to_string());
@@ -259,14 +263,11 @@ fn describe_tag(
 // summarize_props — short summary for the "describe all" listing
 // ---------------------------------------------------------------------------
 
-fn summarize_props(tag: &TagInfo) -> String {
-    if tag.properties.is_empty() {
-        if !tag.has_schema {
-            return "(no schema)".to_string();
-        }
+fn summarize_props(props: &[TagProperty]) -> String {
+    if props.is_empty() {
         return String::new();
     }
-    let names: Vec<&str> = tag.properties.iter().map(|p| p.name.as_str()).collect();
+    let names: Vec<&str> = props.iter().map(|p| p.name.as_str()).collect();
     if names.len() > 5 {
         format!("{}, ...", names[..5].join(", "))
     } else {
@@ -317,20 +318,13 @@ mod tests {
     // -----------------------------------------------------------------------
 
     #[test]
-    fn describe_tag_script_substitution() {
+    fn describe_tag_script_calls_api() {
         let script = describe_tag_script("task");
         assert!(
-            script.contains("local tagName = \"task\""),
-            "should contain substituted tag name"
+            script.contains("index.tagSchema(\"task\")"),
+            "should call index.tagSchema with the substituted tag name"
         );
-        assert!(
-            script.contains("function extractProps(def)"),
-            "should contain extractProps function"
-        );
-        assert!(
-            !script.contains("%s"),
-            "should have no remaining %s placeholder"
-        );
+        assert!(!script.contains("%s"), "no remaining %s placeholder");
     }
 
     // -----------------------------------------------------------------------
@@ -338,28 +332,91 @@ mod tests {
     // -----------------------------------------------------------------------
 
     #[test]
-    fn describe_all_script_contents() {
+    fn describe_all_script_calls_api() {
         let script = describe_all_script();
         assert!(
-            script.starts_with("\nfunction extractProps(def)"),
-            "should start with extractProps function"
+            script.contains("index.describeSchema()"),
+            "should call index.describeSchema()"
         );
         assert!(
-            script.contains("config.get(\"tags\", {})"),
-            "should contain config.get tags call"
+            script.contains("return { schemas = index.describeSchema(), syntax = parsed.text }"),
+            "should return schemas + syntax"
         );
-        assert!(
-            script.contains("return { tags = result, syntax = parsed.text }"),
-            "should contain correct return statement"
-        );
+    }
+
+    // -----------------------------------------------------------------------
+    // extract_properties_from_schema
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn extract_properties_sorts_by_name() {
+        let schema: Value = serde_json::json!({
+            "type": "object",
+            "properties": {
+                "z_prop": { "type": "string" },
+                "a_prop": { "type": "boolean" },
+                "m_prop": { "type": "number" }
+            }
+        });
+        let props = extract_properties_from_schema(&schema);
+        let names: Vec<&str> = props.iter().map(|p| p.name.as_str()).collect();
+        assert_eq!(names, vec!["a_prop", "m_prop", "z_prop"]);
+    }
+
+    #[test]
+    fn extract_properties_handles_readonly_nullable_enum() {
+        let schema: Value = serde_json::json!({
+            "type": "object",
+            "properties": {
+                "perm": { "type": "string", "readOnly": true, "enum": ["ro", "rw"] },
+                "itags": { "type": "array", "nullable": true }
+            }
+        });
+        let props = extract_properties_from_schema(&schema);
+        let perm = props.iter().find(|p| p.name == "perm").unwrap();
+        assert!(perm.read_only);
+        assert_eq!(perm.enum_values, vec!["ro", "rw"]);
+        let itags = props.iter().find(|p| p.name == "itags").unwrap();
+        assert!(itags.nullable);
+    }
+
+    #[test]
+    fn extract_properties_missing_type_is_any() {
+        let schema: Value = serde_json::json!({
+            "type": "object",
+            "properties": {
+                "deadline": { "anyOf": [{ "type": "string" }, { "type": "null" }] }
+            }
+        });
+        let props = extract_properties_from_schema(&schema);
+        assert_eq!(props[0].type_, "any");
+    }
+
+    #[test]
+    fn extract_properties_non_string_type_is_mixed() {
+        let schema: Value = serde_json::json!({
+            "type": "object",
+            "properties": {
+                "complex": { "type": ["string", "null"] }
+            }
+        });
+        let props = extract_properties_from_schema(&schema);
+        assert_eq!(props[0].type_, "mixed");
+    }
+
+    #[test]
+    fn extract_properties_empty_schema_returns_empty() {
+        let schema: Value = serde_json::json!({ "type": "object" });
+        let props = extract_properties_from_schema(&schema);
+        assert!(props.is_empty());
     }
 
     // -----------------------------------------------------------------------
     // summarize_props
     // -----------------------------------------------------------------------
 
-    fn make_tag_with_props(names: &[&str], has_schema: bool) -> TagInfo {
-        let properties = names
+    fn make_props(names: &[&str]) -> Vec<TagProperty> {
+        names
             .iter()
             .map(|n| TagProperty {
                 name: n.to_string(),
@@ -368,64 +425,51 @@ mod tests {
                 nullable: false,
                 enum_values: vec![],
             })
-            .collect();
-        TagInfo {
-            name: "test".to_string(),
-            properties,
-            has_schema,
-            additional_properties: false,
-        }
+            .collect()
     }
 
     #[test]
-    fn summarize_empty_no_schema() {
-        let tag = make_tag_with_props(&[], false);
-        assert_eq!(summarize_props(&tag), "(no schema)");
-    }
-
-    #[test]
-    fn summarize_empty_has_schema() {
-        let tag = make_tag_with_props(&[], true);
-        assert_eq!(summarize_props(&tag), "");
+    fn summarize_empty_returns_empty_string() {
+        assert_eq!(summarize_props(&[]), "");
     }
 
     #[test]
     fn summarize_three_props() {
-        let tag = make_tag_with_props(&["a", "b", "c"], true);
-        assert_eq!(summarize_props(&tag), "a, b, c");
+        let props = make_props(&["a", "b", "c"]);
+        assert_eq!(summarize_props(&props), "a, b, c");
     }
 
     #[test]
     fn summarize_seven_props_truncates_to_five() {
-        let tag = make_tag_with_props(&["a", "b", "c", "d", "e", "f", "g"], true);
-        let result = summarize_props(&tag);
+        let props = make_props(&["a", "b", "c", "d", "e", "f", "g"]);
+        let result = summarize_props(&props);
         assert_eq!(result, "a, b, c, d, e, ...");
-        // Verify it ends with ", ..."
         assert!(result.ends_with(", ..."));
     }
 
     // -----------------------------------------------------------------------
-    // describe_all text rendering
+    // describe_all text rendering (new schema-map shape)
     // -----------------------------------------------------------------------
 
     #[test]
     fn describe_all_text_renders_header_and_tags() {
         let raw: Value = serde_json::json!({
-            "tags": [
-                {
-                    "name": "task",
-                    "properties": [
-                        {"name": "done", "type": "boolean", "readOnly": false, "nullable": false},
-                        {"name": "due", "type": "string", "readOnly": false, "nullable": false},
-                    ],
-                    "hasSchema": true
+            "schemas": {
+                "task": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "properties": {
+                        "done": { "type": "boolean" },
+                        "due": { "type": "string" }
+                    }
                 },
-                {
-                    "name": "page",
-                    "properties": [],
-                    "hasSchema": false
+                "page": {
+                    "type": "object",
+                    "properties": {
+                        "name": { "type": "string" }
+                    }
                 }
-            ],
+            },
             "syntax": ""
         });
 
@@ -436,9 +480,13 @@ mod tests {
         writeln!(buf, "SilverBullet Query Reference").unwrap();
         writeln!(buf).unwrap();
         writeln!(buf, "Available object types:").unwrap();
-        for tag in &result.tags {
-            let props = summarize_props(tag);
-            writeln!(buf, "  {:<18} {}", tag.name, props).unwrap();
+        let mut tag_names: Vec<&String> = result.schemas.keys().collect();
+        tag_names.sort();
+        for tag_name in &tag_names {
+            let schema = &result.schemas[*tag_name];
+            let props = extract_properties_from_schema(schema);
+            let summary = summarize_props(&props);
+            writeln!(buf, "  {:<18} {}", tag_name, summary).unwrap();
         }
         writeln!(buf).unwrap();
         writeln!(buf, "Run 'sb describe <type>' for full schema.").unwrap();
@@ -449,50 +497,49 @@ mod tests {
         assert!(out.contains("task"));
         assert!(out.contains("done, due"));
         assert!(out.contains("page"));
-        assert!(out.contains("(no schema)"));
+        assert!(out.contains("name"));
         assert!(out.contains("Run 'sb describe <type>' for full schema."));
     }
 
     // -----------------------------------------------------------------------
-    // describe_tag text rendering
+    // describe_tag text rendering (new raw-schema shape)
     // -----------------------------------------------------------------------
 
     #[test]
     fn describe_tag_text_renders_properties() {
-        let tag_info = TagInfo {
-            name: "task".to_string(),
-            properties: vec![
-                TagProperty {
-                    name: "done".to_string(),
-                    type_: "boolean".to_string(),
-                    read_only: false,
-                    nullable: false,
-                    enum_values: vec![],
-                },
-                TagProperty {
-                    name: "priority".to_string(),
-                    type_: "number".to_string(),
-                    read_only: true,
-                    nullable: false,
-                    enum_values: vec![],
-                },
-                TagProperty {
-                    name: "status".to_string(),
-                    type_: "string".to_string(),
-                    read_only: false,
-                    nullable: true,
-                    enum_values: vec!["open".to_string(), "closed".to_string()],
-                },
-            ],
-            has_schema: true,
-            additional_properties: false,
-        };
+        let schema: Value = serde_json::json!({
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "done": { "type": "boolean", "readOnly": false, "nullable": false },
+                "priority": { "type": "number", "readOnly": true, "nullable": false },
+                "status": {
+                    "type": "string",
+                    "readOnly": false,
+                    "nullable": true,
+                    "enum": ["open", "closed"]
+                }
+            }
+        });
+
+        let additional_properties = schema
+            .get("additionalProperties")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
+        let props = extract_properties_from_schema(&schema);
 
         let mut buf: Vec<u8> = Vec::new();
-        writeln!(buf, "Type: {}", tag_info.name).unwrap();
+        writeln!(buf, "Type: task").unwrap();
+        if additional_properties {
+            writeln!(
+                buf,
+                "Accepts additional properties (e.g. frontmatter fields)"
+            )
+            .unwrap();
+        }
         writeln!(buf).unwrap();
         writeln!(buf, "Properties:").unwrap();
-        for prop in &tag_info.properties {
+        for prop in &props {
             let mut flags: Vec<String> = Vec::new();
             if prop.read_only {
                 flags.push("read-only".to_string());
@@ -523,43 +570,53 @@ mod tests {
     }
 
     // -----------------------------------------------------------------------
-    // Lua script byte-exactness spot checks
+    // Deserialization contract for the new API shape
     // -----------------------------------------------------------------------
 
     #[test]
-    fn lua_extract_props_exact_content() {
-        // Spot-check that key Lua lines are present byte-exactly.
-        assert!(LUA_EXTRACT_PROPS.contains("  local props = {}"));
-        assert!(LUA_EXTRACT_PROPS.contains("      local typ = pdef.type or \"any\""));
-        assert!(
-            LUA_EXTRACT_PROPS.contains("      if type(typ) == \"table\" then typ = \"mixed\" end")
-        );
-        assert!(LUA_EXTRACT_PROPS.contains("      if pdef.enum then info.enum = pdef.enum end"));
-        assert!(LUA_EXTRACT_PROPS
-            .contains("    table.sort(props, function(a, b) return a.name < b.name end)"));
-        assert!(LUA_EXTRACT_PROPS.contains("  return props"));
+    fn deserializes_describe_schema_payload_as_schema_map() {
+        // Shape returned by `return { schemas = index.describeSchema(), syntax = "..." }`
+        let raw: Value = serde_json::json!({
+            "schemas": {
+                "task": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "properties": {
+                        "done": { "type": "boolean", "readOnly": true },
+                        "state": { "type": "string", "readOnly": true }
+                    }
+                }
+            },
+            "syntax": ""
+        });
+        let result: DescribeAllResult = serde_json::from_value(raw).unwrap();
+        assert!(result.schemas.contains_key("task"));
+        let task_schema = &result.schemas["task"];
+        let props = extract_properties_from_schema(task_schema);
+        let done = props
+            .iter()
+            .find(|p| p.name == "done")
+            .expect("task has a 'done' property");
+        assert_eq!(done.type_, "boolean");
+        assert!(done.read_only);
     }
 
     #[test]
-    fn describe_all_body_exact_content() {
-        assert!(DESCRIBE_ALL_BODY.contains("local tags = config.get(\"tags\", {})"));
-        assert!(DESCRIBE_ALL_BODY.contains("    hasSchema = def.schema ~= nil,"));
-        assert!(DESCRIBE_ALL_BODY
-            .contains("table.sort(result, function(a, b) return a.name < b.name end)"));
-        assert!(DESCRIBE_ALL_BODY
-            .contains("local page = space.readPage(\"Library/Std/Docs/SLIQ Reference\")"));
-        assert!(DESCRIBE_ALL_BODY.contains(
-            "local parsed = index.extractFrontmatter(page, {removeFrontMatterSection = true})"
-        ));
-        assert!(DESCRIBE_ALL_BODY.contains("return { tags = result, syntax = parsed.text }"));
-    }
-
-    #[test]
-    fn describe_tag_body_exact_content() {
-        assert!(DESCRIBE_TAG_BODY.contains("local tagName = \"%s\""));
-        assert!(DESCRIBE_TAG_BODY.contains("  error(\"Unknown tag: \" .. tagName)"));
-        assert!(DESCRIBE_TAG_BODY.contains(
-            "  additionalProperties = def.schema and def.schema.additionalProperties or false,"
-        ));
+    fn deserializes_tag_schema_as_raw_json_value() {
+        // Shape returned by `return index.tagSchema("task")`
+        let raw: Value = serde_json::json!({
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+                "done": { "type": "boolean", "readOnly": true, "nullable": false }
+            }
+        });
+        // Not null, so we proceed to render
+        assert!(!raw.is_null());
+        let props = extract_properties_from_schema(&raw);
+        assert_eq!(props.len(), 1);
+        assert_eq!(props[0].name, "done");
+        assert_eq!(props[0].type_, "boolean");
+        assert!(props[0].read_only);
     }
 }

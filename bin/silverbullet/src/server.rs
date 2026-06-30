@@ -123,7 +123,9 @@ fn build_runtime(
     let logs = silverbullet_server::runtime::LogBuffer::new();
     match silverbullet_server_runtime_chrome::ChromeTransport::launch(chrome_cfg, logs.clone()) {
         Ok(transport) => {
-            tracing::info!("headless Chrome runtime configured (launches on first runtime request)");
+            tracing::info!(
+                "headless Chrome runtime configured (launches on first runtime request)"
+            );
             Some(Box::new(silverbullet_server::runtime::ClientRuntime::new(
                 transport, logs,
             )))

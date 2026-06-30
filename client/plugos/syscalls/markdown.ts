@@ -10,6 +10,7 @@ import {
   type MarkdownExpandOptions,
 } from "../../markdown_renderer/inline.ts";
 import type { Client } from "../../client.ts";
+import { bakeSectionsInText } from "../../baked_sections/bake.ts";
 import {
   type MarkdownRenderOptions,
   renderMarkdownToHtml,
@@ -69,6 +70,17 @@ export function markdownSyscalls(client: Client): SysCallMapping {
         };
       }
       return renderMarkdownToHtml(mdTree, options);
+    },
+    // Re-bake every baked section (`<!--#lua EXPR -->` … `<!--/lua-->`) in
+    // `text` and return the updated markdown. Pure transform (no editor) — the
+    // text-level counterpart of the "Baked Sections: Update" command. `pageName`
+    // sets the `currentPage` context for the evaluated expressions.
+    "markdown.bakeSections": (
+      _ctx,
+      text: string,
+      pageName?: string,
+    ): Promise<string> => {
+      return bakeSectionsInText(client, text, pageName);
     },
     "markdown.objectsToTable": (
       _ctx,

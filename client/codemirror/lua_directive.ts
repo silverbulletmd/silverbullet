@@ -8,22 +8,7 @@ import {
   widgetRenderMode,
 } from "./util.ts";
 import type { Client } from "../client.ts";
-import { parseExpressionString } from "../space_lua/parse.ts";
-import { evalExpression } from "../space_lua/eval.ts";
-import {
-  LuaEnv,
-  LuaRuntimeError,
-  LuaStackFrame,
-  LuaTable,
-  luaValueToJS,
-  singleResult,
-} from "../space_lua/runtime.ts";
-import { isTaggedFloat } from "../space_lua/numeric.ts";
-import {
-  encodeRef,
-  getNameFromPath,
-} from "@silverbulletmd/silverbullet/lib/ref";
-import { resolveASTReference } from "../space_lua.ts";
+import { renderLuaExpression } from "../space_lua/render_widget.ts";
 import { LuaWidget } from "./lua_widget.ts";
 import { LoadingWidget } from "./loading_widget.ts";
 
@@ -96,66 +81,10 @@ export function luaDirectivePlugin(client: Client) {
               cacheKey: `lua:${expressionText}:${currentPageMeta?.name}`,
               expressionText,
               codeText,
-              callback: async (bodyText) => {
-                if (bodyText.trim().length === 0) {
-                  return "**Error:** Empty Lua expression";
-                }
-                try {
-                  const expr = parseExpressionString(bodyText);
-
-                  const tl = new LuaEnv();
-                  tl.setLocal(
-                    "currentPage",
-                    currentPageMeta ||
-                    (client.ui.viewState.current
-                      ? {
-                        name: getNameFromPath(
-                          client.ui.viewState.current.path,
-                        ),
-                      }
-                      : undefined),
-                  );
-                  const sf = LuaStackFrame.createWithGlobalEnv(
-                    client.clientSystem.spaceLuaEnv.env,
-                    expr.ctx,
-                  );
-                  const threadLocalizedEnv = new LuaEnv(
-                    client.clientSystem.spaceLuaEnv.env,
-                  );
-                  threadLocalizedEnv.setLocal("_CTX", tl);
-                  const rawResult = singleResult(
-                    await evalExpression(expr, threadLocalizedEnv, sf),
-                  );
-                  // keep tagged floats as-is for proper formatting
-                  if (
-                    isTaggedFloat(rawResult) ||
-                    typeof rawResult === "number"
-                  ) {
-                    return rawResult;
-                  }
-                  if (rawResult instanceof LuaTable) {
-                    if (rawResult.rawGet("_isWidget")) {
-                      return luaValueToJS(rawResult, sf);
-                    }
-                    return rawResult;
-                  }
-                  // everything else needs luaValueToJS for widget support
-                  return luaValueToJS(rawResult, sf);
-                } catch (e: any) {
-                  if (e instanceof LuaRuntimeError) {
-                    if (e.sf?.astCtx) {
-                      const source = resolveASTReference(e.sf.astCtx);
-                      if (source) {
-                        // We know the origin node of the error, let's reference it
-                        return `**Lua error:** ${e.message} (Origin: [[${encodeRef(
-                          source,
-                        )}]])`;
-                      }
-                    }
-                  }
-                  return `**Lua error:** ${e.message}`;
-                }
-              },
+              // Only `${…}` directives can be baked into `<!--#lua EXPR -->`.
+              bakeable: true,
+              callback: (bodyText) =>
+                renderLuaExpression(client, bodyText, currentPageMeta),
               renderEmpty: true,
               inPage: true,
             }),

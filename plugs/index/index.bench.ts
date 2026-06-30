@@ -1,28 +1,28 @@
+import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
+import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 import { bench, describe } from "vitest";
 import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
 import { createMockSystem } from "../../plug-api/system_mock.ts";
-import { extractFrontMatter, type FrontMatter } from "./frontmatter.ts";
-import { indexPage as pageIndexPage } from "./page.ts";
 import { indexData } from "./data.ts";
-import { indexItems } from "./item.ts";
+import { extractFrontMatter, type FrontMatter } from "./frontmatter.ts";
 import { indexHeaders } from "./header.ts";
+import { allIndexers } from "./indexer.ts";
+import { indexItems } from "./item.ts";
+import { indexPage as pageIndexPage } from "./page.ts";
 import { indexParagraphs } from "./paragraph.ts";
 import { indexRelations } from "./relation.ts";
-import { indexTables } from "./table.ts";
 import { indexSpaceLua } from "./space_lua.ts";
 import { indexSpaceStyle } from "./space_style.ts";
+import { indexTables } from "./table.ts";
 import { indexTags } from "./tags.ts";
-import { allIndexers } from "./indexer.ts";
 import {
   type CorpusPage,
+  docsDir,
   loadMarkdownFiles,
   stubPageMeta,
-  websiteDir,
 } from "./test_corpus.ts";
-import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
-import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
 
-const pages = loadMarkdownFiles(websiteDir);
+const pages = loadMarkdownFiles(docsDir);
 
 // Pre-parse trees for indexer-only benchmarks.
 type ParsedPage = CorpusPage & {

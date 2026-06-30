@@ -1,4 +1,4 @@
-// Shared test/benchmark helpers for loading the silverbullet/website
+// Shared test/benchmark helpers for loading the silverbullet/docs
 // markdown corpus and synthesizing PageMeta stubs.
 
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -11,9 +11,7 @@ export type CorpusPage = {
   text: string;
 };
 
-export const websiteDir = fileURLToPath(
-  new URL("../../website", import.meta.url),
-);
+export const docsDir = fileURLToPath(new URL("../../docs", import.meta.url));
 
 export function loadMarkdownFiles(dir: string, base = ""): CorpusPage[] {
   const out: CorpusPage[] = [];

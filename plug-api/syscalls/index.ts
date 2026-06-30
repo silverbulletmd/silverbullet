@@ -4,7 +4,6 @@ import type {
 } from "../../client/space_lua/query_collection.ts";
 import { syscall } from "@silverbulletmd/silverbullet/syscall";
 import type { ObjectValue } from "../../plug-api/types/index.ts";
-
 /**
  * Exposes the SilverBullet object indexing system
  * @module
@@ -199,4 +198,21 @@ export function resolveAnchor(
   page?: string,
 ): Promise<ResolveAnchorResult> {
   return syscall("index.resolveAnchor", name, page);
+}
+
+/**
+ * Returns a map of tag name → raw JSON Schema for every defined object-type /
+ * [[Tag]] that declares a schema. Tags without a schema are omitted.
+ * Use it to discover what attributes a tag's objects carry before querying them.
+ */
+export function describeSchema(): Promise<Record<string, unknown>> {
+  return syscall("index.describeSchema");
+}
+
+/**
+ * Returns the raw JSON Schema for a single tag, or null if the tag is not
+ * defined or has no schema.
+ */
+export function tagSchema(tagName: string): Promise<unknown | null> {
+  return syscall("index.tagSchema", tagName);
 }

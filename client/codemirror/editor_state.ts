@@ -55,6 +55,11 @@ import { safeRun } from "@silverbulletmd/silverbullet/lib/async";
 import { codeCopyPlugin } from "../codemirror/code_copy.ts";
 import { disableSpellcheck } from "../codemirror/spell_checking.ts";
 import type { ClickEvent } from "@silverbulletmd/silverbullet/type/client";
+import {
+  frontmatterFoldingExtension,
+  frontmatterFoldPlaceholderDOM,
+  prepareFrontmatterFoldPlaceholder,
+} from "./frontmatter_folding.ts";
 
 // Annotation marking a transaction whose changes came from outside the
 // editor's edit stream (e.g. a page re-fetch from storage), so the
@@ -162,8 +167,11 @@ export function createEditorState(
       undoHistory,
       dropCursor(),
       codeFolding({
-        placeholderText: "…",
+        preparePlaceholder: prepareFrontmatterFoldPlaceholder,
+        placeholderDOM: (view, onclick, prepared) =>
+          frontmatterFoldPlaceholderDOM(view, onclick, prepared, client),
       }),
+      frontmatterFoldingExtension(client),
       indentUnits,
       indentOnInput(),
       ...cleanModePlugins(client),
@@ -365,6 +373,7 @@ export function createCommandKeyBindings(
 ): Extension {
   const commandKeyBindings: KeyBinding[] = [];
   const vimMode = client.ui.viewState.uiOptions.vimMode;
+  const readOnly = client.isReadOnlyMode();
 
   // Then add bindings for plug commands
   for (const def of client.clientSystem.commandHook
@@ -374,6 +383,12 @@ export function createCommandKeyBindings(
     const requiredEditor = def.requireEditor;
 
     if (def.disableInVim && vimMode) {
+      continue;
+    }
+
+    // Don't bind write-mode commands when read-only (covers per-page read-only,
+    // which CommandHook's space-wide filter doesn't account for).
+    if (readOnly && def.requireMode === "rw") {
       continue;
     }
 

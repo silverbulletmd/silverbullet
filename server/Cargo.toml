@@ -10,6 +10,7 @@ workspace = true
 [dependencies]
 silverbullet-server-common = { path = "../server-common" }
 axum = { workspace = true }
+tower-http = { workspace = true, features = ["compression-gzip", "compression-br"] }
 tokio = { workspace = true }
 serde_json = { workspace = true }
 tracing = { workspace = true }

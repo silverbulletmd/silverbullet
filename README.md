@@ -46,7 +46,7 @@ The server backend is written in [Rust](https://www.rust-lang.org/) (a Cargo wor
   * `syscalls/`: TypeScript wrappers around syscalls
   * `types/`: Various (client) types that can be references from plugs
 * `scripts/`: Useful scripts
-* `website/`: silverbullet.md website content
+* `docs/`: documentation (also serves a silverbullet.md website content)
 
 ### Requirements
 * [Node.js](https://nodejs.org/) 24+ and npm 10+: Used to build the frontend (client) and plugs

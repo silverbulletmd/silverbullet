@@ -31,8 +31,8 @@ test("variable and access expressions", () => {
   expect(fmtExpr("a.b.c")).toBe("a.b.c");
   expect(fmtExpr("t[1]")).toBe("t[1]");
   expect(fmtExpr('t["k"]')).toBe('t["k"]');
-  // the parser drops redundant parens around a bare variable
-  expect(fmtExpr("(a)")).toBe("a");
+  // the parser preserves parens (dropping them could change multi-return semantics)
+  expect(fmtExpr("(a)")).toBe("(a)");
 });
 
 test("binary operators with spacing", () => {

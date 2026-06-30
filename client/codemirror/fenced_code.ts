@@ -10,6 +10,8 @@ import {
 } from "./util.ts";
 import { IFrameWidget } from "./iframe_widget.ts";
 import { LoadingWidget } from "./loading_widget.ts";
+import { LuaWidget } from "./lua_widget.ts";
+import { renderLuaCallback } from "../space_lua/render_widget.ts";
 
 export function fencedCodePlugin(client: Client) {
   return decoratorStateField((state: EditorState) => {
@@ -23,9 +25,87 @@ export function fencedCodePlugin(client: Client) {
           }
           const text = state.sliceDoc(from, to);
           const [_, lang] = text.match(/^(?:```+|~~~+)(\w+)?/)!;
+          const renderMode = widgetRenderMode(client);
+
+          const luaWidgetDef = lang
+            ? client.clientSystem.luaCodeWidgets.get(lang)
+            : undefined;
           const codeWidgetCallback =
             client.clientSystem.codeWidgetHook.codeWidgetCallbacks.get(lang);
-          const renderMode = widgetRenderMode(client);
+
+          // Lua-registered code widgets win precedence over plug ones.
+          if (luaWidgetDef && renderMode !== "disabled") {
+            const lineStrings = text.split("\n");
+
+            const lines: { from: number; to: number }[] = [];
+            let fromIt = from;
+            for (const line of lineStrings) {
+              lines.push({
+                from: fromIt,
+                to: fromIt + line.length,
+              });
+              fromIt += line.length + 1;
+            }
+
+            const firstLine = lines[0],
+              lastLine = lines[lines.length - 1];
+
+            // In case of doubt, back out
+            if (!firstLine || !lastLine) return;
+
+            widgets.push(
+              invisibleDecoration.range(firstLine.from, firstLine.to),
+            );
+            widgets.push(invisibleDecoration.range(lastLine.from, lastLine.to));
+            widgets.push(
+              Decoration.line({
+                class: "sb-fenced-code-iframe",
+              }).range(firstLine.from),
+            );
+            widgets.push(
+              Decoration.line({
+                class: "sb-fenced-code-hide",
+              }).range(lastLine.from),
+            );
+
+            lines.slice(1, lines.length - 1).forEach((line) => {
+              widgets.push(
+                Decoration.line({ class: "sb-line-table-outside" }).range(
+                  line.from,
+                ),
+              );
+            });
+
+            const bodyText = lineStrings
+              .slice(1, lineStrings.length - 1)
+              .join("\n");
+            const pageName = client.currentName();
+            const currentPageMeta = client.currentPageMeta();
+            const widget = renderMode === "loading"
+              ? new LoadingWidget(true)
+              : new LuaWidget({
+                client,
+                cacheKey: `codewidget:${lang}:${pageName}:${bodyText}`,
+                expressionText: bodyText,
+                codeText: text,
+                callback: () =>
+                  renderLuaCallback(
+                    client,
+                    luaWidgetDef.render,
+                    [bodyText, pageName],
+                    currentPageMeta,
+                  ),
+                renderEmpty: false,
+                inPage: true,
+              });
+            widgets.push(
+              Decoration.widget({
+                widget: widget,
+              }).range(from),
+            );
+            return false;
+          }
+
           // Only custom render when we have a custom renderer, and the current page is not a template
           if (codeWidgetCallback && renderMode !== "disabled") {
             // We got a custom renderer!

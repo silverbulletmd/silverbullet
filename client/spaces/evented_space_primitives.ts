@@ -3,6 +3,7 @@ import type { EventHook } from "../plugos/hooks/event.ts";
 import type { SpacePrimitives } from "./space_primitives.ts";
 import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
 import type { DataStore } from "../data/datastore.ts";
+import { sleep } from "@silverbulletmd/silverbullet/lib/async";
 
 /**
  * Events exposed:
@@ -149,6 +150,22 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       await this.saveSnapshot();
       this.operationCount--;
     }
+  }
+
+  /**
+   * Like fetchFileList(), but waits for any in-flight space operations to
+   * settle first so that the snapshot-comparison path is always taken (never
+   * the deferred early-return path). Use this when you need to guarantee that
+   * file:changed events are dispatched for every on-disk change — for example
+   * during a controlled "reboot to ready" sequence where another fetchFileList
+   * may be in progress (e.g. the one kicked off at the end of
+   * updatePageListCache()).
+   */
+  async fetchFileListWhenIdle(): Promise<FileMeta[]> {
+    while (this.operationCount > 0) {
+      await sleep(10);
+    }
+    return this.fetchFileList();
   }
 
   async readFile(path: string): Promise<{ data: Uint8Array; meta: FileMeta }> {

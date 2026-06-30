@@ -1,6 +1,6 @@
 import { expect, gotoSilverBulletPage, test } from "./fixtures.ts";
 
-// This file exercises the workflow described in website/Guide/People Notes.md
+// This file exercises the workflow described in docs/Guide/People Notes.md
 // end-to-end. It seeds a small CRM-style space and verifies the load-bearing
 // claims of the guide:
 //   - person pages are tagged via frontmatter

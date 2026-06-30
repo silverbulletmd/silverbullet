@@ -4,6 +4,7 @@ import {
   LuaTable,
   luaValueToJS,
 } from "../runtime.ts";
+import { fsEndpoint } from "../../spaces/constants.ts";
 
 export const jsApi = new LuaTable({
   /**
@@ -23,6 +24,23 @@ export const jsApi = new LuaTable({
   import: new LuaBuiltinFunction(async (_sf, url) => {
     let m = await import(url);
     // Unwrap default if it exists
+    if (Object.keys(m).length === 1 && m.default) {
+      m = m.default;
+    }
+    return m;
+  }),
+  /**
+   * Like `js.import`, but takes a path to a file in the current space (e.g.
+   * "Library/foo/bar.js") and resolves it to its full same-origin `/.fs` URL
+   * before importing.
+   * @param path - Space-relative path to the JS module (leading "/" optional).
+   * @returns The imported module (with a sole `default` export unwrapped).
+   */
+  importFromSpace: new LuaBuiltinFunction(async (_sf, path: string) => {
+    const base = document.baseURI.replace(/\/*$/, "/");
+    const rel = String(path).replace(/^\/+/, "");
+    let m = await import(base + fsEndpoint.slice(1) + "/" + rel);
+    // Unwrap default if it exists (same contract as `js.import`).
     if (Object.keys(m).length === 1 && m.default) {
       m = m.default;
     }

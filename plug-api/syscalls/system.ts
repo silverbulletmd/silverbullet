@@ -52,6 +52,13 @@ export function reloadPlugs(): Promise<void> {
 }
 
 /**
+ * Make edited-on-disk state live and wait until the client is ready again.
+ */
+export function reboot(): Promise<void> {
+  return syscall("system.reboot");
+}
+
+/**
  * Load (or reload) a single plug from a space file path.
  */
 export function loadPlug(path: string): Promise<void> {

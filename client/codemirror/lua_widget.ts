@@ -19,8 +19,11 @@ import { activeWidgets } from "./code_widget.ts";
 import {
   attachWidgetEventHandlers,
   buildTranslateUrls,
+  findWidgetSourceRange,
   moveCursorToWidgetStart,
 } from "./widget_util.ts";
+import { escapeBakedBody } from "../baked_sections/regions.ts";
+import { createWidgetSandboxIFrame } from "../components/widget_sandbox_iframe.ts";
 
 export type LuaWidgetCallback = (
   bodyText: string,
@@ -45,6 +48,10 @@ export type LuaWidgetContent =
       display?: "block" | "inline";
       // Event handlers
       events?: Record<string, (event: EventPayLoad) => void>;
+      // When true, html+script render inside a sandbox iframe (see renderContent).
+      sandbox?: boolean;
+      // Script to run inside the sandbox iframe (only used when `sandbox` is true).
+      script?: string;
     }
   | string;
 
@@ -58,6 +65,15 @@ export interface LuaWidgetOptions {
   inPage: boolean;
   /** Code as it appears in the page (used to find when hitting the "edit" button) */
   codeText?: string;
+  /**
+   * Whether this widget can be "baked" into a `<!--#lua EXPR -->` region. Only
+   * `${…}` Lua directives qualify, because baking rewrites the source to
+   * `<!--#lua EXPR -->` where `EXPR` is re-evaluated as a Lua expression. The
+   * body of a fenced code block (e.g. ```mermaid) is not a Lua expression, so
+   * those widgets never get a Bake button even though they render through the
+   * same pipeline.
+   */
+  bakeable?: boolean;
   renderEmpty?: boolean;
   openRef?: Ref | null;
 }
@@ -202,13 +218,67 @@ export class LuaWidget extends WidgetType {
     if (wc.cssClasses) {
       div.className = wc.cssClasses.join(" ");
     }
+
+    // Explicit opt-in: when `sandbox` is true, render html+script inside a
+    // sandbox iframe (the script, if any, runs there).
+    if (wc.sandbox) {
+      div.className += " sb-lua-directive-block";
+      const iframeContent = {
+        html: typeof wc.html === "string" ? wc.html : "",
+        script: typeof wc.script === "string" ? wc.script : "",
+      };
+      const iframe = createWidgetSandboxIFrame(
+        this.opts.client,
+        this.opts.cacheKey,
+        iframeContent,
+        (message) => {
+          switch (message.type) {
+            case "blur": {
+              const pos = this.opts.client.editorView.posAtDOM(iframe, 0);
+              this.opts.client.editorView.dispatch({
+                selection: { anchor: pos },
+              });
+              this.opts.client.focus();
+              break;
+            }
+          }
+        },
+      );
+      const cachedHeight = this.opts.client.widgetCache.getCachedWidgetHeight(
+        this.opts.cacheKey,
+      );
+      iframe.style.height = `${cachedHeight > 0 ? cachedHeight : 150}px`;
+      iframe.style.display = "block";
+      const wrapped = this.wrapHtml(
+        true,
+        iframe,
+        wc.markdown,
+        typeof wc.markdown === "string" ? wc.markdown.trim() : undefined,
+      );
+      div.replaceChildren(wrapped);
+      div.style.minHeight = "";
+      this.opts.client.widgetCache.setCachedWidgetMeta(this.opts.cacheKey, {
+        height: cachedHeight > 0 ? cachedHeight : 150,
+        block: true,
+      });
+      return;
+    }
+
     if (wc.html) {
       if (typeof wc.html === "string") {
         html = parseHtmlString(wc.html);
-        if (!copyContent) copyContent = wc.html;
       } else {
         html = wc.html;
-        if (!copyContent) copyContent = wc.html.outerHTML;
+      }
+
+      // When a widget provides both `html` and `markdown`, the `html` is the
+      // display and the `markdown` is what the Copy button should copy (e.g. a
+      // diagram renders to an SVG via `html` while exposing its source block via
+      // `markdown`). Only fall back to the html itself when no markdown is given.
+      if (!copyContent) {
+        copyContent = typeof wc.html === "string"
+          ? (wc.markdown ?? wc.html)
+          : (wc.markdown ?? wc.html.outerHTML);
       }
 
       block = wc.display === "block";
@@ -218,7 +288,9 @@ export class LuaWidget extends WidgetType {
         div.className += " sb-lua-directive-inline";
       }
     }
-    if (wc.markdown) {
+    // `markdown` is only used for display when there is no `html` to show; when
+    // both are present `markdown` is reserved for the Copy button (handled above).
+    if (!html && wc.markdown) {
       const syntaxExtensions = this.syntaxExtensions;
       let mdTree = parse(
         buildExtendedMarkdownLanguage(syntaxExtensions),
@@ -280,7 +352,12 @@ export class LuaWidget extends WidgetType {
       );
     }
     if (html) {
-      div.replaceChildren(this.wrapHtml(block, html, copyContent));
+      const bakeBody = wc.html
+        ? (typeof wc.markdown === "string" ? wc.markdown.trim() : undefined)
+        : copyContent;
+      div.replaceChildren(
+        this.wrapHtml(block, html, copyContent, bakeBody),
+      );
       div.style.minHeight = "";
       attachWidgetEventHandlers(
         div,
@@ -311,6 +388,7 @@ export class LuaWidget extends WidgetType {
     isBlock: boolean,
     html: string | HTMLElement,
     copyContent: string | undefined,
+    bakeBody?: string | undefined,
   ): HTMLElement {
     if (typeof html === "string") {
       html = parseHtmlString(html);
@@ -364,6 +442,41 @@ export class LuaWidget extends WidgetType {
             this.opts.client.clientSystem
               .localSyscall("editor.copyToClipboard", [copyContent])
               .catch(console.error);
+          },
+        }),
+      );
+    }
+
+    if (
+      this.opts.bakeable && bakeBody !== undefined && this.opts.codeText &&
+      !this.opts.client.isReadOnlyMode()
+    ) {
+      buttonBar.appendChild(
+        createButton({
+          title: "Bake",
+          icon:
+            '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-package"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>',
+          listener: (e) => {
+            e.stopPropagation();
+            const range = findWidgetSourceRange(
+              this.opts.client,
+              this.dom!,
+              this.opts.codeText!,
+            );
+            if (!range) {
+              this.opts.client.ui.flashNotification(
+                "Could not locate the directive to bake",
+                "error",
+              );
+              return;
+            }
+            const replacement = `<!--#lua ${this.opts.expressionText} -->\n${
+              escapeBakedBody(bakeBody).trim()
+            }\n<!--/lua-->`;
+            this.opts.client.editorView.dispatch({
+              changes: { from: range.from, to: range.to, insert: replacement },
+            });
+            this.opts.client.focus();
           },
         }),
       );
