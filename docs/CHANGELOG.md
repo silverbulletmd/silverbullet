@@ -3,6 +3,8 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
+* New `index.describeSchema()` and `index.tagSchema(tag)` Space Lua APIs that expose indexed object-type / tag schemas as raw JSON Schema to scripts, widgets, and the `sb describe` CLI: `describeSchema()` returns a map of tag name → JSON Schema (only tags that declare a schema), and `tagSchema(tag)` returns a tag's JSON Schema or `nil` if undefined or schema-less.
+* New `system.reboot()` Space Lua syscall: makes edited-on-disk changes live.
 *-* **Baked sections**: bake `${...}` Lua expressions and widgets into
   HTML-comment-delimited markdown (`<!--#lua EXPR -->` … `<!--/lua-->`) so
   power-feature pages render in GitHub and other markdown tools. A block `${…}`
@@ -17,10 +19,13 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
   preview behavior: raw YAML syntax stays visible when markdown syntax
   rendering is enabled, and only the link currently being edited is revealed in
   clean mode.
+* Fix: tags shown in folded frontmatter now navigate to their tag pages instead
+  of unfolding the frontmatter block.
 * Frontmatter in the editor now has configurable folding: by default long
   frontmatter blocks fold automatically, and `frontmatterFolding` options let
   you disable auto-folding, always fold frontmatter, or change the line
-  threshold. A subtle right-side marker folds or unfolds the whole block.
+  threshold. A subtle right-side marker folds or unfolds the whole block, and
+  folded frontmatter previews any `tags` value as tag chips.
 * Fix: write-mode commands (those requiring read-write, e.g. the baking
   commands) are now hidden in the command palette and their keybindings disabled
   on **per-page** read-only pages (`perm: ro`), not just in fully read-only

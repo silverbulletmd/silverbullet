@@ -90,6 +90,12 @@ system.reloadPlugs()
 print("All plugs reloaded")
 ```
 
+### system.reboot()
+Makes edited-on-disk state live and resolves only once the client is ready again. Useful for scripts, the `sb` CLI, and external tooling that change space files on disk and need a single "reboot to ready" call.
+
+It mirrors the **System: Reload** command: it saves the currently-open editor buffer first, then flushes any latent on-disk changes into the index queue (via snapshot detection — not a full reindex), waits for indexing to finish, and finally re-applies configuration, scripts, and styles. Because the buffer is saved first, a raw on-disk edit to the *currently-open* page can be overwritten by the in-memory buffer; edit the open page through the editor (or navigate away) rather than on disk if that matters.
+
+
 ### system.wipeClient(logout?)
 Completely wipes the client state, including cached files, service worker and databases.
 

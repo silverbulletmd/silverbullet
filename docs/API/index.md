@@ -97,6 +97,13 @@ Returns all [[Object/tag]] objects as a query collection.
 Example:
 ${query[[from index.tags() limit 3]]}
 
+# Schema introspection APIs
+## index.describeSchema()
+Returns a map of tag name → raw JSON Schema for every defined object type / [[Tag]] that declares a schema. Tags without a schema are omitted. Use it to discover what attributes a tag's objects carry before querying them.
+
+## index.tagSchema(tag)
+Returns the raw JSON Schema for a single tag, or `nil` if the tag is not defined or has no schema.
+
 # Indexing APIs
 ## index.markdown(text, pageMeta?)
 Ad-hoc indexes `text` (represented as a markdown string) in memory, and returns all objects found there for further query. When no `pageMeta` is supplied dummy (empty) values will be used.

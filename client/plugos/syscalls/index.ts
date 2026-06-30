@@ -11,6 +11,7 @@ import {
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 import type { Client } from "../../client.ts";
 import type { LuaTable } from "../../space_lua/runtime.ts";
+import { describeSchemas, tagSchema } from "./schema_introspection.ts";
 
 export function indexSyscalls(
   objectIndex: ObjectIndex,
@@ -63,6 +64,13 @@ export function indexSyscalls(
     },
     "index.tags": (): LuaQueryCollection => {
       return objectIndex.objectsWithTag("tag");
+    },
+    // Schema introspection: indexed object-type / tag schemas
+    "index.describeSchema": (): Record<string, unknown> => {
+      return describeSchemas(client.config.get(["tags"], {}));
+    },
+    "index.tagSchema": (_ctx, tagName: string): unknown | null => {
+      return tagSchema(client.config.get(["tags"], {}), tagName);
     },
     "index.aspiringPages": (): LuaQueryCollection => {
       return objectIndex.aspiringPages();
