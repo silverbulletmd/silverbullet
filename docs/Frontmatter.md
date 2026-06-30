@@ -87,4 +87,7 @@ While SilverBullet allows arbitrary metadata to be added to pages, there are a f
   - "#tag2"
   ```
 
+> **note** Recommended style
+> Prefer **space-separated bare words on a single line** — `tags: market competitors` — over the YAML-list form. It is the most common SilverBullet convention and the least visually noisy. All the forms above remain valid for compatibility. If you care about Obsidian compatibility, use YAML lists.
+
 For specific use cases, like [[^Library/Std/Infrastructure/Page Templates]] or [[^Library/Std/Infrastructure/Slash Templates]], frontmatter may have specific meaning.

@@ -18,7 +18,10 @@ When you launch a fresh client for the first time, the object index will be buil
 
 After the initial index process, the index will be kept up-to-date incrementally.
 
-To forcefully reindex your space, run the `Space: Reindex` command.
+> **note** Asynchronous indexing lag
+> After saving a page (or external tools making updates to pages in your space) the index updates in the background and can lag a few seconds. A query run immediately after an edit _may_ return stale results for a bit. When this happens, wait briefly and re-run before drawing conclusions.
+
+To forcefully reindex your entire space, run the `Space: Reindex` command. Depending on the size of your space, this can take anywhere from a second to minutes or longer.
 
 ## Indexing process
 Objects are stored in your browser’s IndexedDB, implemented as a thin abstraction layer on top of [[API/datastore]]. Objects are always attached to a particular page.
@@ -43,6 +46,39 @@ The Object Index is generally queried using [[Space Lua/Integrated Query]].
 
 Entry points are:
 * [[API/index#index.objects(tag)]], e.g.: `index.objects("page")` (or the convenience wrappers like `index.pages()`, `index.tasks()`, etc.)
+* `index.contentPages(tag?)` — returns only content pages, **excluding [[Meta Page|Meta Pages]]** (pages tagged `meta` or `meta/*`).
+* `index.aspiringPages()` — returns all [[Aspiring Pages]] (pages linked to but not yet created). Useful for finding broken or forward-references.
 * `tags.*`: as a convenience — `tags.page` is equivalent to `index.objects("page")`
 
 If a `metatable` is defined for a particular tag with [[API/tag#tag.define(spec)]], the metatable is set for each object for the tag.
+
+## Common patterns
+A few idiomatic recipes to get started — see [[Space Lua/Integrated Query]] for the full clause reference:
+
+**Content pages by last modified** (most recently touched first):
+```lua
+${query[[
+  from p = index.contentPages()
+  order by p.lastModified desc
+  limit 10
+  select { name = p.name, modified = p.lastModified }
+]]}
+```
+
+**Inbound links to a page** (everything that links to `"My Page"`):
+```lua
+${query[[
+  from l = index.links()
+  where l.toPage == "My Page"
+  select { from = l.page, text = l.description }
+]]}
+```
+
+**Dangling links in your own content**:
+```lua
+${query[[
+  from t = index.aspiringPages()
+  where not string.startsWith(t.page, "Library/")
+  select { target = t.name, linkedFrom = t.page }
+]]}
+```

@@ -63,6 +63,17 @@ Here are the conventions used by the [[Library/Std]] library:
 > **note** Tip
 > All your space-lua scripts are loaded on boot, to reload them without reloading the page, simply run the ${widgets.commandButton("System: Reload")} (Ctrl-Alt-r) command.
 
+## Authoring loop
+When iterating on a `space-lua` block, follow this loop:
+
+1. **Edit** the script in the editor.
+2. **Reload**: run `System: Reload` (Ctrl-Alt-r) to re-execute all `space-lua` definitions without a full page reload (you can reload the browser also if you prefer). Run `Space: Reindex` (via the command palette) if you also need the [[Object Index]] rebuilt with fresh data (e.g. if you use [[API/tag#tag.define(spec)]]).
+3. **Check the brower’s logs**: a reload completing without a visible error **does not mean your script is healthy**. Lua syntax errors, load-time failures, and runtime exceptions during indexing or widget rendering all surface in the browser console logs, not always as a user-visible reload failure.
+4. **Verify** the behaviour in the editor.
+
+> **note** Note
+> Lua examples in the docs use `lua` fenced blocks (not `space-lua`) so they are not activated on the docs site itself; when using snippets in your own space, change `lua` to `space-lua`. See the note at the top of this page.
+
 # Expressions
 One SilverBullet specific [[Markdown]] [[Markdown/Extensions]] is the `${lua expression}` syntax that you can use in your pages. This syntax will [[Live Preview]] to the evaluation of that Lua expression.
 
