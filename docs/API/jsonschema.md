@@ -32,6 +32,18 @@ else
 end
 ```
 
+### jsonschema.inferFromObject(object)
+Infers a best-effort JSON schema from the *shape* of a single sample value. Types are guessed from one example, so the result is a hint rather than a contract — the returned schema is marked with `"x-inferred": true`. Useful when an object type has no declared schema but you have an example to learn from.
+
+Example:
+```lua
+local sample = { name = "Widget", count = 3, tags = { "a", "b" } }
+local schema = jsonschema.inferFromObject(sample)
+-- schema.properties.name.type  == "string"
+-- schema.properties.count.type == "integer"
+-- schema.properties.tags.type  == "array"  (items.type == "string")
+```
+
 ### jsonschema.validateSchema(schema)
 Validates a JSON schema itself to ensure it's well-formed.
 

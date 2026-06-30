@@ -75,6 +75,53 @@ export function validateSchema(schema: any): undefined | string {
   return;
 }
 
+/**
+ * Best-effort: infer a JSON Schema (draft 2020-12) from the *shape* of a single
+ * sample value. Types are guessed from one example, so the result is a hint,
+ * not a contract — the top-level schema is marked `"x-inferred": true`.
+ *
+ * Useful when a tag/object type has no declared schema but an example object
+ * exists and you want a plausible schema for it.
+ */
+export function inferFromObject(value: any): any {
+  const schema = inferSchemaNode(value);
+  schema["$schema"] = "https://json-schema.org/draft/2020-12/schema";
+  schema["x-inferred"] = true;
+  return schema;
+}
+
+/** Infer a bare JSON Schema node for a value, recursing into arrays/objects. */
+function inferSchemaNode(value: any): any {
+  if (value === null || value === undefined) {
+    return { type: "null" };
+  }
+  if (Array.isArray(value)) {
+    const node: any = { type: "array" };
+    if (value.length > 0) {
+      node.items = inferSchemaNode(value[0]);
+    }
+    return node;
+  }
+  switch (typeof value) {
+    case "boolean":
+      return { type: "boolean" };
+    case "number":
+      return { type: Number.isInteger(value) ? "integer" : "number" };
+    case "string":
+      return { type: "string" };
+    case "object": {
+      const properties: Record<string, any> = {};
+      for (const [k, v] of Object.entries(value)) {
+        properties[k] = inferSchemaNode(v);
+      }
+      return { type: "object", properties };
+    }
+    default:
+      // functions, symbols, bigint, … — not representable in JSON Schema.
+      return {};
+  }
+}
+
 export function jsonschemaSyscalls(): SysCallMapping {
   return {
     "jsonschema.validateObject": (
@@ -86,6 +133,9 @@ export function jsonschemaSyscalls(): SysCallMapping {
     },
     "jsonschema.validateSchema": (_ctx, schema: any): undefined | string => {
       return validateSchema(schema);
+    },
+    "jsonschema.inferFromObject": (_ctx, object: any): any => {
+      return inferFromObject(object);
     },
   };
 }
