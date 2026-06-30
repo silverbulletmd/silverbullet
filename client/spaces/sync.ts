@@ -7,7 +7,9 @@ import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
 import { notFoundError } from "@silverbulletmd/silverbullet/constants";
 import { processWithConcurrency } from "@silverbulletmd/silverbullet/lib/async";
 
-const syncConcurrency = 3;
+// Browsers multiplex these over one HTTP/2 connection; 3 leaves most of the
+// pipe idle and makes the initial sync of large spaces needlessly slow.
+const syncConcurrency = 8;
 
 // In practice this is the lastModified timestamp
 type SyncHash = number;
