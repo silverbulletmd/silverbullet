@@ -39,7 +39,7 @@ attribute:
 ```
 
 # Folding
-Frontmatter can be folded in the editor. By default, frontmatter blocks with more than 5 lines fold automatically when you open a page, unless your cursor or selection is inside the frontmatter.
+Frontmatter can be folded in the editor. By default, frontmatter blocks with more than 5 lines fold automatically when you open a page, unless your cursor or selection is inside the frontmatter. When folded, frontmatter with a `tags` key previews those tags as tag chips.
 
 You can configure this in your [[CONFIG]] page with `frontmatterFolding`:
 

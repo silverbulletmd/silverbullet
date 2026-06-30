@@ -1,12 +1,15 @@
 import { EditorState } from "@codemirror/state";
 import { describe, expect, test } from "vitest";
 import { buildExtendedMarkdownLanguage } from "../markdown_parser/parser.ts";
+import { encodePageURI } from "@silverbulletmd/silverbullet/lib/ref";
 import {
   defaultFrontmatterFoldingConfig,
   findFrontmatterBlock,
   frontmatterFoldingExtension,
   frontmatterFoldPlaceholderDOM,
   frontmatterFoldPlaceholderText,
+  frontmatterFoldTags,
+  frontmatterFoldTagTarget,
   normalizeFrontmatterFoldingConfig,
   prepareFrontmatterFoldPlaceholder,
   selectionIntersectsRange,
@@ -219,7 +222,45 @@ describe("frontmatter fold placeholder", () => {
     const state = stateWithDoc("---\na: 1\nb: 2\n---\nBody");
 
     expect(prepareFrontmatterFoldPlaceholder(state, { from: 0, to: 17 }))
-      .toEqual({ type: "frontmatter", lines: 4 });
+      .toEqual({
+        type: "frontmatter",
+        from: 0,
+        to: 17,
+        editPos: 4,
+        lines: 4,
+        tags: [],
+      });
+  });
+
+  test("extracts folded frontmatter tags from scalar and list values", () => {
+    expect(frontmatterFoldTags("---\ntags: feature beta\n---")).toEqual([
+      "feature",
+      "beta",
+    ]);
+    expect(frontmatterFoldTags("---\ntags:\n- feature\n- beta\n---"))
+      .toEqual(["feature", "beta"]);
+    expect(frontmatterFoldTags("---\ntags: [feature, beta]\n---")).toEqual([
+      "feature",
+      "beta",
+    ]);
+  });
+
+  test("resolves folded frontmatter tags to configured tag pages", () => {
+    expect(frontmatterFoldTagTarget(undefined, "feature")).toBe("tag:feature");
+    expect(
+      frontmatterFoldTagTarget(
+        {
+          config: {
+            get(path: unknown, defaultValue: unknown) {
+              expect(path).toEqual(["tags", "feature", "tagPage"]);
+              expect(defaultValue).toBe(null);
+              return "Tags/Feature";
+            },
+          },
+        } as any,
+        "feature",
+      ),
+    ).toBe("Tags/Feature");
   });
 
   test("returns generic placeholder data for non-frontmatter ranges", () => {
@@ -231,7 +272,14 @@ describe("frontmatter fold placeholder", () => {
 
   test("omits visible placeholder text for folded frontmatter", () => {
     expect(
-      frontmatterFoldPlaceholderText({ type: "frontmatter", lines: 4 }),
+      frontmatterFoldPlaceholderText({
+        type: "frontmatter",
+        from: 0,
+        to: 17,
+        editPos: 4,
+        lines: 4,
+        tags: [],
+      }),
     ).toBe("");
     expect(frontmatterFoldPlaceholderText({ type: "generic" })).toBe("…");
   });
@@ -241,13 +289,111 @@ describe("frontmatter fold placeholder", () => {
     const placeholder = frontmatterFoldPlaceholderDOM(
       { state: { phrase: (phrase: string) => phrase } } as EditorView,
       onclick,
-      { type: "frontmatter", lines: 4 },
+      { type: "frontmatter", from: 0, to: 17, editPos: 4, lines: 4, tags: [] },
     );
 
-    expect(placeholder.textContent).toBe("");
+    expect(placeholder.textContent).toBe("4 frontmatter lines hidden");
     expect(placeholder.classList.contains("cm-foldPlaceholder")).toBe(true);
     expect(placeholder.classList.contains("cm-frontmatterFoldPlaceholder"))
       .toBe(true);
+    expect(placeholder.querySelector(".cm-frontmatterFoldStatus")?.textContent)
+      .toBe("4 frontmatter lines hidden");
+  });
+
+  domTest("renders folded frontmatter tags with hashtag styling", () => {
+    const placeholder = frontmatterFoldPlaceholderDOM(
+      { state: { phrase: (phrase: string) => phrase } } as EditorView,
+      () => {},
+      {
+        type: "frontmatter",
+        from: 0,
+        to: 17,
+        editPos: 4,
+        lines: 4,
+        tags: ["feature", "beta"],
+      },
+    );
+
+    expect(placeholder.textContent).toBe(
+      "#feature #beta4 frontmatter lines hidden",
+    );
+    const tags = placeholder.querySelectorAll(".sb-hashtag");
+    expect(tags).toHaveLength(2);
+    expect(tags[0].tagName).toBe("A");
+    expect(tags[0].getAttribute("href")).toBe(
+      `/${encodePageURI("tag:feature")}`,
+    );
+    expect(tags[0].getAttribute("rel")).toBe("tag");
+    expect(tags[0].getAttribute("data-tag-name")).toBe("feature");
+  });
+
+  domTest("navigates folded frontmatter tags without unfolding the placeholder", () => {
+    let unfoldClicks = 0;
+    const navigations: any[] = [];
+    const placeholder = frontmatterFoldPlaceholderDOM(
+      { state: { phrase: (phrase: string) => phrase } } as EditorView,
+      () => {
+        unfoldClicks++;
+      },
+      {
+        type: "frontmatter",
+        from: 0,
+        to: 17,
+        editPos: 4,
+        lines: 4,
+        tags: ["feature"],
+      },
+      {
+        config: {
+          get(path: unknown, defaultValue: unknown) {
+            expect(path).toEqual(["tags", "feature", "tagPage"]);
+            return defaultValue;
+          },
+        },
+        navigate(ref: unknown, replaceState: boolean, newWindow: boolean) {
+          navigations.push({ ref, replaceState, newWindow });
+        },
+      } as any,
+    );
+
+    placeholder.querySelector("a")!.dispatchEvent(
+      new MouseEvent("click", { bubbles: true, cancelable: true }),
+    );
+
+    expect(unfoldClicks).toBe(0);
+    expect(navigations).toHaveLength(1);
+    expect(navigations[0].ref.path).toBe("tag:feature");
+    expect(navigations[0].replaceState).toBe(false);
+    expect(navigations[0].newWindow).toBe(false);
+  });
+
+  domTest("clicking folded frontmatter empty space places the cursor inside it", () => {
+    const dispatches: any[] = [];
+    const placeholder = frontmatterFoldPlaceholderDOM(
+      {
+        state: { phrase: (phrase: string) => phrase },
+        dispatch(transaction: unknown) {
+          dispatches.push(transaction);
+        },
+        focus() {},
+      } as EditorView,
+      () => {},
+      {
+        type: "frontmatter",
+        from: 0,
+        to: 17,
+        editPos: 4,
+        lines: 4,
+        tags: ["feature"],
+      },
+    );
+
+    placeholder.dispatchEvent(
+      new MouseEvent("click", { bubbles: true, cancelable: true }),
+    );
+
+    expect(dispatches).toHaveLength(1);
+    expect(dispatches[0].selection).toEqual({ anchor: 4 });
   });
 
   domTest("renders the generic placeholder for non-frontmatter folds", () => {

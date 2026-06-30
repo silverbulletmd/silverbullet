@@ -1,7 +1,15 @@
-import { ensureSyntaxTree, foldEffect, syntaxTree } from "@codemirror/language";
+import {
+  ensureSyntaxTree,
+  foldEffect,
+  syntaxTree,
+  unfoldEffect,
+} from "@codemirror/language";
 import type { EditorState, Extension } from "@codemirror/state";
 import { type EditorView, ViewPlugin, type ViewUpdate } from "@codemirror/view";
+import YAML from "js-yaml";
 import type { Client } from "../client.ts";
+import { tagPrefix } from "../../plugs/index/constants.ts";
+import { encodePageURI, parseToRef } from "@silverbulletmd/silverbullet/lib/ref";
 
 export type FrontmatterFoldByDefault = "never" | "long" | "always";
 
@@ -27,7 +35,14 @@ type FoldRange = {
 };
 
 export type FrontmatterFoldPlaceholder =
-  | { type: "frontmatter"; lines: number }
+  | {
+    type: "frontmatter";
+    from: number;
+    to: number;
+    editPos: number;
+    lines: number;
+    tags: string[];
+  }
   | { type: "generic" };
 
 function frontmatterParseUpto(state: EditorState): number {
@@ -139,9 +154,51 @@ export function prepareFrontmatterFoldPlaceholder(
 ): FrontmatterFoldPlaceholder {
   const block = findFrontmatterBlock(state);
   if (block && block.from === range.from && block.to === range.to) {
-    return { type: "frontmatter", lines: block.lines };
+    return {
+      type: "frontmatter",
+      from: block.from,
+      to: block.to,
+      editPos: state.doc.lineAt(block.from).to + 1,
+      lines: block.lines,
+      tags: frontmatterFoldTags(state.sliceDoc(block.from, block.to)),
+    };
   }
   return { type: "generic" };
+}
+
+function normalizeFoldTag(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return;
+  }
+  const tag = value.trim().replace(/^#/, "");
+  return tag.length > 0 ? tag : undefined;
+}
+
+function normalizeFoldTags(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map(normalizeFoldTag).filter((tag) => tag !== undefined);
+  }
+  if (typeof value === "string") {
+    return value.split(/\s+/).map(normalizeFoldTag).filter((tag) =>
+      tag !== undefined
+    );
+  }
+  return [];
+}
+
+export function frontmatterFoldTags(frontmatterText: string): string[] {
+  const yamlText = frontmatterText
+    .replace(/^---[ \t]*(?:\r?\n|$)/, "")
+    .replace(/(?:\r?\n)?---[ \t]*$/, "");
+  try {
+    const parsed = YAML.load(yamlText);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return [];
+    }
+    return normalizeFoldTags((parsed as Record<string, unknown>).tags);
+  } catch {
+    return [];
+  }
 }
 
 export function frontmatterFoldPlaceholderText(
@@ -153,10 +210,19 @@ export function frontmatterFoldPlaceholderText(
   return "…";
 }
 
+export function frontmatterFoldTagTarget(
+  client: Client | undefined,
+  tag: string,
+): string {
+  return client?.config.get<string | null>(["tags", tag, "tagPage"], null) ??
+    `${tagPrefix}${tag}`;
+}
+
 export function frontmatterFoldPlaceholderDOM(
   view: EditorView,
   onclick: (event: Event) => void,
   prepared: FrontmatterFoldPlaceholder,
+  client?: Client,
 ): HTMLElement {
   const element = document.createElement("span");
   element.className = "cm-foldPlaceholder";
@@ -166,7 +232,45 @@ export function frontmatterFoldPlaceholderDOM(
 
   if (prepared.type === "frontmatter") {
     element.classList.add("cm-frontmatterFoldPlaceholder");
-    element.textContent = frontmatterFoldPlaceholderText(prepared);
+    element.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+    });
+    element.onclick = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      view.dispatch({
+        effects: unfoldEffect.of({ from: prepared.from, to: prepared.to }),
+        selection: { anchor: prepared.editPos },
+      });
+      view.focus();
+    };
+    if (prepared.tags.length > 0) {
+      for (const tag of prepared.tags) {
+        const target = frontmatterFoldTagTarget(client, tag);
+        const tagElement = document.createElement("a");
+        tagElement.className = "sb-hashtag";
+        tagElement.dataset.tagName = tag;
+        tagElement.href = `/${encodePageURI(target)}`;
+        tagElement.rel = "tag";
+        tagElement.textContent = `#${tag}`;
+        tagElement.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const ref = parseToRef(target);
+          if (client && ref) {
+            void client.navigate(ref, false, event.ctrlKey || event.metaKey);
+          }
+        });
+        element.appendChild(tagElement);
+        element.append(" ");
+      }
+      element.lastChild?.remove();
+    }
+    const status = document.createElement("span");
+    status.className = "cm-frontmatterFoldStatus";
+    status.textContent = `${prepared.lines} frontmatter lines hidden`;
+    element.appendChild(status);
     element.title = `${prepared.lines} folded frontmatter lines`;
     element.setAttribute(
       "aria-label",

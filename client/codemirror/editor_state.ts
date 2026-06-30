@@ -168,7 +168,8 @@ export function createEditorState(
       dropCursor(),
       codeFolding({
         preparePlaceholder: prepareFrontmatterFoldPlaceholder,
-        placeholderDOM: frontmatterFoldPlaceholderDOM,
+        placeholderDOM: (view, onclick, prepared) =>
+          frontmatterFoldPlaceholderDOM(view, onclick, prepared, client),
       }),
       frontmatterFoldingExtension(client),
       indentUnits,

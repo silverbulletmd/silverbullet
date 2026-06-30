@@ -95,16 +95,21 @@
   }
 
   .cm-frontmatterFoldPlaceholder {
+    box-sizing: border-box;
     cursor: pointer;
-    float: right;
-    opacity: 0.8;
-    padding-right: 7px;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 3px;
+    padding: 2px 7px !important;
     user-select: none;
+    width: 100%;
   }
 
-  .cm-frontmatterFoldPlaceholder:hover,
-  .cm-frontmatterFoldPlaceholder:focus-visible {
-    opacity: 1;
+  .cm-frontmatterFoldStatus {
+    color: var(--subtle-color);
+    font-size: 0.85em;
+    margin-left: 0.4em;
+    opacity: 0.75;
   }
 
   .sb-line-comment {
