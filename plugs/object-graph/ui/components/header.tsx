@@ -9,6 +9,8 @@ type Props = {
 	onToggleHideEdgeLabels: (v: boolean) => void;
 	hideOrphans: boolean;
 	onToggleHideOrphans: (v: boolean) => void;
+	sidebarCollapsed: boolean;
+	onToggleSidebar: () => void;
 };
 
 export function Header({
@@ -19,6 +21,8 @@ export function Header({
 	onToggleHideEdgeLabels,
 	hideOrphans,
 	onToggleHideOrphans,
+	sidebarCollapsed,
+	onToggleSidebar,
 }: Props) {
 	return (
 		<header class="gv-header">
@@ -31,7 +35,9 @@ export function Header({
 					<Checkbox
 						checked={hideEdgeLabels}
 						onChange={(e) =>
-							onToggleHideEdgeLabels((e.currentTarget as HTMLInputElement).checked)
+							onToggleHideEdgeLabels(
+								(e.currentTarget as HTMLInputElement).checked,
+							)
 						}
 					/>
 					Hide labels
@@ -60,6 +66,13 @@ export function Header({
 					onClick={onCollapseAll}
 				>
 					Focus
+				</Button>
+				<Button
+					variant="icon"
+					title={sidebarCollapsed ? "Show sidebar" : "Hide sidebar"}
+					onClick={onToggleSidebar}
+				>
+					{sidebarCollapsed ? "▷" : "◁"}
 				</Button>
 				<Button
 					variant="icon"

@@ -48,6 +48,7 @@ export function App({ vm }: { vm: RootViewModel }) {
 	);
 	const [filters, setFilters] = useState<Filters>(vm.filters);
 	const [sidebarWidth, setSidebarWidth] = useState<number>(230);
+	const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
 	const [forces, setForces] = useState<ForceSettings>(vm.forces);
 	const [cache] = useState<Map<string, ExpansionResult>>(() => {
 		const m = new Map<string, ExpansionResult>();
@@ -163,7 +164,7 @@ export function App({ vm }: { vm: RootViewModel }) {
 	}, []);
 
 	const selected: ObjectNode | null = selectedRef
-		? (nodes.get(selectedRef)?.node ?? null)
+		? nodes.get(selectedRef)?.node ?? null
 		: null;
 
 	// Stable ref to the current visibleNodes so callbacks always see the latest
@@ -291,10 +292,13 @@ export function App({ vm }: { vm: RootViewModel }) {
 				}
 				hideOrphans={filters.hideOrphans}
 				onToggleHideOrphans={(v) => setFilters({ ...filters, hideOrphans: v })}
+				sidebarCollapsed={sidebarCollapsed}
+				onToggleSidebar={() => setSidebarCollapsed((c) => !c)}
 			/>
 			<div
 				class="gv-body"
 				style={{ "--gv-sidebar-width": `${sidebarWidth}px` }}
+				data-sidebar-collapsed={sidebarCollapsed ? "true" : undefined}
 			>
 				<Sidebar
 					nodes={visibleObjectNodes}
