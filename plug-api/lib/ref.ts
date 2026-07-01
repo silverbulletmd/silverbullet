@@ -379,3 +379,34 @@ export function encodePageURI(page: string): string {
 export function decodePageURI(page: string): string {
   return decodeURIComponent(page);
 }
+
+/**
+ * A service with selector `customizePageTitle` has a default impl in the Std plug (priority 1), which may be
+ * overridden by other plugs. The service is provided a ref encoded ({@link encodeRef}) path of the current page.
+ */
+export async function customizePageTitleViaService(): Promise<string> {
+  if (client.ui.viewState.current === undefined) {
+    return new Promise(function (resolve, _reject) {
+      resolve("");
+    });
+  } else {
+    let path = getNameFromPath(client.ui.viewState.current.path);
+
+    const services = await client.clientSystem.serviceRegistry.discover(
+      "customizePageTitle",
+      path,
+    );
+
+    if (services.length === 0) {
+      return new Promise(function (resolve, _reject) {
+        // Just give the path until we have service. This can happen during big index jobs
+        resolve(path);
+      });
+    } else {
+      return await client.clientSystem.serviceRegistry.invoke(
+        services[0],
+        path,
+      );
+    }
+  }
+}
