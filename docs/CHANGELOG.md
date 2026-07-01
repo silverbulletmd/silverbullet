@@ -3,6 +3,7 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
+* Fix: major typing/navigation slowdown on pages with many internal links in large spaces.
 * New `index.describeSchema()` and `index.tagSchema(tag)` Space Lua APIs that expose indexed object-type / tag schemas as raw JSON Schema to scripts, widgets, and the `sb describe` CLI: `describeSchema()` returns a map of tag name → JSON Schema (only tags that declare a schema), and `tagSchema(tag)` returns a tag's JSON Schema or `nil` if undefined or schema-less.
 * New `system.reboot()` Space Lua syscall: makes edited-on-disk changes live.
 *-* **Baked sections**: bake `${...}` Lua expressions and widgets into

@@ -12,6 +12,32 @@ import {
   parseToRef,
 } from "@silverbulletmd/silverbullet/lib/ref";
 import { isCursorInRange, LinkWidget } from "./util.ts";
+import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
+
+// Building a `path -> PageMeta` lookup requires calling `parseToRef` (two
+// regexes) on every page in the space. Doing that per rendered wiki link, on
+// every editor update, is O(links * pages) and makes typing on link-heavy
+// pages in large spaces painfully slow. Memoize the map and only rebuild it
+// when the `allPages` array identity changes (i.e. when the page list is
+// actually replaced).
+let pageByPathCache:
+  | { pages: PageMeta[]; map: Map<string, PageMeta> }
+  | null = null;
+
+function pageByPath(allPages: PageMeta[]): Map<string, PageMeta> {
+  if (pageByPathCache?.pages === allPages) {
+    return pageByPathCache.map;
+  }
+  const map = new Map<string, PageMeta>();
+  for (const p of allPages) {
+    const path = parseToRef(p.ref)?.path;
+    if (path !== undefined && !map.has(path)) {
+      map.set(path, p);
+    }
+  }
+  pageByPathCache = { pages: allPages, map };
+  return map;
+}
 
 export interface WikiLinkMatch {
   leadingTrivia: string;
@@ -46,11 +72,7 @@ export function processWikiLink(options: WikiLinkProcessorOptions): any[] {
     linkStatus = "invalid";
   } else if (ref.path === "" || isBuiltinPath(ref.path)) {
     linkStatus = "default";
-  } else if (
-    Array.from(client.clientSystem.allKnownFiles).some(
-      (file) => file === ref.path,
-    )
-  ) {
+  } else if (client.clientSystem.allKnownFiles.has(ref.path)) {
     linkStatus = "default";
   } else if (client.fullSyncCompleted || client.clientSystem.knownFilesLoaded) {
     linkStatus = "file-missing";
@@ -87,9 +109,7 @@ export function processWikiLink(options: WikiLinkProcessorOptions): any[] {
 
   // The `&& ref` is only there to make typescript happy
   if (linkStatus === "default" && ref) {
-    const meta = client.ui.viewState.allPages.find(
-      (p) => parseToRef(p.ref)?.path === ref.path,
-    );
+    const meta = pageByPath(client.ui.viewState.allPages).get(ref.path);
 
     const renderedRef = structuredClone(ref);
 
