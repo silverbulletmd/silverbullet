@@ -175,6 +175,9 @@ export async function buildClientStatic(): Promise<void> {
   swCode = swCode.replaceAll("{{PRECACHE_FILES}}", precacheFilesStr);
   await writeFile(`${outDir}/service_worker.js`, swCode, "utf-8");
 
+  // Add .nojekyll for GitHub Pages (prevents Jekyll from ignoring dotfiles)
+  await writeFile(`${outDir}/.nojekyll`, "", "utf-8");
+
   console.log(`Static export built in ${outDir}/`);
 }
 
