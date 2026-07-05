@@ -54,6 +54,7 @@
     "build": "npm run build:plugs && npm run build:client",
     "build:plugs": "tsx build/build_plugs.ts",
     "build:client": "tsx build/build_client.ts",
+    "build:static": "tsx build/build_client.ts --static",
     "build:plug-compile": "tsx build/build_plug_compile.ts",
     "prepublishOnly": "npm run build:plug-compile",
     "test": "vitest run",

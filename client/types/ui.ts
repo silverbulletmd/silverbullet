@@ -190,6 +190,9 @@ export type BootConfig = {
 
   enableClientEncryption: boolean;
   disableServiceWorker?: boolean;
+  /** When true, the client runs entirely in-browser without a backend server.
+   *  Data is stored in IndexedDB and boot config is loaded from bundled assets. */
+  localMode?: boolean;
 };
 
 /**

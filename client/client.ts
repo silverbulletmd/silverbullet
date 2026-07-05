@@ -64,6 +64,7 @@ import {
 import { resolveASTReference } from "./space_lua.ts";
 import { CheckedSpacePrimitives } from "./spaces/checked_space_primitives.ts";
 import { fsEndpoint } from "./spaces/constants.ts";
+import { DataStoreSpacePrimitives } from "./spaces/datastore_space_primitives.ts";
 import { EventedSpacePrimitives } from "./spaces/evented_space_primitives.ts";
 import { HttpSpacePrimitives } from "./spaces/http_space_primitives.ts";
 import type { Command } from "./types/command.ts";
@@ -287,17 +288,19 @@ export class Client {
     await this.widgetCache.load();
 
     // Let's ping the remote space to ensure we're authenticated properly, if not will result in a redirect to auth page
-    try {
-      await this.httpSpacePrimitives.ping();
-    } catch (e: any) {
-      if (e.message === "Not authenticated") {
-        console.warn("Not authenticated, redirecting to auth page");
-        return;
+    if (!this.bootConfig.localMode) {
+      try {
+        await this.httpSpacePrimitives.ping();
+      } catch (e: any) {
+        if (e.message === "Not authenticated") {
+          console.warn("Not authenticated, redirecting to auth page");
+          return;
+        }
+        console.warn(
+          "Could not reach remote server, we're offline or the server is down",
+          e,
+        );
       }
-      console.warn(
-        "Could not reach remote server, we're offline or the server is down",
-        e,
-      );
     }
 
     // Load plugs
@@ -317,7 +320,7 @@ export class Client {
     // AND lets `space-sync-complete` signals — bridged in from the native sync
     // engine — drive the version-bump reindex after each sync cycle (otherwise
     // the gate in `handleServiceWorkerMessage` would stay permanently closed).
-    if (this.bootConfig.disableServiceWorker) {
+    if (this.bootConfig.disableServiceWorker || this.bootConfig.localMode) {
       this.versionsInSync = true;
       void this.objectIndex.ensureFullIndex(this.space);
     }
@@ -351,33 +354,42 @@ export class Client {
   }
 
   initSpace() {
-    this.httpSpacePrimitives = new HttpSpacePrimitives(
-      document.baseURI.replace(/\/*$/, "") + fsEndpoint,
-      this.bootConfig.spaceFolderPath,
-      (message, actionOrRedirectHeader) => {
-        alert(message);
-        if (actionOrRedirectHeader === "reload") {
-          location.reload();
-        } else {
-          location.href = actionOrRedirectHeader;
-        }
-      },
-      // Bearer token injected by an embedder (e.g. the Tauri App) as
-      // `globalThis.silverbullet.bearerToken` before the bundle loads.
-      // Undefined in a normal browser deployment, which leaves
-      // HttpSpacePrimitives in its default cookie-only auth mode.
-      (globalThis as { silverbullet?: { bearerToken?: string } }).silverbullet
-        ?.bearerToken,
-    );
+    if (this.bootConfig.localMode) {
+      const localPrimitives = new DataStoreSpacePrimitives(this.ds.kv);
+      this.eventedSpacePrimitives = new EventedSpacePrimitives(
+        new CheckedSpacePrimitives(localPrimitives, this.bootConfig.readOnly),
+        this.eventHook,
+        this.ds,
+      );
+    } else {
+      this.httpSpacePrimitives = new HttpSpacePrimitives(
+        document.baseURI.replace(/\/*$/, "") + fsEndpoint,
+        this.bootConfig.spaceFolderPath,
+        (message, actionOrRedirectHeader) => {
+          alert(message);
+          if (actionOrRedirectHeader === "reload") {
+            location.reload();
+          } else {
+            location.href = actionOrRedirectHeader;
+          }
+        },
+        // Bearer token injected by an embedder (e.g. the Tauri App) as
+        // `globalThis.silverbullet.bearerToken` before the bundle loads.
+        // Undefined in a normal browser deployment, which leaves
+        // HttpSpacePrimitives in its default cookie-only auth mode.
+        (globalThis as { silverbullet?: { bearerToken?: string } }).silverbullet
+          ?.bearerToken,
+      );
 
-    this.eventedSpacePrimitives = new EventedSpacePrimitives(
-      new CheckedSpacePrimitives(
-        this.httpSpacePrimitives,
-        this.bootConfig.readOnly,
-      ),
-      this.eventHook,
-      this.ds,
-    );
+      this.eventedSpacePrimitives = new EventedSpacePrimitives(
+        new CheckedSpacePrimitives(
+          this.httpSpacePrimitives,
+          this.bootConfig.readOnly,
+        ),
+        this.eventHook,
+        this.ds,
+      );
+    }
 
     // Kick off a regular file listing request to trigger events
     setInterval(() => {

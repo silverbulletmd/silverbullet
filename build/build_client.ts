@@ -68,6 +68,116 @@ export async function buildClient(): Promise<void> {
   console.log("Built!");
 }
 
+export async function buildClientStatic(): Promise<void> {
+  // Build client in local mode for static GitHub Pages deployment
+  // This produces output in client_bundle/static/ suitable for hosting on GH Pages
+  const outDir = "client_bundle/static";
+  await mkdir(outDir, { recursive: true });
+  await mkdir(`${outDir}/.client`, { recursive: true });
+
+  console.log("Building static SilverBullet client for GitHub Pages...");
+
+  const baseBuildConfig: esbuild.BuildOptions = {
+    outdir: outDir,
+    absWorkingDir: process.cwd(),
+    bundle: true,
+    treeShaking: true,
+    sourcemap: "linked",
+    minify: true,
+    jsxFactory: "h",
+    format: "esm",
+    chunkNames: ".client/[name]-[hash]",
+    jsx: "automatic",
+    jsxFragment: "Fragment",
+    jsxImportSource: "preact",
+    define: {
+      "process.env.NODE_ENV": '"production"',
+    },
+  };
+
+  await esbuild.build({
+    ...baseBuildConfig,
+    entryPoints: [{
+      in: "client/boot.ts",
+      out: ".client/client",
+    }],
+    splitting: true,
+  });
+
+  // Build a local-mode service worker (no sync engine)
+  await esbuild.build({
+    ...baseBuildConfig,
+    entryPoints: [{
+      in: "client/service_worker.ts",
+      out: "service_worker",
+    }],
+    splitting: false,
+  });
+
+  // Copy assets
+  await cp("client/fonts", `${outDir}/.client/fonts`, { recursive: true });
+  await cp("client/images/favicon-96x96.png", `${outDir}/.client/favicon-96x96.png`);
+  await cp("client/images/favicon.svg", `${outDir}/.client/favicon.svg`);
+  await cp("client/images/favicon.ico", `${outDir}/.client/favicon.ico`);
+  await cp("client/images/apple-touch-icon.png", `${outDir}/.client/apple-touch-icon.png`);
+  await cp("client/images/logo.png", `${outDir}/.client/logo.png`);
+  await cp("client/images/logo-dock.png", `${outDir}/.client/logo-dock.png`);
+
+  // Use local-mode index.html (static, no templates)
+  await cp("client/html/index.local.html", `${outDir}/index.html`);
+
+  // Static manifest.json
+  await cp("client/html/manifest.json", `${outDir}/.client/manifest.json`);
+
+  // Compile CSS
+  const scssContent = await readFile("client/styles/main.scss", "utf-8");
+  const result = sass.compileString(scssContent, {
+    loadPaths: ["client/styles"],
+    style: "compressed",
+  });
+  await writeFile(`${outDir}/.client/main.css`, result.css, "utf-8");
+
+  const componentsScss = await readFile(
+    "client/styles/components_bundle.scss",
+    "utf-8",
+  );
+  const componentsResult = sass.compileString(componentsScss, {
+    loadPaths: ["client/styles"],
+    style: "compressed",
+  });
+  await writeFile(`${outDir}/.client/components.css`, componentsResult.css, "utf-8");
+
+  // Patch the JS
+  let bundleJs = await readFile(`${outDir}/.client/client.js`, "utf-8");
+  bundleJs = patchBundledJS(bundleJs);
+  await writeFile(`${outDir}/.client/client.js`, bundleJs, "utf-8");
+
+  // Scan .client/ directory to build the full precache file list
+  const allFiles = await readdir(`${outDir}/.client`);
+  const precacheFiles = [
+    "/",
+    "/.client/manifest.json",
+    ...allFiles
+      .filter(
+        (f) =>
+          !f.endsWith(".map") &&
+          f !== "auth.html" &&
+          f !== "index.html" &&
+          f !== "LICENSE.md",
+      )
+      .map((f) => `/.client/${f}`),
+  ];
+  const precacheFilesStr = precacheFiles.join(",");
+
+  // Patch the service worker
+  let swCode = await readFile(`${outDir}/service_worker.js`, "utf-8");
+  swCode = swCode.replaceAll("{{CACHE_NAME}}", `cache-${Date.now()}`);
+  swCode = swCode.replaceAll("{{PRECACHE_FILES}}", precacheFilesStr);
+  await writeFile(`${outDir}/service_worker.js`, swCode, "utf-8");
+
+  console.log(`Static export built in ${outDir}/`);
+}
+
 async function copyAssets(dist: string) {
   await mkdir(dist, { recursive: true });
   await cp("client/fonts", dist, { recursive: true });
@@ -133,6 +243,11 @@ async function patchServiceWorker() {
 
 const isMain = process.argv[1] === fileURLToPath(import.meta.url);
 if (isMain) {
-  await buildClient();
+  const args = process.argv.slice(2);
+  if (args.includes("--static")) {
+    await buildClientStatic();
+  } else {
+    await buildClient();
+  }
   await esbuild.stop();
 }

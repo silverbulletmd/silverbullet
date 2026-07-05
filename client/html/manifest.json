@@ -1,0 +1,18 @@
+{
+  "short_name": "SilverBullet",
+  "name": "SilverBullet",
+  "icons": [
+    {
+      "src": "/silverbullet/.client/logo-dock.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "capture_links": "new-client",
+  "start_url": "/silverbullet/?local",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay"],
+  "scope": "/silverbullet/",
+  "theme_color": "#e1e1e1",
+  "description": "SilverBullet"
+}

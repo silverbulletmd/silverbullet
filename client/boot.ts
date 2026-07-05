@@ -16,6 +16,10 @@ import type { BootConfig, ServiceWorkerTargetMessage } from "./types/ui.ts";
 import { BoxProxy } from "./lib/box_proxy.ts";
 import { importKey } from "@silverbulletmd/silverbullet/lib/crypto";
 import "./debug.ts";
+import {
+  localBootConfig,
+  getLocalBootPages,
+} from "./local_boot_content.ts";
 
 // Initialize the runtime-bridge namespace. `??=` preserves any value an
 // earlier init script may have already installed (desktop wrapper does this)
@@ -36,21 +40,31 @@ safeRun(async () => {
   // Placeholder proxy for Client object to be swapped in later
   const clientProxy = new BoxProxy({});
   let bootstrapLuaScriptPages: string[] = [];
+
+  // Check for local mode via URL parameter or global variable (set by static build)
+  const isLocalMode = new URLSearchParams(location.search).has("local") ||
+    !!(globalThis as any).SB_LOCAL_MODE;
+
   // Try loading config and scripts
   try {
     let configJSONText: string;
-    [configJSONText, ...bootstrapLuaScriptPages] = await Promise.all([
-      cachedFetch(".config"),
-      // Some minimal bootstrap Lua: schema definition
-      cachedFetch(".fs/Library/Std/APIs/Schema.md"),
-      // Configuration option definitions and defaults
-      cachedFetch(".fs/Library/Std/Config.md"),
-      // Tag definition API
-      cachedFetch(".fs/Library/Std/APIs/Tag.md"),
-      // Custom configuration
-      cachedFetch(".fs/CONFIG.md"),
-    ]);
-    bootConfig = JSON.parse(configJSONText);
+    if (isLocalMode) {
+      bootConfig = { ...localBootConfig };
+      bootstrapLuaScriptPages = getLocalBootPages();
+    } else {
+      [configJSONText, ...bootstrapLuaScriptPages] = await Promise.all([
+        cachedFetch(".config"),
+        // Some minimal bootstrap Lua: schema definition
+        cachedFetch(".fs/Library/Std/APIs/Schema.md"),
+        // Configuration option definitions and defaults
+        cachedFetch(".fs/Library/Std/Config.md"),
+        // Tag definition API
+        cachedFetch(".fs/Library/Std/APIs/Tag.md"),
+        // Custom configuration
+        cachedFetch(".fs/CONFIG.md"),
+      ]);
+      bootConfig = JSON.parse(configJSONText);
+    }
   } catch (e: any) {
     if (e.message === offlineError.message) {
       alert(
@@ -92,8 +106,10 @@ safeRun(async () => {
   }
 
   let encryptionKey: CryptoKey | undefined;
-  // If client encryption is enabled (from auth page) AND the server signals it
-  if (
+  if (bootConfig?.localMode) {
+    bootConfig.enableClientEncryption = false;
+  } else if (
+    // If client encryption is enabled (from auth page) AND the server signals it
     localStorage.getItem("enableEncryption") &&
     bootConfig?.enableClientEncryption
   ) {
@@ -160,9 +176,9 @@ safeRun(async () => {
   console.log("Booting SilverBullet client");
   console.log("Boot config", bootConfig, config.values);
 
-  // Skip (and tear down) the service worker when headless or when the server
-  // forbids it via BootConfig.disableServiceWorker.
-  const swDisabled = !!bootConfig?.disableServiceWorker;
+  // Skip (and tear down) the service worker when headless, local mode,
+  // or when the server forbids it via BootConfig.disableServiceWorker.
+  const swDisabled = !!bootConfig?.disableServiceWorker || !!bootConfig?.localMode;
   if (swDisabled && navigator.serviceWorker) {
     await flushCachesAndUnregisterServiceWorker();
   }
