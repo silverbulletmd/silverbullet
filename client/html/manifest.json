@@ -3,13 +3,13 @@
   "name": "SilverBullet",
   "icons": [
     {
-      "src": "/silverbullet/.client/logo-dock.png",
+      "src": "/silverbullet/client/logo-dock.png",
       "type": "image/png",
       "sizes": "512x512"
     }
   ],
   "capture_links": "new-client",
-  "start_url": "/silverbullet/?local",
+  "start_url": "/silverbullet/",
   "display": "standalone",
   "display_override": ["window-controls-overlay"],
   "scope": "/silverbullet/",

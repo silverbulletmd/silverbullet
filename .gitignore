@@ -4,6 +4,7 @@
 .obsidian
 client_bundle/client
 client_bundle/base_fs
+client_bundle/static
 dist
 *.js.map
 env.sh

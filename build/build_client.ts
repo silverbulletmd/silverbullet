@@ -72,8 +72,9 @@ export async function buildClientStatic(): Promise<void> {
   // Build client in local mode for static GitHub Pages deployment
   // This produces output in client_bundle/static/ suitable for hosting on GH Pages
   const outDir = "client_bundle/static";
+  const assetDir = "client"; // no leading dot — GitHub Pages won't serve dotdirs
   await mkdir(outDir, { recursive: true });
-  await mkdir(`${outDir}/.client`, { recursive: true });
+  await mkdir(`${outDir}/${assetDir}`, { recursive: true });
 
   console.log("Building static SilverBullet client for GitHub Pages...");
 
@@ -86,7 +87,7 @@ export async function buildClientStatic(): Promise<void> {
     minify: true,
     jsxFactory: "h",
     format: "esm",
-    chunkNames: ".client/[name]-[hash]",
+    chunkNames: `${assetDir}/[name]-[hash]`,
     jsx: "automatic",
     jsxFragment: "Fragment",
     jsxImportSource: "preact",
@@ -99,7 +100,7 @@ export async function buildClientStatic(): Promise<void> {
     ...baseBuildConfig,
     entryPoints: [{
       in: "client/boot.ts",
-      out: ".client/client",
+      out: `${assetDir}/client`,
     }],
     splitting: true,
   });
@@ -115,19 +116,19 @@ export async function buildClientStatic(): Promise<void> {
   });
 
   // Copy assets
-  await cp("client/fonts", `${outDir}/.client/fonts`, { recursive: true });
-  await cp("client/images/favicon-96x96.png", `${outDir}/.client/favicon-96x96.png`);
-  await cp("client/images/favicon.svg", `${outDir}/.client/favicon.svg`);
-  await cp("client/images/favicon.ico", `${outDir}/.client/favicon.ico`);
-  await cp("client/images/apple-touch-icon.png", `${outDir}/.client/apple-touch-icon.png`);
-  await cp("client/images/logo.png", `${outDir}/.client/logo.png`);
-  await cp("client/images/logo-dock.png", `${outDir}/.client/logo-dock.png`);
+  await cp("client/fonts", `${outDir}/${assetDir}/fonts`, { recursive: true });
+  await cp("client/images/favicon-96x96.png", `${outDir}/${assetDir}/favicon-96x96.png`);
+  await cp("client/images/favicon.svg", `${outDir}/${assetDir}/favicon.svg`);
+  await cp("client/images/favicon.ico", `${outDir}/${assetDir}/favicon.ico`);
+  await cp("client/images/apple-touch-icon.png", `${outDir}/${assetDir}/apple-touch-icon.png`);
+  await cp("client/images/logo.png", `${outDir}/${assetDir}/logo.png`);
+  await cp("client/images/logo-dock.png", `${outDir}/${assetDir}/logo-dock.png`);
 
   // Use local-mode index.html (static, no templates)
   await cp("client/html/index.local.html", `${outDir}/index.html`);
 
   // Static manifest.json
-  await cp("client/html/manifest.json", `${outDir}/.client/manifest.json`);
+  await cp("client/html/manifest.json", `${outDir}/${assetDir}/manifest.json`);
 
   // Compile CSS
   const scssContent = await readFile("client/styles/main.scss", "utf-8");
@@ -135,7 +136,7 @@ export async function buildClientStatic(): Promise<void> {
     loadPaths: ["client/styles"],
     style: "compressed",
   });
-  await writeFile(`${outDir}/.client/main.css`, result.css, "utf-8");
+  await writeFile(`${outDir}/${assetDir}/main.css`, result.css, "utf-8");
 
   const componentsScss = await readFile(
     "client/styles/components_bundle.scss",
@@ -145,18 +146,18 @@ export async function buildClientStatic(): Promise<void> {
     loadPaths: ["client/styles"],
     style: "compressed",
   });
-  await writeFile(`${outDir}/.client/components.css`, componentsResult.css, "utf-8");
+  await writeFile(`${outDir}/${assetDir}/components.css`, componentsResult.css, "utf-8");
 
   // Patch the JS
-  let bundleJs = await readFile(`${outDir}/.client/client.js`, "utf-8");
+  let bundleJs = await readFile(`${outDir}/${assetDir}/client.js`, "utf-8");
   bundleJs = patchBundledJS(bundleJs);
-  await writeFile(`${outDir}/.client/client.js`, bundleJs, "utf-8");
+  await writeFile(`${outDir}/${assetDir}/client.js`, bundleJs, "utf-8");
 
-  // Scan .client/ directory to build the full precache file list
-  const allFiles = await readdir(`${outDir}/.client`);
+  // Scan asset directory to build the full precache file list
+  const allFiles = await readdir(`${outDir}/${assetDir}`);
   const precacheFiles = [
     "/",
-    "/.client/manifest.json",
+    `/${assetDir}/manifest.json`,
     ...allFiles
       .filter(
         (f) =>
@@ -165,7 +166,7 @@ export async function buildClientStatic(): Promise<void> {
           f !== "index.html" &&
           f !== "LICENSE.md",
       )
-      .map((f) => `/.client/${f}`),
+      .map((f) => `/${assetDir}/${f}`),
   ];
   const precacheFilesStr = precacheFiles.join(",");
 
@@ -174,9 +175,6 @@ export async function buildClientStatic(): Promise<void> {
   swCode = swCode.replaceAll("{{CACHE_NAME}}", `cache-${Date.now()}`);
   swCode = swCode.replaceAll("{{PRECACHE_FILES}}", precacheFilesStr);
   await writeFile(`${outDir}/service_worker.js`, swCode, "utf-8");
-
-  // Add .nojekyll for GitHub Pages (prevents Jekyll from ignoring dotfiles)
-  await writeFile(`${outDir}/.nojekyll`, "", "utf-8");
 
   console.log(`Static export built in ${outDir}/`);
 }
