@@ -9,25 +9,25 @@ export const localBootConfig = {
 
 const schemaLua = `\`\`\`space-lua
 schema.define({
-  name: "page",
-  properties: {
-    ref: "string",
-    name: "string",
-    tags: "string[]",
-    created: "string",
-    lastModified: "string",
-    perm: "string",
+  name = "page",
+  properties = {
+    ref = "string",
+    name = "string",
+    tags = "string[]",
+    created = "string",
+    lastModified = "string",
+    perm = "string",
   },
 })
 
 schema.define({
-  name: "document",
-  properties: {
-    ref: "string",
-    extension: "string",
-    created: "string",
-    lastModified: "string",
-    perm: "string",
+  name = "document",
+  properties = {
+    ref = "string",
+    extension = "string",
+    created = "string",
+    lastModified = "string",
+    perm = "string",
   },
 })
 \`\`\``;
@@ -36,9 +36,9 @@ const configDefs = ``;
 
 const tagDefs = `\`\`\`space-lua
 schema.define({
-  name: "tag",
-  properties: {
-    name: "string",
+  name = "tag",
+  properties = {
+    name = "string",
   },
 })
 \`\`\``;
