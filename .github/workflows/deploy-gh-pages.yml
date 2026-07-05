@@ -3,19 +3,12 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [local-mode]
-  workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: false
+  contents: write
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,15 +21,9 @@ jobs:
         run: node -e "fs.writeFileSync('version.json',JSON.stringify({version:'gh-pages-'+Date.now()}))"
       - name: Build static client
         run: npm run build:static
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: client_bundle/static
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
       - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: client_bundle/static
+          force_orphan: true
