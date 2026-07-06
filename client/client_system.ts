@@ -45,7 +45,10 @@ import type { Command } from "./types/command.ts";
 import { SpaceLuaEnvironment } from "./space_lua.ts";
 import type { ILuaFunction } from "./space_lua/runtime.ts";
 import { builtinPlugPaths } from "../plugs/builtin_plugs.ts";
-import { registerEditorCommands } from "./editor_commands.ts";
+import {
+  registerEditorCommands,
+  registerLocalModeCommands,
+} from "./editor_commands.ts";
 import { ServiceRegistry } from "./service_registry.ts";
 import { serviceRegistrySyscalls } from "./plugos/syscalls/service_registry.ts";
 import type { ObjectIndex } from "./data/object_index.ts";
@@ -122,6 +125,7 @@ export class ClientSystem {
     // Command hook
     this.commandHook = new CommandHook(this.readOnlyMode, this.scriptCommands);
     registerEditorCommands(client, this.commandHook);
+    registerLocalModeCommands(client, this.commandHook);
     this.commandHook.on({
       commandsUpdated: (commandMap) => {
         this.client.ui?.viewDispatch({

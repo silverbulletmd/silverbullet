@@ -66,7 +66,12 @@ import { CheckedSpacePrimitives } from "./spaces/checked_space_primitives.ts";
 import { fsEndpoint } from "./spaces/constants.ts";
 import { DataStoreSpacePrimitives } from "./spaces/datastore_space_primitives.ts";
 import { EventedSpacePrimitives } from "./spaces/evented_space_primitives.ts";
+import {
+  FileSystemAccessSpacePrimitives,
+  type FsDirHandle,
+} from "./spaces/fs_access_space_primitives.ts";
 import { HttpSpacePrimitives } from "./spaces/http_space_primitives.ts";
+import { LocalFolderSync } from "./local_folder_sync.ts";
 import type { Command } from "./types/command.ts";
 import type {
   AppViewState,
@@ -79,6 +84,8 @@ import { handleObjectsRequest } from "./runtime_api/objects_api.ts";
 
 // Fetch the file list ever so often, this will implicitly kick off a snapshot comparison resulting in the indexing of changed pages
 const fetchFileListInterval = 10000;
+
+const folderHandleKey = ["$localFolder", "handle"];
 
 // Runtime API bridge: written by the client when running headless to evaluate Lua and invoke the objects API in the live client.
 export type SBRuntime = {
@@ -104,6 +111,8 @@ export class Client {
   clientSystem!: ClientSystem;
   eventedSpacePrimitives!: EventedSpacePrimitives;
   httpSpacePrimitives!: HttpSpacePrimitives;
+  localFolderSync?: LocalFolderSync;
+  private visibilitySyncHandler?: () => void;
 
   ui!: MainUI;
   ds!: DataStore;
@@ -329,6 +338,10 @@ export class Client {
 
     // Load space snapshot and enable events
     await this.eventedSpacePrimitives.enable();
+
+    if (this.bootConfig.localMode) {
+      await this.initLocalFolderSync();
+    }
 
     // Kick off a cron event interval
     setInterval(() => {
@@ -1107,23 +1120,7 @@ export class Client {
   async handleServiceWorkerMessage(message: ServiceWorkerSourceMessage) {
     switch (message.type) {
       case "space-sync-complete": {
-        const isFirstSync = !this.fullSyncCompleted;
-        this.fullSyncCompleted = true;
-        // Only trigger a version-bump reindex once we've also confirmed the
-        // server is on the same publicVersion as this client — otherwise the
-        // reindex could run against stale plug code that's about to be
-        // replaced by the in-progress upgrade.
-        if (this.versionsInSync) {
-          void this.objectIndex.ensureFullIndex(this.space);
-        }
-
-        if (isFirstSync && message.operations > 0) {
-          // First sync pulled new content — reload the current page
-          // (it may have been empty because the file didn't exist locally yet)
-          void this.reloadEditor();
-          // Re-evaluate CONFIG and space scripts now that sync has pulled them
-          void this.clientSystem.reloadState();
-        }
+        this.onSpaceSyncComplete(message.operations);
         break;
       }
       case "online-status": {
@@ -1174,6 +1171,148 @@ export class Client {
       `service-worker:${message.type}`,
       message,
     );
+  }
+
+  onSpaceSyncComplete(operations: number) {
+    const isFirstSync = !this.fullSyncCompleted;
+    this.fullSyncCompleted = true;
+    // Only trigger a version-bump reindex once we've also confirmed the
+    // server is on the same publicVersion as this client — otherwise the
+    // reindex could run against stale plug code that's about to be
+    // replaced by the in-progress upgrade.
+    if (this.versionsInSync) {
+      void this.objectIndex.ensureFullIndex(this.space);
+    }
+
+    if (isFirstSync && operations > 0) {
+      // First sync pulled new content — reload the current page
+      // (it may have been empty because the file didn't exist locally yet)
+      void this.reloadEditor();
+      // Re-evaluate CONFIG and space scripts now that sync has pulled them
+      void this.clientSystem.reloadState();
+    }
+  }
+
+  private async initLocalFolderSync() {
+    const [handle] = await this.ds.batchGet<FsDirHandle>([folderHandleKey]);
+    if (!handle) {
+      return;
+    }
+    if (!(typeof showDirectoryPicker === "function")) {
+      return;
+    }
+    const perm = await handle.queryPermission?.({ mode: "readwrite" });
+    if (perm === "granted") {
+      await this.startFolderSync(handle);
+    } else {
+      this.ui.flashNotification(
+        "Reconnect your folder to resume syncing with your local files",
+        "info",
+        {
+          timeout: 0,
+          actions: [{ name: "Reconnect", run: () => this.reconnectFolder() }],
+        },
+      );
+    }
+  }
+
+  async connectFolder() {
+    if (typeof showDirectoryPicker !== "function") {
+      this.ui.flashNotification(
+        "This browser does not support the File System Access API. Use Chrome or Edge to connect a local folder.",
+        "error",
+      );
+      return;
+    }
+    let handle: FsDirHandle;
+    try {
+      handle = await showDirectoryPicker({ mode: "readwrite" });
+    } catch (e: any) {
+      if (e?.name === "AbortError") return;
+      this.ui.flashNotification(`Could not open folder: ${e.message}`, "error");
+      return;
+    }
+    await this.ds.batchSet([{ key: folderHandleKey, value: handle }]);
+    await this.startFolderSync(handle);
+  }
+
+  async reconnectFolder() {
+    const [handle] = await this.ds.batchGet<FsDirHandle>([folderHandleKey]);
+    if (!handle) {
+      this.ui.flashNotification("No folder was previously connected", "info");
+      return;
+    }
+    const perm = await handle.requestPermission?.({ mode: "readwrite" });
+    if (perm !== "granted") {
+      this.ui.flashNotification("Folder permission denied", "error");
+      return;
+    }
+    await this.startFolderSync(handle);
+  }
+
+  async disconnectFolder() {
+    if (this.visibilitySyncHandler) {
+      document.removeEventListener(
+        "visibilitychange",
+        this.visibilitySyncHandler,
+      );
+      this.visibilitySyncHandler = undefined;
+    }
+    const sync = this.localFolderSync;
+    this.localFolderSync = undefined;
+    if (sync) {
+      sync.stop();
+      await sync.wipeSnapshot();
+    }
+    await this.ds.batchDelete([folderHandleKey]);
+    this.ui.flashNotification(
+      sync ? "Folder disconnected" : "No folder was connected",
+      "info",
+    );
+  }
+
+  private async startFolderSync(handle: FsDirHandle) {
+    this.localFolderSync?.stop();
+    this.localFolderSync = undefined;
+    if (this.visibilitySyncHandler) {
+      document.removeEventListener(
+        "visibilitychange",
+        this.visibilitySyncHandler,
+      );
+    }
+    const folderPrimitives = new FileSystemAccessSpacePrimitives(handle);
+    const sync = new LocalFolderSync(
+      this.ds.kv,
+      this.eventedSpacePrimitives,
+      folderPrimitives,
+    );
+    sync.on({
+      spaceSyncComplete: (operations) => this.onSpaceSyncComplete(operations),
+      syncConflict: (path) => {
+        console.warn("[local-folder-sync] conflict on", path);
+        this.ui.flashNotification(
+          `Sync conflict on ${path}: created a .conflicted copy`,
+          "warning",
+        );
+        void this.eventHook.dispatchEvent("service-worker:sync-conflict", {
+          type: "sync-conflict",
+          path,
+        });
+      },
+      syncError: (e) => {
+        console.error("[local-folder-sync] error:", e);
+        this.ui.flashNotification(`Folder sync error: ${e.message}`, "error");
+      },
+    });
+    this.localFolderSync = sync;
+    await sync.start();
+    this.visibilitySyncHandler = () => {
+      if (document.visibilityState === "visible") {
+        void this.localFolderSync?.syncSpace();
+      }
+    };
+    document.addEventListener("visibilitychange", this.visibilitySyncHandler);
+    this.ui.flashNotification(`Connected folder: ${handle.name}`, "info");
   }
 
   private async initNavigator() {

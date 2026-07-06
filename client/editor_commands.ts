@@ -608,3 +608,31 @@ export function registerEditorCommands(
     },
   });
 }
+
+/**
+ * Registers commands for the local-only mode's folder integration (File
+ * System Access API). Only wired up when `bootConfig.localMode` is set; in
+ * that mode there is no backend server, so a connected folder is the user's
+ * only way to read/write real files on disk. No-ops (registers nothing) in
+ * normal server-backed mode.
+ */
+export function registerLocalModeCommands(client: Client, hook: CommandHook) {
+  if (!client.bootConfig.localMode) {
+    return;
+  }
+  hook.registerCommand({
+    name: "Folder: Connect",
+    requireMode: "rw",
+    run: () => client.connectFolder(),
+  });
+  hook.registerCommand({
+    name: "Folder: Disconnect",
+    requireMode: "rw",
+    run: () => client.disconnectFolder(),
+  });
+  hook.registerCommand({
+    name: "Folder: Reconnect",
+    requireMode: "rw",
+    run: () => client.reconnectFolder(),
+  });
+}
