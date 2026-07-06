@@ -32,7 +32,48 @@ schema.define({
 })
 \`\`\``;
 
-const configDefs = ``;
+const configDefs = `\`\`\`space-lua
+config.set("actionButtons", {
+  {
+    icon = "home",
+    description = "Go to the index page",
+    command = "Navigate: Home",
+    priority = 3,
+    dropdown = false,
+  },
+  {
+    icon = "book",
+    description = "Open page",
+    command = "Navigate: Page Picker",
+    priority = 2,
+    dropdown = false,
+  },
+  {
+    icon = "terminal",
+    description = "Run command",
+    command = "Open Command Palette",
+    priority = 1,
+  },
+  {
+    icon = "chevron-left",
+    description = "Go back",
+    standalone = true,
+    priority = 0,
+    run = function()
+      editor.goHistory(-1)
+    end,
+  },
+  {
+    icon = "chevron-right",
+    description = "Go forward",
+    standalone = true,
+    priority = -1,
+    run = function()
+      editor.goHistory(1)
+    end,
+  }
+})
+\`\`\``;
 
 const tagDefs = `\`\`\`space-lua
 schema.define({

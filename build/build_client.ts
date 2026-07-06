@@ -1,4 +1,4 @@
-import { cp, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { cp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import * as sass from "sass";
 
@@ -73,6 +73,7 @@ export async function buildClientStatic(): Promise<void> {
   // This produces output in client_bundle/static/ suitable for hosting on GH Pages
   const outDir = "client_bundle/static";
   const assetDir = "client"; // no leading dot — GitHub Pages won't serve dotdirs
+  await rm(outDir, { recursive: true, force: true });
   await mkdir(outDir, { recursive: true });
   await mkdir(`${outDir}/${assetDir}`, { recursive: true });
 
@@ -126,6 +127,9 @@ export async function buildClientStatic(): Promise<void> {
 
   // Use local-mode index.html (static, no templates)
   await cp("client/html/index.local.html", `${outDir}/index.html`);
+  // GitHub Pages serves 404.html for deep links like /silverbullet/PageName.
+  await cp("client/html/index.local.html", `${outDir}/404.html`);
+  await writeFile(`${outDir}/.nojekyll`, "", "utf-8");
 
   // Static manifest.json
   await cp("client/html/manifest.json", `${outDir}/${assetDir}/manifest.json`);
@@ -175,6 +179,10 @@ export async function buildClientStatic(): Promise<void> {
   swCode = swCode.replaceAll("{{CACHE_NAME}}", `cache-${Date.now()}`);
   swCode = swCode.replaceAll("{{PRECACHE_FILES}}", precacheFilesStr);
   await writeFile(`${outDir}/service_worker.js`, swCode, "utf-8");
+
+  // Keep a compatibility mirror for stale Pages deployments/service workers
+  // that still request the historical .client/ asset path.
+  await cp(`${outDir}/${assetDir}`, `${outDir}/.client`, { recursive: true });
 
   console.log(`Static export built in ${outDir}/`);
 }
