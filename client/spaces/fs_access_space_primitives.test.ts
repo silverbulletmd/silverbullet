@@ -1,122 +1,12 @@
 import { expect, test } from "vitest";
 import {
-  type FsDirHandle,
-  type FsFile,
-  type FsFileHandle,
-  type FsWritableStream,
   FileSystemAccessSpacePrimitives,
 } from "./fs_access_space_primitives.ts";
+import {
+  FakeDirHandle,
+  stringToBytes,
+} from "./fs_access_space_primitives_test_helpers.ts";
 import { notFoundError } from "@silverbulletmd/silverbullet/constants";
-
-class FakeFile {
-  lastModified: number;
-  constructor(
-    public name: string,
-    public content: Uint8Array,
-  ) {
-    this.lastModified = Date.now();
-  }
-  get size(): number {
-    return this.content.byteLength;
-  }
-  arrayBuffer(): Promise<ArrayBuffer> {
-    return Promise.resolve(this.content.slice().buffer);
-  }
-}
-
-class FakeWritable implements FsWritableStream {
-  private chunks: Uint8Array[] = [];
-  constructor(private file: FakeFile) {}
-  async write(data: Uint8Array): Promise<void> {
-    this.chunks.push(new Uint8Array(data));
-  }
-  async close(): Promise<void> {
-    const total = this.chunks.reduce((n, c) => n + c.length, 0);
-    const merged = new Uint8Array(total);
-    let off = 0;
-    for (const c of this.chunks) {
-      merged.set(c, off);
-      off += c.length;
-    }
-    this.file.content = merged;
-    this.file.lastModified = Date.now();
-  }
-}
-
-class FakeFileHandle implements FsFileHandle {
-  readonly kind = "file" as const;
-  constructor(
-    public name: string,
-    private file: FakeFile,
-  ) {}
-  getFile(): Promise<FsFile> {
-    return Promise.resolve(this.file);
-  }
-  createWritable(): Promise<FsWritableStream> {
-    return Promise.resolve(new FakeWritable(this.file));
-  }
-}
-
-class NotFound extends Error {
-  name = "NotFoundError";
-  constructor() {
-    super("Not found");
-  }
-}
-
-class FakeDirHandle implements FsDirHandle {
-  readonly kind = "directory" as const;
-  children = new Map<string, FakeFileHandle | FakeDirHandle>();
-  constructor(public name: string) {}
-  async *values(): AsyncIterable<FsFileHandle | FsDirHandle> {
-    for (const child of this.children.values()) yield child;
-  }
-  async getFileHandle(
-    name: string,
-    options?: { create?: boolean },
-  ): Promise<FsFileHandle> {
-    const existing = this.children.get(name);
-    if (existing) {
-      if (existing.kind !== "file") {
-        throw new Error("Entry is a directory");
-      }
-      return existing;
-    }
-    if (options?.create) {
-      const handle = new FakeFileHandle(
-        name,
-        new FakeFile(name, new Uint8Array(0)),
-      );
-      this.children.set(name, handle);
-      return handle;
-    }
-    throw new NotFound();
-  }
-  async getDirectoryHandle(
-    name: string,
-    options?: { create?: boolean },
-  ): Promise<FakeDirHandle> {
-    const existing = this.children.get(name);
-    if (existing) {
-      if (existing.kind !== "directory") {
-        throw new Error("Entry is a file");
-      }
-      return existing;
-    }
-    if (options?.create) {
-      const handle = new FakeDirHandle(name);
-      this.children.set(name, handle);
-      return handle;
-    }
-    throw new NotFound();
-  }
-  async removeEntry(name: string): Promise<void> {
-    if (!this.children.has(name)) throw new NotFound();
-    this.children.delete(name);
-  }
-}
-
-const stringToBytes = (s: string): Uint8Array => new TextEncoder().encode(s);
 
 function newSpace() {
   return new FileSystemAccessSpacePrimitives(new FakeDirHandle("root"));

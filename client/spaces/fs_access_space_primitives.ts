@@ -48,18 +48,28 @@ export class FileSystemAccessSpacePrimitives implements SpacePrimitives {
 
   async fetchFileList(): Promise<FileMeta[]> {
     const metas: FileMeta[] = [];
-    const walk = async (dir: FsDirHandle, prefix: string) => {
+    // Cap recursion so a pathologically deep (or, in future, cyclic) folder
+    // can't stack-overflow the main thread. 16 levels is far beyond any sane
+    // SilverBullet space layout.
+    const maxDepth = 16;
+    const walk = async (dir: FsDirHandle, prefix: string, depth: number) => {
+      if (depth > maxDepth) {
+        console.warn(
+          `[fs-access] max depth ${maxDepth} exceeded at "${prefix || "/"}"; skipping subtree`,
+        );
+        return;
+      }
       for await (const entry of dir.values()) {
         const path = prefix ? `${prefix}/${entry.name}` : entry.name;
         if (entry.kind === "directory") {
-          await walk(entry, path);
+          await walk(entry, path, depth + 1);
         } else {
           const file = await entry.getFile();
           metas.push(this.fileToMeta(path, file));
         }
       }
     };
-    await walk(this.root, "");
+    await walk(this.root, "", 0);
     return metas;
   }
 

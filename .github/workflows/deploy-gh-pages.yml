@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [local-mode]
+    branches: [local-mode-fs-access]
 
 permissions:
   contents: write
@@ -12,14 +12,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-tags: true
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
       - name: Install dependencies
         run: npm ci
-      - name: Generate version.json
-        run: node -e "fs.writeFileSync('version.json',JSON.stringify({version:'gh-pages-'+Date.now()}))"
       - name: Build static client
+        # build:static generates version.json via updateVersionFile();
+        # no separate generation step needed.
         run: npm run build:static
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4

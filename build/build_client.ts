@@ -5,6 +5,7 @@ import * as sass from "sass";
 import * as esbuild from "esbuild";
 
 import { patchBundledJS } from "../client/plugos/plug_compile.ts";
+import { updateVersionFile } from "./version.ts";
 
 // This builds the client and puts it into client_bundle/client
 
@@ -76,6 +77,11 @@ export async function buildClientStatic(): Promise<void> {
   await rm(outDir, { recursive: true, force: true });
   await mkdir(outDir, { recursive: true });
   await mkdir(`${outDir}/${assetDir}`, { recursive: true });
+
+  // Ensure version.json exists (client/client.ts imports it). On a clean
+  // checkout there is no copy (it's gitignored), so generate it the same way
+  // build:plugs does. updateVersionFile() is a no-op-safe write to ./version.json.
+  await updateVersionFile();
 
   console.log("Building static SilverBullet client for GitHub Pages...");
 

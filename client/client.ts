@@ -1226,7 +1226,9 @@ export class Client {
     }
     let handle: FsDirHandle;
     try {
-      handle = await showDirectoryPicker({ mode: "readwrite" });
+      // showDirectoryPicker() returns FileSystemDirectoryHandle; cast to the
+      // narrow structural view the primitives consume.
+      handle = await showDirectoryPicker({ mode: "readwrite" }) as unknown as FsDirHandle;
     } catch (e: any) {
       if (e?.name === "AbortError") return;
       this.ui.flashNotification(`Could not open folder: ${e.message}`, "error");
@@ -1261,7 +1263,9 @@ export class Client {
     const sync = this.localFolderSync;
     this.localFolderSync = undefined;
     if (sync) {
-      sync.stop();
+      // Wait for the in-flight sync to settle before wiping state, otherwise a
+      // pending write/save could race with teardown (see LocalFolderSync.stop).
+      await sync.stop();
       await sync.wipeSnapshot();
     }
     await this.ds.batchDelete([folderHandleKey]);
@@ -1272,7 +1276,10 @@ export class Client {
   }
 
   private async startFolderSync(handle: FsDirHandle) {
-    this.localFolderSync?.stop();
+    // Wait for any previous engine's in-flight sync to settle before starting
+    // a new one on the same folder handle — two SpaceSyncs writing the same
+    // file via independent createWritable() streams silently lose a write.
+    await this.localFolderSync?.stop();
     this.localFolderSync = undefined;
     if (this.visibilitySyncHandler) {
       document.removeEventListener(
