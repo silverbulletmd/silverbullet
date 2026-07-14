@@ -68,12 +68,8 @@ local function augmentGlobal(localCode)
   -- Then approximate specific local tag-based object declarations in queries and add them
   -- matches `tags.something`, `index.tag "something"` and `index.tag("something")` patterns only
   for m in string.matchRegexAll(localCode, "(?:from|local)\\s+(\\w+)\\s+=\\s*(?:index\\.objects\\s*\"(\\w+)\"|index\\.objects\\s*\\(\"(\\w+)\"\\)|tags\\.(\\w+))") do
-    local tag
-    for i, t in ipairs(m) do
-      if i > 2 and t then
-        tag = t
-      end
-    end
+    -- m[1] = full match, m[2] = variable name, m[3..5] = tag from each alternative
+    local tag = m[3] or m[4] or m[5]
     -- Do we have a schema for this tag?
     local schema = config.get({"tags", tag, "schema"})
     if schema then
