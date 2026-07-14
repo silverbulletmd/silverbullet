@@ -6,11 +6,7 @@ import {
   unfoldEffect,
 } from "@codemirror/language";
 import { Decoration, type EditorView, WidgetType } from "@codemirror/view";
-import {
-  decoratorStateField,
-  isCursorInRange,
-  LinkWidget,
-} from "./util.ts";
+import { decoratorStateField, isCursorInRange, LinkWidget } from "./util.ts";
 import type { Client } from "../client.ts";
 import {
   frontmatterMailtoRegex,
@@ -98,8 +94,10 @@ export function shouldRenderFrontmatterLivePreview({
   from: number;
   to: number;
 }): boolean {
-  return !client.ui.viewState.uiOptions.markdownSyntaxRendering &&
-    !isCursorInRange(state, [from, to]);
+  return (
+    !client.ui.viewState.uiOptions.markdownSyntaxRendering &&
+    !isCursorInRange(state, [from, to])
+  );
 }
 
 export function frontmatterPlugin(client: Client) {

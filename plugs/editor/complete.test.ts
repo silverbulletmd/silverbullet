@@ -16,10 +16,7 @@ function makeCompleteEvent(
   };
 }
 
-async function indexPageMeta(
-  name: string,
-  tags: string[] = [],
-): Promise<void> {
+async function indexPageMeta(name: string, tags: string[] = []): Promise<void> {
   const obj: PageMeta = {
     ref: name,
     tag: "page",

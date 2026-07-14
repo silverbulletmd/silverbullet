@@ -185,11 +185,9 @@ export class DataStoreMQ {
     // (luaQuery would materialize the ENTIRE queue before applying the
     // limit — O(queue length) per poll, quadratic over a full space reindex.)
     const messages: MQMessage[] = [];
-    for await (
-      const { value } of this.ds.query<MQMessage>({
-        prefix: [...queuedPrefix, queue],
-      })
-    ) {
+    for await (const { value } of this.ds.query<MQMessage>({
+      prefix: [...queuedPrefix, queue],
+    })) {
       messages.push(value);
       if (messages.length >= maxItems) {
         break;

@@ -232,5 +232,10 @@ export function seedOverrideFromManifest(
 ): PendingShortcuts {
   if (pendingShortcuts[name]) return pendingShortcuts;
   const next = { ...pendingShortcuts, [name]: {} };
-  return writeBindings(next, name, manifestBindings(name, commands, isMac), isMac);
+  return writeBindings(
+    next,
+    name,
+    manifestBindings(name, commands, isMac),
+    isMac,
+  );
 }

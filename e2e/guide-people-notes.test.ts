@@ -40,45 +40,54 @@ const PEOPLE_PAGE = `# People
 `;
 
 test.describe("Guide: People Notes", () => {
-	test.use({
-		spaceFiles: {
-			"index.md": "# Welcome\nThis is the index.",
-			"Alice.md": ALICE,
-			"Bob.md": BOB,
-			"Meeting/2026-03-04.md": MEETING_NOTE,
-			"People.md": PEOPLE_PAGE,
-		},
-	});
+  test.use({
+    spaceFiles: {
+      "index.md": "# Welcome\nThis is the index.",
+      "Alice.md": ALICE,
+      "Bob.md": BOB,
+      "Meeting/2026-03-04.md": MEETING_NOTE,
+      "People.md": PEOPLE_PAGE,
+    },
+  });
 
-	test("person page surfaces meeting note as a Linked Mention", async ({ sbPage, sbServer }) => {
-		await gotoSilverBulletPage(sbPage, sbServer, "Alice");
-		const editor = sbPage.locator("#sb-editor .cm-content");
-		await expect(editor).toContainText("Alice");
+  test("person page surfaces meeting note as a Linked Mention", async ({
+    sbPage,
+    sbServer,
+  }) => {
+    await gotoSilverBulletPage(sbPage, sbServer, "Alice");
+    const editor = sbPage.locator("#sb-editor .cm-content");
+    await expect(editor).toContainText("Alice");
 
-		// Linked Mentions section appears at the bottom and includes the meeting note
-		await expect(editor).toContainText("Linked Mentions", { timeout: 15_000 });
-		await expect(editor).toContainText("Met with");
-	});
+    // Linked Mentions section appears at the bottom and includes the meeting note
+    await expect(editor).toContainText("Linked Mentions", { timeout: 15_000 });
+    await expect(editor).toContainText("Met with");
+  });
 
-	test("person page surfaces incomplete tasks as Linked Tasks", async ({ sbPage, sbServer }) => {
-		await gotoSilverBulletPage(sbPage, sbServer, "Alice");
-		const editor = sbPage.locator("#sb-editor .cm-content");
-		await expect(editor).toContainText("Alice");
+  test("person page surfaces incomplete tasks as Linked Tasks", async ({
+    sbPage,
+    sbServer,
+  }) => {
+    await gotoSilverBulletPage(sbPage, sbServer, "Alice");
+    const editor = sbPage.locator("#sb-editor .cm-content");
+    await expect(editor).toContainText("Alice");
 
-		// The Linked Tasks widget appears at the top of the page and shows
-		// "Send proposal to Alice" — an incomplete task from the meeting note
-		// that mentions [[Alice]].
-		await expect(editor).toContainText("Linked Tasks", { timeout: 15_000 });
-		await expect(editor).toContainText("Send proposal to");
-	});
+    // The Linked Tasks widget appears at the top of the page and shows
+    // "Send proposal to Alice" — an incomplete task from the meeting note
+    // that mentions [[Alice]].
+    await expect(editor).toContainText("Linked Tasks", { timeout: 15_000 });
+    await expect(editor).toContainText("Send proposal to");
+  });
 
-	test("query over tags.person returns all person pages", async ({ sbPage, sbServer }) => {
-		await gotoSilverBulletPage(sbPage, sbServer, "People");
-		const editor = sbPage.locator("#sb-editor .cm-content");
-		await expect(editor).toContainText("People");
+  test("query over tags.person returns all person pages", async ({
+    sbPage,
+    sbServer,
+  }) => {
+    await gotoSilverBulletPage(sbPage, sbServer, "People");
+    const editor = sbPage.locator("#sb-editor .cm-content");
+    await expect(editor).toContainText("People");
 
-		// The query widget should render Alice and Bob as result items
-		await expect(editor).toContainText("Alice", { timeout: 20_000 });
-		await expect(editor).toContainText("Bob");
-	});
+    // The query widget should render Alice and Bob as result items
+    await expect(editor).toContainText("Alice", { timeout: 20_000 });
+    await expect(editor).toContainText("Bob");
+  });
 });

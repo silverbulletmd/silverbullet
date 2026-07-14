@@ -61,9 +61,7 @@ test("parseHtmlTag - invalid text", () => {
   expect(parseHtmlTag("")).toBeNull();
 });
 
-function makeTags(
-  ...specs: { text: string; from: number; to: number }[]
-) {
+function makeTags(...specs: { text: string; from: number; to: number }[]) {
   return specs.map((s) => {
     const parsed = parseHtmlTag(s.text)!;
     return { ...parsed, from: s.from, to: s.to, text: s.text };
@@ -132,4 +130,3 @@ test("matchHtmlTagPairs - interleaved tags", () => {
   expect(pairs[0].open.tagName).toBe("b");
   expect(pairs[1].open.tagName).toBe("i");
 });
-

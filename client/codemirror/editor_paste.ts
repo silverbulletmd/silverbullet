@@ -67,8 +67,8 @@ const urlRegexp =
 // CodeMirror to actually perform a DOM selection write makes WebKit re-resolve
 // its caret. We do that by briefly nudging the selection and restoring it once
 // the paste (and its decoration rebuild) has settled.
-const isWebKit = typeof navigator !== "undefined" &&
-  /Apple Computer/.test(navigator.vendor);
+const isWebKit =
+  typeof navigator !== "undefined" && /Apple Computer/.test(navigator.vendor);
 
 function fixupWebKitCaretAfterPaste(view: EditorView): void {
   if (!isWebKit) return;
@@ -79,7 +79,7 @@ function fixupWebKitCaretAfterPaste(view: EditorView): void {
     const head = sel.main.head;
     const docLen = view.state.doc.length;
     // Pick a different position to force a real DOM selection write.
-    const bump = head > 0 ? head - 1 : (docLen > 0 ? head + 1 : head);
+    const bump = head > 0 ? head - 1 : docLen > 0 ? head + 1 : head;
     if (bump === head) return; // empty document, nothing to re-resolve
     const noHistory = Transaction.addToHistory.of(false);
     view.dispatch({

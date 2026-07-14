@@ -1,8 +1,8 @@
 import {
-	expect,
-	gotoSilverBulletPage,
-	test,
-	waitForSaveAndReadFromServer,
+  expect,
+  gotoSilverBulletPage,
+  test,
+  waitForSaveAndReadFromServer,
 } from "./fixtures.ts";
 
 // This file exercises the workflow described in docs/Guide/Task Management.md
@@ -49,64 +49,79 @@ const DASHBOARD = `# Dashboard
 `;
 
 test.describe("Guide: Task Management", () => {
-	test.use({
-		spaceFiles: {
-			"index.md": "# Welcome\nThis is the index.",
-			"Website Redesign.md": WEBSITE_REDESIGN,
-			"Meeting Notes/2026-03-04.md": MEETING_NOTE,
-			"Dashboard.md": DASHBOARD,
-		},
-	});
+  test.use({
+    spaceFiles: {
+      "index.md": "# Welcome\nThis is the index.",
+      "Website Redesign.md": WEBSITE_REDESIGN,
+      "Meeting Notes/2026-03-04.md": MEETING_NOTE,
+      "Dashboard.md": DASHBOARD,
+    },
+  });
 
-	test("project page renders task checkboxes", async ({ sbPage, sbServer }) => {
-		await gotoSilverBulletPage(sbPage, sbServer, "Website Redesign");
-		const editor = sbPage.locator("#sb-editor .cm-content");
-		await expect(editor).toContainText("Website Redesign");
+  test("project page renders task checkboxes", async ({ sbPage, sbServer }) => {
+    await gotoSilverBulletPage(sbPage, sbServer, "Website Redesign");
+    const editor = sbPage.locator("#sb-editor .cm-content");
+    await expect(editor).toContainText("Website Redesign");
 
-		const checkboxes = sbPage.locator(
-			"#sb-editor .cm-content .sb-checkbox input[type='checkbox']",
-		);
-		await expect(checkboxes.first()).toBeVisible({ timeout: 10_000 });
-		// Three native tasks; linked tasks may add more, so just assert >= 3
-		const count = await checkboxes.count();
-		expect(count).toBeGreaterThanOrEqual(3);
-	});
+    const checkboxes = sbPage.locator(
+      "#sb-editor .cm-content .sb-checkbox input[type='checkbox']",
+    );
+    await expect(checkboxes.first()).toBeVisible({ timeout: 10_000 });
+    // Three native tasks; linked tasks may add more, so just assert >= 3
+    const count = await checkboxes.count();
+    expect(count).toBeGreaterThanOrEqual(3);
+  });
 
-	test("project page surfaces tasks scattered across other pages as Linked Tasks", async ({ sbPage, sbServer }) => {
-		await gotoSilverBulletPage(sbPage, sbServer, "Website Redesign");
-		const editor = sbPage.locator("#sb-editor .cm-content");
-		await expect(editor).toContainText("Website Redesign");
+  test("project page surfaces tasks scattered across other pages as Linked Tasks", async ({
+    sbPage,
+    sbServer,
+  }) => {
+    await gotoSilverBulletPage(sbPage, sbServer, "Website Redesign");
+    const editor = sbPage.locator("#sb-editor .cm-content");
+    await expect(editor).toContainText("Website Redesign");
 
-		await expect(editor).toContainText("Linked Tasks", { timeout: 15_000 });
-		// Tasks from Meeting Notes/2026-03-04 that link to [[Website Redesign]]
-		await expect(editor).toContainText("Send updated mockups");
-		await expect(editor).toContainText("Schedule review meeting");
-	});
+    await expect(editor).toContainText("Linked Tasks", { timeout: 15_000 });
+    // Tasks from Meeting Notes/2026-03-04 that link to [[Website Redesign]]
+    await expect(editor).toContainText("Send updated mockups");
+    await expect(editor).toContainText("Schedule review meeting");
+  });
 
-	test("toggling a task on the project page persists to disk", async ({ sbPage, sbServer }) => {
-		await gotoSilverBulletPage(sbPage, sbServer, "Website Redesign");
-		const editor = sbPage.locator("#sb-editor .cm-content");
-		await expect(editor).toContainText("Write the project proposal");
+  test("toggling a task on the project page persists to disk", async ({
+    sbPage,
+    sbServer,
+  }) => {
+    await gotoSilverBulletPage(sbPage, sbServer, "Website Redesign");
+    const editor = sbPage.locator("#sb-editor .cm-content");
+    await expect(editor).toContainText("Write the project proposal");
 
-		// Click the first checkbox in the editor body
-		const firstCheckbox = editor.locator(".sb-checkbox input[type='checkbox']").first();
-		await expect(firstCheckbox).toBeVisible({ timeout: 10_000 });
-		await expect(firstCheckbox).not.toBeChecked();
-		await firstCheckbox.click();
-		await expect(firstCheckbox).toBeChecked();
+    // Click the first checkbox in the editor body
+    const firstCheckbox = editor
+      .locator(".sb-checkbox input[type='checkbox']")
+      .first();
+    await expect(firstCheckbox).toBeVisible({ timeout: 10_000 });
+    await expect(firstCheckbox).not.toBeChecked();
+    await firstCheckbox.click();
+    await expect(firstCheckbox).toBeChecked();
 
-		const content = await waitForSaveAndReadFromServer(sbPage, sbServer, "Website Redesign.md");
-		expect(content).toMatch(/\* \[x\] Write the project proposal/);
-	});
+    const content = await waitForSaveAndReadFromServer(
+      sbPage,
+      sbServer,
+      "Website Redesign.md",
+    );
+    expect(content).toMatch(/\* \[x\] Write the project proposal/);
+  });
 
-	test("dashboard query renders active projects and open tasks", async ({ sbPage, sbServer }) => {
-		await gotoSilverBulletPage(sbPage, sbServer, "Dashboard");
-		const editor = sbPage.locator("#sb-editor .cm-content");
-		await expect(editor).toContainText("Dashboard");
+  test("dashboard query renders active projects and open tasks", async ({
+    sbPage,
+    sbServer,
+  }) => {
+    await gotoSilverBulletPage(sbPage, sbServer, "Dashboard");
+    const editor = sbPage.locator("#sb-editor .cm-content");
+    await expect(editor).toContainText("Dashboard");
 
-		// "Active projects" section should list Website Redesign
-		await expect(editor).toContainText("Website Redesign", { timeout: 20_000 });
-		// "Open tasks" section should include at least one of our seeded tasks
-		await expect(editor).toContainText("Write the project proposal");
-	});
+    // "Active projects" section should list Website Redesign
+    await expect(editor).toContainText("Website Redesign", { timeout: 20_000 });
+    // "Open tasks" section should include at least one of our seeded tasks
+    await expect(editor).toContainText("Write the project proposal");
+  });
 });

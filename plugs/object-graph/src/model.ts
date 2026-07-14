@@ -9,26 +9,26 @@ export type ObjectKind = "page" | "item" | "block" | "url" | "file";
  * the node, drive filters, and populate the right-panel object view.
  */
 export type ObjectNode = {
-	ref: string;
-	kind: ObjectKind;
-	title: string;
-	// Single core tag (page/item/task/block); drives the Root-tags filter.
-	rootTag: string | null;
-	// First non-core tag; drives node color. null when none.
-	primaryTag: string | null;
-	// All non-core tags; drives the Tags filter.
-	tags: string[];
-	dangling: boolean;
-	// pageDecoration.prefix passthrough (e.g. emoji prefix).
-	prefix?: string;
-	// Full indexed payload, rendered verbatim into the object view.
-	attributes: Record<string, unknown>;
+  ref: string;
+  kind: ObjectKind;
+  title: string;
+  // Single core tag (page/item/task/block); drives the Root-tags filter.
+  rootTag: string | null;
+  // First non-core tag; drives node color. null when none.
+  primaryTag: string | null;
+  // All non-core tags; drives the Tags filter.
+  tags: string[];
+  dangling: boolean;
+  // pageDecoration.prefix passthrough (e.g. emoji prefix).
+  prefix?: string;
+  // Full indexed payload, rendered verbatim into the object view.
+  attributes: Record<string, unknown>;
 };
 
 export type EdgeProvenance = {
-	page: string;
-	pos?: number;
-	snippet?: string;
+  page: string;
+  pos?: number;
+  snippet?: string;
 };
 
 /**
@@ -37,50 +37,50 @@ export type EdgeProvenance = {
  * into one record with `undirected: true`.
  */
 export type Edge = {
-	source: string;
-	target: string;
-	label: string; // == kind
-	kind: string;
-	refs: EdgeProvenance[];
-	undirected: boolean;
+  source: string;
+  target: string;
+  label: string; // == kind
+  kind: string;
+  refs: EdgeProvenance[];
+  undirected: boolean;
 };
 
 export type ExpansionResult = {
-	object: ObjectNode;
-	neighbors: ObjectNode[];
-	edges: Edge[];
+  object: ObjectNode;
+  neighbors: ObjectNode[];
+  edges: Edge[];
 };
 
 export type Filters = {
-	hiddenTags: string[];
-	hiddenLabels: string[];
-	// When true, edge labels on the canvas are suppressed entirely.
-	hideEdgeLabels: boolean;
-	// When true, nodes with no visible incoming or outgoing relation in
-	// the current filter set are hidden (except the root).
-	hideOrphans: boolean;
+  hiddenTags: string[];
+  hiddenLabels: string[];
+  // When true, edge labels on the canvas are suppressed entirely.
+  hideEdgeLabels: boolean;
+  // When true, nodes with no visible incoming or outgoing relation in
+  // the current filter set are hidden (except the root).
+  hideOrphans: boolean;
 };
 
 // Tunable force-simulation knobs exposed as sliders in the sidebar.
 export type ForceSettings = {
-	centerStrength: number;
-	chargeStrength: number;
-	linkDistance: number;
-	linkStrength: number;
+  centerStrength: number;
+  chargeStrength: number;
+  linkDistance: number;
+  linkStrength: number;
 };
 
 export const defaultForceSettings: ForceSettings = {
-	centerStrength: 0.18,
-	chargeStrength: -430,
-	linkDistance: 223,
-	linkStrength: 0.1,
+  centerStrength: 0.18,
+  chargeStrength: -430,
+  linkDistance: 223,
+  linkStrength: 0.1,
 };
 
 export const defaultFilters: Filters = {
-	hiddenTags: [],
-	hiddenLabels: [],
-	hideEdgeLabels: false,
-	hideOrphans: true,
+  hiddenTags: [],
+  hiddenLabels: [],
+  hideEdgeLabels: false,
+  hideOrphans: true,
 };
 
 /**
@@ -90,25 +90,25 @@ export const defaultFilters: Filters = {
  * Counts in the sidebar still reflect the explored subgraph.
  */
 export type GraphUniverse = {
-	tags: string[];
-	labels: string[];
+  tags: string[];
+  labels: string[];
 };
 
 export type RootViewModel = {
-	root: ExpansionResult;
-	universe: GraphUniverse;
-	filters: Filters;
-	forces: ForceSettings;
-	/**
-	 * When true, the panel marks all of `root.neighbors` as already-expanded
-	 * (instead of the default ghost state). Used by the global view, which
-	 * ships every page at once and lets the user trim down rather than walk out.
-	 */
-	initialAllExpanded?: boolean;
-	/**
-	 * When false, the panel does not persist in-session filter changes back
-	 * to the datastore. Used by transient views like the global view so they
-	 * don't pollute the local-view filter preferences.
-	 */
-	persistFilters?: boolean;
+  root: ExpansionResult;
+  universe: GraphUniverse;
+  filters: Filters;
+  forces: ForceSettings;
+  /**
+   * When true, the panel marks all of `root.neighbors` as already-expanded
+   * (instead of the default ghost state). Used by the global view, which
+   * ships every page at once and lets the user trim down rather than walk out.
+   */
+  initialAllExpanded?: boolean;
+  /**
+   * When false, the panel does not persist in-session filter changes back
+   * to the datastore. Used by transient views like the global view so they
+   * don't pollute the local-view filter preferences.
+   */
+  persistFilters?: boolean;
 };

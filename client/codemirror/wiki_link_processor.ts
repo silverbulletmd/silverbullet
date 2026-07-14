@@ -20,9 +20,8 @@ import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 // pages in large spaces painfully slow. Memoize the map and only rebuild it
 // when the `allPages` array identity changes (i.e. when the page list is
 // actually replaced).
-let pageByPathCache:
-  | { pages: PageMeta[]; map: Map<string, PageMeta> }
-  | null = null;
+let pageByPathCache: { pages: PageMeta[]; map: Map<string, PageMeta> } | null =
+  null;
 
 function pageByPath(allPages: PageMeta[]): Map<string, PageMeta> {
   if (pageByPathCache?.pages === allPages) {

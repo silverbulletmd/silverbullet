@@ -4,7 +4,10 @@ import type { Conflicts } from "../keys.ts";
 import { prettifyShortcut } from "../../../../plug-api/lib/shortcut.ts";
 
 export function cls(map: Record<string, boolean>): string {
-  return Object.entries(map).filter(([, v]) => v).map(([k]) => k).join(" ");
+  return Object.entries(map)
+    .filter(([, v]) => v)
+    .map(([k]) => k)
+    .join(" ");
 }
 
 export function ChordTokens({ tokens }: { tokens: string[] }) {
@@ -30,9 +33,7 @@ export function ChordChips({ binding }: { binding: string }) {
 
 // Pick the most informative conflict class. Blocking classes take precedence
 // over the soft "this is a prefix of another" notice.
-function describeConflict(
-  c: Conflicts,
-): {
+function describeConflict(c: Conflicts): {
   severity: "error" | "warn";
   message: ComponentChildren;
   tooltip: string;
@@ -43,8 +44,8 @@ function describeConflict(
       severity: "error",
       message: (
         <>
-          ⚠ unreachable — <strong>{e.name}</strong> (<code>{e.binding}</code>)
-          {" "}fires before you can press more keys
+          ⚠ unreachable — <strong>{e.name}</strong> (<code>{e.binding}</code>){" "}
+          fires before you can press more keys
         </>
       ),
       tooltip: c.otherIsPrefix.map((x) => `${x.name}: ${x.binding}`).join("\n"),
@@ -64,15 +65,16 @@ function describeConflict(
   }
   if (c.prefixOfOther.length > 0) {
     const e = c.prefixOfOther[0];
-    const more = c.prefixOfOther.length > 1
-      ? ` (+${c.prefixOfOther.length - 1} more)`
-      : "";
+    const more =
+      c.prefixOfOther.length > 1
+        ? ` (+${c.prefixOfOther.length - 1} more)`
+        : "";
     return {
       severity: "warn",
       message: (
         <>
-          This is the start of <strong>{e.name}</strong>{" "}
-          (<code>{e.binding}</code>){more} — press another key to continue
+          This is the start of <strong>{e.name}</strong> (
+          <code>{e.binding}</code>){more} — press another key to continue
         </>
       ),
       tooltip: c.prefixOfOther.map((x) => `${x.name}: ${x.binding}`).join("\n"),
@@ -81,13 +83,15 @@ function describeConflict(
   return null;
 }
 
-export function RecordingPreview(
-  { tokens, conflict, invalidFirstKey }: {
-    tokens: string[];
-    conflict: Conflicts;
-    invalidFirstKey: string | null;
-  },
-) {
+export function RecordingPreview({
+  tokens,
+  conflict,
+  invalidFirstKey,
+}: {
+  tokens: string[];
+  conflict: Conflicts;
+  invalidFirstKey: string | null;
+}) {
   let info = describeConflict(conflict);
   if (invalidFirstKey && !info) {
     info = {
@@ -110,27 +114,27 @@ export function RecordingPreview(
         "cfg-shortcut-recording-warn": info?.severity === "warn",
       })}
     >
-      {tokens.length === 0
-        ? <em>Press keys…</em>
-        : <ChordTokens tokens={tokens} />}
+      {tokens.length === 0 ? (
+        <em>Press keys…</em>
+      ) : (
+        <ChordTokens tokens={tokens} />
+      )}
       <span class="cfg-recording-caret">▎</span>
-      {info
-        ? (
-          <span
-            class={cls({
-              "cfg-recording-error": info.severity === "error",
-              "cfg-recording-warn": info.severity === "warn",
-            })}
-            title={info.tooltip}
-          >
-            {info.message}
-          </span>
-        )
-        : (
-          <span class="cfg-recording-hint">
-            Enter to commit · Esc to cancel · ⌫ to undo
-          </span>
-        )}
+      {info ? (
+        <span
+          class={cls({
+            "cfg-recording-error": info.severity === "error",
+            "cfg-recording-warn": info.severity === "warn",
+          })}
+          title={info.tooltip}
+        >
+          {info.message}
+        </span>
+      ) : (
+        <span class="cfg-recording-hint">
+          Enter to commit · Esc to cancel · ⌫ to undo
+        </span>
+      )}
     </span>
   );
 }

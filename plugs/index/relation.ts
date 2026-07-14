@@ -222,172 +222,191 @@ export async function indexRelations(
   const pageFrom = pageMeta.name;
   const pageFromTag = "page";
 
-  traverseTree(tree, (n) => {
-    if (n.type === "WikiLink") {
-      const wikiLinkPage = findNodeOfType(n, "WikiLinkPage");
-      if (!wikiLinkPage) return true;
-      const ref = parseToRef(wikiLinkPage.children![0].text!);
-      if (!ref) return true;
-      const { from, fromTag } = innermostContainer(n, pageMeta.name);
-      const alias = findNodeOfType(n, "WikiLinkAlias")?.children?.[0].text;
-      // Same-page wikilinks (`[[#Heading]]`, `[[@123]]`, `[[$anchor]]`).
-      // Only `$anchor` points at an indexed object — items and headers
-      // with `$name` are stored under `ref = name`. The header/position
-      // forms are intra-page UI nav and aren't worth recording as edges.
-      if (ref.path === "") {
-        if (ref.details?.type === "anchor") {
-          emitTextualEdge(ctx, {
-            kind: "mention",
-            from,
-            fromTag,
-            to: ref.details.name,
-            toTag: ANCHOR_TARGET_TAG,
-            range: [n.from!, n.to!],
-            alias,
-          });
-        }
-        return true;
-      }
-      const isPage = isMarkdownPath(ref.path);
-      emitTextualEdge(ctx, {
-        // `[[X.jpg]]` (or any non-markdown target) is a document edge,
-        // matching the legacy `link.type = "file"` classification.
-        kind: "mention",
-        from,
-        fromTag,
-        to: isPage ? getNameFromPath(ref.path) : ref.path,
-        toTag: isPage ? "page" : "document",
-        range: [n.from!, n.to!],
-        alias,
-      });
-      return true;
-    }
-
-    if (n.type === "Link" || n.type === "Image") {
-      mdLinkRegex.lastIndex = 0;
-      const match = mdLinkRegex.exec(renderToText(n));
-      if (!match) return false;
-      const { title: alias, url } = match.groups as {
-        url: string;
-        title: string;
-      };
-      const { from, fromTag } = innermostContainer(n, pageMeta.name);
-      const base = {
-        from,
-        fromTag,
-        range: [n.from!, n.to!] as [number, number],
-        alias,
-      };
-      if (!isLocalURL(url)) {
-        emitTextualEdge(ctx, { ...base, kind: "mention", to: url, toTag: "url" });
-        return true;
-      }
-      const ref = parseToRef(
-        resolveMarkdownLink(pageMeta.name, decodeURI(url)),
-      );
-      if (!ref) return true;
-      if (isMarkdownPath(ref.path)) {
-        emitTextualEdge(ctx, {
-          ...base,
-          kind: "mention",
-          to: getNameFromPath(ref.path),
-          toTag: "page",
-        });
-      } else {
-        emitTextualEdge(ctx, {
-          ...base,
-          kind: "mention",
-          to: ref.path,
-          toTag: "document",
-        });
-      }
-      return true;
-    }
-
-    if (n.type === "FencedCode") {
-      const codeInfoNode = findNodeOfType(n, "CodeInfo");
-      if (!codeInfoNode) return true;
-      const fenceType = codeInfoNode.children![0].text!;
-      if (!fenceType.startsWith("#")) return true;
-      const dataType = fenceType.substring(1);
-      const codeTextNode = findNodeOfType(n, "CodeText");
-      if (!codeTextNode) return true;
-      const codeText = codeTextNode.children![0].text!;
-      const blockRef = `${pageMeta.name}@${n.from!}`;
-
-      const lineKeyRegex = /^(\s*)([\w$][\w$\- ]*)\s*:\s*(.*)$/;
-      let cursor = 0;
-      for (const line of codeText.split("\n")) {
-        const m = lineKeyRegex.exec(line);
-        if (m) {
-          const valueOffset = m[0].length - m[3].length;
-          emitWikiLinksInRange(ctx, m[3], codeTextNode.from! + cursor + valueOffset, {
-            kind: m[2].trim(),
-            from: blockRef,
-            fromTag: dataType,
-          });
-        }
-        cursor += line.length + 1;
-      }
-      return true;
-    }
-
-    if (n.type === "Attribute") {
-      const nameNode = findNodeOfType(n, "AttributeName");
-      const valueNode = findNodeOfType(n, "AttributeValue");
-      if (!nameNode || !valueNode) return true;
-      const { from, fromTag } = innermostContainer(n, pageMeta.name);
-      emitWikiLinksInRange(ctx, valueNode.children![0].text!, valueNode.from!, {
-        kind: nameNode.children![0].text!,
-        from,
-        fromTag,
-      });
-      return true;
-    }
-
-    if (n.type === "FrontMatter") {
-      for (const { key, valueNode } of frontmatterStringEntries(n)) {
-        const text = valueNode.children![0].text!;
-        const trimmed = text.replace(/^["'\s]*/, "").replace(/["'\s]*$/, "");
-        wikiLinkRegex.lastIndex = 0;
-        const match = wikiLinkRegex.exec(text);
-        if (!match?.groups || match[0] !== trimmed) continue;
-        const { stringRef, alias } = match.groups as {
-          stringRef: string;
-          alias?: string;
-        };
-        const ref = parseToRef(stringRef);
-        if (!ref) continue;
-        const start = valueNode.from! + match.index!;
-        const range: [number, number] = [start, start + match[0].length];
-        const base = {
-          kind: key,
-          from: pageFrom,
-          fromTag: pageFromTag,
-          range,
-          alias,
-        };
+  traverseTree(
+    tree,
+    (n) => {
+      if (n.type === "WikiLink") {
+        const wikiLinkPage = findNodeOfType(n, "WikiLinkPage");
+        if (!wikiLinkPage) return true;
+        const ref = parseToRef(wikiLinkPage.children![0].text!);
+        if (!ref) return true;
+        const { from, fromTag } = innermostContainer(n, pageMeta.name);
+        const alias = findNodeOfType(n, "WikiLinkAlias")?.children?.[0].text;
+        // Same-page wikilinks (`[[#Heading]]`, `[[@123]]`, `[[$anchor]]`).
+        // Only `$anchor` points at an indexed object — items and headers
+        // with `$name` are stored under `ref = name`. The header/position
+        // forms are intra-page UI nav and aren't worth recording as edges.
         if (ref.path === "") {
           if (ref.details?.type === "anchor") {
             emitTextualEdge(ctx, {
-              ...base,
+              kind: "mention",
+              from,
+              fromTag,
               to: ref.details.name,
               toTag: ANCHOR_TARGET_TAG,
+              range: [n.from!, n.to!],
+              alias,
             });
           }
-          continue;
+          return true;
         }
         const isPage = isMarkdownPath(ref.path);
         emitTextualEdge(ctx, {
-          ...base,
+          // `[[X.jpg]]` (or any non-markdown target) is a document edge,
+          // matching the legacy `link.type = "file"` classification.
+          kind: "mention",
+          from,
+          fromTag,
           to: isPage ? getNameFromPath(ref.path) : ref.path,
           toTag: isPage ? "page" : "document",
+          range: [n.from!, n.to!],
+          alias,
         });
+        return true;
       }
-      return true;
-    }
-    return false;
-  }, true);
+
+      if (n.type === "Link" || n.type === "Image") {
+        mdLinkRegex.lastIndex = 0;
+        const match = mdLinkRegex.exec(renderToText(n));
+        if (!match) return false;
+        const { title: alias, url } = match.groups as {
+          url: string;
+          title: string;
+        };
+        const { from, fromTag } = innermostContainer(n, pageMeta.name);
+        const base = {
+          from,
+          fromTag,
+          range: [n.from!, n.to!] as [number, number],
+          alias,
+        };
+        if (!isLocalURL(url)) {
+          emitTextualEdge(ctx, {
+            ...base,
+            kind: "mention",
+            to: url,
+            toTag: "url",
+          });
+          return true;
+        }
+        const ref = parseToRef(
+          resolveMarkdownLink(pageMeta.name, decodeURI(url)),
+        );
+        if (!ref) return true;
+        if (isMarkdownPath(ref.path)) {
+          emitTextualEdge(ctx, {
+            ...base,
+            kind: "mention",
+            to: getNameFromPath(ref.path),
+            toTag: "page",
+          });
+        } else {
+          emitTextualEdge(ctx, {
+            ...base,
+            kind: "mention",
+            to: ref.path,
+            toTag: "document",
+          });
+        }
+        return true;
+      }
+
+      if (n.type === "FencedCode") {
+        const codeInfoNode = findNodeOfType(n, "CodeInfo");
+        if (!codeInfoNode) return true;
+        const fenceType = codeInfoNode.children![0].text!;
+        if (!fenceType.startsWith("#")) return true;
+        const dataType = fenceType.substring(1);
+        const codeTextNode = findNodeOfType(n, "CodeText");
+        if (!codeTextNode) return true;
+        const codeText = codeTextNode.children![0].text!;
+        const blockRef = `${pageMeta.name}@${n.from!}`;
+
+        const lineKeyRegex = /^(\s*)([\w$][\w$\- ]*)\s*:\s*(.*)$/;
+        let cursor = 0;
+        for (const line of codeText.split("\n")) {
+          const m = lineKeyRegex.exec(line);
+          if (m) {
+            const valueOffset = m[0].length - m[3].length;
+            emitWikiLinksInRange(
+              ctx,
+              m[3],
+              codeTextNode.from! + cursor + valueOffset,
+              {
+                kind: m[2].trim(),
+                from: blockRef,
+                fromTag: dataType,
+              },
+            );
+          }
+          cursor += line.length + 1;
+        }
+        return true;
+      }
+
+      if (n.type === "Attribute") {
+        const nameNode = findNodeOfType(n, "AttributeName");
+        const valueNode = findNodeOfType(n, "AttributeValue");
+        if (!nameNode || !valueNode) return true;
+        const { from, fromTag } = innermostContainer(n, pageMeta.name);
+        emitWikiLinksInRange(
+          ctx,
+          valueNode.children![0].text!,
+          valueNode.from!,
+          {
+            kind: nameNode.children![0].text!,
+            from,
+            fromTag,
+          },
+        );
+        return true;
+      }
+
+      if (n.type === "FrontMatter") {
+        for (const { key, valueNode } of frontmatterStringEntries(n)) {
+          const text = valueNode.children![0].text!;
+          const trimmed = text.replace(/^["'\s]*/, "").replace(/["'\s]*$/, "");
+          wikiLinkRegex.lastIndex = 0;
+          const match = wikiLinkRegex.exec(text);
+          if (!match?.groups || match[0] !== trimmed) continue;
+          const { stringRef, alias } = match.groups as {
+            stringRef: string;
+            alias?: string;
+          };
+          const ref = parseToRef(stringRef);
+          if (!ref) continue;
+          const start = valueNode.from! + match.index!;
+          const range: [number, number] = [start, start + match[0].length];
+          const base = {
+            kind: key,
+            from: pageFrom,
+            fromTag: pageFromTag,
+            range,
+            alias,
+          };
+          if (ref.path === "") {
+            if (ref.details?.type === "anchor") {
+              emitTextualEdge(ctx, {
+                ...base,
+                to: ref.details.name,
+                toTag: ANCHOR_TARGET_TAG,
+              });
+            }
+            continue;
+          }
+          const isPage = isMarkdownPath(ref.path);
+          emitTextualEdge(ctx, {
+            ...base,
+            to: isPage ? getNameFromPath(ref.path) : ref.path,
+            toTag: isPage ? "page" : "document",
+          });
+        }
+        return true;
+      }
+      return false;
+    },
+    true,
+  );
 
   emitCoMentions(ctx, tree);
   await emitAspiringPages(ctx);
@@ -402,9 +421,7 @@ export async function indexRelations(
 async function emitAspiringPages(ctx: EmitCtx): Promise<void> {
   const candidates = ctx.out.filter(
     (r): r is RelationObject & { range: [number, number] } =>
-      r.kind !== "co-mention" &&
-      r.toTag === "page" &&
-      Array.isArray(r.range),
+      r.kind !== "co-mention" && r.toTag === "page" && Array.isArray(r.range),
   );
   if (candidates.length === 0) return;
 
@@ -449,11 +466,15 @@ function emitCoMentions(ctx: EmitCtx, tree: ParseTree): void {
   type Scope = { from: number; to: number };
   const items: Scope[] = [];
   const paragraphs: Scope[] = [];
-  traverseTree(tree, (n) => {
-    if (n.type === "ListItem") items.push({ from: n.from!, to: n.to! });
-    if (n.type === "Paragraph") paragraphs.push({ from: n.from!, to: n.to! });
-    return false;
-  }, true);
+  traverseTree(
+    tree,
+    (n) => {
+      if (n.type === "ListItem") items.push({ from: n.from!, to: n.to! });
+      if (n.type === "Paragraph") paragraphs.push({ from: n.from!, to: n.to! });
+      return false;
+    },
+    true,
+  );
   // Innermost first by sorting descending on `from` (smaller scopes
   // appear later in document order than their enclosing scopes only
   // when nested — for siblings any order is fine because each relation
@@ -461,9 +482,15 @@ function emitCoMentions(ctx: EmitCtx, tree: ParseTree): void {
   items.sort((a, b) => b.from - a.from);
   paragraphs.sort((a, b) => b.from - a.from);
 
-  const ancestorsFor = (pos: number): { items: number[]; paragraphs: number[] } => {
-    const it = items.filter((s) => s.from <= pos && pos < s.to).map((s) => s.from);
-    const pa = paragraphs.filter((s) => s.from <= pos && pos < s.to).map((s) => s.from);
+  const ancestorsFor = (
+    pos: number,
+  ): { items: number[]; paragraphs: number[] } => {
+    const it = items
+      .filter((s) => s.from <= pos && pos < s.to)
+      .map((s) => s.from);
+    const pa = paragraphs
+      .filter((s) => s.from <= pos && pos < s.to)
+      .map((s) => s.from);
     return { items: it, paragraphs: pa };
   };
 
@@ -497,9 +524,10 @@ function emitCoMentions(ctx: EmitCtx, tree: ParseTree): void {
       const b = mentions[j];
       if (a.rec.to === b.rec.to) continue;
       const sharedItem = a.items.find((p) => b.itemSet.has(p));
-      const sharedPara = sharedItem === undefined
-        ? a.paragraphs.find((p) => b.paraSet.has(p))
-        : undefined;
+      const sharedPara =
+        sharedItem === undefined
+          ? a.paragraphs.find((p) => b.paraSet.has(p))
+          : undefined;
       const sharedPos = sharedItem ?? sharedPara;
       if (sharedPos === undefined) continue;
 
@@ -536,16 +564,20 @@ function emitCoMentions(ctx: EmitCtx, tree: ParseTree): void {
  */
 export function collectPageLinks(n: ParseTree): string[] {
   const links = new Set<string>();
-  traverseTree(n, (n) => {
-    if (n.type === "WikiLink") {
-      links.add(findNodeOfType(n, "WikiLinkPage")!.children![0].text!);
-      return true;
-    } else if (n.type === "OrderedList" || n.type === "BulletList") {
-      // Don't traverse into sub-lists
-      return true;
-    }
-    return false;
-  }, true);
+  traverseTree(
+    n,
+    (n) => {
+      if (n.type === "WikiLink") {
+        links.add(findNodeOfType(n, "WikiLinkPage")!.children![0].text!);
+        return true;
+      } else if (n.type === "OrderedList" || n.type === "BulletList") {
+        // Don't traverse into sub-lists
+        return true;
+      }
+      return false;
+    },
+    true,
+  );
   return [...links];
 }
 

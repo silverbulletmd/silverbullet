@@ -19,10 +19,7 @@ export function getValueAtPath(obj: any, path: string): any {
   return current;
 }
 
-export function getSchemaAtPath(
-  schemas: any,
-  path: string,
-): any {
+export function getSchemaAtPath(schemas: any, path: string): any {
   const parts = path.split(".");
   let current: any = schemas;
   for (const part of parts) {
@@ -34,11 +31,7 @@ export function getSchemaAtPath(
   return current;
 }
 
-function collectUiSchemas(
-  schemaNode: any,
-  path: string,
-  results: UiSchema[],
-) {
+function collectUiSchemas(schemaNode: any, path: string, results: UiSchema[]) {
   if (!schemaNode || !schemaNode.properties) return;
   for (const [key, prop] of Object.entries<any>(schemaNode.properties)) {
     const fullPath = path ? `${path}.${key}` : key;
@@ -66,7 +59,10 @@ export function buildSchemaIndex(cfg: ConfigurationViewModel): SchemaIndex {
     }
     const cat = item.schema.ui.category;
     (categoryMap[cat] ||= []).push(item);
-    initialConfig[item.path] = Object.hasOwn(cfg.configOverrides || {}, item.path)
+    initialConfig[item.path] = Object.hasOwn(
+      cfg.configOverrides || {},
+      item.path,
+    )
       ? cfg.configOverrides[item.path]
       : getValueAtPath(cfg.values, item.path);
   }

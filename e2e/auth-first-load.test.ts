@@ -17,54 +17,56 @@ let spaceDir: string;
 let base: string;
 
 test.beforeAll(async () => {
-	spaceDir = await mkdtemp(join(tmpdir(), "sb-auth-e2e-"));
-	const port = await getFreePort();
-	proc = spawn(
-		"./target/debug/silverbullet",
-		[spaceDir, "-p", String(port), "-L", "127.0.0.1"],
-		{
-			cwd: join(import.meta.dirname, ".."),
-			stdio: ["ignore", "pipe", "pipe"],
-			env: {
-				...process.env,
-				SB_USER: "alice:s3cret",
-				SB_RUNTIME_API: "0",
-				SB_DISABLE_SERVICE_WORKER: "1",
-			},
-		},
-	);
-	base = `http://127.0.0.1:${port}`;
-	// The SPA shell is served openly, so /.ping answers even without a session.
-	await waitForServer(`${base}/.ping`);
+  spaceDir = await mkdtemp(join(tmpdir(), "sb-auth-e2e-"));
+  const port = await getFreePort();
+  proc = spawn(
+    "./target/debug/silverbullet",
+    [spaceDir, "-p", String(port), "-L", "127.0.0.1"],
+    {
+      cwd: join(import.meta.dirname, ".."),
+      stdio: ["ignore", "pipe", "pipe"],
+      env: {
+        ...process.env,
+        SB_USER: "alice:s3cret",
+        SB_RUNTIME_API: "0",
+        SB_DISABLE_SERVICE_WORKER: "1",
+      },
+    },
+  );
+  base = `http://127.0.0.1:${port}`;
+  // The SPA shell is served openly, so /.ping answers even without a session.
+  await waitForServer(`${base}/.ping`);
 });
 
 test.afterAll(async () => {
-	proc?.kill();
-	await rm(spaceDir, { recursive: true, force: true });
+  proc?.kill();
+  await rm(spaceDir, { recursive: true, force: true });
 });
 
-test("first load of an authenticated space redirects to login without alerts", async ({ page }) => {
-	const dialogs: string[] = [];
-	page.on("dialog", async (dialog) => {
-		dialogs.push(dialog.message());
-		await dialog.dismiss();
-	});
+test("first load of an authenticated space redirects to login without alerts", async ({
+  page,
+}) => {
+  const dialogs: string[] = [];
+  page.on("dialog", async (dialog) => {
+    dialogs.push(dialog.message());
+    await dialog.dismiss();
+  });
 
-	await page.goto(`${base}/`);
-	// The boot code discovers it is unauthenticated and redirects to the login
-	// page.
-	await expect(page.locator("#username")).toBeVisible({ timeout: 30_000 });
-	// Give any straggling (aborted) boot fetch time to surface a dialog.
-	await page.waitForTimeout(1500);
-	expect(dialogs, `unexpected dialogs: ${dialogs.join(" | ")}`).toEqual([]);
+  await page.goto(`${base}/`);
+  // The boot code discovers it is unauthenticated and redirects to the login
+  // page.
+  await expect(page.locator("#username")).toBeVisible({ timeout: 30_000 });
+  // Give any straggling (aborted) boot fetch time to surface a dialog.
+  await page.waitForTimeout(1500);
+  expect(dialogs, `unexpected dialogs: ${dialogs.join(" | ")}`).toEqual([]);
 
-	// And logging in still works end to end.
-	await page.locator("#username").fill("alice");
-	await page.locator("#password").fill("s3cret");
-	await page.getByRole("button", { name: "Login" }).click();
-	await page.waitForURL(`${base}/`);
-	await expect(page.locator("#sb-editor .cm-editor")).toBeVisible({
-		timeout: 30_000,
-	});
-	expect(dialogs, `unexpected dialogs: ${dialogs.join(" | ")}`).toEqual([]);
+  // And logging in still works end to end.
+  await page.locator("#username").fill("alice");
+  await page.locator("#password").fill("s3cret");
+  await page.getByRole("button", { name: "Login" }).click();
+  await page.waitForURL(`${base}/`);
+  await expect(page.locator("#sb-editor .cm-editor")).toBeVisible({
+    timeout: 30_000,
+  });
+  expect(dialogs, `unexpected dialogs: ${dialogs.join(" | ")}`).toEqual([]);
 });

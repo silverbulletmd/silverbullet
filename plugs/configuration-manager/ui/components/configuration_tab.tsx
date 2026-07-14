@@ -3,23 +3,26 @@ import { RotateCcw } from "preact-feather";
 import { useCfg } from "../cfg_context.tsx";
 import { useConfig } from "../editors_context.tsx";
 import { cls } from "./chord_display.tsx";
-import {
-  Checkbox,
-  Input,
-  Select,
-} from "@silverbulletmd/silverbullet/ui";
+import { Checkbox, Input, Select } from "@silverbulletmd/silverbullet/ui";
 import type { UiSchema } from "../schema.ts";
 
-function Control(
-  { path, schema, value }: { path: string; schema: any; value: any },
-) {
+function Control({
+  path,
+  schema,
+  value,
+}: {
+  path: string;
+  schema: any;
+  value: any;
+}) {
   const config = useConfig();
   if (schema.type === "boolean") {
     return (
       <Checkbox
         checked={!!value}
         onChange={(e) =>
-          config.setField(path, (e.currentTarget as HTMLInputElement).checked)}
+          config.setField(path, (e.currentTarget as HTMLInputElement).checked)
+        }
       />
     );
   }
@@ -27,10 +30,13 @@ function Control(
     return (
       <Select
         onChange={(e) =>
-          config.setField(path, (e.currentTarget as HTMLSelectElement).value)}
+          config.setField(path, (e.currentTarget as HTMLSelectElement).value)
+        }
       >
         {schema.enum.map((opt: string) => (
-          <option key={opt} value={opt} selected={opt === value}>{opt}</option>
+          <option key={opt} value={opt} selected={opt === value}>
+            {opt}
+          </option>
         ))}
       </Select>
     );
@@ -42,7 +48,8 @@ function Control(
         type={inputType}
         value={value ?? ""}
         onInput={(e) =>
-          config.setField(path, (e.currentTarget as HTMLInputElement).value)}
+          config.setField(path, (e.currentTarget as HTMLInputElement).value)
+        }
       />
     );
   }
@@ -62,9 +69,7 @@ function Control(
   return <span class="cfg-hint">Configure manually in CONFIG</span>;
 }
 
-function Field(
-  { path, schema }: { path: string; schema: any },
-) {
+function Field({ path, schema }: { path: string; schema: any }) {
   const config = useConfig();
   const modified = config.isModified(path);
   return (
@@ -76,7 +81,11 @@ function Field(
         )}
       </div>
       <div class="cfg-field-control">
-        <Control path={path} schema={schema} value={config.pendingConfig[path]} />
+        <Control
+          path={path}
+          schema={schema}
+          value={config.pendingConfig[path]}
+        />
         <button
           class={cls({ "cfg-field-reset": true, hidden: !modified })}
           title="Reset to default"
@@ -97,13 +106,15 @@ function fieldMatches(path: string, schema: any, query: string): boolean {
   return `${label} ${description} ${path}`.toLowerCase().includes(query);
 }
 
-function Category(
-  { name, fields, query }: {
-    name: string;
-    fields: UiSchema[];
-    query: string;
-  },
-) {
+function Category({
+  name,
+  fields,
+  query,
+}: {
+  name: string;
+  fields: UiSchema[];
+  query: string;
+}) {
   const { cfg } = useCfg();
   const visible = fields.filter((f) => fieldMatches(f.path, f.schema, query));
   if (visible.length === 0) return null;
@@ -112,7 +123,9 @@ function Category(
     <div class="cfg-category">
       <h2 class="cfg-category-title">{name}</h2>
       {description && <div class="cfg-category-description">{description}</div>}
-      {visible.map((f) => <Field key={f.path} path={f.path} schema={f.schema} />)}
+      {visible.map((f) => (
+        <Field key={f.path} path={f.path} schema={f.schema} />
+      ))}
     </div>
   );
 }
@@ -133,8 +146,7 @@ export function ConfigurationTab() {
         type="text"
         placeholder="Filter configuration options..."
         value={search}
-        onInput={(e) =>
-          setSearch((e.currentTarget as HTMLInputElement).value)}
+        onInput={(e) => setSearch((e.currentTarget as HTMLInputElement).value)}
       />
       {schemaIndex.sortedCategoryNames.map((name) => (
         <Category

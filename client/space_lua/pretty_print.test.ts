@@ -162,7 +162,9 @@ end`);
   expect(fmtBlock("for i=1,10,2 do f() end")).toBe(`for i = 1, 10, 2 do
   f()
 end`);
-  expect(fmtBlock("for k,v in pairs(t) do f() end")).toBe(`for k, v in pairs(t) do
+  expect(
+    fmtBlock("for k,v in pairs(t) do f() end"),
+  ).toBe(`for k, v in pairs(t) do
   f()
 end`);
 });
@@ -175,8 +177,9 @@ end`);
 });
 
 test("blank line between definitions", () => {
-  expect(fmtBlock("function a() end\nfunction b() end\nlocal x = 1"))
-    .toBe(`function a() end
+  expect(
+    fmtBlock("function a() end\nfunction b() end\nlocal x = 1"),
+  ).toBe(`function a() end
 
 function b() end
 

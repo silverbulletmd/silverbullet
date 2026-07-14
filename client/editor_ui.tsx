@@ -1,8 +1,5 @@
 import { Confirm, Prompt } from "./components/basic_modals.tsx";
-import {
-  CommandPalette,
-  keyboardHint,
-} from "./components/command_palette.tsx";
+import { CommandPalette, keyboardHint } from "./components/command_palette.tsx";
 import { FilterList } from "./components/filter.tsx";
 import { AnythingPicker } from "./components/anything_picker.tsx";
 import { TopBar } from "./components/top_bar.tsx";
@@ -67,7 +64,8 @@ export class MainUI {
           // CodeMirror mini-editor.
           const cmd = ev.metaKey || ev.ctrlKey;
           const key = ev.key.toLowerCase();
-          const fieldHandlesNatively = !cmd ||
+          const fieldHandlesNatively =
+            !cmd ||
             ["a", "c", "v", "x", "z", "y"].includes(key) ||
             [
               "arrowleft",
@@ -570,12 +568,11 @@ export class MainUI {
           cssClass={(client.currentPageMeta()?.pageDecoration?.cssClasses ?? [])
             .join(" ")
             .replaceAll(/[^a-zA-Z0-9-_ ]/g, "")}
-          mobileMenuStyle={viewState.isMobile
-            ? client.config.get<string>(
-              "mobileMenuStyle",
-              "hamburger",
-            )
-            : undefined}
+          mobileMenuStyle={
+            viewState.isMobile
+              ? client.config.get<string>("mobileMenuStyle", "hamburger")
+              : undefined
+          }
           readOnly={
             viewState.uiOptions.forcedROMode || client.bootConfig.readOnly
           }

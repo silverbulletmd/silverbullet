@@ -1,4 +1,5 @@
-export const isMacLike = typeof navigator !== "undefined" &&
+export const isMacLike =
+  typeof navigator !== "undefined" &&
   /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform);
 
 export function prettifyShortcut(shortcut: string): string {

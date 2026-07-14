@@ -7,16 +7,16 @@ import { useEscape } from "./use_escape.ts";
 declare const __GRAPH: RootViewModel;
 
 function Root({ vm }: { vm: RootViewModel }) {
-	const rootRef = useRef<HTMLDivElement | null>(null);
-	useEscape();
-	useEffect(() => {
-		rootRef.current?.focus();
-	}, []);
-	return (
-		<div ref={rootRef} class="graph-root-inner" tabIndex={-1}>
-			<App vm={vm} />
-		</div>
-	);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  useEscape();
+  useEffect(() => {
+    rootRef.current?.focus();
+  }, []);
+  return (
+    <div ref={rootRef} class="graph-root-inner" tabIndex={-1}>
+      <App vm={vm} />
+    </div>
+  );
 }
 
 const root = document.getElementById("graph-root");

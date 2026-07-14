@@ -53,7 +53,10 @@ import { PathPageNavigator, parseRefFromURI } from "./navigator.ts";
 import { EventHook } from "./plugos/hooks/event.ts";
 import { Space } from "./space.ts";
 import { evalStatement } from "./space_lua/eval.ts";
-import { parseExpressionString, parseBlock as parseLua } from "./space_lua/parse.ts";
+import {
+  parseExpressionString,
+  parseBlock as parseLua,
+} from "./space_lua/parse.ts";
 import type { LuaCollectionQuery } from "./space_lua/query_collection.ts";
 import {
   LuaEnv,
@@ -564,10 +567,10 @@ export class Client {
       const result = await evalStatement(ast, scriptEnv, sf);
       const returnValue =
         result &&
-          typeof result === "object" &&
-          "ctrl" in result &&
-          result.ctrl === "return" &&
-          Array.isArray(result.values)
+        typeof result === "object" &&
+        "ctrl" in result &&
+        result.ctrl === "return" &&
+        Array.isArray(result.values)
           ? result.values[0]
           : result;
       return (await Promise.resolve(luaValueToJS(returnValue, sf))) ?? null;

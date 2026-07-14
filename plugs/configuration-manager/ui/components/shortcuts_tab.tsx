@@ -8,14 +8,17 @@ import { Input } from "@silverbulletmd/silverbullet/ui";
 
 type RecordingTarget = { name: string; slot: number } | null;
 
-function ShortcutCell(
-  { name, binding, slot, onStart }: {
-    name: string;
-    binding: string;
-    slot: number;
-    onStart: () => void;
-  },
-) {
+function ShortcutCell({
+  name,
+  binding,
+  slot,
+  onStart,
+}: {
+  name: string;
+  binding: string;
+  slot: number;
+  onStart: () => void;
+}) {
   const shortcuts = useShortcuts();
   return (
     <>
@@ -38,13 +41,15 @@ function ShortcutCell(
   );
 }
 
-function ShortcutRow(
-  { name, recording, setRecording }: {
-    name: string;
-    recording: RecordingTarget;
-    setRecording: (r: RecordingTarget) => void;
-  },
-) {
+function ShortcutRow({
+  name,
+  recording,
+  setRecording,
+}: {
+  name: string;
+  recording: RecordingTarget;
+  setRecording: (r: RecordingTarget) => void;
+}) {
   const shortcuts = useShortcuts();
   const bindings = shortcuts.resolvedBindings(name);
   const isModified = shortcuts.isModified(name);
@@ -78,22 +83,20 @@ function ShortcutRow(
         <div class="cfg-chord-list">
           {displaySlots.map((binding, i) => (
             <div class="cfg-chord-slot" key={i}>
-              {rec?.slot === i
-                ? (
-                  <RecordingChord
-                    onCommit={commitAt(i)}
-                    onCancel={onCancel}
-                    conflictCheck={conflictAt(i)}
-                  />
-                )
-                : (
-                  <ShortcutCell
-                    name={name}
-                    binding={binding}
-                    slot={i}
-                    onStart={() => setRecording({ name, slot: i })}
-                  />
-                )}
+              {rec?.slot === i ? (
+                <RecordingChord
+                  onCommit={commitAt(i)}
+                  onCancel={onCancel}
+                  conflictCheck={conflictAt(i)}
+                />
+              ) : (
+                <ShortcutCell
+                  name={name}
+                  binding={binding}
+                  slot={i}
+                  onStart={() => setRecording({ name, slot: i })}
+                />
+              )}
             </div>
           ))}
           {showingRecordAtEnd && (
@@ -111,7 +114,8 @@ function ShortcutRow(
               title="Add an alternate key binding for this command"
               disabled={!!rec}
               onClick={() =>
-                setRecording({ name, slot: shortcuts.alternateSlot(name) })}
+                setRecording({ name, slot: shortcuts.alternateSlot(name) })
+              }
             >
               <Plus size={14} />
             </button>
@@ -157,8 +161,7 @@ export function ShortcutsTab() {
         type="text"
         placeholder="Filter commands..."
         value={search}
-        onInput={(e) =>
-          setSearch((e.currentTarget as HTMLInputElement).value)}
+        onInput={(e) => setSearch((e.currentTarget as HTMLInputElement).value)}
       />
       <table id="cfg-shortcuts-table">
         <thead>

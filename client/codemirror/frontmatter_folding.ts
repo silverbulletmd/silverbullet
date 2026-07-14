@@ -9,7 +9,10 @@ import { type EditorView, ViewPlugin, type ViewUpdate } from "@codemirror/view";
 import YAML from "js-yaml";
 import type { Client } from "../client.ts";
 import { tagPrefix } from "../../plugs/index/constants.ts";
-import { encodePageURI, parseToRef } from "@silverbulletmd/silverbullet/lib/ref";
+import {
+  encodePageURI,
+  parseToRef,
+} from "@silverbulletmd/silverbullet/lib/ref";
 
 export type FrontmatterFoldByDefault = "never" | "long" | "always";
 
@@ -36,13 +39,13 @@ type FoldRange = {
 
 export type FrontmatterFoldPlaceholder =
   | {
-    type: "frontmatter";
-    from: number;
-    to: number;
-    editPos: number;
-    lines: number;
-    tags: string[];
-  }
+      type: "frontmatter";
+      from: number;
+      to: number;
+      editPos: number;
+      lines: number;
+      tags: string[];
+    }
   | { type: "generic" };
 
 function frontmatterParseUpto(state: EditorState): number {
@@ -93,8 +96,8 @@ export function findFrontmatterBlock(
 ): FrontmatterBlock | undefined {
   let block: FrontmatterBlock | undefined;
 
-  const tree = ensureSyntaxTree(state, frontmatterParseUpto(state)) ??
-    syntaxTree(state);
+  const tree =
+    ensureSyntaxTree(state, frontmatterParseUpto(state)) ?? syntaxTree(state);
 
   tree.iterate({
     enter(node) {
@@ -179,9 +182,10 @@ function normalizeFoldTags(value: unknown): string[] {
     return value.map(normalizeFoldTag).filter((tag) => tag !== undefined);
   }
   if (typeof value === "string") {
-    return value.split(/\s+/).map(normalizeFoldTag).filter((tag) =>
-      tag !== undefined
-    );
+    return value
+      .split(/\s+/)
+      .map(normalizeFoldTag)
+      .filter((tag) => tag !== undefined);
   }
   return [];
 }
@@ -214,8 +218,10 @@ export function frontmatterFoldTagTarget(
   client: Client | undefined,
   tag: string,
 ): string {
-  return client?.config.get<string | null>(["tags", tag, "tagPage"], null) ??
-    `${tagPrefix}${tag}`;
+  return (
+    client?.config.get<string | null>(["tags", tag, "tagPage"], null) ??
+    `${tagPrefix}${tag}`
+  );
 }
 
 export function frontmatterFoldPlaceholderDOM(
@@ -283,7 +289,9 @@ export function frontmatterFoldPlaceholderDOM(
   return element;
 }
 
-function clientFrontmatterFoldingConfig(client: Client): FrontmatterFoldingConfig {
+function clientFrontmatterFoldingConfig(
+  client: Client,
+): FrontmatterFoldingConfig {
   return normalizeFrontmatterFoldingConfig(
     client.config.get("frontmatterFolding", defaultFrontmatterFoldingConfig),
   );

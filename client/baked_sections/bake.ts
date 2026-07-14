@@ -34,7 +34,11 @@ async function computeBakeEdits(
       continue;
     }
     const body = escapeBakedBody(result.markdown).trim();
-    edits.push({ from: section.bodyFrom, to: section.bodyTo, insert: `\n${body}\n` });
+    edits.push({
+      from: section.bodyFrom,
+      to: section.bodyTo,
+      insert: `\n${body}\n`,
+    });
   }
   return { edits, skipped };
 }
@@ -89,9 +93,9 @@ export async function updateBakedSections(client: Client): Promise<void> {
   }
   if (skipped.length > 0) {
     client.ui.flashNotification(
-      `Updated ${edits.length} baked section(s), skipped ${skipped.length}: ${
-        skipped.join(", ")
-      }`,
+      `Updated ${edits.length} baked section(s), skipped ${skipped.length}: ${skipped.join(
+        ", ",
+      )}`,
       "error",
     );
   } else {

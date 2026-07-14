@@ -38,10 +38,7 @@ test("RawHtml with array body passes strings through unescaped", () => {
   expect(
     renderHtml({
       name: RawHtml,
-      body: [
-        "<b>bold</b>",
-        { name: "i", body: "normal" },
-      ],
+      body: ["<b>bold</b>", { name: "i", body: "normal" }],
     }),
   ).toEqual("<b>bold</b><i>normal</i>");
 });

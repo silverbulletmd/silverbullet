@@ -60,9 +60,11 @@ export function define(key: string, schema: any): Promise<void> {
  * ascending `order` (default 0); unknown categories fall to the bottom in
  * alphabetical order.
  */
-export function defineCategory(
-  definition: { name: string; description?: string; order?: number },
-): Promise<void> {
+export function defineCategory(definition: {
+  name: string;
+  description?: string;
+  order?: number;
+}): Promise<void> {
   return syscall("config.defineCategory", definition);
 }
 

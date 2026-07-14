@@ -34,7 +34,7 @@ export class EventedSpacePrimitives implements SpacePrimitives {
     private eventHook: EventHook,
     private ds: DataStore,
     private snapshotKey = ["$spaceSnapshot"],
-  ) { }
+  ) {}
 
   async enable() {
     console.log("Loading snapshot and enabling events");

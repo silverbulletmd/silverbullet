@@ -186,8 +186,9 @@ export const readOnlyCursorActive = StateField.define<boolean>({
     // no-op `{ selection: currentSelection }` on render (to re-measure their
     // DOM) — that carries `tr.selection` but doesn't move the caret, and must
     // not count as a deliberate placement.
-    return tr.selection !== undefined &&
-      !tr.startState.selection.eq(tr.newSelection);
+    return (
+      tr.selection !== undefined && !tr.startState.selection.eq(tr.newSelection)
+    );
   },
 });
 

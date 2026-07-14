@@ -88,11 +88,7 @@ export async function anchorComplete(completeEvent: CompleteEvent) {
       { p: page },
     );
   } else {
-    anchors = await index.queryLuaObjects<AnchorObject>(
-      "anchor",
-      {},
-      {},
-    );
+    anchors = await index.queryLuaObjects<AnchorObject>("anchor", {}, {});
   }
 
   const filtered = anchors

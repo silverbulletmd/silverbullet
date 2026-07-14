@@ -33,10 +33,7 @@ export function findManagedBlock(text: string): ManagedBlock | null {
  * Replace the managed block in CONFIG.md text, or append one if none exists.
  * If newContent is empty, the managed block is removed.
  */
-export function replaceManagedBlock(
-  text: string,
-  newContent: string,
-): string {
+export function replaceManagedBlock(text: string, newContent: string): string {
   const existing = findManagedBlock(text);
 
   if (existing) {
@@ -49,8 +46,9 @@ export function replaceManagedBlock(
       return text.slice(0, start) + text.slice(end);
     }
     const replacement = `\`\`\`space-lua\n${newContent}\n\`\`\``;
-    return text.slice(0, existing.start) + replacement +
-      text.slice(existing.end);
+    return (
+      text.slice(0, existing.start) + replacement + text.slice(existing.end)
+    );
   }
 
   if (!newContent) return text;

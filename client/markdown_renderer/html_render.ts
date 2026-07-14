@@ -53,9 +53,9 @@ export function renderHtml(t: Tag | null): string {
     if (typeof t.body === "string") {
       return t.body;
     }
-    return t.body.map((c) =>
-      typeof c === "string" ? c : renderHtml(c)
-    ).join("");
+    return t.body
+      .map((c) => (typeof c === "string" ? c : renderHtml(c)))
+      .join("");
   }
   return `<${t.name}${attrs}>${body}</${t.name}>`;
 }

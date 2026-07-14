@@ -109,8 +109,5 @@ export async function indexPage({ name, tree, meta, text }: IndexTreeEvent) {
   const indexResults = await Promise.all(
     allIndexers.map((indexer) => indexer(meta, frontmatter, tree, text)),
   );
-  await index.indexObjects<any>(
-    name,
-    appendAnchorRecords(indexResults.flat()),
-  );
+  await index.indexObjects<any>(name, appendAnchorRecords(indexResults.flat()));
 }

@@ -126,9 +126,7 @@ And another
 test("Inline HTML tags render as proper elements", () => {
   const tree = parse(extendedMarkdownLanguage, "<marquee>Hello</marquee>");
   const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
-  expect(html).toEqual(
-    '<span class="p"><marquee>Hello</marquee></span>',
-  );
+  expect(html).toEqual('<span class="p"><marquee>Hello</marquee></span>');
 });
 
 test("Inline HTML tags with attributes", () => {
@@ -154,32 +152,19 @@ test("Inline HTML tags with markdown content", () => {
 });
 
 test("Inline HTML mixed with text", () => {
-  const tree = parse(
-    extendedMarkdownLanguage,
-    "Before <b>bold</b> after",
-  );
+  const tree = parse(extendedMarkdownLanguage, "Before <b>bold</b> after");
   const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
-  expect(html).toEqual(
-    '<span class="p">Before <b>bold</b> after</span>',
-  );
+  expect(html).toEqual('<span class="p">Before <b>bold</b> after</span>');
 });
 
 test("Nested same-name HTML tags", () => {
-  const tree = parse(
-    extendedMarkdownLanguage,
-    "<b><b>nested</b></b>",
-  );
+  const tree = parse(extendedMarkdownLanguage, "<b><b>nested</b></b>");
   const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
-  expect(html).toEqual(
-    '<span class="p"><b><b>nested</b></b></span>',
-  );
+  expect(html).toEqual('<span class="p"><b><b>nested</b></b></span>');
 });
 
 test("Inline HTML with wiki link", () => {
-  const tree = parse(
-    extendedMarkdownLanguage,
-    "<span>hello [[there]]</span>",
-  );
+  const tree = parse(extendedMarkdownLanguage, "<span>hello [[there]]</span>");
   const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
   expect(html).toEqual(
     '<span class="p"><span>hello <a href="/there" class="wiki-link" data-ref="there">there</a></span></span>',
@@ -187,14 +172,9 @@ test("Inline HTML with wiki link", () => {
 });
 
 test("Unmatched HTML tags render as literal text", () => {
-  const tree = parse(
-    extendedMarkdownLanguage,
-    "text <b>unclosed",
-  );
+  const tree = parse(extendedMarkdownLanguage, "text <b>unclosed");
   const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
-  expect(html).toEqual(
-    '<span class="p">text &lt;b&gt;unclosed</span>',
-  );
+  expect(html).toEqual('<span class="p">text &lt;b&gt;unclosed</span>');
 });
 
 test("CustomSyntaxRenderedHtml renders raw HTML", () => {
@@ -216,9 +196,7 @@ test("CustomSyntaxRenderedHtml renders raw HTML", () => {
     ],
   };
   const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
-  expect(html).toEqual(
-    '<span class="p">Before <em>rendered</em> after</span>',
-  );
+  expect(html).toEqual('<span class="p">Before <em>rendered</em> after</span>');
 });
 
 // Minimal stubs for expandMarkdown tests
@@ -390,9 +368,7 @@ test("Self-closing <br/> inside block HTML td renders as HTML", () => {
     "<table><tr><td>Hello<br/>there</td></tr></table>",
   );
   const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
-  expect(html).toBe(
-    "<table><tr><td>Hello<br/>there</td></tr></table>",
-  );
+  expect(html).toBe("<table><tr><td>Hello<br/>there</td></tr></table>");
 });
 
 test("Wiki link inside block HTML td is rendered", () => {
@@ -402,14 +378,11 @@ test("Wiki link inside block HTML td is rendered", () => {
   );
   const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
   expect(html).toContain('<a href="/MyPage" class="wiki-link"');
-  expect(html).toContain("data-ref=\"MyPage\"");
+  expect(html).toContain('data-ref="MyPage"');
 });
 
 test("Block HTML with self-closing tags", () => {
-  const tree = parse(
-    extendedMarkdownLanguage,
-    "<div><br /><hr /></div>",
-  );
+  const tree = parse(extendedMarkdownLanguage, "<div><br /><hr /></div>");
   const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
   expect(html).toBe("<div><br /><hr /></div>");
 });
@@ -446,9 +419,7 @@ test("Block HTML ul/li with data attributes", () => {
     '<ul><li data-list-item-type="string">hello</li></ul>',
   );
   const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
-  expect(html).toBe(
-    '<ul><li data-list-item-type="string">hello</li></ul>',
-  );
+  expect(html).toBe('<ul><li data-list-item-type="string">hello</li></ul>');
 });
 
 test("Nested block HTML tables", () => {
@@ -466,7 +437,7 @@ test("Nested block HTML tables", () => {
 test("Empty block HTML table", () => {
   const tree = parse(
     extendedMarkdownLanguage,
-    '<table data-table-empty></table>',
+    "<table data-table-empty></table>",
   );
   const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
   expect(html).toContain("data-table-empty");
@@ -486,22 +457,19 @@ test("Whitespace between block siblings is dropped (no spurious <br>)", () => {
   const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
   expect(html).toBe(
     "<h1>Heading</h1>" +
-    '<ul><li><span class="p">item one</span></li>' +
-    '<li><span class="p">item two</span></li></ul>' +
-    "<h1>Next heading</h1>",
+      '<ul><li><span class="p">item one</span></li>' +
+      '<li><span class="p">item two</span></li></ul>' +
+      "<h1>Next heading</h1>",
   );
 });
 
 test("Whitespace between paragraphs is preserved as <br/>", () => {
-  const tree = parse(
-    extendedMarkdownLanguage,
-    "Hello there\n\nThis is cool\n",
-  );
+  const tree = parse(extendedMarkdownLanguage, "Hello there\n\nThis is cool\n");
   const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
   expect(html).toBe(
     '<span class="p">Hello there</span>' +
-    "<br/><br/>" +
-    '<span class="p">This is cool</span>',
+      "<br/><br/>" +
+      '<span class="p">This is cool</span>',
   );
 });
 
@@ -541,17 +509,14 @@ test("Whitespace between bullet list and paragraph is preserved", () => {
   const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
   expect(html).toBe(
     '<ul><li><span class="p">item one</span></li>' +
-    '<li><span class="p">item two</span></li></ul>' +
-    "<br/>" +
-    '<span class="p">Other text</span>',
+      '<li><span class="p">item two</span></li></ul>' +
+      "<br/>" +
+      '<span class="p">Other text</span>',
   );
 });
 
 test("Multiple blank lines between blocks collapse to nothing", () => {
-  const tree = parse(
-    extendedMarkdownLanguage,
-    "# A\n\n\n\n# B\n",
-  );
+  const tree = parse(extendedMarkdownLanguage, "# A\n\n\n\n# B\n");
   const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
   expect(html).toBe("<h1>A</h1><h1>B</h1>");
 });
@@ -563,18 +528,18 @@ test("Heading then list then heading (transclusion shape)", () => {
   const tree = parse(
     extendedMarkdownLanguage,
     "# Lua Standard Library\n" +
-    "- one\n- two\n\n" +
-    "# Space Lua APIs\n" +
-    "- three\n- four\n",
+      "- one\n- two\n\n" +
+      "# Space Lua APIs\n" +
+      "- three\n- four\n",
   );
   const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
   expect(html).toBe(
     "<h1>Lua Standard Library</h1>" +
-    '<ul><li><span class="p">one</span></li>' +
-    '<li><span class="p">two</span></li></ul>' +
-    "<h1>Space Lua APIs</h1>" +
-    '<ul><li><span class="p">three</span></li>' +
-    '<li><span class="p">four</span></li></ul>',
+      '<ul><li><span class="p">one</span></li>' +
+      '<li><span class="p">two</span></li></ul>' +
+      "<h1>Space Lua APIs</h1>" +
+      '<ul><li><span class="p">three</span></li>' +
+      '<li><span class="p">four</span></li></ul>',
   );
 });
 
@@ -589,11 +554,11 @@ test("Paragraph between two blocks keeps its surrounding breaks where needed", (
   const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
   expect(html).toBe(
     "<h1>H1</h1>" +
-    "<br/>" +
-    '<span class="p">para1</span>' +
-    "<br/><br/>" +
-    '<span class="p">para2</span>' +
-    "<br/>" +
-    "<h1>H2</h1>",
+      "<br/>" +
+      '<span class="p">para1</span>' +
+      "<br/><br/>" +
+      '<span class="p">para2</span>' +
+      "<br/>" +
+      "<h1>H2</h1>",
   );
 });

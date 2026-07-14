@@ -42,9 +42,7 @@ describe("anchorComplete", () => {
     await indexPage(`Another $people here.\n`, "PageB");
     await indexPage(`Unrelated $qux.\n`, "PageC");
 
-    const result = await anchorComplete(
-      makeCompleteEvent("Go to [["),
-    );
+    const result = await anchorComplete(makeCompleteEvent("Go to [["));
     // No $ typed yet — should not trigger
     expect(result).toBeNull();
   });
@@ -54,9 +52,7 @@ describe("anchorComplete", () => {
     await indexPage(`Para $alpha here.\n`, "PageA");
     await indexPage(`Para $beta here.\n`, "PageB");
 
-    const result = await anchorComplete(
-      makeCompleteEvent("[[$"),
-    );
+    const result = await anchorComplete(makeCompleteEvent("[[$"));
     expect(result).toBeTruthy();
     const labels = result!.options.map((o) => o.label);
     expect(labels).toContain("$alpha");
@@ -69,9 +65,7 @@ describe("anchorComplete", () => {
     await indexPage(`Para $people here.\n`, "PageB");
     await indexPage(`Para $qux here.\n`, "PageC");
 
-    const result = await anchorComplete(
-      makeCompleteEvent("[[$p"),
-    );
+    const result = await anchorComplete(makeCompleteEvent("[[$p"));
     expect(result).toBeTruthy();
     const labels = result!.options.map((o) => o.label);
     expect(labels).toContain("$pete");
@@ -97,9 +91,7 @@ describe("anchorComplete", () => {
     await indexPage(`Para $pete here.\n`, "PageA");
     await indexPage(`Para $pete here.\n`, "PageB"); // same anchor on different page
 
-    const result = await anchorComplete(
-      makeCompleteEvent("[[PageA$p"),
-    );
+    const result = await anchorComplete(makeCompleteEvent("[[PageA$p"));
     expect(result).toBeTruthy();
     const options = result!.options;
     // All returned options should have detail mentioning PageA only
@@ -113,9 +105,7 @@ describe("anchorComplete", () => {
     createMockSystem();
     await indexPage(`Para $sec1 here.\n`, "SomePage");
 
-    const result = await anchorComplete(
-      makeCompleteEvent("[[SomePage$"),
-    );
+    const result = await anchorComplete(makeCompleteEvent("[[SomePage$"));
     expect(result).toBeTruthy();
     const labels = result!.options.map((o) => o.label);
     // label should be "SomePage$sec1" (page prefix + $ + anchor name)
@@ -126,9 +116,7 @@ describe("anchorComplete", () => {
     createMockSystem();
     await indexPage(`Para $alpha.\n`, "PageA");
 
-    const result = await anchorComplete(
-      makeCompleteEvent("[[SomePage"),
-    );
+    const result = await anchorComplete(makeCompleteEvent("[[SomePage"));
     expect(result).toBeNull();
   });
 

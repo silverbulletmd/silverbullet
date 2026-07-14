@@ -81,7 +81,12 @@ function SaveFooter({
         >
           Changes will be reflected in CONFIG.md
         </a>
-        <Button id="cfg-cancel" disabled={saving} onClick={close} shortcut="esc">
+        <Button
+          id="cfg-cancel"
+          disabled={saving}
+          onClick={close}
+          shortcut="esc"
+        >
           Cancel
         </Button>
         <Button
@@ -121,10 +126,12 @@ export function App() {
   const config = useConfigEditor();
   const shortcuts = useShortcutEditor();
   const libraries = useLibrariesEditor(cfg.libraries);
-  const { save, saving, error: saveError, dismissError } = useSave(
-    config,
-    shortcuts,
-  );
+  const {
+    save,
+    saving,
+    error: saveError,
+    dismissError,
+  } = useSave(config, shortcuts);
   const [tab, setTab] = useState<TabId>(cfg.initialTab);
 
   useGlobalEscape(useCallback(() => close(), []));

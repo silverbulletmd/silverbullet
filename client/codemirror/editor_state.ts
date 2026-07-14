@@ -33,10 +33,7 @@ import {
   ViewPlugin,
   type ViewUpdate,
 } from "@codemirror/view";
-import {
-  deleteMarkupBackward,
-  markdown,
-} from "@codemirror/lang-markdown";
+import { deleteMarkupBackward, markdown } from "@codemirror/lang-markdown";
 import { customEnterCommand } from "./markdown_enter.ts";
 import type { Client } from "../client.ts";
 import { loadVim } from "../vim_loader.ts";
@@ -107,13 +104,13 @@ export function createEditorState(
 
   const readOnlyExtensions: Extension[] =
     readOnly ||
-      client.ui.viewState.uiOptions.forcedROMode ||
-      client.bootConfig.readOnly
+    client.ui.viewState.uiOptions.forcedROMode ||
+    client.bootConfig.readOnly
       ? [
-        EditorView.editable.of(false),
-        EditorState.readOnly.of(true),
-        readOnlyCursorActive,
-      ]
+          EditorView.editable.of(false),
+          EditorState.readOnly.of(true),
+          readOnlyCursorActive,
+        ]
       : [];
 
   return EditorState.create({
@@ -368,9 +365,7 @@ export function isValidEditor(
   );
 }
 
-export function createCommandKeyBindings(
-  client: Client,
-): Extension {
+export function createCommandKeyBindings(client: Client): Extension {
   const commandKeyBindings: KeyBinding[] = [];
   const vimMode = client.ui.viewState.uiOptions.vimMode;
   const readOnly = client.isReadOnlyMode();
@@ -450,15 +445,15 @@ export function createRegularKeyBindings(client: Client): Extension {
       ...closeBracketsKeymap,
       ...(client.ui.viewState.uiOptions.vimMode
         ? [
-          // Workaround for https://github.com/replit/codemirror-vim/issues/182;
-          // without this, Enter does nothing for ordinary paragraphs in insert
-          // mode.
-          {
-            key: "Enter",
-            run: insertNewlineAndIndent,
-            shift: insertNewlineAndIndent,
-          },
-        ]
+            // Workaround for https://github.com/replit/codemirror-vim/issues/182;
+            // without this, Enter does nothing for ordinary paragraphs in insert
+            // mode.
+            {
+              key: "Enter",
+              run: insertNewlineAndIndent,
+              shift: insertNewlineAndIndent,
+            },
+          ]
         : []),
     ]);
   }

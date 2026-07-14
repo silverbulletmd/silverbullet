@@ -30,11 +30,8 @@ export function relationToLink(rel: any): LinkObject | undefined {
   if (!rel || typeof rel !== "object") return undefined;
   if (rel.kind === "co-mention") return undefined;
 
-  const type: LinkObject["type"] = rel.toTag === "url"
-    ? "url"
-    : rel.toTag === "document"
-      ? "file"
-      : "page";
+  const type: LinkObject["type"] =
+    rel.toTag === "url" ? "url" : rel.toTag === "document" ? "file" : "page";
 
   const pos: number | undefined = Array.isArray(rel.range)
     ? rel.range[0]

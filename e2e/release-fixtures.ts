@@ -6,11 +6,11 @@ import { getFreePort, waitForServer } from "./fixtures.ts";
 
 /** A running release-binary server instance. */
 export type ReleaseServer = {
-	url: string;
-	port: number;
-	spaceDir: string;
-	/** Stop the server process and clean up its temporary space directory. */
-	stop: () => Promise<void>;
+  url: string;
+  port: number;
+  spaceDir: string;
+  /** Stop the server process and clean up its temporary space directory. */
+  stop: () => Promise<void>;
 };
 
 /**
@@ -31,64 +31,66 @@ export type ReleaseServer = {
  * `{ SB_USER: "alice:s3cret" }` to enable the browser login flow.
  */
 export async function startReleaseServer(
-	extraEnv: Record<string, string> = {},
+  extraEnv: Record<string, string> = {},
 ): Promise<ReleaseServer> {
-	const spaceDir = await mkdtemp(join(tmpdir(), "sb-e2e-release-"));
-	const port = await getFreePort();
+  const spaceDir = await mkdtemp(join(tmpdir(), "sb-e2e-release-"));
+  const port = await getFreePort();
 
-	// `import.meta.dirname` is `<repo>/e2e`; the release binary lives at
-	// `<repo>/target/release/silverbullet`.
-	const repoRoot = join(import.meta.dirname, "..");
-	const binaryPath = join(repoRoot, "target", "release", "silverbullet");
+  // `import.meta.dirname` is `<repo>/e2e`; the release binary lives at
+  // `<repo>/target/release/silverbullet`.
+  const repoRoot = join(import.meta.dirname, "..");
+  const binaryPath = join(repoRoot, "target", "release", "silverbullet");
 
-	const proc: ChildProcess = spawn(
-		binaryPath,
-		[spaceDir, "-p", String(port), "-L", "127.0.0.1"],
-		{
-			cwd: repoRoot,
-			stdio: ["ignore", "pipe", "pipe"],
-			env: {
-				...process.env,
-				SB_DISABLE_SERVICE_WORKER: "1",
-				SB_RUNTIME_API: "0",
-				...extraEnv,
-			},
-		},
-	);
+  const proc: ChildProcess = spawn(
+    binaryPath,
+    [spaceDir, "-p", String(port), "-L", "127.0.0.1"],
+    {
+      cwd: repoRoot,
+      stdio: ["ignore", "pipe", "pipe"],
+      env: {
+        ...process.env,
+        SB_DISABLE_SERVICE_WORKER: "1",
+        SB_RUNTIME_API: "0",
+        ...extraEnv,
+      },
+    },
+  );
 
-	let serverOutput = "";
-	proc.stdout?.on("data", (d: Buffer) => {
-		serverOutput += d.toString();
-	});
-	proc.stderr?.on("data", (d: Buffer) => {
-		serverOutput += d.toString();
-	});
+  let serverOutput = "";
+  proc.stdout?.on("data", (d: Buffer) => {
+    serverOutput += d.toString();
+  });
+  proc.stderr?.on("data", (d: Buffer) => {
+    serverOutput += d.toString();
+  });
 
-	const url = `http://127.0.0.1:${port}`;
+  const url = `http://127.0.0.1:${port}`;
 
-	let stopped = false;
-	const stop = (): Promise<void> => {
-		if (stopped) return Promise.resolve();
-		stopped = true;
-		return new Promise<void>((resolve) => {
-			const timer = setTimeout(() => {
-				proc.kill("SIGKILL");
-				resolve();
-			}, 5000);
-			proc.on("exit", () => {
-				clearTimeout(timer);
-				resolve();
-			});
-			proc.kill("SIGTERM");
-		}).then(() => rm(spaceDir, { recursive: true, force: true }));
-	};
+  let stopped = false;
+  const stop = (): Promise<void> => {
+    if (stopped) return Promise.resolve();
+    stopped = true;
+    return new Promise<void>((resolve) => {
+      const timer = setTimeout(() => {
+        proc.kill("SIGKILL");
+        resolve();
+      }, 5000);
+      proc.on("exit", () => {
+        clearTimeout(timer);
+        resolve();
+      });
+      proc.kill("SIGTERM");
+    }).then(() => rm(spaceDir, { recursive: true, force: true }));
+  };
 
-	try {
-		await waitForServer(`${url}/.ping`);
-	} catch (err) {
-		await stop();
-		throw new Error(`Release server failed to start. Output:\n${serverOutput}\n${err}`);
-	}
+  try {
+    await waitForServer(`${url}/.ping`);
+  } catch (err) {
+    await stop();
+    throw new Error(
+      `Release server failed to start. Output:\n${serverOutput}\n${err}`,
+    );
+  }
 
-	return { url, port, spaceDir, stop };
+  return { url, port, spaceDir, stop };
 }

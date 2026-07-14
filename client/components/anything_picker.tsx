@@ -1,7 +1,10 @@
 import { FilterList } from "./filter.tsx";
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 import { tagRegex as mdTagRegex } from "../markdown_parser/constants.ts";
-import { extractHashtag, isMetaTag } from "@silverbulletmd/silverbullet/lib/tags";
+import {
+  extractHashtag,
+  isMetaTag,
+} from "@silverbulletmd/silverbullet/lib/tags";
 import type {
   DocumentMeta,
   PageMeta,

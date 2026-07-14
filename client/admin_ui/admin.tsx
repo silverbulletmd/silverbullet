@@ -32,7 +32,9 @@ async function api(method: string, path: string, body?: unknown): Promise<any> {
 function formatApiError(e: unknown): string {
   if (Array.isArray(e)) {
     return e
-      .map((fe: FieldError) => (fe.field ? `${fe.field}: ${fe.message}` : fe.message))
+      .map((fe: FieldError) =>
+        fe.field ? `${fe.field}: ${fe.message}` : fe.message,
+      )
       .join(", ");
   }
   return "Request failed";
@@ -170,8 +172,8 @@ function SpaceForm({
   );
   const [bindValue, setBindValue] = useState(
     initial?.binding.host ??
-    initial?.binding.prefix ??
-    String(initial?.binding.port ?? ""),
+      initial?.binding.prefix ??
+      String(initial?.binding.port ?? ""),
   );
   const [authMode, setAuthMode] = useState(initial?.auth.mode ?? "inherit");
   const [authUser, setAuthUser] = useState(initial?.auth.user ?? "");
@@ -236,7 +238,9 @@ function SpaceForm({
           { signal: AbortSignal.timeout(4000) },
         );
         const remote = await probe.json();
-        setHostStatus(remote.instance === own.instance ? "verified" : "mismatch");
+        setHostStatus(
+          remote.instance === own.instance ? "verified" : "mismatch",
+        );
       } catch {
         setHostStatus("unreachable");
       }

@@ -19,37 +19,44 @@ export function useConfigEditor(): ConfigEditor {
     () => new Set(schemaIndex.initialModifiedPaths),
   );
 
-  const setField = useCallback((path: string, value: any) => {
-    setPendingConfig((prev) => {
-      if (prev[path] === value) return prev;
-      return { ...prev, [path]: value };
-    });
-    setModifiedPaths((prev) => {
-      const schema = getSchemaAtPath(cfg.schemas, path);
-      const def = schema?.default;
-      const normDef = schema?.type === "boolean" && def == null ? false : def;
-      const normCur = schema?.type === "boolean" && value == null ? false : value;
-      const next = new Set(prev);
-      if (normCur === normDef) next.delete(path);
-      else next.add(path);
-      // Preserve identity if nothing changed.
-      if (next.size === prev.size && [...next].every((p) => prev.has(p))) {
-        return prev;
-      }
-      return next;
-    });
-  }, [cfg.schemas]);
+  const setField = useCallback(
+    (path: string, value: any) => {
+      setPendingConfig((prev) => {
+        if (prev[path] === value) return prev;
+        return { ...prev, [path]: value };
+      });
+      setModifiedPaths((prev) => {
+        const schema = getSchemaAtPath(cfg.schemas, path);
+        const def = schema?.default;
+        const normDef = schema?.type === "boolean" && def == null ? false : def;
+        const normCur =
+          schema?.type === "boolean" && value == null ? false : value;
+        const next = new Set(prev);
+        if (normCur === normDef) next.delete(path);
+        else next.add(path);
+        // Preserve identity if nothing changed.
+        if (next.size === prev.size && [...next].every((p) => prev.has(p))) {
+          return prev;
+        }
+        return next;
+      });
+    },
+    [cfg.schemas],
+  );
 
-  const resetField = useCallback((path: string) => {
-    const schema = getSchemaAtPath(cfg.schemas, path);
-    setPendingConfig((prev) => ({ ...prev, [path]: schema?.default }));
-    setModifiedPaths((prev) => {
-      if (!prev.has(path)) return prev;
-      const next = new Set(prev);
-      next.delete(path);
-      return next;
-    });
-  }, [cfg.schemas]);
+  const resetField = useCallback(
+    (path: string) => {
+      const schema = getSchemaAtPath(cfg.schemas, path);
+      setPendingConfig((prev) => ({ ...prev, [path]: schema?.default }));
+      setModifiedPaths((prev) => {
+        if (!prev.has(path)) return prev;
+        const next = new Set(prev);
+        next.delete(path);
+        return next;
+      });
+    },
+    [cfg.schemas],
+  );
 
   const isModified = useCallback(
     (path: string) => modifiedPaths.has(path),

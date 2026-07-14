@@ -32,7 +32,9 @@ export class WidgetCache {
   setCachedWidgetMeta(key: string, meta: WidgetMeta) {
     const existing = this.widgetMetaCache.get(key);
     if (
-      existing && existing.height === meta.height && existing.block === meta.block
+      existing &&
+      existing.height === meta.height &&
+      existing.block === meta.block
     ) {
       return;
     }

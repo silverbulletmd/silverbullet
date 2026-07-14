@@ -147,8 +147,9 @@ describe("anchor refs", () => {
   });
 
   test("encodeRef round-trips bare anchor", () => {
-    expect(encodeRef({ path: "", details: { type: "anchor", name: "pete" } }))
-      .toBe("$pete");
+    expect(
+      encodeRef({ path: "", details: { type: "anchor", name: "pete" } }),
+    ).toBe("$pete");
   });
 
   test("encodeRef round-trips page-qualified anchor", () => {

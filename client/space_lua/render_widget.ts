@@ -65,9 +65,7 @@ export async function renderLuaWidgetResult(
     if (e instanceof LuaRuntimeError && e.sf?.astCtx) {
       const source = resolveASTReference(e.sf.astCtx);
       if (source) {
-        return `**Lua error:** ${e.message} (Origin: [[${
-          encodeRef(source)
-        }]])`;
+        return `**Lua error:** ${e.message} (Origin: [[${encodeRef(source)}]])`;
       }
     }
     return `**Lua error:** ${e.message}`;

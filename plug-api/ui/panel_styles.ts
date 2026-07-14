@@ -15,9 +15,10 @@ export type PanelStylesOptions = {
  * Order: components first (base), then space styles (so user theming wins),
  * leaving any plug-specific CSS you append afterwards highest-precedence.
  */
-export async function panelStyles(
-  { components = true, spaceStyles = true }: PanelStylesOptions = {},
-): Promise<string> {
+export async function panelStyles({
+  components = true,
+  spaceStyles = true,
+}: PanelStylesOptions = {}): Promise<string> {
   let out = "";
   if (components) {
     out += `<link rel="stylesheet" href=".client/components.css">`;

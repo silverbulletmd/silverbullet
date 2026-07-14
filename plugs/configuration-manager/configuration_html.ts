@@ -14,8 +14,7 @@ export async function buildConfigurationHtml(
     asset.readAsset(PLUG_NAME, "assets/configuration.js"),
   ]);
 
-  const html =
-    `${await panelStyles()}<style>${css}</style><div id="cfg-root"></div>`;
+  const html = `${await panelStyles()}<style>${css}</style><div id="cfg-root"></div>`;
 
   // `var` (not `const`) so the declaration hoists into the eval'd scope and
   // is lexically visible to the IIFE that the bundled script wraps us in.

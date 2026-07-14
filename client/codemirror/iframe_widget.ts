@@ -17,11 +17,13 @@ export class IFrameWidget extends WidgetType {
     super();
     // Eagerly kick off the callback so the result is in flight before
     // CodeMirror mounts the widget. Idempotent on bodyText.
-    this.client.widgetCache.prewarmResult(this.bodyText, () =>
-      this.codeWidgetCallback(this.bodyText, this.client.currentName()),
-    ).catch(() => {
-      // renderContent / iframe message handler will surface errors.
-    });
+    this.client.widgetCache
+      .prewarmResult(this.bodyText, () =>
+        this.codeWidgetCallback(this.bodyText, this.client.currentName()),
+      )
+      .catch(() => {
+        // renderContent / iframe message handler will surface errors.
+      });
   }
 
   override get estimatedHeight(): number {

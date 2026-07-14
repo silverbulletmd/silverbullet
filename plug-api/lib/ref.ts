@@ -211,10 +211,7 @@ export function coerceAndValidateRef(ref: Ref | string): Ref {
     );
   }
 
-  if (
-    ref.details?.type === "position" &&
-    typeof ref.details.pos !== "number"
-  ) {
+  if (ref.details?.type === "position" && typeof ref.details.pos !== "number") {
     throw new Error("ref.details.pos has to be of type `number`");
   } else if (
     ref.details?.type === "header" &&

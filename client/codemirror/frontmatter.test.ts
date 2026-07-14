@@ -63,7 +63,7 @@ function countExactFrontmatterDecorations(args: {
 
 describe("frontmatter live preview policy", () => {
   test("does not render frontmatter links while markdown syntax rendering is enabled", () => {
-    const state = stateWithSelection("url: \"https://silverbullet.md\"");
+    const state = stateWithSelection('url: "https://silverbullet.md"');
 
     expect(
       shouldRenderFrontmatterLivePreview({
@@ -76,7 +76,7 @@ describe("frontmatter live preview policy", () => {
   });
 
   test("does not render the frontmatter link currently being edited", () => {
-    const state = stateWithSelection("url: \"https://silverbullet.md\"", 10);
+    const state = stateWithSelection('url: "https://silverbullet.md"', 10);
 
     expect(
       shouldRenderFrontmatterLivePreview({
@@ -90,7 +90,7 @@ describe("frontmatter live preview policy", () => {
 
   test("renders a frontmatter link when clean mode is enabled and the cursor is elsewhere", () => {
     const state = stateWithSelection(
-      "home: \"https://silverbullet.md\"\nother: \"https://example.com\"",
+      'home: "https://silverbullet.md"\nother: "https://example.com"',
       40,
     );
 
@@ -105,7 +105,7 @@ describe("frontmatter live preview policy", () => {
   });
 
   test("frontmatter plugin does not replace URLs while markdown syntax rendering is enabled", () => {
-    const doc = "---\nurl: \"https://silverbullet.md\"\n---\n";
+    const doc = '---\nurl: "https://silverbullet.md"\n---\n';
     const from = doc.indexOf("https://silverbullet.md");
     const to = from + "https://silverbullet.md".length;
 
@@ -120,7 +120,7 @@ describe("frontmatter live preview policy", () => {
   });
 
   test("frontmatter plugin replaces URLs in clean mode when the cursor is elsewhere", () => {
-    const doc = "---\nurl: \"https://silverbullet.md\"\n---\n";
+    const doc = '---\nurl: "https://silverbullet.md"\n---\n';
     const from = doc.indexOf("https://silverbullet.md");
     const to = from + "https://silverbullet.md".length;
 

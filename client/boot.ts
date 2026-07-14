@@ -170,11 +170,7 @@ safeRun(async () => {
   if (swDisabled && navigator.serviceWorker) {
     await flushCachesAndUnregisterServiceWorker();
   }
-  if (
-    !isHeadless &&
-    !swDisabled &&
-    navigator.serviceWorker
-  ) {
+  if (!isHeadless && !swDisabled && navigator.serviceWorker) {
     // Register service worker
     const workerURL = new URL("service_worker.js", document.baseURI);
     let startNotificationCount = 0;

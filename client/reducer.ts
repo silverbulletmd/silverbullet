@@ -21,8 +21,9 @@ export default function reducer(
       };
     case "page-loaded": {
       const mouseDetected = globalThis.matchMedia("(pointer:fine)").matches;
-      const isBrowser = globalThis.matchMedia("(display-mode: browser)")
-        .matches;
+      const isBrowser = globalThis.matchMedia(
+        "(display-mode: browser)",
+      ).matches;
       return {
         ...state,
         isLoading: false,

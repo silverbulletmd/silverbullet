@@ -63,31 +63,35 @@ export async function indexItems(
   // Cache extracted items by node position to avoid re-extracting parents
   const itemCache = new Map<number, ItemObject | TaskObject>();
 
-  traverseTree(tree, (n) => {
-    if (n.type !== "ListItem") {
+  traverseTree(
+    tree,
+    (n) => {
+      if (n.type !== "ListItem") {
+        return false;
+      }
+
+      if (!n.children) {
+        // Weird, let's jump out
+        return true;
+      }
+
+      items.push(
+        extractItemFromNode(
+          pageMeta.name,
+          n,
+          frontmatter,
+          true,
+          allCompleteStates,
+          itemCache,
+          pageMeta.lastModified,
+        ),
+      );
+
+      // Traversal continue into child items (potentially)
       return false;
-    }
-
-    if (!n.children) {
-      // Weird, let's jump out
-      return true;
-    }
-
-    items.push(
-      extractItemFromNode(
-        pageMeta.name,
-        n,
-        frontmatter,
-        true,
-        allCompleteStates,
-        itemCache,
-        pageMeta.lastModified,
-      ),
-    );
-
-    // Traversal continue into child items (potentially)
-    return false;
-  }, true);
+    },
+    true,
+  );
 
   if (!shouldIndexAllItems) {
     items = items.filter((item) => item.tag !== "item" || item.tags?.length);

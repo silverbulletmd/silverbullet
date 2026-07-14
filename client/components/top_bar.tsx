@@ -228,10 +228,7 @@ export function TopBar({
   readOnly: boolean;
 }) {
   return (
-    <div
-      id="sb-top"
-      className={isOnline ? undefined : "sb-sync-error"}
-    >
+    <div id="sb-top" className={isOnline ? undefined : "sb-sync-error"}>
       {lhs}
       <div className="main">
         <div className="inner">
@@ -255,23 +252,19 @@ export function TopBar({
               percentage={progressPercentage}
               type={progressType}
             />
-            {mobileMenuStyle
-              ? (
-                <>
-                  <ActionButtons
-                    buttons={actionButtons.filter((b) =>
-                      b.dropdown === false
-                    )}
-                  />
-                  <ActionButtons
-                    buttons={actionButtons.filter((b) =>
-                      b.dropdown !== false
-                    )}
-                    mobileMenuStyle={mobileMenuStyle}
-                  />
-                </>
-              )
-              : <ActionButtons buttons={actionButtons} />}
+            {mobileMenuStyle ? (
+              <>
+                <ActionButtons
+                  buttons={actionButtons.filter((b) => b.dropdown === false)}
+                />
+                <ActionButtons
+                  buttons={actionButtons.filter((b) => b.dropdown !== false)}
+                  mobileMenuStyle={mobileMenuStyle}
+                />
+              </>
+            ) : (
+              <ActionButtons buttons={actionButtons} />
+            )}
           </div>
         </div>
       </div>

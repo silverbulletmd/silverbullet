@@ -407,8 +407,8 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
     case "Hashtag": {
       const tagText: string = t.children![0].text!;
       const tagName = extractHashtag(tagText);
-      const link = options.resolveTagHref?.(tagName) ??
-        TagConstants.tagPrefix + tagName;
+      const link =
+        options.resolveTagHref?.(tagName) ?? TagConstants.tagPrefix + tagName;
       return {
         name: "a",
         attrs: {
@@ -742,9 +742,10 @@ function renderHtmlBlock(
         if (parsed) {
           stack.push({
             name: parsed.tagName,
-            attrs: Object.keys(parsed.parsedAttrs).length > 0
-              ? parsed.parsedAttrs
-              : undefined,
+            attrs:
+              Object.keys(parsed.parsedAttrs).length > 0
+                ? parsed.parsedAttrs
+                : undefined,
             body: [],
           });
         } else {
@@ -804,10 +805,7 @@ function renderHtmlBlock(
   };
 }
 
-type RenderFn = (
-  t: ParseTree,
-  options: MarkdownRenderOptions,
-) => Tag | null;
+type RenderFn = (t: ParseTree, options: MarkdownRenderOptions) => Tag | null;
 
 function groupInlineHtml(
   children: ParseTree[],
@@ -856,9 +854,10 @@ function groupInlineHtml(
           }
           if (j < children.length) {
             const innerChildren = children.slice(i + 1, j);
-            const attrs = Object.keys(parsed.parsedAttrs).length > 0
-              ? parsed.parsedAttrs
-              : undefined;
+            const attrs =
+              Object.keys(parsed.parsedAttrs).length > 0
+                ? parsed.parsedAttrs
+                : undefined;
             result.push({
               name: parsed.tagName,
               attrs,

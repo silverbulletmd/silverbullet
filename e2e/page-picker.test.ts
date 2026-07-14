@@ -48,7 +48,9 @@ test.describe("Page picker keyboard control", () => {
     await sbPage.keyboard.type("Fruit Cherry", { delay: 30 });
     await sbPage.keyboard.press("Enter");
     await expect(modal).not.toBeVisible();
-    await expect(sbPage.locator("#sb-current-page input.sb-input")).toHaveValue("Fruit Cherry");
+    await expect(sbPage.locator("#sb-current-page input.sb-input")).toHaveValue(
+      "Fruit Cherry",
+    );
   });
 
   test("Alt-Space completes the next path segment", async ({ sbPage }) => {

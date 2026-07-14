@@ -28,43 +28,52 @@ export async function buildClient(): Promise<void> {
     jsx: "automatic",
     jsxFragment: "Fragment",
     jsxImportSource: "preact",
-  }
+  };
 
   const buildConfigs: Array<[String, esbuild.BuildOptions]> = [
-    ["client", {
-      ...baseBuildConfig,
-      entryPoints: [
-        {
-          in: "client/boot.ts",
-          out: ".client/client",
-        }
-      ],
-      splitting: true
-    }],
-    ["service worker", {
-      ...baseBuildConfig,
-      entryPoints: [
-        {
-          in: "client/service_worker.ts",
-          out: "service_worker",
-        },
-      ],
-      splitting: false
-    }],
-    ["admin ui", {
-      ...baseBuildConfig,
-      entryPoints: [
-        {
-          in: "client/admin_ui/admin.tsx",
-          out: ".client/admin",
-        },
-      ],
-      splitting: false
-    }]
-  ]
+    [
+      "client",
+      {
+        ...baseBuildConfig,
+        entryPoints: [
+          {
+            in: "client/boot.ts",
+            out: ".client/client",
+          },
+        ],
+        splitting: true,
+      },
+    ],
+    [
+      "service worker",
+      {
+        ...baseBuildConfig,
+        entryPoints: [
+          {
+            in: "client/service_worker.ts",
+            out: "service_worker",
+          },
+        ],
+        splitting: false,
+      },
+    ],
+    [
+      "admin ui",
+      {
+        ...baseBuildConfig,
+        entryPoints: [
+          {
+            in: "client/admin_ui/admin.tsx",
+            out: ".client/admin",
+          },
+        ],
+        splitting: false,
+      },
+    ],
+  ];
 
   for (const [buildName, buildConfig] of buildConfigs) {
-    const result = await esbuild.build(buildConfig)
+    const result = await esbuild.build(buildConfig);
 
     if (result.metafile) {
       const text = await esbuild.analyzeMetafile(result.metafile!);
@@ -85,7 +94,10 @@ async function copyAssets(dist: string) {
   await cp("client/images/favicon-96x96.png", `${dist}/favicon-96x96.png`);
   await cp("client/images/favicon.svg", `${dist}/favicon.svg`);
   await cp("client/images/favicon.ico", `${dist}/favicon.ico`);
-  await cp("client/images/apple-touch-icon.png", `${dist}/apple-touch-icon.png`);
+  await cp(
+    "client/images/apple-touch-icon.png",
+    `${dist}/apple-touch-icon.png`,
+  );
   await cp("client/images/logo.png", `${dist}/logo.png`);
   await cp("client/images/logo-dock.png", `${dist}/logo-dock.png`);
 

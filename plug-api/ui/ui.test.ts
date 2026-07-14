@@ -20,8 +20,12 @@ test("Button primary emits both classes and merges consumer class", () => {
 });
 
 test("Button danger/icon variants", () => {
-  expect(render(h(Button, { variant: "danger" }, "D"))).toContain("sb-button-danger");
-  expect(render(h(Button, { variant: "icon" }, "I"))).toContain("sb-button-icon");
+  expect(render(h(Button, { variant: "danger" }, "D"))).toContain(
+    "sb-button-danger",
+  );
+  expect(render(h(Button, { variant: "icon" }, "I"))).toContain(
+    "sb-button-icon",
+  );
 });
 
 test("Input renders sb-input with default type text", () => {
@@ -68,8 +72,12 @@ test("Tabs marks the active tab and wires per-item onSelect", () => {
 });
 
 test("Alert variant class", () => {
-  expect(render(h(Alert, { variant: "error" }, "e"))).toContain("sb-alert sb-alert-error");
-  expect(render(h(Alert, { variant: "warning" }, "w"))).toContain("sb-alert-warning");
+  expect(render(h(Alert, { variant: "error" }, "e"))).toContain(
+    "sb-alert sb-alert-error",
+  );
+  expect(render(h(Alert, { variant: "warning" }, "w"))).toContain(
+    "sb-alert-warning",
+  );
   expect(render(h(Alert, { variant: "info" }, "i"))).toContain("sb-alert-info");
 });
 

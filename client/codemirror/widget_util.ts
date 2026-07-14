@@ -6,9 +6,7 @@ import {
   resolveMarkdownLink,
 } from "@silverbulletmd/silverbullet/lib/resolve";
 
-export function buildTranslateUrls(
-  client: Client,
-): (url: string) => string {
+export function buildTranslateUrls(client: Client): (url: string) => string {
   return (url: string) => {
     if (isLocalURL(url)) {
       return resolveMarkdownLink(client.currentName(), decodeURI(url));

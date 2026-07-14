@@ -21,7 +21,6 @@ import { customSyntaxPlugin } from "./custom_syntax_widget.ts";
 import { footnotePlugin } from "./footnote.ts";
 import { htmlBlockPlugin, htmlInlinePlugin } from "./html_widget.ts";
 
-
 export function cleanModePlugins(client: Client) {
   const pluginsNeededEvenWhenRenderingSyntax = [
     luaDirectivePlugin(client),

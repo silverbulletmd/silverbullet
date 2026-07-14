@@ -1,5 +1,9 @@
 import { expect, test } from "vitest";
-import { parseBlock, parseExpressionString, stripLuaComments } from "./parse.ts";
+import {
+  parseBlock,
+  parseExpressionString,
+  stripLuaComments,
+} from "./parse.ts";
 import type { LuaNumberLiteral } from "./ast.ts";
 
 test("Test Lua parser", () => {
@@ -60,7 +64,9 @@ test("Test Lua parser", () => {
         goto hello`);
   parseBlock(`while true do print() end`);
   parseBlock(`repeat print() until false`);
-  parseBlock(`if 1 == 2 then print() elseif 1 < 2 then print2() else print3() end`);
+  parseBlock(
+    `if 1 == 2 then print() elseif 1 < 2 then print2() else print3() end`,
+  );
   parseBlock(`if true then print() end`);
   parseBlock(`if true then print() else print2() end`);
   parseBlock(`if true then print() elseif false then print2() end`);
@@ -125,7 +131,9 @@ test("Test query parsing", () => {
   parseBlock(
     `_(query[[from p = index.tag("page") where p.name == "John" limit 10, 3]])`,
   );
-  parseBlock(`_(query[[from index.tag("page") select {name="hello", age=10}]])`);
+  parseBlock(
+    `_(query[[from index.tag("page") select {name="hello", age=10}]])`,
+  );
   parseBlock(
     `_(query[[from p = index.tag("page") order by p.lastModified desc, p.name]])`,
   );
@@ -133,7 +141,9 @@ test("Test query parsing", () => {
   // group by single key
   parseBlock(`_(query[[from p = index.tag("page") group by p.category]])`);
   // group by multiple keys
-  parseBlock(`_(query[[from p = index.tag("page") group by p.category, p.status]])`);
+  parseBlock(
+    `_(query[[from p = index.tag("page") group by p.category, p.status]])`,
+  );
   // group by + having
   parseBlock(
     `_(query[[from p = index.tag("page") group by p.category having #group > 1]])`,

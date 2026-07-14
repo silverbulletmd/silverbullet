@@ -23,7 +23,7 @@ export function computeMarkerWidth(
   // TaskState wraps `[X]` / `[done]` / etc. (length varies by status string).
   // Width contribution = TaskState range length + 1 for the trailing space.
   const taskState = listItem.getChild("Task")?.getChild("TaskState");
-  const taskExtra = taskState ? (taskState.to - taskState.from) + 1 : 0;
+  const taskExtra = taskState ? taskState.to - taskState.from + 1 : 0;
   return leadingIndent + markLength + 1 + taskExtra;
 }
 
@@ -49,8 +49,7 @@ export function listIndentPlugin() {
         const startLine = doc.lineAt(from);
         const width = computeMarkerWidth(node, startLine.from);
         if (width <= 0) return;
-        const styleAttr =
-          `padding-left:${width}ch;text-indent:-${width}ch`;
+        const styleAttr = `padding-left:${width}ch;text-indent:-${width}ch`;
         const endLine = doc.lineAt(to);
         for (
           let lineNo = startLine.number;

@@ -47,7 +47,7 @@ export class ContentManager {
       .catch((e) => console.error("Error dispatching editor:updated event", e));
   }, 1000);
 
-  constructor(private client: Client) { }
+  constructor(private client: Client) {}
 
   // Save the current page or document
   save(immediate = false): Promise<void> {
@@ -172,9 +172,7 @@ export class ContentManager {
    */
   private async leaveCurrentPage(newPath: string) {
     const previousPath = this.client.ui.viewState.current?.path;
-    const loadingDifferentPath = previousPath
-      ? previousPath !== newPath
-      : true;
+    const loadingDifferentPath = previousPath ? previousPath !== newPath : true;
 
     if (previousPath) {
       this.client.space.unwatchFile(previousPath);

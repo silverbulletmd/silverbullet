@@ -8,9 +8,14 @@ test.describe("Top-bar page rename", () => {
     },
   });
 
-  test("rename via Enter moves the page on the server", async ({ sbPage, sbServer }) => {
+  test("rename via Enter moves the page on the server", async ({
+    sbPage,
+    sbServer,
+  }) => {
     await gotoSilverBulletPage(sbPage, sbServer, "OldName");
-    await expect(sbPage.locator("#sb-current-page input.sb-input")).toHaveValue("OldName");
+    await expect(sbPage.locator("#sb-current-page input.sb-input")).toHaveValue(
+      "OldName",
+    );
 
     const nameInput = sbPage.locator("#sb-current-page input.sb-input");
     await nameInput.click();
@@ -18,7 +23,9 @@ test.describe("Top-bar page rename", () => {
     await sbPage.keyboard.type("NewName");
     await sbPage.keyboard.press("Enter");
 
-    await expect(sbPage.locator("#sb-current-page input.sb-input")).toHaveValue("NewName");
+    await expect(sbPage.locator("#sb-current-page input.sb-input")).toHaveValue(
+      "NewName",
+    );
 
     // Wait for the rename round-trip to land: the client navigates to the new
     // page once `index.renamePageCommand` resolves on the server.
@@ -39,14 +46,19 @@ test.describe("Top-bar page rename", () => {
     await sbPage.keyboard.press(`${mod}+a`);
     await sbPage.keyboard.type("BlurRenamed");
     await sbPage.locator("#sb-editor .cm-content").click(); // blur the field
-    await expect(sbPage.locator("#sb-current-page input.sb-input")).toHaveValue("BlurRenamed");
+    await expect(sbPage.locator("#sb-current-page input.sb-input")).toHaveValue(
+      "BlurRenamed",
+    );
     // Wait for the rename round-trip to land (client navigates to the new page).
     await sbPage.waitForURL(/\/BlurRenamed$/);
     const resp = await fetch(`${sbServer.url}/.fs/BlurRenamed.md`);
     expect(resp.ok).toBe(true);
   });
 
-  test("editor shortcuts still fire while the page-name field is focused", async ({ sbPage, sbServer }) => {
+  test("editor shortcuts still fire while the page-name field is focused", async ({
+    sbPage,
+    sbServer,
+  }) => {
     await gotoSilverBulletPage(sbPage, sbServer, "OldName");
     const nameInput = sbPage.locator("#sb-current-page input.sb-input");
     await nameInput.click();

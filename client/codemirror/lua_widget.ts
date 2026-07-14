@@ -90,15 +90,17 @@ export class LuaWidget extends WidgetType {
       ...opts,
     };
     if (this.opts.inPage) {
-      this.opts.client.widgetCache.prewarmResult(this.opts.cacheKey, () =>
-        this.opts.callback(
-          this.opts.expressionText,
-          this.opts.client.currentName(),
-        ),
-      ).catch(() => {
-        // Ignore: renderContent re-awaits the same promise and handles
-        // errors via its own catch path.
-      });
+      this.opts.client.widgetCache
+        .prewarmResult(this.opts.cacheKey, () =>
+          this.opts.callback(
+            this.opts.expressionText,
+            this.opts.client.currentName(),
+          ),
+        )
+        .catch(() => {
+          // Ignore: renderContent re-awaits the same promise and handles
+          // errors via its own catch path.
+        });
     }
   }
 
@@ -276,9 +278,10 @@ export class LuaWidget extends WidgetType {
       // diagram renders to an SVG via `html` while exposing its source block via
       // `markdown`). Only fall back to the html itself when no markdown is given.
       if (!copyContent) {
-        copyContent = typeof wc.html === "string"
-          ? (wc.markdown ?? wc.html)
-          : (wc.markdown ?? wc.html.outerHTML);
+        copyContent =
+          typeof wc.html === "string"
+            ? (wc.markdown ?? wc.html)
+            : (wc.markdown ?? wc.html.outerHTML);
       }
 
       block = wc.display === "block";
@@ -341,10 +344,7 @@ export class LuaWidget extends WidgetType {
         renderMarkdownToHtml(
           mdTree,
           {
-            shortWikiLinks: this.opts.client.config.get(
-              "shortWikiLinks",
-              true,
-            ),
+            shortWikiLinks: this.opts.client.config.get("shortWikiLinks", true),
             translateUrls: buildTranslateUrls(this.opts.client),
           },
           this.opts.client.ui.viewState.allPages,
@@ -353,11 +353,11 @@ export class LuaWidget extends WidgetType {
     }
     if (html) {
       const bakeBody = wc.html
-        ? (typeof wc.markdown === "string" ? wc.markdown.trim() : undefined)
+        ? typeof wc.markdown === "string"
+          ? wc.markdown.trim()
+          : undefined
         : copyContent;
-      div.replaceChildren(
-        this.wrapHtml(block, html, copyContent, bakeBody),
-      );
+      div.replaceChildren(this.wrapHtml(block, html, copyContent, bakeBody));
       div.style.minHeight = "";
       attachWidgetEventHandlers(
         div,
@@ -448,14 +448,15 @@ export class LuaWidget extends WidgetType {
     }
 
     if (
-      this.opts.bakeable && bakeBody !== undefined && this.opts.codeText &&
+      this.opts.bakeable &&
+      bakeBody !== undefined &&
+      this.opts.codeText &&
       !this.opts.client.isReadOnlyMode()
     ) {
       buttonBar.appendChild(
         createButton({
           title: "Bake",
-          icon:
-            '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-package"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>',
+          icon: '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-package"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>',
           listener: (e) => {
             e.stopPropagation();
             const range = findWidgetSourceRange(
@@ -470,9 +471,9 @@ export class LuaWidget extends WidgetType {
               );
               return;
             }
-            const replacement = `<!--#lua ${this.opts.expressionText} -->\n${
-              escapeBakedBody(bakeBody).trim()
-            }\n<!--/lua-->`;
+            const replacement = `<!--#lua ${this.opts.expressionText} -->\n${escapeBakedBody(
+              bakeBody,
+            ).trim()}\n<!--/lua-->`;
             this.opts.client.editorView.dispatch({
               changes: { from: range.from, to: range.to, insert: replacement },
             });

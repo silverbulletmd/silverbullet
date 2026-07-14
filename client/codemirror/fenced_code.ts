@@ -81,23 +81,24 @@ export function fencedCodePlugin(client: Client) {
               .join("\n");
             const pageName = client.currentName();
             const currentPageMeta = client.currentPageMeta();
-            const widget = renderMode === "loading"
-              ? new LoadingWidget(true)
-              : new LuaWidget({
-                client,
-                cacheKey: `codewidget:${lang}:${pageName}:${bodyText}`,
-                expressionText: bodyText,
-                codeText: text,
-                callback: () =>
-                  renderLuaCallback(
+            const widget =
+              renderMode === "loading"
+                ? new LoadingWidget(true)
+                : new LuaWidget({
                     client,
-                    luaWidgetDef.render,
-                    [bodyText, pageName],
-                    currentPageMeta,
-                  ),
-                renderEmpty: false,
-                inPage: true,
-              });
+                    cacheKey: `codewidget:${lang}:${pageName}:${bodyText}`,
+                    expressionText: bodyText,
+                    codeText: text,
+                    callback: () =>
+                      renderLuaCallback(
+                        client,
+                        luaWidgetDef.render,
+                        [bodyText, pageName],
+                        currentPageMeta,
+                      ),
+                    renderEmpty: false,
+                    inPage: true,
+                  });
             widgets.push(
               Decoration.widget({
                 widget: widget,
@@ -150,13 +151,14 @@ export function fencedCodePlugin(client: Client) {
               );
             });
 
-            const widget = renderMode === "loading"
-              ? new LoadingWidget(true)
-              : new IFrameWidget(
-                  client,
-                  lineStrings.slice(1, lineStrings.length - 1).join("\n"),
-                  codeWidgetCallback,
-                );
+            const widget =
+              renderMode === "loading"
+                ? new LoadingWidget(true)
+                : new IFrameWidget(
+                    client,
+                    lineStrings.slice(1, lineStrings.length - 1).join("\n"),
+                    codeWidgetCallback,
+                  );
             widgets.push(
               Decoration.widget({
                 widget: widget,

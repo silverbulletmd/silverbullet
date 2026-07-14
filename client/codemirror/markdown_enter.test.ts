@@ -8,7 +8,8 @@ const CURSOR = "|^|";
 
 function runEnter(input: string): string | false {
   const cursorPos = input.indexOf(CURSOR);
-  const doc = input.slice(0, cursorPos) + input.slice(cursorPos + CURSOR.length);
+  const doc =
+    input.slice(0, cursorPos) + input.slice(cursorPos + CURSOR.length);
 
   const state = EditorState.create({
     doc,

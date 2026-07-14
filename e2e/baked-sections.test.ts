@@ -2,10 +2,8 @@ import { expect, gotoSilverBulletPage, test } from "./fixtures.ts";
 
 test.use({
   spaceFiles: {
-    "Bake.md":
-      `Before\n\n<!--#lua 3 + 4 -->\nstale\n<!--/lua-->\n\nAfter\n`,
-    "BakeButton.md":
-      "Table:\n\n${ { {name = \"a\"}, {name = \"b\"} } }\n",
+    "Bake.md": `Before\n\n<!--#lua 3 + 4 -->\nstale\n<!--/lua-->\n\nAfter\n`,
+    "BakeButton.md": 'Table:\n\n${ { {name = "a"}, {name = "b"} } }\n',
     // A Lua-registered code widget that renders its body as block markdown.
     // Its rendered block gets a button bar, but it must NOT get a Bake button:
     // baking rewrites the source to `<!--#lua EXPR -->` where EXPR is a Lua
@@ -15,7 +13,10 @@ test.use({
   },
 });
 
-test("'Baked Sections: Update' rewrites a section body with the evaluated result", async ({ sbServer, page }) => {
+test("'Baked Sections: Update' rewrites a section body with the evaluated result", async ({
+  sbServer,
+  page,
+}) => {
   await gotoSilverBulletPage(page, sbServer, "Bake");
 
   await page.waitForFunction(
@@ -25,24 +26,29 @@ test("'Baked Sections: Update' rewrites a section body with the evaluated result
   );
 
   await page.evaluate(() =>
-    (globalThis as any).client.runCommandByName(
-      "Baked Sections: Update",
-    )
+    (globalThis as any).client.runCommandByName("Baked Sections: Update"),
   );
 
-  await page.waitForFunction(() => {
-    const doc = (globalThis as any).client.editorView.state.doc.toString();
-    return doc.includes("<!--#lua 3 + 4 -->\n7\n<!--/lua-->");
-  }, undefined, { timeout: 10_000 });
+  await page.waitForFunction(
+    () => {
+      const doc = (globalThis as any).client.editorView.state.doc.toString();
+      return doc.includes("<!--#lua 3 + 4 -->\n7\n<!--/lua-->");
+    },
+    undefined,
+    { timeout: 10_000 },
+  );
 
   const doc = await page.evaluate(() =>
-    (globalThis as any).client.editorView.state.doc.toString()
+    (globalThis as any).client.editorView.state.doc.toString(),
   );
   expect(doc).toContain("<!--#lua 3 + 4 -->\n7\n<!--/lua-->");
   expect(doc).not.toContain("stale");
 });
 
-test("'Baked Sections: Unbake Section At Cursor' restores the section to ${…} form", async ({ sbServer, page }) => {
+test("'Baked Sections: Unbake Section At Cursor' restores the section to ${…} form", async ({
+  sbServer,
+  page,
+}) => {
   await gotoSilverBulletPage(page, sbServer, "Bake");
 
   await page.waitForFunction(
@@ -61,16 +67,20 @@ test("'Baked Sections: Unbake Section At Cursor' restores the section to ${…} 
   await page.evaluate(() =>
     (globalThis as any).client.runCommandByName(
       "Baked Sections: Unbake Section At Cursor",
-    )
+    ),
   );
 
-  await page.waitForFunction(() => {
-    const doc = (globalThis as any).client.editorView.state.doc.toString();
-    return doc.includes("${3 + 4}");
-  }, undefined, { timeout: 10_000 });
+  await page.waitForFunction(
+    () => {
+      const doc = (globalThis as any).client.editorView.state.doc.toString();
+      return doc.includes("${3 + 4}");
+    },
+    undefined,
+    { timeout: 10_000 },
+  );
 
   const doc = await page.evaluate(() =>
-    (globalThis as any).client.editorView.state.doc.toString()
+    (globalThis as any).client.editorView.state.doc.toString(),
   );
   expect(doc).toContain("${3 + 4}");
   expect(doc).not.toContain("<!--#lua");
@@ -78,7 +88,10 @@ test("'Baked Sections: Unbake Section At Cursor' restores the section to ${…} 
 });
 
 // A record-array result renders as a block table → block widget → button bar.
-test("bake button converts a ${} directive to comment form", async ({ sbServer, page }) => {
+test("bake button converts a ${} directive to comment form", async ({
+  sbServer,
+  page,
+}) => {
   await gotoSilverBulletPage(page, sbServer, "BakeButton");
 
   // The button bar is `display: none` until the widget is hovered
@@ -93,13 +106,17 @@ test("bake button converts a ${} directive to comment form", async ({ sbServer, 
     .first();
   await btn.click({ timeout: 10_000 });
 
-  await page.waitForFunction(() => {
-    const doc = (globalThis as any).client.editorView.state.doc.toString();
-    return doc.includes("<!--#lua") && doc.includes("<!--/lua-->");
-  }, undefined, { timeout: 10_000 });
+  await page.waitForFunction(
+    () => {
+      const doc = (globalThis as any).client.editorView.state.doc.toString();
+      return doc.includes("<!--#lua") && doc.includes("<!--/lua-->");
+    },
+    undefined,
+    { timeout: 10_000 },
+  );
 
   const doc = await page.evaluate(() =>
-    (globalThis as any).client.editorView.state.doc.toString()
+    (globalThis as any).client.editorView.state.doc.toString(),
   );
   expect(doc).toContain("<!--#lua");
   expect(doc).toContain("<!--/lua-->");
@@ -112,7 +129,10 @@ test("bake button converts a ${} directive to comment form", async ({ sbServer, 
 // Regression guard: the Bake button is for live `${…}` Lua directives only.
 // Widgets that originate from fenced code blocks (e.g. ```mermaid, ```greet)
 // must not get one — their body is not a Lua expression to re-evaluate.
-test("fenced code block widgets do not get a Bake button", async ({ sbServer, page }) => {
+test("fenced code block widgets do not get a Bake button", async ({
+  sbServer,
+  page,
+}) => {
   await gotoSilverBulletPage(page, sbServer, "FencedNoBake");
 
   // Wait for the `greet` code widget to render as a block widget (this only

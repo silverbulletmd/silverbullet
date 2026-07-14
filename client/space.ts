@@ -92,7 +92,9 @@ export class Space {
       }
       const anchorName = ref.details.name;
       const filterPage = ref.path
-        ? ref.path.endsWith(".md") ? ref.path.slice(0, -3) : ref.path
+        ? ref.path.endsWith(".md")
+          ? ref.path.slice(0, -3)
+          : ref.path
         : undefined;
       const result = await this.anchorResolver(anchorName, filterPage);
       if (!result.ok) {

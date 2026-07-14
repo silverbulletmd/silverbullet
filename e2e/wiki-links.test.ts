@@ -1,69 +1,89 @@
 import {
-	expect,
-	gotoSilverBulletPage,
-	mod,
-	test,
-	waitForEditorReady,
-	waitForSaveAndReadFromServer,
+  expect,
+  gotoSilverBulletPage,
+  mod,
+  test,
+  waitForEditorReady,
+  waitForSaveAndReadFromServer,
 } from "./fixtures.ts";
 
 test.describe("Wiki links", () => {
-	test.describe("cross-page navigation", () => {
-		test.use({
-			spaceFiles: {
-				"PageA.md": "# Page A\nLink to [[PageB]] here",
-				"PageB.md": "# Page B\nThis is page B content",
-			},
-		});
+  test.describe("cross-page navigation", () => {
+    test.use({
+      spaceFiles: {
+        "PageA.md": "# Page A\nLink to [[PageB]] here",
+        "PageB.md": "# Page B\nThis is page B content",
+      },
+    });
 
-		test("navigate between pages via wiki link click", async ({ sbServer, page }) => {
-			await gotoSilverBulletPage(page, sbServer, "PageA");
-			const editor = page.locator("#sb-editor .cm-content");
+    test("navigate between pages via wiki link click", async ({
+      sbServer,
+      page,
+    }) => {
+      await gotoSilverBulletPage(page, sbServer, "PageA");
+      const editor = page.locator("#sb-editor .cm-content");
 
-			await expect(page.locator("#sb-current-page input.sb-input")).toHaveValue("PageA");
-			await expect(editor).toContainText("Page A");
+      await expect(page.locator("#sb-current-page input.sb-input")).toHaveValue(
+        "PageA",
+      );
+      await expect(editor).toContainText("Page A");
 
-			// Click on the "PageB" text inside the wiki link
-			const wikiLinkText = editor.locator(".sb-wiki-link", { hasText: "PageB" });
-			await expect(wikiLinkText).toBeVisible({ timeout: 10_000 });
-			await wikiLinkText.click();
+      // Click on the "PageB" text inside the wiki link
+      const wikiLinkText = editor.locator(".sb-wiki-link", {
+        hasText: "PageB",
+      });
+      await expect(wikiLinkText).toBeVisible({ timeout: 10_000 });
+      await wikiLinkText.click();
 
-			// Should navigate to PageB
-			await expect(page.locator("#sb-current-page input.sb-input")).toHaveValue("PageB");
-			await expect(editor).toContainText("Page B");
-		});
-	});
+      // Should navigate to PageB
+      await expect(page.locator("#sb-current-page input.sb-input")).toHaveValue(
+        "PageB",
+      );
+      await expect(editor).toContainText("Page B");
+    });
+  });
 
-	test("wiki link to non-existent page creates it on click and saves", async ({ sbPage, sbServer }) => {
-		const editor = sbPage.locator("#sb-editor .cm-content");
-		await expect(editor).toContainText("Welcome");
+  test("wiki link to non-existent page creates it on click and saves", async ({
+    sbPage,
+    sbServer,
+  }) => {
+    const editor = sbPage.locator("#sb-editor .cm-content");
+    await expect(editor).toContainText("Welcome");
 
-		// Navigate to a fresh page
-		await sbPage.keyboard.press(`${mod}+k`);
-		await sbPage.locator(".sb-modal-box input.sb-input").click();
-		await sbPage.keyboard.type("Link Source", { delay: 30 });
-		await sbPage.keyboard.press("Shift+Enter");
-		await expect(editor).toHaveText("");
+    // Navigate to a fresh page
+    await sbPage.keyboard.press(`${mod}+k`);
+    await sbPage.locator(".sb-modal-box input.sb-input").click();
+    await sbPage.keyboard.type("Link Source", { delay: 30 });
+    await sbPage.keyboard.press("Shift+Enter");
+    await expect(editor).toHaveText("");
 
-		// Wait for the editor to finish loading and any pageLoaded handlers
-		// to settle before typing. Otherwise CodeMirror reconfigures mid-type
-		// and the cursor jumps back to position 0, splitting input.
-		await waitForEditorReady(sbPage);
-		await editor.click();
-		await sbPage.keyboard.type("Check out [[Brand New Page]]", { delay: 20 });
+    // Wait for the editor to finish loading and any pageLoaded handlers
+    // to settle before typing. Otherwise CodeMirror reconfigures mid-type
+    // and the cursor jumps back to position 0, splitting input.
+    await waitForEditorReady(sbPage);
+    await editor.click();
+    await sbPage.keyboard.type("Check out [[Brand New Page]]", { delay: 20 });
 
-		// Verify the source page with the wiki link is saved to server
-		const sourceContent = await waitForSaveAndReadFromServer(sbPage, sbServer, "Link Source.md");
-		expect(sourceContent).toContain("[[Brand New Page]]");
+    // Verify the source page with the wiki link is saved to server
+    const sourceContent = await waitForSaveAndReadFromServer(
+      sbPage,
+      sbServer,
+      "Link Source.md",
+    );
+    expect(sourceContent).toContain("[[Brand New Page]]");
 
-		// Move cursor away from the link so it renders
-		await sbPage.keyboard.press("Home");
+    // Move cursor away from the link so it renders
+    await sbPage.keyboard.press("Home");
 
-		// Click on the wiki link text to navigate/create
-		const wikiLinkText = editor.locator(".sb-wiki-link", { hasText: "Brand New Page" });
-		await expect(wikiLinkText).toBeVisible({ timeout: 10_000 });
-		await wikiLinkText.click();
+    // Click on the wiki link text to navigate/create
+    const wikiLinkText = editor.locator(".sb-wiki-link", {
+      hasText: "Brand New Page",
+    });
+    await expect(wikiLinkText).toBeVisible({ timeout: 10_000 });
+    await wikiLinkText.click();
 
-		await expect(sbPage.locator("#sb-current-page input.sb-input")).toHaveValue("Brand New Page");
-	});
+    await expect(sbPage.locator("#sb-current-page input.sb-input")).toHaveValue(
+      "Brand New Page",
+    );
+  });
 });

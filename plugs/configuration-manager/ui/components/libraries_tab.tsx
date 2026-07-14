@@ -40,15 +40,16 @@ const REPO_ADD_KEY = "repo:add";
 // install it. Lives at module scope so both the button and the command-triggered
 // `librariesFocus` dispatch in LibrariesTab can invoke the exact same flow.
 async function promptInstall(libs: LibrariesEditor) {
-  const uri = (await editor.prompt(
-    "Library or plug URI (https://… or github:…):",
-  ))?.trim();
+  const uri = (
+    await editor.prompt("Library or plug URI (https://… or github:…):")
+  )?.trim();
   if (!uri) return;
   if (uri.endsWith(".plug.js")) {
     const segs = uri.split("/");
     const suggested = segs[segs.length - 1] || "";
-    const path = (await editor.prompt("Save plug as (path):", suggested))
-      ?.trim();
+    const path = (
+      await editor.prompt("Save plug as (path):", suggested)
+    )?.trim();
     if (!path) return;
     await libs.run(INSTALL_KEY, "available", "installPlug", { uri, path });
   } else {
@@ -60,10 +61,12 @@ async function promptInstall(libs: LibrariesEditor) {
 async function promptAddRepository(libs: LibrariesEditor) {
   const uri = (await editor.prompt("Repository URI:"))?.trim();
   if (!uri) return;
-  const page = (await editor.prompt(
-    "Install into (page path):",
-    `${REPO_PREFIX}${suggestRepoNameFromUri(uri)}`,
-  ))?.trim();
+  const page = (
+    await editor.prompt(
+      "Install into (page path):",
+      `${REPO_PREFIX}${suggestRepoNameFromUri(uri)}`,
+    )
+  )?.trim();
   if (!page) return;
   await libs.run(REPO_ADD_KEY, "repositories", "addRepository", { uri, page });
 }
@@ -92,7 +95,11 @@ function InlineBanner({
   );
 }
 
-function SectionBanners({ section }: { section: "installed" | "available" | "repositories" }) {
+function SectionBanners({
+  section,
+}: {
+  section: "installed" | "available" | "repositories";
+}) {
   const libs = useLibraries();
   return (
     <>
@@ -172,9 +179,7 @@ function InstalledRow({
         <a class="lib-link" onClick={() => openPage(lib.name)}>
           {lib.name}
         </a>
-        {isBuiltin && (
-          <Badge class="lib-badge-builtin">built-in</Badge>
-        )}
+        {isBuiltin && <Badge class="lib-badge-builtin">built-in</Badge>}
         {isPush && <Badge class="lib-badge-push">dev mode</Badge>}
         {isPull && <Badge class="lib-badge-pull">installed</Badge>}
       </div>
@@ -392,10 +397,7 @@ function MarkdownDescription({ text }: { text: string }) {
     };
   }, [text]);
   return (
-    <div
-      class="lib-card-desc"
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+    <div class="lib-card-desc" dangerouslySetInnerHTML={{ __html: html }} />
   );
 }
 
@@ -550,9 +552,7 @@ function RepoRow({ repo }: { repo: RepositoryInfo }) {
             {repo.uri}
           </span>
         )}
-        {!actionable && (
-          <Badge class="lib-badge-builtin">built-in</Badge>
-        )}
+        {!actionable && <Badge class="lib-badge-builtin">built-in</Badge>}
       </div>
       <div class="lib-row-actions">
         {repo.uri && /^https?:\/\//.test(repo.uri) && (
@@ -635,11 +635,7 @@ function RepoUpdateAllButton() {
     <Button
       disabled={busy}
       onClick={async () => {
-        const r = await libs.run(
-          key,
-          "repositories",
-          "updateAllRepositories",
-        );
+        const r = await libs.run(key, "repositories", "updateAllRepositories");
         if (r.ok) {
           const updated: string[] = r.data?.updated ?? [];
           libs.setSectionInfo(

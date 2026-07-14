@@ -14,7 +14,6 @@ import {
   LuaBuiltinFunction,
   LuaEnv,
   LuaNativeJSFunction,
-
   LuaStackFrame,
   LuaTable,
   luaTypeOf,
@@ -68,7 +67,7 @@ function makeApiEnv(): { global: LuaEnv; sf: LuaStackFrame } {
   env.setLocal(
     "asyncGet",
     new LuaNativeJSFunction((key: string) =>
-      Promise.resolve(`value_for_${key}`)
+      Promise.resolve(`value_for_${key}`),
     ),
   );
 
@@ -79,12 +78,15 @@ function makeApiEnv(): { global: LuaEnv; sf: LuaStackFrame } {
       const t = new LuaTable();
       void t.set("id", id);
       void t.set("name", `item_${id}`);
-      void t.set("tags", (() => {
-        const tags = new LuaTable();
-        void tags.set(1, "tag_a");
-        void tags.set(2, "tag_b");
-        return tags;
-      })());
+      void t.set(
+        "tags",
+        (() => {
+          const tags = new LuaTable();
+          void tags.set(1, "tag_a");
+          void tags.set(2, "tag_b");
+          return tags;
+        })(),
+      );
       return t;
     }),
   );
@@ -93,7 +95,7 @@ function makeApiEnv(): { global: LuaEnv; sf: LuaStackFrame } {
   env.setLocal(
     "asyncGetRecord",
     new LuaNativeJSFunction((id: number) =>
-      Promise.resolve({ id, name: `item_${id}`, tags: ["tag_a", "tag_b"] })
+      Promise.resolve({ id, name: `item_${id}`, tags: ["tag_a", "tag_b"] }),
     ),
   );
 
@@ -107,7 +109,7 @@ function makeApiEnv(): { global: LuaEnv; sf: LuaStackFrame } {
   env.setLocal(
     "asyncSet",
     new LuaNativeJSFunction((_key: string, _value: string) =>
-      Promise.resolve(true)
+      Promise.resolve(true),
     ),
   );
 
@@ -117,9 +119,9 @@ function makeApiEnv(): { global: LuaEnv; sf: LuaStackFrame } {
     new LuaNativeJSFunction((id: number) =>
       Promise.resolve(
         `2024-03-${String((id % 28) + 1).padStart(2, "0")} Task alpha for page ${id}\n` +
-        `2023-12-${String((id % 28) + 1).padStart(2, "0")} Task beta for page ${id}\n` +
-        `2024-01-${String((id % 28) + 1).padStart(2, "0")} Task gamma for page ${id}\n`,
-      )
+          `2023-12-${String((id % 28) + 1).padStart(2, "0")} Task beta for page ${id}\n` +
+          `2024-01-${String((id % 28) + 1).padStart(2, "0")} Task gamma for page ${id}\n`,
+      ),
     ),
   );
 
@@ -979,9 +981,7 @@ bench("Perf: linked list traversal (1k nodes x100)", () =>
 bench("Perf: table.sort with comparator (1k x20)", () =>
   runStd(asts.tableSort),
 );
-bench("Perf: table.concat (1k parts x100)", () =>
-  runStd(asts.tableConcat),
-);
+bench("Perf: table.concat (1k parts x100)", () => runStd(asts.tableConcat));
 
 // --- String Manipulation ---
 bench("Perf: string.format (10k)", () => runStd(asts.stringFormat));
@@ -1035,9 +1035,7 @@ bench("Perf: async query pattern (fetch+filter+build, 1k)", () =>
 // pcall
 bench("Perf: pcall success path (1k)", () => runApi(asts.pcallSuccess));
 bench("Perf: pcall error path (1k)", () => runStd(asts.pcallError));
-bench("Perf: pcall wrapping async API (1k)", () =>
-  runApi(asts.pcallAsyncApi),
-);
+bench("Perf: pcall wrapping async API (1k)", () => runApi(asts.pcallAsyncApi));
 // string.match / string.gmatch
 bench("Perf: string.match date parsing (5k)", () =>
   runStd(asts.stringMatchDate),
@@ -1053,9 +1051,7 @@ bench("Perf: table.insert + table.concat output (1k x50)", () =>
   runStd(asts.tableInsertConcat),
 );
 // SB string extensions
-bench("Perf: string.split hot loop (5k)", () =>
-  runStd(asts.stringSplitHot),
-);
+bench("Perf: string.split hot loop (5k)", () => runStd(asts.stringSplitHot));
 bench("Perf: string.trim + startsWith + endsWith (5k)", () =>
   runStd(asts.stringTrimStartsEnds),
 );
@@ -1063,9 +1059,7 @@ bench("Perf: string.trim + startsWith + endsWith (5k)", () =>
 bench("Perf: type() checking (100k)", () => runStd(asts.typeChecking));
 // os.time / os.date
 bench("Perf: os.date formatting (2k)", () => runStd(asts.osDateFormat));
-bench("Perf: os.date('*t') table return (2k)", () =>
-  runStd(asts.osDateTable),
-);
+bench("Perf: os.date('*t') table return (2k)", () => runStd(asts.osDateTable));
 // tostring/tonumber
 bench("Perf: tostring + tonumber conversions (10k)", () =>
   runStd(asts.typeConversions),

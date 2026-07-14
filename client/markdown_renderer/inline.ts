@@ -83,7 +83,10 @@ export async function expandMarkdown(
       }
 
       // Resolve local URLs (only for markdown links, wikilinks are absolute)
-      if (isLocalURL(transclusion.url) && transclusion.linktype !== "wikilink") {
+      if (
+        isLocalURL(transclusion.url) &&
+        transclusion.linktype !== "wikilink"
+      ) {
         transclusion.url = resolveMarkdownLink(
           pageName,
           decodeURI(transclusion.url),
@@ -203,7 +206,11 @@ export async function expandMarkdown(
         console.error(`Error in ${spec.name} renderHtml:`, e);
         return {
           type: CustomSyntaxRenderedHtmlType,
-          children: [{ text: `<span class="error">Error in ${htmlEscape(spec.name)} renderHtml: ${htmlEscape(e.message)}</span>` }],
+          children: [
+            {
+              text: `<span class="error">Error in ${htmlEscape(spec.name)} renderHtml: ${htmlEscape(e.message)}</span>`,
+            },
+          ],
         };
       }
     }

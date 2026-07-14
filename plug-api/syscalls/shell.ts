@@ -14,4 +14,3 @@ export function run(
 ): Promise<{ stdout: string; stderr: string; code: number }> {
   return syscall("shell.run", cmd, args, stdin);
 }
-
