@@ -7,7 +7,7 @@ use axum::{Form, Json};
 use serde::Deserialize;
 use serde_json::json;
 
-use crate::auth::{auth_cookie_name, is_secure_request, request_host, CookieOptions};
+use crate::auth::{is_secure_request, request_host, CookieOptions};
 use crate::router::run_blocking;
 use crate::state::ServerState;
 
@@ -126,7 +126,7 @@ pub async fn handle_auth_post(
     };
 
     let mut resp = Json(json!({ "status": "ok", "redirect": redirect })).into_response();
-    let cookie_name = auth_cookie_name(&host);
+    let cookie_name = crate::auth::scoped_auth_cookie_name(&host, login.host_url_prefix());
     append_cookie(&mut resp, &cookie_name, &jwt, &opts);
     if remember {
         append_cookie(&mut resp, "refreshLogin", "true", &opts);
@@ -169,7 +169,12 @@ pub async fn handle_logout(State(state): State<Arc<ServerState>>, headers: Heade
         .header(axum::http::header::LOCATION, location)
         .body(axum::body::Body::empty())
         .unwrap();
-    append_cookie(&mut resp, &auth_cookie_name(&host), "", &del);
+    append_cookie(
+        &mut resp,
+        &crate::auth::scoped_auth_cookie_name(&host, &prefix),
+        "",
+        &del,
+    );
     append_cookie(&mut resp, "refreshLogin", "", &del);
     resp
 }

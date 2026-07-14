@@ -59,6 +59,10 @@ safeRun(async () => {
       // Not recoverable
       return;
     }
+    if (e.message === notAuthenticatedError.message) {
+      // A redirect to the login page is already under way; stop booting.
+      return;
+    }
   }
   // Concatenate and evaluate
   try {
@@ -307,6 +311,14 @@ if (!globalThis.indexedDB) {
   );
 }
 
+/**
+ * Set once a boot fetch discovers it must navigate away (auth redirect or
+ * service-worker-reset reload). The navigation aborts the sibling in-flight
+ * boot fetches; this flag lets their error handlers report the redirect
+ * instead of misclassifying the abort as being offline.
+ */
+let redirectingAway = false;
+
 async function cachedFetch(path: string): Promise<string> {
   const cacheKey = `silverbullet.${document.baseURI}.${path}`;
   try {
@@ -346,6 +358,7 @@ async function cachedFetch(path: string): Promise<string> {
       );
       await unregisterServiceWorkers();
       console.log("Ok, now going to reload, let's hope for the best");
+      redirectingAway = true;
       location.reload();
       throw notAuthenticatedError;
     }
@@ -355,14 +368,27 @@ async function cachedFetch(path: string): Promise<string> {
         "Received an (authentication) redirect, redirecting to URL: " +
           redirectHeader,
       );
-      location.href = redirectHeader;
+      // Only the first fetch to see the redirect navigates; its siblings just
+      // report the authentication failure.
+      if (!redirectingAway) {
+        redirectingAway = true;
+        location.href = redirectHeader;
+      }
       throw notAuthenticatedError;
     }
     const text = await response.text();
     // Persist to localStorage
     localStorage.setItem(cacheKey, text);
     return text;
-  } catch {
+  } catch (e: any) {
+    if (e.message === notAuthenticatedError.message) {
+      throw e;
+    }
+    if (redirectingAway) {
+      // Our own redirect-to-login (or reload) navigation aborted this fetch —
+      // that's an authentication situation, not an offline one.
+      throw notAuthenticatedError;
+    }
     console.info("Falling back to cache for", path);
     // We may be offline, let's see if we have a cached copy
     const text = localStorage.getItem(cacheKey);

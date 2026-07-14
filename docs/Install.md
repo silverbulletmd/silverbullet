@@ -29,6 +29,8 @@ There are three things to take care of, in this order (follow the links in each 
 3. Deploy a [[TLS]] layer front of SilverBullet: browsers require `https://` (or `localhost`) for SilverBullet’s service worker, crypto, and clipboard APIs to work, so _you cannot_ reach a remote SilverBullet server over plain `http://`.
 5. Once that’s all set up, follow [[Getting Started]] to learn the basics of using SilverBullet itself.
 
+Hosting more than one space? Rather than running a separate server process per space, consider [[Multi-Space Mode]]: one process serves any number of spaces, each with its own URL, authentication, and admin UI.
+
 # Cloud
 While [[Self Hosted]] is the intended path, if this is too much hassle for you. There is a simpler option by using [PikaPods](https://www.pikapods.com/pods?run=silverbullet). For a small fee (about $1.50 per month), you can run your instance there. PikaPods handles deployment, upgrades and backups and exposes SilverBullet securely via TLS.
 

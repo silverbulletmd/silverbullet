@@ -77,7 +77,11 @@ fn main() -> std::process::ExitCode {
         match server::run(cli.hostname, cli.port, cli.folder).await {
             Ok(()) => std::process::ExitCode::SUCCESS,
             Err(e) => {
+                // Log the fatal error and also write it to stderr — the
+                // conventional stream for fatal CLI errors (the tracing fmt
+                // subscriber writes to stdout).
                 tracing::error!("{e}");
+                eprintln!("Error: {e}");
                 std::process::ExitCode::FAILURE
             }
         }

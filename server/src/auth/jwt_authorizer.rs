@@ -5,22 +5,36 @@ use axum::http::HeaderMap;
 use crate::auth::authenticator::Authenticator;
 use crate::auth::authorizer::{AuthContext, RequestAuthorizer};
 use crate::auth::config::constant_time_eq;
-use crate::auth::cookie::{auth_cookie_name, request_host};
+use crate::auth::cookie::{request_host, scoped_auth_cookie_name};
 
 /// The standalone server's authorizer: a request is authorized if it carries the
 /// configured bearer token (constant-time compared) or a valid session JWT in
-/// the host-derived auth cookie (`auth_<cleanHost>`).
+/// the scoped auth cookie. The cookie name is derived from the request `Host`
+/// and this authorizer's URL prefix (`auth_<cleanHost><cleanPrefix>`), so
+/// sessions stay separate when multiple spaces share a host under different
+/// prefixes; an empty prefix yields the legacy `auth_<cleanHost>` name.
 pub struct JwtAuthorizer {
     authenticator: Arc<Authenticator>,
     /// Optional bearer token (empty disables bearer auth).
     auth_token: String,
+    /// URL prefix this authorizer's space is mounted under (cookie scoping).
+    url_prefix: String,
 }
 
 impl JwtAuthorizer {
     pub fn new(authenticator: Arc<Authenticator>, auth_token: String) -> Self {
+        Self::with_prefix(authenticator, auth_token, String::new())
+    }
+
+    pub fn with_prefix(
+        authenticator: Arc<Authenticator>,
+        auth_token: String,
+        url_prefix: String,
+    ) -> Self {
         Self {
             authenticator,
             auth_token,
+            url_prefix,
         }
     }
 }
@@ -34,7 +48,7 @@ impl RequestAuthorizer for JwtAuthorizer {
                 }
             }
         }
-        let name = auth_cookie_name(&request_host(ctx.headers));
+        let name = scoped_auth_cookie_name(&request_host(ctx.headers), &self.url_prefix);
         if let Some(cookie) = cookie_value(ctx.headers, &name) {
             if self.authenticator.verify_jwt(&cookie).is_ok() {
                 return true;
@@ -147,5 +161,28 @@ mod tests {
     fn rejects_no_credentials() {
         let h = HeaderMap::new();
         assert!(!authz().is_authorized(&ctx(&h)));
+    }
+
+    #[test]
+    fn prefixed_authorizer_reads_scoped_cookie_only() {
+        let auth = std::sync::Arc::new(Authenticator::from_secret_bytes(vec![3u8; 32], "h".into()));
+        let token = auth.issue_jwt("alice", 3600).unwrap();
+        let a = JwtAuthorizer::with_prefix(auth, String::new(), "/work".into());
+        // Scoped cookie: accepted.
+        let mut h = HeaderMap::new();
+        h.insert("host", HeaderValue::from_static("localhost"));
+        h.insert(
+            "cookie",
+            HeaderValue::from_str(&format!("auth_localhost_work={token}")).unwrap(),
+        );
+        assert!(a.is_authorized(&ctx(&h)));
+        // Unscoped cookie: rejected by the prefixed authorizer.
+        let mut h2 = HeaderMap::new();
+        h2.insert("host", HeaderValue::from_static("localhost"));
+        h2.insert(
+            "cookie",
+            HeaderValue::from_str(&format!("auth_localhost={token}")).unwrap(),
+        );
+        assert!(!a.is_authorized(&ctx(&h2)));
     }
 }

@@ -40,6 +40,9 @@ This is the default and simplest backend to use: a folder on disk. It is configu
 # Run mode
 * `SB_READ_ONLY` (==Experimental==): If you want to run the SilverBullet client and server in read-only mode (you get the full SilverBullet client, but all edit functionality and commands are disabled), you can do this by setting this environment variable to a non-empty value. Upon the server start a full space index will happen, after which all write operations will be disabled.
 
+# Multi-space mode
+* `SB_MULTI_SPACE`: Set to `1` to run the server in [[Multi-Space Mode]], serving any number of spaces (each with its own binding, auth, and settings in `spaces.json`) instead of a single space. Requires `SB_USER` for admin credentials; most other per-space `SB_*` variables (e.g. `SB_READ_ONLY`, `SB_NAME`) are ignored since those become per-space settings.
+
 # Runtime API
 * `SB_RUNTIME_API`: The [[Runtime API]] is enabled automatically when Chrome/Chromium is detected on the system. Set to `0` to explicitly disable. Not available in read-only mode.
 * `SB_CHROME_PATH`: Optional explicit path to the Chrome/Chromium binary. Falls back to the `CHROMIUM_PATH` environment variable (pre-set in the `-runtime-api` Docker image), then auto-detection.

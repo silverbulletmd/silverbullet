@@ -3,45 +3,27 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
-* Fix: major typing/navigation slowdown on pages with many internal links in large spaces.
-* New `index.describeSchema()` and `index.tagSchema(tag)` Space Lua APIs that expose indexed object-type / tag schemas as raw JSON Schema to scripts, widgets, and the `sb describe` CLI: `describeSchema()` returns a map of tag name → JSON Schema (only tags that declare a schema), and `tagSchema(tag)` returns a tag's JSON Schema or `nil` if undefined or schema-less.
-* New `system.reboot()` Space Lua syscall: makes edited-on-disk changes live.
-*-* **Baked sections**: bake `${...}` Lua expressions and widgets into
-  HTML-comment-delimited markdown (`<!--#lua EXPR -->` … `<!--/lua-->`) so
-  power-feature pages render in GitHub and other markdown tools. A block `${…}`
-  widget's **Bake** button (next to Copy) turns it into a baked section in
-  place; **"Baked Sections: Update"** (`Ctrl-Shift-b` / `Cmd-Shift-b`)
-  re-evaluates every baked section on the page and rewrites its body; and
-  **"Baked Sections: Unbake Section At Cursor"** restores the section under the
-  cursor to a live `${…}` directive for editing. See [[Baked Sections]]. The
-  **Bake** button and these commands are hidden on read-only pages and in
-  read-only spaces.
-* Fix: frontmatter link live preview now follows the editor's regular markdown
-  preview behavior: raw YAML syntax stays visible when markdown syntax
-  rendering is enabled, and only the link currently being edited is revealed in
-  clean mode.
-* Fix: tags shown in folded frontmatter now navigate to their tag pages instead
-  of unfolding the frontmatter block.
-* Frontmatter in the editor now has configurable folding: by default long
-  frontmatter blocks fold automatically, and `frontmatterFolding` options let
-  you disable auto-folding, always fold frontmatter, or change the line
-  threshold. A subtle right-side marker folds or unfolds the whole block, and
-  folded frontmatter previews any `tags` value as tag chips.
-* Fix: write-mode commands (those requiring read-write, e.g. the baking
-  commands) are now hidden in the command palette and their keybindings disabled
-  on **per-page** read-only pages (`perm: ro`), not just in fully read-only
-  spaces.
-*  HTML comments (both inline `<!-- … -->` and block comments, including the
-  baked-section `<!--#lua … -->` / `<!--/lua-->` markers) now render in a
-  subtle gray and slightly smaller font in the editor, like code comments.
-* Backend and CLI (`silverbullet` and `sb` binaries) are now ported to Rust, both should be behavior preserving (that is: you shouldn’t really notice):
+* **Multi-space mode**: set `SB_MULTI_SPACE=1` (plus `SB_USER` for admin credentials) to serve any number of spaces from one process. Spaces
+  are bound to a URL prefix, hostname, or dedicated port. See [[Multi-Space Mode]].
+* **Baked sections**: bake `${...}` Lua expressions and widgets into
+  HTML-comment-delimited markdown (`<!--#lua EXPR -->` … `<!--/lua-->`). See [[Baked Sections]].
+* Backend and CLI have been ported to Rust ([see background on this](https://no.silverbullet.plus/tech-stacks)), both should be behavior preserving (that is: you shouldn’t really notice):
   * The server backend (previously written in Go) has now been replaced by an adapted version of SilverBullet+‘s backend written in Rust, more unifying those code bases.
   * CLI client also reimplemented/backported to Rust as well.
   * This means the project is now all TypeScript + Rust.
   * The goal is to make do this without regressions, but watch for any issues.
-* New [[API/codeWidget]] Lua API: register a renderer for a fenced code block language from Lua (e.g. ` ```mermaid `), no compiled plug required. A `render(body)` function receives the code block contents and returns a widget (or markdown/HTML).
-* Fix: Space Lua now correctly truncates a parenthesized expression to a single value (Lua 5.4 semantics). Previously `(string.gsub(...))` and other parenthesized multi-return calls leaked their extra return values into `return`, call-argument, and assignment positions (e.g. `table.insert(t, (string.gsub(...)))` inserted two elements). Parentheses now yield exactly one value.
+* Fix: major typing/navigation slowdown on pages with many internal links in large spaces.
+* New `index.describeSchema()` and `index.tagSchema(tag)` Space Lua APIs that expose indexed object-type / tag schemas as raw JSON Schema to scripts, widgets, and the `sb describe` CLI: `describeSchema()` returns a map of tag name → JSON Schema (only tags that declare a schema), and `tagSchema(tag)` returns a tag's JSON Schema or `nil` if undefined or schema-less.
+* New `system.reboot()` Space Lua syscall: makes edited-on-disk changes live.
+* Fix: first-ever load of an authenticated space no longer shows a spurious "Could not process config and no cached copy, please connect to the Internet" alert before redirecting to the login page (the login redirect aborted the remaining boot requests, which were misread as being offline).
+* Fix: frontmatter link live preview now follows the editor's regular markdown preview behavior: raw YAML syntax stays visible when markdown syntax rendering is enabled, and only the link currently being edited is revealed in clean mode.
+* Fix: tags shown in folded frontmatter now navigate to their tag pages instead of unfolding the frontmatter block.
+* Frontmatter in the editor now has configurable folding: by default long frontmatter blocks fold automatically, and `frontmatterFolding` options let  you disable auto-folding, always fold frontmatter, or change the line threshold. A subtle right-side marker folds or unfolds the whole block, and folded frontmatter previews any `tags` value as tag chips.
+* Fix: write-mode commands (those requiring read-write, e.g. the baking commands) are now hidden in the command palette and their keybindings disabled on **per-page** read-only pages (`perm: ro`), not just in fully read-only spaces.
 * Runtime API: the embedded headless-Chrome runtime now logs its lifecycle (when it launches on first use, when it becomes ready, and on crash/restart), and forwards the headless page‘s `console.*` output to the server log by default (disable with `SB_CHROME_LOG_CONSOLE=0` see [[Install/Configuration]]).
+* HTML comments (both inline `<!-- ... -->` and block comments, including the baked-section `<!--#lua … -->` / `<!--/lua-->` markers) now render in a subtle gray and slightly smaller font in the editor, like code comments.
+* New [[API/codeWidget]] Lua API: register a renderer for a fenced code block language from Lua (e.g. ` ```mermaid `), previously only possible with plugs. A `render(body)` function receives the code block contents and returns a widget (or markdown/HTML).
+* Fix: Space Lua now correctly truncates a parenthesized expression to a single value (Lua 5.4 semantics). Previously `(string.gsub(...))` and other parenthesized multi-return calls leaked their extra return values into `return`, call-argument, and assignment positions (e.g. `table.insert(t, (string.gsub(...)))` inserted two elements). Parentheses now yield exactly one value.
 * Fix: on Safari/WebKit, the first keystroke right after a paste could be inserted at the wrong position (e.g. pasting a URL inside `[text]()` and then pressing `)` produced `[text]()url)` instead of typing over the closing bracket). WebKit left the typing caret at the pre-paste position; the editor now re-syncs it after a paste.
 * Navigating to a page via a link now always opens it fresh (at the top, or at an explicit `#header`/`@pos` pointer in the link) instead of restoring your previous cursor and scroll position. Returning to a page via browser Back/Forward or the [[Page Picker]] still restores where you were. Plugs/Lua can opt into restoring with the new `editor.open` syscall (see [[API/editor]]).
 

@@ -50,6 +50,16 @@ export async function buildClient(): Promise<void> {
         },
       ],
       splitting: false
+    }],
+    ["admin ui", {
+      ...baseBuildConfig,
+      entryPoints: [
+        {
+          in: "client/admin_ui/admin.tsx",
+          out: ".client/admin",
+        },
+      ],
+      splitting: false
     }]
   ]
 
@@ -115,6 +125,8 @@ async function patchServiceWorker() {
           !f.endsWith(".map") &&
           f !== "auth.html" &&
           f !== "index.html" &&
+          f !== "admin.html" &&
+          f !== "admin.js" &&
           f !== "LICENSE.md",
       )
       .map((f) => `/.client/${f}`),

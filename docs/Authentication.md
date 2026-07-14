@@ -15,6 +15,8 @@ SilverBullet’s built-in auth is a single set of credentials, set via the `SB_U
 
 If you need multi-user style access control (different people, SSO, MFA, …), put SilverBullet behind an [[Authentication Proxy]] (Authelia, Authentik, Cloudflare Access, etc.) and let that handle identity.
 
+For running many separately-authenticated spaces from one server, see [[Multi-Space Mode]].
+
 # Enabling authentication
 Set `SB_USER` when starting the server. For the [[Install/Binary]]:
 

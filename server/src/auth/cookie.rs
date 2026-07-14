@@ -1,16 +1,29 @@
 //! Cookie-name derivation and `Set-Cookie` construction for the standalone
 //! server's session cookies. The cookie name is derived from the request
-//! `Host` so a browser keeps one session per host:port.
+//! `Host` and the space's URL prefix (`auth_<host><prefix>`), so a browser
+//! keeps one session per host:port and per prefix-bound space sharing a host.
+//! An empty prefix yields the legacy host-only `auth_<host>` name.
 
 use axum::http::HeaderMap;
 use regex::Regex;
 use std::sync::OnceLock;
 
-/// `auth_<host>` with every non-word (`\W`) char in `host` replaced by `_`.
-pub fn auth_cookie_name(host: &str) -> String {
+/// `auth_<host><prefix>` with every non-word (`\W`) char replaced by `_`.
+/// The prefix slug keeps sessions separate when multiple spaces share a host
+/// under different URL prefixes. Empty prefix ⇒ the legacy `auth_<host>` name.
+pub fn scoped_auth_cookie_name(host: &str, url_prefix: &str) -> String {
     static RE: OnceLock<Regex> = OnceLock::new();
     let re = RE.get_or_init(|| Regex::new(r"\W").unwrap());
-    format!("auth_{}", re.replace_all(host, "_"))
+    format!(
+        "auth_{}{}",
+        re.replace_all(host, "_"),
+        re.replace_all(url_prefix, "_")
+    )
+}
+
+/// Legacy unscoped name (single-space servers without a URL prefix).
+pub fn auth_cookie_name(host: &str) -> String {
+    scoped_auth_cookie_name(host, "")
 }
 
 /// The request `Host` header, or `""` when absent.
@@ -121,5 +134,30 @@ mod tests {
         };
         let v = set_cookie_value("auth_h", "", &opts);
         assert!(v.contains("; Max-Age=0"));
+    }
+
+    #[test]
+    fn scoped_name_with_empty_prefix_matches_legacy() {
+        assert_eq!(
+            scoped_auth_cookie_name("localhost:3000", ""),
+            auth_cookie_name("localhost:3000")
+        );
+        assert_eq!(scoped_auth_cookie_name("localhost", ""), "auth_localhost");
+    }
+
+    #[test]
+    fn scoped_name_slugifies_prefix() {
+        assert_eq!(
+            scoped_auth_cookie_name("localhost", "/work"),
+            "auth_localhost_work"
+        );
+        assert_eq!(
+            scoped_auth_cookie_name("h.example.com", "/a/b"),
+            "auth_h_example_com_a_b"
+        );
+        assert_eq!(
+            scoped_auth_cookie_name("localhost", "/.admin"),
+            "auth_localhost__admin"
+        );
     }
 }

@@ -87,9 +87,10 @@ fn build_auth(config: &Config, headless_token: &str) -> Result<Option<Auth>, Str
         "user authentication enabled for user {:?}",
         auth_config.user
     );
-    let inner: Box<dyn RequestAuthorizer> = Box::new(JwtAuthorizer::new(
+    let inner: Box<dyn RequestAuthorizer> = Box::new(JwtAuthorizer::with_prefix(
         authenticator.clone(),
         auth_config.auth_token.clone(),
+        config.host_url_prefix.clone(),
     ));
     let authorizer: Arc<dyn RequestAuthorizer> = Arc::new(HeadlessTokenAuthorizer::new(
         inner,
@@ -235,6 +236,12 @@ pub async fn run(
 ) -> Result<(), String> {
     let config = Config::from_env(hostname, port, folder)?;
     tracing::info!("SilverBullet {}", crate::VERSION);
+    if std::env::var("SB_MULTI_SPACE")
+        .map(|v| !v.is_empty())
+        .unwrap_or(false)
+    {
+        return crate::multi::run_multi(config).await;
+    }
     let state = Arc::new(build_state(&config)?);
 
     // Optional Prometheus metrics on a separate port.
@@ -311,7 +318,7 @@ async fn serve_unix(_path: &str, _router: axum::Router) -> Result<(), String> {
 }
 
 /// Resolve when the process receives SIGINT (Ctrl-C) or SIGTERM.
-async fn shutdown_signal() {
+pub(crate) async fn shutdown_signal() {
     let ctrl_c = async {
         let _ = tokio::signal::ctrl_c().await;
     };

@@ -27,9 +27,11 @@ pulldown-cmark = { workspace = true }
 minijinja = { workspace = true }
 prometheus = { workspace = true }
 thiserror = { workspace = true }
+argon2 = { workspace = true }
+uuid = { workspace = true }
+tower = { version = "0.5", features = ["util"] }
 
 [dev-dependencies]
 silverbullet-server-common = { path = "../server-common", features = ["testing"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "sync"] }
-tower = { version = "0.5", features = ["util"] }
 tempfile = "3"

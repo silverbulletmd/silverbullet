@@ -7,6 +7,7 @@
 
 pub mod config;
 pub mod embed;
+pub mod multi;
 pub mod server;
 
 /// The product version, injected at build time from `version.ts`.

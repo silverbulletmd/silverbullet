@@ -4,7 +4,7 @@
 pub struct AuthConfig {
     pub user: String,
     pub pass: String,
-    /// Optional bearer token for programmatic access (empty = none).
+    pub pass_hash: Option<String>,
     pub auth_token: String,
     pub lockout_limit: u32,
     pub lockout_time_secs: u64,
@@ -54,6 +54,7 @@ impl AuthConfig {
         Ok(Some(Self {
             user: u.to_string(),
             pass: p.to_string(),
+            pass_hash: None,
             auth_token: token.unwrap_or("").to_string(),
             lockout_limit: lockout_limit.and_then(|v| v.parse().ok()).unwrap_or(10),
             lockout_time_secs: lockout_time.and_then(|v| v.parse().ok()).unwrap_or(60),
@@ -89,6 +90,15 @@ impl AuthConfig {
             h.update(field.as_bytes());
             h.update([0u8]); // domain separator between fields
         }
+        // Only fold `pass_hash` in when it is set, so existing single-space
+        // servers (which always have `pass_hash: None`) keep the legacy digest
+        // and don't have their persisted sessions invalidated on upgrade. A
+        // domain tag distinguishes `None` from `Some("")`.
+        if let Some(pass_hash) = &self.pass_hash {
+            h.update(b"pass_hash:");
+            h.update(pass_hash.as_bytes());
+            h.update([0u8]);
+        }
         let digest = h.finalize();
         let mut s = String::with_capacity(digest.len() * 2);
         for b in digest {
@@ -99,9 +109,12 @@ impl AuthConfig {
 
     /// Whether the supplied credentials match.
     pub fn authorize(&self, user: &str, pass: &str) -> bool {
-        // Compare both fields in constant time to avoid leaking which differs.
-        constant_time_eq(user.as_bytes(), self.user.as_bytes())
-            & constant_time_eq(pass.as_bytes(), self.pass.as_bytes())
+        let user_ok = constant_time_eq(user.as_bytes(), self.user.as_bytes());
+        let pass_ok = match &self.pass_hash {
+            Some(hash) => crate::auth::password::verify_password(pass, hash),
+            None => constant_time_eq(pass.as_bytes(), self.pass.as_bytes()),
+        };
+        user_ok & pass_ok
     }
 }
 
@@ -157,5 +170,75 @@ mod tests {
     #[test]
     fn invalid_user_format_is_error() {
         assert!(AuthConfig::try_parse(Some("nocolon"), None, None, None, None).is_err());
+    }
+
+    #[test]
+    fn pass_hash_takes_precedence_over_plaintext() {
+        let phc = crate::auth::password::hash_password("hunter2").unwrap();
+        let mut c = AuthConfig::parse(Some("alice:ignored"), None, None, None, None).unwrap();
+        c.pass_hash = Some(phc);
+        assert!(c.authorize("alice", "hunter2"));
+        assert!(
+            !c.authorize("alice", "ignored"),
+            "plaintext field must be ignored when hash set"
+        );
+        assert!(!c.authorize("bob", "hunter2"));
+    }
+
+    #[test]
+    fn security_hash_changes_when_pass_hash_changes() {
+        let mut a = AuthConfig::parse(Some("u:p"), None, None, None, None).unwrap();
+        let b = a.clone();
+        a.pass_hash = Some(crate::auth::password::hash_password("x").unwrap());
+        assert_ne!(a.security_hash(), b.security_hash());
+    }
+
+    /// Compute the pre-multi-space (legacy) digest inline: SHA-256 over
+    /// user/pass/auth_token/lockout_limit/lockout_time/remember_me, each
+    /// followed by a 0u8 separator. Must equal `security_hash()` when
+    /// `pass_hash` is `None`, so existing servers keep their session secret.
+    fn legacy_digest(c: &AuthConfig) -> String {
+        use sha2::{Digest, Sha256};
+        let mut h = Sha256::new();
+        for field in [
+            c.user.as_str(),
+            c.pass.as_str(),
+            c.auth_token.as_str(),
+            &c.lockout_limit.to_string(),
+            &c.lockout_time_secs.to_string(),
+            &c.remember_me_hours.to_string(),
+        ] {
+            h.update(field.as_bytes());
+            h.update([0u8]);
+        }
+        let digest = h.finalize();
+        let mut s = String::with_capacity(digest.len() * 2);
+        for b in digest {
+            s.push_str(&format!("{b:02x}"));
+        }
+        s
+    }
+
+    #[test]
+    fn security_hash_is_bit_compatible_when_pass_hash_none() {
+        let c = AuthConfig::parse(
+            Some("alice:s3cret"),
+            Some("tok"),
+            Some("5"),
+            Some("30"),
+            Some("48"),
+        )
+        .unwrap();
+        assert!(c.pass_hash.is_none());
+        assert_eq!(c.security_hash(), legacy_digest(&c));
+    }
+
+    #[test]
+    fn security_hash_some_differs_from_none() {
+        let none = AuthConfig::parse(Some("u:p"), None, None, None, None).unwrap();
+        let mut some = none.clone();
+        // Even an empty `Some` must differ from `None` (domain tag).
+        some.pass_hash = Some(String::new());
+        assert_ne!(some.security_hash(), none.security_hash());
     }
 }

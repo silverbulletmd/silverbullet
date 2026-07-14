@@ -7,6 +7,7 @@
 pub mod auth;
 pub mod handlers;
 pub mod metrics;
+pub mod multi;
 pub mod router;
 pub mod runtime;
 pub mod shell;
