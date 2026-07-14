@@ -5,6 +5,7 @@
   max-width: 90%;
   border-radius: 8px;
   overflow: hidden;
+  box-sizing: border-box;
 
   &::backdrop {
     background-color: var(--modal-backdrop-color);
