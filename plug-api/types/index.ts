@@ -40,6 +40,44 @@ export type SyscallMeta = {
   name: string;
   requiredPermissions: string[];
   argCount: number;
+  documentation?: LuaFunctionDocumentation;
+};
+
+export type LuaFunctionParameterDocumentation = {
+  name: string;
+  type?: string;
+  description?: string;
+  optional?: boolean;
+};
+
+export type LuaFunctionReturnDocumentation = {
+  type?: string;
+  description?: string;
+};
+
+export type LuaFunctionExampleDocumentation = {
+  code: string;
+  description?: string;
+  language?: string;
+};
+
+/** Structured documentation shared by Lua functions, built-ins and syscalls. */
+export type LuaFunctionDocumentation = {
+  description?: string;
+  parameters?: LuaFunctionParameterDocumentation[];
+  returns?: LuaFunctionReturnDocumentation[];
+  /** Full signatures, used for overloaded or otherwise non-standard functions. */
+  signatures?: string[];
+  examples?: LuaFunctionExampleDocumentation[];
+  deprecated?: string | boolean;
+  /** Page or page anchor containing the full documentation. */
+  see?: string;
+};
+
+export type LuaFunctionInfo = LuaFunctionDocumentation & {
+  name?: string;
+  kind: "lua" | "builtin" | "syscall";
+  source?: Record<string, unknown>;
 };
 /**
  * An ObjectValue that can be indexed by the `index` plug, needs to have a minimum of
