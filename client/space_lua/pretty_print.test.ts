@@ -122,6 +122,21 @@ local y = 2
 return x + y`);
 });
 
+test("comments are retained", () => {
+  expect(
+    fmtBlock(`--- Documents f.
+function f()
+  -- body comment
+  return 1 -- result
+end`),
+  ).toBe(`--- Documents f.
+function f()
+  -- body comment
+  return 1
+  -- result
+end`);
+});
+
 test("goto, label, break", () => {
   expect(fmtBlock("::top::")).toBe("::top::");
   expect(fmtBlock("goto done\n::done::")).toBe(`goto done

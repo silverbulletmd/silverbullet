@@ -308,16 +308,32 @@ class Printer {
 
   block(b: LuaBlock, depth: number): string {
     const stmts = b.statements.filter((s) => s.type !== "Semicolon");
-    const isDef = (s: LuaStatement) =>
+    const items: (LuaStatement | NonNullable<LuaBlock["comments"]>[number])[] =
+      [...stmts, ...(b.comments ?? [])].sort(
+        (a, z) => (a.ctx.from ?? 0) - (z.ctx.from ?? 0),
+      );
+    const isDef = (s: (typeof items)[number]) =>
       s.type === "Function" || s.type === "LocalFunction";
     let out = "";
-    for (let i = 0; i < stmts.length; i++) {
+    for (let i = 0; i < items.length; i++) {
       if (i > 0) {
         out += "\n";
         // blank line separating function definitions from neighbours
-        if (isDef(stmts[i - 1]) || isDef(stmts[i])) out += "\n";
+        const previous = items[i - 1];
+        const isDocumentationPair =
+          previous.type === "Comment" &&
+          previous.text.startsWith("---") &&
+          isDef(items[i]);
+        if (!isDocumentationPair && (isDef(previous) || isDef(items[i]))) {
+          out += "\n";
+        }
       }
-      out += this.statement(stmts[i], depth);
+      const item = items[i];
+      out +=
+        item.type === "Comment"
+          ? this.indent(depth) +
+            item.text.replaceAll("\n", `\n${this.indent(depth)}`)
+          : this.statement(item, depth);
     }
     return out;
   }

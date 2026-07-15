@@ -17,6 +17,8 @@
 
 @top Chunk { Block }
 
+@external tokens luaComment from "./lua_comment.js" { Comment }
+
 kw<term> { @specialize[@name={term}]<identifier, term> }
 ckw<term> { @extend[@name={term}]<identifier, term> }
 list<term> { term ("," term)* }
@@ -202,15 +204,11 @@ TableConstructor { "{" (field (fieldsep field)* fieldsep?)? "}" }
     "0" $[xX] hex+ ("." hex+)? ($[pP] $[+\-]? digit+)?
   }
 
-  Comment { "--" ![\n\r]* }
-
   space { ($[ \t\f] | "\\" $[\n\r])+ }
   newline { $[\n\r] | "\n\r" | "\r\n" }
 
   "..."[@name=Ellipsis]
   ".."[@name=Concat]
-
-  @precedence { Comment, minus }
 
   minus {"-"}
   fieldsep { $[,;] }

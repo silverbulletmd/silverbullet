@@ -1,8 +1,8 @@
 import { lezerToParseTree } from "../../client/markdown_parser/parse_tree.ts";
 import type { SyntaxNode } from "@lezer/common";
 import {
-  cleanTree,
   type ParseTree,
+  renderToText,
 } from "@silverbulletmd/silverbullet/lib/tree";
 // @ts-expect-error - Local generated JavaScript file without type definitions
 import { parser } from "./parse-lua.js";
@@ -12,6 +12,7 @@ import type {
   ASTCtx,
   LuaAttName,
   LuaBlock,
+  LuaComment,
   LuaExpression,
   LuaFunctionBody,
   LuaFunctionCallExpression,
@@ -25,6 +26,7 @@ import type {
   LuaStatement,
   LuaTableField,
 } from "./ast.ts";
+import type { LuaFunctionDocumentation } from "../../plug-api/types/index.ts";
 import { LuaAttribute } from "./ast.ts";
 import { getBlockGotoMeta } from "./labels.ts";
 import { LuaRuntimeError, LuaStackFrame } from "./runtime.ts";
@@ -67,7 +69,217 @@ function parseChunk(t: ParseTree, ctx: ASTCtx): LuaBlock {
   if (t.type !== "Chunk") {
     throw new Error(`Expected Chunk, got ${t.type}`);
   }
-  return parseBlockNode(t.children![0], ctx);
+  const block = t.children?.find((child) => child.type === "Block");
+  if (!block) {
+    return { type: "Block", statements: [], ctx: context(t, ctx) };
+  }
+  return parseBlockNode(block, ctx);
+}
+
+function collectLuaComments(t: ParseTree, ctx: ASTCtx): LuaComment[] {
+  const comments: LuaComment[] = [];
+  const visit = (node: ParseTree) => {
+    if (node.type === "Comment") {
+      const text = renderToText(node);
+      comments.push({
+        type: "Comment",
+        text,
+        kind: /^--\[(=*)\[/.test(text) ? "long" : "line",
+        ctx: context(node, ctx),
+      });
+      return;
+    }
+    for (const child of node.children ?? []) visit(child);
+  };
+  visit(t);
+  return comments.sort((a, b) => (a.ctx.from ?? 0) - (b.ctx.from ?? 0));
+}
+
+function withoutComments(t: ParseTree): ParseTree {
+  if (!t.children) return t;
+  return {
+    ...t,
+    children: t.children
+      .filter((child) => child.type !== "Comment")
+      .map(withoutComments),
+  };
+}
+
+function assignCommentsToBlocks(
+  root: LuaBlock,
+  comments: LuaComment[],
+  source: string,
+): void {
+  const blocks: LuaBlock[] = [];
+  const seen = new WeakSet<object>();
+  const visit = (value: unknown, key?: string) => {
+    if (!value || typeof value !== "object" || key === "ctx") return;
+    if (seen.has(value)) return;
+    seen.add(value);
+    if ((value as { type?: string }).type === "Block") {
+      blocks.push(value as LuaBlock);
+    }
+    for (const [childKey, child] of Object.entries(value)) {
+      if (
+        childKey !== "ctx" &&
+        childKey !== "comments" &&
+        childKey !== "documentation"
+      ) {
+        visit(child, childKey);
+      }
+    }
+  };
+  visit(root);
+
+  for (const comment of comments) {
+    const from = comment.ctx.from ?? 0;
+    const to = comment.ctx.to ?? from;
+    let owner = root;
+    let ownerSpan = Number.POSITIVE_INFINITY;
+    for (const block of blocks) {
+      if (block === root) continue;
+      const blockFrom = block.ctx.from;
+      const blockTo = block.ctx.to;
+      if (blockFrom === undefined || blockTo === undefined) continue;
+      const contains = blockFrom <= from && blockTo >= to;
+      const immediatelyBefore =
+        to <= blockFrom && !source.slice(to, blockFrom).trim();
+      const immediatelyAfter =
+        blockTo <= from && !source.slice(blockTo, from).trim();
+      if (
+        (contains || immediatelyBefore || immediatelyAfter) &&
+        blockTo - blockFrom < ownerSpan
+      ) {
+        owner = block;
+        ownerSpan = blockTo - blockFrom;
+      }
+    }
+    (owner.comments ??= []).push(comment);
+  }
+}
+
+function parseFunctionDocumentation(
+  comments: LuaComment[],
+): LuaFunctionDocumentation | undefined {
+  const description: string[] = [];
+  const parameters: NonNullable<LuaFunctionDocumentation["parameters"]> = [];
+  const returns: NonNullable<LuaFunctionDocumentation["returns"]> = [];
+  let deprecated: string | boolean | undefined;
+  let see: string | undefined;
+
+  for (const comment of comments) {
+    const line = comment.text.slice(3).replace(/^\s?/, "");
+    const param = /^@param\s+(\S+)\s+(\S+)(?:\s+(.*))?$/.exec(line);
+    if (param) {
+      const optional = param[1].endsWith("?");
+      parameters.push({
+        name: optional ? param[1].slice(0, -1) : param[1],
+        type: param[2],
+        description: param[3] || undefined,
+        optional,
+      });
+      continue;
+    }
+    const returnDoc = /^@return\s+(\S+)(?:\s+(.*))?$/.exec(line);
+    if (returnDoc) {
+      returns.push({
+        type: returnDoc[1],
+        description: returnDoc[2] || undefined,
+      });
+      continue;
+    }
+    const deprecatedDoc = /^@deprecated(?:\s+(.*))?$/.exec(line);
+    if (deprecatedDoc) {
+      deprecated = deprecatedDoc[1] || true;
+      continue;
+    }
+    const seeDoc = /^@see\s+(.+)$/.exec(line);
+    if (seeDoc) {
+      see = seeDoc[1];
+      continue;
+    }
+    if (!line.startsWith("@")) description.push(line);
+  }
+
+  const docs: LuaFunctionDocumentation = {};
+  const descriptionText = description.join("\n").trim();
+  if (descriptionText) docs.description = descriptionText;
+  if (parameters.length) docs.parameters = parameters;
+  if (returns.length) docs.returns = returns;
+  if (deprecated !== undefined) docs.deprecated = deprecated;
+  if (see) docs.see = see;
+  return Object.keys(docs).length ? docs : undefined;
+}
+
+function attachFunctionDocumentation(
+  root: LuaBlock,
+  comments: LuaComment[],
+  source: string,
+): void {
+  const candidates: { from: number; body: LuaFunctionBody }[] = [];
+  const seen = new WeakSet<object>();
+  const claimedBodies = new WeakSet<LuaFunctionBody>();
+
+  const addCandidate = (from: number | undefined, body: LuaFunctionBody) => {
+    if (from === undefined || claimedBodies.has(body)) return;
+    claimedBodies.add(body);
+    candidates.push({ from, body });
+  };
+
+  const visit = (value: unknown, key?: string) => {
+    if (!value || typeof value !== "object" || key === "ctx") return;
+    if (seen.has(value)) return;
+    seen.add(value);
+    const node = value as Record<string, any>;
+    if (node.type === "Function" || node.type === "LocalFunction") {
+      addCandidate(node.ctx?.from, node.body);
+    } else if (
+      (node.type === "Local" || node.type === "Assignment") &&
+      node.expressions?.length === 1 &&
+      node.expressions[0]?.type === "FunctionDefinition"
+    ) {
+      addCandidate(node.ctx?.from, node.expressions[0].body);
+    } else if (node.type === "FunctionDefinition") {
+      addCandidate(node.ctx?.from, node.body);
+    }
+    for (const [childKey, child] of Object.entries(node)) {
+      if (
+        childKey !== "ctx" &&
+        childKey !== "comments" &&
+        childKey !== "documentation"
+      ) {
+        visit(child, childKey);
+      }
+    }
+  };
+  visit(root);
+
+  const docComments = comments.filter(
+    (comment) => comment.kind === "line" && comment.text.startsWith("---"),
+  );
+  for (const candidate of candidates) {
+    const group: LuaComment[] = [];
+    let boundary = candidate.from;
+    for (let i = docComments.length - 1; i >= 0; i--) {
+      const comment = docComments[i];
+      const from = comment.ctx.from ?? 0;
+      const to = comment.ctx.to ?? from;
+      if (to > boundary) continue;
+      const gap = source.slice(to, boundary);
+      const lineStart = source.lastIndexOf("\n", from - 1) + 1;
+      if (
+        gap.trim() ||
+        /\r?\n[ \t]*\r?\n/.test(gap) ||
+        source.slice(lineStart, from).trim()
+      ) {
+        break;
+      }
+      group.unshift(comment);
+      boundary = from;
+    }
+    const documentation = parseFunctionDocumentation(group);
+    if (documentation) candidate.body.documentation = documentation;
+  }
 }
 
 function hasCloseLocal(names: LuaAttName[] | undefined): boolean {
@@ -1589,112 +1801,13 @@ function parseTableField(t: ParseTree, ctx: ASTCtx): LuaTableField {
   }
 }
 
-export function stripLuaComments(s: string): string {
-  let result = "";
-  let i = 0;
-
-  while (i < s.length) {
-    // Check for long string
-    if (s[i] === "[") {
-      let j = i + 1;
-      let equalsCount = 0;
-      while (s[j] === "=") {
-        equalsCount++;
-        j++;
-      }
-      if (s[j] === "[") {
-        // Found long string start
-        const openBracket = s.substring(i, j + 1);
-        const closeBracket = `]${"=".repeat(equalsCount)}]`;
-        result += openBracket;
-        i = j + 1;
-
-        // Find matching closing bracket
-        const content = s.substring(i);
-        const closeIndex = content.indexOf(closeBracket);
-        if (closeIndex !== -1) {
-          // Copy string content verbatim, including any comment-like sequences
-          result += content.substring(0, closeIndex) + closeBracket;
-          i += closeIndex + closeBracket.length;
-          continue;
-        }
-      }
-    }
-
-    // Check for single quoted string
-    if (s[i] === '"' || s[i] === "'") {
-      const quote = s[i];
-      result += quote;
-      i++;
-      while (i < s.length && s[i] !== quote) {
-        if (s[i] === "\\") {
-          result += s[i] + s[i + 1];
-          i += 2;
-        } else {
-          result += s[i];
-          i++;
-        }
-      }
-      if (i < s.length) {
-        result += s[i]; // closing quote
-        i++;
-      }
-      continue;
-    }
-
-    // Check for comments
-    if (s[i] === "-" && s[i + 1] === "-") {
-      // Replace the -- with spaces
-      result += "  ";
-      i += 2;
-
-      // Check for long comment
-      if (s[i] === "[") {
-        let j = i + 1;
-        let equalsCount = 0;
-        while (s[j] === "=") {
-          equalsCount++;
-          j++;
-        }
-        if (s[j] === "[") {
-          // Found long comment start
-          const closeBracket = `]${"=".repeat(equalsCount)}]`;
-          // Replace opening bracket with spaces
-          result += " ".repeat(j - i + 1);
-          i = j + 1;
-
-          // Find matching closing bracket
-          const content = s.substring(i);
-          const closeIndex = content.indexOf(closeBracket);
-          if (closeIndex !== -1) {
-            // Replace comment content and closing bracket with spaces
-            result += " ".repeat(closeIndex) + " ".repeat(closeBracket.length);
-            i += closeIndex + closeBracket.length;
-            continue;
-          }
-        }
-      }
-
-      // Single line comment - replace rest of line with spaces
-      while (i < s.length && s[i] !== "\n") {
-        result += " ";
-        i++;
-      }
-      continue;
-    }
-
-    result += s[i];
-    i++;
-  }
-
-  return result;
-}
-
 export function parseBlock(s: string, ctx: ASTCtx = {}): LuaBlock {
   try {
-    const t = parseToAST(stripLuaComments(s));
-    // console.log("Clean tree", JSON.stringify(t, null, 2));
-    const result = parseChunk(t, ctx);
+    const concreteTree = parseToAST(s);
+    const comments = collectLuaComments(concreteTree, ctx);
+    const result = parseChunk(withoutComments(concreteTree), ctx);
+    assignCommentsToBlocks(result, comments, s);
+    attachFunctionDocumentation(result, comments, s);
     // console.log("Parsed AST", JSON.stringify(result, null, 2));
     getBlockGotoMeta(result);
     return result;
@@ -1720,7 +1833,25 @@ export function parseToAST(t: string): ParseTree {
   }
 
   const n = lezerToParseTree(t, tree.topNode);
-  return cleanTree(n, true);
+  return cleanLuaTree(n);
+}
+
+function cleanLuaTree(tree: ParseTree): ParseTree {
+  if (tree.type === "⚠") {
+    throw new Error(`Parse error at pos ${tree.from}`);
+  }
+  if (tree.text !== undefined) return tree;
+  const result: ParseTree = {
+    type: tree.type,
+    children: [],
+    from: tree.from,
+    to: tree.to,
+  };
+  for (const node of tree.children ?? []) {
+    if (node.type) result.children!.push(cleanLuaTree(node));
+    if (node.text?.trim()) result.children!.push(node);
+  }
+  return result;
 }
 
 function findFirstParseError(node: SyntaxNode): SyntaxNode | null {

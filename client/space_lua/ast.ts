@@ -1,3 +1,5 @@
+import type { LuaFunctionDocumentation } from "../../plug-api/types/index.ts";
+
 type ASTContext = {
   ctx: ASTCtx;
 };
@@ -12,6 +14,8 @@ export type ASTCtx = {
 export type LuaBlock = {
   type: "Block";
   statements: LuaStatement[];
+  // Comments lexically owned by this block, in source order.
+  comments?: LuaComment[];
   hasLabel?: boolean;
   hasGoto?: boolean;
   // the first duplicated label is recorded here for later eval
@@ -25,6 +29,14 @@ export type LuaBlock = {
   // true if this block's subtree contains any function definition
   hasFunctionDef?: boolean;
 } & ASTContext;
+
+export type LuaComment = {
+  type: "Comment";
+  /** Exact source text, including delimiters. */
+  text: string;
+  kind: "line" | "long";
+  ctx: ASTCtx;
+};
 
 // STATEMENTS
 export type LuaReturnStatement = {
@@ -128,6 +140,7 @@ export type LuaFunctionBody = {
   type: "FunctionBody";
   parameters: string[];
   block: LuaBlock;
+  documentation?: LuaFunctionDocumentation;
 } & ASTContext;
 
 export type LuaAssignmentStatement = {
