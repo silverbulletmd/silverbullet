@@ -24,23 +24,35 @@ export function luaLoad(code: LuaValue, sf: LuaStackFrame): LuaValue {
 
     const globalEnv: LuaEnv = globalEnvMaybe as LuaEnv;
 
-    const runner = new LuaBuiltinFunction(async (innerSf: LuaStackFrame) => {
-      const res = await evalStatement(block, globalEnv, innerSf, true);
-      if (res === undefined) {
-        return null;
-      } else {
-        if (res && typeof res === "object" && (res as any).ctrl === "return") {
-          return new LuaMultiRes((res as any).values);
+    const runner = new LuaBuiltinFunction(
+      async (innerSf: LuaStackFrame) => {
+        const res = await evalStatement(block, globalEnv, innerSf, true);
+        if (res === undefined) {
+          return null;
+        } else {
+          if (
+            res &&
+            typeof res === "object" &&
+            (res as any).ctrl === "return"
+          ) {
+            return new LuaMultiRes((res as any).values);
+          }
+          if (res && typeof res === "object" && (res as any).ctrl === "break") {
+            throw new Error("break outside loop");
+          }
+          if (res && typeof res === "object" && (res as any).ctrl === "goto") {
+            throw new Error("unexpected goto signal");
+          }
+          return null;
         }
-        if (res && typeof res === "object" && (res as any).ctrl === "break") {
-          throw new Error("break outside loop");
-        }
-        if (res && typeof res === "object" && (res as any).ctrl === "goto") {
-          throw new Error("unexpected goto signal");
-        }
-        return null;
-      }
-    });
+      },
+      {
+        kind: "builtin",
+        description: "Executes the Lua chunk compiled by `load`.",
+        signatures: ["function(...)"],
+        returns: [{ description: "Values returned by the compiled chunk." }],
+      },
+    );
 
     return runner;
   } catch (e: any) {

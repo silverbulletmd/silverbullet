@@ -14,7 +14,7 @@ import {
   LuaMultiRes,
   LuaRuntimeError,
   type LuaStackFrame,
-  type LuaTable,
+  LuaTable,
   luaToString,
   luaTypeOf,
   type LuaValue,
@@ -37,9 +37,22 @@ import { isTaggedFloat, makeLuaFloat } from "./numeric.ts";
 import { isPromise } from "./rp.ts";
 import { isSqlNull } from "./sliq_null.ts";
 
-const printFunction = new LuaBuiltinFunction(async (_sf, ...args) => {
-  console.log("[Lua]", ...(await Promise.all(args.map((v) => luaToString(v)))));
-});
+const printFunction = new LuaBuiltinFunction(
+  async (_sf, ...args) => {
+    console.log(
+      "[Lua]",
+      ...(await Promise.all(args.map((v) => luaToString(v)))),
+    );
+  },
+  {
+    kind: "builtin",
+    description:
+      "Prints string representations of its arguments to the runtime log.",
+    signatures: ["print(...)"],
+    parameters: [{ name: "...", description: "Values to print." }],
+    examples: [{ code: 'print("Hello, world!")' }],
+  },
+);
 
 const assertFunction = new LuaBuiltinFunction(
   async (sf, value: any, message?: string) => {
@@ -47,22 +60,53 @@ const assertFunction = new LuaBuiltinFunction(
       throw new LuaRuntimeError(`Assertion failed: ${message}`, sf);
     }
   },
+  {
+    kind: "builtin",
+    description:
+      "Raises an error when a value is falsy; otherwise completes successfully.",
+    parameters: [
+      { name: "value", description: "Condition to test." },
+      {
+        name: "message",
+        type: "string",
+        description: "Error detail.",
+        optional: true,
+      },
+    ],
+    examples: [{ code: 'assert(user ~= nil, "user is required")' }],
+  },
 );
 
-const ipairsFunction = new LuaBuiltinFunction((sf, t: LuaTable | any[]) => {
-  let i = 0;
+const ipairsFunction = new LuaBuiltinFunction(
+  (sf, t: LuaTable | any[]) => {
+    let i = 0;
 
-  return async () => {
-    i = i + 1;
+    return async () => {
+      i = i + 1;
 
-    const v = await luaGet(t, i, sf.astCtx ?? null, sf);
-    if (v === null || v === undefined) {
-      return;
-    }
+      const v = await luaGet(t, i, sf.astCtx ?? null, sf);
+      if (v === null || v === undefined) {
+        return;
+      }
 
-    return new LuaMultiRes([i, v]);
-  };
-});
+      return new LuaMultiRes([i, v]);
+    };
+  },
+  {
+    kind: "builtin",
+    description:
+      "Returns an iterator over consecutive integer keys starting at 1 and stopping at the first `nil`.",
+    parameters: [{ name: "table", type: "table" }],
+    returns: [
+      { type: "function", description: "Iterator yielding index and value." },
+    ],
+    examples: [
+      {
+        code: 'for i, fruit in ipairs({"apple", "banana"}) do\n  print(i, fruit)\nend',
+      },
+    ],
+  },
+);
 
 const pairsFunction = new LuaBuiltinFunction(
   (sf, t: LuaTable | any[] | Record<string, any>) => {
@@ -105,6 +149,23 @@ const pairsFunction = new LuaBuiltinFunction(
     // Must return (iter, state, control) for generic for
     return new LuaMultiRes([iter, t, null]);
   },
+  {
+    kind: "builtin",
+    description:
+      "Returns an iterator over all table key-value pairs, respecting `__pairs`.",
+    parameters: [{ name: "table", type: "table" }],
+    returns: [
+      {
+        type: "function",
+        description: "Iterator plus its state and initial control value.",
+      },
+    ],
+    examples: [
+      {
+        code: 'for key, value in pairs({name = "Ada", age = 36}) do\n  print(key, value)\nend',
+      },
+    ],
+  },
 );
 
 export const eachFunction = new LuaBuiltinFunction(
@@ -120,11 +181,29 @@ export const eachFunction = new LuaBuiltinFunction(
       return result;
     };
   },
+  {
+    kind: "builtin",
+    description:
+      "Returns a Space Lua iterator over array-like values without yielding indices.",
+    parameters: [{ name: "table", type: "table" }],
+    returns: [{ type: "function", description: "Iterator yielding values." }],
+    examples: [
+      {
+        code: 'for fruit in each({"apple", "banana"}) do\n  print(fruit)\nend',
+      },
+    ],
+  },
 );
 
 const typeFunction = new LuaBuiltinFunction(
   (_sf, value: LuaValue): string | Promise<string> => {
     return luaTypeOf(value);
+  },
+  {
+    kind: "builtin",
+    description: "Returns the Lua type name of a value.",
+    parameters: [{ name: "value" }],
+    returns: [{ type: "string" }],
   },
 );
 
@@ -152,6 +231,13 @@ const tostringFunction = new LuaBuiltinFunction(
       }
     }
     return luaToString(value);
+  },
+  {
+    kind: "builtin",
+    description:
+      "Converts a value to a string, respecting its `__tostring` metamethod.",
+    parameters: [{ name: "value" }],
+    returns: [{ type: "string" }],
   },
 );
 
@@ -188,11 +274,33 @@ const tonumberFunction = new LuaBuiltinFunction(
 
     return result.value;
   },
+  {
+    kind: "builtin",
+    description:
+      "Converts a number or numeric string to a Lua number, optionally in a base from 2 through 36.",
+    signatures: [
+      "tonumber(value): number|nil",
+      "tonumber(value, base): integer|nil",
+    ],
+    parameters: [
+      { name: "value", type: "number|string" },
+      { name: "base", type: "integer", optional: true },
+    ],
+    returns: [{ type: "number|nil" }],
+    examples: [{ code: 'print(tonumber("2a", 16)) -- 42' }],
+  },
 );
 
-const errorFunction = new LuaBuiltinFunction((sf, message: string) => {
-  throw new LuaRuntimeError(message, sf);
-});
+const errorFunction = new LuaBuiltinFunction(
+  (sf, message: string) => {
+    throw new LuaRuntimeError(message, sf);
+  },
+  {
+    kind: "builtin",
+    description: "Raises a Lua runtime error with the supplied message.",
+    parameters: [{ name: "message", type: "string" }],
+  },
+);
 
 async function pcallBoundary(
   sf: LuaStackFrame,
@@ -241,6 +349,23 @@ const pcallFunction = new LuaBuiltinFunction(
     }
     return new LuaMultiRes([false, res.message]);
   },
+  {
+    kind: "builtin",
+    description:
+      "Calls a function in protected mode and returns a success flag followed by results or an error message.",
+    signatures: ["pcall(function, ...): boolean, ..."],
+    parameters: [
+      { name: "function", type: "function" },
+      { name: "...", description: "Arguments passed to the function." },
+    ],
+    returns: [
+      { type: "boolean", description: "Whether the call succeeded." },
+      { description: "Call results or error message." },
+    ],
+    examples: [
+      { code: "local ok, result = pcall(function() return mightFail() end)" },
+    ],
+  },
 );
 
 const xpcallFunction = new LuaBuiltinFunction(
@@ -254,6 +379,26 @@ const xpcallFunction = new LuaBuiltinFunction(
     const outVals = hr instanceof LuaMultiRes ? hr.flatten().values : [hr];
     return new LuaMultiRes([false, ...outVals]);
   },
+  {
+    kind: "builtin",
+    description:
+      "Calls a function in protected mode and transforms any error with an error handler.",
+    signatures: ["xpcall(function, errorHandler, ...): boolean, ..."],
+    parameters: [
+      { name: "function", type: "function" },
+      { name: "errorHandler", type: "function" },
+      { name: "...", description: "Arguments passed to the function." },
+    ],
+    returns: [
+      { type: "boolean", description: "Whether the call succeeded." },
+      { description: "Call results or handler results." },
+    ],
+    examples: [
+      {
+        code: 'local ok, message = xpcall(riskyOperation, function(err)\n  return "Operation failed: " .. tostring(err)\nend)',
+      },
+    ],
+  },
 );
 
 const setmetatableFunction = new LuaBuiltinFunction(
@@ -264,15 +409,46 @@ const setmetatableFunction = new LuaBuiltinFunction(
     table.metatable = metatable;
     return table;
   },
+  {
+    kind: "builtin",
+    description: "Sets a table's metatable and returns the table.",
+    parameters: [
+      { name: "table", type: "table" },
+      { name: "metatable", type: "table" },
+    ],
+    returns: [{ type: "table" }],
+  },
 );
 
-const rawlenFunction = new LuaBuiltinFunction((_sf, value: LuaValue) => {
-  return luaLen(value, _sf, true);
-});
+const rawlenFunction = new LuaBuiltinFunction(
+  (_sf, value: LuaValue) => luaLen(value, _sf, true),
+  {
+    kind: "builtin",
+    description: "Returns a string or table length without invoking `__len`.",
+    parameters: [{ name: "value", type: "string|table" }],
+    returns: [{ type: "integer" }],
+  },
+);
 
 const rawsetFunction = new LuaBuiltinFunction(
   (_sf, table: LuaTable, key: LuaValue, value: LuaValue) => {
     return (table as any).rawSet(key, value);
+  },
+  {
+    kind: "builtin",
+    description:
+      "Sets a table key without invoking `__newindex` and returns the table.",
+    parameters: [
+      { name: "table", type: "table" },
+      { name: "key" },
+      { name: "value" },
+    ],
+    returns: [{ type: "table" }],
+    examples: [
+      {
+        code: 'local t = setmetatable({}, {__newindex = function() error("blocked") end})\nrawset(t, "name", "Ada")',
+      },
+    ],
   },
 );
 
@@ -328,38 +504,71 @@ const rawgetFunction = new LuaBuiltinFunction(
     const v = (table as Record<string | number, any>)[k as any];
     return v === undefined ? null : v;
   },
+  {
+    kind: "builtin",
+    description: "Reads a table key without invoking `__index`.",
+    parameters: [{ name: "table", type: "table" }, { name: "key" }],
+    returns: [{ description: "Stored value or `nil`." }],
+  },
 );
 
-const rawequalFunction = new LuaBuiltinFunction((_sf, a: any, b: any) => {
-  const av = isTaggedFloat(a) ? a.value : a;
-  const bv = isTaggedFloat(b) ? b.value : b;
-  return av === bv;
-});
+const rawequalFunction = new LuaBuiltinFunction(
+  (_sf, a: any, b: any) => {
+    const av = isTaggedFloat(a) ? a.value : a;
+    const bv = isTaggedFloat(b) ? b.value : b;
+    return av === bv;
+  },
+  {
+    kind: "builtin",
+    description: "Tests two values for equality without invoking `__eq`.",
+    parameters: [{ name: "a" }, { name: "b" }],
+    returns: [{ type: "boolean" }],
+  },
+);
 
-const getmetatableFunction = new LuaBuiltinFunction((_sf, table: LuaTable) => {
-  return (table as any).metatable;
-});
+const getmetatableFunction = new LuaBuiltinFunction(
+  (_sf, table: LuaTable) => (table as any).metatable,
+  {
+    kind: "builtin",
+    description: "Returns a table's metatable, or `nil` when none is set.",
+    parameters: [{ name: "table", type: "table" }],
+    returns: [{ type: "table|nil" }],
+  },
+);
 
-const dofileFunction = new LuaBuiltinFunction(async (sf, filename: string) => {
-  const global = sf.threadLocal.get("_GLOBAL") as LuaEnv;
-  const file = (await luaCall(
-    (global.get("space") as any).get("readFile"),
-    [filename],
-    sf.astCtx!,
-    sf,
-  )) as Uint8Array;
-  const code = new TextDecoder().decode(file);
-  try {
-    const parsedExpr = parseBlock(code);
-    const env = new LuaEnv(global);
-    await evalStatement(parsedExpr, env, sf.withCtx(parsedExpr.ctx));
-  } catch (e: any) {
-    throw new LuaRuntimeError(
-      `Error evaluating "${filename}": ${e.message}`,
+const dofileFunction = new LuaBuiltinFunction(
+  async (sf, filename: string) => {
+    const global = sf.threadLocal.get("_GLOBAL") as LuaEnv;
+    const file = (await luaCall(
+      (global.get("space") as any).get("readFile"),
+      [filename],
+      sf.astCtx!,
       sf,
-    );
-  }
-});
+    )) as Uint8Array;
+    const code = new TextDecoder().decode(file);
+    try {
+      const parsedExpr = parseBlock(code);
+      const env = new LuaEnv(global);
+      await evalStatement(parsedExpr, env, sf.withCtx(parsedExpr.ctx));
+    } catch (e: any) {
+      throw new LuaRuntimeError(
+        `Error evaluating "${filename}": ${e.message}`,
+        sf,
+      );
+    }
+  },
+  {
+    kind: "builtin",
+    description: "Reads and executes a Lua source file from the current space.",
+    parameters: [
+      {
+        name: "path",
+        type: "string",
+        description: "Space-relative Lua file path.",
+      },
+    ],
+  },
+);
 
 /**
  * From the Lua docs:
@@ -380,6 +589,21 @@ const selectFunction = new LuaBuiltinFunction(
       }
       return new LuaMultiRes(args.slice(args.length + index));
     }
+  },
+  {
+    kind: "builtin",
+    description:
+      "Returns the count of extra arguments or all arguments from a selected position onward.",
+    signatures: ['select("#", ...): integer', "select(index, ...): ..."],
+    parameters: [
+      {
+        name: "index",
+        type: "integer|string",
+        description: "One-based index, negative index from the end, or `#`.",
+      },
+      { name: "..." },
+    ],
+    returns: [{ description: "Argument count or selected argument values." }],
   },
 );
 
@@ -434,24 +658,90 @@ const nextFunction = new LuaBuiltinFunction(
     }
     return new LuaMultiRes([key, luaGet(table, key, sf.astCtx ?? null, sf)]);
   },
+  {
+    kind: "builtin",
+    description:
+      "Returns the next table key and value after a given key, or the first pair when the key is omitted.",
+    parameters: [
+      { name: "table", type: "table" },
+      { name: "index", description: "Previous key.", optional: true },
+    ],
+    returns: [
+      { description: "Next key or `nil`." },
+      { description: "Value at the next key." },
+    ],
+  },
 );
 
 // Non-standard, but useful
-const someFunction = new LuaBuiltinFunction(async (_sf, value: any) => {
-  switch (await luaTypeOf(value)) {
-    case "number":
-      if (!Number.isFinite(value)) return null;
-      break;
-    case "string":
-      if (value.trim() === "") return null;
-      break;
-    case "table":
-      if (luaKeys(value).length === 0) return null;
-  }
-  return value;
+const someFunction = new LuaBuiltinFunction(
+  async (_sf, value: any) => {
+    switch (await luaTypeOf(value)) {
+      case "number":
+        if (!Number.isFinite(value)) return null;
+        break;
+      case "string":
+        if (value.trim() === "") return null;
+        break;
+      case "table":
+        if (luaKeys(value).length === 0) return null;
+    }
+    return value;
+  },
+  {
+    kind: "builtin",
+    description:
+      "Returns `nil` for empty Space Lua values and otherwise returns the value unchanged.",
+    parameters: [
+      {
+        name: "value",
+        description:
+          "Value to normalize; blank strings, empty tables, infinities, and NaN are empty.",
+      },
+    ],
+    returns: [{ description: "Original value or `nil`." }],
+    examples: [
+      {
+        code: 'print(some("  ") or "empty")\nprint(some({}) or "empty")\nprint(some(0))',
+      },
+    ],
+  },
+);
+
+const loadFunction = new LuaBuiltinFunction((sf, s) => luaLoad(s, sf), {
+  kind: "builtin",
+  description:
+    "Compiles Lua source into a callable chunk without executing it.",
+  parameters: [
+    { name: "chunk", type: "string", description: "Lua source code." },
+  ],
+  returns: [
+    { type: "function|nil", description: "Compiled chunk or `nil`." },
+    { type: "string", description: "Compilation error when unsuccessful." },
+  ],
 });
 
-const loadFunction = new LuaBuiltinFunction((sf, s) => luaLoad(s, sf));
+function annotateBuiltinApi(
+  value: unknown,
+  path: string,
+  page: string,
+  seen = new WeakSet<object>(),
+): void {
+  if (!value || typeof value !== "object" || seen.has(value)) return;
+  seen.add(value);
+  if (isILuaFunction(value)) {
+    value.info ??= { kind: "builtin" };
+    value.info.name ??= path;
+    value.info.see ??= page;
+    return;
+  }
+  if (value instanceof LuaTable) {
+    for (const key of value.keys()) {
+      if (typeof key !== "string") continue;
+      annotateBuiltinApi(value.rawGet(key), `${path}.${key}`, page, seen);
+    }
+  }
+}
 
 export function luaBuildStandardEnv() {
   const env = new LuaEnv();
@@ -499,5 +789,11 @@ export function luaBuildStandardEnv() {
   env.set("crypto", cryptoApi);
   env.set("net", netApi);
   env.set("some", someFunction);
+
+  for (const name of env.keys()) {
+    const value = env.get(name);
+    const page = value instanceof LuaTable ? `API/${name}` : "API/global";
+    annotateBuiltinApi(value, name, page);
+  }
   return env;
 }

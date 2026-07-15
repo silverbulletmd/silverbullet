@@ -282,39 +282,78 @@ function luaFormatTime(fmt: string, d: Date, utc: boolean): string {
 }
 
 export const osApi = new LuaTable({
-  time: new LuaBuiltinFunction((_sf, tbl?: LuaTable) => {
-    if (tbl) {
-      if (!tbl.has("year")) {
-        throw new Error("time(): year is required");
+  time: new LuaBuiltinFunction(
+    (_sf, tbl?: LuaTable) => {
+      if (tbl) {
+        if (!tbl.has("year")) {
+          throw new Error("time(): year is required");
+        }
+
+        if (!tbl.has("month")) {
+          throw new Error("time(): month is required");
+        }
+
+        if (!tbl.has("day")) {
+          throw new Error("time(): day is required");
+        }
+
+        const year = tbl.get("year");
+        const month = tbl.get("month");
+        const day = tbl.get("day");
+        const hour = tbl.get("hour") ?? 12;
+        const min = tbl.get("min") ?? 0;
+        const sec = tbl.get("sec") ?? 0;
+        const date = new Date(year, month - 1, day, hour, min, sec);
+
+        return Math.floor(date.getTime() / 1000);
       }
 
-      if (!tbl.has("month")) {
-        throw new Error("time(): month is required");
-      }
-
-      if (!tbl.has("day")) {
-        throw new Error("time(): day is required");
-      }
-
-      const year = tbl.get("year");
-      const month = tbl.get("month");
-      const day = tbl.get("day");
-      const hour = tbl.get("hour") ?? 12;
-      const min = tbl.get("min") ?? 0;
-      const sec = tbl.get("sec") ?? 0;
-      const date = new Date(year, month - 1, day, hour, min, sec);
-
-      return Math.floor(date.getTime() / 1000);
-    }
-
-    return Math.floor(Date.now() / 1000);
-  }),
+      return Math.floor(Date.now() / 1000);
+    },
+    {
+      kind: "builtin",
+      description:
+        "Returns the current Unix timestamp or one built from a local date table.",
+      signatures: ["os.time(): integer", "os.time(dateTable): integer"],
+      parameters: [
+        {
+          name: "dateTable",
+          type: "table",
+          description:
+            "Local date fields `year`, `month`, `day`, and optional `hour`, `min`, and `sec`.",
+          optional: true,
+        },
+      ],
+      returns: [
+        { type: "integer", description: "Seconds since the Unix epoch." },
+      ],
+      examples: [
+        {
+          code: "local timestamp = os.time({year = 2020, month = 1, day = 1})",
+        },
+      ],
+    },
+  ),
 
   // Returns the difference, from time `t1` to time `t2` in seconds
   // In POSIX and some other systems, this value is exactly $t2-t1$.
-  difftime: new LuaBuiltinFunction((_sf, t2: number, t1: number): number => {
-    return t2 - t1;
-  }),
+  difftime: new LuaBuiltinFunction(
+    (_sf, t2: number, t1: number): number => {
+      return t2 - t1;
+    },
+    {
+      kind: "builtin",
+      description:
+        "Returns the difference in seconds from timestamp `t1` to `t2`.",
+      parameters: [
+        { name: "t2", type: "number" },
+        { name: "t1", type: "number" },
+      ],
+      returns: [
+        { type: "number", description: "The value `t2 - t1` in seconds." },
+      ],
+    },
+  ),
 
   // Returns a string or a table containing date and time, formatted
   // according to the given string format.
@@ -336,29 +375,69 @@ export const osApi = new LuaTable({
   // Otherwise, format specifiers follow ISO C `strftime`.
   //
   // If format is absent, it defaults to `%c`.
-  date: new LuaBuiltinFunction((_sf, format?: string, timestamp?: number) => {
-    let fmt = format ?? "%c";
-    let utc = false;
+  date: new LuaBuiltinFunction(
+    (_sf, format?: string, timestamp?: number) => {
+      let fmt = format ?? "%c";
+      let utc = false;
 
-    if (fmt.startsWith("!")) {
-      utc = true;
-      fmt = fmt.slice(1);
-    }
+      if (fmt.startsWith("!")) {
+        utc = true;
+        fmt = fmt.slice(1);
+      }
 
-    const d =
-      timestamp !== undefined && timestamp !== null
-        ? new Date(timestamp * 1000)
-        : new Date();
+      const d =
+        timestamp !== undefined && timestamp !== null
+          ? new Date(timestamp * 1000)
+          : new Date();
 
-    if (fmt === "*t") {
-      return dateTable(d, utc);
-    }
+      if (fmt === "*t") {
+        return dateTable(d, utc);
+      }
 
-    return luaFormatTime(fmt, d, utc);
-  }),
+      return luaFormatTime(fmt, d, utc);
+    },
+    {
+      kind: "builtin",
+      description:
+        "Formats a timestamp as a date string or date table, optionally in UTC.",
+      parameters: [
+        {
+          name: "format",
+          type: "string",
+          description:
+            "`strftime`-style format, `*t` for a table, and optional leading `!` for UTC.",
+          optional: true,
+        },
+        {
+          name: "timestamp",
+          type: "number",
+          description: "Unix timestamp; defaults to the current time.",
+          optional: true,
+        },
+      ],
+      returns: [
+        { type: "string|table", description: "Formatted date or date fields." },
+      ],
+      examples: [
+        { code: 'print(os.date("%Y-%m-%d"))\nlocal utc = os.date("!*t")' },
+      ],
+    },
+  ),
 
   // Returns an approximation of CPU time used by the program in seconds.
-  clock: new LuaBuiltinFunction((_sf): number => {
-    return performance.now() / 1000.0;
-  }),
+  clock: new LuaBuiltinFunction(
+    (_sf): number => {
+      return performance.now() / 1000.0;
+    },
+    {
+      kind: "builtin",
+      description: "Returns a high-resolution elapsed time value in seconds.",
+      returns: [
+        {
+          type: "number",
+          description: "Browser performance timer in seconds.",
+        },
+      ],
+    },
+  ),
 });

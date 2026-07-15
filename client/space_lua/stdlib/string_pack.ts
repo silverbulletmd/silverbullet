@@ -364,6 +364,17 @@ export const strPackFn = new LuaBuiltinFunction(
     for (let i = 0; i < out.length; i++) result += String.fromCharCode(out[i]);
     return result;
   },
+  {
+    kind: "builtin",
+    description:
+      "Packs values into a binary string according to a Lua 5.4 format string.",
+    signatures: ["string.pack(format, ...): string"],
+    parameters: [
+      { name: "format", type: "string", description: "Binary packing format." },
+      { name: "...", description: "Values consumed by the format options." },
+    ],
+    returns: [{ type: "string", description: "Packed binary string." }],
+  },
 );
 
 export const strUnpackFn = new LuaBuiltinFunction(
@@ -468,23 +479,60 @@ export const strUnpackFn = new LuaBuiltinFunction(
     results.push(pos + 1);
     return new LuaMultiRes(results);
   },
+  {
+    kind: "builtin",
+    description:
+      "Unpacks values from a binary string according to a Lua 5.4 format string.",
+    parameters: [
+      {
+        name: "format",
+        type: "string",
+        description: "Binary unpacking format.",
+      },
+      { name: "data", type: "string", description: "Packed binary string." },
+      {
+        name: "init",
+        type: "integer",
+        description: "One-based starting position.",
+        optional: true,
+      },
+    ],
+    returns: [
+      { description: "Unpacked values followed by the next unread position." },
+    ],
+  },
 );
 
-export const strPackSizeFn = new LuaBuiltinFunction((_sf, fmt: string) => {
-  const h = makeHeader();
-  let totalsize = 0;
-  let pos = 0;
+export const strPackSizeFn = new LuaBuiltinFunction(
+  (_sf, fmt: string) => {
+    const h = makeHeader();
+    let totalsize = 0;
+    let pos = 0;
 
-  while (pos < fmt.length) {
-    let opt: ParsedOption;
-    [opt, pos] = getDetails(fmt, pos, h, totalsize);
+    while (pos < fmt.length) {
+      let opt: ParsedOption;
+      [opt, pos] = getDetails(fmt, pos, h, totalsize);
 
-    if (opt.opt === "string" || opt.opt === "zstr") {
-      throw new LuaRuntimeError("variable-length format", _sf);
+      if (opt.opt === "string" || opt.opt === "zstr") {
+        throw new LuaRuntimeError("variable-length format", _sf);
+      }
+
+      totalsize += opt.ntoalign + opt.size;
     }
 
-    totalsize += opt.ntoalign + opt.size;
-  }
-
-  return totalsize;
-});
+    return totalsize;
+  },
+  {
+    kind: "builtin",
+    description:
+      "Returns the byte size of a fixed-length Lua 5.4 packing format.",
+    parameters: [
+      {
+        name: "format",
+        type: "string",
+        description: "Fixed-length binary packing format.",
+      },
+    ],
+    returns: [{ type: "integer", description: "Packed byte count." }],
+  },
+);
