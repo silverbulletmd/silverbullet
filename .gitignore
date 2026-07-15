@@ -2,6 +2,11 @@
 .chrome-data
 .DS_Store
 .obsidian
+# Per-space auth secret written at runtime by the authenticator into whatever
+# space folder a server is pointed at (e.g. docs/ when serving the docs space).
+# Contains the JWT signing secret — must never be committed.
+.silverbullet.auth.json
+**/.silverbullet.auth.json
 client_bundle/client
 client_bundle/base_fs
 dist
