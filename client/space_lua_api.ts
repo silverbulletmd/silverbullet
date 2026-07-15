@@ -26,7 +26,7 @@ export function buildLuaEnv(system: System<any>) {
 export function exposeSyscalls(env: LuaEnv, system: System<any>) {
   // Expose all syscalls to Lua
   const nativeFs = new LuaStackFrame(env, null);
-  for (const syscallName of system.registeredSyscalls.keys()) {
+  for (const [syscallName, syscall] of system.registeredSyscalls) {
     const isLuaNativeSyscall = syscallName.startsWith("lua:");
     let cleanSyscallName = syscallName;
     if (isLuaNativeSyscall) {
@@ -36,13 +36,18 @@ export function exposeSyscalls(env: LuaEnv, system: System<any>) {
     if (!env.has(ns)) {
       env.set(ns, new LuaTable(), nativeFs);
     }
+    const info = {
+      kind: "syscall" as const,
+      name: cleanSyscallName,
+      ...syscall.documentation,
+    };
     const luaFn = isLuaNativeSyscall
       ? new LuaBuiltinFunction((_sf, ...args) => {
           return system.localSyscall(syscallName, args);
-        })
+        }, info)
       : new LuaNativeJSFunction((...args) => {
           return system.localSyscall(syscallName, args);
-        });
+        }, info);
     env.get(ns, nativeFs).set(fn, luaFn, nativeFs);
   }
 }

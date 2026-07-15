@@ -1,5 +1,5 @@
 import type { Hook, Manifest } from "../types.ts";
-import type { SysCallMapping, System } from "../system.ts";
+import type { SysCallMapping, SyscallContext, System } from "../system.ts";
 import type { SyscallHookT } from "@silverbulletmd/silverbullet/type/manifest";
 
 export class SyscallHook implements Hook<SyscallHookT> {
@@ -24,16 +24,31 @@ export class SyscallHook implements Hook<SyscallHookT> {
           continue;
         }
 
-        const syscallName = functionDef.syscall;
+        const syscallDefinition = functionDef.syscall;
+        const syscallName =
+          typeof syscallDefinition === "string"
+            ? syscallDefinition
+            : syscallDefinition.name;
 
         // Add the syscall to our mapping
-        syscalls[syscallName] = (ctx, ...args) => {
-          // Delegate to the system to invoke the function
-          return system.syscall(ctx, "system.invokeFunction", [
+        const callback = (ctx: SyscallContext, ...args: any[]) =>
+          system.syscall(ctx, "system.invokeFunction", [
             `${plug.manifest!.name}.${name}`,
             ...args,
           ]);
-        };
+        syscalls[syscallName] =
+          typeof syscallDefinition === "string"
+            ? callback
+            : {
+                callback,
+                documentation: {
+                  description: syscallDefinition.description,
+                  parameters: syscallDefinition.parameters,
+                  returns: syscallDefinition.returns,
+                  deprecated: syscallDefinition.deprecated,
+                  see: syscallDefinition.see,
+                },
+              };
 
         // Register the syscalls with no required permissions
         system.registerSyscalls([], syscalls);
@@ -48,16 +63,19 @@ export class SyscallHook implements Hook<SyscallHookT> {
         continue;
       }
 
-      // Validate syscall name is provided
-      if (!functionDef.syscall) {
+      const syscallName =
+        typeof functionDef.syscall === "string"
+          ? functionDef.syscall
+          : functionDef.syscall.name;
+      if (!syscallName) {
         errors.push(`Function ${name} has a syscall but no name`);
         continue;
       }
 
       // Validate syscall name format (should be namespaced)
-      if (!functionDef.syscall.includes(".")) {
+      if (!syscallName.includes(".")) {
         errors.push(
-          `Function ${name} has invalid syscall name "${functionDef.syscall}" - must be in format "namespace.name"`,
+          `Function ${name} has invalid syscall name "${syscallName}" - must be in format "namespace.name"`,
         );
       }
     }

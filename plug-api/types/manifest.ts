@@ -1,5 +1,6 @@
 import type { Manifest as PlugosManifest } from "../../client/plugos/types.ts";
 import type { NamespaceOperation } from "./namespace.ts";
+import type { LuaFunctionDocumentation } from "./index.ts";
 
 export type CodeWidgetT = {
   codeWidget?: string;
@@ -143,7 +144,11 @@ export type SlashCommandHookT = {
 };
 
 export type SyscallHookT = {
-  syscall?: string;
+  syscall?:
+    | string
+    | ({
+        name: string;
+      } & LuaFunctionDocumentation);
 };
 
 export type DocumentEditorT = {
