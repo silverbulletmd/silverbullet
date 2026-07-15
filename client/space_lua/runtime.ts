@@ -5,6 +5,7 @@ import { isPromise, rpAll } from "./rp.ts";
 import { isNegativeZero, isTaggedFloat } from "./numeric.ts";
 import { isSqlNull } from "./sliq_null.ts";
 import { luaFormat } from "./stdlib/format.ts";
+import type { LuaFunctionInfo } from "../../plug-api/types/index.ts";
 
 export type LuaType =
   | "nil"
@@ -24,6 +25,8 @@ export interface ILuaFunction {
   call(sf: LuaStackFrame, ...args: LuaValue[]): Promise<LuaValue> | LuaValue;
 
   asString(): string;
+
+  info?: LuaFunctionInfo;
 }
 
 export interface ILuaSettable {
@@ -453,12 +456,25 @@ export function singleResult(value: any): any {
 export class LuaFunction implements ILuaFunction {
   private capturedEnv: LuaEnv;
   funcHasGotos?: boolean;
+  info: LuaFunctionInfo;
 
   constructor(
     readonly body: LuaFunctionBody,
     closure: LuaEnv,
+    info: Partial<LuaFunctionInfo> = {},
   ) {
     this.capturedEnv = closure;
+    const documentation = body.documentation ?? {};
+    this.info = {
+      kind: "lua",
+      source: { ...body.ctx },
+      ...documentation,
+      ...info,
+      parameters:
+        info.parameters ??
+        documentation.parameters ??
+        body.parameters.map((name) => ({ name })),
+    };
   }
 
   call(sf: LuaStackFrame, ...args: LuaValue[]): Promise<LuaValue> | LuaValue {
@@ -562,7 +578,10 @@ function mapFunctionReturnValue(values: any[]): any {
 }
 
 export class LuaNativeJSFunction implements ILuaFunction {
-  constructor(readonly fn: (...args: JSValue[]) => JSValue) {}
+  constructor(
+    readonly fn: (...args: JSValue[]) => JSValue,
+    public info?: LuaFunctionInfo,
+  ) {}
 
   // Performs automatic conversion between Lua and JS values for arguments, but not for return values
   call(sf: LuaStackFrame, ...args: LuaValue[]): Promise<LuaValue> | LuaValue {
@@ -594,6 +613,7 @@ export class LuaNativeJSFunction implements ILuaFunction {
 export class LuaBuiltinFunction implements ILuaFunction {
   constructor(
     readonly fn: (sf: LuaStackFrame, ...args: LuaValue[]) => LuaValue,
+    public info: LuaFunctionInfo = { kind: "builtin" },
   ) {}
 
   call(sf: LuaStackFrame, ...args: LuaValue[]): Promise<LuaValue> | LuaValue {

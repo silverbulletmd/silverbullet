@@ -1,5 +1,9 @@
 import { expect, test } from "vitest";
+import type { LuaBlock, LuaFunctionCallStatement } from "./ast.ts";
+import { evalExpression, evalStatement } from "./eval.ts";
+import { parseBlock } from "./parse.ts";
 import {
+  type ILuaFunction,
   LuaEnv,
   LuaNativeJSFunction,
   LuaStackFrame,
@@ -7,9 +11,6 @@ import {
   luaValueToJS,
   singleResult,
 } from "./runtime.ts";
-import { parseBlock } from "./parse.ts";
-import type { LuaBlock, LuaFunctionCallStatement } from "./ast.ts";
-import { evalExpression, evalStatement } from "./eval.ts";
 import { luaBuildStandardEnv } from "./stdlib.ts";
 
 const sf = LuaStackFrame.lostFrame;
@@ -100,6 +101,73 @@ test("Evaluator test", async () => {
   // Function definitions
   const fn = evalExpr(`function(a, b) return a + b end`);
   expect(fn.body.parameters).toEqual(["a", "b"]);
+});
+
+test("Lua doc comments are available through runtime introspection", async () => {
+  const env = new LuaEnv(luaBuildStandardEnv());
+  const sf = LuaStackFrame.createWithGlobalEnv(env);
+  const block = parseBlock(`--- Adds two values.
+---@param a number First value.
+---@param b number Second value.
+---@return number sum
+function add(a, b)
+  return a + b
+end`);
+  await evalStatement(block, env, sf);
+
+  const fn = env.get("add") as ILuaFunction;
+  expect(fn.info).toMatchObject({
+    name: "add",
+    kind: "lua",
+    description: "Adds two values.",
+    parameters: [
+      { name: "a", type: "number" },
+      { name: "b", type: "number" },
+    ],
+    returns: [{ type: "number", description: "sum" }],
+  });
+
+  const described = await evalExpr("spacelua.describe(add)", env, sf);
+  expect(luaValueToJS(described, sf)).toMatchObject({
+    name: "add",
+    kind: "lua",
+    description: "Adds two values.",
+  });
+  const builtins = await evalExpr('spacelua.listFunctions("string")', env, sf);
+  expect(
+    (luaValueToJS(builtins, sf) as { name: string }[]).some(
+      (info) => info.name === "string.find",
+    ),
+  ).toBe(true);
+
+  const documentation = await evalExpr(
+    'spacelua.renderApiDocumentation("spacelua")',
+    env,
+    sf,
+  );
+  expect(documentation).toContain("### `spacelua.describe`");
+  expect(documentation).toContain("`spacelua.renderApiDocumentation(target?)`");
+});
+
+test("API documentation renders a specific function target", async () => {
+  const env = new LuaEnv(luaBuildStandardEnv());
+  const sf = LuaStackFrame.createWithGlobalEnv(env);
+
+  const byName = await evalExpr(
+    'spacelua.renderApiDocumentation("string.find")',
+    env,
+    sf,
+  );
+  expect(byName).toContain("### `string.find`");
+  expect(byName).not.toContain("### `string.format`");
+
+  const byValue = await evalExpr(
+    "spacelua.renderApiDocumentation(string.find)",
+    env,
+    sf,
+  );
+  expect(byValue).toContain("### `string.find`");
+  expect(byValue).not.toContain("### `assert`");
 });
 
 test("Parser rejects unary plus - parenthesized", () => {
