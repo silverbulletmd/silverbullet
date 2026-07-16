@@ -145,7 +145,7 @@ end`);
     env,
     sf,
   );
-  expect(documentation).toContain("### `spacelua.describe`");
+  expect(documentation).toContain("## spacelua.describe");
   expect(documentation).toContain("`spacelua.renderApiDocumentation(target?)`");
 });
 
@@ -158,16 +158,16 @@ test("API documentation renders a specific function target", async () => {
     env,
     sf,
   );
-  expect(byName).toContain("### `string.find`");
-  expect(byName).not.toContain("### `string.format`");
+  expect(byName).toContain("## string.find");
+  expect(byName).not.toContain("## string.format");
 
   const byValue = await evalExpr(
     "spacelua.renderApiDocumentation(string.find)",
     env,
     sf,
   );
-  expect(byValue).toContain("### `string.find`");
-  expect(byValue).not.toContain("### `assert`");
+  expect(byValue).toContain("## string.find");
+  expect(byValue).not.toContain("## assert");
 });
 
 test("Parser rejects unary plus - parenthesized", () => {

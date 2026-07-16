@@ -41,9 +41,9 @@ test("documented syscalls retain metadata when exposed to Lua", async () => {
     sf,
   ) as ILuaFunction;
   expect(await renderDocumentation.call(sf, "example")).toContain(
-    "### `example.greet`",
+    "## example.greet",
   );
-  expect(await renderDocumentation.call(sf)).toContain("### `print`");
+  expect(await renderDocumentation.call(sf)).toContain("## print");
   expect(renderDocumentation.info?.parameters?.[0]?.optional).toBe(true);
 });
 

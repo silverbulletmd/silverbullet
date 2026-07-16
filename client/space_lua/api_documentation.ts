@@ -44,7 +44,7 @@ function renderFunction(
   info: LuaFunctionInfo,
   apiNamespace?: string,
 ): string[] {
-  const lines = [`### \`${info.name ?? "<anonymous>"}\``, ""];
+  const lines = [`## ${info.name ?? "<anonymous>"}`, ""];
   const signatures = info.signatures?.length
     ? info.signatures
     : [signature(info)];

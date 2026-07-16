@@ -65,7 +65,7 @@ test("luaComplete returns documented function snippets", async () => {
         label: "gmatch(s, pattern)",
         snippet: "gmatch(${})",
         detail: "Iterates over matches in a string.",
-        documentation: expect.stringContaining("### `string.gmatch`"),
+        documentation: expect.stringContaining("## string.gmatch"),
       }),
     ],
   });
