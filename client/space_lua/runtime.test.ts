@@ -1,8 +1,10 @@
 import { expect, test } from "vitest";
 import {
   jsToLuaValue,
+  LuaBuiltinFunction,
   luaLen,
   LuaMultiRes,
+  LuaNativeJSFunction,
   LuaStackFrame,
   luaToString,
 } from "./runtime.ts";
@@ -51,4 +53,33 @@ test("Test Lua Rutime", async () => {
   const circular: any = {};
   circular.self = circular;
   expect(await luaToString(circular)).toEqual("{self = <circular reference>}");
+});
+
+test("Lua functions accept documented definition objects", () => {
+  const builtin = new LuaBuiltinFunction({
+    callback: (_sf, value) => value,
+    documentation: {
+      description: "Returns the provided value.",
+    },
+  });
+  expect(builtin.call(LuaStackFrame.lostFrame, "value")).toBe("value");
+  expect(builtin.info).toEqual({
+    kind: "builtin",
+    description: "Returns the provided value.",
+  });
+
+  const native = new LuaNativeJSFunction({
+    callback: (value) => value,
+    documentation: {
+      kind: "syscall",
+      name: "demo.echo",
+      description: "Returns the provided value.",
+    },
+  });
+  expect(native.call(LuaStackFrame.lostFrame, "value")).toBe("value");
+  expect(native.info).toEqual({
+    kind: "syscall",
+    name: "demo.echo",
+    description: "Returns the provided value.",
+  });
 });

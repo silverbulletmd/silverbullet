@@ -236,8 +236,8 @@ function toPrintOptions(
 }
 
 export const spaceluaApi = new LuaTable({
-  describe: new LuaBuiltinFunction(
-    (sf, target: ILuaFunction | string) => {
+  describe: new LuaBuiltinFunction({
+    callback: (sf, target: ILuaFunction | string) => {
       const value =
         typeof target === "string" ? resolveApiValue(sf, target) : target;
       return describeFunction(
@@ -245,8 +245,7 @@ export const spaceluaApi = new LuaTable({
         typeof target === "string" ? target : undefined,
       );
     },
-    {
-      kind: "builtin",
+    documentation: {
       description:
         "Returns structured documentation for a Lua function value or dotted API name.",
       parameters: [
@@ -270,12 +269,11 @@ export const spaceluaApi = new LuaTable({
       ],
       see: "API/spacelua",
     },
-  ),
-  listFunctions: new LuaBuiltinFunction(
-    (sf, target?: LuaTable | string) =>
+  }),
+  listFunctions: new LuaBuiltinFunction({
+    callback: (sf, target?: LuaTable | string) =>
       jsToLuaValue(listFunctionInfo(sf, target)),
-    {
-      kind: "builtin",
+    documentation: {
       description:
         "Lists documented functions in the global environment or an API namespace.",
       parameters: [
@@ -294,17 +292,16 @@ export const spaceluaApi = new LuaTable({
       ],
       see: "API/spacelua",
     },
-  ),
-  renderApiDocumentation: new LuaBuiltinFunction(
-    (sf, target?: ILuaFunction | LuaTable | string): string => {
+  }),
+  renderApiDocumentation: new LuaBuiltinFunction({
+    callback: (sf, target?: ILuaFunction | LuaTable | string): string => {
       const selection = apiDocumentationTarget(sf, target);
       return renderApiDocumentationMarkdown(
         selection.functions,
         selection.context,
       );
     },
-    {
-      kind: "builtin",
+    documentation: {
       description:
         "Renders API documentation for a function, namespace, or the global environment as Markdown.",
       parameters: [
@@ -331,7 +328,7 @@ export const spaceluaApi = new LuaTable({
       ],
       see: "API/spacelua",
     },
-  ),
+  }),
   /**
    * Parses a lua expression and returns the parsed expression.
    *
@@ -339,12 +336,11 @@ export const spaceluaApi = new LuaTable({
    * @param luaExpression - The lua expression to parse.
    * @returns The parsed expression.
    */
-  parseExpression: new LuaBuiltinFunction(
-    (_sf, luaExpression: string) => {
+  parseExpression: new LuaBuiltinFunction({
+    callback: (_sf, luaExpression: string) => {
       return parseExpressionString(luaExpression);
     },
-    {
-      kind: "builtin",
+    documentation: {
       description: "Parses a Lua expression and returns its AST.",
       parameters: [
         {
@@ -361,7 +357,7 @@ export const spaceluaApi = new LuaTable({
       ],
       see: "API/spacelua",
     },
-  ),
+  }),
   /**
    * Parses a lua chunk (block) and returns the parsed AST block.
    *
@@ -369,12 +365,11 @@ export const spaceluaApi = new LuaTable({
    * @param code - The lua code to parse.
    * @returns The parsed block.
    */
-  parseBlock: new LuaBuiltinFunction(
-    (_sf, code: string): LuaBlock => {
+  parseBlock: new LuaBuiltinFunction({
+    callback: (_sf, code: string): LuaBlock => {
       return parseBlock(code);
     },
-    {
-      kind: "builtin",
+    documentation: {
       description:
         "Parses a Lua chunk and returns its AST. Blocks retain comments in source order with their exact text, kind, and source range.",
       parameters: [
@@ -388,7 +383,7 @@ export const spaceluaApi = new LuaTable({
       ],
       see: "API/spacelua",
     },
-  ),
+  }),
   /**
    * Pretty-prints a parsed lua block AST back to formatted source.
    *
@@ -397,12 +392,11 @@ export const spaceluaApi = new LuaTable({
    * @param opts - Optional formatting options.
    * @returns The formatted lua source.
    */
-  prettyPrintBlock: new LuaBuiltinFunction(
-    (sf, block: LuaBlock, opts?: LuaTable): string => {
+  prettyPrintBlock: new LuaBuiltinFunction({
+    callback: (sf, block: LuaBlock, opts?: LuaTable): string => {
       return prettyPrintBlock(block, toPrintOptions(sf, opts));
     },
-    {
-      kind: "builtin",
+    documentation: {
       description:
         "Pretty-prints a parsed Lua block AST. Comments are preserved while their placement and indentation are normalized.",
       parameters: [
@@ -423,7 +417,7 @@ export const spaceluaApi = new LuaTable({
       ],
       see: "API/spacelua",
     },
-  ),
+  }),
   /**
    * Pretty-prints a parsed lua expression AST back to formatted source.
    *
@@ -432,12 +426,11 @@ export const spaceluaApi = new LuaTable({
    * @param opts - Optional formatting options.
    * @returns The formatted lua source.
    */
-  prettyPrintExpression: new LuaBuiltinFunction(
-    (sf, expr: LuaExpression, opts?: LuaTable): string => {
+  prettyPrintExpression: new LuaBuiltinFunction({
+    callback: (sf, expr: LuaExpression, opts?: LuaTable): string => {
       return prettyPrintExpression(expr, toPrintOptions(sf, opts));
     },
-    {
-      kind: "builtin",
+    documentation: {
       description: "Pretty-prints a parsed Lua expression AST.",
       parameters: [
         {
@@ -461,7 +454,7 @@ export const spaceluaApi = new LuaTable({
       ],
       see: "API/spacelua",
     },
-  ),
+  }),
   /**
    * Evaluates a parsed lua expression and returns the result.
    *
@@ -470,13 +463,16 @@ export const spaceluaApi = new LuaTable({
    * @param envAugmentation - An optional environment to augment the global environment with.
    * @returns The result of the evaluated expression.
    */
-  evalExpression: new LuaBuiltinFunction(
-    async (sf, parsedExpr: LuaExpression, envAugmentation?: LuaTable) => {
+  evalExpression: new LuaBuiltinFunction({
+    callback: async (
+      sf,
+      parsedExpr: LuaExpression,
+      envAugmentation?: LuaTable,
+    ) => {
       const env = createAugmentedEnv(sf, envAugmentation);
       return luaValueToJS(await evalExpression(parsedExpr, env, sf), sf);
     },
-    {
-      kind: "builtin",
+    documentation: {
       description:
         "Evaluates a parsed Lua expression, optionally with additional environment values.",
       parameters: [
@@ -500,19 +496,18 @@ export const spaceluaApi = new LuaTable({
       ],
       see: "API/spacelua",
     },
-  ),
+  }),
   /**
    * Interpolates a string with lua expressions and returns the result.
    */
-  interpolate: new LuaBuiltinFunction(
-    (sf, template: string, envAugmentation?: LuaTable | any) => {
+  interpolate: new LuaBuiltinFunction({
+    callback: (sf, template: string, envAugmentation?: LuaTable | any) => {
       if (envAugmentation && !(envAugmentation instanceof LuaTable)) {
         envAugmentation = jsToLuaValue(envAugmentation);
       }
       return interpolateLuaString(sf, template, envAugmentation);
     },
-    {
-      kind: "builtin",
+    documentation: {
       description:
         "Interpolates `${...}` Lua expressions in a string, optionally with additional environment values.",
       parameters: [
@@ -536,22 +531,21 @@ export const spaceluaApi = new LuaTable({
       ],
       see: "API/spacelua",
     },
-  ),
+  }),
   /**
    * Returns your SilverBullet instance's base URL
    */
-  baseUrl: new LuaBuiltinFunction(
-    () => {
+  baseUrl: new LuaBuiltinFunction({
+    callback: () => {
       //NOTE: Removing trailing slash to stay compatible with original code: `location.protocol + "//" + location.host;`
       return document.baseURI.replace(/\/*$/, "");
     },
-    {
-      kind: "builtin",
+    documentation: {
       description:
         "Returns the SilverBullet instance's base URL, or `nil` when run on the server.",
       returns: [{ type: "string|nil" }],
       examples: [{ code: "local url = spacelua.baseUrl()\nprint(url)" }],
       see: "API/spacelua",
     },
-  ),
+  }),
 });

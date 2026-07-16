@@ -252,8 +252,8 @@ function unpackFloat64(
   );
 }
 
-export const strPackFn = new LuaBuiltinFunction(
-  (sf, fmt: string, ...args: any[]) => {
+export const strPackFn = new LuaBuiltinFunction({
+  callback: (sf, fmt: string, ...args: any[]) => {
     const h = makeHeader();
     const parts: Uint8Array[] = [];
     let totalsize = 0;
@@ -364,8 +364,7 @@ export const strPackFn = new LuaBuiltinFunction(
     for (let i = 0; i < out.length; i++) result += String.fromCharCode(out[i]);
     return result;
   },
-  {
-    kind: "builtin",
+  documentation: {
     description:
       "Packs values into a binary string according to a Lua 5.4 format string.",
     signatures: ["string.pack(format, ...): string"],
@@ -375,10 +374,10 @@ export const strPackFn = new LuaBuiltinFunction(
     ],
     returns: [{ type: "string", description: "Packed binary string." }],
   },
-);
+});
 
-export const strUnpackFn = new LuaBuiltinFunction(
-  (sf, fmt: string, data: string, init?: number) => {
+export const strUnpackFn = new LuaBuiltinFunction({
+  callback: (sf, fmt: string, data: string, init?: number) => {
     const h = makeHeader();
 
     const buf = new Uint8Array(data.length);
@@ -479,8 +478,7 @@ export const strUnpackFn = new LuaBuiltinFunction(
     results.push(pos + 1);
     return new LuaMultiRes(results);
   },
-  {
-    kind: "builtin",
+  documentation: {
     description:
       "Unpacks values from a binary string according to a Lua 5.4 format string.",
     parameters: [
@@ -501,10 +499,10 @@ export const strUnpackFn = new LuaBuiltinFunction(
       { description: "Unpacked values followed by the next unread position." },
     ],
   },
-);
+});
 
-export const strPackSizeFn = new LuaBuiltinFunction(
-  (_sf, fmt: string) => {
+export const strPackSizeFn = new LuaBuiltinFunction({
+  callback: (_sf, fmt: string) => {
     const h = makeHeader();
     let totalsize = 0;
     let pos = 0;
@@ -522,8 +520,7 @@ export const strPackSizeFn = new LuaBuiltinFunction(
 
     return totalsize;
   },
-  {
-    kind: "builtin",
+  documentation: {
     description:
       "Returns the byte size of a fixed-length Lua 5.4 packing format.",
     parameters: [
@@ -535,4 +532,4 @@ export const strPackSizeFn = new LuaBuiltinFunction(
     ],
     returns: [{ type: "integer", description: "Packed byte count." }],
   },
-);
+});

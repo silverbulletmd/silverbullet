@@ -282,8 +282,8 @@ function luaFormatTime(fmt: string, d: Date, utc: boolean): string {
 }
 
 export const osApi = new LuaTable({
-  time: new LuaBuiltinFunction(
-    (_sf, tbl?: LuaTable) => {
+  time: new LuaBuiltinFunction({
+    callback: (_sf, tbl?: LuaTable) => {
       if (tbl) {
         if (!tbl.has("year")) {
           throw new Error("time(): year is required");
@@ -310,8 +310,7 @@ export const osApi = new LuaTable({
 
       return Math.floor(Date.now() / 1000);
     },
-    {
-      kind: "builtin",
+    documentation: {
       description:
         "Returns the current Unix timestamp or one built from a local date table.",
       signatures: ["os.time(): integer", "os.time(dateTable): integer"],
@@ -333,16 +332,15 @@ export const osApi = new LuaTable({
         },
       ],
     },
-  ),
+  }),
 
   // Returns the difference, from time `t1` to time `t2` in seconds
   // In POSIX and some other systems, this value is exactly $t2-t1$.
-  difftime: new LuaBuiltinFunction(
-    (_sf, t2: number, t1: number): number => {
+  difftime: new LuaBuiltinFunction({
+    callback: (_sf, t2: number, t1: number): number => {
       return t2 - t1;
     },
-    {
-      kind: "builtin",
+    documentation: {
       description:
         "Returns the difference in seconds from timestamp `t1` to `t2`.",
       parameters: [
@@ -353,7 +351,7 @@ export const osApi = new LuaTable({
         { type: "number", description: "The value `t2 - t1` in seconds." },
       ],
     },
-  ),
+  }),
 
   // Returns a string or a table containing date and time, formatted
   // according to the given string format.
@@ -375,8 +373,8 @@ export const osApi = new LuaTable({
   // Otherwise, format specifiers follow ISO C `strftime`.
   //
   // If format is absent, it defaults to `%c`.
-  date: new LuaBuiltinFunction(
-    (_sf, format?: string, timestamp?: number) => {
+  date: new LuaBuiltinFunction({
+    callback: (_sf, format?: string, timestamp?: number) => {
       let fmt = format ?? "%c";
       let utc = false;
 
@@ -396,8 +394,7 @@ export const osApi = new LuaTable({
 
       return luaFormatTime(fmt, d, utc);
     },
-    {
-      kind: "builtin",
+    documentation: {
       description:
         "Formats a timestamp as a date string or date table, optionally in UTC.",
       parameters: [
@@ -422,15 +419,14 @@ export const osApi = new LuaTable({
         { code: 'print(os.date("%Y-%m-%d"))\nlocal utc = os.date("!*t")' },
       ],
     },
-  ),
+  }),
 
   // Returns an approximation of CPU time used by the program in seconds.
-  clock: new LuaBuiltinFunction(
-    (_sf): number => {
+  clock: new LuaBuiltinFunction({
+    callback: (_sf): number => {
       return performance.now() / 1000.0;
     },
-    {
-      kind: "builtin",
+    documentation: {
       description: "Returns a high-resolution elapsed time value in seconds.",
       returns: [
         {
@@ -439,5 +435,5 @@ export const osApi = new LuaTable({
         },
       ],
     },
-  ),
+  }),
 });

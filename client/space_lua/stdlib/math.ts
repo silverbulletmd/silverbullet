@@ -23,8 +23,8 @@ export const mathApi = new LuaTable({
   pi: Math.PI,
 
   // math.type(x) => "integer" | "float" | nil
-  type: new LuaBuiltinFunction(
-    (_sf, x?: any) => {
+  type: new LuaBuiltinFunction({
+    callback: (_sf, x?: any) => {
       if (x === undefined) {
         throw new LuaRuntimeError(
           "bad argument #1 to 'math.type' (value expected)",
@@ -45,8 +45,7 @@ export const mathApi = new LuaTable({
       }
       return null;
     },
-    {
-      kind: "builtin",
+    documentation: {
       description:
         "Returns `integer` or `float` for a number, or `nil` for other values.",
       parameters: [{ name: "x", description: "Value to inspect." }],
@@ -54,15 +53,15 @@ export const mathApi = new LuaTable({
         { type: "string|nil", description: "Numeric subtype or `nil`." },
       ],
     },
-  ),
+  }),
 
   /**
    * If the value x is representable as a Lua integer, returns an integer
    * with that value. Otherwise returns nil.
    * Strings are NOT accepted — only Lua number values.
    */
-  tointeger: new LuaBuiltinFunction(
-    (_sf, x?: any) => {
+  tointeger: new LuaBuiltinFunction({
+    callback: (_sf, x?: any) => {
       if (typeof x === "number") {
         return Number.isInteger(x) && Number.isFinite(x) ? x : null;
       }
@@ -78,8 +77,7 @@ export const mathApi = new LuaTable({
       }
       return null;
     },
-    {
-      kind: "builtin",
+    documentation: {
       description:
         "Converts a value to an integer when it has an exact finite integral representation.",
       parameters: [{ name: "x", description: "Value to convert." }],
@@ -87,7 +85,7 @@ export const mathApi = new LuaTable({
         { type: "integer|nil", description: "Converted integer or `nil`." },
       ],
     },
-  ),
+  }),
 
   /**
    * When called without arguments, returns a pseudo-random float with
@@ -98,8 +96,8 @@ export const mathApi = new LuaTable({
    * math.random(1,n). The call math.random(0) produces an integer
    * with all bits (pseudo)random.
    */
-  random: new LuaBuiltinFunction(
-    (_sf, m?: number, n?: number) => {
+  random: new LuaBuiltinFunction({
+    callback: (_sf, m?: number, n?: number) => {
       if (m !== undefined) m = untagNumber(m);
       if (n !== undefined) n = untagNumber(n);
       try {
@@ -108,8 +106,7 @@ export const mathApi = new LuaTable({
         throw new LuaRuntimeError(e.message, _sf);
       }
     },
-    {
-      kind: "builtin",
+    documentation: {
       description:
         "Returns a pseudo-random float or an integer in a requested inclusive range.",
       signatures: [
@@ -128,20 +125,19 @@ export const mathApi = new LuaTable({
         },
       ],
     },
-  ),
+  }),
   /**
    * Seeds the pseudo-random generator. With no arguments, uses a
    * time-based seed. Returns the two seed integers used (Lua 5.4 contract).
    */
-  randomseed: new LuaBuiltinFunction(
-    (_sf, x?: number, y?: number) => {
+  randomseed: new LuaBuiltinFunction({
+    callback: (_sf, x?: number, y?: number) => {
       if (x !== undefined) x = untagNumber(x);
       if (y !== undefined) y = untagNumber(y);
       const [s1, s2] = prng.randomseed(x, y);
       return new LuaMultiRes([s1, s2]);
     },
-    {
-      kind: "builtin",
+    documentation: {
       description:
         "Seeds the pseudo-random generator and returns the two seeds used.",
       signatures: [
@@ -157,54 +153,54 @@ export const mathApi = new LuaTable({
         { type: "integer", description: "Second seed." },
       ],
     },
-  ),
+  }),
 
   // Basic functions
-  abs: new LuaBuiltinFunction((_sf, x: number) => Math.abs(untagNumber(x)), {
-    kind: "builtin",
-    description: "Returns the absolute value of `x`.",
-    parameters: [{ name: "x", type: "number" }],
-    returns: [{ type: "number" }],
+  abs: new LuaBuiltinFunction({
+    callback: (_sf, x: number) => Math.abs(untagNumber(x)),
+    documentation: {
+      description: "Returns the absolute value of `x`.",
+      parameters: [{ name: "x", type: "number" }],
+      returns: [{ type: "number" }],
+    },
   }),
-  ceil: new LuaBuiltinFunction((_sf, x: number) => Math.ceil(untagNumber(x)), {
-    kind: "builtin",
-    description: "Returns the smallest integer greater than or equal to `x`.",
-    parameters: [{ name: "x", type: "number" }],
-    returns: [{ type: "integer" }],
+  ceil: new LuaBuiltinFunction({
+    callback: (_sf, x: number) => Math.ceil(untagNumber(x)),
+    documentation: {
+      description: "Returns the smallest integer greater than or equal to `x`.",
+      parameters: [{ name: "x", type: "number" }],
+      returns: [{ type: "integer" }],
+    },
   }),
-  floor: new LuaBuiltinFunction(
-    (_sf, x: number) => Math.floor(untagNumber(x)),
-    {
-      kind: "builtin",
+  floor: new LuaBuiltinFunction({
+    callback: (_sf, x: number) => Math.floor(untagNumber(x)),
+    documentation: {
       description: "Returns the largest integer less than or equal to `x`.",
       parameters: [{ name: "x", type: "number" }],
       returns: [{ type: "integer" }],
     },
-  ),
-  max: new LuaBuiltinFunction(
-    (_sf, ...args: number[]) => Math.max(...args.map(untagNumber)),
-    {
-      kind: "builtin",
+  }),
+  max: new LuaBuiltinFunction({
+    callback: (_sf, ...args: number[]) => Math.max(...args.map(untagNumber)),
+    documentation: {
       description: "Returns the greatest of its arguments.",
       signatures: ["math.max(x, ...): number"],
       returns: [{ type: "number" }],
     },
-  ),
-  min: new LuaBuiltinFunction(
-    (_sf, ...args: number[]) => Math.min(...args.map(untagNumber)),
-    {
-      kind: "builtin",
+  }),
+  min: new LuaBuiltinFunction({
+    callback: (_sf, ...args: number[]) => Math.min(...args.map(untagNumber)),
+    documentation: {
       description: "Returns the least of its arguments.",
       signatures: ["math.min(x, ...): number"],
       returns: [{ type: "number" }],
     },
-  ),
+  }),
 
   // Rounding and remainder
-  fmod: new LuaBuiltinFunction(
-    (_sf, x: number, y: number) => untagNumber(x) % untagNumber(y),
-    {
-      kind: "builtin",
+  fmod: new LuaBuiltinFunction({
+    callback: (_sf, x: number, y: number) => untagNumber(x) % untagNumber(y),
+    documentation: {
       description:
         "Returns the remainder of `x / y` with the quotient rounded toward zero.",
       parameters: [
@@ -213,17 +209,16 @@ export const mathApi = new LuaTable({
       ],
       returns: [{ type: "number" }],
     },
-  ),
-  modf: new LuaBuiltinFunction(
-    (_sf, x: number) => {
+  }),
+  modf: new LuaBuiltinFunction({
+    callback: (_sf, x: number) => {
       const xn = untagNumber(x);
       const int = Math.trunc(xn);
       // Guarantee that the `frac` part is always Lua float
       const frac = makeLuaFloat(xn - int);
       return new LuaMultiRes([int, frac]);
     },
-    {
-      kind: "builtin",
+    documentation: {
       description: "Splits `x` into its integral and fractional parts.",
       parameters: [{ name: "x", type: "number" }],
       returns: [
@@ -232,13 +227,13 @@ export const mathApi = new LuaTable({
       ],
       examples: [{ code: "local integer, fraction = math.modf(3.14)" }],
     },
-  ),
+  }),
 
   // Returns m and e such that x = m * 2^e, 0.5 <= |m| < 1 (or m=0 when x=0).
   // e is an integer. Mirrors C99/Lua.
   // Special cases: frexp(0) = (0, 0); frexp(+-inf/nan) = (x, 0).
-  frexp: new LuaBuiltinFunction(
-    (_sf, x: number) => {
+  frexp: new LuaBuiltinFunction({
+    callback: (_sf, x: number) => {
       const xn = untagNumber(x);
       if (xn === 0 || !Number.isFinite(xn) || Number.isNaN(xn)) {
         return new LuaMultiRes([xn, 0]);
@@ -256,8 +251,7 @@ export const mathApi = new LuaTable({
       }
       return new LuaMultiRes([m, e]);
     },
-    {
-      kind: "builtin",
+    documentation: {
       description:
         "Decomposes `x` into a normalized fraction and a power-of-two exponent.",
       parameters: [{ name: "x", type: "number" }],
@@ -266,13 +260,13 @@ export const mathApi = new LuaTable({
         { type: "integer", description: "Exponent." },
       ],
     },
-  ),
+  }),
 
   // Returns m * 2^e (the inverse of frexp).  Mirrors C99/Lua.
-  ldexp: new LuaBuiltinFunction(
-    (_sf, m: number, e: number) => untagNumber(m) * 2 ** untagNumber(e),
-    {
-      kind: "builtin",
+  ldexp: new LuaBuiltinFunction({
+    callback: (_sf, m: number, e: number) =>
+      untagNumber(m) * 2 ** untagNumber(e),
+    documentation: {
       description: "Returns `m * 2^e`, the inverse of `math.frexp`.",
       parameters: [
         { name: "m", type: "number" },
@@ -280,24 +274,25 @@ export const mathApi = new LuaTable({
       ],
       returns: [{ type: "number" }],
     },
-  ),
+  }),
 
   // Power and logarithms
-  exp: new LuaBuiltinFunction((_sf, x: number) => Math.exp(untagNumber(x)), {
-    kind: "builtin",
-    description: "Returns `e` raised to `x`.",
-    parameters: [{ name: "x", type: "number" }],
-    returns: [{ type: "number" }],
+  exp: new LuaBuiltinFunction({
+    callback: (_sf, x: number) => Math.exp(untagNumber(x)),
+    documentation: {
+      description: "Returns `e` raised to `x`.",
+      parameters: [{ name: "x", type: "number" }],
+      returns: [{ type: "number" }],
+    },
   }),
-  log: new LuaBuiltinFunction(
-    (_sf, x: number, base?: number) => {
+  log: new LuaBuiltinFunction({
+    callback: (_sf, x: number, base?: number) => {
       if (base === undefined) {
         return Math.log(untagNumber(x));
       }
       return Math.log(untagNumber(x)) / Math.log(untagNumber(base));
     },
-    {
-      kind: "builtin",
+    documentation: {
       description:
         "Returns the logarithm of `x`, using the natural base unless another base is supplied.",
       parameters: [
@@ -307,12 +302,11 @@ export const mathApi = new LuaTable({
       returns: [{ type: "number" }],
       examples: [{ code: "print(math.log(100, 10)) -- 2" }],
     },
-  ),
+  }),
   // Power function (deprecated in Lua 5.4 but retained for compatibility)
-  pow: new LuaBuiltinFunction(
-    (_sf, x: number, y: number) => untagNumber(x) ** untagNumber(y),
-    {
-      kind: "builtin",
+  pow: new LuaBuiltinFunction({
+    callback: (_sf, x: number, y: number) => untagNumber(x) ** untagNumber(y),
+    documentation: {
       description: "Returns `x` raised to the power `y`.",
       parameters: [
         { name: "x", type: "number" },
@@ -321,54 +315,65 @@ export const mathApi = new LuaTable({
       returns: [{ type: "number" }],
       deprecated: "Use the `^` operator instead.",
     },
-  ),
-  sqrt: new LuaBuiltinFunction((_sf, x: number) => Math.sqrt(untagNumber(x)), {
-    kind: "builtin",
-    description: "Returns the square root of `x`.",
-    parameters: [{ name: "x", type: "number" }],
-    returns: [{ type: "number" }],
+  }),
+  sqrt: new LuaBuiltinFunction({
+    callback: (_sf, x: number) => Math.sqrt(untagNumber(x)),
+    documentation: {
+      description: "Returns the square root of `x`.",
+      parameters: [{ name: "x", type: "number" }],
+      returns: [{ type: "number" }],
+    },
   }),
 
   // Trigonometric functions
-  cos: new LuaBuiltinFunction((_sf, x: number) => Math.cos(untagNumber(x)), {
-    kind: "builtin",
-    description: "Returns the cosine of `x` radians.",
-    parameters: [{ name: "x", type: "number" }],
-    returns: [{ type: "number" }],
+  cos: new LuaBuiltinFunction({
+    callback: (_sf, x: number) => Math.cos(untagNumber(x)),
+    documentation: {
+      description: "Returns the cosine of `x` radians.",
+      parameters: [{ name: "x", type: "number" }],
+      returns: [{ type: "number" }],
+    },
   }),
-  sin: new LuaBuiltinFunction((_sf, x: number) => Math.sin(untagNumber(x)), {
-    kind: "builtin",
-    description: "Returns the sine of `x` radians.",
-    parameters: [{ name: "x", type: "number" }],
-    returns: [{ type: "number" }],
+  sin: new LuaBuiltinFunction({
+    callback: (_sf, x: number) => Math.sin(untagNumber(x)),
+    documentation: {
+      description: "Returns the sine of `x` radians.",
+      parameters: [{ name: "x", type: "number" }],
+      returns: [{ type: "number" }],
+    },
   }),
-  tan: new LuaBuiltinFunction((_sf, x: number) => Math.tan(untagNumber(x)), {
-    kind: "builtin",
-    description: "Returns the tangent of `x` radians.",
-    parameters: [{ name: "x", type: "number" }],
-    returns: [{ type: "number" }],
+  tan: new LuaBuiltinFunction({
+    callback: (_sf, x: number) => Math.tan(untagNumber(x)),
+    documentation: {
+      description: "Returns the tangent of `x` radians.",
+      parameters: [{ name: "x", type: "number" }],
+      returns: [{ type: "number" }],
+    },
   }),
-  acos: new LuaBuiltinFunction((_sf, x: number) => Math.acos(untagNumber(x)), {
-    kind: "builtin",
-    description: "Returns the arc cosine of `x` in radians.",
-    parameters: [{ name: "x", type: "number" }],
-    returns: [{ type: "number" }],
+  acos: new LuaBuiltinFunction({
+    callback: (_sf, x: number) => Math.acos(untagNumber(x)),
+    documentation: {
+      description: "Returns the arc cosine of `x` in radians.",
+      parameters: [{ name: "x", type: "number" }],
+      returns: [{ type: "number" }],
+    },
   }),
-  asin: new LuaBuiltinFunction((_sf, x: number) => Math.asin(untagNumber(x)), {
-    kind: "builtin",
-    description: "Returns the arc sine of `x` in radians.",
-    parameters: [{ name: "x", type: "number" }],
-    returns: [{ type: "number" }],
+  asin: new LuaBuiltinFunction({
+    callback: (_sf, x: number) => Math.asin(untagNumber(x)),
+    documentation: {
+      description: "Returns the arc sine of `x` in radians.",
+      parameters: [{ name: "x", type: "number" }],
+      returns: [{ type: "number" }],
+    },
   }),
-  atan: new LuaBuiltinFunction(
-    (_sf, y: number, x?: number) => {
+  atan: new LuaBuiltinFunction({
+    callback: (_sf, y: number, x?: number) => {
       if (x === undefined) {
         return Math.atan(untagNumber(y));
       }
       return Math.atan2(untagNumber(y), untagNumber(x));
     },
-    {
-      kind: "builtin",
+    documentation: {
       description:
         "Returns the arc tangent of `y/x` in radians, using `1` for omitted `x`.",
       parameters: [
@@ -377,57 +382,60 @@ export const mathApi = new LuaTable({
       ],
       returns: [{ type: "number" }],
     },
-  ),
+  }),
 
   // Hyperbolic functions (deprecated in Lua 5.4 but retained for compatibility)
-  cosh: new LuaBuiltinFunction((_sf, x: number) => Math.cosh(untagNumber(x)), {
-    kind: "builtin",
-    description: "Returns the hyperbolic cosine of `x`.",
-    parameters: [{ name: "x", type: "number" }],
-    returns: [{ type: "number" }],
-    deprecated: "Retained for compatibility with older Lua versions.",
+  cosh: new LuaBuiltinFunction({
+    callback: (_sf, x: number) => Math.cosh(untagNumber(x)),
+    documentation: {
+      description: "Returns the hyperbolic cosine of `x`.",
+      parameters: [{ name: "x", type: "number" }],
+      returns: [{ type: "number" }],
+      deprecated: "Retained for compatibility with older Lua versions.",
+    },
   }),
-  sinh: new LuaBuiltinFunction((_sf, x: number) => Math.sinh(untagNumber(x)), {
-    kind: "builtin",
-    description: "Returns the hyperbolic sine of `x`.",
-    parameters: [{ name: "x", type: "number" }],
-    returns: [{ type: "number" }],
-    deprecated: "Retained for compatibility with older Lua versions.",
+  sinh: new LuaBuiltinFunction({
+    callback: (_sf, x: number) => Math.sinh(untagNumber(x)),
+    documentation: {
+      description: "Returns the hyperbolic sine of `x`.",
+      parameters: [{ name: "x", type: "number" }],
+      returns: [{ type: "number" }],
+      deprecated: "Retained for compatibility with older Lua versions.",
+    },
   }),
-  tanh: new LuaBuiltinFunction((_sf, x: number) => Math.tanh(untagNumber(x)), {
-    kind: "builtin",
-    description: "Returns the hyperbolic tangent of `x`.",
-    parameters: [{ name: "x", type: "number" }],
-    returns: [{ type: "number" }],
-    deprecated: "Retained for compatibility with older Lua versions.",
+  tanh: new LuaBuiltinFunction({
+    callback: (_sf, x: number) => Math.tanh(untagNumber(x)),
+    documentation: {
+      description: "Returns the hyperbolic tangent of `x`.",
+      parameters: [{ name: "x", type: "number" }],
+      returns: [{ type: "number" }],
+      deprecated: "Retained for compatibility with older Lua versions.",
+    },
   }),
 
   // Additional utility
-  deg: new LuaBuiltinFunction(
-    (_sf, x: number) => (untagNumber(x) * 180) / Math.PI,
-    {
-      kind: "builtin",
+  deg: new LuaBuiltinFunction({
+    callback: (_sf, x: number) => (untagNumber(x) * 180) / Math.PI,
+    documentation: {
       description: "Converts an angle from radians to degrees.",
       parameters: [{ name: "x", type: "number" }],
       returns: [{ type: "number" }],
       examples: [{ code: "print(math.deg(math.pi)) -- 180" }],
     },
-  ),
-  rad: new LuaBuiltinFunction(
-    (_sf, x: number) => (untagNumber(x) * Math.PI) / 180,
-    {
-      kind: "builtin",
+  }),
+  rad: new LuaBuiltinFunction({
+    callback: (_sf, x: number) => (untagNumber(x) * Math.PI) / 180,
+    documentation: {
       description: "Converts an angle from degrees to radians.",
       parameters: [{ name: "x", type: "number" }],
       returns: [{ type: "number" }],
     },
-  ),
-  ult: new LuaBuiltinFunction(
-    (_sf, m: number, n: number) => {
+  }),
+  ult: new LuaBuiltinFunction({
+    callback: (_sf, m: number, n: number) => {
       return untagNumber(m) >>> 0 < untagNumber(n) >>> 0;
     },
-    {
-      kind: "builtin",
+    documentation: {
       description: "Compares two integers as unsigned 32-bit values.",
       parameters: [
         { name: "m", type: "integer" },
@@ -436,11 +444,11 @@ export const mathApi = new LuaTable({
       returns: [{ type: "boolean" }],
       examples: [{ code: "print(math.ult(2, 3)) -- true" }],
     },
-  ),
+  }),
 
   // Keep the cosineSimilarity utility function
-  cosineSimilarity: new LuaBuiltinFunction(
-    (sf, vecA: LuaTable | number[], vecB: LuaTable | number[]) => {
+  cosineSimilarity: new LuaBuiltinFunction({
+    callback: (sf, vecA: LuaTable | number[], vecB: LuaTable | number[]) => {
       if (vecA instanceof LuaTable) {
         vecA = vecA.toJSArray();
       }
@@ -464,8 +472,7 @@ export const mathApi = new LuaTable({
 
       return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
     },
-    {
-      kind: "builtin",
+    documentation: {
       description:
         "Returns the cosine similarity between two equal-length numeric vectors.",
       parameters: [
@@ -477,5 +484,5 @@ export const mathApi = new LuaTable({
         { code: "print(math.cosineSimilarity({1, 2, 3}, {4, 5, 6}))" },
       ],
     },
-  ),
+  }),
 });

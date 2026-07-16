@@ -24,8 +24,8 @@ export function luaLoad(code: LuaValue, sf: LuaStackFrame): LuaValue {
 
     const globalEnv: LuaEnv = globalEnvMaybe as LuaEnv;
 
-    const runner = new LuaBuiltinFunction(
-      async (innerSf: LuaStackFrame) => {
+    const runner = new LuaBuiltinFunction({
+      callback: async (innerSf: LuaStackFrame) => {
         const res = await evalStatement(block, globalEnv, innerSf, true);
         if (res === undefined) {
           return null;
@@ -46,13 +46,12 @@ export function luaLoad(code: LuaValue, sf: LuaStackFrame): LuaValue {
           return null;
         }
       },
-      {
-        kind: "builtin",
+      documentation: {
         description: "Executes the Lua chunk compiled by `load`.",
         signatures: ["function(...)"],
         returns: [{ description: "Values returned by the compiled chunk." }],
       },
-    );
+    });
 
     return runner;
   } catch (e: any) {

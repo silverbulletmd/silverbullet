@@ -5,7 +5,10 @@ import { isPromise, rpAll } from "./rp.ts";
 import { isNegativeZero, isTaggedFloat } from "./numeric.ts";
 import { isSqlNull } from "./sliq_null.ts";
 import { luaFormat } from "./stdlib/format.ts";
-import type { LuaFunctionInfo } from "../../plug-api/types/index.ts";
+import type {
+  LuaFunctionDocumentation,
+  LuaFunctionInfo,
+} from "../../plug-api/types/index.ts";
 
 export type LuaType =
   | "nil"
@@ -20,6 +23,14 @@ export type LuaType =
 // These types are for documentation only
 export type LuaValue = any;
 export type JSValue = any;
+
+type LuaFunctionDefinitionDocumentation = LuaFunctionDocumentation &
+  Partial<Pick<LuaFunctionInfo, "kind" | "name" | "source">>;
+
+export type LuaFunctionDefinition<Callback> = {
+  callback: Callback;
+  documentation?: LuaFunctionDefinitionDocumentation;
+};
 
 export interface ILuaFunction {
   call(sf: LuaStackFrame, ...args: LuaValue[]): Promise<LuaValue> | LuaValue;
@@ -578,10 +589,25 @@ function mapFunctionReturnValue(values: any[]): any {
 }
 
 export class LuaNativeJSFunction implements ILuaFunction {
+  readonly fn: (...args: JSValue[]) => JSValue;
+  public info: LuaFunctionInfo;
+
   constructor(
-    readonly fn: (...args: JSValue[]) => JSValue,
-    public info?: LuaFunctionInfo,
-  ) {}
+    definition:
+      | ((...args: JSValue[]) => JSValue)
+      | LuaFunctionDefinition<(...args: JSValue[]) => JSValue>,
+  ) {
+    if (typeof definition === "function") {
+      this.fn = definition;
+      this.info = { kind: "builtin" };
+    } else {
+      this.fn = definition.callback;
+      this.info = {
+        kind: "builtin",
+        ...definition.documentation,
+      };
+    }
+  }
 
   // Performs automatic conversion between Lua and JS values for arguments, but not for return values
   call(sf: LuaStackFrame, ...args: LuaValue[]): Promise<LuaValue> | LuaValue {
@@ -611,10 +637,27 @@ export class LuaNativeJSFunction implements ILuaFunction {
 }
 
 export class LuaBuiltinFunction implements ILuaFunction {
+  readonly fn: (sf: LuaStackFrame, ...args: LuaValue[]) => LuaValue;
+  public info: LuaFunctionInfo;
+
   constructor(
-    readonly fn: (sf: LuaStackFrame, ...args: LuaValue[]) => LuaValue,
-    public info: LuaFunctionInfo = { kind: "builtin" },
-  ) {}
+    definition:
+      | ((sf: LuaStackFrame, ...args: LuaValue[]) => LuaValue)
+      | LuaFunctionDefinition<
+          (sf: LuaStackFrame, ...args: LuaValue[]) => LuaValue
+        >,
+  ) {
+    if (typeof definition === "function") {
+      this.fn = definition;
+      this.info = { kind: "builtin" };
+    } else {
+      this.fn = definition.callback;
+      this.info = {
+        kind: "builtin",
+        ...definition.documentation,
+      };
+    }
+  }
 
   call(sf: LuaStackFrame, ...args: LuaValue[]): Promise<LuaValue> | LuaValue {
     // _CTX is already available via the stack frame
