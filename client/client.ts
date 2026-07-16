@@ -78,18 +78,16 @@ import type {
   ServiceWorkerTargetMessage,
 } from "./types/ui.ts";
 import { WidgetCache } from "./widget_cache.ts";
-import { handleObjectsRequest } from "./runtime_api/objects_api.ts";
 
 // Fetch the file list ever so often, this will implicitly kick off a snapshot comparison resulting in the indexing of changed pages
 const fetchFileListInterval = 10000;
 
-// Runtime API bridge: written by the client when running headless to evaluate Lua and invoke the objects API in the live client.
+// Runtime API bridge: written by the client when running headless to evaluate Lua in the live client.
 export type SBRuntime = {
   headless?: boolean;
   ready?: boolean;
   evalLua?: (expr: string) => Promise<unknown>;
   evalLuaScript?: (script: string) => Promise<unknown>;
-  objectsAPI?: (reqJson: string) => Promise<string>;
 };
 
 declare global {
@@ -580,29 +578,6 @@ export class Client {
     globalThis.sbRuntime.evalLua = (expr: string) =>
       evalLuaCode(`return ${expr}`);
     globalThis.sbRuntime.evalLuaScript = evalLuaCode;
-
-    globalThis.sbRuntime.objectsAPI = async (
-      reqJson: string,
-    ): Promise<string> => {
-      try {
-        const req = JSON.parse(reqJson);
-        const scriptEnv = new LuaEnv(spaceLuaEnv.env);
-        const tl = new LuaEnv();
-        tl.setLocal("_GLOBAL", spaceLuaEnv.env);
-        const sf = new LuaStackFrame(tl, null);
-        const response = await handleObjectsRequest(
-          { objectIndex: this.objectIndex, env: scriptEnv, stackFrame: sf },
-          req,
-        );
-        return JSON.stringify(response);
-      } catch (e: unknown) {
-        return JSON.stringify({
-          ok: false,
-          code: "internal_error",
-          error: e instanceof Error ? e.message : String(e),
-        });
-      }
-    };
 
     // Signal readiness after widgets are fully ready (index complete +
     // editor state rebuild settled). Waiting on the widget-ready

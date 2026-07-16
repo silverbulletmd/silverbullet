@@ -140,36 +140,6 @@ impl SpaceConnection {
     }
 
     // -----------------------------------------------------------------------
-    // objects_raw
-    // -----------------------------------------------------------------------
-
-    /// GET `/.runtime/objects{path_suffix}` and return the raw `(status,
-    /// bytes)` without auto-erroring on non-2xx.  Only returns `Err` on
-    /// transport failure.
-    pub fn objects_raw(
-        &self,
-        path_suffix: &str,
-        params: &[(String, String)],
-    ) -> Result<(StatusCode, Vec<u8>), String> {
-        let url = format!("{}/.runtime/objects{path_suffix}", self.base_url);
-        let mut req = self
-            .client
-            .get(&url)
-            .header("X-Timeout", self.timeout.as_secs().to_string());
-        for (k, v) in params {
-            req = req.query(&[(k.as_str(), v.as_str())]);
-        }
-        let req = self.apply_auth(req);
-        let resp = req.send().map_err(|e| format!("request failed: {e}"))?;
-        let status = resp.status();
-        let bytes = resp
-            .bytes()
-            .map_err(|e| format!("reading body: {e}"))?
-            .to_vec();
-        Ok((status, bytes))
-    }
-
-    // -----------------------------------------------------------------------
     // config / ping / probe / auth_check
     // -----------------------------------------------------------------------
 
@@ -476,46 +446,6 @@ mod tests {
             req.header("cookie").unwrap_or(""),
             "auth_x=jwt",
             "must send Cookie: auth_x=jwt"
-        );
-    }
-
-    // -----------------------------------------------------------------------
-    // objects_raw — returns raw status + bytes even for 404
-    // -----------------------------------------------------------------------
-
-    #[test]
-    fn objects_raw_404_returns_raw() {
-        let body = r#"{"error":"not found"}"#;
-        let response = format!(
-            "HTTP/1.1 404 Not Found\r\nContent-Length: {}\r\n\r\n{}",
-            body.len(),
-            body
-        );
-        let response: &'static str = Box::leak(response.into_boxed_str());
-        let (base_url, handle) = mock_server(response);
-        let conn = bearer_conn(&base_url, "tok");
-
-        let (status, bytes) = conn.objects_raw("/tag/ref", &[]).unwrap();
-        let _ = handle.join();
-        assert_eq!(status.as_u16(), 404, "must return 404 status");
-        assert!(!bytes.is_empty(), "must return raw body bytes");
-    }
-
-    // -----------------------------------------------------------------------
-    // objects_raw — X-Timeout header is set
-    // -----------------------------------------------------------------------
-
-    #[test]
-    fn objects_raw_sends_x_timeout() {
-        let response = concat!("HTTP/1.1 200 OK\r\n", "Content-Length: 2\r\n", "\r\n", "[]",);
-        let (base_url, handle) = mock_server(response);
-        let conn = bearer_conn(&base_url, "tok");
-
-        let _ = conn.objects_raw("", &[]).unwrap();
-        let req = handle.join().unwrap();
-        assert!(
-            req.header("x-timeout").is_some(),
-            "objects_raw must set X-Timeout header"
         );
     }
 }

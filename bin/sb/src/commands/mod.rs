@@ -1,6 +1,5 @@
 pub mod describe;
 pub mod eval;
-pub mod get;
 pub mod logs;
 pub mod query;
 pub mod repl;

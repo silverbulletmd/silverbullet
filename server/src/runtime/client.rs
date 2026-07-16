@@ -42,10 +42,10 @@ impl<T: ClientTransport> RuntimeBackend for ClientRuntime<T> {
         arg: &str,
         timeout: Duration,
     ) -> Result<serde_json::Value, RuntimeError> {
-        // Single choke point for every runtime API call (evalLua,
-        // evalLuaScript, objectsAPI), so a failure here — the runtime not
-        // coming up, a timeout, or a thrown error in the client (e.g. a Lua
-        // error) — always leaves a trace in the server log.
+        // Single choke point for the Lua runtime API calls (evalLua and
+        // evalLuaScript), so a failure here — the runtime not coming up, a
+        // timeout, or a thrown error in the client (e.g. a Lua error) — always
+        // leaves a trace in the server log.
         let result = self.transport.wait_ready(timeout).and_then(|()| {
             self.transport
                 .eval_js(&build_global_call_js(fn_name, arg), timeout)
@@ -153,25 +153,6 @@ mod tests {
         assert_eq!(out, envelope);
         let seen = rt.transport.seen_js.lock().unwrap();
         assert_eq!(seen[0], r#"sbRuntime.evalLua("1 + 1")"#);
-    }
-
-    #[test]
-    fn eval_global_returns_raw_transport_value_including_strings() {
-        // The objects endpoint relies on a String return passing through
-        // unmodified (the handler does its own unwrap) — verify no shaping here.
-        let logs = LogBuffer::new();
-        let raw = serde_json::json!(r#"{"ok":true}"#);
-        let rt = ClientRuntime::new(FakeTransport::ok(raw.clone()), logs);
-        let out = rt
-            .eval_global("sbRuntime.objectsAPI", "{}", Duration::from_secs(5))
-            .unwrap();
-        assert_eq!(out, raw);
-        let seen = rt.transport.seen_js.lock().unwrap();
-        assert!(
-            seen[0].starts_with("sbRuntime.objectsAPI("),
-            "got: {}",
-            seen[0]
-        );
     }
 
     #[test]

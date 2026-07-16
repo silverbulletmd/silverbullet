@@ -118,14 +118,6 @@ pub fn build_router(state: Arc<ServerState>) -> Router {
             "/.runtime/logs",
             get(crate::handlers::runtime::handle_runtime_logs),
         )
-        .route(
-            "/.runtime/objects",
-            get(crate::handlers::runtime_objects::handle_objects_list_tags),
-        )
-        .route(
-            "/.runtime/objects/{*path}",
-            get(crate::handlers::runtime_objects::handle_objects_by_path),
-        )
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             require_authorization,
@@ -216,6 +208,28 @@ mod auth_tests {
     async fn no_authorizer_leaves_protected_routes_open() {
         let st = state_with(None);
         assert_eq!(status(st, "/.config").await, StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn removed_objects_endpoint_uses_client_bundle_fallback() {
+        let state = test_state();
+        state
+            .client_bundle
+            .write_file(".client/index.html", b"<html>client shell</html>", None)
+            .unwrap();
+
+        let response = crate::build_router(Arc::new(state))
+            .oneshot(
+                Request::builder()
+                    .uri("/.runtime/objects")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(response.headers().get("content-type").unwrap(), "text/html");
     }
 
     #[tokio::test]

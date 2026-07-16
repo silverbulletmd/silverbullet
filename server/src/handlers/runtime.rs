@@ -18,7 +18,7 @@ use crate::state::ServerState;
 const DEFAULT_TIMEOUT_SECS: u64 = 30;
 
 /// `X-Timeout` is a whole number of **seconds** (default 30), matching the
-/// legacy standalone server. Shared with the objects handler.
+/// legacy standalone server.
 pub(crate) fn parse_timeout(headers: &HeaderMap) -> Duration {
     headers
         .get("X-Timeout")

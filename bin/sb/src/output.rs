@@ -90,18 +90,6 @@ pub fn format(w: &mut dyn Write, result: &Value, mode: OutputMode) -> io::Result
     }
 }
 
-/// Convenience for callers that hold a raw JSON response body.  Parses `body`
-/// as JSON; on failure writes `body` through verbatim.
-pub fn format_bytes(w: &mut dyn Write, body: &[u8], mode: OutputMode) -> io::Result<()> {
-    match serde_json::from_slice::<Value>(body) {
-        Ok(v) => format(w, &v, mode),
-        Err(_) => {
-            w.write_all(body)?;
-            Ok(())
-        }
-    }
-}
-
 // ---------------------------------------------------------------------------
 // Low-level writers
 // ---------------------------------------------------------------------------
@@ -572,25 +560,6 @@ mod tests {
         let s = String::from_utf8(buf).unwrap();
         assert!(s.contains("name"), "table header should appear");
         assert!(s.contains("Alice"), "table row should appear");
-    }
-
-    // --- format_bytes -------------------------------------------------------
-
-    #[test]
-    fn test_format_bytes_valid_json() {
-        let body = b"{\"k\":\"v\"}";
-        let mut buf = Vec::new();
-        format_bytes(&mut buf, body, OutputMode::Json).unwrap();
-        let s = String::from_utf8(buf).unwrap();
-        assert!(s.contains("\"k\""));
-    }
-
-    #[test]
-    fn test_format_bytes_invalid_json_passthrough() {
-        let body = b"not json at all";
-        let mut buf = Vec::new();
-        format_bytes(&mut buf, body, OutputMode::Json).unwrap();
-        assert_eq!(buf, body);
     }
 
     // --- format_cell --------------------------------------------------------

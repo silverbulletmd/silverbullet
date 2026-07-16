@@ -3,7 +3,6 @@ tags: maturity/experimental
 references:
 - bin/silverbullet/src/server.rs
 - bin/sb/src/commands/query.rs
-- client/runtime_api/objects_api.ts
 ---
 
 The Runtime API lets you interact with SilverBullet programmatically over HTTP: evaluate Lua expressions and run scripts from the command line, scripts, or external tools.
@@ -83,72 +82,6 @@ Captures the current viewport of the headless Chrome instance as a PNG image.
 curl -o screenshot.png http://localhost:3000/.runtime/screenshot
 ```
 
-## List object tags
-`GET /.runtime/objects`
-
-Returns every tag indexed in the current space as a bare JSON array of strings.
-
-```bash
-curl -H "Authorization: Bearer $SB_TOKEN" \
-     http://localhost:3000/.runtime/objects
-# => ["header", "item", "page", "task"]
-```
-
-## List objects by tag
-`GET /.runtime/objects/{tag}`
-
-Returns a JSON array of objects carrying the given tag. Supports filtering, ordering, pagination, and projection via query parameters.
-
-| Query parameter | Meaning |
-|---|---|
-| `where[field]=value` | Equality filter. Repeat across fields for AND. |
-| `where[field][op]=value` | Operator filter. Supported `op`s: `eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `in`, `contains`, `startsWith`. |
-| `order=field` or `order=field:desc` | Sort key. Repeatable for multi-key sort. |
-| `limit=N` | Default 100, max 1000. |
-| `offset=N` | Default 0. |
-| `select=f1,f2` | Projection — return only these fields per object. |
-| `debug=1` | Adds an `X-Equivalent-Lua` response header showing the Lua query that ran. |
-
-Dotted field paths are supported for nested objects: `where[meta.author]=alice`.
-
-Tag (and ref) values may contain `/` — for example SilverBullet's built-in `meta/library` and `meta/template/page` tags. Encode the `/` as `%2F` in the URL path; the server unescapes one segment for `{tag}` and one for `{ref}`. So `meta/library` becomes `meta%2Flibrary`, and the page named `Daily/2026-05-14` becomes `Daily%2F2026-05-14`. The `sb` CLI does this automatically.
-
-The response is a bare JSON array. Paginate by stepping `offset` in increments of `limit` until you get fewer than `limit` items back.
-
-```bash
-# Unfinished tasks, highest priority first, top 20
-curl -H "Authorization: Bearer $SB_TOKEN" \
-  "http://localhost:3000/.runtime/objects/task?where[done]=false&order=priority:desc&limit=20"
-
-# Pages by a specific author, projecting only name + lastModified
-curl -H "Authorization: Bearer $SB_TOKEN" \
-  "http://localhost:3000/.runtime/objects/page?where[meta.author]=alice&select=name,lastModified"
-
-# Tag containing a slash: encode the slash as %2F
-curl -H "Authorization: Bearer $SB_TOKEN" \
-  "http://localhost:3000/.runtime/objects/meta%2Flibrary"
-```
-
-### Value typing
-Query-string values are auto-typed:
-
-* `42`, `-3.14` → number
-* `true`, `false` → boolean
-* `null` → nil (matches missing or explicit-null fields)
-* everything else → string
-
-Force a type with a prefix: `where[zipCode]=str:01234`, `where[count][gt]=num:10`, `where[active]=bool:true`.
-
-## Fetch a single object
-`GET /.runtime/objects/{tag}/{ref}`
-
-Returns the object as JSON, or `404` if not found.
-
-```bash
-curl -H "Authorization: Bearer $SB_TOKEN" \
-  "http://localhost:3000/.runtime/objects/page/My%20Page"
-```
-
 ## Console logs
 `GET /.runtime/logs`
 
@@ -188,23 +121,14 @@ curl -H "X-Timeout: 60" \
 ```
 
 # Error handling
-All error responses are JSON with `Content-Type: application/json` and an `error` key. The objects API additionally returns a `code` field with a stable machine-readable identifier:
-
-```json
-{ "error": "human-readable message", "code": "snake_case_code" }
-```
+All error responses are JSON with `Content-Type: application/json` and an `error` key. Runtime execution failures also include a stable machine-readable `code`.
 
 Status codes used across the Runtime API:
 
-* **400** — Empty request body or malformed query: `{"error": "Request body is required"}` / `{"error": "...", "code": "bad_query"}`
-* **404** — Object not found (object endpoints only): `{"error": "Not found", "code": "not_found"}`
-* **500** — Lua/JS execution error (the evaluated code threw, e.g. a Lua error) or internal error: `{"error": "<error message>", "code": "script_error"}` / `{"code": "internal_error"}`. The execution-error message is the concise client error (e.g. `attempt to call a nil value`); the full stack is available in the runtime console log.
-* **503** — Runtime API not enabled or no headless browser running: `{"error": "No headless browser running", "code": "bridge_unavailable"}`
-* **504** — Timeout exceeded: `{"error": "Request timed out", "code": "timeout"}`
-
-The full set of object-API error codes: `bad_query`, `bad_field`, `unknown_operator`, `bad_limit`, `not_found`, `bridge_unavailable`, `timeout`, `internal_error`.
-
-For a kubectl-style command-line client on top of these endpoints, see `sb get` in the [[CLI]] reference.
+* **400** — Empty request body: `{"error": "Request body is required"}`.
+* **500** — Lua/JS execution error (the evaluated code threw, e.g. a Lua error): `{"error": "<error message>", "code": "script_error"}`. The message is the concise client error (e.g. `attempt to call a nil value`); the full stack is available in the runtime console log.
+* **503** — Runtime API not enabled or no headless browser running: `{"error": "Runtime API is not enabled"}` or `{"error": "...", "code": "bridge_unavailable"}`.
+* **504** — Timeout exceeded: `{"error": "...", "code": "timeout"}`.
 
 # How it works
 As documented in [[Architecture]], the vast majority of SilverBullet’s power is implemented in the client. However, there are use cases for programmatically accessing your space with all of SilverBullet (client’s) power.

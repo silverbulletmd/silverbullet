@@ -157,24 +157,3 @@ fn eval_against_server_without_runtime_reports_not_enabled() {
         out.stderr
     );
 }
-
-#[test]
-fn get_against_server_without_runtime_exits_api_error() {
-    let space = tempfile::tempdir().unwrap();
-    let Some((mut child, base)) = start_server(space.path()) else {
-        eprintln!("skip: silverbullet server binary not built");
-        return;
-    };
-
-    let cfg = tempfile::tempdir().unwrap();
-    // `get` (tag list) hits /.runtime/objects → 503 with the runtime disabled →
-    // the documented API-error exit code (2).
-    let out = run_sb(&["--url", &base, "get"], cfg.path());
-    let _ = child.kill();
-
-    assert_eq!(
-        out.code, 2,
-        "expected exit code 2 (API error); stderr: {:?}",
-        out.stderr
-    );
-}

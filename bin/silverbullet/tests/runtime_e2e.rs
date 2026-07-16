@@ -151,19 +151,6 @@ fn runtime_api_evaluates_lua_against_headless_chrome() {
     let v: serde_json::Value = serde_json::from_str(script.text().unwrap().trim()).unwrap();
     assert_eq!(v, serde_json::json!({ "result": 2 }));
 
-    // 4) objects → JSON array of tag names.
-    let objects = http.get(format!("{base}/.runtime/objects")).send().unwrap();
-    if !objects.status().is_success() {
-        let status = objects.status();
-        let body = objects.text().unwrap_or_default();
-        dump_and_panic(
-            &mut server,
-            &format!("/.runtime/objects returned {status}: {body}"),
-        );
-    }
-    let v: serde_json::Value = objects.json().unwrap();
-    assert!(v.is_array(), "objects should be a JSON array, got {v}");
-
     // Explicit teardown (also happens on Drop).
     drop(server);
 }

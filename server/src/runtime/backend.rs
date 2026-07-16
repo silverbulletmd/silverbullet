@@ -27,10 +27,9 @@ pub enum RuntimeError {
 
 /// What the router/handlers call. A single primitive: evaluate one client
 /// `sbRuntime.*` function with one JSON-string argument and return its JSON
-/// result. Every runtime endpoint is built on this — `/.runtime/lua` →
-/// `sbRuntime.evalLua`, `/.runtime/lua_script` → `sbRuntime.evalLuaScript`,
-/// `/.runtime/objects*` → `sbRuntime.objectsAPI`. Only infrastructure failures
-/// surface as `Err`; a Lua-level error travels back inside the success value.
+/// result. The Lua endpoints use this for `sbRuntime.evalLua` and
+/// `sbRuntime.evalLuaScript`. Only infrastructure failures surface as `Err`;
+/// a Lua-level error travels back inside the success value.
 pub trait RuntimeBackend: Send + Sync {
     /// Evaluate `<fn_name>(<arg as a single JSON-encoded string>)` in the client
     /// runtime and return its JSON result, blocking up to `timeout`.

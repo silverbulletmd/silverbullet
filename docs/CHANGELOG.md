@@ -12,6 +12,7 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
   * CLI client also reimplemented/backported to Rust as well.
   * This means the project is now all TypeScript + Rust.
   * The goal is to make do this without regressions, but watch for any issues.
+* Pulling the "this was experimental card" for the CLI: removed the `sb get` command and the `/.runtime/objects/*` REST API, including their dedicated client-side query bridge. Use `sb query`, `sb eval`, or `sb script` for indexed-object access. This added too much complexity and another query language.
 * Fix: major typing/navigation slowdown on pages with many internal links in large spaces.
 * New `index.describeSchema()` and `index.tagSchema(tag)` Space Lua APIs that expose indexed object-type / tag schemas as raw JSON Schema to scripts, widgets, and the `sb describe` CLI: `describeSchema()` returns a map of tag name → JSON Schema (only tags that declare a schema), and `tagSchema(tag)` returns a tag's JSON Schema or `nil` if undefined or schema-less.
 * New `system.reboot()` Space Lua syscall: makes edited-on-disk changes live.

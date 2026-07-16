@@ -4,7 +4,6 @@ pub mod control;
 pub mod fs;
 pub mod proxy;
 pub mod runtime;
-pub mod runtime_objects;
 pub mod shell;
 
 use axum::body::Body;

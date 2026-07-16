@@ -108,9 +108,6 @@ pub fn run_core_command(g: &GlobalFlags, cmd: CoreCommand) -> Result<ExitCode, S
                 CoreCommand::Query { expression } => {
                     commands::query::run(&conn, &expression, mode, &mut out)?
                 }
-                CoreCommand::Get(args) => {
-                    return Ok(commands::get::run(&conn, &args, mode, &mut out))
-                }
                 CoreCommand::Describe { type_ } => {
                     commands::describe::run(&conn, type_.as_deref(), mode, &mut out)?
                 }
