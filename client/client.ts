@@ -39,6 +39,7 @@ import {
   createEditorState,
   isValidEditor,
 } from "./codemirror/editor_state.ts";
+import { withCompletionInfo } from "./codemirror/completion_info.ts";
 import type { Config } from "./config.ts";
 import { ContentManager } from "./content_manager.ts";
 import { Augmenter } from "./data/data_augmenter.ts";
@@ -853,7 +854,13 @@ export class Client {
         currentResult = result;
       }
     }
-    return currentResult;
+    if (!currentResult) {
+      return null;
+    }
+    return {
+      ...currentResult,
+      options: currentResult.options.map(withCompletionInfo),
+    };
   }
 
   isReadOnlyMode(): boolean {

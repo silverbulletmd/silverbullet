@@ -108,12 +108,16 @@ function hasInlineDescription(
 
 test("every static syscall registration has an inline description", () => {
   const syscallDir = join(import.meta.dirname, "..", "plugos", "syscalls");
+  const paths = [
+    ...readdirSync(syscallDir)
+      .filter((name) => name.endsWith(".ts") && !name.endsWith(".test.ts"))
+      .map((name) => join(syscallDir, name)),
+    join(import.meta.dirname, "syscalls.ts"),
+  ];
   const undocumented: string[] = [];
   let syscallCount = 0;
-  for (const filename of readdirSync(syscallDir).filter(
-    (name) => name.endsWith(".ts") && !name.endsWith(".test.ts"),
-  )) {
-    const path = join(syscallDir, filename);
+  for (const path of paths) {
+    const filename = relative(import.meta.dirname, path);
     const source = ts.createSourceFile(
       path,
       readFileSync(path, "utf8"),

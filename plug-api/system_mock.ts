@@ -12,7 +12,7 @@ import { eventSyscalls } from "../client/plugos/syscalls/event.ts";
 import { indexSyscalls } from "../client/plugos/syscalls/index.ts";
 import { jsonschemaSyscalls } from "../client/plugos/syscalls/jsonschema.ts";
 import { languageSyscalls } from "../client/plugos/syscalls/language.ts";
-import { luaSyscalls } from "../client/plugos/syscalls/lua.ts";
+import { luaSyscalls } from "../client/space_lua/syscalls.ts";
 import { markdownSyscalls } from "../client/plugos/syscalls/markdown.ts";
 import { mqSyscalls } from "../client/plugos/syscalls/mq.ts";
 import {
@@ -64,7 +64,7 @@ export function createMockSystem() {
     languageSyscalls(),
     jsonschemaSyscalls(),
     indexSyscalls(objectIndex, clientMock),
-    luaSyscalls(clientSystemMock),
+    luaSyscalls(system, () => clientSystemMock.spaceLuaEnv.env),
     mqSyscalls(mq),
     dataStoreReadSyscalls(ds, clientSystemMock),
     dataStoreWriteSyscalls(ds),

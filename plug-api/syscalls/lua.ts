@@ -1,6 +1,7 @@
 import { syscall } from "../syscall.ts";
 import type { LuaBlock, LuaExpression } from "../../client/space_lua/ast.ts";
 import type { PrintOptions } from "../../client/space_lua/pretty_print.ts";
+import type { LuaValueInspection } from "../types/index.ts";
 
 export function parseBlock(code: string): Promise<LuaBlock> {
   return syscall("lua.parseBlock", code);
@@ -31,4 +32,10 @@ export function prettyPrintExpression(
   opts?: PrintOptions,
 ): Promise<string> {
   return syscall("lua.prettyPrintExpression", expression, opts);
+}
+
+export function inspect(
+  path: string[] = [],
+): Promise<LuaValueInspection | null> {
+  return syscall("lua.inspect", path);
 }

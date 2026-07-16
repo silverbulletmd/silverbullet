@@ -78,6 +78,20 @@ export type LuaFunctionInfo = LuaFunctionDocumentation & {
   kind: "lua" | "builtin" | "syscall";
   source?: Record<string, unknown>;
 };
+
+export type LuaPropertyInspection = {
+  key: string;
+  type: string;
+  functionInfo?: LuaFunctionInfo;
+  definition?: string;
+};
+
+export type LuaValueInspection = {
+  type: string;
+  functionInfo?: LuaFunctionInfo;
+  definition?: string;
+  properties: LuaPropertyInspection[];
+};
 /**
  * An ObjectValue that can be indexed by the `index` plug, needs to have a minimum of
  * of two fields:

@@ -1,22 +1,99 @@
-import type { ClientSystem } from "../../client_system.ts";
-import type { LuaBlock, LuaExpression } from "../../space_lua/ast.ts";
-import { evalExpression } from "../../space_lua/eval.ts";
-import { parseBlock, parseExpressionString } from "../../space_lua/parse.ts";
+import type { ASTCtx, LuaBlock, LuaExpression } from "./ast.ts";
+import { evalExpression } from "./eval.ts";
+import { parseBlock, parseExpressionString } from "./parse.ts";
 import {
   type PrintOptions,
   prettyPrintBlock,
   prettyPrintExpression,
-} from "../../space_lua/pretty_print.ts";
+} from "./pretty_print.ts";
 import {
+  isILuaFunction,
+  LuaEnv,
   LuaStackFrame,
+  LuaTable,
+  luaGet,
+  luaKeys,
   luaToString,
+  luaTypeOf,
   luaValueToJS,
-} from "../../space_lua/runtime.ts";
-import { buildThreadLocalEnv } from "../../space_lua_api.ts";
-import type { SysCallMapping } from "../system.ts";
-import { isSendable } from "../util.ts";
+} from "./runtime.ts";
+import { buildThreadLocalEnv } from "../space_lua_api.ts";
+import type { SysCallMapping, System } from "../plugos/system.ts";
+import { isSendable } from "../plugos/util.ts";
+import type {
+  LuaFunctionInfo,
+  LuaPropertyInspection,
+  LuaValueInspection,
+} from "../../plug-api/types/index.ts";
+import { encodeRef } from "../../plug-api/lib/ref.ts";
+import { resolveASTReference } from "../space_lua.ts";
 
-export function luaSyscalls(clientSystem: ClientSystem): SysCallMapping {
+async function inspectValue(
+  value: unknown,
+  path: string[],
+): Promise<Omit<LuaValueInspection, "properties">> {
+  const type = value instanceof LuaEnv ? "table" : await luaTypeOf(value);
+  if (!isILuaFunction(value)) {
+    return { type };
+  }
+  const functionInfo: LuaFunctionInfo = {
+    ...(value.info ?? { kind: "builtin" }),
+    name: value.info?.name ?? path.join("."),
+  };
+  const definitionRef =
+    functionInfo.kind === "lua" && functionInfo.source
+      ? resolveASTReference(functionInfo.source as ASTCtx)
+      : null;
+  return {
+    type,
+    functionInfo,
+    definition: definitionRef ? encodeRef(definitionRef) : undefined,
+  };
+}
+
+async function inspectLuaPath(
+  env: LuaEnv,
+  path: string[],
+): Promise<LuaValueInspection | null> {
+  const sf = LuaStackFrame.createWithGlobalEnv(env);
+  let value: unknown = env;
+  for (const key of path) {
+    value = await luaGet(value, key, null, sf);
+    if (value === null || value === undefined) {
+      return null;
+    }
+  }
+
+  const properties: LuaPropertyInspection[] = [];
+  const keys =
+    value instanceof LuaEnv
+      ? value.keys()
+      : value instanceof LuaTable ||
+          Array.isArray(value) ||
+          (typeof value === "object" && value !== null)
+        ? luaKeys(value)
+        : [];
+  for (const key of [...new Set(keys)]
+    .filter((candidate): candidate is string => typeof candidate === "string")
+    .sort()) {
+    const child = await luaGet(value, key, null, sf);
+    if (child === null || child === undefined) continue;
+    properties.push({
+      key,
+      ...(await inspectValue(child, [...path, key])),
+    });
+  }
+
+  return {
+    ...(await inspectValue(value, path)),
+    properties,
+  };
+}
+
+export function luaSyscalls(
+  system: System<any>,
+  getEnvironment: () => LuaEnv,
+): SysCallMapping {
   return {
     "lua.parseBlock": {
       callback: (_ctx, code: string): LuaBlock => parseBlock(code),
@@ -125,16 +202,10 @@ export function luaSyscalls(clientSystem: ClientSystem): SysCallMapping {
       callback: async (_ctx, expression: string) => {
         try {
           const ast = parseExpressionString(expression);
-          const env = await buildThreadLocalEnv(
-            clientSystem.system,
-            clientSystem.spaceLuaEnv.env,
-          );
+          const globalEnv = getEnvironment();
+          const env = await buildThreadLocalEnv(system, globalEnv);
           const sf = new LuaStackFrame(env, null);
-          const luaResult = await evalExpression(
-            ast,
-            clientSystem.spaceLuaEnv.env,
-            sf,
-          );
+          const luaResult = await evalExpression(ast, globalEnv, sf);
           const jsResult = luaValueToJS(luaResult, sf);
           if (isSendable(jsResult)) {
             return jsResult;
@@ -163,6 +234,34 @@ export function luaSyscalls(clientSystem: ClientSystem): SysCallMapping {
       examples: [
         {
           code: 'local result = lua.evalExpression("1 + 2 * 3")\nprint(result)',
+        },
+      ],
+      see: "API/lua",
+    },
+    "lua.inspect": {
+      callback: (_ctx, path: string[] = []) =>
+        inspectLuaPath(getEnvironment(), path),
+      description:
+        "Inspects a value in the live Space Lua environment and returns serializable type, function, definition, and property metadata.",
+      parameters: [
+        {
+          name: "path",
+          type: "table",
+          description:
+            "Sequence of property names from the global environment; omit to inspect globals.",
+          optional: true,
+        },
+      ],
+      returns: [
+        {
+          type: "table|nil",
+          description:
+            "Inspection metadata, or nil when the requested path does not exist.",
+        },
+      ],
+      examples: [
+        {
+          code: 'local info = lua.inspect({"editor", "getText"})',
         },
       ],
       see: "API/lua",

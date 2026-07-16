@@ -45,6 +45,11 @@ functions:
     events:
       - editor:complete
 
+  luaComplete:
+    path: "./lua.ts:luaComplete"
+    events:
+      - editor:complete
+
   reloadSystem:
     path: editor.ts:reloadSystem
     command:
@@ -85,6 +90,11 @@ functions:
 
   clickNavigate:
     path: "./navigate.ts:clickNavigate"
+    events:
+      - page:click
+
+  luaNavigate:
+    path: "./lua.ts:luaNavigate"
     events:
       - page:click
 
@@ -371,4 +381,3 @@ functions:
       name: "Document: Delete"
       requireMode: rw
       requireEditor: notpage
-

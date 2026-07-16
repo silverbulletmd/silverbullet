@@ -36,7 +36,7 @@ import { KVPrimitivesManifestCache } from "./plugos/manifest_cache.ts";
 import { createCommandKeyBindings } from "./codemirror/editor_state.ts";
 import type { DataStoreMQ } from "./data/mq.datastore.ts";
 import { jsonschemaSyscalls } from "./plugos/syscalls/jsonschema.ts";
-import { luaSyscalls } from "./plugos/syscalls/lua.ts";
+import { luaSyscalls } from "./space_lua/syscalls.ts";
 import { indexSyscalls } from "./plugos/syscalls/index.ts";
 import { configSyscalls } from "./plugos/syscalls/config.ts";
 import { eventSyscalls } from "./plugos/syscalls/event.ts";
@@ -171,7 +171,7 @@ export class ClientSystem {
       jsonschemaSyscalls(),
       indexSyscalls(this.objectIndex, this.client),
       //commandSyscalls(client),
-      luaSyscalls(this),
+      luaSyscalls(this.system, () => this.spaceLuaEnv.env),
       mqSyscalls(this.mq),
       serviceRegistrySyscalls(this.serviceRegistry),
       dataStoreReadSyscalls(this.ds, this),
