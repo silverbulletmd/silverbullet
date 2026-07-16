@@ -29,14 +29,12 @@ type SyscallSignature = (...args: any[]) => Promise<any> | any;
 
 export type SyscallDefinition = {
   callback: SyscallSignature;
-  documentation?: LuaFunctionDocumentation;
-};
+} & LuaFunctionDocumentation;
 
 type RegisteredSyscall = {
   requiredPermissions: string[];
   callback: SyscallSignature;
-  documentation: LuaFunctionDocumentation;
-};
+} & LuaFunctionDocumentation;
 
 export type SystemOptions = {
   manifestCache?: ManifestCache<any>;
@@ -84,14 +82,12 @@ export class System<HookT> extends EventEmitter<SystemEvents<HookT>> {
           ? name.slice("lua:".length)
           : name;
         const namespace = cleanName.split(".")[0];
-        const defaultDocumentation = { see: `API/${namespace}` };
+        const { callback, ...metadata } = definition;
         this.registeredSyscalls.set(name, {
           requiredPermissions: requiredCapabilities,
-          callback: definition.callback,
-          documentation: {
-            ...defaultDocumentation,
-            ...definition.documentation,
-          },
+          callback,
+          see: `API/${namespace}`,
+          ...metadata,
         });
       }
     }

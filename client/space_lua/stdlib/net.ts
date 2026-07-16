@@ -70,28 +70,26 @@ export const netApi = new LuaTable({
         body: body,
       };
     },
-    documentation: {
-      description:
-        "Performs an HTTP request through the SilverBullet server to avoid browser CORS restrictions.",
-      signatures: ["net.proxyFetch(url, options?)"],
-      parameters: [
-        { name: "url", type: "string", description: "URL to request." },
-        {
-          name: "options",
-          type: "table",
-          description:
-            "Optional method, headers, body, and responseEncoding values.",
-          optional: true,
-        },
-      ],
-      returns: [
-        {
-          type: "table",
-          description: "Response status, headers, decoded body, and ok flag.",
-        },
-      ],
-      see: "API/net",
-    },
+    description:
+      "Performs an HTTP request through the SilverBullet server to avoid browser CORS restrictions.",
+    signatures: ["net.proxyFetch(url, options?)"],
+    parameters: [
+      { name: "url", type: "string", description: "URL to request." },
+      {
+        name: "options",
+        type: "table",
+        description:
+          "Optional method, headers, body, and responseEncoding values.",
+        optional: true,
+      },
+    ],
+    returns: [
+      {
+        type: "table",
+        description: "Response status, headers, decoded body, and ok flag.",
+      },
+    ],
+    see: "API/net",
   }),
   readURI: new LuaNativeJSFunction({
     callback: (
@@ -104,21 +102,19 @@ export const netApi = new LuaTable({
         options,
       );
     },
-    documentation: {
-      description: "Reads content from a URI using the best matching service.",
-      signatures: ["net.readURI(uri, options?)"],
-      parameters: [
-        { name: "uri", type: "string", description: "URI to read." },
-        {
-          name: "options",
-          type: "table",
-          description: "Optional service-specific values such as encoding.",
-          optional: true,
-        },
-      ],
-      returns: [{ description: "Content returned by the matching service." }],
-      see: "API/net",
-    },
+    description: "Reads content from a URI using the best matching service.",
+    signatures: ["net.readURI(uri, options?)"],
+    parameters: [
+      { name: "uri", type: "string", description: "URI to read." },
+      {
+        name: "options",
+        type: "table",
+        description: "Optional service-specific values such as encoding.",
+        optional: true,
+      },
+    ],
+    returns: [{ description: "Content returned by the matching service." }],
+    see: "API/net",
   }),
   writeURI: new LuaNativeJSFunction({
     callback: (uri: string, content: string | Uint8Array) => {
@@ -127,20 +123,18 @@ export const netApi = new LuaTable({
         { uri, content },
       );
     },
-    documentation: {
-      description: "Writes content to a URI using the best matching service.",
-      signatures: ["net.writeURI(uri, content)"],
-      parameters: [
-        { name: "uri", type: "string", description: "URI to write." },
-        {
-          name: "content",
-          type: "string|userdata",
-          description: "Text or binary content to write.",
-        },
-      ],
-      returns: [{ description: "Result returned by the matching service." }],
-      see: "API/net",
-    },
+    description: "Writes content to a URI using the best matching service.",
+    signatures: ["net.writeURI(uri, content)"],
+    parameters: [
+      { name: "uri", type: "string", description: "URI to write." },
+      {
+        name: "content",
+        type: "string|userdata",
+        description: "Text or binary content to write.",
+      },
+    ],
+    returns: [{ description: "Result returned by the matching service." }],
+    see: "API/net",
   }),
 });
 

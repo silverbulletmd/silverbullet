@@ -36,11 +36,10 @@ export type DocumentMeta = ObjectValue<
     extension: string;
   } & Record<string, any>
 >;
-export type SyscallMeta = {
+export type SyscallMeta = LuaFunctionDocumentation & {
   name: string;
   requiredPermissions: string[];
   argCount: number;
-  documentation?: LuaFunctionDocumentation;
 };
 
 export type LuaFunctionParameterDocumentation = {

@@ -114,17 +114,15 @@ export const tableApi = new LuaTable({
       }
       return out.join(sep);
     },
-    documentation: {
-      description:
-        "Concatenates table elements from `i` through `j` using an optional separator.",
-      parameters: [
-        { name: "table", type: "table" },
-        { name: "sep", type: "string", optional: true },
-        { name: "i", type: "integer", optional: true },
-        { name: "j", type: "integer", optional: true },
-      ],
-      returns: [{ type: "string" }],
-    },
+    description:
+      "Concatenates table elements from `i` through `j` using an optional separator.",
+    parameters: [
+      { name: "table", type: "table" },
+      { name: "sep", type: "string", optional: true },
+      { name: "i", type: "integer", optional: true },
+      { name: "j", type: "integer", optional: true },
+    ],
+    returns: [{ type: "string" }],
   }),
 
   /**
@@ -176,31 +174,29 @@ export const tableApi = new LuaTable({
 
       await luaSet(tbl, pos, v, sf);
     },
-    documentation: {
-      description:
-        "Inserts a value at a position, shifting later elements, or appends it when no position is supplied.",
-      signatures: [
-        "table.insert(table, value)",
-        "table.insert(table, pos, value)",
-      ],
-      parameters: [
-        { name: "table", type: "table" },
-        {
-          name: "posOrValue",
-          description: "Insertion position or appended value.",
-        },
-        {
-          name: "value",
-          description: "Value for positional insertion.",
-          optional: true,
-        },
-      ],
-      examples: [
-        {
-          code: 'local fruits = {"apple", "orange"}\ntable.insert(fruits, 2, "banana")\nprint(table.concat(fruits, ", "))',
-        },
-      ],
-    },
+    description:
+      "Inserts a value at a position, shifting later elements, or appends it when no position is supplied.",
+    signatures: [
+      "table.insert(table, value)",
+      "table.insert(table, pos, value)",
+    ],
+    parameters: [
+      { name: "table", type: "table" },
+      {
+        name: "posOrValue",
+        description: "Insertion position or appended value.",
+      },
+      {
+        name: "value",
+        description: "Value for positional insertion.",
+        optional: true,
+      },
+    ],
+    examples: [
+      {
+        code: 'local fruits = {"apple", "orange"}\ntable.insert(fruits, 2, "banana")\nprint(table.concat(fruits, ", "))',
+      },
+    ],
   }),
 
   /**
@@ -244,20 +240,18 @@ export const tableApi = new LuaTable({
 
       return v;
     },
-    documentation: {
-      description:
-        "Removes and returns an element, shifting later elements down.",
-      parameters: [
-        { name: "table", type: "table" },
-        {
-          name: "pos",
-          type: "integer",
-          description: "Position; defaults to the last element.",
-          optional: true,
-        },
-      ],
-      returns: [{ description: "Removed value." }],
-    },
+    description:
+      "Removes and returns an element, shifting later elements down.",
+    parameters: [
+      { name: "table", type: "table" },
+      {
+        name: "pos",
+        type: "integer",
+        description: "Position; defaults to the last element.",
+        optional: true,
+      },
+    ],
+    returns: [{ description: "Removed value." }],
   }),
 
   /**
@@ -308,23 +302,21 @@ export const tableApi = new LuaTable({
 
       return a2;
     },
-    documentation: {
-      description:
-        "Moves an inclusive element range to a destination table while handling overlaps.",
-      parameters: [
-        { name: "a1", type: "table", description: "Source table." },
-        { name: "f", type: "integer", description: "First source index." },
-        { name: "e", type: "integer", description: "Last source index." },
-        { name: "t", type: "integer", description: "Destination start index." },
-        {
-          name: "a2",
-          type: "table",
-          description: "Destination table; defaults to `a1`.",
-          optional: true,
-        },
-      ],
-      returns: [{ type: "table", description: "Destination table." }],
-    },
+    description:
+      "Moves an inclusive element range to a destination table while handling overlaps.",
+    parameters: [
+      { name: "a1", type: "table", description: "Source table." },
+      { name: "f", type: "integer", description: "First source index." },
+      { name: "e", type: "integer", description: "Last source index." },
+      { name: "t", type: "integer", description: "Destination start index." },
+      {
+        name: "a2",
+        type: "table",
+        description: "Destination table; defaults to `a1`.",
+        optional: true,
+      },
+    ],
+    returns: [{ type: "table", description: "Destination table." }],
   }),
 
   /**
@@ -384,22 +376,18 @@ export const tableApi = new LuaTable({
 
       return tbl;
     },
-    documentation: {
-      description:
-        "Sorts a table in place using ascending order or an optional comparison function.",
-      parameters: [
-        { name: "table", type: "table" },
-        { name: "comp", type: "function", optional: true },
-      ],
-      returns: [
-        { type: "table", description: "The sorted table in Space Lua." },
-      ],
-      examples: [
-        {
-          code: "local numbers = {3, 1, 2}\ntable.sort(numbers, function(a, b) return a > b end)",
-        },
-      ],
-    },
+    description:
+      "Sorts a table in place using ascending order or an optional comparison function.",
+    parameters: [
+      { name: "table", type: "table" },
+      { name: "comp", type: "function", optional: true },
+    ],
+    returns: [{ type: "table", description: "The sorted table in Space Lua." }],
+    examples: [
+      {
+        code: "local numbers = {3, 1, 2}\ntable.sort(numbers, function(a, b) return a > b end)",
+      },
+    ],
   }),
 
   /**
@@ -415,12 +403,10 @@ export const tableApi = new LuaTable({
       }
       return Object.keys(tbl);
     },
-    documentation: {
-      description:
-        "Returns an array containing all keys of a table or JavaScript object.",
-      parameters: [{ name: "table", type: "table" }],
-      returns: [{ type: "table", description: "Array of keys." }],
-    },
+    description:
+      "Returns an array containing all keys of a table or JavaScript object.",
+    parameters: [{ name: "table", type: "table" }],
+    returns: [{ type: "table", description: "Array of keys." }],
   }),
 
   /**
@@ -452,15 +438,13 @@ export const tableApi = new LuaTable({
         sf,
       );
     },
-    documentation: {
-      description:
-        "Returns whether any table value is Lua-equal to a requested value.",
-      parameters: [
-        { name: "table", type: "table" },
-        { name: "value", description: "Value to find." },
-      ],
-      returns: [{ type: "boolean" }],
-    },
+    description:
+      "Returns whether any table value is Lua-equal to a requested value.",
+    parameters: [
+      { name: "table", type: "table" },
+      { name: "value", description: "Value to find." },
+    ],
+    returns: [{ type: "boolean" }],
   }),
 
   /**
@@ -493,27 +477,25 @@ export const tableApi = new LuaTable({
       }
       return resultTable;
     },
-    documentation: {
-      description: "Copies selected keys from a table into a new table.",
-      signatures: [
-        "table.select(table, ...keys): table",
-        "table.select(table, keys): table",
-      ],
-      parameters: [
-        { name: "table", type: "table" },
-        {
-          name: "keys",
-          description: "Individual keys or one array-like table of keys.",
-        },
-      ],
-      returns: [{ type: "table" }],
-      examples: [
-        {
-          code: '${query[[\n  from p = index.pages()\n  limit 3\n  select table.select(p, "name", "lastModified")\n]]}',
-          language: "markdown",
-        },
-      ],
-    },
+    description: "Copies selected keys from a table into a new table.",
+    signatures: [
+      "table.select(table, ...keys): table",
+      "table.select(table, keys): table",
+    ],
+    parameters: [
+      { name: "table", type: "table" },
+      {
+        name: "keys",
+        description: "Individual keys or one array-like table of keys.",
+      },
+    ],
+    returns: [{ type: "table" }],
+    examples: [
+      {
+        code: '${query[[\n  from p = index.pages()\n  limit 3\n  select table.select(p, "name", "lastModified")\n]]}',
+        language: "markdown",
+      },
+    ],
   }),
 
   /**
@@ -530,17 +512,15 @@ export const tableApi = new LuaTable({
       void tbl.rawSet("n", n);
       return tbl;
     },
-    documentation: {
-      description:
-        "Packs all arguments into a table with a count stored in field `n`.",
-      signatures: ["table.pack(...): table"],
-      returns: [
-        {
-          type: "table",
-          description: "Arguments at integer keys plus field `n`.",
-        },
-      ],
-    },
+    description:
+      "Packs all arguments into a table with a count stored in field `n`.",
+    signatures: ["table.pack(...): table"],
+    returns: [
+      {
+        type: "table",
+        description: "Arguments at integer keys plus field `n`.",
+      },
+    ],
   }),
 
   /**
@@ -569,19 +549,17 @@ export const tableApi = new LuaTable({
       }
       return new LuaMultiRes(result);
     },
-    documentation: {
-      description:
-        "Returns the table values from index `i` through `j` as separate results.",
-      parameters: [
-        { name: "table", type: "table" },
-        { name: "i", type: "integer", optional: true },
-        { name: "j", type: "integer", optional: true },
-      ],
-      returns: [{ description: "One result per selected element." }],
-      examples: [
-        { code: 'local second, third = table.unpack({"a", "b", "c"}, 2, 3)' },
-      ],
-    },
+    description:
+      "Returns the table values from index `i` through `j` as separate results.",
+    parameters: [
+      { name: "table", type: "table" },
+      { name: "i", type: "integer", optional: true },
+      { name: "j", type: "integer", optional: true },
+    ],
+    returns: [{ description: "One result per selected element." }],
+    examples: [
+      { code: 'local second, third = table.unpack({"a", "b", "c"}, 2, 3)' },
+    ],
   }),
 
   // Non-standard Lua functions
@@ -614,27 +592,25 @@ export const tableApi = new LuaTable({
       }
       return null;
     },
-    documentation: {
-      description:
-        "Finds the first array element accepted by a predicate and returns its index and value.",
-      parameters: [
-        { name: "table", type: "table" },
-        {
-          name: "criteriaFn",
-          type: "function",
-          description: "Predicate called with each value.",
-        },
-        { name: "fromIndex", type: "integer", optional: true },
-      ],
-      returns: [
-        { type: "integer|nil", description: "Matching index or `nil`." },
-        { description: "Matching value." },
-      ],
-      examples: [
-        {
-          code: "local index, value = table.find({1, 2, 3, 4}, function(n) return n % 2 == 0 end)",
-        },
-      ],
-    },
+    description:
+      "Finds the first array element accepted by a predicate and returns its index and value.",
+    parameters: [
+      { name: "table", type: "table" },
+      {
+        name: "criteriaFn",
+        type: "function",
+        description: "Predicate called with each value.",
+      },
+      { name: "fromIndex", type: "integer", optional: true },
+    ],
+    returns: [
+      { type: "integer|nil", description: "Matching index or `nil`." },
+      { description: "Matching value." },
+    ],
+    examples: [
+      {
+        code: "local index, value = table.find({1, 2, 3, 4}, function(n) return n % 2 == 0 end)",
+      },
+    ],
   }),
 });

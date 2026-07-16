@@ -17,25 +17,21 @@ export const jsApi = new LuaTable({
     callback: (sf, constructorFn: any, ...args) => {
       return new constructorFn(...args.map((v) => luaValueToJS(v, sf)));
     },
-    documentation: {
-      description: "Creates an instance of a JavaScript class.",
-      signatures: ["js.new(constructor, ...): userdata"],
-      parameters: [
-        {
-          name: "constructor",
-          type: "userdata",
-          description: "JavaScript constructor function.",
-        },
-        {
-          name: "...",
-          description: "Constructor arguments converted to JavaScript values.",
-        },
-      ],
-      returns: [{ type: "userdata", description: "New JavaScript instance." }],
-      examples: [
-        { code: 'local value = js.new(js.window.Date, "2024-03-14")' },
-      ],
-    },
+    description: "Creates an instance of a JavaScript class.",
+    signatures: ["js.new(constructor, ...): userdata"],
+    parameters: [
+      {
+        name: "constructor",
+        type: "userdata",
+        description: "JavaScript constructor function.",
+      },
+      {
+        name: "...",
+        description: "Constructor arguments converted to JavaScript values.",
+      },
+    ],
+    returns: [{ type: "userdata", description: "New JavaScript instance." }],
+    examples: [{ code: 'local value = js.new(js.window.Date, "2024-03-14")' }],
   }),
   /**
    * Imports a JavaScript module.
@@ -51,19 +47,17 @@ export const jsApi = new LuaTable({
       }
       return m;
     },
-    documentation: {
-      description: "Dynamically imports a JavaScript module from a URL.",
-      parameters: [{ name: "url", type: "string", description: "Module URL." }],
-      returns: [
-        {
-          type: "userdata",
-          description: "Imported module, with a sole default export unwrapped.",
-        },
-      ],
-      examples: [
-        { code: 'local lib = js.import("https://esm.sh/lodash@4.17.21")' },
-      ],
-    },
+    description: "Dynamically imports a JavaScript module from a URL.",
+    parameters: [{ name: "url", type: "string", description: "Module URL." }],
+    returns: [
+      {
+        type: "userdata",
+        description: "Imported module, with a sole default export unwrapped.",
+      },
+    ],
+    examples: [
+      { code: 'local lib = js.import("https://esm.sh/lodash@4.17.21")' },
+    ],
   }),
   /**
    * Like `js.import`, but takes a path to a file in the current space (e.g.
@@ -83,27 +77,25 @@ export const jsApi = new LuaTable({
       }
       return m;
     },
-    documentation: {
-      description:
-        "Imports a JavaScript module from a file in the current space.",
-      parameters: [
-        {
-          name: "path",
-          type: "string",
-          description:
-            "Space-relative module path, with an optional leading slash.",
-        },
-      ],
-      returns: [
-        {
-          type: "userdata",
-          description: "Imported module, with a sole default export unwrapped.",
-        },
-      ],
-      examples: [
-        { code: 'local acme = js.importFromSpace("Library/acme/acme.js")' },
-      ],
-    },
+    description:
+      "Imports a JavaScript module from a file in the current space.",
+    parameters: [
+      {
+        name: "path",
+        type: "string",
+        description:
+          "Space-relative module path, with an optional leading slash.",
+      },
+    ],
+    returns: [
+      {
+        type: "userdata",
+        description: "Imported module, with a sole default export unwrapped.",
+      },
+    ],
+    examples: [
+      { code: 'local acme = js.importFromSpace("Library/acme/acme.js")' },
+    ],
   }),
   eachIterable: new LuaBuiltinFunction({
     callback: (_sf, val) => {
@@ -116,27 +108,25 @@ export const jsApi = new LuaTable({
         return result.value;
       };
     },
-    documentation: {
-      description: "Creates a Lua iterator over a JavaScript async iterable.",
-      parameters: [
-        {
-          name: "iterable",
-          type: "userdata",
-          description: "JavaScript async iterable.",
-        },
-      ],
-      returns: [
-        {
-          type: "function",
-          description: "Iterator yielding successive JavaScript values.",
-        },
-      ],
-      examples: [
-        {
-          code: "for value in js.eachIterable(someJsAsyncIterable) do\n  print(value)\nend",
-        },
-      ],
-    },
+    description: "Creates a Lua iterator over a JavaScript async iterable.",
+    parameters: [
+      {
+        name: "iterable",
+        type: "userdata",
+        description: "JavaScript async iterable.",
+      },
+    ],
+    returns: [
+      {
+        type: "function",
+        description: "Iterator yielding successive JavaScript values.",
+      },
+    ],
+    examples: [
+      {
+        code: "for value in js.eachIterable(someJsAsyncIterable) do\n  print(value)\nend",
+      },
+    ],
   }),
   /**
    * Converts a JavaScript value to a Lua value.
@@ -145,14 +135,12 @@ export const jsApi = new LuaTable({
    */
   tolua: new LuaBuiltinFunction({
     callback: (_sf, val) => jsToLuaValue(val),
-    documentation: {
-      description: "Converts a JavaScript value to its Lua representation.",
-      parameters: [
-        { name: "value", description: "JavaScript value to convert." },
-      ],
-      returns: [{ description: "Converted Lua value." }],
-      examples: [{ code: "local luaTable = js.tolua(jsArray)" }],
-    },
+    description: "Converts a JavaScript value to its Lua representation.",
+    parameters: [
+      { name: "value", description: "JavaScript value to convert." },
+    ],
+    returns: [{ description: "Converted Lua value." }],
+    examples: [{ code: "local luaTable = js.tolua(jsArray)" }],
   }),
   /**
    * Converts a Lua value to a JavaScript value.
@@ -161,12 +149,10 @@ export const jsApi = new LuaTable({
    */
   tojs: new LuaBuiltinFunction({
     callback: (sf, val) => luaValueToJS(val, sf),
-    documentation: {
-      description: "Converts a Lua value to its JavaScript representation.",
-      parameters: [{ name: "value", description: "Lua value to convert." }],
-      returns: [{ description: "Converted JavaScript value." }],
-      examples: [{ code: "local jsArray = js.tojs({1, 2, 3})" }],
-    },
+    description: "Converts a Lua value to its JavaScript representation.",
+    parameters: [{ name: "value", description: "Lua value to convert." }],
+    returns: [{ description: "Converted JavaScript value." }],
+    examples: [{ code: "local jsArray = js.tojs({1, 2, 3})" }],
   }),
   /**
    * Logs a message to the console.
@@ -176,11 +162,9 @@ export const jsApi = new LuaTable({
     callback: (_sf, ...args) => {
       console.log(...args);
     },
-    documentation: {
-      description: "Logs values to the JavaScript console.",
-      parameters: [{ name: "...", description: "Values to log." }],
-      examples: [{ code: 'js.log("User data:", {name = "Ada"})' }],
-    },
+    description: "Logs values to the JavaScript console.",
+    parameters: [{ name: "...", description: "Values to log." }],
+    examples: [{ code: 'js.log("User data:", {name = "Ada"})' }],
   }),
   /**
    * Converts a Lua value to a JSON string.
@@ -189,12 +173,10 @@ export const jsApi = new LuaTable({
    */
   stringify: new LuaBuiltinFunction({
     callback: (_sf, val) => JSON.stringify(val),
-    documentation: {
-      description: "Serializes a value as JSON using JavaScript semantics.",
-      parameters: [{ name: "value", description: "Value to serialize." }],
-      returns: [{ type: "string", description: "JSON representation." }],
-      examples: [{ code: "print(js.stringify({1, 2, 3})) -- [1,2,3]" }],
-    },
+    description: "Serializes a value as JSON using JavaScript semantics.",
+    parameters: [{ name: "value", description: "Value to serialize." }],
+    returns: [{ type: "string", description: "JSON representation." }],
+    examples: [{ code: "print(js.stringify({1, 2, 3})) -- [1,2,3]" }],
   }),
 
   // Expose the global window object

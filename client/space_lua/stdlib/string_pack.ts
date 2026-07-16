@@ -364,16 +364,14 @@ export const strPackFn = new LuaBuiltinFunction({
     for (let i = 0; i < out.length; i++) result += String.fromCharCode(out[i]);
     return result;
   },
-  documentation: {
-    description:
-      "Packs values into a binary string according to a Lua 5.4 format string.",
-    signatures: ["string.pack(format, ...): string"],
-    parameters: [
-      { name: "format", type: "string", description: "Binary packing format." },
-      { name: "...", description: "Values consumed by the format options." },
-    ],
-    returns: [{ type: "string", description: "Packed binary string." }],
-  },
+  description:
+    "Packs values into a binary string according to a Lua 5.4 format string.",
+  signatures: ["string.pack(format, ...): string"],
+  parameters: [
+    { name: "format", type: "string", description: "Binary packing format." },
+    { name: "...", description: "Values consumed by the format options." },
+  ],
+  returns: [{ type: "string", description: "Packed binary string." }],
 });
 
 export const strUnpackFn = new LuaBuiltinFunction({
@@ -478,27 +476,25 @@ export const strUnpackFn = new LuaBuiltinFunction({
     results.push(pos + 1);
     return new LuaMultiRes(results);
   },
-  documentation: {
-    description:
-      "Unpacks values from a binary string according to a Lua 5.4 format string.",
-    parameters: [
-      {
-        name: "format",
-        type: "string",
-        description: "Binary unpacking format.",
-      },
-      { name: "data", type: "string", description: "Packed binary string." },
-      {
-        name: "init",
-        type: "integer",
-        description: "One-based starting position.",
-        optional: true,
-      },
-    ],
-    returns: [
-      { description: "Unpacked values followed by the next unread position." },
-    ],
-  },
+  description:
+    "Unpacks values from a binary string according to a Lua 5.4 format string.",
+  parameters: [
+    {
+      name: "format",
+      type: "string",
+      description: "Binary unpacking format.",
+    },
+    { name: "data", type: "string", description: "Packed binary string." },
+    {
+      name: "init",
+      type: "integer",
+      description: "One-based starting position.",
+      optional: true,
+    },
+  ],
+  returns: [
+    { description: "Unpacked values followed by the next unread position." },
+  ],
 });
 
 export const strPackSizeFn = new LuaBuiltinFunction({
@@ -520,16 +516,14 @@ export const strPackSizeFn = new LuaBuiltinFunction({
 
     return totalsize;
   },
-  documentation: {
-    description:
-      "Returns the byte size of a fixed-length Lua 5.4 packing format.",
-    parameters: [
-      {
-        name: "format",
-        type: "string",
-        description: "Fixed-length binary packing format.",
-      },
-    ],
-    returns: [{ type: "integer", description: "Packed byte count." }],
-  },
+  description:
+    "Returns the byte size of a fixed-length Lua 5.4 packing format.",
+  parameters: [
+    {
+      name: "format",
+      type: "string",
+      description: "Fixed-length binary packing format.",
+    },
+  ],
+  returns: [{ type: "integer", description: "Packed byte count." }],
 });

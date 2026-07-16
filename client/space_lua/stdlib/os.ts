@@ -310,28 +310,26 @@ export const osApi = new LuaTable({
 
       return Math.floor(Date.now() / 1000);
     },
-    documentation: {
-      description:
-        "Returns the current Unix timestamp or one built from a local date table.",
-      signatures: ["os.time(): integer", "os.time(dateTable): integer"],
-      parameters: [
-        {
-          name: "dateTable",
-          type: "table",
-          description:
-            "Local date fields `year`, `month`, `day`, and optional `hour`, `min`, and `sec`.",
-          optional: true,
-        },
-      ],
-      returns: [
-        { type: "integer", description: "Seconds since the Unix epoch." },
-      ],
-      examples: [
-        {
-          code: "local timestamp = os.time({year = 2020, month = 1, day = 1})",
-        },
-      ],
-    },
+    description:
+      "Returns the current Unix timestamp or one built from a local date table.",
+    signatures: ["os.time(): integer", "os.time(dateTable): integer"],
+    parameters: [
+      {
+        name: "dateTable",
+        type: "table",
+        description:
+          "Local date fields `year`, `month`, `day`, and optional `hour`, `min`, and `sec`.",
+        optional: true,
+      },
+    ],
+    returns: [
+      { type: "integer", description: "Seconds since the Unix epoch." },
+    ],
+    examples: [
+      {
+        code: "local timestamp = os.time({year = 2020, month = 1, day = 1})",
+      },
+    ],
   }),
 
   // Returns the difference, from time `t1` to time `t2` in seconds
@@ -340,17 +338,15 @@ export const osApi = new LuaTable({
     callback: (_sf, t2: number, t1: number): number => {
       return t2 - t1;
     },
-    documentation: {
-      description:
-        "Returns the difference in seconds from timestamp `t1` to `t2`.",
-      parameters: [
-        { name: "t2", type: "number" },
-        { name: "t1", type: "number" },
-      ],
-      returns: [
-        { type: "number", description: "The value `t2 - t1` in seconds." },
-      ],
-    },
+    description:
+      "Returns the difference in seconds from timestamp `t1` to `t2`.",
+    parameters: [
+      { name: "t2", type: "number" },
+      { name: "t1", type: "number" },
+    ],
+    returns: [
+      { type: "number", description: "The value `t2 - t1` in seconds." },
+    ],
   }),
 
   // Returns a string or a table containing date and time, formatted
@@ -394,31 +390,29 @@ export const osApi = new LuaTable({
 
       return luaFormatTime(fmt, d, utc);
     },
-    documentation: {
-      description:
-        "Formats a timestamp as a date string or date table, optionally in UTC.",
-      parameters: [
-        {
-          name: "format",
-          type: "string",
-          description:
-            "`strftime`-style format, `*t` for a table, and optional leading `!` for UTC.",
-          optional: true,
-        },
-        {
-          name: "timestamp",
-          type: "number",
-          description: "Unix timestamp; defaults to the current time.",
-          optional: true,
-        },
-      ],
-      returns: [
-        { type: "string|table", description: "Formatted date or date fields." },
-      ],
-      examples: [
-        { code: 'print(os.date("%Y-%m-%d"))\nlocal utc = os.date("!*t")' },
-      ],
-    },
+    description:
+      "Formats a timestamp as a date string or date table, optionally in UTC.",
+    parameters: [
+      {
+        name: "format",
+        type: "string",
+        description:
+          "`strftime`-style format, `*t` for a table, and optional leading `!` for UTC.",
+        optional: true,
+      },
+      {
+        name: "timestamp",
+        type: "number",
+        description: "Unix timestamp; defaults to the current time.",
+        optional: true,
+      },
+    ],
+    returns: [
+      { type: "string|table", description: "Formatted date or date fields." },
+    ],
+    examples: [
+      { code: 'print(os.date("%Y-%m-%d"))\nlocal utc = os.date("!*t")' },
+    ],
   }),
 
   // Returns an approximation of CPU time used by the program in seconds.
@@ -426,14 +420,12 @@ export const osApi = new LuaTable({
     callback: (_sf): number => {
       return performance.now() / 1000.0;
     },
-    documentation: {
-      description: "Returns a high-resolution elapsed time value in seconds.",
-      returns: [
-        {
-          type: "number",
-          description: "Browser performance timer in seconds.",
-        },
-      ],
-    },
+    description: "Returns a high-resolution elapsed time value in seconds.",
+    returns: [
+      {
+        type: "number",
+        description: "Browser performance timer in seconds.",
+      },
+    ],
   }),
 });

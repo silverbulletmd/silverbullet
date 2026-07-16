@@ -6,40 +6,32 @@ export const encodingApi = new LuaTable({
     callback: (_sf, s: string | Uint8Array): string => {
       return base64Encode(s);
     },
-    documentation: {
-      description: "Encodes a string or byte buffer as Base64.",
-      parameters: [{ name: "data", type: "string|bytes" }],
-      returns: [{ type: "string", description: "Base64-encoded data." }],
-    },
+    description: "Encodes a string or byte buffer as Base64.",
+    parameters: [{ name: "data", type: "string|bytes" }],
+    returns: [{ type: "string", description: "Base64-encoded data." }],
   }),
   base64Decode: new LuaBuiltinFunction({
     callback: (_sf, s: string): Uint8Array => {
       return base64Decode(s);
     },
-    documentation: {
-      description: "Decodes a Base64 string into a byte buffer.",
-      parameters: [{ name: "encoded", type: "string" }],
-      returns: [{ type: "bytes", description: "Decoded bytes." }],
-    },
+    description: "Decodes a Base64 string into a byte buffer.",
+    parameters: [{ name: "encoded", type: "string" }],
+    returns: [{ type: "bytes", description: "Decoded bytes." }],
   }),
   utf8Encode: new LuaBuiltinFunction({
     callback: (_sf, s: string): Uint8Array => {
       return new TextEncoder().encode(s);
     },
-    documentation: {
-      description: "Encodes a UTF-8 string into a byte buffer.",
-      parameters: [{ name: "value", type: "string" }],
-      returns: [{ type: "bytes", description: "UTF-8 encoded bytes." }],
-    },
+    description: "Encodes a UTF-8 string into a byte buffer.",
+    parameters: [{ name: "value", type: "string" }],
+    returns: [{ type: "bytes", description: "UTF-8 encoded bytes." }],
   }),
   utf8Decode: new LuaBuiltinFunction({
     callback: (_sf, data: Uint8Array): string => {
       return new TextDecoder().decode(data);
     },
-    documentation: {
-      description: "Decodes a UTF-8 byte buffer into a string.",
-      parameters: [{ name: "data", type: "bytes" }],
-      returns: [{ type: "string", description: "Decoded text." }],
-    },
+    description: "Decodes a UTF-8 byte buffer into a string.",
+    parameters: [{ name: "data", type: "bytes" }],
+    returns: [{ type: "string", description: "Decoded text." }],
   }),
 });

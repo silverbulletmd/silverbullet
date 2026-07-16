@@ -36,19 +36,15 @@ export class SyscallHook implements Hook<SyscallHookT> {
             `${plug.manifest!.name}.${name}`,
             ...args,
           ]);
-        syscalls[syscallName] =
-          typeof syscallDefinition === "string"
-            ? callback
-            : {
-                callback,
-                documentation: {
-                  description: syscallDefinition.description,
-                  parameters: syscallDefinition.parameters,
-                  returns: syscallDefinition.returns,
-                  deprecated: syscallDefinition.deprecated,
-                  see: syscallDefinition.see,
-                },
-              };
+        if (typeof syscallDefinition === "string") {
+          syscalls[syscallName] = callback;
+        } else {
+          const { name: _name, ...metadata } = syscallDefinition;
+          syscalls[syscallName] = {
+            callback,
+            ...metadata,
+          };
+        }
 
         // Register the syscalls with no required permissions
         system.registerSyscalls([], syscalls);

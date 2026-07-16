@@ -24,13 +24,12 @@ export type LuaType =
 export type LuaValue = any;
 export type JSValue = any;
 
-type LuaFunctionDefinitionDocumentation = LuaFunctionDocumentation &
+type LuaFunctionDefinitionMetadata = LuaFunctionDocumentation &
   Partial<Pick<LuaFunctionInfo, "kind" | "name" | "source">>;
 
 export type LuaFunctionDefinition<Callback> = {
   callback: Callback;
-  documentation?: LuaFunctionDefinitionDocumentation;
-};
+} & LuaFunctionDefinitionMetadata;
 
 export interface ILuaFunction {
   call(sf: LuaStackFrame, ...args: LuaValue[]): Promise<LuaValue> | LuaValue;
@@ -601,10 +600,11 @@ export class LuaNativeJSFunction implements ILuaFunction {
       this.fn = definition;
       this.info = { kind: "builtin" };
     } else {
-      this.fn = definition.callback;
+      const { callback, ...info } = definition;
+      this.fn = callback;
       this.info = {
         kind: "builtin",
-        ...definition.documentation,
+        ...info,
       };
     }
   }
@@ -651,10 +651,11 @@ export class LuaBuiltinFunction implements ILuaFunction {
       this.fn = definition;
       this.info = { kind: "builtin" };
     } else {
-      this.fn = definition.callback;
+      const { callback, ...info } = definition;
+      this.fn = callback;
       this.info = {
         kind: "builtin",
-        ...definition.documentation,
+        ...info,
       };
     }
   }

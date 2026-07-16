@@ -58,9 +58,7 @@ test("Test Lua Rutime", async () => {
 test("Lua functions accept documented definition objects", () => {
   const builtin = new LuaBuiltinFunction({
     callback: (_sf, value) => value,
-    documentation: {
-      description: "Returns the provided value.",
-    },
+    description: "Returns the provided value.",
   });
   expect(builtin.call(LuaStackFrame.lostFrame, "value")).toBe("value");
   expect(builtin.info).toEqual({
@@ -70,11 +68,9 @@ test("Lua functions accept documented definition objects", () => {
 
   const native = new LuaNativeJSFunction({
     callback: (value) => value,
-    documentation: {
-      kind: "syscall",
-      name: "demo.echo",
-      description: "Returns the provided value.",
-    },
+    kind: "syscall",
+    name: "demo.echo",
+    description: "Returns the provided value.",
   });
   expect(native.call(LuaStackFrame.lostFrame, "value")).toBe("value");
   expect(native.info).toEqual({

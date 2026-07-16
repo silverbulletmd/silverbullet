@@ -44,13 +44,11 @@ const printFunction = new LuaBuiltinFunction({
       ...(await Promise.all(args.map((v) => luaToString(v)))),
     );
   },
-  documentation: {
-    description:
-      "Prints string representations of its arguments to the runtime log.",
-    signatures: ["print(...)"],
-    parameters: [{ name: "...", description: "Values to print." }],
-    examples: [{ code: 'print("Hello, world!")' }],
-  },
+  description:
+    "Prints string representations of its arguments to the runtime log.",
+  signatures: ["print(...)"],
+  parameters: [{ name: "...", description: "Values to print." }],
+  examples: [{ code: 'print("Hello, world!")' }],
 });
 
 const assertFunction = new LuaBuiltinFunction({
@@ -59,20 +57,18 @@ const assertFunction = new LuaBuiltinFunction({
       throw new LuaRuntimeError(`Assertion failed: ${message}`, sf);
     }
   },
-  documentation: {
-    description:
-      "Raises an error when a value is falsy; otherwise completes successfully.",
-    parameters: [
-      { name: "value", description: "Condition to test." },
-      {
-        name: "message",
-        type: "string",
-        description: "Error detail.",
-        optional: true,
-      },
-    ],
-    examples: [{ code: 'assert(user ~= nil, "user is required")' }],
-  },
+  description:
+    "Raises an error when a value is falsy; otherwise completes successfully.",
+  parameters: [
+    { name: "value", description: "Condition to test." },
+    {
+      name: "message",
+      type: "string",
+      description: "Error detail.",
+      optional: true,
+    },
+  ],
+  examples: [{ code: 'assert(user ~= nil, "user is required")' }],
 });
 
 const ipairsFunction = new LuaBuiltinFunction({
@@ -90,19 +86,17 @@ const ipairsFunction = new LuaBuiltinFunction({
       return new LuaMultiRes([i, v]);
     };
   },
-  documentation: {
-    description:
-      "Returns an iterator over consecutive integer keys starting at 1 and stopping at the first `nil`.",
-    parameters: [{ name: "table", type: "table" }],
-    returns: [
-      { type: "function", description: "Iterator yielding index and value." },
-    ],
-    examples: [
-      {
-        code: 'for i, fruit in ipairs({"apple", "banana"}) do\n  print(i, fruit)\nend',
-      },
-    ],
-  },
+  description:
+    "Returns an iterator over consecutive integer keys starting at 1 and stopping at the first `nil`.",
+  parameters: [{ name: "table", type: "table" }],
+  returns: [
+    { type: "function", description: "Iterator yielding index and value." },
+  ],
+  examples: [
+    {
+      code: 'for i, fruit in ipairs({"apple", "banana"}) do\n  print(i, fruit)\nend',
+    },
+  ],
 });
 
 const pairsFunction = new LuaBuiltinFunction({
@@ -146,22 +140,20 @@ const pairsFunction = new LuaBuiltinFunction({
     // Must return (iter, state, control) for generic for
     return new LuaMultiRes([iter, t, null]);
   },
-  documentation: {
-    description:
-      "Returns an iterator over all table key-value pairs, respecting `__pairs`.",
-    parameters: [{ name: "table", type: "table" }],
-    returns: [
-      {
-        type: "function",
-        description: "Iterator plus its state and initial control value.",
-      },
-    ],
-    examples: [
-      {
-        code: 'for key, value in pairs({name = "Ada", age = 36}) do\n  print(key, value)\nend',
-      },
-    ],
-  },
+  description:
+    "Returns an iterator over all table key-value pairs, respecting `__pairs`.",
+  parameters: [{ name: "table", type: "table" }],
+  returns: [
+    {
+      type: "function",
+      description: "Iterator plus its state and initial control value.",
+    },
+  ],
+  examples: [
+    {
+      code: 'for key, value in pairs({name = "Ada", age = 36}) do\n  print(key, value)\nend',
+    },
+  ],
 });
 
 export const eachFunction = new LuaBuiltinFunction({
@@ -177,28 +169,24 @@ export const eachFunction = new LuaBuiltinFunction({
       return result;
     };
   },
-  documentation: {
-    description:
-      "Returns a Space Lua iterator over array-like values without yielding indices.",
-    parameters: [{ name: "table", type: "table" }],
-    returns: [{ type: "function", description: "Iterator yielding values." }],
-    examples: [
-      {
-        code: 'for fruit in each({"apple", "banana"}) do\n  print(fruit)\nend',
-      },
-    ],
-  },
+  description:
+    "Returns a Space Lua iterator over array-like values without yielding indices.",
+  parameters: [{ name: "table", type: "table" }],
+  returns: [{ type: "function", description: "Iterator yielding values." }],
+  examples: [
+    {
+      code: 'for fruit in each({"apple", "banana"}) do\n  print(fruit)\nend',
+    },
+  ],
 });
 
 const typeFunction = new LuaBuiltinFunction({
   callback: (_sf, value: LuaValue): string | Promise<string> => {
     return luaTypeOf(value);
   },
-  documentation: {
-    description: "Returns the Lua type name of a value.",
-    parameters: [{ name: "value" }],
-    returns: [{ type: "string" }],
-  },
+  description: "Returns the Lua type name of a value.",
+  parameters: [{ name: "value" }],
+  returns: [{ type: "string" }],
 });
 
 // tostring() checks `__tostring` metamethod first (with live SF), then
@@ -226,12 +214,10 @@ const tostringFunction = new LuaBuiltinFunction({
     }
     return luaToString(value);
   },
-  documentation: {
-    description:
-      "Converts a value to a string, respecting its `__tostring` metamethod.",
-    parameters: [{ name: "value" }],
-    returns: [{ type: "string" }],
-  },
+  description:
+    "Converts a value to a string, respecting its `__tostring` metamethod.",
+  parameters: [{ name: "value" }],
+  returns: [{ type: "string" }],
 });
 
 const tonumberFunction = new LuaBuiltinFunction({
@@ -267,30 +253,26 @@ const tonumberFunction = new LuaBuiltinFunction({
 
     return result.value;
   },
-  documentation: {
-    description:
-      "Converts a number or numeric string to a Lua number, optionally in a base from 2 through 36.",
-    signatures: [
-      "tonumber(value): number|nil",
-      "tonumber(value, base): integer|nil",
-    ],
-    parameters: [
-      { name: "value", type: "number|string" },
-      { name: "base", type: "integer", optional: true },
-    ],
-    returns: [{ type: "number|nil" }],
-    examples: [{ code: 'print(tonumber("2a", 16)) -- 42' }],
-  },
+  description:
+    "Converts a number or numeric string to a Lua number, optionally in a base from 2 through 36.",
+  signatures: [
+    "tonumber(value): number|nil",
+    "tonumber(value, base): integer|nil",
+  ],
+  parameters: [
+    { name: "value", type: "number|string" },
+    { name: "base", type: "integer", optional: true },
+  ],
+  returns: [{ type: "number|nil" }],
+  examples: [{ code: 'print(tonumber("2a", 16)) -- 42' }],
 });
 
 const errorFunction = new LuaBuiltinFunction({
   callback: (sf, message: string) => {
     throw new LuaRuntimeError(message, sf);
   },
-  documentation: {
-    description: "Raises a Lua runtime error with the supplied message.",
-    parameters: [{ name: "message", type: "string" }],
-  },
+  description: "Raises a Lua runtime error with the supplied message.",
+  parameters: [{ name: "message", type: "string" }],
 });
 
 async function pcallBoundary(
@@ -340,22 +322,20 @@ const pcallFunction = new LuaBuiltinFunction({
     }
     return new LuaMultiRes([false, res.message]);
   },
-  documentation: {
-    description:
-      "Calls a function in protected mode and returns a success flag followed by results or an error message.",
-    signatures: ["pcall(function, ...): boolean, ..."],
-    parameters: [
-      { name: "function", type: "function" },
-      { name: "...", description: "Arguments passed to the function." },
-    ],
-    returns: [
-      { type: "boolean", description: "Whether the call succeeded." },
-      { description: "Call results or error message." },
-    ],
-    examples: [
-      { code: "local ok, result = pcall(function() return mightFail() end)" },
-    ],
-  },
+  description:
+    "Calls a function in protected mode and returns a success flag followed by results or an error message.",
+  signatures: ["pcall(function, ...): boolean, ..."],
+  parameters: [
+    { name: "function", type: "function" },
+    { name: "...", description: "Arguments passed to the function." },
+  ],
+  returns: [
+    { type: "boolean", description: "Whether the call succeeded." },
+    { description: "Call results or error message." },
+  ],
+  examples: [
+    { code: "local ok, result = pcall(function() return mightFail() end)" },
+  ],
 });
 
 const xpcallFunction = new LuaBuiltinFunction({
@@ -374,25 +354,23 @@ const xpcallFunction = new LuaBuiltinFunction({
     const outVals = hr instanceof LuaMultiRes ? hr.flatten().values : [hr];
     return new LuaMultiRes([false, ...outVals]);
   },
-  documentation: {
-    description:
-      "Calls a function in protected mode and transforms any error with an error handler.",
-    signatures: ["xpcall(function, errorHandler, ...): boolean, ..."],
-    parameters: [
-      { name: "function", type: "function" },
-      { name: "errorHandler", type: "function" },
-      { name: "...", description: "Arguments passed to the function." },
-    ],
-    returns: [
-      { type: "boolean", description: "Whether the call succeeded." },
-      { description: "Call results or handler results." },
-    ],
-    examples: [
-      {
-        code: 'local ok, message = xpcall(riskyOperation, function(err)\n  return "Operation failed: " .. tostring(err)\nend)',
-      },
-    ],
-  },
+  description:
+    "Calls a function in protected mode and transforms any error with an error handler.",
+  signatures: ["xpcall(function, errorHandler, ...): boolean, ..."],
+  parameters: [
+    { name: "function", type: "function" },
+    { name: "errorHandler", type: "function" },
+    { name: "...", description: "Arguments passed to the function." },
+  ],
+  returns: [
+    { type: "boolean", description: "Whether the call succeeded." },
+    { description: "Call results or handler results." },
+  ],
+  examples: [
+    {
+      code: 'local ok, message = xpcall(riskyOperation, function(err)\n  return "Operation failed: " .. tostring(err)\nend)',
+    },
+  ],
 });
 
 const setmetatableFunction = new LuaBuiltinFunction({
@@ -403,44 +381,38 @@ const setmetatableFunction = new LuaBuiltinFunction({
     table.metatable = metatable;
     return table;
   },
-  documentation: {
-    description: "Sets a table's metatable and returns the table.",
-    parameters: [
-      { name: "table", type: "table" },
-      { name: "metatable", type: "table" },
-    ],
-    returns: [{ type: "table" }],
-  },
+  description: "Sets a table's metatable and returns the table.",
+  parameters: [
+    { name: "table", type: "table" },
+    { name: "metatable", type: "table" },
+  ],
+  returns: [{ type: "table" }],
 });
 
 const rawlenFunction = new LuaBuiltinFunction({
   callback: (_sf, value: LuaValue) => luaLen(value, _sf, true),
-  documentation: {
-    description: "Returns a string or table length without invoking `__len`.",
-    parameters: [{ name: "value", type: "string|table" }],
-    returns: [{ type: "integer" }],
-  },
+  description: "Returns a string or table length without invoking `__len`.",
+  parameters: [{ name: "value", type: "string|table" }],
+  returns: [{ type: "integer" }],
 });
 
 const rawsetFunction = new LuaBuiltinFunction({
   callback: (_sf, table: LuaTable, key: LuaValue, value: LuaValue) => {
     return (table as any).rawSet(key, value);
   },
-  documentation: {
-    description:
-      "Sets a table key without invoking `__newindex` and returns the table.",
-    parameters: [
-      { name: "table", type: "table" },
-      { name: "key" },
-      { name: "value" },
-    ],
-    returns: [{ type: "table" }],
-    examples: [
-      {
-        code: 'local t = setmetatable({}, {__newindex = function() error("blocked") end})\nrawset(t, "name", "Ada")',
-      },
-    ],
-  },
+  description:
+    "Sets a table key without invoking `__newindex` and returns the table.",
+  parameters: [
+    { name: "table", type: "table" },
+    { name: "key" },
+    { name: "value" },
+  ],
+  returns: [{ type: "table" }],
+  examples: [
+    {
+      code: 'local t = setmetatable({}, {__newindex = function() error("blocked") end})\nrawset(t, "name", "Ada")',
+    },
+  ],
 });
 
 const rawgetFunction = new LuaBuiltinFunction({
@@ -495,11 +467,9 @@ const rawgetFunction = new LuaBuiltinFunction({
     const v = (table as Record<string | number, any>)[k as any];
     return v === undefined ? null : v;
   },
-  documentation: {
-    description: "Reads a table key without invoking `__index`.",
-    parameters: [{ name: "table", type: "table" }, { name: "key" }],
-    returns: [{ description: "Stored value or `nil`." }],
-  },
+  description: "Reads a table key without invoking `__index`.",
+  parameters: [{ name: "table", type: "table" }, { name: "key" }],
+  returns: [{ description: "Stored value or `nil`." }],
 });
 
 const rawequalFunction = new LuaBuiltinFunction({
@@ -508,20 +478,16 @@ const rawequalFunction = new LuaBuiltinFunction({
     const bv = isTaggedFloat(b) ? b.value : b;
     return av === bv;
   },
-  documentation: {
-    description: "Tests two values for equality without invoking `__eq`.",
-    parameters: [{ name: "a" }, { name: "b" }],
-    returns: [{ type: "boolean" }],
-  },
+  description: "Tests two values for equality without invoking `__eq`.",
+  parameters: [{ name: "a" }, { name: "b" }],
+  returns: [{ type: "boolean" }],
 });
 
 const getmetatableFunction = new LuaBuiltinFunction({
   callback: (_sf, table: LuaTable) => (table as any).metatable,
-  documentation: {
-    description: "Returns a table's metatable, or `nil` when none is set.",
-    parameters: [{ name: "table", type: "table" }],
-    returns: [{ type: "table|nil" }],
-  },
+  description: "Returns a table's metatable, or `nil` when none is set.",
+  parameters: [{ name: "table", type: "table" }],
+  returns: [{ type: "table|nil" }],
 });
 
 const dofileFunction = new LuaBuiltinFunction({
@@ -545,16 +511,14 @@ const dofileFunction = new LuaBuiltinFunction({
       );
     }
   },
-  documentation: {
-    description: "Reads and executes a Lua source file from the current space.",
-    parameters: [
-      {
-        name: "path",
-        type: "string",
-        description: "Space-relative Lua file path.",
-      },
-    ],
-  },
+  description: "Reads and executes a Lua source file from the current space.",
+  parameters: [
+    {
+      name: "path",
+      type: "string",
+      description: "Space-relative Lua file path.",
+    },
+  ],
 });
 
 /**
@@ -577,20 +541,18 @@ const selectFunction = new LuaBuiltinFunction({
       return new LuaMultiRes(args.slice(args.length + index));
     }
   },
-  documentation: {
-    description:
-      "Returns the count of extra arguments or all arguments from a selected position onward.",
-    signatures: ['select("#", ...): integer', "select(index, ...): ..."],
-    parameters: [
-      {
-        name: "index",
-        type: "integer|string",
-        description: "One-based index, negative index from the end, or `#`.",
-      },
-      { name: "..." },
-    ],
-    returns: [{ description: "Argument count or selected argument values." }],
-  },
+  description:
+    "Returns the count of extra arguments or all arguments from a selected position onward.",
+  signatures: ['select("#", ...): integer', "select(index, ...): ..."],
+  parameters: [
+    {
+      name: "index",
+      type: "integer|string",
+      description: "One-based index, negative index from the end, or `#`.",
+    },
+    { name: "..." },
+  ],
+  returns: [{ description: "Argument count or selected argument values." }],
 });
 
 /**
@@ -648,18 +610,16 @@ const nextFunction = new LuaBuiltinFunction({
     }
     return new LuaMultiRes([key, luaGet(table, key, sf.astCtx ?? null, sf)]);
   },
-  documentation: {
-    description:
-      "Returns the next table key and value after a given key, or the first pair when the key is omitted.",
-    parameters: [
-      { name: "table", type: "table" },
-      { name: "index", description: "Previous key.", optional: true },
-    ],
-    returns: [
-      { description: "Next key or `nil`." },
-      { description: "Value at the next key." },
-    ],
-  },
+  description:
+    "Returns the next table key and value after a given key, or the first pair when the key is omitted.",
+  parameters: [
+    { name: "table", type: "table" },
+    { name: "index", description: "Previous key.", optional: true },
+  ],
+  returns: [
+    { description: "Next key or `nil`." },
+    { description: "Value at the next key." },
+  ],
 });
 
 // Non-standard, but useful
@@ -677,38 +637,34 @@ const someFunction = new LuaBuiltinFunction({
     }
     return value;
   },
-  documentation: {
-    description:
-      "Returns `nil` for empty Space Lua values and otherwise returns the value unchanged.",
-    parameters: [
-      {
-        name: "value",
-        description:
-          "Value to normalize; blank strings, empty tables, infinities, and NaN are empty.",
-      },
-    ],
-    returns: [{ description: "Original value or `nil`." }],
-    examples: [
-      {
-        code: 'print(some("  ") or "empty")\nprint(some({}) or "empty")\nprint(some(0))',
-      },
-    ],
-  },
+  description:
+    "Returns `nil` for empty Space Lua values and otherwise returns the value unchanged.",
+  parameters: [
+    {
+      name: "value",
+      description:
+        "Value to normalize; blank strings, empty tables, infinities, and NaN are empty.",
+    },
+  ],
+  returns: [{ description: "Original value or `nil`." }],
+  examples: [
+    {
+      code: 'print(some("  ") or "empty")\nprint(some({}) or "empty")\nprint(some(0))',
+    },
+  ],
 });
 
 const loadFunction = new LuaBuiltinFunction({
   callback: (sf, s) => luaLoad(s, sf),
-  documentation: {
-    description:
-      "Compiles Lua source into a callable chunk without executing it.",
-    parameters: [
-      { name: "chunk", type: "string", description: "Lua source code." },
-    ],
-    returns: [
-      { type: "function|nil", description: "Compiled chunk or `nil`." },
-      { type: "string", description: "Compilation error when unsuccessful." },
-    ],
-  },
+  description:
+    "Compiles Lua source into a callable chunk without executing it.",
+  parameters: [
+    { name: "chunk", type: "string", description: "Lua source code." },
+  ],
+  returns: [
+    { type: "function|nil", description: "Compiled chunk or `nil`." },
+    { type: "string", description: "Compilation error when unsuccessful." },
+  ],
 });
 
 function annotateBuiltinApi(

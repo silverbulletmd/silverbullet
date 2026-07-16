@@ -14,12 +14,10 @@ test("documented syscalls retain metadata when exposed to Lua", async () => {
   system.registerSyscalls([], {
     "example.greet": {
       callback: (_ctx, name: string) => `Hello ${name}`,
-      documentation: {
-        description: "Greets someone.",
-        parameters: [{ name: "name", type: "string" }],
-        returns: [{ type: "string" }],
-        see: "API/example",
-      },
+      description: "Greets someone.",
+      parameters: [{ name: "name", type: "string" }],
+      returns: [{ type: "string" }],
+      see: "API/example",
     },
   });
 
@@ -54,7 +52,7 @@ test("legacy syscall registrations get an API page reference", () => {
   system.registerSyscalls([], {
     "example.ping": () => "pong",
   });
-  expect(system.registeredSyscalls.get("example.ping")?.documentation).toEqual({
-    see: "API/example",
-  });
+  expect(system.registeredSyscalls.get("example.ping")?.see).toBe(
+    "API/example",
+  );
 });

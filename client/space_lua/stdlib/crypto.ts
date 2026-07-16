@@ -6,12 +6,10 @@ export const cryptoApi = new LuaTable({
     callback: (_sf, s: string | Uint8Array): Promise<string> => {
       return hashSHA256(s);
     },
-    documentation: {
-      description: "Computes the SHA-256 digest of a string or byte buffer.",
-      parameters: [
-        { name: "data", type: "string|bytes", description: "Data to hash." },
-      ],
-      returns: [{ type: "string", description: "Hexadecimal SHA-256 digest." }],
-    },
+    description: "Computes the SHA-256 digest of a string or byte buffer.",
+    parameters: [
+      { name: "data", type: "string|bytes", description: "Data to hash." },
+    ],
+    returns: [{ type: "string", description: "Hexadecimal SHA-256 digest." }],
   }),
 });

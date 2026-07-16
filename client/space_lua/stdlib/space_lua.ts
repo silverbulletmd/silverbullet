@@ -245,53 +245,49 @@ export const spaceluaApi = new LuaTable({
         typeof target === "string" ? target : undefined,
       );
     },
-    documentation: {
-      description:
-        "Returns structured documentation for a Lua function value or dotted API name.",
-      parameters: [
-        {
-          name: "functionOrName",
-          type: "function|string",
-          description: "Function value or dotted API name to inspect.",
-        },
-      ],
-      returns: [
-        {
-          type: "table|nil",
-          description:
-            "Structured function metadata, or `nil` when the target is not a function.",
-        },
-      ],
-      examples: [
-        {
-          code: 'local info = spacelua.describe(editor.getText)\nprint(info.name, info.kind, info.see)\n\nlocal sameInfo = spacelua.describe("editor.getText")',
-        },
-      ],
-      see: "API/spacelua",
-    },
+    description:
+      "Returns structured documentation for a Lua function value or dotted API name.",
+    parameters: [
+      {
+        name: "functionOrName",
+        type: "function|string",
+        description: "Function value or dotted API name to inspect.",
+      },
+    ],
+    returns: [
+      {
+        type: "table|nil",
+        description:
+          "Structured function metadata, or `nil` when the target is not a function.",
+      },
+    ],
+    examples: [
+      {
+        code: 'local info = spacelua.describe(editor.getText)\nprint(info.name, info.kind, info.see)\n\nlocal sameInfo = spacelua.describe("editor.getText")',
+      },
+    ],
+    see: "API/spacelua",
   }),
   listFunctions: new LuaBuiltinFunction({
     callback: (sf, target?: LuaTable | string) =>
       jsToLuaValue(listFunctionInfo(sf, target)),
-    documentation: {
-      description:
-        "Lists documented functions in the global environment or an API namespace.",
-      parameters: [
-        {
-          name: "namespace",
-          type: "table|string",
-          description: "Namespace table or dotted name; omit for globals.",
-          optional: true,
-        },
-      ],
-      returns: [{ type: "table", description: "Function metadata records." }],
-      examples: [
-        {
-          code: 'for info in each(spacelua.listFunctions("editor")) do\n  print(info.name, info.description or info.see)\nend',
-        },
-      ],
-      see: "API/spacelua",
-    },
+    description:
+      "Lists documented functions in the global environment or an API namespace.",
+    parameters: [
+      {
+        name: "namespace",
+        type: "table|string",
+        description: "Namespace table or dotted name; omit for globals.",
+        optional: true,
+      },
+    ],
+    returns: [{ type: "table", description: "Function metadata records." }],
+    examples: [
+      {
+        code: 'for info in each(spacelua.listFunctions("editor")) do\n  print(info.name, info.description or info.see)\nend',
+      },
+    ],
+    see: "API/spacelua",
   }),
   renderApiDocumentation: new LuaBuiltinFunction({
     callback: (sf, target?: ILuaFunction | LuaTable | string): string => {
@@ -301,33 +297,31 @@ export const spaceluaApi = new LuaTable({
         selection.context,
       );
     },
-    documentation: {
-      description:
-        "Renders API documentation for a function, namespace, or the global environment as Markdown.",
-      parameters: [
-        {
-          name: "target",
-          type: "function|table|string",
-          description:
-            "Function value, namespace table, or dotted API name to document; omit for globals.",
-          optional: true,
-        },
-      ],
-      returns: [{ type: "string", description: "Rendered Markdown." }],
-      examples: [
-        {
-          code: '${spacelua.renderApiDocumentation("lua")}',
-          description: "Render a namespace as a live API-page directive.",
-          language: "markdown",
-        },
-        {
-          code: '${spacelua.renderApiDocumentation("editor.getText")}',
-          description: "Render one function by its dotted API name.",
-          language: "markdown",
-        },
-      ],
-      see: "API/spacelua",
-    },
+    description:
+      "Renders API documentation for a function, namespace, or the global environment as Markdown.",
+    parameters: [
+      {
+        name: "target",
+        type: "function|table|string",
+        description:
+          "Function value, namespace table, or dotted API name to document; omit for globals.",
+        optional: true,
+      },
+    ],
+    returns: [{ type: "string", description: "Rendered Markdown." }],
+    examples: [
+      {
+        code: '${spacelua.renderApiDocumentation("lua")}',
+        description: "Render a namespace as a live API-page directive.",
+        language: "markdown",
+      },
+      {
+        code: '${spacelua.renderApiDocumentation("editor.getText")}',
+        description: "Render one function by its dotted API name.",
+        language: "markdown",
+      },
+    ],
+    see: "API/spacelua",
   }),
   /**
    * Parses a lua expression and returns the parsed expression.
@@ -340,23 +334,21 @@ export const spaceluaApi = new LuaTable({
     callback: (_sf, luaExpression: string) => {
       return parseExpressionString(luaExpression);
     },
-    documentation: {
-      description: "Parses a Lua expression and returns its AST.",
-      parameters: [
-        {
-          name: "luaExpression",
-          type: "string",
-          description: "Lua expression to parse.",
-        },
-      ],
-      returns: [{ type: "table", description: "Parsed expression AST." }],
-      examples: [
-        {
-          code: 'local parsed = spacelua.parseExpression("1 + 1")',
-        },
-      ],
-      see: "API/spacelua",
-    },
+    description: "Parses a Lua expression and returns its AST.",
+    parameters: [
+      {
+        name: "luaExpression",
+        type: "string",
+        description: "Lua expression to parse.",
+      },
+    ],
+    returns: [{ type: "table", description: "Parsed expression AST." }],
+    examples: [
+      {
+        code: 'local parsed = spacelua.parseExpression("1 + 1")',
+      },
+    ],
+    see: "API/spacelua",
   }),
   /**
    * Parses a lua chunk (block) and returns the parsed AST block.
@@ -369,20 +361,18 @@ export const spaceluaApi = new LuaTable({
     callback: (_sf, code: string): LuaBlock => {
       return parseBlock(code);
     },
-    documentation: {
-      description:
-        "Parses a Lua chunk and returns its AST. Blocks retain comments in source order with their exact text, kind, and source range.",
-      parameters: [
-        { name: "code", type: "string", description: "Lua code to parse." },
-      ],
-      returns: [{ type: "table", description: "Parsed block AST." }],
-      examples: [
-        {
-          code: 'local parsed = spacelua.parseBlock("local x = 1\\nreturn x + 2")',
-        },
-      ],
-      see: "API/spacelua",
-    },
+    description:
+      "Parses a Lua chunk and returns its AST. Blocks retain comments in source order with their exact text, kind, and source range.",
+    parameters: [
+      { name: "code", type: "string", description: "Lua code to parse." },
+    ],
+    returns: [{ type: "table", description: "Parsed block AST." }],
+    examples: [
+      {
+        code: 'local parsed = spacelua.parseBlock("local x = 1\\nreturn x + 2")',
+      },
+    ],
+    see: "API/spacelua",
   }),
   /**
    * Pretty-prints a parsed lua block AST back to formatted source.
@@ -396,27 +386,25 @@ export const spaceluaApi = new LuaTable({
     callback: (sf, block: LuaBlock, opts?: LuaTable): string => {
       return prettyPrintBlock(block, toPrintOptions(sf, opts));
     },
-    documentation: {
-      description:
-        "Pretty-prints a parsed Lua block AST. Comments are preserved while their placement and indentation are normalized.",
-      parameters: [
-        { name: "block", type: "table", description: "Parsed block AST." },
-        {
-          name: "options",
-          type: "table",
-          description:
-            "Formatting options: `indentWidth`, `quote`, and `trailingComma`.",
-          optional: true,
-        },
-      ],
-      returns: [{ type: "string", description: "Formatted Lua source." }],
-      examples: [
-        {
-          code: 'local formatted = spacelua.prettyPrintBlock(spacelua.parseBlock("if a then return 1 end"))\nprint(formatted)',
-        },
-      ],
-      see: "API/spacelua",
-    },
+    description:
+      "Pretty-prints a parsed Lua block AST. Comments are preserved while their placement and indentation are normalized.",
+    parameters: [
+      { name: "block", type: "table", description: "Parsed block AST." },
+      {
+        name: "options",
+        type: "table",
+        description:
+          "Formatting options: `indentWidth`, `quote`, and `trailingComma`.",
+        optional: true,
+      },
+    ],
+    returns: [{ type: "string", description: "Formatted Lua source." }],
+    examples: [
+      {
+        code: 'local formatted = spacelua.prettyPrintBlock(spacelua.parseBlock("if a then return 1 end"))\nprint(formatted)',
+      },
+    ],
+    see: "API/spacelua",
   }),
   /**
    * Pretty-prints a parsed lua expression AST back to formatted source.
@@ -430,30 +418,28 @@ export const spaceluaApi = new LuaTable({
     callback: (sf, expr: LuaExpression, opts?: LuaTable): string => {
       return prettyPrintExpression(expr, toPrintOptions(sf, opts));
     },
-    documentation: {
-      description: "Pretty-prints a parsed Lua expression AST.",
-      parameters: [
-        {
-          name: "parsedExpr",
-          type: "table",
-          description: "Parsed expression AST.",
-        },
-        {
-          name: "options",
-          type: "table",
-          description:
-            "Formatting options: `indentWidth`, `quote`, and `trailingComma`.",
-          optional: true,
-        },
-      ],
-      returns: [{ type: "string", description: "Formatted Lua source." }],
-      examples: [
-        {
-          code: 'local parsed = spacelua.parseExpression("{a=1,b=2}")\nprint(spacelua.prettyPrintExpression(parsed))',
-        },
-      ],
-      see: "API/spacelua",
-    },
+    description: "Pretty-prints a parsed Lua expression AST.",
+    parameters: [
+      {
+        name: "parsedExpr",
+        type: "table",
+        description: "Parsed expression AST.",
+      },
+      {
+        name: "options",
+        type: "table",
+        description:
+          "Formatting options: `indentWidth`, `quote`, and `trailingComma`.",
+        optional: true,
+      },
+    ],
+    returns: [{ type: "string", description: "Formatted Lua source." }],
+    examples: [
+      {
+        code: 'local parsed = spacelua.parseExpression("{a=1,b=2}")\nprint(spacelua.prettyPrintExpression(parsed))',
+      },
+    ],
+    see: "API/spacelua",
   }),
   /**
    * Evaluates a parsed lua expression and returns the result.
@@ -472,30 +458,28 @@ export const spaceluaApi = new LuaTable({
       const env = createAugmentedEnv(sf, envAugmentation);
       return luaValueToJS(await evalExpression(parsedExpr, env, sf), sf);
     },
-    documentation: {
-      description:
-        "Evaluates a parsed Lua expression, optionally with additional environment values.",
-      parameters: [
-        {
-          name: "parsedExpr",
-          type: "table",
-          description: "Parsed expression AST.",
-        },
-        {
-          name: "envAugmentation",
-          type: "table",
-          description: "Values added to the expression environment.",
-          optional: true,
-        },
-      ],
-      returns: [{ description: "Evaluated result." }],
-      examples: [
-        {
-          code: 'local parsed = spacelua.parseExpression("x + y")\nlocal result = spacelua.evalExpression(parsed, {x = 1, y = 2})\nprint(result)',
-        },
-      ],
-      see: "API/spacelua",
-    },
+    description:
+      "Evaluates a parsed Lua expression, optionally with additional environment values.",
+    parameters: [
+      {
+        name: "parsedExpr",
+        type: "table",
+        description: "Parsed expression AST.",
+      },
+      {
+        name: "envAugmentation",
+        type: "table",
+        description: "Values added to the expression environment.",
+        optional: true,
+      },
+    ],
+    returns: [{ description: "Evaluated result." }],
+    examples: [
+      {
+        code: 'local parsed = spacelua.parseExpression("x + y")\nlocal result = spacelua.evalExpression(parsed, {x = 1, y = 2})\nprint(result)',
+      },
+    ],
+    see: "API/spacelua",
   }),
   /**
    * Interpolates a string with lua expressions and returns the result.
@@ -507,30 +491,28 @@ export const spaceluaApi = new LuaTable({
       }
       return interpolateLuaString(sf, template, envAugmentation);
     },
-    documentation: {
-      description:
-        "Interpolates `${...}` Lua expressions in a string, optionally with additional environment values.",
-      parameters: [
-        {
-          name: "template",
-          type: "string",
-          description: "Template containing `${...}` expressions.",
-        },
-        {
-          name: "envAugmentation",
-          type: "table",
-          description: "Values added to the interpolation environment.",
-          optional: true,
-        },
-      ],
-      returns: [{ type: "string", description: "Interpolated string." }],
-      examples: [
-        {
-          code: 'local greeting = spacelua.interpolate("Hello ${name}!", {name = "Pete"})\nprint(greeting)',
-        },
-      ],
-      see: "API/spacelua",
-    },
+    description:
+      "Interpolates `${...}` Lua expressions in a string, optionally with additional environment values.",
+    parameters: [
+      {
+        name: "template",
+        type: "string",
+        description: "Template containing `${...}` expressions.",
+      },
+      {
+        name: "envAugmentation",
+        type: "table",
+        description: "Values added to the interpolation environment.",
+        optional: true,
+      },
+    ],
+    returns: [{ type: "string", description: "Interpolated string." }],
+    examples: [
+      {
+        code: 'local greeting = spacelua.interpolate("Hello ${name}!", {name = "Pete"})\nprint(greeting)',
+      },
+    ],
+    see: "API/spacelua",
   }),
   /**
    * Returns your SilverBullet instance's base URL
@@ -540,12 +522,10 @@ export const spaceluaApi = new LuaTable({
       //NOTE: Removing trailing slash to stay compatible with original code: `location.protocol + "//" + location.host;`
       return document.baseURI.replace(/\/*$/, "");
     },
-    documentation: {
-      description:
-        "Returns the SilverBullet instance's base URL, or `nil` when run on the server.",
-      returns: [{ type: "string|nil" }],
-      examples: [{ code: "local url = spacelua.baseUrl()\nprint(url)" }],
-      see: "API/spacelua",
-    },
+    description:
+      "Returns the SilverBullet instance's base URL, or `nil` when run on the server.",
+    returns: [{ type: "string|nil" }],
+    examples: [{ code: "local url = spacelua.baseUrl()\nprint(url)" }],
+    see: "API/spacelua",
   }),
 });

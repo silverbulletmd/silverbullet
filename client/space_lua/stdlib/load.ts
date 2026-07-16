@@ -46,11 +46,9 @@ export function luaLoad(code: LuaValue, sf: LuaStackFrame): LuaValue {
           return null;
         }
       },
-      documentation: {
-        description: "Executes the Lua chunk compiled by `load`.",
-        signatures: ["function(...)"],
-        returns: [{ description: "Values returned by the compiled chunk." }],
-      },
+      description: "Executes the Lua chunk compiled by `load`.",
+      signatures: ["function(...)"],
+      returns: [{ description: "Values returned by the compiled chunk." }],
     });
 
     return runner;

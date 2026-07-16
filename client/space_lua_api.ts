@@ -36,23 +36,28 @@ export function exposeSyscalls(env: LuaEnv, system: System<any>) {
     if (!env.has(ns)) {
       env.set(ns, new LuaTable(), nativeFs);
     }
-    const info = {
+    const {
+      callback: _callback,
+      requiredPermissions: _requiredPermissions,
+      ...metadata
+    } = syscall;
+    const definition = {
       kind: "syscall" as const,
       name: cleanSyscallName,
-      ...syscall.documentation,
+      ...metadata,
     };
     const luaFn = isLuaNativeSyscall
       ? new LuaBuiltinFunction({
           callback: (_sf, ...args) => {
             return system.localSyscall(syscallName, args);
           },
-          documentation: info,
+          ...definition,
         })
       : new LuaNativeJSFunction({
           callback: (...args) => {
             return system.localSyscall(syscallName, args);
           },
-          documentation: info,
+          ...definition,
         });
     env.get(ns, nativeFs).set(fn, luaFn, nativeFs);
   }
