@@ -35,15 +35,10 @@ pub fn normalize_prefix(raw: &str) -> String {
 
 /// Validate the whole config. Empty result = acceptable. Field paths are
 /// `<space-id>.<jsonField>`.
-pub fn validate(
-    config: &MultiConfig,
-    main_port: u16,
-    metrics_port: Option<u16>,
-) -> Vec<FieldError> {
+pub fn validate(config: &MultiConfig) -> Vec<FieldError> {
     let mut errors = Vec::new();
     let mut seen_prefixes: HashMap<String, String> = HashMap::new(); // normalized -> id
     let mut seen_hosts: HashMap<String, String> = HashMap::new();
-    let mut seen_ports: HashMap<u16, String> = HashMap::new();
     let mut seen_folders: HashMap<String, String> = HashMap::new(); // folder -> id
 
     for (id, space) in &config.spaces {
@@ -122,27 +117,6 @@ pub fn validate(
                         &mut errors,
                         format!("{id}.binding"),
                         format!("host {host:?} already used by space {other}"),
-                    );
-                }
-            }
-            Binding::Port { port } => {
-                if *port == main_port {
-                    err(
-                        &mut errors,
-                        format!("{id}.binding"),
-                        "port collides with the main listener",
-                    );
-                } else if Some(*port) == metrics_port {
-                    err(
-                        &mut errors,
-                        format!("{id}.binding"),
-                        "port collides with the metrics listener",
-                    );
-                } else if let Some(other) = seen_ports.insert(*port, id.clone()) {
-                    err(
-                        &mut errors,
-                        format!("{id}.binding"),
-                        format!("port {port} already used by space {other}"),
                     );
                 }
             }
@@ -231,9 +205,8 @@ mod tests {
                     },
                 ),
             ),
-            ("c", space("C", Binding::Port { port: 4000 })),
         ]);
-        assert!(validate(&c, 3000, None).is_empty());
+        assert!(validate(&c).is_empty());
     }
 
     #[test]
@@ -243,7 +216,7 @@ mod tests {
                 "a",
                 space("A", Binding::Prefix { prefix: raw.into() }),
             )]);
-            let errs = validate(&c, 3000, None);
+            let errs = validate(&c);
             assert!(
                 errs.iter().any(|e| e.field == "a.binding"),
                 "prefix {raw:?} must be rejected: {errs:?}"
@@ -259,7 +232,7 @@ mod tests {
                 ("a", space("A", Binding::Prefix { prefix: p1.into() })),
                 ("b", space("B", Binding::Prefix { prefix: p2.into() })),
             ]);
-            let errs = validate(&c, 3000, None);
+            let errs = validate(&c);
             assert!(
                 errs.iter().any(|e| e.field.ends_with(".binding")),
                 "{p1} + {p2} must conflict: {errs:?}"
@@ -286,7 +259,7 @@ mod tests {
                 ),
             ),
         ]);
-        assert!(validate(&c, 3000, None).is_empty());
+        assert!(validate(&c).is_empty());
     }
 
     #[test]
@@ -305,7 +278,7 @@ mod tests {
             },
         );
         b.folder = "spaces/notes/".into(); // same after trailing-slash trim
-        let errs = validate(&cfg(vec![("a", a), ("b", b)]), 3000, None);
+        let errs = validate(&cfg(vec![("a", a), ("b", b)]));
         assert!(
             errs.iter().any(|e| e.field.ends_with(".folder")),
             "{errs:?}"
@@ -331,7 +304,7 @@ mod tests {
                 ),
             ),
         ]);
-        assert!(validate(&c, 3000, None).is_empty());
+        assert!(validate(&c).is_empty());
     }
 
     #[test]
@@ -356,7 +329,7 @@ mod tests {
                 ),
             ), // same after normalization
         ]);
-        let errs = validate(&c, 3000, None);
+        let errs = validate(&c);
         assert!(
             errs.iter().any(|e| e.field.ends_with(".binding")),
             "{errs:?}"
@@ -385,7 +358,7 @@ mod tests {
                 ),
             ),
         ]);
-        let errs = validate(&c, 3000, None);
+        let errs = validate(&c);
         assert!(
             errs.iter().any(|e| e.field.ends_with(".binding")),
             "{errs:?}"
@@ -393,7 +366,7 @@ mod tests {
     }
 
     #[test]
-    fn reserved_and_colliding_bindings_rejected() {
+    fn reserved_bindings_and_invalid_hosts_rejected() {
         let c = cfg(vec![
             (
                 "a",
@@ -404,20 +377,18 @@ mod tests {
                     },
                 ),
             ),
-            ("b", space("B", Binding::Port { port: 3000 })), // main port
-            ("c", space("C", Binding::Port { port: 9090 })), // metrics port
             (
-                "d",
+                "b",
                 space(
-                    "D",
+                    "B",
                     Binding::Host {
                         host: "with/slash".into(),
                     },
                 ),
             ),
         ]);
-        let errs = validate(&c, 3000, Some(9090));
-        assert_eq!(errs.len(), 4, "{errs:?}");
+        let errs = validate(&c);
+        assert_eq!(errs.len(), 2, "{errs:?}");
     }
 
     #[test]
@@ -436,7 +407,7 @@ mod tests {
             lockout_time: 60,
             remember_me_hours: 168,
         };
-        let errs = validate(&cfg(vec![("a", s)]), 3000, None);
+        let errs = validate(&cfg(vec![("a", s)]));
         assert!(errs.iter().any(|e| e.field == "a.auth.user"), "{errs:?}");
         assert!(
             errs.iter().any(|e| e.field == "a.auth.passHash"),
@@ -462,7 +433,7 @@ mod tests {
             lockout_time: 60,
             remember_me_hours: 168,
         };
-        let errs = validate(&cfg(vec![("a", s)]), 3000, None);
+        let errs = validate(&cfg(vec![("a", s)]));
         assert!(errs.iter().any(|e| e.field == "a.name"), "{errs:?}");
         assert!(
             !errs.iter().any(|e| e.field == "a.auth.passHash"),

@@ -14,9 +14,8 @@ export function slugify(name: string): string {
  * URL-ish display text for a binding; doubles as the link text in the list.
  */
 export function bindingLabel(b: Binding): string {
-  const port = location.port ? `:${location.port}` : "";
-  if (b.host) return `${b.host}${port}`;
-  if (b.port) return `${location.hostname}:${b.port}`;
+  const listenerPort = location.port ? `:${location.port}` : "";
+  if (b.host) return `${b.host}${listenerPort}`;
   return b.prefix || "/";
 }
 
@@ -26,6 +25,5 @@ export function spaceUrl(b: Binding): string {
   if (b.host) {
     return `//${b.host}${location.port ? `:${location.port}` : ""}/`;
   }
-  if (b.port) return `//${location.hostname}:${b.port}/`;
   return `${b.prefix || ""}/`;
 }

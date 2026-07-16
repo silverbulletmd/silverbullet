@@ -169,7 +169,7 @@ mod tests {
     /// Manager with a /work space, a root space, and a host-bound space, plus a
     /// dummy admin router answering 299 (a sentinel status).
     fn setup(dir: &tempfile::TempDir) -> axum::Router {
-        let m = MultiManager::boot(dir.path().to_path_buf(), deps(dir.path()), 3000, None).unwrap();
+        let m = MultiManager::boot(dir.path().to_path_buf(), deps(dir.path())).unwrap();
         m.create(payload(
             "Work",
             Binding::Prefix {
@@ -260,7 +260,7 @@ mod tests {
     #[tokio::test]
     async fn root_prefix_binding_is_rejected() {
         let dir = tempfile::tempdir().unwrap();
-        let m = MultiManager::boot(dir.path().to_path_buf(), deps(dir.path()), 3000, None).unwrap();
+        let m = MultiManager::boot(dir.path().to_path_buf(), deps(dir.path())).unwrap();
         assert!(m
             .create(payload("Root", Binding::Prefix { prefix: "/".into() }))
             .is_err());
@@ -321,7 +321,7 @@ mod tests {
     async fn no_match_404_and_root_redirects_to_admin_when_unbound() {
         let dir = tempfile::tempdir().unwrap();
         // Manager with NO root space.
-        let m = MultiManager::boot(dir.path().to_path_buf(), deps(dir.path()), 3000, None).unwrap();
+        let m = MultiManager::boot(dir.path().to_path_buf(), deps(dir.path())).unwrap();
         m.create(payload(
             "Work",
             Binding::Prefix {
@@ -341,7 +341,7 @@ mod tests {
     #[tokio::test]
     async fn errored_space_returns_503_with_reason() {
         let dir = tempfile::tempdir().unwrap();
-        let m = MultiManager::boot(dir.path().to_path_buf(), deps(dir.path()), 3000, None).unwrap();
+        let m = MultiManager::boot(dir.path().to_path_buf(), deps(dir.path())).unwrap();
         let mut p = payload(
             "Broken",
             Binding::Prefix {

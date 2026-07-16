@@ -56,7 +56,7 @@ test("first run: login, create a space, open it, edit a page", async ({
   await expect(page.getByText("No spaces yet")).toBeVisible();
   await page.getByRole("button", { name: "Create space" }).click();
   await page.getByLabel("Name").fill("Playground");
-  // The binding-value input's label is dynamic ("Prefix"/"Hostname"/"Port")
+  // The binding-value input's label is dynamic ("Prefix"/"Hostname")
   // and defaults to "Prefix" for the default "URL prefix" binding type.
   await page.getByLabel("Prefix").fill("/play");
   await page.getByLabel("Authentication").selectOption("none");

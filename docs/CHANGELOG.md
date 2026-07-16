@@ -3,8 +3,7 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge
 Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be released as a docker image with the `:v2` tag, and a binary in the [edge release](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). If you want to live on the bleeding edge of SilverBullet goodness (or regression) this is where to do it.
 
-* **Multi-space mode**: set `SB_MULTI_SPACE=1` (plus `SB_USER` for admin credentials) to serve any number of spaces from one process. Spaces
-  are bound to a URL prefix, hostname, or dedicated port. See [[Multi-Space Mode]].
+* **Multi-space mode**: set `SB_MULTI_SPACE=1` (plus `SB_USER` for admin credentials) to serve any number of spaces from one process. Spaces are bound to a URL prefix or hostname. See [[Multi-Space Mode]].
 * **Baked sections**: bake `${...}` Lua expressions and widgets into
   HTML-comment-delimited markdown (`<!--#lua EXPR -->` … `<!--/lua-->`). See [[Baked Sections]].
 * Space Lua: **code complete now shows documentation** (where available), all available via [[API/spacelua]] reflection APIs.

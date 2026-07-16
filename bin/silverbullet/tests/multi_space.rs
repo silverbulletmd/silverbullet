@@ -138,14 +138,6 @@ fn create_spaces_and_verify_routing_and_auth_isolation() {
         .send()
         .unwrap();
 
-    // Port-bound space.
-    let space_port = free_port();
-    admin
-        .post(format!("{base}/.admin/api/spaces"))
-        .json(&serde_json::json!({ "name": "Ported", "binding": { "port": space_port }, "auth": { "mode": "none" } }))
-        .send()
-        .unwrap();
-
     let anon = reqwest::blocking::Client::new();
     // Open space serves reads and writes.
     assert!(anon
@@ -179,26 +171,11 @@ fn create_spaces_and_verify_routing_and_auth_isolation() {
         401
     );
 
-    // Port space answers on its own port (listener may take a moment).
-    let deadline = Instant::now() + Duration::from_secs(10);
-    loop {
-        if let Ok(r) = anon
-            .get(format!("http://127.0.0.1:{space_port}/.ping"))
-            .send()
-        {
-            if r.status().is_success() {
-                break;
-            }
-        }
-        assert!(Instant::now() < deadline, "port space never came up");
-        std::thread::sleep(Duration::from_millis(200));
-    }
-
     // Config persisted under the root.
     assert!(root.path().join("spaces.json").exists());
     // Index seeded in the default folder.
     let spaces_dir = std::fs::read_dir(root.path().join("spaces"))
         .unwrap()
         .count();
-    assert_eq!(spaces_dir, 3);
+    assert_eq!(spaces_dir, 2);
 }

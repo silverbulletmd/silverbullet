@@ -275,38 +275,6 @@ async fn handle_fs_dirs(
     }
 }
 
-#[derive(Deserialize)]
-struct PortQuery {
-    #[serde(default)]
-    port: String,
-    /// Space id whose own current port binding counts as available (editing).
-    #[serde(default, rename = "self")]
-    self_id: Option<String>,
-}
-
-/// `GET /api/net/port?port=…[&self=<id>]` — live availability check for the
-/// form's port field: `{"status": "available"|"inUse"|"invalid", "reason"}`.
-async fn handle_port_check(
-    State(state): State<Arc<AdminState>>,
-    axum::extract::Query(q): axum::extract::Query<PortQuery>,
-) -> Response {
-    let port = match q.port.trim().parse::<u16>() {
-        Ok(p) if p != 0 => p,
-        _ => {
-            return Json(json!({ "status": "invalid", "reason": "not a valid port number" }))
-                .into_response();
-        }
-    };
-    let manager = state.manager.clone();
-    match run_blocking(move || Ok(manager.port_check(port, q.self_id.as_deref()))).await {
-        Ok((true, reason)) => {
-            Json(json!({ "status": "available", "reason": reason })).into_response()
-        }
-        Ok((false, reason)) => Json(json!({ "status": "inUse", "reason": reason })).into_response(),
-        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
-    }
-}
-
 /// Path status + subdirectory suggestions for the admin form's folder field.
 /// Relative input resolves against the server root. Directory names only.
 fn dir_completion(root: &std::path::Path, input: &str) -> serde_json::Value {
@@ -381,7 +349,6 @@ pub fn build_admin_router(state: Arc<AdminState>) -> Router {
         )
         .route("/api/spaces/{id}/password", post(handle_set_password))
         .route("/api/fs/dirs", get(handle_fs_dirs))
-        .route("/api/net/port", get(handle_port_check))
         .route_layer(middleware::from_fn_with_state(state.clone(), require_admin));
     Router::new()
         .route("/", get(handle_shell))
@@ -431,8 +398,7 @@ mod tests {
     }
 
     pub(crate) fn admin_router(dir: &tempfile::TempDir) -> (axum::Router, Arc<MultiManager>) {
-        let manager =
-            MultiManager::boot(dir.path().to_path_buf(), deps(dir.path()), 3000, None).unwrap();
+        let manager = MultiManager::boot(dir.path().to_path_buf(), deps(dir.path())).unwrap();
         let authenticator = Arc::new(crate::auth::Authenticator::from_parts(
             vec![7u8; 32],
             "c2FsdA==".into(),
@@ -747,106 +713,11 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn port_check_statuses() {
+    async fn port_check_endpoint_does_not_exist() {
         let dir = tempfile::tempdir().unwrap();
         let (r, _m) = admin_router(&dir);
         let cookie = login_cookie(&r).await;
-
-        // Gated.
-        assert_eq!(
-            send(&r, get("/api/net/port?port=4000")).await.status(),
-            StatusCode::UNAUTHORIZED
-        );
-
-        // Invalid input.
-        let v = body_json(authed(&r, "GET", "/api/net/port?port=nope", "", &cookie).await).await;
-        assert_eq!(v["status"], "invalid");
-        let v = body_json(authed(&r, "GET", "/api/net/port?port=0", "", &cookie).await).await;
-        assert_eq!(v["status"], "invalid");
-
-        // A free port is available.
-        let free = std::net::TcpListener::bind("127.0.0.1:0")
-            .unwrap()
-            .local_addr()
-            .unwrap()
-            .port();
-        let v = body_json(
-            authed(
-                &r,
-                "GET",
-                &format!("/api/net/port?port={free}"),
-                "",
-                &cookie,
-            )
-            .await,
-        )
-        .await;
-        assert_eq!(v["status"], "available");
-
-        // The admin router's manager was booted with main_port 3000.
-        let v = body_json(authed(&r, "GET", "/api/net/port?port=3000", "", &cookie).await).await;
-        assert_eq!(v["status"], "inUse");
-
-        // A port held by another process is not bindable.
-        let blocker = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
-        let held = blocker.local_addr().unwrap().port();
-        let v = body_json(
-            authed(
-                &r,
-                "GET",
-                &format!("/api/net/port?port={held}"),
-                "",
-                &cookie,
-            )
-            .await,
-        )
-        .await;
-        assert_eq!(v["status"], "inUse");
-
-        // A port claimed by an existing space is inUse — unless it's the space
-        // being edited (self exclusion).
-        let space_port = std::net::TcpListener::bind("127.0.0.1:0")
-            .unwrap()
-            .local_addr()
-            .unwrap()
-            .port();
-        let v = body_json(
-            authed(
-                &r,
-                "POST",
-                "/api/spaces",
-                &format!(
-                    r#"{{"name":"P","binding":{{"port":{space_port}}},"auth":{{"mode":"none"}}}}"#
-                ),
-                &cookie,
-            )
-            .await,
-        )
-        .await;
-        let id = v["id"].as_str().unwrap();
-        let v = body_json(
-            authed(
-                &r,
-                "GET",
-                &format!("/api/net/port?port={space_port}"),
-                "",
-                &cookie,
-            )
-            .await,
-        )
-        .await;
-        assert_eq!(v["status"], "inUse");
-        let v = body_json(
-            authed(
-                &r,
-                "GET",
-                &format!("/api/net/port?port={space_port}&self={id}"),
-                "",
-                &cookie,
-            )
-            .await,
-        )
-        .await;
-        assert_eq!(v["status"], "available");
+        let response = authed(&r, "GET", "/api/net/port?port=4000", "", &cookie).await;
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
     }
 }

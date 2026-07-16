@@ -23,13 +23,11 @@ export function SpaceForm({
   // then the stored values are authoritative).
   const [folderTouched, setFolderTouched] = useState(!!initial);
   const [bindValueTouched, setBindValueTouched] = useState(!!initial);
-  const [bindType, setBindType] = useState<"prefix" | "host" | "port">(
-    initial?.binding.host ? "host" : initial?.binding.port ? "port" : "prefix",
+  const [bindType, setBindType] = useState<"prefix" | "host">(
+    initial?.binding.host ? "host" : "prefix",
   );
   const [bindValue, setBindValue] = useState(
-    initial?.binding.host ??
-      initial?.binding.prefix ??
-      String(initial?.binding.port ?? ""),
+    initial?.binding.host ?? initial?.binding.prefix ?? "",
   );
   const [authMode, setAuthMode] = useState(initial?.auth.mode ?? "inherit");
   const [authUser, setAuthUser] = useState(initial?.auth.user ?? "");
@@ -41,34 +39,9 @@ export function SpaceForm({
   const [runtimeApi, setRuntimeApi] = useState(initial?.runtimeApi ?? false);
   const [indexPage, setIndexPage] = useState(initial?.indexPage ?? "index");
   const [errors, setErrors] = useState<FieldError[]>([]);
-  const [portStatus, setPortStatus] = useState<{
-    status: string;
-    reason: string;
-  } | null>(null);
   const [hostStatus, setHostStatus] = useState<
     "verified" | "mismatch" | "unreachable" | null
   >(null);
-
-  // Live port-availability check while a port binding is being edited.
-  useEffect(() => {
-    if (bindType !== "port" || !bindValue) {
-      setPortStatus(null);
-      return;
-    }
-    const t = setTimeout(async () => {
-      try {
-        const self = id ? `&self=${encodeURIComponent(id)}` : "";
-        const r = await api(
-          "GET",
-          `api/net/port?port=${encodeURIComponent(bindValue)}${self}`,
-        );
-        setPortStatus({ status: r.status, reason: r.reason ?? "" });
-      } catch {
-        /* transient */
-      }
-    }, 300);
-    return () => clearTimeout(t);
-  }, [bindType, bindValue, id]);
 
   // Live hostname check: probe the candidate hostname from the browser and
   // compare the answering server's per-boot instance id with our own. Proves
@@ -109,11 +82,7 @@ export function SpaceForm({
       onSubmit={async (e) => {
         e.preventDefault();
         const binding: Binding =
-          bindType === "host"
-            ? { host: bindValue }
-            : bindType === "port"
-              ? { port: parseInt(bindValue, 10) }
-              : { prefix: bindValue };
+          bindType === "host" ? { host: bindValue } : { prefix: bindValue };
         const auth =
           authMode === "custom"
             ? { mode: authMode, user: authUser }
@@ -176,10 +145,10 @@ export function SpaceForm({
         id="space-bind-type"
         value={bindType}
         onChange={(e) => {
-          const newType = e.currentTarget.value as "prefix" | "host" | "port";
+          const newType = e.currentTarget.value as "prefix" | "host";
           setBindType(newType);
           // An untouched value keeps tracking the name for prefixes, and
-          // resets for host/port (those can't be derived from the name).
+          // resets for hostnames (those can't be derived from the name).
           if (!bindValueTouched) {
             const slug = slugify(name);
             setBindValue(newType === "prefix" && slug ? `/${slug}` : "");
@@ -188,34 +157,19 @@ export function SpaceForm({
       >
         <option value="prefix">URL prefix (this host)</option>
         <option value="host">Hostname</option>
-        <option value="port">Dedicated port</option>
       </select>
       <label for="space-bind-value">
-        {bindType === "prefix"
-          ? "Prefix"
-          : bindType === "host"
-            ? "Hostname"
-            : "Port"}
+        {bindType === "prefix" ? "Prefix" : "Hostname"}
       </label>
       <div class="sb-url-input">
         <span class="sb-url-affix">
-          {bindType === "prefix"
-            ? location.origin
-            : bindType === "host"
-              ? `${location.protocol}//`
-              : `${location.protocol}//${location.hostname}:`}
+          {bindType === "prefix" ? location.origin : `${location.protocol}//`}
         </span>
         <input
           id="space-bind-value"
           type="text"
           value={bindValue}
-          placeholder={
-            bindType === "prefix"
-              ? "/work"
-              : bindType === "host"
-                ? "notes.example.com"
-                : "3001"
-          }
+          placeholder={bindType === "prefix" ? "/work" : "notes.example.com"}
           onInput={(e) => {
             setBindValue(e.currentTarget.value);
             setBindValueTouched(true);
@@ -226,7 +180,6 @@ export function SpaceForm({
             {location.port ? `:${location.port}/` : "/"}
           </span>
         )}
-        {bindType === "port" && <span class="sb-url-affix">/</span>}
       </div>
       {bindType === "host" && hostStatus && (
         <Fragment>
@@ -243,22 +196,6 @@ export function SpaceForm({
               could not verify: hostname does not reach this server from your
               browser (DNS or proxy not set up yet?)
             </span>
-          )}
-        </Fragment>
-      )}
-      {bindType === "port" && portStatus && (
-        <Fragment>
-          {portStatus.status === "available" && (
-            <span class="sb-admin-ok">
-              ✓ port available
-              {portStatus.reason ? ` (${portStatus.reason})` : ""}
-            </span>
-          )}
-          {portStatus.status === "inUse" && (
-            <span class="sb-admin-error">port in use: {portStatus.reason}</span>
-          )}
-          {portStatus.status === "invalid" && (
-            <span class="sb-admin-error">{portStatus.reason}</span>
           )}
         </Fragment>
       )}

@@ -1,4 +1,4 @@
-//! The live routing state: which space answers which host/prefix/port. Built
+//! The live routing state: which space answers which host or prefix. Built
 //! immutably from the instance set and swapped wholesale behind a `RwLock` on
 //! every config change (readers clone the `Arc`, never block on rebuilds).
 
@@ -13,14 +13,12 @@ pub struct RoutingTable {
     hosts: HashMap<String, Arc<SpaceInstance>>,
     /// (normalized prefix, instance), sorted longest-first.
     prefixes: Vec<(String, Arc<SpaceInstance>)>,
-    ports: HashMap<u16, Arc<SpaceInstance>>,
 }
 
 impl RoutingTable {
     pub fn build(instances: HashMap<String, Arc<SpaceInstance>>) -> Self {
         let mut hosts = HashMap::new();
         let mut prefixes = Vec::new();
-        let mut ports = HashMap::new();
         for inst in instances.values() {
             match &inst.config.binding {
                 Binding::Prefix { .. } => prefixes.push((inst.prefix.clone(), inst.clone())),
@@ -29,9 +27,6 @@ impl RoutingTable {
                     // lowercased and lowercase the request host at resolve time.
                     hosts.insert(host.to_ascii_lowercase(), inst.clone());
                 }
-                Binding::Port { port } => {
-                    ports.insert(*port, inst.clone());
-                }
             }
         }
         prefixes.sort_by_key(|(prefix, _)| std::cmp::Reverse(prefix.len()));
@@ -39,7 +34,6 @@ impl RoutingTable {
             instances,
             hosts,
             prefixes,
-            ports,
         }
     }
 
@@ -59,16 +53,6 @@ impl RoutingTable {
             }
         }
         None
-    }
-
-    pub fn resolve_port(&self, port: u16) -> Option<Arc<SpaceInstance>> {
-        self.ports.get(&port).cloned()
-    }
-
-    pub fn ports(&self) -> Vec<u16> {
-        let mut v: Vec<u16> = self.ports.keys().copied().collect();
-        v.sort_unstable();
-        v
     }
 }
 
@@ -157,10 +141,6 @@ mod tests {
                 },
             ),
         );
-        m.insert(
-            "ported".into(),
-            inst("ported", Binding::Port { port: 4001 }),
-        );
         RoutingTable::build(m)
     }
 
@@ -223,18 +203,10 @@ mod tests {
     }
 
     #[test]
-    fn port_resolution_and_listing() {
-        let t = table();
-        assert_eq!(t.resolve_port(4001).unwrap().id, "ported");
-        assert!(t.resolve_port(4002).is_none());
-        assert_eq!(t.ports(), vec![4001]);
-    }
-
-    #[test]
     fn registry_swaps_atomically() {
         let r = Registry::new(table());
-        assert_eq!(r.current().ports(), vec![4001]);
+        assert!(!r.current().instances.is_empty());
         r.swap(RoutingTable::build(HashMap::new()));
-        assert!(r.current().ports().is_empty());
+        assert!(r.current().instances.is_empty());
     }
 }

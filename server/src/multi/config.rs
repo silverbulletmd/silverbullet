@@ -9,17 +9,16 @@ use serde::{Deserialize, Serialize};
 
 /// One space's binding to the outside world. Exactly one variant; the
 /// `untagged` representation matches the spec's `{"prefix": "/x"}` /
-/// `{"host": "..."}` / `{"port": 3001}` shapes.
+/// `{"host": "..."}` shapes.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum Binding {
     Prefix { prefix: String },
     Host { host: String },
-    Port { port: u16 },
 }
 
 // A hand-written `Deserialize` (rather than `#[serde(untagged)]` + derive) so we
-// can reject *composite* objects like `{"prefix": "/a", "port": 3001}` and
+// can reject *composite* objects like `{"prefix": "/a", "host": "a.test"}` and
 // unknown keys outright. A derived untagged enum would silently pick the first
 // matching variant and drop the extra fields.
 impl<'de> Deserialize<'de> for Binding {
@@ -34,16 +33,13 @@ impl<'de> Deserialize<'de> for Binding {
             prefix: Option<String>,
             #[serde(default)]
             host: Option<String>,
-            #[serde(default)]
-            port: Option<u16>,
         }
         let repr = Repr::deserialize(deserializer)?;
-        match (repr.prefix, repr.host, repr.port) {
-            (Some(prefix), None, None) => Ok(Binding::Prefix { prefix }),
-            (None, Some(host), None) => Ok(Binding::Host { host }),
-            (None, None, Some(port)) => Ok(Binding::Port { port }),
+        match (repr.prefix, repr.host) {
+            (Some(prefix), None) => Ok(Binding::Prefix { prefix }),
+            (None, Some(host)) => Ok(Binding::Host { host }),
             _ => Err(serde::de::Error::custom(
-                "binding must have exactly one of `prefix`, `host`, or `port`",
+                "binding must have exactly one of `prefix` or `host`",
             )),
         }
     }
@@ -286,15 +282,30 @@ mod tests {
 
     #[test]
     fn composite_binding_is_rejected() {
-        // A `{"prefix": ..., "port": ...}` object is ambiguous: without
+        // A `{"prefix": ..., "host": ...}` object is ambiguous: without
         // `deny_unknown_fields` serde's untagged enum would silently pick
-        // Prefix and drop the port. It must fail to parse instead.
+        // Prefix and drop the host. It must fail to parse instead.
         let src = r#"{
-          "id": { "name": "X", "binding": { "prefix": "/a", "port": 3001 } }
+          "id": {
+            "name": "X",
+            "binding": { "prefix": "/a", "host": "a.example.com" }
+          }
         }"#;
         assert!(
             MultiConfig::from_json(src).is_err(),
             "composite binding must not deserialize"
+        );
+    }
+
+    #[test]
+    fn port_binding_is_rejected() {
+        let src = r#"{
+          "id": { "name": "X", "binding": { "port": 3001 } }
+        }"#;
+        let error = MultiConfig::from_json(src).expect_err("port binding must not deserialize");
+        assert!(
+            error.contains("unknown field `port`, expected `prefix` or `host`"),
+            "{error}"
         );
     }
 

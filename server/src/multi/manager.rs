@@ -1,7 +1,7 @@
 //! The multi-space orchestrator: owns the persisted `MultiConfig`, the built
 //! instances, and the swap-on-change lifecycle. Every mutation follows one
 //! path: validate -> persist (atomic) -> rebuild changed instances -> swap the
-//! routing table -> notify the listener manager.
+//! routing table.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -25,14 +25,10 @@ pub struct MultiManager {
     root: PathBuf,
     config_path: PathBuf,
     deps: InstanceDeps,
-    main_port: u16,
-    metrics_port: Option<u16>,
     /// Current persisted config + built instances, mutated under one lock so
     /// concurrent admin calls serialize.
     state: Mutex<Inner>,
     registry: Registry,
-    bind_errors: Mutex<HashMap<u16, String>>,
-    changes: tokio::sync::watch::Sender<u64>,
 }
 
 struct Inner {
@@ -42,16 +38,11 @@ struct Inner {
 
 impl MultiManager {
     /// Load spaces.json (hard error when malformed), build all instances, and
-    /// return the manager. `changes` is a watch channel bumped on every apply.
-    pub fn boot(
-        root: PathBuf,
-        deps: InstanceDeps,
-        main_port: u16,
-        metrics_port: Option<u16>,
-    ) -> Result<Arc<Self>, String> {
+    /// return the manager.
+    pub fn boot(root: PathBuf, deps: InstanceDeps) -> Result<Arc<Self>, String> {
         let config_path = root.join("spaces.json");
         let config = MultiConfig::load(&config_path)?;
-        let errors = validate(&config, main_port, metrics_port);
+        let errors = validate(&config);
         if !errors.is_empty() {
             let msgs: Vec<String> = errors
                 .iter()
@@ -65,17 +56,12 @@ impl MultiManager {
             .map(|(id, cfg)| (id.clone(), Arc::new(build_instance(id, cfg, &deps))))
             .collect();
         let table = RoutingTable::build(instances.clone());
-        let (changes, _) = tokio::sync::watch::channel(0);
         Ok(Arc::new(Self {
             root,
             config_path,
             deps,
-            main_port,
-            metrics_port,
             state: Mutex::new(Inner { config, instances }),
             registry: Registry::new(table),
-            bind_errors: Mutex::new(HashMap::new()),
-            changes,
         }))
     }
 
@@ -87,59 +73,11 @@ impl MultiManager {
         &self.root
     }
 
-    pub fn subscribe_changes(&self) -> tokio::sync::watch::Receiver<u64> {
-        self.changes.subscribe()
-    }
-
-    /// Record/clear a port bind failure (listener manager reports these).
-    /// Live availability check for a prospective port binding. Returns
-    /// `(available, reason)`. `exclude_id` names the space being edited, whose
-    /// own current binding counts as available. The OS-level probe binds on
-    /// the loopback interface only, so it is advisory — the authoritative
-    /// check remains the listener manager's real bind at apply time.
-    pub fn port_check(&self, port: u16, exclude_id: Option<&str>) -> (bool, String) {
-        if port == self.main_port {
-            return (false, "used by the main SilverBullet listener".into());
-        }
-        if Some(port) == self.metrics_port {
-            return (false, "used by the metrics listener".into());
-        }
-        {
-            let inner = self.state.lock().unwrap();
-            for (id, cfg) in &inner.config.spaces {
-                if let crate::multi::config::Binding::Port { port: p } = &cfg.binding {
-                    if *p == port {
-                        if exclude_id == Some(id.as_str()) {
-                            return (true, "current binding of this space".into());
-                        }
-                        return (false, format!("used by space \"{}\"", cfg.name));
-                    }
-                }
-            }
-        }
-        match std::net::TcpListener::bind(("127.0.0.1", port)) {
-            Ok(_) => (true, String::new()),
-            Err(e) => (false, format!("not bindable: {e}")),
-        }
-    }
-
-    pub fn set_bind_error(&self, port: u16, error: Option<String>) {
-        let mut be = self.bind_errors.lock().unwrap();
-        match error {
-            Some(e) => {
-                be.insert(port, e);
-            }
-            None => {
-                be.remove(&port);
-            }
-        }
-    }
-
     /// Validate + persist + rebuild + swap. Called with the state lock held by
     /// the CRUD methods (single mutation path). On validation or persist
     /// failure, `inner` is left completely untouched.
     fn apply_locked(&self, inner: &mut Inner, new_config: MultiConfig) -> Result<(), ApiError> {
-        let errors = validate(&new_config, self.main_port, self.metrics_port);
+        let errors = validate(&new_config);
         if !errors.is_empty() {
             return Err(ApiError::Validation(errors));
         }
@@ -161,7 +99,6 @@ impl MultiManager {
         self.registry.swap(RoutingTable::build(instances.clone()));
         inner.config = new_config;
         inner.instances = instances;
-        self.changes.send_modify(|v| *v += 1);
         Ok(())
     }
 
@@ -243,7 +180,6 @@ impl MultiManager {
     /// hasPassword), status: { state: "running"|"errored", reason? } }.
     pub fn list(&self) -> serde_json::Value {
         let inner = self.state.lock().unwrap();
-        let bind_errors = self.bind_errors.lock().unwrap();
         let mut out = serde_json::Map::new();
         for (id, inst) in &inner.instances {
             let mut v = serde_json::to_value(&inst.config).unwrap_or_default();
@@ -255,17 +191,10 @@ impl MultiManager {
                 }
             }
             v["hasPassword"] = serde_json::Value::Bool(has_password);
-            // Status: build errors, or a bind error reported by the listener
-            // manager for port-bound spaces.
-            let port_error = match &inst.config.binding {
-                crate::multi::config::Binding::Port { port } => bind_errors.get(port).cloned(),
-                _ => None,
-            };
-            v["status"] = match (&inst.status, port_error) {
-                (InstanceStatus::Errored(reason), _) => {
+            v["status"] = match &inst.status {
+                InstanceStatus::Errored(reason) => {
                     serde_json::json!({ "state": "errored", "reason": reason })
                 }
-                (_, Some(reason)) => serde_json::json!({ "state": "errored", "reason": reason }),
                 _ => serde_json::json!({ "state": "running" }),
             };
             out.insert(id.clone(), v);
@@ -325,7 +254,7 @@ mod tests {
     }
 
     fn boot(root: &std::path::Path) -> std::sync::Arc<MultiManager> {
-        MultiManager::boot(root.to_path_buf(), deps(root), 3000, None).unwrap()
+        MultiManager::boot(root.to_path_buf(), deps(root)).unwrap()
     }
 
     #[test]
@@ -339,9 +268,7 @@ mod tests {
     fn malformed_config_fails_boot() {
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join("spaces.json"), "{ nope").unwrap();
-        assert!(
-            MultiManager::boot(dir.path().to_path_buf(), deps(dir.path()), 3000, None).is_err()
-        );
+        assert!(MultiManager::boot(dir.path().to_path_buf(), deps(dir.path())).is_err());
     }
 
     #[test]
@@ -492,16 +419,5 @@ mod tests {
             m.set_password(&id, "x"),
             Err(ApiError::Validation(_))
         ));
-    }
-
-    #[test]
-    fn change_watch_bumps_on_apply() {
-        let dir = tempfile::tempdir().unwrap();
-        let m = boot(dir.path());
-        let rx = m.subscribe_changes();
-        let before = *rx.borrow();
-        m.create(payload("A", Binding::Port { port: 4321 }))
-            .unwrap();
-        assert!(*m.subscribe_changes().borrow() > before);
     }
 }

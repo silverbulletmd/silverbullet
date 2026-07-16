@@ -6,7 +6,6 @@ references:
 - server/src/multi/validate.rs
 - server/src/multi/dispatch.rs
 - server/src/multi/admin_api.rs
-- server/src/multi/listeners.rs
 - server/src/auth/cookie.rs
 ---
 
@@ -29,10 +28,9 @@ Notes:
 On first start no spaces exist: visiting `/` redirects to the admin UI at `/.admin/`, where you log in with the `SB_USER` credentials and create your first space.
 
 # Bindings
-Each space is reachable one of three ways:
+Each space is reachable one of two ways:
 * **URL prefix**: e.g. `/work` on the main listener. The prefix must contain at least one path segment (a bare `/` is not allowed) and prefixes must not overlap (`/work` and `/work/sub` cannot coexist); prefixes starting with `/.` are reserved.
 * **Hostname**: e.g. `notes.example.com`, matched on the `Host` header of the main listener. Point wildcard DNS or per-host reverse-proxy rules at the server.
-* **Port**: a dedicated port, bound and released live as you add/remove spaces.
 
 # Per-space authentication
 Every space has an auth mode:

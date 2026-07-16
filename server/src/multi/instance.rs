@@ -64,7 +64,7 @@ pub enum InstanceStatus {
 pub struct SpaceInstance {
     pub id: String,
     pub config: SpaceConfig,
-    /// Normalized prefix; "" for host/port bindings.
+    /// Normalized prefix; "" for host bindings.
     pub prefix: String,
     pub status: InstanceStatus,
     /// `None` when errored.
@@ -214,12 +214,11 @@ fn try_build_state(
         }
     };
 
-    // Runtime: only when enabled, writable, and reachable via 127.0.0.1 (prefix
-    // or port bindings; host-bound spaces can't be addressed by IP — v1 skips).
+    // Runtime: only when enabled, writable, and reachable via 127.0.0.1.
+    // Host-bound spaces can't be addressed by IP, so their runtime is disabled.
     let runtime = if config.runtime_api && !config.read_only {
         let server_url = match &config.binding {
             Binding::Prefix { .. } => format!("http://127.0.0.1:{}{prefix}", deps.main_port),
-            Binding::Port { port } => format!("http://127.0.0.1:{port}"),
             Binding::Host { .. } => {
                 tracing::warn!("space {id}: runtimeApi unsupported for host bindings, disabled");
                 String::new()

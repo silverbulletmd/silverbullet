@@ -9,7 +9,6 @@ use silverbullet_server::metrics::Metrics;
 use silverbullet_server::multi::admin_api::{build_admin_router, AdminState};
 use silverbullet_server::multi::dispatch::build_main_router;
 use silverbullet_server::multi::instance::{AssetFactories, InstanceDeps, RuntimeRequest};
-use silverbullet_server::multi::listeners::run_listener_manager;
 use silverbullet_server::multi::manager::MultiManager;
 
 use crate::config::Config;
@@ -73,7 +72,7 @@ pub async fn run_multi(config: Config) -> Result<(), String> {
         disable_service_worker: config.disable_service_worker,
     };
 
-    let manager = MultiManager::boot(root, deps, config.port, config.metrics_port)?;
+    let manager = MultiManager::boot(root, deps)?;
     tracing::info!(
         "SilverBullet multi-space mode: {} space(s) configured",
         manager.registry().current().instances.len()
@@ -105,12 +104,6 @@ pub async fn run_multi(config: Config) -> Result<(), String> {
             let _ = axum::serve(listener, mrouter).await;
         });
     }
-
-    // Per-port space listeners.
-    tokio::spawn(run_listener_manager(
-        manager.clone(),
-        config.bind_host.clone(),
-    ));
 
     // Main listener: admin + prefix/host spaces.
     let admin_state = Arc::new(AdminState::new(

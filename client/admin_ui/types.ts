@@ -1,8 +1,6 @@
-export type Binding = {
-  prefix?: string;
-  host?: string;
-  port?: number;
-};
+export type Binding =
+  | { prefix: string; host?: never }
+  | { host: string; prefix?: never };
 
 export type FieldError = {
   field: string;
