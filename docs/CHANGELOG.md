@@ -7,6 +7,7 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
   are bound to a URL prefix, hostname, or dedicated port. See [[Multi-Space Mode]].
 * **Baked sections**: bake `${...}` Lua expressions and widgets into
   HTML-comment-delimited markdown (`<!--#lua EXPR -->` … `<!--/lua-->`). See [[Baked Sections]].
+* Space Lua: **code complete now shows documentation** (where available), all available via [[API/spacelua]] reflection APIs.
 * Backend and CLI have been ported to Rust ([see background on this](https://no.silverbullet.plus/tech-stacks)), both should be behavior preserving (that is: you shouldn’t really notice):
   * The server backend (previously written in Go) has now been replaced by an adapted version of SilverBullet+‘s backend written in Rust, more unifying those code bases.
   * CLI client also reimplemented/backported to Rust as well.
@@ -15,7 +16,7 @@ Whenever a commit is pushed to the `main` branch, within ~5 minutes, it will be 
 * Fix: major typing/navigation slowdown on pages with many internal links in large spaces.
 * New `index.describeSchema()` and `index.tagSchema(tag)` Space Lua APIs that expose indexed object-type / tag schemas as raw JSON Schema to scripts, widgets, and the `sb describe` CLI: `describeSchema()` returns a map of tag name → JSON Schema (only tags that declare a schema), and `tagSchema(tag)` returns a tag's JSON Schema or `nil` if undefined or schema-less.
 * New `system.reboot()` Space Lua syscall: makes edited-on-disk changes live.
-* Lua: Space Lua comments are now parsed and retained in the AST instead of being stripped before parsing, also used for documenting APIs.
+* Lua: Space Lua comments are now parsed and retained in the AST instead of being stripped before parsing.
 * Fix: first-ever load of an authenticated space no longer shows a spurious "Could not process config and no cached copy, please connect to the Internet" alert before redirecting to the login page (the login redirect aborted the remaining boot requests, which were misread as being offline).
 * Fix: frontmatter link live preview now follows the editor's regular markdown preview behavior: raw YAML syntax stays visible when markdown syntax rendering is enabled, and only the link currently being edited is revealed in clean mode.
 * Fix: tags shown in folded frontmatter now navigate to their tag pages instead of unfolding the frontmatter block.
