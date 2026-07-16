@@ -4,30 +4,16 @@ references:
 - client/space_lua/stdlib/net.ts
 ---
 
-Network-related APIs.
+The `net` namespace provides network and URI access.
 
-## net.proxyFetch(url, options?)
-Performs a HTTP call, proxied via the server (to avoid CORS issues, see [[HTTP API]]).
+## Proxy request behavior
 
-Options:
-* `method`: GET, POST, PUT, DELETE (GET is default)
-* `headers`: table with header -> value mappings
-* `body`: either a string or table (which will be JSON stringified)
+`net.proxyFetch` sends HTTP requests through the SilverBullet server to avoid browser CORS restrictions; see [[HTTP API]]. Its options table supports `method` (GET by default), `headers`, `body`, and `responseEncoding`. A table body is JSON-encoded automatically.
 
-Returns:
-* `ok`: boolean if the request went ok
-* `status`: HTTP status code
-* `headers`: HTTP headers
-* `body`: for content types:
-  * `text/*`: string
-  * `application/json`: parsed JSON object
-  * anything else: UInt8Array
+The response table contains `ok`, `status`, `headers`, and `body`. JSON responses are parsed into Lua-compatible values, text and XML responses become strings, other content becomes a byte buffer, and an empty body becomes `nil`.
 
-## net.readURI(uri, options?)
-Fetches the content of a [[URI]].
+## URI services
 
-Options:
-* `encoding` force an encoding for the result, e.g. `{encoding = "text/markdown"}`
+`net.readURI` and `net.writeURI` dispatch to the best service registered for the URI. Pass `{encoding = "text/markdown"}` to `net.readURI` when a service should force a particular result encoding.
 
-## net.writeURI(uri, content)
-Writes content to a specific [[URI|URI]].
+${spacelua.renderApiDocumentation("net")}
