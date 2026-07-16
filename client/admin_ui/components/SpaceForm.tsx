@@ -28,8 +28,8 @@ export function SpaceForm({
   );
   const [bindValue, setBindValue] = useState(
     initial?.binding.host ??
-    initial?.binding.prefix ??
-    String(initial?.binding.port ?? ""),
+      initial?.binding.prefix ??
+      String(initial?.binding.port ?? ""),
   );
   const [authMode, setAuthMode] = useState(initial?.auth.mode ?? "inherit");
   const [authUser, setAuthUser] = useState(initial?.auth.user ?? "");

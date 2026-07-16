@@ -23,11 +23,16 @@ Space Lua definitions are defined in fenced code blocks with the `space-lua` lan
 A simple example:
 
 ```space-lua
--- adds two numbers
+--- Adds two numbers.
+---@param a number First number.
+---@param b number Second number.
+---@return number sum
 function adder(a, b)
   return a + b
 end
 ```
+
+Function documentation uses the LuaLS/EmmyLua `---` convention. Contiguous documentation comments immediately before a function are parsed into structured runtime metadata. Supported annotations are `@param`, `@return`, `@deprecated`, and `@see`; inspect the result from Lua with [[API/spacelua#spacelua.describe|spacelua.describe]]. Regular `--` comments remain ordinary comments.
 
 Each `space-lua` block has its own local scope. However, following Lua semantics, when functions and variables are not explicitly defined as `local` they will be available globally across your [[Space|space]]. This means that the `adder` function defined, can be called from anywhere in your space.
 

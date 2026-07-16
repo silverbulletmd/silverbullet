@@ -192,7 +192,14 @@ Exposes the function as a syscall, callable from other plugs and from Space Lua.
 ```yaml
 myAdd:
   path: ./math.ts:add
-  syscall: myplug.add
+  syscall:
+    name: myplug.add
+    description: Adds two numbers.
+    parameters:
+      - { name: a, type: number }
+      - { name: b, type: number }
+    returns:
+      - { type: number }
 ```
 
 ```typescript
@@ -221,7 +228,7 @@ All syscalls available to plugs are documented on pages tagged `#api/syscall`:
 ${query[[ from p = index.pages("api/syscall") where p.tag == "page" order by p.name select templates.pageItem(p) ]]}
 
 ## Declaring your own syscall
-Any plug function can be exposed as a syscall by adding `syscall: yourplug.foo` to its manifest entry. Other plugs can then call it (via the `system` syscall or the function’s syscall name), and Space Lua code can call it as `yourplug.foo(...)`. See the [[#Syscalls]] above.
+Any plug function can be exposed as a syscall by adding `syscall: yourplug.foo` to its manifest entry. The object form shown above additionally exposes structured documentation to Space Lua through `spacelua.describe()` and `spacelua.listFunctions()`. Other plugs can call the syscall via `system`, and Space Lua code can call it as `yourplug.foo(...)`. See the [[#Syscalls]] above.
 
 ## Bundling assets
 The `assets:` manifest key bundles files into the plug binary. Read them at runtime with the [[API/asset|asset]] syscall:
