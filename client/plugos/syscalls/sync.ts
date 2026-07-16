@@ -60,27 +60,58 @@ export function syncSyscalls(client: Client): SysCallMapping {
   }
 
   return {
-    "sync.hasInitialSyncCompleted": (): boolean => {
-      return client.fullSyncCompleted;
+    "sync.hasInitialSyncCompleted": {
+      callback: (): boolean => {
+        return client.fullSyncCompleted;
+      },
+      description:
+        "Checks whether the initial client synchronization has completed.",
+      returns: [
+        { type: "boolean", description: "Whether initial sync is complete." },
+      ],
     },
-    "sync.performFileSync": async (_ctx, path: string): Promise<void> => {
-      await client.postServiceWorkerMessage({
-        type: "perform-file-sync",
-        path,
-      });
-      // postServiceWorkerMessage returns silently if no SW, so only wait if SW is active
-      const registration = await navigator.serviceWorker.getRegistration();
-      if (registration?.active) {
-        return waitForServiceWorkerActivation(path);
-      }
+    "sync.performFileSync": {
+      callback: async (_ctx, path: string): Promise<void> => {
+        await client.postServiceWorkerMessage({
+          type: "perform-file-sync",
+          path,
+        });
+        // postServiceWorkerMessage returns silently if no SW, so only wait if SW is active
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (registration?.active) {
+          return waitForServiceWorkerActivation(path);
+        }
+      },
+      description:
+        "Prioritizes a file for immediate synchronization and waits for completion.",
+      parameters: [
+        {
+          name: "path",
+          type: "string",
+          description: "Space-relative file path.",
+        },
+      ],
+      examples: [{ code: 'sync.performFileSync("notes/important.md")' }],
     },
-    "sync.performSpaceSync": async (): Promise<number> => {
-      await client.postServiceWorkerMessage({ type: "perform-space-sync" });
-      const registration = await navigator.serviceWorker.getRegistration();
-      if (registration?.active) {
-        return waitForServiceWorkerActivation();
-      }
-      return 0;
+    "sync.performSpaceSync": {
+      callback: async (): Promise<number> => {
+        await client.postServiceWorkerMessage({ type: "perform-space-sync" });
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (registration?.active) {
+          return waitForServiceWorkerActivation();
+        }
+        return 0;
+      },
+      description:
+        "Starts an immediate full-space synchronization and waits for completion.",
+      returns: [
+        {
+          type: "number",
+          description:
+            "Number of sync operations, or zero without an active worker.",
+        },
+      ],
+      examples: [{ code: "local changes = sync.performSpaceSync()" }],
     },
   };
 }

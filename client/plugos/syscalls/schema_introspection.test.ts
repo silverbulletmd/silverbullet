@@ -91,21 +91,20 @@ test("index.describeSchema / index.tagSchema syscalls delegate to config", () =>
     config: { get: (_path: string[], def: any) => tags ?? def },
   };
   const syscalls = indexSyscalls({} as any, fakeClient);
-  const all = (syscalls["index.describeSchema"] as any)({}) as Record<
-    string,
-    unknown
-  >;
+  const describeSchema = (syscalls["index.describeSchema"] as any).callback;
+  const getTagSchema = (syscalls["index.tagSchema"] as any).callback;
+  const all = describeSchema({}) as Record<string, unknown>;
   // Only tags with schemas are returned (bareTag omitted)
   expect(Object.keys(all).sort()).toEqual(["page", "person", "task"]);
   // Values are raw schema objects
   expect((all.task as any).properties.done.type).toBe("boolean");
 
-  const taskSchema = (syscalls["index.tagSchema"] as any)({}, "task") as any;
+  const taskSchema = getTagSchema({}, "task") as any;
   expect(taskSchema).not.toBeNull();
   expect(taskSchema.properties.done.type).toBe("boolean");
 
   // undefined tag → null
-  expect((syscalls["index.tagSchema"] as any)({}, "nope")).toBeNull();
+  expect(getTagSchema({}, "nope")).toBeNull();
   // tag without schema → null
-  expect((syscalls["index.tagSchema"] as any)({}, "bareTag")).toBeNull();
+  expect(getTagSchema({}, "bareTag")).toBeNull();
 });

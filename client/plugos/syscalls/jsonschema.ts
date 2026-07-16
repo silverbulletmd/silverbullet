@@ -124,18 +124,67 @@ function inferSchemaNode(value: any): any {
 
 export function jsonschemaSyscalls(): SysCallMapping {
   return {
-    "jsonschema.validateObject": (
-      _ctx,
-      schema: any,
-      object: any,
-    ): undefined | string => {
-      return validateObject(schema, object);
+    "jsonschema.validateObject": {
+      callback: (_ctx, schema: any, object: any): undefined | string => {
+        return validateObject(schema, object);
+      },
+      description: "Validates a value against a JSON Schema.",
+      parameters: [
+        {
+          name: "schema",
+          type: "table",
+          description: "JSON Schema to apply.",
+        },
+        { name: "object", description: "Value to validate." },
+      ],
+      returns: [
+        {
+          type: "string",
+          description: "Validation error, or nil when valid.",
+        },
+      ],
+      examples: [
+        {
+          code: 'local schema = {type = "object", properties = {name = {type = "string"}}, required = {"name"}}\nlocal err = jsonschema.validateObject(schema, {name = "John"})',
+        },
+      ],
     },
-    "jsonschema.validateSchema": (_ctx, schema: any): undefined | string => {
-      return validateSchema(schema);
+    "jsonschema.validateSchema": {
+      callback: (_ctx, schema: any): undefined | string => {
+        return validateSchema(schema);
+      },
+      description:
+        "Checks whether a JSON Schema has a supported top-level shape.",
+      parameters: [{ name: "schema", description: "JSON Schema to validate." }],
+      returns: [
+        { type: "string", description: "Schema error, or nil when valid." },
+      ],
+      examples: [
+        {
+          code: 'local err = jsonschema.validateSchema({type = "object"})',
+        },
+      ],
     },
-    "jsonschema.inferFromObject": (_ctx, object: any): any => {
-      return inferFromObject(object);
+    "jsonschema.inferFromObject": {
+      callback: (_ctx, object: any): any => {
+        return inferFromObject(object);
+      },
+      description:
+        "Infers a best-effort draft 2020-12 JSON Schema from a sample value.",
+      parameters: [
+        {
+          name: "object",
+          description: "Sample value whose shape is inferred.",
+        },
+      ],
+      returns: [
+        { type: "table", description: "Inferred schema marked x-inferred." },
+      ],
+      examples: [
+        {
+          code: 'local schema = jsonschema.inferFromObject({name = "Widget", count = 3})',
+        },
+      ],
     },
   };
 }
