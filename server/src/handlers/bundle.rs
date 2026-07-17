@@ -10,6 +10,33 @@ use crate::router::run_blocking;
 use crate::ssr::{convert_wiki_links, render_markdown};
 use crate::state::ServerState;
 
+/// Cache policy for a bundle asset, keyed on whether its filename pins its
+/// content.
+fn cache_control_for(path: &str) -> &'static str {
+    if is_content_hashed(path) {
+        // Name pins content: a change to the file yields a different URL, so
+        // this response can never become the wrong answer for this URL.
+        "public, max-age=31536000, immutable"
+    } else {
+        "no-cache"
+    }
+}
+
+/// Whether a bundle path carries esbuild's content hash (`[name]-[hash].js`,
+/// per `chunkNames` in `build/build_client.ts`).
+fn is_content_hashed(path: &str) -> bool {
+    let Some(stem) = path.strip_suffix(".js") else {
+        return false;
+    };
+    let Some((_, hash)) = stem.rsplit_once('-') else {
+        return false;
+    };
+    hash.len() == 8
+        && hash
+            .bytes()
+            .all(|b| b.is_ascii_uppercase() || b.is_ascii_digit())
+}
+
 /// SPA fallback: serve a bundle asset by request path verbatim, or fall back to
 /// the templated `index.html` shell for any unknown path (client-side routing).
 /// For a public, read-only space the shell is filled with server-side-rendered
@@ -57,12 +84,14 @@ pub async fn handle_client_bundle(
             return Response::builder()
                 .status(StatusCode::NOT_MODIFIED)
                 .header(axum::http::header::LAST_MODIFIED, &last_modified)
+                .header(axum::http::header::CACHE_CONTROL, cache_control_for(&path))
                 .body(Body::empty())
                 .unwrap();
         }
         let mut builder = Response::builder()
             .status(StatusCode::OK)
-            .header("Content-Type", &meta.content_type);
+            .header("Content-Type", &meta.content_type)
+            .header(axum::http::header::CACHE_CONTROL, cache_control_for(&path));
         if !last_modified.is_empty() {
             builder = builder.header(axum::http::header::LAST_MODIFIED, &last_modified);
         }
@@ -130,6 +159,9 @@ pub async fn handle_client_bundle(
     Response::builder()
         .status(StatusCode::OK)
         .header("Content-Type", "text/html")
+        // The shell names the entry points and is templated per request (title,
+        // SSR'd content, URL prefix), so it must never be served from a cache.
+        .header(axum::http::header::CACHE_CONTROL, "no-cache")
         .body(Body::from(body))
         .unwrap()
 }
@@ -283,6 +315,105 @@ mod tests {
 
     fn seed_bundle(state: &ServerState, path: &str, body: &[u8]) {
         state.client_bundle.write_file(path, body, None).unwrap();
+    }
+
+    /// Filenames taken verbatim from a real `build_client.ts` run, since the
+    /// whole rule rests on telling esbuild's hashed chunks apart from the
+    /// entry points it leaves unhashed.
+    #[test]
+    fn only_content_hashed_chunks_are_treated_as_immutable() {
+        // Hashed by esbuild's `chunkNames` — including the lazily loaded
+        // language chunks, which are chunks despite not being named "chunk-".
+        for hashed in [
+            "chunk-2ULWSWV5.js",
+            "chunk-BETBSOB6.js",
+            "clike-M4TQO4MN.js",
+            "dist-EQLOYUAR.js",
+            "javascript-BXTINHDU.js",
+            "r-Y4ICSG6Y.js",
+        ] {
+            assert!(
+                super::is_content_hashed(hashed),
+                "{hashed} should be hashed"
+            );
+        }
+
+        // Entry points: stable names whose content changes every build. Caching
+        // any of these is what strands a client on a stale bundle.
+        for unhashed in [
+            "client.js",
+            "service_worker.js",
+            "admin.js",
+            "main.css",
+            "components.css",
+            "index.html",
+            "iAWriterMonoS-Regular.woff2",
+            // Sourcemaps: the hash belongs to the .js, not to this URL.
+            "chunk-2ULWSWV5.js.map",
+            "client.js.map",
+        ] {
+            assert!(
+                !super::is_content_hashed(unhashed),
+                "{unhashed} must not be immutable"
+            );
+        }
+    }
+
+    #[test]
+    fn unrecognised_shapes_fall_back_to_revalidating() {
+        // A false positive pins a mutable file for a year, so anything that is
+        // not unmistakably an esbuild hash must degrade to `no-cache`.
+        for path in [
+            "foo-short.js",       // too short
+            "foo-lowercase.js",   // esbuild's hashes are uppercase
+            "foo-TOOLONGHASH.js", // wrong length
+            "foo-ABCD123.js",     // 7 chars
+            "nodash.js",
+        ] {
+            assert!(!super::is_content_hashed(path), "{path} must not be pinned");
+            assert_eq!(super::cache_control_for(path), "no-cache");
+        }
+        assert_eq!(
+            super::cache_control_for("chunk-2ULWSWV5.js"),
+            "public, max-age=31536000, immutable"
+        );
+    }
+
+    #[tokio::test]
+    async fn entry_points_revalidate_while_chunks_are_pinned() {
+        let s = test_state();
+        seed_bundle(&s, ".client/index.html", INDEX_TPL);
+        seed_bundle(&s, ".client/client.js", b"client");
+        seed_bundle(&s, "service_worker.js", b"sw");
+        seed_bundle(&s, ".client/chunk-2ULWSWV5.js", b"chunk");
+        let st = Arc::new(s);
+
+        let cache_control = |uri: &'static str| {
+            let st = st.clone();
+            async move {
+                let resp = crate::build_router(st)
+                    .oneshot(Request::builder().uri(uri).body(Body::empty()).unwrap())
+                    .await
+                    .unwrap();
+                assert_eq!(resp.status(), StatusCode::OK, "{uri}");
+                resp.headers()
+                    .get(axum::http::header::CACHE_CONTROL)
+                    .expect("every bundle response states a cache policy")
+                    .to_str()
+                    .unwrap()
+                    .to_string()
+            }
+        };
+
+        // The service worker above all: it is the browser's only update trigger.
+        assert_eq!(cache_control("/service_worker.js").await, "no-cache");
+        assert_eq!(cache_control("/.client/client.js").await, "no-cache");
+        assert_eq!(
+            cache_control("/.client/chunk-2ULWSWV5.js").await,
+            "public, max-age=31536000, immutable"
+        );
+        // The SPA shell names the entry points, so it must revalidate too.
+        assert_eq!(cache_control("/SomePage").await, "no-cache");
     }
 
     fn seed_space(state: &ServerState, path: &str, body: &[u8]) {
