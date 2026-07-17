@@ -11,19 +11,36 @@ pub enum AuthCredential {
     Cookie(String),
 }
 
+/// Slugify one component of the auth cookie name: every non-word character
+/// becomes `_`. Mirrors the server's `\W` regex replacement (word chars are
+/// Unicode alphanumerics plus `_`).
+fn slug(s: &str) -> String {
+    s.replace(|c: char| !(c.is_alphanumeric() || c == '_'), "_")
+}
+
 /// Build the cookie header value for password-based JWT auth.
-/// The server expects a cookie named `auth_{sanitized_host}`.
+///
+/// The server names the session cookie `auth_{host}{url_prefix}` (see
+/// `scoped_auth_cookie_name` in the server crate's `auth::cookie`), so that
+/// several prefix-bound spaces sharing a host keep separate sessions. The URL
+/// prefix is the path component of `base_url`, and it MUST be part of the name
+/// here too — deriving from the host alone sends `auth_host=<jwt>` to a server
+/// expecting `auth_host_prefix`, which authenticates cleanly and then 401s on
+/// every subsequent request.
+///
+/// A trailing slash is trimmed so `https://h/space/` and `https://h/space`
+/// agree; a root path yields the legacy host-only `auth_{host}` name.
 pub fn auth_cookie_header(base_url: &str, jwt: &str) -> String {
-    let host = reqwest::Url::parse(base_url)
+    let name_body = reqwest::Url::parse(base_url)
         .ok()
         .map(|u| {
-            let h = u.host_str().unwrap_or("").to_string();
+            let host = u.host_str().unwrap_or("");
             let port_suffix = u.port().map(|p| format!(":{p}")).unwrap_or_default();
-            format!("{h}{port_suffix}")
+            let prefix = u.path().trim_end_matches('/');
+            format!("{}{}", slug(&format!("{host}{port_suffix}")), slug(prefix))
         })
         .unwrap_or_default();
-    let cookie_name = format!("auth_{}", host.replace(|c: char| !c.is_alphanumeric(), "_"));
-    format!("{cookie_name}={jwt}")
+    format!("auth_{name_body}={jwt}")
 }
 
 /// Optional re-auth info for password-based auth (username/password stored for JWT refresh).
@@ -200,7 +217,7 @@ impl HttpSpacePrimitives {
 
 /// Authenticate against a SilverBullet server using username/password, returning a JWT.
 /// Posts to `{base_url}/.auth` and extracts the `auth_*` cookie value from the response
-/// (servers name the cookie `auth_{sanitized_host}`, see `auth_cookie_header`).
+/// (servers name the cookie `auth_{host}{url_prefix}`, see `auth_cookie_header`).
 ///
 /// This is the single implementation of the credential exchange; async callers
 /// should wrap it in `spawn_blocking`. Pair the returned JWT with
@@ -399,5 +416,60 @@ impl SpacePrimitives for HttpSpacePrimitives {
             return Err(e);
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn cookie_name(base_url: &str) -> String {
+        let header = auth_cookie_header(base_url, "jwt");
+        header.split_once('=').unwrap().0.to_string()
+    }
+
+    #[test]
+    fn cookie_name_includes_url_prefix() {
+        // A prefix-based space must scope the cookie to its prefix, matching the
+        // server's `auth_{host}{prefix}`. Deriving from the host alone 401s.
+        assert_eq!(
+            cookie_name("https://sb.zef.pub/silverspace-manual"),
+            "auth_sb_zef_pub_silverspace_manual"
+        );
+        assert_eq!(
+            cookie_name("https://h.example.com/a/b"),
+            "auth_h_example_com_a_b"
+        );
+    }
+
+    #[test]
+    fn cookie_name_ignores_trailing_slash() {
+        assert_eq!(
+            cookie_name("https://sb.zef.pub/silverspace-manual/"),
+            cookie_name("https://sb.zef.pub/silverspace-manual")
+        );
+    }
+
+    #[test]
+    fn cookie_name_without_prefix_is_legacy_host_only() {
+        assert_eq!(cookie_name("https://sb.zef.pub/"), "auth_sb_zef_pub");
+        assert_eq!(cookie_name("https://sb.zef.pub"), "auth_sb_zef_pub");
+    }
+
+    #[test]
+    fn cookie_name_includes_non_default_port() {
+        assert_eq!(cookie_name("http://localhost:3000/"), "auth_localhost_3000");
+        assert_eq!(
+            cookie_name("http://localhost:3000/work"),
+            "auth_localhost_3000_work"
+        );
+    }
+
+    #[test]
+    fn cookie_header_carries_jwt_value() {
+        assert_eq!(
+            auth_cookie_header("https://sb.zef.pub/space", "the.jwt.value"),
+            "auth_sb_zef_pub_space=the.jwt.value"
+        );
     }
 }
