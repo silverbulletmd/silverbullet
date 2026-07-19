@@ -43,6 +43,29 @@ test("RawHtml with array body passes strings through unescaped", () => {
   ).toEqual("<b>bold</b><i>normal</i>");
 });
 
+test("Void elements have no closing tag", () => {
+  expect(
+    renderHtml({
+      name: "img",
+      attrs: { src: "test.png", alt: "" },
+      body: "",
+    }),
+  ).toEqual('<img src="test.png" alt="">');
+  expect(
+    renderHtml({
+      name: "IMG",
+      attrs: { src: "test.png" },
+      body: "",
+    }),
+  ).toEqual('<IMG src="test.png">');
+  expect(
+    renderHtml({
+      name: "br",
+      body: "",
+    }),
+  ).toEqual("<br>");
+});
+
 test("Fragment renders children without wrapper", () => {
   expect(
     renderHtml({
