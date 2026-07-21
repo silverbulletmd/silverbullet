@@ -24,7 +24,7 @@ export function fencedCodePlugin(client: Client) {
             return;
           }
           const text = state.sliceDoc(from, to);
-          const [_, lang] = text.match(/^(?:```+|~~~+)(\w+)?/)!;
+          const [_, lang] = text.match(/^(?:```+|~~~+)(\S+)?/)!;
           const renderMode = widgetRenderMode(client);
 
           const luaWidgetDef = lang
